@@ -243,8 +243,8 @@
 		input[type="email"]:focus,
 		select:focus,
 		textarea:focus {
-			border-color: #629DD1;
-			box-shadow: 0 0 0 1px #629DD1;
+			border-color: #D17062;
+			box-shadow: 0 0 0 1px #D17062;
 		}
 
 	.select-wrapper {
@@ -355,8 +355,8 @@
 
 		input[type="checkbox"]:focus + label:before,
 		input[type="radio"]:focus + label:before {
-			border-color: #629DD1;
-			box-shadow: 0 0 0 1px #629DD1;
+			border-color: #D17062;
+			box-shadow: 0 0 0 1px #D17062;
 		}
 
 	input[type="checkbox"] + label:before {
@@ -438,7 +438,7 @@
 			display: inline-block;
 			margin: 0 0 1.25em 0;
 			color: #ffffff;
-			background: #629DD1;
+			background: #D17062;
 			width: 3em;
 			height: 3em;
 			font-size: 2em;
@@ -802,7 +802,7 @@
 		input[type="reset"].special,
 		input[type="button"].special,
 		.button.special {
-			background-color: #629DD1;
+			background-color: #D17062;
 			color: #ffffff !important;
 		}
 
@@ -810,7 +810,7 @@
 			input[type="reset"].special:hover,
 			input[type="button"].special:hover,
 			.button.special:hover {
-				background-color: #76a9d7;
+				background-color: #d78476;
 			}
 
 			input[type="submit"].special:active,
@@ -945,7 +945,7 @@
 					}
 
 						#header nav > ul > li a:hover {
-							color: #629DD1;
+							color: #D17062;
 						}
 
 					#header nav > ul > li:first-child {
