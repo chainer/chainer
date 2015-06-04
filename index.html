@@ -23,7 +23,9 @@
       <link rel="stylesheet" href="css/style-xlarge.css" />
     </noscript>
     <style type="text/css">
-      .fb_iframe_widget span { vertical-align: baseline !important; }
+      .fb_iframe_widget span { vertical-align: middle !important; }
+      #twitter_share iframe { vertical-align: middle !important; }
+      #gplus_share div { vertical-align: middle !important; }
     </style>
   </head>
   <body id="top">
@@ -43,14 +45,14 @@
       
       <nav id="nav">
 	<ul>
-          <li>
+          <li id="twitter_share">
             <a href="https://twitter.com/share" class="twitter-share-button" data-url="http://chainer.org">Tweet</a>
             <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
           </li>
-          <li>
+          <li id="fb_share">
             <div class="fb-share-button" data-href="http://chaier.org/" data-layout="button_count"></div>
           </li>
-          <li>
+          <li id="gplus_share">
             <div class="g-plus" data-action="share" data-annotation="bubble" data-href="http://chainer.org/"></div>
           </li>
 
