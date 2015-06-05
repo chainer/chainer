@@ -27,6 +27,15 @@
       #twitter_share iframe { vertical-align: middle !important; }
       #gplus_share div { vertical-align: middle !important; }
     </style>
+    <script>
+      $(function() {
+        $(".quickstart_button").click(function () {
+          var p = $("#quickstart").offset().top - 60;
+          $('html,body').animate({ scrollTop: p }, 'slow');
+          return false;
+        });
+      });
+    </script>
   </head>
   <body id="top">
     <div id="fb-root"></div>
@@ -71,7 +80,7 @@
 	<h2><img src="images/chainer_white_h.png" width="300" alt="Chainer"/></h2>
 	<p>A flexible framework of neural networks</p>
 	<ul class="actions">
-	  <li><a href="#quickstart" class="button big special">Get Started</a></li>
+	  <li><a href="#quickstart" class="button big special quickstart_button">Get Started</a></li>
 	  <li><a href="http://docs.chainer.org/" class="button big alt">Learn More</a></li>
 	</ul>
       </div>
