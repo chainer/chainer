@@ -726,7 +726,7 @@
 		input[type="reset"]:active,
 		input[type="button"]:active,
 		.button:active {
-			background-color: #0f1315;
+			background-color: #15130f;
 		}
 
 		input[type="submit"].icon,
@@ -817,7 +817,7 @@
 			input[type="reset"].special:active,
 			input[type="button"].special:active,
 			.button.special:active {
-				background-color: #4e91cb;
+				background-color: #b3544e;
 			}
 
 		input[type="submit"].disabled, input[type="submit"]:disabled,
