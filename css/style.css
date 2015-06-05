@@ -1000,6 +1000,7 @@
 
 		#banner .inner {
 			position: relative;
+			top: 2em;
 			z-index: 1;
 		}
 
