@@ -71,7 +71,7 @@
 	<h2><img src="images/chainer_white_h.png" width="300" alt="Chainer"/></h2>
 	<p>A flexible framework of neural networks</p>
 	<ul class="actions">
-	  <li><a href="http://docs.chainer.org/quickstart.html" class="button big special">Get Started</a></li>
+	  <li><a href="#quickstart" class="button big special">Get Started</a></li>
 	  <li><a href="http://docs.chainer.org/" class="button big alt">Learn More</a></li>
 	</ul>
       </div>
@@ -79,12 +79,6 @@
 
     <!-- One -->
     <section id="one" class="wrapper style1">
-      <!--
-      <header class="major">
-	<h2>Ipsum feugiat consequat</h2>
-	<p>Tempus adipiscing commodo ut aliquam blandit</p>
-      </header>
-      -->
       <div class="container">
 	<div class="row">
 	  <div class="4u">
@@ -92,8 +86,7 @@
 	      <i class="icon fa-puzzle-piece major"></i>
 	      <h3>Flexible</h3>
 	      <p>
-                Chainer supports sophisticated neural network architectures including feed-forward nets, convnets, recurrent nets and recursive nets.
-                It further accepts per-batch architectures.
+		Chainer supports various network architectures including feed-forward nets, convnets, recurrent nets and recursive nets. It also supports per-batch architectures.
               </p>
 	    </section>
 	  </div>
@@ -102,9 +95,8 @@
 	      <i class="icon fa-bolt major"></i>
 	      <h3>Intuitive</h3>
 	      <p>
-                Chainer is based on dynamic network definition.
-                Forward computation can include any control flow statements of Python without lacking ability of backpropagation.
-                It makes codes intuitive and easy to debug.
+		Forward computation can include any control flow statements of Python without lacking ability of backpropagation.
+		It makes codes intuitive and easy to debug.
               </p>
 	    </section>
 	  </div>
@@ -123,84 +115,37 @@
       </div>
     </section>
 
-
-    <!-- Two -->
-    <!--
-    <section id="two" class="wrapper style2">
-      <header class="major">
-	<h2>Commodo accumsan aliquam</h2>
-	<p>Amet nisi nunc lorem accumsan</p>
-      </header>
-      <div class="container">
-	<div class="row">
-	  <div class="6u">
-	    <section class="special">
-	      <a href="#" class="image fit"><img src="images/pic01.jpg" alt="" /></a>
-	      <h3>Mollis adipiscing nisl</h3>
-	      <p>Eget mi ac magna cep lobortis faucibus accumsan enim lacinia adipiscing metus urna adipiscing cep commodo id. Ac quis arcu amet. Arcu nascetur lorem adipiscing non faucibus odio nullam arcu lobortis. Aliquet ante feugiat. Turpis aliquet ac posuere volutpat lorem arcu aliquam lorem.</p>
-	      <ul class="actions">
-		<li><a href="#" class="button alt">Learn More</a></li>
-	      </ul>
-	    </section>
-	  </div>
-	  <div class="6u">
-	    <section class="special">
-	      <a href="#" class="image fit"><img src="images/pic02.jpg" alt="" /></a>
-	      <h3>Neque ornare adipiscing</h3>
-	      <p>Eget mi ac magna cep lobortis faucibus accumsan enim lacinia adipiscing metus urna adipiscing cep commodo id. Ac quis arcu amet. Arcu nascetur lorem adipiscing non faucibus odio nullam arcu lobortis. Aliquet ante feugiat. Turpis aliquet ac posuere volutpat lorem arcu aliquam lorem.</p>
-	      <ul class="actions">
-		<li><a href="#" class="button alt">Learn More</a></li>
-	      </ul>
-	    </section>
-	  </div>
-	</div>
-      </div>
-    </section>
--->
-
-    <!-- Three -->
-    <section id="three" class="wrapper style1">
-      <div class="container">
-	<section>
-	  <h2>Mollis ut adipiscing</h2>
-
-	  <p>Vis accumsan feugiat adipiscing nisl amet adipiscing accumsan blandit accumsan sapien blandit ac amet faucibus aliquet placerat commodo. Interdum ante aliquet commodo accumsan vis phasellus adipiscing. Ornare a in lacinia. Vestibulum accumsan ac metus massa tempor. Accumsan in lacinia ornare massa amet. Ac interdum ac non praesent. Cubilia lacinia interdum massa faucibus blandit nullam. Accumsan phasellus nunc integer. Accumsan euismod nunc adipiscing lacinia erat ut sit. Arcu amet. Id massa aliquet arcu accumsan lorem amet accumsan commodo odio cubilia ac eu interdum placerat placerat arcu commodo lobortis adipiscing semper ornare pellentesque.</p>
-	</section>
-      </div>
-    </section>			
-
-    <!-- Footer -->
-    <footer id="footer">
+    <section id="two" class="style1">
       <div class="container">
 	<div class="row double">
-	  <div class="6u">
-	    <div class="row collapse-at-2">
-	      <div class="6u">
-		<h3>Accumsan</h3>
-		<ul class="alt">
-		  <li><a href="#">Nascetur nunc varius</a></li>
-		  <li><a href="#">Vis faucibus sed tempor</a></li>
-		  <li><a href="#">Massa amet lobortis vel</a></li>
-		  <li><a href="#">Nascetur nunc varius</a></li>
-		</ul>
-	      </div>
-	      <div class="6u">
-	    <h2>Aliquam Interdum</h2>
-	    <p>xxx.</p>
-	    <ul class="icons">
-	      <li><a href="https://twitter.com/ChainerOfficial" class="icon fa-twitter"><span class="label">Twitter</span></a></li>
-	      <li><a href="#" class="icon fa-facebook"><span class="label">Facebook</span></a></li>
-	      <li><a href="#" class="icon fa-google-plus"><span class="label">google+</span></a></li>
-	      <li><a href="#" class="icon fa-linkedin"><span class="label">LinkedIn</span></a></li>
-	    </ul>
-	      </div>
-	    </div>
+	  <div id="quickstart" class="7u">
+	    <header class="major">
+	      <h2>Quick Start</h2>
+	    </header>
+	    <p>
+	      Install Chainer:<br>
+	      <pre><code>pip install chainer</code></pre>
+	    </p>
+	    <p>
+	      Run the MNIST example:<br>
+	      <pre><code>git clone git@github.com:pfnet/chainer
+python chainer/examples/mnist/train_mnist.py</code></pre>
+	    </p>
+	    <p>
+	      Learn more from <a href="http://docs.chainer.org">the official documentation</a>.
+	    </p>
 	  </div>
-	  <div class="6u">
+	  <div class="5u">
             <a class="twitter-timeline" href="https://twitter.com/ChainerOfficial" data-widget-id="606658917934858240">@ChainerOfficial</a>
             <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+"://platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>
 	  </div>
 	</div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer id="footer">
+      <div class="container">
 	<ul class="copyright">
 	  <li>&copy; <a href="http://www.preferred-networks.jp/">Preferred Network, inc.</a>, <a href="https://preferred.jp/">Preferred Infrastructure, inc.</a> All rights reserved.</li>
 	  <li>Design: <a href="http://templated.co">TEMPLATED</a></li>
