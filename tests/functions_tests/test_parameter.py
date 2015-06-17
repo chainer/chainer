@@ -3,8 +3,10 @@ import numpy
 from chainer import cuda, Variable
 from chainer.gradient_check import assert_allclose, numerical_grad
 from chainer.functions import Parameter
+from .. import attr
 
-cuda.init()
+if cuda.available:
+    cuda.init()
 
 class TestParameter(TestCase):
     def setUp(self):
@@ -15,6 +17,7 @@ class TestParameter(TestCase):
     def tearDown(self):
         del self.func
 
+    @attr.gpu
     def to_gpu(self):
         self.func.to_gpu()
 
@@ -25,6 +28,7 @@ class TestParameter(TestCase):
     def test_forward_cpu(self):
         self.check_forward()
 
+    @attr.gpu
     def test_forward_gpu(self):
         self.to_gpu()
         self.check_forward()
@@ -39,6 +43,7 @@ class TestParameter(TestCase):
     def test_backward_cpu(self):
         self.check_backward(self.gW)
 
+    @attr.gpu
     def test_backward_gpu(self):
         self.to_gpu()
         self.check_backward(cuda.to_gpu(self.gW))
