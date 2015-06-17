@@ -4,11 +4,8 @@ from chainer import cuda, Variable
 from chainer.cuda import to_cpu, to_gpu
 from chainer.gradient_check import assert_allclose, numerical_grad
 from chainer.functions import mean_squared_error
-from .. import attr
 
-if cuda.available:
-    cuda.init()
-
+cuda.init()
 
 class TestMeanSquaredError(TestCase):
     def setUp(self):
@@ -32,7 +29,6 @@ class TestMeanSquaredError(TestCase):
     def test_forward_cpu(self):
         self.check_forward(self.x0, self.x1)
 
-    @attr.gpu
     def test_forwrad_gpu(self):
         self.check_forward(to_gpu(self.x0), to_gpu(self.x1))
 
@@ -52,6 +48,5 @@ class TestMeanSquaredError(TestCase):
     def test_backward_cpu(self):
         self.check_backward(self.x0, self.x1)
 
-    @attr.gpu
     def test_backward_gpu(self):
         self.check_backward(to_gpu(self.x0), to_gpu(self.x1))

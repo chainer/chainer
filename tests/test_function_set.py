@@ -2,10 +2,8 @@ import cPickle as pickle
 from unittest import TestCase
 from chainer import cuda, FunctionSet
 from chainer.functions import Linear
-from . import attr
 
-if cuda.available:
-    cuda.init()
+cuda.init()
 
 class TestFunctionSet(TestCase):
     def setUp(self):
@@ -25,7 +23,6 @@ class TestFunctionSet(TestCase):
         fs2 = pickle.loads(s)
         self.check_equal_fs(self.fs, fs2)
 
-    @attr.gpu
     def test_pickle_gpu(self):
         self.fs.to_gpu()
         s   = pickle.dumps(self.fs)

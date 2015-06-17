@@ -4,10 +4,8 @@ from chainer import cuda, Variable
 from chainer.cuda import to_cpu, to_gpu
 from chainer.gradient_check import assert_allclose
 from chainer.functions import accuracy
-from .. import attr
 
-if cuda.available:
-    cuda.init()
+cuda.init()
 
 class TestAccuracy(TestCase):
     def setUp(self):
@@ -31,6 +29,5 @@ class TestAccuracy(TestCase):
     def test_forward_cpu(self):
         self.check_forward(self.x, self.t)
 
-    @attr.gpu
     def test_forward_gpu(self):
         self.check_forward(to_gpu(self.x), to_gpu(self.t))

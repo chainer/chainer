@@ -4,10 +4,8 @@ from chainer      import cuda, Variable
 from chainer.cuda import to_gpu
 from chainer.gradient_check import assert_allclose, numerical_grad
 from chainer.functions import BatchNormalization
-from .. import attr
 
-if cuda.available:
-    cuda.init()
+cuda.init()
 
 # fully-connected usage
 class TestBatchNormalization(TestCase):
@@ -41,7 +39,6 @@ class TestBatchNormalization(TestCase):
     def test_forward_cpu(self):
         self.check_forward(self.x)
 
-    @attr.gpu
     def test_forward_gpu(self):
         self.func.to_gpu()
         self.check_forward(to_gpu(self.x))
@@ -63,7 +60,6 @@ class TestBatchNormalization(TestCase):
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy)
 
-    @attr.gpu
     def test_backward_gpu(self):
         self.func.to_gpu()
         self.check_backward(to_gpu(self.x), to_gpu(self.gy))
