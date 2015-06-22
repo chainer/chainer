@@ -26,8 +26,15 @@ class FunctionSet(object):
                 object as attributes.
 
         """
-        for name, func in functions.iteritems():
-            setattr(self, name, func)
+        self.__dict__["functions"] = functions
+
+    def __getattr__(self, item):
+        if "functions" in self.__dict__ and item in self.functions:
+            return self.functions[item]
+
+        raise AttributeError(
+            "'%s' object has no attribute '%s'" % (self.__class__.__name__, item))
+
 
     def collect_parameters(self):
         """Returns a tuple of parameters and gradients.
@@ -52,7 +59,7 @@ class FunctionSet(object):
             self
 
         """
-        for func in self.__dict__.itervalues():
+        for func in self.functions.itervalues():
             func.to_gpu(device=device)
         return self
 
@@ -65,7 +72,7 @@ class FunctionSet(object):
             self
 
         """
-        for func in self.__dict__.itervalues():
+        for func in self.functions.itervalues():
             func.to_cpu()
         return self
 
@@ -118,4 +125,4 @@ class FunctionSet(object):
             func.gradients = grad_iter
 
     def _get_sorted_funcs(self):
-        return sorted(self.__dict__.iteritems())
+        return sorted(self.functions.iteritems())
