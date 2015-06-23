@@ -35,6 +35,13 @@ class FunctionSet(object):
         raise AttributeError(
             "'%s' object has no attribute '%s'" % (self.__class__.__name__, item))
 
+    def __setattr__(self, key, value):
+        if all( [ hasattr(value, i) for i in ["parameters", "gradients"] ]):
+            if "functions" in self.__dict__:
+                self.functions[key] = value
+                return
+
+        self.__dict__[key] = value
 
     def collect_parameters(self):
         """Returns a tuple of parameters and gradients.
