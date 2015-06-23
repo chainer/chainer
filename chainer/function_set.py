@@ -1,3 +1,4 @@
+import warnings
 import numpy
 
 import cuda
@@ -29,6 +30,12 @@ class FunctionSet(object):
         for name, func in functions.iteritems():
             setattr(self, name, func)
 
+    def __setattr__(self, key, value):
+        if key == '__collected':
+            raise RuntimeError(
+                'The name __collected is reserved for internal use')
+        self.__dict__[key] = value
+
     def collect_parameters(self):
         """Returns a tuple of parameters and gradients.
 
@@ -37,6 +44,7 @@ class FunctionSet(object):
             parameter arrays, and the second is a tuple of gradient arrays.
 
         """
+        self.__dict__['__collected'] = True
         return self.parameters, self.gradients
 
     def to_gpu(self, device=None):
@@ -52,8 +60,10 @@ class FunctionSet(object):
             self
 
         """
+        self._warn_if_collected()
         for func in self.__dict__.itervalues():
-            func.to_gpu(device=device)
+            if isinstance(func, Function):
+                func.to_gpu(device=device)
         return self
 
     def to_cpu(self):
@@ -65,8 +75,10 @@ class FunctionSet(object):
             self
 
         """
+        self._warn_if_collected()
         for func in self.__dict__.itervalues():
-            func.to_cpu()
+            if isinstance(func, Function):
+                func.to_cpu()
         return self
 
     def copy_parameters_from(self, params):
@@ -118,4 +130,14 @@ class FunctionSet(object):
             func.gradients = grad_iter
 
     def _get_sorted_funcs(self):
-        return sorted(self.__dict__.iteritems())
+        return sorted(((k, v) for k, v in self.__dict__.iteritems()
+                       if isinstance(v, Function)))
+
+    def _warn_if_collected(self):
+        if hasattr(self, '__collected'):
+            warnings.warn('A parameter/gradient array owned by an optimizer is'
+                          + ' moved over host/devices. It will cause the gradient'
+                          + ' updates hidden from the optimizer, which makes the'
+                          + ' learning process meaningless. See the issue #47 for'
+                          + ' more detailed discussions:'
+                          + ' https://github.com/pfnet/chainer/issues/47')
