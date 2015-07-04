@@ -229,7 +229,7 @@ class CaffeFunction(function.Function):
         func.W.fill(0)
 
         part_size = len(blobs[0].data) // param.group
-        for i in six.moves.xrange(param.group):
+        for i in six.moves.range(param.group):
             in_slice = slice(i * n_in // param.group,
                              (i+1) * n_in // param.group)
             out_slice = slice(i * n_out // param.group,
