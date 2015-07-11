@@ -48,6 +48,9 @@ class TestVariable(unittest.TestCase):
         x = chainer.Variable(x)
         self.assertEqual(len(x), 10)
 
+        x2 = chainer.Variable(x)
+        self.assertEqual(len(x2), 10)
+
     def test_len_cpu(self):
         self.check_len(False)
 
@@ -68,6 +71,14 @@ class TestVariable(unittest.TestCase):
     @attr.gpu
     def test_label_gpu(self):
         self.check_label('(2, 5), float32', True)
+
+    @attr.gpu
+    def test_to_gpu_roundtrip(self):
+        v = chainer.Variable(np.array([1]))
+        result = v.to_gpu()
+        self.assertTrue(isinstance(result.data, cuda.GPUArray))
+        result = v.to_cpu()
+        self.assertTrue(isinstance(result.data, np.ndarray))
 
     def check_backward(self, inputs, intermediates, outputs, retain_grad):
         for o in outputs:
@@ -133,5 +144,10 @@ class TestVariable(unittest.TestCase):
         self.check_backward((ret[1], ), (ret[2], ), (ret[3], ), False)
 
     def test_invalid_value_type(self):
-        with self.assertRaises(AssertionError):
+        msg = "'data' must be numpy.ndarray, cuda.GPUArray or Variable"
+        with self.assertRaisesRegexp(ValueError, msg):
             chainer.Variable(1)
+
+        msg = "'volatile' must be bool type"
+        with self.assertRaisesRegexp(ValueError, msg):
+            chainer.Variable(np.array([1]), volatile='INVALID')

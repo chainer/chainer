@@ -457,6 +457,9 @@ def to_gpu(array, device=None):
         copy GPUArray into specified device.
 
     """
+    if hasattr(array, 'to_gpu'):
+        return array.to_gpu(device=device)
+
     if isinstance(array, GPUArray):
         return array
     with using_device(device):
@@ -511,6 +514,9 @@ def to_cpu(array):
         ``array`` without performing any copy.
 
     """
+    if hasattr(array, 'to_cpu'):
+        return array.to_cpu()
+
     if isinstance(array, GPUArray):
         return array.get()
     return array

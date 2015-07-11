@@ -45,8 +45,8 @@ class Variable(object):
         """Initializes a variable.
 
         Args:
-            data (:class:`~numpy.ndarray` or \
-                :class:`~pycuda.gpuarray.GPUArray`):
+            data (:class:`~numpy.ndarray`,  \
+                :class:`~pycuda.gpuarray.GPUArray`) or ``Variable``:
                 Data array that this variable holds.
             volatile (bool): Volatility flag. If it is True, the variable will
                 not keep track of any function applications.
@@ -59,10 +59,20 @@ class Variable(object):
            :mod:`cuda` automatically uses this allocator.
 
         """
-        assert isinstance(data, (numpy.ndarray, cuda.GPUArray))
-        assert isinstance(volatile, bool)
 
-        self.data = data
+        if not isinstance(volatile, bool):
+            msg = "'volatile' must be bool type, {0} given"
+            raise ValueError(msg.format(type(volatile)))
+
+        if isinstance(data, Variable):
+            self.data = data.data
+        elif isinstance(data, (numpy.ndarray, cuda.GPUArray)):
+            self.data = data
+        else:
+            msg = ("'data' must be numpy.ndarray, cuda.GPUArray or Variable, "
+                   "{0} given")
+            raise ValueError(msg.format(type(data)))
+
         self.rank = 0
         self.volatile = volatile
 
@@ -200,3 +210,26 @@ class Variable(object):
             func.unchain()
 
     __array_priority__ = 200
+
+    def to_gpu(self, device=None):
+        """Create a Variable copying the internal data to specified GPU device.
+
+        Note that internal function tracking status will be reset.
+
+        Args:
+            device: Device specifier.
+        """
+        data = cuda.to_gpu(self.data, device=device)
+        return Variable(data, volatile=self.volatile)
+
+    def to_cpu(self):
+        """Create a Variable copying the internal data to CPU.
+
+        Note that internal function tracking status will be reset.
+        """
+        data = cuda.to_cpu(self.data)
+        return Variable(data, volatile=self.volatile)
+
+    @property
+    def shape(self):
+        return self.data.shape
