@@ -138,7 +138,7 @@ class MaxPooling2D(pooling_2d.Pooling2D):
 
 
 def max_pooling_2d(x, ksize, stride=None, pad=0, cover_all=True,
-                   use_cudnn=True):
+                   use_cudnn=True, name=None):
     """Spatial max pooling function.
 
     This function acts similarly to :class:`~functions.Convolution2D`, but
@@ -158,9 +158,10 @@ def max_pooling_2d(x, ksize, stride=None, pad=0, cover_all=True,
             output pixels. It may make the output size larger.
         use_cudnn (bool): If True and CuDNN is enabled, then this function
             uses CuDNN as the core implementation.
+        name (str): Function name
 
     Returns:
         ~chainer.Variable: Ouptut variable.
 
     """
-    return MaxPooling2D(ksize, stride, pad, cover_all, use_cudnn)(x)
+    return MaxPooling2D(ksize, stride, pad, cover_all, use_cudnn, name=name)(x)

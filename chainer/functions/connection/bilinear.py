@@ -70,6 +70,7 @@ class Bilinear(function.Function):
             and ``(output_size,)``, respectively. If ``None``, :math:`V^1`
             and :math:`V^2` is initialized by scaled centered Gaussian
             distributions and :math:`b` is set to :math:`0`.
+        name (str): Function name
 
     See:
         `Reasoning With Neural Tensor Networks for Knowledge Base Completion
@@ -78,7 +79,7 @@ class Bilinear(function.Function):
     """
 
     def __init__(self, left_size, right_size, out_size, nobias=False,
-                 initialW=None, initial_bias=None):
+                 initialW=None, initial_bias=None, name=None):
 
         self.W = None
         self.gW = None
@@ -91,6 +92,8 @@ class Bilinear(function.Function):
 
         self.in_sizes = (left_size, right_size)
         self.nobias = nobias
+
+        self.name = name
 
         if initialW is not None:
             assert initialW.shape == (

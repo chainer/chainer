@@ -119,9 +119,11 @@ def _get_check_index(trans, right, row_idx=0, col_idx=1):
 
 
 class MatMul(function.Function):
-    def __init__(self, transa=False, transb=False):
+
+    def __init__(self, transa=False, transb=False, name=None):
         self.transa = transa
         self.transb = transb
+        self.name = name
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 2)
@@ -156,7 +158,7 @@ class MatMul(function.Function):
         return gx0, gx1
 
 
-def matmul(a, b, transa=False, transb=False):
+def matmul(a, b, transa=False, transb=False, name=None):
     """Computes the matrix multiplication of two arrays.
 
     Args:
@@ -167,18 +169,21 @@ def matmul(a, b, transa=False, transb=False):
             Its array is treated as a matrix in the same way as ``a``'s array.
         transa (bool): If true, transpose a.
         transb (bool): If true, transpose b.
+        name (str): Function name
 
     Returns:
         ~chainer.Variable: The result of the matrix multiplication as a 2-D
             array.
     """
-    return MatMul(transa=transa, transb=transb)(a, b)
+    return MatMul(transa=transa, transb=transb, name=name)(a, b)
 
 
 class BatchMatMul(function.Function):
-    def __init__(self, transa=False, transb=False):
+
+    def __init__(self, transa=False, transb=False, name=None):
         self.transa = transa
         self.transb = transb
+        self.name = name
 
     def _output_shape(self, a, b):
         batch_size = a.shape[0]
@@ -255,7 +260,7 @@ class BatchMatMul(function.Function):
         return ga, gb
 
 
-def batch_matmul(a, b, transa=False, transb=False):
+def batch_matmul(a, b, transa=False, transb=False, name=None):
     """Computes the batch matrix multiplications of two sets of arrays.
 
     Args:
@@ -266,9 +271,10 @@ def batch_matmul(a, b, transa=False, transb=False):
             Its array is treated as matrices in the same way as ``a``'s array.
         transa (bool): If true, transpose each matrix in a.
         transb (bool): If true, transpose each matrix in b.
+        name (str): Function name
 
     Returns:
         ~chainer.Variable: The result of the batch matrix multiplications as a
             3-D array.
     """
-    return BatchMatMul(transa=transa, transb=transb)(a, b)
+    return BatchMatMul(transa=transa, transb=transb, name=name)(a, b)

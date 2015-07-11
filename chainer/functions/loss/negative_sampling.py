@@ -45,6 +45,7 @@ class NegativeSampling(function.Function):
         counts (int list): Number of each identifiers.
         sample_size (int): Number of negative samples.
         power (float): Power factor :math:`\\alpha`.
+        name (str): Function name
 
     See: `Distributed Representations of Words and Phrases and their\
          Compositionality <http://arxiv.org/abs/1310.4546>`_
@@ -53,7 +54,7 @@ class NegativeSampling(function.Function):
     parameter_names = ('W',)
     gradient_names = ('gW',)
 
-    def __init__(self, in_size, counts, sample_size, power=0.75):
+    def __init__(self, in_size, counts, sample_size, power=0.75, name=None):
         self.sample_size = sample_size
         p = numpy.array(counts, numpy.float32)
         p = numpy.power(p, p.dtype.type(power))
@@ -62,6 +63,8 @@ class NegativeSampling(function.Function):
         vocab_size = len(counts)
         self.W = numpy.zeros((vocab_size, in_size)).astype(numpy.float32)
         self.gW = numpy.full_like(self.W, numpy.nan)
+
+        self.name = name
 
     def _make_samples(self, t):
         if hasattr(self, 'samples'):

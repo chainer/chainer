@@ -7,8 +7,9 @@ class Copy(function.Function):
 
     """Copy an input cupy.ndarray onto another device."""
 
-    def __init__(self, out_device):
+    def __init__(self, out_device, name=None):
         self.out_device = out_device
+        self.name = name
 
     def check_type_forward(self, in_types):
         type_check.expect(
@@ -28,7 +29,7 @@ class Copy(function.Function):
         return cuda.copy(gy[0], out_device=cuda.get_device(x[0])),
 
 
-def copy(x, dst):
+def copy(x, dst, name=None):
     """Copies the input variable onto the specified device.
 
     This function copies the array of input variable onto the device specified
@@ -38,9 +39,10 @@ def copy(x, dst):
     Args:
         x (~chainer.Variable): Variable to be copied.
         dst: Target device specifier.
+        name (str): Function name
 
     Returns:
         ~chainer.Variable: Output variable.
 
     """
-    return Copy(dst)(x)
+    return Copy(dst, name=name)(x)

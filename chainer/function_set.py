@@ -31,7 +31,12 @@ class FunctionSet(object):
 
         """
         for name, func in six.iteritems(functions):
-            setattr(self, name, func)
+            if func is None or isinstance(func, (function.Function,
+                                                 FunctionSet)):
+                setattr(self, name, func)
+            else:
+                msg = '{0} is not a Function or FunctionSet instance'
+                raise ValueError(msg.format(func))
 
     def collect_parameters(self):
         """Returns a tuple of parameters and gradients.

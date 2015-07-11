@@ -34,11 +34,11 @@ class MeanSquaredError(function.Function):
         return gx0, -gx0
 
 
-def mean_squared_error(x0, x1):
+def mean_squared_error(x0, x1, name=None):
     """Mean squared error function.
 
     This function computes mean squared error between two variables. The mean
     is taken over the minibatch. Note that the error is not scaled by 1/2.
 
     """
-    return MeanSquaredError()(x0, x1)
+    return MeanSquaredError(name=name)(x0, x1)

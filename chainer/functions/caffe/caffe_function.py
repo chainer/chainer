@@ -91,6 +91,7 @@ class CaffeFunction(function.Function):
 
     Args:
         model_path (str): Path to the binary-proto model file of Caffe.
+        name (str): Function name
 
     Attributes:
         fs (FunctionSet): A set of functions corresponding to parameterized
@@ -99,7 +100,7 @@ class CaffeFunction(function.Function):
         forwards (dict): A mapping from layer names to corresponding functions.
 
     """
-    def __init__(self, model_path):
+    def __init__(self, model_path, name=None):
         if not available:
             raise RuntimeError('CaffeFunction is not supported on Python 3')
 
@@ -111,6 +112,7 @@ class CaffeFunction(function.Function):
         self.forwards = {}
         self.split_map = {}
         self.layers = []
+        self.name = name
 
         if net.layer:
             for layer in net.layer:

@@ -10,10 +10,12 @@ class CrossCovariance(function.Function):
 
     """Cross-covariance loss."""
 
-    def __init__(self):
+    def __init__(self, name=None):
         self.y_centered = None
         self.z_centered = None
         self.covariance = None
+
+        self.name = name
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 2)
@@ -51,7 +53,7 @@ class CrossCovariance(function.Function):
         return gy, gz
 
 
-def cross_covariance(y, z):
+def cross_covariance(y, z, name=None):
     """Computes the sum-squared cross-covariance penalty between ``y`` and ``z``
 
     Args:
@@ -59,6 +61,7 @@ def cross_covariance(y, z):
             corresponds to the batches
         z (Variable): Variable holding a matrix where the first dimension
             corresponds to the batches
+        name (str): Function name
 
     Returns:
         Variable: A variable holding a scalar of the cross covariance loss.
@@ -69,4 +72,4 @@ def cross_covariance(y, z):
        See http://arxiv.org/abs/1412.6583v3 for details.
 
     """
-    return CrossCovariance()(y, z)
+    return CrossCovariance(name=name)(y, z)

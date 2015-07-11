@@ -13,8 +13,9 @@ class Gaussian(function.Function):
     as inputs, and draw a sample from a gaussian distribution.
     """
 
-    def __init__(self):
+    def __init__(self, name=None):
         self.eps = None
+        self.name = name
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 2)
@@ -55,7 +56,7 @@ class Gaussian(function.Function):
         return g, g * self.noise * g.dtype.type(0.5),
 
 
-def gaussian(mean, ln_var):
+def gaussian(mean, ln_var, name=None):
     """Gaussian sampling function.
 
     It takes mean :math:`\\mu` and logarithm of variance
@@ -67,9 +68,10 @@ def gaussian(mean, ln_var):
             :math:`\\mu`.
         ln_var (~chainer.Variable): Input variable representing logarithm of
             variance :math:`\\log(\\sigma^2)`.
+        name (str): Function name
 
     Returns:
         ~chainer.Variable: Output variable.
 
     """
-    return Gaussian()(mean, ln_var)
+    return Gaussian(name=name)(mean, ln_var)

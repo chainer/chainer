@@ -10,8 +10,9 @@ class Concat(function.Function):
     """Concatenate multiple tensors towards specified axis."""
 
     # concat along the channel dimension by default
-    def __init__(self, axis=1):
+    def __init__(self, axis=1, name=None):
         self.axis = axis
+        self.name = name
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() > 0)
@@ -42,15 +43,16 @@ class Concat(function.Function):
         return xp.split(gy[0], sizes, axis=self.axis)
 
 
-def concat(xs, axis=1):
+def concat(xs, axis=1, name=None):
     """Concatenates given variables along an axis.
 
     Args:
         xs (tuple of Variables): Variables to be concatenated.
         axis (int): Axis that the input arrays are concatenated along.
+        name (str): Function name
 
     Returns:
         ~chainer.Variable: Output variable.
 
     """
-    return Concat(axis=axis)(*xs)
+    return Concat(axis=axis, name=name)(*xs)

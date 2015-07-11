@@ -15,8 +15,9 @@ class Tanh(function.Function):
 
     """Hyperbolic tangent function."""
 
-    def __init__(self, use_cudnn=True):
+    def __init__(self, use_cudnn=True, name=None):
         self.use_cudnn = use_cudnn
+        self.name = name
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)
@@ -60,16 +61,17 @@ class Tanh(function.Function):
         return gx,
 
 
-def tanh(x, use_cudnn=True):
+def tanh(x, use_cudnn=True, name=None):
     """Elementwise hyperbolic tangent function.
 
     Args:
         x (~chainer.Variable): Input variable.
         use_cudnn (bool): If True and CuDNN is enabled, then this function uses
             CuDNN as the core implementation.
+        name (str): Function name
 
     Returns:
         ~chainer.Variable: Output variable.
 
     """
-    return Tanh(use_cudnn)(x)
+    return Tanh(use_cudnn, name=name)(x)

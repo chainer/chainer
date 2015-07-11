@@ -5,9 +5,10 @@ from chainer.utils import type_check
 class Swapaxes(function.Function):
     """Swap two axes of an array."""
 
-    def __init__(self, axis1, axis2):
+    def __init__(self, axis1, axis2, name=None):
         self.axis1 = axis1
         self.axis2 = axis2
+        self.name = name
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1,)
@@ -27,16 +28,17 @@ class Swapaxes(function.Function):
         return gx,
 
 
-def swapaxes(x, axis1, axis2):
+def swapaxes(x, axis1, axis2, name=None):
     """Swap two axes of a variable.
 
     Args:
         x (~chainer.Variable): Input variable.
         axis1 (int): The first axis to swap.
         axis2 (int): The second axis to swap.
+        name (str): Function name
 
     Returns:
         ~chainer.Variable: Variable whose axes are swapped.
 
     """
-    return Swapaxes(axis1, axis2)(x)
+    return Swapaxes(axis1, axis2, name=name)(x)

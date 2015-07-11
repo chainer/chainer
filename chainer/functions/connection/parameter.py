@@ -13,14 +13,16 @@ class Parameter(function.Function):
 
     Args:
         array: Initial parameter array.
+        name (str): Function name
 
     """
     parameter_names = 'W',
     gradient_names = 'gW',
 
-    def __init__(self, array):
+    def __init__(self, array, name=None):
         self.W = array
         self.gW = numpy.full_like(array, numpy.nan)
+        self.name = name
 
     def __call__(self, volatile=False):
         ret = super(Parameter, self).__call__()

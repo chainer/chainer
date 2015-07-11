@@ -28,6 +28,7 @@ class PReLU(function.Function):
     Args:
         shape (tuple of ints): Shape of the parameter array.
         init (float): Initial parameter value.
+        name (str): Function name
 
     See detail in paper: `Delving Deep into Rectifiers: Surpassing \
     Human-Level Performance on ImageNet Classification \
@@ -37,9 +38,10 @@ class PReLU(function.Function):
     parameter_names = 'W',
     gradient_names = 'gW',
 
-    def __init__(self, shape=(), init=0.25):
+    def __init__(self, shape=(), init=0.25, name=None):
         self.W = numpy.full(shape, init, dtype=numpy.float32)
         self.gW = numpy.full_like(self.W, numpy.nan)
+        self.name = name
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)

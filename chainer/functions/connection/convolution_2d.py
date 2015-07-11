@@ -45,6 +45,7 @@ class Convolution2D(function.Function):
         initial_bias (1-D array): Initial bias value. If ``None``, then this
             function uses to initialize ``bias``.
         dtype (numpy.dtype): Type to use in computing.
+        name (str): Function name
 
     This function holds at most two parameter arrays: ``W`` and ``b``, which
     indicate the filter weight and the bias vector, respectively.
@@ -87,9 +88,8 @@ class Convolution2D(function.Function):
     def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
                  wscale=1, bias=0, nobias=False, use_cudnn=True,
                  initialW=None, initial_bias=None,
-                 dtype=numpy.float32):
+                 dtype=numpy.float32, name=None):
         self.dtype = numpy.dtype(dtype)
-
         ksize = _pair(ksize)
         stride = _pair(stride)
         pad = _pair(pad)
@@ -105,6 +105,8 @@ class Convolution2D(function.Function):
         self.gW = None
         self.b = None
         self.gb = None
+
+        self.name = name
 
         if initialW is not None:
             assert initialW.shape == \
@@ -299,15 +301,17 @@ class NonparameterizedConvolution2D(function.Function):
         pad (int or (int, int)): Spatial padding width for input arrays.
             ``pad=p`` and ``pad=(p, p)`` are equivalent.
         use_cudnn (bool): If True, then this function uses CuDNN if available.
+        name (str): Function name
 
     .. seealso:: :class:`Convolution2D`
 
     """
-    def __init__(self, stride=1, pad=0, use_cudnn=True):
+    def __init__(self, stride=1, pad=0, use_cudnn=True, name=None):
         self.stride = stride
         self.pad = pad
 
         self.use_cudnn = use_cudnn
+        self.name = name
 
     def check_type_forward(self, in_types):
         type_check.expect(
@@ -359,7 +363,7 @@ class NonparameterizedConvolution2D(function.Function):
         return (gx[0], func.gW, func.gb)
 
 
-def convolution_2d(x, W, b=None, stride=1, pad=0, use_cudnn=True):
+def convolution_2d(x, W, b=None, stride=1, pad=0, use_cudnn=True, name=None):
     """Two-dimensional convolution function.
 
     Args:
@@ -371,6 +375,7 @@ def convolution_2d(x, W, b=None, stride=1, pad=0, use_cudnn=True):
         pad (int or (int, int)): Spatial padding width for input arrays.
             ``pad=p`` and ``pad=(p, p)`` are equivalent.
         use_cudnn (bool): If True, then this function uses CuDNN if available.
+        name (str): Function name
 
     Returns:
         ~chainer.Variable: Output variable.
@@ -380,7 +385,7 @@ def convolution_2d(x, W, b=None, stride=1, pad=0, use_cudnn=True):
     """
     if b is None:
         return NonparameterizedConvolution2D(
-            stride=stride, pad=pad, use_cudnn=use_cudnn)(x, W)
+            stride=stride, pad=pad, use_cudnn=use_cudnn, name=name)(x, W)
     else:
         return NonparameterizedConvolution2D(
-            stride=stride, pad=pad, use_cudnn=use_cudnn)(x, W, b)
+            stride=stride, pad=pad, use_cudnn=use_cudnn, name=name)(x, W, b)

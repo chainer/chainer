@@ -14,12 +14,14 @@ class ClippedReLU(function.Function):
 
     """
 
-    def __init__(self, z):
+    def __init__(self, z, name=None):
         if not isinstance(z, float):
             raise TypeError('z must be float value')
         # z must be positive.
         assert z > 0
         self.cap = z
+
+        self.name = name
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)
@@ -47,7 +49,7 @@ class ClippedReLU(function.Function):
         return gx,
 
 
-def clipped_relu(x, z=20.0):
+def clipped_relu(x, z=20.0, name=None):
     """Clipped Rectifier Unit function.
 
     This function is expressed as :math:`ClippedReLU(x, z)
@@ -56,9 +58,10 @@ def clipped_relu(x, z=20.0):
     Args:
         x (~chainer.Variable): Input variable.
         z (float): Clipping value. (default = 20.0)
+        name (str): Function name
 
     Returns:
         ~chainer.Variable: Output variable.
 
     """
-    return ClippedReLU(z)(x)
+    return ClippedReLU(z, name=name)(x)

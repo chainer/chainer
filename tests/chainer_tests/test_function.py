@@ -390,5 +390,13 @@ class TestSplit(unittest.TestCase):
         self.check_backward_one(cuda.to_gpu(self.x),
                                 cuda.to_cpu(self.g1))
 
+    def test_name(self):
+        import inspect
+        for func in F.__dict__:
+            func = getattr(F, func)
+            if inspect.isclass(func) and issubclass(func, chainer.Function):
+                argspec = inspect.getargspec(func.__init__)
+                self.assertTrue('name' in argspec.args)
+
 
 testing.run_module(__name__, __file__)

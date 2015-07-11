@@ -13,11 +13,12 @@ class Reshape(function.Function):
 
     """Reshapes an input array without copy."""
 
-    def __init__(self, shape):
+    def __init__(self, shape, name=None):
         cnt = _count_unknown_dims(shape)
         assert cnt == 0 or cnt == 1
 
         self.shape = shape
+        self.name = name
 
     def check_type_forward(self, in_types):
         type_check.expect(
@@ -47,16 +48,17 @@ class Reshape(function.Function):
         return gy[0].reshape(x[0].shape),
 
 
-def reshape(x, shape):
+def reshape(x, shape, name=None):
     """Reshapes an input variable without copy.
 
     Args:
         x (~chainer.Variable): Input variable.
         shape (tuple of ints): Target shape.
+        name (str): Function name
 
     Returns:
         ~chainer.Variable: Variable that holds a reshaped version of the input
             variable.
 
     """
-    return Reshape(shape)(x)
+    return Reshape(shape, name=name)(x)
