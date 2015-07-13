@@ -100,3 +100,9 @@ class TestFunctionSet(unittest.TestCase):
         self.fs.to_cpu()
         fs2.to_cpu()
         self.check_equal_fs(self.fs, fs2)
+
+    @attr.gpu
+    def test_to_gpu_roundtrip(self):
+        fsg = cuda.to_gpu(self.fs)
+        fsc = cuda.to_cpu(fsg)
+        self.check_equal_fs(self.fs, fsc)
