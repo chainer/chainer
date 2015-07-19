@@ -8,11 +8,15 @@ class Dropout(function.Function):
 
     """Dropout regularization."""
 
-    def __init__(self, dropout_ratio):
+    def __init__(self, dropout_ratio, scale=True):
         self.dropout_ratio = dropout_ratio
+        self.scale = scale
 
     def forward_cpu(self, x):
-        scale = numpy.float32(1. / (1 - self.dropout_ratio))
+        if self.scale:
+            scale = numpy.float32(1. / (1 - self.dropout_ratio))
+        else:
+            scale = 1.
         self.mask = scale * \
             (numpy.random.rand(*x[0].shape) >= self.dropout_ratio)
         return x[0] * self.mask,
@@ -22,14 +26,17 @@ class Dropout(function.Function):
         y = cuda.empty_like(x[0])
 
         cuda.get_generator().fill_uniform(self.rand)
-        self.scale = 1. / (1 - self.dropout_ratio)
+        if self.scale:
+            self.scale_val = 1. / (1 - self.dropout_ratio)
+        else:
+            self.scale_val = 1.
 
         self.kernel = cuda.elementwise(
             '''float* y, const float* x, const float* rand, float dropout_ratio,
-               float scale''',
-            'y[i] = rand[i] < dropout_ratio ? 0 : scale * x[i]',
+               float scale_val''',
+            'y[i] = rand[i] < dropout_ratio ? 0 : scale_val * x[i]',
             'dropout')
-        self.kernel(y, x[0], self.rand, self.dropout_ratio, self.scale)
+        self.kernel(y, x[0], self.rand, self.dropout_ratio, self.scale_val)
         return y,
 
     def backward_cpu(self, x, gy):
@@ -37,11 +44,11 @@ class Dropout(function.Function):
 
     def backward_gpu(self, x, gy):
         gx = cuda.empty_like(gy[0])
-        self.kernel(gx, gy[0], self.rand, self.dropout_ratio, self.scale)
+        self.kernel(gx, gy[0], self.rand, self.dropout_ratio, self.scale_val)
         return gx,
 
 
-def dropout(x, ratio=.5, train=True):
+def dropout(x, ratio=.5, train=True, scale=True):
     """Drops elements of input variable randomly.
 
     This function drops input elements randomly with probability ``ratio`` and
@@ -61,5 +68,5 @@ def dropout(x, ratio=.5, train=True):
 
     """
     if train:
-        return Dropout(ratio)(x)
+        return Dropout(ratio, scale)(x)
     return x
