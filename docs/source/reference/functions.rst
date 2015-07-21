@@ -69,7 +69,6 @@ Loss, evaluation and aggregation
 .. autofunction:: sigmoid_cross_entropy
 .. autofunction:: softmax_cross_entropy
 .. autofunction:: sum
-.. autofunction:: cross_covariance
 
 Reusable subnetwork of complex architectures
 --------------------------------------------
