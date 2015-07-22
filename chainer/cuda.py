@@ -85,7 +85,7 @@ $ pip install -U chainer-cuda-deps
     gpuarray = pycuda.gpuarray
 except ImportError as e:
     available = False
-    warnings.warn('Could not import CUDA: {}'.format(e))
+    _import_error = e
 except pkg_resources.ResolutionError as e:
     available = False
     _resolution_error = e
@@ -159,20 +159,24 @@ def init(device=None):
     global _contexts, _cublas_handles, _generators, _pid, _pools
 
     if not available:
-        global _resolution_error
-        msg = '''CUDA environment is not correctly set up.
-Use `pip install -U chainer-cuda-deps` to install libraries.
-'''
+        global _resolution_error, _import_error
+        if _resolution_error:
+            msg = '''CUDA environment is not correctly set up.
+    Use `pip install -U chainer-cuda-deps` to install libraries.
+    '''
 
-        # Note that error message depends on its type
-        if isinstance(_resolution_error, pkg_resources.DistributionNotFound):
-            msg += 'Required package is not found: ' + str(_resolution_error)
-        elif isinstance(_resolution_error, pkg_resources.VersionConflict):
-            msg += 'Version conflict: ' + str(_resolution_error)
-        else:
-            msg += 'Unknwon error: ' + str(_resolution_error)
+            # Note that error message depends on its type
+            if isinstance(_resolution_error, pkg_resources.DistributionNotFound):
+                msg += 'Required package is not found: ' + str(_resolution_error)
+            elif isinstance(_resolution_error, pkg_resources.VersionConflict):
+                msg += 'Version conflict: ' + str(_resolution_error)
+            else:
+                msg += 'Unknwon error: ' + str(_resolution_error)
 
-        raise RuntimeError(msg)
+            raise RuntimeError(msg)
+        if _import_error:
+            warnings.warn('CUDA package found but could not be imported: {}'
+                          .format(_import_error))
 
     pid = os.getpid()
     if _pid == pid:  # already initialized
