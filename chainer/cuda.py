@@ -159,8 +159,8 @@ def init(device=None):
     global _contexts, _cublas_handles, _generators, _pid, _pools
 
     if not available:
-        global _resolution_error, _import_error
-        if _resolution_error:
+        if '_resolution_error' in globals():
+            global _resolution_error
             msg = '''CUDA environment is not correctly set up.
     Use `pip install -U chainer-cuda-deps` to install libraries.
     '''
@@ -174,10 +174,11 @@ def init(device=None):
                 msg += 'Unknwon error: ' + str(_resolution_error)
 
             raise RuntimeError(msg)
-        if _import_error:
+        if '_import_error' in globals():
+            global _import_error
             warnings.warn('CUDA package found but could not be imported: {}'
                           .format(_import_error))
-
+            return
     pid = os.getpid()
     if _pid == pid:  # already initialized
         return
