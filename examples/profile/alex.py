@@ -11,7 +11,7 @@ class Alex(chainer.FunctionSet):
 
     def __init__(self):
         super(Alex, self).__init__(
-            conv1=F.Convolution2D(3,  96, 11, stride=4),
+            conv1=F.Convolution2D(3,  96, 11, stride=4, pad=2),
             conv2=F.Convolution2D(96, 256,  5, pad=2),
             conv3=F.Convolution2D(256, 384,  3, pad=1),
             conv4=F.Convolution2D(384, 384,  3, pad=1),
