@@ -8,7 +8,7 @@ import six
 parser = argparse.ArgumentParser(
     description='Profiler')
 parser.add_argument('--model', '-m', type=str, default='alex',
-                    help='network architecture (alex|overfeat|vgg)')
+                    help='network architecture (alex|overfeat|vgg|conv[1-5])')
 parser.add_argument('--iteration', '-i', type=int, default=10,
                     help='iteration')
 parser.add_argument('--gpu', '-g', type=int, default=-1,
