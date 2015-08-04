@@ -2,6 +2,7 @@ import argparse
 
 from chainer import cuda
 import numpy
+import six
 
 
 parser = argparse.ArgumentParser(
@@ -38,7 +39,7 @@ if args.gpu >= 0:
     model.to_gpu()
 
 
-for iteration in xrange(args.iteration):
+for iteration in six.moves.range(args.iteration):
     print('Iteration\t{}'.format(iteration))
     x_batch = numpy.random.uniform(-1, 1,
                                    (model.batchsize,
