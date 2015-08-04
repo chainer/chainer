@@ -26,6 +26,10 @@ class Conv(chainer.FunctionSet):
 
 class Conv1(Conv):
 
+    '''Single-convolution architecture
+
+    '''
+
     batchsize = 128
     in_channels = 3
     insize = 128
@@ -34,6 +38,10 @@ class Conv1(Conv):
 
 
 class Conv2(Conv):
+
+    '''Single-convolution architecture
+
+    '''
 
     batchsize = 128
     in_channels = 64
@@ -44,6 +52,10 @@ class Conv2(Conv):
 
 class Conv3(Conv):
 
+    '''Single-convolution architecture
+
+    '''
+
     batchsize = 128
     in_channels = 128
     insize = 32
@@ -53,6 +65,10 @@ class Conv3(Conv):
 
 class Conv4(Conv):
 
+    '''Single-convolution architecture
+
+    '''
+
     batchsize = 128
     in_channels = 128
     insize = 16
@@ -61,6 +77,10 @@ class Conv4(Conv):
 
 
 class Conv5(Conv):
+
+    '''Single-convolution architecture
+
+    '''
 
     batchsize = 128
     in_channels = 384

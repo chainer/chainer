@@ -5,6 +5,10 @@ from chainer.utils import profile
 
 class Overfeat(chainer.FunctionSet):
 
+    '''Overfeat(fast model) with dropout removed.
+
+    '''
+
     insize = 231
     batchsize = 128
     in_channels = 3

@@ -5,6 +5,10 @@ from chainer.utils import profile
 
 class Alex(chainer.FunctionSet):
 
+    '''AlexNet with normalization and dropout removed.
+
+    '''
+
     insize = 224
     batchsize = 128
     in_channels = 3

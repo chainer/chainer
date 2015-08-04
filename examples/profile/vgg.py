@@ -5,6 +5,10 @@ from chainer.utils import profile
 
 class VGG(chainer.FunctionSet):
 
+    '''VGG(network A) with dropout removed.
+
+    '''
+
     insize = 224
     batchsize = 64
     in_channels = 3
