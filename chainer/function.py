@@ -6,6 +6,7 @@ import six
 
 from chainer import cuda
 from chainer.utils import type_check
+from chainer.utils import profile
 from chainer import variable
 
 
@@ -102,6 +103,7 @@ class Function(object):
         self.outputs = None
         self.rank = None
 
+    @profile.time()
     def __call__(self, *inputs):
         """Applies forward propagation with chaining backward references.
 
@@ -227,6 +229,7 @@ class Function(object):
         """
         pass
 
+    @profile.time(False)
     def forward(self, inputs):
         """Applies forward propagation to input arrays.
 
@@ -287,6 +290,7 @@ class Function(object):
         """
         raise NotImplementedError()
 
+    @profile.time()
     def backward(self, inputs, grad_outputs):
         """Applies backprop to output gradient arrays.
 
