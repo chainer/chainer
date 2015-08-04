@@ -24,6 +24,10 @@ elif args.model == 'overfeat':
 elif args.model == 'vgg':
     import vgg
     model = vgg.VGG()
+elif args.model.startswith('conv'):
+    import conv
+    number = args.model[4:]
+    model = getattr(conv, 'Conv{}'.format(number))()
 else:
     raise ValueError('Invalid model name')
 
