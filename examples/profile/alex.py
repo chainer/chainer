@@ -5,6 +5,9 @@ from chainer.utils import profile
 class Alex(chainer.FunctionSet):
 
     insize = 224
+    batchsize = 128
+    in_channels = 3
+    outsize = 1000
 
     def __init__(self):
         super(Alex, self).__init__(
