@@ -34,4 +34,4 @@ class Alex(chainer.FunctionSet):
         h = F.dropout(F.relu(self.fc6(h)))
         h = F.dropout(F.relu(self.fc7(h)))
         h = self.fc8(h)
-        return F.softmax_cross_entropy(h, t), F.accuracy(h, t)
+        return F.softmax_cross_entropy(h, t)

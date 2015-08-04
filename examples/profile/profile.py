@@ -38,7 +38,7 @@ for iteration in xrange(args.iteration):
         x_batch = cuda.to_gpu(x_batch)
         y_batch = cuda.to_gpu(y_batch)
 
-    loss, accuracy = model.forward(x_batch, y_batch)
+    loss = model.forward(x_batch, y_batch)
     loss.backward()
 
 
