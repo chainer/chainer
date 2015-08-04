@@ -19,7 +19,11 @@ if args.model == 'alex':
     import alex
     model = alex.Alex()
 elif args.model == 'overfeat':
-    raise NotImplementedError('Overfeat is not implemented yet')
+    import overfeat
+    model = overfeat.Overfeat()
+elif args.model == 'vgg':
+    import vgg
+    model = vgg.VGG()
 else:
     raise ValueError('Invalid model name')
 
