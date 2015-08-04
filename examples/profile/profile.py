@@ -40,7 +40,11 @@ if args.gpu >= 0:
 
 for iteration in xrange(args.iteration):
     print('Iteration\t{}'.format(iteration))
-    x_batch = numpy.random.uniform(-1, 1, (model.batchsize, model.in_channels, model.insize, model.insize)).astype(numpy.float32)
+    x_batch = numpy.random.uniform(-1, 1,
+                                   (model.batchsize,
+                                    model.in_channels,
+                                    model.insize,
+                                    model.insize)).astype(numpy.float32)
     if args.gpu >= 0:
         x_batch = cuda.to_gpu(x_batch)
 
@@ -50,5 +54,3 @@ for iteration in xrange(args.iteration):
     else:
         y.grad = numpy.ones_like(y.data)
     y.backward()
-
-

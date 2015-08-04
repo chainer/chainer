@@ -2,6 +2,7 @@ import chainer
 import chainer.functions as F
 from chainer.utils import profile
 
+
 class VGG(chainer.FunctionSet):
 
     insize = 224
@@ -23,7 +24,6 @@ class VGG(chainer.FunctionSet):
             fc8=F.Linear(4096, 1000)
         )
 
-
     @profile.time(False)
     def forward(self, x_data, train=True):
         x = chainer.Variable(x_data, volatile=not train)
@@ -39,4 +39,3 @@ class VGG(chainer.FunctionSet):
         h = F.relu(self.fc6(h))
         h = F.relu(self.fc7(h))
         return self.fc8(h)
-        

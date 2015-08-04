@@ -5,8 +5,8 @@ import numpy
 import six
 
 from chainer import cuda
-from chainer.utils import type_check
 from chainer.utils import profile
+from chainer.utils import type_check
 from chainer import variable
 
 

@@ -2,6 +2,7 @@ import chainer
 import chainer.functions as F
 from chainer.utils import profile
 
+
 class Conv(chainer.FunctionSet):
 
     batchsize = None
@@ -21,6 +22,7 @@ class Conv(chainer.FunctionSet):
     def forward(self, x_data, train=True):
         x = chainer.Variable(x_data, volatile=not train)
         return self.conv(x)
+
 
 class Conv1(Conv):
 

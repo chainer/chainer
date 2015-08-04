@@ -2,6 +2,7 @@ import chainer
 import chainer.functions as F
 from chainer.utils import profile
 
+
 class Alex(chainer.FunctionSet):
 
     insize = 224
