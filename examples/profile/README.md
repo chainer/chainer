@@ -16,7 +16,7 @@ python profile.py [-g <gpu>] [-m <model>] [-i <iteration>]
 ## Options
 
 * `-g` (`int`): Device ID of GPU to use. If negative value is specified, it runs with CPU-mode.
-* `-m` (`str`): Architecture to use. It must be one of alex, overfeat, vgg, and conv[1-5].
+* `-m` (`str`): Architecture to use. It must be one of `alex`, `overfeat`, `vgg`, or `conv[1-5]`.
 * `-i` (`int`): The number of iterations of forward and backward computations.
 
 ## Sample
