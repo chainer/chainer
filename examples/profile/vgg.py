@@ -7,7 +7,6 @@ class VGG(chainer.FunctionSet):
     insize = 224
     batchsize = 64
     in_channels = 3
-    outsize = 1000
 
     def __init__(self):
         super(VGG, self).__init__(
@@ -26,9 +25,8 @@ class VGG(chainer.FunctionSet):
 
 
     @profile.time(False)
-    def forward(self, x_data, y_data, train=True):
+    def forward(self, x_data, train=True):
         x = chainer.Variable(x_data, volatile=not train)
-        t = chainer.Variable(y_data, volatile=not train)
 
         h = F.max_pooling_2d(F.relu(self.conv1(x)), 2, stride=2)
         h = F.max_pooling_2d(F.relu(self.conv2(h)), 2, stride=2)
@@ -40,6 +38,5 @@ class VGG(chainer.FunctionSet):
         h = F.max_pooling_2d(F.relu(self.conv8(h)), 2, stride=2)
         h = F.relu(self.fc6(h))
         h = F.relu(self.fc7(h))
-        h = self.fc8(h)
-        return F.softmax_cross_entropy(h, t)
+        return self.fc8(h)
         
