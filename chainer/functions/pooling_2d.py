@@ -360,3 +360,33 @@ def average_pooling_2d(x, ksize, stride=None, pad=0, use_cudnn=True):
 
     """
     return AveragePooling2D(ksize, stride, pad, False, use_cudnn)(x)
+
+def unpooling_2d(x, ksize):
+    """unpooling function.
+
+    This function acts as a right-inverse of the pooling functions.
+    it magnifies each pixel of the image by ``ksize``.
+
+    Args:
+        x (~chainer.Variable): Input variable.
+        ksize (int or (int, int)): Size of unpooling window. ``ksize=k`` and
+            ``ksize=(k, k)`` are equivalent.
+
+    Returns:
+        ~chainer.Variable: Output variable.
+
+    """
+    kh, kw = _pair(ksize)
+    shape = x.data.shape
+    channel_shape = shape[0:-2]
+    height, width = shape[-2:]
+
+    volume = reduce(operator.mul,shape,1)
+
+    b1 = F.reshape(x,(volume,1))
+    b2 = F.concat(kw*[b1],1)
+
+    b3 = F.reshape(b2,(volume/width,kw*width))
+    b4 = F.concat(kh*[b3],1)
+
+    return F.reshape(b4, channel_shape + (kh*height ,) + (kw*width ,))
