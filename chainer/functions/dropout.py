@@ -17,8 +17,7 @@ class Dropout(function.Function):
         type_check.expect(in_types[0].dtype == numpy.float32)
 
     def forward_cpu(self, x):
-        scale = numpy.float32(1. / (1 - self.dropout_ratio))
-        self.mask = scale * \
+        self.mask = \
             (numpy.random.rand(*x[0].shape) >= self.dropout_ratio)
         return x[0] * self.mask,
 
@@ -27,14 +26,12 @@ class Dropout(function.Function):
         y = cuda.empty_like(x[0])
 
         cuda.get_generator().fill_uniform(self.rand)
-        self.scale = 1. / (1 - self.dropout_ratio)
 
         self.kernel = cuda.elementwise(
-            '''float* y, const float* x, const float* rand, float dropout_ratio,
-               float scale''',
-            'y[i] = rand[i] < dropout_ratio ? 0 : scale * x[i]',
+            'float* y, const float* x, const float* rand, float dropout_ratio',
+            'y[i] = rand[i] < dropout_ratio ? 0 : x[i]',
             'dropout')
-        self.kernel(y, x[0], self.rand, self.dropout_ratio, self.scale)
+        self.kernel(y, x[0], self.rand, self.dropout_ratio)
         return y,
 
     def backward_cpu(self, x, gy):
@@ -42,7 +39,7 @@ class Dropout(function.Function):
 
     def backward_gpu(self, x, gy):
         gx = cuda.empty_like(gy[0])
-        self.kernel(gx, gy[0], self.rand, self.dropout_ratio, self.scale)
+        self.kernel(gx, gy[0], self.rand, self.dropout_ratio)
         return gx,
 
 
@@ -67,4 +64,5 @@ def dropout(x, ratio=.5, train=True):
     """
     if train:
         return Dropout(ratio)(x)
-    return x
+    else:
+        return ratio*x
