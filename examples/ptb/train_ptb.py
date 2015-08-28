@@ -96,7 +96,7 @@ optimizer.setup(model)
 def evaluate(dataset):
     sum_log_perp = xp.zeros(())
     state = make_initial_state(batchsize=1, train=False)
-    for i in six.moves.range(dataset.size - 1):
+    for i in six.moves.range(dataset.size - 2):
         x_batch = xp.asarray(dataset[i:i + 1])
         y_batch = xp.asarray(dataset[i + 1:i + 2])
         state, loss = forward_one_step(x_batch, y_batch, state, train=False)
