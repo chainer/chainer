@@ -4,11 +4,12 @@ import numpy
 
 from chainer import cuda
 from chainer import function
+from chainer import model
 from chainer.utils import array
 from chainer.utils import type_check
 
 
-class Bilinear(function.Function):
+class Bilinear(model.Model, function.Function):
 
     """Bilinear function, an extension of Linear function.
 
@@ -79,30 +80,21 @@ class Bilinear(function.Function):
 
     def __init__(self, left_size, right_size, out_size, nobias=False,
                  initialW=None, initial_bias=None):
-
-        self.W = None
-        self.gW = None
-        self.V1 = None
-        self.gV1 = None
-        self.V2 = None
-        self.gV2 = None
-        self.b = None
-        self.gb = None
-
+        super(Bilinear, self).__init__()
         self.in_sizes = (left_size, right_size)
         self.nobias = nobias
 
         if initialW is not None:
             assert initialW.shape == (
                 self.in_sizes[0], self.in_sizes[1], out_size)
-            self.W = initialW
+            self.params['W'] = initialW
         else:
             # TODO(Kenta OONO): I do not know appropriate way of
             # initializing weights in tensor network.
             # This initialization is a modification of
             # that of Linear function.
             in_size = numpy.prod(self.in_sizes)
-            self.W = numpy.random.normal(
+            self.params['W'] = numpy.random.normal(
                 0, math.sqrt(1. / in_size),
                 (self.in_sizes[0], self.in_sizes[1], out_size)
             ).astype(numpy.float32)
@@ -113,40 +105,18 @@ class Bilinear(function.Function):
                 assert initial_bias[0].shape == (self.in_sizes[0], out_size)
                 assert initial_bias[1].shape == (self.in_sizes[1], out_size)
                 assert initial_bias[2].shape == (out_size,)
-                self.V1, self.V2, self.b = initial_bias
+                self.params['V1'] = initial_bias[0]
+                self.params['V2'] = initial_bias[1]
+                self.params['b'] = initial_bias[2]
             else:
-                self.V1 = numpy.random.normal(
+                self.params['V1'] = numpy.random.normal(
                     0, math.sqrt(1. / self.in_sizes[0]),
                     (self.in_sizes[0], out_size)).astype(numpy.float32)
-                self.V2 = numpy.random.normal(
+                self.params['V2'] = numpy.random.normal(
                     0, math.sqrt(1. / self.in_sizes[1]),
                     (self.in_sizes[1], out_size)).astype(numpy.float32)
-                self.b = numpy.zeros((out_size, ), dtype=numpy.float32)
-
-        xp = cuda.get_array_module(self.W)
-        self.gW = xp.full_like(self.W, numpy.nan)
-        if not self.nobias:
-            self.gV1 = xp.full_like(self.V1, numpy.nan)
-            self.gV2 = xp.full_like(self.V2, numpy.nan)
-            self.gb = xp.full_like(self.b, numpy.nan)
-
-    @property
-    def parameter_names(self):
-        if self.nobias:
-            return 'W',
-        assert self.V1 is not None
-        assert self.V2 is not None
-        assert self.b is not None
-        return 'W', 'V1', 'V2', 'b'
-
-    @property
-    def gradient_names(self):
-        if self.nobias:
-            return 'gW',
-        assert self.gV1 is not None
-        assert self.gV2 is not None
-        assert self.gb is not None
-        return 'gW', 'gV1', 'gV2', 'gb'
+                self.params['b'] = numpy.zeros((out_size, ),
+                                               dtype=numpy.float32)
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 2)
@@ -165,21 +135,14 @@ class Bilinear(function.Function):
             type_check_prod(e2_type.shape[1:]) == in_sizes[1]
         )
 
-    def zero_grads(self):
-        self.gW.fill(0)
-        if not self.nobias:
-            self.gV1.fill(0)
-            self.gV2.fill(0)
-            self.gb.fill(0)
-
     def forward_cpu(self, x):
         e1 = array.as_mat(x[0])
         e2 = array.as_mat(x[1])
-        y = numpy.einsum('ij,ik,jkl->il', e1, e2, self.W)
+        y = numpy.einsum('ij,ik,jkl->il', e1, e2, self.params['W'])
         if not self.nobias:
-            y += e1.dot(self.V1)
-            y += e2.dot(self.V2)
-            y += self.b
+            y += e1.dot(self.params['V1'])
+            y += e2.dot(self.params['V2'])
+            y += self.params['b']
         return y,
 
     def forward_gpu(self, x):
@@ -194,16 +157,16 @@ class Bilinear(function.Function):
         # ijk->i[jk]
         e1e2 = e1e2.reshape(i_len, j_len * k_len)
         # jkl->[jk]l
-        W_mat = self.W.reshape(
-            self.W.shape[0] * self.W.shape[1], self.W.shape[2])
+        W = self.params['W']
+        W_mat = W.reshape(-1, W.shape[2])
 
         # 'i[jk],[jk]l->il'
         y = e1e2.dot(W_mat)
 
         if not self.nobias:
-            y += e1.dot(self.V1)
-            y += e2.dot(self.V2)
-            y += self.b
+            y += e1.dot(self.params['V1'])
+            y += e2.dot(self.params['V2'])
+            y += self.params['b']
         return y,
 
     def backward_cpu(self, x, gy):
@@ -211,17 +174,18 @@ class Bilinear(function.Function):
         e2 = array.as_mat(x[1])
         gy, = gy
 
-        self.gW += numpy.einsum('ij,ik,il->jkl', e1, e2, gy)
+        self.grads['W'] += numpy.einsum('ij,ik,il->jkl', e1, e2, gy)
         if not self.nobias:
-            self.gV1 += e1.T.dot(gy)
-            self.gV2 += e2.T.dot(gy)
-            self.gb += gy.sum(0)
+            self.grads['V1'] += e1.T.dot(gy)
+            self.grads['V2'] += e2.T.dot(gy)
+            self.grads['b'] += gy.sum(0)
 
-        ge1 = numpy.einsum('ik,jkl,il->ij', e2, self.W, gy)
-        ge2 = numpy.einsum('ij,jkl,il->ik', e1, self.W, gy)
+        W = self.params['W']
+        ge1 = numpy.einsum('ik,jkl,il->ij', e2, W, gy)
+        ge2 = numpy.einsum('ij,jkl,il->ik', e1, W, gy)
         if not self.nobias:
-            ge1 += gy.dot(self.V1.T)
-            ge2 += gy.dot(self.V2.T)
+            ge1 += gy.dot(self.params['V1'].T)
+            ge2 += gy.dot(self.params['V2'].T)
         return (ge1.reshape(x[0].shape), ge2.reshape(x[1].shape))
 
     def backward_gpu(self, x, gy):
@@ -241,15 +205,15 @@ class Bilinear(function.Function):
         e1_b = e1[:, :, numpy.newaxis, numpy.newaxis]  # ij
         e2_b = e2[:, numpy.newaxis, :, numpy.newaxis]  # ik
         gy_b = gy[:, numpy.newaxis, numpy.newaxis, :]  # il
-        W_b = self.W[numpy.newaxis, :, :, :]  # jkl
+        W_b = self.params['W'][numpy.newaxis, :, :, :]  # jkl
 
         # 'ij,ik,il->jkl'
-        kern_add(e1_b, e2_b, gy_b, self.gW, axis=0)
+        kern_add(e1_b, e2_b, gy_b, self.grads['W'], axis=0)
 
         if not self.nobias:
-            self.gV1 += e1.T.dot(gy)
-            self.gV2 += e2.T.dot(gy)
-            self.gb += gy.sum(axis=0)
+            self.grads['V1'] += e1.T.dot(gy)
+            self.grads['V2'] += e2.T.dot(gy)
+            self.grads['b'] += gy.sum(axis=0)
 
         # 'ik,jkl,il->ij'
         ge1 = kern(e2_b, W_b, gy_b, axis=(2, 3))
@@ -257,6 +221,6 @@ class Bilinear(function.Function):
         ge2 = kern(e1_b, W_b, gy_b, axis=(1, 3))
 
         if not self.nobias:
-            ge1 += gy.dot(self.V1.T)
-            ge2 += gy.dot(self.V2.T)
+            ge1 += gy.dot(self.params['V1'].T)
+            ge2 += gy.dot(self.params['V2'].T)
         return (ge1.reshape(x[0].shape), ge2.reshape(x[1].shape))

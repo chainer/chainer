@@ -3,11 +3,12 @@ import six
 
 from chainer import cuda
 from chainer import function
+from chainer import model
 from chainer.utils import type_check
 from chainer.utils import walker_alias
 
 
-class NegativeSampling(function.Function):
+class NegativeSampling(model.Model, function.Function):
     """Implementation of negative sampling.
 
     In natural language processing, especially language modeling, the number of
@@ -48,11 +49,8 @@ class NegativeSampling(function.Function):
 
     See: `Distributed Representations of Words and Phrases and their\
          Compositionality <http://arxiv.org/abs/1310.4546>`_
+
     """
-
-    parameter_names = ('W',)
-    gradient_names = ('gW',)
-
     def __init__(self, in_size, counts, sample_size, power=0.75):
         self.sample_size = sample_size
         p = numpy.array(counts, numpy.float32)
@@ -60,8 +58,8 @@ class NegativeSampling(function.Function):
         self.sampler = walker_alias.WalkerAlias(p)
 
         vocab_size = len(counts)
-        self.W = numpy.zeros((vocab_size, in_size)).astype(numpy.float32)
-        self.gW = numpy.full_like(self.W, numpy.nan)
+        self.params['W'] = numpy.zeros((vocab_size, in_size)).astype(
+            numpy.float32)
 
     def _make_samples(self, t):
         if hasattr(self, 'samples'):
@@ -105,8 +103,9 @@ class NegativeSampling(function.Function):
         self._make_samples(t)
 
         loss = numpy.float32(0.0)
+        W = self.params['W']
         for i, (ix, k) in enumerate(six.moves.zip(x, self.samples)):
-            w = self.W[k]
+            w = W[k]
             f = w.dot(ix)
             f[0] *= -1  # positive sample
             loss += numpy.sum(numpy.logaddexp(f, 0))
@@ -129,7 +128,7 @@ class NegativeSampling(function.Function):
             wx = f;
             ''',
             'negative_sampling_wx'
-        )(self.W, x, self.samples, n_in, self.sample_size + 1)
+        )(self.params['W'], x, self.samples, n_in, self.sample_size + 1)
 
         y = cuda.elementwise(
             'T wx, int32 c, int32 m', 'T y',
@@ -158,8 +157,10 @@ class NegativeSampling(function.Function):
 
         gx = numpy.zeros_like(x)
 
+        W = self.params['W']
+        gW = self.grads['W']
         for i, (ix, k) in enumerate(six.moves.zip(x, self.samples)):
-            w = self.W[k]
+            w = W[k]
             f = w.dot(ix)
 
             # g == -y * gloss / (1 + exp(yf))
@@ -169,7 +170,7 @@ class NegativeSampling(function.Function):
 
             gx[i] = g.dot(w)
             for ik, ig in six.moves.zip(k, g):
-                self.gW[ik] += ig * ix
+                gW[ik] += ig * ix
         return gx, None
 
     def backward_gpu(self, inputs, grads):
@@ -203,7 +204,7 @@ class NegativeSampling(function.Function):
             gx = w;
             ''',
             'negative_sampling_calculate_gx'
-        )(g, self.W, self.samples, n_in, self.sample_size + 1, gx)
+        )(g, self.params['W'], self.samples, n_in, self.sample_size + 1, gx)
         cuda.elementwise(
             'T g, raw T x, S k, int32 c, int32 m', 'raw T gW',
             '''
@@ -213,5 +214,5 @@ class NegativeSampling(function.Function):
             }
             ''',
             'negative_sampling_calculate_gw'
-        )(g, x, self.samples, n_in, self.sample_size + 1, self.gW)
+        )(g, x, self.samples, n_in, self.sample_size + 1, self.grads['W'])
         return gx, None

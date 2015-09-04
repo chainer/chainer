@@ -2,10 +2,11 @@ import numpy
 
 from chainer import cuda
 from chainer import function
+from chainer import model
 from chainer.utils import type_check
 
 
-class EmbedID(function.Function):
+class EmbedID(model.Model, function.Function):
 
     """Efficient linear function for one-hot input.
 
@@ -26,12 +27,10 @@ class EmbedID(function.Function):
        identifiers.
 
     """
-    parameter_names = ('W',)
-    gradient_names = ('gW',)
-
     def __init__(self, in_size, out_size):
-        self.W = numpy.random.randn(in_size, out_size).astype(numpy.float32)
-        self.gW = numpy.full_like(self.W, numpy.nan)
+        super(EmbedID, self).__init__()
+        self.params['W'] = numpy.random.randn(
+            in_size, out_size).astype(numpy.float32)
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)
@@ -43,16 +42,17 @@ class EmbedID(function.Function):
         )
 
     def forward(self, x):
-        return self.W.take(x[0], axis=0),
+        return self.params['W'].take(x[0], axis=0),
 
     def backward_cpu(self, x, gy):
-        numpy.add.at(self.gW, x[0], gy[0])
+        numpy.add.at(self.grads['W'], x[0], gy[0])
         return None,
 
     def backward_gpu(self, x, gy):
+        gW = self.grads['W']
         cuda.elementwise(
             'T gy, int32 x, int32 n_out', 'raw T gW',
             'int w_ind[] = {x, i % n_out}; atomicAdd(&gW[w_ind], gy)',
             'embed_id_bwd')(
-                gy[0], x[0][:, numpy.newaxis], self.gW.shape[1], self.gW)
+                gy[0], x[0][:, numpy.newaxis], gW.shape[1], gW)
         return None,

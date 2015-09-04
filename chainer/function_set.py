@@ -3,9 +3,10 @@ import six
 import warnings
 
 from chainer import cuda
+from chainer import model
 
 
-class FunctionSet(object):
+class FunctionSet(model.ModelDict):
 
     """Set of objects with ``parameters`` and ``gradients`` properties.
 
@@ -19,7 +20,6 @@ class FunctionSet(object):
     :class:`FunctionSet` object.
 
     """
-
     def __init__(self, **functions):
         """Initializes the function set by given functions.
 
@@ -29,8 +29,25 @@ class FunctionSet(object):
                 object as attributes.
 
         """
-        for name, func in six.iteritems(functions):
-            setattr(self, name, func)
+        msg = 'FunctionSet is deprecated. Use ModelDict instead.'
+        warnings.warn(msg, FutureWarning)
+        model.ModelDict.__init__(self, **functions)
+
+    def __getattr__(self, key):
+        return self.models[key]
+
+    def __setattr__(self, key, value):
+        if isinstance(value, model.Model):
+            self[key] = value
+        else:
+            model.ModelDict.__setattr__(self, key, value)
+
+    def __getstate__(self):
+        # avoid setattr
+        return self.models
+
+    def __setstate__(self, models):
+        self.models = models
 
     def collect_parameters(self):
         """Returns a tuple of parameters and gradients.
@@ -40,57 +57,9 @@ class FunctionSet(object):
             parameter arrays, and the second is a tuple of gradient arrays.
 
         """
-
         msg = ("'collect_parameters' is deprecated. "
                "You can pass FunctionSet itself to 'optimizer.setup'")
         warnings.warn(msg, FutureWarning)
-        return self
-
-    def __getitem__(self, key):
-        """Returns the :class:`Function` objects by name.
-
-        Args:
-            key (str): Name of the function.
-
-        Returns:
-            ~chainer.Function: Function object.
-
-        .. admonition:: Example
-
-           >>> model = FunctionSet(l1=F.Linear(10, 10), l2=F.Linear(10, 10))
-           >>> l1 = model['l1']
-        """
-
-        return getattr(self, key)
-
-    def to_gpu(self, device=None):
-        """Migrates all parameters and gradients onto GPU.
-
-        This method calls ``to_gpu`` method of each registered object.
-
-        Args:
-            device (int or :class:`cupy.cuda.Device` or ``None``): Device
-                ID of GPU. If ``None`` is given, it uses the current device.
-
-        Returns:
-            self
-
-        """
-        for func in six.itervalues(self.__dict__):
-            func.to_gpu(device=device)
-        return self
-
-    def to_cpu(self):
-        """Migrates all parameters and gradients onto CPU.
-
-        This method calls ``to_cpu`` method of each registered object.
-
-        Returns:
-            self
-
-        """
-        for func in six.itervalues(self.__dict__):
-            func.to_cpu()
         return self
 
     def copy_parameters_from(self, params):
@@ -100,6 +69,7 @@ class FunctionSet(object):
             params (Iterable): Iterable of parameter arrays.
 
         """
+        msg = 'copy_parameters_from is deprecated. Use copyparams instead.'
         for dst, src in zip(self.parameters, params):
             if isinstance(dst, numpy.ndarray):
                 if isinstance(src, numpy.ndarray):
@@ -118,14 +88,27 @@ class FunctionSet(object):
         The order of parameters is consistent with :meth:`gradients` property.
 
         """
-        return sum((func.parameters for _, func in self._get_sorted_funcs()),
-                   ())
+        tups = {}
+        for path, param, _ in self.visitparams(silent=True):
+            tups[path] = param
+        paths = sorted(tups.keys())
+        return tuple(tups[path] for path in paths)
 
     @parameters.setter
     def parameters(self, params):
-        param_iter = iter(params)
-        for _, func in self._get_sorted_funcs():
-            func.parameters = param_iter
+        paths = []
+        for path, _, _ in self.visitparams(silent=True):
+            paths.append(path)
+        paths.sort()
+        d = dict(six.moves.zip(paths, params))
+
+        # replace params by given ones
+        for model in self.visitmodels():
+            prefix = model._name + '/_params/'
+            p = model.params
+            for key in p:
+                path = prefix + key
+                p[key] = d[path]
 
     @property
     def gradients(self):
@@ -134,14 +117,24 @@ class FunctionSet(object):
         The order of gradients is consistent with :meth:`parameters` property.
 
         """
-        return sum((func.gradients for _, func in self._get_sorted_funcs()),
-                   ())
+        tups = {}
+        for path, _, grad in self.visitparams():
+            tups[path] = grad
+        paths = sorted(tups.keys())
+        return tuple(tups[path] for path in paths)
 
     @gradients.setter
     def gradients(self, grads):
-        grad_iter = iter(grads)
-        for _, func in self._get_sorted_funcs():
-            func.gradients = grad_iter
+        paths = []
+        for path, _, _ in self.visitparams():
+            paths.append(path)
+        paths.sort()
+        d = dict(six.moves.zip(paths, grads))
 
-    def _get_sorted_funcs(self):
-        return sorted(six.iteritems(self.__dict__))
+        # replace params by given ones
+        for model in self.visitmodels():
+            prefix = model._name + '/_params/'
+            g = model.grads
+            for key in g:
+                path = prefix + key
+                g[key] = d[path]

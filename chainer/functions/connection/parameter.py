@@ -1,10 +1,11 @@
 import numpy
 
 from chainer import function
+from chainer import model
 from chainer.utils import type_check
 
 
-class Parameter(function.Function):
+class Parameter(model.Model, function.Function):
 
     """Function that outputs its weight array.
 
@@ -15,12 +16,8 @@ class Parameter(function.Function):
         array: Initial parameter array.
 
     """
-    parameter_names = 'W',
-    gradient_names = 'gW',
-
     def __init__(self, array):
-        self.W = array
-        self.gW = numpy.full_like(array, numpy.nan)
+        self.params['W'] = array
 
     def __call__(self, volatile=False):
         ret = super(Parameter, self).__call__()
@@ -33,8 +30,8 @@ class Parameter(function.Function):
         type_check.expect(in_types.size() == 0)
 
     def forward(self, x):
-        return self.W,
+        return self.params['W'],
 
     def backward(self, x, gy):
-        self.gW += gy[0]
+        self.grads['W'] += gy[0]
         return ()

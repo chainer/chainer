@@ -2,10 +2,11 @@ import numpy
 
 from chainer import cuda
 from chainer import function
+from chainer import model
 from chainer.utils import type_check
 
 
-class BatchNormalization(function.Function):
+class BatchNormalization(model.Model, function.Function):
 
     """Batch normalization on outputs of linear or convolution functions.
 
@@ -20,9 +21,6 @@ class BatchNormalization(function.Function):
           Internal Covariate Shift <http://arxiv.org/abs/1502.03167>`_
 
     """
-    parameter_names = ('gamma',  'beta')
-    gradient_names = ('ggamma', 'gbeta')
-
     def __init__(self, size, decay=0.9, eps=1e-5, dtype=numpy.float32):
         if isinstance(size, tuple):
             self.size = size
@@ -34,16 +32,14 @@ class BatchNormalization(function.Function):
         size = numpy.prod(size, dtype=int)
         self.dtype = numpy.dtype(dtype)
 
-        self.avg_mean = numpy.zeros((1, size, 1), dtype=self.dtype)
-        self.avg_var = numpy.zeros_like(self.avg_mean)
+        self.states['avg_mean'] = numpy.zeros((1, size, 1), dtype=self.dtype)
+        self.states['avg_var'] = numpy.zeros_like(self.avg_mean)
+        self.states['N'] = 0
 
-        self.gamma = numpy.ones_like(self.avg_mean)
-        self.ggamma = numpy.full_like(self.gamma, numpy.nan)
-        self.beta = numpy.zeros_like(self.avg_mean)
-        self.gbeta = numpy.full_like(self.beta, numpy.nan)
+        self.params['gamma'] = numpy.ones_like(self.avg_mean)
+        self.params['beta'] = numpy.zeros_like(self.avg_mean)
 
         self.decay = decay
-        self.N = [0]  # as a reference
         self.eps = eps
 
     def __call__(self, x, test=False, finetune=False):
@@ -83,41 +79,44 @@ class BatchNormalization(function.Function):
         )
 
     def start_finetuning(self):
-        self.N[0] = numpy.array(0)
+        self.states['N'][()] = 0
 
     def forward(self, x_orig):
         xp = cuda.get_array_module(*x_orig)
         ldim, cdim, rdim = self._internal_shape(x_orig[0])
         x = x_orig[0].reshape(ldim, cdim, rdim)
+        avg_mean = self.states['avg_mean']
+        avg_var = self.states['avg_var']
 
         if self.use_batch_mean:
             mean = x.mean(axis=(0, 2), keepdims=True)
             var = x.var(axis=(0, 2), keepdims=True)
             var += self.eps
         else:
-            mean = self.avg_mean
-            var = self.avg_var
+            mean = avg_mean
+            var = avg_var
 
         self.std = xp.sqrt(var, dtype=var.dtype)
         x_mu = x - mean
         self.x_hat = x_mu / self.std
-        y = self.gamma * self.x_hat
-        y += self.beta
+        y = self.params['gamma'] * self.x_hat
+        y += self.params['beta']
 
         # Compute exponential moving average
         if self.use_batch_mean:
             if self.is_finetune:
-                self.N[0] += 1
-                decay = 1. / self.N[0]
+                N = self.states['N']
+                N += 1
+                decay = 1. / N
             else:
                 decay = self.decay
 
             m = ldim * rdim
             adjust = m / max(m - 1., 1.)  # unbiased estimation
-            self.avg_mean *= decay
-            self.avg_mean += (1 - decay) * mean
-            self.avg_var *= decay
-            self.avg_var += (1 - decay) * adjust * var
+            avg_mean *= decay
+            avg_mean += (1 - decay) * mean
+            avg_var *= decay
+            avg_var += (1 - decay) * adjust * var
 
         return y.reshape(x_orig[0].shape),
 
@@ -130,12 +129,12 @@ class BatchNormalization(function.Function):
         m = ldim * rdim
 
         gbeta = gy.sum(axis=(0, 2), keepdims=True)
-        self.gbeta += gbeta
+        self.grads['beta'] += gbeta
 
         ggamma = (gy * self.x_hat).sum(axis=(0, 2), keepdims=True)
-        self.ggamma += ggamma
+        self.grads['gamma'] += ggamma
 
-        coeff = self.gamma / self.std
+        coeff = self.params['gamma'] / self.std
         gbeta /= m
         ggamma /= m
 

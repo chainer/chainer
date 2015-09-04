@@ -3,6 +3,7 @@ import six
 
 from chainer import cuda
 from chainer import function
+from chainer import model
 from chainer.utils import type_check
 
 
@@ -56,7 +57,7 @@ class TreeParser(object):
             self.codes[node] = numpy.array(self.code).astype(numpy.float32)
 
 
-class BinaryHierarchicalSoftmax(function.Function):
+class BinaryHierarchicalSoftmax(model.Model, function.Function):
 
     """Implementation of hierarchical softmax (HSM).
 
@@ -97,11 +98,9 @@ class BinaryHierarchicalSoftmax(function.Function):
     AISTAT2005].
 
     """
-
-    parameter_names = ('W',)
-    gradient_names = ('gW',)
-
     def __init__(self, in_size, tree):
+        super(BinaryHierarchicalSoftmax, self).__init__()
+
         parser = TreeParser()
         parser.parse(tree)
         paths = parser.get_paths()
@@ -119,9 +118,8 @@ class BinaryHierarchicalSoftmax(function.Function):
             begins[i + 1] = begins[i] + length
         self.begins = begins
 
-        self.W = numpy.random.uniform(
+        self.params['W'] = numpy.random.uniform(
             -1, 1, (parser.size(), in_size)).astype(numpy.float32)
-        self.gW = numpy.full_like(self.W, numpy.nan)
 
     @staticmethod
     def create_huffman_tree(word_counts):
@@ -183,7 +181,7 @@ class BinaryHierarchicalSoftmax(function.Function):
         begin = self.begins[t]
         end = self.begins[t + 1]
 
-        w = self.W[self.paths[begin:end]]
+        w = self.params['W'][self.paths[begin:end]]
         wxy = w.dot(x) * self.codes[begin:end]
         loss = numpy.logaddexp(0.0, -wxy)  # == log(1 + exp(-wxy))
         return numpy.sum(loss)
@@ -201,23 +199,23 @@ class BinaryHierarchicalSoftmax(function.Function):
         end = self.begins[t + 1]
 
         path = self.paths[begin:end]
-        w = self.W[path]
+        w = self.params['W'][path]
         wxy = w.dot(x) * self.codes[begin:end]
         g = -gloss * self.codes[begin:end] / (1.0 + numpy.exp(wxy))
         gx = g.dot(w)
         gw = g.reshape((g.shape[0], 1)).dot(x.reshape(1, x.shape[0]))
-        self.gW[path] += gw
+        self.grads['W'][path] += gw
         return gx
 
     def to_gpu(self, device=None):
-        function.Function.to_gpu(self, device)
+        model.Model.to_gpu(self, device)
 
         self.paths = cuda.to_gpu(self.paths, device)
         self.codes = cuda.to_gpu(self.codes, device)
         self.begins = cuda.to_gpu(self.begins, device)
 
     def to_cpu(self):
-        function.Function.to_cpu(self)
+        model.Model.to_cpu(self)
 
         self.paths = cuda.to_cpu(self.paths)
         self.codes = cuda.to_cpu(self.codes)
@@ -264,8 +262,8 @@ class BinaryHierarchicalSoftmax(function.Function):
             }
             ''',
             'binary_hierarchical_softmax_forward'
-        )(x, self.W, t, self.paths, self.codes, self.begins, n_in, max_length,
-          ls, wxy)
+        )(x, self.params['W'], t, self.paths, self.codes, self.begins, n_in,
+          max_length, ls, wxy)
         self.max_length = max_length
         self.wxy = wxy
         return ls.sum(),
@@ -304,6 +302,6 @@ class BinaryHierarchicalSoftmax(function.Function):
             }
             ''',
             'binary_hierarchical_softmax_bwd'
-        )(self.wxy, x, self.W, t, self.paths, self.codes,
-          self.begins, gloss, n_in, self.max_length, gx, self.gW)
+        )(self.wxy, x, self.params['W'], t, self.paths, self.codes,
+          self.begins, gloss, n_in, self.max_length, gx, self.grads['W'])
         return gx, None

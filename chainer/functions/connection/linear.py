@@ -4,6 +4,7 @@ import numpy
 
 from chainer import cuda
 from chainer import function
+from chainer import model
 from chainer.utils import type_check
 
 
@@ -13,7 +14,7 @@ def _as_mat(x):
     return x.reshape(len(x), -1)
 
 
-class Linear(function.Function):
+class Linear(model.Model, function.Function):
 
     """Linear function (a.k.a. fully-connected layer or affine transformation).
 
@@ -54,41 +55,20 @@ class Linear(function.Function):
     """
     def __init__(self, in_size, out_size, wscale=1, bias=0, nobias=False,
                  initialW=None, initial_bias=None):
-        self.W = None
-        self.gW = None
-        self.b = None
-        self.gb = None
-
+        super(Lineaer, self).__init__()
         if initialW is not None:
             assert initialW.shape == (out_size, in_size)
-            self.W = initialW
+            self.params['W'] = initialW
         else:
-            self.W = numpy.random.normal(
+            self.params['W'] = numpy.random.normal(
                 0, wscale * math.sqrt(1. / in_size),
                 (out_size, in_size)).astype(numpy.float32)
-        xp = cuda.get_array_module(self.W)
-        self.gW = xp.full_like(self.W, numpy.nan)
 
         if initial_bias is not None:
             assert initial_bias.shape == (out_size,)
-            self.b = initial_bias
+            self.['b'] = initial_bias
         elif not nobias:
-            self.b = numpy.repeat(numpy.float32(bias), out_size)
-
-        if self.b is not None:
-            self.gb = xp.full_like(self.b, numpy.nan)
-
-    @property
-    def parameter_names(self):
-        if self.b is None:
-            return 'W',
-        return 'W', 'b'
-
-    @property
-    def gradient_names(self):
-        if self.gb is None:
-            return 'gW',
-        return 'gW', 'gb'
+            self.['b'] = numpy.repeat(numpy.float32(bias), out_size)
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)
@@ -101,24 +81,21 @@ class Linear(function.Function):
              type_check.Variable(self.W.shape[1], 'W.shape[1]')),
         )
 
-    def zero_grads(self):
-        self.gW.fill(0)
-        if self.gb is not None:
-            self.gb.fill(0)
-
     def forward(self, x):
         x = _as_mat(x[0])
-        Wx = x.dot(self.W.T)
-        if self.b is not None:
-            Wx += self.b
+        Wx = x.dot(self.params['W'].T)
+        b = self.params.get('b', None)
+        if b is not None:
+            Wx += b
         return Wx,
 
     def backward(self, x, gy):
         _x = _as_mat(x[0])
-        self.gW += gy[0].T.dot(_x)
-        if self.gb is not None:
-            self.gb += gy[0].sum(0)
-        return gy[0].dot(self.W).reshape(x[0].shape),
+        self.grads['W'] += gy[0].T.dot(_x)
+        gb = self.grads.get('b', None)
+        if gb is not None:
+            gb += gy[0].sum(0)
+        return gy[0].dot(self.params['W']).reshape(x[0].shape),
 
 
 class NonparameterizedLinear(function.Function):
@@ -170,9 +147,10 @@ class NonparameterizedLinear(function.Function):
         func = self.func
         func.zero_grads()
         gx = func.backward(x[:1], gy)
-        if func.gb is None:
-            return (gx[0], func.gW)
-        return (gx[0], func.gW, func.gb)
+        gb = func.grads.get('b', None)
+        if gb is None:
+            return (gx[0], func.grads['W'])
+        return (gx[0], func.grads['W'], gb)
 
 
 def linear(x, W, b=None):

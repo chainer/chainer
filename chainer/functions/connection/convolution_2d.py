@@ -6,6 +6,7 @@ from six import moves
 
 from chainer import cuda
 from chainer import function
+from chainer import model
 from chainer.utils import conv
 from chainer.utils import type_check
 
@@ -21,7 +22,7 @@ def _pair(x):
     return (x, x)
 
 
-class Convolution2D(function.Function):
+class Convolution2D(model.Model, function.Function):
 
     """Two-dimensional convolution function.
 
@@ -88,6 +89,7 @@ class Convolution2D(function.Function):
                  wscale=1, bias=0, nobias=False, use_cudnn=True,
                  initialW=None, initial_bias=None,
                  dtype=numpy.float32):
+        super(Convolution2D, self).__init__()
         self.dtype = numpy.dtype(dtype)
 
         ksize = _pair(ksize)
@@ -101,31 +103,23 @@ class Convolution2D(function.Function):
         self.in_channels = in_channels
         self.out_channels = out_channels
 
-        self.W = None
-        self.gW = None
-        self.b = None
-        self.gb = None
-
         if initialW is not None:
             assert initialW.shape == \
                 (out_channels, in_channels, self.kh, self.kw)
-            self.W = initialW
+            self.params['W'] = initialW
         else:
-            self.W = numpy.random.normal(
+            self.params['W'] = numpy.random.normal(
                 0, wscale * math.sqrt(1. / (self.kh * self.kw * in_channels)),
                 (out_channels, in_channels, self.kh, self.kw)
             ).astype(self.dtype)
         xp = cuda.get_array_module(self.W)
-        self.gW = xp.full_like(self.W, numpy.nan)
 
         if initial_bias is not None:
             assert initial_bias.shape == (out_channels,)
-            self.b = initial_bias
+            self.params['b'] = initial_bias
         elif not nobias:
-            self.b = numpy.repeat(self.dtype.type(bias), out_channels)
-
-        if self.b is not None:
-            self.gb = xp.full_like(self.b, numpy.nan)
+            self.params['b'] = numpy.repeat(self.dtype.type(bias),
+                                            out_channels)
 
         self.use_cudnn = use_cudnn
         if cuda.cudnn_enabled and use_cudnn:
@@ -142,36 +136,24 @@ class Convolution2D(function.Function):
             x_type.shape[1] == self.in_channels
         )
 
-    @property
-    def parameter_names(self):
-        if self.b is None:
-            return 'W',
-        return 'W', 'b'
-
-    @property
-    def gradient_names(self):
-        if self.gb is None:
-            return 'gW',
-        return 'gW', 'gb'
-
-    def zero_grads(self):
-        self.gW.fill(0)
-        if self.gb is not None:
-            self.gb.fill(0)
-
     def forward_cpu(self, x):
         self.col = conv.im2col_cpu(
             x[0], self.kh, self.kw, self.sy, self.sx, self.ph, self.pw)
-        y = numpy.tensordot(self.col, self.W, ((1, 2, 3), (1, 2, 3)))
-        if self.b is not None:
-            y += self.b
+        y = numpy.tensordot(self.col, self.params['W'], ((1, 2, 3), (1, 2, 3)))
+        b = self.params.get('b', None)
+        if b is not None:
+            y += b
         return numpy.rollaxis(y, 3, 1),
 
     def forward_gpu(self, x):
         n, c, h, w = x[0].shape
+        W = self.params['W']
+        b = self.params.get('b', None)
+
         out_h = conv.get_conv_outsize(h, self.kh, self.sy, self.ph)
         out_w = conv.get_conv_outsize(w, self.kw, self.sx, self.pw)
-        out_c = self.W.shape[0]
+        out_c = W.shape[0]
+
         y = cuda.empty((n, out_c, out_h, out_w), dtype=self.dtype)
         if cuda.cudnn_enabled and self.use_cudnn:
             handle = cudnn.get_handle()
@@ -181,9 +163,9 @@ class Convolution2D(function.Function):
             self.filter_desc = cudnn.create_filter_descriptor(self.W)
             self.conv_desc = cudnn.create_convolution_descriptor(
                 (self.ph, self.pw), (self.sy, self.sx))
-            if self.b is not None:
+            if b is not None:
                 self.bias_desc = cudnn.create_tensor_descriptor(
-                    self.b[None, :, None, None])
+                    b[None, :, None, None])
 
             algo = libcudnn.getConvolutionForwardAlgorithm(
                 handle, x_desc.value, self.filter_desc.value,
@@ -204,10 +186,10 @@ class Convolution2D(function.Function):
                 y.data.ptr)
 
             # TODO(beam2d): Support unshared bias
-            if self.b is not None:
+            if b is not None:
                 libcudnn.addTensor(
                     handle, libcudnn.CUDNN_ADD_SAME_C, one,
-                    self.bias_desc.value, self.b.data.ptr, one, y_desc.value,
+                    self.bias_desc.value, b.data.ptr, one, y_desc.value,
                     y.data.ptr)
         else:
             # Implementation using im2col
@@ -215,7 +197,7 @@ class Convolution2D(function.Function):
                 x[0], self.kh, self.kw, self.sy, self.sx, self.ph, self.pw)
 
             # TODO(beam2d): Use streams
-            W_mat = self.W.reshape(out_c, c * self.kh * self.kw)
+            W_mat = W.reshape(out_c, c * self.kh * self.kw)
             col_mats = self.col.reshape(
                 n, c * self.kh * self.kw, out_h * out_w)
             y_mats = y.reshape(n, out_c, out_h * out_w)
@@ -223,16 +205,17 @@ class Convolution2D(function.Function):
                 y_mats[i] = W_mat.dot(col_mats[i])
 
             # TODO(beam2d): Support unshared bias
-            if self.b is not None:
-                y += self.b.reshape((1, out_c, 1, 1))
+            if b is not None:
+                y += b.reshape((1, out_c, 1, 1))
 
         return y,
 
     def backward_cpu(self, x, gy):
-        if self.gb is not None:
-            self.gb += gy[0].sum(axis=(0, 2, 3))
-        self.gW += numpy.tensordot(gy[0], self.col, ((0, 2, 3), (0, 4, 5)))
-        gcol = numpy.tensordot(self.W, gy[0], (0, 1))
+        if 'b' in self.params:
+            self.grads['b'] += gy[0].sum(axis=(0, 2, 3))
+        self.grads['W'] += numpy.tensordot(
+            gy[0], self.col, ((0, 2, 3), (0, 4, 5)))
+        gcol = numpy.tensordot(self.params['W'], gy[0], (0, 1))
         gcol = numpy.rollaxis(gcol, 3)
 
         h, w = x[0].shape[2:]
@@ -251,34 +234,34 @@ class Convolution2D(function.Function):
             gy_desc = cudnn.create_tensor_descriptor(gy_arr)
             one = ctypes.c_float(1)
             zero = ctypes.c_float(0)
-            if self.b is not None:
+            if 'b' in self.params:
                 libcudnn.convolutionBackwardBias(
                     handle, one, gy_desc.value, gy_arr.data.ptr,
-                    one, self.bias_desc.value, self.gb.data.ptr)
+                    one, self.bias_desc.value, self.grads['b'].data.ptr)
 
             libcudnn.convolutionBackwardFilter(
                 handle, one, x_desc.value, x[0].data.ptr,
                 gy_desc.value, gy_arr.data.ptr, self.conv_desc.value,
-                one, self.filter_desc.value, self.gW.data.ptr)
+                one, self.filter_desc.value, self.grads['W'].data.ptr)
 
             gx = cuda.empty_like(x[0])
             libcudnn.convolutionBackwardData(
-                handle, one, self.filter_desc.value, self.W.data.ptr,
+                handle, one, self.filter_desc.value, self.params['W'].data.ptr,
                 gy_desc.value, gy_arr.data.ptr, self.conv_desc.value,
                 zero, x_desc.value, gx.data.ptr)
         else:
-            if self.gb is not None:
+            if 'b' in self.params:
                 self.gb += gy[0].sum(axis=(0, 2, 3))
 
             # TODO(beam2d): Use streams
-            gW_mat = self.gW.reshape(out_c, c * self.kh * self.kw)
+            gW_mat = self.grads['W'].reshape(out_c, c * self.kh * self.kw)
             col_mats = self.col.reshape(
                 n, c * self.kh * self.kw, out_h * out_w)
             gy_mats = gy[0].reshape(n, out_c, out_h * out_w)
             for i in moves.range(n):
                 gW_mat += cuda.cupy.dot(gy_mats[i], col_mats[i].T)
 
-            W_mat = self.W.reshape(out_c, c * self.kh * self.kw)
+            W_mat = self.params['W'].reshape(out_c, c * self.kh * self.kw)
             gcol = cuda.empty_like(self.col)
             gcol_mats = gcol.reshape(n, c * self.kh * self.kw, out_h * out_w)
             for i in moves.range(n):
@@ -355,9 +338,10 @@ class NonparameterizedConvolution2D(function.Function):
         func = self.func
         func.zero_grads()
         gx = func.backward(x[:1], gy)
-        if func.gb is None:
-            return (gx[0], func.gW)
-        return (gx[0], func.gW, func.gb)
+        gb = func.grads.get('b', None)
+        if gb is None:
+            return (gx[0], func.grads['W'])
+        return (gx[0], func.grads['W'], gb)
 
 
 def convolution_2d(x, W, b=None, stride=1, pad=0, use_cudnn=True):

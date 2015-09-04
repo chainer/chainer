@@ -99,14 +99,7 @@ class Function(object):
             your own program.
 
     """
-    parameter_names = ()
-    gradient_names = ()
     type_check_enable = int(os.environ.get('CHAINER_TYPE_CHECK', '1')) != 0
-
-    def __init__(self):
-        self.inputs = None
-        self.outputs = None
-        self.rank = None
 
     def __call__(self, *inputs):
         """Applies forward propagation with chaining backward references.
@@ -356,74 +349,6 @@ class Function(object):
         for x in self.inputs:
             x.splitter = weakref.ref(lambda: 0)  # dead ref
         self.inputs = None
-
-    def to_gpu(self, device=None):
-        """Migrates the function to GPU and returns self.
-
-        The default implementation moves all fields of type
-        :class:`numpy.ndarray` onto GPU.
-
-        Args:
-            device (int or :class:`cupy.cuda.Device` or ``None``): Device
-                ID of GPU that the function will be migrated on. If this is
-                ``None``, the current device is used.
-
-        Returns:
-            self.
-
-        """
-        with cuda.get_device(device):
-            for k, v in six.iteritems(self.__dict__):
-                if isinstance(v, numpy.ndarray):
-                    setattr(self, k, cuda.cupy.array(v))
-        return self
-
-    def to_cpu(self):
-        """Migrates the function to CPU and returns self.
-
-        The default implementation moves all fields of type
-        :class:`cupy.ndarray` onto CPU.
-
-        Returns:
-            self.
-
-        """
-        for k, v in six.iteritems(self.__dict__):
-            if isinstance(v, cuda.ndarray):
-                setattr(self, k, v.get())
-        return self
-
-    @property
-    def parameters(self):
-        """A tuple of parameter arrays.
-
-        Default implementation collects parameter arrays based on
-        :data:`parameter_names` attribute.
-
-        """
-        return tuple(getattr(self, name) for name in self.parameter_names)
-
-    @parameters.setter
-    def parameters(self, values):
-        assert len(self.parameter_names) == len(values)
-        for name, value in zip(self.parameter_names, values):
-            setattr(self, name, value)
-
-    @property
-    def gradients(self):
-        """A tuple of gradient arrays.
-
-        Default implementation collects gradient arrays based on
-        :data:`gradient_names` attribute.
-
-        """
-        return tuple(getattr(self, name) for name in self.gradient_names)
-
-    @gradients.setter
-    def gradients(self, values):
-        assert len(self.gradient_names) == len(values)
-        for name, value in zip(self.gradient_names, values):
-            setattr(self, name, value)
 
 
 class Split(Function):

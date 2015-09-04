@@ -11,14 +11,12 @@ from chainer import testing
 from chainer.testing import attr
 
 
-class MockFunction(chainer.Function):
+class MockFunction(chainer.Model, chainer.Function):
 
     def __init__(self, shape):
-        self.p = np.zeros(shape).astype(np.float32)
-        self.gp = np.ones(shape).astype(np.float32)
-
-    parameter_names = ('p', )
-    gradient_names = ('gp', )
+        super(MockFunction, self).__init__()
+        self.params['p'] = np.zeros(shape, dtype='f')
+        self.grads['p'] = np.ones(shape, dtype='f')
 
 
 class TestNestedFunctionSet(unittest.TestCase):
@@ -29,10 +27,6 @@ class TestNestedFunctionSet(unittest.TestCase):
         self.fs2 = chainer.FunctionSet(
             fs1=self.fs1,
             b=MockFunction((3, 4)))
-
-    def test_get_sorted_funcs(self):
-        six.assertCountEqual(
-            self, [k for (k, v) in self.fs2._get_sorted_funcs()], ('b', 'fs1'))
 
     def test_collect_parameters(self):
         p_b = np.zeros((3, 4)).astype(np.float32)
@@ -50,8 +44,10 @@ class TestNestedFunctionSet(unittest.TestCase):
     def test_pickle_cpu(self):
         fs2_serialized = pickle.dumps(self.fs2)
         fs2_loaded = pickle.loads(fs2_serialized)
-        self.assertTrue((self.fs2.b.p == fs2_loaded.b.p).all())
-        self.assertTrue((self.fs2.fs1.a.p == fs2_loaded.fs1.a.p).all())
+        self.assertTrue(
+            (self.fs2.b.params['p'] == fs2_loaded.b.params['p']).all())
+        self.assertTrue(
+            (self.fs2.fs1.a.params['p'] == fs2_loaded.fs1.a.params['p']).all())
 
     @attr.gpu
     def test_pickle_gpu(self):
@@ -61,8 +57,10 @@ class TestNestedFunctionSet(unittest.TestCase):
         fs2_loaded.to_cpu()
         self.fs2.to_cpu()
 
-        self.assertTrue((self.fs2.b.p == fs2_loaded.b.p).all())
-        self.assertTrue((self.fs2.fs1.a.p == fs2_loaded.fs1.a.p).all())
+        self.assertTrue(
+            (self.fs2.b.params['p'] == fs2_loaded.b.params['p']).all())
+        self.assertTrue(
+            (self.fs2.fs1.a.params['p'] == fs2_loaded.fs1.a.params['p']).all())
 
 
 class TestFunctionSet(unittest.TestCase):
@@ -72,10 +70,6 @@ class TestFunctionSet(unittest.TestCase):
             a=F.Linear(3, 2),
             b=F.Linear(3, 2)
         )
-
-    def test_get_sorted_funcs(self):
-        six.assertCountEqual(
-            self, [k for (k, v) in self.fs._get_sorted_funcs()], ('a', 'b'))
 
     def check_equal_fs(self, fs1, fs2):
         self.assertTrue((fs1.a.W == fs2.a.W).all())
