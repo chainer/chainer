@@ -12,7 +12,7 @@ class AdaDelta(optimizer.GradientMethod):
 
     """
     def __init__(self, rho=0.95, eps=1e-6):
-        optimizer.Optimizer.__init__()
+        optimizer.GradientMethod.__init__(self)
         self.rho = rho
         self.eps = eps
 
@@ -21,7 +21,7 @@ class AdaDelta(optimizer.GradientMethod):
         state['msg'] = xp.zeros_like(param)
         state['msdx'] = xp.zeros_like(param)
 
-    def update_state_cpu(self, param, grad, state):
+    def update_param_cpu(self, param, grad, state):
         msg, msdx = state['msg'], state['msdx']
         msg *= self.rho
         msg += (1 - self.rho) * grad * grad
@@ -30,7 +30,7 @@ class AdaDelta(optimizer.GradientMethod):
         msdx += (1 - self.rho) * dx * dx
         param -= dx
 
-    def update_state_gpu(self, param, grad, state):
+    def update_param_gpu(self, param, grad, state):
         cuda.elementwise(
             'T grad, T one_minus_rho, T eps',
             'T param, T msg, T msdx',

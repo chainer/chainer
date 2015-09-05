@@ -72,10 +72,10 @@ class TestFunctionSet(unittest.TestCase):
         )
 
     def check_equal_fs(self, fs1, fs2):
-        self.assertTrue((fs1.a.W == fs2.a.W).all())
-        self.assertTrue((fs1.a.b == fs2.a.b).all())
-        self.assertTrue((fs1.b.W == fs2.b.W).all())
-        self.assertTrue((fs1.b.b == fs2.b.b).all())
+        self.assertTrue((fs1.a.params['W'] == fs2.a.params['W']).all())
+        self.assertTrue((fs1.a.params['b'] == fs2.a.params['b']).all())
+        self.assertTrue((fs1.b.params['W'] == fs2.b.params['W']).all())
+        self.assertTrue((fs1.b.params['b'] == fs2.b.params['b']).all())
 
     def test_pickle_cpu(self):
         s = pickle.dumps(self.fs)
@@ -108,10 +108,10 @@ class TestFunctionSet(unittest.TestCase):
         self.fs.copy_parameters_from(params)
         self.fs.to_cpu()
 
-        self.assertTrue((self.fs.a.W == aW).all())
-        self.assertTrue((self.fs.a.b == ab).all())
-        self.assertTrue((self.fs.b.W == bW).all())
-        self.assertTrue((self.fs.b.b == bb).all())
+        self.assertTrue((self.fs.a.params['W'] == aW).all())
+        self.assertTrue((self.fs.a.params['b'] == ab).all())
+        self.assertTrue((self.fs.b.params['W'] == bW).all())
+        self.assertTrue((self.fs.b.params['b'] == bb).all())
 
     def test_copy_parameters_from_cpu_to_cpu(self):
         self.check_copy_parameters_from(False, False)
@@ -132,7 +132,7 @@ class TestFunctionSet(unittest.TestCase):
         self.assertIs(self.fs['a'], self.fs.a)
 
     def test_getitem_notfoud(self):
-        with self.assertRaises(AttributeError):
+        with self.assertRaises(KeyError):
             self.fs['not_found']
 
 

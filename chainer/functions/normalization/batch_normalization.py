@@ -22,6 +22,8 @@ class BatchNormalization(model.Model, function.Function):
 
     """
     def __init__(self, size, decay=0.9, eps=1e-5, dtype=numpy.float32):
+        super(BatchNormalization, self).__init__()
+
         if isinstance(size, tuple):
             self.size = size
         elif isinstance(size, int):
@@ -32,12 +34,13 @@ class BatchNormalization(model.Model, function.Function):
         size = numpy.prod(size, dtype=int)
         self.dtype = numpy.dtype(dtype)
 
-        self.states['avg_mean'] = numpy.zeros((1, size, 1), dtype=self.dtype)
-        self.states['avg_var'] = numpy.zeros_like(self.avg_mean)
+        avg_mean = numpy.zeros((1, size, 1), dtype=self.dtype)
+        self.states['avg_mean'] = avg_mean
+        self.states['avg_var'] = numpy.zeros_like(avg_mean)
         self.states['N'] = 0
 
-        self.params['gamma'] = numpy.ones_like(self.avg_mean)
-        self.params['beta'] = numpy.zeros_like(self.avg_mean)
+        self.params['gamma'] = numpy.ones_like(avg_mean)
+        self.params['beta'] = numpy.zeros_like(avg_mean)
 
         self.decay = decay
         self.eps = eps
@@ -143,7 +146,7 @@ class BatchNormalization(model.Model, function.Function):
 
     def _internal_shape(self, x):
         ldim = x.shape[0]
-        cdim = self.gamma.size
+        cdim = self.params['gamma'].size
         rdim = x.size // (ldim * cdim)
         assert ldim * cdim * rdim == x.size
         return map(numpy.int32, (ldim, cdim, rdim))

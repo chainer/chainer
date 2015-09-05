@@ -55,7 +55,7 @@ class Linear(model.Model, function.Function):
     """
     def __init__(self, in_size, out_size, wscale=1, bias=0, nobias=False,
                  initialW=None, initial_bias=None):
-        super(Lineaer, self).__init__()
+        super(Linear, self).__init__()
         if initialW is not None:
             assert initialW.shape == (out_size, in_size)
             self.params['W'] = initialW
@@ -66,9 +66,9 @@ class Linear(model.Model, function.Function):
 
         if initial_bias is not None:
             assert initial_bias.shape == (out_size,)
-            self.['b'] = initial_bias
+            self.params['b'] = initial_bias
         elif not nobias:
-            self.['b'] = numpy.repeat(numpy.float32(bias), out_size)
+            self.params['b'] = numpy.repeat(numpy.float32(bias), out_size)
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)
@@ -78,7 +78,7 @@ class Linear(model.Model, function.Function):
             x_type.dtype == numpy.float32,
             x_type.ndim >= 2,
             (type_check.Variable(numpy.prod, 'prod')(x_type.shape[1:]) ==
-             type_check.Variable(self.W.shape[1], 'W.shape[1]')),
+             type_check.Variable(self.params['W'].shape[1], 'W.shape[1]')),
         )
 
     def forward(self, x):
@@ -145,7 +145,7 @@ class NonparameterizedLinear(function.Function):
 
     def backward(self, x, gy):
         func = self.func
-        func.zero_grads()
+        func.zerograds()
         gx = func.backward(x[:1], gy)
         gb = func.grads.get('b', None)
         if gb is None:

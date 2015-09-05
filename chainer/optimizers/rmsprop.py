@@ -9,7 +9,7 @@ class RMSprop(optimizer.GradientMethod):
     """Hinton's RMSprop."""
 
     def __init__(self, lr=0.01, alpha=0.99, eps=1e-8):
-        optimizer.Optimizer.__init__(self)
+        optimizer.GradientMethod.__init__(self)
         self.lr = lr
         self.alpha = alpha
         self.eps = eps

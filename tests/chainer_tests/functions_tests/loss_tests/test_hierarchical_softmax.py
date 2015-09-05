@@ -37,12 +37,12 @@ class TestBinaryHierarchicalSoftmax(unittest.TestCase):
     def setUp(self):
         tree = ((0, 1), ((2, 3), 4))
         self.func = functions.BinaryHierarchicalSoftmax(3, tree)
-        self.func.gW.fill(0)
+        self.func.zerograds()
         self.x = numpy.random.uniform(-1, 1, (2, 3)).astype(numpy.float32)
         self.t = numpy.array([0, 2]).astype(numpy.int32)
         self.gy = numpy.random.uniform(-1, 1, ()).astype(numpy.float32)
 
-        self.W = self.func.W.copy()
+        self.W = self.func.params['W'].copy()
 
     def check_sum(self, x, gpu=False):
         total = 0
@@ -88,10 +88,11 @@ class TestBinaryHierarchicalSoftmax(unittest.TestCase):
         func = y.creator
         f = lambda: func.forward((x.data, t.data))
         gx, _, gW = gradient_check.numerical_grad(
-            f, (x.data, t.data, func.W), (y.grad,), eps=1e-2)
+            f, (x.data, t.data, func.params['W']), (y.grad,), eps=1e-2)
 
         gradient_check.assert_allclose(cuda.to_cpu(gx), cuda.to_cpu(x.grad))
-        gradient_check.assert_allclose(cuda.to_cpu(gW), cuda.to_cpu(func.gW))
+        gradient_check.assert_allclose(
+            cuda.to_cpu(gW), cuda.to_cpu(func.grads['W']))
 
     @condition.retry(3)
     def test_backward_cpu(self):

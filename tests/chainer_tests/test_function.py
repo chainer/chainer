@@ -130,7 +130,6 @@ class TestFunction(unittest.TestCase):
             # __call__ method makes a copy
             self.assertIsNot(y.creator, self.f)
 
-        self.assertIsNone(self.f.outputs)
         self.assertIsInstance(y.creator.outputs, tuple)
 
     def test_call_cpu(self):
@@ -156,8 +155,6 @@ class TestFunction(unittest.TestCase):
             self.assertEqual(y.rank, 0)
             self.assertTrue(y.volatile)
             self.assertIsNone(y.creator)
-
-        self.assertIsNone(self.f.outputs)
 
     def test_call_volatile_cpu(self):
         self.check_call_volatile()
@@ -231,76 +228,8 @@ class TestFunction(unittest.TestCase):
 
         self.assertIsNone(f.inputs)
 
-    def test_parameters_getter(self):
-        self.assertEqual(self.f.parameters, ())
-
-    def test_gradients_getter(self):
-        self.assertEqual(self.f.gradients, ())
-
     def test_label(self):
         self.assertEqual(self.f.label, 'Function')
-
-
-class TestParameterizedFunction(unittest.TestCase):
-
-    def setUp(self):
-        f = chainer.Function()
-        f.p1 = numpy.arange(10)
-        f.p2 = numpy.arange(5)
-        f.g1 = numpy.arange(8)
-        f.g2 = numpy.arange(3)
-        f.parameter_names = ('p1', 'p2')
-        f.gradient_names = ('g1', 'g2')
-        self.f = f
-
-    @attr.gpu
-    def test_to_gpu(self):
-        self.f.to_gpu()
-        self.assertIsInstance(self.f.p1, cuda.cupy.ndarray)
-        self.assertIsInstance(self.f.p2, cuda.cupy.ndarray)
-
-    @attr.gpu
-    def test_to_cpu(self):
-        self.f.to_gpu()
-        self.f.to_cpu()
-        self.assertIsInstance(self.f.p1, numpy.ndarray)
-        self.assertIsInstance(self.f.p2, numpy.ndarray)
-
-    def test_parameters_getter(self):
-        ps = self.f.parameters
-        self.assertIsInstance(ps, tuple)
-        self.assertEqual(len(ps), 2)
-
-    def test_parameters_setter(self):
-        p1 = numpy.arange(10) + 1
-        p2 = numpy.arange(5) + 1
-        self.f.parameters = (p1, p2)
-        q1, q2 = self.f.parameters
-        self.assertIs(p1, q1)
-        self.assertIs(p2, q2)
-
-    def test_parameters_setter_invalid_size(self):
-        p1 = numpy.arange(10) + 1
-        with self.assertRaises(AssertionError):
-            self.f.parameters = (p1,)
-
-    def test_gradients_getter(self):
-        gs = self.f.gradients
-        self.assertIsInstance(gs, tuple)
-        self.assertEqual(len(gs), 2)
-
-    def test_gradients_setter(self):
-        g1 = numpy.arange(8) + 1
-        g2 = numpy.arange(4) + 1
-        self.f.gradients = (g1, g2)
-        h1, h2 = self.f.gradients
-        self.assertIs(g1, h1)
-        self.assertIs(g2, h2)
-
-    def test_gradients_setter_invalid_size(self):
-        g1 = numpy.arange(8) + 1
-        with self.assertRaises(AssertionError):
-            self.f.gradients = (g1,)
 
 
 class TestFunctionBackwardIntegration(unittest.TestCase):

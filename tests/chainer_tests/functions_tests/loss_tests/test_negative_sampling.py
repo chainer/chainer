@@ -13,7 +13,7 @@ from chainer.testing import condition
 class TestNegativeSampling(unittest.TestCase):
     def setUp(self):
         self.func = chainer.functions.NegativeSampling(3, [10, 5, 2, 5, 2], 2)
-        self.func.gW.fill(0)
+        self.func.zerograds()
         self.x = numpy.random.uniform(-1, 1, (2, 3)).astype(numpy.float32)
         self.t = numpy.array([0, 2]).astype(numpy.int32)
         self.gy = numpy.random.uniform(-1, 1, ()).astype(numpy.float32)
@@ -27,13 +27,13 @@ class TestNegativeSampling(unittest.TestCase):
 
         func = y.creator
         f = lambda: func.forward((x.data, t.data))
-        gx, _, gW = gradient_check.numerical_grad(f, (x.data, t.data, func.W),
-                                                  (y.grad,), eps=1e-2)
+        gx, _, gW = gradient_check.numerical_grad(
+            f, (x.data, t.data, func.params['W']), (y.grad,), eps=1e-2)
 
-        gradient_check.assert_allclose(cuda.to_cpu(gx), cuda.to_cpu(x.grad),
-                                       atol=1.e-4)
-        gradient_check.assert_allclose(cuda.to_cpu(gW), cuda.to_cpu(func.gW),
-                                       atol=1.e-4)
+        gradient_check.assert_allclose(
+            cuda.to_cpu(gx), cuda.to_cpu(x.grad), atol=1.e-4)
+        gradient_check.assert_allclose(
+            cuda.to_cpu(gW), cuda.to_cpu(func.grads['W']), atol=1.e-4)
 
     @attr.gpu
     @condition.retry(3)

@@ -112,7 +112,7 @@ class Convolution2D(model.Model, function.Function):
                 0, wscale * math.sqrt(1. / (self.kh * self.kw * in_channels)),
                 (out_channels, in_channels, self.kh, self.kw)
             ).astype(self.dtype)
-        xp = cuda.get_array_module(self.W)
+        xp = cuda.get_array_module(self.params['W'])
 
         if initial_bias is not None:
             assert initial_bias.shape == (out_channels,)
@@ -336,7 +336,7 @@ class NonparameterizedConvolution2D(function.Function):
 
     def backward(self, x, gy):
         func = self.func
-        func.zero_grads()
+        func.zerograds()
         gx = func.backward(x[:1], gy)
         gb = func.grads.get('b', None)
         if gb is None:

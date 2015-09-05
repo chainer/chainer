@@ -7,7 +7,7 @@ class SGD(optimizer.GradientMethod):
     """Vanilla Stochastic Gradient Descent."""
 
     def __init__(self, lr=0.01):
-        optimizer.Optimizer.__init__(self)
+        optimizer.GradientMethod.__init__(self)
         self.lr = lr
 
     def update_param_cpu(self, param, grad, _):

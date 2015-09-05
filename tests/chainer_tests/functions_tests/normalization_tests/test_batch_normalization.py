@@ -18,15 +18,16 @@ class TestBatchNormalization(unittest.TestCase):
 
     def setUp(self):
         self.func = functions.BatchNormalization(3)
-        self.func.gamma = numpy.random.uniform(
-            .5, 1, self.func.gamma.shape).astype(numpy.float32)
-        self.func.beta = numpy.random.uniform(
-            -1, 1, self.func.beta.shape).astype(numpy.float32)
-        self.func.ggamma.fill(0)
-        self.func.gbeta.fill(0)
+        gamma =  self.func.params['gamma']
+        beta =  self.func.params['beta']
+        gamma[...] = numpy.random.uniform(
+            .5, 1, gamma.shape).astype(numpy.float32)
+        beta[...] = numpy.random.uniform(
+            -1, 1, beta.shape).astype(numpy.float32)
+        self.func.zerograds()
 
-        self.gamma = self.func.gamma.copy().reshape(1, 3)  # fixed on CPU
-        self.beta = self.func.beta.copy().reshape(1, 3)   # fixed on CPU
+        self.gamma = gamma.copy().reshape(1, 3)  # fixed on CPU
+        self.beta = beta.copy().reshape(1, 3)   # fixed on CPU
 
         self.x = numpy.random.uniform(-1, 1, (7, 3)).astype(numpy.float32)
         self.gy = numpy.random.uniform(-1, 1, (7, 3)).astype(numpy.float32)
@@ -63,11 +64,12 @@ class TestBatchNormalization(unittest.TestCase):
         func = y.creator
         f = lambda: func.forward((x.data,))
         gx, ggamma, gbeta = gradient_check.numerical_grad(
-            f, (x.data, func.gamma, func.beta), (y.grad,), eps=1e-2)
+            f, (x.data, func.params['gamma'], func.params['beta']), (y.grad,),
+            eps=1e-2)
 
         gradient_check.assert_allclose(gx, x.grad, rtol=1e-3, atol=1e-4)
-        gradient_check.assert_allclose(ggamma, func.ggamma)
-        gradient_check.assert_allclose(gbeta, func.gbeta)
+        gradient_check.assert_allclose(ggamma, func.grads['gamma'])
+        gradient_check.assert_allclose(gbeta, func.grads['beta'])
 
     @condition.retry(3)
     def test_backward_cpu(self):
@@ -86,15 +88,16 @@ class TestBatchNormalization2D(TestBatchNormalization):
 
     def setUp(self):
         self.func = functions.BatchNormalization(3)
-        self.func.gamma = numpy.random.uniform(
-            .5, 1, self.func.gamma.shape).astype(numpy.float32)
-        self.func.beta = numpy.random.uniform(
-            -1, 1, self.func.beta.shape).astype(numpy.float32)
-        self.func.ggamma.fill(0)
-        self.func.gbeta.fill(0)
+        gamma = self.func.params['gamma']
+        beta = self.func.params['beta']
+        gamma[...] = numpy.random.uniform(
+            .5, 1, gamma.shape).astype(numpy.float32)
+        beta[...] = numpy.random.uniform(
+            -1, 1, beta.shape).astype(numpy.float32)
+        self.func.zerograds()
 
-        self.gamma = self.func.gamma.copy().reshape(1, 3, 1, 1)  # fixed on CPU
-        self.beta = self.func.beta.copy().reshape(1, 3, 1, 1)   # fixed on CPU
+        self.gamma = gamma.copy().reshape(1, 3, 1, 1)  # fixed on CPU
+        self.beta = beta.copy().reshape(1, 3, 1, 1)   # fixed on CPU
 
         self.x = numpy.random.uniform(-1, 1,
                                       (7, 3, 2, 2)).astype(numpy.float32)

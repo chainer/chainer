@@ -12,30 +12,6 @@ from chainer import testing
 from chainer.testing import attr
 
 
-class TestOptimizerUtility(unittest.TestCase):
-
-    def setUp(self):
-        self.x = np.linspace(-1.0, 1.5, num=6).astype(np.float32).reshape(2, 3)
-        self.a = np.array(2.0)
-
-    def test_sqnorm_cpu(self):
-        # \Sum_{n=0}^{5} (-1.0+0.5n)**2 = 4.75
-        self.assertAlmostEqual(optimizer._sqnorm(self.x), 4.75)
-
-    def test_sqnorm_scalar_cpu(self):
-        self.assertAlmostEqual(optimizer._sqnorm(self.a), 4)
-
-    @attr.gpu
-    def test_sqnorm_gpu(self):
-        x = cuda.to_gpu(self.x)
-        self.assertAlmostEqual(optimizer._sqnorm(x), 4.75)
-
-    @attr.gpu
-    def test_sqnorm_scalar_gpu(self):
-        a = cuda.to_gpu(self.a)
-        self.assertAlmostEqual(optimizer._sqnorm(a), 4)
-
-
 class TestOptimizerWeightDecay(unittest.TestCase):
 
     def setUp(self):
@@ -61,7 +37,7 @@ class TestOptimizerWeightDecay(unittest.TestCase):
         self.check_weight_decay(cuda.to_gpu(self.w), cuda.to_gpu(self.g))
 
 
-class TestOptimizer(unittest.TestCase):
+class TestGradientMethod(unittest.TestCase):
 
     def _suffix(self, gpu):
         if gpu:
@@ -73,11 +49,11 @@ class TestOptimizer(unittest.TestCase):
         return getattr(self.optimizer, prefix + '_' + self._suffix(gpu))
 
     def setUp(self):
-        opt = chainer.Optimizer()
-        opt.init_state_cpu = mock.MagicMock(return_value=1)
-        opt.init_state_gpu = mock.MagicMock(return_value=1)
-        opt.update_one_cpu = mock.MagicMock()
-        opt.update_one_gpu = mock.MagicMock()
+        opt = chainer.GradientMethod()
+        opt.init_state_cpu = mock.MagicMock()
+        opt.init_state_gpu = mock.MagicMock()
+        opt.update_param_cpu = mock.MagicMock()
+        opt.update_param_gpu = mock.MagicMock()
         self.optimizer = opt
 
         self.params = [np.arange(3).astype(np.float32)]
@@ -94,7 +70,6 @@ class TestOptimizer(unittest.TestCase):
     def check_init_state(self, param, grad, gpu):
         state = self.optimizer.init_state(param, grad)
 
-        self.assertEqual(state, 1)
         self._get_method('init_state', gpu).assert_called_once_with(
             param, grad)
         self.assertEqual(self._get_method('init_state', not gpu).call_count, 0)
@@ -116,9 +91,9 @@ class TestOptimizer(unittest.TestCase):
         self.optimizer.update()
         self.assertEqual(self.optimizer.t, 1)
 
-        self._get_method('update_one', gpu).assert_called_once_with(
-            self.params[0], self.grads[0], 1)
-        self.assertEqual(self._get_method('update_one', not gpu).call_count, 0)
+        self._get_method('update_param', gpu).assert_called_once_with(
+            self.params[0], self.grads[0], {})
+        self.assertEqual(self._get_method('update_param', not gpu).call_count, 0)
 
         self.optimizer.zero_grads()
         self.assertTrue((cuda.to_cpu(self.grads[0]) == 0).all())

@@ -17,6 +17,7 @@ class Parameter(model.Model, function.Function):
 
     """
     def __init__(self, array):
+        super(Parameter, self).__init__()
         self.params['W'] = array
 
     def __call__(self, volatile=False):

@@ -98,11 +98,8 @@ class OptimizerTestBase(object):
         optimizer = self.create()
         optimizer.setup(model)
 
-        self.assertEqual(len(optimizer.tuples), len(model.parameters))
-
-        msg = "'params_grads' must have 'parameters' and 'gradients'"
-        with self.assertRaisesRegexp(ValueError, msg):
-            optimizer.setup('xxx')
+        self.assertIs(optimizer.model, model)
+        self.assertRaises(AttributeError, optimizer.setup, 'xxx')
 
 
 class TestAdaDelta(OptimizerTestBase, unittest.TestCase):

@@ -15,11 +15,11 @@ class TestPReLUSingle(unittest.TestCase):
 
     def setUp(self):
         self.func = functions.PReLU()
-        self.func.W = numpy.random.uniform(
-            -1, 1, self.func.W.shape).astype(numpy.float32)
-        self.func.gW.fill(0)
+        W = self.func.params['W']
+        W[...] = numpy.random.uniform(-1, 1, W.shape).astype(numpy.float32)
+        self.func.zerograds()
 
-        self.W = self.func.W.copy()  # fixed on CPU
+        self.W = W.copy()  # fixed on CPU
 
         # Avoid unstability of numerical gradient
         self.x = numpy.random.uniform(-1, 1, (4, 3, 2)).astype(numpy.float32)
@@ -58,10 +58,11 @@ class TestPReLUSingle(unittest.TestCase):
 
         func = y.creator
         f = lambda: func.forward((x.data,))
-        gx, gW = gradient_check.numerical_grad(f, (x.data, func.W), (y.grad,))
+        gx, gW = gradient_check.numerical_grad(
+            f, (x.data, func.params['W']), (y.grad,))
 
         gradient_check.assert_allclose(gx, x.grad)
-        gradient_check.assert_allclose(gW, func.gW, atol=1e-4)
+        gradient_check.assert_allclose(gW, func.grads['W'], atol=1e-4)
 
     @condition.retry(3)
     def test_backward_cpu(self):
@@ -78,11 +79,11 @@ class TestPReLUMulti(TestPReLUSingle):
 
     def setUp(self):
         self.func = functions.PReLU(shape=(3,))
-        self.func.W = numpy.random.uniform(
-            -1, 1, self.func.W.shape).astype(numpy.float32)
-        self.func.gW.fill(0)
+        W = self.func.params['W']
+        W[...] = numpy.random.uniform(-1, 1, W.shape).astype(numpy.float32)
+        self.func.zerograds()
 
-        self.W = self.func.W.copy()  # fixed on CPU
+        self.W = W.copy()  # fixed on CPU
 
         # Avoid unstability of numerical gradient
         self.x = numpy.random.uniform(.5, 1, (4, 3, 2)).astype(numpy.float32)

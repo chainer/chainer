@@ -14,7 +14,7 @@ class Adam(optimizer.GradientMethod):
 
     """
     def __init__(self, alpha=0.001, beta1=0.9, beta2=0.999, eps=1e-8):
-        optimizer.Optimizer.__init__(self)
+        optimizer.GradientMethod.__init__(self)
         self.alpha = alpha
         self.beta1 = beta1
         self.beta2 = beta2

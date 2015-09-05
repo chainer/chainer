@@ -17,10 +17,9 @@ class TestConvolution2D(unittest.TestCase):
 
     def setUp(self):
         self.func = functions.Convolution2D(3, 2, 3, stride=2, pad=1)
-        self.func.b = numpy.random.uniform(
-            -1, 1, self.func.b.shape).astype(numpy.float32)
-        self.func.gW.fill(0)
-        self.func.gb.fill(0)
+        self.func.params['b'] = numpy.random.uniform(
+            -1, 1, self.func.params['b'].shape).astype(numpy.float32)
+        self.func.zerograds()
 
         self.x = numpy.random.uniform(-1, 1,
                                       (2, 3, 4, 3)).astype(numpy.float32)
@@ -73,11 +72,12 @@ class TestConvolution2D(unittest.TestCase):
         func = y.creator
         f = lambda: func.forward((x.data,))
         gx, gW, gb = gradient_check.numerical_grad(
-            f, (x.data, func.W, func.b), (y.grad,), eps=1e-2)
+            f, (x.data, func.params['W'], func.params['b']), (y.grad,),
+            eps=1e-2)
 
         gradient_check.assert_allclose(gx, x.grad)
-        gradient_check.assert_allclose(gW, func.gW)
-        gradient_check.assert_allclose(gb, func.gb)
+        gradient_check.assert_allclose(gW, func.grads['W'])
+        gradient_check.assert_allclose(gb, func.grads['b'])
 
     @condition.retry(3)
     def test_backward_cpu(self):

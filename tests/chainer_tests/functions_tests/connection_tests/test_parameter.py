@@ -44,17 +44,18 @@ class TestParameter(unittest.TestCase):
         self.check_forward(True)
 
     def check_backward(self, y_grad, volatile):
-        self.func.gW.fill(0)
+        self.func.zerograds()
         y = self.func(volatile)
         y.grad = y_grad
         y.backward()
         if volatile:
             self.assertTrue(
-                (cuda.to_cpu(self.func.gW) ==
+                (cuda.to_cpu(self.func.grads['W']) ==
                  numpy.zeros(y_grad.shape, dtype=y_grad.dtype)).all())
         else:
             self.assertTrue(
-                (cuda.to_cpu(self.func.gW) == cuda.to_cpu(y_grad)).all())
+                (cuda.to_cpu(self.func.grads['W']) == cuda.to_cpu(y_grad))
+                .all())
 
     def test_backward_cpu(self):
         self.check_backward(self.gW, False)

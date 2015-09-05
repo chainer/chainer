@@ -20,21 +20,20 @@ class TestLinear(unittest.TestCase):
     def setUp(self):
         in_size = numpy.prod(self.in_shape)
         self.func = functions.Linear(in_size, self.out_size)
-        self.func.W = numpy.random.uniform(
-            -1, 1, self.func.W.shape).astype(numpy.float32)
-        self.func.b = numpy.random.uniform(
-            -1, 1, self.func.b.shape).astype(numpy.float32)
-        self.func.gW.fill(0)
-        self.func.gb.fill(0)
+        W = self.func.params['W']
+        b = self.func.params['b']
+        W[...] = numpy.random.uniform(-1, 1, W.shape).astype(numpy.float32)
+        b[...] = numpy.random.uniform(-1, 1, b.shape).astype(numpy.float32)
+        self.func.zerograds()
 
-        self.W = self.func.W.copy()  # fixed on CPU
-        self.b = self.func.b.copy()  # fixed on CPU
+        self.W = W.copy()  # fixed on CPU
+        self.b = b.copy()  # fixed on CPU
 
         x_shape = (4,) + self.in_shape
         self.x = numpy.random.uniform(-1, 1, x_shape).astype(numpy.float32)
         self.gy = numpy.random.uniform(
             -1, 1, (4, self.out_size)).astype(numpy.float32)
-        self.y = self.x.reshape(4, -1).dot(self.func.W.T) + self.func.b
+        self.y = self.x.reshape(4, -1).dot(W.T) + b
 
     def check_forward(self, x_data):
         x = chainer.Variable(x_data)
@@ -61,11 +60,12 @@ class TestLinear(unittest.TestCase):
         func = y.creator
         f = lambda: func.forward((x.data,))
         gx, gW, gb = gradient_check.numerical_grad(
-            f, (x.data, func.W, func.b), (y.grad,), eps=1e-2)
+            f, (x.data, func.params['W'], func.params['b']), (y.grad,),
+            eps=1e-2)
 
         gradient_check.assert_allclose(gx, x.grad)
-        gradient_check.assert_allclose(gW, func.gW)
-        gradient_check.assert_allclose(gb, func.gb)
+        gradient_check.assert_allclose(gW, func.grads['W'])
+        gradient_check.assert_allclose(gb, func.grads['b'])
 
     @condition.retry(3)
     def test_backward_cpu(self):

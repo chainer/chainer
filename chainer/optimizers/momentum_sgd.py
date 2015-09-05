@@ -9,7 +9,7 @@ class MomentumSGD(optimizer.GradientMethod):
     """Classical momentum SGD."""
 
     def __init__(self, lr=0.01, momentum=0.9):
-        optimizer.Optimizer.__init__(self)
+        optimizer.GradientMethod.__init__(self)
         self.lr = lr
         self.momentum = momentum
 

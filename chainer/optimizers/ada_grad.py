@@ -12,7 +12,7 @@ class AdaGrad(optimizer.GradientMethod):
 
     """
     def __init__(self, lr=0.001, eps=1e-8):
-        optimizer.Optimizer.__init__()
+        optimizer.GradientMethod.__init__(self)
         self.lr = lr
         self.eps = eps
 

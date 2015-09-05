@@ -29,8 +29,8 @@ class FunctionSet(model.ModelDict):
                 object as attributes.
 
         """
-        msg = 'FunctionSet is deprecated. Use ModelDict instead.'
-        warnings.warn(msg, FutureWarning)
+        warnings.warn('FunctionSet is deprecated. Use ModelDict instead.',
+                      DeprecationWarning)
         model.ModelDict.__init__(self, **functions)
 
     def __getattr__(self, key):

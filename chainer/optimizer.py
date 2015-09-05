@@ -2,8 +2,19 @@ import math
 import warnings
 
 import numpy
+import six
 
 from chainer import cuda
+from chainer import model
+
+
+class TupleModel(model.Model):
+
+    def __init__(self, params_grads):
+        model.Model.__init__(self)
+        for i, (param, grad) in enumerate(six.moves.zip(*params_grads)):
+            self.params[str(i)] = param
+            self.grads[str(i)] = grad
 
 
 class Optimizer(object):
@@ -13,14 +24,29 @@ class Optimizer(object):
         self.model = None
         self.states = {}
 
+    def init_state(self, param, state):
+        with cuda.get_device(param) as d:
+            if int(d) < 0:
+                self.init_state_cpu(param, state)
+            else:
+                self.init_state_gpu(param, state)
+
+    def init_state_cpu(self, param, state):
+        pass
+
+    def init_state_gpu(self, param, state):
+        pass
+
     def setup(self, model):
+        if isinstance(model, tuple):
+            model = TupleModel(model)
         self.model = model
-        for path, param, _ in model.visitparams():
+        for path, param, _ in model.visitparams(silent=True):
             state = {}
             self.init_state(param, state)
             self.states[path] = state
 
-    def update(self, loss_func, *args, *kwds):
+    def update(self, loss_func=None, *args, **kwds):
         raise NotImplementedError
 
     def zero_grads(self):
@@ -32,10 +58,10 @@ class Optimizer(object):
         warnings.warn('Optimizer.compute_grads_norm is deprecated.',
                       DeprecationWarning)
         sqnorm = 0
-        for _, _, grad in model.visitparams():
+        for _, _, grad in self.model.visitparams():
             grad = grad.ravel()
             sqnorm += float(grad.dot(grad))
-        return sqnorm
+        return math.sqrt(sqnorm)
 
     def clip_grads(self, maxnorm):
         warnings.warn('Optimizer.clip_grads is deprecated. '
@@ -116,6 +142,12 @@ class GradientMethod(Optimizer):
         else:
             self.update_param_cpu(param, grad, state)
 
+    def update_param_cpu(self, param, grad, state):
+        raise NotImplementedError
+
+    def update_param_gpu(self, param, grad, state):
+        raise NotImplementedError
+
 
 class WeightDecay(object):
 
@@ -144,7 +176,7 @@ class GradientClipping(object):
             grad = grad.ravel()
             sqnorm += float(grad.dot(grad))
 
-        ratio = math.sqrt(sqnorm) / self.maxnorm
+        ratio = self.maxnorm / math.sqrt(sqnorm)
         if ratio < 1:
             for grad in grads:
                 grad *= ratio

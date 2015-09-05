@@ -52,6 +52,8 @@ class NegativeSampling(model.Model, function.Function):
 
     """
     def __init__(self, in_size, counts, sample_size, power=0.75):
+        super(NegativeSampling, self).__init__()
+
         self.sample_size = sample_size
         p = numpy.array(counts, numpy.float32)
         p = numpy.power(p, p.dtype.type(power))

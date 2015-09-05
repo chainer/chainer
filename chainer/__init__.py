@@ -14,7 +14,10 @@ __version__ = pkg_resources.get_distribution('chainer').version
 Variable = variable.Variable
 Function = function.Function
 FunctionSet = function_set.FunctionSet
+
 Optimizer = optimizer.Optimizer
+GradientMethod = optimizer.GradientMethod
+
 Model = model.Model
 ModelDict = model.ModelDict
 ModelList = model.ModelList
