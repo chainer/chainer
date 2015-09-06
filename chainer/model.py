@@ -221,7 +221,7 @@ class ModelDict(Model):
     def serialize(self, serializer):
         Model.serialize(self, serializer)
         for key, model in six.iteritems(self):
-            model.serialize(self, serializer[key])
+            model.serialize(serializer[key])
 
 
 class ModelList(Model):
@@ -292,9 +292,9 @@ class ModelList(Model):
                 yield m2
 
     def serialize(self, serializer):
-        Model.save(self, serializer)
-        for idx, model in six.iteritems(self):
-            model.save(self, serializer[str(idx)])
+        Model.serialize(self, serializer)
+        for idx, model in enumerate(self):
+            model.serialize(serializer[str(idx)])
 
 
 def _dict_to_cpu(d):

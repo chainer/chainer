@@ -21,6 +21,7 @@ setup(
               'chainer.functions.normalization',
               'chainer.functions.pooling',
               'chainer.optimizers',
+              'chainer.serializers',
               'chainer.testing',
               'chainer.utils',
               'cupy',
