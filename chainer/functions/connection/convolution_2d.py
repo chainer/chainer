@@ -160,7 +160,7 @@ class Convolution2D(model.Model, function.Function):
             x_desc = cudnn.create_tensor_descriptor(x[0])
             y_desc = cudnn.create_tensor_descriptor(y)
 
-            self.filter_desc = cudnn.create_filter_descriptor(self.W)
+            self.filter_desc = cudnn.create_filter_descriptor(self.params['W'])
             self.conv_desc = cudnn.create_convolution_descriptor(
                 (self.ph, self.pw), (self.sy, self.sx))
             if b is not None:
@@ -181,9 +181,9 @@ class Convolution2D(model.Model, function.Function):
             zero = ctypes.c_float(0)
             libcudnn.convolutionForward(
                 handle, one, x_desc.value, x[0].data.ptr,
-                self.filter_desc.value, self.W.data.ptr, self.conv_desc.value,
-                algo, workspace.data.ptr, workspace_size, zero, y_desc.value,
-                y.data.ptr)
+                self.filter_desc.value, self.params['W'].data.ptr,
+                self.conv_desc.value, algo, workspace.data.ptr, workspace_size,
+                zero, y_desc.value, y.data.ptr)
 
             # TODO(beam2d): Support unshared bias
             if b is not None:
@@ -251,7 +251,7 @@ class Convolution2D(model.Model, function.Function):
                 zero, x_desc.value, gx.data.ptr)
         else:
             if 'b' in self.params:
-                self.gb += gy[0].sum(axis=(0, 2, 3))
+                self.grads['b'] += gy[0].sum(axis=(0, 2, 3))
 
             # TODO(beam2d): Use streams
             gW_mat = self.grads['W'].reshape(out_c, c * self.kh * self.kw)

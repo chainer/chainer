@@ -43,11 +43,11 @@ class FunctionSet(model.ModelDict):
             model.ModelDict.__setattr__(self, key, value)
 
     def __getstate__(self):
-        # avoid setattr
-        return self.models
+        # avoid getattr/setattr
+        return self.__dict__
 
-    def __setstate__(self, models):
-        self.models = models
+    def __setstate__(self, state):
+        self.__dict__ = state
 
     def collect_parameters(self):
         """Returns a tuple of parameters and gradients.

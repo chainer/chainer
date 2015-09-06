@@ -63,21 +63,16 @@ class NegativeSampling(model.Model, function.Function):
         self.params['W'] = numpy.zeros((vocab_size, in_size)).astype(
             numpy.float32)
 
+        self.samples = None
+
     def _make_samples(self, t):
-        if hasattr(self, 'samples'):
+        if self.samples is not None:
             return self.samples
 
         size = int(t.shape[0])
         # first one is the positive, and others are sampled negatives
         samples = self.sampler.sample((size, self.sample_size + 1))
-        if isinstance(samples, numpy.ndarray):
-            samples.T[0] = t
-        else:
-            cuda.elementwise(
-                'T t, int32 m', 'raw T s', 's[i * m] = t;',
-                'negative_sampling_assign'
-            )(t, self.sample_size + 1, samples)
-
+        samples[:, 0] = t
         self.samples = samples
 
     def check_type_forward(self, in_types):

@@ -46,6 +46,7 @@ class TestNegativeSampling(unittest.TestCase):
         self.assertEqual(y.data.dtype, numpy.float32)
         self.assertEqual(y.data.shape, ())
 
+        self.func.samples = cuda.to_gpu(self.func.samples)
         self.func.to_gpu()
         y_g = self.func(chainer.Variable(cuda.to_gpu(self.x)),
                         chainer.Variable(cuda.to_gpu(self.t)))
