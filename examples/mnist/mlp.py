@@ -14,9 +14,9 @@ class MLP(chainer.ModelList):
     """
     def __init__(self):
         super(MLP, self).__init__(
-            F.Linear( 784, 1000),  # the first layer
+            F.Linear(784, 1000),  # the first layer
             F.Linear(1000, 1000),  # the second layer
-            F.Linear(1000,   10),  # the last layer
+            F.Linear(1000, 10),  # the last layer
         )
 
     def predict(self, x, train=True):
