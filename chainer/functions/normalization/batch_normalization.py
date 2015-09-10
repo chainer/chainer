@@ -4,6 +4,7 @@ from chainer import cuda
 from chainer import function
 from chainer import model
 from chainer.utils import type_check
+from chainer import variable
 
 
 class BatchNormalization(model.Model, function.Function):
@@ -39,8 +40,8 @@ class BatchNormalization(model.Model, function.Function):
         self.states['avg_var'] = numpy.zeros_like(avg_mean)
         self.states['N'] = 0
 
-        self.params['gamma'] = numpy.ones_like(avg_mean)
-        self.params['beta'] = numpy.zeros_like(avg_mean)
+        self.params['gamma'] = variable.Variable(numpy.ones_like(avg_mean))
+        self.params['beta'] = variable.Variable(numpy.zeros_like(avg_mean))
 
         self.decay = decay
         self.eps = eps
@@ -102,8 +103,8 @@ class BatchNormalization(model.Model, function.Function):
         self.std = xp.sqrt(var, dtype=var.dtype)
         x_mu = x - mean
         self.x_hat = x_mu / self.std
-        y = self.params['gamma'] * self.x_hat
-        y += self.params['beta']
+        y = self.params['gamma'].data * self.x_hat
+        y += self.params['beta'].data
 
         # Compute exponential moving average
         if self.use_batch_mean:
@@ -132,12 +133,12 @@ class BatchNormalization(model.Model, function.Function):
         m = ldim * rdim
 
         gbeta = gy.sum(axis=(0, 2), keepdims=True)
-        self.grads['beta'] += gbeta
+        self.params['beta'].grad += gbeta
 
         ggamma = (gy * self.x_hat).sum(axis=(0, 2), keepdims=True)
-        self.grads['gamma'] += ggamma
+        self.params['gamma'].grad += ggamma
 
-        coeff = self.params['gamma'] / self.std
+        coeff = self.params['gamma'].data / self.std
         gbeta /= m
         ggamma /= m
 
@@ -146,7 +147,7 @@ class BatchNormalization(model.Model, function.Function):
 
     def _internal_shape(self, x):
         ldim = x.shape[0]
-        cdim = self.params['gamma'].size
+        cdim = self.params['gamma'].data.size
         rdim = x.size // (ldim * cdim)
         assert ldim * cdim * rdim == x.size
         return map(numpy.int32, (ldim, cdim, rdim))

@@ -15,8 +15,9 @@ class MockFunction(chainer.Model, chainer.Function):
 
     def __init__(self, shape):
         super(MockFunction, self).__init__()
-        self.params['p'] = np.zeros(shape, dtype='f')
-        self.grads['p'] = np.ones(shape, dtype='f')
+        p = chainer.Variable(np.zeros(shape, dtype='f'))
+        p.grad = np.ones(shape, dtype='f')
+        self.params['p'] = p
 
 
 class TestNestedFunctionSet(unittest.TestCase):
@@ -45,9 +46,11 @@ class TestNestedFunctionSet(unittest.TestCase):
         fs2_serialized = pickle.dumps(self.fs2)
         fs2_loaded = pickle.loads(fs2_serialized)
         self.assertTrue(
-            (self.fs2.b.params['p'] == fs2_loaded.b.params['p']).all())
+            (self.fs2.b.params['p'].data ==
+             fs2_loaded.b.params['p'].data).all())
         self.assertTrue(
-            (self.fs2.fs1.a.params['p'] == fs2_loaded.fs1.a.params['p']).all())
+            (self.fs2.fs1.a.params['p'].data ==
+             fs2_loaded.fs1.a.params['p'].data).all())
 
     @attr.gpu
     def test_pickle_gpu(self):
@@ -58,9 +61,11 @@ class TestNestedFunctionSet(unittest.TestCase):
         self.fs2.to_cpu()
 
         self.assertTrue(
-            (self.fs2.b.params['p'] == fs2_loaded.b.params['p']).all())
+            (self.fs2.b.params['p'].data ==
+             fs2_loaded.b.params['p'].data).all())
         self.assertTrue(
-            (self.fs2.fs1.a.params['p'] == fs2_loaded.fs1.a.params['p']).all())
+            (self.fs2.fs1.a.params['p'].data ==
+             fs2_loaded.fs1.a.params['p'].data).all())
 
 
 class TestFunctionSet(unittest.TestCase):
@@ -72,10 +77,14 @@ class TestFunctionSet(unittest.TestCase):
         )
 
     def check_equal_fs(self, fs1, fs2):
-        self.assertTrue((fs1.a.params['W'] == fs2.a.params['W']).all())
-        self.assertTrue((fs1.a.params['b'] == fs2.a.params['b']).all())
-        self.assertTrue((fs1.b.params['W'] == fs2.b.params['W']).all())
-        self.assertTrue((fs1.b.params['b'] == fs2.b.params['b']).all())
+        self.assertTrue(
+            (fs1.a.params['W'].data == fs2.a.params['W'].data).all())
+        self.assertTrue(
+            (fs1.a.params['b'].data == fs2.a.params['b'].data).all())
+        self.assertTrue(
+            (fs1.b.params['W'].data == fs2.b.params['W'].data).all())
+        self.assertTrue(
+            (fs1.b.params['b'].data == fs2.b.params['b'].data).all())
 
     def test_pickle_cpu(self):
         s = pickle.dumps(self.fs)
@@ -108,10 +117,10 @@ class TestFunctionSet(unittest.TestCase):
         self.fs.copy_parameters_from(params)
         self.fs.to_cpu()
 
-        self.assertTrue((self.fs.a.params['W'] == aW).all())
-        self.assertTrue((self.fs.a.params['b'] == ab).all())
-        self.assertTrue((self.fs.b.params['W'] == bW).all())
-        self.assertTrue((self.fs.b.params['b'] == bb).all())
+        self.assertTrue((self.fs.a.params['W'].data == aW).all())
+        self.assertTrue((self.fs.a.params['b'].data == ab).all())
+        self.assertTrue((self.fs.b.params['W'].data == bW).all())
+        self.assertTrue((self.fs.b.params['b'].data == bb).all())
 
     def test_copy_parameters_from_cpu_to_cpu(self):
         self.check_copy_parameters_from(False, False)

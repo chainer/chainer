@@ -30,19 +30,19 @@ def _check_backward(e1, e2, y_grad, f, bias):
     f = lambda: func.forward((e1.data, e2.data))
 
     ge1, ge2, gW = gradient_check.numerical_grad(
-        f, (e1.data, e2.data, func.params['W']), (y.grad,), eps=1e-2)
+        f, (e1.data, e2.data, func.params['W'].data), (y.grad,), eps=1e-2)
 
     gradient_check.assert_allclose(ge1, e1.grad, rtol=1e-3)
     gradient_check.assert_allclose(ge2, e2.grad, rtol=1e-3)
-    gradient_check.assert_allclose(gW, func.grads['W'], rtol=1e-3)
+    gradient_check.assert_allclose(gW, func.params['W'].grad, rtol=1e-3)
 
     if bias:
         gV1, gV2, gb = gradient_check.numerical_grad(
-            f, (func.params['V1'], func.params['V2'], func.params['b']),
-            (y.grad,), eps=1e-2)
-        gradient_check.assert_allclose(gV1, func.grads['V1'], rtol=1e-3)
-        gradient_check.assert_allclose(gV2, func.grads['V2'], rtol=1e-3)
-        gradient_check.assert_allclose(gb, func.grads['b'], rtol=1e-3)
+            f, (func.params['V1'].data, func.params['V2'].data,
+                func.params['b'].data), (y.grad,), eps=1e-2)
+        gradient_check.assert_allclose(gV1, func.params['V1'].grad, rtol=1e-3)
+        gradient_check.assert_allclose(gV2, func.params['V2'].grad, rtol=1e-3)
+        gradient_check.assert_allclose(gb, func.params['b'].grad, rtol=1e-3)
 
 
 def _batch_to_gpu(*xs):
@@ -62,16 +62,16 @@ class TestBilinear(unittest.TestCase):
     def setUp(self):
         self.f = functions.Bilinear(
             self.in_shape[0], self.in_shape[1], self.out_size)
-        self.f.params['W'] = _uniform(*self.f.params['W'].shape)
-        self.f.params['V1'] = _uniform(*self.f.params['V1'].shape)
-        self.f.params['V2'] = _uniform(*self.f.params['V2'].shape)
-        self.f.params['b'] = _uniform(*self.f.params['b'].shape)
+        self.f.params['W'].data = _uniform(*self.f.params['W'].data.shape)
+        self.f.params['V1'].data = _uniform(*self.f.params['V1'].data.shape)
+        self.f.params['V2'].data = _uniform(*self.f.params['V2'].data.shape)
+        self.f.params['b'].data = _uniform(*self.f.params['b'].data.shape)
         self.f.zerograds()
 
-        self.W = self.f.params['W'].copy()
-        self.V1 = self.f.params['V1'].copy()
-        self.V2 = self.f.params['V2'].copy()
-        self.b = self.f.params['b'].copy()
+        self.W = self.f.params['W'].data.copy()
+        self.V1 = self.f.params['V1'].data.copy()
+        self.V2 = self.f.params['V2'].data.copy()
+        self.b = self.f.params['b'].data.copy()
 
         self.e1 = _uniform(self.batch_size, self.in_shape[0])
         self.e2 = _uniform(self.batch_size, self.in_shape[1])
@@ -130,7 +130,7 @@ class TestBilinearWOBias(TestBilinear):
     def setUp(self):
         self.f = functions.Bilinear(
             self.in_shape[0], self.in_shape[1], self.out_size, True)
-        W = self.f.params['W']
+        W = self.f.params['W'].data
         W[...] = numpy.random.uniform(-1, 1, W.shape).astype(numpy.float32)
         self.f.zerograds()
 

@@ -15,7 +15,7 @@ class TestPReLUSingle(unittest.TestCase):
 
     def setUp(self):
         self.func = functions.PReLU()
-        W = self.func.params['W']
+        W = self.func.params['W'].data
         W[...] = numpy.random.uniform(-1, 1, W.shape).astype(numpy.float32)
         self.func.zerograds()
 
@@ -59,10 +59,10 @@ class TestPReLUSingle(unittest.TestCase):
         func = y.creator
         f = lambda: func.forward((x.data,))
         gx, gW = gradient_check.numerical_grad(
-            f, (x.data, func.params['W']), (y.grad,))
+            f, (x.data, func.params['W'].data), (y.grad,))
 
         gradient_check.assert_allclose(gx, x.grad)
-        gradient_check.assert_allclose(gW, func.grads['W'], atol=1e-4)
+        gradient_check.assert_allclose(gW, func.params['W'].grad, atol=1e-4)
 
     @condition.retry(3)
     def test_backward_cpu(self):
@@ -79,7 +79,7 @@ class TestPReLUMulti(TestPReLUSingle):
 
     def setUp(self):
         self.func = functions.PReLU(shape=(3,))
-        W = self.func.params['W']
+        W = self.func.params['W'].data
         W[...] = numpy.random.uniform(-1, 1, W.shape).astype(numpy.float32)
         self.func.zerograds()
 

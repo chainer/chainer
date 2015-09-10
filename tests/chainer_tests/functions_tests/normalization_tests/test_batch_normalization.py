@@ -18,8 +18,8 @@ class TestBatchNormalization(unittest.TestCase):
 
     def setUp(self):
         self.func = functions.BatchNormalization(3)
-        gamma =  self.func.params['gamma']
-        beta =  self.func.params['beta']
+        gamma =  self.func.params['gamma'].data
+        beta =  self.func.params['beta'].data
         gamma[...] = numpy.random.uniform(
             .5, 1, gamma.shape).astype(numpy.float32)
         beta[...] = numpy.random.uniform(
@@ -64,12 +64,12 @@ class TestBatchNormalization(unittest.TestCase):
         func = y.creator
         f = lambda: func.forward((x.data,))
         gx, ggamma, gbeta = gradient_check.numerical_grad(
-            f, (x.data, func.params['gamma'], func.params['beta']), (y.grad,),
-            eps=1e-2)
+            f, (x.data, func.params['gamma'].data, func.params['beta'].data),
+            (y.grad,), eps=1e-2)
 
         gradient_check.assert_allclose(gx, x.grad, rtol=1e-3, atol=1e-4)
-        gradient_check.assert_allclose(ggamma, func.grads['gamma'])
-        gradient_check.assert_allclose(gbeta, func.grads['beta'])
+        gradient_check.assert_allclose(ggamma, func.params['gamma'].grad)
+        gradient_check.assert_allclose(gbeta, func.params['beta'].grad)
 
     @condition.retry(3)
     def test_backward_cpu(self):
@@ -88,8 +88,8 @@ class TestBatchNormalization2D(TestBatchNormalization):
 
     def setUp(self):
         self.func = functions.BatchNormalization(3)
-        gamma = self.func.params['gamma']
-        beta = self.func.params['beta']
+        gamma = self.func.params['gamma'].data
+        beta = self.func.params['beta'].data
         gamma[...] = numpy.random.uniform(
             .5, 1, gamma.shape).astype(numpy.float32)
         beta[...] = numpy.random.uniform(

@@ -11,7 +11,6 @@ class Model(object):
 
     def __init__(self, name=''):
         self.params = {}
-        self.grads = {}
         self.states = {}
         self._name = name
 
@@ -27,40 +26,54 @@ class Model(object):
         ret = copy_module.copy(self)
 
         copy = copy_module.copy if shared else copy_module.deepcopy
-        ret.params = copy(self.params)
-        ret.grads = copy(self.grads)
+        ret.params = {}
+        for key, param in six.iteritems(self.params):
+            ret.params[key] = copy(param)
         ret.states = copy(self.states)
         return ret
 
     def to_cpu(self):
         for model in self.visitmodels():
-            _dict_to_cpu(model.params)
-            _dict_to_cpu(model.grads)
-            _dict_to_cpu(model.states)
+            for param in six.itervalues(model.params):
+                param.data = cuda.to_cpu(param.data)
+                param._grad = cuda.to_cpu(param._grad)
+
+            states = model.states
+            for key, value in six.iteritems(states):
+                states[key] = cuda.to_cpu(value)
+
+        return self
 
     def to_gpu(self, device=None):
+        cupy = cuda.cupy
         with cuda.get_device(device):
             for model in self.visitmodels():
-                _dict_to_gpu(model.params)
-                _dict_to_gpu(model.grads)
-                _dict_to_gpu(model.states)
+                for param in six.itervalues(model.params):
+                    param.data = cupy.asarray(param.data)
+                    if param._grad is not None:
+                        param._grad = cupy.asarray(param._grad)
 
-    def visitparams(self, silent=False):
+                states = model.states
+                for key, value in six.iteritems(states):
+                    states[key] = cupy.asarray(value)
+
+        return self
+
+    def visitparams(self):
         for model in self.visitmodels():
             prefix = model._name + '/_params/'
-            p, g = model.params, model.grads
-            for key in p:
-                grad = g.get(key, None) if silent else g[key]
-                yield prefix + key, p[key], grad
+            for key, param in six.iteritems(model.params):
+                yield prefix + key, param
 
     def visitmodels(self):
         yield self
 
     def copyparams(self, model):
         params = {}
-        for path, param, _ in model.visitparams(True):
-            params[path] = param
-        for path, dst, _ in self.visitparams(True):
+        for path, param in model.visitparams():
+            params[path] = param.data
+        for path, param in self.visitparams():
+            dst = param.data
             src = params[path]
             if isinstance(dst, numpy.ndarray):
                 numpy.copyto(dst, cuda.to_cpu(src))
@@ -71,21 +84,22 @@ class Model(object):
 
     def zerograds(self):
         for model in self.visitmodels():
-            params, grads = model.params, model.grads
+            params = model.params
             for key, p in six.iteritems(params):
-                arr = grads.get(key, None)
+                arr = p._grad
                 if arr is None:
-                    xp = cuda.get_array_module(p)
-                    arr = xp.zeros_like(p)
-                    grads[key] = arr
+                    data = p.data
+                    xp = cuda.get_array_module(data)
+                    p._grad = xp.zeros_like(data)
                 else:
                     arr.fill(0)
 
     def addgrads(self, model):
         grads = {}
-        for path, _, grad in model.visitparams():
-            grads[path] = grad
-        for path, _, dst in self.visitparams():
+        for path, param in model.visitparams():
+            grads[path] = param._grad
+        for path, param in self.visitparams():
+            dst = param._grad
             src = grads[path]
             if isinstance(dst, numpy.ndarray):
                 dst += cuda.to_cpu(src)
@@ -97,8 +111,15 @@ class Model(object):
                 dst += cuda.copy(src, out_device=dst)
 
     def serialize(self, serializer):
-        _serialize_dict(serializer['_params'], self.params)
-        _serialize_dict(serializer['_states'], self.states)
+        p = serializer['_params']
+        for key, param in six.iteritems(self.params):
+            param.data = p(key, param.data)
+            # grad is not serialized
+
+        states = self.states
+        s = serializer['_states']
+        for key, state in six.iteritems(states):
+            states[key] = s(key, state)
 
 
 class ModelDict(Model):
@@ -297,18 +318,7 @@ class ModelList(Model):
             model.serialize(serializer[str(idx)])
 
 
-def _dict_to_cpu(d):
-    for key in d:
-        d[key] = cuda.to_cpu(d[key])
-
-
-def _dict_to_gpu(d):
-    for key in d:
-        value = d[key]
-        if isinstance(value, numpy.ndarray):
-            d[key] = cuda.to_gpu(value)
-
-
-def _serialize_dict(s, d):
-    for key in d:
-        d[key] = s(key, d[key])
+def _apply_on_variable(v, func):
+    v.data = func(v.data)
+    if v._grad is not None:
+        v._grad = func(v._grad)

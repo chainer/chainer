@@ -7,6 +7,7 @@ from chainer import function
 from chainer import model
 from chainer.utils import array
 from chainer.utils import type_check
+from chainer import variable
 
 
 class Bilinear(model.Model, function.Function):
@@ -87,17 +88,17 @@ class Bilinear(model.Model, function.Function):
         if initialW is not None:
             assert initialW.shape == (
                 self.in_sizes[0], self.in_sizes[1], out_size)
-            self.params['W'] = initialW
+            self.params['W'] = variable.Variable(initialW)
         else:
             # TODO(Kenta OONO): I do not know appropriate way of
             # initializing weights in tensor network.
             # This initialization is a modification of
             # that of Linear function.
             in_size = numpy.prod(self.in_sizes)
-            self.params['W'] = numpy.random.normal(
+            self.params['W'] = variable.Variable(numpy.random.normal(
                 0, math.sqrt(1. / in_size),
                 (self.in_sizes[0], self.in_sizes[1], out_size)
-            ).astype(numpy.float32)
+            ).astype(numpy.float32))
 
         if not self.nobias:
             if initial_bias is not None:
@@ -105,18 +106,18 @@ class Bilinear(model.Model, function.Function):
                 assert initial_bias[0].shape == (self.in_sizes[0], out_size)
                 assert initial_bias[1].shape == (self.in_sizes[1], out_size)
                 assert initial_bias[2].shape == (out_size,)
-                self.params['V1'] = initial_bias[0]
-                self.params['V2'] = initial_bias[1]
-                self.params['b'] = initial_bias[2]
+                self.params['V1'] = variable.Variable(initial_bias[0])
+                self.params['V2'] = variable.Variable(initial_bias[1])
+                self.params['b'] = variable.Variable(initial_bias[2])
             else:
-                self.params['V1'] = numpy.random.normal(
+                self.params['V1'] = variable.Variable(numpy.random.normal(
                     0, math.sqrt(1. / self.in_sizes[0]),
-                    (self.in_sizes[0], out_size)).astype(numpy.float32)
-                self.params['V2'] = numpy.random.normal(
+                    (self.in_sizes[0], out_size)).astype(numpy.float32))
+                self.params['V2'] = variable.Variable(numpy.random.normal(
                     0, math.sqrt(1. / self.in_sizes[1]),
-                    (self.in_sizes[1], out_size)).astype(numpy.float32)
-                self.params['b'] = numpy.zeros((out_size, ),
-                                               dtype=numpy.float32)
+                    (self.in_sizes[1], out_size)).astype(numpy.float32))
+                self.params['b'] = variable.Variable(
+                    numpy.zeros((out_size, ), dtype=numpy.float32))
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 2)
@@ -138,11 +139,11 @@ class Bilinear(model.Model, function.Function):
     def forward_cpu(self, x):
         e1 = array.as_mat(x[0])
         e2 = array.as_mat(x[1])
-        y = numpy.einsum('ij,ik,jkl->il', e1, e2, self.params['W'])
+        y = numpy.einsum('ij,ik,jkl->il', e1, e2, self.params['W'].data)
         if not self.nobias:
-            y += e1.dot(self.params['V1'])
-            y += e2.dot(self.params['V2'])
-            y += self.params['b']
+            y += e1.dot(self.params['V1'].data)
+            y += e2.dot(self.params['V2'].data)
+            y += self.params['b'].data
         return y,
 
     def forward_gpu(self, x):
@@ -157,16 +158,16 @@ class Bilinear(model.Model, function.Function):
         # ijk->i[jk]
         e1e2 = e1e2.reshape(i_len, j_len * k_len)
         # jkl->[jk]l
-        W = self.params['W']
+        W = self.params['W'].data
         W_mat = W.reshape(-1, W.shape[2])
 
         # 'i[jk],[jk]l->il'
         y = e1e2.dot(W_mat)
 
         if not self.nobias:
-            y += e1.dot(self.params['V1'])
-            y += e2.dot(self.params['V2'])
-            y += self.params['b']
+            y += e1.dot(self.params['V1'].data)
+            y += e2.dot(self.params['V2'].data)
+            y += self.params['b'].data
         return y,
 
     def backward_cpu(self, x, gy):
@@ -174,18 +175,18 @@ class Bilinear(model.Model, function.Function):
         e2 = array.as_mat(x[1])
         gy, = gy
 
-        self.grads['W'] += numpy.einsum('ij,ik,il->jkl', e1, e2, gy)
+        self.params['W'].grad += numpy.einsum('ij,ik,il->jkl', e1, e2, gy)
         if not self.nobias:
-            self.grads['V1'] += e1.T.dot(gy)
-            self.grads['V2'] += e2.T.dot(gy)
-            self.grads['b'] += gy.sum(0)
+            self.params['V1'].grad += e1.T.dot(gy)
+            self.params['V2'].grad += e2.T.dot(gy)
+            self.params['b'].grad += gy.sum(0)
 
-        W = self.params['W']
+        W = self.params['W'].data
         ge1 = numpy.einsum('ik,jkl,il->ij', e2, W, gy)
         ge2 = numpy.einsum('ij,jkl,il->ik', e1, W, gy)
         if not self.nobias:
-            ge1 += gy.dot(self.params['V1'].T)
-            ge2 += gy.dot(self.params['V2'].T)
+            ge1 += gy.dot(self.params['V1'].data.T)
+            ge2 += gy.dot(self.params['V2'].data.T)
         return (ge1.reshape(x[0].shape), ge2.reshape(x[1].shape))
 
     def backward_gpu(self, x, gy):
@@ -205,15 +206,15 @@ class Bilinear(model.Model, function.Function):
         e1_b = e1[:, :, numpy.newaxis, numpy.newaxis]  # ij
         e2_b = e2[:, numpy.newaxis, :, numpy.newaxis]  # ik
         gy_b = gy[:, numpy.newaxis, numpy.newaxis, :]  # il
-        W_b = self.params['W'][numpy.newaxis, :, :, :]  # jkl
+        W_b = self.params['W'].data[numpy.newaxis, :, :, :]  # jkl
 
         # 'ij,ik,il->jkl'
-        kern_add(e1_b, e2_b, gy_b, self.grads['W'], axis=0)
+        kern_add(e1_b, e2_b, gy_b, self.params['W'].grad, axis=0)
 
         if not self.nobias:
-            self.grads['V1'] += e1.T.dot(gy)
-            self.grads['V2'] += e2.T.dot(gy)
-            self.grads['b'] += gy.sum(axis=0)
+            self.params['V1'].grad += e1.T.dot(gy)
+            self.params['V2'].grad += e2.T.dot(gy)
+            self.params['b'].grad += gy.sum(axis=0)
 
         # 'ik,jkl,il->ij'
         ge1 = kern(e2_b, W_b, gy_b, axis=(2, 3))
@@ -221,6 +222,6 @@ class Bilinear(model.Model, function.Function):
         ge2 = kern(e1_b, W_b, gy_b, axis=(1, 3))
 
         if not self.nobias:
-            ge1 += gy.dot(self.params['V1'].T)
-            ge2 += gy.dot(self.params['V2'].T)
+            ge1 += gy.dot(self.params['V1'].data.T)
+            ge2 += gy.dot(self.params['V2'].data.T)
         return (ge1.reshape(x[0].shape), ge2.reshape(x[1].shape))

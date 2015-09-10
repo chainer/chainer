@@ -6,6 +6,7 @@ import six
 
 from chainer import cuda
 from chainer import model
+from chainer import variable
 
 
 class TupleModel(model.Model):
@@ -13,8 +14,9 @@ class TupleModel(model.Model):
     def __init__(self, params_grads):
         model.Model.__init__(self)
         for i, (param, grad) in enumerate(six.moves.zip(*params_grads)):
-            self.params[str(i)] = param
-            self.grads[str(i)] = grad
+            var = variable.Variable(param)
+            var.grad = grad
+            self.params[str(i)] = var
 
 
 class Optimizer(object):
@@ -41,9 +43,9 @@ class Optimizer(object):
         if isinstance(model, tuple):
             model = TupleModel(model)
         self.model = model
-        for path, param, _ in model.visitparams(silent=True):
+        for path, param in model.visitparams():
             state = {}
-            self.init_state(param, state)
+            self.init_state(param.data, state)
             self.states[path] = state
 
     def update(self, loss_func=None, *args, **kwds):
@@ -58,8 +60,8 @@ class Optimizer(object):
         warnings.warn('Optimizer.compute_grads_norm is deprecated.',
                       DeprecationWarning)
         sqnorm = 0
-        for _, _, grad in self.model.visitparams():
-            grad = grad.ravel()
+        for _, param in self.model.visitparams():
+            grad = param.grad.ravel()
             sqnorm += float(grad.dot(grad))
         return math.sqrt(sqnorm)
 
@@ -77,12 +79,13 @@ class Optimizer(object):
         warnings.warn('Optimizer.accumulate_grads is deprecated. '
                       'Use Model.addgrads instead.', DeprecationWarning)
         paths = []
-        for path, _, _ in self.model.visitparams():
+        for path, _ in self.model.visitparams():
             paths.append(path)
         paths.sort()
         d = dict(six.moves.zip(paths, grads))
 
-        for path, _, dst in self.model.visitparams():
+        for path, param in self.model.visitparams():
+            dst = param.grad
             src = d[path]
             if isinstance(dst, numpy.ndarray):
                 dst += cuda.to_cpu(src)
@@ -132,9 +135,9 @@ class GradientMethod(Optimizer):
             hook(self.model)
 
         self.t += 1
-        for path, param, grad in self.model.visitparams():
+        for path, param in self.model.visitparams():
             state = self.states[path]
-            self.update_param(param, grad, state)
+            self.update_param(param.data, param.grad, state)
 
     def update_param(self, param, grad, state):
         if isinstance(param, cuda.ndarray):
@@ -155,9 +158,10 @@ class WeightDecay(object):
         self.decay = decay
 
     def __call__(self, model):
-        for _, param, grad in model.visitparams():
-            with cuda.get_device(param):
-                grad += self.decay * param
+        for _, param in model.visitparams():
+            data = param.data
+            with cuda.get_device(data):
+                param.grad += self.decay * data
 
 
 class GradientClipping(object):
@@ -168,8 +172,8 @@ class GradientClipping(object):
     def __call__(self, model):
         # TODO(beam2d): Make it fast on GPU
         grads = []
-        for _, _, grad in model.visitparams():
-            grads.append(grad)
+        for _, param in model.visitparams():
+            grads.append(param.grad)
 
         sqnorm = 0
         for grad in grads:

@@ -3,6 +3,7 @@ import numpy
 from chainer import function
 from chainer import model
 from chainer.utils import type_check
+from chainer import variable
 
 
 class Parameter(model.Model, function.Function):
@@ -18,7 +19,7 @@ class Parameter(model.Model, function.Function):
     """
     def __init__(self, array):
         super(Parameter, self).__init__()
-        self.params['W'] = array
+        self.params['W'] = variable.Variable(array)
 
     def __call__(self, volatile=False):
         ret = super(Parameter, self).__call__()
@@ -31,8 +32,8 @@ class Parameter(model.Model, function.Function):
         type_check.expect(in_types.size() == 0)
 
     def forward(self, x):
-        return self.params['W'],
+        return self.params['W'].data,
 
     def backward(self, x, gy):
-        self.grads['W'] += gy[0]
+        self.params['W'].grad += gy[0]
         return ()

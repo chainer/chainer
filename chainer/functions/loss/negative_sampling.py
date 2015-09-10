@@ -6,6 +6,7 @@ from chainer import function
 from chainer import model
 from chainer.utils import type_check
 from chainer.utils import walker_alias
+from chainer import variable
 
 
 class NegativeSampling(model.Model, function.Function):
@@ -60,8 +61,8 @@ class NegativeSampling(model.Model, function.Function):
         self.sampler = walker_alias.WalkerAlias(p)
 
         vocab_size = len(counts)
-        self.params['W'] = numpy.zeros((vocab_size, in_size)).astype(
-            numpy.float32)
+        self.params['W'] = variable.Variable(
+            numpy.zeros((vocab_size, in_size)).astype(numpy.float32))
 
         self.samples = None
 
@@ -100,7 +101,7 @@ class NegativeSampling(model.Model, function.Function):
         self._make_samples(t)
 
         loss = numpy.float32(0.0)
-        W = self.params['W']
+        W = self.params['W'].data
         for i, (ix, k) in enumerate(six.moves.zip(x, self.samples)):
             w = W[k]
             f = w.dot(ix)
@@ -125,7 +126,7 @@ class NegativeSampling(model.Model, function.Function):
             wx = f;
             ''',
             'negative_sampling_wx'
-        )(self.params['W'], x, self.samples, n_in, self.sample_size + 1)
+        )(self.params['W'].data, x, self.samples, n_in, self.sample_size + 1)
 
         y = cuda.elementwise(
             'T wx, int32 c, int32 m', 'T y',
@@ -154,8 +155,8 @@ class NegativeSampling(model.Model, function.Function):
 
         gx = numpy.zeros_like(x)
 
-        W = self.params['W']
-        gW = self.grads['W']
+        W = self.params['W'].data
+        gW = self.params['W'].grad
         for i, (ix, k) in enumerate(six.moves.zip(x, self.samples)):
             w = W[k]
             f = w.dot(ix)
@@ -173,6 +174,7 @@ class NegativeSampling(model.Model, function.Function):
     def backward_gpu(self, inputs, grads):
         x, t = inputs
         gloss, = grads
+        W = self.params['W']
 
         n_in = x.shape[1]
         g = cuda.elementwise(
@@ -201,7 +203,7 @@ class NegativeSampling(model.Model, function.Function):
             gx = w;
             ''',
             'negative_sampling_calculate_gx'
-        )(g, self.params['W'], self.samples, n_in, self.sample_size + 1, gx)
+        )(g, W.data, self.samples, n_in, self.sample_size + 1, gx)
         cuda.elementwise(
             'T g, raw T x, S k, int32 c, int32 m', 'raw T gW',
             '''
@@ -211,5 +213,5 @@ class NegativeSampling(model.Model, function.Function):
             }
             ''',
             'negative_sampling_calculate_gw'
-        )(g, x, self.samples, n_in, self.sample_size + 1, self.grads['W'])
+        )(g, x, self.samples, n_in, self.sample_size + 1, W.grad)
         return gx, None

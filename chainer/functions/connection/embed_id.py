@@ -4,6 +4,7 @@ from chainer import cuda
 from chainer import function
 from chainer import model
 from chainer.utils import type_check
+from chainer import variable
 
 
 class EmbedID(model.Model, function.Function):
@@ -29,8 +30,8 @@ class EmbedID(model.Model, function.Function):
     """
     def __init__(self, in_size, out_size):
         super(EmbedID, self).__init__()
-        self.params['W'] = numpy.random.randn(
-            in_size, out_size).astype(numpy.float32)
+        self.params['W'] = variable.Variable(numpy.random.randn(
+            in_size, out_size).astype(numpy.float32))
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)
@@ -42,14 +43,14 @@ class EmbedID(model.Model, function.Function):
         )
 
     def forward(self, x):
-        return self.params['W'].take(x[0], axis=0),
+        return self.params['W'].data.take(x[0], axis=0),
 
     def backward_cpu(self, x, gy):
-        numpy.add.at(self.grads['W'], x[0], gy[0])
+        numpy.add.at(self.params['W'].grad, x[0], gy[0])
         return None,
 
     def backward_gpu(self, x, gy):
-        gW = self.grads['W']
+        gW = self.params['W'].grad
         cuda.elementwise(
             'T gy, int32 x, int32 n_out', 'raw T gW',
             'int w_ind[] = {x, i % n_out}; atomicAdd(&gW[w_ind], gy)',

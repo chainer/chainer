@@ -49,6 +49,8 @@ class Variable(object):
                 Data array that this variable holds.
             volatile (bool): Volatility flag. If it is True, the variable will
                 not keep track of any function applications.
+            grad (:class:`numpy.ndarray` or :class:`cupy.ndarray`):
+                Gradient array that this variable holds.
 
         """
         assert isinstance(data, (numpy.ndarray, cuda.ndarray))
@@ -61,6 +63,12 @@ class Variable(object):
         self.splitter = weakref.ref(lambda: 0)  # dead ref
         self._grad = None
         self.creator = None
+
+    def __reduce__(self):
+        return Variable, (self.data, self.volatile), (self._grad,)
+
+    def __setstate__(self, grad):
+        self.grad = grad[0]
 
     def __pos__(self):
         return self

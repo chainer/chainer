@@ -5,6 +5,7 @@ from chainer import cuda
 from chainer import function
 from chainer import model
 from chainer.utils import type_check
+from chainer import variable
 
 
 class TreeParser(object):
@@ -118,8 +119,8 @@ class BinaryHierarchicalSoftmax(model.Model, function.Function):
             begins[i + 1] = begins[i] + length
         self.begins = begins
 
-        self.params['W'] = numpy.random.uniform(
-            -1, 1, (parser.size(), in_size)).astype(numpy.float32)
+        self.params['W'] = variable.Variable(numpy.random.uniform(
+            -1, 1, (parser.size(), in_size)).astype(numpy.float32))
 
     @staticmethod
     def create_huffman_tree(word_counts):
@@ -181,7 +182,7 @@ class BinaryHierarchicalSoftmax(model.Model, function.Function):
         begin = self.begins[t]
         end = self.begins[t + 1]
 
-        w = self.params['W'][self.paths[begin:end]]
+        w = self.params['W'].data[self.paths[begin:end]]
         wxy = w.dot(x) * self.codes[begin:end]
         loss = numpy.logaddexp(0.0, -wxy)  # == log(1 + exp(-wxy))
         return numpy.sum(loss)
@@ -199,12 +200,12 @@ class BinaryHierarchicalSoftmax(model.Model, function.Function):
         end = self.begins[t + 1]
 
         path = self.paths[begin:end]
-        w = self.params['W'][path]
+        w = self.params['W'].data[path]
         wxy = w.dot(x) * self.codes[begin:end]
         g = -gloss * self.codes[begin:end] / (1.0 + numpy.exp(wxy))
         gx = g.dot(w)
         gw = g.reshape((g.shape[0], 1)).dot(x.reshape(1, x.shape[0]))
-        self.grads['W'][path] += gw
+        self.params['W'].grad[path] += gw
         return gx
 
     def to_gpu(self, device=None):
@@ -262,8 +263,8 @@ class BinaryHierarchicalSoftmax(model.Model, function.Function):
             }
             ''',
             'binary_hierarchical_softmax_forward'
-        )(x, self.params['W'], t, self.paths, self.codes, self.begins, n_in,
-          max_length, ls, wxy)
+        )(x, self.params['W'].data, t, self.paths, self.codes, self.begins,
+          n_in, max_length, ls, wxy)
         self.max_length = max_length
         self.wxy = wxy
         return ls.sum(),
@@ -302,6 +303,6 @@ class BinaryHierarchicalSoftmax(model.Model, function.Function):
             }
             ''',
             'binary_hierarchical_softmax_bwd'
-        )(self.wxy, x, self.params['W'], t, self.paths, self.codes,
-          self.begins, gloss, n_in, self.max_length, gx, self.grads['W'])
+        )(self.wxy, x, self.params['W'].data, t, self.paths, self.codes,
+          self.begins, gloss, n_in, self.max_length, gx, self.params['W'].grad)
         return gx, None

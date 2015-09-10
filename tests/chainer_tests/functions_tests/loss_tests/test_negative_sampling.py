@@ -28,12 +28,12 @@ class TestNegativeSampling(unittest.TestCase):
         func = y.creator
         f = lambda: func.forward((x.data, t.data))
         gx, _, gW = gradient_check.numerical_grad(
-            f, (x.data, t.data, func.params['W']), (y.grad,), eps=1e-2)
+            f, (x.data, t.data, func.params['W'].data), (y.grad,), eps=1e-2)
 
         gradient_check.assert_allclose(
             cuda.to_cpu(gx), cuda.to_cpu(x.grad), atol=1.e-4)
         gradient_check.assert_allclose(
-            cuda.to_cpu(gW), cuda.to_cpu(func.grads['W']), atol=1.e-4)
+            cuda.to_cpu(gW), cuda.to_cpu(func.params['W'].grad), atol=1.e-4)
 
     @attr.gpu
     @condition.retry(3)

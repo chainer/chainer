@@ -18,7 +18,7 @@ class TestEmbedID(unittest.TestCase):
         self.func = functions.EmbedID(3, 2)
         self.func.zerograds()
 
-        self.W = self.func.params['W'].copy()  # fixed on CPU
+        self.W = self.func.params['W'].data.copy()  # fixed on CPU
         self.x = numpy.array([0, 1, 0], dtype=numpy.int32)
         self.gy = numpy.random.uniform(-1, 1, (3, 2)).astype(numpy.float32)
 
@@ -51,8 +51,9 @@ class TestEmbedID(unittest.TestCase):
 
         func = y.creator
         f = lambda: func.forward((x.data,))
-        gW, = gradient_check.numerical_grad(f, (func.params['W'],), (y.grad,))
-        gradient_check.assert_allclose(gW, func.grads['W'])
+        gW, = gradient_check.numerical_grad(
+            f, (func.params['W'].data,), (y.grad,))
+        gradient_check.assert_allclose(gW, func.params['W'].grad)
 
     @condition.retry(3)
     def test_backward_cpu(self):

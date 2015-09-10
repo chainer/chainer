@@ -20,8 +20,8 @@ class TestLinear(unittest.TestCase):
     def setUp(self):
         in_size = numpy.prod(self.in_shape)
         self.func = functions.Linear(in_size, self.out_size)
-        W = self.func.params['W']
-        b = self.func.params['b']
+        W = self.func.params['W'].data
+        b = self.func.params['b'].data
         W[...] = numpy.random.uniform(-1, 1, W.shape).astype(numpy.float32)
         b[...] = numpy.random.uniform(-1, 1, b.shape).astype(numpy.float32)
         self.func.zerograds()
@@ -60,12 +60,12 @@ class TestLinear(unittest.TestCase):
         func = y.creator
         f = lambda: func.forward((x.data,))
         gx, gW, gb = gradient_check.numerical_grad(
-            f, (x.data, func.params['W'], func.params['b']), (y.grad,),
-            eps=1e-2)
+            f, (x.data, func.params['W'].data, func.params['b'].data),
+            (y.grad,), eps=1e-2)
 
         gradient_check.assert_allclose(gx, x.grad)
-        gradient_check.assert_allclose(gW, func.grads['W'])
-        gradient_check.assert_allclose(gb, func.grads['b'])
+        gradient_check.assert_allclose(gW, func.params['W'].grad)
+        gradient_check.assert_allclose(gb, func.params['b'].grad)
 
     @condition.retry(3)
     def test_backward_cpu(self):

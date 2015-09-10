@@ -89,15 +89,15 @@ class FunctionSet(model.ModelDict):
 
         """
         tups = {}
-        for path, param, _ in self.visitparams(silent=True):
-            tups[path] = param
+        for path, param in self.visitparams():
+            tups[path] = param.data
         paths = sorted(tups.keys())
         return tuple(tups[path] for path in paths)
 
     @parameters.setter
     def parameters(self, params):
         paths = []
-        for path, _, _ in self.visitparams(silent=True):
+        for path, _ in self.visitparams():
             paths.append(path)
         paths.sort()
         d = dict(six.moves.zip(paths, params))
@@ -108,7 +108,7 @@ class FunctionSet(model.ModelDict):
             p = model.params
             for key in p:
                 path = prefix + key
-                p[key] = d[path]
+                p[key].data = d[path]
 
     @property
     def gradients(self):
@@ -118,15 +118,15 @@ class FunctionSet(model.ModelDict):
 
         """
         tups = {}
-        for path, _, grad in self.visitparams():
-            tups[path] = grad
+        for path, param in self.visitparams():
+            tups[path] = param.grad
         paths = sorted(tups.keys())
         return tuple(tups[path] for path in paths)
 
     @gradients.setter
     def gradients(self, grads):
         paths = []
-        for path, _, _ in self.visitparams():
+        for path, _ in self.visitparams():
             paths.append(path)
         paths.sort()
         d = dict(six.moves.zip(paths, grads))
@@ -137,4 +137,4 @@ class FunctionSet(model.ModelDict):
             g = model.grads
             for key in g:
                 path = prefix + key
-                g[key] = d[path]
+                g[key].grad = d[path]

@@ -10,7 +10,7 @@ class Model1(chainer.Model):
 
     def __init__(self):
         chainer.Model.__init__(self)
-        self.params['w'] = numpy.array([1, 2, 3], dtype='f')
+        self.params['w'] = chainer.Variable(numpy.array([1, 2, 3], dtype='f'))
         self.states['s'] = numpy.array([4, 5, 6], dtype='f')
 
 
@@ -32,7 +32,8 @@ class TestModel(unittest.TestCase):
         self.assertEqual(dst.name, src.name)
         self.assertIsNot(dst.params, src.params)
         self.assertIsNot(dst.states, src.states)
-        self.assertIs(dst.params['w'], src.params['w'])
+        self.assertIsNot(dst.params['w'], src.params['w'])
+        self.assertIs(dst.params['w'].data, src.params['w'].data)
         self.assertIs(dst.states['s'], src.states['s'])
 
     def test_copy_not_shared(self):
@@ -42,8 +43,8 @@ class TestModel(unittest.TestCase):
 
         self.assertEqual(dst.name, src.name)
         numpy.testing.assert_array_equal(
-            dst.params['w'], src.params['w'])
-        self.assertIsNot(dst.params['w'], src.params['w'])
+            dst.params['w'].data, src.params['w'].data)
+        self.assertIsNot(dst.params['w'].data, src.params['w'].data)
         numpy.testing.assert_array_equal(
             dst.states['s'], src.states['s'])
         self.assertIsNot(dst.states['s'], src.states['s'])
@@ -51,12 +52,12 @@ class TestModel(unittest.TestCase):
     def test_visitparams(self):
         model = self.model
         model.name = '/foo'
-        model.grads['w'] = numpy.empty_like(model.params['w'])
+        w = model.params['w']
+        w.grad = numpy.empty_like(w.data)
         params = tuple(model.visitparams())
         self.assertEqual(len(params), 1)
         self.assertEqual(params[0][0], '/foo/_params/w')
-        self.assertIs(params[0][1], model.params['w'])
-        self.assertIs(params[0][2], model.grads['w'])
+        self.assertIs(params[0][1], w)
 
     def test_visitmodels(self):
         model = self.model
@@ -67,32 +68,32 @@ class TestModel(unittest.TestCase):
     def test_copyparams(self):
         src = Model1()
         dst = self.model
-        w = numpy.ndarray(3, dtype='f')
+        w = chainer.Variable(numpy.ndarray(3, dtype='f'))
         src.params['w'] = w
         w_dst = dst.params['w']
 
         dst.copyparams(src)
-        numpy.testing.assert_array_equal(w_dst, w)
-        self.assertIs(dst.params['w'], w_dst)
+        numpy.testing.assert_array_equal(w_dst.data, w.data)
+        self.assertIs(dst.params['w'].data, w_dst.data)
 
     def test_addgrads(self):
         g_src = numpy.array([1, 2, 3], dtype='f')
         g_dst = numpy.array([2, 3, 4], dtype='f')
 
         src = Model1()
-        src.grads['w'] = g_src.copy()
-        self.model.grads['w'] = g_dst.copy()
+        src.params['w'].grad = g_src.copy()
+        self.model.params['w'].grad = g_dst.copy()
         self.model.addgrads(src)
         numpy.testing.assert_array_equal(
-            self.model.grads['w'], g_src + g_dst)
+            self.model.params['w'].grad, g_src + g_dst)
 
     def test_zerograds(self):
         model = self.model
-        self.assertNotIn('w', model.grads)
+        self.assertIs(model.params['w'].grad, None)
         model.zerograds()
         numpy.testing.assert_array_equal(
-            model.grads['w'],
-            numpy.zeros_like(model.params['w']))
+            model.params['w'].grad,
+            numpy.zeros_like(model.params['w'].data))
 
 
 class TestModelDict(unittest.TestCase):
