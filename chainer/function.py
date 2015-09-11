@@ -128,55 +128,41 @@ class Function(object):
         # First copy itself to avoid duplication within the graph.
         self = copy.copy(self)
 
-        if any(x.volatile for x in inputs):  # not build graph
-            # do not mix multiple volatility
-            assert all(x.volatile for x in inputs)
-
-            in_data = tuple(x.data for x in inputs)
-            if self.type_check_enable:
-                self._check_data_type_forward(in_data)
-            with cuda.get_device(*in_data):
-                out_data = self.forward(in_data)
-            assert type(out_data) == tuple
-
-            outputs = list(variable.Variable(y, volatile=True)
-                           for y in out_data)
-            if len(outputs) == 1:
-                return outputs[0]
-            return outputs
-
-        # Build graph
-        # Be careful that forward references must be weak
-        self.inputs = []
-        for x in inputs:
-            splitter = x.splitter()
-            if splitter is None:
-                splitter = Split(x)
-                x.splitter = weakref.ref(splitter)
-            self.inputs.append(splitter.add_branch())
-
-        if self.inputs:
-            self.rank = max(x.rank for x in self.inputs)
-        else:
-            self.rank = 0
-
-        in_data = tuple(x.data for x in self.inputs)
+        in_data = tuple([x.data for x in inputs])
         if self.type_check_enable:
             self._check_data_type_forward(in_data)
         with cuda.get_device(*in_data):
             outputs = self.forward(in_data)
         assert type(outputs) == tuple
 
-        ret = tuple(variable.Variable(y) for y in outputs)
-        for y in ret:
-            y.set_creator(self)
+        volatiles = [x.volatile for x in inputs]
+        if any(volatiles):
+            # Do not mix multiple volatilities
+            assert all(volatiles)
+            ret = tuple([variable.Variable(y, volatile=True) for y in outputs])
+        else:
+            # Topological ordering
+            self.rank = max([x.rank for x in inputs]) if inputs else 0
+            for x in inputs:
+                x.n_users += 1
 
-        # Make forward references weak
-        self.outputs = tuple(weakref.ref(y) for y in ret)
+            ret = tuple([variable.Variable(y) for y in outputs])
+            # backward edges
+            for y in ret:
+                y.set_creator(self)
+            self.inputs = inputs
+            # forward edges (must be weak references)
+            self.outputs = tuple([weakref.ref(y) for y in ret])
 
         if len(ret) == 1:
             return ret[0]
         return ret
+
+    def __del__(self):
+        inputs = getattr(self, 'inputs', None)
+        if inputs is not None:
+            for x in self.inputs:
+                x.n_users -= 1
 
     @property
     def label(self):
@@ -349,41 +335,3 @@ class Function(object):
         for x in self.inputs:
             x.splitter = weakref.ref(lambda: 0)  # dead ref
         self.inputs = None
-
-
-class Split(Function):
-
-    """Special function to branch the graph at variable node.
-
-    Split does not implement forward: it is intended to implicitly used by
-    Function.
-
-    """
-
-    def __init__(self, var):
-        self.inputs = [var]
-        self.outputs = []
-        self.rank = var.rank
-
-    def add_branch(self):
-        x = self.inputs[0]
-        output = variable.Variable(x.data)
-        output.set_creator(self)
-        self.outputs.append(weakref.ref(output))
-        return output
-
-    def backward(self, inputs, grad_outputs):
-        # Accumulate gradients
-        if len(grad_outputs) == 1:
-            return grad_outputs  # no copy
-
-        gx = None
-        grad_outputs = [gy for gy in grad_outputs if gy is not None]
-        with cuda.get_device(*grad_outputs):
-            for gy in grad_outputs:
-                if gx is None:
-                    gx = gy.copy()
-                else:
-                    gx += gy
-
-        return gx,

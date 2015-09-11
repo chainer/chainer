@@ -123,9 +123,8 @@ class TestFunction(unittest.TestCase):
 
         for y in ys:
             self.assertIsInstance(y, chainer.Variable)
-            # rank is (maximum rank in xs) + 2, since Function call
-            # automatically inserts Split function.
-            self.assertEqual(y.rank, 5)
+            # rank is (maximum rank in xs) + 1.
+            self.assertEqual(y.rank, 4)
             self.assertFalse(y.volatile)
             # __call__ method makes a copy
             self.assertIsNot(y.creator, self.f)

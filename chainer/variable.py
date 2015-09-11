@@ -40,7 +40,6 @@ class Variable(object):
             any function applications.
 
     """
-
     def __init__(self, data, volatile=False):
         """Initializes a variable.
 
@@ -63,6 +62,7 @@ class Variable(object):
         self.splitter = weakref.ref(lambda: 0)  # dead ref
         self._grad = None
         self.creator = None
+        self.n_users = 0
 
     def __reduce__(self):
         return Variable, (self.data, self.volatile), (self._grad,)
@@ -161,6 +161,7 @@ https://github.com/pfnet/chainer/issues/new.
 
         cand_funcs = []
         seen_set = set()
+        seen_vars = set()
 
         # Initilize error by 1, if this is a loss variable
         if self.data.size == 1 and self.grad is None:
@@ -193,7 +194,23 @@ https://github.com/pfnet/chainer/issues/new.
                     if y is not None and y is not self:
                         y.grad = None
             for x, gx in zip(func.inputs, gxs):
-                x.grad = gx
+                # Accumulate gradient to x. If it is the first time to visit x,
+                # then a gradient array is simply replaced by gx.
+                x_id = id(x)
+                if x_id not in seen_vars:
+                    seen_vars.add(x_id)
+                    if gx is None or x.n_users == 1:
+                        x.grad = gx
+                    else:
+                        x.grad = gx.copy()
+                elif x._grad is None:
+                    if gx is None or x.n_users == 1:
+                        x.grad = gx
+                    else:
+                        x.grad = gx.copy()
+                elif gx is not None:
+                    x._grad += gx
+
                 if gx is not None:  # skip if gradient does not flow
                     add_cand(x.creator)
 

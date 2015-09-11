@@ -13,6 +13,7 @@ class Model(object):
         self.params = {}
         self.states = {}
         self._name = name
+        self._volatile = False
 
     @property
     def name(self):
@@ -21,6 +22,19 @@ class Model(object):
     @name.setter
     def name(self, name):
         self._name = name if name != '/' else ''
+
+    @property
+    def volatile(self):
+        return self._volatile
+
+    @volatile.setter
+    def volatile(self, value):
+        value = bool(value)
+        if self._volatile is value:
+            return
+        for _, param in self.visitparams():
+            param.volatile = value
+        self._volatile = value
 
     def copy(self, shared=True):
         ret = copy_module.copy(self)
