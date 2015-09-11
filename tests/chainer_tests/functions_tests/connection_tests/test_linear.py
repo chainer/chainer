@@ -53,19 +53,20 @@ class TestLinear(unittest.TestCase):
 
     def check_backward(self, x_data, y_grad):
         x = chainer.Variable(x_data)
+        W = self.func.params['W']
+        b = self.func.params['b']
+
         y = self.func(x)
         y.grad = y_grad
         y.backward()
 
-        func = y.creator
-        f = lambda: func.forward((x.data,))
+        f = lambda: self.func(x)
         gx, gW, gb = gradient_check.numerical_grad(
-            f, (x.data, func.params['W'].data, func.params['b'].data),
-            (y.grad,), eps=1e-2)
+            f, (x.data, W.data, b.data), (y.grad,), eps=1e-2)
 
         gradient_check.assert_allclose(gx, x.grad)
-        gradient_check.assert_allclose(gW, func.params['W'].grad)
-        gradient_check.assert_allclose(gb, func.params['b'].grad)
+        gradient_check.assert_allclose(gW, W.grad)
+        gradient_check.assert_allclose(gb, b.grad)
 
     @condition.retry(3)
     def test_backward_cpu(self):
@@ -94,7 +95,7 @@ class TestInvalidLinear(unittest.TestCase):
             self.func(chainer.Variable(self.x))
 
 
-class TestNonparameterizedLinear(unittest.TestCase):
+class TestLinearFunction(unittest.TestCase):
 
     def setUp(self):
         self.W = numpy.random.uniform(
