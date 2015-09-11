@@ -100,6 +100,7 @@ for epoch in six.moves.range(1, n_epoch + 1):
         sum_loss / N, sum_accuracy / N))
 
     # evaluation
+    model.volatile = True
     sum_accuracy = 0
     sum_loss = 0
     for i in six.moves.range(0, N_test, batchsize):
@@ -115,6 +116,7 @@ for epoch in six.moves.range(1, n_epoch + 1):
 
     print('test  mean loss={}, accuracy={}'.format(
         sum_loss / N_test, sum_accuracy / N_test))
+    model.volatile = False
 
 
 # save the model and the optimizer
