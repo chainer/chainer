@@ -33,8 +33,7 @@ if args.gpu >= 0:
 xp = cuda.cupy if args.gpu >= 0 else np
 
 batchsize = 100
-# n_epoch = 20
-n_epoch = 1
+n_epoch = 20
 n_units = 1000
 
 # Prepare dataset
