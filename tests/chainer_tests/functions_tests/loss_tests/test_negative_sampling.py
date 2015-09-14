@@ -21,32 +21,33 @@ class TestNegativeSampling(unittest.TestCase):
     def check_backward(self, x_data, t_data, y_grad, use_cudnn=True):
         x = chainer.Variable(x_data)
         t = chainer.Variable(t_data)
+        W = self.func.params['W']
+
+        self.func._func._make_samples(t_data)
         y = self.func(x, t)
         y.grad = y_grad
         y.backward()
 
-        func = y.creator
-        f = lambda: func.forward((x.data, t.data))
-        gx, _, gW = gradient_check.numerical_grad(
-            f, (x.data, t.data, func.params['W'].data), (y.grad,), eps=1e-2)
+        f = lambda: self.func(x, t)
+        gx, gW = gradient_check.numerical_grad(
+            f, (x.data, W.data), (y.grad,), eps=1e-2)
 
         gradient_check.assert_allclose(
             cuda.to_cpu(gx), cuda.to_cpu(x.grad), atol=1.e-4)
         gradient_check.assert_allclose(
-            cuda.to_cpu(gW), cuda.to_cpu(func.params['W'].grad), atol=1.e-4)
+            cuda.to_cpu(gW), cuda.to_cpu(W.grad), atol=1.e-4)
 
     @attr.gpu
     @condition.retry(3)
     def test_forward_gpu(self):
         x = chainer.Variable(self.x)
         t = chainer.Variable(self.t)
-        self.func._make_samples(self.t)
+        self.func._func._make_samples(self.t)
         y = self.func(x, t)
 
         self.assertEqual(y.data.dtype, numpy.float32)
         self.assertEqual(y.data.shape, ())
 
-        self.func.samples = cuda.to_gpu(self.func.samples)
         self.func.to_gpu()
         y_g = self.func(chainer.Variable(cuda.to_gpu(self.x)),
                         chainer.Variable(cuda.to_gpu(self.t)))
@@ -71,9 +72,9 @@ class TestNegativeSampling(unittest.TestCase):
     @attr.gpu
     def test_to_cpu(self):
         self.func.to_gpu()
-        self.assertTrue(self.func.sampler.use_gpu)
+        self.assertTrue(self.func._func.sampler.use_gpu)
         self.func.to_cpu()
-        self.assertFalse(self.func.sampler.use_gpu)
+        self.assertFalse(self.func._func.sampler.use_gpu)
 
 
 testing.run_module(__name__, __file__)
