@@ -45,15 +45,15 @@ class TestEmbedID(unittest.TestCase):
 
     def check_backward(self, x_data, y_grad):
         x = chainer.Variable(x_data)
+        W = self.func.params['W']
+
         y = self.func(x)
         y.grad = y_grad
         y.backward()
 
-        func = y.creator
-        f = lambda: func.forward((x.data,))
-        gW, = gradient_check.numerical_grad(
-            f, (func.params['W'].data,), (y.grad,))
-        gradient_check.assert_allclose(gW, func.params['W'].grad)
+        f = lambda: self.func(x)
+        gW, = gradient_check.numerical_grad(f, (W.data,), (y.grad,))
+        gradient_check.assert_allclose(gW, W.grad)
 
     @condition.retry(3)
     def test_backward_cpu(self):

@@ -7,7 +7,58 @@ from chainer.utils import type_check
 from chainer import variable
 
 
-class EmbedID(model.Model, function.Function):
+class EmbedIDFunction(function.Function):
+
+    def check_type_forward(self, in_types):
+        type_check.expect(in_types.size() == 2)
+        x_type, w_type = in_types
+        type_check.expect(
+            x_type.dtype == numpy.int32,
+            x_type.ndim == 1,
+        )
+        type_check.expect(
+            w_type.dtype == numpy.float32,
+            w_type.ndim == 2
+        )
+
+    def forward(self, inputs):
+        x, W = inputs
+        return W.take(x, axis=0),
+
+    def backward(self, inputs, grad_outputs):
+        xp = cuda.get_array_module(*inputs)
+        x, W = inputs
+        gy = grad_outputs[0]
+        gW = xp.zeros_like(W)
+
+        if xp is numpy:
+            numpy.add.at(gW, x, gy)
+        else:
+            cuda.elementwise(
+                'T gy, int32 x, int32 n_out', 'raw T gW',
+                'int w_ind[] = {x, i % n_out}; atomicAdd(&gW[w_ind], gy)',
+                'embed_id_bwd')(gy, x[:, None], gW.shape[1], gW)
+        return None, gW
+
+
+def embed_id(x, W):
+    """Efficient linear function for one-hot input.
+
+    Args:
+        x (~chainer.Variable): Input variable with one-hot representation.
+        W (~chainer.Variable): Representation of each ID (a.k.a.
+            word embeddings).
+
+    Returns:
+        ~chainer.Variable: Output variable.
+
+    .. seealso:: :class:`EmbedID`
+
+    """
+    return EmbedIDFunction()(x, W)
+
+
+class EmbedID(model.Model):
 
     """Efficient linear function for one-hot input.
 
@@ -33,27 +84,5 @@ class EmbedID(model.Model, function.Function):
         self.params['W'] = variable.Variable(numpy.random.randn(
             in_size, out_size).astype(numpy.float32))
 
-    def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 1)
-        x_type, = in_types
-
-        type_check.expect(
-            x_type.dtype == numpy.int32,
-            x_type.ndim == 1,
-        )
-
-    def forward(self, x):
-        return self.params['W'].data.take(x[0], axis=0),
-
-    def backward_cpu(self, x, gy):
-        numpy.add.at(self.params['W'].grad, x[0], gy[0])
-        return None,
-
-    def backward_gpu(self, x, gy):
-        gW = self.params['W'].grad
-        cuda.elementwise(
-            'T gy, int32 x, int32 n_out', 'raw T gW',
-            'int w_ind[] = {x, i % n_out}; atomicAdd(&gW[w_ind], gy)',
-            'embed_id_bwd')(
-                gy[0], x[0][:, numpy.newaxis], gW.shape[1], gW)
-        return None,
+    def __call__(self, x):
+        return embed_id(x, self.params['W'])
