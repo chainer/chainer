@@ -18,14 +18,42 @@ def get_deconv_outsize(size, k, s, p, cover_all=False):
         return s * (size - 1) + k - 2 * p
 
 
+def _calc_pad(size, x1, x2):
+    left_pad = -x1 if x1 < 0 else 0
+    right_pad = x2 - size if x2 > size else 0
+    return (left_pad, right_pad)
+
+
+def _cut_and_pad(img, y1, y2, x1, x2, pval=0):
+    """Cut and pad a region (x1, y1)-(x2, y2) from an image.
+
+    """
+    assert y1 < y2 and x1 < x2
+    ph1, ph2 = _calc_pad(img.shape[2], y1, y2)
+    pw1, pw2 = _calc_pad(img.shape[3], x1, x2)
+    y1 += ph1
+    y2 += ph1
+    x1 += pw1
+    x2 += pw1
+
+    img = numpy.pad(img,
+                    ((0, 0), (0, 0), (ph1, ph2), (pw1, pw2)),
+                    mode='constant', constant_values=(pval,))
+    return img[:, :, y1:y2, x1:x2]
+
+
 def im2col_cpu(img, kh, kw, sy, sx, ph, pw, pval=0, cover_all=False):
     n, c, h, w = img.shape
     out_h = get_conv_outsize(h, kh, sy, ph, cover_all)
     out_w = get_conv_outsize(w, kw, sx, pw, cover_all)
 
-    img = numpy.pad(img,
-                    ((0, 0), (0, 0), (ph, ph + sy - 1), (pw, pw + sx - 1)),
-                    mode='constant', constant_values=(pval,))
+    img = _cut_and_pad(img, -ph, h + ph + sy - 1, -pw, w + pw + sx - 1, pval)
+
+    if ph < 0:
+        img[:, :, h + ph * 2:, :] = pval
+    if pw < 0:
+        img[:, :, :, w + pw * 2:] = pval
+
     col = numpy.ndarray((n, c, kh, kw, out_h, out_w), dtype=img.dtype)
 
     for i in six.moves.range(kh):
@@ -56,7 +84,8 @@ def im2col_gpu(img, kh, kw, sy, sx, ph, pw, cover_all=False):
 
            int in_y = ky + out_y * sy - ph;
            int in_x = kx + out_x * sx - pw;
-           if (in_y >= 0 && in_y < h && in_x >= 0 && in_x < w) {
+           if (in_y >= 0 && in_y < h + min(0, ph) &&
+               in_x >= 0 && in_x < w + min(0, pw)) {
              col = img[in_x + w * (in_y + h * c0)];
            } else {
              col = 0;
@@ -78,7 +107,7 @@ def col2im_cpu(col, sy, sx, ph, pw, h, w):
             j_lim = j + sx * out_w
             img[:, :, i:i_lim:sy, j:j_lim:sx] += col[:, :, i, j, :, :]
 
-    return img[:, :, ph:h + ph, pw:w + pw]
+    return _cut_and_pad(img, ph, h + ph, pw, w + pw)
 
 
 def col2im_gpu(col, sy, sx, ph, pw, h, w):

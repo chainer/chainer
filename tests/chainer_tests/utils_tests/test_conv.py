@@ -86,6 +86,15 @@ class TestIm2Col(unittest.TestCase):
     def test_im2col_3_cpu(self):
         self.check_im2col(1, 2, 2, 1, 1, 2, gpu=False)
 
+    def test_im2col_neg_1_cpu(self):
+        self.check_im2col(1, 1, 1, 1, -1, -1, gpu=False)
+
+    def test_im2col_neg_2_cpu(self):
+        self.check_im2col(2, 2, 2, 2, -2, -2, gpu=False)
+
+    def test_im2col_neg_3_cpu(self):
+        self.check_im2col(1, 2, 2, 1, 1, -2, gpu=False)
+
     @attr.gpu
     def test_im2col_1_gpu(self):
         self.check_im2col(1, 1, 1, 1, 1, 1, gpu=True)
@@ -97,6 +106,18 @@ class TestIm2Col(unittest.TestCase):
     @attr.gpu
     def test_im2col_3_gpu(self):
         self.check_im2col(1, 2, 2, 1, 1, 2, gpu=True)
+
+    @attr.gpu
+    def test_im2col_neg_1_gpu(self):
+        self.check_im2col(1, 1, 1, 1, -1, -1, gpu=True)
+
+    @attr.gpu
+    def test_im2col_neg_2_gpu(self):
+        self.check_im2col(2, 2, 2, 2, -2, -2, gpu=True)
+
+    @attr.gpu
+    def test_im2col_neg_3_gpu(self):
+        self.check_im2col(1, 2, 2, 1, 1, -2, gpu=True)
 
 
 class TestCol2Im(unittest.TestCase):
@@ -146,6 +167,15 @@ class TestCol2Im(unittest.TestCase):
     def test_col2im_3_cpu(self):
         self.check_col2im(1, 2, 2, 1, 1, 2, gpu=False)
 
+    def test_col2im_neg_1_cpu(self):
+        self.check_col2im(1, 1, 1, 1, -1, -1, gpu=False)
+
+    def test_col2im_neg_2_cpu(self):
+        self.check_col2im(2, 2, 2, 2, -2, -2, gpu=False)
+
+    def test_col2im_neg_3_cpu(self):
+        self.check_col2im(1, 2, 2, 1, 1, -2, gpu=False)
+
     @attr.gpu
     def test_col2im_1_gpu(self):
         self.check_col2im(1, 1, 1, 1, 1, 1, gpu=True)
@@ -157,6 +187,18 @@ class TestCol2Im(unittest.TestCase):
     @attr.gpu
     def test_col2im_3_gpu(self):
         self.check_col2im(1, 2, 2, 1, 1, 2, gpu=True)
+
+    @attr.gpu
+    def test_col2im_neg_1_gpu(self):
+        self.check_col2im(1, 1, 1, 1, -1, -1, gpu=True)
+
+    @attr.gpu
+    def test_col2im_neg_2_gpu(self):
+        self.check_col2im(2, 2, 2, 2, -2, -2, gpu=True)
+
+    @attr.gpu
+    def test_col2im_neg_3_gpu(self):
+        self.check_col2im(1, 2, 2, 1, 1, -2, gpu=True)
 
 
 testing.run_module(__name__, __file__)
