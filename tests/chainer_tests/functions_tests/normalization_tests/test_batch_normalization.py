@@ -57,19 +57,20 @@ class TestBatchNormalization(unittest.TestCase):
 
     def check_backward(self, x_data, y_grad):
         x = chainer.Variable(x_data)
+        gamma = self.func.params['gamma']
+        beta = self.func.params['beta']
+
         y = self.func(x)
         y.grad = y_grad
         y.backward()
 
-        func = y.creator
-        f = lambda: func.forward((x.data,))
+        f = lambda: self.func(x)
         gx, ggamma, gbeta = gradient_check.numerical_grad(
-            f, (x.data, func.params['gamma'].data, func.params['beta'].data),
-            (y.grad,), eps=1e-2)
+            f, (x.data, gamma.data, beta.data), (y.grad,), eps=1e-2)
 
         gradient_check.assert_allclose(gx, x.grad, rtol=1e-3, atol=1e-4)
-        gradient_check.assert_allclose(ggamma, func.params['gamma'].grad)
-        gradient_check.assert_allclose(gbeta, func.params['beta'].grad)
+        gradient_check.assert_allclose(ggamma, gamma.grad)
+        gradient_check.assert_allclose(gbeta, beta.grad)
 
     @condition.retry(3)
     def test_backward_cpu(self):
