@@ -19,30 +19,31 @@ def _check_forward(e1, e2, f, y_expect):
     gradient_check.assert_allclose(y_expect, y.data)
 
 
-def _check_backward(e1, e2, y_grad, f, bias):
+def _check_backward(e1, e2, y_grad, func, bias):
     e1 = chainer.Variable(e1)
     e2 = chainer.Variable(e2)
-    y = f(e1, e2)
+    W = func.params['W']
+    y = func(e1, e2)
     y.grad = y_grad
     y.backward()
 
-    func = y.creator
-    f = lambda: func.forward((e1.data, e2.data))
-
+    f = lambda: func(e1, e2)
     ge1, ge2, gW = gradient_check.numerical_grad(
-        f, (e1.data, e2.data, func.params['W'].data), (y.grad,), eps=1e-2)
+        f, (e1.data, e2.data, W.data), (y.grad,), eps=1e-2)
 
     gradient_check.assert_allclose(ge1, e1.grad, rtol=1e-3)
     gradient_check.assert_allclose(ge2, e2.grad, rtol=1e-3)
-    gradient_check.assert_allclose(gW, func.params['W'].grad, rtol=1e-3)
+    gradient_check.assert_allclose(gW, W.grad, rtol=1e-3)
 
     if bias:
+        V1 = func.params['V1']
+        V2 = func.params['V2']
+        b = func.params['b']
         gV1, gV2, gb = gradient_check.numerical_grad(
-            f, (func.params['V1'].data, func.params['V2'].data,
-                func.params['b'].data), (y.grad,), eps=1e-2)
-        gradient_check.assert_allclose(gV1, func.params['V1'].grad, rtol=1e-3)
-        gradient_check.assert_allclose(gV2, func.params['V2'].grad, rtol=1e-3)
-        gradient_check.assert_allclose(gb, func.params['b'].grad, rtol=1e-3)
+            f, (V1.data, V2.data, b.data), (y.grad,), eps=1e-2)
+        gradient_check.assert_allclose(gV1, V1.grad, rtol=1e-3)
+        gradient_check.assert_allclose(gV2, V2.grad, rtol=1e-3)
+        gradient_check.assert_allclose(gb, b.grad, rtol=1e-3)
 
 
 def _batch_to_gpu(*xs):

@@ -10,7 +10,139 @@ from chainer.utils import type_check
 from chainer import variable
 
 
-class Bilinear(model.Model, function.Function):
+class BilinearFunction(function.Function):
+
+    def check_type_forward(self, in_types):
+        n_in = in_types.size().eval()
+        if n_in != 3 and n_in != 6:
+            raise type_check.InvalidType(
+                '%s or %s' % (in_types.size() == 3, in_types.size() == 6),
+                '%s == %s' % (in_types.size(), n_in))
+
+        e1_type, e2_type, W_type = in_types[:3]
+        type_check_prod = type_check.Variable(numpy.prod, 'prod')
+        type_check.expect(
+            e1_type.dtype == numpy.float32,
+            e1_type.ndim >= 2,
+            e2_type.dtype == numpy.float32,
+            e2_type.ndim >= 2,
+            e1_type.shape[0] == e2_type.shape[0],
+            W_type.dtype == numpy.float32,
+            W_type.ndim == 3,
+            type_check_prod(e1_type.shape[1:]) == W_type.shape[0],
+            type_check_prod(e2_type.shape[1:]) == W_type.shape[1],
+        )
+
+        if n_in == 6:
+            out_size = W_type.shape[2]
+            V1_type, V2_type, b_type = in_types[3:]
+            type_check.expect(
+                V1_type.dtype == numpy.float32,
+                V1_type.ndim == 2,
+                V1_type.shape[0] == W_type.shape[0],
+                V1_type.shape[1] == out_size,
+                V2_type.dtype == numpy.float32,
+                V2_type.ndim == 2,
+                V2_type.shape[0] == W_type.shape[1],
+                V2_type.shape[1] == out_size,
+                b_type.dtype == numpy.float32,
+                b_type.ndim == 1,
+                b_type.shape[0] == out_size,
+            )
+
+    def forward(self, inputs):
+        e1 = array.as_mat(inputs[0])
+        e2 = array.as_mat(inputs[1])
+        W = inputs[2]
+
+        xp = cuda.get_array_module(*inputs)
+        if xp is numpy:
+            y = numpy.einsum('ij,ik,jkl->il', e1, e2, W)
+        else:
+            i_len, j_len = e1.shape
+            k_len = e2.shape[1]
+            # 'ij,ik->ijk'
+            e1e2 = e1[:, :, None] * e2[:, None, :]
+            # ijk->i[jk]
+            e1e2 = e1e2.reshape(i_len, j_len * k_len)
+            # jkl->[jk]l
+            W_mat = W.reshape(-1, W.shape[2])
+            # 'i[jk],[jk]l->il'
+            y = e1e2.dot(W_mat)
+
+        if len(inputs) == 6:
+            V1, V2, b = inputs[3:]
+            y += e1.dot(V1)
+            y += e2.dot(V2)
+            y += b
+        return y,
+
+    def backward(self, inputs, grad_outputs):
+        e1 = array.as_mat(inputs[0])
+        e2 = array.as_mat(inputs[1])
+        W = inputs[2]
+        gy = grad_outputs[0]
+
+        xp = cuda.get_array_module(*inputs)
+        if xp is numpy:
+            gW = numpy.einsum('ij,ik,il->jkl', e1, e2, gy)
+            ge1 = numpy.einsum('ik,jkl,il->ij', e2, W, gy)
+            ge2 = numpy.einsum('ij,jkl,il->ik', e1, W, gy)
+        else:
+            kern = cuda.reduce('T in0, T in1, T in2', 'T out',
+                               'in0 * in1 * in2', 'a + b', 'out = a', 0,
+                               'bilinear_product')
+
+            e1_b = e1[:, :, None, None]  # ij
+            e2_b = e2[:, None, :, None]  # ik
+            gy_b = gy[:, None, None, :]  # il
+            W_b = W[None, :, :, :]  # jkl
+
+            gW = kern(e1_b, e2_b, gy_b, axis=0)  # 'ij,ik,il->jkl'
+            ge1 = kern(e2_b, W_b, gy_b, axis=(2, 3))  # 'ik,jkl,il->ij'
+            ge2 = kern(e1_b, W_b, gy_b, axis=(1, 3))  # 'ij,jkl,il->ik'
+
+        ret = ge1.reshape(inputs[0].shape), ge2.reshape(inputs[1].shape), gW
+        if len(inputs) == 6:
+            V1, V2, b = inputs[3:]
+            gV1 = e1.T.dot(gy)
+            gV2 = e2.T.dot(gy)
+            gb = gy.sum(0)
+            ge1 += gy.dot(V1.T)
+            ge2 += gy.dot(V2.T)
+            ret += gV1, gV2, gb
+        return ret
+
+
+def bilinear(e1, e2, W, V1=None, V2=None, b=None):
+    """Applies a bilinear function based on given parameters.
+
+    Note that V1, V2, b are optional, though they must not be None if at least
+    one of them is not None.
+
+    Args:
+        e1 (~chainer.Variable): Left input variable.
+        e2 (~chainer.Variable): Right input variable.
+        W (~chainer.Variable): Quadratic weight variable.
+        V1 (~chainer.Variable): Left coefficient variable.
+        V2 (~chainer.Variable): Right coefficient variable.
+        b (~chainer.Variable): Bias variable.
+
+    Reutnrs:
+        ~chainer.Variable: Output variable.
+
+    """
+    flags = [V1 is None, V2 is None, b is None]
+    if any(flags):
+        if not all(flags):
+            raise ValueError('All coefficients and bias for bilinear() must '
+                             'be None, if at least one of them is None.')
+        return BilinearFunction()(e1, e2, W)
+    else:
+        return BilinearFunction()(e1, e2, W, V1, V2, b)
+
+
+class Bilinear(model.Model):
 
     """Bilinear function, an extension of Linear function.
 
@@ -86,142 +218,39 @@ class Bilinear(model.Model, function.Function):
         self.nobias = nobias
 
         if initialW is not None:
-            assert initialW.shape == (
-                self.in_sizes[0], self.in_sizes[1], out_size)
-            self.params['W'] = variable.Variable(initialW)
+            assert initialW.shape == (left_size, right_size, out_size)
         else:
             # TODO(Kenta OONO): I do not know appropriate way of
             # initializing weights in tensor network.
             # This initialization is a modification of
             # that of Linear function.
-            in_size = numpy.prod(self.in_sizes)
-            self.params['W'] = variable.Variable(numpy.random.normal(
-                0, math.sqrt(1. / in_size),
-                (self.in_sizes[0], self.in_sizes[1], out_size)
-            ).astype(numpy.float32))
+            in_size = left_size * right_size * out_size
+            initialW = numpy.random.normal(
+                0, math.sqrt(1. / in_size), (left_size, right_size, out_size)
+            ).astype(numpy.float32)
+        self.params['W'] = variable.Variable(initialW)
 
         if not self.nobias:
             if initial_bias is not None:
-                assert len(initial_bias) == 3
-                assert initial_bias[0].shape == (self.in_sizes[0], out_size)
-                assert initial_bias[1].shape == (self.in_sizes[1], out_size)
-                assert initial_bias[2].shape == (out_size,)
-                self.params['V1'] = variable.Variable(initial_bias[0])
-                self.params['V2'] = variable.Variable(initial_bias[1])
-                self.params['b'] = variable.Variable(initial_bias[2])
+                V1, V2, b = initial_bias
+                assert V1.shape == (left_size, out_size)
+                assert V2.shape == (right_size, out_size)
+                assert b.shape == (out_size,)
             else:
-                self.params['V1'] = variable.Variable(numpy.random.normal(
-                    0, math.sqrt(1. / self.in_sizes[0]),
-                    (self.in_sizes[0], out_size)).astype(numpy.float32))
-                self.params['V2'] = variable.Variable(numpy.random.normal(
-                    0, math.sqrt(1. / self.in_sizes[1]),
-                    (self.in_sizes[1], out_size)).astype(numpy.float32))
-                self.params['b'] = variable.Variable(
-                    numpy.zeros((out_size, ), dtype=numpy.float32))
+                V1 = numpy.random.normal(
+                    0, math.sqrt(1. / left_size), (left_size, out_size)
+                ).astype(numpy.float32)
+                V2 = numpy.random.normal(
+                    0, math.sqrt(1. / right_size), (right_size, out_size)
+                ).astype(numpy.float32)
+                b = numpy.zeros(out_size, dtype=numpy.float32)
+            self.params['V1'] = variable.Variable(V1)
+            self.params['V2'] = variable.Variable(V2)
+            self.params['b'] = variable.Variable(b)
 
-    def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
-
-        e1_type, e2_type = in_types
-        type_check.expect(
-            e1_type.ndim >= 2,
-            e2_type.ndim >= 2,
-            e1_type.shape[0] == e2_type.shape[0]
-        )
-
-        in_sizes = type_check.Variable(self.in_sizes, 'in_sizes')
-        type_check_prod = type_check.Variable(numpy.prod, 'prod')
-        type_check.expect(
-            type_check_prod(e1_type.shape[1:]) == in_sizes[0],
-            type_check_prod(e2_type.shape[1:]) == in_sizes[1]
-        )
-
-    def forward_cpu(self, x):
-        e1 = array.as_mat(x[0])
-        e2 = array.as_mat(x[1])
-        y = numpy.einsum('ij,ik,jkl->il', e1, e2, self.params['W'].data)
-        if not self.nobias:
-            y += e1.dot(self.params['V1'].data)
-            y += e2.dot(self.params['V2'].data)
-            y += self.params['b'].data
-        return y,
-
-    def forward_gpu(self, x):
-        e1 = array.as_mat(x[0])
-        e2 = array.as_mat(x[1])
-        i_len, j_len = e1.shape
-        k_len = e2.shape[1]
-
-        # 'ij,ik->ijk'
-        e1e2 = e1[:, :, numpy.newaxis] * e2[:, numpy.newaxis, :]
-
-        # ijk->i[jk]
-        e1e2 = e1e2.reshape(i_len, j_len * k_len)
-        # jkl->[jk]l
-        W = self.params['W'].data
-        W_mat = W.reshape(-1, W.shape[2])
-
-        # 'i[jk],[jk]l->il'
-        y = e1e2.dot(W_mat)
-
-        if not self.nobias:
-            y += e1.dot(self.params['V1'].data)
-            y += e2.dot(self.params['V2'].data)
-            y += self.params['b'].data
-        return y,
-
-    def backward_cpu(self, x, gy):
-        e1 = array.as_mat(x[0])
-        e2 = array.as_mat(x[1])
-        gy, = gy
-
-        self.params['W'].grad += numpy.einsum('ij,ik,il->jkl', e1, e2, gy)
-        if not self.nobias:
-            self.params['V1'].grad += e1.T.dot(gy)
-            self.params['V2'].grad += e2.T.dot(gy)
-            self.params['b'].grad += gy.sum(0)
-
-        W = self.params['W'].data
-        ge1 = numpy.einsum('ik,jkl,il->ij', e2, W, gy)
-        ge2 = numpy.einsum('ij,jkl,il->ik', e1, W, gy)
-        if not self.nobias:
-            ge1 += gy.dot(self.params['V1'].data.T)
-            ge2 += gy.dot(self.params['V2'].data.T)
-        return (ge1.reshape(x[0].shape), ge2.reshape(x[1].shape))
-
-    def backward_gpu(self, x, gy):
-        e1 = array.as_mat(x[0])
-        e2 = array.as_mat(x[1])
-        gy, = gy
-
-        kern_add = cuda.reduce(
-            'T in0, T in1, T in2', 'T out',
-            'in0 * in1 * in2', 'a + b', 'out += a', 0,
-            'bilinear_product_add')
-        kern = cuda.reduce(
-            'T in0, T in1, T in2', 'T out',
-            'in0 * in1 * in2', 'a + b', 'out = a', 0,
-            'bilinear_product')
-
-        e1_b = e1[:, :, numpy.newaxis, numpy.newaxis]  # ij
-        e2_b = e2[:, numpy.newaxis, :, numpy.newaxis]  # ik
-        gy_b = gy[:, numpy.newaxis, numpy.newaxis, :]  # il
-        W_b = self.params['W'].data[numpy.newaxis, :, :, :]  # jkl
-
-        # 'ij,ik,il->jkl'
-        kern_add(e1_b, e2_b, gy_b, self.params['W'].grad, axis=0)
-
-        if not self.nobias:
-            self.params['V1'].grad += e1.T.dot(gy)
-            self.params['V2'].grad += e2.T.dot(gy)
-            self.params['b'].grad += gy.sum(axis=0)
-
-        # 'ik,jkl,il->ij'
-        ge1 = kern(e2_b, W_b, gy_b, axis=(2, 3))
-        # 'ij,jkl,il->ik'
-        ge2 = kern(e1_b, W_b, gy_b, axis=(1, 3))
-
-        if not self.nobias:
-            ge1 += gy.dot(self.params['V1'].data.T)
-            ge2 += gy.dot(self.params['V2'].data.T)
-        return (ge1.reshape(x[0].shape), ge2.reshape(x[1].shape))
+    def __call__(self, e1, e2):
+        if self.nobias:
+            return bilinear(e1, e2, self.params['W'])
+        else:
+            return bilinear(e1, e2, self.params['W'], self.params['V1'],
+                            self.params['V2'], self.params['b'])
