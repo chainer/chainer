@@ -4,7 +4,7 @@ import numpy
 
 from chainer import cuda
 from chainer import function
-from chainer import model
+from chainer import parameterized
 from chainer.utils import array
 from chainer.utils import type_check
 from chainer import variable
@@ -142,7 +142,7 @@ def bilinear(e1, e2, W, V1=None, V2=None, b=None):
         return BilinearFunction()(e1, e2, W, V1, V2, b)
 
 
-class Bilinear(model.Model):
+class Bilinear(parameterized.ParameterizedObject):
 
     """Bilinear function, an extension of Linear function.
 
@@ -209,8 +209,8 @@ class Bilinear(model.Model):
         `Reasoning With Neural Tensor Networks for Knowledge Base Completion
         <http://papers.nips.cc/paper/5028-reasoning-with-neural-tensor-
         networks-for-knowledge-base-completion>`_ [Socher+, NIPS2013].
-    """
 
+    """
     def __init__(self, left_size, right_size, out_size, nobias=False,
                  initialW=None, initial_bias=None):
         super(Bilinear, self).__init__()

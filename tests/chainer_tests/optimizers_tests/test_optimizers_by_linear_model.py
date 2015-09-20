@@ -98,7 +98,7 @@ class OptimizerTestBase(object):
         optimizer = self.create()
         optimizer.setup(model)
 
-        self.assertIs(optimizer.model, model)
+        self.assertIs(optimizer.target, model)
         self.assertRaises(AttributeError, optimizer.setup, 'xxx')
 
 

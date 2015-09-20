@@ -1,13 +1,14 @@
-from chainer import model
 from chainer.functions.activation import relu
 from chainer.functions.array import concat
 from chainer.functions.connection import convolution_2d
 from chainer.functions.normalization import batch_normalization
 from chainer.functions.pooling import average_pooling_2d
 from chainer.functions.pooling import max_pooling_2d
+from chainer import parameterized
 
 
-class InceptionBN(model.ModelDict):
+class InceptionBN(parameterized.ParameterizedDict):
+
     """Inception module of the new GoogLeNet with BatchNormalization.
 
     This class acts like :class:`Inception`, while InceptionBN uses the

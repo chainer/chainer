@@ -3,10 +3,10 @@ import six
 import warnings
 
 from chainer import cuda
-from chainer import model
+from chainer import parameterized
 
 
-class FunctionSet(model.ModelDict):
+class FunctionSet(parameterized.ParameterizedDict):
 
     """Set of objects with ``parameters`` and ``gradients`` properties.
 
@@ -29,18 +29,18 @@ class FunctionSet(model.ModelDict):
                 object as attributes.
 
         """
-        warnings.warn('FunctionSet is deprecated. Use ModelDict instead.',
-                      DeprecationWarning)
-        model.ModelDict.__init__(self, **functions)
+        warnings.warn('FunctionSet is deprecated. '
+                      'Use ParameterizedDict instead.', DeprecationWarning)
+        super(FunctionSet, self).__init__(**functions)
 
     def __getattr__(self, key):
-        return self.models[key]
+        return self.children[key]
 
     def __setattr__(self, key, value):
-        if isinstance(value, model.Model):
+        if isinstance(value, parameterized.ParameterizedObject):
             self[key] = value
         else:
-            model.ModelDict.__setattr__(self, key, value)
+            super(FunctionSet, self).__setattr__(key, value)
 
     def __getstate__(self):
         # avoid getattr/setattr
@@ -103,9 +103,9 @@ class FunctionSet(model.ModelDict):
         d = dict(six.moves.zip(paths, params))
 
         # replace params by given ones
-        for model in self.visitmodels():
-            prefix = model._name + '/_params/'
-            p = model.params
+        for obj in self.visithierarchy():
+            prefix = obj._name + '/_params/'
+            p = obj.params
             for key in p:
                 path = prefix + key
                 p[key].data = d[path]
@@ -132,9 +132,9 @@ class FunctionSet(model.ModelDict):
         d = dict(six.moves.zip(paths, grads))
 
         # replace params by given ones
-        for model in self.visitmodels():
-            prefix = model._name + '/_params/'
-            g = model.grads
+        for obj in self.visithierarchy():
+            prefix = obj._name + '/_params/'
+            g = obj.grads
             for key in g:
                 path = prefix + key
                 g[key].grad = d[path]

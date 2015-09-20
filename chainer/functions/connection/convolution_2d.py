@@ -6,7 +6,7 @@ from six import moves
 
 from chainer import cuda
 from chainer import function
-from chainer import model
+from chainer import parameterized
 from chainer.utils import conv
 from chainer.utils import type_check
 from chainer import variable
@@ -231,7 +231,7 @@ def convolution_2d(x, W, b=None, stride=1, pad=0, use_cudnn=True):
         return func(x, W, b)
 
 
-class Convolution2D(model.Model):
+class Convolution2D(parameterized.ParameterizedObject):
 
     """Two-dimensional convolution function.
 

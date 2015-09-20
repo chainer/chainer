@@ -4,7 +4,7 @@ import numpy
 
 from chainer import cuda
 from chainer import function
-from chainer import model
+from chainer import parameterized
 from chainer.utils import type_check
 from chainer import variable
 
@@ -86,7 +86,7 @@ def linear(x, W, b=None):
         return LinearFunction()(x, W, b)
 
 
-class Linear(model.Model):
+class Linear(parameterized.ParameterizedObject):
 
     """Linear function with attached parameters.
 

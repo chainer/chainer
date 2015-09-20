@@ -11,7 +11,7 @@ from chainer import testing
 from chainer.testing import attr
 
 
-class MockFunction(chainer.Model, chainer.Function):
+class MockFunction(chainer.ParameterizedObject, chainer.Function):
 
     def __init__(self, shape):
         super(MockFunction, self).__init__()

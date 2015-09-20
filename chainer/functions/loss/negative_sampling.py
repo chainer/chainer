@@ -3,7 +3,7 @@ import six
 
 from chainer import cuda
 from chainer import function
-from chainer import model
+from chainer import parameterized
 from chainer.utils import type_check
 from chainer.utils import walker_alias
 from chainer import variable
@@ -187,8 +187,9 @@ class NegativeSamplingFunction(function.Function):
         return gx, None, gW
 
 
-class NegativeSampling(model.Model):
-    """Model implementation of negative sampling loss.
+class NegativeSampling(parameterized.ParameterizedObject):
+
+    """Parameterized object for negative sampling loss.
 
     In natural language processing, especially language modeling, the number of
     vocabulary is very large.
