@@ -43,6 +43,7 @@ setup(
         'cupy': ['carray.cuh'],
     },
     install_requires=['filelock',
+                      'h5py>=2.5.0',
                       'nose',
                       'numpy>=1.9.0',
                       'protobuf',
