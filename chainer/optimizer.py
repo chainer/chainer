@@ -132,7 +132,7 @@ class GradientMethod(Optimizer):
             loss = loss_func(*args, **kwds)
             loss.backward()
 
-        for hook in self.hooks:
+        for _, hook in self.hooks:
             hook(self.target)
 
         self.t += 1
