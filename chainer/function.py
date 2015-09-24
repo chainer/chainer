@@ -125,9 +125,6 @@ class Function(object):
             :class:`Variable` objects.
 
         """
-        # First copy itself to avoid duplication within the graph.
-        self = copy.copy(self)
-
         in_data = tuple([x.data for x in inputs])
         if self.type_check_enable:
             self._check_data_type_forward(in_data)

@@ -126,8 +126,8 @@ class TestFunction(unittest.TestCase):
             # rank is (maximum rank in xs) + 1.
             self.assertEqual(y.rank, 4)
             self.assertFalse(y.volatile)
-            # __call__ method makes a copy
-            self.assertIsNot(y.creator, self.f)
+            # __call__ method does not make a copy anymore
+            self.assertIs(y.creator, self.f)
 
         self.assertIsInstance(y.creator.outputs, tuple)
 
