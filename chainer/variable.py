@@ -59,7 +59,6 @@ class Variable(object):
         self.rank = 0
         self.volatile = volatile
 
-        self.splitter = weakref.ref(lambda: 0)  # dead ref
         self._grad = None
         self.creator = None
         self.n_users = 0
