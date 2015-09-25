@@ -13,7 +13,6 @@ class ParameterizedObject(object):
         self.params = {}
         self.states = {}
         self._name = name
-        self._volatile = False
 
     @property
     def name(self):
@@ -25,16 +24,15 @@ class ParameterizedObject(object):
 
     @property
     def volatile(self):
-        return self._volatile
+        for _, param in self.visitparams():
+            return param.volatile
+        return False
 
     @volatile.setter
     def volatile(self, value):
         value = bool(value)
-        if self._volatile is value:
-            return
         for _, param in self.visitparams():
             param.volatile = value
-        self._volatile = value
 
     def copy(self, shared=True):
         ret = copy_module.copy(self)
