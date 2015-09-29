@@ -4,7 +4,7 @@ import numpy
 
 from chainer import cuda
 from chainer import function
-from chainer import parameterized
+from chainer import link
 from chainer.utils import array
 from chainer.utils import type_check
 from chainer import variable
@@ -142,7 +142,7 @@ def bilinear(e1, e2, W, V1=None, V2=None, b=None):
         return BilinearFunction()(e1, e2, W, V1, V2, b)
 
 
-class Bilinear(parameterized.ParameterizedObject):
+class Bilinear(link.Link):
 
     """Bilinear function, an extension of Linear function.
 

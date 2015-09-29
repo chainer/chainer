@@ -4,10 +4,10 @@ from chainer.functions.connection import convolution_2d
 from chainer.functions.normalization import batch_normalization
 from chainer.functions.pooling import average_pooling_2d
 from chainer.functions.pooling import max_pooling_2d
-from chainer import parameterized
+from chainer import link
 
 
-class InceptionBN(parameterized.ParameterizedDict):
+class InceptionBN(link.DictLink):
 
     """Inception module of the new GoogLeNet with BatchNormalization.
 

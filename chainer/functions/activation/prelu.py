@@ -3,7 +3,7 @@ import six
 
 from chainer import cuda
 from chainer import function
-from chainer import parameterized
+from chainer import link
 from chainer.utils import type_check
 from chainer import variable
 
@@ -14,7 +14,7 @@ def _fwd_kern():
         'y = cond >= 0 ? x : x * W', 'prelu')
 
 
-class PReLU(parameterized.ParameterizedObject, function.Function):
+class PReLU(link.Link, function.Function):
 
     """Parametric ReLU function.
 

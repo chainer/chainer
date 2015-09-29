@@ -1,12 +1,12 @@
 import numpy
 
 from chainer import function
-from chainer import parameterized
+from chainer import link
 from chainer.utils import type_check
 from chainer import variable
 
 
-class Parameter(parameterized.ParameterizedObject, function.Function):
+class Parameter(link.Link, function.Function):
 
     """Function that outputs its weight array.
 

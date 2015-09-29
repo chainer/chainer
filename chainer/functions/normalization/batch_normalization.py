@@ -2,7 +2,7 @@ import numpy
 
 from chainer import cuda
 from chainer import function
-from chainer import parameterized
+from chainer import link
 from chainer.utils import type_check
 from chainer import variable
 
@@ -97,7 +97,7 @@ class BatchNormalizationFunction(function.Function):
         return gx, ggamma, gbeta
 
 
-class BatchNormalization(parameterized.ParameterizedObject):
+class BatchNormalization(link.Link):
 
     """Batch normalization on outputs of linear or convolution functions.
 

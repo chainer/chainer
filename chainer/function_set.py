@@ -3,10 +3,10 @@ import six
 import warnings
 
 from chainer import cuda
-from chainer import parameterized
+from chainer import link
 
 
-class FunctionSet(parameterized.ParameterizedDict):
+class FunctionSet(link.DictLink):
 
     """Set of objects with ``parameters`` and ``gradients`` properties.
 
@@ -29,15 +29,15 @@ class FunctionSet(parameterized.ParameterizedDict):
                 object as attributes.
 
         """
-        warnings.warn('FunctionSet is deprecated. '
-                      'Use ParameterizedDict instead.', DeprecationWarning)
+        warnings.warn('FunctionSet is deprecated. Use DictLink instead.',
+                      DeprecationWarning)
         super(FunctionSet, self).__init__(**functions)
 
     def __getattr__(self, key):
         return self.children[key]
 
     def __setattr__(self, key, value):
-        if isinstance(value, parameterized.ParameterizedObject):
+        if isinstance(value, link.Link):
             self[key] = value
         else:
             super(FunctionSet, self).__setattr__(key, value)
@@ -103,9 +103,9 @@ class FunctionSet(parameterized.ParameterizedDict):
         d = dict(six.moves.zip(paths, params))
 
         # replace params by given ones
-        for obj in self.visithierarchy():
-            prefix = obj._name + '/_params/'
-            p = obj.params
+        for link in self.visitlinks():
+            prefix = link._name + '/_params/'
+            p = link.params
             for key in p:
                 path = prefix + key
                 p[key].data = d[path]
@@ -132,9 +132,9 @@ class FunctionSet(parameterized.ParameterizedDict):
         d = dict(six.moves.zip(paths, grads))
 
         # replace params by given ones
-        for obj in self.visithierarchy():
-            prefix = obj._name + '/_params/'
-            g = obj.grads
+        for link in self.visitlinks():
+            prefix = link._name + '/_params/'
+            g = link.grads
             for key in g:
                 path = prefix + key
                 g[key].grad = d[path]

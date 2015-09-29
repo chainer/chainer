@@ -7,7 +7,7 @@ import six
 from chainer import cuda
 
 
-class ParameterizedObject(object):
+class Link(object):
 
     def __init__(self, name=''):
         self.params = {}
@@ -45,12 +45,12 @@ class ParameterizedObject(object):
         return ret
 
     def to_cpu(self):
-        for obj in self.visithierarchy():
-            for param in six.itervalues(obj.params):
+        for link in self.visitlinks():
+            for param in six.itervalues(link.params):
                 param.data = cuda.to_cpu(param.data)
                 param._grad = cuda.to_cpu(param._grad)
 
-            states = obj.states
+            states = link.states
             for key, value in six.iteritems(states):
                 states[key] = cuda.to_cpu(value)
 
@@ -59,30 +59,30 @@ class ParameterizedObject(object):
     def to_gpu(self, device=None):
         cupy = cuda.cupy
         with cuda.get_device(device):
-            for obj in self.visithierarchy():
-                for param in six.itervalues(obj.params):
+            for link in self.visitlinks():
+                for param in six.itervalues(link.params):
                     param.data = cupy.asarray(param.data)
                     if param._grad is not None:
                         param._grad = cupy.asarray(param._grad)
 
-                states = obj.states
+                states = link.states
                 for key, value in six.iteritems(states):
                     states[key] = cupy.asarray(value)
 
         return self
 
     def visitparams(self):
-        for obj in self.visithierarchy():
-            prefix = obj._name + '/_params/'
-            for key, param in six.iteritems(obj.params):
+        for link in self.visitlinks():
+            prefix = link._name + '/_params/'
+            for key, param in six.iteritems(link.params):
                 yield prefix + key, param
 
-    def visithierarchy(self):
+    def visitlinks(self):
         yield self
 
-    def copyparams(self, obj):
+    def copyparams(self, link):
         params = {}
-        for path, param in obj.visitparams():
+        for path, param in link.visitparams():
             params[path] = param.data
         for path, param in self.visitparams():
             dst = param.data
@@ -95,8 +95,8 @@ class ParameterizedObject(object):
                 cuda.cupy.copyto(dst, src)
 
     def zerograds(self):
-        for obj in self.visithierarchy():
-            params = obj.params
+        for link in self.visitlinks():
+            params = link.params
             for key, p in six.iteritems(params):
                 arr = p._grad
                 if arr is None:
@@ -106,9 +106,9 @@ class ParameterizedObject(object):
                 else:
                     arr.fill(0)
 
-    def addgrads(self, obj):
+    def addgrads(self, link):
         grads = {}
-        for path, param in obj.visitparams():
+        for path, param in link.visitparams():
             grads[path] = param._grad
         for path, param in self.visitparams():
             dst = param._grad
@@ -134,21 +134,19 @@ class ParameterizedObject(object):
             states[key] = s(key, state)
 
 
-class ParameterizedDict(ParameterizedObject):
+class DictLink(Link):
 
     def __init__(self, **kwds):
-        ParameterizedObject.__init__(self)
+        Link.__init__(self)
         self.children = kwds
 
         prefix = self._name + '/'
-        for key, obj in six.iteritems(kwds):
-            if not isinstance(obj, ParameterizedObject):
-                raise TypeError('Cannot set a non-parameterized object to '
-                                'ParameterizedDict')
-            if obj._name:
-                raise ValueError('Cannot set a parameterized object to '
-                                 'multiple parents')
-            obj.name = prefix + key
+        for key, link in six.iteritems(kwds):
+            if not isinstance(link, Link):
+                raise TypeError('Cannot set a non-link object to DictLink')
+            if link._name:
+                raise ValueError('Cannot set a link to multiple parents')
+            link.name = prefix + key
 
     def __contains__(self, key):
         return key in self.children
@@ -167,12 +165,10 @@ class ParameterizedDict(ParameterizedObject):
         return len(self.children)
 
     def __setitem__(self, key, value):
-        if not isinstance(value, ParameterizedObject):
-            raise TypeError('Cannot set a non-parameterized object to '
-                            'ParameterizedDict')
+        if not isinstance(value, Link):
+            raise TypeError('Cannot set a non-link object to DictLink')
         if value._name:
-            raise ValueError('Cannot set a parameterized object to multiple '
-                             'parents')
+            raise ValueError('Cannot set a link to multiple parents')
         value.name = '%s/%s' % (self._name, key)
 
         old = self.get(key, None)
@@ -181,8 +177,8 @@ class ParameterizedDict(ParameterizedObject):
         self.children[key] = value
 
     def clear(self):
-        for obj in six.itervalues(self.children):
-            obj.name = ''
+        for link in six.itervalues(self.children):
+            link.name = ''
         self.children.clear()
 
     def get(self, key, *args):
@@ -215,9 +211,9 @@ class ParameterizedDict(ParameterizedObject):
         return ret
 
     def popitem(self):
-        key, obj = self.children.popitem()
-        obj.name = ''
-        return key, obj
+        key, link = self.children.popitem()
+        link.name = ''
+        return key, link
 
     def setdefault(self, key, default=None):
         ret = self.children.get(key, None)
@@ -240,40 +236,38 @@ class ParameterizedDict(ParameterizedObject):
             name = ''
         self._name = name
         prefix = self._name + '/'
-        for key, obj in six.iteritems(self):
-            obj.name = prefix + key
+        for key, link in six.iteritems(self):
+            link.name = prefix + key
 
     def copy(self, shared=True):
-        ret = ParameterizedObject.copy(self, shared)
-        for key, obj in six.iteritems(self):
-            ret[key] = obj.copy(shared)
+        ret = Link.copy(self, shared)
+        for key, link in six.iteritems(self):
+            ret[key] = link.copy(shared)
         return ret
 
-    def visithierarchy(self):
+    def visitlinks(self):
         yield self
         for o1 in six.itervalues(self):
-            for o2 in o1.visithierarchy():
+            for o2 in o1.visitlinks():
                 yield o2
 
     def serialize(self, serializer):
-        ParameterizedObject.serialize(self, serializer)
-        for key, obj in six.iteritems(self):
-            obj.serialize(serializer[key])
+        Link.serialize(self, serializer)
+        for key, link in six.iteritems(self):
+            link.serialize(serializer[key])
 
 
-class ParameterizedList(ParameterizedObject):
+class ListLink(Link):
 
     def __init__(self, *args):
-        ParameterizedObject.__init__(self)
-        for obj in args:
-            if not isinstance(obj, ParameterizedObject):
-                raise TypeError('Cannot set a non-parameterized object to '
-                                'ParameterizedList')
-            if obj._name:
-                raise ValueError('Cannot set a parameterized object to '
-                                 'multiple parents')
-        for i, obj in enumerate(args):
-            obj.name = '%s/%d' % (self._name, i)
+        Link.__init__(self)
+        for link in args:
+            if not isinstance(link, Link):
+                raise TypeError('Cannot set a non-link object to ListLink')
+            if link._name:
+                raise ValueError('Cannot set a link to multiple parents')
+        for i, link in enumerate(args):
+            link.name = '%s/%d' % (self._name, i)
         self.children = list(args)
 
     def __getitem__(self, idx):
@@ -286,31 +280,27 @@ class ParameterizedList(ParameterizedObject):
         return len(self.children)
 
     def __setitem__(self, idx, value):
-        if not isinstance(value, ParameterizedObject):
-            raise TypeError('Cannot set a non-parameterized object to '
-                            'ParamterizedList')
+        if not isinstance(value, Link):
+            raise TypeError('Cannot set a non-link object to ListLink')
         if value._name:
-            raise ValueError('Cannot set a parameterized object to multiple '
-                             'parents')
+            raise ValueError('Cannot set a link to multiple parents')
         value.name = '%s/%d' % (self._name, idx)
 
         self.children[idx].name = ''
         self.children[idx] = value
 
-    def append(self, obj):
-        if not isinstance(obj, ParameterizedObject):
-            raise TypeError('Cannot set a non-parameterized object to '
-                            'ParameterizedList')
-        if obj._name:
-            raise ValueError('Cannot set a parameterized object to multiple '
-                             'parents')
-        obj.name = '%s/%d' % (self._name, len(self.children))
-        self.children.append(obj)
+    def append(self, link):
+        if not isinstance(link, Link):
+            raise TypeError('Cannot set a non-link object to ListLink')
+        if link._name:
+            raise ValueError('Cannot set a link to multiple parents')
+        link.name = '%s/%d' % (self._name, len(self.children))
+        self.children.append(link)
 
     def pop(self):
-        obj = self.children.pop()
-        obj.name = ''
-        return obj
+        link = self.children.pop()
+        link.name = ''
+        return link
 
     @property
     def name(self):
@@ -319,25 +309,25 @@ class ParameterizedList(ParameterizedObject):
     @name.setter
     def name(self, name):
         self._name = name
-        for i, obj in enumerate(self):
-            obj.name = '%s/%d' % (name, i)
+        for i, link in enumerate(self):
+            link.name = '%s/%d' % (name, i)
 
     def copy(self, shared=True):
-        ret = ParameterizedObject.copy(self, shared)
-        for i, obj in enumerate(self):
-            ret[i] = obj.copy(shared)
+        ret = Link.copy(self, shared)
+        for i, link in enumerate(self):
+            ret[i] = link.copy(shared)
         return ret
 
-    def visithierarchy(self):
+    def visitlinks(self):
         yield self
-        for o1 in self:
-            for o2 in o1.visithierarchy():
-                yield o2
+        for l1 in self:
+            for l2 in l1.visitlinks():
+                yield l2
 
     def serialize(self, serializer):
-        ParameterizedObject.serialize(self, serializer)
-        for idx, obj in enumerate(self):
-            obj.serialize(serializer[str(idx)])
+        Link.serialize(self, serializer)
+        for idx, link in enumerate(self):
+            link.serialize(serializer[str(idx)])
 
 
 def _apply_on_variable(v, func):

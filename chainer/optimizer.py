@@ -5,14 +5,14 @@ import numpy
 import six
 
 from chainer import cuda
-from chainer import parameterized
+from chainer import link
 from chainer import variable
 
 
-class ParameterizedTuple(parameterized.ParameterizedObject):
+class TupleLink(link.Link):
 
     def __init__(self, params_grads):
-        super(ParameterizedTuple, self).__init__()
+        super(TupleLink, self).__init__()
         for i, (param, grad) in enumerate(six.moves.zip(*params_grads)):
             var = variable.Variable(param)
             var.grad = grad
@@ -41,7 +41,7 @@ class Optimizer(object):
 
     def setup(self, target):
         if isinstance(target, tuple):
-            target = ParameterizedTuple(target)
+            target = TupleLink(target)
         self.target = target
         for path, param in target.visitparams():
             state = {}
@@ -77,7 +77,7 @@ class Optimizer(object):
 
     def accumulate_grads(self, grads):
         warnings.warn('Optimizer.accumulate_grads is deprecated. '
-                      'Use ParameterizedObject.addgrads instead.',
+                      'Use Link.addgrads instead.',
                       DeprecationWarning)
         paths = []
         for path, _ in self.target.visitparams():

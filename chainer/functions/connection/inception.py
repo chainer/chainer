@@ -2,10 +2,10 @@ from chainer.functions.activation import relu
 from chainer.functions.array import concat
 from chainer.functions.connection import convolution_2d
 from chainer.functions.pooling import max_pooling_2d
-from chainer import parameterized
+from chainer import link
 
 
-class Inception(parameterized.ParameterizedDict):
+class Inception(link.DictLink):
 
     """Inception module of GoogLeNet.
 

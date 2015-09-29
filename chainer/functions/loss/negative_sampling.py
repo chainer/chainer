@@ -3,7 +3,7 @@ import six
 
 from chainer import cuda
 from chainer import function
-from chainer import parameterized
+from chainer import link
 from chainer.utils import type_check
 from chainer.utils import walker_alias
 from chainer import variable
@@ -187,7 +187,7 @@ class NegativeSamplingFunction(function.Function):
         return gx, None, gW
 
 
-class NegativeSampling(parameterized.ParameterizedObject):
+class NegativeSampling(link.Link):
 
     """Parameterized object for negative sampling loss.
 

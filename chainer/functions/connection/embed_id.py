@@ -2,7 +2,7 @@ import numpy
 
 from chainer import cuda
 from chainer import function
-from chainer import parameterized
+from chainer import link
 from chainer.utils import type_check
 from chainer import variable
 
@@ -58,7 +58,7 @@ def embed_id(x, W):
     return EmbedIDFunction()(x, W)
 
 
-class EmbedID(parameterized.ParameterizedObject):
+class EmbedID(link.Link):
 
     """Efficient linear function for one-hot input.
 

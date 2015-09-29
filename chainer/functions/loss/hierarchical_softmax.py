@@ -3,7 +3,7 @@ import six
 
 from chainer import cuda
 from chainer import function
-from chainer import parameterized
+from chainer import link
 from chainer.utils import type_check
 from chainer import variable
 
@@ -244,7 +244,7 @@ class BinaryHierarchicalSoftmaxFunction(function.Function):
         return gx, None, gW
 
 
-class BinaryHierarchicalSoftmax(parameterized.ParameterizedObject):
+class BinaryHierarchicalSoftmax(link.Link):
 
     """Implementation of hierarchical softmax (HSM).
 
