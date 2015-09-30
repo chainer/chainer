@@ -14,35 +14,33 @@ class Function(object):
 
     """Function on variables with backpropagation ability.
 
-    All function implementations defined in :mod:`chainer.functions` inherit
-    this class.
+    All "pure" function implementations defined in :mod:`chainer.functions`
+    inherit this class.
 
     The main feature of this class is keeping track of function applications as
     a backward graph. When a function is applied to :class:`Variable` objects,
-    the function is copied, and its :meth:`forward` method is called on
-    :data:`~Variable.data` fields of input variables, and at the same time it
-    chains references from output variables to the function and from the
-    function to its inputs.
+    its :meth:`forward` method is called on :data:`~Variable.data` fields of
+    input variables, and at the same time it chains references from output
+    variables to the function and from the function to its inputs.
+
+    Note that a function instance cannot be used multiple times in a network.
+    You must create a distinct instance for each forward call.
 
     .. note::
+       There are following notable changes at v1.4.
 
-       Strictly speaking, when a function is applied to some variable, a
-       special :class:`Function` object called *splitter* is inserted between
-       the variable and the function. The splitter is used to manipulate
-       multiple function applications on the same variable, where gradients
-       from different backward paths are accumulated at the variable.
-
-    .. note::
-
-       :meth:`__call__` copies the function instance before the forward
-       computation and chaining. This enables us to reuse one function object
-       for multiple function applications, where the different calls must use
-       different references to the function object. Note that the copy is
-       shallow, so implementations of :class:`Function` must take care of any
-       member attributes shared accross forward and backward computations.
+       - Special Function objects called *splitters* are not inserted anymore.
+         In previous versions, they are required to handle graph branching
+         (i.e. multiple uses of one variable). As of v1.4, the backward
+         procedure itself handles branching correctly.
+       - As noted above, one function instance cannot be used multiple times
+         anymore, and a function instance cannot hold internal states and
+         parameters. In previous versions, the function instance is copied at
+         the beginning of :meth:`__call__` operator. This restriction avoids
+         this overhead. In order to define a conventional function with states
+         and parameters, use :class:`Link` instead.
 
     .. admonition:: Example
-
        Let ``x`` an instance of :class:`Variable` and ``f`` an instance of
        :class:`Function` taking only one argument. Then a line
 
@@ -51,22 +49,21 @@ class Function(object):
        computes a new variable ``y`` and creates backward references. Actually,
        backward references are set as per the following diagram::
 
-           x <--- (splitter) <--- x' <--- f' <--- y
+           x <--- f <--- y
 
-       where prime "'" indicates a copy of the original object. If another
-       application the function occurs as
+       If another application of the function occurs as
+
+       >>> z = g(x)
 
        >>> z = f(x)
 
-       then the splitter acts like a branch as the following new diagram::
+       then the computational graph grow as the following new diagram::
 
-                               |--- x'  <--- f'  <--- y
-           x <--- (splitter) <-+
-                               |--- x'' <--- f'' <--- z
+                 |--- f <--- y
+           x <---+
+                 |--- g <--- z
 
-       Note that the splitter is implicitly inserted and user does not need to
-       take any special care of it; just remember that such branching is
-       correctly managed by chainer.
+       It means ``f`` and ``g`` are both pointing to ``x``.
 
     Every function implementation should provide :meth:`forward_cpu`,
     :meth:`forward_gpu`, :meth:`backward_cpu` and :meth:`backward_gpu`.
@@ -75,24 +72,9 @@ class Function(object):
     just return ``None``, which indicates that the function is non-
     differentiable.
 
-    Function implementations are classified into two types: parameterized ones
-    and non-parameterized ones. A parameterized function holds parameter arrays
-    and coresponding gradient arrays. Implementation can choose any way to keep
-    these arrays, but it is recommended to keep them as attributes to easily
-    migrate between CPU and GPU. Parameterized function must provide accessors
-    to these arrays called :meth:`parameters` and :meth:`gradients`.
-
     Attributes:
         inputs: A tuple or list of input variables.
         outputs: A tuple or list of output variables.
-        parameter_names: A tuple or list of names of parameter attributes.
-            It is set to an empty tuple by default. This attribute is used by
-            the default implementation of :meth:`parameters` property to gather
-            the collection of parameter arrays. Implementation of parameterized
-            function should override this field as an attribute or a property,
-            or otherwise it should override :meth:`parameters` property.
-        gradient_names: A tuple or list of names of gradient attributes. The
-            detail is same as :data:`parameter_names`.
         type_check_enable: When it is ``True``, the function checks types of
             input arguments. Set ``CHAINER_TYPE_CHECK`` environment variable
             ``0`` to disable type check, or set the variable directly in
@@ -105,11 +87,9 @@ class Function(object):
         """Applies forward propagation with chaining backward references.
 
         Basic behavior is also expressed in documentation of :class:`Function`
-        class. This function first copies itself to avoid conflict over
-        multiple invocations.
+        class.
 
         .. note::
-
            If the :data:`~Variable.data` attribute of input variables reside on
            GPU device, then, before it calls :meth:`forward` method, the
            appropriate device is selected, so in most cases implementers do
@@ -329,6 +309,4 @@ class Function(object):
             y_ref = y()
             if y_ref is not None:
                 y_ref.creator = None
-        for x in self.inputs:
-            x.splitter = weakref.ref(lambda: 0)  # dead ref
         self.inputs = None

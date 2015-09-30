@@ -151,8 +151,8 @@ https://github.com/pfnet/chainer/issues/new.
                 timing, which may reduce the maximum memory consumption.
 
                 In most cases of training some model, the purpose of backprop
-                is to compute gradients of parameters, not of variables, so it
-                is recommended to set this flag False.
+                is to compute gradients of parameters, not of intermediate
+                variables, so it is recommended to set this flag False.
 
         """
         if self.creator is None:

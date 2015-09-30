@@ -2,7 +2,7 @@ import chainer
 import chainer.functions as F
 
 
-class MLP(chainer.ParameterizedList):
+class MLP(chainer.ListLink):
 
     """Multilayer Perceptron model for MNIST dataset.
 
