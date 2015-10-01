@@ -14,8 +14,8 @@ class Function(object):
 
     """Function on variables with backpropagation ability.
 
-    All "pure" function implementations defined in :mod:`chainer.functions`
-    inherit this class.
+    All function implementations defined in :mod:`chainer.functions` inherit
+    this class.
 
     The main feature of this class is keeping track of function applications as
     a backward graph. When a function is applied to :class:`Variable` objects,
@@ -37,10 +37,11 @@ class Function(object):
          anymore, and a function instance cannot hold internal states and
          parameters. In previous versions, the function instance is copied at
          the beginning of :meth:`__call__` operator. This restriction avoids
-         this overhead. In order to define a conventional function with states
-         and parameters, use :class:`Link` instead.
+         the copy overhead. In order to define a conventional callable object
+         with states and parameters, use :class:`Link` instead.
 
     .. admonition:: Example
+
        Let ``x`` an instance of :class:`Variable` and ``f`` an instance of
        :class:`Function` taking only one argument. Then a line
 
@@ -57,7 +58,7 @@ class Function(object):
 
        >>> z = f(x)
 
-       then the computational graph grow as the following new diagram::
+       then the computational graph grows as the following new diagram::
 
                  |--- f <--- y
            x <---+

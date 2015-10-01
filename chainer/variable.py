@@ -83,7 +83,7 @@ class Variable(object):
 
     @property
     def label(self):
-        """Short text that represents the function."""
+        """Short text that represents the variable."""
         if self.data.shape == ():
             return str(self.data.dtype)
         return '%s, %s' % (str(self.data.shape),

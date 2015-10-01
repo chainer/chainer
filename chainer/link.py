@@ -19,7 +19,7 @@ class Link(object):
     and decoder, etc.). Links can be used to construct larger networks (like
     creating a chain from small links).
 
-    There are two types of links: *premitive links* and *container links*.
+    There are two types of links: *premitive links* and *compositional links*.
     Primitive links are links that do not use other links inside of them. Such
     links typically inherit :class:`Link` directly, and define network
     fragments with parameters and states. Compositional links are links that
@@ -83,11 +83,11 @@ class Link(object):
               def __call__(self, x):
                   return F.linear(x, self.params['W'], self.params['b'])
 
-        It shows that user can define arbitrary parameters and use it in any
-        methods. Primitive links typically implement the ``__call__`` operator.
+       It shows that a user can define arbitrary parameters and use them in any
+       methods. Primitive links typically implement the ``__call__`` operator.
 
-        Note that more useful version of the linear link is provided by the
-        :class:`~functions.Linear` class.
+       Note that more useful version of the linear link is provided by the
+       :class:`~functions.Linear` class.
 
     Args:
         name (str): The absolute name of this link in the hierarchy.
@@ -114,11 +114,11 @@ class Link(object):
         absolute name is a concatenation of that of *parent* link and the
         relative name separated by a slash.
 
-        The setter of this property just replace the name.
+        The setter just replaces the name of this link.
 
-        .. seealso::
-           :attr:`DictLink.name` and :attr:`ListLink.name` override the setter,
-           where the names of all *child* links are also updated.
+        .. note::
+           :class:`DictLink` and :class:`ListLink` override the setter, where
+           the names of all *child* links are also updated recursively.
 
         """
         return self._name or '/'
@@ -151,10 +151,13 @@ class Link(object):
     def copy(self, shared=True):
         """Copies the link hierarchy starting from this link.
 
-        This method just copies this link instance.
+        .. note::
+           Actually, Link.copy just copies the link itself. Subclasses that
+           builds a link hierarchy (e.g. :class:`DictLink` and
+           :class:`ListLink`) override this method to copy the whole hierarchy.
 
         Args:
-            shared (bool): If True, then parameters and states are shared.
+            shared (bool): If True, parameters and states are shared.
                 Otherwise, they are deeply copied.
 
         Returns:
@@ -171,10 +174,14 @@ class Link(object):
         return ret
 
     def to_cpu(self):
-        """Copies all parmaeters and states to CPU.
+        """Copies all parameters and states to CPU.
 
         This method copies all parameters and states in the link hierarchy to
         CPU.
+
+        .. note::
+           Use this method with ``copy(shared=True)`` to create a CPU version
+           of the link without affecting its GPU version.
 
         Returns: self
 
@@ -195,6 +202,10 @@ class Link(object):
 
         This method copies all parameters and states in the link hierarchy to
         specified GPU device.
+
+        .. note::
+           Use this method with ``copy(shared=True)`` to create a GPU version
+           of the link without affecting its CPU version.
 
         Args:
             device: Device specifier.
@@ -220,7 +231,9 @@ class Link(object):
         """Generates all parameters in the link hierarchy.
 
         This is a generator method that iterates over all parameters in the
-        link hierarchy starting from this link.
+        link hierarchy starting from this link. It generates tuples
+        ``(key, param)``, where ``param`` is a parameter variable and ``key``
+        is its absolute name in the link hierarchy.
 
         """
         for link in self.visitlinks():
@@ -229,11 +242,15 @@ class Link(object):
                 yield prefix + key, param
 
     def visitlinks(self):
-        """Generates itself.
+        """Generates all links under the link hierarchy.
 
-        This is a generator method that just generates this link itself. The
-        subclass of Link should override this method if it builds a link
-        hierarchy to traverse all links in the hierarchy.
+        This is a generator method that traverse the link hierarchy and
+        generates all visited links.
+
+        .. note::
+           Actually, Link.visitlinks just generates itself. Subclasses of
+           Link that builds a link hierarchy (e.g. :class:`DictLink` and
+           :class:`ListLink`) override this method to traverse the hierarchy.
 
         """
         yield self
@@ -287,7 +304,7 @@ class Link(object):
     def addgrads(self, link):
         """Accumulates gradients from another link.
 
-        It accumulates the gradient values from ``link`` to those of this link.
+        It accumulates the gradient values of ``link`` to those of ``self``.
         This method is used to implement data-parallel model learning on GPUs.
         This method allows accumulation over multiple GPU devices.
 
@@ -336,9 +353,9 @@ class DictLink(Link):
 
     """Dictionary-like compositional link.
 
-    DictLink is used to build a link hierarchy by (basically) string names.
-    It has an interface similar to the Python :class:`dict`. The values of the
-    "dict" are restricted to links, which are considered as *child* links.
+    DictLink is used to build a link hierarchy by string names. It has an
+    interface similar to the Python :class:`dict`. The values of the "dict" are
+    restricted to links, which are considered as *child* links.
 
     Args:
         kwds (dict): Initial set of links with relative names.
@@ -384,8 +401,10 @@ class DictLink(Link):
     def __setitem__(self, key, value):
         """Sets a link with given relative name.
 
-        It also updates the name of given link to appropriate path in the link
-        hierarchy.
+        It also updates the name of the given link to an appropriate path in
+        the link hierarchy. If the key is already used, then the old link is
+        first removed from the dictionary with its name changed to the root
+        (``'/'``).
 
         Args:
             key (str): Relative name of given link.
@@ -471,14 +490,6 @@ class DictLink(Link):
 
     @property
     def name(self):
-        """Absolute name of this link in the hierarchy.
-
-        The setter of this method recursively updates the names of the *child*
-        links.
-
-        .. seealso:: :attr:`Link.name`.
-
-        """
         return self._name or '/'
 
     @name.setter
@@ -510,6 +521,18 @@ class DictLink(Link):
 
 class ListLink(Link):
 
+    """List-like compostional link.
+
+    ListLink is used to build a compositional link that holds arbitrary number
+    of links. It has an interface similar to the Python :class:`list`. The
+    values of the "list" are restricted to links, which are considered as
+    *child* links. The index of each child link is used as the relative name.
+
+    Args:
+        args (tuple): Initial set of links.
+
+    """
+
     def __init__(self, *args):
         Link.__init__(self)
         for link in args:
@@ -522,15 +545,29 @@ class ListLink(Link):
         self.children = list(args)
 
     def __getitem__(self, idx):
+        """Returns the link at the given index."""
         return self.children[idx]
 
     def __iter__(self):
+        """Returns an iterator of link list."""
         return self.children.__iter__()
 
     def __len__(self):
+        """Returns the number of links in the link list."""
         return len(self.children)
 
     def __setitem__(self, idx, value):
+        """Sets a link to the specified index.
+
+        It also updates the name of the given link to an appropriate path in
+        the link hierarchy. The old link at the index is removed from the list
+        with its name changed to the root (``'/'``).
+
+        Args:
+            idx (int): Index in the link list.
+            value (Link): Link object to be set.
+
+        """
         if not isinstance(value, Link):
             raise TypeError('Cannot set a non-link object to ListLink')
         if value._name:
@@ -541,6 +578,15 @@ class ListLink(Link):
         self.children[idx] = value
 
     def append(self, link):
+        """Appends a link object to the tail of the link list.
+
+        It also updates the name of the given link to an appropriate path in
+        the link hierarchy.
+
+        Args:
+            link (Link): Link object to be appended.
+
+        """
         if not isinstance(link, Link):
             raise TypeError('Cannot set a non-link object to ListLink')
         if link._name:
@@ -549,13 +595,21 @@ class ListLink(Link):
         self.children.append(link)
 
     def pop(self):
+        """Removes the last link in the list and returns it.
+
+        The name of the removed link is updated to the root (``'/'``).
+
+        Returns:
+            Link: The last link object in the link list.
+
+        """
         link = self.children.pop()
         link.name = ''
         return link
 
     @property
     def name(self):
-        return self._name
+        return self._name or '/'
 
     @name.setter
     def name(self, name):
@@ -579,9 +633,3 @@ class ListLink(Link):
         Link.serialize(self, serializer)
         for idx, link in enumerate(self):
             link.serialize(serializer[str(idx)])
-
-
-def _apply_on_variable(v, func):
-    v.data = func(v.data)
-    if v._grad is not None:
-        v._grad = func(v._grad)

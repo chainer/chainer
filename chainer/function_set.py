@@ -10,33 +10,35 @@ class FunctionSet(link.DictLink):
 
     """Set of objects with ``parameters`` and ``gradients`` properties.
 
-    :class:`FunctionSet` is useful to collect parameters and gradients of
-    multiple parameterized :class:`Function` objects. :class:`FunctionSet`
-    itself also implements :attr:`~FunctionSet.parameters` and
-    :attr:`~FunctionSet.gradients`, so it can be nested in another
-    :class:`FunctionSet` object.
+    .. deprecated:: v1.4
 
-    Function registration is done by just adding an attribute to
-    :class:`FunctionSet` object.
+       It is remained just for backward comatibility.
+       **Use** :class:`DictLink` **instead.**
+
+    FunctionSet extends :class:`DictLink` to support APIs compatible to
+    previous versions. In versions up to v1.3, it was used to collect
+    parameters and gradients of multiple parameterized :class:`Function`
+    objects. Now these arrays are managed by the :class:`Link` class and its
+    subclasses, so we can use them instead.
+
+    FunctionSet supports object-like interface. A child link can be set just by
+    adding an attribute to a FunctionSet object.
+
+    Args:
+        **links (dict): Link objects with string keys.
 
     """
-    def __init__(self, **functions):
-        """Initializes the function set by given functions.
-
-        Args:
-            **functions: ``dict`` of ``str`` key and :class:`Function` values.
-                The key-value pairs are just set to the :class:`FunctionSet`
-                object as attributes.
-
-        """
+    def __init__(self, **links):
         warnings.warn('FunctionSet is deprecated. Use DictLink instead.',
                       DeprecationWarning)
         super(FunctionSet, self).__init__(**functions)
 
     def __getattr__(self, key):
+        """Gets the *child* link of given name."""
         return self.children[key]
 
     def __setattr__(self, key, value):
+        """Sets the link by given name."""
         if isinstance(value, link.Link):
             self[key] = value
         else:
@@ -50,11 +52,13 @@ class FunctionSet(link.DictLink):
         self.__dict__ = state
 
     def collect_parameters(self):
-        """Returns a tuple of parameters and gradients.
+        """Returns self.
 
-        Returns:
-            Tuple (pair) of two tuples. The first element is a tuple of
-            parameter arrays, and the second is a tuple of gradient arrays.
+        .. deprecated:: v1.4
+           Pass the :class:`Link` object directly to the :meth:`Optimizer.setup`
+           method instead.
+
+        Returns: self.
 
         """
         msg = ("'collect_parameters' is deprecated. "
@@ -65,11 +69,15 @@ class FunctionSet(link.DictLink):
     def copy_parameters_from(self, params):
         """Copies parameters from another source without reallocation.
 
+        .. deprecated:: v1.4
+           Use the :meth:`Link.copyparams` method instead.
+
         Args:
             params (Iterable): Iterable of parameter arrays.
 
         """
         msg = 'copy_parameters_from is deprecated. Use copyparams instead.'
+        warnings.warn(msg, DeprecationWarning)
         for dst, src in zip(self.parameters, params):
             if isinstance(dst, numpy.ndarray):
                 if isinstance(src, numpy.ndarray):
@@ -85,7 +93,11 @@ class FunctionSet(link.DictLink):
     def parameters(self):
         """Tuple of parameter arrays of all registered functions.
 
-        The order of parameters is consistent with :meth:`gradients` property.
+        .. deprecated:: v1.4
+           Use :meth:`Link.visitparams` method instead.
+
+        This property is used for :meth:`copy_parameters_from` method.
+        The order of parameters is consistent with :attr:`gradients` property.
 
         """
         tups = {}
@@ -114,7 +126,10 @@ class FunctionSet(link.DictLink):
     def gradients(self):
         """Tuple of gradient arrays of all registered functions.
 
-        The order of gradients is consistent with :meth:`parameters` property.
+        .. deprecated:: v1.4
+           Use the :meth:`Link.visitparams` method instead.
+
+        The order of gradients is consistent with :attr:`parameters` property.
 
         """
         tups = {}
