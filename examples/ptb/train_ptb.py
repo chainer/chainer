@@ -71,10 +71,10 @@ class RNNLM(chainer.DictLink):
         # Neural net architecture
         h0 = self['embed'](x)
         h1_in = self['l1_x'](F.dropout(h0, train=train)) \
-                + self['l1_h'](state['h1'])
+            + self['l1_h'](state['h1'])
         c1, h1 = F.lstm(state['c1'], h1_in)
         h2_in = self['l2_x'](F.dropout(h1, train=train)) \
-                + self['l2_h'](state['h2'])
+            + self['l2_h'](state['h2'])
         c2, h2 = F.lstm(state['c2'], h2_in)
         y = self['l3'](F.dropout(h2, train=train))
         state = {'c1': c1, 'h1': h1, 'c2': c2, 'h2': h2}
