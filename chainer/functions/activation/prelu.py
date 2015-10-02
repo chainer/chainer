@@ -78,15 +78,20 @@ class PReLUFunction(function.Function):
 def prelu(x, W):
     """Parametric ReLU function.
 
-    It accepts two arguments: an input ``x`` and a weight array ``W``.
-    PReLU function is written in elementwise equation as
-    :math:`PReLU(x) = \max(x, ax)`, where :math:`a` is a parameter array.
+    It accepts two arguments: an input ``x`` and a weight array ``W``
+    and computes the output as :math:`PReLU(x) = \max(x, W*x)`,
+    where :math:`*` is an elementwise multiplication.
 
     When the PReLU function is combined with two-dimensional convolution, the
     elements of parameter :math:`a` are typically shared across the same filter
     of different pixels. In order to support such usage, this function supports
     the shape of parameter array that indicates leading dimensions of input
     arrays except the batch dimension.
+
+    For example :math:`W` has the shape of :math:`(2, 3, 4)`,
+    :math:`x` must have the shape of :math:`(B, 2, 3, 4, S1, ..., SN)`
+    where B is batchsize and the number of trailing S's
+    is arbitrary non-negative integer.
 
     Args:
         x (~chainer.Variable): Input variable.
