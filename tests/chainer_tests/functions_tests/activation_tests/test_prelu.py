@@ -56,13 +56,15 @@ class TestPReLUSingle(unittest.TestCase):
         y.grad = y_grad
         y.backward()
 
+        W = self.func.params['W'].data
         func = y.creator
-        f = lambda: func.forward((x.data,))
+        f = lambda: func.forward((x.data, W))
         gx, gW = gradient_check.numerical_grad(
-            f, (x.data, func.params['W'].data), (y.grad,))
+            f, (x.data, W), (y.grad,))
 
         gradient_check.assert_allclose(gx, x.grad)
-        gradient_check.assert_allclose(gW, func.params['W'].grad, atol=1e-4)
+        gradient_check.assert_allclose(
+            gW, self.func.params['W'].grad, atol=1e-4)
 
     @condition.retry(3)
     def test_backward_cpu(self):
