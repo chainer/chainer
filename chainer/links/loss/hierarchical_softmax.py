@@ -1,3 +1,5 @@
+import copy
+
 import numpy
 import six
 
@@ -301,7 +303,7 @@ class BinaryHierarchicalSoftmax(link.Link):
 
     @staticmethod
     def create_huffman_tree(word_counts):
-        """Make a huffman tree from a dictionary containing word counts.
+        """Makes a huffman tree from a dictionary containing word counts.
 
         This method creates a binary huffman tree, that is required for
         :class:`BinaryHierarchicalSoftmax`.
@@ -336,4 +338,5 @@ class BinaryHierarchicalSoftmax(link.Link):
         return q.get()[2]
 
     def __call__(self, x, t):
-        return self._func(x, t, self.params['W'])
+        f = copy.copy(self._func)  # creates a copy of the function node
+        return f(x, t, self.params['W'])

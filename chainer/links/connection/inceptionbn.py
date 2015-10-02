@@ -1,10 +1,10 @@
 from chainer.functions.activation import relu
 from chainer.functions.array import concat
-from chainer.functions.connection import convolution_2d
-from chainer.functions.normalization import batch_normalization
 from chainer.functions.pooling import average_pooling_2d
 from chainer.functions.pooling import max_pooling_2d
 from chainer import link
+from chainer.links.connection import convolution_2d
+from chainer.links.normalization import batch_normalization
 
 
 class InceptionBN(link.DictLink):

@@ -208,75 +208,38 @@ class Convolution2DFunction(function.Function):
 def convolution_2d(x, W, b=None, stride=1, pad=0, use_cudnn=True):
     """Two-dimensional convolution function.
 
+    This is an implementation of two-dimensional convolution in ConvNets.
+    It takes three variables: the input image ``x``, the filter weight ``W``,
+    and the bias vector ``b``.
+
+    Notation: here is a notation for dimensionalities.
+
+    - :math:`n` is the batch size.
+    - :math:`c_I` and :math:`c_O` are the number of the input and output,
+      respectively.
+    - :math:`h` and :math:`w` are the height and width of the input image,
+      respectively.
+    - :math:`k_H` and :math:`k_W` are the height and width of the filters,
+      respectively.
+
     Args:
-        x (~chainer.Variable): Input variable.
-        W (~chainer.Variable): Weight variable.
-        b (~chainer.Variable): Bias  variable (optional).
+        x (~chainer.Variable): Input variable of shape :math:`(n, c_I, h, w)`.
+        W (~chainer.Variable): Weight variable of shape
+            :math:`(c_O, c_I, k_H, k_W)`.
+        b (~chainer.Variable): Bias variable of length :math:`c_O` (optional).
         stride (int or (int, int)): Stride of filter applications.
             ``stride=s`` and ``stride=(s, s)`` are equivalent.
         pad (int or (int, int)): Spatial padding width for input arrays.
             ``pad=p`` and ``pad=(p, p)`` are equivalent.
         use_cudnn (bool): If True, then this function uses CuDNN if available.
+
 
     Returns:
         ~chainer.Variable: Output variable.
 
-    .. seealso:: :class:`Convolution2D`
-
-    """
-    func = Convolution2DFunction(stride, pad, use_cudnn)
-    if b is None:
-        return func(x, W)
-    else:
-        return func(x, W, b)
-
-
-class Convolution2D(link.Link):
-
-    """Two-dimensional convolution function.
-
-    The details of this function are described below the arguments description.
-
-    Args:
-        in_channels (int): Number of channels of input arrays.
-        out_channels (int): Number of channels of output arrays.
-        ksize (int or (int, int)): Size of filters (a.k.a. kernels).
-            ``ksize=k`` and ``ksize=(k, k)`` are equivalent.
-        stride (int or (int, int)): Stride of filter applications.
-            ``stride=s`` and ``stride=(s, s)`` are equivalent.
-        pad (int or (int, int)): Spatial padding width for input arrays.
-            ``pad=p`` and ``pad=(p, p)`` are equivalent.
-        wscale (float): Scaling factor of the initial weight.
-        bias (float): Initial bias value.
-        nobias (bool): If True, then this function does not use the bias term.
-        use_cudnn (bool): If True, then this function uses CuDNN if available.
-        initialW (4-D array): Initial weight value. If ``None``, then this
-            function uses to initialize ``wscale``.
-        initial_bias (1-D array): Initial bias value. If ``None``, then this
-            function uses to initialize ``bias``.
-        dtype (numpy.dtype): Type to use in computing.
-
-    This function holds at most two parameter arrays: ``W`` and ``b``, which
-    indicate the filter weight and the bias vector, respectively.
-
-    The filter weight has four dimensions :math:`(c_O, c_I, k_H, k_W)`
-    which indicate the number of output channels, the number of input channels,
-    height and width of the kernels, respectively.
-    The filter weight is initialized with i.i.d. Gaussian random samples, each
-    of which has zero mean and deviation :math:`\sqrt{1/(c_I k_H k_W)}` by
-    default. The deviation is scaled by ``wscale`` if specified.
-
-    The bias vector is of size :math:`c_O`.
-    Each element of it is initialized by ``bias`` argument.
-    If ``nobias`` argument is set to True, then this function does not hold
-    the bias parameter.
-
     The two-dimensional convolution function is defined as follows.
-    Let :math:`X` be the input tensor of dimensions :math:`(n, c_I, h, w)`,
-    where :math:`n` is the batch size, and :math:`(h, w)` is spatial size of
-    the input image.
     Then the ``Convolution2D`` function computes correlations between filters
-    and patches of size :math:`(k_H, k_W)` in :math:`X`.
+    and patches of size :math:`(k_H, k_W)` in ``x``.
     Note that correlation here is equivalent to the inner product between
     expanded vectors.
     Patches are extracted at positions shifted by multiples of ``stride`` from
@@ -293,34 +256,14 @@ class Convolution2D(link.Link):
        h_O &= (h + 2p_H - k_H) / s_Y + 1,\\\\
        w_O &= (w + 2p_W - k_W) / s_X + 1.
 
+    If the bias vector is given, then it is added to all spatial locations of
+    the output of convolution.
+
+    .. seealso:: :class:`Convolution2D`
+
     """
-    def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
-                 wscale=1, bias=0, nobias=False, use_cudnn=True,
-                 initialW=None, initial_bias=None,
-                 dtype=numpy.float32):
-        super(Convolution2D, self).__init__()
-        self._conv_arg = (stride, pad, use_cudnn)
-
-        dtype = numpy.dtype(dtype)
-        kh, kw = _pair(ksize)
-
-        W_shape = (out_channels, in_channels, kh, kw)
-        if initialW is not None:
-            assert initialW.shape == W_shape
-            self.params['W'] = variable.Variable(initialW)
-        else:
-            std = wscale * math.sqrt(1. / (kh * kw * in_channels))
-            self.params['W'] = variable.Variable(numpy.random.normal(
-                0, std, W_shape).astype(dtype))
-
-        if initial_bias is not None:
-            assert initial_bias.shape == (out_channels,)
-            self.params['b'] = variable.Variable(initial_bias)
-        elif not nobias:
-            self.params['b'] = variable.Variable(
-                numpy.repeat(dtype.type(bias), out_channels))
-
-    def __call__(self, x):
-        W = self.params['W']
-        b = self.params.get('b', None)
-        return convolution_2d(x, W, b, *self._conv_arg)
+    func = Convolution2DFunction(stride, pad, use_cudnn)
+    if b is None:
+        return func(x, W)
+    else:
+        return func(x, W, b)

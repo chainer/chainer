@@ -4,8 +4,8 @@ import numpy
 
 import chainer
 from chainer import cuda
-from chainer import functions
 from chainer import gradient_check
+from chainer import links
 from chainer import testing
 from chainer.testing import attr
 from chainer.testing import condition
@@ -17,7 +17,7 @@ class TestBatchNormalization(unittest.TestCase):
     aggr_axes = 0
 
     def setUp(self):
-        self.func = functions.BatchNormalization(3)
+        self.func = links.BatchNormalization(3)
         gamma =  self.func.params['gamma'].data
         beta =  self.func.params['beta'].data
         gamma[...] = numpy.random.uniform(
@@ -88,7 +88,7 @@ class TestBatchNormalization2D(TestBatchNormalization):
     aggr_axes = 0, 2, 3
 
     def setUp(self):
-        self.func = functions.BatchNormalization(3)
+        self.func = links.BatchNormalization(3)
         gamma = self.func.params['gamma'].data
         beta = self.func.params['beta'].data
         gamma[...] = numpy.random.uniform(

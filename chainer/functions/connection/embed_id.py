@@ -44,6 +44,14 @@ class EmbedIDFunction(function.Function):
 def embed_id(x, W):
     """Efficient linear function for one-hot input.
 
+    This function implements so called *word embedding*. It takes two
+    arguments: a set of IDs (words) ``x`` in :math:`B` dimensional integer
+    vector, and a set of all ID (word) embeddings ``W`` in :math:`V\times d`
+    float32 matrix. It outputs :math:`B \times d` matrix whose ``i``-th
+    column is the ``x[i]``-th column of ``W``.
+
+    This function is only differentiable on the input ``W``.
+
     Args:
         x (~chainer.Variable): Input variable with one-hot representation.
         W (~chainer.Variable): Representation of each ID (a.k.a.
@@ -56,33 +64,3 @@ def embed_id(x, W):
 
     """
     return EmbedIDFunction()(x, W)
-
-
-class EmbedID(link.Link):
-
-    """Efficient linear function for one-hot input.
-
-    This is a parameterized function to embed the given discrete identifier
-    (e.g. word) into a continuous vector space. This function just holds
-    embedding vectors for all identifiers as one large matrix ``W``, which is
-    learnable. The identifiers are directly used as indexes of the matrix
-    ``W``.
-
-    Args:
-        in_size (int): Number of different identifiers (a.k.a. vocabulary
-            size).
-        out_size (int): Size of embedding vector.
-
-    .. note::
-
-       This function is non-differentiable with respect to the input
-       identifiers.
-
-    """
-    def __init__(self, in_size, out_size):
-        super(EmbedID, self).__init__()
-        self.params['W'] = variable.Variable(numpy.random.randn(
-            in_size, out_size).astype(numpy.float32))
-
-    def __call__(self, x):
-        return embed_id(x, self.params['W'])

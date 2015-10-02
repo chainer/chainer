@@ -3,41 +3,22 @@ import six
 
 from chainer import cuda
 from chainer import function
-from chainer import link
 from chainer.utils import type_check
-from chainer.utils import walker_alias
-from chainer import variable
 
 
 class NegativeSamplingFunction(function.Function):
 
-    """Negative sampling loss function.
-
-    Args:
-        counts (int list): Number of each identifiers.
-        sample_size (int): Number of negative samples.
-        power (float): Power factor :math:`\\alpha`.
-
-    .. seealso::
-        See :class:`NegativeSampling` for full documentation.
-
-    """
-    def __init__(self, counts, sample_size, power=0.75):
+    def __init__(self, sampler, sample_size):
+        self.sampler = sampler
         self.sample_size = sample_size
-        power = numpy.float32(power)
-        p = numpy.array(counts, power.dtype)
-        p = numpy.power(p, power)
-        self.sampler = walker_alias.WalkerAlias(p)
-        self.samples = None
-        self.vocab_size = len(counts)
 
     def _make_samples(self, t):
-        if self.samples is not None:
-            return self.samples
+        if hasattr(self, 'samples'):
+            return self.samples  # for testing
 
         size = int(t.shape[0])
         # first one is the positive, and others are sampled negatives
-        samples = self.sampler.sample((size, self.sample_size + 1))
+        samples = self.sampler((size, self.sample_size + 1))
         samples[:, 0] = t
         self.samples = samples
 
@@ -45,7 +26,6 @@ class NegativeSamplingFunction(function.Function):
         type_check.expect(in_types.size() == 3)
         x_type, t_type, w_type = in_types
 
-        vocab_size = type_check.Variable(self.vocab_size, "len(counts)")
         type_check.expect(
             x_type.dtype == numpy.float32,
             x_type.ndim == 2,
@@ -54,19 +34,7 @@ class NegativeSamplingFunction(function.Function):
             x_type.shape[0] == t_type.shape[0],
             w_type.dtype == numpy.float32,
             w_type.ndim == 2,
-            w_type.shape[0] == vocab_size,
         )
-
-    def to_gpu(self, device=None):
-        with cuda.get_device(device):
-            self.sampler.to_gpu()
-            if self.samples is not None:
-                self.samples = cuda.to_gpu(self.samples)
-
-    def to_cpu(self):
-        self.sampler.to_cpu()
-        if self.samples is not None:
-            self.samples = cuda.to_cpu(self.samples)
 
     def forward_cpu(self, inputs):
         x, t, W = inputs
@@ -187,9 +155,8 @@ class NegativeSamplingFunction(function.Function):
         return gx, None, gW
 
 
-class NegativeSampling(link.Link):
-
-    """Parameterized object for negative sampling loss.
+def negative_sampling(x, t, W, sampler, sample_size):
+    """Negative sampling loss function.
 
     In natural language processing, especially language modeling, the number of
     vocabulary is very large.
@@ -222,29 +189,20 @@ class NegativeSampling(link.Link):
     a hyper-parameter, and :math:`Z` is the normalization constant.
 
     Args:
-        in_size (int): Dimension of input vectors.
-        counts (int list): Number of each identifiers.
-        sample_size (int): Number of negative samples.
-        power (float): Power factor :math:`\\alpha`.
+        x (~chainer.Variable): Batch of input vectors.
+        t (~chainer.Variable): Vector of groundtruth labels.
+        W (~chainer.Variable): Weight matrix.
+        sampler (function): Sampling function. It takes a shape and returns an
+            integer array of the shape. Each element of this array is a sample
+            from the word distribution. A :class:`~chainer.utils.WalkerAlias`
+            object built with the power distribution of word frequency is
+            recommended.
+        sample_size (int): Number of samples.
 
     See: `Distributed Representations of Words and Phrases and their\
          Compositionality <http://arxiv.org/abs/1310.4546>`_
 
+    .. seealso:: :class:`~chainer.links.NegativeSampling`.
+
     """
-    def __init__(self, in_size, counts, sample_size, power=0.75):
-        super(NegativeSampling, self).__init__()
-        self._func = NegativeSamplingFunction(counts, sample_size, power)
-        vocab_size = len(counts)
-        self.params['W'] = variable.Variable(
-            numpy.zeros((vocab_size, in_size)).astype(numpy.float32))
-
-    def to_gpu(self, device=None):
-        super(NegativeSampling, self).to_gpu(device)
-        self._func.to_gpu(device)
-
-    def to_cpu(self):
-        super(NegativeSampling, self).to_cpu()
-        self._func.to_cpu()
-
-    def __call__(self, x, t):
-        return self._func(x, t, self.params['W'])
+    return NegativeSamplingFunction(sampler, sample_size)(x, t, W)

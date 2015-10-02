@@ -5,7 +5,7 @@ import numpy
 
 import chainer
 from chainer import cuda
-from chainer import functions
+from chainer import links
 from chainer import testing
 from chainer.testing import attr
 
@@ -22,7 +22,7 @@ class TestInceptionBackward(unittest.TestCase):
         out = self.out1 + self.out3 + self.out5 + self.proj_pool
         self.gy = numpy.random.uniform(
             -1, 1, (10, out, 5, 5)).astype(numpy.float32)
-        self.f = functions.Inception(
+        self.f = links.Inception(
             self.in_channels, self.out1, self.proj3, self.out3,
             self.proj5, self.out5, self.proj_pool)
         self.f.zerograds()
@@ -61,7 +61,7 @@ class TestInceptionBackward(unittest.TestCase):
 #         self.x = numpy.random.uniform(
 #             -1, 1, (10, self.in_channels, 5, 5)
 #         ).astype(numpy.float32)
-#         self.f = functions.Inception(
+#         self.f = links.Inception(
 #             self.in_channels, self.out1,
 #             self.proj3, self.out3,
 #             self.proj5, self.out5, self.proj_pool)

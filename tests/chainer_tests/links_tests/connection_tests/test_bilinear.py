@@ -4,8 +4,8 @@ import numpy
 
 import chainer
 from chainer import cuda
-from chainer import functions
 from chainer import gradient_check
+from chainer import links
 from chainer import testing
 from chainer.testing import attr
 from chainer.testing import condition
@@ -61,7 +61,7 @@ class TestBilinear(unittest.TestCase):
     batch_size = 10
 
     def setUp(self):
-        self.f = functions.Bilinear(
+        self.f = links.Bilinear(
             self.in_shape[0], self.in_shape[1], self.out_size)
         self.f.params['W'].data = _uniform(*self.f.params['W'].data.shape)
         self.f.params['V1'].data = _uniform(*self.f.params['V1'].data.shape)
@@ -167,7 +167,7 @@ class TestBilinear9(TestBilinear):
 class TestBilinearWOBias(TestBilinear):
 
     def setUp(self):
-        self.f = functions.Bilinear(
+        self.f = links.Bilinear(
             self.in_shape[0], self.in_shape[1], self.out_size, True)
         W = self.f.params['W'].data
         W[...] = numpy.random.uniform(-1, 1, W.shape).astype(numpy.float32)
@@ -263,7 +263,7 @@ class InitByInitialParameter(unittest.TestCase):
 class NormalInitialParameter(InitByInitialParameter):
 
     def check_normal(self, initialW, initial_bias, nobias):
-        functions.Bilinear(
+        links.Bilinear(
             self.in_shape[0], self.in_shape[1], self.out_size, nobias,
             initialW, initial_bias)
 
@@ -295,7 +295,7 @@ class InvalidInitialParameter(InitByInitialParameter):
 
     def check_invalid(self, initialW, initial_bias, nobias):
         with self.assertRaises(AssertionError):
-            functions.Bilinear(
+            links.Bilinear(
                 self.in_shape[0], self.in_shape[1], self.out_size, nobias,
                 initialW, initial_bias)
 

@@ -5,7 +5,7 @@ import numpy
 
 import chainer
 from chainer import cuda
-from chainer import functions
+from chainer import links
 from chainer import testing
 from chainer.testing import attr
 
@@ -27,7 +27,7 @@ from chainer.testing import attr
 #     insize = 10
 
 #     def _setup_inceptionbn(self):
-#         return functions.InceptionBN(
+#         return links.InceptionBN(
 #             self.in_channels, self.out1, self.proj3, self.out3,
 #             self.proj33, self.out33, self.pooltype, self.proj_pool,
 #             self.stride)

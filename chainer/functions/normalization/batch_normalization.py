@@ -9,15 +9,6 @@ from chainer import variable
 
 class BatchNormalizationFunction(function.Function):
 
-    """Batch normalization function.
-
-    Args:
-        eps (float): Epsilon value for numerical stability.
-
-    .. seealso::
-        See :class:`BatchNormalization` for details.
-
-    """
     def __init__(self, eps=1e-5):
         self.eps = eps
 
@@ -97,96 +88,49 @@ class BatchNormalizationFunction(function.Function):
         return gx, ggamma, gbeta
 
 
-class BatchNormalization(link.Link):
+def batch_normalization(x, gamma, beta, eps=1e-5):
+    """Batch normalization function.
 
-    """Batch normalization on outputs of linear or convolution functions.
+    It takes the input variable ``x`` and two parameter variables ``gamma`` and
+    ``beta``. The input must have the batch size and the features (or channels)
+    as the first two dimensions of its shape. The input can have more than two
+    dimensions, where the remained dimensions are considered as spatial
+    dimensions, which are considered as a part of the batch size.
 
     Args:
-        size (int or tuple of ints): Size (or shape) of channel
-            dimensions.
-        decay (float): Decay rate of moving average.
+        x (Variable): The input variable.
+        gamma (Variable): The scaling parameter of normalized data.
+        beta (Variable): The shifting parameter of scaled normalized data.
         eps (float): Epsilon value for numerical stability.
-        dtype (numpy.dtype): Type to use in computing.
 
     See: `Batch Normalization: Accelerating Deep Network Training by Reducing\
           Internal Covariate Shift <http://arxiv.org/abs/1502.03167>`_
 
+    .. seealso:: :class:`links.BatchNormalization`
+
     """
-    def __init__(self, size, decay=0.9, eps=1e-5, dtype=numpy.float32):
-        super(BatchNormalization, self).__init__()
-        self._func = BatchNormalizationFunction(eps)
+    return BatchNormalizationFunction(eps)(x, gamma, beta)
 
-        if isinstance(size, tuple):
-            self.size = size
-        elif isinstance(size, int):
-            self.size = size,
-        else:
-            raise TypeError('size must be tuple or int')
 
-        self.dtype = numpy.dtype(dtype)
+def fixed_batch_normalization(x, gamma, beta, mean, var, eps=1e-5):
+    """Batch normalization function with fixed statistics.
 
-        avg_mean = numpy.zeros(size, dtype=self.dtype)
-        self.states['avg_mean'] = avg_mean
-        self.states['avg_var'] = numpy.zeros_like(avg_mean)
-        self.states['N'] = 0
+    This is a variant of batch normalization, where the mean and variance
+    statistics are given by the caller as variables. This is used on testing
+    mode of the batch normalization layer, where batch statistics cannot be
+    used for prediction consistency.
 
-        self.params['gamma'] = variable.Variable(numpy.ones_like(avg_mean))
-        self.params['beta'] = variable.Variable(numpy.zeros_like(avg_mean))
+    Args:
+        x (Variable): The input variable.
+        gamma (Variable): The scaling parameter of normalized data.
+        beta (Variable): The shifting parameter of scaled normalized data.
+        mean (Variable): The shifting parameter of input.
+        var (Variable): The square of scaling parameter of input.
+        eps (float): Epsilon value for numerical stability.
 
-        self.decay = decay
-        self.eps = eps
+    .. seealso::
+       :func:`functions.batch_normalization`,
+       :class:`links.BatchNormalization`
 
-    def __call__(self, x, test=False, finetune=False):
-        """Invokes the forward propagation of BatchNormalization.
-
-        BatchNormalization accepts additional arguments, which controlls three
-        different running mode.
-
-        Args:
-            x (Variable): An input variable.
-            test (bool): If ``True``, BatchNormalization runs in testing mode;
-                it normalizes the input using precomputed statistics.
-            finetune (bool): If ``True``, BatchNormalization runs in finetuning
-                mode; it accumulates the input array to compute population
-                statistics for normalization, and normalizes the input using
-                batch statistics.
-
-        If ``test`` and ``finetune`` are both ``False``, then
-        BatchNormalization runs in training mode; it computes moving averages
-        of mean and variance for evaluation during training, and normalizes the
-        input using batch statistics.
-
-        """
-        use_batch_mean = not test or finetune
-
-        gamma = self.params['gamma']
-        beta = self.params['beta']
-        avg_mean = self.states['avg_mean']
-        avg_var = self.states['avg_var']
-
-        if use_batch_mean:
-            ret = self._func(x, gamma, beta)
-            func = ret.creator
-
-            if finetune:
-                self.states['N'] += 1
-                decay = 1. / self.states['N']
-            else:
-                decay = self.decay
-
-            m = x.data.size // gamma.data.size
-            adjust = m / max(m - 1., 1.)  # unbiased estimation
-            avg_mean *= decay
-            func.mean *= 1 - decay  # reuse buffer as a temporary
-            avg_mean += func.mean
-            del func.mean
-            avg_var *= decay
-            func.var *= (1 - decay) * adjust  # reuse buffer as a temporary
-            avg_var += func.var
-            del func.var
-        else:
-            ret = self._func(x, gamma, beta, avg_mean, avg_var)
-        return ret
-
-    def start_finetuning(self):
-        self.states['N'] = 0
+    """
+    return BatchNormalizationFunction(eps)(x, gamma, beta, mean, var)

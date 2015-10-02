@@ -1,8 +1,8 @@
 from chainer.functions.activation import relu
 from chainer.functions.array import concat
-from chainer.functions.connection import convolution_2d
 from chainer.functions.pooling import max_pooling_2d
 from chainer import link
+from chainer.links.connection import convolution_2d
 
 
 class Inception(link.DictLink):
@@ -34,12 +34,6 @@ class Inception(link.DictLink):
         Variable: Output variable. Its array has the same spatial size and the
             same minibatch size as the input array. The channel dimension has
             size ``out1 + out3 + out5 + proj_pool``.
-
-    .. note::
-
-       This function inserts the full computation graph of the Inception module
-       behind the input array. This function itself is not inserted into the
-       computation graph.
 
     """
     def __init__(self, in_channels, out1, proj3, out3, proj5, out5, proj_pool):
