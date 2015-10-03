@@ -1,5 +1,6 @@
 """Collection of :class:`~chainer.Link` implementations."""
 
+from chainer.links.activation import prelu
 from chainer.links.connection import bilinear
 from chainer.links.connection import convolution_2d
 from chainer.links.connection import embed_id
@@ -13,6 +14,7 @@ from chainer.links.loss import hierarchical_softmax
 from chainer.links.loss import negative_sampling
 from chainer.links.normalization import batch_normalization
 
+PReLU = prelu.PReLU
 
 Bilinear = bilinear.Bilinear
 Convolution2D = convolution_2d.Convolution2D

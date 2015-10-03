@@ -37,6 +37,7 @@ from chainer.functions.normalization import local_response_normalization
 from chainer.functions.pooling import average_pooling_2d
 from chainer.functions.pooling import max_pooling_2d
 from chainer.functions.pooling import spatial_pyramid_pooling_2d
+import chainer.links.activation.prelu as links_prelu
 import chainer.links.connection.bilinear as links_bilinear
 import chainer.links.connection.convolution_2d as links_convolution_2d
 import chainer.links.connection.embed_id as links_embed_id
@@ -56,7 +57,7 @@ LeakyReLU = leaky_relu.LeakyReLU
 leaky_relu = leaky_relu.leaky_relu
 LSTM = lstm.LSTM
 lstm = lstm.lstm
-PReLU = prelu.PReLU
+prelu = prelu.prelu
 ReLU = relu.ReLU
 relu = relu.relu
 Sigmoid = sigmoid.Sigmoid
@@ -136,6 +137,8 @@ spatial_pyramid_pooling_2d = \
 
 
 # Left for backward compatibility
+
+PReLU = links_prelu.PReLU
 
 Bilinear = links_bilinear.Bilinear
 Convolution2D = links_convolution_2d.Convolution2D

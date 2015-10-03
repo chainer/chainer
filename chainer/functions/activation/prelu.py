@@ -80,7 +80,8 @@ def prelu(x, W):
 
     It accepts two arguments: an input ``x`` and a weight array ``W``
     and computes the output as :math:`PReLU(x) = \max(x, W*x)`,
-    where :math:`*` is an elementwise multiplication.
+    where :math:`*` is an elementwise multiplication for each sample in the
+    batch.
 
     When the PReLU function is combined with two-dimensional convolution, the
     elements of parameter :math:`a` are typically shared across the same filter
@@ -103,28 +104,6 @@ def prelu(x, W):
 
     """
     return PReLUFunction()(x, W)
-
-
-class PReLU(link.Link):
-    """Parametric ReLU function with attached parameters.
-
-    Args:
-        shape (tuple of ints): Shape of the parameter array.
-        init (float): Initial parameter value.
-
-    See detail in paper: `Delving Deep into Rectifiers: Surpassing \
-    Human-Level Performance on ImageNet Classification \
-    <http://arxiv.org/abs/1502.01852>`_.
-
-    """
-
-    def __init__(self, shape=(), init=0.25):
-        super(PReLU, self).__init__()
-        self.params['W'] = variable.Variable(
-            numpy.full(shape, init, dtype=numpy.float32))
-
-    def __call__(self, x):
-        return prelu(x, self.params['W'])
 
 
 def _get_extended_shape(W, x):
