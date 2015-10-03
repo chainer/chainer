@@ -338,5 +338,15 @@ class BinaryHierarchicalSoftmax(link.Link):
         return q.get()[2]
 
     def __call__(self, x, t):
+        """Computes the loss value for given input and groundtruth labels.
+
+        Args:
+            x (~chainer.Variable): Input to the classifier at each node.
+            t (~chainer.Variable): Batch of groundtruth labels.
+
+        Returns:
+            ~chainer.Variable: Loss value.
+
+        """
         f = copy.copy(self._func)  # creates a copy of the function node
         return f(x, t, self.params['W'])

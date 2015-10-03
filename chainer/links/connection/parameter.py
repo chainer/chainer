@@ -23,6 +23,16 @@ class Parameter(link.Link):
         self.params['W'] = variable.Variable(array)
 
     def __call__(self, volatile=None):
+        """Returns the parameter variable.
+
+        Args:
+            volatile (bool): If specified, the volatility of the output
+                variable is set to this value.
+
+        Returns:
+            ~chainer.Variable: A copy of the parameter variable.
+
+        """
         # This is a bit tricky code. The first identity avoids modification of
         # the volatility of the internal parameter that might be referenced via
         # ``self.volatile``. The second identity avoids modification of the

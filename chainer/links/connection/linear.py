@@ -49,4 +49,13 @@ class Linear(link.Link):
             self.params['b'] = variable.Variable(initial_bias)
 
     def __call__(self, x):
+        """Applies the linear layer.
+
+        Args:
+            x (~chainer.Variable): Batch of input vectors.
+
+        Returns:
+            ~chainer.Variable: Output of the linear layer.
+
+        """
         return linear.linear(x, self.params['W'], self.params.get('b', None))

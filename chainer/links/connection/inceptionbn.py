@@ -78,6 +78,15 @@ class InceptionBN(link.DictLink):
             raise NotImplementedError()
 
     def __call__(self, x):
+        """Computes the output of the Inception module with BatchNormalization.
+
+        Args:
+            x (~chainer.Variable): Input variable.
+
+        Returns:
+            ~chainer.Variable: Output variable.
+
+        """
         outs = []
 
         if self.out1 > 0:

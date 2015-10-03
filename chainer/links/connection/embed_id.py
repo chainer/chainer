@@ -24,4 +24,13 @@ class EmbedID(link.Link):
             in_size, out_size).astype(numpy.float32))
 
     def __call__(self, x):
+        """Extracts the word embedding of given IDs.
+
+        Args:
+            x (~chainer.Variable): Batch vectors of IDs.
+
+        Returns:
+            ~chainer.Variable: Batch of corresponding embeddings.
+
+        """
         return embed_id.embed_id(x, self.params['W'])

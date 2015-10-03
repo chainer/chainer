@@ -76,6 +76,16 @@ class Bilinear(link.Link):
             self.params['b'] = variable.Variable(b)
 
     def __call__(self, e1, e2):
+        """Applies the bilinear function to inputs and the internal parameters.
+
+        Args:
+            e1 (~chainer.Variable): Left input.
+            e2 (~chainer.Variable): Right input.
+
+        Returns:
+            ~chainer.Variable: Output variable.
+
+        """
         if self.nobias:
             return bilinear.bilinear(e1, e2, self.params['W'])
         else:

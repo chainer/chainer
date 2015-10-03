@@ -47,6 +47,15 @@ class Inception(link.DictLink):
         )
 
     def __call__(self, x):
+        """Computes the output of the Inception module.
+
+        Args:
+            x (~chainer.Variable): Input variable.
+
+        Returns:
+            ~chainer.Variable: Output of the inception module.
+
+        """
         out1 = self['conv1'](x)
         out3 = self['conv3'](relu.relu(self['proj3'](x)))
         out5 = self['conv5'](relu.relu(self['proj5'](x)))
