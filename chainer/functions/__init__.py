@@ -41,6 +41,7 @@ from chainer.functions.normalization import local_response_normalization
 from chainer.functions.pooling import average_pooling_2d
 from chainer.functions.pooling import max_pooling_2d
 from chainer.functions.pooling import spatial_pyramid_pooling_2d
+from chainer.functions.pooling import roi_pooling_2d
 
 
 ClippedReLU = clipped_relu.ClippedReLU
@@ -132,3 +133,5 @@ max_pooling_2d = max_pooling_2d.max_pooling_2d
 SpatialPyramidPooling2D = spatial_pyramid_pooling_2d.SpatialPyramidPooling2D
 spatial_pyramid_pooling_2d = \
     spatial_pyramid_pooling_2d.spatial_pyramid_pooling_2d
+ROIPooling2D = roi_pooling_2d.ROIPooling2D
+roi_pooling_2d = roi_pooling_2d.roi_pooling_2d
