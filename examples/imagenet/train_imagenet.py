@@ -55,6 +55,14 @@ def parse_argument():
     return args
 
 
+def load_image_list(path):
+    tuples = []
+    for line in open(path):
+        pair = line.strip().split()
+        tuples.append((pair[0], np.int32(pair[1])))
+    return tuples
+
+
 def get_model(arch):
     # Prepare model
     if arch == 'nin':
@@ -72,14 +80,6 @@ def get_model(arch):
     else:
         raise ValueError('Invalid architecture name')
     return model
-
-
-def load_image_list(path):
-    tuples = []
-    for line in open(path):
-        pair = line.strip().split()
-        tuples.append((pair[0], np.int32(pair[1])))
-    return tuples
 
 
 def read_image(path, center=False, flip=False):
