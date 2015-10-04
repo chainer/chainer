@@ -34,7 +34,8 @@ def parse_argument():
     parser.add_argument('train', help='Path to training image-label list file')
     parser.add_argument('val', help='Path to validation image-label list file')
     parser.add_argument('--mean', '-m', default='mean.npy',
-                        help='Path to the mean file (computed by compute_mean.py)')
+                        help='Path to the mean file '
+                        '(computed by compute_mean.py)')
     parser.add_argument('--arch', '-a', default='nin',
                         help='Convnet architecture \
                     (nin, alexbn, googlenet, googlenetbn)')
