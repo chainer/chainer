@@ -55,6 +55,25 @@ def parse_argument():
     return args
 
 
+def get_model(arch):
+    # Prepare model
+    if arch == 'nin':
+        import nin
+        model = nin.NIN()
+    elif arch == 'alexbn':
+        import alexbn
+        model = alexbn.AlexBN()
+    elif arch == 'googlenet':
+        import googlenet
+        model = googlenet.GoogLeNet()
+    elif arch == 'googlenetbn':
+        import googlenetbn
+        model = googlenetbn.GoogLeNetBN()
+    else:
+        raise ValueError('Invalid architecture name')
+    return model
+
+
 def load_image_list(path):
     tuples = []
     for line in open(path):
@@ -248,25 +267,6 @@ def train_loop():
         res_q.put((float(loss.data),
                    float(accuracy.data)))
         del loss, accuracy, x, y
-
-
-def get_model(arch):
-    # Prepare model
-    if arch == 'nin':
-        import nin
-        model = nin.NIN()
-    elif arch == 'alexbn':
-        import alexbn
-        model = alexbn.AlexBN()
-    elif arch == 'googlenet':
-        import googlenet
-        model = googlenet.GoogLeNet()
-    elif arch == 'googlenetbn':
-        import googlenetbn
-        model = googlenetbn.GoogLeNetBN()
-    else:
-        raise ValueError('Invalid architecture name')
-    return model
 
 
 if __name__ == '__main__':
