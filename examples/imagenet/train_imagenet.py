@@ -27,33 +27,31 @@ from chainer import computational_graph as c
 from chainer import cuda
 from chainer import optimizers
 
-parser = argparse.ArgumentParser(
-    description='Learning convnet from ILSVRC2012 dataset')
-parser.add_argument('train', help='Path to training image-label list file')
-parser.add_argument('val', help='Path to validation image-label list file')
-parser.add_argument('--mean', '-m', default='mean.npy',
-                    help='Path to the mean file (computed by compute_mean.py)')
-parser.add_argument('--arch', '-a', default='nin',
-                    help='Convnet architecture \
-                    (nin, alexbn, googlenet, googlenetbn)')
-parser.add_argument('--batchsize', '-B', type=int, default=32,
-                    help='Learning minibatch size')
-parser.add_argument('--val_batchsize', '-b', type=int, default=250,
-                    help='Validation minibatch size')
-parser.add_argument('--epoch', '-E', default=10, type=int,
-                    help='Number of epochs to learn')
-parser.add_argument('--gpu', '-g', default=-1, type=int,
-                    help='GPU ID (negative value indicates CPU)')
-parser.add_argument('--loaderjob', '-j', default=20, type=int,
-                    help='Number of parallel data loading processes')
-parser.add_argument('--out', '-o', default='model',
-                    help='Path to save model on each validation')
-args = parser.parse_args()
-if args.gpu >= 0:
-    cuda.check_cuda_available()
-xp = cuda.cupy if args.gpu >= 0 else np
 
-assert 50000 % args.val_batchsize == 0
+def parse_argument():
+    parser = argparse.ArgumentParser(
+        description='Learning convnet from ILSVRC2012 dataset')
+    parser.add_argument('train', help='Path to training image-label list file')
+    parser.add_argument('val', help='Path to validation image-label list file')
+    parser.add_argument('--mean', '-m', default='mean.npy',
+                        help='Path to the mean file (computed by compute_mean.py)')
+    parser.add_argument('--arch', '-a', default='nin',
+                        help='Convnet architecture \
+                    (nin, alexbn, googlenet, googlenetbn)')
+    parser.add_argument('--batchsize', '-B', type=int, default=32,
+                        help='Learning minibatch size')
+    parser.add_argument('--val_batchsize', '-b', type=int, default=250,
+                        help='Validation minibatch size')
+    parser.add_argument('--epoch', '-E', default=10, type=int,
+                        help='Number of epochs to learn')
+    parser.add_argument('--gpu', '-g', default=-1, type=int,
+                        help='GPU ID (negative value indicates CPU)')
+    parser.add_argument('--loaderjob', '-j', default=20, type=int,
+                        help='Number of parallel data loading processes')
+    parser.add_argument('--out', '-o', default='model',
+                        help='Path to save model on each validation')
+    args = parser.parse_args()
+    return args
 
 
 def load_image_list(path):
@@ -62,44 +60,6 @@ def load_image_list(path):
         pair = line.strip().split()
         tuples.append((pair[0], np.int32(pair[1])))
     return tuples
-
-# Prepare dataset
-train_list = load_image_list(args.train)
-val_list = load_image_list(args.val)
-mean_image = pickle.load(open(args.mean, 'rb'))
-
-# Prepare model
-if args.arch == 'nin':
-    import nin
-    model = nin.NIN()
-elif args.arch == 'alexbn':
-    import alexbn
-    model = alexbn.AlexBN()
-elif args.arch == 'googlenet':
-    import googlenet
-    model = googlenet.GoogLeNet()
-elif args.arch == 'googlenetbn':
-    import googlenetbn
-    model = googlenetbn.GoogLeNetBN()
-else:
-    raise ValueError('Invalid architecture name')
-
-if args.gpu >= 0:
-    cuda.get_device(args.gpu).use()
-    model.to_gpu()
-
-# Setup optimizer
-optimizer = optimizers.MomentumSGD(lr=0.01, momentum=0.9)
-optimizer.setup(model)
-
-
-# ------------------------------------------------------------------------------
-# This example consists of three threads: data feeder, logger and trainer.
-# These communicate with each other via Queue.
-data_q = queue.Queue(maxsize=1)
-res_q = queue.Queue()
-
-cropwidth = 256 - model.insize
 
 
 def read_image(path, center=False, flip=False):
@@ -288,17 +248,69 @@ def train_loop():
                    float(accuracy.data)))
         del loss, accuracy, x, y
 
-# Invoke threads
-feeder = threading.Thread(target=feed_data)
-feeder.daemon = True
-feeder.start()
-logger = threading.Thread(target=log_result)
-logger.daemon = True
-logger.start()
 
-train_loop()
-feeder.join()
-logger.join()
+def get_model(arch):
+    # Prepare model
+    if arch == 'nin':
+        import nin
+        model = nin.NIN()
+    elif arch == 'alexbn':
+        import alexbn
+        model = alexbn.AlexBN()
+    elif arch == 'googlenet':
+        import googlenet
+        model = googlenet.GoogLeNet()
+    elif arch == 'googlenetbn':
+        import googlenetbn
+        model = googlenetbn.GoogLeNetBN()
+    else:
+        raise ValueError('Invalid architecture name')
+    return model
 
-# Save final model
-pickle.dump(model, open(args.out, 'wb'), -1)
+
+if __name__ == '__main__':
+    multiprocessing.freeze_support()
+
+    args = parse_argument()
+    if args.gpu >= 0:
+        cuda.check_cuda_available()
+    xp = cuda.cupy if args.gpu >= 0 else np
+
+    assert 50000 % args.val_batchsize == 0
+
+    # Prepare dataset
+    train_list = load_image_list(args.train)
+    val_list = load_image_list(args.val)
+    mean_image = pickle.load(open(args.mean, 'rb'))
+
+    model = get_model(args.arch)
+    if args.gpu >= 0:
+        cuda.get_device(args.gpu).use()
+        model.to_gpu()
+
+    # Setup optimizer
+    optimizer = optimizers.MomentumSGD(lr=0.01, momentum=0.9)
+    optimizer.setup(model)
+
+    # ------------------------------------------------------------------------------
+    # This example consists of three threads: data feeder, logger and trainer.
+    # These communicate with each other via Queue.
+    data_q = queue.Queue(maxsize=1)
+    res_q = queue.Queue()
+
+    cropwidth = 256 - model.insize
+
+    # Invoke threads
+    feeder = threading.Thread(target=feed_data)
+    feeder.daemon = True
+    feeder.start()
+    logger = threading.Thread(target=log_result)
+    logger.daemon = True
+    logger.start()
+
+    train_loop()
+    feeder.join()
+    logger.join()
+
+    # Save final model
+    pickle.dump(model, open(args.out, 'wb'), -1)
