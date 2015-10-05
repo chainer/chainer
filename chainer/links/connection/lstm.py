@@ -29,7 +29,7 @@ class LSTM(link.DictLink):
         out_size (int): Dimensionality of output vectors.
 
     """
-    def __init__(self, in_size, out_size):
+    def __init__(self, in_size, out_size, nobias=True):
         super(LSTM, self).__init__(
             input=linear.Linear(in_size, 4 * out_size, nobias=nobias),
             lateral=linear.Linear(in_size, 4 * out_size, nobias=True),
