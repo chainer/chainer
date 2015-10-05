@@ -11,8 +11,8 @@ class Convolution2D(link.Link):
 
     """Two-dimensional convolution layer.
 
-    This link wraps the :func:`functions.convolution_2d` function and holds the
-    filter weight and bias vector as parameters.
+    This link wraps the :func:`~chainer.functions.convolution_2d` function and
+    holds the filter weight and bias vector as parameters.
 
     Args:
         in_channels (int): Number of channels of input arrays.
@@ -34,7 +34,7 @@ class Convolution2D(link.Link):
         dtype (numpy.dtype): Type to use in computing.
 
     .. seealso::
-       See :func:`functions.convolution_2d` for the definition of
+       See :func:`chainer.functions.convolution_2d` for the definition of
        two-dimensional convolution.
 
     """

@@ -9,13 +9,16 @@ class EmbedID(link.Link):
 
     """Efficient linear link for one-hot input.
 
-    This is a callable link that wraps the :func:`functions.embed_id` function.
-    This link holds the ID (word) embedding matrix ``W`` as a parameter.
+    This is a callable link that wraps the :func:`~chainer.functions.embed_id`
+    function. This link holds the ID (word) embedding matrix ``W`` as a
+    parameter.
 
     Args:
         in_size (int): Number of different identifiers (a.k.a. vocabulary
             size).
         out_size (int): Size of embedding vector.
+
+    .. seealso:: :func:`chainer.functions.embed_id`
 
     """
     def __init__(self, in_size, out_size):

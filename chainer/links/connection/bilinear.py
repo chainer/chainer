@@ -12,9 +12,9 @@ class Bilinear(link.Link):
     """Bilinear link that wraps bilinear function.
 
     Bilinear is a primitive callable link that wraps the
-    :func:`functions.bilinear` function. It holds parameters ``W``,
+    :func:`~chainer.functions.bilinear` function. It holds parameters ``W``,
     ``V1``, ``V2``, and ``b`` corresponding to the arguments of
-    :func:`functions.bilinear`.
+    :func:`~chainer.functions.bilinear`.
 
     Args:
         left_size (int): Dimension of input vector :math:`e^1` (:math:`J`)
@@ -35,7 +35,7 @@ class Bilinear(link.Link):
             and :math:`V^2` is initialized by scaled centered Gaussian
             distributions and :math:`b` is set to :math:`0`.
 
-    .. seealso:: See :func:`functions.bilinear` for details.
+    .. seealso:: See :func:`chainer.functions.bilinear` for details.
 
     """
     def __init__(self, left_size, right_size, out_size, nobias=False,

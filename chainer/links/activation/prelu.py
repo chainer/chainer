@@ -16,6 +16,8 @@ class PReLU(link.Link):
     Human-Level Performance on ImageNet Classification \
     <http://arxiv.org/abs/1502.01852>`_.
 
+    .. seealso:: :func:`chainer.functions.prelu`
+
     """
 
     def __init__(self, shape=(), init=0.25):
@@ -24,4 +26,13 @@ class PReLU(link.Link):
             numpy.full(shape, init, dtype=numpy.float32))
 
     def __call__(self, x):
+        """Applies the parametric ReLU activation function.
+
+        Args:
+            x (~chainer.Variable): Input variable.
+
+        Returns:
+            ~chainer.Variable: Output of the parametric ReLU function.
+
+        """
         return prelu.prelu(x, self.params['W'])

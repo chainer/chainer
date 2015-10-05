@@ -102,6 +102,8 @@ def prelu(x, W):
     Returns:
         ~chainer.Variable: Output variable
 
+    .. seealso:: :class:`~chainer.links.PReLU`
+
     """
     return PReLUFunction()(x, W)
 
