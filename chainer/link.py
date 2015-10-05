@@ -166,15 +166,17 @@ class Link(object):
             Link: A copy of the link object.
 
         """
-        ret = copy_module.copy(self)
+        ret = self._copy_params_states(shared)
+        ret.name = ''
+        return ret
 
+    def _copy_params_states(self, shared):
+        ret = copy_module.copy(self)
         copy = copy_module.copy if shared else copy_module.deepcopy
         ret.params = {}
         for key, param in six.iteritems(self.params):
             ret.params[key] = copy(param)
         ret.states = copy(self.states)
-
-        ret.name = ''
         return ret
 
     def to_cpu(self):
@@ -506,8 +508,9 @@ class DictLink(Link):
             link.name = prefix + key
 
     def copy(self, shared=True):
-        ret = super(DictLink, self).copy(shared)
+        ret = super(DictLink, self)._copy_params_states(shared)
         ret.children = {}  # reset children w/o renaming the source ones
+        ret.name = ''
         for key, link in six.iteritems(self):
             ret[key] = link.copy(shared)
         return ret
@@ -623,8 +626,9 @@ class ListLink(Link):
             link.name = '%s/%d' % (name, i)
 
     def copy(self, shared=True):
-        ret = super(ListLink, self).copy(shared)
+        ret = super(ListLink, self)._copy_params_states(shared)
         ret.children = []  # reset children w/o renaming the source ones
+        ret.name = ''
         for link in self:
             ret.append(link.copy(shared))
         return ret

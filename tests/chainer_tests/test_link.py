@@ -268,6 +268,18 @@ class TestDictLink(unittest.TestCase):
         self.assertIsNot(self.link['ch1'].states, copied['ch1'].states)
         self.assertIs(self.link['ch1'].states['s'], copied['ch1'].states['s'])
 
+    def test_copy_shared_nested(self):
+        nested = chainer.DictLink(l=self.link)
+        copied = nested.copy()
+        self.assertEqual(nested.name, '/')
+        self.assertEqual(copied.name, '/')
+        self.assertEqual(nested['l'].name, '/l')
+        self.assertEqual(copied['l'].name, '/l')
+        self.assertEqual(nested['l']['ch1'].name, '/l/ch1')
+        self.assertEqual(copied['l']['ch1'].name, '/l/ch1')
+        self.assertEqual(nested['l']['ch2'].name, '/l/ch2')
+        self.assertEqual(copied['l']['ch2'].name, '/l/ch2')
+
 
 class TestListLink(unittest.TestCase):
 
@@ -368,3 +380,15 @@ class TestListLink(unittest.TestCase):
                       copied[0].params['w'].data)
         self.assertIsNot(self.link[0].states, copied[0].states)
         self.assertIs(self.link[0].states['s'], copied[0].states['s'])
+
+    def test_copy_shared_nested(self):
+        nested = chainer.ListLink(self.link)
+        copied = nested.copy()
+        self.assertEqual(nested.name, '/')
+        self.assertEqual(copied.name, '/')
+        self.assertEqual(nested[0].name, '/0')
+        self.assertEqual(copied[0].name, '/0')
+        self.assertEqual(nested[0][0].name, '/0/0')
+        self.assertEqual(copied[0][0].name, '/0/0')
+        self.assertEqual(nested[0][1].name, '/0/1')
+        self.assertEqual(copied[0][1].name, '/0/1')
