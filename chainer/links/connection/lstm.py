@@ -35,21 +35,12 @@ class LSTM(link.DictLink):
             lateral=linear.Linear(in_size, 4 * out_size, nobias=True),
         )
         self.state_size = out_size
+        self.reset_state()
 
-    def reset_state(self, batch_size):
-        """Resets the internal state of the LSTM layer.
-
-        Args:
-            batch_size (int): Mini-batch size.
-
-        """
-        xp = cuda.get_array_module(self['input'].params['W'].data)
-        self.c = variable.Variable(
-            xp.zeros((batch_size, self.state_size), dtype='f'),
-            volatile=self.volatile)
-        self.h = variable.Variable(
-            xp.zeros((batch_size, self.state_size), dtype='f'),
-            volatile=self.volatile)
+    def reset_state(self):
+        """Resets the internal state of the LSTM layer."""
+        self.c = None
+        self.h = None
 
     def __call__(self, x):
         """Updates the internal state and returns the LSTM output.
@@ -62,6 +53,16 @@ class LSTM(link.DictLink):
             ~chainer.Variable: Updated hidden units.
 
         """
+        xp = cuda.get_array_module(x.data)
+        if self.c is None:
+            self.c = variable.Variable(
+                xp.zeros((len(x.data), self.state_size), dtype=x.data.dtype),
+                volatile=self.volatile)
+        if self.h is None:
+            self.h = variable.Variable(
+                xp.zeros((len(x.data), self.state_size), dtype=x.data.dtype),
+                volatile=self.volatile)
+            
         lstm_in = self['input'](x) + self['lateral'](self.h)
         self.c, self.h = lstm.lstm(self.c, lstm_in)
         return self.h
