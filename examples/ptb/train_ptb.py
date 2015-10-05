@@ -93,18 +93,18 @@ optimizer.setup(model)
 
 
 # Evaluation routine
-def evaluate(dataset):
-    model.volatile = True
+def evaluate(model, dataset):
+    m = model.copy()
+    m.volatile = True
     sum_log_perp = xp.zeros(())
-    model.reset_state(batchsize=1)
+    m.reset_state(batchsize=1)
     for i in six.moves.range(dataset.size - 1):
         x_batch = xp.asarray(dataset[i:i + 1])
         y_batch = xp.asarray(dataset[i + 1:i + 2])
         x = chainer.Variable(x_batch, volatile=True)
         t = chainer.Variable(y_batch, volatile=True)
-        loss = model.forward_one_step(x, t, train=False)
+        loss = m.forward_one_step(x, t, train=False)
         sum_log_perp += loss.data.reshape(())
-    model.volatile = False
 
     return math.exp(cuda.to_cpu(sum_log_perp) / (dataset.size - 1))
 
@@ -152,14 +152,13 @@ for i in six.moves.range(jump * n_epoch):
         epoch += 1
         print('evaluate')
         now = time.time()
-        perp = evaluate(valid_data)
+        perp = evaluate(model, valid_data)
         print('epoch {} validation perplexity: {:.2f}'.format(epoch, perp))
         cur_at += time.time() - now  # skip time of evaluation
 
         if epoch >= 6:
             optimizer.lr /= 1.2
             print('learning rate =', optimizer.lr)
-        model.reset_state(batchsize)
 
     sys.stdout.flush()
 
