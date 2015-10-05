@@ -148,25 +148,45 @@ Run Neural Networks on a Single GPU
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Single-GPU usage is very simple.
-What you have to do is transferring :class:`FunctionSet` and input arrays to the GPU beforehand.
+What you have to do is transferring :class:`Link` and input arrays to the GPU beforehand.
 In this subsection, the code is based on :ref:`our first MNIST example in this tutorial <mnist_mlp_example>`.
 
-A :class:`FunctionSet` object can be transferred to the specified GPU using the :meth:`~FunctionSet.to_gpu` method.
-Make sure to give parameters and gradients of the GPU version to the optimizer. :
+A :class:`Link` object can be transferred to the specified GPU using the :meth:`~Link.to_gpu` method.
+
+.. testcode::
+   :hide:
+
+   class MLP(DictLink):
+       def __init__(self):
+           super(MLP, self).__init__(
+               l1=L.Linear(784, 100),
+               l2=L.Linear(100, 100),
+               l3=L.Linear(100, 10),
+           )
+
+       def __call__(self, x):
+           h1 = F.relu(self['l1'](x))
+           h2 = F.relu(self['l2'](h1))
+           y = self['l3'](h2)
+           return y
+
+   class Classifier(DictLink):
+       def __init__(self, predictor):
+           super(Classifier, self).__init__(predictor=predictor)
+
+       def evaluate(self, x, t):
+           y = self['predictor'](x)
+           return F.softmax_cross_entropy(y, t), F.accuracy(y, t)
 
 .. testcode::
 
-   model = FunctionSet(
-       l1 = F.Linear(784, 100),
-       l2 = F.Linear(100, 100),
-       l3 = F.Linear(100,  10),
-   ).to_gpu()
-
+   model = Classifier(MLP()).to_gpu()  # to_gpu returns itself
    optimizer = optimizers.SGD()
    optimizer.setup(model)
 
-Note that this method returns the :class:`FunctionSet` itself.
-The device specifier can be omitted, in which case it uses the current device.
+You can also specify a device specifier like ``model.to_gpu(1)``.
+In this case, the link object is transferred to the appropriate GPU device.
+The current device is used by default.
 
 Then, all we have to do is transferring each minibatch to the GPU:
 
@@ -175,12 +195,6 @@ Then, all we have to do is transferring each minibatch to the GPU:
 
    x_train = np.random.rand(600, 784).astype(np.float32)
    y_train = np.random.randint(10, size=600).astype(np.int32)
-
-   def forward(x_data, y_data):
-      x = Variable(x_data)
-      t = Variable(y_data)
-      y = model.l3(model.l1(x))
-      return F.softmax_cross_entropy(y, t), F.accuracy(y, t)
 
 .. testcode::
 
@@ -193,8 +207,10 @@ Then, all we have to do is transferring each minibatch to the GPU:
            x_batch = cuda.to_gpu(x_train[indexes[i : i + batchsize]])
            y_batch = cuda.to_gpu(y_train[indexes[i : i + batchsize]])
 
-           optimizer.zero_grads()
-           loss, accuracy = forward(x_batch, y_batch)
+           x = Variable(x_batch)
+           t = Variable(y_batch)
+           model.zero_grads()
+           loss, accuracy = model.evaluate(x, t)
            loss.backward()
            optimizer.update()
 
