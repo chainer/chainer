@@ -56,8 +56,6 @@ class Function(object):
 
        >>> z = g(x)
 
-       >>> z = f(x)
-
        then the computational graph grows as the following new diagram::
 
                  |--- f <--- y

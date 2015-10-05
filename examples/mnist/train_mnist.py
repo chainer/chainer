@@ -87,9 +87,6 @@ for epoch in six.moves.range(1, n_epoch + 1):
         if epoch == 1 and i == 0:
             with open("graph.dot", "w") as o:
                 o.write(c.build_computational_graph((loss, )).dump())
-            with open("graph.wo_split.dot", "w") as o:
-                g = c.build_computational_graph((loss, ))
-                o.write(g.dump())
             print('graph generated')
 
         sum_loss += float(loss.data) * len(t.data)

@@ -31,7 +31,7 @@ class FunctionSet(link.DictLink):
     def __init__(self, **links):
         warnings.warn('FunctionSet is deprecated. Use DictLink instead.',
                       DeprecationWarning)
-        super(FunctionSet, self).__init__(**functions)
+        super(FunctionSet, self).__init__(**links)
 
     def __getattr__(self, key):
         """Gets the *child* link of given name."""
