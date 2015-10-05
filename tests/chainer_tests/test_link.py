@@ -29,7 +29,7 @@ class TestLink(unittest.TestCase):
         src.name = '/foo'
         dst = src.copy()
 
-        self.assertEqual(dst.name, src.name)
+        self.assertEqual(dst.name, '/')
         self.assertIsNot(dst.params, src.params)
         self.assertIsNot(dst.states, src.states)
         self.assertIsNot(dst.params['w'], src.params['w'])
@@ -41,7 +41,7 @@ class TestLink(unittest.TestCase):
         src.name = '/foo'
         dst = src.copy(shared=False)
 
-        self.assertEqual(dst.name, src.name)
+        self.assertEqual(dst.name, '/')
         numpy.testing.assert_array_equal(
             dst.params['w'].data, src.params['w'].data)
         self.assertIsNot(dst.params['w'].data, src.params['w'].data)
@@ -257,6 +257,17 @@ class TestDictLink(unittest.TestCase):
         self.assertIn(links[1], self.link.values())
         self.assertIn(links[2], self.link.values())
 
+    def test_copy_shared(self):
+        copied = self.link.copy()
+        self.assertIsNot(self.link['ch1'], copied['ch1'])
+        self.assertIsNot(self.link['ch1'].params, copied['ch1'].params)
+        self.assertIsNot(self.link['ch1'].params['w'],
+                         copied['ch1'].params['w'])
+        self.assertIs(self.link['ch1'].params['w'].data,
+                      copied['ch1'].params['w'].data)
+        self.assertIsNot(self.link['ch1'].states, copied['ch1'].states)
+        self.assertIs(self.link['ch1'].states['s'], copied['ch1'].states['s'])
+
 
 class TestListLink(unittest.TestCase):
 
@@ -346,3 +357,14 @@ class TestListLink(unittest.TestCase):
         self.assertIs(links[0], self.link)
         self.assertIs(links[1], self.link[0])
         self.assertIs(links[2], self.link[1])
+
+    def test_copy_shared(self):
+        copied = self.link.copy()
+        self.assertIsNot(self.link[0], copied[0])
+        self.assertIsNot(self.link[0].params, copied[0].params)
+        self.assertIsNot(self.link[0].params['w'],
+                         copied[0].params['w'])
+        self.assertIs(self.link[0].params['w'].data,
+                      copied[0].params['w'].data)
+        self.assertIsNot(self.link[0].states, copied[0].states)
+        self.assertIs(self.link[0].states['s'], copied[0].states['s'])

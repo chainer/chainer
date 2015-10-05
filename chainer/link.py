@@ -151,6 +151,8 @@ class Link(object):
     def copy(self, shared=True):
         """Copies the link hierarchy starting from this link.
 
+        Note that the returned link becomes root.
+
         .. note::
            Actually, Link.copy just copies the link itself. Subclasses that
            builds a link hierarchy (e.g. :class:`DictLink` and
@@ -171,6 +173,8 @@ class Link(object):
         for key, param in six.iteritems(self.params):
             ret.params[key] = copy(param)
         ret.states = copy(self.states)
+
+        ret.name = ''
         return ret
 
     def to_cpu(self):
@@ -502,7 +506,8 @@ class DictLink(Link):
             link.name = prefix + key
 
     def copy(self, shared=True):
-        ret = Link.copy(self, shared)
+        ret = super(DictLink, self).copy(shared)
+        ret.children = {}  # reset children w/o renaming the source ones
         for key, link in six.iteritems(self):
             ret[key] = link.copy(shared)
         return ret
@@ -618,9 +623,10 @@ class ListLink(Link):
             link.name = '%s/%d' % (name, i)
 
     def copy(self, shared=True):
-        ret = Link.copy(self, shared)
-        for i, link in enumerate(self):
-            ret[i] = link.copy(shared)
+        ret = super(ListLink, self).copy(shared)
+        ret.children = []  # reset children w/o renaming the source ones
+        for link in self:
+            ret.append(link.copy(shared))
         return ret
 
     def visitlinks(self):
