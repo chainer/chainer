@@ -28,52 +28,75 @@ Here we learn how to write a simple one-layer recurrent net.
 The task is language modeling: given a finite sequence of words, we want to predict the next word at each position without peeking the successive words.
 Suppose that there are 1,000 different word types, and that we use 100 dimensional real vectors to represent each word (a.k.a. word embedding).
 
-Before writing the forward computation, we have to define parameterized functions:
+Let's start from defining the recurrent neural net language model (RNNLM) as a link.
+We can use the :class:`chainer.links.LSTM` link that implements a fully-connected stateful LSTM layer.
+This link looks like a linear layer.
+On construction, you pass the input and output size to the constructor:
+
+.. doctest::
+
+   >>> l = L.LSTM(100, 50)
+
+Then, call on this instance ``l(x)`` runs *one step of LSTM layer*:
+
+.. doctest::
+
+   >>> l.reset_states(10)  # 10 is the batch size
+   >>> x = Variable(np.random.randn((10, 100)).astype(np.float32))
+   >>> y = l(x)
+
+Do not forget to reset the internal state of the LSTM layer before the forward computation!
+Every recurrent layer holds its internal state (i.e. the output of the previous call).
+At the first application of the recurrent layer, you must reset the internal state.
+Then, the next input can be direclty fed to the LSTM instance:
+
+.. doctest::
+
+   >>> x2 = Variable(np.random.randn((10, 100)).astype(np.float32))
+   >>> y2 = l(x2)
+
+Based on this LSTM link, let's write our RNNLM network as a new link:
 
 .. testcode::
 
-   model = FunctionSet(
-       embed  = F.EmbedID(1000, 100),
-       x_to_h = F.Linear(100,   50),
-       h_to_h = F.Linear( 50,   50),
-       h_to_y = F.Linear( 50, 1000),
-   )
+   class RNNLM(DictLink):
+       def __init__(self):
+           super(RNNLM, self).__init__(
+               embed=L.EmbedID(1000, 100),  # word embedding
+               mid=L.LSTM(100, 50),  # the first LSTM layer
+               out=L.Linear(50, 1000),  # the feed-forward output layer
+           )
+
+       def reset_states(self, batchsize):
+           self['mid'].reset_states(batchsize)
+
+       def forward_one_step(self, cur_word, next_word):
+           # Given the current and the next word IDs, compute the loss of the
+           # next-word prediction.
+           x = self['embed'](cur_word)
+           h = self['mid'](x)
+           y = self['out'](h)
+           return F.softmax_cross_entropy(y, next_word)
+
+       def forward(self, x_list):
+           # Given a list of input variables x_list, compute the whole loss on
+           # this word sequence.
+           self.reset_states(len(x_list[0].data))  # pass the minibatch size
+           loss = 0
+           for cur_word, next_word in zip(x_list, x_list[1:]):
+               loss += self.forward_one_step(cur_word, next_word)
+           return loss
+
+   model = RNNLM()
    optimizer = optimizers.SGD()
    optimizer.setup(model)
 
-Here :class:`~functions.EmbedID` is a parameterized function class for word embedding.
+Here :class:`~chainer.links.EmbedID` is a link for word embedding.
 It converts input integers into corresponding fixed-dimensional embedding vectors.
-Other Linear layers represent the transformation as their names indicate.
-Here we use 50 hidden units.
+The last linear link ``out`` represents the feed-forward output layer.
 
-Then, we can write down the forward computation.
-Suppose that the input word sequence is given as a list of integer arrays.
-The forward computation is simply written with a for loop:
-
-.. testcode::  
-
-   def forward_one_step(h, cur_word, next_word, volatile=False):
-       word = Variable(cur_word, volatile=volatile)
-       t    = Variable(next_word, volatile=volatile)
-       x    = F.tanh(model.embed(word))
-       h    = F.tanh(model.x_to_h(x) + model.h_to_h(h))
-       y    = model.h_to_y(h)
-       loss = F.softmax_cross_entropy(y, t)
-       return h, loss
-
-   def forward(x_list, volatile=False):
-       h = Variable(np.zeros((1, 50), dtype=np.float32), volatile=volatile)
-       loss = 0
-       for cur_word, next_word in zip(x_list, x_list[1:]):
-           h, new_loss = forward_one_step(h, cur_word, next_word, volatile=volatile)
-           loss += new_loss
-       return loss
-
-Note that the first dimension of ``h`` and ``x_list`` is always the mini-batch size.
-The mini-batch size is assumed to be ``1`` here.
-We implemented the one-step-forward computation as a separate function, which is a best practice of writing recurrent nets for higher extensibility.
-Ignore the argument ``volatile`` for now, we will review it in the next subsection.
-The ``forward`` function is very simple and no special care needs to be taken with respect to the length of the input sequence.
+We implemented the one-step-forward computation as a separate method, which is a best practice of writing recurrent nets for higher extensibility.
+The ``forward`` method is very simple and no special care needs to be taken with respect to the length of the input sequence.
 This code actually handles variable length input sequences without any tricks.
 
 Of course, the accumulated loss is a Variable object with the full history of computation.
@@ -82,7 +105,8 @@ So we can just call its :meth:`~Variable.backward` method to compute gradients o
 .. testcode::
    :hide:
 
-   x_list = np.random.randint(255, size=(100, 1)).astype(np.int32)
+   x_list = [Variable(np.random.randint(255, size=(1,)).astype(np.int32))
+             for _ in range(100)]
 
 .. testcode::
 
@@ -113,18 +137,17 @@ As a result, they are no longer a part of computation history, and are not invol
 Let's write an example of truncated backprop.
 Here we use the same network as the one used in the previous subsection.
 Suppose that we are given a very long sequence, and we want to run backprop truncated at every 30 time steps.
-We can write truncated backprop using the ``forward_one_step`` function that we wrote above:
+We can write truncated backprop using the ``forward_one_step`` method that we wrote above:
 
 .. testcode::
 
-   h = Variable(np.zeros((1, 50), dtype=np.float32))
-   loss   = 0
-   count  = 0
+   loss = 0
+   count = 0
    seqlen = len(x_list[1:])
 
+   model.reset_states(1)  # minibatch size == 1
    for cur_word, next_word in zip(x_list, x_list[1:]):
-       h, new_loss = forward_one_step(h, cur_word, next_word)
-       loss  += new_loss
+       loss += model.forward_one_step(cur_word, next_word)
        count += 1
        if count % 30 == 0 or count == seqlen:
            optimizer.zero_grads()
@@ -135,7 +158,7 @@ We can write truncated backprop using the ``forward_one_step`` function that we 
 State is updated at ``foward_one_step``, and the losses are accumulated to ``loss`` variable.
 At each 30 steps, backprop takes place at the accumulated loss.
 Then, the :meth:`~Variable.unchain_backward` method is called, which deletes the computation history backward from the accumulated loss.
-Note that the latest state ``h`` itself is not lost, since above code holds a reference to it.
+Note that the last state of ``model`` is not lost, since the RNNLM instance holds a reference to it.
 
 The implementation of truncated backprop is simple, and since there is no complicated trick on it, we can generalize this method to different situations.
 For example, we can easily extend the above code to use different schedules between backprop timing and truncation length.
@@ -154,12 +177,17 @@ Such variables are called *volatile variables*.
 
    It is not allowed to mix volatile and non-volatile variables as arguments to same function.
 
-Remember that our ``forward`` function accepts ``volatile`` argument.
-So we can enable volatile forward computation by just passing ``volatile=True`` to this function:
+Note that the parameters of links are all variables, so each of them also has a volatile flag.
+Volatile flags of all the parameter variables can be switched by substituting to the :attr:`Link.volatile` attribute:
 
 .. testcode::
 
-   loss = forward(x_list, volatile=True)
+   model.volatile = True
+
+Then, pass volatile variables to the forward method::
+
+   x_list = [Variable(..., volatile=True) for _ in range(100)]  # list of 100 words
+   loss = model.forward(x_list)
 
 Volatile variables are also useful to evaluate feed-forward networks.
 

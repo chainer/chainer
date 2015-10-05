@@ -50,6 +50,7 @@ We will review such amenities in later sections of this tutorial.
      from chainer import cuda, Function, gradient_check, Variable, optimizers, serializers, utils
      from chainer import Link, DictLink, ListLink
      import chainer.functions as F
+     import chainer.links as L
 
    
    These imports appear widely in Chainer's codes and examples. For simplicity, we omit this idiom in this tutorial.
@@ -215,12 +216,13 @@ We can write complex procedures with parameters by combining multiple links like
 
 .. doctest::
 
-   >>> l1 = F.Linear(4, 3)
-   >>> l2 = F.Linear(3, 2)
+   >>> l1 = L.Linear(4, 3)
+   >>> l2 = L.Linear(3, 2)
    >>> def my_forward(x):
    ...     h = l1(x)
    ...     return l2(h)
 
+Here the ``L`` indicates the :mod:`chainer.links` module.
 A procedure with parameters defined in this way is hard to reuse.
 More Pythonic way is combining the links and procedures into a class:
 
@@ -228,8 +230,8 @@ More Pythonic way is combining the links and procedures into a class:
 
    >>> class MyProc(object):
    ...     def __init__(self):
-   ...         self.l1 = F.Linear(4, 3)
-   ...         self.l2 = F.Linear(3, 2)
+   ...         self.l1 = L.Linear(4, 3)
+   ...         self.l2 = L.Linear(3, 2)
    ...         
    ...     def forward(self, x):
    ...         h = self.l1(x)
@@ -246,8 +248,8 @@ In this case, we can use the :class:`DictLink` class, which behaves like a dicti
    >>> class MyLink(DictLink):
    ...     def __init__(self):
    ...         super(MyLink, self).__init__(
-   ...             l1=F.Linear(4, 3),
-   ...             l2=F.Linear(3, 2),
+   ...             l1=L.Linear(4, 3),
+   ...             l2=L.Linear(3, 2),
    ...         )
    ...        
    ...     def __call__(self, x):
@@ -269,8 +271,8 @@ Another option is the :class:`ListLink` class, which behvaes like a list of link
    >>> class MyLink2(ListLink):
    ...     def __init__(self):
    ...         super(MyLink2, self).__init__()
-   ...         self.append(F.Linear(4, 3))
-   ...         self.append(F.Linear(3, 2))
+   ...         self.append(L.Linear(4, 3))
+   ...         self.append(L.Linear(3, 2))
    ...         
    ...     def __call__(self, x):
    ...         h = self[0](x)
@@ -394,9 +396,9 @@ We use a simple three-layer rectifier network with 100 units per layer as an exa
    >>> class MLP(DictLink):
    ...     def __init__(self):
    ...         super(MLP, self).__init__(
-   ...             l1=F.Linear(784, 100),
-   ...             l2=F.Linear(100, 100),
-   ...             l3=F.Linear(100, 10),
+   ...             l1=L.Linear(784, 100),
+   ...             l2=L.Linear(100, 100),
+   ...             l3=L.Linear(100, 10),
    ...         )
    ...         
    ...     def __call__(self, x):
