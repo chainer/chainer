@@ -17,6 +17,7 @@ import six
 import chainer
 from chainer import cuda
 import chainer.functions as F
+import chainer.links as L
 from chainer import optimizers
 
 
@@ -51,40 +52,40 @@ valid_data = load_data('ptb.valid.txt')
 test_data = load_data('ptb.test.txt')
 print('#vocab =', len(vocab))
 
-# Prepare RNNLM model
-model = chainer.FunctionSet(embed=F.EmbedID(len(vocab), n_units),
-                            l1_x=F.Linear(n_units, 4 * n_units),
-                            l1_h=F.Linear(n_units, 4 * n_units),
-                            l2_x=F.Linear(n_units, 4 * n_units),
-                            l2_h=F.Linear(n_units, 4 * n_units),
-                            l3=F.Linear(n_units, len(vocab)))
-for param in model.parameters:
-    param[:] = np.random.uniform(-0.1, 0.1, param.shape)
+
+class RNNLM(chainer.DictLink):
+
+    def __init__(self, n_vocab, n_units):
+        super(RNNLM, self).__init__(
+            embed=F.EmbedID(n_vocab, n_units),
+            l1=L.LSTM(n_units, n_units),
+            l2=L.LSTM(n_units, n_units),
+            l3=F.Linear(n_units, n_vocab),
+        )
+
+        for _, param in self.visitparams():
+            param.data[:] = np.random.uniform(-0.1, 0.1, param.data.shape)
+
+    def forward_one_step(self, x, t, train=True):
+        # Neural net architecture
+        h0 = self['embed'](x)
+        h1 = self['l1'](F.dropout(h0, train=train))
+        h2 = self['l2'](F.dropout(h1, train=train))
+        y = self['l3'](F.dropout(h2, train=train))
+        return F.softmax_cross_entropy(y, t)
+
+    def reset_state(self):
+        self['l1'].reset_state()
+        self['l2'].reset_state()
+
+
+model = RNNLM(len(vocab), n_units)
+
 if args.gpu >= 0:
     cuda.check_cuda_available()
     cuda.get_device(args.gpu).use()
     model.to_gpu()
 
-
-def forward_one_step(x_data, y_data, state, train=True):
-    # Neural net architecture
-    x = chainer.Variable(x_data, volatile=not train)
-    t = chainer.Variable(y_data, volatile=not train)
-    h0 = model.embed(x)
-    h1_in = model.l1_x(F.dropout(h0, train=train)) + model.l1_h(state['h1'])
-    c1, h1 = F.lstm(state['c1'], h1_in)
-    h2_in = model.l2_x(F.dropout(h1, train=train)) + model.l2_h(state['h2'])
-    c2, h2 = F.lstm(state['c2'], h2_in)
-    y = model.l3(F.dropout(h2, train=train))
-    state = {'c1': c1, 'h1': h1, 'c2': c2, 'h2': h2}
-    return state, F.softmax_cross_entropy(y, t)
-
-
-def make_initial_state(batchsize=batchsize, train=True):
-    return {name: chainer.Variable(xp.zeros((batchsize, n_units),
-                                            dtype=np.float32),
-                                   volatile=not train)
-            for name in ('c1', 'h1', 'c2', 'h2')}
 
 # Setup optimizer
 optimizer = optimizers.SGD(lr=1.)
@@ -92,15 +93,17 @@ optimizer.setup(model)
 
 
 # Evaluation routine
-
-
-def evaluate(dataset):
+def evaluate(model, dataset):
+    m = model.copy()
+    m.volatile = True
     sum_log_perp = xp.zeros(())
-    state = make_initial_state(batchsize=1, train=False)
+    m.reset_state()
     for i in six.moves.range(dataset.size - 1):
         x_batch = xp.asarray(dataset[i:i + 1])
         y_batch = xp.asarray(dataset[i + 1:i + 2])
-        state, loss = forward_one_step(x_batch, y_batch, state, train=False)
+        x = chainer.Variable(x_batch, volatile=True)
+        t = chainer.Variable(y_batch, volatile=True)
+        loss = m.forward_one_step(x, t, train=False)
         sum_log_perp += loss.data.reshape(())
 
     return math.exp(cuda.to_cpu(sum_log_perp) / (dataset.size - 1))
@@ -113,7 +116,7 @@ cur_log_perp = xp.zeros(())
 epoch = 0
 start_at = time.time()
 cur_at = start_at
-state = make_initial_state()
+model.reset_state()
 accum_loss = chainer.Variable(xp.zeros((), dtype=np.float32))
 print('going to train {} iterations'.format(jump * n_epoch))
 for i in six.moves.range(jump * n_epoch):
@@ -121,7 +124,9 @@ for i in six.moves.range(jump * n_epoch):
                         for j in six.moves.range(batchsize)])
     y_batch = xp.array([train_data[(jump * j + i + 1) % whole_len]
                         for j in six.moves.range(batchsize)])
-    state, loss_i = forward_one_step(x_batch, y_batch, state)
+    x = chainer.Variable(x_batch)
+    t = chainer.Variable(y_batch)
+    loss_i = model.forward_one_step(x, t)
     accum_loss += loss_i
     cur_log_perp += loss_i.data.reshape(())
 
@@ -147,7 +152,7 @@ for i in six.moves.range(jump * n_epoch):
         epoch += 1
         print('evaluate')
         now = time.time()
-        perp = evaluate(valid_data)
+        perp = evaluate(model, valid_data)
         print('epoch {} validation perplexity: {:.2f}'.format(epoch, perp))
         cur_at += time.time() - now  # skip time of evaluation
 
