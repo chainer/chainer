@@ -74,9 +74,9 @@ class RNNLM(chainer.DictLink):
         y = self['l3'](F.dropout(h2, train=train))
         return F.softmax_cross_entropy(y, t)
 
-    def reset_state(self, batchsize=batchsize):
-        self['l1'].reset_state(batchsize)
-        self['l2'].reset_state(batchsize)
+    def reset_state(self):
+        self['l1'].reset_state()
+        self['l2'].reset_state()
 
 
 model = RNNLM(len(vocab), n_units)
@@ -97,7 +97,7 @@ def evaluate(model, dataset):
     m = model.copy()
     m.volatile = True
     sum_log_perp = xp.zeros(())
-    m.reset_state(batchsize=1)
+    m.reset_state()
     for i in six.moves.range(dataset.size - 1):
         x_batch = xp.asarray(dataset[i:i + 1])
         y_batch = xp.asarray(dataset[i + 1:i + 2])
@@ -116,7 +116,7 @@ cur_log_perp = xp.zeros(())
 epoch = 0
 start_at = time.time()
 cur_at = start_at
-model.reset_state(batchsize)
+model.reset_state()
 accum_loss = chainer.Variable(xp.zeros((), dtype=np.float32))
 print('going to train {} iterations'.format(jump * n_epoch))
 for i in six.moves.range(jump * n_epoch):
