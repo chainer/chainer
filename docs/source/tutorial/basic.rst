@@ -175,7 +175,7 @@ By default, the matrix W is initialized randomly, while the vector b is initiali
    >>> f.params['b'].data
    array([ 0.,  0.], dtype=float32)
 
-Instances of a link class act like usual functions:
+An instance of the Linear link acts like a usual function:
 
 .. doctest::
 
