@@ -34,18 +34,19 @@ else:
     available = False
 
 
-class CaffeFunction(function.Function):
-    """Function using the model file of Caffe.
+class CaffeFunction(object):
 
-    Given a binary protobuf file of a Caffe model, this function loads and
+    """Callable object on Variables using the model file of Caffe.
+
+    Given a binary protobuf file of a Caffe model, this class loads and
     emulates it on :class:`~chainer.Variable` objects. It supports the official
     reference models provided by BVLC.
 
     .. note::
 
-       This function only supports Python 2.7, since the compiled module for
-       protocol buffers only supports Python 2. The ``__init__`` function
-       raises an exception in Python 3.
+       This class only supports Python 2.7, since the compiled module for
+       protocol buffers only supports Python 2. The ``__init__`` method raises
+       an exception in Python 3.
 
     .. note::
 

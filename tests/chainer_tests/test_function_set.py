@@ -11,14 +11,13 @@ from chainer import testing
 from chainer.testing import attr
 
 
-class MockFunction(chainer.Function):
+class MockFunction(chainer.Link, chainer.Function):
 
     def __init__(self, shape):
-        self.p = np.zeros(shape).astype(np.float32)
-        self.gp = np.ones(shape).astype(np.float32)
-
-    parameter_names = ('p', )
-    gradient_names = ('gp', )
+        super(MockFunction, self).__init__()
+        p = chainer.Variable(np.zeros(shape, dtype='f'))
+        p.grad = np.ones(shape, dtype='f')
+        self.params['p'] = p
 
 
 class TestNestedFunctionSet(unittest.TestCase):
@@ -29,10 +28,6 @@ class TestNestedFunctionSet(unittest.TestCase):
         self.fs2 = chainer.FunctionSet(
             fs1=self.fs1,
             b=MockFunction((3, 4)))
-
-    def test_get_sorted_funcs(self):
-        six.assertCountEqual(
-            self, [k for (k, v) in self.fs2._get_sorted_funcs()], ('b', 'fs1'))
 
     def test_collect_parameters(self):
         p_b = np.zeros((3, 4)).astype(np.float32)
@@ -50,8 +45,12 @@ class TestNestedFunctionSet(unittest.TestCase):
     def test_pickle_cpu(self):
         fs2_serialized = pickle.dumps(self.fs2)
         fs2_loaded = pickle.loads(fs2_serialized)
-        self.assertTrue((self.fs2.b.p == fs2_loaded.b.p).all())
-        self.assertTrue((self.fs2.fs1.a.p == fs2_loaded.fs1.a.p).all())
+        self.assertTrue(
+            (self.fs2.b.params['p'].data ==
+             fs2_loaded.b.params['p'].data).all())
+        self.assertTrue(
+            (self.fs2.fs1.a.params['p'].data ==
+             fs2_loaded.fs1.a.params['p'].data).all())
 
     @attr.gpu
     def test_pickle_gpu(self):
@@ -61,8 +60,12 @@ class TestNestedFunctionSet(unittest.TestCase):
         fs2_loaded.to_cpu()
         self.fs2.to_cpu()
 
-        self.assertTrue((self.fs2.b.p == fs2_loaded.b.p).all())
-        self.assertTrue((self.fs2.fs1.a.p == fs2_loaded.fs1.a.p).all())
+        self.assertTrue(
+            (self.fs2.b.params['p'].data ==
+             fs2_loaded.b.params['p'].data).all())
+        self.assertTrue(
+            (self.fs2.fs1.a.params['p'].data ==
+             fs2_loaded.fs1.a.params['p'].data).all())
 
 
 class TestFunctionSet(unittest.TestCase):
@@ -73,15 +76,15 @@ class TestFunctionSet(unittest.TestCase):
             b=F.Linear(3, 2)
         )
 
-    def test_get_sorted_funcs(self):
-        six.assertCountEqual(
-            self, [k for (k, v) in self.fs._get_sorted_funcs()], ('a', 'b'))
-
     def check_equal_fs(self, fs1, fs2):
-        self.assertTrue((fs1.a.W == fs2.a.W).all())
-        self.assertTrue((fs1.a.b == fs2.a.b).all())
-        self.assertTrue((fs1.b.W == fs2.b.W).all())
-        self.assertTrue((fs1.b.b == fs2.b.b).all())
+        self.assertTrue(
+            (fs1.a.params['W'].data == fs2.a.params['W'].data).all())
+        self.assertTrue(
+            (fs1.a.params['b'].data == fs2.a.params['b'].data).all())
+        self.assertTrue(
+            (fs1.b.params['W'].data == fs2.b.params['W'].data).all())
+        self.assertTrue(
+            (fs1.b.params['b'].data == fs2.b.params['b'].data).all())
 
     def test_pickle_cpu(self):
         s = pickle.dumps(self.fs)
@@ -114,10 +117,10 @@ class TestFunctionSet(unittest.TestCase):
         self.fs.copy_parameters_from(params)
         self.fs.to_cpu()
 
-        self.assertTrue((self.fs.a.W == aW).all())
-        self.assertTrue((self.fs.a.b == ab).all())
-        self.assertTrue((self.fs.b.W == bW).all())
-        self.assertTrue((self.fs.b.b == bb).all())
+        self.assertTrue((self.fs.a.params['W'].data == aW).all())
+        self.assertTrue((self.fs.a.params['b'].data == ab).all())
+        self.assertTrue((self.fs.b.params['W'].data == bW).all())
+        self.assertTrue((self.fs.b.params['b'].data == bb).all())
 
     def test_copy_parameters_from_cpu_to_cpu(self):
         self.check_copy_parameters_from(-1, -1)
@@ -143,7 +146,7 @@ class TestFunctionSet(unittest.TestCase):
         self.assertIs(self.fs['a'], self.fs.a)
 
     def test_getitem_notfoud(self):
-        with self.assertRaises(AttributeError):
+        with self.assertRaises(KeyError):
             self.fs['not_found']
 
 

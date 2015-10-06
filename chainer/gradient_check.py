@@ -3,6 +3,7 @@ import six
 
 from chainer import cuda
 from chainer import utils
+from chainer import variable
 
 
 def numerical_grad_cpu(f, inputs, grad_outputs, eps=1e-3):
@@ -74,6 +75,7 @@ def numerical_grad(f, inputs, grad_outputs, eps=1e-3):
 
     """
     assert eps > 0
+    f = _wrap_f(f)
     inputs = tuple(inputs)
     grad_outputs = tuple(grad_outputs)
     gpu = any(isinstance(x, cuda.ndarray) for x in inputs + grad_outputs)
@@ -109,3 +111,15 @@ def assert_allclose(x, y, atol=1e-5, rtol=1e-4, verbose=True):
     except Exception:
         print('error:', numpy.abs(x - y).max())
         raise
+
+
+def _wrap_f(f):
+    def ret():
+        x = f()
+        if isinstance(x, tuple):
+            return x
+        elif isinstance(x, variable.Variable):
+            return x.data,
+        else:
+            return x,
+    return ret

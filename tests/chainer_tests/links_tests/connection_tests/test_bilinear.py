@@ -4,8 +4,8 @@ import numpy
 
 import chainer
 from chainer import cuda
-from chainer import functions
 from chainer import gradient_check
+from chainer import links
 from chainer import testing
 from chainer.testing import attr
 from chainer.testing import condition
@@ -19,30 +19,31 @@ def _check_forward(e1, e2, f, y_expect):
     gradient_check.assert_allclose(y_expect, y.data)
 
 
-def _check_backward(e1, e2, y_grad, f, bias):
+def _check_backward(e1, e2, y_grad, func, bias):
     e1 = chainer.Variable(e1)
     e2 = chainer.Variable(e2)
-    y = f(e1, e2)
+    W = func.params['W']
+    y = func(e1, e2)
     y.grad = y_grad
     y.backward()
 
-    func = y.creator
-    f = lambda: func.forward((e1.data, e2.data))
-
+    f = lambda: func(e1, e2)
     ge1, ge2, gW = gradient_check.numerical_grad(
-        f, (e1.data, e2.data, func.W), (y.grad,), eps=1e-2)
+        f, (e1.data, e2.data, W.data), (y.grad,), eps=1e-2)
 
     gradient_check.assert_allclose(ge1, e1.grad, rtol=1e-3)
     gradient_check.assert_allclose(ge2, e2.grad, rtol=1e-3)
-    gradient_check.assert_allclose(gW, func.gW, rtol=1e-3)
+    gradient_check.assert_allclose(gW, W.grad, rtol=1e-3)
 
     if bias:
+        V1 = func.params['V1']
+        V2 = func.params['V2']
+        b = func.params['b']
         gV1, gV2, gb = gradient_check.numerical_grad(
-            f, (func.V1, func.V2, func.b),
-            (y.grad,), eps=1e-2)
-        gradient_check.assert_allclose(gV1, func.gV1, rtol=1e-3)
-        gradient_check.assert_allclose(gV2, func.gV2, rtol=1e-3)
-        gradient_check.assert_allclose(gb, func.gb, rtol=1e-3)
+            f, (V1.data, V2.data, b.data), (y.grad,), eps=1e-2)
+        gradient_check.assert_allclose(gV1, V1.grad, rtol=1e-3)
+        gradient_check.assert_allclose(gV2, V2.grad, rtol=1e-3)
+        gradient_check.assert_allclose(gb, b.grad, rtol=1e-3)
 
 
 def _batch_to_gpu(*xs):
@@ -60,18 +61,18 @@ class TestBilinear(unittest.TestCase):
     batch_size = 10
 
     def setUp(self):
-        self.f = functions.Bilinear(
+        self.f = links.Bilinear(
             self.in_shape[0], self.in_shape[1], self.out_size)
-        self.f.W = _uniform(*self.f.W.shape)
-        self.f.V1 = _uniform(*self.f.V1.shape)
-        self.f.V2 = _uniform(*self.f.V2.shape)
-        self.f.b = _uniform(*self.f.b.shape)
-        self.f.zero_grads()
+        self.f.params['W'].data = _uniform(*self.f.params['W'].data.shape)
+        self.f.params['V1'].data = _uniform(*self.f.params['V1'].data.shape)
+        self.f.params['V2'].data = _uniform(*self.f.params['V2'].data.shape)
+        self.f.params['b'].data = _uniform(*self.f.params['b'].data.shape)
+        self.f.zerograds()
 
-        self.W = self.f.W.copy()
-        self.V1 = self.f.V1.copy()
-        self.V2 = self.f.V2.copy()
-        self.b = self.f.b.copy()
+        self.W = self.f.params['W'].data.copy()
+        self.V1 = self.f.params['V1'].data.copy()
+        self.V2 = self.f.params['V2'].data.copy()
+        self.b = self.f.params['b'].data.copy()
 
         self.e1 = _uniform(self.batch_size, self.in_shape[0])
         self.e2 = _uniform(self.batch_size, self.in_shape[1])
@@ -166,13 +167,13 @@ class TestBilinear9(TestBilinear):
 class TestBilinearWOBias(TestBilinear):
 
     def setUp(self):
-        self.f = functions.Bilinear(
+        self.f = links.Bilinear(
             self.in_shape[0], self.in_shape[1], self.out_size, True)
-        self.f.W = numpy.random.uniform(
-            -1, 1, self.f.W.shape).astype(numpy.float32)
-        self.f.zero_grads()
+        W = self.f.params['W'].data
+        W[...] = numpy.random.uniform(-1, 1, W.shape).astype(numpy.float32)
+        self.f.zerograds()
 
-        self.W = self.f.W.copy()
+        self.W = W.copy()
 
         self.e1 = _uniform(self.batch_size, self.in_shape[0])
         self.e2 = _uniform(self.batch_size, self.in_shape[1])
@@ -262,7 +263,7 @@ class InitByInitialParameter(unittest.TestCase):
 class NormalInitialParameter(InitByInitialParameter):
 
     def check_normal(self, initialW, initial_bias, nobias):
-        functions.Bilinear(
+        links.Bilinear(
             self.in_shape[0], self.in_shape[1], self.out_size, nobias,
             initialW, initial_bias)
 
@@ -294,7 +295,7 @@ class InvalidInitialParameter(InitByInitialParameter):
 
     def check_invalid(self, initialW, initial_bias, nobias):
         with self.assertRaises(AssertionError):
-            functions.Bilinear(
+            links.Bilinear(
                 self.in_shape[0], self.in_shape[1], self.out_size, nobias,
                 initialW, initial_bias)
 

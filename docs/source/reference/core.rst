@@ -9,4 +9,6 @@ Core functionalities
    core/variable
    core/function
    core/function_set
+   core/link
    core/optimizer
+   core/serializer

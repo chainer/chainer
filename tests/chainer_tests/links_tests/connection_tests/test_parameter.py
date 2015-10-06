@@ -3,7 +3,7 @@ import unittest
 import numpy
 
 from chainer import cuda
-from chainer import functions
+from chainer import links
 from chainer import testing
 from chainer.testing import attr
 
@@ -14,7 +14,7 @@ class TestParameter(unittest.TestCase):
         self.W = numpy.random.uniform(-1, 1, (4, 3)).astype(numpy.float32)
         self.gW = numpy.random.uniform(-1, 1,
                                        self.W.shape).astype(numpy.float32)
-        self.func = functions.Parameter(self.W)
+        self.func = links.Parameter(self.W)
 
     def tearDown(self):
         del self.func
@@ -44,17 +44,18 @@ class TestParameter(unittest.TestCase):
         self.check_forward(True)
 
     def check_backward(self, y_grad, volatile):
-        self.func.gW.fill(0)
+        self.func.zerograds()
         y = self.func(volatile)
         y.grad = y_grad
         y.backward()
         if volatile:
             self.assertTrue(
-                (cuda.to_cpu(self.func.gW) ==
+                (cuda.to_cpu(self.func.params['W'].grad) ==
                  numpy.zeros(y_grad.shape, dtype=y_grad.dtype)).all())
         else:
             self.assertTrue(
-                (cuda.to_cpu(self.func.gW) == cuda.to_cpu(y_grad)).all())
+                (cuda.to_cpu(self.func.params['W'].grad) ==
+                 cuda.to_cpu(y_grad)).all())
 
     def test_backward_cpu(self):
         self.check_backward(self.gW, False)
@@ -77,7 +78,7 @@ class TestVolatile(unittest.TestCase):
 
     def setUp(self):
         self.W = numpy.random.uniform(-1, 1, (4, 3)).astype(numpy.float32)
-        self.func = functions.Parameter(self.W)
+        self.func = links.Parameter(self.W)
 
     def tearDown(self):
         del self.func

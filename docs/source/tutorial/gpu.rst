@@ -148,25 +148,45 @@ Run Neural Networks on a Single GPU
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Single-GPU usage is very simple.
-What you have to do is transferring :class:`FunctionSet` and input arrays to the GPU beforehand.
+What you have to do is transferring :class:`Link` and input arrays to the GPU beforehand.
 In this subsection, the code is based on :ref:`our first MNIST example in this tutorial <mnist_mlp_example>`.
 
-A :class:`FunctionSet` object can be transferred to the specified GPU using the :meth:`~FunctionSet.to_gpu` method.
-Make sure to give parameters and gradients of the GPU version to the optimizer. :
+A :class:`Link` object can be transferred to the specified GPU using the :meth:`~Link.to_gpu` method.
+
+.. testcode::
+   :hide:
+
+   class MLP(DictLink):
+       def __init__(self):
+           super(MLP, self).__init__(
+               l1=L.Linear(784, 100),
+               l2=L.Linear(100, 100),
+               l3=L.Linear(100, 10),
+           )
+
+       def __call__(self, x):
+           h1 = F.relu(self['l1'](x))
+           h2 = F.relu(self['l2'](h1))
+           y = self['l3'](h2)
+           return y
+
+   class Classifier(DictLink):
+       def __init__(self, predictor):
+           super(Classifier, self).__init__(predictor=predictor)
+
+       def evaluate(self, x, t):
+           y = self['predictor'](x)
+           return F.softmax_cross_entropy(y, t), F.accuracy(y, t)
 
 .. testcode::
 
-   model = FunctionSet(
-       l1 = F.Linear(784, 100),
-       l2 = F.Linear(100, 100),
-       l3 = F.Linear(100,  10),
-   ).to_gpu()
-
+   model = Classifier(MLP()).to_gpu()  # to_gpu returns itself
    optimizer = optimizers.SGD()
    optimizer.setup(model)
 
-Note that this method returns the :class:`FunctionSet` itself.
-The device specifier can be omitted, in which case it uses the current device.
+You can also specify a device specifier like ``model.to_gpu(0)``.
+In this case, the link object is transferred to the appropriate GPU device.
+The current device is used by default.
 
 Then, all we have to do is transferring each minibatch to the GPU:
 
@@ -175,12 +195,6 @@ Then, all we have to do is transferring each minibatch to the GPU:
 
    x_train = np.random.rand(600, 784).astype(np.float32)
    y_train = np.random.randint(10, size=600).astype(np.int32)
-
-   def forward(x_data, y_data):
-      x = Variable(x_data)
-      t = Variable(y_data)
-      y = model.l3(model.l1(x))
-      return F.softmax_cross_entropy(y, t), F.accuracy(y, t)
 
 .. testcode::
 
@@ -193,8 +207,10 @@ Then, all we have to do is transferring each minibatch to the GPU:
            x_batch = cuda.to_gpu(x_train[indexes[i : i + batchsize]])
            y_batch = cuda.to_gpu(y_train[indexes[i : i + batchsize]])
 
-           optimizer.zero_grads()
-           loss, accuracy = forward(x_batch, y_batch)
+           x = Variable(x_batch)
+           t = Variable(y_batch)
+           model.zerograds()
+           loss, accuracy = model.evaluate(x, t)
            loss.backward()
            optimizer.update()
 
@@ -225,79 +241,76 @@ The overall architecture looks like the following diagram::
                  |                       |                       |
   (GPU1)         +--> l1 --> l2 --> l3 --+--> l4 --> l5 --> l6 --+
 
-We first have to define a :class:`FunctionSet`.
-Be careful that parameters that will be used on a device must reside on that device.
-Here is a simple example of the model definition:
+Let's write a link for single GPU.
 
 .. testcode::
 
-   model = FunctionSet(
-       gpu0 = FunctionSet(
-           l1=F.Linear( 784, 1000),
-           l2=F.Linear(1000, 1000),
-           l3=F.Linear(1000, 2000),
-           l4=F.Linear(2000, 1000),
-           l5=F.Linear(1000, 1000),
-           l6=F.Linear(1000,   10)
-       ).to_gpu(0),
-       gpu1 = FunctionSet(
-           l1=F.Linear( 784, 1000),
-           l2=F.Linear(1000, 1000),
-           l3=F.Linear(1000, 2000),
-           l4=F.Linear(2000, 1000),
-           l5=F.Linear(1000, 1000),
-           l6=F.Linear(1000,   10)
-       ).to_gpu(1)
-   )
+   class SerialMLP(DictLink):
+       def __init__(self):
+           super(SerialMLP, self).__init__(
+               l1=L.Linear(784, 1000),
+               l2=L.Linear(1000, 1000),
+               l3=L.Linear(1000, 2000),
+               l4=L.Linear(2000, 1000),
+               l5=L.Linear(1000, 1000),
+               l6=L.Linear(1000, 10),
+           )
 
-Recall that :meth:`FunctionSet.to_gpu` returns the FunctionSet object itself.
-Note that FunctionSet can be nested as above.
+       def forward_former(self, x):
+           h1 = F.relu(self['l1'](x))
+           h2 = F.relu(self['l2'](h1))
+           return self['l3'](h2)
 
-Now we can define the network architecture that we have shown in the diagram:
+       def forward_latter(self, h3):
+           h3 = F.relu(h3)
+           h4 = F.relu(self['l4'](h3))
+           h5 = F.relu(self['l5'](h4))
+           return self['l6'](h5)
+
+The first half and the second half of the network are separated into distinct methods.
+It enables us to exchange the result of each half between different GPUs.
+We can write a link that combines two instances of SerialMLP on different GPUs:
 
 .. testcode::
 
-   def forward(x_data, y_data):
-       x_0 = Variable(cuda.to_gpu(x_data, 0))
-       x_1 = Variable(cuda.to_gpu(x_data, 1))
-       t   = Variable(cuda.to_gpu(y_data, 0))
+   class ParallelMLP(DictLink):
+       def __init__(self):
+           super(ParallelMLP, self).__init__(
+               gpu0=SerialMLP().to_gpu(0),
+               gpu1=SerialMLP().to_gpu(1),
+           )
 
-       h1_0 = F.relu(model.gpu0.l1(x_0))
-       h1_1 = F.relu(model.gpu1.l1(x_1))
+       def __call__(self, x, t):
+           x0 = x  # on GPU 0
+           x1 = F.copy(x, 1)  # copy to GPU 1
 
-       h2_0 = F.relu(model.gpu0.l2(h1_0))
-       h2_1 = F.relu(model.gpu1.l2(h1_1))
+           # forward through the first half of the network on each GPU
+           h3_0 = self['gpu0'].forward_former(x0)
+           h3_1 = self['gpu1'].forward_former(x1)
 
-       h3_0 = F.relu(model.gpu0.l3(h2_0))
-       h3_1 = F.relu(model.gpu1.l3(h2_1))
+           # exchange h3
+           h3_0 += F.copy(h3_1, 0)
+           h3_1 = F.copy(h3_0, 1)
 
-       # Synchronize
-       h3_0 += F.copy(h3_1, 0)
-       h3_1  = F.copy(h3_0, 1)
+           # forward through the second half of the network on each GPU
+           h6_0 = self['gpu0'].forward_latter(h3_0)
+           h6_1 = self['gpu1'].forward_latter(h3_1)
 
-       h4_0 = F.relu(model.gpu0.l4(h3_0))
-       h4_1 = F.relu(model.gpu1.l4(h3_1))
+           # synchronize and compute the loss
+           y = h6_0 + F.copy(h6_1, 0)
+           return y
 
-       h5_0 = F.relu(model.gpu0.l5(h4_0))
-       h5_1 = F.relu(model.gpu1.l5(h4_1))
-
-       h6_0 = F.relu(model.gpu0.l6(h5_0))
-       h6_1 = F.relu(model.gpu1.l6(h5_1))
-
-       # Synchronize
-       y = h6_0 + F.copy(h6_1, 0)
-       return F.softmax_cross_entropy(y, t), F.accuracy(y, t)
-
-First, recall that :func:`cuda.to_gpu` accepts an optional argument to specify the device identifier.
-We use this to transfer the input minibatch to both the 0th and the 1st devices.
-Then, we can write this model-parallel example employing the :func:`functions.copy` function.
-This function transfers an input array to another device.
-Since it is a function on :class:`Variable`, the operation supports backprop, which reversely transfers an output gradient to the input device.
+Note that the :meth:`Link.to_gpu` method returns the link itself.
+The ``evaluate`` method implements the network described in the above diagram.
+This method takes an input variable on GPU0, and returns the prediction stored in GPU0.
+It can be passed to the above ``Classifier`` link.
+The :func:`~chainer.functions.copy` function copies an input variable to specified GPU device and returns a new variable on the device.
+It is a function on :class:`Variable`, and the operation supports backprop, which reversely transfers an output gradient to the input device.
 
 .. note::
 
    Above code is not parallelized on CPU, but is parallelized on GPU.
-   This is because most of the GPU computation is asynchronous to the host CPU.
+   This is because all the functions in the above code run asynchronous to the host CPU.
 
 An almost identical example code can be found at ``examples/mnist/train_mnist_model_parallel.py``.
 
@@ -312,26 +325,27 @@ In this subsection, we review the way to achieve data-parallel learning on two G
 Suppose again our task is `the MNIST example <mnist_mlp_example>`_.
 This time we want to directly parallelize the three-layer network.
 The most simple form of data-parallelization is parallelizing the gradient computation for a distinct set of data.
-First, define the model:
+First, define a model instance:
 
 .. testcode::
 
-   model = FunctionSet(
-       l1 = F.Linear(784, 100),
-       l2 = F.Linear(100, 100),
-       l3 = F.Linear(100,  10),
-   )
+   model_0 = Classifier(MLP())
 
-We have to copy this model into two different devices.
-This is done by using :func:`copy.deepcopy` and :meth:`FunctionSet.to_gpu` method:
+Recall that the ``MLP`` link implements the multi-layer perceptron, and the ``Classifier`` link wraps it to provide a classifier interface.
+We want to make two copies of this instance on different GPUs.
+The :meth:`Link.to_gpu` method runs in place, so we cannot use it to make a copy.
+In order to make a copy, we can use :meth:`Link.copy` method.
 
 .. testcode::
 
-   import copy
-   model_0 = copy.deepcopy(model).to_gpu(0)
-   model_1 = model.to_gpu(1)
+   model_1 = model_0.copy()
+   model_0.to_gpu(0)
+   model_1.to_gpu(1)
 
-Then, set up optimizer as:
+The :meth:`Link.copy` method copies the link into another instance.
+*It just copies the link hierarchy*, and does not copy the arrays it holds.
+
+Then, set up an optimizer:
 
 .. testcode::
 
@@ -341,20 +355,6 @@ Then, set up optimizer as:
 Here we use the first copy of the model as *the master model*.
 Before its update, gradients of ``model_1`` must be aggregated to those of ``model_0``.
 
-Forward function is almost same as the original example:
-
-.. testcode::
-
-   def forward(x_data, y_data, model):
-       x = Variable(x_data)
-       t = Variable(y_data)
-       h1 = F.relu(model.l1(x))
-       h2 = F.relu(model.l2(h1))
-       y = model.l3(h2)
-       return F.softmax_cross_entropy(y, t), F.accuracy(y, t)
-
-The only difference is that ``forward`` accepts ``model`` as an argument.
-We can feed it with a model and arrays on an appropriate device.
 Then, we can write a data-parallel learning loop as follows:
 
 .. testcode::
@@ -368,24 +368,23 @@ Then, we can write a data-parallel learning loop as follows:
            x_batch = x_train[indexes[i : i + batchsize]]
            y_batch = y_train[indexes[i : i + batchsize]]
 
-           optimizer.zero_grads()
+           model_0.zerograds()
+           model_1.zerograds()
 
-           loss_0, accuracy_0 = forward(
+           loss_0, accuracy_0 = model_0.evaluate(
                cuda.to_gpu(x_batch[:batchsize//2], 0),
-               cuda.to_gpu(y_batch[:batchsize//2], 0),
-               model_0)
+               cuda.to_gpu(y_batch[:batchsize//2], 0))
            loss_0.backward()
 
-           loss_1, accuracy_1 = forward(
+           loss_1, accuracy_1 = model_1.evaluate(
                cuda.to_gpu(x_batch[batchsize//2:], 1),
-               cuda.to_gpu(y_batch[batchsize//2:], 1),
-               model_1)
+               cuda.to_gpu(y_batch[batchsize//2:], 1))
            loss_1.backward()
 
-           optimizer.accumulate_grads(model_1.gradients)
+           model_0.addgrads(model_1)
            optimizer.update()
 
-           model_1.copy_parameters_from(model_0.parameters)
+           model_1.copyparams(model_0)
 
 .. testoutput::
    :hide:
@@ -393,11 +392,13 @@ Then, we can write a data-parallel learning loop as follows:
    epoch 0
    ...
 
+Do not forget initializing the gradients of both model copies!
 One half of the minibatch is forwarded to GPU 0, the other half to GPU 1.
-Then the gradients are accumulated by the :meth:`Optimizer.accumulate_grads` method.
+Then the gradients are accumulated by the :meth:`Link.addgrads` method.
+This method adds the gradients of a given link to those of the self.
 After the gradients are prepared, we can update the optimizer in usual way.
 Note that the update only modifies the parameters of ``model_0``.
-So we must manually copy them to ``model_1`` using :meth:`FunctionSet.copy_parameters_from` method.
+So we must manually copy them to ``model_1`` using :meth:`Link.copyparams` method.
 
 --------
 

@@ -40,7 +40,6 @@ class Variable(object):
             any function applications.
 
     """
-
     def __init__(self, data, volatile=False):
         """Initializes a variable.
 
@@ -49,6 +48,8 @@ class Variable(object):
                 Data array that this variable holds.
             volatile (bool): Volatility flag. If it is True, the variable will
                 not keep track of any function applications.
+            grad (:class:`numpy.ndarray` or :class:`cupy.ndarray`):
+                Gradient array that this variable holds.
 
         """
         assert isinstance(data, (numpy.ndarray, cuda.ndarray))
@@ -58,9 +59,15 @@ class Variable(object):
         self.rank = 0
         self.volatile = volatile
 
-        self.splitter = weakref.ref(lambda: 0)  # dead ref
         self._grad = None
         self.creator = None
+        self.n_users = 0
+
+    def __reduce__(self):
+        return Variable, (self.data, self.volatile), (self._grad,)
+
+    def __setstate__(self, grad):
+        self.grad = grad[0]
 
     def __pos__(self):
         return self
@@ -76,7 +83,7 @@ class Variable(object):
 
     @property
     def label(self):
-        """Short text that represents the function."""
+        """Short text that represents the variable."""
         if self.data.shape == ():
             return str(self.data.dtype)
         return '%s, %s' % (str(self.data.shape),
@@ -144,8 +151,8 @@ https://github.com/pfnet/chainer/issues/new.
                 timing, which may reduce the maximum memory consumption.
 
                 In most cases of training some model, the purpose of backprop
-                is to compute gradients of parameters, not of variables, so it
-                is recommended to set this flag False.
+                is to compute gradients of parameters, not of intermediate
+                variables, so it is recommended to set this flag False.
 
         """
         if self.creator is None:
@@ -153,6 +160,7 @@ https://github.com/pfnet/chainer/issues/new.
 
         cand_funcs = []
         seen_set = set()
+        seen_vars = set()
 
         # Initilize error by 1, if this is a loss variable
         if self.data.size == 1 and self.grad is None:
@@ -185,7 +193,23 @@ https://github.com/pfnet/chainer/issues/new.
                     if y is not None and y is not self:
                         y.grad = None
             for x, gx in zip(func.inputs, gxs):
-                x.grad = gx
+                # Accumulate gradient to x. If it is the first time to visit x,
+                # then a gradient array is simply replaced by gx.
+                x_id = id(x)
+                if x_id not in seen_vars:
+                    seen_vars.add(x_id)
+                    if gx is None or x.n_users == 1:
+                        x.grad = gx
+                    else:
+                        x.grad = gx.copy()
+                elif x._grad is None:
+                    if gx is None or x.n_users == 1:
+                        x.grad = gx
+                    else:
+                        x.grad = gx.copy()
+                elif gx is not None:
+                    x._grad += gx
+
                 if gx is not None:  # skip if gradient does not flow
                     add_cand(x.creator)
 

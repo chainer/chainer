@@ -31,8 +31,6 @@ class DotNode(object):
 
         if isinstance(self.node, variable.Variable):
             return "oval"
-        elif isinstance(self.node, function.Split):
-            return "hexagon"
         else:
             return "box"
 
@@ -109,15 +107,13 @@ class ComputationalGraph(object):
             NotImplementedError('Currently, only dot format is supported.')
 
 
-def build_computational_graph(outputs, remove_split=True):
+def build_computational_graph(outputs):
     """Builds a graph of functions and variables backward-reachable from outputs.
 
     Args:
         outputs(list): nodes from which the graph is constructed.
             Each element of outputs must be either :class:`Variable`
             object or :class:`Function` object.
-        remove_split(bool): If it is ``True``, this function hides
-            :class:`Split` functions and related variables from the graph.
 
     Returns:
         ComputationalGraph: A graph consisting of nodes and edges that
@@ -126,6 +122,8 @@ def build_computational_graph(outputs, remove_split=True):
         If ``unchain_backward`` was called in some variable in the
         computational graph before this function, backward step is
         stopped at this variable.
+
+        TODO(beam2d): Fix doc on Splitter.
 
         For example, suppose that computational graph is as follows::
 
@@ -189,28 +187,15 @@ def build_computational_graph(outputs, remove_split=True):
         _, _, cand = heapq.heappop(cands)
         if isinstance(cand, variable.Variable):
             creator = cand.creator
-            if remove_split and isinstance(creator, function.Split):
-                # assume that function.Split has only one input
-                next_cand = creator.inputs[0]
-                add_cand(next_cand)
-                continue
             if creator is not None and (creator, cand) not in seen_edges:
                 add_cand(creator)
                 seen_edges.add((creator, cand))
                 nodes.add(HashableObject(creator))
                 nodes.add(HashableObject(cand))
         elif isinstance(cand, function.Function):
-            if remove_split and isinstance(cand, function.Split):
-                next_cand = creator.inputs[0]
-                add_cand(next_cand)
-                continue
             for input_ in cand.inputs:
                 if input_ is not cand and (input_, cand) not in seen_edges:
                     creator = input_.creator
-                    if remove_split and \
-                       creator is not None and \
-                       isinstance(creator, function.Split):
-                        input_ = creator.inputs[0]
                     add_cand(input_)
                     seen_edges.add((input_, cand))
                     nodes.add(HashableObject(input_))

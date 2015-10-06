@@ -1,38 +1,38 @@
+.. _functions:
+
 Standard Function implementations
 =================================
 
 .. module:: chainer.functions
 
 Chainer provides basic :class:`~chainer.Function` implementations in the
-:mod:`chainer.functions` package.
+:mod:`chainer.functions` module. All the functions are provided as plain
+Python function that takes and returns:class:`Variable` objects (some also take
+additional values as arguments).
 
-Non-parameterized functions are provided as plain Python functions. These can be
-used directly in forward computation without explicit handling of
-:class:`~chainer.Function` objects. On the other hand, parameterized functions
-should be used with explicit handling of :class:`~chainer.Function` objects.
+.. note::
+   Since v1.4, the concept of "parameterized functions" is gone and they are
+   replaced by corresponding *link* implementations in the :mod:`chainer.links`
+   module. They are still imported to the :mod:`chainer.functions` module with
+   same names for compatibility. See :ref:`links` for the full list of provided
+   links.
 
-Learnable connections
----------------------
-.. autoclass:: Bilinear
-.. autoclass:: BinaryHierarchicalSoftmax
-.. autoclass:: Convolution2D
-.. autoclass:: EmbedID
-.. autoclass:: Linear
-.. autoclass:: NegativeSampling
-.. autoclass:: Parameter
 
 Array computation functions
 ----------------------------
+.. autofunction:: batch_matmul
+.. autofunction:: bilinear
 .. autofunction:: convolution_2d
+.. autofunction:: embed_id
 .. autofunction:: linear
 .. autofunction:: matmul
-.. autofunction:: batch_matmul
 
 Array manipulation functions
 ----------------------------
 .. autofunction:: concat
 .. autofunction:: copy
 .. autofunction:: identity
+.. autofunction:: parameter
 .. autofunction:: reshape
 .. autofunction:: split_axis
 
@@ -44,7 +44,7 @@ Activation functions
 .. autofunction:: leaky_relu
 .. autofunction:: log
 .. autofunction:: lstm
-.. autoclass:: PReLU
+.. autofunction:: prelu
 .. autofunction:: relu
 .. autofunction:: sigmoid
 .. autofunction:: sin
@@ -60,8 +60,7 @@ Pooling functions
 
 Normalization functions
 -----------------------
-.. autoclass:: BatchNormalization
-   :members: __call__
+.. autofunction:: batch_normalization
 .. autofunction:: local_response_normalization
 
 Noise injecting functions 
@@ -72,16 +71,12 @@ Noise injecting functions
 Loss, evaluation and aggregation
 --------------------------------
 .. autofunction:: accuracy
+.. autofunction:: cross_covariance
 .. autofunction:: mean_squared_error
+.. autofunction:: negative_sampling
 .. autofunction:: sigmoid_cross_entropy
 .. autofunction:: softmax_cross_entropy
 .. autofunction:: sum
-.. autofunction:: cross_covariance
-
-Reusable subnetwork of complex architectures
---------------------------------------------
-.. autoclass:: Inception
-.. autoclass:: InceptionBN
 
 Variational Auto-Encoder (VAE)
 ------------------------------

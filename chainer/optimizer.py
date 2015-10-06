@@ -1,272 +1,415 @@
 import math
+import warnings
 
 import numpy
+import six
 
 from chainer import cuda
+from chainer import link
+from chainer import variable
 
-# TODO(delta2323): Make it public function and move it to common directory.
 
+class TupleLink(link.Link):
 
-def _sqnorm(x):
-    with cuda.get_device(x):
-        x = x.ravel()
-        return float(x.dot(x))
+    def __init__(self, params_grads):
+        super(TupleLink, self).__init__()
+        for i, (param, grad) in enumerate(six.moves.zip(*params_grads)):
+            var = variable.Variable(param)
+            var.grad = grad
+            self.params[str(i)] = var
 
 
 class Optimizer(object):
 
     """Base class of all numerical optimizers.
 
-    Optimizer is set up with references to parameters and gradients, and
-    then on every call of :meth:`update`, it updates parameters based on
-    corresponding gradients. Optimizer implementations must override
-    :meth:`update_one` method, which updates one parameter array using the
-    corresponding gradient array.
+    Optimizer is set up with a target link whose parameters are to be
+    optimized. It is done by passing the target link to the :meth:`setup`
+    method. After that, the :meth:`update` method updates the parameters.
 
-    Optimizer can optionally use state for each parameter/gradient pair. It is
-    initialized by :meth:`init_state` method at set up.
+    Each optimizer implementation can create *state values* for each
+    parameter variable of the target link. The state values of the optimizer
+    can be saved via the Chainer's serialization protocol.
+
+    Many optimizers are implemented under the :mod:`optimizers` subpackage.
 
     Attributes:
-        t (int): Number of update steps. It can be used in :meth:`update_one`
-            implementation, where :attr:`t` is incremented beforehand.
+        t (int): Number of updates done (a.k.a. iterations).
+        target (Link): The target link. It is set by the :meth:`setup` method.
+        states (dict): Dictionary of state arrays. Each state corresponds to
+            one parameter, and the key of the state is the absolute name of the
+            parameter in the target link.
 
     """
-
-    def setup(self, params_grads):
-        """Prepares states for all given parameter/gradient pairs.
-
-        Args:
-            params_grads: FunctionSet or tuple (pair) of two tuples.
-                For tuple, the first element is a tuple of parameter arrays,
-                and the second is a tuple of corresponding gradient arrays.
-        """
-        if hasattr(params_grads, 'parameters') and \
-           hasattr(params_grads, 'gradients'):
-            params = getattr(params_grads, 'parameters')
-            grads = getattr(params_grads, 'gradients')
-
-        elif isinstance(params_grads, tuple):
-            params = params_grads[0]
-            grads = params_grads[1]
-        else:
-            msg = ("'params_grads' must have 'parameters' and 'gradients'"
-                   " attributes or tuples, {0} is given")
-            raise ValueError(msg)
-
+    def __init__(self):
         self.t = 0
-        self.tuples = []
-        for p, g in zip(params, grads):
-            with cuda.get_device(p):
-                state = self.init_state(p, g)
-                self.tuples.append((p, g, state))
+        self.target = None
+        self.states = {}
 
-    def init_state(self, param, grad):
-        """Returns the initial state for given parameter and gradient.
+    def init_state(self, param, state):
+        """Initializes the state values for given parameter array.
 
-        Default implementation delegates the procedure to
-        :meth:`init_state_cpu` or :meth:`init_state_gpu` depending on the type
-        of ``param``.
+        State values are represented by a dictionary with string keys and array
+        values. State arrays must be on the same device as the parameter array.
 
-        Args:
-            param: Parameter array.
-            grad: Gradient array corresponding to ``param``.
-
-        Returns:
-            Initial state value.
-
-            .. warning::
-
-                Note that, on every call of :meth:`update_one`, the state value
-                is passed by value and then the method updates its content, so
-                the state must be a reference. Especiallly, one cannot use a
-                value of built-in numeric type. If the state is one scalar
-                value, it is recommended to use a zero-dimensional array, i.e.
-                :class:`numpy.ndarray` with shape ``()``.
-
-        """
-        if isinstance(param, cuda.ndarray):
-            return self.init_state_gpu(param, grad)
-        return self.init_state_cpu(param, grad)
-
-    def init_state_cpu(self, param, grad):
-        """Returns the initial state for given parameter and gradient on GPU.
+        Optimizer implementation should override this method if it requires
+        states to be maintained accross multiple updates. The default
+        implementation just calls the :meth:`init_state_cpu` or
+        :meth:`init_state_gpu` method depending on the given parameter.
 
         Args:
-            param (numpy.ndarray): Parameter array.
-            grad  (numpy.ndarray): Gradient array.
-
-        Returns:
-            Initial state value.
-
-        .. seealso:: :meth:`init_state`, :meth:`init_state_gpu`
+            param (array): Parameter array.
+            state (dict): State dictionary to be set up at this method.
 
         """
-        return None
+        with cuda.get_device(param) as d:
+            if int(d) < 0:
+                self.init_state_cpu(param, state)
+            else:
+                self.init_state_gpu(param, state)
 
-    def init_state_gpu(self, param, grad):
-        """Returns the initial state for given parameter and gradient on CPU.
+    def init_state_cpu(self, param, state):
+        """Initializes the state values for given parameter on CPU.
+
+        Optimizer implementation can override this method and the
+        :meth:`init_state_gpu` instead of the :meth:`init_state` method.
+
+        """
+        pass
+
+    def init_state_gpu(self, param, state):
+        """Initializes the state values for given parameter on GPU.
+
+        Optimizer implementation can override this method and the
+        :meth:`init_state_cpu` instead of the :meth:`init_state` method.
+
+        """
+        pass
+
+    def setup(self, target):
+        """Sets up the optimizer with given target link.
+
+        It registers the given link to this optimizer. The optimizer holds a
+        reference to the link, which is used by other methods.
 
         Args:
-            param (cupy.ndarray): Parameter array.
-            grad  (cupy.ndarray): Gradient array.
-
-        Returns:
-            Initial state value.
-
-        .. seealso:: :meth:`init_state`, :meth:`init_state_gpu`
+            target (Link): Target link to be optimized.
 
         """
-        return None
+        if isinstance(target, tuple):
+            target = TupleLink(target)
+        self.target = target
+        for path, param in target.visitparams():
+            state = {}
+            with cuda.get_device(param.data):
+                self.init_state(param.data, state)
+            self.states[path] = state
+
+    def update(self, loss_func=None, *args, **kwds):
+        """Updates the parameters of the target link.
+
+        .. note::
+           This is an abstract method. Implementation class must override it.
+
+        Given a loss function that returns an output :class:`Variable` object,
+        this method updates the parameters of the target link.
+
+        If the optimizer implementation allows the gradients to be computed
+        outside of this method, then the loss function can be omitted (i.e.
+        None), where this method assumes that the gradient arrays has been
+        already computed. This is valid for optimizers that inherit
+        :class:`GradientMethod`.
+
+        Args:
+            loss_func (callable): A callable object that returns a loss
+                :class:`Variable` object. The loss variable is used for
+                backward computations.
+            args, kwds: Arguments of the loss function.
+
+        """
+        raise NotImplementedError
 
     def zero_grads(self):
-        """Fills all gradient arrays by zeros.
+        """Initializes the gradient arrays of the target link by zeros.
 
-        This method should be call before backprop takes place, since
-        gradients are accumulated on backprop.
+        .. deprecated:: v1.4
+           Use :meth:`Link.zerograds` instead.
 
         """
-        for _, g, _ in self.tuples:
-            if isinstance(g, cuda.ndarray):
-                with cuda.get_device(g):
-                    g.fill(0)
-            else:
-                g.fill(0)
+        warnings.warn('Optimizer.zero_grads is deprecated. '
+                      'Use Link.zerograds instead.', DeprecationWarning)
+        self.target.zerograds()
 
     def compute_grads_norm(self):
-        """Computes the norm of whole gradients.
+        """Computes the L2 norm of the whole gradient array.
 
-        Returns:
-            float: L2 norm of whole gradients, i.e. square root of sum of
-            square of all gradient elements.
-
-        .. warning::
-
-            This method returns a CPU-computed value, which means that this
-            method synchronizes between CPU and GPU if at least one of the
-            gradients reside on the GPU.
+        .. deprecated:: v1.4
+           This method is deprecated.
 
         """
-        # TODO(beam2d): Make it asynchronous to CPU when gradients exist on GPU
+        warnings.warn('Optimizer.compute_grads_norm is deprecated.',
+                      DeprecationWarning)
         sqnorm = 0
-        for _, g, _ in self.tuples:
-            sqnorm += _sqnorm(g)
+        for _, param in self.target.visitparams():
+            grad = param.grad.ravel()
+            sqnorm += float(grad.dot(grad))
         return math.sqrt(sqnorm)
 
     def clip_grads(self, maxnorm):
-        """Clips the norm of whole gradients up to given threshold.
+        """Clips the whole gradient array to given L2 norm.
 
-        Args:
-            maxnorm (float): Threshold of gradient L2 norm.
-
-        .. seealso::
-
-            :meth:`compute_grads_norm`
-                It uses this method to compute the gradient norm to be clipped.
+        .. deprecated:: v1.4
+           Use the :class:`optimizer.GradientClipping` hook instead.
 
         """
-        norm = self.compute_grads_norm()
-        if norm > maxnorm:
-            ratio = maxnorm / norm
-            for _, g, _ in self.tuples:
-                with cuda.get_device(g):
-                    g *= ratio
+        warnings.warn('Optimizer.clip_grads is deprecated. '
+                      'Use GradientClipping instead.', DeprecationWarning)
+        GradientClipping(maxnorm)(self.target)
 
     def weight_decay(self, decay):
-        """Applies weight decay to the parameter/gradient pairs.
+        """Applies weight decay to the parameters and gradients.
 
-        Args:
-            decay (float): Coefficient of weight decay
+        .. deprecated:: v1.4
+           Use the :class:`optimizer.WeightDecay` hook instead.
 
         """
-        for p, g, _ in self.tuples:
-            if isinstance(p, cuda.ndarray):
-                with cuda.get_device(p):
-                    cuda.elementwise('T p, T decay', 'T g',
-                                     'g += decay * p',
-                                     'weight_decay')(p, decay, g)
-            else:
-                g += decay * p
+        warnings.warn('Optimizer.weight_decay is deprecated. '
+                      'Use WeightDecay instead.', DeprecationWarning)
+        WeightDecay(decay)(self.target)
 
     def accumulate_grads(self, grads):
-        """Accumulates gradients from other source.
+        """Accumulates given gradients to the gradients of the target link.
 
-        This method just adds given gradient arrays to gradients that this
-        optimizer holds. It is typically used in data-parallel optimization,
-        where gradients for different shards are computed in parallel and
-        aggregated by this method. This method correctly treats multiple GPU
-        devices.
+        .. deprecated:: v1.4
+           Use the :meth:`Link.addgrads` method instead.
+
+        """
+        warnings.warn('Optimizer.accumulate_grads is deprecated. '
+                      'Use Link.addgrads instead.',
+                      DeprecationWarning)
+        paths = []
+        for path, _ in self.target.visitparams():
+            paths.append(path)
+        paths.sort()
+        d = dict(six.moves.zip(paths, grads))
+
+        for path, param in self.target.visitparams():
+            dst = param.grad
+            src = d[path]
+            if isinstance(dst, numpy.ndarray):
+                dst += cuda.to_cpu(src)
+            elif isinstance(src, numpy.ndarray):
+                dst += cuda.to_gpu(src, device=dst)
+            elif src.device == dst.device:
+                dst += src
+            else:
+                dst += cuda.copy(src, out_device=dst)
+
+    def serialize(self, serializer):
+        """Serializes states of the optimizer by a given serializer.
+
+        Note that this method does not (de)serialize the target link. It should
+        be saved/loaded separately from the optimizer.
 
         Args:
-            grads (Iterable): Iterable of gradient arrays to be accumulated.
+            serializer (Serializer): Serializer object.
 
         """
-        for (_, g_dst, _), g_src in zip(self.tuples, grads):
-            if isinstance(g_dst, numpy.ndarray):
-                g_dst += cuda.to_cpu(g_src)
-                continue
+        self.t = serializer('t', self.t)
+        serializer = serializer['state']
+        for path, state in six.iteritems(self.states):
+            s = serializer[path[1:]]  # omit '/' at the head
+            for key in state:
+                state[key] = s(key, state[key])
 
-            with cuda.get_device(g_dst):
-                if (isinstance(g_src, cuda.ndarray) and
-                        g_dst.device != g_src.device):
-                    g_dst += cuda.copy(g_src, out_device=g_dst.device)
-                else:
-                    g_dst += cuda.to_gpu(g_src)
 
-    def update(self):
-        """Updates all parameters and states using corresponding gradients.
+class GradientMethod(Optimizer):
 
-        This method iteratively calls :meth:`update_one` for each parameter/
-        gradient/state tuple. Beforehand, :attr:`t` attribute is incremented.
+    """Base class of first order optimizers based on one gradient per update.
+
+    This class implements a general gradient method procedure.
+
+    In addition to the common interface of :class:`Optimizer`, GradientMethod
+    also supports *hook functions*. Once a hook function is registered by
+    :meth:`~GradientMethod.add_hook`, it is automatically called by the
+    :meth:`~GradientMethod.update` method just before the actual update process
+    runs. Hook functions are called in the order of registerations.
+
+    """
+    def __init__(self):
+        Optimizer.__init__(self)
+        self.hooks = []
+
+    def add_hook(self, name, hook):
+        """Adds a hook function.
+
+        The hook function takes the target link as an argument and modifies its
+        parameters and gradients.
+
+        Args:
+            name (str): Name for the registeration. It is used for removing the
+                hook.
+            hook (callable): Hook function.
 
         """
+        if not callable(hook):
+            raise TypeError('Cannot set non-callable object as a hook')
+        self.hooks.append((name, hook))
+
+    def remove_hook(self, name):
+        """Removes a hook function of given registeration name.
+
+        Args:
+            name (str): Name for the registeration.
+
+        """
+        dels = []
+        for i, (n, h) in enumerate(self.hooks):
+            if n == name:
+                dels.append(i)
+        dels.reverse()
+        for i in dels:
+            del self.hooks[i]
+
+    def update(self, loss_func=None, *args, **kwds):
+        """Updates the parameters with a loss function or computed gradients.
+
+        If a loss function is given, then this method uses it to get a loss
+        :class:`Variable` object, and calls its :meth:`~Variable.backward`
+        method to compute the gradient arrays. In this case, this method
+        initializes the gradients by zero, so users do not have to call
+        :meth:`Link.zerograds` beforehand.
+
+        If a loss function is not given, this method assumes that all gradient
+        arrays for the parameters of the target link have been already
+        computed.
+
+        This method also calls registered hook functions in the order of
+        registerations just after the gradient computation.
+
+        Each gradient method implementation should not override this method.
+        Instead, :meth:`update_param` or both
+        :meth:`update_param_cpu` and :meth:`update_param_gpu` methods should be
+        overridden.
+
+        Args:
+            loss_func (callable): A callable object that returns a loss
+                :class:`Variable` object. The loss variable is used for
+                backward computation. If the loss function is not given, then
+                this method assumes that the gradient arrays have been already
+                computed, and uses them in the update.
+            args, kwds: Arguments of the loss function.
+
+        """
+        if loss_func is not None:
+            self.target.zerograds()
+            loss = loss_func(*args, **kwds)
+            loss.backward()
+
+        for _, hook in self.hooks:
+            hook(self.target)
+
         self.t += 1
-        for p, g, s in self.tuples:
-            with cuda.get_device(p):
-                self.update_one(p, g, s)
+        for path, param in self.target.visitparams():
+            state = self.states[path]
+            self.update_param(param.data, param.grad, state)
 
-    def update_one(self, param, grad, state):
-        """Updates a parameter array and its state using given gradient.
+    def update_param(self, param, grad, state):
+        """Updates a parameter array and the corresponding state.
 
-        The default implementation delegates the procedure to
-        :meth:`update_one_cpu` or :meth:`update_one_gpu` depending on the type
-        of the parameter array. Optimizer implmentation must override these
-        type-specific methods or this :meth:`update_one` method directly.
+        This method can be overridden by gradient method implementations when
+        the same routine can be used both for CPU and GPU arrays. If CPU and
+        GPU routines should be divided, override the :meth:`update_param_cpu`
+        and :meth:`update_param_gpu` methods, instead.
 
         Args:
-            param: Parameter array.
-            grad:  Gradient array.
-            state: State value.
-
-        .. seealso:: :meth:`update_one_cpu`, :meth:`update_one_gpu`
+            param (array): The parameter array to be updated.
+            grad (array): The corresponding gradient array.
+            state (dict): The corresponding state dictionary to be possibly
+                updated.
 
         """
         if isinstance(param, cuda.ndarray):
-            self.update_one_gpu(param, grad, state)
+            self.update_param_gpu(param, grad, state)
         else:
-            self.update_one_cpu(param, grad, state)
+            self.update_param_cpu(param, grad, state)
 
-    def update_one_cpu(self, param, grad, state):
-        """Updates a parameter array and its state using given gradient on CPU.
-
-        Args:
-            param (numpy.ndarray): Parameter array.
-            grad  (numpy.ndarray): Gradient array.
-            state: State value.
-
-        .. seealso:: :meth:`update_one`, :meth:`update_one_gpu`
-
-        """
-        raise NotImplementedError()
-
-    def update_one_gpu(self, param, grad, state):
-        """Updates a parameter array and its state using given gradient on GPU.
+    def update_param_cpu(self, param, grad, state):
+        """Updates a parameter array and the corresponding state on CPU.
 
         Args:
-            param (cupy.ndarray): Parameter array.
-            grad  (cupy.ndarray): Gradient array.
-            state: State value.
-
-        .. seealso:: :meth:`update_one`, :meth:`update_one_cpu`
+            param (numpy.ndarray): The parameter array to be updated.
+            grad (numpy.ndarray): The corresponding gradient array.
+            state (dict): The corresponding state dictionary to be possible
+                updated.
 
         """
-        raise NotImplementedError()
+        raise NotImplementedError
+
+    def update_param_gpu(self, param, grad, state):
+        """Updates a parameter array and the corresponding state on GPU.
+
+        Args:
+            param (cupy.ndarray): The parameter array to be updated.
+            grad (numpy.ndarray): The corresponding gradient array.
+            state (dict): The corresponding state dictionary to be possible
+                updated.
+
+        """
+        raise NotImplementedError
+
+
+class WeightDecay(object):
+
+    """Optimizer hook function for weight decay.
+
+    This hook function implements weight decay regularizer. Instead of
+    implementing weight decay as a L2 regularization term, this hook function
+    directly modifies the gradient arrays by adding ``decay * parameter`` to
+    the corresponding gradient.
+
+    Args:
+        decay (float): Weight decay coefficient.
+
+    """
+    def __init__(self, decay):
+        self.decay = decay
+
+    def __call__(self, target):
+        decay = self.decay
+        for _, param in target.visitparams():
+            data = param.data
+            with cuda.get_device(data):
+                param.grad += data.dtype.type(decay) * data
+
+
+class GradientClipping(object):
+
+    """Optimizer hook function for gradinet clipping.
+
+    This hook function implements gradient clipping, which scales the whole
+    gradient array by an appropriate scalar to fit into the given maximum L2
+    norm if needed.
+
+    Args:
+        maxnorm (float): Maximum L2 norm of the resulting whole gradient array.
+
+    """
+    def __init__(self, maxnorm):
+        self.maxnorm = maxnorm
+
+    def __call__(self, target):
+        # TODO(beam2d): Make it fast on GPU
+        grads = []
+        for _, param in target.visitparams():
+            grads.append(param.grad)
+
+        sqnorm = 0
+        for grad in grads:
+            grad = grad.ravel()
+            sqnorm += float(grad.dot(grad))
+
+        ratio = self.maxnorm / math.sqrt(sqnorm)
+        if ratio < 1:
+            for grad in grads:
+                grad *= ratio

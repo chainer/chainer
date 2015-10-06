@@ -326,6 +326,7 @@ autosummary_generate = True
 intersphinx_mapping = {
     'python': ('https://docs.python.org/2/', None),
     'numpy': ('http://docs.scipy.org/doc/numpy/', None),
+    'h5py': ('http://docs.h5py.org/en/latest', None)
 }
 
 doctest_global_setup = '''
