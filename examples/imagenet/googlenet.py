@@ -2,7 +2,7 @@ import chainer
 import chainer.functions as F
 
 
-class GoogLeNet(chainer.FunctionSet):
+class GoogLeNet(chainer.DictLink):
 
     insize = 224
 
@@ -31,49 +31,46 @@ class GoogLeNet(chainer.FunctionSet):
             loss2_fc2=F.Linear(1024, 1000)
         )
 
-    def forward(self, x_data, y_data, train=True):
-        x = chainer.Variable(x_data, volatile=not train)
-        t = chainer.Variable(y_data, volatile=not train)
-
-        h = F.relu(self.conv1(x))
+    def forward(self, x, t, train=True):
+        h = F.relu(self['conv1'](x))
         h = F.local_response_normalization(
             F.max_pooling_2d(h, 3, stride=2), n=5)
 
-        h = F.relu(self.conv2_reduce(h))
-        h = F.relu(self.conv2(h))
+        h = F.relu(self['conv2_reduce'](h))
+        h = F.relu(self['conv2'](h))
         h = F.max_pooling_2d(
             F.local_response_normalization(h, n=5), 3, stride=2)
 
-        h = self.inc3a(h)
-        h = self.inc3b(h)
+        h = self['inc3a'](h)
+        h = self['inc3b'](h)
         h = F.max_pooling_2d(h, 3, stride=2)
-        h = self.inc4a(h)
+        h = self['inc4a'](h)
 
         if train:
             loss1 = F.average_pooling_2d(h, 5, stride=3)
-            loss1 = F.relu(self.loss1_conv(loss1))
-            loss1 = F.relu(self.loss1_fc1(loss1))
-            loss1 = self.loss1_fc2(loss1)
+            loss1 = F.relu(self['loss1_conv'](loss1))
+            loss1 = F.relu(self['loss1_fc1'](loss1))
+            loss1 = self['loss1_fc2'](loss1)
             loss1 = F.softmax_cross_entropy(loss1, t)
 
-        h = self.inc4b(h)
-        h = self.inc4c(h)
-        h = self.inc4d(h)
+        h = self['inc4b'](h)
+        h = self['inc4c'](h)
+        h = self['inc4d'](h)
 
         if train:
             loss2 = F.average_pooling_2d(h, 5, stride=3)
-            loss2 = F.relu(self.loss2_conv(loss2))
-            loss2 = F.relu(self.loss2_fc1(loss2))
-            loss2 = self.loss2_fc2(loss2)
+            loss2 = F.relu(self['loss2_conv'](loss2))
+            loss2 = F.relu(self['loss2_fc1'](loss2))
+            loss2 = self['loss2_fc2'](loss2)
             loss2 = F.softmax_cross_entropy(loss2, t)
 
-        h = self.inc4e(h)
+        h = self['inc4e'](h)
         h = F.max_pooling_2d(h, 3, stride=2)
-        h = self.inc5a(h)
-        h = self.inc5b(h)
+        h = self['inc5a'](h)
+        h = self['inc5b'](h)
 
         h = F.dropout(F.average_pooling_2d(h, 7, stride=1), 0.4, train=train)
-        h = self.loss3_fc(h)
+        h = self['loss3_fc'](h)
         loss3 = F.softmax_cross_entropy(h, t)
 
         if train:

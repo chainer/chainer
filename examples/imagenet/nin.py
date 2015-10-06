@@ -4,7 +4,7 @@ import chainer
 import chainer.functions as F
 
 
-class NIN(chainer.FunctionSet):
+class NIN(chainer.DictLink):
 
     """Network-in-Network example model."""
 
@@ -27,25 +27,22 @@ class NIN(chainer.FunctionSet):
             conv4b=F.Convolution2D(1024, 1000,  1, wscale=w),
         )
 
-    def forward(self, x_data, y_data, train=True):
-        x = chainer.Variable(x_data, volatile=not train)
-        t = chainer.Variable(y_data, volatile=not train)
-
-        h = F.relu(self.conv1(x))
-        h = F.relu(self.conv1a(h))
-        h = F.relu(self.conv1b(h))
+    def forward(self, x, t, train=True):
+        h = F.relu(self['conv1'](x))
+        h = F.relu(self['conv1a'](h))
+        h = F.relu(self['conv1b'](h))
         h = F.max_pooling_2d(h, 3, stride=2)
-        h = F.relu(self.conv2(h))
-        h = F.relu(self.conv2a(h))
-        h = F.relu(self.conv2b(h))
+        h = F.relu(self['conv2'](h))
+        h = F.relu(self['conv2a'](h))
+        h = F.relu(self['conv2b'](h))
         h = F.max_pooling_2d(h, 3, stride=2)
-        h = F.relu(self.conv3(h))
-        h = F.relu(self.conv3a(h))
-        h = F.relu(self.conv3b(h))
+        h = F.relu(self['conv3'](h))
+        h = F.relu(self['conv3a'](h))
+        h = F.relu(self['conv3b'](h))
         h = F.max_pooling_2d(h, 3, stride=2)
         h = F.dropout(h, train=train)
-        h = F.relu(self.conv4(h))
-        h = F.relu(self.conv4a(h))
-        h = F.relu(self.conv4b(h))
-        h = F.reshape(F.average_pooling_2d(h, 6), (x_data.shape[0], 1000))
+        h = F.relu(self['conv4'](h))
+        h = F.relu(self['conv4a'](h))
+        h = F.relu(self['conv4b'](h))
+        h = F.reshape(F.average_pooling_2d(h, 6), (x.data.shape[0], 1000))
         return F.softmax_cross_entropy(h, t), F.accuracy(h, t)

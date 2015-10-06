@@ -23,6 +23,7 @@ import six
 import six.moves.cPickle as pickle
 from six.moves import queue
 
+import chainer
 from chainer import computational_graph as c
 from chainer import cuda
 from chainer import optimizers
@@ -264,12 +265,14 @@ def train_loop():
             train = False
             continue
 
-        x = xp.asarray(inp[0])
-        y = xp.asarray(inp[1])
+        x_data = xp.asarray(inp[0])
+        y_data = xp.asarray(inp[1])
+        x = chainer.Variable(x_data, volatile=not train)
+        t = chainer.Variable(y_data, volatile=not train)
 
         if train:
             optimizer.zero_grads()
-            loss, accuracy = model.forward(x, y)
+            loss, accuracy = model.forward(x, t, train=train)
             loss.backward()
             optimizer.update()
 
@@ -282,11 +285,13 @@ def train_loop():
                 graph_generated = True
 
         else:
-            loss, accuracy = model.forward(x, y, train=False)
+            m = model.copy()
+            m.volatile = True
+            loss, accuracy = m.forward(x, t, train=train)
 
         res_q.put((float(loss.data),
                    float(accuracy.data)))
-        del loss, accuracy, x, y
+        del loss, accuracy, x_data, y_data
 
 # Invoke threads
 feeder = threading.Thread(target=feed_data)
