@@ -13,7 +13,6 @@ from chainer.functions.array import concat
 from chainer.functions.array import copy
 from chainer.functions.array import reshape
 from chainer.functions.array import split_axis
-from chainer.functions.connection import bilinear
 from chainer.functions.connection import convolution_2d
 from chainer.functions.connection import embed_id
 from chainer.functions.connection import linear
@@ -44,11 +43,11 @@ import chainer.links.connection.embed_id as links_embed_id
 from chainer.links.connection import inception
 from chainer.links.connection import inceptionbn
 import chainer.links.connection.linear as links_linear
-import chainer.links.normalization.batch_normalization \
-    as links_batch_normalization
 from chainer.links.connection import parameter
 from chainer.links.loss import hierarchical_softmax
 import chainer.links.loss.negative_sampling as links_negative_sampling
+import chainer.links.normalization.batch_normalization \
+    as links_batch_normalization
 
 
 ClippedReLU = clipped_relu.ClippedReLU

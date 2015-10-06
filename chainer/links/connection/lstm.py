@@ -62,7 +62,7 @@ class LSTM(link.DictLink):
             self.h = variable.Variable(
                 xp.zeros((len(x.data), self.state_size), dtype=x.data.dtype),
                 volatile=self.volatile)
-            
+
         lstm_in = self['input'](x) + self['lateral'](self.h)
         self.c, self.h = lstm.lstm(self.c, lstm_in)
         return self.h

@@ -1,6 +1,6 @@
 from chainer.functions.activation import relu
-from chainer.links.connection import convolution_2d
 from chainer import link
+from chainer.links.connection import convolution_2d
 
 
 class MLPConvolution2D(link.ListLink):

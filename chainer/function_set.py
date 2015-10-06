@@ -55,8 +55,8 @@ class FunctionSet(link.DictLink):
         """Returns self.
 
         .. deprecated:: v1.4
-           Pass the :class:`Link` object directly to the :meth:`Optimizer.setup`
-           method instead.
+           Pass the :class:`Link` object directly to the
+           :meth:`Optimizer.setup` method instead.
 
         Returns: self.
 
@@ -115,9 +115,9 @@ class FunctionSet(link.DictLink):
         d = dict(six.moves.zip(paths, params))
 
         # replace params by given ones
-        for link in self.visitlinks():
-            prefix = link._name + '/_params/'
-            p = link.params
+        for l in self.visitlinks():
+            prefix = l._name + '/_params/'
+            p = l.params
             for key in p:
                 path = prefix + key
                 p[key].data = d[path]
@@ -147,9 +147,9 @@ class FunctionSet(link.DictLink):
         d = dict(six.moves.zip(paths, grads))
 
         # replace params by given ones
-        for link in self.visitlinks():
-            prefix = link._name + '/_params/'
-            g = link.grads
+        for l in self.visitlinks():
+            prefix = l._name + '/_params/'
+            g = l.grads
             for key in g:
                 path = prefix + key
                 g[key].grad = d[path]

@@ -365,7 +365,6 @@ class DictLink(Link):
 
     Args:
         kwds (dict): Initial set of links with relative names.
-    
     """
     def __init__(self, **kwds):
         Link.__init__(self)

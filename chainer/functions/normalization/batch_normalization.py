@@ -2,9 +2,7 @@ import numpy
 
 from chainer import cuda
 from chainer import function
-from chainer import link
 from chainer.utils import type_check
-from chainer import variable
 
 
 class BatchNormalizationFunction(function.Function):
@@ -37,7 +35,6 @@ class BatchNormalizationFunction(function.Function):
                 var_type.dtype == numpy.float32,
                 var_type.shape == gamma_type.shape,
             )
-            
 
     def forward(self, inputs):
         xp = cuda.get_array_module(*inputs)

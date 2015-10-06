@@ -18,8 +18,8 @@ class TestBatchNormalization(unittest.TestCase):
 
     def setUp(self):
         self.func = links.BatchNormalization(3)
-        gamma =  self.func.params['gamma'].data
-        beta =  self.func.params['beta'].data
+        gamma = self.func.params['gamma'].data
+        beta = self.func.params['beta'].data
         gamma[...] = numpy.random.uniform(
             .5, 1, gamma.shape).astype(numpy.float32)
         beta[...] = numpy.random.uniform(

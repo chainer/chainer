@@ -1,13 +1,13 @@
-import unittest
+# import unittest
 
-import mock
-import numpy
+# import mock
+# import numpy
 
-import chainer
-from chainer import cuda
-from chainer import links
+# import chainer
+# from chainer import cuda
+# from chainer import links
 from chainer import testing
-from chainer.testing import attr
+# from chainer.testing import attr
 
 
 # TODO(beam2d): Recover the following mock tests.

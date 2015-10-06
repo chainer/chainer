@@ -1,13 +1,9 @@
-import math
-
 import numpy
 
 from chainer import cuda
 from chainer import function
-from chainer import link
 from chainer.utils import array
 from chainer.utils import type_check
-from chainer import variable
 
 
 class BilinearFunction(function.Function):
