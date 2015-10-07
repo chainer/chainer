@@ -1,5 +1,6 @@
 import chainer
 import chainer.functions as F
+import chainer.links as L
 
 
 class AlexBN(chainer.DictLink):
@@ -12,16 +13,16 @@ class AlexBN(chainer.DictLink):
 
     def __init__(self):
         super(AlexBN, self).__init__(
-            conv1=F.Convolution2D(3,  96, 11, stride=4),
-            bn1=F.BatchNormalization(96),
-            conv2=F.Convolution2D(96, 256,  5, pad=2),
-            bn2=F.BatchNormalization(256),
-            conv3=F.Convolution2D(256, 384,  3, pad=1),
-            conv4=F.Convolution2D(384, 384,  3, pad=1),
-            conv5=F.Convolution2D(384, 256,  3, pad=1),
-            fc6=F.Linear(9216, 4096),
-            fc7=F.Linear(4096, 4096),
-            fc8=F.Linear(4096, 1000),
+            conv1=L.Convolution2D(3,  96, 11, stride=4),
+            bn1=L.BatchNormalization(96),
+            conv2=L.Convolution2D(96, 256,  5, pad=2),
+            bn2=L.BatchNormalization(256),
+            conv3=L.Convolution2D(256, 384,  3, pad=1),
+            conv4=L.Convolution2D(384, 384,  3, pad=1),
+            conv5=L.Convolution2D(384, 256,  3, pad=1),
+            fc6=L.Linear(9216, 4096),
+            fc7=L.Linear(4096, 4096),
+            fc8=L.Linear(4096, 1000),
         )
 
     def forward(self, x, t, train=True):
