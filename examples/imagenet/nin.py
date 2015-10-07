@@ -16,8 +16,8 @@ class NIN(chainer.DictLink):
         super(NIN, self).__init__(
             l1=L.MLPConvolution2D(3, [96, 96, 96], 11, wscale=w, stride=4),
             l2=L.MLPConvolution2D(96, [256, 256, 256], 5, wscale=w, pad=2),
-            l3=L.MLPConvolution2D(256, [384, 384, 384], 3, wscale=w),
-            l4=L.MLPConvolution2D(384, [1024, 1024, 1000], 3, wscale=w),
+            l3=L.MLPConvolution2D(256, [384, 384, 384], 3, wscale=w, pad=1),
+            l4=L.MLPConvolution2D(384, [1024, 1024, 1000], 3, wscale=w, pad=1),
         )
 
     def forward(self, x, t, train=True):
@@ -28,6 +28,6 @@ class NIN(chainer.DictLink):
         h = F.relu(self['l3'](h))
         h = F.max_pooling_2d(h, 3, stride=2)
         h = F.dropout(h, train=train)
-        h = F.relu(self['l4'](h))
+        h = self['l4'](h)
         h = F.reshape(F.average_pooling_2d(h, 6), (x.data.shape[0], 1000))
         return F.softmax_cross_entropy(h, t), F.accuracy(h, t)
