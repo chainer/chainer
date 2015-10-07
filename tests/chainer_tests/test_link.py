@@ -194,9 +194,9 @@ class TestDictLink(unittest.TestCase):
             self.assertIn(self.link['ch2'], values)
 
     def test_has_key(self):
-        self.assertTrue(self.link.has_key('ch1'))
-        self.assertTrue(self.link.has_key('ch2'))
-        self.assertFalse(self.link.has_key('ch3'))
+        self.assertIn('ch1', self.link)
+        self.assertIn('ch2', self.link)
+        self.assertNotIn('ch3', self.link)
 
     def test_keys(self):
         keys = list(self.link.keys())
@@ -227,7 +227,7 @@ class TestDictLink(unittest.TestCase):
         self.assertIs(self.link['ch1'], ch1)
 
         o = Link1()
-        ret = self.link.setdefault('ch3', o)
+        self.link.setdefault('ch3', o)
         self.assertIn('ch3', self.link)
         self.assertIs(self.link['ch3'], o)
         self.assertEqual(o.name, '/ch3')

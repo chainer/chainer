@@ -6,7 +6,6 @@ import numpy as np
 import chainer
 from chainer import cuda
 from chainer import gradient_check
-from chainer import optimizer
 from chainer import optimizers
 from chainer import testing
 from chainer.testing import attr
@@ -68,7 +67,7 @@ class TestGradientMethod(unittest.TestCase):
         self.optimizer.setup((self.params, self.grads))
 
     def check_init_state(self, param, grad, gpu):
-        state = self.optimizer.init_state(param, grad)
+        self.optimizer.init_state(param, grad)
 
         self._get_method('init_state', gpu).assert_called_once_with(
             param, grad)
@@ -93,7 +92,8 @@ class TestGradientMethod(unittest.TestCase):
 
         self._get_method('update_param', gpu).assert_called_once_with(
             self.params[0], self.grads[0], {})
-        self.assertEqual(self._get_method('update_param', not gpu).call_count, 0)
+        self.assertEqual(self._get_method('update_param', not gpu).call_count,
+                         0)
 
         self.optimizer.zero_grads()
         self.assertTrue((cuda.to_cpu(self.grads[0]) == 0).all())

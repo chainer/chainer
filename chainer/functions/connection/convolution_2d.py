@@ -1,15 +1,12 @@
 import ctypes
-import math
 
 import numpy
 from six import moves
 
 from chainer import cuda
 from chainer import function
-from chainer import link
 from chainer.utils import conv
 from chainer.utils import type_check
-from chainer import variable
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn

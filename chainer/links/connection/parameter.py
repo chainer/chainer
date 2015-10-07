@@ -1,6 +1,3 @@
-import numpy
-import warnings
-
 from chainer.functions.math import identity
 from chainer import link
 from chainer import variable
