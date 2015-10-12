@@ -229,7 +229,7 @@ class CaffeFunction(object):
         n_out = num
         func = functions.Convolution2D(n_in, n_out, ksize, stride, pad,
                                        nobias=not param.bias_term)
-        func.W.fill(0)
+        func.params['W'].data.fill(0)
 
         part_size = len(blobs[0].data) // param.group
         for i in six.moves.range(param.group):
@@ -237,13 +237,13 @@ class CaffeFunction(object):
                              (i+1) * n_in // param.group)
             out_slice = slice(i * n_out // param.group,
                               (i+1) * n_out // param.group)
-            w = func.W[out_slice, in_slice]
+            w = func.params['W'].data[out_slice, in_slice]
 
             data = numpy.array(blobs[0].data[i*part_size:(i+1)*part_size])
             w[:] = data.reshape(w.shape)
 
         if param.bias_term:
-            func.b[:] = blobs[1].data
+            func.params['b'].data[:] = blobs[1].data
 
         setattr(self.fs, layer.name, func)
         self.forwards[layer.name] = func
@@ -273,9 +273,9 @@ class CaffeFunction(object):
         blobs = layer.blobs
         width, height = _get_width(blobs[0]), _get_height(blobs[0])
         func = functions.Linear(width, height, nobias=not bias_term)
-        func.W.ravel()[:] = blobs[0].data
+        func.params['W'].data.ravel()[:] = blobs[0].data
         if bias_term:
-            func.b[:] = blobs[1].data
+            func.params['b'].data[:] = blobs[1].data
 
         setattr(self.fs, layer.name, func)
         self.forwards[layer.name] = func
