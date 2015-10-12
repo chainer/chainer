@@ -164,6 +164,7 @@ class CaffeFunction(object):
                 continue
 
             func = self.forwards[func_name]
+            func.volatile = not train
             input_vars = tuple(variables[blob] for blob in bottom)
             output_vars = func(*input_vars)
             if not isinstance(output_vars, collections.Iterable):
