@@ -192,10 +192,11 @@ https://github.com/pfnet/chainer/issues/new.
                     if y is not None and y is not self:
                         y.grad = None
             for x, gx in zip(func.inputs, gxs):
-                # Accumulate gradient to x. If it is the first time to visit x,
-                # then a gradient array is simply replaced by gx.
+                # Accumulate gradient to x. If it is the first time to visit x
+                # and is not a leaf variable (e.g. parameter), then a gradient
+                # array is simply replaced by gx.
                 x_id = id(x)
-                if x_id not in seen_vars:
+                if x_id not in seen_vars and x.creator is not None:
                     seen_vars.add(x_id)
                     if gx is None or x.n_users == 1:
                         x.grad = gx
