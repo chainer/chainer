@@ -1,4 +1,5 @@
 import math
+import warnings
 
 import numpy
 
@@ -38,12 +39,11 @@ class Linear(function.Function):
         in_size (int): Dimension of input vectors.
         out_size (int): Dimension of output vectors.
         wscale (float): Scaling factor of the weight matrix.
-        bias (float): Initial bias value.
+        bias (float): (Deprecated. Use ``initial_bias``). Initial bias value.
         nobias (bool): If True, then this function does not use the bias.
         initialW (2-D array): Initial weight value. If ``None``, then this
             function uses to initialize ``wscale``.
-        initial_bias (1-D array): Initial bias value. If ``None``, then this
-            function uses to initialize ``bias``.
+        initial_bias (1-D array or float): Initial bias value.
 
     .. note::
 
@@ -52,8 +52,8 @@ class Linear(function.Function):
        and the other dimensions are reduced to one dimension.
 
     """
-    def __init__(self, in_size, out_size, wscale=1, bias=0, nobias=False,
-                 initialW=None, initial_bias=None):
+    def __init__(self, in_size, out_size, wscale=1, bias=None, nobias=False,
+                 initialW=None, initial_bias=0):
         self.W = None
         self.gW = None
         self.b = None
@@ -69,11 +69,21 @@ class Linear(function.Function):
         xp = cuda.get_array_module(self.W)
         self.gW = xp.full_like(self.W, numpy.nan)
 
-        if initial_bias is not None:
-            assert initial_bias.shape == (out_size,)
-            self.b = initial_bias
-        elif not nobias:
-            self.b = numpy.repeat(numpy.float32(bias), out_size)
+        if not nobias:
+            if isinstance(initial_bias, (numpy.ndarray, cuda.ndarray)):
+                assert initial_bias.shape == (out_size,)
+                self.b = initial_bias
+            elif bias is not None:
+                warnings.warn(
+                    'keyword argument bias is deprecated. '
+                    'Use initial_bias instead.', DeprecationWarning)
+                self.b = numpy.repeat(numpy.float32(bias), out_size)
+            elif numpy.isscalar(initial_bias):
+                self.b = numpy.repeat(numpy.float32(initial_bias), out_size)
+            else:
+                raise ValueError(
+                    'initial bias should be scalar, numpy.ndarray '
+                    'or cupy.ndarray')
 
         if self.b is not None:
             self.gb = xp.full_like(self.b, numpy.nan)
