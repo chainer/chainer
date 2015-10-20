@@ -82,16 +82,17 @@ def get_model(arch):
     return model
 
 
-def read_image(path, center=False, flip=False):
+def read_image(path, insize, center=False, flip=False):
     # Data loading routine
+    cropwidth = 256 - insize
     image = np.asarray(Image.open(path)).transpose(2, 0, 1)
     if center:
         top = left = cropwidth / 2
     else:
         top = random.randint(0, cropwidth - 1)
         left = random.randint(0, cropwidth - 1)
-    bottom = model.insize + top
-    right = model.insize + left
+    bottom = insize + top
+    right = insize + left
 
     image = image[:, top:bottom, left:right].astype(np.float32)
     image -= mean_image[:, top:bottom, left:right]
@@ -102,16 +103,16 @@ def read_image(path, center=False, flip=False):
         return image
 
 
-def feed_data():
+def feed_data(insize):
     # Data feeder
     i = 0
     count = 0
 
     x_batch = np.ndarray(
-        (args.batchsize, 3, model.insize, model.insize), dtype=np.float32)
+        (args.batchsize, 3, insize, insize), dtype=np.float32)
     y_batch = np.ndarray((args.batchsize,), dtype=np.int32)
     val_x_batch = np.ndarray(
-        (args.val_batchsize, 3, model.insize, model.insize), dtype=np.float32)
+        (args.val_batchsize, 3, insize, insize), dtype=np.float32)
     val_y_batch = np.ndarray((args.val_batchsize,), dtype=np.int32)
 
     batch_pool = [None] * args.batchsize
@@ -124,7 +125,8 @@ def feed_data():
         perm = np.random.permutation(len(train_list))
         for idx in perm:
             path, label = train_list[idx]
-            batch_pool[i] = pool.apply_async(read_image, (path, False, True))
+            batch_pool[i] = pool.apply_async(
+                read_image, (path, insize, False, True))
             y_batch[i] = label
             i += 1
 
@@ -140,7 +142,7 @@ def feed_data():
                 j = 0
                 for path, label in val_list:
                     val_batch_pool[j] = pool.apply_async(
-                        read_image, (path, True, False))
+                        read_image, (path, insize, True, False))
                     val_y_batch[j] = label
                     j += 1
 
@@ -224,7 +226,7 @@ def log_result():
                 sys.stdout.flush()
 
 
-def train_loop():
+def train_loop(xp):
     # Trainer
     graph_generated = False
     while True:
@@ -299,17 +301,15 @@ if __name__ == '__main__':
     data_q = queue.Queue(maxsize=1)
     res_q = queue.Queue()
 
-    cropwidth = 256 - model.insize
-
     # Invoke threads
-    feeder = threading.Thread(target=feed_data)
+    feeder = threading.Thread(target=lambda: feed_data(model.insize))
     feeder.daemon = True
     feeder.start()
     logger = threading.Thread(target=log_result)
     logger.daemon = True
     logger.start()
 
-    train_loop()
+    train_loop(xp)
     feeder.join()
     logger.join()
 
