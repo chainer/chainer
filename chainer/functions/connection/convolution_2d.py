@@ -85,7 +85,7 @@ class Convolution2D(function.Function):
 
     """
     def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
-                 wscale=1, bias=0, nobias=False, use_cudnn=True,
+                 wscale=1, bias=None, nobias=False, use_cudnn=True,
                  initialW=None, initial_bias=0,
                  dtype=numpy.float32):
         self.dtype = numpy.dtype(dtype)
