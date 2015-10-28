@@ -103,7 +103,7 @@ def read_image(path, insize, center=False, flip=False):
         return image
 
 
-def feed_data(insize):
+def feed_data(insize, train_list, val_list, mean_image):
     # Data feeder
     i = 0
     count = 0
@@ -126,7 +126,7 @@ def feed_data(insize):
         for idx in perm:
             path, label = train_list[idx]
             batch_pool[i] = pool.apply_async(
-                read_image, (path, insize, False, True))
+                read_image, (path, insize, mean_image, False, True))
             y_batch[i] = label
             i += 1
 
@@ -142,7 +142,7 @@ def feed_data(insize):
                 j = 0
                 for path, label in val_list:
                     val_batch_pool[j] = pool.apply_async(
-                        read_image, (path, insize, True, False))
+                        read_image, (path, insize, mean_image, True, False))
                     val_y_batch[j] = label
                     j += 1
 
@@ -302,7 +302,7 @@ if __name__ == '__main__':
     res_q = queue.Queue()
 
     # Invoke threads
-    feeder = threading.Thread(target=lambda: feed_data(model.insize))
+    feeder = threading.Thread(target=lambda: feed_data(model.insize, train_list, val_list, mean_image))
     feeder.daemon = True
     feeder.start()
     logger = threading.Thread(target=log_result)
