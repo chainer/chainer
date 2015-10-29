@@ -50,19 +50,19 @@ class LSTM(function.Function):
     """
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
+        type_check.expect(len(in_types) == 2)
         c_type, x_type = in_types
 
         type_check.expect(
             c_type.dtype.kind == 'f',
             x_type.dtype == c_type.dtype,
 
-            c_type.ndim >= 2,
-            x_type.ndim >= 2,
-            c_type.ndim == x_type.ndim,
+            c_type.ndim >= 2 and
+            x_type.ndim >= 2 and
+            c_type.ndim == x_type.ndim and
 
-            x_type.shape[0] <= c_type.shape[0],
-            x_type.shape[1] == 4 * c_type.shape[1],
+            x_type.shape[0] <= c_type.shape[0] and
+            x_type.shape[1] == 4 * c_type.shape[1]
         )
         for i in six.moves.range(2, c_type.ndim.eval()):
             type_check.expect(x_type.shape[i] == c_type.shape[i])
