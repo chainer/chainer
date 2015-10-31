@@ -1,5 +1,8 @@
 #!/usr/bin/env python
+from setuptools import Extension
 from setuptools import setup
+
+import setup_build
 
 setup(
     name='chainer',
@@ -46,6 +49,11 @@ setup(
                       'numpy>=1.9.0',
                       'protobuf',
                       'six>=1.9.0'],
+    setup_requires=['Cython>=0.23',
+                    'numpy>=1.9.0'],
     tests_require=['mock',
                    'nose'],
+    # To trick build into running build_ext
+    ext_modules=[Extension('chainer.x', ['x.c'])],
+    cmdclass={'build_ext': setup_build.chainer_build_ext},
 )
