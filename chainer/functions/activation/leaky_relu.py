@@ -15,8 +15,9 @@ class LeakyReLU(function.Function):
 
     """Leaky rectifier unit."""
 
-    def __init__(self, slope=0.2):
+    def __init__(self, slope=0.2, name=None):
         self.slope = slope
+        self.name = name
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)
@@ -44,7 +45,7 @@ class LeakyReLU(function.Function):
         return gx,
 
 
-def leaky_relu(x, slope=0.2):
+def leaky_relu(x, slope=0.2, name=None):
     """Leaky Rectified Linear Unit function.
 
     This function is expressed as :math:`f(x) = \max(x, ax)`, where :math:`a`
@@ -53,9 +54,10 @@ def leaky_relu(x, slope=0.2):
     Args:
         x (~chainer.Variable): Input variable.
         slope (float): Slope value :math:`a`.
+        name (str): Function name
 
     Returns:
         ~chainer.Variable: Output variable.
 
     """
-    return LeakyReLU(slope)(x)
+    return LeakyReLU(slope, name=name)(x)

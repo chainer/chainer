@@ -25,8 +25,9 @@ class ReLU(function.Function):
     """Rectified Linear Unit."""
     # TODO(beam2d): Implement in-place version.
 
-    def __init__(self, use_cudnn=True):
+    def __init__(self, use_cudnn=True, name=None):
         self.use_cudnn = use_cudnn
+        self.name = name
 
     def check_type_forward(self, in_types):
         type_check.expect(
@@ -71,16 +72,17 @@ class ReLU(function.Function):
         return gx,
 
 
-def relu(x, use_cudnn=True):
+def relu(x, use_cudnn=True, name=None):
     """Rectified Linear Unit function :math:`f(x)=\\max(0, x)`.
 
     Args:
         x (~chainer.Variable): Input variable.
         use_cudnn (bool): If True and CuDNN is enabled, then this function uses
             CuDNN as the core implementation.
+        name (str): Function name
 
     Returns:
         ~chainer.Variable: Output variable.
 
     """
-    return ReLU(use_cudnn)(x)
+    return ReLU(use_cudnn, name=name)(x)

@@ -107,7 +107,8 @@ class AveragePooling2D(pooling_2d.Pooling2D):
             libcudnn.CUDNN_POOLING_AVERAGE_COUNT_INCLUDE_PADDING)
 
 
-def average_pooling_2d(x, ksize, stride=None, pad=0, use_cudnn=True):
+def average_pooling_2d(x, ksize, stride=None, pad=0,
+                       use_cudnn=True, name=None):
     """Spatial average pooling function.
 
     This function acts similarly to :class:`~functions.Convolution2D`, but
@@ -125,6 +126,7 @@ def average_pooling_2d(x, ksize, stride=None, pad=0, use_cudnn=True):
             ``pad=p`` and ``pad=(p, p)`` are equivalent.
         use_cudnn (bool): If True and CuDNN is enabled, then this function
             uses CuDNN as the core implementation.
+        name (str): Function name
 
     Returns:
         ~chainer.Variable: Output variable.
@@ -135,4 +137,4 @@ def average_pooling_2d(x, ksize, stride=None, pad=0, use_cudnn=True):
        :func:`max_pooling_2d`. Average pooling runs in non-cover-all mode.
 
     """
-    return AveragePooling2D(ksize, stride, pad, False, use_cudnn)(x)
+    return AveragePooling2D(ksize, stride, pad, False, use_cudnn, name=name)(x)

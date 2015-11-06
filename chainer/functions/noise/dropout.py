@@ -7,8 +7,9 @@ class Dropout(function.Function):
 
     """Dropout regularization."""
 
-    def __init__(self, dropout_ratio):
+    def __init__(self, dropout_ratio, name=None):
         self.dropout_ratio = dropout_ratio
+        self.name = name
 
     def check_type_forwrad(self, in_types):
         type_check.expect(in_types.size() == 1)
@@ -26,7 +27,7 @@ class Dropout(function.Function):
         return gy[0] * self.mask,
 
 
-def dropout(x, ratio=.5, train=True):
+def dropout(x, ratio=.5, train=True, name=None):
     """Drops elements of input variable randomly.
 
     This function drops input elements randomly with probability ``ratio`` and
@@ -37,6 +38,7 @@ def dropout(x, ratio=.5, train=True):
         x (~chainer.Variable): Input variable.
         ratio (float): Dropout ratio.
         train (bool): If True, executes dropout. Otherwise, does nothing.
+        name: Function name
 
     Returns:
         ~chainer.Variable: Output variable.
@@ -46,5 +48,5 @@ def dropout(x, ratio=.5, train=True):
 
     """
     if train:
-        return Dropout(ratio)(x)
+        return Dropout(ratio, name=name)(x)
     return x

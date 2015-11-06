@@ -16,8 +16,9 @@ class Softmax(function.Function):
 
     """Softmax activation function."""
 
-    def __init__(self, use_cudnn=True):
+    def __init__(self, use_cudnn=True, name=None):
         self.use_cudnn = use_cudnn
+        self.name = name
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)
@@ -65,7 +66,7 @@ class Softmax(function.Function):
         return gx,
 
 
-def softmax(x, use_cudnn=True):
+def softmax(x, use_cudnn=True, name=None):
     """Channelwise softmax function.
 
     This function computes its softmax along the second axis. Let
@@ -79,9 +80,10 @@ def softmax(x, use_cudnn=True):
         x (~chainer.Variable): Input variable.
         use_cudnn (bool): If True and CuDNN is enabled, then this function uses
             CuDNN as the core implementation.
+        name (str): Function name
 
     Returns:
         ~chainer.Variable: Output variable.
 
     """
-    return Softmax(use_cudnn)(x)
+    return Softmax(use_cudnn, name=name)(x)

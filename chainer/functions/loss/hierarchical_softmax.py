@@ -92,6 +92,7 @@ class BinaryHierarchicalSoftmax(function.Function):
     Args:
         in_size (int): Dimension of input vectors.
         tree: A binary tree made with tuples like `((1, 2), 3)`.
+        name (str): Function name
 
     See: Hierarchical Probabilistic Neural Network Language Model [Morin+,
     AISTAT2005].
@@ -101,7 +102,7 @@ class BinaryHierarchicalSoftmax(function.Function):
     parameter_names = ('W',)
     gradient_names = ('gW',)
 
-    def __init__(self, in_size, tree):
+    def __init__(self, in_size, tree, name=None):
         parser = TreeParser()
         parser.parse(tree)
         paths = parser.get_paths()
@@ -122,6 +123,8 @@ class BinaryHierarchicalSoftmax(function.Function):
         self.W = numpy.random.uniform(
             -1, 1, (parser.size(), in_size)).astype(numpy.float32)
         self.gW = numpy.full_like(self.W, numpy.nan)
+
+        self.name = name
 
     @staticmethod
     def create_huffman_tree(word_counts):

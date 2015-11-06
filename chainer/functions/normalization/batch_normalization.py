@@ -15,6 +15,7 @@ class BatchNormalization(function.Function):
         decay (float): Decay rate of moving average.
         eps (float): Epsilon value for numerical stability.
         dtype (numpy.dtype): Type to use in computing.
+        name (str): Function name
 
     See: `Batch Normalization: Accelerating Deep Network Training by Reducing\
           Internal Covariate Shift <http://arxiv.org/abs/1502.03167>`_
@@ -23,7 +24,8 @@ class BatchNormalization(function.Function):
     parameter_names = ('gamma',  'beta')
     gradient_names = ('ggamma', 'gbeta')
 
-    def __init__(self, size, decay=0.9, eps=1e-5, dtype=numpy.float32):
+    def __init__(self, size, decay=0.9, eps=1e-5,
+                 dtype=numpy.float32, name=None):
         if isinstance(size, tuple):
             self.size = size
         elif isinstance(size, int):
@@ -45,6 +47,8 @@ class BatchNormalization(function.Function):
         self.decay = decay
         self.N = [0]  # as a reference
         self.eps = eps
+
+        self.name = name
 
     def __call__(self, x, test=False, finetune=False):
         """Invokes the forward propagation of BatchNormalization.

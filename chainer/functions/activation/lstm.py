@@ -131,7 +131,7 @@ class LSTM(function.Function):
         return gc_prev, gx
 
 
-def lstm(c_prev, x):
+def lstm(c_prev, x, name=None):
     """Long Short-Term Memory units as an activation function.
 
     This function implements LSTM units with forget gates. Let the previous
@@ -165,6 +165,7 @@ def lstm(c_prev, x):
             previous call of LSTM.
         x (~chainer.Variable): Variable that holds the incoming signal. It must
             have the second dimension four times of that of the cell state,
+        name (str): Function name
 
     Returns:
         tuple: Two :class:`~chainer.Variable` objects ``c`` and ``h``. ``c`` is
@@ -192,4 +193,4 @@ def lstm(c_prev, x):
         parameters are used for different kind of input sources.
 
     """
-    return LSTM()(c_prev, x)
+    return LSTM(name=name)(c_prev, x)

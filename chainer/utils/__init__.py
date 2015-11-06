@@ -1,5 +1,6 @@
 import numpy
 
+
 from chainer.utils import walker_alias
 
 WalkerAlias = walker_alias.WalkerAlias

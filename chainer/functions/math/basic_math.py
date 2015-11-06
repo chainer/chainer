@@ -102,10 +102,14 @@ class Add(function.Function):
         return gy[0], gy[0]
 
 
-class AddConstant(function.Function):
+class MathConstantFunction(function.Function):
 
-    def __init__(self, value):
+    def __init__(self, value, name=None):
         self.value = value
+        self.name = name
+
+
+class AddConstant(MathConstantFunction):
 
     @property
     def label(self):
@@ -156,10 +160,7 @@ def sub(lhs, rhs):  # lhs - rhs
     return AddConstant(-rhs)(lhs)
 
 
-class SubFromConstant(function.Function):
-
-    def __init__(self, value):
-        self.value = value
+class SubFromConstant(MathConstantFunction):
 
     @property
     def label(self):
@@ -204,10 +205,7 @@ class Mul(function.Function):
         return utils.force_array(gy[0] * x[1]), utils.force_array(gy[0] * x[0])
 
 
-class MulConstant(function.Function):
-
-    def __init__(self, value):
-        self.value = value
+class MulConstant(MathConstantFunction):
 
     @property
     def label(self):
@@ -270,10 +268,7 @@ def div(lhs, rhs):  # lhs / rhs
     return MulConstant(1. / rhs)(lhs)
 
 
-class DivFromConstant(function.Function):
-
-    def __init__(self, value):
-        self.value = value
+class DivFromConstant(MathConstantFunction):
 
     @property
     def label(self):
@@ -342,10 +337,7 @@ class PowVarVar(function.Function):
             ''', 'pow_var_var_bwd')(x[0], x[1], gy[0])
 
 
-class PowVarConst(function.Function):
-
-    def __init__(self, value):
-        self.value = value
+class PowVarConst(MathConstantFunction):
 
     @property
     def label(self):
@@ -380,10 +372,7 @@ def pow(lhs, rhs):  # lhs ** rhs
     return PowVarConst(rhs)(lhs)
 
 
-class PowConstVar(function.Function):
-
-    def __init__(self, value):
-        self.value = value
+class PowConstVar(MathConstantFunction):
 
     @property
     def label(self):

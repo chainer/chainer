@@ -1,4 +1,5 @@
 import copy
+import functools
 import os
 import weakref
 
@@ -8,6 +9,32 @@ import six
 from chainer import cuda
 from chainer.utils import type_check
 from chainer import variable
+
+
+def wrap_invalid_type(orientation=None):
+    if orientation not in ('Forward', 'Backward'):
+        raise ValueError('orientation must be "Forward" or "Backward"')
+
+    def _wrap_invalid_type(func):
+        @functools.wraps(func)
+        def wrapper(self, *args, **kwargs):
+            try:
+                return func(self, *args, **kwargs)
+
+            except type_check.InvalidType as e:
+                name = getattr(self, 'name', None)
+                if name is None:
+                    layer = self.label
+                else:
+                    layer = '{0} ({1})'.format(self.label, name)
+                msg = """
+Invalid operation is performed in: {0} ({1})
+
+{2}""".format(layer, orientation, str(e))
+                raise type_check.InvalidType(e.expect, e.actual, msg=msg)
+        return wrapper
+
+    return _wrap_invalid_type
 
 
 class Function(object):
@@ -101,12 +128,15 @@ class Function(object):
     """
     parameter_names = ()
     gradient_names = ()
+    metadata_names = ('name', )
+
     type_check_enable = int(os.environ.get('CHAINER_TYPE_CHECK', '1')) != 0
 
-    def __init__(self):
+    def __init__(self, name=None):
         self.inputs = None
         self.outputs = None
         self.rank = None
+        self.name = name
 
     def __call__(self, *inputs):
         """Applies forward propagation with chaining backward references.
@@ -194,6 +224,7 @@ class Function(object):
         """
         return self.__class__.__name__
 
+    @wrap_invalid_type(orientation='Forward')
     def _check_data_type_forward(self, in_data):
         in_type = type_check.get_types(in_data, 'in_types', False)
         self.check_type_forward(in_type)
@@ -372,8 +403,8 @@ class Function(object):
             self.
 
         """
-        with cuda.get_device(device):
-            for k, v in six.iteritems(self.__dict__):
+        with cuda.using_device(device):
+            for k, v in six.iteritems(self._fields):
                 if isinstance(v, numpy.ndarray):
                     setattr(self, k, cuda.cupy.array(v))
         return self
@@ -388,10 +419,15 @@ class Function(object):
             self.
 
         """
-        for k, v in six.iteritems(self.__dict__):
+        for k, v in six.iteritems(self._fields):
             if isinstance(v, cuda.ndarray):
-                setattr(self, k, v.get())
+                setattr(self, k, cuda.to_cpu(v))
         return self
+
+    @property
+    def _fields(self):
+        return {k: v for k, v in six.iteritems(self.__dict__) if
+                k not in self.metadata_names}
 
     @property
     def parameters(self):

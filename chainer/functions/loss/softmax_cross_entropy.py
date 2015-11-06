@@ -13,9 +13,10 @@ class SoftmaxCrossEntropy(function.Function):
 
     ignore_label = -1
 
-    def __init__(self, use_cudnn=True, normalize=True):
+    def __init__(self, use_cudnn=True, normalize=True, name=None):
         self.use_cudnn = use_cudnn
         self.normalize = normalize
+        self.name = name
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 2)
@@ -123,7 +124,7 @@ class SoftmaxCrossEntropy(function.Function):
         return gx, None
 
 
-def softmax_cross_entropy(x, t, use_cudnn=True, normalize=True):
+def softmax_cross_entropy(x, t, use_cudnn=True, normalize=True, name=None):
     """Computes cross entropy loss for pre-softmax activations.
 
     Args:
@@ -140,6 +141,7 @@ def softmax_cross_entropy(x, t, use_cudnn=True, normalize=True):
             determines the normalization constant. If true, this function
             normalizes the cross entropy loss across all instances. If else,
             it only normalizes along a batch size.
+        name (str): Function name
 
     Returns:
         Variable: A variable holding a scalar array of the cross entropy loss.
@@ -149,4 +151,4 @@ def softmax_cross_entropy(x, t, use_cudnn=True, normalize=True):
        This function is differentiable only by ``x``.
 
     """
-    return SoftmaxCrossEntropy(use_cudnn, normalize)(x, t)
+    return SoftmaxCrossEntropy(use_cudnn, normalize, name=name)(x, t)

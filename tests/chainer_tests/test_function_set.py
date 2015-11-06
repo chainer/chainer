@@ -335,4 +335,15 @@ class TestFunctionSet(TestFunctionSetBase):
     def test_gradients_setter_invalid_2_gpu(self):
         self._check_setter_invalid(self.fs, -1, cuda.cupy, 'gradients')
 
+
+class TestFunctionSetValidation(unittest.TestCase):
+
+    def test_not_function(self):
+        with self.assertRaises(ValueError):
+            chainer.FunctionSet(
+                a=lambda x: x,
+                b=F.Linear(3, 2)
+            )
+
+
 testing.run_module(__name__, __file__)

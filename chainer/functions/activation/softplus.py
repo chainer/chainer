@@ -9,9 +9,11 @@ class Softplus(function.Function):
 
     """Softplus function."""
 
-    def __init__(self, beta=1.0):
+    def __init__(self, beta=1.0, name=None):
         self.beta = numpy.float32(beta)
         self.beta_inv = numpy.float32(1.0 / beta)
+
+        self.name = name
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)
@@ -57,7 +59,7 @@ class Softplus(function.Function):
         return gx,
 
 
-def softplus(x, beta=1.0):
+def softplus(x, beta=1.0, name=None):
     """Elementwise softplus function.
 
     This function is expressed as
@@ -67,9 +69,10 @@ def softplus(x, beta=1.0):
     Args:
         x (~chainer.Variable): Input variable.
         beta (float): Parameter :math:`\\beta`.
+        name (str): Function name
 
     Returns:
         ~chainer.Variable: Output variable.
 
     """
-    return Softplus(beta=beta)(x)
+    return Softplus(beta=beta, name=name)(x)

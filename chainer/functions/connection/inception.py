@@ -30,6 +30,7 @@ class Inception(function.Function):
         proj5 (int): Projection size of 5x5 convolution path.
         out5 (int): Output size of 5x5 convolution path.
         proj_pool (int): Projection size of max pooling path.
+        name (str): Function name
 
     Returns:
         Variable: Output variable. Its array has the same spatial size and the
@@ -44,7 +45,8 @@ class Inception(function.Function):
 
     """
 
-    def __init__(self, in_channels, out1, proj3, out3, proj5, out5, proj_pool):
+    def __init__(self, in_channels, out1, proj3, out3, proj5, out5,
+                 proj_pool, name=None):
         self.f = function_set.FunctionSet(
             conv1=convolution_2d.Convolution2D(in_channels, out1, 1),
             proj3=convolution_2d.Convolution2D(in_channels, proj3, 1),
@@ -53,6 +55,7 @@ class Inception(function.Function):
             conv5=convolution_2d.Convolution2D(proj5, out5, 5, pad=2),
             projp=convolution_2d.Convolution2D(in_channels, proj_pool, 1),
         )
+        self.name = name
 
     def __call__(self, x):
         out1 = self.f.conv1(x)

@@ -8,7 +8,7 @@ from chainer.utils import type_check
 class Sum(function.Function):
     """Sum of array elements over a given axis."""
 
-    def __init__(self, axis=None):
+    def __init__(self, axis=None, name=None):
         if axis is None:
             self.axis = None
         elif isinstance(axis, int):
@@ -20,6 +20,8 @@ class Sum(function.Function):
             self.axis = axis
         else:
             raise TypeError('None, int or tuple of int are required')
+
+        self.name = name
 
     def check_type_forward(self, in_types):
         type_check.expect(
@@ -62,7 +64,7 @@ class Sum(function.Function):
         return gx,
 
 
-def sum(x, axis=None):
+def sum(x, axis=None, name=None):
     """Sum of array elements over a given axis.
 
     Args:
@@ -70,9 +72,10 @@ def sum(x, axis=None):
         axis (None, int, or tuple of int): Axis which a sum is performed.
             The default (axis = None) is perform a sum over all the dimensions
             of the input array.
+        name (str): Function name
 
     Returns:
         ~chainer.Variable: Output variable.
 
     """
-    return Sum(axis)(x)
+    return Sum(axis, name=name)(x)

@@ -32,9 +32,9 @@ class Sin(function.Function):
         return gx,
 
 
-def sin(x):
+def sin(x, name=None):
     """Elementwise sin function."""
-    return Sin()(x)
+    return Sin(name=name)(x)
 
 
 class Cos(function.Function):
@@ -64,6 +64,6 @@ class Cos(function.Function):
         return gx,
 
 
-def cos(x):
+def cos(x, name=None):
     """Elementwise cos function."""
-    return Cos()(x)
+    return Cos(name=name)(x)

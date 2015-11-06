@@ -29,12 +29,13 @@ class InceptionBN(function.Function):
         pooltype (str): Pooling type. It must be either ``'max'`` or ``'avg'``.
         proj_pool (bool): If True, do projection in the pooling path.
         stride (int): Stride parameter of the last convolution of each path.
+        name (str): Function name
 
     .. seealso:: :class:`Inception`
 
     """
     def __init__(self, in_channels, out1, proj3, out3, proj33, out33,
-                 pooltype, proj_pool=None, stride=1):
+                 pooltype, proj_pool=None, stride=1, name=None):
         if out1 > 0:
             assert stride == 1
             assert proj_pool is not None
@@ -54,8 +55,9 @@ class InceptionBN(function.Function):
             conv3n=batch_normalization.BatchNormalization(out3),
             proj33n=batch_normalization.BatchNormalization(proj33),
             conv33an=batch_normalization.BatchNormalization(out33),
-            conv33bn=batch_normalization.BatchNormalization(out33),
+            conv33bn=batch_normalization.BatchNormalization(out33)
         )
+        self.name = name
 
         if out1 > 0:
             self.f.conv1 = convolution_2d.Convolution2D(

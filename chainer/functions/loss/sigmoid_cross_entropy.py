@@ -10,8 +10,9 @@ class SigmoidCrossEntropy(function.Function):
 
     """Sigmoid activation followed by a sigmoid cross entropy loss."""
 
-    def __init__(self, use_cudnn=True):
+    def __init__(self, use_cudnn=True, name=None):
         self.use_cudnn = use_cudnn
+        self.name = name
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 2)
@@ -55,7 +56,7 @@ class SigmoidCrossEntropy(function.Function):
         return gx, None
 
 
-def sigmoid_cross_entropy(x, t, use_cudnn=True):
+def sigmoid_cross_entropy(x, t, use_cudnn=True, name=None):
     """Computes cross entropy loss for sigmoid activations.
 
     Args:
@@ -64,6 +65,7 @@ def sigmoid_cross_entropy(x, t, use_cudnn=True):
             at the i-th example.
         t (Variable): A variable object holding an int32 vector of groundtruth
             binary labels.
+        name (str): Function name
 
     Returns:
         Variable: A variable object holding a scalar array of the cross entropy
@@ -74,4 +76,4 @@ def sigmoid_cross_entropy(x, t, use_cudnn=True):
        This function is differentiable only by ``x``.
 
     """
-    return SigmoidCrossEntropy(use_cudnn)(x, t)
+    return SigmoidCrossEntropy(use_cudnn, name=name)(x, t)

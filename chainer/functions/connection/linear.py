@@ -44,6 +44,7 @@ class Linear(function.Function):
             function uses to initialize ``wscale``.
         initial_bias (1-D array): Initial bias value. If ``None``, then this
             function uses to initialize ``bias``.
+        name (str): Function name
 
     .. note::
 
@@ -53,11 +54,12 @@ class Linear(function.Function):
 
     """
     def __init__(self, in_size, out_size, wscale=1, bias=0, nobias=False,
-                 initialW=None, initial_bias=None):
+                 initialW=None, initial_bias=None, name=None):
         self.W = None
         self.gW = None
         self.b = None
         self.gb = None
+        self.name = name
 
         if initialW is not None:
             assert initialW.shape == (out_size, in_size)
@@ -174,13 +176,14 @@ class NonparameterizedLinear(function.Function):
         return (gx[0], func.gW, func.gb)
 
 
-def linear(x, W, b=None):
+def linear(x, W, b=None, name=None):
     """Nonparameterized linear function.
 
     Args:
         x (~chainer.Variable): Input variable.
         W (~chainer.Variable): Weight variable.
         b (~chainer.Variable): Bias variable (optional).
+        name (str): Function name
 
     Returns:
         ~chainer.Variable: Output variable.
@@ -189,6 +192,6 @@ def linear(x, W, b=None):
 
     """
     if b is None:
-        return NonparameterizedLinear()(x, W)
+        return NonparameterizedLinear(name=name)(x, W)
     else:
-        return NonparameterizedLinear()(x, W, b)
+        return NonparameterizedLinear(name=name)(x, W, b)

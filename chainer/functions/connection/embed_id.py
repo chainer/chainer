@@ -19,6 +19,7 @@ class EmbedID(function.Function):
         in_size (int): Number of different identifiers (a.k.a. vocabulary
             size).
         out_size (int): Size of embedding vector.
+        name (str): Function name
 
     .. note::
 
@@ -29,9 +30,10 @@ class EmbedID(function.Function):
     parameter_names = ('W',)
     gradient_names = ('gW',)
 
-    def __init__(self, in_size, out_size):
+    def __init__(self, in_size, out_size, name=None):
         self.W = numpy.random.randn(in_size, out_size).astype(numpy.float32)
         self.gW = numpy.full_like(self.W, numpy.nan)
+        self.name = name
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)

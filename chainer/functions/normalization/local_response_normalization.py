@@ -36,11 +36,12 @@ class LocalResponseNormalization(function.Function):
 
     """Cross-channel normalization function used in AlexNet."""
 
-    def __init__(self, n=5, k=2, alpha=1e-4, beta=.75):
+    def __init__(self, n=5, k=2, alpha=1e-4, beta=.75, name=None):
         self.n = n
         self.k = k
         self.alpha = alpha
         self.beta = beta
+        self.name = name
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)
@@ -102,7 +103,7 @@ class LocalResponseNormalization(function.Function):
         return gx,
 
 
-def local_response_normalization(x, n=5, k=2, alpha=1e-4, beta=.75):
+def local_response_normalization(x, n=5, k=2, alpha=1e-4, beta=.75, name=None):
     """Local response normalization across neighboring channels.
 
     This function implements normalization across channels. Let :math:`x` an
@@ -120,6 +121,7 @@ def local_response_normalization(x, n=5, k=2, alpha=1e-4, beta=.75):
         k (float): Smoothing parameter.
         alpha (float): Normalizer scaling parameter.
         beta (float): Normalizer power parameter.
+        name (str): Function name
 
     Returns:
         Variable: Output variable.
@@ -128,4 +130,4 @@ def local_response_normalization(x, n=5, k=2, alpha=1e-4, beta=.75):
     Neural Networks <http://www.cs.toronto.edu/~fritz/absps/imagenet.pdf>`_
 
     """
-    return LocalResponseNormalization(n, k, alpha, beta)(x)
+    return LocalResponseNormalization(n, k, alpha, beta, name=name)(x)

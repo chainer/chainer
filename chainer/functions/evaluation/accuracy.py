@@ -29,13 +29,14 @@ class Accuracy(function.Function):
         return xp.asarray((pred == t).mean(dtype='f')),
 
 
-def accuracy(y, t):
+def accuracy(y, t, name=None):
     """Computes muticlass classification accuracy of the minibatch.
 
     Args:
         y (Variable): Variable holding a matrix whose (i, j)-th element
             indicates the score of the class j at the i-th example.
         t (Variable): Variable holding an int32 vector of groundtruth labels.
+        name (str): Function name
 
     Returns:
         Variable: A variable holding a scalar array of the accuracy.
@@ -43,4 +44,4 @@ def accuracy(y, t):
     .. note:: This function is non-differentiable.
 
     """
-    return Accuracy()(y, t)
+    return Accuracy(name=name)(y, t)

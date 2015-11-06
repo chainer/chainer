@@ -11,11 +11,12 @@ class SplitAxis(function.Function):
 
     """Function that splits multiple arrays towards the specified axis."""
 
-    def __init__(self, indices_or_sections, axis):
+    def __init__(self, indices_or_sections, axis, name=None):
         if not isinstance(indices_or_sections, (int, collections.Iterable)):
             raise TypeError('indices_or_sections must be integer or 1-D array')
         self.indices_or_sections = indices_or_sections
         self.axis = axis
+        self.name = name
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)
@@ -58,7 +59,7 @@ class SplitAxis(function.Function):
             return xp.concatenate(gys, axis=self.axis),
 
 
-def split_axis(x, indices_or_sections, axis):
+def split_axis(x, indices_or_sections, axis, name=None):
     """Splits given variables along an axis.
 
     Args:
@@ -68,6 +69,7 @@ def split_axis(x, indices_or_sections, axis):
             If it is a 1-D array of sorted integers, it
             indicates the positions where the array is split.
         axis (int): Axis that the input array is split along.
+        name (str): Function name
 
     Returns:
         ``tuple`` or ``Variable``: Tuple of :class:`~chainer.Variable` objects
@@ -80,4 +82,4 @@ def split_axis(x, indices_or_sections, axis):
         (i.e. `axis`-th value of its shape is zero).
 
     """
-    return SplitAxis(indices_or_sections, axis)(x)
+    return SplitAxis(indices_or_sections, axis, name=name)(x)
