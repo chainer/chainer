@@ -1,5 +1,6 @@
 import ctypes
 import math
+import warnings
 
 import numpy
 from six import moves
@@ -37,13 +38,12 @@ class Convolution2D(function.Function):
         pad (int or (int, int)): Spatial padding width for input arrays.
             ``pad=p`` and ``pad=(p, p)`` are equivalent.
         wscale (float): Scaling factor of the initial weight.
-        bias (float): Initial bias value.
+        bias (float): (Deprecated. Use ``initial_bias``). Initial bias value.
         nobias (bool): If True, then this function does not use the bias term.
         use_cudnn (bool): If True, then this function uses CuDNN if available.
         initialW (4-D array): Initial weight value. If ``None``, then this
             function uses to initialize ``wscale``.
-        initial_bias (1-D array): Initial bias value. If ``None``, then this
-            function uses to initialize ``bias``.
+        initial_bias (1-D array or float): Initial bias value.
         dtype (numpy.dtype): Type to use in computing.
 
     This function holds at most two parameter arrays: ``W`` and ``b``, which
@@ -85,8 +85,8 @@ class Convolution2D(function.Function):
 
     """
     def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
-                 wscale=1, bias=0, nobias=False, use_cudnn=True,
-                 initialW=None, initial_bias=None,
+                 wscale=1, bias=None, nobias=False, use_cudnn=True,
+                 initialW=None, initial_bias=0,
                  dtype=numpy.float32):
         self.dtype = numpy.dtype(dtype)
 
@@ -118,11 +118,23 @@ class Convolution2D(function.Function):
         xp = cuda.get_array_module(self.W)
         self.gW = xp.full_like(self.W, numpy.nan)
 
-        if initial_bias is not None:
-            assert initial_bias.shape == (out_channels,)
-            self.b = initial_bias
-        elif not nobias:
-            self.b = numpy.repeat(self.dtype.type(bias), out_channels)
+        if not nobias:
+            assert initial_bias is not None
+            if isinstance(initial_bias, (numpy.ndarray, cuda.ndarray)):
+                assert initial_bias.shape == (out_channels,)
+                self.b = initial_bias
+            elif bias is not None:
+                warnings.warn(
+                    'keyword argument bias is deprecated. '
+                    'Use initial_bias instead.', DeprecationWarning)
+                self.b = numpy.repeat(numpy.float32(bias), out_channels)
+            elif numpy.isscalar(initial_bias):
+                self.b = numpy.repeat(
+                    self.dtype.type(initial_bias), out_channels)
+            else:
+                raise ValueError(
+                    'initial bias should be scalar, numpy.ndarray '
+                    'or cupy.ndarray')
 
         if self.b is not None:
             self.gb = xp.full_like(self.b, numpy.nan)
