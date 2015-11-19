@@ -9,3 +9,4 @@ htmlcov/
 chainer.egg-info/
 .eggs/
 .coverage
+*.egg/
