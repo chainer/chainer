@@ -1,5 +1,4 @@
 import collections
-import sys
 import warnings
 
 import numpy
@@ -8,30 +7,22 @@ import six
 from chainer import functions
 from chainer import link
 from chainer import links
-# caffe_pb2 does not support Py3
-if sys.version_info < (3, 0, 0):
-    from chainer.links.caffe import caffe_pb2
+from chainer.links.caffe import caffe_pb2
 
-    _type_to_method = {}
-    _oldname_to_method = {}
+_type_to_method = {}
+_oldname_to_method = {}
+# for backward compatibility
+available = True
 
-    def _layer(typ, oldname):
-        def decorator(meth):
-            global _type_to_method
-            _type_to_method[typ] = meth
-            typevalue = getattr(caffe_pb2.V1LayerParameter, oldname)
-            _oldname_to_method[typevalue] = meth
-            return meth
-        return decorator
 
-    available = True
-else:
-    def _layer(typ, oldname):  # fallback
-        def decorator(meth):
-            return meth
-        return decorator
-
-    available = False
+def _layer(typ, oldname):
+    def decorator(meth):
+        global _type_to_method
+        _type_to_method[typ] = meth
+        typevalue = getattr(caffe_pb2.V1LayerParameter, oldname)
+        _oldname_to_method[typevalue] = meth
+        return meth
+    return decorator
 
 
 class CaffeFunction(link.Chain):
@@ -41,12 +32,6 @@ class CaffeFunction(link.Chain):
     Given a binary protobuf file of a Caffe model, this class loads and
     emulates it on :class:`~chainer.Variable` objects. It supports the official
     reference models provided by BVLC.
-
-    .. note::
-
-       This class only supports Python 2.7, since the compiled module for
-       protocol buffers only supports Python 2. The ``__init__`` function
-       raises an exception in Python 3.
 
     .. note::
 
@@ -101,9 +86,6 @@ class CaffeFunction(link.Chain):
 
     """
     def __init__(self, model_path):
-        if not available:
-            raise RuntimeError('CaffeFunction is not supported on Python 3')
-
         super(CaffeFunction, self).__init__()
 
         net = caffe_pb2.NetParameter()
