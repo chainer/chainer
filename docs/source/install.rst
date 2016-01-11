@@ -38,7 +38,7 @@ Install Chainer
 
 Chainer depends to these Python packages:
 
-* `Numpy <http://www.numpy.org/>`_ 1.9
+* `Numpy <http://www.numpy.org/>`_ 1.8, 1.9, 1.10
 * `Six <https://pythonhosted.org/six/>`_ 1.9
 * `h5py <http://www.h5py.org/>`_ 2.5.0
 

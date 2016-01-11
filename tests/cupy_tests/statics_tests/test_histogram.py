@@ -77,6 +77,7 @@ class TestHistogram(unittest.TestCase):
         x = xp.zeros((), dtype)
         return xp.bincount(x)
 
+    @testing.with_requires('numpy>=1.9')
     @for_dtypes_except_uint64()
     @testing.numpy_cupy_raises()
     def test_bincount_zero_minlength(self, xp, dtype):

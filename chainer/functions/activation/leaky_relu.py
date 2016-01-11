@@ -27,7 +27,7 @@ class LeakyReLU(function.Function):
 
     def forward_cpu(self, x):
         y = x[0].copy()
-        y[x[0] < 0] *= self.slope
+        y[numpy.array(x[0] < 0)] *= self.slope
         return y,
 
     def forward_gpu(self, x):
@@ -36,7 +36,7 @@ class LeakyReLU(function.Function):
 
     def backward_cpu(self, x, gy):
         gx = gy[0].copy()
-        gx[x[0] < 0] *= self.slope
+        gx[numpy.array(x[0] < 0)] *= self.slope
         return gx,
 
     def backward_gpu(self, x, gy):
