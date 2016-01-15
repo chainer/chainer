@@ -42,7 +42,8 @@ class SplitAxis(function.Function):
                     raise ValueError('Not support if shape contains 0')
                 prev_i = i
         xp = cuda.get_array_module(*x)
-        return tuple(xp.split(x[0], self.indices_or_sections, self.axis))
+        ret = xp.split(x[0], self.indices_or_sections, self.axis)
+        return tuple([cuda.cupy.ascontiguousarray(xi) for xi in ret])
 
     def backward(self, x, gys):
         xp = cuda.get_array_module(*x)
