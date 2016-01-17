@@ -22,7 +22,7 @@ def _maxout(x, W, b):
     y = numpy.tensordot(_as_mat(x), W, axes=1)
     if b is not None:
         y += b
-    return numpy.max(y, axis=1)
+    return numpy.max(y, axis=2)
 
 
 @testing.parameterize(
@@ -35,10 +35,10 @@ class TestNonparameterizedMaxout(unittest.TestCase):
     def setUp(self):
         self.W = numpy.random.uniform(
             -0.01, 0.01, self.W_shape).astype(numpy.float32)
-        for c in six.moves.range(self.W.shape[1]):
+        for o in six.moves.range(self.W.shape[1]):
             w = numpy.arange(self.W.shape[0], dtype=numpy.float32) + 1
-            for o in six.moves.range(self.W.shape[2]):
-                self.W[:, c, o] += w * o
+            for c in six.moves.range(self.W.shape[2]):
+                self.W[:, o, c] += w * c
 
         if self.b_shape is not None:
             self.b = numpy.random.uniform(
