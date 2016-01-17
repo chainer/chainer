@@ -47,7 +47,7 @@ class TestNonparameterizedMaxout(unittest.TestCase):
             self.b = None
 
         self.x = numpy.random.uniform(
-            -0.01, 0.01, self.x_shape).astype(numpy.float32)
+            -0.01, 0.01, self.x_shape).astype(numpy.float32) + 1
 
         self.y = _maxout(self.x, self.W, self.b)
         self.gy = numpy.random.uniform(
