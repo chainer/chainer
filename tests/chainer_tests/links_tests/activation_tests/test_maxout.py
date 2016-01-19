@@ -23,7 +23,7 @@ def _maxout(x, W, b):
     y = numpy.tensordot(_as_mat(x), W, axes=1)
     if b is not None:
         y += b
-    return numpy.max(y, axis=1)
+    return numpy.max(y, axis=2)
 
 
 @testing.parameterize(
@@ -52,17 +52,17 @@ class TestMaxout(unittest.TestCase):
 
         in_size = numpy.prod(self.in_shape)
         initialW = numpy.random.uniform(
-            -0.05, 0.05, (in_size, self.num_channel, self.out_size)
+            -0.05, 0.05, (in_size, self.out_size, self.num_channel)
         ).astype(numpy.float32)
-        for c in six.moves.range(self.num_channel):
+        for o in six.moves.range(self.out_size):
             w = numpy.arange(in_size, dtype=numpy.float32) + 1
-            for o in six.moves.range(self.out_size):
-                initialW[:, c, o] += w * o
+            for c in six.moves.range(self.num_channel):
+                initialW[:, o, c] += w * c
 
         initial_bias = None
         if self.initial_bias == 'random':
             initial_bias = numpy.random.uniform(
-                -0.05, 0.05, (self.num_channel, self.out_size))
+                -0.05, 0.05, (self.out_size, self.num_channel))
 
         self.link = links.Maxout(in_size, self.num_channel, self.out_size,
                                  self.wscale, initialW, initial_bias)
@@ -127,9 +127,9 @@ class TestInitialization(unittest.TestCase):
 
     def setUp(self):
         self.initialW = numpy.random.uniform(
-            -1, 1, (2, 3, 4)).astype(numpy.float32)
+            -1, 1, (2, 4, 3)).astype(numpy.float32)
         self.initial_bias = numpy.random.uniform(
-            -1, 1, (3, 4)).astype(numpy.float32)
+            -1, 1, (4, 3)).astype(numpy.float32)
         self.link = links.Maxout(
             2, 3, 4, initialW=self.initialW,
             initial_bias=self.initial_bias)

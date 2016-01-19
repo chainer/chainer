@@ -43,8 +43,8 @@ class MaxoutFunction(function.Function):
         ys = xp.tensordot(x, W, axes=1)
         if len(inputs) == 3:
             ys += inputs[2]
-        self.argmax = xp.argmax(ys, axis=1)
-        return xp.max(ys, axis=1),
+        self.argmax = xp.argmax(ys, axis=2)
+        return xp.max(ys, axis=2),
 
     def backward(self, inputs, grad_outputs):
         gy = grad_outputs[0]
@@ -53,13 +53,13 @@ class MaxoutFunction(function.Function):
 
         xp = cuda.get_array_module(*inputs)
         # gradient of z = xW + b
-        gz = xp.zeros((gy.shape[0], W.shape[1], gy.shape[1]), x.dtype)
+        gz = xp.zeros((gy.shape[0], gy.shape[1], W.shape[2]), x.dtype)
         if xp == numpy:
             idx0 = xp.arange(len(gy))[:, None]
             idx1 = xp.arange(gy.shape[1])
-            gz[idx0, self.argmax, idx1] = gy
+            gz[idx0, idx1, self.argmax] = gy
         else:
-            gz_r = xp.rollaxis(gz, 1)
+            gz_r = xp.rollaxis(gz, 2)
             cuda.elementwise(
                 'T gy, S argmax, int32 n', 'raw T gz',
                 'gz[argmax * n + i] = gy', 'maxout_bwd'
@@ -93,9 +93,10 @@ def maxout(x, W, b=None):
     Args:
        x (~chainer.Variable): Input variable. Its first dimension is assumed
             to be the *minibatch dimension*. The other dimensions are treated
-            as concatenated one dimension whose size must be ``N``.
-       W (~chainer.Variable): Weight variable of shape ``(N, C, M)``.
-       b (~chainer.Variable): Bias variable (optional) of shape ``(C, M)``.
+            as concatenated one dimension (we denote the size ``N``).
+       W (~chainer.Variable): Weight variable of shape ``(N, M, C)`` where
+            ``M`` is the output dimension and ``C`` is the number of chunnels.
+       b (~chainer.Variable): Optional bias variable of shape ``(M, C)``.
     Returns:
         ~chainer.Variable: Variable holding :math:`Y`.
 
