@@ -1,4 +1,4 @@
-class IntervalTrigger(Trigger):
+class IntervalTrigger(object):
 
     """Trigger based on a fixed interval.
 

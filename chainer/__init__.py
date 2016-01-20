@@ -8,6 +8,7 @@ from chainer.functions import basic_math
 from chainer import link
 from chainer import optimizer
 from chainer import serializer
+from chainer import trainer
 from chainer import variable
 
 
@@ -25,7 +26,10 @@ GradientMethod = optimizer.GradientMethod
 Link = link.Link
 Optimizer = optimizer.Optimizer
 Serializer = serializer.Serializer
+Trainer = trainer.Trainer
 Variable = variable.Variable
+
+create_standard_trainer = trainer.create_standard_trainer
 
 ON = flag.ON
 OFF = flag.OFF

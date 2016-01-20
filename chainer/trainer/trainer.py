@@ -5,10 +5,10 @@ import six
 
 from chainer import cuda
 from chainer.trainer import interval_trigger
-import chainer.trainer.extension as extension_module
+from chainer.trainer import extension as extension_module
 from chainer.trainer.extensions import print_result
 from chainer.trainer.extensions import snapshot
-import chainer.trainer.updater as updater_module
+from chainer.trainer import updater as updater_module
 
 
 class Trainer(object):

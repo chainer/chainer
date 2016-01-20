@@ -8,6 +8,7 @@ Extension = extension.Extension
 IntervalTrigger = interval_trigger.IntervalTrigger
 
 Trainer = trainer.Trainer
+create_standard_trainer = trainer.create_standard_trainer
 
 Updater = updater.Updater
 StandradUpdater = updater.StandardUpdater
