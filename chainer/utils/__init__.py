@@ -1,6 +1,10 @@
 import numpy
 
+from chainer.utils import summary
 from chainer.utils import walker_alias
+
+DictSummary = summary.DictSummary
+Summary = summary.Summary
 
 WalkerAlias = walker_alias.WalkerAlias
 

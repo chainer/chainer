@@ -1,5 +1,6 @@
 import pkg_resources
 
+from chainer import dataset
 from chainer import flag
 from chainer import function
 from chainer import function_set
@@ -16,6 +17,7 @@ AbstractSerializer = serializer.AbstractSerializer
 Chain = link.Chain
 ChainList = link.ChainList
 Deserializer = serializer.Deserializer
+Dataset = dataset.Dataset
 Flag = flag.Flag
 Function = function.Function
 FunctionSet = function_set.FunctionSet
