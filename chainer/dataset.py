@@ -65,9 +65,10 @@ class BatchIterator(object):
         random.shuffle(self._order)
 
     def serialize(self, serializer):
+        self._end_nonrepeat = serializer('_end_nonrepeat', self._end_nonrepeat)
+        self.epoch = serializer('epoch', self.epoch)
         self._order = list(serializer('_order', self._order))
         self._i = serializer('_i', self._i)
-        self._end_nonrepeat = serializer('_end_nonrepeat', self._end_nonrepeat)
 
 class Dataset(object):
 
