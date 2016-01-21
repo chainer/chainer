@@ -5,7 +5,7 @@ import six
 
 from chainer.trainer import extension
 from chainer.trainer import interval_trigger
-from chainer.utils import summary
+from chainer.utils import summary as summary_module
 
 
 class PrintResult(extension.Extension):
@@ -17,7 +17,7 @@ class PrintResult(extension.Extension):
     """
     def __init__(self, keys=None, trigger=(1, 'epoch')):
         self._keys = keys
-        self._summary = collections.defaultdict(summary.DictSummary)
+        self._summary = collections.defaultdict(summary_module.DictSummary)
         if isinstance(trigger, tuple):
             trigger = interval_trigger.IntervalTrigger(*trigger)
         self._trigger = trigger
@@ -34,7 +34,7 @@ class PrintResult(extension.Extension):
             print('result @ %s iteration (%s epoch)' % (t, epoch))
             for name, summary in six.iteritems(self._summary):
                 msg = ['  %s:' % name]
-                msg += ['%s=%s' % pair for pair in six.iteritems(summary)]
+                msg += ['%s=%s' % pair for pair in six.iteritems(summary.mean)]
                 print('\t'.join(msg))
             # reset the summary
-            self._summary = collections.defaultdict(summary.DictSummary)
+            self._summary = collections.defaultdict(summary_module.DictSummary)

@@ -31,7 +31,7 @@ class MnistTraining(MnistBase):
     _type = 'train'
 
 
-class MnistTest(dataset.Dataset):
+class MnistTest(MnistBase):
 
     """MNIST test dataset.
 

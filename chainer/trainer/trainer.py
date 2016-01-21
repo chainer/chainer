@@ -1,5 +1,6 @@
 from __future__ import print_function
 import collections
+import os
 
 import six
 
@@ -29,14 +30,16 @@ class Trainer(object):
         self._optimizer = optimizer
         self._updater = updater
         self._max_epoch = epoch
-        self._max_iteration = iteration
+        self._max_iter = iteration
         self._device = -1  # cpu
 
         self._write_extensions = {}
         self._edit_extensions = {}
         self._read_extensions = {}
 
-        self._iter = dataset.get_batch_iter(batchsize, shuffle)
+        self._iter = dataset.get_batch_iterator(batchsize, shuffle)
+
+        optimizer.setup(target)
 
     def to_cpu(self):
         self._target.to_cpu()
@@ -75,25 +78,31 @@ class Trainer(object):
     def run(self, out=None):
         if out is None:
             out = self._get_default_out_name()
+        try:
+            os.makedirs(out)
+        except:
+            pass
 
         update = self._updater.update
+        epoch = self._iter.epoch
         for inputs in self._iter:
             # TODO(beam2d): better device handling
             if self._device >= 0:
                 with cuda.get_device(self._device):
                     inputs = tuple(cuda.to_gpu(x) for x in inputs)
-            epoch = self._iter.epoch
             train_result = update(inputs, self._target, self._optimizer)
-            is_new_epoch = epoch != self._iter.epoch
-            if is_new_epoch:
-                self._model.new_epoch()
-            t = self._model.t
+            new_epoch = epoch != self._iter.epoch
+            epoch = self._iter.epoch
+            if new_epoch:
+                self._optimizer.new_epoch()
+            t = self._optimizer.t
 
-            result = collections.OrderedDict(training=updater_result)
+            result = collections.OrderedDict(training=train_result)
 
-            args = {'epoch': epoch, 'new_epoch': is_new_epoch,
-                    'out': out, 't': t, 'trainer': self}
-            for name, (trigger, extension) in self._write_extensions:
+            args = {'epoch': epoch, 'new_epoch': new_epoch, 'out': out, 't': t,
+                    'trainer': self}
+            for name, (trigger, extension) in (
+                    six.iteritems(self._write_extensions)):
                 if trigger(**args):
                     r = extension(**args)
                     if r is not None:
@@ -102,28 +111,26 @@ class Trainer(object):
             ext_args = args.copy()
             ext_args['result'] = result
             for extensions in self._edit_extensions, self._read_extensions:
-                for name, (trigger, extension) in extensions:
+                for name, (trigger, extension) in six.iteritems(extensions):
                     if trigger(**args):
                         extension(**ext_args)
 
             # use < in order to support None (== endless loop)
-            if not (epoch < self._max_epoch and t < self._max_iteration):
+            if ((self._max_epoch is not None and epoch >= self._max_epoch) or
+                (self._max_iter is not None and t >= self._max_iter)):
                 break
 
     def serialize(self, serializer):
-        self._target.serialize(serializer['_target'])
-        self._optimizer.serialize(serializer['_optimizer'])
-        self._iter.serialize(serializer['_iter'])
+        self._target.serialize(serializer['target'])
+        self._optimizer.serialize(serializer['optimizer'])
+        self._iter.serialize(serializer['iter'])
 
-        wextensions = serializer['_write_extensions']
-        eextensions = serializer['_edit_extensions']
-        rextensions = serializer['_read_extensions']
         for extensions, s in (
-                (self._write_extensions, serializer['_write_extensions']),
-                (self._edit_extensions, serializer['_edit_extensions']),
-                (self._read_extensions, serializer['_read_extensions'])):
+                (self._write_extensions, serializer['write_extensions']),
+                (self._edit_extensions, serializer['edit_extensions']),
+                (self._read_extensions, serializer['read_extensions'])):
             t = s['_trigger']
-            for name, trigger, extension in extensions:
+            for name, (trigger, extension) in six.iteritems(extensions):
                 extension.serialize(s[name])
                 if hasattr(trigger, 'serialize'):
                     trigger.serialize(t[name])
@@ -137,7 +144,7 @@ class Trainer(object):
 
 def create_standard_trainer(
         dataset, target, optimizer, updater=None, batchsize=1,
-        epoch=None, iteration=None, suffle=True):
+        epoch=None, iteration=None, shuffle=True):
     tr = Trainer(dataset, target, optimizer, updater, batchsize, epoch,
                  iteration, shuffle)
     tr.extend(print_result.PrintResult())

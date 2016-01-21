@@ -22,24 +22,28 @@ class Evaluator(extension.Extension):
         self._dataset = dataset
         self._target = target
         self._lossfun = lossfun
+        self._batchsize = batchsize
 
     def __call__(self, epoch, t, trainer, **kwargs):
         lossfun = self._target if self._lossfun is None else self._lossfun
 
         accum = None
-        it = dataset.get_batch_iterator(batchsize, repeat=False)
-        for inputs in it:
+        for inputs in self._dataset.get_batch_iterator(
+                self._batchsize, repeat=False):
             n = len(inputs[0])
             # TODO(beam2d): better device handling
             if trainer._device >= 0:
                 with cuda.get_device(trainer._device):
                     inputs = tuple(cuda.to_gpu(x) for x in inputs)
-            in_vars = tuple(variable.Variable(a) for a in inputs)
+            in_vars = tuple(variable.Variable(a, volatile='on')
+                            for a in inputs)
             loss = lossfun(*in_vars)
             result = {'loss': loss.data * n}
-            for key, value in self._target.__dict__:
+            for key, value in six.iteritems(self._target.__dict__):
                 if isinstance(value, variable.Variable):
-                    result[key] = value.data * n
+                    v = value.data
+                    if v.size == 1:
+                        result[key] = v * n
             if accum is None:
                 accum = result
             else:

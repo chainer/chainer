@@ -1,3 +1,5 @@
+import six
+
 from chainer import variable
 
 
@@ -35,7 +37,9 @@ class StandardUpdater(Updater):
         optimizer.update()
 
         result = {'loss': loss.data}
-        for name, value in model.__dict__:
+        for name, value in six.iteritems(model.__dict__):
             if isinstance(value, variable.Variable):
-                result[name] = value.data
+                x = value.data
+                if x.size == 1:
+                    result[name] = x
         return result

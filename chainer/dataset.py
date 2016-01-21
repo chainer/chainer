@@ -67,7 +67,7 @@ class BatchIterator(object):
     def serialize(self, serializer):
         self._order = list(serializer('_order', self._order))
         self._i = serializer('_i', self._i)
-
+        self._end_nonrepeat = serializer('_end_nonrepeat', self._end_nonrepeat)
 
 class Dataset(object):
 
@@ -81,7 +81,7 @@ class Dataset(object):
         raise NotImplementedError
 
     def get_batch_iterator(self, batchsize=1, repeat=True, auto_shuffle=True):
-        return BatchIterator(self, batchsize, auto_shuffle)
+        return BatchIterator(self, batchsize, repeat, auto_shuffle)
 
     def __len__(self):
         raise NotImplementedError
@@ -95,7 +95,7 @@ def _build_minibatch(examples):
         # columnwise asarray
         ret = []
         for i in range(len(examples[0])):
-            ret.append(np.asarray([x[i] for x in examples]))
+            ret.append(numpy.asarray([x[i] for x in examples]))
         return tuple(ret)
     else:
-        return np.asarray(examples)
+        return numpy.asarray(examples)
