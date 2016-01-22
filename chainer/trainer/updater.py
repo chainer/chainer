@@ -10,7 +10,7 @@ class Updater(object):
     TODO(beam2d): document it.
 
     """
-    def update(self, inputs, model, optimizer):
+    def __call__(self, inputs, model, optimizer):
         raise NotImplementedError
 
     def serialize(self, serializer):
@@ -27,7 +27,7 @@ class StandardUpdater(Updater):
     def __init__(self, lossfun=None):
         self._lossfun = lossfun
 
-    def update(self, inputs, model, optimizer):
+    def __call__(self, inputs, model, optimizer):
         in_vars = [variable.Variable(a) for a in inputs]
         lossfun = model if self._lossfun is None else self._lossfun
 

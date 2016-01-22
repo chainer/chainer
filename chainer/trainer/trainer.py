@@ -25,10 +25,10 @@ class Trainer(object):
         if updater is None:
             updater = updater_module.StandardUpdater()
 
-        self._dataset = dataset
-        self._target = target
-        self._optimizer = optimizer
-        self._updater = updater
+        self.dataset = dataset
+        self.target = target
+        self.optimizer = optimizer
+        self.updater = updater
         self._max_epoch = epoch
         self._max_iter = iteration
         self._device = -1  # cpu
@@ -42,11 +42,11 @@ class Trainer(object):
         optimizer.setup(target)
 
     def to_cpu(self):
-        self._target.to_cpu()
+        self.target.to_cpu()
         self._device = -1
 
     def to_gpu(self, device=None):
-        self._target.to_gpu(device)
+        self.target.to_gpu(device)
         self._device = cuda.get_device(device).id
 
     def extend(self, extension, trigger=None, name=None):
@@ -55,13 +55,14 @@ class Trainer(object):
                 name = extension.default_name
             if trigger is None:
                 trigger = extension.default_trigger
-            if isinstance(trigger, tuple):
-                trigger = interval_trigger.IntervalTrigger(*trigger)
 
         if name is None:
             raise TypeError('name is not given for the extension')
         if name == 'training':
             raise ValueError('the name "training" is reserved')
+
+        if isinstance(trigger, tuple):
+            trigger = interval_trigger.IntervalTrigger(*trigger)
         if not callable(trigger):
             raise TypeError('trigger must be callable')
 
@@ -75,6 +76,13 @@ class Trainer(object):
             raise ValueError(
                 'result_action must be either of write, edit, or read')
 
+    def get_extension(self, name):
+        for extensions in (self._write_extensions, self._edit_extensions,
+                           self._read_extensions):
+            if name in extensions:
+                return extensions[name][1]
+        raise ValueError('extension {} not found'.format(name))
+
     def run(self, out=None):
         if out is None:
             out = self._get_default_out_name()
@@ -83,19 +91,23 @@ class Trainer(object):
         except:
             pass
 
-        update = self._updater.update
         epoch = self._iter.epoch
+        t = self.optimizer.t
         for inputs in self._iter:
             # TODO(beam2d): better device handling
             if self._device >= 0:
                 with cuda.get_device(self._device):
                     inputs = tuple(cuda.to_gpu(x) for x in inputs)
-            train_result = update(inputs, self._target, self._optimizer)
+            train_result = self.updater(inputs, self.target, self.optimizer)
+
+            if t == self.optimizer.t:  # no update happens
+                continue
+            t = self.optimizer.t
+
             new_epoch = epoch != self._iter.epoch
             epoch = self._iter.epoch
             if new_epoch:
-                self._optimizer.new_epoch()
-            t = self._optimizer.t
+                self.optimizer.new_epoch()
 
             result = collections.OrderedDict(training=train_result)
 
@@ -121,9 +133,12 @@ class Trainer(object):
                 break
 
     def serialize(self, serializer):
-        self._target.serialize(serializer['target'])
-        self._optimizer.serialize(serializer['optimizer'])
+        self.target.serialize(serializer['target'])
+        self.optimizer.serialize(serializer['optimizer'])
         self._iter.serialize(serializer['iter'])
+
+        if hasattr(self.updater, 'serialize'):
+            self.updater.serialize(serializer['updater'])
 
         for extensions, s in (
                 (self._write_extensions, serializer['write_extensions']),
@@ -136,9 +151,9 @@ class Trainer(object):
                     trigger.serialize(t[name])
 
     def _get_default_out_name(self):
-        dataset = type(self._dataset).__name__
-        target = type(self._target).__name__
-        optimizer = type(self._optimizer).__name__
+        dataset = type(self.dataset).__name__
+        target = type(self.target).__name__
+        optimizer = type(self.optimizer).__name__
         return 'result-{}-{}-{}'.format(dataset, target, optimizer)
 
 

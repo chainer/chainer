@@ -7,153 +7,149 @@ https://github.com/tomsercu/lstm
 """
 from __future__ import print_function
 import argparse
+import collections
 import math
-import sys
-import time
 
-import numpy as np
 import six
 
 import chainer
-from chainer import cuda
+from chainer.datasets import ptb_words
+import chainer.functions as F
 import chainer.links as L
 from chainer import optimizers
 from chainer import serializers
-
-import net
-
-
-parser = argparse.ArgumentParser()
-parser.add_argument('--initmodel', '-m', default='',
-                    help='Initialize the model from given file')
-parser.add_argument('--resume', '-r', default='',
-                    help='Resume the optimization from snapshot')
-parser.add_argument('--gpu', '-g', default=-1, type=int,
-                    help='GPU ID (negative value indicates CPU)')
-args = parser.parse_args()
-xp = cuda.cupy if args.gpu >= 0 else np
-
-n_epoch = 39   # number of epochs
-n_units = 650  # number of units per layer
-batchsize = 20   # minibatch size
-bprop_len = 35   # length of truncated BPTT
-grad_clip = 5    # gradient norm threshold to clip
-
-# Prepare dataset (preliminary download dataset by ./download.py)
-vocab = {}
+from chainer.trainer import extensions
+from chainer.utils import summary
 
 
-def load_data(filename):
-    global vocab, n_vocab
-    words = open(filename).read().replace('\n', '<eos>').strip().split()
-    dataset = np.ndarray((len(words),), dtype=np.int32)
-    for i, word in enumerate(words):
-        if word not in vocab:
-            vocab[word] = len(vocab)
-        dataset[i] = vocab[word]
-    return dataset
+class ParallelSequentialLoader(chainer.Dataset):
 
-train_data = load_data('ptb.train.txt')
-valid_data = load_data('ptb.valid.txt')
-test_data = load_data('ptb.test.txt')
-print('#vocab =', len(vocab))
+    """Data adapter that loads words starting from multiple points in parallel.
+    """
+    def __init__(self, baseset, batchsize, sequence_len):
+        self._baseset = baseset
+        self._batchsize = batchsize
+        self._gap = len(self._baseset) // batchsize
+        self._sequence_len = sequence_len
 
-# Prepare RNNLM model, defined in net.py
-lm = net.RNNLM(len(vocab), n_units)
-model = L.Classifier(lm)
-model.compute_accuracy = False  # we only want the perplexity
-for param in model.params():
-    data = param.data
-    data[:] = np.random.uniform(-0.1, 0.1, data.shape)
-if args.gpu >= 0:
-    cuda.get_device(args.gpu).use()
-    model.to_gpu()
+    def __len__(self):
+        return len(self._baseset)
 
-# Setup optimizer
-optimizer = optimizers.SGD(lr=1.)
-optimizer.setup(model)
-optimizer.add_hook(chainer.optimizer.GradientClipping(grad_clip))
-
-# Init/Resume
-if args.initmodel:
-    print('Load model from', args.initmodel)
-    serializers.load_npz(args.initmodel, model)
-if args.resume:
-    print('Load optimizer state from', args.resume)
-    serializers.load_npz(args.resume, optimizer)
+    def __getitem__(self, i):
+        index = i % self._batchsize * self._gap + i // self._batchsize
+        return self._baseset[index], self._baseset[(index + 1) % len(self)]
 
 
-def evaluate(dataset):
-    # Evaluation routine
-    evaluator = model.copy()  # to use different state
-    evaluator.predictor.reset_state()  # initialize state
+class RNNLM(chainer.Chain):
 
-    sum_log_perp = 0
-    for i in six.moves.range(dataset.size - 1):
-        x = chainer.Variable(xp.asarray(dataset[i:i + 1]), volatile='on')
-        t = chainer.Variable(xp.asarray(dataset[i + 1:i + 2]), volatile='on')
-        loss = evaluator(x, t)
-        sum_log_perp += loss.data
-    return math.exp(float(sum_log_perp) / (dataset.size - 1))
+    """Recurrent neural net language model for Penn Tree Bank corpus.
+
+    This is an example of deep LSTM networks for inputs of infinite lenghts.
+
+    """
+    def __init__(self, n_vocab, n_units, train=True):
+        super(RNNLM, self).__init__(
+            embed=L.EmbedID(n_vocab, n_units),
+            l1=L.LSTM(n_units, n_units),
+            l2=L.LSTM(n_units, n_units),
+            l3=L.Linear(n_units, n_vocab),
+        )
+        self.train = train
+
+    def reset_state(self):
+        self.l1.reset_state()
+        self.l2.reset_state()
+
+    def __call__(self, x):
+        h0 = self.embed(x)
+        h1 = self.l1(F.dropout(h0, train=self.train))
+        h2 = self.l2(F.dropout(h1, train=self.train))
+        y = self.l3(F.dropout(h2, train=self.train))
+        return y
 
 
-# Learning loop
-whole_len = train_data.shape[0]
-jump = whole_len // batchsize
-cur_log_perp = xp.zeros(())
-epoch = 0
-start_at = time.time()
-cur_at = start_at
-accum_loss = 0
-batch_idxs = list(range(batchsize))
-print('going to train {} iterations'.format(jump * n_epoch))
+def compute_perplexity(means):
+    for name_to_mean in means.values():
+        if 'loss' not in name_to_mean:
+            continue
+        perplexity = math.exp(name_to_mean['loss'])
+        name_to_mean['perplexity'] = perplexity
 
-for i in six.moves.range(jump * n_epoch):
-    x = chainer.Variable(xp.asarray(
-        [train_data[(jump * j + i) % whole_len] for j in batch_idxs]))
-    t = chainer.Variable(xp.asarray(
-        [train_data[(jump * j + i + 1) % whole_len] for j in batch_idxs]))
-    loss_i = model(x, t)
-    accum_loss += loss_i
-    cur_log_perp += loss_i.data
 
-    if (i + 1) % bprop_len == 0:  # Run truncated BPTT
-        model.zerograds()
-        accum_loss.backward()
-        accum_loss.unchain_backward()  # truncate
-        accum_loss = 0
-        optimizer.update()
+class TruncatedBPTTUpdater(chainer.trainer.Updater):
 
-    if (i + 1) % 10000 == 0:
-        now = time.time()
-        throuput = 10000. / (now - cur_at)
-        perp = math.exp(float(cur_log_perp) / 10000)
-        print('iter {} training perplexity: {:.2f} ({:.2f} iters/sec)'.format(
-            i + 1, perp, throuput))
-        cur_at = now
-        cur_log_perp.fill(0)
+    def __init__(self, sequence_len):
+        self.loss = 0
+        self.count = 0
+        self._sequence_len = sequence_len
 
-    if (i + 1) % jump == 0:
-        epoch += 1
-        print('evaluate')
-        now = time.time()
-        perp = evaluate(valid_data)
-        print('epoch {} validation perplexity: {:.2f}'.format(epoch, perp))
-        cur_at += time.time() - now  # skip time of evaluation
+    def __call__(self, inputs, model, optimizer):
+        x, t = inputs
+        ret = {}
 
-        if epoch >= 6:
-            optimizer.lr /= 1.2
-            print('learning rate =', optimizer.lr)
+        self.loss += model(chainer.Variable(x), chainer.Variable(t))
+        self.count += 1
+        if self.count % self._sequence_len == 0:  # Run truncated BPTT
+            model.zerograds()
+            self.loss.backward()
+            self.loss.unchain_backward()  # truncate
+            optimizer.update()
 
-    sys.stdout.flush()
+            ret['loss'] = self.loss.data / self._sequence_len
+            self.loss = 0
 
-# Evaluate on test dataset
-print('test')
-test_perp = evaluate(test_data)
-print('test perplexity:', test_perp)
+        return ret
 
-# Save the model and the optimizer
-print('save the model')
-serializers.save_npz('rnnlm.model', model)
-print('save the optimizer')
-serializers.save_npz('rnnlm.state', optimizer)
+
+class ResetState(chainer.trainer.Extension):
+    def __init__(self, target):
+        self.target = target
+
+    def __call__(self, **kwargs):
+        self.target.reset_state()
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--resume', '-r', default='',
+                        help='Resume the training from snapshot')
+    parser.add_argument('--gpu', '-g', default=-1, type=int,
+                        help='GPU ID (negative value indicates CPU)')
+    args = parser.parse_args()
+
+    batchsize = 20
+    sequence_len = 35
+
+    trainset = ParallelSequentialLoader(
+        ptb_words.PTBWordsTraining(), batchsize, sequence_len)
+    valset = ptb_words.PTBWordsValidation()
+
+    model = L.Classifier(RNNLM(valset.n_vocab, 650))
+    model.compute_accuracy = False  # we only want the perplexity
+
+    trainer = chainer.Trainer(
+        trainset, model, optimizers.SGD(lr=1),
+        updater=TruncatedBPTTUpdater(sequence_len), batchsize=batchsize,
+        epoch=39)
+    trainer.optimizer.add_hook(chainer.optimizer.GradientClipping(5))
+
+    model_val = model.copy()  # copy to use distinct LSTM states
+    model_val.predictor.train = False
+    trainer.extend(extensions.Evaluator(
+        ptb_words.PTBWordsValidation(), model_val))
+    # reset the states of validation model at the end of each epoch
+    trainer.extend(ResetState(model_val.predictor), trigger=(1, 'epoch'))
+
+    trainer.extend(extensions.PrintResult(
+        trigger=(250, 'iteration'), postprocess=compute_perplexity))
+    trainer.extend(extensions.Snapshot())
+
+    if args.resume:
+        serializers.load_npz(args.resume, trainer)
+    if args.gpu >= 0:
+        trainer.to_gpu(args.gpu)
+    trainer.run(out='result')
+
+
+if __name__ == '__main__':
+    main()

@@ -15,12 +15,13 @@ class PrintResult(extension.Extension):
     TODO(beam2d): document it.
 
     """
-    def __init__(self, keys=None, trigger=(1, 'epoch')):
+    def __init__(self, keys=None, trigger=(1, 'epoch'), postprocess=None):
         self._keys = keys
         self._summary = collections.defaultdict(summary_module.DictSummary)
         if isinstance(trigger, tuple):
             trigger = interval_trigger.IntervalTrigger(*trigger)
         self._trigger = trigger
+        self.postprocess = postprocess
 
     def __call__(self, epoch, new_epoch, result, t, **kwargs):
         # update
@@ -30,11 +31,14 @@ class PrintResult(extension.Extension):
 
         if self._trigger(epoch=epoch, new_epoch=new_epoch, reuslt=result,
                          t=t, **kwargs):
+            means = {key: s.mean for key, s in six.iteritems(self._summary)}
+            if self.postprocess is not None:
+                self.postprocess(means)
             # print
             print('result @ %s iteration (%s epoch)' % (t, epoch))
-            for name, summary in six.iteritems(self._summary):
+            for name, mean in six.iteritems(means):
                 msg = ['  %s:' % name]
-                msg += ['%s=%s' % pair for pair in six.iteritems(summary.mean)]
+                msg += ['%s=%s' % pair for pair in six.iteritems(mean)]
                 print('\t'.join(msg))
             # reset the summary
             self._summary = collections.defaultdict(summary_module.DictSummary)
