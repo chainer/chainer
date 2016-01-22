@@ -1658,12 +1658,12 @@ right_shift = _create_bit_op(
 # -----------------------------------------------------------------------------
 
 cdef _take_kernel = ElementwiseKernel(
-    'raw T a, S indices, int64 cdim, int64 rdim',
+    'raw T a, S indices, int32 cdim, int32 rdim, int32 adim',
     'T out',
     '''
-      long long li = i / (rdim * cdim);
-      long long ri = i % rdim;
-      out = a[(li * cdim + indices) * rdim + ri];
+      int li = i / (rdim * cdim);
+      int ri = i % rdim;
+      out = a[(li * adim + indices) * rdim + ri];
     ''',
     'cupy_take')
 
@@ -1673,14 +1673,17 @@ cpdef ndarray _take(ndarray a, indices, axis=None, ndarray out=None):
         a = a.ravel()
         lshape = ()
         rshape = ()
+        adim = 1
     else:
         if axis >= a.ndim:
             raise ValueError('Axis overrun')
         lshape = a.shape[:axis]
         rshape = a.shape[axis + 1:]
+        adim = a.shape[axis]
 
     if numpy.isscalar(indices):
-        a = rollaxis(a, axis)
+        if axis is not None:
+            a = rollaxis(a, axis)
         if out is None:
             return a[indices].copy()
         else:
@@ -1702,7 +1705,7 @@ cpdef ndarray _take(ndarray a, indices, axis=None, ndarray out=None):
     rdim = internal.prod(rshape)
     indices = indices.reshape(
         (1,) * len(lshape) + indices.shape + (1,) * len(rshape))
-    return _take_kernel(a, indices, cdim, rdim, out)
+    return _take_kernel(a, indices, cdim, rdim, adim, out)
 
 
 cpdef ndarray _diagonal(ndarray a, Py_ssize_t offset=0, Py_ssize_t axis1=0,
