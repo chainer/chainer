@@ -18,18 +18,26 @@ class Evaluator(extension.Extension):
     default_name = 'validation'
     result_action = 'write'
 
-    def __init__(self, dataset, target, lossfun=None, batchsize=1):
+    def __init__(self, dataset, target, lossfun=None, batchsize=1,
+                 prepare=None):
         self._dataset = dataset
         self._target = target
         self._lossfun = lossfun
         self._batchsize = batchsize
+        self._prepare = prepare
 
     def __call__(self, epoch, t, trainer, **kwargs):
-        lossfun = self._target if self._lossfun is None else self._lossfun
+        target = self._target.copy()  # evaluate model with distinct states
+        lossfun = target if self._lossfun is None else self._lossfun
+
+        if self._prepare is not None:
+            self._prepare(target)
 
         accum = None
         for inputs in self._dataset.get_batch_iterator(
                 self._batchsize, repeat=False):
+            if not isinstance(inputs, tuple):
+                inputs = inputs,
             n = len(inputs[0])
             # TODO(beam2d): better device handling
             if trainer._device >= 0:
@@ -39,7 +47,7 @@ class Evaluator(extension.Extension):
                             for a in inputs)
             loss = lossfun(*in_vars)
             result = {'loss': loss.data * n}
-            for key, value in six.iteritems(self._target.__dict__):
+            for key, value in six.iteritems(target.__dict__):
                 if isinstance(value, variable.Variable):
                     v = value.data
                     if v.size == 1:

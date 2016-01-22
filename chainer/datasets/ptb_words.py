@@ -17,7 +17,7 @@ class PTBWordsBase(dataset.Dataset):
         return len(self._data)
 
     def __getitem__(self, i):
-        return self._data[i, ...]
+        return self._data[i, ...], self._data[(i + 1) % len(self), ...]
 
 
 class PTBWordsTraining(PTBWordsBase):

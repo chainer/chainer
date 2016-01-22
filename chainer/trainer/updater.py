@@ -28,6 +28,8 @@ class StandardUpdater(Updater):
         self._lossfun = lossfun
 
     def __call__(self, inputs, model, optimizer):
+        if not isinstance(inputs, tuple):
+            inputs = inputs,
         in_vars = [variable.Variable(a) for a in inputs]
         lossfun = model if self._lossfun is None else self._lossfun
 

@@ -26,18 +26,17 @@ class ParallelSequentialLoader(chainer.Dataset):
 
     """Data adapter that loads words starting from multiple points in parallel.
     """
-    def __init__(self, baseset, batchsize, sequence_len):
+    def __init__(self, baseset, batchsize):
         self._baseset = baseset
         self._batchsize = batchsize
         self._gap = len(self._baseset) // batchsize
-        self._sequence_len = sequence_len
 
     def __len__(self):
         return len(self._baseset)
 
     def __getitem__(self, i):
         index = i % self._batchsize * self._gap + i // self._batchsize
-        return self._baseset[index], self._baseset[(index + 1) % len(self)]
+        return self._baseset[index]
 
 
 class RNNLM(chainer.Chain):
@@ -74,6 +73,11 @@ def compute_perplexity(means):
             continue
         perplexity = math.exp(name_to_mean['loss'])
         name_to_mean['perplexity'] = perplexity
+
+
+def evaluation_prepare(model):
+    model.predictor.train = False
+    model.predictor.reset_state()
 
 
 class TruncatedBPTTUpdater(chainer.trainer.Updater):
@@ -121,7 +125,7 @@ def main():
     sequence_len = 35
 
     trainset = ParallelSequentialLoader(
-        ptb_words.PTBWordsTraining(), batchsize, sequence_len)
+        ptb_words.PTBWordsTraining(), batchsize)
     valset = ptb_words.PTBWordsValidation()
 
     model = L.Classifier(RNNLM(valset.n_vocab, 650))
@@ -133,12 +137,8 @@ def main():
         epoch=39)
     trainer.optimizer.add_hook(chainer.optimizer.GradientClipping(5))
 
-    model_val = model.copy()  # copy to use distinct LSTM states
-    model_val.predictor.train = False
     trainer.extend(extensions.Evaluator(
-        ptb_words.PTBWordsValidation(), model_val))
-    # reset the states of validation model at the end of each epoch
-    trainer.extend(ResetState(model_val.predictor), trigger=(1, 'epoch'))
+        ptb_words.PTBWordsValidation(), model, prepare=evaluation_prepare))
 
     trainer.extend(extensions.PrintResult(
         trigger=(250, 'iteration'), postprocess=compute_perplexity))
