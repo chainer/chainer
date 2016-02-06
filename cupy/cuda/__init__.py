@@ -12,6 +12,7 @@ get_device_id = device.get_device_id
 
 alloc = memory.alloc
 Memory = memory.Memory
+MemoryBase = memory.MemoryBase
 MemoryPointer = memory.MemoryPointer
 MemoryPool = memory.MemoryPool
 set_allocator = memory.set_allocator

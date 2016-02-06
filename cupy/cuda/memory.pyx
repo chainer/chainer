@@ -10,7 +10,19 @@ from cupy.cuda cimport device
 from cupy.cuda cimport runtime
 
 
-cdef class Memory:
+cdef class MemoryBase:
+
+    def __init__(self, Py_ssize_t size, device, size_t ptr):
+        self.size = size
+        self.device = device
+        self.ptr = ptr
+
+    def __int__(self):
+        """Returns the pointer value to the head of the allocation."""
+        return self.ptr
+
+
+cdef class Memory(MemoryBase):
 
     """Memory allocation on a CUDA device.
 
@@ -23,20 +35,19 @@ cdef class Memory:
     """
 
     def __init__(self, Py_ssize_t size):
-        self.size = size
-        self.device = None
-        self.ptr = 0
+        cdef device.Device dev
+        cdef size_t ptr
         if size > 0:
-            self.device = device.Device()
-            self.ptr = runtime.malloc(size)
+            dev = device.Device()
+            ptr = runtime.malloc(size)
+        else:
+            dev = None
+            ptr = 0
+        super(Memory, self).__init__(size, dev, ptr)
 
     def __dealloc__(self):
         if self.ptr:
             runtime.free(self.ptr)
-
-    def __int__(self):
-        """Returns the pointer value to the head of the allocation."""
-        return self.ptr
 
 
 cdef class MemoryPointer:
@@ -57,7 +68,7 @@ cdef class MemoryPointer:
         ptr (int): Pointer to the place within the buffer.
     """
 
-    def __init__(self, Memory mem, Py_ssize_t offset):
+    def __init__(self, MemoryBase mem, Py_ssize_t offset):
         self.mem = mem
         self.device = mem.device
         self.ptr = mem.ptr + offset
@@ -266,7 +277,7 @@ cpdef set_allocator(allocator=_malloc):
     _current_allocator = allocator
 
 
-cdef class PooledMemory(Memory):
+cdef class PooledMemory(MemoryBase):
 
     """Memory allocation for a memory pool.
 
@@ -275,10 +286,8 @@ cdef class PooledMemory(Memory):
 
     """
 
-    def __init__(self, Memory mem, pool):
-        self.ptr = mem.ptr
-        self.size = mem.size
-        self.device = mem.device
+    def __init__(self, MemoryBase mem, pool):
+        super(PooledMemory, self).__init__(mem.size, mem.device, mem.ptr)
         self.pool = pool
 
     def __dealloc__(self):
@@ -312,7 +321,7 @@ cdef class SingleDeviceMemoryPool:
 
     cpdef MemoryPointer malloc(self, Py_ssize_t size):
         cdef list free
-        cdef Memory mem
+        cdef MemoryBase mem
         if size == 0:
             return MemoryPointer(Memory(0), 0)
         free = self._free[size]
@@ -333,7 +342,7 @@ cdef class SingleDeviceMemoryPool:
 
     cpdef free(self, size_t ptr, Py_ssize_t size):
         cdef list free
-        cdef Memory mem
+        cdef MemoryBase mem
         mem = self._in_use.pop(ptr, None)
         if mem is None:
             raise RuntimeError('Cannot free out-of-pool memory')
