@@ -277,6 +277,10 @@ cpdef set_allocator(allocator=_malloc):
     _current_allocator = allocator
 
 
+cpdef get_allocator():
+    return _current_allocator
+
+
 cdef class PooledMemory(MemoryBase):
 
     """Memory allocation for a memory pool.
