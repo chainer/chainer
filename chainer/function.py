@@ -97,13 +97,21 @@ class Function(object):
             :class:`Variable` objects.
 
         """
+
         in_data = tuple([x.data for x in inputs])
         if self.type_check_enable:
             self._check_data_type_forward(in_data)
+
+        hooks = global_hooks.values() + self.local_hook.values()
+        for hook in hooks:
+            if hasattr(hook, 'preprocess'):
+                hook.preprocess(self)
         # Forward prop
         with cuda.get_device(*in_data):
             outputs = self.forward(in_data)
             assert type(outputs) == tuple
+        for hook in hooks:
+            hook(self)
 
         out_v = flag.aggregate_flags([x.volatile for x in inputs])
         ret = tuple([variable.Variable(y, volatile=out_v) for y in outputs])
@@ -299,3 +307,33 @@ Invalid operation is performed in: {0} (Forward)
             if y_ref is not None:
                 y_ref.creator = None
         self.inputs = None
+
+    def add_hook(self, hook, name=None):
+        if name is None:
+            name = str(hook)
+        self.local_hook[name] = hook
+
+    def delete_hook(self, name):
+        if name in self.local_hook:
+            del self.local_hook[name]
+
+
+global_hooks = {}
+
+class FunctionHook(object):
+
+    def __enter__(self):
+        global global_hooks
+        global_hooks[str(self)] = self
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        global global_hooks
+        del global_hooks[str(self)]
+
+    def __call__(self, function):
+        raise NotImplementedError
+
+
+
+    
