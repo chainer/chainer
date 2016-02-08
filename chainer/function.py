@@ -105,13 +105,13 @@ class Function(object):
         hooks = global_hooks.values() + self.local_hook.values()
         for hook in hooks:
             if hasattr(hook, 'preprocess'):
-                hook.preprocess(self)
+                hook.preprocess(self, in_data)
         # Forward prop
         with cuda.get_device(*in_data):
             outputs = self.forward(in_data)
             assert type(outputs) == tuple
         for hook in hooks:
-            hook(self)
+            hook(self, in_data)
 
         out_v = flag.aggregate_flags([x.volatile for x in inputs])
         ret = tuple([variable.Variable(y, volatile=out_v) for y in outputs])
@@ -331,7 +331,7 @@ class FunctionHook(object):
         global global_hooks
         del global_hooks[str(self)]
 
-    def __call__(self, function):
+    def __call__(self, function, in_data):
         raise NotImplementedError
 
 
