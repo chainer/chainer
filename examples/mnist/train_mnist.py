@@ -87,23 +87,23 @@ def main():
 
     if args.net == 'simple':
         model = L.Classifier(MnistMLP(784, 1000, 10))
+        if args.gpu >= 0:
+            model.to_gpu(args.gpu)
     else:
         args.gpu = 0
         model = L.Classifier(MnistMLPParallel(784, 1000, 10))
 
     trainer = chainer.create_standard_trainer(
         mnist.MnistTraining(), model, optimizers.Adam(),
-        batchsize=100, epoch=20)
+        batchsize=100, epoch=20, device=args.gpu)
     trainer.extend(extensions.Evaluator(
-        mnist.MnistTest(), model, batchsize=100))
+        mnist.MnistTest(), model, batchsize=100, device=args.gpu))
     trainer.extend(extensions.ComputationalGraph(model))
 
     if args.resume:
         serializers.load_npz(args.resume, trainer)
-    if args.gpu >= 0:
-        trainer.to_gpu(args.gpu)
 
-    trainer.run(out='result')
+    trainer.run()
 
 
 if __name__ == '__main__':

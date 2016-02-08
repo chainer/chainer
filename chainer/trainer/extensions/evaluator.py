@@ -19,12 +19,13 @@ class Evaluator(extension.Extension):
     result_action = 'write'
 
     def __init__(self, dataset, target, lossfun=None, batchsize=1,
-                 prepare=None):
+                 prepare=None, device=None):
         self._dataset = dataset
         self._target = target
         self._lossfun = lossfun
         self._batchsize = batchsize
         self._prepare = prepare
+        self._device = device
 
     def __call__(self, epoch, t, trainer, **kwargs):
         target = self._target.copy()  # evaluate model with distinct states
@@ -35,14 +36,11 @@ class Evaluator(extension.Extension):
 
         accum = None
         for inputs in self._dataset.get_batch_iterator(
-                self._batchsize, repeat=False):
+                self._batchsize, repeat=False, device=self._device):
             if not isinstance(inputs, tuple):
                 inputs = inputs,
             n = len(inputs[0])
             # TODO(beam2d): better device handling
-            if trainer._device >= 0:
-                with cuda.get_device(trainer._device):
-                    inputs = tuple(cuda.to_gpu(x) for x in inputs)
             in_vars = tuple(variable.Variable(a, volatile='on')
                             for a in inputs)
             loss = lossfun(*in_vars)

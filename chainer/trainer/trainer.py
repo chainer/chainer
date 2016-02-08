@@ -21,33 +21,23 @@ class Trainer(object):
     """
     def __init__(self, dataset, target, optimizer,
                  updater=None, batchsize=1, epoch=None, iteration=None,
-                 shuffle=True):
+                 device=None):
         if updater is None:
             updater = updater_module.StandardUpdater()
 
-        self.dataset = dataset
         self.target = target
         self.optimizer = optimizer
         self.updater = updater
         self._max_epoch = epoch
         self._max_iter = iteration
-        self._device = -1  # cpu
 
         self._write_extensions = {}
         self._edit_extensions = {}
         self._read_extensions = {}
 
-        self._iter = dataset.get_batch_iterator(batchsize, shuffle)
+        self._iter = dataset.get_batch_iterator(batchsize, device=device)
 
         optimizer.setup(target)
-
-    def to_cpu(self):
-        self.target.to_cpu()
-        self._device = -1
-
-    def to_gpu(self, device=None):
-        self.target.to_gpu(device)
-        self._device = cuda.get_device(device).id
 
     def extend(self, extension, trigger=None, name=None):
         if isinstance(extension, extension_module.Extension):
@@ -83,9 +73,7 @@ class Trainer(object):
                 return extensions[name][1]
         raise ValueError('extension {} not found'.format(name))
 
-    def run(self, out=None):
-        if out is None:
-            out = self._get_default_out_name()
+    def run(self, out='result'):
         try:
             os.makedirs(out)
         except:
@@ -94,10 +82,6 @@ class Trainer(object):
         epoch = self._iter.epoch
         t = self.optimizer.t
         for inputs in self._iter:
-            # TODO(beam2d): better device handling
-            if self._device >= 0:
-                with cuda.get_device(self._device):
-                    inputs = tuple(cuda.to_gpu(x) for x in inputs)
             train_result = self.updater(inputs, self.target, self.optimizer)
 
             if t == self.optimizer.t:  # no update happens
@@ -150,18 +134,12 @@ class Trainer(object):
                 if hasattr(trigger, 'serialize'):
                     trigger.serialize(t[name])
 
-    def _get_default_out_name(self):
-        dataset = type(self.dataset).__name__
-        target = type(self.target).__name__
-        optimizer = type(self.optimizer).__name__
-        return 'result-{}-{}-{}'.format(dataset, target, optimizer)
-
 
 def create_standard_trainer(
-        dataset, target, optimizer, updater=None, batchsize=1,
-        epoch=None, iteration=None, shuffle=True):
-    tr = Trainer(dataset, target, optimizer, updater, batchsize, epoch,
-                 iteration, shuffle)
+        dataiter, target, optimizer, updater=None, batchsize=1,
+        epoch=None, iteration=None, device=None):
+    tr = Trainer(dataiter, target, optimizer, updater, batchsize,
+                 epoch, iteration, device)
     tr.extend(print_result.PrintResult())
     tr.extend(snapshot.Snapshot())
     return tr

@@ -130,15 +130,18 @@ def main():
 
     model = L.Classifier(RNNLM(valset.n_vocab, 650))
     model.compute_accuracy = False  # we only want the perplexity
+    if args.gpu >= 0:
+        model.to_gpu(args.gpu)
 
     trainer = chainer.Trainer(
         trainset, model, optimizers.SGD(lr=1),
         updater=TruncatedBPTTUpdater(sequence_len), batchsize=batchsize,
-        epoch=39)
+        epoch=39, device=args.gpu)
     trainer.optimizer.add_hook(chainer.optimizer.GradientClipping(5))
 
     trainer.extend(extensions.Evaluator(
-        ptb_words.PTBWordsValidation(), model, prepare=evaluation_prepare))
+        ptb_words.PTBWordsValidation(), model, prepare=evaluation_prepare,
+        device=args.gpu))
 
     trainer.extend(extensions.PrintResult(
         trigger=(250, 'iteration'), postprocess=compute_perplexity))
@@ -146,8 +149,6 @@ def main():
 
     if args.resume:
         serializers.load_npz(args.resume, trainer)
-    if args.gpu >= 0:
-        trainer.to_gpu(args.gpu)
     trainer.run(out='result')
 
 

@@ -5,6 +5,8 @@ import sys
 
 import numpy
 
+from chainer import cuda
+
 
 dataset_root = os.environ.get(
     'CHAINER_DATASET_ROOT',
@@ -27,13 +29,15 @@ class BatchIterator(object):
     TODO(beam2d): document it.
 
     """
-    def __init__(self, dataset, batchsize=1, repeat=True, auto_shuffle=True):
+    def __init__(self, dataset, batchsize=1, repeat=True, auto_shuffle=True,
+                 device=None):
         self._dataset = dataset
         self._batchsize = batchsize
         self._repeat = repeat
         self._end_nonrepeat = False
         self.epoch = 0
         self.auto_shuffle = auto_shuffle
+        self._device = device
 
         self._order = list(six.moves.range(len(dataset)))
         self._i = 0
@@ -59,7 +63,7 @@ class BatchIterator(object):
                     self.shuffle()
                 i = 0
         self._i = i
-        return _build_minibatch(batch)
+        return _build_minibatch(batch, self._device)
 
     def shuffle(self):
         random.shuffle(self._order)
@@ -81,8 +85,9 @@ class Dataset(object):
     def name(self):
         raise NotImplementedError
 
-    def get_batch_iterator(self, batchsize=1, repeat=True, auto_shuffle=True):
-        return BatchIterator(self, batchsize, repeat, auto_shuffle)
+    def get_batch_iterator(self, batchsize=1, repeat=True, auto_shuffle=True,
+                           device=None):
+        return BatchIterator(self, batchsize, repeat, auto_shuffle, device)
 
     def __len__(self):
         raise NotImplementedError
@@ -91,12 +96,22 @@ class Dataset(object):
         raise NotImplementedError
 
 
-def _build_minibatch(examples):
+def _build_minibatch(examples, device):
+    if device is None:
+        def to_device(x):
+            return x
+    elif device < 0:
+        to_device = cuda.to_cpu
+    else:
+        def to_device(x):
+            return cuda.to_gpu(x, device=device)
+
     if isinstance(examples[0], tuple):
         # columnwise asarray
         ret = []
         for i in range(len(examples[0])):
-            ret.append(numpy.asarray([x[i] for x in examples]))
+            arr = numpy.asarray([x[i] for x in examples])
+            ret.append(to_device(arr))
         return tuple(ret)
     else:
-        return numpy.asarray(examples)
+        return to_device(numpy.asarray(examples))
