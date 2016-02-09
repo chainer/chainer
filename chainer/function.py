@@ -3,6 +3,7 @@ import weakref
 
 from chainer import cuda
 from chainer import flag
+from chainer.utils import memory
 from chainer.utils import type_check
 from chainer import variable
 
@@ -102,7 +103,8 @@ class Function(object):
             self._check_data_type_forward(in_data)
         # Forward prop
         with cuda.get_device(*in_data):
-            outputs = self.forward(in_data)
+            with memory.memory_profile((type(self), 'forward')):
+                outputs = self.forward(in_data)
             assert type(outputs) == tuple
 
         out_v = flag.aggregate_flags([x.volatile for x in inputs])

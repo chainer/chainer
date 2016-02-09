@@ -4,6 +4,7 @@ import numpy
 
 from chainer import cuda
 from chainer import flag
+from chainer.utils import memory
 
 
 class Variable(object):
@@ -274,7 +275,8 @@ https://github.com/pfnet/chainer/issues/new.
             in_data = tuple(x.data for x in func.inputs)
             out_grad = tuple(None if y is None else y.grad for y in outputs)
             with cuda.get_device(*(in_data + out_grad)):
-                gxs = func.backward(in_data, out_grad)
+                with memory.memory_profile((type(self), 'backward')):
+                    gxs = func.backward(in_data, out_grad)
             assert len(gxs) == len(in_data)
 
             if not retain_grad:
