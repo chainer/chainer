@@ -1,35 +1,60 @@
 import unittest
 
 import chainer
+from chainer import cuda
 from chainer import function_hooks
 from chainer import functions
+from chainer import gradient_check
 from chainer import links
 import numpy
 
 
-class TestLabel(unittest.TestCase):
+class TestLabelHookToLink(unittest.TestCase):
 
     def setUp(self):
         self.h = function_hooks.LabelHook()
-        self.l = links.Linear(10, 2)
-        self.f = functions.Exp()
-        self.x = chainer.Variable(
-            numpy.random.uniform(-1, 1, (3, 10)).astype(numpy.float32))
+        self.l = links.Linear(5, 5)
+        self.x = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
+        self.gy = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
 
-    def test_link_cpu(self):
+    def test_forward_cpu(self):
         with self.h:
-            self.l(self.x)
+            self.l(chainer.Variable(self.x))
 
-    def test_link_gpu(self):
+    def test_forward_gpu(self):
         self.l.to_gpu()
-        self.x.to_gpu()
         with self.h:
-            self.l(self.x)
+            self.l(chainer.Variable(cuda.to_gpu(self.x)))
 
-    def test_function_cpu(self):
+    def test_backward_cpu(self):
+        with self.h:
+            gradient_check.check_backward(self.l, self.x, self.gy)
+
+    def test_backward_gpu(self):
+        self.l.to_gpu()
+        with self.h:
+            gradient_check.check_backward(
+                self.l, cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
+
+
+class TestLabelHookToFunction(unittest.TestCase):
+
+    def setUp(self):
+        self.h = function_hooks.LabelHook()
+        self.f = functions.Exp()
         self.f.add_hook(self.h)
-        self.f(self.x)
+        self.x = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
+        self.gy = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
 
-    def test_function_gpu(self):
-        self.x.to_gpu()
-        self.f(self.x)
+    def test_forward_cpu(self):
+        self.f(chainer.Variable(self.x))
+
+    def test_fowward_gpu(self):
+        self.f(chainer.Variable(cuda.to_gpu(self.x)))
+
+    def test_backward_cpu(self):
+        gradient_check.check_backward(self.f, self.x, self.gy)
+
+    def test_backward_gpu(self):
+        gradient_check.check_backward(
+            self.f, cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
