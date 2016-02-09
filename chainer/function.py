@@ -337,6 +337,3 @@ class FunctionHook(object):
     def __call__(self, function, in_data):
         raise NotImplementedError
 
-
-
-    
