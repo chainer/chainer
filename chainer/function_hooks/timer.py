@@ -1,9 +1,10 @@
 import time
 
 from chainer import cuda
+from chainer import function
 
 
-class TimerHook(FunctionHook):
+class TimerHook(function.FunctionHook):
 
     def preprocess(self, function, in_data):
         self.xp = cuda.get_array_module(*in_data)
