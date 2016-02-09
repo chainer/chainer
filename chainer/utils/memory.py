@@ -4,9 +4,9 @@ from chainer import cuda
 
 
 @contextlib.contextmanager
-def memory_profile(info):
+def memory_profile(listener):
     prev = cuda.cuda.get_allocator()
-    prof = MemoryProfiler(prev, info)
+    prof = MemoryProfiler(prev, listener)
     cuda.cuda.set_allocator(prof.malloc)
     yield
     cuda.cuda.set_allocator(prev)
@@ -14,25 +14,26 @@ def memory_profile(info):
 
 class MemoryProfiler(object):
 
-    def __init__(self, malloc, info):
-        self._info = info
+    def __init__(self, malloc, listener):
+        assert callable(listener)
         self._malloc = malloc
+        self._listener = listener
 
     def malloc(self, size):
-        print('alloc', self._info, size)
+        self._listener('alloc', size)
         ptr = self._malloc(size)
-        pmem = ProfileMemory(ptr.mem, self._info)
+        pmem = ProfileMemory(ptr.mem, self._listener)
         return cuda.cuda.MemoryPointer(pmem, 0)
 
 
 class ProfileMemory(cuda.cuda.MemoryBase):
 
-    def __init__(self, memory, info):
+    def __init__(self, memory, listener):
         super(ProfileMemory, self).__init__(
             memory.size, memory.device, memory.ptr)
 
         self._memory = memory
-        self._info = info
+        self._listener = listener
 
     def __del__(self):
-        print('del', self._info, self.size)
+        self._listener('dealloc', self.size)

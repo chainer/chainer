@@ -103,7 +103,9 @@ class Function(object):
             self._check_data_type_forward(in_data)
         # Forward prop
         with cuda.get_device(*in_data):
-            with memory.memory_profile((type(self), 'forward')):
+            def p(event, size):
+                print(event, size, type(self), 'forward')
+            with memory.memory_profile(p):
                 outputs = self.forward(in_data)
             assert type(outputs) == tuple
 

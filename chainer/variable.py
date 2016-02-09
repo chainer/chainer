@@ -275,7 +275,9 @@ https://github.com/pfnet/chainer/issues/new.
             in_data = tuple(x.data for x in func.inputs)
             out_grad = tuple(None if y is None else y.grad for y in outputs)
             with cuda.get_device(*(in_data + out_grad)):
-                with memory.memory_profile((type(self), 'backward')):
+                def p(event, size):
+                    print(event, size, type(self), 'backward')
+                with memory.memory_profile(p):
                     gxs = func.backward(in_data, out_grad)
             assert len(gxs) == len(in_data)
 
