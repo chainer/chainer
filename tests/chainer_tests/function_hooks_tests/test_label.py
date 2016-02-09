@@ -6,6 +6,7 @@ from chainer import function_hooks
 from chainer import functions
 from chainer import gradient_check
 from chainer import links
+from chainer.testing import attr
 import numpy
 
 
@@ -21,6 +22,7 @@ class TestLabelHookToLink(unittest.TestCase):
         with self.h:
             self.l(chainer.Variable(self.x))
 
+    @attr.gpu
     def test_forward_gpu(self):
         self.l.to_gpu()
         with self.h:
@@ -30,6 +32,7 @@ class TestLabelHookToLink(unittest.TestCase):
         with self.h:
             gradient_check.check_backward(self.l, self.x, self.gy)
 
+    @attr.gpu
     def test_backward_gpu(self):
         self.l.to_gpu()
         with self.h:
@@ -49,12 +52,14 @@ class TestLabelHookToFunction(unittest.TestCase):
     def test_forward_cpu(self):
         self.f(chainer.Variable(self.x))
 
+    @attr.gpu
     def test_fowward_gpu(self):
         self.f(chainer.Variable(cuda.to_gpu(self.x)))
 
     def test_backward_cpu(self):
         gradient_check.check_backward(self.f, self.x, self.gy)
 
+    @attr.gpu
     def test_backward_gpu(self):
         gradient_check.check_backward(
             self.f, cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
