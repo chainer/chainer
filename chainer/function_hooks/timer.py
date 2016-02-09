@@ -17,7 +17,7 @@ class TimerHook(function.FunctionHook):
             self.stop = cuda.Event()
             self.start.record()
 
-    def __call__(self, function, in_data):
+    def postprocess(self, function, in_data):
         xp = cuda.get_array_module(*in_data)
         if xp == numpy:
             self.stop = time.time()
