@@ -30,4 +30,6 @@ ON = flag.ON
 OFF = flag.OFF
 AUTO = flag.AUTO
 
+global_hooks = {}
+
 basic_math.install_variable_arithmetics()

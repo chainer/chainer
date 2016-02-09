@@ -1,6 +1,7 @@
 import os
 import weakref
 
+import chainer
 from chainer import cuda
 from chainer import flag
 from chainer.utils import type_check
@@ -105,7 +106,7 @@ class Function(object):
         if self.type_check_enable:
             self._check_data_type_forward(in_data)
 
-        hooks = global_hooks.values() + self.local_hook.values()
+        hooks = chainer.global_hooks.values() + self.local_hooks.values()
         for hook in hooks:
             if hasattr(hook, 'preprocess'):
                 hook.preprocess(self, in_data)
@@ -321,18 +322,15 @@ Invalid operation is performed in: {0} (Forward)
             del self.local_hook[name]
 
 
-global_hooks = {}
-
 class FunctionHook(object):
 
     def __enter__(self):
-        global global_hooks
-        global_hooks[repr(self)] = self
+        chainer.global_hooks[repr(self)] = self
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        global global_hooks
-        del global_hooks[repr(self)]
+        del chainer.global_hooks[repr(self)]
+
 
     def __call__(self, function, in_data):
         raise NotImplementedError
