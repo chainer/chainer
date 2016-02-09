@@ -15,8 +15,8 @@ class Snapshot(extension.Extension):
     default_trigger = 1, 'epoch'
 
     def __init__(self, savefun=npz.save_npz):
-        self._save = savefun
+        self.savefun = savefun
 
     def __call__(self, out, trainer, t, **kwargs):
         path = os.path.join(out, 'snapshot')
-        self._save(path, trainer)
+        self.savefun(path, trainer)

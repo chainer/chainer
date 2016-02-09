@@ -31,18 +31,15 @@ class Trainer(object):
         self._max_epoch = epoch
         self._max_iter = iteration
 
-        self._write_extensions = {}
-        self._edit_extensions = {}
-        self._read_extensions = {}
-
-        self._training_hooks = {}
+        self._extensions = {}
+        self._extension_priorities = {}
 
         self._iter = dataset.get_batch_iterator(batchsize, device=device)
 
         optimizer.setup(target)
 
     def extend(self, extension, trigger=None, name=None,
-               invoke_before_training=None):
+               invoke_before_training=None, priority=None):
         if isinstance(extension, extension_module.Extension):
             if name is None:
                 name = extension.default_name
@@ -59,27 +56,18 @@ class Trainer(object):
         if not callable(trigger):
             raise TypeError('trigger must be callable')
 
-        if extension.result_action == 'write':
-            self._write_extensions[name] = trigger, extension
-        elif extension.result_action == 'edit':
-            self._edit_extensions[name] = trigger, extension
-        elif extension.result_action == 'read':
-            self._read_extensions[name] = trigger, extension
-        else:
-            raise ValueError(
-                'result_action must be either of write, edit, or read')
-
         if invoke_before_training is None:
             invoke_before_training = getattr(
                 extension, 'invoke_before_training', False)
-        if invoke_before_training:
-            self._training_hooks[name] = extension
+
+        if priority is None:
+            priority = extension.priority
+        self._extensions[name] = trigger, invoke_before_training, extension
+        self._extension_priorities[name] = priority
 
     def get_extension(self, name):
-        for extensions in (self._write_extensions, self._edit_extensions,
-                           self._read_extensions):
-            if name in extensions:
-                return extensions[name][1]
+        if name in self._extensions:
+            return self._extensions[name][2]
         raise ValueError('extension {} not found'.format(name))
 
     def run(self, out='result'):
@@ -91,10 +79,18 @@ class Trainer(object):
         epoch = self._iter.epoch
         t = self.optimizer.t
 
+        extension_order = sorted(
+            self._extensions.keys(),
+            key=lambda name: self._extension_priorities[name],
+            reverse=True)
+        ordered_extensions = [self._extensions[name]
+                              for name in extension_order]
+
         args = {'epoch': epoch, 'new_epoch': False, 'out': out, 'result': {},
                 't': t, 'trainer': self}
-        for hook in self._training_hooks.values():
-            hook(**args)
+        for _, invoke_before_training, extension in ordered_extensions:
+            if invoke_before_training:
+                extension(**args)
 
         import sys
         for inputs in self._iter:
@@ -112,22 +108,13 @@ class Trainer(object):
                 self.optimizer.new_epoch()
 
             result = collections.OrderedDict(training=train_result)
-
-            args = {'epoch': epoch, 'new_epoch': new_epoch, 'out': out, 't': t,
-                    'trainer': self}
-            for name, (trigger, extension) in (
-                    six.iteritems(self._write_extensions)):
+            args = {'epoch': epoch, 'new_epoch': new_epoch, 'out': out,
+                    'result': result, 't': t, 'trainer': self}
+            for trigger, _, extension in ordered_extensions:
                 if trigger(**args):
                     r = extension(**args)
                     if r is not None:
                         result[name] = r
-
-            ext_args = args.copy()
-            ext_args['result'] = result
-            for extensions in self._edit_extensions, self._read_extensions:
-                for name, (trigger, extension) in six.iteritems(extensions):
-                    if trigger(**args):
-                        extension(**ext_args)
 
             # use < in order to support None (== endless loop)
             if ((self._max_epoch is not None and epoch >= self._max_epoch) or
@@ -144,15 +131,12 @@ class Trainer(object):
         if hasattr(self.updater, 'serialize'):
             self.updater.serialize(serializer['updater'])
 
-        for extensions, s in (
-                (self._write_extensions, serializer['write_extensions']),
-                (self._edit_extensions, serializer['edit_extensions']),
-                (self._read_extensions, serializer['read_extensions'])):
-            t = s['_trigger']
-            for name, (trigger, extension) in six.iteritems(extensions):
-                extension.serialize(s[name])
-                if hasattr(trigger, 'serialize'):
-                    trigger.serialize(t[name])
+        s = serializer['extensions']
+        t = serializer['_extension_triggers']
+        for name, (trigger, _, extension) in six.iteritems(self._extensions):
+            extension.serialize(s[name])
+            if hasattr(trigger, 'serialize'):
+                trigger.serialize(t[name])
 
 
 def create_standard_trainer(

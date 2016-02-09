@@ -1,3 +1,8 @@
+PRIORITY_WRITER = 10000
+PRIORITY_EDITOR = 100
+PRIORITY_READER = 1
+
+
 class Extension(object):
 
     """Base class of all trainer extensions.
@@ -6,7 +11,7 @@ class Extension(object):
 
     """
     default_trigger = 1, 'iteration'
-    result_action = 'read'
+    priority = PRIORITY_READER
     invoke_before_training = False
 
     @property
