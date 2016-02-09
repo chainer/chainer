@@ -35,11 +35,14 @@ class Trainer(object):
         self._edit_extensions = {}
         self._read_extensions = {}
 
+        self._training_hooks = {}
+
         self._iter = dataset.get_batch_iterator(batchsize, device=device)
 
         optimizer.setup(target)
 
-    def extend(self, extension, trigger=None, name=None):
+    def extend(self, extension, trigger=None, name=None,
+               invoke_before_training=None):
         if isinstance(extension, extension_module.Extension):
             if name is None:
                 name = extension.default_name
@@ -66,6 +69,12 @@ class Trainer(object):
             raise ValueError(
                 'result_action must be either of write, edit, or read')
 
+        if invoke_before_training is None:
+            invoke_before_training = getattr(
+                extension, 'invoke_before_training', False)
+        if invoke_before_training:
+            self._training_hooks[name] = extension
+
     def get_extension(self, name):
         for extensions in (self._write_extensions, self._edit_extensions,
                            self._read_extensions):
@@ -81,7 +90,16 @@ class Trainer(object):
 
         epoch = self._iter.epoch
         t = self.optimizer.t
+
+        args = {'epoch': epoch, 'new_epoch': False, 'out': out, 'result': {},
+                't': t, 'trainer': self}
+        for hook in self._training_hooks.values():
+            hook(**args)
+
+        import sys
         for inputs in self._iter:
+            print(t, end='\r')
+            sys.stdout.flush()
             train_result = self.updater(inputs, self.target, self.optimizer)
 
             if t == self.optimizer.t:  # no update happens
@@ -116,6 +134,8 @@ class Trainer(object):
                 (self._max_iter is not None and t >= self._max_iter)):
                 break
 
+        self._iter.finalize()
+
     def serialize(self, serializer):
         self.target.serialize(serializer['target'])
         self.optimizer.serialize(serializer['optimizer'])
@@ -136,9 +156,9 @@ class Trainer(object):
 
 
 def create_standard_trainer(
-        dataiter, target, optimizer, updater=None, batchsize=1,
+        dataset, target, optimizer, updater=None, batchsize=1,
         epoch=None, iteration=None, device=None):
-    tr = Trainer(dataiter, target, optimizer, updater, batchsize,
+    tr = Trainer(dataset, target, optimizer, updater, batchsize,
                  epoch, iteration, device)
     tr.extend(print_result.PrintResult())
     tr.extend(snapshot.Snapshot())

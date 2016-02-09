@@ -4,6 +4,7 @@ from chainer.trainer import trainer
 from chainer.trainer import updater
 
 Extension = extension.Extension
+make_extension = extension.make_extension
 
 IntervalTrigger = interval_trigger.IntervalTrigger
 

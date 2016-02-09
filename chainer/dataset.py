@@ -42,6 +42,15 @@ class BatchIterator(object):
         self._order = list(six.moves.range(len(dataset)))
         self._i = 0
 
+        if auto_shuffle:
+            self._shuffle()
+
+        self._finalized = False
+
+    def __del__(self):
+        if not self._finalized:
+            self.finalize()
+
     def __iter__(self):
         return self
 
@@ -60,19 +69,23 @@ class BatchIterator(object):
                     break
                 self.epoch += 1
                 if self.auto_shuffle:
-                    self.shuffle()
+                    self._shuffle()
                 i = 0
         self._i = i
-        return _build_minibatch(batch, self._device)
+        return build_minibatch(batch, self._device)
 
-    def shuffle(self):
-        random.shuffle(self._order)
+    def finalize(self):
+        self._finalized = True
 
     def serialize(self, serializer):
         self._end_nonrepeat = serializer('_end_nonrepeat', self._end_nonrepeat)
         self.epoch = serializer('epoch', self.epoch)
         self._order = list(serializer('_order', self._order))
         self._i = serializer('_i', self._i)
+
+    def _shuffle(self):
+        random.shuffle(self._order)
+
 
 class Dataset(object):
 
@@ -96,7 +109,7 @@ class Dataset(object):
         raise NotImplementedError
 
 
-def _build_minibatch(examples, device):
+def build_minibatch(examples, device):
     if device is None:
         def to_device(x):
             return x

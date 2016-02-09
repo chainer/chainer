@@ -18,10 +18,13 @@ class PrintResult(extension.Extension):
     def __init__(self, keys=None, trigger=(1, 'epoch'), postprocess=None):
         self._keys = keys
         self._summary = collections.defaultdict(summary_module.DictSummary)
+        self.set_trigger(trigger)
+        self.postprocess = postprocess
+
+    def set_trigger(self, trigger):
         if isinstance(trigger, tuple):
             trigger = interval_trigger.IntervalTrigger(*trigger)
         self._trigger = trigger
-        self.postprocess = postprocess
 
     def __call__(self, epoch, new_epoch, result, t, **kwargs):
         # update

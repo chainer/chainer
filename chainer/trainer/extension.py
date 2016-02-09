@@ -7,6 +7,7 @@ class Extension(object):
     """
     default_trigger = 1, 'iteration'
     result_action = 'read'
+    invoke_before_training = False
 
     @property
     def default_name(self):
@@ -19,7 +20,8 @@ class Extension(object):
         pass
 
 
-def extension(default_trigger=None, default_name=None, result_action=None):
+def make_extension(default_trigger=None, default_name=None,
+                   result_action=None):
     def decorator(f):
         f.default_trigger = default_trigger or Extension.default_trigger
         f.default_name = default_name
