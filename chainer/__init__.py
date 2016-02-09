@@ -18,6 +18,7 @@ ChainList = link.ChainList
 Deserializer = serializer.Deserializer
 Flag = flag.Flag
 Function = function.Function
+FunctionHook = function.FunctionHook
 FunctionSet = function_set.FunctionSet
 GradientMethod = optimizer.GradientMethod
 Link = link.Link
