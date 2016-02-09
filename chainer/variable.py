@@ -2,6 +2,7 @@ import heapq
 
 import numpy
 
+import chainer
 from chainer import cuda
 from chainer import flag
 
@@ -273,9 +274,14 @@ https://github.com/pfnet/chainer/issues/new.
 
             in_data = tuple(x.data for x in func.inputs)
             out_grad = tuple(None if y is None else y.grad for y in outputs)
+            hooks = chainer.global_hooks.values() + func.local_hooks.values()
+            for hook in hooks:
+                hook.backward_preprocess(func, in_data, out_grad)
             with cuda.get_device(*(in_data + out_grad)):
                 gxs = func.backward(in_data, out_grad)
             assert len(gxs) == len(in_data)
+            for hook in hooks:
+                hook.backward_postprocess(func, in_data, out_grad)
 
             if not retain_grad:
                 for y in outputs:

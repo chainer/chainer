@@ -1,12 +1,14 @@
 import time
 
+import numpy
+
 from chainer import cuda
 from chainer import function
 
 
 class TimerHook(function.FunctionHook):
 
-    def preprocess(self, function, in_data):
+    def preprocess(self, function):
         self.xp = cuda.get_array_module(*in_data)
         if self.xp == numpy:
             self.start = time.time()
@@ -15,7 +17,7 @@ class TimerHook(function.FunctionHook):
             self.stop = cuda.Event()
             self.start.record()
 
-    def __call__(self, function, in_data):
+    def __call__(self, function):
         if self.xp == numpy:
             self.end = time.time()
             elapsed_time = self.end - self.start

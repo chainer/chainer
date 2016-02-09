@@ -77,7 +77,7 @@ class Function(object):
     type_check_enable = int(os.environ.get('CHAINER_TYPE_CHECK', '1')) != 0
 
     def __init__(self):
-        self.local_hook = {}
+        self.local_hooks = {}
 
     def __call__(self, *inputs):
         """Applies forward propagation with chaining backward references.
@@ -108,14 +108,13 @@ class Function(object):
 
         hooks = chainer.global_hooks.values() + self.local_hooks.values()
         for hook in hooks:
-            if hasattr(hook, 'preprocess'):
-                hook.preprocess(self, in_data)
+            hook.forward_preprocess(self, in_data)
         # Forward prop
         with cuda.get_device(*in_data):
             outputs = self.forward(in_data)
             assert type(outputs) == tuple
         for hook in hooks:
-            hook(self, in_data)
+            hook.forward_postprocess(self, in_data)
 
         out_v = flag.aggregate_flags([x.volatile for x in inputs])
         ret = tuple([variable.Variable(y, volatile=out_v) for y in outputs])
@@ -315,11 +314,11 @@ Invalid operation is performed in: {0} (Forward)
     def add_hook(self, hook, name=None):
         if name is None:
             name = repr(hook)
-        self.local_hook[name] = hook
+        self.local_hooks[name] = hook
 
     def delete_hook(self, name):
-        if name in self.local_hook:
-            del self.local_hook[name]
+        if name in self.local_hooks:
+            del self.local_hooks[name]
 
 
 class FunctionHook(object):
@@ -331,7 +330,23 @@ class FunctionHook(object):
     def __exit__(self, exc_type, exc_value, traceback):
         del chainer.global_hooks[repr(self)]
 
+    def __call__(self, function):
+        pass
 
-    def __call__(self, function, in_data):
-        raise NotImplementedError
+    def preprocess(self, function):
+        return self.__call__(function)
 
+    def postprocess(self, function):
+        return self.__call__(function)
+
+    def forward_preprocess(self, function, in_data):
+        return self.preprocess(function)
+
+    def forward_postprocess(self, function, in_data):
+        return self.postprocess(function)
+
+    def backward_preprocess(self, function, in_data, out_grad):
+        return self.preprocess(function)
+
+    def backward_post_process(self, function, in_data, out_grad):
+        return self.postprocess(function)
