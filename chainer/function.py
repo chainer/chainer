@@ -313,7 +313,7 @@ Invalid operation is performed in: {0} (Forward)
 
     def add_hook(self, hook, name=None):
         if name is None:
-            name = str(hook)
+            name = repr(hook)
         self.local_hook[name] = hook
 
     def delete_hook(self, name):
@@ -327,12 +327,12 @@ class FunctionHook(object):
 
     def __enter__(self):
         global global_hooks
-        global_hooks[str(self)] = self
+        global_hooks[repr(self)] = self
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
         global global_hooks
-        del global_hooks[str(self)]
+        del global_hooks[repr(self)]
 
     def __call__(self, function, in_data):
         raise NotImplementedError
