@@ -330,23 +330,23 @@ class FunctionHook(object):
     def __exit__(self, exc_type, exc_value, traceback):
         del chainer.global_hooks[repr(self)]
 
-    def __call__(self, function):
+    def __call__(self, function, in_data):
         pass
 
-    def preprocess(self, function):
-        return self.__call__(function)
+    def preprocess(self, function, in_data):
+        return self.__call__(function, in_data)
 
-    def postprocess(self, function):
-        return self.__call__(function)
+    def postprocess(self, function, in_data):
+        return self.__call__(function, in_data)
 
     def forward_preprocess(self, function, in_data):
-        return self.preprocess(function)
+        return self.preprocess(function, in_data)
 
     def forward_postprocess(self, function, in_data):
-        return self.postprocess(function)
+        return self.postprocess(function, in_data)
 
     def backward_preprocess(self, function, in_data, out_grad):
-        return self.preprocess(function)
+        return self.preprocess(function, in_data)
 
-    def backward_post_process(self, function, in_data, out_grad):
-        return self.postprocess(function)
+    def backward_postprocess(self, function, in_data, out_grad):
+        return self.postprocess(function, in_data)

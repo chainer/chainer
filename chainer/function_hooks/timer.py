@@ -8,22 +8,24 @@ from chainer import function
 
 class TimerHook(function.FunctionHook):
 
-    def preprocess(self, function):
-        self.xp = cuda.get_array_module(*in_data)
-        if self.xp == numpy:
+    def preprocess(self, function, in_data):
+        xp = cuda.get_array_module(*in_data)
+        if xp == numpy:
             self.start = time.time()
         else:
             self.start = cuda.Event()
             self.stop = cuda.Event()
             self.start.record()
 
-    def __call__(self, function):
-        if self.xp == numpy:
-            self.end = time.time()
-            elapsed_time = self.end - self.start
+    def __call__(self, function, in_data):
+        xp = cuda.get_array_module(*in_data)
+        if xp == numpy:
+            self.stop = time.time()
+            elapsed_time = self.stop - self.start
         else:
-            self.end.record()
-            self.end.synchronize()
-            elapsed_time = cuda.get_elapsed_time(self.start, self.end)
+            self.stop.record()
+            self.stop.synchronize()
+            elapsed_time = cuda.cupy.cuda.get_elapsed_time(
+                self.start, self.stop)
 
         print('{}\t{}'.format(function.label, elapsed_time))
