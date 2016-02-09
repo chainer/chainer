@@ -92,10 +92,7 @@ class Trainer(object):
             if invoke_before_training:
                 extension(**args)
 
-        import sys
         for inputs in self._iter:
-            print(t, end='\r')
-            sys.stdout.flush()
             train_result = self.updater(inputs, self.target, self.optimizer)
 
             if t == self.optimizer.t:  # no update happens
