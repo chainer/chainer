@@ -31,7 +31,7 @@ class Trainer(object):
         self._max_epoch = epoch
         self._max_iter = iteration
 
-        self._extensions = {}
+        self._extensions = collections.OrderedDict()
         self._extension_priorities = {}
 
         self._iter = dataset.get_batch_iterator(batchsize, device=device)
