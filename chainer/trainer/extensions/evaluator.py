@@ -16,7 +16,7 @@ class Evaluator(extension.Extension):
     """
     default_trigger = 1, 'epoch'
     default_name = 'validation'
-    priority = extension.PRIORITY_READER
+    priority = extension.PRIORITY_WRITER
 
     def __init__(self, dataset, target, lossfun=None, batchsize=1,
                  prepare=None, device=None):
