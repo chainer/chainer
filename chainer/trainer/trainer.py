@@ -83,12 +83,11 @@ class Trainer(object):
             self._extensions.keys(),
             key=lambda name: self._extension_priorities[name],
             reverse=True)
-        ordered_extensions = [self._extensions[name]
-                              for name in extension_order]
 
         args = {'epoch': epoch, 'new_epoch': False, 'out': out, 'result': {},
                 't': t, 'trainer': self}
-        for _, invoke_before_training, extension in ordered_extensions:
+        for name in extension_order:
+            _, invoke_before_training, extension = self._extensions[name]
             if invoke_before_training:
                 extension(**args)
 
@@ -107,7 +106,8 @@ class Trainer(object):
             result = collections.OrderedDict(training=train_result)
             args = {'epoch': epoch, 'new_epoch': new_epoch, 'out': out,
                     'result': result, 't': t, 'trainer': self}
-            for trigger, _, extension in ordered_extensions:
+            for name in extension_order:
+                trigger, _, extension = self._extensions[name]
                 if trigger(**args):
                     r = extension(**args)
                     if r is not None:
