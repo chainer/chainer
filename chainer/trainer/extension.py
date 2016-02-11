@@ -25,11 +25,10 @@ class Extension(object):
         pass
 
 
-def make_extension(default_trigger=None, default_name=None,
-                   result_action=None):
+def make_extension(default_trigger=None, default_name=None, priority=None):
     def decorator(f):
         f.default_trigger = default_trigger or Extension.default_trigger
         f.default_name = default_name
-        f.result_action = result_action or Extension.result_action
+        f.priority = priority or Extension.priority
         return f
     return decorator

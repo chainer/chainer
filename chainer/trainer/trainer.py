@@ -40,11 +40,10 @@ class Trainer(object):
 
     def extend(self, extension, trigger=None, name=None,
                invoke_before_training=None, priority=None):
-        if isinstance(extension, extension_module.Extension):
-            if name is None:
-                name = extension.default_name
-            if trigger is None:
-                trigger = extension.default_trigger
+        if name is None:
+            name = getattr(extension, 'default_name', None)
+        if trigger is None:
+            trigger = getattr(extension, 'default_trigger', None)
 
         if name is None:
             raise TypeError('name is not given for the extension')
@@ -54,7 +53,7 @@ class Trainer(object):
         if isinstance(trigger, tuple):
             trigger = interval_trigger.IntervalTrigger(*trigger)
         if not callable(trigger):
-            raise TypeError('trigger must be callable')
+            raise TypeError('trigger must be a tuple or a callable')
 
         if invoke_before_training is None:
             invoke_before_training = getattr(
