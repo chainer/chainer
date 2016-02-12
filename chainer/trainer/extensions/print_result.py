@@ -32,7 +32,7 @@ class PrintResult(extension.Extension):
             if self._keys is None or key in self._keys:
                 self._summary[key].add(value)
 
-        if self._trigger(epoch=epoch, new_epoch=new_epoch, reuslt=result,
+        if self._trigger(epoch=epoch, new_epoch=new_epoch, result=result,
                          t=t, **kwargs):
             means = {key: s.mean for key, s in six.iteritems(self._summary)}
             if self.postprocess is not None:
