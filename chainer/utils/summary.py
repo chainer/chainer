@@ -19,22 +19,28 @@ class Summary(object):
         self._n = 0
 
     def add(self, value):
-        self._x += value
-        self._x2 += value * value
-        self._n += 1
+        with cuda.get_device(value):
+            self._x += value
+            self._x2 += value * value
+            self._n += 1
 
     @property
     def mean(self):
-        return self._x / self._n
+        with cuda.get_device(self._x):
+            return self._x / self._n
 
     @property
     def variance(self):
-        mean = self.mean
-        return (self._x2 / self._n) - (mean * mean)
+        with cuda.get_device(self._x):
+            mean = self._x / self._n
+            return self._x2 / self._n - mean * mean
 
     @property
     def std(self):
-        return self.variance ** 0.5
+        with cuda.get_device(self._x):
+            mean = self._x / self._n
+            variance = self._x2 / self._n - mean * mean
+            return variance ** 0.5
 
 
 class DictSummary(object):

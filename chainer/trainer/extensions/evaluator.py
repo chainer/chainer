@@ -43,18 +43,26 @@ class Evaluator(extension.Extension):
             # TODO(beam2d): better device handling
             in_vars = tuple(variable.Variable(a, volatile='on')
                             for a in inputs)
-            loss = lossfun(*in_vars)
-            result = {'loss': loss.data * n}
+            loss = lossfun(*in_vars).data
+            with cuda.get_device(loss):
+                result = {'loss': loss * n}
             for key, value in six.iteritems(target.__dict__):
                 if isinstance(value, variable.Variable):
                     v = value.data
                     if v.size == 1:
-                        result[key] = v * n
+                        with cuda.get_device(v):
+                            result[key] = v * n
             if accum is None:
                 accum = result
             else:
                 for key in result:
-                    accum[key] += result[key]
+                    with cuda.get_device(result[key]):
+                        accum[key] += result[key]
 
         N = len(self._dataset)
-        return {key: value / N for key, value in six.iteritems(accum)}
+        ret = {}
+        for key, value in six.iteritems(accum):
+            with cuda.get_device(value):
+                ret[key] = value / N
+
+        return ret
