@@ -19,7 +19,7 @@ class Snapshot(extension.Extension):
         self.savefun = savefun
         self.filename = filename
 
-    def __call__(self, out, trainer, t, **kwargs):
+    def __call__(self, out, trainer, **kwargs):
         _, tmppath = tempfile.mkstemp(prefix=self.filename, dir=out)
         self.savefun(tmppath, trainer)
         os.rename(tmppath, os.path.join(out, self.filename))
