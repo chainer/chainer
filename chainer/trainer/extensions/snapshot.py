@@ -1,5 +1,6 @@
 from __future__ import print_function
 import os
+import tempfile
 
 from chainer.serializers import npz
 from chainer.trainer import extension
@@ -18,5 +19,6 @@ class Snapshot(extension.Extension):
         self.savefun = savefun
 
     def __call__(self, out, trainer, t, **kwargs):
-        path = os.path.join(out, 'snapshot')
-        self.savefun(path, trainer)
+        _, tmppath = tempfile.mkstemp(prefix='snapshot', dir=out)
+        self.savefun(tmppath, trainer)
+        os.rename(tmppath, os.path.join(out, 'snapshot'))
