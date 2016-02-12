@@ -15,10 +15,11 @@ class Snapshot(extension.Extension):
     """
     default_trigger = 1, 'epoch'
 
-    def __init__(self, savefun=npz.save_npz):
+    def __init__(self, savefun=npz.save_npz, filename='snapshot'):
         self.savefun = savefun
+        self.filename = filename
 
     def __call__(self, out, trainer, t, **kwargs):
-        _, tmppath = tempfile.mkstemp(prefix='snapshot', dir=out)
+        _, tmppath = tempfile.mkstemp(prefix=self.filename, dir=out)
         self.savefun(tmppath, trainer)
-        os.rename(tmppath, os.path.join(out, 'snapshot'))
+        os.rename(tmppath, os.path.join(out, self.filename))
