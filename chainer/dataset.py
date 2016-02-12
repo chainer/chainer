@@ -109,22 +109,34 @@ class Dataset(object):
         raise NotImplementedError
 
 
-def build_minibatch(examples, device):
+def build_minibatch(examples, device=None):
+    ret_tuple = isinstance(examples[0], tuple)
+    if not ret_tuple:
+        examples = [(example,) for example in examples]
+
+    tuple_len = len(examples[0])
+    if any([len(example) != tuple_len for example in examples]):
+        raise ValueError('tuple length mismatched between batch elements')
+
     if device is None:
+        xp = cuda.get_array_module(examples[0][0])
         def to_device(x):
             return x
     elif device < 0:
+        xp = numpy
         to_device = cuda.to_cpu
     else:
-        def to_device(x):
-            return cuda.to_gpu(x, device=device)
+        xp = cuda.cupy
+        to_device = cuda.to_gpu
 
-    if isinstance(examples[0], tuple):
-        # columnwise asarray
-        ret = []
-        for i in range(len(examples[0])):
-            arr = numpy.asarray([x[i] for x in examples])
-            ret.append(to_device(arr))
-        return tuple(ret)
+    cols = [[example[i] for example in examples]
+            for i in six.moves.range(tuple_len)]  # transpose
+
+    with cuda.get_device(device if xp is cuda.cupy else None):
+        cols = [xp.concatenate([to_device(x)[None] for x in col])
+                for col in cols]
+
+    if ret_tuple:
+        return tuple(cols)
     else:
-        return to_device(numpy.asarray(examples))
+        return cols[0]
