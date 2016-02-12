@@ -1,4 +1,4 @@
-from chainer.trainer import Extension
+from chainer.trainer import extension
 
 
 class LinearShift(extension.Extension):
