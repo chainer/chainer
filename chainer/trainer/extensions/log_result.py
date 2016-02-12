@@ -21,11 +21,12 @@ class LogResult(extension.Extension):
     def __init__(self, keys=None, trigger=(1, 'epoch'), postprocess=None,
                  log_name='log'):
         self._keys = keys
-        self._summary = collections.defaultdict(summary_module.DictSummary)
         self.set_trigger(trigger)
         self.postprocess = postprocess
         self.log_name = log_name
         self._log = []
+
+        self._init_summary()
 
     def set_trigger(self, trigger):
         if isinstance(trigger, tuple):
@@ -58,6 +59,9 @@ class LogResult(extension.Extension):
                 json.dump(self._log, f, indent=4)
             os.rename(path, os.path.join(out, self.log_name))
 
+            # reset the summary for next iterations
+            self._init_summary()
+
     def serialize(self, serializer):
         if isinstance(serializer, serializer_module.Serializer):
             log = json.dumps(self._log)
@@ -65,3 +69,6 @@ class LogResult(extension.Extension):
         else:
             log = serializer('_log', '')
             self._log = json.loads(log)
+
+    def _init_summary(self):
+        self._summary = collections.defaultdict(summary_module.DictSummary)
