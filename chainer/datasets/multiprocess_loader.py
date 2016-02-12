@@ -75,6 +75,11 @@ class MultiprocessBatchIterator(object):
             worker.start()
 
         self._start = False
+        self._finalized = False
+
+    def __del__(self):
+        if not self._finalized:
+            self.finalize()
 
     def __iter__(self):
         return self
@@ -107,7 +112,7 @@ class MultiprocessBatchIterator(object):
         for worker in workers:
             worker.join()
 
-        super(MultiprocessLoader, self).__del__()
+        self._finalized = True
 
     def serialize(self, serializer):
         self._end_nonrepeat = serializer('_end_nonrepeat', self._end_nonrepeat)
