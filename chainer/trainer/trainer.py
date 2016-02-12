@@ -7,6 +7,7 @@ import six
 from chainer import cuda
 from chainer.trainer import interval_trigger
 from chainer.trainer import extension as extension_module
+from chainer.trainer.extensions import log_result
 from chainer.trainer.extensions import print_result
 from chainer.trainer.extensions import snapshot
 from chainer.trainer import updater as updater_module
@@ -141,6 +142,7 @@ def create_standard_trainer(
         epoch=None, iteration=None, device=None):
     tr = Trainer(dataset, target, optimizer, updater, batchsize,
                  epoch, iteration, device)
+    tr.extend(log_result.LogResult())
     tr.extend(print_result.PrintResult())
     tr.extend(snapshot.Snapshot())
     return tr
