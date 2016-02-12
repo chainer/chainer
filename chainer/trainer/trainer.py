@@ -130,7 +130,8 @@ class Trainer(object):
         s = serializer['extensions']
         t = serializer['_extension_triggers']
         for name, (trigger, _, extension) in six.iteritems(self._extensions):
-            extension.serialize(s[name])
+            if hasattr(extension, 'serialize'):
+                extension.serialize(s[name])
             if hasattr(trigger, 'serialize'):
                 trigger.serialize(t[name])
 
