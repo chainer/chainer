@@ -45,7 +45,9 @@ class LogResult(extension.Extension):
             means = {key: s.mean for key, s in six.iteritems(self._summary)}
             if self.postprocess is not None:
                 self.postprocess(means)
-            entry = collections.OrderedDict(epoch=epoch, iteration=t)
+            entry = collections.OrderedDict()
+            entry['epoch'] = epoch
+            entry['iteration'] = t
             for name, mean in six.iteritems(means):
                 d = {}
                 for key, value in six.iteritems(mean):
