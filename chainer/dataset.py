@@ -8,25 +8,71 @@ import numpy
 from chainer import cuda
 
 
-dataset_root = os.environ.get(
-    'CHAINER_DATASET_ROOT',
-    os.path.join(os.environ['HOME'], '.chainer/datasets'))
+dataset_root = os.environ.get('CHAINER_DATASET_ROOT',
+                              os.path.expanduser('~/.chainer/datasets'))
 
 
 def set_dataset_root(path):
+    """Sets the root path of Chainer datasets.
+
+    Chainer uses the environment variable ``CHAINER_DATASET_ROOT`` (if given)
+    or the default path ``~/.chainer/datasets`` as the root path of datasets.
+    This function changes the path to save/load datasets.
+
+    The actual path to save a specific dataset can be obtained by the
+    :func:`get_dataset_path` function.
+
+    Args:
+        path (str): New root path into which the datasets are stored.
+
+    """
     global dataset_root
     dataset_root = path
 
 
 def get_dataset_path(name):
+    """Returns the path to a specific dataset.
+
+    The path is generated from the dataset root path and given name.
+
+    Args:
+        name (str): Name of the dataset.
+
+    Returns:
+        str: The path to the dataset.
+
+    """
     return os.path.join(dataset_root, name)
 
 
 class BatchIterator(object):
 
-    """Default data iterator.
+    """Default batch iterator.
 
-    TODO(beam2d): document it.
+    This is the default implementation of batch iterators for :class:`Dataset`.
+    Batch iterators should provide the following operators and methods:
+
+    - :meth:`__iter__`
+    - :meth:`next`
+    - :meth:`finalize`
+    - :meth:`serialize`
+
+    Args:
+        dataset (Dataset): Dataset to iterate over.
+        batchsize (int): Number of data points in each minibatch.
+        repeat (bool): If True, then this iterator loops over the dataset
+            inifinitely.
+        auto_shuffle (bool): If True, then this iterator shuffles the order of
+            iteration for each epoch. Otherwise, it visits the data points in
+            the order of indexes.
+        device: Device specifier. Minibatches are sent to this device. Negative
+            values indicate CPU. If this is None, arrays are not copied across
+            CPU/GPUs.
+
+    Attributes:
+        epoch (int): The number of iterations done over the whole dataset.
+        auto_shuffle (bool): If True, then this iterator shuffles the order of
+            iteration for each epoch.
 
     """
     def __init__(self, dataset, batchsize=1, repeat=True, auto_shuffle=True,
@@ -45,16 +91,21 @@ class BatchIterator(object):
         if auto_shuffle:
             self._shuffle()
 
-        self._finalized = False
-
     def __del__(self):
         if not self._finalized:
             self.finalize()
 
     def __iter__(self):
+        """Returns self."""
         return self
 
     def next(self):
+        """Returns the next minibatch.
+
+        Returns:
+            Array or tuple of arrays: The next minibatch.
+
+        """
         if self._end_nonrepeat:
             raise StopIteration
         dataset, order, i = self._dataset, self._order, self._i
@@ -75,9 +126,21 @@ class BatchIterator(object):
         return build_minibatch(batch, self._device)
 
     def finalize(self):
-        self._finalized = True
+        """Finalizes the iterator object.
+
+        The default implementation does nothing.
+
+        """
+        pass
 
     def serialize(self, serializer):
+        """Serializes the iterator object.
+
+        This method should (de)serialize information necessary to resume the
+        iteration. Note that it should not (de)serialize information given at
+        the initialization (e.g. the dataset object itself).
+
+        """
         self._end_nonrepeat = serializer('_end_nonrepeat', self._end_nonrepeat)
         self.epoch = serializer('epoch', self.epoch)
         self._order = list(serializer('_order', self._order))
@@ -87,29 +150,20 @@ class BatchIterator(object):
         random.shuffle(self._order)
 
 
-class Dataset(object):
+def build_minibatch(examples, device=None):
+    """Creates a minibatch from a sequence of data points.
 
-    """Base class of all datasets.
+    Args:
+        examples: Sequence of data points. Each data point can be either an
+            array or a tuple of arrays.
+        device: Device specifier. The minibatch is copied to this device.
+            Negative values indicate CPU. If this is None, then the minibatch
+            is not copied across CPU/GPUs.
 
-    TODO(beam2d): document it.
+    Returns:
+        Array if each data point is an array, otherwise a tuple of arrays.
 
     """
-    @property
-    def name(self):
-        raise NotImplementedError
-
-    def get_batch_iterator(self, batchsize=1, repeat=True, auto_shuffle=True,
-                           device=None):
-        return BatchIterator(self, batchsize, repeat, auto_shuffle, device)
-
-    def __len__(self):
-        raise NotImplementedError
-
-    def __getitem__(self, i):
-        raise NotImplementedError
-
-
-def build_minibatch(examples, device=None):
     ret_tuple = isinstance(examples[0], tuple)
     if not ret_tuple:
         examples = [(example,) for example in examples]
@@ -140,3 +194,99 @@ def build_minibatch(examples, device=None):
         return tuple(cols)
     else:
         return cols[0]
+
+
+class Dataset(object):
+
+    """Base class of all datasets.
+
+    Dataset is a simple container of data points. Each data point must be
+    either an array or a tuple of arrays (e.g. a feature vector and a label).
+    If a data point is just an array, all the data points must have the same
+    shape and dtype. If a data point consists of multiple arrays, these arrays
+    can have different shapes and dtypes, while the shapes and dtypes must be
+    same for all data points.
+
+    Dataset provides two ways to access the data points.
+
+    First is `direct addressing`, provided by the :meth:`__getitem__` and
+    :meth:`__len__` operators. Every implementation must override these
+    operators.
+
+    Second is `batch iteration`. This is provided by batch iterators, which
+    iterate over the dataset (sequentially or randomly) and extract a minibatch
+    of data points at once. Batch iterators are provided by the
+    :meth:`get_batch_iterator` method. The :class:`Dataset` class provides the
+    default implementation of batch iterators using the direct addressing.
+
+    There is a special type of datasets called `dataset adapters`. Dataset
+    adapters extend existing datasets by providing customized accessing
+    methods. Dataset adapters basically use the direct addressing to extract
+    data points of the base dataset.
+
+    """
+    @property
+    def name(self):
+        """The name of the dataset.
+
+        Implementation must override this property (typically by a class
+        attribute).
+
+        """
+        raise NotImplementedError
+
+    def get_batch_iterator(self, batchsize=1, repeat=True, auto_shuffle=True,
+                           device=None):
+        """Creates a new batch iterator.
+
+        Batch iterator is an iterable object that iterates over minibatches of
+        data points. The access pattern can be configured by the arguments of
+        this method.
+
+        Args:
+            batchsize (int): Size of each minibatch.
+            repeat (bool): If True, then the iterator repeat iterations over
+                the dataset infinitely. Otherwise, the iterator stops the
+                iteration (i.e. raises :class:`StopIteration` exception) after
+                all the data points are iterated. In this case, if
+                ``batchsize`` does not divide the number of data points in the
+                dataset, then the last batch have data points fewer than
+                ``batchsize``.
+            auto_shuffle (bool): If True, then the order of iteration is
+                shuffled for every epoch (i.e. once for each iteration over the
+                whole dataset). Otherwise, the iterator iterates the
+                data points in the order of indexes.
+            device: Device specifier. Each batch is sent to this device.
+                Negative values indicate CPU. If this is None, arrays are not
+                copied across CPU/GPUs.
+
+        Returns:
+            Batch iterator object. The default implementation returns a
+            :class:`~chainer.dataset.BatchIterator` object. See
+            :class:`~chainer.dataset.BatchIterator` for the interface that the
+            batch iterator should provide.
+
+        """
+        return BatchIterator(self, batchsize, repeat, auto_shuffle, device)
+
+    def __len__(self):
+        """Returns the number of data points in the dataset.
+
+        Implementations must override this operator.
+
+        """
+        raise NotImplementedError
+
+    def __getitem__(self, i):
+        """Extracts the ``i``-th data point.
+
+        Implementations must override this operator.
+
+        Args:
+            i (int): Index of the data point.
+
+        Returns:
+            Array or tuple of arrays: The ``i``-th data point.
+
+        """
+        raise NotImplementedError

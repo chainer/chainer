@@ -11,5 +11,6 @@ Core functionalities
    core/function
    core/link
    core/optimizer
+   core/dataset
    core/serializer
    core/function_set
