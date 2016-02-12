@@ -53,7 +53,7 @@ class LogResult(extension.Extension):
             self._log.append(entry)
 
             # write to the file
-            _, path = tempfile.mkstemp(prefix='%s' % self.log_name, dir=out)
+            _, path = tempfile.mkstemp(prefix=self.log_name, dir=out)
             with open(path, 'w') as f:
                 json.dump(self._log, f, indent=4)
             os.rename(path, os.path.join(out, self.log_name))
