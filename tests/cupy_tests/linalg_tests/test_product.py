@@ -53,6 +53,7 @@ class TestProduct(unittest.TestCase):
     def test_dot8(self):
         self.check_dot_for_all_trans((2, 3), (3, 1))
 
+    @testing.with_requires('numpy>=1.9')
     def test_dot9(self):
         self.check_dot_for_all_trans((2, 3), (3, 4))
 

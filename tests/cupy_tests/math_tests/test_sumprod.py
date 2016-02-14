@@ -24,7 +24,7 @@ class TestSumprod(unittest.TestCase):
         return xp.sum(a)
 
     @testing.for_all_dtypes()
-    @testing.numpy_cupy_allclose()
+    @testing.numpy_cupy_allclose(rtol=1e-4)
     def test_sum_all2(self, xp, dtype):
         a = testing.shaped_arange((20, 30, 40), xp, dtype)
         return a.sum()
@@ -36,7 +36,7 @@ class TestSumprod(unittest.TestCase):
         return a.sum()
 
     @testing.for_all_dtypes()
-    @testing.numpy_cupy_allclose()
+    @testing.numpy_cupy_allclose(rtol=1e-4)
     def test_sum_all_transposed2(self, xp, dtype):
         a = testing.shaped_arange((20, 30, 40), xp, dtype).transpose(2, 0, 1)
         return a.sum()
@@ -101,7 +101,7 @@ class TestSumprod(unittest.TestCase):
         return a.sum(axis=(0, 2, 3))
 
     @testing.for_all_dtypes()
-    @testing.numpy_cupy_allclose(rtol=1e-6)
+    @testing.numpy_cupy_allclose(rtol=1e-4)
     def test_sum_axes4(self, xp, dtype):
         a = testing.shaped_arange((20, 30, 40, 50), xp, dtype)
         return a.sum(axis=(0, 2, 3))
