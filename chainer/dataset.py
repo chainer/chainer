@@ -91,10 +91,6 @@ class BatchIterator(object):
         if auto_shuffle:
             self._shuffle()
 
-    def __del__(self):
-        if not self._finalized:
-            self.finalize()
-
     def __iter__(self):
         """Returns self."""
         return self
