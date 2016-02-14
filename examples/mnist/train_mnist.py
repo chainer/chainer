@@ -8,7 +8,7 @@ import argparse
 
 import chainer
 from chainer import cuda
-from chainer.datasets import mnist
+from chainer import datasets
 import chainer.functions as F
 import chainer.links as L
 from chainer import optimizers
@@ -94,10 +94,10 @@ def main():
         model = L.Classifier(MnistMLPParallel(784, 1000, 10))
 
     trainer = chainer.create_standard_trainer(
-        mnist.MnistTraining(), model, optimizers.Adam(),
+        datasets.MnistTraining(), model, optimizers.Adam(),
         batchsize=100, epoch=20, device=args.gpu)
     trainer.extend(extensions.Evaluator(
-        mnist.MnistTest(), model, batchsize=100, device=args.gpu))
+        datasets.MnistTest(), model, batchsize=100, device=args.gpu))
     trainer.extend(extensions.ComputationalGraph(model))
 
     if args.resume:

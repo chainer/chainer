@@ -2,7 +2,12 @@ import os
 import random
 
 import numpy
-from PIL import Image
+try:
+    from PIL import Image
+    available = True
+except ImportError as e:
+    available = False
+    _import_error = e
 
 from chainer import dataset
 
@@ -17,6 +22,9 @@ class ImageDataset(dataset.Dataset):
     name = 'ImageDataset'
 
     def __init__(self, paths, labels=None, root='.', dtype=numpy.float32):
+        if not available:
+            raise ImportError('PIL cannot be loaded. Install pillow!\n'
+                              'The actual error:\n' + str(_import_error))
         if labels is not None and len(paths) != len(labels):
             raise ValueError('number of paths and labels mismatched')
         self._paths = paths

@@ -13,7 +13,7 @@ import math
 import six
 
 import chainer
-from chainer.datasets import ptb_words
+from chainer import datasets
 import chainer.functions as F
 import chainer.links as L
 from chainer import optimizers
@@ -125,8 +125,8 @@ def main():
     sequence_len = 35
 
     trainset = ParallelSequentialLoader(
-        ptb_words.PTBWordsTraining(), batchsize)
-    valset = ptb_words.PTBWordsValidation()
+        datasets.PTBWordsTraining(), batchsize)
+    valset = datasets.PTBWordsValidation()
 
     model = L.Classifier(RNNLM(valset.n_vocab, 650))
     model.compute_accuracy = False  # we only want the perplexity
@@ -140,8 +140,7 @@ def main():
     trainer.optimizer.add_hook(chainer.optimizer.GradientClipping(5))
 
     trainer.extend(extensions.Evaluator(
-        ptb_words.PTBWordsValidation(), model, prepare=evaluation_prepare,
-        device=args.gpu))
+        valset, model, prepare=evaluation_prepare, device=args.gpu))
 
     trainer.extend(extensions.PrintResult(
         trigger=(250, 'iteration'), postprocess=compute_perplexity))

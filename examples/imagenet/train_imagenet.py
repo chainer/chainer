@@ -13,8 +13,7 @@ import random
 import numpy as np
 
 import chainer
-from chainer.datasets import image_dataset
-from chainer.datasets import multiprocess_loader
+from chainer import datasets
 from chainer import optimizers
 from chainer import serializers
 from chainer.trainer import extensions
@@ -26,7 +25,7 @@ import googlenetbn
 import nin
 
 
-class PreprocessedImageListDataset(image_dataset.ImageListDataset):
+class PreprocessedImageListDataset(datasets.ImageListDataset):
 
     def __init__(self, path, meanpath, cropsize, root='.', test=False):
         super(PreprocessedImageListDataset, self).__init__(path, root=root)
@@ -86,10 +85,10 @@ def main():
         model.to_gpu(args.gpu)
 
     # Prepare dataset
-    train = multiprocess_loader.MultiprocessLoader(
+    train = datasets.MultiprocessLoader(
         PreprocessedImageListDataset(
             args.train, args.mean, model.insize, args.root), args.job)
-    val = multiprocess_loader.MultiprocessLoader(
+    val = datasets.MultiprocessLoader(
         PreprocessedImageListDataset(
             args.val, args.mean, model.insize, args.root, True), args.job)
 
