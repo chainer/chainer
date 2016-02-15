@@ -9,15 +9,38 @@ from chainer import dataset
 
 class MultiprocessLoader(dataset.Dataset):
 
-    """Dataset adapter to load underlying dataset by multiple processes.
+    """Dataset adapter to load a base dataset using multiple processes.
 
-    TODO(beam2d): document it.
+    This dataset adapter provides a parallelized version of batch iterators,
+    which uses worker processes to access the base dataset in parallel.
+    Note that the :meth:`~chainer.Dataset.__len__` nor
+    :meth:`~chainer.Dataset.__getitem__` operators are not parallelized. Only
+    the batch iterators are parallelized instead.
+
+    The parallelization is done by the standard :mod:`multiprocessing` module.
+    In order to access the base dataset by worker processes, the base dataset
+    is sent to them in the standard way (i.e. pickling).
+
+    The parallelized batch iterator has the same interface as the standard
+    batch iterator, while it actually parallelizes the access to the base
+    dataset using ``n_processes`` worker processes. On the call of the
+    ``next()`` method, the iterator waits for the last batch, and before
+    returning it, starts the extraction of the next batch. Therefore, the batch
+    loading is effectively parallelized against subsequent procedures (e.g.
+    training and evaluation).
+
+    Args:
+        baseset (Dataset): Base dataset. It must support pickling to safely
+            send the content to worker processes.
+        n_processes (int): Number of worker processes to be used by each batch
+            iterator. If it is None, then it is set to the number of available
+            processors.
 
     """
-    def __init__(self, base_dataset, n_processes=None):
-        if not isinstance(base_dataset, dataset.Dataset):
+    def __init__(self, baseset, n_processes=None):
+        if not isinstance(baseset, dataset.Dataset):
             raise TypeError('base dataset must be an instance of Dataset')
-        self._base = base_dataset
+        self._base = baseset
         self._n_processes = n_processes
 
     @property
