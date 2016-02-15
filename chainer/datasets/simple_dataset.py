@@ -5,7 +5,19 @@ class SimpleDataset(dataset.Dataset):
 
     """Simple dataset based on a design matrix.
 
-    TODO(beam2d): document it.
+    This dataset provides a Dataset interface on general arrays. Each array
+    represents a set of examples stacked along the first axis. If a tuple of
+    arrays are given, then the ``__getitem__`` operator returns a tuple of
+    same numbers of values.
+
+    Args:
+        name (str): Name of the dataset. This value is set to the :attr:`name`
+            attribute.
+        arrays (array or tuple of arrays): Base arrays whose columns represent
+            the data points in the dataset.
+
+    Attribute:
+        name: Name of the dataset.
 
     """
     def __init__(self, name, arrays):

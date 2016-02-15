@@ -14,6 +14,9 @@ General datasets
    :members:
 .. autoclass:: ImageListDataset
 
+.. autoclass:: SimpleDataset
+   :members:
+
 
 Specific datasets
 -----------------
