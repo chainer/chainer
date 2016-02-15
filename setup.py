@@ -8,7 +8,7 @@ import chainer_setup_build
 
 
 setup_requires = [
-    'numpy>=1.9.0',
+    'numpy>=1.9.0,<1.11.0',
 ]
 install_requires = [
     'filelock',
