@@ -220,16 +220,12 @@ class Dataset(object):
     methods. Dataset adapters basically use the direct addressing to extract
     data points of the base dataset.
 
+    Attributes:
+        name: The name of the dataset. Implementation should provide this
+            attribute.
+
     """
-    @property
-    def name(self):
-        """The name of the dataset.
-
-        Implementation must override this property (typically by a class
-        attribute).
-
-        """
-        raise NotImplementedError
+    name = 'anonymous dataset'
 
     def get_batch_iterator(self, batchsize=1, repeat=True, auto_shuffle=True,
                            device=None):

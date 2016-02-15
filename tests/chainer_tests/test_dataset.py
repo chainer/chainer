@@ -37,10 +37,6 @@ class TestUndefinedMethods(unittest.TestCase):
     def setUp(self):
         self.ds = IncompleteDataset()
 
-    def test_undefined_name(self):
-        with self.assertRaises(NotImplementedError):
-            self.ds.name
-
     def test_undefined_len(self):
         with self.assertRaises(NotImplementedError):
             len(self.ds)
