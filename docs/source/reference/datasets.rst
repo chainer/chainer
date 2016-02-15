@@ -24,3 +24,6 @@ Specific datasets
 
 Dataset loaders
 ---------------
+.. autoclass:: CrossValidationTrainingDataset
+.. autoclass:: CrossValidationTestDataset
+.. autofunction:: get_cross_validation_datasets
