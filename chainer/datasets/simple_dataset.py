@@ -12,7 +12,7 @@ class SimpleDataset(dataset.Dataset):
         self.name = name
         self._arrays = arrays
         self._ret_tuple = isinstance(arrays, tuple)
-        if self._ret_tuple
+        if self._ret_tuple:
             self._len = len(arrays[0])
             if any(len(a) != self._len for a in arrays):
                 raise ValueError('arrays have different numbers of examples')

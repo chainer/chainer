@@ -17,4 +17,5 @@ PTBWordsValidation = ptb_words.PTBWordsValidation
 PTBWordsTest = ptb_words.PTBWordsTest
 
 ImageDataset = image_dataset.ImageDataset
+ImageListDataset = image_dataset.ImageListDataset
 SimpleDataset = simple_dataset.SimpleDataset

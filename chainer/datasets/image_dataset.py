@@ -25,10 +25,13 @@ class ImageDataset(dataset.Dataset):
         if not available:
             raise ImportError('PIL cannot be loaded. Install pillow!\n'
                               'The actual error:\n' + str(_import_error))
-        if labels is not None and len(paths) != len(labels):
-            raise ValueError('number of paths and labels mismatched')
         self._paths = paths
-        self._labels = numpy.asarray(labels, dtype=numpy.int32)
+        if labels is None:
+            self._labels = None
+        else:
+            if len(paths) != len(labels):
+                raise ValueError('number of paths and labels mismatched')
+            self._labels = numpy.asarray(labels, dtype=numpy.int32)
         self._root = root
         self._dtype = dtype
 
@@ -47,17 +50,11 @@ class ImageDataset(dataset.Dataset):
             return image, self._labels[i]
 
     def compute_mean(self):
-        accum = None
-        count = 0
-        for path in self._paths:
-            with Image.open(path) as f:
-                image = numpy.asarray(f)
-            if accum is None:
-                accum = image.astype(numpy.float64)
-            else:
-                accum += image
-            count += 1
-        return (accum / count).astype(self._dtype)
+        accum = 0
+        for tup in self:
+            image = tup if self._labels is None else tup[0]
+            accum += image
+        return (accum / len(self)).astype(self._dtype)
 
     def compute_mean_with_cache(self, cache_path):
         if os.path.exists(cache_path):
