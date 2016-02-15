@@ -133,12 +133,11 @@ class MultiprocessBatchIterator(object):
             self._index_queue.put(index)
             i += 1
             if i >= N:
+                i = 0
                 if not self._repeat:
                     break
-                else:
-                    if self.auto_shuffle:
-                        self._shuffle()
-                    i = 0
+                elif self.auto_shuffle:
+                    self._shuffle()
         self._i_pushed = i
 
     def _get(self):
