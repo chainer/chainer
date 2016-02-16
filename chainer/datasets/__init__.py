@@ -12,6 +12,8 @@ CrossValidationTestDataset = cross_validation.CrossValidationTestDataset
 get_cross_validation_datasets = cross_validation.get_cross_validation_datasets
 MultiprocessLoader = multiprocess_loader.MultiprocessLoader
 SubDataset = sub_dataset.SubDataset
+split_dataset = sub_dataset.split_dataset
+split_dataset_random = sub_dataset.split_dataset_random
 
 MnistTraining = mnist.MnistTraining
 MnistTest = mnist.MnistTest

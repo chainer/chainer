@@ -24,7 +24,15 @@ class SubDataset(dataset.Dataset):
         return self._size
 
     def __getitem__(self, i):
-        index = self._start + i
+        if i >= 0:
+            if i >= self._size:
+                raise IndexError('dataset index out of range')
+            index = self._start + i
+        else:
+            if i < -self._size:
+                raise IndexError('dataset index out of range')
+            index = self._start + self._size + i
+
         if self._order is not None:
             index = self._order[index]
         return self._baseset[index]
