@@ -75,9 +75,7 @@ class Function(object):
 
     """
     type_check_enable = int(os.environ.get('CHAINER_TYPE_CHECK', '1')) != 0
-
-    def __init__(self):
-        self.local_hooks = {}
+    local_hooks = {}
 
     def __call__(self, *inputs):
         """Applies forward propagation with chaining backward references.
