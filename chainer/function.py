@@ -106,13 +106,13 @@ class Function(object):
 
         hooks = chainer.global_hooks.values() + self.local_hooks.values()
         for hook in hooks:
-            hook.forward_preprocess(self, in_data)
+            hook._forward_preprocess(self, in_data)
         # Forward prop
         with cuda.get_device(*in_data):
             outputs = self.forward(in_data)
             assert type(outputs) == tuple
         for hook in hooks:
-            hook.forward_postprocess(self, in_data)
+            hook._forward_postprocess(self, in_data)
 
         out_v = flag.aggregate_flags([x.volatile for x in inputs])
         ret = tuple([variable.Variable(y, volatile=out_v) for y in outputs])
@@ -321,6 +321,8 @@ Invalid operation is performed in: {0} (Forward)
 
 class FunctionHook(object):
 
+    hook_history = []
+
     def __enter__(self):
         chainer.global_hooks[repr(self)] = self
         return self
@@ -328,23 +330,46 @@ class FunctionHook(object):
     def __exit__(self, exc_type, exc_value, traceback):
         del chainer.global_hooks[repr(self)]
 
-    def __call__(self, function, in_data):
+    # unified functions
+    def __call__(self, function, in_data, out_grad=None):
         pass
 
-    def preprocess(self, function, in_data):
-        return self.__call__(function, in_data)
+    def preprocess(self, function, in_data, out_grad=None):
+        return self.__call__(function, in_data, out_grad)
 
-    def postprocess(self, function, in_data):
-        return self.__call__(function, in_data)
+    def postprocess(self, function, in_data, out_grad=None):
+        return self.__call__(function, in_data, out_grad)
+
+    # forward
+    def _forward_preprocess(self, function, in_data):
+        ret = self.forward_preprocess(function, in_data)
+        self.hook_history.append(('forward', 'preprocess', function, ret))
+        return ret
 
     def forward_preprocess(self, function, in_data):
         return self.preprocess(function, in_data)
 
+    def _forward_postprocess(self, function, in_data):
+        ret = self.forward_postprocess(function, in_data)
+        self.hook_history.append(('forward', 'postprocess', function, ret))
+        return ret
+
     def forward_postprocess(self, function, in_data):
         return self.postprocess(function, in_data)
 
+    # backward
+    def _backward_preprocess(self, function, in_data, out_grad):
+        ret = self.backward_preprocess(function, in_data, out_grad)
+        self.hook_history.append(('backward', 'preprocess', function, ret))
+        return ret
+
     def backward_preprocess(self, function, in_data, out_grad):
         return self.preprocess(function, in_data)
+
+    def _backward_postprocess(self, function, in_data, out_grad):
+        ret = self.backward_postprocess(function, in_data, out_grad)
+        self.hook_history.append(('backward', 'postprocess', function, ret))
+        return ret
 
     def backward_postprocess(self, function, in_data, out_grad):
         return self.postprocess(function, in_data)
