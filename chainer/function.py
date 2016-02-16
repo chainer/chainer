@@ -321,7 +321,19 @@ Invalid operation is performed in: {0} (Forward)
 
 class FunctionHook(object):
 
-    hook_history = []
+    @property
+    def hook_history(self):
+        if not hasattr(self, '_hook_history'):
+            self._hook_history = []
+        return self._hook_history
+
+    @hook_history.setter
+    def hook_history(self, val):
+        self._hook_history = val
+
+    @hook_history.deleter
+    def hook_history(self):
+        del self._hook_history
 
     def __enter__(self):
         chainer.global_hooks[repr(self)] = self
