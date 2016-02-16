@@ -1,6 +1,6 @@
-PRIORITY_WRITER = 10000
-PRIORITY_EDITOR = 100
-PRIORITY_READER = 1
+PRIORITY_WRITER = 300
+PRIORITY_EDITOR = 200
+PRIORITY_READER = 100
 
 
 class Extension(object):
@@ -25,10 +25,13 @@ class Extension(object):
         pass
 
 
-def make_extension(trigger=None, name=None, priority=None):
+def make_extension(trigger=None, name=None, priority=None,
+                   invoke_before_training=False):
     def decorator(f):
         f.trigger = trigger or Extension.trigger
-        f.name = name
+        if name is not None:
+            f.name = name
         f.priority = priority or Extension.priority
+        f.invoke_before_training = invoke_before_training
         return f
     return decorator
