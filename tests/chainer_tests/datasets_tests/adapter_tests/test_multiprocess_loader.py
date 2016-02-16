@@ -12,7 +12,7 @@ class TestMultiprocessLoader(unittest.TestCase):
 
     def setUp(self):
         self.array = numpy.arange(10)
-        self.baseset = datasets.SimpleDataset('baseset', self.array)
+        self.baseset = datasets.ArrayDataset('baseset', self.array)
 
     def test_name(self):
         loader = datasets.MultiprocessLoader(self.baseset)

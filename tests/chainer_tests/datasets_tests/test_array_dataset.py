@@ -5,12 +5,12 @@ import numpy
 from chainer import datasets
 
 
-class TestSimpleDataset(unittest.TestCase):
+class TestArrayDataset(unittest.TestCase):
 
     def setUp(self):
         self.array = numpy.random.rand(3, 4)
         self.name = 'sample_set'
-        self.dataset = datasets.SimpleDataset(self.name, self.array)
+        self.dataset = datasets.ArrayDataset(self.name, self.array)
 
     def test_name(self):
         self.assertEqual(self.dataset.name, self.name)
@@ -23,13 +23,13 @@ class TestSimpleDataset(unittest.TestCase):
             numpy.testing.assert_array_equal(self.dataset[i], x)
 
 
-class TestSimpleDatasetLabeled(unittest.TestCase):
+class TestArrayDatasetLabeled(unittest.TestCase):
 
     def setUp(self):
         self.array = numpy.random.rand(10, 4)
         self.labels = numpy.random.randint(0, 3, (10,))
         self.name = 'labeled_sample_set'
-        self.dataset = datasets.SimpleDataset(
+        self.dataset = datasets.ArrayDataset(
             self.name, (self.array, self.labels))
 
     def test_name(self):
@@ -51,10 +51,10 @@ class TestSimpleDatasetLabeled(unittest.TestCase):
             self.dataset[len(self.array)]
 
 
-class TestSimpleDatasetInvalid(unittest.TestCase):
+class TestArrayDatasetInvalid(unittest.TestCase):
 
     def test_len_mismatch(self):
         array1 = numpy.ndarray((3, 4))
         array2 = numpy.ndarray((2, 4))
         with self.assertRaises(ValueError):
-            datasets.SimpleDataset('name', (array1, array2))
+            datasets.ArrayDataset('name', (array1, array2))

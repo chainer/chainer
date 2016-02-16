@@ -1,7 +1,7 @@
 from chainer import dataset
 
 
-class SimpleDataset(dataset.Dataset):
+class ArrayDataset(dataset.Dataset):
 
     """Simple dataset based on a design matrix.
 

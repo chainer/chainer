@@ -4,7 +4,7 @@ from chainer.datasets.adapter import sub_dataset
 from chainer.datasets.example import mnist
 from chainer.datasets.example import ptb_words
 from chainer.datasets import image_dataset
-from chainer.datasets import simple_dataset
+from chainer.datasets import array_dataset
 
 CrossValidationTrainingDataset = \
     cross_validation.CrossValidationTrainingDataset
@@ -23,4 +23,4 @@ PTBWordsTest = ptb_words.PTBWordsTest
 
 ImageDataset = image_dataset.ImageDataset
 ImageListDataset = image_dataset.ImageListDataset
-SimpleDataset = simple_dataset.SimpleDataset
+ArrayDataset = array_dataset.ArrayDataset

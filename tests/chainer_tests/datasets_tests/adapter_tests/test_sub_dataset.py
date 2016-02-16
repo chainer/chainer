@@ -10,7 +10,7 @@ class TestSubDataset(unittest.TestCase):
 
     def setUp(self):
         self.array = numpy.random.rand(10, 3)
-        self.baseset = datasets.SimpleDataset('name', self.array)
+        self.baseset = datasets.ArrayDataset('name', self.array)
 
     def test_whole_set(self):
         dataset = datasets.SubDataset(self.baseset, 0, len(self.array))
@@ -91,7 +91,7 @@ class TestSubDataset(unittest.TestCase):
     def test_split_dataset_random(self):
         # use scalar dataset to use set comparison
         array = numpy.arange(10)
-        baseset = datasets.SimpleDataset('base', array)
+        baseset = datasets.ArrayDataset('base', array)
         sub1, sub2 = datasets.split_dataset_random(baseset, 7)
         self.assertEqual(len(sub1), 7)
         self.assertEqual(len(sub2), len(self.array) - 7)

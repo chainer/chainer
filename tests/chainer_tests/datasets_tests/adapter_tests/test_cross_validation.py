@@ -11,7 +11,7 @@ class TestCrossValidationDataset(unittest.TestCase):
 
     def setUp(self):
         self.array = numpy.arange(10)
-        self.base = datasets.SimpleDataset('name', self.array)
+        self.base = datasets.ArrayDataset('name', self.array)
         self.order = list(range(len(self.array)))
         random.shuffle(self.order)
 
@@ -42,7 +42,7 @@ class TestGetCrossValidationDatasets(unittest.TestCase):
 
     def test_result(self):
         array = numpy.arange(10)
-        base = datasets.SimpleDataset('name', array)
+        base = datasets.ArrayDataset('name', array)
         n_fold = 3
         ds = datasets.get_cross_validation_datasets(base, n_fold)
 
