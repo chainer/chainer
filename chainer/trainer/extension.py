@@ -10,12 +10,12 @@ class Extension(object):
     TODO(beam2d): document it.
 
     """
-    default_trigger = 1, 'iteration'
+    trigger = 1, 'iteration'
     priority = PRIORITY_READER
     invoke_before_training = False
 
     @property
-    def default_name(self):
+    def name(self):
         return type(self).__name__
 
     def __call__(self, **kwargs):
@@ -25,10 +25,10 @@ class Extension(object):
         pass
 
 
-def make_extension(default_trigger=None, default_name=None, priority=None):
+def make_extension(trigger=None, name=None, priority=None):
     def decorator(f):
-        f.default_trigger = default_trigger or Extension.default_trigger
-        f.default_name = default_name
+        f.trigger = trigger or Extension.trigger
+        f.name = name
         f.priority = priority or Extension.priority
         return f
     return decorator

@@ -13,7 +13,7 @@ class Snapshot(extension.Extension):
     TODO(beam2d): document it
 
     """
-    default_trigger = 1, 'epoch'
+    trigger = 1, 'epoch'
 
     def __init__(self, savefun=npz.save_npz, filename='snapshot'):
         self.savefun = savefun

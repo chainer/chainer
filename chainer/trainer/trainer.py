@@ -42,9 +42,9 @@ class Trainer(object):
     def extend(self, extension, trigger=None, name=None,
                invoke_before_training=None, priority=None):
         if name is None:
-            name = getattr(extension, 'default_name', None)
+            name = getattr(extension, 'name', None)
         if trigger is None:
-            trigger = getattr(extension, 'default_trigger', None)
+            trigger = getattr(extension, 'trigger', None)
 
         if name is None:
             raise TypeError('name is not given for the extension')

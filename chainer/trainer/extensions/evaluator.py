@@ -14,8 +14,8 @@ class Evaluator(extension.Extension):
     TODO(beam2d): document it.
 
     """
-    default_trigger = 1, 'epoch'
-    default_name = 'validation'
+    trigger = 1, 'epoch'
+    name = 'validation'
     priority = extension.PRIORITY_WRITER
 
     def __init__(self, dataset, target, lossfun=None, batchsize=1,
