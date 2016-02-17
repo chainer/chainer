@@ -26,19 +26,19 @@ class PrintResult(extension.Extension):
             trigger = interval_trigger.IntervalTrigger(*trigger)
         self._trigger = trigger
 
-    def __call__(self, epoch, new_epoch, result, t, **kwargs):
+    def __call__(self, trainer):
         # update
-        for key, value in six.iteritems(result):
+        for key, value in six.iteritems(trainer.result):
             if self._keys is None or key in self._keys:
                 self._summary[key].add(value)
 
-        if self._trigger(epoch=epoch, new_epoch=new_epoch, result=result,
-                         t=t, **kwargs):
+        if self._trigger(trainer):
             means = {key: s.mean for key, s in six.iteritems(self._summary)}
             if self.postprocess is not None:
                 self.postprocess(means)
             # print
-            print('result @ %s iteration (%s epoch)' % (t, epoch))
+            print('result @ %s iteration (%s epoch)' %
+                  (trainer.t, trainer.epoch))
             for name, mean in six.iteritems(means):
                 msg = ['  %s:' % name]
                 msg += ['%s=%s' % pair for pair in six.iteritems(mean)]

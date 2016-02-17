@@ -5,9 +5,11 @@ PRIORITY_READER = 100
 
 class Extension(object):
 
-    """Base class of all trainer extensions.
+    """Base class of trainer extensions.
 
-    TODO(beam2d): document it.
+    Extension of :class:`Trainer` is a callble with arbitrary keyword
+    arguments. A trainer invokes an extension by passing following keyword
+    arguments:
 
     """
     trigger = 1, 'iteration'
@@ -18,7 +20,7 @@ class Extension(object):
     def name(self):
         return type(self).__name__
 
-    def __call__(self, **kwargs):
+    def __call__(self, trainer):
         raise NotImplementedError
 
     def serialize(self, serializer):

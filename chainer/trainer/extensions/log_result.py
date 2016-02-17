@@ -33,21 +33,20 @@ class LogResult(extension.Extension):
             trigger = interval_trigger.IntervalTrigger(*trigger)
         self._trigger = trigger
 
-    def __call__(self, epoch, new_epoch, out, result, t, **kwargs):
+    def __call__(self, trainer):
         # update
-        for key, value in six.iteritems(result):
+        for key, value in six.iteritems(trainer.result):
             if self._keys is None or key in self._keys:
                 self._summary[key].add(value)
 
-        if self._trigger(epoch=epoch, new_epoch=new_epoch, result=result,
-                         t=t, **kwargs):
+        if self._trigger(trainer):
             # append an entry to the log
             means = {key: s.mean for key, s in six.iteritems(self._summary)}
             if self.postprocess is not None:
                 self.postprocess(means)
             entry = collections.OrderedDict()
-            entry['epoch'] = epoch
-            entry['iteration'] = t
+            entry['epoch'] = trainer.epoch
+            entry['iteration'] = trainer.t
             for name, mean in six.iteritems(means):
                 d = {}
                 for key, value in six.iteritems(mean):
@@ -56,10 +55,10 @@ class LogResult(extension.Extension):
             self._log.append(entry)
 
             # write to the file
-            fd, path = tempfile.mkstemp(prefix=self.log_name, dir=out)
+            fd, path = tempfile.mkstemp(prefix=self.log_name, dir=trainer.out)
             with os.fdopen(fd, 'w') as f:
                 json.dump(self._log, f, indent=4)
-            os.rename(path, os.path.join(out, self.log_name))
+            os.rename(path, os.path.join(trainer.out, self.log_name))
 
             # reset the summary for next iterations
             self._init_summary()

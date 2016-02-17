@@ -184,46 +184,48 @@ class Trainer(object):
         except:
             pass
 
-        epoch = self._iter.epoch
-        t = self.optimizer.t
+        self.epoch = self._iter.epoch
+        self.new_epoch = False
+        self.out = out
+        self.result = collections.OrderedDict()
+        self.t = self.optimizer.t
 
         extension_order = sorted(
             self._extensions.keys(),
             key=lambda name: self._extension_priorities[name],
             reverse=True)
 
-        args = {'epoch': epoch, 'new_epoch': False, 'out': out, 'result': {},
-                't': t, 'trainer': self}
         for name in extension_order:
             _, invoke_before_training, extension = self._extensions[name]
             if invoke_before_training:
-                extension(**args)
+                extension(self)
 
         for inputs in self._iter:
             train_result = self.updater(inputs, self.target, self.optimizer)
 
-            if t == self.optimizer.t:  # no update happens
+            if self.t == self.optimizer.t:  # no update happens
                 continue
-            t = self.optimizer.t
+            self.t = self.optimizer.t
 
-            new_epoch = epoch != self._iter.epoch
-            epoch = self._iter.epoch
-            if new_epoch:
+            self.new_epoch = self.epoch != self._iter.epoch
+            self.epoch = self._iter.epoch
+            if self.new_epoch:
                 self.optimizer.new_epoch()
 
-            result = collections.OrderedDict(training=train_result)
-            args = {'epoch': epoch, 'new_epoch': new_epoch, 'out': out,
-                    'result': result, 't': t, 'trainer': self}
+            self.result.clear()
+            self.result['training'] = train_result
             for name in extension_order:
                 trigger, _, extension = self._extensions[name]
-                if trigger(**args):
-                    r = extension(**args)
+                if trigger(self):
+                    r = extension(self)
                     if r is not None:
-                        result[name] = r
+                        self.result[name] = r
 
             # use < in order to support None (== endless loop)
-            if ((self._max_epoch is not None and epoch >= self._max_epoch) or
-                (self._max_iter is not None and t >= self._max_iter)):
+            if ((self._max_epoch is not None and
+                 self.epoch >= self._max_epoch) or
+                (self._max_iter is not None and
+                 self.t >= self._max_iter)):
                 break
 
         self._iter.finalize()

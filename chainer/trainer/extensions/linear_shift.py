@@ -17,7 +17,7 @@ class LinearShift(extension.Extension):
         self._optimizer = optimizer
         self._t = 0
 
-    def __call__(self, trainer, **kwargs):
+    def __call__(self, trainer):
         optimizer = self._optimizer or trainer.optimizer
         t1, t2 = self._time_range
         v1, v2 = self._value_range

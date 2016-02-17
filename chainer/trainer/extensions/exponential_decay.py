@@ -19,7 +19,7 @@ class ExponentialDecay(extension.Extension):
         self._optimizer = optimizer
         self._t = 0
 
-    def __call__(self, trainer, **kwargs):
+    def __call__(self, trainer):
         optimizer = self._optimizer or trainer.optimizer
         if self._init is None:
             self._init = getattr(optimizer, self._attr)

@@ -27,7 +27,7 @@ class Evaluator(extension.Extension):
         self._prepare = prepare
         self._device = device
 
-    def __call__(self, epoch, t, trainer, **kwargs):
+    def __call__(self, trainer):
         target = self._target.copy()  # evaluate model with distinct states
         lossfun = target if self._lossfun is None else self._lossfun
 

@@ -17,7 +17,7 @@ class ComputationalGraph(extension.Extension):
         self.varname = varname
         self.outname = outname
 
-    def __call__(self, out, t, **kwargs):
+    def __call__(self, trainer):
         if self._done:
             return
 
@@ -27,7 +27,7 @@ class ComputationalGraph(extension.Extension):
                             'specified attribute `{}\''.format(self.varname))
         cg = computational_graph.build_computational_graph([var]).dump()
 
-        outpath = os.path.join(out, self.outname)
+        outpath = os.path.join(trainer.out, self.outname)
         # TODO(beam2d): support outputting to images by the dot command
         with open(outpath, 'w') as f:
             f.write(cg)
