@@ -1,6 +1,7 @@
 from __future__ import print_function
 import copy
 import distutils
+import hashlib
 import os
 from os import path
 import shutil
@@ -215,6 +216,33 @@ def run_command(cmd):
         raise distutils.errors.DistutilsExecError(msg)
 
 
+def _md5sum(f):
+    m = hashlib.new('md5')
+    while True:
+        # Hash one 8096 byte block at a time
+        d = f.read(8096)
+        if not d:
+            break
+        m.update(d)
+    return m.hexdigest()
+
+
+def _is_changed(filename):
+    filename_cache = filename + '.md5'
+
+    try:
+        md5_cached = open(filename_cache, 'rb').read()
+    except IOError:
+        md5_cached = '0'
+
+    with open(filename, 'rb') as f:
+        md5_new = _md5sum(f)
+        with open(filename_cache, 'wb') as cf:
+            cf.write(md5_new.encode('utf-8'))
+
+    return md5_cached != md5_new.encode('utf-8')
+
+
 def cythonize(
         extensions, force=False, annotate=False, compiler_directives=None):
     cython_location = get_cython_pkg().location
@@ -230,6 +258,10 @@ def cythonize(
             cmd.append('%s=%s' % i)
 
     for ext in extensions:
+        if all(not _is_changed(f) for f in ext.sources):
+            print("skipping because no changes: '{}'"
+                  .format(','.join(ext.sources)))
+            continue
         run_command(cmd + ext.sources)
 
 

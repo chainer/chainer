@@ -2,6 +2,7 @@
 *.egg/
 *.pyc
 *.pyo
+*.pyx.md5
 *.cpp
 *.so
 build
