@@ -98,7 +98,8 @@ def main():
         batchsize=args.batchsize, epoch=args.epoch, device=args.gpu)
 
     trainer.optimizer.add_hook(chainer.optimizer.WeightDecay(0.0005))
-    trainer.extend(extensions.LearningRateDecay(0.97))
+    trainer.extend(extensions.ExponentialDecay('lr', 0.97),
+                   trigger=(1, 'epoch'))
 
     trainer.extend(extensions.ComputationalGraph(model))
 
