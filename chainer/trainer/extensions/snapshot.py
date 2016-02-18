@@ -8,9 +8,23 @@ from chainer.trainer import extension
 
 class Snapshot(extension.Extension):
 
-    """Extension to take snapshots of the trainer.
+    """Trainer extension to take snapshots of the trainer.
 
-    TODO(beam2d): document it
+    This extension serializes the trainer object and saves it to the output
+    directory. It is used to support resuming the training loop.
+
+    This extension is called once for each epoch by default.
+
+    .. note::
+       This extension first writes the serialized object to a temporary file
+       and then rename it to the target file name. Thus, if the program stops
+       right before the renaming, then the temporary file might be left in the
+       output directory.
+
+    Args:
+        savefun: Function to save the trainer. It accepts two arguments: the
+            output file path and the trainer object.
+        filename (str): Name of the file into which the trainer is serialized.
 
     """
     trigger = 1, 'epoch'

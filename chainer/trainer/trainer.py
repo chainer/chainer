@@ -27,9 +27,11 @@ class Trainer(object):
       created by the training dataset before entering the loop.
     - Update the model parameters using the minibatch. This is actually done by
       an `updater` function.
-    - Invoke extensions in descending order of their priorities. Each extension
-      has a corresponding `trigger` that determines whether the extension
-      should be skipped at the iteration.
+    - Invoke extensions in descending order of their priorities. Actually, each
+      extension may be skipped depending on the decision made by the
+      corresponding `trigger` object. Here trigger objects are callable objects
+      that accept the trainer object as the argument and return a boolean
+      value.
 
     Trainer manages objects involved in the training process: updater function,
     target chain, optimizer, and extensions. All these objects support
@@ -93,7 +95,7 @@ class Trainer(object):
         """Register an extension to the trainer.
 
         :class:`Extension` is a callable object which is called after each
-        update unless the corresponding trigger object determines to skip the
+        update unless the corresponding trigger object decides to skip the
         iteration. The order of execution is determined by priorities:
         extensions with higher priorities are called earlier in each iteration.
         Extensions with the same priority are invoked in the order of
@@ -201,7 +203,7 @@ class Trainer(object):
                 extension(self)
 
         for inputs in self._iter:
-            train_result = self.updater(inputs, self.target, self.optimizer)
+            train_result = self.updater(inputs, self.optimizer)
 
             if self.t == self.optimizer.t:  # no update happens
                 continue

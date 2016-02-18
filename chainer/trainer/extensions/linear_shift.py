@@ -3,9 +3,28 @@ from chainer.trainer import extension
 
 class LinearShift(extension.Extension):
 
-    """Shifts an optimizer attribute linearly within given duration.
+    """Trainer extension to shift an optimizer attribute linearly.
 
-    TODO(beam2d): document it.
+    This extension changes an optimizer attribute from the first value to the
+    last value linearly within a specified duration. The typical use case is
+    warming up of the momentum coefficient.
+
+    For example, suppose that this extension is called at every iteration, and
+    ``value_range == (x, y)`` and ``time_range == (i, j)``. Then, this
+    extension keeps the attribute to be ``x`` up to the ``i``-th iteration, and
+    linearly shifts the attribute to ``y`` by the ``j``-th iteration.
+
+    Note that this extension is also called before the training loop begins by
+    default (i.e. ``invoke_before_training`` flag is True).
+
+    Args:
+        attr (str): Name of the optimizer attribute to adjust.
+        value_range (tuple of floats): The first and last values of the
+            attribute.
+        time_range (tuple of ints): The first and last counts of calls in which
+            the attribute is adjusted.
+        optimizer (Optimizer): Target optimizer object. If it is None, then the
+            main optimizer of the trainer is used.
 
     """
     invoke_before_training = True

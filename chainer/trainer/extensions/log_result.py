@@ -15,7 +15,26 @@ class LogResult(extension.Extension):
 
     """Trainer extension to output the accumulated result to a log file.
 
-    TODO(beam2d): document it.
+    This extension accumulates the result dictionaries given by an updater and
+    other extensions, and periodically dumps the mean values to the log file in
+    the JSON format. It also adds ``'epoch'`` and ``'iteration'`` entry to the
+    result.
+
+    .. note::
+       This extension should be called every iteration in order to collect all
+       the result dictionaries emitted by the updater.
+
+    Args:
+        keys (iterable of strs): Which values to accumulate. If this is None,
+            then all the values are accumulated and output to the log file.
+        trigger: Trigger that decides when to aggregate the result and output
+            the mean values. This is distinct from the trigger of this
+            extension itself. If it is a tuple of an integer and a string, then
+            it is used to create an :class:`IntervalTrigger` object.
+        postprocess: Callback to postprocess the result dictionaries. If it is
+            set, then each result dictionary with mean values is passed to this
+            callback. This callback may modify the result dictionaries.
+        log_name (str): Name of the log file under the outptu directory.
 
     """
     def __init__(self, keys=None, trigger=(1, 'epoch'), postprocess=None,
@@ -29,6 +48,15 @@ class LogResult(extension.Extension):
         self._init_summary()
 
     def set_trigger(self, trigger):
+        """Sets the trigger to create and output the mean values.
+
+        This is equivalent to the ``trigger`` argument of the initializer.
+
+        Args:
+            trigger: Trigger that decides when to aggregate the result and
+                output the mean values. See :class:`LogResult` for details.
+
+        """
         if isinstance(trigger, tuple):
             trigger = interval_trigger.IntervalTrigger(*trigger)
         self._trigger = trigger

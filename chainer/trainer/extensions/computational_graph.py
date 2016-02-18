@@ -8,7 +8,17 @@ class ComputationalGraph(extension.Extension):
 
     """Trainer extension to dump a computational graph.
 
-    TODO(beam2d): document it.
+    This extension dumps a computational graph at the first call. Note that it
+    does nothing after the first call. The graph is formatted in DOT language.
+
+    Args:
+        target: Target object to dump a computational graph. It can be an
+            arbitrary object, though in most cases it is a :class:`Chain`
+            object.
+        varname (str): Name of the attribute of the target object. The
+            attribute must be a :class:`Variable` object. This extension builds
+            the computational graph reachable backward from the variable.
+        outname (str): Output file name.
 
     """
     def __init__(self, target, varname='loss', outname='cg.dot'):

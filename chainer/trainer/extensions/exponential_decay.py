@@ -5,7 +5,24 @@ class ExponentialDecay(extension.Extension):
 
     """Trainer extension to exponentially decay an optimizer attribute.
 
-    TODO(beam2d): document it.
+    This extension exponentially decreases the specified attribute of the
+    optimizer. The typical use case is to exponential decay of the learning
+    rate.
+
+    Note that this extension is also called before the training loop begins by
+    default (i.e. ``invoke_before_training`` flag is True).
+
+    Args:
+        attr (str): Name of the attribute to decay.
+        decay_rate (float): Rate of the exponential decay. This value is
+            multiplied to the attribute at each call.
+        init (float): Initial value of the attribute. If it is None, then the
+            extension extracts the attribute at the first call and uses it as
+            the initial value.
+        minimum (float): Minimum value of the attribute. If the attribute
+            reaches this value, then the decay stops.
+        optimizer (Optimizer): Target optimizer to adjust the attribute. If it
+            is None, then the main optimizer of the trainer is used.
 
     """
     invoke_before_training = True

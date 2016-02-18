@@ -14,6 +14,7 @@ Chainer Reference Manual
    links
    optimizers
    datasets
+   extensions
    serializers
    caffe
    graph

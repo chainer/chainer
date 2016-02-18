@@ -67,7 +67,7 @@ class BatchIterator(object):
             the order of indexes.
         device: Device specifier. Minibatches are sent to this device. Negative
             values indicate CPU. If this is None, arrays are not copied across
-            CPU/GPUs.
+            CPU/GPUs (i.e. each array given by the dataset is used as is).
 
     Attributes:
         epoch (int): The number of iterations done over the whole dataset.
