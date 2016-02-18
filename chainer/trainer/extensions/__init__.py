@@ -4,7 +4,6 @@ from chainer.trainer.extensions import exponential_decay
 from chainer.trainer.extensions import linear_shift
 from chainer.trainer.extensions import log_result
 from chainer.trainer.extensions import print_result
-from chainer.trainer.extensions import shift_momentum
 from chainer.trainer.extensions import snapshot
 
 ComputationalGraph = computational_graph.ComputationalGraph
