@@ -248,7 +248,7 @@ def _is_changed(filename):
 
 
 def cythonize(extensions, force=False, annotate=False,
-              compiler_directives=None only_changed=False):
+              compiler_directives=None, only_changed=False):
     cython_location = get_cython_pkg().location
     cython_path = path.join(cython_location, 'cython.py')
     print("cython path:%s" % cython_location)
@@ -262,6 +262,7 @@ def cythonize(extensions, force=False, annotate=False,
             cmd.append('%s=%s' % i)
 
     for ext in extensions:
+        # '_is_changed' function should be always called to update the md5 file
         if all(not _is_changed(f) for f in ext.sources) and only_changed:
             print("skipping because no changes: '{}'"
                   .format(','.join(ext.sources)))
