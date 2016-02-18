@@ -86,14 +86,14 @@ class TruncatedBPTTUpdater(chainer.trainer.Updater):
         self.count = 0
         self._sequence_len = sequence_len
 
-    def __call__(self, inputs, model, optimizer):
+    def __call__(self, inputs, optimizer):
         x, t = inputs
         ret = {}
 
-        self.loss += model(chainer.Variable(x), chainer.Variable(t))
+        self.loss += optimizer.target(chainer.Variable(x), chainer.Variable(t))
         self.count += 1
         if self.count % self._sequence_len == 0:  # Run truncated BPTT
-            model.zerograds()
+            optimizer.target.zerograds()
             self.loss.backward()
             self.loss.unchain_backward()  # truncate
             optimizer.update()
@@ -137,12 +137,13 @@ def main():
 
     train_baseset = datasets.PTBWordsTraining()
     valset = datasets.PTBWordsValidation()
+    n_vocab = valset.n_vocab
     if args.test:
         train_baseset = datasets.SubDataset(train_baseset, 0, 100)
         valset = datasets.SubDataset(valset, 0, 100)
     trainset = ParallelSequentialLoader(train_baseset, batchsize)
 
-    model = L.Classifier(RNNLM(valset.n_vocab, args.unit))
+    model = L.Classifier(RNNLM(n_vocab, args.unit))
     model.compute_accuracy = False  # we only want the perplexity
     if args.gpu >= 0:
         model.to_gpu(args.gpu)
@@ -167,6 +168,8 @@ def main():
 
     print('evaluating on test set...')
     testset = datasets.PTBWordsTest()
+    if args.test:
+        testset = datasets.SubDataset(testset, 0, 100)
     evaluator = extensions.Evaluator(
         testset, model, prepare=evaluation_prepare, device=args.gpu)
     result = evaluator(trainer)
