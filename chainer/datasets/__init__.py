@@ -1,10 +1,10 @@
 from chainer.datasets.adapter import cross_validation
 from chainer.datasets.adapter import multiprocess_loader
 from chainer.datasets.adapter import sub_dataset
+from chainer.datasets import array_dataset
 from chainer.datasets.example import mnist
 from chainer.datasets.example import ptb_words
 from chainer.datasets import image_dataset
-from chainer.datasets import array_dataset
 
 CrossValidationTrainingDataset = \
     cross_validation.CrossValidationTrainingDataset

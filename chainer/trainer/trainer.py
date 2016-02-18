@@ -4,12 +4,10 @@ import os
 
 import six
 
-from chainer import cuda
-from chainer.trainer import interval_trigger
-from chainer.trainer import extension as extension_module
 from chainer.trainer.extensions import log_result
 from chainer.trainer.extensions import print_result
 from chainer.trainer.extensions import snapshot
+from chainer.trainer import interval_trigger
 from chainer.trainer import updater as updater_module
 
 
@@ -43,9 +41,9 @@ class Trainer(object):
     .. note::
        The serialization does not recover everything of the training loop. It
        only recovers the states which change over the training (e.g.
-       parameters, optimizer states, the batch iterator state, extension states,
-       etc.). You must initialize the objects correctly before deserializing
-       the states.
+       parameters, optimizer states, the batch iterator state, extension
+       states, etc.). You must initialize the objects correctly before
+       deserializing the states.
 
     The Trainer class is `plain`, i.e. does not contain any extensions by
     default. The :func:`create_standard_trainer` function creates a trainer
@@ -183,7 +181,7 @@ class Trainer(object):
         """
         try:
             os.makedirs(out)
-        except:
+        except OSError:
             pass
 
         self.epoch = self._iter.epoch

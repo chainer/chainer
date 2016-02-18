@@ -62,11 +62,13 @@ class TestSubDataset(unittest.TestCase):
         dataset = datasets.SubDataset(self.baseset, 2, 6, order)
         self.assertEqual(len(dataset), 4)
         for i in range(4):
-            numpy.testing.assert_array_equal(dataset[i], self.array[order[i + 2]])
+            numpy.testing.assert_array_equal(
+                dataset[i], self.array[order[i + 2]])
         with self.assertRaises(IndexError):
             dataset[4]
         for i in range(-4, 0):
-            numpy.testing.assert_array_equal(dataset[i], self.array[order[6 + i]])
+            numpy.testing.assert_array_equal(
+                dataset[i], self.array[order[6 + i]])
 
     def test_split_dataset(self):
         sub1, sub2 = datasets.split_dataset(self.baseset, 7)

@@ -35,7 +35,7 @@ class TestImageDataset(unittest.TestCase):
                 Image.fromarray(image).save(fn)
 
             self.labels = numpy.array([0, 1, 2, 1, 2], dtype=numpy.int32)
-        except:
+        except Exception:
             self.tearDown()
             raise
 
@@ -76,7 +76,8 @@ class TestImageDataset(unittest.TestCase):
         dataset = datasets.ImageDataset(self.image_names)
         cache_path = os.path.join(self.root, 'mean')
         mean = dataset.compute_mean_with_cache(cache_path)
-        numpy.testing.assert_array_equal(mean, sum(self.arrays) / self.n_images)
+        numpy.testing.assert_array_equal(
+            mean, sum(self.arrays) / self.n_images)
         cached = numpy.load(cache_path)
         numpy.testing.assert_array_equal(cached, mean)
 

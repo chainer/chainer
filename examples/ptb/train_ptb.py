@@ -9,8 +9,6 @@ from __future__ import print_function
 import argparse
 import math
 
-import six
-
 import chainer
 from chainer import datasets
 import chainer.functions as F
@@ -18,12 +16,12 @@ import chainer.links as L
 from chainer import optimizers
 from chainer import serializers
 from chainer.trainer import extensions
-from chainer.utils import summary
 
 
 class ParallelSequentialLoader(chainer.Dataset):
 
     """Data adapter that loads words starting from multiple points in parallel.
+
     """
     def __init__(self, baseset, batchsize):
         self._baseset = baseset

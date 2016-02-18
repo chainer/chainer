@@ -1,7 +1,5 @@
 import random
 
-import numpy
-
 
 def crop_center(image, cropsize):
     """Crops the center of given array.

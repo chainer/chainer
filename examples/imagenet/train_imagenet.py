@@ -10,8 +10,6 @@ zero-origin label (this format is same as that used by Caffe's ImageDataLayer).
 import argparse
 import random
 
-import numpy as np
-
 import chainer
 from chainer import datasets
 from chainer import optimizers
@@ -23,6 +21,7 @@ import alex
 import googlenet
 import googlenetbn
 import nin
+
 
 class PreprocessedImageListDataset(datasets.ImageListDataset):
 

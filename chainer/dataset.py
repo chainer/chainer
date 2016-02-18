@@ -1,7 +1,6 @@
 import os
 import random
 import six
-import sys
 
 import numpy
 
@@ -169,15 +168,16 @@ def build_minibatch(examples, device=None):
         raise ValueError('tuple length mismatched between batch elements')
 
     if device is None:
-        xp = cuda.get_array_module(examples[0][0])
         def to_device(x):
             return x
+
+        xp = cuda.get_array_module(examples[0][0])
     elif device < 0:
-        xp = numpy
         to_device = cuda.to_cpu
+        xp = numpy
     else:
-        xp = cuda.cupy
         to_device = cuda.to_gpu
+        xp = cuda.cupy
 
     cols = [[example[i] for example in examples]
             for i in six.moves.range(tuple_len)]  # transpose

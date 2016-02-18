@@ -4,7 +4,6 @@ import numpy
 
 import chainer
 from chainer import datasets
-from chainer import optimizers
 from chainer import trainer
 
 

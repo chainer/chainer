@@ -70,5 +70,5 @@ class DictSummary(object):
 
     @property
     def std(self):
-        return {key: summay.std
+        return {key: summary.std
                 for key, summary in six.iteritems(self._summaries)}

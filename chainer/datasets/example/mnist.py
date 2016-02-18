@@ -80,7 +80,7 @@ def _load(name, dims, dtype, scale):
         print('Downloading MNIST {} dataset...'.format(name))
         try:
             os.makedirs(root)
-        except:
+        except OSError:
             pass
         data, labels = _download(path, info)
 

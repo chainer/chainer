@@ -72,7 +72,8 @@ def _load(name):
 
 def _download_all():
     vocab = {}
-    ret = {name: _load_data(name, vocab) for name in ('train', 'valid', 'test')}
+    ret = {name: _load_data(name, vocab)
+           for name in ('train', 'valid', 'test')}
     for name, data in six.iteritems(ret):
         numpy.savez_compressed(_get_npz_path(name), x=data, n_vocab=len(vocab))
 
@@ -96,7 +97,7 @@ def _download(name):
     print('Downloading PTB {} dataset...'.format(name))
     try:
         os.makedirs(_root)
-    except:
+    except OSError:
         pass
     filename = 'ptb.{}.txt'.format(name)
     txtpath = os.path.join(_root, filename)

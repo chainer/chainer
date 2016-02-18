@@ -7,7 +7,6 @@ This is a minimal example to write a feed-forward net.
 import argparse
 
 import chainer
-from chainer import cuda
 from chainer import datasets
 import chainer.functions as F
 import chainer.links as L
