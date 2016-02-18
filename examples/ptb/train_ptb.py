@@ -7,7 +7,6 @@ https://github.com/tomsercu/lstm
 """
 from __future__ import print_function
 import argparse
-import collections
 import math
 
 import six
@@ -115,20 +114,35 @@ class ResetState(chainer.trainer.Extension):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--resume', '-r', default='',
-                        help='Resume the training from snapshot')
+    parser.add_argument('--batchsize', '-b', type=int, default=20,
+                        help='learning minibatch size')
+    parser.add_argument('--bproplen', '-l', type=int, default=35,
+                        help='length of truncated BPTT')
+    parser.add_argument('--epoch', '-e', default=39, type=int,
+                        help='number of epochs to learn')
+    parser.add_argument('--gradclip', '-c', type=int, default=5,
+                        help='gradient norm threshold to clip')
     parser.add_argument('--gpu', '-g', default=-1, type=int,
                         help='GPU ID (negative value indicates CPU)')
+    parser.add_argument('--resume', '-r', default='',
+                        help='Resume the training from snapshot')
+    parser.add_argument('--test', dest='test', action='store_true')
+    parser.set_defaults(test=False)
+    parser.add_argument('--unit', '-u', default=650, type=int,
+                        help='number of units')
     args = parser.parse_args()
 
-    batchsize = 20
-    sequence_len = 35
+    batchsize = args.batchsize
+    sequence_len = args.bproplen
 
-    trainset = ParallelSequentialLoader(
-        datasets.PTBWordsTraining(), batchsize)
+    train_baseset = datasets.PTBWordsTraining()
     valset = datasets.PTBWordsValidation()
+    if args.test:
+        train_baseset = datasets.SubDataset(train_baseset, 0, 100)
+        valset = datasets.SubDataset(valset, 0, 100)
+    trainset = ParallelSequentialLoader(train_baseset, batchsize)
 
-    model = L.Classifier(RNNLM(valset.n_vocab, 650))
+    model = L.Classifier(RNNLM(valset.n_vocab, args.unit))
     model.compute_accuracy = False  # we only want the perplexity
     if args.gpu >= 0:
         model.to_gpu(args.gpu)
@@ -136,8 +150,9 @@ def main():
     trainer = chainer.Trainer(
         trainset, model, optimizers.SGD(lr=1),
         updater=TruncatedBPTTUpdater(sequence_len), batchsize=batchsize,
-        epoch=39, device=args.gpu)
-    trainer.optimizer.add_hook(chainer.optimizer.GradientClipping(5))
+        epoch=args.epoch, device=args.gpu)
+    trainer.optimizer.add_hook(chainer.optimizer.GradientClipping(
+        args.gradclip))
 
     trainer.extend(extensions.Evaluator(
         valset, model, prepare=evaluation_prepare, device=args.gpu))
@@ -149,6 +164,13 @@ def main():
     if args.resume:
         serializers.load_npz(args.resume, trainer)
     trainer.run(out='result')
+
+    print('evaluating on test set...')
+    testset = datasets.PTBWordsTest()
+    evaluator = extensions.Evaluator(
+        testset, model, prepare=evaluation_prepare, device=args.gpu)
+    result = evaluator(trainer)
+    print('test perplexity:', math.exp(float(result['loss'])))
 
 
 if __name__ == '__main__':

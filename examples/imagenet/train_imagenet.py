@@ -24,7 +24,6 @@ import googlenet
 import googlenetbn
 import nin
 
-
 class PreprocessedImageListDataset(datasets.ImageListDataset):
 
     def __init__(self, path, meanpath, cropsize, root='.', test=False):
@@ -77,6 +76,8 @@ def main():
                         help='Resume from trainer state')
     parser.add_argument('--root', '-r', default='.',
                         help='Root directory path of image files')
+    parser.add_argument('--test', dest='test', action='store_true')
+    parser.set_defaults(test=False)
     args = parser.parse_args()
 
     # Prepare model
@@ -106,9 +107,10 @@ def main():
     def set_test_mode(target):
         target.train = False
 
+    evaluator_period = 1 if args.test else 100000
     trainer.extend(extensions.Evaluator(
         val, model, batchsize=args.val_batchsize, device=args.gpu,
-        prepare=set_test_mode), trigger=(100000, 'iteration'))
+        prepare=set_test_mode), trigger=(evaluator_period, 'iteration'))
 
     trainer.extend(extensions.PrintResult(trigger=(1000, 'iteration')))
     trainer.extend(extensions.Snapshot(), trigger=(1000, 'iteration'))

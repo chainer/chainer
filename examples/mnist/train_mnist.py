@@ -77,27 +77,41 @@ class MnistMLPParallel(chainer.Chain):
 
 def main():
     parser = argparse.ArgumentParser(description='Chainer example: MNIST')
+    parser.add_argument('--batchsize', '-b', type=int, default=100,
+                        help='learning minibatch size')
+    parser.add_argument('--epoch', '-e', default=20, type=int,
+                        help='number of epochs to learn')
     parser.add_argument('--gpu', '-g', default=-1, type=int,
                         help='GPU ID (negative value indicates CPU)')
     parser.add_argument('--net', '-n', choices=('simple', 'parallel'),
                         default='simple', help='Network type')
     parser.add_argument('--resume', '-r', default='',
                         help='Resume the training from given snapshot')
+    parser.add_argument('--unit', '-u', default=1000, type=int,
+                        help='number of units')
     args = parser.parse_args()
 
+    print('GPU: {}'.format(args.gpu))
+    print('# unit: {}'.format(args.unit))
+    print('# Minibatch-size: {}'.format(args.batchsize))
+    print('# epoch: {}'.format(args.epoch))
+    print('Network type: {}'.format(args.net))
+    print('')
+
     if args.net == 'simple':
-        model = L.Classifier(MnistMLP(784, 1000, 10))
+        model = L.Classifier(MnistMLP(784, args.unit, 10))
         if args.gpu >= 0:
             model.to_gpu(args.gpu)
     else:
         args.gpu = 0
-        model = L.Classifier(MnistMLPParallel(784, 1000, 10))
+        model = L.Classifier(MnistMLPParallel(784, args.unit, 10))
 
     trainer = chainer.create_standard_trainer(
         datasets.MnistTraining(), model, optimizers.Adam(),
-        batchsize=100, epoch=20, device=args.gpu)
+        batchsize=args.batchsize, epoch=args.epoch, device=args.gpu)
     trainer.extend(extensions.Evaluator(
-        datasets.MnistTest(), model, batchsize=100, device=args.gpu))
+        datasets.MnistTest(), model, batchsize=args.batchsize,
+        device=args.gpu))
     trainer.extend(extensions.ComputationalGraph(model))
 
     if args.resume:

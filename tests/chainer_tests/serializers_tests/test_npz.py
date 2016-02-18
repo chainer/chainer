@@ -119,6 +119,7 @@ class TestNpzDeserializer(unittest.TestCase):
         y = numpy.empty((2, 3), dtype=numpy.float32)
         self.check_deserialize(y, '/y')
 
+    @attr.gpu
     def test_deserialize_gpu_strip_slashes(self):
         y = numpy.empty((2, 3), dtype=numpy.float32)
         self.check_deserialize(cuda.to_gpu(y), '/y')
@@ -242,6 +243,16 @@ class TestGroupHierachy(unittest.TestCase):
         npz.save_npz(self.temp_file_path, self.optimizer, self.compress)
         with numpy.load(self.temp_file_path) as f:
             self._check_optimizer_group(f, ('Wp/msg', 'Wp/msdx', 'epoch', 't'))
+
+    def test_load_optimizer(self):
+        for param in self.parent.params():
+            param.data.fill(1)
+        npz.save_npz(self.temp_file_path, self.parent, self.compress)
+        for param in self.parent.params():
+            param.data.fill(0)
+        npz.load_npz(self.temp_file_path, self.parent)
+        for param in self.parent.params():
+            self.assertTrue((param.data == 1).all())
 
 
 testing.run_module(__name__, __file__)
