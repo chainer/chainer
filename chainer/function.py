@@ -4,6 +4,7 @@ import weakref
 import chainer
 from chainer import cuda
 from chainer import flag
+from chainer.utils import memory
 from chainer.utils import type_check
 from chainer import variable
 
@@ -109,7 +110,10 @@ class Function(object):
             hook._forward_preprocess(self, in_data)
         # Forward prop
         with cuda.get_device(*in_data):
-            outputs = self.forward(in_data)
+            def p(event, size):
+                print(event, size, type(self), 'forward')
+            with memory.memory_profile(p):
+                outputs = self.forward(in_data)
             assert type(outputs) == tuple
         for hook in hooks:
             hook._forward_postprocess(self, in_data)

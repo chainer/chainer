@@ -5,6 +5,7 @@ import numpy
 import chainer
 from chainer import cuda
 from chainer import flag
+from chainer.utils import memory
 
 
 class Variable(object):
@@ -278,7 +279,10 @@ https://github.com/pfnet/chainer/issues/new.
             for hook in hooks:
                 hook._backward_preprocess(func, in_data, out_grad)
             with cuda.get_device(*(in_data + out_grad)):
-                gxs = func.backward(in_data, out_grad)
+                def p(event, size):
+                    print(event, size, type(self), 'backward')
+                with memory.memory_profile(p):
+                    gxs = func.backward(in_data, out_grad)
             assert len(gxs) == len(in_data)
             for hook in hooks:
                 hook._backward_postprocess(func, in_data, out_grad)
