@@ -54,6 +54,11 @@ def show_elapsed_times(hook_history):
             print('{}\t{}\tms'.format(f.label, t))
 
 
+def show_memory(hook_history):
+    for h in hook_history:
+        print(h)
+
+
 for iteration in six.moves.range(args.iteration):
 
     print('Iteratiron\t{}'.format(iteration + 1))
@@ -65,17 +70,19 @@ for iteration in six.moves.range(args.iteration):
     if args.gpu >= 0:
         x_batch = cuda.to_gpu(x_batch)
 
-    with function_hooks.TimerHook() as h:
+    with function_hooks.TimerHook() as t, function_hooks.MemoryHook() as m:
         y = model.forward(x_batch)
-        show_elapsed_times(h.hook_history)
-        print('forward total time\t{}'.format(h.total_time()))
+        show_elapsed_times(t.hook_history)
+        show_memory(m.history)
+        print('forward total time\t{}'.format(t.total_time()))
 
     if args.gpu >= 0:
         y.grad = cuda.ones_like(y.data)
     else:
         y.grad = numpy.ones_like(y.data)
 
-    with function_hooks.TimerHook() as h:
+    with function_hooks.TimerHook() as t, function_hooks.MemoryHook() as m:
         y.backward()
-        show_elapsed_times(h.hook_history)
-        print('backward total time\t{}'.format(h.total_time()))
+        show_elapsed_times(t.hook_history)
+        show_memory(m.history)
+        print('backward total time\t{}'.format(t.total_time()))

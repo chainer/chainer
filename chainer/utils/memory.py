@@ -1,15 +1,4 @@
-import contextlib
-
 from chainer import cuda
-
-
-@contextlib.contextmanager
-def memory_profile(listener):
-    prev = cuda.cuda.get_allocator()
-    prof = MemoryProfiler(prev, listener)
-    cuda.cuda.set_allocator(prof.malloc)
-    yield
-    cuda.cuda.set_allocator(prev)
 
 
 class MemoryProfiler(object):
