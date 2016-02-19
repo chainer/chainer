@@ -8,7 +8,7 @@ from chainer import function
 
 class TimerHook(function.FunctionHook):
 
-    def preprocess(self, function, in_data):
+    def preprocess(self, function, in_data, out_grad=None):
         xp = cuda.get_array_module(*in_data)
         if xp == numpy:
             self.start = time.time()
@@ -18,7 +18,7 @@ class TimerHook(function.FunctionHook):
             self.start.record()
         return None
 
-    def postprocess(self, function, in_data):
+    def postprocess(self, function, in_data, out_grad=None):
         xp = cuda.get_array_module(*in_data)
         if xp == numpy:
             self.stop = time.time()
