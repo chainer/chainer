@@ -75,7 +75,7 @@ class Function(object):
     """
     type_check_enable = int(os.environ.get('CHAINER_TYPE_CHECK', '1')) != 0
 
-    def __call__(self, *inputs):
+    def __call__(self, *inputs, **kwarg):
         """Applies forward propagation with chaining backward references.
 
         Basic behavior is expressed in documentation of :class:`Function`
@@ -91,12 +91,19 @@ class Function(object):
         Args:
             inputs: Tuple of input :class:`Variable` objects. The volatile
                 flags of all input variables must agree.
+            force_tuple (bool): If True, this method returns a tuple even when
+                it return only one value (optional).
 
         Returns:
             One :class:`Variable` object or a tuple of multiple
             :class:`Variable` objects.
 
         """
+        force_tuple = kwarg.pop('force_tuple', False)
+        if kwarg:
+            raise TypeError('__call__() got unexpected keyword arguments %s' %
+                            ', '.join(kwarg.keys()))
+
         in_data = tuple([x.data for x in inputs])
         if self.type_check_enable:
             self._check_data_type_forward(in_data)
@@ -118,7 +125,7 @@ class Function(object):
             # Forward edges (must be weak references)
             self.outputs = tuple([weakref.ref(y) for y in ret])
 
-        if len(ret) == 1:
+        if not force_tuple and len(ret) == 1:
             return ret[0]
         else:
             return ret
