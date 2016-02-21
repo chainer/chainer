@@ -197,12 +197,12 @@ class TestFunction(unittest.TestCase):
         self.assertEqual(len(ret), 1)
         self.assertIsInstance(ret[0], chainer.Variable)
 
-    def test_call_force_tuple(self):
+    def test_call_force_tuple_cpu(self):
         self.f.forward_cpu.return_value = (cuda.to_cpu(self.y1),)
         self.check_call_force_tuple()
 
     @attr.gpu
-    def test_call_force_tuple(self):
+    def test_call_force_tuple_gpu(self):
         self.setup_gpu()
         self.f.forward_gpu.return_value = (cuda.to_gpu(self.y1),)
         self.check_call_force_tuple()
