@@ -13,6 +13,8 @@ Chainer Reference Manual
    functions
    links
    optimizers
+   datasets
+   extensions
    serializers
    caffe
    graph

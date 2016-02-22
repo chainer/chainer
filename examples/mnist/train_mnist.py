@@ -4,131 +4,120 @@
 This is a minimal example to write a feed-forward net.
 
 """
-from __future__ import print_function
 import argparse
 
-import numpy as np
-import six
-
 import chainer
-from chainer import computational_graph
-from chainer import cuda
+from chainer import datasets
+import chainer.functions as F
 import chainer.links as L
 from chainer import optimizers
 from chainer import serializers
+from chainer.trainer import extensions
 
-import data
-import net
 
-parser = argparse.ArgumentParser(description='Chainer example: MNIST')
-parser.add_argument('--initmodel', '-m', default='',
-                    help='Initialize the model from given file')
-parser.add_argument('--resume', '-r', default='',
-                    help='Resume the optimization from snapshot')
-parser.add_argument('--net', '-n', choices=('simple', 'parallel'),
-                    default='simple', help='Network type')
-parser.add_argument('--gpu', '-g', default=-1, type=int,
-                    help='GPU ID (negative value indicates CPU)')
-parser.add_argument('--epoch', '-e', default=20, type=int,
-                    help='number of epochs to learn')
-parser.add_argument('--unit', '-u', default=1000, type=int,
-                    help='number of units')
-parser.add_argument('--batchsize', '-b', type=int, default=100,
-                    help='learning minibatch size')
-args = parser.parse_args()
+class MnistMLP(chainer.Chain):
 
-batchsize = args.batchsize
-n_epoch = args.epoch
-n_units = args.unit
+    """An example of multi-layer perceptron for MNIST dataset.
 
-print('GPU: {}'.format(args.gpu))
-print('# unit: {}'.format(args.unit))
-print('# Minibatch-size: {}'.format(args.batchsize))
-print('# epoch: {}'.format(args.epoch))
-print('Network type: {}'.format(args.net))
-print('')
+    This is a very simple implementation of an MLP. You can modify this code to
+    build your own neural net.
 
-# Prepare dataset
-print('load MNIST dataset')
-mnist = data.load_mnist_data()
-mnist['data'] = mnist['data'].astype(np.float32)
-mnist['data'] /= 255
-mnist['target'] = mnist['target'].astype(np.int32)
+    """
+    def __init__(self, n_in, n_units, n_out):
+        super(MnistMLP, self).__init__(
+            l1=L.Linear(n_in, n_units),
+            l2=L.Linear(n_units, n_units),
+            l3=L.Linear(n_units, n_out),
+        )
 
-N = 60000
-x_train, x_test = np.split(mnist['data'],   [N])
-y_train, y_test = np.split(mnist['target'], [N])
-N_test = y_test.size
+    def __call__(self, x):
+        h1 = F.relu(self.l1(x))
+        h2 = F.relu(self.l2(h1))
+        return self.l3(h2)
 
-# Prepare multi-layer perceptron model, defined in net.py
-if args.net == 'simple':
-    model = L.Classifier(net.MnistMLP(784, n_units, 10))
-    if args.gpu >= 0:
-        cuda.get_device(args.gpu).use()
-        model.to_gpu()
-    xp = np if args.gpu < 0 else cuda.cupy
-elif args.net == 'parallel':
-    cuda.check_cuda_available()
-    model = L.Classifier(net.MnistMLPParallel(784, n_units, 10))
-    xp = cuda.cupy
 
-# Setup optimizer
-optimizer = optimizers.Adam()
-optimizer.setup(model)
+class MnistMLPParallel(chainer.Chain):
 
-# Init/Resume
-if args.initmodel:
-    print('Load model from', args.initmodel)
-    serializers.load_npz(args.initmodel, model)
-if args.resume:
-    print('Load optimizer state from', args.resume)
-    serializers.load_npz(args.resume, optimizer)
+    """An example of model-parallel MLP.
 
-# Learning loop
-for epoch in six.moves.range(1, n_epoch + 1):
-    print('epoch', epoch)
+    This chain combines four small MLPs on two different devices.
 
-    # training
-    perm = np.random.permutation(N)
-    sum_accuracy = 0
-    sum_loss = 0
-    for i in six.moves.range(0, N, batchsize):
-        x = chainer.Variable(xp.asarray(x_train[perm[i:i + batchsize]]))
-        t = chainer.Variable(xp.asarray(y_train[perm[i:i + batchsize]]))
+    """
+    def __init__(self, n_in, n_units, n_out):
+        super(MnistMLPParallel, self).__init__(
+            first0=MnistMLP(n_in, n_units // 2, n_units).to_gpu(0),
+            first1=MnistMLP(n_in, n_units // 2, n_units).to_gpu(1),
+            second0=MnistMLP(n_units, n_units // 2, n_out).to_gpu(0),
+            second1=MnistMLP(n_units, n_units // 2, n_out).to_gpu(1),
+        )
 
-        # Pass the loss function (Classifier defines it) and its arguments
-        optimizer.update(model, x, t)
+    def __call__(self, x):
+        # assume x is on GPU 0
+        x1 = F.copy(x, 1)
 
-        if epoch == 1 and i == 0:
-            with open('graph.dot', 'w') as o:
-                g = computational_graph.build_computational_graph(
-                    (model.loss, ), remove_split=True)
-                o.write(g.dump())
-            print('graph generated')
+        z0 = self.first0(x)
+        z1 = self.first1(x1)
 
-        sum_loss += float(model.loss.data) * len(t.data)
-        sum_accuracy += float(model.accuracy.data) * len(t.data)
+        # sync
+        h0 = z0 + F.copy(z1, 0)
+        h1 = z1 + F.copy(z0, 1)
 
-    print('train mean loss={}, accuracy={}'.format(
-        sum_loss / N, sum_accuracy / N))
+        y0 = self.second0(F.relu(h0))
+        y1 = self.second1(F.relu(h1))
 
-    # evaluation
-    sum_accuracy = 0
-    sum_loss = 0
-    for i in six.moves.range(0, N_test, batchsize):
-        x = chainer.Variable(xp.asarray(x_test[i:i + batchsize]),
-                             volatile='on')
-        t = chainer.Variable(xp.asarray(y_test[i:i + batchsize]),
-                             volatile='on')
-        loss = model(x, t)
-        sum_loss += float(loss.data) * len(t.data)
-        sum_accuracy += float(model.accuracy.data) * len(t.data)
+        # sync
+        y = y0 + F.copy(y1, 0)
+        return y
 
-    print('test  mean loss={}, accuracy={}'.format(
-        sum_loss / N_test, sum_accuracy / N_test))
+    def to_gpu(self, device=None):
+        # ignore it
+        pass
 
-# Save the model and the optimizer
-print('save the model')
-serializers.save_npz('mlp.model', model)
-print('save the optimizer')
-serializers.save_npz('mlp.state', optimizer)
+
+def main():
+    parser = argparse.ArgumentParser(description='Chainer example: MNIST')
+    parser.add_argument('--batchsize', '-b', type=int, default=100,
+                        help='learning minibatch size')
+    parser.add_argument('--epoch', '-e', default=20, type=int,
+                        help='number of epochs to learn')
+    parser.add_argument('--gpu', '-g', default=-1, type=int,
+                        help='GPU ID (negative value indicates CPU)')
+    parser.add_argument('--net', '-n', choices=('simple', 'parallel'),
+                        default='simple', help='Network type')
+    parser.add_argument('--resume', '-r', default='',
+                        help='Resume the training from given snapshot')
+    parser.add_argument('--unit', '-u', default=1000, type=int,
+                        help='number of units')
+    args = parser.parse_args()
+
+    print('GPU: {}'.format(args.gpu))
+    print('# unit: {}'.format(args.unit))
+    print('# Minibatch-size: {}'.format(args.batchsize))
+    print('# epoch: {}'.format(args.epoch))
+    print('Network type: {}'.format(args.net))
+    print('')
+
+    if args.net == 'simple':
+        model = L.Classifier(MnistMLP(784, args.unit, 10))
+        if args.gpu >= 0:
+            model.to_gpu(args.gpu)
+    else:
+        args.gpu = 0
+        model = L.Classifier(MnistMLPParallel(784, args.unit, 10))
+
+    trainer = chainer.create_standard_trainer(
+        datasets.MnistTraining(), model, optimizers.Adam(),
+        batchsize=args.batchsize, epoch=args.epoch, device=args.gpu)
+    trainer.extend(extensions.Evaluator(
+        datasets.MnistTest(), model, batchsize=args.batchsize,
+        device=args.gpu))
+    trainer.extend(extensions.ComputationalGraph(model))
+
+    if args.resume:
+        serializers.load_npz(args.resume, trainer)
+
+    trainer.run()
+
+
+if __name__ == '__main__':
+    main()
