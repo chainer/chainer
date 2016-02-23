@@ -70,7 +70,7 @@ for iteration in six.moves.range(args.iteration):
     if args.gpu >= 0:
         x_batch = cuda.to_gpu(x_batch)
 
-    with function_hooks.TimerHook() as t, function_hooks.MemoryHook() as m:
+    with function_hooks.TimerHook() as t, function_hooks.MemoryHook() as m, function_hooks.PrintHook():
         y = model.forward(x_batch)
         show_elapsed_times(t.hook_history)
         show_memory(m.history)
@@ -81,7 +81,7 @@ for iteration in six.moves.range(args.iteration):
     else:
         y.grad = numpy.ones_like(y.data)
 
-    with function_hooks.TimerHook() as t, function_hooks.MemoryHook() as m:
+    with function_hooks.TimerHook() as t, function_hooks.MemoryHook() as m, function_hooks.PrintHook():
         y.backward()
         show_elapsed_times(t.hook_history)
         show_memory(m.history)

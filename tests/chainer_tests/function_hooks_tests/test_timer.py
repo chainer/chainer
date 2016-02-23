@@ -57,7 +57,7 @@ class TestTimerHookToLink(unittest.TestCase):
     @attr.gpu
     def test_backward_gpu(self):
         self.l.to_gpu()
-        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.g))
+        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
 
 class TestTimerHookToFunction(unittest.TestCase):

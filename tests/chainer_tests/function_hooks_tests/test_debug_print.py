@@ -10,10 +10,10 @@ from chainer.testing import attr
 import numpy
 
 
-class TestLabelHookToLink(unittest.TestCase):
+class TestPrintHookToLink(unittest.TestCase):
 
     def setUp(self):
-        self.h = function_hooks.LabelHook()
+        self.h = function_hooks.PrintHook()
         self.l = links.Linear(5, 5)
         self.x = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
         self.gy = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
@@ -40,10 +40,10 @@ class TestLabelHookToLink(unittest.TestCase):
                 self.l, cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
 
-class TestLabelHookToFunction(unittest.TestCase):
+class TestPrintHookToFunction(unittest.TestCase):
 
     def setUp(self):
-        self.h = function_hooks.LabelHook()
+        self.h = function_hooks.PrintHook()
         self.f = functions.Exp()
         self.f.add_hook(self.h)
         self.x = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
