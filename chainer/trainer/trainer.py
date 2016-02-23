@@ -86,7 +86,8 @@ class Trainer(object):
 
         self._iter = dataset.get_batch_iterator(batchsize, device=device)
 
-        optimizer.setup(target)
+        if getattr(optimizer, 'target', None) is not target:
+            optimizer.setup(target)
 
     def extend(self, extension, trigger=None, name=None,
                invoke_before_training=None, priority=None):
