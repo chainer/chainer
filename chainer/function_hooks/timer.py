@@ -31,4 +31,5 @@ class TimerHook(function.FunctionHook):
         return elapsed_time
 
     def total_time(self):
-        return sum(t if p == 'postprocess' else 0.0 for (_, p, _, t) in self.hook_history)
+        return sum(t if p == 'postprocess' else 0.0
+                   for (_, p, _, t) in self.hook_history)

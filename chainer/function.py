@@ -4,7 +4,6 @@ import weakref
 import chainer
 from chainer import cuda
 from chainer import flag
-from chainer.utils import memory
 from chainer.utils import type_check
 from chainer import variable
 

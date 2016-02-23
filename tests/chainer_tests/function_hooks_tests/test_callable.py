@@ -4,7 +4,6 @@ import chainer
 from chainer import cuda
 from chainer import function_hooks
 from chainer import functions
-from chainer import gradient_check
 from chainer import links
 from chainer.testing import attr
 import numpy
@@ -41,7 +40,7 @@ class TestCallableHookToLink(unittest.TestCase):
         with self.h:
             y.backward()
         self.assertEqual(self.count, 2)
-        
+
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy)
 

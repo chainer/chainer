@@ -5,7 +5,6 @@ import numpy
 import chainer
 from chainer import cuda
 from chainer import flag
-from chainer.utils import memory
 
 
 class Variable(object):
