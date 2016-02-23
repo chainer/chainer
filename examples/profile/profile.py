@@ -48,17 +48,6 @@ if args.gpu >= 0:
     model.to_gpu()
 
 
-def show_elapsed_times(hook_history):
-    for _, p, f, t in hook_history:
-        if p == 'postprocess':
-            print('{}\t{}\tms'.format(f.label, t))
-
-
-def show_memory(hook_history):
-    for h in hook_history:
-        print(h)
-
-
 for iteration in six.moves.range(args.iteration):
 
     print('Iteratiron\t{}'.format(iteration + 1))
@@ -72,9 +61,9 @@ for iteration in six.moves.range(args.iteration):
 
     with function_hooks.TimerHook() as t, function_hooks.MemoryHook() as m:
         y = model.forward(x_batch)
-        show_elapsed_times(t.hook_history)
-        show_memory(m.history)
-        print('forward total time\t{}'.format(t.total_time()))
+        print('forward total time\t{}\tms'.format(t.total_time()))
+        print('allocated memory size\t{}\tbyte'.format(m.total_allocate_size()))
+        print('deallocated memory size\t{}\tbyte'.format(m.total_deallocate_size()))
 
     if args.gpu >= 0:
         y.grad = cuda.ones_like(y.data)
@@ -83,6 +72,6 @@ for iteration in six.moves.range(args.iteration):
 
     with function_hooks.TimerHook() as t, function_hooks.MemoryHook() as m:
         y.backward()
-        show_elapsed_times(t.hook_history)
-        show_memory(m.history)
-        print('backward total time\t{}'.format(t.total_time()))
+        print('backward total time\t{}\tms'.format(t.total_time()))
+        print('allocated memory\t{}'.format(m.total_allocate_size()))
+        print('deallocated memory size\t{}\tbyte'.format(m.total_deallocate_size()))

@@ -7,4 +7,4 @@ class CallableHook(function.FunctionHook):
         self.f = f
 
     def __call__(self, function, in_data, out_grad=None):
-        return self.f(function, in_data, out_grad)
+        self.f(function, in_data, out_grad)

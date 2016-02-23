@@ -8,6 +8,9 @@ from chainer import function
 
 class TimerHook(function.FunctionHook):
 
+    def __init__(self):
+        self.call_history = []
+
     def preprocess(self, function, in_data, out_grad=None):
         xp = cuda.get_array_module(*in_data)
         if xp == numpy:
@@ -16,7 +19,6 @@ class TimerHook(function.FunctionHook):
             self.start = cuda.Event()
             self.stop = cuda.Event()
             self.start.record()
-        return None
 
     def postprocess(self, function, in_data, out_grad=None):
         xp = cuda.get_array_module(*in_data)
@@ -28,8 +30,7 @@ class TimerHook(function.FunctionHook):
             self.stop.synchronize()
             elapsed_time = cuda.cupy.cuda.get_elapsed_time(
                 self.start, self.stop)
-        return elapsed_time
+        self.call_history.append((function, elapsed_time))
 
     def total_time(self):
-        return sum(t if p == 'postprocess' else 0.0
-                   for (_, p, _, t) in self.hook_history)
+        return sum(t for (_, t) in self.call_history)

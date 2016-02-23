@@ -315,12 +315,12 @@ https://github.com/pfnet/chainer/issues/new.
             out_grad = tuple(None if y is None else y.grad for y in outputs)
             hooks = chainer.global_hooks.values() + func.local_hooks.values()
             for hook in hooks:
-                hook._backward_preprocess(func, in_data, out_grad)
+                hook.backward_preprocess(func, in_data, out_grad)
             with cuda.get_device(*(in_data + out_grad)):
                 gxs = func.backward(in_data, out_grad)
             assert len(gxs) == len(in_data)
             for hook in hooks:
-                hook._backward_postprocess(func, in_data, out_grad)
+                hook.backward_postprocess(func, in_data, out_grad)
 
             if not retain_grad:
                 for y in outputs:
