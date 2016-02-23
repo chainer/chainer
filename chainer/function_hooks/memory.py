@@ -5,22 +5,22 @@ from chainer.utils import memory
 
 class MemoryHook(function.FunctionHook):
 
-    def f(self, message, function):
-        def p(event, size):
-            self.history.append((event, size, message, function.label))
+    def __init__(self):
+        self.allocate_history = []
 
-        self.history = []
+    def preprocess(self, function, in_data, out_grad=None):
+        def p(event, size):
+            self.allocate_history.append((event, size, function.label))
+
         self.prev_allocator = cuda.cuda.get_allocator()
         prof = memory.MemoryProfiler(self.prev_allocator, p)
         cuda.cuda.set_allocator(prof.malloc)
-        return None
-
-    def forward_preprocess(self, function, in_data, out_grad=None):
-        return self.f('forward', function)
-
-    def backward_preprocess(self, function, in_data, out_grad=None):
-        return self.f('backward', function)
 
     def postprocess(self, function, in_data, out_grad=None):
         cuda.cuda.set_allocator(self.prev_allocator)
-        return None
+
+    def total_allocate_size(self):
+        return sum(s if e == 'alloc' else 0 for e, s, _ in self.allocate_history)
+
+    def total_deallocate_size(self):
+        return sum(s if e == 'dealloc' else 0 for e, s, _ in self.allocate_history)
