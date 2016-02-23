@@ -50,6 +50,27 @@ cdef class Memory(MemoryBase):
             runtime.free(self.ptr)
 
 
+cdef set _peer_access_checked = set()
+
+
+cpdef _set_peer_access(int device, int peer):
+    device_pair = device, peer
+
+    if device_pair in _peer_access_checked:
+        return
+    cdef int can_access = runtime.deviceCanAccessPeer(device, peer)
+    _peer_access_checked.add(device_pair)
+    if not can_access:
+        return
+
+    cdef int current = runtime.getDevice()
+    runtime.setDevice(device)
+    try:
+        runtime.deviceEnablePeerAccess(peer)
+    finally:
+        runtime.setDevice(current)
+
+
 cdef class MemoryPointer:
 
     """Pointer to a point on a device memory.
@@ -112,8 +133,9 @@ cdef class MemoryPointer:
 
         """
         if size > 0:
+            _set_peer_access(src.device.id, self.device.id)
             runtime.memcpy(self.ptr, src.ptr, size,
-                           runtime.memcpyDeviceToDevice)
+                           runtime.memcpyDefault)
 
     cpdef copy_from_device_async(self, MemoryPointer src, size_t size, stream):
         """Copies a memory sequence from a (possibly different) device asynchronously.
@@ -125,8 +147,9 @@ cdef class MemoryPointer:
 
         """
         if size > 0:
+            _set_peer_access(src.device.id, self.device.id)
             runtime.memcpyAsync(self.ptr, src.ptr, size,
-                                runtime.memcpyDeviceToDevice, stream)
+                                runtime.memcpyDefault, stream)
 
     cpdef copy_from_host(self, mem, size_t size):
         """Copies a memory sequence from the host memory.
