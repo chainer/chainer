@@ -1,11 +1,15 @@
-Standard Dataset implementations
-================================
+Standard Dataset implementations (experimental)
+===============================================
 
 .. module:: chainer.datasets
 
 Chainer provides basic :class:`~chainer.Dataset` implementations in the
 mod:`chainer.datasets` package. They are divided into three groups:
 general datasets, specific datasets, and dataset loaders.
+
+.. note::
+   These features are experimental.
+   The interface may be changed in the future releases.
 
 
 General datasets

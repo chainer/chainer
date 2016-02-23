@@ -1,7 +1,7 @@
 .. module:: chainer.trainer
 
-Trainer, Updater, and Extension
-===============================
+Trainer, Updater, and Extension (experimental)
+==============================================
 
 Trainer is a framework to provide a reusable implementation of training loops. It consists of following classes:
 
@@ -10,6 +10,10 @@ Trainer is a framework to provide a reusable implementation of training loops. I
 - :class:`Extension` interface that adds a functionality to the training loop.
 
 List of builtin extensions are provided at :ref:`extensions`.
+
+.. note::
+   This feature is experimental.
+   The interface may be changed in the future releases.
 
 
 Trainer
