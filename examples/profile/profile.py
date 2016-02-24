@@ -6,13 +6,15 @@ import numpy
 import six
 
 
-parser = argparse.ArgumentParser(description='Profiler')
+parser = argparse.ArgumentParser(description='ConvNet benchmark')
 parser.add_argument('--model', '-m', type=str, default='alex',
+                    choices=('alex', 'overfeat', 'vgg', 'conv1', 'conv2',
+                             'conv3', 'conv4', 'conv5'),
                     help='network architecture (alex|overfeat|vgg|conv[1-5])')
 parser.add_argument('--iteration', '-i', type=int, default=10,
                     help='iteration')
 parser.add_argument('--gpu', '-g', type=int, default=-1,
-                    help='gpu to use')
+                    help='GPU to use. Negative value to use CPU')
 parser.add_argument('--cudnn', '-c', action='store_true',
                     help='True if using cudnn')
 parser.add_argument('--batchsize', '-b', type=int, default=None,
