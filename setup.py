@@ -39,6 +39,8 @@ setup(
     url='http://chainer.org/',
     packages=['chainer',
               'chainer.datasets',
+              'chainer.datasets.adapter',
+              'chainer.datasets.example',
               'chainer.functions',
               'chainer.functions.activation',
               'chainer.functions.array',
