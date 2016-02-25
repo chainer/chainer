@@ -1,3 +1,4 @@
+import collections
 import os
 import weakref
 
@@ -75,7 +76,7 @@ class Function(object):
 
     """
     type_check_enable = int(os.environ.get('CHAINER_TYPE_CHECK', '1')) != 0
-    local_hooks = {}
+    local_hooks = collections.OrderedDict()
 
     def __call__(self, *inputs):
         """Applies forward propagation with chaining backward references.
@@ -104,7 +105,8 @@ class Function(object):
         if self.type_check_enable:
             self._check_data_type_forward(in_data)
 
-        hooks = chainer.global_hooks.values() + self.local_hooks.values()
+        hooks = collections.OrderedDict(chainer.global_hooks)
+        hooks.update(self.local_hooks)
         for hook in hooks:
             hook.forward_preprocess(self, in_data)
         # Forward prop
