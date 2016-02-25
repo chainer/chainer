@@ -76,7 +76,6 @@ class Function(object):
 
     """
     type_check_enable = int(os.environ.get('CHAINER_TYPE_CHECK', '1')) != 0
-    local_function_hooks = collections.OrderedDict()
 
     def __call__(self, *inputs):
         """Applies forward propagation with chaining backward references.
@@ -133,6 +132,20 @@ class Function(object):
             return ret[0]
         else:
             return ret
+
+    @property
+    def local_function_hooks(self):
+        if not hasattr(self, '_local_function_hooks'):
+            self._local_function_hooks = collections.OrderedDict()
+        return self._local_function_hooks
+
+    @local_function_hooks.setter
+    def local_function_hooks(self, val):
+        self._local_function_hooks = val
+
+    @local_function_hooks.deleter
+    def local_function_hooks(self):
+        del self._hook_history
 
     @property
     def label(self):
