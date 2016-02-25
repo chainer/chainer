@@ -313,7 +313,8 @@ https://github.com/pfnet/chainer/issues/new.
 
             in_data = tuple(x.data for x in func.inputs)
             out_grad = tuple(None if y is None else y.grad for y in outputs)
-            hooks = chainer.global_function_hooks.values() + func.local_function_hooks.values()
+            hooks = collections.OrderedDict(chainer.global_function_hooks)
+            hooks.update(func.local_function_hooks)
             for hook in hooks:
                 hook.backward_preprocess(func, in_data, out_grad)
             with cuda.get_device(*(in_data + out_grad)):
