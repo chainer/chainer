@@ -76,7 +76,7 @@ class Function(object):
 
     """
     type_check_enable = int(os.environ.get('CHAINER_TYPE_CHECK', '1')) != 0
-    local_hooks = collections.OrderedDict()
+    local_function_hooks = collections.OrderedDict()
 
     def __call__(self, *inputs):
         """Applies forward propagation with chaining backward references.
@@ -105,8 +105,8 @@ class Function(object):
         if self.type_check_enable:
             self._check_data_type_forward(in_data)
 
-        hooks = collections.OrderedDict(chainer.global_hooks)
-        hooks.update(self.local_hooks)
+        hooks = collections.OrderedDict(chainer.global_function_hooks)
+        hooks.update(self.local_function_hooks)
         for hook in hooks:
             hook.forward_preprocess(self, in_data)
         # Forward prop
@@ -316,12 +316,12 @@ Invalid operation is performed in: {0} (Forward)
             raise TypeError('hook must be a FunctionHook')
         if name is None:
             name = hook.name
-        if name in self.local_hooks:
+        if name in self.local_function_hooks:
             raise KeyError('hook %s already exists' % name)
-        self.local_hooks[name] = hook
+        self.local_function_hooks[name] = hook
 
     def delete_hook(self, name):
-        del self.local_hooks[name]
+        del self.local_function_hooks[name]
 
 
 class FunctionHook(object):
@@ -329,14 +329,14 @@ class FunctionHook(object):
     name = 'FunctionHook'
 
     def __enter__(self):
-        if name in chainer.global_hooks:
+        if name in chainer.global_function_hooks:
             raise KeyError('hook %s already exists' % name)
 
-        chainer.global_hooks[self.name] = self
+        chainer.global_function_hooks[self.name] = self
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        del chainer.global_hooks[repr(self)]
+        del chainer.global_function_hooks[repr(self)]
 
     # unified functions
     def __call__(self, function, in_data, out_grad=None):

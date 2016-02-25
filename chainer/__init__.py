@@ -31,6 +31,6 @@ ON = flag.ON
 OFF = flag.OFF
 AUTO = flag.AUTO
 
-global_hooks = collections.OrderedDict()
+global_function_hooks = collections.OrderedDict()
 
 basic_math.install_variable_arithmetics()
