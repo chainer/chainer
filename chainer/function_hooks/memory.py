@@ -22,7 +22,9 @@ class MemoryHook(function.FunctionHook):
         cuda.cuda.set_allocator(self.prev_allocator)
 
     def total_allocate_size(self):
-        return sum(s if e == 'alloc' else 0 for e, s, _ in self.allocate_history)
+        return sum(s if e == 'alloc' else 0
+                   for e, s, _ in self.allocate_history)
 
     def total_deallocate_size(self):
-        return sum(s if e == 'dealloc' else 0 for e, s, _ in self.allocate_history)
+        return sum(s if e == 'dealloc' else 0
+                   for e, s, _ in self.allocate_history)

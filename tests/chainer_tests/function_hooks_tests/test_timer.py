@@ -5,7 +5,6 @@ from chainer import cuda
 from chainer import function_hooks
 from chainer import functions
 from chainer.functions.connection import linear
-from chainer import gradient_check
 from chainer import links
 from chainer.testing import attr
 import numpy
@@ -28,7 +27,8 @@ class TestTimerHookToLink(unittest.TestCase):
         with self.h:
             self.l(chainer.Variable(x))
         self.assertEqual(1, len(self.h.call_history))
-        check_history(self, self.h.call_history[0], linear.LinearFunction, float)
+        check_history(self, self.h.call_history[0],
+                      linear.LinearFunction, float)
 
     def test_forward_cpu(self):
         self.check_forward(self.x)
@@ -45,7 +45,8 @@ class TestTimerHookToLink(unittest.TestCase):
         with self.h:
             y.backward()
         self.assertEqual(1, len(self.h.call_history))
-        check_history(self, self.h.call_history[0], linear.LinearFunction, float)
+        check_history(self, self.h.call_history[0],
+                      linear.LinearFunction, float)
 
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy)
