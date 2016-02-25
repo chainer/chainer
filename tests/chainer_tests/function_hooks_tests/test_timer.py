@@ -11,11 +11,9 @@ from chainer.testing import attr
 import numpy
 
 
-def check_history(self, t, propagation, process_type,
-                  function_type, return_type):
-    self.assertTupleEqual((propagation, process_type), t[:2])
-    self.assertIsInstance(t[2], function_type)
-    self.assertIsInstance(t[3], return_type)
+def check_history(self, t, function_type, return_type):
+    self.assertIsInstance(t[0], function_type)
+    self.assertIsInstance(t[1], return_type)
 
 
 class TestTimerHookToLink(unittest.TestCase):
@@ -29,11 +27,8 @@ class TestTimerHookToLink(unittest.TestCase):
     def check_forward(self, x):
         with self.h:
             self.l(chainer.Variable(x))
-        self.assertEqual(2, len(self.h.hook_history))
-        check_history(self, self.h.hook_history[0], 'forward', 'preprocess',
-                      linear.LinearFunction, type(None))
-        check_history(self, self.h.hook_history[1], 'forward', 'postprocess',
-                      linear.LinearFunction, float)
+        self.assertEqual(1, len(self.h.call_history))
+        check_history(self, self.h.call_history[0], linear.LinearFunction, float)
 
     def test_forward_cpu(self):
         self.check_forward(self.x)
@@ -49,11 +44,8 @@ class TestTimerHookToLink(unittest.TestCase):
         y.grad = gy
         with self.h:
             y.backward()
-        self.assertEqual(2, len(self.h.hook_history))
-        check_history(self, self.h.hook_history[0], 'backward', 'preprocess',
-                      linear.LinearFunction, type(None))
-        check_history(self, self.h.hook_history[1], 'backward', 'postprocess',
-                      linear.LinearFunction, float)
+        self.assertEqual(1, len(self.h.call_history))
+        check_history(self, self.h.call_history[0], linear.LinearFunction, float)
 
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy)
@@ -75,11 +67,8 @@ class TestTimerHookToFunction(unittest.TestCase):
 
     def check_forward(self, x):
         self.f(chainer.Variable(x))
-        self.assertEqual(2, len(self.h.hook_history))
-        check_history(self, self.h.hook_history[0], 'forward', 'preprocess',
-                      functions.Exp, type(None))
-        check_history(self, self.h.hook_history[1], 'forward', 'postprocess',
-                      functions.Exp, float)
+        self.assertEqual(1, len(self.h.call_history))
+        check_history(self, self.h.call_history[0], functions.Exp, float)
 
     def test_forward_cpu(self):
         self.check_forward(self.x)
@@ -93,16 +82,12 @@ class TestTimerHookToFunction(unittest.TestCase):
         y = self.f(x)
         y.grad = gy
         y.backward()
-        self.assertEqual(4, len(self.h.hook_history))
-        check_history(self, self.h.hook_history[2], 'backward', 'preprocess',
-                      functions.Exp, type(None))
-        check_history(self, self.h.hook_history[3], 'backward', 'postprocess',
-                      functions.Exp, float)
+        self.assertEqual(2, len(self.h.call_history))
+        check_history(self, self.h.call_history[1], functions.Exp, float)
 
     def test_backward_cpu(self):
-        gradient_check.check_backward(self.f, self.x, self.gy)
+        self.check_backward(self.x, self.gy)
 
     @attr.gpu
     def test_backward_gpu(self):
-        gradient_check.check_backward(
-            self.f, cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
+        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))

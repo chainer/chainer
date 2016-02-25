@@ -1,3 +1,4 @@
+import collections
 import heapq
 
 import numpy
@@ -315,12 +316,12 @@ https://github.com/pfnet/chainer/issues/new.
             out_grad = tuple(None if y is None else y.grad for y in outputs)
             hooks = collections.OrderedDict(chainer.global_function_hooks)
             hooks.update(func.local_function_hooks)
-            for hook in hooks:
+            for hook in hooks.values():
                 hook.backward_preprocess(func, in_data, out_grad)
             with cuda.get_device(*(in_data + out_grad)):
                 gxs = func.backward(in_data, out_grad)
             assert len(gxs) == len(in_data)
-            for hook in hooks:
+            for hook in hooks.values():
                 hook.backward_postprocess(func, in_data, out_grad)
 
             if not retain_grad:

@@ -106,13 +106,13 @@ class Function(object):
 
         hooks = collections.OrderedDict(chainer.global_function_hooks)
         hooks.update(self.local_function_hooks)
-        for hook in hooks:
+        for hook in hooks.values():
             hook.forward_preprocess(self, in_data)
         # Forward prop
         with cuda.get_device(*in_data):
             outputs = self.forward(in_data)
             assert type(outputs) == tuple
-        for hook in hooks:
+        for hook in hooks.values():
             hook.forward_postprocess(self, in_data)
 
         out_v = flag.aggregate_flags([x.volatile for x in inputs])
@@ -325,7 +325,7 @@ Invalid operation is performed in: {0} (Forward)
         self.inputs = None
 
     def add_hook(self, hook, name=None):
-        if isinstance(hook, FunctionHook):
+        if not isinstance(hook, FunctionHook):
             raise TypeError('hook must be a FunctionHook')
         if name is None:
             name = hook.name
@@ -342,14 +342,14 @@ class FunctionHook(object):
     name = 'FunctionHook'
 
     def __enter__(self):
-        if name in chainer.global_function_hooks:
-            raise KeyError('hook %s already exists' % name)
+        if self.name in chainer.global_function_hooks:
+            raise KeyError('hook %s already exists' % self.name)
 
         chainer.global_function_hooks[self.name] = self
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        del chainer.global_function_hooks[repr(self)]
+        del chainer.global_function_hooks[self.name]
 
     # unified functions
     def __call__(self, function, in_data, out_grad=None):
