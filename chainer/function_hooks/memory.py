@@ -5,6 +5,8 @@ from chainer.utils import memory
 
 class MemoryHook(function.FunctionHook):
 
+    name = 'MemoryHook'
+
     def __init__(self):
         self.allocate_history = []
 

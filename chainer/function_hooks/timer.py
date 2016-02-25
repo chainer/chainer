@@ -8,6 +8,8 @@ from chainer import function
 
 class TimerHook(function.FunctionHook):
 
+    name = 'TimerHook'
+
     def __init__(self):
         self.call_history = []
 

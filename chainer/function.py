@@ -312,19 +312,27 @@ Invalid operation is performed in: {0} (Forward)
         self.inputs = None
 
     def add_hook(self, hook, name=None):
+        if isinstance(hook, FunctionHook):
+            raise TypeError('hook must be a FunctionHook')
         if name is None:
-            name = repr(hook)
+            name = hook.name
+        if name in self.local_hooks:
+            raise KeyError('hook %s already exists' % name)
         self.local_hooks[name] = hook
 
     def delete_hook(self, name):
-        if name in self.local_hooks:
-            del self.local_hooks[name]
+        del self.local_hooks[name]
 
 
 class FunctionHook(object):
 
+    name = 'FunctionHook'
+
     def __enter__(self):
-        chainer.global_hooks[repr(self)] = self
+        if name in chainer.global_hooks:
+            raise KeyError('hook %s already exists' % name)
+
+        chainer.global_hooks[self.name] = self
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):

@@ -4,6 +4,8 @@ from chainer import function
 
 class PrintHook(function.FunctionHook):
 
+    name = 'PrintHook'
+
     def __call__(self, function, in_data, out_grad=None):
         print('function\t{}'.format(function.label))
         print('input data')
