@@ -338,6 +338,82 @@ Invalid operation is performed in: {0} (Forward)
 
 
 class FunctionHook(object):
+    """Base class of hooks for Functions.
+
+    :class:`~chainer.function.FunctionsHook` is an callback object
+    that is registered to :class:`~chainer.function.Function`.
+    Registered function hooks are invoked before and after
+    forward and backward operation of each function.
+
+    Specifically, when :meth:`~chainer.function.Function.__call__` is invoked,
+    all function hooks registered to this function are called
+    before and after forward propagation.
+    Before forward propagation,
+    :meth:`~chainer.function.FunctionHook.forward_preprocess` is called and
+    after forward propagation,
+    :meth:`~chainer.function.FunctionHook.forward_postprocess` is called.
+
+    Likewise, when :method:`~chainer.variable.Variable.backward` is invoked,
+    all function hooks registered to the function which holds this variable
+    as a gradient are called before and after backward propagation.
+    Before backward propagation,
+    :meth:`~chainer.function.FunctionHook.backward_preprocess` is called and
+    after backward propagation,
+    :meth:`~chainer.function.FunctionHook.backward_postprocess` is called.
+
+    So, function hooks that derive :class:`FunctionHook` are required
+    to implement these four functions.
+    In default setting, these methods does not do anything.
+
+    If we want to use same preprocessing (resp. postprocessing) method
+    for both forward and backward processing,
+    we should override :meth:`~chainer.function.FunctionHook.preprocess`
+    (resp. :meth:`~chainer.function.FunctionHook.postprocess`) method instead
+    and keep the two preprocess methods (resp. two post process methods) as it is.
+
+    Further, if we want to use same method for preprocessing and postprocessing,
+    we should overwride :meth:`~chainer.functioin.FunctionHook.__call__`.
+
+    There are two ways to register :class:`~chainer.function.FunctionHook` objects
+    to :class:`chainer.function.Function` objects.
+    First one is to add the :class:`~chainer.function.FunctionHook`
+    to ``chainer.global_function_hooks``.
+    Function hooks in ``chainer.global_function_hooks`` are regared
+    to be registered to all functions.
+    The other one is to register directly to :class:`~chainer.function.Function`
+    object with :meth:`~chainer.functon.Function.add_hook` method.
+    Registered function hooks in this way can be removed by
+    :meth:`~chainer.function.remove_hook` method.
+
+    We can regsiter and unregister function hooks globally (i.e. to register
+    function hooks to ``~chainer.global_function_hooks``) with ``with`` statement.
+    The following code is a simple example in which
+    we measure elapsed times of a part of forward propagation.
+
+    >>> class Model(chainer.Chain):
+    ...     def __call__(x):
+    ...         x = self.l(x)
+    ...         return F.exp(x)
+    ...
+    ... model1 = chainer.Model(l=L.Linear(10, 10))
+    ... model2 = chainer.Model(l=L.Linear(10, 10))
+    ... x = chainer.Variable(...)
+    ... with TimerHook():
+    ...     y = model1(x)
+    ...     y = model2(x)
+    ... model3 = chainer.Model(l=L.Linear(10, 10))
+    ... z = model3(y)
+
+    In this example, we measure the elapsed times for each forward propagation
+    of all functions in ``model1`` and ``model2`` (specifically,
+    :class:`~chainer.functions.LinearFunction` and :class:`~chainer.functions.Exp`
+    of ``model1`` and ``model2``).
+    Note that as :class:`~chainer.function_hooks.TimerHook` is unregistered
+    from ``chainer.global_hooks``, ``model3`` is not a target of measurement.
+
+    Args:
+        name(str): Name of this function hook.
+    """
 
     name = 'FunctionHook'
 
@@ -353,24 +429,89 @@ class FunctionHook(object):
 
     # unified functions
     def __call__(self, function, in_data, out_grad=None):
+        """Unfied postprocessing function for preprocessing and postprocessing.
+
+        Args:
+            function(~chainer.function.Function): Function object to which
+                the function hook is registered.
+            in_data(tuple of numpy.ndarray or tuple of cupy.ndarray):
+                Arrays for input data.
+            out_grad(tuple of numpy.ndarray or tuple of cupy.ndarray or None):
+                Arrays for gradients. If this function is invoked during backpropagation,
+                this argument should be ``None``.
+        """
         pass
 
     def preprocess(self, function, in_data, out_grad=None):
+        """Unfied preprocessing function for forward and backward propagation.
+
+        Args:
+            function(~chainer.function.Function): Function object to which
+                the function hook is registered.
+            in_data(tuple of numpy.ndarray or tuple of cupy.ndarray):
+                Arrays for input data.
+            out_grad(tuple of numpy.ndarray or tuple of cupy.ndarray or None):
+                Arrays for gradients. If this function is invoked during backpropagation,
+                this argument should be ``None``.
+        """
         self.__call__(function, in_data, out_grad)
 
     def postprocess(self, function, in_data, out_grad=None):
+        """Unfied postprocessing function for forward and backward propagation.
+
+        Args:
+            function(~chainer.function.Function): Function object to which
+                the function hook is registered.
+            in_data(tuple of numpy.ndarray or tuple of cupy.ndarray):
+                Arrays for input data.
+            out_grad(tuple of numpy.ndarray or tuple of cupy.ndarray or None):
+                Arrays for gradients. If this function is invoked during backpropagation,
+                this argument should be ``None``.
+        """
         self.__call__(function, in_data, out_grad)
 
     # forward
     def forward_preprocess(self, function, in_data):
+        """Callback function invoked before forward propagation.
+
+        Args:
+            function(~chainer.function.Function): Function object to which
+                the function hook is registered.
+            in_data(tuple of numpy.ndarray or tuple of cupy.ndarray):
+                Input of forward propagation.
+        """
         self.preprocess(function, in_data)
 
     def forward_postprocess(self, function, in_data):
+        """Callback function invoked after forward propagation.
+
+        Args:
+            function(~chainer.function.Function): Function object to which
+                the function hook is registered.
+            in_data(tuple of numpy.ndarray or tuple of cupy.ndarray):
+                Input of forward propagation.
+        """
         self.postprocess(function, in_data)
 
     # backward
     def backward_preprocess(self, function, in_data, out_grad):
+        """Callback function invoked before backward propagation.
+
+        Args:
+            function(~chainer.function.Function): Function object to which
+                the function hook is registered.
+            in_data(tuple of numpy.ndarray or tuple of cupy.ndarray):
+                Input of forward propagation.
+        """
         self.preprocess(function, in_data)
 
     def backward_postprocess(self, function, in_data, out_grad):
+        """Callback function invoked after backward propagation.
+
+        Args:
+            function(~chainer.function.Function): Function object to which
+                the function hook is registered.
+            in_data(tuple of numpy.ndarray or tuple of cupy.ndarray):
+                Input of forward propagation.
+        """
         self.postprocess(function, in_data)
