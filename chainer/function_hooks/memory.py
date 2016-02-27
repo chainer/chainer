@@ -19,7 +19,7 @@ class MemoryHook(function.FunctionHook):
 
     def preprocess(self, function, in_data, out_grad=None):
         def p(event, size):
-            self.allocate_history.append((event, size, function.label))
+            self.allocate_history.append((function, event, size))
 
         self.prev_allocator = cuda.cuda.get_allocator()
         prof = memory.MemoryProfiler(self.prev_allocator, p)
@@ -30,8 +30,8 @@ class MemoryHook(function.FunctionHook):
 
     def total_allocate_size(self):
         return sum(s if e == 'alloc' else 0
-                   for e, s, _ in self.allocate_history)
+                   for _, e, s in self.allocate_history)
 
     def total_deallocate_size(self):
         return sum(s if e == 'dealloc' else 0
-                   for e, s, _ in self.allocate_history)
+                   for _, e, s in self.allocate_history)
