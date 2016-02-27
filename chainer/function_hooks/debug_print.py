@@ -18,14 +18,15 @@ class PrintHook(function.FunctionHook):
 
     name = 'PrintHook'
 
-    def __init__(sep='', end='\n', file=sys.stdout, flush=False):
+    def __init__(self, sep='', end='\n', file=sys.stdout, flush=False):
         self.sep = sep
         self.end = end
         self.file = file
         self.flush = flush
 
     def _print(self, msg):
-        print(msg, sep=self.sep, end=self.end, file=self.file, flush=self.flush)
+        print(msg, sep=self.sep, end=self.end,
+              file=self.file, flush=self.flush)
 
     def __call__(self, function, in_data, out_grad=None):
         self._print('function\t{}'.format(function.label))

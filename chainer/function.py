@@ -391,24 +391,28 @@ class FunctionHook(object):
     for both forward and backward processing,
     we should override :meth:`~chainer.function.FunctionHook.preprocess`
     (resp. :meth:`~chainer.function.FunctionHook.postprocess`) method instead
-    and keep the two preprocess methods (resp. two post process methods) as it is.
+    and keep the two preprocess methods (resp. two post process methods)
+    as it is.
 
-    Further, if we want to use same method for preprocessing and postprocessing,
-    we should overwride :meth:`~chainer.functioin.FunctionHook.__call__`.
+    Further, if we want to use same method for preprocessing and
+    postprocessing, we should overwride
+    :meth:`~chainer.functioin.FunctionHook.__call__`.
 
-    There are two ways to register :class:`~chainer.function.FunctionHook` objects
-    to :class:`chainer.function.Function` objects.
+    There are two ways to register :class:`~chainer.function.FunctionHook`
+    objects to :class:`chainer.function.Function` objects.
     First one is to add the :class:`~chainer.function.FunctionHook`
     to ``chainer.global_function_hooks``.
     Function hooks in ``chainer.global_function_hooks`` are regared
     to be registered to all functions.
-    The other one is to register directly to :class:`~chainer.function.Function`
-    object with :meth:`~chainer.functon.Function.add_hook` method.
+    The other one is to register directly to
+    :class:`~chainer.function.Function` object with
+    :meth:`~chainer.functon.Function.add_hook` method.
     Registered function hooks in this way can be removed by
     :meth:`~chainer.function.remove_hook` method.
 
     We can regsiter and unregister function hooks globally (i.e. to register
-    function hooks to ``~chainer.global_function_hooks``) with ``with`` statement.
+    function hooks to ``~chainer.global_function_hooks``) with
+    ``with`` statement.
     The following code is a simple example in which
     we measure elapsed times of a part of forward propagation.
 
@@ -428,8 +432,8 @@ class FunctionHook(object):
 
     In this example, we measure the elapsed times for each forward propagation
     of all functions in ``model1`` and ``model2`` (specifically,
-    :class:`~chainer.functions.LinearFunction` and :class:`~chainer.functions.Exp`
-    of ``model1`` and ``model2``).
+    :class:`~chainer.functions.LinearFunction` and
+    :class:`~chainer.functions.Exp` of ``model1`` and ``model2``).
     Note that as :class:`~chainer.function_hooks.TimerHook` is unregistered
     from ``chainer.global_hooks``, ``model3`` is not a target of measurement.
 
@@ -459,8 +463,8 @@ class FunctionHook(object):
             in_data(tuple of numpy.ndarray or tuple of cupy.ndarray):
                 Arrays for input data.
             out_grad(tuple of numpy.ndarray or tuple of cupy.ndarray or None):
-                Arrays for gradients. If this function is invoked during backpropagation,
-                this argument should be ``None``.
+                Arrays for gradients. If this function is invoked
+                during backpropagation, this argument should be ``None``.
         """
         pass
 
@@ -473,8 +477,8 @@ class FunctionHook(object):
             in_data(tuple of numpy.ndarray or tuple of cupy.ndarray):
                 Arrays for input data.
             out_grad(tuple of numpy.ndarray or tuple of cupy.ndarray or None):
-                Arrays for gradients. If this function is invoked during backpropagation,
-                this argument should be ``None``.
+                Arrays for gradients. If this function is invoked
+                during backpropagation, this argument should be ``None``.
         """
         self.__call__(function, in_data, out_grad)
 
@@ -487,8 +491,8 @@ class FunctionHook(object):
             in_data(tuple of numpy.ndarray or tuple of cupy.ndarray):
                 Arrays for input data.
             out_grad(tuple of numpy.ndarray or tuple of cupy.ndarray or None):
-                Arrays for gradients. If this function is invoked during backpropagation,
-                this argument should be ``None``.
+                Arrays for gradients. If this function is invoked during
+                backpropagation, this argument should be ``None``.
         """
         self.__call__(function, in_data, out_grad)
 
