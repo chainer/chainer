@@ -18,14 +18,23 @@ class PrintHook(function.FunctionHook):
 
     name = 'PrintHook'
 
-    def __call__(self, function, in_data, out_grad=None, file=sys.stdout):
-        print('function\t{}'.format(function.label), file=file)
-        print('input data', file=file)
+    def __init__(sep='', end='\n', file=sys.stdout, flush=False):
+        self.sep = sep
+        self.end = end
+        self.file = file
+        self.flush = flush
+
+    def _print(self, msg):
+        print(msg, sep=self.sep, end=self.end, file=self.file, flush=self.flush)
+
+    def __call__(self, function, in_data, out_grad=None):
+        self._print('function\t{}'.format(function.label))
+        self._print('input data')
         for d in in_data:
-            print(chainer.Variable(d).debug_print(), file=file)
+            self.print(chainer.Variable(d).debug_print())
         if out_grad is not None:
-            print('output gradient', file=file)
+            self.print('output gradient')
             for d in out_grad:
                 v = chainer.Variable.empty_like(d, dtype=d.dtype)
                 v.grad = d
-                print(v.debug_print(), file=file)
+                self.print(v.debug_print())
