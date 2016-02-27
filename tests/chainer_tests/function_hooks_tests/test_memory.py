@@ -18,6 +18,9 @@ class TestMemoryHookToLink(unittest.TestCase):
         self.x = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
         self.gy = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
 
+    def test_name(self):
+        self.assertEqual(self.h.name, 'MemoryHook')
+
     def test_forward_cpu(self):
         with self.h:
             self.l(chainer.Variable(self.x))

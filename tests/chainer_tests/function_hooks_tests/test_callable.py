@@ -21,6 +21,9 @@ class TestCallableHookToLink(unittest.TestCase):
         self.gy = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
         self.count = 0
 
+    def test_name(self):
+        self.assertEqual(self.h.name, 'CallableHook')
+
     def test_forward_cpu(self):
         with self.h:
             self.l(chainer.Variable(self.x))

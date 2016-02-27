@@ -23,6 +23,9 @@ class TestTimerHookToLink(unittest.TestCase):
         self.x = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
         self.gy = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
 
+    def test_name(self):
+        self.assertEqual(self.h.name, 'TimerHook')
+
     def check_forward(self, x):
         with self.h:
             self.l(chainer.Variable(x))
