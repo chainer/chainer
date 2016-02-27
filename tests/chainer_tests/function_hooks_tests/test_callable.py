@@ -92,3 +92,6 @@ class TestCallableHookToFunction(unittest.TestCase):
     @attr.gpu
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
+
+
+testing.run_module(__name__, __file__)

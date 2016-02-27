@@ -49,3 +49,6 @@ class TestFunctionHook(unittest.TestCase):
         self.h.backward_postprocess(None, None, None)
         self.assertEqual(self.h.postprocess_count, 1)
         self.assertEqual(self.h.call_count, 1)
+
+
+testing.run_module(__name__, __file__)

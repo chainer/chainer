@@ -66,3 +66,6 @@ class TestMemoryHookToFunction(unittest.TestCase):
     def test_backward_gpu(self):
         gradient_check.check_backward(
             self.f, cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
+
+
+testing.run_module(__name__, __file__)
