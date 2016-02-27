@@ -4,6 +4,13 @@ from chainer.utils import memory
 
 
 class MemoryHook(function.FunctionHook):
+    """Function hook that detects CUDA memory allocation and deallocation.
+
+    Attributes:
+        allocate_history: List of history of CUDA memory allocation and deallocation.
+        It consists of 3-tuples of the function that calls this function,
+        string that represents the event, and allocated or deallocated memory size
+    """
 
     name = 'MemoryHook'
 

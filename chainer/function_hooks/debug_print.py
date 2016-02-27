@@ -5,6 +5,16 @@ from chainer import function
 
 
 class PrintHook(function.FunctionHook):
+    """Function hook that prints debug information.
+
+    Attributes are same as the keyword argument of print function.
+
+    Attributes:
+        sep: Separator of print function.
+        end: Character to be added at the end of print function.
+        file: Output file_like object that that redirect to.
+        flush: If ``True``, print function forcibly flushes the text stream.
+    """
 
     name = 'PrintHook'
 

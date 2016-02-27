@@ -135,6 +135,12 @@ class Function(object):
 
     @property
     def local_function_hooks(self):
+        """Ordered Dictionary of registered function hooks.
+
+        Contrary to ``~chainer.global_function_hooks``,
+        which registers its elements to all functions,
+        Function hooks in this property is specific to this function.
+        """
         if not hasattr(self, '_local_function_hooks'):
             self._local_function_hooks = collections.OrderedDict()
         return self._local_function_hooks
@@ -325,6 +331,16 @@ Invalid operation is performed in: {0} (Forward)
         self.inputs = None
 
     def add_hook(self, hook, name=None):
+        """Registers the function hook.
+
+        Args:
+            hook(~chainer.functions.FunctionHook):
+                the function hook to be registered.
+            name(str): The name of the function hook.
+                name must be unique among function hooks
+                registered to the function. If ``None``,
+                default name of the function hook is used.
+        """
         if not isinstance(hook, FunctionHook):
             raise TypeError('hook must be a FunctionHook')
         if name is None:
@@ -334,6 +350,12 @@ Invalid operation is performed in: {0} (Forward)
         self.local_function_hooks[name] = hook
 
     def delete_hook(self, name):
+        """Unregisters the function hook.
+
+        Args:
+            name(str): the name of the function hook
+            to be unregistered.
+        """
         del self.local_function_hooks[name]
 
 

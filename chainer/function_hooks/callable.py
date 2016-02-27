@@ -2,6 +2,7 @@ from chainer import function
 
 
 class CallableHook(function.FunctionHook):
+    """Wrapper function hook of the callable object."""
 
     name = 'CallableHook'
 

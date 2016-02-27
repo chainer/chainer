@@ -7,6 +7,12 @@ from chainer import function
 
 
 class TimerHook(function.FunctionHook):
+    """Function hook for measuring elapsed time of functions.
+
+    Attributes:
+        call_history: List of measurement results. It consists of pairs of
+            the function that calls this hook and the elapsed time.
+    """
 
     name = 'TimerHook'
 
@@ -35,4 +41,5 @@ class TimerHook(function.FunctionHook):
         self.call_history.append((function, elapsed_time))
 
     def total_time(self):
+        """Returns total elapsed time."""
         return sum(t for (_, t) in self.call_history)
