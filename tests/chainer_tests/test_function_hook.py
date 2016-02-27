@@ -1,5 +1,6 @@
 import unittest
 from chainer import function
+from chainer import testing
 
 
 class MockFunctionHook(function.FunctionHook):
