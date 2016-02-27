@@ -6,6 +6,7 @@ from chainer import function_hooks
 from chainer import functions
 from chainer.functions.connection import linear
 from chainer import links
+from chainer import testing
 from chainer.testing import attr
 import numpy
 
