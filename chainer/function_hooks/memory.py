@@ -1,6 +1,5 @@
 from chainer import cuda
 from chainer import function
-from chainer.utils import memory
 
 
 class MemoryHook(function.FunctionHook):
