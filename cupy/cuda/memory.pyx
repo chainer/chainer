@@ -449,3 +449,30 @@ cdef class MemoryPool(object):
         """
         dev = device.get_device_id()
         return self._pools[dev].n_free_blocks()
+
+
+cdef class ProfiledMemory(MemoryBase):
+
+    def __init__(self, memory, listener):
+        super(ProfiledMemory, self).__init__(
+            memory.size, memory.device, memory.ptr)
+
+        self._memory = memory
+        self._listener = listener
+
+    def __del__(self):
+        self._listener('dealloc', self.size)
+
+
+cdef class MemoryProfiler(object):
+
+    def __init__(self, malloc, listener):
+        assert callable(listener)
+        self._malloc = malloc
+        self._listener = listener
+
+    cpdef MemoryPointer malloc(self, Py_ssize_t size):
+        self._listener('alloc', size)
+        cdef MemoryPointer ptr = self._malloc(size)
+        cdef ProfiledMemory pmem = ProfiledMemory(ptr.mem, self._listener)
+        return MemoryPointer(pmem, 0)

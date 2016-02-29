@@ -16,6 +16,8 @@ Memory = memory.Memory
 MemoryBase = memory.MemoryBase
 MemoryPointer = memory.MemoryPointer
 MemoryPool = memory.MemoryPool
+MemoryProfiler = memory.MemoryProfiler
+ProfiledMemory = memory.ProfiledMemory
 set_allocator = memory.set_allocator
 
 Function = function.Function

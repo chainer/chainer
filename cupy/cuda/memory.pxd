@@ -69,3 +69,19 @@ cdef class MemoryPool:
     cpdef MemoryPointer malloc(self, Py_ssize_t size)
     cpdef free_all_free(self)
     cpdef n_free_blocks(self)
+
+
+cdef class ProfiledMemory(MemoryBase):
+
+    cdef:
+        object _memory
+        object _listener
+
+
+cdef class MemoryProfiler:
+
+    cdef:
+        object _malloc
+        object _listener
+
+    cpdef MemoryPointer malloc(self, Py_ssize_t size)
