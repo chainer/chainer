@@ -189,6 +189,24 @@ class TestFunction(unittest.TestCase):
         self.f.forward_gpu.return_value = (cuda.to_gpu(self.y1),)
         self.check_call_single_return_value(True)
 
+    def check_call_force_tuple(self):
+        x1 = chainer.Variable(self.x1)
+        x2 = chainer.Variable(self.x2)
+        ret = self.f(x1, x2, force_tuple=True)
+        self.assertIsInstance(ret, tuple)
+        self.assertEqual(len(ret), 1)
+        self.assertIsInstance(ret[0], chainer.Variable)
+
+    def test_call_force_tuple_cpu(self):
+        self.f.forward_cpu.return_value = (cuda.to_cpu(self.y1),)
+        self.check_call_force_tuple()
+
+    @attr.gpu
+    def test_call_force_tuple_gpu(self):
+        self.setup_gpu()
+        self.f.forward_gpu.return_value = (cuda.to_gpu(self.y1),)
+        self.check_call_force_tuple()
+
     def check_call_mixed_volatile(self):
         x1 = chainer.Variable(self.x1, volatile='on')
         x2 = chainer.Variable(self.x2, volatile='off')
