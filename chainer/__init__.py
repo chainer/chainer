@@ -1,4 +1,5 @@
 import pkg_resources
+import collections
 
 from chainer import flag
 from chainer import function
@@ -18,6 +19,7 @@ ChainList = link.ChainList
 Deserializer = serializer.Deserializer
 Flag = flag.Flag
 Function = function.Function
+FunctionHook = function.FunctionHook
 FunctionSet = function_set.FunctionSet
 GradientMethod = optimizer.GradientMethod
 Link = link.Link
@@ -28,5 +30,7 @@ Variable = variable.Variable
 ON = flag.ON
 OFF = flag.OFF
 AUTO = flag.AUTO
+
+global_function_hooks = collections.OrderedDict()
 
 basic_math.install_variable_arithmetics()
