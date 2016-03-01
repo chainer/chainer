@@ -2,6 +2,7 @@ from chainer.datasets.adapter import cross_validation
 from chainer.datasets.adapter import multiprocess_loader
 from chainer.datasets.adapter import sub_dataset
 from chainer.datasets import array_dataset
+from chainer.datasets.example import cifar
 from chainer.datasets.example import mnist
 from chainer.datasets.example import ptb_words
 from chainer.datasets import image_dataset
@@ -15,6 +16,10 @@ SubDataset = sub_dataset.SubDataset
 split_dataset = sub_dataset.split_dataset
 split_dataset_random = sub_dataset.split_dataset_random
 
+Cifar10Training = cifar.Cifar10Training
+Cifar10Test = cifar.Cifar10Test
+Cifar100Training = cifar.Cifar100Training
+Cifar100Test = cifar.Cifar100Test
 MnistTraining = mnist.MnistTraining
 MnistTest = mnist.MnistTest
 PTBWordsTraining = ptb_words.PTBWordsTraining
