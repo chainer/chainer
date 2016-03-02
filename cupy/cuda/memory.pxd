@@ -1,11 +1,16 @@
 from cupy.cuda cimport device
 
-cdef class Memory:
+cdef class MemoryBase:
 
     cdef:
         public device.Device device
         public size_t ptr
         public Py_ssize_t size
+
+
+cdef class Memory(MemoryBase):
+
+    pass
 
 
 cdef class MemoryPointer:
@@ -33,7 +38,7 @@ cpdef MemoryPointer alloc(Py_ssize_t size)
 cpdef set_allocator(allocator=*)
 
 
-cdef class PooledMemory(Memory):
+cdef class PooledMemory(MemoryBase):
 
     cdef:
         object pool
@@ -64,3 +69,19 @@ cdef class MemoryPool:
     cpdef MemoryPointer malloc(self, Py_ssize_t size)
     cpdef free_all_free(self)
     cpdef n_free_blocks(self)
+
+
+cdef class ProfiledMemory(MemoryBase):
+
+    cdef:
+        object _memory
+        object _listener
+
+
+cdef class MemoryProfiler:
+
+    cdef:
+        object _malloc
+        object _listener
+
+    cpdef MemoryPointer malloc(self, Py_ssize_t size)
