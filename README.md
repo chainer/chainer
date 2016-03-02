@@ -24,8 +24,7 @@ Requirements for some features:
 - cuDNN support
   - cuDNN v2, v3, v4
 - Caffe model support
-  - Python 2.7.6+ (Py3 is not supported)
-  - Protocol Buffers (pip install protobuf)
+  - Protocol Buffers 3.0.0b1.post2+ (pip install protobuf)
 - HDF5 serialization support
   - h5py 2.5.0
 - Testing utilities

@@ -4,14 +4,12 @@ import unittest
 
 import mock
 import numpy
-import six
 
 import chainer
 from chainer import links
 from chainer.links import caffe
+from chainer.links.caffe import caffe_pb2
 from chainer import testing
-if six.PY2:
-    from chainer.links.caffe import caffe_pb2
 
 
 def _iter_init(param, data):
@@ -43,7 +41,6 @@ def _make_param(data):
     return param
 
 
-@unittest.skipUnless(six.PY2, 'Only py2 supports caffe_function')
 class TestCaffeFunctionBase(unittest.TestCase):
 
     def setUp(self):
@@ -604,22 +601,6 @@ class TestSplit(TestCaffeFunctionBase):
     def test_split(self):
         self.init_func()
         self.assertEqual(self.func.split_map, {'y': 'x', 'z': 'x'})
-
-
-class TestCaffeFunctionAvailable(unittest.TestCase):
-
-    @unittest.skipUnless(six.PY2, 'CaffeFunction is available on Py2')
-    def test_py2_available(self):
-        self.assertTrue(links.caffe.caffe_function.available)
-
-    @unittest.skipUnless(six.PY3, 'CaffeFunction is unavailable on Py3')
-    def test_py3_unavailable(self):
-        self.assertFalse(links.caffe.caffe_function.available)
-
-    @unittest.skipUnless(six.PY3, 'CaffeFunction is unavailable on Py3')
-    def test_py3_init_error(self):
-        with self.assertRaises(RuntimeError):
-            caffe.CaffeFunction('')
 
 
 testing.run_module(__name__, __file__)
