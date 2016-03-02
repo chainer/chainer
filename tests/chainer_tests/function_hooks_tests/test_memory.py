@@ -2,8 +2,8 @@ import unittest
 
 import chainer
 from chainer import cuda
-from chainer import functions
 from chainer import function_hooks
+from chainer import functions
 from chainer import gradient_check
 from chainer import links
 from chainer import testing
