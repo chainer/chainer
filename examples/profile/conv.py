@@ -1,8 +1,8 @@
 import chainer
-import chainer.functions as F
+import chainer.links as L
 
 
-class Conv(chainer.FunctionSet):
+class Conv(chainer.Chain):
 
     batchsize = None
     in_channels = None
@@ -12,7 +12,7 @@ class Conv(chainer.FunctionSet):
 
     def __init__(self, batchsize, use_cudnn):
         super(Conv, self).__init__(
-            conv=F.Convolution2D(self.in_channels,
+            conv=L.Convolution2D(self.in_channels,
                                  self.out_channels,
                                  self.kernel_size, stride=1,
                                  use_cudnn=use_cudnn)
@@ -21,7 +21,7 @@ class Conv(chainer.FunctionSet):
         if batchsize is not None:
             self.batchsize = batchsize
 
-    def forward(self, x_data, train=True):
+    def __call__(self, x_data, train=True):
         x = chainer.Variable(x_data, volatile=not train)
         return self.conv(x)
 

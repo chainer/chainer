@@ -1,8 +1,8 @@
 import chainer
-import chainer.functions as F
+import chainer.links as L
 
 
-class VGG(chainer.FunctionSet):
+class VGG(chainer.Chain):
 
     '''VGG(network A) with dropout removed.
 
@@ -14,23 +14,23 @@ class VGG(chainer.FunctionSet):
 
     def __init__(self, batchsize, use_cudnn):
         super(VGG, self).__init__(
-            conv1=F.Convolution2D(3, 64, 3, use_cudnn=use_cudnn),
-            conv2=F.Convolution2D(64, 256, 3, use_cudnn=use_cudnn),
-            conv3=F.Convolution2D(256, 256, 3, pad=1, use_cudnn=use_cudnn),
-            conv4=F.Convolution2D(256, 256, 3, pad=1, use_cudnn=use_cudnn),
-            conv5=F.Convolution2D(256, 512, 3, pad=1, use_cudnn=use_cudnn),
-            conv6=F.Convolution2D(512, 512, 3, pad=1, use_cudnn=use_cudnn),
-            conv7=F.Convolution2D(512, 512, 3, pad=1, use_cudnn=use_cudnn),
-            conv8=F.Convolution2D(512, 512, 3, pad=1, use_cudnn=use_cudnn),
-            fc6=F.Linear(25088, 4096),
-            fc7=F.Linear(4096, 4096),
-            fc8=F.Linear(4096, 1000)
+            conv1=L.Convolution2D(3, 64, 3, use_cudnn=use_cudnn),
+            conv2=L.Convolution2D(64, 256, 3, use_cudnn=use_cudnn),
+            conv3=L.Convolution2D(256, 256, 3, pad=1, use_cudnn=use_cudnn),
+            conv4=L.Convolution2D(256, 256, 3, pad=1, use_cudnn=use_cudnn),
+            conv5=L.Convolution2D(256, 512, 3, pad=1, use_cudnn=use_cudnn),
+            conv6=L.Convolution2D(512, 512, 3, pad=1, use_cudnn=use_cudnn),
+            conv7=L.Convolution2D(512, 512, 3, pad=1, use_cudnn=use_cudnn),
+            conv8=L.Convolution2D(512, 512, 3, pad=1, use_cudnn=use_cudnn),
+            fc6=L.Linear(25088, 4096),
+            fc7=L.Linear(4096, 4096),
+            fc8=L.Linear(4096, 1000)
         )
         self.use_cudnn = use_cudnn
         if batchsize is not None:
             self.batchsize = batchsize
 
-    def forward(self, x_data, train=True):
+    def __call__(self, x_data, train=True):
         x = chainer.Variable(x_data, volatile=not train)
 
         h = F.max_pooling_2d(F.relu(self.conv1(x)), 2, stride=2)

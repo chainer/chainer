@@ -5,12 +5,17 @@ from chainer import function_hooks
 import numpy
 import six
 
+import alex
+import conv
+import overfeat
+import vgg
+
 
 parser = argparse.ArgumentParser(description='ConvNet benchmark')
 parser.add_argument('--model', '-m', type=str, default='alex',
                     choices=('alex', 'overfeat', 'vgg', 'conv1', 'conv2',
                              'conv3', 'conv4', 'conv5'),
-                    help='network architecture (alex|overfeat|vgg|conv[1-5])')
+                    help='network architecture')
 parser.add_argument('--iteration', '-i', type=int, default=10,
                     help='iteration')
 parser.add_argument('--gpu', '-g', type=int, default=-1,
@@ -24,16 +29,12 @@ args = parser.parse_args()
 
 
 if args.model == 'alex':
-    import alex
     model = alex.Alex(args.batchsize, args.cudnn)
 elif args.model == 'overfeat':
-    import overfeat
     model = overfeat.Overfeat(args.batchsize, args.cudnn)
 elif args.model == 'vgg':
-    import vgg
     model = vgg.VGG(args.batchsize, args.cudnn)
 elif args.model.startswith('conv'):
-    import conv
     number = args.model[4:]
     model = getattr(conv, 'Conv{}'.format(number))(args.batchsize, args.cudnn)
 else:
@@ -62,7 +63,7 @@ for iteration in six.moves.range(args.iteration):
         x_batch = cuda.to_gpu(x_batch)
 
     with function_hooks.TimerHook() as t:
-        y = model.forward(x_batch)
+        y = model(x_batch)
         print('forward total time\t{}\tms'.format(t.total_time()))
 
     if args.gpu >= 0:
