@@ -61,23 +61,15 @@ for iteration in six.moves.range(args.iteration):
     if args.gpu >= 0:
         x_batch = cuda.to_gpu(x_batch)
 
-    with function_hooks.TimerHook() as t, function_hooks.MemoryHook() as m:
+    with function_hooks.TimerHook() as t:
         y = model.forward(x_batch)
         print('forward total time\t{}\tms'.format(t.total_time()))
-        print('allocated memory size\t{}\tbyte'.format(
-            m.total_allocate_size()))
-        print('deallocated memory size\t{}\tbyte'.format(
-            m.total_deallocate_size()))
 
     if args.gpu >= 0:
         y.grad = cuda.ones_like(y.data)
     else:
         y.grad = numpy.ones_like(y.data)
 
-    with function_hooks.TimerHook() as t, function_hooks.MemoryHook() as m:
+    with function_hooks.TimerHook() as t:
         y.backward()
         print('backward total time\t{}\tms'.format(t.total_time()))
-        print('allocated memory\t{}'.format(
-            m.total_allocate_size()))
-        print('deallocated memory size\t{}\tbyte'.format(
-            m.total_deallocate_size()))
