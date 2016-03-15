@@ -43,6 +43,9 @@ class Summary(object):
             return variance ** 0.5
 
 
+_numeric_types = six.integer_types + (float,)
+
+
 class DictSummary(object):
 
     """Online summarization of a sequence of dictionaries.
@@ -55,7 +58,9 @@ class DictSummary(object):
 
     def add(self, d):
         for key, value in six.iteritems(d):
-            if isinstance(value, (float, numpy.ndarray, cuda.ndarray)):
+            if isinstance(value, _numeric_types):
+                value = numpy.array(value)
+            if isinstance(value, (numpy.ndarray, cuda.ndarray)):
                 self._summaries[key].add(value)
 
     @property
