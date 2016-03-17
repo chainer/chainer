@@ -411,9 +411,11 @@ class Chain(Link):
             also set to the links.
 
     """
-    def __init__(self, **links):
+    def __init__(self, *args, **kwargs):
         super(Chain, self).__init__()
         self._children = []
+
+        links = args[0] if args and len(args) > 0 and isinstance(args[0], dict) else kwargs
 
         for name, link in six.iteritems(links):
             self.add_link(name, link)
