@@ -413,19 +413,18 @@ class FunctionHook(object):
     :class:`~chainer.function.FunctionHook`.
 
     >>> class Model(chainer.Chain):
-    ...     def __call__(x):
-    ...         x = self.l(x)
-    ...         return F.exp(x)
+    ...     def __call__(self, x):
+    ...         return F.exp(self.l(x))
     ...
-    ... model1 = chainer.Model(l=L.Linear(10, 10))
-    ... model2 = chainer.Model(l=L.Linear(10, 10))
+    ... model1 = Model(l=L.Linear(10, 10))
+    ... model2 = Model(l=L.Linear(10, 10))
     ... x = chainer.Variable(...)
-    ... with TimerHook() as m:
-    ...     y = model1(x)
-    ...     y = model2(x)
+    ... with chainer.function_hooks.TimerHook() as m:
+    ...     y1 = model1(x)
+    ...     y2 = model2(x)
     ...     print(m.total_time())
-    ... model3 = chainer.Model(l=L.Linear(10, 10))
-    ... z = model3(y)
+    ... model3 = Model(l=L.Linear(10, 10))
+    ... z = model3(y1)
 
     In this example, we measure the elapsed times for each forward propagation
     of all functions in ``model1`` and ``model2`` (specifically,
