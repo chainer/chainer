@@ -60,13 +60,12 @@ def _to_ctypes_array(tup, dtype=numpy.intc):
 def create_tensor_descriptor(arr, format=cudnn.CUDNN_TENSOR_NCHW):
     desc = Descriptor(cudnn.createTensorDescriptor(),
                       cudnn.destroyTensorDescriptor)
-    if arr.ndim != 4:
-        raise ValueError('cupy.cudnn supports 4-dimensional arrays only')
     if not arr.flags.c_contiguous:
         raise ValueError('cupy.cudnn supports c-contiguous arrays only')
     data_type = get_data_type(arr.dtype)
-    cudnn.setTensor4dDescriptor(desc.value, format, data_type,
-                                *arr.shape)
+    strideA = numpy.array(map(lambda i : i/ numpy.nbytes[arr.dtype], arr.strides), dtype=numpy.int32)
+    dimA = numpy.array(arr.shape, dtype=numpy.int32)
+    cudnn.setTensorNdDescriptor(desc.value, data_type, arr.ndim, dimA.ctypes.data, strideA.ctypes.data)
 
     return desc
 

@@ -37,6 +37,10 @@ cdef extern from "cupy_cudnn.h":
             Handle handle, AddMode mode, void* alpha,
             TensorDescriptor biasDesc, void* biasData, void* beta,
             TensorDescriptor srcDestDesc, void* srcDestData)
+    int cudnnAddTensor(
+            Handle handle, void* alpha,
+            TensorDescriptor biasDesc, void* biasData, void* beta,
+            TensorDescriptor srcDestDesc, void* srcDestData)
 
     # Filter manipulation
     int cudnnCreateFilterDescriptor(FilterDescriptor* filterDesc)
@@ -285,6 +289,14 @@ cpdef addTensor_v2(
         <TensorDescriptor>srcDestDesc, <void*>srcDestData)
     check_status(status)
 
+cpdef addTensor(
+        size_t handle, size_t alpha, size_t biasDesc,
+        size_t biasData, size_t beta, size_t srcDestDesc, size_t srcDestData):
+    status = cudnnAddTensor(
+        <Handle>handle, <void*>alpha,
+        <TensorDescriptor>biasDesc, <void*>biasData, <void*>beta,
+        <TensorDescriptor>srcDestDesc, <void*>srcDestData)
+    check_status(status)
 
 ###############################################################################
 # Filter manipulation
