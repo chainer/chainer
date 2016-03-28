@@ -76,6 +76,8 @@ class BatchIterator(object):
     """
     def __init__(self, dataset, batchsize=1, repeat=True, auto_shuffle=True,
                  device=None):
+        if batchsize <= 0:
+            raise ValueError('batchsize must be positive')
         self._dataset = dataset
         self._batchsize = batchsize
         self._repeat = repeat
@@ -159,6 +161,8 @@ def build_minibatch(examples, device=None):
         Array if each data point is an array, otherwise a tuple of arrays.
 
     """
+    if len(examples) == 0:
+        raise ValueError('cannot create a minibatch from an empty sequence')
     ret_tuple = isinstance(examples[0], tuple)
     if not ret_tuple:
         examples = [(example,) for example in examples]

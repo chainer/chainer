@@ -64,6 +64,8 @@ class MultiprocessBatchIterator(object):
 
     def __init__(self, dataset, batchsize=1, repeat=True, auto_shuffle=True,
                  device=None, n_processes=None):
+        if batchsize <= 0:
+            raise ValueError('batchsize must be positive')
         self._dataset = dataset
         self._batchsize = batchsize
         self._repeat = repeat

@@ -69,6 +69,10 @@ class TestSimpleDataset(unittest.TestCase):
             v2 = (2 * i + 1) % len(self.ds)
             numpy.testing.assert_array_equal(x, [[v1], [v2]])
 
+    def test_iter_zero_batchsize(self):
+        with self.assertRaises(ValueError):
+            self.ds.get_batch_iterator(batchsize=0)
+
     @condition.retry(10)
     def test_iter_shuffle(self):
         shuffled_it = self.ds.get_batch_iterator(auto_shuffle=False)
@@ -201,6 +205,10 @@ class TestBuildMinibatch(unittest.TestCase):
                          for i in range(5)]
         self.expect = (numpy.array([[i] for i in range(5)]),
                        numpy.array([[i, i] for i in range(5)]))
+
+    def test_build_minibatch_from_empty_sequence(self):
+        with self.assertRaises(ValueError):
+            dataset.build_minibatch([])
 
     def test_build_minibatch(self):
         batch = dataset.build_minibatch(self.examples)
