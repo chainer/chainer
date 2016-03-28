@@ -182,7 +182,7 @@ def build_minibatch(examples, device=None):
     cols = [[example[i] for example in examples]
             for i in six.moves.range(tuple_len)]  # transpose
 
-    with cuda.get_device(device if xp is cuda.cupy else None):
+    with cuda.get_device(None if xp is numpy else device):
         cols = [xp.concatenate([to_device(x)[None] for x in col])
                 for col in cols]
 
