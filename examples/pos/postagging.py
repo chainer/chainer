@@ -5,6 +5,7 @@ from nltk.corpus import brown
 import numpy
 
 import chainer
+from chainer import cuda
 import chainer.functions as F
 import chainer.links as L
 import chainer.optimizers as O
@@ -33,9 +34,9 @@ data = []
 for sentence in brown.tagged_sents():
     s = [(vocab[lex], pos_vocab[pos]) for lex, pos in sentence]
     data.append(s)
-    if len(data) >= 100:
+    if len(data) >= 1000:
         break
-    
+
 print('# of sentences: {}'.format(len(data)))
 print('# of words: {}'.format(len(vocab)))
 print('# of pos: {}'.format(len(pos_vocab)))
@@ -47,11 +48,11 @@ for length, group in itertools.groupby(data, key=len):
 
 
 model = CRF(len(vocab), len(pos_vocab))
-#model.to_gpu()
-xp = numpy
+model.to_gpu()
+xp = cuda.cupy
 opt = O.Adam()
 opt.setup(model)
-opt.add_hook(chainer.optimizer.WeightDecay(0.1))
+#opt.add_hook(chainer.optimizer.WeightDecay(0.1))
 
 n_epoch = 1000
 
