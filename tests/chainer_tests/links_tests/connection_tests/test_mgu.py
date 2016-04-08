@@ -5,6 +5,7 @@ import numpy
 import chainer
 from chainer import cuda
 from chainer import links
+from chainer import testing
 from chainer.testing import attr
 
 
@@ -62,3 +63,6 @@ class TestStatefulMGU(unittest.TestCase):
     def test_forward_gpu(self):
         self.mgu.to_gpu()
         self.check_forward(cuda.to_gpu(self.x))
+
+
+testing.run_module(__name__, __file__)
