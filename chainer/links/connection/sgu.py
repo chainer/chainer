@@ -129,7 +129,7 @@ class StatefulDSGU(DSGU):
             z_t = hard_sigmoid.hard_sigmoid(self.W_xz(x))
             h_t = z_t * 0.5
         else:
-            h_t = SGU.__call__(self, self.h, x)
+            h_t = DSGU.__call__(self, self.h, x)
 
         self.h = h_t
         return h_t
