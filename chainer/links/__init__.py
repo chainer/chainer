@@ -37,6 +37,9 @@ StatelessLSTM = lstm.StatelessLSTM
 MLPConvolution2D = mlp_convolution_2d.MLPConvolution2D
 Parameter = parameter.Parameter
 SGU = sgu.SGU
+StatefulSGU = sgu.StatefulSGU
+DSGU = sgu.DSGU
+StatefulDSGU = sgu.StatefulDSGU
 
 BinaryHierarchicalSoftmax = hierarchical_softmax.BinaryHierarchicalSoftmax
 NegativeSampling = negative_sampling.NegativeSampling
