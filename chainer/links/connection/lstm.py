@@ -141,4 +141,4 @@ class StackedLSTM(link.ChainList):
         for i in range(1,self.num_layers):
           h_curr = self[i](h_curr)
           h_list.append(h_curr)
-        return h_list[-top_n:]
+        return concat.concat((h_l for h_l in h_list[-top_n:]),1)

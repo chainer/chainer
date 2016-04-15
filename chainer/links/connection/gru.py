@@ -3,6 +3,8 @@ import numpy
 import chainer
 from chainer.functions.activation import sigmoid
 from chainer.functions.activation import tanh
+from chainer.functions.array import split_axis
+from chainer.functions.array import concat
 from chainer import link
 from chainer.links.connection import linear
 
@@ -176,7 +178,7 @@ class StackedGRU(link.ChainList):
       self.add_link(GRU(out_size,out_size))
     self.num_layers = num_layers
 
-  def __call__(self, x, h):
+  def __call__(self, h, x):
     """
     Updates the internal state and returns the GRU outputs for each layer as a list.
 
@@ -188,12 +190,13 @@ class StackedGRU(link.ChainList):
 
     """
     h_list = []
+    h = split_axis.split_axis(h,self.num_layers,1,True)
     h_curr = self[0](h[0], x)
     h_list.append(h_curr)
     for i in range(1,self.num_layers):
       h_curr = self[i](h[i], h_curr)
       h_list.append(h_curr)
-    return h_list
+    return concat.concat((h_l for h_l in h_list),1)
 
 class StackedStatefulGRU(link.ChainList):
   """
@@ -228,6 +231,7 @@ class StackedStatefulGRU(link.ChainList):
             self[i].to_gpu(device)
 
   def set_state(self, h):
+        h = split_axis.split_axis(h,self.num_layers,1,True)
         for i in range(self.num_layers):
             assert isinstance(h[i], chainer.Variable)
             self[i].set_state(h[i])
@@ -238,13 +242,13 @@ class StackedStatefulGRU(link.ChainList):
 
   def __call__(self, x, top_n = None):
     """
-    Updates the internal state and returns the RNN outputs for each layer as a list.
+    Updates the internal state and returns the GRU outputs for each layer as a list.
 
     Args:
         x : A new batch from the input sequence.
         top_n: The number of GRUs from the top whose outputs you want (default: outputs of all GRUs are returned)
     Returns:
-        A list of the outputs (h) of the updated RNN units over all the layers.
+        A concatenation of the outputs (h) of the updated GRU units over the top N layers; by default all layers are considered.
 
     """
     if top_n is None:
@@ -256,4 +260,4 @@ class StackedStatefulGRU(link.ChainList):
     for i in range(1,self.num_layers):
       h_curr = self[i](h_curr)
       h_list.append(h_curr)
-    return h_list[-top_n:]
+    return concat.concat((h_l for h_l in h_list[-top_n:]),1)
