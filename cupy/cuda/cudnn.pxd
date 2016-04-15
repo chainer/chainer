@@ -133,7 +133,9 @@ cpdef destroyTensorDescriptor(size_t tensorDesc)
 cpdef addTensor_v2(
         size_t handle, int mode, size_t alpha, size_t biasDesc,
         size_t biasData, size_t beta, size_t srcDestDesc, size_t srcDestData)
-
+cpdef addTensor(
+        size_t handle, size_t alpha, size_t biasDesc,
+        size_t biasData, size_t beta, size_t srcDestDesc, size_t srcDestData)
 
 ###############################################################################
 # Filter manipulation
