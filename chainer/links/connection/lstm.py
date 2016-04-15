@@ -1,4 +1,5 @@
 from chainer.functions.activation import lstm
+from chainer.functions.array import concat
 from chainer import link
 from chainer.links.connection import linear
 from chainer import variable
@@ -78,14 +79,17 @@ class LSTM(link.Chain):
         self.c, self.h = lstm.lstm(self.c, lstm_in)
         return self.h
 
+
 class StackedLSTM(link.ChainList):
 
     """Fully-connected Stacked LSTM layer.
 
-    This is a fully-connected Stacked LSTM layer as a chain. It simply stacks multiple LSTMs.
+    This is a fully-connected Stacked LSTM layer as a chain.
+    It simply stacks multiple LSTMs.
 
     It also maintains *states*, including the cell state and the output
-    at the previous time step for each LSTM in the stack. Therefore, it can be used as a *stateful Stacked LSTM*.
+    at the previous time step for each LSTM in the stack.
+    Therefore, it can be used as a *stateful Stacked LSTM*.
 
     Args:
         in_size (int): Dimensionality of input vectors.
@@ -93,14 +97,14 @@ class StackedLSTM(link.ChainList):
         num_layers (int): Number of LSTM layers.
 
     Attributes:
-        
+
 
     """
-    def __init__(self, in_size, out_size, num_layers = 1):
+    def __init__(self, in_size, out_size, num_layers=1):
         super(StackedLSTM, self).__init__()
-        self.add_link(LSTM(in_size,out_size))
-        for i in range(1,num_layers):
-            self.add_link(LSTM(out_size,out_size))
+        self.add_link(LSTM(in_size, out_size))
+        for i in range(1, num_layers):
+            self.add_link(LSTM(out_size, out_size))
         self.num_layers = num_layers
         self.reset_state()
 
@@ -111,22 +115,24 @@ class StackedLSTM(link.ChainList):
     def to_gpu(self, device=None):
         for i in range(self.num_layers):
             self[i].to_gpu(device)
-        
+
     def reset_state(self):
         """Resets the internal state.
 
-        It sets ``None`` to the :attr:`c` and :attr:`h` attributes for each LSTM in the stack.
+        It sets ``None`` to the :attr:`c` and :attr:`h`
+        attributes for each LSTM in the stack.
 
         """
         for i in range(self.num_layers):
-            self[i].reset_state(device)
+            self[i].reset_state()
 
-    def __call__(self, x, top_n = None):
+    def __call__(self, x, top_n=None):
         """Updates the internal state and returns the LSTM outputs.
 
         Args:
             x (~chainer.Variable): A new batch from the input sequence.
-            top_n: The number of LSTMs from the top whose outputs you want (default: outputs of all LSTMs are returned)
+            top_n: The number of LSTMs from the top whose outputs you want
+                    (default: outputs of all LSTMs are returned)
 
         Returns:
             ~chainer.Variable: Outputs of updated LSTM units.
@@ -138,7 +144,7 @@ class StackedLSTM(link.ChainList):
         h_list = []
         h_curr = self[0](x)
         h_list.append(h_curr)
-        for i in range(1,self.num_layers):
-          h_curr = self[i](h_curr)
-          h_list.append(h_curr)
-        return concat.concat((h_l for h_l in h_list[-top_n:]),1)
+        for i in range(1, self.num_layers):
+            h_curr = self[i](h_curr)
+            h_list.append(h_curr)
+        return concat.concat((h_l for h_l in h_list[-top_n:]), 1)

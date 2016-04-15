@@ -4,9 +4,8 @@ import numpy
 
 import chainer
 from chainer import cuda
-from chainer import gradient_check
-from chainer.functions.array import concat
 from chainer.functions.array import split_axis
+from chainer import gradient_check
 from chainer import links
 from chainer import testing
 from chainer.testing import attr
@@ -19,24 +18,22 @@ def _sigmoid(x):
 
 def _gru(func, h, x):
     y = None
-    
     if isinstance(func, links.StackedGRU) or isinstance(func, links.StackedStatefulGRU):
         y = []
         xp = cuda.get_array_module(h, x)
-        #print type(h)
-        h = xp.split(h,func.num_layers,1)
+        h = xp.split(h, func.num_layers, 1)
         r = _sigmoid(x.dot(func[0].W_r.W.data.T) + h[0].dot(func[0].U_r.W.data.T))
         z = _sigmoid(x.dot(func[0].W_z.W.data.T) + h[0].dot(func[0].U_z.W.data.T))
         h_bar = xp.tanh(x.dot(func[0].W.W.data.T) + (r * h[0]).dot(func[0].U.W.data.T))
         y_curr = (1 - z) * h[0] + z * h_bar
         y.append(y_curr)
-        for i in range(1,func.num_layers):
+        for i in range(1, func.num_layers):
             r = _sigmoid(y_curr.dot(func[i].W_r.W.data.T) + h[i].dot(func[i].U_r.W.data.T))
             z = _sigmoid(y_curr.dot(func[i].W_z.W.data.T) + h[i].dot(func[i].U_z.W.data.T))
             h_bar = xp.tanh(y_curr.dot(func[i].W.W.data.T) + (r * h[i]).dot(func[i].U.W.data.T))
             y_curr = (1 - z) * h[i] + z * h_bar
             y.append(y_curr)
-        y = xp.concatenate(y,1)
+        y = xp.concatenate(y, 1)
     else:
         xp = cuda.get_array_module(h, x)
 
@@ -45,7 +42,6 @@ def _gru(func, h, x):
         h_bar = xp.tanh(x.dot(func.W.W.data.T) + (r * h).dot(func.U.W.data.T))
         y = (1 - z) * h + z * h_bar
     return y
-
 
 
 @testing.parameterize(
@@ -88,7 +84,7 @@ class TestGRU(unittest.TestCase):
             self.fail('Unsupported state initialization:{}'.format(self.state))
         self.gy = numpy.random.uniform(
             -1, 1, (3, self.out_size*n_l)).astype(numpy.float32)
-    
+
     def _forward(self, link, h, x):
         if isinstance(link, links.GRU) or isinstance(link, links.StackedGRU):
             return link(h, x)
@@ -104,11 +100,10 @@ class TestGRU(unittest.TestCase):
         y_expect = _gru(self.link, h_data, x_data)
         self.assertEqual(y.data.dtype, numpy.float32)
         gradient_check.assert_allclose(y_expect, y.data)
-        
         if isinstance(self.link, links.StatefulGRU):
             gradient_check.assert_allclose(self.link.h.data, y.data)
         if isinstance(self.link, links.StackedStatefulGRU):
-            y = split_axis.split_axis(y,self.num_layers,1,True)
+            y = split_axis.split_axis(y, self.num_layers, 1, True)
             for i in range(self.num_layers):
                 gradient_check.assert_allclose(self.link[i].h.data, y[i].data)
 
@@ -118,9 +113,7 @@ class TestGRU(unittest.TestCase):
     @attr.gpu
     def test_forward_gpu(self):
         self.link.to_gpu()
-        self.check_forward(cuda.to_gpu(self.h),
-                               cuda.to_gpu(self.x))
-            
+        self.check_forward(cuda.to_gpu(self.h), cuda.to_gpu(self.x))
 
     def check_backward(self, h_data, x_data, y_grad):
         h = chainer.Variable(h_data)
