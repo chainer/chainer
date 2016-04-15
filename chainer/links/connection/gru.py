@@ -150,3 +150,110 @@ class StatefulGRU(GRUBase):
             h_new += (1 - z) * self.h
         self.h = h_new
         return self.h
+
+
+class StackedGRU(link.ChainList):
+  """
+  This is an implementation of a Stacked Stateless GRU.
+  The underlying idea is to simply stack multiple GRUs where the GRU at the bottom takes the regular input,
+  and the GRUs after that simply take the outputs (represented by h) of the lower GRUs as inputs.
+  Since this is a stateless implementation, the states of all the GRUs must be returned
+  Args: 
+        in_size - The size of embeddings of the inputs
+        out_size - The size of the hidden layer representation of each GRU unit
+        num_layers - The number of GRU layers
+
+  Attributes: 
+        num_layers: Indicates the number of GRU layers
+  User Defined Methods:
+        
+  """
+
+  def __init__(self, in_size, out_size, num_layers):
+    super(StackedGRU, self).__init__()
+    self.add_link(GRU(out_size,in_size))
+    for i in range(1,num_layers):
+      self.add_link(GRU(out_size,out_size))
+    self.num_layers = num_layers
+
+  def __call__(self, x, h):
+    """
+    Updates the internal state and returns the GRU outputs for each layer as a list.
+
+    Args:
+        x : A new batch from the input sequence.
+        h : The list of the previous cell outputs.
+    Returns:
+        A list of the outputs (h) of the updated GRU units over all the layers.
+
+    """
+    h_list = []
+    h_curr = self[0](h[0], x)
+    h_list.append(h_curr)
+    for i in range(1,self.num_layers):
+      h_curr = self[i](h[i], h_curr)
+      h_list.append(h_curr)
+    return h_list
+
+class StackedSatefulGRU(link.ChainList):
+  """
+  This is an implementation of a Stacked Stateful GRU.
+  The underlying idea is to simply stack multiple Stateful GRUs where the GRU at the bottom takes the regular input,
+  and the GRUs after that simply take the outputs (represented by h) of the previous GRUs as inputs.
+  
+  Args: 
+        in_size - The size of embeddings of the inputs
+        out_size - The size of the hidden layer representation of each GRU unit
+        num_layers - The number of GRU layers
+  Attributes: 
+        num_layers: Indicates the number of GRU layers
+  User Defined Methods:
+        
+  """
+
+  def __init__(self, in_size, out_size, num_layers):
+    super(StackedSatefulGRU, self).__init__()
+    self.add_link(StatefulGRU(in_size,out_size))
+    for i in range(1,num_layers):
+      self.add_link(StatefulGRU(out_size,out_size))
+    self.num_layers = num_layers
+    self.reset_state()
+
+  def to_cpu(self):
+        for i in range(self.num_layers):
+            self[i].to_cpu()
+
+  def to_gpu(self, device=None):
+        for i in range(self.num_layers):
+            self[i].to_gpu(device)
+
+  def set_state(self, h):
+        for i in range(self.num_layers):
+            assert isinstance(h[i], chainer.Variable)
+            self[i].set_state(h[i])
+
+  def reset_state(self):
+        for i in range(self.num_layers):
+            self[i].reset_state()
+
+  def __call__(self, x, top_n = None):
+    """
+    Updates the internal state and returns the RNN outputs for each layer as a list.
+
+    Args:
+        x : A new batch from the input sequence.
+        top_n: The number of GRUs from the top whose outputs you want (default: outputs of all GRUs are returned)
+    Returns:
+        A list of the outputs (h) of the updated RNN units over all the layers.
+
+    """
+    if top_n is None:
+        top_n = self.num_layers
+        
+    h_list = []
+    h_curr = self[0](x)
+    h_list.append(h_curr)
+    for i in range(1,self.num_layers):
+      h_curr = self[i](h_curr)
+      h_list.append(h_curr)
+    return h_list[-top_n:]
