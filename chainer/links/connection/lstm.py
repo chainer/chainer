@@ -96,7 +96,7 @@ class StackedLSTM(link.ChainList):
         
 
     """
-    def __init__(self, in_size, out_size, num_layers):
+    def __init__(self, in_size, out_size, num_layers = 1):
         super(StackedLSTM, self).__init__()
         self.add_link(LSTM(in_size,out_size))
         for i in range(1,num_layers):
@@ -126,6 +126,7 @@ class StackedLSTM(link.ChainList):
 
         Args:
             x (~chainer.Variable): A new batch from the input sequence.
+            top_n: The number of LSTMs from the top whose outputs you want (default: outputs of all LSTMs are returned)
 
         Returns:
             ~chainer.Variable: Outputs of updated LSTM units.
@@ -133,7 +134,7 @@ class StackedLSTM(link.ChainList):
         """
         if top_n is None:
             top_n = self.num_layers
-            
+
         h_list = []
         h_curr = self[0](x)
         h_list.append(h_curr)

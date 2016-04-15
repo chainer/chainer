@@ -16,13 +16,33 @@ def _sigmoid(x):
 
 
 def _gru(func, h, x):
-    xp = cuda.get_array_module(h, x)
+    y = None
+    
+    if isinstance(func, links.StackedGRU) or isinstance(func, links.StackedStatefulGRU):
+        y = []
+        xp = cuda.get_array_module(h[0], x)
+        
+        r = _sigmoid(x.dot(func[0].W_r.W.data.T) + h[0].dot(func[0].U_r.W.data.T))
+        z = _sigmoid(x.dot(func[0].W_z.W.data.T) + h[0].dot(func[0].U_z.W.data.T))
+        h_bar = xp.tanh(x.dot(func[0].W.W.data.T) + (r * h[0]).dot(func[0].U.W.data.T))
+        y_curr = (1 - z) * h[0] + z * h_bar
+        y.append(y_curr)
+        for i in range(1:func.num_layers):
+            r = _sigmoid(y_curr.dot(func[i].W_r.W.data.T) + h[i].dot(func[i].U_r.W.data.T))
+            z = _sigmoid(y_curr.dot(func[i].W_z.W.data.T) + h[i].dot(func[i].U_z.W.data.T))
+            h_bar = xp.tanh(y_curr.dot(func[i].W.W.data.T) + (r * h[i]).dot(func[i].U.W.data.T))
+            y_curr = (1 - z) * h[i] + z * h_bar
+            y.append(y_curr)
+        
+    else:
+        xp = cuda.get_array_module(h, x)
 
-    r = _sigmoid(x.dot(func.W_r.W.data.T) + h.dot(func.U_r.W.data.T))
-    z = _sigmoid(x.dot(func.W_z.W.data.T) + h.dot(func.U_z.W.data.T))
-    h_bar = xp.tanh(x.dot(func.W.W.data.T) + (r * h).dot(func.U.W.data.T))
-    y = (1 - z) * h + z * h_bar
+        r = _sigmoid(x.dot(func.W_r.W.data.T) + h.dot(func.U_r.W.data.T))
+        z = _sigmoid(x.dot(func.W_z.W.data.T) + h.dot(func.U_z.W.data.T))
+        h_bar = xp.tanh(x.dot(func.W.W.data.T) + (r * h).dot(func.U.W.data.T))
+        y = (1 - z) * h + z * h_bar
     return y
+
 
 
 @testing.parameterize(
@@ -30,6 +50,10 @@ def _gru(func, h, x):
     {'gru': links.GRU, 'state': 'random', 'out_size': 8},
     {'gru': links.StatefulGRU, 'state': 'random', 'in_size': 4, 'out_size': 8},
     {'gru': links.StatefulGRU, 'state': 'zero', 'in_size': 4, 'out_size': 8},
+    {'gru': links.StackedGRU, 'state': 'random', 'in_size': 4, 'out_size': 8, 'num_layers': 5},
+    {'gru': links.StackedGRU, 'state': 'zero', 'in_size': 4, 'out_size': 8, 'num_layers': 5},
+    {'gru': links.StackedStatefulGRU, 'state': 'random', 'in_size': 4, 'out_size': 8, 'num_layers': 5},
+    {'gru': links.StackedStatefulGRU, 'state': 'zero', 'in_size': 4, 'out_size': 8, 'num_layers': 5},
 )
 class TestGRU(unittest.TestCase):
 
@@ -42,6 +66,10 @@ class TestGRU(unittest.TestCase):
                 self.in_size = self.out_size
         elif self.gru == links.StatefulGRU:
             self.link = self.gru(self.in_size, self.out_size)
+        elif self.gru == links.StackedGRU:
+            self.link = self.gru(self.in_size, self.out_size, self.num_layers)
+        elif self.gru == links.StackedStatefulGRU:
+            self.link = self.gru(self.in_size, self.out_size, self.num_layers)
         else:
             self.fail('Unsupported link(only GRU and StatefulGRU '
                       'are supported):{}'.format(self.gru))
@@ -49,17 +77,28 @@ class TestGRU(unittest.TestCase):
         self.x = numpy.random.uniform(
             -1, 1, (3, self.in_size)).astype(numpy.float32)
         if self.state == 'random':
-            self.h = numpy.random.uniform(
-                -1, 1, (3, self.out_size)).astype(numpy.float32)
+            if self.gru == links.StackedGRU or self.gru == links.StackedStatefulGRU
+                self.h = [numpy.random.uniform(
+                    -1, 1, (3, self.out_size)).astype(numpy.float32) for _ in range(self.num_layers)]
+            else:
+                self.h = numpy.random.uniform(
+                    -1, 1, (3, self.out_size)).astype(numpy.float32)
         elif self.state == 'zero':
-            self.h = numpy.zeros((3, self.out_size), dtype=numpy.float32)
+            if self.gru == links.StackedGRU or self.gru == links.StackedStatefulGRU
+                self.h = [numpy.zeros((3, self.out_size), dtype=numpy.float32) for _ in range(self.num_layers)]
+            else:
+                self.h = numpy.zeros((3, self.out_size), dtype=numpy.float32)
         else:
             self.fail('Unsupported state initialization:{}'.format(self.state))
-        self.gy = numpy.random.uniform(
-            -1, 1, (3, self.out_size)).astype(numpy.float32)
+        if self.gru == links.StackedGRU or self.gru == links.StackedStatefulGRU
+            self.gy = [numpy.random.uniform(
+                -1, 1, (3, self.out_size)).astype(numpy.float32) for _ in range(self.num_layers)]
+        else:
+            self.gy = numpy.random.uniform(
+                -1, 1, (3, self.out_size)).astype(numpy.float32)
 
     def _forward(self, link, h, x):
-        if isinstance(link, links.GRU):
+        if isinstance(link, links.GRU) or isinstance(link, links.StackedGRU):
             return link(h, x)
         else:
             if self.state != 'zero':
@@ -67,15 +106,23 @@ class TestGRU(unittest.TestCase):
             return link(x)
 
     def check_forward(self, h_data, x_data):
-        h = chainer.Variable(h_data)
+        h = [chainer.Variable(h_dat) for h_dat in h_data] if isinstance(self.link, links.StackedGRU) or isinstance(self.link, links.StackedStatefulGRU) else chainer.Variable(h_data)
         x = chainer.Variable(x_data)
         y = self._forward(self.link, h, x)
-
-        self.assertEqual(y.data.dtype, numpy.float32)
         y_expect = _gru(self.link, h_data, x_data)
-        gradient_check.assert_allclose(y_expect, y.data)
+        if isinstance(self.link, links.StackedGRU) or isinstance(self.link, links.StackedStatefulGRU):
+            for y_inner, y_inner_expect in zip(y,y_expect):
+                self.assertEqual(y_inner.data.dtype, numpy.float32)
+                gradient_check.assert_allclose(y_inner_expect, y_inner.data)
+        else:
+             self.assertEqual(y.data.dtype, numpy.float32)
+             gradient_check.assert_allclose(y_expect, y.data)
+        
         if isinstance(self.link, links.StatefulGRU):
             gradient_check.assert_allclose(self.link.h.data, y.data)
+        if isinstance(self.link, links.StackedStatefulGRU):
+            for i in range(self.link.num_layers):
+                gradient_check.assert_allclose(self.link[i].h.data, y[i].data)
 
     def test_forward_cpu(self):
         self.check_forward(self.h, self.x)
@@ -87,7 +134,7 @@ class TestGRU(unittest.TestCase):
                            cuda.to_gpu(self.x))
 
     def check_backward(self, h_data, x_data, y_grad):
-        h = chainer.Variable(h_data)
+        h = [chainer.Variable(h_dat) for h_dat in h_data]
         x = chainer.Variable(x_data)
         y = self._forward(self.link, h, x)
         y.grad = y_grad

@@ -32,6 +32,9 @@ Inception = inception.Inception
 InceptionBN = inceptionbn.InceptionBN
 Linear = linear.Linear
 LSTM = lstm.LSTM
+StackedLSTM = lstm.StackedLSTM
+StackedStatefulGRU = gru.StackedStatefulGRU
+StackedGRU = gru.StackedGRU
 MLPConvolution2D = mlp_convolution_2d.MLPConvolution2D
 Parameter = parameter.Parameter
 

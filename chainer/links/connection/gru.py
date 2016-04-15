@@ -169,7 +169,7 @@ class StackedGRU(link.ChainList):
         
   """
 
-  def __init__(self, in_size, out_size, num_layers):
+  def __init__(self, in_size, out_size, num_layers = 1):
     super(StackedGRU, self).__init__()
     self.add_link(GRU(out_size,in_size))
     for i in range(1,num_layers):
@@ -195,7 +195,7 @@ class StackedGRU(link.ChainList):
       h_list.append(h_curr)
     return h_list
 
-class StackedSatefulGRU(link.ChainList):
+class StackedStatefulGRU(link.ChainList):
   """
   This is an implementation of a Stacked Stateful GRU.
   The underlying idea is to simply stack multiple Stateful GRUs where the GRU at the bottom takes the regular input,
@@ -211,8 +211,8 @@ class StackedSatefulGRU(link.ChainList):
         
   """
 
-  def __init__(self, in_size, out_size, num_layers):
-    super(StackedSatefulGRU, self).__init__()
+  def __init__(self, in_size, out_size, num_layers = 1):
+    super(StackedStatefulGRU, self).__init__()
     self.add_link(StatefulGRU(in_size,out_size))
     for i in range(1,num_layers):
       self.add_link(StatefulGRU(out_size,out_size))
@@ -249,7 +249,7 @@ class StackedSatefulGRU(link.ChainList):
     """
     if top_n is None:
         top_n = self.num_layers
-        
+
     h_list = []
     h_curr = self[0](x)
     h_list.append(h_curr)
