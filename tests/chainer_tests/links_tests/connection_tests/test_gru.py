@@ -18,19 +18,26 @@ def _sigmoid(x):
 
 def _gru(func, h, x):
     y = None
-    if isinstance(func, links.StackedGRU) or isinstance(func, links.StackedStatefulGRU):
+    if isinstance(func, links.StackedGRU) or\
+       isinstance(func, links.StackedStatefulGRU):
         y = []
         xp = cuda.get_array_module(h, x)
         h = xp.split(h, func.num_layers, 1)
-        r = _sigmoid(x.dot(func[0].W_r.W.data.T) + h[0].dot(func[0].U_r.W.data.T))
-        z = _sigmoid(x.dot(func[0].W_z.W.data.T) + h[0].dot(func[0].U_z.W.data.T))
-        h_bar = xp.tanh(x.dot(func[0].W.W.data.T) + (r * h[0]).dot(func[0].U.W.data.T))
+        r = _sigmoid(x.dot(func[0].W_r.W.data.T) +
+                     h[0].dot(func[0].U_r.W.data.T))
+        z = _sigmoid(x.dot(func[0].W_z.W.data.T) +
+                     h[0].dot(func[0].U_z.W.data.T))
+        h_bar = xp.tanh(x.dot(func[0].W.W.data.T) +
+                        (r * h[0]).dot(func[0].U.W.data.T))
         y_curr = (1 - z) * h[0] + z * h_bar
         y.append(y_curr)
         for i in range(1, func.num_layers):
-            r = _sigmoid(y_curr.dot(func[i].W_r.W.data.T) + h[i].dot(func[i].U_r.W.data.T))
-            z = _sigmoid(y_curr.dot(func[i].W_z.W.data.T) + h[i].dot(func[i].U_z.W.data.T))
-            h_bar = xp.tanh(y_curr.dot(func[i].W.W.data.T) + (r * h[i]).dot(func[i].U.W.data.T))
+            r = _sigmoid(y_curr.dot(func[i].W_r.W.data.T) +
+                         h[i].dot(func[i].U_r.W.data.T))
+            z = _sigmoid(y_curr.dot(func[i].W_z.W.data.T) +
+                         h[i].dot(func[i].U_z.W.data.T))
+            h_bar = xp.tanh(y_curr.dot(func[i].W.W.data.T) +
+                            (r * h[i]).dot(func[i].U.W.data.T))
             y_curr = (1 - z) * h[i] + z * h_bar
             y.append(y_curr)
         y = xp.concatenate(y, 1)
@@ -49,10 +56,14 @@ def _gru(func, h, x):
     {'gru': links.GRU, 'state': 'random', 'out_size': 8},
     {'gru': links.StatefulGRU, 'state': 'random', 'in_size': 4, 'out_size': 8},
     {'gru': links.StatefulGRU, 'state': 'zero', 'in_size': 4, 'out_size': 8},
-    {'gru': links.StackedGRU, 'state': 'random', 'in_size': 4, 'out_size': 8, 'num_layers': 5},
-    {'gru': links.StackedGRU, 'state': 'zero', 'in_size': 4, 'out_size': 8, 'num_layers': 5},
-    {'gru': links.StackedStatefulGRU, 'state': 'random', 'in_size': 4, 'out_size': 8, 'num_layers': 5},
-    {'gru': links.StackedStatefulGRU, 'state': 'zero', 'in_size': 4, 'out_size': 8, 'num_layers': 5},
+    {'gru': links.StackedGRU, 'state': 'random', 'in_size': 4, 'out_size': 8,
+     'num_layers': 5},
+    {'gru': links.StackedGRU, 'state': 'zero', 'in_size': 4, 'out_size': 8,
+     'num_layers': 5},
+    {'gru': links.StackedStatefulGRU, 'state': 'random', 'in_size': 4,
+     'out_size': 8, 'num_layers': 5},
+    {'gru': links.StackedStatefulGRU, 'state': 'zero', 'in_size': 4,
+     'out_size': 8, 'num_layers': 5},
 )
 class TestGRU(unittest.TestCase):
 
