@@ -42,7 +42,8 @@ before_install:
     fi
 
 install:
-  - pip install cython
+  - pip install -U wheel
+  - pip install -vvvv cython
   - python setup.py sdist
   - pip install dist/*.tar.gz
   - pip install h5py
