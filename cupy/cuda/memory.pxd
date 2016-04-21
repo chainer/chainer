@@ -1,11 +1,16 @@
 from cupy.cuda cimport device
 
-cdef class Memory:
+cdef class MemoryBase:
 
     cdef:
         public device.Device device
         public size_t ptr
         public Py_ssize_t size
+
+
+cdef class Memory(MemoryBase):
+
+    pass
 
 
 cdef class MemoryPointer:
@@ -33,7 +38,7 @@ cpdef MemoryPointer alloc(Py_ssize_t size)
 cpdef set_allocator(allocator=*)
 
 
-cdef class PooledMemory(Memory):
+cdef class PooledMemory(MemoryBase):
 
     cdef:
         object pool
