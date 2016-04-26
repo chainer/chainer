@@ -6,8 +6,8 @@ from chainer.links.connection import bilinear
 from chainer.links.connection import convolution_2d
 from chainer.links.connection import deconvolution_2d
 from chainer.links.connection import embed_id
-from chainer.links.connection import gru
 from chainer.links.connection import fast_gru
+from chainer.links.connection import gru
 from chainer.links.connection import inception
 from chainer.links.connection import inceptionbn
 from chainer.links.connection import linear
