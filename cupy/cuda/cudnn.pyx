@@ -836,6 +836,7 @@ cpdef RNNForwardInference(
         <void*>cx, <FilterDescriptor>wDesc, <void*>w, <TensorDescriptor*>yDesc,
         <void*>y, <TensorDescriptor>hyDesc, <void*>hy, <TensorDescriptor>cyDesc,
         <void*>cy, <void*>workspace, workSpaceSizeInBytes)
+    check_status(status)
 
 
 cpdef RNNForwardTraining(
@@ -856,6 +857,7 @@ cpdef RNNForwardTraining(
         <TensorDescriptor>cyDesc, <void*>cy,
         <void*>workspace, workSpaceSizeInBytes,
         <void*>reserveSpace, reserveSpaceSizeInBytes)
+    check_status(status)
 
 
 cpdef RNNBackwardData(
@@ -881,6 +883,7 @@ cpdef RNNBackwardData(
         <TensorDescriptor>dcxDesc, <void*>dcx,
         <void*>workspace, workSpaceSizeInBytes,
         <void*>reserveSpace, reserveSpaceSizeInBytes)
+    check_status(status)
 
 
 cpdef RNNBackwardWeights(
@@ -896,3 +899,4 @@ cpdef RNNBackwardWeights(
         <void*>workspace, workSpaceSizeInBytes,
         <FilterDescriptor>dwDesc, <void*>dw,
         <void*>reserveSpace, reserveSpaceSizeInBytes)
+    check_status(status)
