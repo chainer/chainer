@@ -24,6 +24,7 @@ def _gru(func, h, x):
     y = (1 - z) * h + z * h_bar
     return y
 
+
 @testing.parameterize(
     {'gru': links.FastGRU, 'state': 'random', 'in_size': 4, 'out_size': 8},
     {'gru': links.FastGRU, 'state': 'random', 'out_size': 8},
@@ -32,7 +33,6 @@ def _gru(func, h, x):
     {'gru': links.StatefulGRU, 'state': 'random', 'in_size': 4, 'out_size': 8},
     {'gru': links.StatefulGRU, 'state': 'zero', 'in_size': 4, 'out_size': 8},
 )
-
 class TestGRU(unittest.TestCase):
 
     def setUp(self):
@@ -100,6 +100,7 @@ class TestGRU(unittest.TestCase):
 
         if isinstance(self.link, links.FastGRU):
             classic_GRU = self.link.to_classic_GRU()
+
             def f():
                 return _gru(classic_GRU, h_data, x_data),
         else:

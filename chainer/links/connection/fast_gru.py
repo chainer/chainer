@@ -138,13 +138,17 @@ def compute_output_GRU(z_x, z_h, h_x, h, hh):
 
 class GRUBase(link.Chain):
     """GRUBase instantiate the linear links that parameterize a GRU.
-    
-    Contrarily to gru.GRUBase, fast_gru.GRUBase only instantiate 3 linear links (vs 6 for gru.GRUBase)
+
+    Contrarily to gru.GRUBase, fast_gru.GRUBase only instantiate 3 linear links
+    (vs 6 for gru.GRUBase)
         W_r_z_h merge the links W_r, W_z and W_h of gru.GRUBase
-        U_r_z merge the links U_r and U_z of gru.GRUBase. In addition, these links do not have biases, 
+        U_r_z merge the links U_r and U_z of gru.GRUBase. In addition, these
+        links do not have biases,
         as it would be redundant with the biases of W_r_z_h.
-        U is equivalent to the link U of gru.GRUBase (minus the redundant bias).
+        U is equivalent to the link U of gru.GRUBase
+        (minus the redundant bias).
     """
+
     def __init__(self, n_units, n_inputs=None):
         if n_inputs is None:
             n_inputs = n_units
@@ -158,74 +162,76 @@ class GRUBase(link.Chain):
 
     def initialize_with_classic_implementation(self, gru):
         """Initialize the parameters from a gru.GRUBase object.
-        
+
         self and gru should be on the same device.
         """
         assert isinstance(gru, chainer.links.connection.gru.GRUBase)
         # input matrices
         self.W_r_z_h.W.data[:self.n_units] = gru.W_r.W.data
-        self.W_r_z_h.W.data[self.n_units: 2*self.n_units] = gru.W_z.W.data
+        self.W_r_z_h.W.data[self.n_units: 2 * self.n_units] = gru.W_z.W.data
         self.W_r_z_h.W.data[2 * self.n_units:] = gru.W.W.data
-        
+
         # biases
         self.W_r_z_h.b.data[:self.n_units] = gru.W_r.b.data + gru.U_r.b.data
-        self.W_r_z_h.b.data[self.n_units: 2*self.n_units] = gru.W_z.b.data + gru.U_z.b.data
-        self.W_r_z_h.b.data[2 * self.n_units:] = gru.W.b.data + gru.U.b.data  
-        
+        self.W_r_z_h.b.data[self.n_units: 2 *
+                            self.n_units] = gru.W_z.b.data + gru.U_z.b.data
+        self.W_r_z_h.b.data[2 * self.n_units:] = gru.W.b.data + gru.U.b.data
+
         # hidden state matrices
         self.U_r_z.W.data[:self.n_units] = gru.U_r.W.data
         self.U_r_z.W.data[self.n_units:] = gru.U_z.W.data
 
         self.U.W.data[...] = gru.U.W.data
-        
+
     @classmethod
     def from_classic_GRU(cls, gru):
-        """Creates a FastGRU object from a GRU object.
-        """
+        """Creates a FastGRU object from a GRU object."""
         assert isinstance(gru, chainer.links.connection.gru.GRUBase)
         n_units, n_inputs = gru.W_r.W.data.shape
         fast_gru = cls(n_units, n_inputs)
-        
+
         # move to the correct device
         if not isinstance(gru.W_r.W.data, numpy.ndarray):
             fast_gru = fast_gru.to_gpu(chainer.cuda.get_device(gru.W_r.W.data))
-            
+
         fast_gru.initialize_with_classic_implementation(gru)
         return fast_gru
-    
+
     def to_classic_GRU(self):
         """Convert to an object of type gru.GRU
-        
+
         Useful for testing / converting models.
         """
         gru = chainer.links.connection.gru.GRU(self.n_units, self.n_inputs)
-        
+
         # move to the correct device
         if not isinstance(self.W_r_z_h.W.data, numpy.ndarray):
             gru = gru.to_gpu(chainer.cuda.get_device(self.W_r_z_h.W.data))
-        
+
         # input matrices
         gru.W_r.W.data[...] = self.W_r_z_h.W.data[:self.n_units]
-        gru.W_z.W.data[...] = self.W_r_z_h.W.data[self.n_units: 2*self.n_units]
+        gru.W_z.W.data[...] = self.W_r_z_h.W.data[
+            self.n_units: 2 * self.n_units]
         gru.W.W.data[...] = self.W_r_z_h.W.data[2 * self.n_units:]
-        
+
         # biases
         gru.W_r.b.data[...] = self.W_r_z_h.b.data[:self.n_units]
-        gru.W_z.b.data[...] = self.W_r_z_h.b.data[self.n_units: 2*self.n_units]
+        gru.W_z.b.data[...] = self.W_r_z_h.b.data[
+            self.n_units: 2 * self.n_units]
         gru.W.b.data[...] = self.W_r_z_h.b.data[2 * self.n_units:]
-        
+
         gru.U_r.b.data[...] = 0
         gru.U_z.b.data[...] = 0
         gru.U.b.data[...] = 0
-        
+
         # hidden state matrices
         gru.U_r.W.data[...] = self.U_r_z.W.data[:self.n_units]
         gru.U_z.W.data[...] = self.U_r_z.W.data[self.n_units:]
 
         gru.U.W.data[...] = self.U.W.data[...]
-        
-        return gru        
-        
+
+        return gru
+
 
 class GRU(GRUBase):
 
