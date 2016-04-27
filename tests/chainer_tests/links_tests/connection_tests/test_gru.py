@@ -24,17 +24,19 @@ def _gru(func, h, x):
     y = (1 - z) * h + z * h_bar
     return y
 
-
 @testing.parameterize(
+    {'gru': links.FastGRU, 'state': 'random', 'in_size': 4, 'out_size': 8},
+    {'gru': links.FastGRU, 'state': 'random', 'out_size': 8},
     {'gru': links.GRU, 'state': 'random', 'in_size': 4, 'out_size': 8},
     {'gru': links.GRU, 'state': 'random', 'out_size': 8},
     {'gru': links.StatefulGRU, 'state': 'random', 'in_size': 4, 'out_size': 8},
     {'gru': links.StatefulGRU, 'state': 'zero', 'in_size': 4, 'out_size': 8},
 )
+
 class TestGRU(unittest.TestCase):
 
     def setUp(self):
-        if self.gru == links.GRU:
+        if self.gru == links.GRU or self.gru == links.FastGRU:
             if hasattr(self, 'in_size'):
                 self.link = self.gru(self.out_size, self.in_size)
             else:
@@ -59,7 +61,7 @@ class TestGRU(unittest.TestCase):
             -1, 1, (3, self.out_size)).astype(numpy.float32)
 
     def _forward(self, link, h, x):
-        if isinstance(link, links.GRU):
+        if isinstance(link, (links.GRU, links.FastGRU)):
             return link(h, x)
         else:
             if self.state != 'zero':
@@ -72,7 +74,10 @@ class TestGRU(unittest.TestCase):
         y = self._forward(self.link, h, x)
 
         self.assertEqual(y.data.dtype, numpy.float32)
-        y_expect = _gru(self.link, h_data, x_data)
+        if isinstance(self.link, links.FastGRU):
+            y_expect = _gru(self.link.to_classic_GRU(), h_data, x_data)
+        else:
+            y_expect = _gru(self.link, h_data, x_data)
         gradient_check.assert_allclose(y_expect, y.data)
         if isinstance(self.link, links.StatefulGRU):
             gradient_check.assert_allclose(self.link.h.data, y.data)
@@ -93,8 +98,13 @@ class TestGRU(unittest.TestCase):
         y.grad = y_grad
         y.backward()
 
-        def f():
-            return _gru(self.link, h_data, x_data),
+        if isinstance(self.link, links.FastGRU):
+            classic_GRU = self.link.to_classic_GRU()
+            def f():
+                return _gru(classic_GRU, h_data, x_data),
+        else:
+            def f():
+                return _gru(self.link, h_data, x_data),
         gx, = gradient_check.numerical_grad(f, (x.data,), (y.grad,))
         gradient_check.assert_allclose(gx, x.grad, atol=1e-3)
 
