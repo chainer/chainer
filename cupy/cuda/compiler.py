@@ -110,6 +110,9 @@ def compile_with_cache(source, options=(), arch=None, cache_dir=None):
         elif sys.maxsize == 2147483647:
             options += '-m32',
 
+    # For flushes denormal values to zero
+    options += ('-ftz=true',)
+
     env = (arch, options)
     if '#include' in source:
         pp_src = '%s %s' % (env, preprocess(source, options))
