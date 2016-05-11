@@ -229,3 +229,4 @@ Parameter = parameter.Parameter
 NegativeSampling = links_negative_sampling.NegativeSampling
 
 BatchNormalization = links_batch_normalization.BatchNormalization
+
