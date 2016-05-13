@@ -46,9 +46,9 @@ def _make_ptr_array(xs):
 
 class NStepLSTM(function.Function):
 
-    def __init__(self, n_layers, train=True):
+    def __init__(self, n_layers, train=True, dropout=0.0):
         self.seed = 1337
-        self.dropout = 0.0
+        self.dropout = dropout
         self.n_layers = n_layers
         self.train = train
 
@@ -240,3 +240,7 @@ class NStepLSTM(function.Function):
                 v[:] = bias.ravel()
 
         return dhx, dcx, dxs, dws, dbs
+
+
+def n_step_lstm(n_layers, h, c, x, w, b, train=True, dropout=0.0):
+    return NStepLSTM(n_layers, train, dropout)(h, c, x, w, b)
