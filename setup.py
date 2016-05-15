@@ -16,6 +16,10 @@ install_requires = [
     'six>=1.9.0',
 ]
 
+extras_require = {
+    ":python_version < '3.0'": ["functools32"]
+}
+
 
 # Hack for Read the Docs
 on_rtd = chainer_setup_build.check_readthedocs_environment()
@@ -81,6 +85,7 @@ setup(
     install_requires=install_requires,
     tests_require=['mock',
                    'nose'],
+    extras_require=extras_require,
     # To trick build into running build_ext
     ext_modules=[chainer_setup_build.dummy_extension],
     cmdclass={
