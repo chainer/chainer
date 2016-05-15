@@ -11,6 +11,11 @@ import six
 from cupy.cuda import device
 from cupy.cuda import function
 
+if six.PY2:
+    import functools32 as functools
+else:
+    import functools
+
 
 def _get_arch():
     cc = device.Device().compute_capability
@@ -96,6 +101,7 @@ def get_cache_dir():
 _empty_file_preprocess_cache = {}
 
 
+@functools.lru_cache()
 def compile_with_cache(source, options=(), arch=None, cache_dir=None):
     global _empty_file_preprocess_cache
     if cache_dir is None:
