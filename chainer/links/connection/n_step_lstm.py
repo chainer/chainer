@@ -53,12 +53,12 @@ class NStepLSTM(link.Chain):
     def __call__(self, x, train=True):
         if self.c is None:
             self.c = variable.Variable(
-                self.xp.zeros((self.n_layers, len(x.data), self.size),
+                self.xp.zeros((self.n_layers, x.data.shape[1], self.size),
                               dtype=x.data.dtype),
                 volatile="auto")
         if self.h is None:
             self.h = variable.Variable(
-                self.xp.zeros((self.n_layers, len(x.data), self.size),
+                self.xp.zeros((self.n_layers, x.data.shape[1], self.size),
                               dtype=x.data.dtype),
                 volatile="auto")
 
