@@ -62,8 +62,6 @@ class NStepLSTM(link.Chain):
                               dtype=x.data.dtype),
                 volatile="auto")
 
-        x = reshape.reshape(x, (1,) + x.data.shape)
         self.h, self.c, y = n_step_lstm.n_step_lstm(
             self.n_layers, self.h, self.c, x, self.w, self.b, train=train)
-        y = reshape.reshape(y, y.data.shape[1:])
         return y
