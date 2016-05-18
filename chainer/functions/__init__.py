@@ -46,6 +46,7 @@ from chainer.functions.math import clip
 from chainer.functions.math import det
 from chainer.functions.math import exponential
 from chainer.functions.math import exponential_m1
+from chainer.functions.math import logarithm_1p
 from chainer.functions.math import identity
 from chainer.functions.math import inv
 from chainer.functions.math import matmul
@@ -179,8 +180,8 @@ Inv = inv.Inv
 inv = inv.inv
 Log = exponential.Log
 log = exponential.log
-Log1p = exponential_m1.Log1p
-log1p = exponential_m1.log1p
+Log1p = logarithm_1p.Log1p
+log1p = logarithm_1p.log1p
 MatMul = matmul.MatMul
 matmul = matmul.matmul
 Max = minmax.Max
