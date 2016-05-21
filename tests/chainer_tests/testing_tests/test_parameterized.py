@@ -17,6 +17,15 @@ class ProductTest(unittest.TestCase):
         self.assertListEqual(testing.product(self.actual), self.expect)
 
 
+class ProductMaxCountTest(unittest.TestCase):
+
+    def test_product(self):
+        max_count = 10
+        param = {'a': [0] * 5, 'b': [0] * 5}
+        self.assertEqual(
+            len(testing.product(param, max_count=max_count)), max_count)
+
+
 @testing.parameterize(
     {'actual': [[{'a': 1, 'b': 3}, {'a': 2, 'b': 4}], [{'c': 5}, {'c': 6}]],
      'expect': [{'a': 1, 'b': 3, 'c': 5}, {'a': 1, 'b': 3, 'c': 6},
