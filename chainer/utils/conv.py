@@ -107,6 +107,11 @@ def col2im_cpu(col, sy, sx, ph, pw, h, w):
             j_lim = j + sx * out_w
             img[:, :, i:i_lim:sy, j:j_lim:sx] += col[:, :, i, j, :, :]
 
+    if ph < 0:
+        img[:, :, h + ph * 2:, :] = 0
+    if pw < 0:
+        img[:, :, :, w + pw * 2:] = 0
+
     return _cut_and_pad(img, ph, h + ph, pw, w + pw)
 
 
@@ -122,22 +127,25 @@ def col2im_gpu(col, sy, sx, ph, pw, h, w):
            int c0 = i / (h * w);
            int y  = i / w % h + ph;
            int x  = i % w + pw;
+           if (y >= h + ph * 2 or x >= w + pw * 2) {
+             img = 0;
+           } else {
+             int out_y_0 = max(0,     (y - kh + sy) / sy);
+             int out_y_1 = min(out_h, (y      + sy) / sy);
+             int out_x_0 = max(0,     (x - kw + sx) / sx);
+             int out_x_1 = min(out_w, (x      + sx) / sx);
 
-           int out_y_0 = max(0,     (y - kh + sy) / sy);
-           int out_y_1 = min(out_h, (y      + sy) / sy);
-           int out_x_0 = max(0,     (x - kw + sx) / sx);
-           int out_x_1 = min(out_w, (x      + sx) / sx);
-
-           T val = 0;
-           for (int out_y = out_y_0; out_y < out_y_1; ++out_y) {
-             int ky = y - out_y * sy;
-             for (int out_x = out_x_0; out_x < out_x_1; ++out_x) {
-               int kx = x - out_x * sx;
-               int k = out_y + out_h * (kx + kw * (ky + kh * c0));
-               val = val + col[out_x + out_w * k];
+             T val = 0;
+             for (int out_y = out_y_0; out_y < out_y_1; ++out_y) {
+               int ky = y - out_y * sy;
+               for (int out_x = out_x_0; out_x < out_x_1; ++out_x) {
+                 int kx = x - out_x * sx;
+                 int k = out_y + out_h * (kx + kw * (ky + kh * c0));
+                 val = val + col[out_x + out_w * k];
+               }
              }
+             img = val;
            }
-           img = val;
         ''',
         'col2im')(col.reduced_view(),
                   h, w, out_h, out_w, kh, kw, sy, sx, ph, pw, img)
