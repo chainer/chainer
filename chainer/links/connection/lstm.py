@@ -1,5 +1,3 @@
-import six
-
 from chainer.functions.activation import lstm
 from chainer.functions.array import concat
 from chainer import link
