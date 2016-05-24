@@ -67,7 +67,16 @@ class AveragePooling2D(pooling_2d.Pooling2D):
     def backward_gpu(self, x, gy):
         if (cuda.cudnn_enabled and self.use_cudnn and
                 pooling_2d._check_cudnn_acceptable_type(x[0].dtype)):
-            return super(AveragePooling2D, self).backward_gpu(x, gy)
+            gx, = super(AveragePooling2D, self).backward_gpu(x, gy)
+
+            # When padding is negative, these values are not zero.
+            # Is this a bug of cuDNN?
+            if self.ph < 0:
+                gx[:, :, :, 0:-self.ph] = 0
+            if self.pw < 0:
+                gx[:, :, 0:-self.pw, :] = 0
+            return gx,
+
 
         n, c, h, w = x[0].shape
         y_h, y_w = gy[0].shape[2:]
