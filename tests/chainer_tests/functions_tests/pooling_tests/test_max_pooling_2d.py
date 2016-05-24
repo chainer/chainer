@@ -1,3 +1,4 @@
+import itertools
 import unittest
 
 import mock
@@ -13,29 +14,36 @@ from chainer.testing import attr
 from chainer.testing import condition
 
 
-@testing.parameterize(*testing.product({
-    'cover_all': [True, False],
-    'dtype': [numpy.float16, numpy.float32, numpy.float64],
-}))
+@testing.parameterize(*testing.product_dict(
+    [
+        {'pad': 1, 'cover_all': True, 'ksize': 3,
+         'in_shape': (2, 3, 4, 3), 'out_shape': (2, 3, 3, 2),
+         'x_ranges': [(0, 2), (1, 4), (3, 4)], 'y_ranges': [(0, 2), (1, 3)]},
+        {'pad': 1, 'cover_all': False, 'ksize': 3,
+         'in_shape': (2, 3, 4, 3), 'out_shape': (2, 3, 2, 2),
+         'x_ranges': [(0, 2), (1, 4)], 'y_ranges': [(0, 2), (1, 3)]},
+    ],
+    [
+        {'dtype': numpy.float16},
+        {'dtype': numpy.float32},
+        {'dtype': numpy.float64},
+    ]
+))
 class TestMaxPooling2D(unittest.TestCase):
 
     def setUp(self):
         # Avoid unstability of numerical gradient
         self.x = numpy.arange(
-            2 * 3 * 4 * 3, dtype=self.dtype).reshape(2, 3, 4, 3)
+            numpy.prod(self.in_shape), dtype=self.dtype).reshape(self.in_shape)
         numpy.random.shuffle(self.x)
         self.x = 2 * self.x / self.x.size - 1
-        if self.cover_all:
-            self.gy = numpy.random.uniform(
-                -1, 1, (2, 3, 3, 2)).astype(self.dtype)
-        else:
-            self.gy = numpy.random.uniform(
-                -1, 1, (2, 3, 2, 2)).astype(self.dtype)
+        self.gy = numpy.random.uniform(
+            -1, 1, self.out_shape).astype(self.dtype)
         self.check_backward_options = {'eps': 2.0 ** -8}
 
     def check_forward(self, x_data, use_cudnn=True):
         x = chainer.Variable(x_data)
-        y = functions.max_pooling_2d(x, 3, stride=2, pad=1,
+        y = functions.max_pooling_2d(x, self.ksize, stride=2, pad=self.pad,
                                      cover_all=self.cover_all,
                                      use_cudnn=use_cudnn)
         self.assertEqual(y.data.dtype, self.dtype)
@@ -45,15 +53,9 @@ class TestMaxPooling2D(unittest.TestCase):
         for k in six.moves.range(2):
             for c in six.moves.range(3):
                 x = self.x[k, c]
-                if self.cover_all:
-                    expect = numpy.array([
-                        [x[0:2, 0:2].max(), x[0:2, 1:3].max()],
-                        [x[1:4, 0:2].max(), x[1:4, 1:3].max()],
-                        [x[3:4, 0:2].max(), x[3:4, 1:3].max()]])
-                else:
-                    expect = numpy.array([
-                        [x[0:2, 0:2].max(), x[0:2, 1:3].max()],
-                        [x[1:4, 0:2].max(), x[1:4, 1:3].max()]])
+                expect = numpy.array(
+                    [[x[rx1:rx2, ry1:ry2].max() for ry1, ry2 in self.y_ranges]
+                     for rx1, rx2 in self.x_ranges])
                 testing.assert_allclose(expect, y_data[k, c])
 
     @condition.retry(3)
@@ -78,7 +80,7 @@ class TestMaxPooling2D(unittest.TestCase):
     def check_backward(self, x_data, y_grad, use_cudnn=True):
         gradient_check.check_backward(
             functions.MaxPooling2D(
-                3, stride=2, pad=1, cover_all=self.cover_all,
+                self.ksize, stride=2, pad=self.pad, cover_all=self.cover_all,
                 use_cudnn=use_cudnn),
             x_data, y_grad, **self.check_backward_options)
 
