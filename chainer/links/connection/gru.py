@@ -1,4 +1,5 @@
 import numpy
+import six
 
 import chainer
 from chainer.functions.activation import sigmoid
