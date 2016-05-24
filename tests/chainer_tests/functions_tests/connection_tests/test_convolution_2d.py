@@ -13,12 +13,26 @@ from chainer.testing import attr
 from chainer.testing import condition
 
 
-@testing.parameterize(*testing.product({
-    'c_contiguous': [True, False],
-    'cover_all': [True, False],
-    'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
-    'W_dtype': [numpy.float16, numpy.float32, numpy.float64],
-}))
+@testing.parameterize(*testing.product_dict(
+    [
+        {'pad': 1, 'cover_all': False,
+         'in_shape': (2, 3, 4, 3), 'out_shape': (2, 2, 2, 2)},
+        {'pad': 1, 'cover_all': True,
+         'in_shape': (2, 3, 4, 3), 'out_shape': (2, 2, 3, 2)},
+        {'pad': -1, 'cover_all': False,
+         'in_shape': (2, 3, 10, 8), 'out_shape': (2, 2, 3, 2)},
+        {'pad': -1, 'cover_all': True,
+         'in_shape': (2, 3, 10, 8), 'out_shape': (2, 2, 4, 3)},
+    ],
+    [
+        {'c_contiguous': True},
+        {'c_contiguous': False},
+    ],
+    testing.product(
+        {'x_dtype': [numpy.float16, numpy.float32, numpy.float64]}),
+    testing.product(
+        {'W_dtype': [numpy.float16, numpy.float32, numpy.float64]}),
+))
 class TestConvolution2DFunction(unittest.TestCase):
 
     def setUp(self, use_cudnn=True):
@@ -26,7 +40,6 @@ class TestConvolution2DFunction(unittest.TestCase):
         out_channels = 2
         kh, kw = (3, 3)
         self.stride = 2
-        self.pad = 1
         self.use_cudnn = use_cudnn
         self.W = numpy.random.normal(
             0, numpy.sqrt(1. / (kh * kw * in_channels)),
@@ -34,14 +47,10 @@ class TestConvolution2DFunction(unittest.TestCase):
         self.b = numpy.random.uniform(
             -1, 1, out_channels).astype(self.x_dtype)
 
-        self.x = numpy.random.uniform(
-            -1, 1, (2, 3, 4, 3)).astype(self.x_dtype)
-        if self.cover_all:
-            self.gy = numpy.random.uniform(-1, 1,
-                                           (2, 2, 3, 2)).astype(self.x_dtype)
-        else:
-            self.gy = numpy.random.uniform(
-                -1, 1, (2, 2, 2, 2)).astype(self.x_dtype)
+        self.x = numpy.random.uniform(-1, 1,
+                                      self.in_shape).astype(self.x_dtype)
+        self.gy = numpy.random.uniform(-1, 1,
+                                       self.out_shape).astype(self.x_dtype)
         self.check_forward_options = {}
         self.check_backward_options = {'eps': 1e-2}
         if self.x_dtype == numpy.float16:
