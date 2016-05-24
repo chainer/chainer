@@ -109,12 +109,12 @@ class StackedLSTM(link.ChainList):
         self.reset_state()
 
     def to_cpu(self):
-        for i in range(self.num_layers):
-            self[i].to_cpu()
+        for layer in self:
+            layer.to_cpu()
 
     def to_gpu(self, device=None):
-        for i in range(self.num_layers):
-            self[i].to_gpu(device)
+        for layer in self:
+            layer.to_gpu(device)
 
     def reset_state(self):
         """Resets the internal state.
@@ -123,8 +123,8 @@ class StackedLSTM(link.ChainList):
         attributes for each LSTM in the stack.
 
         """
-        for i in range(self.num_layers):
-            self[i].reset_state()
+        for layer in self:
+            layer.reset_state()
 
     def __call__(self, x, top_n=None):
         """Updates the internal state and returns the LSTM outputs.
@@ -142,9 +142,8 @@ class StackedLSTM(link.ChainList):
             top_n = self.num_layers
 
         h_list = []
-        h_curr = self[0](x)
-        h_list.append(h_curr)
-        for i in range(1, self.num_layers):
-            h_curr = self[i](h_curr)
+        h_curr = x
+        for layer, h in six.moves.zip(self, h):
+            h_curr = layer(h, h_curr)
             h_list.append(h_curr)
-        return concat.concat((h_l for h_l in h_list[-top_n:]), 1)
+        return concat.concat(h_list[-top_n:], 1)

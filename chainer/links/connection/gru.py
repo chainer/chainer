@@ -228,6 +228,7 @@ class StackedStatefulGRU(link.ChainList):
 
     def __init__(self, in_size, out_size, num_layers=1):
         super(StackedStatefulGRU, self).__init__()
+        assert num_layers >= 1
         self.add_link(StatefulGRU(in_size, out_size))
         for i in range(1, num_layers):
             self.add_link(StatefulGRU(out_size, out_size))
@@ -235,22 +236,22 @@ class StackedStatefulGRU(link.ChainList):
         self.reset_state()
 
     def to_cpu(self):
-        for i in range(self.num_layers):
-            self[i].to_cpu()
+        for layer in self:
+            layer.to_cpu()
 
     def to_gpu(self, device=None):
-        for i in range(self.num_layers):
-            self[i].to_gpu(device)
+        for layer in self:
+            layer.to_gpu(device)
 
     def set_state(self, h):
         h = split_axis.split_axis(h, self.num_layers, 1, True)
-        for i in range(self.num_layers):
-            assert isinstance(h[i], chainer.Variable)
-            self[i].set_state(h[i])
+        for layer, h in six.moves.zip(self, h):
+            assert isinstance(h, chainer.Variable)
+            layer.set_state(h)
 
     def reset_state(self):
-        for i in range(self.num_layers):
-            self[i].reset_state()
+        for layer in self:
+            layer.reset_state()
 
     def __call__(self, x, top_n=None):
         """Updates the internal state and returns the GRU outputs.
