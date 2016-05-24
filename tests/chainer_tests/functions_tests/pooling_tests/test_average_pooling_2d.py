@@ -18,6 +18,9 @@ from chainer.testing import condition
         {'pad': 1, 'ksize': 3,
          'in_shape': (2, 3, 4, 3), 'out_shape': (2, 3, 2, 2),
          'x_ranges': [(0, 2), (1, 4)], 'y_ranges': [(0, 2), (1, 3)]},
+        {'pad': -1, 'ksize': 2,
+         'in_shape': (2, 3, 5, 4), 'out_shape': (2, 3, 1, 1),
+         'x_ranges': [(1, 3)], 'y_ranges': [(1, 3)]},
     ],
     [
         {'dtype': numpy.float16},
