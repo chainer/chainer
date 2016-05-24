@@ -179,6 +179,7 @@ class StackedGRU(link.ChainList):
 
     def __init__(self, in_size, out_size, num_layers=1):
         super(StackedGRU, self).__init__()
+        assert num_layers >= 1
         self.add_link(GRU(out_size, in_size))
         for i in range(1, num_layers):
             self.add_link(GRU(out_size, out_size))
@@ -198,12 +199,11 @@ class StackedGRU(link.ChainList):
         """
         h_list = []
         h = split_axis.split_axis(h, self.num_layers, 1, True)
-        h_curr = self[0](h[0], x)
-        h_list.append(h_curr)
-        for i in range(1, self.num_layers):
-            h_curr = self[i](h[i], h_curr)
+        h_curr = x
+        for layer, h in six.moves.zip(self, h):
+            h_curr = layer(h, h_curr)
             h_list.append(h_curr)
-        return concat.concat((h_l for h_l in h_list), 1)
+        return concat.concat(h_list, 1)
 
 
 class StackedStatefulGRU(link.ChainList):
@@ -269,9 +269,8 @@ class StackedStatefulGRU(link.ChainList):
             top_n = self.num_layers
 
         h_list = []
-        h_curr = self[0](x)
-        h_list.append(h_curr)
-        for i in range(1, self.num_layers):
-            h_curr = self[i](h_curr)
+        h_curr = x
+        for layer, h in six.moves.zip(self, h):
+            h_curr = layer(h, h_curr)
             h_list.append(h_curr)
-        return concat.concat((h_l for h_l in h_list[-top_n:]), 1)
+        return concat.concat(h_list[-top_n:], 1)
