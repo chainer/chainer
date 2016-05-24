@@ -77,7 +77,6 @@ class AveragePooling2D(pooling_2d.Pooling2D):
                 gx[:, :, 0:-self.pw, :] = 0
             return gx,
 
-
         n, c, h, w = x[0].shape
         y_h, y_w = gy[0].shape[2:]
         gx = cuda.cupy.empty_like(x[0])
