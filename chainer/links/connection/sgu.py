@@ -6,6 +6,7 @@ from chainer.functions.activation import hard_sigmoid
 from chainer.functions.activation import sigmoid
 from chainer.functions.activation import softplus
 from chainer.functions.activation import tanh
+from chainer.functions.math import linear_interpolate
 from chainer import link
 from chainer.links.connection import linear
 from chainer import variable
@@ -26,7 +27,7 @@ class SGU(link.Chain):
         z_g = tanh.tanh(self.W_zxh(x_g * h))
         z_out = softplus.softplus(z_g * h)
         z_t = hard_sigmoid.hard_sigmoid(self.W_xz(x) + self.W_hz(h))
-        h_t = (1 - z_t) * h + z_t * z_out
+        h_t = linear_interpolate.linear_interpolate(z_t, z_out, h)
         return h_t
 
 
@@ -90,7 +91,7 @@ class DSGU(link.Chain):
         z_g = tanh.tanh(self.W_zxh(x_g * h))
         z_out = sigmoid.sigmoid(self.W_go(z_g * h))
         z_t = hard_sigmoid.hard_sigmoid(self.W_xz(x) + self.W_hz(h))
-        h_t = (1 - z_t) * h + z_t * z_out
+        h_t = linear_interpolate.linear_interpolate(z_t, z_out, h)
         return h_t
 
 
