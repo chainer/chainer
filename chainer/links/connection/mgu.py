@@ -4,6 +4,7 @@ import chainer
 from chainer.functions.activation import sigmoid
 from chainer.functions.activation import tanh
 from chainer.functions.array import concat
+from chainer.functions.math import linear_interpolate
 from chainer import link
 from chainer.links.connection import linear
 
@@ -19,7 +20,7 @@ class MGU(link.Chain):
     def __call__(self, h, x):
         f = sigmoid.sigmoid(self.W_f(concat.concat([h, x])))
         h_bar = tanh.tanh(self.W_h(concat.concat([f * h, x])))
-        h_new = (1 - f) * h + f * h_bar
+        h_new = linear_interpolate.linear_interpolate(f, h_bar, h)
         return h_new
 
 
