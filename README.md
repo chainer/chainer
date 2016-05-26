@@ -13,7 +13,7 @@ Chainer is tested on Ubuntu 14.04 and CentOS 7. We recommend them to use Chainer
 
 Minimum requirements:
 - Python 2.7.6+, 3.4.3+, 3.5.1+
-- NumPy 1.9, 1.10
+- NumPy 1.9, 1.10, 1.11
 - Six 1.9
 
 Requirements for some features:
@@ -22,10 +22,10 @@ Requirements for some features:
   - filelock
   - g++ 4.8.4+
 - cuDNN support
-  - cuDNN v2, v3, v4
+  - cuDNN v2, v3, v4, v5
 - Caffe model support
-  - Python 2.7.6+ (Py3 is not supported)
   - Protocol Buffers (pip install protobuf)
+    - protobuf>=3.0.0 is required for Py3
 - HDF5 serialization support
   - h5py 2.5.0
 - Testing utilities

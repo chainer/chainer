@@ -13,16 +13,9 @@ from chainer.testing import attr
 from chainer.testing import condition
 
 
-def _asfortranarray(x):
-    xp = cuda.get_array_module(x)
-    if xp is numpy:
-        return xp.asfortranarray(x)
-    else:
-        return xp.ascontiguousarray(x.T).T
-
-
 @testing.parameterize(*testing.product({
     'c_contiguous': [True, False],
+    'cover_all': [True, False],
 }))
 class TestConvolution2DFunction(unittest.TestCase):
 
@@ -41,8 +34,12 @@ class TestConvolution2DFunction(unittest.TestCase):
 
         self.x = numpy.random.uniform(-1, 1,
                                       (2, 3, 4, 3)).astype(numpy.float32)
-        self.gy = numpy.random.uniform(-1, 1,
-                                       (2, 2, 2, 2)).astype(numpy.float32)
+        if self.cover_all:
+            self.gy = numpy.random.uniform(-1, 1,
+                                           (2, 2, 3, 2)).astype(numpy.float32)
+        else:
+            self.gy = numpy.random.uniform(-1, 1,
+                                           (2, 2, 2, 2)).astype(numpy.float32)
 
     @attr.cudnn
     def test_forward_consistency(self, nobias=False):
@@ -51,14 +48,14 @@ class TestConvolution2DFunction(unittest.TestCase):
         b_cpu = None if nobias else chainer.Variable(self.b)
         y_cpu = functions.convolution_2d(
             x_cpu, W_cpu, b_cpu, stride=self.stride, pad=self.pad,
-            use_cudnn=self.use_cudnn)
+            use_cudnn=self.use_cudnn, cover_all=self.cover_all)
 
         x_gpu = chainer.Variable(cuda.to_gpu(self.x))
         W_gpu = chainer.Variable(cuda.to_gpu(self.W))
         b_gpu = None if nobias else chainer.Variable(cuda.to_gpu(self.b))
         y_gpu = functions.convolution_2d(
             x_gpu, W_gpu, b_gpu, stride=self.stride, pad=self.pad,
-            use_cudnn=self.use_cudnn)
+            use_cudnn=self.use_cudnn, cover_all=self.cover_all)
 
         gradient_check.assert_allclose(y_cpu.data, y_gpu.data.get())
 
@@ -73,15 +70,15 @@ class TestConvolution2DFunction(unittest.TestCase):
         self.test_forward_consistency(nobias=True)
 
     def check_backward(self, x_data, W_data, b_data, y_grad):
+        xp = cuda.get_array_module(x_data)
         if not self.c_contiguous:
-            x_data = _asfortranarray(x_data)
-            W_data = _asfortranarray(W_data)
-            y_grad = _asfortranarray(y_grad)
+            x_data = xp.asfortranarray(x_data)
+            W_data = xp.asfortranarray(W_data)
+            y_grad = xp.asfortranarray(y_grad)
             self.assertFalse(x_data.flags.c_contiguous)
             self.assertFalse(W_data.flags.c_contiguous)
             self.assertFalse(y_grad.flags.c_contiguous)
             if b_data is not None:
-                xp = cuda.get_array_module(b_data)
                 b = xp.empty((len(b_data) * 2,), dtype=self.b.dtype)
                 b[::2] = b_data
                 b_data = b[::2]
@@ -93,7 +90,7 @@ class TestConvolution2DFunction(unittest.TestCase):
 
         gradient_check.check_backward(
             convolution_2d.Convolution2DFunction(
-                self.stride, self.pad, self.use_cudnn),
+                self.stride, self.pad, self.use_cudnn, self.cover_all),
             args, y_grad, eps=1e-2)
 
     @condition.retry(3)
@@ -131,10 +128,9 @@ class TestConvolution2DFunction(unittest.TestCase):
                             None, cuda.to_gpu(self.gy))
 
 
-@testing.parameterize(
-    {'use_cudnn': True},
-    {'use_cudnn': False},
-)
+@testing.parameterize(*testing.product({
+    'use_cudnn': [True, False],
+}))
 @attr.cudnn
 class TestConvolution2DCudnnCall(unittest.TestCase):
 

@@ -1,4 +1,5 @@
 import collections
+import pkg_resources
 import sys
 import warnings
 
@@ -8,10 +9,28 @@ import six
 from chainer import functions
 from chainer import link
 from chainer import links
-# caffe_pb2 does not support Py3
-if sys.version_info < (3, 0, 0):
-    from chainer.links.caffe import caffe_pb2
 
+
+def _protobuf3():
+    ws = pkg_resources.WorkingSet()
+    try:
+        ws.require('protobuf>=3.0.0a')
+        return True
+    except pkg_resources.VersionConflict:
+        return False
+
+
+if _protobuf3():
+    from chainer.links.caffe import caffe_pb3 as caffe_pb
+    available = True
+elif sys.version_info < (3, 0, 0):
+    # caffe_pb2 does not support Py3
+    from chainer.links.caffe import caffe_pb2 as caffe_pb
+    available = True
+else:
+    available = False
+
+if available:
     _type_to_method = {}
     _oldname_to_method = {}
 
@@ -19,26 +38,22 @@ if sys.version_info < (3, 0, 0):
         def decorator(meth):
             global _type_to_method
             _type_to_method[typ] = meth
-            typevalue = getattr(caffe_pb2.V1LayerParameter, oldname)
+            typevalue = getattr(caffe_pb.V1LayerParameter, oldname)
             _oldname_to_method[typevalue] = meth
             return meth
         return decorator
-
-    available = True
 else:
     def _layer(typ, oldname):  # fallback
         def decorator(meth):
             return meth
         return decorator
 
-    available = False
-
 
 class CaffeFunction(link.Chain):
 
     """Caffe emulator based on the model file of Caffe.
 
-    Given a binary protobuf file of a Caffe model, this class loads and
+    Given a protocol buffers file of a Caffe model, this class loads and
     emulates it on :class:`~chainer.Variable` objects. It supports the official
     reference models provided by BVLC.
 
@@ -81,13 +96,13 @@ class CaffeFunction(link.Chain):
           x_data = numpy.ndarray((10, 3, 227, 227), dtype=numpy.float32)
           ...  # (Fill the minibatch here)
 
-          # Forward the pretrained net
+          # Forward the pre-trained net
           x = Variable(x_data)
           y, = func(inputs={'data': x}, outputs=['fc8'])
 
        The result ``y`` contains the Variable corresponding to the ``fc8``
        blob. The computational graph is memorized as a usual forward
-       computation in Chainer, so we can run backprop through this pretrained
+       computation in Chainer, so we can run backprop through this pre-trained
        net.
 
     Args:
@@ -102,11 +117,12 @@ class CaffeFunction(link.Chain):
     """
     def __init__(self, model_path):
         if not available:
-            raise RuntimeError('CaffeFunction is not supported on Python 3')
+            msg = ('CaffeFunction is only supported on protobuf>=3 in Python3')
+            raise RuntimeError(msg)
 
         super(CaffeFunction, self).__init__()
 
-        net = caffe_pb2.NetParameter()
+        net = caffe_pb.NetParameter()
         with open(model_path, 'rb') as model_file:
             net.MergeFromString(model_file.read())
 
@@ -133,8 +149,8 @@ class CaffeFunction(link.Chain):
                         'Skip the layer "%s", since CaffeFunction does not'
                         'support it' % layer.name)
 
-    def __call__(self, inputs, outputs, disable=[], train=True):
-        """Executes a subnetwork of the network.
+    def __call__(self, inputs, outputs, disable=(), train=True):
+        """Executes a sub-network of the network.
 
         This function acts as an interpreter of the network definition for
         Caffe. On execution, it interprets each layer one by one, and if the
@@ -149,8 +165,8 @@ class CaffeFunction(link.Chain):
                 :class:`~chainer.Variable` objects are returned.
             disable (Iterable): A list of layer names that will be ignored
                 during the forward computation.
-            train (bool): If True, this function emulates the TRAIN phase of
-                the Caffe layers. Otherwise, it emulates the TEST phase.
+            train (bool): If ``True``, this function emulates the TRAIN phase
+                of the Caffe layers. Otherwise, it emulates the TEST phase.
 
         Returns:
             tuple: A tuple of output :class:`~chainer.Variable` objects
@@ -321,21 +337,21 @@ class CaffeFunction(link.Chain):
 
 def _get_ksize(param):
     if param.kernel_h > 0:
-        return (param.kernel_h, param.kernel_w)
+        return param.kernel_h, param.kernel_w
     else:
         return param.kernel_size
 
 
 def _get_stride(param):
     if param.stride_h > 0:
-        return (param.stride_h, param.stride_w)
+        return param.stride_h, param.stride_w
     else:
         return param.stride
 
 
 def _get_pad(param):
     if param.pad_h > 0:
-        return (param.pad_h, param.pad_w)
+        return param.pad_h, param.pad_w
     else:
         return param.pad
 

@@ -46,7 +46,7 @@ class LinearModel(object):
             t = chainer.Variable(t_data)
             return x, t
 
-        for epoch in six.moves.range(self.EPOCH):
+        for _ in six.moves.range(self.EPOCH):
             x, t = _make_dataset(self.BATCH_SIZE, self.UNIT_NUM, gpu)
             model.zerograds()
             y = model(x)
@@ -58,22 +58,17 @@ class LinearModel(object):
         y_test = model(x_test)
         return F.accuracy(y_test, t_test)
 
-    def _accuracy_cpu(self):
+    def accuracy_cpu(self):
         self.optimizer.setup(self.model)
         return self._train_linear_classifier(self.model, self.optimizer, False)
 
-    def _accuracy_gpu(self):
+    def accuracy_gpu(self, device=None):
         model = self.model
         optimizer = self.optimizer
-        model.to_gpu()
+        model.to_gpu(device=device)
         optimizer.setup(model)
-        return self._train_linear_classifier(model, optimizer, True)
-
-    def accuracy(self, gpu):
-        if gpu:
-            return cuda.to_cpu(self._accuracy_gpu().data)
-        else:
-            return self._accuracy_cpu().data
+        with cuda.get_device(device):
+            return self._train_linear_classifier(model, optimizer, True)
 
 
 class OptimizerTestBase(object):
@@ -86,12 +81,30 @@ class OptimizerTestBase(object):
 
     @condition.retry(10)
     def test_linear_model_cpu(self):
-        self.assertGreater(self.model.accuracy(False), 0.9)
+        self.assertGreater(self.model.accuracy_cpu().data, 0.9)
 
     @attr.gpu
     @condition.retry(10)
     def test_linear_model_gpu(self):
-        self.assertGreater(self.model.accuracy(True), 0.9)
+        self.assertGreater(cuda.to_cpu(self.model.accuracy_gpu().data), 0.9)
+
+    @attr.multi_gpu(2)
+    @condition.retry(10)
+    def test_linear_model_multi_gpu(self):
+        with cuda.Device(0):
+            self.assertGreater(
+                cuda.to_cpu(self.model.accuracy_gpu(1).data), 0.9)
+
+    @attr.multi_gpu(2)
+    def test_model_setup_multi_gpu(self):
+        with cuda.Device(0):
+            model = self.model.model
+            optimizer = self.model.optimizer
+            model.to_gpu(1)
+            optimizer.setup(model)
+        for name, param in optimizer.target.namedparams():
+            for v in six.itervalues(optimizer._states[name]):
+                self.assertEqual(int(param.data.device), int(v.device))
 
     def test_initialize(self):
         model = self.model.model
@@ -100,7 +113,7 @@ class OptimizerTestBase(object):
         optimizer.setup(model)
 
         msg = 'optimization target must be a link'
-        with self.assertRaisesRegexp(TypeError, msg):
+        with six.assertRaisesRegex(self, TypeError, msg):
             optimizer.setup('xxx')
 
 
