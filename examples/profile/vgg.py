@@ -31,17 +31,20 @@ class VGG(chainer.Chain):
         if batchsize is not None:
             self.batchsize = batchsize
 
-    def __call__(self, x_data, train=True):
-        x = chainer.Variable(x_data, volatile=not train)
-
-        h = F.max_pooling_2d(F.relu(self.conv1(x)), 2, stride=2)
-        h = F.max_pooling_2d(F.relu(self.conv2(h)), 2, stride=2)
-        h = F.relu(self.conv3(h))
-        h = F.max_pooling_2d(F.relu(self.conv4(h)), 2, stride=2)
-        h = F.relu(self.conv5(h))
-        h = F.max_pooling_2d(F.relu(self.conv6(h)), 2, stride=2)
-        h = F.relu(self.conv7(h))
-        h = F.max_pooling_2d(F.relu(self.conv8(h)), 2, stride=2)
+    def __call__(self, x):
+        h = F.relu(self.conv1(x), self.use_cudnn)
+        h = F.max_pooling_2d(h, 2, stride=2, use_cudnn=self.use_cudnn)
+        h = F.relu(self.conv2(h), self.use_cudnn)
+        h = F.max_pooling_2d(h, 2, stride=2, use_cudnn=self.use_cudnn)
+        h = F.relu(self.conv3(h), self.use_cudnn)
+        h = F.relu(self.conv4(h), self.use_cudnn)
+        h = F.max_pooling_2d(h, 2, stride=2, use_cudnn=self.use_cudnn)
+        h = F.relu(self.conv5(h), self.use_cudnn)
+        h = F.relu(self.conv6(h), self.use_cudnn)
+        h = F.max_pooling_2d(h, 2, stride=2, use_cudnn=self.use_cudnn)
+        h = F.relu(self.conv7(h), self.use_cudnn)
+        h = F.relu(self.conv8(h), self.use_cudnn)
+        h = F.max_pooling_2d(h, 2, stride=2, use_cudnn=self.use_cudnn)
         h = self.fc6(h)
         h = self.fc7(h)
         return self.fc8(h)

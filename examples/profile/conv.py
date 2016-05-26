@@ -21,8 +21,7 @@ class Conv(chainer.Chain):
         if batchsize is not None:
             self.batchsize = batchsize
 
-    def __call__(self, x_data, train=True):
-        x = chainer.Variable(x_data, volatile=not train)
+    def __call__(self, x):
         return self.conv(x)
 
 
