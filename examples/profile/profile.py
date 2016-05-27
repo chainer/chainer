@@ -1,4 +1,6 @@
 import argparse
+import os
+import shutil
 
 import chainer
 from chainer import cuda
@@ -14,24 +16,27 @@ import overfeat
 import vgg
 
 
-parser = argparse.ArgumentParser(description='ConvNet benchmark')
+parser = argparse.ArgumentParser(description='Measurement of mean elapsed time of forward, '
+                                 'backward and parameter update.')
 parser.add_argument('--predictor', '-p', type=str, default='alex',
                     choices=('alex', 'overfeat', 'vgg', 'conv1', 'conv2',
                              'conv3', 'conv4', 'conv5'),
                     help='network architecture')
 parser.add_argument('--seed', '-s', type=int, default=0,
                     help='random seed')
-parser.add_argument('--trial', '-t', type=int, default=10,
-                    help='the number of trials to be averaged over.')
+parser.add_argument('--iteration', '-i', type=int, default=10,
+                    help='the number of iterations to be averaged over.')
 parser.add_argument('--gpu', '-g', type=int, default=-1,
                     help='GPU to use. Negative value to use CPU')
 parser.add_argument('--cudnn', '-c', action='store_true',
                     help='True if using cudnn')
-parser.add_argument('--cached-kernel', '-k', action='store_true',
-                    help='True if we clear cache at '
-                    'the beginning of every iteration. '
-                    'Otherwise, only measurements whose kernels are not cached are taken '
-                    'into account to calculate elapsed time.')
+parser.add_argument('--cache-level', '-C', type=str, default=None,
+                    choices=(None, 'memory', 'disk'),
+                    help='If `None`, memory cache and disk cache are removed '
+                    'at the beginning of every iteration. Otherwise elapsed time is '
+                    'measured with corresponding cache enabled. If cache is enabled, '
+                    'the program operates one additional iteration for burn-in before '
+                    'measurement. This iteration is not included in mean elapsed time.')
 parser.add_argument('--batchsize', '-b', type=int, default=None,
                     help='batchsize. If None, '
                     'batchsize is architecture-specific batchsize is used.')
@@ -71,28 +76,35 @@ optimizer.setup(model)
 
 
 print('Architecture\t{}'.format(args.predictor))
-print('Trial\t{}'.format(args.trial))
-print('Cache\t{}'.format(not args.cached_kernel))
+print('Iteration\t{}'.format(args.iteration))
+print('Cache\t{}'.format(args.cache_level))
 print('cuDNN\t{}'.format(cuda.cudnn_enabled and model.predictor.use_cudnn))
-print('batchsize\t{}'.format(model.predictor.batchsize))
+print('Batchsize\t{}'.format(model.predictor.batchsize))
 
 
-def clear_cache():
-    pass
+def clear_cache(cache_level):
+    if args.gpu < 0:
+        return
+    if cache_level is None:
+        cache_dir = cuda.cupy.cuda.compiler.get_cache_dir()
+        if os.path.exists(cache_dir):
+            shutil.rmtree(cache_dir)
+    if cache_level is None or cache_level == 'disk':
+        cuda.cupy.clear_memo()
 
-if args.cached_kernel:
-    start_iteration = -1
-else:
+
+if args.cache_level is None:
     start_iteration = 0
+else:
+    start_iteration = -1
 
 forward_time = 0.0
 backward_time = 0.0
 update_time = 0.0
 
 print('iteration\tforward\tbackward\tupdate (in seconds)')
-for iteration in six.moves.range(start_iteration, args.trial):
-    if not args.cached_kernel:
-        clear_cache()
+for iteration in six.moves.range(start_iteration, args.iteration):
+    clear_cache(args.cache_level)
 
     # data generation
     data = numpy.random.uniform(-1, 1,
@@ -123,14 +135,14 @@ for iteration in six.moves.range(start_iteration, args.trial):
     if iteration < 0:
         print('Burn-in\t{}\t{}\t{}'.format(forward_time_one, backward_time_one, update_time_one))
     else:
-        print('Trial{}\t{}\t{}\t{}'.format(iteration, forward_time_one, backward_time_one, update_time_one))
+        print('Iteration{}\t{}\t{}\t{}'.format(iteration, forward_time_one, backward_time_one, update_time_one))
         forward_time += forward_time_one
         backward_time += backward_time_one
         update_time += update_time_one
 
-forward_time /= args.trial
-backward_time /= args.trial
-update_time /= args.trial
+forward_time /= args.iteration
+backward_time /= args.iteration
+update_time /= args.iteration
 
 
 print('Mean\t{}\t{}\t{}'.format(forward_time, backward_time, update_time))
