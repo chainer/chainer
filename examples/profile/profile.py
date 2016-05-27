@@ -135,7 +135,7 @@ for iteration in six.moves.range(start_iteration, args.iteration):
     if iteration < 0:
         print('Burn-in\t{}\t{}\t{}'.format(forward_time_one, backward_time_one, update_time_one))
     else:
-        print('Iteration{}\t{}\t{}\t{}'.format(iteration, forward_time_one, backward_time_one, update_time_one))
+        print('{}\t{}\t{}\t{}'.format(iteration, forward_time_one, backward_time_one, update_time_one))
         forward_time += forward_time_one
         backward_time += backward_time_one
         update_time += update_time_one
