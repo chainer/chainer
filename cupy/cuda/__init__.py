@@ -5,6 +5,7 @@ from cupy.cuda import memory
 from cupy.cuda import stream
 
 compile_with_cache = compiler.compile_with_cache
+get_cache_dir = compiler.get_cache_dir
 
 Device = device.Device
 get_cublas_handle = device.get_cublas_handle
