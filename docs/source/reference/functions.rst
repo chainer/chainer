@@ -35,6 +35,10 @@ elu
 ~~~
 .. autofunction:: elu
 
+hard_sigmoid
+~~~~~~~~~~~~
+.. autofunction:: hard_sigmoid
+
 leaky_relu
 ~~~~~~~~~~
 .. autofunction:: leaky_relu
@@ -102,6 +106,10 @@ copy
 expand_dims
 ~~~~~~~~~~~
 .. autofunction:: expand_dims
+
+get_item
+~~~~~~~~
+.. autofunction:: get_item
 
 reshape
 ~~~~~~~
@@ -247,6 +255,10 @@ inv
 ~~~
 .. autofunction:: inv
 
+linear_interpolate
+~~~~~~~~~~~~~~~~~~
+.. autofunction:: linear_interpolate
+
 log
 ~~~
 .. autofunction:: log
@@ -310,6 +322,10 @@ average_pooling_2d
 max_pooling_2d
 ~~~~~~~~~~~~~~
 .. autofunction:: max_pooling_2d
+
+roi_pooling_2d
+~~~~~~~~~~~~~~
+.. autofunction:: roi_pooling_2d
 
 spatial_pyramid_pooling_2d
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
