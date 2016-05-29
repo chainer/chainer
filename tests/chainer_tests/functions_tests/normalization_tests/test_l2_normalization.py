@@ -1,6 +1,6 @@
 import unittest
 
-import numpy as np
+import numpy
 import six
 
 import chainer
@@ -20,19 +20,19 @@ from chainer.utils import type_check
 class TestL2Normalization(unittest.TestCase):
 
     def setUp(self):
-        self.x = np.random.uniform(-1, 1, self.shape).astype(np.float32)
-        self.gy = np.random.uniform(-1, 1, self.shape).astype(np.float32)
+        self.x = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
+        self.gy = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
 
     def check_forward(self, x_data):
         x = chainer.Variable(x_data)
 
         y = functions.l2_normalization(x)
-        self.assertEqual(y.data.dtype, np.float32)
+        self.assertEqual(y.data.dtype, numpy.float32)
         y_data = cuda.to_cpu(y.data)
 
-        y_expect = np.empty_like(self.x)
+        y_expect = numpy.empty_like(self.x)
         for n in six.moves.range(len(self.x)):
-            y_expect[n] = self.x[n]/np.linalg.norm(self.x[n])
+            y_expect[n] = self.x[n]/numpy.linalg.norm(self.x[n])
 
         gradient_check.assert_allclose(y_expect, y_data)
 
@@ -62,7 +62,7 @@ class TestL2Normalization(unittest.TestCase):
 class TestL2NormalizationTypeError(unittest.TestCase):
 
     def test_invalid_shape(self):
-        x = chainer.Variable(np.zeros((4, 3, 24), dtype=np.float32))
+        x = chainer.Variable(numpy.zeros((4, 3, 24), dtype=numpy.float32))
 
         with self.assertRaises(type_check.InvalidType):
             chainer.functions.l2_normalization(x)
