@@ -4,9 +4,10 @@ from chainer.functions.activation import softplus
 from chainer.functions.math import exponential
 from chainer.functions.math import sum
 from chainer import variable
+from chainer.utils import aggregator
 
 
-def gaussian_kl_divergence(mean, ln_var):
+def gaussian_kl_divergence(mean, ln_var, aggregate_option='sum'):
     """Computes the KL-divergence of Gaussian variables from the standard one.
 
     Given two variable ``mean`` representing :math:`\\mu` and ``ln_var``
@@ -35,12 +36,12 @@ def gaussian_kl_divergence(mean, ln_var):
     assert isinstance(mean, variable.Variable)
     assert isinstance(ln_var, variable.Variable)
 
-    J = mean.data.size
     var = exponential.exp(ln_var)
-    return (sum.sum(mean * mean) + sum.sum(var) - sum.sum(ln_var) - J) * 0.5
+    loss = (mean * mean + var - ln_var - 1) * 0.5
+    return aggregator.aggregate(loss, aggregate_option)
 
 
-def bernoulli_nll(x, y):
+def bernoulli_nll(x, y, aggregate_option='sum'):
     """Computes the negative log-likelihood of a Bernoulli distribution.
 
     This function calculates the negative log-likelihood of a Bernoulli
@@ -71,10 +72,11 @@ def bernoulli_nll(x, y):
     assert isinstance(x, variable.Variable)
     assert isinstance(y, variable.Variable)
 
-    return sum.sum(softplus.softplus(y)) - sum.sum(x * y)
+    loss = softplus.softplus(y) - x * y
+    return aggregator.aggregate(loss, aggregate_option)
 
 
-def gaussian_nll(x, mean, ln_var):
+def gaussian_nll(x, mean, ln_var, aggregate_option='sum'):
     """Computes the negative log-likelihood of a Gaussian distribution.
 
     Given two variable ``mean`` representing :math:`\\mu` and ``ln_var``
@@ -109,4 +111,5 @@ def gaussian_nll(x, mean, ln_var):
     x_prec = exponential.exp(-ln_var)
     x_diff = x - mean
     x_power = (x_diff * x_diff) * x_prec * -0.5
-    return (sum.sum(ln_var) + D * math.log(2 * math.pi)) / 2 - sum.sum(x_power)
+    loss = (ln_var + math.log(2 * math.pi)) / 2 - x_power
+    return aggregator.aggregate(loss, aggregate_option)
