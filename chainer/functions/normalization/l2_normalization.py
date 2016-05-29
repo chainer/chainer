@@ -1,7 +1,6 @@
 import numpy
 
 from chainer import cuda
-from chainer.cuda import cupy
 from chainer import function
 from chainer.utils import array
 from chainer.utils import type_check
@@ -33,7 +32,7 @@ class L2Normalization(function.Function):
         l2norm_kernel = cuda.cupy.ReductionKernel(
             'T x', 'T y', 'x * x', 'a + b', 'y = sqrt(a)', '0', 'l2norm'
         )
-        norm = cupy.broadcast_to(
+        norm = cuda.cupy.broadcast_to(
             l2norm_kernel(x, axis=1).reshape(-1, 1),
             x.shape
         )
@@ -56,11 +55,11 @@ class L2Normalization(function.Function):
             l2norm_kernel = cuda.cupy.ReductionKernel(
                 'T x', 'T y', 'x * x', 'a + b', 'y = sqrt(a)', '0', 'l2norm'
             )
-            norm = cupy.broadcast_to(
+            norm = cuda.cupy.broadcast_to(
                 l2norm_kernel(x, axis=1).reshape(-1, 1),
                 x.shape
             )
-            x_gy = cupy.broadcast_to(
+            x_gy = cuda.cupy.broadcast_to(
                 (x*gy).sum(axis=1, keepdims=True),
                 x.shape
             )
