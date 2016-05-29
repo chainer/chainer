@@ -32,11 +32,14 @@ parser.add_argument('--cudnn', '-c', action='store_true',
                     help='True if using cudnn')
 parser.add_argument('--cache-level', '-C', type=str, default=None,
                     choices=(None, 'memory', 'disk'),
-                    help='If `None`, memory cache and disk cache are removed '
-                    'at the beginning of every iteration. Otherwise elapsed time is '
-                    'measured with corresponding cache enabled. If cache is enabled, '
-                    'the program operates one additional iteration for burn-in before '
-                    'measurement. This iteration is not included in mean elapsed time.')
+                    help='This option determines the type of the kernel cache used.'
+                    'By default, memory cache and disk cache are removed '
+                    'at the beginning of every iteration. '
+                    'Otherwise, elapsed times of each iteration are '
+                    'measured with corresponding cache enabled. '
+                    'If either cache is enabled, this script operates one additional '
+                    'iteration for burn-in before measurement. '
+                    'This iteration is not included in the mean elapsed time.')
 parser.add_argument('--batchsize', '-b', type=int, default=None,
                     help='batchsize. If None, '
                     'batchsize is architecture-specific batchsize is used.')
