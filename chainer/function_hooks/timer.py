@@ -21,7 +21,7 @@ class Timer(object):
     def start(self):
         if self.running:
             return
-        if self.xp == numpy:
+        if self.xp is numpy:
             self._start = time.time()
         else:
             self._start = cuda.Event()
@@ -32,7 +32,7 @@ class Timer(object):
         if not self.running:
             return 0.0
 
-        if self.xp == numpy:
+        if self.xp is numpy:
             self._stop = time.time()
             elapsed_time = self._stop - self._start
         else:
