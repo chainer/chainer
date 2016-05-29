@@ -3,14 +3,16 @@ import six
 
 from chainer import cuda
 from chainer import function
+from chainer import aggregator
 from chainer.utils import type_check
 
 
 class NegativeSamplingFunction(function.Function):
 
-    def __init__(self, sampler, sample_size):
+    def __init__(self, sampler, sample_size, aggregate_option='sum'):
         self.sampler = sampler
         self.sample_size = sample_size
+        self.aggregator = aggregator.Aggregator(aggregate_option)
 
     def _make_samples(self, t):
         if hasattr(self, 'samples'):
@@ -40,13 +42,13 @@ class NegativeSamplingFunction(function.Function):
         x, t, W = inputs
         self._make_samples(t)
 
-        loss = numpy.float32(0.0)
-        for ix, k in six.moves.zip(x, self.samples):
+        loss = numpy.empty((len(x),), dtype=numpy.float32)
+        for ix, k, l in six.moves.zip(x, self.samples, loss):
             w = W[k]
             f = w.dot(ix)
             f[0] *= -1  # positive sample
-            loss += numpy.sum(numpy.logaddexp(f, 0))
-        return numpy.array(loss, numpy.float32),
+            l[...] = numpy.sum(numpy.logaddexp(f, 0))
+        return self.aggregator.forward(loss),
 
     def forward_gpu(self, inputs):
         x, t, W = inputs
@@ -85,12 +87,11 @@ class NegativeSamplingFunction(function.Function):
             'negative_sampling_forward'
         )(self.wx, n_in, self.sample_size + 1)
         # TODO(okuta): merge elementwise
-        loss = cuda.cupy.sum(y)
-        return loss,
+        return self.aggregator.forward(y),
 
     def backward_cpu(self, inputs, grads):
         x, t, W = inputs
-        gloss, = grads
+        gloss = self.aggregator.backward(grads[0])
 
         gx = numpy.zeros_like(x)
         gW = numpy.zeros_like(W)
@@ -111,7 +112,7 @@ class NegativeSamplingFunction(function.Function):
     def backward_gpu(self, inputs, grads):
         cupy = cuda.cupy
         x, t, W = inputs
-        gloss, = grads
+        gloss = self.aggregator.backward(grads[0])
 
         n_in = x.shape[1]
         g = cuda.elementwise(
@@ -155,7 +156,7 @@ class NegativeSamplingFunction(function.Function):
         return gx, None, gW
 
 
-def negative_sampling(x, t, W, sampler, sample_size):
+def negative_sampling(x, t, W, sampler, sample_size, aggregate_option='sum'):
     """Negative sampling loss function.
 
     In natural language processing, especially language modeling, the number of
