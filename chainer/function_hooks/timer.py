@@ -52,7 +52,8 @@ class Timer(object):
 
     def mean(self):
         if self.count == 0:
-            raise ValueError('count is 0')
+            raise ValueError('Cannot calculate the mean elapsed time '
+                             'because this timer has never measure elapsed times.')
         else:
             return self.total_time / self.count
 
