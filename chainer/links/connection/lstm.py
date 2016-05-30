@@ -131,8 +131,8 @@ class StackedLSTM(link.ChainList):
 
         Args:
             x (~chainer.Variable): A new batch from the input sequence.
-            top_n (int): The number of LSTMs from the top whose outputs
-            you want (default: outputs of all LSTMs are returned)
+            top_n: The number of LSTMs from the top whose outputs you want
+                    (default: outputs of all LSTMs are returned)
 
         Returns:
             ~chainer.Variable: Outputs of updated LSTM units.

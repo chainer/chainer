@@ -13,7 +13,6 @@ from chainer.links.connection import linear
 from chainer.links.connection import lstm
 from chainer.links.connection import mlp_convolution_2d
 from chainer.links.connection import parameter
-from chainer.links.connection import rnn
 from chainer.links.loss import hierarchical_softmax
 from chainer.links.loss import negative_sampling
 from chainer.links.model import classifier
@@ -36,7 +35,6 @@ LSTM = lstm.LSTM
 StackedLSTM = lstm.StackedLSTM
 StackedStatefulGRU = gru.StackedStatefulGRU
 StackedGRU = gru.StackedGRU
-RNN = rnn.RNN
 MLPConvolution2D = mlp_convolution_2d.MLPConvolution2D
 Parameter = parameter.Parameter
 
