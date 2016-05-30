@@ -167,10 +167,10 @@ class StackedGRU(link.ChainList):
     Since this is a stateless implementation,
     the states of all the GRUs must be returned
     Args:
-          in_size - The size of embeddings of the inputs
-          out_size - The size of the hidden layer representation of
+          in_size (int)- The size of embeddings of the inputs
+          out_size (int)- The size of the hidden layer representation of
                       each GRU unit
-          num_layers - The number of GRU layers
+          num_layers (int)- The number of GRU layers
 
     Attributes:
           num_layers: Indicates the number of GRU layers
@@ -190,8 +190,8 @@ class StackedGRU(link.ChainList):
         """Updates the internal state and returns the  GRU outputs.
 
         Args:
-            x : A new batch from the input sequence.
-            h : The list of the previous cell outputs.
+            x (~chainer.Variable): A new batch from the input sequence.
+            h (~chainer.Variable): The list of the previous cell outputs.
 
         Returns:
             ~chainer.Variable: A list of the outputs (h) of the updated
@@ -218,12 +218,12 @@ class StackedStatefulGRU(link.ChainList):
     of the previous GRUs as inputs.
 
     Args:
-          in_size - The size of embeddings of the inputs
-          out_size - The size of the hidden layer
+          in_size (int)- The size of embeddings of the inputs
+          out_size (int)- The size of the hidden layer
                     representation of each GRU unit
-          num_layers - The number of GRU layers
+          num_layers (int)- The number of GRU layers
     Attributes:
-          num_layers: Indicates the number of GRU layers
+          num_layers (int): Indicates the number of GRU layers
     User Defined Methods:
     """
 
@@ -258,13 +258,14 @@ class StackedStatefulGRU(link.ChainList):
         """Updates the internal state and returns the GRU outputs.
 
         Args:
-            x : A new batch from the input sequence.
-            top_n: The number of GRUs from the top whose outputs
+            x (~chainer.Variable): A new batch from the input sequence.
+            top_n (int): The number of GRUs from the top whose outputs
             you want (default: outputs of all GRUs are returned)
 
         Returns:
-            A concatenation of the outputs (h) of the updated GRU units
-            over the top N layers; by default all layers are considered.
+            ~chainer.Variable: A concatenation of the outputs (h) of
+            the updated GRU units over the top N layers; by default
+            all layers are considered.
 
         """
         if top_n is None:
