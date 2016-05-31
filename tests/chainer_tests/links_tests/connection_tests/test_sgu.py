@@ -4,6 +4,7 @@ import numpy
 
 import chainer
 from chainer import links
+from chainer import testing
 
 
 class TestSGU(unittest.TestCase):
@@ -48,3 +49,6 @@ class TestDSGU(unittest.TestCase):
 
     def test_forward_cpu(self):
         self.check_forward(self.h, self.x)
+
+
+testing.run_module(__name__, __file__)
