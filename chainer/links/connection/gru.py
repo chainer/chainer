@@ -179,7 +179,7 @@ class StatefulGRU(GRUBase):
         return self.h
 
 
-class StackedGRU(link.ChainList):
+class StackedStatelessGRU(link.ChainList):
 
     """Stacked Stateless Gated Recurrent Unit function (GRU).
 
@@ -203,7 +203,7 @@ class StackedGRU(link.ChainList):
     """
 
     def __init__(self, in_size, out_size, num_layers=1):
-        super(StackedGRU, self).__init__()
+        super(StackedStatelessGRU, self).__init__()
         assert num_layers >= 1
         self.add_link(GRU(out_size, in_size))
         for i in range(1, num_layers):
