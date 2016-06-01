@@ -1,7 +1,5 @@
 import inspect
-import six
 
-import chainer
 from chainer.functions.array import concat
 from chainer.functions.array import split_axis
 from chainer import link
@@ -82,7 +80,7 @@ class Cell(link.ChainList):
                             layer.set_state(None)
                         else:
                             layer.set_state(h[layer_id])
-            
+
     def reset_state(self):
         if 'reset_state' in dir(self[0]):
             for layer in self:
@@ -106,7 +104,7 @@ class Cell(link.ChainList):
             of the updated cell units over the top N layers;
             by default all layers are considered.
             OR
-            (~chainer.Variable, ~chainer.Variable): 
+            (~chainer.Variable, ~chainer.Variable):
             A tuple of concatenation of the outputs (h) and memories (c)
             of the updated cell units over the top N layers;
             by default all layers are considered.
@@ -147,9 +145,9 @@ class Cell(link.ChainList):
                 assert h is None
                 h_curr = layer(h_curr)
             h_list.append(h_curr)
-        if len(h_list) == 2:
-            h_out = concat.concat([h[1] for h in h_list[-top_n:]], 1)
-            c_out = concat.concat([h[0] for h in h_list[-top_n:]], 1)
+        if len(h_list[0]) == 2:
+            h_out = concat.concat([y[1] for y in h_list[-top_n:]], 1)
+            c_out = concat.concat([y[0] for y in h_list[-top_n:]], 1)
             return c_out, h_out
         else:
             return concat.concat(h_list[-top_n:], 1)

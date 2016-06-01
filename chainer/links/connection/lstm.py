@@ -1,7 +1,10 @@
+import chainer
+import numpy
 import six
 
 from chainer.functions.activation import lstm
 from chainer.functions.array import concat
+from chainer.functions.array import split_axis
 from chainer import initializers
 from chainer import link
 from chainer.links.connection import linear
@@ -186,6 +189,7 @@ class LSTM(LSTMBase):
         self.c, self.h = lstm.lstm(self.c, lstm_in)
         return self.h
 
+
 class StackedStatelessLSTM(link.ChainList):
 
     """Stacked Stateless Long Short term Memory (LSTM).
@@ -236,6 +240,7 @@ class StackedStatelessLSTM(link.ChainList):
             h_curr = layer(h, h_curr)
             h_list.append(h_curr)
         return concat.concat(h_list, 1)
+
 
 class StackedStatefulLSTM(link.ChainList):
 
