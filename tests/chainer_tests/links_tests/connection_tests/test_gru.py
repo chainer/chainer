@@ -18,7 +18,7 @@ def _sigmoid(x):
 
 def _gru(func, h, x):
     y = None
-    if isinstance(func, links.StackedGRU) or\
+    if isinstance(func, links.StackedStatelessGRU) or\
        isinstance(func, links.StackedStatefulGRU):
         y = []
         xp = cuda.get_array_module(h, x)
@@ -56,10 +56,10 @@ def _gru(func, h, x):
     {'gru': links.GRU, 'state': 'random', 'out_size': 8},
     {'gru': links.StatefulGRU, 'state': 'random', 'in_size': 4, 'out_size': 8},
     {'gru': links.StatefulGRU, 'state': 'zero', 'in_size': 4, 'out_size': 8},
-    {'gru': links.StackedGRU, 'state': 'random', 'in_size': 4, 'out_size': 8,
-     'num_layers': 5},
-    {'gru': links.StackedGRU, 'state': 'zero', 'in_size': 4, 'out_size': 8,
-     'num_layers': 5},
+    {'gru': links.StackedStatelessGRU, 'state': 'random', 'in_size': 4,
+     'out_size': 8, 'num_layers': 5},
+    {'gru': links.StackedStatelessGRU, 'state': 'zero', 'in_size': 4,
+     'out_size': 8, 'num_layers': 5},
     {'gru': links.StackedStatefulGRU, 'state': 'random', 'in_size': 4,
      'out_size': 8, 'num_layers': 5},
     {'gru': links.StackedStatefulGRU, 'state': 'zero', 'in_size': 4,
@@ -76,7 +76,7 @@ class TestGRU(unittest.TestCase):
                 self.in_size = self.out_size
         elif self.gru == links.StatefulGRU:
             self.link = self.gru(self.in_size, self.out_size)
-        elif self.gru == links.StackedGRU:
+        elif self.gru == links.StackedStatelessGRU:
             self.link = self.gru(self.in_size, self.out_size, self.num_layers)
         elif self.gru == links.StackedStatefulGRU:
             self.link = self.gru(self.in_size, self.out_size, self.num_layers)
@@ -97,7 +97,8 @@ class TestGRU(unittest.TestCase):
             -1, 1, (3, self.out_size*n_l)).astype(numpy.float32)
 
     def _forward(self, link, h, x):
-        if isinstance(link, links.GRU) or isinstance(link, links.StackedGRU):
+        if isinstance(link, links.GRU) or\
+           isinstance(link, links.StackedStatelessGRU):
             return link(h, x)
         else:
             if self.state != 'zero':
