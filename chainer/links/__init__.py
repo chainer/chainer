@@ -7,6 +7,7 @@ from chainer.links.connection import cell
 from chainer.links.connection import convolution_2d
 from chainer.links.connection import deconvolution_2d
 from chainer.links.connection import embed_id
+from chainer.links.connection import grid_cells
 from chainer.links.connection import gru
 from chainer.links.connection import inception
 from chainer.links.connection import inceptionbn
@@ -37,6 +38,9 @@ StackedLSTM = lstm.StackedLSTM
 StackedStatefulGRU = gru.StackedStatefulGRU
 StackedGRU = gru.StackedGRU
 Cell = cell.Cell
+GridLSTM = grid_cells.GridLSTM
+GridGRU = grid_cells.GridGRU
+GridCell = grid_cells.GridCell
 StatelessLSTM = lstm.StatelessLSTM
 MLPConvolution2D = mlp_convolution_2d.MLPConvolution2D
 Parameter = parameter.Parameter
