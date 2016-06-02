@@ -6,56 +6,135 @@ from chainer import cuda
 from chainer import function
 
 
-class Timer(object):
+class CPUTimer(object):
 
-    def __init__(self, xp):
-        self.xp = xp
-        self.running = False
+    def __init__(self):
         self.reset()
 
     def reset(self):
-        self.total_time = 0.0
-        self.last_increment = None
-        self.count = 0
+        self.elapsed_times = []
+        self.running = False
+
+    def __enter__(self, *args, **kwargs):
+        self.reset()
+        self.start()
+        return self
+
+    def __exit__(self, *args, **kwargs):
+        self.stop()
+        return self
 
     def start(self):
         if self.running:
             return
-        if self.xp is numpy:
-            self._start = time.time()
-        else:
-            self._start = cuda.Event()
-            self._start.record()
+        self.start.append(time.time())
         self.running = True
 
     def stop(self):
         if not self.running:
-            return 0.0
-
-        if self.xp is numpy:
-            self._stop = time.time()
-            elapsed_time = self._stop - self._start
-        else:
-            self._stop = cuda.Event()
-            self._stop.record()
-            self._stop.synchronize()
-            # get_elapsed_time returns result in milliseconds
-            elapsed_time = cuda.cupy.cuda.get_elapsed_time(
-                self._start, self._stop) / 1000
-
+            return
+        self.stop.append(time.time())
         self.running = False
-        self.total_time += elapsed_time
-        self.last_increment = elapsed_time
-        self.count += 1
 
-        return elapsed_time
+    def total_time(self):
+        self.elapsed_times = map(stop - start for start, stop
+                                 in zip(self.start, self.stop))
+        return sum(self.elapsed_times)
+        
+    def count(self):
+        return len(self.stop)
 
     def mean(self):
         if self.count == 0:
             raise ValueError('Cannot calculate the mean elapsed time '
                              'because this timer has never measure elapsed times.')
         else:
-            return self.total_time / self.count
+            return self.total_time() / self.count()
+
+
+class GPUTimer(object):
+
+    def __init__(self, blocking_method='non_blocking'):
+        if not (blocking_method == 'non_block' or
+                blocking_method == 'block_first_time' or
+                blocking_method == 'block_every_time'):
+            raise ValueError(
+                'Invalid blocking method:{}'.format(blocking_method))
+        self.blocking_method = blocking_method
+        self.reset()
+
+    def __enter__(self, *args, **kwargs):
+        self.reset()
+        self.start()
+        return self
+
+    def __exit__(self, *args, **kwargs):
+        self.stop()
+        return self
+
+    def reset(self):
+        self.running = False
+        self.start_events = []
+        self.stop_events = []
+        self.elapsed_times = None
+        self._synchronized = False
+
+    def start(self):
+        if self.running:
+            return
+
+        if self._synchronized:
+            raise RuntimeError('Thit timer is already synchronized. '
+                               'Please reset the timer first.')
+
+        start = cuda.Event()
+        start.record()
+        if ((self.blocking_method == 'block_first_time' and
+             not self.start_events) or
+            (self.blocking_method == 'block_every_time')):
+            start.synchronize()
+        self.start_events.append(start)
+        self.running = True
+
+    def stop(self):
+        if not self.running:
+            return
+
+        stop = cuda.Event()
+        stop.record()
+        self.stop_events.append(stop)
+        self.running = False
+
+    def synchronize(self):
+        if self.running:
+            raise RuntimeError('Timer is running.')
+        if self._synchronized:
+            return
+
+        if len(self.stop_events) > 0:
+            stop_events[-1].synchronize()
+        self._synchronized = True
+        self.elapsed_times = map(cuda.cupy.cuda.get_elapsed_time(start, stop) / 1000
+                                 for start, stop in zip(self.start_events, self.stop_events))
+
+    def total_time(self):
+        self.synchronize()
+        return sum(self.elapsed_times)
+
+    @property
+    def synchronized(self):
+        return self._synchronized
+
+    def count(self):
+        """Returns number of measurements that is already finish recording."""
+        return len(self.stop_events)
+
+    def mean(self):
+        if self.count == 0:
+            raise ValueError('Cannot calculate the mean elapsed time '
+                             'because this timer has never measure elapsed times.')
+        else:
+            return self.total_time() / self.count()
 
 
 class TimerHook(function.FunctionHook):
@@ -71,21 +150,8 @@ class TimerHook(function.FunctionHook):
 
     name = 'TimerHook'
 
-    def __init__(self, xp=numpy):
-        self.call_history = []
-        self.xp = xp
-
-    def __enter__(self, *args, **kwargs):
-        self.pass_through_timer = Timer(self.xp)
-        self.pass_through_timer.start()
-        return super(TimerHook, self).__enter__(*args, **kwargs)
-
-    def __exit__(self, *args, **kwargs):
-        self.pass_through_time = self.pass_through_timer.stop()
-        return super(TimerHook, self).__exit__(*args, **kwargs)
-
     def _preprocess(self, xp):
-        self.timer = Timer(xp)
+        self.timer = Timer()
         self.timer.start()
 
     def forward_preprocess(self, function, in_data):
@@ -97,8 +163,8 @@ class TimerHook(function.FunctionHook):
         self._preprocess(xp)
 
     def _postprocess(self, function):
-        elapsed_time = self.timer.stop()
-        self.call_history.append((function, elapsed_time))
+        self.timer.stop()
+        self.call_history.append((function, self.timer.total_time()))
 
     def forward_postprocess(self, function, in_data):
         xp = cuda.get_array_module(*in_data)
