@@ -15,6 +15,10 @@ class Cell(link.ChainList):
     Stateful RNN cells where the RNN cell at the bottom takes
     the regular input, and the cells after that simply take
     the outputs (represented by h) of the previous GRUs as inputs.
+    To be very honest I strongly support the idea of having only
+    stateless versions of RNN memory cells.
+    Also, isn't it weird that the link GRU is stateless but LSTM
+    is stateful? Someone needs to sort out that mess.
 
     Args:
           in_size (int)- The size of embeddings of the inputs
