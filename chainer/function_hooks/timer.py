@@ -8,9 +8,9 @@ from chainer import function
 
 def get_timer(xp, *args, **kwargs):
     if xp is numpy:
-        return Timer(*args, **kwargs)
+        return CPUTimer(*args, **kwargs)
     else:
-        return Timer(*args, **kwargs)
+        return GPUTimer(*args, **kwargs)
 
 
 class Timer(object):
@@ -28,7 +28,7 @@ class Timer(object):
         self.reset()
         self.start()
         return self
-        
+
     def __exit__(self, *args, **kwargs):
         self.stop()
         return self
@@ -42,7 +42,8 @@ class Timer(object):
     def mean(self):
         if self.count() == 0:
             raise ValueError('Cannot calculate the mean elapsed time '
-                             'because this timer has never measure elapsed times.')
+                             'because this timer has never '
+                             'measure elapsed times.')
         else:
             return self.total_time() / self.count()
 
@@ -51,6 +52,9 @@ class CPUTimer(Timer):
 
     def __init__(self):
         self.reset()
+
+    def xp(self):
+        return numpy
 
     def reset(self):
         self.elapsed_times = []
@@ -72,14 +76,14 @@ class CPUTimer(Timer):
         self.elapsed_times = map(stop - start for start, stop
                                  in zip(self.start, self.stop))
         return sum(self.elapsed_times)
-        
+
     def count(self):
         return len(self.stop)
 
 
 class GPUTimer(object):
 
-    def __init__(self, blocking_method='non_blocking'):
+    def __init__(self, blocking_method='non_block'):
         if not (blocking_method == 'non_block' or
                 blocking_method == 'block_first_time' or
                 blocking_method == 'block_every_time'):
@@ -87,6 +91,9 @@ class GPUTimer(object):
                 'Invalid blocking method:{}'.format(blocking_method))
         self.blocking_method = blocking_method
         self.reset()
+
+    def xp(self):
+        return cuda.cupy
 
     def reset(self):
         self.running = False
@@ -107,7 +114,7 @@ class GPUTimer(object):
         start.record()
 
         if ((self.blocking_method == 'block_first_time' and
-             not self.start_events) or 
+             not self.start_events) or
             (self.blocking_method == 'block_every_time')):
             start.synchronize()
 
@@ -130,10 +137,11 @@ class GPUTimer(object):
             return
 
         if len(self.stop_events) > 0:
-            stop_events[-1].synchronize()
+            self.stop_events[-1].synchronize()
         self.synchronized = True
-        self.elapsed_times = map(cuda.cupy.cuda.get_elapsed_time(start, stop) / 1000
-                                 for start, stop in zip(self.start_events, self.stop_events))
+        self.elapsed_times = map(
+            cuda.cupy.cuda.get_elapsed_time(start, stop) / 1000
+            for start, stop in zip(self.start_events, self.stop_events))
 
     def total_time(self):
         self.synchronize()
@@ -169,17 +177,18 @@ class TimerHook(function.FunctionHook):
         xp = cuda.get_array_module(*(in_data + out_grad))
         self._preprocess(xp)
 
-    def _postprocess(self, function):
+    def _postprocess(self, function, xp):
+        assert self.timer.xp is xp
         self.timer.stop()
         self.call_history.append((function, self.timer.total_time()))
 
     def forward_postprocess(self, function, in_data):
         xp = cuda.get_array_module(*in_data)
-        self._postprocess(function)
+        self._postprocess(function, xp)
 
     def backward_postprocess(self, function, in_data, out_grad):
         xp = cuda.get_array_module(*(in_data + out_grad))
-        self._postprocess(function)
+        self._postprocess(function, xp)
 
     def total_time(self):
         """Returns total elapsed time in seconds."""
