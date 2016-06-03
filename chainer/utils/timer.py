@@ -88,7 +88,7 @@ class CPUTimer(Timer):
         return sum(self.elapsed_times)
 
     def count(self):
-        return len(self.stop)
+        return len(self.stop_times)
 
 
 class GPUTimer(object):
