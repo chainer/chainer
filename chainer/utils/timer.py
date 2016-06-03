@@ -8,8 +8,11 @@ import numpy
 def get_timer(xp, *args, **kwargs):
     if xp is numpy:
         return CPUTimer(*args, **kwargs)
-    else:
+    elif xp is cuda.cupy:
         return GPUTimer(*args, **kwargs)
+    else:
+        raise ValueError('xp should be either NumPy or CuPy. '
+                         'Actually it is {}'.format(xp))
 
 
 class Timer(object):
