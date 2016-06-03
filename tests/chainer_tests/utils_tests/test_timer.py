@@ -85,7 +85,8 @@ class TimerTestBase(object):
         self.timer.start()
         time.sleep(0.1)
         self.timer.stop()
-        numpy.testing.assert_allclose(self.timer.total_time(), 0.1, atol=0.01, rtol=1.5)
+        numpy.testing.assert_allclose(self.timer.total_time(),
+                                      0.1, atol=0.01, rtol=1.5)
 
 
 class TestCPUTimer(TimerTestBase, unittest.TestCase):
@@ -102,11 +103,13 @@ class TestCPUTimer(TimerTestBase, unittest.TestCase):
         self.timer.start()
         time.sleep(0.1)
         self.timer.stop()
-        numpy.testing.assert_allclose(self.timer.total_time(), 0.1, atol=0.01, rtol=1.5)
+        numpy.testing.assert_allclose(self.timer.total_time(),
+                                      0.1, atol=0.01, rtol=1.5)
         self.timer.start()
         time.sleep(0.1)
         self.timer.stop()
-        numpy.testing.assert_allclose(self.timer.total_time(), 0.2, atol=0.02, rtol=1.5)
+        numpy.testing.assert_allclose(self.timer.total_time(),
+                                      0.2, atol=0.02, rtol=1.5)
 
 
 @testing.parameterize(
@@ -154,8 +157,8 @@ class TestGPUTimerSynchronization(unittest.TestCase):
 
     def test_synchronization(self):
         self.timer.start()
-        if (self.blocking_method == 'block_first_time'
-            or self.blocking_method == 'block_every_time'):
+        if ((self.blocking_method == 'block_first_time') or
+            (self.blocking_method == 'block_every_time')):
             self.mock.assert_called_with()
 
         self.mock.reset_mock()
@@ -171,33 +174,7 @@ class TestGPUTimerSynchronization(unittest.TestCase):
     {'blocking_method': 'block_every_time'}
 )
 @attr.gpu
-class TestGPUTimerSynchronization(unittest.TestCase):
-
-    def setUp(self):
-        self.timer = utils.GPUTimer(blocking_method=self.blocking_method)
-        self.mock = mock.Mock()
-        self.timer._need_synchronization_before_measurement = self.mock
-
-    def test_synchronization(self):
-        self.timer.start()
-        if (self.blocking_method == 'block_first_time'
-            or self.blocking_method == 'block_every_time'):
-            self.mock.assert_called_with()
-
-        self.mock.reset_mock()
-        self.timer.stop()
-        self.timer.start()
-        if self.blocking_method == 'block_every_time':
-            self.mock.assert_called_with()
-
-
-@testing.parameterize(
-    {'blocking_method': 'non_block'},
-    {'blocking_method': 'block_first_time'},
-    {'blocking_method': 'block_every_time'}
-)
-@attr.gpu
-class TestGPUTimerSynchronization(unittest.TestCase):
+class TestGPUTimerSynchronization2(unittest.TestCase):
 
     def setUp(self):
         self.timer = utils.GPUTimer(blocking_method=self.blocking_method)
