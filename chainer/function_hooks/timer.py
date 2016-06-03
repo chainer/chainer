@@ -40,6 +40,10 @@ class TimerHook(function_.FunctionHook):
         self._preprocess()
 
     def _postprocess(self, function):
+        # For backward compatibility
+        if self.xp is numpy:
+            self.stop = self.timer.stop_times[-1]
+
         self.timer.stop()
         self.call_history.append((function, self.timer.total_time()))
 
