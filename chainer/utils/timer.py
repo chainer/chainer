@@ -94,6 +94,9 @@ class CPUTimer(Timer):
 class GPUTimer(object):
 
     def __init__(self, blocking_method='non_block'):
+        if not cuda.available:
+            raise RuntimeError('CUDA must be available to use GPUTimer.')
+
         if not (blocking_method == 'non_block' or
                 blocking_method == 'block_first_time' or
                 blocking_method == 'block_every_time'):
