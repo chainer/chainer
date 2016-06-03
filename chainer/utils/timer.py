@@ -91,7 +91,7 @@ class CPUTimer(Timer):
         return len(self.stop_times)
 
 
-class GPUTimer(object):
+class GPUTimer(Timer):
 
     def __init__(self, blocking_method='non_block'):
         if not cuda.available:
@@ -113,15 +113,20 @@ class GPUTimer(object):
         self.running = False
         self.start_events = []
         self.stop_events = []
-        self.elapsed_times = None
+        self.elapsed_times = []
         self.synchronized = False
+
+    def _need_synchronization_before_measurement(self):
+        return ((self.blocking_method == 'block_first_time' and
+                 not self.start_events) or
+                (self.blocking_method == 'block_every_time'))
 
     def start(self):
         if self.running:
             return
 
-        if self._synchronized:
-            raise RuntimeError('Thit timer is already synchronized. '
+        if self.synchronized:
+            raise RuntimeError('This timer is already synchronized. '
                                'Please reset the timer first.')
 
         start = cuda.Event()
@@ -129,9 +134,7 @@ class GPUTimer(object):
 
         start.record()
 
-        if ((self.blocking_method == 'block_first_time' and
-             not self.start_events) or
-            (self.blocking_method == 'block_every_time')):
+        if self._need_synchronization_before_measurement():
             start.synchronize()
 
         self.start_events.append(start)
@@ -148,13 +151,13 @@ class GPUTimer(object):
     def synchronize(self):
         if self.running:
             raise RuntimeError('Timer is running.')
-        if self._synchronized:
+        if self.synchronized:
             return
 
         if len(self.stop_events) > 0:
             self.stop_events[-1].synchronize()
         self.synchronized = True
-        self.elapsed_times = map(
+        self.elapsed_times = list(
             cuda.cupy.cuda.get_elapsed_time(start, stop) / 1000
             for start, stop in zip(self.start_events, self.stop_events))
 
@@ -163,5 +166,8 @@ class GPUTimer(object):
         return sum(self.elapsed_times)
 
     def count(self):
-        """Returns number of measurements that is already finish recording."""
-        return len(self.stop_events)
+        """Returns number of measurements that already finish recording."""
+        ret = len(self.stop_events)
+        if self.running:
+            ret -= 1
+        return ret
