@@ -46,12 +46,13 @@ class Timer(object):
         raise NotImplementedError
 
     def mean(self):
-        if self.count() == 0:
+        count = self.count()
+        if count == 0:
             raise ValueError('Cannot calculate the mean elapsed time '
                              'because this timer has never '
                              'measure elapsed times.')
         else:
-            return self.total_time() / self.count()
+            return self.total_time() / count
 
 
 class CPUTimer(Timer):
