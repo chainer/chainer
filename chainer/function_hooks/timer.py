@@ -48,11 +48,13 @@ class TimerHook(function_.FunctionHook):
         self.call_history.append((function, self.timer.total_time()))
 
     def forward_postprocess(self, function, in_data):
-        self.xp = cuda.get_array_module(*in_data)
+        xp = cuda.get_array_module(*in_data)
+        assert xp is self.xp
         self._postprocess(function)
 
     def backward_postprocess(self, function, in_data, out_grad):
-        self.xp = cuda.get_array_module(*(in_data + out_grad))
+        xp = cuda.get_array_module(*(in_data + out_grad))
+        assert xp is self.xp
         self._postprocess(function)
 
     def total_time(self):
