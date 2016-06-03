@@ -1,18 +1,18 @@
-import time
-
 import numpy
 
 from chainer import cuda
-from chainer import function
+from chainer import function as function_
+from chainer.utils import timer
 
 
-class TimerHook(function.FunctionHook):
+class TimerHook(function_.FunctionHook):
     """Function hook for measuring elapsed time of functions.
 
     Attributes:
         call_history: List of measurement results. It consists of pairs of
             the function that calls this hook and the elapsed time
             the function consumes.
+
     """
 
     name = 'TimerHook'
@@ -21,12 +21,15 @@ class TimerHook(function.FunctionHook):
         self.call_history = []
 
     def _preprocess(self):
-        if self.xp == numpy:
-            self.start = time.time()
+        self.timer = timer.get_timer(self.xp)
+        self.timer.start()
+
+        # For backward compatibility
+        if self.xp is numpy:
+            self.start = self.timer.start_times[-1]
         else:
-            self.start = cuda.Event()
-            self.stop = cuda.Event()
-            self.start.record()
+            self.start = self.timer.start_events[-1]
+            self.stop = self.timer.stop_events[-1]
 
     def forward_preprocess(self, function, in_data):
         self.xp = cuda.get_array_module(*in_data)
@@ -37,25 +40,15 @@ class TimerHook(function.FunctionHook):
         self._preprocess()
 
     def _postprocess(self, function):
-        if self.xp == numpy:
-            self.stop = time.time()
-            elapsed_time = self.stop - self.start
-        else:
-            self.stop.record()
-            self.stop.synchronize()
-            # Note that `get_elapsed_time` returns result in milliseconds
-            elapsed_time = cuda.cupy.cuda.get_elapsed_time(
-                self.start, self.stop) * 1000
-        self.call_history.append((function, elapsed_time))
+        self.timer.stop()
+        self.call_history.append((function, self.timer.total_time()))
 
     def forward_postprocess(self, function, in_data):
-        xp = cuda.get_array_module(*in_data)
-        assert xp == self.xp
+        self.xp = cuda.get_array_module(*in_data)
         self._postprocess(function)
 
     def backward_postprocess(self, function, in_data, out_grad):
-        xp = cuda.get_array_module(*(in_data + out_grad))
-        assert xp == self.xp
+        self.xp = cuda.get_array_module(*(in_data + out_grad))
         self._postprocess(function)
 
     def total_time(self):
