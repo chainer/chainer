@@ -14,9 +14,6 @@ def get_timer(xp, *args, **kwargs):
 
 class Timer(object):
 
-    def __init__(self):
-        raise RuntimeError('This class should not be instantiated.')
-
     @property
     def xp(self):
         raise NotImplementedError
