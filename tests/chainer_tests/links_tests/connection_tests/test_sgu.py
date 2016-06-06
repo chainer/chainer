@@ -3,8 +3,10 @@ import unittest
 import numpy
 
 import chainer
+from chainer import cuda
 from chainer import links
 from chainer import testing
+from chainer.testing import attr
 
 
 class TestSGU(unittest.TestCase):
@@ -28,6 +30,11 @@ class TestSGU(unittest.TestCase):
     def test_forward_cpu(self):
         self.check_forward(self.h, self.x)
 
+    @attr.gpu
+    def test_forward_gpu(self):
+        self.sgu.to_gpu()
+        self.check_forward(cuda.to_gpu(self.h), cuda.to_gpu(self.x))
+
 
 class TestDSGU(unittest.TestCase):
 
@@ -49,6 +56,11 @@ class TestDSGU(unittest.TestCase):
 
     def test_forward_cpu(self):
         self.check_forward(self.h, self.x)
+
+    @attr.gpu
+    def test_forward_gpu(self):
+        self.sgu.to_gpu()
+        self.check_forward(cuda.to_gpu(self.h), cuda.to_gpu(self.x))
 
 
 testing.run_module(__name__, __file__)
