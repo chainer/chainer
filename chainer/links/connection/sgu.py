@@ -51,7 +51,7 @@ class StatefulSGU(SGU):
     def set_state(self, h):
         assert isinstance(h, chainer.Variable)
         h_ = h
-        if self.xp == numpy:
+        if self.xp is numpy:
             h_.to_cpu()
         else:
             h_.to_gpu()
@@ -115,7 +115,7 @@ class StatefulDSGU(DSGU):
     def set_state(self, h):
         assert isinstance(h, chainer.Variable)
         h_ = h
-        if self.xp == numpy:
+        if self.xp is numpy:
             h_.to_cpu()
         else:
             h_.to_gpu()
