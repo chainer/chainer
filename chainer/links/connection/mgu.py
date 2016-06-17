@@ -55,7 +55,7 @@ class StatefulMGU(MGU):
 
     def __call__(self, x):
         if self.h is None:
-            n_batch = x.data.shape[0]
+            n_batch = len(x.data)
             h_data = self.xp.zeros(
                 (n_batch, self.state_size), dtype=numpy.float32)
             h = chainer.Variable(h_data)
