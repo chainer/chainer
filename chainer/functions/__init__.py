@@ -59,6 +59,7 @@ from chainer.functions.math import logarithm_1p
 from chainer.functions.math import logsumexp
 from chainer.functions.math import matmul
 from chainer.functions.math import maximum
+from chainer.functions.math import minimum
 from chainer.functions.math import minmax
 from chainer.functions.math import sum
 from chainer.functions.math import trigonometric
@@ -217,6 +218,8 @@ Max = minmax.Max
 max = minmax.max
 Maximum = maximum.Maximum
 maximum = maximum.maximum
+Minimum = minimum.Minimum
+minimum = minimum.minimum
 Min = minmax.Min
 min = minmax.min
 Sin = trigonometric.Sin
