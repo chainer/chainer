@@ -6,6 +6,7 @@ import chainer
 from chainer import cuda
 from chainer import function
 from chainer import utils
+from chainer.utils import aggregator
 from chainer.utils import type_check
 
 
@@ -58,9 +59,10 @@ class ConnectionistTemporalClassification(function.Function):
     backward values before the activation function is applied.
     """
 
-    def __init__(self, blank_symbol):
+    def __init__(self, blank_symbol, aggregate_option='mean'):
         self.blank_symbol = blank_symbol
         self.zero_padding = -10000000000.0
+        self.aggregator = aggregator.Aggregator(aggregate_option)
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() > 3)  # TODO(okuta): > 3?
@@ -203,10 +205,8 @@ class ConnectionistTemporalClassification(function.Function):
         self.path = _label_to_path(inputs[2], self.blank_symbol, xp)
         self.prob_trans = self.calc_trans(self.path, log_yseq, xp)
 
-        loss = utils.force_array(xp.sum(
-            _logsumexp(self.prob_trans[0], xp, axis=1)))
-        loss /= -batch_size
-        return loss,
+        loss = -_logsumexp(self.prob_trans[0], xp, axis=1)
+        return self.aggregator.forward(loss),
 
     def backward(self, inputs, grad_output):
         xp = cuda.get_array_module(inputs[0])
@@ -217,7 +217,8 @@ class ConnectionistTemporalClassification(function.Function):
             self.yseq.shape[2], self.path, self.path_length,
             self.prob_trans, xp)
         self.yseq -= xp.exp(label_prob - total_probability[:, None])
-        self.yseq *= grad_output[0] / batch_size
+        gy = self.aggregator.backward(grad_output[0])
+        self.yseq *= gy
         # mask
         self.yseq *= (
             xp.arange(len(self.yseq))[:, None] < self.input_length)[..., None]
@@ -225,7 +226,8 @@ class ConnectionistTemporalClassification(function.Function):
 
 
 def connectionist_temporal_classification(
-        x, t, blank_symbol, input_length=None, label_length=None):
+        x, t, blank_symbol, input_length=None,
+        label_length=None, aggregate_option='mean'):
     """Connectionist Temporal Classification loss function.
 
     Connectionist Temporal Classification(CTC) [Graves2006]_ is a loss function
@@ -302,5 +304,5 @@ def connectionist_temporal_classification(
     assert len(x) >= max(input_length.data)
     assert len(t.data[0]) >= max(label_length.data)
 
-    return ConnectionistTemporalClassification(blank_symbol)(
+    return ConnectionistTemporalClassification(blank_symbol, aggregate_option)(
         input_length, label_length, t, *x)

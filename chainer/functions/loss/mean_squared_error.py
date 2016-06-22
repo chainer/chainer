@@ -1,12 +1,19 @@
 import numpy
 
+import chainer
 from chainer import function
+from chainer.utils import aggregator
 from chainer.utils import type_check
 
 
 class MeanSquaredError(function.Function):
 
     """Mean squared error (a.k.a. Euclidean loss) function."""
+
+    def __init__(self, *args, **kwargs):
+        aggregate_option = kwargs.pop('aggregate_axes', 'mean')
+        self.aggregator = aggregator.Aggregator(aggregate_option)
+        super(MeanSquaredError, self).__init__(*args, **kwargs)
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 2)
@@ -20,17 +27,18 @@ class MeanSquaredError(function.Function):
         x0, x1 = inputs
         self.diff = x0 - x1
         diff = self.diff.ravel()
-        return numpy.array(diff.dot(diff) / diff.size, dtype=diff.dtype),
+        diff = diff * diff
+        return self.aggregator.forward(diff),
 
     def forward_gpu(self, inputs):
         x0, x1 = inputs
         self.diff = x0 - x1
         diff = self.diff.ravel()
-        return diff.dot(diff) / diff.dtype.type(diff.size),
+        return self.aggregator.forward(diff),
 
     def backward(self, inputs, gy):
-        coeff = gy[0] * gy[0].dtype.type(2. / self.diff.size)
-        gx0 = coeff * self.diff
+        gy = self.aggregator.backward(gy[0])
+        gx0 = 2 * gy * self.diff
         return gx0, -gx0
 
 

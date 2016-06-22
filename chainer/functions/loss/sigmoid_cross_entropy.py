@@ -4,6 +4,7 @@ from chainer import cuda
 from chainer import function
 from chainer.functions import sigmoid
 from chainer import utils
+from chainer.utils import aggregator
 from chainer.utils import type_check
 
 
@@ -13,9 +14,10 @@ class SigmoidCrossEntropy(function.Function):
 
     ignore_label = -1
 
-    def __init__(self, use_cudnn=True, normalize=True):
+    def __init__(self, use_cudnn=True, normalize=True, aggregate_option='divide'):
         self.use_cudnn = use_cudnn
         self.normalize = normalize
+        self.aggregator = aggregator.Aggregator(aggregate_option)
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 2)
@@ -37,23 +39,22 @@ class SigmoidCrossEntropy(function.Function):
             count = max(1, len(x))
         self.count = count
         # stable computation of the cross entropy.
-        loss = -xp.sum(
-            self.ignore_mask * (x * (t - (x >= 0)) -
-                                xp.log1p(xp.exp(-xp.abs(x)))))
-        return utils.force_array(xp.divide(loss, self.count, dtype=x.dtype)),
+        loss = (-1) * self.ignore_mask * (x * (t - (x >= 0)) -
+                                          xp.log1p(xp.exp(-xp.abs(x))))
+        loss = loss.astype(x.dtype)
+        return self.aggregator.forward(loss, count=self.count),
 
     def backward(self, inputs, grad_outputs):
         xp = cuda.get_array_module(*inputs)
         x, t = inputs
         gloss = grad_outputs[0]
+        gloss = self.aggregator.backward(gloss, count=self.count)
         y, = sigmoid.Sigmoid(self.use_cudnn).forward((x,))
-        gx = xp.divide(
-            gloss * self.ignore_mask * (y - t), self.count,
-            dtype=y.dtype)
+        gx = (gloss * self.ignore_mask * (y - t)).astype(y.dtype)
         return gx, None
 
 
-def sigmoid_cross_entropy(x, t, use_cudnn=True, normalize=True):
+def sigmoid_cross_entropy(x, t, use_cudnn=True, normalize=True, aggregate_option='divide'):
     """Computes cross entropy loss for sigmoid activations.
 
     Args:
@@ -77,4 +78,4 @@ def sigmoid_cross_entropy(x, t, use_cudnn=True, normalize=True):
        This function is differentiable only by ``x``.
 
     """
-    return SigmoidCrossEntropy(use_cudnn, normalize)(x, t)
+    return SigmoidCrossEntropy(use_cudnn, normalize, aggregate_option)(x, t)

@@ -2,6 +2,7 @@ import numpy
 
 from chainer import cuda
 from chainer import function
+from chainer.utils import aggregator
 from chainer.utils import type_check
 
 
@@ -16,11 +17,12 @@ class Hinge(function.Function):
 
     """Hinge loss."""
 
-    def __init__(self, norm='L1'):
+    def __init__(self, norm='L1', aggregate_option='mean'):
         if norm in ['L1', 'L2']:
             self.norm = norm
         else:
             raise NotImplementedError("norm should be either 'L1' or 'L2'")
+        self.aggregator = aggregator.Aggregator(aggregate_option)
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 2)
@@ -41,13 +43,12 @@ class Hinge(function.Function):
         self.bottom_diff[numpy.arange(num), t] *= -1
         self.bottom_diff = numpy.maximum(0, 1 + self.bottom_diff)
         if self.norm == 'L1':
-            loss = self.bottom_diff.sum() / num
+            loss = self.aggregator.forward(self.bottom_diff)
         elif self.norm == 'L2':
-            loss = (self.bottom_diff ** 2).sum() / num
+            loss = self.aggregator.forward(self.bottom_diff ** 2)
         else:
             raise NotImplementedError()
-
-        return numpy.array(loss, dtype=x.dtype),
+        return loss,
 
     def forward_gpu(self, inputs):
         x, t = inputs
@@ -55,21 +56,21 @@ class Hinge(function.Function):
         self.bottom_diff = cuda.cupy.maximum(
             0, 1 + _hinge_fwd_kernel()(t, x.copy()))
         if self.norm == 'L1':
-            loss = self.bottom_diff.sum() / num
+            loss = self.aggregator.forward(self.bottom_diff)
         elif self.norm == 'L2':
-            loss = (self.bottom_diff ** 2).sum() / num
+            loss = self.aggregator.forward(self.bottom_diff ** 2)
         else:
             raise NotImplementedError()
-
         return loss,
 
     def backward_cpu(self, inputs, grad_outputs):
         t, gloss = inputs[1], grad_outputs[0]
+        gloss = self.aggregator.backward(gloss)
         self.bottom_diff[numpy.arange(len(t)), t] *= -1
         if self.norm == 'L1':
-            gx = (gloss / len(t)) * numpy.sign(self.bottom_diff)
+            gx = gloss * numpy.sign(self.bottom_diff)
         elif self.norm == 'L2':
-            gx = (2 * gloss / len(t)) * self.bottom_diff
+            gx = 2 * gloss * self.bottom_diff
         else:
             raise NotImplementedError()
 
@@ -78,11 +79,12 @@ class Hinge(function.Function):
     def backward_gpu(self, inputs, grad_outputs):
         xp = cuda.get_array_module(*inputs)
         t, gloss = inputs[1], grad_outputs[0]
+        gloss = self.aggregator.backward(gloss)
         self.bottom_diff = _hinge_fwd_kernel()(t, self.bottom_diff)
         if self.norm == 'L1':
-            gx = (gloss / len(t)) * xp.sign(self.bottom_diff)
+            gx = gloss * xp.sign(self.bottom_diff)
         elif self.norm == 'L2':
-            gx = (2 * gloss / len(t)) * self.bottom_diff
+            gx = 2 * gloss * self.bottom_diff
         else:
             raise NotImplementedError()
 

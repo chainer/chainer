@@ -2,6 +2,7 @@ import numpy
 
 from chainer import cuda
 from chainer import function
+from chainer.utils import aggregator
 from chainer.utils import type_check
 
 
@@ -9,10 +10,12 @@ class Contrastive(function.Function):
 
     """Contrastive loss function."""
 
-    def __init__(self, margin):
+    def __init__(self, margin, aggregate_option='mean'):
         if margin <= 0:
             raise ValueError("margin should be positive value.")
         self.margin = margin
+        self.aggregator = aggregator.Aggregator(aggregate_option)
+        
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 3)
@@ -39,18 +42,17 @@ class Contrastive(function.Function):
         self.dist = xp.sqrt(self.dist_sq)
         self.mdist = self.margin - self.dist
         dist = xp.maximum(self.mdist, 0)
-        loss = y * self.dist_sq + (1 - y) * dist * dist
-        loss = xp.sum(loss) / 2.0 / x0.shape[0]
-
-        return xp.array(loss, dtype=xp.float32),
+        loss = (y * self.dist_sq + (1 - y) * dist * dist) / 2.0
+        return self.aggregator.forward(loss.astype(x0.dtype)),
 
     def backward(self, inputs, gy):
         xp = cuda.get_array_module(*inputs)
         x0, x1, y = inputs
+        gy = self.aggregator.backward(gy[0])
 
         x_dim = x0.shape[1]
         y = xp.repeat(y[:, None], x_dim, axis=1)
-        alpha = gy[0] / y.shape[0]
+        alpha = gy
         dist = xp.repeat(self.dist[:, None], x_dim, axis=1)
         # similar pair
         gx0 = alpha * y * self.diff
@@ -63,7 +65,7 @@ class Contrastive(function.Function):
         return gx0, -gx0, None
 
 
-def contrastive(x0, x1, y, margin=1):
+def contrastive(x0, x1, y, margin=1, aggregate_option='mean'):
     """Computes contrastive loss.
 
     It takes a pair of variables and a label as inputs. The label is 1 when
@@ -104,4 +106,4 @@ def contrastive(x0, x1, y, margin=1):
         details.
 
     """
-    return Contrastive(margin)(x0, x1, y)
+    return Contrastive(margin, aggregate_option)(x0, x1, y)

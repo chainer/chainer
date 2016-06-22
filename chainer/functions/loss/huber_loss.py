@@ -2,13 +2,15 @@ import numpy
 
 from chainer import cuda
 from chainer import function
+from chainer.utils import aggregator
 from chainer.utils import type_check
 
 
 class HuberLoss(function.Function):
 
-    def __init__(self, delta):
+    def __init__(self, delta, aggregate_option='samplewise'):
         self.delta = delta
+        self.aggregator = aggregator.Aggregator(aggregate_option)
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 2)
@@ -26,17 +28,17 @@ class HuberLoss(function.Function):
         mask = y > (self.delta ** 2)
         y -= mask * xp.square(abs(self.diff) - self.delta)
         y *= 0.5
-        return y.sum(axis=1),
+        return self.aggregator.forward(y),
 
     def backward(self, inputs, gy):
         xp = cuda.get_array_module(*inputs)
         mask = xp.abs(self.diff) <= self.delta
-        gx = gy[0].reshape(gy[0].shape + (1,) * (self.diff.ndim - 1)) * \
-            xp.where(mask, self.diff, self.delta * xp.sign(self.diff))
+        gy = self.aggregator.backward(gy[0])
+        gx = gy * xp.where(mask, self.diff, self.delta * xp.sign(self.diff))
         return gx, -gx
 
 
-def huber_loss(x, t, delta):
+def huber_loss(x, t, delta, aggregate_option='samplewise'):
     """Loss function which is less sensitive to outliers in data than MSE.
 
         .. math::
@@ -66,4 +68,4 @@ def huber_loss(x, t, delta):
         `Huber loss - Wikipedia <https://en.wikipedia.org/wiki/Huber_loss>`_.
 
     """
-    return HuberLoss(delta=delta)(x, t)
+    return HuberLoss(delta=delta, aggregate_option=aggregate_option)(x, t)

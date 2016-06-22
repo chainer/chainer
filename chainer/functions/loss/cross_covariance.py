@@ -3,6 +3,7 @@ import numpy
 from chainer import cuda
 from chainer import function
 from chainer import utils
+from chainer.utils import aggregator
 from chainer.utils import type_check
 
 
@@ -10,10 +11,11 @@ class CrossCovariance(function.Function):
 
     """Cross-covariance loss."""
 
-    def __init__(self):
+    def __init__(self, aggregate_option='sum'):
         self.y_centered = None
         self.z_centered = None
         self.covariance = None
+        self.aggregator = aggregator.Aggregator(aggregate_option)
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 2)
@@ -36,22 +38,22 @@ class CrossCovariance(function.Function):
         self.z_centered = z - z.mean(axis=0, keepdims=True)
         self.covariance = self.y_centered.T.dot(self.z_centered)
         self.covariance /= len(y)
-        cost = xp.vdot(self.covariance, self.covariance) * y.dtype.type(0.5)
-        return utils.force_array(cost),
+        loss = self.covariance * self.covariance * y.dtype.type(0.5)
+        return self.aggregator.forward(loss),
 
     def backward(self, inputs, grad_outputs):
         y, z = inputs
-        gcost, = grad_outputs
-        gcost_div_n = gcost / gcost.dtype.type(len(y))
+        gcost = self.aggregator.backward(grad_outputs[0])
+        gcost /= gcost.dtype.type(len(y))
 
         gy = self.z_centered.dot(self.covariance.T)
         gz = self.y_centered.dot(self.covariance)
-        gy *= gcost_div_n
-        gz *= gcost_div_n
+        gy *= gcost
+        gz *= gcost
         return gy, gz
 
 
-def cross_covariance(y, z):
+def cross_covariance(y, z, aggregate_option='sum'):
     """Computes the sum-squared cross-covariance penalty between ``y`` and ``z``
 
     Args:
@@ -69,4 +71,4 @@ def cross_covariance(y, z):
        See http://arxiv.org/abs/1412.6583v3 for details.
 
     """
-    return CrossCovariance()(y, z)
+    return CrossCovariance(aggregate_option)(y, z)

@@ -4,6 +4,7 @@ import six
 import chainer
 from chainer import cuda
 from chainer import function
+from chainer.utils import aggregator
 from chainer.utils import type_check
 
 
@@ -49,10 +50,11 @@ class SoftmaxCrossEntropy(function.Function):
 
     ignore_label = -1
 
-    def __init__(self, use_cudnn=True, normalize=True, cache_score=True):
+    def __init__(self, use_cudnn=True, normalize=True, cache_score=True, aggregate_option='divide'):
         self.use_cudnn = use_cudnn
         self.normalize = normalize
         self.cache_score = cache_score
+        self.aggregator = aggregator.Aggregator(aggregate_option)
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 2)
@@ -85,19 +87,18 @@ class SoftmaxCrossEntropy(function.Function):
             self.y = numpy.exp(log_y)
         log_yd = numpy.rollaxis(log_y, 1)
         log_yd = log_yd.reshape(len(log_yd), -1)
-
-        log_p = log_yd[numpy.maximum(t.ravel(), 0), six.moves.range(t.size)]
+        log_p = log_yd[numpy.maximum(t.ravel(), 0), six.moves.range(t.size)].reshape(t.shape)
+        
         # deal with the case where the SoftmaxCrossEntropy is
         # unpickled from the old version
         if getattr(self, 'normalize', True):
             count = (t != self.ignore_label).sum()
         else:
             count = len(x)
-        self._coeff = 1.0 / max(count, 1)
+        self.coeff = max(count, 1)
+        y = -log_p * (t != self.ignore_label).astype(x.dtype)
 
-        y = (log_p * (t.ravel() != self.ignore_label)).sum(keepdims=True) \
-            * (-self._coeff)
-        return y.reshape(()),
+        return self.aggregator.forward(y, count=self.coeff),
 
     def forward_gpu(self, inputs):
         cupy = cuda.cupy
@@ -109,22 +110,22 @@ class SoftmaxCrossEntropy(function.Function):
         if self.cache_score:
             self.y = cupy.exp(log_y)
         if getattr(self, 'normalize', True):
-            coeff = cupy.maximum(1, (t != self.ignore_label).sum())
+            self.coeff = cupy.maximum(1, (t != self.ignore_label).sum())
         else:
-            coeff = max(1, len(t))
-        self._coeff = cupy.divide(1.0, coeff, dtype=x.dtype)
-
+            self.coeff = max(1, len(t))
         log_y = cupy.rollaxis(log_y, 1, log_y.ndim)
-        ret = cuda.reduce(
-            'S t, raw T log_y, int32 n_channel, raw T coeff', 'T out',
-            't == -1 ? T(0) : log_y[_j * n_channel + t]',
-            'a + b', 'out = a * -coeff[0]', '0', 'crossent_fwd'
-        )(t, log_y.reduced_view(), log_y.shape[-1], self._coeff)
-        return ret,
+
+        ret = -cuda.elementwise(
+            'S t, raw T log_y, int32 n_channel',
+            'T out',
+            't == -1 ? T(0): log_y[_j * n_channel + t]'
+            )(t, log_y.reduced_view(), log_y.shape[-1])
+        return self.aggregator.forward(ret, count=self.coeff),
 
     def backward_cpu(self, inputs, grad_outputs):
         x, t = inputs
-        gloss = grad_outputs[0]
+        gloss = self.aggregator.backward(grad_outputs[0], count=self.coeff)
+        gloss = gloss[:, None, ...]
         n_unit = t.size // len(t)
         if hasattr(self, 'y'):
             y = self.y.copy()
@@ -146,7 +147,7 @@ class SoftmaxCrossEntropy(function.Function):
             gx *= (t != self.ignore_label).reshape((len(t), 1, -1))
             gx = gx.reshape(y.shape)
 
-        gx *= gloss * self._coeff
+        gx *= gloss
         return gx, None
 
     def backward_gpu(self, inputs, grad_outputs):
@@ -157,9 +158,8 @@ class SoftmaxCrossEntropy(function.Function):
         else:
             y = softmax_log(x, self.use_cudnn)
             cupy.exp(y, out=y)
-        gloss = grad_outputs[0]
+        coeff = self.aggregator.backward(grad_outputs[0], count=self.coeff)
         n_unit = t.size // len(t)
-        coeff = gloss * self._coeff
         gx = cuda.elementwise(
             'T y, S t, raw T coeff, S n_channel, S n_unit',
             'T gx',
@@ -173,7 +173,7 @@ class SoftmaxCrossEntropy(function.Function):
 
 
 def softmax_cross_entropy(
-        x, t, use_cudnn=True, normalize=True, cache_score=True):
+        x, t, use_cudnn=True, normalize=True, cache_score=True, aggregate_option='divide'):
     """Computes cross entropy loss for pre-softmax activations.
 
     Args:
@@ -202,4 +202,4 @@ def softmax_cross_entropy(
        This function is differentiable only by ``x``.
 
     """
-    return SoftmaxCrossEntropy(use_cudnn, normalize, cache_score)(x, t)
+    return SoftmaxCrossEntropy(use_cudnn, normalize, cache_score, aggregate_option)(x, t)
