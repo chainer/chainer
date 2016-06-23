@@ -1,0 +1,8 @@
+from chainer.iterators import multiprocess_iterator
+from chainer.iterators import sequential_iterator
+from chainer.iterators import shuffled_iterator
+
+
+MultiprocessIterator = multiprocess_iterator.MultiprocessIterator
+SequentialIterator = sequential_iterator.SequentialIterator
+ShuffledIterator = shuffled_iterator.ShuffledIterator
