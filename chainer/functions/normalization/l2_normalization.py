@@ -24,7 +24,7 @@ class L2Normalization(function.Function):
 
     def forward_cpu(self, inputs):
         x = array.as_mat(inputs[0])
-        norm = numpy.sqrt((x * x).sum(axis=1)) + self.eps
+        norm = numpy.linalg.norm(x, axis=1) + self.eps
         return x / norm[:, numpy.newaxis],
 
     def forward_gpu(self, inputs):
@@ -49,7 +49,7 @@ class L2Normalization(function.Function):
             norm = numpy.sqrt((x * x).sum(axis=1)) + self.eps
             norm = norm[:, numpy.newaxis]
 
-            gx = gy*norm - (x*gy).sum(axis=1)[:, numpy.newaxis]*x/norm
+            gx = gy * norm - (x * gy).sum(axis=1)[:, numpy.newaxis] * x / norm
             gx = gx / norm**2
         else:
             l2norm_kernel = cuda.cupy.ReductionKernel(
@@ -66,7 +66,7 @@ class L2Normalization(function.Function):
             gx = cuda.elementwise(
                 'T gy, T x, T x_gy, T norm',
                 'T gx',
-                'gx = (gy*norm - x_gy*x/norm)/(norm*norm)',
+                'gx = (gy * norm - x_gy * x / norm) / (norm * norm)',
                 'l2_bwd')(gy, x, x_gy, norm)
 
         return gx,
