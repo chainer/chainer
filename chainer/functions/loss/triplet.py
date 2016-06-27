@@ -30,7 +30,7 @@ class Triplet(function.Function):
         xp = cuda.get_array_module(*inputs)
 
         anchor, positive, negative = inputs
-        N = len(anchor)
+        N = anchor.shape[0]
 
         dist = xp.sum(
             (anchor - positive)**2 - (anchor - negative)**2,
@@ -44,7 +44,7 @@ class Triplet(function.Function):
         xp = cuda.get_array_module(*inputs)
 
         anchor, positive, negative = inputs
-        N = len(anchor)
+        N = anchor.shape[0]
 
         x_dim = anchor.shape[1]
         tmp = xp.repeat(self.dist_hinge[:, None], x_dim, axis=1)

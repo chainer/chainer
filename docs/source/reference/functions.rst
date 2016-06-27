@@ -95,6 +95,10 @@ broadcast_to
 ~~~~~~~~~~~~
 .. autofunction:: broadcast_to
 
+cast
+~~~~
+.. autofunction:: cast
+
 concat
 ~~~~~~
 .. autofunction:: concat
@@ -110,6 +114,10 @@ expand_dims
 get_item
 ~~~~~~~~
 .. autofunction:: get_item
+
+permutate
+~~~~~~~~~
+.. autofunction:: permutate
 
 reshape
 ~~~~~~~
@@ -130,6 +138,10 @@ swapaxes
 transpose
 ~~~~~~~~~
 .. autofunction:: transpose
+
+transpose_sequence
+~~~~~~~~~~~~~~~~~~
+.. autofunction:: transpose_sequence
 
 where
 ~~~~~
@@ -263,6 +275,10 @@ log
 ~~~
 .. autofunction:: log
 
+logsumexp
+~~~~~~~~~
+.. autofunction:: logsumexp
+
 matmul
 ~~~~~~
 .. autofunction:: matmul
@@ -271,9 +287,17 @@ max
 ~~~
 .. autofunction:: max
 
+maximum
+~~~~~~~
+.. autofunction:: maximum
+
 min
 ~~~
 .. autofunction:: min
+
+minimum
+~~~~~~
+.. autofunction:: minimum
 
 sin
 ~~~
