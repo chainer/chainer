@@ -11,7 +11,7 @@ class Triplet(function.Function):
 
     def __init__(self, margin):
         if margin <= 0:
-            raise ValueError("margin should be positive value.")
+            raise ValueError('margin should be positive value.')
         self.margin = margin
 
     def check_type_forward(self, in_types):
@@ -29,10 +29,12 @@ class Triplet(function.Function):
     def forward(self, inputs):
         xp = cuda.get_array_module(*inputs)
 
-        a, p, n = inputs  # anchor, positive, negative
-        N = a.shape[0]
+        anchor, positive, negative = inputs
+        N = anchor.shape[0]
 
-        dist = xp.sum((a-p)**2 - (a-n)**2, axis=1) + self.margin
+        dist = xp.sum(
+            (anchor - positive)**2 - (anchor - negative)**2,
+            axis=1) + self.margin
         self.dist_hinge = xp.maximum(dist, 0)
         loss = xp.sum(self.dist_hinge) / N
 
@@ -41,21 +43,22 @@ class Triplet(function.Function):
     def backward(self, inputs, gy):
         xp = cuda.get_array_module(*inputs)
 
-        a, p, n = inputs  # anchor, positive, negative
-        N = a.shape[0]
+        anchor, positive, negative = inputs
+        N = anchor.shape[0]
 
-        x_dim = a.shape[1]
+        x_dim = anchor.shape[1]
         tmp = xp.repeat(self.dist_hinge[:, None], x_dim, axis=1)
         mask = xp.array(tmp > 0, dtype=numpy.float32)
 
-        gx0 = (2 * gy[0] * (n - p) * mask / N).astype(numpy.float32)
-        gx1 = (2 * gy[0] * (p - a) * mask / N).astype(numpy.float32)
-        gx2 = (2 * gy[0] * (a - n) * mask / N).astype(numpy.float32)
+        tmp = 2 * gy[0] * mask / N
+        gx0 = (tmp * (negative - positive)).astype(numpy.float32)
+        gx1 = (tmp * (positive - anchor)).astype(numpy.float32)
+        gx2 = (tmp * (anchor - negative)).astype(numpy.float32)
 
         return gx0, gx1, gx2
 
 
-def triplet(a, p, n, margin=0.2):
+def triplet(anchor, positive, negative, margin=0.2):
     """Computes triplet loss.
 
     It takes a triplet of variables as inputs, :math:`a`, :math:`p` and
@@ -72,13 +75,13 @@ def triplet(a, p, n, margin=0.2):
     where :math:`d(x_i, y_i) = \\| {\\bf x}_i - {\\bf y}_i \\|_2^2`.
 
     Args:
-        a (~chainer.Variable): The anchor example variable. The shape should be
-            (N, K), where N denotes the minibatch size, and K denotes the
-            dimension of a.
-        p (~chainer.Variable): The positive example variable. The shape should
-            be the same as a.
-        n (~chainer.Variable): The negatove example variable. The shape should
-            be the same as a.
+        anchor (~chainer.Variable): The anchor example variable. The shape
+            should be (N, K), where N denotes the minibatch size, and K denotes
+            the dimension of anchor.
+        positive (~chainer.Variable): The positive example variable. The shape
+            should be the same as anchor.
+        negative (~chainer.Variable): The negatove example variable. The shape
+            should be the same as anchor.
         margin (float): A parameter for triplet loss. It should be positive
             value.
 
@@ -90,4 +93,4 @@ def triplet(a, p, n, margin=0.2):
         This cost can be used to train triplet networks. See `Learning
          Fine-grained Image Similarity with Deep Ranking` for details.
     """
-    return Triplet(margin)(a, p, n)
+    return Triplet(margin)(anchor, positive, negative)
