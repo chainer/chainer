@@ -16,8 +16,6 @@ from chainer.utils import type_check
 @testing.parameterize(
     {'shape': (4, 15)},
 )
-
-
 class TestL2Normalization(unittest.TestCase):
 
     def setUp(self):

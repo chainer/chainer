@@ -33,7 +33,6 @@ from chainer.functions.connection import linear
 from chainer.functions.evaluation import accuracy
 from chainer.functions.evaluation import binary_accuracy
 from chainer.functions.loss import contrastive
-from chainer.functions.loss import triplet
 from chainer.functions.loss import cross_covariance
 from chainer.functions.loss import ctc
 from chainer.functions.loss import hinge
@@ -42,6 +41,7 @@ from chainer.functions.loss import mean_squared_error
 from chainer.functions.loss import negative_sampling
 from chainer.functions.loss import sigmoid_cross_entropy
 from chainer.functions.loss import softmax_cross_entropy
+from chainer.functions.loss import triplet
 from chainer.functions.loss import vae  # NOQA
 from chainer.functions.math import basic_math  # NOQA
 from chainer.functions.math import batch_l2_norm_squared
@@ -60,8 +60,8 @@ from chainer.functions.math import trigonometric
 from chainer.functions.noise import dropout
 from chainer.functions.noise import gaussian
 from chainer.functions.normalization import batch_normalization
-from chainer.functions.normalization import local_response_normalization
 from chainer.functions.normalization import l2_normalization
+from chainer.functions.normalization import local_response_normalization
 from chainer.functions.pooling import average_pooling_2d
 from chainer.functions.pooling import max_pooling_2d
 from chainer.functions.pooling import roi_pooling_2d
