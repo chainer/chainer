@@ -15,7 +15,6 @@ from chainer.utils import type_check
 
 @testing.parameterize(
     {'shape': (4, 15)},
-    {'shape': (4, 15)},
 )
 class TestL2Normalization(unittest.TestCase):
 
@@ -32,7 +31,7 @@ class TestL2Normalization(unittest.TestCase):
 
         y_expect = numpy.empty_like(self.x)
         for n in six.moves.range(len(self.x)):
-            y_expect[n] = self.x[n]/numpy.linalg.norm(self.x[n])
+            y_expect[n] = self.x[n] / numpy.linalg.norm(self.x[n])
 
         gradient_check.assert_allclose(y_expect, y_data)
 
