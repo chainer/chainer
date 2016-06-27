@@ -45,6 +45,7 @@ from chainer.functions.loss import mean_squared_error
 from chainer.functions.loss import negative_sampling
 from chainer.functions.loss import sigmoid_cross_entropy
 from chainer.functions.loss import softmax_cross_entropy
+from chainer.functions.loss import triplet
 from chainer.functions.loss import vae  # NOQA
 from chainer.functions.math import basic_math  # NOQA
 from chainer.functions.math import batch_l2_norm_squared
@@ -68,6 +69,7 @@ from chainer.functions.math import trigonometric
 from chainer.functions.noise import dropout
 from chainer.functions.noise import gaussian
 from chainer.functions.normalization import batch_normalization
+from chainer.functions.normalization import l2_normalization
 from chainer.functions.normalization import local_response_normalization
 from chainer.functions.pooling import average_pooling_2d
 from chainer.functions.pooling import max_pooling_2d
@@ -165,6 +167,8 @@ bernoulli_nll = vae.bernoulli_nll
 BinaryHierarchicalSoftmax = hierarchical_softmax.BinaryHierarchicalSoftmax
 Contrastive = contrastive.Contrastive
 contrastive = contrastive.contrastive
+Triplet = triplet.Triplet
+triplet = triplet.triplet
 CrossCovariance = cross_covariance.CrossCovariance
 cross_covariance = cross_covariance.cross_covariance
 gaussian_kl_divergence = vae.gaussian_kl_divergence
@@ -187,6 +191,8 @@ BatchInv = inv.BatchInv
 batch_inv = inv.batch_inv
 BatchL2NormSquared = batch_l2_norm_squared.BatchL2NormSquared
 batch_l2_norm_squared = batch_l2_norm_squared.batch_l2_norm_squared
+L2Normalization = l2_normalization.L2Normalization
+l2_normalization = l2_normalization.l2_normalization
 BatchMatMul = matmul.BatchMatMul
 batch_matmul = matmul.batch_matmul
 bias = bias.bias
