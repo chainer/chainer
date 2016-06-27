@@ -16,6 +16,8 @@ from chainer.utils import type_check
 @testing.parameterize(
     {'shape': (4, 15)},
 )
+
+
 class TestL2Normalization(unittest.TestCase):
 
     def setUp(self):
@@ -25,7 +27,7 @@ class TestL2Normalization(unittest.TestCase):
     def check_forward(self, x_data):
         x = chainer.Variable(x_data)
 
-        y = functions.l2_normalization(x)
+        y = functions.normalize(x)
         self.assertEqual(y.data.dtype, numpy.float32)
         y_data = cuda.to_cpu(y.data)
 
@@ -46,7 +48,7 @@ class TestL2Normalization(unittest.TestCase):
 
     def check_backward(self, x_data, y_grad):
         gradient_check.check_backward(
-            functions.L2Normalization(), x_data, y_grad, rtol=1e-3, atol=1e-4)
+            functions.NormalizeL2(), x_data, y_grad, rtol=1e-3, atol=1e-4)
 
     @condition.retry(3)
     def test_backward_cpu(self):
@@ -57,6 +59,23 @@ class TestL2Normalization(unittest.TestCase):
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
+    def check_eps(self, x_data):
+        x = chainer.Variable(x_data)
+
+        y = functions.normalize(x)
+        self.assertEqual(y.data.dtype, numpy.float32)
+        y_data = cuda.to_cpu(y.data)
+
+        y_expect = numpy.zeros_like(self.x)
+        gradient_check.assert_allclose(y_expect, y_data)
+
+    def test_eps_cpu(self):
+        self.check_eps(numpy.zeros_like(self.x))
+
+    @attr.gpu
+    def test_eps_gpu(self):
+        self.check_eps(cuda.to_gpu(numpy.zeros_like(self.x)))
+
 
 class TestL2NormalizationTypeError(unittest.TestCase):
 
@@ -64,7 +83,7 @@ class TestL2NormalizationTypeError(unittest.TestCase):
         x = chainer.Variable(numpy.zeros((4, 3, 24), dtype=numpy.float32))
 
         with self.assertRaises(type_check.InvalidType):
-            chainer.functions.l2_normalization(x)
+            chainer.functions.normalize(x)
 
 
 testing.run_module(__name__, __file__)

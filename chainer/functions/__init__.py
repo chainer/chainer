@@ -214,12 +214,12 @@ gaussian = gaussian.gaussian
 
 fixed_batch_normalization = batch_normalization.fixed_batch_normalization
 batch_normalization = batch_normalization.batch_normalization
-L2Normalization = l2_normalization.L2Normalization
-l2_normalization = l2_normalization.l2_normalization
 LocalResponseNormalization = \
     local_response_normalization.LocalResponseNormalization
 local_response_normalization = \
     local_response_normalization.local_response_normalization
+NormalizeL2 = l2_normalization.NormalizeL2
+normalize = l2_normalization.normalize
 
 AveragePooling2D = average_pooling_2d.AveragePooling2D
 average_pooling_2d = average_pooling_2d.average_pooling_2d

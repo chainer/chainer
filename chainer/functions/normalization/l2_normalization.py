@@ -7,7 +7,7 @@ from chainer.utils import array
 from chainer.utils import type_check
 
 
-class L2Normalization(function.Function):
+class NormalizeL2(function.Function):
 
     """L2 normalization"""
 
@@ -31,7 +31,13 @@ class L2Normalization(function.Function):
     def forward_gpu(self, inputs):
         x = array.as_mat(inputs[0])
         l2norm_kernel = cuda.cupy.ReductionKernel(
-            'T x', 'T y', 'x * x', 'a + b', 'y = sqrt(a)', '0', 'l2norm'
+            'T x',
+            'T y',
+            'x * x',
+            'a + b',
+            'y = sqrt(a)',
+            '0',
+            'l2norm'
         )
         norm = cupy.broadcast_to(
             l2norm_kernel(x, axis=1).reshape(-1, 1),
@@ -54,14 +60,20 @@ class L2Normalization(function.Function):
             gx = gx / norm**2
         else:
             l2norm_kernel = cuda.cupy.ReductionKernel(
-                'T x', 'T y', 'x * x', 'a + b', 'y = sqrt(a)', '0', 'l2norm'
+                'T x',
+                'T y',
+                'x * x',
+                'a + b',
+                'y = sqrt(a)',
+                '0',
+                'l2norm'
             )
             norm = cupy.broadcast_to(
                 l2norm_kernel(x, axis=1).reshape(-1, 1),
                 x.shape
             )
             x_gy = cupy.broadcast_to(
-                (x*gy).sum(axis=1, keepdims=True),
+                (x * gy).sum(axis=1, keepdims=True),
                 x.shape
             )
             gx = cuda.elementwise(
@@ -73,7 +85,7 @@ class L2Normalization(function.Function):
         return gx,
 
 
-def l2_normalization(x, eps=1e-5):
+def normalize(x, eps=1e-5):
     """L2 norm (a.k.a. Euclidean norm) squared.
 
     This function implements L2 normalization on a 1D vector. No reduction
@@ -85,6 +97,8 @@ def l2_normalization(x, eps=1e-5):
     .. math::
        y_i = {x_i \\over \\| x_i \\|_2}
 
+    :math:`eps` is used to avoid division by zero when :math:`x_i=0`
+
     Args:
         x (~chainer.Variable): Two dimensional output variable. The first
             dimension is assumed to be the *minibatch dimension*.
@@ -94,4 +108,4 @@ def l2_normalization(x, eps=1e-5):
         ~chainer.Variable: Two dimensional output variable.
 
     """
-    return L2Normalization(eps)(x)
+    return NormalizeL2(eps)(x)
