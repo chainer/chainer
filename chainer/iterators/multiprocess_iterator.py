@@ -19,8 +19,9 @@ class MultiprocessIterator(iterator.Iterator):
     Note that this iterator effectively prefetches the examples for the next
     batch asynchronously after the current batch is returned.
 
-    This iterator shuffles the order of examples at the beginning of each epoch
-    like :class:`ShuffledIterator`.
+    This iterator shuffles (depending on the value of the ``shuffle`` argument)
+    the order of examples at the beginning of each epoch like
+    :class:`ShuffledIterator`.
 
     Args:
         dataset (~chainer.dataset.Dataset): Dataset to iterate.
@@ -29,13 +30,18 @@ class MultiprocessIterator(iterator.Iterator):
             Otherwise, it stops iteration at the end of the first epoch.
         n_processes (int): Number of worker processes. The number of CPUs is
             used by default.
-
+        shuffle (bool): If ``True`` the dataset is shuffled ath the beginning
+            of each epoch.
     """
-    def __init__(self, dataset, batch_size, repeat=True, n_processes=None):
+    def __init__(self, dataset, batch_size, repeat=True, n_processes=None,
+                 shuffle=True):
         self.dataset = dataset
         self.batch_size = batch_size
         self._repeat = repeat
-        self._order = numpy.random.permutation(len(dataset))
+        self._shuffle = shuffle
+        self._order = numpy.arange(len(dataset))
+        if self._shuffle:
+            self._order = numpy.random.permutation(self._order)
         self._prefetch_order = None  # used at the end of each epoch
 
         self.current_position = 0
@@ -122,8 +128,9 @@ class MultiprocessIterator(iterator.Iterator):
                 # We cannot shuffle the order directly here, since the iterator
                 # may be serialized before the prefetched data are consumed by
                 # the user, in which case an inconsistency appears.
-                order = order.copy()
-                numpy.random.shuffle(order)
+                if self._shuffle:
+                    order = order.copy()
+                    numpy.random.shuffle(order)
             self._index_queue.put(order[i])
             i += 1
         self._prefetch_order = order  # Temporarily store the shuffled order.
