@@ -140,8 +140,11 @@ class MultiprocessIterator(iterator.Iterator):
         N = len(self.dataset)
         i = self.current_position
         batch = []
+        indices = []
         for k in six.moves.range(self.batch_size):
-            batch.append(self._data_queue.get())
+            index, sample = self._data_queue.get()
+            indices.append(index)
+            batch.append(sample)
             i += 1
             if i >= N:
                 self.epoch += 1
@@ -152,6 +155,11 @@ class MultiprocessIterator(iterator.Iterator):
         self.current_position = i
         # Eventually overwrite the (possibly shuffled) order.
         self._order = self._prefetch_order
+
+        if not self._shuffle:
+            sort_indices = numpy.argsort(indices)
+            batch = [batch[si] for si in sort_indices]
+
         return batch
 
 
@@ -160,6 +168,6 @@ def _worker(dataset, in_queue, out_queue):
         index = in_queue.get()
         if index < 0:
             break
-        out_queue.put(dataset[index])
+        out_queue.put((index, dataset[index]))
     out_queue.close()
     out_queue.cancel_join_thread()
