@@ -13,7 +13,7 @@ from chainer import variable
 def concat_variables(variables, device=None):
     """Concatenates a list of variables into a single variable.
 
-    Dataset iterator yields a list of examples. If each example is an array,
+    iterator yields a list of examples. If each example is an array,
     this function concatenates them along the newly-inserted first axis (called
     `batch dimension`) into one array. The basic behavior is same for examples
     consisting of multiple arrays, i.e., corresponding arrays of all examples
@@ -224,14 +224,15 @@ class Extractor(extension.Extension):
         for batch in it:
             in_arrays = self.converter(batch, self.device)
             if isinstance(in_arrays, tuple):
-                in_vars = tuple(variable.Variable(x) for x in in_arrays)
+                in_vars = tuple(variable.Variable(x, volatile='on')
+                                for x in in_arrays)
                 features_batch = extract_func(*in_vars)
             elif isinstance(in_arrays, dict):
-                in_vars = {key: variable.Variable(x)
+                in_vars = {key: variable.Variable(x, volatile='on')
                            for key, x in six.iteritems(in_arrays)}
                 features_batch = extract_func(**in_vars)
             else:
-                in_var = variable.Variable(in_arrays)
+                in_var = variable.Variable(in_arrays, volatile='on')
                 features_batch = extract_func(in_var)
 
             features.append(features_batch)
