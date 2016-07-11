@@ -23,9 +23,9 @@ class CRF(chainer.Chain):
         hs = [self.embed(x) for x in xs]
         return self.crf(hs, ys)
 
-    def viterbi(self, xs):
+    def argmax(self, xs):
         hs = [self.embed(x) for x in xs]
-        return self.crf.viterbi(hs)
+        return self.crf.argmax(hs)
 
 
 vocab = collections.defaultdict(lambda: len(vocab))
@@ -76,7 +76,7 @@ for epoch in range(n_epoch):
         loss.backward()
         opt.update()
 
-        _, path = model.viterbi(xs)
+        _, path = model.argmax(xs)
         assert len(ys) == len(path)
 
         for y, p in zip(ys, path):
