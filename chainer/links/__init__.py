@@ -4,9 +4,11 @@ from chainer.links.activation import maxout
 from chainer.links.activation import prelu
 from chainer.links.connection import bias
 from chainer.links.connection import bilinear
+from chainer.links.connection import cell
 from chainer.links.connection import convolution_2d
 from chainer.links.connection import deconvolution_2d
 from chainer.links.connection import embed_id
+from chainer.links.connection import grid_cells
 from chainer.links.connection import gru
 from chainer.links.connection import inception
 from chainer.links.connection import inceptionbn
@@ -36,6 +38,14 @@ InceptionBN = inceptionbn.InceptionBN
 Linear = linear.Linear
 LSTM = lstm.LSTM
 StatelessLSTM = lstm.StatelessLSTM
+StackedStatefulLSTM = lstm.StackedStatefulLSTM
+StackedStatelessLSTM = lstm.StackedStatelessLSTM
+StackedStatefulGRU = gru.StackedStatefulGRU
+StackedStatelessGRU = gru.StackedStatelessGRU
+Cell = cell.Cell
+GridLSTM = grid_cells.GridLSTMCell
+GridGRU = grid_cells.GridGRUCell
+GridCell = grid_cells.GridCell
 MLPConvolution2D = mlp_convolution_2d.MLPConvolution2D
 Parameter = parameter.Parameter
 Scale = scale.Scale

@@ -1,6 +1,10 @@
+import chainer
+import numpy
 import six
 
 from chainer.functions.activation import lstm
+from chainer.functions.array import concat
+from chainer.functions.array import split_axis
 from chainer import initializers
 from chainer import link
 from chainer.links.connection import linear
@@ -150,6 +154,20 @@ class LSTM(LSTMBase):
         """
         self.c = self.h = None
 
+    def set_state(self, c, h):
+        assert isinstance(h, chainer.Variable)
+        assert isinstance(c, chainer.Variable)
+        h_ = h
+        c_ = c
+        if self.xp == numpy:
+            h_.to_cpu()
+            c_.to_cpu()
+        else:
+            h_.to_gpu()
+            c_.to_gpu()
+        self.h = h_
+        self.c = c_
+
     def __call__(self, x):
         """Updates the internal state and returns the LSTM outputs.
 
@@ -170,3 +188,132 @@ class LSTM(LSTMBase):
                 volatile='auto')
         self.c, self.h = lstm.lstm(self.c, lstm_in)
         return self.h
+
+
+class StackedStatelessLSTM(link.ChainList):
+
+    """Stacked Stateless Long Short term Memory (LSTM).
+
+    This is an implementation of a Stacked Stateless LSTM.
+    The underlying idea is to simply stack multiple LSTMs
+    where the LSTM at the bottom takes the regular input,
+    and the LSTMs after that simply take the outputs
+    (represented by h) of the lower LSTMs as inputs.
+    Since this is a stateless implementation,
+    the states of all the LSTMs must be returned
+    Args:
+          in_size (int)- The size of embeddings of the inputs
+          out_size (int)- The size of the hidden layer representation of
+                      each GRU unit
+          num_layers (int)- The number of LSTM layers
+
+    Attributes:
+          num_layers: Indicates the number of LSTM layers
+    User Defined Methods:
+
+    """
+
+    def __init__(self, in_size, out_size, num_layers=1):
+        super(StackedStatelessLSTM, self).__init__()
+        assert num_layers >= 1
+        self.add_link(StatelessLSTM(out_size, in_size))
+        for i in range(1, num_layers):
+            self.add_link(StatelessLSTM(out_size, out_size))
+        self.num_layers = num_layers
+
+    def __call__(self, h, x):
+        """Updates the internal state and returns the  LSTM outputs.
+
+        Args:
+            x (~chainer.Variable): A new batch from the input sequence.
+            h (~chainer.Variable): The list of the previous cell outputs.
+
+        Returns:
+            ~chainer.Variable: A list of the outputs (h) of the updated
+                LSTM units over all the layers.
+
+        """
+        h_list = []
+        h = split_axis.split_axis(h, self.num_layers, 1, True)
+        h_curr = x
+        for layer, h in six.moves.zip(self, h):
+            h_curr = layer(h, h_curr)
+            h_list.append(h_curr)
+        return concat.concat(h_list, 1)
+
+
+class StackedStatefulLSTM(link.ChainList):
+
+    """Fully-connected Stacked LSTM layer.
+
+    This is a fully-connected Stacked LSTM layer as a chain.
+    It simply stacks multiple LSTMs.
+
+    It also maintains *states*, including the cell state and the output
+    at the previous time step for each LSTM in the stack.
+    Therefore, it can be used as a *stateful Stacked LSTM*.
+
+    Args:
+        in_size (int): Dimensionality of input vectors.
+        out_size (int): Dimensionality of output vectors.
+        num_layers (int): Number of LSTM layers.
+
+    Attributes:
+
+
+    """
+    def __init__(self, in_size, out_size, num_layers=1):
+        super(StackedStatefulLSTM, self).__init__()
+        self.add_link(LSTM(in_size, out_size))
+        for i in range(1, num_layers):
+            self.add_link(LSTM(out_size, out_size))
+        self.num_layers = num_layers
+        self.reset_state()
+
+    def to_cpu(self):
+        for layer in self:
+            layer.to_cpu()
+
+    def to_gpu(self, device=None):
+        for layer in self:
+            layer.to_gpu(device)
+
+    def reset_state(self):
+        """Resets the internal state.
+
+        It sets ``None`` to the :attr:`c` and :attr:`h`
+        attributes for each LSTM in the stack.
+
+        """
+        for layer in self:
+            layer.reset_state()
+
+    def set_state(self, c, h):
+        h = split_axis.split_axis(h, self.num_layers, 1, True)
+        c = split_axis.split_axis(c, self.num_layers, 1, True)
+        for layer, c, h in six.moves.zip(self, c, h):
+            assert isinstance(h, chainer.Variable)
+            assert isinstance(c, chainer.Variable)
+            layer.set_state(c, h)
+
+    def __call__(self, x, top_n=None):
+        """Updates the internal state and returns the LSTM outputs.
+
+        Args:
+            x (~chainer.Variable): A new batch from the input sequence.
+            top_n (int): The number of LSTMs from the top whose outputs
+            you want (default: outputs of all LSTMs are returned)
+
+        Returns:
+            ~chainer.Variable: Outputs of updated LSTM units.
+
+        """
+        if top_n is None:
+            top_n = self.num_layers
+
+        h_list = []
+        h_curr = x
+        for layer in self:
+            h_curr = layer(h_curr)
+            h_list.append(h_curr)
+        return concat.concat(h_list[-top_n:], 1)
