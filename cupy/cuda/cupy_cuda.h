@@ -9,6 +9,7 @@
 #include <cuda_profiler_api.h>
 #include <cuda_runtime.h>
 #include <curand.h>
+#include <cusolverDn.h>
 
 #else // #ifndef CUPY_NO_CUDA
 
@@ -277,10 +278,12 @@ typedef void* Handle;
 typedef int cublasOperation_t;
 typedef int cublasPointerMode_t;
 typedef int cublasSideMode_t;
+typedef int cublasFillMode_t;
 
 typedef int Operation;
 typedef int PointerMode;
 typedef int SideMode;
+typedef int FillMode;
 
 
 // Context
@@ -530,6 +533,62 @@ int curandGenerateLogNormalDouble(
 int curandGeneratePoisson(
         Generator generator, unsigned int* outputPtr, size_t n,
         double lam) {
+    return 0;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// cusolver.h
+///////////////////////////////////////////////////////////////////////////////
+
+int cusolverDnCreate(Handle* handle) {
+    return 0;
+}
+
+int cusolverDnDestroy(Handle handle) {
+    return 0;
+}
+
+int cusolverDnGetStream(Handle handle, Stream* streamId) {
+    return 0;
+}
+
+int cusolverDnSetStream(Handle handle, Stream streamId) {
+    return 0;
+}
+
+int cusolverDnSpotrf(Handle handle, FillMode uplo, int n, float* A, int lda,
+                     float* Workspace, int Lwork, int* devInfo) {
+    return 0;
+}
+
+int cusolverDnDpotrf(Handle handle, FillMode uplo, int n, double *A, int lda,
+                     double* Workspace, int Lwork, int* devInfo) {
+    return 0;
+}
+
+int cusolverDnSgetrs(Handle handle, Operation trans,
+                     int n, int nrhs, const float* A, int lda,
+                     const int* devIpiv, float* B, int ldb, int* devInfo) {
+    return 0;
+}
+
+int cusolverDnDgetrs(Handle handle, Operation trans,
+                     int n, int nrhs, const double* A, int lda,
+                     const int* devIpiv, double* B, int ldb, int* devInfo) {
+    return 0;
+}
+
+int cusolverDnSgesvd(Handle handle, char jobu, char jobvt, int m, int n,
+                     float* A, int lda, float* S, float* U, int ldu,
+                     float* VT, int ldvt, float* Work, int Lwork,
+                     float* rwork, int* devInfo) {
+    return 0;
+}
+                     
+int cusolverDnDgesvd(Handle handle, char jobu, char jobvt, int m, int n,
+                     double* A, int lda, double* S, double* U, int ldu,
+                     double* VT, int ldvt, double* Work, int Lwork,
+                     double* rwork, int* devInfo) {
     return 0;
 }
 
