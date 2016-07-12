@@ -4,8 +4,6 @@ import argparse
 import numpy
 
 import chainer
-import chainer.functions as F
-import chainer.links as L
 from chainer.training import extensions
 
 import train_mnist
