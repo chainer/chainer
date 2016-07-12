@@ -303,7 +303,8 @@ cdef class ndarray:
 
         a = self
         if not self._c_contiguous:
-            a = ascontiguousarray(self)
+            with self.device:
+                a = ascontiguousarray(self)
             if a.data.device.id == device.get_device_id():
                 return a
         newarray = ndarray(a.shape, a.dtype)
@@ -1890,8 +1891,6 @@ cpdef ndarray tensordot_core(
     b = b.astype(dtype, copy=False)
 
     if not a.size or not b.size:
-        if a.size or b.size:
-            raise ValueError('cannot dot zero-sized and non-zero-sized arrays')
         if out is None:
             out = ndarray(ret_shape, dtype=ret_dtype)
         out.fill(0)
