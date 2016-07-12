@@ -11,6 +11,7 @@ cdef extern from *:
     ctypedef void* Handle 'cusolverDnHandle_t'
 
     ctypedef int Operation 'cublasOperation_t'
+    ctypedef int SideMode 'cublasSideMode_t'
     ctypedef int FillMode 'cublasFillMode_t'
 
 ###############################################################################
@@ -45,12 +46,46 @@ cpdef int spotrf(size_t handle, int uplo, int n, size_t A, int lda,
 cpdef int dpotrf(size_t handle, int uplo, int n, size_t A, int lda,
                  size_t Workspace, int Lwork, size_t devInfo)
 
+cpdef int spotrs(size_t handle, int uplo, int n, int nrhs,
+                 size_t A, int lda, size_t B, int ldb, size_t devInfo)
+cpdef int dpotrs(size_t handle, int uplo, int n, int nrhs,
+                 size_t A, int lda, size_t B, int ldb, size_t devInfo)
+
+cpdef int sgetrf(size_t handle, int m, int n, size_t A, int lda,
+                 size_t Workspace, size_t devIpiv, size_t devInfo)
+cpdef int dgetrf(size_t handle, int m, int n, size_t A, int lda,
+                 size_t Workspace, size_t devIpiv, size_t devInfo)
+
 cpdef int sgetrs(size_t handle, int trans, int n, int nrhs,
                  size_t A, int lda, size_t devIpiv,
                  size_t B, int ldb, size_t devInfo)
 cpdef int dgetrs(size_t handle, int trans, int n, int nrhs,
                  size_t A, int lda, size_t devIpiv,
                  size_t B, int ldb, size_t devInfo)
+
+cpdef int sgeqrf(size_t handle, int m, int n, size_t A, int lda,
+                 size_t TAU, size_t Workspace, int Lwork, size_t devInfo)
+cpdef int dgeqrf(size_t handle, int m, int n, size_t A, int lda,
+                 size_t TAU, size_t Workspace, int Lwork, size_t devInfo)
+
+cpdef int sormqr(size_t handle, int side, int trans,
+                 int m, int n, int k, size_t A, int lda, size_t tau,
+                 size_t C, int ldc, size_t work, int lwork, size_t devInfo)
+cpdef int dormqr(size_t handle, int side, int trans,
+                 int m, int n, int k, size_t A, int lda, size_t tau,
+                 size_t C, int ldc, size_t work, int lwork, size_t devInfo)
+
+cpdef int ssytrf(size_t handle, int uplo, int n, size_t A, int lda,
+                 size_t ipiv, size_t work, int lwork, size_t devInfo)
+cpdef int dsytrf(size_t handle, int uplo, int n, size_t A, int lda,
+                 size_t ipiv, size_t work, int lwork, size_t devInfo)
+
+cpdef int sgebrd(size_t handle, int m, int n, size_t A, int lda,
+                 size_t D, size_t E, size_t TAUQ, size_t TAUP,
+                 size_t Work, int Lwork, size_t devInfo)
+cpdef int dgebrd(size_t handle, int m, int n, size_t A, int lda,
+                 size_t D, size_t E, size_t TAUQ, size_t TAUP,
+                 size_t Work, int Lwork, size_t devInfo)
 
 cpdef int sgesvd(size_t handle, char jobu, char jobvt, int m, int n, size_t A,
                  int lda, size_t S, size_t U, int ldu, size_t VT, int ldvt,

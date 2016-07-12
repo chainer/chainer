@@ -566,6 +566,29 @@ int cusolverDnDpotrf(Handle handle, FillMode uplo, int n, double *A, int lda,
     return 0;
 }
 
+int cusolverDnSpotrs(Handle handle, FillMode uplo, int n, int nrhs,
+                     const float* A, int lda, float* B, int ldb,
+                     int* devInfo) {
+    return 0;
+}
+
+int cusolverDnDpotrs(Handle handle, FillMode uplo, int n, int nrhs,
+                     const double* A, int lda, double* B, int ldb,
+                     int *devInfo) {
+    return 0;
+}
+
+
+int cusolverDnSgetrf(Handle handle, int m, int n, float* A, int lda,
+                     float* Workspace, int* devIpiv, int* devInfo) {
+    return 0;
+}
+
+int cusolverDnDgetrf(Handle handle, int m, int n, double* A, int lda,
+                     double* Workspace, int* devIpiv, int* devInfo) {
+    return 0;
+}
+
 int cusolverDnSgetrs(Handle handle, Operation trans,
                      int n, int nrhs, const float* A, int lda,
                      const int* devIpiv, float* B, int ldb, int* devInfo) {
@@ -575,6 +598,52 @@ int cusolverDnSgetrs(Handle handle, Operation trans,
 int cusolverDnDgetrs(Handle handle, Operation trans,
                      int n, int nrhs, const double* A, int lda,
                      const int* devIpiv, double* B, int ldb, int* devInfo) {
+    return 0;
+}
+
+int cusolverDnSgeqrf(Handle handle, int m, int n, float* A, int lda,
+                     float* TAU, float* Workspace, int Lwork, int* devInfo) {
+    return 0;
+}
+
+int cusolverDnDgeqrf(Handle handle, int m, int n, double* A, int lda,
+                     double* TAU, double* Workspace, int Lwork, int* devInfo) {
+    return 0;
+}
+
+int cusolverDnSormqr(Handle handle, SideMode side, Operation trans,
+                     int m, int n, int k, const float* A, int lda,
+                     const float* tau, float* C, int ldc, float* work,
+                     int lwork, int* devInfo) {
+    return 0;
+}
+
+int cusolverDnDormqr(Handle handle, SideMode side, Operation trans,
+                     int m, int n, int k, const double* A, int lda,
+                     const double* tau, double* C, int ldc, double* work,
+                     int lwork, int* devInfo) {
+    return 0;
+}
+
+int cusolverDnSsytrf(Handle handle, FillMode uplo, int n, float *A, int lda,
+                     int *ipiv, float *work, int lwork, int *devInfo) {
+    return 0;
+}
+
+int cusolverDnDsytrf(Handle handle, FillMode uplo, int n, double* A, int lda,
+                     int* ipiv, double* work, int lwork, int* devInfo) {
+    return 0;
+}
+
+int cusolverDnSgebrd(Handle handle, int m, int n, float* A, int lda,
+                     float* D, float* E, float* TAUQ, float* TAUP,
+                     float* Work, int Lwork, int* devInfo) {
+    return 0;
+}
+
+int cusolverDnDgebrd(Handle handle, int m, int n, double* A, int lda,
+                     double* D, double* E, double* TAUQ, double* TAUP,
+                     double* Work, int Lwork, int* devInfo) {
     return 0;
 }
 
