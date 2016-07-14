@@ -44,6 +44,10 @@ cdef extern from 'cupy_cuda.h':
                          int n, int nrhs, const double* A, int lda,
                          const int* devIpiv, double* B, int ldb, int* devInfo)
 
+    int cusolverDnSgeqrf_bufferSize(Handle handle, int m, int n,
+                                    float* A, int lda, int* Lwork)
+    int cusolverDnDgeqrf_bufferSize(Handle handle, int m, int n,
+                                    double* A, int lda, int* Lwork)
     int cusolverDnSgeqrf(Handle handle, int m, int n, float* A, int lda,
                          float* TAU, float* Workspace, int Lwork,
                          int* devInfo)
@@ -150,178 +154,196 @@ cpdef size_t getStream(size_t handle) except *:
 
 cpdef int spotrf_bufferSize(size_t handle, int uplo,
                             int n, size_t A, int lda) except *:
-    cdef int result
+    cdef int status
     cdef int Lwork
-    result = cusolverDnSpotrf_bufferSize(
+    status = cusolverDnSpotrf_bufferSize(
         <Handle>handle, <FillMode>uplo, n, <float*>A, <int>lda, &Lwork)
-    check_status(result)
+    check_status(status)
     return Lwork
 
 cpdef int dpotrf_bufferSize(size_t handle, int uplo,
                             int n, size_t A, int lda) except *:
-    cdef int result
+    cdef int status
     cdef int Lwork
-    result = cusolverDnDpotrf_bufferSize(
+    status = cusolverDnDpotrf_bufferSize(
         <Handle>handle, <FillMode>uplo, n, <double*>A, <int>lda, &Lwork)
-    check_status(result)
+    check_status(status)
     return Lwork
 
 cpdef spotrf(size_t handle, int uplo, int n, size_t A, int lda,
              size_t Workspace, int Lwork, size_t devInfo):
-    cdef int result
+    cdef int status
     status = cusolverDnSpotrf(
         <Handle>handle, <FillMode>uplo, n, <float*>A,
         lda, <float*>Workspace, Lwork, <int*>devInfo)
-    check_status(result)
+    check_status(status)
 
 cpdef dpotrf(size_t handle, int uplo, int n, size_t A, int lda,
              size_t Workspace, int Lwork, size_t devInfo):
-    cdef int result
+    cdef int status
     status = cusolverDnDpotrf(
         <Handle>handle, <FillMode>uplo, n, <double*>A,
         lda, <double*>Workspace, Lwork, <int*>devInfo)
-    check_status(result)
+    check_status(status)
 
 cpdef spotrs(size_t handle, int uplo, int n, int nrhs,
              size_t A, int lda, size_t B, int ldb, size_t devInfo):
-    cdef int result
+    cdef int status
     status = cusolverDnSpotrs(
         <Handle>handle, <FillMode>uplo, n, nrhs,
         <const float*>A, lda, <float*>B, ldb, <int*>devInfo)
-    check_status(result)
+    check_status(status)
 
 cpdef dpotrs(size_t handle, int uplo, int n, int nrhs,
              size_t A, int lda, size_t B, int ldb, size_t devInfo):
-    cdef int result
+    cdef int status
     status = cusolverDnDpotrs(
         <Handle>handle, <FillMode>uplo, n, nrhs,
         <const double*>A, lda, <double*>B, ldb, <int*>devInfo)
-    check_status(result)
+    check_status(status)
 
 cpdef sgetrf(size_t handle, int m, int n, size_t A, int lda,
              size_t Workspace, size_t devIpiv, size_t devInfo):
-    cdef int result
+    cdef int status
     status = cusolverDnSgetrf(
         <Handle>handle, m, n, <float*>A, lda,
         <float*>Workspace, <int*>devIpiv, <int*>devInfo)
-    check_status(result)
+    check_status(status)
 
 cpdef dgetrf(size_t handle, int m, int n, size_t A, int lda,
              size_t Workspace, size_t devIpiv, size_t devInfo):
-    cdef int result
+    cdef int status
     status = cusolverDnDgetrf(
         <Handle>handle, m, n, <double*>A, lda,
         <double*>Workspace, <int*>devIpiv, <int*>devInfo)
-    check_status(result)
+    check_status(status)
 
 cpdef sgetrs(size_t handle, int trans, int n, int nrhs,
              size_t A, int lda, size_t devIpiv,
              size_t B, int ldb, size_t devInfo):
-    cdef int result
+    cdef int status
     status = cusolverDnSgetrs(
         <Handle>handle, <Operation>trans, n, nrhs,
         <const float*> A, lda, <const int*>devIpiv,
         <float*>B, ldb, <int*> devInfo)
-    check_status(result)
+    check_status(status)
 
 cpdef dgetrs(size_t handle, int trans, int n, int nrhs,
              size_t A, int lda, size_t devIpiv,
              size_t B, int ldb, size_t devInfo):
-    cdef int result
+    cdef int status
     status = cusolverDnDgetrs(
         <Handle>handle, <Operation>trans, n, nrhs,
         <const double*> A, lda, <const int*>devIpiv,
         <double*>B, ldb, <int*> devInfo)
-    check_status(result)
+    check_status(status)
+
+cpdef int sgeqrf_bufferSize(size_t handle, int m, int n,
+                            size_t A, int lda) except *:
+    cdef int status
+    cdef int Lwork
+    status = cusolverDnSgeqrf_bufferSize(
+        <Handle>handle, m, n, <float*>A, lda, &Lwork)
+    check_status(status)
+    return Lwork
+
+cpdef int dgeqrf_bufferSize(size_t handle, int m, int n,
+                            size_t A, int lda) except *:
+    cdef int status
+    cdef int Lwork
+    status = cusolverDnDgeqrf_bufferSize(
+        <Handle>handle, m, n, <double*>A, lda, &Lwork)
+    check_status(status)
+    return Lwork
 
 cpdef sgeqrf(size_t handle, int m, int n, size_t A, int lda,
              size_t TAU, size_t Workspace, int Lwork, size_t devInfo):
-    cdef int result
+    cdef int status
     status = cusolverDnSgeqrf(
         <Handle>handle, m, n, <float*>A, lda,
         <float*>TAU, <float*>Workspace, Lwork, <int*>devInfo)
-    check_status(result)
+    check_status(status)
 
 cpdef dgeqrf(size_t handle, int m, int n, size_t A, int lda,
              size_t TAU, size_t Workspace, int Lwork, size_t devInfo):
-    cdef int result
+    cdef int status
     status = cusolverDnDgeqrf(
         <Handle>handle, m, n, <double*>A, lda,
         <double*>TAU, <double*>Workspace, Lwork, <int*>devInfo)
-    check_status(result)
+    check_status(status)
 
 cpdef sormqr(size_t handle, int side, int trans,
              int m, int n, int k, size_t A, int lda, size_t tau,
              size_t C, int ldc, size_t work, int lwork, size_t devInfo):
-    cdef int result
-    result = cusolverDnSormqr(
+    cdef int status
+    status = cusolverDnSormqr(
         <Handle>handle, <SideMode>side, <Operation>trans, m, n, k,
         <const float*>A, lda, <const float*>tau, <float*>C, ldc,
         <float*>work, lwork, <int*>devInfo)
-    check_status(result)
+    check_status(status)
 
 cpdef dormqr(size_t handle, int side, int trans,
              int m, int n, int k, size_t A, int lda, size_t tau,
              size_t C, int ldc, size_t work, int lwork, size_t devInfo):
-    cdef int result
-    result = cusolverDnDormqr(
+    cdef int status
+    status = cusolverDnDormqr(
         <Handle>handle, <SideMode>side, <Operation>trans, m, n, k,
         <const double*>A, lda, <const double*>tau, <double*>C, ldc,
         <double*>work, lwork, <int*>devInfo)
-    check_status(result)
+    check_status(status)
 
 cpdef ssytrf(size_t handle, int uplo, int n, size_t A, int lda,
              size_t ipiv, size_t work, int lwork, size_t devInfo):
-    cdef int result
-    result = cusolverDnSsytrf(
+    cdef int status
+    status = cusolverDnSsytrf(
         <Handle>handle, <FillMode>uplo, n, <float*>A, lda,
         <int*>ipiv, <float*>work, lwork, <int*>devInfo)
-    check_status(result)
+    check_status(status)
 
 cpdef dsytrf(size_t handle, int uplo, int n, size_t A, int lda,
              size_t ipiv, size_t work, int lwork, size_t devInfo):
-    cdef int result
-    result = cusolverDnDsytrf(
+    cdef int status
+    status = cusolverDnDsytrf(
         <Handle>handle, <FillMode>uplo, n, <double*>A, lda,
         <int*>ipiv, <double*>work, lwork, <int*>devInfo)
-    check_status(result)
+    check_status(status)
 
 cpdef sgebrd(size_t handle, int m, int n, size_t A, int lda,
              size_t D, size_t E, size_t TAUQ, size_t TAUP,
              size_t Work, int Lwork, size_t devInfo):
-    cdef int result
-    result = cusolverDnSgebrd(
+    cdef int status
+    status = cusolverDnSgebrd(
         <Handle>handle, m, n, <float*>A, lda,
         <float*>D, <float*>E, <float*>TAUQ, <float*>TAUP,
         <float*>Work, Lwork, <int*>devInfo)
-    check_status(result)
+    check_status(status)
 
 cpdef dgebrd(size_t handle, int m, int n, size_t A, int lda,
              size_t D, size_t E, size_t TAUQ, size_t TAUP,
              size_t Work, int Lwork, size_t devInfo):
-    cdef int result
-    result = cusolverDnDgebrd(
+    cdef int status
+    status = cusolverDnDgebrd(
         <Handle>handle, m, n, <double*>A, lda,
         <double*>D, <double*>E, <double*>TAUQ, <double*>TAUP,
         <double*>Work, Lwork, <int*>devInfo)
-    check_status(result)
+    check_status(status)
 
 cpdef sgesvd(size_t handle, char jobu, char jobvt, int m, int n, size_t A,
              int lda, size_t S, size_t U, int ldu, size_t VT, int ldvt,
              size_t Work, int Lwork, size_t rwork, size_t devInfo):
-    cdef int result
+    cdef int status
     status = cusolverDnSgesvd(
         <Handle>handle, jobu, jobvt, m, n, <float*>A,
         lda, <float*>S, <float*>U, ldu, <float*>VT, ldvt,
         <float*>Work, Lwork, <float*>rwork, <int*>devInfo)
-    check_status(result)
+    check_status(status)
 
 cpdef dgesvd(size_t handle, char jobu, char jobvt, int m, int n, size_t A,
              int lda, size_t S, size_t U, int ldu, size_t VT, int ldvt,
              size_t Work, int Lwork, size_t rwork, size_t devInfo):
-    cdef int result
+    cdef int status
     status = cusolverDnDgesvd(
         <Handle>handle, jobu, jobvt, m, n, <double*>A,
         lda, <double*>S, <double*>U, ldu, <double*>VT, ldvt,
         <double*>Work, Lwork, <double*>rwork, <int*>devInfo)
-    check_status(result)
+    check_status(status)

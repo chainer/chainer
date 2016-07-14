@@ -67,6 +67,10 @@ cpdef dgetrs(size_t handle, int trans, int n, int nrhs,
              size_t A, int lda, size_t devIpiv,
              size_t B, int ldb, size_t devInfo)
 
+cpdef int sgeqrf_bufferSize(size_t handle, int m, int n,
+                            size_t A, int lda) except *
+cpdef int dgeqrf_bufferSize(size_t handle, int m, int n,
+                            size_t A, int lda) except *
 cpdef sgeqrf(size_t handle, int m, int n, size_t A, int lda,
              size_t TAU, size_t Workspace, int Lwork, size_t devInfo)
 cpdef dgeqrf(size_t handle, int m, int n, size_t A, int lda,

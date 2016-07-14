@@ -18,7 +18,8 @@ def _assertCupyArray(*arrays):
 def _assertRankAtLeast2(*arrays):
     for a in arrays:
         if len(a.shape) < 2:
-            raise LinAlgError('{}-dimensional array given. Array must be '
+            raise LinAlgError(
+                '{}-dimensional array given. Array must be '
                 'at least two-dimensional'.format(len(a.shape)))
 
 
@@ -46,7 +47,10 @@ def _tril(x, k=0):
 def cholesky(a):
     _assertCupyArray(a)
     _assertNdSquareness(a)
-    assert a.ndim == 2
+    if a.ndim != 2:
+        raise LinAlgError(
+            'The current cholesky() supports'
+            'two-dimensional array only')
 
     ret_dtype = a.dtype.char
     # Cast to float32 or float64
@@ -56,13 +60,13 @@ def cholesky(a):
         dtype = numpy.find_common_type((ret_dtype, 'f'), ()).char
 
     x = a.astype(dtype, copy=True)
-    handle = device.get_cusolver_handle()
     n = a.shape[0]
+    handle = device.get_cusolver_handle()
+    devInfo = cupy.empty(1, dtype=numpy.int32)
     if a.dtype.char == 'f':
         buffersize = cusolver.spotrf_bufferSize(
             handle, cublas.CUBLAS_FILL_MODE_UPPER, n, x.data.ptr, n)
         workspace = cupy.empty(buffersize, dtype=numpy.float32)
-        devInfo = cupy.empty(1, dtype=numpy.int32)
         cusolver.spotrf(
             handle, cublas.CUBLAS_FILL_MODE_UPPER, n, x.data.ptr, n,
             workspace.data.ptr, buffersize, devInfo.data.ptr)
@@ -70,18 +74,17 @@ def cholesky(a):
         buffersize = cusolver.dpotrf_bufferSize(
             handle, cublas.CUBLAS_FILL_MODE_UPPER, n, x.data.ptr, n)
         workspace = cupy.empty(buffersize, dtype=numpy.float64)
-        devInfo = cupy.empty(1, dtype=numpy.int32)
         cusolver.dpotrf(
             handle, cublas.CUBLAS_FILL_MODE_UPPER, n, x.data.ptr, n,
             workspace.data.ptr, buffersize, devInfo.data.ptr)
     status = int(devInfo[0])
     if status > 0:
-        raise LinAlgError('The leading minor of order {} '
+        raise LinAlgError(
+            'The leading minor of order {} '
             'is not positive definite'.format(status))
     _tril(x, k=-1)
     return x
 
 # TODO(okuta): Implement qr
-
 
 # TODO(okuta): Implement svd

@@ -611,6 +611,16 @@ int cusolverDnDgetrs(Handle handle, Operation trans,
     return 0;
 }
 
+int cusolverDnSgeqrf_bufferSize(Handle handle, int m, int n,
+                                float* A, int lda, int* Lwork) {
+    return 0;
+}
+
+int cusolverDnDgeqrf_bufferSize(Handle handle, int m, int n,
+                                double* A, int lda, int* Lwork) {
+    return 0;
+}
+
 int cusolverDnSgeqrf(Handle handle, int m, int n, float* A, int lda,
                      float* TAU, float* Workspace, int Lwork, int* devInfo) {
     return 0;
