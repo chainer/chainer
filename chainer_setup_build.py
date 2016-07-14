@@ -45,6 +45,7 @@ MODULES = [
         ],
         'libraries': [
             'cublas',
+            'cusolver',
             'cuda',
             'cudart',
             'curand',
