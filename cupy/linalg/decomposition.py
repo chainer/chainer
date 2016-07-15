@@ -56,6 +56,7 @@ def _triu(x, k=0):
 
 
 def cholesky(a):
+    # TODO: Current implementation only accepts two-dimensional arrays
     _assertCupyArray(a)
     _assertRank2(a)
     _assertNdSquareness(a)
@@ -145,7 +146,6 @@ def qr(a, mode='default'):
             'Current cupy.linalg.qr does not support \'complete\' option')
 
     if mode == 'complete' and m > n:
-        print "hoge"
         mc = m
         q = cupy.zeros((m, m), dtype=dtype)
         q[:m, :m] = cupy.identity(m, dtype=dtype)
@@ -173,4 +173,66 @@ def qr(a, mode='default'):
     return q, _triu(r)
 
 
-# TODO(okuta): Implement svd
+def svd(a, full_matrices=True, compute_uv=True):
+    # TODO: Current implementation only accepts two-dimensional arrays
+    _assertCupyArray(a)
+    _assertRank2(a)
+
+    if not (full_matrices and compute_uv):
+        raise NotImplementedError(
+            'Current CUSOLVER only supports SVD generating full marices')
+    
+    ret_dtype = a.dtype.char
+    # Cast to float32 or float64
+    if ret_dtype == 'f' or ret_dtype == 'd':
+        dtype = ret_dtype
+    else:
+        dtype = numpy.find_common_type((ret_dtype, 'f'), ()).char
+
+    # Remark 1: gesvd only supports m >= n
+    # Remark 2: gesvd only supports jobu = 'A' and jobvt = 'A'
+    #           and returns matrix U and V^H
+    n, m = a.shape
+    if m >= n:
+        x = a.astype(dtype, copy=True)
+        trans_flag = False
+    else:
+        m, n = a.shape
+        x = a.transpose().astype(dtype, copy=True)
+        trans_flag = True
+    mn = min(m, n)
+        
+    u = cupy.empty((m, m), dtype=dtype)
+    s = cupy.empty(mn, dtype=dtype)
+    vt = cupy.empty((n, n), dtype=dtype)
+    handle = device.get_cusolver_handle()
+    devInfo = cupy.empty(1, dtype=numpy.int32)
+    jobu, jobvt = ord('A'), ord('A')
+    if x.dtype.char == 'f':
+        buffersize = cusolver.sgesvd_bufferSize(handle, m, n)
+        workspace = cupy.empty(buffersize, dtype=dtype)
+        cusolver.sgesvd(
+            handle, jobu, jobvt, m, n, x.data.ptr, m,
+            s.data.ptr, u.data.ptr, m, vt.data.ptr, n,
+            workspace.data.ptr, buffersize, 0, devInfo.data.ptr)
+    else:
+        buffersize = cusolver.dgesvd_bufferSize(handle, m, n)
+        workspace = cupy.empty(buffersize, dtype=dtype)
+        cusolver.dgesvd(
+            handle, jobu, jobvt, m, n, x.data.ptr, m,
+            s.data.ptr, u.data.ptr, m, vt.data.ptr, n,
+            workspace.data.ptr, buffersize, 0, devInfo.data.ptr)
+
+    status = int(devInfo[0])
+    if status > 0:
+        raise LinAlgError(
+            'SVD computation does not converge')
+    elif status < 0:
+        raise LinAlgError(
+            'Parameter error (maybe caused by a bug in cupy.linalg?)')
+
+    # Note that the returned array
+    if trans_flag:
+        return u.transpose(), s, vt.transpose()
+    else:
+        return vt, s, u

@@ -75,6 +75,9 @@ cdef extern from 'cupy_cuda.h':
     int cusolverDnDgebrd(Handle handle, int m, int n, double* A, int lda,
                          double* D, double* E, double* TAUQ, double* TAUP,
                          double* Work, int Lwork, int* devInfo)
+
+    int cusolverDnSgesvd_bufferSize(Handle handle, int m, int n, int* Lwork);
+    int cusolverDnDgesvd_bufferSize(Handle handle, int m, int n, int* Lwork);
     int cusolverDnSgesvd(Handle handle, char jobu, char jobvt, int m, int n,
                          float* A, int lda, float* S, float* U, int ldu,
                          float* VT, int ldvt, float* Work, int Lwork,
@@ -327,6 +330,20 @@ cpdef dgebrd(size_t handle, int m, int n, size_t A, int lda,
         <double*>D, <double*>E, <double*>TAUQ, <double*>TAUP,
         <double*>Work, Lwork, <int*>devInfo)
     check_status(status)
+
+cpdef int sgesvd_bufferSize(size_t handle, int m, int n) except *:
+    cdef int status
+    cdef int Lwork
+    status = cusolverDnSgesvd_bufferSize(<Handle>handle, m, n, &Lwork)
+    check_status(status)
+    return Lwork
+
+cpdef int dgesvd_bufferSize(size_t handle, int m, int n) except *:
+    cdef int status
+    cdef int Lwork
+    status = cusolverDnDgesvd_bufferSize(<Handle>handle, m, n, &Lwork)
+    check_status(status)
+    return Lwork
 
 cpdef sgesvd(size_t handle, char jobu, char jobvt, int m, int n, size_t A,
              int lda, size_t S, size_t U, int ldu, size_t VT, int ldvt,

@@ -667,6 +667,14 @@ int cusolverDnDgebrd(Handle handle, int m, int n, double* A, int lda,
     return 0;
 }
 
+int cusolverDnSgesvd_bufferSize(Handle handle, int m, int n, int* Lwork) {
+    return 0;
+}
+
+int cusolverDnDgesvd_bufferSize(Handle handle, int m, int n, int* Lwork) {
+    return 0;
+}
+
 int cusolverDnSgesvd(Handle handle, char jobu, char jobvt, int m, int n,
                      float* A, int lda, float* S, float* U, int ldu,
                      float* VT, int ldvt, float* Work, int Lwork,
