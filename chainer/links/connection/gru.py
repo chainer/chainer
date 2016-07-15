@@ -5,12 +5,16 @@ from chainer.functions.activation import sigmoid
 from chainer.functions.activation import tanh
 from chainer import link
 from chainer.links.connection import linear
+from chainer.utils import rnn
 
 
 class GRUBase(link.Chain):
 
+    state_names = 'h',
+
     def __init__(self, n_units, n_inputs=None, init=None,
                  inner_init=None, bias_init=0):
+        self.state_shapes = n_units,
         if n_inputs is None:
             n_inputs = n_units
         super(GRUBase, self).__init__(
@@ -81,8 +85,8 @@ class GRU(GRUBase):
         return h_new
 
 
-class StatefulGRU(GRUBase):
-    """Stateful Gated Recurrent Unit function (GRU).
+StatefulGRU = rnn.create_stateful_rnn(GRU, 'StatefulGRU')
+StatefulGRU.__doc__ = """Stateful Gated Recurrent Unit function (GRU).
 
     Stateful GRU function has six parameters :math:`W_r`, :math:`W_z`,
     :math:`W`, :math:`U_r`, :math:`U_z`, and :math:`U`.
@@ -128,49 +132,4 @@ class StatefulGRU(GRUBase):
 
     .. seealso:: :class:`~chainer.functions.GRU`
 
-    """
-
-    def __init__(self, in_size, out_size, init=None,
-                 inner_init=None, bias_init=0):
-        super(StatefulGRU, self).__init__(
-            out_size, in_size, init, inner_init, bias_init)
-        self.state_size = out_size
-        self.reset_state()
-
-    def to_cpu(self):
-        super(StatefulGRU, self).to_cpu()
-        if self.h is not None:
-            self.h.to_cpu()
-
-    def to_gpu(self, device=None):
-        super(StatefulGRU, self).to_gpu(device)
-        if self.h is not None:
-            self.h.to_gpu(device)
-
-    def set_state(self, h):
-        assert isinstance(h, chainer.Variable)
-        h_ = h
-        if self.xp == numpy:
-            h_.to_cpu()
-        else:
-            h_.to_gpu()
-        self.h = h_
-
-    def reset_state(self):
-        self.h = None
-
-    def __call__(self, x):
-        z = self.W_z(x)
-        h_bar = self.W(x)
-        if self.h is not None:
-            r = sigmoid.sigmoid(self.W_r(x) + self.U_r(self.h))
-            z += self.U_z(self.h)
-            h_bar += self.U(r * self.h)
-        z = sigmoid.sigmoid(z)
-        h_bar = tanh.tanh(h_bar)
-
-        h_new = z * h_bar
-        if self.h is not None:
-            h_new += (1 - z) * self.h
-        self.h = h_new
-        return self.h
+"""
