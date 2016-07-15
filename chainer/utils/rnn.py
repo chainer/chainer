@@ -1,6 +1,14 @@
 import numpy
 
+from chainer import link
 from chainer import variable
+
+
+def _force_tuple(x):
+    if isinstance(x, variable.Variable):
+        return (x,)
+    else:
+        return x
 
 
 def create_stateful_rnn(stateless_class, name):
@@ -11,14 +19,17 @@ def create_stateful_rnn(stateless_class, name):
             return type.__new__(cls, name, bases, dict)
 
 
-    class Stateful(stateless_class):
+    class Stateful(link.Chain):
 
         __metaclass__ = name_setter
 
         def __init__(self, *args, **kwargs):
+            super(Stateful, self).__init__(
+                stateless=stateless_class(*args, **kwargs))
+            self.state_names = self.stateless.state_names
+            self.state_shapes = self.stateless.state_shapes
             self.state_name_to_idx = dict((name, i) for i, name
                                       in enumerate(self.state_names))
-            super(Stateful, self).__init__(*args, **kwargs)
             self.reset_state()
 
         def to_cpu(self):
@@ -53,17 +64,20 @@ def create_stateful_rnn(stateless_class, name):
             if name in self.state_names:
                 idx = self.state_name_to_idx[name]
                 return self.states[idx]
+            elif hasattr(self.stateless, name):
+                return getattr(self.stateless, name)
             else:
                 return super(Stateful, self).__getattr__(name)
 
         def __call__(self, x):
             for i, val in enumerate(self.states):
-
+                if self.states[i] is None:
                     self.states[i] = self.xp.zeros(
-                        self.state_shapes[i], dtype=numpy.float32)
+                        (len(x.data),) + self.state_shapes[i],
+                        dtype=numpy.float32)
 
             args = tuple(self.states) + (x,)
-            self.states = super(Stateful, self).__call__(*args)
+            self.states = _force_tuple(self.stateless(*args))
             return self.states[-1]
 
     return Stateful

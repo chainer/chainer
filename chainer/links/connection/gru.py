@@ -14,7 +14,7 @@ class GRUBase(link.Chain):
 
     def __init__(self, n_units, n_inputs=None, init=None,
                  inner_init=None, bias_init=0):
-        self.state_shapes = n_units,
+        self.state_shapes = (n_units,),
         if n_inputs is None:
             n_inputs = n_units
         super(GRUBase, self).__init__(
@@ -85,8 +85,10 @@ class GRU(GRUBase):
         return h_new
 
 
-StatefulGRU = rnn.create_stateful_rnn(GRU, 'StatefulGRU')
-StatefulGRU.__doc__ = """Stateful Gated Recurrent Unit function (GRU).
+StatefulGRUBase = rnn.create_stateful_rnn(GRU, 'StatefulGRUBase')
+
+class StatefulGRU(StatefulGRUBase):
+    """Stateful Gated Recurrent Unit function (GRU).
 
     Stateful GRU function has six parameters :math:`W_r`, :math:`W_z`,
     :math:`W`, :math:`U_r`, :math:`U_z`, and :math:`U`.
@@ -132,4 +134,11 @@ StatefulGRU.__doc__ = """Stateful Gated Recurrent Unit function (GRU).
 
     .. seealso:: :class:`~chainer.functions.GRU`
 
-"""
+    """
+
+    def __init__(self, in_size, out_size, **kwargs):
+        super(StatefulGRU, self).__init__(
+            out_size, in_size, **kwargs)
+
+    def set_state(self, h):
+        super(StatefulGRU, self).set_state(h)
