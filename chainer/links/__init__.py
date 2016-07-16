@@ -15,6 +15,7 @@ from chainer.links.connection import lstm
 from chainer.links.connection import mgu
 from chainer.links.connection import mlp_convolution_2d
 from chainer.links.connection import parameter
+from chainer.links.connection import peephole
 from chainer.links.connection import scale
 from chainer.links.connection import sgu
 from chainer.links.loss import hierarchical_softmax
@@ -42,6 +43,7 @@ MGU = mgu.MGU
 StatefulMGU = mgu.StatefulMGU
 MLPConvolution2D = mlp_convolution_2d.MLPConvolution2D
 Parameter = parameter.Parameter
+Peephole = peephole.Peephole
 Scale = scale.Scale
 SGU = sgu.SGU
 StatefulSGU = sgu.StatefulSGU
