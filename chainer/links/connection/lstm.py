@@ -7,9 +7,12 @@ from chainer import initializers
 from chainer import link
 from chainer.links.connection import linear
 from chainer import variable
+from chainer.utils import rnn
 
 
 class LSTMBase(link.Chain):
+
+    state_names = ('c', 'h')
 
     def __init__(self, in_size, out_size,
                  lateral_init=None, upward_init=None,
@@ -19,6 +22,7 @@ class LSTMBase(link.Chain):
             lateral=linear.Linear(out_size, 4 * out_size,
                                   initialW=0, nobias=True),
         )
+        self.state_shapes = ((out_size, ), (out_size,))
         self.state_size = out_size
 
         for i in six.moves.range(0, 4 * out_size, out_size):
@@ -79,8 +83,9 @@ class StatelessLSTM(LSTMBase):
         return lstm.lstm(c, lstm_in)
 
 
-class LSTM(LSTMBase):
+StatefulLSTMBase = rnn.create_stateful_rnn(StatelessLSTM, 'StatefulLSTMBase')
 
+class LSTM(StatefulLSTMBase):
     """Fully-connected LSTM layer.
 
     This is a fully-connected LSTM layer as a chain. Unlike the
@@ -126,24 +131,6 @@ class LSTM(LSTMBase):
 
     """
 
-    def __init__(self, in_size, out_size, **kwargs):
-        super(LSTM, self).__init__(in_size, out_size, **kwargs)
-        self.reset_state()
-
-    def to_cpu(self):
-        super(LSTM, self).to_cpu()
-        if self.c is not None:
-            self.c.to_cpu()
-        if self.h is not None:
-            self.h.to_cpu()
-
-    def to_gpu(self, device=None):
-        super(LSTM, self).to_gpu(device)
-        if self.c is not None:
-            self.c.to_gpu(device)
-        if self.h is not None:
-            self.h.to_gpu(device)
-
     def set_state(self, c, h):
         """Sets the internal state.
 
@@ -154,44 +141,4 @@ class LSTM(LSTMBase):
             h (~chainer.Variable): A new output at the previous time step.
 
         """
-        assert isinstance(c, chainer.Variable)
-        assert isinstance(h, chainer.Variable)
-        c_ = c
-        h_ = h
-        if self.xp == numpy:
-            c_.to_cpu()
-            h_.to_cpu()
-        else:
-            c_.to_gpu()
-            h_.to_gpu()
-        self.c = c_
-        self.h = h_
-
-    def reset_state(self):
-        """Resets the internal state.
-
-        It sets ``None`` to the :attr:`c` and :attr:`h` attributes.
-
-        """
-        self.c = self.h = None
-
-    def __call__(self, x):
-        """Updates the internal state and returns the LSTM outputs.
-
-        Args:
-            x (~chainer.Variable): A new batch from the input sequence.
-
-        Returns:
-            ~chainer.Variable: Outputs of updated LSTM units.
-
-        """
-        lstm_in = self.upward(x)
-        if self.h is not None:
-            lstm_in += self.lateral(self.h)
-        if self.c is None:
-            xp = self.xp
-            self.c = variable.Variable(
-                xp.zeros((len(x.data), self.state_size), dtype=x.data.dtype),
-                volatile='auto')
-        self.c, self.h = lstm.lstm(self.c, lstm_in)
-        return self.h
+        super(LSTM, self).set_state(c, h)
