@@ -14,11 +14,8 @@ from chainer.links.connection import linear
 from chainer.links.connection import lstm
 from chainer.links.connection import mlp_convolution_2d
 from chainer.links.connection import parameter
-<<<<<<< HEAD
 from chainer.links.connection import scale
-=======
 from chainer.links.connection import sgu
->>>>>>> sgu
 from chainer.links.loss import hierarchical_softmax
 from chainer.links.loss import negative_sampling
 from chainer.links.model import classifier
