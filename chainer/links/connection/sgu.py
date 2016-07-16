@@ -9,10 +9,13 @@ from chainer.functions.activation import tanh
 from chainer.functions.math import linear_interpolate
 from chainer import link
 from chainer.links.connection import linear
+from chainer.utils import rnn
 from chainer import variable
 
 
 class SGU(link.Chain):
+
+    state_names = 'h',
 
     def __init__(self, in_size, out_size):
         super(SGU, self).__init__(
@@ -21,6 +24,7 @@ class SGU(link.Chain):
             W_xz=linear.Linear(in_size, out_size),
             W_hz=linear.Linear(out_size, out_size),
         )
+        self.state_shapes = (out_size,),
 
     def __call__(self, h, x):
         x_g = self.W_xh(x)
@@ -31,48 +35,7 @@ class SGU(link.Chain):
         return h_t
 
 
-class StatefulSGU(SGU):
-
-    def __init__(self, in_size, out_size):
-        super(StatefulSGU, self).__init__(in_size, out_size)
-        self.state_size = out_size
-        self.reset_state()
-
-    def to_cpu(self):
-        super(StatefulSGU, self).to_cpu()
-        if self.h is not None:
-            self.h.to_cpu()
-
-    def to_gpu(self, device=None):
-        super(StatefulSGU, self).to_gpu(device)
-        if self.h is not None:
-            self.h.to_gpu(device)
-
-    def set_state(self, h):
-        assert isinstance(h, chainer.Variable)
-        h_ = h
-        if self.xp is numpy:
-            h_.to_cpu()
-        else:
-            h_.to_gpu()
-        self.h = h_
-
-    def reset_state(self):
-        self.h = None
-
-    def __call__(self, x):
-
-        if self.h is None:
-            xp = cuda.get_array_module(x)
-            zero = variable.Variable(xp.zeros_like(x.data))
-            z_out = softplus.softplus(zero)
-            z_t = hard_sigmoid.hard_sigmoid(self.W_xz(x))
-            h_t = z_t * z_out
-        else:
-            h_t = SGU.__call__(self, self.h, x)
-
-        self.h = h_t
-        return h_t
+StatefulSGU = rnn.create_stateful_rnn(SGU, "StatefulSGU")
 
 
 class DSGU(link.Chain):
