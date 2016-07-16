@@ -44,6 +44,7 @@ StatefulMGU = mgu.StatefulMGU
 MLPConvolution2D = mlp_convolution_2d.MLPConvolution2D
 Parameter = parameter.Parameter
 Peephole = peephole.Peephole
+StatefulPeephole = peephole.StatefulPeephole
 Scale = scale.Scale
 SGU = sgu.SGU
 StatefulSGU = sgu.StatefulSGU

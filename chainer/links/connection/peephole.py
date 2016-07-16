@@ -4,6 +4,7 @@ from chainer.functions.array import reshape
 from chainer.functions.array import split_axis
 from chainer import link
 from chainer.links.connection import linear
+from chainer.utils import rnn
 from chainer import variable
 
 
@@ -45,10 +46,11 @@ class Peephole(link.Chain):
                                         to the forget gate.
         peep_o (~chainer.links.Linear): Linear layer of peephole connections
                                         to the output gate.
-        c (~chainer.Variable): Cell states of LSTM units.
-        h (~chainer.Variable): Output at the current time step.
 
     """
+
+    state_names = ('c', 'h')
+
     def __init__(self, in_size, out_size):
         super(Peephole, self).__init__(
             upward=linear.Linear(in_size, 4 * out_size),
@@ -57,35 +59,14 @@ class Peephole(link.Chain):
             peep_f=linear.Linear(out_size, out_size, nobias=True),
             peep_o=linear.Linear(out_size, out_size, nobias=True),
         )
-        self.state_size = out_size
-        self.reset_state()
+        self.state_shapes = ((out_size,), (out_size,))
 
-    def to_cpu(self):
-        super(Peephole, self).to_cpu()
-        if self.c is not None:
-            self.c.to_cpu()
-        if self.h is not None:
-            self.h.to_cpu()
-
-    def to_gpu(self, device=None):
-        super(Peephole, self).to_gpu(device)
-        if self.c is not None:
-            self.c.to_gpu(device)
-        if self.h is not None:
-            self.h.to_gpu(device)
-
-    def reset_state(self):
-        """Resets the internal states.
-
-        It sets ``None`` to the :attr:`c` and :attr:`h` attributes.
-
-        """
-        self.c = self.h = None
-
-    def __call__(self, x):
+    def __call__(self, c, h, x):
         """Updates the internal state and returns the LSTM outputs.
 
         Args:
+            c (~chainer.Variable): Cell states of LSTM units.
+            h (~chainer.Variable): Output at the current time step.
             x (~chainer.Variable): A new batch from the input sequence.
 
         Returns:
@@ -93,11 +74,11 @@ class Peephole(link.Chain):
 
         """
         lstm_in = self.upward(x)
-        if self.h is not None:
-            lstm_in += self.lateral(self.h)
-        if self.c is None:
+        if h is not None:
+            lstm_in += self.lateral(h)
+        if c is None:
             xp = self.xp
-            self.c = variable.Variable(
+            c = variable.Variable(
                 xp.zeros((len(x.data), self.state_size), dtype=x.data.dtype),
                 volatile='auto')
         lstm_in = reshape.reshape(lstm_in, (len(lstm_in.data),
@@ -108,13 +89,16 @@ class Peephole(link.Chain):
         i = reshape.reshape(i, (len(i.data), i.data.shape[1]))
         f = reshape.reshape(f, (len(f.data), f.data.shape[1]))
         o = reshape.reshape(o, (len(o.data), o.data.shape[1]))
-        peep_in_i = self.peep_i(self.c)
-        peep_in_f = self.peep_f(self.c)
+        peep_in_i = self.peep_i(c)
+        peep_in_f = self.peep_f(c)
         a = tanh.tanh(a)
         i = sigmoid.sigmoid(i + peep_in_i)
         f = sigmoid.sigmoid(f + peep_in_f)
-        self.c = a * i + f * self.c
-        peep_in_o = self.peep_o(self.c)
+        c = a * i + f * c
+        peep_in_o = self.peep_o(c)
         o = sigmoid.sigmoid(o + peep_in_o)
-        self.h = o * tanh.tanh(self.c)
-        return self.h
+        h = o * tanh.tanh(c)
+        return c, h
+
+
+StatefulPeephole = rnn.create_stateful_rnn(Peephole, 'StatefulPeephole')
