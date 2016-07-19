@@ -2,8 +2,6 @@ import numpy
 from numpy.linalg import LinAlgError
 
 import cupy
-from cupy import core
-from cupy import internal
 from cupy.cuda import cublas
 from cupy.cuda import device
 from cupy.cuda import cusolver
@@ -181,7 +179,7 @@ def svd(a, full_matrices=True, compute_uv=True):
     if not (full_matrices and compute_uv):
         raise NotImplementedError(
             'Current CUSOLVER only supports SVD generating full marices')
-    
+
     ret_dtype = a.dtype.char
     # Cast to float32 or float64
     if ret_dtype == 'f' or ret_dtype == 'd':
@@ -201,7 +199,7 @@ def svd(a, full_matrices=True, compute_uv=True):
         x = a.transpose().astype(dtype, copy=True)
         trans_flag = True
     mn = min(m, n)
-        
+
     u = cupy.empty((m, m), dtype=dtype)
     s = cupy.empty(mn, dtype=dtype)
     vt = cupy.empty((n, n), dtype=dtype)
