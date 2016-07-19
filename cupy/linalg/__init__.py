@@ -10,3 +10,5 @@ from cupy.linalg import solve  # NOQA
 
 
 cholesky = decomposition.cholesky
+qr = decomposition.qr
+svd = decomposition.svd
