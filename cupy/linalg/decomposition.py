@@ -3,8 +3,8 @@ from numpy.linalg import LinAlgError
 
 import cupy
 from cupy.cuda import cublas
-from cupy.cuda import device
 from cupy.cuda import cusolver
+from cupy.cuda import device
 
 
 def _assertCupyArray(*arrays):
@@ -54,7 +54,7 @@ def _triu(x, k=0):
 
 
 def cholesky(a):
-    # TODO: Current implementation only accepts two-dimensional arrays
+    # TODO(Saito): Current implementation only accepts two-dimensional arrays
     _assertCupyArray(a)
     _assertRank2(a)
     _assertNdSquareness(a)
@@ -148,7 +148,7 @@ def qr(a, mode='default'):
         q = cupy.zeros((m, m), dtype=dtype)
         q[:m, :m] = cupy.identity(m, dtype=dtype)
     else:
-        # XXX: This is valid in the case that m <= n only
+        # TODO(Saito): This is valid in the case that m <= n only
         mc = mn
         q = cupy.zeros((n, m), dtype=dtype)
         q[:mn, :mn] = cupy.identity(mn, dtype=dtype)
@@ -172,7 +172,7 @@ def qr(a, mode='default'):
 
 
 def svd(a, full_matrices=True, compute_uv=True):
-    # TODO: Current implementation only accepts two-dimensional arrays
+    # TODO(Saito): Current implementation only accepts two-dimensional arrays
     _assertCupyArray(a)
     _assertRank2(a)
 
