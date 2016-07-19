@@ -229,7 +229,8 @@ def svd(a, full_matrices=True, compute_uv=True):
         raise LinAlgError(
             'Parameter error (maybe caused by a bug in cupy.linalg?)')
 
-    # Note that the returned array
+    # Note that the returned array may need to be transporsed
+    # depending on the structure of an input
     if trans_flag:
         return u.transpose(), s, vt.transpose()
     else:
