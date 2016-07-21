@@ -193,6 +193,10 @@ def to_gpu(array, device=None, stream=None):
     """
     check_cuda_available()
     with get_device(device):
+        if isinstance(array, ndarray) and array.data.mem._swap is True:
+            # anaruse: move data from SWAP to GPU
+            return cupy.array(array, copy=True, stream=stream)
+
         array_dev = get_device(array)
         if array_dev.id == cupy.cuda.device.get_device_id():
             return array
@@ -243,6 +247,39 @@ def to_cpu(array, stream=None):
     else:
         raise TypeError(
             'The array sent to cpu must be numpy.ndarray or cupy.ndarray.'
+            '\nActual type: {0}.'.format(type(array)))
+
+
+def to_swap(array, stream=None):
+    """Copies the given GPU/CPU array to SWAP memory.
+
+    Args:
+        array: Array to be sent to SWAP memory.
+        stream (cupy.cuda.Stream): CUDA stream.
+
+    Returns:
+        cupy.ndarray: Array on SWAP memory
+
+    """
+    if isinstance(array, cupy.ndarray):
+        # anaruse: debug
+        # print('[chainer/cuda.py: to_swap()] array is on GPU/SWAP')
+        check_cuda_available()
+        dev_id = int(get_device(array))
+        if dev_id != -1 and array.data.mem._swap is False:
+            a = cupy.array(array, copy=True, stream=stream, useSwapMemory=True)
+            return a
+        else:
+            return cupy.asarray(array)
+    elif isinstance(array, numpy.ndarray):
+        # anaruse: debug
+        # print('[chainer/cuda.py: to_swap()] array is on CPU')
+        check_cuda_available()
+        a = cupy.array(array, copy=True, stream=stream, useSwapMemory=True)
+        return a
+    else:
+        raise TypeError(
+            'The array sent to SWAP must be cupy.ndarray or cupy ndarray.'
             '\nActual type: {0}.'.format(type(array)))
 
 

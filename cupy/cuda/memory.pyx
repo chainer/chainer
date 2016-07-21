@@ -19,20 +19,35 @@ cdef class Memory:
     Args:
         device (cupy.cuda.Device): Device whose memory the pointer refers to.
         size (int): Size of the memory allocation in bytes.
+        useSwapMemory (bint): if true, allocate pinned memory instead of GPU memory
 
     """
 
-    def __init__(self, Py_ssize_t size):
+    def __init__(self, Py_ssize_t size, bint useSwapMemory=False):
         self.size = size
         self.device = None
         self.ptr = 0
+        self._swap = useSwapMemory
         if size > 0:
-            self.device = device.Device()
-            self.ptr = runtime.malloc(size)
+            if self._swap is True:
+                self.device = device.Device()  # anaruse: I'm wondering if this is OK ..
+                self.ptr = runtime.mallocHost(size)
+            else:
+                self.device = device.Device()
+                self.ptr = runtime.malloc(size)
+            # anaruse: debug
+            # print('[cupy/cuda/memory.pyx: Memory: __init__] size:{}, ptr:{}, dev:{}, _swap:{}'
+            #       .format(self.size, self.ptr, self.device, self._swap))
 
     def __dealloc__(self):
         if self.ptr:
-            runtime.free(self.ptr)
+            # anaruse: debug
+            # print('[cupy/cuda/memory.pyx: Memory: __dealloc__] size:{}, ptr:{}, dev:{}, _swap:{}'
+            #       .format(self.size, self.ptr, self.device, self._swap))
+            if self._swap is True:
+                runtime.freeHost(self.ptr)
+            else:
+                runtime.free(self.ptr)
 
     def __int__(self):
         """Returns the pointer value to the head of the allocation."""
@@ -252,27 +267,32 @@ cdef class MemoryPointer:
             runtime.memsetAsync(self.ptr, value, size, stream)
 
 
-cpdef MemoryPointer _malloc(Py_ssize_t size):
-    mem = Memory(size)
+cpdef MemoryPointer _malloc(Py_ssize_t size, bint useSwapMemory=False):
+    # anaruse: debug
+    # print('[cupy/cuda/memory.pyx: MemoryPointer _malloc()] useSwapMemory:{}'.format(useSwapMemory))
+    mem = Memory(size, useSwapMemory)
     return MemoryPointer(mem, 0)
 
 
 cdef object _current_allocator = _malloc
 
 
-cpdef MemoryPointer alloc(Py_ssize_t size):
+cpdef MemoryPointer alloc(Py_ssize_t size, bint useSwapMemory=False):
     """Calls the current allocator.
 
     Use :func:`~cupy.cuda.set_allocator` to change the current allocator.
 
     Args:
         size (int): Size of the memory allocation.
+        useSwapMemory (bint): if true, allocate pinned memory instead of GPU memory
 
     Returns:
         ~cupy.cuda.MemoryPointer: Pointer to the allocated buffer.
 
     """
-    return _current_allocator(size)
+    # anaruse: debug
+    # print('[cupy/cuda/memory.pyx: alloc()]')
+    return _current_allocator(size, useSwapMemory)
 
 
 cpdef set_allocator(allocator=_malloc):
@@ -303,6 +323,7 @@ cdef class PooledMemory(Memory):
         self.size = mem.size
         self.device = mem.device
         self.pool = pool
+        self._swap = mem._swap
 
     def __dealloc__(self):
         if self.ptr != 0:
@@ -334,7 +355,7 @@ cdef class SingleDeviceMemoryPool:
         self._weakref = weakref.ref(self)
         self._allocation_unit_size = 256
 
-    cpdef MemoryPointer malloc(self, Py_ssize_t size):
+    cpdef MemoryPointer malloc(self, Py_ssize_t size, bint useSwapMemory=False):
         cdef list free
         cdef Memory mem
 
@@ -343,18 +364,26 @@ cdef class SingleDeviceMemoryPool:
 
         # Round up the memory size to fit memory alignment of cudaMalloc
         unit = self._allocation_unit_size
-        size = (((size + unit - 1) // unit) * unit)
+        # size = (((size + unit - 1) // unit) * unit)
+        # anaruse: debug
+        # print('[cupy/cuda/memory.pyx: malloc()] org_size:{}'.format(size))
+        tmp_size = unit
+        while tmp_size < size:
+            tmp_size *= 2
+        size = tmp_size
+        # anaruse: debug
+        # print('[cupy/cuda/memory.pyx: malloc()] rup_size:{}'.format(size))
         free = self._free[size]
         if free:
             mem = free.pop()
         else:
             try:
-                mem = self._alloc(size).mem
+                mem = self._alloc(size, useSwapMemory).mem
             except runtime.CUDARuntimeError as e:
                 if e.status != 2:
                     raise
                 self.free_all_free()
-                mem = self._alloc(size).mem
+                mem = self._alloc(size, useSwapMemory).mem
 
         self._in_use[mem.ptr] = mem
         pmem = PooledMemory(mem, self._weakref)
@@ -366,6 +395,9 @@ cdef class SingleDeviceMemoryPool:
         mem = self._in_use.pop(ptr, None)
         if mem is None:
             raise RuntimeError('Cannot free out-of-pool memory')
+        # anaruse: debug
+        # print('[cupy/cuda/memory.pyx: SingleDeviceMemoryPool: free()] size:{}, ptr:{}, _swap:{}'
+        #       .format(mem.size, mem.ptr, mem._swap))
         free = self._free[size]
         free.append(mem)
 
@@ -411,7 +443,7 @@ cdef class MemoryPool(object):
         self._pools = collections.defaultdict(
             lambda: SingleDeviceMemoryPool(allocator))
 
-    cpdef MemoryPointer malloc(self, Py_ssize_t size):
+    cpdef MemoryPointer malloc(self, Py_ssize_t size, bint useSwapMemory=False):
         """Allocates the memory, from the pool if possible.
 
         This method can be used as a CuPy memory allocator. The simplest way to
@@ -421,13 +453,20 @@ cdef class MemoryPool(object):
 
         Args:
             size (int): Size of the memory buffer to allocate in bytes.
+            useSwapMemory (bint): if true, allocate pinned memory instead of GPU memory
 
         Returns:
             ~cupy.cuda.MemoryPointer: Pointer to the allocated buffer.
 
         """
-        dev = device.get_device_id()
-        return self._pools[dev].malloc(size)
+        if useSwapMemory is True:
+            dev = -1;
+        else:
+            dev = device.get_device_id()
+        # anaruse: debug
+        # print('[cupy/cuda/memory.pyx: MemoryPointer malloc()] pools:{}, useSwapMemory:{}'
+        #       .format(dev, useSwapMemory))
+        return self._pools[dev].malloc(size, useSwapMemory)
 
     cpdef free_all_free(self):
         """Release free blocks."""

@@ -192,11 +192,13 @@ Actual: {0}'''.format(type(data))
 
     def to_cpu(self):
         """Copies the data and gradient arrays to CPU."""
+        # anaruse: debug
+        # print('[chainer/variable.py, to_cpu()] var:{}'.format(self))
         self.data = cuda.to_cpu(self.data)
         if self._grad is not None:
             self._grad = cuda.to_cpu(self._grad)
 
-    def to_gpu(self, device=None):
+    def to_gpu(self, device=None, stream=None):
         """Copies the data and gradient arrays to specified GPU.
 
         Args:
@@ -204,10 +206,20 @@ Actual: {0}'''.format(type(data))
                 used.
 
         """
+        # anaruse: debug
+        # print('[chainer/variable.py, to_gpu()] var:{}'.format(self))
         with cuda.get_device(device):
-            self.data = cuda.to_gpu(self.data)
+            self.data = cuda.to_gpu(self.data, stream=stream)
             if self._grad is not None:
-                self._grad = cuda.to_gpu(self._grad)
+                self._grad = cuda.to_gpu(self._grad, stream=stream)
+
+    def to_swap(self, stream=None):
+        """Move the data and gradient arrays on GPU/CPU to SWAP memory."""
+        # anaruse: debug
+        # print('[chainer/variable.py, to_swap()] var:{}, stream:{}'.format(self, stream))
+        self.data = cuda.to_swap(self.data, stream=stream)
+        if self._grad is not None:
+            self._grad = cuda.to_swap(self._grad, stream=stream)
 
     def zerograd(self):
         """Initializes the gradient array by zeros."""

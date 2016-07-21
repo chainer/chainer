@@ -162,7 +162,15 @@ int cudaMalloc(void** devPtr, size_t size) {
     return 0;
 }
 
+int cudaMallocHost(void** devPtr, size_t size) {
+    return 0;
+}
+
 int cudaFree(void* devPtr) {
+    return 0;
+}
+
+int cudaFreeHost(void* devPtr) {
     return 0;
 }
 
