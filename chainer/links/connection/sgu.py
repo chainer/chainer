@@ -1,6 +1,3 @@
-import numpy
-
-import chainer
 from chainer import cuda
 from chainer.functions.activation import hard_sigmoid
 from chainer.functions.activation import sigmoid
@@ -10,7 +7,6 @@ from chainer.functions.math import linear_interpolate
 from chainer import link
 from chainer.links.connection import linear
 from chainer.utils import rnn
-from chainer import variable
 
 
 class SGU(link.Chain):

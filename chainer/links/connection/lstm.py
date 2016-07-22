@@ -1,13 +1,11 @@
-import numpy
 import six
 
-import chainer
 from chainer.functions.activation import lstm
 from chainer import initializers
 from chainer import link
 from chainer.links.connection import linear
-from chainer import variable
 from chainer.utils import rnn
+from chainer import variable
 
 
 class LSTMBase(link.Chain):
@@ -84,6 +82,7 @@ class StatelessLSTM(LSTMBase):
 
 
 StatefulLSTMBase = rnn.create_stateful_rnn(StatelessLSTM, 'StatefulLSTMBase')
+
 
 class LSTM(StatefulLSTMBase):
     """Fully-connected LSTM layer.

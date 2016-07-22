@@ -1,6 +1,3 @@
-import numpy
-
-import chainer
 from chainer.functions.activation import sigmoid
 from chainer.functions.activation import tanh
 from chainer import link
@@ -86,6 +83,7 @@ class GRU(GRUBase):
 
 
 StatefulGRUBase = rnn.create_stateful_rnn(GRU, 'StatefulGRUBase')
+
 
 class StatefulGRU(StatefulGRUBase):
     """Stateful Gated Recurrent Unit function (GRU).

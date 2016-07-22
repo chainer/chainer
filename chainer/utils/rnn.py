@@ -18,7 +18,6 @@ def create_stateful_rnn(stateless_class, name):
         def __new__(cls, _, bases, dict):
             return type.__new__(cls, name, bases, dict)
 
-
     class Stateful(link.Chain):
 
         __metaclass__ = name_setter
@@ -29,7 +28,7 @@ def create_stateful_rnn(stateless_class, name):
             self.state_names = self.stateless.state_names
             self.state_shapes = self.stateless.state_shapes
             self.state_name_to_idx = dict((name, i) for i, name
-                                      in enumerate(self.state_names))
+                                          in enumerate(self.state_names))
             self.reset_state()
 
         def to_cpu(self):
