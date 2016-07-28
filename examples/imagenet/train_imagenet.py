@@ -23,6 +23,9 @@ import googlenet
 import googlenetbn
 import nin
 
+import cupy
+cupy.cuda.memory.set_allocator(cupy.cuda.memory._mallocManaged)
+
 
 class PreprocessedDataset(chainer.dataset.DatasetMixin):
 

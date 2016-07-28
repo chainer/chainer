@@ -8,6 +8,10 @@ cdef class Memory:
         public Py_ssize_t size
 
 
+cdef class ManagedMemory(Memory):
+    pass
+
+
 cdef class MemoryPointer:
 
     cdef:
