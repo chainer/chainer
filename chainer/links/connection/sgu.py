@@ -1,4 +1,3 @@
-from chainer import cuda
 from chainer.functions.activation import hard_sigmoid
 from chainer.functions.activation import sigmoid
 from chainer.functions.activation import softplus
