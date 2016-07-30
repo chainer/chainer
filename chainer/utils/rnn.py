@@ -14,8 +14,22 @@ def _force_tuple(x):
 def create_stateful_rnn(stateless_class, name):
 
     def __init__(self, *args, **kwargs):
-        link.Chain.__init__(
-            self, stateless=stateless_class(*args, **kwargs))
+        stateless = stateless_class(*args, **kwargs)
+        if not hasattr(stateless_class, 'state_names'):
+            raise RuntimeError('The instance of stateless RNN '
+                               'class must have the attribute '
+                               'state_names.')
+
+        if not hasattr(stateless, 'state_shapes'):
+            raise RuntimeError('The instance of Stateless RNN '
+                               'must have the attribute '
+                               'state_shapes.')
+
+        if not callable(stateless):
+            raise RuntimeError('The instance of stateless RNN '
+                               'must be callable')
+
+        link.Chain.__init__(self, stateless=stateless)
         self.state_names = self.stateless.state_names
         self.state_shapes = self.stateless.state_shapes
         self.state_name_to_idx = dict((name, i) for i, name
