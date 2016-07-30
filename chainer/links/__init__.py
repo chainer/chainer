@@ -18,6 +18,7 @@ from chainer.links.connection import parameter
 from chainer.links.connection import peephole
 from chainer.links.connection import scale
 from chainer.links.connection import sgu
+from chainer.links.loss import crf1d
 from chainer.links.loss import hierarchical_softmax
 from chainer.links.loss import negative_sampling
 from chainer.links.model import classifier
@@ -44,13 +45,15 @@ StatefulMGU = mgu.StatefulMGU
 MLPConvolution2D = mlp_convolution_2d.MLPConvolution2D
 Parameter = parameter.Parameter
 Peephole = peephole.Peephole
-StatefulPeephole = peephole.StatefulPeephole
+StatefulPeepholeLSTM = peephole.StatefulPeepholeLSTM
 Scale = scale.Scale
 SGU = sgu.SGU
 StatefulSGU = sgu.StatefulSGU
 DSGU = sgu.DSGU
 StatefulDSGU = sgu.StatefulDSGU
+Scale = scale.Scale
 
+CRF1d = crf1d.CRF1d
 BinaryHierarchicalSoftmax = hierarchical_softmax.BinaryHierarchicalSoftmax
 NegativeSampling = negative_sampling.NegativeSampling
 

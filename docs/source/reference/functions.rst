@@ -32,7 +32,7 @@ clipped_relu
 .. autofunction:: clipped_relu
 
 crelu
-~~~~~~~~~~~~
+~~~~~
 .. autofunction:: crelu
 
 elu
@@ -127,6 +127,10 @@ reshape
 ~~~~~~~
 .. autofunction:: reshape
 
+rollaxis
+~~~~~~~~
+.. autofunction:: rollaxis
+
 select_item
 ~~~~~~~~~~~
 .. autofunction:: select_item
@@ -134,6 +138,10 @@ select_item
 split_axis
 ~~~~~~~~~~
 .. autofunction:: split_axis
+
+stack
+~~~~~
+.. autofunction:: stack
 
 swapaxes
 ~~~~~~~~
@@ -198,6 +206,10 @@ connectionist_temporal_classification
 contrastive
 ~~~~~~~~~~~
 .. autofunction:: contrastive
+
+crf1d
+~~~~~
+.. autofunction:: crf1d
 
 cross_covariance
 ~~~~~~~~~~~~~~~~

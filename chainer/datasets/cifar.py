@@ -17,24 +17,26 @@ def get_cifar10(withlabel=True, ndim=3, scale=1.):
     is represented by one-byte unsigned integer. This function scales the
     components to floating point values in the interval ``[0, scale]``.
 
-    This function returns the trainng set and the test set of the official
+    This function returns the training set and the test set of the official
     CIFAR-10 dataset. If ``withlabel`` is ``True``, each dataset consists of
     tuples of images and labels, otherwise it only consists of images.
 
     Args:
-        withlabel (bool): If ``True`1, it returns datasets with labels. In this
+        withlabel (bool): If ``True``, it returns datasets with labels. In this
             case, each example is a tuple of an image and a label. Otherwise,
             the datasets only contain images.
         ndim (int): Number of dimensions of each image. The shape of each image
             is determined depending on ndim as follows:
-                - ``ndim == 1``: the shape is ``(3072,)``
-                - ``ndim == 3``: the shape is ``(3, 32, 32)``
+
+            - ``ndim == 1``: the shape is ``(3072,)``
+            - ``ndim == 3``: the shape is ``(3, 32, 32)``
+
         scale (float): Pixel value scale. If it is 1 (default), pixels are
             scaled to the interval ``[0, 1]``.
 
     Returns:
         A tuple of two datasets. If ``withlabel`` is ``True``, both datasets
-        are :class:`~chainer.datasets.TupleDataset` instances. Othewrise, both
+        are :class:`~chainer.datasets.TupleDataset` instances. Otherwise, both
         datasets are arrays of images.
 
     """
@@ -55,7 +57,7 @@ def get_cifar100(withlabel=True, ndim=3, scale=1.):
     pixels is represented by one-byte unsigned integer. This function scales
     the components to floating point values in the interval ``[0, scale]``.
 
-    This function returns the trainng set and the test set of the official
+    This function returns the training set and the test set of the official
     CIFAR-100 dataset. If ``withlabel`` is ``True``, each dataset consists of
     tuples of images and labels, otherwise it only consists of images.
 
@@ -65,14 +67,16 @@ def get_cifar100(withlabel=True, ndim=3, scale=1.):
             the datasets only contain images.
         ndim (int): Number of dimensions of each image. The shape of each image
             is determined depending on ndim as follows:
-                - ``ndim == 1``: the shape is ``(3072,)``
-                - ``ndim == 3``: the shape is ``(3, 32, 32)``
+
+            - ``ndim == 1``: the shape is ``(3072,)``
+            - ``ndim == 3``: the shape is ``(3, 32, 32)``
+
         scale (float): Pixel value scale. If it is 1 (default), pixels are
             scaled to the interval ``[0, 1]``.
 
     Returns:
         A tuple of two datasets. If ``withlabel`` is ``True``, both
-        are :class:`~chainer.datasets.TupleDataset` instances. Othewrise, both
+        are :class:`~chainer.datasets.TupleDataset` instances. Otherwise, both
         datasets are arrays of images.
 
     """

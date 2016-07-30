@@ -8,7 +8,7 @@ from chainer.utils import rnn
 from chainer import variable
 
 
-class Peephole(link.Chain):
+class StatefulPeepholeLSTM(link.Chain):
 
     """Fully-connected LSTM layer with peephole connections.
 
@@ -52,14 +52,36 @@ class Peephole(link.Chain):
     state_names = ('c', 'h')
 
     def __init__(self, in_size, out_size):
-        super(Peephole, self).__init__(
+        super(StatefulPeepholeLSTM, self).__init__(
             upward=linear.Linear(in_size, 4 * out_size),
             lateral=linear.Linear(out_size, 4 * out_size, nobias=True),
             peep_i=linear.Linear(out_size, out_size, nobias=True),
             peep_f=linear.Linear(out_size, out_size, nobias=True),
             peep_o=linear.Linear(out_size, out_size, nobias=True),
         )
+<<<<<<< HEAD
         self.state_shapes = ((out_size,), (out_size,))
+=======
+        self.state_size = out_size
+        self.reset_state()
+
+    def to_cpu(self):
+        super(StatefulPeepholeLSTM, self).to_cpu()
+        if self.c is not None:
+            self.c.to_cpu()
+        if self.h is not None:
+            self.h.to_cpu()
+
+    def to_gpu(self, device=None):
+        super(StatefulPeepholeLSTM, self).to_gpu(device)
+        if self.c is not None:
+            self.c.to_gpu(device)
+        if self.h is not None:
+            self.h.to_gpu(device)
+
+    def reset_state(self):
+        """Resets the internal states.
+>>>>>>> master
 
     def __call__(self, c, h, x):
         """Updates the internal state and returns the LSTM outputs.
