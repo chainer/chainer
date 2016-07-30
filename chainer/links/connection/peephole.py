@@ -8,80 +8,19 @@ from chainer.utils import rnn
 from chainer import variable
 
 
-class StatefulPeepholeLSTM(link.Chain):
-
-    """Fully-connected LSTM layer with peephole connections.
-
-    This is a fully-connected LSTM layer with peephole connections as a chain.
-    Unlike the :link:`~chainer.links.lstm` link, this chain holds ``peep_i``,
-    ``peep_f`` and ``peep_o`` as child links besides ``upward`` and
-    ``lateral``.
-
-    Given a input vector :math:`x`, Peephole returns the next hidden vector
-    :math:`h'` defined as
-
-    .. math::
-
-       a &=& \\tanh(upward x + lateral h), \\\\
-       i &=& \\sigma(upward x + lateral h + peep_i c), \\\\
-       f &=& \\sigma(upward x + lateral h + peep_f c), \\\\
-       c' &=& a \\odot i + f \\odot c, \\\\
-       o &=& \\sigma(upward x + lateral h + peep_o c'), \\\\
-       h' &=& o \\tanh(c'),
-
-    where :math:`\\sigma` is the sigmoid function, :math:`\\odot` is the
-    element-wise product, :math:`c` is the current cell state, :math:`c'`
-    is the next cell state and :math:`h` is the current hidden vector.
-
-    Args:
-        in_size(int): Dimension of the input vector :math:`x`.
-        out_size(int): Dimension of the hidden vector :math: `h`.
-
-    Attributes:
-        upward (~chainer.links.Linear): Linear layer of upward connections.
-        lateral (~chainer.links.Linear): Linear layer of lateral connections.
-        peep_i (~chainer.links.Linear): Linear layer of peephole connections
-                                        to the input gate.
-        peep_f (~chainer.links.Linear): Linear layer of peephole connections
-                                        to the forget gate.
-        peep_o (~chainer.links.Linear): Linear layer of peephole connections
-                                        to the output gate.
-
-    """
+class PeepholeLSTM(link.Chain):
 
     state_names = ('c', 'h')
 
     def __init__(self, in_size, out_size):
-        super(StatefulPeepholeLSTM, self).__init__(
+        super(PeepholeLSTM, self).__init__(
             upward=linear.Linear(in_size, 4 * out_size),
             lateral=linear.Linear(out_size, 4 * out_size, nobias=True),
             peep_i=linear.Linear(out_size, out_size, nobias=True),
             peep_f=linear.Linear(out_size, out_size, nobias=True),
             peep_o=linear.Linear(out_size, out_size, nobias=True),
         )
-<<<<<<< HEAD
         self.state_shapes = ((out_size,), (out_size,))
-=======
-        self.state_size = out_size
-        self.reset_state()
-
-    def to_cpu(self):
-        super(StatefulPeepholeLSTM, self).to_cpu()
-        if self.c is not None:
-            self.c.to_cpu()
-        if self.h is not None:
-            self.h.to_cpu()
-
-    def to_gpu(self, device=None):
-        super(StatefulPeepholeLSTM, self).to_gpu(device)
-        if self.c is not None:
-            self.c.to_gpu(device)
-        if self.h is not None:
-            self.h.to_gpu(device)
-
-    def reset_state(self):
-        """Resets the internal states.
->>>>>>> master
 
     def __call__(self, c, h, x):
         """Updates the internal state and returns the LSTM outputs.
@@ -123,4 +62,49 @@ class StatefulPeepholeLSTM(link.Chain):
         return c, h
 
 
-StatefulPeephole = rnn.create_stateful_rnn(Peephole, 'StatefulPeephole')
+StatefulPeepholeLSTMBase = rnn.create_stateful_rnn(
+    PeepholeLSTM, 'StatefulPeepholeLSTMBase')
+
+
+class StatefulPeepholeLSTM(StatefulPeepholeLSTMBase):
+
+    """Fully-connected LSTM layer with peephole connections.
+
+    This is a fully-connected LSTM layer with peephole connections as a chain.
+    Unlike the :link:`~chainer.links.lstm` link, this chain holds ``peep_i``,
+    ``peep_f`` and ``peep_o`` as child links besides ``upward`` and
+    ``lateral``.
+
+    Given a input vector :math:`x`, Peephole returns the next hidden vector
+    :math:`h'` defined as
+
+    .. math::
+
+       a &=& \\tanh(upward x + lateral h), \\\\
+       i &=& \\sigma(upward x + lateral h + peep_i c), \\\\
+       f &=& \\sigma(upward x + lateral h + peep_f c), \\\\
+       c' &=& a \\odot i + f \\odot c, \\\\
+       o &=& \\sigma(upward x + lateral h + peep_o c'), \\\\
+       h' &=& o \\tanh(c'),
+
+    where :math:`\\sigma` is the sigmoid function, :math:`\\odot` is the
+    element-wise product, :math:`c` is the current cell state, :math:`c'`
+    is the next cell state and :math:`h` is the current hidden vector.
+
+    Args:
+        in_size(int): Dimension of the input vector :math:`x`.
+        out_size(int): Dimension of the hidden vector :math: `h`.
+
+    Attributes:
+        upward (~chainer.links.Linear): Linear layer of upward connections.
+        lateral (~chainer.links.Linear): Linear layer of lateral connections.
+        peep_i (~chainer.links.Linear): Linear layer of peephole connections
+                                        to the input gate.
+        peep_f (~chainer.links.Linear): Linear layer of peephole connections
+                                        to the forget gate.
+        peep_o (~chainer.links.Linear): Linear layer of peephole connections
+                                        to the output gate.
+
+    """
+
+    pass
