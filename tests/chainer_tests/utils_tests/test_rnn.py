@@ -81,3 +81,6 @@ class TestInvalidCreation(unittest.TestCase):
     def test_invalid_stateless_rnn(self):
         self.assertRaises(RuntimeError,
                           self.stateful_class, 10)
+
+
+testing.run_module(__name__, __file__)
