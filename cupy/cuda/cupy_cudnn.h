@@ -194,6 +194,7 @@ typedef int cudnnSoftmaxAlgorithm_t;
 typedef int cudnnSoftmaxMode_t;
 typedef int cudnnStatus_t;
 typedef int cudnnTensorFormat_t;
+typedef int cudnnBatchNormMode_t;
 
 typedef int ActivationMode;
 typedef int AddMode;
@@ -210,6 +211,7 @@ typedef int SoftmaxAlgorithm;
 typedef int SoftmaxMode;
 typedef int Status;
 typedef int TensorFormat;
+typedef int BatchNormMode;
 
 
 typedef void* cudnnConvolutionDescriptor_t;
@@ -520,6 +522,50 @@ int cudnnActivationBackward_v3(
     return 0;
 }
 
+// Batch Normalization
+int cudnnDeriveBNTensorDescriptor(
+        cudnnTensorDescriptor_t derivedBnDesc,
+        const cudnnTensorDescriptor_t xDesc,
+        BatchNormMode mode) {
+    return 0;
+}
+
+int cudnnBatchNormalizationForwardTraining(
+        Handle handle, BatchNormMode mode,
+        const void *alpha, const void *beta,
+        const cudnnTensorDescriptor_t xDesc, const void *x, // NxCxHxW
+        const cudnnTensorDescriptor_t yDesc, void *y,     // NxCxHxW
+        const cudnnTensorDescriptor_t bnScaleBiasMeanVarDesc,
+        const void *bnScale, const void *bnBias,
+        double exponentialAverageFactor, void *resultRunningMean,
+        void *resultRunningVariance, double epsilon,
+        void *resultSaveMean, void *resultSaveInvVariance) {
+    return 0;
+}
+
+int cudnnBatchNormalizationForwardInference(
+        Handle handle, BatchNormMode mode,
+        const void *alpha, const void *beta,
+        const cudnnTensorDescriptor_t xDesc, const void *x, // NxCxHxW
+        const cudnnTensorDescriptor_t yDesc, void *y,     // NxCxHxW
+        const cudnnTensorDescriptor_t bnScaleBiasMeanVarDesc,
+        const void *bnScale, const void *bnBias,
+        void *estimatedMean, void *estimatedVariance, double epsilon) {
+    return 0;
+}
+
+int cudnnBatchNormalizationBackward(
+        Handle handle, BatchNormMode mode,
+        const void *alphaDataDiff, const void *betaDataDiff,
+        const void *alphaParamDiff, const void *betaParamDiff,
+        const cudnnTensorDescriptor_t xDesc, // same desc for x, dx, dy
+        const void *x, const cudnnTensorDescriptor_t dyDesc,
+        const void *dy, const cudnnTensorDescriptor_t dxDesc, void *dx,
+        const cudnnTensorDescriptor_t dBnScaleBiasDesc, const void *bnScale,
+        void *dBnScaleResult, void  *dBnBiasResult, double epsilon,
+        void *savedMean, void *savedInvVariance) {
+    return 0;
+}
 
 #endif // #ifndef CUPY_NO_CUDA
 #endif // #ifndef INCLUDE_GUARD_CUPY_CUDNN_H
