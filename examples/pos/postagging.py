@@ -24,8 +24,8 @@ class CRF(chainer.Chain):
         )
 
     def __call__(self, *args):
-        xs = args[:len(args) / 2]
-        ys = args[len(args) / 2:]
+        xs = args[:len(args) // 2]
+        ys = args[len(args) // 2:]
 
         inds = numpy.argsort([-len(x.data) for x in xs]).astype('i')
         xs = [xs[i] for i in inds]
@@ -96,8 +96,8 @@ if __name__ == '__main__':
     optimizer.setup(model)
     #opt.add_hook(chainer.optimizer.WeightDecay(0.1))
 
-    train_data = data[len(data) / 4:]
-    test_data = data[:len(data) / 4]
+    train_data = data[len(data) // 4:]
+    test_data = data[:len(data) // 4]
 
     train_iter = chainer.iterators.SerialIterator(train_data, args.batchsize)
     test_iter = chainer.iterators.SerialIterator(test_data, args.batchsize,
