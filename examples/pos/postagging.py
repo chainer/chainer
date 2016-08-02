@@ -1,3 +1,4 @@
+import argparse
 import collections
 import itertools
 
@@ -9,6 +10,9 @@ from chainer import cuda
 import chainer.functions as F
 import chainer.links as L
 import chainer.optimizers as O
+from chainer import reporter
+from chainer import training
+from chainer.training import extensions
 
 
 class CRF(chainer.Chain):
@@ -19,70 +23,93 @@ class CRF(chainer.Chain):
             crf=L.CRF1d(n_pos),
         )
 
-    def __call__(self, xs, ys):
+    def __call__(self, *args):
+        xs = args[:len(args) / 2]
+        ys = args[len(args) / 2:]
+
+        inds = numpy.argsort([-len(x.data) for x in xs]).astype('i')
+        xs = [xs[i] for i in inds]
+        ys = [ys[i] for i in inds]
+
+        xs = F.transpose_sequence(xs)
+        ys = F.transpose_sequence(ys)
+
         hs = [self.embed(x) for x in xs]
-        return self.crf(hs, ys)
+        loss = self.crf(hs, ys)
+        reporter.report({'loss': loss}, self)
+
+        _, predict = self.crf.argmax(hs)
+        correct = 0
+        total = 0
+        for y, p in zip(ys, predict):
+            correct += xp.sum(y.data == p)
+            total += len(y.data)
+        reporter.report({'correct': float(correct)}, self)
+        reporter.report({'total': float(total)}, self)
+
+        return loss
 
     def argmax(self, xs):
         hs = [self.embed(x) for x in xs]
         return self.crf.argmax(hs)
 
 
-vocab = collections.defaultdict(lambda: len(vocab))
-pos_vocab = collections.defaultdict(lambda: len(pos_vocab))
-data = []
-for sentence in brown.tagged_sents():
-    s = [(vocab[lex], pos_vocab[pos]) for lex, pos in sentence]
-    data.append(s)
-    if len(data) >= 1000:
-        break
-
-print('# of sentences: {}'.format(len(data)))
-print('# of words: {}'.format(len(vocab)))
-print('# of pos: {}'.format(len(pos_vocab)))
-
-data.sort(key=len)
-groups = []
-for length, group in itertools.groupby(data, key=len):
-    groups.append(list(group))
+def convert(batch, device):
+    sentences = [cuda.to_gpu(sentence) for sentence, _ in batch]
+    poses = [cuda.to_gpu(pos) for _, pos in batch]
+    return tuple(sentences + poses)
 
 
-model = CRF(len(vocab), len(pos_vocab))
-model.to_gpu()
-xp = cuda.cupy
-opt = O.Adam()
-opt.setup(model)
-#opt.add_hook(chainer.optimizer.WeightDecay(0.1))
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Chainer example: MNIST')
+    parser.add_argument('--batchsize', '-b', type=int, default=30,
+                        help='Number of images in each mini batch')
+    parser.add_argument('--epoch', '-e', type=int, default=20,
+                        help='Number of sweeps over the dataset to train')
+    parser.add_argument('--gpu', '-g', type=int, default=-1,
+                        help='GPU ID (negative value indicates CPU)')
+    parser.add_argument('--out', '-o', default='result',
+                        help='Directory to output the result')
+    parser.add_argument('--resume', '-r', default='',
+                        help='Resume the training from snapshot')
+    parser.add_argument('--unit', '-u', type=int, default=1000,
+                        help='Number of units')
+    args = parser.parse_args()
 
-n_epoch = 1000
+    vocab = collections.defaultdict(lambda: len(vocab))
+    pos_vocab = collections.defaultdict(lambda: len(pos_vocab))
 
-for epoch in range(n_epoch):
-    accum_loss = 0
-    correct = 0
-    total = 0
+    data = []
+    for sentence in brown.tagged_sents():
+        xs = numpy.array([vocab[lex] for lex, _ in sentence], 'i')
+        ys = numpy.array([pos_vocab[pos] for _, pos in sentence] , 'i')
+        data.append((xs, ys))
 
-    for sentences in groups:
-        length = len(sentences[0])
-        xs = []
-        ys = []
-        for i in range(length):
-            x_data = xp.array([s[i][0] for s in sentences], numpy.int32)
-            y_data = xp.array([s[i][1] for s in sentences], numpy.int32)
-            xs.append(chainer.Variable(x_data))
-            ys.append(chainer.Variable(y_data))
-        loss = model(xs, ys)
-        accum_loss += loss.data
-        model.zerograds()
-        loss.backward()
-        opt.update()
+    print('# of sentences: {}'.format(len(data)))
+    print('# of words: {}'.format(len(vocab)))
+    print('# of pos: {}'.format(len(pos_vocab)))
 
-        _, path = model.argmax(xs)
-        assert len(ys) == len(path)
+    model = CRF(len(vocab), len(pos_vocab))
+    model.to_gpu()
+    xp = cuda.cupy
+    optimizer = O.Adam()
+    optimizer.setup(model)
+    #opt.add_hook(chainer.optimizer.WeightDecay(0.1))
 
-        for y, p in zip(ys, path):
-            correct += xp.sum(y.data == p)
-            total += len(y.data)
+    train_data = data[len(data) / 4:]
+    test_data = data[:len(data) / 4]
 
-    accuracy = float(correct) / total
-    print('Accuracy: {}'.format(accuracy))
-    print('Total loss: {}'.format(accum_loss))
+    train_iter = chainer.iterators.SerialIterator(train_data, args.batchsize)
+    test_iter = chainer.iterators.SerialIterator(test_data, args.batchsize,
+                                                 repeat=False, shuffle=False)
+    updater = training.StandardUpdater(
+        train_iter, optimizer, converter=convert)
+    trainer = training.Trainer(updater, (args.epoch, 'epoch'))
+
+    trainer.extend(extensions.Evaluator(test_iter, model, device=0, converter=convert))
+    trainer.extend(extensions.LogReport())
+    trainer.extend(extensions.PrintReport(
+        ['epoch', 'main/loss', 'validation/main/loss', 'main/correct', 'main/total',
+         'validation/main/correct', 'validation/main/total']))
+
+    trainer.run()
