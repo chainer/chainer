@@ -15,11 +15,10 @@ def get_deconv_outsize(size, k, s, p, cover_all=False):
     if cover_all:
         return s * (size - 1) + k - s + 1 - 2 * p
     else:
-        if size%2 == 0 and k > 1 and k%2 == 1:
-            return s * (size - 1) + k - 2 * p + k%s
+        if size % 2 == 0 and k > 1 and k % 2 == 1:
+            return s * (size - 1) + k - 2 * p + k % s
         else:
             return s * (size - 1) + k - 2 * p
-
 
 
 def im2col_cpu(img, kh, kw, sy, sx, ph, pw, pval=0, cover_all=False):
