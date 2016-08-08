@@ -17,11 +17,13 @@ class Uniform(initializer.Initializer):
     Attributes:
         scale (float): A constant that determines the
             scale of the uniform distribution.
+        dtype: Data type specifier.
 
     """
 
-    def __init__(self, scale=0.05):
+    def __init__(self, scale=0.05, dtype=None):
         self.scale = scale
+        super(Uniform, self).__init__(dtype)
 
     def __call__(self, array):
         xp = cuda.get_array_module(array)
@@ -44,16 +46,18 @@ class LeCunUniform(initializer.Initializer):
     Attributes:
         scale (float): A constant that determines the
             scale of the uniform distribution.
+        dtype: Data type specifier.
 
     """
 
-    def __init__(self, scale=1.0):
+    def __init__(self, scale=1.0, dtype=None):
         self.scale = scale
+        super(LeCunUniform, self).__init__(dtype)
 
     def __call__(self, array):
         fan_in, fan_out = initializer.get_fans(array.shape)
         s = self.scale * numpy.sqrt(3. / fan_in)
-        return Uniform(s)(array)
+        Uniform(s)(array)
 
 
 class GlorotUniform(initializer.Initializer):
@@ -69,16 +73,18 @@ class GlorotUniform(initializer.Initializer):
     Attributes:
         scale (float): A constant that determines the
             scale of the uniform distribution.
+        dtype: Data type specifier.
 
     """
 
-    def __init__(self, scale=1.0):
+    def __init__(self, scale=1.0, dtype=None):
         self.scale = scale
+        super(GlorotUniform, self).__init__(dtype)
 
     def __call__(self, array):
         fan_in, fan_out = initializer.get_fans(array.shape)
         s = self.scale * numpy.sqrt(6. / (fan_in + fan_out))
-        return Uniform(s)(array)
+        Uniform(s)(array)
 
 
 class HeUniform(initializer.Initializer):
@@ -93,13 +99,15 @@ class HeUniform(initializer.Initializer):
     Attributes:
         scale (float): A constant that determines the
             scale of the uniform distribution.
+        dtype: Data type specifier.
 
     """
 
-    def __init__(self, scale=1.0):
+    def __init__(self, scale=1.0, dtype=None):
         self.scale = scale
+        super(HeUniform, self).__init__(dtype)
 
     def __call__(self, array):
         fan_in, fan_out = initializer.get_fans(array.shape)
         s = self.scale * numpy.sqrt(6. / fan_in)
-        return Uniform(s)(array)
+        Uniform(s)(array)

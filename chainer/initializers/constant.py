@@ -17,8 +17,9 @@ class Identity(initializer.Initializer):
 
     """
 
-    def __init__(self, scale=1.0):
+    def __init__(self, scale=1.0, dtype=None):
         self.scale = scale
+        super(Identity, self).__init__(dtype)
 
     def __call__(self, array):
         shape = array.shape
@@ -44,25 +45,40 @@ class Constant(initializer.Initializer):
         fill_value (scalar or numpy.ndarray or cupy.ndarray):
             A constant to be assigned to the initialized array.
             Broadcast is allowed on this assignment.
+        dtype: Data type specifier.
+
     """
 
-    def __init__(self, fill_value):
+    def __init__(self, fill_value, dtype=None):
         self.fill_value = fill_value
+        super(Constant, self).__init__(dtype)
 
     def __call__(self, array):
         xp = cuda.get_array_module(array)
         array[...] = xp.asarray(self.fill_value)
 
 
-def Zero():
+def Zero(dtype=None):
+    """Returns initializer that initializes array with the all-zero array.
 
-    """Returns initializer that initializes array with the all-zero array."""
+    Args:
+        dtype: Data type specifier.
 
-    return Constant(0.0)
+    Returns:
+        numpy.ndarray or cupy.ndarray: An initialized array.
+
+    """
+    return Constant(0.0, dtype=dtype)
 
 
-def One():
+def One(dtype=None):
+    """Returns initializer that initializes array with the all-one array.
 
-    """Returns initializer that initializes array with the all-one array."""
+    Args:
+        dtype: Data type specifier.
 
-    return Constant(1.0)
+    Returns:
+        numpy.ndarray or cupy.ndarray: An initialized array.
+
+    """
+    return Constant(1.0, dtype=dtype)
