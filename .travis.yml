@@ -56,11 +56,11 @@ install:
 
 script:
   - flake8
-  - if [ -e check_autopep8 ]; then
+  - if [[ -e check_autopep8 ]]; then
       rm check_autopep8
     fi
   - autopep8 -r . --exclude 'caffe_pb*' --diff > check_autopep8
-  - [ ! -s check_autopep8 ]
+  - [[ ! -s check_autopep8 ]]
   - PYTHONWARNINGS='module::DeprecationWarning' nosetests -a '!gpu' --with-doctest tests/install_tests
   - cd tests
   - PYTHONWARNINGS='module::DeprecationWarning' nosetests -a '!gpu' --with-doctest chainer_tests
