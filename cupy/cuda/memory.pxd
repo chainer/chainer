@@ -6,6 +6,7 @@ cdef class Memory:
         public device.Device device
         public size_t ptr
         public Py_ssize_t size
+        public bint _swap
 
 
 cdef class MemoryPointer:
@@ -27,7 +28,7 @@ cdef class MemoryPointer:
     cpdef memset_async(self, int value, size_t size, stream)
 
 
-cpdef MemoryPointer alloc(Py_ssize_t size)
+cpdef MemoryPointer alloc(Py_ssize_t size, bint useSwapMemory=*)
 
 
 cpdef set_allocator(allocator=*)
@@ -51,7 +52,7 @@ cdef class SingleDeviceMemoryPool:
         object _weakref
         Py_ssize_t _allocation_unit_size
 
-    cpdef MemoryPointer malloc(self, Py_ssize_t size)
+    cpdef MemoryPointer malloc(self, Py_ssize_t size, bint useSwapMemory=*)
     cpdef free(self, size_t ptr, Py_ssize_t size)
     cpdef free_all_free(self)
     cpdef n_free_blocks(self)
@@ -62,6 +63,6 @@ cdef class MemoryPool:
     cdef:
         object _pools
 
-    cpdef MemoryPointer malloc(self, Py_ssize_t size)
+    cpdef MemoryPointer malloc(self, Py_ssize_t size, bint useSwapMemory=*)
     cpdef free_all_free(self)
     cpdef n_free_blocks(self)

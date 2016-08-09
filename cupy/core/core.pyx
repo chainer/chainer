@@ -72,7 +72,7 @@ cdef class ndarray:
         readonly ndarray base
 
 
-    def __init__(self, shape, dtype=float, memptr=None):
+    def __init__(self, shape, dtype=float, memptr=None, bint useSwapMemory=False):
         cdef Py_ssize_t size
         self._shape = internal.get_size(shape)
         for x in self._shape:
@@ -83,8 +83,11 @@ cdef class ndarray:
         self._strides = internal.get_contiguous_strides(
             self._shape, self.itemsize)
 
+        # anaruse: debug
+        # print('[cupy/core/core.pyx: __init__()] useSwapMemory:{}'.format(useSwapMemory))
+
         if memptr is None:
-            self.data = memory.alloc(self.size * self.dtype.itemsize)
+            self.data = memory.alloc(self.size * self.dtype.itemsize, useSwapMemory)
         else:
             self.data = memptr
         self.base = None
@@ -92,6 +95,9 @@ cdef class ndarray:
         self._c_contiguous = True
         self._update_f_contiguity()
 
+        # anaruse: debug
+        # print('[cupy/core/core.pyx: __init__()] size:{}, ptr:{}, dev:{}, _swap:{}'
+        #       .format(self.data.mem.size, self.data.mem.ptr, self.data.mem.device, self.data.mem._swap))
 
     # The definition order of attributes and methods are borrowed from the
     # order of documentation at the following NumPy document.
@@ -1400,26 +1406,49 @@ cdef _argmax = create_reduction_func(
 # Array creation routines
 # -----------------------------------------------------------------------------
 
-cpdef ndarray array(obj, dtype=None, bint copy=True, Py_ssize_t ndmin=0):
+cpdef ndarray array(obj, dtype=None, bint copy=True, Py_ssize_t ndmin=0, stream=None, useSwapMemory=False):
     # TODO(beam2d): Support order and subok options
     cdef Py_ssize_t nvidem
     cdef ndarray a
-    if isinstance(obj, ndarray):
-        if dtype is None:
-            dtype = obj.dtype
-        a = obj.astype(dtype, copy)
-
-        ndim = a._shape.size()
-        if ndmin > ndim:
-            a.shape = (1,) * (ndmin - ndim) + a.shape
+    # anaruse: debug
+    # print('[cupy/core/core.pyx: array()] stream:{}, useSwapMemory:{}'.format(stream, useSwapMemory))
+    if isinstance(obj, ndarray) and obj.data.mem._swap is True:
+        # anaruse: debug
+        # print('[cupy/core/core.pyx: array()] obj.data is on SWAP memory')
+        a = ndarray(obj.shape, obj.dtype, useSwapMemory=useSwapMemory)
+        if stream is None:
+            a.data.copy_from_device(obj.data, obj.nbytes)
+        else:
+            a.data.copy_from_device_async(obj.data, obj.nbytes, stream)
         return a
+    elif isinstance(obj, ndarray):
+        # anaruse: debug
+        # print('[cupy/core/core.pyx: array()] obj.data is on GPU')
+        if useSwapMemory is False:
+            if dtype is None:
+                dtype = obj.dtype
+            a = obj.astype(dtype, copy)
+
+            ndim = a._shape.size()
+            if ndmin > ndim:
+                a.shape = (1,) * (ndmin - ndim) + a.shape
+            return a
+        else:
+            a = ndarray(obj.shape, obj.dtype, useSwapMemory=True)
+            if stream is None:
+                a.data.copy_from_device(obj.data, obj.nbytes)
+            else:
+                a.data.copy_from_device_async(obj.data, obj.nbytes, stream)
+            return a
     else:
+        # anaruse: debug
+        # print('[cupy/core/core.pyx: array()] obj.data is on CPU')
         a_cpu = numpy.array(obj, dtype=dtype, copy=False, ndmin=ndmin)
         if a_cpu.dtype.char not in '?bhilqBHILQefd':
             raise ValueError('Unsupported dtype %s' % a_cpu.dtype)
         if a_cpu.ndim > 0:
             a_cpu = numpy.ascontiguousarray(a_cpu)
-        a = ndarray(a_cpu.shape, dtype=a_cpu.dtype)
+        a = ndarray(a_cpu.shape, dtype=a_cpu.dtype, useSwapMemory=useSwapMemory)
         a.data.copy_from_host(a_cpu.ctypes.data_as(ctypes.c_void_p), a.nbytes)
         if a_cpu.dtype == a.dtype:
             return a
