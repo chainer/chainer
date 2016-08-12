@@ -12,10 +12,12 @@ from chainer.links.connection import inception
 from chainer.links.connection import inceptionbn
 from chainer.links.connection import linear
 from chainer.links.connection import lstm
+from chainer.links.connection import mgu
 from chainer.links.connection import mlp_convolution_2d
 from chainer.links.connection import parameter
 from chainer.links.connection import peephole
 from chainer.links.connection import scale
+from chainer.links.connection import sgu
 from chainer.links.loss import crf1d
 from chainer.links.loss import hierarchical_softmax
 from chainer.links.loss import negative_sampling
@@ -38,9 +40,17 @@ InceptionBN = inceptionbn.InceptionBN
 Linear = linear.Linear
 LSTM = lstm.LSTM
 StatelessLSTM = lstm.StatelessLSTM
+MGU = mgu.MGU
+StatefulMGU = mgu.StatefulMGU
 MLPConvolution2D = mlp_convolution_2d.MLPConvolution2D
 Parameter = parameter.Parameter
+PeepholeLSTM = peephole.PeepholeLSTM
 StatefulPeepholeLSTM = peephole.StatefulPeepholeLSTM
+Scale = scale.Scale
+SGU = sgu.SGU
+StatefulSGU = sgu.StatefulSGU
+DSGU = sgu.DSGU
+StatefulDSGU = sgu.StatefulDSGU
 Scale = scale.Scale
 
 CRF1d = crf1d.CRF1d
