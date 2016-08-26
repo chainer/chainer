@@ -38,8 +38,9 @@ def concat_examples(batch, device=None, padding=None):
             left in the original device.
         padding: Scalar value for extra elements. If this is None (default),
             an error is raised on shape mismatch. Otherwise, an array of
-            minimum dimensionalities that can accomodate all arrays is created,
-            and elements outside of the examples are padded by this value.
+            minimum dimensionalities that can accommodate all arrays is
+            created, and elements outside of the examples are padded by this
+            value.
 
     Returns:
         Array, a tuple of arrays, or a dictionary of arrays. The type depends
@@ -55,7 +56,8 @@ def concat_examples(batch, device=None, padding=None):
     elif device < 0:
         to_device = cuda.to_cpu
     else:
-        to_device = lambda x: cuda.to_gpu(x, device)
+        def to_device(x):
+            return cuda.to_gpu(x, device)
 
     first_elem = batch[0]
 
