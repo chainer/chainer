@@ -96,7 +96,7 @@ def cholesky(a):
     return x
 
 
-def qr(a, mode='default'):
+def qr(a, mode='reduced'):
     _assertCupyArray(a)
     _assertRank2(a)
 
@@ -137,21 +137,25 @@ def qr(a, mode='default'):
         return _triu(r)
 
     if mode == 'raw':
+        if ret_dtype == 'f':
+            # In the case of raw mode, The type of x and tau in numpy
+            # is float32 because numpy always computes qr() as float64.
+            # Considering the meaning of 'raw' we consider this conversion
+            # would be inappropriate, however, in this time we convert the
+            # both variables into float64 for compatibility.
+            return x.astype(numpy.float64), tau.astype(numpy.float64)
         return x, tau
 
     if mode == 'complete':
         raise NotImplementedError(
             'Current cupy.linalg.qr does not support \'complete\' option')
 
-    if mode == 'complete' and m > n:
+    if m <= n:
         mc = m
-        q = cupy.zeros((m, m), dtype=dtype)
-        q[:m, :m] = cupy.identity(m, dtype=dtype)
-    else:
-        # TODO(Saito): This is valid in the case that m <= n only
-        mc = mn
         q = cupy.zeros((n, m), dtype=dtype)
         q[:mn, :mn] = cupy.identity(mn, dtype=dtype)
+    else:
+        raise NotImplementedError()
 
     # solve Q
     # Since current CUSOLVER does not provide (s|d)orgqr,
@@ -187,7 +191,7 @@ def svd(a, full_matrices=True, compute_uv=True):
     else:
         dtype = numpy.find_common_type((ret_dtype, 'f'), ()).char
 
-    # Remark 1: gesvd only supports m >= n
+    # Remark 1: gesvd only supports m >= n (WHAT?)
     # Remark 2: gesvd only supports jobu = 'A' and jobvt = 'A'
     #           and returns matrix U and V^H
     n, m = a.shape

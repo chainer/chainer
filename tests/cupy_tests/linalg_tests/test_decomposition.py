@@ -24,6 +24,43 @@ class TestCholeskyDecomposition(unittest.TestCase):
 
 
 @testing.gpu
+class TestQRDecomposition(unittest.TestCase):
+
+    _multiprocess_can_split_ = True
+
+    @testing.for_float_dtypes(no_float16=True)
+    @testing.numpy_cupy_allclose(atol=1e-5)
+    def check_mode(self, array, xp, dtype, mode, index=None):
+        a = xp.asarray(array, dtype=dtype)
+        result = getattr(xp, 'linalg').qr(a, mode=mode)
+        if type(result) == tuple:
+            return result[index]
+        else:
+            return result
+
+    def test_r_mode(self):
+        self.check_mode(numpy.random.randn(2, 3), mode='r')
+        self.check_mode(numpy.random.randn(3, 3), mode='r')
+        self.check_mode(numpy.random.randn(4, 2), mode='r')
+
+    def test_raw_mode(self):
+        self.check_mode(numpy.random.randn(2, 4), mode='raw', index=0)
+        self.check_mode(numpy.random.randn(2, 4), mode='raw', index=1)
+        self.check_mode(numpy.random.randn(3, 3), mode='raw', index=0)
+        self.check_mode(numpy.random.randn(3, 3), mode='raw', index=1)
+        self.check_mode(numpy.random.randn(4, 3), mode='raw', index=0)
+        self.check_mode(numpy.random.randn(4, 3), mode='raw', index=1)
+
+    def test_reduced_mode(self):
+        self.check_mode(numpy.random.randn(2, 4), mode='reduced', index=0)
+        self.check_mode(numpy.random.randn(2, 4), mode='reduced', index=1)
+        self.check_mode(numpy.random.randn(3, 3), mode='reduced', index=0)
+        self.check_mode(numpy.random.randn(3, 3), mode='reduced', index=1)
+        #self.check_mode(numpy.random.randn(4, 3), mode='reduced', index=0)
+        #self.check_mode(numpy.random.randn(4, 3), mode='reduced', index=1)
+
+
+@testing.gpu
 class TestSVD(unittest.TestCase):
 
     _multiprocess_can_split_ = True
