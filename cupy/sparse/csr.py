@@ -42,3 +42,11 @@ class csr_matrix(object):
     @property
     def nnz(self):
         return len(self.data)
+
+    def toarray(self, order=None, out=None):
+        A = cupy.zeros((self.shape[1], self.shape[0]), 'f')
+        cusparse.scsr2dense(
+            self.handle, self.shape[0], self.shape[1], self._descr,
+            self.data.data.ptr, self.indptr.data.ptr, self.indices.data.ptr,
+            A.data.ptr, self.shape[0])
+        return A.T

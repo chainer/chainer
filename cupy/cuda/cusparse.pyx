@@ -10,6 +10,13 @@ cdef extern from "cupy_cusparse.h":
     Status cusparseSetMatType(MatDescr descr, MatrixType type)
 
 
+    # cuSPARSE Format Convrsion
+    Status cusparseScsr2dense(
+        Handle handle, int m, int n, const MatDescr descrA,
+        const float *csrSortedValA, const int *csrSortedRowPtrA,
+        const int *csrSortedColIndA, float *A, int lda)
+
+
 cdef dict STATUS = {
     0: 'CUSPARSE_STATUS_SUCCESS',
     1: 'CUSPARSE_STATUS_NOT_INITIALIZED',
@@ -68,4 +75,18 @@ cpdef setMatIndexBase(size_t descr, base):
 
 cpdef setMatType(size_t descr, typ):
     status = cusparseSetMatType(<MatDescr>descr, typ)
+    check_status(status)
+
+
+########################################
+# cuSPARSE Format Convrsion
+
+cpdef scsr2dense(
+        size_t handle, int m, int n, size_t descrA,
+        size_t csrSortedValA, size_t csrSortedRowPtrA,
+        size_t csrSortedColIndA, size_t A, int lda):
+    status = cusparseScsr2dense(
+        <Handle>handle, m, n, <MatDescr>descrA,
+        <const float *>csrSortedValA, <const int *>csrSortedRowPtrA,
+        <const int *>csrSortedColIndA, <float *>A, lda)
     check_status(status)
