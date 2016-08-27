@@ -59,6 +59,19 @@ class csr_matrix(object):
         kern(self.data[start:end], self.indices[start:end], j, answer)
         return answer[()]
 
+    def tocoo(self, copy=False):
+        m = self.shape[0]
+        nnz = self.nnz
+        row = cupy.empty(nnz, 'i')
+        cusparse.xcsr2coo(
+            self.handle, self.indptr.data.ptr, nnz, m, row.data.ptr,
+            cusparse.CUSPARSE_INDEX_BASE_ZERO)
+        return cupy.sparse.coo.coo_matrix(
+            (self.data, (row, self.indices)), shape=self.shape)
+
+    def tocsr(self, copy=False):
+        return self
+
     def toarray(self, order=None, out=None):
         A = cupy.zeros((self.shape[1], self.shape[0]), 'f')
         cusparse.scsr2dense(

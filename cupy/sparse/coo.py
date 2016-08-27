@@ -51,6 +51,9 @@ class coo_matrix(object):
     def toarray(self, order=None, out=None):
         return self.tocsr().toarray()
 
+    def tocoo(self, copy=False):
+        return self
+
     def tocsr(self, copy=False):
         m = self.shape[0]
         indptr = cupy.empty(m + 1, 'i')
