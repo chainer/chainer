@@ -40,6 +40,10 @@ class csr_matrix(object):
         return str(self.get())
 
     @property
+    def ndim(self):
+        return 2
+
+    @property
     def nnz(self):
         return len(self.data)
 

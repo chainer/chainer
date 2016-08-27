@@ -16,6 +16,12 @@ class TestCsrMatrix(unittest.TestCase):
         indptr = cupy.array([0, 2, 3, 4], 'i')
         self.m = cupy.sparse.csr_matrix((data, indices, indptr), shape=(3, 4))
 
+    def test_shape(self):
+        self.assertEqual(self.m.shape, (3, 4))
+
+    def test_ndim(self):
+        self.assertEqual(self.m.ndim, 2)
+
     def test_nnz(self):
         self.assertEqual(self.m.nnz, 4)
 
