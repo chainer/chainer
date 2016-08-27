@@ -44,6 +44,11 @@ class TestCsrMatrixScipyComparison(unittest.TestCase):
         return sp.csr_matrix((data, indices, indptr), shape=(3, 4))
 
     @testing.scipy_cupy_allclose(accept_error=False)
+    def test_toarray(self, xp, sp):
+        m = self.make(xp, sp)
+        return m.toarray()
+
+    @testing.scipy_cupy_allclose(accept_error=False)
     def test_dot(self, xp, sp):
         m = self.make(xp, sp)
         x = xp.arange(4).astype('f')
