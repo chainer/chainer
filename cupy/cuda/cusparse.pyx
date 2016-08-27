@@ -51,6 +51,10 @@ cdef extern from "cupy_cusparse.h":
 
 
     # cuSPARSE Format Convrsion
+    Status cusparseXcoo2csr(
+        Handle handle, const int *cooRowInd, int nnz, int m, int *csrRowPtr,
+        IndexBase idxBase)
+
     Status cusparseScsr2dense(
         Handle handle, int m, int n, const MatDescr descrA,
         const float *csrSortedValA, const int *csrSortedRowPtrA,
@@ -208,6 +212,15 @@ cpdef scsrgemm(
 
 ########################################
 # cuSPARSE Format Convrsion
+
+cpdef xcoo2csr(
+        size_t handle, size_t cooRowInd, int nnz, int m, size_t csrRowPtr,
+        int idxBase):
+    status = cusparseXcoo2csr(
+        <Handle>handle, <const int *>cooRowInd, nnz, m, <int *>csrRowPtr,
+        <IndexBase>idxBase)
+    check_status(status)
+
 
 cpdef scsr2dense(
         size_t handle, int m, int n, size_t descrA,

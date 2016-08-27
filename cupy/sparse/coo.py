@@ -47,3 +47,15 @@ class coo_matrix(object):
 
     def __str__(self):
         return str(self.get())
+
+    def toarray(self, order=None, out=None):
+        return self.tocsr().toarray()
+
+    def tocsr(self, copy=False):
+        m = self.shape[0]
+        indptr = cupy.empty(m + 1, 'i')
+        cusparse.xcoo2csr(
+            self._handle, self.row.data.ptr, self.nnz, m,
+            indptr.data.ptr, cusparse.CUSPARSE_INDEX_BASE_ZERO)
+        return cupy.sparse.csr.csr_matrix(
+            (self.data, self.col, indptr), shape=self.shape)
