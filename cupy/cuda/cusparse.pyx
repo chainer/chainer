@@ -8,6 +8,7 @@ cdef extern from "cupy_cusparse.h":
     Status cusparseDestroy(Handle handle)
     Status cusparseSetMatIndexBase(MatDescr descr, IndexBase base)
     Status cusparseSetMatType(MatDescr descr, MatrixType type)
+    Status cusparseSetPointerMode(Handle handle, PointerMode mode)
 
 
     # cuSPARSE Level2 Function
@@ -16,6 +17,37 @@ cdef extern from "cupy_cusparse.h":
         const float *alpha, MatDescr descrA, const float *csrSortedValA,
         const int *csrSortedRowPtrA, const int *csrSortedColIndA,
         const float *x, const float *beta, float *y)
+
+
+    # cuSPARSE Extra Function
+    Status cusparseXcsrgeamNnz(
+        Handle handle, int m, int n, const MatDescr descrA, int nnzA,
+        const int *csrRowPtrA, const int *csrColIndA, const MatDescr descrB,
+        int nnzB, const int *csrRowPtrB, const int *csrColIndB,
+        const MatDescr descrC, int *csrRowPtrC, int *nnzTotalDevHostPtr)
+
+    Status cusparseScsrgeam(
+        Handle handle, int m, int n, const float *alpha, const MatDescr descrA,
+        int nnzA, const float *csrValA, const int *csrRowPtrA,
+        const int *csrColIndA, const float *beta, const MatDescr descrB,
+        int nnzB, const float *csrValB, const int *csrRowPtrB,
+        const int *csrColIndB, const MatDescr descrC, float *csrValC,
+        int *csrRowPtrC, int *csrColIndC)
+
+    Status cusparseXcsrgemmNnz(
+        Handle handle, Operation transA, Operation transB, int m, int n, int k,
+        const MatDescr descrA, const int nnzA, const int *csrRowPtrA,
+        const int *csrColIndA, const MatDescr descrB, const int nnzB,
+        const int *csrRowPtrB, const int *csrColIndB,
+        const MatDescr descrC, int *csrRowPtrC, int *nnzTotalDevHostPtr)
+
+    Status cusparseScsrgemm(
+        Handle handle, Operation transA, Operation transB, int m, int n, int k,
+        const MatDescr descrA, const int nnzA, const float *csrValA,
+        const int *csrRowPtrA, const int *csrColIndA, const MatDescr descrB,
+        const int nnzB, const float *csrValB, const int *csrRowPtrB,
+        const int *csrColIndB, const MatDescr descrC, float *csrValC,
+        const int *csrRowPtrC, int *csrColIndC)
 
 
     # cuSPARSE Format Convrsion
@@ -86,6 +118,11 @@ cpdef setMatType(size_t descr, typ):
     check_status(status)
 
 
+cpdef setPointerMode(size_t handle, int mode):
+    status = cusparseSetPointerMode(<Handle>handle, <PointerMode>mode)
+    check_status(status)
+
+
 ########################################
 # cuSPARSE Level2 Function
 
@@ -99,6 +136,73 @@ cpdef scsrmv(
         <const float *>alpha, <MatDescr>descrA, <const float *>csrSortedValA,
         <const int *>csrSortedRowPtrA, <const int *>csrSortedColIndA,
         <const float *>x, <const float *>beta, <float *>y)
+    check_status(status)
+
+
+########################################
+# cuSPARSE Extra Function
+
+cpdef xcsrgeamNnz(
+        size_t handle, int m, int n, size_t descrA, int nnzA,
+        size_t csrRowPtrA, size_t csrColIndA, size_t descrB,
+        int nnzB, size_t csrRowPtrB, size_t csrColIndB,
+        size_t descrC, size_t csrRowPtrC, size_t nnzTotalDevHostPtr):
+    status = cusparseXcsrgeamNnz(
+        <Handle>handle, m, n, <const MatDescr>descrA, nnzA,
+        <const int *>csrRowPtrA, <const int *>csrColIndA,
+        <const MatDescr>descrB, nnzB, <const int *>csrRowPtrB,
+        <const int *>csrColIndB, <const MatDescr>descrC, <int *>csrRowPtrC,
+        <int *>nnzTotalDevHostPtr)
+    check_status(status)
+
+cpdef scsrgeam(
+        size_t handle, int m, int n, size_t alpha, size_t descrA,
+        int nnzA, size_t csrValA, size_t csrRowPtrA,
+        size_t csrColIndA, size_t beta, size_t descrB,
+        int nnzB, size_t csrValB, size_t csrRowPtrB,
+        size_t csrColIndB, size_t descrC, size_t csrValC,
+        size_t csrRowPtrC, size_t csrColIndC):
+    status = cusparseScsrgeam(
+        <Handle>handle, m, n, <const float *>alpha,
+        <const MatDescr>descrA, nnzA, <const float *>csrValA,
+        <const int *>csrRowPtrA, <const int *>csrColIndA, <const float *>beta,
+        <const MatDescr>descrB, nnzB, <const float *>csrValB,
+        <const int *>csrRowPtrB, <const int *>csrColIndB,
+        <const MatDescr>descrC, <float *>csrValC, <int *>csrRowPtrC,
+        <int *>csrColIndC)
+    check_status(status)
+
+
+cpdef xcsrgemmNnz(
+        size_t handle, int transA, int transB, int m, int n, int k,
+        size_t descrA, int nnzA, size_t csrRowPtrA,
+        size_t csrColIndA, size_t descrB, int nnzB,
+        size_t csrRowPtrB, size_t csrColIndB,
+        size_t descrC, size_t csrRowPtrC, size_t nnzTotalDevHostPtr):
+    status = cusparseXcsrgemmNnz(
+        <Handle>handle, <Operation>transA, <Operation>transB, m, n, k,
+        <const MatDescr>descrA, nnzA, <const int *>csrRowPtrA,
+        <const int *>csrColIndA, <const MatDescr>descrB, nnzB,
+        <const int *>csrRowPtrB, <const int *>csrColIndB,
+        <const MatDescr>descrC, <int *>csrRowPtrC, <int *>nnzTotalDevHostPtr)
+    check_status(status)
+
+
+cpdef scsrgemm(
+        size_t handle, int transA, int transB, int m, int n, int k,
+        size_t descrA, const int nnzA, size_t csrValA,
+        size_t csrRowPtrA, size_t csrColIndA, size_t descrB,
+        const int nnzB, size_t csrValB, size_t csrRowPtrB,
+        size_t csrColIndB, size_t descrC, size_t csrValC,
+        size_t csrRowPtrC, size_t csrColIndC):
+    status = cusparseScsrgemm(
+        <Handle>handle, <Operation>transA, <Operation>transB, m, n, k,
+        <const MatDescr>descrA, nnzA, <const float *>csrValA,
+        <const int *>csrRowPtrA, <const int *>csrColIndA,
+        <const MatDescr>descrB, nnzB, <const float *>csrValB,
+        <const int *>csrRowPtrB, <const int *>csrColIndB,
+        <const MatDescr>descrC, <float *>csrValC,
+        <const int *>csrRowPtrC, <int *>csrColIndC)
     check_status(status)
 
 

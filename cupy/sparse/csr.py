@@ -62,3 +62,65 @@ class csr_matrix(object):
             x.data.ptr, beta.data, y.data.ptr)
 
         return y
+
+    def __add__(self, x):
+        assert self.shape == x.shape
+
+        m, n = self.shape
+        nnz = numpy.empty((), 'i')
+        cusparse.setPointerMode(
+            self.handle, cusparse.CUSPARSE_POINTER_MODE_HOST)
+
+        c_descr = cusparse.createMatDescr()
+        c_indptr = cupy.empty(m + 1, 'i')
+
+        cusparse.xcsrgeamNnz(
+            self.handle, m, n,
+            self._descr, self.nnz, self.indptr.data.ptr, self.indices.data.ptr,
+            x._descr, x.nnz, x.indptr.data.ptr, x.indices.data.ptr,
+            c_descr, c_indptr.data.ptr, nnz.ctypes.data)
+
+        c_indices = cupy.empty(int(nnz), 'i')
+        c_data = cupy.empty(int(nnz), 'f')
+        one = numpy.array(1, 'f').ctypes
+        cusparse.scsrgeam(
+            self.handle, m, n, one.data,
+            self._descr, self.nnz, self.data.data.ptr,
+            self.indptr.data.ptr, self.indices.data.ptr,
+            one.data, x._descr, x.nnz, x.data.data.ptr, x.indptr.data.ptr,
+            x.indices.data.ptr, c_descr, c_data.data.ptr, c_indptr.data.ptr,
+            c_indices.data.ptr)
+
+        return csr_matrix((c_data, c_indices, c_indptr), shape=self.shape)
+
+    def __mul__(self, x):
+        assert self.shape[1] == x.shape[0]
+        m, n = self.shape
+        k = x.shape[1]
+
+        transA = cusparse.CUSPARSE_OPERATION_NON_TRANSPOSE
+        transB = cusparse.CUSPARSE_OPERATION_NON_TRANSPOSE
+
+        nnz = numpy.empty((), 'i')
+        cusparse.setPointerMode(
+            self.handle, cusparse.CUSPARSE_POINTER_MODE_HOST)
+
+        c_descr = cusparse.createMatDescr()
+        c_indptr = cupy.empty(m + 1, 'i')
+
+        cusparse.xcsrgemmNnz(
+            self.handle, transA, transB, m, n, k, self._descr, self.nnz,
+            self.indptr.data.ptr, self.indices.data.ptr, x._descr, x.nnz,
+            x.indptr.data.ptr, x.indices.data.ptr, c_descr,
+            c_indptr.data.ptr, nnz.ctypes.data)
+
+        c_indices = cupy.empty(int(nnz), 'i')
+        c_data = cupy.empty(int(nnz), 'f')
+        cusparse.scsrgemm(
+            self.handle, transA, transB, m, n, k, self._descr, self.nnz,
+            self.data.data.ptr, self.indptr.data.ptr, self.indices.data.ptr,
+            x._descr, x.nnz, x.data.data.ptr, x.indptr.data.ptr,
+            x.indices.data.ptr, c_descr, c_data.data.ptr, c_indptr.data.ptr,
+            c_indices.data.ptr)
+
+        return csr_matrix((c_data, c_indices, c_indptr), shape=(m, k))
