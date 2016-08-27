@@ -5,6 +5,7 @@ import scipy.sparse
 
 import cupy
 import cupy.sparse
+from cupy import testing
 
 
 class TestCsrMatrix(unittest.TestCase):
@@ -32,3 +33,18 @@ class TestCsrMatrix(unittest.TestCase):
             [0, 0, 4, 0]
         ]
         cupy.testing.assert_allclose(m, expect)
+
+
+class TestCsrMatrixScipyComparison(unittest.TestCase):
+
+    def make(self, xp, sp):
+        data = xp.array([1, 2, 3, 4], 'f')
+        indices = xp.array([0, 1, 3, 2], 'i')
+        indptr = xp.array([0, 2, 3, 4], 'i')
+        return sp.csr_matrix((data, indices, indptr), shape=(3, 4))
+
+    @testing.scipy_cupy_allclose(accept_error=False)
+    def test_dot(self, xp, sp):
+        m = self.make(xp, sp)
+        x = xp.arange(4).astype('f')
+        return m.dot(x)

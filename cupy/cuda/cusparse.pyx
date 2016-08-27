@@ -10,6 +10,14 @@ cdef extern from "cupy_cusparse.h":
     Status cusparseSetMatType(MatDescr descr, MatrixType type)
 
 
+    # cuSPARSE Level2 Function
+    Status cusparseScsrmv(
+        Handle handle, Operation transA, int m, int n, int nnz,
+        const float *alpha, MatDescr descrA, const float *csrSortedValA,
+        const int *csrSortedRowPtrA, const int *csrSortedColIndA,
+        const float *x, const float *beta, float *y)
+
+
     # cuSPARSE Format Convrsion
     Status cusparseScsr2dense(
         Handle handle, int m, int n, const MatDescr descrA,
@@ -75,6 +83,22 @@ cpdef setMatIndexBase(size_t descr, base):
 
 cpdef setMatType(size_t descr, typ):
     status = cusparseSetMatType(<MatDescr>descr, typ)
+    check_status(status)
+
+
+########################################
+# cuSPARSE Level2 Function
+
+cpdef scsrmv(
+        size_t handle, int transA, int m, int n, int nnz,
+        size_t alpha, size_t descrA, size_t csrSortedValA,
+        size_t csrSortedRowPtrA, size_t csrSortedColIndA,
+        size_t x, size_t beta, size_t y):
+    status = cusparseScsrmv(
+        <Handle>handle, <Operation>transA, m, n, nnz,
+        <const float *>alpha, <MatDescr>descrA, <const float *>csrSortedValA,
+        <const int *>csrSortedRowPtrA, <const int *>csrSortedColIndA,
+        <const float *>x, <const float *>beta, <float *>y)
     check_status(status)
 
 

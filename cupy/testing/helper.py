@@ -8,6 +8,7 @@ import traceback
 import unittest
 
 import numpy
+import scipy.sparse
 
 import cupy
 from cupy import internal
@@ -119,6 +120,43 @@ def _make_decorator(check_func, name, type_check, accept_error):
     return decorator
 
 
+def _make_sparse_decorator(
+        check_func, xp_name, sp_name, type_check, accept_error):
+    def decorator(impl):
+        @functools.wraps(impl)
+        def test_func(self, *args, **kw):
+            kw[xp_name] = cupy
+            kw[sp_name] = cupy.sparse
+            cupy_result, cupy_error, cupy_tb = _call_func(self, impl, args, kw)
+
+            kw[xp_name] = numpy
+            kw[sp_name] = scipy.sparse
+            numpy_result, numpy_error, numpy_tb = \
+                _call_func(self, impl, args, kw)
+
+            if cupy_error or numpy_error:
+                _check_cupy_numpy_error(self, cupy_error, cupy_tb,
+                                        numpy_error, numpy_tb,
+                                        accept_error=accept_error)
+                return
+
+            # Behavior of assigning a negative value to an unsigned integer
+            # variable is undefined.
+            # nVidia GPUs and Intel CPUs behave differently.
+            # To avoid this difference, we need to ignore dimensions whose
+            # values are negative.
+            if _contains_signed_and_unsigned(kw):
+                inds = _make_positive_indices(self, impl, args, kw)
+                cupy_result = cupy.asnumpy(cupy_result)[inds]
+                numpy_result = cupy.asnumpy(numpy_result)[inds]
+
+            check_func(cupy_result, numpy_result)
+            if type_check:
+                self.assertEqual(cupy_result.dtype, numpy_result.dtype)
+        return test_func
+    return decorator
+
+
 def numpy_cupy_allclose(rtol=1e-7, atol=0, err_msg='', verbose=True,
                         name='xp', type_check=True, accept_error=False):
     """Decorator that checks NumPy results and CuPy ones are close.
@@ -164,6 +202,50 @@ def numpy_cupy_allclose(rtol=1e-7, atol=0, err_msg='', verbose=True,
         array.assert_allclose(cupy_result, numpy_result,
                               rtol, atol, err_msg, verbose)
     return _make_decorator(check_func, name, type_check, accept_error)
+
+
+def scipy_cupy_allclose(rtol=1e-7, atol=0, err_msg='', verbose=True,
+                        xp_name='xp', sp_name='sp',
+                        type_check=True, accept_error=True):
+    """Decorator that checks NumPy results and CuPy ones are close.
+
+    Args:
+         rtol(float): Relative tolerance.
+         atol(float): Absolute tolerance
+         err_msg(str): The error message to be printed in case of failure.
+         verbose(bool): If ``True``, the conflicting values are
+             appended to the error message.
+         name(str): Argument name whose value is either
+             ``numpy`` or ``cupy`` module.
+         type_check(bool): If ``True``, consistency of dtype is also checked.
+         accept_error(bool): If ``True``, errors are not raised as long as
+             the errors occurred are identical between NumPy and CuPy.
+
+    Decorated test fixture is required to return the arrays whose values are
+    close between ``numpy`` case and ``cupy`` case.
+    For example, this test case checks ``numpy.zeros`` and ``cupy.zeros``
+    should return same value.
+
+    >>> from cupy import testing
+    ... @testing.gpu
+    ... class TestFoo(unittest.TestCase):
+    ...
+    ...     @testing.numpy_cupy_allclose()
+    ...     def test_foo(self, xp):
+    ...         # ...
+    ...         # Prepare data with xp
+    ...         # ...
+    ...
+    ...         xp_result = xp.zeros(10)
+    ...         return xp_result
+
+    .. seealso:: :func:`cupy.testing.assert_allclose`
+    """
+    def check_func(cupy_result, numpy_result):
+        array.assert_allclose(cupy_result, numpy_result,
+                              rtol, atol, err_msg, verbose)
+    return _make_sparse_decorator(
+        check_func, xp_name, sp_name, type_check, accept_error)
 
 
 def numpy_cupy_array_almost_equal(decimal=6, err_msg='', verbose=True,

@@ -50,3 +50,15 @@ class csr_matrix(object):
             self.data.data.ptr, self.indptr.data.ptr, self.indices.data.ptr,
             A.data.ptr, self.shape[0])
         return A.T
+
+    def dot(self, x):
+        y = cupy.zeros((self.shape[0]), 'f')
+        alpha = numpy.array(1, 'f').ctypes
+        beta = numpy.array(0, 'f').ctypes
+        cusparse.scsrmv(
+            self.handle, cusparse.CUSPARSE_OPERATION_NON_TRANSPOSE,
+            self.shape[0], self.shape[1], self.nnz, alpha.data, self._descr,
+            self.data.data.ptr, self.indptr.data.ptr, self.indices.data.ptr,
+            x.data.ptr, beta.data, y.data.ptr)
+
+        return y
