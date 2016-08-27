@@ -36,3 +36,29 @@ class TestCooMatrix(unittest.TestCase):
             [0, 0, 4, 0]
         ]
         cupy.testing.assert_allclose(m, expect)
+
+
+class TestCooMatrixScipyComparison(unittest.TestCase):
+
+    def make(self, xp, sp):
+        data = xp.array([1, 2, 3, 4], 'f')
+        row = xp.array([0, 0, 1, 2], 'i')
+        col = xp.array([0, 1, 3, 2], 'i')
+        return sp.coo_matrix((data, (row, col)), shape=(3, 4))
+
+    def make2(self, xp, sp):
+        data = xp.array([1, 2, 3, 4], 'f')
+        row = xp.array([0, 1, 1, 2], 'i')
+        col = xp.array([2, 1, 2, 2], 'i')
+        return sp.csr_matrix((data, (row, col)), shape=(3, 4))
+
+    def make3(self, xp, sp):
+        data = xp.array([1, 2, 3, 4, 5], 'f')
+        row = xp.array([0, 1, 1, 3, 3], 'i')
+        col = xp.array([0, 2, 1, 3, 4], 'i')
+        return sp.csr_matrix((data, (row, col)), shape=(4, 3))
+
+    @testing.scipy_cupy_allclose(accept_error=False)
+    def test_toarray(self, xp, sp):
+        m = self.make(xp, sp)
+        return m.toarray()
