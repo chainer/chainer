@@ -25,6 +25,11 @@ class TestCsrMatrix(unittest.TestCase):
     def test_nnz(self):
         self.assertEqual(self.m.nnz, 4)
 
+    def test_getitem(self):
+        self.assertEqual(self.m[0, 0], 1.)
+        self.assertEqual(self.m[1, 3], 3.)
+        self.assertEqual(self.m[2, 3], 0.)
+
     def test_str(self):
         self.assertEqual(str(self.m), '''  (0, 0)\t1.0
   (0, 1)\t2.0

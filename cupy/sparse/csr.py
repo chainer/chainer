@@ -47,6 +47,18 @@ class csr_matrix(object):
     def nnz(self):
         return len(self.data)
 
+    def __getitem__(self, key):
+        i, j = key
+        start = self.indptr[i]
+        end = self.indptr[i + 1]
+        answer = cupy.zeros((), 'f')
+        kern = cupy.ElementwiseKernel(
+            'T d, S ind, int32 col', 'raw T answer',
+            'if (ind == col) atomicAdd(&answer[0], d);',
+            'csr_getitem')
+        kern(self.data[start:end], self.indices[start:end], j, answer)
+        return answer[()]
+
     def toarray(self, order=None, out=None):
         A = cupy.zeros((self.shape[1], self.shape[0]), 'f')
         cusparse.scsr2dense(
