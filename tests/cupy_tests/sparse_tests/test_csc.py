@@ -50,3 +50,14 @@ class TestCscMatrixScipyComparison(unittest.TestCase):
     def test_toarray(self, xp, sp):
         m = self.make(xp, sp)
         return m.toarray()
+
+    @testing.scipy_cupy_allclose(accept_error=False)
+    def test_tocsc(self, xp, sp):
+        m = self.make(xp, sp)
+        return m.tocsc().toarray()
+
+    @testing.scipy_cupy_allclose(accept_error=False)
+    def test_tocsr(self, xp, sp):
+        m = self.make(xp, sp)
+        return m.tocsr().toarray()
+

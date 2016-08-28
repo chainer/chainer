@@ -56,3 +56,20 @@ class csc_matrix(object):
             self.data.data.ptr, self.indptr.data.ptr, self.indices.data.ptr,
             A.data.ptr, self.shape[1])
         return A
+
+    def tocsc(self, copy=False):
+        return self
+
+    def tocsr(self, copy=False):
+        m, n = self.shape
+        nnz = self.nnz
+        data = cupy.empty(nnz, 'f')
+        indptr = cupy.empty(m + 1, 'i')
+        indices = cupy.empty(nnz, 'i')
+        cusparse.scsr2csc(
+            self.handle, n, m, nnz, self.data.data.ptr,
+            self.indptr.data.ptr, self.indices.data.ptr,
+            data.data.ptr, indices.data.ptr, indptr.data.ptr,
+            cusparse.CUSPARSE_ACTION_NUMERIC,
+            cusparse.CUSPARSE_INDEX_BASE_ZERO)
+        return cupy.sparse.csr_matrix((data, indices, indptr), shape=(m, n))
