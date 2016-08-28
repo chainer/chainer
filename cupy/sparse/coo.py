@@ -7,6 +7,8 @@ from cupy.cuda import cusparse
 
 class coo_matrix(object):
 
+    format = 'coo'
+
     def __init__(self, arg1, shape=None, dtype=None, copy=False):
         if len(arg1) == 2:
             data, (row, col) = arg1
