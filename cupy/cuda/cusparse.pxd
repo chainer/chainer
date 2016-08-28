@@ -12,10 +12,15 @@ cdef extern from *:
 
     ctypedef int PointerMode 'cusparsePointerMode_t'
 
+    ctypedef int Action 'cusparseAction_t'
+
 
 cpdef enum:
     CUSPARSE_POINTER_MODE_HOST = 0
     CUSPARSE_POINTER_MODE_DEVICE = 1
+
+    CUSPARSE_ACTION_SYMBOLIC = 0
+    CUSPARSE_ACTION_NUMERIC = 1
 
     CUSPARSE_INDEX_BASE_ZERO = 0
     CUSPARSE_INDEX_BASE_ONE = 1

@@ -77,6 +77,11 @@ class TestCsrMatrixScipyComparison(unittest.TestCase):
         return m.tocoo().toarray()
 
     @testing.scipy_cupy_allclose(accept_error=False)
+    def test_tocsc(self, xp, sp):
+        m = self.make(xp, sp)
+        return m.tocsc().toarray()
+
+    @testing.scipy_cupy_allclose(accept_error=False)
     def test_dot(self, xp, sp):
         m = self.make(xp, sp)
         x = xp.arange(4).astype('f')

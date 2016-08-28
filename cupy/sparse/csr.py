@@ -7,6 +7,8 @@ from cupy.cuda import cusparse
 
 class csr_matrix(object):
 
+    format = 'csr'
+
     def __init__(self, arg1, shape=None, dtype=None, copy=False):
         if len(arg1) == 3:
             data, indices, indptr = arg1
@@ -71,6 +73,20 @@ class csr_matrix(object):
 
     def tocsr(self, copy=False):
         return self
+
+    def tocsc(self, copy=False):
+        m, n = self.shape
+        nnz = self.nnz
+        data = cupy.empty(nnz, 'f')
+        indptr = cupy.empty(n + 1, 'i')
+        indices = cupy.empty(nnz, 'i')
+        cusparse.scsr2csc(
+            self.handle, m, n, nnz, self.data.data.ptr,
+            self.indptr.data.ptr, self.indices.data.ptr,
+            data.data.ptr, indices.data.ptr, indptr.data.ptr,
+            cusparse.CUSPARSE_ACTION_NUMERIC,
+            cusparse.CUSPARSE_INDEX_BASE_ZERO)
+        return cupy.sparse.csc_matrix((data, indices, indptr))
 
     def toarray(self, order=None, out=None):
         A = cupy.zeros((self.shape[1], self.shape[0]), 'f')

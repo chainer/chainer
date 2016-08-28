@@ -59,6 +59,11 @@ cdef extern from "cupy_cusparse.h":
         Handle handle, const int *csrRowPtr, int nnz, int m, int *cooRowInd,
         IndexBase idxBase)
 
+    Status cusparseScsr2csc(
+        Handle handle, int m, int n, int nnz, const float *csrVal,
+        const int *csrRowPtr, const int *csrColInd, float *cscVal,
+        int *cscRowInd, int *cscColPtr, Action copyValues, IndexBase idxBase)
+
     Status cusparseScsr2dense(
         Handle handle, int m, int n, const MatDescr descrA,
         const float *csrSortedValA, const int *csrSortedRowPtrA,
@@ -231,6 +236,18 @@ cpdef xcsr2coo(
         int idxBase):
     status = cusparseXcsr2coo(
         <Handle>handle, <const int *>csrRowPtr, nnz, m, <int *>cooRowInd,
+        <IndexBase>idxBase)
+    check_status(status)
+
+
+cpdef scsr2csc(
+        size_t handle, int m, int n, int nnz, size_t csrVal,
+        size_t csrRowPtr, size_t csrColInd, size_t cscVal,
+        size_t cscRowInd, size_t cscColPtr, int copyValues, int idxBase):
+    status = cusparseScsr2csc(
+        <Handle>handle, m, n, nnz, <const float *>csrVal,
+        <const int *>csrRowPtr, <const int *>csrColInd, <float *>cscVal,
+        <int *>cscRowInd, <int *>cscColPtr, <Action>copyValues,
         <IndexBase>idxBase)
     check_status(status)
 
