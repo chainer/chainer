@@ -1,5 +1,6 @@
 from __future__ import division
 import multiprocessing
+import signal
 
 import numpy
 import six
@@ -156,6 +157,7 @@ class MultiprocessIterator(iterator.Iterator):
 
 
 def _worker(dataset, in_queue, out_queue):
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
     while True:
         index = in_queue.get()
         if index < 0:
