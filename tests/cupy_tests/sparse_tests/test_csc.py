@@ -61,3 +61,7 @@ class TestCscMatrixScipyComparison(unittest.TestCase):
         m = self.make(xp, sp)
         return m.tocsr().toarray()
 
+    @testing.scipy_cupy_allclose(accept_error=False)
+    def test_transpose(self, xp, sp):
+        m = self.make(xp, sp)
+        return m.transpose().toarray()

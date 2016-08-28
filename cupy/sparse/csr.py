@@ -169,3 +169,10 @@ class csr_matrix(object):
             c_indices.data.ptr)
 
         return csr_matrix((c_data, c_indices, c_indptr), shape=(m, k))
+
+    def transpose(self, axes=None, copy=False):
+        from cupy.sparse import csc
+
+        shape = self.shape[1], self.shape[0]
+        return csc.csc_matrix(
+            (self.data, self.indices, self.indptr), shape=shape)

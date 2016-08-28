@@ -73,3 +73,10 @@ class csc_matrix(object):
             cusparse.CUSPARSE_ACTION_NUMERIC,
             cusparse.CUSPARSE_INDEX_BASE_ZERO)
         return cupy.sparse.csr_matrix((data, indices, indptr), shape=(m, n))
+
+    def transpose(self, axes=None, copy=False):
+        from cupy.sparse import csr
+
+        shape = self.shape[1], self.shape[0]
+        return csr.csr_matrix(
+            (self.data, self.indices, self.indptr), shape=shape)
