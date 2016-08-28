@@ -86,7 +86,7 @@ class csr_matrix(object):
             data.data.ptr, indices.data.ptr, indptr.data.ptr,
             cusparse.CUSPARSE_ACTION_NUMERIC,
             cusparse.CUSPARSE_INDEX_BASE_ZERO)
-        return cupy.sparse.csc_matrix((data, indices, indptr))
+        return cupy.sparse.csc_matrix((data, indices, indptr), shape=(m, n))
 
     def toarray(self, order=None, out=None):
         A = cupy.zeros((self.shape[1], self.shape[0]), 'f')
