@@ -132,7 +132,8 @@ def main():
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), args.out)
 
     # Weight decay
-    trainer.extend(extensions.ExponentialShift('lr', 0.97), trigger=(1, 'epoch'))
+    trainer.extend(extensions.ExponentialShift('lr', 0.97),
+                   trigger=(1, 'epoch'))
 
     val_interval = (10 if args.test else 100000), 'iteration'
     log_interval = (10 if args.test else 1000), 'iteration'
