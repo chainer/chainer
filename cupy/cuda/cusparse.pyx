@@ -78,6 +78,14 @@ cdef extern from "cupy_cusparse.h":
     Status cusparseCreateIdentityPermutation(
         Handle handle, int n, int *p)
 
+    Status cusparseXcoosort_bufferSizeExt(
+        Handle handle, int m, int n, int nnz, const int *cooRows,
+        const int *cooCols, size_t *pBufferSizeInBytes)
+
+    Status cusparseXcoosortByRow(
+        Handle handle, int m, int n, int nnz, int *cooRows, int *cooCols,
+        int *P, void *pBuffer)
+
     Status cusparseXcsrsort_bufferSizeExt(
         Handle handle, int m, int n, int nnz, const int *csrRowPtr,
         const int *csrColInd, size_t *pBufferSizeInBytes)
@@ -304,6 +312,26 @@ cpdef createIdentityPermutation(
         size_t handle, int n, size_t p):
     status = cusparseCreateIdentityPermutation(
         <Handle>handle, n, <int *>p)
+    check_status(status)
+
+
+cpdef size_t xcoosort_bufferSizeExt(
+        size_t handle, int m, int n, int nnz, size_t cooRows,
+        size_t cooCols):
+    cdef size_t bufferSizeInBytes
+    status = cusparseXcoosort_bufferSizeExt(
+        <Handle>handle, m, n, nnz, <const int *>cooRows,
+        <const int *>cooCols, &bufferSizeInBytes)
+    check_status(status)
+    return bufferSizeInBytes
+
+
+cpdef xcoosortByRow(
+        size_t handle, int m, int n, int nnz, size_t cooRows, size_t cooCols,
+        size_t P, size_t pBuffer):
+    status = cusparseXcoosortByRow(
+        <Handle>handle, m, n, nnz, <int *>cooRows, <int *>cooCols,
+        <int *>P, <void *>pBuffer)
     check_status(status)
 
 
