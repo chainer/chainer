@@ -99,3 +99,7 @@ class coo_matrix(object):
         cusparse.sgthr(
             self._handle, nnz, self.data.data.ptr, self.data.data.ptr,
             P.data.ptr, cusparse.CUSPARSE_INDEX_BASE_ZERO)
+
+    def transpose(self, axes=None, copy=False):
+        shape = self.shape[1], self.shape[0]
+        return coo_matrix((self.data, (self.col, self.row)), shape=shape)
