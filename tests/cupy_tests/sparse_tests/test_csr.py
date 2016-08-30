@@ -66,6 +66,12 @@ class TestCsrMatrixScipyComparison(unittest.TestCase):
         indptr = xp.array([0, 1, 3, 3, 5], 'i')
         return sp.csr_matrix((data, indices, indptr), shape=(4, 3))
 
+    def make_unordered(self, xp, sp):
+        data = xp.array([1, 2, 3, 4], 'f')
+        indices = xp.array([1, 0, 1, 2], 'i')
+        indptr = xp.array([0, 0, 0, 2, 4], 'i')
+        return sp.csc_matrix((data, indices, indptr), shape=(3, 4))
+
     @testing.scipy_cupy_allclose(accept_error=False)
     def test_toarray(self, xp, sp):
         m = self.make(xp, sp)
@@ -98,6 +104,12 @@ class TestCsrMatrixScipyComparison(unittest.TestCase):
         m = self.make(xp, sp)
         n = self.make3(xp, sp)
         return (m * n).toarray()
+
+    @testing.scipy_cupy_allclose(accept_error=False)
+    def test_sort_indices(self, xp, sp):
+        m = self.make_unordered(xp, sp)
+        m.sort_indices()
+        return m.toarray()
 
     @testing.scipy_cupy_allclose(accept_error=False)
     def test_transpose(self, xp, sp):

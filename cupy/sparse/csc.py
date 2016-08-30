@@ -74,6 +74,22 @@ class csc_matrix(object):
             cusparse.CUSPARSE_INDEX_BASE_ZERO)
         return cupy.sparse.csr_matrix((data, indices, indptr), shape=(m, n))
 
+    def sort_indices(self):
+        m, n = self.shape
+        nnz = self.nnz
+
+        buffer_size = cusparse.xcscsort_bufferSizeExt(
+            self.handle, m, n, nnz, self.indptr.data.ptr, self.indices.data.ptr)
+        buf = cupy.empty(buffer_size, 'b')
+        P = cupy.empty(nnz, 'i')
+        cusparse.createIdentityPermutation(self.handle, nnz, P.data.ptr)
+        cusparse.xcscsort(
+            self.handle, m, n, nnz, self._descr, self.indptr.data.ptr,
+            self.indices.data.ptr, P.data.ptr, buf.data.ptr)
+        cusparse.sgthr(
+            self.handle, nnz, self.data.data.ptr, self.data.data.ptr,
+            P.data.ptr, cusparse.CUSPARSE_INDEX_BASE_ZERO)
+
     def transpose(self, axes=None, copy=False):
         from cupy.sparse import csr
 

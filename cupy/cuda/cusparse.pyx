@@ -11,6 +11,12 @@ cdef extern from "cupy_cusparse.h":
     Status cusparseSetPointerMode(Handle handle, PointerMode mode)
 
 
+    # cuSPARSE Level1 Function
+    Status cusparseSgthr(
+        Handle handle, int nnz, const float *y, float *xVal, const int *xInd,
+        IndexBase idxBase)
+
+
     # cuSPARSE Level2 Function
     Status cusparseScsrmv(
         Handle handle, Operation transA, int m, int n, int nnz,
@@ -68,6 +74,25 @@ cdef extern from "cupy_cusparse.h":
         Handle handle, int m, int n, const MatDescr descrA,
         const float *csrSortedValA, const int *csrSortedRowPtrA,
         const int *csrSortedColIndA, float *A, int lda)
+
+    Status cusparseCreateIdentityPermutation(
+        Handle handle, int n, int *p)
+
+    Status cusparseXcsrsort_bufferSizeExt(
+        Handle handle, int m, int n, int nnz, const int *csrRowPtr,
+        const int *csrColInd, size_t *pBufferSizeInBytes)
+
+    Status cusparseXcsrsort(
+        Handle handle, int m, int n, int nnz, const MatDescr descrA,
+        const int *csrRowPtr, int *csrColInd, int *P, void *pBuffer)
+
+    Status cusparseXcscsort_bufferSizeExt(
+        Handle handle, int m, int n, int nnz, const int *cscColPtr,
+        const int *cscRowInd, size_t *pBufferSizeInBytes)
+
+    Status cusparseXcscsort(
+        Handle handle, int m, int n, int nnz, const MatDescr descrA,
+        const int *cscColPtr, int *cscRowInd, int *P, void *pBuffer)
 
 
 cdef dict STATUS = {
@@ -133,6 +158,18 @@ cpdef setMatType(size_t descr, typ):
 
 cpdef setPointerMode(size_t handle, int mode):
     status = cusparseSetPointerMode(<Handle>handle, <PointerMode>mode)
+    check_status(status)
+
+
+########################################
+# cuSPARSE Level1 Function
+
+cpdef sgthr(
+    size_t handle, int nnz, size_t y, size_t xVal, size_t xInd,
+    int idxBase):
+    status = cusparseSgthr(
+        <Handle>handle, nnz, <const float *>y, <float *>xVal, <const int *>xInd,
+        <IndexBase>idxBase)
     check_status(status)
 
 
@@ -260,4 +297,52 @@ cpdef scsr2dense(
         <Handle>handle, m, n, <MatDescr>descrA,
         <const float *>csrSortedValA, <const int *>csrSortedRowPtrA,
         <const int *>csrSortedColIndA, <float *>A, lda)
+    check_status(status)
+
+
+cpdef createIdentityPermutation(
+        size_t handle, int n, size_t p):
+    status = cusparseCreateIdentityPermutation(
+        <Handle>handle, n, <int *>p)
+    check_status(status)
+
+
+cpdef size_t xcsrsort_bufferSizeExt(
+        size_t handle, int m, int n, int nnz, size_t csrRowPtr,
+        size_t csrColInd):
+    cdef size_t bufferSizeInBytes
+    status = cusparseXcsrsort_bufferSizeExt(
+        <Handle>handle, m, n, nnz, <const int *>csrRowPtr,
+        <const int *>csrColInd, &bufferSizeInBytes)
+    check_status(status)
+    return bufferSizeInBytes
+
+
+cpdef xcsrsort(
+        size_t handle, int m, int n, int nnz, size_t descrA,
+        size_t csrRowPtr, size_t csrColInd, size_t P, size_t pBuffer):
+    status = cusparseXcsrsort(
+        <Handle>handle, m, n, nnz, <const MatDescr>descrA,
+        <const int *>csrRowPtr, <int *>csrColInd, <int *>P, <void *>pBuffer)
+    check_status(status)
+
+
+
+cpdef size_t xcscsort_bufferSizeExt(
+        size_t handle, int m, int n, int nnz, size_t cscColPtr,
+        size_t cscRowInd):
+    cdef size_t bufferSizeInBytes
+    status = cusparseXcscsort_bufferSizeExt(
+        <Handle>handle, m, n, nnz, <const int *>cscColPtr,
+        <const int *>cscRowInd, &bufferSizeInBytes)
+    check_status(status)
+    return bufferSizeInBytes
+
+
+cpdef xcscsort(
+        size_t handle, int m, int n, int nnz, size_t descrA,
+        size_t cscColPtr, size_t cscRowInd, size_t P, size_t pBuffer):
+    status = cusparseXcscsort(
+        <Handle>handle, m, n, nnz, <const MatDescr>descrA,
+        <const int *>cscColPtr, <int *>cscRowInd, <int *>P, <void *>pBuffer)
     check_status(status)
