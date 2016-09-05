@@ -50,7 +50,7 @@ class UnaryFunctionsTestBase(unittest.TestCase):
     'shape': [(3, 2), ()],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
-class TestSqrt(UnaryFunctionsTestBase):
+class TestSquare(UnaryFunctionsTestBase):
 
     def make_data(self):
         x = numpy.random.uniform(0.1, 1, self.shape).astype(self.dtype)
