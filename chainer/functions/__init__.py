@@ -76,6 +76,7 @@ from chainer.functions.math import maximum
 from chainer.functions.math import minimum
 from chainer.functions.math import minmax
 from chainer.functions.math import scale
+from chainer.functions.math import square
 from chainer.functions.math import sqrt
 from chainer.functions.math import sum
 from chainer.functions.math import trigonometric
@@ -271,6 +272,8 @@ Sin = trigonometric.Sin
 sin = trigonometric.sin
 Sinh = hyperbolic.Sinh
 sinh = hyperbolic.sinh
+Square = square.Square
+square = square.square
 Sqrt = sqrt.Sqrt
 sqrt = sqrt.sqrt
 Sum = sum.Sum
