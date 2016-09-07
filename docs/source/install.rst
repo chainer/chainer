@@ -136,7 +136,7 @@ The destination directories depend on your environment.
 Install Chainer for developers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Chainer uses Cython (>=0.23).
+Chainer uses Cython (>=0.24).
 Developers need to use Cython to regenerate C++ sources from ``pyx`` files.
 We recommend to use ``pip`` with ``-e`` option for editable mode::
 

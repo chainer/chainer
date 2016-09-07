@@ -17,7 +17,7 @@ from install import utils
 
 
 dummy_extension = setuptools.Extension('chainer', ['chainer.c'])
-cython_version = '0.23.0'
+cython_version = '0.24.0'
 MODULES = [
     {
         'name': 'cuda',
