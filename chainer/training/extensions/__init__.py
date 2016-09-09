@@ -16,6 +16,7 @@ LinearShift = linear_shift.LinearShift
 LogReport = log_report.LogReport
 snapshot = _snapshot.snapshot
 snapshot_object = _snapshot.snapshot_object
+snapshot_json = _snapshot.snapshot_json
 PrintReport = print_report.PrintReport
 ProgressBar = progress_bar.ProgressBar
 observe_value = value_observation.observe_value

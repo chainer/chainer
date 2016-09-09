@@ -28,6 +28,21 @@ class TestSnapshotObject(unittest.TestCase):
     {'trigger': trigger.IntervalTrigger(5, 'epoch')},
     {'trigger': trigger.IntervalTrigger(20, 'iteration')},
 )
+class TestSnapshotJson(unittest.TestCase):
+
+    def test_trigger(self):
+        target = mock.MagicMock()
+        snapshot_json = extensions.snapshot_json(target, 'myfile.dat',
+                                                 trigger=self.trigger)
+        self.assertEqual(snapshot_json.trigger, self.trigger)
+
+
+@testing.parameterize(
+    {'trigger': ('epoch', 2)},
+    {'trigger': ('iteration', 10)},
+    {'trigger': trigger.IntervalTrigger(5, 'epoch')},
+    {'trigger': trigger.IntervalTrigger(20, 'iteration')},
+)
 class TestSnapshot(unittest.TestCase):
 
     def test_trigger(self):
