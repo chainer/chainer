@@ -74,7 +74,8 @@ def snapshot_json(target, filename, trigger=(1, 'epoch')):
         def save_json(filename_json, obj):
             json.dump(obj, open(filename_json, 'w'), sort_keys=True, indent=4)
 
-        _snapshot_object(trainer, target, filename.format(trainer), savefun=save_json)
+        _snapshot_object(trainer, target, filename.format(trainer),
+                         savefun=save_json)
 
     return snapshot_object
 
