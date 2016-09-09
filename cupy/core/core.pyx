@@ -1593,7 +1593,7 @@ __device__ min_max_st<T> my_argmax_float(
 '''
 
 
-cdef _amin = create_reduction_func(
+_amin = create_reduction_func(
     'cupy_min',
     ('?->?', 'b->b', 'B->B', 'h->h', 'H->H', 'i->i', 'I->I', 'l->l', 'L->L',
      'q->q', 'Q->Q',
@@ -1605,7 +1605,7 @@ cdef _amin = create_reduction_func(
     None, _min_max_preamble)
 
 
-cdef _amax = create_reduction_func(
+_amax = create_reduction_func(
     'cupy_max',
     ('?->?', 'b->b', 'B->B', 'h->h', 'H->H', 'i->i', 'I->I', 'l->l', 'L->L',
      'q->q', 'Q->Q',
@@ -2749,7 +2749,7 @@ not_equal = create_comparison(
     ''')
 
 
-cdef _all = create_reduction_func(
+_all = create_reduction_func(
     'cupy_all',
     ('?->?', 'B->?', 'h->?', 'H->?', 'i->?', 'I->?', 'l->?', 'L->?',
      'q->?', 'Q->?', 'e->?', 'f->?', 'd->?'),
@@ -2757,7 +2757,7 @@ cdef _all = create_reduction_func(
     'true', '')
 
 
-cdef _any = create_reduction_func(
+_any = create_reduction_func(
     'cupy_any',
     ('?->?', 'B->?', 'h->?', 'H->?', 'i->?', 'I->?', 'l->?', 'L->?',
      'q->?', 'Q->?', 'e->?', 'f->?', 'd->?'),
@@ -2769,7 +2769,7 @@ cdef _any = create_reduction_func(
 # Mathematical functions
 # -----------------------------------------------------------------------------
 
-cdef _sum = create_reduction_func(
+_sum = create_reduction_func(
     'cupy_sum',
     ('?->l', 'B->L', 'h->l', 'H->L', 'i->l', 'I->L', 'l->l', 'L->L',
      'q->q', 'Q->Q',
@@ -2778,7 +2778,7 @@ cdef _sum = create_reduction_func(
     ('in0', 'a + b', 'out0 = a', None), 0)
 
 
-cdef _prod = create_reduction_func(
+_prod = create_reduction_func(
     'cupy_prod',
     ['?->l', 'B->L', 'h->l', 'H->L', 'i->l', 'I->L', 'l->l', 'L->L',
      'q->q', 'Q->Q',
@@ -2933,7 +2933,7 @@ sqrt = create_ufunc(
     'out0 = sqrt(in0)')
 
 
-cdef _clip = create_ufunc(
+_clip = create_ufunc(
     'cupy_clip',
     ('???->?', 'bbb->b', 'BBB->B', 'hhh->h', 'HHH->H', 'iii->i', 'III->I',
      'lll->l', 'LLL->L', 'qqq->q', 'QQQ->Q', 'eee->e', 'fff->f', 'ddd->d'),
