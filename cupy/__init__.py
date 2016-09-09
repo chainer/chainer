@@ -16,7 +16,7 @@ except ImportError:
     raise six.reraise(RuntimeError, RuntimeError(msg), sys.exc_info()[2])
 
 
-from cupy import binary
+from cupy.core import fusion
 from cupy import creation
 from cupy import indexing
 from cupy import io
@@ -153,12 +153,12 @@ roll = manipulation.rearrange.roll
 # -----------------------------------------------------------------------------
 # Binary operations
 # -----------------------------------------------------------------------------
-bitwise_and = binary.elementwise.bitwise_and
-bitwise_or = binary.elementwise.bitwise_or
-bitwise_xor = binary.elementwise.bitwise_xor
-invert = binary.elementwise.invert
-left_shift = binary.elementwise.left_shift
-right_shift = binary.elementwise.right_shift
+bitwise_and = fusion.bitwise_and
+bitwise_or = fusion.bitwise_or
+bitwise_xor = fusion.bitwise_xor
+invert = fusion.invert
+left_shift = fusion.left_shift
+right_shift = fusion.right_shift
 
 binary_repr = numpy.binary_repr
 
@@ -234,23 +234,23 @@ trace = linalg.norm.trace
 # -----------------------------------------------------------------------------
 # Logic functions
 # -----------------------------------------------------------------------------
-isfinite = logic.content.isfinite
-isinf = logic.content.isinf
-isnan = logic.content.isnan
+isfinite = fusion.isfinite
+isinf = fusion.isinf
+isnan = fusion.isnan
 
 isscalar = numpy.isscalar
 
-logical_and = logic.ops.logical_and
-logical_or = logic.ops.logical_or
-logical_not = logic.ops.logical_not
-logical_xor = logic.ops.logical_xor
+logical_and = fusion.logical_and
+logical_or = fusion.logical_or
+logical_not = fusion.logical_not
+logical_xor = fusion.logical_xor
 
-greater = logic.comparison.greater
-greater_equal = logic.comparison.greater_equal
-less = logic.comparison.less
-less_equal = logic.comparison.less_equal
-equal = logic.comparison.equal
-not_equal = logic.comparison.not_equal
+greater = fusion.greater
+greater_equal = fusion.greater_equal
+less = fusion.less
+less_equal = fusion.less_equal
+equal = fusion.equal
+not_equal = fusion.not_equal
 
 all = logic.truth.all
 any = logic.truth.any
@@ -258,74 +258,74 @@ any = logic.truth.any
 # -----------------------------------------------------------------------------
 # Mathematical functions
 # -----------------------------------------------------------------------------
-sin = math.trigonometric.sin
-cos = math.trigonometric.cos
-tan = math.trigonometric.tan
-arcsin = math.trigonometric.arcsin
-arccos = math.trigonometric.arccos
-arctan = math.trigonometric.arctan
-hypot = math.trigonometric.hypot
-arctan2 = math.trigonometric.arctan2
-deg2rad = math.trigonometric.deg2rad
-rad2deg = math.trigonometric.rad2deg
-degrees = math.trigonometric.degrees
-radians = math.trigonometric.radians
+sin = fusion.sin
+cos = fusion.cos
+tan = fusion.tan
+arcsin = fusion.arcsin
+arccos = fusion.arccos
+arctan = fusion.arctan
+hypot = fusion.hypot
+arctan2 = fusion.arctan2
+deg2rad = fusion.deg2rad
+rad2deg = fusion.rad2deg
+degrees = fusion.degrees
+radians = fusion.radians
 
-sinh = math.hyperbolic.sinh
-cosh = math.hyperbolic.cosh
-tanh = math.hyperbolic.tanh
-arcsinh = math.hyperbolic.arcsinh
-arccosh = math.hyperbolic.arccosh
-arctanh = math.hyperbolic.arctanh
+sinh = fusion.sinh
+cosh = fusion.cosh
+tanh = fusion.tanh
+arcsinh = fusion.arcsinh
+arccosh = fusion.arccosh
+arctanh = fusion.arctanh
 
-rint = math.rounding.rint
-floor = math.rounding.floor
-ceil = math.rounding.ceil
-trunc = math.rounding.trunc
+rint = fusion.rint
+floor = fusion.floor
+ceil = fusion.ceil
+trunc = fusion.trunc
 
 sum = math.sumprod.sum
 prod = math.sumprod.prod
 
-exp = math.explog.exp
-expm1 = math.explog.expm1
-exp2 = math.explog.exp2
-log = math.explog.log
-log10 = math.explog.log10
-log2 = math.explog.log2
-log1p = math.explog.log1p
-logaddexp = math.explog.logaddexp
-logaddexp2 = math.explog.logaddexp2
+exp = fusion.exp
+expm1 = fusion.expm1
+exp2 = fusion.exp2
+log = fusion.log
+log10 = fusion.log10
+log2 = fusion.log2
+log1p = fusion.log1p
+logaddexp = fusion.logaddexp
+logaddexp2 = fusion.logaddexp2
 
-signbit = math.floating.signbit
-copysign = math.floating.copysign
-ldexp = math.floating.ldexp
-frexp = math.floating.frexp
-nextafter = math.floating.nextafter
+signbit = fusion.signbit
+copysign = fusion.copysign
+ldexp = fusion.ldexp
+frexp = fusion.frexp
+nextafter = fusion.nextafter
 
-add = math.arithmetic.add
-reciprocal = math.arithmetic.reciprocal
-negative = math.arithmetic.negative
-multiply = math.arithmetic.multiply
-divide = math.arithmetic.divide
-power = math.arithmetic.power
-subtract = math.arithmetic.subtract
-true_divide = math.arithmetic.true_divide
-floor_divide = math.arithmetic.floor_divide
-fmod = math.arithmetic.fmod
-mod = math.arithmetic.remainder
-modf = math.arithmetic.modf
-remainder = math.arithmetic.remainder
+add = fusion.add
+reciprocal = fusion.reciprocal
+negative = fusion.negative
+multiply = fusion.multiply
+divide = fusion.divide
+power = fusion.power
+subtract = fusion.subtract
+true_divide = fusion.true_divide
+floor_divide = fusion.floor_divide
+fmod = fusion.fmod
+mod = fusion.mod
+modf = fusion.modf
+remainder = fusion.remainder
 
-clip = math.misc.clip
-sqrt = math.misc.sqrt
-square = math.misc.square
-absolute = math.misc.absolute
-abs = math.misc.absolute
-sign = math.misc.sign
-maximum = math.misc.maximum
-minimum = math.misc.minimum
-fmax = math.misc.fmax
-fmin = math.misc.fmin
+clip = fusion.clip
+sqrt = fusion.sqrt
+square = fusion.square
+absolute = fusion.absolute
+abs = fusion.abs
+sign = fusion.sign
+maximum = fusion.maximum
+minimum = fusion.minimum
+fmax = fusion.fmax
+fmin = fusion.fmin
 
 # -----------------------------------------------------------------------------
 # Sorting, searching, and counting
