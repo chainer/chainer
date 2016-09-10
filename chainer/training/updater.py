@@ -3,6 +3,7 @@ import six
 
 from chainer.dataset import convert
 from chainer.dataset import iterator as iterator_module
+from chainer import function
 from chainer import optimizer as optimizer_module
 from chainer import variable
 
@@ -302,12 +303,13 @@ class ParallelUpdater(StandardUpdater):
             in_arrays = in_arrays_list[model_key]
             loss_func = self.loss_func or model
 
-            if isinstance(in_arrays, tuple):
-                loss = loss_func(*in_arrays)
-            elif isinstance(in_arrays, dict):
-                loss = loss_func(**in_arrays)
-            else:
-                loss = loss_func(in_arrays)
+            with function.force_backprop_mode():
+                if isinstance(in_arrays, tuple):
+                    loss = loss_func(*in_arrays)
+                elif isinstance(in_arrays, dict):
+                    loss = loss_func(**in_arrays)
+                else:
+                    loss = loss_func(in_arrays)
             losses.append(loss)
 
         # For _uninitialized_params
