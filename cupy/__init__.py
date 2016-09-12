@@ -21,9 +21,7 @@ from cupy import creation
 from cupy import indexing
 from cupy import io
 from cupy import linalg
-from cupy import logic
 from cupy import manipulation
-from cupy import math
 import cupy.random
 from cupy import sorting
 from cupy import statistics
@@ -252,8 +250,8 @@ less_equal = fusion.less_equal
 equal = fusion.equal
 not_equal = fusion.not_equal
 
-all = logic.truth.all
-any = logic.truth.any
+all = fusion.all
+any = fusion.any
 
 # -----------------------------------------------------------------------------
 # Mathematical functions
@@ -283,8 +281,8 @@ floor = fusion.floor
 ceil = fusion.ceil
 trunc = fusion.trunc
 
-sum = math.sumprod.sum
-prod = math.sumprod.prod
+sum = fusion.sum
+prod = fusion.prod
 
 exp = fusion.exp
 expm1 = fusion.expm1
@@ -341,10 +339,10 @@ where = sorting.search.where
 # -----------------------------------------------------------------------------
 # Statistics
 # -----------------------------------------------------------------------------
-amin = statistics.order.amin
-min = statistics.order.amin
-amax = statistics.order.amax
-max = statistics.order.amax
+amin = fusion.amin
+min = fusion.amin
+amax = fusion.amax
+max = fusion.amax
 
 mean = statistics.meanvar.mean
 var = statistics.meanvar.var
