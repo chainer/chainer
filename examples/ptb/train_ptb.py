@@ -82,13 +82,19 @@ class ParallelSequentialIterator(chainer.dataset.Iterator):
         cur_words = self.get_words()
         self.iteration += 1
         next_words = self.get_words()
+        return list(zip(cur_words, next_words))
 
-        epoch = self.iteration * self.batch_size // length
+    def get_batches(self, size):
+        batch = []
+        for _ in range(size):
+            batch.append(self.__next__())
+
+        epoch = self.iteration * self.batch_size // len(self.dataset)
         self.is_new_epoch = self.epoch < epoch
         if self.is_new_epoch:
             self.epoch = epoch
 
-        return list(zip(cur_words, next_words))
+        return batch
 
     @property
     def epoch_detail(self):
@@ -122,11 +128,11 @@ class BPTTUpdater(training.StandardUpdater):
         train_iter = self.get_iterator('main')
         optimizer = self.get_optimizer('main')
 
-        # Progress the dataset iterator for bprop_len words at each iteration.
-        for i in range(self.bprop_len):
-            # Get the next batch (a list of tuples of two word IDs)
-            batch = train_iter.__next__()
+        # Get the next batch (a list of lists of tuples of two word IDs)
+        batches = train_iter.get_batches(self.bprop_len)
 
+        # Progress the dataset iterator for bprop_len words at each iteration.
+        for batch in batches:
             # Concatenate the word IDs to matrices and send them to the device
             # self.converter does this job
             # (it is chainer.dataset.concat_examples by default)
