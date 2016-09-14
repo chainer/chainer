@@ -48,9 +48,9 @@ class MaxPooling2D(pooling_2d.Pooling2D):
                int out_y = i / out_w % out_h;
                int out_x = i % out_w;
                int in_y_0 = max(0, out_y * sy - ph);
-               int in_y_1 = min(h, out_y * sy + kh - ph);
+               int in_y_1 = min(h + min(0, ph), out_y * sy + kh - ph);
                int in_x_0 = max(0, out_x * sx - pw);
-               int in_x_1 = min(w, out_x * sx + kw - pw);
+               int in_x_1 = min(w + min(0, pw), out_x * sx + kw - pw);
 
                T maxval = in[in_x_0 + w * (in_y_0 + h * c0)];
                int argmax_y = in_y_0;
