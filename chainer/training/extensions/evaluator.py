@@ -8,7 +8,6 @@ from chainer import function
 from chainer import link
 from chainer import reporter as reporter_module
 from chainer.training import extension
-from chainer import variable
 
 
 class Evaluator(extension.Extension):
