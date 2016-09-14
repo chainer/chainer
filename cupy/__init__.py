@@ -334,7 +334,7 @@ flatnonzero = sorting.search.flatnonzero
 
 argmax = sorting.search.argmax
 argmin = sorting.search.argmin
-where = sorting.search.where
+where = fusion.where
 
 # -----------------------------------------------------------------------------
 # Statistics
