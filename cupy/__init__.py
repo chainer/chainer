@@ -409,3 +409,5 @@ memoize = util.memoize
 
 ElementwiseKernel = core.ElementwiseKernel
 ReductionKernel = core.ReductionKernel
+
+fuse = fusion.fuse
