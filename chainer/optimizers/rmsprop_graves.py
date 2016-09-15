@@ -11,6 +11,7 @@ class RMSpropGraves(optimizer.GradientMethod):
     See http://arxiv.org/abs/1308.0850
 
     """
+
     def __init__(self, lr=1e-4, alpha=0.95, momentum=0.9, eps=1e-4):
         # Default parameter values are the ones in the original paper.
         self.lr = lr
@@ -20,9 +21,10 @@ class RMSpropGraves(optimizer.GradientMethod):
 
     def init_state(self, param, state):
         xp = cuda.get_array_module(param.data)
-        state['n'] = xp.zeros_like(param.data)
-        state['g'] = xp.zeros_like(param.data)
-        state['delta'] = xp.zeros_like(param.data)
+        with cuda.get_device(param.data):
+            state['n'] = xp.zeros_like(param.data)
+            state['g'] = xp.zeros_like(param.data)
+            state['delta'] = xp.zeros_like(param.data)
 
     def update_one_cpu(self, param, state):
         n, g, delta = state['n'], state['g'], state['delta']

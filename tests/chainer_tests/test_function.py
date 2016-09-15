@@ -138,6 +138,32 @@ class TestFunction(unittest.TestCase):
         self.setup_gpu()
         self.check_call()
 
+    def check_call_ndarray(self):
+        x1 = chainer.Variable(self.x1)
+        x2 = self.x2
+        x1.rank = 1
+        ys = self.f(x1, x2)
+
+        self.assertEqual(len(ys), 2)
+        self.check_check_type_forward()
+
+        for y in ys:
+            self.assertIsInstance(y, chainer.Variable)
+            # rank is (maximum rank in xs) + 1
+            self.assertEqual(y.rank, 2)
+            self.assertFalse(y.volatile)
+            self.assertIs(y.creator, self.f)
+
+        self.assertIsInstance(y.creator.outputs, tuple)
+
+    def test_call_ndarray_cpu(self):
+        self.check_call_ndarray()
+
+    @attr.gpu
+    def test_call_ndarray_gpu(self):
+        self.setup_gpu()
+        self.check_call_ndarray()
+
     def check_call_volatile(self):
         x1 = chainer.Variable(self.x1, volatile=True)
         x2 = chainer.Variable(self.x2, volatile=True)
@@ -251,10 +277,11 @@ class TestFunction(unittest.TestCase):
         y1, y2 = f.outputs
         # As _y1 is alive, this weak ref is also alive
         y1_ref = y1()
-        self.assertTrue(y1_ref is not None and y1_ref.creator is None)
+        self.assertIsNotNone(y1_ref)
+        self.assertIsNone(y1_ref.creator)
         # This weak ref is dead by unchain
         y2_ref = y2()
-        self.assertTrue(y2_ref is None)
+        self.assertIsNone(y2_ref)
 
         self.assertIsNone(f.inputs)
 
@@ -283,8 +310,20 @@ class TestFunctionBackwardIntegration(unittest.TestCase):
 
 class TestFunctionInvalidType(unittest.TestCase):
 
-    def test_forward_invalid(self):
-        f = F.Linear(5, 5)
+    def test_forward_invalid1(self):
+        class Function(chainer.Function):
+
+            def check_type_forward(self, in_types):
+                x_type, = in_types
+                type_check.expect(
+                    x_type.dtype == numpy.float32,
+                    x_type.ndim >= 2,
+                )
+
+            def forward(self, inputs):
+                return inputs
+
+        f = Function()
 
         # OK
         v = chainer.Variable(numpy.random.randn(1, 5).astype(numpy.float32))
@@ -294,7 +333,7 @@ class TestFunctionInvalidType(unittest.TestCase):
         # Incorrect dtype
         # in py3, numpy dtypes are represented as class
         msg = """\
-Invalid operation is performed in: LinearFunction \\(Forward\\)
+Invalid operation is performed in: Function \\(Forward\\)
 
 Expect: in_types\\[0\\]\\.dtype == <(type|class) 'numpy\\.float32'>
 Actual: float64 \\!= <(type|class) 'numpy\\.float32'>"""
@@ -306,7 +345,7 @@ Actual: float64 \\!= <(type|class) 'numpy\\.float32'>"""
 
         # Incorrect dim
         msg = """\
-Invalid operation is performed in: LinearFunction \\(Forward\\)
+Invalid operation is performed in: Function \\(Forward\\)
 
 Expect: in_types\\[0\\]\\.ndim >= 2
 Actual: 1 < 2"""
@@ -395,6 +434,36 @@ class TestFunctionBackwardDebug(unittest.TestCase):
         input_value = (cuda.to_gpu(self.one),) * len(self.return_value)
         self.f.backward_gpu = mock.MagicMock(return_value=return_value)
         self.check_debug_backward(*input_value)
+
+
+class TestNoBackpropMode(unittest.TestCase):
+
+    def setUp(self):
+        self.x = chainer.Variable(numpy.array([1.], 'f'), 'auto')
+
+    def test_no_backprop_mode(self):
+        y = self.x + 1
+        self.assertTrue(y.creator is not None)
+
+        with chainer.no_backprop_mode():
+            y = self.x + 1
+        self.assertTrue(y.creator is None)
+
+        y = self.x + 1
+        self.assertTrue(y.creator is not None)
+
+    def test_force_backprop_mode(self):
+        with chainer.no_backprop_mode():
+            with chainer.force_backprop_mode():
+                y = self.x + 1
+        self.assertTrue(y.creator is not None)
+
+        y = self.x + 1
+        self.assertTrue(y.creator is not None)
+
+        with chainer.force_backprop_mode():
+            y = self.x + 1
+        self.assertTrue(y.creator is not None)
 
 
 testing.run_module(__name__, __file__)

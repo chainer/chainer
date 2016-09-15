@@ -11,13 +11,15 @@ class AdaGrad(optimizer.GradientMethod):
     See: http://jmlr.org/papers/v12/duchi11a.html
 
     """
+
     def __init__(self, lr=0.001, eps=1e-8):
         self.lr = lr
         self.eps = eps
 
     def init_state(self, param, state):
         xp = cuda.get_array_module(param.data)
-        state['h'] = xp.zeros_like(param.data)
+        with cuda.get_device(param.data):
+            state['h'] = xp.zeros_like(param.data)
 
     def update_one_cpu(self, param, state):
         h = state['h']

@@ -15,5 +15,11 @@ Chainer Reference Manual
    optimizers
    serializers
    function_hooks
+   initializers
+   datasets
+   iterators
+   extensions
+   triggers
    caffe
    graph
+   environment

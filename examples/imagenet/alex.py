@@ -11,23 +11,18 @@ class Alex(chainer.Chain):
 
     def __init__(self):
         super(Alex, self).__init__(
-            conv1=L.Convolution2D(3,  96, 11, stride=4),
-            conv2=L.Convolution2D(96, 256,  5, pad=2),
-            conv3=L.Convolution2D(256, 384,  3, pad=1),
-            conv4=L.Convolution2D(384, 384,  3, pad=1),
-            conv5=L.Convolution2D(384, 256,  3, pad=1),
-            fc6=L.Linear(9216, 4096),
-            fc7=L.Linear(4096, 4096),
-            fc8=L.Linear(4096, 1000),
+            conv1=L.Convolution2D(None,  96, 11, stride=4),
+            conv2=L.Convolution2D(None, 256,  5, pad=2),
+            conv3=L.Convolution2D(None, 384,  3, pad=1),
+            conv4=L.Convolution2D(None, 384,  3, pad=1),
+            conv5=L.Convolution2D(None, 256,  3, pad=1),
+            fc6=L.Linear(None, 4096),
+            fc7=L.Linear(None, 4096),
+            fc8=L.Linear(None, 1000),
         )
         self.train = True
 
-    def clear(self):
-        self.loss = None
-        self.accuracy = None
-
     def __call__(self, x, t):
-        self.clear()
         h = F.max_pooling_2d(F.relu(
             F.local_response_normalization(self.conv1(x))), 3, stride=2)
         h = F.max_pooling_2d(F.relu(
@@ -39,6 +34,6 @@ class Alex(chainer.Chain):
         h = F.dropout(F.relu(self.fc7(h)), train=self.train)
         h = self.fc8(h)
 
-        self.loss = F.softmax_cross_entropy(h, t)
-        self.accuracy = F.accuracy(h, t)
-        return self.loss
+        loss = F.softmax_cross_entropy(h, t)
+        chainer.report({'loss': loss, 'accuracy': F.accuracy(h, t)}, self)
+        return loss

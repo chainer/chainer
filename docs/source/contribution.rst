@@ -33,9 +33,9 @@ This classification is based on following criteria:
 
 The release classification is reflected into the version number x.y.z, where x, y, and z corresponds to major, minor, and revision updates, respectively.
 
-We sets milestones for some future releases.
-A milestone for a revision release is set right after the last release.
-On the other hand, a milestone for a minor or major release is set four weeks prior to its due.
+We set a milestone for an upcoming release.
+The milestone is of name 'vX.Y.Z', where the version number represents a revision release at the outset.
+If at least one *feature* PR is merged in the period, we rename the milestone to represent a minor release (see the next section for the PR types).
 
 See also :doc:`compatibility`.
 
@@ -52,6 +52,7 @@ Issues and PRs are classified into following categories:
 * **Document**: document fixes and improvements
 * **Example**: fixes and improvements on the examples
 * **Install**: fixes installation script
+* **Contribution-Welcome**: issues that we request for contribution (only issues are categorized to this)
 * **Other**: other issues and PRs
 
 Issues and PRs are labeled by these categories.
@@ -93,10 +94,19 @@ Coding Guidelines
 
 We use `PEP8 <https://www.python.org/dev/peps/pep-0008/>`_ and a part of `OpenStack Style Guidelines <http://docs.openstack.org/developer/hacking/>`_ related to general coding style as our basic style guidelines.
 
-To check your code, use ``flake8`` command installed by ``hacking`` package::
+To check your code, use ``autopep8`` and ``flake8`` command installed by ``hacking`` package::
 
-  $ pip install hacking
+  $ pip install autopep8 hacking
+  $ autopep8 --global-config .pep8 path/to/your/code.py
   $ flake8 path/to/your/code.py
+
+To check Cython code, use ``.flake8.cython`` configuration file::
+
+  $ flake8 --config=.flake8.cython path/to/your/cython/code.pyx
+
+The ``autopep8`` supports automatically correct Python code to conform to the PEP 8 style guide::
+
+  $ autopep8 --in-place --global-config .pep8 path/to/your/code.py
 
 The ``flake8`` command lets you know the part of your code not obeying our style guidelines.
 Before sending a pull request, be sure to check that your code passes the ``flake8`` checking.
@@ -143,10 +153,15 @@ In order to run unit tests that do not require CUDA, pass ``--attr='!gpu'`` opti
   $ nosetests path/to/your/test.py --attr='!gpu'
 
 Some GPU tests involve multiple GPUs.
-If you want to run GPU tests with insufficient number of GPUs, specify the number of available GPUs by ``--attr='gpu<N'`` where ``N`` is a concrete integer.
+If you want to run GPU tests with insufficient number of GPUs, specify the number of available GPUs by ``--eval-attr='gpu<N'`` where ``N`` is a concrete integer.
 For example, if you have only one GPU, launch ``nosetests`` by the following command to skip multi-GPU tests::
 
-  $ nosetests path/to/gpu/test.py --attr='gpu<2'
+  $ nosetests path/to/gpu/test.py --eval-attr='gpu<2'
+
+Some tests spend too much time.
+If you want to skip such tests, pass ``--attr='!slow'`` option to the ``nosetests`` command::
+
+  $ nosetests path/to/your/test.py --attr='!slow'
 
 Tests are put into the ``tests/chainer_tests``, ``tests/cupy_tests`` and ``tests/install_tests`` directories.
 These have the same structure as that of ``chainer``, ``cupy`` and ``install`` directories, respectively.
@@ -209,7 +224,20 @@ In order to write tests for multiple GPUs, use ``chainer.testing.attr.multi_gpu(
       def test_my_two_gpu_func(self):
           ...
 
-Once you send a pull request, your code is automatically tested by `Travis-CI <https://travis-ci.org/pfnet/chainer/>`_ **with --attr='!gpu' option**.
+If your test requires too much time, add ``chainer.testing.attr.slow`` decorator.
+The test functions decorated by ``slow`` are skipped if ``--attr='!slow'`` is given::
+
+  import unittest
+  from chainer.testing import attr
+
+  class TestMyFunc(unittest.TestCase):
+      ...
+
+      @attr.slow
+      def test_my_slow_func(self):
+          ...
+
+Once you send a pull request, your code is automatically tested by `Travis-CI <https://travis-ci.org/pfnet/chainer/>`_ **with --attr='!gpu,!slow' option**.
 Since Travis-CI does not support CUDA, we cannot check your CUDA-related code automatically.
 The reviewing process starts after the test passes.
 Note that reviewers will test your code without the option to check CUDA-related code.

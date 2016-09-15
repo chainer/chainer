@@ -50,7 +50,7 @@ Basics of :class:`cupy.ndarray`
 
 .. note::
 
-   CuPy does not require explicit initialization, so ``cuda.init()`` function is removed as of v1.3.0.
+   CuPy does not require explicit initialization, so ``cuda.init()`` function is deprecated.
 
 CuPy is a GPU array backend that implements a subset of NumPy interface.
 The :class:`cupy.ndarray` class is in its core, which is a compatible GPU alternative of :class:`numpy.ndarray`.
@@ -157,11 +157,11 @@ A :class:`Link` object can be transferred to the specified GPU using the :meth:`
    :hide:
 
    class MLP(Chain):
-       def __init__(self, n_in, n_units, n_out):
+       def __init__(self, n_units, n_out):
            super(MLP, self).__init__(
-               l1=L.Linear(n_in, n_units),
-               l2=L.Linear(n_units, n_units),
-               l3=L.Linear(n_units, n_out),
+               l1=L.Linear(None, n_units),
+               l2=L.Linear(None, n_units),
+               l3=L.Linear(None, n_out),
            )
 
        def __call__(self, x):
@@ -170,7 +170,7 @@ A :class:`Link` object can be transferred to the specified GPU using the :meth:`
            y = self.l3(h2)
            return y
 
-   model = L.Classifier(MLP(784, 1000, 10)).to_gpu()  # to_gpu returns itself
+   model = L.Classifier(MLP(1000, 10)).to_gpu()  # to_gpu returns itself
    optimizer = optimizers.SGD()
    optimizer.setup(model)
 
@@ -179,7 +179,30 @@ The :meth:`~Link.to_gpu` method also accepts a device ID like ``model.to_gpu(0)`
 In this case, the link object is transferred to the appropriate GPU device.
 The current device is used by default.
 
-Then we have to transfer each minibatch to the GPU:
+If we use :class:`chainer.training.Trainer`, what we have to do is just let the updater know the device ID to send each mini-batch.
+
+.. testcode::
+   :hide:
+
+   data = np.random.rand(70000, 784).astype(np.float32)
+   target = np.random.randint(10, size=70000).astype(np.int32)
+   train = datasets.TupleDataset(data[:60000], target[:60000])
+   test = datasets.TupleDataset(data[60000:], target[60000:])
+   train_iter = iterators.SerialIterator(train, batch_size=100)
+   test_iter = iterators.SerialIterator(test, batch_size=100, repeat=False, shuffle=False)
+
+.. testcode::
+
+   updater = training.StandardUpdater(train_iter, optimizer, device=0)
+   trainer = training.Trainer(updater, (20, 'epoch'), out='result')
+
+We also have to specify the device ID for an evaluator extension as well.
+
+.. testcode::
+
+   trainer.extend(extensions.Evaluator(test_iter, model, device=0))
+
+When we write down the training loop by hand, we have to transfer each mini-batch to the GPU manually:
 
 .. testcode::
    :hide:
@@ -205,9 +228,6 @@ Then we have to transfer each minibatch to the GPU:
 
    epoch 0
    ...
-
-This is almost identical to the code of the original example,
-we just inserted a call to the :func:`cuda.to_gpu` function to the minibatch arrays.
 
 
 Model-parallel Computation on Multiple GPUs
@@ -240,10 +260,13 @@ Let's write a link for the whole network.
    class ParallelMLP(Chain):
        def __init__(self):
            super(ParallelMLP, self).__init__(
-               mlp1_gpu0=MLP(784, 1000, 2000).to_gpu(0),
-               mlp1_gpu1=MLP(784, 1000, 2000).to_gpu(1),
-               mlp2_gpu0=MLP(2000, 1000, 10).to_gpu(0),
-               mlp2_gpu1=MLP(2000, 1000, 10).to_gpu(1),
+               # the input size, 784, is inferred
+               mlp1_gpu0=MLP(1000, 2000).to_gpu(0),
+               mlp1_gpu1=MLP(1000, 2000).to_gpu(1),
+
+               # the input size, 2000, is inferred
+               mlp2_gpu0=MLP(1000, 10).to_gpu(0),
+               mlp2_gpu1=MLP(1000, 10).to_gpu(1),
            )
 
        def __call__(self, x):
@@ -260,7 +283,7 @@ Let's write a link for the whole network.
 
            # sync
            y = y0 + F.copy(y1, 0)
-           return y
+           return y  # output is on GPU0
 
 Recall that the :meth:`Link.to_gpu` method returns the link itself.
 The :func:`~chainer.functions.copy` function copies an input variable to specified GPU device and returns a new variable on the device.
@@ -271,11 +294,11 @@ The copy supports backprop, which just reversely transfers an output gradient to
    Above code is not parallelized on CPU, but is parallelized on GPU.
    This is because all the functions in the above code run asynchronously to the host CPU.
 
-An almost identical example code can be found at ``examples/mnist/net.py``.
+An almost identical example code can be found at `examples/mnist/train_mnist_model_parallel.py <https://github.com/pfnet/chainer/blob/master/examples/mnist/train_mnist_model_parallel.py>`_.
 
 
-Data-parallel Computation on Multiple GPUs
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Data-parallel Computation on Multiple GPUs with Trainer
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Data-parallel computation is another strategy to parallelize online processing.
 In the context of neural networks, it means that a different device does computation on a different subset of the input data.
@@ -284,20 +307,57 @@ In this subsection, we review the way to achieve data-parallel learning on two G
 Suppose again our task is :ref:`the MNIST example <mnist_mlp_example>`.
 This time we want to directly parallelize the three-layer network.
 The most simple form of data-parallelization is parallelizing the gradient computation for a distinct set of data.
-First, define a model instance:
+First, define a model and optimizer instances:
+
+.. doctest::
+
+   model = L.Classifier(MLP(1000, 10))  # the input size, 784, is inferred
+   optimizer = optimizers.SGD()
+   optimizer.setup(model)
+
+Recall that the ``MLP`` link implements the multi-layer perceptron, and the :class:`~chainer.links.Classifier` link wraps it to provide a classifier interface.
+We used :class:`~training.StandardUpdater` in the previous example.
+In order to enable data-parallel computation with multiple GPUs, we only have to replace it with :class:`~training.ParallelUpdater`.
+
+.. doctest::
+
+   updater = training.ParallelUpdater(train_iter, optimizer,
+                                      devices={'main': 0, 'second': 1})
+
+The ``devices`` option specifies which devices to use in data-parallel learning.
+The device with name ``'main'`` is used as the main device.
+The original model is sent to this device, so the optimization runs on the main device.
+In the above example, the model is also cloned and sent to GPU 1.
+Half of each mini-batch is fed to this cloned model.
+After every backward computation, the gradient is accumulated into the main device, the parameter update runs on it, and then the updated parameters are sent to GPU 1 again.
+
+See also the example code in `examples/mnist/train_mnist_data_parallel.py <https://github.com/pfnet/chainer/blob/master/examples/mnist/train_mnist_data_parallel.py>`_.
+
+
+Data-parallel Computation on Multiple GPUs without Trainer
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+We here introduce a way to write data-parallel computation without the help of :class:`~training.Trainer`.
+Most users can skip this section.
+If you are interested in how to write a data-parallel computation by yourself, this section should be informative.
+It is also helpful to, e.g., customize the :class:`~training.ParallelUpdater` class.
+
+We again start from the MNIST example.
+At this time, we use a suffix like ``_0`` and ``_1`` to distinguish objects on each device.
+First, we define a model.
 
 .. testcode::
 
-   model_0 = L.Classifier(MLP(784, 1000, 10))
+   model_0 = L.Classifier(MLP(1000, 10))  # the input size, 784, is inferred
 
-Recall that the ``MLP`` link implements the multi-layer perceptron, and the :class:`~chainer.links.Classifier` link wraps it to provide a classifier interface.
 We want to make two copies of this instance on different GPUs.
 The :meth:`Link.to_gpu` method runs in place, so we cannot use it to make a copy.
 In order to make a copy, we can use :meth:`Link.copy` method.
 
 .. testcode::
 
-   model_1 = model_0.copy()
+   import copy
+   model_1 = copy.deepcopy(model_0)
    model_0.to_gpu(0)
    model_1.to_gpu(1)
 
@@ -327,13 +387,16 @@ Then, we can write a data-parallel learning loop as follows:
            x_batch = x_train[indexes[i : i + batchsize]]
            y_batch = y_train[indexes[i : i + batchsize]]
 
-           model_0.zerograds()
-           model_1.zerograds()
+           x0 = Variable(cuda.to_gpu(x_batch[:batchsize//2], 0))
+           t0 = Variable(cuda.to_gpu(y_batch[:batchsize//2], 0))
+           x1 = Variable(cuda.to_gpu(x_batch[batchsize//2:], 1))
+           t1 = Variable(cuda.to_gpu(y_batch[batchsize//2:], 1))
 
-           loss_0 = model_0(Variable(cuda.to_gpu(x_batch[:batchsize//2], 0)),
-                            Variable(cuda.to_gpu(y_batch[:batchsize//2], 0)))
-           loss_1 = model_1(Variable(cuda.to_gpu(x_batch[batchsize//2:], 1)),
-                            Variable(cuda.to_gpu(y_batch[batchsize//2:], 1)))
+           loss_0 = model_0(x0, t0)
+           loss_1 = model_1(x1, t1)
+
+           model_0.cleargrads()
+           model_1.cleargrads()
 
            loss_0.backward()
            loss_1.backward()
@@ -349,13 +412,20 @@ Then, we can write a data-parallel learning loop as follows:
    epoch 0
    ...
 
-Do not forget initializing the gradients of both model copies!
-One half of the minibatch is forwarded to GPU 0, the other half to GPU 1.
+Do not forget to clear the gradients of both model copies!
+One half of the mini-batch is forwarded to GPU 0, the other half to GPU 1.
 Then the gradients are accumulated by the :meth:`Link.addgrads` method.
 This method adds the gradients of a given link to those of the self.
 After the gradients are prepared, we can update the optimizer in usual way.
 Note that the update only modifies the parameters of ``model_0``.
 So we must manually copy them to ``model_1`` using :meth:`Link.copyparams` method.
+
+.. note::
+
+   If the batch size used in one model remain the same, the scale of the gradient
+   is roughly proportional to the number of models, when we aggregate
+   gradients from all models by :func:`chainer.Link.addgrads`. So you need to adjust the batch size
+   and/or learning rate of the optimizer accordingly.
 
 --------
 

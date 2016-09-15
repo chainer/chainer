@@ -4,45 +4,8 @@ import six
 import chainer
 from chainer import cuda
 from chainer import function
+from chainer.functions.activation import log_softmax
 from chainer.utils import type_check
-
-
-if cuda.cudnn_enabled:
-    cudnn = cuda.cudnn
-    libcudnn = cudnn.cudnn
-    _algorithm = libcudnn.CUDNN_SOFTMAX_LOG
-    _mode = libcudnn.CUDNN_SOFTMAX_MODE_CHANNEL
-    _cudnn_version = libcudnn.getVersion()
-
-
-def logsumexp(x):
-    xp = cuda.get_array_module(x)
-    m = x.max(axis=1, keepdims=True)
-    y = x - m
-    xp.exp(y, out=y)
-    return xp.log(y.sum(axis=1, keepdims=True)) + m
-
-
-def softmax_log(x, use_cudnn):
-    xp = cuda.get_array_module(x)
-    if xp != numpy and cuda.cudnn_enabled and use_cudnn \
-       and _cudnn_version >= 3000:
-        dtype = x.dtype
-        one = numpy.array(1, dtype=dtype).ctypes
-        zero = numpy.array(0, dtype=dtype).ctypes
-        handle = cudnn.get_handle()
-        x_cube = x.reshape(x.shape[:2] + (-1, 1))
-        desc = cudnn.create_tensor_descriptor(x_cube)
-        y = xp.empty_like(x)
-        libcudnn.softmaxForward(
-            handle, _algorithm, _mode, one.data, desc.value,
-            x_cube.data.ptr, zero.data, desc.value,
-            y.data.ptr)
-        return y
-
-    else:
-        log_z = logsumexp(x)
-        return x - log_z
 
 
 class SoftmaxCrossEntropy(function.Function):
@@ -61,7 +24,7 @@ class SoftmaxCrossEntropy(function.Function):
         x_type, t_type = in_types
 
         type_check.expect(
-            x_type.dtype == numpy.float32,
+            x_type.dtype.kind == 'f',
             t_type.dtype == numpy.int32,
             t_type.ndim == x_type.ndim - 1,
 
@@ -77,12 +40,15 @@ class SoftmaxCrossEntropy(function.Function):
                    '`0 <= t < x.shape[1] or t == %d`' % self.ignore_label)
             raise ValueError(msg)
 
+    def _log_softmax(self, x):
+        return log_softmax.LogSoftmax(self.use_cudnn).forward((x,))[0]
+
     def forward_cpu(self, inputs):
         x, t = inputs
         if chainer.is_debug():
             self._check_input_values(x, t)
 
-        log_y = softmax_log(x, False)
+        log_y = self._log_softmax(x)
         if self.cache_score:
             self.y = numpy.exp(log_y)
         log_yd = numpy.rollaxis(log_y, 1)
@@ -107,7 +73,7 @@ class SoftmaxCrossEntropy(function.Function):
         if chainer.is_debug():
             self._check_input_values(x, t)
 
-        log_y = softmax_log(x, self.use_cudnn)
+        log_y = self._log_softmax(x)
         if self.cache_score:
             self.y = cupy.exp(log_y)
         if getattr(self, 'normalize', True):
@@ -119,7 +85,7 @@ class SoftmaxCrossEntropy(function.Function):
         log_y = cupy.rollaxis(log_y, 1, log_y.ndim)
         ret = cuda.reduce(
             'S t, raw T log_y, int32 n_channel, raw T coeff', 'T out',
-            't == -1 ? 0 : log_y[_j * n_channel + t]',
+            't == -1 ? T(0) : log_y[_j * n_channel + t]',
             'a + b', 'out = a * -coeff[0]', '0', 'crossent_fwd'
         )(t, log_y.reduced_view(), log_y.shape[-1], self._coeff)
         return ret,
@@ -131,7 +97,7 @@ class SoftmaxCrossEntropy(function.Function):
         if hasattr(self, 'y'):
             y = self.y.copy()
         else:
-            log_y = softmax_log(x, self.use_cudnn)
+            log_y = self._log_softmax(x)
             y = numpy.exp(log_y)
         if y.ndim == 2:
             gx = y
@@ -157,7 +123,7 @@ class SoftmaxCrossEntropy(function.Function):
         if hasattr(self, 'y'):
             y = self.y
         else:
-            y = softmax_log(x, self.use_cudnn)
+            y = self._log_softmax(x)
             cupy.exp(y, out=y)
         gloss = grad_outputs[0]
         n_unit = t.size // len(t)
@@ -188,10 +154,9 @@ def softmax_cross_entropy(
             number of dimensions is greater than 2.
         t (Variable): Variable holding an int32 vector of ground truth labels.
             If ``t[i] == -1``, corresponding ``x[i]`` is ignored.
-        normalize (Variable): Variable holding a boolean value which
-            determines the normalization constant. If true, this function
-            normalizes the cross entropy loss across all instances. If else,
-            it only normalizes along a batch size.
+        normalize (bool): If true, this function normalizes the cross entropy
+            loss across all instances. If false, it only normalizes along
+            a batch size.
         cache_score (bool): When it is ``True``, the function stores result
             of forward computation to use it on backward computation. It
             reduces computational cost though consumes more memory.

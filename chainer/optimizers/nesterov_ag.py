@@ -12,13 +12,15 @@ class NesterovAG(optimizer.GradientMethod):
     See: http://arxiv.org/abs/1212.0901
 
     """
+
     def __init__(self, lr=0.01, momentum=0.9):
         self.lr = lr
         self.momentum = momentum
 
     def init_state(self, param, state):
         xp = cuda.get_array_module(param.data)
-        state['v'] = xp.zeros_like(param.data)
+        with cuda.get_device(param.data):
+            state['v'] = xp.zeros_like(param.data)
 
     def update_one_cpu(self, param, state):
         v = state['v']

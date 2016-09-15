@@ -22,7 +22,7 @@ class TestEmbedID(unittest.TestCase):
     def setUp(self):
         self.link = links.EmbedID(3, 2, ignore_label=self.ignore_label)
         self.link.ignore_label
-        self.link.zerograds()
+        self.link.cleargrads()
 
         self.W = self.link.W.data.copy()  # fixed on CPU
         self.x = numpy.array(self.x_data, dtype=numpy.int32)
@@ -41,7 +41,7 @@ class TestEmbedID(unittest.TestCase):
             else:
                 y_expect[i] = self.W[int(self.x[i])]
 
-        gradient_check.assert_allclose(y_expect, y.data, atol=0, rtol=0)
+        testing.assert_allclose(y_expect, y.data, atol=0, rtol=0)
 
     @condition.retry(3)
     def test_forward_cpu(self):
@@ -69,14 +69,17 @@ class TestEmbedID(unittest.TestCase):
 
 
 @testing.parameterize(
-    {'t_value': -1, 'valid': False},
-    {'t_value': 3,  'valid': False},
-    {'t_value': 0,  'valid': True},
+    {'t_value': -1, 'valid': False, 'ignore_label': None},
+    {'t_value': 3,  'valid': False, 'ignore_label': None},
+    {'t_value': 0,  'valid': True,  'ignore_label': None},
+    {'t_value': -1, 'valid': True,  'ignore_label': -1},
+    {'t_value': 3,  'valid': False, 'ignore_label': -1},
+    {'t_value': 0,  'valid': True,  'ignore_label': -1},
 )
 class TestEmbedIDValueCheck(unittest.TestCase):
 
     def setUp(self):
-        self.link = links.EmbedID(2, 2)
+        self.link = links.EmbedID(2, 2, ignore_label=self.ignore_label)
         self.t = numpy.array([self.t_value], dtype=numpy.int32)
         self.original_debug = chainer.is_debug()
         chainer.set_debug(True)
@@ -100,6 +103,17 @@ class TestEmbedIDValueCheck(unittest.TestCase):
     @attr.gpu
     def test_value_check_gpu(self):
         self.check_value_check(self.t)
+
+
+class TestEmbedIDUnpickleOldFile(unittest.TestCase):
+
+    def test_old_unpickle(self):
+        embed = links.EmbedID(3, 4)
+        # To emulate an old pickled file
+        delattr(embed, 'ignore_label')
+        x = chainer.Variable(numpy.arange(2, dtype=numpy.int32))
+        y = embed(x)
+        self.assertEqual(y.data.shape, (2, 4))
 
 
 testing.run_module(__name__, __file__)

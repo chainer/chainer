@@ -13,6 +13,7 @@ class Adam(optimizer.GradientMethod):
     See: http://arxiv.org/abs/1412.6980v8
 
     """
+
     def __init__(self, alpha=0.001, beta1=0.9, beta2=0.999, eps=1e-8):
         self.alpha = alpha
         self.beta1 = beta1
@@ -21,8 +22,9 @@ class Adam(optimizer.GradientMethod):
 
     def init_state(self, param, state):
         xp = cuda.get_array_module(param.data)
-        state['m'] = xp.zeros_like(param.data)
-        state['v'] = xp.zeros_like(param.data)
+        with cuda.get_device(param.data):
+            state['m'] = xp.zeros_like(param.data)
+            state['v'] = xp.zeros_like(param.data)
 
     def update_one_cpu(self, param, state):
         m, v = state['m'], state['v']

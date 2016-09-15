@@ -30,6 +30,8 @@ MODULES = [
             'cupy.cuda.device',
             'cupy.cuda.driver',
             'cupy.cuda.memory',
+            'cupy.cuda.profiler',
+            'cupy.cuda.nvtx',
             'cupy.cuda.function',
             'cupy.cuda.runtime',
             'cupy.util',
@@ -37,14 +39,17 @@ MODULES = [
         'include': [
             'cublas_v2.h',
             'cuda.h',
+            'cuda_profiler_api.h',
             'cuda_runtime.h',
             'curand.h',
+            'nvToolsExt.h',
         ],
         'libraries': [
             'cublas',
             'cuda',
             'cudart',
             'curand',
+            'nvToolsExt',
         ],
         'check_method': build.check_cuda_version,
     },
@@ -109,12 +114,15 @@ def check_library(compiler, includes=(), libraries=(),
 
         return True
 
+    except distutils.errors.DistutilsError as e:
+        print('distutils raises an error: %s' % e)
+        return False
+
     finally:
         shutil.rmtree(temp_dir, ignore_errors=True)
 
 
 def make_extensions(options, compiler):
-
     """Produce a list of Extension instances which passed to cythonize()."""
 
     no_cuda = options['no_cuda']
@@ -128,6 +136,13 @@ def make_extensions(options, compiler):
         x for x in settings['library_dirs'] if path.exists(x)]
     if sys.platform != 'win32':
         settings['runtime_library_dirs'] = settings['library_dirs']
+    if sys.platform == 'darwin':
+        args = settings.setdefault('extra_link_args', [])
+        args.append(
+            '-Wl,' + ','.join('-rpath,' + path
+                              for path in settings['library_dirs']))
+        # -rpath is only supported when targetting Mac OS X 10.5 or later
+        args.append('-mmacosx-version-min=10.5')
 
     if options['linetrace']:
         settings['define_macros'].append(('CYTHON_TRACE', '1'))
@@ -269,7 +284,7 @@ class chainer_build_ext(build_ext.build_ext):
             cythonize_options = {
                 key: _arg_options[key] for key in cythonize_option_keys}
 
-            compiler = distutils.ccompiler.new_compiler(self.compiler)
+            compiler = distutils.ccompiler.new_compiler(compiler=self.compiler)
             distutils.sysconfig.customize_compiler(compiler)
 
             extensions = make_extensions(_arg_options, compiler)

@@ -38,8 +38,9 @@ if available:
         def decorator(meth):
             global _type_to_method
             _type_to_method[typ] = meth
-            typevalue = getattr(caffe_pb.V1LayerParameter, oldname)
-            _oldname_to_method[typevalue] = meth
+            if oldname is not None:
+                typevalue = getattr(caffe_pb.V1LayerParameter, oldname)
+                _oldname_to_method[typevalue] = meth
             return meth
         return decorator
 else:
@@ -59,9 +60,8 @@ class CaffeFunction(link.Chain):
 
     .. note::
 
-       This class only supports Python 2.7, since the compiled module for
-       protocol buffers only supports Python 2. The ``__init__`` function
-       raises an exception in Python 3.
+       protobuf>=3.0.0 is required if you use Python 3 because protobuf 2 is
+       not supported on Python 3.
 
     .. note::
 
@@ -115,9 +115,10 @@ class CaffeFunction(link.Chain):
         forwards (dict): A mapping from layer names to corresponding functions.
 
     """
+
     def __init__(self, model_path):
         if not available:
-            msg = ('CaffeFunction is only supported on protobuf>=3 in Python3')
+            msg = 'CaffeFunction is only supported on protobuf>=3 in Python3'
             raise RuntimeError(msg)
 
         super(CaffeFunction, self).__init__()
@@ -177,8 +178,8 @@ class CaffeFunction(link.Chain):
         variables = dict(inputs)
         for func_name, bottom, top in self.layers:
             if (func_name in disable or
-               func_name not in self.forwards or
-               any(blob not in variables for blob in bottom)):
+                func_name not in self.forwards or
+                    any(blob not in variables for blob in bottom)):
                 continue
 
             func = self.forwards[func_name]
@@ -228,12 +229,13 @@ class CaffeFunction(link.Chain):
         part_size = len(blobs[0].data) // param.group
         for i in six.moves.range(param.group):
             in_slice = slice(i * n_in // param.group,
-                             (i+1) * n_in // param.group)
+                             (i + 1) * n_in // param.group)
             out_slice = slice(i * n_out // param.group,
-                              (i+1) * n_out // param.group)
+                              (i + 1) * n_out // param.group)
             w = func.W.data[out_slice, in_slice]
 
-            data = numpy.array(blobs[0].data[i*part_size:(i+1)*part_size])
+            data = numpy.array(
+                blobs[0].data[i * part_size:(i + 1) * part_size])
             w[:] = data.reshape(w.shape)
 
         if param.bias_term:
@@ -318,6 +320,110 @@ class CaffeFunction(link.Chain):
         self.forwards[layer.name] = fw
         self._add_layer(layer)
 
+    @_layer('BatchNorm', None)
+    def _setup_batchnorm(self, layer):
+        # Get layer parameters.
+        blobs = layer.blobs
+        param = layer.batch_norm_param
+        use_global_stats = param.use_global_stats
+        decay = param.moving_average_fraction
+        eps = param.eps
+        size = int(blobs[0].shape.dim[0])  # Get channel dim from mean blob.
+
+        # Make BatchNormalization link.
+        func = links.BatchNormalization(size, decay=decay, eps=eps,
+                                        use_gamma=False, use_beta=False)
+        func.avg_mean.ravel()[:] = blobs[0].data
+        func.avg_var.ravel()[:] = blobs[1].data
+        self.add_link(layer.name, func)
+
+        # Add layer.
+        fwd = _SingleArgumentFunction(
+            _CallChildLink(self, layer.name),
+            test=use_global_stats, finetune=False)
+        self.forwards[layer.name] = fwd
+        self._add_layer(layer)
+
+    @_layer('Eltwise', 'ELTWISE')
+    def _setup_eltwise(self, layer):
+        # stable_prod_grad parameter is not supported now.
+        operation = layer.eltwise_param.operation
+        coeffs = layer.eltwise_param.coeff or None
+        self.forwards[layer.name] = _EltwiseFunction(operation, coeffs)
+        self._add_layer(layer)
+
+    @_layer('Scale', None)
+    def _setup_scale(self, layer):
+        # Following parameters are not supported now:
+        # - negative axis
+        # - num_axes
+        # - filler
+        # - bias_filler
+
+        # Get layer parameters.
+        bottom = layer.bottom
+        blobs = layer.blobs
+        axis = layer.scale_param.axis
+        bias_term = layer.scale_param.bias_term
+
+        # Case of only one bottom where W is learnt parameter.
+        if len(bottom) == 1:
+            W_shape = blobs[0].shape.dim
+            func = links.scale.Scale(axis, W_shape, bias_term)
+            func.W.data.ravel()[:] = blobs[0].data
+            if bias_term:
+                func.bias.b.data.ravel()[:] = blobs[1].data
+        # Case of two bottoms where W is given as a bottom.
+        else:
+            shape = blobs[0].shape.dim if bias_term else None
+            func = links.scale.Scale(
+                axis, bias_term=bias_term, bias_shape=shape)
+            if bias_term:
+                func.bias.b.data.ravel()[:] = blobs[0].data
+
+        # Add layer.
+        self.add_link(layer.name, func)
+        self.forwards[layer.name] = _CallChildLink(self, layer.name)
+        self._add_layer(layer)
+
+    @_layer('Slice', 'SLICE')
+    def _setup_slice(self, layer):
+        if layer.slice_param.HasField('axis'):
+            axis = layer.slice_param.axis
+        elif layer.slice_param.HasField('slice_dim'):
+            axis = layer.slice_param.slice_dim
+        else:
+            axis = 1
+
+        if layer.slice_param.slice_point:
+            indices_or_sections = list(layer.slice_param.slice_point)
+        else:
+            indices_or_sections = len(list(layer.top))
+
+        self.forwards[layer.name] = _SingleArgumentFunction(
+            functions.split_axis,
+            indices_or_sections=indices_or_sections,
+            axis=axis
+        )
+
+        self._add_layer(layer)
+
+    @_layer('Softmax', 'SOFTMAX')
+    def _setup_softmax(self, layer):
+        if layer.softmax_param.axis != 1:
+            raise RuntimeError(
+                'Softmax along non-channel axis is not supported')
+
+        if layer.softmax_param.engine == 0:  # DEFAULT
+            fw = functions.softmax
+        elif layer.softmax_param.engine == 1:  # CAFFE
+            fw = _SingleArgumentFunction(functions.softmax, use_cudnn=False)
+        elif layer.softmax_param.engine == 2:  # CUDNN
+            fw = _SingleArgumentFunction(functions.softmax, use_cudnn=True)
+
+        self.forwards[layer.name] = fw
+        self._add_layer(layer)
+
     @_layer('SoftmaxWithLoss', 'SOFTMAX_LOSS')
     def _setup_softmax_with_loss(self, layer):
         if layer.softmax_param.axis != 1:
@@ -338,6 +444,10 @@ class CaffeFunction(link.Chain):
 def _get_ksize(param):
     if param.kernel_h > 0:
         return param.kernel_h, param.kernel_w
+    elif type(param.kernel_size) == int:
+        return param.kernel_size
+    elif len(param.kernel_size) == 1:
+        return param.kernel_size[0]
     else:
         return param.kernel_size
 
@@ -345,6 +455,12 @@ def _get_ksize(param):
 def _get_stride(param):
     if param.stride_h > 0:
         return param.stride_h, param.stride_w
+    elif type(param.stride) == int:
+        return param.stride
+    elif len(param.stride) == 0:
+        return 1
+    elif len(param.stride) == 1:
+        return param.stride[0]
     else:
         return param.stride
 
@@ -352,6 +468,12 @@ def _get_stride(param):
 def _get_pad(param):
     if param.pad_h > 0:
         return param.pad_h, param.pad_w
+    elif type(param.pad) == int:
+        return param.pad
+    elif len(param.pad) == 0:
+        return 0
+    elif len(param.pad) == 1:
+        return param.pad[0]
     else:
         return param.pad
 
@@ -399,6 +521,7 @@ def _get_width(blob):
 # Internal class
 
 class _SingleArgumentFunction(object):
+
     def __init__(self, func, *args, **kwargs):
         self.func = func
         self.args = args
@@ -409,6 +532,7 @@ class _SingleArgumentFunction(object):
 
 
 class _ListArgumentFcuntion(object):
+
     def __init__(self, func, **kwargs):
         self.func = func
         self.kwargs = kwargs
@@ -418,6 +542,7 @@ class _ListArgumentFcuntion(object):
 
 
 class _DropoutFunction(object):
+
     def __init__(self, caffe_func, ratio):
         # `caffe_func.train` is determined when calling `__call__`
         self.caffe_func = caffe_func
@@ -429,9 +554,38 @@ class _DropoutFunction(object):
 
 
 class _CallChildLink(object):
+
     def __init__(self, caffe_func, name):
         self.name = name
         self.caffe_func = caffe_func
 
+    def __call__(self, *xs, **kwargs):
+        return self.caffe_func[self.name](*xs, **kwargs)
+
+
+class _EltwiseFunction(object):
+
+    def __init__(self, operation, coeffs=None):
+        if coeffs is not None:
+            assert len(coeffs) > 0
+        self.operation = operation
+        self.coeffs = coeffs
+
     def __call__(self, *xs):
-        return self.caffe_func[self.name](*xs)
+        operation = self.operation
+
+        if operation == 0:      # PROD
+            return six.moves.reduce(lambda x, y: x * y, xs),
+
+        elif operation == 1:    # SUM
+            coeffs = self.coeffs
+            if coeffs is not None:
+                assert len(xs) == len(coeffs)
+                xs = [x * coeff for x, coeff in zip(xs, coeffs)]
+            return six.moves.reduce(lambda x, y: x + y, xs),
+
+        elif operation == 2:    # MAX
+            return six.moves.reduce(lambda x, y: functions.maximum(x, y), xs),
+
+        else:
+            raise ValueError('Invalid EltwiseParameter.EltwiseOp value.')

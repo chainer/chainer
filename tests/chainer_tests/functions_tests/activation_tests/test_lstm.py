@@ -15,15 +15,29 @@ def _sigmoid(x):
     return 1 / (1 + numpy.exp(-x))
 
 
+@testing.parameterize(*testing.product({
+    'batch': [3, 2, 0],
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+}))
 class TestLSTM(unittest.TestCase):
 
     def setUp(self):
-        self.c_prev = numpy.random.uniform(-1,
-                                           1, (3, 2, 4)).astype(numpy.float32)
-        self.x = numpy.random.uniform(-1, 1, (3, 8, 4)).astype(numpy.float32)
+        hidden_shape = (3, 2, 4)
+        x_shape = (self.batch, 8, 4)
+        y_shape = (self.batch, 2, 4)
+        self.c_prev = numpy.random.uniform(
+            -1, 1, hidden_shape).astype(self.dtype)
+        self.x = numpy.random.uniform(-1, 1, x_shape).astype(self.dtype)
 
-        self.gc = numpy.random.uniform(-1, 1, (3, 2, 4)).astype(numpy.float32)
-        self.gh = numpy.random.uniform(-1, 1, (3, 2, 4)).astype(numpy.float32)
+        self.gc = numpy.random.uniform(-1, 1, hidden_shape).astype(self.dtype)
+        self.gh = numpy.random.uniform(-1, 1, y_shape).astype(self.dtype)
+
+        self.check_forward_options = {}
+        self.check_backward_options = {'dtype': numpy.float64}
+        if self.dtype == numpy.float16:
+            self.check_forward_options = {'atol': 1e-3, 'rtol': 1e-2}
+            self.check_backward_options = {
+                'dtype': numpy.float64, 'atol': 5e-4, 'rtol': 5e-3}
 
     def flat(self):
         self.c_prev = self.c_prev[:, :, 0].copy()
@@ -35,8 +49,9 @@ class TestLSTM(unittest.TestCase):
         c_prev = chainer.Variable(c_prev_data)
         x = chainer.Variable(x_data)
         c, h = functions.lstm(c_prev, x)
-        self.assertEqual(c.data.dtype, numpy.float32)
-        self.assertEqual(h.data.dtype, numpy.float32)
+        self.assertEqual(c.data.dtype, self.dtype)
+        self.assertEqual(h.data.dtype, self.dtype)
+        batch = len(x_data)
 
         # Compute expected out
         a_in = self.x[:, [0, 4]]
@@ -45,11 +60,15 @@ class TestLSTM(unittest.TestCase):
         o_in = self.x[:, [3, 7]]
 
         c_expect = _sigmoid(i_in) * numpy.tanh(a_in) + \
-            _sigmoid(f_in) * self.c_prev
+            _sigmoid(f_in) * self.c_prev[:batch]
         h_expect = _sigmoid(o_in) * numpy.tanh(c_expect)
 
-        gradient_check.assert_allclose(c_expect, c.data)
-        gradient_check.assert_allclose(h_expect, h.data)
+        testing.assert_allclose(
+            c_expect, c.data[:batch], **self.check_forward_options)
+        testing.assert_allclose(
+            h_expect, h.data, **self.check_forward_options)
+        testing.assert_allclose(
+            c_prev_data[batch:], c.data[batch:], **self.check_forward_options)
 
     @condition.retry(3)
     def test_forward_cpu(self):
@@ -74,7 +93,8 @@ class TestLSTM(unittest.TestCase):
     def check_backward(self, c_prev_data, x_data, c_grad, h_grad):
         gradient_check.check_backward(
             functions.LSTM(),
-            (c_prev_data, x_data), (c_grad, h_grad), eps=1e-2)
+            (c_prev_data, x_data), (c_grad, h_grad),
+            **self.check_backward_options)
 
     @condition.retry(3)
     def test_full_backward_cpu(self):

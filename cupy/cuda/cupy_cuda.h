@@ -6,8 +6,32 @@
 #ifndef CUPY_NO_CUDA
 #include <cublas_v2.h>
 #include <cuda.h>
+#include <cuda_profiler_api.h>
 #include <cuda_runtime.h>
 #include <curand.h>
+#include <nvToolsExt.h>
+
+#if CUDA_VERSION < 8000
+#if CUDA_VERSION >= 7050
+typedef cublasDataType_t cudaDataType;
+#else
+enum cudaDataType_t {};
+typedef enum cudaDataType_t cudaDataType;
+#endif // #if CUDA_VERSION >= 7050
+#endif // #if CUDA_VERSION < 8000
+
+#if CUDA_VERSION < 7050
+int cublasSgemmEx(
+        cublasHandle_t handle, cublasOperation_t transa,
+        cublasOperation_t transb, int m, int n, int k,
+        const float *alpha, const void *A, cudaDataType Atype,
+        int lda, const void *B, cudaDataType Btype, int ldb,
+        const float *beta, void *C, cudaDataType Ctype, int ldc) {
+    return CUBLAS_STATUS_NOT_SUPPORTED;
+}
+#endif // #if CUDA_VERSION < 7050
+
+
 
 #else // #ifndef CUPY_NO_CUDA
 
@@ -82,16 +106,14 @@ int cuLaunchKernel(
 ///////////////////////////////////////////////////////////////////////////////
 
 typedef int cudaError_t;
+enum cudaDataType_t {};
 enum cudaDeviceAttr {};
 enum cudaMemcpyKind {};
 
 typedef int Error;
+typedef enum cudaDataType_t cudaDataType;
 typedef enum cudaDeviceAttr DeviceAttr;
 typedef enum cudaMemcpyKind MemoryKind;
-
-
-typedef void* _Pointer;
-
 
 typedef void (*cudaStreamCallback_t)(
     Stream stream, Error status, void* userData);
@@ -121,7 +143,11 @@ const char* cudaGetErrorString(Error error) {
 
 
 // Initialization
-int cudaDriverGetVersion(int* driverVersion ) {
+int cudaDriverGetVersion(int* driverVersion) {
+    return 0;
+}
+
+int cudaRuntimeGetVersion(int* runtimeVersion) {
     return 0;
 }
 
@@ -409,6 +435,13 @@ int cublasSgemmBatched(
     return 0;
 }
 
+int cublasSgemmEx(
+        cublasHandle_t handle, cublasOperation_t transa,
+        cublasOperation_t transb, int m, int n, int k,
+        const float *alpha, const void *A, cudaDataType Atype,
+        int lda, const void *B, cudaDataType Btype, int ldb,
+        const float *beta, void *C, cudaDataType Ctype, int ldc);
+
 
 // BLAS extension
 int cublasSdgmm(
@@ -431,7 +464,7 @@ int cublasSgetriBatched(
 
 
 ///////////////////////////////////////////////////////////////////////////////
-// cublas_v2.h
+// curand.h
 ///////////////////////////////////////////////////////////////////////////////
 
 typedef int curandOrdering_t;
@@ -532,6 +565,89 @@ int curandGeneratePoisson(
     return 0;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// cuda_profiler_api.h
+///////////////////////////////////////////////////////////////////////////////
+
+typedef int cudaOutputMode_t;
+
+int cudaProfilerInitialize(const char *configFile, 
+                           const char *outputFile, 
+                           cudaOutputMode_t outputMode) {
+  return 0;
+}
+
+int cudaProfilerStart() {
+  return 0;
+}
+
+int cudaProfilerStop() {
+  return 0;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// nvToolsExt.h
+///////////////////////////////////////////////////////////////////////////////
+
+#define NVTX_VERSION 1
+
+typedef enum nvtxColorType_t
+{
+    NVTX_COLOR_UNKNOWN  = 0,
+    NVTX_COLOR_ARGB     = 1
+} nvtxColorType_t;
+
+typedef enum nvtxMessageType_t
+{
+    NVTX_MESSAGE_UNKNOWN          = 0,
+    NVTX_MESSAGE_TYPE_ASCII       = 1,
+    NVTX_MESSAGE_TYPE_UNICODE     = 2,
+} nvtxMessageType_t;
+
+typedef union nvtxMessageValue_t
+{
+    const char* ascii;
+    const wchar_t* unicode;
+} nvtxMessageValue_t;
+
+typedef struct nvtxEventAttributes_v1
+{
+    uint16_t version;
+    uint16_t size;
+    uint32_t category;
+    int32_t colorType;
+    uint32_t color;
+    int32_t payloadType;
+    int32_t reserved0;
+    union payload_t
+    {
+        uint64_t ullValue;
+        int64_t llValue;
+        double dValue;
+    } payload;
+    int32_t messageType;
+    nvtxMessageValue_t message;
+} nvtxEventAttributes_v1;
+
+typedef nvtxEventAttributes_v1 nvtxEventAttributes_t;
+
+void nvtxMarkA(const char *message) {
+}
+
+void nvtxMarkEx(const nvtxEventAttributes_t *eventAttrib) {
+}
+
+int nvtxRangePushA(const char *message) {
+    return 0;
+}
+
+int nvtxRangePushEx(const nvtxEventAttributes_t *eventAttrib) {
+    return 0;
+}
+
+int nvtxRangePop() {
+    return 0;
+}
 
 #endif // #ifndef CUPY_NO_CUDA
 #endif // #ifndef INCLUDE_GUARD_CUPY_CUDA_H

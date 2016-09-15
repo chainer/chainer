@@ -16,6 +16,12 @@ Chainer provides many :class:`~chainer.Link` implementations in the
 Learnable connections
 ---------------------
 
+Bias
+~~~~
+
+.. autoclass:: Bias
+   :members:
+
 Bilinear
 ~~~~~~~~
 .. autoclass:: Bilinear
@@ -24,6 +30,11 @@ Bilinear
 Convolution2D
 ~~~~~~~~~~~~~
 .. autoclass:: Convolution2D
+   :members:
+
+ConvolutionND
+~~~~~~~~~~~~~
+.. autoclass:: ConvolutionND
    :members:
 
 Deconvolution2D
@@ -39,6 +50,11 @@ EmbedID
 GRU
 ~~~
 .. autoclass:: GRU
+   :members:
+
+Highway
+~~~~~~~
+.. autoclass:: Highway
    :members:
 
 Inception
@@ -66,9 +82,24 @@ MLPConvolution2D
 .. autoclass:: MLPConvolution2D
    :members:
 
+Scale
+~~~~~
+.. autoclass:: Scale
+   :members:
+
 StatefulGRU
 ~~~~~~~~~~~
 .. autoclass:: StatefulGRU
+   :members:
+
+StatefulPeepholeLSTM
+~~~~~~~~~~~~~~~~~~~~
+.. autoclass:: StatefulPeepholeLSTM
+   :members:
+
+StatelessLSTM
+~~~~~~~~~~~~~
+.. autoclass:: StatelessLSTM
    :members:
 
 Activation/loss/normalization functions with parameters
@@ -82,6 +113,15 @@ BatchNormalization
 BinaryHierarchicalSoftmax
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: BinaryHierarchicalSoftmax
+   :members:
+
+BlackOut
+~~~~~~~~
+.. autoclass:: BlackOut
+
+CRF1d
+~~~~~
+.. autoclass:: CRF1d
    :members:
 
 PReLU

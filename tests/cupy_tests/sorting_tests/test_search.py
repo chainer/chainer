@@ -1,5 +1,7 @@
 import unittest
 
+import numpy
+
 from cupy import testing
 
 
@@ -19,6 +21,12 @@ class TestSearch(unittest.TestCase):
     def test_external_argmax_all(self, xp, dtype):
         a = testing.shaped_random((2, 3), xp, dtype)
         return xp.argmax(a)
+
+    @testing.for_all_dtypes()
+    @testing.numpy_cupy_allclose(accept_error=ValueError)
+    def test_argmax_nan(self, xp, dtype):
+        a = xp.array([float('nan'), -1, 1], dtype)
+        return a.argmax()
 
     @testing.for_all_dtypes()
     @testing.numpy_cupy_allclose()
@@ -54,6 +62,12 @@ class TestSearch(unittest.TestCase):
     @testing.numpy_cupy_allclose()
     def test_argmin_all(self, xp, dtype):
         a = testing.shaped_random((2, 3), xp, dtype)
+        return a.argmin()
+
+    @testing.for_all_dtypes()
+    @testing.numpy_cupy_allclose(accept_error=ValueError)
+    def test_argmin_nan(self, xp, dtype):
+        a = xp.array([float('nan'), -1, 1], dtype)
         return a.argmin()
 
     @testing.for_all_dtypes()
@@ -123,3 +137,35 @@ class TestWhereError(unittest.TestCase):
         cond = testing.shaped_random((3, 4), xp, dtype=xp.bool_)
         x = testing.shaped_random((2, 3, 4), xp, xp.int32)
         xp.where(cond, x)
+
+
+@testing.parameterize(
+    {"array": numpy.random.randint(0, 2, (20,))},
+    {"array": numpy.random.randn(3, 2, 4)},
+    {"array": numpy.array(0)},
+    {"array": numpy.array(1)},
+)
+@testing.gpu
+class TestNonzero(unittest.TestCase):
+
+    @testing.for_all_dtypes()
+    @testing.numpy_cupy_array_list_equal()
+    def test_nonzero(self, xp, dtype):
+        array = xp.array(self.array, dtype=dtype)
+        return xp.nonzero(array)
+
+
+@testing.parameterize(
+    {"array": numpy.random.randint(0, 2, (20,))},
+    {"array": numpy.random.randn(3, 2, 4)},
+    {"array": numpy.array(0)},
+    {"array": numpy.array(1)},
+)
+@testing.gpu
+class TestFlatNonzero(unittest.TestCase):
+
+    @testing.for_all_dtypes()
+    @testing.numpy_cupy_array_equal()
+    def test_flatnonzero(self, xp, dtype):
+        array = xp.array(self.array, dtype=dtype)
+        return xp.flatnonzero(array)

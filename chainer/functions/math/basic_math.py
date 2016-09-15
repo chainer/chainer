@@ -2,6 +2,7 @@ import numpy
 
 from chainer import cuda
 from chainer import function
+from chainer.functions.math import matmul as _matmul
 from chainer import utils
 from chainer.utils import type_check
 from chainer import variable
@@ -33,6 +34,18 @@ def _check_constant_type(value):
             'value must be scalar, ndarray, or Variable')
 
 
+def _preprocess_const(x, value):
+    xp = cuda.get_array_module(x)
+    if not numpy.isscalar(value) and cuda.get_array_module(value) != xp:
+        # TODO(unno): We can transfer arrays automatically
+        raise TypeError('Cannot mix cupy.ndarray and numpy.ndarray')
+
+    b = xp.broadcast(x, value)
+    if b.shape != x.shape:
+        raise ValueError('Failed to broadcast arrays')
+    return utils.force_type(x.dtype, value)
+
+
 class Neg(function.Function):
 
     @property
@@ -61,7 +74,7 @@ class Absolute(function.Function):
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)
-        type_check.expect(in_types[0].dtype == numpy.float32)
+        type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward(self, x):
         return utils.force_array(abs(x[0])),
@@ -115,7 +128,7 @@ class AddConstant(function.Function):
         type_check.expect(in_types.size() == 1)
 
     def forward(self, x):
-        value = utils.force_type(x[0].dtype, self.value)
+        value = _preprocess_const(x[0], self.value)
         return utils.force_array(x[0] + value),
 
     def backward(self, x, gy):
@@ -169,7 +182,7 @@ class SubFromConstant(function.Function):
         type_check.expect(in_types.size() == 1)
 
     def forward(self, x):
-        value = utils.force_type(x[0].dtype, self.value)
+        value = _preprocess_const(x[0], self.value)
         return utils.force_array(value - x[0]),
 
     def backward(self, x, gy):
@@ -192,8 +205,8 @@ class Mul(function.Function):
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 2)
         type_check.expect(
-            in_types[0].dtype == numpy.float32,
-            in_types[1].dtype == numpy.float32,
+            in_types[0].dtype.kind == 'f',
+            in_types[0].dtype == in_types[1].dtype,
             in_types[0].shape == in_types[1].shape
         )
 
@@ -217,11 +230,11 @@ class MulConstant(function.Function):
         type_check.expect(in_types.size() == 1)
 
     def forward(self, x):
-        value = utils.force_type(x[0].dtype, self.value)
+        value = _preprocess_const(x[0], self.value)
         return utils.force_array(value * x[0]),
 
     def backward(self, x, gy):
-        value = utils.force_type(x[0].dtype, self.value)
+        value = _preprocess_const(x[0], self.value)
         return utils.force_array(value * gy[0]),
 
 
@@ -241,8 +254,8 @@ class Div(function.Function):
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 2)
         type_check.expect(
-            in_types[0].dtype == numpy.float32,
-            in_types[1].dtype == numpy.float32,
+            in_types[0].dtype.kind == 'f',
+            in_types[0].dtype == in_types[1].dtype,
             in_types[0].shape == in_types[1].shape
         )
 
@@ -281,18 +294,18 @@ class DivFromConstant(function.Function):
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)
-        type_check.expect(in_types[0].dtype == numpy.float32)
+        type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward(self, x):
-        value = utils.force_type(x[0].dtype, self.value)
+        value = _preprocess_const(x[0], self.value)
         return utils.force_array(value / x[0]),
 
     def backward_cpu(self, x, gy):
-        value = utils.force_type(x[0].dtype, self.value)
+        value = _preprocess_const(x[0], self.value)
         return utils.force_array(-value * gy[0] / (x[0] ** 2)),
 
     def backward_gpu(self, x, gy):
-        value = utils.force_type(x[0].dtype, self.value)
+        value = _preprocess_const(x[0], self.value)
         gx = cuda.elementwise('T x, T gy, T value', 'T gx',
                               'gx = -value * gy / (x * x)',
                               'div_from_const_bwd')(x[0], gy[0], value)
@@ -315,8 +328,8 @@ class PowVarVar(function.Function):
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 2)
         type_check.expect(
-            in_types[0].dtype == numpy.float32,
-            in_types[1].dtype == numpy.float32,
+            in_types[0].dtype.kind == 'f',
+            in_types[0].dtype == in_types[1].dtype,
             in_types[0].shape == in_types[1].shape
         )
 
@@ -353,19 +366,19 @@ class PowVarConst(function.Function):
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)
-        type_check.expect(in_types[0].dtype == numpy.float32)
+        type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward(self, x):
-        value = utils.force_type(x[0].dtype, self.value)
-        return utils.force_array(x[0] ** value),
+        value = _preprocess_const(x[0], self.value)
+        return utils.force_array(x[0] ** value, x[0].dtype),
 
     def backward_cpu(self, x, gy):
-        val_1 = utils.force_type(x[0].dtype, self.value - 1)
+        val_1 = _preprocess_const(x[0], self.value - 1)
         gx = utils.force_type(x[0].dtype, self.value) * (x[0] ** val_1) * gy[0]
         return utils.force_array(gx),
 
     def backward_gpu(self, x, gy):
-        value = utils.force_type(x[0].dtype, self.value)
+        value = _preprocess_const(x[0], self.value)
         gx = cuda.elementwise(
             'T x, T gy, T value', 'T gx',
             'gx = value * pow(x, value - 1) * gy',
@@ -391,19 +404,20 @@ class PowConstVar(function.Function):
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)
-        type_check.expect(in_types[0].dtype == numpy.float32)
+        type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward(self, x):
-        value = utils.force_type(x[0].dtype, self.value)
+        value = _preprocess_const(x[0], self.value)
         self.y = utils.force_array(value ** x[0])
         return self.y,
 
     def backward_cpu(self, x, gy):
-        value = utils.force_type(x[0].dtype, self.value)
-        return utils.force_array(numpy.log(value) * self.y * gy[0]),
+        value = _preprocess_const(x[0], self.value)
+        return utils.force_array(
+            numpy.log(value, dtype=x[0].dtype) * self.y * gy[0]),
 
     def backward_gpu(self, x, gy):
-        value = utils.force_type(x[0].dtype, self.value)
+        value = _preprocess_const(x[0], self.value)
         gx = cuda.elementwise(
             'T x, T gy, T value', 'T gx',
             'gx = log(value) * pow(value, x) * gy',
@@ -416,6 +430,97 @@ def rpow(lhs, rhs):  # rhs ** lhs
         return PowVarVar()(rhs, lhs)
     _check_constant_type(rhs)
     return PowConstVar(rhs)(lhs)
+
+
+class MatMulVarVar(_matmul.MatMul):
+
+    @property
+    def label(self):
+        return '_ @ _'
+
+
+class MatMulVarConst(function.Function):
+
+    def __init__(self, value):
+        self.value = value
+
+    @property
+    def label(self):
+        return '_ @ %s' % _convert_value_to_string(self.value)
+
+    def check_type_forward(self, in_types):
+        type_check.expect(in_types.size() == 1)
+        a_type = in_types[0]
+        b_type = self.value
+
+        type_check.expect(a_type.dtype.kind == 'f')
+
+        _matmul._check_ndim(a_type)
+
+        a_type = _matmul._convert_type(a_type)
+        a_idx = _matmul._get_check_index(False, False)
+        b_idx = _matmul._get_check_index(False, True)
+        type_check.expect(
+            a_type.shape[a_idx] == b_type.shape[b_idx]
+        )
+
+    def forward(self, x):
+        return _matmul._matmul(x[0], self.value),
+
+    def backward(self, x, gy):
+        gx0 = _matmul._matmul(
+            gy[0], self.value, transb=True, transout=False
+        ).reshape(x[0].shape)
+        return gx0,
+
+
+class MatMulConstVar(function.Function):
+
+    def __init__(self, value):
+        self.value = value
+
+    @property
+    def label(self):
+        return '%s @ _' % _convert_value_to_string(self.value)
+
+    def check_type_forward(self, in_types):
+        type_check.expect(in_types.size() == 1)
+        a_type = self.value
+        b_type = in_types[0]
+
+        type_check.expect(b_type.dtype.kind == 'f')
+
+        _matmul._check_ndim(b_type)
+
+        b_type = _matmul._convert_type(b_type)
+        a_idx = _matmul._get_check_index(False, False)
+        b_idx = _matmul._get_check_index(False, True)
+        type_check.expect(
+            a_type.shape[a_idx] == b_type.shape[b_idx]
+        )
+
+    def forward(self, x):
+        return _matmul._matmul(self.value, x[0]),
+
+    def backward(self, x, gy):
+        gx1 = _matmul._matmul(
+            self.value, gy[0], transa=True, transout=False
+        ).reshape(x[0].shape)
+        return gx1,
+
+
+def matmul(lhs, rhs):  # lhs @ rhs
+    if isinstance(rhs, variable.Variable):
+        return MatMulVarVar()(lhs, rhs)
+    _check_constant_type(rhs)
+    return MatMulVarConst(rhs)(lhs)
+
+
+def rmatmul(lhs, rhs):  # rhs @ lhs
+    if isinstance(rhs, variable.Variable):
+        return MatMulVarVar()(rhs, lhs)
+    _check_constant_type(rhs)
+    return MatMulConstVar(rhs)(lhs)
 
 
 def install_variable_arithmetics():
@@ -433,3 +538,5 @@ def install_variable_arithmetics():
     variable.Variable.__rtruediv__ = rdiv
     variable.Variable.__pow__ = pow
     variable.Variable.__rpow__ = rpow
+    variable.Variable.__matmul__ = matmul
+    variable.Variable.__rmatmul__ = rmatmul

@@ -1,5 +1,3 @@
-import numpy
-
 from chainer import cuda
 from chainer import function
 from chainer.utils import type_check
@@ -24,7 +22,7 @@ class Sum(function.Function):
     def check_type_forward(self, in_types):
         type_check.expect(
             in_types.size() == 1,
-            in_types[0].dtype == numpy.float32
+            in_types[0].dtype.kind == 'f',
         )
 
         if self.axis is not None:
@@ -46,14 +44,16 @@ class Sum(function.Function):
         xp = cuda.get_array_module(*x)
 
         gx = xp.empty_like(x[0])
-        if self.axis is None:
+        if gx.ndim == 0:
+            gx = gy[0]
+        elif self.axis is None:
             gx[:] = gy[0]
         else:
             gy = gy[0]
             actual_axis = []
             for axis in self.axis:
                 if axis < 0:
-                    axis = len(gx.shape) + axis
+                    axis += len(gx.shape)
                 actual_axis.append(axis)
             for axis in sorted(actual_axis):
                 gy = xp.expand_dims(gy, axis=axis)
