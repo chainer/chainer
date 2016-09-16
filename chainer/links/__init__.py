@@ -9,6 +9,7 @@ from chainer.links.connection import convolution_nd
 from chainer.links.connection import deconvolution_2d
 from chainer.links.connection import dilated_convolution_2d
 from chainer.links.connection import embed_id
+from chainer.links.connection import fast_gru
 from chainer.links.connection import gru
 from chainer.links.connection import highway
 from chainer.links.connection import inception
@@ -38,6 +39,7 @@ Deconvolution2D = deconvolution_2d.Deconvolution2D
 DilatedConvolution2D = dilated_convolution_2d.DilatedConvolution2D
 EmbedID = embed_id.EmbedID
 GRU = gru.GRU
+FastGRU = fast_gru.GRU
 StatefulGRU = gru.StatefulGRU
 Highway = highway.Highway
 Inception = inception.Inception
