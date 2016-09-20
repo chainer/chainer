@@ -14,6 +14,8 @@ cdef class PointerAttributes:
 cdef extern from *:
     ctypedef int Error 'cudaError_t'
     ctypedef int DataType 'cudaDataType'
+    ctypedef struct _IpcMemHandle 'cudaIpcMemHandle_t':
+        unsigned char reserved[64]
 
 
 ###############################################################################
@@ -26,6 +28,8 @@ cpdef enum:
     memcpyDeviceToHost = 2
     memcpyDeviceToDevice = 3
     memcpyDefault = 4
+
+    cudaIpcMemLazyEnablePeerAccess = 1
 
     cudaMemoryTypeHost = 1
     cudaMemoryTypeDevice = 2
@@ -81,6 +85,9 @@ cpdef int deviceGetAttribute(int attrib, int device) except *
 cpdef int getDeviceCount() except *
 cpdef setDevice(int device)
 cpdef deviceSynchronize()
+
+cpdef bytes ipcGetMemHandle(size_t ptr)
+cpdef size_t ipcOpenMemHandle(bytes handle, unsigned int flags=*) except *
 
 cpdef int deviceCanAccessPeer(int device, int peerDevice) except *
 cpdef deviceEnablePeerAccess(int peerDevice)

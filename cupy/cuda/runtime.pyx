@@ -63,6 +63,8 @@ cdef extern from "cupy_cuda.h":
     int cudaGetDeviceCount(int* count) nogil
     int cudaSetDevice(int device) nogil
     int cudaDeviceSynchronize() nogil
+    int cudaIpcGetMemHandle(_IpcMemHandle* handle, void* devPtr) nogil
+    int cudaIpcOpenMemHandle(void** devPtr, _IpcMemHandle handle, unsigned int flags) nogil
 
     int cudaDeviceCanAccessPeer(int* canAccessPeer, int device,
                                 int peerDevice) nogil
@@ -109,6 +111,20 @@ cdef extern from "cupy_cuda.h":
     int cudaEventRecord(driver.Event event, driver.Stream stream) nogil
     int cudaEventSynchronize(driver.Event event) nogil
 
+
+cpdef bytes ipcGetMemHandle(size_t ptr):
+    cdef _IpcMemHandle handle
+    status = cudaIpcGetMemHandle(&handle, <void*>ptr)
+    check_status(status)
+    return <bytes>handle.reserved[:64]
+
+cpdef size_t ipcOpenMemHandle(bytes handle, unsigned int flags=cudaIpcMemLazyEnablePeerAccess) except *:
+    cdef void* ptr
+    cdef _IpcMemHandle _handle
+    _handle.reserved = handle[:64]
+    status = cudaIpcOpenMemHandle(&ptr, _handle, flags)
+    check_status(status)
+    return <size_t>ptr
 
 ###############################################################################
 # Error handling
