@@ -44,8 +44,8 @@ class DilatedConvolution2D(link.Link):
        for the definition of two-dimensional dilated convolution.
 
     Attributes:
-        W (~chainer.Variable): Weight parameter.
-        b (~chainer.Variable): Bias parameter.
+        W (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Weight parameter.
+        b (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Bias parameter.
 
     """
 
@@ -88,7 +88,7 @@ class DilatedConvolution2D(link.Link):
         """Applies the convolution layer.
 
         Args:
-            x (~chainer.Variable): Input image.
+            x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Input image.
 
         Returns:
             ~chainer.Variable: Output of the convolution.

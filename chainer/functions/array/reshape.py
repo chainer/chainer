@@ -51,7 +51,7 @@ def reshape(x, shape):
     """Reshapes an input variable without copy.
 
     Args:
-        x (~chainer.Variable): Input variable.
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Input variable.
         shape (tuple of ints): Target shape.
 
     Returns:

@@ -40,8 +40,8 @@ class Linear(link.Link):
     .. seealso:: :func:`~chainer.functions.linear`
 
     Attributes:
-        W (~chainer.Variable): Weight parameter.
-        b (~chainer.Variable): Bias parameter.
+        W (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Weight parameter.
+        b (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Bias parameter.
 
     """
 
@@ -80,7 +80,7 @@ class Linear(link.Link):
         """Applies the linear layer.
 
         Args:
-            x (~chainer.Variable): Batch of input vectors.
+            x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Batch of input vectors.
 
         Returns:
             ~chainer.Variable: Output of the linear layer.

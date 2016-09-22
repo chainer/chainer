@@ -190,10 +190,10 @@ def lstm(c_prev, x):
     applying the function.
 
     Args:
-        c_prev (~chainer.Variable): Variable that holds the previous cell
+        c_prev (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Variable that holds the previous cell
             state. The cell state should be a zero array or the output of the
             previous call of LSTM.
-        x (~chainer.Variable): Variable that holds the incoming signal. It must
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Variable that holds the incoming signal. It must
             have the second dimension four times of that of the cell state,
 
     Returns:

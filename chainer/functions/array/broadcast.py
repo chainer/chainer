@@ -106,7 +106,7 @@ def broadcast_to(x, shape):
     """Broadcast a given variable to a given shape.
 
     Args:
-        x (~chainer.Variable): Variable to be broadcasted.
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Variable to be broadcasted.
         shape (tuple of int): The shape of the output variable.
 
     Returns:

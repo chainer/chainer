@@ -102,7 +102,7 @@ def normalize(x, eps=1e-5):
     :math:`eps` is used to avoid division by zero when :math:`x_i=0`
 
     Args:
-        x (~chainer.Variable): Two dimensional output variable. The first
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Two dimensional output variable. The first
             dimension is assumed to be the mini-batch dimension.
         eps (float): Epsilon value for numerical stability.
 

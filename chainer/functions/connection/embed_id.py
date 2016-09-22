@@ -91,8 +91,8 @@ def embed_id(x, W, ignore_label=None):
     This function is only differentiable on the input ``W``.
 
     Args:
-        x (~chainer.Variable): Batch vectors of IDs.
-        W (~chainer.Variable): Representation of each ID (a.k.a.
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Batch vectors of IDs.
+        W (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Representation of each ID (a.k.a.
             word embeddings).
         ignore_label (int or None): If ``ignore_label`` is an int value,
             ``i``-th column of return value is filled with ``0``.

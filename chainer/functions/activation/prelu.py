@@ -92,9 +92,9 @@ def prelu(x, W):
     is arbitrary non-negative integer.
 
     Args:
-        x (~chainer.Variable): Input variable.
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Input variable.
             Its first argument is assumed to be the minibatch dimension.
-        W (~chainer.Variable): Weight variable.
+        W (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Weight variable.
 
     Returns:
         ~chainer.Variable: Output variable

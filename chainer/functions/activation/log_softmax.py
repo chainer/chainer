@@ -109,7 +109,7 @@ def log_softmax(x, use_cudnn=True):
         ``log_softmax`` method is more stable.
 
     Args:
-        x (~chainer.Variable): Input variable.
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Input variable.
         use_cudnn (bool): If ``True``, cuDNN is enabled and cuDNN ver. 3 or
             later is used, then this function uses cuDNN as the core
             implementation.

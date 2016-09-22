@@ -95,7 +95,7 @@ def spatial_pyramid_pooling_2d(x, pyramid_height, pooling_class,
     <http://arxiv.org/abs/1406.4729>`_.
 
     Args:
-        x (~chainer.Variable): Input variable. The shape of ``x`` should be
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Input variable. The shape of ``x`` should be
             ``(batchsize, # of channels, height, width)``.
         pyramid_height (int): the number of pyramid levels
         pooling_class (MaxPooling2D or AveragePooling2D):

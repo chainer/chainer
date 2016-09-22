@@ -45,8 +45,8 @@ class StatefulPeepholeLSTM(link.Chain):
                                         to the forget gate.
         peep_o (~chainer.links.Linear): Linear layer of peephole connections
                                         to the output gate.
-        c (~chainer.Variable): Cell states of LSTM units.
-        h (~chainer.Variable): Output at the current time step.
+        c (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Cell states of LSTM units.
+        h (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Output at the current time step.
 
     """
 
@@ -87,7 +87,7 @@ class StatefulPeepholeLSTM(link.Chain):
         """Updates the internal state and returns the LSTM outputs.
 
         Args:
-            x (~chainer.Variable): A new batch from the input sequence.
+            x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): A new batch from the input sequence.
 
         Returns:
             ~chainer.Variable: Outputs of updated LSTM units.

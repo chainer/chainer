@@ -15,7 +15,7 @@ class Parameter(link.Link):
         array: Initial parameter array.
 
     Attributes:
-        W (~chainer.Variable): Parameter variable.
+        W (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Parameter variable.
 
     """
 

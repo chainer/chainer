@@ -75,7 +75,7 @@ def logsumexp(x, axis=None):
        y_i = \\log\\left(\\sum_j \\exp(x_{ij})\\right)
 
     Args:
-        x (~chainer.Variable): Elements to log-sum-exp.
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Elements to log-sum-exp.
         axis (None, int, or tuple of int): Axis which a sum is performed.
             The default (axis = None) is perform a sum over all the dimensions
             of the input array.

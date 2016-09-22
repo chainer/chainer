@@ -58,7 +58,7 @@ def relu(x, use_cudnn=True):
     """Rectified Linear Unit function :math:`f(x)=\\max(0, x)`.
 
     Args:
-        x (~chainer.Variable): Input variable.
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Input variable.
         use_cudnn (bool): If ``True`` and cuDNN is enabled, then this function
             uses cuDNN as the core implementation.
 

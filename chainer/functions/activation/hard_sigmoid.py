@@ -59,7 +59,7 @@ def hard_sigmoid(x):
         \\end{array} \\right.
 
     Args:
-        x (~chainer.Variable): Input variable.
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Input variable.
 
     Returns:
         ~chainer.Variable: Output variable.
