@@ -53,7 +53,8 @@ def hstack(xs):
     """Concatenate variables horizontally (column wise).
 
     Args:
-        xs (list of chainer.Variable): Variables to be concatenated.
+        xs (tuple of chainer.Variable, numpy.ndarray or cupy.ndarray):
+            Variables to be concatenated.
 
     Returns:
         ~chainer.Variable: Output variable.

@@ -22,9 +22,9 @@ def gaussian_kl_divergence(mean, ln_var):
     and :math:`I` is an identity matrix.
 
     Args:
-        mean (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): A variable representing mean of given
+        mean (~chainer.Variable): A variable representing mean of given
             gaussian distribution, :math:`\\mu`.
-        ln_var (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): A variable representing logarithm of
+        ln_var (~chainer.Variable): A variable representing logarithm of
             variance of given gaussian distribution, :math:`\\log(\\sigma^2)`.
 
     Returns:
@@ -60,8 +60,8 @@ def bernoulli_nll(x, y):
        directly.
 
     Args:
-        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Input variable.
-        y (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): A variable representing the parameter of
+        x (~chainer.Variable): Input variable.
+        y (~chainer.Variable): A variable representing the parameter of
             Bernoulli distribution.
 
     Returns:
@@ -91,10 +91,10 @@ def gaussian_nll(x, mean, ln_var):
     matrix where :math:`S_{ii} = \\sigma_i^2`.
 
     Args:
-        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Input variable.
-        mean (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): A variable representing mean of a Gaussian
+        x (~chainer.Variable): Input variable.
+        mean (~chainer.Variable): A variable representing mean of a Gaussian
             distribution, :math:`\\mu`.
-        ln_var (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): A variable representing logarithm of
+        ln_var (~chainer.Variable): A variable representing logarithm of
             variance of a Gaussian distribution, :math:`\\log(\\sigma^2)`.
 
     Returns:

@@ -61,11 +61,14 @@ def linear(x, W, b=None):
     :math:`Y = xW^\\top + b`.
 
     Args:
-        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Input variable. Its first dimension is assumed
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Input variable. Its first dimension is assumed
             to be the *minibatch dimension*. The other dimensions are treated
             as concatenated one dimension whose size must be ``N``.
-        W (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Weight variable of shape ``(M, N)``.
-        b (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Bias variable (optional) of shape ``(M,)``.
+        W (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Weight variable of shape ``(M, N)``.
+        b (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Bias variable (optional) of shape ``(M,)``.
 
     Returns:
         ~chainer.Variable: Output variable.

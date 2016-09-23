@@ -308,11 +308,14 @@ def convolution_nd(x, W, b=None, stride=1, pad=0, use_cudnn=True,
       respectively.
 
     Args:
-        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Input variable of shape
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Input variable of shape
             :math:`(n, c_I, d_1, d_2, ..., d_N)`.
-        W (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Weight variable of shape
+        W (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Weight variable of shape
             :math:`(c_O, c_I, k_1, k_2, ..., k_N)`.
-        b (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): One-dimensional bias variable with length
+        b (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            One-dimensional bias variable with length
             :math:`c_O` (optional).
         stride (int or tuple of ints): Stride of filter applications
             :math:`(s_1, s_2, ..., s_N)`. ``stride=s`` is equivalent to

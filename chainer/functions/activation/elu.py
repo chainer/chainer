@@ -62,7 +62,8 @@ def elu(x, alpha=1.0):
     See: http://arxiv.org/abs/1511.07289
 
     Args:
-        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Input variable.
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Input variable.
         alpha (float): Parameter :math:`\\alpha`.
 
     Returns:

@@ -16,7 +16,8 @@ def flatten(x):
     """Flatten a given array.
 
     Args:
-        x (~chainer.Varaiable): Input variable.
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Input variable.
 
     Returns:
         ~chainer.Variable: Output variable.

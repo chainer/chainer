@@ -24,13 +24,16 @@ def crf1d(cost, xs, ys):
     normalizing constant called partition function.
 
     Args:
-        cost (Variable): A :math:`K \\times K` matrix which holds transition
+        cost (chainer.Variable, numpy.ndarray or cupy.ndarray):
+            A :math:`K \\times K` matrix which holds transition
             cost between two labels, where :math:`K` is the number of labels.
-        xs (list of Variable): Input feature vector for each label. Each
+        xs (tuple of Variables, numpy.ndarrays or cupy.ndarrays):
+            Input feature vector for each label. Each
             :class:`~chainer.Variable` holds a :math:`B \\times K`
             matrix, where :math:`B` is mini-batch size, :math:`K` is the number
             of labels.
-        ys (list of Variable): Expected output labels. Each
+        ys (tuple of Variables, numpy.ndarrays or cupy.ndarray):
+            Expected output labels. Each
             :class:`~chainer.Variable` holds a :math:`B` integer vector.
 
     Returns:

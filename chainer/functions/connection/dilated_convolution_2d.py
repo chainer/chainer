@@ -333,10 +333,13 @@ def dilated_convolution_2d(x, W, b=None, stride=1, pad=0, dilate=1,
       respectively.
 
     Args:
-        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Input variable of shape :math:`(n, c_I, h, w)`.
-        W (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Weight variable of shape
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Input variable of shape :math:`(n, c_I, h, w)`.
+        W (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Weight variable of shape
             :math:`(c_O, c_I, k_H, k_W)`.
-        b (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Bias variable of length :math:`c_O` (optional).
+        b (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Bias variable of length :math:`c_O` (optional).
         stride (int or pair of ints): Stride of filter applications.
             ``stride=s`` and ``stride=(s, s)`` are equivalent.
         pad (int or pair of ints): Spatial padding width for input arrays.

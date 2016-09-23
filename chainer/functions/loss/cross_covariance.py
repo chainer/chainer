@@ -55,9 +55,11 @@ def cross_covariance(y, z):
     """Computes the sum-squared cross-covariance penalty between ``y`` and ``z``
 
     Args:
-        y (Variable): Variable holding a matrix where the first dimension
+        y (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Variable holding a matrix where the first dimension
             corresponds to the batches
-        z (Variable): Variable holding a matrix where the first dimension
+        z (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Variable holding a matrix where the first dimension
             corresponds to the batches
 
     Returns:

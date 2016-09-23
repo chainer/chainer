@@ -114,9 +114,11 @@ def hinge(x, t, norm='L1'):
             \\end{array} \\right.
 
     Args:
-        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Input variable. The shape of ``x`` should be
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Input variable. The shape of ``x`` should be
             (:math:`N`, :math:`K`).
-        t (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): The :math:`N`-dimensional label vector
+        t (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            The :math:`N`-dimensional label vector
             :math:`{\\bf l}` with values
             :math:`l_n \in \{0, 1, 2, \dots, K-1\}`. The shape of ``t`` should
             be (:math:`N`,).

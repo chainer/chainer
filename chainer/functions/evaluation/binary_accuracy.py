@@ -36,9 +36,11 @@ def binary_accuracy(y, t):
     """Computes binary classification accuracy of the minibatch.
 
     Args:
-        y (Variable): Variable holding a matrix whose i-th element
+        y (chainer.Variable, numpy.ndarray, or cupy.ndarray):
+            Variable holding a matrix whose i-th element
             indicates the score of positive at the i-th example.
-        t (Variable): Variable holding an int32 vector of ground truth labels.
+        t (chainer.Variable, numpy.ndarray, or cupy.ndarray):
+            Variable holding an int32 vector of ground truth labels.
             If ``t[i] == -1``, corresponding ``x[i]`` is ignored.
             Accuracy is zero if all ground truth labels are ``-1``.
 

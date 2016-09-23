@@ -59,9 +59,11 @@ def accuracy(y, t, ignore_label=None):
     """Computes muticlass classification accuracy of the minibatch.
 
     Args:
-        y (Variable): Variable holding a matrix whose (i, j)-th element
+        y (chainer.Variable, numpy.ndarray, or cupy.ndarray):
+            Variable holding a matrix whose (i, j)-th element
             indicates the score of the class j at the i-th example.
-        t (Variable): Variable holding an int32 vector of ground truth labels.
+        t (chainer.Variable, numpy.ndarray, or cupy.ndarray):
+            Variable holding an int32 vector of ground truth labels.
         ignore_label (int or None): Skip calculating accuracy
             if the true label is ``ignore_label``.
 

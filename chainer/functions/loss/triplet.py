@@ -75,12 +75,15 @@ def triplet(anchor, positive, negative, margin=0.2):
     where :math:`d(x_i, y_i) = \\| {\\bf x}_i - {\\bf y}_i \\|_2^2`.
 
     Args:
-        anchor (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): The anchor example variable. The shape
+        anchor (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            The anchor example variable. The shape
             should be :math:`(N, K)`, where :math:`N` denotes the minibatch
             size, and :math:`K` denotes the dimension of the anchor.
-        positive (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): The positive example variable. The shape
+        positive (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            The positive example variable. The shape
             should be the same as anchor.
-        negative (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): The negative example variable. The shape
+        negative (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            The negative example variable. The shape
             should be the same as anchor.
         margin (float): A parameter for triplet loss. It should be a positive
             value.

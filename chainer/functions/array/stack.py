@@ -6,7 +6,8 @@ def stack(xs, axis=0):
     """Concatenate variables along a new axis.
 
     Args:
-        xs (list of chainer.Variable): Variables to be concatenated.
+        xs (tuple of chainer.Variables, numpy.ndarrays or cupy.ndarrays):
+            Variables to be concatenated.
         axis (int): Axis of result along which variables are stacked.
 
     Returns:
