@@ -99,7 +99,7 @@ array = creation.from_data.array
 asarray = creation.from_data.asarray
 asanyarray = creation.from_data.asanyarray
 ascontiguousarray = creation.from_data.ascontiguousarray
-copy = creation.from_data.copy
+copy = fusion.copy
 
 arange = creation.ranges.arange
 linspace = creation.ranges.linspace
