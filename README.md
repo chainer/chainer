@@ -25,6 +25,8 @@ Requirements for some features:
 - Caffe model support
   - Protocol Buffers (pip install protobuf)
     - protobuf>=3.0.0 is required for Py3
+- Image dataset support
+  - Pillow
 - HDF5 serialization support
   - h5py 2.5.0
 - Testing utilities
@@ -76,6 +78,16 @@ Do not forget to restart your terminal session (or `source` it) to enable these 
 And then, reinstall Chainer.
 
 
+### Image dataset support
+
+If you want to use Image dataset (`chainer/datasets/ImageDataset`), please install Pillow manually.
+Supported image format depends on your environment.
+
+```
+pip install pillow
+```
+
+
 ### HDF5 Support
 
 If you want to use HDF5 serialization, please install h5py manually.
@@ -103,7 +115,7 @@ Tokui, S., Oono, K., Hido, S. and Clayton, J.,
 Chainer: a Next-Generation Open Source Framework for Deep Learning,
 *Proceedings of Workshop on Machine Learning Systems(LearningSys) in
 The Twenty-ninth Annual Conference on Neural Information Processing Systems (NIPS)*, (2015)
-[URL](http://learningsys.org/papers/LearningSys_2015_paper_33.pdf), [BibTex](chainer_bibtex.txt)
+[URL](http://learningsys.org/2015/papers/LearningSys_2015_paper_33.pdf), [BibTex](chainer_bibtex.txt)
 
 
 ## More information
