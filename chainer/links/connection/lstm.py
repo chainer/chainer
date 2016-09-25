@@ -60,9 +60,12 @@ class StatelessLSTM(LSTMBase):
         """Returns new cell state and updated output of LSTM.
 
         Args:
-            c (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Cell states of LSTM units.
-            h (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Output at the previous time step.
-            x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): A new batch from the input sequence.
+            c (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Cell states of LSTM units.
+            h (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Output at the previous time step.
+            x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            A new batch from the input sequence.
 
         Returns:
             tuple of ~chainer.Variable: Returns ``(c_new, h_new)``, where
@@ -133,8 +136,10 @@ class LSTM(LSTMBase):
     Attributes:
         upward (~chainer.links.Linear): Linear layer of upward connections.
         lateral (~chainer.links.Linear): Linear layer of lateral connections.
-        c (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Cell states of LSTM units.
-        h (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Output at the previous time step.
+        c (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Cell states of LSTM units.
+        h (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Output at the previous time step.
 
     """
 
@@ -162,8 +167,10 @@ class LSTM(LSTMBase):
         It sets the :attr:`c` and :attr:`h` attributes.
 
         Args:
-            c (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): A new cell states of LSTM units.
-            h (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): A new output at the previous time step.
+            c (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            A new cell states of LSTM units.
+            h (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            A new output at the previous time step.
 
         """
         assert isinstance(c, chainer.Variable)
@@ -191,7 +198,8 @@ class LSTM(LSTMBase):
         """Updates the internal state and returns the LSTM outputs.
 
         Args:
-            x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): A new batch from the input sequence.
+            x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            A new batch from the input sequence.
 
         Returns:
             ~chainer.Variable: Outputs of updated LSTM units.

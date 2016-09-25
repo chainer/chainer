@@ -26,8 +26,10 @@ def bias(x, y, axis=1):
     Note that how the ``axis`` indicates to which axis of ``x`` we apply ``y``.
 
     Args:
-        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Input variable to be summed.
-        y (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Input variable to sum, broadcasted.
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Input variable to be summed.
+        y (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Input variable to sum, broadcasted.
         axis (int): The first axis of ``x`` along which ``y`` is applied.
 
     Returns:

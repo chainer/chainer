@@ -19,7 +19,8 @@ class BlackOut(link.Link):
         sample_size (int): Number of negative samples.
 
     Attributes:
-        W (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Weight parameter matrix.
+        W (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Weight parameter matrix.
 
     """
 
@@ -43,8 +44,10 @@ class BlackOut(link.Link):
         """Computes the loss value for given input and ground truth labels.
 
         Args:
-            x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Input of the weight matrix multiplication.
-            t (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Batch of ground truth labels.
+            x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Input of the weight matrix multiplication.
+            t (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Batch of ground truth labels.
 
         Returns:
             ~chainer.Variable: Loss value.

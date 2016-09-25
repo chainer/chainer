@@ -153,7 +153,8 @@ def max_pooling_2d(x, ksize, stride=None, pad=0, cover_all=True,
     without any parameter instead of computing the inner products.
 
     Args:
-        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Input variable.
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Input variable.
         ksize (int or pair of ints): Size of pooling window. ``ksize=k`` and
             ``ksize=(k, k)`` are equivalent.
         stride (int or pair of ints or None): Stride of pooling applications.

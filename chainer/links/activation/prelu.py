@@ -17,7 +17,8 @@ class PReLU(link.Link):
     .. seealso:: :func:`chainer.functions.prelu`
 
     Attributes:
-        W (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Coefficient of parametric ReLU.
+        W (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Coefficient of parametric ReLU.
 
     """
 
@@ -29,7 +30,8 @@ class PReLU(link.Link):
         """Applies the parametric ReLU activation function.
 
         Args:
-            x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Input variable.
+            x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Input variable.
 
         Returns:
             ~chainer.Variable: Output of the parametric ReLU function.

@@ -31,7 +31,8 @@ def ceil(x):
     .. math::
        y_i = \\lceil x_i \\rceil
     Args:
-        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Input variable.
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Input variable.
 
     Returns:
         ~chainer.Variable: Output variable.

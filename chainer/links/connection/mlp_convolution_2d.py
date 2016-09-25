@@ -62,7 +62,8 @@ class MLPConvolution2D(link.ChainList):
         """Computes the output of the mlpconv layer.
 
         Args:
-            x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Input image.
+            x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Input image.
 
         Returns:
             ~chainer.Variable: Output of the mlpconv layer.

@@ -74,8 +74,10 @@ class NStepLSTM(link.ChainList):
         """Calculate all hidden states and cell states.
 
         Args:
-            hx (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Initial hidden states.
-            cx (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Initial cell states.
+            hx (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Initial hidden states.
+            cx (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Initial cell states.
             xs (list of ~chianer.Variable): List of input sequences.
                 Each element ``xs[i]`` is a :class:`chainer.Variable` holding
                 a sequence.

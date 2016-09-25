@@ -32,7 +32,8 @@ def floor(x):
        y_i = \\lfloor x_i \\rfloor
 
     Args:
-        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Input variable.
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Input variable.
 
     Returns:
         ~chainer.Variable: Output variable.

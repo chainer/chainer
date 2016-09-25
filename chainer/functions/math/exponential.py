@@ -87,7 +87,8 @@ def log2(x):
        y_i = \\log_2 x_i.
 
     Args:
-        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Input variable.
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Input variable.
 
     Returns:
         ~chainer.Variable: Output variable.
@@ -124,7 +125,8 @@ def log10(x):
        y_i = \\log_10 x_i.
 
     Args:
-        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Input variable.
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Input variable.
 
     Returns:
         ~chainer.Variable: Output variable.

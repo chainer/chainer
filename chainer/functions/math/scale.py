@@ -26,8 +26,10 @@ def scale(x, y, axis=1):
     Note that how the ``axis`` indicates to which axis of ``x`` we apply ``y``.
 
     Args:
-        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Input variable to be scaled.
-        y (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Input variable to scale, broadcasted.
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Input variable to be scaled.
+        y (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Input variable to scale, broadcasted.
         axis (int): The first axis of ``x`` along which ``y`` is applied.
 
     Returns:

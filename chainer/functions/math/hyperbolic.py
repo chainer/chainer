@@ -34,7 +34,8 @@ def cosh(x):
        y_i = \\cosh x_i.
 
     Args:
-        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Input variable.
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Input variable.
 
     Returns:
         ~chainer.Variable: Output variable.
@@ -72,7 +73,8 @@ def sinh(x):
        y_i = \\sinh x_i.
 
     Args:
-        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Input variable.
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Input variable.
 
     Returns:
         ~chainer.Variable: Output variable.

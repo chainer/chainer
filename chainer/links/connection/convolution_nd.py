@@ -46,8 +46,10 @@ class ConvolutionND(link.Link):
         two-dimensional convolution.
 
     Attributes:
-        W (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Weight parameter.
-        b (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Bias parameter. If ``initial_bias`` is ``None``,
+        W (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Weight parameter.
+        b (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Bias parameter. If ``initial_bias`` is ``None``,
             set to ``None``.
 
     """
@@ -75,7 +77,8 @@ class ConvolutionND(link.Link):
         """Applies N-dimensional convolution layer.
 
         Args:
-            x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Input image.
+            x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Input image.
 
         Returns:
             ~chainer.Variable: Output of convolution.

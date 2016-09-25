@@ -50,7 +50,8 @@ def clip(x, x_min, x_max):
     clipped to the interval edges.
 
     Args:
-        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Input variable to be clipped.
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Input variable to be clipped.
         x_min (float): Minimum value.
         x_max (float): Maximum value.
 

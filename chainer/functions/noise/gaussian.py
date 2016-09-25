@@ -63,9 +63,11 @@ def gaussian(mean, ln_var):
     :math:`N(\\mu, \\sigma)`.
 
     Args:
-        mean (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Input variable representing mean
+        mean (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Input variable representing mean
             :math:`\\mu`.
-        ln_var (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Input variable representing logarithm of
+        ln_var (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Input variable representing logarithm of
             variance :math:`\\log(\\sigma^2)`.
 
     Returns:

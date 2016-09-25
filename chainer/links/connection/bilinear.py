@@ -41,11 +41,15 @@ class Bilinear(link.Link):
     .. seealso:: See :func:`chainer.functions.bilinear` for details.
 
     Attributes:
-        W (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Bilinear weight parameter.
-        V1 (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Linear weight parameter for the first argument.
-        V2 (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Linear weight parameter for the second
+        W (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Bilinear weight parameter.
+        V1 (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Linear weight parameter for the first argument.
+        V2 (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Linear weight parameter for the second
             argument.
-        b (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Bias parameter.
+        b (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Bias parameter.
 
     """
 
@@ -91,8 +95,10 @@ class Bilinear(link.Link):
         """Applies the bilinear function to inputs and the internal parameters.
 
         Args:
-            e1 (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Left input.
-            e2 (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray): Right input.
+            e1 (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Left input.
+            e2 (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Right input.
 
         Returns:
             ~chainer.Variable: Output variable.
