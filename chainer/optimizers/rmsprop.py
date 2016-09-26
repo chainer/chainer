@@ -4,6 +4,13 @@ from chainer import cuda
 from chainer import optimizer
 
 
+@cuda.fuse()
+def update(grad, lr, alpha, eps, param, ms):
+    ms *= alpha
+    ms += (1 - alpha) * grad * grad
+    param -= lr * grad / (cuda.sqrt_fixed(ms) + eps)
+
+
 class RMSprop(optimizer.GradientMethod):
 
     """Hinton's RMSprop."""
@@ -18,19 +25,6 @@ class RMSprop(optimizer.GradientMethod):
         with cuda.get_device(param.data):
             state['ms'] = xp.zeros_like(param.data)
 
-    def update_one_cpu(self, param, state):
-        ms = state['ms']
-        grad = param.grad
-
-        ms *= self.alpha
-        ms += (1 - self.alpha) * grad * grad
-        param.data -= self.lr * grad / (numpy.sqrt(ms) + self.eps)
-
-    def update_one_gpu(self, param, state):
-        cuda.elementwise(
-            'T grad, T lr, T alpha, T eps',
-            'T param, T ms',
-            '''ms = alpha * ms + (1 - alpha) * grad * grad;
-               param -= lr * grad / (sqrt(ms) + eps);''',
-            'rmsprop')(param.grad, self.lr, self.alpha, self.eps,
-                       param.data, state['ms'])
+    def update_one(self, param, state):
+        update(param.grad, numpy.float32(self.lr), numpy.float32(self.alpha),
+               numpy.float32(self.eps), param.data, state['ms'])

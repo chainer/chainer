@@ -1,5 +1,14 @@
+import numpy
+
 from chainer import cuda
 from chainer import optimizer
+
+
+@cuda.fuse()
+def update(grad, lr, momentum, param, v):
+    v *= momentum
+    v -= lr * grad
+    param += v
 
 
 class MomentumSGD(optimizer.GradientMethod):
@@ -15,17 +24,7 @@ class MomentumSGD(optimizer.GradientMethod):
         with cuda.get_device(param.data):
             state['v'] = xp.zeros_like(param.data)
 
-    def update_one_cpu(self, param, state):
-        v = state['v']
-        v *= self.momentum
-        v -= self.lr * param.grad
-        param.data += v
-
-    def update_one_gpu(self, param, state):
-        cuda.elementwise(
-            'T grad, T lr, T momentum',
-            'T param, T v',
-            '''v = momentum * v - lr * grad;
-               param += v;''',
-            'momentum_sgd')(param.grad, self.lr, self.momentum,
-                            param.data, state['v'])
+    def update_one(self, param, state):
+        update(param.grad,
+               numpy.float32(self.lr), numpy.float32(self.momentum),
+               param.data, state['v'])
