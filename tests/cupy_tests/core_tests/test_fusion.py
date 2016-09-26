@@ -812,6 +812,57 @@ class TestFusionFuse(unittest.TestCase):
         res = g(a, b, c)
         return c + res
 
+    # @testing.for_all_dtypes()
+    # @testing.numpy_cupy_array_equal()
+    # def test_fuse12(self, xp, dtype):
+    #     a = numpy.dtype(dtype).type(10)
+    #     b = xp.array([2, 2, 2, 2, 3, 3, 3, 3], dtype=dtype)
+    #     c = xp.array([2, 3, 2, 3, 2, 3, 2, 3], dtype=dtype)
+
+    #     @cupy.fuse()
+    #     def g(x, y, z):
+    #         a = x
+    #         a += y
+    #         cupy.add(x, y, z)
+    #         return y
+
+    #     res = g(a, b, c)
+    #     return c + res
+
+    # @testing.for_all_dtypes()
+    # @testing.numpy_cupy_array_equal()
+    # def test_fuse13(self, xp, dtype):
+    #     a = xp.array([2, 2, 2, 2, 3, 3, 3, 3], dtype=dtype)
+    #     b = numpy.dtype(dtype).type(20)
+    #     c = xp.array([2, 3, 2, 3, 2, 3, 2, 3], dtype=dtype)
+
+    #     @cupy.fuse()
+    #     def g(x, y, z):
+    #         a = x
+    #         a += y
+    #         cupy.add(x, y, z)
+    #         return y
+
+    #     res = g(a, b, c)
+    #     return c + res
+
+    # @testing.for_all_dtypes()
+    # @testing.numpy_cupy_array_equal()
+    # def test_fuse14(self, xp, dtype):
+    #     a = numpy.dtype(dtype).type(10)
+    #     b = numpy.dtype(dtype).type(20)
+    #     c = xp.array([2, 3, 2, 3, 2, 3, 2, 3], dtype=dtype)
+
+    #     @cupy.fuse()
+    #     def g(x, y, z):
+    #         a = x
+    #         a += y
+    #         cupy.add(x, y, z)
+    #         return y
+
+    #     res = g(a, b, c)
+    #     return c + res
+
     @testing.for_all_dtypes()
     @testing.numpy_cupy_array_equal()
     def test_reduce1(self, xp, dtype):
