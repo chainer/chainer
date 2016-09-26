@@ -115,7 +115,8 @@ def local_response_normalization(x, n=5, k=2, alpha=1e-4, beta=.75):
               x_j^2 \\right)^\\beta}.
 
     Args:
-        x (Variable): Input variable.
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Input variable.
         n (int): Normalization window width.
         k (float): Smoothing parameter.
         alpha (float): Normalizer scaling parameter.

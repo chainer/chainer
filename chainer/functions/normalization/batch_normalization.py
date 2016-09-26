@@ -289,9 +289,12 @@ def batch_normalization(x, gamma, beta, eps=2e-5, running_mean=None,
     corresponding Link class for an example of how to do this.
 
     Args:
-        x (Variable): The input variable.
-        gamma (Variable): The scaling parameter of normalized data.
-        beta (Variable): The shifting parameter of scaled normalized data.
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            The input variable.
+        gamma (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            The scaling parameter of normalized data.
+        beta (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            The shifting parameter of scaled normalized data.
         eps (float): Epsilon value for numerical stability.
         running_mean (array): The running average of the mean. This is a
             running average of the mean over several mini-batches using
@@ -329,11 +332,16 @@ def fixed_batch_normalization(x, gamma, beta, mean, var, eps=2e-5,
     statistics cannot be used for prediction consistency.
 
     Args:
-        x (Variable): The input variable.
-        gamma (Variable): The scaling parameter of normalized data.
-        beta (Variable): The shifting parameter of scaled normalized data.
-        mean (Variable): The shifting parameter of input.
-        var (Variable): The square of scaling parameter of input.
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            The input variable.
+        gamma (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            The scaling parameter of normalized data.
+        beta (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            The shifting parameter of scaled normalized data.
+        mean (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            The shifting parameter of input.
+        var (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            The square of scaling parameter of input.
         eps (float): Epsilon value for numerical stability.
         use_cudnn (bool): If ``True`` and cuDNN is enabled, then this function
             uses cuDNN as the core implementation.

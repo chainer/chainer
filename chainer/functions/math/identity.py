@@ -16,5 +16,15 @@ class Identity(function.Function):
 
 
 def identity(*inputs):
-    """Just returns input variables."""
+    """Just returns input variables.
+
+
+    Args:
+        inputs (tuple of chainer.Variables, :class:`numpy.ndarray`s
+        or cupy.ndarrays):
+            Input variable.
+
+    Returns:
+        ~chainer.Variable: Output variable.
+    """
     return Identity()(*inputs)

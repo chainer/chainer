@@ -108,7 +108,8 @@ def forget(func, *xs):
             :class:`~chainer.Variable` object(s) and to return a
             :class:`~chainer.Variable` object or a tuple of
             :class:`~chainer.Variable` objects.
-        xs (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+        xs (tuple of chainer.Variables or :class:`numpy.ndarray`s
+            or cupy.ndarrays):
             Argument variables of the function.
 
     Returns:

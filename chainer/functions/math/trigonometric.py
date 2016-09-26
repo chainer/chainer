@@ -33,7 +33,15 @@ class Sin(function.Function):
 
 
 def sin(x):
-    """Elementwise sin function."""
+    """Elementwise sin function.
+
+    Args:
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Input variable.
+
+    Returns:
+        ~chainer.Variable: Output variable.
+    """
     return Sin()(x)
 
 
@@ -65,7 +73,15 @@ class Cos(function.Function):
 
 
 def cos(x):
-    """Elementwise cos function."""
+    """Elementwise cos function.
+
+    Args:
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Input variable.
+
+    Returns:
+        ~chainer.Variable: Output variable.
+    """
     return Cos()(x)
 
 
@@ -93,5 +109,13 @@ class Tan(function.Function):
 
 
 def tan(x):
-    """Elementwise tan function."""
+    """Elementwise tan function.
+
+    Args:
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Input variable.
+
+    Returns:
+        ~chainer.Variable: Output variable.
+    """
     return Tan()(x)
