@@ -290,7 +290,7 @@ def _convert_from_ufunc(ufunc):
         mem = get_mem(args)
         var_list = map(lambda i: _normalize_arg(i, mem), args)
         if 'out' in kwargs:
-            var_list.append(_normalize_arg.pop('out'))
+            var_list.append(_normalize_arg(kwargs.pop('out'), mem))
         if kwargs:
             raise TypeError('Wrong arguments %s' % kwargs)
         assert nin <= len(var_list) and len(var_list) <= nin + nout

@@ -806,7 +806,7 @@ class TestFusionFuse(unittest.TestCase):
         def g(x, y, z):
             a = x
             a += y
-            cupy.add(x, y, z)
+            cupy.add(x, y, out=z)
             return y
 
         res = g(a, b, c)
