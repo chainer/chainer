@@ -239,6 +239,42 @@ def _normalize_arg(arg, mem):
     raise Exception('Unsupported type %s' % arg_type)
 
 
+def _check_should_use_min_scalar(in_args):
+    all_scalars = True
+    max_array_kind = -1
+    max_scalar_kind = -1
+    for i in in_args:
+        if hasattr(i, 'dtype'):
+            all_scalars = False
+            kind = _kind_score[i.dtype.kind]
+            max_array_kind = max(max_array_kind, kind)
+        else:
+            kind = _kind_score[numpy.dtype(type(i)).kind]
+            max_scalar_kind = max(max_scalar_kind, kind)
+    return (max_scalar_kind != -1 and
+            not all_scalars and
+            max_array_kind >= max_scalar_kind)
+
+
+def _get_dtype(v):
+    return v.dtype if hasattr(v, 'dtype') else numpy.dtype(type(v))
+
+
+def _guess_routine(name, ops, in_args, dtype):
+    if dtype is None:
+        use_raw_value = _check_should_use_min_scalar(in_args)
+        if use_raw_value:
+            in_types = tuple(in_args)
+        else:
+            in_types = tuple([_get_dtype(i).type for i in in_args])
+        op = core._guess_routine_from_in_types(ops, in_types)
+    else:
+        op = core._guess_routine_from_dtype(ops, dtype)
+    if op:
+        return op
+    raise TypeError('Wrong type of arguments for %s' % name)
+
+
 def _convert(f):
     if type(f) is core.ufunc:
         return _convert_from_ufunc(f)
@@ -247,22 +283,10 @@ def _convert(f):
     raise Exception("Can't convert from %s to FusionOp" % type(f))
 
 
-def _should_use_min_scalar(in_args):
-    max_array_kind = -2
-    max_scalar_kind = -1
-    for i in in_args:
-        kind = _kind_score[i.ty.kind]
-        if i.const is None:
-            max_array_kind = max(max_array_kind, kind)
-        else:
-            max_scalar_kind = max(max_scalar_kind, kind)
-    return (max_scalar_kind != -1 and
-            max_array_kind >= max_scalar_kind)
-
-
 def _convert_from_ufunc(ufunc):
     nin = ufunc.nin
     nout = ufunc.nout
+    name = ufunc.name
 
     def get_mem(args):
         for i in args:
@@ -270,57 +294,49 @@ def _convert_from_ufunc(ufunc):
                 return i._mem
         raise Exception('number of ndarray arguments must be more than 0')
 
-    def can_cast1(args, ty_ins):
-        for i in six.moves.range(nin):
-            if args[i].const is None:
-                if not numpy.can_cast(args[i].ty, ty_ins[i]):
-                    return False
-            else:
-                if not numpy.can_cast(args[i].const, ty_ins[i]):
-                    return False
-        return True
-
-    def can_cast2(args, ty_ins):
-        for i in six.moves.range(nin):
-            if not numpy.can_cast(args[i].ty, ty_ins[i]):
-                return False
-        return True
-
     def res(*args, **kwargs):
-        mem = get_mem(args)
-        var_list = map(lambda i: _normalize_arg(i, mem), args)
-        if 'out' in kwargs:
-            var_list.append(_normalize_arg(kwargs.pop('out'), mem))
+        out = kwargs.pop('out') if 'out' in kwargs else None
+        dtype = kwargs.pop('dtype') if 'dtype' in kwargs else None
         if kwargs:
             raise TypeError('Wrong arguments %s' % kwargs)
-        assert nin <= len(var_list) and len(var_list) <= nin + nout
-        in_vars = var_list[:nin]
-        out_vars = var_list[nin:]
-        can_cast = can_cast1 if _should_use_min_scalar(in_vars) else can_cast2
-        for ty_ins, ty_outs, op in ufunc._ops:
-            ty_ins = map(numpy.dtype, ty_ins)
-            ty_outs = map(numpy.dtype, ty_outs)
-            if can_cast(in_vars, ty_ins):
-                param_names = (['in%d' % i for i in six.moves.range(nin)] +
-                               ['out%d' % i for i in six.moves.range(nout)])
-                ret = []
-                for i in six.moves.range(nout):
-                    if i >= len(out_vars):
-                        v = mem.get_fresh(ty_outs[i])
-                        out_vars.append(v)
-                        ret.append(_FusionRef(v, mem))
-                    elif numpy.can_cast(ty_outs[i], out_vars[i].ty,
-                                        "same_kind"):
-                        v = out_vars[i]
-                        ret.append(_FusionRef(v, mem))
-                    else:
-                        raise TypeError("Cannot cast from %s to %s"
-                                        % (ty_outs[i], out_vars[i].ty)
-                                        + " with casting rule 'same_kind'")
-                mem.set_op(ufunc.name, op, param_names, nin, nout,
-                           in_vars, out_vars, ty_ins + ty_outs)
-                return ret[0] if len(ret) == 1 else tuple(ret)
-        raise TypeError('Invalid type cast')
+
+        mem = get_mem(args)
+        if len(args) == nin + nout:
+            if out is None:
+                out = args[nin:]
+                out = out[0] if len(out) == 1 else tuple(out)
+            else:
+                raise TypeError('Wrong number of arguments for %s' % name)
+        elif len(args) != nin:
+            raise TypeError('Wrong number of arguments for %s' % name)
+        in_args = list(args[:nin])
+        in_vars = map(lambda i: _normalize_arg(i, mem), in_args)
+        op_tuple = _guess_routine(name, ufunc._ops, in_args, dtype)
+        in_types, out_types, op = op_tuple
+        in_types = map(numpy.dtype, in_types)
+        out_types = map(numpy.dtype, out_types)
+        param_names = (['in%d' % i for i in six.moves.range(nin)] +
+                       ['out%d' % i for i in six.moves.range(nout)])
+        out_vars = []
+        ret = []
+        if out is None:
+            for i in out_types:
+                v = mem.get_fresh(i)
+                out_vars.append(v)
+                ret.append(_FusionRef(v, mem))
+        else:
+            out = list(out) if type(out) is tuple else [out]
+            for i, j in six.itertools.izip(out_types, out):
+                out_vars.append(j._var)
+                if numpy.can_cast(i, j.dtype, "same_kind"):
+                    ret.append(_FusionRef(j._var, mem))
+                else:
+                    raise TypeError("Cannot cast from %s to %s" % (i, j)
+                                    + " with casting rule 'same_kind'")
+        mem.set_op(ufunc.name, op, param_names, nin, nout,
+                   in_vars, out_vars, in_types + out_types)
+
+        return ret[0] if len(ret) == 1 else tuple(ret)
     return res
 
 

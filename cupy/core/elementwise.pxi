@@ -576,7 +576,7 @@ def _get_ufunc_kernel(
         kernel_params, operation, name, preamble)
 
 
-cdef tuple _guess_routine_from_in_types(list ops, tuple in_types):
+cpdef tuple _guess_routine_from_in_types(list ops, tuple in_types):
     cdef Py_ssize_t i, n
     cdef tuple op, op_types
     n = len(in_types)
@@ -591,7 +591,7 @@ cdef tuple _guess_routine_from_in_types(list ops, tuple in_types):
     return None
 
 
-cdef tuple _guess_routine_from_dtype(list ops, object dtype):
+cpdef tuple _guess_routine_from_dtype(list ops, object dtype):
     cdef tuple op, op_types
     for op in ops:
         op_types = op[1]
