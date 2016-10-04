@@ -90,7 +90,7 @@ def transpose_sequence(xs):
     :class:`~chainer.Variable`.
 
     Args:
-        xs (tpule of chainer.Variable, numpy.array or cupy.ndarray):
+        xs (tpule of chainer.Variable, numpy.ndarray or cupy.ndarray):
             Variables to transpose.
 
     Returns:
