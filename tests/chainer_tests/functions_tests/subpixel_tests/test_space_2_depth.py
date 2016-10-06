@@ -15,8 +15,9 @@ class TestSpace2Depth(unittest.TestCase):
 
     def setUp(self):
         self.depth = numpy.arange(96).reshape(2, 3, 2, 8).astype(numpy.float32)
+        self.depth = self.depth.transpose((0, 3, 1, 2))
         self.rand_array = (numpy.random.randn(96)
-                                .reshape(2, 6, 4, 2)
+                                .reshape(2, 2, 6, 4)
                                 .astype(numpy.float32)
                            )
         self.space = numpy.array([[[[0.,   4.,   8.,  12.],
@@ -47,6 +48,7 @@ class TestSpace2Depth(unittest.TestCase):
                                  )
         self.space = numpy.transpose(self.space, (1, 2, 3, 0))
         self.space = self.space.astype(numpy.float32)
+        self.space = self.space.transpose((0, 3, 1, 2))
         self.r = 2
 
     def check_forward(self, space_data, depth_data):
@@ -55,7 +57,7 @@ class TestSpace2Depth(unittest.TestCase):
         s2d_value = cuda.to_cpu(s2d.data)
 
         self.assertEqual(s2d_value.dtype, numpy.float32)
-        self.assertEqual(s2d_value.shape, (2, 3, 2, 8))
+        self.assertEqual(s2d_value.shape, (2, 8, 3, 2))
 
         s2d_expect = depth_data
 

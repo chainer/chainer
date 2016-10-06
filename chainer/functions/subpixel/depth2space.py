@@ -20,8 +20,9 @@ class Depth2Space(function.Function):
     def forward(self, inputs):
         X, = inputs
         xp = cuda.get_array_module(X)
-        bsize, a, b, c = X.shape
+        bsize, c, a, b = X.shape
         c /= self.r ** 2
+        X = xp.transpose(X, (0, 2, 3, 1))
         X = xp.reshape(X, (bsize, a, b, c * self.r, self.r))
         X = xp.transpose(X, (0, 1, 2, 4, 3))
         X = xp.split(X, a, 1)
@@ -29,13 +30,15 @@ class Depth2Space(function.Function):
         X = xp.split(X, b, 1)
         X = xp.concatenate([xp.squeeze(x, 1) for x in X], 2)
         X = xp.reshape(X, (bsize, a * self.r, b * self.r, c))
+        X = xp.transpose(X, (0, 3, 1, 2))
         return X,
 
     def backward(self, inputs, grad_outputs):
 
         gy, = grad_outputs
         xp = cuda.get_array_module(gy)
-        bsize, a, b, c = gy.shape
+        bsize, c, a, b = gy.shape
+        gy = xp.transpose(gy, (0, 2, 3, 1))
         gy = xp.reshape(gy, (bsize, a, b * c))
         gy = xp.split(gy, b / self.r, 2)
         gy = xp.concatenate([xp.expand_dims(x, 1) for x in gy], 1)
@@ -43,6 +46,7 @@ class Depth2Space(function.Function):
         gy = xp.concatenate([xp.expand_dims(x, 1) for x in gy], 1)
         gy = xp.transpose(gy, (0, 1, 2, 4, 3))
         gy = xp.reshape(gy, (bsize, a / self.r, b / self.r, c * self.r ** 2))
+        gy = xp.transpose(gy, (0, 3, 1, 2))
         return gy,
 
 
