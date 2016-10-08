@@ -48,9 +48,9 @@ class TestCooMatrixScipyComparison(unittest.TestCase):
 
     def make2(self, xp, sp):
         data = xp.array([1, 2, 3, 4], 'f')
-        row = xp.array([0, 1, 1, 2], 'i')
-        col = xp.array([2, 1, 2, 2], 'i')
-        return sp.csr_matrix((data, (row, col)), shape=(3, 4))
+        row = xp.array([0, 1, 0, 1], 'i')
+        col = xp.array([2, 1, 2, 1], 'i')
+        return sp.coo_matrix((data, (row, col)), shape=(3, 4))
 
     def make3(self, xp, sp):
         data = xp.array([1, 2, 3, 4, 5], 'f')
