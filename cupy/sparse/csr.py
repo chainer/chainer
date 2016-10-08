@@ -3,9 +3,10 @@ import scipy.sparse
 
 import cupy
 from cupy.cuda import cusparse
+from cupy.sparse import base
 
 
-class csr_matrix(object):
+class csr_matrix(base.spmatrix):
 
     format = 'csr'
 
@@ -29,7 +30,7 @@ class csr_matrix(object):
         cusparse.setMatType(self._descr, cusparse.CUSPARSE_MATRIX_TYPE_GENERAL)
         cusparse.setMatIndexBase(
             self._descr, cusparse.CUSPARSE_INDEX_BASE_ZERO)
-        self.shape = shape
+        self._shape = shape
 
     def get(self, stream=None):
         data = self.data.get(stream)
@@ -38,16 +39,11 @@ class csr_matrix(object):
         return scipy.sparse.csr_matrix(
             (data, indices, indptr), shape=self.shape)
 
-    def __str__(self):
-        return str(self.get())
-
-    @property
-    def ndim(self):
-        return 2
-
-    @property
-    def nnz(self):
-        return len(self.data)
+    def getnnz(self, axis=None):
+        if axis is None:
+            return len(self.data)
+        else:
+            raise NotImplemented
 
     def __getitem__(self, key):
         i, j = key
