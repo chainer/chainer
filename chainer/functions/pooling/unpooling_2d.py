@@ -72,7 +72,8 @@ def unpooling_2d(x, ksize, stride=None, pad=0, outsize=None, cover_all=True):
     computing the inner products.
 
     Args:
-        x (~chainer.Variable): Input variable.
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Input variable.
         ksize (int or pair of ints): Size of pooling window. ``ksize=k`` and
             ``ksize=(k, k)`` are equivalent.
         stride (int, pair of ints or None): Stride of pooling applications.

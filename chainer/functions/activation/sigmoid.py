@@ -61,7 +61,8 @@ def sigmoid(x, use_cudnn=True):
     """Elementwise sigmoid logistic function :math:`f(x)=(1 + \\exp(-x))^{-1}`.
 
     Args:
-        x (~chainer.Variable): Input variable.
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Input variable.
         use_cudnn (bool): If ``True`` and cuDNN is enabled, then this function
             uses cuDNN as the core implementation.
 

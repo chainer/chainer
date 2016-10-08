@@ -20,9 +20,12 @@ class Classifier(link.Chain):
         predictor (~chainer.Link): Predictor network.
         lossfun (function): Loss function.
         accfun (function): Function that computes accuracy.
-        y (~chainer.Variable): Prediction for the last minibatch.
-        loss (~chainer.Variable): Loss value for the last minibatch.
-        accuracy (~chainer.Variable): Accuracy for the last minibatch.
+        y (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Prediction for the last minibatch.
+        loss (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Loss value for the last minibatch.
+        accuracy (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Accuracy for the last minibatch.
         compute_accuracy (bool): If ``True``, compute accuracy on the forward
             computation. The default value is ``True``.
 

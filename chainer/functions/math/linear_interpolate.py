@@ -63,9 +63,12 @@ def linear_interpolate(p, x, y):
         f(p, x, y) = p x + (1 - p) y.
 
     Args:
-        p (~chainer.Variable): Input variable.
-        x (~chainer.Variable): Input variable.
-        y (~chainer.Variable): Input variable.
+        p (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Input variable.
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Input variable.
+        y (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Input variable.
 
     Returns:
         ~chainer.Variable: Output variable.

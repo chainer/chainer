@@ -218,15 +218,19 @@ def slstm(c_prev1, c_prev2, x1, x2):
     The function returns :math:`c` and :math:`h` as a tuple.
 
     Args:
-        c_prev1 (~chainer.Variable): Variable that holds the previous cell
+        c_prev1 (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Variable that holds the previous cell
             state of the first child node. The cell state should be a zero
             array or the output of the  previous call of LSTM.
-        c_prev2 (~chainer.Variable): Variable that holds the previous cell
+        c_prev2 (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Variable that holds the previous cell
             state of the second child node.
-        x1 (~chainer.Variable): Variable that holds the incoming signal from
+        x1 (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Variable that holds the incoming signal from
             the first child node. It must have the second dimension four times
             of that of the cell state,
-        x2 (~chainer.Variable): Variable that holds the incoming signal from
+        x2 (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Variable that holds the incoming signal from
             the second child node.
 
     Returns:

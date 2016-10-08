@@ -12,7 +12,8 @@ def separate(x, axis=0):
     This function is an inverse of :func:`chainer.functions.stack`.
 
     Args:
-        x (chainer.Variable): Variable to be separated.
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Variable to be separated.
         axis (int): Axis along which variables are separated.
 
     Returns:

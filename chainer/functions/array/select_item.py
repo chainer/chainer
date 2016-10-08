@@ -71,8 +71,10 @@ def select_item(x, t):
     ``y[i] == x[i, t[i]]`` for all ``i``.
 
     Args:
-        x (Variable): Variable storing arrays.
-        t (Variable): Variable storing index numbers.
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Variable storing arrays.
+        t (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Variable storing index numbers.
 
     Returns:
         ~chainer.Variable: Variable that holds ``t``-th element of ``x``.

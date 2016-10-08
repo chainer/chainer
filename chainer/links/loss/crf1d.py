@@ -15,7 +15,8 @@ class CRF1d(link.Link):
     .. seealso:: :func:`~chainer.functions.crf1d` for more detail.
 
     Attributes:
-        cost (~chainer.Variable): Transition cost parameter.
+        cost (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Transition cost parameter.
     """
 
     def __init__(self, n_label):

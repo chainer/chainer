@@ -29,7 +29,8 @@ class Scale(link.Chain):
     .. seealso:: See :func:`~chainer.functions.scale` for details.
 
     Attributes:
-        W (~chainer.Variable): Weight parameter if ``W_shape`` is given.
+        W (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Weight parameter if ``W_shape`` is given.
             Otherwise, no W attribute.
         bias (~chainer.links.Bias): Bias term if ``bias_term`` is True.
             Otherwise, no bias attribute.

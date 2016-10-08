@@ -27,5 +27,13 @@ class Log1p(function.Function):
 
 
 def log1p(x):
-    """Elementwise natural logarithm plus one function."""
+    """Elementwise natural logarithm plus one function.
+
+    Args:
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Input variable.
+
+    Returns:
+        ~chainer.Variable: Output variable.
+    """
     return Log1p()(x)

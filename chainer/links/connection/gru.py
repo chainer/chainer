@@ -123,7 +123,8 @@ class StatefulGRU(GRUBase):
             default initialization.
 
     Attributes:
-        h(~chainer.Variable): Hidden vector that indicates the state of
+        h(chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Hidden vector that indicates the state of
             :class:`~chainer.links.StatefulGRU`.
 
     .. seealso:: :class:`~chainer.functions.GRU`

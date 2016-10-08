@@ -54,7 +54,8 @@ def concat(xs, axis=1):
     """Concatenates given variables along an axis.
 
     Args:
-        xs (tuple of Variables): Variables to be concatenated.
+        xs (tuple of Variables, or numpy.arrays or cupy.arrays):
+        Variables to be concatenated.
         axis (int): Axis that the input arrays are concatenated along.
 
     Returns:

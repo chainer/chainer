@@ -22,7 +22,8 @@ class Bias(link.Link):
     .. seealso:: See :func:`~chainer.functions.bias` for details.
 
     Attributes:
-        b (~chainer.Variable): Bias parameter if ``shape`` is given. Otherwise,
+        b (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Bias parameter if ``shape`` is given. Otherwise,
             no attributes.
 
     """

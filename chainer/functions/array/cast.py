@@ -26,7 +26,8 @@ def cast(x, typ):
     """Cast an input variable to a given type.
 
     Args:
-        x (~chainer.Variable): Input variable.
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Input variable.
         typ (str of dtype): Typecode or data type to cast.
 
     Returns:

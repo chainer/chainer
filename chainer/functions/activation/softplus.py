@@ -65,7 +65,8 @@ def softplus(x, beta=1.0):
     where :math:`\\beta` is a parameter.
 
     Args:
-        x (~chainer.Variable): Input variable.
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Input variable.
         beta (float): Parameter :math:`\\beta`.
 
     Returns:

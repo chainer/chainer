@@ -24,7 +24,8 @@ def maxout(x, pool_size, axis=1):
     >>> y = maxout(x, pool_size)
 
     Args:
-       x (~chainer.Variable): Input variable. Its first dimension is assumed
+       x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Input variable. Its first dimension is assumed
             to be the *minibatch dimension*. The other dimensions are treated
             as one concatenated dimension.
     Returns:

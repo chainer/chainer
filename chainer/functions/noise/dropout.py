@@ -39,7 +39,8 @@ def dropout(x, ratio=.5, train=True):
     mode, it does nothing and just returns ``x``.
 
     Args:
-        x (~chainer.Variable): Input variable.
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Input variable.
         ratio (float): Dropout ratio.
         train (bool): If ``True``, executes dropout. Otherwise, does nothing.
 

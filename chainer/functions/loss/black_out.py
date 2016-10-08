@@ -28,10 +28,14 @@ def black_out(x, t, W, samples):
        \\sum_{s \\in samples} \\exp(W_s^\\top x)}.
 
     Args:
-        x (~chainer.Variable): Batch of input vectors.
-        t (~chainer.Variable): Vector of ground truth labels.
-        W (~chainer.Variable): Weight matrix.
-        samples (~chainer.Variable): Negative samples.
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Batch of input vectors.
+        t (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Vector of ground truth labels.
+        W (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Weight matrix.
+        samples (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Negative samples.
 
     Returns:
         ~chainer.Variable: Loss value.

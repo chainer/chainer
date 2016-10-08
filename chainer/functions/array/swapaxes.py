@@ -31,7 +31,8 @@ def swapaxes(x, axis1, axis2):
     """Swap two axes of a variable.
 
     Args:
-        x (~chainer.Variable): Input variable.
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Input variable.
         axis1 (int): The first axis to swap.
         axis2 (int): The second axis to swap.
 

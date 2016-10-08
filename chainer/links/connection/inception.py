@@ -67,7 +67,8 @@ class Inception(link.Chain):
         """Computes the output of the Inception module.
 
         Args:
-            x (~chainer.Variable): Input variable.
+            x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Input variable.
 
         Returns:
             Variable: Output variable. Its array has the same spatial size and

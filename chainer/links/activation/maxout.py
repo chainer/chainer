@@ -81,7 +81,8 @@ class Maxout(link.Chain):
         """Applies the maxout layer.
 
         Args:
-            x (~chainer.Variable): Batch of input vectors.
+            x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Batch of input vectors.
 
         Returns:
             ~chainer.Variable: Output of the maxout layer.

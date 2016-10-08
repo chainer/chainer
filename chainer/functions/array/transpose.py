@@ -36,7 +36,8 @@ def transpose(x, axes=None):
     """Permute the dimensions of an input variable without copy.
 
     Args:
-        x (~chainer.Variable): Input variable.
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Input variable.
         axes (tuple of ints): By default, reverse the dimensions,
             otherwise permute the axes according to the values given.
 

@@ -66,7 +66,8 @@ def split_axis(x, indices_or_sections, axis, force_tuple=False):
     """Splits given variables along an axis.
 
     Args:
-        x (tuple of Variables): Variables to be split.
+        x (tuple of Variables, numpy.ndarray, cupy.ndarray):
+            Variables to be split.
         indices_or_sections (int or 1-D array): If this argument is an integer,
             N, the array will be divided into N equal arrays along axis.
             If it is a 1-D array of sorted integers, it

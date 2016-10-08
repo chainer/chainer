@@ -57,7 +57,8 @@ def rollaxis(x, axis, start=0):
     """Roll the axis backwards to the given position.
 
     Args:
-        x (~chainer.Variable): Input variable.
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Input variable.
         axis (int): The axis to roll backwards.
         start (int): The place to which the axis is moved.
 

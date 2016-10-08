@@ -52,7 +52,8 @@ def crelu(x, axis=1):
     See: http://arxiv.org/abs/1603.05201
 
     Args:
-        x (~chainer.Variable): Input variable.
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Input variable.
         axis (int): Axis that the output values are concatenated along
 
     Returns:

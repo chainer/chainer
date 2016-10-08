@@ -51,9 +51,11 @@ def huber_loss(x, t, delta):
             \\end{array} \\right.
 
     Args:
-        x (~chainer.Variable): Input variable.
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Input variable.
             The shape of ``x`` should be (:math:`N`, :math:`K`).
-        t (~chainer.Variable): Target variable for regression.
+        t (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Target variable for regression.
             The shape of ``t`` should be (:math:`N`, :math:`K`).
         delta (float): Constant variable for huber loss function
             as used in definition.

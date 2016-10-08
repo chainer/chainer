@@ -286,7 +286,8 @@ class BinaryHierarchicalSoftmax(link.Link):
         tree: A binary tree made with tuples like `((1, 2), 3)`.
 
     Attributes:
-        W (~chainer.Variable): Weight parameter matrix.
+        W (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Weight parameter matrix.
 
     See: Hierarchical Probabilistic Neural Network Language Model [Morin+,
     AISTAT2005].
@@ -349,8 +350,10 @@ class BinaryHierarchicalSoftmax(link.Link):
         """Computes the loss value for given input and ground truth labels.
 
         Args:
-            x (~chainer.Variable): Input to the classifier at each node.
-            t (~chainer.Variable): Batch of ground truth labels.
+            x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Input to the classifier at each node.
+            t (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Batch of ground truth labels.
 
         Returns:
             ~chainer.Variable: Loss value.

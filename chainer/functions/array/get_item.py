@@ -53,7 +53,8 @@ def get_item(x, slices):
     """Extract elements from array with specified shape, axes and offsets.
 
     Args:
-        x (tuple of Variables): Variable to be sliced.
+        x (tuple of Variables, numpy.ndarray or cupy.ndarraty):
+            Variable to be sliced.
         slices (int, slice, None or Ellipsis or tuple of them): Basic slicing
             to slice a variable. It supports ``int``, ``slice``, ``newaxis``
             (equivalent to ``None``) and ``Ellipsis``.

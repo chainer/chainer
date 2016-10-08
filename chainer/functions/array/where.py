@@ -40,10 +40,13 @@ def where(condition, x, y):
     All ``condition``, ``x``, and ``y`` must have the same shape.
 
     Args:
-        condition (~chainer.Variable): Variable containing the condition.
+        condition (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Variable containing the condition.
             Only boolean array is permitted.
-        x (~chainer.Variable): Variable chosen when ``condition`` is ``True``.
-        y (~chainer.Variable): Variable chosen when ``condition`` is ``False``.
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Variable chosen when ``condition`` is ``True``.
+        y (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Variable chosen when ``condition`` is ``False``.
 
     Returns:
         ~chainer.Variable: Variable containing chosen values.

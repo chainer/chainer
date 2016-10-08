@@ -66,7 +66,8 @@ def sum(x, axis=None):
     """Sum of array elements over a given axis.
 
     Args:
-        x (~chainer.Variable): Elements to sum.
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Elements to sum.
         axis (None, int, or tuple of int): Axis which a sum is performed.
             The default (axis = None) is perform a sum over all the dimensions
             of the input array.

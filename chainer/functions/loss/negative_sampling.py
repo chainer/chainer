@@ -205,9 +205,12 @@ def negative_sampling(x, t, W, sampler, sample_size):
     a hyper-parameter, and :math:`Z` is the normalization constant.
 
     Args:
-        x (~chainer.Variable): Batch of input vectors.
-        t (~chainer.Variable): Vector of ground truth labels.
-        W (~chainer.Variable): Weight matrix.
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Batch of input vectors.
+        t (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Vector of ground truth labels.
+        W (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Weight matrix.
         sampler (~types.FunctionType): Sampling function. It takes a shape and
             returns an integer array of the shape. Each element of this array
             is a sample from the word distribution.

@@ -142,14 +142,16 @@ def softmax_cross_entropy(
     """Computes cross entropy loss for pre-softmax activations.
 
     Args:
-        x (Variable): Variable holding a multidimensional array whose element
+        x (chainer.Variable, :class:`numpy.ndarray`, or cupy.ndarray):
+            Variable holding a multidimensional array whose element
             indicates unnormalized log probability: the first axis of the
             variable represents the number of samples, and the second axis
             represents the number of classes. While this function computes
             a usual softmax cross entropy if the number of dimensions is equal
             to 2, it computes a cross entropy of the replicated softmax if the
             number of dimensions is greater than 2.
-        t (Variable): Variable holding an int32 vector of ground truth labels.
+        t (chainer.Variable, :class:`numpy.ndarray`, or cupy.ndarray):
+            Variable holding an int32 vector of ground truth labels.
             If ``t[i] == -1``, corresponding ``x[i]`` is ignored.
         normalize (bool): If true, this function normalizes the cross entropy
             loss across all instances. If false, it only normalizes along

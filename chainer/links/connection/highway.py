@@ -65,7 +65,8 @@ class Highway(link.Chain):
         """Computes the output of the Highway module.
 
         Args:
-            x (~chainer.Variable): Input variable.
+            x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Input variable.
         Returns:
             Variable: Output variable. Its array has the same spatial size and
             the same minibatch size as the input array.

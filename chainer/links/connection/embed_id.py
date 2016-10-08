@@ -24,7 +24,8 @@ class EmbedID(link.Link):
     .. seealso:: :func:`chainer.functions.embed_id`
 
     Attributes:
-        W (~chainer.Variable): Embedding parameter matrix.
+        W (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Embedding parameter matrix.
 
     """
 
@@ -41,7 +42,8 @@ class EmbedID(link.Link):
         """Extracts the word embedding of given IDs.
 
         Args:
-            x (~chainer.Variable): Batch vectors of IDs.
+            x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            Batch vectors of IDs.
 
         Returns:
             ~chainer.Variable: Batch of corresponding embeddings.
