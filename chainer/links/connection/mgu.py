@@ -9,26 +9,31 @@ from chainer import link
 from chainer.links.connection import linear
 
 
-class MGU(link.Chain):
+class MGUBase(link.Chain):
 
     def __init__(self, n_inputs, n_units):
-        super(MGU, self).__init__(
+        super(MGUBase, self).__init__(
             W_f=linear.Linear(n_inputs + n_units, n_units),
             W_h=linear.Linear(n_inputs + n_units, n_units)
         )
 
-    def __call__(self, h, x):
+    def _call_mgu(self, h, x):
         f = sigmoid.sigmoid(self.W_f(concat.concat([h, x])))
         h_bar = tanh.tanh(self.W_h(concat.concat([f * h, x])))
         h_new = linear_interpolate.linear_interpolate(f, h_bar, h)
         return h_new
 
 
-class StatefulMGU(MGU):
+class StatelessMGU(MGUBase):
+
+    __call__ = MGUBase._call_mgu
+
+
+class StatefulMGU(MGUBase):
 
     def __init__(self, in_size, out_size):
         super(StatefulMGU, self).__init__(in_size, out_size)
-        self.state_size = out_size
+        self._state_size = out_size
         self.reset_state()
 
     def to_cpu(self):
@@ -55,12 +60,12 @@ class StatefulMGU(MGU):
 
     def __call__(self, x):
         if self.h is None:
-            n_batch = len(x.data)
+            n_batch = x.shape[0]
             h_data = self.xp.zeros(
-                (n_batch, self.state_size), dtype=numpy.float32)
+                (n_batch, self._state_size), dtype=numpy.float32)
             h = chainer.Variable(h_data)
         else:
             h = self.h
 
-        self.h = MGU.__call__(self, h, x)
+        self.h = self._call_mgu(h, x)
         return self.h

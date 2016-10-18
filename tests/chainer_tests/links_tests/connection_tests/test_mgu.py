@@ -1,6 +1,7 @@
 import unittest
 
 import numpy
+import six
 
 import chainer
 from chainer import cuda
@@ -9,7 +10,19 @@ from chainer import testing
 from chainer.testing import attr
 
 
-class TestMGU(unittest.TestCase):
+def sigmoid(x):
+    return 1 / (1 + numpy.exp(-x))
+
+
+def mgu(W_f, W_h, h, x):
+    f = sigmoid(numpy.concatenate([h, x]).dot(W_f.T))
+    hx = numpy.concatenate([f * h, x])
+    h_bar = numpy.tanh(hx.dot(W_h.T))
+    h_new = f * h_bar + (1 - f) * h
+    return h_new
+
+
+class TestStatelessMGU(unittest.TestCase):
 
     in_size = 4
     out_size = 5
@@ -22,12 +35,18 @@ class TestMGU(unittest.TestCase):
         self.gy = numpy.random.uniform(
             -1, 1, (3, self.out_size)).astype(numpy.float32)
 
-        self.mgu = links.MGU(self.in_size, self.out_size)
+        self.mgu = links.StatelessMGU(self.in_size, self.out_size)
 
     def check_forward(self, h_data, x_data):
         h = chainer.Variable(h_data)
         x = chainer.Variable(x_data)
-        self.mgu(h, x)
+        y = self.mgu(h, x)
+
+        W_f = cuda.to_cpu(self.mgu.W_f.W.data)
+        W_h = cuda.to_cpu(self.mgu.W_h.W.data)
+        for i in six.moves.range(3):
+            h_new = mgu(W_f, W_h, self.h[i], self.x[i])
+            testing.assert_allclose(h_new, y.data[i])
 
     def test_forward_cpu(self):
         self.check_forward(self.h, self.x)
@@ -53,8 +72,17 @@ class TestStatefulMGU(unittest.TestCase):
 
     def check_forward(self, x_data):
         x = chainer.Variable(x_data)
-        self.mgu(x)
-        self.mgu(x)
+        W_f = cuda.to_cpu(self.mgu.W_f.W.data)
+        W_h = cuda.to_cpu(self.mgu.W_h.W.data)
+        y1 = self.mgu(x)
+        y2 = self.mgu(x)
+
+        h = numpy.zeros(self.out_size, dtype='f')
+        for i in six.moves.range(3):
+            h1 = mgu(W_f, W_h, h, self.x[i])
+            testing.assert_allclose(h1, y1.data[i])
+            h2 = mgu(W_f, W_h, h1, self.x[i])
+            testing.assert_allclose(h2, y2.data[i])
 
     def test_forward_cpu(self):
         self.check_forward(self.x)
