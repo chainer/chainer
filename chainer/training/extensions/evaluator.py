@@ -74,6 +74,11 @@ class Evaluator(extension.Extension):
                 eval_func=eval_func)
         self.evaluator = evaluator
 
+        self.converter = self.evaluator.converter
+        self.device = self.evaluator.device
+        self.eval_hook = self.evaluator.eval_hook_before
+        self.eval_func = self.evaluator.eval_func
+
     def get_iterator(self, name):
         """Returns the iterator of the given name."""
         return self.evaluator.get_iterator(name)
@@ -107,11 +112,28 @@ class Evaluator(extension.Extension):
 
         """
         if hasattr(self, 'name'):
-            prefix = self.name + '/'
+            self.prefix = self.name + '/'
         else:
-            prefix = ''
+            self.prefix = ''
 
-        result = self.evaluator.run(prefix)
+        result = self.evaluate()
 
         reporter_module.report(result)
         return result
+
+    def evaluate(self):
+        """Evaluates the model and returns a result dictionary.
+
+        This method runs the evaluation loop over the validation dataset. It
+        accumulates the reported values to :class:`~chainer.DictSummary` and
+        returns a dictionary whose values are means computed by the summary.
+
+        Users can override this method to customize the evaluation routine.
+
+        Returns:
+            dict: Result dictionary. This dictionary is further reported via
+                :func:`~chainer.report` without specifying any observer.
+
+        """
+
+        self.evaluator.run(self.prefix)
