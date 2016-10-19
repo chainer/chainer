@@ -74,6 +74,11 @@ class Evaluator(extension.Extension):
                 eval_func=eval_func)
         self.evaluator = evaluator
 
+        self.converter = self.evaluator.converter
+        self.device = self.evaluator.device
+        self.eval_hook = self.evaluator.eval_hook_before
+        self.eval_func = self.evaluator.eval_func
+
     def get_iterator(self, name):
         """Returns the iterator of the given name."""
         return self.evaluator.get_iterator(name)
