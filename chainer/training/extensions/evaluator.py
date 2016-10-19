@@ -111,7 +111,7 @@ class Evaluator(extension.Extension):
         else:
             self.prefix = ''
 
-        result = self.evaluator.run(prefix)
+        result = self.evaluate()
 
         reporter_module.report(result)
         return result
