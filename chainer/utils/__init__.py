@@ -1,8 +1,12 @@
 import numpy
 
+from chainer.utils import timer
 from chainer.utils import walker_alias
 
 WalkerAlias = walker_alias.WalkerAlias
+get_timer = timer.get_timer
+CPUTimer = timer.CPUTimer
+GPUTimer = timer.GPUTimer
 
 
 def force_array(x, dtype=None):
