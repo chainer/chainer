@@ -89,4 +89,5 @@ class Linear(link.Link):
         if self.has_uninitialized_params:
             with cuda.get_device(self._device_id):
                 self._initialize_params(x.size // len(x.data))
+                self.W.grad[...] = 0
         return linear.linear(x, self.W, self.b)

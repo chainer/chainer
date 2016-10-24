@@ -6,6 +6,7 @@ import six
 import chainer
 from chainer import cuda
 import chainer.functions as F
+from chainer import initializers
 import chainer.links as L
 from chainer import optimizers
 from chainer import testing
@@ -19,13 +20,18 @@ class LinearModel(object):
     BATCH_SIZE = 32
     EPOCH = 100
 
-    def __init__(self, optimizer, dtype):
+    def __init__(self, optimizer, dtype, use_placeholder):
         self.dtype = dtype
-        self.model = L.Linear(self.UNIT_NUM, 2)
-        self.model.W.data = self.model.W.data.astype(dtype)
-        self.model.b.data = self.model.b.data.astype(dtype)
-        self.model.W.grad = self.model.W.grad.astype(dtype)
-        self.model.b.grad = self.model.b.grad.astype(dtype)
+        if use_placeholder:
+            weight = initializers.HeNormal(1 / numpy.sqrt(2), dtype)
+            bias = initializers.Constant(0, dtype)
+            self.model = L.Linear(None, 2, initialW=weight, initial_bias=bias)
+        else:
+            self.model = L.Linear(self.UNIT_NUM, 2)
+            self.model.W.data = self.model.W.data.astype(dtype)
+            self.model.b.data = self.model.b.data.astype(dtype)
+            self.model.W.grad = self.model.W.grad.astype(dtype)
+            self.model.b.grad = self.model.b.grad.astype(dtype)
 
         self.optimizer = optimizer
         # true parameters
@@ -85,7 +91,8 @@ class OptimizerTestBase(object):
         raise NotImplementedError()
 
     def setUp(self):
-        self.model = LinearModel(self.create(), self.dtype)
+        self.model = LinearModel(
+            self.create(), self.dtype, self.use_placeholder)
 
     @condition.retry(10)
     def test_linear_model_cpu(self):
@@ -126,7 +133,8 @@ class OptimizerTestBase(object):
 
 
 @testing.parameterize(*testing.product({
-    'dtype': [numpy.float16, numpy.float32, numpy.float64]
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'use_placeholder': [False],
 }))
 class TestAdaDelta(OptimizerTestBase, unittest.TestCase):
 
@@ -135,7 +143,8 @@ class TestAdaDelta(OptimizerTestBase, unittest.TestCase):
 
 
 @testing.parameterize(*testing.product({
-    'dtype': [numpy.float16, numpy.float32, numpy.float64]
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'use_placeholder': [False],
 }))
 class TestAdaGrad(OptimizerTestBase, unittest.TestCase):
 
@@ -144,7 +153,8 @@ class TestAdaGrad(OptimizerTestBase, unittest.TestCase):
 
 
 @testing.parameterize(*testing.product({
-    'dtype': [numpy.float16, numpy.float32, numpy.float64]
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'use_placeholder': [True, False],
 }))
 class TestAdam(OptimizerTestBase, unittest.TestCase):
 
@@ -153,7 +163,8 @@ class TestAdam(OptimizerTestBase, unittest.TestCase):
 
 
 @testing.parameterize(*testing.product({
-    'dtype': [numpy.float16, numpy.float32, numpy.float64]
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'use_placeholder': [False],
 }))
 class TestMomentumSGD(OptimizerTestBase, unittest.TestCase):
 
@@ -162,7 +173,8 @@ class TestMomentumSGD(OptimizerTestBase, unittest.TestCase):
 
 
 @testing.parameterize(*testing.product({
-    'dtype': [numpy.float16, numpy.float32, numpy.float64]
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'use_placeholder': [False],
 }))
 class NesterovAG(OptimizerTestBase, unittest.TestCase):
 
@@ -171,7 +183,8 @@ class NesterovAG(OptimizerTestBase, unittest.TestCase):
 
 
 @testing.parameterize(*testing.product({
-    'dtype': [numpy.float16, numpy.float32, numpy.float64]
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'use_placeholder': [False],
 }))
 class TestRMSprop(OptimizerTestBase, unittest.TestCase):
 
@@ -180,7 +193,8 @@ class TestRMSprop(OptimizerTestBase, unittest.TestCase):
 
 
 @testing.parameterize(*testing.product({
-    'dtype': [numpy.float16, numpy.float32, numpy.float64]
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'use_placeholder': [False],
 }))
 class TestRMSpropGraves(OptimizerTestBase, unittest.TestCase):
 
@@ -189,7 +203,8 @@ class TestRMSpropGraves(OptimizerTestBase, unittest.TestCase):
 
 
 @testing.parameterize(*testing.product({
-    'dtype': [numpy.float16, numpy.float32, numpy.float64]
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'use_placeholder': [True, False],
 }))
 class TestSGD(OptimizerTestBase, unittest.TestCase):
 
@@ -198,7 +213,8 @@ class TestSGD(OptimizerTestBase, unittest.TestCase):
 
 
 @testing.parameterize(*testing.product({
-    'dtype': [numpy.float16, numpy.float32, numpy.float64]
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'use_placeholder': [False],
 }))
 class TestSMORMS3(OptimizerTestBase, unittest.TestCase):
 
