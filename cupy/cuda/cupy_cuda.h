@@ -295,6 +295,11 @@ int cudaEventSynchronize(Event event) {
     return 0;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// cuComplex.h
+///////////////////////////////////////////////////////////////////////////////
+
+#include "cupy_cuComplex.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 // cublas_v2.h
@@ -380,6 +385,26 @@ int cublasDdot(Handle handle, int n, double* x, int incx,
     return 0;
 }
 
+int cublasCdotu(Handle handle, int n, cuComplex* x, int incx,
+               cuComplex* y, int incy, cuComplex* result) {
+    return 0;
+}
+
+int cublasCdotc(Handle handle, int n, cuComplex* x, int incx,
+               cuComplex* y, int incy, cuComplex* result) {
+    return 0;
+}
+
+int cublasZdotc(Handle handle, int n, cuDoubleComplex* x, int incx,
+               cuDoubleComplex* y, int incy, cuDoubleComplex* result) {
+    return 0;
+}
+
+int cublasZdotu(Handle handle, int n, cuDoubleComplex* x, int incx,
+               cuDoubleComplex* y, int incy, cuDoubleComplex* result) {
+    return 0;
+}
+
 int cublasSnrm2(Handle handle, int n, float* x, int incx,
                 float* result) {
     return 0;
@@ -406,6 +431,20 @@ int cublasDgemv(
     return 0;
 }
 
+int cublasCgemv(
+        Handle handle, Operation trans, int m, int n, cuComplex* alpha,
+        cuComplex* A, int lda, cuComplex* x, int incx, cuComplex* beta,
+        cuComplex* y, int incy) {
+    return 0;
+}
+
+int cublasZgemv(
+        Handle handle, Operation trans, int m, int n, cuDoubleComplex* alpha,
+        cuDoubleComplex* A, int lda, cuDoubleComplex* x, int incx,
+        cuDoubleComplex* beta, cuDoubleComplex* y, int incy) {
+    return 0;
+}
+
 int cublasSger(
         Handle handle, int m, int n, float* alpha, float* x, int incx,
         float* y, int incy, float* A, int lda) {
@@ -415,6 +454,30 @@ int cublasSger(
 int cublasDger(
         Handle handle, int m, int n, double* alpha, double* x,
         int incx, double* y, int incy, double* A, int lda) {
+    return 0;
+}
+
+int cublasCgeru(
+        Handle handle, int m, int n, cuComplex* alpha, cuComplex* x,
+        int incx, cuComplex* y, int incy, cuComplex* A, int lda) {
+    return 0;
+}
+
+int cublasCgerc(
+        Handle handle, int m, int n, cuComplex* alpha, cuComplex* x,
+        int incx, cuComplex* y, int incy, cuComplex* A, int lda) {
+    return 0;
+}
+
+int cublasZgeru(
+        Handle handle, int m, int n, cuDoubleComplex* alpha, cuDoubleComplex* x,
+        int incx, cuDoubleComplex* y, int incy, cuDoubleComplex* A, int lda) {
+    return 0;
+}
+
+int cublasZgerc(
+        Handle handle, int m, int n, cuDoubleComplex* alpha, cuDoubleComplex* x,
+        int incx, cuDoubleComplex* y, int incy, cuDoubleComplex* A, int lda) {
     return 0;
 }
 
@@ -433,11 +496,53 @@ int cublasDgemm(
     return 0;
 }
 
+int cublasCgemm(
+        Handle handle, Operation transa, Operation transb, int m,
+        int n, int k, cuComplex* alpha, cuComplex* A, int lda, cuComplex* B,
+        int ldb, cuComplex* beta, cuComplex* C, int ldc) {
+    return 0;
+}
+
+int cublasZgemm(
+        Handle handle, Operation transa, Operation transb, int m,
+        int n, int k, cuDoubleComplex* alpha, cuDoubleComplex* A, int lda,
+        cuDoubleComplex* B, int ldb, cuDoubleComplex* beta,
+        cuDoubleComplex* C,
+        int ldc) {
+    return 0;
+}
+
 int cublasSgemmBatched(
         Handle handle, Operation transa, Operation transb, int m,
         int n, int k, const float* alpha, const float** Aarray,
         int lda, const float** Barray, int ldb, const float* beta,
         float** Carray, int ldc, int batchCount) {
+    return 0;
+}
+
+int cublasDgemmBatched(
+        Handle handle, Operation transa, Operation transb, int m,
+        int n, int k, const double* alpha, const double** Aarray,
+        int lda, const double** Barray, int ldb, const double* beta,
+        double** Carray, int ldc, int batchCount) {
+    return 0;
+}
+
+int cublasCgemmBatched(
+    Handle handle, Operation transa, Operation transb, int m,
+    int n, int k, const cuComplex* alpha, const cuComplex** Aarray,
+    int lda, const cuComplex** Barray, int ldb, const cuComplex* beta,
+    cuComplex** Carray, int ldc, int batchCount) {
+    return 0;
+}
+
+int cublasZgemmBatched(
+    Handle handle, Operation transa, Operation transb, int m,
+    int n, int k, const cuDoubleComplex* alpha,
+    const cuDoubleComplex** Aarray, int lda,
+    const cuDoubleComplex** Barray, int ldb,
+    const cuDoubleComplex* beta, cuDoubleComplex** Carray, int ldc,
+    int batchCount) {
     return 0;
 }
 

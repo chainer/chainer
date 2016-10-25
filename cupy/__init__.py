@@ -30,6 +30,8 @@ from cupy import statistics
 from cupy import testing  # NOQA
 from cupy import util
 
+cupy_complex_available = core.core.cupy_complex_available
+
 random = cupy.random
 
 ndarray = core.ndarray
@@ -305,6 +307,10 @@ nextafter = math.floating.nextafter
 add = math.arithmetic.add
 reciprocal = math.arithmetic.reciprocal
 negative = math.arithmetic.negative
+conj = math.arithmetic.conj
+angle = math.arithmetic.angle
+real = math.arithmetic.real
+imag = math.arithmetic.imag
 multiply = math.arithmetic.multiply
 divide = math.arithmetic.divide
 power = math.arithmetic.power
