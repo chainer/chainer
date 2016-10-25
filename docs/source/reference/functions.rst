@@ -486,6 +486,10 @@ tan
 Noise injections
 ----------------
 
+dropconnect
+~~~~~~~~~~~
+.. autofunction:: dropconnect
+
 dropout
 ~~~~~~~
 .. autofunction:: dropout

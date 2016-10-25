@@ -93,6 +93,7 @@ from chainer.functions.math import square
 from chainer.functions.math import squared_difference
 from chainer.functions.math import sum
 from chainer.functions.math import trigonometric
+from chainer.functions.noise import dropconnect
 from chainer.functions.noise import dropout
 from chainer.functions.noise import gaussian
 from chainer.functions.noise import zoneout
@@ -331,6 +332,8 @@ sum = sum.sum
 Tan = trigonometric.Tan
 tan = trigonometric.tan
 
+Dropconnect = dropconnect.Dropconnect
+dropconnect = dropconnect.dropconnect
 Dropout = dropout.Dropout
 dropout = dropout.dropout
 Gaussian = gaussian.Gaussian
