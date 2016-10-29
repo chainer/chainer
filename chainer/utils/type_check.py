@@ -52,6 +52,24 @@ class TypeInfoTuple(tuple):
         return Variable(len(self), '{0}.size'.format(self.name))
 
 
+class TypeInfoTuple2(tuple):
+
+    """Type information of input/gradient tuples.
+
+    It is a sub-class of tuple containing :class:`TypeInfo`. The i-th element
+    of this object contains type information of the i-th input/gradient data.
+    As each element is :class:`Expr`, you can easily check its validity.
+    """
+
+    def size(self):
+        """Returns an expression representing its length.
+
+        Returns:
+            Expr: An expression object representing length of the tuple.
+        """
+        return len(self)
+
+
 def get_types(data, name, accept_none):
     assert(isinstance(data, tuple))
 
@@ -60,6 +78,12 @@ def get_types(data, name, accept_none):
     # I don't know a method to set an attribute in an initializer of tuple.
     info.name = name
     return info
+
+
+def get_types2(data):
+    assert(isinstance(data, tuple))
+
+    return TypeInfoTuple2(data)
 
 
 def _get_type(name, index, array, accept_none):
@@ -482,9 +506,38 @@ def expect(*bool_exprs):
         bool_exprs (tuple of Bool expressions): Bool expressions you want to
             evaluate.
     """
-    for expr in bool_exprs:
-        assert isinstance(expr, Testable)
-        expr.expect()
+    global _fetch
+    if _fetch:
+        assert all(bool_exprs)
+    else:
+        for expr in bool_exprs:
+            assert isinstance(expr, Testable)
+            expr.expect()
+
+_fetch = False
+
+
+def eval(exp):
+    if _fetch:
+        return exp
+    else:
+        return exp.eval()
+
+
+class Fetch(object):
+
+    def __enter__(self):
+        global _fetch, prod
+        _fetch = True
+        self.org_prod = prod
+        prod = numpy.prod
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        global _fetch, prod
+        _fetch = False
+        prod = self.org_prod
+
+fetch = Fetch()
 
 
 prod = Variable(numpy.prod, 'prod')
