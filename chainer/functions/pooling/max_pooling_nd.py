@@ -18,7 +18,7 @@ _forward_cache = {}
 _backward_cache = {}
 
 
-class MaxPoolingND(pooling_nd.PoolingND):
+class MaxPoolingND(pooling_nd._PoolingND):
 
     """Max pooling over a set of N-dimensional planes."""
 
