@@ -3,7 +3,6 @@ import numpy
 from chainer import cuda
 from chainer import function
 from chainer.utils import type_check
-import cupy
 
 
 def _split(inputs, pos):
@@ -114,7 +113,7 @@ class LinearCombination(function.Function):
         xmat = _seqs_to_array(x_list, max_len, 0)
         cmat = _seqs_to_array(c_list, max_len, 0)
 
-        out = cupy.sum(cupy.expand_dims(cmat, axis=2) * xmat, axis=1)
+        out = cuda.cupy.sum(cuda.cupy.expand_dims(cmat, axis=2) * xmat, axis=1)
         self.out = out
         return out,
 
@@ -147,11 +146,12 @@ class LinearCombination(function.Function):
         gy, = grads
 
         # gxs
-        gxs = cupy.expand_dims(cmat, axis=2) * cupy.expand_dims(gy, axis=1)
+        gxs = cuda.cupy.expand_dims(
+            cmat, axis=2) * cuda.cupy.expand_dims(gy, axis=1)
         gx_list = [gx[:l, :] for (l, gx) in zip(lens, gxs)]
 
         # gcs
-        gcs = cupy.sum(cupy.expand_dims(gy, axis=1) * xmat, axis=2)
+        gcs = cuda.cupy.sum(cuda.cupy.expand_dims(gy, axis=1) * xmat, axis=2)
         gc_list = [gc[:l] for (l, gc) in zip(lens, gcs)]
 
         return tuple(gx_list + gc_list)

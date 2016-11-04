@@ -6,7 +6,6 @@ from chainer import function
 from chainer.functions.math.matmul import _batch_matmul_gpu
 from chainer.functions.math.matmul import _matmul
 from chainer.utils import type_check
-import cupy
 
 
 def _split(inputs, pos):
@@ -145,19 +144,19 @@ class Attention(function.Function):
         max_len = max(lens)
         xmat = _seqs_to_array(x_list, max_len, 0)
 
-        score = cupy.empty((batchsize, max_len, 1), dtype=xmat.dtype)
+        score = cuda.cupy.empty((batchsize, max_len, 1), dtype=xmat.dtype)
         _batch_matmul_gpu(xmat, q, score)
         score = score.reshape((batchsize, max_len))
         _mask_array(score, lens, -numpy.inf)
 
         # softmax
         alpha = score - score.max(axis=1, keepdims=True)
-        cupy.exp(alpha, out=alpha)
+        cuda.cupy.exp(alpha, out=alpha)
         alpha /= alpha.sum(axis=1, keepdims=True)
         self.alpha = alpha
 
         # aggregate
-        out = cupy.empty((batchsize, dim, 1), dtype=xmat.dtype)
+        out = cuda.cupy.empty((batchsize, dim, 1), dtype=xmat.dtype)
         _batch_matmul_gpu(xmat, alpha, out, transa=True)
         out = out.reshape((batchsize, dim))
         self.out = out
@@ -213,7 +212,7 @@ class Attention(function.Function):
         dtype = q.dtype
         gy, = grads
 
-        xp = cupy
+        xp = cuda.cupy
         # gq
         _a0 = xp.sum(gy * self.out, axis=1)
         _a = xp.expand_dims(_a0, axis=1) * self.out
