@@ -166,4 +166,19 @@ class Stream(object):
         runtime.streamWaitEvent(self.ptr, event.ptr)
 
 
+class IpcMemoryHandle(object):
+
+    """CUDA interprocess memory handle
+
+    """
+
+    def __init__(self, devPtr):
+        self.data = runtime.ipcGetMemHandle(devPtr)
+        # for i in range(64):
+        #     print("self.data[{}]:{}".format(i,self.data[i]))
+
+    def open(self):
+        return runtime.ipcOpenMemHandle(self.data)
+
+
 Stream.null = Stream(null=True)

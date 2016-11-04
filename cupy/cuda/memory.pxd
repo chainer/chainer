@@ -13,7 +13,7 @@ cdef class MemoryPointer:
     cdef:
         readonly device.Device device
         readonly object mem
-        readonly size_t ptr
+        public size_t ptr
 
     cpdef copy_from_device(self, MemoryPointer src, Py_ssize_t size)
     cpdef copy_from_device_async(self, MemoryPointer src, size_t size, stream)
