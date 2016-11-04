@@ -214,18 +214,22 @@ cpdef ipcGetMemHandle(size_t devPtr):
     # print("devPtr:{}".format(devPtr))
     cudaIpcGetMemHandle(&handle, <void*>devPtr)
     # print("handle:{}".format(handle))
-    data = []
+    mh_data = []
+    csum = 0
     for i in range(64):
-        # print("handle.reserved[{}]:{}".format(i,handle.reserved[i]))
-        data.append(handle.reserved[i])
-    return data
+        mh_data.append(handle.reserved[i])
+        csum += mh_data[i]
+    print("[runtime.pyx] csum:{}".format(csum))
+    return mh_data
 
 
-cpdef ipcOpenMemHandle(list data):
+cpdef ipcOpenMemHandle(list mh_data):
     cdef cudaIpcMemHandle_t handle
+    csum = 0
     for i in range(64):
-    #     print("data[{}]:{}".format(i,data[i]))
-        handle.reserved[i] = data[i]
+        handle.reserved[i] = mh_data[i]
+        csum += mh_data[i]
+    print("[runtime.pyx] csum:{}".format(csum))
     cpdef void* devPtr
     cudaIpcOpenMemHandle(&devPtr, handle, 1)
     return <size_t>devPtr

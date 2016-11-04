@@ -170,15 +170,29 @@ class IpcMemoryHandle(object):
 
     """CUDA interprocess memory handle
 
+    Args:
+        array (cupy.ndarray): cupy ndarray to be shared among multiple processes
+
+    Attributes:
+        memhandle (list): data of memory handle to be created by cudaIpcGetMemHandle()
+
+        dtype (numpy.dtype): Dtype object of element type
+        size (int): Number of elements
+        device (cupy.cuda.Device): Device 
     """
 
-    def __init__(self, devPtr):
-        self.data = runtime.ipcGetMemHandle(devPtr)
-        # for i in range(64):
-        #     print("self.data[{}]:{}".format(i,self.data[i]))
+    def __init__(self, array):
+        self.memhandle = runtime.ipcGetMemHandle(array.data.ptr)
+        self.dtype = array.dtype
+        self.size = array.size
+        self.device = array.data.device
+        print("[stream.py] dtype:{}, size:{}, device:{}".format(self.dtype,self.size,self.device))
 
     def open(self):
-        return runtime.ipcOpenMemHandle(self.data)
+        devptr = runtime.ipcOpenMemHandle(self.memhandle)
+        print("[stream.py] dtype:{}, size:{}, device:{}".format(self.dtype,self.size,self.device))
+        print("[stream.py] devptr:{}".format(devptr))
+        return devptr
 
 
 Stream.null = Stream(null=True)
