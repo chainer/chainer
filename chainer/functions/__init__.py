@@ -36,6 +36,8 @@ from chainer.functions.array import transpose
 from chainer.functions.array import transpose_sequence
 from chainer.functions.array import vstack
 from chainer.functions.array import where
+from chainer.functions.connection import attention
+from chainer.functions.connection import attention_score_dot
 from chainer.functions.connection import bilinear
 from chainer.functions.connection import convolution_2d
 from chainer.functions.connection import convolution_nd
@@ -43,6 +45,7 @@ from chainer.functions.connection import deconvolution_2d
 from chainer.functions.connection import dilated_convolution_2d
 from chainer.functions.connection import embed_id
 from chainer.functions.connection import linear
+from chainer.functions.connection import linear_combination
 from chainer.functions.connection import n_step_lstm
 from chainer.functions.evaluation import accuracy
 from chainer.functions.evaluation import binary_accuracy
@@ -182,6 +185,8 @@ transpose_sequence = transpose_sequence.transpose_sequence
 Where = where.Where
 where = where.where
 
+attention = attention.attention
+attention_score_dot = attention_score_dot.attention_score_dot
 bilinear = bilinear.bilinear
 convolution_2d = convolution_2d.convolution_2d
 convolution_nd = convolution_nd.convolution_nd
@@ -189,6 +194,7 @@ deconvolution_2d = deconvolution_2d.deconvolution_2d
 dilated_convolution_2d = dilated_convolution_2d.dilated_convolution_2d
 embed_id = embed_id.embed_id
 linear = linear.linear
+linear_combination = linear_combination.linear_combination
 NStepLSTM = n_step_lstm.NStepLSTM
 n_step_lstm = n_step_lstm.n_step_lstm
 

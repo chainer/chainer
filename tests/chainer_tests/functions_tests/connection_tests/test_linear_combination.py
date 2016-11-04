@@ -5,11 +5,9 @@ import numpy
 import chainer
 from chainer import cuda
 import chainer.functions as F
-from chainer.functions.connection.attention import attention
-from chainer.functions.connection.attention_score_dot \
-    import attention_score_dot
-from chainer.functions.connection.linear_combination \
-    import linear_combination
+from chainer.functions import attention
+from chainer.functions import attention_score_dot
+from chainer.functions import linear_combination
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr

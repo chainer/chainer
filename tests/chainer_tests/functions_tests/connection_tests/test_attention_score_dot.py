@@ -5,8 +5,7 @@ import numpy
 import chainer
 from chainer import cuda
 import chainer.functions as F
-from chainer.functions.connection.attention_score_dot \
-    import attention_score_dot
+from chainer.functions import attention_score_dot
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr

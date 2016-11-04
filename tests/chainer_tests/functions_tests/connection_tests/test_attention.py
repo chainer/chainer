@@ -3,7 +3,7 @@ import unittest
 import chainer
 from chainer import cuda
 import chainer.functions as F
-from chainer.functions.connection.attention import attention
+from chainer.functions import attention
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
