@@ -1,11 +1,12 @@
 import numpy
 import six
 
-import cupy
 from chainer import cuda
 from chainer import function
+from chainer.functions.math.matmul import _batch_matmul_gpu
+from chainer.functions.math.matmul import _matmul
 from chainer.utils import type_check
-from chainer.functions.math.matmul import _matmul, _batch_matmul_gpu
+import cupy
 
 
 def _split(inputs, pos):
@@ -13,7 +14,12 @@ def _split(inputs, pos):
 
 
 def _seqs_to_array(xs, length, pad_value):
-    """concatenate variable length sequence to an array. gaps are filled by `pad_value`."""
+    """concatenate variable length sequence to an array.
+
+    gaps are filled by `pad_value`.
+
+    """
+
     batchsize = len(xs)
     xp = cuda.get_array_module(*xs)
     dtype = xs[0].dtype
@@ -109,7 +115,8 @@ class Attention(function.Function):
         dtype = q.dtype
         score = numpy.empty((batchsize, max_len), dtype=dtype)
         for i in six.moves.range(batchsize):
-            score[i] = _matmul(xmat[i], q[i], transa=False, transb=False).ravel()
+            score[i] = _matmul(xmat[i], q[i], transa=False,
+                               transb=False).ravel()
 
         # mask scores
         _mask_array(score, lens, -numpy.inf)
@@ -123,7 +130,8 @@ class Attention(function.Function):
         # aggregate
         out = numpy.empty((batchsize, dim), dtype=dtype)
         for i in six.moves.range(batchsize):
-            out[i] = _matmul(xmat[i], alpha[i], transa=True, transb=False).ravel()
+            out[i] = _matmul(xmat[i], alpha[i], transa=True,
+                             transb=False).ravel()
         self.out = out
 
         return out,
@@ -159,7 +167,6 @@ class Attention(function.Function):
     def backward_cpu(self, inputs, grads):
         q = inputs[0]
         x_list = inputs[1:]
-        dim = q.shape[1]
         batchsize = len(x_list)
         lens = map(len, x_list)
         max_len = max(lens)
@@ -171,7 +178,8 @@ class Attention(function.Function):
         _a0 = numpy.sum(gy * self.out, axis=1)
         _b0 = numpy.sum(numpy.expand_dims(gy, axis=1) * xmat, axis=2)
         _b1 = numpy.expand_dims(_b0 * self.alpha, axis=2)
-        gq = - numpy.expand_dims(_a0, axis=1) * self.out + numpy.sum(_b1 * xmat, axis=1)
+        gq = - numpy.expand_dims(_a0, axis=1) * \
+            self.out + numpy.sum(_b1 * xmat, axis=1)
 
         # gx_list
         gx_list = []
@@ -181,16 +189,18 @@ class Attention(function.Function):
             alphai = self.alpha[i]
             outi = self.out[i]
             qi = q[i]
-            _c = numpy.expand_dims(gyi, axis=0) * numpy.expand_dims(alphai, axis=1)  # just a product
+            _c = numpy.expand_dims(
+                gyi, axis=0) * numpy.expand_dims(alphai, axis=1)
             _d0 = - numpy.dot(gyi, outi)
-            _d = _d0 * numpy.expand_dims(alphai, axis=1) * numpy.expand_dims(qi, axis=0)
+            _d = _d0 * numpy.expand_dims(alphai, axis=1) * \
+                numpy.expand_dims(qi, axis=0)
             _e0 = numpy.tensordot(xmati, gyi, axes=([1], [0]))
             _e1 = _e0 * alphai
             _e = numpy.expand_dims(_e1, axis=1) * numpy.expand_dims(qi, axis=0)
             gx = _c + _d + _e
             gx_list.append(gx[:lens[i]])
 
-        return tuple([gq,] + gx_list)
+        return tuple([gq, ] + gx_list)
 
     def backward_gpu(self, inputs, grads):
         q = inputs[0]
@@ -215,10 +225,12 @@ class Attention(function.Function):
         gq = - _a + _b2[:, 0, :]
 
         # gx_list
-        _c = xp.expand_dims(gy, axis=1) * xp.expand_dims(self.alpha, axis=2)  # just a product
+        _c = xp.expand_dims(gy, axis=1) * \
+            xp.expand_dims(self.alpha, axis=2)  # just a product
 
         _d1 = xp.expand_dims(xp.expand_dims(- _a0, axis=1), axis=1)
-        _d = _d1 * xp.expand_dims(self.alpha, axis=2) * xp.expand_dims(q, axis=1)
+        _d = _d1 * xp.expand_dims(self.alpha, axis=2) * \
+            xp.expand_dims(q, axis=1)
 
         _e1 = _b0 * xp.expand_dims(self.alpha, axis=2)
         _e = _e1 * xp.expand_dims(q, axis=1)
@@ -227,13 +239,14 @@ class Attention(function.Function):
 
         gx_list = [gxi[:lens[i]] for (i, gxi) in enumerate(gx)]
 
-        return tuple([gq,] + gx_list)
+        return tuple([gq, ] + gx_list)
 
 
 def attention(q, xs):
     """Attension from Vector to Sequence by inner products.
 
-    This function computes the attention and compute average feature vector from it.
+    This function computes the attention and compute average
+    feature vector from it.
 
     .. math::
 
