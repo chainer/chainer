@@ -106,7 +106,7 @@ class Attention(function.Function):
         x_list = inputs
         dim = q.shape[1]
         batchsize = len(x_list)
-        lens = map(len, x_list)
+        lens = list(map(len, x_list))
         max_len = max(lens)
         xmat = _seqs_to_array(x_list, max_len, 0)
 
@@ -140,7 +140,7 @@ class Attention(function.Function):
         x_list = inputs
         dim = q.shape[1]
         batchsize = len(x_list)
-        lens = map(len, x_list)
+        lens = list(map(len, x_list))
         max_len = max(lens)
         xmat = _seqs_to_array(x_list, max_len, 0)
 
@@ -167,7 +167,7 @@ class Attention(function.Function):
         q = inputs[0]
         x_list = inputs[1:]
         batchsize = len(x_list)
-        lens = map(len, x_list)
+        lens = list(map(len, x_list))
         max_len = max(lens)
         xmat = _seqs_to_array(x_list, max_len, 0)
 
@@ -206,7 +206,7 @@ class Attention(function.Function):
         x_list = inputs[1:]
         dim = q.shape[1]
         batchsize = len(x_list)
-        lens = map(len, x_list)
+        lens = list(map(len, x_list))
         max_len = max(lens)
         xmat = _seqs_to_array(x_list, max_len, 0)
         dtype = q.dtype

@@ -100,7 +100,7 @@ class AttentionScoreDot(function.Function):
         (q,), inputs = _split(inputs, 1)
         x_list = inputs
         batchsize = len(x_list)
-        lens = map(len, x_list)
+        lens = list(map(len, x_list))
         max_len = max(lens)
         xmat = _seqs_to_array(x_list, max_len, 0)
 
@@ -126,7 +126,7 @@ class AttentionScoreDot(function.Function):
         (q,), inputs = _split(inputs, 1)
         x_list = inputs
         batchsize = len(x_list)
-        lens = map(len, x_list)
+        lens = list(map(len, x_list))
         max_len = max(lens)
         xmat = _seqs_to_array(x_list, max_len, 0)
 
@@ -147,7 +147,7 @@ class AttentionScoreDot(function.Function):
         q = inputs[0]
         x_list = inputs[1:]
         batchsize = len(x_list)
-        lens = map(len, x_list)
+        lens = list(map(len, x_list))
         max_len = max(lens)
         xmat = _seqs_to_array(x_list, max_len, 0)
         gmat = _seqs_to_array(grads, max_len, 0)
@@ -179,7 +179,7 @@ class AttentionScoreDot(function.Function):
     def backward_gpu(self, inputs, grads):
         q = inputs[0]
         x_list = inputs[1:]
-        lens = map(len, x_list)
+        lens = list(map(len, x_list))
         max_len = max(lens)
         xmat = _seqs_to_array(x_list, max_len, 0)
         gmat = _seqs_to_array(grads, max_len, 0)

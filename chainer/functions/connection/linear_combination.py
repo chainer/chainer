@@ -76,7 +76,7 @@ class LinearCombination(function.Function):
     """Compute linear combinations for vactor and scalar sequences"""
 
     def check_type_forward(self, in_types):
-        batchsize = len(in_types) / 2
+        batchsize = len(in_types) // 2
         xs_types = in_types[:batchsize]
         cs_types = in_types[batchsize:]
         assert(len(xs_types) == batchsize)
@@ -94,9 +94,9 @@ class LinearCombination(function.Function):
             )
 
     def forward_cpu(self, inputs):
-        batchsize = len(inputs) / 2
+        batchsize = len(inputs) // 2
         x_list, c_list = _split(inputs, batchsize)
-        lens = map(len, x_list)
+        lens = list(map(len, x_list))
         max_len = max(lens)
         xmat = _seqs_to_array(x_list, max_len, 0)
         cmat = _seqs_to_array(c_list, max_len, 0)
@@ -106,9 +106,9 @@ class LinearCombination(function.Function):
         return out,
 
     def forward_gpu(self, inputs):
-        batchsize = len(inputs) / 2
+        batchsize = len(inputs) // 2
         x_list, c_list = _split(inputs, batchsize)
-        lens = map(len, x_list)
+        lens = list(map(len, x_list))
         max_len = max(lens)
         xmat = _seqs_to_array(x_list, max_len, 0)
         cmat = _seqs_to_array(c_list, max_len, 0)
@@ -118,9 +118,9 @@ class LinearCombination(function.Function):
         return out,
 
     def backward_cpu(self, inputs, grads):
-        batchsize = len(inputs) / 2
+        batchsize = len(inputs) // 2
         x_list, c_list = _split(inputs, batchsize)
-        lens = map(len, x_list)
+        lens = list(map(len, x_list))
         max_len = max(lens)
         xmat = _seqs_to_array(x_list, max_len, 0)
         cmat = _seqs_to_array(c_list, max_len, 0)
@@ -137,9 +137,9 @@ class LinearCombination(function.Function):
         return tuple(gx_list + gc_list)
 
     def backward_gpu(self, inputs, grads):
-        batchsize = len(inputs) / 2
+        batchsize = len(inputs) // 2
         x_list, c_list = _split(inputs, batchsize)
-        lens = map(len, x_list)
+        lens = list(map(len, x_list))
         max_len = max(lens)
         xmat = _seqs_to_array(x_list, max_len, 0)
         cmat = _seqs_to_array(c_list, max_len, 0)
