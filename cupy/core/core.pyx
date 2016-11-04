@@ -84,11 +84,17 @@ cdef class ndarray:
 
         # testing: anaruse
         if memhandle is not None:
+            current_id = runtime.getDevice()
+            print("[core.pyx] current_id:{}".format(current_id))
+            runtime.setDevice(memhandle.device_id)
+            print("[core.pyx] memhandle.device_id:{}".format(memhandle.device_id))
             devptr = memhandle.open()
             print("[core.pyx] devptr:{}".format(devptr))
-            memptr = memory.alloc_ex(1, devptr)
+            # testing ... 
+            memptr = memory.alloc_ex(self.size * self.dtype.itemsize, devptr, memhandle.device_id)
             self.dtype = memhandle.dtype
             self.size = memhandle.size
+            runtime.setDevice(current_id)
             
         if memptr is None:
             self.data = memory.alloc(self.size * self.dtype.itemsize)

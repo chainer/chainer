@@ -178,7 +178,7 @@ class IpcMemoryHandle(object):
 
         dtype (numpy.dtype): Dtype object of element type
         size (int): Number of elements
-        device (cupy.cuda.Device): Device 
+        device_id (int): Device ID
     """
 
     def __init__(self, array):
@@ -186,11 +186,13 @@ class IpcMemoryHandle(object):
         self.dtype = array.dtype
         self.size = array.size
         self.device = array.data.device
-        print("[stream.py] dtype:{}, size:{}, device:{}".format(self.dtype,self.size,self.device))
+        self.device_id = array.data.device.id
+        print("[stream.py] array.data.ptr:{}".format(array.data.ptr))
+        print("[stream.py] dtype:{}, size:{}, device_id:{}".format(self.dtype,self.size,self.device_id))
 
     def open(self):
         devptr = runtime.ipcOpenMemHandle(self.memhandle)
-        print("[stream.py] dtype:{}, size:{}, device:{}".format(self.dtype,self.size,self.device))
+        print("[stream.py] dtype:{}, size:{}, device_id:{}".format(self.dtype,self.size,self.device_id))
         print("[stream.py] devptr:{}".format(devptr))
         return devptr
 
