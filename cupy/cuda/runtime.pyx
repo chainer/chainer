@@ -61,10 +61,20 @@ cdef extern from "cupy_cuda.h":
     int cudaGetDeviceCount(int* count) nogil
     int cudaSetDevice(int device) nogil
     int cudaDeviceSynchronize() nogil
+    int cudaDeviceReset() nogil
 
     int cudaDeviceCanAccessPeer(int* canAccessPeer, int device,
                                 int peerDevice) nogil
     int cudaDeviceEnablePeerAccess(int peerDevice, unsigned int flags) nogil
+
+    #
+    cdef int CUDA_IPC_HANDLE_SIZE
+    cdef struct cudaIpcMemHandle_st:
+        char reserved[64]
+    ctypedef cudaIpcMemHandle_st cudaIpcMemHandle_t
+
+    int cudaIpcGetMemHandle(cudaIpcMemHandle_t* handle, void* devPtr) nogil
+    int cudaIpcOpenMemHandle(void** devPtr, cudaIpcMemHandle_t handle, unsigned int flags) nogil
 
     # Memory management
     int cudaMalloc(void** devPtr, size_t size) nogil
@@ -182,6 +192,11 @@ cpdef deviceSynchronize():
     check_status(status)
 
 
+cpdef deviceReset():
+    status = cudaDeviceReset()
+    check_status(status)
+
+
 cpdef int deviceCanAccessPeer(int device, int peerDevice) except *:
     cpdef int ret
     status = cudaDeviceCanAccessPeer(&ret, device, peerDevice)
@@ -192,6 +207,28 @@ cpdef int deviceCanAccessPeer(int device, int peerDevice) except *:
 cpdef deviceEnablePeerAccess(int peerDevice):
     status = cudaDeviceEnablePeerAccess(peerDevice, 0)
     check_status(status)
+
+
+cpdef ipcGetMemHandle(size_t devPtr):
+    cdef cudaIpcMemHandle_t handle
+    # print("devPtr:{}".format(devPtr))
+    cudaIpcGetMemHandle(&handle, <void*>devPtr)
+    # print("handle:{}".format(handle))
+    data = []
+    for i in range(64):
+        # print("handle.reserved[{}]:{}".format(i,handle.reserved[i]))
+        data.append(handle.reserved[i])
+    return data
+
+
+cpdef ipcOpenMemHandle(list data):
+    cdef cudaIpcMemHandle_t handle
+    for i in range(64):
+    #     print("data[{}]:{}".format(i,data[i]))
+        handle.reserved[i] = data[i]
+    cpdef void* devPtr
+    cudaIpcOpenMemHandle(&devPtr, handle, 1)
+    return <size_t>devPtr
 
 
 ###############################################################################
