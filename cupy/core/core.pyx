@@ -20,6 +20,7 @@ from cupy.cuda cimport cublas
 from cupy.cuda cimport function
 from cupy.cuda cimport runtime
 from cupy.cuda cimport memory
+from cupy.cuda cimport thrust
 
 DEF MAX_NDIM = 25
 
@@ -626,7 +627,19 @@ cdef class ndarray:
         return _repeat(self, repeats, axis)
 
     # TODO(okuta): Implement choose
-    # TODO(okuta): Implement sort
+
+    # -------------------------------------------------------------------------
+    # Sorting
+    # -------------------------------------------------------------------------
+    cpdef sort(self):
+        cdef float* ptr
+        cdef Py_ssize_t n
+
+        ptr = <float *>self.data.ptr
+        n = <Py_ssize_t>self.shape[0]
+        thrust.stable_sort(ptr, ptr + n)
+
+
     # TODO(okuta): Implement argsort
     # TODO(okuta): Implement partition
     # TODO(okuta): Implement argpartition
