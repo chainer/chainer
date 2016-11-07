@@ -55,8 +55,8 @@ class NStepGRU(link.ChainList):
         weights = []
         for i in six.moves.range(n_layers):
             weight = link.Link()
-            for j in six.moves.range(8):
-                if i == 0 and j < 4:
+            for j in six.moves.range(6):
+                if i == 0 and j < 3:
                     w_in = in_size
                 else:
                     w_in = out_size
@@ -91,8 +91,8 @@ class NStepGRU(link.ChainList):
         cx = permutate.permutate(cx, indices, axis=1, inv=False)
         trans_x = transpose_sequence.transpose_sequence(xs)
 
-        ws = [[w.w0, w.w1, w.w2, w.w3, w.w4, w.w5, w.w6, w.w7] for w in self]
-        bs = [[w.b0, w.b1, w.b2, w.b3, w.b4, w.b5, w.b6, w.b7] for w in self]
+        ws = [[w.w0, w.w1, w.w2, w.w3, w.w4, w.w5] for w in self]
+        bs = [[w.b0, w.b1, w.b2, w.b3, w.b4, w.b5] for w in self]
 
         hy, cy, trans_y = rnn.n_step_gru(
             self.n_layers, self.dropout, hx, cx, ws, bs, trans_x,
