@@ -192,8 +192,9 @@ class NStepGRU(function.Function):
         x_list = inputs
 
         hx = cuda.cupy.ascontiguousarray(hx)
+        # cx = cuda.cupy.ascontiguousarray(cx)
+        cx = cuda.cupy.zeros(hx.shape, dtype=hx.dtype)
         cx = cuda.cupy.ascontiguousarray(cx)
-
         x_desc = cudnn.create_tensor_nd_descriptor(x_list[0][..., None])
 
         length = len(x_list)
@@ -249,7 +250,7 @@ class NStepGRU(function.Function):
             handle, rnn_desc.value, length, c_x_descs.data)
         workspace = cuda.cupy.empty((work_size,), dtype='b')
         self.workspace = workspace
-
+        print "self.train:", self.train
         if not self.train:
             libcudnn.RNNForwardInference(
                 handle, rnn_desc.value, length,
@@ -274,13 +275,14 @@ class NStepGRU(function.Function):
         self.c_y_descs = c_y_descs
         self.ys = ys
         self.c_x_descs = c_x_descs
-
+        print "hy:", hy
+        print "cy:", cy
         return tuple([hy, cy] + y_list)
 
     def backward(self, inputs, grads):
         (hx, cx), inputs = _split(inputs, 2)
-        ws, inputs = _split(inputs, self.n_layers * 8)
-        bs, inputs = _split(inputs, self.n_layers * 8)
+        ws, inputs = _split(inputs, self.n_layers * 6)
+        bs, inputs = _split(inputs, self.n_layers * 6)
         x_list = inputs
 
         hx = cuda.cupy.ascontiguousarray(hx)
@@ -349,17 +351,17 @@ class NStepGRU(function.Function):
         dws = [cuda.cupy.empty_like(w) for w in ws]
         dbs = [cuda.cupy.empty_like(b) for b in bs]
         for layer in six.moves.range(self.n_layers):
-            for lin_layer_id in six.moves.range(8):
+            for lin_layer_id in six.moves.range(6):
                 mat = cudnn.get_rnn_lin_layer_matrix_params(
                     handle, rnn_desc, layer, dx_desc, dw_desc, dw,
                     lin_layer_id)
-                v = dws[layer * 8 + lin_layer_id]
+                v = dws[layer * 6 + lin_layer_id]
                 v = v.reshape(v.size)
                 v[:] = mat.ravel()
                 bias = cudnn.get_rnn_lin_layer_bias_params(
                     handle, rnn_desc, layer, dx_desc, dw_desc, dw,
                     lin_layer_id)
-                v = dbs[layer * 8 + lin_layer_id]
+                v = dbs[layer * 6 + lin_layer_id]
                 v = v.reshape(v.size)
                 v[:] = bias.ravel()
 
@@ -469,8 +471,8 @@ class LNStepGRU(link.ChainList):
         weights = []
         for i in six.moves.range(n_layers):
             weight = link.Link()
-            for j in six.moves.range(8):
-                if i == 0 and j < 4:
+            for j in six.moves.range(6):
+                if i == 0 and j < 3:
                     w_in = in_size
                 else:
                     w_in = out_size
@@ -526,9 +528,10 @@ if __name__ == '__main__':
     import chainer
     gpu_flag = True
     xp = cuda.cupy if gpu_flag else np
-    datasize = 100
+    datasize = 10
     seq_length = 20
     n_input = 100
+    np.random.seed(1234)
     dataset = np.random.normal(0.0, 1.0, (datasize, seq_length, n_input))
     dataset = dataset.tolist()
     dataset = [chainer.Variable(xp.array(d, dtype=xp.float32)) for d in dataset]
