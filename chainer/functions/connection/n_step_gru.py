@@ -506,7 +506,7 @@ class LNStepGRU(link.ChainList):
         ws = [[w.w0, w.w1, w.w2, w.w3, w.w4, w.w5, w.w6, w.w7] for w in self]
         bs = [[w.b0, w.b1, w.b2, w.b3, w.b4, w.b5, w.b6, w.b7] for w in self]
 
-        hy, cy, trans_y = n_step_gru.n_step_gru(
+        hy, cy, trans_y = n_step_gru(
             self.n_layers, self.dropout, hx, cx, ws, bs, trans_x,
             train=train, use_cudnn=self.use_cudnn)
 
