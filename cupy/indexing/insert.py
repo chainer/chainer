@@ -3,7 +3,24 @@ import numpy
 # TODO(okuta): Implement place
 
 
-# TODO(okuta): Implement put
+def put(a, ind, v, axis=None): 
+    """Replaces specified elements of an array with given values.
+
+    .. note::
+     
+       Currently CuPy behaves differently from Numpy when elements in ``ind``
+       are not unique.
+
+    Args:
+        a (cupy.ndarray): Target array.
+        ind (array_like): Target integer indices
+        v (array_like): Values to place in `a` at target indices. If `v` is 
+            shorter than `ind` it will be repeated as necessary.
+        axis (int): The axis along which to select indices. The flattened input
+            is used by default.
+
+    """
+    a.put(ind, v, axis)
 
 
 # TODO(okuta): Implement putmask

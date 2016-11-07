@@ -207,6 +207,7 @@ diagonal = indexing.indexing.diagonal
 ix_ = indexing.generate.ix_
 
 fill_diagonal = indexing.insert.fill_diagonal
+put = indexing.insert.put
 # -----------------------------------------------------------------------------
 # Input and output
 # -----------------------------------------------------------------------------
