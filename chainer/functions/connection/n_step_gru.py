@@ -522,7 +522,8 @@ class LNStepGRU(link.ChainList):
 if __name__ == '__main__':
     import numpy as np
     import chainer
-    xp = cuda.cupy
+    gpu_flag = True
+    xp = cuda.cupy if gpu_flag else np
     datasize = 100
     seq_length = 20
     n_input = 100
@@ -538,7 +539,7 @@ if __name__ == '__main__':
         dataset_batch.append(input_data)
 
 
-    nn = LNStepGRU(n_layer=1, n_vocab=100, n_input=n_input, n_units=n_input, dropout=0.0, cudnn=True)
+    nn = LNStepGRU(n_layers=1, out_size=100, in_size=n_input, dropout=0.0, use_cudnn=True)
 
     gpu_id = 1
     cuda.get_device(gpu_id).use()
