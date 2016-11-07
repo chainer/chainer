@@ -447,8 +447,9 @@ class Link(object):
         for param in self._uninitialized_params:
             param._zeroed = True
 
-    def sizenumgrads(self):
-        """Count size of all gradient arrays                                              
+    def size_num_grads(self):
+        """Count size of all gradient arrays
+
         """
         size = 0
         num = 0
@@ -459,13 +460,11 @@ class Link(object):
             num += 1
         return size, num
 
-    def gathergrads(self):
-        """Put together all gradient arrays and make a single array                       
-                                                                                          
-        Args:                                                                             
-            device (int): ...                                                             
+    def gather_grads(self):
+        """Put together all gradient arrays and make a single array
+
         """
-        size, num = self.sizenumgrads()
+        size, num = self.size_num_grads()
         # print("size:{}, num:{}".format(size, num))
 
         ptrs = numpy.empty(num, dtype=numpy.uint64)
@@ -492,29 +491,29 @@ class Link(object):
         batch_memcpy = cuda.cupy.ElementwiseKernel(
             'raw T ptrs, raw X info',
             'raw float32 dst',
-            '''                                                                           
-                int id_min = id_pre;                                                      
-                int id_max = num_src;                                                     
-                while (id_max - id_min > 1) {                                             
-                    int id = (id_max + id_min) / 2;                                       
-                    if (i < info[id]) id_max = id;                                        
-                    else              id_min = id;                                        
-                }                                                                         
-                int id = id_min;                                                          
-                float *src = (float *)(ptrs[id]);                                         
-                int i_dst = i;                                                            
-                int i_src = i;                                                            
-                if (id > 0) i_src -= info[id];                                            
+            '''
+                int id_min = id_pre;
+                int id_max = num_src;
+                while (id_max - id_min > 1) {
+                    int id = (id_max + id_min) / 2;
+                    if (i < info[id]) id_max = id;
+                    else              id_min = id;
+                }
+                int id = id_min;
+                float *src = (float *)(ptrs[id]);
+                int i_dst = i;
+                int i_src = i;
+                if (id > 0) i_src -= info[id];
                 dst[i_dst] = 0;
                 if (src != NULL) {
-                    dst[i_dst] = src[i_src];                                                  
+                    dst[i_dst] = src[i_src];
                 }
-                id_pre = id;                                                              
+                id_pre = id;
             ''',
             'batch_memcpy',
-            loop_prep='''                                                                 
-                int num_src = info[0];                                                    
-                int id_pre = 0;                                                           
+            loop_prep='''
+                int num_src = info[0];
+                int id_pre = 0;
             ''' )
 
         y = batch_memcpy(var_ptrs.data, var_info.data, size=size)
@@ -523,18 +522,18 @@ class Link(object):
         self.grads_gathered = array
         return array
 
-    def cleargrads_gathered(self):
-        self.grads_gathered = None
+    def scatter_grads(self, array):
+        """ Put back contents of the specified array to the related gradient arrays
 
-    def scattergrads(self, array):
-        """Put back contents of the set array to related gradient arrays                  
-                                                                                          
-        Args:                                                                             
-            array (Variable): ...                                                         
+        Args:
+            array (Variable): ...
         """
         offset = 0
         for param in self.params():
-            offset = param.scattergrad(array, offset)
+            offset = param.scatter_grad(array, offset)
+
+    def cleargrads_gathered(self):
+        self.grads_gathered = None
 
     def addgrads(self, link):
         """Accumulates gradient values from given link.

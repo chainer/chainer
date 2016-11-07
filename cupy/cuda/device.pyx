@@ -83,10 +83,6 @@ cdef class Device:
         with self:
             runtime.deviceSynchronize()
 
-    cpdef reset(self):
-        """Reset all state on the current device."""
-        runtime.deviceReset()
-
     @property
     def compute_capability(self):
         """Compute capability of this device.

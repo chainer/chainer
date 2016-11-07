@@ -8,4 +8,3 @@ cdef class Device:
 
     cpdef use(self)
     cpdef synchronize(self)
-    cpdef reset(self)

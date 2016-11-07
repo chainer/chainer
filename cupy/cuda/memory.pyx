@@ -78,13 +78,12 @@ cdef class MemoryPointer:
         ptr (int): Pointer to the place within the buffer.
     """
 
-    def __init__(self, Memory mem, Py_ssize_t offset, Py_ssize_t devptr=0, int device_id=0):
+    def __init__(self, Memory mem, Py_ssize_t offset, Py_ssize_t devptr=0):
         self.mem = mem
         self.device = mem.device
         self.ptr = mem.ptr + offset
         if devptr != 0:
-            # self.mem = None
-            # self.device = device.Device(device=device_id)
+            self.mem = None
             self.ptr = devptr
 
     def __int__(self):
@@ -256,15 +255,15 @@ cdef class MemoryPointer:
             runtime.memsetAsync(self.ptr, value, size, stream.ptr)
 
 
+cpdef MemoryPointer open(Py_ssize_t devptr):
+    mem = Memory(1)
+    print("[memory.pyx] devptr:{}".format(devptr))
+    return MemoryPointer(mem, 0, devptr=devptr)
+
+
 cpdef MemoryPointer _malloc(Py_ssize_t size):
     mem = Memory(size)
     return MemoryPointer(mem, 0)
-
-
-cpdef MemoryPointer _malloc_ex(Py_ssize_t size, Py_ssize_t devptr, int device_id):
-    mem = Memory(size)
-    print("[memory.pyx] size:{}, devptr:{}".format(size,devptr))
-    return MemoryPointer(mem, 0, devptr, device_id)
 
 
 cdef object _current_allocator = _malloc
@@ -283,22 +282,6 @@ cpdef MemoryPointer alloc(Py_ssize_t size):
 
     """
     return _current_allocator(size)
-
-
-cpdef MemoryPointer alloc_ex(Py_ssize_t size, Py_ssize_t devptr, int device_id):
-    """Calls the current allocator.
-
-    Use :func:`~cupy.cuda.set_allocator` to change the current allocator.
-
-    Args:
-        size (int): Size of the memory allocation.
-        devptr (ptr): 
-
-    Returns:
-        ~cupy.cuda.MemoryPointer: Pointer to the allocated buffer.
-
-    """
-    return _malloc_ex(size, devptr, device_id)
 
 
 cpdef set_allocator(allocator=_malloc):

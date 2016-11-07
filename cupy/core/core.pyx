@@ -71,7 +71,7 @@ cdef class ndarray:
         readonly memory.MemoryPointer data
         readonly ndarray base
 
-    def __init__(self, shape, dtype=float, memptr=None, memhandle=None):
+    def __init__(self, shape, dtype=float, memptr=None, devptr=None):
         cdef Py_ssize_t size
         self._shape = internal.get_size(shape)
         for x in self._shape:
@@ -82,20 +82,10 @@ cdef class ndarray:
         self._strides = internal.get_contiguous_strides(
             self._shape, self.itemsize)
 
-        # testing: anaruse
-        if memhandle is not None:
-            current_id = runtime.getDevice()
-            print("[core.pyx] current_id:{}".format(current_id))
-            runtime.setDevice(memhandle.device_id)
-            print("[core.pyx] memhandle.device_id:{}".format(memhandle.device_id))
-            devptr = memhandle.open()
-            print("[core.pyx] devptr:{}".format(devptr))
-            # testing ... 
-            memptr = memory.alloc_ex(self.size * self.dtype.itemsize, devptr, memhandle.device_id)
-            self.dtype = memhandle.dtype
-            self.size = memhandle.size
-            runtime.setDevice(current_id)
-            
+        # anaruse
+        if devptr is not None:
+            memptr = memory.open(devptr)
+
         if memptr is None:
             self.data = memory.alloc(self.size * self.dtype.itemsize)
         else:

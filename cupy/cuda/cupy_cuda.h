@@ -75,10 +75,6 @@ typedef struct CUfunc_st* CUfunction;
 typedef struct CUmod_st* CUmodule;
 typedef struct CUstream_st* cudaStream_t;
 
-#define CUDA_IPC_HANDLE_SIZE 64
-typedef struct cudaIpcMemHandle_st {
-    char reserved[CUDA_IPC_HANDLE_SIZE];
-} cudaIpcMemHandle;
 
 // Error handling
 CUresult cuGetErrorName(CUresult error, const char** pStr) {
@@ -193,10 +189,6 @@ cudaError_t cudaDeviceSynchronize() {
     return cudaSuccess;
 }
 
-int cudaDeviceReset() {
-    return 0;
-}
-
 cudaError_t cudaDeviceCanAccessPeer(
         int* canAccessPeer, int device, int peerDevice) {
     return cudaSuccess;
@@ -205,6 +197,7 @@ cudaError_t cudaDeviceCanAccessPeer(
 cudaError_t cudaDeviceEnablePeerAccess(int peerDevice, unsigned int flags) {
     return cudaSuccess;
 }
+
 
 // Memory management
 cudaError_t cudaMalloc(void** devPtr, size_t size) {
@@ -694,6 +687,15 @@ int nvtxRangePop() {
 }
 
 } // extern "C"
+
+///////////////////////////////////////////////////////////////////////////////
+// driver_types.h
+///////////////////////////////////////////////////////////////////////////////
+
+#define CUDA_IPC_HANDLE_SIZE 64
+typedef struct cudaIpcMemHandle_st {
+    char reserved[CUDA_IPC_HANDLE_SIZE];
+} cudaIpcMemHandle;
 
 #endif // #ifndef CUPY_NO_CUDA
 #endif // #ifndef INCLUDE_GUARD_CUPY_CUDA_H
