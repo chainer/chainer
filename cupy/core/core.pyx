@@ -594,7 +594,16 @@ cdef class ndarray:
         """
         return _take(self, indices, axis, out)
 
-    # TODO(okuta): Implement put
+    cpdef put(self, ind, v, axis=None):
+        """Replaces specified elements of an array with given values.
+
+        .. seealso::
+           :func:`cupy.put` for full documentation,
+           :meth: `numpy.ndarray.put`
+
+        """
+        _put(self, ind, v, axis)
+        return
 
     cpdef repeat(self, repeats, axis=None):
         """Returns an array with repeated arrays along an axis.
@@ -1863,6 +1872,32 @@ cdef _take_kernel_0axis = ElementwiseKernel(
     'cupy_take_0axis')
 
 
+cdef _put_kernel = ElementwiseKernel(
+    'T v, S indices, int32 cdim, int32 rdim, int32 adim, S index_range',
+    'raw T a',
+    '''
+      S wrap_indices = indices % index_range;
+      if (wrap_indices < 0) wrap_indices += index_range;
+
+      int li = i / (rdim * cdim);
+      int ri = i % rdim;
+      a[(li * adim + wrap_indices) * rdim + ri] = v;
+    ''',
+    'cupy_put')
+
+
+cdef _put_kernel_0axis = ElementwiseKernel(
+    'T v, S indices, int32 rdim, S index_range',
+    'raw T a',
+    '''
+      S wrap_indices = indices % index_range;
+      if (wrap_indices < 0) wrap_indices += index_range;
+
+      a[wrap_indices * rdim + i % rdim] = v;
+      ''',
+    'cupy_put_0axis')
+
+
 cpdef ndarray _take(ndarray a, indices, axis=None, ndarray out=None):
     if a.ndim == 0:
         a = a[None]
@@ -1919,6 +1954,43 @@ cpdef ndarray _take(ndarray a, indices, axis=None, ndarray out=None):
     else:
         return _take_kernel(
             a.reduced_view(), indices, cdim, rdim, adim, index_range, out)
+
+
+cpdef _put(ndarray a, ind, v, axis=None):
+    if a.ndim == 0:
+        a = a[None]
+
+    if axis is None:
+        a = a.ravel()
+        lshape = ()
+        rshape = ()
+        adim = 1
+        index_range = a.size
+    else:
+        if not (-a.ndim <= axis < a.ndim):
+            raise ValueError('Axis overrun')
+        if a.ndim != 0:
+            axis %= a.ndim
+
+        lshape = a.shape[:axis]
+        rshape = a.shape[axis + 1:]
+        adim = a.shape[axis]
+        index_range = adim
+
+    ind = array(ind, dtype=int)
+    v_shape = lshape + ind.shape + rshape
+    v = broadcast_to(v, v_shape)  # this was in manipulation/dims.pyx
+
+    cdim = ind.size
+    rdim = internal.prod(rshape)
+    ind = ind.reshape(
+        (1,) * len(lshape) + ind.shape + (1,) * len(rshape))
+    if axis == 0 or axis is None:
+        _put_kernel_0axis(v, ind, rdim, index_range, a.reduced_view())
+        return
+    else:
+        _put_kernel(v, ind, cdim, rdim, adim, index_range, a.reduced_view())
+        return
 
 
 cpdef ndarray _diagonal(ndarray a, Py_ssize_t offset=0, Py_ssize_t axis1=0,
