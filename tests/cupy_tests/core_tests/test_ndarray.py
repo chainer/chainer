@@ -36,6 +36,29 @@ def wrap_take(array, *args, **kwargs):
     return array.take(*args, **kwargs)
 
 
+def wrap_put(a, ind, v, axis=None):
+    if get_array_module(a) == numpy:
+        if axis is not None and a.ndim != 0:
+            axis = axis % a.ndim
+            slices = ([slice(None)] * axis +
+                      [ind] + [slice(None)] * (a.ndim - axis - 1))
+            a[slices] = v
+        else:
+            a.put(ind, v, mode='wrap')
+    else:
+        a.put(ind, v, axis)
+
+
+def compute_v_shape(in_shape, indices_shape, axis):
+    if axis is None or len(in_shape) == 0:
+        return indices_shape
+    else:
+        axis = axis % len(in_shape)
+        lshape = in_shape[:axis]
+        rshape = in_shape[axis + 1:]
+    return lshape + indices_shape + rshape
+
+
 @testing.parameterize(
     {'arg': None, 'shape': ()},
     {'arg': 3, 'shape': (3,)},
@@ -181,3 +204,107 @@ class TestNdarrayTakeErrorTypeMismatch(unittest.TestCase):
         i = testing.shaped_arange(self.indices, xp, numpy.int32) % 3
         o = testing.shaped_arange(self.out_shape, xp, numpy.float32)
         wrap_take(a, i, out=o)
+
+
+@testing.parameterize(
+    *testing.product({
+        'indices_shape': [(2,), (2, 2)],
+        'axis': [None, 0, 1, 2, -1, -2],
+    })
+)
+@testing.gpu
+class TestNdarrayPut(unittest.TestCase):
+
+    shape = (4, 4, 5)
+
+    @testing.for_all_dtypes()
+    @testing.numpy_cupy_array_equal()
+    def test_put(self, xp, dtype):
+        a = xp.zeros(self.shape, dtype=dtype)
+        if self.axis is None:
+            m = a.size
+        else:
+            m = a.shape[self.axis]
+        i = testing.shaped_arange(self.indices_shape, xp, numpy.int32) % m
+        v_shape = compute_v_shape(self.shape, self.indices_shape, self.axis)
+        v = testing.shaped_arange(v_shape, xp, dtype)
+        wrap_put(a, i, v, self.axis)
+        return a
+
+
+@testing.parameterize(
+    *testing.product({
+        'indices': [2, [0, 1], -1, [-1, -2]],
+        'axis': [None, 0, 1, -1, -2],
+    })
+)
+@testing.gpu
+class TestNdarrayPutWithInt(unittest.TestCase):
+
+    shape = (3, 4, 5)
+
+    @testing.for_all_dtypes()
+    @testing.numpy_cupy_array_equal()
+    def test_put(self, xp, dtype):
+        a = xp.zeros(self.shape, dtype=dtype)
+        v_shape = compute_v_shape(
+            self.shape, numpy.array(self.indices).shape, self.axis)
+        v = testing.shaped_arange(v_shape, xp, dtype)
+        wrap_put(a, self.indices, v, self.axis)
+        return a
+
+
+@testing.parameterize(
+    *testing.product({
+        'indices': [0, -1, [0]],
+        'axis': [None, 0, -1],
+    })
+)
+@testing.gpu
+class TestScalaNdarrayPutWithInt(unittest.TestCase):
+
+    shape = ()
+
+    @testing.for_all_dtypes()
+    @testing.numpy_cupy_array_equal()
+    def test_put(self, xp, dtype):
+        a = xp.zeros(self.shape, dtype=dtype)
+        v_shape = compute_v_shape(
+            self.shape, numpy.array(self.indices).shape, self.axis)
+        v = testing.shaped_arange(v_shape, xp, dtype)
+        wrap_put(a, self.indices, v, self.axis)
+        return a
+
+
+@testing.parameterize(
+    {'shape': (3, 4, 5), 'indices': (2,), 'axis': 0, 'v_shape': (5,)},
+)
+@testing.gpu
+class TestNdarrayPutBroadcastInput(unittest.TestCase):
+
+    @testing.for_all_dtypes()
+    @testing.numpy_cupy_array_equal()
+    def test_put(self, xp, dtype):
+        a = xp.zeros(self.shape, dtype=dtype)
+        v = testing.shaped_arange(self.v_shape, xp, dtype)
+        wrap_put(a, self.indices, v, self.axis)
+        return a
+
+
+@testing.parameterize(
+    *testing.product({
+        'shape': [(3, 4, 5)],
+        'indices': [(2,)],
+        'axis': [1],
+        'v_shape': [(2, 3), (3,)],
+    })
+)
+@testing.gpu
+class TestNdarrayPutErrorShapeMismatch(unittest.TestCase):
+
+    @testing.numpy_cupy_raises()
+    def test_shape_mismatch(self, xp):
+        a = testing.shaped_arange(self.shape, xp, numpy.float32)
+        i = testing.shaped_arange(self.indices, xp, numpy.int32) % 3
+        v = testing.shaped_arange(self.v_shape, xp, numpy.float32)
+        wrap_put(a, i, v, self.axis)
