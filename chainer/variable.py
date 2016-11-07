@@ -248,8 +248,8 @@ Actual: {0}'''.format(type(data))
             else:
                 self._grad.fill(0)
 
-    def scattergrad(self, array, offset):
-        """ copy back contents of the array to gradient array
+    def scatter_grad(self, array, offset):
+        """ Copy back contents of the array to gradient array
 
         Args:
             array (Variable): ...

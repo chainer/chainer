@@ -61,7 +61,6 @@ cdef extern from "cupy_cuda.h":
     int cudaGetDeviceCount(int* count) nogil
     int cudaSetDevice(int device) nogil
     int cudaDeviceSynchronize() nogil
-    int cudaDeviceReset() nogil
 
     int cudaDeviceCanAccessPeer(int* canAccessPeer, int device,
                                 int peerDevice) nogil
@@ -75,6 +74,7 @@ cdef extern from "cupy_cuda.h":
 
     int cudaIpcGetMemHandle(cudaIpcMemHandle_t* handle, void* devPtr) nogil
     int cudaIpcOpenMemHandle(void** devPtr, cudaIpcMemHandle_t handle, unsigned int flags) nogil
+    int cudaIpcCloseMemHandle(void* devPtr) nogil
 
     # Memory management
     int cudaMalloc(void** devPtr, size_t size) nogil
@@ -192,11 +192,6 @@ cpdef deviceSynchronize():
     check_status(status)
 
 
-cpdef deviceReset():
-    status = cudaDeviceReset()
-    check_status(status)
-
-
 cpdef int deviceCanAccessPeer(int device, int peerDevice) except *:
     cpdef int ret
     status = cudaDeviceCanAccessPeer(&ret, device, peerDevice)
@@ -209,30 +204,30 @@ cpdef deviceEnablePeerAccess(int peerDevice):
     check_status(status)
 
 
+###############################################################################
+# Memory sharing among multi-processes
+###############################################################################
+
 cpdef ipcGetMemHandle(size_t devPtr):
     cdef cudaIpcMemHandle_t handle
-    # print("devPtr:{}".format(devPtr))
     cudaIpcGetMemHandle(&handle, <void*>devPtr)
-    # print("handle:{}".format(handle))
     mh_data = []
-    csum = 0
     for i in range(64):
         mh_data.append(handle.reserved[i])
-        csum += mh_data[i]
-    print("[runtime.pyx] csum:{}".format(csum))
     return mh_data
 
 
 cpdef ipcOpenMemHandle(list mh_data):
     cdef cudaIpcMemHandle_t handle
-    csum = 0
     for i in range(64):
         handle.reserved[i] = mh_data[i]
-        csum += mh_data[i]
-    print("[runtime.pyx] csum:{}".format(csum))
     cpdef void* devPtr
     cudaIpcOpenMemHandle(&devPtr, handle, 1)
     return <size_t>devPtr
+
+
+cpdef ipcCloseMemHandle(size_t devPtr):
+    cudaIpcCloseMemHandle(<void*>devPtr)
 
 
 ###############################################################################
