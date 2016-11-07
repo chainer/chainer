@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import copy
 
 import numpy
@@ -344,6 +347,16 @@ class BinaryHierarchicalSoftmax(link.Link):
             q.put((count, min(id1, id2), tree))
 
         return q.get()[2]
+
+    def max_decode(self, x, k):
+        """Decode `k` words which maximum score.
+        """
+        pass
+
+    def sampling(self, x):
+        """Sampling word Id from HSM
+        """
+        pass
 
     def __call__(self, x, t):
         """Computes the loss value for given input and ground truth labels.
