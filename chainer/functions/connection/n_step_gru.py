@@ -146,8 +146,8 @@ class NStepGRU(function.Function):
             # hidden size
             h_type.shape[2] == c_type.shape[2],
         )
-        w_types, in_types = _split(in_types, self.n_layers * 8)
-        b_types, in_types = _split(in_types, self.n_layers * 8)
+        w_types, in_types = _split(in_types, self.n_layers * 6)
+        b_types, in_types = _split(in_types, self.n_layers * 6)
         x_types = in_types
         for x_type in x_types:
             type_check.expect(
@@ -164,8 +164,8 @@ class NStepGRU(function.Function):
         out_size = h_type.shape[2]
 
         for layer in six.moves.range(self.n_layers):
-            for i in six.moves.range(8):
-                ind = layer * 8 + i
+            for i in six.moves.range(6):
+                ind = layer * 6 + i
                 w_type = w_types[ind]
                 b_type = b_types[ind]
                 if layer == 0 and i < 4:
@@ -186,8 +186,9 @@ class NStepGRU(function.Function):
 
     def forward(self, inputs):
         (hx, cx), inputs = _split(inputs, 2)
-        ws, inputs = _split(inputs, self.n_layers * 8)
-        bs, inputs = _split(inputs, self.n_layers * 8)
+        print "inputs:", len(inputs)
+        ws, inputs = _split(inputs, self.n_layers * 6)
+        bs, inputs = _split(inputs, self.n_layers * 6)
         x_list = inputs
 
         hx = cuda.cupy.ascontiguousarray(hx)
@@ -207,7 +208,7 @@ class NStepGRU(function.Function):
         rnn_desc = cudnn.create_rnn_descriptor(
             n_units, self.n_layers, self.states.desc,
             libcudnn.CUDNN_LINEAR_INPUT, libcudnn.CUDNN_UNIDIRECTIONAL,
-            libcudnn.CUDNN_LSTM, libcudnn.CUDNN_DATA_FLOAT)
+            libcudnn.CUDNN_GRU, libcudnn.CUDNN_DATA_FLOAT)
         self.rnn_desc = rnn_desc
 
         c_x_descs = _make_tensor_descriptor_array(x_list)
@@ -220,17 +221,18 @@ class NStepGRU(function.Function):
         w_desc = cudnn.create_filter_descriptor(w)
 
         for layer in six.moves.range(self.n_layers):
-            for lin_layer_id in six.moves.range(8):
+            for lin_layer_id in six.moves.range(6):
+                print "lin_layer_id:", lin_layer_id
                 mat = cudnn.get_rnn_lin_layer_matrix_params(
                     handle, rnn_desc, layer, x_desc, w_desc, w,
                     lin_layer_id)
                 m = mat.reshape(mat.size)
-                m[...] = ws[layer * 8 + lin_layer_id].ravel()
+                m[...] = ws[layer * 6 + lin_layer_id].ravel()
                 bias = cudnn.get_rnn_lin_layer_bias_params(
                     handle, rnn_desc, layer, x_desc, w_desc, w,
                     lin_layer_id)
                 b = bias.reshape(bias.size)
-                b[...] = bs[layer * 8 + lin_layer_id]
+                b[...] = bs[layer * 6 + lin_layer_id]
         self.w = w
         self.w_desc = w_desc
 
@@ -503,8 +505,8 @@ class LNStepGRU(link.ChainList):
         cx = permutate.permutate(cx, indices, axis=1, inv=False)
         trans_x = transpose_sequence.transpose_sequence(xs)
 
-        ws = [[w.w0, w.w1, w.w2, w.w3, w.w4, w.w5, w.w6, w.w7] for w in self]
-        bs = [[w.b0, w.b1, w.b2, w.b3, w.b4, w.b5, w.b6, w.b7] for w in self]
+        ws = [[w.w0, w.w1, w.w2, w.w3, w.w4, w.w5] for w in self]
+        bs = [[w.b0, w.b1, w.b2, w.b3, w.b4, w.b5] for w in self]
 
         hy, cy, trans_y = n_step_gru(
             self.n_layers, self.dropout, hx, cx, ws, bs, trans_x,
