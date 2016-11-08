@@ -252,11 +252,11 @@ Actual: {0}'''.format(type(data))
         """ Copy back contents of the array to gradient array
 
         Args:
-            array (Variable): ...
+            array (cupy.ndarray): ...
             offset (int): ...
         """
         next_offset = offset + self.size
-        self._grad = array.data[offset:next_offset].reshape(self.data.shape)
+        self._grad = array[offset:next_offset].reshape(self.data.shape)
         return next_offset
 
     def copydata(self, var):

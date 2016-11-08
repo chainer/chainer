@@ -444,6 +444,8 @@ class Link(object):
     def gather_grads(self):
         """Put together all gradient arrays and make a single array
 
+        Return:
+            cupy.ndarray
         """
         size, num = self.size_num_grads()
         # print("size:{}, num:{}".format(size, num))
@@ -497,9 +499,7 @@ class Link(object):
                 int id_pre = 0;
             ''' )
 
-        y = batch_memcpy(var_ptrs.data, var_info.data, size=size)
-        array = variable.Variable(y)
-
+        array = batch_memcpy(var_ptrs.data, var_info.data, size=size)
         self.grads_gathered = array
         return array
 
@@ -507,7 +507,7 @@ class Link(object):
         """ Put back contents of the specified array to the related gradient arrays
 
         Args:
-            array (Variable): ...
+            array (cupy.ndarray): ...
         """
         offset = 0
         for param in self.params():
