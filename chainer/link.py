@@ -497,7 +497,7 @@ class Link(object):
             loop_prep='''
                 int num_src = info[0];
                 int id_pre = 0;
-            ''' )
+            ''')
 
         array = batch_memcpy(var_ptrs.data, var_info.data, size=size)
         self.grads_gathered = array

@@ -257,7 +257,6 @@ cdef class MemoryPointer:
 
 cpdef MemoryPointer open(Py_ssize_t devptr):
     mem = Memory(1)
-    print("[memory.pyx] devptr:{}".format(devptr))
     return MemoryPointer(mem, 0, devptr=devptr)
 
 
