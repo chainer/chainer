@@ -38,14 +38,14 @@ class Eve(optimizer.GradientMethod):
         d, f = state['d'], state['f']
         if self.t > 1:
             old_f = float(cuda.to_cpu(state['f']))
-            if self.loss < old_f:
+            if self.loss > old_f:
                 delta = self.lower_threshold + 1.
                 Delta = self.upper_threshold + 1.
             else:
                 delta = 1. / (self.upper_threshold + 1.)
                 Delta = 1. / (self.lower_threshold + 1.)
             c = min(max(delta, self.loss / old_f), Delta)
-            new_f = c * self.loss
+            new_f = c * old_f
             r = abs(new_f - old_f) / min(new_f, old_f)
             d += (1 - self.beta3) * (r - d)
             f[:] = new_f
