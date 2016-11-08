@@ -24,16 +24,13 @@ class IpcMemoryHandle(object):
         self.size = array.size
         self.device_id = array.data.device.id
         self.devptr = 0  # NULL
-        print("[ipc.py] array.data.ptr:{}".format(array.data.ptr))
-        print("[ipc.py] dtype:{}, size:{}, device_id:{}".format(self.dtype,self.size,self.device_id))
 
     def open(self):
         current_device_id = runtime.getDevice()
         runtime.setDevice(self.device_id)
         self.devptr = runtime.ipcOpenMemHandle(self.mh_data)
-        print("[ipc.py] dtype:{}, size:{}, device_id:{}".format(self.dtype,self.size,self.device_id))
-        print("[ipc.py] devptr:{}".format(self.devptr))
-        array = cupy.ndarray(shape=(self.size,), dtype=self.dtype, devptr=self.devptr)
+        array = cupy.ndarray(shape=(self.size,), dtype=self.dtype,
+                             devptr=self.devptr)
         runtime.setDevice(current_device_id)
         return array
 

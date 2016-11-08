@@ -73,7 +73,8 @@ cdef extern from "cupy_cuda.h":
     ctypedef cudaIpcMemHandle_st cudaIpcMemHandle_t
 
     int cudaIpcGetMemHandle(cudaIpcMemHandle_t* handle, void* devPtr) nogil
-    int cudaIpcOpenMemHandle(void** devPtr, cudaIpcMemHandle_t handle, unsigned int flags) nogil
+    int cudaIpcOpenMemHandle(void** devPtr, cudaIpcMemHandle_t handle,
+                             unsigned int flags) nogil
     int cudaIpcCloseMemHandle(void* devPtr) nogil
 
     # Memory management
