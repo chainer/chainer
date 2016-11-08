@@ -17,14 +17,14 @@ class Eve(optimizer.GradientMethod):
     """
 
     def __init__(self, alpha=0.001, beta1=0.9, beta2=0.999, beta3=0.999,
-                 eps=1e-8, k=0.1, K=10):
+                 eps=1e-8, lower_threshold=0.1, upper_threshold=10):
         self.alpha = alpha
         self.beta1 = beta1
         self.beta2 = beta2
         self.beta3 = beta3
         self.eps = eps
-        self.k = k
-        self.K = K
+        self.lower_threshold = lower_threshold
+        self.upper_threshold = upper_threshold
 
     def init_state(self, param, state):
         xp = cuda.get_array_module(param.data)
@@ -39,11 +39,11 @@ class Eve(optimizer.GradientMethod):
         if self.t > 1:
             old_f = float(cuda.to_cpu(state['f']))
             if self.loss < old_f:
-                delta = self.k + 1.
-                Delta = self.K + 1.
+                delta = self.lower_threshold + 1.
+                Delta = self.upper_threshold + 1.
             else:
-                delta = 1. / (self.K + 1.)
-                Delta = 1. / (self.k + 1.)
+                delta = 1. / (self.upper_threshold + 1.)
+                Delta = 1. / (self.lower_threshold + 1.)
             c = min(max(delta, self.loss / old_f), Delta)
             new_f = c * self.loss
             r = abs(new_f - old_f) / min(new_f, old_f)
