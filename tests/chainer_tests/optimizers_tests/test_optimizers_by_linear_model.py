@@ -57,9 +57,7 @@ class LinearModel(object):
                                  self.dtype)
             model.cleargrads()
             y = model(x)
-            loss = F.softmax_cross_entropy(y, t)
-            loss.backward()
-            optimizer.update()
+            optimizer.update(F.softmax_cross_entropy, y, t)
 
         x_test, t_test = _make_dataset(self.BATCH_SIZE, self.UNIT_NUM, gpu,
                                        self.dtype)
@@ -204,6 +202,15 @@ class TestSMORMS3(OptimizerTestBase, unittest.TestCase):
 
     def create(self):
         return optimizers.SMORMS3(0.1)
+
+
+@testing.parameterize(*testing.product({
+    'dtype': [numpy.float16, numpy.float32, numpy.float64]
+}))
+class TestEve(OptimizerTestBase, unittest.TestCase):
+
+    def create(self):
+        return optimizers.Eve(0.1)
 
 
 testing.run_module(__name__, __file__)
