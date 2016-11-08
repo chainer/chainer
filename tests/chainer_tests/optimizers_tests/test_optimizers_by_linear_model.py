@@ -153,6 +153,15 @@ class TestAdam(OptimizerTestBase, unittest.TestCase):
 @testing.parameterize(*testing.product({
     'dtype': [numpy.float16, numpy.float32, numpy.float64]
 }))
+class TestEve(OptimizerTestBase, unittest.TestCase):
+
+    def create(self):
+        return optimizers.Eve(0.1)
+
+
+@testing.parameterize(*testing.product({
+    'dtype': [numpy.float16, numpy.float32, numpy.float64]
+}))
 class TestMomentumSGD(OptimizerTestBase, unittest.TestCase):
 
     def create(self):
@@ -202,15 +211,6 @@ class TestSMORMS3(OptimizerTestBase, unittest.TestCase):
 
     def create(self):
         return optimizers.SMORMS3(0.1)
-
-
-@testing.parameterize(*testing.product({
-    'dtype': [numpy.float16, numpy.float32, numpy.float64]
-}))
-class TestEve(OptimizerTestBase, unittest.TestCase):
-
-    def create(self):
-        return optimizers.Eve(0.1)
 
 
 testing.run_module(__name__, __file__)
