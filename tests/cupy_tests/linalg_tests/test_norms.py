@@ -30,7 +30,7 @@ class TestTrace(unittest.TestCase):
     'keepdims': [True, False],
 }) + testing.product({
     'shape': [(1, 2), (2, 2)],
-    'ord': [-numpy.Inf, -1, 1, numpy.Inf, 'fro'],
+    'ord': [-numpy.Inf, -1, 1, numpy.Inf],
     'axis': [(0, 1), None],
     'keepdims': [True, False],
 }) + testing.product({
@@ -46,6 +46,26 @@ class TestTrace(unittest.TestCase):
 })
 )
 @testing.gpu
+class TestNorm(unittest.TestCase):
+
+    _multiprocess_can_split_ = True
+
+    @testing.for_all_dtypes()
+    @testing.numpy_cupy_allclose(rtol=1e-3, atol=1e-4, type_check=False)
+    def test_trace(self, xp, dtype):
+        a = testing.shaped_arange(self.shape, xp, dtype)
+        with testing.NumpyError(divide='ignore'):
+            return xp.linalg.norm(a, self.ord, self.axis, self.keepdims)
+
+
+@testing.parameterize(*testing.product({
+    'shape': [(1, 2), (2, 2)],
+    'ord': ['fro'],
+    'axis': [(0, 1), None],
+    'keepdims': [True, False],
+}))
+@testing.gpu
+@testing.with_requires('numpy>=1.11')
 class TestNorm(unittest.TestCase):
 
     _multiprocess_can_split_ = True
