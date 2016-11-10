@@ -388,6 +388,8 @@ class BinaryHierarchicalSoftmax(link.Link):
         Returns:
             ~chainer.Variable: Word index variable.
         """
+        if len(self.tree) == 0:
+            raise ValueError('Empty tree')
         nodes_dic = self._func.nodes_dic
         print "nodes_dic:", nodes_dic
         batchsize = x.data.shape[0]
@@ -399,6 +401,7 @@ class BinaryHierarchicalSoftmax(link.Link):
         FINISH_SAMPLING = -3
         sigmoid = lambda x: 1. / (1. + self.xp.exp(x))
         while True:
+            print '--------'
             w = self.W.data[start_ids]
             score = xp.sum(xp.dot(w, x.data.T), axis=1)
             print "score:", score
@@ -427,6 +430,10 @@ class BinaryHierarchicalSoftmax(link.Link):
                 next_ids.append(next_id)
                 if start_ids[m] != FINISH_SAMPLING:
                     sampling[m].append(sampled)
+
+            # >> Note:: choosed = [0, 1] # 0:left, 1: right
+            # choosed_idx = xp.argmax(xp.random.gumbel(size=prob.shape) + prob, axis=1)
+            # print "choosed:", choosed_idx
             # print next_ids
 
             # check whether all nodes are LEAF.
@@ -479,7 +486,7 @@ class BinaryHierarchicalSoftmax(link.Link):
 
 if __name__ == '__main__':
     tree = BinaryHierarchicalSoftmax.create_huffman_tree(
-            {0: 8, 1: 5, 2: 6, 3: 4, 4:10, 5:1, 6:32, 7:21, 8:3, 9:123, 10:213, 11:23, 12: 3, 13:44})
+            {0: 8, 1: 5, 2: 6, 3: 4, 4:10, 5:1, 6:32, 7:21, 8:3, 9:123, 10:213})
     # print tree
     # tree = ((0, 1), ((2, 3), 4))
     # tree = ((0, 1), 2)
