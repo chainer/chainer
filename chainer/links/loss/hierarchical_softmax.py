@@ -36,7 +36,7 @@ class TreeParser(object):
         self.paths = {}
         self.codes = {}
         self.nodes = {}
-        self.parent_index = 0
+        self.parent_index = None
         self._parse(tree)
         
         assert(len(self.path) == 0)
@@ -50,8 +50,19 @@ class TreeParser(object):
                 raise ValueError(
                     'All internal nodes must have two child nodes')
             left, right = node
+            # print self.path[-2:], left_is_leaf, right_is_leaf, self.next_id, self.parent_index
+            if self.parent_index is not None:
+                # LEFT_LEAF = -2
+                lst = self.nodes.get(self.parent_index, [])
+                lst.append(-2)
+                self.nodes[self.parent_index] = lst
+
+            left_is_leaf = not isinstance(left, tuple)
+            right_is_leaf = not isinstance(right, tuple)
+            flag = left_is_leaf and not right_is_leaf
+            self.parent_index = self.next_id if flag else None
             self.path.append(self.next_id)
-            
+
             if len(self.path) >= 2:
                 # Add parent_node, child_node dictironary
                 # this dictionary will be used in sampling step.
@@ -321,6 +332,7 @@ class BinaryHierarchicalSoftmax(link.Link):
         super(BinaryHierarchicalSoftmax, self).__init__(
             W=(self._func.parser_size, in_size))
         self.W.data[...] = numpy.random.uniform(-1, 1, self.W.shape)
+        self.tree = tree
 
     def to_gpu(self, device=None):
         with cuda.get_device(device):
@@ -415,7 +427,7 @@ class BinaryHierarchicalSoftmax(link.Link):
                 next_ids.append(next_id)
                 if start_ids[m] != FINISH_SAMPLING:
                     sampling[m].append(sampled)
-            print next_ids
+            # print next_ids
 
             # check whether all nodes are LEAF.
             if all(map(lambda x: x == FINISH_SAMPLING, next_ids)):
@@ -424,6 +436,15 @@ class BinaryHierarchicalSoftmax(link.Link):
             start_ids = next_ids
 
         print "sampling:", sampling
+        # Find word id from tree.
+        output = []
+        for sampling_lst in sampling:
+            tree = self.tree
+            for node_id in sampling_lst:
+                tree = tree[node_id]
+            output.append(tree)
+        print 'output:', output
+        return output
         # sampling_codes = [] # 0: left, 1:right    self.treeを探索する
         # tree_depth = 3
         # print "paths :", len(self._func.paths)
@@ -439,7 +460,7 @@ class BinaryHierarchicalSoftmax(link.Link):
         # print self.W.data.shape
         # print x.data.shape
         # print self.xp.dot(self.W.data, x.data.T)
-        return x
+        # return x
 
 
     def __call__(self, x, t):
@@ -458,7 +479,7 @@ class BinaryHierarchicalSoftmax(link.Link):
 
 if __name__ == '__main__':
     tree = BinaryHierarchicalSoftmax.create_huffman_tree(
-            {0: 8, 1: 5, 2: 6, 3: 4, 4:10, 5:1, 6:32, 7:21})
+            {0: 8, 1: 5, 2: 6, 3: 4, 4:10, 5:1, 6:32, 7:21, 8:3, 9:123, 10:213, 11:23, 12: 3, 13:44})
     # print tree
     # tree = ((0, 1), ((2, 3), 4))
     # tree = ((0, 1), 2)
