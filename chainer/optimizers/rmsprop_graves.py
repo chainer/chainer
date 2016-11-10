@@ -4,6 +4,17 @@ from chainer import cuda
 from chainer import optimizer
 
 
+@cuda.fuse()
+def update(grad, lr, alpha, momentum, eps, param, avg_n, avg_g, delta):
+    avg_n *= alpha
+    avg_n += (1 - alpha) * grad * grad
+    avg_g *= alpha
+    avg_g += (1 - alpha) * grad
+    delta *= momentum
+    delta -= lr * grad / cuda.sqrt_fixed(avg_n - avg_g * avg_g + eps)
+    param += delta
+
+
 class RMSpropGraves(optimizer.GradientMethod):
 
     """Alex Graves's RMSprop.
@@ -26,27 +37,7 @@ class RMSpropGraves(optimizer.GradientMethod):
             state['g'] = xp.zeros_like(param.data)
             state['delta'] = xp.zeros_like(param.data)
 
-    def update_one_cpu(self, param, state):
-        n, g, delta = state['n'], state['g'], state['delta']
-        grad = param.grad
-
-        n *= self.alpha
-        n += (1 - self.alpha) * grad * grad
-        g *= self.alpha
-        g += (1 - self.alpha) * grad
-        delta *= self.momentum
-        delta -= self.lr * grad / numpy.sqrt(n - g * g + self.eps)
-        param.data += delta
-
-    def update_one_gpu(self, param, state):
-        cuda.elementwise(
-            'T grad, T lr, T alpha, T momentum, T eps',
-            'T param, T avg_n, T avg_g, T delta',
-            '''avg_n = alpha * avg_n + (1 - alpha) * grad * grad;
-               avg_g = alpha * avg_g + (1 - alpha) * grad;
-               delta = delta * momentum -
-                   lr * grad * rsqrt(avg_n - avg_g * avg_g + eps);
-               param += delta;''',
-            'rmsprop_graves')(
-                param.grad, self.lr, self.alpha, self.momentum, self.eps,
-                param.data, state['n'], state['g'], state['delta'])
+    def update_one(self, param, state):
+        update(param.grad, numpy.float32(self.lr), numpy.float32(self.alpha),
+               numpy.float32(self.momentum), numpy.float32(self.eps),
+               param.data, state['n'], state['g'], state['delta'])

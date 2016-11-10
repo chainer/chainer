@@ -6,6 +6,13 @@ from chainer import cuda
 from chainer import optimizer
 
 
+@cuda.fuse()
+def update(grad, lr, one_minus_beta1, one_minus_beta2, eps, param, m, v):
+    m += one_minus_beta1 * (grad - m)
+    v += one_minus_beta2 * (grad * grad - v)
+    param -= lr * m / (cuda.sqrt_fixed(v) + eps)
+
+
 class Adam(optimizer.GradientMethod):
 
     """Adam optimization algorithm.
@@ -26,23 +33,10 @@ class Adam(optimizer.GradientMethod):
             state['m'] = xp.zeros_like(param.data)
             state['v'] = xp.zeros_like(param.data)
 
-    def update_one_cpu(self, param, state):
-        m, v = state['m'], state['v']
-        grad = param.grad
-
-        m += (1 - self.beta1) * (grad - m)
-        v += (1 - self.beta2) * (grad * grad - v)
-        param.data -= self.lr * m / (numpy.sqrt(v) + self.eps)
-
-    def update_one_gpu(self, param, state):
-        cuda.elementwise(
-            'T grad, T lr, T one_minus_beta1, T one_minus_beta2, T eps',
-            'T param, T m, T v',
-            '''m += one_minus_beta1 * (grad - m);
-               v += one_minus_beta2 * (grad * grad - v);
-               param -= lr * m / (sqrt(v) + eps);''',
-            'adam')(param.grad, self.lr, 1 - self.beta1, 1 - self.beta2,
-                    self.eps, param.data, state['m'], state['v'])
+    def update_one(self, param, state):
+        update(param.grad, numpy.float32(self.lr),
+               numpy.float32(1 - self.beta1), numpy.float32(1 - self.beta2),
+               numpy.float32(self.eps), param.data, state['m'], state['v'])
 
     @property
     def lr(self):

@@ -1,5 +1,12 @@
+import numpy
+
 from chainer import cuda
 from chainer import optimizer
+
+
+@cuda.fuse()
+def update(grad, lr, param):
+    param -= lr * grad
 
 
 class SGD(optimizer.GradientMethod):
@@ -9,10 +16,5 @@ class SGD(optimizer.GradientMethod):
     def __init__(self, lr=0.01):
         self.lr = lr
 
-    def update_one_cpu(self, param, state):
-        param.data -= self.lr * param.grad
-
-    def update_one_gpu(self, param, state):
-        cuda.elementwise('T grad, T lr', 'T param',
-                         'param -= lr * grad',
-                         'sgd')(param.grad, self.lr, param.data)
+    def update_one(self, param, state):
+        update(param.grad, numpy.float32(self.lr), param.data)
