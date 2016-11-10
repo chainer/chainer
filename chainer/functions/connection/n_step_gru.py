@@ -193,7 +193,7 @@ class NStepGRU(function.Function):
 
         hx = cuda.cupy.ascontiguousarray(hx)
         # cx = cuda.cupy.ascontiguousarray(cx)
-        cx = cuda.cupy.zeros(hx.shape, dtype=hx.dtype)
+        cx = cuda.cupy.ones(hx.shape, dtype=hx.dtype)
         cx = cuda.cupy.ascontiguousarray(cx)
         x_desc = cudnn.create_tensor_nd_descriptor(x_list[0][..., None])
 
@@ -215,10 +215,13 @@ class NStepGRU(function.Function):
         c_x_descs = _make_tensor_descriptor_array(x_list)
         hx_desc = cudnn.create_tensor_nd_descriptor(hx)
         cx_desc = cudnn.create_tensor_nd_descriptor(cx)
-
+        print "hx_desc:", hx_desc.value
         weights_size = libcudnn.getRNNParamsSize(
             handle, rnn_desc.value, x_desc.value, libcudnn.CUDNN_DATA_FLOAT)
+        print "weights_size:", weights_size
         w = cuda.cupy.empty((weights_size // 4, 1, 1), dtype=numpy.float32)
+        print "w.ndim:", w.ndim
+        print "w.ndim:", w.ndim
         w_desc = cudnn.create_filter_descriptor(w)
 
         for layer in six.moves.range(self.n_layers):
@@ -243,6 +246,7 @@ class NStepGRU(function.Function):
         c_y_descs = _make_tensor_descriptor_array(y_list)
         hy = cuda.cupy.empty_like(hx)
         cy = cuda.cupy.empty_like(cx)
+        print "first cy:", cy
         hy_desc = cudnn.create_tensor_nd_descriptor(hy)
         cy_desc = cudnn.create_tensor_nd_descriptor(cy)
 
@@ -442,3 +446,122 @@ def n_step_gru(
     #     hy = stack.stack(hx)
     #     cy = stack.stack(cx)
     #     return hy, cy, tuple(ys)
+
+
+# links
+from chainer.functions.array import permutate
+from chainer.functions.array import transpose_sequence
+from chainer import link
+
+
+def argsort_list_descent(lst):
+    return numpy.argsort([-len(x.data) for x in lst]).astype('i')
+
+
+def permutate_list(lst, indices, inv):
+    ret = [None] * len(lst)
+    if inv:
+        for i, ind in enumerate(indices):
+            ret[ind] = lst[i]
+    else:
+        for i, ind in enumerate(indices):
+            ret[i] = lst[ind]
+    return ret
+
+
+class LNStepGRU(link.ChainList):
+    def __init__(
+            self, n_layers, in_size, out_size, dropout, use_cudnn=True):
+        weights = []
+        for i in six.moves.range(n_layers):
+            weight = link.Link()
+            for j in six.moves.range(6):
+                if i == 0 and j < 3:
+                    w_in = in_size
+                else:
+                    w_in = out_size
+                weight.add_param('w%d' % j, (out_size, w_in))
+                weight.add_param('b%d' % j, (out_size,))
+                getattr(weight, 'w%d' % j).data[...] = numpy.random.normal(
+                    0, numpy.sqrt(1. / w_in), (out_size, w_in))
+                getattr(weight, 'b%d' % j).data[...] = 0
+            weights.append(weight)
+
+        super(LNStepGRU, self).__init__(*weights)
+
+        self.n_layers = n_layers
+        self.dropout = dropout
+        self.use_cudnn = use_cudnn
+
+    def __call__(self, hx, cx, xs, train=True):
+        """Calculate all hidden states and cell states.
+
+        Args:
+            hx (~chainer.Variable): Initial hidden states.
+            cx (~chainer.Variable): Initial cell states.
+            xs (list of ~chianer.Variable): List of input sequences.
+                Each element ``xs[i]`` is a :class:`chainer.Variable` holding
+                a sequence.
+        """
+        assert isinstance(xs, (list, tuple))
+        indices = argsort_list_descent(xs)
+
+        xs = permutate_list(xs, indices, inv=False)
+        hx = permutate.permutate(hx, indices, axis=1, inv=False)
+        cx = permutate.permutate(cx, indices, axis=1, inv=False)
+        trans_x = transpose_sequence.transpose_sequence(xs)
+
+        ws = [[w.w0, w.w1, w.w2, w.w3, w.w4, w.w5] for w in self]
+        bs = [[w.b0, w.b1, w.b2, w.b3, w.b4, w.b5] for w in self]
+
+        hy, cy, trans_y = n_step_gru(
+            self.n_layers, self.dropout, hx, cx, ws, bs, trans_x,
+            train=train, use_cudnn=self.use_cudnn)
+
+        hy = permutate.permutate(hy, indices, axis=1, inv=True)
+        cy = permutate.permutate(cy, indices, axis=1, inv=True)
+        ys = transpose_sequence.transpose_sequence(trans_y)
+        ys = permutate_list(ys, indices, inv=True)
+
+        return hy, cy, ys
+
+
+
+if __name__ == '__main__':
+    import numpy as np
+    import chainer
+    gpu_flag = True
+    xp = cuda.cupy if gpu_flag else np
+    datasize = 10
+    seq_length = 20
+    n_input = 100
+    n_layer = 2
+    np.random.seed(1234)
+    dataset = np.random.normal(0.0, 1.0, (datasize, seq_length, n_input))
+    dataset = dataset.tolist()
+    dataset = [chainer.Variable(xp.array(d, dtype=xp.float32)) for d in dataset]
+
+    batchsize = 10
+    n_dataset = len(dataset)
+    dataset_batch = []
+    for i in six.moves.range(0, n_dataset, batchsize):
+        input_data = dataset[i:i + batchsize]
+        dataset_batch.append(input_data)
+
+
+    nn = LNStepGRU(n_layers=n_layer, out_size=100, in_size=n_input, dropout=0.0, use_cudnn=True)
+
+    gpu_id = 1
+    cuda.get_device(gpu_id).use()
+    nn.to_gpu()
+
+    for input_data in dataset_batch:
+        hx = chainer.Variable(
+                xp.zeros((n_layer, len(input_data), n_input), dtype=xp.float32), volatile="auto")
+        cx = chainer.Variable(
+                xp.zeros((n_layer, len(input_data), n_input), dtype=xp.float32), volatile="auto")
+        
+        # forward
+        ys = nn(hx, cx, input_data)
+        print ys
+
