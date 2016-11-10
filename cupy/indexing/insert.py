@@ -6,6 +6,8 @@ import numpy
 def put(a, ind, v):
     """Replaces specified elements of an array with given values.
 
+    This function does not support ``mode`` option.
+
     Args:
         a (cupy.ndarray): Target array.
         ind (array_like): Target integer indices
