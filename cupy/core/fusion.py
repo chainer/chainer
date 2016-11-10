@@ -1,0 +1,808 @@
+import __builtin__
+import inspect
+import six
+import string
+import warnings
+
+import numpy
+
+from cupy.core import core
+from cupy import creation
+from cupy import logic
+from cupy import math
+from cupy import sorting
+from cupy import statistics
+
+
+class FusionOp(object):
+
+    def __init__(self, name, operation, param_names,
+                 nin, nout, in_vars, out_vars, types, num):
+        self.name = name
+        self.operation = operation
+        self.param_names = param_names
+        self.nin = nin
+        self.nout = nout
+        self.in_vars = in_vars
+        self.out_vars = out_vars
+        self.types = types
+        self.num = num
+
+
+class _FusionVar(object):
+
+    def __init__(self, num, ty, const=None):
+        self.num = num
+        self.ty = ty
+        self.const = const
+
+
+class _Counter(object):
+
+    def __init__(self, n):
+        self.n = n
+
+    def __call__(self):
+        ret = self.n
+        self.n = self.n + 1
+        return ret
+
+
+class _FusionMem(object):
+
+    def __init__(self, var_list):
+        self.op_list = []
+        self.var_list = var_list[:]
+
+    def get_fresh(self, ty, **kwargs):
+        n = len(self.var_list)
+        ret = _FusionVar(n, ty, **kwargs)
+        self.var_list.append(ret)
+        return ret
+
+    def set_op(self, name, operation, param_names,
+               nin, nout, in_vars, out_vars, types):
+        num = len(self.op_list)
+        op = FusionOp(name, operation, param_names,
+                      nin, nout, in_vars, out_vars, types, num)
+        self.op_list.append(op)
+
+
+class _FusionRef(object):
+
+    def __init__(self, var, mem):
+        self._var = var
+        self.dtype = var.ty
+        self._mem = mem
+
+    def __repr__(self):
+        return "<_FusionRef, dtype=%s>" % self.dtype
+
+    def __neg__(self):
+        return negative(self)
+
+    def __add__(self, other):
+        return add(self, other)
+
+    def __iadd__(self, other):
+        return add(self, other, self)
+
+    def __radd__(self, other):
+        return add(other, self)
+
+    def __sub__(self, other):
+        return subtract(self, other)
+
+    def __isub__(self, other):
+        return subtract(self, other, self)
+
+    def __rsub__(self, other):
+        return subtract(other, self)
+
+    def __mul__(self, other):
+        return multiply(self, other)
+
+    def __imul__(self, other):
+        return multiply(self, other, self)
+
+    def __rmul__(self, other):
+        return multiply(other, self)
+
+    def __div__(self, other):
+        return divide(self, other)
+
+    def __idiv__(self, other):
+        return divide(self, other, self)
+
+    def __rdiv__(self, other):
+        return divide(other, self)
+
+    def __truediv__(self, other):
+        return true_divide(self, other)
+
+    def __rtruediv__(self, other):
+        return true_divide(other, self)
+
+    def __floordiv__(self, other):
+        return floor_divide(self, other)
+
+    def __rfloordiv__(self, other):
+        return floor_divide(other, self)
+
+    def __mod__(self, other):
+        return remainder(self, other)
+
+    def __imod__(self, other):
+        return remainder(self, other, self)
+
+    def __rmod__(self, other):
+        return remainder(other, self)
+
+    def __lshift__(self, other):
+        return left_shift(self, other)
+
+    def __rlshift__(self, other):
+        return left_shift(other, self)
+
+    def __rshift__(self, other):
+        return right_shift(self, other)
+
+    def __rrshift__(self, other):
+        return right_shift(other, self)
+
+    def __and__(self, other):
+        return bitwise_and(self, other)
+
+    def __rand__(self, other):
+        return bitwise_and(other, self)
+
+    def __or__(self, other):
+        return bitwise_or(self, other)
+
+    def __ror__(self, other):
+        return bitwise_or(other, self)
+
+    def __xor__(self, other):
+        return bitwise_xor(self, other)
+
+    def __rxor__(self, other):
+        return bitwise_xor(other, self)
+
+    def __invert__(self):
+        return invert(self)
+
+    def __lt__(self, other):
+        return less(self, other)
+
+    def __le__(self, other):
+        return less_equal(self, other)
+
+    def __eq__(self, other):
+        return equal(self, other)
+
+    def __ne__(self, other):
+        return not_equal(self, other)
+
+    def __gt__(self, other):
+        return greater(self, other)
+
+    def __ge__(self, other):
+        return greater_equal(self, other)
+
+    def __nonzero__(self):
+        raise Exception("Can't cast to bool")
+
+    def __bool__(self):
+        raise Exception("Can't cast to bool")
+
+    def copy(self):
+        return copy(self)
+
+
+_kind_score = {
+    'b': 0,
+    'u': 1,
+    'i': 1,
+    'f': 2,
+}
+
+_dtype_to_ctype = {
+    numpy.dtype('float64'): 'double',
+    numpy.dtype('float32'): 'float',
+    numpy.dtype('float16'): 'float16',
+    numpy.dtype('int64'): 'long long',
+    numpy.dtype('int32'): 'int',
+    numpy.dtype('int16'): 'short',
+    numpy.dtype('int8'): 'signed char',
+    numpy.dtype('uint64'): 'unsigned long long',
+    numpy.dtype('uint32'): 'unsigned int',
+    numpy.dtype('uint16'): 'unsigned short',
+    numpy.dtype('uint8'): 'unsigned char',
+    numpy.dtype('bool'): 'bool',
+}
+
+_dtype_list = map(numpy.dtype, '?bhilqBHILQefd')
+
+
+def _const_to_str(val):
+    return str(val).lower() if type(val) is bool else str(val)
+
+
+def _normalize_arg(arg, mem):
+    arg_type = type(arg)
+    if arg_type is _FusionRef:
+        return arg._var
+    is_scalar = arg_type in [int, float, bool]
+    is_ndarray = hasattr(arg, 'dtype') and arg.dtype in _dtype_list
+    if is_scalar or is_ndarray:
+        return mem.get_fresh(numpy.dtype(arg_type), const=arg)
+    raise Exception('Unsupported type %s' % arg_type)
+
+
+def _check_should_use_min_scalar(in_args):
+    all_scalars = True
+    max_array_kind = -1
+    max_scalar_kind = -1
+    for i in in_args:
+        if hasattr(i, 'dtype'):
+            all_scalars = False
+            kind = _kind_score[i.dtype.kind]
+            max_array_kind = max(max_array_kind, kind)
+        else:
+            kind = _kind_score[numpy.dtype(type(i)).kind]
+            max_scalar_kind = max(max_scalar_kind, kind)
+    return (max_scalar_kind != -1 and
+            not all_scalars and
+            max_array_kind >= max_scalar_kind)
+
+
+def _get_dtype(v):
+    return v.dtype if hasattr(v, 'dtype') else numpy.dtype(type(v))
+
+
+def _guess_routine(name, ops, in_args, dtype):
+    if dtype is None:
+        use_raw_value = _check_should_use_min_scalar(in_args)
+        if use_raw_value:
+            in_types = tuple(in_args)
+        else:
+            in_types = tuple([_get_dtype(i).type for i in in_args])
+        op = core._guess_routine_from_in_types(ops, in_types)
+    else:
+        op = core._guess_routine_from_dtype(ops, dtype)
+    if op:
+        return op
+    raise TypeError('Wrong type of arguments for %s' % name)
+
+
+def _convert(f):
+    if type(f) is core.ufunc:
+        return _convert_from_ufunc(f)
+    if type(f) is core.ElementwiseKernel:
+        return _convert_from_elementwise(f)
+    raise Exception("Can't convert from %s to FusionOp" % type(f))
+
+
+def _convert_from_ufunc(ufunc):
+    nin = ufunc.nin
+    nout = ufunc.nout
+    name = ufunc.name
+
+    def get_mem(args):
+        for i in args:
+            if type(i) == _FusionRef:
+                return i._mem
+        raise Exception('number of ndarray arguments must be more than 0')
+
+    def res(*args, **kwargs):
+        out = kwargs.pop('out') if 'out' in kwargs else None
+        dtype = kwargs.pop('dtype') if 'dtype' in kwargs else None
+        if kwargs:
+            raise TypeError('Wrong arguments %s' % kwargs)
+
+        mem = get_mem(args)
+        if len(args) == nin + nout:
+            if out is None:
+                out = args[nin:]
+                out = out[0] if len(out) == 1 else tuple(out)
+            else:
+                raise TypeError('Wrong number of arguments for %s' % name)
+        elif len(args) != nin:
+            raise TypeError('Wrong number of arguments for %s' % name)
+        in_args = list(args[:nin])
+        in_vars = map(lambda i: _normalize_arg(i, mem), in_args)
+        op_tuple = _guess_routine(name, ufunc._ops, in_args, dtype)
+        in_types, out_types, op = op_tuple
+        in_types = map(numpy.dtype, in_types)
+        out_types = map(numpy.dtype, out_types)
+        param_names = (['in%d' % i for i in six.moves.range(nin)] +
+                       ['out%d' % i for i in six.moves.range(nout)])
+        out_vars = []
+        ret = []
+        if out is None:
+            for i in out_types:
+                v = mem.get_fresh(i)
+                out_vars.append(v)
+                ret.append(_FusionRef(v, mem))
+        else:
+            out = list(out) if type(out) is tuple else [out]
+            for i, j in six.itertools.izip(out_types, out):
+                out_vars.append(j._var)
+                if numpy.can_cast(i, j.dtype, "same_kind"):
+                    ret.append(_FusionRef(j._var, mem))
+                else:
+                    raise TypeError("Cannot cast from %s to %s" % (i, j)
+                                    + " with casting rule 'same_kind'")
+        mem.set_op(ufunc.name, op, param_names, nin, nout,
+                   in_vars, out_vars, in_types + out_types)
+
+        return ret[0] if len(ret) == 1 else tuple(ret)
+    return res
+
+
+def _convert_from_elementwise(elem):
+    raise Exception('Not Impletmented')
+
+
+def _gather_submodules(ops):
+    return {(op.name, tuple(op.types)): op for op in ops}
+
+
+def _get_params(var_list):
+    return ['%s v%d' % (var.ty, var.num) for var in var_list]
+
+
+def _get_out_params(var_list):
+    return ['%s ret%d' % (var.ty, i) for i, var in enumerate(var_list)]
+
+
+def _get_declaration_from_var(var):
+    if var.const is None:
+        return '%s v%d;\n' % (_dtype_to_ctype[var.ty], var.num)
+    else:
+        return 'const %s v%d = %s;\n' % (
+            _dtype_to_ctype[var.ty],
+            var.num,
+            _const_to_str(var.const))
+
+
+def _get_declaration_from_op(op):
+    return ''.join('%s v%d_%d;\n' % (_dtype_to_ctype[t], op.num, j)
+                   for j, t in enumerate(op.types))
+
+
+def _get_operation_code(op):
+    code = ''.join('v%d_%d = v%d;\n' % (op.num, i, v.num)
+                   for i, v in enumerate(op.in_vars))
+    params = ['v%d_%d' % (op.num, i)
+              for i in six.moves.range(op.nin + op.nout)]
+    code += op.name + '(' + ', '.join(params) + ');\n'
+    code += ''.join('v%d = v%d_%d;\n' %
+                    (v.num, op.num, i + op.nin)
+                    for i, v in enumerate(op.out_vars))
+    return code
+
+
+def _get_submodule_code(op):
+    parameters = ', '.join('%s &%s' % (_dtype_to_ctype[t], name)
+                           for i, (name, t)
+                           in enumerate(zip(op.param_names, op.types)))
+    typedecl = ''.join(('typedef %s in%d_type;\n' % (_dtype_to_ctype[t], i))
+                       for i, t in enumerate(op.types[:op.nin]))
+    typedecl += ''.join(('typedef %s out%d_type;\n' % (_dtype_to_ctype[t], i))
+                        for i, t in enumerate(op.types[op.nin:]))
+    module_code = string.Template('''
+    __device__ void ${name}(${parameters}) {
+      ${typedecl}
+      ${operation};
+    }
+    ''').substitute(
+        name=op.name,
+        parameters=parameters,
+        operation=op.operation,
+        typedecl=typedecl)
+    return module_code + '\n'
+
+
+def _get_pre_code(in_vars, out_vars, operation):
+    in_params = ', '.join('%s v%s' % (_dtype_to_ctype[v.ty], v.num)
+                          for v in in_vars)
+    out_params = ''.join('%s v%s;\n' % (_dtype_to_ctype[v.ty], v.num)
+                         for v in out_vars)
+    module_code = string.Template('''
+    __device__ ${return_type} _pre_map(${in_params}) {
+      ${out_params}
+      ${operation};
+      return ${return_var};
+    }
+    ''').substitute(
+        return_type=_dtype_to_ctype[out_vars[0].ty],
+        in_params=in_params,
+        out_params=out_params,
+        operation=operation,
+        return_var='v%d' % out_vars[0].num)
+    return module_code
+
+
+def _get_reduce_op(ops, dtype):
+    for i in ops._ops:
+        if numpy.can_cast(dtype.type, i[0][0]):
+            return i
+    raise TypeError("Type is mismatched. %s(...), %s" % (ops.name, dtype.type))
+
+
+def _get_post_code(post_vars, operation, post_out):
+    module_code = string.Template('''
+    __device__ ${return_type} _post_map(${arg_type} v0) {
+      ${operation};
+      return v${return_var};
+    }
+    ''').substitute(
+        arg_type=_dtype_to_ctype[post_vars[0].ty],
+        return_type=_dtype_to_ctype[post_vars[post_out.num].ty],
+        operation=operation,
+        return_var=post_out.num)
+    return module_code
+
+
+def _get_fix_code(data_type, fixed_type, operation):
+    module_code = string.Template('''
+    __device__ ${fixed_type} _post_fix(${data_type} a) {
+      ${fixed_type} out0;
+      ${operation};
+      return out0;
+    }
+    ''').substitute(
+        data_type=data_type,
+        fixed_type=_dtype_to_ctype[fixed_type],
+        operation=operation)
+    return module_code
+
+
+def _get_fusion(func, nin, reduce, post_map, identity, input_types):
+    if nin is None:
+        nin = len(inspect.getargspec(func).args)
+    assert nin == len(input_types)
+    in_vars = [_FusionVar(i, t) for i, t in enumerate(input_types)]
+    mem = _FusionMem(in_vars)
+    in_refs = map(lambda i: _FusionRef(i, mem), in_vars)
+    out_refs = func(*in_refs)
+    out_refs = list(out_refs) if type(out_refs) == tuple else [out_refs]
+    out_refs = filter(lambda i: i is not None, out_refs)
+    out_refs = map(lambda i: _FusionRef(_normalize_arg(i, mem), mem), out_refs)
+    out_vars = map(lambda i: _normalize_arg(copy(i), mem), out_refs)
+    nout = len(out_vars)
+    op_list = mem.op_list
+    tmpvars = mem.var_list[nin:-nout] if nout > 0 else mem.var_list[nin:]
+
+    in_params = ', '.join(_get_params(in_vars))
+    out_params = ', '.join(_get_params(out_vars))
+    operation = ''.join(map(_get_declaration_from_var, tmpvars))
+    operation += ''.join(map(_get_declaration_from_op, op_list))
+    operation += '\n'.join(map(_get_operation_code, op_list))
+
+    if reduce is None:
+        if not out_params:
+            in_params = ', '.join(_get_params(in_vars[:-1]))
+            out_params = ', '.join(_get_params([in_vars[-1]]))
+        submodules = _gather_submodules(op_list)
+        submodule_code = ''.join(map(_get_submodule_code, submodules.values()))
+        return core.ElementwiseKernel(in_params, out_params,
+                                      operation, preamble=submodule_code)
+    else:
+        if nout != 1:
+            raise Exception("Wrong number of number of arguments")
+        # pre-map
+        pre_type = out_vars[0].ty
+        pre_code = _get_pre_code(in_vars, out_vars, operation)
+
+        # reduce
+        reduce_op = _get_reduce_op(reduce._raw, pre_type)
+        reduce_code = reduce_op[2][1]
+        reduce_type = numpy.dtype(reduce_op[1][0])
+        rtype = reduce_op[2][3]
+        post_type = "type_in0_raw" if rtype is None else rtype
+        pre_code += "typedef %s type_in0_raw;\n" % _dtype_to_ctype[reduce_type]
+
+        # post-map
+        post_in = [_FusionVar(0, reduce_type)]
+        mem = _FusionMem(post_in)
+        post_in_ref = map(lambda i: _FusionRef(i, mem), post_in)
+        post_out = _normalize_arg(post_map(*post_in_ref), mem)
+        if type(post_out) == tuple:
+            raise Exception("Can't reduce a tuple")
+        post_vars = mem.var_list
+        post_ops = mem.op_list
+        post_code = ''.join(map(_get_declaration_from_var, post_vars[1:]))
+        post_code += ''.join(map(_get_declaration_from_op, post_ops))
+        post_code += '\n'.join(map(_get_operation_code, post_ops))
+        post_code = _get_post_code(post_vars, post_code, post_out)
+        post_code += _get_fix_code(post_type, reduce_type, reduce_op[2][2])
+
+        submodules = _gather_submodules(op_list + post_ops)
+        submodule_code = ''.join(_get_submodule_code(v)
+                                 for v in submodules.values())
+        submodule_code += reduce._raw._preamble + pre_code + post_code
+        operation_args = ['v' + str(i) for i in six.moves.range(nin)]
+        operation = '_pre_map(' + ', '.join(operation_args) + ')'
+        out_params = '%s res' % post_out.ty
+        return core.ReductionKernel(in_params, out_params, operation,
+                                    reduce_code,
+                                    'res = _post_map(_post_fix(a))',
+                                    identity,
+                                    reduce_type=post_type,
+                                    preamble=submodule_code)
+
+
+class Fusion(object):
+
+    """Function class.
+
+    This class can be get by using `fuse` function and
+    works like `ElementwiseKernel` or `ReductionKernel`.
+
+    Attributes:
+        func (function): The function before fusing.
+        name (str): The name of the function.
+        reduce (ufunc): Reduction ufunc.
+        post_map (function): Mapping function for reduced values.
+    """
+
+    def __init__(self, func, input_num, reduce, post_map):
+        self.func = func
+        self.name = func.__name__
+        self.input_num = input_num
+        self.reduce = reduce
+        self.post_map = post_map
+        self.identity = None if reduce is None else self.reduce._raw.identity
+        self._memo = {}
+
+    def __repr__(self):
+        return "<Fusion '%s'>" % self.name
+
+    def __call__(self, *args, **kwargs):
+        axis = kwargs['axis'] if 'axis' in kwargs else None
+        if len(args) == 0:
+            raise Exception('number of arguments must be more than 0')
+        is_cupy_data = lambda a: isinstance(a, (core.ndarray, numpy.generic))
+        if __builtin__.all(map(is_cupy_data, args)):
+            types = map(lambda x: x.dtype, args)
+            key = tuple(types)
+            if key not in self._memo:
+                f = _get_fusion(self.func, self.input_num, self.reduce,
+                                self.post_map, self.identity, types)
+                self._memo[key] = f
+            f = self._memo[key]
+            if self.reduce is None:
+                return f(*args)
+            else:
+                return f(*args, axis=axis)
+        else:
+            if __builtin__.any(map(lambda a: type(a) is core.ndarray, args)):
+                types = '.'.join(map(repr, map(type, args)))
+                message = "Can't fuse \n %s(%s)" % (self.name, types)
+                warnings.warn(message)
+            if self.reduce is None:
+                return self.func(*args)
+            elif axis is None:
+                return self.post_map(self.reduce(self.func(*args)))
+            else:
+                return self.post_map(self.reduce(self.func(*args), axis=axis))
+
+
+def fuse(input_num=None, reduce=None, post_map=lambda x: x):
+    """Function fusing decorator.
+
+    This decorator can be used to define an elementwise or reduction kernel
+    more easily than `ElementwiseKernel` class or `ReductionKernel` class.
+
+    This decorator makes `Fusion` class from the given function.
+
+    Args:
+        input_num (int): Number of input arguments of the given function.
+        reduce (function): The reduce function which is applied after
+            pre-mapping step. If not assigned, reduction step is skipped.
+        post_map (function): Mapping function for reduced values.
+            If not assigned, post_map step is skipped.
+    """
+    return lambda f: Fusion(f, input_num, reduce, post_map)
+
+
+class ufunc(core.ufunc):
+
+    def __init__(self, fusion_op, cupy_op, numpy_op):
+        self.name = fusion_op.name
+        self.nin = fusion_op.nin
+        self.nout = fusion_op.nout
+        self.nargs = fusion_op.nargs
+        self._ops = fusion_op._ops
+        self._preamble = fusion_op._preamble
+        self.__doc__ = fusion_op.__doc__
+        self._params = fusion_op._params
+        self._routine_cache = fusion_op._routine_cache
+
+        self._fusion_op = fusion_op
+        self._cupy_op = cupy_op
+        self._numpy_op = numpy_op
+
+    def __repr__(self):
+        return repr(self._cupy_op)
+
+    def __call__(self, *args, **kwargs):
+        if __builtin__.any(type(i) is _FusionRef for i in args):
+            return _convert(self._fusion_op)(*args, **kwargs)
+        elif __builtin__.any(type(i) is numpy.ndarray for i in args):
+            return self._numpy_op(*args, **kwargs)
+        else:
+            return self._cupy_op(*args, **kwargs)
+
+    __doc__ = core.ufunc.__doc__
+    __call__.__doc__ = core.ufunc.__call__.__doc__
+
+
+def _create_ufunc(cupy_ufunc, numpy_ufunc):
+    return ufunc(cupy_ufunc, cupy_ufunc, numpy_ufunc)
+
+
+_where = ufunc(sorting.search._where_ufunc,
+               sorting.search.where, numpy.where)
+
+_clip = ufunc(core._clip, math.misc.clip, numpy.clip)
+
+_elementwise_copy = ufunc(core._elementwise_copy,
+                          creation.from_data.copy, numpy.copy)
+
+
+def where(*args, **kwargs):
+    return _where(*args, **kwargs)
+
+
+def clip(*args, **kwargs):
+    return _clip(*args, **kwargs)
+
+
+def copy(*args, **kwargs):
+    return _elementwise_copy(*args, **kwargs)
+
+
+bitwise_and = _create_ufunc(core.bitwise_and, numpy.bitwise_and)
+bitwise_or = _create_ufunc(core.bitwise_or, numpy.bitwise_or)
+bitwise_xor = _create_ufunc(core.bitwise_xor, numpy.bitwise_xor)
+invert = _create_ufunc(core.invert, numpy.invert)
+left_shift = _create_ufunc(core.left_shift, numpy.left_shift)
+right_shift = _create_ufunc(core.right_shift, numpy.right_shift)
+
+greater = _create_ufunc(core.greater, numpy.greater)
+greater_equal = _create_ufunc(core.greater_equal, numpy.greater_equal)
+less = _create_ufunc(core.less, numpy.less)
+less_equal = _create_ufunc(core.less_equal, numpy.less_equal)
+equal = _create_ufunc(core.equal, numpy.equal)
+not_equal = _create_ufunc(core.not_equal, numpy.not_equal)
+
+isfinite = _create_ufunc(logic.content.isfinite, numpy.isfinite)
+isinf = _create_ufunc(logic.content.isinf, numpy.isinf)
+isnan = _create_ufunc(logic.content.isnan, numpy.isnan)
+
+logical_and = _create_ufunc(logic.ops.logical_and, numpy.logical_and)
+logical_or = _create_ufunc(logic.ops.logical_or, numpy.logical_or)
+logical_not = _create_ufunc(logic.ops.logical_not, numpy.logical_not)
+logical_xor = _create_ufunc(logic.ops.logical_xor, numpy.logical_xor)
+
+sin = _create_ufunc(math.trigonometric.sin, numpy.sin)
+cos = _create_ufunc(math.trigonometric.cos, numpy.cos)
+tan = _create_ufunc(math.trigonometric.tan, numpy.tan)
+arcsin = _create_ufunc(math.trigonometric.arcsin, numpy.arcsin)
+arccos = _create_ufunc(math.trigonometric.arccos, numpy.arccos)
+arctan = _create_ufunc(math.trigonometric.arctan, numpy.arctan)
+arctan2 = _create_ufunc(math.trigonometric.arctan2, numpy.arctan2)
+hypot = _create_ufunc(math.trigonometric.hypot, numpy.hypot)
+deg2rad = _create_ufunc(math.trigonometric.deg2rad, numpy.deg2rad)
+rad2deg = _create_ufunc(math.trigonometric.rad2deg, numpy.rad2deg)
+degrees = _create_ufunc(math.trigonometric.degrees, numpy.degrees)
+radians = _create_ufunc(math.trigonometric.radians, numpy.radians)
+
+sinh = _create_ufunc(math.hyperbolic.sinh, numpy.sinh)
+cosh = _create_ufunc(math.hyperbolic.cosh, numpy.cosh)
+tanh = _create_ufunc(math.hyperbolic.tanh, numpy.tanh)
+arcsinh = _create_ufunc(math.hyperbolic.arcsinh, numpy.arcsinh)
+arccosh = _create_ufunc(math.hyperbolic.arccosh, numpy.arccosh)
+arctanh = _create_ufunc(math.hyperbolic.arctanh, numpy.arctanh)
+
+rint = _create_ufunc(math.rounding.rint, numpy.rint)
+floor = _create_ufunc(math.rounding.floor, numpy.floor)
+ceil = _create_ufunc(math.rounding.ceil, numpy.ceil)
+trunc = _create_ufunc(math.rounding.trunc, numpy.trunc)
+
+exp = _create_ufunc(math.explog.exp, numpy.exp)
+expm1 = _create_ufunc(math.explog.expm1, numpy.expm1)
+exp2 = _create_ufunc(math.explog.exp2, numpy.exp2)
+log = _create_ufunc(math.explog.log, numpy.log)
+log10 = _create_ufunc(math.explog.log10, numpy.log10)
+log2 = _create_ufunc(math.explog.log2, numpy.log2)
+log1p = _create_ufunc(math.explog.log1p, numpy.log1p)
+logaddexp = _create_ufunc(math.explog.logaddexp, numpy.logaddexp)
+logaddexp2 = _create_ufunc(math.explog.logaddexp2, numpy.logaddexp2)
+
+signbit = _create_ufunc(math.floating.signbit, numpy.signbit)
+copysign = _create_ufunc(math.floating.copysign, numpy.copysign)
+ldexp = _create_ufunc(math.floating.ldexp, numpy.ldexp)
+frexp = _create_ufunc(math.floating.frexp, numpy.frexp)
+nextafter = _create_ufunc(math.floating.nextafter, numpy.nextafter)
+
+add = _create_ufunc(math.arithmetic.add, numpy.add)
+reciprocal = _create_ufunc(math.arithmetic.reciprocal, numpy.reciprocal)
+negative = _create_ufunc(math.arithmetic.negative, numpy.negative)
+multiply = _create_ufunc(math.arithmetic.multiply, numpy.multiply)
+divide = _create_ufunc(math.arithmetic.divide, numpy.divide)
+power = _create_ufunc(math.arithmetic.power, numpy.power)
+subtract = _create_ufunc(math.arithmetic.subtract, numpy.subtract)
+true_divide = _create_ufunc(math.arithmetic.true_divide, numpy.true_divide)
+floor_divide = _create_ufunc(math.arithmetic.floor_divide, numpy.floor_divide)
+fmod = _create_ufunc(math.arithmetic.fmod, numpy.fmod)
+mod = _create_ufunc(math.arithmetic.remainder, numpy.mod)
+modf = _create_ufunc(math.arithmetic.modf, numpy.modf)
+remainder = _create_ufunc(math.arithmetic.remainder, numpy.remainder)
+
+sqrt = _create_ufunc(math.misc.sqrt, numpy.sqrt)
+sqrt_fixed = _create_ufunc(math.misc.sqrt_fixed, numpy.sqrt)
+square = _create_ufunc(math.misc.square, numpy.square)
+absolute = _create_ufunc(math.misc.absolute, numpy.absolute)
+abs = _create_ufunc(math.misc.absolute, numpy.abs)
+sign = _create_ufunc(math.misc.sign, numpy.sign)
+maximum = _create_ufunc(math.misc.maximum, numpy.maximum)
+minimum = _create_ufunc(math.misc.minimum, numpy.minimum)
+fmax = _create_ufunc(math.misc.fmax, numpy.fmax)
+fmin = _create_ufunc(math.misc.fmin, numpy.fmin)
+
+
+class reduction(object):
+
+    def __init__(self, cupy_op, numpy_op):
+        self._cupy_op = cupy_op
+        self._numpy_op = numpy_op
+
+    def __call__(self, *args, **kwargs):
+        if __builtin__.any(type(i) == numpy.ndarray for i in args):
+            return self._numpy_op(*args, **kwargs)
+        else:
+            return self._cupy_op(*args, **kwargs)
+
+
+_all = reduction(logic.truth.all, numpy.all)
+_any = reduction(logic.truth.any, numpy.any)
+_sum = reduction(math.sumprod.sum, numpy.sum)
+_prod = reduction(math.sumprod.prod, numpy.prod)
+_amax = reduction(statistics.order.amax, numpy.amax)
+_amin = reduction(statistics.order.amin, numpy.amin)
+
+
+def all(*args, **kwargs):
+    return _all(*args, **kwargs)
+
+
+def any(*args, **kwargs):
+    return _any(*args, **kwargs)
+
+
+def sum(*args, **kwargs):
+    return _sum(*args, **kwargs)
+
+
+def prod(*args, **kwargs):
+    return _prod(*args, **kwargs)
+
+
+def amax(*args, **kwargs):
+    return _amax(*args, **kwargs)
+
+
+def amin(*args, **kwargs):
+    return _amin(*args, **kwargs)
+
+
+all._raw = core._all
+any._raw = core._any
+sum._raw = core._sum
+prod._raw = core._prod
+amax._raw = core._amax
+amin._raw = core._amin
