@@ -599,7 +599,7 @@ cdef class ndarray:
 
         .. seealso::
            :func:`cupy.put` for full documentation,
-           :meth: `numpy.ndarray.put`
+           :meth:`numpy.ndarray.put`
 
         """
         _put(self, ind, v, axis=None)
@@ -1987,10 +1987,8 @@ cpdef _put(ndarray a, ind, v, axis=None):
         (1,) * len(lshape) + ind.shape + (1,) * len(rshape))
     if axis == 0 or axis is None:
         _put_kernel_0axis(v, ind, rdim, index_range, a.reduced_view())
-        return
     else:
         _put_kernel(v, ind, cdim, rdim, adim, index_range, a.reduced_view())
-        return
 
 
 cpdef ndarray _diagonal(ndarray a, Py_ssize_t offset=0, Py_ssize_t axis1=0,

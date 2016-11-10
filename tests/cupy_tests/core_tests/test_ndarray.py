@@ -37,23 +37,23 @@ def wrap_take(array, *args, **kwargs):
 
 
 def wrap_put(a, ind, v, axis=None):
-    if get_array_module(a) == numpy:
+    if get_array_module(a) is numpy:
         if axis is not None and a.ndim != 0:
-            axis = axis % a.ndim
+            axis %= a.ndim
             slices = ([slice(None)] * axis +
                       [ind] + [slice(None)] * (a.ndim - axis - 1))
             a[slices] = v
         else:
             a.put(ind, v, mode='wrap')
     else:
-        core._put(a, ind, v, axis)
+        core.core._put(a, ind, v, axis)
 
 
 def compute_v_shape(in_shape, indices_shape, axis):
     if axis is None or len(in_shape) == 0:
         return indices_shape
     else:
-        axis = axis % len(in_shape)
+        axis %= len(in_shape)
         lshape = in_shape[:axis]
         rshape = in_shape[axis + 1:]
     return lshape + indices_shape + rshape
@@ -276,18 +276,19 @@ class TestScalaNdarrayPutWithInt(unittest.TestCase):
         return a
 
 
-@testing.parameterize(
-    {'shape': (3, 4, 5), 'indices': (2,), 'axis': 0, 'v_shape': (5,)},
-)
 @testing.gpu
 class TestNdarrayPutBroadcastInput(unittest.TestCase):
 
     @testing.for_all_dtypes()
     @testing.numpy_cupy_array_equal()
     def test_put(self, xp, dtype):
-        a = xp.zeros(self.shape, dtype=dtype)
-        v = testing.shaped_arange(self.v_shape, xp, dtype)
-        wrap_put(a, self.indices, v, self.axis)
+        shape = (3, 4, 5)
+        indices = (2,)
+        axis = 0
+        v_shape = (5,)
+        a = xp.zeros(shape, dtype=dtype)
+        v = testing.shaped_arange(v_shape, xp, dtype)
+        wrap_put(a, indices, v, axis)
         return a
 
 

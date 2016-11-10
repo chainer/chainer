@@ -9,8 +9,7 @@ def put(a, ind, v):
     Args:
         a (cupy.ndarray): Target array.
         ind (array_like): Target integer indices
-        v (array_like): Values to place in `a` at target indices. If `v` is
-            shorter than `ind` it will be repeated as necessary.
+        v (array_like): Values to place in ``a`` at target indices.
 
     .. note::
 
