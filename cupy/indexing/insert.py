@@ -3,7 +3,7 @@ import numpy
 # TODO(okuta): Implement place
 
 
-def put(a, ind, v, axis=None):
+def put(a, ind, v):
     """Replaces specified elements of an array with given values.
 
     .. note::
@@ -16,11 +16,9 @@ def put(a, ind, v, axis=None):
         ind (array_like): Target integer indices
         v (array_like): Values to place in `a` at target indices. If `v` is
             shorter than `ind` it will be repeated as necessary.
-        axis (int): The axis along which to select indices. The flattened input
-            is used by default.
 
     """
-    a.put(ind, v, axis)
+    a.put(ind, v)
 
 
 # TODO(okuta): Implement putmask

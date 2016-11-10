@@ -594,7 +594,7 @@ cdef class ndarray:
         """
         return _take(self, indices, axis, out)
 
-    cpdef put(self, ind, v, axis=None):
+    cpdef put(self, ind, v):
         """Replaces specified elements of an array with given values.
 
         .. seealso::
@@ -602,7 +602,7 @@ cdef class ndarray:
            :meth: `numpy.ndarray.put`
 
         """
-        _put(self, ind, v, axis)
+        _put(self, ind, v, axis=None)
         return
 
     cpdef repeat(self, repeats, axis=None):

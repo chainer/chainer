@@ -46,7 +46,7 @@ def wrap_put(a, ind, v, axis=None):
         else:
             a.put(ind, v, mode='wrap')
     else:
-        a.put(ind, v, axis)
+        core._put(a, ind, v, axis)
 
 
 def compute_v_shape(in_shape, indices_shape, axis):
