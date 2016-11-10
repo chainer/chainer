@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import copy
 
 import numpy
@@ -23,14 +26,19 @@ class TreeParser(object):
     def get_codes(self):
         return self.codes
 
+    def get_nodes(self):
+        return self.nodes
+
     def parse(self, tree):
         self.next_id = 0
         self.path = []
         self.code = []
         self.paths = {}
         self.codes = {}
+        self.nodes = {}
+        self.parent_index = 0
         self._parse(tree)
-
+        
         assert(len(self.path) == 0)
         assert(len(self.code) == 0)
         assert(len(self.paths) == len(self.codes))
@@ -43,6 +51,15 @@ class TreeParser(object):
                     'All internal nodes must have two child nodes')
             left, right = node
             self.path.append(self.next_id)
+            
+            if len(self.path) >= 2:
+                # Add parent_node, child_node dictironary
+                # this dictionary will be used in sampling step.
+                parent_node_id, child_node_id = self.path[-2:]
+                lst = self.nodes.get(parent_node_id, [])
+                lst.append(child_node_id)
+                self.nodes[parent_node_id] = lst
+
             self.next_id += 1
             self.code.append(1.0)
             self._parse(left)
@@ -77,15 +94,20 @@ class BinaryHierarchicalSoftmaxFunction(function.Function):
 
     def __init__(self, tree):
         parser = TreeParser()
+        self.parser = parser # Todo comment out
         parser.parse(tree)
         paths = parser.get_paths()
         codes = parser.get_codes()
+        # nodes = parser.get_nodes()
         n_vocab = max(paths.keys()) + 1
-
+        self.n_vocab = n_vocab
         self.paths = numpy.concatenate(
             [paths[i] for i in range(n_vocab) if i in paths])
         self.codes = numpy.concatenate(
             [codes[i] for i in range(n_vocab) if i in codes])
+        # self.nodes = numpy.concatenate(
+        #     [nodes[i] for i in range(n_vocab) if i in nodes])
+        self.nodes_dic = parser.get_nodes()
         begins = numpy.empty((n_vocab + 1,), dtype=numpy.int32)
         begins[0] = 0
         for i in range(0, n_vocab):
@@ -345,6 +367,81 @@ class BinaryHierarchicalSoftmax(link.Link):
 
         return q.get()[2]
 
+    def sampling(self, x):
+        """Sampling function.
+
+        Args:
+            x (~chainer.Variable): Input to the classifier at each node.
+
+        Returns:
+            ~chainer.Variable: Word index variable.
+        """
+        nodes_dic = self._func.nodes_dic
+        print "nodes_dic:", nodes_dic
+        batchsize = x.data.shape[0]
+        start_ids = [0 for _ in six.moves.range(batchsize)]
+        sampling = [[] for _ in six.moves.range(batchsize)]
+        xp = self.xp
+        LEFT_LEAF = -2
+        RIGHT_LEAF = -1
+        FINISH_SAMPLING = -3
+        sigmoid = lambda x: 1. / (1. + self.xp.exp(x))
+        while True:
+            w = self.W.data[start_ids]
+            score = xp.sum(xp.dot(w, x.data.T), axis=1)
+            print "score:", score
+            prob_left = sigmoid(score)
+            print "prob:", prob_left
+            prob_left = xp.reshape(prob_left, (batchsize, 1))
+            prob_right = xp.ones(prob_left.shape) - prob_left
+            prob = xp.concatenate([prob_left, prob_right], axis=1)
+
+            nodes_ids = [nodes_dic.get(start_ids[m], None) for m in six.moves.range(batchsize)]
+            # print "nodes_ids:", nodes_ids
+            next_ids = []
+            for m in six.moves.range(batchsize):
+                lst = nodes_ids[m]
+                if lst is None:
+                    lst = [LEFT_LEAF, RIGHT_LEAF]
+                elif len(lst) == 1:
+                    lst = lst + [RIGHT_LEAF]
+                print "nodes_ids[m]:", lst
+                print "prob[m]:", prob[m]
+                next_id = numpy.random.choice(a=lst, size=1, p=prob[m].tolist())[0]
+                is_left = (lst[0] == next_id)
+                sampled = 0 if is_left else 1
+                print "sampled:", sampled
+                next_id = FINISH_SAMPLING if next_id < 0 else next_id
+                next_ids.append(next_id)
+                if start_ids[m] != FINISH_SAMPLING:
+                    sampling[m].append(sampled)
+            print next_ids
+
+            # check whether all nodes are LEAF.
+            if all(map(lambda x: x == FINISH_SAMPLING, next_ids)):
+                # if all nodes will reach leaf, then finish sampling.
+                break
+            start_ids = next_ids
+
+        print "sampling:", sampling
+        # sampling_codes = [] # 0: left, 1:right    self.treeを探索する
+        # tree_depth = 3
+        # print "paths :", len(self._func.paths)
+        # print "codes :", len(self._func.codes)
+        # print "begins:", len(self._func.begins)
+        # print "paths :", self._func.paths
+        # print "codes :", self._func.codes
+        # print "begins:", self._func.begins
+
+        # print "original paths", self._func.parser.paths
+        # print "original codes", self._func.parser.codes
+
+        # print self.W.data.shape
+        # print x.data.shape
+        # print self.xp.dot(self.W.data, x.data.T)
+        return x
+
+
     def __call__(self, x, t):
         """Computes the loss value for given input and ground truth labels.
 
@@ -358,3 +455,17 @@ class BinaryHierarchicalSoftmax(link.Link):
         """
         f = copy.copy(self._func)  # creates a copy of the function node
         return f(x, t, self.W)
+
+if __name__ == '__main__':
+    tree = BinaryHierarchicalSoftmax.create_huffman_tree(
+            {0: 8, 1: 5, 2: 6, 3: 4, 4:10, 5:1, 6:32, 7:21})
+    # print tree
+    # tree = ((0, 1), ((2, 3), 4))
+    # tree = ((0, 1), 2)
+    print tree
+    link = BinaryHierarchicalSoftmax(3, tree)
+    print link.W.data
+    from chainer import Variable
+    x = Variable(numpy.array([[1.0, 2.0, 3.0], [0.2, 3.1, 3.2]], numpy.float32))
+    # print F.dot(link.W, x)
+    link.sampling(x)
