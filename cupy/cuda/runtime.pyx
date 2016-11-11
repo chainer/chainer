@@ -209,7 +209,7 @@ cpdef deviceEnablePeerAccess(int peerDevice):
 # Memory sharing among multi-processes
 ###############################################################################
 
-cpdef ipcGetMemHandle(size_t devPtr):
+cpdef list ipcGetMemHandle(size_t devPtr):
     cdef cudaIpcMemHandle_t handle
     cudaIpcGetMemHandle(&handle, <void*>devPtr)
     mh_data = []
@@ -218,7 +218,7 @@ cpdef ipcGetMemHandle(size_t devPtr):
     return mh_data
 
 
-cpdef ipcOpenMemHandle(list mh_data):
+cpdef size_t ipcOpenMemHandle(list mh_data):
     cdef cudaIpcMemHandle_t handle
     for i in range(64):
         handle.reserved[i] = mh_data[i]
