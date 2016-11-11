@@ -52,9 +52,7 @@ class TreeParser(object):
             left, right = node
             # print self.path[-2:], left_is_leaf, right_is_leaf, self.next_id, self.parent_index
             if self.parent_index is not None:
-                # LEFT_LEAF = -2
-                lst = self.nodes.get(self.parent_index, [])
-                lst.append(-2)
+                lst = self.nodes.get(self.parent_index, []) + [-1]
                 self.nodes[self.parent_index] = lst
 
             left_is_leaf = not isinstance(left, tuple)
@@ -67,8 +65,7 @@ class TreeParser(object):
                 # Add parent_node, child_node dictironary
                 # this dictionary will be used in sampling step.
                 parent_node_id, child_node_id = self.path[-2:]
-                lst = self.nodes.get(parent_node_id, [])
-                lst.append(child_node_id)
+                lst = self.nodes.get(parent_node_id, []) + [child_node_id]
                 self.nodes[parent_node_id] = lst
 
             self.next_id += 1
@@ -116,9 +113,10 @@ class BinaryHierarchicalSoftmaxFunction(function.Function):
             [paths[i] for i in range(n_vocab) if i in paths])
         self.codes = numpy.concatenate(
             [codes[i] for i in range(n_vocab) if i in codes])
+        convert_v = lambda x: x + [-1] if len(x) == 1 else x
+        self.nodes_dic = dict([(k, convert_v(v)) for k,v in parser.get_nodes().items()])
         # self.nodes = numpy.concatenate(
         #     [nodes[i] for i in range(n_vocab) if i in nodes])
-        self.nodes_dic = parser.get_nodes()
         begins = numpy.empty((n_vocab + 1,), dtype=numpy.int32)
         begins[0] = 0
         for i in range(0, n_vocab):
@@ -380,69 +378,63 @@ class BinaryHierarchicalSoftmax(link.Link):
         return q.get()[2]
 
     def sampling(self, x):
-        """Sampling function.
+        """Sampling word id for given input from tree path.
 
         Args:
-            x (~chainer.Variable): Input to the classifier at each node.
-
+            x (~chainer.Variable): Input for sampling.
+                        : Examples: Variable(
+                                            [
+                                              [0.2, 0.2, 0.3],
+                                              [0.1, 0.3, 0.1],
+                                              [0.2, 0.3, 0.4]
+                                            ])
         Returns:
-            ~chainer.Variable: Word index variable.
+            ~chainer.Variable: List of word indexes. 
+                             : Examples: [0, 10, 3]
         """
         if len(self.tree) == 0:
             raise ValueError('Empty tree')
+        # >> Note:: nodes_dic is dictionary, key is parent node id, values are child node ids
         nodes_dic = self._func.nodes_dic
-        print "nodes_dic:", nodes_dic
         batchsize = x.data.shape[0]
         start_ids = [0 for _ in six.moves.range(batchsize)]
         sampling = [[] for _ in six.moves.range(batchsize)]
         xp = self.xp
-        LEFT_LEAF = -2
-        RIGHT_LEAF = -1
-        FINISH_SAMPLING = -3
+        LEAF = -1
+        FINISH_SAMPLING = -2
+        leaf_ids = [LEAF, LEAF]
         sigmoid = lambda x: 1. / (1. + self.xp.exp(x))
         while True:
-            print '--------'
             w = self.W.data[start_ids]
             score = xp.sum(xp.dot(w, x.data.T), axis=1)
-            print "score:", score
+            # print "score:", score
             prob_left = sigmoid(score)
-            print "prob:", prob_left
+            # print "prob:", prob_left
             prob_left = xp.reshape(prob_left, (batchsize, 1))
             prob_right = xp.ones(prob_left.shape) - prob_left
             prob = xp.concatenate([prob_left, prob_right], axis=1)
 
-            nodes_ids = [nodes_dic.get(start_ids[m], None) for m in six.moves.range(batchsize)]
-            # print "nodes_ids:", nodes_ids
-            next_ids = []
+            # >> Note:: leaf_ids = [-1, -1]
+            nodes_ids = xp.array([nodes_dic.get(start_ids[m], leaf_ids) for m in six.moves.range(batchsize)])
+            choosed_idx = xp.argmax(xp.random.gumbel(size=prob.shape) + prob, axis=1)
+            rows = six.moves.range(batchsize)
+            columns = choosed_idx
+            next_ids = nodes_ids[rows, columns]
+            next_ids = xp.where(next_ids != -1, next_ids, FINISH_SAMPLING)
+            # TODO: do not use for loop, use array? (sato)
             for m in six.moves.range(batchsize):
-                lst = nodes_ids[m]
-                if lst is None:
-                    lst = [LEFT_LEAF, RIGHT_LEAF]
-                elif len(lst) == 1:
-                    lst = lst + [RIGHT_LEAF]
-                print "nodes_ids[m]:", lst
-                print "prob[m]:", prob[m]
-                next_id = numpy.random.choice(a=lst, size=1, p=prob[m].tolist())[0]
-                is_left = (lst[0] == next_id)
-                sampled = 0 if is_left else 1
-                print "sampled:", sampled
-                next_id = FINISH_SAMPLING if next_id < 0 else next_id
-                next_ids.append(next_id)
+                sampled_id = choosed_idx[m]
                 if start_ids[m] != FINISH_SAMPLING:
-                    sampling[m].append(sampled)
-
-            # >> Note:: choosed = [0, 1] # 0:left, 1: right
-            # choosed_idx = xp.argmax(xp.random.gumbel(size=prob.shape) + prob, axis=1)
+                    sampling[m].append(sampled_id)
             # print "choosed:", choosed_idx
-            # print next_ids
+            # print "next_ids:", next_ids
 
             # check whether all nodes are LEAF.
-            if all(map(lambda x: x == FINISH_SAMPLING, next_ids)):
+            if xp.all(next_ids == FINISH_SAMPLING):
                 # if all nodes will reach leaf, then finish sampling.
                 break
             start_ids = next_ids
 
-        print "sampling:", sampling
         # Find word id from tree.
         output = []
         for sampling_lst in sampling:
@@ -450,24 +442,8 @@ class BinaryHierarchicalSoftmax(link.Link):
             for node_id in sampling_lst:
                 tree = tree[node_id]
             output.append(tree)
-        print 'output:', output
+        # print 'output:', output
         return output
-        # sampling_codes = [] # 0: left, 1:right    self.treeを探索する
-        # tree_depth = 3
-        # print "paths :", len(self._func.paths)
-        # print "codes :", len(self._func.codes)
-        # print "begins:", len(self._func.begins)
-        # print "paths :", self._func.paths
-        # print "codes :", self._func.codes
-        # print "begins:", self._func.begins
-
-        # print "original paths", self._func.parser.paths
-        # print "original codes", self._func.parser.codes
-
-        # print self.W.data.shape
-        # print x.data.shape
-        # print self.xp.dot(self.W.data, x.data.T)
-        # return x
 
 
     def __call__(self, x, t):
