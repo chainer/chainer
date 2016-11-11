@@ -123,23 +123,35 @@ def run_training(conns, proc_id, proc_num, gpuid, model_ref,
                 loss.backward()
 
                 gg = model.gather_grads()
+                dev_gg = chainer.cuda.get_device(gg)
+                mh = ipc.IpcMemoryHandle(gg)
 
                 if proc_id != 0:
                     # slave process(es)
-                    mh = ipc.IpcMemoryHandle(gg)
-                    conns[0].send(mh)  # send memory handle to master
-                    conns[0].recv()  # wait for "go" message from master
+
+                    # send memory handle to master
+                    conns[0].send(mh)
+
+                    # recv memory handle from master and open it
+                    mhm = conns[0].recv()
+                    ggm = mhm.open()
+
+                    # copy ggm (master's gg) to gg (gg = ggm)
+                    cupy.copyto(gg, ggm)
+
+                    # send "ok" message to master
+                    my_dev.synchronize()
+                    conns[0].send("ok")
 
                 else:
                     # master process
-                    conn_mh_ggs_list = []
-                    dev_gg = chainer.cuda.get_device(gg)
 
                     for conn in conns:
-                        mh = conn.recv()  # recv memory handle from slave
-                        ggs = mh.open()
-                        conn_mh_ggs_list.append((conn, mh, ggs))
+                        # recv memory handle from slave and open it
+                        mhs = conn.recv()
+                        ggs = mhs.open()
 
+                        # add ggs (slave's gg) to gg (master's gg)
                         dev_ggs = chainer.cuda.get_device(ggs)
                         if dev_gg == dev_ggs:
                             gg += ggs
@@ -148,12 +160,13 @@ def run_training(conns, proc_id, proc_num, gpuid, model_ref,
                             gg += ggs_copy
 
                     my_dev.synchronize()
+                    for conn in conns:
+                        # send memory handle to slave
+                        conn.send(mh)
 
-                    for (conn, mh, ggs) in conn_mh_ggs_list:
-                        cupy.copyto(ggs, gg)  # update slave's gg (ggs = gg)
-                        my_dev.synchronize()
-                        mh.close()
-                        conn.send("go")  # send "go" message to slaves
+                    for conn in conns:
+                        # wait for "ok" message from slave
+                        conn.recv()
 
                 model.scatter_grads(gg)
 
