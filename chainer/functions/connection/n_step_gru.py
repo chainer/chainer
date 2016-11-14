@@ -186,6 +186,7 @@ class NStepGRU(function.Function):
         hx = cuda.cupy.ascontiguousarray(hx)
         # cx = cuda.cupy.ascontiguousarray(cx)
         cx = cuda.cupy.empty(hx.shape, dtype=hx.dtype)
+        # cx = cuda.cupy.empty_like(hx)
         cx = cuda.cupy.ascontiguousarray(cx)
         x_desc = cudnn.create_tensor_nd_descriptor(x_list[0][..., None])
 
@@ -403,6 +404,14 @@ def n_step_gru(
         ‣ Values 0 and 3 reference the reset gate.
         ‣ Values 1 and 4 reference the update gate.
         ‣ Values 2 and 5 reference the new memory gate.
+
+        rt = σ(Wr xt + Rr ht-1 + bWr + bRr)
+        it = σ(Wi xt + Ri ht-1 + bWi + bRu)
+        h't = tanh(Wh xt + rt◦(Rh ht-1 + bRh) + bWh)
+        ht = (1 - it)◦h't + it◦ht-1
+        
+        it, rt, h't represent the input, reset, new gates respectively.
+
         """
         print "ws=", len(ws)
         print ws
@@ -446,8 +455,8 @@ def n_step_gru(
                 r = sigmoid.sigmoid(W_r_x + U_r_h)
                 z = sigmoid.sigmoid(W_z_x + U_z_h)
                 W_x = linear.linear(x, W, bW)
-                U_x = linear.linear(r*h, U, bU)
-                h_bar = tanh.tanh(W_x + U_x)
+                U_x = linear.linear(h, U, bU)
+                h_bar = tanh.tanh(W_x + r*U_x)
                 h_bar = (1 - z) * h + z * h_bar
                 print "h_bar:", h_bar
                 if h_rest is not None:
