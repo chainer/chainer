@@ -25,11 +25,17 @@ Core Concept
 As mentioned on the front page, Chainer is a flexible framework for neural networks.
 One major goal is flexibility, so it must enable us to write complex architectures simply and intuitively.
 
+Define-and-Run
+""""""""""""""
+
 Most existing deep learning frameworks are based on the **"Define-and-Run"** scheme.
 That is, first a network is defined and fixed, and then the user periodically feeds it with mini-batches.
 Since the network is statically defined before any forward/backward computation, all the logic must be embedded into the network architecture as *data*.
 Consequently, defining a network architecture in such systems (e.g. Caffe) follows a declarative approach.
 Note that one can still produce such a static network definition using imperative languages (e.g. torch.nn, Theano-based frameworks, and TensorFlow).
+
+Define-by-Run
+"""""""""""""
 
 In contrast, Chainer adopts a **"Define-by-Run"** scheme, i.e., the network is defined on-the-fly via the actual forward computation.
 More precisely, Chainer stores the history of computation instead of programming logic.
@@ -41,6 +47,7 @@ We will show in this tutorial how to define networks dynamically.
 This strategy also makes it easy to write multi-GPU parallelization, since logic comes closer to network manipulation.
 We will review such amenities in later sections of this tutorial.
 
+You can build a computational graph by connecting :class:`~Link` to define a :class:`~Chain`, and define a network by running the graph, so that it's called **Chainer**.
 
 .. note::
 
@@ -70,14 +77,14 @@ Here we start with simple :class:`~numpy.ndarray` with only one element:
    >>> x_data = np.array([5], dtype=np.float32)
    >>> x = Variable(x_data)
 
-A Variable object has basic arithmetic operators.
+A :class:`Variable` object has basic arithmetic operators.
 In order to compute :math:`y = x^2 - 2x + 1`, just write:
 
 .. doctest::
 
    >>> y = x**2 - 2 * x + 1
 
-The resulting ``y`` is also a Variable object, whose value can be extracted by accessing the :attr:`~Variable.data` attribute:
+The resulting ``y`` is also a :class:`Variable` object, whose value can be extracted by accessing the :attr:`~Variable.data` attribute:
 
 .. doctest::
 
@@ -85,7 +92,7 @@ The resulting ``y`` is also a Variable object, whose value can be extracted by a
    array([ 16.], dtype=float32)
 
 What ``y`` holds is not only the result value.
-It also holds the history of computation (or computational graph), which enables us to compute its differentiation.
+It also holds the history of computation (i.e., computational graph), which enables to compute its differentiation.
 This is done by calling its :meth:`~Variable.backward` method:
 
 .. doctest::
@@ -112,9 +119,19 @@ In order to preserve gradient information, pass the ``retain_grad`` argument to 
    >>> z.grad
    array([-1.], dtype=float32)
 
+Otherwise, ``z.grad`` will be ``None`` as follows:
+
+.. doctest::
+
+   >>> y.backward()  # The default value of retain_grad is False
+   >>> z.grad is None
+   True
+
 All these computations are easily generalized to multi-element array input.
 Note that if we want to start backward computation from a variable holding a multi-element array, we must set the *initial error* manually.
-This is simply done by setting the :attr:`~Variable.grad` attribute of the output variable:
+Becuase when the :attr:`~Variable.size` of a variable (it means the number of elements in the array) is ``1``, it's considered as a variable object that represents a loss value, so that the :attr:`~Variable.grad` attribute of the variable is automatically filled with ``1``.
+On the other hand, when the size of a variable is larger than ``1``, the :attr:`~Variable.grad` attribute remains ``None``, so that we need to give *initial error* explicitly by hand before :meth:`~Variable.backward`.
+This is simply done by setting the :attr:`~Variable.grad` attribute of the output variable as follows:
 
 .. doctest::
 
@@ -137,7 +154,7 @@ Links
 
 In order to write neural networks, we have to combine functions with *parameters* and optimize the parameters.
 You can use **links** to do this.
-Link is an object that holds parameters (i.e. optimization targets).
+Link is an object that holds parameters (i.e., optimization targets).
 
 The most fundamental ones are links that behave like regular functions while replacing some arguments by their parameters.
 We will introduce higher level links, but here think links just like functions with parameters.
@@ -229,7 +246,7 @@ More Pythonic way is combining the links and procedures into a class:
    ...     def __init__(self):
    ...         self.l1 = L.Linear(4, 3)
    ...         self.l2 = L.Linear(3, 2)
-   ...         
+   ...
    ...     def forward(self, x):
    ...         h = self.l1(x)
    ...         return self.l2(h)
@@ -246,7 +263,7 @@ Then, what we have to do here is just defining the above class as a subclass of 
    ...             l1=L.Linear(4, 3),
    ...             l2=L.Linear(3, 2),
    ...         )
-   ...        
+   ...
    ...     def __call__(self, x):
    ...         h = self.l1(x)
    ...         return self.l2(h)
@@ -270,7 +287,7 @@ Another way to define a chain is using the :class:`ChainList` class, which behav
    ...             L.Linear(4, 3),
    ...             L.Linear(3, 2),
    ...         )
-   ...         
+   ...
    ...     def __call__(self, x):
    ...         h = self[0](x)
    ...         return self[1](h)
@@ -477,7 +494,7 @@ We use a simple three-layer rectifier network with 100 units per layer as an exa
    ...             l2=L.Linear(None, n_units),  # n_units -> n_units
    ...             l3=L.Linear(None, n_out),    # n_units -> n_out
    ...         )
-   ...         
+   ...
    ...     def __call__(self, x):
    ...         h1 = F.relu(self.l1(x))
    ...         h2 = F.relu(self.l2(h1))
@@ -494,7 +511,7 @@ In order to compute loss values or evaluate the accuracy of the predictions, we 
    >>> class Classifier(Chain):
    ...     def __init__(self, predictor):
    ...         super(Classifier, self).__init__(predictor=predictor)
-   ...         
+   ...
    ...     def __call__(self, x, t):
    ...         y = self.predictor(x)
    ...         loss = F.softmax_cross_entropy(y, t)
