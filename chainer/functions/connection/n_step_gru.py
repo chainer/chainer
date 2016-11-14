@@ -457,7 +457,7 @@ def n_step_gru(
                 W_x = linear.linear(x, W, bW)
                 U_x = linear.linear(h, U, bU)
                 h_bar = tanh.tanh(W_x + r*U_x)
-                h_bar = (1 - z) * h + z * h_bar
+                h_bar = (1 - z) * h_bar + z * h
                 print "h_bar:", h_bar
                 if h_rest is not None:
                     h = concat.concat([h_bar, h_rest], axis=0)
