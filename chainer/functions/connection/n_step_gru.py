@@ -129,7 +129,7 @@ class NStepGRU(function.Function):
         self.states = states
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() > 2 + 16 * self.n_layers)
+        type_check.expect(in_types.size() > 1 + 12 * self.n_layers)
         (h_type, ), in_types = _split(in_types, 1)
         type_check.expect(
             h_type.dtype == numpy.float32,
