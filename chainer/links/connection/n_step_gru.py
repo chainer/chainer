@@ -9,6 +9,8 @@ from chainer.functions.array import transpose_sequence
 from chainer.functions.connection import n_step_gru as rnn
 from chainer import link
 
+# Todo: Use common logic function between N-step LSTM and N-step GRU.
+# these two class are similar.
 
 def argsort_list_descent(lst):
     return numpy.argsort([-len(x.data) for x in lst]).astype('i')
@@ -73,12 +75,11 @@ class NStepGRU(link.ChainList):
         self.dropout = dropout
         self.use_cudnn = use_cudnn
 
-    def __call__(self, hx, cx, xs, train=True):
+    def __call__(self, hx, xs, train=True):
         """Calculate all hidden states and cell states.
 
         Args:
             hx (~chainer.Variable): Initial hidden states.
-            cx (~chainer.Variable): Initial cell states.
             xs (list of ~chianer.Variable): List of input sequences.
                 Each element ``xs[i]`` is a :class:`chainer.Variable` holding
                 a sequence.
@@ -88,19 +89,17 @@ class NStepGRU(link.ChainList):
 
         xs = permutate_list(xs, indices, inv=False)
         hx = permutate.permutate(hx, indices, axis=1, inv=False)
-        cx = permutate.permutate(cx, indices, axis=1, inv=False)
         trans_x = transpose_sequence.transpose_sequence(xs)
 
         ws = [[w.w0, w.w1, w.w2, w.w3, w.w4, w.w5] for w in self]
         bs = [[w.b0, w.b1, w.b2, w.b3, w.b4, w.b5] for w in self]
 
-        hy, cy, trans_y = rnn.n_step_gru(
-            self.n_layers, self.dropout, hx, cx, ws, bs, trans_x,
+        hy, trans_y = rnn.n_step_gru(
+            self.n_layers, self.dropout, hx, ws, bs, trans_x,
             train=train, use_cudnn=self.use_cudnn)
 
         hy = permutate.permutate(hy, indices, axis=1, inv=True)
-        cy = permutate.permutate(cy, indices, axis=1, inv=True)
         ys = transpose_sequence.transpose_sequence(trans_y)
         ys = permutate_list(ys, indices, inv=True)
 
-        return hy, cy, ys
+        return hy, ys
