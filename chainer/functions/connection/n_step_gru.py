@@ -130,21 +130,13 @@ class NStepGRU(function.Function):
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() > 2 + 16 * self.n_layers)
-        (h_type, c_type), in_types = _split(in_types, 2)
+        (h_type, ), in_types = _split(in_types, 1)
         type_check.expect(
             h_type.dtype == numpy.float32,
-            c_type.dtype == numpy.float32,
 
             h_type.ndim == 3,
             h_type.shape[0] == self.n_layers,
-            c_type.ndim == 3,
-            c_type.shape[0] == self.n_layers,
 
-            # mini-batch size
-            h_type.shape[1] == c_type.shape[1],
-
-            # hidden size
-            h_type.shape[2] == c_type.shape[2],
         )
         w_types, in_types = _split(in_types, self.n_layers * 6)
         b_types, in_types = _split(in_types, self.n_layers * 6)
