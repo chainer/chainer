@@ -276,7 +276,7 @@ class NStepGRU(function.Function):
         return tuple([hy] + y_list)
 
     def backward(self, inputs, grads):
-        (hx, ), inputs = _split(inputs, 2)
+        (hx, ), inputs = _split(inputs, 1)
         ws, inputs = _split(inputs, self.n_layers * 6)
         bs, inputs = _split(inputs, self.n_layers * 6)
         x_list = inputs
@@ -388,9 +388,9 @@ def n_step_gru(
             xs))
         rnn = NStepGRU(n_layers, states, train=train)
         ret = rnn(*inputs)
-        hy, cy = ret[:2]
-        ys = ret[2:]
-        return hy, cy, ys
+        hy = ret[0]
+        ys = ret[1:]
+        return hy, ys
 
     else:
         hx = split_axis.split_axis(hx, n_layers, axis=0, force_tuple=True)
