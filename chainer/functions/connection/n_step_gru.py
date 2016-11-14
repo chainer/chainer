@@ -282,12 +282,14 @@ class NStepGRU(function.Function):
         x_list = inputs
 
         hx = cuda.cupy.ascontiguousarray(hx)
+        cx = cuda.cupy.zeros(hx.shape, dtype=hx.dtype)
+        cx = cuda.cupy.ascontiguousarray(cx)
 
         dhy = grads[0]
         dy_list = list(grads[1:])
         if dhy is None:
             dhy = cuda.cupy.zeros_like(hx)
-        dcy = cuda.cupy.zeros_like(hx)
+        dcy = cuda.cupy.zeros_like(cx)
 
         for i in six.moves.range(len(dy_list)):
             if dy_list[i] is None:
@@ -297,7 +299,7 @@ class NStepGRU(function.Function):
         length = len(x_list)
 
         dhx = cuda.cupy.empty_like(hx)
-        dcx = cuda.cupy.empty_like(hx)
+        dcx = cuda.cupy.empty_like(cx)
 
         hx_desc = cudnn.create_tensor_nd_descriptor(hx)
         cx_desc = cudnn.create_tensor_nd_descriptor(hx)
