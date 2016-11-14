@@ -7,6 +7,7 @@ from chainer.functions.array import reshape
 from chainer.functions.array import split_axis
 from chainer.functions.noise import zoneout
 
+from chainer import cuda
 from chainer import link
 from chainer.links.connection import linear
 from chainer import variable
@@ -86,14 +87,18 @@ class StatefulZoneoutLSTM(link.Chain):
             lstm_in += self.lateral(self.h)
         else:
             xp = self.xp
-            self.h = variable.Variable(
-                xp.zeros((len(x.data), self.state_size), dtype=x.data.dtype),
-                volatile='auto')
+            with cuda.get_device(x.data):
+                self.h = variable.Variable(
+                    xp.zeros((len(x.data), self.state_size),
+                             dtype=x.data.dtype),
+                    volatile='auto')
         if self.c is None:
             xp = self.xp
-            self.c = variable.Variable(
-                xp.zeros((len(x.data), self.state_size), dtype=x.data.dtype),
-                volatile='auto')
+            with cuda.get_device(x.data):
+                self.c = variable.Variable(
+                    xp.zeros((len(x.data), self.state_size),
+                             dtype=x.data.dtype),
+                    volatile='auto')
 
         lstm_in = reshape.reshape(lstm_in, (len(lstm_in.data),
                                             lstm_in.data.shape[1] // 4,
