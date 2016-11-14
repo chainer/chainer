@@ -11,7 +11,7 @@ import six
 
 from chainer import cuda
 from chainer import function
-from chainer.functions.activation import lstm
+from chainer.functions.activation import sigmoid, tanh
 from chainer.functions.array import concat
 from chainer.functions.array import reshape
 from chainer.functions.array import split_axis
@@ -185,7 +185,7 @@ class NStepGRU(function.Function):
                 )
 
     def forward(self, inputs):
-        (hx, cx), inputs = _split(inputs, 2)
+        (hx, ), inputs = _split(inputs, 1)
         print "inputs:", len(inputs)
         ws, inputs = _split(inputs, self.n_layers * 6)
         bs, inputs = _split(inputs, self.n_layers * 6)
@@ -193,7 +193,7 @@ class NStepGRU(function.Function):
 
         hx = cuda.cupy.ascontiguousarray(hx)
         # cx = cuda.cupy.ascontiguousarray(cx)
-        cx = cuda.cupy.ones(hx.shape, dtype=hx.dtype)
+        cx = cuda.cupy.zeros(hx.shape, dtype=hx.dtype)
         cx = cuda.cupy.ascontiguousarray(cx)
         x_desc = cudnn.create_tensor_nd_descriptor(x_list[0][..., None])
 
@@ -281,23 +281,22 @@ class NStepGRU(function.Function):
         self.c_x_descs = c_x_descs
         print "hy:", hy
         print "cy:", cy
-        return tuple([hy, cy] + y_list)
+        return tuple([hy] + y_list)
 
     def backward(self, inputs, grads):
-        (hx, cx), inputs = _split(inputs, 2)
+        (hx, ), inputs = _split(inputs, 2)
         ws, inputs = _split(inputs, self.n_layers * 6)
         bs, inputs = _split(inputs, self.n_layers * 6)
         x_list = inputs
 
         hx = cuda.cupy.ascontiguousarray(hx)
-        cx = cuda.cupy.ascontiguousarray(cx)
 
-        dhy, dcy = grads[:2]
-        dy_list = list(grads[2:])
+        dhy = grads[0]
+        dy_list = list(grads[1:])
         if dhy is None:
             dhy = cuda.cupy.zeros_like(hx)
-        if dcy is None:
-            dcy = cuda.cupy.zeros_like(cx)
+        dcy = cuda.cupy.zeros_like(hx)
+
         for i in six.moves.range(len(dy_list)):
             if dy_list[i] is None:
                 dy_list[i] = cuda.cupy.zeros_like(x_list[i])
@@ -306,10 +305,10 @@ class NStepGRU(function.Function):
         length = len(x_list)
 
         dhx = cuda.cupy.empty_like(hx)
-        dcx = cuda.cupy.empty_like(cx)
+        dcx = cuda.cupy.empty_like(hx)
 
         hx_desc = cudnn.create_tensor_nd_descriptor(hx)
-        cx_desc = cudnn.create_tensor_nd_descriptor(cx)
+        cx_desc = cudnn.create_tensor_nd_descriptor(hx)
         dhy_desc = cudnn.create_tensor_nd_descriptor(dhy)
         dcy_desc = cudnn.create_tensor_nd_descriptor(dcy)
 
@@ -335,7 +334,7 @@ class NStepGRU(function.Function):
             self.c_y_descs.data, self.ys.data.ptr,
             c_dy_descs.data, dys.data.ptr, dhy_desc.value, dhy.data.ptr,
             dcy_desc.value, dcy.data.ptr, self.w_desc.value, self.w.data.ptr,
-            hx_desc.value, hx.data.ptr, cx_desc.value, cx.data.ptr,
+            hx_desc.value, hx.data.ptr, cx_desc.value, hx.data.ptr,
             c_dx_descs.data, dxs.data.ptr, dhx_desc.value, dhx.data.ptr,
             dcx_desc.value, dcx.data.ptr, workspace.data.ptr, work_size,
             self.reserve_space.data.ptr, self.reserve_space.size)
@@ -369,7 +368,7 @@ class NStepGRU(function.Function):
                 v = v.reshape(v.size)
                 v[:] = bias.ravel()
 
-        return tuple([dhx, dcx] + dws + dbs + dx_list)
+        return tuple([dhx] + dws + dbs + dx_list)
 
 
 def _stack_weight(ws):
@@ -380,188 +379,92 @@ def _stack_weight(ws):
 
 
 def n_step_gru(
-        n_layers, dropout_ratio, hx, cx, ws, bs, xs, train=True,
+        n_layers, dropout_ratio, hx, ws, bs, xs, train=True,
         use_cudnn=True):
 
-    # xp = cuda.get_array_module(hx.data)
+    xp = cuda.get_array_module(hx.data)
 
-    # CUDNN version only
-    states = get_random_state().create_dropout_states(dropout_ratio)
-    # flatten all input variables
-    inputs = tuple(itertools.chain(
-        (hx, cx),
-        itertools.chain.from_iterable(ws),
-        itertools.chain.from_iterable(bs),
-        xs))
-    rnn = NStepGRU(n_layers, states, train=train)
-    ret = rnn(*inputs)
-    hy, cy = ret[:2]
-    ys = ret[2:]
-    return hy, cy, ys
-
-    # else:
-    #     hx = split_axis.split_axis(hx, n_layers, axis=0, force_tuple=True)
-    #     hx = [reshape.reshape(h, h.data.shape[1:]) for h in hx]
-    #     cx = split_axis.split_axis(cx, n_layers, axis=0, force_tuple=True)
-    #     cx = [reshape.reshape(c, c.data.shape[1:]) for c in cx]
-
-    #     xws = [_stack_weight([w[2], w[0], w[1], w[3]]) for w in ws]
-    #     hws = [_stack_weight([w[6], w[4], w[5], w[7]]) for w in ws]
-    #     xbs = [_stack_weight([b[2], b[0], b[1], b[3]]) for b in bs]
-    #     hbs = [_stack_weight([b[6], b[4], b[5], b[7]]) for b in bs]
-
-    #     ys = []
-    #     for x in xs:
-    #         batch = len(x.data)
-    #         h_next = []
-    #         c_next = []
-    #         for layer in six.moves.range(n_layers):
-    #             h = hx[layer]
-    #             c = cx[layer]
-    #             if len(h.data) > batch:
-    #                 h, h_rest = split_axis.split_axis(h, [batch], axis=0)
-    #                 c, c_rest = split_axis.split_axis(c, [batch], axis=0)
-    #             else:
-    #                 h_rest = None
-
-    #             x = dropout.dropout(x, ratio=dropout_ratio, train=train)
-    #             h = dropout.dropout(h, ratio=dropout_ratio, train=train)
-    #             lstm_in = linear.linear(x, xws[layer], xbs[layer]) + \
-    #                 linear.linear(h, hws[layer], hbs[layer])
-
-    #             c_bar, h_bar = lstm.lstm(c, lstm_in)
-    #             if h_rest is not None:
-    #                 h = concat.concat([h_bar, h_rest], axis=0)
-    #                 c = concat.concat([c_bar, c_rest], axis=0)
-    #             else:
-    #                 h = h_bar
-    #                 c = c_bar
-    #             h_next.append(h)
-    #             c_next.append(c)
-    #             x = h_bar
-    #         hx = h_next
-    #         cx = c_next
-    #         ys.append(x)
-
-    #     hy = stack.stack(hx)
-    #     cy = stack.stack(cx)
-    #     return hy, cy, tuple(ys)
-
-
-# links
-from chainer.functions.array import permutate
-from chainer.functions.array import transpose_sequence
-from chainer import link
-
-
-def argsort_list_descent(lst):
-    return numpy.argsort([-len(x.data) for x in lst]).astype('i')
-
-
-def permutate_list(lst, indices, inv):
-    ret = [None] * len(lst)
-    if inv:
-        for i, ind in enumerate(indices):
-            ret[ind] = lst[i]
-    else:
-        for i, ind in enumerate(indices):
-            ret[i] = lst[ind]
-    return ret
-
-
-class LNStepGRU(link.ChainList):
-    def __init__(
-            self, n_layers, in_size, out_size, dropout, use_cudnn=True):
-        weights = []
-        for i in six.moves.range(n_layers):
-            weight = link.Link()
-            for j in six.moves.range(6):
-                if i == 0 and j < 3:
-                    w_in = in_size
-                else:
-                    w_in = out_size
-                weight.add_param('w%d' % j, (out_size, w_in))
-                weight.add_param('b%d' % j, (out_size,))
-                getattr(weight, 'w%d' % j).data[...] = numpy.random.normal(
-                    0, numpy.sqrt(1. / w_in), (out_size, w_in))
-                getattr(weight, 'b%d' % j).data[...] = 0
-            weights.append(weight)
-
-        super(LNStepGRU, self).__init__(*weights)
-
-        self.n_layers = n_layers
-        self.dropout = dropout
-        self.use_cudnn = use_cudnn
-
-    def __call__(self, hx, cx, xs, train=True):
-        """Calculate all hidden states and cell states.
-
-        Args:
-            hx (~chainer.Variable): Initial hidden states.
-            cx (~chainer.Variable): Initial cell states.
-            xs (list of ~chianer.Variable): List of input sequences.
-                Each element ``xs[i]`` is a :class:`chainer.Variable` holding
-                a sequence.
-        """
-        assert isinstance(xs, (list, tuple))
-        indices = argsort_list_descent(xs)
-
-        xs = permutate_list(xs, indices, inv=False)
-        hx = permutate.permutate(hx, indices, axis=1, inv=False)
-        cx = permutate.permutate(cx, indices, axis=1, inv=False)
-        trans_x = transpose_sequence.transpose_sequence(xs)
-
-        ws = [[w.w0, w.w1, w.w2, w.w3, w.w4, w.w5] for w in self]
-        bs = [[w.b0, w.b1, w.b2, w.b3, w.b4, w.b5] for w in self]
-
-        hy, cy, trans_y = n_step_gru(
-            self.n_layers, self.dropout, hx, cx, ws, bs, trans_x,
-            train=train, use_cudnn=self.use_cudnn)
-
-        hy = permutate.permutate(hy, indices, axis=1, inv=True)
-        cy = permutate.permutate(cy, indices, axis=1, inv=True)
-        ys = transpose_sequence.transpose_sequence(trans_y)
-        ys = permutate_list(ys, indices, inv=True)
-
+    if use_cudnn and xp is not numpy and cuda.cudnn_enabled and \
+       _cudnn_version >= 5000:
+        # CUDNN version
+        states = get_random_state().create_dropout_states(dropout_ratio)
+        # flatten all input variables
+        inputs = tuple(itertools.chain(
+            hx,
+            itertools.chain.from_iterable(ws),
+            itertools.chain.from_iterable(bs),
+            xs))
+        rnn = NStepGRU(n_layers, states, train=train)
+        ret = rnn(*inputs)
+        hy, cy = ret[:2]
+        ys = ret[2:]
         return hy, cy, ys
 
+    else:
+        hx = split_axis.split_axis(hx, n_layers, axis=0, force_tuple=True)
+        hx = [reshape.reshape(h, h.data.shape[1:]) for h in hx]
+        """
+        From Nvidia documents:
+        GRU
+        ‣ Values 0 and 3 reference the reset gate.
+        ‣ Values 1 and 4 reference the update gate.
+        ‣ Values 2 and 5 reference the new memory gate.
+        """
+        print "ws=", len(ws)
+        print ws
+        # xws = [_stack_weight([w[0], w[1], w[2]]) for w in ws]
+        # hws = [_stack_weight([w[3], w[4], w[5]]) for w in ws]
+        # xbs = [_stack_weight([b[0], b[1], b[2]]) for b in bs]
+        # hbs = [_stack_weight([b[3], b[4], b[5]]) for b in bs]
+        xws = [[w[0], w[1], w[2]] for w in ws]
+        hws = [[w[3], w[4], w[5]] for w in ws]
+        xbs = [[b[0], b[1], b[2]] for b in bs]
+        hbs = [[b[3], b[4], b[5]] for b in bs]
 
+        print "xws:"
+        print xws
 
-if __name__ == '__main__':
-    import numpy as np
-    import chainer
-    gpu_flag = True
-    xp = cuda.cupy if gpu_flag else np
-    datasize = 10
-    seq_length = 20
-    n_input = 100
-    n_layer = 2
-    np.random.seed(1234)
-    dataset = np.random.normal(0.0, 1.0, (datasize, seq_length, n_input))
-    dataset = dataset.tolist()
-    dataset = [chainer.Variable(xp.array(d, dtype=xp.float32)) for d in dataset]
+        ys = []
+        for x in xs:
+            batch = len(x.data)
+            h_next = []
+            for layer in six.moves.range(n_layers):
+                h = hx[layer]
+                if len(h.data) > batch:
+                    h, h_rest = split_axis.split_axis(h, [batch], axis=0)
+                else:
+                    h_rest = None
 
-    batchsize = 10
-    n_dataset = len(dataset)
-    dataset_batch = []
-    for i in six.moves.range(0, n_dataset, batchsize):
-        input_data = dataset[i:i + batchsize]
-        dataset_batch.append(input_data)
+                x = dropout.dropout(x, ratio=dropout_ratio, train=train)
+                h = dropout.dropout(h, ratio=dropout_ratio, train=train)
 
+                # Todo: define functions.GRU
+                print 'xws[layer]:', len(xws[layer])
+                W_r, W_z, W = xws[layer]
+                bW_r, bW_z, bW = xbs[layer]
+                U_r, U_z, U = hws[layer]
+                bU_r, bU_z, bU = hbs[layer]
 
-    nn = LNStepGRU(n_layers=n_layer, out_size=100, in_size=n_input, dropout=0.0, use_cudnn=True)
+                W_r_x = linear.linear(x, W_r, bW_r)
+                U_r_h = linear.linear(h, U_r, bU_r)
+                W_z_x = linear.linear(x, W_z, bW_z)
+                U_z_h = linear.linear(h, U_z, bU_z)
+                r = sigmoid.sigmoid(W_r_x + U_r_h)
+                z = sigmoid.sigmoid(W_z_x + U_z_h)
+                W_x = linear.linear(x, W, bW)
+                U_x = linear.linear(r*h, U, bU)
+                h_bar = tanh.tanh(W_x + U_x)
+                h_bar = (1 - z) * h + z * h_bar
+                print "h_bar:", h_bar
+                if h_rest is not None:
+                    h = concat.concat([h_bar, h_rest], axis=0)
+                else:
+                    h = h_bar
 
-    gpu_id = 1
-    cuda.get_device(gpu_id).use()
-    nn.to_gpu()
+                h_next.append(h)
+                x = h_bar
+            hx = h_next
+            ys.append(x)
 
-    for input_data in dataset_batch:
-        hx = chainer.Variable(
-                xp.zeros((n_layer, len(input_data), n_input), dtype=xp.float32), volatile="auto")
-        cx = chainer.Variable(
-                xp.zeros((n_layer, len(input_data), n_input), dtype=xp.float32), volatile="auto")
-        
-        # forward
-        ys = nn(hx, cx, input_data)
-        print ys
-
+        hy = stack.stack(hx)
+        return hy, tuple(ys)
