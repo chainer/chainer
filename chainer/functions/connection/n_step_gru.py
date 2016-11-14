@@ -182,10 +182,10 @@ class NStepGRU(function.Function):
         ws, inputs = _split(inputs, self.n_layers * 6)
         bs, inputs = _split(inputs, self.n_layers * 6)
         x_list = inputs
-
+        
+        cx = cuda.cupy.zeros(hx.shape, dtype=hx.dtype)
         hx = cuda.cupy.ascontiguousarray(hx)
         # cx = cuda.cupy.ascontiguousarray(cx)
-        cx = cuda.cupy.zeros(hx.shape, dtype=hx.dtype)
         cx = cuda.cupy.ascontiguousarray(cx)
         x_desc = cudnn.create_tensor_nd_descriptor(x_list[0][..., None])
 
@@ -281,8 +281,8 @@ class NStepGRU(function.Function):
         bs, inputs = _split(inputs, self.n_layers * 6)
         x_list = inputs
 
-        hx = cuda.cupy.ascontiguousarray(hx)
         cx = cuda.cupy.zeros(hx.shape, dtype=hx.dtype)
+        hx = cuda.cupy.ascontiguousarray(hx)
         cx = cuda.cupy.ascontiguousarray(cx)
 
         dhy = grads[0]
