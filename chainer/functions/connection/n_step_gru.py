@@ -382,7 +382,7 @@ def n_step_gru(
         states = get_random_state().create_dropout_states(dropout_ratio)
         # flatten all input variables
         inputs = tuple(itertools.chain(
-            hx,
+            (hx, ),
             itertools.chain.from_iterable(ws),
             itertools.chain.from_iterable(bs),
             xs))
