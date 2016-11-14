@@ -47,7 +47,7 @@ We will show in this tutorial how to define networks dynamically.
 This strategy also makes it easy to write multi-GPU parallelization, since logic comes closer to network manipulation.
 We will review such amenities in later sections of this tutorial.
 
-You can build a computational graph by connecting :class:`~Link` to define a :class:`~Chain`, and define a network by running the graph, so that it's called **Chainer**.
+You can build a computational graph by dynamically 'chaining' various kinds of :class:`~Link` to define a :class:`~Chain`, and construct a network by *running* the graph, so that it's called **Chainer**.
 
 .. note::
 
