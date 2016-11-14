@@ -406,7 +406,8 @@ class BinaryHierarchicalSoftmax(link.Link):
         sigmoid = lambda x: 1. / (1. + self.xp.exp(x))
         while True:
             w = self.W.data[start_ids]
-            score = xp.sum(xp.dot(w, x.data.T), axis=1)
+            x_t = xp.transose(x.data)
+            score = xp.sum(xp.dot(w, x_t), axis=1)
             # print "score:", score
             prob_left = sigmoid(score)
             # print "prob:", prob_left
@@ -445,6 +446,77 @@ class BinaryHierarchicalSoftmax(link.Link):
         # print 'output:', output
         return output
 
+    def argmax(self, x):
+        """Argmax word id for given input from tree path.
+
+        Args:
+            x (~chainer.Variable): Input for sampling.
+                        : Examples: Variable(
+                                            [
+                                              [0.2, 0.2, 0.3],
+                                              [0.1, 0.3, 0.1],
+                                              [0.2, 0.3, 0.4]
+                                            ])
+        Returns:
+            ~chainer.Variable: List of word indexes. 
+                             : Examples: [0, 10, 3]
+        """
+        if len(self.tree) == 0:
+            raise ValueError('Empty tree')
+        xp = self.xp
+        sigmoid = lambda x: 1. / (1. + self.xp.exp(x))
+        print "self.W.data:", self.W.data.shape
+        print "self.x.data:", x.data.shape
+        scores = xp.dot(self.W.data, x.data.T)
+        scores = sigmoid(scores)
+        print scores
+        print scores.shape
+        begins = self._func.begins
+        codes = self._func.codes
+        paths = self._func.paths
+        t = 0
+        begin = begins[t]
+        end = begins[t + 1]
+
+        w = self.W.data[paths[begin:end]]
+        print "w:", w.shape
+        print w.dot(x.data.T)
+        print "self.W.data:", self.W.data.shape
+        print "paths[begin:end]:", paths[begin:end]
+        print "codes[begin:end]:", codes[begin:end]
+
+
+
+        t = 6
+        begin = begins[t]
+        end = begins[t + 1]
+
+        w = self.W.data[paths[begin:end]]
+        print "w:", w.shape
+        print "self.W.data:", self.W.data.shape
+        print "paths[begin:end]:", paths[begin:end]
+        print "codes[begin:end]:", codes[begin:end]
+        # wxy = w.dot(x) * codes[begin:end]
+
+        path = paths[begin:end]
+        code = codes[begin:end]
+
+        index = paths[begin:end]
+        score = scores[index]
+        plus_index = xp.where(code==1, 1, 0)
+        minus_index = xp.where(code==-1, 1, 0)
+        print "score:", score
+        print "score:", score.shape
+        print "plus_index:", plus_index
+        print "minus_index:", minus_index
+
+        plus_index = xp.reshape(plus_index, (1, plus_index.shape[0]))
+        print plus_index
+        print xp.dot(score,plus_index)
+        # pass
+
+
+
 
     def __call__(self, x, t):
         """Computes the loss value for given input and ground truth labels.
@@ -470,6 +542,8 @@ if __name__ == '__main__':
     link = BinaryHierarchicalSoftmax(3, tree)
     print link.W.data
     from chainer import Variable
-    x = Variable(numpy.array([[1.0, 2.0, 3.0], [0.2, 3.1, 3.2]], numpy.float32))
+    # x = Variable(numpy.array([[1.0, 2.0, 3.0], [0.2, 3.1, 3.2]], numpy.float32))
+    x = Variable(numpy.array([[1.0, 2.0, 3.0]], numpy.float32))
     # print F.dot(link.W, x)
-    link.sampling(x)
+    # link.sampling(x)
+    link.argmax(x)
