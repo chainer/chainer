@@ -185,7 +185,7 @@ class NStepGRU(function.Function):
 
         hx = cuda.cupy.ascontiguousarray(hx)
         # cx = cuda.cupy.ascontiguousarray(cx)
-        cx = cuda.cupy.empty_like(hx)
+        cx = cuda.cupy.empty(hx.shape, dtype=hx.dtype)
         cx = cuda.cupy.ascontiguousarray(cx)
         x_desc = cudnn.create_tensor_nd_descriptor(x_list[0][..., None])
 
