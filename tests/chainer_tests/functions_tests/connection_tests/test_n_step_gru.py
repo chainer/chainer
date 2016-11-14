@@ -84,7 +84,7 @@ class TestNStepGRU(unittest.TestCase):
                 r = sigmoid(x.dot(w[0].T) + h_prev.dot(w[3].T) + b[0] + b[3])
                 z = sigmoid(x.dot(w[1].T) + h_prev.dot(w[4].T) + b[1] + b[4])
                 h_bar = numpy.tanh(x.dot(w[2].T) + r * ((h_prev).dot(w[5].T) + b[5]) + b[2])
-                e_h = (1 - z) * h_prev + z * h_bar
+                e_h = (1 - z) * h_bar + z * h_prev
 
 
                 e_hy[layer, :batch] = e_h
