@@ -273,7 +273,7 @@ class NStepGRU(function.Function):
         self.c_x_descs = c_x_descs
         print "hy:", hy
         print "cy:", cy
-        return tuple([hy] + y_list)
+        return tuple([hy, ] + y_list)
 
     def backward(self, inputs, grads):
         (hx, ), inputs = _split(inputs, 1)
