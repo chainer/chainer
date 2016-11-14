@@ -168,7 +168,7 @@ class NStepGRU(function.Function):
                 ind = layer * 6 + i
                 w_type = w_types[ind]
                 b_type = b_types[ind]
-                if layer == 0 and i < 4:
+                if layer == 0 and i < 3:
                     w_in = in_size
                 else:
                     w_in = out_size
