@@ -273,7 +273,7 @@ class NStepGRU(function.Function):
 
         hx = cuda.cupy.ascontiguousarray(hx)
         # Note: GRU does not need cx
-        cx = cuda.cupy.empty_like(hx)
+        cx = cuda.cupy.zeros(hx.shape, dtype=hx.dtype)
         cx = cuda.cupy.ascontiguousarray(cx)
 
         dhy = grads[0]
