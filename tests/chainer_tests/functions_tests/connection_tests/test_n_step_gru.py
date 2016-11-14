@@ -55,12 +55,8 @@ class TestNStepGRU(unittest.TestCase):
                     -1, 1, (self.out_size, w_in)).astype('f'))
                 biases.append(numpy.random.uniform(
                     -1, 1, (self.out_size,)).astype('f'))
-                print 'j=', j, '\t', self.out_size, w_in
             self.ws.append(weights)
             self.bs.append(biases)
-        print "setup self.ws:", self.ws
-        print "setup self.ws:", len(self.ws)
-        print "setup self.ws:", len(self.ws[0])
         self.dys = [numpy.random.uniform(-1, 1, (b, self.out_size)).astype('f')
                     for b in self.batches]
         self.dhy = numpy.random.uniform(-1, 1, h_shape).astype(numpy.float32)
@@ -106,21 +102,21 @@ class TestNStepGRU(unittest.TestCase):
     def test_forward_cpu_volatile(self):
         self.check_forward(self.hx, self.xs, self.ws, self.bs, True)
 
-    # @attr.gpu
-    # def test_forward_gpu(self):
-    #     self.check_forward(cuda.to_gpu(self.hx),
-    #                        [cuda.to_gpu(x) for x in self.xs],
-    #                        [[cuda.to_gpu(w) for w in ws] for ws in self.ws],
-    #                        [[cuda.to_gpu(b) for b in bs] for bs in self.bs],
-    #                        False)
+    @attr.gpu
+    def test_forward_gpu(self):
+        self.check_forward(cuda.to_gpu(self.hx),
+                           [cuda.to_gpu(x) for x in self.xs],
+                           [[cuda.to_gpu(w) for w in ws] for ws in self.ws],
+                           [[cuda.to_gpu(b) for b in bs] for bs in self.bs],
+                           False)
 
-    # @attr.gpu
-    # def test_forward_gpu_volatile(self):
-    #     self.check_forward(cuda.to_gpu(self.hx),
-    #                        [cuda.to_gpu(x) for x in self.xs],
-    #                        [[cuda.to_gpu(w) for w in ws] for ws in self.ws],
-    #                        [[cuda.to_gpu(b) for b in bs] for bs in self.bs],
-    #                        True)
+    @attr.gpu
+    def test_forward_gpu_volatile(self):
+        self.check_forward(cuda.to_gpu(self.hx),
+                           [cuda.to_gpu(x) for x in self.xs],
+                           [[cuda.to_gpu(w) for w in ws] for ws in self.ws],
+                           [[cuda.to_gpu(b) for b in bs] for bs in self.bs],
+                           True)
 
     def check_backward(self, h_data, xs_data, ws_data, bs_data,
                        dhy_data, dys_data):
