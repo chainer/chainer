@@ -178,15 +178,13 @@ class NStepGRU(function.Function):
 
     def forward(self, inputs):
         (hx, ), inputs = _split(inputs, 1)
-        print "inputs:", len(inputs)
         ws, inputs = _split(inputs, self.n_layers * 6)
         bs, inputs = _split(inputs, self.n_layers * 6)
         x_list = inputs
 
         hx = cuda.cupy.ascontiguousarray(hx)
-        # cx = cuda.cupy.ascontiguousarray(cx)
+        # Note: GRU does not need cx
         cx = cuda.cupy.zeros(hx.shape, dtype=hx.dtype)
-        # cx = cuda.cupy.empty_like(hx)
         cx = cuda.cupy.ascontiguousarray(cx)
         x_desc = cudnn.create_tensor_nd_descriptor(x_list[0][..., None])
 
@@ -208,18 +206,13 @@ class NStepGRU(function.Function):
         c_x_descs = _make_tensor_descriptor_array(x_list)
         hx_desc = cudnn.create_tensor_nd_descriptor(hx)
         cx_desc = cudnn.create_tensor_nd_descriptor(cx)
-        print "hx_desc:", hx_desc.value
         weights_size = libcudnn.getRNNParamsSize(
             handle, rnn_desc.value, x_desc.value, libcudnn.CUDNN_DATA_FLOAT)
-        print "weights_size:", weights_size
         w = cuda.cupy.empty((weights_size // 4, 1, 1), dtype=numpy.float32)
-        print "w.ndim:", w.ndim
-        print "w.ndim:", w.ndim
         w_desc = cudnn.create_filter_descriptor(w)
 
         for layer in six.moves.range(self.n_layers):
             for lin_layer_id in six.moves.range(6):
-                print "lin_layer_id:", lin_layer_id
                 mat = cudnn.get_rnn_lin_layer_matrix_params(
                     handle, rnn_desc, layer, x_desc, w_desc, w,
                     lin_layer_id)
@@ -239,7 +232,6 @@ class NStepGRU(function.Function):
         c_y_descs = _make_tensor_descriptor_array(y_list)
         hy = cuda.cupy.empty_like(hx)
         cy = cuda.cupy.empty_like(cx)
-        print "first cy:", cy
         hy_desc = cudnn.create_tensor_nd_descriptor(hy)
         cy_desc = cudnn.create_tensor_nd_descriptor(cy)
 
@@ -247,7 +239,6 @@ class NStepGRU(function.Function):
             handle, rnn_desc.value, length, c_x_descs.data)
         workspace = cuda.cupy.empty((work_size,), dtype='b')
         self.workspace = workspace
-        print "self.train:", self.train
         if not self.train:
             libcudnn.RNNForwardInference(
                 handle, rnn_desc.value, length,
@@ -272,8 +263,6 @@ class NStepGRU(function.Function):
         self.c_y_descs = c_y_descs
         self.ys = ys
         self.c_x_descs = c_x_descs
-        print "hy:", hy
-        print "cy:", cy
         return tuple([hy, ] + y_list)
 
     def backward(self, inputs, grads):
@@ -283,6 +272,7 @@ class NStepGRU(function.Function):
         x_list = inputs
 
         hx = cuda.cupy.ascontiguousarray(hx)
+        # Note: GRU does not need cx
         cx = cuda.cupy.empty_like(hx)
         cx = cuda.cupy.ascontiguousarray(cx)
 
@@ -413,19 +403,16 @@ def n_step_gru(
         it, rt, h't represent the input, reset, new gates respectively.
 
         """
-        print "ws=", len(ws)
-        print ws
         # xws = [_stack_weight([w[0], w[1], w[2]]) for w in ws]
         # hws = [_stack_weight([w[3], w[4], w[5]]) for w in ws]
         # xbs = [_stack_weight([b[0], b[1], b[2]]) for b in bs]
         # hbs = [_stack_weight([b[3], b[4], b[5]]) for b in bs]
+
+        # Note: these lines are not necessary.
         xws = [[w[0], w[1], w[2]] for w in ws]
         hws = [[w[3], w[4], w[5]] for w in ws]
         xbs = [[b[0], b[1], b[2]] for b in bs]
         hbs = [[b[3], b[4], b[5]] for b in bs]
-
-        print "xws:"
-        print xws
 
         ys = []
         for x in xs:
@@ -442,7 +429,6 @@ def n_step_gru(
                 h = dropout.dropout(h, ratio=dropout_ratio, train=train)
 
                 # Todo: define functions.GRU
-                print 'xws[layer]:', len(xws[layer])
                 W_r, W_z, W = xws[layer]
                 bW_r, bW_z, bW = xbs[layer]
                 U_r, U_z, U = hws[layer]
@@ -458,7 +444,6 @@ def n_step_gru(
                 U_x = linear.linear(h, U, bU)
                 h_bar = tanh.tanh(W_x + r*U_x)
                 h_bar = (1 - z) * h_bar + z * h
-                print "h_bar:", h_bar
                 if h_rest is not None:
                     h = concat.concat([h_bar, h_rest], axis=0)
                 else:
