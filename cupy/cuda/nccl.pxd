@@ -1,15 +1,16 @@
+"""
+Wrapper for NCCL: Optimized primiteive for collective multi-GPU communication
+"""
 cpdef enum:
-    ncclSum = 0
-    ncclProd = 1
-    ncclMax = 2
-    ncclMin = 3
-    nccl_NUM_OPS = 4
+    NCCL_SUM = 0
+    NCCL_PROD = 1
+    NCCL_MAX = 2
+    NCCL_MIN = 3
 
-    ncclChar = 0
-    ncclInt = 1
-    # ncclHalf = 2
-    ncclFloat = 3
-    ncclDouble = 4
-    ncclInt64 = 5
-    ncclUint64 = 6
-    nccl_NUM_TYPES = 7
+    NCCL_CHAR = 0
+    NCCL_INT = 1
+    NCCL_HALF = 2
+    NCCL_FLOAT = 3
+    NCCL_DOUBLE = 4
+    NCCL_INT64 = 5
+    NCCL_UINT64 = 6
