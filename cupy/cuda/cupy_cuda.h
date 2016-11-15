@@ -24,6 +24,7 @@
 #include <curand.h>
 #ifndef _WIN32
 #include <nvToolsExt.h>
+//#include <nccl.h>
 #endif
 
 extern "C" {
@@ -692,10 +693,83 @@ int nvtxRangePop() {
 // driver_types.h
 ///////////////////////////////////////////////////////////////////////////////
 
+extern "C" {
+
 #define CUDA_IPC_HANDLE_SIZE 64
 typedef struct cudaIpcMemHandle_st {
     char reserved[CUDA_IPC_HANDLE_SIZE];
 } cudaIpcMemHandle;
 
+}
+
+// ///////////////////////////////////////////////////////////////////////////////
+// // nccl.h
+// ///////////////////////////////////////////////////////////////////////////////
+// 
+// #ifdef __cplusplus
+// extern "C" {
+// #endif
+// 
+// typedef struct ncclComm* ncclComm_t;
+// // typedef void* ncclComm_t;
+// 
+// typedef enum ncclResult_t
+// {
+//     ncclSuccess                 =  0,
+//     // ncclUnhandledCudaError      =  1,
+//     // ncclSystemError             =  2,
+//     // ncclInternalError           =  3,
+//     // ncclInvalidDevicePointer    =  4,
+//     // ncclInvalidRank             =  5,
+//     // ncclUnsupportedDeviceCount  =  6,
+//     // ncclDeviceNotFound          =  7,
+//     // ncclInvalidDeviceIndex      =  8,
+//     // ncclLibWrapperNotSet        =  9,
+//     // ncclCudaMallocFailed        = 10,
+//     // ncclRankMismatch            = 11,
+//     // ncclInvalidArgument         = 12,
+//     // ncclInvalidType             = 13,
+//     // ncclInvalidOperation        = 14,
+//     // nccl_NUM_RESULTS            = 15,
+// } ncclResult_t;
+// 
+// typedef enum ncclRedOp_t
+// {
+//     ncclSum        = 0,
+//     ncclProd       = 1,
+//     ncclMax        = 2,
+//     ncclMin        = 3,
+//     nccl_NUM_OPS   = 4,
+// } ncclRedOp_t;
+// 
+// typedef enum ncclDataType_t
+// {
+//     ncclChar       = 0,
+//     ncclInt        = 1,
+//     ncclHalf       = 2,
+//     ncclFloat      = 3,
+//     ncclDouble     = 4,
+//     ncclInt64      = 5,
+//     ncclUint64     = 6,
+//     nccl_NUM_TYPES = 7
+// } ncclDataType_t;
+// 
+// ncclResult_t  ncclCommInitAll(ncclComm_t* comm, int ndev, int* devlist) {
+//     return ncclSuccess;
+// }
+// 
+// void  ncclCommDestroy(ncclComm_t comm) {
+// }
+// 
+// ncclResult_t  ncclAllReduce(const void* sendbuff, void* recvbuff, int count,
+// 			    ncclDataType_t datatype, ncclRedOp_t op, ncclComm_t comm, cudaStream_t stream) {
+//     return ncclSuccess;
+// }
+// 
+// #ifdef __cplusplus
+// } // extern "C"
+// #endif
+
 #endif // #ifndef CUPY_NO_CUDA
 #endif // #ifndef INCLUDE_GUARD_CUPY_CUDA_H
+
