@@ -598,6 +598,21 @@ cdef class ndarray:
 
     # TODO(okuta): Implement put
 
+    cpdef scatter_update(self, ind, v, axis=0):
+        """Replaces specified elements of an array with given values.
+
+        ``v`` needs to be broadcastable to shape
+            ``self.shape[:axis] + ind.shape + self.shape[axis+1:]``.
+
+        Args:
+            ind (array-like): Indices of elements that this function
+                takes.
+            v (array-like): Values to place in ``self`` at target indices.
+            axis (int): The axis along which to select indices.
+
+        """
+        _scatter_op(self, ind, v, axis, op='update')
+
     cpdef repeat(self, repeats, axis=None):
         """Returns an array with repeated arrays along an axis.
 
@@ -1991,6 +2006,20 @@ cdef _boolean_array_indexing_nth = ElementwiseKernel(
     'cupy_boolean_array_indexing_nth')
 
 
+cdef _scatter_update_kernel = ElementwiseKernel(
+    'T v, S indices, int32 cdim, int32 rdim, int32 adim, S index_range',
+    'raw T a',
+    '''
+      S wrap_indices = indices % index_range;
+      if (wrap_indices < 0) wrap_indices += index_range;
+
+      int li = i / (rdim * cdim);
+      int ri = i % rdim;
+      a[(li * adim + wrap_indices) * rdim + ri] = v;
+    ''',
+    'scatter_update')
+
+
 cpdef ndarray _boolean_array_indexing(ndarray a, ndarray boolean_array):
     a = a.flatten()
     boolean_array = boolean_array.flatten()
@@ -2059,6 +2088,37 @@ cpdef ndarray _take(ndarray a, indices, axis=None, ndarray out=None):
     else:
         return _take_kernel(
             a.reduced_view(), indices, cdim, rdim, adim, index_range, out)
+
+
+cpdef _scatter_op(ndarray a, ind, v, axis=0, op=''):
+    if a.ndim == 0:
+        raise ValueError("requires a.ndim >= 1")
+
+    if not (-a.ndim <= axis < a.ndim):
+        raise ValueError('Axis overrun')
+    if a.ndim != 0:
+        axis %= a.ndim
+
+    lshape = a.shape[:axis]
+    rshape = a.shape[axis + 1:]
+    adim = a.shape[axis]
+    index_range = adim
+
+    ind = array(ind, dtype=int)
+    v_shape = lshape + ind.shape + rshape
+    v = broadcast_to(v, v_shape)
+
+    cdim = ind.size
+    rdim = internal.prod(rshape)
+    ind = ind.reshape(
+        (1,) * len(lshape) + ind.shape + (1,) * len(rshape))
+    ind = broadcast_to(ind, v_shape)
+
+    if op == 'update':
+        _scatter_update_kernel(
+            v, ind, cdim, rdim, adim, index_range, a.reduced_view())
+    else:
+        raise ValueError('provided op is not supported')
 
 
 cpdef ndarray _diagonal(ndarray a, Py_ssize_t offset=0, Py_ssize_t axis1=0,
