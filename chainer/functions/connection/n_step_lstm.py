@@ -119,7 +119,7 @@ def _split(inputs, pos):
 
 # Map string names to enums. Keep enums in the same dict, so that interfaces
 # support both.
-RNN_DIRS = {
+_rnn_dirs = {
     'uni': libcudnn.CUDNN_UNIDIRECTIONAL,
     'bi':  libcudnn.CUDNN_BIDIRECTIONAL,
     libcudnn.CUDNN_UNIDIRECTIONAL: libcudnn.CUDNN_UNIDIRECTIONAL,
@@ -127,7 +127,7 @@ RNN_DIRS = {
 }
 
 
-RNN_MODES = {
+_rnn_modes = {
     'relu': libcudnn.CUDNN_RELU,
     'tanh': libcudnn.CUDNN_TANH,
     'gru': libcudnn.CUDNN_GRU,
@@ -143,8 +143,8 @@ RNN_MODES = {
 class NStepRNN(function.Function):
 
     def __init__(self, n_layers, states, rnn_dir='uni', rnn_mode='lstm', train=True):
-        self.rnn_dir = RNN_DIRS[rnn_dir.lower()]
-        self.rnn_mode = RNN_MODES[rnn_mode.lower()]
+        self.rnn_dir = _rnn_dirs[rnn_dir.lower()]
+        self.rnn_mode = _rnn_modes[rnn_mode.lower()]
         self.n_layers = n_layers
         self.train = train
         self.states = states
