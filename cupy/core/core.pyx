@@ -607,6 +607,15 @@ cdef class ndarray:
         """
         _scatter_op(self, indices, v, axis, op='update')
 
+    cpdef scatter_add(self, indices, v, axis=0):
+        """Add specified elements of this array with given values.
+
+        .. seealso::
+            :func:`cupy.scatter_add` for full documentation.
+
+        """
+        _scatter_op(self, indices, v, axis, op='add')
+
     cpdef repeat(self, repeats, axis=None):
         """Returns an array with repeated arrays along an axis.
 
@@ -2014,6 +2023,20 @@ cdef _scatter_update_kernel = ElementwiseKernel(
     'scatter_update')
 
 
+cdef _scatter_add_kernel = ElementwiseKernel(
+    'raw T v, S indices, int32 cdim, int32 rdim, int32 adim',
+    'raw T a',
+    '''
+      S wrap_indices = indices % adim;
+      if (wrap_indices < 0) wrap_indices += adim;
+
+      int li = i / (rdim * cdim);
+      int ri = i % rdim;
+      atomicAdd(&a[(li * adim + wrap_indices) * rdim + ri], v[i]);
+    ''',
+    'scatter_add')
+
+
 cpdef ndarray _boolean_array_indexing(ndarray a, ndarray boolean_array):
     a = a.flatten()
     boolean_array = boolean_array.flatten()
@@ -2112,6 +2135,10 @@ cpdef _scatter_op(ndarray a, indices, v, axis=0, op=''):
     if op == 'update':
         _scatter_update_kernel(
             v, indices, cdim, rdim, adim, a.reduced_view())
+    elif op == 'add':
+        assert issubclass(v.dtype.type, (numpy.int32, numpy.float32))
+        _scatter_add_kernel(
+            v.reduced_view(), indices, cdim, rdim, adim, a.reduced_view())
     else:
         raise ValueError('provided op is not supported')
 

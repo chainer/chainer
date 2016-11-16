@@ -396,6 +396,7 @@ from cupy.core import ElementwiseKernel  # NOQA
 from cupy.core import ReductionKernel  # NOQA
 
 from cupy.ext.scatter import scatter_update  # NOQA
+from cupy.ext.scatter import scatter_add  # NOQA
 
 
 def asnumpy(a, stream=None):

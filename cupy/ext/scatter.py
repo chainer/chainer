@@ -67,3 +67,47 @@ def scatter_update(a, indices, v, axis=0):
 
     """
     a.scatter_update(indices, v, axis)
+
+
+def scatter_add(a, indices, v, axis=0):
+    """Add specified elements of an array with given values.
+
+    The function adds values to an array given indices like
+    ``a[indices] = a[indices] + v`` when all of the value in ``indices`` are
+    different.
+    When there are duplicate values, the :func:`scatter_add` uses all of the
+    values for addition. On the other hand, ``a[indices] = a[indices] + v``
+    only uses one of the index among duplicate indices with same values.
+
+    Similarly to array indexing, negative indices are interpreted as counting
+    from the end of the array.
+
+    ``v`` needs to be broadcastable to shape
+    ``a.shape[:axis] + indices.shape + a.shape[axis+1:]``.
+
+    Example
+    -------
+    >>> import cupy
+    >>> a = cupy.zeros((6,))
+    >>> i = cupy.array([1, 0, 1])
+    >>> v = cupy.array([1., 1., 1.])
+    >>> cupy.scatter_add(a, i, v, axis=0);
+    >>> a
+    array([ 1.,  2.,  0.,  0.,  0.,  0.])
+
+    Args:
+        a (ndarray): An array that gets added.
+        indices (array-like): Indices of elements that this function takes.
+        v (array-like): Values to increment in ``a`` at target indices.
+        axis (int): The axis along which to select indices.
+
+    .. note::
+        Supports only arrays of type ``numpy.float32`` and ``numpy.int32``.
+
+    .. note::
+
+        :func:`scatter_add` does not raise error when indices exceed size of
+        axes. Instead, its wrap indices.
+
+    """
+    a.scatter_add(indices, v, axis)
