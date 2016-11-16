@@ -610,6 +610,20 @@ cdef class ndarray:
             v (array-like): Values to place in ``self`` at target indices.
             axis (int): The axis along which to select indices.
 
+       .. note::
+       
+          When there are duplicating indices in ``ind``, the index among them
+            that is used to store value is undefined.
+
+          Examples
+          --------
+          >>> a = cupy.zeros((2,))
+          >>> i = cupy.arange(10001) % 2
+          >>> v = cupy.arange(10000).astype(np.float)
+          >>> a.scatter_update(i, v, axis=0)
+          >>> a
+          [9982. 9983.]
+
         """
         _scatter_op(self, ind, v, axis, op='update')
 
