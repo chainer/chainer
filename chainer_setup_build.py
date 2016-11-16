@@ -1,6 +1,7 @@
 from __future__ import print_function
 from distutils import ccompiler
 from distutils import sysconfig
+from numpy.distutils import conv_template  # to process .src template files
 import os
 from os import path
 import sys
