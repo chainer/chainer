@@ -11,6 +11,10 @@ cdef extern from "nccl.h":
     ctypedef struct ncclComm:
         pass
     ctypedef ncclComm* ncclComm_t
+    cdef enum:
+        NCCL_UNIQUE_ID_BYTES = 128
+    ctypedef struct ncclUniqueId:
+        char internal[NCCL_UNIQUE_ID_BYTES]
     ctypedef enum ncclResult_t:
         ncclSuccess
     ctypedef enum ncclRedOp_t:
@@ -19,7 +23,8 @@ cdef extern from "nccl.h":
         pass
 
     const char* ncclGetErrorString(ncclResult_t result)
-    ncclResult_t ncclCommInitAll(ncclComm_t* comm, int ndev, int *devlist)
+    ncclResult_t ncclGetUniqueId(ncclUniqueId* uniqueId)
+    ncclResult_t ncclCommInitRank(ncclComm_t* comm, int ndev, ncclUniqueId commId, int rank)
     void ncclCommDestroy(ncclComm_t comm)
     ncclResult_t ncclAllReduce(const void* sendbuff, void* recvbuff, int count,
                                ncclDataType_t datatype, ncclRedOp_t op,
@@ -59,51 +64,46 @@ cpdef inline check_status(ncclResult_t status):
         raise NcclError(status)
 
 
+class NcclCommunicatorId(object):
+
+    def __init__(self):
+        cdef ncclUniqueId uniqueId
+        status = ncclGetUniqueId(&uniqueId)
+        check_status(status)
+        self.data = []
+        for i in range(NCCL_UNIQUE_ID_BYTES):
+            self.data.append(<char>uniqueId.internal[i])
+
+        
 cdef struct comm_info:
     size_t ptr
 
 
 class NcclCommunicator(object):
 
-    def __init__(self, int ndev, list devlist):
-        self.ndev = ndev
-        self.devlist = devlist
-
-        cdef int* _devlist = <int*>malloc(ndev * sizeof(int))
-        for i in range(ndev):
-            _devlist[i] = devlist[i]
-            print("[nccl.pyx, __init__()] devlist[{}]:{}".format(i, devlist[i]))
-
-        cdef ncclComm_t* _comms = <ncclComm_t*>malloc(ndev * sizeof(ncclComm_t))
-        status = ncclCommInitAll(_comms, ndev, _devlist)
+    def __init__(self, int ndev, commId, int rank):
+        cdef ncclUniqueId _uniqueId
+        for i in range(NCCL_UNIQUE_ID_BYTES):
+            _uniqueId.internal[i] = commId.data[i]
+        cdef ncclComm_t _comm
+        status = ncclCommInitRank(&_comm, ndev, _uniqueId, rank)
         check_status(status)
             
-        self.comms = []
-        cdef comm_info comm
-        for i in range(ndev):
-            comm.ptr = <size_t>_comms[i]
-            print("[nccl.pyx, __init__()] comm.ptr: {}".format(comm.ptr))
-            self.comms.append(comm)
-
-        free(_devlist)
-        free(_comms)
+        cdef comm_info _ci
+        _ci.ptr = <size_t>_comm
+        #print("[nccl.pyx, __init__()] _ci.ptr: {}".format(_ci.ptr))
+        self.ci = _ci
 
     def destroy(self):
-        cdef comm_info comm
-        for i in range(self.ndev):
-            comm = self.comms[i]
-            print("[nccl.pyx, destroy()] comm.ptr: {}".format(comm.ptr))
-            ncclCommDestroy(<ncclComm_t>comm.ptr)
+        cdef comm_info _ci = self.ci
+        #print("[nccl.pyx, destroy()] _ci.ptr: {}".format(_ci.ptr))
+        ncclCommDestroy(<ncclComm_t>_ci.ptr)
 
-    def allReduce(self, int rank, size_t sendbuf, size_t recvbuf, 
+    def allReduce(self, size_t sendbuf, size_t recvbuf, 
                   int count, int datatype, int op, size_t stream):
-        cdef comm_info comm = self.comms[rank]
+        cdef comm_info _ci = self.ci
+        #print("[nccl.pyx, allReduce()] _ci.ptr: {}".format(_ci.ptr))
         status = ncclAllReduce( <void*>sendbuf, <void*>recvbuf, count,
                                 <ncclDataType_t>datatype, <ncclRedOp_t>op,
-                                <ncclComm_t>comm.ptr, <driver.Stream>stream )
+                                <ncclComm_t>_ci.ptr, <driver.Stream>stream )
         check_status(status)
-
-
-class NcclCommunicatorMP(object):
-
-    def __init__(self, int ndev, commId, int rank):
