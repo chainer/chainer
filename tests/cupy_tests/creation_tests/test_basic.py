@@ -18,6 +18,13 @@ class TestBasic(unittest.TestCase):
         a.fill(0)
         return a
 
+    @testing.for_dtypes(['?', 'b', 'h', 'e'])
+    @testing.numpy_cupy_array_equal()
+    def test_empty_huge(self, xp, dtype):
+        a = xp.empty((1024, 1024, 2048), dtype=dtype)
+        a.fill(0)
+        return a
+
     @testing.for_all_dtypes()
     @testing.numpy_cupy_array_equal()
     def test_empty_scalar(self, xp, dtype):
@@ -29,6 +36,13 @@ class TestBasic(unittest.TestCase):
     @testing.numpy_cupy_array_equal()
     def test_empty_int(self, xp, dtype):
         a = xp.empty(3, dtype=dtype)
+        a.fill(0)
+        return a
+
+    @testing.for_dtypes(['?', 'b', 'h', 'e'])
+    @testing.numpy_cupy_array_equal()
+    def test_empty_huge_int(self, xp, dtype):
+        a = xp.empty(2 ** 31, dtype=dtype)
         a.fill(0)
         return a
 
