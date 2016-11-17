@@ -26,6 +26,8 @@ cdef extern from "nccl.h":
     ncclResult_t ncclGetUniqueId(ncclUniqueId* uniqueId)
     ncclResult_t ncclCommInitRank(ncclComm_t* comm, int ndev, ncclUniqueId commId, int rank)
     void ncclCommDestroy(ncclComm_t comm)
+    ncclResult_t ncclCommCuDevice(const ncclComm_t comm, int* device)
+    ncclResult_t ncclCommUserRank(const ncclComm_t comm, int* rank)
     ncclResult_t ncclAllReduce(const void* sendbuff, void* recvbuff, int count,
                                ncclDataType_t datatype, ncclRedOp_t op,
                                ncclComm_t comm, driver.Stream stream)
@@ -88,7 +90,6 @@ class NcclCommunicator(object):
         cdef ncclComm_t _comm
         status = ncclCommInitRank(&_comm, ndev, _uniqueId, rank)
         check_status(status)
-            
         cdef comm_info _ci
         _ci.ptr = <size_t>_comm
         #print("[nccl.pyx, __init__()] _ci.ptr: {}".format(_ci.ptr))
@@ -98,6 +99,20 @@ class NcclCommunicator(object):
         cdef comm_info _ci = self.ci
         #print("[nccl.pyx, destroy()] _ci.ptr: {}".format(_ci.ptr))
         ncclCommDestroy(<ncclComm_t>_ci.ptr)
+
+    def device_id(self):
+        cdef comm_info _ci = self.ci
+        cdef int device_id
+        status = ncclCommCuDevice(<ncclComm_t>_ci.ptr, &device_id)
+        check_status(status)
+        return device_id
+
+    def rank_id(self):
+        cdef comm_info _ci = self.ci
+        cdef int rank_id
+        status = ncclCommUserRank(<ncclComm_t>_ci.ptr, &rank_id)
+        check_status(status)
+        return rank_id
 
     def allReduce(self, size_t sendbuf, size_t recvbuf, 
                   int count, int datatype, int op, size_t stream):
