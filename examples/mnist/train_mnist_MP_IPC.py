@@ -7,16 +7,17 @@ import chainer.links as L
 
 import train_mnist
 
+import cupy
+import numpy
+
 import copy
 
-import numpy
-import cupy
 from cupy.cuda import device
 from cupy.cuda import ipc
 from cupy.cuda import profiler
 
-from multiprocessing import Process
 from multiprocessing import Pipe
+from multiprocessing import Process
 
 
 def main():

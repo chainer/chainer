@@ -24,7 +24,8 @@ cdef extern from "nccl.h":
 
     const char* ncclGetErrorString(ncclResult_t result)
     ncclResult_t ncclGetUniqueId(ncclUniqueId* uniqueId)
-    ncclResult_t ncclCommInitRank(ncclComm_t* comm, int ndev, ncclUniqueId commId, int rank)
+    ncclResult_t ncclCommInitRank(ncclComm_t* comm, int ndev,
+                                  ncclUniqueId commId, int rank)
     void ncclCommDestroy(ncclComm_t comm)
     ncclResult_t ncclCommCuDevice(const ncclComm_t comm, int* device)
     ncclResult_t ncclCommUserRank(const ncclComm_t comm, int* rank)
@@ -76,7 +77,7 @@ class NcclCommunicatorId(object):
         for i in range(NCCL_UNIQUE_ID_BYTES):
             self.data.append(<char>uniqueId.internal[i])
 
-        
+
 cdef struct comm_info:
     size_t ptr
 
@@ -92,12 +93,12 @@ class NcclCommunicator(object):
         check_status(status)
         cdef comm_info _ci
         _ci.ptr = <size_t>_comm
-        #print("[nccl.pyx, __init__()] _ci.ptr: {}".format(_ci.ptr))
+        # print("[nccl.pyx, __init__()] _ci.ptr: {}".format(_ci.ptr))
         self.ci = _ci
 
     def destroy(self):
         cdef comm_info _ci = self.ci
-        #print("[nccl.pyx, destroy()] _ci.ptr: {}".format(_ci.ptr))
+        # print("[nccl.pyx, destroy()] _ci.ptr: {}".format(_ci.ptr))
         ncclCommDestroy(<ncclComm_t>_ci.ptr)
 
     def device_id(self):
@@ -114,11 +115,11 @@ class NcclCommunicator(object):
         check_status(status)
         return rank_id
 
-    def allReduce(self, size_t sendbuf, size_t recvbuf, 
+    def allReduce(self, size_t sendbuf, size_t recvbuf,
                   int count, int datatype, int op, size_t stream):
         cdef comm_info _ci = self.ci
-        #print("[nccl.pyx, allReduce()] _ci.ptr: {}".format(_ci.ptr))
-        status = ncclAllReduce( <void*>sendbuf, <void*>recvbuf, count,
-                                <ncclDataType_t>datatype, <ncclRedOp_t>op,
-                                <ncclComm_t>_ci.ptr, <driver.Stream>stream )
+        # print("[nccl.pyx, allReduce()] _ci.ptr: {}".format(_ci.ptr))
+        status = ncclAllReduce(<void*>sendbuf, <void*>recvbuf, count,
+                               <ncclDataType_t>datatype, <ncclRedOp_t>op,
+                               <ncclComm_t>_ci.ptr, <driver.Stream>stream)
         check_status(status)
