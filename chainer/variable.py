@@ -249,10 +249,10 @@ Actual: {0}'''.format(type(data))
                 self._grad.fill(0)
 
     def scatter_grad(self, array, offset):
-        """ Copy back contents of the array to gradient array
+        """Copy back contents of the array to gradient array
 
         Args:
-            array (cupy.ndarray): ...
+            array (cupy.ndarray): gathered array
             offset (int): ...
         """
         next_offset = offset + self.size

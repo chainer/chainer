@@ -132,7 +132,7 @@ class Link(object):
             shape, dtype = _ensure_shape_dtype(value)
             self.add_param(name, shape, dtype=dtype)
 
-        self.grads_gatherd = None
+        self.grads_gathered = None
 
     @property
     def xp(self):
@@ -518,15 +518,15 @@ class Link(object):
                 int id_pre = 0;
             ''')
 
-        array = batch_memcpy(var_ptrs.data, var_info.data, size=size)
-        self.grads_gathered = array
-        return array
+        self.grads_gathered = batch_memcpy(var_ptrs.data, var_info.data,
+                                           size=size)
+        return self.grads_gathered
 
     def scatter_grads(self, array):
-        """ Put back contents of the specified array to the related gradient arrays
+        """Put back contents of the specified array to the related gradient arrays
 
         Args:
-            array (cupy.ndarray): ...
+            array (cupy.ndarray): gathered array created by gather_grads()
         """
         offset = 0
         for param in self.params():
