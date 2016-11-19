@@ -465,12 +465,6 @@ class NStepLSTM(NStepRNN):
                           rnn_mode='lstm')
 
 
-# class NStepGRU(NStepRNN):
-#     def __init__(self, n_layers, states, rnn_dir='uni', train=True):
-#         NStepRNN.__init__(self, n_layers, states, rnn_dir=rnn_dir, train=train,
-#                           rnn_mode='gru')
-
-
 def _stack_weight(ws):
     # TODO(unno): Input of the current LSTM implementaiton is shuffled
     w = stack.stack(ws, axis=1)
