@@ -69,8 +69,7 @@ class TestNStepBiGRU(unittest.TestCase):
                 for x in seq:
                     r = sigmoid(x.dot(p.w0.data.T) + h_prev.dot(p.w3.data.T) + p.b0.data + p.b3.data)
                     z = sigmoid(x.dot(p.w1.data.T) + h_prev.dot(p.w4.data.T) + p.b1.data + p.b4.data)
-                    h_bar = z * h_prev + (1 - z) * \
-                            numpy.tanh(x.dot(p.w2.data.T) + p.b2.data + r * (h_prev.dot(p.w5.data.T) + p.b5.data))
+                    h_bar = z * h_prev + (1 - z) * numpy.tanh(x.dot(p.w2.data.T) + p.b2.data + r * (h_prev.dot(p.w5.data.T) + p.b5.data))
                     h_prev = h_bar
                     hfs.append(h_prev)
 
@@ -83,8 +82,7 @@ class TestNStepBiGRU(unittest.TestCase):
                 for x in reversed(seq):
                     r = sigmoid(x.dot(p.w0.data.T) + h_prev.dot(p.w3.data.T) + p.b0.data + p.b3.data)
                     z = sigmoid(x.dot(p.w1.data.T) + h_prev.dot(p.w4.data.T) + p.b1.data + p.b4.data)
-                    h_bar = z * h_prev + (1 - z) * \
-                            numpy.tanh(x.dot(p.w2.data.T) + p.b2.data + r * (h_prev.dot(p.w5.data.T) + p.b5.data))
+                    h_bar = z * h_prev + (1 - z) * numpy.tanh(x.dot(p.w2.data.T) + p.b2.data + r * (h_prev.dot(p.w5.data.T) + p.b5.data))
                     h_prev = h_bar
                     hbs.append(h_prev)
                 hbs.reverse()
@@ -113,7 +111,7 @@ class TestNStepBiGRU(unittest.TestCase):
             h, = args[:1]
             xs = args[1:]
             hy, ys = self.rnn(h, xs)
-            return tuple([hy,] + list(ys))
+            return tuple([hy, ] + list(ys))
 
         params = []
         for layer in self.rnn:
@@ -121,8 +119,8 @@ class TestNStepBiGRU(unittest.TestCase):
                 params.append(p)
 
         gradient_check.check_backward(
-            fun, tuple([h_data,] + xs_data),
-            tuple([gh_data,] + gys_data),
+            fun, tuple([h_data, ] + xs_data),
+            tuple([gh_data, ] + gys_data),
             tuple(params), eps=1e-2, rtol=1e-3, atol=1e-3)
 
     def test_backward_cpu(self):
@@ -137,6 +135,5 @@ class TestNStepBiGRU(unittest.TestCase):
             [cuda.to_gpu(x) for x in self.xs],
             cuda.to_gpu(self.gh),
             [cuda.to_gpu(gy) for gy in self.gys])
-
 
 testing.run_module(__name__, __file__)

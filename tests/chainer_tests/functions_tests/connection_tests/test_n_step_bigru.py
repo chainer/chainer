@@ -139,9 +139,9 @@ class TestNStepBiGRU(unittest.TestCase):
 
     def check_backward(self, h_data, xs_data, ws_data, bs_data,
                        dhy_data, dys_data):
-        args = tuple([h_data,] + sum(ws_data, []) + sum(bs_data, []) +
+        args = tuple([h_data, ] + sum(ws_data, []) + sum(bs_data, []) +
                      xs_data)
-        grads = tuple([dhy_data,] + dys_data)
+        grads = tuple([dhy_data, ] + dys_data)
 
         def f(*inputs):
             (hx,), inputs = _split(inputs, 1)
@@ -242,6 +242,5 @@ class TestNStepGRUCudnnCall(unittest.TestCase):
         with mock.patch('cupy.cuda.cudnn.RNNBackwardWeights') as func:
             hy.backward()
             self.assertEqual(func.called, self.expect)
-
 
 testing.run_module(__name__, __file__)

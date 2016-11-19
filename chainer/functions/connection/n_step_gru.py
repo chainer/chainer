@@ -7,7 +7,6 @@ import numpy
 import six
 
 from chainer import cuda
-from chainer import function
 from chainer.functions.activation import sigmoid, tanh
 from chainer.functions.array import concat
 from chainer.functions.array import reshape
@@ -16,7 +15,6 @@ from chainer.functions.array import stack
 from chainer.functions.connection import linear
 from chainer.functions.connection.n_step_lstm import NStepRNN
 from chainer.functions.noise import dropout
-from chainer.utils import type_check
 
 
 if cuda.cudnn_enabled:
@@ -253,7 +251,7 @@ def n_step_bigru(n_layers, dropout_ratio, hx, ws, bs, xs, train=True, use_cudnn=
         # hws = [_stack_weight([w[3], w[4], w[5]]) for w in ws]
         # xbs = [_stack_weight([b[0], b[1], b[2]]) for b in bs]
         # hbs = [_stack_weight([b[3], b[4], b[5]]) for b in bs]
-        
+
         xws = [concat.concat([w[0], w[1], w[2]], axis=0) for w in ws]
         hws = [concat.concat([w[3], w[4], w[5]], axis=0) for w in ws]
         xbs = [concat.concat([b[0], b[1], b[2]], axis=0) for b in bs]
