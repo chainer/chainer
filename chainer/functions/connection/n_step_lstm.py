@@ -117,8 +117,7 @@ def _split(inputs, pos):
     return inputs[:pos], inputs[pos:]
 
 
-
-if cuda.cudnn_enabled:
+if cuda.cudnn_enabled and _cudnn_version >= 5000:
     # Map string names to enums. Keep enums in the same dict, so that interfaces
     # support both.
     _rnn_dirs = {
@@ -127,7 +126,6 @@ if cuda.cudnn_enabled:
         libcudnn.CUDNN_UNIDIRECTIONAL: libcudnn.CUDNN_UNIDIRECTIONAL,
         libcudnn.CUDNN_BIDIRECTIONAL: libcudnn.CUDNN_BIDIRECTIONAL,
     }
-
 
     _rnn_modes = {
         'relu': libcudnn.CUDNN_RELU,
@@ -140,7 +138,6 @@ if cuda.cudnn_enabled:
         libcudnn.CUDNN_LSTM: libcudnn.CUDNN_LSTM
 
     }
-
 
     _rnn_params_modes = {
         # Todo: check this is ok.
