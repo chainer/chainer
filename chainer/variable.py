@@ -82,8 +82,8 @@ class Variable(object):
         grad: Gradient array.
         creator: The function who creates this variable. It is ``None`` if the
             variable is not created by any function.
-        volatile: Ternary :class:`~chainer.Flag` object. If ``'ON'``, the
-            variable does not keep track of any function applications. See
+        volatile: Ternary :class:`~chainer.Flag` object. If ON, the variable
+            does not keep track of any function applications. See
             :class:`~chainer.Flag` for the detail of ternary flags.
 
     """
@@ -161,7 +161,7 @@ Actual: {0}'''.format(type(data))
         """Returns the number of elements of the data array.
 
         Returns:
-            int: Number of elements of the data array.
+            int: the number of elements of the data array.
 
         """
         return self.data.size
@@ -229,6 +229,10 @@ Actual: {0}'''.format(type(data))
 
     def cleargrad(self):
         """Clears the gradient array."""
+        if self._grad is None:
+            return
+        if self._grad.parent is not None:
+            raise RuntimeError('Cannot use cleargrads with multiprocess parallelism.')
         self._grad = None
 
     def zerograd(self):
@@ -239,7 +243,7 @@ Actual: {0}'''.format(type(data))
 
         """
         warnings.warn(
-            'Variable.zerograd is deprecated. Use Variable.cleargard instead.',
+            'Variable.zerograd is deprecated. Use Variable.cleargrad instead.',
             DeprecationWarning)
         with cuda.get_device(self.data) as dev:
             if self._grad is None:
@@ -269,6 +273,15 @@ Actual: {0}'''.format(type(data))
             dst_xp.copyto(dst, src.get())
         else:
             dst.set(src)
+
+    def scatterdata(self):
+        """Copies the data array from the parent process.
+
+        This method copies the data attribute of this variable from the
+        data attribute of the same variable on the parent process.
+
+        """
+        self.data.scatter()
 
     def addgrad(self, var):
         """Accumulates the gradient array from given source variable.
@@ -308,6 +321,35 @@ Actual: {0}'''.format(type(data))
             with dst_dev:
                 self._grad += src_grad
 
+    def gathergrad(self):
+        """Accumulates the gradient array to the parent process.
+
+        This method adds this variable's grad array to the same variable's
+        grad array on the parent process.
+
+        """
+        self._grad.gather()
+
+    def get_handles(self):
+        """Gets CUDA IPC memory handles for this variable's grad and data.
+
+        """
+        if self._grad is None:
+            raise RuntimeError(
+                'Cannot use cleargrads with multiprocess parallelism.')
+        return (self.data.get_handle(), self._grad.get_handle())
+
+    def set_parent(self, tup):
+        """Sets parent process handles for this variable's grad and data.
+
+        """
+        if self._grad is None:
+            raise RuntimeError(
+                'Cannot use cleargrads with multiprocess parallelism.')
+        data_handle, grad_handle = tup
+        self.data.set_parent(data_handle)
+        self._grad.set_parent(grad_handle)
+
     def set_creator(self, gen_func):
         """Notifies the variable that the given function is its creator.
 
@@ -333,9 +375,9 @@ Actual: {0}'''.format(type(data))
         This method uses :data:`grad` as the initial error array. User can
         manually set a gradient array before calling this method. If
         :data:`data` contains only one element (i.e., it is scalar) and
-        :data:`grad` is ``None``, then this method automatically complements
-        1.0 as the initial error. This is useful on starting backprop from
-        some scalar loss value.
+        :data:`grad` is None, then this method automatically complements 1.0 as
+        the initial error. This is useful on starting backprop from some scalar
+        loss value.
 
         Args:
             retain_grad (bool): If ``True``, the gradient arrays of all
@@ -343,9 +385,9 @@ Actual: {0}'''.format(type(data))
                 intermediate variables are set to ``None`` on appropriate
                 timing, which may reduce the maximum memory consumption.
 
-                In most cases of training some models, the purpose of backprop
+                In most cases of training some model, the purpose of backprop
                 is to compute gradients of parameters, not of variables, so it
-                is recommended to set this flag ``False``.
+                is recommended to set this flag False.
 
         """
         if self.creator is None:

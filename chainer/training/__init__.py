@@ -14,5 +14,6 @@ from chainer.training.trainer import Trainer  # NOQA
 from chainer.training.trigger import get_trigger  # NOQA
 from chainer.training.trigger import IntervalTrigger  # NOQA
 from chainer.training.updater import ParallelUpdater  # NOQA
+from chainer.training.updater import MultiprocessParallelUpdater  # NOQA
 from chainer.training.updater import StandardUpdater  # NOQA
 from chainer.training.updater import Updater  # NOQA

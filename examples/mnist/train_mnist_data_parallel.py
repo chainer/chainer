@@ -19,25 +19,24 @@ def main():
                         help='Number of images in each mini-batch')
     parser.add_argument('--epoch', '-e', type=int, default=20,
                         help='Number of sweeps over the dataset to train')
-    parser.add_argument('--gpu0', '-g', type=int, default=0,
-                        help='First GPU ID')
-    parser.add_argument('--gpu1', '-G', type=int, default=1,
-                        help='Second GPU ID')
+    parser.add_argument('--gpus', '-g', type=int, nargs='+', default=[0, 1],
+                        help='Space-separated list of GPUs to train with')
     parser.add_argument('--out', '-o', default='result_parallel',
                         help='Directory to output the result')
     parser.add_argument('--resume', '-r', default='',
                         help='Resume the training from snapshot')
     parser.add_argument('--unit', '-u', type=int, default=1000,
                         help='Number of units')
+    parser.add_argument('--multiprocess', '-m', dest='multiprocess',
+                        action='store_true',
+                        help='Use multiprocess parallelism')
     args = parser.parse_args()
 
-    print('GPU: {}, {}'.format(args.gpu0, args.gpu1))
+    print('GPUs: {}'.format(args.gpus))
     print('# unit: {}'.format(args.unit))
     print('# Minibatch-size: {}'.format(args.batchsize))
     print('# epoch: {}'.format(args.epoch))
     print('')
-
-    chainer.cuda.get_device(args.gpu0).use()
 
     model = L.Classifier(train_mnist.MLP(args.unit, 10))
     optimizer = chainer.optimizers.Adam()
@@ -51,16 +50,21 @@ def main():
     # ParallelUpdater implements the data-parallel gradient computation on
     # multiple GPUs. It accepts "devices" argument that specifies which GPU to
     # use.
-    updater = training.ParallelUpdater(
+    if args.multiprocess:
+        updater_class = training.MultiprocessParallelUpdater
+    else:
+        updater_class = training.ParallelUpdater
+
+    updater = updater_class(
         train_iter,
         optimizer,
         # The device of the name 'main' is used as a "master", while others are
         # used as slaves. Names other than 'main' are arbitrary.
-        devices={'main': args.gpu0, 'second': args.gpu1},
+        devices=args.gpus,
     )
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
 
-    trainer.extend(extensions.Evaluator(test_iter, model, device=args.gpu0))
+    trainer.extend(extensions.Evaluator(test_iter, model, device=args.gpus[0]))
     trainer.extend(extensions.dump_graph('main/loss'))
     trainer.extend(extensions.snapshot(), trigger=(args.epoch, 'epoch'))
     trainer.extend(extensions.LogReport())

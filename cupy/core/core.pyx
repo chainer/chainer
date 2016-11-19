@@ -48,6 +48,8 @@ cdef class ndarray:
     Attributes:
         base (None or cupy.ndarray): Base array from which this array is
             created as a view.
+        parent (None or cupy.ndarray): Version of this array on the parent
+            process for multiprocess parallelism.
         data (cupy.cuda.MemoryPointer): Pointer to the array content head.
         dtype(numpy.dtype): Dtype object of element type.
 
@@ -72,6 +74,7 @@ cdef class ndarray:
         readonly object dtype
         readonly memory.MemoryPointer data
         readonly ndarray base
+        readonly ndarray parent
 
     def __init__(self, shape, dtype=float, memptr=None):
         cdef Py_ssize_t size
@@ -89,6 +92,7 @@ cdef class ndarray:
         else:
             self.data = memptr
         self.base = None
+        self.parent = None
 
         self._c_contiguous = True
         self._update_f_contiguity()
@@ -176,6 +180,41 @@ cdef class ndarray:
 
         """
         return self.size * self.dtype.itemsize
+
+    def get_handle(self):
+        """Gets CUDA IPC memory handle for this array.
+
+        """
+        return runtime.ipcGetMemHandle(self.data.ptr)
+
+    def set_parent(self, handle):
+        """Sets parent CUDA IPC memory handle for this array.
+
+        """
+        mem = memory.Memory(0)
+        mem.ptr = runtime.ipcOpenMemHandle(handle)
+        mem.device = device.Device()
+        mem.size = self.size
+        self.parent = ndarray(shape=self.shape, dtype=self.dtype,
+                              memptr=memory.MemoryPointer(mem, 0))
+
+    def gather(self):
+        """Accumulates this array to the parent process.
+
+        """
+        if self.parent is not None:
+            self.parent += self
+        else:
+            raise RuntimeError('Array does not have parent IPC handle')
+
+    def scatter(self):
+        """Copies this array from the parent process.
+
+        """
+        if self.parent is not None:
+            elementwise_copy(self.parent, self)
+        else:
+            raise RuntimeError('Array does not have parent IPC handle')
 
     # -------------------------------------------------------------------------
     # Other attributes

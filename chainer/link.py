@@ -421,6 +421,17 @@ class Link(object):
                 self.add_param(name, src_param.shape, src_param.dtype)
                 dst[name].copydata(src_param)
 
+    def scatterparams(self):
+        """Copies parameters from parent process to this link.
+
+        This method copies data arrays of all parameters associated with this
+        link from the same link on the parent process.
+
+        """
+        d = self.__dict__
+        for name in self._params:
+            d[name].scatterdata()
+
     def cleargrads(self):
         """Clears all gradient arrays.
 
@@ -468,6 +479,33 @@ class Link(object):
         dst = self.__dict__
         for name in self._params:
             dst[name].addgrad(src[name])
+
+    def gathergrads(self):
+        """Accumulates gradient values to parent process.
+
+        This method adds each gradient array of this link to corresponding
+        gradient array of the same link on the parent process.
+
+
+        """
+        d = self.__dict__
+        for name in self._params:
+            d[name].gathergrad()
+
+    def get_handles(self):
+        """Gets CUDA IPC memory handles for all parameters under this link.
+
+        """
+        for name, param in sorted(self.namedparams(), key=lambda x: x[0]):
+            yield param.get_handles()
+
+    def set_parent(self, handles):
+        """Sets parent process handles for all paremeters under this link.
+
+        """
+        params = sorted(self.namedparams(), key=lambda x: x[0])
+        for (name, param), handles in zip(params, handles):
+            param.set_parent(handles)
 
     def serialize(self, serializer):
         """Serializes the link object.
@@ -673,12 +711,24 @@ class Chain(Link):
         for name in self._children:
             dst[name].copyparams(src[name])
 
+    def scatterparams(self):
+        super(Chain, self).scatterparams()
+        d = self.__dict__
+        for name in self._children:
+            d[name].scatterparams()
+
     def addgrads(self, link):
         super(Chain, self).addgrads(link)
         src = link.__dict__
         dst = self.__dict__
         for name in self._children:
             dst[name].addgrads(src[name])
+
+    def gathergrads(self):
+        super(Chain, self).gathergrads()
+        d = self.__dict__
+        for name in self._children:
+            d[name].gathergrads()
 
     def serialize(self, serializer):
         super(Chain, self).serialize(serializer)
@@ -818,10 +868,20 @@ class ChainList(Link):
         for idx, child in enumerate(self._children):
             child.copyparams(link[idx])
 
+    def scatterparams(self):
+        super(ChainList, self).scatterparams()
+        for child in self._children:
+            child.scatterparams()
+
     def addgrads(self, link):
         super(ChainList, self).addgrads(link)
         for idx, child in enumerate(self._children):
             child.addgrads(link[idx])
+
+    def gathergrads(self):
+        super(ChainList, self).gathergrads()
+        for child in self._children:
+            child.gathergrads()
 
     def serialize(self, serializer):
         super(ChainList, self).serialize(serializer)
