@@ -215,10 +215,20 @@ class NStepRNN(function.Function):
                     ind = (layer * self.rnn_direction + di) * self.rnn_params['n_W'] + i
                     w_type = w_types[ind]
                     b_type = b_types[ind]
-                    if layer == 0 and i < (self.rnn_params['n_W'] / 2):
-                        w_in = in_size * self.rnn_direction
+                    if self.rnn_direction == 1:
+                        # Uni-direction
+                        if layer == 0 and i < (self.rnn_params['n_W'] / 2):
+                            w_in = in_size
+                        else:
+                            w_in = out_size
                     else:
-                        w_in = out_size
+                        # Bi-direction
+                        if layer == 0 and i < 3:
+                            w_in = in_size
+                        elif layer > 0 and i < 3:
+                            w_in = out_size * self.rnn_direction
+                        else:
+                            w_in = out_size
 
                     type_check.expect(
                         w_type.dtype == numpy.float32,
@@ -230,6 +240,7 @@ class NStepRNN(function.Function):
                         b_type.ndim == 1,
                         b_type.shape[0] == out_size,
                     )
+
 
     def forward(self, inputs):
         if self.rnn_is_lstm_flag:
