@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 import unittest
 
 import mock
@@ -86,7 +83,7 @@ class TestNStepGRU(unittest.TestCase):
                 h_bar = numpy.tanh(x.dot(w[2].T) + r * ((h_prev).dot(w[5].T) + b[5]) + b[2])
                 e_h = (1 - z) * h_bar + z * h_prev
                 e_hy[layer, :batch] = e_h
-                
+
                 x = e_h
 
             testing.assert_allclose(

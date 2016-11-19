@@ -388,36 +388,30 @@ def n_step_gru(
         """
         From Nvidia documents:
         GRU
-        ‣ Values 0 and 3 reference the reset gate.
-        ‣ Values 1 and 4 reference the update gate.
-        ‣ Values 2 and 5 reference the new memory gate.
+        - Values 0 and 3 reference the reset gate.
+        - Values 1 and 4 reference the update gate.
+        - Values 2 and 5 reference the new memory gate.
 
-        rt = σ(Wr xt + Rr ht-1 + bWr + bRr)
-        it = σ(Wi xt + Ri ht-1 + bWi + bRu)
-        h't = tanh(Wh xt + rt◦(Rh ht-1 + bRh) + bWh)
-        ht = (1 - it)◦h't + it◦ht-1
-        
+        rt = sigmoid(Wr xt + Rr ht-1 + bWr + bRr)
+        it = sigmoid(Wi xt + Ri ht-1 + bWi + bRu)
+        h't = tanh(Wh xt + rt dot (Rh ht-1 + bRh) + bWh)
+        ht = (1 - it) dot h't + it dot ht-1
+
         it, rt, h't represent the input, reset, new gates respectively.
 
         """
-        # xws = [_stack_weight([w[0], w[1], w[2]]) for w in ws]
-        # hws = [_stack_weight([w[3], w[4], w[5]]) for w in ws]
-        # xbs = [_stack_weight([b[0], b[1], b[2]]) for b in bs]
-        # hbs = [_stack_weight([b[3], b[4], b[5]]) for b in bs]
-
-        # Note: these lines are not necessary.
-        xws = [[w[0], w[1], w[2]] for w in ws]
-        hws = [[w[3], w[4], w[5]] for w in ws]
-        xbs = [[b[0], b[1], b[2]] for b in bs]
-        hbs = [[b[3], b[4], b[5]] for b in bs]
+        xws = [concat.concat([w[0], w[1], w[2]], axis=0) for w in ws]
+        hws = [concat.concat([w[3], w[4], w[5]], axis=0) for w in ws]
+        xbs = [concat.concat([b[0], b[1], b[2]], axis=0) for b in bs]
+        hbs = [concat.concat([b[3], b[4], b[5]], axis=0) for b in bs]
 
         ys = []
         for x in xs:
-            batch = len(x.data)
+            batch = x.shape[0]
             h_next = []
             for layer in six.moves.range(n_layers):
                 h = hx[layer]
-                if len(h.data) > batch:
+                if h.shape[0] > batch:
                     h, h_rest = split_axis.split_axis(h, [batch], axis=0)
                 else:
                     h_rest = None
@@ -425,22 +419,16 @@ def n_step_gru(
                 x = dropout.dropout(x, ratio=dropout_ratio, train=train)
                 h = dropout.dropout(h, ratio=dropout_ratio, train=train)
 
-                # Todo: define functions.GRU
-                W_r, W_z, W = xws[layer]
-                bW_r, bW_z, bW = xbs[layer]
-                U_r, U_z, U = hws[layer]
-                bU_r, bU_z, bU = hbs[layer]
+                gru_in_x = linear.linear(x, xws[layer], xbs[layer])
+                gru_in_h = linear.linear(h, hws[layer], hbs[layer])
+                W_r_x, W_z_x, W_x = split_axis.split_axis(gru_in_x, 3, axis=1)
+                U_r_h, U_z_h, U_x = split_axis.split_axis(gru_in_h, 3, axis=1)
 
-                W_r_x = linear.linear(x, W_r, bW_r)
-                U_r_h = linear.linear(h, U_r, bU_r)
-                W_z_x = linear.linear(x, W_z, bW_z)
-                U_z_h = linear.linear(h, U_z, bU_z)
                 r = sigmoid.sigmoid(W_r_x + U_r_h)
                 z = sigmoid.sigmoid(W_z_x + U_z_h)
-                W_x = linear.linear(x, W, bW)
-                U_x = linear.linear(h, U, bU)
                 h_bar = tanh.tanh(W_x + r*U_x)
                 h_bar = (1 - z) * h_bar + z * h
+                
                 if h_rest is not None:
                     h = concat.concat([h_bar, h_rest], axis=0)
                 else:
