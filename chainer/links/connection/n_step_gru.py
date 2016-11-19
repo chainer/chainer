@@ -3,11 +3,9 @@ import six
 
 from chainer.functions.array import permutate
 from chainer.functions.array import transpose_sequence
-from chainer.functions.connection import n_step_gru as rnn
+from chainer.functions.connection import n_step_gru
 from chainer import link
 
-# Todo: Use common logic function between N-step LSTM and N-step GRU.
-# these two class are similar.
 
 def argsort_list_descent(lst):
     return numpy.argsort([-len(x.data) for x in lst]).astype('i')
@@ -24,7 +22,7 @@ def permutate_list(lst, indices, inv):
     return ret
 
 
-class NStepGRU(link.ChainList):
+class NStepGRUBase(link.ChainList):
 
     """Stacked GRU for sequnces.
 
@@ -50,23 +48,42 @@ class NStepGRU(link.ChainList):
     """
 
     def __init__(
-            self, n_layers, in_size, out_size, dropout, use_cudnn=True):
+            self, n_layers, in_size, out_size, dropout, direction='uni', use_cudnn=True):
+        # Todo: assert if direction is not [uni, bi]
+        if direction == 'uni':
+            n_direction = 1
+            self.rnn = n_step_gru.n_step_gru
+        elif direction == 'bi':
+            n_direction = 2
+            self.rnn = n_step_gru.n_step_bigru
+
         weights = []
         for i in six.moves.range(n_layers):
-            weight = link.Link()
-            for j in six.moves.range(6):
-                if i == 0 and j < 3:
-                    w_in = in_size
-                else:
-                    w_in = out_size
-                weight.add_param('w%d' % j, (out_size, w_in))
-                weight.add_param('b%d' % j, (out_size,))
-                getattr(weight, 'w%d' % j).data[...] = numpy.random.normal(
-                    0, numpy.sqrt(1. / w_in), (out_size, w_in))
-                getattr(weight, 'b%d' % j).data[...] = 0
-            weights.append(weight)
+            for di in six.moves.range(n_direction):
+                weight = link.Link()
+                for j in six.moves.range(6):
+                    if n_direction == 2:
+                        # Bi-direactional
+                        if i == 0 and j < 3:
+                            w_in = in_size
+                        elif i > 0 and j < 3:
+                            w_in = out_size * 2
+                        else:
+                            w_in = out_size
+                    else:
+                        # Uni-directional
+                        if i == 0 and j < 3:
+                            w_in = in_size
+                        else:
+                            w_in = out_size
+                    weight.add_param('w%d' % j, (out_size, w_in))
+                    weight.add_param('b%d' % j, (out_size,))
+                    getattr(weight, 'w%d' % j).data[...] = numpy.random.normal(
+                        0, numpy.sqrt(1. / w_in), (out_size, w_in))
+                    getattr(weight, 'b%d' % j).data[...] = 0
+                weights.append(weight)
 
-        super(NStepGRU, self).__init__(*weights)
+        super(NStepGRUBase, self).__init__(*weights)
 
         self.n_layers = n_layers
         self.dropout = dropout
@@ -82,6 +99,7 @@ class NStepGRU(link.ChainList):
                 a sequence.
         """
         assert isinstance(xs, (list, tuple))
+        # MEMO: xs is sorted here.
         indices = argsort_list_descent(xs)
 
         xs = permutate_list(xs, indices, inv=False)
@@ -91,7 +109,7 @@ class NStepGRU(link.ChainList):
         ws = [[w.w0, w.w1, w.w2, w.w3, w.w4, w.w5] for w in self]
         bs = [[w.b0, w.b1, w.b2, w.b3, w.b4, w.b5] for w in self]
 
-        hy, trans_y = rnn.n_step_gru(
+        hy, trans_y = self.rnn(
             self.n_layers, self.dropout, hx, ws, bs, trans_x,
             train=train, use_cudnn=self.use_cudnn)
 
@@ -100,3 +118,27 @@ class NStepGRU(link.ChainList):
         ys = permutate_list(ys, indices, inv=True)
 
         return hy, ys
+
+
+class NStepGRU(NStepGRUBase):
+    """Uni-directional GRU links
+
+    MEMO (watanabe): Bidirectional GRU consits of several GRUs (w.r.t layers, directions)
+                each GRU can be accessed by `bigru[lid]`
+                where lid = (2 * layer + di)
+    """
+    def __init__(
+            self, n_layers, in_size, out_size, dropout, use_cudnn=True):
+        NStepGRUBase.__init__(self, n_layers, in_size, out_size, dropout, direction='uni', use_cudnn=True)
+
+
+class NStepBiGRU(NStepGRUBase):
+    """Bi-directional GRU links
+
+    MEMO (watanabe): Bidirectional GRU consits of several GRUs (w.r.t layers, directions)
+                each GRU can be accessed by `bigru[lid]`
+                where lid = (2 * layer + di)
+    """
+    def __init__(
+            self, n_layers, in_size, out_size, dropout, use_cudnn=True):
+        NStepGRUBase.__init__(self, n_layers, in_size, out_size, dropout, direction='bi', use_cudnn=True)

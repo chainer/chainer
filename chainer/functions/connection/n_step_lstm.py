@@ -241,7 +241,6 @@ class NStepRNN(function.Function):
                         b_type.shape[0] == out_size,
                     )
 
-
     def forward(self, inputs):
         if self.rnn_is_lstm_flag:
             # LSTM

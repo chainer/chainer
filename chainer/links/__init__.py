@@ -55,6 +55,7 @@ LSTM = lstm.LSTM
 StatelessLSTM = lstm.StatelessLSTM
 MLPConvolution2D = mlp_convolution_2d.MLPConvolution2D
 NStepGRU = n_step_gru.NStepGRU
+NStepBiGRU = n_step_gru.NStepBiGRU
 NStepLSTM = n_step_lstm.NStepLSTM
 Parameter = parameter.Parameter
 StatefulPeepholeLSTM = peephole.StatefulPeepholeLSTM
