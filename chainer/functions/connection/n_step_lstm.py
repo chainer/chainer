@@ -157,7 +157,7 @@ class NStepRNN(function.Function):
         self.rnn_mode = _rnn_modes[rnn_mode.lower()]
         self.rnn_params = _rnn_params_modes[self.rnn_mode]
         self.rnn_is_lstm_flag = self.rnn_params['n_cell'] == 2
-        self.rnn_direction = _rnn_params_modes[rnn_dir]['n']
+        self.rnn_direction = _rnn_params_modes[self.rnn_dir]['n']
         self.n_layers = n_layers
         self.train = train
         self.states = states
