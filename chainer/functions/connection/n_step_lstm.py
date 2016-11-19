@@ -172,7 +172,7 @@ class NStepRNN(function.Function):
                 c_type.dtype == numpy.float32,
 
                 h_type.ndim == 3,
-                h_type.shape[0] == self.n_layers * self.rnn_direct_n,
+                h_type.shape[0] == self.n_layers * self.rnn_direction,
                 c_type.ndim == 3,
                 c_type.shape[0] == self.n_layers * self.rnn_direction,
 
@@ -211,24 +211,25 @@ class NStepRNN(function.Function):
 
         for layer in six.moves.range(self.n_layers):
             for i in six.moves.range(self.rnn_params['n_W']):
-                ind = layer * self.rnn_direction * self.rnn_params['n_W'] + i
-                w_type = w_types[ind]
-                b_type = b_types[ind]
-                if layer == 0 and i < (self.rnn_params['n_W'] / 2):
-                    w_in = in_size
-                else:
-                    w_in = out_size * self.rnn_direction
+                for di in six.moves.range(self.rnn_direction):
+                    ind = (layer * self.rnn_direction + di) * self.rnn_params['n_W'] + i
+                    w_type = w_types[ind]
+                    b_type = b_types[ind]
+                    if layer == 0 and i < (self.rnn_params['n_W'] / 2):
+                        w_in = in_size * self.rnn_direction
+                    else:
+                        w_in = out_size
 
-                type_check.expect(
-                    w_type.dtype == numpy.float32,
-                    w_type.ndim == 2,
-                    w_type.shape[0] == out_size,
-                    w_type.shape[1] == w_in,
+                    type_check.expect(
+                        w_type.dtype == numpy.float32,
+                        w_type.ndim == 2,
+                        w_type.shape[0] == out_size,
+                        w_type.shape[1] == w_in,
 
-                    b_type.dtype == numpy.float32,
-                    b_type.ndim == 1,
-                    b_type.shape[0] == out_size,
-                )
+                        b_type.dtype == numpy.float32,
+                        b_type.ndim == 1,
+                        b_type.shape[0] == out_size,
+                    )
 
     def forward(self, inputs):
         if self.rnn_is_lstm_flag:
