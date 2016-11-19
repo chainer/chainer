@@ -428,7 +428,7 @@ def n_step_gru(
                 z = sigmoid.sigmoid(W_z_x + U_z_h)
                 h_bar = tanh.tanh(W_x + r*U_x)
                 h_bar = (1 - z) * h_bar + z * h
-                
+
                 if h_rest is not None:
                     h = concat.concat([h_bar, h_rest], axis=0)
                 else:
