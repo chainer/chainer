@@ -128,12 +128,12 @@ if cuda.cudnn_enabled and _cudnn_version >= 5000:
     }
 
     _rnn_modes = {
-        'relu': libcudnn.CUDNN_RELU,
-        'tanh': libcudnn.CUDNN_TANH,
+        'relu': libcudnn.CUDNN_RNN_RELU,
+        'tanh': libcudnn.CUDNN_RNN_TANH,
         'gru': libcudnn.CUDNN_GRU,
         'lstm': libcudnn.CUDNN_LSTM,
-        libcudnn.CUDNN_RELU: libcudnn.CUDNN_RELU,
-        libcudnn.CUDNN_TANH: libcudnn.CUDNN_TANH,
+        libcudnn.CUDNN_RNN_RELU: libcudnn.CUDNN_RNN_RELU,
+        libcudnn.CUDNN_RNN_TANH: libcudnn.CUDNN_RNN_TANH,
         libcudnn.CUDNN_GRU: libcudnn.CUDNN_GRU,
         libcudnn.CUDNN_LSTM: libcudnn.CUDNN_LSTM
 
@@ -141,8 +141,8 @@ if cuda.cudnn_enabled and _cudnn_version >= 5000:
 
     _rnn_params_modes = {
         # Todo: check this is ok.
-        libcudnn.CUDNN_RELU: {'n_W': 2, 'n_Wb': 2 * 2, 'n_cell': 1},
-        libcudnn.CUDNN_TANH: {'n_W': 2, 'n_Wb': 2 * 2, 'n_cell': 1},
+        libcudnn.CUDNN_RNN_RELU: {'n_W': 2, 'n_Wb': 2 * 2, 'n_cell': 1},
+        libcudnn.CUDNN_RNN_TANH: {'n_W': 2, 'n_Wb': 2 * 2, 'n_cell': 1},
         libcudnn.CUDNN_GRU: {'n_W': 6, 'n_Wb': 2 * 6, 'n_cell': 1},
         libcudnn.CUDNN_LSTM: {'n_W': 8, 'n_Wb': 2 * 8, 'n_cell': 2}
     }
