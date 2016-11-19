@@ -268,8 +268,8 @@ class NStepRNN(function.Function):
 
         rnn_desc = cudnn.create_rnn_descriptor(
             n_units, self.n_layers, self.states.desc,
-            libcudnn.CUDNN_LINEAR_INPUT, self.rnn_mode,
-            self.rnn_type, libcudnn.CUDNN_DATA_FLOAT)
+            libcudnn.CUDNN_LINEAR_INPUT, self.rnn_dir,
+            self.rnn_mode, libcudnn.CUDNN_DATA_FLOAT)
         self.rnn_desc = rnn_desc
 
         c_x_descs = _make_tensor_descriptor_array(x_list)
