@@ -361,6 +361,7 @@ class NStepRNN(function.Function):
             dcx_data_ptr = dcx.data.ptr
             cx_desc_value = cx_desc.value
             dcx_desc_value = dcx_desc.value
+            dcy_desc_value = dcy_desc.value
         else:
             # RNN, GRU
             (hx, ), inputs = _split(inputs, n_cell)
@@ -372,6 +373,7 @@ class NStepRNN(function.Function):
             dcx_data_ptr = 0
             cx_desc_value = 0
             dcx_desc_value = 0
+            dcy_desc_value = 0
 
         ws, inputs = _split(inputs, self.n_layers * self.rnn_params['n_W'])
         bs, inputs = _split(inputs, self.n_layers * self.rnn_params['n_W'])
@@ -414,7 +416,7 @@ class NStepRNN(function.Function):
             handle, rnn_desc.value, length,
             self.c_y_descs.data, self.ys.data.ptr,
             c_dy_descs.data, dys.data.ptr, dhy_desc.value, dhy.data.ptr,
-            dcy_desc.value, dcy_data_ptr, self.w_desc.value, self.w.data.ptr,
+            dcy_desc_value, dcy_data_ptr, self.w_desc.value, self.w.data.ptr,
             hx_desc.value, hx.data.ptr, cx_desc_value, cx_data_ptr,
             c_dx_descs.data, dxs.data.ptr, dhx_desc.value, dhx.data.ptr,
             dcx_desc_value, dcx_data_ptr, workspace.data.ptr, work_size,
