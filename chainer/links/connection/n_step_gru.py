@@ -47,8 +47,8 @@ class NStepGRUBase(link.ChainList):
 
     """
 
-    def __init__(
-            self, n_layers, in_size, out_size, dropout, direction='uni', use_cudnn=True):
+    def __init__(self, n_layers, in_size, out_size, dropout, direction='uni',
+                 use_cudnn=True):
         # Todo: assert if direction is not [uni, bi]
         if direction == 'uni':
             n_direction = 1
@@ -123,22 +123,25 @@ class NStepGRUBase(link.ChainList):
 class NStepGRU(NStepGRUBase):
     """Uni-directional GRU links
 
-    MEMO (watanabe): Bidirectional GRU consits of several GRUs (w.r.t layers, directions)
-                each GRU can be accessed by `bigru[lid]`
-                where lid = (2 * layer + di)
+    MEMO (watanabe):
+        Bidirectional GRU consits of several GRUs (w.r.t layers, directions)
+        each GRU can be accessed by `bigru[lid]`
+        where lid = (2 * layer + di)
     """
-    def __init__(
-            self, n_layers, in_size, out_size, dropout, use_cudnn=True):
-        NStepGRUBase.__init__(self, n_layers, in_size, out_size, dropout, direction='uni', use_cudnn=True)
+    def __init__(self, n_layers, in_size, out_size, dropout, use_cudnn=True):
+        NStepGRUBase.__init__(self, n_layers, in_size, out_size, dropout,
+                              direction='uni', use_cudnn=True)
 
 
 class NStepBiGRU(NStepGRUBase):
     """Bi-directional GRU links
 
-    MEMO (watanabe): Bidirectional GRU consits of several GRUs (w.r.t layers, directions)
-                each GRU can be accessed by `bigru[lid]`
-                where lid = (2 * layer + di)
+    MEMO (watanabe):
+        Bidirectional GRU consits of several GRUs (w.r.t layers, directions)
+        each GRU can be accessed by `bigru[lid]`
+        where lid = (2 * layer + di)
     """
     def __init__(
             self, n_layers, in_size, out_size, dropout, use_cudnn=True):
-        NStepGRUBase.__init__(self, n_layers, in_size, out_size, dropout, direction='bi', use_cudnn=True)
+        NStepGRUBase.__init__(self, n_layers, in_size, out_size, dropout,
+                              direction='bi', use_cudnn=True)

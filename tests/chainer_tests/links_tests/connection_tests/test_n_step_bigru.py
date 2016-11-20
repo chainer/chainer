@@ -67,9 +67,15 @@ class TestNStepBiGRU(unittest.TestCase):
                 h_prev = self.h[lid, batch]
                 p = self.rnn[lid]
                 for x in seq:
-                    r = sigmoid(x.dot(p.w0.data.T) + h_prev.dot(p.w3.data.T) + p.b0.data + p.b3.data)
-                    z = sigmoid(x.dot(p.w1.data.T) + h_prev.dot(p.w4.data.T) + p.b1.data + p.b4.data)
-                    h_bar = z * h_prev + (1 - z) * numpy.tanh(x.dot(p.w2.data.T) + p.b2.data + r * (h_prev.dot(p.w5.data.T) + p.b5.data))
+                    r = sigmoid(x.dot(p.w0.data.T) +
+                                h_prev.dot(p.w3.data.T) +
+                                p.b0.data + p.b3.data)
+                    z = sigmoid(x.dot(p.w1.data.T) +
+                                h_prev.dot(p.w4.data.T) +
+                                p.b1.data + p.b4.data)
+                    h_bar = z * h_prev + (1 - z) *
+                    numpy.tanh(x.dot(p.w2.data.T) + p.b2.data +
+                               r * (h_prev.dot(p.w5.data.T) + p.b5.data))
                     h_prev = h_bar
                     hfs.append(h_prev)
 
@@ -80,13 +86,20 @@ class TestNStepBiGRU(unittest.TestCase):
                 h_prev = self.h[lid, batch]
                 p = self.rnn[lid]
                 for x in reversed(seq):
-                    r = sigmoid(x.dot(p.w0.data.T) + h_prev.dot(p.w3.data.T) + p.b0.data + p.b3.data)
-                    z = sigmoid(x.dot(p.w1.data.T) + h_prev.dot(p.w4.data.T) + p.b1.data + p.b4.data)
-                    h_bar = z * h_prev + (1 - z) * numpy.tanh(x.dot(p.w2.data.T) + p.b2.data + r * (h_prev.dot(p.w5.data.T) + p.b5.data))
+                    r = sigmoid(x.dot(p.w0.data.T) +
+                                h_prev.dot(p.w3.data.T) +
+                                p.b0.data + p.b3.data)
+                    z = sigmoid(x.dot(p.w1.data.T) +
+                                h_prev.dot(p.w4.data.T) +
+                                p.b1.data + p.b4.data)
+                    h_bar = z * h_prev + (1 - z) *
+                    numpy.tanh(x.dot(p.w2.data.T) + p.b2.data +
+                               r * (h_prev.dot(p.w5.data.T) + p.b5.data))
                     h_prev = h_bar
                     hbs.append(h_prev)
                 hbs.reverse()
-                seq = [numpy.concatenate([hf, hb]) for (hf, hb) in zip(hfs, hbs)]
+                seq = [numpy.concatenate([hf, hb])
+                       for (hf, hb) in zip(hfs, hbs)]
 
                 testing.assert_allclose(hy.data[2 * layer + 0, batch], hfs[-1])
                 testing.assert_allclose(hy.data[2 * layer + 1, batch], hbs[0])

@@ -118,8 +118,8 @@ def _split(inputs, pos):
 
 
 if cuda.cudnn_enabled and _cudnn_version >= 5000:
-    # Map string names to enums. Keep enums in the same dict, so that interfaces
-    # support both.
+    # Map string names to enums.
+    # Keep enums in the same dict, so that interfaces support both.
     _rnn_dirs = {
         'uni': libcudnn.CUDNN_UNIDIRECTIONAL,
         'bi':  libcudnn.CUDNN_BIDIRECTIONAL,
@@ -152,7 +152,8 @@ if cuda.cudnn_enabled and _cudnn_version >= 5000:
 
 class NStepRNN(function.Function):
 
-    def __init__(self, n_layers, states, rnn_dir='uni', rnn_mode='lstm', train=True):
+    def __init__(self, n_layers, states, rnn_dir='uni', rnn_mode='lstm',
+                 train=True):
         self.rnn_dir = _rnn_dirs[rnn_dir.lower()]
         self.rnn_mode = _rnn_modes[rnn_mode.lower()]
         self.rnn_params = _rnn_params_modes[self.rnn_mode]
@@ -163,10 +164,13 @@ class NStepRNN(function.Function):
         self.states = states
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() > self.rnn_params['n_cell'] + self.rnn_params['n_Wb'] * self.n_layers * self.rnn_direction)
+        type_check.expect(in_types.size() > self.rnn_params['n_cell'] +
+                          self.rnn_params['n_Wb'] *
+                          self.n_layers * self.rnn_direction)
         if self.rnn_is_lstm_flag:
             # LSTM
-            (h_type, c_type), in_types = _split(in_types, self.rnn_params['n_cell'])
+            (h_type, c_type), in_types = _split(in_types,
+                                                self.rnn_params['n_cell'])
             type_check.expect(
                 h_type.dtype == numpy.float32,
                 c_type.dtype == numpy.float32,
@@ -184,7 +188,8 @@ class NStepRNN(function.Function):
             )
         else:
             # RNN, GRU
-            (h_type, ), in_types = _split(in_types, self.rnn_params['n_cell'])
+            (h_type, ), in_types = _split(in_types,
+                                          self.rnn_params['n_cell'])
             type_check.expect(
                 h_type.dtype == numpy.float32,
 
@@ -192,8 +197,12 @@ class NStepRNN(function.Function):
                 h_type.shape[0] == self.n_layers * self.rnn_direction,
             )
 
-        w_types, in_types = _split(in_types, self.n_layers * self.rnn_direction * self.rnn_params['n_W'])
-        b_types, in_types = _split(in_types, self.n_layers * self.rnn_direction * self.rnn_params['n_W'])
+        w_types, in_types = _split(in_types,
+                                   self.n_layers * self.rnn_direction *
+                                   self.rnn_params['n_W'])
+        b_types, in_types = _split(in_types,
+                                   self.n_layers * self.rnn_direction *
+                                   self.rnn_params['n_W'])
         x_types = in_types
         for x_type in x_types:
             type_check.expect(
@@ -212,7 +221,8 @@ class NStepRNN(function.Function):
         for layer in six.moves.range(self.n_layers):
             for i in six.moves.range(self.rnn_params['n_W']):
                 for di in six.moves.range(self.rnn_direction):
-                    ind = (layer * self.rnn_direction + di) * self.rnn_params['n_W'] + i
+                    ind = (layer * self.rnn_direction + di) * \
+                          self.rnn_params['n_W'] + i
                     w_type = w_types[ind]
                     b_type = b_types[ind]
                     if self.rnn_direction == 1:
@@ -265,8 +275,12 @@ class NStepRNN(function.Function):
             cx_desc_value = 0
             cy_desc_value = 0
 
-        ws, inputs = _split(inputs, self.n_layers * self.rnn_direction * self.rnn_params['n_W'])
-        bs, inputs = _split(inputs, self.n_layers * self.rnn_direction * self.rnn_params['n_W'])
+        ws, inputs = _split(inputs,
+                            self.n_layers *
+                            self.rnn_direction * self.rnn_params['n_W'])
+        bs, inputs = _split(inputs,
+                            self.n_layers *
+                            self.rnn_direction * self.rnn_params['n_W'])
         x_list = inputs
         hx = cuda.cupy.ascontiguousarray(hx)
         x_desc = cudnn.create_tensor_nd_descriptor(x_list[0][..., None])
@@ -275,7 +289,8 @@ class NStepRNN(function.Function):
         n_units = hx.shape[2]
 
         xs = cuda.cupy.concatenate(x_list, axis=0)
-        ys = cuda.cupy.empty((len(xs), n_units * self.rnn_direction), dtype=xs.dtype)
+        ys = cuda.cupy.empty((len(xs),
+                              n_units * self.rnn_direction), dtype=xs.dtype)
 
         handle = cudnn.get_handle()
         self.handle = handle
@@ -299,15 +314,21 @@ class NStepRNN(function.Function):
                 # di = 0: forward, 1: backward
                 for lin_layer_id in six.moves.range(self.rnn_params['n_W']):
                     mat = cudnn.get_rnn_lin_layer_matrix_params(
-                        handle, rnn_desc, layer * self.rnn_direction + di, x_desc, w_desc, w,
+                        handle, rnn_desc,
+                        layer * self.rnn_direction + di,
+                        x_desc, w_desc, w,
                         lin_layer_id)
                     m = mat.reshape(mat.size)
-                    m[...] = ws[(layer * self.rnn_direction + di) * self.rnn_params['n_W'] + lin_layer_id].ravel()
+                    m[...] = ws[(layer * self.rnn_direction + di) *
+                                self.rnn_params['n_W'] + lin_layer_id].ravel()
                     bias = cudnn.get_rnn_lin_layer_bias_params(
-                        handle, rnn_desc, layer * self.rnn_direction + di, x_desc, w_desc, w,
+                        handle, rnn_desc,
+                        layer * self.rnn_direction + di,
+                        x_desc, w_desc, w,
                         lin_layer_id)
                     b = bias.reshape(bias.size)
-                    b[...] = bs[(layer * self.rnn_direction + di) * self.rnn_params['n_W'] + lin_layer_id]
+                    b[...] = bs[(layer * self.rnn_direction + di) *
+                                self.rnn_params['n_W'] + lin_layer_id]
         self.w = w
         self.w_desc = w_desc
 
@@ -391,8 +412,10 @@ class NStepRNN(function.Function):
             dcx_desc_value = 0
             dcy_desc_value = 0
 
-        ws, inputs = _split(inputs, self.n_layers * self.rnn_direction * self.rnn_params['n_W'])
-        bs, inputs = _split(inputs, self.n_layers * self.rnn_direction * self.rnn_params['n_W'])
+        ws, inputs = _split(inputs, self.n_layers * self.rnn_direction *
+                            self.rnn_params['n_W'])
+        bs, inputs = _split(inputs, self.n_layers * self.rnn_direction *
+                            self.rnn_params['n_W'])
         x_list = inputs
         hx = cuda.cupy.ascontiguousarray(hx)
 
@@ -456,15 +479,17 @@ class NStepRNN(function.Function):
             for di in six.moves.range(self.rnn_direction):
                 for lin_layer_id in six.moves.range(self.rnn_params['n_W']):
                     mat = cudnn.get_rnn_lin_layer_matrix_params(
-                        handle, rnn_desc, layer * self.rnn_direction + di, dx_desc, dw_desc, dw,
-                        lin_layer_id)
-                    v = dws[(layer * self.rnn_direction + di) * self.rnn_params['n_W'] + lin_layer_id]
+                        handle, rnn_desc, layer * self.rnn_direction + di,
+                        dx_desc, dw_desc, dw, lin_layer_id)
+                    v = dws[(layer * self.rnn_direction + di) *
+                            self.rnn_params['n_W'] + lin_layer_id]
                     v = v.reshape(v.size)
                     v[:] = mat.ravel()
                     bias = cudnn.get_rnn_lin_layer_bias_params(
-                        handle, rnn_desc, layer * self.rnn_direction + di, dx_desc, dw_desc, dw,
-                        lin_layer_id)
-                    v = dbs[(layer * self.rnn_direction + di) * self.rnn_params['n_W'] + lin_layer_id]
+                        handle, rnn_desc, layer * self.rnn_direction + di,
+                        dx_desc, dw_desc, dw, lin_layer_id)
+                    v = dbs[(layer * self.rnn_direction + di) *
+                            self.rnn_params['n_W'] + lin_layer_id]
                     v = v.reshape(v.size)
                     v[:] = bias.ravel()
 

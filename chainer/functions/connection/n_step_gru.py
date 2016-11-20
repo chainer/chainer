@@ -119,12 +119,14 @@ def _split(inputs, pos):
 
 class NStepGRU(NStepRNN):
     def __init__(self, n_layers, states, train=True):
-        NStepRNN.__init__(self, n_layers, states, rnn_dir='uni', rnn_mode='gru', train=train)
+        NStepRNN.__init__(self, n_layers, states, rnn_dir='uni',
+                          rnn_mode='gru', train=train)
 
 
 class NStepBiGRU(NStepRNN):
     def __init__(self, n_layers, states, train=True):
-        NStepRNN.__init__(self, n_layers, states, rnn_dir='bi', rnn_mode='gru', train=train)
+        NStepRNN.__init__(self, n_layers, states, rnn_dir='bi',
+                          rnn_mode='gru', train=train)
 
 
 def _stack_weight(ws):
@@ -222,14 +224,16 @@ def n_step_gru(
         return hy, tuple(ys)
 
 
-def n_step_bigru(n_layers, dropout_ratio, hx, ws, bs, xs, train=True, use_cudnn=True):
+def n_step_bigru(n_layers, dropout_ratio, hx, ws, bs, xs, train=True,
+                 use_cudnn=True):
     """
     Bi-GRU
     """
 
     xp = cuda.get_array_module(hx, hx.data)
 
-    if use_cudnn and xp is not numpy and cuda.cudnn_enabled and _cudnn_version >= 5000:
+    if use_cudnn and xp is not numpy and cuda.cudnn_enabled and \
+       _cudnn_version >= 5000:
         states = get_random_state().create_dropout_states(dropout_ratio)
         # flatten all input variables
         inputs = tuple(itertools.chain(
@@ -275,8 +279,8 @@ def n_step_bigru(n_layers, dropout_ratio, hx, ws, bs, xs, train=True, use_cudnn=
 
                 x = dropout.dropout(x, ratio=dropout_ratio, train=train)
                 h = dropout.dropout(h, ratio=dropout_ratio, train=train)
-                gru_in_x = linear.linear(x, xws[2 * layer + di], xbs[2 * layer + di])
-                gru_in_h = linear.linear(h, hws[2 * layer + di], hbs[2 * layer + di])
+                gru_in_x = linear.linear(x, xws[2*layer+di], xbs[2*layer+di])
+                gru_in_h = linear.linear(h, hws[2*layer+di], hbs[2*layer+di])
                 r_x, z_x, k_x = split_axis.split_axis(gru_in_x, 3, axis=1)
                 r_h, z_h, k_h = split_axis.split_axis(gru_in_h, 3, axis=1)
                 r = sigmoid.sigmoid(r_x + r_h)
@@ -304,8 +308,8 @@ def n_step_bigru(n_layers, dropout_ratio, hx, ws, bs, xs, train=True, use_cudnn=
 
                 x = dropout.dropout(x, ratio=dropout_ratio, train=train)
                 h = dropout.dropout(h, ratio=dropout_ratio, train=train)
-                gru_in_x = linear.linear(x, xws[2 * layer + di], xbs[2 * layer + di])
-                gru_in_h = linear.linear(h, hws[2 * layer + di], hbs[2 * layer + di])
+                gru_in_x = linear.linear(x, xws[2*layer+di], xbs[2*layer+di])
+                gru_in_h = linear.linear(h, hws[2*layer+di], hbs[2*layer+di])
                 r_x, z_x, k_x = split_axis.split_axis(gru_in_x, 3, axis=1)
                 r_h, z_h, k_h = split_axis.split_axis(gru_in_h, 3, axis=1)
                 r = sigmoid.sigmoid(r_x + r_h)
@@ -319,7 +323,8 @@ def n_step_bigru(n_layers, dropout_ratio, hx, ws, bs, xs, train=True, use_cudnn=
                 hb.append(h)
             hy.append(h)
             hb.reverse()
-            _xs = [concat.concat([hfi, hbi], axis=1) for (hfi, hbi) in zip(hf, hb)]
+            _xs = [concat.concat([hfi, hbi], axis=1)
+                   for (hfi, hbi) in zip(hf, hb)]
 
         hy = stack.stack(hy)
         ys = [_x[:batch, :] for (batch, _x) in zip(batches, _xs)]

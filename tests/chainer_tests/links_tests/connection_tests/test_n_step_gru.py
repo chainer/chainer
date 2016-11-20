@@ -68,7 +68,9 @@ class TestNStepGRU(unittest.TestCase):
                                 p.b0.data + p.b3.data)
                     i = sigmoid(x.dot(p.w1.data.T) + h_prev.dot(p.w4.data.T) +
                                 p.b1.data + p.b4.data)
-                    h_bar = numpy.tanh(x.dot(p.w2.data.T) + r * ((h_prev).dot(p.w5.data.T) + p.b5.data) + p.b2.data)
+                    h_bar = numpy.tanh(x.dot(p.w2.data.T) +
+                                       r * ((h_prev).dot(p.w5.data.T) +
+                                            p.b5.data) + p.b2.data)
                     e_h = (1 - i) * h_bar + i * h_prev
 
                     h_prev = e_h
