@@ -73,9 +73,12 @@ class TestNStepBiGRU(unittest.TestCase):
                     z = sigmoid(x.dot(p.w1.data.T) +
                                 h_prev.dot(p.w4.data.T) +
                                 p.b1.data + p.b4.data)
-                    h_bar = z * h_prev + (1 - z) *
-                    numpy.tanh(x.dot(p.w2.data.T) + p.b2.data +
-                               r * (h_prev.dot(p.w5.data.T) + p.b5.data))
+                    h_bar = numpy.tanh(x.dot(p.w2.data.T) +
+                                       p.b2.data +
+                                       r *
+                                       (h_prev.dot(p.w5.data.T) + p.b5.data))
+                    h_bar = z * h_prev + (1 - z) * h_bar
+
                     h_prev = h_bar
                     hfs.append(h_prev)
 
@@ -92,9 +95,11 @@ class TestNStepBiGRU(unittest.TestCase):
                     z = sigmoid(x.dot(p.w1.data.T) +
                                 h_prev.dot(p.w4.data.T) +
                                 p.b1.data + p.b4.data)
-                    h_bar = z * h_prev + (1 - z) *
-                    numpy.tanh(x.dot(p.w2.data.T) + p.b2.data +
-                               r * (h_prev.dot(p.w5.data.T) + p.b5.data))
+                    h_bar = numpy.tanh(x.dot(p.w2.data.T) +
+                                       p.b2.data +
+                                       r *
+                                       (h_prev.dot(p.w5.data.T) + p.b5.data))
+                    h_bar = z * h_prev + (1 - z) * h_bar
                     h_prev = h_bar
                     hbs.append(h_prev)
                 hbs.reverse()
