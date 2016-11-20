@@ -283,7 +283,7 @@ def n_step_bigru(n_layers, dropout_ratio, hx, ws, bs, xs, train=True,
             di = 1
             h = hx[2 * layer + di]
             hb = []
-            for batch, x in reversed(zip(batches, _xs)):
+            for batch, x in reversed(list(zip(batches, _xs))):
                 if h.shape[0] > batch:
                     h, h_rest = split_axis.split_axis(h, [batch], axis=0)
                 else:
