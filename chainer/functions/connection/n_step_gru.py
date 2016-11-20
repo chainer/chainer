@@ -140,9 +140,7 @@ def _stack_weight(ws):
 def n_step_gru(
         n_layers, dropout_ratio, hx, ws, bs, xs, train=True,
         use_cudnn=True):
-    """Stacked GRU function for sequence inputs.
-    Todo: write document.
-    """
+    """Stacked GRU function for sequence inputs. Todo: write document."""
 
     xp = cuda.get_array_module(hx.data)
 
@@ -215,9 +213,7 @@ def n_step_gru(
 
 def n_step_bigru(n_layers, dropout_ratio, hx, ws, bs, xs, train=True,
                  use_cudnn=True):
-    """Bi-GRU function.
-    Todo: write document.
-    """
+    """Bi-GRU function. Todo: write document. """
 
     xp = cuda.get_array_module(hx, hx.data)
 

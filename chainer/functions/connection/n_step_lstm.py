@@ -221,8 +221,8 @@ class NStepRNN(function.Function):
         for layer in six.moves.range(self.n_layers):
             for i in six.moves.range(self.rnn_params['n_W']):
                 for di in six.moves.range(self.rnn_direction):
-                    ind = (layer * self.rnn_direction + di) * \
-                          self.rnn_params['n_W'] + i
+                    ind = (layer * self.rnn_direction +
+                           di) * self.rnn_params['n_W'] + i
                     w_type = w_types[ind]
                     b_type = b_types[ind]
                     if self.rnn_direction == 1:
