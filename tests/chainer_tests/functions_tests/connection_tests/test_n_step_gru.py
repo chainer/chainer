@@ -80,7 +80,9 @@ class TestNStepGRU(unittest.TestCase):
                 h_prev = e_hy[layer, :batch]
                 z = sigmoid(x.dot(w[1].T) + h_prev.dot(w[4].T) + b[1] + b[4])
                 r = sigmoid(x.dot(w[0].T) + h_prev.dot(w[3].T) + b[0] + b[3])
-                h_bar = numpy.tanh(x.dot(w[2].T) + r * ((h_prev).dot(w[5].T) + b[5]) + b[2])
+                h_bar = numpy.tanh(x.dot(w[2].T) +
+                                   r *
+                                   ((h_prev).dot(w[5].T) + b[5]) + b[2])
                 e_h = (1 - z) * h_bar + z * h_prev
                 e_hy[layer, :batch] = e_h
 
@@ -118,6 +120,7 @@ class TestNStepGRU(unittest.TestCase):
         args = tuple([h_data] + sum(ws_data, []) + sum(bs_data, []) +
                      xs_data)
         grads = tuple([dhy_data] + dys_data)
+
         def f(*inputs):
             (hx, ), inputs = _split(inputs, 1)
             ws = []
@@ -129,7 +132,7 @@ class TestNStepGRU(unittest.TestCase):
                 biases, inputs = _split(inputs, 6)
                 bs.append(biases)
             xs = inputs
-            
+
             hy, ys = functions.n_step_gru(
                 self.n_layers, self.dropout, hx, ws, bs, xs)
             return (hy, ) + ys

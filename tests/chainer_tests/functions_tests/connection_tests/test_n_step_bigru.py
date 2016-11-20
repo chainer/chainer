@@ -50,12 +50,18 @@ class TestNStepBiGRU(unittest.TestCase):
                         w_in = self.out_size * 2
                     else:
                         w_in = self.out_size
-                    weights.append(numpy.random.uniform(-1, 1, (self.out_size, w_in)).astype('f'))
-                    biases.append(numpy.random.uniform(-1, 1, (self.out_size,)).astype('f'))
+                    weights.append(numpy.random.uniform(-1, 1,
+                                                        (self.out_size, w_in)
+                                                        ).astype('f'))
+                    biases.append(numpy.random.uniform(-1, 1,
+                                                       (self.out_size,)
+                                                       ).astype('f'))
                 self.ws.append(weights)
                 self.bs.append(biases)
 
-        self.dys = [numpy.random.uniform(-1, 1, (b, self.out_size * 2)).astype('f')
+        self.dys = [numpy.random.uniform(-1, 1,
+                                         (b, self.out_size * 2)
+                                         ).astype('f')
                     for b in self.batches]
         self.dcy = numpy.random.uniform(-1, 1, h_shape).astype(numpy.float32)
         self.dhy = numpy.random.uniform(-1, 1, h_shape).astype(numpy.float32)
@@ -87,7 +93,9 @@ class TestNStepBiGRU(unittest.TestCase):
                 h_prev = e_hy[2 * layer + di, :batch]
                 r = sigmoid(x.dot(w[0].T) + h_prev.dot(w[3].T) + b[0] + b[3])
                 z = sigmoid(x.dot(w[1].T) + h_prev.dot(w[4].T) + b[1] + b[4])
-                h_bar = z * h_prev + (1 - z) * numpy.tanh(x.dot(w[2].T) + b[2] + r * (h_prev.dot(w[5].T) + b[5]))
+                h_bar = numpy.tanh(x.dot(w[2].T) + b[2] +
+                                   r * (h_prev.dot(w[5].T) + b[5]))
+                h_bar = z * h_prev + (1 - z) * h_bar
                 e_hy[2 * layer + di, :batch] = h_bar
                 xf.append(h_bar)
 
@@ -102,13 +110,16 @@ class TestNStepBiGRU(unittest.TestCase):
                 h_prev = e_hy[2 * layer + di, :batch]
                 r = sigmoid(x.dot(w[0].T) + h_prev.dot(w[3].T) + b[0] + b[3])
                 z = sigmoid(x.dot(w[1].T) + h_prev.dot(w[4].T) + b[1] + b[4])
-                h_bar = z * h_prev + (1 - z) * numpy.tanh(x.dot(w[2].T) + b[2] + r * (h_prev.dot(w[5].T) + b[5]))
+                h_bar = numpy.tanh(x.dot(w[2].T) + b[2] +
+                                   r * (h_prev.dot(w[5].T) + b[5]))
+                h_bar = z * h_prev + (1 - z) * h_bar
                 e_hy[2 * layer + di, :batch] = h_bar
                 xb.append(h_bar)
 
             # new layer inputs
             xb.reverse()
-            xs = [numpy.concatenate([hf, hb], axis=1) for (hf, hb) in zip(xf, xb)]
+            xs = [numpy.concatenate([hf, hb], axis=1)
+                  for (hf, hb) in zip(xf, xb)]
 
         for k, (ysi, xsi) in enumerate(zip(ys, xs)):
             testing.assert_allclose(ysi.data, xsi, rtol=1e-4, atol=1e-4)
@@ -188,7 +199,9 @@ class TestNStepGRUCudnnCall(unittest.TestCase):
     dropout = 0.0
 
     def setUp(self):
-        self.xs = [cuda.cupy.random.uniform(-1, 1, (b, self.in_size)).astype('f') for b in self.batches]
+        self.xs = [cuda.cupy.random.uniform(-1, 1,
+                                            (b, self.in_size)).astype('f')
+                   for b in self.batches]
         h_shape = (self.n_layers * 2, self.batches[0], self.out_size)
         self.hx = cuda.cupy.random.uniform(-1, 1, h_shape).astype('f')
 
@@ -206,21 +219,28 @@ class TestNStepGRUCudnnCall(unittest.TestCase):
                     else:
                         w_in = self.out_size
 
-                    weights.append(cuda.cupy.random.uniform(-1, 1, (self.out_size, w_in)).astype('f'))
-                    biases.append(cuda.cupy.random.uniform(-1, 1, (self.out_size,)).astype('f'))
+                    weights.append(cuda.cupy.random.uniform(-1, 1,
+                                                            (self.out_size,
+                                                             w_in)
+                                                            ).astype('f'))
+                    biases.append(cuda.cupy.random.uniform(-1, 1,
+                                                           (self.out_size,)
+                                                           ).astype('f'))
 
                 self.ws.append(weights)
                 self.bs.append(biases)
 
         self.dhy = cuda.cupy.random.uniform(-1, 1, h_shape).astype('f')
-        self.expect = self.use_cudnn and (cuda.cudnn.cudnn.getVersion() >= 5000)
+        self.expect = self.use_cudnn and cuda.cudnn.cudnn.getVersion() >= 5000
 
     def forward(self, train):
         volatile = not train
         h = chainer.Variable(self.hx, volatile=volatile)
         xs = [chainer.Variable(x, volatile=volatile) for x in self.xs]
-        ws = [[chainer.Variable(w, volatile=volatile) for w in ws] for ws in self.ws]
-        bs = [[chainer.Variable(b, volatile=volatile) for b in bs] for bs in self.bs]
+        ws = [[chainer.Variable(w, volatile=volatile) for w in ws]
+              for ws in self.ws]
+        bs = [[chainer.Variable(b, volatile=volatile) for b in bs]
+              for bs in self.bs]
 
         return functions.n_step_bigru(
             self.n_layers, self.dropout, h, ws, bs, xs,
