@@ -7,7 +7,8 @@ import numpy
 import six
 
 from chainer import cuda
-from chainer.functions.activation import sigmoid, tanh
+from chainer.functions.activation import sigmoid
+from chainer.functions.activation import tanh
 from chainer.functions.array import concat
 from chainer.functions.array import reshape
 from chainer.functions.array import split_axis
@@ -140,9 +141,7 @@ def n_step_gru(
         n_layers, dropout_ratio, hx, ws, bs, xs, train=True,
         use_cudnn=True):
     """Stacked GRU function for sequence inputs.
-
     Todo: write document.
-
     """
 
     xp = cuda.get_array_module(hx.data)
@@ -166,21 +165,11 @@ def n_step_gru(
     else:
         hx = split_axis.split_axis(hx, n_layers, axis=0, force_tuple=True)
         hx = [reshape.reshape(h, h.data.shape[1:]) for h in hx]
-        """
-        From Nvidia documents:
-        GRU
-        - Values 0 and 3 reference the reset gate.
-        - Values 1 and 4 reference the update gate.
-        - Values 2 and 5 reference the new memory gate.
-
-        rt = sigmoid(Wr xt + Rr ht-1 + bWr + bRr)
-        it = sigmoid(Wi xt + Ri ht-1 + bWi + bRu)
-        h't = tanh(Wh xt + rt dot (Rh ht-1 + bRh) + bWh)
-        ht = (1 - it) dot h't + it dot ht-1
-
-        it, rt, h't represent the input, reset, new gates respectively.
-
-        """
+        # From Nvidia documents:
+        # GRU
+        # - Values 0 and 3 reference the reset gate.
+        # - Values 1 and 4 reference the update gate.
+        # - Values 2 and 5 reference the new memory gate.
         xws = [concat.concat([w[0], w[1], w[2]], axis=0) for w in ws]
         hws = [concat.concat([w[3], w[4], w[5]], axis=0) for w in ws]
         xbs = [concat.concat([b[0], b[1], b[2]], axis=0) for b in bs]
@@ -226,8 +215,8 @@ def n_step_gru(
 
 def n_step_bigru(n_layers, dropout_ratio, hx, ws, bs, xs, train=True,
                  use_cudnn=True):
-    """
-    Bi-GRU
+    """Bi-GRU function.
+    Todo: write document.
     """
 
     xp = cuda.get_array_module(hx, hx.data)
