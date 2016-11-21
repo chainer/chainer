@@ -9,7 +9,8 @@ cdef class Memory:
 
 
 cdef class ManagedMemory(Memory):
-    pass
+
+    cpdef advise(self, int advice, int device)
 
 
 cdef class MemoryPointer:
