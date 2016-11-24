@@ -214,6 +214,10 @@ cudaError_t cudaHostAlloc(...) {
     return cudaSuccess;
 }
 
+cudaError_t cudaMallocManaged(...) {
+    return cudaSuccess;
+}
+
 int cudaFree(...) {
     return cudaSuccess;
 }
