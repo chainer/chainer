@@ -47,7 +47,6 @@ before_install:
 
 install:
   - pip install -U pip wheel
-  - pip install cython
   - python setup.py sdist
   - pip install dist/*.tar.gz
   - pip install h5py pillow
@@ -56,10 +55,8 @@ install:
 
 script:
   - flake8
-  - flake8 --config=.flake8.cython
   - autopep8 -r . --global-config .pep8 | tee check_autopep8
   - test ! -s check_autopep8
-  - PYTHONWARNINGS='module::DeprecationWarning' nosetests -a '!gpu,!slow' --with-doctest tests/install_tests
   - cd tests
   - PYTHONWARNINGS='module::DeprecationWarning' nosetests -a '!gpu,!slow' --with-doctest chainer_tests
   - cd ..
