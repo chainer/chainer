@@ -2,8 +2,6 @@
 
 from setuptools import setup
 
-import chainer_setup_build
-
 
 setup_requires = []
 install_requires = [
@@ -14,11 +12,9 @@ install_requires = [
     'six>=1.9.0',
 ]
 
-ext_modules = chainer_setup_build.get_ext_modules()
-
 setup(
     name='chainer',
-    version='1.21.0',
+    version='2.0.0a1',
     description='A flexible framework of neural networks',
     author='Seiya Tokui',
     author_email='tokui@preferred.jp',
@@ -60,31 +56,10 @@ setup(
               'chainer.training',
               'chainer.training.extensions',
               'chainer.training.triggers',
-              'chainer.utils',
-              'cupy',
-              'cupy.binary',
-              'cupy.core',
-              'cupy.creation',
-              'cupy.cuda',
-              'cupy.ext',
-              'cupy.indexing',
-              'cupy.io',
-              'cupy.linalg',
-              'cupy.logic',
-              'cupy.manipulation',
-              'cupy.math',
-              'cupy.padding',
-              'cupy.random',
-              'cupy.sorting',
-              'cupy.statistics',
-              'cupy.testing'],
-    package_data={
-        'cupy': ['core/carray.cuh'],
-    },
+              'chainer.utils'],
     zip_safe=False,
     setup_requires=setup_requires,
     install_requires=install_requires,
     tests_require=['mock',
                    'nose'],
-    ext_modules=ext_modules,
 )
