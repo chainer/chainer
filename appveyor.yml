@@ -56,7 +56,6 @@ install:
   - "python -c \"import struct; print(struct.calcsize('P') * 8)\""
 
   - "conda install -y -q setuptools"
-  - "conda install -y -q cython"
   - "conda install -y -q h5py"
 
 build_script:
