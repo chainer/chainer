@@ -53,7 +53,7 @@ setup(
               'chainer.training',
               'chainer.training.extensions',
               'chainer.training.triggers',
-              'chainer.utils',],
+              'chainer.utils'],
     zip_safe=False,
     setup_requires=setup_requires,
     install_requires=install_requires,
