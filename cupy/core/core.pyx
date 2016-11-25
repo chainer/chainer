@@ -598,21 +598,21 @@ cdef class ndarray:
 
     # TODO(okuta): Implement put
 
-    cpdef scatter_update(self, ind, v, axis=0):
+    cpdef scatter_update(self, indices, v, axis=0):
         """Replaces specified elements of an array with given values.
 
         ``v`` needs to be broadcastable to shape
-            ``self.shape[:axis] + ind.shape + self.shape[axis+1:]``.
+            ``self.shape[:axis] + indices.shape + self.shape[axis+1:]``.
 
         Args:
-            ind (array-like): Indices of elements that this function
+            indices (array-like): Indices of elements that this function
                 takes.
             v (array-like): Values to place in ``self`` at target indices.
             axis (int): The axis along which to select indices.
 
        .. note::
        
-          When there are duplicating indices in ``ind``, the index among them
+          When there are duplicating indices in ``indices``, the index among them
             that is used to store value is undefined.
 
           Examples
@@ -625,7 +625,7 @@ cdef class ndarray:
           [9982. 9983.]
 
         """
-        _scatter_op(self, ind, v, axis, op='update')
+        _scatter_op(self, indices, v, axis, op='update')
 
     cpdef repeat(self, repeats, axis=None):
         """Returns an array with repeated arrays along an axis.
@@ -2104,7 +2104,7 @@ cpdef ndarray _take(ndarray a, indices, axis=None, ndarray out=None):
             a.reduced_view(), indices, cdim, rdim, adim, index_range, out)
 
 
-cpdef _scatter_op(ndarray a, ind, v, axis=0, op=''):
+cpdef _scatter_op(ndarray a, indices, v, axis=0, op=''):
     if a.ndim == 0:
         raise ValueError("requires a.ndim >= 1")
 
@@ -2118,19 +2118,19 @@ cpdef _scatter_op(ndarray a, ind, v, axis=0, op=''):
     adim = a.shape[axis]
     index_range = adim
 
-    ind = array(ind, dtype=int)
-    v_shape = lshape + ind.shape + rshape
+    indices = array(indices, dtype=int)
+    v_shape = lshape + indices.shape + rshape
     v = broadcast_to(v, v_shape)
 
-    cdim = ind.size
+    cdim = indices.size
     rdim = internal.prod(rshape)
-    ind = ind.reshape(
-        (1,) * len(lshape) + ind.shape + (1,) * len(rshape))
-    ind = broadcast_to(ind, v_shape)
+    indices = indices.reshape(
+        (1,) * len(lshape) + indices.shape + (1,) * len(rshape))
+    indices = broadcast_to(indices, v_shape)
 
     if op == 'update':
         _scatter_update_kernel(
-            v, ind, cdim, rdim, adim, index_range, a.reduced_view())
+            v, indices, cdim, rdim, adim, index_range, a.reduced_view())
     else:
         raise ValueError('provided op is not supported')
 
