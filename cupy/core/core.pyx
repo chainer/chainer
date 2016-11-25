@@ -2087,11 +2087,10 @@ cpdef ndarray _take(ndarray a, indices, axis=None, ndarray out=None):
 cpdef _scatter_op(ndarray a, indices, v, axis=0, op=''):
     if a.ndim == 0:
         raise ValueError("requires a.ndim >= 1")
-
     if not (-a.ndim <= axis < a.ndim):
         raise ValueError('Axis overrun')
-    if a.ndim != 0:
-        axis %= a.ndim
+
+    axis %= a.ndim
 
     lshape = a.shape[:axis]
     rshape = a.shape[axis + 1:]
