@@ -5,6 +5,7 @@ def scatter_update(a, indices, v, axis=0):
         ``a.shape[:axis] + indices.shape + a.shape[axis+1:]``.
 
     Args:
+        a (ndarray): An array that gets updated.
         indices (array-like): Indices of elements that this function takes.
         v (array-like): Values to place in ``a`` at target indices.
         axis (int): The axis along which to select indices.
@@ -19,7 +20,7 @@ def scatter_update(a, indices, v, axis=0):
         >>> a = cupy.zeros((2,))
         >>> i = cupy.arange(10001) % 2
         >>> v = cupy.arange(10000).astype(np.float)
-        >>> a.scatter_update(i, v, axis=0)
+        >>> cupy.scatter_update(a, i, v, axis=0)
         >>> a
         [9982. 9983.]
 
