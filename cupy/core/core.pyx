@@ -2001,11 +2001,11 @@ cdef _boolean_array_indexing_nth = ElementwiseKernel(
 
 
 cdef _scatter_update_kernel = ElementwiseKernel(
-    'T v, S indices, int32 cdim, int32 rdim, int32 adim, S index_range',
+    'T v, S indices, int32 cdim, int32 rdim, int32 adim',
     'raw T a',
     '''
-      S wrap_indices = indices % index_range;
-      if (wrap_indices < 0) wrap_indices += index_range;
+      S wrap_indices = indices % adim;
+      if (wrap_indices < 0) wrap_indices += adim;
 
       int li = i / (rdim * cdim);
       int ri = i % rdim;
@@ -2095,7 +2095,6 @@ cpdef _scatter_op(ndarray a, indices, v, axis=0, op=''):
     lshape = a.shape[:axis]
     rshape = a.shape[axis + 1:]
     adim = a.shape[axis]
-    index_range = adim
 
     indices = array(indices, dtype=int)
     v_shape = lshape + indices.shape + rshape
@@ -2109,7 +2108,7 @@ cpdef _scatter_op(ndarray a, indices, v, axis=0, op=''):
 
     if op == 'update':
         _scatter_update_kernel(
-            v, indices, cdim, rdim, adim, index_range, a.reduced_view())
+            v, indices, cdim, rdim, adim, a.reduced_view())
     else:
         raise ValueError('provided op is not supported')
 
