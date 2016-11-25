@@ -74,7 +74,7 @@ class TestScatterUpdateParamterized(unittest.TestCase):
 @testing.parameterize(
     *testing.product({
         'shape': [(3, 4, 5)],
-        'indices': [(2,)],
+        'indices_shape': [(2,)],
         'axis': [1],
         'v_shape': [(2, 3), (3,)],
         'mode': ['update'],
@@ -86,6 +86,6 @@ class TestScatterOpErrorMismatch(unittest.TestCase):
     @testing.numpy_cupy_raises()
     def test_shape_mismatch(self, xp):
         a = testing.shaped_arange(self.shape, xp, numpy.float32)
-        i = testing.shaped_arange(self.indices, xp, numpy.int32) % 3
+        i = testing.shaped_arange(self.indices_shape, xp, numpy.int32) % 3
         v = testing.shaped_arange(self.v_shape, xp, numpy.float32)
-        wrap_scatter(a, i, v, self.axis)
+        wrap_scatter(a, i, v, self.axis, self.mode)
