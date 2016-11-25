@@ -1,4 +1,4 @@
-def scatter_update(a, indices, v, axis=None):
+def scatter_update(a, indices, v, axis=0):
     """Replaces specified elements of an array with given values.
 
     ``v`` needs to be broadcastable to shape
