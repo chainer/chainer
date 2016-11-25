@@ -10,7 +10,7 @@ def scatter_update(a, indices, v, axis=0):
         axis (int): The axis along which to select indices.
 
     .. note::
-    
+
         When there are duplicating elements in ``indices``, the index among
             them that is used to store value is undefined.
 

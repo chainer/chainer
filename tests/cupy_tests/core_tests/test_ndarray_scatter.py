@@ -2,7 +2,6 @@ import unittest
 
 import numpy
 
-from cupy import core
 from cupy import get_array_module
 from cupy import testing
 
@@ -11,8 +10,8 @@ def wrap_scatter(a, ind, v, axis=None, mode=''):
     if get_array_module(a) is numpy:
         if mode == 'update':
             axis %= a.ndim
-            ind = ([slice(None)] * axis +
-                        [ind] + [slice(None)] * (a.ndim - axis - 1))
+            ind = [slice(None)] * axis +\
+                [ind] + [slice(None)] * (a.ndim - axis - 1)
             a[ind] = v
     else:
         if mode == 'update':
@@ -89,4 +88,4 @@ class TestScatterOpErrorMismatch(unittest.TestCase):
         a = testing.shaped_arange(self.shape, xp, numpy.float32)
         i = testing.shaped_arange(self.indices, xp, numpy.int32) % 3
         v = testing.shaped_arange(self.v_shape, xp, numpy.float32)
-        wrap_scatter_update(a, i, v, self.axis)
+        wrap_scatter(a, i, v, self.axis)
