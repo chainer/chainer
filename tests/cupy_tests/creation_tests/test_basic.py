@@ -18,7 +18,7 @@ class TestBasic(unittest.TestCase):
         a.fill(0)
         return a
 
-    @testing.slow
+    @testing.attr.slow
     @testing.for_dtypes(['?', 'b', 'h', 'e'])
     @testing.numpy_cupy_array_equal()
     def test_empty_huge(self, xp, dtype):
@@ -40,7 +40,7 @@ class TestBasic(unittest.TestCase):
         a.fill(0)
         return a
 
-    @testing.slow
+    @testing.attr.slow
     @testing.for_dtypes(['?', 'b', 'h', 'e'])
     @testing.numpy_cupy_array_equal()
     def test_empty_huge_int(self, xp, dtype):
