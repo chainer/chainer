@@ -10,7 +10,8 @@ _func_style = {'shape': 'record', 'fillcolor': '#6495ED', 'style': 'filled'}
 
 
 def dump_graph(root_name, out_name='cg.dot',
-               variable_style=None, function_style=None):
+               variable_style=None, function_style=None,
+               variable_label_func=None, function_label_func=None):
     """Returns a trainer extension to dump a computational graph.
 
     This extension dumps a computational graph. The graph is output in DOT
@@ -27,6 +28,12 @@ def dump_graph(root_name, out_name='cg.dot',
             rendered by an octagon by default.
         function_style (dict): Dot node style for functions. Each function is
             rendered by a rectangular by default.
+        variable_label_func (function): Dot node label function. It accepts
+            one :class:`~chainer.Variable` object and returns one string
+            that represents the node name.
+        function_label_func (function): Dot node label function. It accepts
+            one :class:`~chainer.Function` object and returns one string
+            that represents the node name.
 
     .. seealso::
        See :func:`~chainer.computational_graph.build_computational_graph`
@@ -49,7 +56,9 @@ def dump_graph(root_name, out_name='cg.dot',
         cg = computational_graph.build_computational_graph(
             [var],
             variable_style=variable_style,
-            function_style=function_style
+            function_style=function_style,
+            variable_label_func=variable_label_func,
+            function_label_func=function_label_func
         ).dump()
 
         out_path = os.path.join(trainer.out, out_name)
