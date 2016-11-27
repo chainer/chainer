@@ -2090,13 +2090,16 @@ cpdef _scatter_op(ndarray a, indices, v, axis=0, op=''):
     if not (-a.ndim <= axis < a.ndim):
         raise ValueError('Axis overrun')
 
-    axis %= a.ndim
+    if not isinstance(indices, ndarray):
+        indices = array(indices, dtype=int)
+    if not isinstance(v, ndarray):
+        v = array(v, dtype=a.dtype)
 
+    axis %= a.ndim
     lshape = a.shape[:axis]
     rshape = a.shape[axis + 1:]
     adim = a.shape[axis]
 
-    indices = array(indices, dtype=int)
     v_shape = lshape + indices.shape + rshape
     v = broadcast_to(v, v_shape)
 

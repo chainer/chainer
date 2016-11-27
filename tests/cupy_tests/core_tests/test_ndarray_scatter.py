@@ -2,6 +2,7 @@ import unittest
 
 import numpy
 
+import cupy
 from cupy import get_array_module
 from cupy import testing
 
@@ -51,8 +52,11 @@ class TestScatterUpdate(unittest.TestCase):
 
 
 @testing.parameterize(
-    {'indices_shape': (2,), 'axis': 0, 'v_shape': (1,)},
-    {'indices_shape': (2, 2), 'axis': 1, 'v_shape': (5,)},
+    {'indices_shape': (2,), 'axis': 0, 'v': numpy.array([1]), 'cupy': True},
+    {'indices_shape': (2, 2), 'axis': 1, 'v': numpy.arange(5), 'cupy': True},
+    {'indices_shape': (2,), 'axis': 0, 'v': numpy.array([1]), 'cupy': False},
+    {'indices_shape': (2, 2), 'axis': 1, 'v': numpy.array(1), 'cupy': False},
+    {'indices_shape': (2, 2), 'axis': 1, 'v': 1, 'cupy': False},
 )
 @testing.gpu
 class TestScatterUpdateParamterized(unittest.TestCase):
@@ -66,7 +70,12 @@ class TestScatterUpdateParamterized(unittest.TestCase):
         m = a.shape[self.axis]
         indices = testing.shaped_arange(
             self.indices_shape, xp, numpy.int32) % m
-        v = testing.shaped_arange(self.v_shape, xp, dtype=dtype)
+
+        v = self.v
+        if isinstance(v, numpy.ndarray):
+            v = self.v.astype(dtype)
+        if self.cupy and xp == cupy:
+            v = cupy.array(v)
         wrap_scatter(a, indices, v, self.axis, mode='update')
         return a
 
