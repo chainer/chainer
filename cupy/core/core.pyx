@@ -1070,9 +1070,15 @@ cdef class ndarray:
             if isinstance(s, ndarray):
                 if issubclass(s.dtype.type, numpy.integer):
                     advanced = True
+                elif issubclass(s.dtype.type, numpy.bool_):
+                    if i == 0 and internal.vector_equal(self._shape, s._shape):
+                        return _boolean_array_indexing(self, s)
+                    else:
+                        raise ValueError('Boolean array indexing is supported '
+                                         'only for same sized array.')
                 else:
-                    raise IndexError('Advanced indexing with ' +
-                                     'non-integer array is not supported')
+                    raise IndexError('Unsupported dtype for indexing: {}'
+                                     .format(s.dtype.type))
 
         if advanced:
             # split slices that can be handled by basic-indexing
