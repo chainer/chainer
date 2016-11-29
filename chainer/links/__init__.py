@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 """Collection of :class:`~chainer.Link` implementations."""
 
 from chainer.links.activation import maxout
@@ -17,6 +20,7 @@ from chainer.links.connection import inceptionbn
 from chainer.links.connection import linear
 from chainer.links.connection import lstm
 from chainer.links.connection import mlp_convolution_2d
+from chainer.links.connection import n_step_gru
 from chainer.links.connection import n_step_lstm
 from chainer.links.connection import parameter
 from chainer.links.connection import peephole
@@ -50,6 +54,8 @@ Linear = linear.Linear
 LSTM = lstm.LSTM
 StatelessLSTM = lstm.StatelessLSTM
 MLPConvolution2D = mlp_convolution_2d.MLPConvolution2D
+NStepBiGRU = n_step_gru.NStepBiGRU
+NStepGRU = n_step_gru.NStepGRU
 NStepLSTM = n_step_lstm.NStepLSTM
 Parameter = parameter.Parameter
 StatefulPeepholeLSTM = peephole.StatefulPeepholeLSTM

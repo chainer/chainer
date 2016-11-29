@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 """Collection of :class:`~chainer.Function` implementations."""
 
 from chainer.functions.activation import clipped_relu
@@ -48,6 +51,7 @@ from chainer.functions.connection import deconvolution_nd
 from chainer.functions.connection import dilated_convolution_2d
 from chainer.functions.connection import embed_id
 from chainer.functions.connection import linear
+from chainer.functions.connection import n_step_gru
 from chainer.functions.connection import n_step_lstm
 from chainer.functions.evaluation import accuracy
 from chainer.functions.evaluation import binary_accuracy
@@ -206,6 +210,10 @@ deconvolution_nd = deconvolution_nd.deconvolution_nd
 dilated_convolution_2d = dilated_convolution_2d.dilated_convolution_2d
 embed_id = embed_id.embed_id
 linear = linear.linear
+NStepBiGRU = n_step_gru.NStepBiGRU
+n_step_bigru = n_step_gru.n_step_bigru
+NStepGRU = n_step_gru.NStepGRU
+n_step_gru = n_step_gru.n_step_gru
 NStepLSTM = n_step_lstm.NStepLSTM
 n_step_lstm = n_step_lstm.n_step_lstm
 
