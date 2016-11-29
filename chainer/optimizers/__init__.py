@@ -1,6 +1,7 @@
 from chainer.optimizers import ada_delta
 from chainer.optimizers import ada_grad
 from chainer.optimizers import adam
+from chainer.optimizers import eve
 from chainer.optimizers import momentum_sgd
 from chainer.optimizers import nesterov_ag
 from chainer.optimizers import rmsprop
@@ -11,6 +12,7 @@ from chainer.optimizers import smorms3
 AdaDelta = ada_delta.AdaDelta
 AdaGrad = ada_grad.AdaGrad
 Adam = adam.Adam
+Eve = eve.Eve
 MomentumSGD = momentum_sgd.MomentumSGD
 NesterovAG = nesterov_ag.NesterovAG
 RMSprop = rmsprop.RMSprop
