@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 import tempfile
@@ -38,6 +39,43 @@ def snapshot_object(target, filename, savefun=npz.save_npz,
     @extension.make_extension(trigger=trigger, priority=-100)
     def snapshot_object(trainer):
         _snapshot_object(trainer, target, filename.format(trainer), savefun)
+
+    return snapshot_object
+
+
+def snapshot_json(target, filename, trigger=(1, 'epoch')):
+    """Returns a trainer extension to take snapshots of a given json object.
+
+    This extension serializes the given object and saves it to the output
+    directory.
+
+    This extension is called once for each epoch by default. The default
+    priority is -100, which is lower than that of most built-in extensions.
+
+    Args:
+        target: Json Object.
+        filename (str): Name of the file into which the object is serialized.
+            It can be a format string, where the trainer object is passed to
+            the :meth:`str.format` method. For example,
+            ``'snapshot_{.updater.iteration}'`` is converted to
+            ``'snapshot_10000'`` at the 10,000th iteration.
+        trigger: Trigger that decides when to take snapshot. It can be either
+            an already built trigger object (i.e., a callable object that
+            accepts a trainer object and returns a bool value), or a tuple in
+            the form ``<int>, 'epoch'`` or ``<int>, 'iteration'``. In latter
+            case, the tuple is passed to IntervalTrigger.
+
+    Returns:
+        An extension function.
+
+    """
+    @extension.make_extension(trigger=trigger, priority=-100)
+    def snapshot_object(trainer):
+        def save_json(filename_json, obj):
+            json.dump(obj, open(filename_json, 'w'), sort_keys=True, indent=4)
+
+        _snapshot_object(trainer, target, filename.format(trainer),
+                         savefun=save_json)
 
     return snapshot_object
 
