@@ -3,7 +3,34 @@ import numpy
 # TODO(okuta): Implement place
 
 
-# TODO(okuta): Implement put
+def put(a, ind, v):
+    """Replaces specified elements of an array with given values.
+
+    This function does not support ``mode`` option.
+
+    Args:
+        a (cupy.ndarray): Target array.
+        ind (array_like): Target integer indices
+        v (array_like): Values to place in ``a`` at target indices.
+
+    .. note::
+
+       Currently CuPy behaves differently from Numpy when elements in ``ind``
+       are not unique.
+
+       Examples
+       --------
+       >>> a = cupy.zeros((2,))
+       >>> i = cupy.arange(10001) % 2
+       >>> v = cupy.arange(10000).astype(np.float)
+       >>> cupy.put(a, i, v)
+       >>> a
+       [9982. 9983.]
+
+     .. seealso:: :func:`numpy.put`
+
+    """
+    a.put(ind, v)
 
 
 # TODO(okuta): Implement putmask
