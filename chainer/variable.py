@@ -157,6 +157,7 @@ Actual: {0}'''.format(type(data))
     def __pos__(self):
         return self
 
+    @chainer.utils.future_warning('v1.17.0')
     def __len__(self):
         """Returns the number of elements of the data array.
 

@@ -1,8 +1,10 @@
 import numpy
 
 from chainer.utils import walker_alias
+from chainer.utils import future_warning as future_warning_
 
 WalkerAlias = walker_alias.WalkerAlias
+future_warning = future_warning_.future_warning
 
 
 def force_array(x, dtype=None):
