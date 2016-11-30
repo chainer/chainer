@@ -81,6 +81,11 @@ def main():
     # Take a snapshot at each epoch
     trainer.extend(extensions.snapshot(), trigger=(args.epoch, 'epoch'))
 
+    # Take a snapshot of the model at the last epoch
+    trainer.extend(extensions.snapshot_object(
+        model.predictor, 'model_iter_{.updater.iteration}'),
+        trigger=(args.epoch, 'epoch'))
+
     # Write a log of evaluation statistics for each epoch
     trainer.extend(extensions.LogReport())
 
