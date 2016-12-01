@@ -1,13 +1,10 @@
-import binascii
 import itertools
 import os
-import time
 
 import numpy
 import six
 
 from chainer import cuda
-from chainer import function
 from chainer.functions.activation import lstm
 from chainer.functions.array import concat
 from chainer.functions.array import reshape
@@ -16,7 +13,6 @@ from chainer.functions.array import stack
 from chainer.functions.connection import linear
 from chainer.functions.connection import n_step_rnn
 from chainer.functions.noise import dropout
-from chainer.utils import type_check
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
@@ -60,6 +56,7 @@ def n_step_lstm(
     :math:`b`.
     This function calculates hidden states :math:`h_t` and :math:`c_t` for each
     time :math:`t` from input :math:`x_t`.
+
     .. math::
        i_t = \sigma(W_0 x_t + W_4 h_{t-1} + b_0 + b_4)
        f_t = \sigma(W_1 x_t + W_5 h_{t-1} + b_1 + b_5)
@@ -67,14 +64,17 @@ def n_step_lstm(
        a_t = \tanh(W_3 x_t + W_7 h_{t-1} + b_3 + b_7)
        c_t = f_t \dot c_{t-1} + i_t \dot a_t
        h_t = o_t \dot \tanh(c_t)
+
     As the function accepts a sequence, it calculates :math:`h_t` for all
     :math:`t` with one call. Eight weight matrices and eight bias vectors are
     required for each layers. So, when :math:`S` layers exists, you need to
     prepare :math:`8S` weigth matrices and :math:`8S` bias vectors.
+
     If the number of layers ``n_layers`` is greather than :math:`1`, input
     of ``k``-th layer is hidden state ``h_t`` of ``k-1``-th layer.
     Note that all input variables except first layer may have different shape
     from the first layer.
+
     Args:
         n_layers(int): Number of layers.
         dropout_ratio(float): Dropout ratio.
@@ -110,6 +110,7 @@ def n_step_lstm(
             ``xs[t].shape[0] >= xs[t + 1].shape[0]``.
         train (bool): If ``True``, this function executes dropout.
         use_cudnn (bool): If ``True``, this function uses cuDNN if available.
+
     Returns:
         tuple: This functions returns a tuple concaining three elements,
             ``hy``, ``cy`` and ``ys``.
@@ -120,9 +121,12 @@ def n_step_lstm(
               to an input ``xs[t]``. Its shape is ``(B_t, N)`` where ``B_t`` is
               mini-batch size for time ``t``, and ``N`` is size of hidden
               units. Note that ``B_t`` is the same value as ``xs[t]``.
+
     .. seealso::
+
        :func:`chainer.functions.lstm`
-    """
+
+       """
 
     xp = cuda.get_array_module(hx, hx.data)
 

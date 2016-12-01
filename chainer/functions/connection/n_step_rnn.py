@@ -1,5 +1,4 @@
 import binascii
-import itertools
 import os
 import time
 
@@ -8,13 +7,6 @@ import six
 
 from chainer import cuda
 from chainer import function
-from chainer.functions.activation import lstm
-from chainer.functions.array import concat
-from chainer.functions.array import reshape
-from chainer.functions.array import split_axis
-from chainer.functions.array import stack
-from chainer.functions.connection import linear
-from chainer.functions.noise import dropout
 from chainer.utils import type_check
 
 
@@ -38,6 +30,7 @@ class PointerArray(object):
 
 def _make_tensor_descriptor_array(xs):
     """Make an array of pointers denoting pointers of tensor descriptors.
+
     """
     descs = []
     for x in xs:
@@ -51,6 +44,7 @@ def _make_tensor_descriptor_array(xs):
 
 def _make_ptr_array(xs):
     """Make an array of pointers denoting pointers of ndarrays.
+
     """
     return PointerArray([x.data.ptr for x in xs], xs)
 
