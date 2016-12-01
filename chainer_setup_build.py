@@ -1,6 +1,7 @@
 from __future__ import print_function
 import copy
 import distutils
+import hashlib
 import os
 from os import path
 import shutil
@@ -220,6 +221,10 @@ def parse_args():
     if check_readthedocs_environment():
         _arg_options['no_cuda'] = True
 
+    _arg_options['only_changed'] = '--cupy-only-changed' in sys.argv
+    if _arg_options['only_changed']:
+        sys.argv.remove('--cupy-only-changed')
+
 
 def get_cython_pkg():
     try:
@@ -242,8 +247,35 @@ def run_command(cmd):
         raise distutils.errors.DistutilsExecError(msg)
 
 
-def cythonize(
-        extensions, force=False, annotate=False, compiler_directives=None):
+def _md5sum(f):
+    m = hashlib.new('md5')
+    while True:
+        # Hash one 8096 byte block at a time
+        d = f.read(8096)
+        if not d:
+            break
+        m.update(d)
+    return m.hexdigest()
+
+
+def _is_changed(filename):
+    filename_cache = filename + '.md5'
+
+    try:
+        md5_cached = open(filename_cache, 'rb').read()
+    except IOError:
+        md5_cached = '0'
+
+    with open(filename, 'rb') as f:
+        md5_new = _md5sum(f)
+        with open(filename_cache, 'wb') as cf:
+            cf.write(md5_new.encode('utf-8'))
+
+    return md5_cached != md5_new.encode('utf-8')
+
+
+def cythonize(extensions, force=False, annotate=False,
+              compiler_directives=None, only_changed=False):
     cython_location = get_cython_pkg().location
     cython_path = path.join(cython_location, 'cython.py')
     print("cython path:%s" % cython_location)
@@ -257,6 +289,11 @@ def cythonize(
             cmd.append('%s=%s' % i)
 
     for ext in extensions:
+        # '_is_changed' function should be always called to update the md5 file
+        if all([not _is_changed(f) for f in ext.sources]) and only_changed:
+            print("skipping because no changes: '{}'"
+                  .format(','.join(ext.sources)))
+            continue
         run_command(cmd + ext.sources)
 
 
@@ -292,7 +329,7 @@ class chainer_build_ext(build_ext.build_ext):
             directive_keys = ('linetrace', 'profile')
             directives = {key: _arg_options[key] for key in directive_keys}
 
-            cythonize_option_keys = ('annotate',)
+            cythonize_option_keys = ('annotate', 'only_changed')
             cythonize_options = {
                 key: _arg_options[key] for key in cythonize_option_keys}
 
