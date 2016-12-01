@@ -303,7 +303,15 @@ class chainer_build_ext(build_ext.build_ext):
 
             cython = get_cython_pkg()
             req_version = pkg_resources.parse_version(cython_version)
-            if cython is not None and cython.parsed_version > req_version:
+            if cython is None:
+                utils.print_warning('Cython is not installed')
+            elif cython.parsed_version < req_version:
+                utils.print_warning(
+                    'Installed Cython version is %s.' % cython.version,
+                    'Chainer requires Cython version %s or higher.'
+                    % cython_version)
+            else:
+                print('Installed Cython version is %s' % cython.version)
                 cythonize(extensions, force=True,
                           compiler_directives=directives, **cythonize_options)
 
