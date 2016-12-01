@@ -126,7 +126,7 @@ def n_step_lstm(
 
        :func:`chainer.functions.lstm`
 
-       """
+    """
 
     xp = cuda.get_array_module(hx, hx.data)
 

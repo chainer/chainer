@@ -48,8 +48,8 @@ from chainer.functions.connection import deconvolution_nd  # NOQA
 from chainer.functions.connection import dilated_convolution_2d  # NOQA
 from chainer.functions.connection import embed_id  # NOQA
 from chainer.functions.connection import linear  # NOQA
-from chainer.functions.connection import n_step_rnn  # NOQA
 from chainer.functions.connection import n_step_lstm  # NOQA
+from chainer.functions.connection import n_step_rnn  # NOQA
 from chainer.functions.evaluation import accuracy  # NOQA
 from chainer.functions.evaluation import binary_accuracy  # NOQA
 from chainer.functions.evaluation import classification_summary  # NOQA
@@ -191,10 +191,10 @@ from chainer.functions.connection.deconvolution_nd import deconvolution_nd  # NO
 from chainer.functions.connection.dilated_convolution_2d import dilated_convolution_2d  # NOQA
 from chainer.functions.connection.embed_id import embed_id  # NOQA
 from chainer.functions.connection.linear import linear  # NOQA
-from chainer.functions.connection.n_step_rnn import n_step_rnn  # NOQA
-from chainer.functions.connection.n_step_rnn import NStepRNN  # NOQA
 from chainer.functions.connection.n_step_lstm import n_step_lstm  # NOQA
 from chainer.functions.connection.n_step_lstm import NStepLSTM  # NOQA
+from chainer.functions.connection.n_step_rnn import n_step_rnn  # NOQA
+from chainer.functions.connection.n_step_rnn import NStepRNN  # NOQA
 
 from chainer.functions.evaluation.accuracy import accuracy  # NOQA
 from chainer.functions.evaluation.accuracy import Accuracy  # NOQA
