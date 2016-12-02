@@ -178,21 +178,21 @@ class BinaryHierarchicalSoftmaxFunction(function.Function):
             raw T codes, raw int32 begins, int32 c, int32 max_length''',
             'T ls, T wxy',
             '''
-            ssize_t ind = i / max_length;
-            ssize_t offset = i - ind * max_length;
-            ssize_t t = ts[ind];
+            ptrdiff_t ind = i / max_length;
+            ptrdiff_t offset = i - ind * max_length;
+            ptrdiff_t t = ts[ind];
 
             int begin = begins[t];
-            ssize_t length = begins[t + 1] - begins[t];
+            ptrdiff_t length = begins[t + 1] - begins[t];
 
             if (offset < length) {
-              ssize_t p = begin + offset;
-              ssize_t node = paths[p];
+              ptrdiff_t p = begin + offset;
+              ptrdiff_t node = paths[p];
 
               T wx = 0;
               for (int j = 0; j < c; ++j) {
-                ssize_t w_ind[] = {node, j};
-                ssize_t x_ind[] = {ind, j};
+                ptrdiff_t w_ind[] = {node, j};
+                ptrdiff_t x_ind[] = {ind, j};
                 wx += w[w_ind] * x[x_ind];
               }
               wxy = wx * codes[p];
@@ -221,22 +221,22 @@ class BinaryHierarchicalSoftmaxFunction(function.Function):
             int32 c, int32 max_length''',
             'raw T gx, raw T gw',
             '''
-            ssize_t ind = i / max_length;
-            ssize_t offset = i - ind * max_length;
-            ssize_t t = ts[ind];
+            ptrdiff_t ind = i / max_length;
+            ptrdiff_t offset = i - ind * max_length;
+            ptrdiff_t t = ts[ind];
 
-            ssize_t begin = begins[t];
-            ssize_t length = begins[t + 1] - begins[t];
+            ptrdiff_t begin = begins[t];
+            ptrdiff_t length = begins[t + 1] - begins[t];
 
             if (offset < length) {
-              ssize_t p = begin + offset;
-              ssize_t node = paths[p];
+              ptrdiff_t p = begin + offset;
+              ptrdiff_t node = paths[p];
               T code = codes[p];
 
               T g = -gloss[0L] * code / (1.0 + exp(wxy));
               for (int j = 0; j < c; ++j) {
-                ssize_t w_ind[] = {node, j};
-                ssize_t x_ind[] = {ind, j};
+                ptrdiff_t w_ind[] = {node, j};
+                ptrdiff_t x_ind[] = {ind, j};
                 atomicAdd(&gx[x_ind], g * w[w_ind]);
                 atomicAdd(&gw[w_ind], g * x[x_ind]);
               }

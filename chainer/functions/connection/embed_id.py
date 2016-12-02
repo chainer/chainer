@@ -62,7 +62,7 @@ class EmbedIDFunction(function.Function):
                 cuda.elementwise(
                     'T gy, int32 x, int32 n_out', 'raw T gW',
                     '''
-                    ssize_t w_ind[] = {x, i % n_out};
+                    ptrdiff_t w_ind[] = {x, i % n_out};
                     atomicAdd(&gW[w_ind], gy);
                     ''',
                     'embed_id_bwd')(
@@ -72,7 +72,7 @@ class EmbedIDFunction(function.Function):
                     'T gy, int32 x, int32 n_out, int32 ignore', 'raw T gW',
                     '''
                     if (x != ignore) {
-                      ssize_t w_ind[] = {x, i % n_out};
+                      ptrdiff_t w_ind[] = {x, i % n_out};
                       atomicAdd(&gW[w_ind], gy);
                     }
                     ''',
