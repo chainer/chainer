@@ -9,33 +9,36 @@ class SeparableConvolution2D(link.ChainList):
 
     """Separable convolutional layer.
 
+    This is an "separableconv" layer from the Rigid-Motion Scattering For
+    Image Classification paper.
+    Google Xception architecture uses this network, and default configuration
+    of this layer follows recommendation by Xception.
+    This layer is a depthwise (i.e. input channel wise) convolution layer
+    followed by 1x1 convolution (pointwise conv) layer.
+    In depthwise conv, filters with different weight will be applied for each
+    input channel.
+
+    Note that it does not apply the activation function to the output of the
+    pointwise convolution layers.
+
     Args:
         in_channels (int or None): Number of channels of input arrays.
-        out_channels (tuple of ints): Tuple of number of channels. The i-th
+        mid_channels (int): Number of channels of output of pointwise
+            conv layer. It must equals the number of input channels of
+            depthwise conv layers.
+        out_channels (int): Number of output channels. The i-th
             integer indicates the number of filters of the i-th convolution.
-        ksize (int or pair of ints): Size of filters (a.k.a. kernels) of the
-            first convolution layer. ``ksize=k`` and ``ksize=(k, k)`` are
-            equivalent.
-        stride (int or pair of ints): Stride of filter applications at the
-            first convolution layer. ``stride=s`` and ``stride=(s, s)`` are
-            equivalent.
-        pad (int or pair of ints): Spatial padding width for input arrays at
-            the first convolution layer. ``pad=p`` and ``pad=(p, p)`` are
-            equivalent.
-        activation (function): Activation function for internal hidden units.
-            Note that this function is not applied to the output of this link.
-        use_cudnn (bool): If ``True``, then this link uses cuDNN if available.
-        conv_init: An initializer of weight matrices
-            passed to the convolution layers.
-        bias_init: An initializer of bias vectors
-            passed to the convolution layers.
+        pointwise_conv (~chainer.Links.Convolution2D): Definition of pointwise
+            conv layer. If `None`, default configuration recommended by the
+            author of Xception will be used.
+        depthwise_conv (~chainer.Links.Convolution2D): Definition of depthwise
+            conv layer. If `None`, default configuration recommended by the
+            author of Xception will be used.
 
-    See: `Network in Network <http://arxiv.org/abs/1312.4400v3>`.
-
-    Attributes:
-        pointwise_conv (Convolution2D): Activation function.
-        depthwise_conv (Convolution2D): Activation function.
-
+    See: `Rigid-Motion Scattering For Image Classification
+         <http://www.cmapx.polytechnique.fr/~sifre/research/phd_sifre.pdf>`.
+         `Xception: Deep Learning with Depthwise Separable Convolutions
+         <https://arxiv.org/abs/1610.02357>`.
     """
 
     def __init__(self, in_channels, mid_channels, out_channels=None,
@@ -49,8 +52,7 @@ class SeparableConvolution2D(link.ChainList):
         if depthwise_conv is None:
             depthwise_conv = convolution_2d(in_channels=in_channels,
                                             out_channels=out_channels,
-                                            ksize=3,
-                                            )
+                                            ksize=3)
         assert pointwise_conv.out_channels == depthwise_conv.in_channels
         convs = [pointwise_conv]
         for i in six.moves.range(mid_channels):
@@ -61,7 +63,8 @@ class SeparableConvolution2D(link.ChainList):
         """Computes the output of the SeparableConv layer.
 
         Args:
-            x (~chainer.Variable): Input image.
+            x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+                Input image.
 
         Returns:
             ~chainer.Variable:
@@ -71,6 +74,6 @@ class SeparableConvolution2D(link.ChainList):
         """
         x = self[0](x)
         ys = []
-        for depth_conv2d in self[1:]:
-            ys.append(depth_conv2d(x))
+        for i in six.moves.range(len(self) - 1):
+            ys.append(self[i](x[i]))
         return concat.concat(*ys, axis=1)
