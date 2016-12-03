@@ -7,6 +7,7 @@
 # class s_(object):
 
 import numpy
+
 import cupy
 # TODO(okuta): Implement indices
 
