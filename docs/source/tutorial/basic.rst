@@ -49,8 +49,8 @@ We will review such amenities in later sections of this tutorial.
 
 Chainer represents a network as *an execution path on a computational graph*.
 A computational graph is a series of function applications, so that it can be described with multiple :class:`~Function` objects.
-But when such function is in a neural network, it will be updated through training. So the function needs to keep trainable parameters inside.
-To do that, Chainer has :class:`~Link` class that can keep trainable parameters inside.
+But when such function is in a neural network, the parameters of the function will be updated through training. So the function needs to keep trainable parameters inside.
+To do that, Chainer has :class:`~Link` class that can keep trainable parameters in its object.
 The parameters of the function performed inside the :class:`~Link` object are represented as :class:`~Variable` objects.
 In short, the difference between these two objects (:class:`~Link` and :class:`~Function`) is basically whether it has trainable parameters inside or not.
 A neural network model is described as a series of :class:`~Function` and :class:`~Link`.

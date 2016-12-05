@@ -1,3 +1,5 @@
+# distutils: language = c++
+
 from __future__ import division
 import ctypes
 import sys
@@ -1012,7 +1014,22 @@ cdef class ndarray:
         return self._shape[0]
 
     def __getitem__(self, slices):
-        # It supports the basic indexing (by slices, ints or Ellipsis) only.
+        """x.__getitem__(y) <==> x[y]
+
+        .. note::
+
+           CuPy handles out-of-bounds indices differently from NumPy.
+           NumPy handles them by raising an error, but CuPy wraps around them.
+
+           Examples
+           --------
+           >>> a = cupy.arange(3)
+           >>> a[[1, 3]]
+           array([1, 0])
+
+        """
+        # supports basic indexing (by slices, ints or Ellipsis).
+        # also supports indexing by integer arrays.
         # TODO(beam2d): Support the advanced indexing of NumPy.
         cdef Py_ssize_t i, j, offset, ndim, n_newaxes, n_ellipses, ellipsis
         cdef Py_ssize_t ellipsis_sizem, s_start, s_stop, s_step, dim, ind
@@ -1022,17 +1039,13 @@ cdef class ndarray:
         else:
             slices = list(slices)
 
-        for s in slices:
-            if isinstance(s, ndarray):
-                raise ValueError('Advanced indexing is not supported')
-
         # Expand ellipsis into empty slices
         ellipsis = -1
         n_newaxes = n_ellipses = 0
         for i, s in enumerate(slices):
             if s is None:
                 n_newaxes += 1
-            elif s == Ellipsis:
+            elif s is Ellipsis:
                 n_ellipses += 1
                 ellipsis = i
         ndim = self._shape.size()
@@ -1044,6 +1057,61 @@ cdef class ndarray:
             slices[ellipsis:ellipsis + 1] = noneslices * ellipsis_size
 
         slices += noneslices * (ndim - <Py_ssize_t>len(slices) + n_newaxes)
+
+        if len(slices) > self.ndim + n_newaxes:
+            raise IndexError('too many indices for array')
+
+        # Check if advanced is true, and convert list/NumPy arrays to ndarray
+        advanced = False
+        for i, s in enumerate(slices):
+            if isinstance(s, (list, numpy.ndarray)):
+                s = array(s)
+                slices[i] = s
+            if isinstance(s, ndarray):
+                if issubclass(s.dtype.type, numpy.integer):
+                    advanced = True
+                else:
+                    raise IndexError('Advanced indexing with ' +
+                                     'non-integer array is not supported')
+
+        if advanced:
+            # split slices that can be handled by basic-indexing
+            basic_slices = []
+            adv_slices = []
+            for i, s in enumerate(slices):
+                if type(s) is slice:
+                    basic_slices.append(s)
+                    adv_slices.append(slice(None))
+                elif s is None:
+                    basic_slices.append(None)
+                    adv_slices.append(slice(None))
+                elif (isinstance(s, ndarray) and
+                        issubclass(s.dtype.type, numpy.integer)):
+                    basic_slices.append(slice(None))
+                    if s.ndim == 0:
+                        s = s.reshape((1,))
+                    adv_slices.append(s)
+                elif isinstance(s, int):
+                    basic_slices.append(slice(None))
+                    adv_slices.append(array(s, ndmin=1))
+                else:
+                    raise IndexError(
+                        'only integers, slices (`:`), ellipsis (`...`),'
+                        'numpy.newaxis (`None`) and integer or'
+                        'boolean arrays are valid indices')
+
+            # check if this is a combination of basic and advanced indexing
+            a = self
+            for s in basic_slices:
+                if s is None or (isinstance(s, slice) and s != slice(None)):
+                    a = self[tuple(basic_slices)]
+                    break
+
+            arr_slices_mask = [not isinstance(s, slice) for s in adv_slices]
+            if sum(arr_slices_mask) == 1:
+                axis = arr_slices_mask.index(True)
+                return a.take(adv_slices[axis], axis)
+            return _adv_getitem(a, adv_slices)
 
         # Create new shape and stride
         j = 0
@@ -1079,8 +1147,8 @@ cdef class ndarray:
                 if ind < 0:
                     ind += self._shape[j]
                 if not (0 <= ind < self._shape[j]):
-                    msg = ('Index %s is out of bounds for axis %s with size %s'
-                           % (s, j, self._shape[j]))
+                    msg = ('Index %s is out of bounds for axis %s with '
+                           'size %s' % (s, j, self._shape[j]))
                     raise IndexError(msg)
                 offset += ind * self._strides[j]
                 j += 1
@@ -1094,6 +1162,14 @@ cdef class ndarray:
 
     def __setitem__(self, slices, value):
         cdef ndarray v, x, y
+        if not isinstance(slices, tuple):
+            slices = (slices,)
+
+        for s in slices:
+            if isinstance(s, (list, numpy.ndarray, ndarray)):
+                raise IndexError(
+                    'Only basic indexing is supported for __setitem__')
+
         v = self[slices]
         if isinstance(value, ndarray):
             y, x = broadcast(v, value).values
@@ -1987,6 +2063,88 @@ cpdef ndarray _diagonal(ndarray a, Py_ssize_t offset=0, Py_ssize_t axis1=0,
         a.shape[:-2] + (diag_size,),
         a.strides[:-2] + (a.strides[-1] + a.strides[-2],))
     return ret
+
+
+cpdef ndarray _adv_getitem(ndarray a, slices):
+    # slices consist of either None or ndarray of dim>=1
+    cdef int i, p, li, ri
+    cdef ndarray take_idx, input_flat, out_flat, o
+
+    arr_slices = [s for s in slices if isinstance(s, ndarray)]
+    br = broadcast(*arr_slices)
+
+    # broadcast all arrays to the largest shape
+    j = 0
+    for i, s in enumerate(list(slices)):
+        if isinstance(s, ndarray):
+            slices[i] = br.values[j]
+            j += 1
+
+    # check if transpose is necessasry
+    # li:  index of the leftmost array in slices
+    # ri:  index of the rightmost array in slices
+    do_transpose = False
+    prev_arr_i = None
+    li = 0
+    ri = 0
+    for i, s in enumerate(list(slices)):
+        if isinstance(s, ndarray):
+            if prev_arr_i is None:
+                prev_arr_i = i
+                li = i
+            elif prev_arr_i is not None and i - prev_arr_i > 1:
+                do_transpose = True
+            else:
+                prev_arr_i = i
+                ri = i
+
+    if do_transpose:
+        transp = list(range(a.ndim))
+        p = 0
+        for i, s in enumerate(list(slices)):
+            if isinstance(s, ndarray):
+                transp.remove(i)
+                transp.insert(p, i)
+                tmp = slices.pop(i)
+                slices.insert(p, tmp)
+                p += 1
+        a = a.transpose(*transp)
+
+        li = 0
+        ri = p - 1
+
+    # flatten the array-indexed dimensions
+    shape = a.shape[:li] +\
+        (internal.prod_ssize_t(a.shape[li:ri+1]),) + a.shape[ri+1:]
+    input_flat = a.reshape(shape)
+
+    # build the strides
+    strides = [1]
+    for i in range(ri, li, -1):
+        stride = a.shape[i] * strides[0]
+        strides.insert(0, stride)
+
+    # convert all negative indices to wrap_indices
+    for i in range(li, ri+1):
+        slices[i] = slices[i] % a.shape[i]
+
+    flattened_indexes = []
+    for stride, s in zip(strides, slices[li:ri+1]):
+        flattened_indexes.append(stride * s)
+
+    # do stack: flattened_indexes = stack(flattened_indexes, axis=0)
+    concat_shape = (len(flattened_indexes),) + br.shape
+    flattened_indexes = concatenate(
+        [index.reshape((1,) + index.shape) for index in flattened_indexes],
+        axis=0, shape=concat_shape, dtype=flattened_indexes[0].dtype)
+
+    take_idx = _sum(flattened_indexes, axis=0)
+
+    out_flat = input_flat.take(take_idx.flatten(), axis=li)
+
+    out_flat_shape = a.shape[:li] + take_idx.shape + a.shape[ri+1:]
+    o = out_flat.reshape(out_flat_shape)
+    return o
 
 
 # -----------------------------------------------------------------------------
