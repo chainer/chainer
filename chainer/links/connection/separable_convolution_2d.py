@@ -14,7 +14,7 @@ class SeparableConvolution2D(link.ChainList):
     Google Xception architecture uses this network, and default configuration
     of this layer follows recommendation by Xception.
     This layer is a depthwise (i.e. input channel wise) convolution layer
-    followed by 1x1 convolution (pointwise conv) layer.
+    followed by 1x1 pointwise convolution layer.
     In depthwise conv, filters with different weight will be applied for each
     input channel.
 
@@ -23,15 +23,15 @@ class SeparableConvolution2D(link.ChainList):
 
     Args:
         in_channels (int or None): Number of channels of input arrays.
-        mid_channels (int): Number of channels of output of pointwise
+        mid_channels (int): Number of channels of output of depthwise
             conv layer. It must equals the number of input channels of
-            depthwise conv layers.
+            pointwise conv layers.
         out_channels (int): Number of output channels. The i-th
             integer indicates the number of filters of the i-th convolution.
-        pointwise_conv (~chainer.Links.Convolution2D): Definition of pointwise
+        depthwise_conv (~chainer.Links.Convolution2D): Definition of depthwise
             conv layer. If `None`, default configuration recommended by the
             author of Xception will be used.
-        depthwise_conv (~chainer.Links.Convolution2D): Definition of depthwise
+        pointwise_conv (~chainer.Links.Convolution2D): Definition of pointwise
             conv layer. If `None`, default configuration recommended by the
             author of Xception will be used.
 
@@ -45,18 +45,18 @@ class SeparableConvolution2D(link.ChainList):
                  pointwise_conv=None, depthwise_conv=None):
         if out_channels is None:
             out_channels = mid_channels
+        if depthwise_conv is None:
+            depthwise_conv = depthwise_convolution_2d(in_channels=in_channels,
+                                                      out_channels=out_channels,
+                                                      ksize=1)
         if pointwise_conv is None:
             pointwise_conv = convolution_2d(in_channels=in_channels,
                                             out_channels=out_channels,
-                                            ksize=1)
-        if depthwise_conv is None:
-            depthwise_conv = convolution_2d(in_channels=in_channels,
-                                            out_channels=out_channels,
                                             ksize=3)
-        assert pointwise_conv.out_channels == depthwise_conv.in_channels
-        convs = [pointwise_conv]
+        assert depthwise_conv.out_channels == pointwise_conv.in_channels
+        convs = [depthwise_conv]
         for i in six.moves.range(mid_channels):
-            convs.append(depthwise_conv.copy())
+            convs.append(pointwise_conv.copy())
         super(SeparableConvolution2D, self).__init__(*convs)
 
     def __call__(self, x):
