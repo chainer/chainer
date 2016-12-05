@@ -13,6 +13,17 @@ class LayerNormalization(link.Chain):
 
     Args:
         size (int): Size of input units.
+        eps (float): Epsilon value for numerical stability of the normalization.
+        initial_gumma (~chainer.Initializer): Initializer for the scale vector.
+            If ``None``, then the vector is initialized
+            by :class:`~chainer.initializers.HeNormal`.
+            If a scalar, the vectors are filled by it.
+            If ``numpy.ndarray``, the vectors are set by it.
+        initial_beta (~chainer.Initializer): Initializer for the shift vector.
+            If ``None``, then the vector is initialized
+            by :class:`~chainer.initializers.HeNormal`.
+            If a scalar, the vectors are filled by it.
+            If ``numpy.ndarray``, the vectors are set by it.
 
     See: `Layer Normalization <https://arxiv.org/abs/1607.06450>`_
     """
