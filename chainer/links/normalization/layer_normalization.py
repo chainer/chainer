@@ -40,7 +40,7 @@ class LayerNormalization(link.Chain):
         initializers.init_weight(self.scale.bias.b.data, initial_beta)
         self.eps = eps
 
-    def normalize(self, x):
+    def _normalize(self, x):
         size = x.shape[1]
         mean = functions.broadcast_to(
             (functions.sum(x, axis=1) / size)[:, None],
@@ -51,4 +51,4 @@ class LayerNormalization(link.Chain):
         return (x - mean) / std
 
     def __call__(self, x):
-        return self.scale(self.normalize(x))
+        return self.scale(self._normalize(x))
