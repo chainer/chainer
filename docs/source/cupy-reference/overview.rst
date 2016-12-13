@@ -389,6 +389,12 @@ Statistics
 
 :func:`bincount`
 
+
+External Functions
+~~~~~~~~~~~~~~~~~~
+
+:func:`scatter_update`
+
 Other
 ~~~~~
 
