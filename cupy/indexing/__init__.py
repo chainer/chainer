@@ -5,4 +5,3 @@
 from cupy.indexing import generate  # NOQA
 from cupy.indexing import indexing  # NOQA
 from cupy.indexing import insert  # NOQA
-from cupy.indexing import scatter  # NOQA
