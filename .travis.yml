@@ -65,6 +65,9 @@ script:
   - PYTHONWARNINGS='module::DeprecationWarning' nosetests -a '!gpu,!slow' --with-doctest chainer_tests
   - cd ..
   - READTHEDOCS=True python setup.py develop
+  - cd docs
+  - pip install sphinx
+  - make doctest
 
 sudo: false
 
