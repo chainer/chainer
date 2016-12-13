@@ -371,6 +371,8 @@ class GradientMethod(Optimizer):
 
     """
 
+    _use_unchain = False
+
     def update(self, lossfun=None, *args, **kwds):
         """Updates parameters based on a loss function or computed gradients.
 
@@ -394,7 +396,7 @@ class GradientMethod(Optimizer):
                 self.target.cleargrads()
             else:
                 self.target.zerograds()
-            loss.backward()
+            loss.backward(unchain=self._use_unchain)
             del loss
 
         # TODO(unno): Some optimizers can skip this process if they does not
@@ -466,6 +468,16 @@ class GradientMethod(Optimizer):
 
         """
         self._use_cleargrads = use
+
+    def use_unchain(self, unchain=True):
+        """Enables or disables use unchain mode in backward.
+
+        Args:
+            unchain (bool): If ``True``, this function enables unchain mode in
+                backward.
+
+        """
+        self._use_unchain = unchain
 
 
 class WeightDecay(object):
