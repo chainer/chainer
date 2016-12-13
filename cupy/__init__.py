@@ -237,11 +237,6 @@ from cupy.indexing.indexing import diagonal  # NOQA
 from cupy.indexing.indexing import take  # NOQA
 
 from cupy.indexing.insert import fill_diagonal  # NOQA
-
-fill_diagonal = indexing.insert.fill_diagonal
-
-scatter_update = indexing.scatter.scatter_update
-
 # -----------------------------------------------------------------------------
 # Input and output
 # -----------------------------------------------------------------------------
