@@ -129,5 +129,6 @@ class DebugMode(object):
 
 basic_math.install_variable_arithmetics()
 array.get_item.install_variable_get_item()
+array.set_item.install_variable_set_item()
 
 disable_experimental_feature_warning = False

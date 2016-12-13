@@ -30,6 +30,7 @@ from chainer.functions.array import reshape  # NOQA
 from chainer.functions.array import rollaxis  # NOQA
 from chainer.functions.array import select_item  # NOQA
 from chainer.functions.array import separate  # NOQA
+from chainer.functions.array import set_item  # NOQA
 from chainer.functions.array import space2depth  # NOQA
 from chainer.functions.array import split_axis  # NOQA
 from chainer.functions.array import squeeze  # NOQA
@@ -165,6 +166,8 @@ from chainer.functions.array.rollaxis import Rollaxis  # NOQA
 from chainer.functions.array.select_item import select_item  # NOQA
 from chainer.functions.array.select_item import SelectItem  # NOQA
 from chainer.functions.array.separate import separate  # NOQA
+from chainer.functions.array.set_item import set_item  # NOQA
+from chainer.functions.array.set_item import SetItem  # NOQA
 from chainer.functions.array.space2depth import space2depth  # NOQA
 from chainer.functions.array.space2depth import Space2Depth  # NOQA
 from chainer.functions.array.split_axis import split_axis  # NOQA

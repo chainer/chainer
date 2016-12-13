@@ -99,6 +99,39 @@ class TestVariable(unittest.TestCase):
     def test_get_item_gpu(self):
         self.check_get_item(True)
 
+    def check_set_item(self, gpu):
+        x_data = self.x
+        y_data = np.arange(x_data.size).reshape(x_data.shape)
+        if gpu:
+            y_data = cuda.to_gpu(y_data)
+        y = chainer.Variable(y_data)
+
+        def get_x():
+            x_data = self.x  # w/o this, it raises UnboundLocalError
+            if gpu:
+                x_data = cuda.to_gpu(x_data)
+            x = chainer.Variable(x_data)
+            return x
+
+        slices = slice(2, 5)
+        x = get_x()
+        x[slices] = y[slices]
+        np.testing.assert_equal(cuda.to_cpu(x[slices].data),
+                                cuda.to_cpu(y_data[slices]))
+
+        slices = slice(2, 5),
+        x = get_x()
+        x[slices] = y[slices]
+        np.testing.assert_equal(cuda.to_cpu(x[slices].data),
+                                cuda.to_cpu(y_data[slices]))
+
+    def test_set_item_cpu(self):
+        self.check_set_item(False)
+
+    @attr.gpu
+    def test_set_item_gpu(self):
+        self.check_set_item(True)
+
     def check_label(self, expected, gpu):
         c = self.c
         if gpu:
