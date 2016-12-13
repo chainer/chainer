@@ -99,6 +99,7 @@ from chainer.functions.normalization import l2_normalization  # NOQA
 from chainer.functions.normalization import local_response_normalization  # NOQA
 from chainer.functions.pooling import average_pooling_2d  # NOQA
 from chainer.functions.pooling import max_pooling_2d  # NOQA
+from chainer.functions.pooling import max_pooling_nd  # NOQA
 from chainer.functions.pooling import roi_pooling_2d  # NOQA
 from chainer.functions.pooling import spatial_pyramid_pooling_2d  # NOQA
 from chainer.functions.pooling import unpooling_2d  # NOQA
@@ -203,6 +204,7 @@ from chainer.functions.evaluation.classification_summary import ClassificationSu
 from chainer.functions.evaluation.classification_summary import f1_score  # NOQA
 from chainer.functions.evaluation.classification_summary import precision  # NOQA
 from chainer.functions.evaluation.classification_summary import recall  # NOQA
+from chainer.functions.evaluation.r2_score import r2_score  # NOQA
 
 from chainer.functions.loss.black_out import black_out  # NOQA
 from chainer.functions.loss.contrastive import contrastive  # NOQA
@@ -328,6 +330,8 @@ from chainer.functions.pooling.average_pooling_2d import average_pooling_2d  # N
 from chainer.functions.pooling.average_pooling_2d import AveragePooling2D  # NOQA
 from chainer.functions.pooling.max_pooling_2d import max_pooling_2d  # NOQA
 from chainer.functions.pooling.max_pooling_2d import MaxPooling2D  # NOQA
+from chainer.functions.pooling.max_pooling_nd import max_pooling_nd  # NOQA
+from chainer.functions.pooling.max_pooling_nd import MaxPoolingND  # NOQA
 from chainer.functions.pooling.roi_pooling_2d import roi_pooling_2d  # NOQA
 from chainer.functions.pooling.roi_pooling_2d import ROIPooling2D  # NOQA
 from chainer.functions.pooling.spatial_pyramid_pooling_2d import spatial_pyramid_pooling_2d  # NOQA
