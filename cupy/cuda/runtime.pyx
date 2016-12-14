@@ -64,7 +64,8 @@ cdef extern from "cupy_cuda.h":
     int cudaSetDevice(int device) nogil
     int cudaDeviceSynchronize() nogil
     int cudaIpcGetMemHandle(_IpcMemHandle* handle, void* devPtr) nogil
-    int cudaIpcOpenMemHandle(void** devPtr, _IpcMemHandle handle, unsigned int flags) nogil
+    int cudaIpcOpenMemHandle(
+        void** devPtr, _IpcMemHandle handle, unsigned int flags) nogil
 
     int cudaDeviceCanAccessPeer(int* canAccessPeer, int device,
                                 int peerDevice) nogil
@@ -118,13 +119,16 @@ cpdef bytes ipcGetMemHandle(size_t ptr):
     check_status(status)
     return <bytes>handle.reserved[:64]
 
-cpdef size_t ipcOpenMemHandle(bytes handle, unsigned int flags=cudaIpcMemLazyEnablePeerAccess) except *:
+cpdef size_t ipcOpenMemHandle(
+        bytes handle,
+        unsigned int flags=cudaIpcMemLazyEnablePeerAccess) except *:
     cdef void* ptr
     cdef _IpcMemHandle _handle
     _handle.reserved = handle[:64]
     status = cudaIpcOpenMemHandle(&ptr, _handle, flags)
     check_status(status)
     return <size_t>ptr
+
 
 ###############################################################################
 # Error handling

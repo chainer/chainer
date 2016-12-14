@@ -1,16 +1,17 @@
 import copy
-import six
 import math
-from multiprocessing import Process, Pipe
+from multiprocessing import Pipe
+from multiprocessing import Process
+import six
+import time
 
+from chainer import cuda
 from chainer.dataset import convert
 from chainer.dataset import iterator as iterator_module
 from chainer import optimizer as optimizer_module
-from chainer import variable
-from chainer import cuda
 from chainer import reporter
+from chainer import variable
 
-import time
 
 class Updater(object):
 
@@ -408,8 +409,8 @@ class MultiprocessParallelUpdater(StandardUpdater):
     parallelizes the gradient computation over a mini-batch, and updates the
     parameters only in the main device.
 
-    Unlike other built-in Updater classes, the model (attached to the optimizer)
-    must be the loss function.
+    Unlike other built-in Updater classes, the model (attached to the
+    optimizer) must be the loss function.
 
     Args:
         iterator: Dataset iterator for the training dataset.
@@ -516,7 +517,6 @@ class MultiprocessParallelUpdater(StandardUpdater):
             loss = self._master(in_vars)
 
         self._master.zerograds()
-        # print(loss.data.tolist())
         loss.backward()
 
         if not self._ipc_setup:
@@ -524,7 +524,6 @@ class MultiprocessParallelUpdater(StandardUpdater):
             for pipe, batch in zip(self._pipes, device_batches):
                 pipe.send(('train', batch))
 
-        #[pipe.recv() for pipe in self._pipes]
         [reporter.report(pipe.recv()) for pipe in self._pipes]
 
         for depth in range(self._depth):

@@ -229,10 +229,6 @@ Actual: {0}'''.format(type(data))
 
     def cleargrad(self):
         """Clears the gradient array."""
-        if self._grad is None:
-            return
-        if self._grad.parent is not None:
-            raise RuntimeError('Cannot use cleargrads with multiprocess parallelism.')
         self._grad = None
 
     def zerograd(self):
