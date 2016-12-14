@@ -454,9 +454,10 @@ class MultiprocessParallelUpdater(StandardUpdater):
         self._devices = devices
         self._depth = math.ceil(math.log(len(devices)) / math.log(2))
 
-        self._started = False
+        self._ipc_setup = False
+        self.setup_workers()
 
-    def start(self):
+    def setup_workers(self):
 
         devices = self._devices[1:]
         self._pipes, self._workers, worker_ends = [], [], []
@@ -469,6 +470,9 @@ class MultiprocessParallelUpdater(StandardUpdater):
             self._workers.append(worker)
 
         self._master.to_gpu(self._devices[0])
+
+    def setup_ipc(self):
+
         ipc_parameters = [list(self._master.get_handles())]
         for i, pipe in enumerate(self._pipes):
             pipe.send(ipc_parameters[self._parent(i + 1)])
@@ -476,7 +480,7 @@ class MultiprocessParallelUpdater(StandardUpdater):
 
         time.sleep(0.1)
 
-        self._started = True
+        self._ipc_setup = True
 
     @staticmethod
     def _parent(index):
@@ -496,7 +500,7 @@ class MultiprocessParallelUpdater(StandardUpdater):
         master_batch = self.converter(batch[0::n], master_device)
         device_batches = [batch[i::n] for i in range(1, n)]
 
-        if self._started:
+        if self._ipc_setup:
             for pipe, batch in zip(self._pipes, device_batches):
                 pipe.send(('train', batch))
 
@@ -515,8 +519,8 @@ class MultiprocessParallelUpdater(StandardUpdater):
         # print(loss.data.tolist())
         loss.backward()
 
-        if not self._started:
-            self.start()
+        if not self._ipc_setup:
+            self.setup_ipc()
             for pipe, batch in zip(self._pipes, device_batches):
                 pipe.send(('train', batch))
 
