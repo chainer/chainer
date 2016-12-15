@@ -291,7 +291,9 @@ class Optimizer(object):
         .. deprecated:: v1.5
 
         """
-        return numpy.sqrt(_sum_sqnorm([p.grad for p in self.target.params()]))
+        return numpy.sqrt(
+            _sum_sqnorm(
+                [p.grad for p in self.target.params() if p.grad is not None]))
 
     def clip_grads(self, maxnorm):
         """Clips the norm of whole gradients up to the threshold.
@@ -411,6 +413,8 @@ class GradientMethod(Optimizer):
         self.t += 1
         states = self._states
         for name, param in self.target.namedparams():
+            if param.grad is None:
+                continue
             with cuda.get_device(param.data):
                 self.update_one(param, states[name])
 
@@ -495,11 +499,14 @@ class WeightDecay(object):
         rate = self.rate
         for param in opt.target.params():
             p, g = param.data, param.grad
-            with cuda.get_device(p) as dev:
-                if int(dev) == -1:
-                    g += rate * p
-                else:
-                    kernel(p, rate, g)
+            if g is None:
+                param.grad = rate * p
+            else:
+                with cuda.get_device(p) as dev:
+                    if int(dev) == -1:
+                        g += rate * p
+                    else:
+                        kernel(p, rate, g)
 
 
 class Lasso(object):
@@ -530,11 +537,14 @@ class Lasso(object):
             p, g = param.data, param.grad
             xp = cuda.get_array_module(p)
             sign = xp.sign(p)
-            with cuda.get_device(p) as dev:
-                if int(dev) == -1:
-                    g += rate * sign
-                else:
-                    kernel(sign, rate, g)
+            if g is None:
+                param.grad = rate * sign
+            else:
+                with cuda.get_device(p) as dev:
+                    if int(dev) == -1:
+                        g += rate * sign
+                    else:
+                        kernel(sign, rate, g)
 
 
 class GradientClipping(object):
@@ -557,11 +567,14 @@ class GradientClipping(object):
         self.threshold = threshold
 
     def __call__(self, opt):
-        norm = numpy.sqrt(_sum_sqnorm([p.grad for p in opt.target.params()]))
+        norm = numpy.sqrt(_sum_sqnorm(
+            [p.grad for p in opt.target.params() if p.grad is not None]))
         rate = self.threshold / norm
         if rate < 1:
             for param in opt.target.params():
                 grad = param.grad
+                if grad is None:
+                    continue
                 with cuda.get_device(grad):
                     grad *= rate
 
@@ -606,6 +619,10 @@ class GradientNoise(object):
                 'T noise', 'T g', 'g += noise', 'gradient_noise')
 
         for param in opt.target.params():
+            if param.grad is None:
+                xp = cuda.get_array_module(param.data)
+                param.grad = xp.zeros_like(param.data)
+
             g = param.grad
             xp = cuda.get_array_module(g)
             with cuda.get_device(g) as dev:
@@ -642,5 +659,11 @@ class GradientHardClipping(object):
         xp = opt.target.xp
         for param in opt.target.params():
             grad = param.grad
-            with cuda.get_device(grad):
-                xp.clip(grad, self.lower_bound, self.upper_bound, out=grad)
+            if grad is None:
+                if 0 < self.lower_bound:
+                    param.grad = xp.full_like(param.data, self.lower_bound)
+                elif self.upper_bound < 0:
+                    param.grad = xp.full_like(param.data, self.upper_bound)
+            else:
+                with cuda.get_device(grad):
+                    xp.clip(grad, self.lower_bound, self.upper_bound, out=grad)
