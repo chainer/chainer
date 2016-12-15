@@ -102,6 +102,10 @@ Actual: {0}'''.format(type(data))
         self._grad = grad
         self.creator = None
 
+        self._org_creator = None
+        self._org_rank = 0
+        self._can_swapout = True
+
         self.name = name
 
     def __reduce__(self):
@@ -209,13 +213,13 @@ Actual: {0}'''.format(type(data))
     def dtype(self):
         return self.data.dtype
 
-    def to_cpu(self):
+    def to_cpu(self, stream=None):
         """Copies the data and gradient arrays to CPU."""
-        self.data = cuda.to_cpu(self.data)
+        self.data = cuda.to_cpu(self.data, stream=stream)
         if self._grad is not None:
-            self._grad = cuda.to_cpu(self._grad)
+            self._grad = cuda.to_cpu(self._grad, stream=stream)
 
-    def to_gpu(self, device=None):
+    def to_gpu(self, device=None, stream=None):
         """Copies the data and gradient arrays to specified GPU.
 
         Args:
@@ -224,9 +228,29 @@ Actual: {0}'''.format(type(data))
 
         """
         with cuda.get_device(device):
-            self.data = cuda.to_gpu(self.data)
+            self.data = cuda.to_gpu(self.data, stream=stream)
             if self._grad is not None:
-                self._grad = cuda.to_gpu(self._grad)
+                self._grad = cuda.to_gpu(self._grad, stream=stream)
+
+    def to_swap(self, stream=None):
+        """Copies the data arrays to pinned memory."""
+        if self._can_swapout is False:
+            return
+        self.data = cuda.to_swap(self.data, stream=stream)
+        if self._grad is not None:
+            self._grad = cuda.to_swap(self._grad, stream=stream)
+
+    def disable_swapout(self):
+        """Disable the variable to be swaped out from GPU memory
+
+        This is mainly used to keep variables belonging to a link
+        such as weight and bias on GPU device memory.
+        """
+        self._can_swapout = False
+
+    def enable_swapout(self):
+        """Enable the variable to be swaped out to HOST pinned memory"""
+        self._can_swapout = True
 
     def cleargrad(self):
         """Clears the gradient array."""
@@ -319,6 +343,55 @@ Actual: {0}'''.format(type(data))
         """
         self.creator = gen_func
         self.rank = gen_func.rank + 1
+
+    def ancestors(self):
+        """Gets a list of my ancestor variables."""
+        ancestor_funcs = []
+        ancestor_vars = []
+        seen_funcs = set()
+        seen_vars = set()
+
+        def add_cand(ancestors, seen, cand):
+            if cand is not None and cand not in seen:
+                ancestors.append(cand)
+                seen.add(cand)
+
+        add_cand(ancestor_funcs, seen_funcs, self._org_creator)
+        add_cand(ancestor_funcs, seen_funcs, self.creator)
+
+        while ancestor_funcs:
+            func = ancestor_funcs.pop()
+            for var in func.inputs:
+                add_cand(ancestor_vars, seen_vars, var)
+                add_cand(ancestor_funcs, seen_funcs, var.creator)
+
+        return ancestor_vars
+
+    def ancestors_to_gpu(self, device=None, stream=None):
+        """Moves variable data of my ancestors to GPU."""
+        ancestor_vars = self.ancestors()
+        for var in ancestor_vars:
+            var.to_gpu(device=device, stream=stream)
+
+    def ancestors_to_swap(self, stream=None):
+        """Moves variable data of my ancestors to pinned memory."""
+        ancestor_vars = self.ancestors()
+        for var in ancestor_vars:
+            var.to_swap(stream=stream)
+
+    def interrupt_backward(self):
+        """Cuts a link to my creator function temporarily."""
+        self._org_creator = self.creator
+        self._org_rank = self.rank
+        self.creator = None
+        self.rank = 0
+
+    def resume_backward(self):
+        """Recovers a link to my creator function."""
+        self.creator = self._org_creator
+        self.rank = self._org_rank
+        self._org_creator = None
+        self._org_rank = 0
 
     def backward(self, retain_grad=False):
         """Runs error backpropagation (a.k.a. backprop) from this variable.

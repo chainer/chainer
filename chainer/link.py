@@ -2,6 +2,7 @@ import collections
 import copy
 import warnings
 
+import cupy
 import numpy
 import six
 
@@ -125,6 +126,8 @@ class Link(object):
         self._persistent = []
         self._uninitialized_params = {}
         self._cpu = True
+        self._gpu = False
+        self._swap = False
         self._device_id = None
         self.name = None
 
@@ -306,10 +309,12 @@ class Link(object):
             if isinstance(value, cuda.ndarray):
                 d[name] = value.get()
         self._cpu = True
+        self._gpu = False
+        self._swap = False
         self._device_id = None
         return self
 
-    def to_gpu(self, device=None):
+    def to_gpu(self, device=None, stream=None):
         """Copies parameter variables and persistent values to GPU.
 
         This method does not handle non-registered attributes. If some of such
@@ -324,19 +329,75 @@ class Link(object):
 
         """
         cuda.check_cuda_available()
-        if not self._cpu:
+        if self._gpu:
             return self
         d = self.__dict__
         with cuda.get_device(device):
             for name in self._params:
-                d[name].to_gpu()
+                d[name].to_gpu(stream=stream)
             for name in self._persistent:
                 value = d[name]
-                if isinstance(value, numpy.ndarray):
-                    d[name] = cuda.to_gpu(value)
+                # anaruse: to check if this is good
+                if isinstance(value, numpy.ndarray) \
+                        or isinstance(value, cupy.ndarray):
+                    d[name] = cuda.to_gpu(value, stream=stream)
             self._device_id = cuda.cupy.cuda.get_device_id()
         self._cpu = False
+        self._gpu = True
+        self._swap = False
         return self
+
+    def to_swap(self, device=None, stream=None):
+        """Copies parameter variables and persistent values to pinned memory.
+
+        This method does not handle non-registered attributes. If some of such
+        attributes must be copied to GPU, the link implementation must
+        override this method to do so.
+
+        Args:
+            device: Target device specifier. If omitted, the current device is
+                used.
+
+        Returns: self
+        """
+        cuda.check_cuda_available()
+        if self._swap:
+            return self
+        d = self.__dict__
+        with cuda.get_device(device):
+            for name in self._params:
+                d[name].to_swap(stream=stream)
+            for name in self._persistent:
+                value = d[name]
+                # anaruse: to check if this is good
+                if isinstance(value, numpy.ndarray) \
+                        or isinstance(value, cupy.ndarray):
+                    d[name] = cuda.to_swap(value, stream=stream)
+        self._cpu = False
+        self._gpu = False
+        self._swap = True
+        self._device_id = None
+        return self
+
+    def disable_swapout_params(self):
+        """Disable parameter variables to be swaped out from GPU memory.
+
+        """
+        d = self.__dict__
+        for name in self._params:
+            d[name].disable_swapout()
+        for name in self._persistent:
+            d[name].disable_swapout()
+
+    def enable_swapout_params(self):
+        """Enable parameter variables to be swaped out to HOST pinned memory.
+
+        """
+        d = self.__dict__
+        for name in self._params:
+            d[name].enable_swapout()
+        for name in self._persistent:
+            d[name].enable_swapout()
 
     def params(self):
         """Returns a generator of all parameters under the link hierarchy.
@@ -617,13 +678,31 @@ class Chain(Link):
             d[name].to_cpu()
         return self
 
-    def to_gpu(self, device=None):
+    def to_gpu(self, device=None, stream=None):
         with cuda.get_device(device):
-            super(Chain, self).to_gpu()
+            super(Chain, self).to_gpu(stream=stream)
             d = self.__dict__
             for name in self._children:
-                d[name].to_gpu()
+                d[name].to_gpu(stream=stream)
         return self
+
+    def to_swap(self, device=None, stream=None):
+        with cuda.get_device(device):
+            super(Chain, self).to_swap(stream=stream)
+            d = self.__dict__
+            for name in self._children:
+                d[name].to_swap(stream=stream)
+        return self
+
+    def disable_swapout_params(self):
+        d = self.__dict__
+        for name in self._children:
+            d[name].disable_swapout_params()
+
+    def enable_swapout_params(self):
+        d = self.__dict__
+        for name in self._children:
+            d[name].enable_swapout_params()
 
     def params(self):
         for param in super(Chain, self).params():
@@ -771,12 +850,27 @@ class ChainList(Link):
             link.to_cpu()
         return self
 
-    def to_gpu(self, device=None):
+    def to_gpu(self, device=None, stream=None):
         with cuda.get_device(device):
-            super(ChainList, self).to_gpu()
+            super(ChainList, self).to_gpu(stream=stream)
             for link in self._children:
-                link.to_gpu()
+                link.to_gpu(stream=stream)
         return self
+
+    def to_swap(self, device=None, stream=None):
+        with cuda.get_device(device):
+            super(ChainList, self).to_swap(stream=stream)
+            for link in self._children:
+                link.to_swap(stream=stream)
+        return self
+
+    def disable_swapout_params(self):
+        for link in self._children:
+            link.disable_swapout_params()
+
+    def enable_swapout_params(self):
+        for link in self._children:
+            link.enable_swapout_params()
 
     def params(self):
         for param in super(ChainList, self).params():

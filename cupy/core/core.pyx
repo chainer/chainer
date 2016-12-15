@@ -19,6 +19,7 @@ from cupy.core cimport internal
 from cupy.cuda cimport cublas
 from cupy.cuda cimport runtime
 from cupy.cuda cimport memory
+from cupy.cuda cimport pinned_memory
 
 
 DEF MAX_NDIM = 25
@@ -74,6 +75,8 @@ cdef class ndarray:
         readonly object dtype
         readonly memory.MemoryPointer data
         readonly ndarray base
+        readonly pinned_memory.PinnedMemoryPointer data_swapout
+        readonly bint is_swapout
 
     def __init__(self, shape, dtype=float, memptr=None, order='C'):
         cdef Py_ssize_t x
@@ -88,6 +91,7 @@ cdef class ndarray:
             self.data = memory.alloc(self.size * self.dtype.itemsize)
         else:
             self.data = memptr
+
         self.base = None
 
         if order == 'C':
@@ -102,6 +106,9 @@ cdef class ndarray:
             self._update_c_contiguity()
         else:
             raise TypeError('order not understood')
+
+        self.data_swapout = None
+        self.is_swapout = False
 
     # The definition order of attributes and methods are borrowed from the
     # order of documentation at the following NumPy document.
@@ -1321,6 +1328,11 @@ cdef class ndarray:
         """CUDA device on which this array resides."""
         return self.data.device
 
+    # @property
+    # def is_swapout(self):
+    #     """True if data is swaped out to pinned memory."""
+    #     return self._is_swapout
+
     cpdef get(self, stream=None):
         """Returns a copy of the array on host memory.
 
@@ -1437,6 +1449,45 @@ cdef class ndarray:
             self._update_contiguity()
         else:
             self._update_f_contiguity()
+
+    cpdef swapout(self, stream=None):
+        """Swaps out data from GPU device memory to HOST pinned memory
+        """
+        if self.is_swapout is True:
+            # data is on pinned memory. no need to swap out.
+            return
+
+        byte_size = self.size * self.dtype.itemsize
+        self.data_swapout = pinned_memory.alloc_pinned_memory(
+            byte_size)
+
+        if stream is None:
+            self.data_swapout.copy_from_device(self.data, byte_size)
+        else:
+            self.data_swapout.copy_from_device_async(self.data, byte_size,
+                                                     stream)
+
+        self.data = None
+        self.is_swapout = True
+
+    cpdef swapin(self, stream=None):
+        """Swaps in data from HOST pinned memory to GPU device memory
+        """
+        if self.is_swapout is False:
+            # data is on device memory. no need to swap in.
+            return
+
+        byte_size = self.size * self.dtype.itemsize
+        self.data = memory.alloc(byte_size)
+
+        if stream is None:
+            self.data_swapout.copy_to_device(self.data, byte_size)
+        else:
+            self.data_swapout.copy_to_device_async(self.data, byte_size,
+                                                   stream)
+
+        self.data_swapout = None
+        self.is_swapout = False
 
 
 cdef object newaxis = numpy.newaxis  # == None
@@ -1700,11 +1751,13 @@ cdef _argmax = create_reduction_func(
 # Array creation routines
 # -----------------------------------------------------------------------------
 
-cpdef ndarray array(obj, dtype=None, bint copy=True, Py_ssize_t ndmin=0):
+cpdef ndarray array(obj, dtype=None, bint copy=True, Py_ssize_t ndmin=0,
+                    stream=None):
     # TODO(beam2d): Support order and subok options
     cdef Py_ssize_t nvidem
     cdef ndarray a
     if isinstance(obj, ndarray):
+        # obj is on GPU memory
         if dtype is None:
             dtype = obj.dtype
         a = obj.astype(dtype, copy)
@@ -1714,13 +1767,21 @@ cpdef ndarray array(obj, dtype=None, bint copy=True, Py_ssize_t ndmin=0):
             a.shape = (1,) * (ndmin - ndim) + a.shape
         return a
     else:
+        # obj is on CPU memory
         a_cpu = numpy.array(obj, dtype=dtype, copy=False, ndmin=ndmin)
         if a_cpu.dtype.char not in '?bhilqBHILQefd':
             raise ValueError('Unsupported dtype %s' % a_cpu.dtype)
         if a_cpu.ndim > 0:
             a_cpu = numpy.ascontiguousarray(a_cpu)
+
         a = ndarray(a_cpu.shape, dtype=a_cpu.dtype)
-        a.data.copy_from_host(a_cpu.ctypes.data_as(ctypes.c_void_p), a.nbytes)
+
+        a_cpu_ptr = a_cpu.ctypes.data_as(ctypes.c_void_p)
+        if stream is None:
+            a.data.copy_from_host(a_cpu_ptr, a.nbytes)
+        else:
+            a.data.copy_from_host_async(a_cpu_ptr, a.nbytes, stream)
+
         if a_cpu.dtype == a.dtype:
             return a
         else:

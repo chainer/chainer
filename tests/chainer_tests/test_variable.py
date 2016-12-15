@@ -1,12 +1,15 @@
 import inspect
 import unittest
 
+import cupy
 import numpy as np
 
 import chainer
 from chainer import cuda
 from chainer import testing
 from chainer.testing import attr
+
+import copy
 
 import re
 import six
@@ -564,6 +567,95 @@ class TestVariable(unittest.TestCase):
         d = six.moves.cPickle.loads(binary)
         cp.testing.assert_array_equal(x.data, d.data)
         cp.testing.assert_array_equal(x.grad, d.grad)
+
+    @attr.gpu
+    def test_to_swap(self, nelement=1000000):
+        x_ref = np.random.uniform(0, 1, nelement).astype(np.float32)
+        x_ref = chainer.Variable(x_ref)
+        x = copy.deepcopy(x_ref)
+        # CPU -> GPU -> PINN -> GPU -> CPU
+        x.to_gpu()
+        x.to_swap()
+        data_dev = chainer.cuda.get_device(x.data)
+        self.assertEqual(data_dev, chainer.cuda.PinnedMemoryDevice)
+        x.to_gpu()
+        x.to_cpu()
+        cuda.cupy.testing.assert_array_equal(x_ref.data, x.data)
+
+    @attr.gpu
+    def test_to_swap_async(self, nelement=1000000):
+        x_ref = np.random.uniform(0, 1, nelement).astype(np.float32)
+        x_ref = chainer.Variable(x_ref)
+        x = copy.deepcopy(x_ref)
+        st = cupy.cuda.stream.Stream()
+        # CPU -> GPU -> PINN -> GPU -> CPU
+        x.to_gpu(stream=st)
+        x.to_swap(stream=st)
+        x.to_gpu(stream=st)
+        x.to_cpu(stream=st)
+        st.synchronize()
+        cuda.cupy.testing.assert_array_equal(x_ref.data, x.data)
+
+    @attr.gpu
+    def test_disable_swapout(self, nelement=1000000):
+        x_ref = np.random.uniform(0, 1, nelement).astype(np.float32)
+        x_ref = chainer.Variable(x_ref)
+        x = copy.deepcopy(x_ref)
+        x.disable_swapout()
+        # CPU -> GPU -> PINN -> GPU -> CPU
+        x.to_gpu()
+        x.to_swap()
+        data_dev = chainer.cuda.get_device(x.data)
+        self.assertTrue(data_dev.id >= 0)
+        x.to_gpu()
+        x.to_cpu()
+        cuda.cupy.testing.assert_array_equal(x_ref.data, x.data)
+
+    @attr.gpu
+    def test_ancestors_to_swap(self, nelement=1000000):
+
+        class DummyFunction(chainer.Function):
+            label = 'dummy_function'
+
+            def forward(self, x):
+                return copy.deepcopy(x)
+
+        func1 = DummyFunction()
+        func2 = DummyFunction()
+        func3 = DummyFunction()
+
+        x = np.random.uniform(0, 1, nelement).astype(np.float32)
+        x = chainer.Variable(x)
+        x.to_gpu()
+
+        y = func1(x)
+        y.interrupt_backward()
+        z = func2(y)
+        w = func3(z)
+
+        # Moves variables of my ancestors to HOST pinned memory
+        w.ancestors_to_swap()
+
+        x_data_dev = chainer.cuda.get_device(x.data)
+        y_data_dev = chainer.cuda.get_device(y.data)
+        z_data_dev = chainer.cuda.get_device(z.data)
+        w_data_dev = chainer.cuda.get_device(w.data)
+        self.assertTrue(x_data_dev.id >= 0)
+        self.assertEqual(y_data_dev, chainer.cuda.PinnedMemoryDevice)
+        self.assertEqual(z_data_dev, chainer.cuda.PinnedMemoryDevice)
+        self.assertTrue(w_data_dev.id >= 0)
+
+        # Moves back variables of my ancestors from HOST pinned memory
+        w.ancestors_to_gpu()
+
+        x_data_dev = chainer.cuda.get_device(x.data)
+        y_data_dev = chainer.cuda.get_device(y.data)
+        z_data_dev = chainer.cuda.get_device(z.data)
+        w_data_dev = chainer.cuda.get_device(w.data)
+        self.assertTrue(x_data_dev.id >= 0)
+        self.assertTrue(y_data_dev.id >= 0)
+        self.assertTrue(z_data_dev.id >= 0)
+        self.assertTrue(w_data_dev.id >= 0)
 
 
 class TestDebugPrint(unittest.TestCase):

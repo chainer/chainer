@@ -127,6 +127,41 @@ class DummyDeviceType(object):
 DummyDevice = DummyDeviceType()
 
 
+class PinnedMemoryDeviceType(object):
+
+    """Pinned memory device class.
+
+    This class is used to represent pinned memory device.
+
+    """
+
+    id = -2
+
+    def __int__(self):
+        return -2
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        pass
+
+    def use(self):
+        pass
+
+    def synchronize(self):
+        pass
+
+    def __eq__(self, other):
+        return isinstance(other, PinnedMemoryDeviceType)
+
+    def __ne__(self, other):
+        return not (self == other)
+
+
+PinnedMemoryDevice = PinnedMemoryDeviceType()
+
+
 # ------------------------------------------------------------------------------
 # Global states
 # ------------------------------------------------------------------------------
@@ -179,6 +214,8 @@ def get_device(*args):
             check_cuda_available()
             return Device(arg)
         if isinstance(arg, ndarray):
+            if arg.is_swapout is True:
+                return PinnedMemoryDevice
             if arg.device is None:
                 continue
             return arg.device
@@ -192,11 +229,67 @@ def get_device(*args):
 # cupy.ndarray allocation and copy
 # ------------------------------------------------------------------------------
 
-def to_gpu(array, device=None, stream=None):
-    """Copies the given CPU array to specified device.
+def __cpu_to_gpu(array, device=None, stream=None):
+    """Moves data from HOST memory to GPU device memory
 
     Args:
-        array: Array to be sent to GPU.
+        array(numpy.ndarray): src array
+    """
+    with get_device(device):
+        if stream is not None:
+            stream.synchronize()
+        a_gpu = cupy.asarray(array)
+        return a_gpu
+
+
+def __gpu_to_cpu(array, stream=None):
+    """Moves data from GPU device memory to HOST memory
+
+    Args:
+        array(cupy.ndarray): src array
+    """
+    with get_device(array):
+        a_cpu = array.get(stream)
+        if stream is not None:
+            # Holds a reference to src data for safe async copy
+            stream.add_callback(lambda *x: None, (array.data))
+        return a_cpu
+
+
+def __swap_to_gpu(array, device=None, stream=None):
+    """Moves data from HOST pinned memory to GPU device memory
+
+    Args:
+        array(cupy.ndarray): src array
+    """
+    with get_device(device):
+        src = array.data_swapout
+        array.swapin(stream=stream)
+        if stream is not None:
+            # Holds a reference to src data for safe async copy
+            stream.add_callback(lambda *x: None, (src))
+        return array
+
+
+def __gpu_to_swap(array, stream=None):
+    """Moves data from GPU device memory to HOST pinned memory
+
+    Args:
+        array(cupy.ndarray): src array
+    """
+    src = array.data
+    array.swapout(stream=stream)
+    if stream is not None:
+        # Holds a reference to src data for safe async copy
+        stream.add_callback(lambda *x: None, (src))
+    return array
+
+
+def to_gpu(array, device=None, stream=None):
+    """Copies the given array to specified GPU device memory.
+
+    Args:
+        array: Array to be sent to GPU memory.
         device: Device specifier.
         stream (cupy.cuda.Stream): CUDA stream. If not ``None``, the copy runs
             asynchronously.
@@ -209,48 +302,51 @@ def to_gpu(array, device=None, stream=None):
         copy :class:`cupy.ndarray` into specified device.
 
     """
+    # print("[cuda.py, to_gpu()] device:{}, stream:{}".format(device,stream))
+    # print("[cuda.py, to_gpu()] type(array):{}".format(type(array)))
     check_cuda_available()
     with get_device(device):
         array_dev = get_device(array)
+
+        # data is on my GPU memory
         if array_dev.id == cupy.cuda.device.get_device_id():
             return array
 
+        # data is on HOST pinned memory
+        if array_dev.id == -2:
+            a_gpu = __swap_to_gpu(array, stream=stream)
+            return a_gpu
+
+        # data is on HOST memory
+        if array_dev.id == -1:
+            a_gpu = __cpu_to_gpu(array, stream=stream)
+            return a_gpu
+
+        # data is on peer GPU memory
         if stream is not None:
-            ret = cupy.empty_like(array)
-            mem = None
-            if array_dev.id == -1:
-                # cpu to gpu
-                mem = cupy.cuda.alloc_pinned_memory(array.nbytes)
-                src = numpy.frombuffer(
-                    mem, array.dtype, array.size).reshape(array.shape)
-                src[...] = array
-                ret.set(src, stream)
-            else:
-                # gpu to gpu
-                with array_dev:
-                    src = array.copy()
-                    event = cupy.cuda.Event()
-                    event.record()
-                stream.wait_event(event)
-                ret.data.copy_from_device_async(src.data, src.nbytes, stream)
+            a_gpu = cupy.empty_like(array)
+            src = None
+            with array_dev:
+                src = array.copy()
+                event = cupy.cuda.Event()
+                event.record()
+            stream.wait_event(event)
+            a_gpu.data.copy_from_device_async(src.data, src.nbytes, stream)
 
             # to hold a reference until the end of the asynchronous memcpy
-            stream.add_callback(lambda *x: None, (src, mem, ret))
-
-            return ret
-
-        if array_dev.id == -1:
-            return cupy.asarray(array)
-
-        # Need to make a copy when an array is copied to another device
-        return cupy.array(array, copy=True)
+            stream.add_callback(lambda *x: None, (src))
+            return a_gpu
+        else:
+            # Need to make a copy when an array is copied to another device
+            a_gpu = cupy.array(array, copy=True)
+            return a_gpu
 
 
 def to_cpu(array, stream=None):
-    """Copies the given GPU array to host CPU.
+    """Copies the given array to HOST memory.
 
     Args:
-        array: Array to be sent to CPU.
+        array: Array to be sent to HOST memory.
         stream (cupy.cuda.Stream): CUDA stream.
 
     Returns:
@@ -260,12 +356,54 @@ def to_cpu(array, stream=None):
         ``array`` without performing any copy.
 
     """
+    # print("[cuda.py, to_cpu()] stream:{}".format(stream))
+    # print("[cuda.py, to_cpu()] type(array):{}".format(type(array)))
+    check_cuda_available()
     if isinstance(array, ndarray):
-        check_cuda_available()
-        with get_device(array):
-            return array.get(stream)
+        array_dev = get_device(array)
+        if array_dev.id == -2:
+            # data is on HOST pinned memory
+            a_gpu = __swap_to_gpu(array, stream=stream)
+            a_cpu = __gpu_to_cpu(a_gpu, stream=stream)
+        else:
+            # data is on GPU memory
+            a_cpu = __gpu_to_cpu(array, stream=stream)
+        return a_cpu
     elif isinstance(array, numpy.ndarray):
+        # data is on HOST memory
         return array
+    else:
+        raise TypeError(
+            'The array sent to cpu must be numpy.ndarray or cupy.ndarray.'
+            '\nActual type: {0}.'.format(type(array)))
+
+
+def to_swap(array, stream=None):
+    """Copies the given array to HOST pinned memory.
+
+    Args:
+        array: Array to be sent to HOST pinned memory.
+        stream (cupy.cuda.Stream): CUDA stream.
+
+    Returns:
+        cupy.ndarray: Array on HOST pinned memory.
+    """
+    # print("[cuda.py, to_swap()] stream:{}".format(stream))
+    # print("[cuda.py, to_swap()] type(array):{}".format(type(array)))
+    check_cuda_available()
+    if isinstance(array, cupy.ndarray):
+        array_dev = get_device(array)
+        if array_dev.id == -2:
+            # data is on HOST pinned memory
+            return array
+        # data is on GPU device memory
+        a_pinn = __gpu_to_swap(array, stream=stream)
+        return a_pinn
+    elif isinstance(array, numpy.ndarray):
+        # data is on HOST memory
+        a_gpu = __cpu_to_gpu(array, stream=stream)
+        a_pinn = __gpu_to_swap(a_gpu, stream=stream)
+        return a_pinn
     else:
         raise TypeError(
             'The array sent to cpu must be numpy.ndarray or cupy.ndarray.'

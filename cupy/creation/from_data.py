@@ -2,7 +2,7 @@ import cupy
 from cupy import core
 
 
-def array(obj, dtype=None, copy=True, ndmin=0):
+def array(obj, dtype=None, copy=True, ndmin=0, stream=None):
     """Creates an array on the current device.
 
     This function currently does not support the ``order`` and ``subok``
@@ -24,7 +24,7 @@ def array(obj, dtype=None, copy=True, ndmin=0):
 
     """
     # TODO(beam2d): Support order and subok options
-    return core.array(obj, dtype, copy, ndmin)
+    return core.array(obj, dtype, copy, ndmin, stream)
 
 
 def asarray(a, dtype=None):
