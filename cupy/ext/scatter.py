@@ -36,8 +36,6 @@ def scatter_update(a, indices, v, axis=0):
         When there are duplicate elements in ``indices``, the index among
         them that is used to store value is undefined.
 
-        Example
-        -------
         >>> a = cupy.zeros((2,))
         >>> i = cupy.arange(10000) % 2
         >>> v = cupy.arange(10000).astype(np.float)
@@ -49,8 +47,6 @@ def scatter_update(a, indices, v, axis=0):
         corresponding to the last index among the duplicate elements in
         ``indices``.
 
-        Example
-        -------
         >>> a_cpu = numpy.zeros((2,))
         >>> i_cpu = numpy.arange(10000) % 2
         >>> v_cpu = numpy.arange(10000).astype(np.float)
