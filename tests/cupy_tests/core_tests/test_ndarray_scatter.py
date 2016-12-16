@@ -52,31 +52,32 @@ class TestScatterUpdate(unittest.TestCase):
 
 
 @testing.parameterize(
-    {'indices_shape': (2,), 'axis': 0, 'v': numpy.array([1]), 'cupy': True},
-    {'indices_shape': (2, 2), 'axis': 1, 'v': numpy.arange(5), 'cupy': True},
-    {'indices_shape': (2,), 'axis': 0, 'v': numpy.array([1]), 'cupy': False},
-    {'indices_shape': (2, 2), 'axis': 1, 'v': numpy.array(1), 'cupy': False},
-    {'indices_shape': (2, 2), 'axis': 1, 'v': 1, 'cupy': False},
+    {'shape': (3, 4, 5), 'indices': [0, 1], 'axis': 0,
+     'v': numpy.array([1]), 'cupy': True},
+    {'shape': (3, 4, 5), 'indices': [[0, 1], [2, 3]], 'axis': 1,
+     'v': numpy.arange(5), 'cupy': True},
+    {'shape': (3, 4, 5), 'indices': [0, 1], 'axis': 0,
+     'v': numpy.array([1]), 'cupy': False},
+    {'shape': (3, 4, 5), 'indices': [0, 1], 'axis': 1,
+     'v': numpy.array(1), 'cupy': False},
+    {'shape': (3, 4, 5), 'indices': [[0, 1], [2, 3]], 'axis': 1,
+     'v': 1, 'cupy': False},
+    {'shape': (3,), 'indices': [0, 1], 'axis': 0,
+     'v': numpy.array([1, 2]), 'cupy': True}
 )
 @testing.gpu
 class TestScatterUpdateParamterized(unittest.TestCase):
-
-    shape = (3, 4, 5)
 
     @testing.for_all_dtypes()
     @testing.numpy_cupy_array_equal()
     def test_scatter_update(self, xp, dtype):
         a = xp.zeros(self.shape, dtype=dtype)
-        m = a.shape[self.axis]
-        indices = testing.shaped_arange(
-            self.indices_shape, xp, numpy.int32) % m
-
         v = self.v
         if isinstance(v, numpy.ndarray):
             v = self.v.astype(dtype)
         if self.cupy and xp == cupy:
             v = cupy.array(v)
-        wrap_scatter(a, indices, v, self.axis, mode='update')
+        wrap_scatter(a, self.indices, v, self.axis, mode='update')
         return a
 
 
