@@ -63,5 +63,11 @@ def scatter_update(a, indices, v, axis=0):
         :func:`scatter_update` does not raise error when indices exceed size of
         axes. Instead, its wrap indices.
 
+    .. note::
+
+        :func:`scatter_update` acts similarly to :func:`numpy.put` when inputs
+        are one dimensional. However, :func:`scatter_update` does not repeat
+        ``v`` when ``v`` is shorter than ``indices``.
+
     """
     a.scatter_update(indices, v, axis)
