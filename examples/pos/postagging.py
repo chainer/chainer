@@ -1,6 +1,5 @@
 import argparse
 import collections
-import itertools
 
 from nltk.corpus import brown
 import numpy
@@ -19,30 +18,40 @@ class CRF(chainer.Chain):
 
     def __init__(self, n_vocab, n_pos):
         super(CRF, self).__init__(
-            embed=L.EmbedID(n_vocab, n_pos),
+            feature=L.EmbedID(n_vocab, n_pos),
             crf=L.CRF1d(n_pos),
         )
 
     def __call__(self, *args):
+        # NOTE: Chain.__call__ currently cannot use a list as an argument.
+        # We simply concate two list and make a list.
+        # Each xs[i] is a word-id sequences, and ys[i] is a pos-id sequence.
+        # They of course have difference lengths.
         xs = args[:len(args) // 2]
         ys = args[len(args) // 2:]
 
+        # Before making a transpose, you need to sort two lists in descending
+        # order of length.
         inds = numpy.argsort([-len(x.data) for x in xs]).astype('i')
         xs = [xs[i] for i in inds]
         ys = [ys[i] for i in inds]
 
+        # Make a transpose of sequences.
+        # Now xs[t] is a batch of words at time t.
         xs = F.transpose_sequence(xs)
         ys = F.transpose_sequence(ys)
 
-        hs = [self.embed(x) for x in xs]
+        # h[i] is feature vector for each batch of words.
+        hs = [self.feature(x) for x in xs]
         loss = self.crf(hs, ys)
         reporter.report({'loss': loss}, self)
 
+        # To predict labels, call argmax method.
         _, predict = self.crf.argmax(hs)
         correct = 0
         total = 0
         for y, p in zip(ys, predict):
-            correct += xp.sum(y.data == p)
+            correct += self.xp.sum(y.data == p)
             total += len(y.data)
         reporter.report({'correct': float(correct)}, self)
         reporter.report({'total': float(total)}, self)
@@ -50,18 +59,28 @@ class CRF(chainer.Chain):
         return loss
 
     def argmax(self, xs):
-        hs = [self.embed(x) for x in xs]
+        hs = [self.feature(x) for x in xs]
         return self.crf.argmax(hs)
 
 
 def convert(batch, device):
-    sentences = [cuda.to_gpu(sentence) for sentence, _ in batch]
-    poses = [cuda.to_gpu(pos) for _, pos in batch]
+    if device is None:
+        def to_device(x):
+            return x
+    elif device < 0:
+        to_device = cuda.to_cpu
+    else:
+        def to_device(x):
+            return cuda.to_gpu(x, device, cuda.Stream.null)
+
+    sentences = [to_device(sentence) for sentence, _ in batch]
+    poses = [to_device(pos) for _, pos in batch]
     return tuple(sentences + poses)
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Chainer example: MNIST')
+def main():
+    parser = argparse.ArgumentParser(
+        description='Chainer example: POS-tagging')
     parser.add_argument('--batchsize', '-b', type=int, default=30,
                         help='Number of images in each mini batch')
     parser.add_argument('--epoch', '-e', type=int, default=20,
@@ -79,10 +98,11 @@ if __name__ == '__main__':
     vocab = collections.defaultdict(lambda: len(vocab))
     pos_vocab = collections.defaultdict(lambda: len(pos_vocab))
 
+    # Convert word sequences and pos sequences to integer sequences.
     data = []
     for sentence in brown.tagged_sents():
         xs = numpy.array([vocab[lex] for lex, _ in sentence], 'i')
-        ys = numpy.array([pos_vocab[pos] for _, pos in sentence] , 'i')
+        ys = numpy.array([pos_vocab[pos] for _, pos in sentence], 'i')
         data.append((xs, ys))
 
     print('# of sentences: {}'.format(len(data)))
@@ -90,11 +110,11 @@ if __name__ == '__main__':
     print('# of pos: {}'.format(len(pos_vocab)))
 
     model = CRF(len(vocab), len(pos_vocab))
-    model.to_gpu()
-    xp = cuda.cupy
+    if args.gpu >= 0:
+        model.to_gpu()
     optimizer = O.Adam()
     optimizer.setup(model)
-    #opt.add_hook(chainer.optimizer.WeightDecay(0.1))
+    opt.add_hook(chainer.optimizer.WeightDecay(0.1))
 
     train_data = data[len(data) // 4:]
     test_data = data[:len(data) // 4]
@@ -103,13 +123,18 @@ if __name__ == '__main__':
     test_iter = chainer.iterators.SerialIterator(test_data, args.batchsize,
                                                  repeat=False, shuffle=False)
     updater = training.StandardUpdater(
-        train_iter, optimizer, converter=convert)
+        train_iter, optimizer, converter=convert, device=args.gpu)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'))
 
-    trainer.extend(extensions.Evaluator(test_iter, model, device=0, converter=convert))
+    trainer.extend(extensions.Evaluator(
+        test_iter, model, device=0, converter=convert))
     trainer.extend(extensions.LogReport())
     trainer.extend(extensions.PrintReport(
-        ['epoch', 'main/loss', 'validation/main/loss', 'main/correct', 'main/total',
-         'validation/main/correct', 'validation/main/total']))
+        ['epoch', 'main/loss', 'validation/main/loss', 'main/correct',
+         'main/total', 'validation/main/correct', 'validation/main/total']))
 
     trainer.run()
+
+
+if __name__ == '__main__':
+    main()
