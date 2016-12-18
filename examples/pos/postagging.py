@@ -112,7 +112,7 @@ def main():
         model.to_gpu()
     optimizer = O.Adam()
     optimizer.setup(model)
-    opt.add_hook(chainer.optimizer.WeightDecay(0.1))
+    O.add_hook(chainer.optimizer.WeightDecay(0.1))
 
     train_data = data[len(data) // 4:]
     test_data = data[:len(data) // 4]
