@@ -91,8 +91,6 @@ def main():
                         help='Directory to output the result')
     parser.add_argument('--resume', '-r', default='',
                         help='Resume the training from snapshot')
-    parser.add_argument('--unit', '-u', type=int, default=1000,
-                        help='Number of units')
     args = parser.parse_args()
 
     vocab = collections.defaultdict(lambda: len(vocab))
@@ -124,7 +122,7 @@ def main():
                                                  repeat=False, shuffle=False)
     updater = training.StandardUpdater(
         train_iter, optimizer, converter=convert, device=args.gpu)
-    trainer = training.Trainer(updater, (args.epoch, 'epoch'))
+    trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
 
     trainer.extend(extensions.Evaluator(
         test_iter, model, device=0, converter=convert))
@@ -132,6 +130,8 @@ def main():
     trainer.extend(extensions.PrintReport(
         ['epoch', 'main/loss', 'validation/main/loss', 'main/correct',
          'main/total', 'validation/main/correct', 'validation/main/total']))
+    if args.resume:
+        chainer.serializers.load_npz(args.resume, trainer)
 
     trainer.run()
 
