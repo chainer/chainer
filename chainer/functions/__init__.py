@@ -363,9 +363,6 @@ unpooling_2d = unpooling_2d.unpooling_2d
 Upsampling2D = upsampling_2d.Upsampling2D
 upsampling_2d = upsampling_2d.upsampling_2d
 
-Forget = forget.Forget
-forget = forget.forget
-
 # Import for backward compatibility
 PReLU = links_prelu.PReLU
 
