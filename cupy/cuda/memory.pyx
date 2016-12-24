@@ -81,10 +81,13 @@ cdef class MemoryPointer:
         ptr (int): Pointer to the place within the buffer.
     """
 
-    def __init__(self, Memory mem, Py_ssize_t offset):
+    def __init__(self, Memory mem, Py_ssize_t offset, Py_ssize_t devptr=0):
         self.mem = mem
         self.device = mem.device
         self.ptr = mem.ptr + offset
+        if devptr != 0:
+            self.mem = None
+            self.ptr = devptr
 
     def __int__(self):
         """Returns the pointer value."""
@@ -254,6 +257,11 @@ cdef class MemoryPointer:
         """
         if size > 0:
             runtime.memsetAsync(self.ptr, value, size, stream.ptr)
+
+
+cpdef MemoryPointer open(Py_ssize_t devptr):
+    mem = Memory(1)
+    return MemoryPointer(mem, 0, devptr=devptr)
 
 
 cpdef MemoryPointer _malloc(Py_ssize_t size):

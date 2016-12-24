@@ -690,5 +690,14 @@ int nvtxRangePop() {
 
 } // extern "C"
 
+///////////////////////////////////////////////////////////////////////////////
+// driver_types.h
+///////////////////////////////////////////////////////////////////////////////
+
+#define CUDA_IPC_HANDLE_SIZE 64
+typedef struct cudaIpcMemHandle_st {
+    char reserved[CUDA_IPC_HANDLE_SIZE];
+} cudaIpcMemHandle;
+
 #endif // #ifndef CUPY_NO_CUDA
 #endif // #ifndef INCLUDE_GUARD_CUPY_CUDA_H

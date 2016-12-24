@@ -132,6 +132,8 @@ class Link(object):
             shape, dtype = _ensure_shape_dtype(value)
             self.add_param(name, shape, dtype=dtype)
 
+        self.grads_gathered = None
+
     @property
     def xp(self):
         """Array module for this link.
@@ -452,6 +454,94 @@ class Link(object):
         for link in self.links():
             for param in link._uninitialized_params.values():
                 param._zeroed = True
+
+    def size_num_grads(self):
+        """Count size of all gradient arrays
+
+        """
+        size = 0
+        num = 0
+        for param in self.params():
+            if param.size == 0:
+                continue
+            size += param.size
+            num += 1
+        return size, num
+
+    def gather_grads(self):
+        """Put together all gradient arrays and make a single array
+
+        Return:
+            cupy.ndarray
+        """
+        size, num = self.size_num_grads()
+        # print("size:{}, num:{}".format(size, num))
+
+        ptrs = numpy.empty(num, dtype=numpy.uint64)
+        info = numpy.empty(num+1, dtype=numpy.int32)
+        info[0] = 0
+        i = 0
+        for param in self.params():
+            if param.size == 0:
+                continue
+            ptrs[i] = 0    # NULL pointer
+            if param._grad is not None:
+                ptrs[i] = param._grad.data.ptr
+            info[i+1] = info[i] + param.size
+            i += 1
+        info[0] = num
+        # print("ptrs:\n{}".format(ptrs))
+        # print("info:\n{}".format(info))
+
+        var_ptrs = variable.Variable(ptrs)
+        var_info = variable.Variable(info)
+        var_ptrs.to_gpu()
+        var_info.to_gpu()
+
+        batch_memcpy = cuda.cupy.ElementwiseKernel(
+            'raw T ptrs, raw X info',
+            'raw float32 dst',
+            '''
+                int id_min = id_pre;
+                int id_max = num_src;
+                while (id_max - id_min > 1) {
+                    int id = (id_max + id_min) / 2;
+                    if (i < info[id]) id_max = id;
+                    else              id_min = id;
+                }
+                int id = id_min;
+                float *src = (float *)(ptrs[id]);
+                int i_dst = i;
+                int i_src = i;
+                if (id > 0) i_src -= info[id];
+                dst[i_dst] = 0;
+                if (src != NULL) {
+                    dst[i_dst] = src[i_src];
+                }
+                id_pre = id;
+            ''',
+            'batch_memcpy',
+            loop_prep='''
+                int num_src = info[0];
+                int id_pre = 0;
+            ''')
+
+        self.grads_gathered = batch_memcpy(var_ptrs.data, var_info.data,
+                                           size=size)
+        return self.grads_gathered
+
+    def scatter_grads(self, array):
+        """Put back contents of the specified array to the related gradient arrays
+
+        Args:
+            array (cupy.ndarray): gathered array created by gather_grads()
+        """
+        offset = 0
+        for param in self.params():
+            offset = param.scatter_grad(array, offset)
+
+    def cleargrads_gathered(self):
+        self.grads_gathered = None
 
     def addgrads(self, link):
         """Accumulates gradient values from given link.

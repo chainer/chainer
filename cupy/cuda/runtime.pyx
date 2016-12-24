@@ -68,6 +68,17 @@ cdef extern from "cupy_cuda.h":
                                 int peerDevice) nogil
     int cudaDeviceEnablePeerAccess(int peerDevice, unsigned int flags) nogil
 
+    #
+    cdef int CUDA_IPC_HANDLE_SIZE
+    cdef struct cudaIpcMemHandle_st:
+        char reserved[64]
+    ctypedef cudaIpcMemHandle_st cudaIpcMemHandle_t
+
+    int cudaIpcGetMemHandle(cudaIpcMemHandle_t* handle, void* devPtr) nogil
+    int cudaIpcOpenMemHandle(void** devPtr, cudaIpcMemHandle_t handle,
+                             unsigned int flags) nogil
+    int cudaIpcCloseMemHandle(void* devPtr) nogil
+
     # Memory management
     int cudaMalloc(void** devPtr, size_t size) nogil
     int cudaHostAlloc(void** ptr, size_t size, unsigned int flags) nogil
@@ -194,6 +205,32 @@ cpdef int deviceCanAccessPeer(int device, int peerDevice) except *:
 cpdef deviceEnablePeerAccess(int peerDevice):
     status = cudaDeviceEnablePeerAccess(peerDevice, 0)
     check_status(status)
+
+
+###############################################################################
+# Memory sharing among multi-processes
+###############################################################################
+
+cpdef list ipcGetMemHandle(size_t devPtr):
+    cdef cudaIpcMemHandle_t handle
+    cudaIpcGetMemHandle(&handle, <void*>devPtr)
+    mh_data = []
+    for i in range(64):
+        mh_data.append(handle.reserved[i])
+    return mh_data
+
+
+cpdef size_t ipcOpenMemHandle(list mh_data):
+    cdef cudaIpcMemHandle_t handle
+    for i in range(64):
+        handle.reserved[i] = mh_data[i]
+    cpdef void* devPtr
+    cudaIpcOpenMemHandle(&devPtr, handle, 1)
+    return <size_t>devPtr
+
+
+cpdef ipcCloseMemHandle(size_t devPtr):
+    cudaIpcCloseMemHandle(<void*>devPtr)
 
 
 ###############################################################################

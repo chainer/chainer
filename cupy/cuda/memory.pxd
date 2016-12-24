@@ -30,6 +30,9 @@ cdef class MemoryPointer:
 cpdef MemoryPointer alloc(Py_ssize_t size)
 
 
+cpdef MemoryPointer open(Py_ssize_t devptr)
+
+
 cpdef set_allocator(allocator=*)
 
 

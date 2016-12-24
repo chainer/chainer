@@ -73,7 +73,7 @@ cdef class ndarray:
         readonly memory.MemoryPointer data
         readonly ndarray base
 
-    def __init__(self, shape, dtype=float, memptr=None):
+    def __init__(self, shape, dtype=float, memptr=None, devptr=None):
         cdef Py_ssize_t size
         self._shape = internal.get_size(shape)
         for x in self._shape:
@@ -83,6 +83,10 @@ cdef class ndarray:
         self.size = internal.prod_ssize_t(self._shape)
         self._strides = internal.get_contiguous_strides(
             self._shape, self.itemsize)
+
+        # anaruse
+        if devptr is not None:
+            memptr = memory.open(devptr)
 
         if memptr is None:
             self.data = memory.alloc(self.size * self.dtype.itemsize)

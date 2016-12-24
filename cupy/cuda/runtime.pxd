@@ -85,6 +85,13 @@ cpdef deviceSynchronize()
 cpdef int deviceCanAccessPeer(int device, int peerDevice) except *
 cpdef deviceEnablePeerAccess(int peerDevice)
 
+###############################################################################
+# Memory sharing among multi-processes
+###############################################################################
+
+cpdef list ipcGetMemHandle(size_t devPtr)
+cpdef size_t ipcOpenMemHandle(list mh_data)
+cpdef ipcCloseMemHandle(size_t devPtr)
 
 ###############################################################################
 # Memory management
