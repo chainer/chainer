@@ -6,6 +6,7 @@ import numpy
 
 import chainer
 from chainer import cuda
+from chainer import datasets
 import chainer.functions as F
 import chainer.links as L
 import chainer.optimizers as O
@@ -114,8 +115,8 @@ def main():
     optimizer.setup(model)
     optimizer.add_hook(chainer.optimizer.WeightDecay(0.1))
 
-    train_data = data[len(data) // 4:]
-    test_data = data[:len(data) // 4]
+    test_data, train_data = datasets.split_dataset_random(
+        data, len(data) / 10, seed=0)
 
     train_iter = chainer.iterators.SerialIterator(train_data, args.batchsize)
     test_iter = chainer.iterators.SerialIterator(test_data, args.batchsize,
