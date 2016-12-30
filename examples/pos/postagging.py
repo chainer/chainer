@@ -54,8 +54,8 @@ class CRF(chainer.Chain):
         for y, p in zip(ys, predict):
             correct += self.xp.sum(y.data == p)
             total += len(y.data)
-        reporter.report({'correct': float(correct)}, self)
-        reporter.report({'total': float(total)}, self)
+        reporter.report({'correct': correct}, self)
+        reporter.report({'total': total}, self)
 
         return loss
 
@@ -77,6 +77,40 @@ def convert(batch, device):
     sentences = [to_device(sentence) for sentence, _ in batch]
     poses = [to_device(pos) for _, pos in batch]
     return tuple(sentences + poses)
+
+
+class MicroAverage(chainer.training.Extension):
+
+    def __init__(
+            self, keys=['main', 'validation/main'], trigger=(1, 'epoch'),
+            log_report='LogReport'):
+        self._keys = keys
+        self._trigger = chainer.training.get_trigger(trigger)
+        self._log_report = log_report
+
+        self._correct = collections.defaultdict(int)
+        self._total = collections.defaultdict(int)
+
+    def __call__(self, trainer):
+        reporter = trainer.get_extension(self._log_report)
+        observation = trainer.observation
+        for key in self._keys:
+            correct_key = '%s/correct' % key
+            total_key = '%s/total' % key
+            if correct_key not in observation:
+                continue
+
+            self._correct[key] += observation[correct_key]
+            self._total[key] += observation[total_key]
+
+        if self._trigger(trainer):
+            log = {}
+            for key in self._keys:
+                accuracy = float(self._correct[key]) / self._total[key]
+                log['%s/accuracy' % key] = accuracy
+                self._correct[key] = 0
+                self._total[key] = 0
+            reporter.log.append(log)
 
 
 def main():
@@ -128,9 +162,12 @@ def main():
     trainer.extend(extensions.Evaluator(
         test_iter, model, device=0, converter=convert))
     trainer.extend(extensions.LogReport())
+    trainer.extend(MicroAverage())
+
     trainer.extend(extensions.PrintReport(
-        ['epoch', 'main/loss', 'validation/main/loss', 'main/correct',
-         'main/total', 'validation/main/correct', 'validation/main/total']))
+        ['epoch', 'main/loss', 'validation/main/loss',
+         'main/accuracy', 'validation/main/accuracy']))
+
     if args.resume:
         chainer.serializers.load_npz(args.resume, trainer)
 
