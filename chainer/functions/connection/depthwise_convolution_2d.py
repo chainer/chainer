@@ -1,6 +1,7 @@
 import numpy
 from six import moves
 
+from chainer import cuda
 from chainer import function
 from chainer.utils import conv
 from chainer.utils import type_check
@@ -14,10 +15,9 @@ def _pair(x):
 
 class DepthwiseConvolution2D(function.Function):
 
-    def __init__(self, stride=1, pad=0, cover_all=False):
+    def __init__(self, stride=1, pad=0):
         self.sy, self.sx = _pair(stride)
         self.ph, self.pw = _pair(pad)
-        self.cover_all = cover_all
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -38,7 +38,7 @@ class DepthwiseConvolution2D(function.Function):
             type_check.expect(
                 b_type.dtype == x_type.dtype,
                 b_type.ndim == 1,
-                b_type.shape[0] == w_type.shape[0],
+                b_type.shape[0] == w_type.shape[0] * w_type.shape[1],
             )
 
     def forward(self, inputs):
@@ -49,16 +49,18 @@ class DepthwiseConvolution2D(function.Function):
         xp = cuda.get_array_module(*x)
         if xp is numpy:
             self.col = conv.im2col_cpu(
-                x, kh, kw, self.sy, self.sx, self.ph, self.pw,
-                cover_all=self.cover_all)
+                x, kh, kw, self.sy, self.sx, self.ph, self.pw)
         else:
             self.col = conv.im2col_gpu(
-                x, kh, kw, self.sy, self.sx, self.ph, self.pw,
-                cover_all=self.cover_all)
+                x, kh, kw, self.sy, self.sx, self.ph, self.pw)
 
-        y = xp.tensordot(
-            self.col, W, ((2, 3), (2, 3))).astype(x.dtype, copy=False)
-        y = xp.concatenate(y, axis=1)  # TODO
+        arys = [xp.tensordot(self.col[:, i, :, :, :, :], W[:, i, :, :],
+                    ((1, 2), (1, 2))).astype(x.dtype, copy=False)
+                    for i in moves.range(W.shape[1])]
+
+        # along input channel axis
+        y = xp.concatenate(arys, axis=3)
+
         if b is not None:
             y += b
         return xp.rollaxis(y, 3, 1),
@@ -70,10 +72,17 @@ class DepthwiseConvolution2D(function.Function):
         h, w = x.shape[2:]
 
         xp = cuda.get_array_module(*x)
-        gy = xp.split(gy, axis=1)  # TODO
-        gW = xp.tensordot(
-            gy, self.col, ((0, 2, 3), (0, 1, 4, 5))).astype(W.dtype, copy=False)
-        gcol = xp.tensordot(W, gy, (0, 1)).astype(x.dtype, copy=False)  # TODO
+        gy= xp.rollaxis(gy, 1, 4)
+        garys = xp.split(gy, W.shape[1], axis=3)
+        gW = xp.empty_like(W)
+        gcol = xp.empty_like(self.col)
+        gcol = xp.rollaxis(self.col, 0, 4)
+        for i in moves.range(W.shape[1]):
+            gW[:, i, :, :] = xp.tensordot(
+                garys[i], self.col[:, i, :, :, :, :], ((0, 1, 2), (0, 3, 4)))
+            gcol[i, :, :, :, :, :] = xp.tensordot(W[:, i, :, :], garys[i], (0, 3))
+        gW = gW.astype(W.dtype, copy=False)
+        gcol = gcol.astype(x.dtype, copy=False)
         gcol = xp.rollaxis(gcol, 3)
 
         if xp is numpy:
@@ -84,24 +93,25 @@ class DepthwiseConvolution2D(function.Function):
         if b is None:
             return gx, gW
         else:
-            gb = gy.sum(axis=(0, 2, 3))
+            gb = gy.sum(axis=(0, 1, 2))
             return gx, gW, gb
 
 
-def depthwise_convolution_2d(x, W, b=None, stride=1, pad=0, use_cudnn=True,
-                   cover_all=False, deterministic=False):
-    """Two-dimensional convolution function.
+def depthwise_convolution_2d(x, W, b=None, stride=1, pad=0):
+    """Two-dimensional depthwise convolution function.
 
-    This is an implementation of two-dimensional convolution in ConvNets.
+    This is an implementation of two-dimensional depthwise convolution.
     It takes three variables: the input image ``x``, the filter weight ``W``,
     and the bias vector ``b``.
 
     Notation: here is a notation for dimensionalities.
 
     - :math:`n` is the batch size.
-    - :math:`c_I` and :math:`c_O` are the number of the input and output
-      channels, respectively.
+    - :math:`c_I` is the number of the input.
+    - :math:`c_M` is the number of the channel multiplier.
     - :math:`h` and :math:`w` are the height and width of the input image,
+      respectively.
+    - :math:`h_O` and :math:`w_O` are the height and width of the output image,
       respectively.
     - :math:`k_H` and :math:`k_W` are the height and width of the filters,
       respectively.
@@ -109,8 +119,9 @@ def depthwise_convolution_2d(x, W, b=None, stride=1, pad=0, use_cudnn=True,
     Args:
         x (~chainer.Variable): Input variable of shape :math:`(n, c_I, h, w)`.
         W (~chainer.Variable): Weight variable of shape
-            :math:`(c_I, k_H, k_W)`.
-        b (~chainer.Variable): Bias variable of length :math:`c_O` (optional).
+            :math:`(c_M, c_I, k_H, k_W)`.
+        b (~chainer.Variable):
+            Bias variable of length :math:`c_M * C_I` (optional).
         stride (int or pair of ints): Stride of filter applications.
             ``stride=s`` and ``stride=(s, s)`` are equivalent.
         pad (int or pair of ints): Spatial padding width for input arrays.
@@ -118,26 +129,14 @@ def depthwise_convolution_2d(x, W, b=None, stride=1, pad=0, use_cudnn=True,
 
 
     Returns:
-        ~chainer.Variable: Output variable.
+        ~chainer.Variable:
+            Output variable. The shape is :math:`(n, c_I * c_M, h_O, w_O)`.
 
-    The two-dimensional convolution function is defined as follows.
-    Then the ``Convolution2D`` function computes correlations between filters
-    and patches of size :math:`(k_H, k_W)` in ``x``.
-    Note that correlation here is equivalent to the inner product between
-    expanded vectors.
-    Patches are extracted at positions shifted by multiples of ``stride`` from
-    the first position ``-pad`` for each spatial axis.
-    The right-most (or bottom-most) patches do not run over the padded spatial
-    size.
+    ``DepthwiseConvolution2D`` function computes spatial convolution but not
+    adds up between output channels of filters.
 
-    Let :math:`(s_Y, s_X)` be the stride of filter application, and
-    :math:`(p_H, p_W)` the spatial padding size. Then, the output size
-    :math:`(h_O, w_O)` is determined by the following equations:
-
-    .. math::
-
-       h_O &= (h + 2p_H - k_H) / s_Y + 1,\\\\
-       w_O &= (w + 2p_W - k_W) / s_X + 1.
+    :math:`(h_O, w_O)` is determined by the equivalent equation with
+    ``Convolution2D``.
 
     If the bias vector is given, then it is added to all spatial locations of
     the output of convolution.
@@ -145,7 +144,7 @@ def depthwise_convolution_2d(x, W, b=None, stride=1, pad=0, use_cudnn=True,
     .. seealso:: :class:`~chainer.links.DepthwiseConvolution2D`
 
     """
-    func = DepthwiseConvolution2D(stride, pad, cover_all)
+    func = DepthwiseConvolution2D(stride, pad)
     if b is None:
         return func(x, W)
     else:
