@@ -78,7 +78,6 @@ class DepthwiseConvolution2D(link.Link):
         else:
             self._initialize_params(in_channels)
 
-
     def _initialize_params(self, in_channels):
         kh, kw = _pair(self.ksize)
         W_shape = (self.channel_multiplier, in_channels, kh, kw)

@@ -55,8 +55,8 @@ class DepthwiseConvolution2D(function.Function):
                 x, kh, kw, self.sy, self.sx, self.ph, self.pw)
 
         arys = [xp.tensordot(self.col[:, i, :, :, :, :], W[:, i, :, :],
-                    ((1, 2), (1, 2))).astype(x.dtype, copy=False)
-                    for i in moves.range(W.shape[1])]
+                             ((1, 2), (1, 2))).astype(x.dtype, copy=False)
+                for i in moves.range(W.shape[1])]
 
         # along input channel axis
         y = xp.concatenate(arys, axis=3)
@@ -72,7 +72,7 @@ class DepthwiseConvolution2D(function.Function):
         h, w = x.shape[2:]
 
         xp = cuda.get_array_module(*x)
-        gy= xp.rollaxis(gy, 1, 4)
+        gy = xp.rollaxis(gy, 1, 4)
         garys = xp.split(gy, W.shape[1], axis=3)
         gW = xp.empty_like(W)
         gcol = xp.empty_like(self.col)
@@ -80,15 +80,18 @@ class DepthwiseConvolution2D(function.Function):
         for i in moves.range(W.shape[1]):
             gW[:, i, :, :] = xp.tensordot(
                 garys[i], self.col[:, i, :, :, :, :], ((0, 1, 2), (0, 3, 4)))
-            gcol[i, :, :, :, :, :] = xp.tensordot(W[:, i, :, :], garys[i], (0, 3))
+            gcol[i, :, :, :, :, :] = xp.tensordot(
+                W[:, i, :, :], garys[i], (0, 3))
         gW = gW.astype(W.dtype, copy=False)
         gcol = gcol.astype(x.dtype, copy=False)
         gcol = xp.rollaxis(gcol, 3)
 
         if xp is numpy:
-            gx = conv.col2im_cpu(gcol, self.sy, self.sx, self.ph, self.pw, h, w)
+            gx = conv.col2im_cpu(gcol, self.sy, self.sx,
+                                 self.ph, self.pw, h, w)
         else:
-            gx = conv.col2im_gpu(gcol, self.sy, self.sx, self.ph, self.pw, h, w)
+            gx = conv.col2im_gpu(gcol, self.sy, self.sx,
+                                 self.ph, self.pw, h, w)
 
         if b is None:
             return gx, gW

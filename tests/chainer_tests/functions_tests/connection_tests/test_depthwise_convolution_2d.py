@@ -1,13 +1,10 @@
-import mock
 import unittest
 
 import numpy
 
-import chainer
 from chainer import cuda
-from chainer import functions
-from chainer.functions.connection import depthwise_convolution_2d
 from chainer.functions.connection import convolution_2d
+from chainer.functions.connection import depthwise_convolution_2d
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
@@ -67,8 +64,16 @@ class TestDepthwiseConvolution2DFunction(unittest.TestCase):
     def test_forward_cpu_nobias(self):
         self.check_forward(self.x, self.W, None)
 
+    @attr.gpu
+    def test_forward_gpu(self):
+        self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.W),
+                           cuda.to_gpu(self.b))
+
+    @attr.gpu
+    def test_forward_gpu_nobias(self):
+        self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.W), None)
+
     def check_backward(self, x_data, W_data, b_data, y_grad):
-        xp = cuda.get_array_module(x_data)
         args = (x_data, W_data)
         if b_data is not None:
             args = args + (b_data,)

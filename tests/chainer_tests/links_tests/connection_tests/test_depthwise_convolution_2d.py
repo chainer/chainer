@@ -9,7 +9,6 @@ from chainer import links
 from chainer import testing
 from chainer.testing import attr
 from chainer.testing import condition
-from chainer.utils import conv
 
 
 @testing.parameterize(*testing.product({
@@ -53,7 +52,8 @@ class TestDepthWiseConvolution2DParameterShapePlaceholder(unittest.TestCase):
 
     def setUp(self):
         in_channels = None
-        self.link = links.DepthwiseConvolution2D(in_channels, 2, 3, stride=2, pad=1)
+        self.link = links.DepthwiseConvolution2D(in_channels, 2, 3,
+                                                 stride=2, pad=1)
         self.x = numpy.random.uniform(-1, 1,
                                       (2, 3, 4, 3)).astype(numpy.float32)
         self.link(chainer.Variable(self.x))
