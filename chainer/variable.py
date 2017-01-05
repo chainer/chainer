@@ -111,7 +111,7 @@ class Variable(object):
         elif not isinstance(data, (numpy.ndarray, cuda.ndarray)):
                 msg = '''numpy.ndarray or cuda.ndarray are expected.
 Actual: {0}'''.format(type(data))
-            raise TypeError(msg)
+                raise TypeError(msg)
 
         # Use a list as a data structure to hold the data array indirectly to
         # abstract its initialized/uninitialized state.
