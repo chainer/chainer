@@ -1,3 +1,5 @@
+import numpy
+
 from chainer import cuda
 from chainer import initializer
 
@@ -78,3 +80,16 @@ def One(dtype=None):
 
     """
     return Constant(1.0, dtype=dtype)
+
+
+def NaN(dtype=None):
+    """Returns initializer that initializes array with the all-NaN array.
+
+    Args:
+        dtype: Data type specifier.
+
+    Returns:
+        An initializer that initializes an array by NaN.
+
+    """
+    return Constant(numpy.nan, dtype=dtype)
