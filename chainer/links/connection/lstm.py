@@ -81,7 +81,7 @@ class StatelessLSTM(LSTMBase):
                 output of LSTM units.
 
         """
-        if self.upward.has_uninitialized_params:
+        if self.upward.W.data is None:
             in_size = x.size // x.shape[0]
             self.upward._initialize_params(in_size)
             self._initialize_params()
@@ -215,7 +215,7 @@ class LSTM(LSTMBase):
             ~chainer.Variable: Outputs of updated LSTM units.
 
         """
-        if self.upward.has_uninitialized_params:
+        if self.upward.W.data is None:
             in_size = x.size // x.shape[0]
             self.upward._initialize_params(in_size)
             self._initialize_params()
