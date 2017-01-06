@@ -49,11 +49,10 @@ class Linear(link.Link):
         # For backward compatibility
         self.initialW = initialW
         self.out_size = out_size
-        self._W_initializer = initializers._get_initializer(initialW)
 
-        if in_size is None:
-            self.add_uninitialized_param('W')
-        else:
+        self.add_param('W', initializer=initializers._get_initializer(
+            initialW))
+        if in_size is not None:
             self._initialize_params(in_size)
 
         if nobias:
@@ -65,8 +64,7 @@ class Linear(link.Link):
             self.add_param('b', out_size, initializer=bias_initializer)
 
     def _initialize_params(self, in_size):
-        self.add_param('W', (self.out_size, in_size),
-                       initializer=self._W_initializer)
+        self.W.initialize((self.out_size, in_size))
 
     def __call__(self, x):
         """Applies the linear layer.
@@ -78,7 +76,6 @@ class Linear(link.Link):
             ~chainer.Variable: Output of the linear layer.
 
         """
-        if self.has_uninitialized_params:
-            with cuda.get_device(self._device_id):
-                self._initialize_params(x.size // x.shape[0])
+        if self.W.data is None:
+            self._initialize_params(x.size // x.shape[0])
         return linear.linear(x, self.W, self.b)

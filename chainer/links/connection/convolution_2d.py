@@ -64,11 +64,9 @@ class Convolution2D(link.Link):
         # For backward compatibility
         self.initialW = initialW
 
-        self._W_initializer = initializers._get_initializer(initialW)
-
-        if in_channels is None:
-            self.add_uninitialized_param('W')
-        else:
+        self.add_param('W', initializer=initializers._get_initializer(
+            initialW))
+        if in_channels is not None:
             self._initialize_params(in_channels)
 
         if nobias:
@@ -82,7 +80,7 @@ class Convolution2D(link.Link):
     def _initialize_params(self, in_channels):
         kh, kw = _pair(self.ksize)
         W_shape = (self.out_channels, in_channels, kh, kw)
-        self.add_param('W', W_shape, initializer=self._W_initializer)
+        self.W.initialize(W_shape)
 
     def __call__(self, x):
         """Applies the convolution layer.
@@ -94,9 +92,8 @@ class Convolution2D(link.Link):
             ~chainer.Variable: Output of the convolution.
 
         """
-        if self.has_uninitialized_params:
-            with cuda.get_device(self._device_id):
-                self._initialize_params(x.shape[1])
+        if self.W.data is None:
+            self._initialize_params(x.shape[1])
         return convolution_2d.convolution_2d(
             x, self.W, self.b, self.stride, self.pad, self.use_cudnn,
             deterministic=self.deterministic)
