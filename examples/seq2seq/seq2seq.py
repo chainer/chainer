@@ -54,18 +54,29 @@ class Seq2seq(chainer.Chain):
         reporter.report({'loss': loss}, self)
         return loss
 
+    def translate(self, x):
+        exs = sequence_embed(self.embed_x, x[None, :])
+        # Initial hidden variable and cell variable
+        zero = numpy.zeros((self.n_layers, 1, self.n_units), 'f')
+        h, c, _ = self.encoder(zero, zero, exs)
+        y = numpy.zeros((1, 1), 'i')
+        result = []
+        for i in range(10):
+            ey = self.embed_y(y)
+            h, c, ys = self.decoder(h, c, [ey])
+            wy = self.W(ys[0])
+            yi = numpy.argmax(wy.data[0])
+            result.append(yi)
+            y = numpy.array([yi], 'i')
+
+        return result
+
 
 def convert(batch, device):
     return tuple([x for x, _ in batch] + [y for _, y in batch])
 
 
 def main():
-    data = [
-        (numpy.array([1,2,3], 'i'), numpy.array([1,2,3], 'i')),
-        (numpy.array([1,2,3], 'i'), numpy.array([1,2,3], 'i')),
-        (numpy.array([1,2,3], 'i'), numpy.array([1,2,3], 'i')),
-    ]
-
     sentences = comtrans.aligned_sents('alignment-en-fr.txt')
     source_ids = collections.defaultdict(lambda: len(source_ids))
     target_ids = collections.defaultdict(lambda: len(target_ids))
@@ -77,6 +88,8 @@ def main():
         data.append((source, target))
     print('Source vocabulary: %d' % len(source_ids))
     print('Target vocabulary: %d' % len(target_ids))
+
+    target_words = {i: w for w, i in target_ids.items()}
     
     model = Seq2seq(3, len(source_ids), len(target_ids), 10)
     optimizer = chainer.optimizers.Adam()
@@ -89,6 +102,16 @@ def main():
     trainer.extend(extensions.PrintReport(
         ['epoch', 'main/loss', 'validation/main/loss',
          'main/accuracy', 'validation/main/accuracy', 'elapsed_time']))
+
+    @chainer.training.make_extension(trigger=(1, 'iteration'))
+    def translate(trainer):
+        words = ['Resumption', 'of', 'the', 'session']
+        x = numpy.array([source_ids[w] for w in words], 'i')
+        ys = model.translate(x)
+        words = [target_words[y] for y in ys]
+        print(' '.join(words))
+
+    trainer.extend(translate)
     trainer.run()
 
 
