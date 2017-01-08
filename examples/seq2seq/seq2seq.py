@@ -57,19 +57,20 @@ class Seq2seq(chainer.Chain):
         return loss
 
     def translate(self, x):
-        exs = sequence_embed(self.embed_x, x[None, :])
+        exs = sequence_embed(self.embed_x, [x])
         # Initial hidden variable and cell variable
-        zero = numpy.zeros((self.n_layers, 1, self.n_units), 'f')
+        zero = self.xp.zeros((self.n_layers, 1, self.n_units), 'f')
         h, c, _ = self.encoder(zero, zero, exs)
-        y = numpy.zeros((1, 1), 'i')
+        y = self.xp.zeros(1, 'i')
         result = []
         for i in range(10):
             ey = self.embed_y(y)
             h, c, ys = self.decoder(h, c, [ey])
             wy = self.W(ys[0])
-            yi = numpy.argmax(wy.data[0])
+            # TODO(unno): CuPy does not have argmax method
+            yi = numpy.argmax(cuda.to_cpu(wy.data[0]))
             result.append(yi)
-            y = numpy.array([yi], 'i')
+            y = self.xp.array([yi], 'i')
 
         return result
 
@@ -137,7 +138,7 @@ def main():
     @chainer.training.make_extension(trigger=(1, 'iteration'))
     def translate(trainer):
         words = ['Resumption', 'of', 'the', 'session']
-        x = numpy.array([source_ids[w] for w in words], 'i')
+        x = model.xp.array([source_ids[w] for w in words], 'i')
         ys = model.translate(x)
         words = [target_words[y] for y in ys]
         print(' '.join(words))
