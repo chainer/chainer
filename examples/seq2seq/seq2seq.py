@@ -1,9 +1,11 @@
+import argparse
 import collections
 
 from nltk.corpus import comtrans
 import numpy
 
 import chainer
+from chainer import cuda
 import chainer.functions as F
 import chainer.links as L
 from chainer import reporter
@@ -36,7 +38,7 @@ class Seq2seq(chainer.Chain):
         xs = inputs[:len(inputs) // 2]
         ys = inputs[len(inputs) // 2:]
 
-        eos = numpy.array([0], 'i')
+        eos = self.xp.array([0], 'i')
         ys_in = [F.concat([eos, y], axis=0) for y in ys]
         ys_out = [F.concat([y, eos], axis=0) for y in ys]
 
@@ -45,7 +47,7 @@ class Seq2seq(chainer.Chain):
 
         batch = len(xs)
         # Initial hidden variable and cell variable
-        zero = numpy.zeros((self.n_layers, batch, self.n_units), 'f')
+        zero = self.xp.zeros((self.n_layers, batch, self.n_units), 'f')
         hx, cx, _ = self.encoder(zero, zero, exs)
         _, _, os = self.decoder(hx, cx, eys)
         loss = F.softmax_cross_entropy(
@@ -73,10 +75,35 @@ class Seq2seq(chainer.Chain):
 
 
 def convert(batch, device):
-    return tuple([x for x, _ in batch] + [y for _, y in batch])
+    if device is None:
+        def to_device(x):
+            return x
+    elif device < 0:
+        to_device = cuda.to_cpu
+    else:
+        def to_device(x):
+            return cuda.to_gpu(x, device, cuda.Stream.null)
+
+    return tuple(
+        [to_device(x) for x, _ in batch] + [to_device(y) for _, y in batch])
 
 
 def main():
+    parser = argparse.ArgumentParser(description='Chainer example: seq2seq')
+    parser.add_argument('--batchsize', '-b', type=int, default=100,
+                        help='Number of images in each mini-batch')
+    parser.add_argument('--epoch', '-e', type=int, default=20,
+                        help='Number of sweeps over the dataset to train')
+    parser.add_argument('--gpu', '-g', type=int, default=-1,
+                        help='GPU ID (negative value indicates CPU)')
+    parser.add_argument('--out', '-o', default='result',
+                        help='Directory to output the result')
+    parser.add_argument('--resume', '-r', default='',
+                        help='Resume the training from snapshot')
+    parser.add_argument('--unit', '-u', type=int, default=256,
+                        help='Number of units')
+    args = parser.parse_args()
+
     sentences = comtrans.aligned_sents('alignment-en-fr.txt')
     source_ids = collections.defaultdict(lambda: len(source_ids))
     target_ids = collections.defaultdict(lambda: len(target_ids))
@@ -90,13 +117,17 @@ def main():
     print('Target vocabulary: %d' % len(target_ids))
 
     target_words = {i: w for w, i in target_ids.items()}
-    
-    model = Seq2seq(3, len(source_ids), len(target_ids), 10)
+
+    model = Seq2seq(3, len(source_ids), len(target_ids), args.unit)
+    if args.gpu >= 0:
+        model.to_gpu(args.gpu)
+
     optimizer = chainer.optimizers.Adam()
     optimizer.setup(model)
 
     train_iter = chainer.iterators.SerialIterator(data, 50)
-    updater = training.StandardUpdater(train_iter, optimizer, converter=convert)
+    updater = training.StandardUpdater(
+        train_iter, optimizer, converter=convert, device=args.gpu)
     trainer = training.Trainer(updater, (10, 'epoch'))
     trainer.extend(extensions.LogReport())
     trainer.extend(extensions.PrintReport(
