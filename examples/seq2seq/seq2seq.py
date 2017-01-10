@@ -141,7 +141,7 @@ def main():
         ['epoch', 'main/loss', 'validation/main/loss',
          'main/accuracy', 'validation/main/accuracy', 'elapsed_time']))
 
-    @chainer.training.make_extension(trigger=(1, 'iteration'))
+    @chainer.training.make_extension(trigger=(1, 'epoch'))
     def translate(trainer):
         words = ['Resumption', 'of', 'the', 'session']
         x = model.xp.array([source_ids[w] for w in words], 'i')
