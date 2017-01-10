@@ -2,6 +2,7 @@ import argparse
 import collections
 
 from nltk.corpus import comtrans
+from nltk.translate import bleu_score
 import numpy
 
 import chainer
@@ -120,6 +121,8 @@ def main():
     print('Source vocabulary: %d' % len(source_ids))
     print('Target vocabulary: %d' % len(target_ids))
 
+    test_data = data[:len(data) / 10]
+    train_data = data[len(data) / 10:]
     target_words = {i: w for w, i in target_ids.items()}
 
     model = Seq2seq(3, len(source_ids), len(target_ids), args.unit)
@@ -129,7 +132,7 @@ def main():
     optimizer = chainer.optimizers.Adam()
     optimizer.setup(model)
 
-    train_iter = chainer.iterators.SerialIterator(data, 50)
+    train_iter = chainer.iterators.SerialIterator(train_data, 50)
     updater = training.StandardUpdater(
         train_iter, optimizer, converter=convert, device=args.gpu)
     trainer = training.Trainer(updater, (10, 'epoch'))
@@ -146,7 +149,23 @@ def main():
         words = [target_words[y] for y in ys]
         print(' '.join(words))
 
+    @chainer.training.make_extension(trigger=(1, 'epoch'))
+    def calc_bleu(trainer):
+        references = []
+        hypotheses = []
+        for source, target in test_data:
+            references.append([target])
+
+            ys = model.translate(source)
+            hypotheses.append(ys)
+
+        bleu = bleu_score.corpus_bleu(
+            references, hypotheses,
+            smoothing_function=bleu_score.SmoothingFunction().method1)
+        print(bleu)
+
     trainer.extend(translate)
+    trainer.extend(calc_bleu)
     trainer.run()
 
 
