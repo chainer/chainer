@@ -69,6 +69,9 @@ class Seq2seq(chainer.Chain):
             wy = self.W(ys[0])
             # TODO(unno): CuPy does not have argmax method
             yi = numpy.argmax(cuda.to_cpu(wy.data[0]))
+            if yi == 0:
+                # Found eos
+                break
             result.append(yi)
             y = self.xp.array([yi], 'i')
 
