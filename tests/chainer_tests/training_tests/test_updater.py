@@ -128,10 +128,10 @@ class TestUpdaterUpdateArguments(unittest.TestCase):
         self.assertEqual(len(kwargs), 0)
 
         self.assertIs(loss, self.optimizer.target)
-        self.assertIsInstance(v1, chainer.Variable)
-        self.assertEqual(v1.data, 1)
-        self.assertIsInstance(v2, chainer.Variable)
-        self.assertEqual(v2 .data, 2)
+        self.assertIsInstance(v1, numpy.ndarray)
+        self.assertEqual(v1, 1)
+        self.assertIsInstance(v2, numpy.ndarray)
+        self.assertEqual(v2, 2)
 
         self.assertEqual(iterator.next_called, 1)
 
@@ -150,10 +150,10 @@ class TestUpdaterUpdateArguments(unittest.TestCase):
         v1 = kwargs['x']
         v2 = kwargs['y']
         self.assertIs(loss, self.optimizer.target)
-        self.assertIsInstance(v1, chainer.Variable)
-        self.assertEqual(v1.data, 1)
-        self.assertIsInstance(v2, chainer.Variable)
-        self.assertEqual(v2 .data, 2)
+        self.assertIsInstance(v1, numpy.ndarray)
+        self.assertEqual(v1, 1)
+        self.assertIsInstance(v2, numpy.ndarray)
+        self.assertEqual(v2, 2)
 
         self.assertEqual(iterator.next_called, 1)
 
@@ -170,8 +170,8 @@ class TestUpdaterUpdateArguments(unittest.TestCase):
         self.assertEqual(len(kwargs), 0)
 
         self.assertIs(loss, self.optimizer.target)
-        self.assertIsInstance(v1, chainer.Variable)
-        self.assertEqual(v1.data, 1)
+        self.assertIsInstance(v1, numpy.ndarray)
+        self.assertEqual(v1, 1)
 
         self.assertEqual(iterator.next_called, 1)
 
