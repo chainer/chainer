@@ -49,8 +49,9 @@ class CUDADriverError(RuntimeError):
         self.status = status
         cdef const char *name
         cdef const char *msg
-        cuGetErrorName(status, &name)
-        cuGetErrorString(status, &msg)
+        with nogil:
+            cuGetErrorName(status, &name)
+            cuGetErrorString(status, &msg)
         cdef bytes s_name = name, s_msg = msg
         super(CUDADriverError, self).__init__(
             '%s: %s' % (s_name.decode(), s_msg.decode()))
