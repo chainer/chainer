@@ -736,7 +736,7 @@ cdef class ndarray:
             raise ValueError(msg)
 
         # Assuming that Py_ssize_t can be represented with numpy.int64.
-        assert cython.sizeof(Py_ssize_t) == 64
+        assert cython.sizeof(Py_ssize_t) == 8
 
         idx_array = ndarray(self.shape, dtype=numpy.int64)
         idx_ptr = <Py_ssize_t *>idx_array.data.ptr
