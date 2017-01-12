@@ -9,6 +9,8 @@ namespace thrust {
 
 template <typename T> void sort(void *, ssize_t);
 
+template <typename T> void argsort(ssize_t *, void *, ssize_t);
+
 } // namespace thrust
 
 } // namespace cupy
@@ -22,6 +24,8 @@ namespace cupy {
 namespace thrust {
 
 template <typename T> void sort(void *, ssize_t) { return; }
+
+template <typename T> void argsort(ssize_t *, void *, ssize_t) { return; }
 
 } // namespace thrust
 

@@ -704,7 +704,71 @@ cdef class ndarray:
             msg = "Sorting arrays with dtype '{}' is not supported"
             raise TypeError(msg.format(dtype))
 
-    # TODO(okuta): Implement argsort
+    cpdef argsort(self):
+        """Return the indices that would sort an array with stable sorting.
+
+        .. note::
+            For its implementation reason, ``ndarray.argsort`` currently
+            supports only arrays with their rank of one, and does not support
+            ``axis``, ``kind`` and ``order`` parameters that
+            ``numpy.ndarray.argsort`` supports
+
+        .. seealso::
+            :func:`cupy.argsort` for full documentation,
+            :meth:`numpy.ndarray.argsort`
+
+        """
+
+        # TODO(takagi): Support axis argument.
+        # TODO(takagi): Support kind argument.
+        cdef Py_ssize_t *idx_ptr
+        cdef void *data_ptr
+        cdef Py_ssize_t n
+
+        if self.shape == ():
+            msg = 'Sorting arrays with the rank of zero is not supported'
+            raise ValueError(msg)
+
+        # TODO(takagi): Support ranks of two or more
+        if len(self.shape) > 1:
+            msg = ('Sorting arrays with the rank of two or more is '
+                   'not supported')
+            raise ValueError(msg)
+
+        # Assuming that Py_ssize_t can be represented with numpy.int64.
+        idx_array = ndarray(self.shape, dtype=numpy.int64)
+        idx_ptr = <Py_ssize_t *>idx_array.data.ptr
+        data_ptr = <void *>self.data.ptr
+        n = <Py_ssize_t>self.shape[0]
+
+        # TODO(takagi): Support float16 and bool
+        dtype = self.dtype
+        if dtype == numpy.int8:
+            thrust.argsort[common.cpy_byte](idx_ptr, data_ptr, n)
+        elif dtype == numpy.uint8:
+            thrust.argsort[common.cpy_ubyte](idx_ptr, data_ptr, n)
+        elif dtype == numpy.int16:
+            thrust.argsort[common.cpy_short](idx_ptr, data_ptr, n)
+        elif dtype == numpy.uint16:
+            thrust.argsort[common.cpy_ushort](idx_ptr, data_ptr, n)
+        elif dtype == numpy.int32:
+            thrust.argsort[common.cpy_int](idx_ptr, data_ptr, n)
+        elif dtype == numpy.uint32:
+            thrust.argsort[common.cpy_uint](idx_ptr, data_ptr, n)
+        elif dtype == numpy.int64:
+            thrust.argsort[common.cpy_long](idx_ptr, data_ptr, n)
+        elif dtype == numpy.uint64:
+            thrust.argsort[common.cpy_ulong](idx_ptr, data_ptr, n)
+        elif dtype == numpy.float32:
+            thrust.argsort[common.cpy_float](idx_ptr, data_ptr, n)
+        elif dtype == numpy.float64:
+            thrust.argsort[common.cpy_double](idx_ptr, data_ptr, n)
+        else:
+            msg = "Sorting arrays with dtype '{}' is not supported"
+            raise TypeError(msg.format(dtype))
+
+        return idx_array
+
     # TODO(okuta): Implement partition
     # TODO(okuta): Implement argpartition
     # TODO(okuta): Implement searchsorted
