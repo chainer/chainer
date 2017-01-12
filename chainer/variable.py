@@ -11,6 +11,8 @@ from chainer import cuda
 from chainer import flag
 from chainer import utils
 
+import cupy.cuda.runtime as runtime  # temporal
+
 
 def _check_grad_type(func, x, gx):
     def make_message(message):
@@ -105,6 +107,10 @@ Actual: {0}'''.format(type(data))
         self._org_creator = None
         self._org_rank = 0
         self._can_swapout = True
+
+        # OOC
+        self._is_end_of_sub_graph = False
+        self._stream = None
 
         self.name = name
 
@@ -251,6 +257,20 @@ Actual: {0}'''.format(type(data))
     def enable_swapout(self):
         """Enable the variable to be swaped out to HOST pinned memory"""
         self._can_swapout = True
+
+    # OOC
+    def set_end_of_sub_graph(self, stream=None):
+        """Set this variable as an end of a sub graph"""
+        self._is_end_of_sub_graph = True
+        self._stream = stream
+        # print("[variable.py, set_end_of_sub_graph()]")
+        # print("    self:{}".format(self))
+
+        self.interrupt_backward()
+        if self._stream is not None:
+            runtime.deviceSynchronize()
+            # self._stream.synchronize()
+        self.ancestors_to_swap(stream=self._stream)
 
     def cleargrad(self):
         """Clears the gradient array."""
@@ -444,6 +464,26 @@ Actual: {0}'''.format(type(data))
                 heapq.heappush(cand_funcs, (-cand.rank, len(seen_set), cand))
                 seen_set.add(cand)
 
+        # OOC
+        EOSG_vars = set()
+        ancestor_vars = self.ancestors()
+        for x in ancestor_vars:
+            if x._is_end_of_sub_graph is True:
+                if x not in EOSG_vars:
+                    # print("[variable.py, backward()]")
+                    # print("    end_of_sub_graph_variable:{}".format(x))
+                    EOSG_vars.add(x)
+
+        if len(EOSG_vars) > 1:
+            msg = 'There are a number of end_of_sub_graph variables in a single sub graph.'
+            raise RuntimeError(msg)
+
+        for x in EOSG_vars:
+            if x._stream is not None:
+                x._stream.synchronize()
+
+            x.ancestors_to_gpu(stream=x._stream)
+
         add_cand(self.creator)
 
         while cand_funcs:
@@ -506,6 +546,17 @@ Actual: {0}'''.format(type(data))
                         else:  # 3rd or later visit
                             x._grad += gx
             del gxs  # to reduce memory usage
+
+        # OOC
+        for x in EOSG_vars:
+            if x._stream is not None:
+                runtime.deviceSynchronize()
+
+            self.unchain_backward()
+
+            x.resume_backward()
+            x.backward()
+
 
     def unchain_backward(self):
         """Deletes references between variables and functions backward.
