@@ -362,6 +362,10 @@ class Worker(Process):
         cuda.get_device(self.device).use()
         self.model.to_gpu(self.device)
         self.model.zerograds()
+        self.reporter = reporter.Reporter()
+        self.reporter.add_observer('main', self.model)
+
+    def setup_ipc(self):
         self.model.set_parent(self.pipe.recv())
         self.pipe.send(list(self.model.get_handles()))
 
@@ -370,7 +374,9 @@ class Worker(Process):
         self.setup()
         while True:
             job, data = self.pipe.recv()
-            if job == 'gathergrads':
+            if job == 'setup_ipc':
+                self.setup_ipc()
+            elif job == 'gathergrads':
                 self.pipe.send(self.model.gathergrads())
             elif job == 'scatterparams':
                 self.pipe.send(self.model.scatterparams())
@@ -379,7 +385,7 @@ class Worker(Process):
             else:
                 batch = self.converter(data, self.device)
                 observation = {}
-                with reporter.report_scope(observation):
+                with self.reporter.scope(observation):
                     if isinstance(batch, tuple):
                         in_vars = tuple(variable.Variable(x) for x in batch)
                         loss = self.model(*in_vars)
@@ -474,6 +480,9 @@ class MultiprocessParallelUpdater(StandardUpdater):
 
     def setup_ipc(self):
 
+        for pipe in self._pipes:
+            pipe.send(('setup_ipc', None))
+
         ipc_parameters = [list(self._master.get_handles())]
         for i, pipe in enumerate(self._pipes):
             pipe.send(ipc_parameters[self._parent(i + 1)])
@@ -497,13 +506,11 @@ class MultiprocessParallelUpdater(StandardUpdater):
         batch = self.get_iterator('main').next()
 
         n = len(self._devices)
-        master_device = self._devices[0] if self._started else -1
-        master_batch = self.converter(batch[0::n], master_device)
+        master_batch = self.converter(batch[0::n], self._devices[0])
         device_batches = [batch[i::n] for i in range(1, n)]
 
-        if self._ipc_setup:
-            for pipe, batch in zip(self._pipes, device_batches):
-                pipe.send(('train', batch))
+        for pipe, batch in zip(self._pipes, device_batches):
+            pipe.send(('train', batch))
 
         if isinstance(master_batch, tuple):
             in_vars = tuple(variable.Variable(x) for x in master_batch)
@@ -519,12 +526,10 @@ class MultiprocessParallelUpdater(StandardUpdater):
         self._master.zerograds()
         loss.backward()
 
+        [reporter.report(pipe.recv()) for pipe in self._pipes]
+
         if not self._ipc_setup:
             self.setup_ipc()
-            for pipe, batch in zip(self._pipes, device_batches):
-                pipe.send(('train', batch))
-
-        [reporter.report(pipe.recv()) for pipe in self._pipes]
 
         for depth in range(self._depth):
             pipes = [self._pipes[i] for i in self._nodes_at(depth)]

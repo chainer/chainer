@@ -500,7 +500,7 @@ class Link(object):
             yield param.get_handles()
 
     def set_parent(self, handles):
-        """Sets parent process handles for all paremeters under this link.
+        """Sets parent process handles for all parameters under this link.
 
         """
         params = sorted(self.namedparams(), key=lambda x: x[0])

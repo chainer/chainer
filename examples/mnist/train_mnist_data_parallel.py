@@ -58,8 +58,6 @@ def main():
     updater = updater_class(
         train_iter,
         optimizer,
-        # The device of the name 'main' is used as a "master", while others are
-        # used as slaves. Names other than 'main' are arbitrary.
         devices=args.gpus,
     )
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
