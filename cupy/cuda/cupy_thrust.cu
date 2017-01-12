@@ -45,9 +45,9 @@ private:
 
 template <typename T>
 void cupy::thrust::argsort(ssize_t *idx_start, void *data_start, ssize_t num) {
-    /* idx_start is a pointer to the beginning of an output array where the
-       indices that would sort the data will be placed. The contents of
-       idx_start will be destroyed.*/
+    /* idx_start is the beggining of an output array where the indexes that
+       would sort the data will be placed. The original contents of idx_start
+       will be destroyed. */
     device_ptr<ssize_t> dp_first = device_pointer_cast(idx_start);
     device_ptr<ssize_t> dp_last  = device_pointer_cast(idx_start + num);
     sequence(dp_first, dp_last);
