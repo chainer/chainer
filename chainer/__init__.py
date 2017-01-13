@@ -41,6 +41,7 @@ from chainer.link import ChainList  # NOQA
 from chainer.link import Link  # NOQA
 from chainer.optimizer import GradientMethod  # NOQA
 from chainer.optimizer import Optimizer  # NOQA
+from chainer.optimizer import UpdateRule  # NOQA
 from chainer.reporter import DictSummary  # NOQA
 from chainer.reporter import get_current_reporter  # NOQA
 from chainer.reporter import report  # NOQA

@@ -423,6 +423,39 @@ class Link(object):
         for name in self._params:
             dst[name].addgrad(src[name])
 
+    def enable_update(self):
+        """Enables update rules of all parameters under the link hierarchy.
+
+        This method sets the :attr:`~chainer.UpdateRule.enabled` flag of the
+        update rule of each parameter variable to ``True``.
+
+        """
+        for param in self.params():
+            rule = param.update_rule
+            if rule is not None:
+                rule.enabled = True
+
+    def disable_update(self):
+        """Disables update rules of all parameters under the link hierarchy.
+
+        This method sets the :attr:~chainer.UpdateRule.enabled` flag of the
+        update rule of each parameter variable to ``False``.
+
+        """
+        for param in self.params():
+            rule = param.update_rule
+            if rule is not None:
+                rule.enabled = False
+
+    @property
+    def update_enabled(self):
+        """``True`` if at least one parameter has an update rule enabled."""
+        for param in self.params():
+            rule = param.update_rule
+            if rule is not None and rule.enabled:
+                return True
+        return False
+
     def serialize(self, serializer):
         """Serializes the link object.
 

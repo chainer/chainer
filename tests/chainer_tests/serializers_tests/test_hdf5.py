@@ -244,6 +244,9 @@ class TestGroupHierachy(unittest.TestCase):
         self.optimizer = optimizers.AdaDelta()
         self.optimizer.setup(self.parent)
 
+        self.parent.zerograds()
+        self.optimizer.update()  # init states
+
     def _save(self, h5, obj, name):
         group = h5.create_group(name)
         serializer = hdf5.HDF5Serializer(group)
