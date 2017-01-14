@@ -2,6 +2,7 @@ from chainer.functions.activation import sigmoid
 from chainer.functions.activation import tanh
 from chainer.functions.array import reshape
 from chainer.functions.array import split_axis
+from chainer import cuda
 from chainer import link
 from chainer.links.connection import linear
 from chainer import variable
@@ -98,9 +99,10 @@ class StatefulPeepholeLSTM(link.Chain):
             lstm_in += self.lateral(self.h)
         if self.c is None:
             xp = self.xp
-            self.c = variable.Variable(
-                xp.zeros((x.shape[0], self.state_size), dtype=x.dtype),
-                volatile='auto')
+            with cuda.get_device(x.data):
+                self.c = variable.Variable(
+                    xp.zeros((x.shape[0], self.state_size), dtype=x.dtype),
+                    volatile='auto')
         lstm_in = reshape.reshape(lstm_in, (len(lstm_in.data),
                                             lstm_in.shape[1] // 4,
                                             4))
