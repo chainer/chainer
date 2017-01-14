@@ -68,8 +68,7 @@ class Seq2seq(chainer.Chain):
             ey = self.embed_y(y)
             h, c, ys = self.decoder(h, c, [ey])
             wy = self.W(ys[0])
-            # TODO(unno): CuPy does not have argmax method
-            yi = numpy.argmax(cuda.to_cpu(wy.data[0]))
+            yi = int(self.xp.argmax(wy.data[0]))
             if yi == 0:
                 # Found eos
                 break
