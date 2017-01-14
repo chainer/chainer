@@ -92,6 +92,29 @@ def convert(batch, device):
         [to_device(x) for x, _ in batch] + [to_device(y) for _, y in batch])
 
 
+class CalculateBleu(chainer.training.Extension):
+
+    trigger = 1, 'epoch'
+
+    def __init__(self, model, test_data):
+        self.model = model
+        self.test_data = test_data
+
+    def __call__(self, trainer):
+        references = []
+        hypotheses = []
+        for source, target in self.test_data:
+            references.append([target])
+
+            ys = self.model.translate(source)
+            hypotheses.append(ys)
+
+        bleu = bleu_score.corpus_bleu(
+            references, hypotheses,
+            smoothing_function=bleu_score.SmoothingFunction().method1)
+        print(bleu)
+
+
 def main():
     parser = argparse.ArgumentParser(description='Chainer example: seq2seq')
     parser.add_argument('--batchsize', '-b', type=int, default=100,
@@ -148,23 +171,9 @@ def main():
         words = [target_words[y] for y in ys]
         print(' '.join(words))
 
-    @chainer.training.make_extension(trigger=(1, 'epoch'))
-    def calc_bleu(trainer):
-        references = []
-        hypotheses = []
-        for source, target in test_data:
-            references.append([target])
-
-            ys = model.translate(source)
-            hypotheses.append(ys)
-
-        bleu = bleu_score.corpus_bleu(
-            references, hypotheses,
-            smoothing_function=bleu_score.SmoothingFunction().method1)
-        print(bleu)
-
     trainer.extend(translate)
-    trainer.extend(calc_bleu)
+    trainer.extend(CalculateBleu(model, test_data))
+
     trainer.run()
 
 
