@@ -4,6 +4,8 @@ from chainer import cuda
 from chainer.functions.pooling import pooling_2d
 from chainer.utils import conv
 
+from chainer.functions.util import forget
+
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
     libcudnn = cudnn.cudnn
@@ -145,7 +147,7 @@ class MaxPooling2D(pooling_2d.Pooling2D):
 
 
 def max_pooling_2d(x, ksize, stride=None, pad=0, cover_all=True,
-                   use_cudnn=True):
+                   use_cudnn=True, pre_func=None):
     """Spatial max pooling function.
 
     This function acts similarly to :class:`~functions.Convolution2D`, but
@@ -170,4 +172,11 @@ def max_pooling_2d(x, ksize, stride=None, pad=0, cover_all=True,
         ~chainer.Variable: Output variable.
 
     """
-    return MaxPooling2D(ksize, stride, pad, cover_all, use_cudnn)(x)
+    func = MaxPooling2D(ksize, stride, pad, cover_all, use_cudnn)
+    if pre_func is not None:
+        print("[max_pooling_2d.py] start of MP2D with pre_func")
+        y = forget.forget(lambda x: func(pre_func(x)), x)
+        print("[max_pooling_2d.py] end of MP2D with pre_func")
+    else:
+        y = func(x)
+    return y

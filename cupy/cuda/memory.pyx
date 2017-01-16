@@ -319,7 +319,7 @@ cdef class PooledMemory(Memory):
         buffer to the memory pool for reuse.
 
         """
-        print("[memory.pyx, PooledMemory, free()] size: {}, ptr: {}".format(self.size, self.ptr))
+        # print("[memory.pyx, PooledMemory, free()] size: {}, ptr: {}".format(self.size, self.ptr))
         pool = self.pool()
         if pool and self.ptr != 0:
             pool.free(self.ptr, self.size)
@@ -363,7 +363,7 @@ cdef class SingleDeviceMemoryPool:
 
         self._in_use[mem.ptr] = mem
         pmem = PooledMemory(mem, self._weakref)
-        print("[memory.ptx, SingleDeviceMemoryPool, malloc()] size: {}, ptr: {}".format(pmem.size, pmem.ptr))
+        # print("[memory.ptx, SingleDeviceMemoryPool, malloc()] size: {}, ptr: {}".format(pmem.size, pmem.ptr))
         return MemoryPointer(pmem, 0)
 
     cpdef free(self, size_t ptr, Py_ssize_t size):

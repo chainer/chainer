@@ -446,7 +446,7 @@ Actual: {0}'''.format(type(data))
             return
 
         # testing
-        def memory_pool_stats():
+        def print_memory_pool_stats():
             print("[variable.py] chainer.cuda.memory_pool: {}".format(chainer.cuda.memory_pool))
             size_mem_in_use = chainer.cuda.memory_pool.size_in_use_mem()
             size_mem_free   = chainer.cuda.memory_pool.size_free_mem()
@@ -456,7 +456,7 @@ Actual: {0}'''.format(type(data))
             print("    size_mem(free)  : {}".format(size_mem_free))
             print("    n_free_blocks   : {}".format(n_free_blocks))
 
-        memory_pool_stats()
+        # print_memory_pool_stats()
 
         # endp is an end point of sub graph and a starting point of backprop
         endp = self
@@ -560,7 +560,7 @@ Actual: {0}'''.format(type(data))
                                 x._grad += gx
                 del gxs  # to reduce memory usage
 
-            print("[variable.py, end of while cand_funcs: loop")
+            # print("[variable.py, end of while cand_funcs: loop")
             
             # OOC
             if next_endp is not None:
@@ -571,11 +571,11 @@ Actual: {0}'''.format(type(data))
                 next_endp.resume_backward()
             
             endp = next_endp
-            print("[variable.py, after endp = next_endp]")
+            # print("[variable.py, after endp = next_endp]")
 
-            memory_pool_stats()
+            # print_memory_pool_stats()
 
-        print("[variable.py, end of while endp is not None: loop]")
+        # print("[variable.py, end of while endp is not None: loop]")
 
 
     def unchain_backward(self):
