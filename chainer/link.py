@@ -386,8 +386,8 @@ class Link(object):
         d = self.__dict__
         for name in self._params:
             d[name].disable_swapout()
-        for name in self._persistent:
-            d[name].disable_swapout()
+        # for name in self._persistent:
+        #     d[name].disable_swapout()
 
     def enable_swapout_params(self):
         """Enable parameter variables to be swaped out to HOST pinned memory.
@@ -396,8 +396,8 @@ class Link(object):
         d = self.__dict__
         for name in self._params:
             d[name].enable_swapout()
-        for name in self._persistent:
-            d[name].enable_swapout()
+        # for name in self._persistent:
+        #     d[name].enable_swapout()
 
     def params(self):
         """Returns a generator of all parameters under the link hierarchy.

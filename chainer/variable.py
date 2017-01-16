@@ -543,7 +543,7 @@ Actual: {0}'''.format(type(data))
                                 x.grad = gx
                                 need_copy.add(id_x)
                             elif id_x in need_copy:
-                                x.grad = x.grad + gx  # copy
+                                x.grad = utils.force_array(x.grad + gx)  # copy
                                 need_copy.remove(id_x)
                             else:
                                 x._grad += gx
@@ -554,7 +554,7 @@ Actual: {0}'''.format(type(data))
                                 seen_vars.add(id_x)
                                 need_copy.add(id_x)
                             elif id_x in need_copy:  # 2nd visit
-                                x._grad = gx + x._grad  # copied
+                                x._grad = utils.force_array(gx + x._grad)  # copied
                                 need_copy.remove(id_x)
                             else:  # 3rd or later visit
                                 x._grad += gx

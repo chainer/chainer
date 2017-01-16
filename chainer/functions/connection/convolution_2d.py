@@ -7,6 +7,7 @@ from chainer.utils import conv
 from chainer.utils import type_check
 
 from chainer.functions.util import forget
+from chainer.functions.util import fused_function
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
@@ -331,16 +332,26 @@ def convolution_2d(x, W, b=None, stride=1, pad=0, use_cudnn=True,
     .. seealso:: :class:`~chainer.links.Convolution2D`
 
     """
+    use_fused_function = True
     func = Convolution2DFunction(
         stride, pad, use_cudnn, cover_all, deterministic)
 
     if pre_func is not None:
-        print("[conv_2d.py] start of conv2d with pre_func")
-        if b is None:
-            y = forget.forget(lambda x, W: func(pre_func(x), W), x, W)
+        if use_fused_function:
+            # print("[conv_2d.py] start of conv2d with fused_function")
+            f_func = fused_function.FusedFunction(pre_func, func)
+            if b is None:
+                y = f_func(x, W)
+            else:
+                y = f_func(x, W, b)
         else:
-            y = forget.forget(lambda x, W, b: func(pre_func(x), W, b), x, W, b)
-        print("[conv_2d.py] end of conv2d with pre_func")
+            # print("[conv_2d.py] start of conv2d with forget")
+            if b is None:
+                y = forget.forget(lambda x, W: func(pre_func(x), W), x, W)
+            else:
+                y = forget.forget(lambda x, W, b: func(pre_func(x), W, b), x, W, b)
+
+        # print("[conv_2d.py] end of conv2d with ...")
         return y
 
     if b is None:

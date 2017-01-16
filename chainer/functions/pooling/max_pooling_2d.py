@@ -5,6 +5,7 @@ from chainer.functions.pooling import pooling_2d
 from chainer.utils import conv
 
 from chainer.functions.util import forget
+from chainer.functions.util import fused_function
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
@@ -172,11 +173,19 @@ def max_pooling_2d(x, ksize, stride=None, pad=0, cover_all=True,
         ~chainer.Variable: Output variable.
 
     """
+    use_fused_function = True
     func = MaxPooling2D(ksize, stride, pad, cover_all, use_cudnn)
     if pre_func is not None:
-        print("[max_pooling_2d.py] start of MP2D with pre_func")
-        y = forget.forget(lambda x: func(pre_func(x)), x)
-        print("[max_pooling_2d.py] end of MP2D with pre_func")
+        if use_fused_function:
+            # print("[max_pooling_2d.py] start of MP2D with fused_function")
+            f_func = fused_function.FusedFunction(pre_func, func)
+            y = f_func(x)
+        else:
+            # print("[max_pooling_2d.py] start of MP2D with forget")
+            y = forget.forget(lambda x: func(pre_func(x)), x)
+
+        # print("[max_pooling_2d.py] end of MP2D with ...")
     else:
         y = func(x)
+
     return y
