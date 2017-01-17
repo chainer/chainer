@@ -57,25 +57,33 @@ class Seq2seq(chainer.Chain):
         reporter.report({'loss': loss}, self)
         return loss
 
-    def translate(self, x):
-        exs = sequence_embed(self.embed_x, [x])
+    def translate(self, xs, max_length=10):
+        batch = len(xs)
+        exs = sequence_embed(self.embed_x, xs)
         # Initial hidden variable and cell variable
-        zero = self.xp.zeros((self.n_layers, 1, self.n_units), 'f')
-        h, c, _ = self.encoder(zero, zero, exs)
-        y = self.xp.zeros(1, 'i')
+        zero = self.xp.zeros((self.n_layers, batch, self.n_units), 'f')
+        h, c, _ = self.encoder(zero, zero, exs, train=False)
+        ys = self.xp.zeros(batch, 'i')
         result = []
-        for i in range(10):
-            ey = self.embed_y(y)
-            h, c, ys = self.decoder(h, c, [ey])
-            wy = self.W(ys[0])
-            yi = int(self.xp.argmax(wy.data[0]))
-            if yi == 0:
-                # Found eos
-                break
-            result.append(yi)
-            y = self.xp.array([yi], 'i')
+        for i in range(max_length):
+            eys = self.embed_y(ys)
+            eys = chainer.functions.split_axis(eys, batch, 0, force_tuple=True)
+            h, c, ys = self.decoder(h, c, eys, train=False)
+            cys = chainer.functions.concat(ys, axis=0)
+            wy = self.W(cys)
+            ys = self.xp.argmax(wy.data, axis=1).astype('i')
+            result.append(ys)
 
-        return result
+        result = cuda.to_cpu(self.xp.stack(result).T)
+
+        # Remove EOS taggs
+        outs = []
+        for y in result:
+            inds = numpy.argwhere(y == 0)
+            if len(inds) > 0:
+                y = y[:inds[0, 0]]
+            outs.append(y)
+        return outs
 
 
 def convert(batch, device):
@@ -96,18 +104,20 @@ class CalculateBleu(chainer.training.Extension):
 
     trigger = 1, 'epoch'
 
-    def __init__(self, model, test_data):
+    def __init__(self, model, test_data, batch=100):
         self.model = model
         self.test_data = test_data
+        self.batch = batch
 
     def __call__(self, trainer):
         references = []
         hypotheses = []
-        for source, target in self.test_data:
-            references.append([target])
+        for i in range(0, len(self.test_data), self.batch):
+            sources, targets = zip(*self.test_data[i:i + self.batch])
+            references.extend([[t.tolist()] for t in targets])
 
-            ys = self.model.translate(source)
-            hypotheses.append(ys)
+            ys = [y.tolist() for y in self.model.translate(sources)]
+            hypotheses.extend(ys)
 
         bleu = bleu_score.corpus_bleu(
             references, hypotheses,
@@ -167,7 +177,7 @@ def main():
     def translate(trainer):
         words = ['Resumption', 'of', 'the', 'session']
         x = model.xp.array([source_ids[w] for w in words], 'i')
-        ys = model.translate(x)
+        ys = model.translate([x])[0]
         words = [target_words[y] for y in ys]
         print(' '.join(words))
 
