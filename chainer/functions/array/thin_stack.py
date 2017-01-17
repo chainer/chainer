@@ -1,3 +1,4 @@
+from chainer import cuda
 from chainer import function
 from chainer.utils import type_check
 
@@ -59,7 +60,8 @@ class ThinStackGet(function.Function):
         stack, indices = inputs
         g, gs = grads
         if gs is None:
-            gs = numpy.zeros_like(stack)
+            xp = cuda.get_array_module(stack)
+            gs = xp.zeros_like(stack)
         if g is not None:
             gs[range(len(indices)), indices] += g
         return gs, None
