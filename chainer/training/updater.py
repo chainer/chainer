@@ -476,7 +476,6 @@ class MultiprocessParallelUpdater(StandardUpdater):
             worker.start()
             self._workers.append(worker)
 
-
         cuda.get_device(self._devices[0]).use()
         self._master.to_gpu(self._devices[0])
 
