@@ -15,4 +15,3 @@ Core functionalities
    core/dataset
    core/training
    core/debug
-   core/function_set
