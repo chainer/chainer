@@ -52,7 +52,7 @@ class TestCifar(unittest.TestCase):
                 self.assertEqual(cifar_dataset.ndim, 2)
             else:
                 # self.ndim == 3
-                self.assertEqual(cifar_dataset.ndim == 4)
+                self.assertEqual(cifar_dataset.ndim, 4)
                 self.assertEqual(cifar_dataset.shape[2],
                                  cifar_dataset.shape[3])  # 32
 
@@ -70,12 +70,13 @@ class TestCifar(unittest.TestCase):
         train, test = retrieval_func(withlabel=self.withlabel, ndim=self.ndim,
                                      scale=self.scale)
 
-        with mock.patch('chainer.datasets.cifar.numpy') as mnumpy:
+        with mock.patch('chainer.datasets.cifar.numpy', autospec=True) as \
+                mnumpy:
             train, test = retrieval_func(withlabel=self.withlabel,
                                          ndim=self.ndim,
                                          scale=self.scale)
         mnumpy.savez_compressed.assert_not_called()  # creator() not called
-        mnumpy.load.assert_called_once()
+        self.assertEqual(mnumpy.load.call_count, 1)
 
 
 testing.run_module(__name__, __file__)
