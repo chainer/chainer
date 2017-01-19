@@ -1,14 +1,7 @@
-import abc
-
-import six
-
-
-@six.add_metaclass(abc.ABCMeta)
 class AbstractSerializer(object):
 
     """Abstract base class of all serializers and deserializers."""
 
-    @abc.abstractmethod
     def __getitem__(self, key):
         """Gets a child serializer.
 
@@ -21,7 +14,6 @@ class AbstractSerializer(object):
         """
         raise NotImplementedError
 
-    @abc.abstractmethod
     def __call__(self, key, value):
         """Serializes or deserializes a value by given name.
 
