@@ -4,6 +4,7 @@ import pkg_resources
 import sys
 import threading
 
+from chainer import configuration  # NOQA
 from chainer import cuda  # NOQA
 from chainer import dataset  # NOQA
 from chainer import datasets  # NOQA
@@ -26,6 +27,9 @@ from chainer import variable  # NOQA
 
 
 # import class and function
+from chainer.configuration import config  # NOQA
+from chainer.configuration import global_config  # NOQA
+from chainer.configuration import using_config  # NOQA
 from chainer.flag import AUTO  # NOQA
 from chainer.flag import Flag  # NOQA
 from chainer.flag import OFF  # NOQA
