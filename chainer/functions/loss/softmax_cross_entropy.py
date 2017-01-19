@@ -101,8 +101,8 @@ class SoftmaxCrossEntropy(function.Function):
         log_y = cupy.rollaxis(log_y, 1, log_y.ndim)
         ret = cuda.reduce(
             'S t, raw T log_y, int32 n_channel, raw T coeff', 'T out',
-            't == -1 ? T(0) : log_y[_j * n_channel + t]',
-            'a + b', 'out = a * -coeff[0]', '0', 'crossent_fwd'
+            't == -1 ? T(0) : log_y[(ptrdiff_t)_j * n_channel + t]',
+            'a + b', 'out = a * -coeff[0L]', '0', 'crossent_fwd'
         )(t, log_y.reduced_view(), log_y.shape[-1], self._coeff)
         return ret,
 
@@ -163,7 +163,7 @@ class SoftmaxCrossEntropy(function.Function):
                 'T gx',
                 '''
                     const int c = (i / n_unit % n_channel);
-                    gx = (t == -1) ? 0 : (coeff[0] * (y - (c == t)));
+                    gx = (t == -1) ? 0 : (coeff[0L] * (y - (c == t)));
                 ''',
                 'softmax_crossent_bwd')(
                     y, cupy.expand_dims(t, 1), coeff, x.shape[1], n_unit)
@@ -173,7 +173,7 @@ class SoftmaxCrossEntropy(function.Function):
                 'T gx',
                 '''
                     const int c = (i / n_unit % n_channel);
-                    gx = t == -1 ? 0 : coeff[0] * (y - (c == t)) * w[t];
+                    gx = t == -1 ? 0 : coeff[0L] * (y - (c == t)) * w[t];
                 ''',
                 'softmax_crossent_bwd')(
                     y, self.class_weight, cupy.expand_dims(t, 1), coeff,

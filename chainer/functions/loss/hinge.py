@@ -8,7 +8,7 @@ from chainer.utils import type_check
 def _hinge_fwd_kernel():
     return cuda.elementwise(
         'S t', 'raw T bottom_diff',
-        'int ind[] = {i, t}; bottom_diff[ind] *= -1',
+        'ptrdiff_t ind[] = {i, t}; bottom_diff[ind] *= -1',
         'hinge_fwd')
 
 
