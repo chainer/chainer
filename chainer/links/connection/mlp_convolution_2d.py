@@ -45,17 +45,17 @@ class MLPConvolution2D(link.ChainList):
     """
 
     def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
-                 wscale=1, activation=relu.relu, use_cudnn=True,
+                 activation=relu.relu, use_cudnn=True,
                  conv_init=None, bias_init=None):
         assert len(out_channels) > 0
         convs = [convolution_2d.Convolution2D(
             in_channels, out_channels[0], ksize, stride, pad,
-            wscale=wscale, use_cudnn=use_cudnn,
-            initialW=conv_init, initial_bias=bias_init)]
+            use_cudnn=use_cudnn, initialW=conv_init,
+            initial_bias=bias_init)]
         for n_in, n_out in zip(out_channels, out_channels[1:]):
             convs.append(convolution_2d.Convolution2D(
-                n_in, n_out, 1, wscale=wscale,
-                initialW=conv_init, initial_bias=bias_init,
+                n_in, n_out, 1, initialW=conv_init,
+                initial_bias=bias_init,
                 use_cudnn=use_cudnn))
         super(MLPConvolution2D, self).__init__(*convs)
         self.activation = activation
