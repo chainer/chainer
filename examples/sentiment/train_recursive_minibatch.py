@@ -194,8 +194,6 @@ def main():
     parser.add_argument('--test', dest='test', action='store_true')
     parser.set_defaults(test=False)
     args = parser.parse_args()
-    if args.gpu >= 0:
-        cuda.check_cuda_available()
 
     epoch_per_eval = args.epocheval  # number of epochs per evaluation
 
@@ -211,6 +209,11 @@ def main():
     test_iter = chainer.iterators.SerialIterator(test_data, args.batchsize)
 
     model = ThinStackRecursiveNet(len(vocab), args.unit, args.label)
+
+    if args.gpu >= 0:
+        chainer.cuda.get_device(args.gpu).use()
+        model.to_gpu()
+
     optimizer = chainer.optimizers.Adam()
     optimizer.setup(model)
 
