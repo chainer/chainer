@@ -223,6 +223,10 @@ linear
 ~~~~~~
 .. autofunction:: linear
 
+n_step_lstm
+~~~~~~~~~~~
+.. autofunction:: n_step_lstm
+
 
 Evaluation functions
 --------------------
@@ -510,6 +514,10 @@ average_pooling_2d
 ~~~~~~~~~~~~~~~~~~
 .. autofunction:: average_pooling_2d
 
+average_pooling_nd
+~~~~~~~~~~~~~~~~~~
+.. autofunction:: average_pooling_nd
+
 max_pooling_2d
 ~~~~~~~~~~~~~~
 .. autofunction:: max_pooling_2d
@@ -529,6 +537,10 @@ spatial_pyramid_pooling_2d
 unpooling_2d
 ~~~~~~~~~~~~
 .. autofunction:: unpooling_2d
+
+upsampling_2d
+~~~~~~~~~~~~~
+.. autofunction:: upsampling_2d
 
 
 Utility functions
