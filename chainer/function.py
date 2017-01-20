@@ -8,6 +8,7 @@ import weakref
 import six
 
 import chainer
+from chainer import configuration
 from chainer import cuda
 from chainer import flag
 from chainer.utils import type_check
@@ -143,14 +144,8 @@ class Function(object):
     Attributes:
         inputs: A tuple or list of input variables.
         outputs: A tuple or list of output variables.
-        type_check_enable: When it is ``True``, the function checks types of
-            input arguments. Set ``CHAINER_TYPE_CHECK`` environment variable
-            ``0`` to disable type check, or set the variable directly in
-            your own program.
 
     """
-    type_check_enable = int(os.environ.get('CHAINER_TYPE_CHECK', '1')) != 0
-
     def __call__(self, *inputs):
         """Applies forward propagation with chaining backward references.
 
@@ -185,7 +180,7 @@ class Function(object):
         if chainer.is_debug():
             self._stack = traceback.extract_stack()
 
-        if self.type_check_enable:
+        if configuration.config.type_check:
             self._check_data_type_forward(in_data)
 
         hooks = chainer.get_function_hooks()
