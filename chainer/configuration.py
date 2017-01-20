@@ -9,9 +9,10 @@ import six
 
 """Global and thread-local configuration of Chainer.
 
+TODO(beam2d): After adding more entries, move this document to sphinx rst and
+add references to the related features.
+
 Chainer provides some global settings that affect the behavior of some
-features. For example, the features with different behaviors on train/test
-phases can be configured by setting the ``phase`` configuration.
 
 There are two objects that users mainly deal with: :data:`chainer.config` and
 :data:`chainer.global_config`. The ``config`` object configures the thread-
@@ -23,14 +24,6 @@ which can be overridden by a value set to the corresponding environment
 variable. There is a naming rule of the environment variable: an entry of the
 name ``foo_var`` can be configured by the environment variable
 ``CHAINER_FOO_VAR``.
-
-The following entries are available by default.
-
-- ``debug``
-- ``deterministic``
-- ``test_mode``
-- ``type_check``
-- ``use_cudnn``
 
 """
 
