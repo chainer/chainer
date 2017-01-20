@@ -95,7 +95,7 @@ def using_config(name, value, config=config):
             thread-local configuration is used by default.
 
     """
-    if hasattr(config, name):
+    if hasattr(config._local, name):
         old_value = getattr(config, name)
         setattr(config, name, value)
         yield
