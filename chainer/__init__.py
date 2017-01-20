@@ -3,6 +3,7 @@ import os
 import pkg_resources
 import sys
 import threading
+import warnings
 
 from chainer import configuration  # NOQA
 from chainer import cuda  # NOQA
@@ -117,11 +118,17 @@ class DebugMode(object):
     memorizing its original value. When exiting the context, it sets the debug
     mode back to the original value.
 
+    .. deprecated:: v2.0.0
+       DebugMode is deprecated. Use ``using_config('debug', debug)`` instead.
+
     Args:
         debug (bool): Debug mode used in the context.
     """
 
     def __init__(self, debug):
+        warnings.warn('chainer.DebugMode is deprecated. '
+                      'Use chainer.using_config("debug", ...) instead.',
+                      DeprecationWarning)
         self._using = using_config('debug', debug)
 
     def __enter__(self):
