@@ -82,7 +82,8 @@ def get_function_hooks():
         thread_local.function_hooks = collections.OrderedDict()
     return thread_local.function_hooks
 
-_debug = False
+
+global_config.debug = bool(int(os.environ.get('CHAINER_DEBUG', '0')))
 
 
 def is_debug():
@@ -91,7 +92,7 @@ def is_debug():
     Returns:
         bool: Return ``True`` if Chainer is in debug mode.
     """
-    return _debug
+    return bool(config.debug)
 
 
 def set_debug(debug):
@@ -105,8 +106,7 @@ def set_debug(debug):
     Args:
         debug (bool): New debug mode.
     """
-    global _debug
-    _debug = debug
+    config.debug = debug
 
 
 class DebugMode(object):
@@ -122,14 +122,14 @@ class DebugMode(object):
     """
 
     def __init__(self, debug):
-        self._debug = debug
+        self._using = using_config('debug', debug)
 
     def __enter__(self):
-        self._old = is_debug()
-        set_debug(self._debug)
+        self._using.__enter__()
 
-    def __exit__(self, *_):
-        set_debug(self._old)
+    def __exit__(self, *args):
+        self._using.__exit__(*args)
+
 
 basic_math.install_variable_arithmetics()
 array.get_item.install_variable_get_item()
