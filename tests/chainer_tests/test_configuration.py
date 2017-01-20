@@ -54,6 +54,8 @@ class TestLocalConfig(unittest.TestCase):
             self.assertEqual(self.config.x, 'temporary x')
             self.assertEqual(self.global_config.x, 'global x')
         self.assertEqual(self.config.x, 'global x')
+        self.global_config.x = 'global x2'
+        self.assertEqual(self.config.x, 'global x2')
 
     def test_using_config_local_existed(self):
         with chainer.using_config('y', 'temporary y', self.config):
