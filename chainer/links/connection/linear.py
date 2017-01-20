@@ -1,9 +1,9 @@
-import math
-
 from chainer import cuda
-from chainer.functions.connection import linear
 from chainer import initializers
 from chainer import link
+from chainer.functions.connection import linear
+
+import math
 
 
 class Linear(link.Link):
@@ -21,9 +21,9 @@ class Linear(link.Link):
     does not hold a bias vector.
 
     Args:
-        in_size (int): Dimension of input vectors. If ``None``, parameter
-            initialization will be deferred until the first forward data pass
-            at which time the size will be determined.
+        in_size (int): Dimension of input vectors. If it's ``None`` or ommited,
+            parameter initialization will be deferred until the first forward
+            data pass at which time the size will be determined.
         out_size (int): Dimension of output vectors.
         wscale (float): Scaling factor of the weight matrix.
         bias (float): Initial bias value.
@@ -43,9 +43,46 @@ class Linear(link.Link):
         W (~chainer.Variable): Weight parameter.
         b (~chainer.Variable): Bias parameter.
 
+    .. admonition:: Example
+
+        There are three ways to make a Linear link.
+
+        Define an input vector ``x`` as below,
+
+        >>> x = np.random.rand(1, 5).astype(np.float32)
+
+        and then,
+
+        1. Give both input and output sizes:
+
+            >>> l = L.Linear(5, 10)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 10)
+
+        2. Give the output size only:
+
+            >>> l = L.Linear(10)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 10)
+
+        3. If you specify other arguments other than ``in_size`` and
+            ``out_size``, you need to give them as keyword auguments.
+
+            >>> l = L.Linear(5, 10, wscale=2, nobias=True)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 10)
+
+            >>> l = L.Linear(10, wscale=2, nobias=True)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 10)
+
     """
 
-    def __init__(self, in_size, out_size, wscale=1, bias=0, nobias=False,
+    def __init__(self, in_size, out_size=None, wscale=1, bias=0, nobias=False,
                  initialW=None, initial_bias=None):
         super(Linear, self).__init__()
 
@@ -53,15 +90,19 @@ class Linear(link.Link):
         self.initialW = initialW
         self.wscale = wscale
 
-        self.out_size = out_size
         # For backward compatibility, the scale of weights is proportional to
         # the square root of wscale.
         self._W_initializer = initializers._get_initializer(
             initialW, math.sqrt(wscale))
 
         if in_size is None:
+            self.out_size = out_size
+            self.add_uninitialized_param('W')
+        elif out_size is None:
+            self.out_size = in_size
             self.add_uninitialized_param('W')
         else:
+            self.out_size = out_size
             self._initialize_params(in_size)
 
         if nobias:
@@ -70,7 +111,7 @@ class Linear(link.Link):
             if initial_bias is None:
                 initial_bias = bias
             bias_initializer = initializers._get_initializer(initial_bias)
-            self.add_param('b', out_size, initializer=bias_initializer)
+            self.add_param('b', self.out_size, initializer=bias_initializer)
 
     def _initialize_params(self, in_size):
         self.add_param('W', (self.out_size, in_size),

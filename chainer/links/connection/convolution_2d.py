@@ -14,9 +14,10 @@ class Convolution2D(link.Link):
     holds the filter weight and bias vector as parameters.
 
     Args:
-        in_channels (int): Number of channels of input arrays. If ``None``,
-            parameter initialization will be deferred until the first forward
-            data pass at which time the size will be determined.
+        in_channels (int): Number of channels of input arrays. If it is
+            ``None`` or ommitted, parameter initialization will be deferred
+            until the first forward data pass at which time the size will be
+            determined.
         out_channels (int): Number of channels of output arrays.
         ksize (int or pair of ints): Size of filters (a.k.a. kernels).
             ``ksize=k`` and ``ksize=(k, k)`` are equivalent.
@@ -50,12 +51,53 @@ class Convolution2D(link.Link):
         W (~chainer.Variable): Weight parameter.
         b (~chainer.Variable): Bias parameter.
 
+
+    .. admonition:: Example
+
+        There are three ways to make a Convolution link.
+
+        Define an input vector ``x`` as below,
+
+        >>> x = np.random.rand(1, 3, 10, 10).astype(np.float32)
+
+        1. Give the number of input and output channels and the kernel size:
+
+            >>> l = L.Convolution2D(3, 7, 5)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 7, 6, 6)
+
+        2. Give the number of output channels and the kernel size:
+
+            >>> l = L.Convolution2D(7, 5)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 7, 6, 6)
+
+        3. When you specify other arguments other than ``in_channels``,
+                ``out_channels``, and ``ksize``, you need to give them as
+                keyword auguments.
+
+            >>> l = L.Convolution2D(7, 5, stride=1, pad=0)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 7, 6, 6)
+
+            >>> l = L.Convolution2D(3, 7, 5, stride=1, pad=0)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 7, 6, 6)
+
     """
 
-    def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
+    def __init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0,
                  wscale=1, bias=0, nobias=False, use_cudnn=True,
                  initialW=None, initial_bias=None, deterministic=False):
         super(Convolution2D, self).__init__()
+
+        if ksize is None:
+            out_channels, ksize, in_channels = in_channels, out_channels, None
+
         self.ksize = ksize
         self.stride = _pair(stride)
         self.pad = _pair(pad)

@@ -16,9 +16,9 @@ class Deconvolution2D(link.Link):
     and holds the filter weight and bias vector as parameters.
 
     Args:
-        in_channels (int): Number of channels of input arrays. If ``None``,
-            parameter initialization will be deferred until the first forward
-            data pass at which time the size will be determined.
+        in_channels (int): Number of channels of input arrays. If it's ommitted
+            or ``None``, parameter initialization will be deferred until the
+            first forward data pass at which time the size will be determined.
         out_channels (int): Number of channels of output arrays.
         ksize (int or pair of ints): Size of filters (a.k.a. kernels).
             ``ksize=k`` and ``ksize=(k, k)`` are equivalent.
@@ -66,12 +66,20 @@ class Deconvolution2D(link.Link):
        See :func:`chainer.functions.deconvolution_2d` for the definition of
        two-dimensional convolution.
 
+    .. seealso::
+        See :func:`chainer.links.Convolution2D` for the examples of ways to
+        give arguments to this link.
+
     """
 
-    def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
+    def __init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0,
                  wscale=1, bias=0, nobias=False, outsize=None, use_cudnn=True,
                  initialW=None, initial_bias=None, deterministic=False):
         super(Deconvolution2D, self).__init__()
+
+        if ksize is None:
+            out_channels, ksize, in_channels = in_channels, out_channels, None
+
         self.ksize = ksize
         self.stride = _pair(stride)
         self.pad = _pair(pad)
