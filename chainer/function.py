@@ -15,10 +15,6 @@ from chainer.utils import type_check
 from chainer import variable
 
 
-_thread_local = threading.local()
-
-
-@contextlib.contextmanager
 def no_backprop_mode():
     """Disable back-propagation for Variable whose volatile is auto.
 
@@ -38,13 +34,9 @@ def no_backprop_mode():
     ...    y = x + 1
 
     """
-    default = getattr(_thread_local, 'default_backprop', True)
-    _thread_local.default_backprop = False
-    yield
-    _thread_local.default_backprop = default
+    return configuration.using_config('enable_backprop', False)
 
 
-@contextlib.contextmanager
 def force_backprop_mode():
     """Enable back-propagation for Variable whose volatile is auto.
 
@@ -73,10 +65,7 @@ def force_backprop_mode():
        See :func:`no_backprop_mode` for details of back-prop mode.
 
     """
-    default = getattr(_thread_local, 'default_backprop', True)
-    _thread_local.default_backprop = True
-    yield
-    _thread_local.default_backprop = default
+    return configuration.using_config('enable_backprop', True)
 
 
 class Function(object):
@@ -211,7 +200,7 @@ class Function(object):
         elif out_v == 'off':
             build_graph = True
         else:
-            build_graph = getattr(_thread_local, 'default_backprop', True)
+            build_graph = configuration.config.enable_backprop
 
         if build_graph:
             # Topological ordering
