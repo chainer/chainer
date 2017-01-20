@@ -319,8 +319,7 @@ def batch_normalization(x, gamma, beta, eps=2e-5, running_mean=None,
                                       decay, use_cudnn)(x, gamma, beta)
 
 
-def fixed_batch_normalization(x, gamma, beta, mean, var, eps=2e-5,
-                              use_cudnn=True):
+def fixed_batch_normalization(x, gamma, beta, mean, var, use_cudnn=True):
     """Batch normalization function with fixed statistics.
 
     This is a variant of batch normalization, where the mean and variance
@@ -334,7 +333,6 @@ def fixed_batch_normalization(x, gamma, beta, mean, var, eps=2e-5,
         beta (Variable): Shifting parameter of scaled normalized data.
         mean (Variable): Shifting parameter of input.
         var (Variable): Square of scaling parameter of input.
-        eps (float): Epsilon value for numerical stability.
         use_cudnn (bool): If ``True`` and cuDNN is enabled, then this function
             uses cuDNN as the core implementation.
 
@@ -343,5 +341,5 @@ def fixed_batch_normalization(x, gamma, beta, mean, var, eps=2e-5,
        :class:`links.BatchNormalization`
 
     """
-    return BatchNormalizationFunction(eps, None, None, False, 0.0,
+    return BatchNormalizationFunction(2.0e-5, None, None, False, 0.0,
                                       use_cudnn)(x, gamma, beta, mean, var)
