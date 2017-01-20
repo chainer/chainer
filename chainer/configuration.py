@@ -38,7 +38,18 @@ The following entries are available by default.
 class GlobalConfig(object):
 
     """The plain object that represents the global configuration of Chainer."""
-    pass
+
+    def show(self, file=sys.stdout):
+        """Prints the global config entries.
+
+        The entries are sorted in the lexicographical order of the entry name.
+
+        Args:
+            file: Output file-like object.
+
+        """
+        keys = sorted(self.__dict__)
+        _print_attrs(self, keys, file)
 
 
 class LocalConfig(object):
@@ -72,12 +83,16 @@ class LocalConfig(object):
         The entries are sorted in the lexicographical order of the entry names.
 
         Args:
-            file: Output file like object.
+            file: Output file-like object.
 
         """
         keys = sorted(set(self._global.__dict__) | set(self._local.__dict__))
-        for key in keys:
-            print(key, getattr(self, key), sep=':\t', file=file)
+        _print_attrs(self, keys, file)
+
+
+def _print_attrs(obj, keys, file):
+    for key in keys:
+        print(key, getattr(obj, key), sep=':\t', file=file)
 
 
 global_config = GlobalConfig()
