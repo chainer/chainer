@@ -136,7 +136,7 @@ class BatchNormalization(link.Link):
             mean = variable.Variable(self.avg_mean, volatile='auto')
             var = variable.Variable(self.avg_var, volatile='auto')
             ret = batch_normalization.fixed_batch_normalization(
-                x, gamma, beta, mean, var, self.eps, self.use_cudnn)
+                x, gamma, beta, mean, var, self.use_cudnn)
         return ret
 
     def start_finetuning(self):
