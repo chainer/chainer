@@ -46,7 +46,8 @@ class TestMatmul(unittest.TestCase):
     @testing.for_all_dtypes(name='dtype2')
     @testing.numpy_cupy_allclose(rtol=1e-4, atol=1e-3)  # required for uint8
     def test_operator_matmul(self, xp, dtype1, dtype2):
-        if not numpy.result_type(dtype1, dtype2) == numpy.float32:
+        if (numpy.result_type(dtype1, dtype2) != numpy.float32 and
+            numpy.result_type(dtype1, dtype2) != numpy.float64):
             return xp.array([])
         x1 = testing.shaped_arange(self.shape_pair[0], xp, dtype1)
         x2 = testing.shaped_arange(self.shape_pair[1], xp, dtype2)
@@ -57,7 +58,8 @@ class TestMatmul(unittest.TestCase):
     @testing.for_all_dtypes(name='dtype2')
     @testing.numpy_cupy_allclose(rtol=1e-4, atol=1e-3)  # required for uint8
     def test_cupy_matmul(self, xp, dtype1, dtype2):
-        if not numpy.result_type(dtype1, dtype2) == numpy.float32:
+        if (numpy.result_type(dtype1, dtype2) != numpy.float32 and
+            numpy.result_type(dtype1, dtype2) != numpy.float64):
             return xp.array([])
         x1 = testing.shaped_arange(self.shape_pair[0], xp, dtype1)
         x2 = testing.shaped_arange(self.shape_pair[1], xp, dtype2)
