@@ -170,7 +170,7 @@ class ThinStackRecursiveNet(chainer.Chain):
 
             stack = F.thin_stack_set(stack, dest, o)
 
-        #loss /= count
+        loss /= count
         reporter.report({'loss': loss}, self)
         reporter.report({'total': count}, self)
         reporter.report({'correct': correct}, self)
@@ -195,13 +195,10 @@ def main():
     parser.set_defaults(test=False)
     args = parser.parse_args()
 
-    epoch_per_eval = args.epocheval  # number of epochs per evaluation
-
     vocab = {}
     max_size = None
     train_trees = data.read_corpus('trees/train.txt', vocab, max_size)
     test_trees = data.read_corpus('trees/test.txt', vocab, max_size)
-    develop_trees = data.read_corpus('trees/dev.txt', vocab, max_size)
 
     if args.gpu >= 0:
         chainer.cuda.get_device(args.gpu).use()
@@ -212,7 +209,8 @@ def main():
     train_data = [linearize_tree(vocab, t, xp) for t in train_trees]
     train_iter = chainer.iterators.SerialIterator(train_data, args.batchsize)
     test_data = [linearize_tree(vocab, t, xp) for t in test_trees]
-    test_iter = chainer.iterators.SerialIterator(test_data, args.batchsize)
+    test_iter = chainer.iterators.SerialIterator(
+        test_data, args.batchsize, repeat=False, shuffle=False)
 
     model = ThinStackRecursiveNet(len(vocab), args.unit, args.label)
 
@@ -225,6 +223,9 @@ def main():
     updater = training.StandardUpdater(
         train_iter, optimizer, device=None, converter=convert)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'))
+    trainer.extend(
+        extensions.Evaluator(test_iter, model, converter=convert, device=None),
+        trigger=(args.epocheval, 'epoch'))
     trainer.extend(extensions.LogReport())
     trainer.extend(extensions.PrintReport(
         ['epoch', 'main/loss', 'validation/main/loss',
