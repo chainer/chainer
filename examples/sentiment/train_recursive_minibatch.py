@@ -13,7 +13,7 @@ from chainer.training import extensions
 import data
 
 
-def linearize_tree(vocab, root):
+def linearize_tree(vocab, root, xp=numpy):
     # Left node indexes for all parent nodes
     lefts = []
     # Right node indexes for all parent nodes
@@ -71,12 +71,12 @@ def linearize_tree(vocab, root):
     assert len(lefts) == len(words) - 1
 
     return {
-        'lefts': numpy.array(lefts, 'i'),
-        'rights': numpy.array(rights, 'i'),
-        'dests': numpy.array(dests, 'i'),
-        'words': numpy.array(words, 'i'),
-        'labels': numpy.array(labels, 'i'),
-        'leaf_labels': numpy.array(leaf_labels, 'i'),
+        'lefts': xp.array(lefts, 'i'),
+        'rights': xp.array(rights, 'i'),
+        'dests': xp.array(dests, 'i'),
+        'words': xp.array(words, 'i'),
+        'labels': xp.array(labels, 'i'),
+        'leaf_labels': xp.array(leaf_labels, 'i'),
     }
 
 
@@ -203,29 +203,34 @@ def main():
     test_trees = data.read_corpus('trees/test.txt', vocab, max_size)
     develop_trees = data.read_corpus('trees/dev.txt', vocab, max_size)
 
-    train_data = [linearize_tree(vocab, t) for t in train_trees]
+    if args.gpu >= 0:
+        chainer.cuda.get_device(args.gpu).use()
+        xp = cuda.cupy
+    else:
+        xp = numpy
+
+    train_data = [linearize_tree(vocab, t, xp) for t in train_trees]
     train_iter = chainer.iterators.SerialIterator(train_data, args.batchsize)
-    test_data = [linearize_tree(vocab, t) for t in test_trees]
+    test_data = [linearize_tree(vocab, t, xp) for t in test_trees]
     test_iter = chainer.iterators.SerialIterator(test_data, args.batchsize)
 
     model = ThinStackRecursiveNet(len(vocab), args.unit, args.label)
 
     if args.gpu >= 0:
-        chainer.cuda.get_device(args.gpu).use()
         model.to_gpu()
 
     optimizer = chainer.optimizers.Adam()
     optimizer.setup(model)
 
     updater = training.StandardUpdater(
-        train_iter, optimizer, device=args.gpu, converter=convert)
+        train_iter, optimizer, device=None, converter=convert)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'))
     trainer.extend(extensions.LogReport())
     trainer.extend(extensions.PrintReport(
         ['epoch', 'main/loss', 'validation/main/loss',
          'main/correct', 'main/total',
          'main/accuracy', 'validation/main/accuracy', 'elapsed_time']))
-    
+
     trainer.run()
 
 
