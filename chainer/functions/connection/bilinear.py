@@ -9,7 +9,7 @@ from chainer.utils import type_check
 class BilinearFunction(function.Function):
 
     def check_type_forward(self, in_types):
-        n_in = in_types.size().eval()
+        n_in = type_check.eval(in_types.size())
         if n_in != 3 and n_in != 6:
             raise type_check.InvalidType(
                 '%s or %s' % (in_types.size() == 3, in_types.size() == 6),

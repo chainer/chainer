@@ -83,10 +83,11 @@ def _check_ndim(in_type, lower=1, upper=2):
 
 
 def _convert_type(in_type, vector_ndim=1):
-    if in_type.ndim.eval() == vector_ndim:
+    if type_check.eval(in_type.ndim) == vector_ndim:
         in_type = type_check.Variable(
-            type_check.TypeInfo(in_type.shape.eval() + (1,),
-                                in_type.dtype),
+            type_check.TypeInfo(
+                type_check.eval(in_type.shape) + (1,),
+                in_type.dtype),
             '%s(1-D array)' % in_type.name)
     else:
         in_type.name = '%s(2-D array)' % in_type.name

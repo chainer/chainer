@@ -77,7 +77,7 @@ class SLSTM(function.Function):
             x1_type.shape[1] == 4 * c1_type.shape[1],
             x2_type.shape[1] == 4 * c2_type.shape[1],
         )
-        for i in range(2, c1_type.ndim.eval()):
+        for i in range(2, type_check.eval(c1_type.ndim)):
             type_check.expect(x1_type.shape[i] == c1_type.shape[i])
             type_check.expect(x2_type.shape[i] == c2_type.shape[i])
             type_check.expect(x1_type.shape[i] == x2_type.shape[i])
