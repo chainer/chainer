@@ -26,9 +26,9 @@ class Concat(function.Function):
             -in_types[0].ndim <= self.axis,
             self.axis < in_types[0].ndim
         )
-        ndim = in_types[0].ndim.eval()
+        ndim = type_check.eval(in_types[0].ndim)
         axis = self.axis % ndim
-        for i in six.moves.range(1, in_types.size().eval()):
+        for i in six.moves.range(1, type_check.eval(in_types.size())):
             type_check.expect(
                 in_types[0].dtype == in_types[i].dtype,
                 in_types[0].ndim == in_types[i].ndim,
