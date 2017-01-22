@@ -52,20 +52,19 @@ class TypeInfoTuple(tuple):
         return Variable(len(self), '{0}.size'.format(self.name))
 
 
-class TypeInfoTuple2(tuple):
+class LightTypeInfoTuple(tuple):
 
-    """Type information of input/gradient tuples.
+    """Type information of input/gradient tuples for light-weight check.
 
     It is a sub-class of tuple containing :class:`TypeInfo`. The i-th element
     of this object contains type information of the i-th input/gradient data.
-    As each element is :class:`Expr`, you can easily check its validity.
     """
 
     def size(self):
-        """Returns an expression representing its length.
+        """Returns its length.
 
         Returns:
-            Expr: An expression object representing length of the tuple.
+            int: Length of the tuple.
         """
         return len(self)
 
@@ -80,10 +79,10 @@ def get_types(data, name, accept_none):
     return info
 
 
-def get_types2(data):
+def get_light_types(data):
     assert(isinstance(data, tuple))
 
-    return TypeInfoTuple2(data)
+    return LightTypeInfoTuple(data)
 
 
 def _get_type(name, index, array, accept_none):
@@ -506,38 +505,38 @@ def expect(*bool_exprs):
         bool_exprs (tuple of Bool expressions): Bool expressions you want to
             evaluate.
     """
-    global _fetch
-    if _fetch:
-        assert all(bool_exprs)
+    if _thread_local.light_mode:
+        if not all(bool_exprs):
+            raise InvalidType('', '')
     else:
         for expr in bool_exprs:
             assert isinstance(expr, Testable)
             expr.expect()
 
-_fetch = False
-
 
 def eval(exp):
-    if _fetch:
+    if _thread_local.light_mode:
         return exp
     else:
         return exp.eval()
 
 
-class Fetch(object):
+class LightMode(object):
 
     def __enter__(self):
-        global _fetch, prod
-        _fetch = True
-        self.org_prod = prod
-        prod = numpy.prod
+        _thread_local.light_mode = True
 
     def __exit__(self, exc_type, exc_value, traceback):
-        global _fetch, prod
-        _fetch = False
-        prod = self.org_prod
-
-fetch = Fetch()
+        _thread_local.light_mode = False
 
 
-prod = Variable(numpy.prod, 'prod')
+_thread_local = threading.local()
+_prod = Variable(numpy.prod, 'prod')
+light_mode = LightMode()
+
+
+def prod(*args, **kwargs):
+    if _fetch:
+        return numpy.prod(*args, **kwargs)
+    else:
+        return _prod(*args, **kwargs)

@@ -250,17 +250,14 @@ class Function(object):
             return None
 
     def _check_data_type_forward(self, in_data):
-        if 1:
-            in_type = type_check.get_types2(in_data)
-            try:
-                with type_check.fetch:
-                    self.check_type_forward(in_type)
-                return
-            except Exception as e:
-                print(self)
-                print(e)
-                raise
-                pass
+        in_type = type_check.get_light_types(in_data)
+        try:
+            with type_check.light_mode:
+                self.check_type_forward(in_type)
+            return
+        except type_check.InvalidType:
+            # Ignore errors on first run
+            pass
 
         in_type = type_check.get_types(in_data, 'in_types', False)
         with type_check.get_function_check_context(self):
