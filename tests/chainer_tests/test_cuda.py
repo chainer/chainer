@@ -65,19 +65,6 @@ class TestCuda(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 cuda.to_gpu(x)
 
-    def test_empy_unavailable(self):
-        if not cuda.available:
-            with self.assertRaises(RuntimeError):
-                with warnings.catch_warnings():
-                    cuda.empty(())
-
-    def test_empy_like_unavailable(self):
-        x = numpy.array([1])
-        if not cuda.available:
-            with self.assertRaises(RuntimeError):
-                with warnings.catch_warnings():
-                    cuda.empty_like(x)
-
 
 @testing.parameterize(
     {'c_contiguous': True},
