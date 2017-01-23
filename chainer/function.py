@@ -132,6 +132,7 @@ class Function(object):
         outputs: A tuple or list of output variables.
 
     """
+
     def __call__(self, *inputs):
         """Applies forward propagation with chaining backward references.
 

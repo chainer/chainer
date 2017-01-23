@@ -52,6 +52,7 @@ class LocalConfig(object):
     automatically retrieves a value from the global configuration.
 
     """
+
     def __init__(self, global_config):
         super(LocalConfig, self).__setattr__('_global', global_config)
         super(LocalConfig, self).__setattr__('_local', threading.local())
