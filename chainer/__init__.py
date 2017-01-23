@@ -9,7 +9,6 @@ from chainer import dataset  # NOQA
 from chainer import datasets  # NOQA
 from chainer import flag  # NOQA
 from chainer import function  # NOQA
-from chainer import function_set  # NOQA
 from chainer import functions  # NOQA
 from chainer import initializer  # NOQA
 from chainer import initializers  # NOQA
@@ -33,7 +32,6 @@ from chainer.flag import ON  # NOQA
 from chainer.function import force_backprop_mode  # NOQA
 from chainer.function import Function  # NOQA
 from chainer.function import no_backprop_mode  # NOQA
-from chainer.function_set import FunctionSet  # NOQA
 from chainer.functions import array  # NOQA
 from chainer.functions import basic_math  # NOQA
 from chainer.initializer import Initializer  # NOQA
