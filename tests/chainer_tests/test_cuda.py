@@ -78,19 +78,6 @@ class TestCuda(unittest.TestCase):
             cuda.get_array_module(chainer.Variable(cuda.cupy.array([]))),
             cuda.cupy)
 
-    def test_empy_unavailable(self):
-        if not cuda.available:
-            with self.assertRaises(RuntimeError):
-                with warnings.catch_warnings():
-                    cuda.empty(())
-
-    def test_empy_like_unavailable(self):
-        x = numpy.array([1])
-        if not cuda.available:
-            with self.assertRaises(RuntimeError):
-                with warnings.catch_warnings():
-                    cuda.empty_like(x)
-
 
 @testing.parameterize(
     {'c_contiguous': True},
