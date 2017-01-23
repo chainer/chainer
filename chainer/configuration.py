@@ -83,7 +83,7 @@ class LocalConfig(object):
 
 def _print_attrs(obj, keys, file):
     for key in keys:
-        print(key, getattr(obj, key), sep=':\t', file=file)
+        print(u'{}:\t{}'.format(key, getattr(obj, key)), file=file)
 
 
 global_config = GlobalConfig()
