@@ -167,7 +167,7 @@ Actual: {0}'''.format(type(data))
         """
         if self.data.ndim == 0:
             raise TypeError('len() of unsized object')
-        return self.data.shape[0]
+        return len(self.data)
 
     @property
     def volatile(self):
