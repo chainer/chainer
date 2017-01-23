@@ -28,8 +28,9 @@ class Highway(link.Chain):
         nobias (bool): If ``True``, then this function does not use the bias.
         activate: Activation function of plain array. :math:`tanh` is also
             available.
-        init_Wh (2-D array): Initial weight value of plain array. If ``None``,
-            then this function uses it to initialize ``wscale``.
+        init_Wh (2-D array): Initial weight value of plain array.
+            If ``None``, :func:`HeNormal` initializer is used to
+            initialize weight matrix.
             May also be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
         init_bh (1-D array): Initial bias value of plain array. If ``None``,
@@ -37,7 +38,8 @@ class Highway(link.Chain):
             May also be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
         init_Wt (2-D array): Initial weight value of transform array.
-            If ``None``, then this function uses it to initialize ``wscale``.
+            If ``None``, :func:`HeNormal` initializer is used to
+            initialize weight matrix.
             May also be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
         init_bt (1-D array): Initial bias value of transform array.
