@@ -16,7 +16,7 @@ class BilinearFunction(function.Function):
                 '%s == %s' % (in_types.size(), n_in))
 
         e1_type, e2_type, W_type = in_types[:3]
-        type_check_prod = type_check.Variable(numpy.prod, 'prod')
+        type_check_prod = type_check.make_variable(numpy.prod, 'prod')
         type_check.expect(
             e1_type.dtype == numpy.float32,
             e1_type.ndim >= 2,
