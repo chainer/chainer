@@ -42,7 +42,6 @@ class TestDeconvolution2DFunction(unittest.TestCase):
 
     in_channels = 3
     out_channels = 2
-    wscale = 1
     ksize = 3
     pad = 1
 
@@ -51,7 +50,7 @@ class TestDeconvolution2DFunction(unittest.TestCase):
         sh, sw = _pair(self.stride)
         ph, pw = _pair(self.pad)
         self.W = numpy.random.normal(
-            0, self.wscale * numpy.sqrt(1. / (kh * kw * self.in_channels)),
+            0, numpy.sqrt(1. / (kh * kw * self.in_channels)),
             (self.in_channels, self.out_channels, kh, kw)
         ).astype(self.W_dtype)
         self.b = None if self.nobias else numpy.random.uniform(
