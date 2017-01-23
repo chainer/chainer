@@ -159,12 +159,14 @@ Actual: {0}'''.format(type(data))
         return self
 
     def __len__(self):
-        """Returns the number of elements of the data array.
+        """Returns the first dimension of the data array.
 
         Returns:
-            int: Number of elements of the data array.
+            int: Number of the first dimension of the data array.
 
         """
+        if self.data.ndim == 0:
+            raise TypeError('len() of unsized object')
         return self.data.shape[0]
 
     @property
