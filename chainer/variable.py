@@ -165,8 +165,6 @@ Actual: {0}'''.format(type(data))
             int: Number of the first dimension of the data array.
 
         """
-        if self.data.ndim == 0:
-            raise TypeError('len() of unsized object')
         return len(self.data)
 
     @property
