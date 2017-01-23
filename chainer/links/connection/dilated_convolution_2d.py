@@ -26,12 +26,11 @@ class DilatedConvolution2D(link.Link):
             ``pad=p`` and ``pad=(p, p)`` are equivalent.
         dilate (int or pair of ints): Dilation factor of filter applications.
             ``dilate=d`` and ``dilate=(d, d)`` are equivalent.
-        wscale (float): Scaling factor of the initial weight.
         bias (float): Initial bias value.
         nobias (bool): If ``True``, then this link does not use the bias term.
         use_cudnn (bool): If ``True``, then this link uses cuDNN if available.
-        initialW (4-D array): Initial weight value. If ``None``, then this
-            function uses to initialize ``wscale``.
+        initialW (4-D array): Initial weight value. If ``None``, :func:`HeNormal`
+            initializer is used to initialize weight matrix.
             May also be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
         initial_bias (1-D array): Initial bias value. If ``None``, then this
@@ -50,7 +49,7 @@ class DilatedConvolution2D(link.Link):
     """
 
     def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
-                 dilate=1, wscale=1, bias=0, nobias=False, use_cudnn=True,
+                 dilate=1, bias=0, nobias=False, use_cudnn=True,
                  initialW=None, initial_bias=None):
         super(DilatedConvolution2D, self).__init__()
         self.ksize = ksize
@@ -60,7 +59,6 @@ class DilatedConvolution2D(link.Link):
         self.use_cudnn = use_cudnn
         self.out_channels = out_channels
         self.initialW = initialW
-        self.wscale = wscale
 
         if in_channels is None:
             self.add_uninitialized_param('W')
@@ -79,10 +77,7 @@ class DilatedConvolution2D(link.Link):
         kh, kw = _pair(self.ksize)
         W_shape = (self.out_channels, in_channels, kh, kw)
         self.add_param('W', W_shape)
-        # For backward compatibility, the scale of weights is proportional to
-        # the square root of wscale.
-        initializers.init_weight(self.W.data, self.initialW,
-                                 scale=math.sqrt(self.wscale))
+        initializers.init_weight(self.W.data, self.initialW)
 
     def __call__(self, x):
         """Applies the convolution layer.
