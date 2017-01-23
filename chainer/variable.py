@@ -165,7 +165,7 @@ Actual: {0}'''.format(type(data))
             int: Number of elements of the data array.
 
         """
-        return self.data.size
+        return self.data.shape[0]
 
     @property
     def volatile(self):
