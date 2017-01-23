@@ -1,10 +1,7 @@
 from __future__ import print_function
 import contextlib
-import os
 import sys
 import threading
-
-import six
 
 
 """Global and thread-local configuration of Chainer.
