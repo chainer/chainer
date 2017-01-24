@@ -504,7 +504,7 @@ def expect(*bool_exprs):
         bool_exprs (tuple of Bool expressions): Bool expressions you want to
             evaluate.
     """
-    if _thread_local.light_mode:
+    if in_light_mode():
         if not all(bool_exprs):
             raise InvalidType('', '')
     else:
@@ -514,14 +514,14 @@ def expect(*bool_exprs):
 
 
 def eval(exp):
-    if _thread_local.light_mode:
+    if in_light_mode():
         return exp
     else:
         return exp.eval()
 
 
 def make_variable(value, name):
-    if _thread_local.light_mode:
+    if in_light_mode():
         return value
     else:
         return Variable(value, name)
@@ -541,8 +541,12 @@ _prod = Variable(numpy.prod, 'prod')
 light_mode = LightMode()
 
 
+def in_light_mode():
+    return getattr(_thread_local, 'light_mode', False)
+
+
 def prod(*args, **kwargs):
-    if _thread_local.light_mode:
+    if in_light_mode():
         return numpy.prod(*args, **kwargs)
     else:
         return _prod(*args, **kwargs)
