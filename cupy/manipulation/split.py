@@ -1,5 +1,4 @@
 import numpy
-import six
 
 
 def array_split(ary, indices_or_sections, axis=0):
