@@ -9,6 +9,7 @@ import six
 import chainer
 from chainer import cuda
 from chainer import flag
+from chainer import utils
 
 
 def _check_grad_type(func, x, gx):
@@ -158,13 +159,13 @@ Actual: {0}'''.format(type(data))
         return self
 
     def __len__(self):
-        """Returns the number of elements of the data array.
+        """Returns the first dimension of the data array.
 
         Returns:
-            int: Number of elements of the data array.
+            int: Number of the first dimension of the data array.
 
         """
-        return self.data.size
+        return len(self.data)
 
     @property
     def volatile(self):
@@ -416,7 +417,7 @@ Actual: {0}'''.format(type(data))
                             x.grad = gx
                             need_copy.add(id_x)
                         elif id_x in need_copy:
-                            x.grad = x.grad + gx  # copy
+                            x.grad = utils.force_array(x.grad + gx)  # copy
                             need_copy.remove(id_x)
                         else:
                             x._grad += gx
@@ -427,7 +428,7 @@ Actual: {0}'''.format(type(data))
                             seen_vars.add(id_x)
                             need_copy.add(id_x)
                         elif id_x in need_copy:  # 2nd visit
-                            x._grad = gx + x._grad  # copied
+                            x._grad = utils.force_array(gx + x._grad)  # copied
                             need_copy.remove(id_x)
                         else:  # 3rd or later visit
                             x._grad += gx
