@@ -5,6 +5,8 @@ from chainer.functions.connection import linear
 from chainer import initializers
 from chainer import link
 
+import numpy
+
 
 class Linear(link.Link):
 
@@ -25,8 +27,6 @@ class Linear(link.Link):
             initialization will be deferred until the first forward data pass
             at which time the size will be determined.
         out_size (int): Dimension of output vectors.
-        bias (float): Initial bias value.
-        nobias (bool): If ``True``, then this function does not use the bias.
         initialW (2-D array): Initial weight value. If ``None``, :func:`HeNormal`
             initializer is used to initialize weight matrix.
             May also be a callable that takes ``numpy.ndarray`` or
@@ -44,25 +44,22 @@ class Linear(link.Link):
 
     """
 
-    def __init__(self, in_size, out_size, bias=0, nobias=False,
-                 initialW=None, initial_bias=None):
+    def __init__(self, in_size, out_size,
+                 initialW=initializers.HeNormal(1.0 / numpy.sqrt(2)),
+                 initial_bias=initializers.Constant(0)):
         super(Linear, self).__init__()
 
-        # For backward compatibility
-        self.initialW = initialW
         self.out_size = out_size
-        self._W_initializer = initializers._get_initializer(initialW)
 
+        self._W_initializer = initializers._get_initializer(initialW)
         if in_size is None:
             self.add_uninitialized_param('W')
         else:
             self._initialize_params(in_size)
 
-        if nobias:
+        if initial_bias is None:
             self.b = None
         else:
-            if initial_bias is None:
-                initial_bias = bias
             bias_initializer = initializers._get_initializer(initial_bias)
             self.add_param('b', out_size, initializer=bias_initializer)
 
