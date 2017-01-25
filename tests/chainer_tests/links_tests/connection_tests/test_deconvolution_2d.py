@@ -21,7 +21,7 @@ def _pair(x):
 
 @parameterize(
     *testing.product({
-        'nobias': [True, False],
+        'initial_bias': [1, None],
         'use_cudnn': [True, False]
     })
 )
@@ -35,10 +35,10 @@ class TestDeconvolution2D(unittest.TestCase):
         pad = 1
         self.link = L.Deconvolution2D(
             in_channels, out_channels, ksize,
-            stride=stride, pad=pad, nobias=self.nobias)
+            stride=stride, pad=pad, initial_bias=self.initial_bias)
         self.link.W.data[...] = numpy.random.uniform(
             -1, 1, self.link.W.data.shape).astype(numpy.float32)
-        if not self.nobias:
+        if self.initial_bias is not None:
             self.link.b.data[...] = numpy.random.uniform(
                 -1, 1, self.link.b.data.shape).astype(numpy.float32)
 
@@ -74,7 +74,7 @@ class TestDeconvolution2D(unittest.TestCase):
 
     def check_backward(self, x_data, y_grad):
         params = [self.link.W]
-        if not self.nobias:
+        if self.initial_bias is not None:
             params.append(self.link.b)
 
         gradient_check.check_backward(
@@ -94,7 +94,7 @@ class TestDeconvolution2D(unittest.TestCase):
 
 @parameterize(
     *testing.product({
-        'nobias': [True, False],
+        'initial_bias': [1, None],
         'use_cudnn': [True, False]
     })
 )
@@ -108,8 +108,8 @@ class TestDeconvolution2DParameterShapePlaceholder(unittest.TestCase):
         in_channels = None
         self.link = L.Deconvolution2D(
             in_channels, out_channels, ksize,
-            stride=stride, pad=pad, nobias=self.nobias)
-        if not self.nobias:
+            stride=stride, pad=pad, initial_bias=self.initial_bias)
+        if self.initial_bias is not None:
             self.link.b.data[...] = numpy.random.uniform(
                 -1, 1, self.link.b.data.shape).astype(numpy.float32)
 
@@ -145,7 +145,7 @@ class TestDeconvolution2DParameterShapePlaceholder(unittest.TestCase):
 
     def check_backward(self, x_data, y_grad):
         params = [self.link.W]
-        if not self.nobias:
+        if self.initial_bias is not None:
             params.append(self.link.b)
 
         gradient_check.check_backward(

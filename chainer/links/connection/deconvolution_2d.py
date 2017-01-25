@@ -26,9 +26,6 @@ class Deconvolution2D(link.Link):
             ``stride=s`` and ``stride=(s, s)`` are equivalent.
         pad (int or pair of ints): Spatial padding width for input arrays.
             ``pad=p`` and ``pad=(p, p)`` are equivalent.
-        bias (float): Initial bias value.
-        nobias (bool): If ``True``, then this function does not use the bias
-            term.
         outsize (tuple): Expected output size of deconvolutional operation.
             It should be pair of height and width :math:`(out_H, out_W)`.
             Default value is ``None`` and the outsize is estimated by
@@ -68,8 +65,9 @@ class Deconvolution2D(link.Link):
     """
 
     def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
-                 bias=0, nobias=False, outsize=None, use_cudnn=True,
-                 initialW=None, initial_bias=None, deterministic=False):
+                 outsize=None, use_cudnn=True,
+                 initialW=initializers.HeNormal(1.0 / numpy.sqrt(2)),
+                 initial_bias=initializers.Constant(0), deterministic=False):
         super(Deconvolution2D, self).__init__()
         self.ksize = ksize
         self.stride = _pair(stride)
@@ -85,15 +83,13 @@ class Deconvolution2D(link.Link):
         else:
             self._initialize_params(in_channels)
 
-        if nobias:
+        if initial_bias is None:
             self.b = None
         else:
-            self.add_param('b', out_channels)
             if isinstance(initial_bias, (numpy.ndarray, cuda.ndarray)):
                 assert initial_bias.shape == (out_channels,)
-            if initial_bias is None:
-                initial_bias = bias
-            initializers.init_weight(self.b.data, initial_bias)
+            bias_initializer = initializers._get_initializer(initial_bias)
+            self.add_param('b', out_channels, initializer=bias_initializer)
 
     def _initialize_params(self, in_channels):
         kh, kw = _pair(self.ksize)
