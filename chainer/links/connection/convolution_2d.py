@@ -1,5 +1,7 @@
 import math
 
+import numpy
+
 from chainer import cuda
 from chainer.functions.connection import convolution_2d
 from chainer import initializers
@@ -54,7 +56,7 @@ class Convolution2D(link.Link):
 
     def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
                  use_cudnn=True, initialW=initializers.HeNormal(1. / numpy.sqrt(2)),
-                 initial_bias=initializer.Constant(0), deterministic=False):
+                 initial_bias=initializers.Constant(0), deterministic=False):
         super(Convolution2D, self).__init__()
         self.ksize = ksize
         self.stride = _pair(stride)
