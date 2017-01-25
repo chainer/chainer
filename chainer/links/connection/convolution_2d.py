@@ -53,8 +53,8 @@ class Convolution2D(link.Link):
     """
 
     def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
-                 bias=0, nobias=False, use_cudnn=True,
-                 initialW=None, initial_bias=None, deterministic=False):
+                 use_cudnn=True, initialW=initializers.HeNormal(1. / numpy.sqrt(2)),
+                 initial_bias=initializer.Constant(0), deterministic=False):
         super(Convolution2D, self).__init__()
         self.ksize = ksize
         self.stride = _pair(stride)
@@ -63,9 +63,6 @@ class Convolution2D(link.Link):
         self.out_channels = out_channels
         self.deterministic = deterministic
 
-        # For backward compatibility
-        self.initialW = initialW
-
         self._W_initializer = initializers._get_initializer(initialW)
 
         if in_channels is None:
@@ -73,11 +70,9 @@ class Convolution2D(link.Link):
         else:
             self._initialize_params(in_channels)
 
-        if nobias:
+        if initial_bias is None:
             self.b = None
         else:
-            if initial_bias is None:
-                initial_bias = bias
             bias_initilizer = initializers._get_initializer(initial_bias)
             self.add_param('b', out_channels, initializer=bias_initilizer)
 
