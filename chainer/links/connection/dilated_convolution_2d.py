@@ -1,5 +1,7 @@
 import math
 
+import numpy
+
 from chainer import cuda
 from chainer.functions.connection import dilated_convolution_2d
 from chainer import initializers
@@ -26,8 +28,6 @@ class DilatedConvolution2D(link.Link):
             ``pad=p`` and ``pad=(p, p)`` are equivalent.
         dilate (int or pair of ints): Dilation factor of filter applications.
             ``dilate=d`` and ``dilate=(d, d)`` are equivalent.
-        bias (float): Initial bias value.
-        nobias (bool): If ``True``, then this link does not use the bias term.
         use_cudnn (bool): If ``True``, then this link uses cuDNN if available.
         initialW (4-D array): Initial weight value. If ``None``, :func:`HeNormal`
             initializer is used to initialize weight matrix.
@@ -49,8 +49,9 @@ class DilatedConvolution2D(link.Link):
     """
 
     def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
-                 dilate=1, bias=0, nobias=False, use_cudnn=True,
-                 initialW=None, initial_bias=None):
+                 dilate=1, use_cudnn=True,
+                 initialW=initializers.HeNormal(1.0 / numpy.sqrt(2)),
+                 initial_bias=initializers.Constant(0)):
         super(DilatedConvolution2D, self).__init__()
         self.ksize = ksize
         self.stride = _pair(stride)
@@ -65,13 +66,11 @@ class DilatedConvolution2D(link.Link):
         else:
             self._initialize_params(in_channels)
 
-        if nobias:
+        if initial_bias is None:
             self.b = None
         else:
-            self.add_param('b', out_channels)
-            if initial_bias is None:
-                initial_bias = bias
-            initializers.init_weight(self.b.data, initial_bias)
+            bias_initializer = initializers._get_initializer(initial_bias)
+            self.add_param('b', out_channels, initializer=bias_initializer)
 
     def _initialize_params(self, in_channels):
         kh, kw = _pair(self.ksize)
