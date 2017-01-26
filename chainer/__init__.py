@@ -3,7 +3,9 @@ import os
 import pkg_resources
 import sys
 import threading
+import warnings
 
+from chainer import configuration  # NOQA
 from chainer import cuda  # NOQA
 from chainer import dataset  # NOQA
 from chainer import datasets  # NOQA
@@ -25,6 +27,9 @@ from chainer import variable  # NOQA
 
 
 # import class and function
+from chainer.configuration import config  # NOQA
+from chainer.configuration import global_config  # NOQA
+from chainer.configuration import using_config  # NOQA
 from chainer.flag import AUTO  # NOQA
 from chainer.flag import Flag  # NOQA
 from chainer.flag import OFF  # NOQA
@@ -76,7 +81,10 @@ def get_function_hooks():
         thread_local.function_hooks = collections.OrderedDict()
     return thread_local.function_hooks
 
-_debug = False
+
+global_config.debug = bool(int(os.environ.get('CHAINER_DEBUG', '0')))
+global_config.enable_backprop = True
+global_config.type_check = bool(int(os.environ.get('CHAINER_TYPE_CHECK', '1')))
 
 
 def is_debug():
@@ -85,7 +93,7 @@ def is_debug():
     Returns:
         bool: Return ``True`` if Chainer is in debug mode.
     """
-    return _debug
+    return bool(config.debug)
 
 
 def set_debug(debug):
@@ -99,8 +107,7 @@ def set_debug(debug):
     Args:
         debug (bool): New debug mode.
     """
-    global _debug
-    _debug = debug
+    config.debug = debug
 
 
 class DebugMode(object):
@@ -111,19 +118,25 @@ class DebugMode(object):
     memorizing its original value. When exiting the context, it sets the debug
     mode back to the original value.
 
+    .. deprecated:: v2.0.0
+       DebugMode is deprecated. Use ``using_config('debug', debug)`` instead.
+
     Args:
         debug (bool): Debug mode used in the context.
     """
 
     def __init__(self, debug):
-        self._debug = debug
+        warnings.warn('chainer.DebugMode is deprecated. '
+                      'Use chainer.using_config("debug", ...) instead.',
+                      DeprecationWarning)
+        self._using = using_config('debug', debug)
 
     def __enter__(self):
-        self._old = is_debug()
-        set_debug(self._debug)
+        self._using.__enter__()
 
-    def __exit__(self, *_):
-        set_debug(self._old)
+    def __exit__(self, *args):
+        self._using.__exit__(*args)
+
 
 basic_math.install_variable_arithmetics()
 array.get_item.install_variable_get_item()
