@@ -47,7 +47,7 @@ def generate_array(initializer, shape, xp):
     return array
 
 
-def init_weight(weights, initializer, scale=1.0):
+def init_weight(weights, initializer):
     """Helper function for initialization of the weight tensor.
 
     This function accepts several types of initializer, prepares
@@ -64,7 +64,6 @@ def init_weight(weights, initializer, scale=1.0):
              an ``numpy.ndarray`` to be assigned,
              or a callable that takes :class:`numpy.ndarray`
              or :class:`cupy.ndarray` and edits its value.
-         scale (scalar): A constant to multiply initializer by.
 
     """
 
@@ -77,31 +76,15 @@ def init_weight(weights, initializer, scale=1.0):
 
     assert callable(initializer)
     initializer(weights)
-    weights *= scale
 
 
-class _ScaledInitializer(initializer.Initializer):
-
-    def __init__(self, initializer, scale=1.0):
-        self.initializer = initializer
-        self.scale = scale
-        dtype = getattr(initializer, 'dtype', None)
-        super(Identity, self).__init__(dtype)
-
-    def __call__(self, array):
-        self.initializer(array)
-        array *= self.scale
-
-
-def _get_initializer(initializer, scale=1.0):
+def _get_initializer(initializer):
     if initializer is None:
-        return HeNormal(scale / numpy.sqrt(2))
+        return HeNormal(1 / numpy.sqrt(2))
     if numpy.isscalar(initializer):
-        return Constant(initializer * scale)
+        return Constant(initializer)
     if isinstance(initializer, numpy.ndarray):
-        return Constant(initializer * scale)
+        return Constant(initializer)
 
     assert callable(initializer)
-    if scale == 1.0:
-        return initializer
-    return _ScaledInitializer(initializer, scale)
+    return initializer
