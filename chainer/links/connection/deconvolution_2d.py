@@ -36,7 +36,7 @@ class Deconvolution2D(link.Link):
         use_cudnn (bool): If ``True``, then this function uses cuDNN if
             available.
         initialW (4-D array): Initial weight value. If ``None``, then this
-            function uses a default initializer to initialize the weight tensor.
+            function uses the default initializer to initialize the weight tensor.
             May also be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
         initial_bias (1-D array): Initial bias value. If ``None``, then this
