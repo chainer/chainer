@@ -30,7 +30,7 @@ class Highway(link.Chain):
             available.
         init_Wh (2-D array): Initial weight value of plain array.
             If ``None``, :func:`HeNormal` initializer is used to
-            initialize weight matrix.
+            initialize the weight matrix.
             May also be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
         init_bh (1-D array): Initial bias value of plain array. If ``None``,
@@ -39,7 +39,7 @@ class Highway(link.Chain):
             ``cupy.ndarray`` and edits its value.
         init_Wt (2-D array): Initial weight value of transform array.
             If ``None``, :func:`HeNormal` initializer is used to
-            initialize weight matrix.
+            initialize the weight matrix.
             May also be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
         init_bt (1-D array): Initial bias value of transform array.

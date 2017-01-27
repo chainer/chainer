@@ -34,7 +34,7 @@ class Maxout(link.Chain):
         pool_size (int): Number of channels.
         initialW (3-D array or None): Initial weight value.
             If ``None``, :func:`HeNormal`
-            initializer is used to initialize weight matrix.
+            initializer is used to initialize the weight matrix.
         initial_bias (2-D array, float or None): Initial bias value.
             If it is float, initial bias is filled with this value.
             If ``None``, bias is omitted.
