@@ -42,33 +42,12 @@ class GoogLeNetBN(chainer.Chain):
             normb2=L.BatchNormalization(1024),
             outb=L.Linear(None, 1000),
         )
-        self._train = True
-
-    @property
-    def train(self):
-        return self._train
-
-    @train.setter
-    def train(self, value):
-        self._train = value
-        self.inc3a.train = value
-        self.inc3b.train = value
-        self.inc3c.train = value
-        self.inc4a.train = value
-        self.inc4b.train = value
-        self.inc4c.train = value
-        self.inc4d.train = value
-        self.inc4e.train = value
-        self.inc5a.train = value
-        self.inc5b.train = value
 
     def __call__(self, x, t):
-        test = not self.train
-
         h = F.max_pooling_2d(
-            F.relu(self.norm1(self.conv1(x), test=test)),  3, stride=2, pad=1)
+            F.relu(self.norm1(self.conv1(x))),  3, stride=2, pad=1)
         h = F.max_pooling_2d(
-            F.relu(self.norm2(self.conv2(h), test=test)), 3, stride=2, pad=1)
+            F.relu(self.norm2(self.conv2(h))), 3, stride=2, pad=1)
 
         h = self.inc3a(h)
         h = self.inc3b(h)
@@ -76,8 +55,8 @@ class GoogLeNetBN(chainer.Chain):
         h = self.inc4a(h)
 
         a = F.average_pooling_2d(h, 5, stride=3)
-        a = F.relu(self.norma(self.conva(a), test=test))
-        a = F.relu(self.norma2(self.lina(a), test=test))
+        a = F.relu(self.norma(self.conva(a)))
+        a = F.relu(self.norma2(self.lina(a)))
         a = self.outa(a)
         loss1 = F.softmax_cross_entropy(a, t)
 
@@ -86,8 +65,8 @@ class GoogLeNetBN(chainer.Chain):
         h = self.inc4d(h)
 
         b = F.average_pooling_2d(h, 5, stride=3)
-        b = F.relu(self.normb(self.convb(b), test=test))
-        b = F.relu(self.normb2(self.linb(b), test=test))
+        b = F.relu(self.normb(self.convb(b)))
+        b = F.relu(self.normb2(self.linb(b)))
         b = self.outb(b)
         loss2 = F.softmax_cross_entropy(b, t)
 
@@ -163,7 +142,6 @@ class GoogLeNetBNFp16(GoogLeNetBN):
             normb2=L.BatchNormalization(1024, dtype=dtype),
             outb=L.Linear(None, 1000, initialW=W, bias=bias),
         )
-        self._train = True
 
     def __call__(self, x, t):
         return GoogLeNetBN.__call__(self, F.cast(x, self.dtype), t)

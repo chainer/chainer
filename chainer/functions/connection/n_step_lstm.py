@@ -6,6 +6,7 @@ import time
 import numpy
 import six
 
+from chainer import configuration
 from chainer import cuda
 from chainer import function
 from chainer.functions.activation import lstm
@@ -119,9 +120,8 @@ def _split(inputs, pos):
 
 class NStepLSTM(function.Function):
 
-    def __init__(self, n_layers, states, train=True):
+    def __init__(self, n_layers, states):
         self.n_layers = n_layers
-        self.train = train
         self.states = states
 
     def check_type_forward(self, in_types):
@@ -244,7 +244,7 @@ class NStepLSTM(function.Function):
         workspace = cuda.cupy.empty((work_size,), dtype='b')
         self.workspace = workspace
 
-        if not self.train:
+        if not configuration.config.train:
             libcudnn.RNNForwardInference(
                 handle, rnn_desc.value, length,
                 c_x_descs.data, xs.data.ptr, hx_desc.value, hx.data.ptr,
@@ -368,8 +368,7 @@ def _stack_weight(ws):
 
 
 def n_step_lstm(
-        n_layers, dropout_ratio, hx, cx, ws, bs, xs, train=True,
-        use_cudnn=True):
+        n_layers, dropout_ratio, hx, cx, ws, bs, xs, use_cudnn=True):
     """Stacked Long Short-Term Memory function for sequence inputs.
 
     This function calculates stacked LSTM with sequences. This function gets
@@ -431,7 +430,6 @@ def n_step_lstm(
             of :func:`~chainer.Variable` holding sequence.
             So ``xs`` needs to satisfy
             ``xs[t].shape[0] >= xs[t + 1].shape[0]``.
-        train (bool): If ``True``, this function executes dropout.
         use_cudnn (bool): If ``True``, this function uses cuDNN if available.
 
     Returns:
@@ -463,7 +461,7 @@ def n_step_lstm(
             itertools.chain.from_iterable(ws),
             itertools.chain.from_iterable(bs),
             xs))
-        rnn = NStepLSTM(n_layers, states, train=train)
+        rnn = NStepLSTM(n_layers, states)
         ret = rnn(*inputs)
         hy, cy = ret[:2]
         ys = ret[2:]
@@ -494,8 +492,8 @@ def n_step_lstm(
                 else:
                     h_rest = None
 
-                x = dropout.dropout(x, ratio=dropout_ratio, train=train)
-                h = dropout.dropout(h, ratio=dropout_ratio, train=train)
+                x = dropout.dropout(x, ratio=dropout_ratio)
+                h = dropout.dropout(h, ratio=dropout_ratio)
                 lstm_in = linear.linear(x, xws[layer], xbs[layer]) + \
                     linear.linear(h, hws[layer], hbs[layer])
 

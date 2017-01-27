@@ -79,11 +79,12 @@ class TestBatchNormalization(unittest.TestCase):
         self.check_forward([cuda.to_gpu(i) for i in self.args], False)
 
     def check_backward(self, args, y_grad):
-        gradient_check.check_backward(
-            batch_normalization.BatchNormalizationFunction(
-                mean=None, var=None, train=self.train,
-                decay=self.decay, eps=self.eps), args, y_grad,
-            **self.check_backward_options)
+        with chainer.using_config('train', self.train):
+            gradient_check.check_backward(
+                batch_normalization.BatchNormalizationFunction(
+                    mean=None, var=None,
+                    decay=self.decay, eps=self.eps), args, y_grad,
+                **self.check_backward_options)
 
     @condition.retry(3)
     def test_backward_cpu(self):
@@ -153,11 +154,12 @@ class TestFixedBatchNormalization(unittest.TestCase):
         self.check_forward([cuda.to_gpu(i) for i in self.args], False)
 
     def check_backward(self, args, y_grad):
-        gradient_check.check_backward(
-            batch_normalization.BatchNormalizationFunction(
-                mean=None, var=None, train=self.train,
-                decay=self.decay, eps=self.eps),
-            args, y_grad,  **self.check_backward_options)
+        with chainer.using_config('train', self.train):
+            gradient_check.check_backward(
+                batch_normalization.BatchNormalizationFunction(
+                    mean=None, var=None,
+                    decay=self.decay, eps=self.eps),
+                args, y_grad,  **self.check_backward_options)
 
     @condition.retry(3)
     def test_backward_cpu(self):
