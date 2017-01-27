@@ -1,5 +1,3 @@
-import math
-
 from chainer import cuda
 from chainer.functions.connection import linear
 from chainer import initializers

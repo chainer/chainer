@@ -1,5 +1,3 @@
-import math
-
 from chainer import cuda
 from chainer.functions.connection import dilated_convolution_2d
 from chainer import initializers
