@@ -28,7 +28,7 @@ class Linear(link.Link):
         bias (float): Initial bias value.
         nobias (bool): If ``True``, then this function does not use the bias.
         initialW (2-D array): Initial weight value. If ``None``, :func:`HeNormal`
-            initializer is used to initialize weight matrix.
+            initializer is used to initialize the weight matrix.
             May also be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
         initial_bias (1-D array): Initial bias value. If ``None``, then this
