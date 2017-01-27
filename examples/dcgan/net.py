@@ -10,12 +10,12 @@ import chainer.functions as F
 import chainer.links as L
 
 
-def add_noise(h, test, sigma=0.2):
+def add_noise(h, sigma=0.2):
     xp = cuda.get_array_module(h.data)
-    if test:
-        return h
-    else:
+    if chainer.config.train:
         return h + sigma * xp.random.randn(*h.data.shape)
+    else:
+        return h
 
 
 class Generator(chainer.Chain):
@@ -42,12 +42,12 @@ class Generator(chainer.Chain):
         return numpy.random.uniform(-1, 1, (batchsize, self.n_hidden, 1, 1))\
             .astype(numpy.float32)
 
-    def __call__(self, z, test=False):
-        h = F.reshape(F.relu(self.bn0(self.l0(z), test=test)), (z.data.shape[
+    def __call__(self, z):
+        h = F.reshape(F.relu(self.bn0(self.l0(z))), (z.data.shape[
                       0], self.ch, self.bottom_width, self.bottom_width))
-        h = F.relu(self.bn1(self.dc1(h), test=test))
-        h = F.relu(self.bn2(self.dc2(h), test=test))
-        h = F.relu(self.bn3(self.dc3(h), test=test))
+        h = F.relu(self.bn1(self.dc1(h)))
+        h = F.relu(self.bn2(self.dc2(h)))
+        h = F.relu(self.bn3(self.dc3(h)))
         x = F.sigmoid(self.dc4(h))
         return x
 
@@ -73,19 +73,13 @@ class Discriminator(chainer.Chain):
             bn3_0=L.BatchNormalization(ch // 1, use_gamma=False),
         )
 
-    def __call__(self, x, test=False):
-        h = add_noise(x, test=test)
-        h = F.leaky_relu(add_noise(self.c0_0(h), test=test))
-        h = F.leaky_relu(add_noise(self.bn0_1(
-            self.c0_1(h), test=test), test=test))
-        h = F.leaky_relu(add_noise(self.bn1_0(
-            self.c1_0(h), test=test), test=test))
-        h = F.leaky_relu(add_noise(self.bn1_1(
-            self.c1_1(h), test=test), test=test))
-        h = F.leaky_relu(add_noise(self.bn2_0(
-            self.c2_0(h), test=test), test=test))
-        h = F.leaky_relu(add_noise(self.bn2_1(
-            self.c2_1(h), test=test), test=test))
-        h = F.leaky_relu(add_noise(self.bn3_0(
-            self.c3_0(h), test=test), test=test))
+    def __call__(self, x):
+        h = add_noise(x)
+        h = F.leaky_relu(add_noise(self.c0_0(h)))
+        h = F.leaky_relu(add_noise(self.bn0_1(self.c0_1(h))))
+        h = F.leaky_relu(add_noise(self.bn1_0(self.c1_0(h))))
+        h = F.leaky_relu(add_noise(self.bn1_1(self.c1_1(h))))
+        h = F.leaky_relu(add_noise(self.bn2_0(self.c2_0(h))))
+        h = F.leaky_relu(add_noise(self.bn2_1(self.c2_1(h))))
+        h = F.leaky_relu(add_noise(self.bn3_0(self.c3_0(h))))
         return self.l4(h)
