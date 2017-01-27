@@ -1,5 +1,3 @@
-import math
-
 import numpy
 
 from chainer import cuda
@@ -26,7 +24,6 @@ class Deconvolution2D(link.Link):
             ``stride=s`` and ``stride=(s, s)`` are equivalent.
         pad (int or pair of ints): Spatial padding width for input arrays.
             ``pad=p`` and ``pad=(p, p)`` are equivalent.
-        wscale (float): Scaling factor of the initial weight.
         bias (float): Initial bias value.
         nobias (bool): If ``True``, then this function does not use the bias
             term.
@@ -37,7 +34,8 @@ class Deconvolution2D(link.Link):
         use_cudnn (bool): If ``True``, then this function uses cuDNN if
             available.
         initialW (4-D array): Initial weight value. If ``None``, then this
-            function uses to initialize ``wscale``.
+            function uses the default initializer to initialize
+            the weight tensor.
             May also be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
         initial_bias (1-D array): Initial bias value. If ``None``, then this
@@ -55,7 +53,7 @@ class Deconvolution2D(link.Link):
     height and width of the kernels, respectively.
     The filter weight is initialized with i.i.d. Gaussian random samples, each
     of which has zero mean and deviation :math:`\\sqrt{1/(c_I k_H k_W)}` by
-    default. The deviation is scaled by ``wscale`` if specified.
+    default.
 
     The bias vector is of size :math:`c_O`.
     Its elements are initialized by ``bias`` argument.
@@ -69,7 +67,7 @@ class Deconvolution2D(link.Link):
     """
 
     def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
-                 wscale=1, bias=0, nobias=False, outsize=None, use_cudnn=True,
+                 bias=0, nobias=False, outsize=None, use_cudnn=True,
                  initialW=None, initial_bias=None, deterministic=False):
         super(Deconvolution2D, self).__init__()
         self.ksize = ksize
@@ -78,7 +76,6 @@ class Deconvolution2D(link.Link):
         self.outsize = (None, None) if outsize is None else outsize
         self.use_cudnn = use_cudnn
         self.initialW = initialW
-        self.wscale = wscale
         self.out_channels = out_channels
         self.deterministic = deterministic
 
@@ -101,10 +98,7 @@ class Deconvolution2D(link.Link):
         kh, kw = _pair(self.ksize)
         W_shape = (in_channels, self.out_channels, kh, kw)
         self.add_param('W', W_shape)
-        # For backward compatibility, the scale of weights is proportional to
-        # the square root of wscale.
-        initializers.init_weight(self.W.data, self.initialW,
-                                 scale=math.sqrt(self.wscale))
+        initializers.init_weight(self.W.data, self.initialW)
 
     def __call__(self, x):
         if self.has_uninitialized_params:

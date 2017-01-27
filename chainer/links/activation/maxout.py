@@ -32,9 +32,9 @@ class Maxout(link.Chain):
         in_size (int): Dimension of input vectors.
         out_size (int): Dimension of output vectors.
         pool_size (int): Number of channels.
-        wscale (float): Scaling factor of the weight matrix.
         initialW (3-D array or None): Initial weight value.
-            If ``None``, then this function uses ``wscale`` to initialize.
+            If ``None``, the default initializer is used
+            to initialize the weight matrix.
         initial_bias (2-D array, float or None): Initial bias value.
             If it is float, initial bias is filled with this value.
             If ``None``, bias is omitted.
@@ -54,7 +54,7 @@ class Maxout(link.Chain):
     """
 
     def __init__(self, in_size, out_size, pool_size,
-                 wscale=1, initialW=None, initial_bias=0):
+                 initialW=None, initial_bias=0):
         linear_out_size = out_size * pool_size
         if initialW is not None:
             initialW = initialW.reshape(linear_out_size, in_size)
@@ -71,7 +71,7 @@ class Maxout(link.Chain):
 
         super(Maxout, self).__init__(
             linear=linear.Linear(
-                in_size, linear_out_size, wscale,
+                in_size, linear_out_size,
                 nobias=initial_bias is None, initialW=initialW,
                 initial_bias=initial_bias))
         self.out_size = out_size

@@ -1,5 +1,3 @@
-import math
-
 from chainer import cuda
 from chainer.functions.connection import linear
 from chainer import initializers
@@ -25,11 +23,10 @@ class Linear(link.Link):
             initialization will be deferred until the first forward data pass
             at which time the size will be determined.
         out_size (int): Dimension of output vectors.
-        wscale (float): Scaling factor of the weight matrix.
         bias (float): Initial bias value.
         nobias (bool): If ``True``, then this function does not use the bias.
-        initialW (2-D array): Initial weight value. If ``None``, then this
-            function uses to initialize ``wscale``.
+        initialW (2-D array): Initial weight value. If ``None``, the default
+            initializer is used to initialize the weight matrix.
             May also be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
         initial_bias (1-D array): Initial bias value. If ``None``, then this
@@ -45,19 +42,14 @@ class Linear(link.Link):
 
     """
 
-    def __init__(self, in_size, out_size, wscale=1, bias=0, nobias=False,
+    def __init__(self, in_size, out_size, bias=0, nobias=False,
                  initialW=None, initial_bias=None):
         super(Linear, self).__init__()
 
         # For backward compatibility
         self.initialW = initialW
-        self.wscale = wscale
-
         self.out_size = out_size
-        # For backward compatibility, the scale of weights is proportional to
-        # the square root of wscale.
-        self._W_initializer = initializers._get_initializer(
-            initialW, math.sqrt(wscale))
+        self._W_initializer = initializers._get_initializer(initialW)
 
         if in_size is None:
             self.add_uninitialized_param('W')

@@ -1,5 +1,3 @@
-import math
-
 from chainer import cuda
 from chainer.functions.connection import convolution_2d
 from chainer import initializers
@@ -24,12 +22,12 @@ class Convolution2D(link.Link):
             ``stride=s`` and ``stride=(s, s)`` are equivalent.
         pad (int or pair of ints): Spatial padding width for input arrays.
             ``pad=p`` and ``pad=(p, p)`` are equivalent.
-        wscale (float): Scaling factor of the initial weight.
         bias (float): Initial bias value.
         nobias (bool): If ``True``, then this link does not use the bias term.
         use_cudnn (bool): If ``True``, then this link uses cuDNN if available.
         initialW (4-D array): Initial weight value. If ``None``, then this
-            function uses to initialize ``wscale``.
+            function uses the default initializer to initialize
+            the weight tensor.
             May also be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
         initial_bias (1-D array): Initial bias value. If ``None``, then this
@@ -53,7 +51,7 @@ class Convolution2D(link.Link):
     """
 
     def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
-                 wscale=1, bias=0, nobias=False, use_cudnn=True,
+                 bias=0, nobias=False, use_cudnn=True,
                  initialW=None, initial_bias=None, deterministic=False):
         super(Convolution2D, self).__init__()
         self.ksize = ksize
@@ -65,12 +63,8 @@ class Convolution2D(link.Link):
 
         # For backward compatibility
         self.initialW = initialW
-        self.wscale = wscale
 
-        # For backward compatibility, the scale of weights is proportional to
-        # the square root of wscale.
-        self._W_initializer = initializers._get_initializer(
-            initialW, scale=math.sqrt(wscale))
+        self._W_initializer = initializers._get_initializer(initialW)
 
         if in_channels is None:
             self.add_uninitialized_param('W')
