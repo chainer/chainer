@@ -29,7 +29,7 @@ class DilatedConvolution2D(link.Link):
         bias (float): Initial bias value.
         nobias (bool): If ``True``, then this link does not use the bias term.
         use_cudnn (bool): If ``True``, then this link uses cuDNN if available.
-        initialW (4-D array): Initial weight value. If ``None``, :func:`HeNormal`
+        initialW (4-D array): Initial weight value. If ``None``, a default
             initializer is used to initialize the weight matrix.
             May also be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
