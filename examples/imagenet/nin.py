@@ -1,7 +1,7 @@
 import chainer
 import chainer.functions as F
-import chainer.links as L
 import chainer.initializers as I
+import chainer.links as L
 
 
 class NIN(chainer.Chain):
