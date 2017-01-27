@@ -62,7 +62,7 @@ class SplitAxis(function.Function):
             return xp.concatenate(gys, axis=self.axis),
 
 
-def split_axis(x, indices_or_sections, axis, force_tuple=False):
+def split_axis(x, indices_or_sections, axis, force_tuple=True):
     """Splits given variables along an axis.
 
     Args:
@@ -72,8 +72,10 @@ def split_axis(x, indices_or_sections, axis, force_tuple=False):
             If it is a 1-D array of sorted integers, it
             indicates the positions where the array is split.
         axis (int): Axis that the input array is split along.
-        force_tuple (bool): If ``True``, this method returns a tuple even when
-            the number of outputs is one.
+        force_tuple (bool): If ``True`` (the default) this method returns a
+            tuple even when the number of outputs is one. Otherwise, if
+            ``False`` a Variable will be returned when the number of outputs
+             is one.
 
     Returns:
         tuple or Variable: Tuple of :class:`~chainer.Variable` objects
