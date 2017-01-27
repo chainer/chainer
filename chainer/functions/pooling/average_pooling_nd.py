@@ -4,6 +4,7 @@ import functools
 import operator
 import six
 
+from chainer import configuration
 from chainer import cuda
 from chainer.functions.pooling import average_pooling_nd_kernel
 from chainer.functions.pooling import pooling_nd
@@ -21,8 +22,7 @@ class AveragePoolingND(pooling_nd._PoolingND):
 
     """Average pooling over a set of N-dimensional planes."""
 
-    def __init__(self, ndim, ksize, stride=None, pad=0, cover_all=False,
-                 use_cudnn=True):
+    def __init__(self, ndim, ksize, stride=None, pad=0, cover_all=False):
         utils.experimental('chainer.functions.pooling.AveragePoolingND')
 
         # TODO(takagi) Support cover_all mode.
@@ -30,8 +30,7 @@ class AveragePoolingND(pooling_nd._PoolingND):
             raise ValueError('`cover_all` mode is not supported yet.')
 
         super(AveragePoolingND, self).__init__(
-            ndim, ksize, stride=stride, pad=pad, cover_all=cover_all,
-            use_cudnn=use_cudnn)
+            ndim, ksize, stride=stride, pad=pad, cover_all=cover_all)
 
     def forward_cpu(self, x):
         col = conv_nd.im2col_nd_cpu(
@@ -43,7 +42,7 @@ class AveragePoolingND(pooling_nd._PoolingND):
         return y,
 
     def forward_gpu(self, x):
-        if (cuda.cudnn_enabled and self.use_cudnn and
+        if (cuda.cudnn_enabled and configuration.config.use_cudnn and
                 pooling_nd._check_cudnn_acceptable_type(x[0].dtype)):
             # With cuDNN v3 or greater, use cuDNN implementation for inputs
             # with spatial dimensions of two or more.
@@ -86,7 +85,7 @@ class AveragePoolingND(pooling_nd._PoolingND):
         return gx,
 
     def backward_gpu(self, x, gy):
-        if (cuda.cudnn_enabled and self.use_cudnn and
+        if (cuda.cudnn_enabled and configuration.config.use_cudnn and
                 pooling_nd._check_cudnn_acceptable_type(x[0].dtype)):
             # With cuDNN v3 or greater, use cuDNN implementation for inputs
             # with spatial dimensions of two or more.
@@ -118,7 +117,7 @@ class AveragePoolingND(pooling_nd._PoolingND):
             libcudnn.CUDNN_POOLING_AVERAGE_COUNT_INCLUDE_PADDING)
 
 
-def average_pooling_nd(x, ksize, stride=None, pad=0, use_cudnn=True):
+def average_pooling_nd(x, ksize, stride=None, pad=0):
     """N-dimensionally spatial average pooling function.
 
     This function provides a N-dimensionally generalized version of
@@ -137,9 +136,6 @@ def average_pooling_nd(x, ksize, stride=None, pad=0, use_cudnn=True):
             window size.
         pad (int or tuple of ints): Spatial padding width for the input array.
             ``pad=p`` and ``pad=(p, p, ..., p)`` are equivalent.
-        use_cudnn (bool): If ``True`` and cuDNN is enabled, then this function
-            uses cuDNN as the core implementation. cuDNN supports more than
-            one-dimensional pooling.
 
     Returns:
         ~chainer.Variable: Output variable.
@@ -151,5 +147,4 @@ def average_pooling_nd(x, ksize, stride=None, pad=0, use_cudnn=True):
 
     """
     ndim = len(x.shape[2:])
-    return AveragePoolingND(
-        ndim, ksize, stride=stride, pad=pad, use_cudnn=use_cudnn)(x)
+    return AveragePoolingND(ndim, ksize, stride=stride, pad=pad)(x)

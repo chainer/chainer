@@ -28,8 +28,7 @@ def _xhat(x, mean, std, expander):
 
 class BatchNormalizationFunction(function.Function):
 
-    def __init__(self, eps=2e-5, mean=None, var=None, decay=0.9,
-                 use_cudnn=True):
+    def __init__(self, eps=2e-5, mean=None, var=None, decay=0.9):
         self.running_mean = mean
         self.running_var = var
 
@@ -38,11 +37,10 @@ class BatchNormalizationFunction(function.Function):
         # See CUDNN_BN_MIN_EPSILON value in cudnn.h to verify minimum allowable
         # value.
         self.eps = eps
-        if cuda.cudnn_enabled and use_cudnn:
+        if cuda.cudnn_enabled and configuration.config.use_cudnn:
             if eps < 1e-5:
                 msg = 'cuDNN does not allow an eps value less than 1e-5.'
                 raise RuntimeError(msg)
-        self.use_cudnn = use_cudnn
         self.mean_cache = None
         self.decay = decay
 
@@ -89,7 +87,7 @@ class BatchNormalizationFunction(function.Function):
         # TODO(bkvogel): Check for float16 support again in next cuDNN version.
         if x[0].dtype == numpy.float16:
             # cuDNN v5 batch normalization does not seem to support float16.
-            self.use_cudnn = False
+            configuration.config.use_cudnn = False
 
         head_ndim = gamma.ndim + 1
         expander = (None, Ellipsis) + (None,) * (x.ndim - head_ndim)
@@ -105,7 +103,8 @@ class BatchNormalizationFunction(function.Function):
         self.cudnn_dim_ok = x.ndim == 2 or x.ndim == 4
 
         cudnn_updated_running_stats = False
-        if xp is not numpy and cuda.cudnn_enabled and self.use_cudnn and \
+        if xp is not numpy and cuda.cudnn_enabled and \
+                configuration.config.use_cudnn and \
                 self.cudnn_dim_ok and _cudnn_version >= 5000:
             if x.ndim == 4:
                 # for convolutional layer
@@ -220,8 +219,14 @@ class BatchNormalizationFunction(function.Function):
             return gx, ggamma, gbeta, gmean, gvar
 
         # Note: If length of inputs is not 5, we must be in train mode.
+<<<<<<< HEAD
         assert configuration.config.train
         if xp is not numpy and cuda.cudnn_enabled and self.use_cudnn and \
+=======
+        assert self.train
+        if xp is not numpy and cuda.cudnn_enabled and \
+                configuration.config.use_cudnn and \
+>>>>>>> Add use_cudnn configuration
                 self.cudnn_dim_ok and _cudnn_version >= 5000:
             # Note: cuDNN batch normalization backward only works in
             # "training mode." That is, it does not support
@@ -267,7 +272,7 @@ class BatchNormalizationFunction(function.Function):
 
 
 def batch_normalization(x, gamma, beta, eps=2e-5, running_mean=None,
-                        running_var=None, decay=0.9, use_cudnn=True):
+                        running_var=None, decay=0.9):
     """Batch normalization function.
 
     It takes the input variable ``x`` and two parameter variables ``gamma`` and
@@ -303,9 +308,6 @@ def batch_normalization(x, gamma, beta, eps=2e-5, running_mean=None,
             be ``None``.
         decay (float): Decay rate of moving average. It is used during
             training.
-        use_cudnn (bool): If ``True`` and cuDNN is enabled, then this function
-            uses cuDNN as the core implementation.
-
 
     See: `Batch Normalization: Accelerating Deep Network Training by Reducing\
           Internal Covariate Shift <https://arxiv.org/abs/1502.03167>`_
@@ -313,12 +315,16 @@ def batch_normalization(x, gamma, beta, eps=2e-5, running_mean=None,
     .. seealso:: :class:`links.BatchNormalization`
 
     """
+<<<<<<< HEAD
     return BatchNormalizationFunction(eps, running_mean, running_var,
                                       decay, use_cudnn)(x, gamma, beta)
+=======
+    return BatchNormalizationFunction(eps, running_mean, running_var, True,
+                                      decay)(x, gamma, beta)
+>>>>>>> Add use_cudnn configuration
 
 
-def fixed_batch_normalization(x, gamma, beta, mean, var, eps=2e-5,
-                              use_cudnn=True):
+def fixed_batch_normalization(x, gamma, beta, mean, var, eps=2e-5):
     """Batch normalization function with fixed statistics.
 
     This is a variant of batch normalization, where the mean and variance
@@ -333,14 +339,17 @@ def fixed_batch_normalization(x, gamma, beta, mean, var, eps=2e-5,
         mean (Variable): Shifting parameter of input.
         var (Variable): Square of scaling parameter of input.
         eps (float): Epsilon value for numerical stability.
-        use_cudnn (bool): If ``True`` and cuDNN is enabled, then this function
-            uses cuDNN as the core implementation.
 
     .. seealso::
        :func:`functions.batch_normalization`,
        :class:`links.BatchNormalization`
 
     """
+<<<<<<< HEAD
     with configuration.using_config('train', False):
         return BatchNormalizationFunction(eps, None, None, 0.0,
                                           use_cudnn)(x, gamma, beta, mean, var)
+=======
+    return BatchNormalizationFunction(eps, None, None, False, 0.0)(
+        x, gamma, beta, mean, var)
+>>>>>>> Add use_cudnn configuration

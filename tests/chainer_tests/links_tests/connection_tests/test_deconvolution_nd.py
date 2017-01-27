@@ -94,8 +94,8 @@ class TestDeconvolutionND(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_forward_consistency(self):
-        self.link.use_cudnn = self.use_cudnn
-        self.check_forward_consistency(self.link, self.x)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.check_forward_consistency(self.link, self.x)
 
     def check_backward(self, link, x_data, y_grad):
         params = [link.W]
@@ -112,10 +112,10 @@ class TestDeconvolutionND(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_backward_gpu(self):
-        self.link.use_cudnn = self.use_cudnn
         self.link.to_gpu()
-        self.check_backward(
-            self.link, cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.check_backward(
+                self.link, cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
 
 class TestDeconvolutionNDNoInitialBias(unittest.TestCase):

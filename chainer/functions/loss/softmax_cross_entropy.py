@@ -2,6 +2,7 @@ import numpy
 import six
 
 import chainer
+from chainer import configuration
 from chainer import cuda
 from chainer import function
 from chainer.functions.activation import log_softmax
@@ -15,9 +16,7 @@ class SoftmaxCrossEntropy(function.Function):
     ignore_label = -1
     normalize = True
 
-    def __init__(self, use_cudnn=True, normalize=True, cache_score=True,
-                 class_weight=None):
-        self.use_cudnn = use_cudnn
+    def __init__(self, normalize=True, cache_score=True, class_weight=None):
         self.normalize = normalize
         self.cache_score = cache_score
         self.class_weight = class_weight
@@ -56,7 +55,7 @@ class SoftmaxCrossEntropy(function.Function):
         if chainer.is_debug():
             self._check_input_values(x, t)
 
-        log_y = log_softmax._log_softmax(x, self.use_cudnn)
+        log_y = log_softmax._log_softmax(x)
         if self.cache_score:
             self.y = numpy.exp(log_y)
         if self.class_weight is not None:
@@ -85,7 +84,7 @@ class SoftmaxCrossEntropy(function.Function):
         if chainer.is_debug():
             self._check_input_values(x, t)
 
-        log_y = log_softmax._log_softmax(x, self.use_cudnn)
+        log_y = log_softmax._log_softmax(x)
         if self.cache_score:
             self.y = cupy.exp(log_y)
         if self.class_weight is not None:
@@ -112,7 +111,7 @@ class SoftmaxCrossEntropy(function.Function):
         if hasattr(self, 'y'):
             y = self.y.copy()
         else:
-            y = log_softmax._log_softmax(x, self.use_cudnn)
+            y = log_softmax._log_softmax(x)
             numpy.exp(y, out=y)
         if y.ndim == 2:
             gx = y
@@ -152,7 +151,7 @@ class SoftmaxCrossEntropy(function.Function):
         if hasattr(self, 'y'):
             y = self.y
         else:
-            y = log_softmax._log_softmax(x, self.use_cudnn)
+            y = log_softmax._log_softmax(x)
             cupy.exp(y, out=y)
         gloss = grad_outputs[0]
         n_unit = t.size // len(t)
@@ -182,8 +181,7 @@ class SoftmaxCrossEntropy(function.Function):
 
 
 def softmax_cross_entropy(
-        x, t, use_cudnn=True, normalize=True, cache_score=True,
-        class_weight=None):
+        x, t, normalize=True, cache_score=True, class_weight=None):
     """Computes cross entropy loss for pre-softmax activations.
 
     Args:
@@ -219,5 +217,4 @@ def softmax_cross_entropy(
        This function is differentiable only by ``x``.
 
     """
-    return SoftmaxCrossEntropy(
-        use_cudnn, normalize, cache_score, class_weight)(x, t)
+    return SoftmaxCrossEntropy(normalize, cache_score, class_weight)(x, t)

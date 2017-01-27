@@ -1,5 +1,6 @@
 import numpy
 
+from chainer import configuration
 from chainer import cuda
 from chainer import function
 from chainer import utils
@@ -16,9 +17,6 @@ class Sigmoid(function.Function):
 
     """Logistic sigmoid function."""
 
-    def __init__(self, use_cudnn=True):
-        self.use_cudnn = use_cudnn
-
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)
         type_check.expect(in_types[0].dtype.kind == 'f')
@@ -30,7 +28,8 @@ class Sigmoid(function.Function):
 
     def forward_gpu(self, inputs):
         x = inputs[0]
-        if (cuda.cudnn_enabled and self.use_cudnn and x.flags.c_contiguous and
+        if (cuda.cudnn_enabled and configuration.config.use_cudnn and
+                x.flags.c_contiguous and
                 (_cudnn_version >= 3000 or x.dtype != numpy.float16)):
             self.y = cuda.cupy.cudnn.activation_forward(x, _mode)
         else:
@@ -46,7 +45,8 @@ class Sigmoid(function.Function):
     def backward_gpu(self, inputs, grads):
         x = inputs[0]
         gy = grads[0]
-        if (cuda.cudnn_enabled and self.use_cudnn and x.flags.c_contiguous and
+        if (cuda.cudnn_enabled and configuration.config.use_cudnn and
+                x.flags.c_contiguous and
                 gy.flags.c_contiguous and
                 (_cudnn_version >= 3000 or x.dtype != numpy.float16)):
             gx = cuda.cupy.cudnn.activation_backward(x, self.y, gy, _mode)
@@ -58,7 +58,7 @@ class Sigmoid(function.Function):
         return gx,
 
 
-def sigmoid(x, use_cudnn=True):
+def sigmoid(x):
     """Element-wise sigmoid logistic function.
 
      .. math:: f(x)=(1 + \\exp(-x))^{-1}.
@@ -67,8 +67,6 @@ def sigmoid(x, use_cudnn=True):
         x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`):
             Input variable. A :math:`(s_1, s_2, ..., s_n)`-shaped float array.
-        use_cudnn (bool): If ``True`` and cuDNN is enabled, then this function
-            uses cuDNN as the core implementation.
 
     Returns:
         ~chainer.Variable: Output variable. A
@@ -82,4 +80,4 @@ def sigmoid(x, use_cudnn=True):
         (3, 4)
 
     """
-    return Sigmoid(use_cudnn)(x)
+    return Sigmoid()(x)

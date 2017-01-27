@@ -34,8 +34,9 @@ class TestSigmoidCrossEntropy(unittest.TestCase):
     def check_forward(self, x_data, t_data, use_cudnn=True):
         x_val = chainer.Variable(x_data)
         t_val = chainer.Variable(t_data)
-        loss = functions.sigmoid_cross_entropy(x_val, t_val,
-                                               use_cudnn, self.normalize)
+        with chainer.using_config('use_cudnn', use_cudnn):
+            loss = functions.sigmoid_cross_entropy(x_val, t_val,
+                                                   self.normalize)
         self.assertEqual(loss.data.shape, ())
         self.assertEqual(loss.data.dtype, numpy.float32)
         loss_value = float(cuda.to_cpu(loss.data))
@@ -110,13 +111,14 @@ class TestSgimoidCrossEntropyCudnnCall(unittest.TestCase):
     def forward(self):
         x = chainer.Variable(self.x)
         t = chainer.Variable(self.t)
-        return functions.sigmoid_cross_entropy(x, t, self.use_cudnn)
+        return functions.sigmoid_cross_entropy(x, t)
 
     def test_call_cudnn_backward(self):
-        y = self.forward()
-        with mock.patch('cupy.cudnn.cudnn.activationForward_v3') as func:
-            y.backward()
-            self.assertEqual(func.called, self.use_cudnn)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            y = self.forward()
+            with mock.patch('cupy.cudnn.cudnn.activationForward_v3') as func:
+                y.backward()
+                self.assertEqual(func.called, self.use_cudnn)
 
     # Note that SoftmaxCrossEntropy does not use cudnn on backward
 

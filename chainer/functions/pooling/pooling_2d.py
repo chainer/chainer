@@ -2,6 +2,7 @@ import collections
 
 import numpy
 
+from chainer import configuration
 from chainer import cuda
 from chainer import function
 from chainer.utils import conv
@@ -28,8 +29,7 @@ class Pooling2D(function.Function):
 
     """Base class of pooling function over a set of 2d planes."""
 
-    def __init__(self, ksize, stride=None, pad=0, cover_all=True,
-                 use_cudnn=True):
+    def __init__(self, ksize, stride=None, pad=0, cover_all=True):
         if stride is None:
             stride = ksize
 
@@ -38,7 +38,6 @@ class Pooling2D(function.Function):
         self.ph, self.pw = _pair(pad)
 
         self.cover_all = cover_all
-        self.use_cudnn = use_cudnn
 
     def check_type_forward(self, in_types):
         type_check.expect(

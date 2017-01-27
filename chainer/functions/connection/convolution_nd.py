@@ -2,6 +2,7 @@ import numpy
 
 from six import moves
 
+from chainer import configuration
 from chainer import cuda
 from chainer import function
 from chainer.functions.connection import convolution_2d
@@ -27,11 +28,10 @@ _check_cudnn_acceptable_type = convolution_2d._check_cudnn_acceptable_type
 
 class ConvolutionND(function.Function):
 
-    def __init__(self, ndim, stride=1, pad=0, use_cudnn=True, cover_all=False):
+    def __init__(self, ndim, stride=1, pad=0, cover_all=False):
         self.ndim = ndim
         self.stride = conv_nd.as_tuple(stride, ndim)
         self.pad = conv_nd.as_tuple(pad, ndim)
-        self.use_cudnn = use_cudnn
         self.cover_all = cover_all
 
     def check_type_forward(self, in_types):
@@ -59,7 +59,7 @@ class ConvolutionND(function.Function):
     def _use_cudnn(self, x, W):
         return (not self.cover_all and
                 cuda.cudnn_enabled and
-                self.use_cudnn and
+                configuration.config.use_cudnn and
                 self.ndim > 1 and
                 _check_cudnn_acceptable_type(x.dtype, W.dtype))
 
@@ -289,8 +289,7 @@ class ConvolutionND(function.Function):
             return self._backward_cudnn(x, W, b, gy)
 
 
-def convolution_nd(x, W, b=None, stride=1, pad=0, use_cudnn=True,
-                   cover_all=False):
+def convolution_nd(x, W, b=None, stride=1, pad=0, cover_all=False):
     """N-dimensional convolution function.
 
     This is an implementation of N-dimensional convolution which is generalized
@@ -321,8 +320,6 @@ def convolution_nd(x, W, b=None, stride=1, pad=0, use_cudnn=True,
         pad (int or tuple of ints): Spatial padding width for input arrays
             :math:`(p_1, p_2, ..., p_N)`. ``pad=p`` is equivalent to
             ``(p, p, ..., p)``.
-        use_cudnn (bool): If ``True``, then this function uses cuDNN if
-            available. See below for the excact conditions.
         cover_all (bool): If ``True``, all spatial locations are convoluted
             into some output pixels. It may make the output size larger.
             `cover_all` needs to be ``False`` if you want to use cuDNN.
@@ -334,7 +331,7 @@ def convolution_nd(x, W, b=None, stride=1, pad=0, use_cudnn=True,
     computation if ALL of the following conditions are satisfied:
 
     - ``cuda.cudnn_enabled`` is ``True``
-    - ``use_cudnn`` is ``True``
+    - ``chainer.config.use_cudnn`` is ``True``
     - The number of spatial dimensions is more than one.
     - ``cover_all`` is ``False``
     - The input's ``dtype`` is equal to the filter weight's.
@@ -345,7 +342,7 @@ def convolution_nd(x, W, b=None, stride=1, pad=0, use_cudnn=True,
     .. seealso:: :class:`~chainer.links.ConvolutionND`, :func:`convolution_2d`
     """
     ndim = len(x.shape[2:])
-    func = ConvolutionND(ndim, stride, pad, use_cudnn, cover_all)
+    func = ConvolutionND(ndim, stride, pad, cover_all)
     if b is None:
         return func(x, W)
     else:

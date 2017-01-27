@@ -28,7 +28,8 @@ class TestTanh(unittest.TestCase):
 
     def check_forward(self, x_data, use_cudnn=True):
         x = chainer.Variable(x_data)
-        y = functions.tanh(x, use_cudnn=use_cudnn)
+        with chainer.using_config('use_cudnn', use_cudnn):
+            y = functions.tanh(x)
         self.assertEqual(y.data.dtype, self.dtype)
         y_expect = functions.tanh(chainer.Variable(self.x))
         testing.assert_allclose(y_expect.data, y.data)
@@ -49,9 +50,10 @@ class TestTanh(unittest.TestCase):
         self.check_forward(cuda.to_gpu(self.x), False)
 
     def check_backward(self, x_data, gy_data, use_cudnn=True):
-        gradient_check.check_backward(
-            functions.Tanh(use_cudnn), x_data, gy_data,
-            **self.check_backward_options)
+        with chainer.using_config('use_cudnn', use_cudnn):
+            gradient_check.check_backward(
+                functions.Tanh(), x_data, gy_data,
+                **self.check_backward_options)
 
     @condition.retry(3)
     def test_backward_cpu(self):
@@ -90,19 +92,21 @@ class TestTanhCudnnCall(unittest.TestCase):
 
     def forward(self):
         x = chainer.Variable(self.x)
-        return functions.tanh(x, use_cudnn=self.use_cudnn)
+        return functions.tanh(x)
 
     def test_call_cudnn_forward(self):
-        with mock.patch('cupy.cudnn.cudnn.activationForward_v3') as func:
-            self.forward()
-            self.assertEqual(func.called, self.expect)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            with mock.patch('cupy.cudnn.cudnn.activationForward_v3') as func:
+                self.forward()
+                self.assertEqual(func.called, self.expect)
 
     def test_call_cudnn_backward(self):
-        y = self.forward()
-        y.grad = self.gy
-        with mock.patch('cupy.cudnn.cudnn.activationBackward_v3') as func:
-            y.backward()
-            self.assertEqual(func.called, self.expect)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            y = self.forward()
+            y.grad = self.gy
+            with mock.patch('cupy.cudnn.cudnn.activationBackward_v3') as func:
+                y.backward()
+                self.assertEqual(func.called, self.expect)
 
 
 testing.run_module(__name__, __file__)

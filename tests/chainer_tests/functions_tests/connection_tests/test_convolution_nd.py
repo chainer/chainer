@@ -64,14 +64,15 @@ class TestConvolutionND(unittest.TestCase):
         b_cpu = None if nobias else chainer.Variable(self.b)
         y_cpu = functions.convolution_nd(
             x_cpu, W_cpu, b_cpu, stride=self.stride, pad=self.pad,
-            use_cudnn=use_cudnn, cover_all=self.cover_all)
+            cover_all=self.cover_all)
 
         x_gpu = chainer.Variable(cuda.to_gpu(self.x))
         W_gpu = chainer.Variable(cuda.to_gpu(self.W))
         b_gpu = None if nobias else chainer.Variable(cuda.to_gpu(self.b))
-        y_gpu = functions.convolution_nd(
-            x_gpu, W_gpu, b_gpu, stride=self.stride, pad=self.pad,
-            use_cudnn=use_cudnn, cover_all=self.cover_all)
+        with chainer.using_config('use_cudnn', use_cudnn):
+            y_gpu = functions.convolution_nd(
+                x_gpu, W_gpu, b_gpu, stride=self.stride, pad=self.pad,
+                cover_all=self.cover_all)
 
         testing.assert_allclose(
             y_cpu.data, y_gpu.data, **self.check_forward_options)
@@ -97,12 +98,13 @@ class TestConvolutionND(unittest.TestCase):
         W = chainer.Variable(self.W)
         b = None if nobias else chainer.Variable(self.b)
 
-        y_nd = functions.convolution_nd(
-            x, W, b, stride=self.stride, pad=self.pad,
-            use_cudnn=False, cover_all=self.cover_all)
-        y_2d = functions.convolution_2d(
-            x, W, b, stride=self.stride, pad=self.pad,
-            use_cudnn=False, cover_all=self.cover_all)
+        with chainer.using_config('use_cudnn', False):
+            y_nd = functions.convolution_nd(
+                x, W, b, stride=self.stride, pad=self.pad,
+                cover_all=self.cover_all)
+            y_2d = functions.convolution_2d(
+                x, W, b, stride=self.stride, pad=self.pad,
+                cover_all=self.cover_all)
 
         testing.assert_allclose(
             y_nd.data, y_2d.data, **self.check_forward_options)
@@ -137,10 +139,11 @@ class TestConvolutionND(unittest.TestCase):
             args = args + (b_data,)
 
         ndim = len(self.dims)
-        gradient_check.check_backward(
-            convolution_nd.ConvolutionND(
-                ndim, self.stride, self.pad, use_cudnn, self.cover_all),
-            args, y_grad, **self.check_backward_options)
+        with chainer.using_config('use_cudnn', use_cudnn):
+            gradient_check.check_backward(
+                convolution_nd.ConvolutionND(
+                    ndim, self.stride, self.pad, self.cover_all),
+                args, y_grad, **self.check_backward_options)
 
     @condition.retry(3)
     def test_backward_cpu(self):
@@ -212,24 +215,25 @@ class TestConvolutionNDCudnnCall(unittest.TestCase):
         x = chainer.Variable(cuda.to_gpu(self.x))
         W = chainer.Variable(cuda.to_gpu(self.W))
         return functions.convolution_nd(
-            x, W, None, stride=self.stride, pad=self.pad,
-            use_cudnn=self.use_cudnn)
+            x, W, None, stride=self.stride, pad=self.pad)
 
     def test_call_cudnn_forward(self):
-        with mock.patch('cupy.cudnn.cudnn.convolutionForward') as func:
-            self.forward()
-            self.assertEqual(func.called, self.expect)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            with mock.patch('cupy.cudnn.cudnn.convolutionForward') as func:
+                self.forward()
+                self.assertEqual(func.called, self.expect)
 
     def test_call_cudnn_backward(self):
-        y = self.forward()
-        y.grad = self.gy
-        if cuda.cudnn.cudnn.getVersion() >= 4000:
-            name = 'cupy.cudnn.cudnn.convolutionBackwardData_v3'
-        else:
-            name = 'cupy.cudnn.cudnn.convolutionBackwardData_v2'
-        with mock.patch(name) as func:
-            y.backward()
-            self.assertEqual(func.called, self.expect)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            y = self.forward()
+            y.grad = self.gy
+            if cuda.cudnn.cudnn.getVersion() >= 4000:
+                name = 'cupy.cudnn.cudnn.convolutionBackwardData_v3'
+            else:
+                name = 'cupy.cudnn.cudnn.convolutionBackwardData_v2'
+            with mock.patch(name) as func:
+                y.backward()
+                self.assertEqual(func.called, self.expect)
 
 
 class TestConvolutionNDarraySupplied(unittest.TestCase):

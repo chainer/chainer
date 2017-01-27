@@ -1,5 +1,6 @@
 import numpy
 
+from chainer import configuration
 from chainer import cuda
 from chainer import function
 from chainer import utils
@@ -16,9 +17,6 @@ class Tanh(function.Function):
 
     """Hyperbolic tangent function."""
 
-    def __init__(self, use_cudnn=True):
-        self.use_cudnn = use_cudnn
-
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)
         type_check.expect(in_types[0].dtype.kind == 'f')
@@ -28,7 +26,7 @@ class Tanh(function.Function):
         return self.y,
 
     def forward_gpu(self, x):
-        if (cuda.cudnn_enabled and self.use_cudnn and
+        if (cuda.cudnn_enabled and configuration.config.use_cudnn and
                 x[0].flags.c_contiguous and
                 (_cudnn_version >= 3000 or x[0].dtype != numpy.float16)):
             self.y = cudnn.activation_forward(x[0], _mode)
@@ -42,7 +40,7 @@ class Tanh(function.Function):
         return utils.force_array(gy[0] * (one - self.y * self.y)),
 
     def backward_gpu(self, x, gy):
-        if (cuda.cudnn_enabled and self.use_cudnn and
+        if (cuda.cudnn_enabled and configuration.config.use_cudnn and
                 x[0].flags.c_contiguous and gy[0].flags.c_contiguous and
                 (_cudnn_version >= 3000 or x[0].dtype != numpy.float16)):
             gx = cudnn.activation_backward(x[0], self.y, gy[0], _mode)
@@ -54,16 +52,14 @@ class Tanh(function.Function):
         return gx,
 
 
-def tanh(x, use_cudnn=True):
+def tanh(x):
     """Elementwise hyperbolic tangent function.
 
     Args:
         x (~chainer.Variable): Input variable.
-        use_cudnn (bool): If ``True`` and cuDNN is enabled, then this function
-            uses cuDNN as the core implementation.
 
     Returns:
         ~chainer.Variable: Output variable.
 
     """
-    return Tanh(use_cudnn)(x)
+    return Tanh()(x)

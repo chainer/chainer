@@ -52,10 +52,10 @@ class TestBatchNormalization(unittest.TestCase):
                 'dtype': numpy.float64, 'atol': 1e-3, 'rtol': 1e-2}
 
     def check_forward(self, args, use_cudnn=True):
-        y = functions.batch_normalization(
-            *[chainer.Variable(i) for i in args], running_mean=None,
-            running_var=None, decay=self.decay, eps=self.eps,
-            use_cudnn=use_cudnn)
+        with chainer.using_config('use_cudnn', use_cudnn):
+            y = functions.batch_normalization(
+                *[chainer.Variable(i) for i in args], running_mean=None,
+                running_var=None, decay=self.decay, eps=self.eps)
         self.assertEqual(y.data.dtype, self.dtype)
 
         y_expect = _batch_normalization(
@@ -128,9 +128,9 @@ class TestFixedBatchNormalization(unittest.TestCase):
                 'dtype': numpy.float64, 'atol': 1e-3, 'rtol': 1e-2}
 
     def check_forward(self, args, use_cudnn=True):
-        y = functions.fixed_batch_normalization(
-            *[chainer.Variable(i) for i in args],
-            eps=self.eps, use_cudnn=use_cudnn)
+        with chainer.using_config('use_cudnn', use_cudnn):
+            y = functions.fixed_batch_normalization(
+                *[chainer.Variable(i) for i in args], eps=self.eps)
         self.assertEqual(y.data.dtype, self.dtype)
 
         y_expect = _batch_normalization(
@@ -198,20 +198,21 @@ class TestBatchNormalizationCudnnCall(unittest.TestCase):
     def forward(self):
         return functions.batch_normalization(
             *[chainer.Variable(i) for i in self.args], eps=self.eps,
-            running_mean=self.mean, running_var=self.var,
-            use_cudnn=self.use_cudnn)
+            running_mean=self.mean, running_var=self.var)
 
     def test_call_cudnn_forward(self):
-        with mock.patch('cupy.cudnn.cudnn.batchNormalizationForwardTraining') \
-                as func:
-            self.forward()
-            self.assertEqual(func.called, self.expect)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            with mock.patch('cupy.cudnn.cudnn.batchNormalizationForwardTraining') \
+                    as func:
+                self.forward()
+                self.assertEqual(func.called, self.expect)
 
     def test_call_cudnn_backward(self):
-        y = self.forward()
-        y.grad = self.gy
-        with mock.patch('cupy.cudnn.cudnn.batchNormalizationBackward') as func:
-            y.backward()
-            self.assertEqual(func.called, self.expect)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            y = self.forward()
+            y.grad = self.gy
+            with mock.patch('cupy.cudnn.cudnn.batchNormalizationBackward') as func:
+                y.backward()
+                self.assertEqual(func.called, self.expect)
 
 testing.run_module(__name__, __file__)

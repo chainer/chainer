@@ -60,9 +60,10 @@ class TestSoftmaxCrossEntropy(unittest.TestCase):
     def check_forward(self, x_data, t_data, class_weight, use_cudnn=True):
         x = chainer.Variable(x_data)
         t = chainer.Variable(t_data)
-        loss = functions.softmax_cross_entropy(
-            x, t, use_cudnn=use_cudnn, normalize=self.normalize,
-            cache_score=self.cache_score, class_weight=class_weight)
+        with chainer.using_config('use_cudnn', use_cudnn):
+            loss = functions.softmax_cross_entropy(
+                x, t, normalize=self.normalize,
+                cache_score=self.cache_score, class_weight=class_weight)
         self.assertEqual(loss.data.shape, ())
         self.assertEqual(loss.data.dtype, self.dtype)
         self.assertEqual(hasattr(loss.creator, 'y'), self.cache_score)
@@ -117,12 +118,12 @@ class TestSoftmaxCrossEntropy(unittest.TestCase):
             False)
 
     def check_backward(self, x_data, t_data, class_weight, use_cudnn=True):
-        func = functions.SoftmaxCrossEntropy(
-            use_cudnn=use_cudnn, cache_score=self.cache_score,
-            class_weight=class_weight)
-        gradient_check.check_backward(
-            func, (x_data, t_data), None, eps=0.02,
-            **self.check_backward_options)
+        with chainer.using_config('use_cudnn', use_cudnn):
+            func = functions.SoftmaxCrossEntropy(
+                cache_score=self.cache_score, class_weight=class_weight)
+            gradient_check.check_backward(
+                func, (x_data, t_data), None, eps=0.02,
+                **self.check_backward_options)
 
     # numpy.broadcast_to is available only from numpy>=1.10
     @testing.with_requires('numpy>=1.10')
@@ -167,12 +168,13 @@ class TestSoftmaxCrossEntropyValueCheck(unittest.TestCase):
         x = chainer.Variable(x_data)
         t = chainer.Variable(t_data)
 
-        if self.valid:
-            # Check if it throws nothing
-            functions.softmax_cross_entropy(x, t, use_cudnn)
-        else:
-            with self.assertRaises(ValueError):
-                functions.softmax_cross_entropy(x, t, use_cudnn)
+        with chainer.using_config('use_cudnn', use_cudnn):
+            if self.valid:
+                # Check if it throws nothing
+                functions.softmax_cross_entropy(x, t)
+            else:
+                with self.assertRaises(ValueError):
+                    functions.softmax_cross_entropy(x, t)
 
     # numpy.broadcast_to is available only from numpy>=1.10
     @testing.with_requires('numpy>=1.10')
@@ -202,7 +204,7 @@ class TestSoftmaxCrossEntropyCudnnCall(unittest.TestCase):
     def forward(self):
         x = chainer.Variable(self.x)
         t = chainer.Variable(self.t)
-        return functions.softmax_cross_entropy(x, t, self.use_cudnn)
+        return functions.softmax_cross_entropy(x, t)
 
     # numpy.broadcast_to is available only from numpy>=1.10
     @testing.with_requires('numpy>=1.10')
@@ -210,9 +212,10 @@ class TestSoftmaxCrossEntropyCudnnCall(unittest.TestCase):
                      cuda.cudnn.cudnn.getVersion() < 3000,
                      'Only cudnn ver>=3 supports softmax-log')
     def test_call_cudnn_forward(self):
-        with mock.patch('cupy.cudnn.cudnn.softmaxForward') as func:
-            self.forward()
-            self.assertEqual(func.called, self.use_cudnn)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            with mock.patch('cupy.cudnn.cudnn.softmaxForward') as func:
+                self.forward()
+                self.assertEqual(func.called, self.use_cudnn)
 
     # Note that SoftmaxCrossEntropy does not use cudnn on backward
 

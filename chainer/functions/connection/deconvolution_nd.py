@@ -1,6 +1,7 @@
 import numpy
 import six
 
+from chainer import configuration
 from chainer import cuda
 from chainer import function
 from chainer.functions.connection import convolution_2d
@@ -26,11 +27,10 @@ _check_cudnn_acceptable_type = convolution_2d._check_cudnn_acceptable_type
 
 class DeconvolutionND(function.Function):
 
-    def __init__(self, ndim, stride=1, pad=0, outsize=None, use_cudnn=True):
+    def __init__(self, ndim, stride=1, pad=0, outsize=None):
         self.ndim = ndim
         self.stride = conv_nd.as_tuple(stride, ndim)
         self.pad = conv_nd.as_tuple(pad, ndim)
-        self.use_cudnn = use_cudnn
         if outsize is not None:
             assert len(outsize) == ndim
         self.outs = outsize
@@ -66,7 +66,7 @@ class DeconvolutionND(function.Function):
 
     def _use_cudnn(self, x, W):
         return (cuda.cudnn_enabled and
-                self.use_cudnn and
+                configuration.config.use_cudnn and
                 self.ndim > 1 and
                 _check_cudnn_acceptable_type(x.dtype, W.dtype))
 
@@ -298,8 +298,7 @@ class DeconvolutionND(function.Function):
             return self._backward_xp(x, W, b, gy, cuda.cupy)
 
 
-def deconvolution_nd(x, W, b=None, stride=1, pad=0, outsize=None,
-                     use_cudnn=True):
+def deconvolution_nd(x, W, b=None, stride=1, pad=0, outsize=None):
     """N-dimensional deconvolution function.
 
     This is an implementation of N-dimensional deconvolution which generalizes
@@ -323,9 +322,6 @@ def deconvolution_nd(x, W, b=None, stride=1, pad=0, outsize=None,
             operation. It should be a tuple of ints
             :math:`(out_1, out_2, ..., out_N)`. Default value is ``None`` and
             the outsize is estimated by input size, stride and pad.
-        use_cudnn (bool): If ``True``, then this function uses cuDNN if
-            available. Note that cuDNN supports more than one-dimensional
-            deconvolution operations only.
 
     Returns:
         ~chainer.Variable: Output variable.
@@ -353,7 +349,7 @@ def deconvolution_nd(x, W, b=None, stride=1, pad=0, outsize=None,
     .. seealso:: :class:`links.DeconvolutionND`, :func:`deconvolution_2d`
     """
     ndim = len(x.shape[2:])
-    func = DeconvolutionND(ndim, stride, pad, outsize, use_cudnn)
+    func = DeconvolutionND(ndim, stride, pad, outsize)
     if b is None:
         return func(x, W)
     else:

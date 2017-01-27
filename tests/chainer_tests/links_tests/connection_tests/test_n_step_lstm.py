@@ -39,8 +39,7 @@ class TestNStepLSTM(unittest.TestCase):
             numpy.random.uniform(-1, 1, (l, self.out_size)).astype('f')
             for l in self.lengths]
         self.rnn = links.NStepLSTM(
-            self.n_layer, self.in_size, self.out_size, self.dropout,
-            use_cudnn=self.use_cudnn)
+            self.n_layer, self.in_size, self.out_size, self.dropout)
 
         for layer in self.rnn:
             for p in layer.params():
@@ -51,7 +50,8 @@ class TestNStepLSTM(unittest.TestCase):
         h = chainer.Variable(h_data)
         c = chainer.Variable(c_data)
         xs = [chainer.Variable(x) for x in xs_data]
-        hy, cy, ys = self.rnn(h, c, xs)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            hy, cy, ys = self.rnn(h, c, xs)
 
         self.assertEqual(hy.data.shape, h.data.shape)
         self.assertEqual(cy.data.shape, c.data.shape)
@@ -117,10 +117,11 @@ class TestNStepLSTM(unittest.TestCase):
             for p in layer.params():
                 params.append(p)
 
-        gradient_check.check_backward(
-            fun, tuple([h_data, c_data] + xs_data),
-            tuple([gh_data, gc_data] + gys_data),
-            tuple(params), eps=1e-2, rtol=1e-3, atol=1e-3)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            gradient_check.check_backward(
+                fun, tuple([h_data, c_data] + xs_data),
+                tuple([gh_data, gc_data] + gys_data),
+                tuple(params), eps=1e-2, rtol=1e-3, atol=1e-3)
 
     def test_backward_cpu(self):
         self.check_backward(

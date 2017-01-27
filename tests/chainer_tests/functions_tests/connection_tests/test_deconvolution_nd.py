@@ -74,14 +74,15 @@ class TestDeconvolutionND(unittest.TestCase):
         b_cpu = None if self.nobias else chainer.Variable(self.b)
         y_cpu = F.deconvolution_nd(
             x_cpu, W_cpu, b_cpu, stride=self.stride, pad=self.pad,
-            outsize=self.outsize, use_cudnn=use_cudnn)
+            outsize=self.outsize)
 
         x_gpu = chainer.Variable(cuda.to_gpu(self.x))
         W_gpu = chainer.Variable(cuda.to_gpu(self.W))
         b_gpu = None if self.nobias else chainer.Variable(cuda.to_gpu(self.b))
-        y_gpu = F.deconvolution_nd(
-            x_gpu, W_gpu, b_gpu, stride=self.stride, pad=self.pad,
-            outsize=self.outsize, use_cudnn=use_cudnn)
+        with chainer.using_config('use_cudnn', use_cudnn):
+            y_gpu = F.deconvolution_nd(
+                x_gpu, W_gpu, b_gpu, stride=self.stride, pad=self.pad,
+                outsize=self.outsize)
 
         self.assertEqual(y_cpu.data.dtype, self.x_dtype)
         self.assertEqual(y_gpu.data.dtype, self.x_dtype)
@@ -102,10 +103,11 @@ class TestDeconvolutionND(unittest.TestCase):
         W = chainer.Variable(W_data)
         b = None if self.nobias else chainer.Variable(b_data)
 
-        y_nd = F.deconvolution_nd(x, W, b, stride=self.stride, pad=self.pad,
-                                  outsize=self.outsize, use_cudnn=use_cudnn)
-        y_2d = F.deconvolution_2d(x, W, b, stride=self.stride, pad=self.pad,
-                                  outsize=self.outsize, use_cudnn=use_cudnn)
+        with chainer.using_config('use_cudnn', use_cudnn):
+            y_nd = F.deconvolution_nd(x, W, b, stride=self.stride,
+                                      pad=self.pad, outsize=self.outsize)
+            y_2d = F.deconvolution_2d(x, W, b, stride=self.stride,
+                                      pad=self.pad, outsize=self.outsize)
 
         testing.assert_allclose(
             y_nd.data, y_2d.data, **self.test_forward_options)
@@ -151,10 +153,11 @@ class TestDeconvolutionND(unittest.TestCase):
             inputs = inputs + (b_data,)
 
         ndim = len(self.dims)
-        gradient_check.check_backward(
-            deconvolution_nd.DeconvolutionND(
-                ndim, self.stride, self.pad, self.outsize, use_cudnn),
-            inputs, y_grad, **self.check_backward_options)
+        with chainer.using_config('use_cudnn', use_cudnn):
+            gradient_check.check_backward(
+                deconvolution_nd.DeconvolutionND(
+                    ndim, self.stride, self.pad, self.outsize),
+                inputs, y_grad, **self.check_backward_options)
 
     @condition.retry(3)
     def test_backward_cpu(self):
@@ -211,24 +214,25 @@ class TestDeconvolutionNDCudnnCall(unittest.TestCase):
     def forward(self):
         x = chainer.Variable(self.x)
         W = chainer.Variable(self.W)
-        return F.deconvolution_nd(
-            x, W, None, stride=1, pad=1, use_cudnn=self.use_cudnn)
+        return F.deconvolution_nd(x, W, None, stride=1, pad=1)
 
     def test_call_cudnn_forward(self):
         if cuda.cudnn.cudnn.getVersion() >= 4000:
             name = 'cupy.cudnn.cudnn.convolutionBackwardData_v3'
         else:
             name = 'cupy.cudnn.cudnn.convolutionBackwardData_v2'
-        with mock.patch(name) as func:
-            self.forward()
-            self.assertEqual(func.called, self.expected)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            with mock.patch(name) as func:
+                self.forward()
+                self.assertEqual(func.called, self.expected)
 
     def test_call_cudnn_backward(self):
-        y = self.forward()
-        y.grad = self.gy
-        with mock.patch('cupy.cudnn.cudnn.convolutionForward') as func:
-            y.backward()
-            self.assertEqual(func.called, self.expected)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            y = self.forward()
+            y.grad = self.gy
+            with mock.patch('cupy.cudnn.cudnn.convolutionForward') as func:
+                y.backward()
+                self.assertEqual(func.called, self.expected)
 
 
 class TestDeconvolutionNDarraySupplied(unittest.TestCase):

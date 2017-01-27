@@ -69,8 +69,8 @@ class TestDeconvolution2D(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_forward_consistency(self):
-        self.link.use_cudnn = self.use_cudnn
-        self.check_forward_consistency()
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.check_forward_consistency()
 
     def check_backward(self, x_data, y_grad):
         params = [self.link.W]
@@ -87,9 +87,9 @@ class TestDeconvolution2D(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_backward_gpu(self):
-        self.link.use_cudnn = self.use_cudnn
         self.link.to_gpu()
-        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
 
 @parameterize(
@@ -140,8 +140,8 @@ class TestDeconvolution2DParameterShapePlaceholder(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_forward_consistency(self):
-        self.link.use_cudnn = self.use_cudnn
-        self.check_forward_consistency()
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.check_forward_consistency()
 
     def check_backward(self, x_data, y_grad):
         params = [self.link.W]
@@ -158,9 +158,9 @@ class TestDeconvolution2DParameterShapePlaceholder(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_backward_gpu(self):
-        self.link.use_cudnn = self.use_cudnn
         self.link.to_gpu()
-        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
 
 testing.run_module(__name__, __file__)

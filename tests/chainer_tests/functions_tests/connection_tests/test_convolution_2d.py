@@ -61,14 +61,15 @@ class TestConvolution2DFunction(unittest.TestCase):
         b_cpu = None if nobias else chainer.Variable(self.b)
         y_cpu = functions.convolution_2d(
             x_cpu, W_cpu, b_cpu, stride=self.stride, pad=self.pad,
-            use_cudnn=self.use_cudnn, cover_all=self.cover_all)
+            cover_all=self.cover_all)
 
         x_gpu = chainer.Variable(cuda.to_gpu(self.x))
         W_gpu = chainer.Variable(cuda.to_gpu(self.W))
         b_gpu = None if nobias else chainer.Variable(cuda.to_gpu(self.b))
-        y_gpu = functions.convolution_2d(
-            x_gpu, W_gpu, b_gpu, stride=self.stride, pad=self.pad,
-            use_cudnn=self.use_cudnn, cover_all=self.cover_all)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            y_gpu = functions.convolution_2d(
+                x_gpu, W_gpu, b_gpu, stride=self.stride, pad=self.pad,
+                cover_all=self.cover_all)
 
         testing.assert_allclose(
             y_cpu.data, y_gpu.data.get(), **self.check_forward_options)
@@ -102,10 +103,11 @@ class TestConvolution2DFunction(unittest.TestCase):
         if b_data is not None:
             args = args + (b_data,)
 
-        gradient_check.check_backward(
-            convolution_2d.Convolution2DFunction(
-                self.stride, self.pad, self.use_cudnn, self.cover_all),
-            args, y_grad, **self.check_backward_options)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            gradient_check.check_backward(
+                convolution_2d.Convolution2DFunction(
+                    self.stride, self.pad, self.cover_all),
+                args, y_grad, **self.check_backward_options)
 
     @condition.retry(3)
     def test_backward_cpu(self):
@@ -170,24 +172,25 @@ class TestConvolution2DCudnnCall(unittest.TestCase):
         x = chainer.Variable(self.x)
         W = chainer.Variable(self.W)
         return functions.convolution_2d(
-            x, W, None, stride=self.stride, pad=self.pad,
-            use_cudnn=self.use_cudnn)
+            x, W, None, stride=self.stride, pad=self.pad)
 
     def test_call_cudnn_forward(self):
-        with mock.patch('cupy.cudnn.cudnn.convolutionForward') as func:
-            self.forward()
-            self.assertEqual(func.called, self.expect)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            with mock.patch('cupy.cudnn.cudnn.convolutionForward') as func:
+                self.forward()
+                self.assertEqual(func.called, self.expect)
 
     def test_call_cudnn_backward(self):
-        y = self.forward()
-        y.grad = self.gy
-        if cuda.cudnn.cudnn.getVersion() >= 4000:
-            name = 'cupy.cudnn.cudnn.convolutionBackwardData_v3'
-        else:
-            name = 'cupy.cudnn.cudnn.convolutionBackwardData_v2'
-        with mock.patch(name) as func:
-            y.backward()
-            self.assertEqual(func.called, self.expect)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            y = self.forward()
+            y.grad = self.gy
+            if cuda.cudnn.cudnn.getVersion() >= 4000:
+                name = 'cupy.cudnn.cudnn.convolutionBackwardData_v3'
+            else:
+                name = 'cupy.cudnn.cudnn.convolutionBackwardData_v2'
+            with mock.patch(name) as func:
+                y.backward()
+                self.assertEqual(func.called, self.expect)
 
 
 @testing.parameterize(*testing.product({
@@ -269,22 +272,23 @@ class TestConvolution2DFunctionDeterministic(unittest.TestCase):
         return x_data, W_data, b_data, gy_data
 
     def _run(self):
-        # verify data continuity and move to gpu
-        x_data, W_data, b_data, gy_data = \
-            tuple(cuda.to_gpu(data) for data in self._contiguous(
-                self.x, self.W, self.b, self.gy))
-        x, W, b, y = self._run_forward(x_data, W_data, b_data)
+        with chainer.using_config('use_cudnn', True):
+            # verify data continuity and move to gpu
+            x_data, W_data, b_data, gy_data = \
+                tuple(cuda.to_gpu(data) for data in self._contiguous(
+                    self.x, self.W, self.b, self.gy))
+            x, W, b, y = self._run_forward(x_data, W_data, b_data)
 
-        y.grad = gy_data
-        y.backward()
-        return x, W, b, y
+            y.grad = gy_data
+            y.backward()
+            return x, W, b, y
 
     def _run_forward(self, x_data, W_data, b_data):
         x = chainer.Variable(x_data)
         W = chainer.Variable(W_data)
         b = None if self.nobias else chainer.Variable(b_data)
         y = functions.convolution_2d(
-            x, W, b, stride=self.stride, pad=self.pad, use_cudnn=True,
+            x, W, b, stride=self.stride, pad=self.pad,
             cover_all=False, deterministic=True)
         return x, W, b, y
 

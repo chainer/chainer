@@ -36,7 +36,8 @@ class TestLogSoftmax(unittest.TestCase):
 
     def check_forward(self, x_data, use_cudnn=True):
         x = chainer.Variable(x_data)
-        y = functions.log_softmax(x, use_cudnn)
+        with chainer.using_config('use_cudnn', use_cudnn):
+            y = functions.log_softmax(x)
         self.assertEqual(y.data.dtype, self.dtype)
 
         log_z = numpy.ufunc.reduce(
@@ -61,9 +62,10 @@ class TestLogSoftmax(unittest.TestCase):
         self.check_forward(cuda.to_gpu(self.x), False)
 
     def check_backward(self, x_data, gy_data, use_cudnn=True):
-        gradient_check.check_backward(
-            functions.LogSoftmax(use_cudnn), x_data, gy_data,
-            **self.check_backward_options)
+        with chainer.using_config('use_cudnn', use_cudnn):
+            gradient_check.check_backward(
+                functions.LogSoftmax(), x_data, gy_data,
+                **self.check_backward_options)
 
     @condition.retry(10)
     def test_backward_cpu(self):
@@ -94,18 +96,20 @@ class TestLogSoftmaxCudnnCall(unittest.TestCase):
 
     def forward(self):
         x = chainer.Variable(self.x)
-        return functions.log_softmax(x, use_cudnn=self.use_cudnn)
+        return functions.log_softmax(x)
 
     def test_call_cudnn_forward(self):
-        with mock.patch('cupy.cudnn.cudnn.softmaxForward') as func:
-            self.forward()
-            self.assertEqual(func.called, self.expect)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            with mock.patch('cupy.cudnn.cudnn.softmaxForward') as func:
+                self.forward()
+                self.assertEqual(func.called, self.expect)
 
     def test_call_cudnn_backward(self):
-        y = self.forward()
-        y.grad = self.gy
-        with mock.patch('cupy.cudnn.cudnn.softmaxBackward') as func:
-            y.backward()
-            self.assertEqual(func.called, self.expect)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            y = self.forward()
+            y.grad = self.gy
+            with mock.patch('cupy.cudnn.cudnn.softmaxBackward') as func:
+                y.backward()
+                self.assertEqual(func.called, self.expect)
 
 testing.run_module(__name__, __file__)
