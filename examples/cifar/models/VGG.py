@@ -29,9 +29,9 @@ class Block(chainer.Chain):
             bn=L.BatchNormalization(out_channels)
         )
 
-    def __call__(self, x, train=True):
+    def __call__(self, x):
         h = self.conv(x)
-        h = self.bn(h, test=not train)
+        h = self.bn(h)
         return F.relu(h)
 
 
@@ -78,48 +78,47 @@ class VGG(chainer.Chain):
             bn_fc1=L.BatchNormalization(512),
             fc2=L.Linear(None, class_labels, nobias=True)
         )
-        self.train = True
 
     def __call__(self, x):
         # 64 channel blocks:
-        h = self.block1_1(x, self.train)
-        h = F.dropout(h, ratio=0.3, train=self.train)
-        h = self.block1_2(h, self.train)
+        h = self.block1_1(x)
+        h = F.dropout(h, ratio=0.3)
+        h = self.block1_2(h)
         h = F.max_pooling_2d(h, ksize=2, stride=2)
 
         # 128 channel blocks:
-        h = self.block2_1(h, self.train)
-        h = F.dropout(h, ratio=0.4, train=self.train)
-        h = self.block2_2(h, self.train)
+        h = self.block2_1(h)
+        h = F.dropout(h, ratio=0.4)
+        h = self.block2_2(h)
         h = F.max_pooling_2d(h, ksize=2, stride=2)
 
         # 256 channel blocks:
-        h = self.block3_1(h, self.train)
-        h = F.dropout(h, ratio=0.4, train=self.train)
-        h = self.block3_2(h, self.train)
-        h = F.dropout(h, ratio=0.4, train=self.train)
-        h = self.block3_3(h, self.train)
+        h = self.block3_1(h)
+        h = F.dropout(h, ratio=0.4)
+        h = self.block3_2(h)
+        h = F.dropout(h, ratio=0.4)
+        h = self.block3_3(h)
         h = F.max_pooling_2d(h, ksize=2, stride=2)
 
         # 512 channel blocks:
-        h = self.block4_1(h, self.train)
-        h = F.dropout(h, ratio=0.4, train=self.train)
-        h = self.block4_2(h, self.train)
-        h = F.dropout(h, ratio=0.4, train=self.train)
-        h = self.block4_3(h, self.train)
+        h = self.block4_1(h)
+        h = F.dropout(h, ratio=0.4)
+        h = self.block4_2(h)
+        h = F.dropout(h, ratio=0.4)
+        h = self.block4_3(h)
         h = F.max_pooling_2d(h, ksize=2, stride=2)
 
         # 512 channel blocks:
-        h = self.block5_1(h, self.train)
-        h = F.dropout(h, ratio=0.4, train=self.train)
-        h = self.block5_2(h, self.train)
-        h = F.dropout(h, ratio=0.4, train=self.train)
-        h = self.block5_3(h, self.train)
+        h = self.block5_1(h)
+        h = F.dropout(h, ratio=0.4)
+        h = self.block5_2(h)
+        h = F.dropout(h, ratio=0.4)
+        h = self.block5_3(h)
         h = F.max_pooling_2d(h, ksize=2, stride=2)
 
-        h = F.dropout(h, ratio=0.5, train=self.train)
+        h = F.dropout(h, ratio=0.5)
         h = self.fc1(h)
-        h = self.bn_fc1(h, test=not self.train)
+        h = self.bn_fc1(h)
         h = F.relu(h)
-        h = F.dropout(h, ratio=0.5, train=self.train)
+        h = F.dropout(h, ratio=0.5)
         return self.fc2(h)

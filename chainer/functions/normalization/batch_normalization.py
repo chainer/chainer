@@ -1,5 +1,6 @@
 import numpy
 
+from chainer import configuration
 from chainer import cuda
 from chainer import function
 from chainer.utils import type_check
@@ -27,14 +28,11 @@ def _xhat(x, mean, std, expander):
 
 class BatchNormalizationFunction(function.Function):
 
-    def __init__(self, eps=2e-5, mean=None, var=None, train=False,
-                 decay=0.9, use_cudnn=True):
+    def __init__(self, eps=2e-5, mean=None, var=None, decay=0.9,
+                 use_cudnn=True):
         self.running_mean = mean
         self.running_var = var
 
-        # If train is true, use batch statistics (training mode). Otherwise, if
-        # false, use the supplied mean and variance.
-        self.train = train
         # Note: cuDNN v5 requires that eps be greater than 1e-5. Otherwise, an
         # error will occur.
         # See CUDNN_BN_MIN_EPSILON value in cudnn.h to verify minimum allowable
@@ -77,7 +75,7 @@ class BatchNormalizationFunction(function.Function):
     def forward(self, inputs):
         xp = cuda.get_array_module(*inputs)
         x, gamma, beta = inputs[:3]
-        if self.train:
+        if configuration.config.train:
             if self.running_mean is None:
                 self.running_mean = xp.zeros_like(gamma)
                 self.running_var = xp.zeros_like(gamma)
@@ -131,7 +129,7 @@ class BatchNormalizationFunction(function.Function):
             # Factor used in the moving average
             factor = 1 - self.decay
 
-            if self.train:
+            if configuration.config.train:
                 if self.mean_cache is None:
                     # Output cache to speed up bacward pass.
                     self.mean_cache = xp.empty_like(gamma)
@@ -156,7 +154,7 @@ class BatchNormalizationFunction(function.Function):
                     self.fixed_mean.data.ptr, self.fixed_var.data.ptr,
                     self.eps)
         else:
-            if self.train:
+            if configuration.config.train:
                 axis = (0,) + tuple(range(head_ndim, x.ndim))
                 mean = x.mean(axis=axis)
                 var = x.var(axis=axis)
@@ -179,7 +177,7 @@ class BatchNormalizationFunction(function.Function):
                     'bn_fwd')(x, mean[expander], self.std[expander], gamma,
                               beta)
 
-        if self.train and (not cudnn_updated_running_stats):
+        if configuration.config.train and (not cudnn_updated_running_stats):
             # Note: If in training mode, the cuDNN forward training function
             # will do this for us, so
             # only run following code if cuDNN was not used.
@@ -222,7 +220,7 @@ class BatchNormalizationFunction(function.Function):
             return gx, ggamma, gbeta, gmean, gvar
 
         # Note: If length of inputs is not 5, we must be in train mode.
-        assert self.train
+        assert configuration.config.train
         if xp is not numpy and cuda.cudnn_enabled and self.use_cudnn and \
                 self.cudnn_dim_ok and _cudnn_version >= 5000:
             # Note: cuDNN batch normalization backward only works in
@@ -315,7 +313,7 @@ def batch_normalization(x, gamma, beta, eps=2e-5, running_mean=None,
     .. seealso:: :class:`links.BatchNormalization`
 
     """
-    return BatchNormalizationFunction(eps, running_mean, running_var, True,
+    return BatchNormalizationFunction(eps, running_mean, running_var,
                                       decay, use_cudnn)(x, gamma, beta)
 
 
@@ -343,5 +341,6 @@ def fixed_batch_normalization(x, gamma, beta, mean, var, eps=2e-5,
        :class:`links.BatchNormalization`
 
     """
-    return BatchNormalizationFunction(eps, None, None, False, 0.0,
-                                      use_cudnn)(x, gamma, beta, mean, var)
+    with configuration.using_config('train', False):
+        return BatchNormalizationFunction(eps, None, None, 0.0,
+                                          use_cudnn)(x, gamma, beta, mean, var)

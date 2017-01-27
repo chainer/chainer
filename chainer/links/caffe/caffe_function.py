@@ -6,6 +6,7 @@ import warnings
 import numpy
 import six
 
+from chainer import configuration
 from chainer import functions
 from chainer import link
 from chainer import links
@@ -156,7 +157,7 @@ class CaffeFunction(link.Chain):
                         'Skip the layer "%s", since CaffeFunction does not'
                         'support it' % layer.name)
 
-    def __call__(self, inputs, outputs, disable=(), train=True):
+    def __call__(self, inputs, outputs, disable=()):
         """Executes a sub-network of the network.
 
         This function acts as an interpreter of the network definition for
@@ -172,15 +173,12 @@ class CaffeFunction(link.Chain):
                 :class:`~chainer.Variable` objects are returned.
             disable (Iterable): A list of layer names that will be ignored
                 during the forward computation.
-            train (bool): If ``True``, this function emulates the TRAIN phase
-                of the Caffe layers. Otherwise, it emulates the TEST phase.
 
         Returns:
             tuple: A tuple of output :class:`~chainer.Variable` objects
                 corresponding to elements of the  `outputs` argument.
 
         """
-        self.train = train
         variables = dict(inputs)
         for func_name, bottom, top in self.layers:
             if (func_name in disable or
@@ -260,8 +258,8 @@ class CaffeFunction(link.Chain):
     def _setup_dropout(self, layer):
         param = layer.dropout_param
 
-        self.forwards[layer.name] = _DropoutFunction(
-            self, ratio=param.dropout_ratio)
+        self.forwards[layer.name] = _SingleArgumentFunction(
+            functions.dropout, ratio=param.dropout_ratio)
         self._add_layer(layer)
 
     @_layer('InnerProduct', 'INNER_PRODUCT')
@@ -344,9 +342,11 @@ class CaffeFunction(link.Chain):
         self.add_link(layer.name, func)
 
         # Add layer.
-        fwd = _SingleArgumentFunction(
-            _CallChildLink(self, layer.name),
-            test=use_global_stats, finetune=False)
+        if use_global_stats:
+            func_class = _SingleArgumentFunctionTestMode
+        else:
+            func_class = _SingleArgumentFunction
+        fwd = func_class(_CallChildLink(self, layer.name), finetune=False)
         self.forwards[layer.name] = fwd
         self._add_layer(layer)
 
@@ -537,6 +537,13 @@ class _SingleArgumentFunction(object):
         return self.func(x, *self.args, **self.kwargs)
 
 
+class _SingleArgumentFunctionTestMode(_SingleArgumentFunction):
+
+    def __call__(self, x):
+        with configuration.using_config('train', False):
+            return super(_SingleArgumentFunctionTestMode, self).__call__(x)
+
+
 class _ListArgumentFcuntion(object):
 
     def __init__(self, func, **kwargs):
@@ -545,18 +552,6 @@ class _ListArgumentFcuntion(object):
 
     def __call__(self, *xs):
         return self.func(xs, **self.kwargs)
-
-
-class _DropoutFunction(object):
-
-    def __init__(self, caffe_func, ratio):
-        # `caffe_func.train` is determined when calling `__call__`
-        self.caffe_func = caffe_func
-        self.ratio = ratio
-
-    def __call__(self, x):
-        return functions.dropout(
-            x, ratio=self.ratio, train=self.caffe_func.train)
 
 
 class _CallChildLink(object):
