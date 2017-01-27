@@ -27,7 +27,7 @@ class Linear(link.Link):
         out_size (int): Dimension of output vectors.
         bias (float): Initial bias value.
         nobias (bool): If ``True``, then this function does not use the bias.
-        initialW (2-D array): Initial weight value. If ``None``, a default
+        initialW (2-D array): Initial weight value. If ``None``, the default
             initializer is used to initialize the weight matrix.
             May also be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.

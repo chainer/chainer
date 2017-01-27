@@ -33,7 +33,7 @@ class Maxout(link.Chain):
         out_size (int): Dimension of output vectors.
         pool_size (int): Number of channels.
         initialW (3-D array or None): Initial weight value.
-            If ``None``, a default initializer is used
+            If ``None``, the default initializer is used
             to initialize the weight matrix.
         initial_bias (2-D array, float or None): Initial bias value.
             If it is float, initial bias is filled with this value.

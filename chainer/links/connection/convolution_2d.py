@@ -28,7 +28,7 @@ class Convolution2D(link.Link):
         nobias (bool): If ``True``, then this link does not use the bias term.
         use_cudnn (bool): If ``True``, then this link uses cuDNN if available.
         initialW (4-D array): Initial weight value. If ``None``, then this
-            function uses a default initializer to initialize
+            function uses the default initializer to initialize
             the weight tensor.
             May also be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
