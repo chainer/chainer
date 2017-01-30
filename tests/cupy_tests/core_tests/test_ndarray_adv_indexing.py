@@ -113,6 +113,14 @@ class TestArrayAdvancedIndexingArrayClass(unittest.TestCase):
 
         return a[tuple(indexes)]
 
+    def test_adv_getitem_cupy_indices3(self):
+        shape = (2, 3, 4)
+        a = cupy.zeros(shape)
+        index = cupy.array([True, False])
+        b = a[index]
+        b_cpu = a.get()[index.get()]
+        testing.assert_array_equal(b, b_cpu)
+
 
 @testing.parameterize(
     {'shape': (), 'indexes': ([1],)},
