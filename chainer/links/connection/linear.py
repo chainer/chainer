@@ -46,7 +46,7 @@ class Linear(link.Link):
     """
 
     def __init__(self, in_size, out_size, wscale=1, bias=0, nobias=False,
-                 initialW=None, initial_bias=None):
+                 initialW=None, initial_bias=None, forget_x=False):
         super(Linear, self).__init__()
 
         # For backward compatibility
@@ -72,6 +72,8 @@ class Linear(link.Link):
             bias_initializer = initializers._get_initializer(initial_bias)
             self.add_param('b', out_size, initializer=bias_initializer)
 
+        self.forget_x = forget_x
+
     def _initialize_params(self, in_size):
         self.add_param('W', (self.out_size, in_size),
                        initializer=self._W_initializer)
@@ -89,4 +91,4 @@ class Linear(link.Link):
         if self.has_uninitialized_params:
             with cuda.get_device(self._device_id):
                 self._initialize_params(x.size // x.shape[0])
-        return linear.linear(x, self.W, self.b)
+        return linear.linear(x, self.W, self.b, forget_x=self.forget_x)

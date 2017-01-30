@@ -228,6 +228,12 @@ class Function(object):
             # Forward edges (must be weak references)
             self.outputs = tuple([weakref.ref(y) for y in ret])
 
+        # forget data of input variables
+        if hasattr(self, "forget_x"):
+            if self.forget_x:
+                for x in inputs:
+                    x.forget()
+
         if len(ret) == 1:
             return ret[0]
         else:

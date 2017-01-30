@@ -6,9 +6,6 @@ from chainer import function
 from chainer.utils import conv
 from chainer.utils import type_check
 
-from chainer.functions.util import forget
-from chainer.functions.util import fused_function
-
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
     libcudnn = cuda.cudnn.cudnn
@@ -267,7 +264,7 @@ class Convolution2DFunction(function.Function):
 
 
 def convolution_2d(x, W, b=None, stride=1, pad=0, use_cudnn=True,
-                   cover_all=False, deterministic=False, pre_func=None):
+                   cover_all=False, deterministic=False, forget_x=False):
     """Two-dimensional convolution function.
 
     This is an implementation of two-dimensional convolution in ConvNets.
@@ -332,27 +329,10 @@ def convolution_2d(x, W, b=None, stride=1, pad=0, use_cudnn=True,
     .. seealso:: :class:`~chainer.links.Convolution2D`
 
     """
-    use_fused_function = True
-    func = Convolution2DFunction(
-        stride, pad, use_cudnn, cover_all, deterministic)
-
-    if pre_func is not None:
-        if use_fused_function:
-            # print("[conv_2d.py] start of conv2d with fused_function")
-            f_func = fused_function.FusedFunction(pre_func, func)
-            if b is None:
-                y = f_func(x, W)
-            else:
-                y = f_func(x, W, b)
-        else:
-            # print("[conv_2d.py] start of conv2d with forget")
-            if b is None:
-                y = forget.forget(lambda x, W: func(pre_func(x), W), x, W)
-            else:
-                y = forget.forget(lambda x, W, b: func(pre_func(x), W, b), x, W, b)
-
-        # print("[conv_2d.py] end of conv2d with ...")
-        return y
+    func = Convolution2DFunction(stride, pad, use_cudnn, cover_all, 
+                                 deterministic)
+    if forget_x:
+        func.forget_x = forget_x
 
     if b is None:
         return func(x, W)

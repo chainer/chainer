@@ -83,44 +83,44 @@ class VGG16_ref(chainer.Chain):
 class VGG16_rmem(chainer.Chain):
     def __init__(self, use_cudnn):
         super(VGG16_rmem, self).__init__(
-            conv1_1=L.Convolution2D(  3,  64, 3, pad=1, use_cudnn=use_cudnn),
-            conv1_2=L.Convolution2D( 64,  64, 3, pad=1, use_cudnn=use_cudnn, pre_func=F.ReLU()),
-            conv2_1=L.Convolution2D( 64, 128, 3, pad=1, use_cudnn=use_cudnn),
-            conv2_2=L.Convolution2D(128, 128, 3, pad=1, use_cudnn=use_cudnn, pre_func=F.ReLU()),
-            conv3_1=L.Convolution2D(128, 256, 3, pad=1, use_cudnn=use_cudnn),
-            conv3_2=L.Convolution2D(256, 256, 3, pad=1, use_cudnn=use_cudnn, pre_func=F.ReLU()),
-            conv3_3=L.Convolution2D(256, 256, 3, pad=1, use_cudnn=use_cudnn, pre_func=F.ReLU()),
-            conv4_1=L.Convolution2D(256, 512, 3, pad=1, use_cudnn=use_cudnn),
-            conv4_2=L.Convolution2D(512, 512, 3, pad=1, use_cudnn=use_cudnn, pre_func=F.ReLU()),
-            conv4_3=L.Convolution2D(512, 512, 3, pad=1, use_cudnn=use_cudnn, pre_func=F.ReLU()),
-            conv5_1=L.Convolution2D(512, 512, 3, pad=1, use_cudnn=use_cudnn),
-            conv5_2=L.Convolution2D(512, 512, 3, pad=1, use_cudnn=use_cudnn, pre_func=F.ReLU()),
-            conv5_3=L.Convolution2D(512, 512, 3, pad=1, use_cudnn=use_cudnn, pre_func=F.ReLU()),
-            fc6=L.Linear(25088, 4096),
-            fc7=L.Linear(4096, 4096),
-            fc8=L.Linear(4096, 1000),
+            conv1_1=L.Convolution2D(  3,  64, 3, pad=1, use_cudnn=use_cudnn, forget_x=True),
+            conv1_2=L.Convolution2D( 64,  64, 3, pad=1, use_cudnn=use_cudnn, forget_x=True),
+            conv2_1=L.Convolution2D( 64, 128, 3, pad=1, use_cudnn=use_cudnn, forget_x=True),
+            conv2_2=L.Convolution2D(128, 128, 3, pad=1, use_cudnn=use_cudnn, forget_x=True),
+            conv3_1=L.Convolution2D(128, 256, 3, pad=1, use_cudnn=use_cudnn, forget_x=True),
+            conv3_2=L.Convolution2D(256, 256, 3, pad=1, use_cudnn=use_cudnn, forget_x=True),
+            conv3_3=L.Convolution2D(256, 256, 3, pad=1, use_cudnn=use_cudnn, forget_x=True),
+            conv4_1=L.Convolution2D(256, 512, 3, pad=1, use_cudnn=use_cudnn, forget_x=True),
+            conv4_2=L.Convolution2D(512, 512, 3, pad=1, use_cudnn=use_cudnn, forget_x=True),
+            conv4_3=L.Convolution2D(512, 512, 3, pad=1, use_cudnn=use_cudnn, forget_x=True),
+            conv5_1=L.Convolution2D(512, 512, 3, pad=1, use_cudnn=use_cudnn, forget_x=True),
+            conv5_2=L.Convolution2D(512, 512, 3, pad=1, use_cudnn=use_cudnn, forget_x=True),
+            conv5_3=L.Convolution2D(512, 512, 3, pad=1, use_cudnn=use_cudnn, forget_x=True),
+            fc6=L.Linear(25088, 4096, forget_x=True),
+            fc7=L.Linear(4096, 4096, forget_x=True),
+            fc8=L.Linear(4096, 1000, forget_x=True),
         )
         self.use_cudnn = use_cudnn
 
     def __call__(self, x, t):
-        h1_1 = self.conv1_1(x   )
-        h1_2 = self.conv1_2(h1_1)
-        h1   = F.max_pooling_2d(h1_2, 2, stride=2, use_cudnn=self.use_cudnn, pre_func=F.ReLU())
-        h2_1 = self.conv2_1(h1  )
-        h2_2 = self.conv2_2(h2_1)
-        h2   = F.max_pooling_2d(h2_2, 2, stride=2, use_cudnn=self.use_cudnn, pre_func=F.ReLU())
-        h3_1 = self.conv3_1(h2  )
-        h3_2 = self.conv3_2(h3_1)
-        h3_3 = self.conv3_3(h3_2)
-        h3   = F.max_pooling_2d(h3_3, 2, stride=2, use_cudnn=self.use_cudnn, pre_func=F.ReLU())
-        h4_1 = self.conv4_1(h3  )
-        h4_2 = self.conv4_2(h4_1)
-        h4_3 = self.conv4_3(h4_2)
-        h4   = F.max_pooling_2d(h4_3, 2, stride=2, use_cudnn=self.use_cudnn, pre_func=F.ReLU())
-        h5_1 = self.conv5_1(h4  )
-        h5_2 = self.conv5_2(h5_1)
-        h5_3 = self.conv5_3(h5_2)
-        h5   = F.max_pooling_2d(h5_3, 2, stride=2, use_cudnn=self.use_cudnn, pre_func=F.ReLU())
+        h1_1 = F.relu(self.conv1_1(x   ), use_cudnn=self.use_cudnn)
+        h1_2 = F.relu(self.conv1_2(h1_1), use_cudnn=self.use_cudnn)
+        h1   = F.max_pooling_2d(h1_2, 2, stride=2, use_cudnn=self.use_cudnn, forget_x=True)
+        h2_1 = F.relu(self.conv2_1(h1  ), use_cudnn=self.use_cudnn)
+        h2_2 = F.relu(self.conv2_2(h2_1), use_cudnn=self.use_cudnn)
+        h2   = F.max_pooling_2d(h2_2, 2, stride=2, use_cudnn=self.use_cudnn, forget_x=True)
+        h3_1 = F.relu(self.conv3_1(h2  ), use_cudnn=self.use_cudnn)
+        h3_2 = F.relu(self.conv3_2(h3_1), use_cudnn=self.use_cudnn)
+        h3_3 = F.relu(self.conv3_3(h3_2), use_cudnn=self.use_cudnn)
+        h3   = F.max_pooling_2d(h3_3, 2, stride=2, use_cudnn=self.use_cudnn, forget_x=True)
+        h4_1 = F.relu(self.conv4_1(h3  ), use_cudnn=self.use_cudnn)
+        h4_2 = F.relu(self.conv4_2(h4_1), use_cudnn=self.use_cudnn)
+        h4_3 = F.relu(self.conv4_3(h4_2), use_cudnn=self.use_cudnn)
+        h4   = F.max_pooling_2d(h4_3, 2, stride=2, use_cudnn=self.use_cudnn, forget_x=True)
+        h5_1 = F.relu(self.conv5_1(h4  ), use_cudnn=self.use_cudnn)
+        h5_2 = F.relu(self.conv5_2(h5_1), use_cudnn=self.use_cudnn)
+        h5_3 = F.relu(self.conv5_3(h5_2), use_cudnn=self.use_cudnn)
+        h5   = F.max_pooling_2d(h5_3, 2, stride=2, use_cudnn=self.use_cudnn, forget_x=True)
         h6   = F.relu(self.fc6(h5), use_cudnn=self.use_cudnn)
         h7   = F.relu(self.fc7(h6), use_cudnn=self.use_cudnn)
         h8   = self.fc8(h7)
@@ -132,22 +132,22 @@ class VGG16_rmem(chainer.Chain):
 class VGG16_ooc(chainer.Chain):
     def __init__(self, use_cudnn):
         super(VGG16_ooc, self).__init__(
-            conv1_1=L.Convolution2D(  3,  64, 3, pad=1, use_cudnn=use_cudnn),
-            conv1_2=L.Convolution2D( 64,  64, 3, pad=1, use_cudnn=use_cudnn, pre_func=F.ReLU()),
-            conv2_1=L.Convolution2D( 64, 128, 3, pad=1, use_cudnn=use_cudnn),
-            conv2_2=L.Convolution2D(128, 128, 3, pad=1, use_cudnn=use_cudnn, pre_func=F.ReLU()),
-            conv3_1=L.Convolution2D(128, 256, 3, pad=1, use_cudnn=use_cudnn),
-            conv3_2=L.Convolution2D(256, 256, 3, pad=1, use_cudnn=use_cudnn, pre_func=F.ReLU()),
-            conv3_3=L.Convolution2D(256, 256, 3, pad=1, use_cudnn=use_cudnn, pre_func=F.ReLU()),
-            conv4_1=L.Convolution2D(256, 512, 3, pad=1, use_cudnn=use_cudnn),
-            conv4_2=L.Convolution2D(512, 512, 3, pad=1, use_cudnn=use_cudnn, pre_func=F.ReLU()),
-            conv4_3=L.Convolution2D(512, 512, 3, pad=1, use_cudnn=use_cudnn, pre_func=F.ReLU()),
-            conv5_1=L.Convolution2D(512, 512, 3, pad=1, use_cudnn=use_cudnn),
-            conv5_2=L.Convolution2D(512, 512, 3, pad=1, use_cudnn=use_cudnn, pre_func=F.ReLU()),
-            conv5_3=L.Convolution2D(512, 512, 3, pad=1, use_cudnn=use_cudnn, pre_func=F.ReLU()),
-            fc6=L.Linear(25088, 4096),
-            fc7=L.Linear(4096, 4096),
-            fc8=L.Linear(4096, 1000),
+            conv1_1=L.Convolution2D(  3,  64, 3, pad=1, use_cudnn=use_cudnn, forget_x=True),
+            conv1_2=L.Convolution2D( 64,  64, 3, pad=1, use_cudnn=use_cudnn, forget_x=True),
+            conv2_1=L.Convolution2D( 64, 128, 3, pad=1, use_cudnn=use_cudnn, forget_x=True),
+            conv2_2=L.Convolution2D(128, 128, 3, pad=1, use_cudnn=use_cudnn, forget_x=True),
+            conv3_1=L.Convolution2D(128, 256, 3, pad=1, use_cudnn=use_cudnn, forget_x=True),
+            conv3_2=L.Convolution2D(256, 256, 3, pad=1, use_cudnn=use_cudnn, forget_x=True),
+            conv3_3=L.Convolution2D(256, 256, 3, pad=1, use_cudnn=use_cudnn, forget_x=True),
+            conv4_1=L.Convolution2D(256, 512, 3, pad=1, use_cudnn=use_cudnn, forget_x=True),
+            conv4_2=L.Convolution2D(512, 512, 3, pad=1, use_cudnn=use_cudnn, forget_x=True),
+            conv4_3=L.Convolution2D(512, 512, 3, pad=1, use_cudnn=use_cudnn, forget_x=True),
+            conv5_1=L.Convolution2D(512, 512, 3, pad=1, use_cudnn=use_cudnn, forget_x=True),
+            conv5_2=L.Convolution2D(512, 512, 3, pad=1, use_cudnn=use_cudnn, forget_x=True),
+            conv5_3=L.Convolution2D(512, 512, 3, pad=1, use_cudnn=use_cudnn, forget_x=True),
+            fc6=L.Linear(25088, 4096, forget_x=True),
+            fc7=L.Linear(4096, 4096, forget_x=True),
+            fc8=L.Linear(4096, 1000, forget_x=True),
         )
         self.use_cudnn = use_cudnn
         # self.stream = stream.Stream(non_blocking=True)
@@ -155,47 +155,54 @@ class VGG16_ooc(chainer.Chain):
         self.disable_swapout_params()
 
     def __call__(self, x, t):
-        h1_1 = self.conv1_1(x   )
-        h1_1.set_end_of_sub_graph(stream=self.stream)
-        h1_2 = self.conv1_2(h1_1)
-        h1_2.set_end_of_sub_graph(stream=self.stream)
-        h1   = F.max_pooling_2d(h1_2, 2, stride=2, use_cudnn=self.use_cudnn, pre_func=F.ReLU())
+        h1 = self.conv1_1(x )
+        h1 = F.relu(h1)
+        h1 = self.conv1_2(h1)
+        h1 = F.relu(h1)
+        h1 = F.max_pooling_2d(h1, 2, stride=2, use_cudnn=self.use_cudnn, forget_x=True)
         h1.set_end_of_sub_graph(stream=self.stream)
-        h2_1 = self.conv2_1(h1  )
-        h2_1.set_end_of_sub_graph(stream=self.stream)
-        h2_2 = self.conv2_2(h2_1)
-        h2_2.set_end_of_sub_graph(stream=self.stream)
-        h2   = F.max_pooling_2d(h2_2, 2, stride=2, use_cudnn=self.use_cudnn, pre_func=F.ReLU())
+
+        h2 = self.conv2_1(h1)
+        h2 = F.relu(h2)
+        h2 = self.conv2_2(h2)
+        h2 = F.relu(h2)
+        h2 = F.max_pooling_2d(h2, 2, stride=2, use_cudnn=self.use_cudnn, forget_x=True)
         h2.set_end_of_sub_graph(stream=self.stream)
-        h3_1 = self.conv3_1(h2  )
-        h3_1.set_end_of_sub_graph(stream=self.stream)
-        h3_2 = self.conv3_2(h3_1)
-        h3_2.set_end_of_sub_graph(stream=self.stream)
-        h3_3 = self.conv3_3(h3_2)
-        h3_3.set_end_of_sub_graph(stream=self.stream)
-        h3   = F.max_pooling_2d(h3_3, 2, stride=2, use_cudnn=self.use_cudnn, pre_func=F.ReLU())
+
+        h3 = self.conv3_1(h2)
+        h3 = F.relu(h3)
+        h3 = self.conv3_2(h3)
+        h3 = F.relu(h3)
+        h3 = self.conv3_3(h3)
+        h3 = F.relu(h3)
+        h3 = F.max_pooling_2d(h3, 2, stride=2, use_cudnn=self.use_cudnn, forget_x=True)
         h3.set_end_of_sub_graph(stream=self.stream)
-        h4_1 = self.conv4_1(h3  )
-        h4_1.set_end_of_sub_graph(stream=self.stream)
-        h4_2 = self.conv4_2(h4_1)
-        h4_2.set_end_of_sub_graph(stream=self.stream)
-        h4_3 = self.conv4_3(h4_2)
-        h4_3.set_end_of_sub_graph(stream=self.stream)
-        h4   = F.max_pooling_2d(h4_3, 2, stride=2, use_cudnn=self.use_cudnn, pre_func=F.ReLU())
+
+        h4 = self.conv4_1(h3)
+        h4 = F.relu(h4)
+        h4 = self.conv4_2(h4)
+        h4 = F.relu(h4)
+        h4 = self.conv4_3(h4)
+        h4 = F.relu(h4)
+        h4 = F.max_pooling_2d(h4, 2, stride=2, use_cudnn=self.use_cudnn, forget_x=True)
         h4.set_end_of_sub_graph(stream=self.stream)
-        h5_1 = self.conv5_1(h4  )
-        h5_1.set_end_of_sub_graph(stream=self.stream)
-        h5_2 = self.conv5_2(h5_1)
-        h5_2.set_end_of_sub_graph(stream=self.stream)
-        h5_3 = self.conv5_3(h5_2)
-        h5_3.set_end_of_sub_graph(stream=self.stream)
-        h5   = F.max_pooling_2d(h5_3, 2, stride=2, use_cudnn=self.use_cudnn, pre_func=F.ReLU())
+
+        h5 = self.conv5_1(h4)
+        h5 = F.relu(h5)
+        h5 = self.conv5_2(h5)
+        h5 = F.relu(h5)
+        h5 = self.conv5_3(h5)
+        h5 = F.relu(h5)
+        h5 = F.max_pooling_2d(h5, 2, stride=2, use_cudnn=self.use_cudnn, forget_x=True)
         h5.set_end_of_sub_graph(stream=self.stream)
-        h6   = F.relu(self.fc6(h5), use_cudnn=self.use_cudnn)
+
+        h6 = F.relu(self.fc6(h5), use_cudnn=self.use_cudnn)
         h6.set_end_of_sub_graph(stream=self.stream)
-        h7   = F.relu(self.fc7(h6), use_cudnn=self.use_cudnn)
+
+        h7 = F.relu(self.fc7(h6), use_cudnn=self.use_cudnn)
         h7.set_end_of_sub_graph(stream=self.stream)
-        h8   = self.fc8(h7)
+
+        h8 = self.fc8(h7)
         loss = F.softmax_cross_entropy(h8, t)
 
         if self.stream is None:

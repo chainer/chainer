@@ -55,7 +55,7 @@ class Convolution2D(link.Link):
     def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
                  wscale=1, bias=0, nobias=False, use_cudnn=True,
                  initialW=None, initial_bias=None, deterministic=False,
-                 pre_func=None):
+                 forget_x=False):
         super(Convolution2D, self).__init__()
         self.ksize = ksize
         self.stride = _pair(stride)
@@ -86,7 +86,7 @@ class Convolution2D(link.Link):
             bias_initilizer = initializers._get_initializer(initial_bias)
             self.add_param('b', out_channels, initializer=bias_initilizer)
 
-        self.pre_func = pre_func
+        self.forget_x = forget_x
 
     def _initialize_params(self, in_channels):
         kh, kw = _pair(self.ksize)
@@ -108,7 +108,7 @@ class Convolution2D(link.Link):
                 self._initialize_params(x.shape[1])
         return convolution_2d.convolution_2d(
             x, self.W, self.b, self.stride, self.pad, self.use_cudnn,
-            deterministic=self.deterministic, pre_func=self.pre_func)
+            deterministic=self.deterministic, forget_x=self.forget_x)
 
 
 def _pair(x):

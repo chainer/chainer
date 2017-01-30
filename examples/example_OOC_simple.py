@@ -39,22 +39,29 @@ class MLP_ooc(Chain):
 
     def __init__(self, size1, size2):
         super(MLP_ooc, self).__init__(
-            l1=L.Linear(size1, size2),
-            l2=L.Linear(size2, size1),
-            l3=L.Linear(size1, size2),
-            l4=L.Linear(size2, size1),
+            l1=L.Linear(size1, size2, forget_x=True),
+            l2=L.Linear(size2, size1, forget_x=True),
+            l3=L.Linear(size1, size2, forget_x=True),
+            l4=L.Linear(size2, size1, forget_x=True),
         )
-        self.stream = stream.Stream(non_blocking=True)
-        # self.stream = None
+        self.disable_swapout_params()
 
     def __call__(self, x, t):
-        h1 = F.relu(self.l1(x))
-        h1.set_end_of_sub_graph(stream=self.stream)
-        h2 = F.relu(self.l2(h1))
-        h2.set_end_of_sub_graph(stream=self.stream)
-        h3 = F.relu(self.l3(h2))
-        h3.set_end_of_sub_graph(stream=self.stream)
+        runtime.deviceSynchronize()
+        nvtx.RangePush("Forward")
+
+        h1 = self.l1(x)
+        h1 = F.relu(h1)
+        h2 = self.l2(h1)
+        h2.set_end_of_sub_graph()
+        h2 = F.relu(h2)
+        h3 = self.l3(h2)
+        h3 = F.relu(h3)
         y = self.l4(h3)
+
+        runtime.deviceSynchronize()
+        nvtx.RangePop()
+
         loss = F.softmax_cross_entropy(y, t)
         return loss
 

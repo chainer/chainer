@@ -13,6 +13,8 @@ from chainer import utils
 
 import cupy.cuda.runtime as runtime  # temporal
 
+# import cupy.testing as testing  # temporal
+
 
 def _check_grad_type(func, x, gx):
     def make_message(message):
@@ -113,6 +115,9 @@ Actual: {0}'''.format(type(data))
         self._stream = None
 
         self.name = name
+
+        # forget
+        self.forgot = False
 
     def __reduce__(self):
         return Variable, (self.data, self.volatile, self.name, self._grad)
@@ -221,7 +226,8 @@ Actual: {0}'''.format(type(data))
 
     def to_cpu(self, stream=None):
         """Copies the data and gradient arrays to CPU."""
-        self.data = cuda.to_cpu(self.data, stream=stream)
+        if self.data is not None:
+            self.data = cuda.to_cpu(self.data, stream=stream)
         if self._grad is not None:
             self._grad = cuda.to_cpu(self._grad, stream=stream)
 
@@ -234,15 +240,26 @@ Actual: {0}'''.format(type(data))
 
         """
         with cuda.get_device(device):
-            self.data = cuda.to_gpu(self.data, stream=stream)
+            if self.data is not None:
+                self.data = cuda.to_gpu(self.data, stream=stream)
             if self._grad is not None:
                 self._grad = cuda.to_gpu(self._grad, stream=stream)
+
+    def forget(self):
+        if self.creator is not None:
+            self.data = None
+            self.forgot = True
+
+            # work-around for ReLU
+            if hasattr(self.creator, "y"):
+                self.creator.y = None
 
     def to_swap(self, stream=None):
         """Copies the data arrays to pinned memory."""
         if self._can_swapout is False:
             return
-        self.data = cuda.to_swap(self.data, stream=stream)
+        if self.data is not None:
+            self.data = cuda.to_swap(self.data, stream=stream)
         if self._grad is not None:
             self._grad = cuda.to_swap(self._grad, stream=stream)
 
@@ -447,25 +464,22 @@ Actual: {0}'''.format(type(data))
 
         # testing
         def print_memory_pool_stats():
-            print("[variable.py] chainer.cuda.memory_pool: {}".format(chainer.cuda.memory_pool))
+            print("[variable.py] chainer.cuda.memory_pool: {}"
+                  .format(chainer.cuda.memory_pool))
             size_mem_in_use = chainer.cuda.memory_pool.size_in_use_mem()
-            size_mem_free   = chainer.cuda.memory_pool.size_free_mem()
-            n_free_blocks   = chainer.cuda.memory_pool.n_free_blocks()
-            print("    size_mem(total) : {}".format(size_mem_in_use + size_mem_free))
-            print("    size_mem(in use): {}".format(size_mem_in_use))
-            print("    size_mem(free)  : {}".format(size_mem_free))
-            print("    n_free_blocks   : {}".format(n_free_blocks))
+            size_mem_free = chainer.cuda.memory_pool.size_free_mem()
+            size_mem_total = size_mem_in_use + size_mem_free
+            n_free_blocks = chainer.cuda.memory_pool.n_free_blocks()
+            print("  size_mem(total) : {}".format(size_mem_total))
+            print("  size_mem(in use): {}".format(size_mem_in_use))
+            print("  size_mem(free)  : {}".format(size_mem_free))
+            print("  n_free_blocks   : {}".format(n_free_blocks))
 
         # print_memory_pool_stats()
 
         # endp is an end point of sub graph and a starting point of backprop
         endp = self
         while endp is not None:
-
-            cand_funcs = []
-            seen_set = set()
-            seen_vars = set()
-            need_copy = set()
 
             # Initialize error by 1, if this is a loss variable
             if endp.data.size == 1 and endp.grad is None:
@@ -475,34 +489,82 @@ Actual: {0}'''.format(type(data))
                     else:
                         endp.grad = cuda.cupy.ones_like(endp.data)
 
-            def add_cand(cand):
-                if cand not in seen_set:
-                    # Negate since heapq is min-heap
-                    heapq.heappush(cand_funcs, (-cand.rank, len(seen_set), cand))
-                    seen_set.add(cand)
-
             # OOC
             next_endp = None
             ancestor_vars = endp.ancestors()
             for x in ancestor_vars:
                 if x._is_end_of_sub_graph is True:
                     if next_endp is not None:
-                        msg = 'There are a number of end_of_sub_graph variables in a single sub graph.'
+                        msg = ('There are a number of end_of_sub_graph '
+                               'variables in a single sub graph.')
                         raise RuntimeError(msg)
                     next_endp = x
 
             if next_endp is not None:
-                # prefetch data that are necessary for backprop of next_endp from CPU to GPU
+                # prefetch data that are necessary for backprop of next_endp
                 if next_endp._stream is not None:
                     next_endp._stream.synchronize()
                 next_endp.ancestors_to_gpu(stream=next_endp._stream)
-            
-            add_cand(endp.creator)
 
+            cand_funcs = []
+            seen_set = set()
+            seen_vars = set()
+            need_copy = set()
+
+            def add_cand(cand):
+                if cand not in seen_set:
+                    # Negate since heapq is min-heap
+                    heapq.heappush(cand_funcs,
+                                   (-cand.rank, len(seen_set), cand))
+                    seen_set.add(cand)
+
+            #
+            # re-computes data of variables those were forgotten
+            # during forward propagation
+            #
+            cand_recomp_funcs = []
+            seen_recomp_funcs = set()
+
+            add_cand(endp.creator)
             while cand_funcs:
                 _, _, func = heapq.heappop(cand_funcs)
-                outputs = tuple(y() for y in func.outputs)  # access via weak ref
-            
+                outputs = tuple(y() for y in func.outputs)
+                for y in outputs:
+                    if y.forgot is True:
+                        if func not in seen_recomp_funcs:
+                            heapq.heappush(cand_recomp_funcs,
+                                           (func.rank, len(seen_recomp_funcs),
+                                            func))
+                            seen_recomp_funcs.add(func)
+
+                for x in func.inputs:
+                    if x.creator is not None:
+                        add_cand(x.creator)
+
+            while cand_recomp_funcs:
+                _, _, func = heapq.heappop(cand_recomp_funcs)
+                in_data = tuple([x.data for x in func.inputs])
+                out_data = func.forward(in_data)  # re-compute
+                outputs = tuple(y() for y in func.outputs)
+                for (output, data) in zip(outputs, out_data):
+                    # print("  func:{}".format(func))
+                    # print("    old_data:{}".format(var.data))
+                    # print("    new_data:{}".format(data))
+                    # testing.assert_array_equal(var.data, data)
+                    output.data = data
+
+            #
+            cand_funcs = []
+            seen_set = set()
+
+            add_cand(endp.creator)
+
+            # print("[variable.py, cand_funcs]")
+            while cand_funcs:
+                _, _, func = heapq.heappop(cand_funcs)
+                # access via weak ref
+                outputs = tuple(y() for y in func.outputs)
+
                 in_data = tuple(x.data for x in func.inputs)
                 out_grad = tuple(None if y is None else y.grad for y in outputs)
                 hooks = chainer.get_function_hooks()
@@ -516,14 +578,14 @@ Actual: {0}'''.format(type(data))
                 assert len(gxs) == len(in_data)
                 for hook in six.itervalues(hooks):
                     hook.backward_postprocess(func, in_data, out_grad)
-            
+
                 if chainer.is_debug():
                     if any(gx is not None and
                            cuda.get_array_module(gx).isnan(gx).any()
                            for gx in gxs):
                         msg = 'NaN is detected on backward computation'
                         raise RuntimeError(msg)
-            
+
                 if not retain_grad:
                     for y in outputs:
                         if y is not None and y is not endp:
@@ -531,11 +593,12 @@ Actual: {0}'''.format(type(data))
                 for x, gx in zip(func.inputs, gxs):
                     if gx is None:
                         continue
-            
+
                     _check_grad_type(func, x, gx)
-            
-                    # Accumulate the gradient to x. It is a bit tricky to handle
-                    # branches and parameter gradient accumulation correctly.
+
+                    # Accumulate the gradient to x. It is a bit tricky to
+                    # handle branches and parameter gradient accumulation
+                    # correctly.
                     with cuda.get_device(gx):
                         id_x = id(x)
                         if x.creator is None:  # leaf
@@ -560,23 +623,15 @@ Actual: {0}'''.format(type(data))
                                 x._grad += gx
                 del gxs  # to reduce memory usage
 
-            # print("[variable.py, end of while cand_funcs: loop")
-            
             # OOC
             if next_endp is not None:
                 if next_endp._stream is not None:
                     runtime.deviceSynchronize()
-            
+
                 endp.unchain_backward()
                 next_endp.resume_backward()
-            
+
             endp = next_endp
-            # print("[variable.py, after endp = next_endp]")
-
-            # print_memory_pool_stats()
-
-        # print("[variable.py, end of while endp is not None: loop]")
-
 
     def unchain_backward(self):
         """Deletes references between variables and functions backward.

@@ -22,12 +22,14 @@ import cupy.cuda.nvtx as nvtx
 import cupy.cuda.stream as stream
 import cupy.cuda.runtime as runtime
 
+import time
 from time import sleep
 
 # set workspace size for cuDNN
 _free_mem, total_mem = cuda.cupy.cuda.runtime.memGetInfo()
 # size = long(total_mem * 0.1)
-size = long(total_mem * 0.01)
+# size = long(total_mem * 0.01)
+size = long(total_mem * 0.05)
 cuda.set_max_workspace_size(size)
 
 ############################################################
@@ -36,44 +38,45 @@ class BottleNeckA_ref(chainer.Chain):
     def __init__(self, in_size, ch, out_size, stride=2):
         w = math.sqrt(2)
         super(BottleNeckA_ref, self).__init__(
+            bn1=L.BatchNormalization(in_size),
             conv1=L.Convolution2D(in_size, ch, 1, stride, 0, w, nobias=True),
-            bn1=L.BatchNormalization(ch),
-            conv2=L.Convolution2D(ch, ch, 3, 1, 1, w, nobias=True),
             bn2=L.BatchNormalization(ch),
+            conv2=L.Convolution2D(ch, ch, 3, 1, 1, w, nobias=True),
+            bn3=L.BatchNormalization(ch),
             conv3=L.Convolution2D(ch, out_size, 1, 1, 0, w, nobias=True),
-            bn3=L.BatchNormalization(out_size),
 
+            bn4=L.BatchNormalization(in_size),
             conv4=L.Convolution2D(in_size, out_size, 1, stride, 0, w, nobias=True),
-            bn4=L.BatchNormalization(out_size),
         )
 
     def __call__(self, x, train):
-        h1 = F.relu(self.bn1(self.conv1(x), test=not train))
-        h1 = F.relu(self.bn2(self.conv2(h1), test=not train))
-        h1 = self.bn3(self.conv3(h1), test=not train)
-        h2 = self.bn4(self.conv4(x), test=not train)
+        h1 = self.conv1(F.relu(self.bn1(x, test=not train)))
+        h1 = self.conv2(F.relu(self.bn2(h1, test=not train)))
+        h1 = self.conv3(F.relu(self.bn3(h1, test=not train)))
 
-        return F.relu(h1 + h2)
+        h2 = self.conv4(F.relu(self.bn4(x, test=not train)))
+
+        return h1 + h2
 
 
 class BottleNeckB_ref(chainer.Chain):
     def __init__(self, in_size, ch):
         w = math.sqrt(2)
         super(BottleNeckB_ref, self).__init__(
+            bn1=L.BatchNormalization(in_size),
             conv1=L.Convolution2D(in_size, ch, 1, 1, 0, w, nobias=True),
-            bn1=L.BatchNormalization(ch),
-            conv2=L.Convolution2D(ch, ch, 3, 1, 1, w, nobias=True),
             bn2=L.BatchNormalization(ch),
+            conv2=L.Convolution2D(ch, ch, 3, 1, 1, w, nobias=True),
+            bn3=L.BatchNormalization(ch),
             conv3=L.Convolution2D(ch, in_size, 1, 1, 0, w, nobias=True),
-            bn3=L.BatchNormalization(in_size),
         )
 
     def __call__(self, x, train):
-        h = F.relu(self.bn1(self.conv1(x), test=not train))
-        h = F.relu(self.bn2(self.conv2(h), test=not train))
-        h = self.bn3(self.conv3(h), test=not train)
+        h = self.conv1(F.relu(self.bn1(x, test=not train)))
+        h = self.conv2(F.relu(self.bn2(h, test=not train)))
+        h = self.conv3(F.relu(self.bn3(h, test=not train)))
 
-        return F.relu(h + x)
+        return h + x
 
 
 class Block_ref(chainer.Chain):
@@ -136,27 +139,23 @@ class BottleNeckA_rmem(chainer.Chain):
     def __init__(self, in_size, ch, out_size, stride=2):
         w = math.sqrt(2)
         super(BottleNeckA_rmem, self).__init__(
-            conv1=L.Convolution2D(in_size, ch, 1, stride, 0, w, nobias=True),
-            bn1=L.BatchNormalization(ch),
-            conv2=L.Convolution2D(ch, ch, 3, 1, 1, w, nobias=True, pre_func=F.ReLU()),
+            bn1=L.BatchNormalization(in_size),
+            conv1=L.Convolution2D(in_size, ch, 1, stride, 0, w, nobias=True, forget_x=True),
             bn2=L.BatchNormalization(ch),
-            conv3=L.Convolution2D(ch, out_size, 1, 1, 0, w, nobias=True, pre_func=F.ReLU()),
-            bn3=L.BatchNormalization(out_size),
+            conv2=L.Convolution2D(ch, ch, 3, 1, 1, w, nobias=True, forget_x=True),
+            bn3=L.BatchNormalization(ch),
+            conv3=L.Convolution2D(ch, out_size, 1, 1, 0, w, nobias=True, forget_x=True),
 
-            conv4=L.Convolution2D(in_size, out_size, 1, stride, 0, w, nobias=True),
-            bn4=L.BatchNormalization(out_size),
+            bn4=L.BatchNormalization(in_size),
+            conv4=L.Convolution2D(in_size, out_size, 1, stride, 0, w, nobias=True, forget_x=True),
         )
 
     def __call__(self, x, train):
-        h1 = self.conv1(x)
-        h1 = self.bn1(h1, test=not train)
-        h1 = self.conv2(h1)
-        h1 = self.bn2(h1, test=not train)
-        h1 = self.conv3(h1)
-        h1 = self.bn3(h1, test=not train)
+        h1 = self.conv1(F.relu(self.bn1(x , test=not train), forget_x=True))
+        h1 = self.conv2(F.relu(self.bn2(h1, test=not train), forget_x=True))
+        h1 = self.conv3(F.relu(self.bn3(h1, test=not train), forget_x=True))
 
-        h2 = self.conv4(x)
-        h2 = self.bn4(h2, test=not train)
+        h2 = self.conv4(F.relu(self.bn4(x, test=not train)))
 
         return h1 + h2
 
@@ -164,21 +163,18 @@ class BottleNeckB_rmem(chainer.Chain):
     def __init__(self, in_size, ch):
         w = math.sqrt(2)
         super(BottleNeckB_rmem, self).__init__(
-            conv1=L.Convolution2D(in_size, ch, 1, 1, 0, w, nobias=True, pre_func=F.ReLU()),
-            bn1=L.BatchNormalization(ch),
-            conv2=L.Convolution2D(ch, ch, 3, 1, 1, w, nobias=True, pre_func=F.ReLU()),
+            bn1=L.BatchNormalization(in_size),
+            conv1=L.Convolution2D(in_size, ch, 1, 1, 0, w, nobias=True, forget_x=True),
             bn2=L.BatchNormalization(ch),
-            conv3=L.Convolution2D(ch, in_size, 1, 1, 0, w, nobias=True, pre_func=F.ReLU()),
-            bn3=L.BatchNormalization(in_size),
+            conv2=L.Convolution2D(ch, ch, 3, 1, 1, w, nobias=True, forget_x=True),
+            bn3=L.BatchNormalization(ch),
+            conv3=L.Convolution2D(ch, in_size, 1, 1, 0, w, nobias=True, forget_x=True),
         )
 
     def __call__(self, x, train):
-        h = self.conv1(x)
-        h = self.bn1(h, test=not train)
-        h = self.conv2(h)
-        h = self.bn2(h, test=not train)
-        h = self.conv3(h)
-        h = self.bn3(h, test=not train)
+        h = self.conv1(F.relu(self.bn1(x, test=not train), forget_x=True))
+        h = self.conv2(F.relu(self.bn2(h, test=not train), forget_x=True))
+        h = self.conv3(F.relu(self.bn3(h, test=not train), forget_x=True))
 
         return h + x
 
@@ -199,7 +195,6 @@ class Block_rmem(chainer.Chain):
             f = getattr(self, name)
             x = f(x, train)
 
-        x = F.relu(x)
         return x
 
 
@@ -221,13 +216,8 @@ class ResNet152_rmem(chainer.Chain):
         self.train = True
 
     def __call__(self, x, t):
-        h = self.conv1(x)
-        h = self.bn1(h, test=not self.train)
-        # h = F.relu(h)
-        # h = F.max_pooling_2d(h, 3, stride=2)
-        ff = FF.FusedFunction(F.ReLU(),
-                              F.MaxPooling2D(3, 2))
-        h = ff(h)
+        h = self.bn1(self.conv1(x), test=not self.train)
+        h = F.max_pooling_2d(F.relu(h), 3, stride=2, forget_x=True)
         h = self.res2(h, self.train)
         h = self.res3(h, self.train)
         h = self.res4(h, self.train)
@@ -248,51 +238,51 @@ class BottleNeckA_ooc(chainer.Chain):
     def __init__(self, in_size, ch, out_size, stride=2):
         w = math.sqrt(2)
         super(BottleNeckA_ooc, self).__init__(
-            conv1=L.Convolution2D(in_size, ch, 1, stride, 0, w, nobias=True),
-            bn1=L.BatchNormalization(ch),
-            conv2=L.Convolution2D(ch, ch, 3, 1, 1, w, nobias=True, pre_func=F.ReLU()),
+            bn1=L.BatchNormalization(in_size),
+            conv1=L.Convolution2D(in_size, ch, 1, stride, 0, w, nobias=True, forget_x=True),
             bn2=L.BatchNormalization(ch),
-            conv3=L.Convolution2D(ch, out_size, 1, 1, 0, w, nobias=True, pre_func=F.ReLU()),
-            bn3=L.BatchNormalization(out_size),
+            conv2=L.Convolution2D(ch, ch, 3, 1, 1, w, nobias=True, forget_x=True),
+            bn3=L.BatchNormalization(ch),
+            conv3=L.Convolution2D(ch, out_size, 1, 1, 0, w, nobias=True, forget_x=True),
 
-            conv4=L.Convolution2D(in_size, out_size, 1, stride, 0, w, nobias=True),
-            bn4=L.BatchNormalization(out_size),
+            bn4=L.BatchNormalization(in_size),
+            conv4=L.Convolution2D(in_size, out_size, 1, stride, 0, w, nobias=True, forget_x=True),
         )
 
     def __call__(self, x, train):
-        h1 = self.conv1(x)
-        h1 = self.bn1(h1, test=not train)
-        h1 = self.conv2(h1)
-        h1 = self.bn2(h1, test=not train)
-        h1 = self.conv3(h1)
-        h1 = self.bn3(h1, test=not train)
+        h1 = self.conv1(F.relu(self.bn1(x , test=not train), forget_x=True))
+        h1 = self.conv2(F.relu(self.bn2(h1, test=not train), forget_x=True))
+        h1 = self.conv3(F.relu(self.bn3(h1, test=not train), forget_x=True))
 
-        h2 = self.conv4(x)
-        h2 = self.bn4(h2, test=not train)
+        h2 = self.conv4(F.relu(self.bn4(x, test=not train), forget_x=True))
 
-        return h1 + h2
+        y = h1 + h2
+        h1.forget()
+        h2.forget()
+
+        return y
 
 class BottleNeckB_ooc(chainer.Chain):
     def __init__(self, in_size, ch):
         w = math.sqrt(2)
         super(BottleNeckB_ooc, self).__init__(
-            conv1=L.Convolution2D(in_size, ch, 1, 1, 0, w, nobias=True, pre_func=F.ReLU()),
-            bn1=L.BatchNormalization(ch),
-            conv2=L.Convolution2D(ch, ch, 3, 1, 1, w, nobias=True, pre_func=F.ReLU()),
+            bn1=L.BatchNormalization(in_size),
+            conv1=L.Convolution2D(in_size, ch, 1, 1, 0, w, nobias=True, forget_x=True),
             bn2=L.BatchNormalization(ch),
-            conv3=L.Convolution2D(ch, in_size, 1, 1, 0, w, nobias=True, pre_func=F.ReLU()),
-            bn3=L.BatchNormalization(in_size),
+            conv2=L.Convolution2D(ch, ch, 3, 1, 1, w, nobias=True, forget_x=True),
+            bn3=L.BatchNormalization(ch),
+            conv3=L.Convolution2D(ch, in_size, 1, 1, 0, w, nobias=True, forget_x=True),
         )
 
     def __call__(self, x, train):
-        h = self.conv1(x)
-        h = self.bn1(h, test=not train)
-        h = self.conv2(h)
-        h = self.bn2(h, test=not train)
-        h = self.conv3(h)
-        h = self.bn3(h, test=not train)
+        h = self.conv1(F.relu(self.bn1(x, test=not train), forget_x=True))
+        h = self.conv2(F.relu(self.bn2(h, test=not train), forget_x=True))
+        h = self.conv3(F.relu(self.bn3(h, test=not train), forget_x=True))
 
-        return h + x
+        y = h + x
+        h.forget()
+
+        return y
 
 
 class Block_ooc(chainer.Chain):
@@ -312,7 +302,6 @@ class Block_ooc(chainer.Chain):
             x = f(x, train)
             x.set_end_of_sub_graph(stream=stream)
 
-        x = F.relu(x)
         return x
 
 
@@ -324,7 +313,7 @@ class ResNet152_ooc(chainer.Chain):
         w = math.sqrt(2)
         super(ResNet152_ooc, self).__init__(
             conv1=L.Convolution2D(3, 64, 7, 2, 3, w, nobias=True),
-            bn1=L.BatchNormalization(64),
+            bn1=L.BatchNormalization(64, forget_x=True),
             res2=Block_ooc(3, 64, 64, 256, 1),
             res3=Block_ooc(8, 256, 128, 512),
             res4=Block_ooc(36, 512, 256, 1024),
@@ -336,13 +325,8 @@ class ResNet152_ooc(chainer.Chain):
         self.stream = None
 
     def __call__(self, x, t):
-        h = self.conv1(x)
-        h = self.bn1(h, test=not self.train)
-        # h = F.relu(h)
-        # h = F.max_pooling_2d(h, 3, stride=2)
-        ff = FF.FusedFunction(F.ReLU(),
-                              F.MaxPooling2D(3, 2))
-        h = ff(h)
+        h = self.bn1(self.conv1(x), test=not self.train)
+        h = F.max_pooling_2d(F.relu(h, forget_x=True), 3, stride=2, forget_x=True)
         h.set_end_of_sub_graph(stream=self.stream)
         h = self.res2(h, self.train, self.stream)
         h = self.res3(h, self.train, self.stream)
@@ -372,10 +356,17 @@ opt.setup(model)
 
 ############################################################
 
-# nbatch=8
-nbatch=16
-# nbatch=32
-# nbatch=64
+nbatch=10
+# nbatch=20
+# nbatch=40
+# nbatch=60
+# nbatch=80
+# nbatch=100
+# nbatch=120
+# nbatch=140
+# nbatch=160
+# nbatch=180
+# nbatch=200
 
 ############################################################
 
@@ -397,7 +388,7 @@ label.to_gpu()
 
 ############################################################
 
-num_loop = 5
+num_loop = 10
 
 ############################################################
 
@@ -407,10 +398,14 @@ if True:
     
     sleep(1)  #
 
+    accum_t_f = 0
+    accum_t_b = 0
+
     for loop in range(0, num_loop):
     
         runtime.deviceSynchronize()
         nvtx.RangePush("Run: {}".format(loop), loop)
+        t0 = time.clock()
     
         model.cleargrads()
 
@@ -418,6 +413,7 @@ if True:
         loss = model(x0, label)
         runtime.deviceSynchronize()
         nvtx.RangePop()
+        t1 = time.clock()
     
         print 'loop:{}, loss:{}'.format(loop, loss.data)
     
@@ -429,8 +425,24 @@ if True:
     
         runtime.deviceSynchronize()
         nvtx.RangePop()
+        t2 = time.clock()
+
+        t_f = t1 - t0
+        t_b = t2 - t1
+
+        # print("time: total:{}, forward:{}, backward:{}".format(t_f+t_b, t_f, t_b))
+
+        if loop >= 2:
+            accum_t_f += t_f
+            accum_t_b += t_b
 
         sleep(1)  #
+
+    ave_t_f = accum_t_f / (num_loop - 2)
+    ave_t_b = accum_t_b / (num_loop - 2)
+
+    print("nbatch:{}".format(nbatch))
+    print("average time: total:{}, forward:{}, backward:{}".format(ave_t_f+ave_t_b, ave_t_f, ave_t_b))
     
     if (use_GPU):
         model.to_cpu()
