@@ -96,8 +96,22 @@ def convert(batch, device):
         def to_device(x):
             return cuda.to_gpu(x, device, cuda.Stream.null)
 
+    def to_device_batch(batch):
+        if device is None:
+            return batch
+        elif device < 0:
+            return [to_device(x) for x in batch]
+        else:
+            xp = cuda.cupy.get_array_module(*batch)
+            concat = xp.concatenate(batch, axis=0)
+            sections = numpy.cumsum([len(x) for x in batch[:-1]], dtype='i')
+            concat_dev = to_device(concat)
+            batch_dev = cuda.cupy.split(concat_dev, sections)
+            return batch_dev
+
     return tuple(
-        [to_device(x) for x, _ in batch] + [to_device(y) for _, y in batch])
+        to_device_batch([x for x, _ in batch]) +
+        to_device_batch([y for _, y in batch]))
 
 
 class CalculateBleu(chainer.training.Extension):
