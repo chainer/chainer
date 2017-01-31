@@ -159,13 +159,13 @@ Actual: {0}'''.format(type(data))
         return self
 
     def __len__(self):
-        """Returns the number of elements of the data array.
+        """Returns the first dimension of the data array.
 
         Returns:
-            int: Number of elements of the data array.
+            int: Number of the first dimension of the data array.
 
         """
-        return self.data.size
+        return len(self.data)
 
     @property
     def volatile(self):

@@ -1,23 +1,17 @@
 import collections
-import contextlib
-import os
-import threading
 import traceback
 import weakref
 
 import six
 
 import chainer
+from chainer import configuration
 from chainer import cuda
 from chainer import flag
 from chainer.utils import type_check
 from chainer import variable
 
 
-_thread_local = threading.local()
-
-
-@contextlib.contextmanager
 def no_backprop_mode():
     """Disable back-propagation for Variable whose volatile is auto.
 
@@ -37,13 +31,9 @@ def no_backprop_mode():
     ...    y = x + 1
 
     """
-    default = getattr(_thread_local, 'default_backprop', True)
-    _thread_local.default_backprop = False
-    yield
-    _thread_local.default_backprop = default
+    return configuration.using_config('enable_backprop', False)
 
 
-@contextlib.contextmanager
 def force_backprop_mode():
     """Enable back-propagation for Variable whose volatile is auto.
 
@@ -72,10 +62,7 @@ def force_backprop_mode():
        See :func:`no_backprop_mode` for details of back-prop mode.
 
     """
-    default = getattr(_thread_local, 'default_backprop', True)
-    _thread_local.default_backprop = True
-    yield
-    _thread_local.default_backprop = default
+    return configuration.using_config('enable_backprop', True)
 
 
 class Function(object):
@@ -143,13 +130,8 @@ class Function(object):
     Attributes:
         inputs: A tuple or list of input variables.
         outputs: A tuple or list of output variables.
-        type_check_enable: When it is ``True``, the function checks types of
-            input arguments. Set ``CHAINER_TYPE_CHECK`` environment variable
-            ``0`` to disable type check, or set the variable directly in
-            your own program.
 
     """
-    type_check_enable = int(os.environ.get('CHAINER_TYPE_CHECK', '1')) != 0
 
     def __call__(self, *inputs):
         """Applies forward propagation with chaining backward references.
@@ -185,7 +167,7 @@ class Function(object):
         if chainer.is_debug():
             self._stack = traceback.extract_stack()
 
-        if self.type_check_enable:
+        if configuration.config.type_check:
             self._check_data_type_forward(in_data)
 
         hooks = chainer.get_function_hooks()
@@ -216,7 +198,7 @@ class Function(object):
         elif out_v == 'off':
             build_graph = True
         else:
-            build_graph = getattr(_thread_local, 'default_backprop', True)
+            build_graph = configuration.config.enable_backprop
 
         if build_graph:
             # Topological ordering

@@ -3,8 +3,8 @@ import warnings
 import numpy
 import six
 
+from chainer import configuration
 from chainer import cuda
-from chainer import function
 from chainer.functions.math import identity
 from chainer import testing
 from chainer import variable
@@ -50,10 +50,7 @@ def numerical_grad(f, inputs, grad_outputs, eps=1e-3):
         xp = numpy
     grads = [xp.zeros_like(x) for x in inputs]
 
-    # Test scripts always run in single thread or multi-process.
-    prev_mode = function.Function.type_check_enable  # not thread safe
-    try:
-        function.Function.type_check_enable = False
+    with configuration.using_config('type_check', False):
         for x, gx in six.moves.zip(inputs, grads):
             for i in numpy.ndindex(x.shape):
                 orig = x[i].copy()  # hold original value
@@ -66,8 +63,7 @@ def numerical_grad(f, inputs, grad_outputs, eps=1e-3):
                     if gy is not None:
                         dot = ((y1 - y2) * gy).sum()
                         gx[i] += dot / (2 * eps)
-    finally:
-        function.Function.type_check_enable = prev_mode  # not thread safe
+
     return grads
 
 

@@ -76,7 +76,10 @@ class TestVariable(unittest.TestCase):
         if gpu:
             x = cuda.to_gpu(x)
         x = chainer.Variable(x)
-        self.assertEqual(len(x), self.size)
+        if x.ndim == 0:
+            self.assertRaises(TypeError, x.__len__)
+        else:
+            self.assertEqual(len(x), self.x_shape[0])
 
     def test_len_cpu(self):
         self.check_len(False)
