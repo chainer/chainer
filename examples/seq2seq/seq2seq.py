@@ -167,7 +167,7 @@ def main():
     train_iter = chainer.iterators.SerialIterator(train_data, 50)
     updater = training.StandardUpdater(
         train_iter, optimizer, converter=convert, device=args.gpu)
-    trainer = training.Trainer(updater, (10, 'epoch'))
+    trainer = training.Trainer(updater, (args.epoch, 'epoch'))
     trainer.extend(extensions.LogReport())
     trainer.extend(extensions.PrintReport(
         ['epoch', 'main/loss', 'validation/main/loss',
