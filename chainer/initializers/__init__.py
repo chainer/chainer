@@ -1,6 +1,5 @@
 import numpy
 
-from chainer import initializer  # NOQA
 from chainer.initializers import constant  # NOQA
 from chainer.initializers import normal  # NOQA
 from chainer.initializers import orthogonal  # NOQA
