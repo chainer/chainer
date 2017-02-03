@@ -173,6 +173,7 @@ def main():
 
     model = Seq2seq(3, len(source_ids), len(target_ids), args.unit)
     if args.gpu >= 0:
+        cuda.Device(args.gpu).use()
         model.to_gpu(args.gpu)
 
     optimizer = chainer.optimizers.Adam()
