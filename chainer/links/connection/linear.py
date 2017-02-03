@@ -87,7 +87,16 @@ class Linear(link.Link):
 
         # For backward compatibility
         self.initialW = initialW
+<<<<<<< HEAD
         self._W_initializer = initializers._get_initializer(initialW)
+=======
+        self.wscale = wscale
+
+        # For backward compatibility, the scale of weights is proportional to
+        # the square root of wscale.
+        self._W_initializer = initializers._get_initializer(
+            initialW, math.sqrt(wscale))
+>>>>>>> 30b9d8611a529196f13aab0d77a61b30851c6e9f
 
         if in_size is None:
             self.out_size = out_size

@@ -73,8 +73,13 @@ class Convolution2D(link.Link):
             (1, 7, 6, 6)
 
         3. When you specify other arguments other than ``in_channels``,
+<<<<<<< HEAD
                 ``out_channels``, and ``ksize``, you need to give them as
                 keyword auguments.
+=======
+            ``out_channels``, and ``ksize``, you need to give them as keyword
+            auguments.
+>>>>>>> 30b9d8611a529196f13aab0d77a61b30851c6e9f
 
             >>> l = L.Convolution2D(7, 5, stride=1, pad=0)
             >>> y = l(x)
