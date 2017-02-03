@@ -145,7 +145,7 @@ class MaxPooling2D(pooling_2d.Pooling2D):
 
 
 def max_pooling_2d(x, ksize, stride=None, pad=0, cover_all=True,
-                   use_cudnn=True):
+                   use_cudnn=True, forget_x=False):
     """Spatial max pooling function.
 
     This function acts similarly to :class:`~functions.Convolution2D`, but
@@ -170,4 +170,8 @@ def max_pooling_2d(x, ksize, stride=None, pad=0, cover_all=True,
         ~chainer.Variable: Output variable.
 
     """
-    return MaxPooling2D(ksize, stride, pad, cover_all, use_cudnn)(x)
+    func = MaxPooling2D(ksize, stride, pad, cover_all, use_cudnn)
+    if forget_x:
+        func.forget_x = forget_x
+
+    return func(x)

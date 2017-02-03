@@ -264,7 +264,7 @@ class Convolution2DFunction(function.Function):
 
 
 def convolution_2d(x, W, b=None, stride=1, pad=0, use_cudnn=True,
-                   cover_all=False, deterministic=False):
+                   cover_all=False, deterministic=False, forget_x=False):
     """Two-dimensional convolution function.
 
     This is an implementation of two-dimensional convolution in ConvNets.
@@ -329,8 +329,11 @@ def convolution_2d(x, W, b=None, stride=1, pad=0, use_cudnn=True,
     .. seealso:: :class:`~chainer.links.Convolution2D`
 
     """
-    func = Convolution2DFunction(
-        stride, pad, use_cudnn, cover_all, deterministic)
+    func = Convolution2DFunction(stride, pad, use_cudnn, cover_all, 
+                                 deterministic)
+    if forget_x:
+        func.forget_x = forget_x
+
     if b is None:
         return func(x, W)
     else:

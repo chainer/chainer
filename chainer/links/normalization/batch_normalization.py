@@ -64,7 +64,8 @@ class BatchNormalization(link.Link):
 
     def __init__(self, size, decay=0.9, eps=2e-5, dtype=numpy.float32,
                  use_gamma=True, use_beta=True,
-                 initial_gamma=None, initial_beta=None, use_cudnn=True):
+                 initial_gamma=None, initial_beta=None, use_cudnn=True,
+                 forget_x=False):
         super(BatchNormalization, self).__init__()
         if use_gamma:
             self.add_param('gamma', size, dtype=dtype)
@@ -82,6 +83,8 @@ class BatchNormalization(link.Link):
         self.decay = decay
         self.eps = eps
         self.use_cudnn = use_cudnn
+
+        self.forget_x = forget_x
 
     def __call__(self, x, test=False, finetune=False):
         """Invokes the forward propagation of BatchNormalization.
@@ -127,6 +130,9 @@ class BatchNormalization(link.Link):
             func = batch_normalization.BatchNormalizationFunction(
                 self.eps, self.avg_mean, self.avg_var, True, decay,
                 self.use_cudnn)
+            if self.forget_x:
+                func.forget_x = self.forget_x
+
             ret = func(x, gamma, beta)
 
             self.avg_mean[:] = func.running_mean

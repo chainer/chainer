@@ -53,7 +53,7 @@ class LinearFunction(function.Function):
             return gx, gW
 
 
-def linear(x, W, b=None):
+def linear(x, W, b=None, forget_x=False):
     """Linear function, or affine transformation.
 
     It accepts two or three arguments: an input minibatch ``x``, a weight
@@ -90,7 +90,11 @@ def linear(x, W, b=None):
         (3, 5)
 
     """
+    func = LinearFunction()
+    if forget_x:
+        func.forget_x = forget_x
+
     if b is None:
-        return LinearFunction()(x, W)
+        return func(x, W)
     else:
-        return LinearFunction()(x, W, b)
+        return func(x, W, b)

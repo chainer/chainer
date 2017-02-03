@@ -56,7 +56,7 @@ class ReLU(function.Function):
         return gx,
 
 
-def relu(x, use_cudnn=True):
+def relu(x, use_cudnn=True, forget_x=False):
     """Rectified Linear Unit function.
 
      .. math::`f(x)=\\max(0, x)`.
@@ -84,4 +84,8 @@ def relu(x, use_cudnn=True):
         (3, 4, 5)
 
     """
-    return ReLU(use_cudnn)(x)
+    func = ReLU(use_cudnn)
+    if forget_x:
+        func.forget_x = forget_x
+
+    return func(x)

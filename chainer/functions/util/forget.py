@@ -55,6 +55,8 @@ class Forget(function.Function):
         xs = [variable.Variable(x, volatile=False) for x in inputs]
         outs = self._call_func(xs)
         _DummyFunction(grads)(*outs).backward()
+        outs = None
+        self.func = None
         return tuple(x.grad for x in xs)
 
 
