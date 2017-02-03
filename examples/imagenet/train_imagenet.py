@@ -138,6 +138,7 @@ def main():
     # Set up an optimizer
     optimizer = chainer.optimizers.MomentumSGD(lr=0.01, momentum=0.9)
     optimizer.setup(model)
+    optimizer.use_unchain()
 
     # Set up a trainer
     updater = training.StandardUpdater(train_iter, optimizer, device=args.gpu)
@@ -148,7 +149,7 @@ def main():
 
     trainer.extend(TestModeEvaluator(val_iter, model, device=args.gpu),
                    trigger=val_interval)
-    trainer.extend(extensions.dump_graph('main/loss'))
+    # trainer.extend(extensions.dump_graph('main/loss'))
     trainer.extend(extensions.snapshot(), trigger=val_interval)
     trainer.extend(extensions.snapshot_object(
         model, 'model_iter_{.updater.iteration}'), trigger=val_interval)

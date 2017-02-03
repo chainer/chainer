@@ -320,7 +320,7 @@ Actual: {0}'''.format(type(data))
         self.creator = gen_func
         self.rank = gen_func.rank + 1
 
-    def backward(self, retain_grad=False):
+    def backward(self, retain_grad=False, unchain=False):
         """Runs error backpropagation (a.k.a. backprop) from this variable.
 
         On backprop, :meth:`Function.backward` is called on each
@@ -347,6 +347,8 @@ Actual: {0}'''.format(type(data))
                 In most cases of training some models, the purpose of backprop
                 is to compute gradients of parameters, not of variables, so it
                 is recommended to set this flag ``False``.
+            unchain (bool): If ``True``, deletes references between variables
+                and functions backward.
 
         """
         if self.creator is None:
@@ -368,14 +370,15 @@ Actual: {0}'''.format(type(data))
         def add_cand(cand):
             if cand not in seen_set:
                 # Negate since heapq is min-heap
-                heapq.heappush(cand_funcs, (-cand.rank, len(seen_set), cand))
+                out = [y() for y in cand.outputs]  # access via weak ref
+                heapq.heappush(cand_funcs,
+                               (-cand.rank, len(seen_set), cand, out))
                 seen_set.add(cand)
 
         add_cand(self.creator)
 
         while cand_funcs:
-            _, _, func = heapq.heappop(cand_funcs)
-            outputs = tuple(y() for y in func.outputs)  # access via weak ref
+            _, _, func, outputs = heapq.heappop(cand_funcs)
 
             in_data = tuple(x.data for x in func.inputs)
             out_grad = tuple(None if y is None else y.grad for y in outputs)
@@ -402,6 +405,7 @@ Actual: {0}'''.format(type(data))
                 for y in outputs:
                     if y is not None and y is not self:
                         y.grad = None
+
             for x, gx in zip(func.inputs, gxs):
                 if gx is None:
                     continue
@@ -433,6 +437,9 @@ Actual: {0}'''.format(type(data))
                         else:  # 3rd or later visit
                             x._grad += gx
             del gxs  # to reduce memory usage
+
+            if unchain:
+                func.unchain()
 
     def unchain_backward(self):
         """Deletes references between variables and functions backward.
