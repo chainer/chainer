@@ -1,7 +1,7 @@
 from chainer import cuda
+from chainer.functions.connection import linear
 from chainer import initializers
 from chainer import link
-from chainer.functions.connection import linear
 
 
 class Linear(link.Link):
