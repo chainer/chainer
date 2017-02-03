@@ -84,7 +84,7 @@ class TestMLPConvolution2DCudnnCall(unittest.TestCase):
         y.grad = self.gy
         v2 = 'cupy.cudnn.cudnn.convolutionBackwardData_v2'
         v3 = 'cupy.cudnn.cudnn.convolutionBackwardData_v3'
-        with mock.patch(v2) as func_v2,  mock.patch(v3) as func_v3:
+        with mock.patch(v2) as func_v2, mock.patch(v3) as func_v3:
             y.backward()
             self.assertEqual(func_v2.called or func_v3.called, self.use_cudnn)
 
@@ -97,8 +97,7 @@ class TestMLPConvolution2DShapePlaceholder(unittest.TestCase):
 
     def setUp(self):
         self.mlp = links.MLPConvolution2D(
-            None, (96, 96, 96), 11,
-            activation=functions.sigmoid,
+            (96, 96, 96), 11, activation=functions.sigmoid,
             use_cudnn=self.use_cudnn)
         self.x = numpy.zeros((10, 3, 20, 20), dtype=numpy.float32)
 

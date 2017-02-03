@@ -16,8 +16,9 @@ class MLPConvolution2D(link.ChainList):
 
     Args:
         in_channels (int or None): Number of channels of input arrays.
-            If ``None``, parameter initialization will be deferred until the
-            first forward data pass at which time the size will be determined.
+            If it is ``None`` or ommitted, parameter initialization will be
+            deferred until the first forward data pass at which time the size
+            will be determined.
         out_channels (tuple of ints): Tuple of number of channels. The i-th
             integer indicates the number of filters of the i-th convolution.
         ksize (int or pair of ints): Size of filters (a.k.a. kernels) of the
@@ -44,9 +45,11 @@ class MLPConvolution2D(link.ChainList):
 
     """
 
-    def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
+    def __init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0,
                  activation=relu.relu, use_cudnn=True,
                  conv_init=None, bias_init=None):
+        if ksize is None:
+            out_channels, ksize, in_channels = in_channels, out_channels, None
         assert len(out_channels) > 0
         convs = [convolution_2d.Convolution2D(
             in_channels, out_channels[0], ksize, stride, pad,

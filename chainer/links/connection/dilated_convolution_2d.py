@@ -12,9 +12,10 @@ class DilatedConvolution2D(link.Link):
     function and holds the filter weight and bias vector as parameters.
 
     Args:
-        in_channels (int): Number of channels of input arrays. If ``None``,
-            parameter initialization will be deferred until the first forward
-            data pass at which time the size will be determined.
+        in_channels (int): Number of channels of input arrays. If it is
+            ``None`` or ommitted, parameter initialization will be deferred
+            until the first forward data pass at which time the size will be
+            determined.
         out_channels (int): Number of channels of output arrays.
         ksize (int or pair of ints): Size of filters (a.k.a. kernels).
             ``ksize=k`` and ``ksize=(k, k)`` are equivalent.
@@ -50,6 +51,10 @@ class DilatedConvolution2D(link.Link):
                  dilate=1, bias=0, nobias=False, use_cudnn=True,
                  initialW=None, initial_bias=None):
         super(DilatedConvolution2D, self).__init__()
+
+        if ksize is None:
+            out_channels, ksize, in_channels = in_channels, out_channels, None
+
         self.ksize = ksize
         self.stride = _pair(stride)
         self.pad = _pair(pad)

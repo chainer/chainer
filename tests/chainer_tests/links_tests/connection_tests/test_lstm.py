@@ -27,8 +27,10 @@ from chainer.testing import attr
 class TestLSTM(unittest.TestCase):
 
     def setUp(self):
-        in_size = None if self.input_none else self.in_size
-        self.link = links.LSTM(in_size, self.out_size)
+        if self.input_none:
+            self.link = links.LSTM(self.out_size)
+        else:
+            self.link = links.LSTM(self.in_size, self.out_size)
         self.link.cleargrads()
         x1_shape = (4, self.in_size)
         self.x1 = numpy.random.uniform(-1, 1, x1_shape).astype(numpy.float32)
@@ -250,8 +252,10 @@ class TestLSTMInvalidSize(unittest.TestCase):
 class TestStatelessLSTM(unittest.TestCase):
 
     def setUp(self):
-        in_size = None if self.input_none else self.in_size
-        self.link = links.StatelessLSTM(in_size, self.out_size)
+        if self.input_none:
+            self.link = links.StatelessLSTM(self.out_size)
+        else:
+            self.link = links.StatelessLSTM(self.in_size, self.out_size)
         self.link.cleargrads()
 
         x_shape = (4, self.in_size)

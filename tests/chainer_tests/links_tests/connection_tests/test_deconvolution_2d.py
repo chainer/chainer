@@ -105,10 +105,8 @@ class TestDeconvolution2DParameterShapePlaceholder(unittest.TestCase):
         ksize = 3
         stride = 2
         pad = 1
-        in_channels = None
         self.link = L.Deconvolution2D(
-            in_channels, out_channels, ksize,
-            stride=stride, pad=pad, nobias=self.nobias)
+            out_channels, ksize, stride=stride, pad=pad, nobias=self.nobias)
         if not self.nobias:
             self.link.b.data[...] = numpy.random.uniform(
                 -1, 1, self.link.b.data.shape).astype(numpy.float32)

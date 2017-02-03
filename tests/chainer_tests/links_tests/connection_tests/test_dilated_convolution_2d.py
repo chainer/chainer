@@ -116,9 +116,7 @@ class TestDilatedConvolution2D(unittest.TestCase):
 class TestDilatedConvolution2DParameterShapePlaceholder(unittest.TestCase):
 
     def setUp(self):
-        in_channels = None
-        self.link = links.DilatedConvolution2D(
-            in_channels, 2, 3, stride=2, pad=2, dilate=2)
+        self.link = links.DilatedConvolution2D(2, 3, stride=2, pad=2, dilate=2)
         self.x = numpy.random.uniform(-1, 1,
                                       (2, 3, 4, 3)).astype(numpy.float32)
         self.link(chainer.Variable(self.x))

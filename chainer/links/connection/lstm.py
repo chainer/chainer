@@ -14,14 +14,17 @@ from chainer import variable
 
 class LSTMBase(link.Chain):
 
-    def __init__(self, in_size, out_size,
-                 lateral_init=None, upward_init=None,
-                 bias_init=0, forget_bias_init=0):
+    def __init__(self, in_size, out_size=None, lateral_init=None,
+                 upward_init=None, bias_init=0, forget_bias_init=0):
+        if out_size is None:
+            out_size, in_size = in_size, None
+
         super(LSTMBase, self).__init__(
             upward=linear.Linear(in_size, 4 * out_size, initialW=0),
             lateral=linear.Linear(out_size, 4 * out_size,
                                   initialW=0, nobias=True),
         )
+
         self.state_size = out_size
         self.lateral_init = lateral_init
         self.upward_init = upward_init
@@ -57,9 +60,9 @@ class StatelessLSTM(LSTMBase):
     hidden states.
 
     Args:
-        in_size (int): Dimension of input vectors. If ``None``, parameter
-            initialization will be deferred until the first forward data pass
-            at which time the size will be determined.
+        in_size (int): Dimension of input vectors. If it is ``None`` or
+            ommitted, parameter initialization will be deferred until the first
+            forward data pass at which time the size will be determined.
         out_size (int): Dimensionality of output vectors.
 
     Attributes:
@@ -123,9 +126,9 @@ class LSTM(LSTMBase):
     applying the function.
 
     Args:
-        in_size (int): Dimension of input vectors. If ``None``, parameter
-            initialization will be deferred until the first forward data pass
-            at which time the size will be determined.
+        in_size (int): Dimension of input vectors. If it is ``None`` or
+            ommitted, parameter initialization will be deferred until the first
+            forward data pass at which time the size will be determined.
         out_size (int): Dimensionality of output vectors.
         lateral_init: A callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
@@ -159,7 +162,9 @@ class LSTM(LSTMBase):
 
     """
 
-    def __init__(self, in_size, out_size, **kwargs):
+    def __init__(self, in_size, out_size=None, **kwargs):
+        if out_size is None:
+            in_size, out_size = None, in_size
         super(LSTM, self).__init__(in_size, out_size, **kwargs)
         self.reset_state()
 
