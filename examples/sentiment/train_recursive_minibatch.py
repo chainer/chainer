@@ -217,7 +217,7 @@ def main():
     if args.gpu >= 0:
         model.to_gpu()
 
-    optimizer = chainer.optimizers.Adam()
+    optimizer = chainer.optimizers.AdaGrad(0.1)
     optimizer.setup(model)
 
     updater = training.StandardUpdater(
