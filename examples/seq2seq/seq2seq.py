@@ -13,6 +13,8 @@ from chainer import reporter
 from chainer import training
 from chainer.training import extensions
 
+import europal
+
 
 def sequence_embed(embed, xs):
     x_len = [len(x) for x in xs]
@@ -144,7 +146,7 @@ class CalculateBleu(chainer.training.Extension):
 
 def main():
     parser = argparse.ArgumentParser(description='Chainer example: seq2seq')
-    parser.add_argument('--batchsize', '-b', type=int, default=100,
+    parser.add_argument('--batchsize', '-b', type=int, default=64,
                         help='Number of images in each mini-batch')
     parser.add_argument('--epoch', '-e', type=int, default=20,
                         help='Number of sweeps over the dataset to train')
@@ -154,21 +156,34 @@ def main():
                         help='Directory to output the result')
     parser.add_argument('--resume', '-r', default='',
                         help='Resume the training from snapshot')
-    parser.add_argument('--unit', '-u', type=int, default=256,
+    parser.add_argument('--unit', '-u', type=int, default=1024,
                         help='Number of units')
     args = parser.parse_args()
 
-    sentences = comtrans.aligned_sents('alignment-en-fr.txt')
-    source_ids = collections.defaultdict(lambda: len(source_ids))
-    target_ids = collections.defaultdict(lambda: len(target_ids))
-    target_ids['eos']
-    data = []
-    for sentence in sentences:
-        source = numpy.array([source_ids[w] for w in sentence.words], 'i')
-        target = numpy.array([target_ids[w] for w in sentence.mots], 'i')
-        data.append((source, target))
-    print('Source vocabulary: %d' % len(source_ids))
-    print('Target vocabulary: %d' % len(target_ids))
+    if True:
+        sentences = comtrans.aligned_sents('alignment-en-fr.txt')
+        source_ids = collections.defaultdict(lambda: len(source_ids))
+        target_ids = collections.defaultdict(lambda: len(target_ids))
+        target_ids['eos']
+        data = []
+        for sentence in sentences:
+            source = numpy.array([source_ids[w] for w in sentence.words], 'i')
+            target = numpy.array([target_ids[w] for w in sentence.mots], 'i')
+            data.append((source, target))
+        print('Source vocabulary: %d' % len(source_ids))
+        print('Target vocabulary: %d' % len(target_ids))
+
+    else:
+        en_path = 'wmt/giga-fren.release2.fixed.en'
+        source_vocab = europal.count_words(en_path)
+        source_data = europal.make_dataset(en_path, source_vocab)
+        fr_path = 'wmt/giga-fren.release2.fixed.fr'
+        target_vocab = europal.count_words(fr_path)
+        target_data = europal.make_dataset(fr_path, target_vocab)
+        data = zip(source_data, target_data)
+
+        source_ids = {word: index for index, word in enumerate(source_vocab)}
+        target_ids = {word: index for index, word in enumerate(target_vocab)}
 
     test_data = data[:len(data) / 10]
     train_data = data[len(data) / 10:]
@@ -178,7 +193,7 @@ def main():
     if args.gpu >= 0:
         model.to_gpu(args.gpu)
 
-    optimizer = chainer.optimizers.Adam()
+    optimizer = chainer.optimizers.AdaGrad(0.5)
     optimizer.setup(model)
 
     train_iter = chainer.iterators.SerialIterator(train_data, 50)
@@ -200,6 +215,7 @@ def main():
 
     trainer.extend(translate)
     trainer.extend(CalculateBleu(model, test_data))
+    #trainer.extend(CalculateBleu(model, train_data))
 
     trainer.run()
 
