@@ -30,13 +30,13 @@ def _transpose(xs, length):
                 outs[p][i] = xi
 
     else:
-        offsets1 = numpy.empty(len(xs) + 1, dtype='i')
+        offsets1 = cuda.cupy.empty(len(xs) + 1, dtype='i')
         offsets1[0] = 0
-        numpy.cumsum([len(x) for x in xs], out=offsets1[1:])
+        cuda.cupy.cumsum(cuda.to_gpu([len(x) for x in xs]), out=offsets1[1:])
 
-        offsets2 = numpy.empty(length + 1, dtype='i')
+        offsets2 = cuda.cupy.empty(length + 1, dtype='i')
         offsets2[0] = 0
-        numpy.cumsum(lengths, dtype='i', out=offsets2[1:])
+        cuda.cupy.cumsum(cuda.to_gpu(lengths), dtype='i', out=offsets2[1:])
 
         x = xp.concatenate(xs, axis=0)
         o = xp.empty_like(x)
@@ -55,9 +55,9 @@ def _transpose(xs, length):
             }
             ''',
             'transpose_sequence'
-        )(length, unit, cuda.to_gpu(offsets1), cuda.to_gpu(offsets2), x, o,
+        )(length, unit, offsets1, offsets2, x, o,
           size=size)
-        outs = tuple(xp.split(o, offsets2[1:-1]))
+        outs = tuple(xp.split(o, cuda.to_cpu(offsets2[1:-1])))
 
     return outs
 
