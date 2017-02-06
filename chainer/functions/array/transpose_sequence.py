@@ -32,11 +32,13 @@ def _transpose(xs, length):
     else:
         offsets1 = cuda.cupy.empty(len(xs) + 1, dtype='i')
         offsets1[0] = 0
-        cuda.cupy.cumsum(cuda.to_gpu([len(x) for x in xs]), out=offsets1[1:])
+        cuda.cupy.cumsum(
+            cuda.cupy.array([len(x) for x in xs], dtype='i'), out=offsets1[1:])
 
         offsets2 = cuda.cupy.empty(length + 1, dtype='i')
         offsets2[0] = 0
-        cuda.cupy.cumsum(cuda.to_gpu(lengths), dtype='i', out=offsets2[1:])
+        cuda.cupy.cumsum(
+            cuda.cupy.array(lengths, dtype='i'), out=offsets2[1:])
 
         x = xp.concatenate(xs, axis=0)
         o = xp.empty_like(x)
