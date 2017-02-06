@@ -206,12 +206,13 @@ def main():
     updater = training.StandardUpdater(
         train_iter, optimizer, converter=convert, device=args.gpu)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'))
-    trainer.extend(extensions.LogReport())
+    trainer.extend(extensions.LogReport(), trigger=(200, 'iteration'))
     trainer.extend(extensions.PrintReport(
         ['epoch', 'main/loss', 'validation/main/loss',
-         'main/accuracy', 'validation/main/accuracy', 'elapsed_time']))
+         'main/accuracy', 'validation/main/accuracy', 'elapsed_time']),
+        trigger=(200, 'iteration'))
 
-    @chainer.training.make_extension(trigger=(1, 'epoch'))
+    @chainer.training.make_extension(trigger=(200, 'iteration'))
     def translate(trainer):
         words = ['Resumption', 'of', 'the', 'session']
         x = model.xp.array([source_ids[w] for w in words], 'i')
@@ -219,7 +220,7 @@ def main():
         words = [target_words[y] for y in ys]
         print(' '.join(words))
 
-    trainer.extend(translate)
+    # trainer.extend(translate)
     trainer.extend(CalculateBleu(model, test_data))
     #trainer.extend(CalculateBleu(model, train_data))
 
