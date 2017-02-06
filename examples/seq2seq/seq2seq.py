@@ -160,7 +160,7 @@ def main():
                         help='Number of units')
     args = parser.parse_args()
 
-    if True:
+    if False:
         sentences = comtrans.aligned_sents('alignment-en-fr.txt')
         source_ids = collections.defaultdict(lambda: len(source_ids))
         target_ids = collections.defaultdict(lambda: len(target_ids))
@@ -173,6 +173,8 @@ def main():
         print('Source vocabulary: %d' % len(source_ids))
         print('Target vocabulary: %d' % len(target_ids))
 
+        test_data = data[:len(data) / 10]
+        train_data = data[len(data) / 10:]
     else:
         en_path = 'wmt/giga-fren.release2.fixed.en'
         source_vocab = europal.count_words(en_path)
@@ -180,13 +182,17 @@ def main():
         fr_path = 'wmt/giga-fren.release2.fixed.fr'
         target_vocab = europal.count_words(fr_path)
         target_data = europal.make_dataset(fr_path, target_vocab)
-        data = zip(source_data, target_data)
+        train_data = zip(source_data, target_data)
+
+        en_path = 'wmt/dev/newstest2013.en'
+        source_data = europal.make_dataset(en_path, source_vocab)
+        fr_path = 'wmt/dev/newstest2013.fr'
+        target_data = europal.make_dataset(fr_path, target_vocab)
+        test_data = zip(source_data, target_data)
 
         source_ids = {word: index for index, word in enumerate(source_vocab)}
         target_ids = {word: index for index, word in enumerate(target_vocab)}
 
-    test_data = data[:len(data) / 10]
-    train_data = data[len(data) / 10:]
     target_words = {i: w for w, i in target_ids.items()}
 
     model = Seq2seq(3, len(source_ids), len(target_ids), args.unit)
