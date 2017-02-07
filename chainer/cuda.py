@@ -182,11 +182,12 @@ def get_device(device):
         device (:class:`cupy.ndarray` or None): If `None`, it returns
             :class:`chainer.cuda.DammyDevice`, otherwise it returns the input
             device object as is.
-    
+
     """
     if isinstance(device, cuda.Device):
         return device
     return DummyDevice
+
 
 # ------------------------------------------------------------------------------
 # cupy.ndarray allocation and copy
