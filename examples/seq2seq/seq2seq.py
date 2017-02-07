@@ -182,7 +182,10 @@ def main():
         fr_path = 'wmt/giga-fren.release2.fixed.fr'
         target_vocab = europal.count_words(fr_path)
         target_data = europal.make_dataset(fr_path, target_vocab)
-        train_data = zip(source_data, target_data)
+        print('Original training data size: %d' % len(source_data))
+        train_data = [(s, t) for s, t in zip(source_data, target_data)
+                      if len(s) < 50 and len(t) < 50]
+        print('Filtered training data size: %d' % len(train_data))
 
         en_path = 'wmt/dev/newstest2013.en'
         source_data = europal.make_dataset(en_path, source_vocab)
