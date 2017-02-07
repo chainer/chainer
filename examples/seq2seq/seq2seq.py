@@ -177,10 +177,10 @@ def main():
         train_data = data[len(data) / 10:]
     else:
         en_path = 'wmt/giga-fren.release2.fixed.en'
-        source_vocab = europal.count_words(en_path)
+        source_vocab = ['<eos>', '<unk>'] + europal.count_words(en_path)
         source_data = europal.make_dataset(en_path, source_vocab)
         fr_path = 'wmt/giga-fren.release2.fixed.fr'
-        target_vocab = europal.count_words(fr_path)
+        target_vocab = ['<eos>', '<unk>'] + europal.count_words(fr_path)
         target_data = europal.make_dataset(fr_path, target_vocab)
         print('Original training data size: %d' % len(source_data))
         train_data = [(s, t) for s, t in zip(source_data, target_data)
