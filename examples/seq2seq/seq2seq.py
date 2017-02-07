@@ -59,7 +59,7 @@ class Seq2seq(chainer.Chain):
         reporter.report({'loss': loss.data}, self)
         return loss
 
-    def translate(self, xs, max_length=10):
+    def translate(self, xs, max_length=50):
         batch = len(xs)
         with chainer.no_backprop_mode():
             exs = sequence_embed(self.embed_x, xs)
