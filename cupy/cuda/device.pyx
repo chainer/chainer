@@ -135,7 +135,7 @@ cdef class Device:
         with self:
             handle = cusolver.create()
             _cusolver_handles[self.id] = handle
-        return handle
+            return handle
 
     def __richcmp__(Device self, Device other, int op):
         if op == 0:
