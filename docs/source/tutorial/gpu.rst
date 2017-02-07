@@ -106,21 +106,22 @@ It is equivalent to the following code using CuPy:
    If user uses only one device, these device switching is not needed.
    :func:`chainer.cuda.to_cpu` and :func:`chainer.cuda.to_gpu` functions automatically switch the current device correctly.
 
-Chainer also provides a convenient function :func:`chainer.cuda.get_device` to select a device.
-It accepts an integer, CuPy array, NumPy array, or None (indicating the current device), and returns an appropriate device object.
-If the argument is a NumPy array, then *a dummy device object* is returned.
+Chainer also provides convenient functions :func:`chainer.cuda.get_device_from_id` and :func:`chainer.cuda.get_device_from_array` to select a device.
+The former one accepts an integer indicating the target device and returns an appropriate device object.
+The latter one accepts a :class:`cuda.ndarray` object and returns the corresponding device object.
+In this latter function, if the argument is a NumPy array, then *a dummy device object* is returned.
 The dummy device object supports *with* statements like above which does nothing.
 Here are some examples:
 
 .. testcode::
 
-   cuda.get_device(1).use()
+   cuda.get_device_from_id(1).use()
    x_gpu1 = cupy.empty((4, 3), dtype='f')  # 'f' indicates float32
 
-   with cuda.get_device(1):
+   with cuda.get_device_from_id(1):
        x_gpu1 = cuda.empty((4, 3), dtype='f')
 
-   with cuda.get_device(x_gpu1):
+   with cuda.get_device_from_array(x_gpu1):
        y_gpu1 = x_gpu + 1
 
 Since it accepts NumPy arrays, we can write a function that accepts both NumPy and CuPy arrays with correct device switching:
@@ -128,7 +129,7 @@ Since it accepts NumPy arrays, we can write a function that accepts both NumPy a
 .. testcode::
 
    def add1(x):
-       with cuda.get_device(x):
+       with cuda.get_device_from_array(x):
            return x + 1
 
 The compatibility of CuPy with NumPy enables us to write CPU/GPU generic code.

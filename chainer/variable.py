@@ -135,7 +135,7 @@ Actual: {0}'''.format(type(data))
         except AttributeError:
             device = 'CPU'
 
-        with cuda.get_device(self.data) as dev:
+        with cuda.get_device_from_array(self.data) as dev:
             xp = numpy if int(dev) == -1 else cuda.cupy
 
             if self.grad is None:
@@ -242,7 +242,7 @@ Actual: {0}'''.format(type(data))
         warnings.warn(
             'Variable.zerograd is deprecated. Use Variable.cleargard instead.',
             DeprecationWarning)
-        with cuda.get_device(self.data) as dev:
+        with cuda.get_device_from_array(self.data) as dev:
             if self._grad is None:
                 xp = numpy if int(dev) == -1 else cuda.cupy
                 self._grad = xp.zeros_like(self.data)
@@ -286,8 +286,8 @@ Actual: {0}'''.format(type(data))
         if src is None:
             return
 
-        src_dev = cuda.get_device(src)
-        dst_dev = cuda.get_device(self.data)
+        src_dev = cuda.get_device_from_array(src)
+        dst_dev = cuda.get_device_from_array(self.data)
 
         if src_dev.id == dst_dev.id:
             with dst_dev:
@@ -359,7 +359,7 @@ Actual: {0}'''.format(type(data))
 
         # Initialize error by 1, if this is a loss variable
         if self.data.size == 1 and self.grad is None:
-            with cuda.get_device(self.data) as device:
+            with cuda.get_device_from_array(self.data) as device:
                 if device is cuda.DummyDevice:
                     self.grad = numpy.ones_like(self.data)
                 else:
@@ -385,7 +385,7 @@ Actual: {0}'''.format(type(data))
                 hooks.update(func.local_function_hooks)
             for hook in six.itervalues(hooks):
                 hook.backward_preprocess(func, in_data, out_grad)
-            with cuda.get_device(*(in_data + out_grad)):
+            with cuda.get_device_from_array(*(in_data + out_grad)):
                 gxs = func.backward(in_data, out_grad)
             assert len(gxs) == len(in_data)
             for hook in six.itervalues(hooks):
@@ -410,7 +410,7 @@ Actual: {0}'''.format(type(data))
 
                 # Accumulate the gradient to x. It is a bit tricky to handle
                 # branches and parameter gradient accumulation correctly.
-                with cuda.get_device(gx):
+                with cuda.get_device_from_array(gx):
                     id_x = id(x)
                     if x.creator is None:  # leaf
                         if x._grad is None:

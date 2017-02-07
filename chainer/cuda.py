@@ -141,43 +141,52 @@ else:
 # ------------------------------------------------------------------------------
 # Global states
 # ------------------------------------------------------------------------------
-def get_device(*args):
-    """Gets the device from a device object, an ID integer or an array object.
 
-    This is a convenient utility to select a correct device if the type of
-    ``arg`` is unknown (i.e., one can use this function on arrays that may be
-    on CPU or GPU). The returned device object supports the context management
-    protocol of Python for the *with* statement.
+def get_device_from_id(device_id):
+    """Gets the device from an ID integer.
 
     Args:
-        args: Values to specify a GPU device. The first device object, integer
-            or :class:`cupy.ndarray` object is used to select a device.
-            If it is a device object, it is returned. If it is an integer,
-            the corresponding device is returned. If it is a CuPy array,
-            the device on which this array reside is returned. If any
-            arguments are neither integers nor CuPy arrays, a dummy device
-            object representing CPU is returned.
-
-    Returns:
-        Device object specified by given ``args``.
-
-    .. seealso::
-       See :class:`cupy.cuda.Device` for the device selection not by arrays.
+        device_id (int): The ID of the device which this function returns.
 
     """
-    for arg in args:
-        if type(arg) in _integer_types:
-            check_cuda_available()
-            return Device(arg)
-        if isinstance(arg, ndarray):
-            if arg.device is None:
-                continue
-            return arg.device
-        if available and isinstance(arg, Device):
-            return arg
-
+    check_cuda_available()
+    if type(device_id) in _integer_types:
+        return Device(device_id)
     return DummyDevice
 
+
+def get_device_from_array(*arrays):
+    """Gets the device from a list of CuPy array or a single CuPy array.
+
+    The device on which the given CuPy array reside is returned.
+
+    Args:
+        array (:class:`cupy.ndarray` or list of :class:`cupy.ndarray`):
+            A CuPy array which this function returns the device corresponding
+            to. If a list of :class:`cupy.ndarray`s are given, it returns
+            the first device object of an array in the list.
+
+    """
+    for array in arrays:
+        if isinstance(array, ndarray):
+            if array.device is None:
+                continue
+            return array.device
+    return DummyDevice
+
+
+def get_device(device):
+    """Checks and gets the device regardless of it's None or not.
+
+    Args:
+        device (:class:`cupy.ndarray` or None): If `None`, it returns
+            :class:`chainer.cuda.DammyDevice`, otherwise it returns the input
+            device object as is.
+    
+    """
+    if isinstance(device, cuda.Device):
+        return device
+    return DummyDevice
 
 # ------------------------------------------------------------------------------
 # cupy.ndarray allocation and copy
@@ -202,7 +211,7 @@ def to_gpu(array, device=None, stream=None):
     """
     check_cuda_available()
     with get_device(device):
-        array_dev = get_device(array)
+        array_dev = get_device_from_array(array)
         if array_dev.id == cupy.cuda.device.get_device_id():
             return array
 
@@ -253,7 +262,7 @@ def to_cpu(array, stream=None):
     """
     if isinstance(array, ndarray):
         check_cuda_available()
-        with get_device(array):
+        with get_device_from_array(array):
             return array.get(stream)
     elif isinstance(array, numpy.ndarray):
         return array
@@ -290,10 +299,11 @@ def copy(array, out=None, out_device=None, stream=None):
     if out is None:
         if out_device is None:
             out_device = array
-        with get_device(out_device):
-            out = cupy.empty_like(array)
+        if isinstance(out_device, cuda.Device):
+            with out_device:
+                out = cupy.empty_like(array)
 
-    with get_device(array):
+    with get_device_from_array(array):
         cupy.copyto(out, array)
 
     return out
