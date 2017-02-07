@@ -522,153 +522,121 @@ curandStatus_t curandGeneratePoisson(...) {
 // cusolver.h
 ///////////////////////////////////////////////////////////////////////////////
 
-int cusolverDnCreate(Handle* handle) {
-    return 0;
+typedef enum {
+    CUSOLVER_STATUS_SUCCESS = 0,
+} cusolverStatus_t;
+
+cusolverStatus_t cusolverDnCreate(...) {
+    return CUSOLVER_STATUS_SUCCESS;
 }
 
-int cusolverDnDestroy(Handle handle) {
-    return 0;
+cusolverStatus_t cusolverDnDestroy(...) {
+    return CUSOLVER_STATUS_SUCCESS;
 }
 
-int cusolverDnGetStream(Handle handle, Stream* streamId) {
-    return 0;
+cusolverStatus_t cusolverDnGetStream(...) {
+    return CUSOLVER_STATUS_SUCCESS;
 }
 
-int cusolverDnSetStream(Handle handle, Stream streamId) {
-    return 0;
+cusolverStatus_t cusolverDnSetStream(...) {
+    return CUSOLVER_STATUS_SUCCESS;
 }
 
-int cusolverDnSpotrf_bufferSize(Handle handle, FillMode uplo,
-                                int n, float* A, int lda, int* Lwork) {
-    return 0;
+cusolverStatus_t cusolverDnSpotrf_bufferSize(...) {
+    return CUSOLVER_STATUS_SUCCESS;
 }
 
-int cusolverDnDpotrf_bufferSize(Handle handle, FillMode uplo,
-                                int n, double* A, int lda, int* Lwork) {
-    return 0;
+cusolverStatus_t cusolverDnDpotrf_bufferSize(...) {
+    return CUSOLVER_STATUS_SUCCESS;
 }
 
-int cusolverDnSpotrf(Handle handle, FillMode uplo, int n, float* A, int lda,
-                     float* Workspace, int Lwork, int* devInfo) {
-    return 0;
+cusolverStatus_t cusolverDnSpotrf(...) {
+    return CUSOLVER_STATUS_SUCCESS;
 }
 
-int cusolverDnDpotrf(Handle handle, FillMode uplo, int n, double *A, int lda,
-                     double* Workspace, int Lwork, int* devInfo) {
-    return 0;
+cusolverStatus_t cusolverDnDpotrf(...) {
+    return CUSOLVER_STATUS_SUCCESS;
 }
 
-int cusolverDnSpotrs(Handle handle, FillMode uplo, int n, int nrhs,
-                     const float* A, int lda, float* B, int ldb,
-                     int* devInfo) {
-    return 0;
+cusolverStatus_t cusolverDnSpotrs(...) {
+    return CUSOLVER_STATUS_SUCCESS;
 }
 
-int cusolverDnDpotrs(Handle handle, FillMode uplo, int n, int nrhs,
-                     const double* A, int lda, double* B, int ldb,
-                     int *devInfo) {
-    return 0;
+cusolverStatus_t cusolverDnDpotrs(...) {
+    return CUSOLVER_STATUS_SUCCESS;
 }
 
 
-int cusolverDnSgetrf(Handle handle, int m, int n, float* A, int lda,
-                     float* Workspace, int* devIpiv, int* devInfo) {
-    return 0;
+cusolverStatus_t cusolverDnSgetrf(...) {
+    return CUSOLVER_STATUS_SUCCESS;
 }
 
-int cusolverDnDgetrf(Handle handle, int m, int n, double* A, int lda,
-                     double* Workspace, int* devIpiv, int* devInfo) {
-    return 0;
+cusolverStatus_t cusolverDnDgetrf(...) {
+    return CUSOLVER_STATUS_SUCCESS;
 }
 
-int cusolverDnSgetrs(Handle handle, Operation trans,
-                     int n, int nrhs, const float* A, int lda,
-                     const int* devIpiv, float* B, int ldb, int* devInfo) {
-    return 0;
+cusolverStatus_t cusolverDnSgetrs(...) {
+    return CUSOLVER_STATUS_SUCCESS;
 }
 
-int cusolverDnDgetrs(Handle handle, Operation trans,
-                     int n, int nrhs, const double* A, int lda,
-                     const int* devIpiv, double* B, int ldb, int* devInfo) {
-    return 0;
+cusolverStatus_t cusolverDnDgetrs(...) {
+    return CUSOLVER_STATUS_SUCCESS;
 }
 
-int cusolverDnSgeqrf_bufferSize(Handle handle, int m, int n,
-                                float* A, int lda, int* Lwork) {
-    return 0;
+cusolverStatus_t cusolverDnSgeqrf_bufferSize(...) {
+    return CUSOLVER_STATUS_SUCCESS;
 }
 
-int cusolverDnDgeqrf_bufferSize(Handle handle, int m, int n,
-                                double* A, int lda, int* Lwork) {
-    return 0;
+cusolverStatus_t cusolverDnDgeqrf_bufferSize(...) {
+    return CUSOLVER_STATUS_SUCCESS;
 }
 
-int cusolverDnSgeqrf(Handle handle, int m, int n, float* A, int lda,
-                     float* TAU, float* Workspace, int Lwork, int* devInfo) {
-    return 0;
+cusolverStatus_t cusolverDnSgeqrf(...) {
+    return CUSOLVER_STATUS_SUCCESS;
 }
 
-int cusolverDnDgeqrf(Handle handle, int m, int n, double* A, int lda,
-                     double* TAU, double* Workspace, int Lwork, int* devInfo) {
-    return 0;
+cusolverStatus_t cusolverDnDgeqrf(...) {
+    return CUSOLVER_STATUS_SUCCESS;
 }
 
-int cusolverDnSormqr(Handle handle, SideMode side, Operation trans,
-                     int m, int n, int k, const float* A, int lda,
-                     const float* tau, float* C, int ldc, float* work,
-                     int lwork, int* devInfo) {
-    return 0;
+cusolverStatus_t cusolverDnSormqr(...) {
+    return CUSOLVER_STATUS_SUCCESS;
 }
 
-int cusolverDnDormqr(Handle handle, SideMode side, Operation trans,
-                     int m, int n, int k, const double* A, int lda,
-                     const double* tau, double* C, int ldc, double* work,
-                     int lwork, int* devInfo) {
-    return 0;
+cusolverStatus_t cusolverDnDormqr(...) {
+    return CUSOLVER_STATUS_SUCCESS;
 }
 
-int cusolverDnSsytrf(Handle handle, FillMode uplo, int n, float *A, int lda,
-                     int *ipiv, float *work, int lwork, int *devInfo) {
-    return 0;
+cusolverStatus_t cusolverDnSsytrf(...) {
+    return CUSOLVER_STATUS_SUCCESS;
 }
 
-int cusolverDnDsytrf(Handle handle, FillMode uplo, int n, double* A, int lda,
-                     int* ipiv, double* work, int lwork, int* devInfo) {
-    return 0;
+cusolverStatus_t cusolverDnDsytrf(...) {
+    return CUSOLVER_STATUS_SUCCESS;
 }
 
-int cusolverDnSgebrd(Handle handle, int m, int n, float* A, int lda,
-                     float* D, float* E, float* TAUQ, float* TAUP,
-                     float* Work, int Lwork, int* devInfo) {
-    return 0;
+cusolverStatus_t cusolverDnSgebrd(...) {
+    return CUSOLVER_STATUS_SUCCESS;
 }
 
-int cusolverDnDgebrd(Handle handle, int m, int n, double* A, int lda,
-                     double* D, double* E, double* TAUQ, double* TAUP,
-                     double* Work, int Lwork, int* devInfo) {
-    return 0;
+cusolverStatus_t cusolverDnDgebrd(...) {
+    return CUSOLVER_STATUS_SUCCESS;
 }
 
-int cusolverDnSgesvd_bufferSize(Handle handle, int m, int n, int* Lwork) {
-    return 0;
+cusolverStatus_t cusolverDnSgesvd_bufferSize(...) {
+    return CUSOLVER_STATUS_SUCCESS;
 }
 
-int cusolverDnDgesvd_bufferSize(Handle handle, int m, int n, int* Lwork) {
-    return 0;
+cusolverStatus_t cusolverDnDgesvd_bufferSize(...) {
+    return CUSOLVER_STATUS_SUCCESS;
 }
 
-int cusolverDnSgesvd(Handle handle, char jobu, char jobvt, int m, int n,
-                     float* A, int lda, float* S, float* U, int ldu,
-                     float* VT, int ldvt, float* Work, int Lwork,
-                     float* rwork, int* devInfo) {
-    return 0;
+cusolverStatus_t cusolverDnSgesvd(...) {
+    return CUSOLVER_STATUS_SUCCESS;
 }
                      
-int cusolverDnDgesvd(Handle handle, char jobu, char jobvt, int m, int n,
-                     double* A, int lda, double* S, double* U, int ldu,
-                     double* VT, int ldvt, double* Work, int Lwork,
-                     double* rwork, int* devInfo) {
-    return 0;
+cusolverStatus_t cusolverDnDgesvd(...) {
+    return CUSOLVER_STATUS_SUCCESS;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
