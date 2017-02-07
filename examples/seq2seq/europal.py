@@ -50,7 +50,7 @@ def make_dataset(path, vocab):
 
 
 def make_array(word_id, words):
-    ids = [word_id[word] if word in word_id else 0 for word in words]
+    ids = [word_id[word] if word in word_id else 1 for word in words]
     return numpy.array(ids, 'i')
 
 
