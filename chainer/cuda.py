@@ -299,9 +299,8 @@ def copy(array, out=None, out_device=None, stream=None):
     if out is None:
         if out_device is None:
             out_device = array
-        if isinstance(out_device, cuda.Device):
-            with out_device:
-                out = cupy.empty_like(array)
+        with get_device(out_device):
+            out = cupy.empty_like(array)
 
     with get_device_from_array(array):
         cupy.copyto(out, array)
