@@ -2,6 +2,7 @@ import numpy
 import six
 
 import chainer
+from chainer import cuda
 from chainer.functions.activation import lstm
 from chainer.functions.array import concat
 from chainer.functions.array import split_axis
@@ -22,19 +23,28 @@ class LSTMBase(link.Chain):
                                   initialW=0, nobias=True),
         )
         self.state_size = out_size
+        self.lateral_init = lateral_init
+        self.upward_init = upward_init
+        self.bias_init = bias_init
+        self.forget_bias_init = forget_bias_init
 
-        for i in six.moves.range(0, 4 * out_size, out_size):
+        if in_size is not None:
+            self._initialize_params()
+
+    def _initialize_params(self):
+        for i in six.moves.range(0, 4 * self.state_size, self.state_size):
             initializers.init_weight(
-                self.lateral.W.data[i:i + out_size, :], lateral_init)
+                self.lateral.W.data[i:i + self.state_size, :],
+                self.lateral_init)
             initializers.init_weight(
-                self.upward.W.data[i:i + out_size, :], upward_init)
+                self.upward.W.data[i:i + self.state_size, :], self.upward_init)
 
         a, i, f, o = lstm._extract_gates(
-            self.upward.b.data.reshape(1, 4 * out_size, 1))
-        initializers.init_weight(a, bias_init)
-        initializers.init_weight(i, bias_init)
-        initializers.init_weight(f, forget_bias_init)
-        initializers.init_weight(o, bias_init)
+            self.upward.b.data.reshape(1, 4 * self.state_size, 1))
+        initializers.init_weight(a, self.bias_init)
+        initializers.init_weight(i, self.bias_init)
+        initializers.init_weight(f, self.forget_bias_init)
+        initializers.init_weight(o, self.bias_init)
 
 
 class StatelessLSTM(LSTMBase):
@@ -47,7 +57,9 @@ class StatelessLSTM(LSTMBase):
     hidden states.
 
     Args:
-        in_size (int): Dimensionality of input vectors.
+        in_size (int): Dimension of input vectors. If ``None``, parameter
+            initialization will be deferred until the first forward data pass
+            at which time the size will be determined.
         out_size (int): Dimensionality of output vectors.
 
     Attributes:
@@ -70,14 +82,21 @@ class StatelessLSTM(LSTMBase):
                 output of LSTM units.
 
         """
+        if self.upward.has_uninitialized_params:
+            in_size = x.size // x.shape[0]
+            with cuda.get_device(self._device_id):
+                self.upward._initialize_params(in_size)
+                self._initialize_params()
+
         lstm_in = self.upward(x)
         if h is not None:
             lstm_in += self.lateral(h)
         if c is None:
             xp = self.xp
-            c = variable.Variable(
-                xp.zeros((x.shape[0], self.state_size), dtype=x.dtype),
-                volatile='auto')
+            with cuda.get_device(self._device_id):
+                c = variable.Variable(
+                    xp.zeros((x.shape[0], self.state_size), dtype=x.dtype),
+                    volatile='auto')
         return lstm.lstm(c, lstm_in)
 
 
@@ -100,11 +119,13 @@ class LSTM(LSTMBase):
     When mini-batch size of ``i``-th input is smaller than that of the previous
     input, this link only updates ``c[0:len(x)]`` and ``h[0:len(x)]`` and
     doesn't change the rest of ``c`` and ``h``.
-    So, please sort input sequneces in descending order of lengths before
+    So, please sort input sequences in descending order of lengths before
     applying the function.
 
     Args:
-        in_size (int): Dimensionality of input vectors.
+        in_size (int): Dimension of input vectors. If ``None``, parameter
+            initialization will be deferred until the first forward data pass
+            at which time the size will be determined.
         out_size (int): Dimensionality of output vectors.
         lateral_init: A callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
@@ -174,8 +195,8 @@ class LSTM(LSTMBase):
             c_.to_cpu()
             h_.to_cpu()
         else:
-            c_.to_gpu()
-            h_.to_gpu()
+            c_.to_gpu(self._device_id)
+            h_.to_gpu(self._device_id)
         self.c = c_
         self.h = h_
 
@@ -197,6 +218,12 @@ class LSTM(LSTMBase):
             ~chainer.Variable: Outputs of updated LSTM units.
 
         """
+        if self.upward.has_uninitialized_params:
+            with cuda.get_device(self._device_id):
+                in_size = x.size // x.shape[0]
+                self.upward._initialize_params(in_size)
+                self._initialize_params()
+
         batch = x.shape[0]
         lstm_in = self.upward(x)
         h_rest = None
@@ -205,8 +232,8 @@ class LSTM(LSTMBase):
             if batch == 0:
                 h_rest = self.h
             elif h_size < batch:
-                msg = ('The batch size of x must be equal to or less than the '
-                       'size of the previous state h.')
+                msg = ('The batch size of x must be equal to or less than'
+                       'the size of the previous state h.')
                 raise TypeError(msg)
             elif h_size > batch:
                 h_update, h_rest = split_axis.split_axis(
@@ -216,9 +243,10 @@ class LSTM(LSTMBase):
                 lstm_in += self.lateral(self.h)
         if self.c is None:
             xp = self.xp
-            self.c = variable.Variable(
-                xp.zeros((batch, self.state_size), dtype=x.dtype),
-                volatile='auto')
+            with cuda.get_device(self._device_id):
+                self.c = variable.Variable(
+                    xp.zeros((batch, self.state_size), dtype=x.dtype),
+                    volatile='auto')
         self.c, y = lstm.lstm(self.c, lstm_in)
 
         if h_rest is None:

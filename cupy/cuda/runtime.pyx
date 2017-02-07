@@ -1,3 +1,5 @@
+# distutils: language = c++
+
 """Thin wrapper of CUDA Runtime API.
 
 There are four differences compared to the original C API.
@@ -13,7 +15,6 @@ cimport cpython
 cimport cython
 
 from cupy.cuda cimport driver
-
 
 cdef class PointerAttributes:
 
@@ -54,6 +55,7 @@ cdef extern from "cupy_cuda.h":
 
     # Initialization
     int cudaDriverGetVersion(int* driverVersion) nogil
+    int cudaRuntimeGetVersion(int* runtimeVersion) nogil
 
     # Device operations
     int cudaGetDevice(int* device) nogil
@@ -68,7 +70,9 @@ cdef extern from "cupy_cuda.h":
 
     # Memory management
     int cudaMalloc(void** devPtr, size_t size) nogil
+    int cudaHostAlloc(void** ptr, size_t size, unsigned int flags) nogil
     int cudaFree(void* devPtr) nogil
+    int cudaFreeHost(void* ptr) nogil
     int cudaMemGetInfo(size_t* free, size_t* total) nogil
     int cudaMemcpy(void* dst, const void* src, size_t count,
                    MemoryKind kind) nogil
@@ -137,6 +141,13 @@ cpdef int driverGetVersion() except *:
     return version
 
 
+cpdef int runtimeGetVersion() except *:
+    cdef int version
+    status = cudaRuntimeGetVersion(&version)
+    check_status(status)
+    return version
+
+
 ###############################################################################
 # Device and context operations
 ###############################################################################
@@ -197,9 +208,23 @@ cpdef size_t malloc(size_t size) except *:
     return <size_t>ptr
 
 
+cpdef size_t hostAlloc(size_t size, unsigned int flags) except *:
+    cdef void* ptr
+    with nogil:
+        status = cudaHostAlloc(&ptr, size, flags)
+    check_status(status)
+    return <size_t>ptr
+
+
 cpdef free(size_t ptr):
     with nogil:
         status = cudaFree(<void*>ptr)
+    check_status(status)
+
+
+cpdef freeHost(size_t ptr):
+    with nogil:
+        status = cudaFreeHost(<void*>ptr)
     check_status(status)
 
 
@@ -235,8 +260,9 @@ cpdef memcpyPeer(size_t dst, int dstDevice, size_t src, int srcDevice,
 
 cpdef memcpyPeerAsync(size_t dst, int dstDevice, size_t src, int srcDevice,
                       size_t size, size_t stream):
-    status = cudaMemcpyPeerAsync(<void*>dst, dstDevice, <void*>src, srcDevice,
-                                 size, <driver.Stream> stream)
+    with nogil:
+        status = cudaMemcpyPeerAsync(<void*>dst, dstDevice, <void*>src,
+                                     srcDevice, size, <driver.Stream> stream)
     check_status(status)
 
 
@@ -247,7 +273,9 @@ cpdef memset(size_t ptr, int value, size_t size):
 
 
 cpdef memsetAsync(size_t ptr, int value, size_t size, size_t stream):
-    status = cudaMemsetAsync(<void*>ptr, value, size, <driver.Stream> stream)
+    with nogil:
+        status = cudaMemsetAsync(<void*>ptr, value, size,
+                                 <driver.Stream> stream)
     check_status(status)
 
 
@@ -301,9 +329,10 @@ cpdef streamAddCallback(size_t stream, callback, size_t arg,
                         unsigned int flags=0):
     func_arg = (callback, arg)
     cpython.Py_INCREF(func_arg)
-    status = cudaStreamAddCallback(
-        <driver.Stream>stream, <StreamCallback>_streamCallbackFunc,
-        <void*>func_arg, flags)
+    with nogil:
+        status = cudaStreamAddCallback(
+            <driver.Stream>stream, <StreamCallback>_streamCallbackFunc,
+            <void*>func_arg, flags)
     check_status(status)
 
 
@@ -312,8 +341,9 @@ cpdef streamQuery(size_t stream):
 
 
 cpdef streamWaitEvent(size_t stream, size_t event, unsigned int flags=0):
-    status = cudaStreamWaitEvent(<driver.Stream>stream,
-                                 <driver.Event>event, flags)
+    with nogil:
+        status = cudaStreamWaitEvent(<driver.Stream>stream,
+                                     <driver.Event>event, flags)
     check_status(status)
 
 

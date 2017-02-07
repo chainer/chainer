@@ -28,7 +28,7 @@ class PreprocessedDataset(chainer.dataset.DatasetMixin):
 
     def __init__(self, path, root, mean, crop_size, random=True):
         self.base = chainer.datasets.LabeledImageDataset(path, root)
-        self.mean = mean
+        self.mean = mean.astype('f')
         self.crop_size = crop_size
         self.random = random
 
@@ -61,15 +61,27 @@ class PreprocessedDataset(chainer.dataset.DatasetMixin):
 
         image = image[:, top:bottom, left:right]
         image -= self.mean[:, top:bottom, left:right]
-        image /= 255
+        image *= (1.0 / 255.0)  # Scale to [0, 1]
         return image, label
+
+
+class TestModeEvaluator(extensions.Evaluator):
+
+    def evaluate(self):
+        model = self.get_target('main')
+        model.train = False
+        ret = super(TestModeEvaluator, self).evaluate()
+        model.train = True
+        return ret
 
 
 def main():
     archs = {
         'alex': alex.Alex,
+        'alex_fp16': alex.AlexFp16,
         'googlenet': googlenet.GoogLeNet,
         'googlenetbn': googlenetbn.GoogLeNetBN,
+        'googlenetbn_fp16': googlenetbn.GoogLeNetBNFp16,
         'nin': nin.NIN
     }
 
@@ -134,11 +146,7 @@ def main():
     val_interval = (10 if args.test else 100000), 'iteration'
     log_interval = (10 if args.test else 1000), 'iteration'
 
-    # Copy the chain with shared parameters to flip 'train' flag only in test
-    eval_model = model.copy()
-    eval_model.train = False
-
-    trainer.extend(extensions.Evaluator(val_iter, eval_model, device=args.gpu),
+    trainer.extend(TestModeEvaluator(val_iter, model, device=args.gpu),
                    trigger=val_interval)
     trainer.extend(extensions.dump_graph('main/loss'))
     trainer.extend(extensions.snapshot(), trigger=val_interval)
@@ -147,9 +155,10 @@ def main():
     # Be careful to pass the interval directly to LogReport
     # (it determines when to emit log rather than when to read observations)
     trainer.extend(extensions.LogReport(trigger=log_interval))
+    trainer.extend(extensions.observe_lr(), trigger=log_interval)
     trainer.extend(extensions.PrintReport([
         'epoch', 'iteration', 'main/loss', 'validation/main/loss',
-        'main/accuracy', 'validation/main/accuracy',
+        'main/accuracy', 'validation/main/accuracy', 'lr'
     ]), trigger=log_interval)
     trainer.extend(extensions.ProgressBar(update_interval=10))
 

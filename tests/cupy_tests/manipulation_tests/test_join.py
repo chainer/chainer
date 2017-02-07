@@ -53,6 +53,14 @@ class TestJoin(unittest.TestCase):
         c = testing.shaped_arange((2, 3, 3), xp, dtype)
         return xp.concatenate((a, b, c), axis=-1)
 
+    @testing.for_all_dtypes(name='dtype')
+    @testing.numpy_cupy_array_equal()
+    def test_concatenate_f_contiguous(self, xp, dtype):
+        a = testing.shaped_arange((2, 3, 4), xp, dtype)
+        b = testing.shaped_arange((2, 3, 2), xp, dtype).T
+        c = testing.shaped_arange((2, 3, 3), xp, dtype)
+        return xp.concatenate((a, b, c), axis=-1)
+
     def test_concatenate_wrong_ndim(self):
         a = cupy.empty((2, 3))
         b = cupy.empty((2,))
@@ -72,6 +80,21 @@ class TestJoin(unittest.TestCase):
         b = testing.shaped_arange((3,), xp)
         c = testing.shaped_arange((1, 3), xp)
         return xp.dstack((a, b, c))
+
+    @testing.numpy_cupy_array_equal()
+    def test_dstack_single_element(self, xp):
+        a = testing.shaped_arange((1, 2, 3), xp)
+        return xp.dstack((a,))
+
+    @testing.numpy_cupy_array_equal()
+    def test_dstack_single_element_2(self, xp):
+        a = testing.shaped_arange((1, 2), xp)
+        return xp.dstack((a,))
+
+    @testing.numpy_cupy_array_equal()
+    def test_dstack_single_element_3(self, xp):
+        a = testing.shaped_arange((1,), xp)
+        return xp.dstack((a,))
 
     @testing.numpy_cupy_array_equal()
     def test_hstack_vectors(self, xp):
@@ -98,6 +121,11 @@ class TestJoin(unittest.TestCase):
         a = xp.arange(3)
         b = xp.arange(2, -1, -1)
         return xp.vstack((a, b))
+
+    @testing.numpy_cupy_array_equal()
+    def test_vstack_single_element(self, xp):
+        a = xp.arange(3)
+        return xp.vstack((a,))
 
     def test_vstack_wrong_ndim(self):
         a = cupy.empty((3,))

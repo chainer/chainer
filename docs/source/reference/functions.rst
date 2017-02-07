@@ -111,16 +111,24 @@ copy
 ~~~~
 .. autofunction:: copy
 
+dstack
+~~~~~~
+.. autofunction:: dstack
+
 expand_dims
 ~~~~~~~~~~~
 .. autofunction:: expand_dims
+
+flatten
+~~~~~~~
+.. autofunction:: flatten
 
 get_item
 ~~~~~~~~
 .. autofunction:: get_item
 
 hstack
-~~~~~~~~
+~~~~~~
 .. autofunction:: hstack
 
 permutate
@@ -147,6 +155,10 @@ split_axis
 ~~~~~~~~~~
 .. autofunction:: split_axis
 
+squeeze
+~~~~~~~
+.. autofunction:: squeeze
+
 stack
 ~~~~~
 .. autofunction:: stack
@@ -155,6 +167,10 @@ swapaxes
 ~~~~~~~~
 .. autofunction:: swapaxes
 
+tile
+~~~~
+.. autofunction:: tile
+
 transpose
 ~~~~~~~~~
 .. autofunction:: transpose
@@ -162,6 +178,10 @@ transpose
 transpose_sequence
 ~~~~~~~~~~~~~~~~~~
 .. autofunction:: transpose_sequence
+
+vstack
+~~~~~~
+.. autofunction:: vstack
 
 where
 ~~~~~
@@ -179,9 +199,21 @@ convolution_2d
 ~~~~~~~~~~~~~~
 .. autofunction:: convolution_2d
 
+convolution_nd
+~~~~~~~~~~~~~~
+.. autofunction:: convolution_nd
+
 deconvolution_2d
 ~~~~~~~~~~~~~~~~
 .. autofunction:: deconvolution_2d
+
+deconvolution_nd
+~~~~~~~~~~~~~~~~
+.. autofunction:: deconvolution_nd
+
+dilated_convolution_2d
+~~~~~~~~~~~~~~~~~~~~~~
+.. autofunction:: dilated_convolution_2d
 
 embed_id
 ~~~~~~~~
@@ -191,6 +223,10 @@ linear
 ~~~~~~
 .. autofunction:: linear
 
+n_step_lstm
+~~~~~~~~~~~
+.. autofunction:: n_step_lstm
+
 
 Evaluation functions
 --------------------
@@ -199,6 +235,18 @@ accuracy
 ~~~~~~~~
 .. autofunction:: accuracy
 
+binary_accuracy
+~~~~~~~~~~~~~~~
+.. autofunction:: binary_accuracy
+
+classification_summary
+~~~~~~~~~~~~~~~~~~~~~~
+.. autofunction:: classification_summary
+
+r2_score
+~~~~~~~~
+.. autofunction:: r2_score
+
 
 Loss functions
 --------------
@@ -206,6 +254,10 @@ Loss functions
 bernoulli_nll
 ~~~~~~~~~~~~~
 .. autofunction:: bernoulli_nll
+
+black_out
+~~~~~~~~~
+.. autofunction:: black_out
 
 connectionist_temporal_classification
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -218,6 +270,7 @@ contrastive
 crf1d
 ~~~~~
 .. autofunction:: crf1d
+.. autofunction:: argmax_crf1d
 
 cross_covariance
 ~~~~~~~~~~~~~~~~
@@ -238,6 +291,10 @@ hinge
 huber_loss
 ~~~~~~~~~~
 .. autofunction:: huber_loss
+
+mean_absolute_error
+~~~~~~~~~~~~~~~~~~~
+.. autofunction:: mean_absolute_error
 
 mean_squared_error
 ~~~~~~~~~~~~~~~~~~
@@ -263,6 +320,18 @@ triplet
 Mathematical functions
 ----------------------
 
+arccos
+~~~~~~
+.. autofunction:: arccos
+
+arcsin
+~~~~~~
+.. autofunction:: arcsin
+
+arctan
+~~~~~~
+.. autofunction:: arctan
+
 argmax
 ~~~~~~
 .. autofunction:: argmax
@@ -287,6 +356,10 @@ bias
 ~~~~
 .. autofunction:: bias
 
+ceil
+~~~~
+.. autofunction:: ceil
+
 clip
 ~~~~
 .. autofunction:: clip
@@ -295,9 +368,17 @@ cos
 ~~~
 .. autofunction:: cos
 
+cosh
+~~~~
+.. autofunction:: cosh
+
 exp
 ~~~
 .. autofunction:: exp
+
+floor
+~~~~~
+.. autofunction:: floor
 
 identity
 ~~~~~~~~
@@ -363,13 +444,31 @@ sin
 ~~~
 .. autofunction:: sin
 
+sinh
+~~~~
+.. autofunction:: sinh
+
 sqrt
 ~~~~
 .. autofunction:: sqrt
 
+square
+~~~~~~
+.. autofunction:: square
+
+squared_difference
+~~~~~~~~~~~~~~~~~~
+.. autofunction:: squared_difference
+
 sum
 ~~~
 .. autofunction:: sum
+
+tanh
+~~~~
+Hyperbolic tangent function is described in "Activation functions" section.
+
+.. seealso:: :func:`~chainer.functions.tanh`
 
 tan
 ~~~
@@ -415,9 +514,17 @@ average_pooling_2d
 ~~~~~~~~~~~~~~~~~~
 .. autofunction:: average_pooling_2d
 
+average_pooling_nd
+~~~~~~~~~~~~~~~~~~
+.. autofunction:: average_pooling_nd
+
 max_pooling_2d
 ~~~~~~~~~~~~~~
 .. autofunction:: max_pooling_2d
+
+max_pooling_nd
+~~~~~~~~~~~~~~
+.. autofunction:: max_pooling_nd
 
 roi_pooling_2d
 ~~~~~~~~~~~~~~
@@ -430,3 +537,15 @@ spatial_pyramid_pooling_2d
 unpooling_2d
 ~~~~~~~~~~~~
 .. autofunction:: unpooling_2d
+
+upsampling_2d
+~~~~~~~~~~~~~
+.. autofunction:: upsampling_2d
+
+
+Utility functions
+-----------------
+
+forget
+~~~~~~
+.. autofunction:: forget

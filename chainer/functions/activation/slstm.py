@@ -12,7 +12,8 @@ def _extract_gates(x):
 
 
 def _sigmoid(x):
-    return 1 / (1 + numpy.exp(-x))
+    half = x.dtype.type(0.5)
+    return numpy.tanh(x * half) * half + half
 
 
 def _grad_sigmoid(x):
@@ -24,7 +25,10 @@ def _grad_tanh(x):
 
 
 _preamble = '''
-template <typename T> __device__ T sigmoid(T x) { return 1 / (1 + exp(-x)); }
+template <typename T> __device__ T sigmoid(T x) {
+    const T half = 0.5;
+    return tanh(x * half) * half + half;
+}
 template <typename T> __device__ T grad_sigmoid(T y) { return y * (1 - y); }
 template <typename T> __device__ T grad_tanh(T y) { return 1 - y * y; }
 
@@ -230,7 +234,7 @@ def slstm(c_prev1, c_prev2, x1, x2):
             the cell state. ``h`` indicates the outgoing signal.
 
     See detail in paper: `Long Short-Term Memory Over Tree Structures \
-    <http://arxiv.org/abs/1503.04881>`_.
+    <https://arxiv.org/abs/1503.04881>`_.
 
     """
     return SLSTM()(c_prev1, c_prev2, x1, x2)

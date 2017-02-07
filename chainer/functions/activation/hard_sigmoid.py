@@ -8,7 +8,7 @@ from chainer.utils import type_check
 
 class HardSigmoid(function.Function):
 
-    """Hard-sigmoid funciton."""
+    """Hard-sigmoid function."""
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)
@@ -53,9 +53,9 @@ def hard_sigmoid(x):
     .. math::
 
         f(x) = \\left \\{ \\begin{array}{ll}
-        0 & {\\rm if}~ x < -0.25 \\\\
-        0.2 x + 0.5 & {\\rm if}~ -0.25 < x < 0.25 \\\\
-        1 & {\\rm if}~ 0.25 < x.
+        0 & {\\rm if}~ x < -2.5 \\\\
+        0.2 x + 0.5 & {\\rm if}~ -2.5 < x < 2.5 \\\\
+        1 & {\\rm if}~ 2.5 < x.
         \\end{array} \\right.
 
     Args:
