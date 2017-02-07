@@ -47,7 +47,7 @@ class DilatedConvolution2D(link.Link):
 
     """
 
-    def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
+    def __init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0,
                  dilate=1, bias=0, nobias=False, use_cudnn=True,
                  initialW=None, initial_bias=None):
         super(DilatedConvolution2D, self).__init__()
