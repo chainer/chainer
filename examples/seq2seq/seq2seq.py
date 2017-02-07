@@ -209,7 +209,8 @@ def main():
     updater = training.StandardUpdater(
         train_iter, optimizer, converter=convert, device=args.gpu)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'))
-    trainer.extend(extensions.LogReport(), trigger=(200, 'iteration'))
+    trainer.extend(extensions.LogReport(trigger=(200, 'iteration')),
+                   trigger=(200, 'iteration'))
     trainer.extend(extensions.PrintReport(
         ['epoch', 'main/loss', 'validation/main/loss',
          'main/accuracy', 'validation/main/accuracy', 'elapsed_time']),
@@ -224,7 +225,7 @@ def main():
         print(' '.join(words))
 
     # trainer.extend(translate)
-    trainer.extend(CalculateBleu(model, test_data))
+    trainer.extend(CalculateBleu(model, test_data), trigger=(200, 'iteration'))
     #trainer.extend(CalculateBleu(model, train_data))
 
     trainer.run()
