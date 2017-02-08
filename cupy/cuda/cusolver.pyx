@@ -20,15 +20,13 @@ cdef extern from 'cupy_cuda.h':
 
     # Linear Equations
     int cusolverDnSpotrf_bufferSize(Handle handle, FillMode uplo, int n,
-                                    float* A, int lda, int* Lwork) nogil
+                                    float* A, int lda, int* lwork) nogil
     int cusolverDnDpotrf_bufferSize(Handle handle, FillMode uplo, int n,
-                                    double* A, int lda, int* Lwork) nogil
+                                    double* A, int lda, int* lwork) nogil
     int cusolverDnSpotrf(Handle handle, FillMode uplo, int n, float* A,
-                         int lda, float* Workspace, int Lwork,
-                         int* devInfo) nogil
+                         int lda, float* work, int lwork, int* devInfo) nogil
     int cusolverDnDpotrf(Handle handle, FillMode uplo, int n, double *A,
-                         int lda, double* Workspace, int Lwork,
-                         int* devInfo) nogil
+                         int lda, double* work, int lwork, int* devInfo) nogil
 
     int cusolverDnSpotrs(Handle handle, FillMode uplo, int n, int nrhs,
                          const float* A, int lda, float* B, int ldb,
@@ -38,9 +36,9 @@ cdef extern from 'cupy_cuda.h':
                          int *devInfo) nogil
 
     int cusolverDnSgetrf(Handle handle, int m, int n, float* A, int lda,
-                         float* Workspace, int* devIpiv, int* devInfo) nogil
+                         float* work, int* devIpiv, int* devInfo) nogil
     int cusolverDnDgetrf(Handle handle, int m, int n, double* A, int lda,
-                         double* Workspace, int* devIpiv, int* devInfo) nogil
+                         double* work, int* devIpiv, int* devInfo) nogil
 
     int cusolverDnSgetrs(Handle handle, Operation trans,
                          int n, int nrhs, const float* A, int lda,
@@ -52,15 +50,30 @@ cdef extern from 'cupy_cuda.h':
                          int* devInfo) nogil
 
     int cusolverDnSgeqrf_bufferSize(Handle handle, int m, int n,
-                                    float* A, int lda, int* Lwork) nogil
+                                    float* A, int lda, int* lwork) nogil
     int cusolverDnDgeqrf_bufferSize(Handle handle, int m, int n,
-                                    double* A, int lda, int* Lwork) nogil
+                                    double* A, int lda, int* lwork) nogil
     int cusolverDnSgeqrf(Handle handle, int m, int n, float* A, int lda,
-                         float* TAU, float* Workspace, int Lwork,
+                         float* tau, float* work, int lwork,
                          int* devInfo) nogil
     int cusolverDnDgeqrf(Handle handle, int m, int n, double* A, int lda,
-                         double* TAU, double* Workspace, int Lwork,
+                         double* tau, double* work, int lwork,
                          int* devInfo) nogil
+
+    # The actual definition of cusolverDn(S|D)orgqr_bufferSize
+    # is different from the reference
+    int cusolverDnSorgqr_bufferSize(Handle handle, int m, int n, int k,
+                                    const float* A, int lda,
+                                    const float* tau, int* lwork) nogil
+    int cusolverDnDorgqr_bufferSize(Handle handle, int m, int n, int k,
+                                    const double* A, int lda,
+                                    const double* tau, int* lwork) nogil
+    int cusolverDnSorgqr(Handle handle, int m, int n, int k,
+                         float* A, int lda, const float* tau,
+                         float* work, int lwork, int* devInfo) nogil
+    int cusolverDnDorgqr(Handle handle, int m, int n, int k,
+                         double* A, int lda, const double* tau,
+                         double* work, int lwork, int* devInfo) nogil
 
     int cusolverDnSormqr(Handle handle, SideMode side, Operation trans,
                          int m, int n, int k, const float* A, int lda,
@@ -79,23 +92,23 @@ cdef extern from 'cupy_cuda.h':
                          int* devInfo) nogil
 
     int cusolverDnSgebrd(Handle handle, int m, int n, float* A, int lda,
-                         float* D, float* E, float* TAUQ, float* TAUP,
-                         float* Work, int Lwork, int* devInfo) nogil
+                         float* D, float* E, float* tauQ, float* tauP,
+                         float* Work, int lwork, int* devInfo) nogil
     int cusolverDnDgebrd(Handle handle, int m, int n, double* A, int lda,
-                         double* D, double* E, double* TAUQ, double* TAUP,
-                         double* Work, int Lwork, int* devInfo) nogil
+                         double* D, double* E, double* tauQ, double* tauP,
+                         double* Work, int lwork, int* devInfo) nogil
 
     int cusolverDnSgesvd_bufferSize(Handle handle, int m, int n,
-                                    int* Lwork) nogil
+                                    int* lwork) nogil
     int cusolverDnDgesvd_bufferSize(Handle handle, int m, int n,
-                                    int* Lwork) nogil
+                                    int* lwork) nogil
     int cusolverDnSgesvd(Handle handle, char jobu, char jobvt, int m, int n,
                          float* A, int lda, float* S, float* U, int ldu,
-                         float* VT, int ldvt, float* Work, int Lwork,
+                         float* VT, int ldvt, float* Work, int lwork,
                          float* rwork, int* devInfo) nogil
     int cusolverDnDgesvd(Handle handle, char jobu, char jobvt, int m, int n,
                          double* A, int lda, double* S, double* U, int ldu,
-                         double* VT, int ldvt, double* Work, int Lwork,
+                         double* VT, int ldvt, double* Work, int lwork,
                          double* rwork, int* devInfo) nogil
 
 ###############################################################################
@@ -171,36 +184,36 @@ cpdef size_t getStream(size_t handle) except *:
 
 cpdef int spotrf_bufferSize(size_t handle, int uplo,
                             int n, size_t A, int lda) except *:
-    cdef int Lwork
+    cdef int lwork
     with nogil:
         status = cusolverDnSpotrf_bufferSize(
-            <Handle>handle, <FillMode>uplo, n, <float*>A, <int>lda, &Lwork)
+            <Handle>handle, <FillMode>uplo, n, <float*>A, <int>lda, &lwork)
     check_status(status)
-    return Lwork
+    return lwork
 
 cpdef int dpotrf_bufferSize(size_t handle, int uplo,
                             int n, size_t A, int lda) except *:
-    cdef int Lwork
+    cdef int lwork
     with nogil:
         status = cusolverDnDpotrf_bufferSize(
-            <Handle>handle, <FillMode>uplo, n, <double*>A, <int>lda, &Lwork)
+            <Handle>handle, <FillMode>uplo, n, <double*>A, <int>lda, &lwork)
     check_status(status)
-    return Lwork
+    return lwork
 
 cpdef spotrf(size_t handle, int uplo, int n, size_t A, int lda,
-             size_t Workspace, int Lwork, size_t devInfo):
+             size_t work, int lwork, size_t devInfo):
     with nogil:
         status = cusolverDnSpotrf(
             <Handle>handle, <FillMode>uplo, n, <float*>A,
-            lda, <float*>Workspace, Lwork, <int*>devInfo)
+            lda, <float*>work, lwork, <int*>devInfo)
     check_status(status)
 
 cpdef dpotrf(size_t handle, int uplo, int n, size_t A, int lda,
-             size_t Workspace, int Lwork, size_t devInfo):
+             size_t work, int lwork, size_t devInfo):
     with nogil:
         status = cusolverDnDpotrf(
             <Handle>handle, <FillMode>uplo, n, <double*>A,
-            lda, <double*>Workspace, Lwork, <int*>devInfo)
+            lda, <double*>work, lwork, <int*>devInfo)
     check_status(status)
 
 cpdef spotrs(size_t handle, int uplo, int n, int nrhs,
@@ -220,19 +233,19 @@ cpdef dpotrs(size_t handle, int uplo, int n, int nrhs,
     check_status(status)
 
 cpdef sgetrf(size_t handle, int m, int n, size_t A, int lda,
-             size_t Workspace, size_t devIpiv, size_t devInfo):
+             size_t work, size_t devIpiv, size_t devInfo):
     with nogil:
         status = cusolverDnSgetrf(
             <Handle>handle, m, n, <float*>A, lda,
-            <float*>Workspace, <int*>devIpiv, <int*>devInfo)
+            <float*>work, <int*>devIpiv, <int*>devInfo)
     check_status(status)
 
 cpdef dgetrf(size_t handle, int m, int n, size_t A, int lda,
-             size_t Workspace, size_t devIpiv, size_t devInfo):
+             size_t work, size_t devIpiv, size_t devInfo):
     with nogil:
         status = cusolverDnDgetrf(
             <Handle>handle, m, n, <double*>A, lda,
-            <double*>Workspace, <int*>devIpiv, <int*>devInfo)
+            <double*>work, <int*>devIpiv, <int*>devInfo)
     check_status(status)
 
 cpdef sgetrs(size_t handle, int trans, int n, int nrhs,
@@ -257,36 +270,72 @@ cpdef dgetrs(size_t handle, int trans, int n, int nrhs,
 
 cpdef int sgeqrf_bufferSize(size_t handle, int m, int n,
                             size_t A, int lda) except *:
-    cdef int Lwork
+    cdef int lwork
     with nogil:
         status = cusolverDnSgeqrf_bufferSize(
-            <Handle>handle, m, n, <float*>A, lda, &Lwork)
+            <Handle>handle, m, n, <float*>A, lda, &lwork)
     check_status(status)
-    return Lwork
+    return lwork
 
 cpdef int dgeqrf_bufferSize(size_t handle, int m, int n,
                             size_t A, int lda) except *:
-    cdef int Lwork
+    cdef int lwork
     with nogil:
         status = cusolverDnDgeqrf_bufferSize(
-            <Handle>handle, m, n, <double*>A, lda, &Lwork)
+            <Handle>handle, m, n, <double*>A, lda, &lwork)
     check_status(status)
-    return Lwork
+    return lwork
 
 cpdef sgeqrf(size_t handle, int m, int n, size_t A, int lda,
-             size_t TAU, size_t Workspace, int Lwork, size_t devInfo):
+             size_t tau, size_t work, int lwork, size_t devInfo):
     with nogil:
         status = cusolverDnSgeqrf(
             <Handle>handle, m, n, <float*>A, lda,
-            <float*>TAU, <float*>Workspace, Lwork, <int*>devInfo)
+            <float*>tau, <float*>work, lwork, <int*>devInfo)
     check_status(status)
 
 cpdef dgeqrf(size_t handle, int m, int n, size_t A, int lda,
-             size_t TAU, size_t Workspace, int Lwork, size_t devInfo):
+             size_t tau, size_t work, int lwork, size_t devInfo):
     with nogil:
         status = cusolverDnDgeqrf(
             <Handle>handle, m, n, <double*>A, lda,
-            <double*>TAU, <double*>Workspace, Lwork, <int*>devInfo)
+            <double*>tau, <double*>work, lwork, <int*>devInfo)
+    check_status(status)
+
+cpdef int sorgqr_bufferSize(size_t handle, int m, int n, int k,
+                            size_t A, int lda, size_t tau) except *:
+    cdef int lwork
+    with nogil:
+        status = cusolverDnSorgqr_bufferSize(
+            <Handle>handle, m, n, k, <const float*>A, lda,
+            <const float*>tau, &lwork)
+    check_status(status)
+    return lwork
+
+cpdef int dorgqr_bufferSize(size_t handle, int m, int n, int k,
+                            size_t A, int lda, size_t tau) except *:
+    cdef int lwork
+    with nogil:
+        status = cusolverDnDorgqr_bufferSize(
+            <Handle>handle, m, n, k, <double*>A, lda,
+            <const double*> tau, &lwork)
+    check_status(status)
+    return lwork
+
+cpdef sorgqr(size_t handle, int m, int n, int k, size_t A, int lda,
+             size_t tau, size_t work, int lwork, size_t devInfo):
+    with nogil:
+        status = cusolverDnSorgqr(
+            <Handle>handle, m, n, k, <float*>A, lda,
+            <const float*>tau, <float*>work, lwork, <int*>devInfo)
+    check_status(status)
+
+cpdef dorgqr(size_t handle, int m, int n, int k, size_t A, int lda,
+             size_t tau, size_t work, int lwork, size_t devInfo):
+    with nogil:
+        status = cusolverDnDorgqr(
+            <Handle>handle, m, n, k, <double*>A, lda,
+            <const double*>tau, <double*>work, lwork, <int*>devInfo)
     check_status(status)
 
 cpdef sormqr(size_t handle, int side, int trans,
@@ -326,55 +375,55 @@ cpdef dsytrf(size_t handle, int uplo, int n, size_t A, int lda,
     check_status(status)
 
 cpdef sgebrd(size_t handle, int m, int n, size_t A, int lda,
-             size_t D, size_t E, size_t TAUQ, size_t TAUP,
-             size_t Work, int Lwork, size_t devInfo):
+             size_t D, size_t E, size_t tauQ, size_t tauP,
+             size_t Work, int lwork, size_t devInfo):
     with nogil:
         status = cusolverDnSgebrd(
             <Handle>handle, m, n, <float*>A, lda,
-            <float*>D, <float*>E, <float*>TAUQ, <float*>TAUP,
-            <float*>Work, Lwork, <int*>devInfo)
+            <float*>D, <float*>E, <float*>tauQ, <float*>tauP,
+            <float*>Work, lwork, <int*>devInfo)
     check_status(status)
 
 cpdef dgebrd(size_t handle, int m, int n, size_t A, int lda,
-             size_t D, size_t E, size_t TAUQ, size_t TAUP,
-             size_t Work, int Lwork, size_t devInfo):
+             size_t D, size_t E, size_t tauQ, size_t tauP,
+             size_t Work, int lwork, size_t devInfo):
     with nogil:
         status = cusolverDnDgebrd(
             <Handle>handle, m, n, <double*>A, lda,
-            <double*>D, <double*>E, <double*>TAUQ, <double*>TAUP,
-            <double*>Work, Lwork, <int*>devInfo)
+            <double*>D, <double*>E, <double*>tauQ, <double*>tauP,
+            <double*>Work, lwork, <int*>devInfo)
     check_status(status)
 
 cpdef int sgesvd_bufferSize(size_t handle, int m, int n) except *:
-    cdef int Lwork
+    cdef int lwork
     with nogil:
-        status = cusolverDnSgesvd_bufferSize(<Handle>handle, m, n, &Lwork)
+        status = cusolverDnSgesvd_bufferSize(<Handle>handle, m, n, &lwork)
     check_status(status)
-    return Lwork
+    return lwork
 
 cpdef int dgesvd_bufferSize(size_t handle, int m, int n) except *:
-    cdef int Lwork
+    cdef int lwork
     with nogil:
-        status = cusolverDnDgesvd_bufferSize(<Handle>handle, m, n, &Lwork)
+        status = cusolverDnDgesvd_bufferSize(<Handle>handle, m, n, &lwork)
     check_status(status)
-    return Lwork
+    return lwork
 
 cpdef sgesvd(size_t handle, char jobu, char jobvt, int m, int n, size_t A,
              int lda, size_t S, size_t U, int ldu, size_t VT, int ldvt,
-             size_t Work, int Lwork, size_t rwork, size_t devInfo):
+             size_t Work, int lwork, size_t rwork, size_t devInfo):
     with nogil:
         status = cusolverDnSgesvd(
             <Handle>handle, jobu, jobvt, m, n, <float*>A,
             lda, <float*>S, <float*>U, ldu, <float*>VT, ldvt,
-            <float*>Work, Lwork, <float*>rwork, <int*>devInfo)
+            <float*>Work, lwork, <float*>rwork, <int*>devInfo)
     check_status(status)
 
 cpdef dgesvd(size_t handle, char jobu, char jobvt, int m, int n, size_t A,
              int lda, size_t S, size_t U, int ldu, size_t VT, int ldvt,
-             size_t Work, int Lwork, size_t rwork, size_t devInfo):
+             size_t Work, int lwork, size_t rwork, size_t devInfo):
     with nogil:
         status = cusolverDnDgesvd(
             <Handle>handle, jobu, jobvt, m, n, <double*>A,
             lda, <double*>S, <double*>U, ldu, <double*>VT, ldvt,
-            <double*>Work, Lwork, <double*>rwork, <int*>devInfo)
+            <double*>Work, lwork, <double*>rwork, <int*>devInfo)
     check_status(status)
