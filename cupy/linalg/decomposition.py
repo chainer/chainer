@@ -104,9 +104,21 @@ def cholesky(a):
 
 
 def qr(a, mode='reduced'):
+    '''QR decomposition.
+
+    Decompose a given two-dimensional matrix into `QR`, where `Q`
+    is an orthonormal and `R` is an upper-triangular matrix.
+    '''
     # TODO(Saito): Current implementation only accepts two-dimensional arrays
     _assertCupyArray(a)
     _assertRank2(a)
+
+    if mode not in ('reduced', 'complete', 'r', 'raw'):
+        if mode in ('f', 'full', 'e', 'economic'):
+            msg = 'The deprecated mode \'{}\' is not supported.'.format(mode)
+            raise ValueError(msg)
+        else:
+            raise ValueError('Unrecognized mode \'{}\''.format(mode))
 
     ret_dtype = a.dtype.char
     # Cast to float32 or float64
@@ -146,11 +158,10 @@ def qr(a, mode='reduced'):
 
     if mode == 'raw':
         if ret_dtype == 'f':
-            # In the case of raw mode, The type of x and tau in numpy
-            # is float32 because numpy always computes qr() as float64.
-            # Considering the meaning of 'raw' we consider this conversion
-            # would be inappropriate, however, in this time we convert the
-            # both variables into float64 for compatibility.
+            # The original numpy.linalg.qr returns float64 in raw mode,
+            # whereas the cusolver returns float32. We agree that the
+            # following code would be inappropriate, however, in this time
+            # we explicitly convert them to float64 for compatibility.
             return x.astype(numpy.float64), tau.astype(numpy.float64)
         return x, tau
 
