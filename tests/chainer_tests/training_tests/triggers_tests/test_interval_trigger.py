@@ -8,8 +8,8 @@ from chainer import training
 
 class DummyUpdater(training.Updater):
 
-    def __init__(self, iters_per_epoch):
-        self.iteration = 0
+    def __init__(self, iters_per_epoch, initial_iteration=0):
+        self.iteration = initial_iteration
         self.iters_per_epoch = iters_per_epoch
 
     def finalize(self):
@@ -41,6 +41,13 @@ def _test_trigger(self, updater, trigger, expecteds):
         self.assertEqual(trigger(trainer), expected)
 
 
+def _test_trigger_stop(self, updater, trigger, expecteds):
+    trainer = training.Trainer(updater)
+    for expected in expecteds:
+        self.assertEqual(trigger(trainer), expected)
+        updater.update()
+
+
 class TestIterationIntervalTrigger(unittest.TestCase):
 
     def test_iteration_interval_trigger(self):
@@ -48,6 +55,12 @@ class TestIterationIntervalTrigger(unittest.TestCase):
         trigger = training.trigger.IntervalTrigger(2, 'iteration')
         expected = [False, True, False, True, False, True, False]
         _test_trigger(self, updater, trigger, expected)
+
+    def test_iteration_interval_trigger_stop(self):
+        updater = DummyUpdater(iters_per_epoch=5)
+        trigger = training.trigger.IntervalTrigger(2, 'iteration')
+        expected = [False, False, True]
+        _test_trigger_stop(self, updater, trigger, expected)
 
 
 class TestEpochIntervalTrigger(unittest.TestCase):
@@ -58,6 +71,12 @@ class TestEpochIntervalTrigger(unittest.TestCase):
         expected = [False, False, False, False, True, False, False]
         _test_trigger(self, updater, trigger, expected)
 
+    def test_epoch_interval_trigger_stop(self):
+        updater = DummyUpdater(iters_per_epoch=5)
+        trigger = training.trigger.IntervalTrigger(1, 'epoch')
+        expected = [False, False, False, False, False, True]
+        _test_trigger_stop(self, updater, trigger, expected)
+
 
 class TestFractionalEpochIntervalTrigger(unittest.TestCase):
 
@@ -67,6 +86,12 @@ class TestFractionalEpochIntervalTrigger(unittest.TestCase):
         expected = [False, False, True, False, False, True, False]
         _test_trigger(self, updater, trigger, expected)
 
+    def test_epoch_interval_trigger_stop(self):
+        updater = DummyUpdater(iters_per_epoch=2)
+        trigger = training.trigger.IntervalTrigger(1.5, 'epoch')
+        expected = [False, False, False, True]
+        _test_trigger_stop(self, updater, trigger, expected)
+
 
 class TestUnalignedEpochIntervalTrigger(unittest.TestCase):
 
@@ -75,6 +100,138 @@ class TestUnalignedEpochIntervalTrigger(unittest.TestCase):
         trigger = training.trigger.IntervalTrigger(1, 'epoch')
         expected = [False, False, True, False, True, False, False]
         _test_trigger(self, updater, trigger, expected)
+
+    def test_unaligned_epoch_interval_trigger_stop(self):
+        updater = DummyUpdater(iters_per_epoch=2.5)
+        trigger = training.trigger.IntervalTrigger(1, 'epoch')
+        expected = [False, False, False, True]
+        _test_trigger_stop(self, updater, trigger, expected)
+
+
+class TestTinyEpochIntervalTrigger(unittest.TestCase):
+
+    def test_tiny_epoch_interval_trigger(self):
+        updater = DummyUpdater(iters_per_epoch=0.5)
+        trigger = training.trigger.IntervalTrigger(1, 'epoch')
+        expected = [True, True, True, True, True, True, True]
+        _test_trigger(self, updater, trigger, expected)
+
+    def test_tiny_epoch_interval_trigger_stop(self):
+        updater = DummyUpdater(iters_per_epoch=0.5)
+        trigger = training.trigger.IntervalTrigger(1, 'epoch')
+        expected = [False, True, True, True, True, True, True]
+        _test_trigger_stop(self, updater, trigger, expected)
+
+
+class TestResumedIterationIntervalTrigger(unittest.TestCase):
+
+    def test_resumed_iteration_interval_trigger(self):
+        updater = DummyUpdater(iters_per_epoch=5, initial_iteration=3)
+        trigger = training.trigger.IntervalTrigger(2, 'iteration')
+        expected = [True, False, True, False, True, False, True]
+        _test_trigger(self, updater, trigger, expected)
+
+    def test_resumed_iteration_interval_trigger_stop(self):
+        updater = DummyUpdater(iters_per_epoch=5, initial_iteration=3)
+        trigger = training.trigger.IntervalTrigger(2, 'iteration')
+        expected = [False, True]
+        _test_trigger_stop(self, updater, trigger, expected)
+
+
+class TestResumedEpochIntervalTrigger(unittest.TestCase):
+
+    def test_resumed_epoch_interval_trigger(self):
+        updater = DummyUpdater(iters_per_epoch=3, initial_iteration=5)
+        trigger = training.trigger.IntervalTrigger(1, 'epoch')
+        expected = [True, False, False, True, False, False, True]
+        _test_trigger(self, updater, trigger, expected)
+
+    def test_resumed_epoch_interval_trigger_stop(self):
+        updater = DummyUpdater(iters_per_epoch=3, initial_iteration=5)
+        trigger = training.trigger.IntervalTrigger(1, 'epoch')
+        expected = [False, True]
+        _test_trigger_stop(self, updater, trigger, expected)
+
+    def test_unaligned_resumed_epoch_interval_trigger(self):
+        updater = DummyUpdater(iters_per_epoch=3, initial_iteration=6)
+        trigger = training.trigger.IntervalTrigger(1, 'epoch')
+        expected = [False, False, True, False, False, True, False]
+        _test_trigger(self, updater, trigger, expected)
+
+    def test_unaligned_resumed_epoch_interval_trigger_stop(self):
+        updater = DummyUpdater(iters_per_epoch=3, initial_iteration=6)
+        trigger = training.trigger.IntervalTrigger(1, 'epoch')
+        expected = [True]
+        _test_trigger_stop(self, updater, trigger, expected)
+
+
+class TestResumedFractionalEpochIntervalTrigger(unittest.TestCase):
+
+    def test_resumed_epoch_interval_trigger(self):
+        updater = DummyUpdater(iters_per_epoch=2, initial_iteration=2)
+        trigger = training.trigger.IntervalTrigger(1.5, 'epoch')
+        expected = [True, False, False, True, False, False, True]
+        _test_trigger(self, updater, trigger, expected)
+
+    def test_resumed_epoch_interval_trigger_stop(self):
+        updater = DummyUpdater(iters_per_epoch=2, initial_iteration=2)
+        trigger = training.trigger.IntervalTrigger(1.5, 'epoch')
+        expected = [False, True]
+        _test_trigger_stop(self, updater, trigger, expected)
+
+    def test_unaligned_resumed_epoch_interval_trigger(self):
+        updater = DummyUpdater(iters_per_epoch=2, initial_iteration=3)
+        trigger = training.trigger.IntervalTrigger(1.5, 'epoch')
+        expected = [False, False, True, False, False, True, False]
+        _test_trigger(self, updater, trigger, expected)
+
+    def test_unaligned_resumed_epoch_interval_trigger_stop(self):
+        updater = DummyUpdater(iters_per_epoch=2, initial_iteration=3)
+        trigger = training.trigger.IntervalTrigger(1.5, 'epoch')
+        expected = [True]
+        _test_trigger_stop(self, updater, trigger, expected)
+
+
+class TestResumedUnalignedEpochIntervalTrigger(unittest.TestCase):
+
+    def test_resumed_unaligned_epoch_interval_trigger(self):
+        updater = DummyUpdater(iters_per_epoch=2.5, initial_iteration=2)
+        trigger = training.trigger.IntervalTrigger(1, 'epoch')
+        expected = [True, False, True, False, False, True, False]
+        _test_trigger(self, updater, trigger, expected)
+
+    def test_resumed_unaligned_epoch_interval_trigger_stop(self):
+        updater = DummyUpdater(iters_per_epoch=2.5, initial_iteration=2)
+        trigger = training.trigger.IntervalTrigger(1, 'epoch')
+        expected = [False, True]
+        _test_trigger_stop(self, updater, trigger, expected)
+
+    def test_unaligned_resumed_unaligned_epoch_interval_trigger(self):
+        updater = DummyUpdater(iters_per_epoch=2.5, initial_iteration=3)
+        trigger = training.trigger.IntervalTrigger(1, 'epoch')
+        expected = [False, True, False, False, True, False, True]
+        _test_trigger(self, updater, trigger, expected)
+
+    def test_unaligned_resumed_unaligned_epoch_interval_trigger_stop(self):
+        updater = DummyUpdater(iters_per_epoch=2.5, initial_iteration=3)
+        trigger = training.trigger.IntervalTrigger(1, 'epoch')
+        expected = [True]
+        _test_trigger_stop(self, updater, trigger, expected)
+
+
+class TestResumedTinyEpochIntervalTrigger(unittest.TestCase):
+
+    def test_resumed_tiny_epoch_interval_trigger(self):
+        updater = DummyUpdater(iters_per_epoch=0.5, initial_iteration=3)
+        trigger = training.trigger.IntervalTrigger(1, 'epoch')
+        expected = [True, True, True, True, True, True, True]
+        _test_trigger(self, updater, trigger, expected)
+
+    def test_resumed_tiny_epoch_interval_trigger_stop(self):
+        updater = DummyUpdater(iters_per_epoch=0.5, initial_iteration=3)
+        trigger = training.trigger.IntervalTrigger(1, 'epoch')
+        expected = [True, True, True, True, True, True, True]
+        _test_trigger_stop(self, updater, trigger, expected)
 
 
 testing.run_module(__name__, __file__)
