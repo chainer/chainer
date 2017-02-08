@@ -195,6 +195,11 @@ def qr(a, mode='reduced'):
 
 
 def svd(a, full_matrices=True, compute_uv=True):
+    '''Singular Value Decomposition.
+
+    Factorizes the matrix `a` as ``u * np.diag(s) * v``, where `u` and `v`
+    are unitary and `s` is an one-dimensional array of `a`'s singular values.
+    '''
     # TODO(Saito): Current implementation only accepts two-dimensional arrays
     _assertCupyArray(a)
     _assertRank2(a)
