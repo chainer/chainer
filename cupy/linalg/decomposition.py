@@ -54,6 +54,13 @@ def _triu(x, k=0):
 
 
 def cholesky(a):
+    '''Cholesky decomposition.
+
+    Decompose a given two-dimensional square matrix into `L * L.T`,
+    where `L` is a lower-triangular matrix and `.T` is a conjugate transpose
+    operator. Note that in the current implementation `a` must be a real
+    matrix, and only float32 and float64 are supported.
+    '''
     # TODO(Saito): Current implementation only accepts two-dimensional arrays
     _assertCupyArray(a)
     _assertRank2(a)
@@ -97,6 +104,7 @@ def cholesky(a):
 
 
 def qr(a, mode='reduced'):
+    # TODO(Saito): Current implementation only accepts two-dimensional arrays
     _assertCupyArray(a)
     _assertRank2(a)
 
