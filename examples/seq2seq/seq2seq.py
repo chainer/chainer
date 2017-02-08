@@ -1,3 +1,5 @@
+# encoding: utf-8
+
 import argparse
 import collections
 
@@ -218,13 +220,15 @@ def main():
 
     @chainer.training.make_extension(trigger=(200, 'iteration'))
     def translate(trainer):
-        words = ['Resumption', 'of', 'the', 'session']
-        x = model.xp.array([source_ids[w] for w in words], 'i')
+        words = 'Astronomers Introduction Introduction video What is Astronomy?'.split()
+        x = model.xp.array(
+            [source_ids[w] if w in source_ids else 1 for w in words], 'i')
         ys = model.translate([x])[0]
         words = [target_words[y] for y in ys]
-        print(' '.join(words))
+        print('result:' + ' '.join(words))
+        print('expect: Astronomes Introduction Vidéo d\'introduction Qu\'est-ce que l\'astronomie?')
 
-    # trainer.extend(translate)
+    trainer.extend(translate, trigger=(200, 'iteration'))
     trainer.extend(CalculateBleu(model, test_data), trigger=(200, 'iteration'))
     #trainer.extend(CalculateBleu(model, train_data))
 
