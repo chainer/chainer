@@ -102,7 +102,7 @@ class TestSVD(unittest.TestCase):
         self.check_all(numpy.random.randn(2, 2), full_matrices=True)
         self.check_all(numpy.random.randn(3, 2), full_matrices=True)
 
-    def test_svd_full_matrices(self):
+    def test_svd_no_full_matrices(self):
         self.check_all(numpy.random.randn(2, 3), full_matrices=False)
         self.check_all(numpy.random.randn(2, 2), full_matrices=False)
         self.check_all(numpy.random.randn(3, 2), full_matrices=False)
