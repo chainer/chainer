@@ -7,6 +7,7 @@ import random
 import traceback
 import unittest
 
+import six.moves
 import numpy
 
 import cupy

@@ -45,19 +45,27 @@ class TestQRDecomposition(unittest.TestCase):
 
     def test_raw_mode(self):
         self.check_mode(numpy.random.randn(2, 4), mode='raw', index=0)
-        self.check_mode(numpy.random.randn(2, 4), mode='raw', index=1)
-        self.check_mode(numpy.random.randn(3, 3), mode='raw', index=0)
-        self.check_mode(numpy.random.randn(3, 3), mode='raw', index=1)
-        self.check_mode(numpy.random.randn(4, 3), mode='raw', index=0)
+        self.check_mode(numpy.random.randn(1, 5), mode='raw', index=1)
+        self.check_mode(numpy.random.randn(2, 3), mode='raw', index=0)
         self.check_mode(numpy.random.randn(4, 3), mode='raw', index=1)
+        self.check_mode(numpy.random.randn(4, 5), mode='raw', index=0)
+        self.check_mode(numpy.random.randn(3, 3), mode='raw', index=1)
+
+    def test_complete_mode(self):
+        self.check_mode(numpy.random.randn(2, 4), mode='complete', index=0)
+        self.check_mode(numpy.random.randn(1, 5), mode='complete', index=1)
+        self.check_mode(numpy.random.randn(2, 3), mode='complete', index=0)
+        self.check_mode(numpy.random.randn(4, 3), mode='complete', index=1)
+        self.check_mode(numpy.random.randn(4, 5), mode='complete', index=0)
+        self.check_mode(numpy.random.randn(3, 3), mode='complete', index=1)
 
     def test_reduced_mode(self):
         self.check_mode(numpy.random.randn(2, 4), mode='reduced', index=0)
-        self.check_mode(numpy.random.randn(2, 4), mode='reduced', index=1)
-        self.check_mode(numpy.random.randn(3, 3), mode='reduced', index=0)
-        self.check_mode(numpy.random.randn(3, 3), mode='reduced', index=1)
-        self.check_mode(numpy.random.randn(4, 3), mode='reduced', index=0)
+        self.check_mode(numpy.random.randn(1, 5), mode='reduced', index=1)
+        self.check_mode(numpy.random.randn(2, 3), mode='reduced', index=0)
         self.check_mode(numpy.random.randn(4, 3), mode='reduced', index=1)
+        self.check_mode(numpy.random.randn(4, 5), mode='reduced', index=0)
+        self.check_mode(numpy.random.randn(3, 3), mode='reduced', index=1)
 
 
 @testing.gpu
