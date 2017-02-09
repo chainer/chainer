@@ -185,7 +185,8 @@ def svd(a, full_matrices=True, compute_uv=True):
 
     # Remark 1: gesvd only supports m >= n (WHAT?)
     # Remark 2: gesvd only supports jobu = 'A' and jobvt = 'A'
-    #           and returns matrix U and V^H
+    # Remark 3: gesvd returns matrix U and V^H
+    # Remark 4: Remark 2 is removed since cuda 8.0 (new!)
     n, m = a.shape
     if m >= n:
         x = a.astype(dtype, copy=True)
