@@ -75,31 +75,26 @@ class TestSVD(unittest.TestCase):
 
     @testing.for_float_dtypes(no_float16=True)
     @testing.numpy_cupy_allclose(atol=1e-5)
-    def check_sigma(self, array, xp, dtype):
+    def check_svd(self, array, xp, dtype, full_matrices, index=None):
         a = xp.asarray(array, dtype=dtype)
-        _, s, _ = getattr(xp, 'linalg').svd(a)
-        return s
+        result = getattr(xp, 'linalg').svd(a, full_matrices=full_matrices)
+        # Use abs in order to support an inverse vector
+        if type(result) == tuple:
+            return xp.abs(result[index])
+        else:
+            return xp.abs(result)
 
-    @testing.for_float_dtypes(no_float16=True)
-    @testing.numpy_cupy_allclose(atol=1e-5)
-    def check_U(self, array, xp, dtype):
-        a = xp.asarray(array, dtype=dtype)
-        u, _, _ = getattr(xp, 'linalg').svd(a)
-        return xp.abs(u)
+    def check_all(self, a, full_matrices=True):
+        self.check_svd(a, full_matrices=full_matrices, index=0)
+        self.check_svd(a, full_matrices=full_matrices, index=1)
+        self.check_svd(a, full_matrices=full_matrices, index=2)
 
-    @testing.for_float_dtypes(no_float16=True)
-    @testing.numpy_cupy_allclose(atol=1e-5)
-    def check_VT(self, array, xp, dtype):
-        a = xp.asarray(array, dtype=dtype)
-        u, _, _ = getattr(xp, 'linalg').svd(a)
-        return xp.abs(u)
+    def test_svd_full_matrices(self):
+        self.check_all(numpy.random.randn(2, 3), full_matrices=True)
+        self.check_all(numpy.random.randn(2, 2), full_matrices=True)
+        self.check_all(numpy.random.randn(3, 2), full_matrices=True)
 
-    def check_all(self, a):
-        self.check_sigma(a)
-        self.check_U(a)
-        self.check_VT(a)
-
-    def test_svd(self):
-        self.check_all(numpy.random.randn(2, 3))
-        self.check_all(numpy.random.randn(2, 2))
-        self.check_all(numpy.random.randn(3, 2))
+    def test_svd_no_full_matrices(self):
+        self.check_all(numpy.random.randn(2, 3), full_matrices=False)
+        self.check_all(numpy.random.randn(2, 2), full_matrices=False)
+        self.check_all(numpy.random.randn(3, 2), full_matrices=False)

@@ -172,9 +172,9 @@ def svd(a, full_matrices=True, compute_uv=True):
     _assertCupyArray(a)
     _assertRank2(a)
 
-    if not (full_matrices and compute_uv):
+    if not compute_uv:
         raise NotImplementedError(
-            'Current CUSOLVER only supports SVD generating full marices')
+            'Currently svd only supports a mode generating UV')
 
     ret_dtype = a.dtype.char
     # Cast to float32 or float64
@@ -197,12 +197,19 @@ def svd(a, full_matrices=True, compute_uv=True):
         trans_flag = True
     mn = min(m, n)
 
-    u = cupy.empty((m, m), dtype=dtype)
+    if full_matrices:
+        u = cupy.empty((m, m), dtype=dtype)
+        vt = cupy.empty((n, n), dtype=dtype)
+    else:
+        u = cupy.empty((mn, m), dtype=dtype)
+        vt = cupy.empty((mn, n), dtype=dtype)
     s = cupy.empty(mn, dtype=dtype)
-    vt = cupy.empty((n, n), dtype=dtype)
     handle = device.get_cusolver_handle()
     devInfo = cupy.empty(1, dtype=numpy.int32)
-    jobu, jobvt = ord('A'), ord('A')
+    if full_matrices:
+        jobu, jobvt = ord('A'), ord('A')
+    else:
+        jobu, jobvt = ord('S'), ord('S')
     if x.dtype.char == 'f':
         buffersize = cusolver.sgesvd_bufferSize(handle, m, n)
         workspace = cupy.empty(buffersize, dtype=dtype)
