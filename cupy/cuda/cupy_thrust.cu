@@ -37,10 +37,10 @@ template void cupy::thrust::sort<cpy_double>(void *, ssize_t);
 template <typename T>
 class elem_less {
 public:
-    elem_less(void *data):_data((T *)data) {}
+    elem_less(void *data):_data((const T *)data) {}
     __device__ bool operator()(ssize_t i, ssize_t j) { return _data[i] < _data[j]; }
 private:
-    T *_data;
+    const T *_data;
 };
 
 template <typename T>
