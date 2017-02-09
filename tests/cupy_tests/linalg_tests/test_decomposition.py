@@ -84,6 +84,14 @@ class TestSVD(unittest.TestCase):
         else:
             return xp.abs(result)
 
+    @testing.for_float_dtypes(no_float16=True)
+    @testing.numpy_cupy_allclose(atol=1e-5)
+    def check_singular(self, array, xp, dtype, full_matrices):
+        a = xp.asarray(array, dtype=dtype)
+        result = getattr(xp, 'linalg').svd(
+            a, full_matrices=full_matrices, compute_uv=False)
+        return result
+
     def check_all(self, a, full_matrices=True):
         self.check_svd(a, full_matrices=full_matrices, index=0)
         self.check_svd(a, full_matrices=full_matrices, index=1)
@@ -94,7 +102,16 @@ class TestSVD(unittest.TestCase):
         self.check_all(numpy.random.randn(2, 2), full_matrices=True)
         self.check_all(numpy.random.randn(3, 2), full_matrices=True)
 
-    def test_svd_no_full_matrices(self):
+    def test_svd_full_matrices(self):
         self.check_all(numpy.random.randn(2, 3), full_matrices=False)
         self.check_all(numpy.random.randn(2, 2), full_matrices=False)
         self.check_all(numpy.random.randn(3, 2), full_matrices=False)
+
+    def test_svd_no_uv(self):
+        self.check_singular(numpy.random.randn(2, 3), full_matrices=True)
+        self.check_singular(numpy.random.randn(2, 2), full_matrices=True)
+        self.check_singular(numpy.random.randn(3, 2), full_matrices=True)
+
+        self.check_singular(numpy.random.randn(2, 3), full_matrices=False)
+        self.check_singular(numpy.random.randn(2, 2), full_matrices=False)
+        self.check_singular(numpy.random.randn(3, 2), full_matrices=False)

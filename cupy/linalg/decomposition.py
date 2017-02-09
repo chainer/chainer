@@ -172,10 +172,6 @@ def svd(a, full_matrices=True, compute_uv=True):
     _assertCupyArray(a)
     _assertRank2(a)
 
-    if not compute_uv:
-        raise NotImplementedError(
-            'Currently svd only supports a mode generating UV')
-
     ret_dtype = a.dtype.char
     # Cast to float32 or float64
     if ret_dtype == 'f' or ret_dtype == 'd':
@@ -197,32 +193,39 @@ def svd(a, full_matrices=True, compute_uv=True):
         trans_flag = True
     mn = min(m, n)
 
-    if full_matrices:
-        u = cupy.empty((m, m), dtype=dtype)
-        vt = cupy.empty((n, n), dtype=dtype)
+    if compute_uv:
+        if full_matrices:
+            u = cupy.empty((m, m), dtype=dtype)
+            vt = cupy.empty((n, n), dtype=dtype)
+        else:
+            u = cupy.empty((mn, m), dtype=dtype)
+            vt = cupy.empty((mn, n), dtype=dtype)
+        u_ptr, vt_ptr = u.data.ptr, vt.data.ptr
     else:
-        u = cupy.empty((mn, m), dtype=dtype)
-        vt = cupy.empty((mn, n), dtype=dtype)
+        u_ptr, vt_ptr = 0, 0  # Use nullptr
     s = cupy.empty(mn, dtype=dtype)
     handle = device.get_cusolver_handle()
     devInfo = cupy.empty(1, dtype=numpy.int32)
-    if full_matrices:
-        jobu, jobvt = ord('A'), ord('A')
+    if compute_uv:
+        if full_matrices:
+            jobu, jobvt = ord('A'), ord('A')
+        else:
+            jobu, jobvt = ord('S'), ord('S')
     else:
-        jobu, jobvt = ord('S'), ord('S')
+        jobu, jobvt = ord('N'), ord('N')
     if x.dtype.char == 'f':
         buffersize = cusolver.sgesvd_bufferSize(handle, m, n)
         workspace = cupy.empty(buffersize, dtype=dtype)
         cusolver.sgesvd(
             handle, jobu, jobvt, m, n, x.data.ptr, m,
-            s.data.ptr, u.data.ptr, m, vt.data.ptr, n,
+            s.data.ptr, u_ptr, m, vt_ptr, n,
             workspace.data.ptr, buffersize, 0, devInfo.data.ptr)
     else:
         buffersize = cusolver.dgesvd_bufferSize(handle, m, n)
         workspace = cupy.empty(buffersize, dtype=dtype)
         cusolver.dgesvd(
             handle, jobu, jobvt, m, n, x.data.ptr, m,
-            s.data.ptr, u.data.ptr, m, vt.data.ptr, n,
+            s.data.ptr, u_ptr, m, vt_ptr, n,
             workspace.data.ptr, buffersize, 0, devInfo.data.ptr)
 
     status = int(devInfo[0])
@@ -235,10 +238,13 @@ def svd(a, full_matrices=True, compute_uv=True):
 
     # Note that the returned array may need to be transporsed
     # depending on the structure of an input
-    if trans_flag:
-        return u.transpose(), s, vt.transpose()
+    if compute_uv:
+        if trans_flag:
+            return u.transpose(), s, vt.transpose()
+        else:
+            return vt, s, u
     else:
-        return vt, s, u
+        return s
 
 
 def _assertCupyArray(*arrays):
