@@ -14,6 +14,11 @@ def cholesky(a):
     where `L` is a lower-triangular matrix and `.T` is a conjugate transpose
     operator. Note that in the current implementation `a` must be a real
     matrix, and only float32 and float64 are supported.
+
+    Args:
+        a (cupy.ndarray): The input matrix with dimension `(N, N)`
+
+    .. seealso:: :func:`numpy.linalg.cholesky`
     '''
     # TODO(Saito): Current implementation only accepts two-dimensional arrays
     _assertCupyArray(a)
@@ -62,6 +67,15 @@ def qr(a, mode='reduced'):
 
     Decompose a given two-dimensional matrix into `QR`, where `Q`
     is an orthonormal and `R` is an upper-triangular matrix.
+
+    Args:
+        a (cupy.ndarray): The input matrix.
+        mode (str): The mode of decomposition. Currently 'reduced',
+            'complete', 'r', and 'raw' modes are supported. The default mode
+            is 'reduced', and decompose a matrix `A = (M, N)` into Q, R with
+            dimensions `(M, K)`, `(K, N)`, where `K = min(M, N)`.
+
+    .. seealso:: :func:`numpy.linalg.qr`
     '''
     # TODO(Saito): Current implementation only accepts two-dimensional arrays
     _assertCupyArray(a)
