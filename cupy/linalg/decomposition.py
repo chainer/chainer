@@ -115,7 +115,7 @@ def qr(a, mode='reduced'):
 
     if mode not in ('reduced', 'complete', 'r', 'raw'):
         if mode in ('f', 'full', 'e', 'economic'):
-            msg = 'The deprecated mode \'{}\' is not supported.'.format(mode)
+            msg = 'The deprecated mode \'{}\' is not supported'.format(mode)
             raise ValueError(msg)
         else:
             raise ValueError('Unrecognized mode \'{}\''.format(mode))
@@ -165,31 +165,31 @@ def qr(a, mode='reduced'):
             return x.astype(numpy.float64), tau.astype(numpy.float64)
         return x, tau
 
-    if mode == 'complete':
-        raise NotImplementedError(
-            'Current cupy.linalg.qr does not support \'complete\' option')
-
-    if m <= n:
+    if mode == 'complete' and m > n:
         mc = m
-        q = cupy.zeros((n, m), dtype=dtype)
-        q[:mn, :mn] = cupy.identity(mn, dtype=dtype)
+        q = cupy.empty((m, m), dtype)
     else:
-        raise NotImplementedError()
+        mc = mn
+        q = cupy.empty((n, m), dtype)
+    q[:n] = x
 
     # solve Q
-    # Since current CUSOLVER does not provide (s|d)orgqr,
-    # we instead used the pair of (s|d)ormqr and an identity matrix.
     if x.dtype.char == 'f':
-        cusolver.sormqr(
-            handle, cublas.CUBLAS_SIDE_LEFT, cublas.CUBLAS_OP_T,
-            m, n, mn, x.data.ptr, m, tau.data.ptr, q.data.ptr, m,
+        buffersize = cusolver.sorgqr_bufferSize(
+            handle, m, mc, mn, q.data.ptr, m, tau.data.ptr)
+        workspace = cupy.empty(buffersize, dtype=numpy.float32)
+        cusolver.sorgqr(
+            handle, m, mc, mn, q.data.ptr, m, tau.data.ptr,
             workspace.data.ptr, buffersize, devInfo.data.ptr)
     else:
-        cusolver.dormqr(
-            handle, cublas.CUBLAS_SIDE_LEFT, cublas.CUBLAS_OP_T,
-            m, n, mn, x.data.ptr, m, tau.data.ptr, q.data.ptr, m,
+        buffersize = cusolver.dorgqr_bufferSize(
+            handle, m, mc, mn, q.data.ptr, m, tau.data.ptr)
+        workspace = cupy.empty(buffersize, dtype=numpy.float64)
+        cusolver.dorgqr(
+            handle, m, mc, mn, q.data.ptr, m, tau.data.ptr,
             workspace.data.ptr, buffersize, devInfo.data.ptr)
-    q = q[:mc].astype(dtype, copy=True)
+
+    q = q[:mc].transpose().astype(dtype, copy=True)
     r = x[:, :mc].transpose().astype(dtype, copy=True)
     return q, _triu(r)
 

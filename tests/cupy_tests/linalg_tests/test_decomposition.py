@@ -56,8 +56,8 @@ class TestQRDecomposition(unittest.TestCase):
         self.check_mode(numpy.random.randn(2, 4), mode='reduced', index=1)
         self.check_mode(numpy.random.randn(3, 3), mode='reduced', index=0)
         self.check_mode(numpy.random.randn(3, 3), mode='reduced', index=1)
-        #self.check_mode(numpy.random.randn(4, 3), mode='reduced', index=0)
-        #self.check_mode(numpy.random.randn(4, 3), mode='reduced', index=1)
+        self.check_mode(numpy.random.randn(4, 3), mode='reduced', index=0)
+        self.check_mode(numpy.random.randn(4, 3), mode='reduced', index=1)
 
 
 @testing.gpu
