@@ -167,6 +167,15 @@ def svd(a, full_matrices=True, compute_uv=True):
 
     Factorizes the matrix `a` as ``u * np.diag(s) * v``, where `u` and `v`
     are unitary and `s` is an one-dimensional array of `a`'s singular values.
+
+    Args:
+        a (cupy.ndarray): The input matrix with dimension `(M, N)`.
+        full_matrices (bool): If True, it returns U and V with dimensions
+            `(M, M)` and `(N, N)`. Otherwise, the dimensions of U and V are
+            respectively `(M, K)` and `(K, N)`, where `K = min(M, N)`.
+        compute_uv (bool): If True, it only returns singular values.
+
+    .. seealso:: :func:`numpy.linalg.svd`
     '''
     # TODO(Saito): Current implementation only accepts two-dimensional arrays
     _assertCupyArray(a)
