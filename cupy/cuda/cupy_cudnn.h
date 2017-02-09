@@ -21,6 +21,7 @@ typedef enum {
 typedef enum {} cudnnActivationMode_t;
 typedef enum {} cudnnConvolutionFwdAlgo_t;
 typedef enum {} cudnnConvolutionFwdPreference_t;
+typedef struct {} cudnnConvolutionFwdAlgoPerf_t;
 typedef enum {} cudnnConvolutionMode_t;
 typedef enum {} cudnnDataType_t;
 typedef enum {} cudnnNanPropagation_t;
@@ -120,6 +121,14 @@ cudnnStatus_t cudnnDestroyConvolutionDescriptor(...) {
     return CUDNN_STATUS_SUCCESS;
 }
 
+cudnnStatus_t cudnnFindConvolutionForwardAlgorithm(...) {
+    return CUDNN_STATUS_SUCCESS;
+}
+
+cudnnStatus_t cudnnFindConvolutionForwardAlgorithmEx(...) {
+    return CUDNN_STATUS_SUCCESS;
+}
+
 cudnnStatus_t cudnnGetConvolutionForwardAlgorithm(...) {
     return CUDNN_STATUS_SUCCESS;
 }
@@ -195,8 +204,10 @@ extern "C" {
 
 typedef enum {} cudnnConvolutionBwdDataAlgo_t;
 typedef enum {} cudnnConvolutionBwdDataPreference_t;
+typedef enum {} cudnnConvolutionBwdDataAlgoPerf_t;
 typedef enum {} cudnnConvolutionBwdFilterAlgo_t;
 typedef enum {} cudnnConvolutionBwdFilterPreference_t;
+typedef enum {} cudnnConvolutionBwdFilterAlgoPerf_t;
 typedef struct {
   cudnnConvolutionFwdAlgo_t algo;
   cudnnStatus_t status;
@@ -233,7 +244,11 @@ cudnnStatus_t cudnnGetConvolutionBackwardFilterWorkspaceSize(...) {
 }
 
 cudnnStatus_t cudnnFindConvolutionBackwardFilterAlgorithm(...) {
-    return CUDNN_STATUS_NOT_SUPPORTED;
+    return CUDNN_STATUS_SUCCESS;
+}
+
+cudnnStatus_t cudnnFindConvolutionBackwardFilterAlgorithmEx(...) {
+    return CUDNN_STATUS_SUCCESS;
 }
 
 cudnnStatus_t cudnnGetConvolutionBackwardFilterAlgorithm(...) {
@@ -245,7 +260,11 @@ cudnnStatus_t cudnnConvolutionBackwardData_v3(...) {
 }
 
 cudnnStatus_t cudnnFindConvolutionBackwardDataAlgorithm(...) {
-    return CUDNN_STATUS_NOT_SUPPORTED;
+    return CUDNN_STATUS_SUCCESS;
+}
+
+cudnnStatus_t cudnnFindConvolutionBackwardDataAlgorithmEx(...) {
+    return CUDNN_STATUS_SUCCESS;
 }
 
 cudnnStatus_t cudnnGetConvolutionBackwardDataAlgorithm(...) {
