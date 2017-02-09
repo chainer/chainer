@@ -7,52 +7,6 @@ from cupy.cuda import cusolver
 from cupy.cuda import device
 
 
-def _assertCupyArray(*arrays):
-    for a in arrays:
-        if not isinstance(a, cupy.core.ndarray):
-            raise LinAlgError('cupy.linalg only supports cupy.core.ndarray')
-
-
-def _assertRankAtLeast2(*arrays):
-    for a in arrays:
-        if len(a.shape) < 2:
-            raise LinAlgError(
-                '{}-dimensional array given. Array must be '
-                'at least two-dimensional'.format(len(a.shape)))
-
-
-def _assertRank2(*arrays):
-    for a in arrays:
-        if len(a.shape) != 2:
-            raise LinAlgError(
-                '{}-dimensional array given. Array must be '
-                'two-dimensional'.format(len(a.shape)))
-
-
-def _assertNdSquareness(*arrays):
-    for a in arrays:
-        if max(a.shape[-2:]) != min(a.shape[-2:]):
-            raise LinAlgError('Last 2 dimensions of the array must be square')
-
-
-def _tril(x, k=0):
-    m, n = x.shape
-    u = cupy.arange(m).reshape(m, 1)
-    v = cupy.arange(n).reshape(1, n)
-    mask = v - u <= k
-    x *= mask
-    return x
-
-
-def _triu(x, k=0):
-    m, n = x.shape
-    u = cupy.arange(m).reshape(m, 1)
-    v = cupy.arange(n).reshape(1, n)
-    mask = v - u >= k
-    x *= mask
-    return x
-
-
 def cholesky(a):
     '''Cholesky decomposition.
 
@@ -263,3 +217,49 @@ def svd(a, full_matrices=True, compute_uv=True):
         return u.transpose(), s, vt.transpose()
     else:
         return vt, s, u
+
+
+def _assertCupyArray(*arrays):
+    for a in arrays:
+        if not isinstance(a, cupy.core.ndarray):
+            raise LinAlgError('cupy.linalg only supports cupy.core.ndarray')
+
+
+def _assertRankAtLeast2(*arrays):
+    for a in arrays:
+        if len(a.shape) < 2:
+            raise LinAlgError(
+                '{}-dimensional array given. Array must be '
+                'at least two-dimensional'.format(len(a.shape)))
+
+
+def _assertRank2(*arrays):
+    for a in arrays:
+        if len(a.shape) != 2:
+            raise LinAlgError(
+                '{}-dimensional array given. Array must be '
+                'two-dimensional'.format(len(a.shape)))
+
+
+def _assertNdSquareness(*arrays):
+    for a in arrays:
+        if max(a.shape[-2:]) != min(a.shape[-2:]):
+            raise LinAlgError('Last 2 dimensions of the array must be square')
+
+
+def _tril(x, k=0):
+    m, n = x.shape
+    u = cupy.arange(m).reshape(m, 1)
+    v = cupy.arange(n).reshape(1, n)
+    mask = v - u <= k
+    x *= mask
+    return x
+
+
+def _triu(x, k=0):
+    m, n = x.shape
+    u = cupy.arange(m).reshape(m, 1)
+    v = cupy.arange(n).reshape(1, n)
+    mask = v - u >= k
+    x *= mask
+    return x
