@@ -1,5 +1,4 @@
 from __future__ import division
-from math import floor
 
 
 class IntervalTrigger(object):
@@ -27,6 +26,7 @@ class IntervalTrigger(object):
         self.period = period
         assert unit == 'epoch' or unit == 'iteration'
         self.unit = unit
+        self.count = None
 
     def __call__(self, trainer):
         """Decides whether the extension should be called on this iteration.
@@ -44,8 +44,13 @@ class IntervalTrigger(object):
         updater = trainer.updater
         iteration = updater.iteration
         epoch = updater.epoch_detail
+
         if self.unit == 'epoch':
-            prev = epoch * (iteration - 1) / iteration
-            return floor(prev / self.period) < floor(epoch / self.period)
+            if self.count is None:
+                prev = (epoch * (iteration - 1) / iteration) // self.period
+            else:
+                prev = self.count
+            self.count = epoch // self.period
+            return prev != self.count
         else:
             return iteration > 0 and iteration % self.period == 0
