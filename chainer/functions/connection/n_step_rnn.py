@@ -147,7 +147,7 @@ class BaseNStepRNN(function.Function):
         n_cell = self.rnn_params['n_cell']
         type_check.expect(in_types.size() > n_cell + self.rnn_params['n_Wb'] *
                           self.n_layers * self.rnn_direction)
-        in_types = self._check_type_cell(in_types, n_cell)
+        h_type, in_types = self._check_type_cell(in_types, n_cell)
 
         w_types, in_types = _split(in_types,
                                    self.n_layers * self.rnn_direction *
@@ -212,8 +212,7 @@ class BaseNStepRNN(function.Function):
     def forward(self, inputs):
         n_cell = self.rnn_params['n_cell']
 
-        hx, cx, dhy, dcy, cx_data_ptr, cy_data_ptr, cx_desc_value,
-        cy_desc_value = self._forward_init(inputs, n_cell)
+        hx, cx, inputs, cy, cx_data_ptr, cy_data_ptr, cx_desc_value, cy_desc_value = self._forward_init(inputs, n_cell)
 
         ws, inputs = _split(inputs,
                             self.n_layers *
@@ -320,8 +319,7 @@ class BaseNStepRNN(function.Function):
     def backward(self, inputs, grads):
         # n_cell = 2 or 1 (LSTM or GRU, RNN)
         n_cell = self.rnn_params['n_cell']
-        hx, cx, dhy, dcy, cx_data_ptr, dcy_data_ptr, dcx_data_ptr,
-        cx_desc_value, dcx_desc_value, dcy_desc_value = self.backward_init()
+        hx, cx, inputs, dcx, dhy, dcy, cx_data_ptr, dcy_data_ptr, dcx_data_ptr, cx_desc_value, dcx_desc_value, dcy_desc_value = self.backward_init(inputs, n_cell)
 
         ws, inputs = _split(inputs, self.n_layers * self.rnn_direction *
                             self.rnn_params['n_W'])
@@ -373,7 +371,7 @@ class BaseNStepRNN(function.Function):
             self.reserve_space.data.ptr, self.reserve_space.size)
 
         dw = cuda.cupy.zeros_like(self.w)
-        dw_desc = cudnn.create_tensor_nd_descriptor(dw)
+        dw_desc = cudnn.create_filter_descriptor(dw)
         libcudnn.RNNBackwardWeights(
             handle, rnn_desc.value, length,
             self.c_x_descs.data, xs.data.ptr,
@@ -428,7 +426,7 @@ class BaseNStepRNNCell(BaseNStepRNN):
             # hidden size
             h_type.shape[2] == c_type.shape[2],
         )
-        return in_types
+        return h_type, in_types
 
     def _forward_init(self, inputs, n_cell):
         (hx, cx), inputs = _split(inputs, n_cell)
@@ -444,8 +442,7 @@ class BaseNStepRNNCell(BaseNStepRNN):
         cx_desc_value = cx_desc.value
         cy_desc_value = cy_desc.value
 
-        return tuple(hx, cx, dhy, dcy, cx_data_ptr, cy_data_ptr, cx_desc_value,
-                     cy_desc_value)
+        return hx, cx, inputs, cy, cx_data_ptr, cy_data_ptr, cx_desc_value, cy_desc_value
 
     def _forward_create_variable(self, hy, cy, y_list):
         return tuple([hy, cy] + y_list)
@@ -470,8 +467,7 @@ class BaseNStepRNNCell(BaseNStepRNN):
         dcx_desc_value = dcx_desc.value
         dcy_desc_value = dcy_desc.value
 
-        return tuple(hx, cx, dhy, dcy, cx_data_ptr, dcy_data_ptr, dcx_data_ptr,
-                     cx_desc_value, dcx_desc_value, dcy_desc_value)
+        return hx, cx, inputs, dcx, dhy, dcy, cx_data_ptr, dcy_data_ptr, dcx_data_ptr, cx_desc_value, dcx_desc_value, dcy_desc_value
 
     def _backward_create_variable(self, dhx, dcx, dws, dbs, dx_list):
         return tuple([dhx, dcx] + dws + dbs + dx_list)
@@ -489,7 +485,7 @@ class BaseNStepRNNNoCell(BaseNStepRNN):
             h_type.ndim == 3,
             h_type.shape[0] == self.n_layers * self.rnn_direction,
         )
-        return in_types
+        return h_type, in_types
 
     def _forward_init(self, inputs, n_cell):
         # RNN, GRU
@@ -500,8 +496,7 @@ class BaseNStepRNNNoCell(BaseNStepRNN):
         cy_data_ptr = 0
         cx_desc_value = 0
         cy_desc_value = 0
-        return tuple(hx, cx, dhy, dcy, cx_data_ptr, cy_data_ptr, cx_desc_value,
-                     cy_desc_value)
+        return hx, cx, inputs, cy, cx_data_ptr, cy_data_ptr, cx_desc_value, cy_desc_value
 
     def _forward_create_variable(self, hy, cy, y_list):
         return tuple([hy, ] + y_list)
@@ -511,14 +506,14 @@ class BaseNStepRNNNoCell(BaseNStepRNN):
         dhy, = grads[:n_cell]
         dcy = None
         cx = None
+        dcx = None
         cx_data_ptr = 0
         dcy_data_ptr = 0
         dcx_data_ptr = 0
         cx_desc_value = 0
         dcx_desc_value = 0
         dcy_desc_value = 0
-        return tuple(hx, cx, dhy, dcy, cx_data_ptr, dcy_data_ptr, dcx_data_ptr,
-                     cx_desc_value, dcx_desc_value, dcy_desc_value)
+        return hx, cx, inputs, dcx, dhy, dcy, cx_data_ptr, dcy_data_ptr, dcx_data_ptr, cx_desc_value, dcx_desc_value, dcy_desc_value
 
     def _backward_create_variable(self, dhx, dcx, dws, dbs, dx_list):
         return tuple([dhx, ] + dws + dbs + dx_list)
