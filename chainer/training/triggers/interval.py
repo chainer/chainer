@@ -1,3 +1,6 @@
+import math
+
+
 class IntervalTrigger(object):
 
     """Trigger based on a fixed interval.
@@ -23,7 +26,6 @@ class IntervalTrigger(object):
         self.period = period
         assert unit == 'epoch' or unit == 'iteration'
         self.unit = unit
-        self.count = 0
 
     def __call__(self, trainer):
         """Decides whether the extension should be called on this iteration.
@@ -39,10 +41,10 @@ class IntervalTrigger(object):
 
         """
         updater = trainer.updater
+        iteration = updater.iteration
+        epoch = updater.epoch_detail
         if self.unit == 'epoch':
-            prev = self.count
-            self.count = updater.epoch_detail // self.period
-            return prev != self.count
+            prev = epoch * (iteration - 1) / iteration
+            return math.floor(prev / self.period) < math.floor(epoch / self.period)
         else:
-            iteration = updater.iteration
             return iteration > 0 and iteration % self.period == 0
