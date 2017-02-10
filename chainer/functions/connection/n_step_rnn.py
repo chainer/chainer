@@ -408,9 +408,8 @@ class BaseNStepRNN(function.Function):
 
 
 class BaseNStepRNNCell(BaseNStepRNN):
-    def __init__(self, n_layers, states, train=True):
-        BaseNStepRNN.__init__(self, n_layers, states, rnn_dir='uni',
-                              train=train, rnn_mode='lstm')
+    def __init__(self, n_layers, states, rnn_dir, train, rnn_mode):
+        BaseNStepRNN.__init__(self, n_layers, states, rnn_dir, train, rnn_mode)
 
     def _check_type_cell(self, in_types, n_cell):
         (h_type, c_type), in_types = _split(in_types, n_cell)
@@ -478,9 +477,8 @@ class BaseNStepRNNCell(BaseNStepRNN):
 
 
 class BaseNStepRNNNoCell(BaseNStepRNN):
-    def __init__(self, n_layers, states, train=True):
-        BaseNStepRNN.__init__(self, n_layers, states, rnn_dir='uni',
-                              train=train, rnn_mode='rnn_tanh')
+    def __init__(self, n_layers, states, rnn_dir, train, rnn_mode):
+        BaseNStepRNN.__init__(self, n_layers, states, rnn_dir, train, rnn_mode)
 
     def _check_type_cell(self, in_types, n_cell):
         (h_type, ), in_types = _split(in_types, n_cell)
