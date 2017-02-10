@@ -26,6 +26,10 @@ class DummyUpdater(training.Updater):
         return 1
 
     @property
+    def epoch_detail(self):
+        return self.iteration
+
+    @property
     def is_new_epoch(self):
         return False
 
