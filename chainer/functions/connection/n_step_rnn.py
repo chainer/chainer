@@ -408,8 +408,8 @@ class BaseNStepRNN(function.Function):
 
 
 class BaseNStepRNNCell(BaseNStepRNN):
-    def __init__(self, n_layers, states, rnn_dir, train, rnn_mode):
-        BaseNStepRNN.__init__(self, n_layers, states, rnn_dir, train, rnn_mode)
+    def __init__(self, n_layers, states, rnn_dir, rnn_mode, train):
+        BaseNStepRNN.__init__(self, n_layers, states, rnn_dir, rnn_mode, train)
 
     def _check_type_cell(self, in_types, n_cell):
         (h_type, c_type), in_types = _split(in_types, n_cell)
@@ -477,8 +477,8 @@ class BaseNStepRNNCell(BaseNStepRNN):
 
 
 class BaseNStepRNNNoCell(BaseNStepRNN):
-    def __init__(self, n_layers, states, rnn_dir, train, rnn_mode):
-        BaseNStepRNN.__init__(self, n_layers, states, rnn_dir, train, rnn_mode)
+    def __init__(self, n_layers, states, rnn_dir, rnn_mode, train):
+        BaseNStepRNN.__init__(self, n_layers, states, rnn_dir, rnn_mode, train)
 
     def _check_type_cell(self, in_types, n_cell):
         (h_type, ), in_types = _split(in_types, n_cell)
@@ -524,30 +524,26 @@ class BaseNStepRNNNoCell(BaseNStepRNN):
 
 class NStepRNNTanh(BaseNStepRNNNoCell):
     def __init__(self, n_layers, states, train=True):
-        BaseNStepRNNNoCell.__init__(self, n_layers, states,
-                                               rnn_dir='uni', train=train,
-                                               rnn_mode='rnn_tanh')
+        BaseNStepRNNNoCell.__init__(self, n_layers, states, rnn_dir='uni',
+                                    rnn_mode='rnn_tanh', train=train)
 
 
 class NStepRNNReLU(BaseNStepRNNNoCell):
     def __init__(self, n_layers, states, train=True):
-        BaseNStepRNNNoCell.__init__(self, n_layers, states,
-                                               rnn_dir='uni', train=train,
-                                               rnn_mode='rnn_relu')
+        BaseNStepRNNNoCell.__init__(self, n_layers, states, rnn_dir='uni',
+                                    rnn_mode='rnn_relu', train=train)
 
 
 class NStepBiRNNTanh(BaseNStepRNNNoCell):
     def __init__(self, n_layers, states, train=True):
-        BaseNStepRNNNoCell.__init__(self, n_layers, states,
-                                               rnn_dir='bi', train=train,
-                                               rnn_mode='rnn_tanh')
+        BaseNStepRNNNoCell.__init__(self, n_layers, states, rnn_dir='bi',
+                                    rnn_mode='rnn_tanh', train=train)
 
 
 class NStepBiRNNReLU(BaseNStepRNNNoCell):
     def __init__(self, n_layers, states, train=True):
-        BaseNStepRNNNoCell.__init__(self, n_layers, states,
-                                               rnn_dir='bi', train=train,
-                                               rnn_mode='rnn_relu')
+        BaseNStepRNNNoCell.__init__(self, n_layers, states, rnn_dir='bi',
+                                    rnn_mode='rnn_relu', train=train)
 
 def n_step_rnn():
     # TODO: Implement n_step_rnn

@@ -23,15 +23,15 @@ if cuda.cudnn_enabled:
 class NStepLSTM(n_step_rnn.BaseNStepRNNCell):
     def __init__(self, n_layers, states, train=True):
         n_step_rnn.BaseNStepRNNCell.__init__(self, n_layers, states,
-                                             rnn_dir='uni', train=train,
-                                             rnn_mode='lstm')
+                                             rnn_dir='uni', rnn_mode='lstm',
+                                             train=train)
 
 
 class NStepBiLSTM(n_step_rnn.BaseNStepRNNCell):
     def __init__(self, n_layers, states, train=True):
         n_step_rnn.BaseNStepRNNCell.__init__(self, n_layers, states,
-                                             rnn_dir='bi', train=train,
-                                             rnn_mode='lstm')
+                                             rnn_dir='bi', rnn_mode='lstm',
+                                             train=train)
 
 _random_states = {}
 
