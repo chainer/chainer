@@ -1,4 +1,4 @@
-import math
+from math import floor
 
 
 class IntervalTrigger(object):
@@ -45,6 +45,6 @@ class IntervalTrigger(object):
         epoch = updater.epoch_detail
         if self.unit == 'epoch':
             prev = epoch * (iteration - 1) / iteration
-            return math.floor(prev / self.period) < math.floor(epoch / self.period)
+            return floor(prev / self.period) < floor(epoch / self.period)
         else:
             return iteration > 0 and iteration % self.period == 0
