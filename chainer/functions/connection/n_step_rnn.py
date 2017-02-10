@@ -147,7 +147,7 @@ class BaseNStepRNN(function.Function):
         n_cell = self.rnn_params['n_cell']
         type_check.expect(in_types.size() > n_cell + self.rnn_params['n_Wb'] *
                           self.n_layers * self.rnn_direction)
-        self._check_type_cell(in_types, n_cell)
+        in_types = self._check_type_cell(in_types, n_cell)
 
         w_types, in_types = _split(in_types,
                                    self.n_layers * self.rnn_direction *
@@ -428,6 +428,7 @@ class BaseNStepRNNCell(BaseNStepRNN):
             # hidden size
             h_type.shape[2] == c_type.shape[2],
         )
+        return in_types
 
     def _forward_init(self, inputs, n_cell):
         (hx, cx), inputs = _split(inputs, n_cell)
@@ -488,6 +489,7 @@ class BaseNStepRNNNoCell(BaseNStepRNN):
             h_type.ndim == 3,
             h_type.shape[0] == self.n_layers * self.rnn_direction,
         )
+        return in_types
 
     def _forward_init(self, inputs, n_cell):
         # RNN, GRU
