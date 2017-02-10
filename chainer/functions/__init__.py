@@ -205,7 +205,6 @@ from chainer.functions.connection.embed_id import embed_id  # NOQA
 from chainer.functions.connection.linear import linear  # NOQA
 from chainer.functions.connection.n_step_lstm import n_step_lstm  # NOQA
 from chainer.functions.connection.n_step_lstm import NStepLSTM  # NOQA
-from chainer.functions.connection.n_step_lstm import NStepBiLSTM  # NOQA
 
 from chainer.functions.evaluation.accuracy import accuracy  # NOQA
 from chainer.functions.evaluation.accuracy import Accuracy  # NOQA

@@ -27,12 +27,6 @@ class NStepLSTM(n_step_rnn.BaseNStepRNNCell):
                                              train=train)
 
 
-class NStepBiLSTM(n_step_rnn.BaseNStepRNNCell):
-    def __init__(self, n_layers, states, train=True):
-        n_step_rnn.BaseNStepRNNCell.__init__(self, n_layers, states,
-                                             rnn_dir='bi', rnn_mode='lstm',
-                                             train=train)
-
 _random_states = {}
 
 
