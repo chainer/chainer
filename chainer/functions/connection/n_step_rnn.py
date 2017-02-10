@@ -524,29 +524,33 @@ class BaseNStepRNNNoCell(BaseNStepRNN):
         return tuple([dhx, ] + dws + dbs + dx_list)
 
 
-class NStepRNNTanh(n_step_rnn.BaseNStepRNNNoCell):
+class NStepRNNTanh(BaseNStepRNNNoCell):
     def __init__(self, n_layers, states, train=True):
-        n_step_rnn.BaseNStepRNNNoCell.__init__(self, n_layers, states,
+        BaseNStepRNNNoCell.__init__(self, n_layers, states,
                                                rnn_dir='uni', train=train,
                                                rnn_mode='rnn_tanh')
 
 
-class NStepRNNReLU(n_step_rnn.BaseNStepRNNNoCell):
+class NStepRNNReLU(BaseNStepRNNNoCell):
     def __init__(self, n_layers, states, train=True):
-        n_step_rnn.BaseNStepRNNNoCell.__init__(self, n_layers, states,
+        BaseNStepRNNNoCell.__init__(self, n_layers, states,
                                                rnn_dir='uni', train=train,
                                                rnn_mode='rnn_relu')
 
 
-class NStepBiRNNTanh(n_step_rnn.BaseNStepRNNNoCell):
+class NStepBiRNNTanh(BaseNStepRNNNoCell):
     def __init__(self, n_layers, states, train=True):
-        n_step_rnn.BaseNStepRNNNoCell.__init__(self, n_layers, states,
+        BaseNStepRNNNoCell.__init__(self, n_layers, states,
                                                rnn_dir='bi', train=train,
                                                rnn_mode='rnn_tanh')
 
 
-class NStepBiRNNReLU(n_step_rnn.BaseNStepRNNNoCell):
+class NStepBiRNNReLU(BaseNStepRNNNoCell):
     def __init__(self, n_layers, states, train=True):
-        n_step_rnn.BaseNStepRNNNoCell.__init__(self, n_layers, states,
+        BaseNStepRNNNoCell.__init__(self, n_layers, states,
                                                rnn_dir='bi', train=train,
                                                rnn_mode='rnn_relu')
+
+def n_step_rnn():
+    # TODO: Implement n_step_rnn
+    pass
