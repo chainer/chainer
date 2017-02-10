@@ -496,7 +496,7 @@ class BaseNStepRNNNoCell(BaseNStepRNN):
     def _forward_init(self, inputs, n_cell):
         # RNN, GRU
         (hx, ), inputs = _split(inputs, n_cell)
-        dcy = None
+        cx = None
         cy = None
         cx_data_ptr = 0
         cy_data_ptr = 0
@@ -549,7 +549,3 @@ class NStepBiRNNReLU(BaseNStepRNNNoCell):
     def __init__(self, n_layers, states, train=True):
         BaseNStepRNNNoCell.__init__(self, n_layers, states, rnn_dir='bi',
                                     rnn_mode='rnn_relu', train=train)
-
-def n_step_rnn():
-    # TODO: Implement n_step_rnn
-    pass
