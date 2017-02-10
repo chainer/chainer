@@ -2089,42 +2089,55 @@ cpdef ndarray concatenate_method(tup, int axis):
 
 cpdef ndarray concatenate(tup, axis, shape, dtype):
     cdef ndarray a, x, ret
-    cdef int i, base, cum
+    cdef int i, j, base, cum, ndim
     cdef bint all_same_type, all_one_and_contiguous
+    cdef Py_ssize_t[:] ptrs
+    cdef int[:] cum_sizes
+    cdef int[:, :] x_strides
 
     ret = ndarray(shape, dtype=dtype)
 
-    all_same_type = True
-    all_one_and_contiguous = True
-    dtype = tup[0].dtype
-    for a in tup:
-        all_same_type = all_same_type and (a.dtype == dtype)
-        all_one_and_contiguous = (
-            all_one_and_contiguous and a._c_contiguous and a._shape[axis] == 1)
-
-    if all_same_type:
-        x = array([a.data.ptr for a in tup])
-        if all_one_and_contiguous:
-            base = internal.prod_ssize_t(shape[axis + 1:])
-            _concatenate_kernel_one(x, base, ret)
-        else:
-            x_strides = array([a.strides for a in tup], 'i')
-            cum = 0
-            cum_sizes = numpy.empty(len(tup), 'i')
-            for i, a in enumerate(tup):
-                cum_sizes[i] = cum
-                cum += a._shape[axis]
-            cum_sizes = array(cum_sizes)
-
-            _concatenate_kernel(
-                x, axis, len(shape), cum_sizes, x_strides, ret)
-    else:
-        skip = (slice(None),) * axis
-        i = 0
+    if len(tup) > 3:
+        all_same_type = True
+        all_one_and_contiguous = True
+        dtype = tup[0].dtype
         for a in tup:
-            aw = a._shape[axis]
-            ret[skip + (slice(i, i + aw),)] = a
-            i += aw
+            all_same_type = all_same_type and (a.dtype == dtype)
+            all_one_and_contiguous = (
+                all_one_and_contiguous and a._c_contiguous and
+                a._shape[axis] == 1)
+
+        if all_same_type:
+            ptrs = numpy.ndarray(len(tup), numpy.int64)
+            for i, a in enumerate(tup):
+                ptrs[i] = a.data.ptr
+            x = array(ptrs)
+
+            if all_one_and_contiguous:
+                base = internal.prod_ssize_t(shape[axis + 1:])
+                _concatenate_kernel_one(x, base, ret)
+            else:
+                ndim = tup[0].ndim
+                x_strides = numpy.ndarray((len(tup), ndim), numpy.int32)
+                cum_sizes = numpy.ndarray(len(tup), numpy.int32)
+                cum = 0
+                for i, a in enumerate(tup):
+                    for j in range(ndim):
+                        x_strides[i, j] = a._strides[j]
+                    cum_sizes[i] = cum
+                    cum += a._shape[axis]
+
+                _concatenate_kernel(
+                    x, axis, len(shape), array(cum_sizes), array(x_strides),
+                    ret)
+            return ret
+
+    skip = (slice(None),) * axis
+    i = 0
+    for a in tup:
+        aw = a._shape[axis]
+        ret[skip + (slice(i, i + aw),)] = a
+        i += aw
 
     return ret
 
