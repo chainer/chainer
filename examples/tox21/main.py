@@ -1,6 +1,7 @@
 from chainer.dataset import download
 import zipfile
 import os
+import shutil
 
 from rdkit.Chem import rdMolDescriptors
 from rdkit.Chem import SDMolSupplier
@@ -15,11 +16,10 @@ tox21_tasks = ['NR-AR', 'NR-AR-LBD', 'NR-AhR', 'NR-Aromatase', 'NR-ER',
                'NR-ER-LBD', 'NR-PPAR-gamma', 'SR-ARE', 'SR-ATAD5',
                'SR-HSE', 'SR-MMP', 'SR-p53']
 
-def preprocess(sdf):
+def preprocess(mol_supplier):
     fps = []
     labels = []
-    sdmol = SDMolSupplier('tox21_10k_data_all.sdf')
-    for mol in sdmol:
+    for mol in mol_supplier:
         if mol is None:
             continue
         label = []
@@ -41,17 +41,17 @@ def creator(path):
 
     with zipfile.ZipFile(train_path, 'r') as z:
         z.extract('tox21_10k_data_all.sdf')
-        fps, labels = preprocess(sdf)
-    numpy.savez_compressed(path, fps=fps, labels=labels)
-    return {'fps': fps, 'labels': labels}
+    mol_supplier = SDMolSupplier('tox21_10k_data_all.sdf')
+    shutil.move('tox21_10k_data_all.sdf', path)
+    return mol_supplier
 
 
 def loader(path):
-    return numpy.load(path)
+    return SDMolSupplier(path)
 
 root = download.get_dataset_directory('pfnet/chainer/tox21')
-path = os.path.join(root, "train.npz")
-train_dataset = download.cache_or_load_file(path, creator, loader)
-print(type(train_dataset))
+path = os.path.join(root, "train.sdf")
+mol_supplier = download.cache_or_load_file(path, creator, loader)
+train_dataset = preprocess(mol_supplier)
 
-
+print(train_dataset)
