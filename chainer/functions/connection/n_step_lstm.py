@@ -20,11 +20,18 @@ if cuda.cudnn_enabled:
     _cudnn_version = libcudnn.getVersion()
 
 
-class NStepLSTM(n_step_rnn.NStepRNN):
+class NStepLSTM(n_step_rnn.BaseNStepRNNCell):
     def __init__(self, n_layers, states, train=True):
-        n_step_rnn.NStepRNN.__init__(self, n_layers, states, rnn_dir='uni',
-                                     train=train, rnn_mode='lstm')
+        n_step_rnn.BaseNStepRNNCell.__init__(self, n_layers, states,
+                                             rnn_dir='uni', train=train,
+                                             rnn_mode='lstm')
 
+
+class NStepBiLSTM(n_step_rnn.BaseNStepRNNCell):
+    def __init__(self, n_layers, states, train=True):
+        n_step_rnn.BaseNStepRNNCell.__init__(self, n_layers, states,
+                                             rnn_dir='bi', train=train,
+                                             rnn_mode='lstm')
 
 _random_states = {}
 
@@ -37,7 +44,6 @@ def get_random_state():
         rs = n_step_rnn.DropoutRandomStates(os.getenv('CHAINER_SEED'))
         _random_states[dev.id] = rs
     return rs
-
 
 def _stack_weight(ws):
     # TODO(unno): Input of the current LSTM implementaiton is shuffled
@@ -58,12 +64,12 @@ def n_step_lstm(
     time :math:`t` from input :math:`x_t`.
 
     .. math::
-       i_t = \sigma(W_0 x_t + W_4 h_{t-1} + b_0 + b_4)
-       f_t = \sigma(W_1 x_t + W_5 h_{t-1} + b_1 + b_5)
-       o_t = \sigma(W_2 x_t + W_6 h_{t-1} + b_2 + b_6)
-       a_t = \tanh(W_3 x_t + W_7 h_{t-1} + b_3 + b_7)
-       c_t = f_t \dot c_{t-1} + i_t \dot a_t
-       h_t = o_t \dot \tanh(c_t)
+       i_t &= \\sigma(W_0 x_t + W_4 h_{t-1} + b_0 + b_4) \\\\
+       f_t &= \\sigma(W_1 x_t + W_5 h_{t-1} + b_1 + b_5) \\\\
+       o_t &= \\sigma(W_2 x_t + W_6 h_{t-1} + b_2 + b_6) \\\\
+       a_t &= \\tanh(W_3 x_t + W_7 h_{t-1} + b_3 + b_7) \\\\
+       c_t &= f_t \\dot c_{t-1} + i_t \\dot a_t \\\\
+       h_t &= o_t \\dot \\tanh(c_t)
 
     As the function accepts a sequence, it calculates :math:`h_t` for all
     :math:`t` with one call. Eight weight matrices and eight bias vectors are
@@ -97,7 +103,7 @@ def n_step_lstm(
             ``bs[i][j]`` is corresponding with ``b_j`` in the equation.
             Shape of each matrix is ``(N,)`` where ``N`` is dimention of
             hidden units.
-        xs (list of chainer.Variable): A list of :class:`chainer.Variable`
+        xs (list of chainer.Variable): A list of :class:`~chainer.Variable`
             holding input values. Each element ``xs[t]`` holds input value
             for time ``t``. Its shape is ``(B_t, I)``, where ``B_t`` is
             mini-batch size for time ``t``, and ``I`` is size of input units.
@@ -116,7 +122,7 @@ def n_step_lstm(
             ``hy``, ``cy`` and ``ys``.
             - ``hy`` is an updated hidden states whose shape is same as ``hx``.
             - ``cy`` is an updated cell states whose shape is same as ``cx``.
-            - ``ys`` is a list of :class:~chainer.Variable. Each element
+            - ``ys`` is a list of :class:`~chainer.Variable` . Each element
               ``ys[t]`` holds hidden states of the last layer corresponding
               to an input ``xs[t]``. Its shape is ``(B_t, N)`` where ``B_t`` is
               mini-batch size for time ``t``, and ``N`` is size of hidden
