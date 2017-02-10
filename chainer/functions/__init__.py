@@ -51,6 +51,7 @@ from chainer.functions.connection import dilated_convolution_2d  # NOQA
 from chainer.functions.connection import embed_id  # NOQA
 from chainer.functions.connection import linear  # NOQA
 from chainer.functions.connection import n_step_lstm  # NOQA
+from chainer.functions.connection import n_step_rnn  # NOQA
 from chainer.functions.evaluation import accuracy  # NOQA
 from chainer.functions.evaluation import binary_accuracy  # NOQA
 from chainer.functions.evaluation import classification_summary  # NOQA
@@ -111,7 +112,6 @@ from chainer.functions.pooling import unpooling_nd  # NOQA
 from chainer.functions.pooling import upsampling_2d  # NOQA
 from chainer.functions.theano import theano_function  # NOQA
 from chainer.functions.util import forget  # NOQA
-
 
 # import class and function
 from chainer.functions.activation.clipped_relu import clipped_relu  # NOQA
