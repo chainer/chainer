@@ -45,6 +45,7 @@ def get_random_state():
         _random_states[dev.id] = rs
     return rs
 
+
 def _stack_weight(ws):
     # TODO(unno): Input of the current LSTM implementaiton is shuffled
     w = stack.stack(ws, axis=1)
