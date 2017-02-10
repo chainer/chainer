@@ -402,7 +402,7 @@ class BaseNStepRNN(function.Function):
                                                self.rnn_params['n_W'] +
                                                lin_layer_id].shape))
 
-        return _backward_create_variable(dhx, dcx, dws, dbs, dx_list)
+        return self._backward_create_variable(dhx, dcx, dws, dbs, dx_list)
 
 
 class BaseNStepRNNCell(BaseNStepRNN):
