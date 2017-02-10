@@ -319,7 +319,7 @@ class BaseNStepRNN(function.Function):
     def backward(self, inputs, grads):
         # n_cell = 2 or 1 (LSTM or GRU, RNN)
         n_cell = self.rnn_params['n_cell']
-        hx, cx, inputs, dcx, dhy, dcy, cx_data_ptr, dcy_data_ptr, dcx_data_ptr, cx_desc_value, dcx_desc_value, dcy_desc_value = self.backward_init(inputs, n_cell)
+        hx, cx, inputs, dcx, dhy, dcy, cx_data_ptr, dcy_data_ptr, dcx_data_ptr, cx_desc_value, dcx_desc_value, dcy_desc_value = self._backward_init(inputs, n_cell, grads)
 
         ws, inputs = _split(inputs, self.n_layers * self.rnn_direction *
                             self.rnn_params['n_W'])
@@ -447,7 +447,7 @@ class BaseNStepRNNCell(BaseNStepRNN):
     def _forward_create_variable(self, hy, cy, y_list):
         return tuple([hy, cy] + y_list)
 
-    def _backward_init(self, inputs, n_cell):
+    def _backward_init(self, inputs, n_cell, grads):
         (hx, cx), inputs = _split(inputs, n_cell)
         dhy, dcy = grads[:n_cell]
         if dcy is None:
@@ -501,7 +501,7 @@ class BaseNStepRNNNoCell(BaseNStepRNN):
     def _forward_create_variable(self, hy, cy, y_list):
         return tuple([hy, ] + y_list)
 
-    def _backward_init(self, inputs, n_cell):
+    def _backward_init(self, inputs, n_cell, grads):
         (hx, ), inputs = _split(inputs, n_cell)
         dhy, = grads[:n_cell]
         dcy = None
