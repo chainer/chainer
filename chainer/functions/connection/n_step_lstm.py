@@ -51,6 +51,8 @@ def n_step_lstm(
         n_layers, dropout_ratio, hx, cx, ws, bs, xs, train=True,
         use_cudnn=True):
     """Stacked Long Short-Term Memory function for sequence inputs.
+
+
     This function calculates stacked LSTM with sequences. This function gets
     an initial hidden state :math:`h_0`, an initial cell state :math:`c_0`,
     an input sequence :math:`x`, weight matrices :math:`W`, and bias vectors
