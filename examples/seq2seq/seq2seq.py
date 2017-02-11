@@ -54,7 +54,7 @@ class Seq2seq(chainer.Chain):
         loss = F.softmax_cross_entropy(
             self.W(F.concat(os, axis=0)), F.concat(ys_out, axis=0))
 
-        reporter.report({'loss': loss}, self)
+        reporter.report({'loss': loss.data}, self)
         return loss
 
     def translate(self, xs, max_length=10):
