@@ -43,9 +43,9 @@ class IntervalTrigger(object):
         """
         updater = trainer.updater
         iteration = updater.iteration
-        epoch = updater.epoch_detail
 
         if self.unit == 'epoch':
+            epoch = updater.epoch_detail
             if self.count is None:
                 prev = (epoch * (iteration - 1) / iteration) // self.period
             else:
