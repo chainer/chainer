@@ -1,4 +1,5 @@
 import collections
+import re
 import gzip
 
 import numpy
@@ -6,7 +7,9 @@ import progressbar
 
 
 def split_sentence(s):
-    return s.split()
+    s = re.sub('([.,!?"\':;)(])', r' \1', s)
+    words = s.strip().split()
+    return [w for w in words if w]
 
 
 def open_file(path):
