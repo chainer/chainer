@@ -222,7 +222,7 @@ def main():
     def translate(trainer):
         words = 'Astronomers Introduction Introduction video What is Astronomy?'.split()
         x = model.xp.array(
-            [source_ids[w] if w in source_ids else 1 for w in words], 'i')
+            [source_ids.get(w, 1) for w in words], 'i')
         ys = model.translate([x])[0]
         words = [target_words[y] for y in ys]
         print('result:' + ' '.join(words))
