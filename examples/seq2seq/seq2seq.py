@@ -59,20 +59,22 @@ class Seq2seq(chainer.Chain):
 
     def translate(self, xs, max_length=10):
         batch = len(xs)
-        exs = sequence_embed(self.embed_x, xs)
-        # Initial hidden variable and cell variable
-        zero = self.xp.zeros((self.n_layers, batch, self.n_units), 'f')
-        h, c, _ = self.encoder(zero, zero, exs, train=False)
-        ys = self.xp.zeros(batch, 'i')
-        result = []
-        for i in range(max_length):
-            eys = self.embed_y(ys)
-            eys = chainer.functions.split_axis(eys, batch, 0, force_tuple=True)
-            h, c, ys = self.decoder(h, c, eys, train=False)
-            cys = chainer.functions.concat(ys, axis=0)
-            wy = self.W(cys)
-            ys = self.xp.argmax(wy.data, axis=1).astype('i')
-            result.append(ys)
+        with chainer.no_backprop_mode():
+            exs = sequence_embed(self.embed_x, xs)
+            # Initial hidden variable and cell variable
+            zero = self.xp.zeros((self.n_layers, batch, self.n_units), 'f')
+            h, c, _ = self.encoder(zero, zero, exs, train=False)
+            ys = self.xp.zeros(batch, 'i')
+            result = []
+            for i in range(max_length):
+                eys = self.embed_y(ys)
+                eys = chainer.functions.split_axis(
+                    eys, batch, 0, force_tuple=True)
+                h, c, ys = self.decoder(h, c, eys, train=False)
+                cys = chainer.functions.concat(ys, axis=0)
+                wy = self.W(cys)
+                ys = self.xp.argmax(wy.data, axis=1).astype('i')
+                result.append(ys)
 
         result = cuda.to_cpu(self.xp.stack(result).T)
 
@@ -124,14 +126,15 @@ class CalculateBleu(chainer.training.Extension):
         self.batch = batch
 
     def __call__(self, trainer):
-        references = []
-        hypotheses = []
-        for i in range(0, len(self.test_data), self.batch):
-            sources, targets = zip(*self.test_data[i:i + self.batch])
-            references.extend([[t.tolist()] for t in targets])
+        with chainer.no_backprop_mode():
+            references = []
+            hypotheses = []
+            for i in range(0, len(self.test_data), self.batch):
+                sources, targets = zip(*self.test_data[i:i + self.batch])
+                references.extend([[t.tolist()] for t in targets])
 
-            ys = [y.tolist() for y in self.model.translate(sources)]
-            hypotheses.extend(ys)
+                ys = [y.tolist() for y in self.model.translate(sources)]
+                hypotheses.extend(ys)
 
         bleu = bleu_score.corpus_bleu(
             references, hypotheses,
