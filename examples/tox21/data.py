@@ -1,3 +1,4 @@
+import os
 import shutil
 import zipfile
 
@@ -9,15 +10,18 @@ import preprocess
 
 config = {
     'train': {
-        'url': 'https://tripod.nih.gov/tox21/challenge/download?id=tox21_10k_data_allsdf',
+        'url': 'https://tripod.nih.gov/tox21/challenge/download?'
+        'id=tox21_10k_data_allsdf',
         'filename': 'tox21_10k_data_all.sdf'
         },
     'test': {
-        'url': 'https://tripod.nih.gov/tox21/challenge/download?id=tox21_10k_challenge_testsdf',
+        'url': 'https://tripod.nih.gov/tox21/challenge/download?'
+        'id=tox21_10k_challenge_testsdf',
         'filename': 'tox21_10k_challenge_test.sdf'
-        }
+        },
     'val': {
-        'url': 'https://tripod.nih.gov/tox21/challenge/download?id=tox21_10k_challenge_scoresdf',
+        'url': 'https://tripod.nih.gov/tox21/challenge/download?'
+        'id=tox21_10k_challenge_scoresdf',
         'filename': 'tox21_10k_challenge_scoresdf'
         }
     }
@@ -30,7 +34,7 @@ def _creator(cached_file_path, sdffile, url):
 
     with zipfile.ZipFile(download_file_path, 'r') as z:
         z.extract(sdffile)
-    mol_supplier = SDMolSupplier(sdffile)
+    mol_supplier = Chem.SDMolSupplier(sdffile)
     shutil.move(sdffile, cached_file_path)
     return mol_supplier
 
@@ -39,25 +43,27 @@ def _loader(path):
     return Chem.SDMolSupplier(path)
 
 
-def _get_tox21(config_name, preprocessor=default_preprocessor):
+def _get_tox21(config_name, preprocessor=preprocess.default_preprocessor):
     basename = config_name
-    config = config[config_name]
-    url = config['url']
-    sdffile = config['file']
-    
+    global config
+    c = config[config_name]
+    url = c['url']
+    sdffile = c['file']
+
     cache_root = download.get_dataset_directory(root)
     cache_path = os.path.join(cache_root, basename + ".sdf")
 
     def creator(path):
-        return _creator(path, sdffile)
+        return _creator(path, sdffile, url)
 
-    mol_supplier = download.cache_or_load_file(cache_path, creator, _loader)
+    mol_supplier = download.cache_or_load_file(
+        cache_path, creator, _loader)
     fvs, labels = preprocessor(mol_supplier)
     return preprocessor(mol_supplier)
 
 
 def get_tox21(preprocessor=preprocess.default_preprocessor):
     train = _get_tox21('train', preprocessor)
-    test = _get_tox21('test', test_url, preprocessor)
-    val = _get_tox21('val', val_url, preprocessor)
+    test = _get_tox21('test', preprocessor)
+    val = _get_tox21('val', preprocessor)
     return train, test, val

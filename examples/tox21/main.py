@@ -4,9 +4,9 @@ import argparse
 import chainer
 from chainer import extensions as E
 from chainer import iterators as I
+from chainer import links as L
 from chainer import optimizers as O
 from chainer import training
-import numpy
 
 import acc
 import data
@@ -24,9 +24,9 @@ args = parser.parse_args()
 
 
 train, test, val = data.get_tox21()
-train_iter = I.SerialIterator(train, batchsize)
-test_iter = I.SerialIterator(test, batchsize, repeat=False, shuffle=False)
-val_iter = I.SerialIterator(val, batchsize, repeat=False, shuffle=False)
+train_iter = I.SerialIterator(train, args.batchsize)
+test_iter = I.SerialIterator(test, args.batchsize, repeat=False, shuffle=False)
+val_iter = I.SerialIterator(val, args.batchsize, repeat=False, shuffle=False)
 
 model = model_.Model()
 classifier = L.Classifier(model,
@@ -39,7 +39,7 @@ if args.gpu >= 0:
 optimizer = O.Adam()
 optimizer.setup(classifier)
 
-updater = training.StandardUpdater(train_iter, optimizer, device=gpu)
+updater = training.StandardUpdater(train_iter, optimizer, device=args.gpu)
 trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
 
 trainer.extend(E.snapshot(), trigger=(args.epoch, 'epoch'))
