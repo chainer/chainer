@@ -1,57 +1,50 @@
-from chainer.dataset import download
-import zipfile
-import os
-import shutil
+#!/usr/bin/env python
+import argparse
 
-from rdkit.Chem import rdMolDescriptors
-from rdkit.Chem import SDMolSupplier
+import chainer
+from chainer import extensions as E
+from chainer import iterators as I
+from chainer import optimizers as O
+from chainer import training
 import numpy
 
-
-train = "https://tripod.nih.gov/tox21/challenge/download?id=tox21_10k_data_allsdf"
-test = "https://tripod.nih.gov/tox21/challenge/download?id=tox21_10k_challenge_testsdf"
-validate = "https://tripod.nih.gov/tox21/challenge/download?id=tox21_10k_challenge_scoresdf"
-
-tox21_tasks = ['NR-AR', 'NR-AR-LBD', 'NR-AhR', 'NR-Aromatase', 'NR-ER',
-               'NR-ER-LBD', 'NR-PPAR-gamma', 'SR-ARE', 'SR-ATAD5',
-               'SR-HSE', 'SR-MMP', 'SR-p53']
-
-def preprocess(mol_supplier):
-    fps = []
-    labels = []
-    for mol in mol_supplier:
-        if mol is None:
-            continue
-        label = []
-        for task in tox21_tasks:
-            if mol.HasProp(task):
-                label.append(int(mol.GetProp(task)))
-            else:
-                label.append(-1)
-        fp = rdMolDescriptors.GetMorganFingerprintAsBitVect(mol, 2)
-        fps.append(fp)
-        labels.append(label)
-    fps = numpy.array(fp, dtype=numpy.bool_)
-    labels = numpy.array(labels, dtype=numpy.bool_)
-    return {'fps': fps, 'labels': labels}
-    
-
-def creator(path):
-    train_path = download.cached_download(train)
-
-    with zipfile.ZipFile(train_path, 'r') as z:
-        z.extract('tox21_10k_data_all.sdf')
-    mol_supplier = SDMolSupplier('tox21_10k_data_all.sdf')
-    shutil.move('tox21_10k_data_all.sdf', path)
-    return mol_supplier
+import acc
+import data
+import loss
+import model as model_
 
 
-def loader(path):
-    return SDMolSupplier(path)
+parser = argparse.ArgumentParser(
+    description='Multitask Learning with Tox21.')
+parser.add_argument('--batchsize', '-b', type=int, default=128)
+parser.add_argument('--gpu', '-g', type=int, default=0)
+parser.add_argument('--out', '-o', type=str, default='result')
+parser.add_argument('--epoch', '-e', type=int, default=10)
+args = parser.parse_args()
 
-root = download.get_dataset_directory('pfnet/chainer/tox21')
-path = os.path.join(root, "train.sdf")
-mol_supplier = download.cache_or_load_file(path, creator, loader)
-train_dataset = preprocess(mol_supplier)
 
-print(train_dataset)
+train, test, val = data.get_tox21()
+train_iter = I.SerialIterator(train, batchsize)
+test_iter = I.SerialIterator(test, batchsize, repeat=False, shuffle=False)
+val_iter = I.SerialIterator(val, batchsize, repeat=False, shuffle=False)
+
+model = model_.Model()
+classifier = L.Classifier(model,
+                          lossfun=loss.multitask_sce,
+                          accfun=acc.multitask_acc)
+if args.gpu >= 0:
+    chainer.cuda.get_device(args.gpu).use()
+    classifier.to_gpu()
+
+optimizer = O.Adam()
+optimizer.setup(classifier)
+
+updater = training.StandardUpdater(train_iter, optimizer, device=gpu)
+trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
+
+trainer.extend(E.snapshot(), trigger=(args.epoch, 'epoch'))
+trainer.extend(E.LogReport())
+trainer.extend(E.PrintReport())
+trainer.extend(E.Evaluator(test_iter, classifier), out=args.out)
+
+trainer.run()
