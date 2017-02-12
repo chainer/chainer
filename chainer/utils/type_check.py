@@ -1,6 +1,9 @@
+import ast
+import inspect
 import operator
 import sys
 
+import astunparse
 import numpy
 
 from chainer import cuda
@@ -20,6 +23,9 @@ class TypeInfo(object):
         self.dtype = dtype
         self.ndim = len(shape)
 
+    def __repr__(self):
+        return '[shape: {}, dtype: {}]'.format(self.shape, self.dtype)
+
 
 class TypeInfoTuple(tuple):
 
@@ -36,7 +42,7 @@ class TypeInfoTuple(tuple):
         Returns:
             Expr: An expression object representing length of the tuple.
         """
-        return Variable(len(self), '{0}.size'.format(self.name))
+        return len(self)
 
 
 def get_types(data, name, accept_none):
@@ -44,8 +50,6 @@ def get_types(data, name, accept_none):
 
     info = TypeInfoTuple(
         _get_type(name, i, x, accept_none) for i, x in enumerate(data))
-    # I don't know a method to set an attribute in an initializer of tuple.
-    info.name = name
     return info
 
 
@@ -58,7 +62,7 @@ def _get_type(name, index, array, accept_none):
 
     assert(isinstance(array, numpy.ndarray) or
            isinstance(array, cuda.ndarray))
-    return Variable(TypeInfo(array.shape, array.dtype), var)
+    return TypeInfo(array.shape, array.dtype)
 
 
 def _make_un_operator(exp, priority, func):
@@ -467,3 +471,80 @@ def expect(*bool_exprs):
         expr.expect()
 
 prod = Variable(numpy.prod, 'prod')
+
+def find_stmt(t):
+    stmts = sum([find_stmt(c) for c in ast.iter_child_nodes(t)], [])
+
+    if isinstance(t, ast.stmt) and len(stmts) == 0:
+        return [t]
+    else:
+        return stmts
+        
+
+def include(t, lineno):
+    if getattr(t, 'lineno', None) == lineno:
+        return True
+
+    return any(include(c, lineno) for c in ast.iter_child_nodes(t))
+
+def retrieve(t, lineno):
+    ss = find_stmt(t)
+    for s in ss:
+        print s, get_range(s)
+    for s in ss:
+        if include(s, lineno):
+            return s
+
+def get_range(t):
+    rs = [get_range(c) for c in ast.iter_child_nodes(t)]
+    if hasattr(t, 'lineno'):
+        rs.append((t.lineno, t.lineno))
+    if None in rs:
+        rs.remove(None)
+    if len(rs) == 0:
+        return None
+    else:
+        begin, end = rs[0]
+        for b, e in rs[1:]:
+            begin = min(begin, b)
+            end = max(end, e)
+        return begin, end
+
+def show_source(t, lines):
+    begin, end = get_range(t)
+    ls = lines[begin - 1: end]
+    return '\n'.join(ls)
+
+def expect(*conditions):
+    for condition in conditions:
+        if not condition:
+            frame = inspect.currentframe().f_back
+            info = inspect.getframeinfo(frame)
+            print(dir(frame))
+            print(info)
+
+            args = inspect.getargvalues(frame)
+
+            print('This function needs to satisfy this condtion:')
+            print('')
+            source = inspect.getsource(frame)
+            print(source)
+            
+            import ast
+            class RewriteName(ast.NodeTransformer):
+
+                def visit_Name(self, node):
+                    return ast.copy_location(ast.Subscript(
+                        value=ast.Name(id='data', ctx=ast.Load()),
+                        slice=ast.Index(value=ast.Str(s=node.id)),
+                        ctx=node.ctx
+                    ), node)
+
+            source_data = open(inspect.getsourcefile(frame)).read()
+            t = ast.parse(source_data)
+            print(show_source(retrieve(t, info.lineno), source_data.split('\n')))
+            #print(inspect.getmodule(frame.f_code))
+            #print('in_types: {}'.format(args.locals[args.args[1]]))
+            for a in args.args:
+                print('{}: {}'.format(a, args.locals[a]))
+            raise(InvalidType('', ''))
