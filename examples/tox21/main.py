@@ -11,7 +11,6 @@ from chainer.training import extensions as E
 
 import acc
 import data
-import loss
 import model as model_
 import preprocess
 
