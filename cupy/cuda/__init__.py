@@ -9,7 +9,7 @@ from cupy.cuda import profiler  # NOQA
 from cupy.cuda import stream  # NOQA
 
 try:
-    from cupy.cuda import cusolver
+    from cupy.cuda import cusolver  # NOQA
     cusolver_enabled = True
 except ImportError as e:
     cusolver_enabled = False
