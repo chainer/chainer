@@ -24,12 +24,8 @@ class DeconvolutionND(link.Link):
             operation. It should be a tuple of ints that represents the output
             size of each dimension. Default value is ``None`` and the outsize
             is estimated with input size, stride and pad.
-        initialW: Value used to initialize the filter weight. May be an
-            initializer instance of another value the same with that
-            :func:`~chainer.init_weight` function can take.
-        initial_bias: Value used to initialize the bias vector. May be an
-            initializer instance or another value except ``None`` the same with
-            that :func:`~chainer.init_weight` function can take. If ``None`` is
+        initialW: Value used to initialize the filter weight.
+        initial_bias: Value used to initialize the bias vector. If ``None`` is
             supplied, this link does not use the bias vector.
 
     .. seealso::

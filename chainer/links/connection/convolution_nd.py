@@ -20,12 +20,8 @@ class ConvolutionND(link.Link):
             ``stride=s`` and ``stride=(s, s, ..., s)`` are equivalent.
         pad (int or tuple of ints): Spatial padding width for input arrays.
             ``pad=p`` and ``pad=(p, p, ..., p)`` are equivalent.
-        initialW: Value used to initialize the filter weight. May be an
-            initializer instance or another value that
-            :func:`~chainer.init_weight` helper function can take.
-        initial_bias: Value used to initialize the bias vector. May be an
-            initializer instance or another value except ``None`` that
-            :func:`~chainer.init_weight` helper function can take. If ``None``
+        initialW: Value used to initialize the filter weight.
+        initial_bias: Value used to initialize the bias vector. If ``None``
             is given, this link does not use the bias vector.
         cover_all (bool): If ``True``, all spatial locations are convoluted
             into some output pixels. It may make the output size larger.

@@ -31,10 +31,10 @@ class EmbedID(link.Link):
     ignore_label = None
 
     def __init__(self, in_size, out_size, initialW=None, ignore_label=None):
-        super(EmbedID, self).__init__(W=(in_size, out_size))
+        super(EmbedID, self).__init__()
         if initialW is None:
             initialW = initializers.Normal(1.0)
-        initializers.init_weight(self.W.data, initialW)
+        self.add_param('W', (in_size, out_size), initializer=initialW)
         self.ignore_label = ignore_label
 
     def __call__(self, x):
