@@ -5,8 +5,13 @@ import atexit
 import six
 
 from cupy.cuda cimport cublas
-from cupy.cuda cimport cusolver
 from cupy.cuda cimport runtime
+
+try:
+    from cupy.cuda import cusolver
+    cusolver_enabled = True
+except ImportError as e:
+    cusolver_enabled = False
 
 
 cpdef int get_device_id() except *:
@@ -130,6 +135,9 @@ cdef class Device:
         itself is different.
 
         """
+        if not cusolver_enabled:
+            raise RuntimeError(
+                'Current cupy only supports cusolver in CUDA 8.0')
         if self.id in _cusolver_handles:
             return _cusolver_handles[self.id]
         with self:
