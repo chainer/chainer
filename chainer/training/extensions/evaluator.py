@@ -40,7 +40,7 @@ class Evaluator(extension.Extension):
     create and handle a reporter object manually. Users also have to copy the
     iterators before using them, in order to reuse them at the next time of
     evaluation. In both cases, the functions are called in testing mode
-    (i.e., ``chainer.config.train`` is set to false).
+    (i.e., ``chainer.config.train`` is set to ``False``).
 
     This extension is called at the end of each epoch by default.
 
