@@ -2,14 +2,12 @@ import numpy
 from numpy.linalg import LinAlgError
 
 import cupy
+from cupy.cuda import cusolver_enabled
 from cupy.cuda import cublas
 from cupy.cuda import device
 
-try:
+if cusolver_enabled:
     from cupy.cuda import cusolver
-    cusolver_enabled = True
-except ImportError as e:
-    cusolver_enabled = False
 
 
 def cholesky(a):
