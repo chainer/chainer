@@ -43,6 +43,7 @@ class Seq2seq(chainer.Chain):
         xs = inputs[:len(inputs) // 2]
         ys = inputs[len(inputs) // 2:]
 
+        xs = [x[::-1] for x in xs]
         eos = self.xp.array([0], 'i')
         ys_in = [F.concat([eos, y], axis=0) for y in ys]
         ys_out = [F.concat([y, eos], axis=0) for y in ys]
@@ -64,6 +65,7 @@ class Seq2seq(chainer.Chain):
     def translate(self, xs, max_length=50):
         batch = len(xs)
         with chainer.no_backprop_mode():
+            xs = [x[::-1] for x in xs]
             exs = sequence_embed(self.embed_x, xs)
             # Initial hidden variable and cell variable
             zero = self.xp.zeros((self.n_layers, batch, self.n_units), 'f')
