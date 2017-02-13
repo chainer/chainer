@@ -22,7 +22,7 @@ config = {
     'val': {
         'url': 'https://tripod.nih.gov/tox21/challenge/download?'
         'id=tox21_10k_challenge_scoresdf',
-        'filename': 'tox21_10k_challenge_scoresdf'
+        'filename': 'tox21_10k_challenge_score.sdf'
         }
     }
 
@@ -43,12 +43,12 @@ def _loader(path):
     return Chem.SDMolSupplier(path)
 
 
-def _get_tox21(config_name, preprocessor=preprocess.default_preprocessor):
+def _get_tox21(config_name, preprocessor=preprocess.ECFP):
     basename = config_name
     global config
     c = config[config_name]
     url = c['url']
-    sdffile = c['file']
+    sdffile = c['filename']
 
     cache_root = download.get_dataset_directory(root)
     cache_path = os.path.join(cache_root, basename + ".sdf")
@@ -58,11 +58,10 @@ def _get_tox21(config_name, preprocessor=preprocess.default_preprocessor):
 
     mol_supplier = download.cache_or_load_file(
         cache_path, creator, _loader)
-    fvs, labels = preprocessor(mol_supplier)
     return preprocessor(mol_supplier)
 
 
-def get_tox21(preprocessor=preprocess.default_preprocessor):
+def get_tox21(preprocessor=preprocess.ECFP):
     train = _get_tox21('train', preprocessor)
     test = _get_tox21('test', preprocessor)
     val = _get_tox21('val', preprocessor)

@@ -2,16 +2,17 @@
 import argparse
 
 import chainer
-from chainer import extensions as E
 from chainer import iterators as I
 from chainer import links as L
 from chainer import optimizers as O
 from chainer import training
+from chainer.training import extensions as E
 
 import acc
 import data
 import loss
 import model as model_
+import preprocess
 
 
 parser = argparse.ArgumentParser(
@@ -28,7 +29,8 @@ train_iter = I.SerialIterator(train, args.batchsize)
 test_iter = I.SerialIterator(test, args.batchsize, repeat=False, shuffle=False)
 val_iter = I.SerialIterator(val, args.batchsize, repeat=False, shuffle=False)
 
-model = model_.Model()
+C = len(preprocess.tox21_tasks)
+model = model_.Model(C)
 classifier = L.Classifier(model,
                           lossfun=loss.multitask_sce,
                           accfun=acc.multitask_acc)
@@ -42,9 +44,11 @@ optimizer.setup(classifier)
 updater = training.StandardUpdater(train_iter, optimizer, device=args.gpu)
 trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
 
+trainer.extend(E.Evaluator(test_iter, classifier, device=args.gpu))
 trainer.extend(E.snapshot(), trigger=(args.epoch, 'epoch'))
 trainer.extend(E.LogReport())
-trainer.extend(E.PrintReport())
-trainer.extend(E.Evaluator(test_iter, classifier), out=args.out)
+trainer.extend(E.PrintReport(['epoch, ''main/loss', 'main/accuracy',
+                              'validation/main/loss', 'validation/main/accuracy',
+                              'elapsed_time']))
 
 trainer.run()

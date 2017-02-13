@@ -9,14 +9,8 @@ tox21_tasks = ['NR-AR', 'NR-AR-LBD', 'NR-AhR', 'NR-Aromatase', 'NR-ER',
                'NR-ER-LBD', 'NR-PPAR-gamma', 'SR-ARE', 'SR-ATAD5',
                'SR-HSE', 'SR-MMP', 'SR-p53']
 
-
-def default_preprocessor(mol_supplier):
-    labels = label_extractor(copy.copy(mol_supplier))
-    fvs = feature_extractor(mol_supplier)
-    return D.TupleDataset(fvs, labels)
-
-
-def label_extractor(mol_supplier):
+def ECFP(mol_supplier, radius=2):
+    fps = []
     labels = []
     for mol in mol_supplier:
         if mol is None:
@@ -27,15 +21,15 @@ def label_extractor(mol_supplier):
                 label.append(int(mol.GetProp(task)))
             else:
                 label.append(-1)
-        labels.append(label)
-    return numpy.array(labels, dtype=numpy.int8)
-
-
-def feature_extractor(mol_supplier, radius=2):
-    fps = []
-    for mol in mol_supplier:
-        if mol is None:
+        try:
+            fp = rdMolDescriptors.GetMorganFingerprintAsBitVect(mol, radius)
+        except Exception as e:
+            print(e)
             continue
-        fp = rdMolDescriptors.GetMorganFingerprintAsBitVect(mol, radius)
         fps.append(fp)
-    return numpy.array(fp, dtype=numpy.bool_)
+        labels.append(label)
+    fps = numpy.array(fps, dtype=numpy.float32)
+    labels = numpy.array(labels, dtype=numpy.int32)
+    assert len(fps) == len(labels)
+    print(fps.shape, labels.shape)
+    return D.TupleDataset(fps, labels)
