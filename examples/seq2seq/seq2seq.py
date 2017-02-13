@@ -226,7 +226,7 @@ def main():
 
     @chainer.training.make_extension(trigger=(200, 'iteration'))
     def translate(trainer):
-        words = 'Astronomers Introduction Introduction video What is Astronomy?'.split()
+        words = 'Astronomers Introduction Introduction video What is Astronomy ?'.lower().split()
         x = model.xp.array(
             [source_ids.get(w, 1) for w in words], 'i')
         ys = model.translate([x])[0]
