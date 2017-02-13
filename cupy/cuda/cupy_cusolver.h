@@ -55,7 +55,6 @@ cusolverStatus_t cusolverDnDpotrs(...) {
     return CUSOLVER_STATUS_SUCCESS;
 }
 
-
 cusolverStatus_t cusolverDnSgetrf(...) {
     return CUSOLVER_STATUS_SUCCESS;
 }
