@@ -11,7 +11,7 @@ except ImportError:
     _available = False
 
 
-def _check_available():
+def check_available():
     if not _available:
         msg = '''h5py is not installed on your environment.
 Please install h5py to activate hdf5 serializers.
@@ -34,7 +34,7 @@ class HDF5Serializer(serializer.Serializer):
     """
 
     def __init__(self, group, compression=4):
-        _check_available()
+        check_available()
 
         self.group = group
         self.compression = compression
@@ -67,7 +67,7 @@ def save_hdf5(filename, obj, compression=4):
         compression (int): Gzip compression level.
 
     """
-    _check_available()
+    check_available()
     with h5py.File(filename, 'w') as f:
         s = HDF5Serializer(f, compression=compression)
         s.save(obj)
@@ -86,7 +86,7 @@ class HDF5Deserializer(serializer.Deserializer):
     """
 
     def __init__(self, group):
-        _check_available()
+        check_available()
         self.group = group
 
     def __getitem__(self, key):
@@ -119,7 +119,7 @@ def load_hdf5(filename, obj):
         obj: Object to be deserialized. It must support serialization protocol.
 
     """
-    _check_available()
+    check_available()
     with h5py.File(filename, 'r') as f:
         d = HDF5Deserializer(f)
         d.load(obj)
