@@ -139,7 +139,7 @@ cusolverStatus_t cusolverDnDgesvd_bufferSize(...) {
 cusolverStatus_t cusolverDnSgesvd(...) {
     return CUSOLVER_STATUS_SUCCESS;
 }
-                     
+
 cusolverStatus_t cusolverDnDgesvd(...) {
     return CUSOLVER_STATUS_SUCCESS;
 }
