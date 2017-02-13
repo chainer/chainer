@@ -2,8 +2,8 @@ import numpy
 from numpy.linalg import LinAlgError
 
 import cupy
-from cupy.cuda import cusolver_enabled
 from cupy.cuda import cublas
+from cupy.cuda import cusolver_enabled
 from cupy.cuda import device
 
 if cusolver_enabled:

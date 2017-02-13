@@ -2,8 +2,8 @@ import unittest
 
 import numpy
 
-from cupy import testing
 from cupy.cuda import cusolver_enabled
+from cupy import testing
 
 
 @unittest.skipUnless(
