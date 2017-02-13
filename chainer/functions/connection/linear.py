@@ -2,13 +2,21 @@ from chainer import function
 from chainer.utils import type_check
 
 
-def _as_mat(x):
+def _as_mat(x, n_batch_axes):
     if x.ndim == 2:
         return x
-    return x.reshape(len(x), -1)
+    if n_batch_axes == 1:
+        return x.reshape(len(x), -1)
+    elif n_batch_axes < x.ndim:
+        x.reshape(x.shape[:n_batch_axes] + (-1,))
+    else:
+        raise ValueError('n_batch_axes should be less than x.ndim')
 
 
 class LinearFunction(function.Function):
+
+    def __init__(self, n_batch_axes=1):
+        self._n_batch_axes = n_batch_axes
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -31,7 +39,7 @@ class LinearFunction(function.Function):
             )
 
     def forward(self, inputs):
-        x = _as_mat(inputs[0])
+        x = _as_mat(inputs[0], self._n_batch_axes)
         W = inputs[1]
         y = x.dot(W.T).astype(x.dtype, copy=False)
         if len(inputs) == 3:
@@ -40,7 +48,7 @@ class LinearFunction(function.Function):
         return y,
 
     def backward(self, inputs, grad_outputs):
-        x = _as_mat(inputs[0])
+        x = _as_mat(inputs[0], self._n_batch_axes)
         W = inputs[1]
         gy = grad_outputs[0]
 
@@ -53,7 +61,7 @@ class LinearFunction(function.Function):
             return gx, gW
 
 
-def linear(x, W, b=None):
+def linear(x, W, b=None, n_batch_axes=1):
     """Linear function, or affine transformation.
 
     It accepts two or three arguments: an input minibatch ``x``, a weight
@@ -66,6 +74,9 @@ def linear(x, W, b=None):
             as concatenated one dimension whose size must be ``N``.
         W (~chainer.Variable): Weight variable of shape ``(M, N)``.
         b (~chainer.Variable): Bias variable (optional) of shape ``(M,)``.
+        n_batch_axes (int): The number of batch axes. The default is 1. The
+            input variable is reshaped into
+            :math:`{\\rm n_batch_sxes} + 1`-dimensional tensor.
 
     Returns:
         ~chainer.Variable: Output variable.
@@ -74,6 +85,6 @@ def linear(x, W, b=None):
 
     """
     if b is None:
-        return LinearFunction()(x, W)
+        return LinearFunction(n_batch_axes)(x, W)
     else:
-        return LinearFunction()(x, W, b)
+        return LinearFunction(n_batch_axes)(x, W, b)

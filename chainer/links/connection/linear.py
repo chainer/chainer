@@ -33,6 +33,9 @@ class Linear(link.Link):
             function uses to initialize ``bias``.
             May also be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
+        n_batch_axes (int): The number of batch axes. The default is 1. The
+            input variable is reshaped into
+            :math:`{\\rm n_batch_sxes} + 1`-dimensional tensor.
 
     .. seealso:: :func:`~chainer.functions.linear`
 
@@ -43,13 +46,14 @@ class Linear(link.Link):
     """
 
     def __init__(self, in_size, out_size, bias=0, nobias=False,
-                 initialW=None, initial_bias=None):
+                 initialW=None, initial_bias=None, n_batch_axes=1):
         super(Linear, self).__init__()
 
         # For backward compatibility
         self.initialW = initialW
         self.out_size = out_size
         self._W_initializer = initializers._get_initializer(initialW)
+        self._n_batch_axes = n_batch_axes
 
         if in_size is None:
             self.add_uninitialized_param('W')
@@ -81,4 +85,4 @@ class Linear(link.Link):
         if self.has_uninitialized_params:
             with cuda.get_device(self._device_id):
                 self._initialize_params(x.size // x.shape[0])
-        return linear.linear(x, self.W, self.b)
+        return linear.linear(x, self.W, self.b, self._n_batch_axes)
