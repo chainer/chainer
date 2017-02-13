@@ -57,8 +57,11 @@ class Seq2seq(chainer.Chain):
         zero = self.xp.zeros((self.n_layers, batch, self.n_units), 'f')
         hx, cx, _ = self.encoder(zero, zero, exs)
         _, _, os = self.decoder(hx, cx, eys)
+        concat_os = F.concat(os, axis=0)
+        concat_ys_out = F.concat(ys_out, axis=0)
         loss = F.softmax_cross_entropy(
-            self.W(F.concat(os, axis=0)), F.concat(ys_out, axis=0))
+            self.W(concat_os), concat_ys_out, normalize=False) \
+            * len(concat_os.data)
 
         reporter.report({'loss': loss.data}, self)
         return loss
