@@ -6,8 +6,14 @@ import numpy
 import progressbar
 
 
+split_pattern = re.compile('([.,!?"\':;)(])')
+digit_pattern = re.compile(r'\d')
+
+
 def split_sentence(s):
-    s = re.sub('([.,!?"\':;)(])', r' \1', s)
+    s = s.lower()
+    s = split_pattern.sub(r' \1', s)
+    s = digit_pattern.sub('0', s)
     words = s.strip().split()
     return [w for w in words if w]
 
