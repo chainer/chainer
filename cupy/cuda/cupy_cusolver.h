@@ -11,9 +11,13 @@
 
 #else // #ifndef CUPY_NO_CUDA
 
+extern "C" {
+
 typedef enum {
     CUSOLVER_STATUS_SUCCESS = 0,
 } cusolverStatus_t;
+
+typedef void* cusolverDnHandle_t;
 
 cusolverStatus_t cusolverDnCreate(...) {
     return CUSOLVER_STATUS_SUCCESS;
@@ -142,6 +146,8 @@ cusolverStatus_t cusolverDnSgesvd(...) {
 cusolverStatus_t cusolverDnDgesvd(...) {
     return CUSOLVER_STATUS_SUCCESS;
 }
+
+} // extern "C"
 
 #endif // #ifndef CUPY_NO_CUDA
 #endif // #ifndef INCLUDE_GUARD_CUPY_CUSOLVER_H
