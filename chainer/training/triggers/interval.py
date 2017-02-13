@@ -20,6 +20,10 @@ class IntervalTrigger(object):
         unit (str): Unit of the length specified by ``period``. It must be
             either ``'iteration'`` or ``'epoch'``.
 
+    .. note::
+        If the interval is specified by `epoch`, we assume that the batchsize
+        does not change during the training.
+
     """
 
     def __init__(self, period, unit):
