@@ -46,9 +46,16 @@ def count_words(path):
 def make_dataset(path, vocab):
     word_id = {word: index for index, word in enumerate(vocab)}
     dataset = []
+    token_count = 0
+    unknown_count = 0
     for words in read_file(path):
         array = make_array(word_id, words)
         dataset.append(array)
+        token_count += array.size
+        unknown_count += (array == 1).sum()
+    print('# of tokens: %d' % token_count)
+    print('# of unknown: %d (%.2f %%)'
+          % (unknown_count, 100. * unknown_count / token_count))
     return dataset
 
 
