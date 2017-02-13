@@ -9,7 +9,7 @@ from cupy.cuda cimport runtime
 # Extern
 ###############################################################################
 
-cdef extern from 'cupy_cuda.h':
+cdef extern from 'cupy_cusolver.h':
     # Context
     int cusolverDnCreate(Handle* handle) nogil
     int cusolverDnDestroy(Handle handle) nogil

@@ -3,8 +3,13 @@ from numpy.linalg import LinAlgError
 
 import cupy
 from cupy.cuda import cublas
-from cupy.cuda import cusolver
 from cupy.cuda import device
+
+try:
+    from cupy.cuda import cusolver
+    cusolver_enabled = True
+except ImportError as e:
+    cusolver_enabled = False
 
 
 def cholesky(a):
@@ -20,6 +25,9 @@ def cholesky(a):
 
     .. seealso:: :func:`numpy.linalg.cholesky`
     '''
+    if not cusolver_enabled:
+        raise RuntimeError('Current cupy only supports cusolver in CUDA 8.0')
+
     # TODO(Saito): Current implementation only accepts two-dimensional arrays
     _assertCupyArray(a)
     _assertRank2(a)
@@ -77,6 +85,9 @@ def qr(a, mode='reduced'):
 
     .. seealso:: :func:`numpy.linalg.qr`
     '''
+    if not cusolver_enabled:
+        raise RuntimeError('Current cupy only supports cusolver in CUDA 8.0')
+
     # TODO(Saito): Current implementation only accepts two-dimensional arrays
     _assertCupyArray(a)
     _assertRank2(a)
@@ -177,6 +188,9 @@ def svd(a, full_matrices=True, compute_uv=True):
 
     .. seealso:: :func:`numpy.linalg.svd`
     '''
+    if not cusolver_enabled:
+        raise RuntimeError('Current cupy only supports cusolver in CUDA 8.0')
+
     # TODO(Saito): Current implementation only accepts two-dimensional arrays
     _assertCupyArray(a)
     _assertRank2(a)

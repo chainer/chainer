@@ -23,7 +23,6 @@ MODULES = [
             'cupy.core.internal',
             'cupy.cuda.cublas',
             'cupy.cuda.curand',
-            'cupy.cuda.cusolver',
             'cupy.cuda.device',
             'cupy.cuda.driver',
             'cupy.cuda.memory',
@@ -44,7 +43,6 @@ MODULES = [
         ],
         'libraries': [
             'cublas',
-            'cusolver',
             'cuda',
             'cudart',
             'curand',
@@ -64,6 +62,19 @@ MODULES = [
             'cudnn',
         ],
         'check_method': build.check_cudnn_version,
+    },
+    {
+        'name': 'cusolver',
+        'file': [
+            'cupy.cuda.cusolver',
+        ],
+        'include': [
+            'cusolverDn.h',
+        ],
+        'libraries': [
+            'cusolver',
+        ],
+        'check_method': build.check_cusolver_version,
     }
 ]
 
