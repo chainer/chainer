@@ -1,0 +1,19 @@
+remote:
+  host: "sakura12"
+  user: "shunta"
+  path: "/mnt/sakura201/mitmul/codes/chaienr"
+behaviour:
+  uploadOnSave: true
+  syncDownOnOpen: false
+  forgetConsole: false
+  autoHideConsole: true
+  alwaysSyncAll: false
+option:
+  deleteFiles: false
+  exclude: [
+    ".sync-config.cson"
+    ".git"
+    "node_modules"
+    "tmp"
+    "vendor"
+  ]

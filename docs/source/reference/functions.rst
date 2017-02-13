@@ -123,6 +123,14 @@ flatten
 ~~~~~~~
 .. autofunction:: flatten
 
+fliplr
+~~~~~~
+.. autofunction:: fliplr
+
+flipud
+~~~~~~
+.. autofunction:: flipud
+
 get_item
 ~~~~~~~~
 .. autofunction:: get_item
@@ -223,6 +231,10 @@ linear
 ~~~~~~
 .. autofunction:: linear
 
+n_step_lstm
+~~~~~~~~~~~
+.. autofunction:: n_step_lstm
+
 
 Evaluation functions
 --------------------
@@ -234,6 +246,10 @@ accuracy
 binary_accuracy
 ~~~~~~~~~~~~~~~
 .. autofunction:: binary_accuracy
+
+classification_summary
+~~~~~~~~~~~~~~~~~~~~~~
+.. autofunction:: classification_summary
 
 r2_score
 ~~~~~~~~
@@ -506,9 +522,17 @@ average_pooling_2d
 ~~~~~~~~~~~~~~~~~~
 .. autofunction:: average_pooling_2d
 
+average_pooling_nd
+~~~~~~~~~~~~~~~~~~
+.. autofunction:: average_pooling_nd
+
 max_pooling_2d
 ~~~~~~~~~~~~~~
 .. autofunction:: max_pooling_2d
+
+max_pooling_nd
+~~~~~~~~~~~~~~
+.. autofunction:: max_pooling_nd
 
 roi_pooling_2d
 ~~~~~~~~~~~~~~
@@ -521,6 +545,10 @@ spatial_pyramid_pooling_2d
 unpooling_2d
 ~~~~~~~~~~~~
 .. autofunction:: unpooling_2d
+
+upsampling_2d
+~~~~~~~~~~~~~
+.. autofunction:: upsampling_2d
 
 
 Utility functions
