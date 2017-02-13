@@ -110,7 +110,6 @@ class TestFixedBatchNormalization(unittest.TestCase):
         shape = (5, 3) + (2,) * self.ndim
         self.x = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
         self.gy = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
-        self.eps = 2e-5
         self.decay = 0.0
         self.aggr_axes = (0,) + tuple(six.moves.range(2, self.ndim + 2))
 
@@ -128,8 +127,7 @@ class TestFixedBatchNormalization(unittest.TestCase):
 
     def check_forward(self, args, use_cudnn=True):
         y = functions.fixed_batch_normalization(
-            *[chainer.Variable(i) for i in args],
-            eps=self.eps, use_cudnn=use_cudnn)
+            *[chainer.Variable(i) for i in args], use_cudnn=use_cudnn)
         self.assertEqual(y.data.dtype, self.dtype)
 
         y_expect = _batch_normalization(
@@ -156,7 +154,7 @@ class TestFixedBatchNormalization(unittest.TestCase):
         gradient_check.check_backward(
             batch_normalization.BatchNormalizationFunction(
                 mean=None, var=None, train=self.train,
-                decay=self.decay, eps=self.eps),
+                decay=self.decay),
             args, y_grad,  **self.check_backward_options)
 
     @condition.retry(3)
