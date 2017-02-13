@@ -3,8 +3,11 @@ import unittest
 import numpy
 
 from cupy import testing
+from cupy.cuda import cusolver_enabled
 
 
+@unittest.skipUnless(
+    cusolver_enabled, 'Only cusolver in CUDA 8.0 is supported')
 @testing.gpu
 class TestCholeskyDecomposition(unittest.TestCase):
 
@@ -23,6 +26,8 @@ class TestCholeskyDecomposition(unittest.TestCase):
         self.check_L(numpy.array([[1, 2], [1, 9]]))
 
 
+@unittest.skipUnless(
+    cusolver_enabled, 'Only cusolver in CUDA 8.0 is supported')
 @testing.gpu
 class TestQRDecomposition(unittest.TestCase):
 
@@ -68,6 +73,8 @@ class TestQRDecomposition(unittest.TestCase):
         self.check_mode(numpy.random.randn(3, 3), mode='reduced', index=1)
 
 
+@unittest.skipUnless(
+    cusolver_enabled, 'Only cusolver in CUDA 8.0 is supported')
 @testing.gpu
 class TestSVD(unittest.TestCase):
 
