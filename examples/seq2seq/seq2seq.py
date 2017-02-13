@@ -44,7 +44,8 @@ class Seq2seq(chainer.Chain):
         ys = inputs[len(inputs) // 2:]
 
         xs = [x[::-1] for x in xs]
-        eos = self.xp.array([0], 'i')
+
+        eos = self.xp.zeros(1, 'i')
         ys_in = [F.concat([eos, y], axis=0) for y in ys]
         ys_out = [F.concat([y, eos], axis=0) for y in ys]
 
