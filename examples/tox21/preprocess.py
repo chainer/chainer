@@ -9,6 +9,7 @@ tox21_tasks = ['NR-AR', 'NR-AR-LBD', 'NR-AhR', 'NR-Aromatase', 'NR-ER',
                'NR-ER-LBD', 'NR-PPAR-gamma', 'SR-ARE', 'SR-ATAD5',
                'SR-HSE', 'SR-MMP', 'SR-p53']
 
+
 def ECFP(mol_supplier, radius=2):
     fps = []
     labels = []
@@ -31,5 +32,4 @@ def ECFP(mol_supplier, radius=2):
     fps = numpy.array(fps, dtype=numpy.float32)
     labels = numpy.array(labels, dtype=numpy.int32)
     assert len(fps) == len(labels)
-    print(fps.shape, labels.shape)
     return D.TupleDataset(fps, labels)

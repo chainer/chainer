@@ -14,12 +14,12 @@ config = {
         'id=tox21_10k_data_allsdf',
         'filename': 'tox21_10k_data_all.sdf'
         },
-    'test': {
+    'val': {
         'url': 'https://tripod.nih.gov/tox21/challenge/download?'
         'id=tox21_10k_challenge_testsdf',
         'filename': 'tox21_10k_challenge_test.sdf'
         },
-    'val': {
+    'test': {
         'url': 'https://tripod.nih.gov/tox21/challenge/download?'
         'id=tox21_10k_challenge_scoresdf',
         'filename': 'tox21_10k_challenge_score.sdf'
@@ -63,6 +63,6 @@ def _get_tox21(config_name, preprocessor=preprocess.ECFP):
 
 def get_tox21(preprocessor=preprocess.ECFP):
     train = _get_tox21('train', preprocessor)
-    test = _get_tox21('test', preprocessor)
     val = _get_tox21('val', preprocessor)
-    return train, test, val
+    test = _get_tox21('test', preprocessor)
+    return train, val, test

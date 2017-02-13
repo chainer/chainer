@@ -11,10 +11,12 @@ class Model(chainer.Chain):
         branch = chainer.ChainList(*[
             MLP(1) for _ in six.moves.range(task_num)])
         super(Model, self).__init__(
-            base=MLP(128),
+            base=MLP(256),
             branch=branch)
 
     def __call__(self, x):
         x = self.base(x)
-        xs = [f(x)[..., None] for f in self.branch]
-        return F.concat(xs, axis=2)
+        xs = [f(x) for f in self.branch]
+        y = F.concat(xs, axis=1)
+        print(y[0].data)
+        return y

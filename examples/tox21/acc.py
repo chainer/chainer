@@ -1,5 +1,13 @@
 import chainer
+import numpy
+
 
 def multitask_acc(x, t):
-    xp = chainer.cuda.get_array_module(x)
-    return chainer.Variable(xp.array(0., dtype=xp.float32))
+    x = chainer.cuda.to_cpu(x.data)
+    t = chainer.cuda.to_cpu(t.data)
+
+    pred = x > 0.5
+    valid = t != -1
+    count = ((pred == t) & valid).sum().astype(numpy.float32)
+    acc = chainer.Variable(chainer.utils.force_array(count / valid.size))
+    return acc

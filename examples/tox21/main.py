@@ -2,6 +2,7 @@
 import argparse
 
 import chainer
+from chainer import functions as F
 from chainer import iterators as I
 from chainer import links as L
 from chainer import optimizers as O
@@ -24,15 +25,16 @@ parser.add_argument('--epoch', '-e', type=int, default=10)
 args = parser.parse_args()
 
 
-train, test, val = data.get_tox21()
+train, val, test = data.get_tox21()
 train_iter = I.SerialIterator(train, args.batchsize)
-test_iter = I.SerialIterator(test, args.batchsize, repeat=False, shuffle=False)
 val_iter = I.SerialIterator(val, args.batchsize, repeat=False, shuffle=False)
+test_iter = I.SerialIterator(test, args.batchsize, repeat=False, shuffle=False)
 
 C = len(preprocess.tox21_tasks)
 model = model_.Model(C)
+
 classifier = L.Classifier(model,
-                          lossfun=loss.multitask_sce,
+                          lossfun=F.sigmoid_cross_entropy,
                           accfun=acc.multitask_acc)
 if args.gpu >= 0:
     chainer.cuda.get_device(args.gpu).use()
@@ -47,7 +49,7 @@ trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
 trainer.extend(E.Evaluator(test_iter, classifier, device=args.gpu))
 trainer.extend(E.snapshot(), trigger=(args.epoch, 'epoch'))
 trainer.extend(E.LogReport())
-trainer.extend(E.PrintReport(['epoch, ''main/loss', 'main/accuracy',
+trainer.extend(E.PrintReport(['epoch', 'main/loss', 'main/accuracy',
                               'validation/main/loss', 'validation/main/accuracy',
                               'elapsed_time']))
 
