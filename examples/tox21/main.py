@@ -46,6 +46,12 @@ optimizer.setup(classifier)
 updater = training.StandardUpdater(train_iter, optimizer, device=args.gpu)
 trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
 
+
+def eval_mode(evalator):
+    model = evalator.get_target('main')
+    model.train = False
+
+
 trainer.extend(E.Evaluator(test_iter, classifier, device=args.gpu))
 trainer.extend(E.snapshot(), trigger=(args.epoch, 'epoch'))
 trainer.extend(E.LogReport())

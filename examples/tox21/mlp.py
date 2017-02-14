@@ -11,10 +11,11 @@ class MLP(chainer.Chain):
             'l2': L.Linear(unit_num, out_num)}
         super(MLP, self).__init__(**chain)
         self.last_relu = last_relu
+        self.train = True
 
     def __call__(self, x):
-        h = F.relu(self.l1(x))
+        h = F.relu(F.dropout(self.l1(x), train=self.train))
         h = self.l2(h)
         if self.last_relu:
-            h = F.relu(h)
+            h = F.relu(F.dropout(h, train=self.train))
         return h

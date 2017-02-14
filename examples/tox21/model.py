@@ -13,6 +13,18 @@ class Model(chainer.Chain):
         super(Model, self).__init__(
             base=MLP(unit_num, unit_num),
             branch=branch)
+        self.train = True
+
+    @property
+    def train(self):
+        return self._train
+
+    @train.setter
+    def train(self, val):
+        self._train = val
+        self.base.train = val
+        for l in self.branch:
+            l.train = val
 
     def __call__(self, x):
         x = self.base(x)
