@@ -21,6 +21,7 @@ parser.add_argument('--batchsize', '-b', type=int, default=128)
 parser.add_argument('--gpu', '-g', type=int, default=0)
 parser.add_argument('--out', '-o', type=str, default='result')
 parser.add_argument('--epoch', '-e', type=int, default=10)
+parser.add_argument('--unit-num', '-u', type=int, default=512)
 args = parser.parse_args()
 
 
@@ -30,7 +31,7 @@ val_iter = I.SerialIterator(val, args.batchsize, repeat=False, shuffle=False)
 test_iter = I.SerialIterator(test, args.batchsize, repeat=False, shuffle=False)
 
 C = len(preprocess.tox21_tasks)
-model = model_.Model(C)
+model = model_.Model(args.unit_num, C)
 
 classifier = L.Classifier(model,
                           lossfun=F.sigmoid_cross_entropy,

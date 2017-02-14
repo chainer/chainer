@@ -7,11 +7,11 @@ from mlp import MLP
 
 class Model(chainer.Chain):
 
-    def __init__(self, task_num):
+    def __init__(self, unit_num, task_num):
         branch = chainer.ChainList(*[
-            MLP(1, False) for _ in six.moves.range(task_num)])
+            MLP(unit_num, 1, False) for _ in six.moves.range(task_num)])
         super(Model, self).__init__(
-            base=MLP(1024),
+            base=MLP(unit_num, unit_num),
             branch=branch)
 
     def __call__(self, x):
