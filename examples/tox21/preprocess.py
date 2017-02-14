@@ -1,5 +1,3 @@
-import copy
-
 from chainer import datasets as D
 import numpy
 from rdkit.Chem import rdMolDescriptors

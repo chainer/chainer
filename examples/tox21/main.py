@@ -56,7 +56,8 @@ trainer.extend(E.Evaluator(test_iter, classifier, device=args.gpu))
 trainer.extend(E.snapshot(), trigger=(args.epoch, 'epoch'))
 trainer.extend(E.LogReport())
 trainer.extend(E.PrintReport(['epoch', 'main/loss', 'main/accuracy',
-                              'validation/main/loss', 'validation/main/accuracy',
+                              'validation/main/loss',
+                              'validation/main/accuracy',
                               'elapsed_time']))
 
 trainer.run()
