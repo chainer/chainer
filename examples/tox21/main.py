@@ -9,7 +9,6 @@ from chainer import optimizers as O
 from chainer import training
 from chainer.training import extensions as E
 
-import acc
 import data
 import model as model_
 import preprocess
@@ -35,7 +34,7 @@ model = model_.Model(args.unit_num, C)
 
 classifier = L.Classifier(model,
                           lossfun=F.sigmoid_cross_entropy,
-                          accfun=acc.multitask_acc)
+                          accfun=F.binary_accuracy)
 if args.gpu >= 0:
     chainer.cuda.get_device(args.gpu).use()
     classifier.to_gpu()
