@@ -1,12 +1,28 @@
 import os
 import shutil
+import warnings
 import zipfile
+
 
 from chainer.dataset import download
 from chainer import datasets as D
 import numpy
-from rdkit import Chem
-from rdkit.Chem import rdMolDescriptors
+
+try:
+    from rdkit import Chem
+    from rdkit.Chem import rdMolDescriptors
+    _available = True
+except ImportError:
+    _available = False
+
+
+def check_available():
+    if not _available:
+        warnings.warn('rdkit is not install on your environment '
+                      'Please install it to use tox21 dataset.\n'
+                      'See the official document for installation.'
+                      'http://www.rdkit.org/docs/Install.html')
+    return _available
 
 
 config = {
@@ -72,10 +88,6 @@ def _creator(cached_file_path, sdffile, url):
     return mol_supplier
 
 
-def _loader(path):
-    return Chem.SDMolSupplier(path)
-
-
 def _get_tox21(config_name, preprocessor):
     basename = config_name
     global config
@@ -90,12 +102,13 @@ def _get_tox21(config_name, preprocessor):
         return _creator(path, sdffile, url)
 
     mol_supplier = download.cache_or_load_file(
-        cache_path, creator, _loader)
+        cache_path, creator, Chem.SDMolSupplier)
     return preprocessor(mol_supplier)
 
 
 def get_tox21(preprocessor=_ECFP):
-    train = _get_tox21('train', preprocessor)
-    val = _get_tox21('val', preprocessor)
-    test = _get_tox21('test', preprocessor)
-    return train, val, test
+    if check_available():
+        train = _get_tox21('train', preprocessor)
+        val = _get_tox21('val', preprocessor)
+        test = _get_tox21('test', preprocessor)
+        return train, val, test
