@@ -17,6 +17,21 @@ except ImportError:
 
 
 def check_available():
+    """Checks availability of Tox21 dataset.
+
+    This function checks the availability of Tox21 dataset
+    in user's environment.
+    Specifically, we use `RDKit <https://github.com/rdkit/rdkit>`_
+    to extract features and labels from raw files, whose format are
+    `SDF <https://en.wikipedia.org/wiki/Chemical_table_file#SDF>`_.
+    So, it returns ``True`` if Chainer successfully imports the
+    RDKit module.
+
+    Returns:
+        ``True`` is Tox21 dataset is available.
+        Otherwise ``False``.
+
+    """
     if not _available:
         warnings.warn('rdkit is not install on your environment '
                       'Please install it to use tox21 dataset.\n'
@@ -45,13 +60,13 @@ config = {
 
 root = 'pfnet/chainer/tox21'
 
-tox21_tasks = ['NR-AR', 'NR-AR-LBD', 'NR-AhR', 'NR-Aromatase', 'NR-ER',
+label_names = ['NR-AR', 'NR-AR-LBD', 'NR-AhR', 'NR-Aromatase', 'NR-ER',
                'NR-ER-LBD', 'NR-PPAR-gamma', 'SR-ARE', 'SR-ATAD5',
                'SR-HSE', 'SR-MMP', 'SR-p53']
 
 
-def _ECFP(mol_supplier, radius=2, label_names=tox21_tasks):
-    fps = []
+def _ECFP(mol_supplier, label_names, radius=2):
+    descriptors = []
     labels = []
     for mol in mol_supplier:
         if mol is None:
@@ -65,17 +80,12 @@ def _ECFP(mol_supplier, radius=2, label_names=tox21_tasks):
         try:
             fp = rdMolDescriptors.GetMorganFingerprintAsBitVect(mol, radius)
         except Exception as e:
-            print(e)
             continue
-        fps.append(fp)
+        descriptors.append(fp)
         labels.append(label)
-    fps = numpy.array(fps, dtype=numpy.float32)
+    descriptors = numpy.array(descriptors, dtype=numpy.float32)
     labels = numpy.array(labels, dtype=numpy.int32)
-    if label_names:
-        assert len(fps) == len(labels)
-        return D.TupleDataset(fps, labels)
-    else:
-        return fps
+    return descriptors, labels
 
 
 def _creator(cached_file_path, sdffile, url):
@@ -88,7 +98,7 @@ def _creator(cached_file_path, sdffile, url):
     return mol_supplier
 
 
-def _get_tox21(config_name, preprocessor):
+def _get_tox21(config_name, preprocessor, with_label=True):
     basename = config_name
     global config
     c = config[config_name]
@@ -103,12 +113,38 @@ def _get_tox21(config_name, preprocessor):
 
     mol_supplier = download.cache_or_load_file(
         cache_path, creator, Chem.SDMolSupplier)
-    return preprocessor(mol_supplier)
+
+    descriptors, labels = preprocessor(mol_supplier, label_names)
+    if with_label:
+        return D.TupleDataset(descriptors, labels)
+    else:
+        return descriptors
 
 
 def get_tox21(preprocessor=_ECFP):
+    """Downloads, caches and preprocesses Tox21 dataset.
+
+    Args:
+        preprocessor: A module used for preprocessing of
+            raw files.
+            It should be a callable which takes an iterable of
+            :class:`rdkit.Chem.rdchem.Mol` objects and a tuple
+            of strings each of which represents a label name.
+            It should return an instance of
+            :class:`chainer.datasets.TupleDataset` that
+            represents a pair of feature vectors and labels.
+
+    Returns:
+        The 3-tuple consisting of train, validation and test
+        datasets, respectively. The train and validation
+        datasets are pairs of descriptors and labels.
+        The test dataset only has descriptors and does
+        not have labels.
+
+    """
+    
     if check_available():
         train = _get_tox21('train', preprocessor)
         val = _get_tox21('val', preprocessor)
-        test = _get_tox21('test', preprocessor)
+        test = _get_tox21('test', preprocessor, False)
         return train, val, test
