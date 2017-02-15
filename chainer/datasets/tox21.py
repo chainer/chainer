@@ -45,12 +45,12 @@ config = {
 
 root = 'pfnet/chainer/tox21'
 
-tox21_tasks = ['NR-AR', 'NR-AR-LBD', 'NR-AhR', 'NR-Aromatase', 'NR-ER',
+label_names = ['NR-AR', 'NR-AR-LBD', 'NR-AhR', 'NR-Aromatase', 'NR-ER',
                'NR-ER-LBD', 'NR-PPAR-gamma', 'SR-ARE', 'SR-ATAD5',
                'SR-HSE', 'SR-MMP', 'SR-p53']
 
 
-def _ECFP(mol_supplier, radius=2, label_names=tox21_tasks):
+def _ECFP(mol_supplier, label_names, radius=2):
     fps = []
     labels = []
     for mol in mol_supplier:
@@ -88,7 +88,7 @@ def _creator(cached_file_path, sdffile, url):
     return mol_supplier
 
 
-def _get_tox21(config_name, preprocessor):
+def _get_tox21(config_name, preprocessor, with_label=True):
     basename = config_name
     global config
     c = config[config_name]
@@ -103,12 +103,15 @@ def _get_tox21(config_name, preprocessor):
 
     mol_supplier = download.cache_or_load_file(
         cache_path, creator, Chem.SDMolSupplier)
-    return preprocessor(mol_supplier)
+    if with_label:
+        return preprocessor(mol_supplier, label_names=label_names)
+    else:
+        return preprocessor(mol_supplier, label_names=())
 
 
 def get_tox21(preprocessor=_ECFP):
     if check_available():
         train = _get_tox21('train', preprocessor)
         val = _get_tox21('val', preprocessor)
-        test = _get_tox21('test', preprocessor)
+        test = _get_tox21('test', preprocessor, False)
         return train, val, test
