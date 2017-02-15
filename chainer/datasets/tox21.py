@@ -85,11 +85,7 @@ def _ECFP(mol_supplier, label_names, radius=2):
         labels.append(label)
     descriptors = numpy.array(descriptors, dtype=numpy.float32)
     labels = numpy.array(labels, dtype=numpy.int32)
-    if label_names:
-        assert len(descriptors) == len(labels)
-        return D.TupleDataset(descriptors, labels)
-    else:
-        return descriptors
+    return descriptors, labels
 
 
 def _creator(cached_file_path, sdffile, url):
@@ -117,10 +113,12 @@ def _get_tox21(config_name, preprocessor, with_label=True):
 
     mol_supplier = download.cache_or_load_file(
         cache_path, creator, Chem.SDMolSupplier)
+
+    descriptors, labels = preprocessor(mol_supplier, label_names)
     if with_label:
-        return preprocessor(mol_supplier, label_names=label_names)
+        return D.TupleDataset(descriptors, labels)
     else:
-        return preprocessor(mol_supplier, label_names=())
+        return descriptors
 
 
 def get_tox21(preprocessor=_ECFP):
@@ -139,10 +137,9 @@ def get_tox21(preprocessor=_ECFP):
     Returns:
         The 3-tuple consisting of train, validation and test
         datasets, respectively. The train and validation
-        datasets are instances of :class:`TupleDataset`
-        each of which represents a pair of descriptors
-        and labels. The test dataset only has descriptors
-        and does not have labels.
+        datasets are pairs of descriptors and labels.
+        The test dataset only has descriptors and does
+        not have labels.
 
     """
     
