@@ -125,6 +125,27 @@ def _get_tox21(config_name, preprocessor, with_label=True):
 
 
 def get_tox21(preprocessor=_ECFP):
+    """Download, cache and preprocess Tox21 dataset.
+
+    Args:
+        preprocessor: A module used for preprocessing of
+            raw files.
+            It should be a callable which takes an iterable of
+            :class:`rdkit.Chem.rdchem.Mol` objects and a tuple
+            of strings each of which represents a label name.
+            It should return an instance of
+            :class:`chainer.datasets.TupleDataset` that
+            represents a pair of feature vectors and labels.
+
+    Returns:
+        The 3-tuple consisting of train, validation and test
+        datasets, respectively. The train and validation
+        datasets are instances of :class:`TupleDataset`
+        each of which represents a pair of descriptors
+        and labels. The test dataset only has descriptors
+        and does not have labels.
+
+    """
     
     if check_available():
         train = _get_tox21('train', preprocessor)
