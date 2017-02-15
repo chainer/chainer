@@ -22,9 +22,9 @@ def check_available():
     This function checks the availability of Tox21 dataset
     in user's environment.
     Specifically, we use `RDKit <https://github.com/rdkit/rdkit>`_
-    to extract features and labels from raw files, whose format is
+    to extract features and labels from raw files, whose format are
     `SDF <https://en.wikipedia.org/wiki/Chemical_table_file#SDF>`_.
-    So it returns ``True`` if Chainer successfully import the
+    So, it returns ``True`` if Chainer successfully imports the
     RDKit module.
 
     Returns:
