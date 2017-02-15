@@ -17,6 +17,21 @@ except ImportError:
 
 
 def check_available():
+    """Checks availability of Tox21 dataset.
+
+    This function checks the availability of Tox21 dataset
+    in user's environment.
+    Specifically, we use `RDKit <https://github.com/rdkit/rdkit>`_
+    to extract features and labels from raw files, whose format is
+    `SDF <https://en.wikipedia.org/wiki/Chemical_table_file#SDF>`_.
+    So it returns ``True`` if Chainer successfully import the
+    RDKit module.
+
+    Returns:
+        ``True`` is Tox21 dataset is available.
+        Otherwise ``False``.
+
+    """
     if not _available:
         warnings.warn('rdkit is not install on your environment '
                       'Please install it to use tox21 dataset.\n'
@@ -51,7 +66,7 @@ label_names = ['NR-AR', 'NR-AR-LBD', 'NR-AhR', 'NR-Aromatase', 'NR-ER',
 
 
 def _ECFP(mol_supplier, label_names, radius=2):
-    fps = []
+    descriptors = []
     labels = []
     for mol in mol_supplier:
         if mol is None:
@@ -67,15 +82,15 @@ def _ECFP(mol_supplier, label_names, radius=2):
         except Exception as e:
             print(e)
             continue
-        fps.append(fp)
+        descriptors.append(fp)
         labels.append(label)
-    fps = numpy.array(fps, dtype=numpy.float32)
+    descriptors = numpy.array(descriptors, dtype=numpy.float32)
     labels = numpy.array(labels, dtype=numpy.int32)
     if label_names:
-        assert len(fps) == len(labels)
-        return D.TupleDataset(fps, labels)
+        assert len(descriptors) == len(labels)
+        return D.TupleDataset(descriptors, labels)
     else:
-        return fps
+        return descriptors
 
 
 def _creator(cached_file_path, sdffile, url):
@@ -110,6 +125,7 @@ def _get_tox21(config_name, preprocessor, with_label=True):
 
 
 def get_tox21(preprocessor=_ECFP):
+    
     if check_available():
         train = _get_tox21('train', preprocessor)
         val = _get_tox21('val', preprocessor)
