@@ -2,6 +2,7 @@
 import argparse
 
 import chainer
+from chainer import datasets as D
 from chainer import functions as F
 from chainer import iterators as I
 from chainer import links as L
@@ -9,9 +10,7 @@ from chainer import optimizers as O
 from chainer import training
 from chainer.training import extensions as E
 
-import data
 import model as model_
-import preprocess
 
 
 parser = argparse.ArgumentParser(
@@ -24,12 +23,12 @@ parser.add_argument('--unit-num', '-u', type=int, default=512)
 args = parser.parse_args()
 
 
-train, val, test = data.get_tox21()
+train, val, test = D.get_tox21()
 train_iter = I.SerialIterator(train, args.batchsize)
 val_iter = I.SerialIterator(val, args.batchsize, repeat=False, shuffle=False)
 test_iter = I.SerialIterator(test, args.batchsize, repeat=False, shuffle=False)
 
-C = len(preprocess.tox21_tasks)
+C = len(D.tox21.tox21_tasks)
 model = model_.Model(args.unit_num, C)
 
 classifier = L.Classifier(model,
