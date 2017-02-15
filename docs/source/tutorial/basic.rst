@@ -25,9 +25,6 @@ Core Concept
 As mentioned on the front page, Chainer is a flexible framework for neural networks.
 One major goal is flexibility, so it must enable us to write complex architectures simply and intuitively.
 
-Define-and-Run
-""""""""""""""
-
 Most existing deep learning frameworks are based on the **"Define-and-Run"** scheme.
 That is, first a network is defined and fixed, and then the user periodically feeds it with mini-batches.
 Since the network is statically defined before any forward/backward computation, all the logic must be embedded into the network architecture as *data*.

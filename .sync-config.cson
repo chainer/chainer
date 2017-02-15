@@ -1,7 +1,7 @@
 remote:
-  host: "sakura12"
+  host: "sakura13"
   user: "shunta"
-  path: "/mnt/sakura201/mitmul/codes/chaienr"
+  path: "/mnt/sakura201/mitmul/codes/chainer"
 behaviour:
   uploadOnSave: true
   syncDownOnOpen: false
