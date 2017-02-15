@@ -122,7 +122,7 @@ def _get_tox21(config_name, preprocessor, with_label=True):
 
 
 def get_tox21(preprocessor=_ECFP):
-    """Download, cache and preprocess Tox21 dataset.
+    """Downloads, caches and preprocesses Tox21 dataset.
 
     Args:
         preprocessor: A module used for preprocessing of
