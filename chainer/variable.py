@@ -111,7 +111,10 @@ class Variable(object):
 Actual: {0}'''.format(type(data))
                 raise TypeError(msg)
 
-        self.data = data
+        # Use a list as a data structure to hold the data array indirectly to
+        # abstract its initialized/uninitialized state.
+        self._data = [data]
+
         self.rank = 0
         self._volatile = flag.Flag(volatile)
 
@@ -200,6 +203,14 @@ Actual: {0}'''.format(type(data))
                              str(self.data.dtype))
 
     @property
+    def data(self):
+        return self._data[0]
+
+    @data.setter
+    def data(self, d):
+        self._data[0] = d
+
+    @property
     def grad(self):
         return self._grad
 
@@ -230,7 +241,7 @@ Actual: {0}'''.format(type(data))
         if self.data is None:
             self._initial_device = -1
         else:
-            self.data = cuda.to_cpu(self.data)
+            self._data = [cuda.to_cpu(self.data)]
             if self._grad is not None:
                 self._grad = cuda.to_cpu(self._grad)
 
@@ -247,7 +258,7 @@ Actual: {0}'''.format(type(data))
             self._initial_device = current if device is None else device
         else:
             with cuda.get_device(device):
-                self.data = cuda.to_gpu(self.data)
+                self._data = [cuda.to_gpu(self.data)]
                 if self._grad is not None:
                     self._grad = cuda.to_gpu(self._grad)
 
@@ -533,7 +544,7 @@ Actual: {0}'''.format(type(data))
             if grad is not None:
                 grad = cuda.to_gpu(grad, device=self._initial_device)
 
-        self.data = data
+        self._data[0] = data
         self.grad = grad
 
     def __lt__(self, other):
