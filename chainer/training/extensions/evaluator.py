@@ -2,6 +2,7 @@ import copy
 
 import six
 
+from chainer import configuration
 from chainer.dataset import convert
 from chainer.dataset import iterator as iterator_module
 from chainer import link
@@ -38,7 +39,8 @@ class Evaluator(extension.Extension):
     overriding the :meth:`evaluate` method. In latter case, users have to
     create and handle a reporter object manually. Users also have to copy the
     iterators before using them, in order to reuse them at the next time of
-    evaluation.
+    evaluation. In both cases, the functions are called in testing mode
+    (i.e., ``chainer.config.train`` is set to ``False``).
 
     This extension is called at the end of each epoch by default.
 
@@ -131,7 +133,8 @@ class Evaluator(extension.Extension):
                                    target.namedlinks(skipself=True))
 
         with reporter:
-            result = self.evaluate()
+            with configuration.using_config('train', False):
+                result = self.evaluate()
 
         reporter_module.report(result)
         return result

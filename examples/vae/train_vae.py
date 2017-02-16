@@ -114,7 +114,7 @@ for epoch in six.moves.range(1, n_epoch + 1):
     for i in six.moves.range(0, N_test, batchsize):
         x = chainer.Variable(xp.asarray(x_test[i:i + batchsize]),
                              volatile='on')
-        loss_func = model.get_loss_func(k=10, train=False)
+        loss_func = model.get_loss_func(k=10)
         loss_func(x)
         sum_loss += float(model.loss.data) * len(x.data)
         sum_rec_loss += float(model.rec_loss.data) * len(x.data)

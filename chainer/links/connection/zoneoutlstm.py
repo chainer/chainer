@@ -15,8 +15,7 @@ from chainer import variable
 
 class StatefulZoneoutLSTM(link.Chain):
 
-    def __init__(self, in_size, out_size,
-                 c_ratio=0.5, h_ratio=0.5, train=True):
+    def __init__(self, in_size, out_size, c_ratio=0.5, h_ratio=0.5):
         super(StatefulZoneoutLSTM, self).__init__(
             upward=linear.Linear(in_size, 4 * out_size),
             lateral=linear.Linear(out_size, 4 * out_size, nobias=True),
@@ -24,7 +23,6 @@ class StatefulZoneoutLSTM(link.Chain):
         self.state_size = out_size
         self.c_ratio = c_ratio
         self.h_ratio = h_ratio
-        self.train = train
         self.reset_state()
 
     def to_cpu(self):
@@ -111,8 +109,8 @@ class StatefulZoneoutLSTM(link.Chain):
         o = reshape.reshape(o, (len(o.data), self.state_size))
 
         c_tmp = tanh.tanh(a) * sigmoid.sigmoid(i) + sigmoid.sigmoid(f) * self.c
-        self.c = zoneout.zoneout(self.c, c_tmp, self.c_ratio, self.train)
+        self.c = zoneout.zoneout(self.c, c_tmp, self.c_ratio)
         self.h = zoneout.zoneout(self.h,
                                  sigmoid.sigmoid(o) * tanh.tanh(c_tmp),
-                                 self.h_ratio, self.train)
+                                 self.h_ratio)
         return self.h

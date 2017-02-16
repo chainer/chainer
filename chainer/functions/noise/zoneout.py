@@ -1,5 +1,6 @@
 import numpy
 
+from chainer import configuration
 from chainer import cuda
 from chainer import function
 from chainer.utils import type_check
@@ -33,7 +34,7 @@ class Zoneout(function.Function):
         return gy[0] * self.flag_h, gy[0] * self.flag_x,
 
 
-def zoneout(h, x, ratio=.5, train=True):
+def zoneout(h, x, ratio=.5):
     """Drops elements of input variable and sets to previous variable randomly.
 
     This function drops input elements randomly with probability ``ratio`` and
@@ -44,7 +45,6 @@ def zoneout(h, x, ratio=.5, train=True):
         h (~chainer.Variable): Previous variable.
         x (~chainer.Variable): Input variable.
         ratio (float): Zoneout ratio.
-        train (bool): If ``True``, executes zoneout. Otherwise, return x.
 
     Returns:
         ~chainer.Variable: Output variable.
@@ -53,6 +53,6 @@ def zoneout(h, x, ratio=.5, train=True):
     Activations <http://arxiv.org/abs/1606.01305>`_.
 
     """
-    if train:
+    if configuration.config.train:
         return Zoneout(ratio)(h, x)
     return x
