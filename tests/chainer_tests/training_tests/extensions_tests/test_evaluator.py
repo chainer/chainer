@@ -4,6 +4,7 @@ import numpy
 
 import chainer
 from chainer import dataset
+from chainer import testing
 from chainer.training import extensions
 
 
@@ -183,3 +184,6 @@ class TestEvaluatorDictData(unittest.TestCase):
         expect_mean = numpy.mean(
             [numpy.sum(x['x']) + numpy.sum(x['y']) for x in self.batches])
         self.assertAlmostEqual(mean['target/loss'], expect_mean, places=4)
+
+
+testing.run_module(__name__, __file__)
