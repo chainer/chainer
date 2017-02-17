@@ -131,7 +131,7 @@ class TestSplitAxisForceArray(unittest.TestCase):
 
     def check_forward_single(self, x_data, axis):
         x = chainer.Variable(x_data)
-        ys = functions.split_axis(x, 1, axis)
+        ys = functions.split_axis(x, 1, axis, force_tuple=False)
         self.assertIsInstance(ys, chainer.Variable)
 
     def test_forward_single_cpu(self):

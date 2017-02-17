@@ -1,5 +1,3 @@
-import math
-
 import numpy
 
 from chainer import cuda
@@ -29,8 +27,8 @@ class DilatedConvolution2D(link.Link):
         dilate (int or pair of ints): Dilation factor of filter applications.
             ``dilate=d`` and ``dilate=(d, d)`` are equivalent.
         use_cudnn (bool): If ``True``, then this link uses cuDNN if available.
-        initialW (4-D array): Initial weight value. If ``None``, :func:`HeNormal`
-            initializer is used to initialize weight matrix.
+        initialW (4-D array): Initial weight value. If ``None``, the default
+            initializer is used to initialize the weight matrix.
             May also be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
         initial_bias (1-D array): Initial bias value. If ``None``, then this

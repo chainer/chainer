@@ -1,9 +1,7 @@
-import math
-
 import chainer
 import chainer.functions as F
-import chainer.links as L
 import chainer.initializers as I
+import chainer.links as L
 
 
 class NIN(chainer.Chain):
@@ -24,13 +22,12 @@ class NIN(chainer.Chain):
             mlpconv4=L.MLPConvolution2D(
                 None, (1024, 1024, 1000), 3, pad=1, conv_init=conv_init),
         )
-        self.train = True
 
     def __call__(self, x, t):
         h = F.max_pooling_2d(F.relu(self.mlpconv1(x)), 3, stride=2)
         h = F.max_pooling_2d(F.relu(self.mlpconv2(h)), 3, stride=2)
         h = F.max_pooling_2d(F.relu(self.mlpconv3(h)), 3, stride=2)
-        h = self.mlpconv4(F.dropout(h, train=self.train))
+        h = self.mlpconv4(F.dropout(h))
         h = F.reshape(F.average_pooling_2d(h, 6), (x.data.shape[0], 1000))
 
         loss = F.softmax_cross_entropy(h, t)
