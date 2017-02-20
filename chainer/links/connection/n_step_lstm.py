@@ -70,7 +70,7 @@ class NStepLSTM(link.ChainList):
         self.dropout = dropout
         self.use_cudnn = use_cudnn
 
-    def __call__(self, hx, cx, xs, train=True):
+    def __call__(self, hx, cx, xs):
         """Calculate all hidden states and cell states.
 
         Args:
@@ -93,7 +93,7 @@ class NStepLSTM(link.ChainList):
 
         hy, cy, trans_y = rnn.n_step_lstm(
             self.n_layers, self.dropout, hx, cx, ws, bs, trans_x,
-            train=train, use_cudnn=self.use_cudnn)
+            use_cudnn=self.use_cudnn)
 
         hy = permutate.permutate(hy, indices, axis=1, inv=True)
         cy = permutate.permutate(cy, indices, axis=1, inv=True)

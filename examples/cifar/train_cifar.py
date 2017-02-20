@@ -12,16 +12,6 @@ from chainer.datasets import get_cifar100
 import models.VGG
 
 
-class TestModeEvaluator(extensions.Evaluator):
-
-    def evaluate(self):
-        model = self.get_target('main')
-        model.train = False
-        ret = super(TestModeEvaluator, self).evaluate()
-        model.train = True
-        return ret
-
-
 def main():
     parser = argparse.ArgumentParser(description='Chainer CIFAR example:')
     parser.add_argument('--dataset', '-d', default='cifar10',
@@ -73,7 +63,7 @@ def main():
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
 
     # Evaluate the model with the test dataset for each epoch
-    trainer.extend(TestModeEvaluator(test_iter, model, device=args.gpu))
+    trainer.extend(extensions.Evaluator(test_iter, model, device=args.gpu))
 
     # Reduce the learning rate by half every 25 epochs.
     trainer.extend(extensions.ExponentialShift('lr', 0.5),

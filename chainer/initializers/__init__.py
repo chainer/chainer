@@ -1,11 +1,9 @@
 import numpy
 
-from chainer import initializer as initializer_module  # NOQA
 from chainer.initializers import constant  # NOQA
 from chainer.initializers import normal  # NOQA
 from chainer.initializers import orthogonal  # NOQA
 from chainer.initializers import uniform  # NOQA
-
 
 # import class and function
 from chainer.initializers.constant import Constant
