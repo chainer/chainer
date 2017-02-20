@@ -25,12 +25,12 @@ class Linear(link.Link):
             initialization will be deferred until the first forward data pass
             at which time the size will be determined.
         out_size (int): Dimension of output vectors.
+        nobias (bool): If ``True``, then this function does not use the bias.
         initialW (2-D array): Initial weight value. If ``None``, :func:`HeNormal`
             initializer is used to initialize weight matrix.
             May also be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
-        initial_bias (1-D array): Initial bias value. If ``None``, then this
-            function uses to initialize ``bias``.
+        initial_bias (1-D array): Initial bias value.
             May also be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
 
@@ -42,7 +42,7 @@ class Linear(link.Link):
 
     """
 
-    def __init__(self, in_size, out_size,
+    def __init__(self, in_size, out_size, nobias=False
                  initialW=initializers.HeNormal(1.0 / numpy.sqrt(2)),
                  initial_bias=initializers.Constant(0)):
         super(Linear, self).__init__()
@@ -55,7 +55,7 @@ class Linear(link.Link):
         else:
             self._initialize_params(in_size)
 
-        if initial_bias is None:
+        if nobias:
             self.b = None
         else:
             bias_initializer = initializers._get_initializer(initial_bias)
