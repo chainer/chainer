@@ -152,7 +152,9 @@ def get_device_from_id(device_id):
     check_cuda_available()
     if type(device_id) in _integer_types:
         return Device(device_id)
-    return DummyDevice
+    else:
+        raise TypeError('device_id should be an integer, '
+                        'but %s is given' % type(device_id))
 
 
 def get_device_from_array(*arrays):
@@ -179,7 +181,7 @@ def get_device(device):
     """Checks and gets the device regardless of it's None or not.
 
     Args:
-        device (:class:`cupy.ndarray` or None): If `None`, it returns
+        device (:class:`~cuda.Device` or None): If `None`, it returns
             :class:`chainer.cuda.DammyDevice`, otherwise it returns the input
             device object as is.
 

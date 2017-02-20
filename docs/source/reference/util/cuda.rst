@@ -4,6 +4,7 @@ CUDA utilities
 
 Devices
 ~~~~~~~
+.. autofunction:: get_device
 .. autofunction:: get_device_from_id
 .. autofunction:: get_device_from_array
 
