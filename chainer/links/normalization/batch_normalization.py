@@ -1,5 +1,6 @@
 import numpy
 
+from chainer import configuration
 from chainer import cuda
 from chainer.functions.normalization import batch_normalization
 from chainer import initializers
@@ -43,7 +44,7 @@ class BatchNormalization(link.Link):
         use_cudnn (bool): If ``True``, then this link uses cuDNN if available.
 
     See: `Batch Normalization: Accelerating Deep Network Training by Reducing\
-          Internal Covariate Shift <http://arxiv.org/abs/1502.03167>`_
+          Internal Covariate Shift <https://arxiv.org/abs/1502.03167>`_
 
     .. seealso::
        :func:`~chainer.functions.batch_normalization`,
@@ -83,25 +84,20 @@ class BatchNormalization(link.Link):
         self.eps = eps
         self.use_cudnn = use_cudnn
 
-    def __call__(self, x, test=False, finetune=False):
+    def __call__(self, x, finetune=False):
         """Invokes the forward propagation of BatchNormalization.
 
-        BatchNormalization accepts additional arguments, which controls three
-        different running mode.
+        In training mode, the BatchNormalization computes moving averages of
+        mean and variance for evaluatino during training, and normalizes the
+        input using batch statistics.
 
         Args:
             x (Variable): Input variable.
-            test (bool): If ``True``, BatchNormalization runs in testing mode;
-                it normalizes the input using pre-computed statistics.
-            finetune (bool): If ``finetune`` is ``True`` and ``test`` is
-                ``False``, BatchNormalization runs in fine-tuning mode; it
+            finetune (bool): If it is in the training mode and ``finetune`` is
+                ``True``, BatchNormalization runs in fine-tuning mode; it
                 accumulates the input array to compute population statistics
                 for normalization, and normalizes the input using batch
                 statistics.
-
-        If ``test`` is ``False``, then BatchNormalization runs in training
-        mode; it computes moving averages of mean and variance for evaluation
-        during training, and normalizes the input using batch statistics.
 
         """
         if hasattr(self, 'gamma'):
@@ -117,7 +113,7 @@ class BatchNormalization(link.Link):
                 beta = variable.Variable(self.xp.zeros(
                     self.avg_mean.shape, dtype=x.dtype), volatile='auto')
 
-        if not test:
+        if configuration.config.train:
             if finetune:
                 self.N += 1
                 decay = 1. - 1. / self.N
@@ -125,8 +121,7 @@ class BatchNormalization(link.Link):
                 decay = self.decay
 
             func = batch_normalization.BatchNormalizationFunction(
-                self.eps, self.avg_mean, self.avg_var, True, decay,
-                self.use_cudnn)
+                self.eps, self.avg_mean, self.avg_var, decay, self.use_cudnn)
             ret = func(x, gamma, beta)
 
             self.avg_mean[:] = func.running_mean

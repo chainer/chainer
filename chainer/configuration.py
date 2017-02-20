@@ -104,9 +104,13 @@ def using_config(name, value, config=config):
     if hasattr(config._local, name):
         old_value = getattr(config, name)
         setattr(config, name, value)
-        yield
-        setattr(config, name, old_value)
+        try:
+            yield
+        finally:
+            setattr(config, name, old_value)
     else:
         setattr(config, name, value)
-        yield
-        delattr(config, name)
+        try:
+            yield
+        finally:
+            delattr(config, name)
