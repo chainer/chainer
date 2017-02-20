@@ -42,7 +42,7 @@ class Linear(link.Link):
 
     """
 
-    def __init__(self, in_size, out_size, nobias=False
+    def __init__(self, in_size, out_size, nobias=False,
                  initialW=initializers.HeNormal(1.0 / numpy.sqrt(2)),
                  initial_bias=initializers.Constant(0)):
         super(Linear, self).__init__()
