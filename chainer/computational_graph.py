@@ -12,18 +12,20 @@ class DotNode(object):
 
     """
 
-    def __init__(self, node, attribute=None):
+    def __init__(self, node, attribute=None, label_func=None):
         """Initializes DotNode.
 
         Args:
             node: :class: `Variable` object or :class: `Function` object.
             attribute (dict): Attributes for the node.
+            label_func (function): Label function.
 
         """
         assert isinstance(node, (variable.Variable, function.Function))
         self.node = node
         self.id_ = id(node)
-        self.attribute = {'label': node.label}
+        label = node.label if label_func is None else label_func(node)
+        self.attribute = {'label': label}
         if isinstance(node, variable.Variable):
             self.attribute.update({'shape': 'oval'})
         else:
@@ -56,6 +58,7 @@ class ComputationalGraph(object):
     """
 
     def __init__(self, nodes, edges, variable_style=None, function_style=None,
+                 variable_label_func=None, function_label_func=None,
                  rankdir='TB'):
         """Initializes computational graph.
 
@@ -65,6 +68,12 @@ class ComputationalGraph(object):
             edges (list): List of edges. Each edge consists of pair of nodes.
             variable_style (dict): Dot node style for variable.
             function_style (dict): Dot node style for function.
+            variable_label_func (function): Dot node label function. It accepts
+                one :class:`~chainer.Variable` object and returns one string
+                that represents the node name.
+            function_label_func (function): Dot node label function. It accepts
+                one :class:`~chainer.Function` object and returns one string
+                that represents the node name.
             rankdir (str): Direction of the graph that must be
                 TB (top to bottom), BT (bottom to top), LR (left to right)
                 or RL (right to left).
@@ -74,6 +83,8 @@ class ComputationalGraph(object):
         self.edges = edges
         self.variable_style = variable_style
         self.function_style = function_style
+        self.variable_label_func = variable_label_func
+        self.function_label_func = function_label_func
         if rankdir not in ('TB', 'BT', 'LR', 'RL'):
             raise ValueError('rankdir must be in TB, BT, LR or RL.')
         self.rankdir = rankdir
@@ -90,9 +101,11 @@ class ComputationalGraph(object):
         for node in self.nodes:
             assert isinstance(node, (variable.Variable, function.Function))
             if isinstance(node, variable.Variable):
-                ret += DotNode(node, self.variable_style).label
+                ret += DotNode(node, self.variable_style,
+                               self.variable_label_func).label
             else:
-                ret += DotNode(node, self.function_style).label
+                ret += DotNode(node, self.function_style,
+                               self.function_label_func).label
         for edge in self.edges:
             head, tail = edge
             if (isinstance(head, variable.Variable) and
@@ -131,6 +144,8 @@ class ComputationalGraph(object):
 
 def build_computational_graph(outputs, remove_split=True,
                               variable_style=None, function_style=None,
+                              variable_label_func=None,
+                              function_label_func=None,
                               rankdir='TB'):
     """Builds a graph of functions and variables backward-reachable from outputs.
 
@@ -143,6 +158,12 @@ def build_computational_graph(outputs, remove_split=True,
         variable_style(dict): Dot node style for variable.
             Possible keys are 'shape', 'color', 'fillcolor', 'style', and etc.
         function_style(dict): Dot node style for function.
+        variable_label_func (function): Dot node label function. It accepts
+            one :class:`~chainer.Variable` object and returns one string
+            that represents the node name.
+        function_label_func (function): Dot node label function. It accepts
+            one :class:`~chainer.Function` object and returns one string
+            that represents the node name.
         rankdir (str): Direction of the graph that must be
             TB (top to bottom), BT (bottom to top), LR (left to right)
             or RL (right to left).
@@ -218,4 +239,6 @@ def build_computational_graph(outputs, remove_split=True,
                     nodes.add(HashableObject(input_))
                     nodes.add(HashableObject(cand))
     return ComputationalGraph(list(i.v for i in nodes), list(seen_edges),
-                              variable_style, function_style, rankdir)
+                              variable_style, function_style,
+                              variable_label_func, function_label_func,
+                              rankdir)
