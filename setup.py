@@ -15,7 +15,7 @@ install_requires = [
 ]
 cupy_require = 'cupy==0.0.1'
 
-cupy_pkg = __version__ = pkg_resources.get_distribution('cupy')
+cupy_pkg = pkg_resources.get_distribution('cupy')
 if cupy_pkg is not None:
     install_requires.append(cupy_require)
     print('Use %s' % cupy_require)
