@@ -24,6 +24,7 @@ class DilatedConvolution2D(link.Link):
             ``stride=s`` and ``stride=(s, s)`` are equivalent.
         pad (int or pair of ints): Spatial padding width for input arrays.
             ``pad=p`` and ``pad=(p, p)`` are equivalent.
+        nobias (bool): If ``True``, then this link does not use the bias term.
         dilate (int or pair of ints): Dilation factor of filter applications.
             ``dilate=d`` and ``dilate=(d, d)`` are equivalent.
         use_cudnn (bool): If ``True``, then this link uses cuDNN if available.
@@ -47,7 +48,7 @@ class DilatedConvolution2D(link.Link):
     """
 
     def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
-                 dilate=1, use_cudnn=True,
+                 nobias=False, dilate=1, use_cudnn=True,
                  initialW=initializers.HeNormal(1.0 / numpy.sqrt(2)),
                  initial_bias=initializers.Constant(0)):
         super(DilatedConvolution2D, self).__init__()
@@ -64,7 +65,7 @@ class DilatedConvolution2D(link.Link):
         else:
             self._initialize_params(in_channels)
 
-        if initial_bias is None:
+        if nobias:
             self.b = None
         else:
             bias_initializer = initializers._get_initializer(initial_bias)
