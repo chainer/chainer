@@ -152,9 +152,7 @@ def get_device_from_id(device_id):
     check_cuda_available()
     if type(device_id) in _integer_types:
         return Device(device_id)
-    else:
-        raise TypeError('device_id should be an integer, '
-                        'but %s is given' % type(device_id))
+    return DummyDevice
 
 
 def get_device_from_array(*arrays):
@@ -199,8 +197,8 @@ def to_gpu(array, device=None, stream=None):
     """Copies the given CPU array to specified device.
 
     Args:
-        array: Array to be sent to GPU.
-        device: Device specifier.
+        array (:class:`~numpy.ndarray`): Array to be sent to GPU.
+        device (int): Device id.
         stream (cupy.cuda.Stream): CUDA stream. If not ``None``, the copy runs
             asynchronously.
 
@@ -213,7 +211,7 @@ def to_gpu(array, device=None, stream=None):
 
     """
     check_cuda_available()
-    with get_device(device):
+    with get_device_from_id(device):
         array_dev = get_device_from_array(array)
         if array_dev.id == cupy.cuda.device.get_device_id():
             return array
