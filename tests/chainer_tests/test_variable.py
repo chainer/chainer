@@ -1,3 +1,4 @@
+import copy
 import inspect
 import unittest
 
@@ -622,6 +623,13 @@ class TestUninitializedVariable(unittest.TestCase):
         x.to_gpu()
         x.to_cpu()
         self.check_constant_initialization(x, self.a, np)
+
+    def test_copy_to_initialize(self):
+        # This test intends the use case of link.copy() method.
+        x = chainer.Variable()
+        y = copy.copy(x)
+        x.initialize((3, 2))
+        self.assertIs(x.data, y.data)
 
     def test_cleargrad(self):
         x = chainer.Variable()
