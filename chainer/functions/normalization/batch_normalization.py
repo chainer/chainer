@@ -28,7 +28,7 @@ def _xhat(x, mean, std, expander):
 class BatchNormalizationFunction(function.Function):
 
     def __init__(self, eps=2e-5, mean=None, var=None, train=False,
-                 decay=0.9, use_cudnn=True):
+                 decay=0.9, use_cudnn=True, dtype_param=numpy.float32):
         self.running_mean = mean
         self.running_var = var
 
@@ -47,6 +47,7 @@ class BatchNormalizationFunction(function.Function):
         self.use_cudnn = use_cudnn
         self.mean_cache = None
         self.decay = decay
+        self.dtype_param = dtype_param
 
     def check_type_forward(self, in_types):
         n_in = in_types.size().eval()
@@ -88,11 +89,6 @@ class BatchNormalizationFunction(function.Function):
             self.fixed_mean = inputs[3]
             self.fixed_var = inputs[4]
 
-        # TODO(bkvogel): Check for float16 support again in next cuDNN version.
-        if x[0].dtype == numpy.float16:
-            # cuDNN v5 batch normalization does not seem to support float16.
-            self.use_cudnn = False
-
         head_ndim = gamma.ndim + 1
         expander = (None, Ellipsis) + (None,) * (x.ndim - head_ndim)
         gamma = gamma[expander]
@@ -119,14 +115,36 @@ class BatchNormalizationFunction(function.Function):
 
             gamma = cuda.cupy.ascontiguousarray(gamma)
             beta = cuda.cupy.ascontiguousarray(beta)
-            dtype = x.dtype
             handle = cudnn.get_handle()
             x_desc = cudnn.create_tensor_descriptor(_as4darray(x))
             derivedBnDesc = cudnn.create_uninitialized_tensor_descriptor()
             libcudnn.deriveBNTensorDescriptor(derivedBnDesc.value,
                                               x_desc.value, self.mode)
-            one = numpy.array(1, dtype=dtype).ctypes
-            zero = numpy.array(0, dtype=dtype).ctypes
+            # check data type of derivedBnDesc
+            dtype_bn, _, _, _, _, _, _, _, _ = libcudnn.getTensor4dDescriptor(
+                derivedBnDesc.value)
+            if dtype_bn == libcudnn.CUDNN_DATA_DOUBLE:
+                if self.dtype_param != numpy.float64:
+                    msg = 'data type of parameters of batch normalization ' + \
+                          'must be numpy.float64'
+                    raise RuntimeError(msg)
+            elif dtype_bn == libcudnn.CUDNN_DATA_FLOAT:
+                if self.dtype_param != numpy.float32:
+                    msg = 'data type of parameters of batch normalization ' + \
+                          'must be numpy.float32'
+                    raise RuntimeError(msg)
+            elif dtype_bn == libcudnn.CUDNN_DATA_HALF:
+                if self.dtype_param != numpy.float16:
+                    msg = 'data type of parameters of batch normalization ' + \
+                          'must be numpy.float16'
+                    raise RuntimeError(msg)
+            else:
+                msg = 'Unknow cudnn data type {} '.format(dtype_bn) + \
+                      'is obtained by cudnnDeriveBNTensorDescriptor()'
+                raise RuntimeError(msg)
+
+            one = numpy.array(1, dtype=self.dtype_param).ctypes
+            zero = numpy.array(0, dtype=self.dtype_param).ctypes
             y = cuda.cupy.empty_like(x)
             # Factor used in the moving average
             factor = 1 - self.decay
@@ -336,7 +354,7 @@ def batch_normalization(x, gamma, beta, eps=2e-5, running_mean=None,
 
 
 def fixed_batch_normalization(x, gamma, beta, mean, var, eps=2e-5,
-                              use_cudnn=True):
+                              use_cudnn=True, dtype_param=numpy.float32):
     """Batch normalization function with fixed statistics.
 
     This is a variant of batch normalization, where the mean and variance
@@ -359,5 +377,5 @@ def fixed_batch_normalization(x, gamma, beta, mean, var, eps=2e-5,
        :class:`links.BatchNormalization`
 
     """
-    return BatchNormalizationFunction(eps, None, None, False, 0.0,
-                                      use_cudnn)(x, gamma, beta, mean, var)
+    return BatchNormalizationFunction(eps, None, None, False, 0.0, use_cudnn,
+                                      dtype_param)(x, gamma, beta, mean, var)

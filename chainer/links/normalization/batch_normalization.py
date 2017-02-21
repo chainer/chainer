@@ -66,22 +66,28 @@ class BatchNormalization(link.Link):
                  use_gamma=True, use_beta=True,
                  initial_gamma=None, initial_beta=None, use_cudnn=True):
         super(BatchNormalization, self).__init__()
+        # [cuDNN] dtype of prameters like gamma, beta, etc. must be float32,
+        # even when dtype of input/output tensors are float16.
+        dtype_param = dtype
+        if use_cudnn and dtype_param == numpy.float16:
+            dtype_param = numpy.float32
         if use_gamma:
-            self.add_param('gamma', size, dtype=dtype)
+            self.add_param('gamma', size, dtype=dtype_param)
             if initial_gamma is None:
                 initial_gamma = initializers.One()
             initializers.init_weight(self.gamma.data, initial_gamma)
         if use_beta:
-            self.add_param('beta', size, dtype=dtype)
+            self.add_param('beta', size, dtype=dtype_param)
             if initial_beta is None:
                 initial_beta = initializers.Zero()
             initializers.init_weight(self.beta.data, initial_beta)
-        self.add_persistent('avg_mean', numpy.zeros(size, dtype=dtype))
-        self.add_persistent('avg_var', numpy.zeros(size, dtype=dtype))
+        self.add_persistent('avg_mean', numpy.zeros(size, dtype=dtype_param))
+        self.add_persistent('avg_var', numpy.zeros(size, dtype=dtype_param))
         self.add_persistent('N', 0)
         self.decay = decay
         self.eps = eps
         self.use_cudnn = use_cudnn
+        self.dtype_param = dtype_param
 
     def __call__(self, x, test=False, finetune=False):
         """Invokes the forward propagation of BatchNormalization.
@@ -126,7 +132,7 @@ class BatchNormalization(link.Link):
 
             func = batch_normalization.BatchNormalizationFunction(
                 self.eps, self.avg_mean, self.avg_var, True, decay,
-                self.use_cudnn)
+                self.use_cudnn, self.dtype_param)
             ret = func(x, gamma, beta)
 
             self.avg_mean[:] = func.running_mean
@@ -136,7 +142,8 @@ class BatchNormalization(link.Link):
             mean = variable.Variable(self.avg_mean, volatile='auto')
             var = variable.Variable(self.avg_var, volatile='auto')
             ret = batch_normalization.fixed_batch_normalization(
-                x, gamma, beta, mean, var, self.eps, self.use_cudnn)
+                x, gamma, beta, mean, var, self.eps, self.use_cudnn,
+                self.dtype_param)
         return ret
 
     def start_finetuning(self):
