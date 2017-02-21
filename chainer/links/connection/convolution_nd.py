@@ -1,3 +1,5 @@
+import numpy
+
 from chainer.functions.connection import convolution_nd
 from chainer import initializers
 from chainer import link
@@ -20,13 +22,13 @@ class ConvolutionND(link.Link):
             ``stride=s`` and ``stride=(s, s, ..., s)`` are equivalent.
         pad (int or tuple of ints): Spatial padding width for input arrays.
             ``pad=p`` and ``pad=(p, p, ..., p)`` are equivalent.
+        nobias (bool): If ``True``, then this function does not use the bias.
         initialW: Value used to initialize the filter weight. May be an
             initializer instance or another value that
             :func:`~chainer.init_weight` helper function can take.
         initial_bias: Value used to initialize the bias vector. May be an
             initializer instance or another value except ``None`` that
-            :func:`~chainer.init_weight` helper function can take. If ``None``
-            is given, this link does not use the bias vector.
+            :func:`~chainer.init_weight` helper function can take.
         use_cudnn (bool): If ``True``, then this link uses cuDNN if available.
             See :func:`~chainer.functions.convolution_nd` for exact conditions
             of cuDNN availability.
@@ -48,7 +50,8 @@ class ConvolutionND(link.Link):
     """
 
     def __init__(self, ndim, in_channels, out_channels, ksize, stride=1, pad=0,
-                 initialW=None, initial_bias=None, use_cudnn=True,
+                 nobias=False, initialW=initializers.HeNormal(1. / numpy.sqrt(2)),
+                 initial_bias=initializers.Constant(0), use_cudnn=True,
                  cover_all=False):
         ksize = conv_nd.as_tuple(ksize, ndim)
         self.stride = stride
@@ -62,7 +65,7 @@ class ConvolutionND(link.Link):
         initialW = initializers._get_initializer(initialW)
         self.add_param('W', W_shape, initializer=initialW)
 
-        if initial_bias is None:
+        if nobias:
             self.b = None
         else:
             initial_bias = initializers._get_initializer(initial_bias)
