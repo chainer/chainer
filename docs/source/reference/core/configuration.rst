@@ -26,6 +26,7 @@ Note that the default values are set to the global config.
 ``chainer.config.debug``
    Debug mode flag.
    If it is ``True``, Chainer runs in the debug mode.
+   See :ref:`debug` for more information of the debug mode.
    The default value is given by ``CHAINER_DEBUG`` environment variable (set to 0 or 1) if available, otherwise uses ``False``.
 ``chainer.config.enable_backprop``
    Flag to enable backpropagation support.
