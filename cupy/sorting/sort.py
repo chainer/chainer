@@ -1,3 +1,6 @@
+from cupy import core
+
+
 def sort(a):
     """Returns a sorted copy of an array with a stable sorting algorithm.
 
@@ -20,7 +23,10 @@ def sort(a):
     return ret
 
 
-# TODO(okuta): Implement lexsort
+def lexsort(keys):
+    """
+    """
+    return core.lexsort(keys)
 
 
 def argsort(a):

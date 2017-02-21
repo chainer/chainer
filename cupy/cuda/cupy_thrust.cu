@@ -31,17 +31,47 @@ template void cupy::thrust::sort<cpy_double>(void *, ssize_t);
 
 
 /*
- * argsort
+ * lexsort
  */
 
 template <typename T>
 class elem_less {
 public:
-    elem_less(void *data):_data((const T *)data) {}
+    elem_less(const T *data):_data(data) {}
     __device__ bool operator()(ssize_t i, ssize_t j) { return _data[i] < _data[j]; }
 private:
     const T *_data;
 };
+
+template <typename T>
+void cupy::thrust::lexsort(ssize_t *idx_start, void *keys_start, ssize_t k, ssize_t n) {
+    /* idx_start is the beginning of the output array where the indexes that
+       would sort the data will be placed. The original contents of idx_start
+       will be destroyed. */
+    device_ptr<ssize_t> dp_first = device_pointer_cast(idx_start);
+    device_ptr<ssize_t> dp_last  = device_pointer_cast(idx_start + n);
+    sequence(dp_first, dp_last);
+    for (int i = k - 1; i >= 0; --i) {
+        T *key_start = (T *)keys_start + i * n;
+        stable_sort< device_ptr<ssize_t> >(dp_first, dp_last, elem_less<T>(key_start));
+    }
+}
+
+template void cupy::thrust::lexsort<cpy_byte>(ssize_t *, void *, ssize_t, ssize_t);
+template void cupy::thrust::lexsort<cpy_ubyte>(ssize_t *, void *, ssize_t, ssize_t);
+template void cupy::thrust::lexsort<cpy_short>(ssize_t *, void *, ssize_t, ssize_t);
+template void cupy::thrust::lexsort<cpy_ushort>(ssize_t *, void *, ssize_t, ssize_t);
+template void cupy::thrust::lexsort<cpy_int>(ssize_t *, void *, ssize_t, ssize_t);
+template void cupy::thrust::lexsort<cpy_uint>(ssize_t *, void *, ssize_t, ssize_t);
+template void cupy::thrust::lexsort<cpy_long>(ssize_t *, void *, ssize_t, ssize_t);
+template void cupy::thrust::lexsort<cpy_ulong>(ssize_t *, void *, ssize_t, ssize_t);
+template void cupy::thrust::lexsort<cpy_float>(ssize_t *, void *, ssize_t, ssize_t);
+template void cupy::thrust::lexsort<cpy_double>(ssize_t *, void *, ssize_t, ssize_t);
+
+
+/*
+ * argsort
+ */
 
 template <typename T>
 void cupy::thrust::argsort(ssize_t *idx_start, void *data_start, ssize_t num) {
@@ -51,7 +81,7 @@ void cupy::thrust::argsort(ssize_t *idx_start, void *data_start, ssize_t num) {
     device_ptr<ssize_t> dp_first = device_pointer_cast(idx_start);
     device_ptr<ssize_t> dp_last  = device_pointer_cast(idx_start + num);
     sequence(dp_first, dp_last);
-    stable_sort< device_ptr<ssize_t> >(dp_first, dp_last, elem_less<T>(data_start));
+    stable_sort< device_ptr<ssize_t> >(dp_first, dp_last, elem_less<T>((T *)data_start));
 }
 
 template void cupy::thrust::argsort<cpy_byte>(ssize_t *, void *, ssize_t);

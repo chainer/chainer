@@ -87,10 +87,10 @@ class TestLexsort(unittest.TestCase):
         a = testing.shaped_random((), xp)
         return xp.lexsort(a)
 
-    @testing.numpy_cupy_allclose()
     def test_lexsort_one_dim(self, xp):
-        a = testing.shaped_random((2,), xp)
-        return xp.lexsort(a)
+        a = testing.shaped_random((2,), numpy)
+        b = testing.shaped_random((2,), cupy)
+        self.assertEqual(numpy.lexsort(a), cupy.lexsort(b))
 
     def test_lexsort_three_or_more_dim(self):
         a = testing.shaped_random((2, 10, 10), cupy)
