@@ -90,6 +90,12 @@ class FusionRef(object):
     def __rmod__(self, other):
         return remainder(other, self)
 
+    def __pow__(x, y):
+        return power(x, y)
+
+    def __ipow__(self, other):
+        return power(self, other, self)
+
     def __lshift__(self, other):
         return left_shift(self, other)
 
