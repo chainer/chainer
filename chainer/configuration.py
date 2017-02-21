@@ -82,8 +82,10 @@ class LocalConfig(object):
 
 
 def _print_attrs(obj, keys, file):
+    max_len = max(len(key) for key in keys)
     for key in keys:
-        print(u'{}:\t{}'.format(key, getattr(obj, key)), file=file)
+        spacer = ' ' * (max_len - len(key))
+        print(u'{} {}{}'.format(key, spacer, getattr(obj, key)), file=file)
 
 
 global_config = GlobalConfig()
