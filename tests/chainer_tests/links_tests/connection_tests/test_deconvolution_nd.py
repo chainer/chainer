@@ -62,7 +62,7 @@ class TestDeconvolutionND(unittest.TestCase):
 
         self.link = deconvolution_nd.DeconvolutionND(
             ndim, in_channels, out_channels, ksize, stride=stride, pad=pad,
-            outsize=outsize, initial_bias=initial_bias)
+            outsize=outsize, initial_bias=initial_bias, nobias=self.nobias)
         self.link.cleargrads()
 
         x_shape = (N, in_channels) + self.dims
@@ -124,7 +124,7 @@ class TestDeconvolutionNDNoInitialBias(unittest.TestCase):
         ndim = 3
         ksize = 3
         link = deconvolution_nd.DeconvolutionND(
-            ndim, 3, 2, ksize, initial_bias=None)
+            ndim, 3, 2, ksize, nobias=True)
         self.assertIsNone(link.b)
 
 

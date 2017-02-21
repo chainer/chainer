@@ -1,3 +1,5 @@
+import numpy
+
 from chainer.functions.connection import deconvolution_nd
 from chainer import initializers
 from chainer import link
@@ -20,6 +22,7 @@ class DeconvolutionND(link.Link):
             ``stride=s`` and ``stride=(s, s, ..., s)`` are equivalent.
         pad (int or tuple of ints): Spatial padding width for input arrays.
             ``pad=p`` and ``pad=(p, p, ..., p)`` are equivalent.
+        nobias (bool): If ``True``, then this function does not use the bias.
         outsize (tuple of ints): Expected output size of deconvolutional
             operation. It should be a tuple of ints that represents the output
             size of each dimension. Default value is ``None`` and the outsize
@@ -44,7 +47,9 @@ class DeconvolutionND(link.Link):
     """
 
     def __init__(self, ndim, in_channels, out_channels, ksize, stride=1, pad=0,
-                 outsize=None, initialW=None, initial_bias=0, use_cudnn=True):
+                 nobias=False, outsize=None,
+                 initialW=initializers.HeNormal(1. / numpy.sqrt(2)),
+                 initial_bias=initializers.Constant(0), use_cudnn=True):
         ksize = conv_nd.as_tuple(ksize, ndim)
         self.stride = stride
         self.pad = pad
@@ -57,7 +62,7 @@ class DeconvolutionND(link.Link):
         initialW = initializers._get_initializer(initialW)
         self.add_param('W', W_shape, initializer=initialW)
 
-        if initial_bias is None:
+        if nobias:
             self.b = None
         else:
             initial_bias = initializers._get_initializer(initial_bias)
