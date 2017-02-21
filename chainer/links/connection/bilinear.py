@@ -32,9 +32,7 @@ class Bilinear(link.Link):
             and :math:`b`. The length this argument must be 3.
             Each element of this tuple must have the shapes of
             ``(left_size, output_size)``, ``(right_size, output_size)``,
-            and ``(output_size,)``, respectively. If ``None``, :math:`V^1`
-            and :math:`V^2` is initialized by scaled centered Gaussian
-            distributions and :math:`b` is set to :math:`0`.
+            and ``(output_size,)``, respectively.
             May also be a tuple of callables that take ``numpy.ndarray`` or
             ``cupy.ndarray`` and edit its value.
 
@@ -50,7 +48,10 @@ class Bilinear(link.Link):
     """
 
     def __init__(self, left_size, right_size, out_size, nobias=False,
-                 initialW=None, initial_bias=None):
+                 initialW=initializers.HeNormal(1.0 / numpy.sqrt(2)),
+                 initial_bias=(initializers.HeNormal(1.0 / numpy.sqrt(2)),
+                               initializers.HeNormal(1.0 / numpy.sqrt(2)),
+                               initializers.Constant(0))):
         super(Bilinear, self).__init__(W=(left_size, right_size, out_size))
         self.in_sizes = (left_size, right_size)
         self.nobias = nobias
@@ -69,13 +70,9 @@ class Bilinear(link.Link):
             self.add_param('V2', (right_size, out_size))
             self.add_param('b', out_size)
 
-            if isinstance(initial_bias, tuple):
-                V1, V2, b = initial_bias
-            elif initial_bias is None:
-                V1 = V2 = None
-                b = 0
-            else:
+            if len(initial_bias) != 3:
                 raise ValueError('initial_bias must be tuple or None')
+            V1, V2, b = initial_bias
 
             if isinstance(V1, (numpy.ndarray, cuda.ndarray)):
                 assert V1.shape == self.V1.shape
