@@ -78,6 +78,24 @@ def force_backprop_mode():
     _thread_local.default_backprop = default
 
 
+@contextlib.contextmanager
+def use_fp16_compute():
+    """Enable fp16 compute for convolution related functions."""
+    default = getattr(_thread_local, 'fp16_compute_mode', False)
+    _thread_local.fp16_compute_mode = True
+    yield
+    _thread_local.fp16_compute_mode = default
+
+
+@contextlib.contextmanager
+def no_fp16_compute():
+    """Disable fp16 compute for convolution related functions."""
+    default = getattr(_thread_local, 'fp16_compute_mode', False)
+    _thread_local.fp16_compute_mode = False
+    yield
+    _thread_local.fp16_compute_mode = default
+
+
 class Function(object):
 
     """Function on variables with backpropagation ability.

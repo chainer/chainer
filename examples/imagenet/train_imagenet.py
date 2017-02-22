@@ -79,6 +79,7 @@ def main():
     archs = {
         'alex': alex.Alex,
         'alex_fp16': alex.AlexFp16,
+        'alex_fp16c': alex.AlexFp16c,
         'googlenet': googlenet.GoogLeNet,
         'googlenetbn': googlenetbn.GoogLeNetBN,
         'googlenetbn_fp16': googlenetbn.GoogLeNetBNFp16,

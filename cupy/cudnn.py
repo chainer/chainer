@@ -145,7 +145,8 @@ def create_filter_descriptor(arr, format=cudnn.CUDNN_TENSOR_NCHW):
 
 
 def create_convolution_descriptor(pad, stride, dtype,
-                                  mode=cudnn.CUDNN_CROSS_CORRELATION):
+                                  mode=cudnn.CUDNN_CROSS_CORRELATION,
+                                  fp16_compute_mode=False):
     desc = Descriptor(cudnn.createConvolutionDescriptor(),
                       cudnn.destroyConvolutionDescriptor)
     ndim = len(pad)
@@ -155,9 +156,7 @@ def create_convolution_descriptor(pad, stride, dtype,
     if ndim == 2:
         if _cudnn_version >= 5000:
             data_type = get_data_type(dtype)
-            # TODO(takagi) Temporarily use computing precision of FP32 for
-            #     storing precision of FP16.
-            if dtype == numpy.float16:
+            if dtype == numpy.float16 and fp16_compute_mode is False:
                 data_type = cudnn.CUDNN_DATA_FLOAT
             cudnn.setConvolution2dDescriptor_v5(
                 desc.value, pad[0], pad[1], stride[0], stride[1], 1, 1, mode,
