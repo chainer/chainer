@@ -3585,8 +3585,12 @@ cdef _clip = create_ufunc(
 # -----------------------------------------------------------------------------
 
 cpdef lexsort(keys):
-    """
-    """
+    """Return an array of indices that sort the supplied keys.
+
+    .. seealso::
+        :func:`cupy.lexsort` for full documentation, :func:`numpy.lexsort`
+
+   """
 
     # TODO(takagi): Support axis argument.
     cdef Py_ssize_t *idx_ptr
