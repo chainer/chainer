@@ -227,7 +227,9 @@ class BatchRenormalizationFunction(function.Function):
         ggamma = (gy * self.x_hat_renorm).sum(axis=axis)
         gsigma_batch = (gy * self.x_hat).sum(axis=axis)
         if xp is numpy:
-            gx = (self.r * gamma / self.std)[expander] * (gy - (self.x_hat * gsigma_batch[expander] + gbeta[expander]) / m)
+            scale = (self.r * gamma / self.std)[expander]
+            gx = scale * (gy - (self.x_hat * gsigma_batch[expander] +
+                                gbeta[expander]) / m)
         else:
             inv_m = numpy.float32(1) / m
             gx = cuda.elementwise(
@@ -242,8 +244,9 @@ class BatchRenormalizationFunction(function.Function):
         return gx, ggamma, gbeta
 
 
-def batch_renormalization(x, gamma, beta, rmax, dmax, eps=2e-5, running_mean=None,
-                          running_var=None, decay=0.9, use_cudnn=True):
+def batch_renormalization(x, gamma, beta, rmax, dmax, eps=2e-5,
+                          running_mean=None, running_var=None, decay=0.9,
+                          use_cudnn=True):
     """Batch renormalization function.
 
     This is an extension of batch normalization, which ensures that the
@@ -258,10 +261,11 @@ def batch_renormalization(x, gamma, beta, rmax, dmax, eps=2e-5, running_mean=Non
 
     """
     return BatchRenormalizationFunction(eps, running_mean, running_var, True,
-                                        decay, use_cudnn, rmax, dmax)(x, gamma, beta)
+                                        decay, use_cudnn, rmax, dmax)(x, gamma,
+                                                                      beta)
 
 
 def fixed_batch_normalization(x, gamma, beta, mean, var, eps=2e-5,
                               use_cudnn=True):
     return BatchRenormalizationFunction(eps, None, None, False, 0.0,
-                                      use_cudnn)(x, gamma, beta, mean, var)
+                                        use_cudnn)(x, gamma, beta, mean, var)

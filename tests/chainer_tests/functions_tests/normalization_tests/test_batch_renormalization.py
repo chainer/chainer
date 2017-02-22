@@ -54,7 +54,8 @@ class TestBatchRenormalization(unittest.TestCase):
 
     def check_forward(self, args, use_cudnn=True):
         y = batch_renormalization.batch_renormalization(
-            *[chainer.Variable(i) for i in args], rmax=self.rmax, dmax=self.dmax, running_mean=self.mean,
+            *[chainer.Variable(i) for i in args],
+            rmax=self.rmax, dmax=self.dmax, running_mean=self.mean,
             running_var=self.var, decay=self.decay, eps=self.eps,
             use_cudnn=use_cudnn)
         self.assertEqual(y.data.dtype, self.dtype)
@@ -64,9 +65,11 @@ class TestBatchRenormalization(unittest.TestCase):
         running_sigma = numpy.sqrt(self.var)
         running_mean = self.mean
         r = numpy.clip(sigma_batch / running_sigma, 1.0 / self.rmax, self.rmax)
-        d = numpy.clip((mean_batch - running_mean) / running_sigma, -self.dmax, self.dmax)
+        d = numpy.clip((mean_batch - running_mean) / running_sigma,
+                       -self.dmax, self.dmax)
         y_expect = _batch_renormalization(
-            self.expander, self.gamma, self.beta, self.x, self.mean, self.var, r[self.expander], d[self.expander])
+            self.expander, self.gamma, self.beta, self.x, self.mean, self.var,
+            r[self.expander], d[self.expander])
 
         testing.assert_allclose(
             y_expect, y.data, **self.check_forward_options)
@@ -81,9 +84,12 @@ class TestBatchRenormalization(unittest.TestCase):
         self.check_forward([cuda.to_gpu(i) for i in self.args])
 
     def check_backward(self, args, y_grad):
-        # Need to add some noise to running_mean and running_var, otherwise we will always get r=1, d=0
-        running_mean = self.mean + numpy.random.uniform(-1, 1, self.mean.shape).astype(self.dtype)
-        running_var = numpy.abs(self.var + numpy.random.uniform(-1, 1, self.var.shape).astype(self.dtype))
+        # Need to add some noise to running_mean and running_var,
+        # otherwise we will always get r=1, d=0
+        running_mean = self.mean + numpy.random.uniform(
+                -1, 1, self.mean.shape).astype(self.dtype)
+        running_var = numpy.abs(self.var + numpy.random.uniform(
+            -1, 1, self.var.shape).astype(self.dtype))
         gradient_check.check_backward(
             batch_renormalization.BatchRenormalizationFunction(
                 mean=running_mean, var=running_var, train=self.train,
@@ -142,7 +148,8 @@ class TestFixedBatchRenormalization(unittest.TestCase):
         self.assertEqual(y.data.dtype, self.dtype)
 
         y_expect = _batch_renormalization(
-            self.expander, self.gamma, self.beta, self.x, self.mean, self.var, 1, 0)
+            self.expander, self.gamma, self.beta, self.x, self.mean, self.var,
+            1, 0)
 
         testing.assert_allclose(
             y_expect, y.data, **self.check_forward_options)
@@ -160,7 +167,8 @@ class TestFixedBatchRenormalization(unittest.TestCase):
         gradient_check.check_backward(
             batch_renormalization.BatchRenormalizationFunction(
                 mean=None, var=None, train=self.train,
-                decay=self.decay, eps=self.eps, rmax=self.rmax, dmax=self.dmax),
+                decay=self.decay, eps=self.eps,
+                rmax=self.rmax, dmax=self.dmax),
             args, y_grad, **self.check_backward_options)
 
     @condition.retry(3)
