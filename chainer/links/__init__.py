@@ -65,6 +65,7 @@ from chainer.links.model.vision.resnet import ResNet101Layers  # NOQA
 from chainer.links.model.vision.resnet import ResNet152Layers  # NOQA
 from chainer.links.model.vision.resnet import ResNet50Layers  # NOQA
 from chainer.links.model.vision.vgg import VGG16Layers  # NOQA
+from chainer.links.normalization.batch_normalization import BatchNormalization  # NOQA
 from chainer.links.normalization.batch_renormalization import BatchRenormalization  # NOQA
 from chainer.links.normalization.layer_normalization import LayerNormalization  # NOQA
 from chainer.links.theano.theano_function import TheanoFunction  # NOQA
