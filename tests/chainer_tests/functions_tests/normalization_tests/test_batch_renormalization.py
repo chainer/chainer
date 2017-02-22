@@ -5,8 +5,7 @@ import six
 
 import chainer
 from chainer import cuda
-# from chainer.functions.normalization import batch_renormalization
-from chainer.functions import batch_renormalization
+from chainer.functions.normalization import batch_renormalization
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
@@ -24,7 +23,7 @@ def _batch_renormalization(expander, gamma, beta, x, mean, var, r, d):
     'ndim': [0, 1, 2, 3],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
-class TestBatchNormalization(unittest.TestCase):
+class TestBatchRenormalization(unittest.TestCase):
 
     def setUp(self):
         self.expander = (None, Ellipsis) + (None,) * self.ndim
@@ -107,7 +106,7 @@ class TestBatchNormalization(unittest.TestCase):
     'ndim': [0, 1, 2, 3],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
-class TestFixedBatchNormalization(unittest.TestCase):
+class TestFixedBatchRenormalization(unittest.TestCase):
 
     def setUp(self):
         self.gamma = numpy.random.uniform(.5, 1, (3,)).astype(self.dtype)
