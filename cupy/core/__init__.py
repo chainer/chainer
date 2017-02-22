@@ -33,6 +33,7 @@ from cupy.core.core import invert  # NOQA
 from cupy.core.core import left_shift  # NOQA
 from cupy.core.core import less  # NOQA
 from cupy.core.core import less_equal  # NOQA
+from cupy.core.core import lexsort  # NOQA
 from cupy.core.core import matmul  # NOQA
 from cupy.core.core import multiply  # NOQA
 from cupy.core.core import nanmax  # NOQA

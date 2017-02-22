@@ -1,3 +1,6 @@
+from cupy import core
+
+
 def sort(a):
     """Returns a sorted copy of an array with a stable sorting algorithm.
 
@@ -20,7 +23,26 @@ def sort(a):
     return ret
 
 
-# TODO(okuta): Implement lexsort
+def lexsort(keys):
+    """Perform an indirect sort using an array of keys.
+
+    Args:
+        keys (cupy.ndarray): ``(k, N)`` array containing ``k`` ``(N,)``-shaped
+            arrays. The ``k`` different "rows" to be sorted. The last row is
+            the primary sort key.
+
+    Returns:
+        cupy.ndarray: Array of indices that sort the keys.
+
+    .. note::
+        For its implementation reason, ``cupy.lexsort`` currently supports only
+        keys with their rank of one or two and does not support ``axis``
+        parameter that ``numpy.lexsort`` supports.
+
+    .. seealso:: :func:`numpy.lexsort`
+
+    """
+    return core.lexsort(keys)
 
 
 def argsort(a):
