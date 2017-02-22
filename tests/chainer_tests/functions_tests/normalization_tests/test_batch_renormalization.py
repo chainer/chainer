@@ -44,6 +44,13 @@ class TestBatchRenormalization(unittest.TestCase):
         self.args = [self.x, self.gamma, self.beta]
         self.mean = self.x.mean(axis=self.aggr_axes)
         self.var = self.x.var(axis=self.aggr_axes) + self.eps
+        # Need to add some noise to running_mean and running_var,
+        # otherwise we will always get r=1, d=0
+        self.running_mean = self.mean + numpy.random.uniform(
+                -1, 1, self.mean.shape).astype(self.dtype)
+        self.running_var = numpy.abs(self.var + numpy.random.uniform(
+            -1, 1, self.var.shape).astype(self.dtype))
+
         self.train = True
         self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
         self.check_backward_options = {'dtype': numpy.float64}
@@ -55,17 +62,15 @@ class TestBatchRenormalization(unittest.TestCase):
     def check_forward(self, args, use_cudnn=True):
         y = batch_renormalization.batch_renormalization(
             *[chainer.Variable(i) for i in args],
-            rmax=self.rmax, dmax=self.dmax, running_mean=self.mean,
-            running_var=self.var, decay=self.decay, eps=self.eps,
+            rmax=self.rmax, dmax=self.dmax, running_mean=self.running_mean,
+            running_var=self.running_var, decay=self.decay, eps=self.eps,
             use_cudnn=use_cudnn)
         self.assertEqual(y.data.dtype, self.dtype)
 
         sigma_batch = numpy.sqrt(self.var)
-        mean_batch = self.mean
-        running_sigma = numpy.sqrt(self.var)
-        running_mean = self.mean
+        running_sigma = numpy.sqrt(self.running_var)
         r = numpy.clip(sigma_batch / running_sigma, 1.0 / self.rmax, self.rmax)
-        d = numpy.clip((mean_batch - running_mean) / running_sigma,
+        d = numpy.clip((self.mean - self.running_mean) / running_sigma,
                        -self.dmax, self.dmax)
         y_expect = _batch_renormalization(
             self.expander, self.gamma, self.beta, self.x, self.mean, self.var,
@@ -84,15 +89,9 @@ class TestBatchRenormalization(unittest.TestCase):
         self.check_forward([cuda.to_gpu(i) for i in self.args])
 
     def check_backward(self, args, y_grad):
-        # Need to add some noise to running_mean and running_var,
-        # otherwise we will always get r=1, d=0
-        running_mean = self.mean + numpy.random.uniform(
-                -1, 1, self.mean.shape).astype(self.dtype)
-        running_var = numpy.abs(self.var + numpy.random.uniform(
-            -1, 1, self.var.shape).astype(self.dtype))
         gradient_check.check_backward(
             batch_renormalization.BatchRenormalizationFunction(
-                mean=running_mean, var=running_var, train=self.train,
+                mean=self.running_mean, var=self.running_var, train=self.train,
                 decay=self.decay, eps=self.eps, rmax=self.rmax, dmax=self.dmax,
                 keep_r_d_fixed=True), args, y_grad,
             **self.check_backward_options)

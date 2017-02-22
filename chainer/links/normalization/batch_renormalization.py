@@ -1,7 +1,7 @@
 import numpy
 
 from chainer import cuda
-from chainer.function.normalization import batch_renormalization
+from chainer.functions.normalization import batch_renormalization
 from chainer.links.normalization.batch_normalization import BatchNormalization
 from chainer import variable
 
@@ -29,13 +29,17 @@ class BatchRenormalization(BatchNormalization):
 
     def __init__(self, size, rmax=1, dmax=0, decay=0.9, eps=2e-5,
                  dtype=numpy.float32, use_gamma=True, use_beta=True,
-                 initial_gamma=None, initial_beta=None, use_cudnn=True):
+                 initial_gamma=None, initial_beta=None, use_cudnn=True,
+                 keep_r_d_fixed=False):
         super(BatchRenormalization, self).__init__(size, decay, eps, dtype,
                                                    use_gamma, use_beta,
                                                    initial_gamma, initial_beta,
                                                    use_cudnn)
         self.rmax = rmax  # maximum allowed correction of variance
         self.dmax = dmax  # maximum allowed correction of mean
+        self.r = None
+        self.d = None
+        self.keep_r_d_fixed = keep_r_d_fixed
 
     def __call__(self, x, test=False, finetune=False):
         if hasattr(self, 'gamma'):
@@ -60,8 +64,14 @@ class BatchRenormalization(BatchNormalization):
 
             func = batch_renormalization.BatchRenormalizationFunction(
                 self.eps, self.avg_mean, self.avg_var, True, decay,
-                self.use_cudnn, self.rmax, self.dmax)
+                self.use_cudnn, self.rmax, self.dmax, self.keep_r_d_fixed)
+            if self.keep_r_d_fixed:
+                func.r = self.r
+                func.d = self.d
             ret = func(x, gamma, beta)
+            if self.keep_r_d_fixed and self.r is None:
+                self.r = func.r
+                self.d = func.d
 
             self.avg_mean[:] = func.running_mean
             self.avg_var[:] = func.running_var
@@ -69,6 +79,6 @@ class BatchRenormalization(BatchNormalization):
             # Use running average statistics or fine-tuned statistics.
             mean = variable.Variable(self.avg_mean, volatile='auto')
             var = variable.Variable(self.avg_var, volatile='auto')
-            ret = batch_renormalization.fixed_batch_normalization(
+            ret = batch_renormalization.fixed_batch_renormalization(
                 x, gamma, beta, mean, var, self.eps, self.use_cudnn)
         return ret
