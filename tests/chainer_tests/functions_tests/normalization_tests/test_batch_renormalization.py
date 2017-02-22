@@ -142,7 +142,7 @@ class TestFixedBatchRenormalization(unittest.TestCase):
                 'dtype': numpy.float64, 'atol': 1e-3, 'rtol': 1e-2}
 
     def check_forward(self, args, use_cudnn=True):
-        y = batch_renormalization.fixed_batch_normalization(
+        y = batch_renormalization.fixed_batch_renormalization(
             *[chainer.Variable(i) for i in args],
             eps=self.eps, use_cudnn=use_cudnn)
         self.assertEqual(y.data.dtype, self.dtype)

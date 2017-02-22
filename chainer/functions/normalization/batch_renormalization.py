@@ -265,7 +265,7 @@ def batch_renormalization(x, gamma, beta, rmax, dmax, eps=2e-5,
                                                                       beta)
 
 
-def fixed_batch_normalization(x, gamma, beta, mean, var, eps=2e-5,
+def fixed_batch_renormalization(x, gamma, beta, mean, var, eps=2e-5,
                               use_cudnn=True):
     return BatchRenormalizationFunction(eps, None, None, False, 0.0,
                                         use_cudnn)(x, gamma, beta, mean, var)
