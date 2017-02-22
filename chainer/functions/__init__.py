@@ -103,6 +103,7 @@ from chainer.functions.noise import dropout  # NOQA
 from chainer.functions.noise import gaussian  # NOQA
 from chainer.functions.noise import zoneout  # NOQA
 from chainer.functions.normalization import batch_normalization  # NOQA
+from chainer.functions.normalization import batch_renormalization  # NOQA
 from chainer.functions.normalization import l2_normalization  # NOQA
 from chainer.functions.normalization import local_response_normalization  # NOQA
 from chainer.functions.pooling import average_pooling_2d  # NOQA
@@ -348,6 +349,8 @@ from chainer.functions.noise.zoneout import Zoneout  # NOQA
 
 from chainer.functions.normalization.batch_normalization import batch_normalization  # NOQA
 from chainer.functions.normalization.batch_normalization import fixed_batch_normalization  # NOQA
+from chainer.functions.normalization.batch_renormalization import batch_renormalization  # NOQA
+from chainer.functions.normalization.batch_renormalization import fixed_batch_renormalization  # NOQA
 from chainer.functions.normalization.l2_normalization import normalize  # NOQA
 from chainer.functions.normalization.l2_normalization import NormalizeL2  # NOQA
 from chainer.functions.normalization.local_response_normalization import local_response_normalization  # NOQA
