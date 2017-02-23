@@ -27,7 +27,7 @@ Relationship between Chainer and CuPy
    Even if you have CUDA installed in your environment, you have to install CuPy separately to use GPUs.
    See :ref:`install_cuda` for the way to set up CUDA support.
 
-Chainer uses `CuPy <http://docs.cupy-ndarray.org/>`_ as its backend for GPU computation.
+Chainer uses `CuPy <http://docs.cupy.chainer.org/>`_ as its backend for GPU computation.
 In particular, the :class:`cupy.ndarray` class is the GPU array implementation for Chainer.
 CuPy supports a subset of features of NumPy with a compatible interface.
 It enables us to write a common code for CPU and GPU.
