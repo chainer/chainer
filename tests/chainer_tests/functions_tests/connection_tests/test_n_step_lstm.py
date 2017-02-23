@@ -444,7 +444,7 @@ class TestNStepBiLSTMCudnnCall(unittest.TestCase):
         self.xs = [cuda.cupy.random.uniform(
             -1, 1, (b, self.in_size)).astype('f')
             for b in self.batches]
-        h_shape = (self.n_layers, self.batches[0], self.out_size)
+        h_shape = (self.n_layers * 2, self.batches[0], self.out_size)
         self.cx = cuda.cupy.random.uniform(-1, 1, h_shape).astype('f')
         self.hx = cuda.cupy.random.uniform(-1, 1, h_shape).astype('f')
 
@@ -471,7 +471,7 @@ class TestNStepBiLSTMCudnnCall(unittest.TestCase):
             self.bs.append(biases)
 
         self.dys = [cuda.cupy.random.uniform(
-            -1, 1, (b, self.out_size)).astype('f')
+            -1, 1, (b, self.out_size * 2)).astype('f')
             for b in self.batches]
         self.dcy = cuda.cupy.random.uniform(-1, 1, h_shape).astype('f')
         self.dhy = cuda.cupy.random.uniform(-1, 1, h_shape).astype('f')
