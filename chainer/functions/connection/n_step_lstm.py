@@ -12,6 +12,7 @@ from chainer.functions.array import split_axis
 from chainer.functions.array import stack
 from chainer.functions.connection import linear
 from chainer.functions.connection import n_step_rnn
+from chainer.functions.connection.n_step_rnn import get_random_state
 from chainer.functions.noise import dropout
 
 if cuda.cudnn_enabled:
@@ -32,18 +33,6 @@ class NStepBiLSTM(n_step_rnn.BaseNStepRNNCell):
         n_step_rnn.BaseNStepRNNCell.__init__(self, n_layers, states,
                                              rnn_dir='bi', rnn_mode='lstm',
                                              train=train)
-
-_random_states = {}
-
-
-def get_random_state():
-    global _random_states
-    dev = cuda.Device()
-    rs = _random_states.get(dev.id, None)
-    if rs is None:
-        rs = n_step_rnn.DropoutRandomStates(os.getenv('CHAINER_SEED'))
-        _random_states[dev.id] = rs
-    return rs
 
 
 def _stack_weight(ws):

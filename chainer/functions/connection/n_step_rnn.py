@@ -108,6 +108,16 @@ class DropoutRandomStates(object):
 def _split(inputs, pos):
     return inputs[:pos], inputs[pos:]
 
+_random_states = {}
+
+def get_random_state():
+    global _random_states
+    dev = cuda.Device()
+    rs = _random_states.get(dev.id, None)
+    if rs is None:
+        rs = DropoutRandomStates(os.getenv('CHAINER_SEED'))
+        _random_states[dev.id] = rs
+    return rs
 
 if cuda.cudnn_enabled and _cudnn_version >= 5000:
     # Map string names to enums.
