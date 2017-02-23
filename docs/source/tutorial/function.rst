@@ -407,7 +407,7 @@ This is a thread-local configuration object, and users can substitute True or Fa
 You can refer to :ref:`configuration` to see how to configure this flag as well as other configuration items.
 
 Here, we just show how to use this flag to make a function support training/test mode.
-What you have to do is just checking ``chainer.config.train`` and branches the procedure.
+You will need to check the value of the boolean flag ``chainer.config.train`` and branch appropriately.
 
 For example, consider the following simple dropout function::
 
