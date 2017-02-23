@@ -1,5 +1,4 @@
 import itertools
-import os
 
 import numpy
 import six
@@ -310,7 +309,6 @@ def n_step_bilstm(
         xbs = [_stack_weight([b[2], b[0], b[1], b[3]]) for b in bs]
         hbs = [_stack_weight([b[6], b[4], b[5], b[7]]) for b in bs]
 
-        batches = [x.shape[0] for x in xs]
         xs_next = xs
         hy = []
         cy = []

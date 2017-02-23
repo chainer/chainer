@@ -24,11 +24,13 @@ if cuda.cudnn_enabled:
     libcudnn = cuda.cudnn.cudnn
     _cudnn_version = libcudnn.getVersion()
 
+
 def _stack_weight(ws):
     # TODO(unno): Input of the current LSTM implementaiton is shuffled
     w = stack.stack(ws, axis=1)
     shape = w.shape
     return reshape.reshape(w, (shape[0] * shape[1],) + shape[2:])
+
 
 class PointerArray(object):
 
@@ -110,6 +112,7 @@ def _split(inputs, pos):
     return inputs[:pos], inputs[pos:]
 
 _random_states = {}
+
 
 def get_random_state():
     global _random_states

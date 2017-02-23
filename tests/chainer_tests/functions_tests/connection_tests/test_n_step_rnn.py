@@ -11,8 +11,10 @@ from chainer import testing
 from chainer.testing import attr
 from chainer.testing import condition
 
+
 def _split(inputs, pos):
     return inputs[:pos], inputs[pos:]
+
 
 def _relu(x):
     expected = x.copy()
@@ -20,6 +22,7 @@ def _relu(x):
         if x[i] < 0:
             expected[i] = 0
     return expected
+
 
 @testing.parameterize(*testing.product({
     'use_cudnn': [True, False],
