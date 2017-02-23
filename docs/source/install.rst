@@ -60,7 +60,9 @@ Install Chainer via pip
 
 We recommend to install Chainer via pip::
 
-  $ pip install chainer
+  $ pip install chainer --pre
+
+Note that ``--pre`` option is required to install pre-releases of v2.
 
 
 Install Chainer from source
@@ -81,7 +83,7 @@ When an error occurs...
 Use ``-vvvv`` option with ``pip`` command.
 That shows all logs of installation. It may helps you::
 
-  $ pip install chainer -vvvv
+  $ pip install chainer --pre -vvvv
 
 
 .. _install_cuda:
@@ -158,7 +160,7 @@ If you want to reinstall Chainer, please uninstall Chainer and then install it.
 We recommend to use ``--no-cache-dir`` option as ``pip`` sometimes uses cache::
 
   $ pip uninstall chainer
-  $ pip install chainer --no-cache-dir
+  $ pip install chainer --pre --no-cache-dir
 
 
 Run Chainer with Docker
