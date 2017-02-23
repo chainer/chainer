@@ -598,7 +598,7 @@ def n_step_rnn(
         elif activation == 'relu':
             rnn = NStepRNNReLU(n_layers, states, train=train)
         ret = rnn(*inputs)
-        hy = ret[:1]
+        hy, = ret[:1]
         ys = ret[1:]
         return hy, ys
 
