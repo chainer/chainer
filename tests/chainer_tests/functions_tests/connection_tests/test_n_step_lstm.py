@@ -326,7 +326,8 @@ class TestNStepBiLSTM(unittest.TestCase):
                 bs.append(biases)
             xs = inputs
             hy, cy, ys = functions.n_step_bilstm(
-                self.n_layers, self.dropout, hx, cx, ws, bs, xs)
+                self.n_layers, self.dropout, hx, cx, ws, bs, xs,
+                use_cudnn=self.use_cudnn)
             return (hy, cy) + ys
 
         gradient_check.check_backward(

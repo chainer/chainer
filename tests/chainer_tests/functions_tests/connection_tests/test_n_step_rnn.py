@@ -125,7 +125,8 @@ class TestNStepRNNTanh(unittest.TestCase):
                 bs.append(biases)
             xs = inputs
             hy, ys = functions.n_step_rnn(
-                self.n_layers, self.dropout, hx, ws, bs, xs)
+                self.n_layers, self.dropout, hx, ws, bs, xs,
+                use_cudnn=self.use_cudnn, activation='tanh')
             return (hy, ) + ys
 
         gradient_check.check_backward(
