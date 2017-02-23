@@ -206,8 +206,8 @@ class TestNStepBiLSTM(unittest.TestCase):
                 self.ws.append(weights)
                 self.bs.append(biases)
 
-        self.dys = [numpy.random.uniform(-1, 1, (b, self.out_size * 2)).astype('f')
-                    for b in self.batches]
+        self.dys = [numpy.random.uniform(-1, 1, (b, self.out_size * 2))
+                    .astype('f') for b in self.batches]
         self.dcy = numpy.random.uniform(-1, 1, h_shape).astype(numpy.float32)
         self.dhy = numpy.random.uniform(-1, 1, h_shape).astype(numpy.float32)
 
@@ -426,5 +426,86 @@ class TestNStepLSTMCudnnCall(unittest.TestCase):
             hy.backward()
             self.assertEqual(func.called, self.expect)
 
+
+@testing.parameterize(*testing.product({
+    'use_cudnn': [True, False],
+}))
+@attr.cudnn
+class TestNStepBiLSTMCudnnCall(unittest.TestCase):
+
+    batches = [4, 3, 2, 1]
+    length = len(batches)
+    in_size = 3
+    out_size = 4
+    n_layers = 2
+    dropout = 0.0
+
+    def setUp(self):
+        self.xs = [cuda.cupy.random.uniform(
+            -1, 1, (b, self.in_size)).astype('f')
+            for b in self.batches]
+        h_shape = (self.n_layers, self.batches[0], self.out_size)
+        self.cx = cuda.cupy.random.uniform(-1, 1, h_shape).astype('f')
+        self.hx = cuda.cupy.random.uniform(-1, 1, h_shape).astype('f')
+
+        self.ws = []
+        self.bs = []
+        for i in range(self.n_layers):
+            for di in [0, 1]:
+                weights = []
+                biases = []
+                for j in range(8):
+                    if i == 0 and j < 4:
+                        w_in = self.in_size
+                    elif i > 0 and j < 4:
+                        w_in = self.out_size * 2
+                    else:
+                        w_in = self.out_size
+
+                    weights.append(cuda.cupy.random.uniform(
+                        -1, 1, (self.out_size, w_in)).astype('f'))
+                    biases.append(cuda.cupy.random.uniform(
+                        -1, 1, (self.out_size,)).astype('f'))
+
+            self.ws.append(weights)
+            self.bs.append(biases)
+
+        self.dys = [cuda.cupy.random.uniform(
+            -1, 1, (b, self.out_size)).astype('f')
+            for b in self.batches]
+        self.dcy = cuda.cupy.random.uniform(-1, 1, h_shape).astype('f')
+        self.dhy = cuda.cupy.random.uniform(-1, 1, h_shape).astype('f')
+        self.expect = self.use_cudnn and (
+            cuda.cudnn.cudnn.getVersion() >= 5000)
+
+    def forward(self, train):
+        volatile = not train
+        h = chainer.Variable(self.hx, volatile=volatile)
+        c = chainer.Variable(self.cx, volatile=volatile)
+        xs = [chainer.Variable(x, volatile=volatile) for x in self.xs]
+        ws = [[chainer.Variable(w, volatile=volatile) for w in ws]
+              for ws in self.ws]
+        bs = [[chainer.Variable(b, volatile=volatile) for b in bs]
+              for bs in self.bs]
+        return functions.n_step_bilstm(
+            self.n_layers, self.dropout, h, c, ws, bs, xs,
+            train=train, use_cudnn=self.use_cudnn)
+
+    def test_call_cudnn_forward_training(self):
+        with mock.patch('cupy.cuda.cudnn.RNNForwardTraining') as func:
+            self.forward(True)
+            self.assertEqual(func.called, self.expect)
+
+    def test_call_cudnn_forward_inference(self):
+        with mock.patch('cupy.cuda.cudnn.RNNForwardInference') as func:
+            self.forward(False)
+            self.assertEqual(func.called, self.expect)
+
+    def test_call_cudnn_backward(self):
+        hy, cy, ys = self.forward(True)
+        hy.grad = self.dhy
+        with mock.patch('cupy.cuda.cudnn.RNNBackwardWeights') as func:
+            hy.backward()
+            self.assertEqual(func.called, self.expect)
 
 testing.run_module(__name__, __file__)
