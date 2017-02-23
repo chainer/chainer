@@ -148,6 +148,8 @@ if cuda.cudnn_enabled and _cudnn_version >= 5000:
         libcudnn.CUDNN_RNN_TANH: {'n_W': 2, 'n_Wb': 2 * 2, 'n_cell': 1},
         libcudnn.CUDNN_GRU: {'n_W': 6, 'n_Wb': 2 * 6, 'n_cell': 1},
         libcudnn.CUDNN_LSTM: {'n_W': 8, 'n_Wb': 2 * 8, 'n_cell': 2},
+    }
+    _rnn_params_direction = {
         libcudnn.CUDNN_UNIDIRECTIONAL: {'n': 1},
         libcudnn.CUDNN_BIDIRECTIONAL: {'n': 2}
     }
@@ -159,7 +161,7 @@ class BaseNStepRNN(function.Function):
         self.rnn_dir = _rnn_dirs[rnn_dir.lower()]
         self.rnn_mode = _rnn_modes[rnn_mode.lower()]
         self.rnn_params = _rnn_params_modes[self.rnn_mode]
-        self.rnn_direction = _rnn_params_modes[self.rnn_dir]['n']
+        self.rnn_direction = _rnn_params_direction[self.rnn_dir]['n']
         self.n_layers = n_layers
         self.train = train
         self.states = states
