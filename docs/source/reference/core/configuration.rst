@@ -10,18 +10,20 @@ Such settings can be configured using the *unified configuration system*.
 The system provides a transparent way to manage the configuration for each process and for each thread.
 
 The configuration is managed by two global objects: :data:`chainer.global_config` and :data:`chainer.config`.
-The :data:`global_config` object maintains the configuration shared in the Python process.
-This is an instance of the :class:`~chainer.configuration.GlobalConfig` class.
-It can be used just as a plain object, and users can freely set any attributes to it.
-The :data:`config` object, on the other hand, maintains the configuration for the current thread.
-It behaves like a thread-local object, and any attribute modifications are only visible to the current thread.
-If no value is set to this thread-local configuration for a given key, the global configuration is transparently referred.
-Thanks to this transparent lookup, users can always use the ``config`` object to read any configuration so that the thread-local configuration is used if available and otherwise the default global setting is used.
-The ``config`` object is an instance of the :class:`~chainer.configuration.LocalConfig` class.
+
+- The :data:`global_config` object maintains the configuration shared in the Python process.
+  This is an instance of the :class:`~chainer.configuration.GlobalConfig` class.
+  It can be used just as a plain object, and users can freely set any attributes on it.
+- The :data:`config` object, on the other hand, maintains the configuration for the current thread.
+  This is an instance of the :class:`~chainer.configuration.LocalConfig` class.
+  It behaves like a thread-local object, and any attribute modifications are only visible to the current thread.
+
+If no value is set to :data:`config` for a given key, :data:`global_config` is transparently referred.
+Thanks to this transparent lookup, users can always use :data:`config` to read any configuration so that the thread-local configuration is used if available and otherwise the default global setting is used.
 
 The following entries of the configuration are currently provided by Chainer.
 Some entries support environment variables to set the default values.
-Note that the default values are set to the global config.
+Note that the default values are set in the global config.
 
 ``chainer.config.debug``
    Debug mode flag.
@@ -30,8 +32,8 @@ Note that the default values are set to the global config.
    The default value is given by ``CHAINER_DEBUG`` environment variable (set to 0 or 1) if available, otherwise uses ``False``.
 ``chainer.config.enable_backprop``
    Flag to enable backpropagation support.
-   If it is ``True``, the default behavior of :class:`Function` application to :class:`Variable` is non-volatile if all inputs has ``AUTO`` volatile flag.
-   Otherwise, the default behavior is set to volatile mode.
+   If it is ``True``, the default behavior of :class:`Function` application to :class:`Variable` is non-volatile if all inputs have ``AUTO`` volatile flag.
+   Otherwise, the default behavior is set to volatile mode that doesn't keep track of any function appplications to all :class:`Variable` s.
    The default value is ``True``.
 ``chainer.config.train``
    Training mode flag.
@@ -77,18 +79,27 @@ There are two ways:
 
    We often want to temporarily modify the configuration for the current thread.
    It can be done by using :func:`using_config`.
-   For example, if you want to enable the debug mode only to a fragment of codes, write as follows.
+   For example, if you only want to enable debug mode in a fragment of code, write as follows.
 
       >>> with chainer.using_config('debug', True):
       ...     ...  # code running in the debug mode
 
    We often want to switch to the test mode for an evaluation.
-   This is also done by the same way.
+   This is also done in the same way.
 
       >>> with chainer.using_config('train', False):
       ...     ...  # code running in the test mode
 
    Note that :class:`~chainer.training.extensions.Evaluator` automatically switches to the test mode, and thus you do not need to manually switch in the loss function for the evaluation.
+
+   You can also make your own code behave differently in training and test modes as follows.
+
+   .. code-block:: python
+
+      if chainer.config.train:
+          ...  # code only running in the training mode
+      else:
+          ...  # code only running in the test mode
 
 
 .. autodata:: global_config

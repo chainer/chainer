@@ -13,7 +13,7 @@ Some functions and links also check validity of input values.
 
 As of v2.0.0, it is recommended to turn on the debug mode using ``chainer.config.debug``.
 See :ref:`configuration` for the way to use the config object.
-We leave the reference of the conventional ways as follows.
+We leave the reference of the conventional ways (which have been available since Chainer v1) as follows.
 
 
 .. currentmodule:: chainer
