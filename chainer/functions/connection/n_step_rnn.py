@@ -185,9 +185,9 @@ class BaseNStepRNN(function.Function):
                             w_in = out_size
                     else:
                         # Bi-direction
-                        if layer == 0 and i < 3:
+                        if layer == 0 and i < (self.rnn_params['n_W'] / 2):
                             w_in = in_size
-                        elif layer > 0 and i < 3:
+                        elif layer > 0 and i < (self.rnn_params['n_W'] / 2):
                             w_in = out_size * self.rnn_direction
                         else:
                             w_in = out_size
