@@ -213,6 +213,7 @@ def n_step_bilstm(
         n_layers, dropout_ratio, hx, cx, ws, bs, xs, train=True,
         use_cudnn=True):
     """ Bi-direction Stacked Long Short-Term Memory function for sequence inputs.
+    TODO: write document.
     """
 
     xp = cuda.get_array_module(hx, hx.data)
