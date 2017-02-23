@@ -119,7 +119,7 @@ Here are some examples:
    x_gpu1 = cupy.empty((4, 3), dtype='f')  # 'f' indicates float32
 
    with cuda.get_device(1):
-       x_gpu1 = cuda.empty((4, 3), dtype='f')
+       x_gpu1 = cupy.empty((4, 3), dtype='f')
 
    with cuda.get_device(x_gpu1):
        y_gpu1 = x_gpu + 1
