@@ -1,4 +1,5 @@
 import binascii
+import itertools
 import os
 import time
 
