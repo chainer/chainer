@@ -208,6 +208,7 @@ from chainer.functions.connection.n_step_lstm import n_step_lstm  # NOQA
 from chainer.functions.connection.n_step_lstm import NStepBiLSTM  # NOQA
 from chainer.functions.connection.n_step_lstm import NStepLSTM  # NOQA
 from chainer.functions.connection.n_step_rnn import n_step_rnn  # NOQA
+from chainer.functions.connection.n_step_rnn import NStepRNNReLU  # NOQA
 from chainer.functions.connection.n_step_rnn import NStepRNNTanh  # NOQA
 
 from chainer.functions.evaluation.accuracy import accuracy  # NOQA

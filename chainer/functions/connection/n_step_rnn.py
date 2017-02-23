@@ -627,7 +627,10 @@ def n_step_rnn(
                 h = dropout.dropout(h, ratio=dropout_ratio, train=train)
                 rnn_in = linear.linear(x, xws[layer], xbs[layer]) + \
                     linear.linear(h, hws[layer], hbs[layer])
-                h_bar = tanh.tanh(rnn_in)
+                if activation == 'tanh':
+                    h_bar = tanh.tanh(rnn_in)
+                elif activation == 'relu':
+                    h_bar = relu.relu(rnn_in)
 
                 if h_rest is not None:
                     h = concat.concat([h_bar, h_rest], axis=0)

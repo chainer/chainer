@@ -14,11 +14,14 @@ from chainer.testing import attr
 def _split(inputs, pos):
     return inputs[:pos], inputs[pos:]
 
+def _relu(x):
+    return x * (x > 0)
 
 @testing.parameterize(*testing.product({
     'use_cudnn': [True, False],
+    'activation': ['tanh', 'relu']
 }))
-class TestNStepRNNTanh(unittest.TestCase):
+class TestNStepRNN(unittest.TestCase):
 
     batches = [3, 2, 1]
     length = len(batches)
@@ -65,7 +68,7 @@ class TestNStepRNNTanh(unittest.TestCase):
               for bs in bs_data]
         hy, ys = functions.n_step_rnn(
             self.n_layers, self.dropout, h, ws, bs, xs,
-            use_cudnn=self.use_cudnn, activation='tanh')
+            use_cudnn=self.use_cudnn, activation=self.activation)
 
         e_hy = self.hx.copy()
         for ind in range(self.length):
@@ -75,7 +78,11 @@ class TestNStepRNNTanh(unittest.TestCase):
                 w = self.ws[layer]
                 b = self.bs[layer]
                 h_prev = e_hy[layer, :batch]
-                e_h = numpy.tanh(x.dot(w[0].T) + h_prev.dot(w[1].T) + b[0] + b[1])
+                if self.activation == 'tanh':
+                    e_h = numpy.tanh(x.dot(w[0].T) + h_prev.dot(w[1].T) + b[0] + b[1])
+                elif self.activation == 'relu':
+                    e_h = _relu(x.dot(w[0].T) + h_prev.dot(w[1].T) + b[0] + b[1])
+
                 e_hy[layer, :batch] = e_h
 
                 x = e_h
@@ -126,7 +133,7 @@ class TestNStepRNNTanh(unittest.TestCase):
             xs = inputs
             hy, ys = functions.n_step_rnn(
                 self.n_layers, self.dropout, hx, ws, bs, xs,
-                use_cudnn=self.use_cudnn, activation='tanh')
+                use_cudnn=self.use_cudnn, activation=self.activation)
             return (hy, ) + ys
 
         gradient_check.check_backward(
