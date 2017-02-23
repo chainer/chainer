@@ -464,7 +464,7 @@ class TestNStepBiRNNCudnnCall(unittest.TestCase):
               for ws in self.ws]
         bs = [[chainer.Variable(b, volatile=volatile) for b in bs]
               for bs in self.bs]
-        return functions.n_step_rnn(
+        return functions.n_step_birnn(
             self.n_layers, self.dropout, h, ws, bs, xs,
             train=train, use_cudnn=self.use_cudnn)
 
