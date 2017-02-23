@@ -1,5 +1,6 @@
 import numpy
 
+from chainer import configuration
 from chainer import cuda
 from chainer import function
 from chainer.utils import type_check
@@ -32,7 +33,7 @@ class Dropout(function.Function):
         return gy[0] * self.mask,
 
 
-def dropout(x, ratio=.5, train=True):
+def dropout(x, ratio=.5):
     """Drops elements of input variable randomly.
 
     This function drops input elements randomly with probability ``ratio`` and
@@ -42,15 +43,14 @@ def dropout(x, ratio=.5, train=True):
     Args:
         x (~chainer.Variable): Input variable.
         ratio (float): Dropout ratio.
-        train (bool): If ``True``, executes dropout. Otherwise, does nothing.
 
     Returns:
         ~chainer.Variable: Output variable.
 
     See the paper by G. Hinton: `Improving neural networks by preventing \
-    co-adaptation of feature detectors <http://arxiv.org/abs/1207.0580>`_.
+    co-adaptation of feature detectors <https://arxiv.org/abs/1207.0580>`_.
 
     """
-    if train:
+    if configuration.config.train:
         return Dropout(ratio)(x)
     return x

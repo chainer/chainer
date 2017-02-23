@@ -38,7 +38,7 @@ class VAE(chainer.Chain):
         else:
             return h2
 
-    def get_loss_func(self, C=1.0, k=1, train=True):
+    def get_loss_func(self, C=1.0, k=1):
         """Get loss function of VAE.
 
         The loss value is equal to ELBO (Evidence Lower Bound)
@@ -48,7 +48,6 @@ class VAE(chainer.Chain):
             C (int): Usually this is 1.0. Can be changed to control the
                 second term of ELBO bound, which works as regularization.
             k (int): Number of Monte Carlo samples used in encoded vector.
-            train (bool): If true loss_function is used for training.
         """
         def lf(x):
             mu, ln_var = self.encode(x)

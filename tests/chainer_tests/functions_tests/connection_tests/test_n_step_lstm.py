@@ -223,9 +223,10 @@ class TestNStepLSTMCudnnCall(unittest.TestCase):
               for ws in self.ws]
         bs = [[chainer.Variable(b, volatile=volatile) for b in bs]
               for bs in self.bs]
-        return functions.n_step_lstm(
-            self.n_layers, self.dropout, h, c, ws, bs, xs,
-            train=train, use_cudnn=self.use_cudnn)
+        with chainer.using_config('train', train):
+            return functions.n_step_lstm(
+                self.n_layers, self.dropout, h, c, ws, bs, xs,
+                use_cudnn=self.use_cudnn)
 
     def test_call_cudnn_forward_training(self):
         with mock.patch('cupy.cuda.cudnn.RNNForwardTraining') as func:

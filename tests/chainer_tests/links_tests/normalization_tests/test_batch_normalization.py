@@ -69,9 +69,10 @@ class BatchNormalizationTest(unittest.TestCase):
             self.check_backward_optionss = {'atol': 5e-1, 'rtol': 1e-1}
 
     def check_forward(self, x_data):
-        x = chainer.Variable(x_data, volatile=self.volatile)
-        y = self.link(x, test=self.test)
-        self.assertEqual(y.data.dtype, self.dtype)
+        with chainer.using_config('train', not self.test):
+            x = chainer.Variable(x_data, volatile=self.volatile)
+            y = self.link(x)
+            self.assertEqual(y.data.dtype, self.dtype)
 
         y_expect = _batch_normalization(
             self.expander, self.gamma, self.beta, self.x, self.mean,
@@ -151,7 +152,8 @@ class TestPopulationStatistics(unittest.TestCase):
         testing.assert_allclose(unbiased_var, self.link.avg_var)
 
         y = chainer.Variable(y)
-        self.link(y, test=True, finetune=True)
+        with chainer.using_config('train', False):
+            self.link(y, finetune=True)
         testing.assert_allclose(mean, self.link.avg_mean)
         testing.assert_allclose(unbiased_var, self.link.avg_var)
 
@@ -246,7 +248,8 @@ class BatchNormalizationTestWithoutGammaAndBeta(unittest.TestCase):
 
     def check_forward(self, x_data):
         x = chainer.Variable(x_data)
-        y = self.link(x, test=self.test)
+        with chainer.using_config('train', not self.test):
+            y = self.link(x)
         testing.assert_allclose(self.y_expected, y.data)
 
     def test_forward_cpu(self):

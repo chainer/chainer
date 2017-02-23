@@ -129,20 +129,6 @@ Also note that you should use shortcut names of CuPy APIs in Chainer implementat
 Once you send a pull request, your coding style is automatically checked by `Travis-CI <https://travis-ci.org/pfnet/chainer/>`_.
 The reviewing process starts after the check passes.
 
-The CuPy is designed based on NumPy's API design. CuPy's source code and documents contain the original NumPy ones.
-Please note the followings when writing the document.
-
-* In order to identify overlapping parts, it is preferable to add some remarks
-  that this document is just copied or altered from the original one. It is
-  also preferable to briefly explain the specification of the function in a
-  short paragraph, and refer to the corresponding function in NumPy so that
-  users can read the detailed document. However, it is possible to include a
-  complete copy of the document with such a remark if users cannot summarize
-  in such a way.
-* If a function in CuPy only implements a limited amount of features in the
-  original one, users should explicitly describe only what is implemented in
-  the document.
-
 
 Testing Guidelines
 ------------------
@@ -177,8 +163,7 @@ If you want to skip such tests, pass ``--attr='!slow'`` option to the ``nosetest
 
   $ nosetests path/to/your/test.py --attr='!slow'
 
-Tests are put into the ``tests/chainer_tests``, ``tests/cupy_tests`` and ``tests/install_tests`` directories.
-These have the same structure as that of ``chainer``, ``cupy`` and ``install`` directories, respectively.
+Tests are put into the ``tests/chainer_tests`` directory.
 In order to enable test runner to find test scripts correctly, we are using special naming convention for the test subdirectories and the test scripts.
 
 * The name of each subdirectory of ``tests`` must end with the ``_tests`` suffix.
@@ -191,26 +176,14 @@ Following this naming convention, you can run all the tests by just typing ``nos
 Or you can also specify a root directory to search test scripts from::
 
   $ nosetests tests/chainer_tests  # to just run tests of Chainer
-  $ nosetests tests/cupy_tests     # to just run tests of CuPy
-  $ nosetests tests/install_tests  # to just run tests of installation modules
 
 If you modify the code related to existing unit tests, you must run appropriate commands.
-
-.. note::
-   CuPy tests include type-exhaustive test functions which take long time to execute.
-   If you are running tests on a multi-core machine, you can parallelize the tests by following options::
-
-     $ nosetests --processes=12 --process-timeout=1000 tests/cupy_tests
-
-   The magic numbers can be modified for your usage.
-   Note that some tests require many CUDA compilations, which require a bit long time.
-   Without the ``process-timeout`` option, the timeout is set shorter, causing timeout failures for many test cases.
 
 There are many examples of unit tests under the ``tests`` directory.
 They simply use the ``unittest`` package of the standard library.
 
 Even if your patch includes GPU-related code, your tests should not fail without GPU capability.
-Test functions that require CUDA must be tagged by the ``chainer.testing.attr.gpu`` decorator (or ``cupy.testing.attr.gpu`` for testing CuPy APIs)::
+Test functions that require CUDA must be tagged by ``chainer.testing.attr.gpu`` decorator::
 
   import unittest
   from chainer.testing import attr
@@ -226,7 +199,7 @@ The functions tagged by the ``gpu`` decorator are skipped if ``--attr='!gpu'`` i
 We also have the ``chainer.testing.attr.cudnn`` decorator to let ``nosetests`` know that the test depends on cuDNN.
 
 The test functions decorated by ``gpu`` must not depend on multiple GPUs.
-In order to write tests for multiple GPUs, use ``chainer.testing.attr.multi_gpu()`` or ``cupy.testing.attr.multi_gpu()`` decorators instead::
+In order to write tests for multiple GPUs, use ``chainer.testing.attr.multi_gpu()`` decorator instead::
 
   import unittest
   from chainer.testing import attr
