@@ -9,13 +9,17 @@ from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-
+from chainer.testing import condition
 
 def _split(inputs, pos):
     return inputs[:pos], inputs[pos:]
 
 def _relu(x):
-    return x * (x > 0)
+    expected = x.copy()
+    for i in numpy.ndindex(x.shape):
+        if x[i] < 0:
+            expected[i] = 0
+    return expected
 
 @testing.parameterize(*testing.product({
     'use_cudnn': [True, False],
@@ -144,6 +148,7 @@ class TestNStepRNN(unittest.TestCase):
                             self.dhy, self.dys)
 
     @attr.gpu
+    @condition.retry(3)
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.hx),
                             [cuda.to_gpu(x) for x in self.xs],
