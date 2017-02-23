@@ -467,8 +467,8 @@ class TestNStepBiLSTMCudnnCall(unittest.TestCase):
                     biases.append(cuda.cupy.random.uniform(
                         -1, 1, (self.out_size,)).astype('f'))
 
-            self.ws.append(weights)
-            self.bs.append(biases)
+                self.ws.append(weights)
+                self.bs.append(biases)
 
         self.dys = [cuda.cupy.random.uniform(
             -1, 1, (b, self.out_size * 2)).astype('f')
