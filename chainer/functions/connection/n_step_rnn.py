@@ -7,6 +7,14 @@ import six
 
 from chainer import cuda
 from chainer import function
+from chainer.functions.activation import relu
+from chainer.functions.activation import tanh
+from chainer.functions.array import concat
+from chainer.functions.array import reshape
+from chainer.functions.array import split_axis
+from chainer.functions.array import stack
+from chainer.functions.connection import linear
+from chainer.functions.noise import dropout
 from chainer.utils import type_check
 
 
@@ -15,6 +23,11 @@ if cuda.cudnn_enabled:
     libcudnn = cuda.cudnn.cudnn
     _cudnn_version = libcudnn.getVersion()
 
+def _stack_weight(ws):
+    # TODO(unno): Input of the current LSTM implementaiton is shuffled
+    w = stack.stack(ws, axis=1)
+    shape = w.shape
+    return reshape.reshape(w, (shape[0] * shape[1],) + shape[2:])
 
 class PointerArray(object):
 
@@ -549,3 +562,70 @@ class NStepBiRNNReLU(BaseNStepRNNNoCell):
     def __init__(self, n_layers, states, train=True):
         BaseNStepRNNNoCell.__init__(self, n_layers, states, rnn_dir='bi',
                                     rnn_mode='rnn_relu', train=train)
+
+
+def n_step_rnn(
+        n_layers, dropout_ratio, hx, ws, bs, xs, train=True,
+        use_cudnn=True, activation='tanh'):
+    """Stacked RNN function for sequence inputs.
+    """
+    xp = cuda.get_array_module(hx, hx.data)
+
+    if use_cudnn and xp is not numpy and cuda.cudnn_enabled and \
+       _cudnn_version >= 5000:
+        states = get_random_state().create_dropout_states(dropout_ratio)
+        # flatten all input variables
+        inputs = tuple(itertools.chain(
+            (hx, ),
+            itertools.chain.from_iterable(ws),
+            itertools.chain.from_iterable(bs),
+            xs))
+        if activation == 'tanh':
+            rnn = NStepRNNTanh(n_layers, states, train=train)
+        elif activation == 'relu':
+            rnn = NStepRNNReLU(n_layers, states, train=train)
+        ret = rnn(*inputs)
+        hy = ret[:1]
+        ys = ret[1:]
+        return hy, ys
+
+    else:
+        hx = split_axis.split_axis(hx, n_layers, axis=0, force_tuple=True)
+        hx = [reshape.reshape(h, h.shape[1:]) for h in hx]
+
+        xws = [_stack_weight([w[0]]) for w in ws]
+        hws = [_stack_weight([w[1]]) for w in ws]
+        xbs = [_stack_weight([b[0]]) for b in bs]
+        hbs = [_stack_weight([b[1]]) for b in bs]
+
+        xs_next = xs
+        hy = []
+        for layer in six.moves.range(n_layers):
+            h = hx[layer]
+            h_forward = []
+            for x in xs_next:
+                batch = x.shape[0]
+                if h.shape[0] > batch:
+                    h, h_rest = split_axis.split_axis(h, [batch], axis=0)
+                else:
+                    h_rest = None
+
+                x = dropout.dropout(x, ratio=dropout_ratio, train=train)
+                h = dropout.dropout(h, ratio=dropout_ratio, train=train)
+                rnn_in = linear.linear(x, xws[layer], xbs[layer]) + \
+                    linear.linear(h, hws[layer], hbs[layer])
+                h_bar = tanh.tanh(rnn_in)
+
+                if h_rest is not None:
+                    h = concat.concat([h_bar, h_rest], axis=0)
+                else:
+                    h = h_bar
+                h_forward.append(h_bar)
+
+            xs_next = h_forward
+
+            hy.append(h)
+
+        ys = h_forward
+        hy = stack.stack(hy)
+        return hy, tuple(ys)
