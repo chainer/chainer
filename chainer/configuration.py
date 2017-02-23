@@ -61,7 +61,8 @@ class LocalConfig(object):
 
         .. admonition:: Example
 
-           You can easily print the list of configurations used in the current thread.
+           You can easily print the list of configurations used in
+           the current thread.
 
               >>> chainer.config.show()
               debug           False
