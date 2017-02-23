@@ -35,21 +35,16 @@ Chainer depends on these Python packages:
 * `NumPy <http://www.numpy.org/>`_ 1.9, 1.10, 1.11
 * `Six <https://pythonhosted.org/six/>`_ 1.9
 
-CUDA support
-
-* `CUDA <https://developer.nvidia.com/cuda-zone>`_ 6.5, 7.0, 7.5, 8.0
-* `filelock <https://filelock.readthedocs.org>`_
-
-cuDNN support
-
-* `cuDNN <https://developer.nvidia.com/cudnn>`_ v2, v3, v4, v5, v5.1
-
 Caffe model support
 
 * `Protocol Buffers <https://developers.google.com/protocol-buffers/>`_
 * protobuf>=3.0.0 is required for Py3
 
-All these libraries are automatically installed with ``pip`` or ``setup.py``.
+All of the above libraries are automatically installed with ``pip`` or ``setup.py``.
+
+CUDA/cuDNN support
+
+* `CuPy <http://docs.cupy.chainer.org/>`_
 
 Image dataset is optional
 
@@ -94,32 +89,10 @@ That shows all logs of installation. It may helps you::
 Enable CUDA/cuDNN support
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In order to enable CUDA support, you first have to install `CuPy <https://docs.cupy-ndarray.org/>`_.
-It requires CUDA Toolkit and ``CUDA_PATH`` environment variable.
-If CuPy is correctly installed, Chainer will automatically enable CUDA support::
-
-  $ pip install cupy
-
-In order to enable cuDNN support as well, you have to install cuDNN before installing CuPy.
-If CuPy is correctly set up with cuDNN, Chainer will automatically enable cuDNN support.
-
-.. note::
-
-   CuPy installer looks up ``CUDA_PATH`` environment variable first.
-   If it is empty, the installer looks for ``nvcc`` command from ``PATH`` environment variable and use its parent directory as the root directory of CUDA installation.
-   If ``nvcc`` command is also not found, the installer tries to use the default directory for Ubuntu ``/usr/local/cuda``.
-
-If you installed CUDA into a non-default directory, you need to specify the directory with ``CUDA_PATH`` environment variable::
-
-  $ CUDA_PATH=/opt/nvidia/cuda pip install cupy
-
-
-.. warning::
-
-   If you want to use ``sudo`` to install CuPy, note that ``sudo`` command initializes all environment variables.
-   Please specify ``CUDA_PATH`` environment variable inside ``sudo`` like this::
-
-      $ sudo CUDA_PATH=/opt/nvidia/cuda pip install cupy
+In order to enable CUDA support, you first have to install `CuPy <https://docs.cupy.chainer.org/>`_.
+If you also want to use cuDNN, you have to install CuPy with cuDNN support.
+See `CuPy's installation guide <http://docs.cupy.chainer.org/en/latest/install.html>`_ to install CuPy.
+Once CuPy is correctly set up, Chainer will automatically enable CUDA support.
 
 
 Support image dataset
@@ -230,4 +203,4 @@ If you don't need cuDNN, ignore this message.
 Otherwise, retry to install CuPy with cuDNN.
 ``-vvvv`` option helps you.
 There is no need of re-installing Chainer itself.
-See :ref:`install_cudnn`.
+See `CuPy's installation guide <http://docs.cupy.chainer.org/en/latest/install.html>`_ for details.
