@@ -581,6 +581,72 @@ def n_step_rnn(
         n_layers, dropout_ratio, hx, ws, bs, xs, train=True,
         use_cudnn=True, activation='tanh'):
     """Stacked RNN function for sequence inputs.
+
+
+    This function calculates stacked RNN with sequences. This function gets
+    an initial hidden state :math:`h_0`, an initial cell state :math:`c_0`,
+    an input sequence :math:`x`, weight matrices :math:`W`, and bias vectors
+    :math:`b`.
+    This function calculates hidden states :math:`h_t` and :math:`c_t` for each
+    time :math:`t` from input :math:`x_t`.
+
+    .. math::
+       h_t &= \\activation(W_0 x_t + W_1 h_{t-1} + b_0 + b_1) \\\\
+
+    As the function accepts a sequence, it calculates :math:`h_t` for all
+    :math:`t` with one call. Eight weight matrices and eight bias vectors are
+    required for each layers. So, when :math:`S` layers exists, you need to
+    prepare :math:`8S` weigth matrices and :math:`8S` bias vectors.
+
+    If the number of layers ``n_layers`` is greather than :math:`1`, input
+    of ``k``-th layer is hidden state ``h_t`` of ``k-1``-th layer.
+    Note that all input variables except first layer may have different shape
+    from the first layer.
+
+    Args:
+        n_layers(int): Number of layers.
+        dropout_ratio(float): Dropout ratio.
+        hx (chainer.Variable): Variable holding stacked hidden states.
+            Its shape is ``(S, B, N)`` where ``S`` is number of layers and is
+            equal to ``n_layers``, ``B`` is mini-batch size, and ``N`` is
+            dimention of hidden units.
+        ws (list of list of chainer.Variable): Weight matrices. ``ws[i]``
+            represents weights for i-th layer.
+            Each ``ws[i]`` is a list containing eight matrices.
+            ``ws[i][j]`` is corresponding with ``W_j`` in the equation.
+            Only ``ws[0][j]`` where ``0 <= j < 4`` is ``(I, N)`` shape as they
+            are multiplied with input variables. All other matrices has
+            ``(N, N)`` shape.
+        bs (list of list of chainer.Variable): Bias vectors. ``bs[i]``
+            represnents biases for i-th layer.
+            Each ``bs[i]`` is a list containing eight vectors.
+            ``bs[i][j]`` is corresponding with ``b_j`` in the equation.
+            Shape of each matrix is ``(N,)`` where ``N`` is dimention of
+            hidden units.
+        xs (list of chainer.Variable): A list of :class:`~chainer.Variable`
+            holding input values. Each element ``xs[t]`` holds input value
+            for time ``t``. Its shape is ``(B_t, I)``, where ``B_t`` is
+            mini-batch size for time ``t``, and ``I`` is size of input units.
+            Note that this functions supports variable length sequences.
+            When sequneces has different lengths, sort sequences in descending
+            order by length, and transpose the sorted sequence.
+            :func:`~chainer.functions.transpose_sequence` transpose a list
+            of :func:`~chainer.Variable` holding sequence.
+            So ``xs`` needs to satisfy
+            ``xs[t].shape[0] >= xs[t + 1].shape[0]``.
+        train (bool): If ``True``, this function executes dropout.
+        use_cudnn (bool): If ``True``, this function uses cuDNN if available.
+
+    Returns:
+        tuple: This functions returns a tuple concaining three elements,
+            ``hy`` and ``ys``.
+            - ``hy`` is an updated hidden states whose shape is same as ``hx``.
+            - ``ys`` is a list of :class:`~chainer.Variable` . Each element
+              ``ys[t]`` holds hidden states of the last layer corresponding
+              to an input ``xs[t]``. Its shape is ``(B_t, N)`` where ``B_t`` is
+              mini-batch size for time ``t``, and ``N`` is size of hidden
+              units. Note that ``B_t`` is the same value as ``xs[t]``.
+
     """
     xp = cuda.get_array_module(hx, hx.data)
 
