@@ -8,6 +8,7 @@ from chainer import gradient_check
 from chainer import links
 from chainer import testing
 from chainer.testing import attr
+from chainer.testing import condition
 
 
 def sigmoid(x):
@@ -309,11 +310,13 @@ class TestNStepBiLSTM(unittest.TestCase):
             tuple([gh_data, gc_data] + gys_data),
             tuple(params), eps=1e-2, rtol=1e-3, atol=1e-3)
 
+    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(
             self.h, self.c, self.xs, self.gh, self.gc, self.gys)
 
     @attr.gpu
+    @condition.retry(3)
     def test_backward_gpu(self):
         self.rnn.to_gpu()
         self.check_backward(
