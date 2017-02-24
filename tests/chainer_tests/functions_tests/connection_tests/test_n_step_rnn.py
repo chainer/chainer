@@ -148,6 +148,7 @@ class TestNStepRNN(unittest.TestCase):
         gradient_check.check_backward(
             f, args, grads, eps=1e-2, rtol=1e-3, atol=1e-3)
 
+    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.hx, self.xs, self.ws, self.bs,
                             self.dhy, self.dys)
