@@ -4,6 +4,7 @@
 This code is ported from the following implementation written in Torch.
 https://github.com/tomsercu/lstm
 
+This version implements the training loop using the Trainer abstractions.
 """
 from __future__ import division
 from __future__ import print_function
