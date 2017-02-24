@@ -17,6 +17,7 @@ def sigmoid(x):
 @testing.parameterize(*testing.product({
     'use_cudnn': [True, False],
     'hidden_none': [True, False],
+    'activation': ['tanh', 'relu'], 
 }))
 class TestNStepRNN(unittest.TestCase):
 
@@ -120,11 +121,13 @@ class TestNStepRNN(unittest.TestCase):
             tuple([gh_data, ] + gys_data),
             tuple(params), eps=1e-2, rtol=1e-3, atol=1e-3)
 
+    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(
             self.h, self.xs, self.gh, self.gys)
 
     @attr.gpu
+    @condition.retry(3)
     def test_backward_gpu(self):
         self.rnn.to_gpu()
         self.check_backward(
