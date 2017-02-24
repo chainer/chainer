@@ -8,6 +8,7 @@ from chainer import gradient_check
 from chainer import links
 from chainer import testing
 from chainer.testing import attr
+from chainer.testing import condition
 
 
 def sigmoid(x):
@@ -17,7 +18,7 @@ def sigmoid(x):
 @testing.parameterize(*testing.product({
     'use_cudnn': [True, False],
     'hidden_none': [True, False],
-    'activation': ['tanh', 'relu'], 
+    'activation': ['tanh', 'relu'],
 }))
 class TestNStepRNN(unittest.TestCase):
 
