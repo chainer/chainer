@@ -157,11 +157,14 @@ def _get_mocked_trainer(stop_trigger=(10, 'iteration')):
     updater = mock.Mock()
     updater.get_all_optimizers.return_value = {}
     updater.iteration = 0
-    updater.epoch_detail = 1
+    updater.epoch_detail = 0
+    updater.previous_epoch_detail = None
 
     def update():
         time.sleep(0.001)
         updater.iteration += 1
+        updater.previous_epoch_detail = updater.epoch_detail
+        updater.epoch_detail += 1
 
     updater.update = update
     return training.Trainer(updater, stop_trigger)
