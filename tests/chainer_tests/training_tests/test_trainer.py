@@ -134,7 +134,7 @@ class TestTrainer(unittest.TestCase):
         self.trainer.extend(dummy_extension_1)
         self.trainer.extend(dummy_extension_2)
         self.trainer.run()
-        self.assertEqual(self.called_order, [1, 2])
+        self.assertEqual(self.called_order, [1, 2] * 10)
 
     def test_add_two_extensions_specific_priority(self):
         self.called_order = []
@@ -150,7 +150,7 @@ class TestTrainer(unittest.TestCase):
         self.trainer.extend(dummy_extension_1)
         self.trainer.extend(dummy_extension_2)
         self.trainer.run()
-        self.assertEqual(self.called_order, [2, 1])
+        self.assertEqual(self.called_order, [2, 1] * 10)
 
 
 def _get_mocked_trainer(stop_trigger=(10, 'iteration')):
