@@ -28,14 +28,16 @@ class DilatedConvolution2D(link.Link):
             ``dilate=d`` and ``dilate=(d, d)`` are equivalent.
         nobias (bool): If ``True``, then this link does not use the bias term.
         use_cudnn (bool): If ``True``, then this link uses cuDNN if available.
-        initialW (4-D array): Initial weight value. If ``None``, the default
-            initializer is used to initialize the weight matrix.
-            May also be a callable that takes ``numpy.ndarray`` or
+        initialW (callable): Weight initializer.
+            It should be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
-        initial_bias (1-D array): Initial bias value. If ``None``, then this
-            function uses to initialize ``bias``.
-            May also be a callable that takes ``numpy.ndarray`` or
+            If it is ``None``, the default initializer is used.
+            If it is `numpy.ndarray`, the array is used as initial weight value.
+        initial_bias (callable): Bias initializer.
+            It should be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
+            If ``None``, the default initializer is used.
+            If it is `numpy.ndarray`, the array is used as initial bias value.
 
     .. seealso::
        See :func:`chainer.functions.dilated_convolution_2d`
@@ -49,8 +51,7 @@ class DilatedConvolution2D(link.Link):
 
     def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
                  dilate=1, nobias=False, use_cudnn=True,
-                 initialW=initializers.HeNormal(1.0 / numpy.sqrt(2)),
-                 initial_bias=initializers.Constant(0)):
+                 initialW=None, initial_bias=None):
         super(DilatedConvolution2D, self).__init__()
         self.ksize = ksize
         self.stride = _pair(stride)
@@ -58,7 +59,11 @@ class DilatedConvolution2D(link.Link):
         self.dilate = _pair(dilate)
         self.use_cudnn = use_cudnn
         self.out_channels = out_channels
-        self.initialW = initialW
+
+        if initialW is None:
+            self.initialW = initializers.HeNormal(1.0 / numpy.sqrt(2))
+        else:
+            self.initialW = initialW
 
         if in_channels is None:
             self.add_uninitialized_param('W')
@@ -68,6 +73,8 @@ class DilatedConvolution2D(link.Link):
         if nobias:
             self.b = None
         else:
+            if initial_bias is None:
+                initial_bias = initializers.Constant(0)
             bias_initializer = initializers._get_initializer(initial_bias)
             self.add_param('b', out_channels, initializer=bias_initializer)
 
