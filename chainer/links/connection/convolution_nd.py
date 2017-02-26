@@ -23,12 +23,16 @@ class ConvolutionND(link.Link):
         pad (int or tuple of ints): Spatial padding width for input arrays.
             ``pad=p`` and ``pad=(p, p, ..., p)`` are equivalent.
         nobias (bool): If ``True``, then this function does not use the bias.
-        initialW: Value used to initialize the filter weight. May be an
-            initializer instance or another value that
-            :func:`~chainer.init_weight` helper function can take.
-        initial_bias: Value used to initialize the bias vector. May be an
-            initializer instance or another value except ``None`` that
-            :func:`~chainer.init_weight` helper function can take.
+        initialW (callable): Weight initializer.
+            It should be a callable that takes ``numpy.ndarray`` or
+            ``cupy.ndarray`` and edits its value.
+            If it is ``None``, the default initializer is used.
+            If it is `numpy.ndarray`, the array is used as initial weight value.
+        initial_bias (callable): Bias initializer.
+            It should be a callable that takes ``numpy.ndarray`` or
+            ``cupy.ndarray`` and edits its value.
+            If ``None``, the default initializer is used.
+            If it is `numpy.ndarray`, the array is used as initial bias value.
         use_cudnn (bool): If ``True``, then this link uses cuDNN if available.
             See :func:`~chainer.functions.convolution_nd` for exact conditions
             of cuDNN availability.
@@ -50,8 +54,7 @@ class ConvolutionND(link.Link):
     """
 
     def __init__(self, ndim, in_channels, out_channels, ksize, stride=1, pad=0,
-                 nobias=False, initialW=initializers.HeNormal(1. / numpy.sqrt(2)),
-                 initial_bias=initializers.Constant(0), use_cudnn=True,
+                 nobias=False, initialW=None, initial_bias=None, use_cudnn=True,
                  cover_all=False):
         ksize = conv_nd.as_tuple(ksize, ndim)
         self.stride = stride
@@ -62,12 +65,16 @@ class ConvolutionND(link.Link):
         super(ConvolutionND, self).__init__()
 
         W_shape = (out_channels, in_channels) + ksize
+        if initialW is None:
+            initializers.HeNormal(1. / numpy.sqrt(2))
         initialW = initializers._get_initializer(initialW)
         self.add_param('W', W_shape, initializer=initialW)
 
         if nobias:
             self.b = None
         else:
+            if initial_bias is None:
+                initial_bias = initializers.Constant(0)
             initial_bias = initializers._get_initializer(initial_bias)
             self.add_param('b', out_channels, initializer=initial_bias)
 
