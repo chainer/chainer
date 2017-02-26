@@ -26,11 +26,11 @@ class Convolution2D(link.Link):
             ``pad=p`` and ``pad=(p, p)`` are equivalent.
         nobias (bool): If ``True``, then this link does not use the bias term.
         use_cudnn (bool): If ``True``, then this link uses cuDNN if available.
-        initialW (4-D array): Initial weight value. If ``None``, then this
-            function uses the default initializer to initialize
-            the weight tensor.
-            May also be a callable that takes ``numpy.ndarray`` or
+        initialW (callable): Weight initializer.
+            It should be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
+            If it is ``None``, the default initializer is used.
+            If it is `numpy.ndarray`, the array is used as initial weight value.
         initial_bias (1-D array): Initial bias value.
             May also be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
@@ -51,8 +51,7 @@ class Convolution2D(link.Link):
     """
 
     def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0, nobias=False,
-                 use_cudnn=True, initialW=initializers.HeNormal(1. / numpy.sqrt(2)),
-                 initial_bias=initializers.Constant(0), deterministic=False):
+                 use_cudnn=True, initialW=None, initial_bias=None, deterministic=False):
         super(Convolution2D, self).__init__()
         self.ksize = ksize
         self.stride = _pair(stride)
@@ -61,6 +60,8 @@ class Convolution2D(link.Link):
         self.out_channels = out_channels
         self.deterministic = deterministic
 
+        if initialW is None:
+            initialW = initializers.HeNormal(1. / numpy.sqrt(2))
         self._W_initializer = initializers._get_initializer(initialW)
 
         if in_channels is None:
@@ -71,6 +72,8 @@ class Convolution2D(link.Link):
         if nobias:
             self.b = None
         else:
+            if initial_bias is None:
+                initial_bias = initializers.Constant(0)
             bias_initilizer = initializers._get_initializer(initial_bias)
             self.add_param('b', out_channels, initializer=bias_initilizer)
 
