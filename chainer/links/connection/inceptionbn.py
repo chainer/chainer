@@ -1,6 +1,5 @@
 import numpy
 
-from chainer import configuration
 from chainer.functions.activation import relu
 from chainer.functions.array import concat
 from chainer.functions.pooling import average_pooling_2d
