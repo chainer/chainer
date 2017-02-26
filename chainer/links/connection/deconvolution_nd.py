@@ -27,13 +27,16 @@ class DeconvolutionND(link.Link):
             operation. It should be a tuple of ints that represents the output
             size of each dimension. Default value is ``None`` and the outsize
             is estimated with input size, stride and pad.
-        initialW: Value used to initialize the filter weight. May be an
-            initializer instance of another value the same with that
-            :func:`~chainer.init_weight` function can take.
-        initial_bias: Value used to initialize the bias vector. May be an
-            initializer instance or another value except ``None`` the same with
-            that :func:`~chainer.init_weight` function can take. If ``None`` is
-            supplied, this link does not use the bias vector.
+        initialW (callable): Weight initializer.
+            It should be a callable that takes ``numpy.ndarray`` or
+            ``cupy.ndarray`` and edits its value.
+            If it is ``None``, the default initializer is used.
+            If it is `numpy.ndarray`, the array is used as initial weight value.
+        initial_bias (callable): Bias initializer.
+            It should be a callable that takes ``numpy.ndarray`` or
+            ``cupy.ndarray`` and edits its value.
+            If ``None``, the default initializer is used.
+            If it is `numpy.ndarray`, the array is used as initial bias value.
         use_cudnn (bool): If ``True``, then this link uses cuDNN if available.
 
     .. seealso::
@@ -48,8 +51,7 @@ class DeconvolutionND(link.Link):
 
     def __init__(self, ndim, in_channels, out_channels, ksize, stride=1, pad=0,
                  nobias=False, outsize=None,
-                 initialW=initializers.HeNormal(1. / numpy.sqrt(2)),
-                 initial_bias=initializers.Constant(0), use_cudnn=True):
+                 initialW=None, initial_bias=None, use_cudnn=True):
         ksize = conv_nd.as_tuple(ksize, ndim)
         self.stride = stride
         self.pad = pad
@@ -59,12 +61,16 @@ class DeconvolutionND(link.Link):
         super(DeconvolutionND, self).__init__()
 
         W_shape = (in_channels, out_channels) + ksize
+        if initialW is None:
+            initialW = initializers.HeNormal(1. / numpy.sqrt(2))
         initialW = initializers._get_initializer(initialW)
         self.add_param('W', W_shape, initializer=initialW)
 
         if nobias:
             self.b = None
         else:
+            if initial_bias is None:
+                initial_bias = initializers.Constant(0)
             initial_bias = initializers._get_initializer(initial_bias)
             self.add_param('b', out_channels, initializer=initial_bias)
 
