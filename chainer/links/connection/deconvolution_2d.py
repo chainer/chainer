@@ -32,14 +32,16 @@ class Deconvolution2D(link.Link):
             input size, stride and pad.
         use_cudnn (bool): If ``True``, then this function uses cuDNN if
             available.
-        initialW (4-D array): Initial weight value. If ``None``, then this
-            function uses the default initializer to initialize
-            the weight tensor.
-            May also be a callable that takes ``numpy.ndarray`` or
+        initialW (callable): Weight initializer.
+            It should be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
-        initial_bias (1-D array): Initial bias value.
-            May also be a callable that takes ``numpy.ndarray`` or
+            If it is ``None``, the default initializer is used.
+            If it is `numpy.ndarray`, the array is used as initial weight value.
+        initial_bias (callable): Bias initializer.
+            It should be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
+            If ``None``, the default initializer is used.
+            If it is `numpy.ndarray`, the array is used as initial bias value.
         deterministic (bool): The output of this link can be
             non-deterministic when it uses cuDNN.
             If this option is ``True``, then it forces cuDNN to use
@@ -66,15 +68,17 @@ class Deconvolution2D(link.Link):
 
     def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
                  nobias=False, outsize=None, use_cudnn=True,
-                 initialW=initializers.HeNormal(1.0 / numpy.sqrt(2)),
-                 initial_bias=initializers.Constant(0), deterministic=False):
+                 initialW=None, initial_bias=None, deterministic=False):
         super(Deconvolution2D, self).__init__()
         self.ksize = ksize
         self.stride = _pair(stride)
         self.pad = _pair(pad)
         self.outsize = (None, None) if outsize is None else outsize
         self.use_cudnn = use_cudnn
-        self.initialW = initialW
+        if initialW is None:
+            self.initialW = initializers.HeNormal(1.0 / numpy.sqrt(2))
+        else:
+            self.initialW = initialW
         self.out_channels = out_channels
         self.deterministic = deterministic
 
@@ -88,6 +92,8 @@ class Deconvolution2D(link.Link):
         else:
             if isinstance(initial_bias, (numpy.ndarray, cuda.ndarray)):
                 assert initial_bias.shape == (out_channels,)
+            if initial_bias is None:
+                initial_bias = initializers.Constant(0)
             bias_initializer = initializers._get_initializer(initial_bias)
             self.add_param('b', out_channels, initializer=bias_initializer)
 
