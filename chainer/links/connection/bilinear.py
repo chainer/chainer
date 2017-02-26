@@ -21,20 +21,21 @@ class Bilinear(link.Link):
         out_size (int): Dimension of output vector :math:`y` (:math:`L`)
         nobias (bool): If ``True``, parameters ``V1``, ``V2``, and ``b`` are
             omitted.
-        initialW (3-D numpy array): Initial value of :math:`W`.
-            Shape of this argument must be
-            ``(left_size, right_size, out_size)``. If ``None``,
-            :math:`W` is initialized by centered Gaussian distribution properly
-            scaled according to the dimension of inputs and outputs.
-            May also be a callable that takes ``numpy.ndarray`` or
+        initialW (callable): Initializer for :math:`W`.
+            It should be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
-        initial_bias (tuple): Initial values of :math:`V^1`, :math:`V^2`
-            and :math:`b`. The length this argument must be 3.
+            If it is ``None``, the default initializer is used.
+            If it is `numpy.ndarray`, the array is used as initial weight value.
+            Shape of the array must be ``(left_size, right_size, out_size)``.
+        initial_bias (tuple): Bias initializers.
+             It should be a 3-tuple of callables that takes ``numpy.ndarray`` or
+            ``cupy.ndarray`` and edits its value.
+            They initialize :math:`V^1`, :math:`V^2`,  and :math:`b`, respectively.
+            If it is ``None``, the default initializer is used.
+            If it is a tuple of `numpy.ndarray`, the arrays are used as initial bias value.
             Each element of this tuple must have the shapes of
             ``(left_size, output_size)``, ``(right_size, output_size)``,
             and ``(output_size,)``, respectively.
-            May also be a tuple of callables that take ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edit its value.
 
     .. seealso:: See :func:`chainer.functions.bilinear` for details.
 
@@ -48,10 +49,7 @@ class Bilinear(link.Link):
     """
 
     def __init__(self, left_size, right_size, out_size, nobias=False,
-                 initialW=initializers.HeNormal(1.0 / numpy.sqrt(2)),
-                 initial_bias=(initializers.HeNormal(1.0 / numpy.sqrt(2)),
-                               initializers.HeNormal(1.0 / numpy.sqrt(2)),
-                               initializers.Constant(0))):
+                 initialW=None, initial_bias=None):
         super(Bilinear, self).__init__(W=(left_size, right_size, out_size))
         self.in_sizes = (left_size, right_size)
         self.nobias = nobias
@@ -63,6 +61,8 @@ class Bilinear(link.Link):
 
         if isinstance(initialW, (numpy.ndarray, cuda.ndarray)):
             assert initialW.shape == self.W.shape
+        if initialW is None:
+            initialW = initializers.HeNormal(1.0 / numpy.sqrt(2))
         initializers.init_weight(self.W.data, initialW)
 
         if not self.nobias:
@@ -70,16 +70,21 @@ class Bilinear(link.Link):
             self.add_param('V2', (right_size, out_size))
             self.add_param('b', out_size)
 
-            if len(initial_bias) != 3:
-                raise ValueError('initial_bias must be tuple or None')
-            V1, V2, b = initial_bias
+            if initial_bias is None:
+                V1 = initializers.HeNormal(1.0 / numpy.sqrt(2))
+                V2 = initializers.HeNormal(1.0 / numpy.sqrt(2))
+                b =  initializers.Constant(0)
+            else:
+                if len(initial_bias) != 3:
+                    raise ValueError('initial_bias must be tuple or None')
+                V1, V2, b = initial_bias
+                if isinstance(V1, (numpy.ndarray, cuda.ndarray)):
+                    assert V1.shape == self.V1.shape
+                if isinstance(V2, (numpy.ndarray, cuda.ndarray)):
+                    assert V2.shape == self.V2.shape
+                if isinstance(b, (numpy.ndarray, cuda.ndarray)):
+                    assert b.shape == self.b.shape
 
-            if isinstance(V1, (numpy.ndarray, cuda.ndarray)):
-                assert V1.shape == self.V1.shape
-            if isinstance(V2, (numpy.ndarray, cuda.ndarray)):
-                assert V2.shape == self.V2.shape
-            if isinstance(b, (numpy.ndarray, cuda.ndarray)):
-                assert b.shape == self.b.shape
             initializers.init_weight(self.V1.data, V1)
             initializers.init_weight(self.V2.data, V2)
             initializers.init_weight(self.b.data, b)
