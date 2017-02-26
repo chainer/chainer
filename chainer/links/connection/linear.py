@@ -26,14 +26,16 @@ class Linear(link.Link):
             at which time the size will be determined.
         out_size (int): Dimension of output vectors.
         nobias (bool): If ``True``, then this function does not use the bias.
-        initialW (2-D array): Initial weight value. If ``None``, :func:`HeNormal`
-            initializer is used to initialize weight matrix.
-            May also be a callable that takes ``numpy.ndarray`` or
+        initialW (callable): Weight initializer.
+            It should be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
-        initial_bias (1-D array): Initial bias value.
-            May also be a callable that takes ``numpy.ndarray`` or
+            If it is ``None``, the default initializer is used.
+            If it is `numpy.ndarray`, the array is used as initial weight value.
+        initial_bias (callable): Bias initializer.
+            It should be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
-
+            If ``None``, the default initializer is used.
+            If it is `numpy.ndarray`, the array is used as initial bias value.
     .. seealso:: :func:`~chainer.functions.linear`
 
     Attributes:
@@ -43,12 +45,13 @@ class Linear(link.Link):
     """
 
     def __init__(self, in_size, out_size, nobias=False,
-                 initialW=initializers.HeNormal(1.0 / numpy.sqrt(2)),
-                 initial_bias=initializers.Constant(0)):
+                 initialW=None, initial_bias=None):
         super(Linear, self).__init__()
 
         self.out_size = out_size
 
+        if initialW is None:
+            initialW = initializers.HeNormal(1.0 / numpy.sqrt(2))
         self._W_initializer = initializers._get_initializer(initialW)
         if in_size is None:
             self.add_uninitialized_param('W')
@@ -58,6 +61,8 @@ class Linear(link.Link):
         if nobias:
             self.b = None
         else:
+            if initial_bias is None:
+                initial_bias = initializers.Constant(0)
             bias_initializer = initializers._get_initializer(initial_bias)
             self.add_param('b', out_size, initializer=bias_initializer)
 
