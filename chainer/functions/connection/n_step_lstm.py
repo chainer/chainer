@@ -11,6 +11,7 @@ from chainer.functions.array import split_axis
 from chainer.functions.array import stack
 from chainer.functions.connection import linear
 from chainer.functions.connection import n_step_rnn
+from chainer.functions.connection.n_step_rnn import _stack_weight
 from chainer.functions.connection.n_step_rnn import get_random_state
 from chainer.functions.noise import dropout
 
@@ -32,13 +33,6 @@ class NStepBiLSTM(n_step_rnn.BaseNStepRNNCell):
         n_step_rnn.BaseNStepRNNCell.__init__(self, n_layers, states,
                                              rnn_dir='bi', rnn_mode='lstm',
                                              train=train)
-
-
-def _stack_weight(ws):
-    # TODO(unno): Input of the current LSTM implementaiton is shuffled
-    w = stack.stack(ws, axis=1)
-    shape = w.shape
-    return reshape.reshape(w, (shape[0] * shape[1],) + shape[2:])
 
 
 def n_step_lstm(
