@@ -1,3 +1,4 @@
+# coding: utf-8
 import collections
 import re
 import gzip
@@ -6,16 +7,19 @@ import numpy
 import progressbar
 
 
-split_pattern = re.compile('([.,!?"\':;)(])')
-digit_pattern = re.compile(r'\d')
+split_pattern = re.compile(b'([.,!?"\':;)(])')
+digit_pattern = re.compile(br'\d')
 
 
 def split_sentence(s):
     s = s.lower()
-    s = split_pattern.sub(r' \1', s)
+    s = s.replace("’", "'")
     s = digit_pattern.sub('0', s)
-    words = s.strip().split()
-    return [w for w in words if w]
+    words = []
+    for word in s.strip().split():
+        words.extend(split_pattern.split(word))
+    words = [w for w in words if w]
+    return words
 
 
 def open_file(path):
@@ -32,7 +36,7 @@ def count_lines(path):
 
 def read_file(path):
     n_lines = count_lines(path)
-    bar = progressbar.ProgressBar(max_value=n_lines)
+    bar = progressbar.ProgressBar(maxval=n_lines)
     with open_file(path) as f:
         for line in bar(f):
             words = split_sentence(line)
