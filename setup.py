@@ -45,7 +45,6 @@ setup(
               'chainer.functions',
               'chainer.functions.activation',
               'chainer.functions.array',
-              'chainer.functions.caffe',
               'chainer.functions.connection',
               'chainer.functions.evaluation',
               'chainer.functions.loss',
