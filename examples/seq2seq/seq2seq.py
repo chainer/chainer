@@ -64,8 +64,8 @@ class Seq2seq(chainer.Chain):
             * concat_ys_out.shape[0] / batch
 
         reporter.report({'loss': loss.data}, self)
-        reporter.report(
-            {'perp': self.xp.exp(loss.data / concat_ys_out.shape[0] * batch)}, self)
+        perp = self.xp.exp(loss.data / concat_ys_out.shape[0] * batch)
+        reporter.report({'perp': perp}, self)
         return loss
 
     def translate(self, xs, max_length=50):
@@ -229,7 +229,6 @@ def main():
         trigger=(200, 'iteration'))
 
     def translate_one(source, target):
-        #words = source.lower().split()
         words = europal.split_sentence(source)
         print('# source : ' + ' '.join(words))
         x = model.xp.array(
@@ -245,8 +244,10 @@ def main():
             'Who are we ?',
             'Qui sommes-nous?')
         translate_one(
-            'And it often costs over a hundred dollars to obtain the required identity card .',
-            'Or, il en coûte souvent plus de cent dollars pour obtenir la carte d\'identité requise.')
+            'And it often costs over a hundred dollars ' +
+            'to obtain the required identity card .',
+            'Or, il en coûte souvent plus de cent dollars ' +
+            'pour obtenir la carte d\'identité requise.')
 
         source, target = test_data[numpy.random.choice(len(test_data))]
         source = ' '.join([source_words[i] for i in source])
