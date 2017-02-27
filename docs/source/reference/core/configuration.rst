@@ -82,13 +82,13 @@ There are two ways:
    For example, if you only want to enable debug mode in a fragment of code, write as follows.
 
       >>> with chainer.using_config('debug', True):
-      ...     ...  # code running in the debug mode
+      ...     pass  # code running in the debug mode
 
    We often want to switch to the test mode for an evaluation.
    This is also done in the same way.
 
       >>> with chainer.using_config('train', False):
-      ...     ...  # code running in the test mode
+      ...     pass  # code running in the test mode
 
    Note that :class:`~chainer.training.extensions.Evaluator` automatically switches to the test mode, and thus you do not need to manually switch in the loss function for the evaluation.
 
@@ -97,9 +97,9 @@ There are two ways:
    .. code-block:: python
 
       if chainer.config.train:
-          ...  # code only running in the training mode
+          pass  # code only running in the training mode
       else:
-          ...  # code only running in the test mode
+          pass  # code only running in the test mode
 
 
 .. autodata:: global_config
