@@ -1,6 +1,8 @@
 import collections
 import os
+import sys
 import time
+import traceback
 
 import six
 
@@ -297,11 +299,9 @@ class Trainer(object):
                         if entry.trigger(self):
                             entry.extension(self)
         except Exception as e:
-            import sys
             if show_loop_exception_msg:
                 # Show the exception here, as it will appear as if chainer
                 # hanged in case any finalize method below deadlocks.
-                import traceback
                 print("Exception in main training loop: {}".format(e))
                 print("Traceback (most recent call last):")
                 traceback.print_tb(sys.exc_info()[2])
