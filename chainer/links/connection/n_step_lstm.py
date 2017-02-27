@@ -126,13 +126,14 @@ class NStepLSTM(link.ChainList):
         return hy, cy, ys
 
 
+
 class NStepBiLSTM(link.ChainList):
 
     """Stacked Bi-direction LSTM for sequnces.
 
-    This link is stacked version of Bi-direction LSTM for sequences.
-    It calculates hidden and cell states of all layer at end-of-string,
-    and all hidden states of the last layer for each time.
+    This link is stacked version of LSTM for sequences. It calculates hidden
+    and cell states of all layer at end-of-string, and all hidden states of
+    the last layer for each time.
 
     Unlike :func:`chainer.functions.n_step_bilstm`, this function automatically
     sort inputs in descending order by length, and transpose the seuqnece.

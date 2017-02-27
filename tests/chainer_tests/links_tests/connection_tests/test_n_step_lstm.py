@@ -154,6 +154,7 @@ class TestNStepLSTM(unittest.TestCase):
             [cuda.to_gpu(gy) for gy in self.gys])
 
 
+
 @testing.parameterize(*testing.product({
     'use_cudnn': [True, False],
     'hidden_none': [True, False],
@@ -163,7 +164,7 @@ class TestNStepBiLSTM(unittest.TestCase):
     lengths = [3, 1, 2]
     n_layer = 2
     in_size = 3
-    out_size = 200
+    out_size = 2
     dropout = 0.0
 
     def setUp(self):
@@ -208,6 +209,7 @@ class TestNStepBiLSTM(unittest.TestCase):
             self.assertEqual(y.data.shape[1], self.out_size * 2)
 
         self.rnn.to_cpu()
+
         for batch, seq in enumerate(self.xs):
             for layer in range(self.n_layer):
                 # forward
@@ -216,7 +218,7 @@ class TestNStepBiLSTM(unittest.TestCase):
                 p = self.rnn[layer_idx]
                 h_prev = self.h[layer_idx, batch]
                 c_prev = self.c[layer_idx, batch]
-                hf = []
+                hs_f = []
                 for x in seq:
                     i = sigmoid(x.dot(p.w0.data.T) + h_prev.dot(p.w4.data.T) +
                                 p.b0.data + p.b4.data)
@@ -232,7 +234,7 @@ class TestNStepBiLSTM(unittest.TestCase):
 
                     h_prev = e_h
                     c_prev = e_c
-                    hf.append(e_h)
+                    hs_f.append(e_h)
 
                 testing.assert_allclose(hy.data[layer_idx, batch], h_prev)
                 testing.assert_allclose(cy.data[layer_idx, batch], c_prev)
@@ -243,7 +245,7 @@ class TestNStepBiLSTM(unittest.TestCase):
                 p = self.rnn[layer_idx]
                 h_prev = self.h[layer_idx, batch]
                 c_prev = self.c[layer_idx, batch]
-                hb = []
+                hs_b = []
                 for x in reversed(seq):
                     i = sigmoid(x.dot(p.w0.data.T) + h_prev.dot(p.w4.data.T) +
                                 p.b0.data + p.b4.data)
@@ -259,15 +261,14 @@ class TestNStepBiLSTM(unittest.TestCase):
 
                     h_prev = e_h
                     c_prev = e_c
-                    hb.append(e_h)
-
-                hb.reverse()
+                    hs_b.append(e_h)
 
                 testing.assert_allclose(hy.data[layer_idx, batch], h_prev)
                 testing.assert_allclose(cy.data[layer_idx, batch], c_prev)
 
-                seq = [numpy.concatenate([hfi, hbi], axis=0) for (hfi, hbi) in
-                       zip(hf, hb)]
+                hs_b.reverse()
+                seq = [numpy.concatenate([hfi, hbi], axis=0) for (hfi, hbi)
+                       in zip(hs_f, hs_b)]
 
             for y, ey in zip(ys[batch].data, seq):
                 testing.assert_allclose(y, ey)
@@ -308,15 +309,13 @@ class TestNStepBiLSTM(unittest.TestCase):
         gradient_check.check_backward(
             fun, tuple(in_data),
             tuple([gh_data, gc_data] + gys_data),
-            tuple(params), eps=1e-1, rtol=1e-2, atol=1e-2)
+            tuple(params), eps=1e-2, rtol=1e-3, atol=1e-3)
 
-    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(
             self.h, self.c, self.xs, self.gh, self.gc, self.gys)
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu(self):
         self.rnn.to_gpu()
         self.check_backward(
