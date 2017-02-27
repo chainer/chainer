@@ -1,7 +1,7 @@
 # coding: utf-8
 import collections
-import re
 import gzip
+import re
 
 import numpy
 import progressbar
