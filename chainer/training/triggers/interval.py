@@ -16,6 +16,7 @@ class IntervalTrigger(object):
             unit is ``'iteration'``.
         unit (str): Unit of the length specified by ``period``. It must be
             either ``'iteration'`` or ``'epoch'``.
+
     """
 
     def __init__(self, period, unit):
