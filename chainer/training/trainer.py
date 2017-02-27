@@ -305,8 +305,8 @@ class Trainer(object):
                 print("Exception in main training loop: {}".format(e))
                 print("Traceback (most recent call last):")
                 traceback.print_tb(sys.exc_info()[2])
-                print("Will finalize trainer extensions and updater before")
-                print("reraising the exception.")
+                print("Will finalize trainer extensions and updater before "
+                      "reraising the exception.")
             six.reraise(*sys.exc_info())
         finally:
             for _, entry in extensions:
