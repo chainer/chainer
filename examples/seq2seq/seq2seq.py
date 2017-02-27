@@ -61,9 +61,11 @@ class Seq2seq(chainer.Chain):
         concat_ys_out = F.concat(ys_out, axis=0)
         loss = F.softmax_cross_entropy(
             self.W(concat_os), concat_ys_out, normalize=False) \
-            * len(concat_os.data)
+            * concat_ys_out.shape[0] / batch
 
         reporter.report({'loss': loss.data}, self)
+        reporter.report(
+            {'perp': self.xp.exp(loss.data / concat_ys_out.shape[0] * batch)}, self)
         return loss
 
     def translate(self, xs, max_length=50):
@@ -149,7 +151,7 @@ class CalculateBleu(chainer.training.Extension):
         bleu = bleu_score.corpus_bleu(
             references, hypotheses,
             smoothing_function=bleu_score.SmoothingFunction().method1)
-        print(bleu)
+        print('BELU {}'.format(bleu))
 
 
 def main():
@@ -199,45 +201,62 @@ def main():
         source_data = europal.make_dataset(en_path, source_vocab)
         fr_path = 'wmt/dev/newstest2013.fr'
         target_data = europal.make_dataset(fr_path, target_vocab)
-        test_data = zip(source_data, target_data)
+        test_data = list(zip(source_data, target_data))
 
         source_ids = {word: index for index, word in enumerate(source_vocab)}
         target_ids = {word: index for index, word in enumerate(target_vocab)}
 
     target_words = {i: w for w, i in target_ids.items()}
+    source_words = {i: w for w, i in source_ids.items()}
 
     model = Seq2seq(3, len(source_ids), len(target_ids), args.unit)
     if args.gpu >= 0:
+        chainer.cuda.get_device(args.gpu).use()
         model.to_gpu(args.gpu)
 
-    optimizer = chainer.optimizers.AdaGrad(0.5)
+    optimizer = chainer.optimizers.Adam()
     optimizer.setup(model)
 
-    train_iter = chainer.iterators.SerialIterator(train_data, 50)
+    train_iter = chainer.iterators.SerialIterator(train_data, args.batchsize)
     updater = training.StandardUpdater(
         train_iter, optimizer, converter=convert, device=args.gpu)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'))
     trainer.extend(extensions.LogReport(trigger=(200, 'iteration')),
                    trigger=(200, 'iteration'))
     trainer.extend(extensions.PrintReport(
-        ['epoch', 'main/loss', 'validation/main/loss',
-         'main/accuracy', 'validation/main/accuracy', 'elapsed_time']),
+        ['epoch', 'iteration', 'main/loss', 'validation/main/loss',
+         'main/perp', 'validation/main/perp', 'elapsed_time']),
         trigger=(200, 'iteration'))
 
-    @chainer.training.make_extension(trigger=(200, 'iteration'))
-    def translate(trainer):
-        words = 'Astronomers Introduction Introduction video What is Astronomy ?'.lower().split()
+    def translate_one(source, target):
+        #words = source.lower().split()
+        words = europal.split_sentence(source)
+        print('# source : ' + ' '.join(words))
         x = model.xp.array(
             [source_ids.get(w, 1) for w in words], 'i')
         ys = model.translate([x])[0]
         words = [target_words[y] for y in ys]
-        print('result:' + ' '.join(words))
-        print('expect: Astronomes Introduction Vidéo d\'introduction Qu\'est-ce que l\'astronomie?')
+        print('#  result : ' + ' '.join(words))
+        print('#  expect : ' + target)
+
+    @chainer.training.make_extension(trigger=(200, 'iteration'))
+    def translate(trainer):
+        translate_one(
+            'Who are we ?',
+            'Qui sommes-nous?')
+        translate_one(
+            'And it often costs over a hundred dollars to obtain the required identity card .',
+            'Or, il en coûte souvent plus de cent dollars pour obtenir la carte d\'identité requise.')
+
+        source, target = test_data[numpy.random.choice(len(test_data))]
+        source = ' '.join([source_words[i] for i in source])
+        target = ' '.join([target_words[i] for i in target])
+        translate_one(source, target)
 
     trainer.extend(translate, trigger=(200, 'iteration'))
-    trainer.extend(CalculateBleu(model, test_data), trigger=(200, 'iteration'))
-    #trainer.extend(CalculateBleu(model, train_data))
-
+    trainer.extend(CalculateBleu(model, test_data),
+                   trigger=(10000, 'iteration'))
+    print('start training')
     trainer.run()
 
 
