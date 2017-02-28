@@ -395,6 +395,26 @@ cdef class SingleDeviceMemoryPool:
             n += len(v)
         return n
 
+    # testing
+    cpdef size_in_use_mem(self):
+        cdef Py_ssize_t size = 0
+        cdef Memory mem
+        for ptr in self._in_use:
+            mem = self._in_use[ptr]
+            size += mem.size
+        return size
+
+    # testing
+    cpdef size_free_mem(self):
+        cdef Py_ssize_t size = 0
+        cdef list free
+        cdef Memory mem
+        for s in self._free:
+            free = self._free[s]
+            for mem in free:
+                size += mem.size
+        return size
+
 
 cdef class MemoryPool(object):
 
@@ -466,3 +486,13 @@ cdef class MemoryPool(object):
         """
         dev = device.get_device_id()
         return self._pools[dev].n_free_blocks()
+
+    # testing
+    cpdef size_in_use_mem(self):
+        dev = device.get_device_id()
+        return self._pools[dev].size_in_use_mem()
+
+    # testing
+    cpdef size_free_mem(self):
+        dev = device.get_device_id()
+        return self._pools[dev].size_free_mem()

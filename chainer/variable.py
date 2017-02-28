@@ -11,6 +11,7 @@ from chainer import cuda
 from chainer import flag
 from chainer import utils
 
+import cupy.testing as testing  # temporal
 
 def _check_grad_type(func, x, gx):
     def make_message(message):
@@ -48,6 +49,20 @@ https://github.com/pfnet/chainer/issues/new.
         msg = ('Shape of data and grad mismatch\n%s != %s' %
                (x.data.shape, gx.shape))
         raise ValueError(make_message(msg))
+
+
+# testing
+def _print_memory_pool_stats(name):
+    print("  {}: chainer.cuda.memory_pool: {}"
+          .format(name, chainer.cuda.memory_pool))
+    size_mem_in_use = chainer.cuda.memory_pool.size_in_use_mem()
+    size_mem_free = chainer.cuda.memory_pool.size_free_mem()
+    size_mem_total = size_mem_in_use + size_mem_free
+    n_free_blocks = chainer.cuda.memory_pool.n_free_blocks()
+    print("    size_mem(total) : {}".format(size_mem_total))
+    print("    size_mem(in use): {}".format(size_mem_in_use))
+    print("    size_mem(free)  : {}".format(size_mem_free))
+    print("    n_free_blocks   : {}".format(n_free_blocks))
 
 
 class Variable(object):
@@ -103,6 +118,13 @@ Actual: {0}'''.format(type(data))
         self.creator = None
 
         self.name = name
+
+        #
+        self._org_creator = None
+        self._org_rank = 0
+        self.is_end_of_sub_graph = False
+        self.will_be_forgotten = False
+        self.is_forgotten = False
 
     def __reduce__(self):
         return Variable, (self.data, self.volatile, self.name, self._grad)
@@ -320,6 +342,104 @@ Actual: {0}'''.format(type(data))
         self.creator = gen_func
         self.rank = gen_func.rank + 1
 
+    def forget(self):
+        if self.creator is not None:
+            self.data = None
+            self.is_forgotten = True
+            # work-around for ReLU
+            if hasattr(self.creator, "y"):
+                self.creator.y = None
+
+    def ancestors(self):
+        """Gets a list of my ancestor variables."""
+        ancestor_funcs = []
+        ancestor_vars = []
+        seen_funcs = set()
+        seen_vars = set()
+
+        def add_cand(ancestors, seen, cand):
+            if cand is not None and cand not in seen:
+                ancestors.append(cand)
+                seen.add(cand)
+
+        add_cand(ancestor_funcs, seen_funcs, self._org_creator)
+        add_cand(ancestor_funcs, seen_funcs, self.creator)
+
+        while ancestor_funcs:
+            func = ancestor_funcs.pop()
+            for var in func.inputs:
+                add_cand(ancestor_vars, seen_vars, var)
+                add_cand(ancestor_funcs, seen_funcs, var.creator)
+
+        return ancestor_vars
+
+    def interrupt_backward(self):
+        """Cuts a link to my creator function temporarily."""
+        if self._org_creator is None:
+            self._org_creator = self.creator
+            self._org_rank = self.rank
+            self.creator = None
+            self.rank = 0
+
+    def resume_backward(self):
+        """Recovers a link to my creator function."""
+        self.creator = self._org_creator
+        self.rank = self._org_rank
+        self._org_creator = None
+        self._org_rank = 0
+
+    def set_end_of_sub_graph(self):
+        """Sets this variable as an end of a sub-graph"""
+        self.is_end_of_sub_graph = True
+        self.interrupt_backward()
+        # _print_memory_pool_stats("set_end_of_sub_graph") # debug
+
+    def recompute(self):
+        """Re-computes my data"""
+        func = self.creator
+        in_data = tuple([x.data for x in func.inputs])
+        out_data = func.forward(in_data)
+        out_vars = tuple(y() for y in func.outputs)  # access via weak ref
+        for (var, data) in zip(out_vars, out_data):
+            if var.data is not None:
+                # debug
+                print("  check results of recompute for {}".format(func))
+                testing.assert_array_equal(var.data, data)
+                # print("    old_data:{}".format(var.data))
+                # print("    new_data:{}".format(data))
+            var.data = data
+
+    def recompute_ancestors(self):
+        """Re-computes data of ancestor variables if they are forgotten during forward prop"""
+        cand_funcs = []
+        seen_set = set()
+
+        recomp_vars = []
+        recomp_funcs = set()
+
+        def add_cand(cand):
+            if cand not in seen_set:
+                cand_funcs.append(cand)
+                seen_set.add(cand)
+
+        add_cand(self.creator)
+        while cand_funcs:
+            func = cand_funcs.pop()
+            outputs = tuple(y() for y in func.outputs)  # access via weak ref
+            for y in outputs:
+                if hasattr(y, "is_forgotten") and y.is_forgotten is True:
+                    if func not in recomp_funcs:
+                        heapq.heappush(recomp_vars,
+                                       (func.rank, len(recomp_funcs), y))
+                        recomp_funcs.add(func)
+            for x in func.inputs:
+                if x.creator is not None:
+                    add_cand(x.creator)
+
+        while recomp_vars:
+            _, _, var = heapq.heappop(recomp_vars)
+            var.recompute()
+
     def backward(self, retain_grad=False):
         """Runs error backpropagation (a.k.a. backprop) from this variable.
 
@@ -361,11 +481,6 @@ Actual: {0}'''.format(type(data))
 
         is_debug = chainer.is_debug()
 
-        cand_funcs = []
-        seen_set = set()
-        seen_vars = set()
-        need_copy = set()
-
         # Initialize error by 1, if this is a loss variable
         if self.data.size == 1 and self.grad is None:
             with cuda.get_device(self.data) as device:
@@ -374,82 +489,115 @@ Actual: {0}'''.format(type(data))
                 else:
                     self.grad = cuda.cupy.ones_like(self.data)
 
-        def add_cand(cand):
-            if cand not in seen_set:
-                # Negate since heapq is min-heap
-                heapq.heappush(cand_funcs, (-cand.rank, len(seen_set), cand))
-                seen_set.add(cand)
+        # _print_memory_pool_stats("backward")  # debug
 
-        add_cand(self.creator)
+        # endp is an end point of sub-graph and a starting point of backprop.
+        # self is first endp.
+        endp = self
+        while endp is not None:
+            # re-compute
+            endp.recompute_ancestors()
 
-        while cand_funcs:
-            _, _, func = heapq.heappop(cand_funcs)
-            outputs = [y() for y in func.outputs]  # access via weak ref
+            cand_funcs = []
+            seen_set = set()
+            seen_vars = set()
+            need_copy = set()
 
-            in_data = tuple([x.data for x in func.inputs])
-            out_grad = tuple([None if y is None else y.grad for y in outputs])
-            hooks = chainer.get_function_hooks()
-            if func._n_local_function_hooks != 0:
-                hooks = collections.OrderedDict(hooks)
-                hooks.update(func.local_function_hooks)
+            def add_cand(cand):
+                if cand not in seen_set:
+                    # Negate since heapq is min-heap
+                    heapq.heappush(cand_funcs, (-cand.rank, len(seen_set), cand))
+                    seen_set.add(cand)
 
-            cuda.get_device(*(in_data + out_grad)).use()
-            for hook in six.itervalues(hooks):
-                hook.backward_preprocess(func, in_data, out_grad)
-            gxs = func.backward(in_data, out_grad)
-            assert len(gxs) == len(in_data)
-            for hook in six.itervalues(hooks):
-                hook.backward_postprocess(func, in_data, out_grad)
+            add_cand(endp.creator)
+            while cand_funcs:
+                _, _, func = heapq.heappop(cand_funcs)
+                outputs = [y() for y in func.outputs]  # access via weak ref
 
-            if is_debug:
-                for gx in gxs:
+                in_data = tuple([x.data for x in func.inputs])
+                out_grad = tuple([None if y is None else y.grad for y in outputs])
+                hooks = chainer.get_function_hooks()
+                if func._n_local_function_hooks != 0:
+                    hooks = collections.OrderedDict(hooks)
+                    hooks.update(func.local_function_hooks)
+
+                cuda.get_device(*(in_data + out_grad)).use()
+                for hook in six.itervalues(hooks):
+                    hook.backward_preprocess(func, in_data, out_grad)
+                gxs = func.backward(in_data, out_grad)
+                assert len(gxs) == len(in_data)
+                for hook in six.itervalues(hooks):
+                    hook.backward_postprocess(func, in_data, out_grad)
+
+                if is_debug:
+                    for gx in gxs:
+                        if gx is None:
+                            continue
+                        cuda.get_device(gx).use()
+                        if cuda.get_array_module(gx).isnan(gx).any():
+                            msg = 'NaN is detected on backward computation'
+                            raise RuntimeError(msg)
+
+                if not retain_grad:
+                    for y in outputs:
+                        if y is not None and y is not endp:
+                            y.grad = None
+                for x, gx in zip(func.inputs, gxs):
                     if gx is None:
                         continue
-                    cuda.get_device(gx).use()
-                    if cuda.get_array_module(gx).isnan(gx).any():
-                        msg = 'NaN is detected on backward computation'
-                        raise RuntimeError(msg)
 
-            if not retain_grad:
-                for y in outputs:
-                    if y is not None and y is not self:
-                        y.grad = None
-            for x, gx in zip(func.inputs, gxs):
-                if gx is None:
-                    continue
+                    _check_grad_type(func, x, gx)
 
-                _check_grad_type(func, x, gx)
-
-                # Accumulate the gradient to x. It is a bit tricky to handle
-                # branches and parameter gradient accumulation correctly.
-                id_x = id(x)
-                if x.creator is None:  # leaf
-                    if x._grad is None:
-                        x.grad = gx
-                        need_copy.add(id_x)
-                    else:
-                        cuda.get_device(gx).use()
-                        if id_x in need_copy:
-                            x.grad = utils.force_array(x.grad + gx)  # copy
-                            need_copy.remove(id_x)
+                    # Accumulate the gradient to x. It is a bit tricky to handle
+                    # branches and parameter gradient accumulation correctly.
+                    id_x = id(x)
+                    if x.creator is None:  # leaf
+                        if x._grad is None:
+                            x.grad = gx
+                            need_copy.add(id_x)
                         else:
-                            x._grad += gx
-                else:  # not a leaf
-                    add_cand(x.creator)
-                    if id_x not in seen_vars:  # 1st visit
-                        x.grad = gx
-                        seen_vars.add(id_x)
-                        need_copy.add(id_x)
-                    else:
-                        cuda.get_device(gx).use()
-                        if id_x in need_copy:  # 2nd visit
-                            x._grad = utils.force_array(gx + x._grad)  # copied
-                            need_copy.remove(id_x)
-                        else:  # 3rd or later visit
-                            x._grad += gx
-            del gxs  # to reduce memory usage
-            if initial_device is not None:
-                initial_device.use()
+                            cuda.get_device(gx).use()
+                            if id_x in need_copy:
+                                x.grad = utils.force_array(x.grad + gx)  # copy
+                                need_copy.remove(id_x)
+                            else:
+                                x._grad += gx
+                    else:  # not a leaf
+                        add_cand(x.creator)
+                        if id_x not in seen_vars:  # 1st visit
+                            x.grad = gx
+                            seen_vars.add(id_x)
+                            need_copy.add(id_x)
+                        else:
+                            cuda.get_device(gx).use()
+                            if id_x in need_copy:  # 2nd visit
+                                x._grad = utils.force_array(gx + x._grad)  # copied
+                                need_copy.remove(id_x)
+                            else:  # 3rd or later visit
+                                x._grad += gx
+                del gxs  # to reduce memory usage
+
+            # look for next endp
+            next_endp = None
+            ancestor_vars = endp.ancestors()
+            for x in ancestor_vars:
+                if x.is_end_of_sub_graph is True:
+                    if next_endp is not None:
+                        msg = ('There are a number of end_of_sub_graph '
+                               'variables in a single sub graph.')
+                        raise RuntimeError(msg)
+                    next_endp = x
+
+            if next_endp is not None:
+                endp.unchain_backward()
+                next_endp.resume_backward()
+
+            endp = next_endp
+
+            # _print_memory_pool_stats("backward")  # debug
+
+        if initial_device is not None:
+            initial_device.use()
 
     def unchain_backward(self):
         """Deletes references between variables and functions backward.

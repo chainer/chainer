@@ -13,6 +13,7 @@ from chainer import flag
 from chainer.utils import type_check
 from chainer import variable
 
+import copy
 
 _thread_local = threading.local()
 
@@ -76,6 +77,32 @@ def force_backprop_mode():
     _thread_local.default_backprop = True
     yield
     _thread_local.default_backprop = default
+
+
+@contextlib.contextmanager
+def use_recompute(*fnames):
+    """Enable re-compute for specified functions."""
+    if not hasattr(_thread_local, 'recompute_targets'):
+        _thread_local.recompute_targets = []
+
+    default = copy.copy(getattr(_thread_local, 'recompute_targets', []))
+    for fname in fnames:
+        if not fname in _thread_local.recompute_targets:
+            _thread_local.recompute_targets.append(fname)
+    yield
+    _thread_local.recompute_targets = default
+
+
+@contextlib.contextmanager
+def no_recompute(*fnames):
+    """Enable re-compute for specified functions."""
+    default = copy.copy(getattr(_thread_local, 'recompute_targets', []))
+    _thread_local.recompute_targets = []
+    for fname in default:
+        if not fname in fnames:
+            _thread_local.recompute_targets.append(fname)
+    yield
+    _thread_local.recompute_targets = default
 
 
 class Function(object):
@@ -227,6 +254,18 @@ class Function(object):
             self.inputs = inputs
             # Forward edges (must be weak references)
             self.outputs = tuple([weakref.ref(y) for y in ret])
+
+        # forget inputs which is marked to forget
+        for x in inputs:
+            if x.will_be_forgotten:
+                x.forget()
+                # print("  {} forgets {}".format(self, x))  # debug
+
+        # mark to forget later
+        if hasattr(self, 'recompute'):
+            if self.recompute:
+                for y in ret:
+                    y.will_be_forgotten = True
 
         if len(ret) == 1:
             return ret[0]
