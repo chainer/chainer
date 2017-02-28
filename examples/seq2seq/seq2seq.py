@@ -123,21 +123,18 @@ class Seq2seq(chainer.Chain):
             # Initial hidden variable and cell variable
             zero = self.xp.zeros((self.n_layers, 1, self.n_units), 'f')
             h, c, _ = self.encoder(zero, zero, exs, train=False)
-            h = F.broadcast_to(h, (self.n_layers, beam, self.n_units))
-            c = F.broadcast_to(c, (self.n_layers, beam, self.n_units))
-            ys = self.xp.zeros(beam, 'i')
+            ys = self.xp.zeros(1, 'i')
+            sum_ws = self.xp.zeros(1, 'f')
             result = [[]] * beam
-
-            sum_ws = self.xp.zeros(beam, 'f')
             for i in range(max_length):
-                if i != 0 and (ys == 0).sum() == beam:
+                if i != 0 and self.xp.all(ys == 0):
                     break
 
                 eys = self.embed_y(ys)
-                eys = chainer.functions.split_axis(
-                    eys, beam, 0, force_tuple=True)
+                eys = F.split_axis(
+                    eys, eys.shape[0], 0, force_tuple=True)
                 h, c, hs = self.decoder(h, c, eys, train=False)
-                hs_concat = chainer.functions.concat(hs, axis=0)
+                hs_concat = F.concat(hs, axis=0)
                 ws_concat = F.log_softmax(self.W(hs_concat)).data
 
                 if i != 0:
@@ -147,32 +144,25 @@ class Seq2seq(chainer.Chain):
                     # eos-seq continue to choose eos with 0-score
 
                 ys_list, ws_list = get_topk(ws_concat, beam, axis=1)
-
-                if i == 0:
-                    ys_list = [s[:1] for s in ys_list]
-                    ws_list = [s[:1] for s in ws_list]
-                    sum_ws_list = ws_list
-                else:
-                    sum_ws_list = [ws + sum_ws for ws in ws_list]
-
-                sum_ws_concat = self.xp.concatenate(sum_ws_list, axis=0)
                 ys_concat = self.xp.concatenate(ys_list, axis=0)
+                sum_ws_list = [ws + sum_ws for ws in ws_list]
+                sum_ws_concat = self.xp.concatenate(sum_ws_list, axis=0)
 
-                idx_list, sum_ws_list = get_topk(sum_ws_concat, beam, axis=0)
+                idx_list, sum_w_list = get_topk(sum_ws_concat, beam, axis=0)
                 idx_concat = self.xp.stack(idx_list, axis=0)
+                sum_ws = self.xp.stack(sum_w_list, axis=0)
+
+                if i != 0:
+                    old_idx_list = (idx_concat % beam).tolist()
+                else:
+                    old_idx_list = [0] * beam
+
                 ys = ys_concat[idx_concat]
-                sum_ws = self.xp.stack(sum_ws_list, axis=0)
-
-                y_list = ys.tolist()
-                old_idx_list = (idx_concat % beam).tolist()
-
-                h = F.stack(
-                    [h[:, idx] for idx in old_idx_list], axis=1)
-                c = F.stack(
-                    [c[:, idx] for idx in old_idx_list], axis=1)
-
                 result = [result[idx] + [y]
-                          for idx, y in zip(old_idx_list, y_list)]
+                          for idx, y in zip(old_idx_list, ys.tolist())]
+
+                h = F.stack([h[:, idx] for idx in old_idx_list], axis=1)
+                c = F.stack([c[:, idx] for idx in old_idx_list], axis=1)
 
         # Remove EOS taggs
         result = [[y for y in sent if y != 0]
