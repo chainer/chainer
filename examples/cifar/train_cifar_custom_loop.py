@@ -6,12 +6,11 @@ import chainer
 from chainer import configuration
 from chainer.dataset import convert
 import chainer.links as L
-from chainer import training
-from chainer.training import extensions
+from chainer import serializers
 
 from chainer.datasets import get_cifar10
 from chainer.datasets import get_cifar100
-from chainer.utils.training import IteratorProgressUtility
+from chainer.utils.training import IteratorProgressBar
 
 import models.VGG
 
@@ -68,31 +67,28 @@ def main():
     optimizer = chainer.optimizers.MomentumSGD(0.1)
     optimizer.setup(model)
     optimizer.add_hook(chainer.optimizer.WeightDecay(5e-4))
-
     train_iter = chainer.iterators.SerialIterator(train, args.batchsize)
     test_iter = chainer.iterators.SerialIterator(test, args.batchsize,
                                                  repeat=False, shuffle=False)
-
     sum_accuracy = 0
     sum_loss = 0
-    # The progress utility keeps track of iteration and epoch information
-    # and must be called each iteration. It can also display a
-    # progress bar.
-    train_progress = IteratorProgressUtility(train_iter,
-                                             training_length=(args.epoch, 'epoch'),
-                                             enable_progress_bar=True)
-    while train_progress.in_progress:
+    # This is a timer utility that displays a progress bar using information
+    # from the supplied iterator. It must be called each iteration.
+    train_progress = IteratorProgressBar(train_iter,
+                                         training_length=(args.epoch, 'epoch'))
+    while train_iter.epoch < args.epoch:
         batch = train_iter.next()
         if train_progress():
-            # You can periodically print progress updates here. The default
-            # interval returns true once per second. For example, if the
-            # progress bar is disabled, similar progress information
-            # can be printed from here.
+            # You can periodically print additional progress updates here.
+            # The default interval returns true once per second.
+            # To obtain the same behavior without the progress bar display,
+            # use a TimerUtility instead.
             pass
 
         # Reduce learning rate by 0.5 every 25 epochs.
-        if train_progress.epoch % 25 == 0:
+        if train_iter.epoch % 25 == 0 and train_iter.is_new_epoch:
             optimizer.lr *= 0.5
+            print('Reducing learning rate to: ', optimizer.lr)
 
         x_array, t_array = convert.concat_examples(batch, args.gpu)
         x = chainer.Variable(x_array)
@@ -101,7 +97,7 @@ def main():
         sum_loss += float(model.loss.data) * len(t.data)
         sum_accuracy += float(model.accuracy.data) * len(t.data)
 
-        if train_progress.is_new_epoch:
+        if train_iter.is_new_epoch:
             print('train mean loss={}, accuracy={}'.format(
                 sum_loss / train_count, sum_accuracy / train_count))
             # evaluation

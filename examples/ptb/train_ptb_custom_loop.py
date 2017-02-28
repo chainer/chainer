@@ -14,12 +14,8 @@ import chainer
 from chainer import configuration
 from chainer.dataset import convert
 import chainer.links as L
-from chainer import training
-from chainer.training import extensions
-from chainer.utils.training import IteratorProgressUtility
 from chainer import serializers
-
-import numpy as np
+from chainer.utils.training import IteratorProgressBar
 
 import train_ptb
 
@@ -92,15 +88,13 @@ def main():
     optimizer.setup(model)
     optimizer.add_hook(chainer.optimizer.GradientClipping(args.gradclip))
 
-    # The progress utility keeps track of iteration and epoch information
-    # and must be called each iteration. It can also display a
-    # progress bar.
-    train_progress = IteratorProgressUtility(train_iter,
-                                             training_length=(args.epoch, 'epoch'),
-                                             enable_progress_bar=True)
+    # This is a timer utility that displays a progress bar using information
+    # from the supplied iterator. It must be called each iteration.
+    train_progress = IteratorProgressBar(train_iter,
+                                         training_length=(args.epoch, 'epoch'))
     sum_perp = 0
     count = 0
-    while train_progress.in_progress:
+    while train_iter.epoch < args.epoch:
         loss = 0
         # Progress the dataset iterator for bprop_len words at each iteration.
         for i in range(args.bproplen):
@@ -121,15 +115,15 @@ def main():
         optimizer.update()  # Update the parameters
 
         if train_progress():
-            # You can periodically print progress updates here. The default
-            # interval returns true once per second. For example, if the
-            # progress bar is disabled, similar progress information
-            # can be printed from here.
+            # You can periodically print additional progress updates here.
+            # The default interval returns true once per second.
+            # To obtain the same behavior without the progress bar display,
+            # use a TimerUtility instead.
             print('training perplexity: ', sum_perp / (count*args.batchsize))
             sum_perp = 0
             count = 0
 
-        if train_progress.is_new_epoch:
+        if train_iter.is_new_epoch:
             perp = evaluate(model, val_iter)
             print('validation perplexity: ', perp)
 
@@ -147,4 +141,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

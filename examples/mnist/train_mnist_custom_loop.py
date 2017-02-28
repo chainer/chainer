@@ -6,9 +6,10 @@ import copy
 import chainer
 from chainer import configuration
 from chainer.dataset import convert
-from chainer import serializers
 import chainer.links as L
-from chainer.utils.training import IteratorProgressUtility
+from chainer import serializers
+from chainer.utils.training import IteratorProgressBar
+
 from models import MLP
 
 
@@ -56,19 +57,17 @@ def main():
 
     sum_accuracy = 0
     sum_loss = 0
-    # The progress utility keeps track of iteration and epoch information
-    # and must be called each iteration. It can also display a
-    # progress bar.
-    train_progress = IteratorProgressUtility(train_iter,
-                                             training_length=(args.epoch, 'epoch'),
-                                             enable_progress_bar=True)
-    while train_progress.in_progress:
+    # This is a timer utility that displays a progress bar using information
+    # from the supplied iterator. It must be called each iteration.
+    train_progress = IteratorProgressBar(train_iter,
+                                         training_length=(args.epoch, 'epoch'))
+    while train_iter.epoch < args.epoch:
         batch = train_iter.next()
         if train_progress():
-            # You can periodically print progress updates here. The default
-            # interval returns true once per second. For example, if the
-            # progress bar is disabled, similar progress information
-            # can be printed from here.
+            # You can periodically print additional progress updates here.
+            # The default interval returns true once per second.
+            # To obtain the same behavior without the progress bar display,
+            # use a TimerUtility instead.
             pass
         x_array, t_array = convert.concat_examples(batch, args.gpu)
         x = chainer.Variable(x_array)
@@ -77,12 +76,13 @@ def main():
         sum_loss += float(model.loss.data) * len(t.data)
         sum_accuracy += float(model.accuracy.data) * len(t.data)
 
-        if train_progress.is_new_epoch:
+        if train_iter.is_new_epoch:
             print('train mean loss={}, accuracy={}'.format(
                     sum_loss / train_count, sum_accuracy / train_count))
-            # evaluation
+            # Evaluate the model.
             sum_accuracy = 0
             sum_loss = 0
+            # It is good practice to turn off train mode during evaluation.
             with configuration.using_config('train', False):
                 for batch in copy.copy(test_iter):
                     x_array, t_array = convert.concat_examples(batch, args.gpu)
