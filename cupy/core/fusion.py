@@ -230,7 +230,10 @@ def convert_from_ufunc(ufunc):
                     args[i + nin].var = ret[i]
                 ret = map(FusionRef, ret)
                 return ret[0] if len(ret) == 1 else tuple(ret)
-        raise TypeError('Invalid type cast')
+        raise TypeError('Invalid type cast in \'{}\': {} -> {}'.format(
+            ufunc.name,
+            [_.ty for _ in in_vars],
+            [_.ty for _ in out_vars]))
     return res
 
 
