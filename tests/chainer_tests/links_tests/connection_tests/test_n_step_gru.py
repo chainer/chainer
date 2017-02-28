@@ -8,7 +8,6 @@ from chainer import gradient_check
 from chainer import links
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
 
 
 def sigmoid(x):
@@ -73,13 +72,13 @@ class TestNStepGRU(unittest.TestCase):
                 hs = []
                 for x in seq:
                     # GRU
-                    z = sigmoid(x.dot(p.w1.data.T) + h_prev.dot(p.w4.data.T)
-                                + p.b1.data + p.b4.data)
-                    r = sigmoid(x.dot(p.w0.data.T) + h_prev.dot(p.w3.data.T)
-                                + p.b0.data + p.b3.data)
+                    z = sigmoid(x.dot(p.w1.data.T) + h_prev.dot(p.w4.data.T) +
+                                p.b1.data + p.b4.data)
+                    r = sigmoid(x.dot(p.w0.data.T) + h_prev.dot(p.w3.data.T) +
+                                p.b0.data + p.b3.data)
                     h_bar = numpy.tanh(x.dot(p.w2.data.T) +
-                                       r * ((h_prev).dot(p.w5.data.T)
-                                            + p.b5.data) + p.b2.data)
+                                       r * ((h_prev).dot(p.w5.data.T) +
+                                            p.b5.data) + p.b2.data)
                     e_h = (1 - z) * h_bar + z * h_prev
 
                     h_prev = e_h
@@ -203,13 +202,13 @@ class TestNStepBiGRU(unittest.TestCase):
                 hs_f = []
                 for x in seq:
                     # GRU
-                    z = sigmoid(x.dot(p.w1.data.T) + h_prev.dot(p.w4.data.T)
-                                + p.b1.data + p.b4.data)
-                    r = sigmoid(x.dot(p.w0.data.T) + h_prev.dot(p.w3.data.T)
-                                + p.b0.data + p.b3.data)
+                    z = sigmoid(x.dot(p.w1.data.T) + h_prev.dot(p.w4.data.T) +
+                                p.b1.data + p.b4.data)
+                    r = sigmoid(x.dot(p.w0.data.T) + h_prev.dot(p.w3.data.T) +
+                                p.b0.data + p.b3.data)
                     h_bar = numpy.tanh(x.dot(p.w2.data.T) +
-                                       r * ((h_prev).dot(p.w5.data.T)
-                                            + p.b5.data) + p.b2.data)
+                                       r * ((h_prev).dot(p.w5.data.T) +
+                                            p.b5.data) + p.b2.data)
                     e_h = (1 - z) * h_bar + z * h_prev
 
                     h_prev = e_h
@@ -225,21 +224,21 @@ class TestNStepBiGRU(unittest.TestCase):
                 hs_b = []
                 for x in reversed(seq):
                     # GRU
-                    z = sigmoid(x.dot(p.w1.data.T) + h_prev.dot(p.w4.data.T)
-                                + p.b1.data + p.b4.data)
-                    r = sigmoid(x.dot(p.w0.data.T) + h_prev.dot(p.w3.data.T)
-                                + p.b0.data + p.b3.data)
+                    z = sigmoid(x.dot(p.w1.data.T) + h_prev.dot(p.w4.data.T) +
+                                p.b1.data + p.b4.data)
+                    r = sigmoid(x.dot(p.w0.data.T) + h_prev.dot(p.w3.data.T) +
+                                p.b0.data + p.b3.data)
                     h_bar = numpy.tanh(x.dot(p.w2.data.T) +
-                                       r * ((h_prev).dot(p.w5.data.T)
-                                            + p.b5.data) + p.b2.data)
+                                       r * ((h_prev).dot(p.w5.data.T) +
+                                            p.b5.data) + p.b2.data)
                     e_h = (1 - z) * h_bar + z * h_prev
                     h_prev = e_h
                     hs_b.append(e_h)
                 testing.assert_allclose(hy.data[layer_idx, batch], h_prev)
 
                 hs_b.reverse()
-                seq = [numpy.concatenate([hfi, hbi], axis=0) for (hfi, hbi) in
-                           zip(hs_f, hs_b)]
+                seq = [numpy.concatenate([hfi, hbi], axis=0) for (hfi, hbi)
+                       in zip(hs_f, hs_b)]
 
             for y, ey in zip(ys[batch].data, seq):
                 testing.assert_allclose(y, ey)

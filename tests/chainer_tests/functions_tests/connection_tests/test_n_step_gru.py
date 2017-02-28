@@ -156,7 +156,6 @@ class TestNStepGRU(unittest.TestCase):
                             [cuda.to_gpu(dy) for dy in self.dys])
 
 
-
 @testing.parameterize(*testing.product({
     'use_cudnn': [True, False],
 }))
@@ -404,7 +403,7 @@ class TestNStepGRUCudnnCall(unittest.TestCase):
     'use_cudnn': [True, False],
 }))
 @attr.cudnn
-class TestNStepGRUCudnnCall(unittest.TestCase):
+class TestNStepBiGRUCudnnCall(unittest.TestCase):
 
     batches = [4, 3, 2, 1]
     length = len(batches)

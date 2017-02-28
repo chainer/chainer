@@ -8,7 +8,6 @@ from chainer import gradient_check
 from chainer import links
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
 
 
 def sigmoid(x):
@@ -154,7 +153,6 @@ class TestNStepLSTM(unittest.TestCase):
             [cuda.to_gpu(gy) for gy in self.gys])
 
 
-
 @testing.parameterize(*testing.product({
     'use_cudnn': [True, False],
     'hidden_none': [True, False],
@@ -220,13 +218,15 @@ class TestNStepBiLSTM(unittest.TestCase):
                 c_prev = self.c[layer_idx, batch]
                 hs_f = []
                 for x in seq:
-                    i = sigmoid(x.dot(p.w0.data.T) + h_prev.dot(p.w4.data.T) +
+                    i = sigmoid(x.dot(p.w0.data.T) +
+                                h_prev.dot(p.w4.data.T) +
                                 p.b0.data + p.b4.data)
-                    f = sigmoid(x.dot(p.w1.data.T) + h_prev.dot(p.w5.data.T) +
+                    f = sigmoid(x.dot(p.w1.data.T) +
+                                h_prev.dot(p.w5.data.T) +
                                 p.b1.data + p.b5.data)
-                    c_bar = numpy.tanh(
-                        x.dot(p.w2.data.T) + h_prev.dot(p.w6.data.T) +
-                        p.b2.data + p.b6.data)
+                    c_bar = numpy.tanh(x.dot(p.w2.data.T) +
+                                       h_prev.dot(p.w6.data.T) +
+                                       p.b2.data + p.b6.data)
                     o = sigmoid(x.dot(p.w3.data.T) + h_prev.dot(p.w7.data.T) +
                                 p.b3.data + p.b7.data)
                     e_c = (f * c_prev + i * c_bar)
@@ -247,13 +247,15 @@ class TestNStepBiLSTM(unittest.TestCase):
                 c_prev = self.c[layer_idx, batch]
                 hs_b = []
                 for x in reversed(seq):
-                    i = sigmoid(x.dot(p.w0.data.T) + h_prev.dot(p.w4.data.T) +
+                    i = sigmoid(x.dot(p.w0.data.T) +
+                                h_prev.dot(p.w4.data.T) +
                                 p.b0.data + p.b4.data)
-                    f = sigmoid(x.dot(p.w1.data.T) + h_prev.dot(p.w5.data.T) +
+                    f = sigmoid(x.dot(p.w1.data.T) +
+                                h_prev.dot(p.w5.data.T) +
                                 p.b1.data + p.b5.data)
-                    c_bar = numpy.tanh(
-                        x.dot(p.w2.data.T) + h_prev.dot(p.w6.data.T) +
-                        p.b2.data + p.b6.data)
+                    c_bar = numpy.tanh(x.dot(p.w2.data.T) +
+                                       h_prev.dot(p.w6.data.T) +
+                                       p.b2.data + p.b6.data)
                     o = sigmoid(x.dot(p.w3.data.T) + h_prev.dot(p.w7.data.T) +
                                 p.b3.data + p.b7.data)
                     e_c = (f * c_prev + i * c_bar)

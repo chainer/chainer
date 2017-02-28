@@ -126,7 +126,6 @@ class NStepLSTM(link.ChainList):
         return hy, cy, ys
 
 
-
 class NStepBiLSTM(link.ChainList):
 
     """Stacked Bi-direction LSTM for sequnces.

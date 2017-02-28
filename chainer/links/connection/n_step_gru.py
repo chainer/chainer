@@ -113,7 +113,6 @@ class NStepGRU(link.ChainList):
         return hy, ys
 
 
-
 class NStepBiGRU(link.ChainList):
 
     """Stacked Bi-direction GRU for sequnces.
