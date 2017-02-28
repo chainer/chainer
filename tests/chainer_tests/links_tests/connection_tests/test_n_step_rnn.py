@@ -222,8 +222,8 @@ class TestNStepBiRNN(unittest.TestCase):
                 testing.assert_allclose(hy.data[layer_idx, batch], h_prev)
 
                 hs_b.reverse()
-                seq = [numpy.concatenate([hfi, hbi], axis=0) for (hfi, hbi) in
-                           zip(hs_f, hs_b)]
+                seq = [numpy.concatenate([hfi, hbi], axis=0) for (hfi, hbi)
+                       in zip(hs_f, hs_b)]
 
             for y, ey in zip(ys[batch].data, seq):
                 testing.assert_allclose(y, ey)
