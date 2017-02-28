@@ -144,7 +144,8 @@ def main():
 
     model = CRF(len(vocab), len(pos_vocab))
     if args.gpu >= 0:
-        model.to_gpu()
+        chainer.cuda.get_device(args.gpu).use()
+        model.to_gpu(args.gpu)
     optimizer = O.Adam()
     optimizer.setup(model)
     optimizer.add_hook(chainer.optimizer.WeightDecay(0.0001))
@@ -160,7 +161,7 @@ def main():
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
 
     trainer.extend(extensions.Evaluator(
-        test_iter, model, device=0, converter=convert))
+        test_iter, model, device=args.gpu, converter=convert))
     trainer.extend(extensions.LogReport())
     trainer.extend(MicroAverage())
 
