@@ -118,8 +118,12 @@ class CUDARuntimeError(RuntimeError):
 
     def __init__(self, status):
         self.status = status
-        cdef bytes name = cudaGetErrorName(<Error>status)
-        cdef bytes msg = cudaGetErrorString(<Error>status)
+        cdef Error error = <Error>status
+        with nogil:
+            name_ptr = cudaGetErrorName(error)
+            msg_ptr = cudaGetErrorString(error)
+        cdef bytes name = name_ptr
+        cdef bytes msg = msg_ptr
         super(CUDARuntimeError, self).__init__(
             '%s: %s' % (name.decode(), msg.decode()))
 
@@ -136,14 +140,16 @@ cpdef inline check_status(int status):
 
 cpdef int driverGetVersion() except *:
     cdef int version
-    status = cudaDriverGetVersion(&version)
+    with nogil:
+        status = cudaDriverGetVersion(&version)
     check_status(status)
     return version
 
 
 cpdef int runtimeGetVersion() except *:
     cdef int version
-    status = cudaRuntimeGetVersion(&version)
+    with nogil:
+        status = cudaRuntimeGetVersion(&version)
     check_status(status)
     return version
 
@@ -154,27 +160,31 @@ cpdef int runtimeGetVersion() except *:
 
 cpdef int getDevice() except *:
     cdef int device
-    status = cudaGetDevice(&device)
+    with nogil:
+        status = cudaGetDevice(&device)
     check_status(status)
     return device
 
 
 cpdef int deviceGetAttribute(int attrib, int device) except *:
     cdef int ret
-    status = cudaDeviceGetAttribute(&ret, <DeviceAttr>attrib, device)
+    with nogil:
+        status = cudaDeviceGetAttribute(&ret, <DeviceAttr>attrib, device)
     check_status(status)
     return ret
 
 
 cpdef int getDeviceCount() except *:
     cdef int count
-    status = cudaGetDeviceCount(&count)
+    with nogil:
+        status = cudaGetDeviceCount(&count)
     check_status(status)
     return count
 
 
 cpdef setDevice(int device):
-    status = cudaSetDevice(device)
+    with nogil:
+        status = cudaSetDevice(device)
     check_status(status)
 
 
@@ -186,13 +196,15 @@ cpdef deviceSynchronize():
 
 cpdef int deviceCanAccessPeer(int device, int peerDevice) except *:
     cpdef int ret
-    status = cudaDeviceCanAccessPeer(&ret, device, peerDevice)
+    with nogil:
+        status = cudaDeviceCanAccessPeer(&ret, device, peerDevice)
     check_status(status)
     return ret
 
 
 cpdef deviceEnablePeerAccess(int peerDevice):
-    status = cudaDeviceEnablePeerAccess(peerDevice, 0)
+    with nogil:
+        status = cudaDeviceEnablePeerAccess(peerDevice, 0)
     check_status(status)
 
 
@@ -230,7 +242,8 @@ cpdef freeHost(size_t ptr):
 
 cpdef memGetInfo():
     cdef size_t free, total
-    status = cudaMemGetInfo(&free, &total)
+    with nogil:
+        status = cudaMemGetInfo(&free, &total)
     check_status(status)
     return free, total
 
@@ -281,7 +294,8 @@ cpdef memsetAsync(size_t ptr, int value, size_t size, size_t stream):
 
 cpdef PointerAttributes pointerGetAttributes(size_t ptr):
     cdef _PointerAttributes attrs
-    status = cudaPointerGetAttributes(&attrs, <void*>ptr)
+    with nogil:
+        status = cudaPointerGetAttributes(&attrs, <void*>ptr)
     check_status(status)
     return PointerAttributes(
         attrs.device, <size_t>attrs.devicePointer, <size_t>attrs.hostPointer,
@@ -294,20 +308,23 @@ cpdef PointerAttributes pointerGetAttributes(size_t ptr):
 
 cpdef size_t streamCreate() except *:
     cdef driver.Stream stream
-    status = cudaStreamCreate(&stream)
+    with nogil:
+        status = cudaStreamCreate(&stream)
     check_status(status)
     return <size_t>stream
 
 
 cpdef size_t streamCreateWithFlags(unsigned int flags) except *:
     cdef driver.Stream stream
-    status = cudaStreamCreateWithFlags(&stream, flags)
+    with nogil:
+        status = cudaStreamCreateWithFlags(&stream, flags)
     check_status(status)
     return <size_t>stream
 
 
 cpdef streamDestroy(size_t stream):
-    status = cudaStreamDestroy(<driver.Stream>stream)
+    with nogil:
+        status = cudaStreamDestroy(<driver.Stream>stream)
     check_status(status)
 
 
@@ -337,7 +354,9 @@ cpdef streamAddCallback(size_t stream, callback, size_t arg,
 
 
 cpdef streamQuery(size_t stream):
-    return cudaStreamQuery(<driver.Stream>stream)
+    with nogil:
+        status = cudaStreamQuery(<driver.Stream>stream)
+    return status
 
 
 cpdef streamWaitEvent(size_t stream, size_t event, unsigned int flags=0):
@@ -349,35 +368,43 @@ cpdef streamWaitEvent(size_t stream, size_t event, unsigned int flags=0):
 
 cpdef size_t eventCreate() except *:
     cdef driver.Event event
-    status = cudaEventCreate(&event)
+    with nogil:
+        status = cudaEventCreate(&event)
     check_status(status)
     return <size_t>event
 
 cpdef size_t eventCreateWithFlags(unsigned int flags) except *:
     cdef driver.Event event
-    status = cudaEventCreateWithFlags(&event, flags)
+    with nogil:
+        status = cudaEventCreateWithFlags(&event, flags)
     check_status(status)
     return <size_t>event
 
 
 cpdef eventDestroy(size_t event):
-    status = cudaEventDestroy(<driver.Event>event)
+    with nogil:
+        status = cudaEventDestroy(<driver.Event>event)
     check_status(status)
 
 
 cpdef float eventElapsedTime(size_t start, size_t end) except *:
     cdef float ms
-    status = cudaEventElapsedTime(&ms, <driver.Event>start, <driver.Event>end)
+    with nogil:
+        status = cudaEventElapsedTime(
+            &ms, <driver.Event>start, <driver.Event>end)
     check_status(status)
     return ms
 
 
 cpdef eventQuery(size_t event):
-    return cudaEventQuery(<driver.Event>event)
+    with nogil:
+        status = cudaEventQuery(<driver.Event>event)
+    return status
 
 
 cpdef eventRecord(size_t event, size_t stream):
-    status = cudaEventRecord(<driver.Event>event, <driver.Stream>stream)
+    with nogil:
+        status = cudaEventRecord(<driver.Event>event, <driver.Stream>stream)
     check_status(status)
 
 

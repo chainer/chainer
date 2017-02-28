@@ -28,9 +28,12 @@ cpdef void initialize(str config_file,
     """
     cdef bytes b_config_file = config_file.encode()
     cdef bytes b_output_file = output_file.encode()
-    status = cudaProfilerInitialize(<const char*>b_config_file,
-                                    <const char*>b_output_file,
-                                    <OutputMode>output_mode)
+    cdef const char* b_config_file_ptr = <const char*>b_config_file
+    cdef const char* b_output_file_ptr = <const char*>b_output_file
+    with nogil:
+        status = cudaProfilerInitialize(b_config_file_ptr,
+                                        b_output_file_ptr,
+                                        <OutputMode>output_mode)
     runtime.check_status(status)
 
 
@@ -42,7 +45,8 @@ cpdef void start() except *:
 
     See the CUDA document for detail.
     """
-    status = cudaProfilerStart()
+    with nogil:
+        status = cudaProfilerStart()
     runtime.check_status(status)
 
 
@@ -54,5 +58,6 @@ cpdef void stop() except *:
 
     See the CUDA document for detail.
     """
-    status = cudaProfilerStop()
+    with nogil:
+        status = cudaProfilerStop()
     runtime.check_status(status)

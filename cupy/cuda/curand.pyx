@@ -98,34 +98,41 @@ cpdef size_t createGenerator(int rng_type) except *:
 
 
 cpdef destroyGenerator(size_t generator):
-    status = curandDestroyGenerator(<Generator>generator)
+    with nogil:
+        status = curandDestroyGenerator(<Generator>generator)
     check_status(status)
 
 
 cpdef int getVersion() except *:
     cdef int version
-    status = curandGetVersion(&version)
+    with nogil:
+        status = curandGetVersion(&version)
     check_status(status)
     return version
 
 
 cpdef setStream(size_t generator, size_t stream):
-    status = curandSetStream(<Generator>generator, <driver.Stream>stream)
+    with nogil:
+        status = curandSetStream(<Generator>generator, <driver.Stream>stream)
     check_status(status)
 
 
 cpdef setPseudoRandomGeneratorSeed(size_t generator, unsigned long long seed):
-    status = curandSetPseudoRandomGeneratorSeed(<Generator>generator, seed)
+    with nogil:
+        status = curandSetPseudoRandomGeneratorSeed(<Generator>generator, seed)
     check_status(status)
 
 
 cpdef setGeneratorOffset(size_t generator, unsigned long long offset):
-    status = curandSetGeneratorOffset(<Generator>generator, offset)
+    with nogil:
+        status = curandSetGeneratorOffset(<Generator>generator, offset)
     check_status(status)
 
 
 cpdef setGeneratorOrdering(size_t generator, int order):
-    status = curandSetGeneratorOrdering(<Generator>generator, <Ordering>order)
+    with nogil:
+        status = curandSetGeneratorOrdering(
+            <Generator>generator, <Ordering>order)
     check_status(status)
 
 
@@ -134,26 +141,30 @@ cpdef setGeneratorOrdering(size_t generator, int order):
 ###############################################################################
 
 cpdef generate(size_t generator, size_t outputPtr, size_t num):
-    status = curandGenerate(
-        <Generator>generator, <unsigned int*>outputPtr, num)
+    with nogil:
+        status = curandGenerate(
+            <Generator>generator, <unsigned int*>outputPtr, num)
     check_status(status)
 
 
 cpdef generateLongLong(size_t generator, size_t outputPtr, size_t num):
-    status = curandGenerateLongLong(
-        <Generator>generator, <unsigned long long*>outputPtr, num)
+    with nogil:
+        status = curandGenerateLongLong(
+            <Generator>generator, <unsigned long long*>outputPtr, num)
     check_status(status)
 
 
 cpdef generateUniform(size_t generator, size_t outputPtr, size_t num):
-    status = curandGenerateUniform(
-        <Generator>generator, <float*>outputPtr, num)
+    with nogil:
+        status = curandGenerateUniform(
+            <Generator>generator, <float*>outputPtr, num)
     check_status(status)
 
 
 cpdef generateUniformDouble(size_t generator, size_t outputPtr, size_t num):
-    status = curandGenerateUniformDouble(
-        <Generator>generator, <double*>outputPtr, num)
+    with nogil:
+        status = curandGenerateUniformDouble(
+            <Generator>generator, <double*>outputPtr, num)
     check_status(status)
 
 
@@ -163,8 +174,9 @@ cpdef generateNormal(size_t generator, size_t outputPtr, size_t n,
         msg = ('curandGenerateNormal can only generate even number of '
                'random variables simultaneously. See issue #390 for detail.')
         raise ValueError(msg)
-    status = curandGenerateNormal(
-        <Generator>generator, <float*>outputPtr, n, mean, stddev)
+    with nogil:
+        status = curandGenerateNormal(
+            <Generator>generator, <float*>outputPtr, n, mean, stddev)
     check_status(status)
 
 
@@ -174,8 +186,9 @@ cpdef generateNormalDouble(size_t generator, size_t outputPtr, size_t n,
         msg = ('curandGenerateNormalDouble can only generate even number of '
                'random variables simultaneously. See issue #390 for detail.')
         raise ValueError(msg)
-    status = curandGenerateNormalDouble(
-        <Generator>generator, <double*>outputPtr, n, mean, stddev)
+    with nogil:
+        status = curandGenerateNormalDouble(
+            <Generator>generator, <double*>outputPtr, n, mean, stddev)
     check_status(status)
 
 
@@ -185,8 +198,9 @@ def generateLogNormal(size_t generator, size_t outputPtr, size_t n,
         msg = ('curandGenerateLogNormal can only generate even number of '
                'random variables simultaneously. See issue #390 for detail.')
         raise ValueError(msg)
-    status = curandGenerateLogNormal(
-        <Generator>generator, <float*>outputPtr, n, mean, stddev)
+    with nogil:
+        status = curandGenerateLogNormal(
+            <Generator>generator, <float*>outputPtr, n, mean, stddev)
     check_status(status)
 
 
@@ -197,13 +211,15 @@ cpdef generateLogNormalDouble(size_t generator, size_t outputPtr, size_t n,
                'of random variables simultaneously. See issue #390 for '
                'detail.')
         raise ValueError(msg)
-    status = curandGenerateLogNormalDouble(
-        <Generator>generator, <double*>outputPtr, n, mean, stddev)
+    with nogil:
+        status = curandGenerateLogNormalDouble(
+            <Generator>generator, <double*>outputPtr, n, mean, stddev)
     check_status(status)
 
 
 cpdef generatePoisson(size_t generator, size_t outputPtr, size_t n,
                       double lam):
-    status = curandGeneratePoisson(
-        <Generator>generator, <unsigned int*>outputPtr, n, lam)
+    with nogil:
+        status = curandGeneratePoisson(
+            <Generator>generator, <unsigned int*>outputPtr, n, lam)
     check_status(status)
