@@ -126,7 +126,7 @@ class Seq2seq(chainer.Chain):
             h = F.broadcast_to(h, (self.n_layers, beam, self.n_units))
             c = F.broadcast_to(c, (self.n_layers, beam, self.n_units))
             ys = self.xp.zeros(beam, 'i')
-            result = [[] for _ in range(beam)]
+            result = [[]] * beam
 
             sum_ws = self.xp.zeros(beam, 'f')
             for i in range(max_length):
@@ -175,8 +175,8 @@ class Seq2seq(chainer.Chain):
                           for idx, y in zip(old_idx_list, y_list)]
 
         # Remove EOS taggs
-        result = [[y for y in y_list if y != 0]
-                  for y_list in result]
+        result = [[y for y in sent if y != 0]
+                  for sent in result]
 
         return result
 
