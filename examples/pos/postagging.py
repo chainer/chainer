@@ -79,40 +79,6 @@ def convert(batch, device):
     return tuple(sentences + poses)
 
 
-class MicroAverage(chainer.training.Extension):
-
-    def __init__(
-            self, keys=['main', 'validation/main'], trigger=(1, 'epoch'),
-            log_report='LogReport'):
-        self._keys = keys
-        self._trigger = chainer.training.get_trigger(trigger)
-        self._log_report = log_report
-
-        self._correct = collections.defaultdict(int)
-        self._total = collections.defaultdict(int)
-
-    def __call__(self, trainer):
-        reporter = trainer.get_extension(self._log_report)
-        observation = trainer.observation
-        for key in self._keys:
-            correct_key = '%s/correct' % key
-            total_key = '%s/total' % key
-            if correct_key not in observation:
-                continue
-
-            self._correct[key] += observation[correct_key]
-            self._total[key] += observation[total_key]
-
-        if self._trigger(trainer):
-            log = {}
-            for key in self._keys:
-                accuracy = float(self._correct[key]) / self._total[key]
-                log['%s/accuracy' % key] = accuracy
-                self._correct[key] = 0
-                self._total[key] = 0
-            reporter.log.append(log)
-
-
 def main():
     parser = argparse.ArgumentParser(
         description='Chainer example: POS-tagging')
@@ -163,7 +129,12 @@ def main():
     trainer.extend(extensions.Evaluator(
         test_iter, model, device=args.gpu, converter=convert))
     trainer.extend(extensions.LogReport())
-    trainer.extend(MicroAverage())
+
+    trainer.extend(extensions.MicroAverage(
+        'main/correct', 'main/total', 'main/accuracy'))
+    trainer.extend(extensions.MicroAverage(
+        'validation/main/correct', 'validation/main/total',
+        'validation/main/accuracy'))
 
     trainer.extend(extensions.PrintReport(
         ['epoch', 'main/loss', 'validation/main/loss',
