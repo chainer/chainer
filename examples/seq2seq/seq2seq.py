@@ -26,6 +26,23 @@ def sequence_embed(embed, xs):
     return exs
 
 
+def get_topk(x, k=5, axis=1):
+    ids_list = []
+    scores_list = []
+    xp = cuda.get_array_module(x)
+    for i in range(k):
+        ids = xp.argmax(x, axis=axis).astype('i')
+        if axis == 0:
+            scores = x[ids]
+            x[ids] = - float('inf')
+        else:
+            scores = x[xp.arange(ids.shape[0]), ids]
+            x[xp.arange(ids.shape[0]), ids] = - float('inf')
+        ids_list.append(ids)
+        scores_list.append(scores)
+    return ids_list, scores_list
+
+
 class Seq2seq(chainer.Chain):
 
     def __init__(self, n_layers, n_source_vocab, n_target_vocab, n_units):
@@ -96,6 +113,70 @@ class Seq2seq(chainer.Chain):
                 y = y[:inds[0, 0]]
             outs.append(y)
         return outs
+
+    def translate_beam(self, xs, max_length=50, beam=16):
+        with chainer.no_backprop_mode():
+            xs = [x[::-1] for x in xs]
+            exs = sequence_embed(self.embed_x, xs)
+            # Initial hidden variable and cell variable
+            zero = self.xp.zeros((self.n_layers, 1, self.n_units), 'f')
+            h, c, _ = self.encoder(zero, zero, exs, train=False)
+            h = F.broadcast_to(h, (self.n_layers, beam, self.n_units))
+            c = F.broadcast_to(c, (self.n_layers, beam, self.n_units))
+            ys = self.xp.zeros(beam, 'i')
+            result = [[] for _ in range(beam)]
+
+            sum_ws = self.xp.zeros(beam, 'f')
+            for i in range(max_length):
+                if i != 0 and (ys == 0).sum() == beam:
+                    break
+
+                eys = self.embed_y(ys)
+                eys = chainer.functions.split_axis(
+                    eys, beam, 0, force_tuple=True)
+                h, c, hs = self.decoder(h, c, eys, train=False)
+                hs_concat = chainer.functions.concat(hs, axis=0)
+                ws_concat = F.log_softmax(self.W(hs_concat)).data
+
+                if i != 0:
+                    eos_sent_ids = self.xp.flatnonzero(ys == 0)
+                    ws_concat[eos_sent_ids, :] = - float('inf')
+                    ws_concat[eos_sent_ids, 0] = 0.
+                    # eos-seq continue to choose eos with 0-score
+
+                ys_list, ws_list = get_topk(ws_concat, beam, axis=1)
+
+                if i == 0:
+                    ys_list = [s[:1] for s in ys_list]
+                    ws_list = [s[:1] for s in ws_list]
+                    sum_ws_list = ws_list
+                else:
+                    sum_ws_list = [ws + sum_ws for ws in ws_list]
+
+                sum_ws_concat = self.xp.concatenate(sum_ws_list, axis=0)
+                ys_concat = self.xp.concatenate(ys_list, axis=0)
+
+                idx_list, sum_ws_list = get_topk(sum_ws_concat, beam, axis=0)
+                idx_concat = self.xp.stack(idx_list, axis=0)
+                ys = ys_concat[idx_concat]
+                sum_ws = self.xp.stack(sum_ws_list, axis=0)
+
+                y_list = ys.tolist()
+                old_idx_list = (idx_concat % beam).tolist()
+
+                h = F.stack(
+                    [h[:, idx] for idx in old_idx_list], axis=1)
+                c = F.stack(
+                    [c[:, idx] for idx in old_idx_list], axis=1)
+
+                result = [result[idx] + [y]
+                          for idx, y in zip(old_idx_list, y_list)]
+
+        # Remove EOS taggs
+        result = [[y for y in y_list if y != 0]
+                  for y_list in result]
+
+        return result
 
 
 def convert(batch, device):
@@ -232,6 +313,11 @@ def main():
         ys = model.translate([x])[0]
         words = [target_words[y] for y in ys]
         print('result:' + ' '.join(words))
+
+        words_list = model.translate_beam([x])[:3]
+        for i, ys in enumerate(words_list, start=1):
+            words = [target_words[y] for y in ys]
+            print('beam{} : '.format(i) + ' '.join(words))
         print('expect: Astronomes Introduction Vidéo d\'introduction Qu\'est-ce que l\'astronomie?')
 
     trainer.extend(translate, trigger=(200, 'iteration'))
