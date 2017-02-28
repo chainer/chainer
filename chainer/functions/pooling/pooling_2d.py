@@ -2,7 +2,6 @@ import collections
 
 import numpy
 
-from chainer import configuration
 from chainer import cuda
 from chainer import function
 from chainer.utils import conv
@@ -38,6 +37,7 @@ class Pooling2D(function.Function):
         self.ph, self.pw = _pair(pad)
 
         self.cover_all = cover_all
+        self._used_cudnn = False
 
     def check_type_forward(self, in_types):
         type_check.expect(
@@ -47,6 +47,8 @@ class Pooling2D(function.Function):
         )
 
     def forward_gpu(self, x):
+        self._used_cudnn = True
+
         # Implementation using cudnn
         x = x[0]
         n, c, h, w = x.shape

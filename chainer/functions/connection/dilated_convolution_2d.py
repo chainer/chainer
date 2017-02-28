@@ -1,7 +1,7 @@
 import numpy
 from six import moves
 
-from chainer import configuration
+import chainer
 from chainer import cuda
 from chainer import function
 from chainer.utils import conv
@@ -87,8 +87,7 @@ class DilatedConvolution2DFunction(function.Function):
                                       cover_all=self.cover_all, d=self.dx)
 
         y = cuda.cupy.zeros((n, out_c, out_h, out_w), dtype=x.dtype)
-        if (not self.cover_all and cuda.cudnn_enabled and
-                configuration.config.use_cudnn and
+        if (not self.cover_all and chainer.should_use_cudnn('>=auto') and
                 _check_cudnn_acceptable_type(x.dtype, W.dtype)):
 
             pad_x = cuda.cupy.zeros((n, c, h + 2 * self.ph, w + 2 * self.pw),
@@ -183,8 +182,7 @@ class DilatedConvolution2DFunction(function.Function):
         dkh, dkw = kh + (kh - 1) * (self.dy - 1), kw + (kw - 1) * (self.dx - 1)
 
         gW = cuda.cupy.empty_like(W)
-        if (not self.cover_all and cuda.cudnn_enabled and
-                configuration.config.use_cudnn and
+        if (not self.cover_all and chainer.should_use_cudnn('>=auto') and
                 _check_cudnn_acceptable_type(x.dtype, W.dtype)):
 
             pad_x = cuda.cupy.zeros(

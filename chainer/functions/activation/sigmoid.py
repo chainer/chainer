@@ -1,6 +1,6 @@
 import numpy
 
-from chainer import configuration
+import chainer
 from chainer import cuda
 from chainer import function
 from chainer import utils
@@ -28,10 +28,10 @@ class Sigmoid(function.Function):
 
     def forward_gpu(self, inputs):
         x = inputs[0]
-        if (cuda.cudnn_enabled and configuration.config.use_cudnn and
+        if (chainer.should_use_cudnn('==always') and
                 x.flags.c_contiguous and
                 (_cudnn_version >= 3000 or x.dtype != numpy.float16)):
-            self.y = cuda.cupy.cudnn.activation_forward(x, _mode)
+            self.y = cudnn.activation_forward(x, _mode)
         else:
             self.y = cuda.elementwise(
                 'T x', 'T y', 'y = tanh(x * 0.5) * 0.5 + 0.5',
@@ -45,11 +45,11 @@ class Sigmoid(function.Function):
     def backward_gpu(self, inputs, grads):
         x = inputs[0]
         gy = grads[0]
-        if (cuda.cudnn_enabled and configuration.config.use_cudnn and
+        if (chainer.should_use_cudnn('==always') and
                 x.flags.c_contiguous and
                 gy.flags.c_contiguous and
                 (_cudnn_version >= 3000 or x.dtype != numpy.float16)):
-            gx = cuda.cupy.cudnn.activation_backward(x, self.y, gy, _mode)
+            gx = cudnn.activation_backward(x, self.y, gy, _mode)
         else:
             gx = cuda.elementwise(
                 'T y, T gy', 'T gx',

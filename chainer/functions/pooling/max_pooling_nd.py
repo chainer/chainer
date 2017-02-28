@@ -4,7 +4,7 @@ import functools
 from operator import mul
 import six
 
-from chainer import configuration
+import chainer
 from chainer import cuda
 from chainer.functions.pooling import max_pooling_nd_kernel
 from chainer.functions.pooling import pooling_nd
@@ -46,7 +46,7 @@ class MaxPoolingND(pooling_nd._PoolingND):
         return y,
 
     def forward_gpu(self, x):
-        if (cuda.cudnn_enabled and configuration.config.use_cudnn and
+        if (chainer.should_use_cudnn('>=auto') and
                 pooling_nd._check_cudnn_acceptable_type(x[0].dtype)):
             # With cuDNN v3 or greater, use cuDNN implementation for inputs
             # with spatial dimensions of two or more.
@@ -99,16 +99,8 @@ class MaxPoolingND(pooling_nd._PoolingND):
         return gx,
 
     def backward_gpu(self, x, gy):
-        if (cuda.cudnn_enabled and configuration.config.use_cudnn and
-                pooling_nd._check_cudnn_acceptable_type(x[0].dtype)):
-            # With cuDNN v3 or greater, use cuDNN implementation for inputs
-            # with spatial dimensions of two or more.
-            if _cudnn_version >= 3000 and self.ndim >= 2:
-                return super(MaxPoolingND, self).backward_gpu(x, gy)
-            # With cuDNN v2, use cuDNN implementation only for inputs with
-            # spatial dimensions of two.
-            elif self.ndim == 2:
-                return super(MaxPoolingND, self).backward_gpu(x, gy)
+        if self._used_cudnn:
+            return super(MaxPoolingND, self).backward_gpu(x, gy)
 
         n, c = x[0].shape[:2]
         dims = x[0].shape[2:]

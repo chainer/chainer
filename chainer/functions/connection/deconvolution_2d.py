@@ -1,6 +1,6 @@
 import numpy
 
-from chainer import configuration
+import chainer
 from chainer import cuda
 from chainer import function
 from chainer.functions.connection import convolution_2d
@@ -106,7 +106,7 @@ class Deconvolution2DFunction(function.Function):
         if self.outw is None:
             self.outw = conv.get_deconv_outsize(in_w, kw, self.sx, self.pw)
             assert self.outw > 0, 'Width in the output should be positive.'
-        if (cuda.cudnn_enabled and configuration.config.use_cudnn and
+        if (chainer.should_use_cudnn('>=auto') and
                 _check_cudnn_acceptable_type(x.dtype, W.dtype)):
             x = cuda.cupy.ascontiguousarray(x)
             W = cuda.cupy.ascontiguousarray(W)
@@ -198,7 +198,7 @@ class Deconvolution2DFunction(function.Function):
         c, h, w = gy.shape[1:]
         gx = cuda.cupy.empty((n, in_c, in_h, in_w), dtype=x.dtype)
 
-        if (cuda.cudnn_enabled and configuration.config.use_cudnn and
+        if (chainer.should_use_cudnn('>=auto') and
                 _check_cudnn_acceptable_type(x.dtype, W.dtype)):
             x = cuda.cupy.ascontiguousarray(x)
             W = cuda.cupy.ascontiguousarray(W)

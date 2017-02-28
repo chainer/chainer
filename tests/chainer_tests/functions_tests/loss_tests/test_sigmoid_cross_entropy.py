@@ -31,7 +31,7 @@ class TestSigmoidCrossEntropy(unittest.TestCase):
             self.t = numpy.random.randint(-1, 2,
                                           self.shape).astype(numpy.int32)
 
-    def check_forward(self, x_data, t_data, use_cudnn=True):
+    def check_forward(self, x_data, t_data, use_cudnn='always'):
         x_val = chainer.Variable(x_data)
         t_val = chainer.Variable(t_data)
         with chainer.using_config('use_cudnn', use_cudnn):
@@ -73,7 +73,7 @@ class TestSigmoidCrossEntropy(unittest.TestCase):
     def test_forward_gpu_no_cudnn(self):
         self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.t), False)
 
-    def check_backward(self, x_data, t_data, use_cudnn=True):
+    def check_backward(self, x_data, t_data, use_cudnn='always'):
         # Skip too large case. That requires a long time.
         if self.shape[0] == 65536:
             return
@@ -98,8 +98,9 @@ class TestSigmoidCrossEntropy(unittest.TestCase):
 
 
 @testing.parameterize(
-    {'use_cudnn': True},
-    {'use_cudnn': False},
+    {'use_cudnn': 'always'},
+    {'use_cudnn': 'auto'},
+    {'use_cudnn': 'never'},
 )
 @attr.cudnn
 class TestSgimoidCrossEntropyCudnnCall(unittest.TestCase):
@@ -118,7 +119,8 @@ class TestSgimoidCrossEntropyCudnnCall(unittest.TestCase):
             y = self.forward()
             with mock.patch('cupy.cudnn.cudnn.activationForward_v3') as func:
                 y.backward()
-                self.assertEqual(func.called, self.use_cudnn)
+                self.assertEqual(func.called,
+                                 chainer.should_use_cudnn('==always'))
 
     # Note that SoftmaxCrossEntropy does not use cudnn on backward
 

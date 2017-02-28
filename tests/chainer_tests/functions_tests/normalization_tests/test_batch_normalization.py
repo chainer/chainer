@@ -51,7 +51,7 @@ class TestBatchNormalization(unittest.TestCase):
             self.check_backward_options = {
                 'dtype': numpy.float64, 'atol': 1e-3, 'rtol': 1e-2}
 
-    def check_forward(self, args, use_cudnn=True):
+    def check_forward(self, args, use_cudnn='always'):
         with chainer.using_config('use_cudnn', use_cudnn):
             y = functions.batch_normalization(
                 *[chainer.Variable(i) for i in args], running_mean=None,
@@ -127,7 +127,7 @@ class TestFixedBatchNormalization(unittest.TestCase):
             self.check_backward_options = {
                 'dtype': numpy.float64, 'atol': 1e-3, 'rtol': 1e-2}
 
-    def check_forward(self, args, use_cudnn=True):
+    def check_forward(self, args, use_cudnn='always'):
         with chainer.using_config('use_cudnn', use_cudnn):
             y = functions.fixed_batch_normalization(
                 *[chainer.Variable(i) for i in args], eps=self.eps)
@@ -173,7 +173,7 @@ class TestFixedBatchNormalization(unittest.TestCase):
 
 
 @testing.parameterize(*testing.product({
-    'use_cudnn': [True, False],
+    'use_cudnn': ['always', 'auto', 'never'],
     # TODO(bkvogel): Check float16 support again in next cuDNN version.
     'dtype': [numpy.float32, numpy.float64],
 }))
@@ -192,8 +192,8 @@ class TestBatchNormalizationCudnnCall(unittest.TestCase):
         self.aggr_axes = (0,) + tuple(six.moves.range(2, ndim + 2))
         self.mean = self.x.mean(axis=self.aggr_axes)
         self.var = self.x.var(axis=self.aggr_axes) + self.eps
-        self.expect = self.use_cudnn and (
-            cuda.cudnn.cudnn.getVersion() >= 5000)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.expect = chainer.should_use_cudnn('>=auto', 5000)
 
     def forward(self):
         return functions.batch_normalization(

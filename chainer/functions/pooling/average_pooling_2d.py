@@ -1,6 +1,6 @@
 import numpy
 
-from chainer import configuration
+import chainer
 from chainer import cuda
 from chainer.functions.pooling import pooling_2d
 from chainer.utils import conv
@@ -22,7 +22,7 @@ class AveragePooling2D(pooling_2d.Pooling2D):
         return y,
 
     def forward_gpu(self, x):
-        if (cuda.cudnn_enabled and configuration.config.use_cudnn and \
+        if (chainer.should_use_cudnn('>=auto') and
                 pooling_2d._check_cudnn_acceptable_type(x[0].dtype)):
             return super(AveragePooling2D, self).forward_gpu(x)
 
@@ -66,8 +66,7 @@ class AveragePooling2D(pooling_2d.Pooling2D):
         return gx,
 
     def backward_gpu(self, x, gy):
-        if (cuda.cudnn_enabled and configuration.config.use_cudnn and
-                pooling_2d._check_cudnn_acceptable_type(x[0].dtype)):
+        if self._used_cudnn:
             return super(AveragePooling2D, self).backward_gpu(x, gy)
 
         n, c, h, w = x[0].shape

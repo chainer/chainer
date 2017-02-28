@@ -49,7 +49,7 @@ class TestMaxPoolingND(unittest.TestCase):
             self.check_backward_options = {
                 'eps': 2.0 ** -8, 'atol': 1e-03, 'rtol': 1e-03}
 
-    def check_forward(self, x_data, use_cudnn=True):
+    def check_forward(self, x_data, use_cudnn='always'):
         dims = self.dims
         ksize = self.ksize
         stride = self.stride
@@ -73,7 +73,7 @@ class TestMaxPoolingND(unittest.TestCase):
 
     @condition.retry(3)
     def test_forward_cpu(self):
-        self.check_forward(self.x, use_cudnn=False)
+        self.check_forward(self.x, use_cudnn='never')
 
     def test_forward_cpu_wide(self):  # see #120
         ndim = self.ndim
@@ -91,7 +91,7 @@ class TestMaxPoolingND(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_forward_gpu_no_cudnn(self):
-        self.check_forward(cuda.to_gpu(self.x), False)
+        self.check_forward(cuda.to_gpu(self.x), 'never')
 
     def test_forward_consistency_regression(self):
         # Regression test to max_pooling_2d.
@@ -103,14 +103,14 @@ class TestMaxPoolingND(unittest.TestCase):
         stride = self.stride
         pad = self.pad
 
-        with chainer.using_config('use_cudnn', False):
+        with chainer.using_config('use_cudnn', 'never'):
             y_nd = functions.max_pooling_nd(self.x, ksize, stride=stride, pad=pad,
                                             cover_all=self.cover_all)
             y_2d = functions.max_pooling_2d(self.x, ksize, stride=stride, pad=pad,
                                             cover_all=self.cover_all)
         testing.assert_allclose(y_nd.data, y_2d.data)
 
-    def check_backward(self, x_data, y_grad, use_cudnn=True):
+    def check_backward(self, x_data, y_grad, use_cudnn='always'):
         with chainer.using_config('use_cudnn', use_cudnn):
             gradient_check.check_backward(
                 functions.MaxPoolingND(
@@ -130,7 +130,7 @@ class TestMaxPoolingND(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_backward_gpu_no_cudnn(self):
-        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy), False)
+        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy), 'never')
 
     def test_backward_cpu_more_than_once(self):
         func = functions.MaxPoolingND(
@@ -143,7 +143,7 @@ class TestMaxPoolingND(unittest.TestCase):
 
 @testing.parameterize(*testing.product({
     'dims': [(4, 3, 2), (3, 2), (2,)],
-    'use_cudnn': [True, False],
+    'use_cudnn': ['always', 'auto', 'never'],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
 @attr.cudnn
@@ -175,18 +175,22 @@ class TestMaxPoolingNDCudnnCall(unittest.TestCase):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             with mock.patch('cupy.cudnn.cudnn.poolingForward') as func:
                 self.forward()
-                self.assertEqual(func.called, self.use_cudnn and self.ndim > 1)
+                self.assertEqual(func.called,
+                                 chainer.should_use_cudnn('>=auto') and
+                                 self.ndim > 1)
 
     @unittest.skipIf(cuda.cudnn_enabled and
                      cuda.cudnn.cudnn.getVersion() < 3000,
                      'Only cudnn ver>=3 supports max-pooling-nd')
     def test_call_cudnn_backward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
+            expect = chainer.should_use_cudnn('>=auto') and self.ndim > 1
             y = self.forward()
-            y.grad = self.gy
-            with mock.patch('cupy.cudnn.cudnn.poolingBackward') as func:
-                y.backward()
-                self.assertEqual(func.called, self.use_cudnn and self.ndim > 1)
+        # should be consistent to forward regardless of use_cudnn config
+        y.grad = self.gy
+        with mock.patch('cupy.cudnn.cudnn.poolingBackward') as func:
+            y.backward()
+            self.assertEqual(func.called, expect)
 
 
 testing.run_module(__name__, __file__)

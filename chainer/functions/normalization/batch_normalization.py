@@ -1,6 +1,6 @@
 import numpy
 
-from chainer import configuration
+import chainer
 from chainer import cuda
 from chainer import function
 from chainer.utils import type_check
@@ -8,7 +8,6 @@ from chainer.utils import type_check
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
     libcudnn = cudnn.cudnn
-    _cudnn_version = libcudnn.getVersion()
 
 
 def _as4darray(arr):
@@ -37,7 +36,7 @@ class BatchNormalizationFunction(function.Function):
         # See CUDNN_BN_MIN_EPSILON value in cudnn.h to verify minimum allowable
         # value.
         self.eps = eps
-        if cuda.cudnn_enabled and configuration.config.use_cudnn:
+        if chainer.should_use_cudnn('>=auto'):
             if eps < 1e-5:
                 msg = 'cuDNN does not allow an eps value less than 1e-5.'
                 raise RuntimeError(msg)
@@ -84,11 +83,6 @@ class BatchNormalizationFunction(function.Function):
             self.fixed_mean = inputs[3]
             self.fixed_var = inputs[4]
 
-        # TODO(bkvogel): Check for float16 support again in next cuDNN version.
-        if x[0].dtype == numpy.float16:
-            # cuDNN v5 batch normalization does not seem to support float16.
-            configuration.config.use_cudnn = False
-
         head_ndim = gamma.ndim + 1
         expander = (None, Ellipsis) + (None,) * (x.ndim - head_ndim)
         gamma = gamma[expander]
@@ -100,12 +94,14 @@ class BatchNormalizationFunction(function.Function):
         # into a 2-dim array with channels as second dim and m=<product
         # of all dimensions except the 2nd dimension> as the first
         # dimension.
-        self.cudnn_dim_ok = x.ndim == 2 or x.ndim == 4
+        cudnn_dim_ok = x.ndim == 2 or x.ndim == 4
+        # TODO(bkvogel): Check for float16 support again in next cuDNN version.
+        # cuDNN v5 batch normalization does not seem to support float16.
+        self._can_use_cudnn = cudnn_dim_ok and x[0].dtype != numpy.float16
 
         cudnn_updated_running_stats = False
-        if xp is not numpy and cuda.cudnn_enabled and \
-                configuration.config.use_cudnn and \
-                self.cudnn_dim_ok and _cudnn_version >= 5000:
+        if (xp is not numpy and chainer.should_use_cudnn('>=auto', 5000) and
+                self._can_use_cudnn):
             if x.ndim == 4:
                 # for convolutional layer
                 self.mode = libcudnn.CUDNN_BATCHNORM_SPATIAL
@@ -219,15 +215,9 @@ class BatchNormalizationFunction(function.Function):
             return gx, ggamma, gbeta, gmean, gvar
 
         # Note: If length of inputs is not 5, we must be in train mode.
-<<<<<<< HEAD
         assert configuration.config.train
-        if xp is not numpy and cuda.cudnn_enabled and self.use_cudnn and \
-=======
-        assert self.train
-        if xp is not numpy and cuda.cudnn_enabled and \
-                configuration.config.use_cudnn and \
->>>>>>> Add use_cudnn configuration
-                self.cudnn_dim_ok and _cudnn_version >= 5000:
+        if (xp is not numpy and chainer.should_use_cudnn('>=auto', 5000) and
+                self._can_use_cudnn):
             # Note: cuDNN batch normalization backward only works in
             # "training mode." That is, it does not support
             # computing gradients in fixed-mean-variance mode, because there

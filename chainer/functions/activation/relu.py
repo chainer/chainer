@@ -1,6 +1,6 @@
 import numpy
 
-from chainer import configuration
+import chainer
 from chainer import cuda
 from chainer import function
 from chainer import utils
@@ -29,7 +29,7 @@ class ReLU(function.Function):
         return utils.force_array(numpy.maximum(x[0], 0, dtype=x[0].dtype)),
 
     def forward_gpu(self, x):
-        if (cuda.cudnn_enabled and configuration.config.use_cudnn and
+        if (chainer.should_use_cudnn('==always') and
                 x[0].flags.c_contiguous and
                 (_cudnn_version >= 3000 or x[0].dtype != numpy.float16)):
             y = cudnn.activation_forward(x[0], _mode)
@@ -42,7 +42,7 @@ class ReLU(function.Function):
         return utils.force_array(gy[0] * (x[0] > 0)),
 
     def backward_gpu(self, x, gy):
-        if (cuda.cudnn_enabled and configuration.config.use_cudnn and
+        if (chainer.should_use_cudnn('==always') and
                 x[0].flags.c_contiguous and gy[0].flags.c_contiguous and
                 (_cudnn_version >= 3000 or x[0].dtype != numpy.float16)):
             gx = cudnn.activation_backward(x[0], self.y, gy[0], _mode)

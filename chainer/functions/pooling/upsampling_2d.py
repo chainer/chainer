@@ -1,4 +1,3 @@
-from chainer import configuration
 from chainer import cuda
 from chainer.functions.pooling import pooling_2d
 from chainer.utils import conv
@@ -166,7 +165,7 @@ def upsampling_2d(
         because if cuDNN used for operating max pooling, ``indexes`` is never
         created and stored in the MaxPooling2D object.
 
-        >>> with chainer.using_config('train', False):
+        >>> with chainer.using_config('use_cudnn', False):
         ...     p = F.MaxPooling2D(2, 2)
         >>> x = np.arange(1, 37).reshape(1, 1, 6, 6).astype('f')
         >>> x = chainer.Variable(x)

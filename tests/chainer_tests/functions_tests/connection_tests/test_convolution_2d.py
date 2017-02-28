@@ -32,7 +32,7 @@ class TestConvolution2DFunction(unittest.TestCase):
         kh, kw = (3, 3)
         self.stride = 2
         self.pad = 1
-        self.use_cudnn = True
+        self.use_cudnn = 'always'
         self.W = numpy.random.normal(
             0, numpy.sqrt(1. / (kh * kw * in_channels)),
             (out_channels, in_channels, kh, kw)).astype(self.W_dtype)
@@ -76,12 +76,12 @@ class TestConvolution2DFunction(unittest.TestCase):
 
     @attr.gpu
     def test_forward_consistency_im2col(self):
-        self.use_cudnn = False
+        self.use_cudnn = 'never'
         self.test_forward_consistency()
 
     @attr.gpu
     def test_forward_consistency_im2col_nobias(self):
-        self.use_cudnn = False
+        self.use_cudnn = 'never'
         self.test_forward_consistency(nobias=True)
 
     def check_backward(self, x_data, W_data, b_data, y_grad):
@@ -132,20 +132,20 @@ class TestConvolution2DFunction(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_backward_gpu_im2col(self):
-        self.use_cudnn = False
+        self.use_cudnn = 'never'
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.W),
                             cuda.to_gpu(self.b), cuda.to_gpu(self.gy))
 
     @attr.gpu
     @condition.retry(3)
     def test_backward_gpu_im2col_nobias(self):
-        self.use_cudnn = False
+        self.use_cudnn = 'never'
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.W),
                             None, cuda.to_gpu(self.gy))
 
 
 @testing.parameterize(*testing.product({
-    'use_cudnn': [True, False],
+    'use_cudnn': ['always', 'auto', 'never'],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
 @attr.cudnn
@@ -164,9 +164,10 @@ class TestConvolution2DCudnnCall(unittest.TestCase):
             (out_channels, in_channels, kh, kw)).astype(self.dtype)
         self.gy = cuda.cupy.random.uniform(
             -1, 1, (2, 2, 2, 2)).astype(self.dtype)
-        self.expect = self.use_cudnn and (
-            cuda.cudnn.cudnn.getVersion() >= 3000 or
-            self.dtype != numpy.float16)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.expect = chainer.should_use_cudnn('>=auto') and (
+                cuda.cudnn.cudnn.getVersion() >= 3000 or
+                self.dtype != numpy.float16)
 
     def forward(self):
         x = chainer.Variable(self.x)
@@ -272,7 +273,8 @@ class TestConvolution2DFunctionDeterministic(unittest.TestCase):
         return x_data, W_data, b_data, gy_data
 
     def _run(self):
-        with chainer.using_config('use_cudnn', True):
+        with chainer.using_config('use_cudnn', 'always'):
+            print(chainer.should_use_cudnn('>=auto'))
             # verify data continuity and move to gpu
             x_data, W_data, b_data, gy_data = \
                 tuple(cuda.to_gpu(data) for data in self._contiguous(

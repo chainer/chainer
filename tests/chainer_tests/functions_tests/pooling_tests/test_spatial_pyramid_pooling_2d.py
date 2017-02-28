@@ -43,7 +43,7 @@ class TestSpatialPyramidPooling2D(unittest.TestCase):
             self.check_backward_options = {
                 'dtype': numpy.float64, 'atol': 5e-4, 'rtol': 5e-3}
 
-    def check_forward(self, x_data, use_cudnn=True):
+    def check_forward(self, x_data, use_cudnn='always'):
         x = chainer.Variable(x_data)
         with chainer.using_config('use_cudnn', use_cudnn):
             y = functions.spatial_pyramid_pooling_2d(
@@ -53,7 +53,7 @@ class TestSpatialPyramidPooling2D(unittest.TestCase):
 
         self.assertEqual(self.gy.shape, y_data.shape)
 
-    def check_forward_ones(self, x_data, use_cudnn=True):
+    def check_forward_ones(self, x_data, use_cudnn='always'):
         x = chainer.Variable(x_data)
         with chainer.using_config('use_cudnn', use_cudnn):
             y = functions.spatial_pyramid_pooling_2d(
@@ -78,10 +78,10 @@ class TestSpatialPyramidPooling2D(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_forward_gpu_no_cudnn(self):
-        self.check_forward(cuda.to_gpu(self.x), False)
-        self.check_forward_ones(cuda.to_gpu(self.one), False)
+        self.check_forward(cuda.to_gpu(self.x), 'never')
+        self.check_forward_ones(cuda.to_gpu(self.one), 'never')
 
-    def check_backward(self, x_data, y_grad, use_cudnn=True):
+    def check_backward(self, x_data, y_grad, use_cudnn='always'):
         with chainer.using_config('use_cudnn', use_cudnn):
             gradient_check.check_backward(
                 functions.SpatialPyramidPooling2D(
@@ -100,7 +100,7 @@ class TestSpatialPyramidPooling2D(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_backward_gpu_no_cudnn(self):
-        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy), False)
+        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy), 'never')
 
 
 class TestInvalidDtype(unittest.TestCase):
@@ -125,7 +125,7 @@ class TestInvalidDtype(unittest.TestCase):
 
 
 @testing.parameterize(*testing.product({
-    'use_cudnn': [True, False],
+    'use_cudnn': ['always', 'auto', 'never'],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
 @attr.cudnn
@@ -150,18 +150,21 @@ class TestMaxPooling2DCudnnCall(unittest.TestCase):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             with mock.patch('cupy.cudnn.cudnn.poolingForward') as func:
                 self.forward()
-                self.assertEqual(func.called, self.use_cudnn)
+                self.assertEqual(func.called,
+                                 chainer.should_use_cudnn('>=auto'))
 
     @unittest.skipIf(cuda.cudnn_enabled and
                      cuda.cudnn.cudnn.getVersion() < 3000,
                      'Only cudnn ver>=3 supports spatial-pyramid-pooling2d')
     def test_call_cudnn_backward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
+            expect = chainer.should_use_cudnn('>=auto')
             y = self.forward()
-            y.grad = self.gy
-            with mock.patch('cupy.cudnn.cudnn.poolingBackward') as func:
-                y.backward()
-                self.assertEqual(func.called, self.use_cudnn)
+        y.grad = self.gy
+        # should be consistent to forward regardless of use_cudnn config
+        with mock.patch('cupy.cudnn.cudnn.poolingBackward') as func:
+            y.backward()
+            self.assertEqual(func.called, expect)
 
 
 testing.run_module(__name__, __file__)

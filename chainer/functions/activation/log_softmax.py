@@ -1,6 +1,6 @@
 import numpy
 
-from chainer import configuration
+import chainer
 from chainer import cuda
 from chainer import function
 from chainer.utils import type_check
@@ -8,7 +8,6 @@ from chainer.utils import type_check
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
     libcudnn = cudnn.cudnn
-    _cudnn_version = libcudnn.getVersion()
     _algorithm = libcudnn.CUDNN_SOFTMAX_LOG
     _mode = libcudnn.CUDNN_SOFTMAX_MODE_CHANNEL
 
@@ -25,11 +24,9 @@ def logsumexp(x):
 
 
 def _log_softmax(x):
-    if (cuda.cudnn_enabled and
-            configuration.config.use_cudnn and
-            _cudnn_version >= 3000):
+    if chainer.should_use_cudnn('>=auto', 3000):
         xp = cuda.get_array_module(x)
-        if xp != numpy:
+        if xp is not numpy:
             oz_dtype = 'd' if x.dtype == 'd' else 'f'
             one = numpy.array(1, dtype=oz_dtype).ctypes
             zero = numpy.array(0, dtype=oz_dtype).ctypes
@@ -69,9 +66,7 @@ class LogSoftmax(function.Function):
 
     def backward(self, x, gy):
         xp = cuda.get_array_module(*x)
-        if (xp != numpy and cuda.cudnn_enabled and
-                configuration.config.use_cudnn and
-                _cudnn_version >= 3000):
+        if xp is not numpy and chainer.should_use_cudnn('>=auto', 3000):
             oz_dtype = 'd' if x[0].dtype == 'd' else 'f'
             one = numpy.array(1, dtype=oz_dtype).ctypes
             zero = numpy.array(0, dtype=oz_dtype).ctypes

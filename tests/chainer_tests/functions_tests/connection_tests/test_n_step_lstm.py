@@ -20,7 +20,7 @@ def _split(inputs, pos):
 
 
 @testing.parameterize(*testing.product({
-    'use_cudnn': [True, False],
+    'use_cudnn': ['always', 'never'],
 }))
 class TestNStepLSTM(unittest.TestCase):
 
@@ -167,7 +167,7 @@ class TestNStepLSTM(unittest.TestCase):
 
 
 @testing.parameterize(*testing.product({
-    'use_cudnn': [True, False],
+    'use_cudnn': ['always', 'auto', 'never'],
 }))
 @attr.cudnn
 class TestNStepLSTMCudnnCall(unittest.TestCase):
@@ -211,8 +211,8 @@ class TestNStepLSTMCudnnCall(unittest.TestCase):
             for b in self.batches]
         self.dcy = cuda.cupy.random.uniform(-1, 1, h_shape).astype('f')
         self.dhy = cuda.cupy.random.uniform(-1, 1, h_shape).astype('f')
-        self.expect = self.use_cudnn and (
-            cuda.cudnn.cudnn.getVersion() >= 5000)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.expect = chainer.should_use_cudnn('>=auto', 5000)
 
     def forward(self, train):
         volatile = not train

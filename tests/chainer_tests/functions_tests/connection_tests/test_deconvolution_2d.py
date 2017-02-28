@@ -26,7 +26,7 @@ def _pair(x):
     'test_outsize': [True, False],
     'nobias': [True, False],
     'stride': [1, 2],
-    'use_cudnn': [True],
+    'use_cudnn': ['always'],
     'x_dtype': [numpy.float32],
     'W_dtype': [numpy.float32],
 }) + testing.product({
@@ -34,7 +34,7 @@ def _pair(x):
     'test_outsize': [True],
     'nobias': [False],
     'stride': [1, 2],
-    'use_cudnn': [True, False],
+    'use_cudnn': ['always', 'never'],
     'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'W_dtype': [numpy.float16, numpy.float32, numpy.float64],
 })))
@@ -100,7 +100,7 @@ class TestDeconvolution2DFunction(unittest.TestCase):
 
     @attr.gpu
     def test_forward_consistency_im2col(self):
-        self.use_cudnn = False
+        self.use_cudnn = 'never'
         self.test_forward_consistency()
 
     def check_backward(self, x_data, W_data, b_data, y_grad):
@@ -141,7 +141,7 @@ class TestDeconvolution2DFunction(unittest.TestCase):
 
 
 @testing.parameterize(*testing.product({
-    'use_cudnn': [True, False],
+    'use_cudnn': ['always', 'auto', 'never'],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
 @attr.cudnn
@@ -165,9 +165,10 @@ class TestDeconvolution2DCudnnCall(unittest.TestCase):
             -1, 1, (N, self.in_channels, inh, inw)).astype(self.dtype)
         self.gy = cuda.cupy.random.uniform(
             -1, 1, (N, self.out_channels, outh, outw)).astype(self.dtype)
-        self.expect = self.use_cudnn and (
-            cuda.cudnn.cudnn.getVersion() >= 3000 or
-            self.dtype != numpy.float16)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.expect = chainer.should_use_cudnn('>=auto') and (
+                cuda.cudnn.cudnn.getVersion() >= 3000 or
+                self.dtype != numpy.float16)
 
     def forward(self):
         x = chainer.Variable(self.x)
@@ -284,7 +285,7 @@ class TestDeconvolution2DFunctionDeterministic(unittest.TestCase):
         x = chainer.Variable(x_data)
         W = chainer.Variable(W_data)
         b = None if self.nobias else chainer.Variable(b_data)
-        with chainer.using_config('use_cudnn', True):
+        with chainer.using_config('use_cudnn', 'always'):
             y = F.deconvolution_2d(x, W, b, stride=self.stride, pad=self.pad,
                                    deterministic=True)
         return x, W, b, y

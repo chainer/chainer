@@ -2,7 +2,7 @@ import numpy
 
 from six import moves
 
-from chainer import configuration
+import chainer
 from chainer import cuda
 from chainer import function
 from chainer.functions.connection import convolution_2d
@@ -58,8 +58,7 @@ class ConvolutionND(function.Function):
 
     def _use_cudnn(self, x, W):
         return (not self.cover_all and
-                cuda.cudnn_enabled and
-                configuration.config.use_cudnn and
+                chainer.should_use_cudnn('>=auto') and
                 self.ndim > 1 and
                 _check_cudnn_acceptable_type(x.dtype, W.dtype))
 

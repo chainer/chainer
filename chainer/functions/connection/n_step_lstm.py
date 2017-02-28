@@ -6,7 +6,7 @@ import time
 import numpy
 import six
 
-from chainer import configuration
+import chainer
 from chainer import cuda
 from chainer import function
 from chainer.functions.activation import lstm
@@ -22,7 +22,6 @@ from chainer.utils import type_check
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
     libcudnn = cuda.cudnn.cudnn
-    _cudnn_version = libcudnn.getVersion()
 
 
 class PointerArray(object):
@@ -446,8 +445,7 @@ def n_step_lstm(
 
     xp = cuda.get_array_module(hx, hx.data)
 
-    if configuration.config.use_cudnn and xp is not numpy and \
-       cuda.cudnn_enabled and _cudnn_version >= 5000:
+    if xp is not numpy and chainer.should_use_cudnn('>=auto', 5000):
         states = get_random_state().create_dropout_states(dropout_ratio)
         # flatten all input variables
         inputs = tuple(itertools.chain(

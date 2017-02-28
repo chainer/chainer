@@ -29,7 +29,7 @@ class TestReLU(unittest.TestCase):
         if self.dtype == numpy.float16:
             self.check_backward_options = {'dtype': numpy.float64}
 
-    def check_forward(self, x_data, use_cudnn=True):
+    def check_forward(self, x_data, use_cudnn='always'):
         x = chainer.Variable(x_data)
         with chainer.using_config('use_cudnn', use_cudnn):
             y = functions.relu(x)
@@ -55,9 +55,9 @@ class TestReLU(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_forward_gpu_no_cudnn(self):
-        self.check_forward(cuda.to_gpu(self.x), False)
+        self.check_forward(cuda.to_gpu(self.x), 'never')
 
-    def check_backward(self, x_data, y_grad, use_cudnn=True):
+    def check_backward(self, x_data, y_grad, use_cudnn='always'):
         with chainer.using_config('use_cudnn', use_cudnn):
             gradient_check.check_backward(
                 functions.ReLU(), x_data, y_grad,
@@ -81,11 +81,11 @@ class TestReLU(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_backward_cpu_no_cudnn(self):
-        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy), False)
+        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy), 'never')
 
 
 @testing.parameterize(*testing.product({
-    'use_cudnn': [True, False],
+    'use_cudnn': ['always', 'auto', 'never'],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
 @attr.cudnn
@@ -94,9 +94,10 @@ class TestReLUCudnnCall(unittest.TestCase):
     def setUp(self):
         self.x = cuda.cupy.random.uniform(-1, 1, (2, 3)).astype(self.dtype)
         self.gy = cuda.cupy.random.uniform(-1, 1, (2, 3)).astype(self.dtype)
-        self.expect = self.use_cudnn and (
-            cuda.cudnn.cudnn.getVersion() >= 3000 or
-            self.dtype != numpy.float16)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.expect = chainer.should_use_cudnn('==always') and (
+                cuda.cudnn.cudnn.getVersion() >= 3000 or
+                self.dtype != numpy.float16)
 
     def forward(self):
         x = chainer.Variable(self.x)

@@ -57,7 +57,7 @@ class TestSoftmaxCrossEntropy(unittest.TestCase):
         else:
             self.class_weight = None
 
-    def check_forward(self, x_data, t_data, class_weight, use_cudnn=True):
+    def check_forward(self, x_data, t_data, class_weight, use_cudnn='always'):
         x = chainer.Variable(x_data)
         t = chainer.Variable(t_data)
         with chainer.using_config('use_cudnn', use_cudnn):
@@ -117,7 +117,7 @@ class TestSoftmaxCrossEntropy(unittest.TestCase):
             None if not self.weight_apply else cuda.to_gpu(self.class_weight),
             False)
 
-    def check_backward(self, x_data, t_data, class_weight, use_cudnn=True):
+    def check_backward(self, x_data, t_data, class_weight, use_cudnn='always'):
         with chainer.using_config('use_cudnn', use_cudnn):
             func = functions.SoftmaxCrossEntropy(
                 cache_score=self.cache_score, class_weight=class_weight)
@@ -191,7 +191,7 @@ class TestSoftmaxCrossEntropyValueCheck(unittest.TestCase):
 
 
 @testing.parameterize(*testing.product({
-    'use_cudnn': [True, False],
+    'use_cudnn': ['always', 'auto', 'never'],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
 @attr.cudnn
@@ -215,7 +215,8 @@ class TestSoftmaxCrossEntropyCudnnCall(unittest.TestCase):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             with mock.patch('cupy.cudnn.cudnn.softmaxForward') as func:
                 self.forward()
-                self.assertEqual(func.called, self.use_cudnn)
+                self.assertEqual(func.called,
+                                 chainer.should_use_cudnn('>=auto'))
 
     # Note that SoftmaxCrossEntropy does not use cudnn on backward
 
