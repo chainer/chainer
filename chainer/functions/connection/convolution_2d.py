@@ -167,8 +167,6 @@ class Convolution2DFunction(function.Function):
                 for perf_result in perf_results:
                     if perf_result['algo'] == algo:
                         old_time = perf_result['time']
-                print 'forward old={},{} new={}, {}'.format(
-                    algo, old_time, self.best_fwd_algo, perf_results[0]['time'])
                 return y,
         else:
             # Implementation using im2col
@@ -295,14 +293,7 @@ class Convolution2DFunction(function.Function):
                     for perf_result in perf_results:
                         if perf_result['algo'] == bwd_filter_algo:
                             old_time = perf_result['time']
-                    print 'backward_filter old={},{} new={},{}'.format(
-                        bwd_filter_algo, old_time, self.best_bwd_filter_algo,
-                        perf_results[0]['time']
-                    )
 
-                    #print libcudnn.findConvolutionBackwardDataAlgorithm(
-                    #    handle, self.filter_desc.value, gy_desc.value,
-                    #    self.conv_desc.value, x_desc.value, 6)
                     _, perf_results = libcudnn.findConvolutionBackwardDataAlgorithmEx(
                         handle, self.filter_desc.value, W.data.ptr,
                         gy_desc.value, gy.data.ptr, self.conv_desc.value,
@@ -312,10 +303,6 @@ class Convolution2DFunction(function.Function):
                     for perf_result in perf_results:
                         if perf_result['algo'] == bwd_data_algo:
                             old_time = perf_result['time']
-                    print 'backward_data old={},{} new={},{}'.format(
-                        bwd_data_algo, old_time, self.best_bwd_data_algo,
-                        perf_results[0]['time']
-                    )
             else:
                 if self.deterministic:
                     raise ValueError("'deterministic' option not available "

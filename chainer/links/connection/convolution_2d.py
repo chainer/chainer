@@ -114,10 +114,6 @@ class Convolution2D(link.Link):
                 self._initialize_params(x.shape[1])
         if self.tune:
             if self.count < 3:
-                #if (self.fwd_algo is None and self.bwd_filter_algo is None
-                #        and self.bwd_data_algo is None):
-                print 
-                print 'count ', self.count, self.W.shape, x.shape
                 y = convolution_2d.convolution_2d(
                     x, self.W, self.b, self.stride, self.pad, self.use_cudnn,
                     deterministic=self.deterministic, measure=True)
