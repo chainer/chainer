@@ -127,9 +127,6 @@ class Seq2seq(chainer.Chain):
             sum_ws = self.xp.zeros(1, 'f')
             result = [[]] * beam
             for i in range(max_length):
-                if i != 0 and self.xp.all(ys == 0):
-                    break
-
                 eys = self.embed_y(ys)
                 eys = F.split_axis(
                     eys, eys.shape[0], 0, force_tuple=True)
@@ -138,18 +135,23 @@ class Seq2seq(chainer.Chain):
                 ws_concat = F.log_softmax(self.W(hs_concat)).data
 
                 if i != 0:
+                    # Sequences which already generate eos
+                    # continue to choose only eos free
                     eos_sent_ids = self.xp.flatnonzero(ys == 0)
                     ws_concat[eos_sent_ids, :] = - float('inf')
                     ws_concat[eos_sent_ids, 0] = 0.
-                    # eos-seq continue to choose eos with 0-score
 
+                # Each candidate sequence in beam
+                # gets each top-k words with scores
                 ys_list, ws_list = get_topk(ws_concat, beam, axis=1)
                 ys_concat = self.xp.concatenate(ys_list, axis=0)
                 sum_ws_list = [ws + sum_ws for ws in ws_list]
                 sum_ws_concat = self.xp.concatenate(sum_ws_list, axis=0)
 
+                # Get top-k from total candidates
                 idx_list, sum_w_list = get_topk(sum_ws_concat, beam, axis=0)
                 idx_concat = self.xp.stack(idx_list, axis=0)
+                ys = ys_concat[idx_concat]
                 sum_ws = self.xp.stack(sum_w_list, axis=0)
 
                 if i != 0:
@@ -157,9 +159,11 @@ class Seq2seq(chainer.Chain):
                 else:
                     old_idx_list = [0] * beam
 
-                ys = ys_concat[idx_concat]
                 result = [result[idx] + [y]
                           for idx, y in zip(old_idx_list, ys.tolist())]
+
+                if self.xp.all(ys == 0):
+                    break
 
                 h = F.stack([h[:, idx] for idx in old_idx_list], axis=1)
                 c = F.stack([c[:, idx] for idx in old_idx_list], axis=1)
