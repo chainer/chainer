@@ -193,8 +193,7 @@ class Link(object):
         else:
             data = initializers.generate_array(initializer, shape, self.xp)
             grad = self.xp.full_like(data, numpy.nan)
-            var = variable.Variable(
-                data, volatile='auto', name=name, grad=grad)
+            var = variable.Variable(data, name=name, grad=grad)
 
         self._params.append(name)
         d[name] = var

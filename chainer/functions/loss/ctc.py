@@ -299,11 +299,9 @@ def connectionist_temporal_classification(
     if input_length is None:
         xp = cuda.get_array_module(x[0].data)
         input_length = chainer.Variable(
-            xp.full((len(x[0].data),), len(x), dtype=numpy.int32),
-            volatile='auto')
+            xp.full((len(x[0].data),), len(x), dtype=numpy.int32))
         label_length = chainer.Variable(
-            xp.full((len(t.data),), len(t.data[0]), dtype=numpy.int32),
-            volatile='auto')
+            xp.full((len(t.data),), len(t.data[0]), dtype=numpy.int32))
 
     return ConnectionistTemporalClassification(blank_symbol)(
         input_length, label_length, t, *x)

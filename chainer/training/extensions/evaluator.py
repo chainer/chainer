@@ -164,7 +164,8 @@ class Evaluator(extension.Extension):
 
         for batch in it:
             observation = {}
-            with reporter_module.report_scope(observation):
+            with reporter_module.report_scope(observation), \
+                 function.no_backprop_mode():
                 in_arrays = self.converter(batch, self.device)
                 with function.no_backprop_mode():
                     if isinstance(in_arrays, tuple):

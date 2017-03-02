@@ -102,13 +102,13 @@ class BatchNormalization(link.Link):
         else:
             with cuda.get_device(self._device_id):
                 gamma = variable.Variable(self.xp.ones(
-                    self.avg_mean.shape, dtype=x.dtype), volatile='auto')
+                    self.avg_mean.shape, dtype=x.dtype))
         if hasattr(self, 'beta'):
             beta = self.beta
         else:
             with cuda.get_device(self._device_id):
                 beta = variable.Variable(self.xp.zeros(
-                    self.avg_mean.shape, dtype=x.dtype), volatile='auto')
+                    self.avg_mean.shape, dtype=x.dtype))
 
         if configuration.config.train:
             if finetune:
@@ -125,8 +125,8 @@ class BatchNormalization(link.Link):
             self.avg_var[:] = func.running_var
         else:
             # Use running average statistics or fine-tuned statistics.
-            mean = variable.Variable(self.avg_mean, volatile='auto')
-            var = variable.Variable(self.avg_var, volatile='auto')
+            mean = variable.Variable(self.avg_mean)
+            var = variable.Variable(self.avg_var)
             ret = batch_normalization.fixed_batch_normalization(
                 x, gamma, beta, mean, var, self.eps)
         return ret
