@@ -84,6 +84,7 @@ def use_recompute(*fnames):
     """Enable re-compute for specified functions."""
     if not hasattr(_thread_local, 'recompute_targets'):
         _thread_local.recompute_targets = []
+    _thread_local.recompute_is_used = True
 
     default = copy.copy(getattr(_thread_local, 'recompute_targets', []))
     for fname in fnames:
@@ -207,6 +208,15 @@ class Function(object):
         inputs = [x if isinstance(x, chainer.Variable)
                   else chainer.Variable(x, volatile=flag.AUTO)
                   for x in inputs]
+
+        # check wheter data is forgotten or not
+        for x in inputs:
+            if x.is_forgotten:
+                print("  This should not be target of recompute:{}".format(x))
+                x.recompute()
+                x.will_be_forgotten = False
+                x.is_forgotten = False
+                x.set_break_point()
 
         in_data = tuple([x.data for x in inputs])
         if chainer.is_debug():

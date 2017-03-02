@@ -11,6 +11,8 @@ from chainer import cuda
 from chainer import flag
 from chainer import utils
 
+from chainer import function
+
 import cupy.testing as testing  # temporal
 
 def _check_grad_type(func, x, gx):
@@ -120,9 +122,8 @@ Actual: {0}'''.format(type(data))
         self.name = name
 
         #
-        self._org_creator = None
-        self._org_rank = 0
-        self.is_end_of_sub_graph = False
+        self._creator = None
+        self.is_break_point = False
         self.will_be_forgotten = False
         self.is_forgotten = False
 
@@ -341,6 +342,7 @@ Actual: {0}'''.format(type(data))
         """
         self.creator = gen_func
         self.rank = gen_func.rank + 1
+        self._creator = self.creator
 
     def forget(self):
         if self.creator is not None:
@@ -362,8 +364,7 @@ Actual: {0}'''.format(type(data))
                 ancestors.append(cand)
                 seen.add(cand)
 
-        add_cand(ancestor_funcs, seen_funcs, self._org_creator)
-        add_cand(ancestor_funcs, seen_funcs, self.creator)
+        add_cand(ancestor_funcs, seen_funcs, self._creator)
 
         while ancestor_funcs:
             func = ancestor_funcs.pop()
@@ -375,24 +376,17 @@ Actual: {0}'''.format(type(data))
 
     def interrupt_backward(self):
         """Cuts a link to my creator function temporarily."""
-        if self._org_creator is None:
-            self._org_creator = self.creator
-            self._org_rank = self.rank
-            self.creator = None
-            self.rank = 0
+        self.creator = None
 
     def resume_backward(self):
         """Recovers a link to my creator function."""
-        self.creator = self._org_creator
-        self.rank = self._org_rank
-        self._org_creator = None
-        self._org_rank = 0
+        self.creator = self._creator
 
     def set_end_of_sub_graph(self):
         """Sets this variable as an end of a sub-graph"""
-        self.is_end_of_sub_graph = True
+        self.is_break_point = True
         self.interrupt_backward()
-        # _print_memory_pool_stats("set_end_of_sub_graph") # debug
+        _print_memory_pool_stats("set_end_of_sub_graph") # debug
 
     def recompute(self):
         """Re-computes my data"""
@@ -439,6 +433,52 @@ Actual: {0}'''.format(type(data))
         while recomp_vars:
             _, _, var = heapq.heappop(recomp_vars)
             var.recompute()
+
+    def set_break_point(self):
+        """Sets this variable as a break point in the graph"""
+        if not self.is_break_point:
+            self.is_break_point = True
+            self.interrupt_backward()
+            _print_memory_pool_stats("set_break_point") # debug
+
+    def set_break_points(self):
+        """Sets break points in the graph"""
+
+        break_points = []
+        seen_break_points = set()
+
+        def add_break_points(cand):
+            if cand not in seen_break_points:
+                heapq.heappush(break_points, (-cand.rank, len(seen_break_points), cand))
+                seen_break_points.add(cand)
+
+        add_break_points(self)
+        if getattr(function._thread_local, 'recompute_is_used', False):
+            funcs = []
+            vars = []
+            seen_funcs = set()
+            seen_vars = set()
+
+            def add_instance(instances, seen_instances, instance):
+                if instance is not None and instance not in seen_instances:
+                    instances.append(instance)
+                    seen_instances.add(instance)
+
+            add_instance(funcs, seen_funcs, self._creator)
+            while funcs:
+                func = funcs.pop()
+                for var in func.inputs:
+                    if var in seen_vars and not var.is_break_point:
+                        var.set_break_point()
+                        print("  break point is set to {}:".format(var))
+                    add_instance(vars, seen_vars, var)
+                    add_instance(funcs, seen_funcs, var._creator)
+
+                    if var.is_break_point:
+                        add_break_points(var)
+
+        print("  break_points:{}". format(break_points))
+        return break_points
 
     def backward(self, retain_grad=False):
         """Runs error backpropagation (a.k.a. backprop) from this variable.
@@ -489,12 +529,25 @@ Actual: {0}'''.format(type(data))
                 else:
                     self.grad = cuda.cupy.ones_like(self.data)
 
-        # _print_memory_pool_stats("backward")  # debug
+        _print_memory_pool_stats("backward")  # debug
+
+        break_points = self.set_break_points()
 
         # endp is an end point of sub-graph and a starting point of backprop.
         # self is first endp.
-        endp = self
-        while endp is not None:
+        endp_cand = []
+        endp_seen = set()
+        def add_endp_cand(cand):
+            if cand not in endp_seen:
+                heapq.heappush(endp_cand, (-cand.rank, len(endp_seen), cand))
+                endp_seen.add(cand)
+
+        add_endp_cand(self)
+        while endp_cand:
+            _, _, endp = heapq.heappop(endp_cand)
+            print("  endp:{}".format(endp))
+            endp.resume_backward()
+
             # re-compute
             endp.recompute_ancestors()
 
@@ -577,24 +630,15 @@ Actual: {0}'''.format(type(data))
                                 x._grad += gx
                 del gxs  # to reduce memory usage
 
-            # look for next endp
-            next_endp = None
+            # look for endp candidates
             ancestor_vars = endp.ancestors()
             for x in ancestor_vars:
-                if x.is_end_of_sub_graph is True:
-                    if next_endp is not None:
-                        msg = ('There are a number of end_of_sub_graph '
-                               'variables in a single sub graph.')
-                        raise RuntimeError(msg)
-                    next_endp = x
+                if x.is_break_point is True:
+                    add_endp_cand(x)
 
-            if next_endp is not None:
-                endp.unchain_backward()
-                next_endp.resume_backward()
+            endp.unchain_backward()
 
-            endp = next_endp
-
-            # _print_memory_pool_stats("backward")  # debug
+            _print_memory_pool_stats("backward")  # debug
 
         if initial_device is not None:
             initial_device.use()
