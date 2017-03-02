@@ -113,7 +113,7 @@ for epoch in six.moves.range(1, n_epoch + 1):
     sum_rec_loss = 0
     with chainer.no_backprop_mode():
         for i in six.moves.range(0, N_test, batchsize):
-            x = xp.asarray(x_test[i:i + batchsize])
+            x = chainer.Variable(xp.asarray(x_test[i:i + batchsize]))
             loss_func = model.get_loss_func(k=10)
             loss_func(x)
             sum_loss += float(model.loss.data) * len(x.data)
@@ -141,14 +141,14 @@ def save_images(x, filename):
 
 
 train_ind = [1, 3, 5, 10, 2, 0, 13, 15, 17]
-x = np.asarray(x_train[train_ind])
+x = chainer.Variable(np.asarray(x_train[train_ind]))
 with chainer.no_backprop_mode():
     x1 = model(x)
 save_images(x.data, 'train')
 save_images(x1.data, 'train_reconstructed')
 
 test_ind = [3, 2, 1, 18, 4, 8, 11, 17, 61]
-x = np.asarray(x_test[test_ind])
+x = chainer.Variable(np.asarray(x_test[test_ind]))
 with chainer.no_backprop_mode():
     x1 = model(x)
 save_images(x.data, 'test')
