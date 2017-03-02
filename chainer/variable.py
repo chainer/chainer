@@ -9,7 +9,6 @@ import six
 
 import chainer
 from chainer import cuda
-from chainer import flag
 from chainer import initializers
 from chainer import utils
 
