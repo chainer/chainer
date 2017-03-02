@@ -7,26 +7,23 @@ import six
 import chainer
 from chainer import configuration
 from chainer import cuda
-from chainer import flag
 from chainer.utils import type_check
 from chainer import variable
 
 
 def no_backprop_mode():
-    """Disable back-propagation for Variable whose volatile is auto.
+    """Disable back-propagation.
 
-    In the default setting a :class:`~chainer.Variable` object whose
-    ``volatile`` attribute is ``'auto'`` behaves like a **non-volatile**
-    variable. That means such a :class:`~chainer.Variable` object builds a
-    computational graph, consumes memory to store the graph, and you can
-    execute back-propagation for it. With this context such a
-    :class:`~chainer.Variable` object behaves like a **volatile** variable.
-    So, you can easily switch training and evaluation.
+    In this context, Chainer does not make a computational graph.
+    :class:`~chainer.Variable` created in this context does not have
+    reference to the :class:`~chainer.Function` which created the variable.
+    So, you cannot execute back-propagation.
+    Instead memory consumption is reduced.
 
-    In this example, the volatility of ``x`` and ``y`` is ``'auto'``. So, ``y``
-    does not have a computational graph.
+    In this example ``y`` is created in this context. So you cannot call
+    :func:`~chianer.Variable.backward`.
 
-    >>> x = chainer.Variable(numpy.array([1,], 'f'), volatile='auto')
+    >>> x = chainer.Variable(numpy.array([1,], 'f'))
     >>> with chainer.no_backprop_mode():
     ...    y = x + 1
 
@@ -35,26 +32,19 @@ def no_backprop_mode():
 
 
 def force_backprop_mode():
-    """Enable back-propagation for Variable whose volatile is auto.
+    """Enable back-propagation.
 
     When you want to enable back-propagation in :func:`no_backprop_mode`,
-    call this method. In this context, :class:`~chainer.Variable` object
-    whose ``volatile`` attribute is ``'auto'`` behaves like a **volatile**
-    variable. That means you can disable :func:`no_backprop_mode` in this
-    context.
-
+    call this method. :~chainer.Variable: created in this context always have
+    a computational graph.
     If you call this method outside of :func:`no_backprop_mode` context, it
-    changes nothing. :class:`~chainer.Variable` object with ``volatile='auto'``
-    behaves like a volatile variable by default.
+    changes nothing.
 
-    In this example, the volatility of ``x`` and ``y`` is ``'auto'``. In
-    :func:`no_backprop_mode` context, ``y`` does not have a computational graph
-    but in :func:`force_backprop_mode` it has a graph.
+    In this example, ``y`` has a computational graph and you can call
+    ``y.backward``.
 
     >>> with chainer.no_backprop_mode():
-    ...   # Variable with volatile='auto' behaves like volatile='on'
     ...   with chainer.force_backprop_mode():
-    ...     # Variable with volatile='auto' behaves like volatile='off'
     ...     y = x + 1
 
     .. seealso::
@@ -160,7 +150,7 @@ class Function(object):
         """
 
         inputs = [x if isinstance(x, chainer.Variable)
-                  else chainer.Variable(x, volatile=flag.AUTO)
+                  else chainer.Variable(x)
                   for x in inputs]
 
         in_data = tuple([x.data for x in inputs])
@@ -190,17 +180,9 @@ class Function(object):
                 msg = 'NaN is detected on forward computation'
                 raise RuntimeError(msg)
 
-        out_v = flag.aggregate_flags([x.volatile for x in inputs])
-        ret = tuple([variable.Variable(y, volatile=out_v) for y in outputs])
+        ret = tuple([variable.Variable(y) for y in outputs])
 
-        if out_v == 'on':
-            build_graph = False
-        elif out_v == 'off':
-            build_graph = True
-        else:
-            build_graph = configuration.config.enable_backprop
-
-        if build_graph:
+        if configuration.config.enable_backprop:
             # Topological ordering
             self.rank = max([x.rank for x in inputs]) if inputs else 0
             # Backward edges

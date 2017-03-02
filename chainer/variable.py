@@ -67,15 +67,12 @@ class Variable(object):
     creator is called a *root* variable. A variable is root if it is created by
     the user, or if the reference is deleted by :meth:`unchain_backward`.
 
-    Users can disable this chaining behavior by setting the volatile flag for
-    the initial variables. When a function gets volatile variables as its
-    inputs, the output variables do not hold references to the function. This
-    acts like unchaining on every function application.
+    Users can disable this chaining behavior by calling
+    :func:`~chainer.no_backprop_mode` and :func:`~chainer.force_backprop_mode`.
+    In the previous context, a variable does not create a comutational graph.
 
     Args:
         data (array): Initial data array.
-        volatile (~chainer.Flag): Volatility flag. String ('on', 'off', or
-            'auto') or boolean values can be used, too.
         name (str): Name of the variable.
         grad (array): Initial gradient array.
         initializer (~chainer.Initializer): Initializer of the data array.
@@ -89,9 +86,6 @@ class Variable(object):
         grad: Gradient array.
         creator: The function who creates this variable. It is ``None`` if the
             variable is not created by any function.
-        volatile: Ternary :class:`~chainer.Flag` object. If ``'ON'``, the
-            variable does not keep track of any function applications. See
-            :class:`~chainer.Flag` for the detail of ternary flags.
         initializer: Initializer of the data array. It is used for initializing
             the data array of an uninitialized variable.
 
@@ -101,8 +95,7 @@ class Variable(object):
     _grad_initializer = None
     _initial_device = -1
 
-    def __init__(self, data=None, volatile=flag.OFF, name=None, grad=None,
-                 initializer=None):
+    def __init__(self, data=None, name=None, grad=None, initializer=None):
         if data is None:
             self.initializer = (
                 initializers.NaN() if initializer is None else initializer)
@@ -118,7 +111,6 @@ Actual: {0}'''.format(type(data))
         self._data = [data]
 
         self.rank = 0
-        self._volatile = flag.Flag(volatile)
 
         self._grad = grad
         self.creator = None
@@ -131,7 +123,7 @@ Actual: {0}'''.format(type(data))
         return copied
 
     def __reduce__(self):
-        return Variable, (self.data, self.volatile, self.name, self._grad)
+        return Variable, (self.data, self.name, self._grad)
 
     def __repr__(self):
         if self.name:
@@ -147,7 +139,6 @@ Actual: {0}'''.format(type(data))
 
         msg = """{summary}
 - device: {device}
-- volatile: {volatile}
 - backend: {background}
 - shape: {shape}
 - dtype: {dtype}
@@ -175,7 +166,7 @@ Actual: {0}'''.format(type(data))
             stats = stats_msg.format(float(xp.mean(self.data)),
                                      float(xp.std(self.data)))
 
-        return msg.format(summary=repr(self), volatile=self.volatile,
+        return msg.format(summary=repr(self),
                           grad=grad, shape=self.data.shape,
                           background=type(self.data),
                           dtype=self.data.dtype, device=device,
@@ -192,14 +183,6 @@ Actual: {0}'''.format(type(data))
 
         """
         return len(self.data)
-
-    @property
-    def volatile(self):
-        return self._volatile
-
-    @volatile.setter
-    def volatile(self, v):
-        self._volatile = flag.Flag(v)
 
     @property
     def label(self):
