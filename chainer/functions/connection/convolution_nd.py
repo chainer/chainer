@@ -330,7 +330,7 @@ def convolution_nd(x, W, b=None, stride=1, pad=0, cover_all=False):
     computation if ALL of the following conditions are satisfied:
 
     - ``cuda.cudnn_enabled`` is ``True``
-    - ``chainer.config.use_cudnn`` is ``True``
+    - ``chainer.config.use_cudnn`` is ``'always'`` or ``'auto'``
     - The number of spatial dimensions is more than one.
     - ``cover_all`` is ``False``
     - The input's ``dtype`` is equal to the filter weight's.
