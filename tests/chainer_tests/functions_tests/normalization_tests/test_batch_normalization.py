@@ -211,7 +211,9 @@ class TestBatchNormalizationCudnnCall(unittest.TestCase):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             y = self.forward()
             y.grad = self.gy
-            with mock.patch('cupy.cudnn.cudnn.batchNormalizationBackward') as func:
+            with mock.patch(
+                    'cupy.cudnn.cudnn.batchNormalizationBackward'
+            ) as func:
                 y.backward()
                 self.assertEqual(func.called, self.expect)
 

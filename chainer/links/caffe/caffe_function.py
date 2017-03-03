@@ -563,7 +563,7 @@ class _SingleArgumentFunctionWithCudnn(_SingleArgumentFunction):
 
     def __call__(self, x):
         with configuration.using_config('use_cudnn', self.use_cudnn):
-            return  super(_SingleArgumentFunctionWithCudnn, self).__call__(x)
+            return super(_SingleArgumentFunctionWithCudnn, self).__call__(x)
 
 
 class _CallChildLink(object):

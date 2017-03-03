@@ -1,6 +1,5 @@
 import numpy
 
-from chainer import configuration
 from chainer import cuda
 from chainer import function
 from chainer.functions import sigmoid

@@ -104,10 +104,10 @@ class TestMaxPoolingND(unittest.TestCase):
         pad = self.pad
 
         with chainer.using_config('use_cudnn', 'never'):
-            y_nd = functions.max_pooling_nd(self.x, ksize, stride=stride, pad=pad,
-                                            cover_all=self.cover_all)
-            y_2d = functions.max_pooling_2d(self.x, ksize, stride=stride, pad=pad,
-                                            cover_all=self.cover_all)
+            y_nd = functions.max_pooling_nd(self.x, ksize, stride=stride,
+                                            pad=pad, cover_all=self.cover_all)
+            y_2d = functions.max_pooling_2d(self.x, ksize, stride=stride,
+                                            pad=pad, cover_all=self.cover_all)
         testing.assert_allclose(y_nd.data, y_2d.data)
 
     def check_backward(self, x_data, y_grad, use_cudnn='always'):

@@ -133,7 +133,8 @@ class TestDeconvolutionND(unittest.TestCase):
                 cuda.to_gpu(self.x), cuda.to_gpu(self.W), cuda.to_gpu(self.b),
                 use_cudnn='never')
 
-    def check_backward(self, x_data, W_data, b_data, y_grad, use_cudnn='never'):
+    def check_backward(self, x_data, W_data, b_data, y_grad,
+                       use_cudnn='never'):
         if not self.c_contiguous:
             xp = cuda.get_array_module(x_data)
             x_data = xp.asfortranarray(x_data)

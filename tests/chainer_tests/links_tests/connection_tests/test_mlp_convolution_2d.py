@@ -84,7 +84,8 @@ class TestMLPConvolution2DCudnnCall(unittest.TestCase):
             v3 = 'cupy.cudnn.cudnn.convolutionBackwardData_v3'
             with mock.patch(v2) as func_v2,  mock.patch(v3) as func_v3:
                 y.backward()
-                self.assertEqual(func_v2.called or func_v3.called, self.use_cudnn)
+                self.assertEqual(func_v2.called or func_v3.called,
+                                 self.use_cudnn)
 
 
 @testing.parameterize(

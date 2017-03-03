@@ -1,7 +1,6 @@
 import numpy
 import six
 
-from chainer import configuration
 from chainer import cuda
 from chainer.functions.array import concat
 from chainer.functions.pooling import max_pooling_2d
