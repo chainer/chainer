@@ -93,7 +93,7 @@ class BatchNormalizationTest(unittest.TestCase):
 
     @attr.cudnn
     def test_forward_gpu_without_cudnn(self):
-        with chainer.using_config('use_cudnn', False):
+        with chainer.using_config('use_cudnn', 'never'):
             self.test_forward_gpu()
 
     @attr.multi_gpu(2)
@@ -122,7 +122,7 @@ class BatchNormalizationTest(unittest.TestCase):
 
     @attr.cudnn
     def test_backward_gpu_without_cudnn(self):
-        with chainer.using_config('use_cudnn', False):
+        with chainer.using_config('use_cudnn', 'never'):
             self.test_backward_gpu()
 
 
@@ -169,7 +169,7 @@ class TestPopulationStatistics(unittest.TestCase):
 
     @attr.cudnn
     def test_statistics_gpu_without_cudnn(self):
-        with chainer.using_config('use_cudnn', False):
+        with chainer.using_config('use_cudnn', 'never'):
             self.test_statistics_gpu()
 
     def check_statistics2(self, x, y):
@@ -205,7 +205,7 @@ class TestPopulationStatistics(unittest.TestCase):
 
     @attr.cudnn
     def test_statistics2_gpu_without_cudnn(self):
-        with chainer.using_config('use_cudnn', False):
+        with chainer.using_config('use_cudnn', 'never'):
             self.test_statistics2_gpu()
 
 
@@ -271,7 +271,7 @@ class BatchNormalizationTestWithoutGammaAndBeta(unittest.TestCase):
 
     @attr.cudnn
     def test_forward_gpu_without_cudnn(self):
-        with chainer.using_config('use_cudnn', False):
+        with chainer.using_config('use_cudnn', 'never'):
             self.test_forward_gpu()
 
     def check_backward(self, x_data, y_grad):
@@ -292,7 +292,7 @@ class BatchNormalizationTestWithoutGammaAndBeta(unittest.TestCase):
 
     @attr.cudnn
     def test_backward_gpu_without_cudnn(self):
-        with chainer.using_config('use_cudnn', False):
+        with chainer.using_config('use_cudnn', 'never'):
             self.test_backward_gpu()
 
 

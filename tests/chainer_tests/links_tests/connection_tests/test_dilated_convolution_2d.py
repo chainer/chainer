@@ -63,7 +63,7 @@ class TestDilatedConvolution2D(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_forward_consistency_im2col(self):
-        with chainer.using_config('use_cudnn', False):
+        with chainer.using_config('use_cudnn', 'never'):
             self.check_forward_consistency()
 
     def check_backward(self, x_data, y_grad):
@@ -84,7 +84,7 @@ class TestDilatedConvolution2D(unittest.TestCase):
     @condition.retry(3)
     def test_backward_gpu_im2col(self):
         self.link.to_gpu()
-        with chainer.using_config('use_cudnn', False):
+        with chainer.using_config('use_cudnn', 'never'):
             self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
     def check_pickling(self, x_data):
@@ -164,7 +164,7 @@ class TestDilatedConvolution2DParameterShapePlaceholder(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_forward_consistency_im2col(self):
-        with chainer.using_config('use_cudnn', False):
+        with chainer.using_config('use_cudnn', 'never'):
             self.check_forward_consistency()
 
     def check_backward(self, x_data, y_grad):
@@ -185,7 +185,7 @@ class TestDilatedConvolution2DParameterShapePlaceholder(unittest.TestCase):
     @condition.retry(3)
     def test_backward_gpu_im2col(self):
         self.link.to_gpu()
-        with chainer.using_config('use_cudnn', False):
+        with chainer.using_config('use_cudnn', 'never'):
             self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
     def check_pickling(self, x_data):

@@ -20,7 +20,7 @@ class TestUpsampling2D(unittest.TestCase):
     def setUp(self):
         self.x = numpy.random.uniform(-1, 1, self.in_shape).astype('f')
         self.p = F.MaxPooling2D(2, 2)
-        with chainer.using_config('use_cudnn', False):
+        with chainer.using_config('use_cudnn', 'never'):
             self.pooled_y = self.p(self.x)
         self.gy = numpy.random.uniform(
             -1, 1, self.in_shape).astype(numpy.float32)
