@@ -124,8 +124,8 @@ Actual: {0}'''.format(type(data))
         #
         self._creator = None
         self.is_break_point = False
-        self.will_be_forgotten = False
         self.is_forgotten = False
+        self.will_be_forgotten = False
 
     def __reduce__(self):
         return Variable, (self.data, self.volatile, self.name, self._grad)
@@ -383,10 +383,8 @@ Actual: {0}'''.format(type(data))
         self.creator = self._creator
 
     def set_end_of_sub_graph(self):
-        """Sets this variable as an end of a sub-graph"""
-        self.is_break_point = True
-        self.interrupt_backward()
-        _print_memory_pool_stats("set_end_of_sub_graph") # debug
+        """Sets this variable as an end of a sub-graph (will be obsolete)"""
+        self.set_break_point()
 
     def recompute(self):
         """Re-computes my data"""
@@ -421,7 +419,7 @@ Actual: {0}'''.format(type(data))
             func = cand_funcs.pop()
             outputs = tuple(y() for y in func.outputs)  # access via weak ref
             for y in outputs:
-                if hasattr(y, "is_forgotten") and y.is_forgotten is True:
+                if y.is_forgotten:
                     if func not in recomp_funcs:
                         heapq.heappush(recomp_vars,
                                        (func.rank, len(recomp_funcs), y))
@@ -436,14 +434,56 @@ Actual: {0}'''.format(type(data))
 
     def set_break_point(self):
         """Sets this variable as a break point in the graph"""
-        if not self.is_break_point:
-            self.is_break_point = True
-            self.interrupt_backward()
-            _print_memory_pool_stats("set_break_point") # debug
+        if getattr(function._thread_local, 'recompute_is_used', False):
+            if not self.is_break_point and not self.is_forgotten:
+                self.is_break_point = True
+                self.interrupt_backward()
+                # _print_memory_pool_stats("set_break_point") # debug
 
-    def set_break_points(self):
-        """Sets break points in the graph"""
+    def get_break_points(self):
+        """Gets break points in the graph"""
 
+        funcs = []
+        vars = []
+        seen_funcs = set()
+        seen_vars = set()
+
+        def add_instance(instances, seen_instances, instance):
+            if instance is not None and instance not in seen_instances:
+                instances.append(instance)
+                seen_instances.add(instance)
+
+        # set break points where necessary
+        if getattr(function._thread_local, 'recompute_is_used', False):
+
+            add_instance(funcs, seen_funcs, self._creator)
+            while funcs:
+                func = funcs.pop()
+
+                for x in func.inputs:
+                    if x in seen_vars and not x.is_break_point:
+                        x.set_break_point()
+                        # print("  break point is set (fork point) {}:".format(x))
+
+                cnt = 0
+                for x in func.inputs:
+                    if x.creator is not None:
+                        cnt = cnt + 1
+                if cnt > 1:
+                    # print("  {}".format(func))
+                    outputs = [y() for y in func.outputs]  # weak ref
+                    for y in outputs:
+                        y.set_break_point()
+                        # print("  break point is set (join point) {}:".format(y))
+
+                for x in func.inputs:
+                    add_instance(vars, seen_vars, x)
+                    add_instance(funcs, seen_funcs, x._creator)
+
+        funcs = []
+        seen_funcs = set()
+
+        # get break points
         break_points = []
         seen_break_points = set()
 
@@ -454,30 +494,15 @@ Actual: {0}'''.format(type(data))
 
         add_break_points(self)
         if getattr(function._thread_local, 'recompute_is_used', False):
-            funcs = []
-            vars = []
-            seen_funcs = set()
-            seen_vars = set()
-
-            def add_instance(instances, seen_instances, instance):
-                if instance is not None and instance not in seen_instances:
-                    instances.append(instance)
-                    seen_instances.add(instance)
-
             add_instance(funcs, seen_funcs, self._creator)
             while funcs:
                 func = funcs.pop()
-                for var in func.inputs:
-                    if var in seen_vars and not var.is_break_point:
-                        var.set_break_point()
-                        print("  break point is set to {}:".format(var))
-                    add_instance(vars, seen_vars, var)
-                    add_instance(funcs, seen_funcs, var._creator)
+                for x in func.inputs:
+                    if x.is_break_point:
+                        add_break_points(x)
+                    add_instance(funcs, seen_funcs, x._creator)
 
-                    if var.is_break_point:
-                        add_break_points(var)
-
-        print("  break_points:{}". format(break_points))
+        # print("  break_points:{}". format(break_points))
         return break_points
 
     def backward(self, retain_grad=False):
@@ -529,23 +554,12 @@ Actual: {0}'''.format(type(data))
                 else:
                     self.grad = cuda.cupy.ones_like(self.data)
 
-        _print_memory_pool_stats("backward")  # debug
+        # _print_memory_pool_stats("backward")  # debug
 
-        break_points = self.set_break_points()
-
-        # endp is an end point of sub-graph and a starting point of backprop.
-        # self is first endp.
-        endp_cand = []
-        endp_seen = set()
-        def add_endp_cand(cand):
-            if cand not in endp_seen:
-                heapq.heappush(endp_cand, (-cand.rank, len(endp_seen), cand))
-                endp_seen.add(cand)
-
-        add_endp_cand(self)
-        while endp_cand:
-            _, _, endp = heapq.heappop(endp_cand)
-            print("  endp:{}".format(endp))
+        break_points = self.get_break_points()
+        while break_points:
+            _, _, endp = heapq.heappop(break_points)
+            # print("  endp:{}".format(endp))
             endp.resume_backward()
 
             # re-compute
@@ -630,15 +644,9 @@ Actual: {0}'''.format(type(data))
                                 x._grad += gx
                 del gxs  # to reduce memory usage
 
-            # look for endp candidates
-            ancestor_vars = endp.ancestors()
-            for x in ancestor_vars:
-                if x.is_break_point is True:
-                    add_endp_cand(x)
-
             endp.unchain_backward()
 
-            _print_memory_pool_stats("backward")  # debug
+            # _print_memory_pool_stats("backward")  # debug
 
         if initial_device is not None:
             initial_device.use()
