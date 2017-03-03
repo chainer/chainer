@@ -88,7 +88,7 @@ def use_recompute(*fnames):
 
     default = copy.copy(getattr(_thread_local, 'recompute_targets', []))
     for fname in fnames:
-        if not fname in _thread_local.recompute_targets:
+        if fname not in _thread_local.recompute_targets:
             _thread_local.recompute_targets.append(fname)
     yield
     _thread_local.recompute_targets = default
@@ -100,7 +100,7 @@ def no_recompute(*fnames):
     default = copy.copy(getattr(_thread_local, 'recompute_targets', []))
     _thread_local.recompute_targets = []
     for fname in default:
-        if not fname in fnames:
+        if fname not in fnames:
             _thread_local.recompute_targets.append(fname)
     yield
     _thread_local.recompute_targets = default
@@ -476,6 +476,7 @@ class Function(object):
             y_ref = y()
             if y_ref is not None:
                 y_ref.creator = None
+                y_ref.g_creator = None
         self.inputs = None
 
     def add_hook(self, hook, name=None):

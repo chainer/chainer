@@ -15,6 +15,7 @@ from chainer import function
 
 import cupy.testing as testing  # temporal
 
+
 def _check_grad_type(func, x, gx):
     def make_message(message):
         if func:
@@ -65,6 +66,12 @@ def _print_memory_pool_stats(name):
     print("    size_mem(in use): {}".format(size_mem_in_use))
     print("    size_mem(free)  : {}".format(size_mem_free))
     print("    n_free_blocks   : {}".format(n_free_blocks))
+
+
+def _add_instance(instances, seen_set, instance):
+    if instance is not None and instance not in seen_set:
+        instances.append(instance)
+        seen_set.add(instance)
 
 
 class Variable(object):
@@ -122,7 +129,7 @@ Actual: {0}'''.format(type(data))
         self.name = name
 
         #
-        self._creator = None
+        self.g_creator = None
         self.is_break_point = False
         self.is_forgotten = False
         self.will_be_forgotten = False
@@ -342,7 +349,7 @@ Actual: {0}'''.format(type(data))
         """
         self.creator = gen_func
         self.rank = gen_func.rank + 1
-        self._creator = self.creator
+        self.g_creator = self.creator
 
     def forget(self):
         if self.creator is not None:
@@ -352,25 +359,26 @@ Actual: {0}'''.format(type(data))
             if hasattr(self.creator, "y"):
                 self.creator.y = None
 
+            # set inputs of my creator function as break-points
+            func = self.creator
+            for x in func.inputs:
+                if x.creator is not None and not x.is_forgotten:
+                    x.set_break_point()
+
     def ancestors(self):
         """Gets a list of my ancestor variables."""
         ancestor_funcs = []
-        ancestor_vars = []
         seen_funcs = set()
+
+        ancestor_vars = []
         seen_vars = set()
 
-        def add_cand(ancestors, seen, cand):
-            if cand is not None and cand not in seen:
-                ancestors.append(cand)
-                seen.add(cand)
-
-        add_cand(ancestor_funcs, seen_funcs, self._creator)
-
+        _add_instance(ancestor_funcs, seen_funcs, self.g_creator)
         while ancestor_funcs:
             func = ancestor_funcs.pop()
-            for var in func.inputs:
-                add_cand(ancestor_vars, seen_vars, var)
-                add_cand(ancestor_funcs, seen_funcs, var.creator)
+            for x in func.inputs:
+                _add_instance(ancestor_vars, seen_vars, x)
+                _add_instance(ancestor_funcs, seen_funcs, x.creator)
 
         return ancestor_vars
 
@@ -380,11 +388,7 @@ Actual: {0}'''.format(type(data))
 
     def resume_backward(self):
         """Recovers a link to my creator function."""
-        self.creator = self._creator
-
-    def set_end_of_sub_graph(self):
-        """Sets this variable as an end of a sub-graph (will be obsolete)"""
-        self.set_break_point()
+        self.creator = self.g_creator
 
     def recompute(self):
         """Re-computes my data"""
@@ -402,19 +406,14 @@ Actual: {0}'''.format(type(data))
             var.data = data
 
     def recompute_ancestors(self):
-        """Re-computes data of ancestor variables if they are forgotten during forward prop"""
+        """Re-computes data of ancestor vars if they are forgotten"""
         cand_funcs = []
         seen_set = set()
 
         recomp_vars = []
         recomp_funcs = set()
 
-        def add_cand(cand):
-            if cand not in seen_set:
-                cand_funcs.append(cand)
-                seen_set.add(cand)
-
-        add_cand(self.creator)
+        _add_instance(cand_funcs, seen_set, self.creator)
         while cand_funcs:
             func = cand_funcs.pop()
             outputs = tuple(y() for y in func.outputs)  # access via weak ref
@@ -426,7 +425,7 @@ Actual: {0}'''.format(type(data))
                         recomp_funcs.add(func)
             for x in func.inputs:
                 if x.creator is not None:
-                    add_cand(x.creator)
+                    _add_instance(cand_funcs, seen_set, x.creator)
 
         while recomp_vars:
             _, _, var = heapq.heappop(recomp_vars)
@@ -440,30 +439,24 @@ Actual: {0}'''.format(type(data))
                 self.interrupt_backward()
                 # _print_memory_pool_stats("set_break_point") # debug
 
-    def get_break_points(self):
-        """Gets break points in the graph"""
-
+    def set_break_points(self):
+        """Sets break points in the graph"""
         funcs = []
         vars = []
         seen_funcs = set()
         seen_vars = set()
 
-        def add_instance(instances, seen_instances, instance):
-            if instance is not None and instance not in seen_instances:
-                instances.append(instance)
-                seen_instances.add(instance)
-
-        # set break points where necessary
         if getattr(function._thread_local, 'recompute_is_used', False):
 
-            add_instance(funcs, seen_funcs, self._creator)
+            _add_instance(funcs, seen_funcs, self.g_creator)
             while funcs:
                 func = funcs.pop()
 
                 for x in func.inputs:
                     if x in seen_vars and not x.is_break_point:
                         x.set_break_point()
-                        # print("  break point is set (fork point) {}:".format(x))
+                        # print("  break point is set (fork point) {}:"
+                        #       .format(x))
 
                 cnt = 0
                 for x in func.inputs:
@@ -474,33 +467,39 @@ Actual: {0}'''.format(type(data))
                     outputs = [y() for y in func.outputs]  # weak ref
                     for y in outputs:
                         y.set_break_point()
-                        # print("  break point is set (join point) {}:".format(y))
+                        # print("  break point is set (join point) {}:"
+                        #       .format(y))
 
                 for x in func.inputs:
-                    add_instance(vars, seen_vars, x)
-                    add_instance(funcs, seen_funcs, x._creator)
+                    _add_instance(vars, seen_vars, x)
+                    _add_instance(funcs, seen_funcs, x.g_creator)
+
+    def get_break_points(self):
+        """Gets break points in the graph"""
+
+        self.set_break_points()
 
         funcs = []
         seen_funcs = set()
 
-        # get break points
         break_points = []
         seen_break_points = set()
 
         def add_break_points(cand):
             if cand not in seen_break_points:
-                heapq.heappush(break_points, (-cand.rank, len(seen_break_points), cand))
+                heapq.heappush(break_points,
+                               (-cand.rank, len(seen_break_points), cand))
                 seen_break_points.add(cand)
 
         add_break_points(self)
         if getattr(function._thread_local, 'recompute_is_used', False):
-            add_instance(funcs, seen_funcs, self._creator)
+            _add_instance(funcs, seen_funcs, self.g_creator)
             while funcs:
                 func = funcs.pop()
                 for x in func.inputs:
                     if x.is_break_point:
                         add_break_points(x)
-                    add_instance(funcs, seen_funcs, x._creator)
+                    _add_instance(funcs, seen_funcs, x.g_creator)
 
         # print("  break_points:{}". format(break_points))
         return break_points
@@ -573,7 +572,8 @@ Actual: {0}'''.format(type(data))
             def add_cand(cand):
                 if cand not in seen_set:
                     # Negate since heapq is min-heap
-                    heapq.heappush(cand_funcs, (-cand.rank, len(seen_set), cand))
+                    heapq.heappush(cand_funcs,
+                                   (-cand.rank, len(seen_set), cand))
                     seen_set.add(cand)
 
             add_cand(endp.creator)
@@ -582,7 +582,8 @@ Actual: {0}'''.format(type(data))
                 outputs = [y() for y in func.outputs]  # access via weak ref
 
                 in_data = tuple([x.data for x in func.inputs])
-                out_grad = tuple([None if y is None else y.grad for y in outputs])
+                out_grad = tuple(
+                    [None if y is None else y.grad for y in outputs])
                 hooks = chainer.get_function_hooks()
                 if func._n_local_function_hooks != 0:
                     hooks = collections.OrderedDict(hooks)
@@ -615,8 +616,9 @@ Actual: {0}'''.format(type(data))
 
                     _check_grad_type(func, x, gx)
 
-                    # Accumulate the gradient to x. It is a bit tricky to handle
-                    # branches and parameter gradient accumulation correctly.
+                    # Accumulate the gradient to x.
+                    # It is a bit tricky to handle branches
+                    # and parameter gradient accumulation correctly.
                     id_x = id(x)
                     if x.creator is None:  # leaf
                         if x._grad is None:
@@ -638,7 +640,8 @@ Actual: {0}'''.format(type(data))
                         else:
                             cuda.get_device(gx).use()
                             if id_x in need_copy:  # 2nd visit
-                                x._grad = utils.force_array(gx + x._grad)  # copied
+                                x._grad = utils.force_array(
+                                    gx + x._grad)  # copied
                                 need_copy.remove(id_x)
                             else:  # 3rd or later visit
                                 x._grad += gx
