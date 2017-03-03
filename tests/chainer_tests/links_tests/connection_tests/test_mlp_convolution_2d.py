@@ -12,8 +12,8 @@ from chainer.testing import attr
 
 
 @testing.parameterize(
-    {'use_cudnn': True},
-    {'use_cudnn': False},
+    {'use_cudnn': 'always'},
+    {'use_cudnn': 'never'},
 )
 class TestMLPConvolution2D(unittest.TestCase):
 
@@ -52,8 +52,8 @@ class TestMLPConvolution2D(unittest.TestCase):
 
 
 @testing.parameterize(
-    {'use_cudnn': True},
-    {'use_cudnn': False},
+    {'use_cudnn': 'always'},
+    {'use_cudnn': 'never'},
 )
 @attr.cudnn
 class TestMLPConvolution2DCudnnCall(unittest.TestCase):
@@ -73,7 +73,8 @@ class TestMLPConvolution2DCudnnCall(unittest.TestCase):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             with mock.patch('cupy.cudnn.cudnn.convolutionForward') as func:
                 self.forward()
-                self.assertEqual(func.called, self.use_cudnn)
+                self.assertEqual(func.called,
+                                 chainer.should_use_cudnn('>=auto'))
 
     def test_call_cudnn_backrward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
@@ -85,20 +86,19 @@ class TestMLPConvolution2DCudnnCall(unittest.TestCase):
             with mock.patch(v2) as func_v2,  mock.patch(v3) as func_v3:
                 y.backward()
                 self.assertEqual(func_v2.called or func_v3.called,
-                                 self.use_cudnn)
+                                 chainer.should_use_cudnn('>=auto'))
 
 
 @testing.parameterize(
-    {'use_cudnn': True},
-    {'use_cudnn': False},
+    {'use_cudnn': 'always'},
+    {'use_cudnn': 'never'},
 )
 class TestMLPConvolution2DShapePlaceholder(unittest.TestCase):
 
     def setUp(self):
         self.mlp = links.MLPConvolution2D(
             None, (96, 96, 96), 11,
-            activation=functions.sigmoid,
-            use_cudnn=self.use_cudnn)
+            activation=functions.sigmoid)
         self.x = numpy.zeros((10, 3, 20, 20), dtype=numpy.float32)
 
     def test_init(self):

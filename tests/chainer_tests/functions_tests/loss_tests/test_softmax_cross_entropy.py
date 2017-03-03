@@ -115,7 +115,7 @@ class TestSoftmaxCrossEntropy(unittest.TestCase):
         self.check_forward(
             cuda.to_gpu(self.x), cuda.to_gpu(self.t),
             None if not self.weight_apply else cuda.to_gpu(self.class_weight),
-            False)
+            'never')
 
     def check_backward(self, x_data, t_data, class_weight, use_cudnn='always'):
         with chainer.using_config('use_cudnn', use_cudnn):
@@ -144,7 +144,7 @@ class TestSoftmaxCrossEntropy(unittest.TestCase):
         self.check_backward(
             cuda.to_gpu(self.x), cuda.to_gpu(self.t),
             None if not self.weight_apply else cuda.to_gpu(self.class_weight),
-            False)
+            'never')
 
 
 @testing.parameterize(
@@ -179,15 +179,16 @@ class TestSoftmaxCrossEntropyValueCheck(unittest.TestCase):
     # numpy.broadcast_to is available only from numpy>=1.10
     @testing.with_requires('numpy>=1.10')
     def test_value_check_cpu(self):
-        self.check_value_check(self.x, self.t, False)
+        self.check_value_check(self.x, self.t, 'never')
 
     @attr.gpu
     def test_value_check_gpu(self):
-        self.check_value_check(self.x, self.t, False)
+        self.check_value_check(self.x, self.t, 'never')
 
     @attr.gpu
     def test_value_check_gpu_cudnn(self):
-        self.check_value_check(cuda.to_gpu(self.x), cuda.to_gpu(self.t), True)
+        self.check_value_check(cuda.to_gpu(self.x), cuda.to_gpu(self.t),
+                               'always')
 
 
 @testing.parameterize(*testing.product({

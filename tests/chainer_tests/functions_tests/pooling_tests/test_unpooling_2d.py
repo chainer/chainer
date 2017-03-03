@@ -120,13 +120,14 @@ class TestUnpooling2D(unittest.TestCase):
 }))
 class TestMaxPoolingUnpooling(unittest.TestCase):
 
-    def check_left_inverse(self, xp, use_cudnn=False):
+    def check_left_inverse(self, xp, use_cudnn='never'):
         x = xp.arange(self.h * self.h).reshape(
             (1, 1, self.h, self.h)).astype(self.dtype)
-        y = chainer.functions.unpooling_2d(
-            x, self.k, self.s, self.p, None, self.cover_all)
-        x_ = chainer.functions.max_pooling_2d(
-            y, self.k, self.s, self.p, self.cover_all, use_cudnn).data
+        with chainer.using_config('use_cudnn', use_cudnn):
+            y = chainer.functions.unpooling_2d(
+                x, self.k, self.s, self.p, None, self.cover_all)
+            x_ = chainer.functions.max_pooling_2d(
+                y, self.k, self.s, self.p, self.cover_all).data
 
         self.assertEqual(x.shape, x_.shape)
         self.assertEqual(x.dtype, x_.dtype)
@@ -141,7 +142,7 @@ class TestMaxPoolingUnpooling(unittest.TestCase):
 
     @attr.gpu
     def test_left_inverse_cudnn(self):
-        self.check_left_inverse(cuda.cupy, True)
+        self.check_left_inverse(cuda.cupy, 'always')
 
 
 @testing.parameterize(*testing.product({
@@ -153,15 +154,16 @@ class TestMaxPoolingUnpooling(unittest.TestCase):
 }))
 class TestAveragePoolingUnpooling(unittest.TestCase):
 
-    def check_left_inverse(self, xp, use_cudnn=False):
+    def check_left_inverse(self, xp, use_cudnn='never'):
         x = xp.arange(self.h * self.h).reshape(
             (1, 1, self.h, self.h)).astype(self.dtype)
-        # average_pooling_2d does not have cover_all option
-        # as max_pooling_2d has.
-        y = chainer.functions.unpooling_2d(
-            x, self.k, self.s, self.p, None, False)
-        x_ = chainer.functions.average_pooling_2d(
-            y, self.k, self.s, self.p, use_cudnn).data
+        with chainer.using_config('use_cudnn', use_cudnn):
+            # average_pooling_2d does not have cover_all option
+            # as max_pooling_2d has.
+            y = chainer.functions.unpooling_2d(
+                x, self.k, self.s, self.p, None, False)
+            x_ = chainer.functions.average_pooling_2d(
+                y, self.k, self.s, self.p).data
 
         self.assertEqual(x.shape, x_.shape)
         self.assertEqual(x.dtype, x_.dtype)
@@ -176,7 +178,7 @@ class TestAveragePoolingUnpooling(unittest.TestCase):
 
     @attr.gpu
     def test_left_inverse_cudnn(self):
-        self.check_left_inverse(cuda.cupy, True)
+        self.check_left_inverse(cuda.cupy, 'always')
 
 
 testing.run_module(__name__, __file__)

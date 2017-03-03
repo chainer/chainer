@@ -22,7 +22,7 @@ def _pair(x):
 @parameterize(
     *testing.product({
         'nobias': [True, False],
-        'use_cudnn': [True, False]
+        'use_cudnn': ['always', 'never']
     })
 )
 class TestDeconvolution2D(unittest.TestCase):
@@ -95,7 +95,7 @@ class TestDeconvolution2D(unittest.TestCase):
 @parameterize(
     *testing.product({
         'nobias': [True, False],
-        'use_cudnn': [True, False]
+        'use_cudnn': ['always', 'never']
     })
 )
 class TestDeconvolution2DParameterShapePlaceholder(unittest.TestCase):

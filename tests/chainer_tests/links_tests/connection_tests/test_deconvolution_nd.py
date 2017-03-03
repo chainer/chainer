@@ -18,13 +18,13 @@ from chainer.utils import conv
     'dims': [(5, 4, 3), (4, 3), (3,)],
     'nobias': [True, False],
     'dtype': [numpy.float32],
-    'use_cudnn': [True, False],
+    'use_cudnn': ['always', 'auto', 'never'],
     'used_outsize': ['case1', 'case2', 'None'],
 }) + testing.product({
     'dims': [(5, 4, 3)],
     'nobias': [False],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
-    'use_cudnn': [True],
+    'use_cudnn': ['always'],
     'used_outsize': ['None'],
 }))
 class TestDeconvolutionND(unittest.TestCase):

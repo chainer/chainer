@@ -76,7 +76,7 @@ class TestBatchNormalization(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_forward_gpu_no_cudnn(self):
-        self.check_forward([cuda.to_gpu(i) for i in self.args], False)
+        self.check_forward([cuda.to_gpu(i) for i in self.args], 'never')
 
     def check_backward(self, args, y_grad):
         with chainer.using_config('train', self.train):
@@ -151,7 +151,7 @@ class TestFixedBatchNormalization(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_forward_gpu_no_cudnn(self):
-        self.check_forward([cuda.to_gpu(i) for i in self.args], False)
+        self.check_forward([cuda.to_gpu(i) for i in self.args], 'never')
 
     def check_backward(self, args, y_grad):
         with chainer.using_config('train', self.train):

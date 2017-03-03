@@ -15,7 +15,7 @@ def sigmoid(x):
 
 
 @testing.parameterize(*testing.product({
-    'use_cudnn': [True, False],
+    'use_cudnn': ['always', 'never'],
 }))
 class TestNStepLSTM(unittest.TestCase):
 
