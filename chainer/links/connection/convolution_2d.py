@@ -24,7 +24,6 @@ class Convolution2D(link.Link):
             ``pad=p`` and ``pad=(p, p)`` are equivalent.
         bias (float): Initial bias value.
         nobias (bool): If ``True``, then this link does not use the bias term.
-        use_cudnn (bool): If ``True``, then this link uses cuDNN if available.
         initialW (4-D array): Initial weight value. If ``None``, then this
             function uses the default initializer to initialize
             the weight tensor.
@@ -51,13 +50,12 @@ class Convolution2D(link.Link):
     """
 
     def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
-                 bias=0, nobias=False, use_cudnn=True,
+                 bias=0, nobias=False,
                  initialW=None, initial_bias=None, deterministic=False):
         super(Convolution2D, self).__init__()
         self.ksize = ksize
         self.stride = _pair(stride)
         self.pad = _pair(pad)
-        self.use_cudnn = use_cudnn
         self.out_channels = out_channels
         self.deterministic = deterministic
 
@@ -98,7 +96,7 @@ class Convolution2D(link.Link):
             with cuda.get_device(self._device_id):
                 self._initialize_params(x.shape[1])
         return convolution_2d.convolution_2d(
-            x, self.W, self.b, self.stride, self.pad, self.use_cudnn,
+            x, self.W, self.b, self.stride, self.pad,
             deterministic=self.deterministic)
 
 

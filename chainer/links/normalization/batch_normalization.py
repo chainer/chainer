@@ -41,7 +41,6 @@ class BatchNormalization(link.Link):
             unit(1) which makes no effect.
         use_beta (bool): If ``True``, use shifting parameter. Otherwise, use
             unit(0) which makes no effect.
-        use_cudnn (bool): If ``True``, then this link uses cuDNN if available.
 
     See: `Batch Normalization: Accelerating Deep Network Training by Reducing\
           Internal Covariate Shift <https://arxiv.org/abs/1502.03167>`_
@@ -59,13 +58,12 @@ class BatchNormalization(link.Link):
         decay (float): Decay rate of moving average. It is used on training.
         eps (float): Epsilon value for numerical stability. This value is added
             to the batch variances.
-        use_cudnn (bool): If ``True``, then this link uses cuDNN if available.
 
     """
 
     def __init__(self, size, decay=0.9, eps=2e-5, dtype=numpy.float32,
                  use_gamma=True, use_beta=True,
-                 initial_gamma=None, initial_beta=None, use_cudnn=True):
+                 initial_gamma=None, initial_beta=None):
         super(BatchNormalization, self).__init__()
         if use_gamma:
             self.add_param('gamma', size, dtype=dtype)
@@ -82,7 +80,6 @@ class BatchNormalization(link.Link):
         self.add_persistent('N', 0)
         self.decay = decay
         self.eps = eps
-        self.use_cudnn = use_cudnn
 
     def __call__(self, x, finetune=False):
         """Invokes the forward propagation of BatchNormalization.
@@ -121,7 +118,7 @@ class BatchNormalization(link.Link):
                 decay = self.decay
 
             func = batch_normalization.BatchNormalizationFunction(
-                self.eps, self.avg_mean, self.avg_var, decay, self.use_cudnn)
+                self.eps, self.avg_mean, self.avg_var, decay)
             ret = func(x, gamma, beta)
 
             self.avg_mean[:] = func.running_mean
@@ -131,7 +128,7 @@ class BatchNormalization(link.Link):
             mean = variable.Variable(self.avg_mean, volatile='auto')
             var = variable.Variable(self.avg_var, volatile='auto')
             ret = batch_normalization.fixed_batch_normalization(
-                x, gamma, beta, mean, var, self.eps, self.use_cudnn)
+                x, gamma, beta, mean, var, self.eps)
         return ret
 
     def start_finetuning(self):

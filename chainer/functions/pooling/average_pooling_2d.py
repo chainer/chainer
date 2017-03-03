@@ -1,5 +1,6 @@
 import numpy
 
+import chainer
 from chainer import cuda
 from chainer.functions.pooling import pooling_2d
 from chainer.utils import conv
@@ -21,7 +22,7 @@ class AveragePooling2D(pooling_2d.Pooling2D):
         return y,
 
     def forward_gpu(self, x):
-        if (cuda.cudnn_enabled and self.use_cudnn and
+        if (chainer.should_use_cudnn('>=auto') and
                 pooling_2d._check_cudnn_acceptable_type(x[0].dtype)):
             return super(AveragePooling2D, self).forward_gpu(x)
 
@@ -65,8 +66,7 @@ class AveragePooling2D(pooling_2d.Pooling2D):
         return gx,
 
     def backward_gpu(self, x, gy):
-        if (cuda.cudnn_enabled and self.use_cudnn and
-                pooling_2d._check_cudnn_acceptable_type(x[0].dtype)):
+        if self._used_cudnn:
             return super(AveragePooling2D, self).backward_gpu(x, gy)
 
         n, c, h, w = x[0].shape
@@ -107,7 +107,7 @@ class AveragePooling2D(pooling_2d.Pooling2D):
             libcudnn.CUDNN_POOLING_AVERAGE_COUNT_INCLUDE_PADDING)
 
 
-def average_pooling_2d(x, ksize, stride=None, pad=0, use_cudnn=True):
+def average_pooling_2d(x, ksize, stride=None, pad=0):
     """Spatial average pooling function.
 
     This function acts similarly to :class:`~functions.Convolution2D`, but
@@ -123,8 +123,6 @@ def average_pooling_2d(x, ksize, stride=None, pad=0, use_cudnn=True):
             specified, then it uses same stride as the pooling window size.
         pad (int or pair of ints): Spatial padding width for the input array.
             ``pad=p`` and ``pad=(p, p)`` are equivalent.
-        use_cudnn (bool): If ``True`` and cuDNN is enabled, then this function
-            uses cuDNN as the core implementation.
 
     Returns:
         ~chainer.Variable: Output variable.
@@ -135,4 +133,4 @@ def average_pooling_2d(x, ksize, stride=None, pad=0, use_cudnn=True):
        :func:`max_pooling_2d`. Average pooling runs in non-cover-all mode.
 
     """
-    return AveragePooling2D(ksize, stride, pad, False, use_cudnn)(x)
+    return AveragePooling2D(ksize, stride, pad, False)(x)
