@@ -305,13 +305,8 @@ def batch_normalization(x, gamma, beta, eps=2e-5, running_mean=None,
     .. seealso:: :class:`links.BatchNormalization`
 
     """
-<<<<<<< HEAD
     return BatchNormalizationFunction(eps, running_mean, running_var,
-                                      decay, use_cudnn)(x, gamma, beta)
-=======
-    return BatchNormalizationFunction(eps, running_mean, running_var, True,
                                       decay)(x, gamma, beta)
->>>>>>> Add use_cudnn configuration
 
 
 def fixed_batch_normalization(x, gamma, beta, mean, var, eps=2e-5):
@@ -335,11 +330,6 @@ def fixed_batch_normalization(x, gamma, beta, mean, var, eps=2e-5):
        :class:`links.BatchNormalization`
 
     """
-<<<<<<< HEAD
     with configuration.using_config('train', False):
-        return BatchNormalizationFunction(eps, None, None, 0.0,
-                                          use_cudnn)(x, gamma, beta, mean, var)
-=======
-    return BatchNormalizationFunction(eps, None, None, False, 0.0)(
-        x, gamma, beta, mean, var)
->>>>>>> Add use_cudnn configuration
+        return BatchNormalizationFunction(eps, None, None, 0.0)(
+            x, gamma, beta, mean, var)
