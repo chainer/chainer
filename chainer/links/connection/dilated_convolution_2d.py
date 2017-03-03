@@ -26,7 +26,6 @@ class DilatedConvolution2D(link.Link):
             ``dilate=d`` and ``dilate=(d, d)`` are equivalent.
         bias (float): Initial bias value.
         nobias (bool): If ``True``, then this link does not use the bias term.
-        use_cudnn (bool): If ``True``, then this link uses cuDNN if available.
         initialW (4-D array): Initial weight value. If ``None``, the default
             initializer is used to initialize the weight matrix.
             May also be a callable that takes ``numpy.ndarray`` or
@@ -47,14 +46,13 @@ class DilatedConvolution2D(link.Link):
     """
 
     def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
-                 dilate=1, bias=0, nobias=False, use_cudnn=True,
+                 dilate=1, bias=0, nobias=False,
                  initialW=None, initial_bias=None):
         super(DilatedConvolution2D, self).__init__()
         self.ksize = ksize
         self.stride = _pair(stride)
         self.pad = _pair(pad)
         self.dilate = _pair(dilate)
-        self.use_cudnn = use_cudnn
         self.out_channels = out_channels
         self.initialW = initialW
 
@@ -91,8 +89,7 @@ class DilatedConvolution2D(link.Link):
             with cuda.get_device(self._device_id):
                 self._initialize_params(x.shape[1])
         return dilated_convolution_2d.dilated_convolution_2d(
-            x, self.W, self.b, self.stride,
-            self.pad, self.dilate, self.use_cudnn)
+            x, self.W, self.b, self.stride, self.pad, self.dilate)
 
 
 def _pair(x):

@@ -1,5 +1,6 @@
 import numpy
 
+import chainer
 from chainer import cuda
 from chainer.functions.pooling import pooling_2d
 from chainer.utils import conv
@@ -27,7 +28,7 @@ class MaxPooling2D(pooling_2d.Pooling2D):
         return y,
 
     def forward_gpu(self, x):
-        if (cuda.cudnn_enabled and self.use_cudnn and
+        if (chainer.should_use_cudnn('>=auto') and
                 pooling_2d._check_cudnn_acceptable_type(x[0].dtype)):
             return super(MaxPooling2D, self).forward_gpu(x)
 
@@ -97,8 +98,7 @@ class MaxPooling2D(pooling_2d.Pooling2D):
         return gx,
 
     def backward_gpu(self, x, gy):
-        if (cuda.cudnn_enabled and self.use_cudnn and
-                pooling_2d._check_cudnn_acceptable_type(x[0].dtype)):
+        if self._used_cudnn:
             return super(MaxPooling2D, self).backward_gpu(x, gy)
 
         n, c, h, w = x[0].shape
@@ -144,8 +144,7 @@ class MaxPooling2D(pooling_2d.Pooling2D):
             libcudnn.CUDNN_POOLING_MAX)
 
 
-def max_pooling_2d(x, ksize, stride=None, pad=0, cover_all=True,
-                   use_cudnn=True):
+def max_pooling_2d(x, ksize, stride=None, pad=0, cover_all=True):
     """Spatial max pooling function.
 
     This function acts similarly to :class:`~functions.Convolution2D`, but
@@ -163,11 +162,9 @@ def max_pooling_2d(x, ksize, stride=None, pad=0, cover_all=True,
             ``pad=p`` and ``pad=(p, p)`` are equivalent.
         cover_all (bool): If ``True``, all spatial locations are pooled into
             some output pixels. It may make the output size larger.
-        use_cudnn (bool): If ``True`` and cuDNN is enabled, then this function
-            uses cuDNN as the core implementation.
 
     Returns:
         ~chainer.Variable: Output variable.
 
     """
-    return MaxPooling2D(ksize, stride, pad, cover_all, use_cudnn)(x)
+    return MaxPooling2D(ksize, stride, pad, cover_all)(x)
