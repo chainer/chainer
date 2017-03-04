@@ -74,22 +74,40 @@ class Softmax(function.Function):
 
 
 def softmax(x, use_cudnn=True):
-    """Channelwise softmax function.
+    """Channel-wise softmax function.
 
     This function computes its softmax along the second axis. Let
-    :math:`x = (x_1, x_2, \\dots, x_d)^{\\top}` be the d dimensional index
-    array and :math:`f(x)` be the d dimensional input array. For each index
-    :math:`x` of the input array :math:`f(x)`, it computes the probability
-    :math:`p(x)` defined as
-    :math:`p(x) = {\\exp(f(x)) \\over \\sum_{x_2} \\exp(f(x))}`.
+    :math:`x=(x_1, x_2, \\dots, x_D)^{\\top}` be the D dimensional
+    input array.
+    For each input array :math:`x`, it computes the function :math:`f(x)`
+    defined as
+    :math:`f(x)={\\exp(x) \\over \\sum_{x_d} \\exp(x_d)}`.
 
     Args:
-        x (~chainer.Variable): Input variable.
+        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`):
+            Input variable.
+            A :math:`n`-dimensional (:math:`n \\geq 2`) float array.
         use_cudnn (bool): If ``True`` and cuDNN is enabled, then this function
             uses cuDNN as the core implementation.
 
     Returns:
         ~chainer.Variable: Output variable.
+        A :math:`n`-dimensional (:math:`n \\geq 2`) float array, which is the
+        same shape with x.
+
+    .. admonition:: Example
+
+        >>> x = np.array([[0, 1, 2], [0, 2, 4]], 'f')
+        >>> x
+        array([[ 0.,  1.,  2.],
+               [ 0.,  2.,  4.]], dtype=float32)
+        >>> y = F.softmax(x)
+        >>> y.data
+        array([[ 0.09003057,  0.24472848,  0.66524094],
+               [ 0.01587624,  0.11731043,  0.86681336]], dtype=float32)
+        >>> F.sum(y, axis=1).data
+        array([ 1.,  1.], dtype=float32)
 
     """
     return Softmax(use_cudnn)(x)
