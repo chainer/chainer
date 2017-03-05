@@ -109,5 +109,6 @@ def main():
     # Run the training
     trainer.run()
 
+
 if __name__ == '__main__':
     main()
