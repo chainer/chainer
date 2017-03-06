@@ -41,6 +41,7 @@ def get_fans(shape):
     if len(shape) < 2:
         raise ValueError('shape must be of length >= 2: shape={}', shape)
 
-    fan_in = numpy.prod(shape[1:])
-    fan_out = shape[0]
+    receptive_field_size = numpy.prod(shape[2:], dtype=numpy.int32)
+    fan_in = shape[1] * receptive_field_size
+    fan_out = shape[0] * receptive_field_size
     return fan_in, fan_out

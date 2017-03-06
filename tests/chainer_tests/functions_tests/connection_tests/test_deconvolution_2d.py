@@ -182,8 +182,8 @@ class TestDeconvolution2DCudnnCall(unittest.TestCase):
             name = 'cupy.cudnn.cudnn.convolutionBackwardData_v2'
         with chainer.using_config('use_cudnn', self.use_cudnn):
             with mock.patch(name) as func:
-                    self.forward()
-                    self.assertEqual(func.called, self.expect)
+                self.forward()
+                self.assertEqual(func.called, self.expect)
 
     def test_call_cudnn_backward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
