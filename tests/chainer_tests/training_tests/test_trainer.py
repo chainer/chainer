@@ -134,7 +134,7 @@ class TestTrainer(unittest.TestCase):
         self.trainer.extend(dummy_extension_1)
         self.trainer.extend(dummy_extension_2)
         self.trainer.run()
-        self.assertEqual(self.called_order, [1, 2])
+        self.assertEqual(self.called_order, [1, 2] * 10)
 
     def test_add_two_extensions_specific_priority(self):
         self.called_order = []
@@ -150,18 +150,21 @@ class TestTrainer(unittest.TestCase):
         self.trainer.extend(dummy_extension_1)
         self.trainer.extend(dummy_extension_2)
         self.trainer.run()
-        self.assertEqual(self.called_order, [2, 1])
+        self.assertEqual(self.called_order, [2, 1] * 10)
 
 
 def _get_mocked_trainer(stop_trigger=(10, 'iteration')):
     updater = mock.Mock()
     updater.get_all_optimizers.return_value = {}
     updater.iteration = 0
-    updater.epoch_detail = 1
+    updater.epoch_detail = 0
+    updater.previous_epoch_detail = None
 
     def update():
         time.sleep(0.001)
         updater.iteration += 1
+        updater.previous_epoch_detail = updater.epoch_detail
+        updater.epoch_detail += 1
 
     updater.update = update
     return training.Trainer(updater, stop_trigger)
