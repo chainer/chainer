@@ -40,15 +40,13 @@ class NStepLSTM(link.ChainList):
         in_size (int): Dimensionality of input vectors.
         out_size (int): Dimensionality of hidden states and output vectors.
         dropout (float): Dropout ratio.
-        use_cudnn (bool): Use cuDNN.
 
     .. seealso::
         :func:`chainer.functions.n_step_lstm`
 
     """
 
-    def __init__(
-            self, n_layers, in_size, out_size, dropout, use_cudnn=True):
+    def __init__(self, n_layers, in_size, out_size, dropout):
         weights = []
         for i in six.moves.range(n_layers):
             weight = link.Link()
@@ -68,7 +66,6 @@ class NStepLSTM(link.ChainList):
 
         self.n_layers = n_layers
         self.dropout = dropout
-        self.use_cudnn = use_cudnn
 
     def __call__(self, hx, cx, xs):
         """Calculate all hidden states and cell states.
@@ -92,8 +89,7 @@ class NStepLSTM(link.ChainList):
         bs = [[w.b0, w.b1, w.b2, w.b3, w.b4, w.b5, w.b6, w.b7] for w in self]
 
         hy, cy, trans_y = rnn.n_step_lstm(
-            self.n_layers, self.dropout, hx, cx, ws, bs, trans_x,
-            use_cudnn=self.use_cudnn)
+            self.n_layers, self.dropout, hx, cx, ws, bs, trans_x)
 
         hy = permutate.permutate(hy, indices, axis=1, inv=True)
         cy = permutate.permutate(cy, indices, axis=1, inv=True)
