@@ -1,5 +1,6 @@
 import numpy
 
+import chainer
 from chainer import cuda
 from chainer import function
 from chainer.functions.connection import convolution_2d
@@ -29,11 +30,9 @@ def _pair(x):
 
 class Deconvolution2DFunction(function.Function):
 
-    def __init__(self, stride=1, pad=0, outsize=None, use_cudnn=True,
-                 deterministic=False):
+    def __init__(self, stride=1, pad=0, outsize=None, deterministic=False):
         self.sy, self.sx = _pair(stride)
         self.ph, self.pw = _pair(pad)
-        self.use_cudnn = use_cudnn
         self.outh, self.outw = (None, None) if outsize is None else outsize
         self.deterministic = deterministic
 
@@ -107,7 +106,7 @@ class Deconvolution2DFunction(function.Function):
         if self.outw is None:
             self.outw = conv.get_deconv_outsize(in_w, kw, self.sx, self.pw)
             assert self.outw > 0, 'Width in the output should be positive.'
-        if (cuda.cudnn_enabled and self.use_cudnn and
+        if (chainer.should_use_cudnn('>=auto') and
                 _check_cudnn_acceptable_type(x.dtype, W.dtype)):
             x = cuda.cupy.ascontiguousarray(x)
             W = cuda.cupy.ascontiguousarray(W)
@@ -199,7 +198,7 @@ class Deconvolution2DFunction(function.Function):
         c, h, w = gy.shape[1:]
         gx = cuda.cupy.empty((n, in_c, in_h, in_w), dtype=x.dtype)
 
-        if (cuda.cudnn_enabled and self.use_cudnn and
+        if (chainer.should_use_cudnn('>=auto') and
                 _check_cudnn_acceptable_type(x.dtype, W.dtype)):
             x = cuda.cupy.ascontiguousarray(x)
             W = cuda.cupy.ascontiguousarray(W)
@@ -278,7 +277,7 @@ class Deconvolution2DFunction(function.Function):
 
 
 def deconvolution_2d(x, W, b=None, stride=1, pad=0,
-                     outsize=None, use_cudnn=True, deterministic=False):
+                     outsize=None, deterministic=False):
     """Two dimensional deconvolution function.
 
     This is an implementation of two-dimensional deconvolution.
@@ -298,8 +297,6 @@ def deconvolution_2d(x, W, b=None, stride=1, pad=0,
             It should be pair of height and width :math:`(out_H, out_W)`.
             Default value is ``None`` and the outsize is estimated by
             input size, stride and pad.
-        use_cudnn (bool): If ``True``, then this function uses cuDNN if
-            available.
         deterministic (bool): The output of this function can be
             non-deterministic when it uses cuDNN.
             If this option is ``True``, then it forces cuDNN to use
@@ -324,8 +321,7 @@ def deconvolution_2d(x, W, b=None, stride=1, pad=0,
        w_O &= s_X (w - 1) + k_W - 2p_W.
 
     """
-    func = Deconvolution2DFunction(
-        stride, pad, outsize, use_cudnn, deterministic)
+    func = Deconvolution2DFunction(stride, pad, outsize, deterministic)
     if b is None:
         return func(x, W)
     else:

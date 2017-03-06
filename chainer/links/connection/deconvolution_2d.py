@@ -31,8 +31,6 @@ class Deconvolution2D(link.Link):
             It should be pair of height and width :math:`(out_H, out_W)`.
             Default value is ``None`` and the outsize is estimated by
             input size, stride and pad.
-        use_cudnn (bool): If ``True``, then this function uses cuDNN if
-            available.
         initialW (4-D array): Initial weight value. If ``None``, then this
             function uses the default initializer to initialize
             the weight tensor.
@@ -67,14 +65,13 @@ class Deconvolution2D(link.Link):
     """
 
     def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
-                 bias=0, nobias=False, outsize=None, use_cudnn=True,
+                 bias=0, nobias=False, outsize=None,
                  initialW=None, initial_bias=None, deterministic=False):
         super(Deconvolution2D, self).__init__()
         self.ksize = ksize
         self.stride = _pair(stride)
         self.pad = _pair(pad)
         self.outsize = (None, None) if outsize is None else outsize
-        self.use_cudnn = use_cudnn
         self.initialW = initialW
         self.out_channels = out_channels
         self.deterministic = deterministic
@@ -106,8 +103,7 @@ class Deconvolution2D(link.Link):
                 self._initialize_params(x.shape[1])
         return deconvolution_2d.deconvolution_2d(
             x, self.W, self.b, self.stride, self.pad,
-            self.outsize, self.use_cudnn,
-            deterministic=self.deterministic)
+            self.outsize, deterministic=self.deterministic)
 
 
 def _pair(x):

@@ -22,9 +22,7 @@ class _PoolingND(function.Function):
 
     """Base class of pooling function over a set of N-dimensional planes."""
 
-    def __init__(self, ndim, ksize, stride=None, pad=0, cover_all=True,
-                 use_cudnn=True):
-
+    def __init__(self, ndim, ksize, stride=None, pad=0, cover_all=True):
         if stride is None:
             stride = ksize
 
@@ -34,7 +32,7 @@ class _PoolingND(function.Function):
         self.pad = conv_nd.as_tuple(pad, ndim)
 
         self.cover_all = cover_all
-        self.use_cudnn = use_cudnn
+        self._used_cudnn = False
 
     def check_type_forward(self, in_types):
         type_check.expect(
@@ -44,6 +42,8 @@ class _PoolingND(function.Function):
         )
 
     def forward_gpu(self, x):
+        self._used_cudnn = True
+
         # Implementation using cuDNN.
         x = x[0]
         n, c = x.shape[:2]
