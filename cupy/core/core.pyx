@@ -1100,7 +1100,10 @@ cdef class ndarray:
         advanced = False
         for i, s in enumerate(slices):
             if isinstance(s, (list, numpy.ndarray)):
-                s = array(s)
+                dtype = None
+                if isinstance(s, list) and len(s) == 0:
+                    dtype = numpy.int32
+                s = array(s, dtype=dtype)
                 slices[i] = s
             if isinstance(s, ndarray):
                 if issubclass(s.dtype.type, numpy.integer):
