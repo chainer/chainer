@@ -298,8 +298,12 @@ class Link(object):
         self._cpu = False
         return self
 
-    def params(self):
+    def params(self, include_uninit=True):
         """Returns a generator of all parameters under the link hierarchy.
+
+        Args:
+            include_uninit (bool): If ``True``, it also generates uninitialized
+                parameters.
 
         Returns:
             A generator object that generates all parameters.
@@ -307,10 +311,15 @@ class Link(object):
         """
         d = self.__dict__
         for name in self._params:
-            yield d[name]
+            if include_uninit or d[name].data is not None:
+                yield d[name]
 
-    def namedparams(self):
+    def namedparams(self, include_uninit=True):
         """Returns a generator of all (path, param) pairs under the hierarchy.
+
+        Args:
+            include_uninit (bool): If ``True``, it also generates uninitialized
+                parameters.
 
         Returns:
             A generator object that generates all (path, parameter) pairs. The
@@ -319,7 +328,8 @@ class Link(object):
         """
         d = self.__dict__
         for name in self._params:
-            yield '/' + name, d[name]
+            if include_uninit or d[name].data is not None:
+                yield '/' + name, d[name]
 
     def links(self, skipself=False):
         """Returns a generator of all links under the hierarchy.
@@ -571,21 +581,21 @@ class Chain(Link):
                 d[name].to_gpu()
         return self
 
-    def params(self):
-        for param in super(Chain, self).params():
+    def params(self, include_uninit=True):
+        for param in super(Chain, self).params(include_uninit):
             yield param
         d = self.__dict__
         for name in self._children:
-            for param in d[name].params():
+            for param in d[name].params(include_uninit):
                 yield param
 
-    def namedparams(self):
-        for ret in super(Chain, self).namedparams():
+    def namedparams(self, include_uninit=True):
+        for ret in super(Chain, self).namedparams(include_uninit):
             yield ret
         d = self.__dict__
         for name in self._children:
             prefix = '/' + name
-            for path, param in d[name].namedparams():
+            for path, param in d[name].namedparams(include_uninit):
                 yield prefix + path, param
 
     def links(self, skipself=False):
@@ -724,19 +734,19 @@ class ChainList(Link):
                 link.to_gpu()
         return self
 
-    def params(self):
-        for param in super(ChainList, self).params():
+    def params(self, include_uninit=True):
+        for param in super(ChainList, self).params(include_uninit):
             yield param
         for link in self._children:
-            for param in link.params():
+            for param in link.params(include_uninit):
                 yield param
 
-    def namedparams(self):
-        for ret in super(ChainList, self).namedparams():
+    def namedparams(self, include_uninit=True):
+        for ret in super(ChainList, self).namedparams(include_uninit):
             yield ret
         for idx, link in enumerate(self._children):
             prefix = '/%d' % idx
-            for path, param in link.namedparams():
+            for path, param in link.namedparams(include_uninit):
                 yield prefix + path, param
 
     def links(self, skipself=False):

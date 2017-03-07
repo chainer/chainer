@@ -156,11 +156,21 @@ class TestLink(unittest.TestCase):
                          {id(self.link.x), id(self.link.y),
                           id(self.link.u), id(self.link.v)})
 
+    def test_params_skip_uninit(self):
+        params = list(self.link.params(include_uninit=False))
+        self.assertEqual({id(p) for p in params},
+                         {id(self.link.x), id(self.link.y)})
+
     def test_namedparams(self):
         namedparams = list(self.link.namedparams())
         self.assertEqual({(name, id(p)) for name, p in namedparams},
                          {('/x', id(self.link.x)), ('/y', id(self.link.y)),
                           ('/u', id(self.link.u)), ('/v', id(self.link.v))})
+
+    def test_namedparams_skip_uninit(self):
+        namedparams = list(self.link.namedparams(include_uninit=False))
+        self.assertEqual({(name, id(p)) for name, p in namedparams},
+                         {('/x', id(self.link.x)), ('/y', id(self.link.y))})
 
     def test_links(self):
         links = list(self.link.links())
@@ -310,7 +320,7 @@ class TestChain(unittest.TestCase):
     def setUp(self):
         self.l1 = chainer.Link(x=(2, 3))
         self.l2 = chainer.Link(x=2)
-        self.l3 = chainer.Link(x=3)
+        self.l3 = chainer.Link(x=None)
 
         self.c1 = chainer.Chain(l1=self.l1)
         self.c1.add_link('l2', self.l2)
@@ -395,14 +405,18 @@ class TestChain(unittest.TestCase):
         self.assertIsInstance(self.l1.x.grad, numpy.ndarray)
         self.assertIsInstance(self.l2.x.data, numpy.ndarray)
         self.assertIsInstance(self.l2.x.grad, numpy.ndarray)
-        self.assertIsInstance(self.l3.x.data, numpy.ndarray)
-        self.assertIsInstance(self.l3.x.grad, numpy.ndarray)
+        self.assertIsNone(self.l3.x.data)
+        self.assertIsNone(self.l3.x.grad)
         self.assertEqual(self.l1.x.count_to_cpu, 1)
         self.assertEqual(self.l1.x.count_to_gpu, 1)
         self.assertEqual(self.l2.x.count_to_cpu, 1)
         self.assertEqual(self.l2.x.count_to_gpu, 1)
         self.assertEqual(self.l3.x.count_to_cpu, 1)
         self.assertEqual(self.l3.x.count_to_gpu, 1)
+
+        self.l3.x.initialize(3)
+        self.assertIsInstance(self.l3.x.data, numpy.ndarray)
+        self.assertIsInstance(self.l3.x.grad, numpy.ndarray)
 
     @attr.gpu
     def test_to_gpu(self):
@@ -418,16 +432,25 @@ class TestChain(unittest.TestCase):
         self.assertIsInstance(self.l1.x.grad, cupy.ndarray)
         self.assertIsInstance(self.l2.x.data, cupy.ndarray)
         self.assertIsInstance(self.l2.x.grad, cupy.ndarray)
-        self.assertIsInstance(self.l3.x.data, cupy.ndarray)
-        self.assertIsInstance(self.l3.x.grad, cupy.ndarray)
+        self.assertIsNone(self.l3.x.data)
+        self.assertIsNone(self.l3.x.grad)
         self.assertEqual(self.l1.x.count_to_gpu, 1)
         self.assertEqual(self.l2.x.count_to_gpu, 1)
         self.assertEqual(self.l3.x.count_to_gpu, 1)
+
+        self.l3.x.initialize(3)
+        self.assertIsInstance(self.l3.x.data, cupy.ndarray)
+        self.assertIsInstance(self.l3.x.grad, cupy.ndarray)
 
     def test_params(self):
         params = list(self.c2.params())
         self.assertEqual({id(p) for p in params},
                          {id(self.l1.x), id(self.l2.x), id(self.l3.x)})
+
+    def test_params_skip_uninit(self):
+        params = list(self.c2.params(include_uninit=False))
+        self.assertEqual({id(p) for p in params},
+                         {id(self.l1.x), id(self.l2.x)})
 
     def test_namedparams(self):
         namedparams = list(self.c2.namedparams())
@@ -435,6 +458,12 @@ class TestChain(unittest.TestCase):
                          {('/c1/l1/x', id(self.l1.x)),
                           ('/c1/l2/x', id(self.l2.x)),
                           ('/l3/x', id(self.l3.x))})
+
+    def test_namedparams_skip_uninit(self):
+        namedparams = list(self.c2.namedparams(include_uninit=False))
+        self.assertEqual({(name, id(p)) for name, p in namedparams},
+                         {('/c1/l1/x', id(self.l1.x)),
+                          ('/c1/l2/x', id(self.l2.x))})
 
     def test_links(self):
         links = list(self.c2.links())
@@ -489,10 +518,12 @@ class TestChain(unittest.TestCase):
         self.c2.zerograds()
         numpy.testing.assert_array_equal(self.l1.x.grad, numpy.zeros((2, 3)))
         numpy.testing.assert_array_equal(self.l2.x.grad, numpy.zeros(2))
+        self.assertEqual(self.l1.x.count_zerograd, 1)
+        self.assertEqual(self.l2.x.count_zerograd, 1)
+        self.assertEqual(self.l3.x.count_zerograd, 1)
+
+        self.l3.x.initialize(3)
         numpy.testing.assert_array_equal(self.l3.x.grad, numpy.zeros(3))
-        numpy.testing.assert_array_equal(self.l1.x.count_zerograd, 1)
-        numpy.testing.assert_array_equal(self.l2.x.count_zerograd, 1)
-        numpy.testing.assert_array_equal(self.l3.x.count_zerograd, 1)
 
     def test_addgrads(self):
         l1 = chainer.Link(x=(2, 3))
@@ -506,12 +537,12 @@ class TestChain(unittest.TestCase):
 
         self.l1.x.grad.fill(-1)
         self.l2.x.grad.fill(-2)
-        self.l3.x.grad.fill(-3)
+        self.l3.zerograds()
 
         self.c2.addgrads(c2)
         numpy.testing.assert_array_equal(self.l1.x.grad, numpy.zeros((2, 3)))
         numpy.testing.assert_array_equal(self.l2.x.grad, numpy.zeros(2))
-        numpy.testing.assert_array_equal(self.l3.x.grad, numpy.zeros(3))
+        numpy.testing.assert_array_equal(self.l3.x.grad, numpy.full(3, 3.))
 
     def test_serialize(self):
         mocks = {'l1': mock.MagicMock(), 'l2': mock.MagicMock()}
@@ -667,11 +698,23 @@ class TestChainList(unittest.TestCase):
                          {id(self.l1.x), id(self.l1.y),
                           id(self.l2.x), id(self.l3.x)})
 
+    def test_params_skip_uninit(self):
+        params = list(self.c2.params(include_uninit=False))
+        self.assertEqual({id(p) for p in params},
+                         {id(self.l1.x), id(self.l2.x), id(self.l3.x)})
+
     def test_namedparams(self):
         namedparams = list(self.c2.namedparams())
         self.assertEqual({(name, id(p)) for name, p in namedparams},
                          {('/0/0/x', id(self.l1.x)),
                           ('/0/0/y', id(self.l1.y)),
+                          ('/0/1/x', id(self.l2.x)),
+                          ('/1/x', id(self.l3.x))})
+
+    def test_namedparams_skip_uninit(self):
+        namedparams = list(self.c2.namedparams(include_uninit=False))
+        self.assertEqual({(name, id(p)) for name, p in namedparams},
+                         {('/0/0/x', id(self.l1.x)),
                           ('/0/1/x', id(self.l2.x)),
                           ('/1/x', id(self.l3.x))})
 
