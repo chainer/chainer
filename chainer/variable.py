@@ -1,4 +1,5 @@
 import collections
+import copy
 import heapq
 import traceback
 import warnings
@@ -123,6 +124,11 @@ Actual: {0}'''.format(type(data))
         self.creator = None
 
         self.name = name
+
+    def __copy__(self):
+        copied = Variable()
+        copied.__dict__ = copy.copy(self.__dict__)
+        return copied
 
     def __reduce__(self):
         return Variable, (self.data, self.volatile, self.name, self._grad)
