@@ -290,7 +290,8 @@ class Optimizer(object):
         .. deprecated:: v1.5
 
         """
-        return numpy.sqrt(_sum_sqnorm([p.grad for p in self.target.params(False)]))
+        return numpy.sqrt(_sum_sqnorm(
+            [p.grad for p in self.target.params(False)]))
 
     def clip_grads(self, maxnorm):
         """Clips the norm of whole gradients up to the threshold.

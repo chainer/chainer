@@ -7,7 +7,6 @@ import six
 
 from chainer import cuda
 from chainer import initializers
-import chainer.serializer
 from chainer import variable
 
 

@@ -1,6 +1,3 @@
-import numpy
-
-from chainer import cuda
 from chainer import initializers
 from chainer import link
 from chainer import utils

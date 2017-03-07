@@ -10,8 +10,8 @@ import six
 import chainer
 from chainer import cuda
 from chainer import flag
-from chainer import utils
 from chainer import initializers
+from chainer import utils
 
 
 def _check_grad_type(func, x, gx):
@@ -109,7 +109,7 @@ class Variable(object):
             dtype = getattr(self.initializer, 'dtype', numpy.float32)
             self._grad_initializer = initializers.NaN(dtype)
         elif not isinstance(data, (numpy.ndarray, cuda.ndarray)):
-                msg = '''numpy.ndarray or cuda.ndarray are expected.
+            msg = '''numpy.ndarray or cuda.ndarray are expected.
 Actual: {0}'''.format(type(data))
                 raise TypeError(msg)
 

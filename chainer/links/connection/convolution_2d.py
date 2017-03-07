@@ -1,4 +1,3 @@
-from chainer import cuda
 from chainer.functions.connection import convolution_2d
 from chainer import initializers
 from chainer import link
