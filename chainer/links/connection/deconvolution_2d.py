@@ -79,10 +79,8 @@ class Deconvolution2D(link.Link):
         self.out_channels = out_channels
         self.deterministic = deterministic
 
-        # For backward compatibility, the scale of weights is proportional to
-        # the square root of wscale.
         self.add_param('W', initializer=initializers._get_initializer(
-            initialW, scale=math.sqrt(self.wscale)))
+            initialW))
         if in_channels is not None:
             self._initialize_params(in_channels)
 

@@ -61,7 +61,7 @@ class DilatedConvolution2D(link.Link):
         # For backward compatibility, the scale of weights is proportional to
         # the square root of wscale.
         self.add_param('W', initializer=initializers._get_initializer(
-            initialW, scale=math.sqrt(wscale)))
+            initialW))
         if in_channels is not None:
             self._initialize_params(in_channels)
 
