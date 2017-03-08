@@ -133,6 +133,7 @@ Actual: {0}'''.format(type(data))
         self.is_break_point = False
         self.is_forgotten = False
         self.will_be_forgotten = False
+        self.can_unchain = None
 
     def __reduce__(self):
         return Variable, (self.data, self.volatile, self.name, self._grad)
@@ -431,13 +432,22 @@ Actual: {0}'''.format(type(data))
             _, _, var = heapq.heappop(recomp_vars)
             var.recompute()
 
-    def set_break_point(self):
+    def set_break_point(self, can_unchain=None):
         """Sets this variable as a break point in the graph"""
-        if getattr(function._thread_local, 'recompute_is_used', False):
-            if not self.is_break_point and not self.is_forgotten:
-                self.is_break_point = True
-                self.interrupt_backward()
-                # _print_memory_pool_stats("set_break_point") # debug
+        flag_to_set = True
+        if self.is_forgotten:
+            flag_to_set = False
+        if self.g_creator is None:
+            flag_to_set = False
+
+        if flag_to_set:
+            self.is_break_point = True
+            self.interrupt_backward()
+            # _print_memory_pool_stats("set_break_point") # debug
+            if can_unchain is not None:
+                self.can_unchain = can_unchain
+
+        return flag_to_set
 
     def set_break_points(self):
         """Sets break points in the graph"""
@@ -446,33 +456,33 @@ Actual: {0}'''.format(type(data))
         seen_funcs = set()
         seen_vars = set()
 
-        if getattr(function._thread_local, 'recompute_is_used', False):
+        _add_instance(funcs, seen_funcs, self.g_creator)
+        while funcs:
+            func = funcs.pop()
 
-            _add_instance(funcs, seen_funcs, self.g_creator)
-            while funcs:
-                func = funcs.pop()
+            for x in func.inputs:
+                if x in seen_vars and not x.is_break_point:
+                    ret = x.set_break_point()
+                    # if ret:
+                    #     print("  break point is set (fork point) {}:"
+                    #           .format(x))
 
-                for x in func.inputs:
-                    if x in seen_vars and not x.is_break_point:
-                        x.set_break_point()
-                        # print("  break point is set (fork point) {}:"
-                        #       .format(x))
+            cnt = 0
+            for x in func.inputs:
+                if x.creator is not None:
+                    cnt = cnt + 1
+            if cnt > 1:
+                # print("  {}".format(func))
+                outputs = [y() for y in func.outputs]  # weak ref
+                for y in outputs:
+                    ret = y.set_break_point()
+                    # if ret:
+                    #     print("  break point is set (join point) {}:"
+                    #           .format(y))
 
-                cnt = 0
-                for x in func.inputs:
-                    if x.creator is not None:
-                        cnt = cnt + 1
-                if cnt > 1:
-                    # print("  {}".format(func))
-                    outputs = [y() for y in func.outputs]  # weak ref
-                    for y in outputs:
-                        y.set_break_point()
-                        # print("  break point is set (join point) {}:"
-                        #       .format(y))
-
-                for x in func.inputs:
-                    _add_instance(vars, seen_vars, x)
-                    _add_instance(funcs, seen_funcs, x.g_creator)
+            for x in func.inputs:
+                _add_instance(vars, seen_vars, x)
+                _add_instance(funcs, seen_funcs, x.g_creator)
 
     def get_break_points(self):
         """Gets break points in the graph"""
@@ -487,19 +497,20 @@ Actual: {0}'''.format(type(data))
 
         def add_break_points(cand):
             if cand not in seen_break_points:
+                # make sure backward() stop at break point.
+                cand.interrupt_backward()
                 heapq.heappush(break_points,
                                (-cand.rank, len(seen_break_points), cand))
                 seen_break_points.add(cand)
 
         add_break_points(self)
-        if getattr(function._thread_local, 'recompute_is_used', False):
-            _add_instance(funcs, seen_funcs, self.g_creator)
-            while funcs:
-                func = funcs.pop()
-                for x in func.inputs:
-                    if x.is_break_point:
-                        add_break_points(x)
-                    _add_instance(funcs, seen_funcs, x.g_creator)
+        _add_instance(funcs, seen_funcs, self.g_creator)
+        while funcs:
+            func = funcs.pop()
+            for x in func.inputs:
+                if x.is_break_point:
+                    add_break_points(x)
+                _add_instance(funcs, seen_funcs, x.g_creator)
 
         # print("  break_points:{}". format(break_points))
         return break_points
@@ -556,9 +567,12 @@ Actual: {0}'''.format(type(data))
         # _print_memory_pool_stats("backward")  # debug
 
         break_points = self.get_break_points()
+        # print("[variable.py]")
+        # print("  bps:{}".format(break_points))
+        can_unchain = False
         while break_points:
             _, _, endp = heapq.heappop(break_points)
-            # print("  endp:{}".format(endp))
+            # print("    endp:{}".format(endp))
             endp.resume_backward()
 
             # re-compute
@@ -570,7 +584,7 @@ Actual: {0}'''.format(type(data))
             need_copy = set()
 
             def add_cand(cand):
-                if cand not in seen_set:
+                if cand not in seen_set and cand is not None:
                     # Negate since heapq is min-heap
                     heapq.heappush(cand_funcs,
                                    (-cand.rank, len(seen_set), cand))
@@ -647,7 +661,11 @@ Actual: {0}'''.format(type(data))
                                 x._grad += gx
                 del gxs  # to reduce memory usage
 
-            endp.unchain_backward()
+            if endp.can_unchain is not None:
+                can_unchain = endp.can_unchain
+            if can_unchain:
+                # print("        unchain_backward() is used")
+                endp.unchain_backward()
 
             # _print_memory_pool_stats("backward")  # debug
 
