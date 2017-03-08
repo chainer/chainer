@@ -1,6 +1,3 @@
-import numpy
-
-from chainer import cuda
 from chainer.functions.connection import deconvolution_2d
 from chainer import initializers
 from chainer import link
@@ -76,31 +73,27 @@ class Deconvolution2D(link.Link):
         self.out_channels = out_channels
         self.deterministic = deterministic
 
-        if in_channels is None:
-            self.add_uninitialized_param('W')
-        else:
+        self.add_param('W', initializer=initializers._get_initializer(
+            initialW))
+        if in_channels is not None:
             self._initialize_params(in_channels)
 
         if nobias:
             self.b = None
         else:
-            self.add_param('b', out_channels)
-            if isinstance(initial_bias, (numpy.ndarray, cuda.ndarray)):
-                assert initial_bias.shape == (out_channels,)
             if initial_bias is None:
                 initial_bias = bias
-            initializers.init_weight(self.b.data, initial_bias)
+            bias_initializer = initializers._get_initializer(initial_bias)
+            self.add_param('b', out_channels, initializer=bias_initializer)
 
     def _initialize_params(self, in_channels):
         kh, kw = _pair(self.ksize)
         W_shape = (in_channels, self.out_channels, kh, kw)
-        self.add_param('W', W_shape)
-        initializers.init_weight(self.W.data, self.initialW)
+        self.W.initialize(W_shape)
 
     def __call__(self, x):
-        if self.has_uninitialized_params:
-            with cuda.get_device(self._device_id):
-                self._initialize_params(x.shape[1])
+        if self.W.data is None:
+            self._initialize_params(x.shape[1])
         return deconvolution_2d.deconvolution_2d(
             x, self.W, self.b, self.stride, self.pad,
             self.outsize, deterministic=self.deterministic)
