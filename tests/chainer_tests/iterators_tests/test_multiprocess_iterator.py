@@ -167,4 +167,5 @@ class TestMultiprocessIterator(unittest.TestCase):
         for _ in range(2):
             self.assertRaises(StopIteration, copy_it.next)
 
+
 testing.run_module(__name__, __file__)
