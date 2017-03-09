@@ -463,7 +463,6 @@ class BinaryHierarchicalSoftmax(link.Link):
             output.append(tree)
         return output
 
-
     def __call__(self, x, t):
         """Computes the loss value for given input and ground truth labels.
 
