@@ -28,7 +28,7 @@ class PreprocessedDataset(chainer.dataset.DatasetMixin):
 
     def __init__(self, path, root, mean, crop_size, random=True):
         self.base = chainer.datasets.LabeledImageDataset(path, root)
-        self.mean = mean
+        self.mean = mean.astype('f')
         self.crop_size = crop_size
         self.random = random
 
@@ -61,8 +61,18 @@ class PreprocessedDataset(chainer.dataset.DatasetMixin):
 
         image = image[:, top:bottom, left:right]
         image -= self.mean[:, top:bottom, left:right]
-        image /= 255
+        image *= (1.0 / 255.0)  # Scale to [0, 1]
         return image, label
+
+
+class TestModeEvaluator(extensions.Evaluator):
+
+    def evaluate(self):
+        model = self.get_target('main')
+        model.train = False
+        ret = super(TestModeEvaluator, self).evaluate()
+        model.train = True
+        return ret
 
 
 def main():
@@ -136,11 +146,7 @@ def main():
     val_interval = (10 if args.test else 100000), 'iteration'
     log_interval = (10 if args.test else 1000), 'iteration'
 
-    # Copy the chain with shared parameters to flip 'train' flag only in test
-    eval_model = model.copy()
-    eval_model.train = False
-
-    trainer.extend(extensions.Evaluator(val_iter, eval_model, device=args.gpu),
+    trainer.extend(TestModeEvaluator(val_iter, model, device=args.gpu),
                    trigger=val_interval)
     trainer.extend(extensions.dump_graph('main/loss'))
     trainer.extend(extensions.snapshot(), trigger=val_interval)

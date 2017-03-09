@@ -111,6 +111,10 @@ copy
 ~~~~
 .. autofunction:: copy
 
+depth2space
+~~~~~~~~~~~
+.. autofunction:: depth2space
+
 dstack
 ~~~~~~
 .. autofunction:: dstack
@@ -123,6 +127,14 @@ flatten
 ~~~~~~~
 .. autofunction:: flatten
 
+fliplr
+~~~~~~
+.. autofunction:: fliplr
+
+flipud
+~~~~~~
+.. autofunction:: flipud
+
 get_item
 ~~~~~~~~
 .. autofunction:: get_item
@@ -130,6 +142,10 @@ get_item
 hstack
 ~~~~~~
 .. autofunction:: hstack
+
+pad
+~~~
+.. autofunction:: pad
 
 permutate
 ~~~~~~~~~
@@ -151,9 +167,17 @@ separate
 ~~~~~~~~
 .. autofunction:: separate
 
+space2depth
+~~~~~~~~~~~
+.. autofunction:: space2depth
+
 split_axis
 ~~~~~~~~~~
 .. autofunction:: split_axis
+
+squeeze
+~~~~~~~
+.. autofunction:: squeeze
 
 stack
 ~~~~~
@@ -162,6 +186,10 @@ stack
 swapaxes
 ~~~~~~~~
 .. autofunction:: swapaxes
+
+tile
+~~~~
+.. autofunction:: tile
 
 transpose
 ~~~~~~~~~
@@ -199,6 +227,10 @@ deconvolution_2d
 ~~~~~~~~~~~~~~~~
 .. autofunction:: deconvolution_2d
 
+deconvolution_nd
+~~~~~~~~~~~~~~~~
+.. autofunction:: deconvolution_nd
+
 dilated_convolution_2d
 ~~~~~~~~~~~~~~~~~~~~~~
 .. autofunction:: dilated_convolution_2d
@@ -211,6 +243,10 @@ linear
 ~~~~~~
 .. autofunction:: linear
 
+n_step_lstm
+~~~~~~~~~~~
+.. autofunction:: n_step_lstm
+
 
 Evaluation functions
 --------------------
@@ -218,6 +254,18 @@ Evaluation functions
 accuracy
 ~~~~~~~~
 .. autofunction:: accuracy
+
+binary_accuracy
+~~~~~~~~~~~~~~~
+.. autofunction:: binary_accuracy
+
+classification_summary
+~~~~~~~~~~~~~~~~~~~~~~
+.. autofunction:: classification_summary
+
+r2_score
+~~~~~~~~
+.. autofunction:: r2_score
 
 
 Loss functions
@@ -242,6 +290,7 @@ contrastive
 crf1d
 ~~~~~
 .. autofunction:: crf1d
+.. autofunction:: argmax_crf1d
 
 cross_covariance
 ~~~~~~~~~~~~~~~~
@@ -262,6 +311,10 @@ hinge
 huber_loss
 ~~~~~~~~~~
 .. autofunction:: huber_loss
+
+mean_absolute_error
+~~~~~~~~~~~~~~~~~~~
+.. autofunction:: mean_absolute_error
 
 mean_squared_error
 ~~~~~~~~~~~~~~~~~~
@@ -343,6 +396,10 @@ exp
 ~~~
 .. autofunction:: exp
 
+fmod
+~~~~
+.. autofunction:: fmod
+
 floor
 ~~~~~
 .. autofunction:: floor
@@ -419,6 +476,14 @@ sqrt
 ~~~~
 .. autofunction:: sqrt
 
+square
+~~~~~~
+.. autofunction:: square
+
+squared_difference
+~~~~~~~~~~~~~~~~~~
+.. autofunction:: squared_difference
+
 sum
 ~~~
 .. autofunction:: sum
@@ -473,9 +538,17 @@ average_pooling_2d
 ~~~~~~~~~~~~~~~~~~
 .. autofunction:: average_pooling_2d
 
+average_pooling_nd
+~~~~~~~~~~~~~~~~~~
+.. autofunction:: average_pooling_nd
+
 max_pooling_2d
 ~~~~~~~~~~~~~~
 .. autofunction:: max_pooling_2d
+
+max_pooling_nd
+~~~~~~~~~~~~~~
+.. autofunction:: max_pooling_nd
 
 roi_pooling_2d
 ~~~~~~~~~~~~~~
@@ -488,6 +561,10 @@ spatial_pyramid_pooling_2d
 unpooling_2d
 ~~~~~~~~~~~~
 .. autofunction:: unpooling_2d
+
+upsampling_2d
+~~~~~~~~~~~~~
+.. autofunction:: upsampling_2d
 
 
 Utility functions

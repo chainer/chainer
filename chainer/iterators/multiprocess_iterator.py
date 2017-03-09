@@ -12,8 +12,6 @@ from chainer.dataset import iterator
 
 class MultiprocessIterator(iterator.Iterator):
 
-    _last_signal = object()
-
     """Dataset iterator that loads examples in parallel.
 
     This is an implementation of :class:`~chainer.dataset.Iterator` that loads
@@ -40,6 +38,8 @@ class MultiprocessIterator(iterator.Iterator):
 
     """
 
+    _last_signal = object()
+
     def __init__(self, dataset, batch_size, repeat=True, shuffle=True,
                  n_processes=None, n_prefetch=1, shared_mem=None):
         self.dataset = dataset
@@ -60,8 +60,7 @@ class MultiprocessIterator(iterator.Iterator):
         self.n_prefetch = max(n_prefetch, 1)
         self._shared_mem_size = shared_mem
 
-        self._start = False
-        self._finalized = threading.Event()
+        self._finalized = None
 
     def __del__(self):
         self.finalize()
@@ -71,7 +70,7 @@ class MultiprocessIterator(iterator.Iterator):
             raise StopIteration
 
         self.is_new_epoch = False
-        if not self._start:
+        if self._finalized is None:
             self._init()  # start workers
             # load for the first iteration
             for _ in six.moves.range(self.n_prefetch):
@@ -88,7 +87,7 @@ class MultiprocessIterator(iterator.Iterator):
         return self.epoch + self.current_position / len(self.dataset)
 
     def finalize(self):
-        if not self._start or self._finalized.is_set():
+        if self._finalized is None or self._finalized.is_set():
             return
 
         self._finalized.set()
@@ -109,6 +108,7 @@ class MultiprocessIterator(iterator.Iterator):
         serializer('order', self._order)
 
     def _init(self):
+        finalized = threading.Event()
         self._index_queue = multiprocessing.Queue()
         self._data_queue = multiprocessing.Queue()
         self._ordered_data_queue = six.moves.queue.Queue()
@@ -125,11 +125,11 @@ class MultiprocessIterator(iterator.Iterator):
             target=_get_data_loop, name="get_data_loop",
             args=(self._data_queue, self._ordered_data_queue,
                   self._mem_list, self._unused_mem_queue,
-                  self._finalized, self._last_signal))
+                  finalized, self._last_signal))
         self._get_data_loop_thread.daemon = True
         self._get_data_loop_thread.start()
 
-        self._start = True
+        self._finalized = finalized
 
     def _init_process(self):
         assert len(self._workers) == 0
@@ -201,9 +201,9 @@ class MultiprocessIterator(iterator.Iterator):
             if i >= n:
                 self.epoch += 1
                 self.is_new_epoch = True
+                i = 0
                 if not self._repeat:
                     break
-                i = 0
         self.current_position = i
         # Eventually overwrite the (possibly shuffled) order.
         self._order = self._prefetch_order

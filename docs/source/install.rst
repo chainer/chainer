@@ -37,7 +37,7 @@ Chainer depends on these Python packages:
 
 CUDA support
 
-* `CUDA <https://developer.nvidia.com/cuda-zone>`_ 6.5, 7.0, 7.5
+* `CUDA <https://developer.nvidia.com/cuda-zone>`_ 6.5, 7.0, 7.5, 8.0
 * `filelock <https://filelock.readthedocs.org>`_
 
 cuDNN support
@@ -128,7 +128,9 @@ Install Chainer with CUDA and cuDNN
 cuDNN is a library for Deep Neural Networks that NVIDIA provides.
 Chainer can use cuDNN.
 If you want to enable cuDNN, install cuDNN and CUDA before installing Chainer.
-We recommend you to install cuDNN to CUDA directory.
+We recommend you to install developer library of deb package of cuDNN.
+
+If you want to install tar-gz version, we recommend you to install it to CUDA directory.
 For example if you uses Ubuntu Linux, copy ``.h`` files to ``include`` directory and ``.so`` files to ``lib64`` directory::
 
   $ cp /path/to/cudnn.h $CUDA_PATH/include
@@ -136,11 +138,17 @@ For example if you uses Ubuntu Linux, copy ``.h`` files to ``include`` directory
 
 The destination directories depend on your environment.
 
+If you want to use cuDNN installed in other directory, please use ``CFLAGS``, ``LDFLAGS`` and ``LD_LIBRARY_PATH`` environment variables before installing Chainer::
+
+  export CFLAGS=-I/path/to/cudnn/include
+  export LDFLAGS=-L/path/to/cudnn/lib
+  export LD_LIBRARY_PATH=/path/to/cudnn/lib:$LD_LIBRARY_PATH
+
 
 Install Chainer for developers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Chainer uses Cython (>=0.23).
+Chainer uses Cython (>=0.24).
 Developers need to use Cython to regenerate C++ sources from ``pyx`` files.
 We recommend to use ``pip`` with ``-e`` option for editable mode::
 
@@ -211,6 +219,20 @@ We recommend to use ``--no-cache-dir`` option as ``pip`` sometimes uses cache::
 
 When you install Chainer without CUDA, and after that you want to use CUDA, please reinstall Chainer.
 You need to reinstall Chainer when you want to upgrade CUDA.
+
+
+Run Chainer with Docker
+-----------------------
+
+We provide the official Docker image.
+Use `nvidia-docker <https://github.com/NVIDIA/nvidia-docker>`_ command to run Chainer image with GPU.
+You can login to the environment with bash, and run the Python interpreter::
+
+  $ nvidia-docker run -it chainer/chainer /bin/bash
+
+Or, run the interpreter directly::
+
+  $ nvidia-docker run -it chainer/chainer /usr/bin/python
 
 
 What "recommend" means?

@@ -9,6 +9,7 @@ import six
 import chainer
 from chainer import cuda
 from chainer import flag
+from chainer import utils
 
 
 def _check_grad_type(func, x, gx):
@@ -82,8 +83,8 @@ class Variable(object):
         grad: Gradient array.
         creator: The function who creates this variable. It is ``None`` if the
             variable is not created by any function.
-        volatile: Ternary :class:`~chainer.Flag` object. If ON, the variable
-            does not keep track of any function applications. See
+        volatile: Ternary :class:`~chainer.Flag` object. If ``'ON'``, the
+            variable does not keep track of any function applications. See
             :class:`~chainer.Flag` for the detail of ternary flags.
 
     """
@@ -161,7 +162,7 @@ Actual: {0}'''.format(type(data))
         """Returns the number of elements of the data array.
 
         Returns:
-            int: the number of elements of the data array.
+            int: Number of elements of the data array.
 
         """
         return self.data.size
@@ -283,22 +284,30 @@ Actual: {0}'''.format(type(data))
         src = var._grad
         dst = self._grad
         if src is None:
-            raise ValueError('Source gradient is not set.')
-        if dst is None:
-            raise ValueError('Target gradient is not set.')
+            return
 
-        xp = cuda.get_array_module(dst)
-        if xp is numpy:
-            dst += cuda.to_cpu(src)
-        elif isinstance(src, numpy.ndarray):
-            dst += cuda.to_gpu(src, device=dst)
+        src_dev = cuda.get_device(src)
+        dst_dev = cuda.get_device(self.data)
+
+        if src_dev.id == dst_dev.id:
+            with dst_dev:
+                if dst is None:
+                    xp = cuda.get_array_module(src)
+                    self._grad = xp.copy(src)
+                else:
+                    self._grad += src
+            return
+
+        if dst_dev.id < 0:
+            src_grad = cuda.to_cpu(src)
         else:
-            dst_dev = dst.device
-            if dst_dev == src.device:
-                dst += src
-            else:
-                with dst_dev:
-                    dst += xp.copy(src)
+            src_grad = cuda.to_gpu(src, device=dst_dev)
+
+        if dst is None:
+            self._grad = src_grad
+        else:
+            with dst_dev:
+                self._grad += src_grad
 
     def set_creator(self, gen_func):
         """Notifies the variable that the given function is its creator.
@@ -325,9 +334,9 @@ Actual: {0}'''.format(type(data))
         This method uses :data:`grad` as the initial error array. User can
         manually set a gradient array before calling this method. If
         :data:`data` contains only one element (i.e., it is scalar) and
-        :data:`grad` is None, then this method automatically complements 1.0 as
-        the initial error. This is useful on starting backprop from some scalar
-        loss value.
+        :data:`grad` is ``None``, then this method automatically complements
+        1.0 as the initial error. This is useful on starting backprop from
+        some scalar loss value.
 
         Args:
             retain_grad (bool): If ``True``, the gradient arrays of all
@@ -335,13 +344,22 @@ Actual: {0}'''.format(type(data))
                 intermediate variables are set to ``None`` on appropriate
                 timing, which may reduce the maximum memory consumption.
 
-                In most cases of training some model, the purpose of backprop
+                In most cases of training some models, the purpose of backprop
                 is to compute gradients of parameters, not of variables, so it
-                is recommended to set this flag False.
+                is recommended to set this flag ``False``.
 
         """
         if self.creator is None:
             return
+        initial_device = None
+        if cuda.available:
+            try:
+                initial_device = cuda.Device()
+            except cuda.cupy.cuda.runtime.CUDARuntimeError as e:
+                if e.status != 38:  # cudaErrorNoDevice
+                    raise
+
+        is_debug = chainer.is_debug()
 
         cand_funcs = []
         seen_set = set()
@@ -366,26 +384,31 @@ Actual: {0}'''.format(type(data))
 
         while cand_funcs:
             _, _, func = heapq.heappop(cand_funcs)
-            outputs = tuple(y() for y in func.outputs)  # access via weak ref
+            outputs = [y() for y in func.outputs]  # access via weak ref
 
-            in_data = tuple(x.data for x in func.inputs)
-            out_grad = tuple(None if y is None else y.grad for y in outputs)
-            hooks = collections.OrderedDict(chainer.get_function_hooks())
-            hooks.update(func.local_function_hooks)
+            in_data = tuple([x.data for x in func.inputs])
+            out_grad = tuple([None if y is None else y.grad for y in outputs])
+            hooks = chainer.get_function_hooks()
+            if func._n_local_function_hooks != 0:
+                hooks = collections.OrderedDict(hooks)
+                hooks.update(func.local_function_hooks)
+
+            cuda.get_device(*(in_data + out_grad)).use()
             for hook in six.itervalues(hooks):
                 hook.backward_preprocess(func, in_data, out_grad)
-            with cuda.get_device(*(in_data + out_grad)):
-                gxs = func.backward(in_data, out_grad)
+            gxs = func.backward(in_data, out_grad)
             assert len(gxs) == len(in_data)
             for hook in six.itervalues(hooks):
                 hook.backward_postprocess(func, in_data, out_grad)
 
-            if chainer.is_debug():
-                if any(gx is not None and
-                       cuda.get_array_module(gx).isnan(gx).any()
-                       for gx in gxs):
-                    msg = 'NaN is detected on backward computation'
-                    raise RuntimeError(msg)
+            if is_debug:
+                for gx in gxs:
+                    if gx is None:
+                        continue
+                    cuda.get_device(gx).use()
+                    if cuda.get_array_module(gx).isnan(gx).any():
+                        msg = 'NaN is detected on backward computation'
+                        raise RuntimeError(msg)
 
             if not retain_grad:
                 for y in outputs:
@@ -399,29 +422,57 @@ Actual: {0}'''.format(type(data))
 
                 # Accumulate the gradient to x. It is a bit tricky to handle
                 # branches and parameter gradient accumulation correctly.
-                with cuda.get_device(gx):
-                    id_x = id(x)
-                    if x.creator is None:  # leaf
-                        if x._grad is None:
-                            x.grad = gx
-                            need_copy.add(id_x)
-                        elif id_x in need_copy:
-                            x.grad = x.grad + gx  # copy
+                id_x = id(x)
+                if x.creator is None:  # leaf
+                    if x._grad is None:
+                        x.grad = gx
+                        need_copy.add(id_x)
+                    else:
+                        cuda.get_device(gx).use()
+                        if id_x in need_copy:
+                            x.grad = utils.force_array(x.grad + gx)  # copy
                             need_copy.remove(id_x)
                         else:
                             x._grad += gx
-                    else:  # not a leaf
-                        add_cand(x.creator)
-                        if id_x not in seen_vars:  # 1st visit
-                            x.grad = gx
-                            seen_vars.add(id_x)
-                            need_copy.add(id_x)
-                        elif id_x in need_copy:  # 2nd visit
-                            x._grad = gx + x._grad  # copied
+                else:  # not a leaf
+                    add_cand(x.creator)
+                    if id_x not in seen_vars:  # 1st visit
+                        x.grad = gx
+                        seen_vars.add(id_x)
+                        need_copy.add(id_x)
+                    else:
+                        cuda.get_device(gx).use()
+                        if id_x in need_copy:  # 2nd visit
+                            x._grad = utils.force_array(gx + x._grad)  # copied
                             need_copy.remove(id_x)
                         else:  # 3rd or later visit
                             x._grad += gx
             del gxs  # to reduce memory usage
+            if initial_device is not None:
+                initial_device.use()
+
+    def reshape(self, *shape):
+        """Returns a variable of a different shape and the same content.
+
+        .. seealso::
+           :func:`chainer.functions.reshape` for full documentation,
+
+        """
+        if len(shape) == 1 and isinstance(shape[0], (tuple, list)):
+            shape = shape[0]
+        return chainer.functions.reshape(self, shape)
+
+    def transpose(self, *axes):
+        """Permute the dimensions of an input variable without copy.
+
+        .. seealso::
+           :func:`chainer.functions.transpose` for full documentation.
+
+        """
+        if len(axes) == 1 and (isinstance(axes[0], (tuple, list)) or
+                               axes[0] is None):
+            axes = axes[0]
+        return chainer.functions.transpose(self, axes)
 
     def unchain_backward(self):
         """Deletes references between variables and functions backward.

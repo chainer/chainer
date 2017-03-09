@@ -54,11 +54,29 @@ class TestCuda(unittest.TestCase):
         # from builtin int/long on Python 2.
         self.assertEqual(cuda.get_device(builtins.int(0)), cuda.Device(0))
 
+    @attr.gpu
+    def test_get_device_for_device(self):
+        device = cuda.get_device(0)
+        self.assertIs(cuda.get_device(device), device)
+
     def test_to_gpu_unavailable(self):
         x = numpy.array([1])
         if not cuda.available:
             with self.assertRaises(RuntimeError):
                 cuda.to_gpu(x)
+
+    def test_get_array_module_for_numpy(self):
+        self.assertIs(cuda.get_array_module(numpy.array([])), numpy)
+        self.assertIs(
+            cuda.get_array_module(chainer.Variable(numpy.array([]))),
+            numpy)
+
+    @attr.gpu
+    def test_get_array_module_for_cupy(self):
+        self.assertIs(cuda.get_array_module(cuda.cupy.array([])), cuda.cupy)
+        self.assertIs(
+            cuda.get_array_module(chainer.Variable(cuda.cupy.array([]))),
+            cuda.cupy)
 
     def test_empy_unavailable(self):
         if not cuda.available:
@@ -118,7 +136,7 @@ class TestToCPU(unittest.TestCase):
         x = cuda.to_gpu(self.x)
         if not self.c_contiguous:
             x = cuda.cupy.asfortranarray(x)
-        y = cuda.to_cpu(x, stream=cuda.Stream(null=True))
+        y = cuda.to_cpu(x, stream=cuda.Stream.null)
         self.assertIsInstance(y, numpy.ndarray)
         cuda.cupy.testing.assert_array_equal(self.x, y)
 
@@ -128,7 +146,7 @@ class TestToCPU(unittest.TestCase):
         with x.device:
             if not self.c_contiguous:
                 x = cuda.cupy.asfortranarray(x)
-        y = cuda.to_cpu(x, stream=cuda.Stream(null=True))
+        y = cuda.to_cpu(x, stream=cuda.Stream.null)
         self.assertIsInstance(y, numpy.ndarray)
         cuda.cupy.testing.assert_array_equal(self.x, y)
 
@@ -188,13 +206,13 @@ class TestToGPU(unittest.TestCase):
 
     @attr.gpu
     def test_numpy_array_async(self):
-        y = cuda.to_gpu(self.x, stream=cuda.Stream(null=True))
+        y = cuda.to_gpu(self.x, stream=cuda.Stream.null)
         self.assertIsInstance(y, cuda.ndarray)
         cuda.cupy.testing.assert_array_equal(self.x, y)
 
     @attr.multi_gpu(2)
     def test_numpy_array_async2(self):
-        y = cuda.to_gpu(self.x, device=1, stream=cuda.Stream(null=True))
+        y = cuda.to_gpu(self.x, device=1, stream=cuda.Stream.null)
         self.assertIsInstance(y, cuda.ndarray)
         cuda.cupy.testing.assert_array_equal(self.x, y)
         self.assertEqual(int(y.device), 1)
@@ -202,7 +220,7 @@ class TestToGPU(unittest.TestCase):
     @attr.multi_gpu(2)
     def test_numpy_array_async3(self):
         with cuda.Device(1):
-            y = cuda.to_gpu(self.x, stream=cuda.Stream(null=True))
+            y = cuda.to_gpu(self.x, stream=cuda.Stream.null)
         self.assertIsInstance(y, cuda.ndarray)
         cuda.cupy.testing.assert_array_equal(self.x, y)
         self.assertEqual(int(y.device), 1)
@@ -223,7 +241,7 @@ class TestToGPU(unittest.TestCase):
         with x.device:
             if not self.c_contiguous:
                 x = cuda.cupy.asfortranarray(x)
-        y = cuda.to_gpu(x, device=1, stream=cuda.Stream(null=True))
+        y = cuda.to_gpu(x, device=1, stream=cuda.Stream.null)
         self.assertIsInstance(y, cuda.ndarray)
         self.assertIsNot(x, y)  # Do copy
         cuda.cupy.testing.assert_array_equal(x, y)
@@ -235,7 +253,7 @@ class TestToGPU(unittest.TestCase):
             if not self.c_contiguous:
                 x = cuda.cupy.asfortranarray(x)
         with cuda.Device(1):
-            y = cuda.to_gpu(x, stream=cuda.Stream(null=True))
+            y = cuda.to_gpu(x, stream=cuda.Stream.null)
         self.assertIsInstance(y, cuda.ndarray)
         self.assertIsNot(x, y)  # Do copy
         cuda.cupy.testing.assert_array_equal(x, y)

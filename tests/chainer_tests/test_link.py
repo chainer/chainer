@@ -5,6 +5,7 @@ import numpy
 
 import chainer
 from chainer import cuda
+import chainer.serializer
 from chainer import testing
 from chainer.testing import attr
 
@@ -138,6 +139,16 @@ class TestLink(unittest.TestCase):
         numpy.testing.assert_array_equal(self.link.y.data, l.y.data)
         numpy.testing.assert_array_equal(self.link.y.grad, gy)
 
+    def test_copyparams_uninitialized(self):
+        l = chainer.Link(x=(2, 3))
+        l.add_uninitialized_param('y')
+        self.link.x.data.fill(2)
+        self.link.y.data.fill(4)
+        l.copyparams(self.link)
+        numpy.testing.assert_array_equal(l.x.data, self.link.x.data)
+        self.assertTrue(hasattr(l, 'y'))
+        numpy.testing.assert_array_equal(l.y.data, self.link.y.data)
+
     def test_cleargrads(self):
         self.link.cleargrads()
         self.assertIsNone(self.link.x.grad)
@@ -188,6 +199,21 @@ class TestLink(unittest.TestCase):
         serializer.assert_any_call('y', l.y.data)
         serializer.assert_any_call('z', 1)
         self.assertEqual(l.z, 3)
+
+    def test_serialize_uninitialized_param(self):
+        class SerializerMock(chainer.serializer.Serializer):
+
+            def __getitem__(self, key):
+                pass
+
+            def __call__(self, key, value):
+                pass
+
+        serializer = SerializerMock()
+        l = chainer.Link()
+        l.add_uninitialized_param('x')
+        with self.assertRaises(ValueError):
+            l.serialize(serializer)
 
     def test_duplicate_uninitialized_param(self):
         l = chainer.Link(y=2)
@@ -459,6 +485,7 @@ class TestChainList(unittest.TestCase):
 
     def setUp(self):
         self.l1 = chainer.Link(x=(2, 3))
+        self.l1.add_uninitialized_param('y')
         self.l2 = chainer.Link(x=2)
         self.l3 = chainer.Link(x=3)
         self.c1 = chainer.ChainList(self.l1)
@@ -657,6 +684,16 @@ class TestChainList(unittest.TestCase):
         numpy.testing.assert_array_equal(self.l2.x.grad, numpy.zeros(2))
         numpy.testing.assert_array_equal(self.l3.x.grad, numpy.zeros(3))
 
+        self.assertTrue(self.l1._uninitialized_params['y']._zeroed)
+
+    def test_cleargrads(self):
+        self.c2.cleargrads()
+        self.assertIsNone(self.l1.x.grad)
+        self.assertIsNone(self.l2.x.grad)
+        self.assertIsNone(self.l3.x.grad)
+
+        self.assertTrue(self.l1._uninitialized_params['y']._cleared)
+
     def test_addgrads(self):
         l1 = chainer.Link(x=(2, 3))
         l2 = chainer.Link(x=2)
@@ -677,6 +714,7 @@ class TestChainList(unittest.TestCase):
         numpy.testing.assert_array_equal(self.l3.x.grad, numpy.zeros(3))
 
     def test_serialize(self):
+        self.l1.add_param('y', (1, 1))
         mocks = {'0': mock.MagicMock(), '1': mock.MagicMock()}
         serializer = mock.MagicMock()
         serializer.__getitem__.side_effect = lambda k: mocks[k]
@@ -687,7 +725,7 @@ class TestChainList(unittest.TestCase):
         serializer.__getitem__.assert_any_call('0')
         serializer.__getitem__.assert_any_call('1')
 
-        mocks['0'].assert_called_with('x', self.l1.x.data)
+        mocks['0'].assert_called_with('y', self.l1.y.data)
         mocks['1'].assert_called_with('x', self.l2.x.data)
 
 

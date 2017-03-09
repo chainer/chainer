@@ -63,15 +63,14 @@ class DropoutStates(object):
         self.states = states
         self.desc = desc
 
-    @staticmethod
-    def create(handle, states, dropout, seed):
-        desc = cudnn.create_dropout_descriptor(
-            handle, dropout, states.data.ptr, states.size, seed)
-        return DropoutStates(states, desc)
+    def set_dropout_ratio(self, handle, dropout):
+        cudnn.set_dropout_descriptor(self.desc, handle, dropout)
 
     @staticmethod
-    def from_states(handle, states, dropout):
-        desc = cudnn.create_dropout_descriptor(handle, dropout, 0, 0, 0)
+    def create(handle, dropout, seed):
+        states = cudnn.create_dropout_states(handle)
+        desc = cudnn.create_dropout_descriptor(
+            handle, dropout, states.data.ptr, states.size, seed)
         return DropoutStates(states, desc)
 
 
@@ -94,11 +93,11 @@ class DropoutRandomStates(object):
     def create_dropout_states(self, dropout):
         handle = cudnn.get_handle()
         if self._states is None:
-            self._states = cudnn.create_dropout_states(handle)
-            return DropoutStates.create(
-                handle, self._states, dropout, self._seed)
+            self._states = DropoutStates.create(handle, dropout, self._seed)
         else:
-            return DropoutStates.from_states(handle, self._states, dropout)
+            self._states.set_dropout_ratio(handle, dropout)
+
+        return self._states
 
 
 _random_states = {}
@@ -243,7 +242,6 @@ class NStepLSTM(function.Function):
         work_size = libcudnn.getRNNWorkspaceSize(
             handle, rnn_desc.value, length, c_x_descs.data)
         workspace = cuda.cupy.empty((work_size,), dtype='b')
-        self.workspace = workspace
 
         if not self.train:
             libcudnn.RNNForwardInference(
@@ -330,7 +328,7 @@ class NStepLSTM(function.Function):
             self.reserve_space.data.ptr, self.reserve_space.size)
 
         dw = cuda.cupy.zeros_like(self.w)
-        dw_desc = cudnn.create_tensor_nd_descriptor(dw)
+        dw_desc = cudnn.create_filter_descriptor(dw)
         libcudnn.RNNBackwardWeights(
             handle, rnn_desc.value, length,
             self.c_x_descs.data, xs.data.ptr,
@@ -341,22 +339,18 @@ class NStepLSTM(function.Function):
         dx = dx_list[0]
         dx = dx.reshape(dx.shape + (1,))
         dx_desc = cudnn.create_tensor_nd_descriptor(dx)
-        dws = [cuda.cupy.empty_like(w) for w in ws]
-        dbs = [cuda.cupy.empty_like(b) for b in bs]
+        dws = []
+        dbs = []
         for layer in six.moves.range(self.n_layers):
             for lin_layer_id in six.moves.range(8):
                 mat = cudnn.get_rnn_lin_layer_matrix_params(
                     handle, rnn_desc, layer, dx_desc, dw_desc, dw,
                     lin_layer_id)
-                v = dws[layer * 8 + lin_layer_id]
-                v = v.reshape(v.size)
-                v[:] = mat.ravel()
+                dws.append(mat.reshape(ws[layer * 8 + lin_layer_id].shape))
                 bias = cudnn.get_rnn_lin_layer_bias_params(
                     handle, rnn_desc, layer, dx_desc, dw_desc, dw,
                     lin_layer_id)
-                v = dbs[layer * 8 + lin_layer_id]
-                v = v.reshape(v.size)
-                v[:] = bias.ravel()
+                dbs.append(bias.reshape(bs[layer * 8 + lin_layer_id].shape))
 
         return tuple([dhx, dcx] + dws + dbs + dx_list)
 
@@ -364,7 +358,7 @@ class NStepLSTM(function.Function):
 def _stack_weight(ws):
     # TODO(unno): Input of the current LSTM implementaiton is shuffled
     w = stack.stack(ws, axis=1)
-    shape = w.data.shape
+    shape = w.shape
     return reshape.reshape(w, (shape[0] * shape[1],) + shape[2:])
 
 
@@ -382,12 +376,12 @@ def n_step_lstm(
 
     .. math::
 
-       i_t = \sigma(W_0 x_t + W_4 h_{t-1} + b_0 + b_4)
-       f_t = \sigma(W_1 x_t + W_5 h_{t-1} + b_1 + b_5)
-       o_t = \sigma(W_2 x_t + W_6 h_{t-1} + b_2 + b_6)
-       a_t = \tanh(W_3 x_t + W_7 h_{t-1} + b_3 + b_7)
-       c_t = f_t \dot c_{t-1} + i_t \dot a_t
-       h_t = o_t \dot \tanh(c_t)
+       i_t &= \\sigma(W_0 x_t + W_4 h_{t-1} + b_0 + b_4) \\\\
+       f_t &= \\sigma(W_1 x_t + W_5 h_{t-1} + b_1 + b_5) \\\\
+       o_t &= \\sigma(W_2 x_t + W_6 h_{t-1} + b_2 + b_6) \\\\
+       a_t &= \\tanh(W_3 x_t + W_7 h_{t-1} + b_3 + b_7) \\\\
+       c_t &= f_t \\dot c_{t-1} + i_t \\dot a_t \\\\
+       h_t &= o_t \\dot \\tanh(c_t)
 
     As the function accepts a sequence, it calculates :math:`h_t` for all
     :math:`t` with one call. Eight weight matrices and eight bias vectors are
@@ -421,7 +415,7 @@ def n_step_lstm(
             ``bs[i][j]`` is corresponding with ``b_j`` in the equation.
             Shape of each matrix is ``(N,)`` where ``N`` is dimention of
             hidden units.
-        xs (list of chainer.Variable): A list of :class:`chainer.Variable`
+        xs (list of chainer.Variable): A list of :class:`~chainer.Variable`
             holding input values. Each element ``xs[t]`` holds input value
             for time ``t``. Its shape is ``(B_t, I)``, where ``B_t`` is
             mini-batch size for time ``t``, and ``I`` is size of input units.
@@ -431,7 +425,7 @@ def n_step_lstm(
             :func:`~chainer.functions.transpose_sequence` transpose a list
             of :func:`~chainer.Variable` holding sequence.
             So ``xs`` needs to satisfy
-            ``len(xs[t].data) >= len(xs[t + 1].data)``.
+            ``xs[t].shape[0] >= xs[t + 1].shape[0]``.
         train (bool): If ``True``, this function executes dropout.
         use_cudnn (bool): If ``True``, this function uses cuDNN if available.
 
@@ -441,7 +435,7 @@ def n_step_lstm(
 
             - ``hy`` is an updated hidden states whose shape is same as ``hx``.
             - ``cy`` is an updated cell states whose shape is same as ``cx``.
-            - ``ys`` is a list of :class:~chainer.Variable. Each element
+            - ``ys`` is a list of :class:`~chainer.Variable` . Each element
               ``ys[t]`` holds hidden states of the last layer corresponding
               to an input ``xs[t]``. Its shape is ``(B_t, N)`` where ``B_t`` is
               mini-batch size for time ``t``, and ``N`` is size of hidden
@@ -453,7 +447,7 @@ def n_step_lstm(
 
     """
 
-    xp = cuda.get_array_module(hx.data)
+    xp = cuda.get_array_module(hx, hx.data)
 
     if use_cudnn and xp is not numpy and cuda.cudnn_enabled and \
        _cudnn_version >= 5000:
@@ -472,9 +466,9 @@ def n_step_lstm(
 
     else:
         hx = split_axis.split_axis(hx, n_layers, axis=0, force_tuple=True)
-        hx = [reshape.reshape(h, h.data.shape[1:]) for h in hx]
+        hx = [reshape.reshape(h, h.shape[1:]) for h in hx]
         cx = split_axis.split_axis(cx, n_layers, axis=0, force_tuple=True)
-        cx = [reshape.reshape(c, c.data.shape[1:]) for c in cx]
+        cx = [reshape.reshape(c, c.shape[1:]) for c in cx]
 
         xws = [_stack_weight([w[2], w[0], w[1], w[3]]) for w in ws]
         hws = [_stack_weight([w[6], w[4], w[5], w[7]]) for w in ws]
@@ -483,13 +477,13 @@ def n_step_lstm(
 
         ys = []
         for x in xs:
-            batch = len(x.data)
+            batch = x.shape[0]
             h_next = []
             c_next = []
             for layer in six.moves.range(n_layers):
                 h = hx[layer]
                 c = cx[layer]
-                if len(h.data) > batch:
+                if h.shape[0] > batch:
                     h, h_rest = split_axis.split_axis(h, [batch], axis=0)
                     c, c_rest = split_axis.split_axis(c, [batch], axis=0)
                 else:

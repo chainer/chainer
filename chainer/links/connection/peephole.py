@@ -1,3 +1,4 @@
+from chainer import cuda
 from chainer.functions.activation import sigmoid
 from chainer.functions.activation import tanh
 from chainer.functions.array import reshape
@@ -34,7 +35,7 @@ class StatefulPeepholeLSTM(link.Chain):
 
     Args:
         in_size(int): Dimension of the input vector :math:`x`.
-        out_size(int): Dimension of the hidden vector :math: `h`.
+        out_size(int): Dimension of the hidden vector :math:`h`.
 
     Attributes:
         upward (~chainer.links.Linear): Linear layer of upward connections.
@@ -98,9 +99,10 @@ class StatefulPeepholeLSTM(link.Chain):
             lstm_in += self.lateral(self.h)
         if self.c is None:
             xp = self.xp
-            self.c = variable.Variable(
-                xp.zeros((x.shape[0], self.state_size), dtype=x.dtype),
-                volatile='auto')
+            with cuda.get_device(self._device_id):
+                self.c = variable.Variable(
+                    xp.zeros((x.shape[0], self.state_size), dtype=x.dtype),
+                    volatile='auto')
         lstm_in = reshape.reshape(lstm_in, (len(lstm_in.data),
                                             lstm_in.shape[1] // 4,
                                             4))

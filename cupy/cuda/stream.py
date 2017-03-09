@@ -39,7 +39,7 @@ class Event(object):
     @property
     def done(self):
         """True if the event is done."""
-        return bool(runtime.eventQuery(self.ptr))
+        return runtime.eventQuery(self.ptr) == 0  # cudaSuccess
 
     def record(self, stream=None):
         """Records the event to a stream.
@@ -52,7 +52,7 @@ class Event(object):
 
         """
         if stream is None:
-            stream = Stream(null=True)
+            stream = Stream.null
         runtime.eventRecord(self.ptr, stream.ptr)
 
     def synchronize(self):
@@ -99,6 +99,8 @@ class Stream(object):
 
     """
 
+    null = None
+
     def __init__(self, null=False, non_blocking=False):
         if null:
             self.ptr = 0
@@ -114,7 +116,7 @@ class Stream(object):
     @property
     def done(self):
         """True if all work on this stream has been done."""
-        return bool(runtime.streamQuery(self.ptr))
+        return runtime.streamQuery(self.ptr) == 0  # cudaSuccess
 
     def synchronize(self):
         """Waits for the stream completing all queued work."""
@@ -161,4 +163,7 @@ class Stream(object):
             event (cupy.cuda.Event): CUDA event.
 
         """
-        runtime.streamWaitEvent(self.ptr, event)
+        runtime.streamWaitEvent(self.ptr, event.ptr)
+
+
+Stream.null = Stream(null=True)

@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-import sys
-
 from setuptools import setup
 
 import chainer_setup_build
@@ -16,19 +14,11 @@ install_requires = [
     'six>=1.9.0',
 ]
 
-
-# Hack for Read the Docs
-on_rtd = chainer_setup_build.check_readthedocs_environment()
-if on_rtd:
-    print('Add develop command for Read the Docs')
-    sys.argv.insert(1, 'develop')
-    setup_requires = ['Cython>=0.23'] + setup_requires
-
-chainer_setup_build.parse_args()
+ext_modules = chainer_setup_build.get_ext_modules()
 
 setup(
     name='chainer',
-    version='1.16.0',
+    version='1.21.0',
     description='A flexible framework of neural networks',
     author='Seiya Tokui',
     author_email='tokui@preferred.jp',
@@ -48,6 +38,7 @@ setup(
               'chainer.functions.noise',
               'chainer.functions.normalization',
               'chainer.functions.pooling',
+              'chainer.functions.theano',
               'chainer.functions.util',
               'chainer.function_hooks',
               'chainer.iterators',
@@ -60,7 +51,9 @@ setup(
               'chainer.links.connection',
               'chainer.links.loss',
               'chainer.links.model',
+              'chainer.links.model.vision',
               'chainer.links.normalization',
+              'chainer.links.theano',
               'chainer.optimizers',
               'chainer.serializers',
               'chainer.testing',
@@ -73,6 +66,7 @@ setup(
               'cupy.core',
               'cupy.creation',
               'cupy.cuda',
+              'cupy.ext',
               'cupy.indexing',
               'cupy.io',
               'cupy.linalg',
@@ -80,6 +74,7 @@ setup(
               'cupy.manipulation',
               'cupy.math',
               'cupy.padding',
+              'cupy.prof',
               'cupy.random',
               'cupy.sorting',
               'cupy.statistics',
@@ -92,9 +87,5 @@ setup(
     install_requires=install_requires,
     tests_require=['mock',
                    'nose'],
-    # To trick build into running build_ext
-    ext_modules=[chainer_setup_build.dummy_extension],
-    cmdclass={
-        'build_ext': chainer_setup_build.chainer_build_ext,
-    },
+    ext_modules=ext_modules,
 )

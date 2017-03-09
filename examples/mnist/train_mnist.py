@@ -1,5 +1,13 @@
 #!/usr/bin/env python
+
 from __future__ import print_function
+
+try:
+    import matplotlib
+    matplotlib.use('Agg')
+except ImportError:
+    pass
+
 import argparse
 
 import chainer
@@ -84,6 +92,16 @@ def main():
     # Write a log of evaluation statistics for each epoch
     trainer.extend(extensions.LogReport())
 
+    # Save two plot images to the result dir
+    if extensions.PlotReport.available():
+        trainer.extend(
+            extensions.PlotReport(['main/loss', 'validation/main/loss'],
+                                  'epoch', file_name='loss.png'))
+        trainer.extend(
+            extensions.PlotReport(
+                ['main/accuracy', 'validation/main/accuracy'],
+                'epoch', file_name='accuracy.png'))
+
     # Print selected entries of the log to stdout
     # Here "main" refers to the target link of the "main" optimizer again, and
     # "validation" refers to the default name of the Evaluator extension.
@@ -91,7 +109,7 @@ def main():
     # either the updater or the evaluator.
     trainer.extend(extensions.PrintReport(
         ['epoch', 'main/loss', 'validation/main/loss',
-         'main/accuracy', 'validation/main/accuracy']))
+         'main/accuracy', 'validation/main/accuracy', 'elapsed_time']))
 
     # Print a progress bar to stdout
     trainer.extend(extensions.ProgressBar())
@@ -102,6 +120,7 @@ def main():
 
     # Run the training
     trainer.run()
+
 
 if __name__ == '__main__':
     main()

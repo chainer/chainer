@@ -21,14 +21,13 @@ def exponential_decay_noise(xp, shape, dtype, hook, opt):
     """Time-dependent annealed Gaussian noise function from the paper:
 
     `Adding Gradient Noise Improves Learning for Very Deep Networks
-    <http://arxiv.org/pdf/1511.06807>`_.
+    <https://arxiv.org/pdf/1511.06807>`_.
     """
     std = numpy.sqrt(hook.eta / numpy.power(1 + opt.t, 0.55))
     return xp.random.normal(0, std, shape).astype(dtype)
 
 
 class Optimizer(object):
-
     """Base class of all numerical optimizers.
 
     This class provides basic features for all optimization methods. It
@@ -310,7 +309,7 @@ class Optimizer(object):
         """Applies weight decay to the parameter/gradient pairs.
 
         Args:
-            decay (float): Coefficient of weight decay
+            decay (float): Coefficient of weight decay.
 
         .. deprecated:: v1.5
            Use the :class:`~chainer.optimizer.WeightDecay` hook function
@@ -351,7 +350,6 @@ class Optimizer(object):
 
 
 class GradientMethod(Optimizer):
-
     """Base class of all single gradient-based optimizers.
 
     This is an extension of the :class:`Optimizer` class. Typical gradient
@@ -396,6 +394,15 @@ class GradientMethod(Optimizer):
                 self.target.zerograds()
             loss.backward()
             del loss
+
+        # TODO(unno): Some optimizers can skip this process if they does not
+        # affect to a parameter when its gradient is zero.
+        for name, param in self.target.namedparams():
+            if param.grad is None:
+                with cuda.get_device(param.data):
+                    xp = cuda.get_array_module(param.data)
+                    param.grad = xp.zeros_like(param.data)
+
         self.call_hooks()
         self.prepare()
 
@@ -445,8 +452,9 @@ class GradientMethod(Optimizer):
         """Enables or disables use of :func:`~chainer.Link.cleargrads` in `update`.
 
         Args:
-            use (bool): If true, this function enables use of `cleargrads`.
-                If false, disables use of `cleargrads` (`zerograds` is used).
+            use (bool): If ``True``, this function enables use of
+                `cleargrads`. If ``False``, disables use of `cleargrads`
+                (`zerograds` is used).
 
         .. note::
            Note that :meth:`update` calls :meth:`~Link.zerograds` by default
@@ -459,7 +467,6 @@ class GradientMethod(Optimizer):
 
 
 class WeightDecay(object):
-
     """Optimizer hook function for weight decay regularization.
 
     This hook function adds a scaled parameter to the corresponding gradient.
@@ -477,11 +484,11 @@ class WeightDecay(object):
     def __init__(self, rate):
         self.rate = rate
 
-    def __call__(self, opt):
-        if cuda.available:
-            kernel = cuda.elementwise(
-                'T p, T decay', 'T g', 'g += decay * p', 'weight_decay')
+    def kernel(self):
+        return cuda.elementwise(
+            'T p, T decay', 'T g', 'g += decay * p', 'weight_decay')
 
+    def __call__(self, opt):
         rate = self.rate
         for param in opt.target.params():
             p, g = param.data, param.grad
@@ -489,7 +496,7 @@ class WeightDecay(object):
                 if int(dev) == -1:
                     g += rate * p
                 else:
-                    kernel(p, rate, g)
+                    self.kernel()(p, rate, g)
 
 
 class Lasso(object):
@@ -510,11 +517,11 @@ class Lasso(object):
     def __init__(self, rate):
         self.rate = rate
 
-    def __call__(self, opt):
-        if cuda.available:
-            kernel = cuda.elementwise(
-                'T s, T decay', 'T g', 'g += decay * s', 'lasso')
+    def kernel(self):
+        return cuda.elementwise(
+            'T s, T decay', 'T g', 'g += decay * s', 'lasso')
 
+    def __call__(self, opt):
         rate = self.rate
         for param in opt.target.params():
             p, g = param.data, param.grad
@@ -524,11 +531,10 @@ class Lasso(object):
                 if int(dev) == -1:
                     g += rate * sign
                 else:
-                    kernel(sign, rate, g)
+                    self.kernel()(sign, rate, g)
 
 
 class GradientClipping(object):
-
     """Optimizer hook function for gradient clipping.
 
     This hook function scales all gradient arrays to fit to the defined L2 norm
@@ -577,12 +583,12 @@ class GradientNoise(object):
     :math:`\\gamma = 0.55`.
 
     Args:
-        eta (float): parameter that defines the scale of the noise, which for
+        eta (float): Parameter that defines the scale of the noise, which for
             the default noise function is recommended to be either 0.01, 0.3
             or 1.0.
-        noise_func (function): the noise generating function which by default
+        noise_func (function): Noise generating function which by default
             is given by `Adding Gradient Noise Improves Learning for Very Deep\
-            Networks <http://arxiv.org/pdf/1511.06807>`_.
+            Networks <https://arxiv.org/pdf/1511.06807>`_.
     """
     name = 'GradientNoise'
 
@@ -590,11 +596,11 @@ class GradientNoise(object):
         self.eta = eta
         self.noise_func = noise_func
 
-    def __call__(self, opt):
-        if cuda.available:
-            kernel = cuda.elementwise(
-                'T noise', 'T g', 'g += noise', 'gradient_noise')
+    def kernel(self):
+        return cuda.elementwise(
+            'T noise', 'T g', 'g += noise', 'gradient_noise')
 
+    def __call__(self, opt):
         for param in opt.target.params():
             g = param.grad
             xp = cuda.get_array_module(g)
@@ -603,11 +609,10 @@ class GradientNoise(object):
                 if int(dev) == -1:
                     g += noise
                 else:
-                    kernel(noise, g)
+                    self.kernel()(noise, g)
 
 
 class GradientHardClipping(object):
-
     """Optimizer hook function for gradient clipping.
 
     This hook function clips all gradient arrays to be within a lower and upper
