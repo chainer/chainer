@@ -108,18 +108,19 @@ class TestBinaryHierarchicalSoftmax(unittest.TestCase):
         self.assertTrue((f.codes == g.codes).all())
 
     def _test_sampling(self, x):
+        x = chainer.Variable(x)
         result = self.link.sampling(x)
         self.assertEqual(len(result), x.shape[0])
         for word_id in result:
             self.assertEqual(type(word_id), int)
 
     def test_sampling_cpu(self):
-        x = chainer.Variable(numpy.array([[1.0, 2.0, 3.0]], numpy.int32))
+        x = numpy.array([[1.0, 2.0, 3.0]], numpy.float32)
         self._test_sampling(x)
 
     @attr.gpu
     def test_sampling_gpu(self):
-        x = chainer.Variable(numpy.array([[1.0, 2.0, 3.0]], numpy.int32))
+        x = numpy.array([[1.0, 2.0, 3.0]], numpy.float32)
         self.link.to_gpu()
         self._test_sampling(cuda.to_gpu(x))
 

@@ -432,9 +432,10 @@ class BinaryHierarchicalSoftmax(link.Link):
             choosed_idx = xp.argmax(xp.random.gumbel(size=prob.shape) + prob,
                                     axis=1)
             rows = six.moves.range(batchsize)
+            rows = xp.array(rows)
             columns = choosed_idx
 
-            nodes_ids = parent2child[start_ids[rows]]
+            nodes_ids = parent2child[start_ids]
             next_ids = nodes_ids[rows, columns]
             next_ids = xp.where(next_ids != LEAF, next_ids, FINISH_SAMPLING)
 
@@ -458,7 +459,7 @@ class BinaryHierarchicalSoftmax(link.Link):
         for sampling_lst in sampling:
             tree = self.tree
             for node_id in sampling_lst:
-                tree = tree[node_id]
+                tree = tree[int(node_id)]
             output.append(tree)
         return output
 
