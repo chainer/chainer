@@ -177,20 +177,6 @@ def get_device_from_array(*arrays):
     return DummyDevice
 
 
-#def get_device(device):
-#    """Checks and gets the device regardless of it's None or not.
-#
-#    Args:
-#        device (:class:`~cuda.Device` or None): If `None`, it returns
-#            :class:`chainer.cuda.DammyDevice`, otherwise it returns the input
-#            device object as is.
-#
-#    """
-#    if isinstance(device, cuda.Device):
-#        return device
-#    return DummyDevice
-
-
 # ------------------------------------------------------------------------------
 # cupy.ndarray allocation and copy
 # ------------------------------------------------------------------------------
@@ -275,7 +261,7 @@ def to_cpu(array, stream=None):
             '\nActual type: {0}.'.format(type(array)))
 
 
-def copy(array, out=None, out_device=None, stream=None):
+def copy(array, out=None, out_device_id=None, stream=None):
     """Copies a :class:`cupy.ndarray` object using the default stream.
 
     This function can copy the device array to the destination array on another
@@ -285,8 +271,10 @@ def copy(array, out=None, out_device=None, stream=None):
         array (cupy.ndarray): Array to be copied.
         out (cupy.ndarray): Destination array.
             If it is not ``None``, then ``out_device`` argument is ignored.
-        out_device (cuda.Device) : Destination device specifier. Actual device object is
-            obtained by passing this value to :func:`get_device`.
+        out_device_id (int or None) : The device ID of the destination device.
+            Actual device object is obtained by passing this value to
+            :func:`get_device_from_id`. If None, the device of the first
+            argument `array` is used.
         stream (cupy.cuda.Stream): CUDA stream.
 
     Returns:
@@ -302,6 +290,8 @@ def copy(array, out=None, out_device=None, stream=None):
     if out is None:
         if out_device is None:
             out_device = get_device_from_array(array)
+        else:
+            out_device = get_device_from_id(out_device)
         with out_device:
             out = cupy.empty_like(array)
 
