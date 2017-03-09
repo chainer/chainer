@@ -227,9 +227,15 @@ def main():
         extensions.Evaluator(test_iter, model, converter=convert, device=None),
         trigger=(args.epocheval, 'epoch'))
     trainer.extend(extensions.LogReport())
+
+    trainer.extend(extensions.MicroAverage(
+        'main/correct', 'main/total', 'main/accuracy'))
+    trainer.extend(extensions.MicroAverage(
+        'validation/main/correct', 'validation/main/total',
+        'validation/main/accuracy'))
+
     trainer.extend(extensions.PrintReport(
         ['epoch', 'main/loss', 'validation/main/loss',
-         'main/correct', 'main/total',
          'main/accuracy', 'validation/main/accuracy', 'elapsed_time']))
 
     trainer.run()
