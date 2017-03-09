@@ -184,12 +184,10 @@ class Link(object):
         if shape is None:
             if callable(initializer):
                 # uninitialized parameter
-                var = variable.Variable(
-                    volatile='auto', name=name, initializer=initializer)
+                var = variable.Variable(name=name, initializer=initializer)
             else:
                 # initialize parameter by the initial array
-                var = variable.Variable(
-                    initializer, volatile='auto', name=name)
+                var = variable.Variable(initializer, name=name)
         else:
             data = initializers.generate_array(initializer, shape, self.xp)
             grad = self.xp.full_like(data, numpy.nan)
