@@ -117,11 +117,11 @@ for path, label in dataset:
         y = xp.asarray(y_batch)
 
         with chainer.no_backprop_mode():
-            loss, accuracy = forward(x, t)
+            loss, accuracy = forward(x, y)
 
         accum_loss += float(loss.data) * args.batchsize
         accum_accuracy += float(accuracy.data) * args.batchsize
-        del x, t, loss, accuracy
+        del x, y, loss, accuracy
 
         count += args.batchsize
         print('{} / {}'.format(count, len(dataset)), end='\r', file=sys.stderr)
