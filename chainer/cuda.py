@@ -150,11 +150,11 @@ def get_device_from_id(device_id):
             returns.
 
     """
-    check_cuda_available()
-    if device_id is None:
-        return DummyDevice
-    else:
+    if type(device_id) in _integer_types:
+        check_cuda_available()
         return Device(device_id)
+    else:
+        return DummyDevice
 
 
 def get_device_from_array(*arrays):
@@ -181,12 +181,12 @@ def get_device_from_array(*arrays):
 # cupy.ndarray allocation and copy
 # ------------------------------------------------------------------------------
 
-def to_gpu(array, device=None, stream=None):
+def to_gpu(array, device_id=None, stream=None):
     """Copies the given CPU array to specified device.
 
     Args:
         array (:class:`~numpy.ndarray`): Array to be sent to GPU.
-        device (int): Device id.
+        device_id (int): Device id.
         stream (cupy.cuda.Stream): CUDA stream. If not ``None``, the copy runs
             asynchronously.
 
@@ -199,7 +199,7 @@ def to_gpu(array, device=None, stream=None):
 
     """
     check_cuda_available()
-    with get_device_from_id(device):
+    with get_device_from_id(device_id):
         array_dev = get_device_from_array(array)
         if array_dev.id == cupy.cuda.device.get_device_id():
             return array
@@ -288,10 +288,10 @@ def copy(array, out=None, out_device_id=None, stream=None):
     assert stream is None  # TODO(beam2d): FIX IT
 
     if out is None:
-        if out_device is None:
+        if out_device_id is None:
             out_device = get_device_from_array(array)
         else:
-            out_device = get_device_from_id(out_device)
+            out_device = get_device_from_id(out_device_id)
         with out_device:
             out = cupy.empty_like(array)
 

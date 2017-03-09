@@ -345,7 +345,7 @@ class Optimizer(object):
             with cuda.get_device_from_array(g_dst):
                 if (isinstance(g_src, cuda.ndarray) and
                         g_dst.device != g_src.device):
-                    g_dst += cuda.copy(g_src, out_device=g_dst.device)
+                    g_dst += cuda.copy(g_src, out_device_id=g_dst.device.id)
                 else:
                     g_dst += cuda.to_gpu(g_src)
 

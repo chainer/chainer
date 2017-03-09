@@ -262,7 +262,7 @@ Actual: {0}'''.format(type(data))
         """
         if self.data is None:
             current = cuda.Device().id
-            self._initial_device = current if device is None else device
+            self._initial_device = current if device_id is None else device_id
         else:
             with cuda.get_device_from_id(device_id):
                 self._data = [cuda.to_gpu(self.data)]
@@ -369,7 +369,7 @@ Actual: {0}'''.format(type(data))
         if dst_dev.id < 0:
             src_grad = cuda.to_cpu(src)
         else:
-            src_grad = cuda.to_gpu(src, device=dst_dev)
+            src_grad = cuda.to_gpu(src, device_id=dst_dev.id)
 
         if dst is None:
             self._grad = src_grad
@@ -564,9 +564,9 @@ Actual: {0}'''.format(type(data))
             ginit, shape, numpy)
 
         if self._initial_device >= 0:
-            data = cuda.to_gpu(data, device=self._initial_device)
+            data = cuda.to_gpu(data, device_id=self._initial_device)
             if grad is not None:
-                grad = cuda.to_gpu(grad, device=self._initial_device)
+                grad = cuda.to_gpu(grad, device_id=self._initial_device)
 
         self._data[0] = data
         self.grad = grad
