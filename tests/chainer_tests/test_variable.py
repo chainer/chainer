@@ -787,7 +787,7 @@ class TestDebugPrint(unittest.TestCase):
         self.assertIn('dtype: float32', result)
         # py2.7 on win64 returns shape as long
         self.assertTrue(re.match(r'- shape: \(5L?, 3L?, 5L?, 5L?\)',
-                                 result.splitlines()[4]))
+                                 result.splitlines()[3]))
 
         # no grad
         msg = 'statistics: mean={mean:.8f}, std={std:.8f}'
