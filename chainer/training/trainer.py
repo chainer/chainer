@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import collections
 import os
 import sys
@@ -302,11 +304,12 @@ class Trainer(object):
             if show_loop_exception_msg:
                 # Show the exception here, as it will appear as if chainer
                 # hanged in case any finalize method below deadlocks.
-                print('Exception in main training loop: {}'.format(e))
-                print('Traceback (most recent call last):')
+                print('Exception in main training loop: {}'.format(e),
+                      file=sys.stderr)
+                print('Traceback (most recent call last):', file=sys.stderr)
                 traceback.print_tb(sys.exc_info()[2])
                 print('Will finalize trainer extensions and updater before '
-                      'reraising the exception.')
+                      'reraising the exception.', file=sys.stderr)
             six.reraise(*sys.exc_info())
         finally:
             for _, entry in extensions:
