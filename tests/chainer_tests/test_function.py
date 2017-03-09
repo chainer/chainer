@@ -179,21 +179,6 @@ class TestFunction(unittest.TestCase):
         self.f.forward_gpu.return_value = (cuda.to_gpu(self.y1),)
         self.check_call_single_return_value()
 
-    def check_call_mixed_volatile(self):
-        with chainer.no_backprop_mode():
-            x1 = chainer.Variable(self.x1)
-        x2 = chainer.Variable(self.x2)
-        with self.assertRaises(ValueError):
-            self.f(x1, x2)
-
-    def test_call_mixed_volatile_cpu(self):
-        self.check_call_mixed_volatile()
-
-    @attr.gpu
-    def test_call_mixed_volatile_gpu(self):
-        self.setup_gpu()
-        self.check_call_mixed_volatile()
-
     def _get_f(self):
         x1 = chainer.Variable(self.x1)
         x2 = chainer.Variable(self.x2)
