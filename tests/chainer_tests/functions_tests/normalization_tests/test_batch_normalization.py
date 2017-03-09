@@ -51,11 +51,11 @@ class TestBatchNormalization(unittest.TestCase):
             self.check_backward_options = {
                 'dtype': numpy.float64, 'atol': 1e-3, 'rtol': 1e-2}
 
-    def check_forward(self, args, use_cudnn=True):
-        y = functions.batch_normalization(
-            *[chainer.Variable(i) for i in args], running_mean=None,
-            running_var=None, decay=self.decay, eps=self.eps,
-            use_cudnn=use_cudnn)
+    def check_forward(self, args, use_cudnn='always'):
+        with chainer.using_config('use_cudnn', use_cudnn):
+            y = functions.batch_normalization(
+                *[chainer.Variable(i) for i in args], running_mean=None,
+                running_var=None, decay=self.decay, eps=self.eps)
         self.assertEqual(y.data.dtype, self.dtype)
 
         y_expect = _batch_normalization(
@@ -76,7 +76,7 @@ class TestBatchNormalization(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_forward_gpu_no_cudnn(self):
-        self.check_forward([cuda.to_gpu(i) for i in self.args], False)
+        self.check_forward([cuda.to_gpu(i) for i in self.args], 'never')
 
     def check_backward(self, args, y_grad):
         with chainer.using_config('train', self.train):
@@ -127,10 +127,10 @@ class TestFixedBatchNormalization(unittest.TestCase):
             self.check_backward_options = {
                 'dtype': numpy.float64, 'atol': 1e-3, 'rtol': 1e-2}
 
-    def check_forward(self, args, use_cudnn=True):
-        y = functions.fixed_batch_normalization(
-            *[chainer.Variable(i) for i in args],
-            eps=self.eps, use_cudnn=use_cudnn)
+    def check_forward(self, args, use_cudnn='always'):
+        with chainer.using_config('use_cudnn', use_cudnn):
+            y = functions.fixed_batch_normalization(
+                *[chainer.Variable(i) for i in args], eps=self.eps)
         self.assertEqual(y.data.dtype, self.dtype)
 
         y_expect = _batch_normalization(
@@ -151,7 +151,7 @@ class TestFixedBatchNormalization(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_forward_gpu_no_cudnn(self):
-        self.check_forward([cuda.to_gpu(i) for i in self.args], False)
+        self.check_forward([cuda.to_gpu(i) for i in self.args], 'never')
 
     def check_backward(self, args, y_grad):
         with chainer.using_config('train', self.train):
@@ -173,7 +173,7 @@ class TestFixedBatchNormalization(unittest.TestCase):
 
 
 @testing.parameterize(*testing.product({
-    'use_cudnn': [True, False],
+    'use_cudnn': ['always', 'auto', 'never'],
     # TODO(bkvogel): Check float16 support again in next cuDNN version.
     'dtype': [numpy.float32, numpy.float64],
 }))
@@ -192,26 +192,30 @@ class TestBatchNormalizationCudnnCall(unittest.TestCase):
         self.aggr_axes = (0,) + tuple(six.moves.range(2, ndim + 2))
         self.mean = self.x.mean(axis=self.aggr_axes)
         self.var = self.x.var(axis=self.aggr_axes) + self.eps
-        self.expect = self.use_cudnn and (
-            cuda.cudnn.cudnn.getVersion() >= 5000)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.expect = chainer.should_use_cudnn('>=auto', 5000)
 
     def forward(self):
         return functions.batch_normalization(
             *[chainer.Variable(i) for i in self.args], eps=self.eps,
-            running_mean=self.mean, running_var=self.var,
-            use_cudnn=self.use_cudnn)
+            running_mean=self.mean, running_var=self.var)
 
     def test_call_cudnn_forward(self):
-        with mock.patch('cupy.cudnn.cudnn.batchNormalizationForwardTraining') \
-                as func:
-            self.forward()
-            self.assertEqual(func.called, self.expect)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            with mock.patch('cupy.cudnn.cudnn.batchNormalizationForwardTraining') \
+                    as func:
+                self.forward()
+                self.assertEqual(func.called, self.expect)
 
     def test_call_cudnn_backward(self):
-        y = self.forward()
-        y.grad = self.gy
-        with mock.patch('cupy.cudnn.cudnn.batchNormalizationBackward') as func:
-            y.backward()
-            self.assertEqual(func.called, self.expect)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            y = self.forward()
+            y.grad = self.gy
+            with mock.patch(
+                    'cupy.cudnn.cudnn.batchNormalizationBackward'
+            ) as func:
+                y.backward()
+                self.assertEqual(func.called, self.expect)
+
 
 testing.run_module(__name__, __file__)

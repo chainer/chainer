@@ -1,4 +1,5 @@
 import collections
+import copy
 import heapq
 import traceback
 import warnings
@@ -9,6 +10,7 @@ import six
 import chainer
 from chainer import cuda
 from chainer import flag
+from chainer import initializers
 from chainer import utils
 
 
@@ -76,26 +78,45 @@ class Variable(object):
             'auto') or boolean values can be used, too.
         name (str): Name of the variable.
         grad (array): Initial gradient array.
+        initializer (~chainer.Initializer): Initializer of the data array.
+            If `data` is None, this object is used for initializing the data
+            array in the :meth:`initialize` method.
 
     Attributes:
         data: Data array of type either :class:`numpy.ndarray` or
-            :class:`cupy.ndarray`.
+            :class:`cupy.ndarray`. If it is None, the variable is left in an
+            uninitialized state.
         grad: Gradient array.
         creator: The function who creates this variable. It is ``None`` if the
             variable is not created by any function.
         volatile: Ternary :class:`~chainer.Flag` object. If ``'ON'``, the
             variable does not keep track of any function applications. See
             :class:`~chainer.Flag` for the detail of ternary flags.
+        initializer: Initializer of the data array. It is used for initializing
+            the data array of an uninitialized variable.
 
     """
 
-    def __init__(self, data, volatile=flag.OFF, name=None, grad=None):
-        if not isinstance(data, (numpy.ndarray, cuda.ndarray)):
+    initializer = None
+    _grad_initializer = None
+    _initial_device = -1
+
+    def __init__(self, data=None, volatile=flag.OFF, name=None, grad=None,
+                 initializer=None):
+        if data is None:
+            self.initializer = (
+                initializers.NaN() if initializer is None else initializer)
+            dtype = getattr(self.initializer, 'dtype', numpy.float32)
+            self._grad_initializer = initializers.NaN(dtype)
+        elif not isinstance(data, (numpy.ndarray, cuda.ndarray)):
             msg = '''numpy.ndarray or cuda.ndarray are expected.
 Actual: {0}'''.format(type(data))
             raise TypeError(msg)
 
-        self.data = data
+        # Use a list as a data structure to hold the data array indirectly to
+        # abstract its initialized/uninitialized state.
+        self._data = [data]
+
         self.rank = 0
         self._volatile = flag.Flag(volatile)
 
@@ -103,6 +124,11 @@ Actual: {0}'''.format(type(data))
         self.creator = None
 
         self.name = name
+
+    def __copy__(self):
+        copied = Variable()
+        copied.__dict__ = copy.copy(self.__dict__)
+        return copied
 
     def __reduce__(self):
         return Variable, (self.data, self.volatile, self.name, self._grad)
@@ -184,6 +210,14 @@ Actual: {0}'''.format(type(data))
                              str(self.data.dtype))
 
     @property
+    def data(self):
+        return self._data[0]
+
+    @data.setter
+    def data(self, d):
+        self._data[0] = d
+
+    @property
     def grad(self):
         return self._grad
 
@@ -211,26 +245,35 @@ Actual: {0}'''.format(type(data))
 
     def to_cpu(self):
         """Copies the data and gradient arrays to CPU."""
-        self.data = cuda.to_cpu(self.data)
-        if self._grad is not None:
-            self._grad = cuda.to_cpu(self._grad)
+        if self.data is None:
+            self._initial_device = -1
+        else:
+            self._data = [cuda.to_cpu(self.data)]
+            if self._grad is not None:
+                self._grad = cuda.to_cpu(self._grad)
 
-    def to_gpu(self, device=None):
+    def to_gpu(self, device_id=None):
         """Copies the data and gradient arrays to specified GPU.
 
         Args:
-            device: Target device specifier. If omitted, the current device is
-                used.
+            device_id (int or None): The device ID to specify the target
+                device. If omitted or None, the current device is used.
 
         """
-        with cuda.get_device(device):
-            self.data = cuda.to_gpu(self.data)
-            if self._grad is not None:
-                self._grad = cuda.to_gpu(self._grad)
+        if self.data is None:
+            current = cuda.Device().id
+            self._initial_device = current if device is None else device
+        else:
+            with cuda.get_device_from_id(device_id):
+                self._data = [cuda.to_gpu(self.data)]
+                if self._grad is not None:
+                    self._grad = cuda.to_gpu(self._grad)
 
     def cleargrad(self):
         """Clears the gradient array."""
         self._grad = None
+        if self.data is None:
+            self._grad_initializer = None
 
     def zerograd(self):
         """Initializes the gradient array by zeros.
@@ -242,6 +285,12 @@ Actual: {0}'''.format(type(data))
         warnings.warn(
             'Variable.zerograd is deprecated. Use Variable.cleargard instead.',
             DeprecationWarning)
+
+        if self.data is None:
+            dtype = getattr(self.initializer, 'dtype', None)
+            self._grad_initializer = initializers.Zero(dtype)
+            return
+
         with cuda.get_device_from_array(self.data) as dev:
             if self._grad is None:
                 xp = numpy if int(dev) == -1 else cuda.cupy
@@ -252,9 +301,14 @@ Actual: {0}'''.format(type(data))
     def copydata(self, var):
         """Copies the data array from given source variable.
 
-        This method just copies the data attribute from given variable to this
-        variable, except that the copy is even done across the host and
-        different devices.
+        This method copies the data array from given variable to this variable.
+        The copy is done even if the arrays reside on different devices,
+        including across the host and a GPU device. If this variable has an
+        uninitialized data array, this method initializes it by the data array
+        of the given variable. Similarly, if the given variable has an
+        uninitialized data array, this method initializes it by the data array
+        of this variable (``self``). If both are uninitialized, this method
+        does nothing.
 
         Args:
             var (Variable): Source variable.
@@ -262,6 +316,14 @@ Actual: {0}'''.format(type(data))
         """
         src = var.data
         dst = self.data
+        if src is None:
+            if dst is None:
+                return
+            var.initialize(self.shape)
+            src = var.data
+        elif dst is None:
+            self.initialize(src.shape)
+            dst = self.data
         src_xp = cuda.get_array_module(src)
         dst_xp = cuda.get_array_module(dst)
         if dst_xp is src_xp:
@@ -274,17 +336,23 @@ Actual: {0}'''.format(type(data))
     def addgrad(self, var):
         """Accumulates the gradient array from given source variable.
 
-        This method just runs ``self.grad += var.grad``, except that the
-        accumulation is even done across the host and different devices.
+        This method adds the gradient of a given variable to the gradient of
+        this variable. The accumulation is even done across the host and
+        different devices. If this variable has uninitialized data/grad arrays,
+        this method initializes it with the shape of the given varaible and
+        then accumulates the gradient.
 
         Args:
             var (Variable): Source variable.
 
         """
         src = var._grad
-        dst = self._grad
         if src is None:
             return
+
+        if self.data is None:
+            self.initialize(var.shape)
+        dst = self._grad
 
         src_dev = cuda.get_device_from_array(src)
         dst_dev = cuda.get_device_from_array(self.data)
@@ -393,7 +461,7 @@ Actual: {0}'''.format(type(data))
                 hooks = collections.OrderedDict(hooks)
                 hooks.update(func.local_function_hooks)
 
-            cuda.get_device(*(in_data + out_grad)).use()
+            cuda.get_device_from_array(*(in_data + out_grad)).use()
             for hook in six.itervalues(hooks):
                 hook.backward_preprocess(func, in_data, out_grad)
             gxs = func.backward(in_data, out_grad)
@@ -405,7 +473,7 @@ Actual: {0}'''.format(type(data))
                 for gx in gxs:
                     if gx is None:
                         continue
-                    cuda.get_device(gx).use()
+                    cuda.get_device_from_array(gx).use()
                     if cuda.get_array_module(gx).isnan(gx).any():
                         msg = 'NaN is detected on backward computation'
                         raise RuntimeError(msg)
@@ -428,7 +496,7 @@ Actual: {0}'''.format(type(data))
                         x.grad = gx
                         need_copy.add(id_x)
                     else:
-                        cuda.get_device(gx).use()
+                        cuda.get_device_from_array(gx).use()
                         if id_x in need_copy:
                             x.grad = utils.force_array(x.grad + gx)  # copy
                             need_copy.remove(id_x)
@@ -441,7 +509,7 @@ Actual: {0}'''.format(type(data))
                         seen_vars.add(id_x)
                         need_copy.add(id_x)
                     else:
-                        cuda.get_device(gx).use()
+                        cuda.get_device_from_array(gx).use()
                         if id_x in need_copy:  # 2nd visit
                             x._grad = utils.force_array(gx + x._grad)  # copied
                             need_copy.remove(id_x)
@@ -477,6 +545,31 @@ Actual: {0}'''.format(type(data))
             for var in func.inputs:
                 add_cand(var.creator)
             func.unchain()
+
+    def initialize(self, shape):
+        """Initializes the uninitialized variable.
+
+        Uninitialized variable is a variable created with the data array set to
+        None. This method creates and initializes the data array. The shape of
+        the variable can be left unknown until this method is called.
+
+        Args:
+            shape (tuple of int): Shape of the data array.
+
+        """
+        data = initializers.generate_array(self.initializer, shape, numpy)
+
+        ginit = self._grad_initializer
+        grad = None if ginit is None else initializers.generate_array(
+            ginit, shape, numpy)
+
+        if self._initial_device >= 0:
+            data = cuda.to_gpu(data, device=self._initial_device)
+            if grad is not None:
+                grad = cuda.to_gpu(grad, device=self._initial_device)
+
+        self._data[0] = data
+        self.grad = grad
 
     def __lt__(self, other):
         raise NotImplementedError()

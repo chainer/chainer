@@ -177,7 +177,7 @@ class TestInvalidInput(unittest.TestCase):
 class TestInvalidInitialize(unittest.TestCase):
 
     def test_invalid_type(self):
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(TypeError):
             self.link = _create_ln(None, 1e-6, {})
             self.link(chainer.Variable(numpy.zeros((1, 5), dtype='f')))
 

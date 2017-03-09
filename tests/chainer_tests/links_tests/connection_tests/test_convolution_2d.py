@@ -68,8 +68,8 @@ class TestConvolution2D(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_forward_consistency_im2col(self):
-        self.link.use_cudnn = False
-        self.check_forward_consistency()
+        with chainer.using_config('use_cudnn', 'never'):
+            self.check_forward_consistency()
 
     def check_backward(self, x_data, y_grad):
         gradient_check.check_backward(
@@ -89,9 +89,9 @@ class TestConvolution2D(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_backward_gpu_im2col(self):
-        self.link.use_cudnn = False
         self.link.to_gpu()
-        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
+        with chainer.using_config('use_cudnn', 'never'):
+            self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
     def check_pickling(self, x_data):
         x = chainer.Variable(x_data)
@@ -167,8 +167,8 @@ class TestConvolution2DParameterShapePlaceholder(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_forward_consistency_im2col(self):
-        self.link.use_cudnn = False
-        self.check_forward_consistency()
+        with chainer.using_config('use_cudnn', 'never'):
+            self.check_forward_consistency()
 
     def check_backward(self, x_data, y_grad):
         gradient_check.check_backward(
@@ -187,9 +187,9 @@ class TestConvolution2DParameterShapePlaceholder(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_backward_gpu_im2col(self):
-        self.link.use_cudnn = False
         self.link.to_gpu()
-        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
+        with chainer.using_config('use_cudnn', 'never'):
+            self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
     def check_pickling(self, x_data):
         x = chainer.Variable(x_data)
@@ -215,5 +215,6 @@ class TestConvolution2DParameterShapePlaceholder(unittest.TestCase):
     def test_pickling_gpu(self):
         self.link.to_gpu()
         self.check_pickling(cuda.to_gpu(self.x))
+
 
 testing.run_module(__name__, __file__)

@@ -70,12 +70,12 @@ class LinearModel(object):
         self.optimizer.setup(self.model)
         return self._train_linear_classifier(self.model, self.optimizer, False)
 
-    def accuracy_gpu(self, device=None):
+    def accuracy_gpu(self, device_id=None):
         model = self.model
         optimizer = self.optimizer
         model.to_gpu(device=device)
         optimizer.setup(model)
-        with cuda.get_device(device):
+        with cuda.get_device_from_id(device_id):
             return self._train_linear_classifier(model, optimizer, True)
 
 
@@ -111,7 +111,7 @@ class OptimizerTestBase(object):
             optimizer = self.model.optimizer
             model.to_gpu(1)
             optimizer.setup(model)
-        for name, param in optimizer.target.namedparams():
+        for name, param in optimizer.target.namedparams(False):
             for v in six.itervalues(optimizer._states[name]):
                 self.assertEqual(int(param.data.device), int(v.device))
 

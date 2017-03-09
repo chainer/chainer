@@ -423,9 +423,9 @@ class CaffeFunction(link.Chain):
         if layer.softmax_param.engine == 0:  # DEFAULT
             fw = functions.softmax
         elif layer.softmax_param.engine == 1:  # CAFFE
-            fw = _SingleArgumentFunction(functions.softmax, use_cudnn=False)
+            fw = _SingleArgumentFunctionWithCudnn(False, functions.softmax)
         elif layer.softmax_param.engine == 2:  # CUDNN
-            fw = _SingleArgumentFunction(functions.softmax, use_cudnn=True)
+            fw = _SingleArgumentFunctionWithCudnn(True, functions.softmax)
 
         self.forwards[layer.name] = fw
         self._add_layer(layer)
@@ -552,6 +552,18 @@ class _ListArgumentFcuntion(object):
 
     def __call__(self, *xs):
         return self.func(xs, **self.kwargs)
+
+
+class _SingleArgumentFunctionWithCudnn(_SingleArgumentFunction):
+
+    def __init__(self, use_cudnn, func, *args, **kwargs):
+        super(_SingleArgumentFunctionWithCudnn, self).__init__(
+            func, *args, **kwargs)
+        self.use_cudnn = use_cudnn
+
+    def __call__(self, x):
+        with configuration.using_config('use_cudnn', self.use_cudnn):
+            return super(_SingleArgumentFunctionWithCudnn, self).__call__(x)
 
 
 class _CallChildLink(object):

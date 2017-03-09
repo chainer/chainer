@@ -1,5 +1,6 @@
 import numpy
 
+import chainer
 from chainer import cuda
 from chainer import function
 from chainer.utils import conv
@@ -30,11 +31,9 @@ def _pair(x):
 
 class Convolution2DFunction(function.Function):
 
-    def __init__(self, stride=1, pad=0, use_cudnn=True, cover_all=False,
-                 deterministic=False):
+    def __init__(self, stride=1, pad=0, cover_all=False, deterministic=False):
         self.sy, self.sx = _pair(stride)
         self.ph, self.pw = _pair(pad)
-        self.use_cudnn = use_cudnn
         self.cover_all = cover_all
         self.deterministic = deterministic
 
@@ -88,7 +87,7 @@ class Convolution2DFunction(function.Function):
         assert out_w > 0, 'Width in the output should be positive.'
 
         y = cuda.cupy.empty((n, out_c, out_h, out_w), dtype=x.dtype)
-        if (not self.cover_all and cuda.cudnn_enabled and self.use_cudnn and
+        if (not self.cover_all and chainer.should_use_cudnn('>=auto') and
                 _check_cudnn_acceptable_type(x.dtype, W.dtype)):
             x = cuda.cupy.ascontiguousarray(x)
             W = cuda.cupy.ascontiguousarray(W)
@@ -169,7 +168,7 @@ class Convolution2DFunction(function.Function):
         kh, kw = W.shape[2:]
 
         gW = cuda.cupy.empty_like(W)
-        if (not self.cover_all and cuda.cudnn_enabled and self.use_cudnn and
+        if (not self.cover_all and chainer.should_use_cudnn('>=auto') and
                 _check_cudnn_acceptable_type(x.dtype, W.dtype)):
             x = cuda.cupy.ascontiguousarray(x)
             W = cuda.cupy.ascontiguousarray(W)
@@ -252,7 +251,7 @@ class Convolution2DFunction(function.Function):
             return gx, gW, gb
 
 
-def convolution_2d(x, W, b=None, stride=1, pad=0, use_cudnn=True,
+def convolution_2d(x, W, b=None, stride=1, pad=0,
                    cover_all=False, deterministic=False):
     """Two-dimensional convolution function.
 
@@ -279,8 +278,6 @@ def convolution_2d(x, W, b=None, stride=1, pad=0, use_cudnn=True,
             ``stride=s`` and ``stride=(s, s)`` are equivalent.
         pad (int or pair of ints): Spatial padding width for input arrays.
             ``pad=p`` and ``pad=(p, p)`` are equivalent.
-        use_cudnn (bool): If ``True``, then this function uses cuDNN if
-            available.
         cover_all (bool): If ``True``, all spatial locations are convoluted
             into some output pixels. It may make the output size larger.
         deterministic (bool): The output of this function can be
@@ -319,7 +316,7 @@ def convolution_2d(x, W, b=None, stride=1, pad=0, use_cudnn=True,
 
     """
     func = Convolution2DFunction(
-        stride, pad, use_cudnn, cover_all, deterministic)
+        stride, pad, cover_all, deterministic)
     if b is None:
         return func(x, W)
     else:

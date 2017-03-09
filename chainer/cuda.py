@@ -177,18 +177,18 @@ def get_device_from_array(*arrays):
     return DummyDevice
 
 
-def get_device(device):
-    """Checks and gets the device regardless of it's None or not.
-
-    Args:
-        device (:class:`~cuda.Device` or None): If `None`, it returns
-            :class:`chainer.cuda.DammyDevice`, otherwise it returns the input
-            device object as is.
-
-    """
-    if isinstance(device, cuda.Device):
-        return device
-    return DummyDevice
+#def get_device(device):
+#    """Checks and gets the device regardless of it's None or not.
+#
+#    Args:
+#        device (:class:`~cuda.Device` or None): If `None`, it returns
+#            :class:`chainer.cuda.DammyDevice`, otherwise it returns the input
+#            device object as is.
+#
+#    """
+#    if isinstance(device, cuda.Device):
+#        return device
+#    return DummyDevice
 
 
 # ------------------------------------------------------------------------------
@@ -285,7 +285,7 @@ def copy(array, out=None, out_device=None, stream=None):
         array (cupy.ndarray): Array to be copied.
         out (cupy.ndarray): Destination array.
             If it is not ``None``, then ``out_device`` argument is ignored.
-        out_device: Destination device specifier. Actual device object is
+        out_device (cuda.Device) : Destination device specifier. Actual device object is
             obtained by passing this value to :func:`get_device`.
         stream (cupy.cuda.Stream): CUDA stream.
 
@@ -301,8 +301,8 @@ def copy(array, out=None, out_device=None, stream=None):
 
     if out is None:
         if out_device is None:
-            out_device = array
-        with get_device(out_device):
+            out_device = get_device_from_array(array)
+        with out_device:
             out = cupy.empty_like(array)
 
     with get_device_from_array(array):

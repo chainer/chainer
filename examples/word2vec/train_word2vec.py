@@ -73,7 +73,7 @@ class ContinuousBoW(chainer.Chain):
 
     def __call__(self, x, context):
         e = self.embed(context)
-        h = F.sum(e, axis=1) * (1. / context.data.shape[1])
+        h = F.sum(e, axis=1) * (1. / context.shape[1])
         loss = self.loss_func(h, x)
         reporter.report({'loss': loss}, self)
         return loss
@@ -90,7 +90,7 @@ class SkipGram(chainer.Chain):
 
     def __call__(self, x, context):
         e = self.embed(context)
-        shape = e.data.shape
+        shape = e.shape
         x = F.broadcast_to(x[:, None], (shape[0], shape[1]))
         e = F.reshape(e, (shape[0] * shape[1], shape[2]))
         x = F.reshape(x, (shape[0] * shape[1],))
@@ -171,7 +171,7 @@ def convert(batch, device):
 
 
 if args.gpu >= 0:
-    cuda.get_device(args.gpu).use()
+    cuda.get_device_from_id(args.gpu).use()
 
 train, val, _ = chainer.datasets.get_ptb_words()
 counts = collections.Counter(train)
