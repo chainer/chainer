@@ -12,6 +12,10 @@ from chainer import link
 from chainer.utils import type_check
 
 
+LEAF = -1
+FINISH_SAMPLING = -2
+
+
 class TreeParser(object):
 
     def __init__(self):
@@ -26,8 +30,8 @@ class TreeParser(object):
     def get_codes(self):
         return self.codes
 
-    def get_nodes(self):
-        return self.nodes
+    def get_parent2child(self):
+        return self.parent2child
 
     def parse(self, tree):
         self.next_id = 0
@@ -35,10 +39,10 @@ class TreeParser(object):
         self.code = []
         self.paths = {}
         self.codes = {}
-        self.nodes = {}
+        self.parent2child = {}
         self.parent_index = None
         self._parse(tree)
-        
+
         assert(len(self.path) == 0)
         assert(len(self.code) == 0)
         assert(len(self.paths) == len(self.codes))
@@ -50,10 +54,9 @@ class TreeParser(object):
                 raise ValueError(
                     'All internal nodes must have two child nodes')
             left, right = node
-            # print self.path[-2:], left_is_leaf, right_is_leaf, self.next_id, self.parent_index
             if self.parent_index is not None:
-                lst = self.nodes.get(self.parent_index, []) + [-1]
-                self.nodes[self.parent_index] = lst
+                lst = self.parent2child.get(self.parent_index, []) + [LEAF]
+                self.parent2child[self.parent_index] = lst
 
             left_is_leaf = not isinstance(left, tuple)
             right_is_leaf = not isinstance(right, tuple)
@@ -62,11 +65,11 @@ class TreeParser(object):
             self.path.append(self.next_id)
 
             if len(self.path) >= 2:
-                # Add parent_node, child_node dictironary
+                # Add {parent_node => child_node} into dictironary.
                 # this dictionary will be used in sampling step.
                 parent_node_id, child_node_id = self.path[-2:]
-                lst = self.nodes.get(parent_node_id, []) + [child_node_id]
-                self.nodes[parent_node_id] = lst
+                lst = self.parent2child.get(parent_node_id, [])+[child_node_id]
+                self.parent2child[parent_node_id] = lst
 
             self.next_id += 1
             self.code.append(1.0)
@@ -102,21 +105,32 @@ class BinaryHierarchicalSoftmaxFunction(function.Function):
 
     def __init__(self, tree):
         parser = TreeParser()
-        self.parser = parser # Todo comment out
         parser.parse(tree)
         paths = parser.get_paths()
         codes = parser.get_codes()
-        # nodes = parser.get_nodes()
+        parent2child = parser.get_parent2child()
         n_vocab = max(paths.keys()) + 1
         self.n_vocab = n_vocab
         self.paths = numpy.concatenate(
             [paths[i] for i in range(n_vocab) if i in paths])
         self.codes = numpy.concatenate(
             [codes[i] for i in range(n_vocab) if i in codes])
-        convert_v = lambda x: x + [-1] if len(x) == 1 else x
-        self.nodes_dic = dict([(k, convert_v(v)) for k,v in parser.get_nodes().items()])
-        # self.nodes = numpy.concatenate(
-        #     [nodes[i] for i in range(n_vocab) if i in nodes])
+
+        def _convert(x):
+            if len(x) == 1:
+                return x + [LEAF]
+            else:
+                return x
+
+        def _convert_func(parent2child, i):
+            if i in parent2child:
+                return _convert(parent2child[i])
+            else:
+                return [LEAF, LEAF]
+
+        self.parent2child = numpy.array([_convert_func(parent2child, i) for i
+                                         in range(n_vocab+2)])
+
         begins = numpy.empty((n_vocab + 1,), dtype=numpy.int32)
         begins[0] = 0
         for i in range(0, n_vocab):
@@ -381,60 +395,63 @@ class BinaryHierarchicalSoftmax(link.Link):
         """Sampling word id for given input from tree path.
 
         Args:
-            x (~chainer.Variable): Input for sampling.
-                        : Examples: Variable(
+            x (~chainer.Variable): Input variable for sampling word ids.
+                                 : Examples: Variable(
                                             [
                                               [0.2, 0.2, 0.3],
                                               [0.1, 0.3, 0.1],
                                               [0.2, 0.3, 0.4]
                                             ])
         Returns:
-            ~chainer.Variable: List of word indexes. 
+            ~chainer.Variable: List of word indexes.
                              : Examples: [0, 10, 3]
         """
         if len(self.tree) == 0:
             raise ValueError('Empty tree')
-        # >> Note:: nodes_dic is dictionary, key is parent node id, values are child node ids
-        nodes_dic = self._func.nodes_dic
-        batchsize = x.data.shape[0]
-        start_ids = [0 for _ in six.moves.range(batchsize)]
-        sampling = [[] for _ in six.moves.range(batchsize)]
+
         xp = self.xp
-        LEAF = -1
-        FINISH_SAMPLING = -2
-        leaf_ids = [LEAF, LEAF]
-        sigmoid = lambda x: 1. / (1. + self.xp.exp(x))
+        parent2child = xp.array(self._func.parent2child).astype('i')
+        batchsize = x.data.shape[0]
+        start_ids = xp.zeros((batchsize, )).astype('i')
+        _lst_next_ids = []
+        _lst_choose_ids = []
+
+        def _sigmoid(x):
+            half = x.dtype.type(0.5)
+            return self.xp.tanh(x * half) * half + half
+
         while True:
             w = self.W.data[start_ids]
-            x_t = xp.transose(x.data)
+            x_t = xp.transpose(x.data)
             score = xp.sum(xp.dot(w, x_t), axis=1)
-            # print "score:", score
-            prob_left = sigmoid(score)
-            # print "prob:", prob_left
+            prob_left = _sigmoid(score)
             prob_left = xp.reshape(prob_left, (batchsize, 1))
             prob_right = xp.ones(prob_left.shape) - prob_left
             prob = xp.concatenate([prob_left, prob_right], axis=1)
 
-            # >> Note:: leaf_ids = [-1, -1]
-            nodes_ids = xp.array([nodes_dic.get(start_ids[m], leaf_ids) for m in six.moves.range(batchsize)])
-            choosed_idx = xp.argmax(xp.random.gumbel(size=prob.shape) + prob, axis=1)
+            choosed_idx = xp.argmax(xp.random.gumbel(size=prob.shape) + prob,
+                                    axis=1)
             rows = six.moves.range(batchsize)
             columns = choosed_idx
+
+            nodes_ids = parent2child[start_ids[rows]]
             next_ids = nodes_ids[rows, columns]
-            next_ids = xp.where(next_ids != -1, next_ids, FINISH_SAMPLING)
-            # TODO: do not use for loop, use array? (sato)
-            for m in six.moves.range(batchsize):
-                sampled_id = choosed_idx[m]
-                if start_ids[m] != FINISH_SAMPLING:
-                    sampling[m].append(sampled_id)
-            # print "choosed:", choosed_idx
-            # print "next_ids:", next_ids
+            next_ids = xp.where(next_ids != LEAF, next_ids, FINISH_SAMPLING)
+
+            _lst_next_ids.append(start_ids)
+            _lst_choose_ids.append(choosed_idx)
 
             # check whether all nodes are LEAF.
             if xp.all(next_ids == FINISH_SAMPLING):
                 # if all nodes will reach leaf, then finish sampling.
                 break
             start_ids = next_ids
+
+        sampling = [[] for _ in six.moves.range(batchsize)]
+        for _next_ids, _choose_ids in zip(_lst_next_ids, _lst_choose_ids):
+            for m in six.moves.range(batchsize):
+                if _next_ids[m] != FINISH_SAMPLING:
+                    sampling[m].append(_choose_ids[m])
 
         # Find word id from tree.
         output = []
@@ -443,79 +460,7 @@ class BinaryHierarchicalSoftmax(link.Link):
             for node_id in sampling_lst:
                 tree = tree[node_id]
             output.append(tree)
-        # print 'output:', output
         return output
-
-    def argmax(self, x):
-        """Argmax word id for given input from tree path.
-
-        Args:
-            x (~chainer.Variable): Input for sampling.
-                        : Examples: Variable(
-                                            [
-                                              [0.2, 0.2, 0.3],
-                                              [0.1, 0.3, 0.1],
-                                              [0.2, 0.3, 0.4]
-                                            ])
-        Returns:
-            ~chainer.Variable: List of word indexes. 
-                             : Examples: [0, 10, 3]
-        """
-        if len(self.tree) == 0:
-            raise ValueError('Empty tree')
-        xp = self.xp
-        sigmoid = lambda x: 1. / (1. + self.xp.exp(x))
-        print "self.W.data:", self.W.data.shape
-        print "self.x.data:", x.data.shape
-        scores = xp.dot(self.W.data, x.data.T)
-        scores = sigmoid(scores)
-        print scores
-        print scores.shape
-        begins = self._func.begins
-        codes = self._func.codes
-        paths = self._func.paths
-        t = 0
-        begin = begins[t]
-        end = begins[t + 1]
-
-        w = self.W.data[paths[begin:end]]
-        print "w:", w.shape
-        print w.dot(x.data.T)
-        print "self.W.data:", self.W.data.shape
-        print "paths[begin:end]:", paths[begin:end]
-        print "codes[begin:end]:", codes[begin:end]
-
-
-
-        t = 6
-        begin = begins[t]
-        end = begins[t + 1]
-
-        w = self.W.data[paths[begin:end]]
-        print "w:", w.shape
-        print "self.W.data:", self.W.data.shape
-        print "paths[begin:end]:", paths[begin:end]
-        print "codes[begin:end]:", codes[begin:end]
-        # wxy = w.dot(x) * codes[begin:end]
-
-        path = paths[begin:end]
-        code = codes[begin:end]
-
-        index = paths[begin:end]
-        score = scores[index]
-        plus_index = xp.where(code==1, 1, 0)
-        minus_index = xp.where(code==-1, 1, 0)
-        print "score:", score
-        print "score:", score.shape
-        print "plus_index:", plus_index
-        print "minus_index:", minus_index
-
-        plus_index = xp.reshape(plus_index, (1, plus_index.shape[0]))
-        print plus_index
-        print xp.dot(score,plus_index)
-        # pass
-
-
 
 
     def __call__(self, x, t):
@@ -531,19 +476,3 @@ class BinaryHierarchicalSoftmax(link.Link):
         """
         f = copy.copy(self._func)  # creates a copy of the function node
         return f(x, t, self.W)
-
-if __name__ == '__main__':
-    tree = BinaryHierarchicalSoftmax.create_huffman_tree(
-            {0: 8, 1: 5, 2: 6, 3: 4, 4:10, 5:1, 6:32, 7:21, 8:3, 9:123, 10:213})
-    # print tree
-    # tree = ((0, 1), ((2, 3), 4))
-    # tree = ((0, 1), 2)
-    print tree
-    link = BinaryHierarchicalSoftmax(3, tree)
-    print link.W.data
-    from chainer import Variable
-    # x = Variable(numpy.array([[1.0, 2.0, 3.0], [0.2, 3.1, 3.2]], numpy.float32))
-    x = Variable(numpy.array([[1.0, 2.0, 3.0]], numpy.float32))
-    # print F.dot(link.W, x)
-    # link.sampling(x)
-    link.argmax(x)
