@@ -31,17 +31,12 @@ def _pair(x):
 class Convolution2DFunction(function.Function):
 
     def __init__(self, stride=1, pad=0, use_cudnn=True, cover_all=False,
-                 deterministic=False, measure=True, fwd_algo=None,
-                 bwd_filter_algo=None, bwd_data_algo=None, no_data_grad=False):
+                 deterministic=False, no_data_grad=False):
         self.sy, self.sx = _pair(stride)
         self.ph, self.pw = _pair(pad)
         self.use_cudnn = use_cudnn
         self.cover_all = cover_all
         self.deterministic = deterministic
-        self.measure = measure
-        self.fwd_algo = fwd_algo
-        self.bwd_filter_algo = bwd_filter_algo
-        self.bwd_data_algo = bwd_data_algo
         self.no_data_grad = no_data_grad
 
     def check_type_forward(self, in_types):
@@ -135,14 +130,10 @@ class Convolution2DFunction(function.Function):
 
             workspace_size = cuda.get_max_workspace_size()
             workspace = cuda.cupy.empty((workspace_size,), dtype='b')
-
-            if self.fwd_algo is not None:
-                algo = self.fwd_algo
-            else:
-                algo = libcudnn.getConvolutionForwardAlgorithm(
-                    handle, x_desc.value, self.filter_desc.value,
-                    self.conv_desc.value, y_desc.value, _fwd_pref,
-                    workspace_size)
+            algo = libcudnn.getConvolutionForwardAlgorithm(
+                handle, x_desc.value, self.filter_desc.value,
+                self.conv_desc.value, y_desc.value, _fwd_pref,
+                workspace_size)
 
             oz_dtype = 'd' if x.dtype == 'd' else 'f'
             one = numpy.array(1, dtype=oz_dtype).ctypes
@@ -158,16 +149,6 @@ class Convolution2DFunction(function.Function):
                 cudnn.add_tensor(
                     handle, one.data, self.bias_desc.value, b.data.ptr,
                     one.data, y_desc.value, y.data.ptr)
-
-            if self.measure:
-                _, perf_results = libcudnn.findConvolutionForwardAlgorithm(
-                    handle, x_desc.value, self.filter_desc.value,
-                    self.conv_desc.value, y_desc.value, 8)
-                self.best_fwd_algo = perf_results[0]['algo']
-                for perf_result in perf_results:
-                    if perf_result['algo'] == algo:
-                        old_time = perf_result['time']
-                return y,
         else:
             # Implementation using im2col
             self.col = conv.im2col_gpu(
@@ -250,59 +231,34 @@ class Convolution2DFunction(function.Function):
                 workspace_size = cuda.get_max_workspace_size()
                 workspace = cuda.cupy.empty((workspace_size,), dtype='b')
 
-                if self.bwd_filter_algo is not None:
-                    algo = self.bwd_filter_algo
+                if not self.deterministic:
+                    algo = libcudnn.getConvolutionBackwardFilterAlgorithm(
+                        handle, x_desc.value, gy_desc.value,
+                        self.conv_desc.value, self.filter_desc.value,
+                        _bwd_filter_pref, workspace_size)
                 else:
-                    if not self.deterministic:
-                        algo = libcudnn.getConvolutionBackwardFilterAlgorithm(
-                            handle, x_desc.value, gy_desc.value,
-                            self.conv_desc.value, self.filter_desc.value,
-                            _bwd_filter_pref, workspace_size)
-                    else:
-                        algo = cuda.cupy.cuda.cudnn.CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1  # NOQA
-                bwd_filter_algo = algo
+                    algo = cuda.cupy.cuda.cudnn.CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1  # NOQA
+
                 libcudnn.convolutionBackwardFilter_v3(
                     handle, one.data, x_desc.value, x.data.ptr,
                     gy_desc.value, gy.data.ptr, self.conv_desc.value,
                     algo, workspace.data.ptr, workspace_size,
                     zero.data, self.filter_desc.value, gW.data.ptr)
 
-                if self.bwd_data_algo is not None:
-                    algo = self.bwd_data_algo
+                if not self.deterministic:
+                    algo = libcudnn.getConvolutionBackwardDataAlgorithm(
+                        handle, self.filter_desc.value, gy_desc.value,
+                        self.conv_desc.value, x_desc.value, _bwd_data_pref,
+                        workspace_size)
                 else:
-                    if not self.deterministic:
-                        algo = libcudnn.getConvolutionBackwardDataAlgorithm(
-                            handle, self.filter_desc.value, gy_desc.value,
-                            self.conv_desc.value, x_desc.value, _bwd_data_pref,
-                            workspace_size)
-                    else:
-                        algo = cuda.cupy.cuda.cudnn.CUDNN_CONVOLUTION_BWD_DATA_ALGO_1  # NOQA
-                bwd_data_algo = algo
+                    algo = cuda.cupy.cuda.cudnn.CUDNN_CONVOLUTION_BWD_DATA_ALGO_1  # NOQA
+
                 if not self.no_data_grad:
                     libcudnn.convolutionBackwardData_v3(
                         handle, one.data, self.filter_desc.value, W.data.ptr,
                         gy_desc.value, gy.data.ptr, self.conv_desc.value,
                         algo, workspace.data.ptr, workspace_size,
                         zero.data, x_desc.value, gx.data.ptr)
-                if self.measure:
-                    _, perf_results = libcudnn.findConvolutionBackwardFilterAlgorithmEx(
-                        handle, x_desc.value, x.data.ptr, gy_desc.value, gy.data.ptr,
-                        self.conv_desc.value, self.filter_desc.value, gW.data.ptr,
-                        6, workspace.data.ptr, workspace_size)
-                    self.best_bwd_filter_algo = perf_results[0]['algo']
-                    for perf_result in perf_results:
-                        if perf_result['algo'] == bwd_filter_algo:
-                            old_time = perf_result['time']
-
-                    _, perf_results = libcudnn.findConvolutionBackwardDataAlgorithmEx(
-                        handle, self.filter_desc.value, W.data.ptr,
-                        gy_desc.value, gy.data.ptr, self.conv_desc.value,
-                        x_desc.value, gx.data.ptr, 6,
-                        workspace.data.ptr, workspace_size)
-                    self.best_bwd_data_algo = perf_results[0]['algo']
-                    for perf_result in perf_results:
-                        if perf_result['algo'] == bwd_data_algo:
-                            old_time = perf_result['time']
             else:
                 if self.deterministic:
                     raise ValueError("'deterministic' option not available "
@@ -342,9 +298,7 @@ class Convolution2DFunction(function.Function):
 
 
 def convolution_2d(x, W, b=None, stride=1, pad=0, use_cudnn=True,
-                   cover_all=False, deterministic=False, measure=False,
-                   fwd_algo=None, bwd_filter_algo=None, bwd_data_algo=None,
-                   no_data_grad=False):
+                   cover_all=False, deterministic=False, no_data_grad=False):
     """Two-dimensional convolution function.
 
     This is an implementation of two-dimensional convolution in ConvNets.
@@ -456,8 +410,7 @@ cover_all=True)
 
     """
     func = Convolution2DFunction(
-        stride, pad, use_cudnn, cover_all, deterministic, measure,
-        fwd_algo, bwd_filter_algo, bwd_data_algo, no_data_grad)
+        stride, pad, use_cudnn, cover_all, deterministic, no_data_grad)
     if b is None:
         return func(x, W)
     else:

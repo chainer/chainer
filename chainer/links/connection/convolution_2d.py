@@ -56,7 +56,7 @@ class Convolution2D(link.Link):
     def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
                  wscale=1, bias=0, nobias=False, use_cudnn=True,
                  initialW=None, initial_bias=None, deterministic=False,
-                 tune=True, no_data_grad=False):
+                 no_data_grad=False):
         super(Convolution2D, self).__init__()
         self.ksize = ksize
         self.stride = _pair(stride)
@@ -64,13 +64,7 @@ class Convolution2D(link.Link):
         self.use_cudnn = use_cudnn
         self.out_channels = out_channels
         self.deterministic = deterministic
-        self.tune = tune
         self.no_data_grad = no_data_grad
-        self.count = 0
-
-        self.best_fwd_algo = None
-        self.best_bwd_filter_algo = None
-        self.best_bwd_data_algo = None
 
         # For backward compatibility
         self.initialW = initialW
@@ -112,22 +106,9 @@ class Convolution2D(link.Link):
         if self.has_uninitialized_params:
             with cuda.get_device(self._device_id):
                 self._initialize_params(x.shape[1])
-        if self.tune:
-            if self.count < 3:
-                y = convolution_2d.convolution_2d(
-                    x, self.W, self.b, self.stride, self.pad, self.use_cudnn,
-                    deterministic=self.deterministic, measure=True)
-                func = y.creator
-                self.best_fwd_algo = func.best_fwd_algo
-                y.zerograd()
-                y.backward()
-                self.best_bwd_filter_algo, self.best_bwd_data_algo = func.best_bwd_filter_algo, func.best_bwd_data_algo
-            self.count += 1
         return convolution_2d.convolution_2d(
             x, self.W, self.b, self.stride, self.pad, self.use_cudnn,
-            deterministic=self.deterministic, fwd_algo=self.best_fwd_algo,
-            bwd_filter_algo=self.best_bwd_filter_algo,
-            bwd_data_algo=self.best_bwd_data_algo, no_data_grad=self.no_data_grad)
+            deterministic=self.deterministic, no_data_grad=self.no_data_grad)
 
 
 def _pair(x):
