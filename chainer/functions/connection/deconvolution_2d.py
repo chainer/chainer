@@ -37,6 +37,11 @@ class Deconvolution2DFunction(function.Function):
         self.outh, self.outw = (None, None) if outsize is None else outsize
         self.deterministic = deterministic
 
+        _fnames = getattr(function._thread_local, 'recompute_targets', [])
+        if "CONV" in _fnames:
+            self.recompute = True
+            # print("  recompute is enabled: {}".format(self))
+
     def check_type_forward(self, in_types):
         n_in = in_types.size()
         type_check.expect(2 <= n_in, n_in <= 3)

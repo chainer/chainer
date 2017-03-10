@@ -13,8 +13,11 @@ from chainer import utils
 
 from chainer import function
 
+import cupy.cuda.runtime as runtime  # testing
+
 import cupy.testing as testing  # temporal
 
+_debug = False
 
 def _check_grad_type(func, x, gx):
     def make_message(message):
@@ -354,6 +357,8 @@ Actual: {0}'''.format(type(data))
 
     def forget(self):
         if self.creator is not None:
+            if _debug:
+                print("        forget: {}".format(self))
             self.data = None
             self.is_forgotten = True
             # work-around for ReLU
@@ -363,8 +368,11 @@ Actual: {0}'''.format(type(data))
             # set inputs of my creator function as break-points
             func = self.creator
             for x in func.inputs:
-                if x.creator is not None and not x.is_forgotten:
-                    x.set_break_point()
+                if x.is_forgotten:
+                    continue
+                if x.creator is None:
+                    continue
+                x.set_break_point()
 
     def ancestors(self):
         """Gets a list of my ancestor variables."""
@@ -394,43 +402,26 @@ Actual: {0}'''.format(type(data))
     def recompute(self):
         """Re-computes my data"""
         func = self.creator
+
+        # if inputs of my creator function are forgotten, re-compute them.
+        for x in func.inputs:
+            if x.is_forgotten:
+                x.recompute()
+
+        if _debug:
+            print("        recompute: {}".format(func))
         in_data = tuple([x.data for x in func.inputs])
         out_data = func.forward(in_data)
         out_vars = tuple(y() for y in func.outputs)  # access via weak ref
         for (var, data) in zip(out_vars, out_data):
             if var.data is not None:
-                # debug
                 print("  check results of recompute for {}".format(func))
                 testing.assert_array_equal(var.data, data)
                 # print("    old_data:{}".format(var.data))
                 # print("    new_data:{}".format(data))
             var.data = data
-
-    def recompute_ancestors(self):
-        """Re-computes data of ancestor vars if they are forgotten"""
-        cand_funcs = []
-        seen_set = set()
-
-        recomp_vars = []
-        recomp_funcs = set()
-
-        _add_instance(cand_funcs, seen_set, self.creator)
-        while cand_funcs:
-            func = cand_funcs.pop()
-            outputs = tuple(y() for y in func.outputs)  # access via weak ref
-            for y in outputs:
-                if y.is_forgotten:
-                    if func not in recomp_funcs:
-                        heapq.heappush(recomp_vars,
-                                       (func.rank, len(recomp_funcs), y))
-                        recomp_funcs.add(func)
-            for x in func.inputs:
-                if x.creator is not None:
-                    _add_instance(cand_funcs, seen_set, x.creator)
-
-        while recomp_vars:
-            _, _, var = heapq.heappop(recomp_vars)
-            var.recompute()
+            var.is_forgotten = False
+            var.will_be_forgotten = False
 
     def set_break_point(self, can_unchain=None):
         """Sets this variable as a break point in the graph"""
@@ -515,6 +506,16 @@ Actual: {0}'''.format(type(data))
         # print("  break_points:{}". format(break_points))
         return break_points
 
+    def _print_my_info(self):
+        print("        self:{}".format(self))
+        if self.creator is not None:
+            print("          creator:{}".format(self.creator))
+        print("          size:{}, data:{}".format(self.data.data.mem.size, self.data.data.mem.ptr), end="")
+        if self._grad is not None:
+            print(", grad:{}".format(self._grad.data.mem.ptr))
+        else:
+            print("")
+
     def backward(self, retain_grad=False):
         """Runs error backpropagation (a.k.a. backprop) from this variable.
 
@@ -564,19 +565,21 @@ Actual: {0}'''.format(type(data))
                 else:
                     self.grad = cuda.cupy.ones_like(self.data)
 
-        # _print_memory_pool_stats("backward")  # debug
+        if _debug:
+            _print_memory_pool_stats("backward (from now)")
 
         break_points = self.get_break_points()
-        # print("[variable.py]")
-        # print("  bps:{}".format(break_points))
-        can_unchain = False
+        if _debug:
+            print("[variable.py]")
+            print("  bps:{}".format(break_points))
+
+        #can_unchain = False
+        can_unchain = True
         while break_points:
             _, _, endp = heapq.heappop(break_points)
-            # print("    endp:{}".format(endp))
             endp.resume_backward()
-
-            # re-compute
-            endp.recompute_ancestors()
+            if _debug:
+                print("    endp:{}".format(endp))
 
             cand_funcs = []
             seen_set = set()
@@ -594,6 +597,19 @@ Actual: {0}'''.format(type(data))
             while cand_funcs:
                 _, _, func = heapq.heappop(cand_funcs)
                 outputs = [y() for y in func.outputs]  # access via weak ref
+
+                # re-compute inputs if they are forgotten
+                for x in func.inputs:
+                    if x.is_forgotten:
+                        x.recompute()
+
+                if _debug:
+                    print("      backward: {}".format(func))
+                    # testing
+                    for y in outputs:
+                        y._print_my_info()
+                    for x in func.inputs:
+                        x._print_my_info()
 
                 in_data = tuple([x.data for x in func.inputs])
                 out_grad = tuple(
@@ -622,8 +638,11 @@ Actual: {0}'''.format(type(data))
 
                 if not retain_grad:
                     for y in outputs:
-                        if y is not None and y is not endp:
+                        if y is None:
+                            continue
+                        if y is not self:
                             y.grad = None
+
                 for x, gx in zip(func.inputs, gxs):
                     if gx is None:
                         continue
@@ -661,13 +680,23 @@ Actual: {0}'''.format(type(data))
                                 x._grad += gx
                 del gxs  # to reduce memory usage
 
+            # testing
+            del seen_set
+            del seen_vars
+            del need_copy
+
             if endp.can_unchain is not None:
                 can_unchain = endp.can_unchain
-            if can_unchain:
-                # print("        unchain_backward() is used")
-                endp.unchain_backward()
 
-            # _print_memory_pool_stats("backward")  # debug
+            if can_unchain:
+                if _debug:
+                    print("        unchain_backward() is used")
+                endp.unchain_backward()
+                del endp
+                # runtime.deviceSynchronize()  # testing
+
+            if _debug:
+                _print_memory_pool_stats("backward (WIP)")  # debug
 
         if initial_device is not None:
             initial_device.use()
@@ -683,20 +712,21 @@ Actual: {0}'''.format(type(data))
         variable. This behavior is useful to implement truncated BPTT.
 
         """
+        unchain_funcs = []
+
         cand_funcs = []
         seen_set = set()
-
-        def add_cand(cand):
-            if cand is not None and cand not in seen_set:
-                cand_funcs.append(cand)
-                seen_set.add(cand)
-
-        add_cand(self.creator)
-
+        _add_instance(cand_funcs, seen_set, self.creator)
         while cand_funcs:
             func = cand_funcs.pop()
+            heapq.heappush(unchain_funcs,
+                           (~func.rank, len(unchain_funcs), func))
             for var in func.inputs:
-                add_cand(var.creator)
+                _add_instance(cand_funcs, seen_set, var.creator)
+        del seen_set
+
+        while unchain_funcs:
+            _, _, func = heapq.heappop(unchain_funcs)
             func.unchain()
 
     def __lt__(self, other):
