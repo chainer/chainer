@@ -5,7 +5,7 @@ import six
 
 from chainer import cuda
 import chainer.link as link_module
-from chainer import optimizers
+from chainer import optimizer_hooks
 
 
 def _sum_sqnorm(arr):
@@ -16,16 +16,6 @@ def _sum_sqnorm(arr):
             s = x.dot(x)
             sq_sum[int(dev)] += s
     return sum([float(i) for i in six.itervalues(sq_sum)])
-
-
-def exponential_decay_noise(xp, shape, dtype, hook, opt):
-    """Time-dependent annealed Gaussian noise function from the paper:
-
-    `Adding Gradient Noise Improves Learning for Very Deep Networks
-    <https://arxiv.org/pdf/1511.06807>`_.
-    """
-    std = numpy.sqrt(hook.eta / numpy.power(1 + opt.t, 0.55))
-    return xp.random.normal(0, std, shape).astype(dtype)
 
 
 class Optimizer(object):
@@ -304,7 +294,7 @@ class Optimizer(object):
            instead.
 
         """
-        optimizers.GradientClipping(maxnorm)(self)
+        optimizer_hooks.GradientClipping(maxnorm)(self)
 
     def weight_decay(self, decay):
         """Applies weight decay to the parameter/gradient pairs.
@@ -317,7 +307,7 @@ class Optimizer(object):
            instead.
 
         """
-        WeightDecay(decay)(self)
+        optimizer_hooks.WeightDecay(decay)(self)
 
     def accumulate_grads(self, grads):
         """Accumulates gradients from other source.
@@ -468,9 +458,8 @@ class GradientMethod(Optimizer):
 
 
 #  Backward compatibility
-GradientClipping = optimizers.GradientClipping
-GradientHardClipping = optimizers.GradientHardClipping
-GradientNoise = optimizers.GradientNoise
-Lasso = optimizers.Lasso
-WeightDecay = optimizers.WeightDecay
-
+GradientClipping = optimizer_hooks.GradientClipping
+GradientHardClipping = optimizer_hooks.GradientHardClipping
+GradientNoise = optimizer_hooks.GradientNoise
+Lasso = optimizer_hooks.Lasso
+WeightDecay = optimizer_hooks.WeightDecay

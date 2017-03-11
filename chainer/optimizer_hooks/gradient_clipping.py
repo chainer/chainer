@@ -1,6 +1,19 @@
+import collections
+
 import numpy
+import six
 
 from chainer import cuda
+
+
+def _sum_sqnorm(arr):
+    sq_sum = collections.defaultdict(float)
+    for x in arr:
+        with cuda.get_device(x) as dev:
+            x = x.ravel()
+            s = x.dot(x)
+            sq_sum[int(dev)] += s
+    return sum([float(i) for i in six.itervalues(sq_sum)])
 
 
 class GradientClipping(object):

@@ -1,3 +1,6 @@
+from chainer import cuda
+
+
 class WeightDecay(object):
     """Optimizer hook function for weight decay regularization.
 
