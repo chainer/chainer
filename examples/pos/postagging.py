@@ -138,7 +138,7 @@ def main():
 
     trainer.extend(extensions.PrintReport(
         ['epoch', 'main/loss', 'validation/main/loss',
-         'main/accuracy', 'validation/main/accuracy']))
+         'main/accuracy', 'validation/main/accuracy', 'elapsed_time']))
 
     if args.resume:
         chainer.serializers.load_npz(args.resume, trainer)
