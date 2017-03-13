@@ -21,6 +21,7 @@ import pooling_nd_helper
     'dims': [(4,), (4, 3), (4, 3, 2)],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
+@testing.suppress_feature_warning()
 class TestAveragePoolingND(unittest.TestCase):
 
     def setUp(self):
@@ -188,6 +189,7 @@ class TestAveragePoolingND(unittest.TestCase):
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
 @attr.cudnn
+@testing.suppress_feature_warning()
 class TestAveragePoolingNDCudnnCall(unittest.TestCase):
 
     def setUp(self):
@@ -228,6 +230,7 @@ class TestAveragePoolingNDCudnnCall(unittest.TestCase):
             self.assertEqual(func.called, self.use_cudnn and self.ndim > 1)
 
 
+@testing.suppress_feature_warning()
 class TestAveragePoolingNDCoverAllNotSupported(unittest.TestCase):
 
     def test_cover_all_not_supported(self):
