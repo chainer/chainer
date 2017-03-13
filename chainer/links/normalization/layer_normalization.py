@@ -1,4 +1,3 @@
-from chainer import cuda
 from chainer import initializers
 from chainer import link
 from chainer import utils
@@ -48,14 +47,13 @@ class LayerNormalization(link.Chain):
     def __init__(self, size=None, eps=1e-6, initial_gamma=None,
                  initial_beta=None):
         super(LayerNormalization, self).__init__()
-        self.add_uninitialized_param('gamma')
-        self.add_uninitialized_param('beta')
         if initial_gamma is None:
             initial_gamma = initializers.One()
-        self._gamma_initializer = initial_gamma
         if initial_beta is None:
             initial_beta = initializers.Zero()
-        self._beta_initializer = initial_beta
+
+        self.add_param('gamma', initializer=initial_gamma)
+        self.add_param('beta', initializer=initial_beta)
         self.eps = eps
 
         if size is not None:
@@ -65,10 +63,8 @@ class LayerNormalization(link.Chain):
             'chainer.links.normalization.layer_normalization.py')
 
     def _initialize_params(self, size):
-        self.add_param('gamma', size)
-        initializers.init_weight(self.gamma.data, self._gamma_initializer)
-        self.add_param('beta', size)
-        initializers.init_weight(self.beta.data, self._beta_initializer)
+        self.gamma.initialize(size)
+        self.beta.initialize(size)
 
     def _normalize(self, x):
         size = x.shape[1]
@@ -92,9 +88,8 @@ class LayerNormalization(link.Chain):
             ~chainer.Variable: Output of the layer normalization.
 
         """
-        if self.has_uninitialized_params:
-            with cuda.get_device(self._device_id):
-                self._initialize_params(x.size // x.shape[0])
+        if self.gamma.data is None:
+            self._initialize_params(x.size // x.shape[0])
 
         normalized = self._normalize(x)
         return bias.bias(scale.scale(normalized, self.gamma), self.beta)
