@@ -35,8 +35,8 @@ class TestGradientHardClipping(unittest.TestCase):
 
         opt = optimizers.SGD(lr=1)
         opt.setup(self.target)
-        opt.add_hook(optimizer_hooks.GradientHardClipping(
-                lower_bound, upper_bound))
+        opt.add_hook(
+            optimizer_hooks.GradientHardClipping(lower_bound, upper_bound))
         opt.update()
 
         testing.assert_allclose(expect, w)
