@@ -398,6 +398,40 @@ There are more functionalities on user-defined kernels in CuPy.
 :ref:`See the CuPy documentation on user-defined kernels for more details. <udkernel>`
 
 
+Write a function with training/test mode
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+We sometimes want to make a function behave differently in training and test modes.
+The training/test mode in Chainer is configured by :data:`chainer.config`.
+This is a thread-local configuration object, and users can substitute True or False to its ``train`` attribute.
+You can refer to :ref:`configuration` to see how to configure this flag as well as other configuration items.
+
+Here, we just show how to use this flag to make a function support training/test mode.
+You will need to check the value of the boolean flag ``chainer.config.train`` and branch appropriately.
+
+For example, consider the following simple dropout function::
+
+  def dropout(x):
+      xp = cuda.get_array_module(x.data)
+      mask = 2 * (xp.random.rand(*x.shape) > 0.5).astype(x.dtype)
+      return x * mask
+
+This function applies dropout to each element and doubles survived elemenets to preserve the scale.
+The above implementation applies dropout even in test mode, but it is not a desired behavior.
+We can fix it as follows::
+
+  def dropout(x):
+      if not chainer.config.train:
+          return x
+
+      xp = cuda.get_array_module(x.data)
+      mask = 2 * (xp.random.rand(*x.shape) > 0.5).astype(x.dtype)
+      return x * mask
+
+The function now supports test mode.
+Note that you usually do not have to implement your own dropout function because :func:`~chainer.functions.dropout` is officially provided.
+
+
 Links that wrap functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 

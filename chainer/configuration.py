@@ -4,33 +4,14 @@ import sys
 import threading
 
 
-"""Global and thread-local configuration of Chainer.
-
-TODO(beam2d): After adding more entries, move this document to sphinx rst and
-add references to the related features.
-
-Chainer provides some global settings that affect the behavior of some
-
-There are two objects that users mainly deal with: :data:`chainer.config` and
-:data:`chainer.global_config`. The ``config`` object configures the thread-
-local configuration, while the ``global_config`` object configures the global
-configuration shared among all threads.
-
-Each entry of the global configuration is initialized by its default value,
-which can be overridden by a value set to the corresponding environment
-variable. There is a naming rule of the environment variable: an entry of the
-name ``foo_var`` can be configured by the environment variable
-``CHAINER_FOO_VAR``.
-
-"""
-
-
 class GlobalConfig(object):
 
     """The plain object that represents the global configuration of Chainer."""
 
     def show(self, file=sys.stdout):
-        """Prints the global config entries.
+        """show(file=sys.stdout)
+
+        Prints the global config entries.
 
         The entries are sorted in the lexicographical order of the entry name.
 
@@ -69,12 +50,25 @@ class LocalConfig(object):
         setattr(self._local, name, value)
 
     def show(self, file=sys.stdout):
-        """Prints the config entries.
+        """show(file=sys.stdout)
+
+        Prints the config entries.
 
         The entries are sorted in the lexicographical order of the entry names.
 
         Args:
             file: Output file-like object.
+
+        .. admonition:: Example
+
+           You can easily print the list of configurations used in
+           the current thread.
+
+              >>> chainer.config.show()  # doctest: +SKIP
+              debug           False
+              enable_backprop True
+              train           True
+              type_check      True
 
         """
         keys = sorted(set(self._global.__dict__) | set(self._local.__dict__))
@@ -82,23 +76,40 @@ class LocalConfig(object):
 
 
 def _print_attrs(obj, keys, file):
+    max_len = max(len(key) for key in keys)
     for key in keys:
-        print(u'{}:\t{}'.format(key, getattr(obj, key)), file=file)
+        spacer = ' ' * (max_len - len(key))
+        print(u'{} {}{}'.format(key, spacer, getattr(obj, key)), file=file)
 
 
 global_config = GlobalConfig()
+'''Global configuration of Chainer.
+
+It is an instance of :class:`chainer.configuration.GlobalConfig`.
+See :ref:`configuration` for details.
+'''
+
+
 config = LocalConfig(global_config)
+'''Thread-local configuration of Chainer.
+
+It is an instance of :class:`chainer.configuration.LocalConfig`, and is
+referring to :data:`~chainer.global_config` as its default configuration.
+See :ref:`configuration` for details.
+'''
 
 
 @contextlib.contextmanager
 def using_config(name, value, config=config):
-    """Context manager to temporarily change the thread-local configuration.
+    """using_config(name, value, config=chainer.config)
+
+    Context manager to temporarily change the thread-local configuration.
 
     Args:
         name (str): Name of the configuration to change.
         value: Temporary value of the configuration entry.
-        config (~chainer.config.LocalConfig): Configuration object. Chainer's
-            thread-local configuration is used by default.
+        config (~chainer.configuration.LocalConfig): Configuration object.
+            Chainer's thread-local configuration is used by default.
 
     """
     if hasattr(config._local, name):

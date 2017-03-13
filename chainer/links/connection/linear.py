@@ -1,4 +1,3 @@
-from chainer import cuda
 from chainer.functions.connection import linear
 from chainer import initializers
 from chainer import link
@@ -46,7 +45,7 @@ class Linear(link.Link):
 
         Define an input vector ``x`` as below,
 
-        >>> x = np.random.rand(1, 5).astype(np.float32)
+        >>> x = np.array([[0, 1, 2, 3, 4]], 'f')
 
         and then,
 
@@ -64,15 +63,21 @@ class Linear(link.Link):
             >>> y.shape
             (1, 10)
 
-        3. If you specify other arguments other than ``in_size`` and
-            ``out_size``, you need to give them as keyword auguments.
-
-            >>> l = L.Linear(5, 10, wscale=2, nobias=True)
+            >>> l = L.Linear(None, 10)
             >>> y = l(x)
             >>> y.shape
             (1, 10)
 
-            >>> l = L.Linear(10, wscale=2, nobias=True)
+        3. If you want to specify other arguments other than ``out_size`` when
+            you ommitted the ``in_size`` argument, you need to give parameters
+            as keyword auguments. So the below two cases are the same.
+
+            >>> l = L.Linear(5, 10, 0, True)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 10)
+
+            >>> l = L.Linear(10, bias=2, nobias=True)
             >>> y = l(x)
             >>> y.shape
             (1, 10)
@@ -82,19 +87,17 @@ class Linear(link.Link):
     def __init__(self, in_size, out_size=None, bias=0, nobias=False,
                  initialW=None, initial_bias=None):
         super(Linear, self).__init__()
+        
+        if out_size is None:
+            in_size, out_size = None, out_size
 
         # For backward compatibility
         self.initialW = initialW
-        self._W_initializer = initializers._get_initializer(initialW)
+        self.out_size = out_size
 
-        if in_size is None:
-            self.out_size = out_size
-            self.add_uninitialized_param('W')
-        elif out_size is None:
-            self.out_size = in_size
-            self.add_uninitialized_param('W')
-        else:
-            self.out_size = out_size
+        self.add_param('W', initializer=initializers._get_initializer(
+            initialW))
+        if in_size is not None:
             self._initialize_params(in_size)
 
         if nobias:
@@ -106,8 +109,7 @@ class Linear(link.Link):
             self.add_param('b', self.out_size, initializer=bias_initializer)
 
     def _initialize_params(self, in_size):
-        self.add_param('W', (self.out_size, in_size),
-                       initializer=self._W_initializer)
+        self.W.initialize((self.out_size, in_size))
 
     def __call__(self, x):
         """Applies the linear layer.
@@ -119,7 +121,6 @@ class Linear(link.Link):
             ~chainer.Variable: Output of the linear layer.
 
         """
-        if self.has_uninitialized_params:
-            with cuda.get_device(self._device_id):
-                self._initialize_params(x.size // x.shape[0])
+        if self.W.data is None:
+            self._initialize_params(x.size // x.shape[0])
         return linear.linear(x, self.W, self.b)

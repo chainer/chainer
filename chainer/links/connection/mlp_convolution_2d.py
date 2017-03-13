@@ -32,7 +32,6 @@ class MLPConvolution2D(link.ChainList):
             equivalent.
         activation (function): Activation function for internal hidden units.
             Note that this function is not applied to the output of this link.
-        use_cudnn (bool): If ``True``, then this link uses cuDNN if available.
         conv_init: An initializer of weight matrices
             passed to the convolution layers.
         bias_init: An initializer of bias vectors
@@ -46,20 +45,21 @@ class MLPConvolution2D(link.ChainList):
     """
 
     def __init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0,
-                 activation=relu.relu, use_cudnn=True,
-                 conv_init=None, bias_init=None):
+                 activation=relu.relu, wscale=1, conv_init=None,
+                 bias_init=None):
+        
         if ksize is None:
             out_channels, ksize, in_channels = in_channels, out_channels, None
+        
         assert len(out_channels) > 0
+        
         convs = [convolution_2d.Convolution2D(
             in_channels, out_channels[0], ksize, stride, pad,
-            use_cudnn=use_cudnn, initialW=conv_init,
-            initial_bias=bias_init)]
+            initialW=conv_init, initial_bias=bias_init)]
         for n_in, n_out in zip(out_channels, out_channels[1:]):
             convs.append(convolution_2d.Convolution2D(
                 n_in, n_out, 1, initialW=conv_init,
-                initial_bias=bias_init,
-                use_cudnn=use_cudnn))
+                initial_bias=bias_init))
         super(MLPConvolution2D, self).__init__(*convs)
         self.activation = activation
 

@@ -85,7 +85,7 @@ class StatelessLSTM(LSTMBase):
                 output of LSTM units.
 
         """
-        if self.upward.has_uninitialized_params:
+        if self.upward.W.data is None:
             in_size = x.size // x.shape[0]
             with cuda.get_device(self._device_id):
                 self.upward._initialize_params(in_size)
@@ -223,7 +223,7 @@ class LSTM(LSTMBase):
             ~chainer.Variable: Outputs of updated LSTM units.
 
         """
-        if self.upward.has_uninitialized_params:
+        if self.upward.W.data is None:
             with cuda.get_device(self._device_id):
                 in_size = x.size // x.shape[0]
                 self.upward._initialize_params(in_size)

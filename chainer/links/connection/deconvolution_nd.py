@@ -31,7 +31,6 @@ class DeconvolutionND(link.Link):
             initializer instance or another value except ``None`` the same with
             that :func:`~chainer.init_weight` function can take. If ``None`` is
             supplied, this link does not use the bias vector.
-        use_cudnn (bool): If ``True``, then this link uses cuDNN if available.
 
     .. seealso::
        :func:`~chainer.functions.deconvolution_nd`
@@ -44,11 +43,10 @@ class DeconvolutionND(link.Link):
     """
 
     def __init__(self, ndim, in_channels, out_channels, ksize, stride=1, pad=0,
-                 outsize=None, initialW=None, initial_bias=0, use_cudnn=True):
+                 outsize=None, initialW=None, initial_bias=0):
         ksize = conv_nd.as_tuple(ksize, ndim)
         self.stride = stride
         self.pad = pad
-        self.use_cudnn = use_cudnn
         self.outsize = outsize
 
         super(DeconvolutionND, self).__init__()
@@ -66,4 +64,4 @@ class DeconvolutionND(link.Link):
     def __call__(self, x):
         return deconvolution_nd.deconvolution_nd(
             x, self.W, b=self.b, stride=self.stride, pad=self.pad,
-            outsize=self.outsize, use_cudnn=self.use_cudnn)
+            outsize=self.outsize)

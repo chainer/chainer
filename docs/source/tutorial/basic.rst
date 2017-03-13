@@ -559,6 +559,7 @@ These extensions perform the following tasks:
 
 :class:`~training.extensions.Evaluator`
    Evaluates the current model on the test dataset at the end of every epoch.
+   It automatically switches to the test mode (see :ref:`configuration` for details), and so we do not have to take any special function for functions that behave differently in training/test modes (e.g. :func:`~chainer.functions.dropout`, :class:`~chainer.links.BatchNormalization`).
 :class:`~training.extensions.LogReport`
    Accumulates the reported values and emits them to the log file in the output directory.
 :class:`~training.extensions.PrintReport`
