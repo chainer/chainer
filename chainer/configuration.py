@@ -64,7 +64,7 @@ class LocalConfig(object):
            You can easily print the list of configurations used in
            the current thread.
 
-              >>> chainer.config.show()
+              >>> chainer.config.show()  # doctest: +SKIP
               debug           False
               enable_backprop True
               train           True
