@@ -290,8 +290,8 @@ class Optimizer(object):
             maxnorm (float): Threshold of gradient L2 norm.
 
         .. deprecated:: v1.5
-           Use the :class:`~chainer.optimizer_hooks.GradientClipping` hook function
-           instead.
+           Use the :class:`~chainer.optimizer_hooks.GradientClipping`
+           hook function instead.
 
         """
         optimizer_hooks.GradientClipping(maxnorm)(self)
