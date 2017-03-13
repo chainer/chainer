@@ -373,7 +373,6 @@ from chainer.links.connection.embed_id import EmbedID  # NOQA
 from chainer.links.connection.inception import Inception  # NOQA
 from chainer.links.connection.inceptionbn import InceptionBN  # NOQA
 from chainer.links.connection.linear import Linear  # NOQA
-from chainer.links.connection.parameter import Parameter  # NOQA
 
 from chainer.links.loss.hierarchical_softmax import BinaryHierarchicalSoftmax  # NOQA
 from chainer.links.loss.negative_sampling import NegativeSampling  # NOQA
