@@ -204,11 +204,3 @@ ResNet50Layers
    :members:
 
 .. autofunction:: chainer.links.model.vision.resnet.prepare
-
-Deprecated links
-----------------
-
-Parameter
-~~~~~~~~~
-.. autoclass:: Parameter
-   :members:
