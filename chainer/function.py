@@ -83,8 +83,10 @@ def use_fp16_compute():
     """Enable fp16 compute for convolution related functions."""
     default = getattr(_thread_local, 'fp16_compute_mode', False)
     _thread_local.fp16_compute_mode = True
-    yield
-    _thread_local.fp16_compute_mode = default
+    try:
+        yield
+    finally:
+        _thread_local.fp16_compute_mode = default
 
 
 @contextlib.contextmanager
