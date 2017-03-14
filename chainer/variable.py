@@ -11,13 +11,12 @@ from chainer import cuda
 from chainer import flag
 from chainer import utils
 
-from chainer import function
-
-import cupy.cuda.runtime as runtime  # testing
-
-import cupy.testing as testing  # temporal
+# debug
+# import cupy.cuda.runtime as runtime
+import cupy.testing as testing
 
 _debug = False
+
 
 def _check_grad_type(func, x, gx):
     def make_message(message):
@@ -59,16 +58,16 @@ https://github.com/pfnet/chainer/issues/new.
 
 # testing
 def _print_memory_pool_stats(name):
-    print("  {}: chainer.cuda.memory_pool: {}"
+    print('  {}: chainer.cuda.memory_pool: {}'
           .format(name, chainer.cuda.memory_pool))
     size_mem_in_use = chainer.cuda.memory_pool.size_in_use_mem()
     size_mem_free = chainer.cuda.memory_pool.size_free_mem()
     size_mem_total = size_mem_in_use + size_mem_free
     n_free_blocks = chainer.cuda.memory_pool.n_free_blocks()
-    print("    size_mem(total) : {}".format(size_mem_total))
-    print("    size_mem(in use): {}".format(size_mem_in_use))
-    print("    size_mem(free)  : {}".format(size_mem_free))
-    print("    n_free_blocks   : {}".format(n_free_blocks))
+    print('    size_mem(total) : {}'.format(size_mem_total))
+    print('    size_mem(in use): {}'.format(size_mem_in_use))
+    print('    size_mem(free)  : {}'.format(size_mem_free))
+    print('    n_free_blocks   : {}'.format(n_free_blocks))
 
 
 def _add_instance(instances, seen_set, instance):
@@ -358,7 +357,7 @@ Actual: {0}'''.format(type(data))
     def forget(self):
         if self.creator is not None:
             if _debug:
-                print("        forget: {}".format(self))
+                print('  forget: {}'.format(self))
             self.data = None
             self.is_forgotten = True
             # work-around for ReLU
@@ -402,23 +401,23 @@ Actual: {0}'''.format(type(data))
     def recompute(self):
         """Re-computes my data"""
         func = self.creator
+        if _debug:
+            print('  recompute: {}'.format(func))
 
-        # if inputs of my creator function are forgotten, re-compute them.
+        # call recompute recursively
         for x in func.inputs:
             if x.is_forgotten:
                 x.recompute()
 
-        if _debug:
-            print("        recompute: {}".format(func))
         in_data = tuple([x.data for x in func.inputs])
         out_data = func.forward(in_data)
         out_vars = tuple(y() for y in func.outputs)  # access via weak ref
         for (var, data) in zip(out_vars, out_data):
             if var.data is not None:
-                print("  check results of recompute for {}".format(func))
+                print('    check results of recompute for {}'.format(func))
                 testing.assert_array_equal(var.data, data)
-                # print("    old_data:{}".format(var.data))
-                # print("    new_data:{}".format(data))
+                # print('    old_data:{}'.format(var.data))
+                # print('    new_data:{}'.format(data))
             var.data = data
             var.is_forgotten = False
             var.will_be_forgotten = False
@@ -454,22 +453,21 @@ Actual: {0}'''.format(type(data))
             for x in func.inputs:
                 if x in seen_vars and not x.is_break_point:
                     ret = x.set_break_point()
-                    # if ret:
-                    #     print("  break point is set (fork point) {}:"
-                    #           .format(x))
+                    if _debug and ret:
+                        print('  break point is set (fork point) {}:'
+                              .format(x))
 
             cnt = 0
             for x in func.inputs:
                 if x.creator is not None:
                     cnt = cnt + 1
             if cnt > 1:
-                # print("  {}".format(func))
                 outputs = [y() for y in func.outputs]  # weak ref
                 for y in outputs:
                     ret = y.set_break_point()
-                    # if ret:
-                    #     print("  break point is set (join point) {}:"
-                    #           .format(y))
+                    if _debug and ret:
+                        print('  break point is set (join point) {}:'
+                              .format(y))
 
             for x in func.inputs:
                 _add_instance(vars, seen_vars, x)
@@ -503,18 +501,16 @@ Actual: {0}'''.format(type(data))
                     add_break_points(x)
                 _add_instance(funcs, seen_funcs, x.g_creator)
 
-        # print("  break_points:{}". format(break_points))
         return break_points
 
     def _print_my_info(self):
-        print("        self:{}".format(self))
+        print('  self:{}'.format(self))
         if self.creator is not None:
-            print("          creator:{}".format(self.creator))
-        print("          size:{}, data:{}".format(self.data.data.mem.size, self.data.data.mem.ptr), end="")
+            print('    creator:{}'.format(self.creator))
+        print('    size:{}'.format(self.data.data.mem.size))
+        print('    data:{}'.format(self.data.data.mem.ptr))
         if self._grad is not None:
-            print(", grad:{}".format(self._grad.data.mem.ptr))
-        else:
-            print("")
+            print('    grad:{}'.format(self._grad.data.mem.ptr))
 
     def backward(self, retain_grad=False):
         """Runs error backpropagation (a.k.a. backprop) from this variable.
@@ -566,34 +562,33 @@ Actual: {0}'''.format(type(data))
                     self.grad = cuda.cupy.ones_like(self.data)
 
         if _debug:
-            _print_memory_pool_stats("backward (from now)")
+            _print_memory_pool_stats('backward (from now)')
 
         break_points = self.get_break_points()
         if _debug:
-            print("[variable.py]")
-            print("  bps:{}".format(break_points))
+            print('[variable.py]')
+            print('  bps:{}'.format(break_points))
 
-        #can_unchain = False
         can_unchain = True
         while break_points:
             _, _, endp = heapq.heappop(break_points)
             endp.resume_backward()
             if _debug:
-                print("    endp:{}".format(endp))
+                print('  endp:{}'.format(endp))
 
             cand_funcs = []
             seen_set = set()
             seen_vars = set()
             need_copy = set()
 
-            def add_cand(cand):
+            def add_cand(cand, seen_set):
                 if cand not in seen_set and cand is not None:
                     # Negate since heapq is min-heap
                     heapq.heappush(cand_funcs,
                                    (-cand.rank, len(seen_set), cand))
                     seen_set.add(cand)
 
-            add_cand(endp.creator)
+            add_cand(endp.creator, seen_set)
             while cand_funcs:
                 _, _, func = heapq.heappop(cand_funcs)
                 outputs = [y() for y in func.outputs]  # access via weak ref
@@ -604,7 +599,7 @@ Actual: {0}'''.format(type(data))
                         x.recompute()
 
                 if _debug:
-                    print("      backward: {}".format(func))
+                    print('    backward: {}'.format(func))
                     # testing
                     for y in outputs:
                         y._print_my_info()
@@ -665,7 +660,7 @@ Actual: {0}'''.format(type(data))
                             else:
                                 x._grad += gx
                     else:  # not a leaf
-                        add_cand(x.creator)
+                        add_cand(x.creator, seen_set)
                         if id_x not in seen_vars:  # 1st visit
                             x.grad = gx
                             seen_vars.add(id_x)
@@ -680,7 +675,7 @@ Actual: {0}'''.format(type(data))
                                 x._grad += gx
                 del gxs  # to reduce memory usage
 
-            # testing
+            # to reduce memory usage
             del seen_set
             del seen_vars
             del need_copy
@@ -690,13 +685,13 @@ Actual: {0}'''.format(type(data))
 
             if can_unchain:
                 if _debug:
-                    print("        unchain_backward() is used")
+                    print('    unchain_backward() is used')
                 endp.unchain_backward()
                 del endp
-                # runtime.deviceSynchronize()  # testing
+                # runtime.deviceSynchronize()
 
             if _debug:
-                _print_memory_pool_stats("backward (WIP)")  # debug
+                _print_memory_pool_stats('backward (WIP)')
 
         if initial_device is not None:
             initial_device.use()

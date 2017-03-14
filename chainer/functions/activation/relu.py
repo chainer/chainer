@@ -24,7 +24,7 @@ class ReLU(function.Function):
         _fnames = getattr(function._thread_local, 'recompute_targets', [])
         if "RELU" in _fnames:
             self.recompute = True
-            # print("  recompute is enabled: {}".format(self))
+            # print('  recompute is enabled: {}'.format(self))
 
     def check_type_forward(self, in_types):
         type_check.expect(

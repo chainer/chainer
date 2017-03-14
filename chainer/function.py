@@ -17,7 +17,8 @@ import copy
 
 _thread_local = threading.local()
 
-_debug = False
+_debug = False  # debug
+
 
 @contextlib.contextmanager
 def no_backprop_mode():
@@ -91,8 +92,10 @@ def use_recompute(*fnames):
     for fname in fnames:
         if fname not in _thread_local.recompute_targets:
             _thread_local.recompute_targets.append(fname)
-    yield
-    _thread_local.recompute_targets = default
+    try:
+        yield
+    finally:
+        _thread_local.recompute_targets = default
 
 
 @contextlib.contextmanager
@@ -103,8 +106,10 @@ def no_recompute(*fnames):
     for fname in default:
         if fname not in fnames:
             _thread_local.recompute_targets.append(fname)
-    yield
-    _thread_local.recompute_targets = default
+    try:
+        yield
+    finally:
+        _thread_local.recompute_targets = default
 
 
 class Function(object):
@@ -206,7 +211,7 @@ class Function(object):
 
         """
         if _debug:
-            print("    forward: {}".format(self))
+            print('  forward: {}'.format(self))
 
         inputs = [x if isinstance(x, chainer.Variable)
                   else chainer.Variable(x, volatile=flag.AUTO)
@@ -215,8 +220,8 @@ class Function(object):
         # check wheter inputs are forgotten or not
         for x in inputs:
             if x.is_forgotten:
-                print("# This variable should not be target of recompute")
-                print("#   var:{}, func:{}".format(x, x.creator))
+                print('# This variable should not be target of recompute')
+                print('#   var:{}, func:{}'.format(x, x.creator))
                 x.recompute()
                 x.set_break_point()
 
@@ -267,19 +272,20 @@ class Function(object):
             # Forward edges (must be weak references)
             self.outputs = tuple([weakref.ref(y) for y in ret])
 
-        # forget inputs which is marked to forget
+        # forget inputs which are set to forget
         for x in inputs:
             if x.will_be_forgotten:
                 x.forget()
-                # print("  {} forgets {}".format(self, x))  # debug
+                if _debug:
+                    print('    {} forgets {}'.format(self, x))
 
-        # mark to forget later
+        # set outputs to forget later
         if hasattr(self, 'recompute'):
             if self.recompute:
                 for y in ret:
                     y.will_be_forgotten = True
                     if _debug:
-                        print("        will forget: {}".format(y))
+                        print('    {} will be forgotten'.format(y))
 
         if len(ret) == 1:
             return ret[0]
@@ -477,7 +483,7 @@ class Function(object):
 
         """
         if _debug:
-            print("        unchain: {}".format(self))
+            print('  unchain: {}'.format(self))
 
         for y in self.outputs:
             y_ref = y()
