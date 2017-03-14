@@ -94,8 +94,10 @@ def no_fp16_compute():
     """Disable fp16 compute for convolution related functions."""
     default = getattr(_thread_local, 'fp16_compute_mode', False)
     _thread_local.fp16_compute_mode = False
-    yield
-    _thread_local.fp16_compute_mode = default
+    try:
+        yield
+    finally:
+        _thread_local.fp16_compute_mode = default
 
 
 class Function(object):
