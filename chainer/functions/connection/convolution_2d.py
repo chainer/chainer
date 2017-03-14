@@ -1,5 +1,8 @@
 import numpy
 
+import chainer
+import warnings
+
 from chainer import cuda
 from chainer import function
 from chainer.utils import conv
@@ -278,7 +281,8 @@ class Convolution2DFunction(function.Function):
                             conv_desc_bd.value, x_desc.value, _bwd_data_pref,
                             workspace_size)
                     except RuntimeError:
-                        # print("No algorithm found for fp16 compute (kh:{}, kw:{}, n:{}, c:{}, h:{}, w:{}, out_c:{}, out_h:{}, out_w:{})".format(kh, kw, n, c, h, w, out_c, out_h, out_w))  # NOQA
+                        if chainer.is_debug():
+                            warnings.warn('No algorithm found for fp16 compute (kh:{}, kw:{}, n:{}, c:{}, h:{}, w:{}, out_c:{}, out_h:{}, out_w:{})'.format(kh, kw, n, c, h, w, out_c, out_h, out_w))  # NOQA
                         # use fp32 compute instead
                         conv_desc_bd = self.conv_desc_fp32
                         algo = libcudnn.getConvolutionBackwardDataAlgorithm(
