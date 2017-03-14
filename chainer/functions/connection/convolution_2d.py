@@ -46,8 +46,8 @@ class Convolution2DFunction(function.Function):
         if self.fp16_compute_mode:
             # fp16 compute is available on GPUs with compute capability 6.0.
             if not _cc == '60':
-                msg = "fp16 compute is not supported by the GPU " + \
-                      "with compute capability {}".format(_cc)
+                msg = 'fp16 compute is not supported by the GPU ' + \
+                      'with compute capability {}'.format(_cc)
                 raise RuntimeError(msg)
 
     def check_type_forward(self, in_types):
