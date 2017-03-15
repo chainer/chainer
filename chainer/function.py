@@ -12,15 +12,15 @@ from chainer import variable
 
 
 def no_backprop_mode():
-    """Disable back-propagation.
+    """Make a context manager which disables back-propagation.
 
     In this context, Chainer does not make a computational graph.
     :class:`~chainer.Variable` created in this context does not have
     reference to the :class:`~chainer.Function` which created the variable.
-    So, you cannot execute back-propagation.
+    So, you cannot compute gradient with :func:`~chainer.Variable.backward`.
     Instead memory consumption is reduced.
 
-    In this example ``y`` is created in this context. So you cannot call
+    In this example, ``y`` is created in this context. So you cannot call
     :func:`~chianer.Variable.backward`.
 
     >>> x = chainer.Variable(numpy.array([1,], 'f'))
@@ -32,16 +32,16 @@ def no_backprop_mode():
 
 
 def force_backprop_mode():
-    """Enable back-propagation.
+    """Make a context manager which enables back-propagation.
 
     When you want to enable back-propagation in :func:`no_backprop_mode`,
-    call this method. :~chainer.Variable: created in this context always have
+    call this method. :~chainer.Variable: created in this context always has
     a computational graph.
     If you call this method outside of :func:`no_backprop_mode` context, it
     changes nothing.
 
-    In this example, ``y`` has a computational graph and you can call
-    ``y.backward``.
+    In this example, ``y`` has a computational graph and ``y.backward``
+    computes gradients of variables in the graph.
 
     >>> with chainer.no_backprop_mode():
     ...   with chainer.force_backprop_mode():
