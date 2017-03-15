@@ -141,6 +141,17 @@ class TestCTCBlankSymbol(TestCTC):
         self.blank_symbol = 3
 
 
+class TestCTCUseVolatile(unittest.TestCase):
+
+    def test_volatile(self):
+        xs_data = numpy.random.uniform(-1, 1, (4, 2, 3)).astype(numpy.float32)
+        t_data = numpy.array([[0, 1], [1, 0]]).astype(numpy.int32)
+        with chainer.no_backprop_mode():
+            x = [chainer.Variable(x_data) for x_data in xs_data]
+            t = chainer.Variable(t_data)
+            functions.connectionist_temporal_classification(x, t, 2)
+
+
 class TestCTCError(unittest.TestCase):
 
     def test_not_iterable(self):
