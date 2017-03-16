@@ -362,19 +362,3 @@ from chainer.functions.theano.theano_function import TheanoFunction  # NOQA
 
 from chainer.functions.util.forget import forget  # NOQA
 from chainer.functions.util.forget import Forget  # NOQA
-
-# Import for backward compatibility
-from chainer.links.activation.prelu import PReLU  # NOQA
-
-from chainer.links.connection.bilinear import Bilinear  # NOQA
-from chainer.links.connection.convolution_2d import Convolution2D  # NOQA
-from chainer.links.connection.dilated_convolution_2d import DilatedConvolution2D  # NOQA
-from chainer.links.connection.embed_id import EmbedID  # NOQA
-from chainer.links.connection.inception import Inception  # NOQA
-from chainer.links.connection.inceptionbn import InceptionBN  # NOQA
-from chainer.links.connection.linear import Linear  # NOQA
-
-from chainer.links.loss.hierarchical_softmax import BinaryHierarchicalSoftmax  # NOQA
-from chainer.links.loss.negative_sampling import NegativeSampling  # NOQA
-
-from chainer.links.normalization.batch_normalization import BatchNormalization  # NOQA
