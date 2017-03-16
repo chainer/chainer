@@ -213,7 +213,7 @@ class simple_reduction_function(object):
             raise ValueError(('zero-size array to reduction operation'
                               ' %s which has no identity') % self.name)
         if dtype is not None:
-            dtype = numpy.dtype(dtype).type
+            dtype = numpy.dtype(dtype)
 
         in_args = [a]
         if out is None:
@@ -253,7 +253,7 @@ class simple_reduction_function(object):
 
         kern = _get_simple_reduction_function(
             routine, self._params, args_info,
-            in_args[0].dtype.type, out_args[0].dtype.type, out_types,
+            in_args[0].dtype, out_args[0].dtype, out_types,
             self.name, block_size, self.identity,
             self._input_expr, self._output_expr, self._preamble, ())
 
@@ -462,8 +462,8 @@ cpdef create_reduction_func(name, ops, routine=None, identity=None,
             in_types = out_types = tuple(types)
         else:
             in_types, out_types = map(tuple, types)
-        in_types = tuple([numpy.dtype(t).type for t in in_types])
-        out_types = tuple([numpy.dtype(t).type for t in out_types])
+        in_types = tuple([numpy.dtype(t) for t in in_types])
+        out_types = tuple([numpy.dtype(t) for t in out_types])
         _ops.append((in_types, out_types, rt))
 
     return simple_reduction_function(name, _ops, identity, preamble)

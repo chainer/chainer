@@ -114,7 +114,7 @@ def _make_decorator(check_func, name, type_check, accept_error):
             if not skip:
                 check_func(cupy_result, numpy_result)
             if type_check:
-                self.assertEqual(cupy_result.dtype, numpy_result.dtype)
+                self.assertEqual(cupy_result.dtype.char, numpy_result.dtype.char)
         return test_func
     return decorator
 
@@ -403,19 +403,20 @@ def for_dtypes(dtypes, name='dtype'):
                     kw[name] = dtype
                     impl(self, *args, **kw)
                 except Exception:
-                    print(name, 'is', dtype)
+                    print('{} is {}(\'{}\')'.format(name, dtype, dtype.char))
                     raise
 
         return test_func
     return decorator
 
 
-_regular_float_dtypes = (numpy.float64, numpy.float32)
-_float_dtypes = _regular_float_dtypes + (numpy.float16,)
-_signed_dtypes = tuple(numpy.dtype(i).type for i in 'bhilq')
-_unsigned_dtypes = tuple(numpy.dtype(i).type for i in 'BHILQ')
+_regular_float_dtypes = tuple(numpy.dtype(i) for i in
+                              (numpy.float64, numpy.float32))
+_float_dtypes = _regular_float_dtypes + (numpy.dtype(numpy.float16),)
+_signed_dtypes = tuple(numpy.dtype(i) for i in 'bhilq')
+_unsigned_dtypes = tuple(numpy.dtype(i) for i in 'BHILQ')
 _int_dtypes = _signed_dtypes + _unsigned_dtypes
-_int_bool_dtypes = _int_dtypes + (numpy.bool_,)
+_int_bool_dtypes = _int_dtypes + (numpy.dtype(numpy.bool_),)
 _regular_dtypes = _regular_float_dtypes + _int_bool_dtypes
 _dtypes = _float_dtypes + _int_bool_dtypes
 
