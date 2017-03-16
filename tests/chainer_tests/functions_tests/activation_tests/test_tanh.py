@@ -97,16 +97,26 @@ class TestTanhCudnnCall(unittest.TestCase):
         return functions.tanh(x)
 
     def test_call_cudnn_forward(self):
+        if cuda.cudnn.cudnn.getVersion() >= 4000:
+            patch = 'cupy.cudnn.cudnn.activationForward_v4'
+        else:
+            patch = 'cupy.cudnn.cudnn.activationForward_v3'
+
         with chainer.using_config('use_cudnn', self.use_cudnn):
-            with mock.patch('cupy.cudnn.cudnn.activationForward_v3') as func:
+            with mock.patch(patch) as func:
                 self.forward()
                 self.assertEqual(func.called, self.expect)
 
     def test_call_cudnn_backward(self):
+        if cuda.cudnn.cudnn.getVersion() >= 4000:
+            patch = 'cupy.cudnn.cudnn.activationBackward_v4'
+        else:
+            patch = 'cupy.cudnn.cudnn.activationBackward_v3'
+
         with chainer.using_config('use_cudnn', self.use_cudnn):
             y = self.forward()
             y.grad = self.gy
-            with mock.patch('cupy.cudnn.cudnn.activationBackward_v3') as func:
+            with mock.patch(patch) as func:
                 y.backward()
                 self.assertEqual(func.called, self.expect)
 
