@@ -115,9 +115,14 @@ class TestSgimoidCrossEntropyCudnnCall(unittest.TestCase):
         return functions.sigmoid_cross_entropy(x, t)
 
     def test_call_cudnn_backward(self):
+        if cuda.cudnn.cudnn.getVersion() >= 4000:
+            patch = 'cupy.cudnn.cudnn.activationForward_v4'
+        else:
+            patch = 'cupy.cudnn.cudnn.activationForward_v3'
+
         with chainer.using_config('use_cudnn', self.use_cudnn):
             y = self.forward()
-            with mock.patch('cupy.cudnn.cudnn.activationForward_v3') as func:
+            with mock.patch(patch) as func:
                 y.backward()
                 self.assertEqual(func.called,
                                  chainer.should_use_cudnn('==always'))
