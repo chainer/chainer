@@ -11,7 +11,7 @@ class SpatialPyramidPooling2D(pooling_2d.Pooling2D):
 
     """Spatial pyramid pooling over a set of 2d planes."""
 
-    def __init__(self, x_shape, pyramid_height, pooling_class, use_cudnn=True):
+    def __init__(self, x_shape, pyramid_height, pooling_class):
         bottom_c, bottom_h, bottom_w = x_shape
         self.pyramid_height = pyramid_height
 
@@ -35,7 +35,7 @@ class SpatialPyramidPooling2D(pooling_2d.Pooling2D):
 
             if pooling_class is max_pooling_2d.MaxPooling2D:
                 pooler = pooling_class(ksize=ksize, stride=None, pad=pad,
-                                       cover_all=True, use_cudnn=use_cudnn)
+                                       cover_all=True)
                 self.poolers.append(pooler)
             else:
                 raise NotImplementedError()
@@ -64,8 +64,7 @@ class SpatialPyramidPooling2D(pooling_2d.Pooling2D):
         return gx,
 
 
-def spatial_pyramid_pooling_2d(x, pyramid_height, pooling_class,
-                               use_cudnn=True):
+def spatial_pyramid_pooling_2d(x, pyramid_height, pooling_class):
     """Spatial pyramid pooling function.
 
     It outputs a fixed-length vector regardless of input feature map size.
@@ -100,8 +99,6 @@ def spatial_pyramid_pooling_2d(x, pyramid_height, pooling_class,
         pyramid_height (int): Number of pyramid levels
         pooling_class (MaxPooling2D or AveragePooling2D):
             Only MaxPooling2D class can be available for now.
-        use_cudnn (bool): If ``True`` and cuDNN is enabled, then this function
-            uses cuDNN as the core implementation.
 
     Returns:
         ~chainer.Variable: Output variable. The shape of the output variable
@@ -118,4 +115,4 @@ def spatial_pyramid_pooling_2d(x, pyramid_height, pooling_class,
     """
 
     return SpatialPyramidPooling2D(x.shape[1:], pyramid_height,
-                                   pooling_class, use_cudnn=use_cudnn)(x)
+                                   pooling_class)(x)
