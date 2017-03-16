@@ -10,6 +10,22 @@ from chainer.datasets import get_cifar10
 from chainer.datasets import get_cifar100
 
 import models.VGG
+from chainer import graph_summary
+
+import matplotlib
+matplotlib.use('Agg')
+
+
+graph = graph_summary.Graph('root_graph')
+
+class TestModeEvaluator(extensions.Evaluator):
+
+    def evaluate(self):
+        model = self.get_target('main')
+        model.train = False
+        ret = super(TestModeEvaluator, self).evaluate()
+        model.train = True
+        return ret
 
 
 def main():
@@ -105,13 +121,25 @@ def main():
     # Print a progress bar to stdout
     trainer.extend(extensions.ProgressBar())
 
+    trainer.extend(graph_summary.GraphSummary(graph, ['main/loss']))
+
     if args.resume:
         # Resume from a snapshot
         chainer.serializers.load_npz(args.resume, trainer)
 
     # Run the training
+    print("Starting HTTP server")
+    graph_summary.run_server(graph, async=True)
     trainer.run()
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        pass
+    except:
+        import traceback
+        traceback.print_exc()
+        import pdb
+        pdb.post_mortem()
