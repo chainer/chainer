@@ -85,6 +85,7 @@ class TestArrayAdvancedIndexingPerm(unittest.TestCase):
     {'shape': (2, 3, 4), 'indexes': [1, 1]},
     {'shape': (2, 3, 4), 'indexes': [[1]]},
     {'shape': (2, 3, 4), 'indexes': [[1, 1]]},
+    {'shape': (2, 3, 4), 'indexes': [[1], [1]]},
     {'shape': (2, 3, 4), 'indexes': [[1, 1], 1]},
     {'shape': (2, 3, 4), 'indexes': [[1], slice(1, 2)]},
     {'shape': (2, 3, 4), 'indexes': [[[1]], slice(1, 2)]},
