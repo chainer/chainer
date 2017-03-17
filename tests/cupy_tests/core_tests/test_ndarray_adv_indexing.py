@@ -150,6 +150,7 @@ class TestArrayAdvancedIndexingArrayClass(unittest.TestCase):
     {'shape': (), 'indexes': ([1],)},
     {'shape': (2, 3), 'indexes': (slice(None), [1, 2], slice(None))},
     {'shape': (2, 3), 'indexes': numpy.array([], dtype=numpy.float)},
+    {'shape': (2, 3, 4), 'indexes': [1, [1, [1]]]},
 )
 @testing.gpu
 class TestArrayInvalidIndexAdv(unittest.TestCase):
