@@ -70,14 +70,14 @@ def relu(x):
 
     .. admonition:: Example
 
-        >>> x = np.random.uniform(-1, 1, (3, 4, 5)).astype('f')
+        >>> x = np.array([[-1, 0], [2, -3], [-2, 1]], 'f')
         >>> np.any(x < 0)
         True
         >>> y = F.relu(x)
         >>> np.any(y.data < 0)
         False
         >>> y.shape
-        (3, 4, 5)
+        (3, 2)
 
     """
     return ReLU()(x)
