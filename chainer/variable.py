@@ -3,6 +3,7 @@ import copy
 import heapq
 import traceback
 import warnings
+import weakref
 
 import numpy
 import six
@@ -37,6 +38,9 @@ https://github.com/pfnet/chainer/issues/new.
         detail += message
         return detail
 
+    if x.data is None or gx is None:
+        # ``x.data is None`` implies that the data array is not retained
+        return
     if not isinstance(gx, type(x.data)):
         msg = ('Type of data and grad mismatch\n%s != %s' %
                (type(x.data), type(gx)))
@@ -51,6 +55,139 @@ https://github.com/pfnet/chainer/issues/new.
         raise ValueError(make_message(msg))
 
 
+class VariableNode(object):
+
+    """Node in the backward computational graph representing a variable.
+
+    This object represents a variable node in a computational graph. The node
+    is used in error backpropagation (a.k.a. backprop) to determine which
+    gradient to be passed to each function.
+
+    A variable node is held by the corresponding :class:`Variable` object,
+    which is managed by users. :class:`Function` objects that take the variable
+    as an input also hold references to the variable node.
+
+    Note that the node does not hold a reference to the corresponding data
+    array in general. The data array is actually accessible by the node in the
+    following cases.
+
+    1. If there exists a :class:`Variable` object that holds a reference to the
+       variable node, the variable node holds a weak reference to the variable
+       object, and thus the data array is accessible via the weak reference.
+    2. If :meth:`retain_data` is called, the node holds a reference to the data
+       array. It is mainly called by a function that needs the input or output
+       data array in its backprop procedure. See :meth:`Function.retain_inputs`
+       and :meth:`Function.retain_outputs` for more details.
+
+    Users usually do not need to touch this variable node object. The
+    computational graph is automatically managed by Chainer, and any interface
+    that is beneficial for users is also provided by :class:`Variable`.
+
+    Args:
+        variable (Variable): The corresponding variable object.
+
+    Attributes:
+        dtype: Data type of the data array.
+        shape: Shape of the data array.
+        name (str): Name of the variable node.
+
+    """
+    def __init__(self, variable, grad=None):
+        self._variable = weakref.ref(variable)
+        self._creator = None
+        self._data = None
+        self._rank = 0
+        self.name = variable.name
+
+        vdata = variable.data
+        if vdata is not None:
+            self._set_data_type(vdata)
+        else:
+            self.dtype = None
+            self.shape = None
+
+        self.grad = grad
+
+    @property
+    def creator(self):
+        """Function node that created this variable node."""
+        return self._creator
+
+    @property
+    def data(self):
+        """Data array of the corresponding variable.
+
+        If the data is not available, it returns ``None``.
+
+        """
+        return self._data
+
+    @data.setter
+    def data(self, d):
+        self._data = d
+        if d is not None:
+            self._set_data_type(d)
+
+    @property
+    def grad(self):
+        """Gradient array of the corresponding variable."""
+        return self._grad
+
+    @grad.setter
+    def grad(self, g):
+        _check_grad_type(None, self, g)
+        self._grad = g
+
+    @property
+    def label(self):
+        """Short text that represents the variable node."""
+        if self.shape == ():
+            return str(self.dtype)
+        return '(%s), %s' % (', '.join(map(str, self.shape)),
+                             str(self.dtype))
+
+    @property
+    def rank(self):
+        return self._rank
+
+    def set_creator(self, creator):
+        """Sets a :class:`Function` object that created this node.
+
+        Args:
+            creator (Function): Function object that created this node.
+
+        """
+        self._creator = creator
+        self._rank = creator.rank + 1
+
+    def unchain(self):
+        """Deletes the reference to the creator of this variable node."""
+        self._creator = None
+
+    def retain_data(self):
+        """Lets the node hold a reference to the underlying data array.
+
+        This method gets the data array of the corresponding variable and keeps
+        it. If the weak reference to the corresponding variable is dead, it
+        raises an error.
+
+        """
+        variable = self._variable()
+        if variable is not None:
+            self.data = variable.data
+        else:
+            raise RuntimeError('cannot retain variable data: the variable has '
+                               'been already released')
+
+    def _set_data_type(self, d):
+        self.dtype = d.dtype
+        self.shape = d.shape
+
+    def _set_grad_with_check(self, g, func, var):
+        _check_grad_type(func, var, g)
+        self._grad = g
+
+
 class Variable(object):
 
     """Array with a structure to keep track of computation.
@@ -58,13 +195,12 @@ class Variable(object):
     Every variable holds a data array of type either :class:`numpy.ndarray` or
     :class:`cupy.ndarray`.
 
-    A Variable object may be constructed in two ways: by the user or by some
-    function. When a variable is created by some function as one of its
-    outputs, the variable holds a reference to that function. This reference is
-    used in error backpropagation (a.k.a. backprop). It is also used in
-    *backward unchaining*. A variable that does not hold a reference to its
-    creator is called a *root* variable. A variable is root if it is created by
-    the user, or if the reference is deleted by :meth:`unchain_backward`.
+    A variable object holds a data array and a :class:`VariableNode` object of
+    a computational graph. If the variable is constructed by the user, the node
+    is _root_ and does not hold any parent. If the variable is constructed by a
+    :class:`Function` object, the node holds a reference to its parent called
+    `creator`. This reference is used in backpropagation to backtrack the
+    graph.
 
     Users can disable (resp. enable) this chaining behavior by calling
     :func:`~chainer.no_backprop_mode` (resp.
@@ -110,21 +246,19 @@ Actual: {0}'''.format(type(data))
         # Use a list as a data structure to hold the data array indirectly to
         # abstract its initialized/uninitialized state.
         self._data = [data]
-
-        self.rank = 0
-
-        self._grad = grad
-        self.creator = None
-
         self.name = name
+
+        self._node = VariableNode(self, grad)
 
     def __copy__(self):
         copied = Variable()
         copied.__dict__ = copy.copy(self.__dict__)
+        copied._node = VariableNode(copied)
         return copied
 
     def __reduce__(self):
-        return Variable, (self.data, self.name, self._grad)
+        return Variable, (self.data, self.name, self._node._grad,
+                          self.initializer)
 
     def __repr__(self):
         if self.name:
@@ -188,10 +322,11 @@ Actual: {0}'''.format(type(data))
     @property
     def label(self):
         """Short text that represents the variable."""
-        if self.data.shape == ():
-            return str(self.data.dtype)
-        return '(%s), %s' % (', '.join(map(str, self.data.shape)),
-                             str(self.data.dtype))
+        return self._node.label
+
+    @property
+    def creator(self):
+        return self._node._creator
 
     @property
     def data(self):
@@ -200,16 +335,15 @@ Actual: {0}'''.format(type(data))
     @data.setter
     def data(self, d):
         self._data[0] = d
+        self._node._set_data_type(d)
 
     @property
     def grad(self):
-        return self._grad
+        return self._node._grad
 
     @grad.setter
     def grad(self, g):
-        if g is not None:
-            _check_grad_type(None, self, g)
-        self._grad = g
+        self._node._set_grad_with_check(g, None, self)
 
     @property
     def shape(self):
@@ -227,14 +361,26 @@ Actual: {0}'''.format(type(data))
     def dtype(self):
         return self.data.dtype
 
+    @property
+    def rank(self):
+        return self._node.rank
+
+    @property
+    def node(self):
+        return self._node
+
     def to_cpu(self):
         """Copies the data and gradient arrays to CPU."""
         if self.data is None:
             self._initial_device = -1
         else:
             self._data = [cuda.to_cpu(self.data)]
-            if self._grad is not None:
-                self._grad = cuda.to_cpu(self._grad)
+            # ensure that the node tracks the device migration
+            node = self._node
+            if node._data is not None:
+                node.retain_data()
+            if node._grad is not None:
+                node._grad = cuda.to_cpu(node._grad)
 
     def to_gpu(self, device=None):
         """Copies the data and gradient arrays to specified GPU.
@@ -250,12 +396,16 @@ Actual: {0}'''.format(type(data))
         else:
             with cuda.get_device(device):
                 self._data = [cuda.to_gpu(self.data)]
-                if self._grad is not None:
-                    self._grad = cuda.to_gpu(self._grad)
+                # ensure that the node tracks the device migration
+                node = self._node
+                if node._data is not None:
+                    node.retain_data()
+                if node._grad is not None:
+                    node._grad = cuda.to_gpu(node._grad)
 
     def cleargrad(self):
         """Clears the gradient array."""
-        self._grad = None
+        self._node._grad = None
         if self.data is None:
             self._grad_initializer = None
 
@@ -276,11 +426,12 @@ Actual: {0}'''.format(type(data))
             return
 
         with cuda.get_device(self.data) as dev:
-            if self._grad is None:
+            node = self._node
+            if node._grad is None:
                 xp = numpy if int(dev) == -1 else cuda.cupy
-                self._grad = xp.zeros_like(self.data)
+                node._grad = xp.zeros_like(self.data)
             else:
-                self._grad.fill(0)
+                node._grad.fill(0)
 
     def copydata(self, var):
         """Copies the data array from given source variable.
@@ -330,13 +481,13 @@ Actual: {0}'''.format(type(data))
             var (Variable): Source variable.
 
         """
-        src = var._grad
+        src = var._node._grad
         if src is None:
             return
 
         if self.data is None:
             self.initialize(var.shape)
-        dst = self._grad
+        dst = self._node._grad
 
         src_dev = cuda.get_device(src)
         dst_dev = cuda.get_device(self.data)
@@ -345,9 +496,9 @@ Actual: {0}'''.format(type(data))
             with dst_dev:
                 if dst is None:
                     xp = cuda.get_array_module(src)
-                    self._grad = xp.copy(src)
+                    self._node.grad = xp.copy(src)
                 else:
-                    self._grad += src
+                    dst += src
             return
 
         if dst_dev.id < 0:
@@ -356,10 +507,10 @@ Actual: {0}'''.format(type(data))
             src_grad = cuda.to_gpu(src, device=dst_dev)
 
         if dst is None:
-            self._grad = src_grad
+            self._node.grad = src_grad
         else:
             with dst_dev:
-                self._grad += src_grad
+                dst += src_grad
 
     def set_creator(self, gen_func):
         """Notifies the variable that the given function is its creator.
@@ -369,8 +520,7 @@ Actual: {0}'''.format(type(data))
                 one of its outputs.
 
         """
-        self.creator = gen_func
-        self.rank = gen_func.rank + 1
+        self._node.set_creator(gen_func)
 
     def backward(self, retain_grad=False):
         """Runs error backpropagation (a.k.a. backprop) from this variable.
@@ -378,10 +528,10 @@ Actual: {0}'''.format(type(data))
         On backprop, :meth:`Function.backward` is called on each
         :class:`Function` object appearing in the backward graph starting from
         this variable. The backward graph is represented by backward references
-        from variables to their creators, and from functions to their inputs.
-        The backprop stops at all root variables. Some functions set ``None``
-        as gradients of some inputs, where further backprop does not take place
-        at such input variables.
+        from variable nodes to their creators, and from functions to their
+        input variable nodes. The backprop stops at all root nodes. Some
+        functions set ``None`` as gradients of some inputs, where further
+        backprop does not take place at such inputs.
 
         This method uses :data:`grad` as the initial error array. User can
         manually set a gradient array before calling this method. If
@@ -397,8 +547,8 @@ Actual: {0}'''.format(type(data))
                 timing, which may reduce the maximum memory consumption.
 
                 In most cases of training some models, the purpose of backprop
-                is to compute gradients of parameters, not of variables, so it
-                is recommended to set this flag ``False``.
+                is to compute gradients of parameters, not of all variables,
+                and therefore it is recommended to set this flag ``False``.
 
         """
         if self.creator is None:
@@ -464,7 +614,7 @@ Actual: {0}'''.format(type(data))
 
             if not retain_grad:
                 for y in outputs:
-                    if y is not None and y is not self:
+                    if y is not None and y is not self.node:
                         y.grad = None
             for x, gx in zip(func.inputs, gxs):
                 if gx is None:
@@ -482,7 +632,7 @@ Actual: {0}'''.format(type(data))
                     else:
                         cuda.get_device(gx).use()
                         if id_x in need_copy:
-                            x.grad = utils.force_array(x.grad + gx)  # copy
+                            x.grad = utils.force_array(x._grad + gx)  # copy
                             need_copy.remove(id_x)
                         else:
                             x._grad += gx
@@ -495,7 +645,7 @@ Actual: {0}'''.format(type(data))
                     else:
                         cuda.get_device(gx).use()
                         if id_x in need_copy:  # 2nd visit
-                            x._grad = utils.force_array(gx + x._grad)  # copied
+                            x.grad = utils.force_array(gx + x._grad)  # copied
                             need_copy.remove(id_x)
                         else:  # 3rd or later visit
                             x._grad += gx
@@ -526,15 +676,25 @@ Actual: {0}'''.format(type(data))
             axes = axes[0]
         return chainer.functions.transpose(self, axes)
 
-    def unchain_backward(self):
-        """Deletes references between variables and functions backward.
+    def unchain(self):
+        """Deletes the reference to the creator of this variable.
 
-        After this method completes, intermediate variables and functions that
-        are not referenced from anywhere are deallocated by reference
+        This method deletes the reference to the creator from the corresponding
+        variable node. Unlike :meth:`unchain_backward`, it does not backtrack
+        the graph.
+
+        """
+        self._node.unchain()
+
+    def unchain_backward(self):
+        """Deletes references between variable nodes and functions backward.
+
+        After this method completes, intermediate variable nodes and functions
+        that are not referenced from anywhere are deallocated by reference
         count GC. Also this variable itself deletes the reference to its
-        creator function, i.e. this variable becomes root in the computation
-        graph. It indicates that backprop after unchaining stops at this
-        variable. This behavior is useful to implement truncated BPTT.
+        creator function from the node, i.e. the node becomes root in the
+        computation graph. It indicates that backprop after unchaining stops at
+        this variable. This behavior is useful to implement truncated BPTT.
 
         """
         cand_funcs = []
@@ -576,7 +736,11 @@ Actual: {0}'''.format(type(data))
                 grad = cuda.to_gpu(grad, device=self._initial_device)
 
         self._data[0] = data
-        self.grad = grad
+        self._node._grad = grad
+
+    def retain_data(self):
+        """Lets the corresponding variable node keep the underlying array."""
+        self._node.data = self._data[0]
 
     def __lt__(self, other):
         raise NotImplementedError()

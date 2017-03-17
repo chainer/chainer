@@ -32,6 +32,7 @@ class ReLU(function.Function):
         if (chainer.should_use_cudnn('==always') and
                 x[0].flags.c_contiguous and
                 (_cudnn_version >= 3000 or x[0].dtype != numpy.float16)):
+            print('cudnn forward')
             y = cudnn.activation_forward(x[0], _mode)
             self.y = y
         else:
@@ -45,6 +46,7 @@ class ReLU(function.Function):
         if (chainer.should_use_cudnn('==always') and
                 x[0].flags.c_contiguous and gy[0].flags.c_contiguous and
                 (_cudnn_version >= 3000 or x[0].dtype != numpy.float16)):
+            print('cudnn backward')
             gx = cudnn.activation_backward(x[0], self.y, gy[0], _mode)
         else:
             gx = cuda.elementwise(

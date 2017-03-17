@@ -57,7 +57,7 @@ class TestPrintHookToFunction(unittest.TestCase):
         self.f(chainer.Variable(self.x))
 
     @attr.gpu
-    def test_fowward_gpu(self):
+    def test_forward_gpu(self):
         self.f(chainer.Variable(cuda.to_gpu(self.x)))
 
     def test_backward_cpu(self):

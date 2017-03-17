@@ -113,8 +113,8 @@ class TestFunction(unittest.TestCase):
     def check_call(self):
         x1 = chainer.Variable(self.x1)
         x2 = chainer.Variable(self.x2)
-        x1.rank = 1
-        x2.rank = 3
+        x1._node._rank = 1
+        x2._node._rank = 3
         ys = self.f(x1, x2)
 
         self.assertEqual(len(ys), 2)
@@ -139,7 +139,7 @@ class TestFunction(unittest.TestCase):
     def check_call_ndarray(self):
         x1 = chainer.Variable(self.x1)
         x2 = self.x2
-        x1.rank = 1
+        x1._node._rank = 1
         ys = self.f(x1, x2)
 
         self.assertEqual(len(ys), 2)
@@ -399,6 +399,49 @@ class TestBackpropModeMultiThread(unittest.TestCase):
         t.start()
         t.join()
         self.assertTrue(t.creator_is_none)
+
+
+class FunctionWithRetaining(chainer.Function):
+
+    def forward(self, inputs):
+        self.retain_inputs([1])
+        self.retain_outputs([1])
+        return inputs
+
+    def backward(self, inputs, grad_outputs):
+        self.backward_inputs = inputs
+        return grad_outputs
+
+
+class TestFunctionRetaining(unittest.TestCase):
+
+    def setUp(self):
+        self.f = FunctionWithRetaining()
+        inputs = [chainer.Variable(numpy.array([1], dtype=numpy.float32)),
+                  chainer.Variable(numpy.array([1], dtype=numpy.float32))]
+        self.input_data = [x.data for x in inputs]
+        self.input_nodes = [x.node for x in inputs]
+
+        outputs = self.f(*inputs)
+        inputs = None  # release non-retained inputs
+
+        outputs[0].grad = numpy.array([1], dtype=numpy.float32)
+        outputs[0].backward()
+
+        self.output_data = [y.data for y in outputs]
+        self.output_nodes = [y.node for y in outputs]
+
+    def test_retain_inputs(self):
+        self.assertEqual([x.data for x in self.input_nodes],
+                         [None, self.input_data[1]])
+        self.assertEqual(tuple(x.data for x in self.input_nodes),
+                         self.f.backward_inputs)
+
+    def test_retain_outputs(self):
+        self.assertEqual([y.data for y in self.output_nodes],
+                         [None, self.output_data[1]])
+        self.assertEqual(tuple(y.data for y in self.output_nodes),
+                         self.f.output_data)
 
 
 testing.run_module(__name__, __file__)
