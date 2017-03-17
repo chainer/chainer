@@ -157,7 +157,7 @@ class TestAveragePoolingND(unittest.TestCase):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy), False)
 
     def check_backward_consistency_regression(self, x_data, gy_data,
-                                              use_cudnn=True):
+                                              use_cudnn='always'):
         # Regression test to two-dimensional average pooling layer.
 
         if len(self.dims) != 2:
@@ -170,17 +170,18 @@ class TestAveragePoolingND(unittest.TestCase):
 
         # Backward computation for N-dimensional average pooling layer.
         x_nd = chainer.Variable(xp.array(x_data))
-        func_nd = functions.AveragePoolingND(self.ndim, ksize, stride=stride,
-                                             pad=pad, use_cudnn=use_cudnn)
+        with chainer.using_config('use_cudnn', use_cudnn):
+            func_nd = functions.AveragePoolingND(self.ndim, ksize,
+                                                 stride=stride, pad=pad)
         y_nd = func_nd(x_nd)
         y_nd.grad = gy_data
         y_nd.backward()
 
         # Backward computation for two-dimensional average pooling layer.
         x_2d = chainer.Variable(xp.array(x_data))
-        func_2d = functions.AveragePooling2D(ksize, stride=stride, pad=pad,
-                                             cover_all=False,
-                                             use_cudnn=use_cudnn)
+        with chainer.using_config('use_cudnn', use_cudnn):
+            func_2d = functions.AveragePooling2D(ksize, stride=stride, pad=pad,
+                                                 cover_all=False)
         y_2d = func_2d(x_2d)
         y_2d.grad = gy_data
         y_2d.backward()
@@ -202,7 +203,7 @@ class TestAveragePoolingND(unittest.TestCase):
     @condition.retry(3)
     def test_backward_consistency_regression_no_cudnn(self):
         self.check_backward_consistency_regression(
-            cuda.to_gpu(self.x), cuda.to_gpu(self.gy), use_cudnn=False)
+            cuda.to_gpu(self.x), cuda.to_gpu(self.gy), use_cudnn='never')
 
 
 @testing.parameterize(*testing.product({

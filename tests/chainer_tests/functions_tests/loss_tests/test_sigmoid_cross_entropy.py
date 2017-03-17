@@ -177,7 +177,8 @@ class TestSigmoidCrossEntropyCudnnCall(unittest.TestCase):
     def setUp(self):
         self.x = cuda.cupy.random.uniform(-1, 1, (4, 3)).astype(numpy.float32)
         self.t = cuda.cupy.random.randint(0, 3, (4, 3)).astype(numpy.int32)
-        self.expect = self.use_cudnn
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.expect = chainer.should_use_cudnn('==always')
 
     def forward(self):
         x = chainer.Variable(self.x)
