@@ -296,6 +296,7 @@ class NumpyLikeMatMul(function.Function):
 
 def numpy_like_matmul(a, b, transa=False, transb=False):
     """Computes the matrix multiplication of two arrays.
+
     This function has consistent behavior with numpy.matmul.
 
     .. seealso:: :data:`numpy.matmul`
