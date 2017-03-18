@@ -46,14 +46,6 @@ class TestVariable(unittest.TestCase):
         self.size = int(np.prod(self.x_shape))
         self.c = np.arange(self.size).reshape(self.c_shape).astype(np.float32)
 
-    def test_repr(self):
-        x = chainer.Variable(self.x, name='x')
-        self.assertEqual(repr(x), '<variable x>')
-
-    def test_str(self):
-        x = chainer.Variable(self.x, name='x')
-        self.assertEqual(str(x), 'x')
-
     def check_attributes(self, gpu):
         x = self.x
         if gpu:
@@ -573,7 +565,7 @@ class TestDebugPrint(unittest.TestCase):
 
     def check_debug_print(self, v, mean, std):
         result = v.debug_print()
-        self.assertIn(repr(v), result)
+        self.assertIn(v.summary(), result)
         self.assertIn('volatile: OFF', result)
         self.assertIn('dtype: float32', result)
         # py2.7 on win64 returns shape as long
@@ -837,6 +829,78 @@ class TestTranspose(unittest.TestCase):
     @attr.gpu
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x))
+
+
+@testing.parameterize(
+    {'x_shape': (2, 2,), 'dtype': np.float16,
+     'repr': 'variable([[ 0.,  1.],\n          [ 2.,  3.]])',
+     'str': 'variable([[ 0.  1.]\n          [ 2.  3.]])'},
+    {'x_shape': (2, 2,), 'dtype': np.float32,
+     'repr': 'variable([[ 0.,  1.],\n          [ 2.,  3.]])',
+     'str': 'variable([[ 0.  1.]\n          [ 2.  3.]])'},
+    {'x_shape': (2, 2,), 'dtype': np.float64,
+     'repr': 'variable([[ 0.,  1.],\n          [ 2.,  3.]])',
+     'str': 'variable([[ 0.  1.]\n          [ 2.  3.]])'},
+    {'x_shape': (3,),  'dtype': np.float32,
+     'repr': 'variable([ 0.,  1.,  2.])', 'str': 'variable([ 0.  1.  2.])'},
+    {'x_shape': (),  'dtype': np.float32,
+     'repr': 'variable(0.0)', 'str': 'variable(0.0)'},
+)
+class TestUnnamedVariableToString(unittest.TestCase):
+
+    def setUp(self):
+        x = np.empty(self.x_shape)
+        x = np.arange(x.size).reshape(self.x_shape)
+        x = x.astype(self.dtype)
+        self.x = chainer.Variable(x)
+
+    def test_repr_cpu(self):
+        self.assertEqual(repr(self.x), self.repr)
+
+    def test_str_cpu(self):
+        self.assertEqual(str(self.x), self.str)
+
+    @attr.gpu
+    def test_repr_gpu(self):
+        self.x.to_gpu()
+        self.assertEqual(repr(self.x), self.repr)
+
+    @attr.gpu
+    def test_str_gpu(self):
+        self.x.to_gpu()
+        self.assertEqual(str(self.x), self.str)
+
+
+@testing.parameterize(
+    {'x_shape': (2, 2,), 'dtype': np.float32,
+     'repr': 'variable x([[ 0.,  1.],\n            [ 2.,  3.]])',
+     'str': 'variable x([[ 0.  1.]\n            [ 2.  3.]])'},
+    {'x_shape': (), 'dtype': np.float32,
+     'repr': 'variable x(0.0)', 'str': 'variable x(0.0)'},
+)
+class TestNamedVariableToString(unittest.TestCase):
+
+    def setUp(self):
+        x = np.empty(self.x_shape)
+        x = np.arange(x.size).reshape(self.x_shape)
+        x = x.astype(self.dtype)
+        self.x = chainer.Variable(x, name='x')
+
+    def test_named_repr(self):
+        self.assertEqual(repr(self.x), self.repr)
+
+    def test_named_str(self):
+        self.assertEqual(str(self.x), self.str)
+
+    @attr.gpu
+    def test_repr_gpu(self):
+        self.x.to_gpu()
+        self.assertEqual(repr(self.x), self.repr)
+
+    @attr.gpu
+    def test_str_gpu(self):
+        self.x.to_gpu()
+        self.assertEqual(str(self.x), self.str)
 
 
 testing.run_module(__name__, __file__)
