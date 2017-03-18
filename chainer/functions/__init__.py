@@ -296,6 +296,8 @@ from chainer.functions.math.matmul import batch_matmul  # NOQA
 from chainer.functions.math.matmul import BatchMatMul  # NOQA
 from chainer.functions.math.matmul import matmul  # NOQA
 from chainer.functions.math.matmul import MatMul  # NOQA
+from chainer.functions.math.matmul import numpy_like_matmul  # NOQA
+from chainer.functions.math.matmul import NumpyLikeMatMul  # NOQA
 from chainer.functions.math.maximum import maximum  # NOQA
 from chainer.functions.math.maximum import Maximum  # NOQA
 from chainer.functions.math.minimum import minimum  # NOQA

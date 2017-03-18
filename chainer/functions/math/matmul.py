@@ -3,6 +3,7 @@ import six
 
 from chainer import cuda
 from chainer import function
+from chainer import utils
 from chainer.utils import array
 from chainer.utils import type_check
 
@@ -226,3 +227,99 @@ def batch_matmul(a, b, transa=False, transb=False):
             3-D array.
     """
     return BatchMatMul(transa=transa, transb=transb)(a, b)
+
+
+class NumpyLikeMatMul(function.Function):
+
+    def __init__(self, transa=False, transb=False):
+        self.transa = transa
+        self.transb = transb
+
+    def check_type_forward(self, in_types):
+        type_check.expect(in_types.size() == 2)
+        a_type, b_type = in_types
+
+        type_check.expect(
+            a_type.dtype.kind == 'f',
+            b_type.dtype.kind == 'f',
+            a_type.ndim >= 1,
+            b_type.ndim >= 1,
+            a_type.ndim == b_type.ndim,
+        )
+
+        a_type = _convert_type(a_type)
+        b_type = _convert_type(b_type)
+        a_idx = _get_check_index(self.transa, False, row_idx=-2, col_idx=-1)
+        b_idx = _get_check_index(self.transb, True, row_idx=-2, col_idx=-1)
+        type_check.expect(
+            a_type.shape[:-2] == b_type.shape[:-2],
+            a_type.shape[a_idx] == b_type.shape[b_idx],
+        )
+
+    def forward(self, x):
+        xp = cuda.get_array_module(*x)
+        a, b = x
+        if self.transa and a.ndim != 1:
+            a = a.swapaxes(-1, -2)
+        if self.transb and b.ndim != 1:
+            b = b.swapaxes(-1, -2)
+        y = xp.matmul(a, b)
+        return utils.force_array(y),
+
+    def backward(self, x, gy):
+        xp = cuda.get_array_module(*x)
+        a, b = x
+        a_shape = a.shape
+        b_shape = b.shape
+        if not self.transa and a.ndim != 1:
+            a = a.swapaxes(-1, -2)
+        if not self.transb and b.ndim != 1:
+            b = b.swapaxes(-1, -2)
+
+        if gy[0].ndim == 0:
+            ga = gy[0] * b
+        else:
+            ga = xp.matmul(gy[0], b)
+        if self.transa and a.ndim != 1:
+            ga = ga.swapaxes(-1, -2)
+        ga = ga.reshape(a_shape)
+
+        if gy[0].ndim == 0:
+            gb = a * gy[0]
+        else:
+            gb = xp.matmul(a, gy[0])
+        if self.transb and a.ndim != 1:
+            gb = gb.swapaxes(-1, -2)
+        gb = gb.reshape(b_shape)
+        return ga.astype(a.dtype), gb.astype(b.dtype)
+
+
+def numpy_like_matmul(a, b, transa=False, transb=False):
+    """Computes the matrix multiplication of two arrays.
+    This function has consistent behavior with numpy.matmul.
+
+    .. seealso:: :data:`numpy.matmul`
+
+    Args:
+        a (Variable): The left operand of the matrix multiplication.
+            A 1-D array of shape ``(N,)`` is considered as an
+            :math:`N \\times 1` matrix.
+        b (Variable): The right operand of the matrix multiplication.
+            Its array is treated as a matrix in the same way as ``a``'s array.
+        transa (bool): If ``True``, transpose ``a``.
+            If ``a.ndim == 1``, do nothing.
+        transb (bool): If ``True``, transpose ``b``.
+            If ``b.ndim == 1``, do nothing.
+
+    Returns:
+        ~chainer.Variable: The result of the matrix multiplication.
+
+    .. admonition:: Example
+
+        >>> a = np.array([[1, 0], [0, 1]], 'f')
+        >>> b = np.array([[4, 1], [2, 2]], 'f')
+        >>> F.matmul(a, b).data
+        array([[ 4.,  1.],
+               [ 2.,  2.]], dtype=float32)
+    """
+    return NumpyLikeMatMul(transa=transa, transb=transb)(a, b)

@@ -456,6 +456,10 @@ minimum
 ~~~~~~~
 .. autofunction:: minimum
 
+numpy_like_matmul
+~~~~~~~~~~~~~~~~~
+.. autofunction:: numpy_like_matmul
+
 rsqrt
 ~~~~~
 .. autofunction:: rsqrt
