@@ -50,10 +50,11 @@ https://github.com/pfnet/chainer/issues/new.
         raise ValueError(make_message(msg))
 
 
-def variable_repr(var, max_line_width=None,
-                  precision=None, suppress_small=None):
-    """
-    Return the string representation of a variable.
+def variable_repr(var):
+    """Return the string representation of a variable.
+
+    Args:
+        var (~chainer.Variable): Input Variable.
 
     .. seealso:: numpy.array_repr
     """
@@ -65,11 +66,10 @@ def variable_repr(var, max_line_width=None,
 
     if arr.size > 0 or arr.shape == (0,):
         if var.name:
-            prefix = 'variable '+ var.name + '('
+            prefix = 'variable ' + var.name + '('
         else:
             prefix = 'variable('
-        lst = numpy.array2string(arr, max_line_width, precision,
-                                 suppress_small, ', ', prefix)
+        lst = numpy.array2string(arr, None, None, None, ', ', prefix)
     else:  # show zero-length shape unless it is (0,)
         lst = '[], shape=%s' % (repr(arr.shape),)
         if var.name:
@@ -77,10 +77,11 @@ def variable_repr(var, max_line_width=None,
     return '%s(%s)' % (prefix[:-1], lst)
 
 
-def variable_str(var, max_line_width=None,
-                 precision=None, suppress_small=None):
-    """
-    Return the string representation of a variable.
+def variable_str(var):
+    """Return the string representation of a variable.
+
+    Args:
+        var (~chainer.Variable): Input Variable.
 
     .. seealso:: numpy.array_str
     """
@@ -93,8 +94,8 @@ def variable_str(var, max_line_width=None,
         prefix = 'variable ' + var.name + '('
     else:
         prefix = 'variable('
-    return prefix + numpy.array2string(arr, max_line_width, precision,
-                                       suppress_small, ' ', prefix) + ')'
+    return (prefix + numpy.array2string(arr, None, None, None, ' ', prefix) +
+            ')')
 
 
 class Variable(object):
