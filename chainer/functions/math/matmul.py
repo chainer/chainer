@@ -321,5 +321,6 @@ def numpy_like_matmul(a, b, transa=False, transb=False):
         >>> F.matmul(a, b).data
         array([[ 4.,  1.],
                [ 2.,  2.]], dtype=float32)
+
     """
     return NumpyLikeMatMul(transa=transa, transb=transb)(a, b)
