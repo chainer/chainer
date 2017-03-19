@@ -243,7 +243,6 @@ class NumpyLikeMatMul(function.Function):
             a_type.dtype.kind == 'f',
             b_type.dtype.kind == 'f',
             a_type.ndim >= 1,
-            b_type.ndim >= 1,
             a_type.ndim == b_type.ndim,
         )
 
