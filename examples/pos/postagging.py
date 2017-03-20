@@ -65,17 +65,9 @@ class CRF(chainer.Chain):
 
 
 def convert(batch, device):
-    if device is None:
-        def to_device(x):
-            return x
-    elif device < 0:
-        to_device = cuda.to_cpu
-    else:
-        def to_device(x):
-            return cuda.to_gpu(x, device, cuda.Stream.null)
-
-    sentences = [to_device(sentence) for sentence, _ in batch]
-    poses = [to_device(pos) for _, pos in batch]
+    sentences = [
+        chainer.dataset.to_device(device, sentence) for sentence, _ in batch]
+    poses = [chainer.dataset.to_device(device, pos) for _, pos in batch]
     return tuple(sentences + poses)
 
 
