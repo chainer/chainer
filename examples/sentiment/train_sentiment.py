@@ -9,10 +9,8 @@ This is Socher's simple recursive model, not RTNN:
 """
 
 import argparse
-import codecs
 import collections
 import random
-import re
 import time
 
 import numpy as np
@@ -22,6 +20,8 @@ from chainer import cuda
 import chainer.functions as F
 import chainer.links as L
 from chainer import optimizers
+
+import data
 
 
 parser = argparse.ArgumentParser()
@@ -51,32 +51,6 @@ n_label = args.label         # number of labels
 epoch_per_eval = args.epocheval  # number of epochs per evaluation
 
 
-class SexpParser(object):
-
-    def __init__(self, line):
-        self.tokens = re.findall(r'\(|\)|[^\(\) ]+', line)
-        self.pos = 0
-
-    def parse(self):
-        assert self.pos < len(self.tokens)
-        token = self.tokens[self.pos]
-        assert token != ')'
-        self.pos += 1
-
-        if token == '(':
-            children = []
-            while True:
-                assert self.pos < len(self.tokens)
-                if self.tokens[self.pos] == ')':
-                    self.pos += 1
-                    break
-                else:
-                    children.append(self.parse())
-            return children
-        else:
-            return token
-
-
 def convert_tree(vocab, exp):
     assert isinstance(exp, list) and (len(exp) == 2 or len(exp) == 3)
 
@@ -89,19 +63,6 @@ def convert_tree(vocab, exp):
         label, left, right = exp
         node = (convert_tree(vocab, left), convert_tree(vocab, right))
         return {'label': int(label), 'node': node}
-
-
-def read_corpus(path, vocab, max_size):
-    with codecs.open(path, encoding='utf-8') as f:
-        trees = []
-        for line in f:
-            line = line.strip()
-            tree = SexpParser(line).parse()
-            trees.append(convert_tree(vocab, tree))
-            if max_size and len(trees) >= max_size:
-                break
-
-        return trees
 
 
 class RecursiveNet(chainer.Chain):
@@ -179,9 +140,12 @@ if args.test:
     max_size = 10
 else:
     max_size = None
-train_trees = read_corpus('trees/train.txt', vocab, max_size)
-test_trees = read_corpus('trees/test.txt', vocab, max_size)
-develop_trees = read_corpus('trees/dev.txt', vocab, max_size)
+train_trees = [convert_tree(vocab, tree)
+               for tree in data.read_corpus('trees/train.txt', max_size)]
+test_trees = [convert_tree(vocab, tree)
+              for tree in data.read_corpus('trees/test.txt', max_size)]
+develop_trees = [convert_tree(vocab, tree)
+                 for tree in data.read_corpus('trees/dev.txt', max_size)]
 
 model = RecursiveNet(len(vocab), n_units)
 
