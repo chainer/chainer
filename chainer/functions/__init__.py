@@ -88,8 +88,8 @@ from chainer.functions.array.stack import stack  # NOQA
 from chainer.functions.array.swapaxes import swapaxes  # NOQA
 from chainer.functions.array.swapaxes import Swapaxes  # NOQA
 from chainer.functions.array.thin_stack import thin_stack_get  # NOQA
-from chainer.functions.array.thin_stack import ThinStackGet  # NOQA
 from chainer.functions.array.thin_stack import thin_stack_set  # NOQA
+from chainer.functions.array.thin_stack import ThinStackGet  # NOQA
 from chainer.functions.array.thin_stack import ThinStackSet  # NOQA
 from chainer.functions.array.tile import tile  # NOQA
 from chainer.functions.array.tile import Tile  # NOQA

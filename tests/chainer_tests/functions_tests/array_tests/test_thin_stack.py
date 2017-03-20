@@ -86,7 +86,6 @@ class TestThinStackSet(unittest.TestCase):
         self.gt = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
 
     def check_forward(self, s_data, i_data, x_data):
-        s_old = s_data.copy()
         s = chainer.Variable(s_data)
         i = chainer.Variable(i_data)
         x = chainer.Variable(x_data)
