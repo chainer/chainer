@@ -38,5 +38,4 @@ def read_corpus(path, vocab, max_size):
             if max_size and len(trees) >= max_size:
                 break
 
-        return trees
-
+    return trees
