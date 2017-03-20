@@ -28,7 +28,7 @@ class SexpParser(object):
             return token
 
 
-def read_corpus(path, vocab, max_size):
+def read_corpus(path, max_size):
     with codecs.open(path, encoding='utf-8') as f:
         trees = []
         for line in f:

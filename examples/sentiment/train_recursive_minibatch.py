@@ -197,8 +197,8 @@ def main():
 
     vocab = {}
     max_size = None
-    train_trees = data.read_corpus('trees/train.txt', vocab, max_size)
-    test_trees = data.read_corpus('trees/test.txt', vocab, max_size)
+    train_trees = data.read_corpus('trees/train.txt', max_size)
+    test_trees = data.read_corpus('trees/test.txt', max_size)
 
     if args.gpu >= 0:
         chainer.cuda.get_device(args.gpu).use()
