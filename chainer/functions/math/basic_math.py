@@ -513,7 +513,6 @@ class MatMulVarConst(function.Function):
 
         _matmul._check_ndim(a_type)
 
-        a_type = _matmul._convert_type(a_type)
         a_idx = _matmul._get_check_index(False, False)
         b_idx = _matmul._get_check_index(False, True)
         type_check.expect(
@@ -548,7 +547,6 @@ class MatMulConstVar(function.Function):
 
         _matmul._check_ndim(b_type)
 
-        b_type = _matmul._convert_type(b_type)
         a_idx = _matmul._get_check_index(False, False)
         b_idx = _matmul._get_check_index(False, True)
         type_check.expect(
