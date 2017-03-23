@@ -758,7 +758,9 @@ class TestFusionMisc(unittest.TestCase):
 
         return g(a, dtype(3), dtype(13))
 
+    @testing.with_requires('numpy>=1.11.2')
     def test_sqrt(self):
+        # numpy.sqrt is broken in numpy<1.11.2
         self.check_unary('sqrt')
 
     def test_square(self):
