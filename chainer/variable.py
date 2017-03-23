@@ -54,6 +54,7 @@ https://github.com/pfnet/chainer/issues/new.
 
 def variable_repr(var):
     """Return the string representation of a variable.
+
     Args:
         var (~chainer.Variable): Input Variable.
     .. seealso:: numpy.array_repr
@@ -79,6 +80,7 @@ def variable_repr(var):
 
 def variable_str(var):
     """Return the string representation of a variable.
+
     Args:
         var (~chainer.Variable): Input Variable.
     .. seealso:: numpy.array_str
@@ -92,8 +94,8 @@ def variable_str(var):
         prefix = 'variable ' + var.name + '('
     else:
         prefix = 'variable('
-    return (prefix + numpy.array2string(arr, None, None, None, ' ', prefix)
-            +')')
+    return (prefix + numpy.array2string(arr, None, None, None, ' ', prefix) +
+            ')')
 
 
 class Variable(object):
