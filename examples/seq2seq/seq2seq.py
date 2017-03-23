@@ -6,6 +6,7 @@ import collections
 from nltk.corpus import comtrans
 from nltk.translate import bleu_score
 import numpy
+import six
 
 import chainer
 from chainer import cuda
@@ -30,7 +31,7 @@ def get_topk(x, k=5, axis=1):
     ids_list = []
     scores_list = []
     xp = cuda.get_array_module(x)
-    for i in range(k):
+    for i in six.moves.range(k):
         ids = xp.argmax(x, axis=axis).astype('i')
         if axis == 0:
             scores = x[ids]
@@ -126,7 +127,7 @@ class Seq2seq(chainer.Chain):
             ys = self.xp.zeros(1, 'i')
             sum_ws = self.xp.zeros(1, 'f')
             result = [[]] * beam
-            for i in range(max_length):
+            for i in six.moves.range(max_length):
                 eys = self.embed_y(ys)
                 eys = F.split_axis(
                     eys, eys.shape[0], 0, force_tuple=True)
