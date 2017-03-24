@@ -20,7 +20,7 @@ class SimpleLink(chainer.Link):
         self.param.grad = g
 
 
-class TestOptimizerGradientNoise(unittest.TestCase):
+class TestGradientNoise(unittest.TestCase):
 
     eta = 0.01
 

@@ -18,7 +18,7 @@ class SimpleLink(chainer.Link):
         self.param.grad = g
 
 
-class TestOptimizerLasso(unittest.TestCase):
+class TestLasso(unittest.TestCase):
     def setUp(self):
         self.target = SimpleLink(
             np.arange(6, dtype=np.float32).reshape(2, 3),

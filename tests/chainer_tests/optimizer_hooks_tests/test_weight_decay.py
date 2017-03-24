@@ -17,7 +17,7 @@ class SimpleLink(chainer.Link):
         self.param.grad = g
 
 
-class TestOptimizerWeightDecay(unittest.TestCase):
+class TestWeightDecay(unittest.TestCase):
 
     def setUp(self):
         self.target = SimpleLink(
