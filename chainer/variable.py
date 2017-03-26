@@ -66,9 +66,10 @@ class Variable(object):
     creator is called a *root* variable. A variable is root if it is created by
     the user, or if the reference is deleted by :meth:`unchain_backward`.
 
-    Users can disable this chaining behavior by calling
-    :func:`~chainer.no_backprop_mode` and :func:`~chainer.force_backprop_mode`.
-    In the previous context, a variable does not create a computational graph.
+    Users can disable (resp. enable) this chaining behavior by calling
+    :func:`~chainer.no_backprop_mode` (resp.
+    :func:`~chainer.force_backprop_mode`).
+    In the former context, a variable does not create a computational graph.
 
     Args:
         data (array): Initial data array.
