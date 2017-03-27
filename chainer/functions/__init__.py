@@ -52,7 +52,9 @@ from chainer.functions.connection import deconvolution_nd  # NOQA
 from chainer.functions.connection import dilated_convolution_2d  # NOQA
 from chainer.functions.connection import embed_id  # NOQA
 from chainer.functions.connection import linear  # NOQA
+from chainer.functions.connection import n_step_gru  # NOQA
 from chainer.functions.connection import n_step_lstm  # NOQA
+from chainer.functions.connection import n_step_rnn  # NOQA
 from chainer.functions.evaluation import accuracy  # NOQA
 from chainer.functions.evaluation import binary_accuracy  # NOQA
 from chainer.functions.evaluation import classification_summary  # NOQA
@@ -115,7 +117,6 @@ from chainer.functions.pooling import unpooling_nd  # NOQA
 from chainer.functions.pooling import upsampling_2d  # NOQA
 from chainer.functions.theano import theano_function  # NOQA
 from chainer.functions.util import forget  # NOQA
-
 
 # import class and function
 from chainer.functions.activation.clipped_relu import clipped_relu  # NOQA
@@ -211,8 +212,20 @@ from chainer.functions.connection.deconvolution_nd import deconvolution_nd  # NO
 from chainer.functions.connection.dilated_convolution_2d import dilated_convolution_2d  # NOQA
 from chainer.functions.connection.embed_id import embed_id  # NOQA
 from chainer.functions.connection.linear import linear  # NOQA
+from chainer.functions.connection.n_step_gru import n_step_bigru  # NOQA
+from chainer.functions.connection.n_step_gru import n_step_gru  # NOQA
+from chainer.functions.connection.n_step_gru import NStepBiGRU  # NOQA
+from chainer.functions.connection.n_step_gru import NStepGRU  # NOQA
+from chainer.functions.connection.n_step_lstm import n_step_bilstm  # NOQA
 from chainer.functions.connection.n_step_lstm import n_step_lstm  # NOQA
+from chainer.functions.connection.n_step_lstm import NStepBiLSTM  # NOQA
 from chainer.functions.connection.n_step_lstm import NStepLSTM  # NOQA
+from chainer.functions.connection.n_step_rnn import n_step_birnn  # NOQA
+from chainer.functions.connection.n_step_rnn import n_step_rnn  # NOQA
+from chainer.functions.connection.n_step_rnn import NStepBiRNNReLU  # NOQA
+from chainer.functions.connection.n_step_rnn import NStepBiRNNTanh  # NOQA
+from chainer.functions.connection.n_step_rnn import NStepRNNReLU  # NOQA
+from chainer.functions.connection.n_step_rnn import NStepRNNTanh  # NOQA
 
 from chainer.functions.evaluation.accuracy import accuracy  # NOQA
 from chainer.functions.evaluation.accuracy import Accuracy  # NOQA

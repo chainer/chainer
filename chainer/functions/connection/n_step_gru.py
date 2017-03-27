@@ -4,14 +4,14 @@ import numpy
 import six
 
 from chainer import cuda
-from chainer.functions.activation import lstm
+from chainer.functions.activation import sigmoid
+from chainer.functions.activation import tanh
 from chainer.functions.array import concat
 from chainer.functions.array import reshape
 from chainer.functions.array import split_axis
 from chainer.functions.array import stack
 from chainer.functions.connection import linear
 from chainer.functions.connection import n_step_rnn
-from chainer.functions.connection.n_step_rnn import _stack_weight
 from chainer.functions.connection.n_step_rnn import get_random_state
 from chainer.functions.noise import dropout
 
@@ -21,45 +21,41 @@ if cuda.cudnn_enabled:
     _cudnn_version = libcudnn.getVersion()
 
 
-class NStepLSTM(n_step_rnn.BaseNStepRNNCell):
+class NStepGRU(n_step_rnn.BaseNStepRNNNoCell):
     def __init__(self, n_layers, states, train=True):
-        n_step_rnn.BaseNStepRNNCell.__init__(self, n_layers, states,
-                                             rnn_dir='uni', rnn_mode='lstm',
-                                             train=train)
+        n_step_rnn.BaseNStepRNNNoCell.__init__(self, n_layers, states,
+                                               rnn_dir='uni', rnn_mode='gru',
+                                               train=train)
 
 
-class NStepBiLSTM(n_step_rnn.BaseNStepRNNCell):
+class NStepBiGRU(n_step_rnn.BaseNStepRNNNoCell):
     def __init__(self, n_layers, states, train=True):
-        n_step_rnn.BaseNStepRNNCell.__init__(self, n_layers, states,
-                                             rnn_dir='bi', rnn_mode='lstm',
-                                             train=train)
+        n_step_rnn.BaseNStepRNNNoCell.__init__(self, n_layers, states,
+                                               rnn_dir='bi', rnn_mode='gru',
+                                               train=train)
 
 
-def n_step_lstm(
-        n_layers, dropout_ratio, hx, cx, ws, bs, xs, train=True,
+def n_step_gru(
+        n_layers, dropout_ratio, hx, ws, bs, xs, train=True,
         use_cudnn=True):
-    """Stacked Long Short-Term Memory function for sequence inputs.
+    """Stacked Gated Recurrent Unit function for sequence inputs.
 
 
-    This function calculates stacked LSTM with sequences. This function gets
-    an initial hidden state :math:`h_0`, an initial cell state :math:`c_0`,
-    an input sequence :math:`x`, weight matrices :math:`W`, and bias vectors
-    :math:`b`.
-    This function calculates hidden states :math:`h_t` and :math:`c_t` for each
-    time :math:`t` from input :math:`x_t`.
+    This function calculates stacked GRU with sequences. This function gets
+    an initial hidden state :math:`h_0`, an input sequence :math:`x`, weight
+    matrices :math:`W`, and bias vectors :math:`b`. This function calculates
+    hidden states :math:`h_t` for each time :math:`t` from input :math:`x_t`.
 
     .. math::
-       i_t &= \\sigma(W_0 x_t + W_4 h_{t-1} + b_0 + b_4) \\\\
-       f_t &= \\sigma(W_1 x_t + W_5 h_{t-1} + b_1 + b_5) \\\\
-       o_t &= \\sigma(W_2 x_t + W_6 h_{t-1} + b_2 + b_6) \\\\
-       a_t &= \\tanh(W_3 x_t + W_7 h_{t-1} + b_3 + b_7) \\\\
-       c_t &= f_t \\dot c_{t-1} + i_t \\dot a_t \\\\
-       h_t &= o_t \\dot \\tanh(c_t)
+       r_t &= \\sigma(W_0 x_t + W_3 h_{t-1} + b_0 + b_3) \\\\
+       z_t &= \\sigma(W_1 x_t + W_4 h_{t-1} + b_1 + b_4) \\\\
+       h'_t &= \\tanh(W_2 x_t + b_2 + r_t \\dot (W_5 h_{t-1} + b_5)) \\\\
+       h_t &= (1 - z_t) \\dot h'_t + z \\dot h_{t-1}
 
     As the function accepts a sequence, it calculates :math:`h_t` for all
     :math:`t` with one call. Eight weight matrices and eight bias vectors are
     required for each layers. So, when :math:`S` layers exists, you need to
-    prepare :math:`8S` weigth matrices and :math:`8S` bias vectors.
+    prepare :math:`6S` weigth matrices and :math:`6S` bias vectors.
 
     If the number of layers ``n_layers`` is greather than :math:`1`, input
     of ``k``-th layer is hidden state ``h_t`` of ``k-1``-th layer.
@@ -73,8 +69,6 @@ def n_step_lstm(
             Its shape is ``(S, B, N)`` where ``S`` is number of layers and is
             equal to ``n_layers``, ``B`` is mini-batch size, and ``N`` is
             dimention of hidden units.
-        cx (chainer.Variable): Variable holding stacked cell states.
-            It has the same shape as ``hx``.
         ws (list of list of chainer.Variable): Weight matrices. ``ws[i]``
             represents weights for i-th layer.
             Each ``ws[i]`` is a list containing eight matrices.
@@ -104,18 +98,13 @@ def n_step_lstm(
 
     Returns:
         tuple: This functions returns a tuple concaining three elements,
-            ``hy``, ``cy`` and ``ys``.
+            ``hy`` and ``ys``.
             - ``hy`` is an updated hidden states whose shape is same as ``hx``.
-            - ``cy`` is an updated cell states whose shape is same as ``cx``.
             - ``ys`` is a list of :class:`~chainer.Variable` . Each element
               ``ys[t]`` holds hidden states of the last layer corresponding
               to an input ``xs[t]``. Its shape is ``(B_t, N)`` where ``B_t`` is
               mini-batch size for time ``t``, and ``N`` is size of hidden
               units. Note that ``B_t`` is the same value as ``xs[t]``.
-
-    .. seealso::
-
-       :func:`chainer.functions.lstm`
 
     """
 
@@ -126,96 +115,86 @@ def n_step_lstm(
         states = get_random_state().create_dropout_states(dropout_ratio)
         # flatten all input variables
         inputs = tuple(itertools.chain(
-            (hx, cx),
+            (hx, ),
             itertools.chain.from_iterable(ws),
             itertools.chain.from_iterable(bs),
             xs))
-        rnn = NStepLSTM(n_layers, states, train=train)
+        rnn = NStepGRU(n_layers, states, train=train)
         ret = rnn(*inputs)
-        hy, cy = ret[:2]
-        ys = ret[2:]
-        return hy, cy, ys
+        hy, = ret[:1]
+        ys = ret[1:]
+        return hy, ys
 
     else:
         hx = split_axis.split_axis(hx, n_layers, axis=0, force_tuple=True)
         hx = [reshape.reshape(h, h.shape[1:]) for h in hx]
-        cx = split_axis.split_axis(cx, n_layers, axis=0, force_tuple=True)
-        cx = [reshape.reshape(c, c.shape[1:]) for c in cx]
 
-        xws = [_stack_weight([w[2], w[0], w[1], w[3]]) for w in ws]
-        hws = [_stack_weight([w[6], w[4], w[5], w[7]]) for w in ws]
-        xbs = [_stack_weight([b[2], b[0], b[1], b[3]]) for b in bs]
-        hbs = [_stack_weight([b[6], b[4], b[5], b[7]]) for b in bs]
+        xws = [concat.concat([w[0], w[1], w[2]], axis=0) for w in ws]
+        hws = [concat.concat([w[3], w[4], w[5]], axis=0) for w in ws]
+        xbs = [concat.concat([b[0], b[1], b[2]], axis=0) for b in bs]
+        hbs = [concat.concat([b[3], b[4], b[5]], axis=0) for b in bs]
 
         xs_next = xs
         hy = []
-        cy = []
         for layer in six.moves.range(n_layers):
             h = hx[layer]
-            c = cx[layer]
             h_forward = []
-            c_forward = []
             for x in xs_next:
                 batch = x.shape[0]
                 if h.shape[0] > batch:
                     h, h_rest = split_axis.split_axis(h, [batch], axis=0)
-                    c, c_rest = split_axis.split_axis(c, [batch], axis=0)
                 else:
                     h_rest = None
-                    c_rest = None
 
                 x = dropout.dropout(x, ratio=dropout_ratio, train=train)
                 h = dropout.dropout(h, ratio=dropout_ratio, train=train)
-                lstm_in = linear.linear(x, xws[layer], xbs[layer]) + \
-                    linear.linear(h, hws[layer], hbs[layer])
+                gru_in_x = linear.linear(x, xws[layer], xbs[layer])
+                gru_in_h = linear.linear(h, hws[layer], hbs[layer])
 
-                c_bar, h_bar = lstm.lstm(c, lstm_in)
+                W_r_x, W_z_x, W_x = split_axis.split_axis(gru_in_x, 3, axis=1)
+                U_r_h, U_z_h, U_x = split_axis.split_axis(gru_in_h, 3, axis=1)
+
+                r = sigmoid.sigmoid(W_r_x + U_r_h)
+                z = sigmoid.sigmoid(W_z_x + U_z_h)
+                h_bar = tanh.tanh(W_x + r * U_x)
+                h_bar = (1 - z) * h_bar + z * h
+
                 if h_rest is not None:
                     h = concat.concat([h_bar, h_rest], axis=0)
-                    c = concat.concat([c_bar, c_rest], axis=0)
                 else:
                     h = h_bar
-                    c = c_bar
                 h_forward.append(h_bar)
-                c_forward.append(c_bar)
 
             xs_next = h_forward
 
             hy.append(h)
-            cy.append(c)
 
         ys = h_forward
-
         hy = stack.stack(hy)
-        cy = stack.stack(cy)
-        return hy, cy, tuple(ys)
+        return hy, tuple(ys)
 
 
-def n_step_bilstm(
-        n_layers, dropout_ratio, hx, cx, ws, bs, xs, train=True,
+def n_step_bigru(
+        n_layers, dropout_ratio, hx, ws, bs, xs, train=True,
         use_cudnn=True):
-    """Stacked Bi-direction Long Short-Term Memory function for sequence inputs.
+    """Stacked Bi-direction Gated Recurrent Unit function for sequence inputs.
 
 
-    This function calculates stacked Bi-direction LSTM with sequences.
-    This function gets an initial hidden state :math:`h_0`, an initial cell
-    state :math:`c_0`, an input sequence :math:`x`, weight matrices :math:`W`,
-    and bias vectors :math:`b`.
-    This function calculates hidden states :math:`h_t` and :math:`c_t` for each
-    time :math:`t` from input :math:`x_t`.
+    This function calculates stacked GRU with sequences. This function gets
+    an initial hidden state :math:`h_0`, an input sequence :math:`x`, weight
+    matrices :math:`W`, and bias vectors :math:`b`. This function calculates
+    hidden states :math:`h_t` for each time :math:`t` from input :math:`x_t`.
 
     .. math::
-       i_t &= \\sigma(W_0 x_t + W_4 h_{t-1} + b_0 + b_4) \\\\
-       f_t &= \\sigma(W_1 x_t + W_5 h_{t-1} + b_1 + b_5) \\\\
-       o_t &= \\sigma(W_2 x_t + W_6 h_{t-1} + b_2 + b_6) \\\\
-       a_t &= \\tanh(W_3 x_t + W_7 h_{t-1} + b_3 + b_7) \\\\
-       c_t &= f_t \\dot c_{t-1} + i_t \\dot a_t \\\\
-       h_t &= o_t \\dot \\tanh(c_t)
+       r_t &= \\sigma(W_0 x_t + W_3 h_{t-1} + b_0 + b_3) \\\\
+       z_t &= \\sigma(W_1 x_t + W_4 h_{t-1} + b_1 + b_4) \\\\
+       h'_t &= \\tanh(W_2 x_t + b_2 + r_t \\dot (W_5 h_{t-1} + b_5)) \\\\
+       h_t &= (1 - z_t) \\dot h'_t + z \\dot h_{t-1}
 
     As the function accepts a sequence, it calculates :math:`h_t` for all
     :math:`t` with one call. Eight weight matrices and eight bias vectors are
     required for each layers. So, when :math:`S` layers exists, you need to
-    prepare :math:`8S` weigth matrices and :math:`8S` bias vectors.
+    prepare :math:`6S` weigth matrices and :math:`6S` bias vectors.
 
     If the number of layers ``n_layers`` is greather than :math:`1`, input
     of ``k``-th layer is hidden state ``h_t`` of ``k-1``-th layer.
@@ -229,8 +208,6 @@ def n_step_bilstm(
             Its shape is ``(S, B, N)`` where ``S`` is number of layers and is
             equal to ``n_layers``, ``B`` is mini-batch size, and ``N`` is
             dimention of hidden units.
-        cx (chainer.Variable): Variable holding stacked cell states.
-            It has the same shape as ``hx``.
         ws (list of list of chainer.Variable): Weight matrices. ``ws[i]``
             represents weights for i-th layer.
             Each ``ws[i]`` is a list containing eight matrices.
@@ -260,18 +237,13 @@ def n_step_bilstm(
 
     Returns:
         tuple: This functions returns a tuple concaining three elements,
-            ``hy``, ``cy`` and ``ys``.
+            ``hy`` and ``ys``.
             - ``hy`` is an updated hidden states whose shape is same as ``hx``.
-            - ``cy`` is an updated cell states whose shape is same as ``cx``.
             - ``ys`` is a list of :class:`~chainer.Variable` . Each element
               ``ys[t]`` holds hidden states of the last layer corresponding
               to an input ``xs[t]``. Its shape is ``(B_t, N)`` where ``B_t`` is
               mini-batch size for time ``t``, and ``N`` is size of hidden
               units. Note that ``B_t`` is the same value as ``xs[t]``.
-
-    .. seealso::
-
-       :func:`chainer.functions.lstm`
 
     """
 
@@ -282,108 +254,99 @@ def n_step_bilstm(
         states = get_random_state().create_dropout_states(dropout_ratio)
         # flatten all input variables
         inputs = tuple(itertools.chain(
-            (hx, cx),
+            (hx, ),
             itertools.chain.from_iterable(ws),
             itertools.chain.from_iterable(bs),
             xs))
-        rnn = NStepBiLSTM(n_layers, states, train=train)
+        rnn = NStepBiGRU(n_layers, states, train=train)
         ret = rnn(*inputs)
-        hy, cy = ret[:2]
-        ys = ret[2:]
-        return hy, cy, ys
+        hy, = ret[:1]
+        ys = ret[1:]
+        return hy, ys
 
     else:
         hx = split_axis.split_axis(hx, n_layers * 2, axis=0, force_tuple=True)
         hx = [reshape.reshape(h, h.shape[1:]) for h in hx]
-        cx = split_axis.split_axis(cx, n_layers * 2, axis=0, force_tuple=True)
-        cx = [reshape.reshape(c, c.shape[1:]) for c in cx]
 
-        xws = [_stack_weight([w[2], w[0], w[1], w[3]]) for w in ws]
-        hws = [_stack_weight([w[6], w[4], w[5], w[7]]) for w in ws]
-        xbs = [_stack_weight([b[2], b[0], b[1], b[3]]) for b in bs]
-        hbs = [_stack_weight([b[6], b[4], b[5], b[7]]) for b in bs]
+        xws = [concat.concat([w[0], w[1], w[2]], axis=0) for w in ws]
+        hws = [concat.concat([w[3], w[4], w[5]], axis=0) for w in ws]
+        xbs = [concat.concat([b[0], b[1], b[2]], axis=0) for b in bs]
+        hbs = [concat.concat([b[3], b[4], b[5]], axis=0) for b in bs]
 
         xs_next = xs
         hy = []
-        cy = []
         for layer in six.moves.range(n_layers):
             h_forward = []
-            c_forward = []
             h_backward = []
-            c_backward = []
-            # forward LSTM
+            # forward GRU
             di = 0
             layer_idx = 2 * layer + di
             h = hx[layer_idx]
-            c = cx[layer_idx]
             for x in xs_next:
                 batch = x.shape[0]
                 if h.shape[0] > batch:
                     h, h_rest = split_axis.split_axis(h, [batch], axis=0)
-                    c, c_rest = split_axis.split_axis(c, [batch], axis=0)
                 else:
                     h_rest = None
-                    c_rest = None
 
                 x = dropout.dropout(x, ratio=dropout_ratio, train=train)
                 h = dropout.dropout(h, ratio=dropout_ratio, train=train)
-                lstm_in = linear.linear(x, xws[layer_idx], xbs[layer_idx]) + \
-                    linear.linear(h, hws[layer_idx], hbs[layer_idx])
+                gru_in_x = linear.linear(x, xws[layer_idx], xbs[layer_idx])
+                gru_in_h = linear.linear(h, hws[layer_idx], hbs[layer_idx])
 
-                c_bar, h_bar = lstm.lstm(c, lstm_in)
+                W_r_x, W_z_x, W_x = split_axis.split_axis(gru_in_x, 3, axis=1)
+                U_r_h, U_z_h, U_x = split_axis.split_axis(gru_in_h, 3, axis=1)
+
+                r = sigmoid.sigmoid(W_r_x + U_r_h)
+                z = sigmoid.sigmoid(W_z_x + U_z_h)
+                h_bar = tanh.tanh(W_x + r * U_x)
+                h_bar = (1 - z) * h_bar + z * h
+
                 if h_rest is not None:
                     h = concat.concat([h_bar, h_rest], axis=0)
-                    c = concat.concat([c_bar, c_rest], axis=0)
                 else:
                     h = h_bar
-                    c = c_bar
-
                 h_forward.append(h_bar)
-                c_forward.append(c_bar)
-
             hy.append(h)
-            cy.append(c)
 
-            # backward LSTM
+            # backward GRU
             di = 1
             layer_idx = 2 * layer + di
             h = hx[layer_idx]
-            c = cx[layer_idx]
             for x in reversed(xs_next):
                 batch = x.shape[0]
                 if h.shape[0] > batch:
                     h, h_rest = split_axis.split_axis(h, [batch], axis=0)
-                    c, c_rest = split_axis.split_axis(c, [batch], axis=0)
                 else:
                     h_rest = None
-                    c_rest = None
+
                 x = dropout.dropout(x, ratio=dropout_ratio, train=train)
                 h = dropout.dropout(h, ratio=dropout_ratio, train=train)
-                lstm_in = linear.linear(x, xws[layer_idx], xbs[layer_idx]) + \
-                    linear.linear(h, hws[layer_idx], hbs[layer_idx])
+                gru_in_x = linear.linear(x, xws[layer_idx], xbs[layer_idx])
+                gru_in_h = linear.linear(h, hws[layer_idx], hbs[layer_idx])
 
-                c_bar, h_bar = lstm.lstm(c, lstm_in)
+                W_r_x, W_z_x, W_x = split_axis.split_axis(gru_in_x, 3, axis=1)
+                U_r_h, U_z_h, U_x = split_axis.split_axis(gru_in_h, 3, axis=1)
+
+                r = sigmoid.sigmoid(W_r_x + U_r_h)
+                z = sigmoid.sigmoid(W_z_x + U_z_h)
+                h_bar = tanh.tanh(W_x + r * U_x)
+                h_bar = (1 - z) * h_bar + z * h
+
                 if h_rest is not None:
                     h = concat.concat([h_bar, h_rest], axis=0)
-                    c = concat.concat([c_bar, c_rest], axis=0)
                 else:
                     h = h_bar
-                    c = c_bar
                 h_backward.append(h_bar)
-                c_backward.append(c_bar)
-
-            hy.append(h)
-            cy.append(c)
 
             h_backward.reverse()
             # concat
             xs_next = [concat.concat([hfi, hbi], axis=1) for (hfi, hbi) in
                        zip(h_forward, h_backward)]
 
-        # last layer
+            hy.append(h)
+
         ys = [concat.concat([hfi, hbi], axis=1) for (hfi, hbi) in
               zip(h_forward, h_backward)]
-
         hy = stack.stack(hy)
-        cy = stack.stack(cy)
-        return hy, cy, tuple(ys)
+        return hy, tuple(ys)
