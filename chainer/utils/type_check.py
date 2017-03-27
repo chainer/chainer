@@ -546,8 +546,11 @@ def in_light_mode():
     return getattr(_thread_local, 'light_mode', False)
 
 
-def prod(*args, **kwargs):
+def prod(*args):
     if in_light_mode():
-        return numpy.prod(*args, **kwargs)
+        result = 1
+        for x in args:
+            result *= x
+        return result
     else:
-        return _prod(*args, **kwargs)
+        return _prod(*args)
