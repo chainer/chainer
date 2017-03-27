@@ -70,7 +70,7 @@ class LightTypeInfoTuple(tuple):
 
 
 def get_types(data, name, accept_none):
-    assert(isinstance(data, tuple))
+    assert isinstance(data, tuple)
 
     info = TypeInfoTuple(
         _get_type(name, i, x, accept_none) for i, x in enumerate(data))
