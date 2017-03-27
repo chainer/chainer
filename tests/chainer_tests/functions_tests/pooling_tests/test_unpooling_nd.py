@@ -48,6 +48,7 @@ def expected_unpooling_nd(x_data, outs, ksize, stride, pad):
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'cover_all': [True, False],
 }))
+@testing.suppress_feature_warning()
 class TestUnpoolingND(unittest.TestCase):
 
     def setUp(self):
@@ -198,6 +199,7 @@ class TestUnpoolingND(unittest.TestCase):
     '_pad': [0, 1],
     'cover_all': [True, False],
 }))
+@testing.suppress_feature_warning()
 class TestUnpoolingNDOutsize(unittest.TestCase):
 
     def setUp(self):

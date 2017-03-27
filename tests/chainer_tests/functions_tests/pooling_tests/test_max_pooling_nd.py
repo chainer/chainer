@@ -23,6 +23,7 @@ import pooling_nd_helper
     'cover_all': [True, False],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
+@testing.suppress_feature_warning()
 class TestMaxPoolingND(unittest.TestCase):
 
     def setUp(self):
@@ -210,6 +211,7 @@ class TestMaxPoolingND(unittest.TestCase):
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
 @attr.cudnn
+@testing.suppress_feature_warning()
 class TestMaxPoolingNDCudnnCall(unittest.TestCase):
 
     def setUp(self):

@@ -92,6 +92,7 @@ class TheanoFunctionTestBase(object):
      'forward_test_options': {'atol': 1e-3, 'rtol': 1e-3},
      'backward_test_options': {'eps': 1, 'atol': 1e-3, 'rtol': 1e-3}},
 )
+@testing.suppress_feature_warning()
 class TestTheanoFunction(TheanoFunctionTestBase, unittest.TestCase):
 
     def make_func(self):
@@ -121,6 +122,7 @@ class TestTheanoFunction(TheanoFunctionTestBase, unittest.TestCase):
      'outputs': [{'shape': (3, 2), 'type': 'float32'},
                  {'shape': (3, 2), 'type': 'float32'}]},
 )
+@testing.suppress_feature_warning()
 class TestTheanoFunctionTwoOutputs(TheanoFunctionTestBase, unittest.TestCase):
 
     def make_func(self):
@@ -145,6 +147,7 @@ class TestTheanoFunctionTwoOutputs(TheanoFunctionTestBase, unittest.TestCase):
                 {'shape': (), 'type': 'int32'}],
      'outputs': [{'shape': (2,), 'type': 'float32'}]},
 )
+@testing.suppress_feature_warning()
 class TestTheanoFunctionNonDifferential(
         TheanoFunctionTestBase, unittest.TestCase):
 
