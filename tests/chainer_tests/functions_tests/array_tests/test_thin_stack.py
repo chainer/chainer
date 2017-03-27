@@ -136,3 +136,6 @@ class TestThinStackSet(unittest.TestCase):
         self.check_backward(
             cuda.to_gpu(self.s), cuda.to_gpu(self.i), cuda.to_gpu(self.x),
             cuda.to_gpu(self.gt))
+
+
+testing.run_module(__name__, __file__)
