@@ -50,6 +50,16 @@ DepthwiseConvolution2D
 ~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: DepthwiseConvolution2D
 
+DeformableConvolution2D
+~~~~~~~~~~~~~~~~~~~~~~~
+.. autoclass:: DeformableConvolution2D
+   :members:
+
+DeformableConvolution2DSampler
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autoclass:: DeformableConvolution2DSampler
+   :members:
+
 DilatedConvolution2D
 ~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: DilatedConvolution2D

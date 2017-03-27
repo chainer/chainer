@@ -247,6 +247,10 @@ depthwise_convolution_2d
 ~~~~~~~~~~~~~~~~~~~~~~~~
 .. autofunction:: depthwise_convolution_2d
 
+deformable_convolution_2d_sampler
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autofunction:: deformable_convolution_2d_sampler
+
 dilated_convolution_2d
 ~~~~~~~~~~~~~~~~~~~~~~
 .. autofunction:: dilated_convolution_2d
