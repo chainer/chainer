@@ -5,7 +5,6 @@ from nltk.corpus import brown
 import numpy
 
 import chainer
-from chainer import cuda
 from chainer import datasets
 import chainer.functions as F
 import chainer.links as L
