@@ -1,7 +1,7 @@
 import argparse
 import collections
 
-from nltk.corpus import brown
+import nltk
 import numpy
 
 import chainer
@@ -89,8 +89,9 @@ def main():
     pos_vocab = collections.defaultdict(lambda: len(pos_vocab))
 
     # Convert word sequences and pos sequences to integer sequences.
+    nltk.download('brown')
     data = []
-    for sentence in brown.tagged_sents():
+    for sentence in nltk.corpus.brown.tagged_sents():
         xs = numpy.array([vocab[lex] for lex, _ in sentence], 'i')
         ys = numpy.array([pos_vocab[pos] for _, pos in sentence], 'i')
         data.append((xs, ys))
