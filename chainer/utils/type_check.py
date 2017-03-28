@@ -537,8 +537,15 @@ class LightMode(object):
         _thread_local.light_mode = False
 
 
+def _prod_impl(xs):
+    result = 1
+    for x in xs:
+        result *= x
+    return result
+
+
 _thread_local = threading.local()
-_prod = Variable(numpy.prod, 'prod')
+_prod = Variable(_prod_impl, 'prod')
 light_mode = LightMode()
 
 
@@ -546,11 +553,8 @@ def in_light_mode():
     return getattr(_thread_local, 'light_mode', False)
 
 
-def prod(*args):
+def prod(xs):
     if in_light_mode():
-        result = 1
-        for x in args:
-            result *= x
-        return result
+        return _prod_impl(xs)
     else:
-        return _prod(*args)
+        return _prod(xs)
