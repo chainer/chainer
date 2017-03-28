@@ -1,4 +1,6 @@
 import collections
+import sys
+import warnings
 
 import numpy
 import six
@@ -457,9 +459,40 @@ class GradientMethod(Optimizer):
         self._use_cleargrads = use
 
 
+def DeprecationWarningWrapper(mod, deprecated):
+
+    deprecated = set(deprecated)
+
+    class Wrapper(object):
+
+        def __getattr__(self, attr):
+            if attr in deprecated:
+                warnings.warn(
+                    "chainer.optimizer.{0} is deprecated since v1.23.0. "
+                    "Use chainer.optimizer_hooks.{0} instead.".format(attr))
+
+            return getattr(mod, attr)
+
+        def __setattr__(self, attr, value):
+            if attr in deprecated:
+                warnings.warn(
+                    "chainer.optimizer.{0} is deprecated. since v1.23.0. "
+                    "Use chainer.optimizer_hooks.{0] instead".format(attr))
+            return setattr(mod, attr, value)
+    return Wrapper()
+
+
 #  Backward compatibility
 GradientClipping = optimizer_hooks.GradientClipping
 GradientHardClipping = optimizer_hooks.GradientHardClipping
 GradientNoise = optimizer_hooks.GradientNoise
 Lasso = optimizer_hooks.Lasso
 WeightDecay = optimizer_hooks.WeightDecay
+
+sys.modules[__name__] = DeprecationWarningWrapper(
+    sys.modules[__name__],
+    deprecated=['GradientClipping',
+                'GradientHardClipping',
+                'GradientNoise',
+                'Lasso',
+                'WeightDecay'])
