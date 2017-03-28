@@ -161,11 +161,13 @@ def _get_mocked_trainer(stop_trigger=(10, 'iteration')):
     updater.epoch = 0
     updater.epoch_detail = 0
     updater.is_new_epoch = True
+    updater.previous_epoch_detail = None
     iter_per_epoch = 10
 
     def update():
         time.sleep(0.001)
         updater.iteration += 1
+        updater.previous_epoch_detail = updater.epoch_detail
         updater.epoch = updater.iteration // iter_per_epoch
         updater.epoch_detail = updater.iteration / iter_per_epoch
         updater.is_new_epoch = updater.epoch == updater.epoch_detail
