@@ -1,4 +1,5 @@
 import unittest
+import warnings
 
 import mock
 import numpy as np
@@ -284,6 +285,36 @@ class TestGradientMethodClearGrads(unittest.TestCase):
     def test_update(self):
         self.target.cleargrads()
         self.optimizer.update()
+
+
+@testing.parameterize(
+    *testing.product(
+        {'attribute': ['GradientClipping',
+                       'GradientHardClipping',
+                       'GradientNoise',
+                       'Lasso',
+                       'WeightDecay']}))
+class TestDeprecatedOptimizerHook(unittest.TestCase):
+
+    def setUp(self):
+        self.context = warnings.catch_warnings(record=True)
+        self.warnings = self.context.__enter__()
+        warnings.filterwarnings(action='always', category=DeprecationWarning)
+
+    def tearDown(self):
+        self.context.__exit__()
+
+    def test_getattr_deprecated(self):
+        getattr(chainer.optimizer, 'GradientClipping')
+
+        self.assertEqual(len(self.warnings), 1)
+        self.assertIs(self.warnings[-1].category, DeprecationWarning)
+
+    def test_setattr_deprecated(self):
+        setattr(chainer.optimizer, 'GradientClipping', None)
+
+        self.assertEqual(len(self.warnings), 1)
+        self.assertIs(self.warnings[-1].category, DeprecationWarning)
 
 
 testing.run_module(__name__, __file__)
