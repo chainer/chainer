@@ -69,7 +69,8 @@ class Variable(object):
     Users can disable (resp. enable) this chaining behavior by calling
     :func:`~chainer.no_backprop_mode` (resp.
     :func:`~chainer.force_backprop_mode`).
-    In the former context, a variable does not create a computational graph.
+    In the former context, a variable never creates a computational graph,
+    whereas in the latter context, it is forced to create.
 
     Args:
         data (array): Initial data array.
