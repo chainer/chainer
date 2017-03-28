@@ -469,7 +469,8 @@ def DeprecationWarningWrapper(mod, deprecated):
             if attr in deprecated:
                 warnings.warn(
                     "chainer.optimizer.{0} is deprecated since v1.23.0. "
-                    "Use chainer.optimizer_hooks.{0} instead.".format(attr))
+                    "Use chainer.optimizer_hooks.{0} instead.".format(attr),
+                    DeprecationWarning)
 
             return getattr(mod, attr)
 
@@ -477,7 +478,8 @@ def DeprecationWarningWrapper(mod, deprecated):
             if attr in deprecated:
                 warnings.warn(
                     "chainer.optimizer.{0} is deprecated. since v1.23.0. "
-                    "Use chainer.optimizer_hooks.{0] instead".format(attr))
+                    "Use chainer.optimizer_hooks.{0} instead".format(attr),
+                    DeprecationWarning)
             return setattr(mod, attr, value)
     return Wrapper()
 
