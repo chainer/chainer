@@ -12,7 +12,7 @@ class Deconvolution2D(link.Link):
 
     Args:
         in_channels (int): Number of channels of input arrays. If it is
-            ``None`` or ommitted, parameter initialization will be deferred
+            ``None`` or omitted, parameter initialization will be deferred
             until the first forward data pass at which time the size will be
             determined.
         out_channels (int): Number of channels of output arrays.

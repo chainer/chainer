@@ -60,7 +60,7 @@ class StatelessLSTM(LSTMBase):
 
     Args:
         in_size (int): Dimension of input vectors. If it is ``None`` or
-            ommitted, parameter initialization will be deferred until the first
+            omitted, parameter initialization will be deferred until the first
             forward data pass at which time the size will be determined.
         out_size (int): Dimensionality of output vectors.
 
@@ -126,7 +126,7 @@ class LSTM(LSTMBase):
 
     Args:
         in_size (int): Dimension of input vectors. If it is ``None`` or
-            ommitted, parameter initialization will be deferred until the first
+            omitted, parameter initialization will be deferred until the first
             forward data pass at which time the size will be determined.
         out_size (int): Dimensionality of output vectors.
         lateral_init: A callable that takes ``numpy.ndarray`` or

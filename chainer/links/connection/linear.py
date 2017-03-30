@@ -69,7 +69,7 @@ class Linear(link.Link):
             (1, 10)
 
         3. If you want to specify other arguments other than ``out_size`` when
-            you ommitted the ``in_size`` argument, you need to give parameters
+            you omitted the ``in_size`` argument, you need to give parameters
             as keyword auguments. So the below two cases are the same.
 
             >>> l = L.Linear(5, 10, 0, True)
