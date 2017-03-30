@@ -20,13 +20,13 @@ class Accuracy(function.Function):
             t_type.dtype == numpy.int32
         )
 
-        t_ndim = t_type.ndim.eval()
+        t_ndim = type_check.eval(t_type.ndim)
         type_check.expect(
             x_type.ndim >= t_type.ndim,
             x_type.shape[0] == t_type.shape[0],
             x_type.shape[2: t_ndim + 1] == t_type.shape[1:]
         )
-        for i in six.moves.range(t_ndim + 1, x_type.ndim.eval()):
+        for i in six.moves.range(t_ndim + 1, type_check.eval(x_type.ndim)):
             type_check.expect(x_type.shape[i] == 1)
 
     def forward(self, inputs):

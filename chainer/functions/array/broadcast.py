@@ -32,7 +32,7 @@ class Broadcast(function.Function):
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() > 0)
 
-        shapes = [t.eval().shape for t in in_types]
+        shapes = [type_check.eval(t).shape for t in in_types]
         r_shapes = [s[::-1] for s in shapes]
         r_filled = six.moves.zip_longest(*r_shapes, fillvalue=1)
         for ss in r_filled:
@@ -54,11 +54,27 @@ def broadcast(*args):
     """Broadcast given variables.
 
     Args:
-        args (Variables): Variables to be broadcasted.
+        args (:class:`~chainer.Variable` or :class:`numpy.ndarray` \
+        or :class:`cupy.ndarray`):
+            Input variables to be broadcasted. Each dimension of the shapes \
+            of the input variables must have the same size.
 
     Returns:
-        tuple: Tuple of :class:`~chainer.Variable` objects which are
-        broadcasted from given arguments.
+        ~chainer.Variable: :class:`~chainer.Variable` or tuple of \
+            :class:`~chainer.Variable` objects which are broadcasted \
+            from given arguments.
+
+    .. admonition:: Example
+
+        >>> x = np.random.uniform(0, 1, (3, 2)).astype('f')
+        >>> y = F.broadcast(x)
+        >>> np.all(x == y.data)
+        True
+        >>> z = np.random.uniform(0, 1, (3, 2)).astype('f')
+        >>> y, w = F.broadcast(x, z)
+        >>> np.all(x == y.data) & np.all(z == w.data)
+        True
+
     """
     return Broadcast()(*args)
 
@@ -73,10 +89,10 @@ class BroadcastTo(function.Function):
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)
 
-        ndim = type_check.Variable(len(self._shape), 'len(shape)')
+        ndim = type_check.make_variable(len(self._shape), 'len(shape)')
         type_check.expect(in_types[0].ndim <= ndim)
 
-        shape = in_types[0].shape.eval()
+        shape = type_check.eval(in_types[0].shape)
         # check the shape in inverse order
         for i in six.moves.range(-1, -len(shape) - 1, -1):
             if shape[i] == self._shape[i] or shape[i] == 1:
@@ -106,10 +122,26 @@ def broadcast_to(x, shape):
     """Broadcast a given variable to a given shape.
 
     Args:
-        x (~chainer.Variable): Variable to be broadcasted.
-        shape (tuple of int): The shape of the output variable.
+        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`):
+            Input variable be broadcasted. A \
+            :math:`(s_1, s_2, ..., s_N)`-shaped float array.
+        shape (tuple): Tuple of :class:`int` of the shape of the \
+            output variable.
 
     Returns:
         ~chainer.Variable: Output variable broadcasted to the given shape.
+
+    .. admonition:: Example
+
+        >>> x = np.arange(0, 3)
+        >>> x
+        array([0, 1, 2])
+        >>> y = F.broadcast_to(x, (3, 3))
+        >>> y.data
+        array([[0, 1, 2],
+               [0, 1, 2],
+               [0, 1, 2]])
+
     """
     return BroadcastTo(shape)(x)

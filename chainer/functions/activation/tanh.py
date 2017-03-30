@@ -55,11 +55,24 @@ class Tanh(function.Function):
 def tanh(x):
     """Elementwise hyperbolic tangent function.
 
+     .. math:: f(x)=\\tanh(x).
+
     Args:
-        x (~chainer.Variable): Input variable.
+        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`):
+            Input variable. A :math:`(s_1, s_2, ..., s_N)`-shaped float array.
 
     Returns:
-        ~chainer.Variable: Output variable.
+        ~chainer.Variable: Output variable. A
+        :math:`(s_1, s_2, ..., s_N)`-shaped float array.
+
+    .. admonition:: Example
+
+        >>> x = np.arange(-1, 4, 2).astype('f')
+        >>> x
+        array([-1.,  1.,  3.], dtype=float32)
+        >>> F.tanh(x).data
+        array([-0.76159418,  0.76159418,  0.99505478], dtype=float32)
 
     """
     return Tanh()(x)

@@ -13,8 +13,8 @@ class Vstack(function.Function):
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() > 0)
 
-        ndim = in_types[0].ndim.eval()
-        for i in six.moves.range(1, in_types.size().eval()):
+        ndim = type_check.eval(in_types[0].ndim)
+        for i in six.moves.range(1, type_check.eval(in_types.size())):
             type_check.expect(
                 in_types[0].dtype == in_types[i].dtype,
                 in_types[0].ndim == in_types[i].ndim,

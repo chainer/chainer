@@ -99,16 +99,14 @@ class TestFunction(unittest.TestCase):
     def check_check_type_forward(self):
         self.assertEqual(self.f.check_type_forward.call_count, 1)
         ts = self.f.check_type_forward.call_args[0][0]
-        self.assertIsInstance(ts, type_check.TypeInfoTuple)
+        self.assertIsInstance(ts, type_check.LightTypeInfoTuple)
         self.assertEqual(len(ts), 2)
 
-        self.assertEqual(ts[0].name, 'in_types[0]')
-        t1 = ts[0].eval()
+        t1 = ts[0]
         self.assertEqual(t1.shape, (3,))
         self.assertEqual(t1.dtype, numpy.float32)
 
-        self.assertEqual(ts[1].name, 'in_types[1]')
-        t2 = ts[1].eval()
+        t2 = ts[1]
         self.assertEqual(t2.shape, (3,))
         self.assertEqual(t2.dtype, numpy.int32)
 

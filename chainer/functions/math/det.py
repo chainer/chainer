@@ -46,7 +46,6 @@ class BatchDet(function.Function):
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)
         a_type, = in_types
-        a_type = matmul._convert_type(a_type)
         type_check.expect(a_type.dtype.kind == 'f')
         # Only a minibatch of 2D array shapes allowed.
         type_check.expect(a_type.ndim == 3)
