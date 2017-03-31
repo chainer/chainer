@@ -91,11 +91,11 @@ class TestMLPConvolution2DCudnnCall(unittest.TestCase):
 
 
 @testing.parameterize(*testing.product({
-        'use_cudnn': ['always', 'never'],
-        'mlpconv_args': [
-            ((None, (96, 96, 96), 11), {'activation': functions.sigmoid}),
-            (((96, 96, 96), 11), {'activation': functions.sigmoid})
-        ]
+    'use_cudnn': ['always', 'never'],
+    'mlpconv_args': [
+        ((None, (96, 96, 96), 11), {'activation': functions.sigmoid}),
+        (((96, 96, 96), 11), {'activation': functions.sigmoid})
+    ]
 }))
 class TestMLPConvolution2DShapePlaceholder(unittest.TestCase):
 
