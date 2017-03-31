@@ -43,6 +43,52 @@ class DilatedConvolution2D(link.Link):
         W (~chainer.Variable): Weight parameter.
         b (~chainer.Variable): Bias parameter.
 
+    .. admonition:: Example
+
+        There are several ways to make a DilatedConvolution2D link.
+
+        Let an input vector ``x`` be:
+
+        >>> x = np.arange(1 * 3 * 10 * 10).astype('f').reshape(1, 3, 10, 10)
+
+        1. Give the first three arguments explicitly:
+
+            >>> l = L.DilatedConvolution2D(3, 7, 5)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 7, 6, 6)
+
+        2. Omit ``in_channels``:
+
+            The below two cases are the same.
+
+            >>> l = L.DilatedConvolution2D(7, 5)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 7, 6, 6)
+
+            >>> l = L.DilatedConvolution2D(None, 7, 5)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 7, 6, 6)
+
+        3. Give arguments other than the first three arguments besides omitting
+                ``in_channels``:
+
+            When you omit the first argument, you need to specify the other
+            subsequent arguments from ``stride`` as keyword auguments. So the
+            below two cases are the same.
+
+            >>> l = L.DilatedConvolution2D(None, 7, 5, 1, 0, 2)
+            >>> y = l(x)
+            >>> y.shape
+            >>> (1, 7, 2, 2)
+
+            >>> l = L.DilatedConvolution2D(7, 5, stride=1, pad=0, dilate=2)
+            >>> y = l(x)
+            >>> y.shape
+            >>> (1, 7, 2, 2)
+
     """
 
     def __init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0,

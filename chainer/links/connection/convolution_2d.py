@@ -52,7 +52,7 @@ class Convolution2D(link.Link):
 
         There are several ways to make a Convolution2D link.
 
-        Define an input vector ``x`` as:
+        Let an input vector ``x`` be:
 
         >>> x = np.arange(1 * 3 * 10 * 10).astype('f').reshape(1, 3, 10, 10)
 
@@ -84,12 +84,12 @@ class Convolution2D(link.Link):
             subsequent arguments from ``stride`` as keyword auguments. So the
             below two cases are the same.
 
-            >>> l = L.Convolution2D(7, 5, stride=1, pad=0)
+            >>> l = L.Convolution2D(None, 7, 5, 1, 0)
             >>> y = l(x)
             >>> y.shape
             (1, 7, 6, 6)
 
-            >>> l = L.Convolution2D(None, 7, 5, 1, 0)
+            >>> l = L.Convolution2D(7, 5, stride=1, pad=0)
             >>> y = l(x)
             >>> y.shape
             (1, 7, 6, 6)

@@ -68,7 +68,7 @@ class Deconvolution2D(link.Link):
 
         There are several ways to make a Deconvolution2D link.
 
-        Define an input vector ``x`` as:
+        Let an input vector ``x`` be:
 
         >>> x = np.arange(1 * 3 * 10 * 10).astype('f').reshape(1, 3, 10, 10)
 
@@ -97,7 +97,7 @@ class Deconvolution2D(link.Link):
             (1, 7, 13, 13)
 
         3. Give arguments other than the first three arguments besides omitting
-            ``in_channels``:
+                ``in_channels``:
 
             When you omit the first argument, you need to specify the other
             subsequent arguments from ``stride`` as keyword arguments. So the
