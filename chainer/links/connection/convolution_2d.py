@@ -50,22 +50,22 @@ class Convolution2D(link.Link):
 
     .. admonition:: Example
 
-        There are three ways to make a Convolution link.
+        There are several ways to make a Convolution2D link.
 
-        Define an input vector ``x`` as below,
+        Define an input vector ``x`` as:
 
         >>> x = np.arange(1 * 3 * 10 * 10).astype('f').reshape(1, 3, 10, 10)
 
-        1. Give the number of input and output channels and the kernel size
-            explicitly:
+        1. Give the first three arguments explicitly:
 
             >>> l = L.Convolution2D(3, 7, 5)
             >>> y = l(x)
             >>> y.shape
             (1, 7, 6, 6)
 
-        2. Give the number of output channels and the kernel size (ommit input
-            channels):
+        2. Omit ``in_channels``:
+
+            The below two cases are the same.
 
             >>> l = L.Convolution2D(7, 5)
             >>> y = l(x)
@@ -77,10 +77,12 @@ class Convolution2D(link.Link):
             >>> y.shape
             (1, 7, 6, 6)
 
-        3. If you want to specify other arguments other than ``out_channels``,
-            and ``ksize`` when you ommit ``in_channels``, you need to give
-            parameters as keyword auguments. So the below three cases are the
-            same.
+        3. Give arguments other than the first three arguments besides omitting
+            ``in_channels``:
+
+            When you omit the first argument, you need to specify the other
+            subsequent arguments from ``stride`` as keyword auguments. So the
+            below two cases are the same.
 
             >>> l = L.Convolution2D(7, 5, stride=1, pad=0)
             >>> y = l(x)
@@ -88,11 +90,6 @@ class Convolution2D(link.Link):
             (1, 7, 6, 6)
 
             >>> l = L.Convolution2D(None, 7, 5, 1, 0)
-            >>> y = l(x)
-            >>> y.shape
-            (1, 7, 6, 6)
-
-            >>> l = L.Convolution2D(3, 7, 5, stride=1, pad=0)
             >>> y = l(x)
             >>> y.shape
             (1, 7, 6, 6)

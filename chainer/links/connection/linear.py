@@ -41,22 +41,25 @@ class Linear(link.Link):
 
     .. admonition:: Example
 
-        There are three ways to make a Linear link.
+        There are several ways to make a Linear link.
 
-        Define an input vector ``x`` as below,
+        Define an input vector ``x`` as:
 
         >>> x = np.array([[0, 1, 2, 3, 4]], 'f')
 
-        and then,
+        1. Give the first two arguments explicitly:
 
-        1. Give both input and output sizes:
+            Those numbers are considered as the input size and the output size.
 
             >>> l = L.Linear(5, 10)
             >>> y = l(x)
             >>> y.shape
             (1, 10)
 
-        2. Give the output size only:
+        2. Omit ``in_size`` (give the output size only as the first argument):
+
+            In this case, the size of second axis of ``x`` is used as the
+            input size. So the below two cases are the same.
 
             >>> l = L.Linear(10)
             >>> y = l(x)
@@ -68,16 +71,19 @@ class Linear(link.Link):
             >>> y.shape
             (1, 10)
 
-        3. If you want to specify other arguments other than ``out_size`` when
-            you omitted the ``in_size`` argument, you need to give parameters
-            as keyword auguments. So the below two cases are the same.
+        3. Give arguments other than the first three arguments besides omitting
+                ``in_channels``:
 
-            >>> l = L.Linear(5, 10, 0, True)
+            When you omit the first argument, you need to specify the other
+            subsequent arguments from ``bias`` as keyword arguments. So the
+            below two cases are the same.
+
+            >>> l = L.Linear(None, 10, 0, False)
             >>> y = l(x)
             >>> y.shape
             (1, 10)
 
-            >>> l = L.Linear(10, bias=2, nobias=True)
+            >>> l = L.Linear(10, bias=0, nobias=False)
             >>> y = l(x)
             >>> y.shape
             (1, 10)
@@ -87,9 +93,9 @@ class Linear(link.Link):
     def __init__(self, in_size, out_size=None, bias=0, nobias=False,
                  initialW=None, initial_bias=None):
         super(Linear, self).__init__()
-        
+
         if out_size is None:
-            in_size, out_size = None, out_size
+            in_size, out_size = None, in_size
 
         # For backward compatibility
         self.initialW = initialW

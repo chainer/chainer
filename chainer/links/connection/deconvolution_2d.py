@@ -64,6 +64,55 @@ class Deconvolution2D(link.Link):
         See :func:`chainer.links.Convolution2D` for the examples of ways to
         give arguments to this link.
 
+    .. admonition:: Example
+
+        There are several ways to make a Deconvolution2D link.
+
+        Define an input vector ``x`` as:
+
+        >>> x = np.arange(1 * 3 * 10 * 10).astype('f').reshape(1, 3, 10, 10)
+
+        1. Give the first three arguments explicitly:
+
+            In this case, all the other arguments are set to the default
+            values.
+
+            >>> l = L.Deconvolution2D(3, 7, 4)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 7, 13, 13)
+
+        2. Omit ``in_channels``:
+
+            The below two cases are the same.
+
+            >>> l = L.Deconvolution2D(7, 4)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 7, 13, 13)
+
+            >>> l = L.Deconvolution2D(None, 7, 4)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 7, 13, 13)
+
+        3. Give arguments other than the first three arguments besides omitting
+            ``in_channels``:
+
+            When you omit the first argument, you need to specify the other
+            subsequent arguments from ``stride`` as keyword arguments. So the
+            below two cases are the same.
+
+            >>> l = L.Deconvolution2D(None, 7, 4, 2, 1)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 7, 20, 20)
+
+            >>> l = L.Deconvolution2D(7, 4, stride=2, pad=1)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 7, 20, 20)
+
     """
 
     def __init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0,
