@@ -17,7 +17,8 @@ from chainer.testing import attr
     ],
     [
         {'input_none': False},
-        {'input_none': True},
+        {'input_none': True, 'input_omit': True},
+        {'input_none': True, 'input_omit': False},
     ],
     [
         {'input_variable': False},
@@ -28,7 +29,10 @@ class TestLSTM(unittest.TestCase):
 
     def setUp(self):
         if self.input_none:
-            self.link = links.LSTM(self.out_size)
+            if self.input_omit:
+                self.link = links.LSTM(self.out_size)
+            else:
+                self.link = links.LSTM(None, self.out_size)
         else:
             self.link = links.LSTM(self.in_size, self.out_size)
         self.link.cleargrads()
@@ -242,7 +246,8 @@ class TestLSTMInvalidSize(unittest.TestCase):
     ],
     [
         {'input_none': False},
-        {'input_none': True},
+        {'input_none': True, 'input_omit': True},
+        {'input_none': True, 'input_omit': False},
     ],
     [
         {'input_variable': False},
@@ -253,7 +258,10 @@ class TestStatelessLSTM(unittest.TestCase):
 
     def setUp(self):
         if self.input_none:
-            self.link = links.StatelessLSTM(self.out_size)
+            if self.input_omit:
+                self.link = links.StatelessLSTM(self.out_size)
+            else:
+                self.link = links.StatelessLSTM(None, self.out_size)
         else:
             self.link = links.StatelessLSTM(self.in_size, self.out_size)
         self.link.cleargrads()
