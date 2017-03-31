@@ -88,15 +88,13 @@ class StatefulZoneoutLSTM(link.Chain):
             with cuda.get_device(self._device_id):
                 self.h = variable.Variable(
                     xp.zeros((len(x.data), self.state_size),
-                             dtype=x.data.dtype),
-                    volatile='auto')
+                             dtype=x.data.dtype))
         if self.c is None:
             xp = self.xp
             with cuda.get_device(self._device_id):
                 self.c = variable.Variable(
                     xp.zeros((len(x.data), self.state_size),
-                             dtype=x.data.dtype),
-                    volatile='auto')
+                             dtype=x.data.dtype))
 
         lstm_in = reshape.reshape(lstm_in, (len(lstm_in.data),
                                             lstm_in.data.shape[1] // 4,

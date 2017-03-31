@@ -95,8 +95,7 @@ class StatelessLSTM(LSTMBase):
             xp = self.xp
             with cuda.get_device(self._device_id):
                 c = variable.Variable(
-                    xp.zeros((x.shape[0], self.state_size), dtype=x.dtype),
-                    volatile='auto')
+                    xp.zeros((x.shape[0], self.state_size), dtype=x.dtype))
         return lstm.lstm(c, lstm_in)
 
 
@@ -245,8 +244,7 @@ class LSTM(LSTMBase):
             xp = self.xp
             with cuda.get_device(self._device_id):
                 self.c = variable.Variable(
-                    xp.zeros((batch, self.state_size), dtype=x.dtype),
-                    volatile='auto')
+                    xp.zeros((batch, self.state_size), dtype=x.dtype))
         self.c, y = lstm.lstm(self.c, lstm_in)
 
         if h_rest is None:

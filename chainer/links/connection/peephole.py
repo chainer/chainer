@@ -101,8 +101,7 @@ class StatefulPeepholeLSTM(link.Chain):
             xp = self.xp
             with cuda.get_device(self._device_id):
                 self.c = variable.Variable(
-                    xp.zeros((x.shape[0], self.state_size), dtype=x.dtype),
-                    volatile='auto')
+                    xp.zeros((x.shape[0], self.state_size), dtype=x.dtype))
         lstm_in = reshape.reshape(lstm_in, (len(lstm_in.data),
                                             lstm_in.shape[1] // 4,
                                             4))
