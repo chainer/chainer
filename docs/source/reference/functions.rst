@@ -111,6 +111,10 @@ copy
 ~~~~
 .. autofunction:: copy
 
+depth2space
+~~~~~~~~~~~
+.. autofunction:: depth2space
+
 dstack
 ~~~~~~
 .. autofunction:: dstack
@@ -139,6 +143,10 @@ hstack
 ~~~~~~
 .. autofunction:: hstack
 
+pad
+~~~
+.. autofunction:: pad
+
 permutate
 ~~~~~~~~~
 .. autofunction:: permutate
@@ -146,6 +154,10 @@ permutate
 reshape
 ~~~~~~~
 .. autofunction:: reshape
+
+resize_images
+~~~~~~~~~~~~~
+.. autofunction:: resize_images
 
 rollaxis
 ~~~~~~~~
@@ -158,6 +170,10 @@ select_item
 separate
 ~~~~~~~~
 .. autofunction:: separate
+
+space2depth
+~~~~~~~~~~~
+.. autofunction:: space2depth
 
 split_axis
 ~~~~~~~~~~
@@ -348,6 +364,10 @@ argmin
 ~~~~~~
 .. autofunction:: argmin
 
+average
+~~~~~~~
+.. autofunction:: average
+
 batch_inv
 ~~~~~~~~~
 .. autofunction:: batch_inv
@@ -383,6 +403,10 @@ cosh
 exp
 ~~~
 .. autofunction:: exp
+
+fmod
+~~~~
+.. autofunction:: fmod
 
 floor
 ~~~~~
