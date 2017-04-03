@@ -60,7 +60,9 @@ class LSTMBase(link.Chain):
             ws = [serializer('w%d' % weight_index[i], None)
                   for i in six.moves.range(4)]
             if all(w is not None for w in ws):
-                w = numpy.stack(ws, axis=1).reshape((-1, ws[0].shape[1]))
+                w = numpy.concatenate(
+                    [w[:, None, :] for w in ws], axis=1).reshape(
+                        (-1, ws[0].shape[1]))
 
                 param = self.upward.W
                 param.initialize(w.shape)
