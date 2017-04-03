@@ -19,7 +19,7 @@ build_ext = chainer_setup_build.custom_build_ext
 
 setup(
     name='chainer',
-    version='1.20.0',
+    version='1.21.0',
     description='A flexible framework of neural networks',
     author='Seiya Tokui',
     author_email='tokui@preferred.jp',
@@ -75,6 +75,7 @@ setup(
               'cupy.manipulation',
               'cupy.math',
               'cupy.padding',
+              'cupy.prof',
               'cupy.random',
               'cupy.sorting',
               'cupy.statistics',

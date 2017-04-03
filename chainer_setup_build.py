@@ -1,6 +1,8 @@
 from __future__ import print_function
 from distutils import ccompiler
+from distutils import errors
 from distutils import sysconfig
+from distutils import unixccompiler
 import os
 from os import path
 import re
@@ -21,17 +23,7 @@ MODULES = [
     {
         'name': 'cuda',
         'file': [
-            # The value of the key 'file' is a list that contains extension
-            # names of tuples of an extension name and a list of other source
-            # files required such as .cpp files and .cu files.
-            #
-            #   <extension name> | (<extension name>, list of <other source>)
-            #
-            # The extension names are interpreted as the names of Python
-            # extensions to be built as well as the names of the Cython source
-            # files with appending '.pyx' extension from which the extensions
-            # are built.
-            ('cupy.core.core', ['cupy/cuda/cupy_thrust.cu']),
+            'cupy.core.core',
             'cupy.core.flags',
             'cupy.core.internal',
             'cupy.cuda.cublas',
@@ -44,7 +36,6 @@ MODULES = [
             'cupy.cuda.nvtx',
             'cupy.cuda.function',
             'cupy.cuda.runtime',
-            ('cupy.cuda.thrust', ['cupy/cuda/cupy_thrust.cu']),
             'cupy.util',
         ],
         'include': [
@@ -54,8 +45,6 @@ MODULES = [
             'cuda_runtime.h',
             'curand.h',
             'nvToolsExt.h',
-            'thrust/device_ptr.h',
-            'thrust/sort.h',
         ],
         'libraries': [
             'cublas',
@@ -78,6 +67,41 @@ MODULES = [
             'cudnn',
         ],
         'check_method': build.check_cudnn_version,
+    },
+    {
+        'name': 'cusolver',
+        'file': [
+            'cupy.cuda.cusolver',
+        ],
+        'include': [
+            'cusolverDn.h',
+        ],
+        'libraries': [
+            'cusolver',
+        ],
+        'check_method': build.check_cusolver_version,
+    },
+    {
+        # The value of the key 'file' is a list that contains extension names
+        # or tuples of an extension name and a list of other souces files
+        # required to build the extension such as .cpp files and .cu files.
+        #
+        #   <extension name> | (<extension name>, a list of <other source>)
+        #
+        # The extension name is also interpreted as the name of the Cython
+        # source file required to build the extension with appending '.pyx'
+        # file extension.
+        'name': 'thrust',
+        'file': [
+            ('cupy.cuda.thrust', ['cupy/cuda/cupy_thrust.cu']),
+        ],
+        'include': [
+            'thrust/device_ptr.h',
+            'thrust/sort.h',
+        ],
+        'libraries': [
+            'cudart',
+        ],
     }
 ]
 
@@ -320,32 +344,43 @@ def _nvcc_gencode_options():
     return gencode_options
 
 
-def customize_compiler_for_nvcc(compiler):
-    compiler.src_extensions.append('.cu')
-    default_compiler_so = compiler.compiler_so
-    super = compiler._compile
-    nvcc_path = build.get_nvcc_path()
+class NvidiaCCompiler(unixccompiler.UnixCCompiler):
+    compiler_type = "nvidia"
+    src_extensions = ['.cpp', '.cu']
 
-    def _compile(obj, src, ext, cc_args, extra_postargs, pp_opts):
-        if os.path.splitext(src)[1] == '.cu':
-            compiler.set_executable('compiler_so', nvcc_path)
-            postargs = _nvcc_gencode_options() + ['--ptxas-options=-v',
-                                                  '--compiler-options',
-                                                  "'-fPIC'"]
-            print('NVCC options:', postargs)
+    def __init__(self, verbose=0, dry_run=0, force=0):
+        unixccompiler.UnixCCompiler.__init__(
+            self, verbose=verbose, dry_run=dry_run, force=force)
+        postargs = _nvcc_gencode_options()
+        if sys.platform == 'win32':
+            self.set_executables(compiler=['nvcc', '-O'] + postargs,
+                                 compiler_so=['nvcc', '-O'] + postargs,
+                                 compiler_cxx=['nvcc', '-O'] + postargs,
+                                 linker_so=['nvcc', '-shared'],
+                                 linker_exe=['nvcc'])
         else:
-            postargs = []
-
-        super(obj, src, ext, cc_args, postargs, pp_opts)
-        compiler.compiler_so = default_compiler_so
-
-    compiler._compile = _compile
+            postargs += ['--compiler-options=-fPIC']
+            self.set_executables(compiler=['nvcc', '-O'] + postargs,
+                                 compiler_so=['nvcc', '-O'] + postargs,
+                                 compiler_cxx=['g++', '-O'] + postargs,
+                                 linker_so=['nvcc', '-shared'],
+                                 linker_exe=['nvcc'])
 
 
 class custom_build_ext(build_ext.build_ext):
 
     """Custom `build_ext` command to include CUDA C source files."""
 
-    def build_extensions(self):
-        customize_compiler_for_nvcc(self.compiler)
-        build_ext.build_ext.build_extensions(self)
+    def run(self):
+        if build.get_nvcc_path() is not None:
+            def wrap_new_compiler(func):
+                def _wrap_new_compiler(*args, **kwargs):
+                    try:
+                        return func(*args, **kwargs)
+                    except errors.DistutilsPlatformError:
+                        return NvidiaCCompiler(
+                            None, kwargs["dry_run"], kwargs["force"])
+                return _wrap_new_compiler
+            ccompiler.new_compiler = wrap_new_compiler(ccompiler.new_compiler)
+            self.compiler = "nvidia"
+        build_ext.build_ext.run(self)
