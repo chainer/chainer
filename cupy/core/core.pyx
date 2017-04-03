@@ -712,7 +712,7 @@ cdef class ndarray:
                    'uninstalling it.')
             raise RuntimeError(msg)
 
-    cpdef argsort(self):
+    def argsort(self):
         """Return the indices that would sort an array with stable sorting.
 
         .. note::
@@ -729,9 +729,6 @@ cdef class ndarray:
 
         # TODO(takagi): Support axis argument.
         # TODO(takagi): Support kind argument.
-        cdef Py_ssize_t *idx_ptr
-        cdef void *data_ptr
-        cdef Py_ssize_t n
 
         if self.shape == ():
             msg = 'Sorting arrays with the rank of zero is not supported'
@@ -747,35 +744,16 @@ cdef class ndarray:
         assert cython.sizeof(Py_ssize_t) == 8
 
         idx_array = ndarray(self.shape, dtype=numpy.int64)
-        idx_ptr = <Py_ssize_t *>idx_array.data.ptr
-        data_ptr = <void *>self.data.ptr
-        n = <Py_ssize_t>self.shape[0]
 
         # TODO(takagi): Support float16 and bool
-        dtype = self.dtype
-        if dtype == numpy.int8:
-            thrust.argsort[common.cpy_byte](idx_ptr, data_ptr, n)
-        elif dtype == numpy.uint8:
-            thrust.argsort[common.cpy_ubyte](idx_ptr, data_ptr, n)
-        elif dtype == numpy.int16:
-            thrust.argsort[common.cpy_short](idx_ptr, data_ptr, n)
-        elif dtype == numpy.uint16:
-            thrust.argsort[common.cpy_ushort](idx_ptr, data_ptr, n)
-        elif dtype == numpy.int32:
-            thrust.argsort[common.cpy_int](idx_ptr, data_ptr, n)
-        elif dtype == numpy.uint32:
-            thrust.argsort[common.cpy_uint](idx_ptr, data_ptr, n)
-        elif dtype == numpy.int64:
-            thrust.argsort[common.cpy_long](idx_ptr, data_ptr, n)
-        elif dtype == numpy.uint64:
-            thrust.argsort[common.cpy_ulong](idx_ptr, data_ptr, n)
-        elif dtype == numpy.float32:
-            thrust.argsort[common.cpy_float](idx_ptr, data_ptr, n)
-        elif dtype == numpy.float64:
-            thrust.argsort[common.cpy_double](idx_ptr, data_ptr, n)
-        else:
-            msg = "Sorting arrays with dtype '{}' is not supported"
-            raise TypeError(msg.format(dtype))
+        try:
+            thrust.argsort(
+                self.dtype, idx_array.data.ptr, self.data.ptr, self.shape[0])
+        except NameError:
+            msg = ('Thrust is needed to use cupy.argsort. Please install CUDA '
+                   'Toolkit with Thrust then reinstall Chainer after '
+                   'uninstalling it.')
+            raise RuntimeError(msg)
 
         return idx_array
 

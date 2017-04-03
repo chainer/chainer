@@ -9,7 +9,7 @@ namespace thrust {
 
 template <typename T> void _sort(void *, ptrdiff_t);
 
-template <typename T> void argsort(ssize_t *, void *, ssize_t);
+template <typename T> void _argsort(size_t *, void *, size_t);
 
 } // namespace thrust
 
@@ -25,7 +25,7 @@ namespace thrust {
 
 template <typename T> void _sort(void *, ptrdiff_t) { return; }
 
-template <typename T> void argsort(ssize_t *, void *, ssize_t) { return; }
+template <typename T> void _argsort(size_t *, void *, size_t) { return; }
 
 } // namespace thrust
 
