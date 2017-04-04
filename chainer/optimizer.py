@@ -51,6 +51,7 @@ class Hyperparameter(object):
         parent (Hyperparameter): Parent hyperparameter.
 
     """
+
     def __init__(self, parent=None):
         self._parent = parent
 
@@ -104,7 +105,7 @@ class UpdateRule(object):
     the first update. The values of the state dictionary are automatically
     copied to the appropriate device before the update based on the data and
     grad arrays.
-    
+
     Args:
         parent_hyperparam (Hyperparameter): Hyperparameter that provides the
             default values.
@@ -117,6 +118,7 @@ class UpdateRule(object):
         t (int): Number of updates made by this update rule.
 
     """
+
     def __init__(self, parent_hyperparam=None):
         self._hooks = collections.OrderedDict()
         self._state = None
@@ -305,6 +307,7 @@ class Optimizer(object):
             method.
 
     """
+
     def setup(self, link):
         """Sets a target link and initializes the optimizer states.
 
@@ -539,6 +542,7 @@ class GradientMethod(Optimizer):
        :class:`GradientMethod` object for efficiency.
 
     """
+
     def __init__(self):
         super(GradientMethod, self).__init__()
         self.hyperparam = Hyperparameter()
