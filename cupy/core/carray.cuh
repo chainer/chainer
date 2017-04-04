@@ -251,31 +251,13 @@ public:
   }
 
   __device__ void set(ptrdiff_t i) {
-    if (ndim == 0) {
-      index_[0] = i;
-      return;
+    unsigned int a = i;
+    for (int dim = ndim; --dim > 0; ) {
+      unsigned s = shape_[dim];
+      index_[dim] = a % s;
+      a /= s;
     }
-    if (size_ > 1LL << 31) {
-      size_t a = i;
-      for (int dim = ndim; --dim > 0; ) {
-        size_t s = shape_[dim];
-        index_[dim] = (a % s);
-        a /= s;
-      }
-      if (ndim > 0) {
-        index_[0] = a;
-      }
-    } else {
-      unsigned int a = i;
-      for (int dim = ndim; --dim > 0; ) {
-        unsigned s = shape_[dim];
-        index_[dim] = (a % s);
-        a /= s;
-      }
-      if (ndim > 0) {
-        index_[0] = a;
-      }
-    }
+    index_[0] = a;
   }
 
   __device__ const int* get() const {
@@ -286,10 +268,10 @@ public:
 template <>
 class CIndexer<0> {
 private:
-  ptrdiff_t size_;
+  int size_;
 
 public:
-  __device__ int size() const {
+  __device__ ptrdiff_t size() const {
     return size_;
   }
 
