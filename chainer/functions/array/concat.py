@@ -48,7 +48,9 @@ class Concat(function.Function):
         if len(xs) == 1:
             return gy
 
-        sizes = numpy.array([shape[self.axis] for shape in self._x_shapes[:-1]]).cumsum()
+        sizes = numpy.array(
+            [shape[self.axis] for shape in self._x_shapes[:-1]]
+        ).cumsum()
         return self._xp.split(gy[0], sizes, axis=self.axis)
 
 

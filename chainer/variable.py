@@ -92,6 +92,7 @@ class VariableNode(object):
         name (str): Name of the variable node.
 
     """
+
     def __init__(self, variable, grad=None):
         self._variable = weakref.ref(variable)
         self._creator = None
