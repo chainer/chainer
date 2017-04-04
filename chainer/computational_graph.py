@@ -17,11 +17,11 @@ class DotNode(object):
     """
 
     def __init__(self, node, attribute=None):
-        assert isinstance(node, (variable.Variable, function.Function))
+        assert isinstance(node, (variable.VariableNode, function.Function))
         self.node = node
         self.id_ = id(node)
         self.attribute = {'label': node.label}
-        if isinstance(node, variable.Variable):
+        if isinstance(node, variable.VariableNode):
             self.attribute.update({'shape': 'oval'})
         else:
             self.attribute.update({'shape': 'box'})
@@ -52,7 +52,7 @@ class ComputationalGraph(object):
 
     Args:
         nodes (list): List of nodes. Each node is either
-             :class:`Variable` object or :class:`Function` object.
+             :class:`VariableNode` object or :class:`Function` object.
         edges (list): List of edges. Each edge consists of pair of nodes.
         variable_style (dict): Dot node style for variable.
         function_style (dict): Dot node style for function.
@@ -82,24 +82,25 @@ class ComputationalGraph(object):
         """
         ret = 'digraph graphname{rankdir=%s;' % self.rankdir
         for node in self.nodes:
-            assert isinstance(node, (variable.Variable, function.Function))
-            if isinstance(node, variable.Variable):
+            assert isinstance(node, (variable.VariableNode, function.Function))
+            if isinstance(node, variable.VariableNode):
                 ret += DotNode(node, self.variable_style).label
             else:
                 ret += DotNode(node, self.function_style).label
         for edge in self.edges:
             head, tail = edge
-            if (isinstance(head, variable.Variable) and
+            if (isinstance(head, variable.VariableNode) and
                     isinstance(tail, function.Function)):
                 head_attr = self.variable_style
                 tail_attr = self.function_style
             elif (isinstance(head, function.Function) and
-                  isinstance(tail, variable.Variable)):
+                  isinstance(tail, variable.VariableNode)):
                 head_attr = self.function_style
                 tail_attr = self.variable_style
             else:
                 raise TypeError(
-                    'head and tail should be the set of Variable and Function')
+                    'head and tail should be the set of VariableNode and '
+                    'Function')
             head_node = DotNode(head, head_attr)
             tail_node = DotNode(tail, tail_attr)
             ret += "%s -> %s;" % (head_node.id_, tail_node.id_)
@@ -131,7 +132,7 @@ def build_computational_graph(outputs, remove_split=True,
     Args:
         outputs(list): nodes from which the graph is constructed.
             Each element of outputs must be either :class:`Variable`
-            object or :class:`Function` object.
+            object, :class:`VariableNode object, or :class:`Function` object.
         remove_split(bool): It must be ``True``. This argument is left for
             backward compatibility.
         variable_style(dict): Dot node style for variable.
@@ -192,12 +193,14 @@ def build_computational_graph(outputs, remove_split=True,
         push_count[0] += 1
 
     for o in outputs:
+        if isinstance(o, variable.Variable):
+            o = o.node
         add_cand(o)
         nodes.add(HashableObject(o))
 
     while cands:
         _, _, cand = heapq.heappop(cands)
-        if isinstance(cand, variable.Variable):
+        if isinstance(cand, variable.VariableNode):
             creator = cand.creator
             if creator is not None and (creator, cand) not in seen_edges:
                 add_cand(creator)
