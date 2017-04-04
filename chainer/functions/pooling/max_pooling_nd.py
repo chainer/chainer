@@ -4,6 +4,7 @@ import functools
 from operator import mul
 import six
 
+import chainer
 from chainer import cuda
 from chainer.functions.pooling import max_pooling_nd_kernel
 from chainer.functions.pooling import pooling_nd
@@ -21,12 +22,10 @@ class MaxPoolingND(pooling_nd._PoolingND):
 
     """Max pooling over a set of N-dimensional planes."""
 
-    def __init__(self, ndim, ksize, stride=None, pad=0, cover_all=True,
-                 use_cudnn=True):
+    def __init__(self, ndim, ksize, stride=None, pad=0, cover_all=True):
         utils.experimental('chainer.functions.pooling.MaxPoolingND')
         super(MaxPoolingND, self).__init__(
-            ndim, ksize, stride=stride, pad=pad, cover_all=cover_all,
-            use_cudnn=use_cudnn)
+            ndim, ksize, stride=stride, pad=pad, cover_all=cover_all)
 
     def forward_cpu(self, x):
         col = conv_nd.im2col_nd_cpu(
@@ -47,7 +46,7 @@ class MaxPoolingND(pooling_nd._PoolingND):
         return y,
 
     def forward_gpu(self, x):
-        if (cuda.cudnn_enabled and self.use_cudnn and
+        if (chainer.should_use_cudnn('>=auto') and
                 pooling_nd._check_cudnn_acceptable_type(x[0].dtype)):
             # With cuDNN v3 or greater, use cuDNN implementation for inputs
             # with spatial dimensions of two or more.
@@ -100,16 +99,8 @@ class MaxPoolingND(pooling_nd._PoolingND):
         return gx,
 
     def backward_gpu(self, x, gy):
-        if (cuda.cudnn_enabled and self.use_cudnn and
-                pooling_nd._check_cudnn_acceptable_type(x[0].dtype)):
-            # With cuDNN v3 or greater, use cuDNN implementation for inputs
-            # with spatial dimensions of two or more.
-            if _cudnn_version >= 3000 and self.ndim >= 2:
-                return super(MaxPoolingND, self).backward_gpu(x, gy)
-            # With cuDNN v2, use cuDNN implementation only for inputs with
-            # spatial dimensions of two.
-            elif self.ndim == 2:
-                return super(MaxPoolingND, self).backward_gpu(x, gy)
+        if self._used_cudnn:
+            return super(MaxPoolingND, self).backward_gpu(x, gy)
 
         n, c = x[0].shape[:2]
         dims = x[0].shape[2:]
@@ -129,8 +120,7 @@ class MaxPoolingND(pooling_nd._PoolingND):
             self.ksize, self.stride, self.pad, libcudnn.CUDNN_POOLING_MAX)
 
 
-def max_pooling_nd(x, ksize, stride=None, pad=0, cover_all=True,
-                   use_cudnn=True):
+def max_pooling_nd(x, ksize, stride=None, pad=0, cover_all=True):
     """N-dimensionally spatial max pooling function.
 
     This function provides a N-dimensionally generalized version of
@@ -151,13 +141,10 @@ def max_pooling_nd(x, ksize, stride=None, pad=0, cover_all=True,
             ``pad=p`` and ``pad=(p, p, ..., p)`` are equivalent.
         cover_all (bool): If ``True``, all spatial locations are pooled into
             some output pixels. It may make the output size larger.
-        use_cudnn (bool): If ``True`` and cuDNN is enabled, then this function
-            uses cuDNN as the core implementation. cuDNN supports more than
-            one-dimensional pooling.
 
     Returns:
         ~chainer.Variable: Output variable.
 
     """
     ndim = len(x.shape[2:])
-    return MaxPoolingND(ndim, ksize, stride, pad, cover_all, use_cudnn)(x)
+    return MaxPoolingND(ndim, ksize, stride, pad, cover_all)(x)

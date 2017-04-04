@@ -32,7 +32,7 @@ class TestConvolution2DFunction(unittest.TestCase):
         kh, kw = (3, 3)
         self.stride = 2
         self.pad = 1
-        self.use_cudnn = True
+        self.use_cudnn = 'always'
         self.W = numpy.random.normal(
             0, numpy.sqrt(1. / (kh * kw * in_channels)),
             (out_channels, in_channels, kh, kw)).astype(self.W_dtype)
@@ -61,26 +61,27 @@ class TestConvolution2DFunction(unittest.TestCase):
         b_cpu = None if nobias else chainer.Variable(self.b)
         y_cpu = functions.convolution_2d(
             x_cpu, W_cpu, b_cpu, stride=self.stride, pad=self.pad,
-            use_cudnn=self.use_cudnn, cover_all=self.cover_all)
+            cover_all=self.cover_all)
 
         x_gpu = chainer.Variable(cuda.to_gpu(self.x))
         W_gpu = chainer.Variable(cuda.to_gpu(self.W))
         b_gpu = None if nobias else chainer.Variable(cuda.to_gpu(self.b))
-        y_gpu = functions.convolution_2d(
-            x_gpu, W_gpu, b_gpu, stride=self.stride, pad=self.pad,
-            use_cudnn=self.use_cudnn, cover_all=self.cover_all)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            y_gpu = functions.convolution_2d(
+                x_gpu, W_gpu, b_gpu, stride=self.stride, pad=self.pad,
+                cover_all=self.cover_all)
 
         testing.assert_allclose(
             y_cpu.data, y_gpu.data.get(), **self.check_forward_options)
 
     @attr.gpu
     def test_forward_consistency_im2col(self):
-        self.use_cudnn = False
+        self.use_cudnn = 'never'
         self.test_forward_consistency()
 
     @attr.gpu
     def test_forward_consistency_im2col_nobias(self):
-        self.use_cudnn = False
+        self.use_cudnn = 'never'
         self.test_forward_consistency(nobias=True)
 
     def check_backward(self, x_data, W_data, b_data, y_grad):
@@ -102,10 +103,11 @@ class TestConvolution2DFunction(unittest.TestCase):
         if b_data is not None:
             args = args + (b_data,)
 
-        gradient_check.check_backward(
-            convolution_2d.Convolution2DFunction(
-                self.stride, self.pad, self.use_cudnn, self.cover_all),
-            args, y_grad, **self.check_backward_options)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            gradient_check.check_backward(
+                convolution_2d.Convolution2DFunction(
+                    self.stride, self.pad, self.cover_all),
+                args, y_grad, **self.check_backward_options)
 
     @condition.retry(3)
     def test_backward_cpu(self):
@@ -130,20 +132,20 @@ class TestConvolution2DFunction(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_backward_gpu_im2col(self):
-        self.use_cudnn = False
+        self.use_cudnn = 'never'
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.W),
                             cuda.to_gpu(self.b), cuda.to_gpu(self.gy))
 
     @attr.gpu
     @condition.retry(3)
     def test_backward_gpu_im2col_nobias(self):
-        self.use_cudnn = False
+        self.use_cudnn = 'never'
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.W),
                             None, cuda.to_gpu(self.gy))
 
 
 @testing.parameterize(*testing.product({
-    'use_cudnn': [True, False],
+    'use_cudnn': ['always', 'auto', 'never'],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
 @attr.cudnn
@@ -162,32 +164,34 @@ class TestConvolution2DCudnnCall(unittest.TestCase):
             (out_channels, in_channels, kh, kw)).astype(self.dtype)
         self.gy = cuda.cupy.random.uniform(
             -1, 1, (2, 2, 2, 2)).astype(self.dtype)
-        self.expect = self.use_cudnn and (
-            cuda.cudnn.cudnn.getVersion() >= 3000 or
-            self.dtype != numpy.float16)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.expect = chainer.should_use_cudnn('>=auto') and (
+                cuda.cudnn.cudnn.getVersion() >= 3000 or
+                self.dtype != numpy.float16)
 
     def forward(self):
         x = chainer.Variable(self.x)
         W = chainer.Variable(self.W)
         return functions.convolution_2d(
-            x, W, None, stride=self.stride, pad=self.pad,
-            use_cudnn=self.use_cudnn)
+            x, W, None, stride=self.stride, pad=self.pad)
 
     def test_call_cudnn_forward(self):
-        with mock.patch('cupy.cudnn.cudnn.convolutionForward') as func:
-            self.forward()
-            self.assertEqual(func.called, self.expect)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            with mock.patch('cupy.cudnn.cudnn.convolutionForward') as func:
+                self.forward()
+                self.assertEqual(func.called, self.expect)
 
     def test_call_cudnn_backward(self):
-        y = self.forward()
-        y.grad = self.gy
-        if cuda.cudnn.cudnn.getVersion() >= 4000:
-            name = 'cupy.cudnn.cudnn.convolutionBackwardData_v3'
-        else:
-            name = 'cupy.cudnn.cudnn.convolutionBackwardData_v2'
-        with mock.patch(name) as func:
-            y.backward()
-            self.assertEqual(func.called, self.expect)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            y = self.forward()
+            y.grad = self.gy
+            if cuda.cudnn.cudnn.getVersion() >= 3000:
+                name = 'cupy.cudnn.cudnn.convolutionBackwardData_v3'
+            else:
+                name = 'cupy.cudnn.cudnn.convolutionBackwardData_v2'
+            with mock.patch(name) as func:
+                y.backward()
+                self.assertEqual(func.called, self.expect)
 
 
 @testing.parameterize(*testing.product({
@@ -224,12 +228,12 @@ class TestConvolution2DFunctionDeterministic(unittest.TestCase):
         with mock.patch(
                 'chainer.functions.connection.convolution_2d.libcudnn',
                 autospec=True) as mlibcudnn:
-            if self.cudnn_version < 4000:
+            if self.cudnn_version < 3000:
                 with self.assertRaises(ValueError):
                     x, W, b, y = self._run()
                 return
 
-            # cuDNN version >= v4 supports `deterministic` option
+            # cuDNN version >= v3 supports `deterministic` option
             x, W, b, y = self._run()
 
             # in Convolution2DFunction.backward_gpu()
@@ -243,7 +247,7 @@ class TestConvolution2DFunctionDeterministic(unittest.TestCase):
                 mlibcudnn.convolutionBackwardData_v3.call_count, 1)
 
     def test_deterministic(self):
-        if self.cudnn_version < 4000:
+        if self.cudnn_version < 3000:
             # `deterministic` option is not supported
             return
 
@@ -269,22 +273,24 @@ class TestConvolution2DFunctionDeterministic(unittest.TestCase):
         return x_data, W_data, b_data, gy_data
 
     def _run(self):
-        # verify data continuity and move to gpu
-        x_data, W_data, b_data, gy_data = \
-            tuple(cuda.to_gpu(data) for data in self._contiguous(
-                self.x, self.W, self.b, self.gy))
-        x, W, b, y = self._run_forward(x_data, W_data, b_data)
+        with chainer.using_config('use_cudnn', 'always'):
+            print(chainer.should_use_cudnn('>=auto'))
+            # verify data continuity and move to gpu
+            x_data, W_data, b_data, gy_data = \
+                tuple(cuda.to_gpu(data) for data in self._contiguous(
+                    self.x, self.W, self.b, self.gy))
+            x, W, b, y = self._run_forward(x_data, W_data, b_data)
 
-        y.grad = gy_data
-        y.backward()
-        return x, W, b, y
+            y.grad = gy_data
+            y.backward()
+            return x, W, b, y
 
     def _run_forward(self, x_data, W_data, b_data):
         x = chainer.Variable(x_data)
         W = chainer.Variable(W_data)
         b = None if self.nobias else chainer.Variable(b_data)
         y = functions.convolution_2d(
-            x, W, b, stride=self.stride, pad=self.pad, use_cudnn=True,
+            x, W, b, stride=self.stride, pad=self.pad,
             cover_all=False, deterministic=True)
         return x, W, b, y
 

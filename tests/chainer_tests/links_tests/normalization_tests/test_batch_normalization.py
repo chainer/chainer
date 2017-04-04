@@ -25,12 +25,6 @@ def _batch_normalization(expander, gamma, beta, x, mean, var, eps, test):
 
 @testing.parameterize(*(testing.product({
     'test': [True, False],
-    'volatile': ['on'],
-    'ndim': [0],
-    'dtype': [numpy.float32],
-}) + testing.product({
-    'test': [True, False],
-    'volatile': ['off'],
     'ndim': [0, 1, 2, 3],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 })))
@@ -70,7 +64,7 @@ class BatchNormalizationTest(unittest.TestCase):
 
     def check_forward(self, x_data):
         with chainer.using_config('train', not self.test):
-            x = chainer.Variable(x_data, volatile=self.volatile)
+            x = chainer.Variable(x_data)
             y = self.link(x)
             self.assertEqual(y.data.dtype, self.dtype)
 
@@ -93,8 +87,8 @@ class BatchNormalizationTest(unittest.TestCase):
 
     @attr.cudnn
     def test_forward_gpu_without_cudnn(self):
-        self.link.use_cudnn = False
-        self.test_forward_gpu()
+        with chainer.using_config('use_cudnn', 'never'):
+            self.test_forward_gpu()
 
     @attr.multi_gpu(2)
     @condition.retry(3)
@@ -122,8 +116,8 @@ class BatchNormalizationTest(unittest.TestCase):
 
     @attr.cudnn
     def test_backward_gpu_without_cudnn(self):
-        self.link.use_cudnn = False
-        self.test_backward_gpu()
+        with chainer.using_config('use_cudnn', 'never'):
+            self.test_backward_gpu()
 
 
 @testing.parameterize(
@@ -169,8 +163,8 @@ class TestPopulationStatistics(unittest.TestCase):
 
     @attr.cudnn
     def test_statistics_gpu_without_cudnn(self):
-        self.link.use_cudnn = False
-        self.test_statistics_gpu()
+        with chainer.using_config('use_cudnn', 'never'):
+            self.test_statistics_gpu()
 
     def check_statistics2(self, x, y):
         x = chainer.Variable(x)
@@ -205,8 +199,8 @@ class TestPopulationStatistics(unittest.TestCase):
 
     @attr.cudnn
     def test_statistics2_gpu_without_cudnn(self):
-        self.link.use_cudnn = False
-        self.test_statistics2_gpu()
+        with chainer.using_config('use_cudnn', 'never'):
+            self.test_statistics2_gpu()
 
 
 @testing.parameterize(*testing.product({
@@ -271,8 +265,8 @@ class BatchNormalizationTestWithoutGammaAndBeta(unittest.TestCase):
 
     @attr.cudnn
     def test_forward_gpu_without_cudnn(self):
-        self.link.use_cudnn = False
-        self.test_forward_gpu()
+        with chainer.using_config('use_cudnn', 'never'):
+            self.test_forward_gpu()
 
     def check_backward(self, x_data, y_grad):
         gradient_check.check_backward(self.link, x_data, y_grad,
@@ -292,8 +286,8 @@ class BatchNormalizationTestWithoutGammaAndBeta(unittest.TestCase):
 
     @attr.cudnn
     def test_backward_gpu_without_cudnn(self):
-        self.link.use_cudnn = False
-        self.test_backward_gpu()
+        with chainer.using_config('use_cudnn', 'never'):
+            self.test_backward_gpu()
 
 
 @testing.parameterize(*testing.product({

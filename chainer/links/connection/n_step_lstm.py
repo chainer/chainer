@@ -1,6 +1,8 @@
 import numpy
 import six
 
+import chainer
+from chainer import cuda
 from chainer.functions.array import permutate
 from chainer.functions.array import transpose_sequence
 from chainer.functions.connection import n_step_lstm as rnn
@@ -40,15 +42,13 @@ class NStepLSTM(link.ChainList):
         in_size (int): Dimensionality of input vectors.
         out_size (int): Dimensionality of hidden states and output vectors.
         dropout (float): Dropout ratio.
-        use_cudnn (bool): Use cuDNN.
 
     .. seealso::
         :func:`chainer.functions.n_step_lstm`
 
     """
 
-    def __init__(
-            self, n_layers, in_size, out_size, dropout, use_cudnn=True):
+    def __init__(self, n_layers, in_size, out_size, dropout):
         weights = []
         for i in six.moves.range(n_layers):
             weight = link.Link()
@@ -68,14 +68,16 @@ class NStepLSTM(link.ChainList):
 
         self.n_layers = n_layers
         self.dropout = dropout
-        self.use_cudnn = use_cudnn
+        self.out_size = out_size
 
     def __call__(self, hx, cx, xs):
         """Calculate all hidden states and cell states.
 
         Args:
-            hx (~chainer.Variable): Initial hidden states.
-            cx (~chainer.Variable): Initial cell states.
+            hx (~chainer.Variable or None): Initial hidden states. If ``None``
+                is specified zero-vector is used.
+            cx (~chainer.Variable or None): Initial cell states. If ``None``
+                is specified zero-vector is used.
             xs (list of ~chianer.Variable): List of input sequences.
                 Each element ``xs[i]`` is a :class:`chainer.Variable` holding
                 a sequence.
@@ -84,16 +86,31 @@ class NStepLSTM(link.ChainList):
         indices = argsort_list_descent(xs)
 
         xs = permutate_list(xs, indices, inv=False)
-        hx = permutate.permutate(hx, indices, axis=1, inv=False)
-        cx = permutate.permutate(cx, indices, axis=1, inv=False)
+        if hx is None:
+            with cuda.get_device(self._device_id):
+                hx = chainer.Variable(
+                    self.xp.zeros(
+                        (self.n_layers, len(xs), self.out_size),
+                        dtype=xs[0].dtype))
+        else:
+            hx = permutate.permutate(hx, indices, axis=1, inv=False)
+
+        if cx is None:
+            with cuda.get_device(self._device_id):
+                cx = chainer.Variable(
+                    self.xp.zeros(
+                        (self.n_layers, len(xs), self.out_size),
+                        dtype=xs[0].dtype))
+        else:
+            cx = permutate.permutate(cx, indices, axis=1, inv=False)
+
         trans_x = transpose_sequence.transpose_sequence(xs)
 
         ws = [[w.w0, w.w1, w.w2, w.w3, w.w4, w.w5, w.w6, w.w7] for w in self]
         bs = [[w.b0, w.b1, w.b2, w.b3, w.b4, w.b5, w.b6, w.b7] for w in self]
 
         hy, cy, trans_y = rnn.n_step_lstm(
-            self.n_layers, self.dropout, hx, cx, ws, bs, trans_x,
-            use_cudnn=self.use_cudnn)
+            self.n_layers, self.dropout, hx, cx, ws, bs, trans_x)
 
         hy = permutate.permutate(hy, indices, axis=1, inv=True)
         cy = permutate.permutate(cy, indices, axis=1, inv=True)

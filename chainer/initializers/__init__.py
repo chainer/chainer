@@ -9,6 +9,7 @@ from chainer.initializers import uniform  # NOQA
 # import class and function
 from chainer.initializers.constant import Constant
 from chainer.initializers.constant import Identity  # NOQA
+from chainer.initializers.constant import NaN  # NOQA
 from chainer.initializers.constant import One  # NOQA
 from chainer.initializers.constant import Zero  # NOQA
 from chainer.initializers.normal import GlorotNormal  # NOQA

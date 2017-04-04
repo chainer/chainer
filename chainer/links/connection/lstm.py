@@ -16,7 +16,7 @@ class LSTMBase(link.Chain):
 
     def __init__(self, in_size, out_size,
                  lateral_init=None, upward_init=None,
-                 bias_init=0, forget_bias_init=0):
+                 bias_init=0, forget_bias_init=1):
         super(LSTMBase, self).__init__(
             upward=linear.Linear(in_size, 4 * out_size, initialW=0),
             lateral=linear.Linear(out_size, 4 * out_size,
@@ -82,7 +82,7 @@ class StatelessLSTM(LSTMBase):
                 output of LSTM units.
 
         """
-        if self.upward.has_uninitialized_params:
+        if self.upward.W.data is None:
             in_size = x.size // x.shape[0]
             with cuda.get_device(self._device_id):
                 self.upward._initialize_params(in_size)
@@ -95,8 +95,7 @@ class StatelessLSTM(LSTMBase):
             xp = self.xp
             with cuda.get_device(self._device_id):
                 c = variable.Variable(
-                    xp.zeros((x.shape[0], self.state_size), dtype=x.dtype),
-                    volatile='auto')
+                    xp.zeros((x.shape[0], self.state_size), dtype=x.dtype))
         return lstm.lstm(c, lstm_in)
 
 
@@ -218,7 +217,7 @@ class LSTM(LSTMBase):
             ~chainer.Variable: Outputs of updated LSTM units.
 
         """
-        if self.upward.has_uninitialized_params:
+        if self.upward.W.data is None:
             with cuda.get_device(self._device_id):
                 in_size = x.size // x.shape[0]
                 self.upward._initialize_params(in_size)
@@ -245,8 +244,7 @@ class LSTM(LSTMBase):
             xp = self.xp
             with cuda.get_device(self._device_id):
                 self.c = variable.Variable(
-                    xp.zeros((batch, self.state_size), dtype=x.dtype),
-                    volatile='auto')
+                    xp.zeros((batch, self.state_size), dtype=x.dtype))
         self.c, y = lstm.lstm(self.c, lstm_in)
 
         if h_rest is None:

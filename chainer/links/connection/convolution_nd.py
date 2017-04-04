@@ -27,9 +27,6 @@ class ConvolutionND(link.Link):
             initializer instance or another value except ``None`` that
             :func:`~chainer.init_weight` helper function can take. If ``None``
             is given, this link does not use the bias vector.
-        use_cudnn (bool): If ``True``, then this link uses cuDNN if available.
-            See :func:`~chainer.functions.convolution_nd` for exact conditions
-            of cuDNN availability.
         cover_all (bool): If ``True``, all spatial locations are convoluted
             into some output pixels. It may make the output size larger.
             ``cover_all`` needs to be ``False`` if you want to use cuDNN.
@@ -48,12 +45,10 @@ class ConvolutionND(link.Link):
     """
 
     def __init__(self, ndim, in_channels, out_channels, ksize, stride=1, pad=0,
-                 initialW=None, initial_bias=None, use_cudnn=True,
-                 cover_all=False):
+                 initialW=None, initial_bias=None, cover_all=False):
         ksize = conv_nd.as_tuple(ksize, ndim)
         self.stride = stride
         self.pad = pad
-        self.use_cudnn = use_cudnn
         self.cover_all = cover_all
 
         super(ConvolutionND, self).__init__()
@@ -79,5 +74,4 @@ class ConvolutionND(link.Link):
 
         """
         return convolution_nd.convolution_nd(
-            x, self.W, self.b, self.stride, self.pad,
-            use_cudnn=self.use_cudnn, cover_all=self.cover_all)
+            x, self.W, self.b, self.stride, self.pad, cover_all=self.cover_all)

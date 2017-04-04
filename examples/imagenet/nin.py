@@ -28,7 +28,7 @@ class NIN(chainer.Chain):
         h = F.max_pooling_2d(F.relu(self.mlpconv2(h)), 3, stride=2)
         h = F.max_pooling_2d(F.relu(self.mlpconv3(h)), 3, stride=2)
         h = self.mlpconv4(F.dropout(h))
-        h = F.reshape(F.average_pooling_2d(h, 6), (x.data.shape[0], 1000))
+        h = F.reshape(F.average_pooling_2d(h, 6), (len(x), 1000))
 
         loss = F.softmax_cross_entropy(h, t)
         chainer.report({'loss': loss, 'accuracy': F.accuracy(h, t)}, self)

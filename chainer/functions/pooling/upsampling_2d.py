@@ -160,12 +160,13 @@ def upsampling_2d(
 
     .. admonition:: Example
 
-        It should be noted that you need to specify ``use_cudnn=False`` when
-        you create MaxPooling2D object because if cuDNN used for operating
-        max pooling, ``indexes`` is never created and stored in the
-        MaxPooling2D object.
+        It should be noted that you need to turn off
+        ``chainer.config.use_cudnn`` flag when you create MaxPooling2D object
+        because if cuDNN used for operating max pooling, ``indexes`` is never
+        created and stored in the MaxPooling2D object.
 
-        >>> p = F.MaxPooling2D(2, 2, use_cudnn=False)
+        >>> with chainer.using_config('use_cudnn', 'never'):
+        ...     p = F.MaxPooling2D(2, 2)
         >>> x = np.arange(1, 37).reshape(1, 1, 6, 6).astype('f')
         >>> x = chainer.Variable(x)
         >>> x.data

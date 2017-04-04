@@ -35,21 +35,16 @@ Chainer depends on these Python packages:
 * `NumPy <http://www.numpy.org/>`_ 1.9, 1.10, 1.11
 * `Six <https://pythonhosted.org/six/>`_ 1.9
 
-CUDA support
-
-* `CUDA <https://developer.nvidia.com/cuda-zone>`_ 6.5, 7.0, 7.5, 8.0
-* `filelock <https://filelock.readthedocs.org>`_
-
-cuDNN support
-
-* `cuDNN <https://developer.nvidia.com/cudnn>`_ v2, v3, v4, v5, v5.1
-
 Caffe model support
 
 * `Protocol Buffers <https://developers.google.com/protocol-buffers/>`_
 * protobuf>=3.0.0 is required for Py3
 
-All these libraries are automatically installed with ``pip`` or ``setup.py``.
+All of the above libraries are automatically installed with ``pip`` or ``setup.py``.
+
+CUDA/cuDNN support
+
+* `CuPy <http://docs.cupy.chainer.org/>`_
 
 Image dataset is optional
 
@@ -65,7 +60,9 @@ Install Chainer via pip
 
 We recommend to install Chainer via pip::
 
-  $ pip install chainer
+  $ pip install chainer --pre
+
+Note that ``--pre`` option is required to install pre-releases of v2.
 
 
 Install Chainer from source
@@ -86,75 +83,25 @@ When an error occurs...
 Use ``-vvvv`` option with ``pip`` command.
 That shows all logs of installation. It may helps you::
 
-  $ pip install chainer -vvvv
+  $ pip install chainer --pre -vvvv
 
 
 .. _install_cuda:
 
-Install Chainer with CUDA
+Enable CUDA/cuDNN support
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You need to install CUDA Toolkit before installing Chainer.
-If you have CUDA in a default directory or set ``CUDA_PATH`` correctly, Chainer installer finds CUDA automatically::
+In order to enable CUDA support, you have to install `CuPy <https://docs.cupy.chainer.org/>`_ manually.
+If you also want to use cuDNN, you have to install CuPy with cuDNN support.
+See `CuPy's installation guide <http://docs.cupy.chainer.org/en/latest/install.html>`_ to install CuPy.
+Once CuPy is correctly set up, Chainer will automatically enable CUDA support.
 
-  $ pip install chainer
+You can refer to the following flags to confirm if CUDA/cuDNN support is actually available.
 
-
-.. note::
-
-   Chainer installer looks up ``CUDA_PATH`` environment variable first.
-   If it is empty, the installer looks for ``nvcc`` command from ``PATH`` environment variable and use its parent directory as the root directory of CUDA installation.
-   If ``nvcc`` command is also not found, the installer tries to use the default directory for Ubuntu ``/usr/local/cuda``.
-
-
-If you installed CUDA into a non-default directory, you need to specify the directory with ``CUDA_PATH`` environment variable::
-
-  $ CUDA_PATH=/opt/nvidia/cuda pip install chainer
-
-
-.. warning::
-
-   If you want to use ``sudo`` to install Chainer, note that ``sudo`` command initializes all environment variables.
-   Please specify ``CUDA_PATH`` environment variable inside ``sudo`` like this::
-
-      $ sudo CUDA_PATH=/opt/nvidia/cuda pip install chainer
-
-
-.. _install_cudnn:
-
-Install Chainer with CUDA and cuDNN
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-cuDNN is a library for Deep Neural Networks that NVIDIA provides.
-Chainer can use cuDNN.
-If you want to enable cuDNN, install cuDNN and CUDA before installing Chainer.
-We recommend you to install cuDNN to CUDA directory.
-For example if you uses Ubuntu Linux, copy ``.h`` files to ``include`` directory and ``.so`` files to ``lib64`` directory::
-
-  $ cp /path/to/cudnn.h $CUDA_PATH/include
-  $ cp /path/to/libcudnn.so* $CUDA_PATH/lib64
-
-The destination directories depend on your environment.
-
-If you want to use cuDNN installed in other directory, please use ``CFLAGS``, ``LDFLAGS`` and ``LD_LIBRARY_PATH`` environment variables before installing Chainer::
-
-  export CFLAGS=-I/path/to/cudnn/include
-  export LDFLAGS=-L/path/to/cudnn/lib
-  export LD_LIBRARY_PATH=/path/to/cudnn/lib:$LD_LIBRARY_PATH
-
-
-Install Chainer for developers
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Chainer uses Cython (>=0.24).
-Developers need to use Cython to regenerate C++ sources from ``pyx`` files.
-We recommend to use ``pip`` with ``-e`` option for editable mode::
-
-  $ pip install -U cython
-  $ cd /path/to/chainer/source
-  $ pip install -e .
-
-Users need not to install Cython as a distribution package of Chainer only contains generated sources.
+``chainer.cuda.available``
+   ``True`` iff Chainer successfully imports :mod:`cupy`.
+``chainer.cuda.cudnn_enabled``
+   ``True`` iff cuDNN support is available.
 
 
 Support image dataset
@@ -213,10 +160,7 @@ If you want to reinstall Chainer, please uninstall Chainer and then install it.
 We recommend to use ``--no-cache-dir`` option as ``pip`` sometimes uses cache::
 
   $ pip uninstall chainer
-  $ pip install chainer --no-cache-dir
-
-When you install Chainer without CUDA, and after that you want to use CUDA, please reinstall Chainer.
-You need to reinstall Chainer when you want to upgrade CUDA.
+  $ pip install chainer --pre --no-cache-dir
 
 
 Run Chainer with Docker
@@ -263,8 +207,9 @@ See :ref:`install_error`.
 Examples says "cuDNN is not enabled"
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You failed to build Chainer with cuDNN.
+You failed to build CuPy with cuDNN.
 If you don't need cuDNN, ignore this message.
-Otherwise, retry to install Chainer with cuDNN.
+Otherwise, retry to install CuPy with cuDNN.
 ``-vvvv`` option helps you.
-See :ref:`install_cudnn`.
+There is no need of re-installing Chainer itself.
+See `CuPy's installation guide <http://docs.cupy.chainer.org/en/latest/install.html>`_ for details.

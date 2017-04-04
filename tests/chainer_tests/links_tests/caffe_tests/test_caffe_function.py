@@ -74,6 +74,7 @@ class TestCaffeFunctionBaseMock(TestCaffeFunctionBase):
 
         ret_value = outs[0] if len(outs) == 1 else tuple(outs)
         m = mock.MagicMock(name=self.func_name, return_value=ret_value)
+        print(self.func_name, m.return_value)
         self.patch = mock.patch(self.func_name, m)
         self.mock = self.patch.start()
 
@@ -1086,9 +1087,11 @@ class TestSoftmaxCaffeEngine(TestCaffeFunctionBaseMock):
     }
 
     def test_softmax_caffe_engine(self):
+        # TODO(beam2d): Check if the mock is called with
+        # chainer.config.use_cudnn == False
         self.init_func()
         self.call(['x'], ['y'])
-        self.mock.assert_called_once_with(self.inputs[0], use_cudnn=False)
+        self.mock.assert_called_once_with(self.inputs[0])
 
 
 class TestSoftmaxcuDnnEngine(TestCaffeFunctionBaseMock):
@@ -1112,9 +1115,11 @@ class TestSoftmaxcuDnnEngine(TestCaffeFunctionBaseMock):
     }
 
     def test_softmax_cuDNN_engine(self):
+        # TODO(beam2d): Check if the mock is called with
+        # chainer.config.use_cudnn == True
         self.init_func()
         self.call(['x'], ['y'])
-        self.mock.assert_called_once_with(self.inputs[0], use_cudnn=True)
+        self.mock.assert_called_once_with(self.inputs[0])
 
 
 class TestSoftmaxInvalidAxis(TestCaffeFunctionBase):

@@ -1,5 +1,6 @@
 import numpy
 
+import chainer
 from chainer import cuda
 from chainer import function
 from chainer.utils import type_check
@@ -7,7 +8,6 @@ from chainer.utils import type_check
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
     libcudnn = cudnn.cudnn
-    _cudnn_version = libcudnn.getVersion()
     _algorithm = libcudnn.CUDNN_SOFTMAX_LOG
     _mode = libcudnn.CUDNN_SOFTMAX_MODE_CHANNEL
 
@@ -23,10 +23,10 @@ def logsumexp(x):
     return m
 
 
-def _log_softmax(x, use_cudnn):
-    if cuda.cudnn_enabled and use_cudnn and _cudnn_version >= 3000:
+def _log_softmax(x):
+    if chainer.should_use_cudnn('>=auto', 3000):
         xp = cuda.get_array_module(x)
-        if xp != numpy:
+        if xp is not numpy:
             oz_dtype = 'd' if x.dtype == 'd' else 'f'
             one = numpy.array(1, dtype=oz_dtype).ctypes
             zero = numpy.array(0, dtype=oz_dtype).ctypes
@@ -48,8 +48,7 @@ class LogSoftmax(function.Function):
 
     """Log-softmax activation function."""
 
-    def __init__(self, use_cudnn=True):
-        self.use_cudnn = use_cudnn
+    def __init__(self):
         self.y = None
 
     def check_type_forward(self, in_types):
@@ -62,13 +61,12 @@ class LogSoftmax(function.Function):
         )
 
     def forward(self, xs):
-        self.y = _log_softmax(xs[0], self.use_cudnn)
+        self.y = _log_softmax(xs[0])
         return self.y,
 
     def backward(self, x, gy):
         xp = cuda.get_array_module(*x)
-        if (xp != numpy and cuda.cudnn_enabled and self.use_cudnn and
-                _cudnn_version >= 3000):
+        if xp is not numpy and chainer.should_use_cudnn('>=auto', 3000):
             oz_dtype = 'd' if x[0].dtype == 'd' else 'f'
             one = numpy.array(1, dtype=oz_dtype).ctypes
             zero = numpy.array(0, dtype=oz_dtype).ctypes
@@ -86,7 +84,7 @@ class LogSoftmax(function.Function):
         return gx,
 
 
-def log_softmax(x, use_cudnn=True):
+def log_softmax(x):
     """Channelwise log-softmax function.
 
     This function computes its logarithm of softmax along the second axis. Let
@@ -109,9 +107,6 @@ def log_softmax(x, use_cudnn=True):
 
     Args:
         x (~chainer.Variable): Input variable.
-        use_cudnn (bool): If ``True``, cuDNN is enabled and cuDNN ver. 3 or
-            later is used, then this function uses cuDNN as the core
-            implementation.
 
     Returns:
         ~chainer.Variable: Output variable.
@@ -119,4 +114,4 @@ def log_softmax(x, use_cudnn=True):
     .. seealso:: :func:`~chainer.functions.softmax`
 
     """
-    return LogSoftmax(use_cudnn)(x)
+    return LogSoftmax()(x)

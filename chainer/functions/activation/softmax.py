@@ -1,5 +1,6 @@
 import numpy
 
+import chainer
 from chainer import cuda
 from chainer import function
 from chainer.utils import type_check
@@ -16,9 +17,6 @@ class Softmax(function.Function):
 
     """Softmax activation function."""
 
-    def __init__(self, use_cudnn=True):
-        self.use_cudnn = use_cudnn
-
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)
         x_type, = in_types
@@ -30,7 +28,7 @@ class Softmax(function.Function):
 
     def forward(self, x):
         xp = cuda.get_array_module(*x)
-        if (xp != numpy and cuda.cudnn_enabled and self.use_cudnn and
+        if (xp is not numpy and chainer.should_use_cudnn('>=auto') and
                 (_cudnn_version >= 3000 or x[0].dtype != numpy.float16)):
             oz_dtype = 'd' if x[0].dtype == 'd' else 'f'
             one = numpy.array(1, dtype=oz_dtype).ctypes
@@ -52,7 +50,7 @@ class Softmax(function.Function):
 
     def backward(self, x, gy):
         xp = cuda.get_array_module(*x)
-        if (xp != numpy and cuda.cudnn_enabled and self.use_cudnn and
+        if (xp is not numpy and chainer.should_use_cudnn('>=auto') and
                 (_cudnn_version >= 3000 or x[0].dtype != numpy.float16)):
             oz_dtype = 'd' if x[0].dtype == 'd' else 'f'
             one = numpy.array(1, dtype=oz_dtype).ctypes
@@ -73,7 +71,7 @@ class Softmax(function.Function):
         return gx,
 
 
-def softmax(x, use_cudnn=True):
+def softmax(x):
     """Channelwise softmax function.
 
     This function computes its softmax along the second axis. Let
@@ -85,11 +83,9 @@ def softmax(x, use_cudnn=True):
 
     Args:
         x (~chainer.Variable): Input variable.
-        use_cudnn (bool): If ``True`` and cuDNN is enabled, then this function
-            uses cuDNN as the core implementation.
 
     Returns:
         ~chainer.Variable: Output variable.
 
     """
-    return Softmax(use_cudnn)(x)
+    return Softmax()(x)

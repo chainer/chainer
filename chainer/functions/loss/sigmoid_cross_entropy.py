@@ -13,8 +13,7 @@ class SigmoidCrossEntropy(function.Function):
 
     ignore_label = -1
 
-    def __init__(self, use_cudnn=True, normalize=True):
-        self.use_cudnn = use_cudnn
+    def __init__(self, normalize=True):
         self.normalize = normalize
 
     def check_type_forward(self, in_types):
@@ -46,14 +45,14 @@ class SigmoidCrossEntropy(function.Function):
         xp = cuda.get_array_module(*inputs)
         x, t = inputs
         gloss = grad_outputs[0]
-        y, = sigmoid.Sigmoid(self.use_cudnn).forward((x,))
+        y, = sigmoid.Sigmoid().forward((x,))
         gx = xp.divide(
             gloss * self.ignore_mask * (y - t), self.count,
             dtype=y.dtype)
         return gx, None
 
 
-def sigmoid_cross_entropy(x, t, use_cudnn=True, normalize=True):
+def sigmoid_cross_entropy(x, t, normalize=True):
     """Computes cross entropy loss for pre-sigmoid activations.
 
     Args:
@@ -77,4 +76,4 @@ def sigmoid_cross_entropy(x, t, use_cudnn=True, normalize=True):
        This function is differentiable only by ``x``.
 
     """
-    return SigmoidCrossEntropy(use_cudnn, normalize)(x, t)
+    return SigmoidCrossEntropy(normalize)(x, t)

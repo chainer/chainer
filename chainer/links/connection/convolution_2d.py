@@ -1,4 +1,3 @@
-from chainer import cuda
 from chainer.functions.connection import convolution_2d
 from chainer import initializers
 from chainer import link
@@ -24,7 +23,6 @@ class Convolution2D(link.Link):
             ``pad=p`` and ``pad=(p, p)`` are equivalent.
         bias (float): Initial bias value.
         nobias (bool): If ``True``, then this link does not use the bias term.
-        use_cudnn (bool): If ``True``, then this link uses cuDNN if available.
         initialW (4-D array): Initial weight value. If ``None``, then this
             function uses the default initializer to initialize
             the weight tensor.
@@ -51,24 +49,21 @@ class Convolution2D(link.Link):
     """
 
     def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
-                 bias=0, nobias=False, use_cudnn=True,
+                 bias=0, nobias=False,
                  initialW=None, initial_bias=None, deterministic=False):
         super(Convolution2D, self).__init__()
         self.ksize = ksize
         self.stride = _pair(stride)
         self.pad = _pair(pad)
-        self.use_cudnn = use_cudnn
         self.out_channels = out_channels
         self.deterministic = deterministic
 
         # For backward compatibility
         self.initialW = initialW
 
-        self._W_initializer = initializers._get_initializer(initialW)
-
-        if in_channels is None:
-            self.add_uninitialized_param('W')
-        else:
+        self.add_param('W', initializer=initializers._get_initializer(
+            initialW))
+        if in_channels is not None:
             self._initialize_params(in_channels)
 
         if nobias:
@@ -82,7 +77,7 @@ class Convolution2D(link.Link):
     def _initialize_params(self, in_channels):
         kh, kw = _pair(self.ksize)
         W_shape = (self.out_channels, in_channels, kh, kw)
-        self.add_param('W', W_shape, initializer=self._W_initializer)
+        self.W.initialize(W_shape)
 
     def __call__(self, x):
         """Applies the convolution layer.
@@ -94,11 +89,10 @@ class Convolution2D(link.Link):
             ~chainer.Variable: Output of the convolution.
 
         """
-        if self.has_uninitialized_params:
-            with cuda.get_device(self._device_id):
-                self._initialize_params(x.shape[1])
+        if self.W.data is None:
+            self._initialize_params(x.shape[1])
         return convolution_2d.convolution_2d(
-            x, self.W, self.b, self.stride, self.pad, self.use_cudnn,
+            x, self.W, self.b, self.stride, self.pad,
             deterministic=self.deterministic)
 
 

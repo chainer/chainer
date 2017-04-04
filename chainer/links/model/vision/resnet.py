@@ -1,5 +1,5 @@
 from __future__ import print_function
-from collections import OrderedDict
+import collections
 import os
 
 import numpy
@@ -12,7 +12,7 @@ except ImportError as e:
 
 from chainer.dataset.convert import concat_examples
 from chainer.dataset import download
-from chainer import flag
+from chainer import function
 from chainer.functions.activation.relu import relu
 from chainer.functions.activation.softmax import softmax
 from chainer.functions.array.reshape import reshape
@@ -94,7 +94,7 @@ class ResNet50Layers(link.Chain):
                 'ResNet-50-model.npz', 'ResNet-50-model.caffemodel', self)
         elif pretrained_model:
             npz.load_npz(pretrained_model, self)
-        self.functions = OrderedDict([
+        self.functions = collections.OrderedDict([
             ('conv1', [self.conv1, self.bn1, relu]),
             ('pool1', [lambda x: max_pooling_2d(x, ksize=3, stride=2)]),
             ('res2', [self.res2]),
@@ -154,8 +154,7 @@ class ResNet50Layers(link.Chain):
                 target_layers.remove(key)
         return activations
 
-    def extract(self, images, layers=['pool5'], size=(224, 224),
-                volatile=flag.OFF):
+    def extract(self, images, layers=['pool5'], size=(224, 224)):
         """Extracts all the feature maps of given images.
 
         The difference of directly executing ``__call__`` is that
@@ -171,7 +170,6 @@ class ResNet50Layers(link.Chain):
                 an input of CNN. All the given images are not resized
                 if this argument is ``None``, but the resolutions of
                 all the images should be the same.
-            volatile (~chainer.Flag): Volatility flag used for input variables.
 
         Returns:
             Dictionary of ~chainer.Variable: A directory in which
@@ -181,7 +179,7 @@ class ResNet50Layers(link.Chain):
         """
 
         x = concat_examples([prepare(img, size=size) for img in images])
-        x = Variable(self.xp.asarray(x), volatile=volatile)
+        x = Variable(self.xp.asarray(x))
         return self(x, layers=layers)
 
     def predict(self, images, oversample=True):
@@ -204,14 +202,15 @@ class ResNet50Layers(link.Chain):
             x = imgproc.oversample(x, crop_dims=(224, 224))
         else:
             x = x[:, :, 16:240, 16:240]
-        # Set volatile option to ON to reduce memory consumption
-        x = Variable(self.xp.asarray(x), volatile=flag.ON)
-        y = self(x, layers=['prob'])['prob']
-        if oversample:
-            n = y.data.shape[0] // 10
-            y_shape = y.data.shape[1:]
-            y = reshape(y, (n, 10) + y_shape)
-            y = sum(y, axis=1) / 10
+        # Use no_backprop_mode to reduce memory consumption
+        with function.no_backprop_mode():
+            x = Variable(self.xp.asarray(x))
+            y = self(x, layers=['prob'])['prob']
+            if oversample:
+                n = y.data.shape[0] // 10
+                y_shape = y.data.shape[1:]
+                y = reshape(y, (n, 10) + y_shape)
+                y = sum(y, axis=1) / 10
         return y
 
 

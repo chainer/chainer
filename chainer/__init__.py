@@ -9,7 +9,6 @@ from chainer import configuration  # NOQA
 from chainer import cuda  # NOQA
 from chainer import dataset  # NOQA
 from chainer import datasets  # NOQA
-from chainer import flag  # NOQA
 from chainer import function  # NOQA
 from chainer import functions  # NOQA
 from chainer import initializer  # NOQA
@@ -30,10 +29,6 @@ from chainer import variable  # NOQA
 from chainer.configuration import config  # NOQA
 from chainer.configuration import global_config  # NOQA
 from chainer.configuration import using_config  # NOQA
-from chainer.flag import AUTO  # NOQA
-from chainer.flag import Flag  # NOQA
-from chainer.flag import OFF  # NOQA
-from chainer.flag import ON  # NOQA
 from chainer.function import force_backprop_mode  # NOQA
 from chainer.function import Function  # NOQA
 from chainer.function import no_backprop_mode  # NOQA
@@ -86,6 +81,50 @@ global_config.debug = bool(int(os.environ.get('CHAINER_DEBUG', '0')))
 global_config.enable_backprop = True
 global_config.train = True
 global_config.type_check = bool(int(os.environ.get('CHAINER_TYPE_CHECK', '1')))
+global_config.use_cudnn = os.environ.get('CHAINER_USE_CUDNN', 'auto')
+
+
+_SHOULD_USE_CUDNN = {
+    '==always': {'always': True, 'auto': False, 'never': False},
+    '>=auto':   {'always': True, 'auto': True,  'never': False},
+}
+
+
+_cudnn_version = cuda.cudnn.cudnn.getVersion() if cuda.cudnn_enabled else 1
+
+
+def should_use_cudnn(level, lowest_version=0):
+    """Determines if we should use cuDNN.
+
+    This function checks ``chainer.config.use_cudnn``,
+    ``chainer.cuda.cudnn_enabled``, and the cuDNN version. Note that
+    ``cudnn_enabled`` flag is fixed at loading of :mod:`chainer` module.
+
+    Args:
+        level (str): cuDNN use level. It must be either ``'==always'`` or
+            ``'>=auto'``. ``'==always'`` indicates that the ``use_cudnn``
+            config must be ``'always'`` to use cuDNN.
+        lowest_version (int): Required lowest cuDNN version. It must be
+            non-negative.
+
+    Returns:
+        bool: ``True`` if the caller should use cuDNN.
+
+    """
+    if _cudnn_version < lowest_version:
+        return False
+
+    if level not in _SHOULD_USE_CUDNN:
+        raise ValueError('invalid cuDNN use level: %s '
+                         '(must be either of "==always" or ">=auto")' %
+                         repr(level))
+    flags = _SHOULD_USE_CUDNN[level]
+
+    if config.use_cudnn not in flags:
+        raise ValueError('invalid use_cudnn configuration: %s '
+                         '(must be either of "always", "auto", or "never")' %
+                         repr(config.use_cudnn))
+    return flags[config.use_cudnn]
 
 
 def is_debug():

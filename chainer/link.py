@@ -7,7 +7,6 @@ import six
 
 from chainer import cuda
 from chainer import initializers
-import chainer.serializer
 from chainer import variable
 
 
@@ -124,7 +123,6 @@ class Link(object):
     def __init__(self, **params):
         self._params = []
         self._persistent = []
-        self._uninitialized_params = {}
         self._cpu = True
         self._device_id = None
         self.name = None
@@ -143,31 +141,37 @@ class Link(object):
         """
         return numpy if self._cpu else cuda.cupy
 
-    def add_param(self, name, shape, dtype=numpy.float32, initializer=None):
+    def add_param(self, name, shape=None, dtype=numpy.float32,
+                  initializer=None):
         """Registers a parameter to the link.
 
         The registered parameter is saved and loaded on serialization and
         deserialization, and involved in the optimization. The data and
         gradient of the variable are initialized by NaN arrays.
         If ``initializer`` is not ``None``, the data is initialized by
-        ``initializer``.
+        ``initializer``. The initializer can be an array, in which case the
+        parameter array is directly initialized by it.
 
-        If the supplied ``name`` argument corresponds to an uninitialized
-        parameter (that is, one that was added with the
-        :meth:`add_uninitialized_param` method), ``name`` will be removed
-        from the set of uninitialized parameters.
+        If ``shape`` is None and the initializer is not an array, this method
+        does not initialize the data and gradient arrays of the parameter
+        variable. They should be initialized by calling the
+        :meth:`chainer.Variable.initialize` method before using the parameter
+        in the forward computation. The shape can be specified at the
+        initialization.
 
         The parameter is set to an attribute of the link with the given name.
 
         Args:
             name (str): Name of the parameter. This name is also used as the
-                attribute name. Any uninitialized parameters with the same
-                name will be removed.
-            shape (int or tuple of ints): Shape of the parameter array.
+                attribute name.
+            shape (int or tuple of ints): Shape of the parameter array. If it
+                is omitted, the parameter variable is left uninitialized.
             dtype: Data type of the parameter array.
-            initializer(chainer.initializer.Initializer): If it is not
-                ``None``, the data is initialized with the given initializer.
-                Note that in this case ``dtype`` argument is ignored.
+            initializer: If it is not ``None``, the data is initialized with
+                the given initializer. If it is an array, the data is directly
+                initialized by it. If it is callable, it is used as a weight
+                initializer. Note that in these cases, ``dtype`` argument is
+                ignored.
 
         """
         d = self.__dict__
@@ -176,70 +180,21 @@ class Link(object):
                 'cannot register a new parameter %s: attribute exists'
                 % name)
         if initializer is None:
-            data = self.xp.full(shape, numpy.nan, dtype=dtype)
+            initializer = initializers.NaN(dtype)
+        if shape is None:
+            if callable(initializer):
+                # uninitialized parameter
+                var = variable.Variable(name=name, initializer=initializer)
+            else:
+                # initialize parameter by the initial array
+                var = variable.Variable(initializer, name=name)
         else:
             data = initializers.generate_array(initializer, shape, self.xp)
-        u = self._uninitialized_params.get(name)
-        if u is None:
             grad = self.xp.full_like(data, numpy.nan)
-        else:
-            if u._cleared:
-                grad = None
-            elif u._zeroed:
-                grad = self.xp.zeros_like(data)
-            else:
-                grad = self.xp.full_like(data, numpy.nan)
-        var = variable.Variable(data, volatile='auto', name=name)
-        var.grad = grad
+            var = variable.Variable(data, name=name, grad=grad)
+
         self._params.append(name)
         d[name] = var
-        if name in self._uninitialized_params:
-            del self._uninitialized_params[name]
-
-    def add_uninitialized_param(self, name):
-        """Registers an uninitialized parameter to the link.
-
-        An uninitialized parameter is defined as a parameter that has a name
-        but that does not yet have a shape. If the shape of a parameter
-        depends on the shape of the inputs to the ``__call__`` operator,
-        it can be useful to defer initialization (that is, setting the shape)
-        until the first forward call of the link. Such parameters are
-        intended to be defined as uninitialized parameters in the initializer
-        and then initialized during the first forward call.
-
-        An uninitialized parameter is intended to be registered to a link by
-        calling this method in the initializer method. Then, during the
-        first forward call, the shape of the parameter will be determined
-        from the size of the inputs and the parameter must be initialized by
-        calling the :meth:`add_param` method.
-
-        Args:
-            name: (str): Name of the uninitialized parameter.
-
-        """
-        class uninitialized_param(object):
-
-            def __init__(self):
-                self._cleared = False
-                self._zeroed = False
-
-        d = self.__dict__
-        if (name in self._uninitialized_params) or (name in d):
-            raise AttributeError(
-                'cannot register a new uninitialized parameter %s: exists'
-                % name)
-        self._uninitialized_params[name] = uninitialized_param()
-
-    @property
-    def has_uninitialized_params(self):
-        """Check if the link has uninitialized parameters.
-
-        Returns:
-            bool: ``True`` if the link has any uninitialized parameters.
-            Otherwise returns ``False``.
-
-        """
-        return len(self._uninitialized_params) > 0
 
     def add_persistent(self, name, value):
         """Registers a persistent value to the link.
@@ -339,8 +294,12 @@ class Link(object):
         self._cpu = False
         return self
 
-    def params(self):
+    def params(self, include_uninit=True):
         """Returns a generator of all parameters under the link hierarchy.
+
+        Args:
+            include_uninit (bool): If ``True``, it also generates uninitialized
+                parameters.
 
         Returns:
             A generator object that generates all parameters.
@@ -348,10 +307,15 @@ class Link(object):
         """
         d = self.__dict__
         for name in self._params:
-            yield d[name]
+            if include_uninit or d[name].data is not None:
+                yield d[name]
 
-    def namedparams(self):
+    def namedparams(self, include_uninit=True):
         """Returns a generator of all (path, param) pairs under the hierarchy.
+
+        Args:
+            include_uninit (bool): If ``True``, it also generates uninitialized
+                parameters.
 
         Returns:
             A generator object that generates all (path, parameter) pairs. The
@@ -360,7 +324,8 @@ class Link(object):
         """
         d = self.__dict__
         for name in self._params:
-            yield '/' + name, d[name]
+            if include_uninit or d[name].data is not None:
+                yield '/' + name, d[name]
 
     def links(self, skipself=False):
         """Returns a generator of all links under the hierarchy.
@@ -415,12 +380,6 @@ class Link(object):
         dst = self.__dict__
         for name in self._params:
             dst[name].copydata(src[name])
-        # tuple() here is needed to avoid conflicts with add_param
-        for name in tuple(self._uninitialized_params):
-            if name in src:
-                src_param = src[name]
-                self.add_param(name, src_param.shape, src_param.dtype)
-                dst[name].copydata(src_param)
 
     def cleargrads(self):
         """Clears all gradient arrays.
@@ -431,9 +390,6 @@ class Link(object):
         """
         for param in self.params():
             param.cleargrad()
-        for link in self.links():
-            for param in link._uninitialized_params.values():
-                param._cleared = True
 
     def zerograds(self):
         """Initializes all gradient arrays by zero.
@@ -450,9 +406,6 @@ class Link(object):
             DeprecationWarning)
         for param in self.params():
             param.zerograd()
-        for link in self.links():
-            for param in link._uninitialized_params.values():
-                param._zeroed = True
 
     def addgrads(self, link):
         """Accumulates gradient values from given link.
@@ -479,22 +432,17 @@ class Link(object):
         """
         d = self.__dict__
         for name in self._params:
-            serializer(name, d[name].data)
+            param = d[name]
+            data = serializer(name, param.data)
+            if param.data is None and data is not None:
+                # Initialize the variable here
+                param.initialize(data.shape)
+                if isinstance(param.data, numpy.ndarray):
+                    numpy.copyto(param.data, data)
+                else:
+                    param.data.set(numpy.asarray(data))
         for name in self._persistent:
             d[name] = serializer(name, d[name])
-        if (self.has_uninitialized_params and
-                isinstance(serializer, chainer.serializer.Serializer)):
-            raise ValueError("uninitialized parameters cannot be serialized")
-        for name in self._uninitialized_params.copy():
-            # Note: There should only be uninitialized parameters
-            # during deserialization.
-            initialized_value = serializer(name, None)
-            self.add_param(name, initialized_value.shape)
-            uninitialized_value = d[name].data
-            if isinstance(uninitialized_value, numpy.ndarray):
-                numpy.copyto(uninitialized_value, initialized_value)
-            elif isinstance(uninitialized_value, cuda.ndarray):
-                uninitialized_value.set(numpy.asarray(initialized_value))
 
 
 class Chain(Link):
@@ -629,21 +577,21 @@ class Chain(Link):
                 d[name].to_gpu()
         return self
 
-    def params(self):
-        for param in super(Chain, self).params():
+    def params(self, include_uninit=True):
+        for param in super(Chain, self).params(include_uninit):
             yield param
         d = self.__dict__
         for name in self._children:
-            for param in d[name].params():
+            for param in d[name].params(include_uninit):
                 yield param
 
-    def namedparams(self):
-        for ret in super(Chain, self).namedparams():
+    def namedparams(self, include_uninit=True):
+        for ret in super(Chain, self).namedparams(include_uninit):
             yield ret
         d = self.__dict__
         for name in self._children:
             prefix = '/' + name
-            for path, param in d[name].namedparams():
+            for path, param in d[name].namedparams(include_uninit):
                 yield prefix + path, param
 
     def links(self, skipself=False):
@@ -782,19 +730,19 @@ class ChainList(Link):
                 link.to_gpu()
         return self
 
-    def params(self):
-        for param in super(ChainList, self).params():
+    def params(self, include_uninit=True):
+        for param in super(ChainList, self).params(include_uninit):
             yield param
         for link in self._children:
-            for param in link.params():
+            for param in link.params(include_uninit):
                 yield param
 
-    def namedparams(self):
-        for ret in super(ChainList, self).namedparams():
+    def namedparams(self, include_uninit=True):
+        for ret in super(ChainList, self).namedparams(include_uninit):
             yield ret
         for idx, link in enumerate(self._children):
             prefix = '/%d' % idx
-            for path, param in link.namedparams():
+            for path, param in link.namedparams(include_uninit):
                 yield prefix + path, param
 
     def links(self, skipself=False):

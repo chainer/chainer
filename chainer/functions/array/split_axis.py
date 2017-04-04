@@ -26,11 +26,11 @@ class SplitAxis(function.Function):
 
         if isinstance(self.indices_or_sections, collections.Iterable):
             if len(self.indices_or_sections) > 0:
-                max_index = type_check.Variable(
+                max_index = type_check.make_variable(
                     self.indices_or_sections[-1], 'max_index')
                 type_check.expect(in_types[0].shape[self.axis] > max_index)
         else:
-            sections = type_check.Variable(
+            sections = type_check.make_variable(
                 self.indices_or_sections, 'sections')
             type_check.expect(in_types[0].shape[self.axis] % sections == 0)
 

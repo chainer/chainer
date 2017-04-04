@@ -66,14 +66,14 @@ class ContinuousBoW(chainer.Chain):
 
     def __init__(self, n_vocab, n_units, loss_func):
         super(ContinuousBoW, self).__init__(
-            embed=F.EmbedID(
+            embed=L.EmbedID(
                 n_vocab, n_units, initialW=I.Uniform(1. / n_units)),
             loss_func=loss_func,
         )
 
     def __call__(self, x, context):
         e = self.embed(context)
-        h = F.sum(e, axis=1) * (1. / context.data.shape[1])
+        h = F.sum(e, axis=1) * (1. / context.shape[1])
         loss = self.loss_func(h, x)
         reporter.report({'loss': loss}, self)
         return loss
@@ -90,7 +90,7 @@ class SkipGram(chainer.Chain):
 
     def __call__(self, x, context):
         e = self.embed(context)
-        shape = e.data.shape
+        shape = e.shape
         x = F.broadcast_to(x[:, None], (shape[0], shape[1]))
         e = F.reshape(e, (shape[0] * shape[1], shape[2]))
         x = F.reshape(x, (shape[0] * shape[1],))

@@ -28,8 +28,7 @@ class Pooling2D(function.Function):
 
     """Base class of pooling function over a set of 2d planes."""
 
-    def __init__(self, ksize, stride=None, pad=0, cover_all=True,
-                 use_cudnn=True):
+    def __init__(self, ksize, stride=None, pad=0, cover_all=True):
         if stride is None:
             stride = ksize
 
@@ -38,7 +37,7 @@ class Pooling2D(function.Function):
         self.ph, self.pw = _pair(pad)
 
         self.cover_all = cover_all
-        self.use_cudnn = use_cudnn
+        self._used_cudnn = False
 
     def check_type_forward(self, in_types):
         type_check.expect(
@@ -48,6 +47,8 @@ class Pooling2D(function.Function):
         )
 
     def forward_gpu(self, x):
+        self._used_cudnn = True
+
         # Implementation using cudnn
         x = x[0]
         n, c, h, w = x.shape

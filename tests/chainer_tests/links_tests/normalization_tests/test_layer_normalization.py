@@ -22,7 +22,6 @@ def _create_ln(*args, **kwargs):
 
 
 @testing.parameterize(*(testing.product({
-    'volatile': ['on', 'off'],
     'batchsize': [1, 5],
     'size': [10, 100],
     'dtype': [numpy.float32],
@@ -44,7 +43,7 @@ class LayerNormalizationTest(unittest.TestCase):
             self.check_backward_optionss = {'atol': 5e-1, 'rtol': 1e-1}
 
     def check_forward(self, x_data):
-        x = chainer.Variable(x_data, volatile=self.volatile)
+        x = chainer.Variable(x_data)
         y = self.link(x)
         self.assertEqual(y.data.dtype, self.dtype)
 
@@ -177,7 +176,7 @@ class TestInvalidInput(unittest.TestCase):
 class TestInvalidInitialize(unittest.TestCase):
 
     def test_invalid_type(self):
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(TypeError):
             self.link = _create_ln(None, 1e-6, {})
             self.link(chainer.Variable(numpy.zeros((1, 5), dtype='f')))
 
