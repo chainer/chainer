@@ -609,7 +609,6 @@ uint64_t nvtxRangeStartEx(...) {
 }
 
 void nvtxRangeEnd(...) {
-    return 0;
 }
 
 } // extern "C"
