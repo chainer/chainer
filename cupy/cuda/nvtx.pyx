@@ -182,7 +182,6 @@ cpdef unsigned long long RangeStartC(str message, uint32_t color=0) except *:
     string.memset(&attrib, 0, sizeof(attrib))
     attrib.version = NVTX_VERSION
     attrib.size = sizeof(attrib)
-    #attrib.category = NVTX_CATEGORY_MEM_LIFETIME
     attrib.color = color
     attrib.colorType = NVTX_COLOR_ARGB
     attrib.messageType = NVTX_MESSAGE_TYPE_ASCII
