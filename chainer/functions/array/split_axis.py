@@ -35,6 +35,7 @@ class SplitAxis(function.Function):
             type_check.expect(in_types[0].shape[self.axis] % sections == 0)
 
     def forward(self, x):
+        self.retain_inputs(())
         if isinstance(self.indices_or_sections, collections.Iterable):
             cdimx = x[0].shape[self.axis]
             ind = list(self.indices_or_sections)
@@ -45,21 +46,22 @@ class SplitAxis(function.Function):
                 if cdimy == 0:
                     raise ValueError('Not support if shape contains 0')
                 prev_i = i
-        xp = cuda.get_array_module(*x)
-        return tuple(xp.split(x[0], self.indices_or_sections, self.axis))
+        self._xp = cuda.get_array_module(*x)
+        self._x_shape = x[0].shape
+        self._x_dtype = x[0].dtype
+        return tuple(self._xp.split(x[0], self.indices_or_sections, self.axis))
 
     def backward(self, x, gys):
-        xp = cuda.get_array_module(*x)
         if any(gy is None for gy in gys):
-            gx = xp.zeros_like(x[0])
-            gxs = xp.split(gx, self.indices_or_sections, self.axis)
+            gx = self._xp.zeros(self._x_shape, dtype=self._x_dtype)
+            gxs = self._xp.split(gx, self.indices_or_sections, self.axis)
             for gxi, gy in six.moves.zip(gxs, gys):
                 if gy is None:
                     continue
                 gxi[:] = gy
             return gx,
         else:
-            return xp.concatenate(gys, axis=self.axis),
+            return self._xp.concatenate(gys, axis=self.axis),
 
 
 def split_axis(x, indices_or_sections, axis, force_tuple=True):
