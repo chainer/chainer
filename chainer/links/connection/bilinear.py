@@ -71,25 +71,25 @@ class Bilinear(link.Link):
             V2_shape = (right_size, out_size)
             b_shape = (out_size,)
             if isinstance(initial_bias, tuple):
-                V1, V2, b = initial_bias
-                if isinstance(V1, (numpy.ndarray, cuda.ndarray)):
-                    assert V1.shape == V1_shape
-                if isinstance(V2, (numpy.ndarray, cuda.ndarray)):
-                    assert V2.shape == V2_shape
-                if isinstance(b, (numpy.ndarray, cuda.ndarray)):
-                    assert b.shape == b_shape
-                V1 = initializers._get_initializer(V1)
-                V2 = initializers._get_initializer(V2)
-                b = initializers._get_initializer(b)
+                initialV1, initialV2, initialb = initial_bias
+                if isinstance(initialV1, (numpy.ndarray, cuda.ndarray)):
+                    assert initialV1.shape == V1_shape
+                if isinstance(initialV2, (numpy.ndarray, cuda.ndarray)):
+                    assert initialV2.shape == V2_shape
+                if isinstance(initialb, (numpy.ndarray, cuda.ndarray)):
+                    assert initialb.shape == b_shape
+                initialV1 = initializers._get_initializer(initialV1)
+                initialV2 = initializers._get_initializer(initialV2)
+                initialb = initializers._get_initializer(initialb)
             elif initial_bias is None:
-                V1 = V2 = initializers._get_initializer(None)
-                b = initializers.Constant(0)
+                initialV1 = initialV2 = initializers._get_initializer(None)
+                initialb = initializers.Constant(0)
             else:
                 raise ValueError('initial_bias must be tuple or None')
 
-            self.add_param('V1', V1_shape, initializer=V1)
-            self.add_param('V2', V2_shape, initializer=V2)
-            self.add_param('b', b_shape, initializer=b)
+            self.add_param('V1', V1_shape, initializer=initialV1)
+            self.add_param('V2', V2_shape, initializer=initialV2)
+            self.add_param('b', b_shape, initializer=initialb)
 
     def __call__(self, e1, e2):
         """Applies the bilinear function to inputs and the internal parameters.
