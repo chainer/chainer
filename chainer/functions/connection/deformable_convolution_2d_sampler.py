@@ -99,7 +99,8 @@ def _offset2grid(offset, kh, kw, sy, sx, ph, pw, h, w):
 
     ys, xs = xp.meshgrid(
         xp.arange(0, sy * out_h, sy, dtype=numpy.float32),
-        xp.arange(0, sx * out_w, sx, dtype=numpy.float32), indexing='ij'
+        xp.arange(0, sx * out_w, sx, dtype=numpy.float32), indexing='ij',
+        copy=False
     )
     filter_offset_x = xp.tile(xp.arange(kw), kh)
     filter_offset_y = xp.repeat(xp.arange(kh), kw)
