@@ -15,6 +15,7 @@ from chainer.testing import condition
 @testing.parameterize(*testing.product({
     'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'W_dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'n_batch_axes': [1, 2]
 }))
 class TestNonparameterizedLinear(unittest.TestCase):
 
@@ -41,10 +42,10 @@ class TestNonparameterizedLinear(unittest.TestCase):
         x = chainer.Variable(x_data)
         W = chainer.Variable(W_data)
         if b_data is None:
-            y = functions.linear(x, W)
+            y = functions.linear(x, W, n_batch_axes=self.n_batch_axes)
         else:
             b = chainer.Variable(b_data)
-            y = functions.linear(x, W, b)
+            y = functions.linear(x, W, b, self.n_batch_axes)
         self.assertEqual(y.data.dtype, self.x_dtype)
         testing.assert_allclose(
             y_expect, y.data, **self.check_forward_options)

@@ -19,6 +19,7 @@ from chainer.utils import type_check
     'in_shape': [(3,), (3, 2, 2)],
     'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'W_dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'n_batch_axes': [1, 2]
 }))
 class TestLinear(unittest.TestCase):
 
@@ -29,7 +30,8 @@ class TestLinear(unittest.TestCase):
         self.link = links.Linear(
             in_size, self.out_size,
             initialW=chainer.initializers.Normal(1, self.W_dtype),
-            initial_bias=chainer.initializers.Normal(1, self.x_dtype))
+            initial_bias=chainer.initializers.Normal(1, self.x_dtype),
+            n_batch_axes=self.n_batch_axes)
         W = self.link.W.data
         b = self.link.b.data
         self.link.cleargrads()
