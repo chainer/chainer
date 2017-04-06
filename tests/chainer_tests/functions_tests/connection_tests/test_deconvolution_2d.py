@@ -176,7 +176,7 @@ class TestDeconvolution2DCudnnCall(unittest.TestCase):
         return F.deconvolution_2d(x, W, None, stride=1, pad=1)
 
     def test_call_cudnn_forward(self):
-        if cuda.cudnn.cudnn.getVersion() >= 4000:
+        if cuda.cudnn.cudnn.getVersion() >= 3000:
             name = 'cupy.cudnn.cudnn.convolutionBackwardData_v3'
         else:
             name = 'cupy.cudnn.cudnn.convolutionBackwardData_v2'
@@ -228,12 +228,12 @@ class TestDeconvolution2DFunctionDeterministic(unittest.TestCase):
         with mock.patch(
                 'chainer.functions.connection.deconvolution_2d.libcudnn'
         ) as mlibcudnn:
-            if cuda.cudnn.cudnn.getVersion() < 4000:
+            if cuda.cudnn.cudnn.getVersion() < 3000:
                 with self.assertRaises(ValueError):
                     x, W, b, y = self._run()
                 return
 
-            # cuDNN version >= v4 supports `deterministic` option
+            # cuDNN version >= v3 supports `deterministic` option
             x, W, b, y = self._run()
 
             # in Deconvolution2DFunction.forward_gpu()
@@ -245,7 +245,7 @@ class TestDeconvolution2DFunctionDeterministic(unittest.TestCase):
                 mlibcudnn.getConvolutionBackwardFilterAlgorithm.called)
 
     def test_deterministic(self):
-        if self.cudnn_version < 4000:
+        if self.cudnn_version < 3000:
             # `deterministic` option is not supported
             return
 

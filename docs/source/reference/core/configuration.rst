@@ -32,8 +32,9 @@ Note that the default values are set in the global config.
    The default value is given by ``CHAINER_DEBUG`` environment variable (set to 0 or 1) if available, otherwise uses ``False``.
 ``chainer.config.enable_backprop``
    Flag to enable backpropagation support.
-   If it is ``True``, the default behavior of :class:`Function` application to :class:`Variable` is non-volatile if all inputs have ``AUTO`` volatile flag.
-   Otherwise, the default behavior is set to volatile mode that doesn't keep track of any function appplications to all :class:`Variable` s.
+   If it is ``True``, :class:`Function` makes a computaitonal graph of :class:`Variable` for back-propagation.
+   Otherwise, it does not make a computational graph.
+   So a user cannot call :func:`~chainer.Variable.backward` method to results of the function.
    The default value is ``True``.
 ``chainer.config.train``
    Training mode flag.

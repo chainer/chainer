@@ -99,24 +99,22 @@ class TestFunction(unittest.TestCase):
     def check_check_type_forward(self):
         self.assertEqual(self.f.check_type_forward.call_count, 1)
         ts = self.f.check_type_forward.call_args[0][0]
-        self.assertIsInstance(ts, type_check.TypeInfoTuple)
+        self.assertIsInstance(ts, type_check.LightTypeInfoTuple)
         self.assertEqual(len(ts), 2)
 
-        self.assertEqual(ts[0].name, 'in_types[0]')
-        t1 = ts[0].eval()
+        t1 = ts[0]
         self.assertEqual(t1.shape, (3,))
         self.assertEqual(t1.dtype, numpy.float32)
 
-        self.assertEqual(ts[1].name, 'in_types[1]')
-        t2 = ts[1].eval()
+        t2 = ts[1]
         self.assertEqual(t2.shape, (3,))
         self.assertEqual(t2.dtype, numpy.int32)
 
     def check_call(self):
         x1 = chainer.Variable(self.x1)
         x2 = chainer.Variable(self.x2)
-        x1.rank = 1
-        x2.rank = 3
+        x1._node._rank = 1
+        x2._node._rank = 3
         ys = self.f(x1, x2)
 
         self.assertEqual(len(ys), 2)
@@ -126,7 +124,6 @@ class TestFunction(unittest.TestCase):
             self.assertIsInstance(y, chainer.Variable)
             # rank is (maximum rank in xs) + 1
             self.assertEqual(y.rank, 4)
-            self.assertFalse(y.volatile)
             self.assertIs(y.creator, self.f)
 
         self.assertIsInstance(y.creator.outputs, tuple)
@@ -142,7 +139,7 @@ class TestFunction(unittest.TestCase):
     def check_call_ndarray(self):
         x1 = chainer.Variable(self.x1)
         x2 = self.x2
-        x1.rank = 1
+        x1._node._rank = 1
         ys = self.f(x1, x2)
 
         self.assertEqual(len(ys), 2)
@@ -152,7 +149,6 @@ class TestFunction(unittest.TestCase):
             self.assertIsInstance(y, chainer.Variable)
             # rank is (maximum rank in xs) + 1
             self.assertEqual(y.rank, 2)
-            self.assertFalse(y.volatile)
             self.assertIs(y.creator, self.f)
 
         self.assertIsInstance(y.creator.outputs, tuple)
@@ -165,101 +161,21 @@ class TestFunction(unittest.TestCase):
         self.setup_gpu()
         self.check_call_ndarray()
 
-    def check_call_volatile(self):
-        x1 = chainer.Variable(self.x1, volatile=True)
-        x2 = chainer.Variable(self.x2, volatile=True)
-        x1.rank = 1
-        x2.rank = 3
-        ys = self.f(x1, x2)
-
-        self.assertEqual(len(ys), 2)
-        self.check_check_type_forward()
-
-        for y in ys:
-            self.assertIsInstance(y, chainer.Variable)
-            self.assertEqual(y.rank, 0)
-            self.assertTrue(y.volatile)
-            self.assertIsNone(y.creator)
-
-        self.assertFalse(hasattr(self.f, 'outputs'))
-
-    def test_call_volatile_cpu(self):
-        self.check_call_volatile()
-
-    @attr.gpu
-    def test_call_volatile_gpu(self):
-        self.setup_gpu()
-        self.check_call_volatile()
-
-    def check_call_single_return_value(self, volatile):
-        x1 = chainer.Variable(self.x1, volatile=volatile)
-        x2 = chainer.Variable(self.x2, volatile=volatile)
+    def check_call_single_return_value(self):
+        x1 = chainer.Variable(self.x1)
+        x2 = chainer.Variable(self.x2)
         ret = self.f(x1, x2)
         self.assertIsInstance(ret, chainer.Variable)
 
     def test_call_single_return_value_cpu(self):
         self.f.forward_cpu.return_value = (cuda.to_cpu(self.y1),)
-        self.check_call_single_return_value(False)
+        self.check_call_single_return_value()
 
     @attr.gpu
     def test_call_single_return_value_gpu(self):
         self.setup_gpu()
         self.f.forward_gpu.return_value = (cuda.to_gpu(self.y1),)
-        self.check_call_single_return_value(False)
-
-    def test_call_single_return_value_volatile_cpu(self):
-        self.f.forward_cpu.return_value = (cuda.to_cpu(self.y1),)
-        self.check_call_single_return_value(True)
-
-    @attr.gpu
-    def test_call_single_return_value_volatile_gpu(self):
-        self.setup_gpu()
-        self.f.forward_gpu.return_value = (cuda.to_gpu(self.y1),)
-        self.check_call_single_return_value(True)
-
-    def check_call_mixed_volatile(self):
-        x1 = chainer.Variable(self.x1, volatile='on')
-        x2 = chainer.Variable(self.x2, volatile='off')
-        with self.assertRaises(ValueError):
-            self.f(x1, x2)
-
-    def test_call_mixed_volatile_cpu(self):
-        self.check_call_mixed_volatile()
-
-    @attr.gpu
-    def test_call_mixed_volatile_gpu(self):
-        self.setup_gpu()
-        self.check_call_mixed_volatile()
-
-    def check_call_auto_on_volatile(self):
-        x1 = chainer.Variable(self.x1, volatile='on')
-        x2 = chainer.Variable(self.x2, volatile='auto')
-        ret = self.f(x1, x2)
-        self.assertEqual(ret[0].volatile, 'on')
-        self.assertEqual(ret[1].volatile, 'on')
-
-    def test_call_auto_on_volatile_cpu(self):
-        self.check_call_auto_on_volatile()
-
-    @attr.gpu
-    def test_call_auto_on_volatile_gpu(self):
-        self.setup_gpu()
-        self.check_call_auto_on_volatile()
-
-    def check_call_auto_off_volatile(self):
-        x1 = chainer.Variable(self.x1, volatile='off')
-        x2 = chainer.Variable(self.x2, volatile='auto')
-        ret = self.f(x1, x2)
-        self.assertEqual(ret[0].volatile, 'off')
-        self.assertEqual(ret[1].volatile, 'off')
-
-    def test_call_auto_off_volatile_cpu(self):
-        self.check_call_auto_off_volatile()
-
-    @attr.gpu
-    def test_call_auto_off_volatile_gpu(self):
-        self.setup_gpu()
-        self.check_call_auto_off_volatile()
+        self.check_call_single_return_value()
 
     def _get_f(self):
         x1 = chainer.Variable(self.x1)
@@ -470,7 +386,7 @@ class TestNoBackpropMode(unittest.TestCase):
 class MyThread(threading.Thread):
 
     def run(self):
-        x = chainer.Variable(numpy.array([1], dtype='f'), volatile='auto')
+        x = chainer.Variable(numpy.array([1], dtype='f'))
         with chainer.no_backprop_mode():
             y = x + 1
         self.creator_is_none = y.creator is None
@@ -483,6 +399,49 @@ class TestBackpropModeMultiThread(unittest.TestCase):
         t.start()
         t.join()
         self.assertTrue(t.creator_is_none)
+
+
+class FunctionWithRetaining(chainer.Function):
+
+    def forward(self, inputs):
+        self.retain_inputs([1])
+        self.retain_outputs([1])
+        return inputs
+
+    def backward(self, inputs, grad_outputs):
+        self.backward_inputs = inputs
+        return grad_outputs
+
+
+class TestFunctionRetaining(unittest.TestCase):
+
+    def setUp(self):
+        self.f = FunctionWithRetaining()
+        inputs = [chainer.Variable(numpy.array([1], dtype=numpy.float32)),
+                  chainer.Variable(numpy.array([1], dtype=numpy.float32))]
+        self.input_data = [x.data for x in inputs]
+        self.input_nodes = [x.node for x in inputs]
+
+        outputs = self.f(*inputs)
+        inputs = None  # release non-retained inputs
+
+        outputs[0].grad = numpy.array([1], dtype=numpy.float32)
+        outputs[0].backward()
+
+        self.output_data = [y.data for y in outputs]
+        self.output_nodes = [y.node for y in outputs]
+
+    def test_retain_inputs(self):
+        self.assertEqual([x.data for x in self.input_nodes],
+                         [None, self.input_data[1]])
+        self.assertEqual(tuple(x.data for x in self.input_nodes),
+                         self.f.backward_inputs)
+
+    def test_retain_outputs(self):
+        self.assertEqual([y.data for y in self.output_nodes],
+                         [None, self.output_data[1]])
+        self.assertEqual(tuple(y.data for y in self.output_nodes),
+                         self.f.output_data)
 
 
 testing.run_module(__name__, __file__)

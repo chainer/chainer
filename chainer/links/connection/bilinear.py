@@ -53,7 +53,7 @@ class Bilinear(link.Link):
 
     def __init__(self, left_size, right_size, out_size, nobias=False,
                  initialW=None, initial_bias=None):
-        super(Bilinear, self).__init__(W=(left_size, right_size, out_size))
+        super(Bilinear, self).__init__()
         self.in_sizes = (left_size, right_size)
         self.nobias = nobias
 
@@ -62,35 +62,39 @@ class Bilinear(link.Link):
         # This initialization is a modification of
         # that of Linear function.
 
+        shape = (left_size, right_size, out_size)
         if isinstance(initialW, (numpy.ndarray, cuda.ndarray)):
-            assert initialW.shape == self.W.shape
+            assert initialW.shape == shape
         if initialW is None:
             initialW = initializers.HeNormal(1.0 / numpy.sqrt(2))
-        initializers.init_weight(self.W.data, initialW)
+        self.add_param('W', shape,
+                       initializer=initializers._get_initializer(initialW))
 
         if not self.nobias:
-            self.add_param('V1', (left_size, out_size))
-            self.add_param('V2', (right_size, out_size))
-            self.add_param('b', out_size)
-
-            if initial_bias is None:
+            V1_shape = (left_size, out_size)
+            V2_shape = (right_size, out_size)
+            b_shape = (out_size,)
+            if isinstance(initial_bias, tuple):
+                initialV1, initialV2, initialb = initial_bias
+                if isinstance(initialV1, (numpy.ndarray, cuda.ndarray)):
+                    assert initialV1.shape == V1_shape
+                if isinstance(initialV2, (numpy.ndarray, cuda.ndarray)):
+                    assert initialV2.shape == V2_shape
+                if isinstance(initialb, (numpy.ndarray, cuda.ndarray)):
+                    assert initialb.shape == b_shape
+                initialV1 = initializers._get_initializer(initialV1)
+                initialV2 = initializers._get_initializer(initialV2)
+                initialb = initializers._get_initializer(initialb)
+            elif initial_bias is None:
                 V1 = initializers.HeNormal(1.0 / numpy.sqrt(2))
                 V2 = initializers.HeNormal(1.0 / numpy.sqrt(2))
-                b = initializers.Constant(0)
+                initialb = initializers.Constant(0)
             else:
-                if len(initial_bias) != 3:
-                    raise ValueError('initial_bias must be tuple or None')
-                V1, V2, b = initial_bias
-                if isinstance(V1, (numpy.ndarray, cuda.ndarray)):
-                    assert V1.shape == self.V1.shape
-                if isinstance(V2, (numpy.ndarray, cuda.ndarray)):
-                    assert V2.shape == self.V2.shape
-                if isinstance(b, (numpy.ndarray, cuda.ndarray)):
-                    assert b.shape == self.b.shape
+                raise ValueError('initial_bias must be tuple or None')
 
-            initializers.init_weight(self.V1.data, V1)
-            initializers.init_weight(self.V2.data, V2)
-            initializers.init_weight(self.b.data, b)
+            self.add_param('V1', V1_shape, initializer=initialV1)
+            self.add_param('V2', V2_shape, initializer=initialV2)
+            self.add_param('b', b_shape, initializer=initialb)
 
     def __call__(self, e1, e2):
         """Applies the bilinear function to inputs and the internal parameters.

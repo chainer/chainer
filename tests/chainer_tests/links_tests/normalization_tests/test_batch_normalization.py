@@ -25,12 +25,6 @@ def _batch_normalization(expander, gamma, beta, x, mean, var, eps, test):
 
 @testing.parameterize(*(testing.product({
     'test': [True, False],
-    'volatile': ['on'],
-    'ndim': [0],
-    'dtype': [numpy.float32],
-}) + testing.product({
-    'test': [True, False],
-    'volatile': ['off'],
     'ndim': [0, 1, 2, 3],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 })))
@@ -70,7 +64,7 @@ class BatchNormalizationTest(unittest.TestCase):
 
     def check_forward(self, x_data):
         with chainer.using_config('train', not self.test):
-            x = chainer.Variable(x_data, volatile=self.volatile)
+            x = chainer.Variable(x_data)
             y = self.link(x)
             self.assertEqual(y.data.dtype, self.dtype)
 

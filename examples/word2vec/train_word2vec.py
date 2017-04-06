@@ -66,7 +66,7 @@ class ContinuousBoW(chainer.Chain):
 
     def __init__(self, n_vocab, n_units, loss_func):
         super(ContinuousBoW, self).__init__(
-            embed=F.EmbedID(
+            embed=L.EmbedID(
                 n_vocab, n_units, initialW=I.Uniform(1. / n_units)),
             loss_func=loss_func,
         )

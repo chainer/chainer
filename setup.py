@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import pkg_resources
+
 from setuptools import setup
 
 
@@ -11,6 +13,17 @@ install_requires = [
     'protobuf',
     'six>=1.9.0',
 ]
+cupy_require = 'cupy==1.0.0a1'
+
+cupy_pkg = None
+try:
+    cupy_pkg = pkg_resources.get_distribution('cupy')
+except pkg_resources.DistributionNotFound:
+    pass
+
+if cupy_pkg is not None:
+    install_requires.append(cupy_require)
+    print('Use %s' % cupy_require)
 
 setup(
     name='chainer',

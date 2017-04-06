@@ -784,11 +784,10 @@ class TestDebugPrint(unittest.TestCase):
     def check_debug_print(self, v, mean, std):
         result = v.debug_print()
         self.assertIn(repr(v), result)
-        self.assertIn('volatile: OFF', result)
         self.assertIn('dtype: float32', result)
         # py2.7 on win64 returns shape as long
         self.assertTrue(re.match(r'- shape: \(5L?, 3L?, 5L?, 5L?\)',
-                                 result.splitlines()[4]))
+                                 result.splitlines()[3]))
 
         # no grad
         msg = 'statistics: mean={mean:.8f}, std={std:.8f}'
@@ -969,6 +968,84 @@ class TestVariableBackwardErrorTraceback(unittest.TestCase):
     @attr.gpu
     def test_traceback_gpu(self):
         self.check_traceback(cuda.to_gpu(self.x))
+
+
+@testing.parameterize(*testing.product({
+    'in_shape': [(4, 3, 2)],
+    'out_shape': [(2, 2, 6), (2, -1, 6), 24, (-1,), [2, 12]],
+    'dtype': [np.float16, np.float32, np.float64],
+}))
+class TestReshape(unittest.TestCase):
+
+    def setUp(self):
+        self.x = np.random.uniform(-1, 1, self.in_shape).astype(self.dtype)
+
+    def check_forward(self, x_data):
+        shape = self.out_shape
+        x = chainer.Variable(x_data)
+        y = x.reshape(shape)
+        self.assertEqual(y.data.dtype, self.dtype)
+        self.assertTrue((self.x.reshape(shape) == cuda.to_cpu(y.data)).all())
+
+    def test_forward_cpu(self):
+        self.check_forward(self.x)
+
+    @attr.gpu
+    def test_forward_gpu(self):
+        self.check_forward(cuda.to_gpu(self.x))
+
+    def check_backward(self, x_data):
+        x = chainer.Variable(x_data)
+        y = x.reshape(self.out_shape)
+        y.grad = y.data
+        y.backward()
+        testing.assert_allclose(x.data, x.grad, atol=0, rtol=0)
+
+    def test_backward_cpu(self):
+        self.check_backward(self.x)
+
+    @attr.gpu
+    def test_backward_gpu(self):
+        self.check_backward(cuda.to_gpu(self.x))
+
+
+@testing.parameterize(*testing.product({
+    'in_shape': [(4, 3, 2)],
+    'axes': [(-1, 0, 1), None, [-1, 0, 1]],
+    'dtype': [np.float16, np.float32, np.float32],
+}))
+class TestTranspose(unittest.TestCase):
+
+    def setUp(self):
+        self.x = np.random.uniform(-1, 1, self.in_shape).astype(self.dtype)
+
+    def check_forward(self, x_data):
+        axes = self.axes
+        x = chainer.Variable(x_data)
+        y = x.transpose(axes)
+        self.assertEqual(y.data.dtype, self.dtype)
+        self.assertTrue((self.x.transpose(axes) == cuda.to_cpu(y.data)).all())
+
+    def test_forward_cpu(self):
+        self.check_forward(self.x)
+
+    @attr.gpu
+    def test_forward_gpu(self):
+        self.check_forward(cuda.to_gpu(self.x))
+
+    def check_backward(self, x_data):
+        x = chainer.Variable(x_data)
+        y = x.transpose(self.axes)
+        y.grad = y.data
+        y.backward()
+        testing.assert_allclose(x.data, x.grad, atol=0, rtol=0)
+
+    def test_backward_cpu(self):
+        self.check_backward(self.x)
+
+    @attr.gpu
+    def test_backward_gpu(self):
+        self.check_backward(cuda.to_gpu(self.x))
 
 
 testing.run_module(__name__, __file__)

@@ -74,9 +74,9 @@ class DilatedConvolution2D(link.Link):
             self.b = None
         else:
             if initial_bias is None:
-                initial_bias = initializers.Constant(0)
-            bias_initializer = initializers._get_initializer(initial_bias)
-            self.add_param('b', out_channels, initializer=bias_initializer)
+                initial_bias = bias
+            initial_bias = initializers._get_initializer(initial_bias)
+            self.add_param('b', out_channels, initializer=initial_bias)
 
     def _initialize_params(self, in_channels):
         kh, kw = _pair(self.ksize)
