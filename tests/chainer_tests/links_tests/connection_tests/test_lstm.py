@@ -366,5 +366,46 @@ class TestLSTMSerializationCompatibility(unittest.TestCase):
 
         self.check_call(n_step, lstm)
 
+    def test_load_v1_format(self):
+        path = os.path.join(self.path, 'lstm.npz')
+
+        # Make an old format file
+        model = chainer.Chain(
+            upward=chainer.links.Linear(3, 4 * 4),
+            lateral=chainer.links.Linear(4, 4 * 4, nobias=True))
+        chainer.serializers.save_npz(path, model)
+
+        lstm = links.LSTM(3, 4)
+        lstm.v1_serialize_format = True
+        chainer.serializers.load_npz(path, lstm)
+
+        testing.assert_allclose(
+            model.upward.W.data, lstm.upward.W.data)
+        testing.assert_allclose(
+            model.upward.b.data, lstm.upward.b.data)
+        testing.assert_allclose(
+            model.lateral.W.data, lstm.lateral.W.data)
+        self.assertIsNone(lstm.lateral.b)
+
+    def test_save_v1_format(self):
+        path = os.path.join(self.path, 'lstm.npz')
+
+        lstm = links.LSTM(3, 4)
+        lstm.v1_serialize_format = True
+        chainer.serializers.save_npz(path, lstm)
+
+        model = chainer.Chain(
+            upward=chainer.links.Linear(3, 4 * 4),
+            lateral=chainer.links.Linear(4, 4 * 4, nobias=True))
+        chainer.serializers.load_npz(path, model)
+
+        testing.assert_allclose(
+            model.upward.W.data, lstm.upward.W.data)
+        testing.assert_allclose(
+            model.upward.b.data, lstm.upward.b.data)
+        testing.assert_allclose(
+            model.lateral.W.data, lstm.lateral.W.data)
+        self.assertIsNone(model.lateral.b)
+
 
 testing.run_module(__name__, __file__)

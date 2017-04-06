@@ -14,6 +14,8 @@ from chainer import variable
 
 class LSTMBase(link.Chain):
 
+    v1_serialize_format = False
+
     def __init__(self, in_size, out_size,
                  lateral_init=None, upward_init=None,
                  bias_init=0, forget_bias_init=1):
@@ -47,6 +49,9 @@ class LSTMBase(link.Chain):
         initializers.init_weight(o, self.bias_init)
 
     def serialize(self, serializer):
+        if self.v1_serialize_format:
+            return super(LSTMBase, self).serialize(serializer)
+
         # Order of parameters are diffrent in LSTM and NStepLSTM.
         # See chainer.functions.n_step_lstm
         weight_index = [2, 0, 1, 3]
