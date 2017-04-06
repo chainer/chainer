@@ -66,15 +66,18 @@ class BatchNormalization(link.Link):
                  initial_gamma=None, initial_beta=None):
         super(BatchNormalization, self).__init__()
         if use_gamma:
-            self.add_param('gamma', size, dtype=dtype)
             if initial_gamma is None:
-                initial_gamma = initializers.One()
-            initializers.init_weight(self.gamma.data, initial_gamma)
+                initial_gamma = initializers.One(dtype=dtype)
+            else:
+                initial_gamma = initializers._get_initializer(initial_gamma)
+            self.add_param('gamma', size, dtype=dtype,
+                           initializer=initial_gamma)
         if use_beta:
-            self.add_param('beta', size, dtype=dtype)
             if initial_beta is None:
-                initial_beta = initializers.Zero()
-            initializers.init_weight(self.beta.data, initial_beta)
+                initial_beta = initializers.Zero(dtype=dtype)
+            else:
+                initial_beta = initializers._get_initializer(initial_beta)
+            self.add_param('beta', size, dtype=dtype, initializer=initial_beta)
         self.add_persistent('avg_mean', numpy.zeros(size, dtype=dtype))
         self.add_persistent('avg_var', numpy.zeros(size, dtype=dtype))
         self.add_persistent('N', 0)
@@ -102,13 +105,13 @@ class BatchNormalization(link.Link):
         else:
             with cuda.get_device(self._device_id):
                 gamma = variable.Variable(self.xp.ones(
-                    self.avg_mean.shape, dtype=x.dtype), volatile='auto')
+                    self.avg_mean.shape, dtype=x.dtype))
         if hasattr(self, 'beta'):
             beta = self.beta
         else:
             with cuda.get_device(self._device_id):
                 beta = variable.Variable(self.xp.zeros(
-                    self.avg_mean.shape, dtype=x.dtype), volatile='auto')
+                    self.avg_mean.shape, dtype=x.dtype))
 
         if configuration.config.train:
             if finetune:
@@ -125,8 +128,8 @@ class BatchNormalization(link.Link):
             self.avg_var[:] = func.running_var
         else:
             # Use running average statistics or fine-tuned statistics.
-            mean = variable.Variable(self.avg_mean, volatile='auto')
-            var = variable.Variable(self.avg_var, volatile='auto')
+            mean = variable.Variable(self.avg_mean)
+            var = variable.Variable(self.avg_var)
             ret = batch_normalization.fixed_batch_normalization(
                 x, gamma, beta, mean, var, self.eps)
         return ret

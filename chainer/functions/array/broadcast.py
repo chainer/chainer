@@ -32,7 +32,7 @@ class Broadcast(function.Function):
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() > 0)
 
-        shapes = [t.eval().shape for t in in_types]
+        shapes = [type_check.eval(t).shape for t in in_types]
         r_shapes = [s[::-1] for s in shapes]
         r_filled = six.moves.zip_longest(*r_shapes, fillvalue=1)
         for ss in r_filled:
@@ -89,10 +89,10 @@ class BroadcastTo(function.Function):
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)
 
-        ndim = type_check.Variable(len(self._shape), 'len(shape)')
+        ndim = type_check.make_variable(len(self._shape), 'len(shape)')
         type_check.expect(in_types[0].ndim <= ndim)
 
-        shape = in_types[0].shape.eval()
+        shape = type_check.eval(in_types[0].shape)
         # check the shape in inverse order
         for i in six.moves.range(-1, -len(shape) - 1, -1):
             if shape[i] == self._shape[i] or shape[i] == 1:

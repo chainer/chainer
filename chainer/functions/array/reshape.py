@@ -35,8 +35,8 @@ class Reshape(function.Function):
             for s in self.shape:
                 if s > 0:
                     known_size *= s
-            size_var = type_check.Variable(known_size,
-                                           'known_size(=%d)' % known_size)
+            size_var = type_check.make_variable(
+                known_size, 'known_size(=%d)' % known_size)
             type_check.expect(
                 type_check.prod(x_type.shape) % size_var == 0)
 

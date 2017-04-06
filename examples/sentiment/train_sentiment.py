@@ -127,8 +127,7 @@ def traverse(model, node, evaluate=None, root=True):
         # leaf node
         word = xp.array([node['node']], np.int32)
         loss = 0
-        x = chainer.Variable(word, volatile=not chainer.config.train)
-        v = model.leaf(x)
+        v = model.leaf(word)
     else:
         # internal node
         left_node, right_node = node['node']
@@ -161,12 +160,10 @@ def traverse(model, node, evaluate=None, root=True):
 
 
 def evaluate(model, test_trees):
-    m = model.copy()
-    m.volatile = True
     result = collections.defaultdict(lambda: 0)
-    with chainer.using_config('train', False):
+    with chainer.using_config('train', False), chainer.no_backprop_mode():
         for tree in test_trees:
-            traverse(m, tree, evaluate=result)
+            traverse(model, tree, evaluate=result)
 
     acc_node = 100.0 * result['correct_node'] / result['total_node']
     acc_root = 100.0 * result['correct_root'] / result['total_root']

@@ -12,6 +12,10 @@ from chainer.links.connection import linear
 from chainer import variable
 
 
+def _init_weight(weights, initializer):
+    initializers._get_initializer(initializer)(weights)
+
+
 class LSTMBase(link.Chain):
 
     def __init__(self, in_size, out_size,
@@ -32,19 +36,19 @@ class LSTMBase(link.Chain):
             self._initialize_params()
 
     def _initialize_params(self):
+        lateral_init = initializers._get_initializer(self.lateral_init)
+        upward_init = initializers._get_initializer(self.upward_init)
+
         for i in six.moves.range(0, 4 * self.state_size, self.state_size):
-            initializers.init_weight(
-                self.lateral.W.data[i:i + self.state_size, :],
-                self.lateral_init)
-            initializers.init_weight(
-                self.upward.W.data[i:i + self.state_size, :], self.upward_init)
+            lateral_init(self.lateral.W.data[i:i + self.state_size, :])
+            upward_init(self.upward.W.data[i:i + self.state_size, :])
 
         a, i, f, o = lstm._extract_gates(
             self.upward.b.data.reshape(1, 4 * self.state_size, 1))
-        initializers.init_weight(a, self.bias_init)
-        initializers.init_weight(i, self.bias_init)
-        initializers.init_weight(f, self.forget_bias_init)
-        initializers.init_weight(o, self.bias_init)
+        _init_weight(a, self.bias_init)
+        _init_weight(i, self.bias_init)
+        _init_weight(f, self.forget_bias_init)
+        _init_weight(o, self.bias_init)
 
 
 class StatelessLSTM(LSTMBase):
@@ -95,8 +99,7 @@ class StatelessLSTM(LSTMBase):
             xp = self.xp
             with cuda.get_device(self._device_id):
                 c = variable.Variable(
-                    xp.zeros((x.shape[0], self.state_size), dtype=x.dtype),
-                    volatile='auto')
+                    xp.zeros((x.shape[0], self.state_size), dtype=x.dtype))
         return lstm.lstm(c, lstm_in)
 
 
@@ -245,8 +248,7 @@ class LSTM(LSTMBase):
             xp = self.xp
             with cuda.get_device(self._device_id):
                 self.c = variable.Variable(
-                    xp.zeros((batch, self.state_size), dtype=x.dtype),
-                    volatile='auto')
+                    xp.zeros((batch, self.state_size), dtype=x.dtype))
         self.c, y = lstm.lstm(self.c, lstm_in)
 
         if h_rest is None:

@@ -91,8 +91,7 @@ class NStepLSTM(link.ChainList):
                 hx = chainer.Variable(
                     self.xp.zeros(
                         (self.n_layers, len(xs), self.out_size),
-                        dtype=xs[0].dtype),
-                    volatile='auto')
+                        dtype=xs[0].dtype))
         else:
             hx = permutate.permutate(hx, indices, axis=1, inv=False)
 
@@ -101,8 +100,7 @@ class NStepLSTM(link.ChainList):
                 cx = chainer.Variable(
                     self.xp.zeros(
                         (self.n_layers, len(xs), self.out_size),
-                        dtype=xs[0].dtype),
-                    volatile='auto')
+                        dtype=xs[0].dtype))
         else:
             cx = permutate.permutate(cx, indices, axis=1, inv=False)
 

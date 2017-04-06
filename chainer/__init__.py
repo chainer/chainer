@@ -9,7 +9,6 @@ from chainer import configuration  # NOQA
 from chainer import cuda  # NOQA
 from chainer import dataset  # NOQA
 from chainer import datasets  # NOQA
-from chainer import flag  # NOQA
 from chainer import function  # NOQA
 from chainer import functions  # NOQA
 from chainer import initializer  # NOQA
@@ -30,17 +29,12 @@ from chainer import variable  # NOQA
 from chainer.configuration import config  # NOQA
 from chainer.configuration import global_config  # NOQA
 from chainer.configuration import using_config  # NOQA
-from chainer.flag import AUTO  # NOQA
-from chainer.flag import Flag  # NOQA
-from chainer.flag import OFF  # NOQA
-from chainer.flag import ON  # NOQA
 from chainer.function import force_backprop_mode  # NOQA
 from chainer.function import Function  # NOQA
 from chainer.function import no_backprop_mode  # NOQA
 from chainer.functions import array  # NOQA
 from chainer.functions import basic_math  # NOQA
 from chainer.initializer import Initializer  # NOQA
-from chainer.initializers import init_weight  # NOQA
 from chainer.link import Chain  # NOQA
 from chainer.link import ChainList  # NOQA
 from chainer.link import Link  # NOQA
