@@ -35,7 +35,6 @@ from chainer.function import no_backprop_mode  # NOQA
 from chainer.functions import array  # NOQA
 from chainer.functions import basic_math  # NOQA
 from chainer.initializer import Initializer  # NOQA
-from chainer.initializers import init_weight  # NOQA
 from chainer.link import Chain  # NOQA
 from chainer.link import ChainList  # NOQA
 from chainer.link import Link  # NOQA
