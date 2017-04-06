@@ -73,7 +73,7 @@ class Bilinear(link.Link):
             if initial_bias is None:
                 V1 = initializers.HeNormal(1.0 / numpy.sqrt(2))
                 V2 = initializers.HeNormal(1.0 / numpy.sqrt(2))
-                b =  initializers.Constant(0)
+                b = initializers.Constant(0)
             else:
                 if len(initial_bias) != 3:
                     raise ValueError('initial_bias must be tuple or None')
