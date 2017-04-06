@@ -3,7 +3,6 @@ import numpy
 import chainer
 from chainer.functions.activation import sigmoid
 from chainer.functions.activation import tanh
-from chainer import initializers
 from chainer import link
 from chainer.links.connection import linear
 
@@ -113,13 +112,15 @@ class StatefulGRU(GRUBase):
             It should be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
             If it is ``None``, the default initializer is used.
-            If it is `numpy.ndarray`, the array is used as initial weight value.
+            If it is `numpy.ndarray`, the array is used as initial
+            weight value.
         inner_init: Initializer for the GRU's inner
             recurrent units (:math:`U`).
             It should be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
             If it is ``None``, the default initializer is used.
-            If it is `numpy.ndarray`, the array is used as initial weight value.
+            If it is `numpy.ndarray`, the array is used as initial
+            weight value.
         bias_init: Bias initializer.
             It should be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.

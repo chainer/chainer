@@ -1,5 +1,6 @@
 import numpy
 
+from chainer import cuda
 from chainer.functions.connection import deconvolution_2d
 from chainer import initializers
 from chainer import link
@@ -33,7 +34,8 @@ class Deconvolution2D(link.Link):
             It should be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
             If it is ``None``, the default initializer is used.
-            If it is `numpy.ndarray`, the array is used as initial weight value.
+            If it is `numpy.ndarray`, the array is used as initial
+            weight value.
         initial_bias (callable): Bias initializer.
             It should be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.

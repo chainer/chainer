@@ -28,7 +28,8 @@ class Convolution2D(link.Link):
             It should be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
             If it is ``None``, the default initializer is used.
-            If it is `numpy.ndarray`, the array is used as initial weight value.
+            If it is `numpy.ndarray`, the array is used as initial
+            weight value.
         initial_bias (1-D array): Initial bias value.
             May also be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
@@ -48,8 +49,9 @@ class Convolution2D(link.Link):
 
     """
 
-    def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0, nobias=False,
-                 initialW=None, initial_bias=None, deterministic=False):
+    def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
+                 nobias=False, initialW=None, initial_bias=None,
+                 deterministic=False):
         super(Convolution2D, self).__init__()
         self.ksize = ksize
         self.stride = _pair(stride)

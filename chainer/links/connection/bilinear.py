@@ -25,14 +25,17 @@ class Bilinear(link.Link):
             It should be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
             If it is ``None``, the default initializer is used.
-            If it is `numpy.ndarray`, the array is used as initial weight value.
+            If it is `numpy.ndarray`, the array is used as initial
+            weight value.
             Shape of the array must be ``(left_size, right_size, out_size)``.
         initial_bias (tuple): Bias initializers.
-             It should be a 3-tuple of callables that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value.
-            They initialize :math:`V^1`, :math:`V^2`,  and :math:`b`, respectively.
+            It should be a 3-tuple of callables that takes ``numpy.ndarray``
+            or ``cupy.ndarray`` and edits its value.
+            They initialize :math:`V^1`, :math:`V^2`,  and :math:`b`,
+            respectively.
             If it is ``None``, the default initializer is used.
-            If it is a tuple of `numpy.ndarray`, the arrays are used as initial bias value.
+            If it is a tuple of `numpy.ndarray`, the arrays are used as initial
+            bias value.
             Each element of this tuple must have the shapes of
             ``(left_size, output_size)``, ``(right_size, output_size)``,
             and ``(output_size,)``, respectively.
