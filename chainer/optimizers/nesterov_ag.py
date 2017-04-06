@@ -81,5 +81,8 @@ class NesterovAG(optimizer.GradientMethod):
         self.hyperparam.lr = lr
         self.hyperparam.momentum = momentum
 
+    lr = optimizer.HyperparameterProxy('lr')
+    momentum = optimizer.HyperparameterProxy('momentum')
+
     def create_update_rule(self):
         return NesterovAGRule(self.hyperparam)

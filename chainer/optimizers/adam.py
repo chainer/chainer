@@ -106,5 +106,10 @@ class Adam(optimizer.GradientMethod):
         self.hyperparam.beta2 = beta2
         self.hyperparam.eps = eps
 
+    alpha = optimizer.HyperparameterProxy('alpha')
+    beta1 = optimizer.HyperparameterProxy('beta1')
+    beta2 = optimizer.HyperparameterProxy('beta2')
+    eps = optimizer.HyperparameterProxy('eps')
+
     def create_update_rule(self):
         return AdamRule(self.hyperparam)

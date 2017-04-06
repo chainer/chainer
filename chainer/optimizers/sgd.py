@@ -54,5 +54,7 @@ class SGD(optimizer.GradientMethod):
         super(SGD, self).__init__()
         self.hyperparam.lr = lr
 
+    lr = optimizer.HyperparameterProxy('lr')
+
     def create_update_rule(self):
         return SGDRule(self.hyperparam)

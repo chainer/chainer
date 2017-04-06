@@ -86,5 +86,9 @@ class RMSprop(optimizer.GradientMethod):
         self.hyperparam.alpha = alpha
         self.hyperparam.eps = eps
 
+    lr = optimizer.HyperparameterProxy('lr')
+    alpha = optimizer.HyperparameterProxy('alpha')
+    eps = optimizer.HyperparameterProxy('eps')
+
     def create_update_rule(self):
         return RMSpropRule(self.hyperparam)

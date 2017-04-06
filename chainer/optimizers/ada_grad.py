@@ -79,5 +79,8 @@ class AdaGrad(optimizer.GradientMethod):
         self.hyperparam.lr = lr
         self.hyperparam.eps = eps
 
+    lr = optimizer.HyperparameterProxy('lr')
+    eps = optimizer.HyperparameterProxy('eps')
+
     def create_update_rule(self):
         return AdaGradRule(self.hyperparam)

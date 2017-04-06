@@ -109,5 +109,10 @@ class RMSpropGraves(optimizer.GradientMethod):
         self.hyperparam.momentum = momentum
         self.hyperparam.eps = eps
 
+    lr = optimizer.HyperparameterProxy('lr')
+    alpha = optimizer.HyperparameterProxy('alpha')
+    momentum = optimizer.HyperparameterProxy('momentum')
+    eps = optimizer.HyperparameterProxy('eps')
+
     def create_update_rule(self):
         return RMSpropGravesRule(self.hyperparam)

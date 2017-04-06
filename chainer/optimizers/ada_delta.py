@@ -89,5 +89,8 @@ class AdaDelta(optimizer.GradientMethod):
         self.hyperparam.rho = rho
         self.hyperparam.eps = eps
 
+    rho = optimizer.HyperparameterProxy('rho')
+    eps = optimizer.HyperparameterProxy('eps')
+
     def create_update_rule(self):
         return AdaDeltaRule(self.hyperparam)

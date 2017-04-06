@@ -625,6 +625,30 @@ class GradientMethod(Optimizer):
         raise NotImplementedError
 
 
+class HyperparameterProxy(object):
+
+    """Property that acts as an alias to an attribute of the hyperparameter.
+
+    This class is used to define a property of an implementation of
+    :class:`GradientMethod` that acts as an alias to an attribute of the
+    hyperparameter.
+
+    Args:
+        attr_name (str): Name of the attribute of the hyperparameter.
+
+    """
+
+    def __init__(self, attr_name):
+        self._attr_name = attr_name
+        self.__doc__ = 'Alias to ``self.hyperparam.{}``'.format(attr_name)
+
+    def __get__(self, obj, type=None):
+        return getattr(obj.hyperparam, self._attr_name)
+
+    def __set__(self, obj, value):
+        setattr(obj.hyperparam, self._attr_name, value)
+
+
 class WeightDecay(object):
 
     """Optimizer/UpdateRule hook function for weight decay regularization.
