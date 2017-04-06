@@ -351,7 +351,7 @@ Actual: {0}'''.format(type(data))
             stats = stats_msg.format(float(xp.mean(self.data)),
                                      float(xp.std(self.data)))
 
-        return msg.format(summary=self.summary(), volatile=self.volatile,
+        return msg.format(summary=self.summary(),
                           grad=grad, shape=self.data.shape,
                           background=type(self.data),
                           dtype=self.data.dtype, device=device,
