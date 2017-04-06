@@ -68,12 +68,13 @@ def variable_repr(var):
     else:
         arr = var.data.get()
 
+    if var.name:
+        prefix = 'variable ' + var.name
+    else:
+        prefix = 'variable'
+
     if arr.size > 0 or arr.shape == (0,):
-        if var.name:
-            prefix = 'variable ' + var.name + '('
-        else:
-            prefix = 'variable('
-        lst = numpy.array2string(arr, None, None, None, ', ', prefix)
+        lst = numpy.array2string(arr, None, None, None, ', ', prefix + '(')
     else:  # show zero-length shape unless it is (0,)
         lst = '[], shape=%s' % (repr(arr.shape),)
         if var.name:
