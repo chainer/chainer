@@ -1,3 +1,5 @@
+import numpy
+
 from chainer.functions.connection import deconvolution_2d
 from chainer import initializers
 from chainer import link
