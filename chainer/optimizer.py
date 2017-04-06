@@ -237,7 +237,9 @@ class UpdateRule(object):
         """Serializes the update rule state.
 
         Be careful that this method only saves/loads the state of the update
-        rule.
+        rule. The parameters of the target link is not saved/loaded by this
+        method, and so you need to serialize the target link separately if you
+        want to fully recover the training state including parameters.
 
         Args:
             serializer (~chainer.AbstractSerializer): Serializer object.
@@ -294,10 +296,10 @@ class Optimizer(object):
     Optimizer instance also supports *hook functions*. Hook function is
     registered by the :meth:`add_hook` method. Each hook function is called
     in registration order in advance of the actual parameter update. If the
-    hook function has an attribute ``call_for_each_param`` of a truth value,
-    the hook function is used as a hook function of all update rules (i.e., it
-    is invoked for every parameter by passing the corresponding update rule and
-    the parameter).
+    hook function has an attribute ``call_for_each_param`` and its value is
+    ``True``, the hook function is used as a hook function of all update rules
+    (i.e., it is invoked for every parameter by passing the corresponding
+    update rule and the parameter).
 
     Attributes:
         target: Target link object. It is set by the :meth:`setup` method.
@@ -534,7 +536,7 @@ class GradientMethod(Optimizer):
 
     This class uses :class:`~chainer.UpdateRule` to manage the update rule of
     each parameter. A child class of GradientMethod should override
-    :meth:`setup_update_rule` to set up the default update rule to each
+    :meth:`create_update_rule` to create the default update rule of each
     parameter.
 
     .. note::
