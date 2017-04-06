@@ -1086,6 +1086,8 @@ class TestUnnamedVariableToString(unittest.TestCase):
      'str': 'variable x([[ 0.  1.]\n            [ 2.  3.]])'},
     {'x_shape': (), 'dtype': np.float32,
      'repr': 'variable x(0.0)', 'str': 'variable x(0.0)'},
+    {'x_shape': (0, 0), 'dtype': np.float32,
+     'repr': 'variable([], shape=(0, 0))', 'str': 'variable([])'},
 )
 class TestNamedVariableToString(unittest.TestCase):
 
