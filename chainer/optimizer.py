@@ -363,9 +363,22 @@ class GradientMethod(Optimizer):
     - :meth:`update_one` or both :meth:`update_one_cpu` and
       :meth:`update_one_gpu`
 
+    This class also provides :attr:`hyperparam`, which is the hyperparameter
+    used as the default configuration of each update rule. All built-in
+    gradient method implementations also provide proxy properties that act
+    as aliases to the attributes of :attr:`hyperparam`. It is recommended to
+    provide such an alias to each attribute. It can be done by only adding one
+    line for each attribute using :class:`HyperparameterProxy`.
+
     .. note::
        It is recommended to call :meth:`use_cleargrads` after creating a
        :class:`GradientMethod` object for efficiency.
+
+    Attributes:
+        hyperparam (Hyperparameter): The hyperparameter of the gradient
+            method. It is used as the default configuration of each update
+            rule (i.e., the hyperparameter of each update rule refers this
+            hyperparameter as its parent).
 
     """
 
