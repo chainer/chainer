@@ -469,15 +469,6 @@ cudnnStatus_t cudnnFindConvolutionBackwardDataAlgorithmEx(...) {
 #endif // #if defined(CUPY_NO_CUDA) || (CUDNN_VERSION < 5000)
 
 
-#if defined(CUPY_NO_CUDA) || (CUDNN_VERSION < 6000)
-// ***_v4 functions are not declared in cuDNN v2, v3, v4 and v5.
-// Following definitions are for compatibility with cuDNN v6.
-
-#define cudnnSetConvolution2dDescriptor_v4 cudnnSetConvolution2dDescriptor
-
-#endif // #if defined(CUPY_NO_CUDA) || (CUDNN_VERSION < 6000)
-
-
 #if !defined(CUPY_NO_CUDA) && (CUDNN_VERSION >= 5000)
 // Some functions are renamed in cuDNN v5.
 // Following definitions are for compatibility with cuDNN v5 and higher.
