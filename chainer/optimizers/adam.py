@@ -113,3 +113,9 @@ class Adam(optimizer.GradientMethod):
 
     def create_update_rule(self):
         return AdamRule(self.hyperparam)
+
+    @property
+    def lr(self):
+        fix1 = 1. - self.hyperparam.beta1 ** self.t
+        fix2 = 1. - self.hyperparam.beta2 ** self.t
+        return self.hyperparam.alpha * math.sqrt(fix2) / fix1
