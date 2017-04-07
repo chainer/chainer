@@ -5,10 +5,26 @@ from chainer import function
 from chainer.utils import type_check
 
 
+def _as_mat(x, n_batch_axes):
+    if x.ndim == 2:
+        return x
+    elif n_batch_axes < 1:
+        raise ValueError('n_batch_axes should be greater than 0 but {} '
+                         'was given.'.format(n_batch_axes))
+    elif n_batch_axes == 1:
+        return x.reshape(len(x), -1)
+    elif n_batch_axes < x.ndim:
+        x.reshape(x.shape[:n_batch_axes] + (-1,))
+    else:
+        raise ValueError('n_batch_axes should be less than x.ndim but {} '
+                         'was given.'.format(n_batch_axes))
+
+
 class HuberLoss(function.Function):
 
-    def __init__(self, delta):
+    def __init__(self, delta, n_batch_axes=1):
         self.delta = delta
+        self.n_batch_axes = n_batch_axes
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 2)
@@ -36,7 +52,7 @@ class HuberLoss(function.Function):
         return gx, -gx
 
 
-def huber_loss(x, t, delta):
+def huber_loss(x, t, delta, n_batch_axes=1):
     """Loss function which is less sensitive to outliers in data than MSE.
 
         .. math::
@@ -66,4 +82,4 @@ def huber_loss(x, t, delta):
         `Huber loss - Wikipedia <https://en.wikipedia.org/wiki/Huber_loss>`_.
 
     """
-    return HuberLoss(delta=delta)(x, t)
+    return HuberLoss(delta=delta, n_batch_axes=n_batch_axes)(x, t)

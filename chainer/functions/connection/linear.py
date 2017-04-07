@@ -5,12 +5,13 @@ from chainer.utils import type_check
 def _as_mat(x, n_batch_axes):
     if x.ndim == 2:
         return x
-    if n_batch_axes == 1:
+    elif n_batch_axes == 1:
         return x.reshape(len(x), -1)
-    elif n_batch_axes < x.ndim:
-        x.reshape(x.shape[:n_batch_axes] + (-1,))
+    elif 1 < n_batch_axes < x.ndim:
+        return x.reshape(x.shape[:n_batch_axes] + (-1,))
     else:
-        raise ValueError('n_batch_axes should be less than x.ndim')
+        raise ValueError('n_batch_axes should be less than x.ndim and greater '
+                         'than 0 but {} was given.'.format(n_batch_axes))
 
 
 class LinearFunction(function.Function):
@@ -22,13 +23,14 @@ class LinearFunction(function.Function):
         n_in = in_types.size()
         type_check.expect(2 <= n_in, n_in <= 3)
         x_type, w_type = in_types[:2]
-
+        
         type_check.expect(
             x_type.dtype.kind == 'f',
             w_type.dtype.kind == 'f',
             x_type.ndim >= 2,
             w_type.ndim == 2,
-            type_check.prod(x_type.shape[1:]) == w_type.shape[1],
+            type_check.prod(x_type.shape[self._n_batch_axes:]) \
+                == w_type.shape[1],
         )
         if type_check.eval(n_in) == 3:
             b_type = in_types[2]

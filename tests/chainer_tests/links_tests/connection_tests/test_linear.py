@@ -16,31 +16,32 @@ from chainer.utils import type_check
 
 
 @testing.parameterize(*testing.product({
-    'in_shape': [(3,), (3, 2, 2)],
+    'in_shape': [{'shape': (4, 3), 'n_batch_axes': 1},
+                 {'shape': (4, 3, 2, 2), 'n_batch_axes': 1},
+                 {'shape': (4, 3, 2, 2), 'n_batch_axes': 2}],
     'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'W_dtype': [numpy.float16, numpy.float32, numpy.float64],
-    'n_batch_axes': [1, 2]
 }))
 class TestLinear(unittest.TestCase):
 
     out_size = 2
 
     def setUp(self):
-        in_size = numpy.prod(self.in_shape)
+        x_shape = self.in_shape['shape']
+        n_batch_axes = self.in_shape['n_batch_axes']
+        in_size = numpy.prod(x_shape[n_batch_axes:])
         self.link = links.Linear(
             in_size, self.out_size,
             initialW=chainer.initializers.Normal(1, self.W_dtype),
-            initial_bias=chainer.initializers.Normal(1, self.x_dtype),
-            n_batch_axes=self.n_batch_axes)
+            initial_bias=chainer.initializers.Normal(1, self.x_dtype))
         W = self.link.W.data
         b = self.link.b.data
         self.link.cleargrads()
 
-        x_shape = (4,) + self.in_shape
         self.x = numpy.random.uniform(-1, 1, x_shape).astype(self.x_dtype)
         self.gy = numpy.random.uniform(
             -1, 1, (4, self.out_size)).astype(self.x_dtype)
-        self.y = self.x.reshape(4, -1).dot(W.T) + b
+        self.y = self.x.reshape(x_shape[:n_batch_axes] + (-1,)).dot(W.T) + b
         self.check_forward_options = {}
         self.check_backward_options = {}
         if self.x_dtype == numpy.float16:
@@ -51,7 +52,7 @@ class TestLinear(unittest.TestCase):
 
     def check_forward(self, x_data):
         x = chainer.Variable(x_data)
-        y = self.link(x)
+        y = self.link(x, n_batch_axes=self.in_shape['n_batch_axes'])
         self.assertEqual(y.data.dtype, self.x_dtype)
         testing.assert_allclose(self.y, y.data, **self.check_forward_options)
 
