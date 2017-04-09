@@ -233,7 +233,7 @@ class VariableNode(object):
         _check_grad_type(func, var, g)
         self._grad = g
 
-        
+
 class Variable(object):
 
     """Array with a structure to keep track of computation.
