@@ -1,17 +1,17 @@
 import copy
 import inspect
+import re
 import unittest
 
+import mock
 import numpy as np
+import six
 
 import chainer
 from chainer import cuda
 from chainer import initializers
 from chainer import testing
 from chainer.testing import attr
-
-import re
-import six
 
 
 class Constant(chainer.Function):
@@ -766,6 +766,22 @@ class TestUninitializedVariable(unittest.TestCase):
         self.assertEqual(int(x.data.device), 1)
         self.assertEqual(int(x.grad.device), 1)
         cp.testing.assert_array_equal(x.grad, self.b)
+
+    def test_update_rule(self):
+        update_rule = mock.MagicMock()
+        g = self.a.copy()
+        x = chainer.Variable(self.a, grad=g)
+        x.update_rule = update_rule
+        x.update()
+        self.assertEqual(update_rule.update.call_count, 1)
+        self.assertEqual(update_rule.update.call_args_list[0], [(x,), {}])
+
+    def test_update_rule_without_grad(self):
+        update_rule = mock.MagicMock()
+        x = chainer.Variable(self.a)
+        x.update_rule = update_rule
+        x.update()
+        self.assertEqual(update_rule.update.call_count, 1)
 
 
 class TestDebugPrint(unittest.TestCase):
