@@ -77,9 +77,7 @@ def variable_repr(var):
         lst = numpy.array2string(arr, None, None, None, ', ', prefix + '(')
     else:  # show zero-length shape unless it is (0,)
         lst = '[], shape=%s' % (repr(arr.shape),)
-        if var.name:
-            lst = var.name + lst
-    return '%s(%s)' % (prefix[:-1], lst)
+    return '%s(%s)' % (prefix, lst)
 
 
 def variable_str(var):
