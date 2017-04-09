@@ -229,6 +229,16 @@ def batch_matmul(a, b, transa=False, transb=False):
     return BatchMatMul(transa=transa, transb=transb)(a, b)
 
 
+def _numpy_like_matmul(a, b, xp):
+    if xp is numpy:
+        if a.ndim <= 2:
+            return numpy.dot(a, b)
+        else:
+            return numpy.einsum('...ij,...jk->...ik', a, b)
+    else:
+        return xp.matmul(a, b)
+
+
 class NumpyLikeMatMul(function.Function):
 
     def __init__(self, transa=False, transb=False):
@@ -262,13 +272,7 @@ class NumpyLikeMatMul(function.Function):
             a = a.swapaxes(-1, -2)
         if self.transb and b.ndim != 1:
             b = b.swapaxes(-1, -2)
-        if xp is numpy:
-            if a.ndim <= 2:
-                y = numpy.dot(a, b)
-            else:
-                y = numpy.einsum('...ij,...jk->...ik', a, b)
-        else:
-            y = xp.matmul(a, b)
+        y = _numpy_like_matmul(a, b, xp)
         return utils.force_array(y),
 
     def backward(self, x, gy):
@@ -284,7 +288,7 @@ class NumpyLikeMatMul(function.Function):
         if gy[0].ndim == 0:
             ga = gy[0] * b
         else:
-            ga = xp.matmul(gy[0], b)
+            ga = _numpy_like_matmul(gy[0], b, xp)
         if self.transa and a.ndim != 1:
             ga = ga.swapaxes(-1, -2)
         ga = ga.reshape(a_shape)
@@ -292,7 +296,7 @@ class NumpyLikeMatMul(function.Function):
         if gy[0].ndim == 0:
             gb = a * gy[0]
         else:
-            gb = xp.matmul(a, gy[0])
+            gb = _numpy_like_matmul(a, gy[0], xp)
         if self.transb and a.ndim != 1:
             gb = gb.swapaxes(-1, -2)
         gb = gb.reshape(b_shape)
