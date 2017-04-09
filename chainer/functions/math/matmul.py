@@ -262,7 +262,13 @@ class NumpyLikeMatMul(function.Function):
             a = a.swapaxes(-1, -2)
         if self.transb and b.ndim != 1:
             b = b.swapaxes(-1, -2)
-        y = xp.matmul(a, b)
+        if xp is numpy:
+            if a.ndim <= 2:
+                y = numpy.dot(a, b)
+            else:
+                y = numpy.einsum('...ij,...jk->...ik', a, b)
+        else:
+            y = xp.matmul(a, b)
         return utils.force_array(y),
 
     def backward(self, x, gy):

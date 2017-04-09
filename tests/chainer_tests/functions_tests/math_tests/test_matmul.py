@@ -348,7 +348,10 @@ class TestNumpyLikeMatMul(_TestMatMul):
             x2 = self.x2
         else:
             x2 = self.x2.swapaxes(-1, -2) if self.transb else self.x2
-        self.forward_answer = numpy.matmul(x1, x2)
+        if x1.ndim <= 2:
+            self.forward_answer = numpy.dot(x1, x2)
+        else:
+            self.forward_answer = numpy.einsum('...ij,...jk->...ik', x1, x2)
 
 
 class TestNumpyLikeMatMulInvalid(unittest.TestCase):
