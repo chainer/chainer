@@ -51,6 +51,8 @@ def _test_stop_trigger(self, updater, trigger, expecteds):
     trainer = training.Trainer(updater)
     for expected in expecteds:
         self.assertEqual(trigger(trainer), expected)
+        if expected:
+            break
         updater.update()
 
 
