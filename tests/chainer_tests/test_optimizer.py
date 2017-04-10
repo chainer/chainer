@@ -448,10 +448,6 @@ class TestGradientMethod(unittest.TestCase):
         self.target[1].param.update_rule.update.assert_called_once_with(
             self.target[1].param)
 
-        self.optimizer.zero_grads()
-        self.assertTrue((cuda.to_cpu(self.target[0].param.grad) == 0).all())
-        self.assertTrue((cuda.to_cpu(self.target[1].param.grad) == 0).all())
-
     def test_update_cpu(self):
         self.setup_cpu()
         self.check_update()
@@ -460,87 +456,6 @@ class TestGradientMethod(unittest.TestCase):
     def test_update_gpu(self):
         self.setup_gpu()
         self.check_update()
-
-    def check_accumulate_grads_from_cpu(self):
-        self.optimizer.accumulate_grads([np.arange(3)] * 2)
-        grad = self.target[0].param.grad
-        self.assertTrue((cuda.to_cpu(grad) == np.arange(3) * 2).all())
-
-    @attr.gpu
-    def check_accumulate_grads_from_gpu(self, src_id):
-        with cuda.Device(src_id):
-            self.optimizer.accumulate_grads([cuda.cupy.arange(3)] * 2)
-        grad = self.target[0].param.grad
-        self.assertTrue((cuda.to_cpu(grad) == np.arange(3) * 2).all())
-
-    def test_accumulate_grads_cpu_to_cpu(self):
-        self.setup_cpu()
-        self.check_accumulate_grads_from_cpu()
-
-    @attr.gpu
-    def test_accumulate_grads_cpu_to_gpu(self):
-        self.setup_gpu()
-        self.check_accumulate_grads_from_cpu()
-
-    @attr.gpu
-    def test_accumulate_grads_gpu_to_cpu(self):
-        self.setup_cpu()
-        self.check_accumulate_grads_from_gpu(cuda.Device().id)
-
-    @attr.gpu
-    def test_accumulate_grads_gpu_to_gpu(self):
-        device_id = cuda.Device().id
-        self.setup_gpu(device_id)
-        self.check_accumulate_grads_from_gpu(device_id)
-
-    @attr.multi_gpu(2)
-    def test_accumulate_grads_multigpu(self):
-        self.setup_gpu(0)
-        self.check_accumulate_grads_from_gpu(1)
-
-    def check_compute_grads_norm(self):
-        norm = self.optimizer.compute_grads_norm()
-        self.assertAlmostEqual(norm, np.sqrt(10))
-
-    def test_compute_grads_norm_cpu(self):
-        self.setup_cpu()
-        self.check_compute_grads_norm()
-
-    @attr.gpu
-    def test_compute_grads_norm_gpu(self):
-        self.setup_gpu()
-        self.check_compute_grads_norm()
-
-    def check_weight_decay(self):
-        self.optimizer.weight_decay(0.1)
-        g = cuda.to_cpu(self.target[0].param.grad)
-        expect = np.array([0.0, 1.1, 2.2], dtype=np.float32)
-        testing.assert_allclose(g, expect)
-
-    def test_weight_decay_cpu(self):
-        self.setup_cpu()
-        self.check_weight_decay()
-
-    @attr.gpu
-    def test_weight_decay_gpu(self):
-        self.setup_gpu()
-        self.check_weight_decay()
-
-    def check_clip_grads(self):
-        self.optimizer.clip_grads(1.0)
-        g0 = cuda.to_cpu(self.target[0].param.grad)
-        g1 = cuda.to_cpu(self.target[1].param.grad)
-        sqnorm = g0.dot(g0) + g1.dot(g1)
-        self.assertAlmostEqual(sqnorm, 1.0, delta=1.0e-5)
-
-    def test_clip_grads_cpu(self):
-        self.setup_cpu()
-        self.check_clip_grads()
-
-    @attr.gpu
-    def test_clip_grads_gpu(self):
-        self.setup_gpu()
-        self.check_clip_grads()
 
 
 class DummyOptimizer(chainer.GradientMethod):
