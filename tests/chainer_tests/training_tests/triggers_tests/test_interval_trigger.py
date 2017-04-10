@@ -46,22 +46,6 @@ class DummyUpdater(training.Updater):
         self.iteration = serializer('iteration', self.iteration)
 
 
-def _test_trigger(self, updater, trigger, expecteds):
-    trainer = training.Trainer(updater)
-    for i, expected in enumerate(expecteds):
-        updater.update()
-        self.assertEqual(trigger(trainer), expected)
-
-
-def _test_stop_trigger(self, updater, trigger, expecteds):
-    trainer = training.Trainer(updater)
-    for expected in expecteds:
-        self.assertEqual(trigger(trainer), expected)
-        if expected:
-            break
-        updater.update()
-
-
 @testing.parameterize(*testing.product_dict([
     # iteration
     {
