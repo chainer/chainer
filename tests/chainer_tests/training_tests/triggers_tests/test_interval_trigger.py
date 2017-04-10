@@ -93,18 +93,20 @@ class TestTrigger(unittest.TestCase):
         temp_dir = tempfile.mkdtemp()
         temp_file = os.path.join(temp_dir, 'temp.npz')
 
-        updater = DummyUpdater(self.iters_per_epoch)
-        serializers.save_npz(temp_file, updater)
+        for resume in range(len(self.expected)):
+            updater = DummyUpdater(self.iters_per_epoch)
+            trainer = training.Trainer(updater)
+            for expected in self.expected[:resume]:
+                updater.update()
+                self.assertEqual(self.trigger(trainer), expected)
+            serializers.save_npz(temp_file, updater)
 
-        for expected in self.expected:
             updater = DummyUpdater(self.iters_per_epoch)
             serializers.load_npz(temp_file, updater)
             trainer = training.Trainer(updater)
-
-            updater.update()
-            self.assertEqual(self.trigger(trainer), expected)
-
-            serializers.save_npz(temp_file, updater)
+            for expected in self.expected[resume:]:
+                updater.update()
+                self.assertEqual(self.trigger(trainer), expected)
 
 
 testing.run_module(__name__, __file__)
