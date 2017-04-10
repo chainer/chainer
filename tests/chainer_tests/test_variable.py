@@ -1,6 +1,7 @@
 import copy
 import inspect
 import re
+import sys
 import unittest
 
 import mock
@@ -1068,8 +1069,6 @@ class TestTranspose(unittest.TestCase):
      'str': 'variable([[ 0.  1.]\n          [ 2.  3.]])'},
     {'x_shape': (3,),  'dtype': np.float32,
      'repr': 'variable([ 0.,  1.,  2.])', 'str': 'variable([ 0.  1.  2.])'},
-    {'x_shape': (),  'dtype': np.float32,
-     'repr': 'variable(0.0)', 'str': 'variable(0.0)'},
 )
 class TestUnnamedVariableToString(unittest.TestCase):
 
@@ -1096,14 +1095,41 @@ class TestUnnamedVariableToString(unittest.TestCase):
         self.assertEqual(str(self.x), self.str)
 
 
+class TestUnnamedVariableDim2Size1ToString(unittest.TestCase):
+
+    def setUp(self):
+        x = np.empty((0, 0))
+        x = x.astype(np.float32)
+        self.x = chainer.Variable(x)
+        if sys.version_info > (3,):
+            self.repr = 'variable([], shape=(0, 0))'
+        else:
+            self.repr = 'variable([], shape=(0L, 0L))'
+        self.str = 'variable([])'
+
+    def test_repr_cpu(self):
+        self.assertEqual(repr(self.x), self.repr)
+
+    def test_str_cpu(self):
+        self.assertEqual(str(self.x), self.str)
+
+    @attr.gpu
+    def test_repr_gpu(self):
+        self.x.to_gpu()
+        self.assertEqual(repr(self.x), self.repr)
+
+    @attr.gpu
+    def test_str_gpu(self):
+        self.x.to_gpu()
+        self.assertEqual(str(self.x), self.str)
+
+
 @testing.parameterize(
     {'x_shape': (2, 2,), 'dtype': np.float32,
      'repr': 'variable x([[ 0.,  1.],\n            [ 2.,  3.]])',
      'str': 'variable x([[ 0.  1.]\n            [ 2.  3.]])'},
     {'x_shape': (), 'dtype': np.float32,
      'repr': 'variable x(0.0)', 'str': 'variable x(0.0)'},
-    {'x_shape': (0, 0), 'dtype': np.float32,
-     'repr': 'variable x([], shape=(0, 0))', 'str': 'variable x([])'},
 )
 class TestNamedVariableToString(unittest.TestCase):
 
@@ -1128,5 +1154,35 @@ class TestNamedVariableToString(unittest.TestCase):
     def test_str_gpu(self):
         self.x.to_gpu()
         self.assertEqual(str(self.x), self.str)
+
+
+class TestNamedVariableDim2Size1ToString(unittest.TestCase):
+
+    def setUp(self):
+        x = np.empty((0, 0))
+        x = x.astype(np.float32)
+        self.x = chainer.Variable(x, name='x')
+        if sys.version_info > (3,):
+            self.repr = 'variable x([], shape=(0, 0))'
+        else:
+            self.repr = 'variable x([], shape=(0L, 0L))'
+        self.str = 'variable x([])'
+
+    def test_named_repr(self):
+        self.assertEqual(repr(self.x), self.repr)
+
+    def test_named_str(self):
+        self.assertEqual(str(self.x), self.str)
+
+    @attr.gpu
+    def test_repr_gpu(self):
+        self.x.to_gpu()
+        self.assertEqual(repr(self.x), self.repr)
+
+    @attr.gpu
+    def test_str_gpu(self):
+        self.x.to_gpu()
+        self.assertEqual(str(self.x), self.str)
+
 
 testing.run_module(__name__, __file__)
