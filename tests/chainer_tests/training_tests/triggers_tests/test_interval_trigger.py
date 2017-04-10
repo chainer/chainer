@@ -49,42 +49,42 @@ class DummyUpdater(training.Updater):
 @testing.parameterize(*testing.product_dict([
     # iteration
     {
-        'iters_per_epoch': 5, 'interval': (2, 'iteration'),
+        'iters_per_epoch': 5, 'interval': (2, 'iteration'), 'resume': 4,
         'expected': [False, True, False, True, False, True, False]},
     # basic epoch
     {
-        'iters_per_epoch': 1, 'interval': (3, 'epoch'),
+        'iters_per_epoch': 1, 'interval': (3, 'epoch'), 'resume': 4,
         'expected': [False, False, True, False, False, True, False]},
     # fractional epoch
     {
-        'iters_per_epoch': 2, 'interval': (1.5, 'epoch'),
+        'iters_per_epoch': 2, 'interval': (1.5, 'epoch'), 'resume': 4,
         'expected': [False, False, True, False, False, True, False]},
     # unaligned epoch
     {
-        'iters_per_epoch': 2.5, 'interval': (1, 'epoch'),
+        'iters_per_epoch': 2.5, 'interval': (1, 'epoch'), 'resume': 3,
         'expected': [False, False, True, False, True, False, False]},
     # tiny epoch
     {
-        'iters_per_epoch': 0.5, 'interval': (1, 'epoch'),
+        'iters_per_epoch': 0.5, 'interval': (1, 'epoch'), 'resume': 4,
         'expected': [True, True, True, True, True, True, True]},
 ]))
 class TestTrigger(unittest.TestCase):
 
-    def setUp(self):
-        self.trigger = training.trigger.IntervalTrigger(*self.interval)
-
     def test_trigger(self):
+        trigger = training.trigger.IntervalTrigger(*self.interval)
         updater = DummyUpdater(self.iters_per_epoch)
         trainer = training.Trainer(updater)
+
         for expected in self.expected:
             updater.update()
-            self.assertEqual(self.trigger(trainer), expected)
+            self.assertEqual(trigger(trainer), expected)
 
     def test_stop_trigger(self):
+        trigger = training.trigger.IntervalTrigger(*self.interval)
         updater = DummyUpdater(self.iters_per_epoch)
         trainer = training.Trainer(updater)
         for expected in [False] + self.expected:
-            self.assertEqual(self.trigger(trainer), expected)
+            self.assertEqual(trigger(trainer), expected)
             if expected:
                 break
             updater.update()
@@ -93,20 +93,21 @@ class TestTrigger(unittest.TestCase):
         temp_dir = tempfile.mkdtemp()
         temp_file = os.path.join(temp_dir, 'temp.npz')
 
-        for resume in range(len(self.expected)):
-            updater = DummyUpdater(self.iters_per_epoch)
-            trainer = training.Trainer(updater)
-            for expected in self.expected[:resume]:
-                updater.update()
-                self.assertEqual(self.trigger(trainer), expected)
-            serializers.save_npz(temp_file, updater)
+        trigger = training.trigger.IntervalTrigger(*self.interval)
+        updater = DummyUpdater(self.iters_per_epoch)
+        trainer = training.Trainer(updater)
+        for expected in self.expected[:self.resume]:
+            updater.update()
+            self.assertEqual(trigger(trainer), expected)
+        serializers.save_npz(temp_file, updater)
 
-            updater = DummyUpdater(self.iters_per_epoch)
-            serializers.load_npz(temp_file, updater)
-            trainer = training.Trainer(updater)
-            for expected in self.expected[resume:]:
-                updater.update()
-                self.assertEqual(self.trigger(trainer), expected)
+        trigger = training.trigger.IntervalTrigger(*self.interval)
+        updater = DummyUpdater(self.iters_per_epoch)
+        serializers.load_npz(temp_file, updater)
+        trainer = training.Trainer(updater)
+        for expected in self.expected[self.resume:]:
+            updater.update()
+            self.assertEqual(trigger(trainer), expected)
 
 
 testing.run_module(__name__, __file__)
