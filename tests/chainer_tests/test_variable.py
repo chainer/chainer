@@ -1,5 +1,6 @@
 import copy
 import inspect
+import platform
 import re
 import sys
 import unittest
@@ -1101,10 +1102,11 @@ class TestUnnamedVariableDim2Size1ToString(unittest.TestCase):
         x = np.empty((0, 0))
         x = x.astype(np.float32)
         self.x = chainer.Variable(x)
-        if sys.version_info > (3,):
-            self.repr = 'variable([], shape=(0, 0))'
-        else:
+        if (sys.version_info < (3,) and sys.maxsize > 2**32 and
+                platform.system() == 'Windows'):
             self.repr = 'variable([], shape=(0L, 0L))'
+        else:
+            self.repr = 'variable([], shape=(0, 0))'
         self.str = 'variable([])'
 
     def test_repr_cpu(self):
@@ -1162,10 +1164,11 @@ class TestNamedVariableDim2Size1ToString(unittest.TestCase):
         x = np.empty((0, 0))
         x = x.astype(np.float32)
         self.x = chainer.Variable(x, name='x')
-        if sys.version_info > (3,):
-            self.repr = 'variable x([], shape=(0, 0))'
-        else:
+        if (sys.version_info < (3,) and sys.maxsize > 2**32 and
+                platform.system() == 'Windows'):
             self.repr = 'variable x([], shape=(0L, 0L))'
+        else:
+            self.repr = 'variable x([], shape=(0, 0))'
         self.str = 'variable x([])'
 
     def test_named_repr(self):
