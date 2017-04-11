@@ -539,8 +539,8 @@ def get_array(arg):
     Args:
         arg (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`):
-            If `arg` type is :class:`chainer.Variable`, it returns `arg.data`.
-            Otherwise it returns `arg`.
+            If ``arg`` type is :class:`chainer.Variable`, it returns
+            ``arg.data``. Otherwise it returns ``arg``.
 
     Returns:
         numpy.ndarray or cupy.ndarray: An ndarray data.

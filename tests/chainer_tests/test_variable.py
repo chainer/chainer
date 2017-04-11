@@ -844,11 +844,16 @@ class TestGetArray(unittest.TestCase):
     def test_variable(self):
         x = np.zeros((10,))
         v = chainer.Variable(x)
-        self.assertIsInstance(chainer.get_array(v), x)
+        self.assertIs(chainer.get_array(v), x)
 
-    def test_ndarray(self):
+    def test_numpy_ndarray(self):
         x = np.zeros((10,))
-        self.assertIsInstance(chainer.get_array(x), x)
+        self.assertIs(chainer.get_array(x), x)
+
+    @attr.gpu
+    def test_cupy_ndarray(self):
+        x = cuda.cupy.zeros((10,))
+        self.assertIs(chainer.get_array(x), x)
 
 
 testing.run_module(__name__, __file__)
