@@ -529,3 +529,22 @@ Actual: {0}'''.format(type(data))
         return super(Variable, self).__hash__()
 
     __array_priority__ = 200
+
+
+def get_array(arg):
+    """Returns ndarray data.
+
+    This method is helper function for :class:`~chainer.Variable`.
+
+    Args:
+        arg (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`):
+            If `arg` type is :class:`chainer.Variable`, it returns `arg.data`.
+            Otherwise it returns `arg`.
+
+    Returns:
+        numpy.ndarray or cupy.ndarray: An ndarray data.
+    """
+    if isinstance(arg, Variable):
+        return arg.data
+    return arg

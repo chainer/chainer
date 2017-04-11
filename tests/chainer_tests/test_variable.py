@@ -839,4 +839,16 @@ class TestTranspose(unittest.TestCase):
         self.check_backward(cuda.to_gpu(self.x))
 
 
+class TestGetArray(unittest.TestCase):
+
+    def test_variable(self):
+        x = np.zeros((10,))
+        v = chainer.Variable(x)
+        self.assertIsInstance(chainer.get_array(v), x)
+
+    def test_ndarray(self):
+        x = np.zeros((10,))
+        self.assertIsInstance(chainer.get_array(x), x)
+
+
 testing.run_module(__name__, __file__)
