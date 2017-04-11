@@ -8,6 +8,7 @@ from chainer.links.connection import convolution_2d  # NOQA
 from chainer.links.connection import convolution_nd  # NOQA
 from chainer.links.connection import deconvolution_2d  # NOQA
 from chainer.links.connection import deconvolution_nd  # NOQA
+from chainer.links.connection import depthwise_convolution_2d  # NOQA
 from chainer.links.connection import dilated_convolution_2d  # NOQA
 from chainer.links.connection import embed_id  # NOQA
 from chainer.links.connection import gru  # NOQA
@@ -21,6 +22,7 @@ from chainer.links.connection import n_step_lstm  # NOQA
 from chainer.links.connection import parameter  # NOQA
 from chainer.links.connection import peephole  # NOQA
 from chainer.links.connection import scale  # NOQA
+from chainer.links.connection import separable_convolution_2d # NQQA
 from chainer.links.connection import zoneoutlstm  # NOQA
 from chainer.links.loss import black_out  # NOQA
 from chainer.links.loss import crf1d  # NOQA
@@ -41,6 +43,7 @@ from chainer.links.connection.convolution_2d import Convolution2D  # NOQA
 from chainer.links.connection.convolution_nd import ConvolutionND  # NOQA
 from chainer.links.connection.deconvolution_2d import Deconvolution2D  # NOQA
 from chainer.links.connection.deconvolution_nd import DeconvolutionND  # NOQA
+from chainer.links.connection.depthwise_convolution_2d import DepthwiseConvolution2D  # NOQA
 from chainer.links.connection.dilated_convolution_2d import DilatedConvolution2D  # NOQA
 from chainer.links.connection.embed_id import EmbedID  # NOQA
 from chainer.links.connection.gru import GRU  # NOQA
@@ -56,6 +59,7 @@ from chainer.links.connection.n_step_lstm import NStepLSTM  # NOQA
 from chainer.links.connection.parameter import Parameter  # NOQA
 from chainer.links.connection.peephole import StatefulPeepholeLSTM  # NOQA
 from chainer.links.connection.scale import Scale  # NOQA
+from chainer.links.connection.separable_convolution_2d import SeparableConvolution2D # NQQA
 from chainer.links.connection.zoneoutlstm import StatefulZoneoutLSTM  # NOQA
 from chainer.links.loss.black_out import BlackOut  # NOQA
 from chainer.links.loss.crf1d import CRF1d  # NOQA

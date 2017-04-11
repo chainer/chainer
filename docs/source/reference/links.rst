@@ -102,6 +102,11 @@ Scale
 .. autoclass:: Scale
    :members:
 
+SeparableConvolutionND
+~~~~~~~~~~~~~~~~~~~~~~
+.. autoclass:: SeparableConvolutionND
+   :members:
+
 StatefulGRU
 ~~~~~~~~~~~
 .. autoclass:: StatefulGRU
