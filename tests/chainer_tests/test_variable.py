@@ -1096,7 +1096,7 @@ class TestUnnamedVariableToString(unittest.TestCase):
         self.assertEqual(str(self.x), self.str)
 
 
-class TestUnnamedVariableDim2Size1ToString(unittest.TestCase):
+class TestUnnamedVariableDim2Size0ToString(unittest.TestCase):
 
     def setUp(self):
         x = np.empty((0, 0))
@@ -1158,7 +1158,7 @@ class TestNamedVariableToString(unittest.TestCase):
         self.assertEqual(str(self.x), self.str)
 
 
-class TestNamedVariableDim2Size1ToString(unittest.TestCase):
+class TestNamedVariableDim2Size0ToString(unittest.TestCase):
 
     def setUp(self):
         x = np.empty((0, 0))
