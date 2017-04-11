@@ -2,6 +2,7 @@
 import collections
 import gzip
 import re
+import os
 
 import numpy
 import progressbar
@@ -25,13 +26,16 @@ def open_file(path):
     if path.endswith('.gz'):
         return gzip.open(path)
     else:
-        return open(path)
-
+        # Find gzipped version of the file
+        gz = path + '.gz'
+        if os.path.exists(gz):
+            return open_file(gz)
+        else:
+            return open(path)
 
 def count_lines(path):
     with open_file(path) as f:
         return sum([1 for _ in f])
-
 
 def read_file(path):
     n_lines = count_lines(path)
