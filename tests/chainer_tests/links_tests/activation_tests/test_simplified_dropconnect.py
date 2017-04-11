@@ -45,7 +45,7 @@ class TestSimplifiedDropconnect(unittest.TestCase):
         W = self.link.W.data
         b = self.link.b.data
 
-        mask_shape = (4, ) + self.link.W.shape
+        mask_shape = (4,) + self.link.W.shape
         self.mask = gen_mask(self.ratio, mask_shape)
 
         W = (W * self.mask) * (1. / (1 - self.ratio))
@@ -179,6 +179,42 @@ class TestSimplifiedDropconnectParameterShapePlaceholder(unittest.TestCase):
         npz.load_npz(temp_file_path, lin2)
         w2 = lin2.W.data
         self.assertEqual((w1 == w2).all(), True)
+
+
+class TestSimplifiedDropconnectNotBatchwiseMask(unittest.TestCase):
+
+    in_shape = (3,)
+    out_size = 2
+    ratio = 0.5
+
+    def setUp(self):
+        in_size = numpy.prod(self.in_shape)
+
+        self.link = links.SimplifiedDropconnect(
+            in_size, self.out_size,
+            initialW=chainer.initializers.Normal(1, numpy.float32),
+            initial_bias=chainer.initializers.Normal(1, numpy.float32))
+        self.link.cleargrads()
+
+        x_shape = (4,) + self.in_shape
+        self.x = numpy.ones(x_shape).astype(numpy.float32)
+
+    def check_forward(self, x_data):
+        x = chainer.Variable(x_data)
+        y = self.link(x, False, True)
+
+        # check mask equality here.
+        self.assertTrue((y.data[0] == y.data[1]).all())
+        self.assertTrue((y.data[0] == y.data[2]).all())
+        self.assertTrue((y.data[0] == y.data[3]).all())
+
+    def test_forward_cpu(self):
+        self.check_forward(self.x)
+
+    @attr.gpu
+    def test_forward_gpu(self):
+        self.link.to_gpu()
+        self.check_forward(cuda.to_gpu(self.x))
 
 
 class TestInvalidSimplifiedDropconnect(unittest.TestCase):
