@@ -2,6 +2,7 @@
 
 import argparse
 import collections
+import os.path
 
 from nltk.corpus import comtrans
 from nltk.translate import bleu_score
@@ -168,6 +169,8 @@ def main():
                         help='Resume the training from snapshot')
     parser.add_argument('--unit', '-u', type=int, default=1024,
                         help='Number of units')
+    parser.add_argument('--input', '-i', type=str, default="wmt",
+                        help="Input directory")
     args = parser.parse_args()
 
     if False:
@@ -186,10 +189,11 @@ def main():
         test_data = data[:len(data) / 10]
         train_data = data[len(data) / 10:]
     else:
-        en_path = 'wmt/giga-fren.release2.fixed.en'
+        # Check file
+        en_path = os.path.join(args.input, 'giga-fren.release2.fixed.en')
         source_vocab = ['<eos>', '<unk>'] + europal.count_words(en_path)
         source_data = europal.make_dataset(en_path, source_vocab)
-        fr_path = 'wmt/giga-fren.release2.fixed.fr'
+        fr_path = os.path.join(args.input, 'giga-fren.release2.fixed.fr')
         target_vocab = ['<eos>', '<unk>'] + europal.count_words(fr_path)
         target_data = europal.make_dataset(fr_path, target_vocab)
         print('Original training data size: %d' % len(source_data))
@@ -197,9 +201,9 @@ def main():
                       if len(s) < 50 and len(t) < 50]
         print('Filtered training data size: %d' % len(train_data))
 
-        en_path = 'wmt/dev/newstest2013.en'
+        en_path = os.path.join(args.input, 'dev','newstest2013.en')
         source_data = europal.make_dataset(en_path, source_vocab)
-        fr_path = 'wmt/dev/newstest2013.fr'
+        fr_path = os.path.join(args.input, 'dev','newstest2013.fr')
         target_data = europal.make_dataset(fr_path, target_vocab)
         test_data = list(zip(source_data, target_data))
 
