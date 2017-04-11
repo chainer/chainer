@@ -71,13 +71,16 @@ class SimplifiedDropconnect(link.Link):
     def _initialize_params(self, in_size):
         self.W.initialize((self.out_size, in_size))
 
-    def __call__(self, x, train=True, mask=None):
+    def __call__(self, x, batchwise_mask=True, train=True, mask=None):
         """Applies the simplified dropconnect layer.
 
         Args:
             x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
                 Batch of input vectors. Its first dimension ``n`` is assumed
                 to be the *minibatch dimension*.
+            batchwise_mask (bool):
+                If ``True``, dropped value depends on each sample in
+                mini-batch.
             train (bool):
                 If ``True``, executes simplified dropconnect.
                 Otherwise, simplified dropconnect link works as a linear unit.
@@ -96,5 +99,6 @@ class SimplifiedDropconnect(link.Link):
         if mask is not None and 'mask' not in self.__dict__:
             self.add_persistent('mask', mask)
         return simplified_dropconnect.simplified_dropconnect(x, self.W, self.b,
-                                                             self.ratio, train,
-                                                             mask)
+                                                             self.ratio,
+                                                             batchwise_mask,
+                                                             train, mask)
