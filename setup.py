@@ -33,7 +33,7 @@ build_ext = chainer_setup_build.custom_build_ext
 
 setup(
     name='chainer',
-    version='1.22.0',
+    version='1.23.0',
     description='A flexible framework of neural networks',
     author='Seiya Tokui',
     author_email='tokui@preferred.jp',
