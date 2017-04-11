@@ -201,9 +201,9 @@ def main():
                       if len(s) < 50 and len(t) < 50]
         print('Filtered training data size: %d' % len(train_data))
 
-        en_path = os.path.join(args.input, 'dev','newstest2013.en')
+        en_path = os.path.join(args.input, 'dev', 'newstest2013.en')
         source_data = europal.make_dataset(en_path, source_vocab)
-        fr_path = os.path.join(args.input, 'dev','newstest2013.fr')
+        fr_path = os.path.join(args.input, 'dev', 'newstest2013.fr')
         target_data = europal.make_dataset(fr_path, target_vocab)
         test_data = list(zip(source_data, target_data))
 
