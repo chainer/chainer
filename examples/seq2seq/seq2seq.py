@@ -221,9 +221,7 @@ def main():
     optimizer = chainer.optimizers.Adam()
     optimizer.setup(model)
 
-    train_iter = chainer.iterators.SerialIterator(train_data,
-                                                  args.batchsize,
-                                                  shuffle=False)
+    train_iter = chainer.iterators.SerialIterator(train_data, args.batchsize)
     updater = training.StandardUpdater(
         train_iter, optimizer, converter=convert, device=args.gpu)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'))
