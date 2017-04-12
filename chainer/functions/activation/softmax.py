@@ -26,6 +26,7 @@ class Softmax(function.Function):
         type_check.expect(
             x_type.dtype.kind == 'f',
             x_type.ndim > 1,
+            self.axis < x_type.ndim
         )
 
     def forward(self, x):
