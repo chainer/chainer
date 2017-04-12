@@ -80,8 +80,7 @@ class TestTrigger(unittest.TestCase):
             updater.update()
 
     def test_resumed_trigger(self):
-        temp_dir = tempfile.mkdtemp()
-        temp_file = os.path.join(temp_dir, 'temp.npz')
+        temp_file = tempfile.NamedTemporaryFile()
 
         trigger = training.trigger.IntervalTrigger(*self.interval)
         updater = DummyUpdater(self.iters_per_epoch)
@@ -89,11 +88,11 @@ class TestTrigger(unittest.TestCase):
         for expected in self.expected[:self.resume]:
             updater.update()
             self.assertEqual(trigger(trainer), expected)
-        serializers.save_npz(temp_file, updater)
+        serializers.save_npz(temp_file.name, updater)
 
         trigger = training.trigger.IntervalTrigger(*self.interval)
         updater = DummyUpdater(self.iters_per_epoch)
-        serializers.load_npz(temp_file, updater)
+        serializers.load_npz(temp_file.name, updater)
         trainer = training.Trainer(updater)
         for expected in self.expected[self.resume:]:
             updater.update()
