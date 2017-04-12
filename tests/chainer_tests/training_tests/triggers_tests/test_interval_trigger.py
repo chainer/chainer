@@ -74,19 +74,9 @@ class TestTrigger(unittest.TestCase):
         trigger = training.trigger.IntervalTrigger(*self.interval)
         updater = DummyUpdater(self.iters_per_epoch)
         trainer = training.Trainer(updater)
-
-        for expected in self.expected:
-            updater.update()
-            self.assertEqual(trigger(trainer), expected)
-
-    def test_stop_trigger(self):
-        trigger = training.trigger.IntervalTrigger(*self.interval)
-        updater = DummyUpdater(self.iters_per_epoch)
-        trainer = training.Trainer(updater)
+        # before the first iteration, trigger should be False
         for expected in [False] + self.expected:
             self.assertEqual(trigger(trainer), expected)
-            if expected:
-                break
             updater.update()
 
     def test_resumed_trigger(self):
