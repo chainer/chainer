@@ -97,6 +97,7 @@ def softmax(x, use_cudnn=True):
             A :math:`n`-dimensional (:math:`n \\geq 2`) float array.
         use_cudnn (bool): If ``True`` and cuDNN is enabled, then this function
             uses cuDNN as the core implementation.
+        axis: The axis along which the softmax is to be computed.
 
     Returns:
         ~chainer.Variable: Output variable.
