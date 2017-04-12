@@ -148,4 +148,5 @@ class TestSimplifiedDropconnectNotBatchwiseMask(unittest.TestCase):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.W),
                             cuda.to_gpu(self.b), cuda.to_gpu(self.gy))
 
+
 testing.run_module(__name__, __file__)

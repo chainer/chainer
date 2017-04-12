@@ -16,7 +16,7 @@ def _matmul(a, b, xp):
     if xp is numpy:
         # numpy 1.9 does not support matmul.
         # So we use numpy.einsum instead of numpy.matmul.
-        return xp.einsum('ijk,ikl->ijl', a, b)
+        return xp.einsum('...jk,...kl->...jl', a, b)
     else:
         return xp.matmul(a, b)
 
@@ -71,12 +71,8 @@ class SimplifiedDropconnect(function.Function):
         x = _as_mat(inputs[0])
         W = inputs[1] * scale * self.mask
 
-        if self.batchwise_mask:
-            # ijk,ik->ij
-            y = _matmul(W, x[:, :, None], xp)
-        else:
-            y = x.dot(W.T)
-
+        # (i)jk,ik->ij
+        y = _matmul(W, x[:, :, None], xp)
         y = y.reshape(y.shape[0], y.shape[1]).astype(x.dtype, copy=False)
 
         if len(inputs) == 3:
@@ -91,18 +87,12 @@ class SimplifiedDropconnect(function.Function):
         gy = grad_outputs[0]
         xp = cuda.get_array_module(*inputs)
 
-        if self.batchwise_mask:
-            # ij,ijk->ik
-            gx = _matmul(gy[:, None, :], W, xp).reshape(inputs[0].shape)
-        else:
-            gx = gy.dot(W)
+        # ij,(i)jk->ik
+        gx = _matmul(gy[:, None, :], W, xp).reshape(inputs[0].shape)
         gx = gx.astype(x.dtype, copy=False)
 
-        if self.batchwise_mask:
-            # ij,ik,ijk->jk
-            gW = (gy[:, :, None] * x[:, None, :] * self.mask).sum(0) * scale
-        else:
-            gW = gy.T.dot(x) * scale
+        # ij,ik,ijk->jk
+        gW = (gy[:, :, None] * x[:, None, :] * self.mask).sum(0) * scale
         gW = gW.astype(W.dtype, copy=False)
 
         if len(inputs) == 3:
