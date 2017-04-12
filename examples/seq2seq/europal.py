@@ -1,8 +1,8 @@
 # coding: utf-8
 import collections
 import gzip
-import re
 import os
+import re
 
 import numpy
 import progressbar
@@ -10,6 +10,7 @@ import progressbar
 
 split_pattern = re.compile('([.,!?"\':;)(])')
 digit_pattern = re.compile('\d')
+
 
 def split_sentence(s):
     s = s.lower()
@@ -33,9 +34,11 @@ def open_file(path):
         else:
             return open(path)
 
+
 def count_lines(path):
     with open_file(path) as f:
         return sum([1 for _ in f])
+
 
 def read_file(path):
     n_lines = count_lines(path)
