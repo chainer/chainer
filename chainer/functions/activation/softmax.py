@@ -72,6 +72,13 @@ class Softmax(function.Function):
 
         return gx,
 
+    def _get_cube_shape(self, shape):
+        left_shape = numpy.prod(shape[slice(0, self.axis)], dtype=numpy.int)
+        center_shape = shape[self.axis]
+        right_shape = numpy.prod(
+            shape[slice(self.axis + 1, len(shape))], dtype=numpy.int)
+        return left_shape, center_shape, right_shape
+
 
 def softmax(x, use_cudnn=True):
     """Channel-wise softmax function.
