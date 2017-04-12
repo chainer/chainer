@@ -366,19 +366,28 @@ class NvidiaCCompiler(unixccompiler.UnixCCompiler):
         unixccompiler.UnixCCompiler.__init__(
             self, verbose=verbose, dry_run=dry_run, force=force)
         postargs = _nvcc_gencode_options()
-        if sys.platform == 'win32':
-            self.set_executables(compiler=['nvcc', '-O2'] + postargs,
-                                 compiler_so=['nvcc', '-O2'] + postargs,
-                                 compiler_cxx=['nvcc', '-O2'] + postargs,
-                                 linker_so=['nvcc', '-shared'],
-                                 linker_exe=['nvcc'])
-        else:
+
+        # Copied from distutils.sysconfig.customize_compiler
+        ldshared = 'nvcc -shared'
+        cflags = ''
+        if 'LDFLAGS' in os.environ:
+            ldshared = ldshared + ' ' + os.environ['LDFLAGS']
+        if 'CFLAGS' in os.environ:
+            cflags = cflags + ' ' + os.environ['CFLAGS']
+            ldshared = ldshared + ' ' + os.environ['CFLAGS']
+        if 'CPPFLAGS' in os.environ:
+            cflags = cflags + ' ' + os.environ['CPPFLAGS']
+            ldshared = ldshared + ' ' + os.environ['CPPFLAGS']
+
+        if not sys.platform == 'win32':
             postargs += ['--compiler-options=-fPIC']
-            self.set_executables(compiler=['nvcc', '-O2'] + postargs,
-                                 compiler_so=['nvcc', '-O2'] + postargs,
-                                 compiler_cxx=['g++', '-O2'] + postargs,
-                                 linker_so=['nvcc', '-shared'],
-                                 linker_exe=['nvcc'])
+
+        nvcc_cmd = 'nvcc -O2 ' + ' '.join(postargs) + ' ' + cflags
+        self.set_executables(compiler=nvcc_cmd,
+                             compiler_so=nvcc_cmd,
+                             compiler_cxx=['g++', '-O2'] + postargs,
+                             linker_so=ldshared,
+                             linker_exe=['nvcc'])
 
 
 class custom_build_ext(build_ext.build_ext):
