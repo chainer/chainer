@@ -79,23 +79,22 @@ class TestTrigger(unittest.TestCase):
             updater.update()
 
     def test_resumed_trigger(self):
-        temp_file = tempfile.NamedTemporaryFile()
+        with tempfile.NamedTemporaryFile(delete=False) as f:
+            trigger = training.trigger.IntervalTrigger(*self.interval)
+            updater = DummyUpdater(self.iters_per_epoch)
+            trainer = training.Trainer(updater)
+            for expected in self.expected[:self.resume]:
+                updater.update()
+                self.assertEqual(trigger(trainer), expected)
+            serializers.save_npz(f.name, updater)
 
-        trigger = training.trigger.IntervalTrigger(*self.interval)
-        updater = DummyUpdater(self.iters_per_epoch)
-        trainer = training.Trainer(updater)
-        for expected in self.expected[:self.resume]:
-            updater.update()
-            self.assertEqual(trigger(trainer), expected)
-        serializers.save_npz(temp_file.name, updater)
-
-        trigger = training.trigger.IntervalTrigger(*self.interval)
-        updater = DummyUpdater(self.iters_per_epoch)
-        serializers.load_npz(temp_file.name, updater)
-        trainer = training.Trainer(updater)
-        for expected in self.expected[self.resume:]:
-            updater.update()
-            self.assertEqual(trigger(trainer), expected)
+            trigger = training.trigger.IntervalTrigger(*self.interval)
+            updater = DummyUpdater(self.iters_per_epoch)
+            serializers.load_npz(f.name, updater)
+            trainer = training.Trainer(updater)
+            for expected in self.expected[self.resume:]:
+                updater.update()
+                self.assertEqual(trigger(trainer), expected)
 
 
 testing.run_module(__name__, __file__)
