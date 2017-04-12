@@ -24,6 +24,9 @@ class IntervalTrigger(object):
         assert unit == 'epoch' or unit == 'iteration'
         self.unit = unit
 
+        # count is kept for backward compatibility
+        self.count = 0
+
     def __call__(self, trainer):
         """Decides whether the extension should be called on this iteration.
 
@@ -41,6 +44,10 @@ class IntervalTrigger(object):
         if self.unit == 'epoch':
             epoch_detail = updater.epoch_detail
             previous_epoch_detail = updater.previous_epoch_detail
+
+            # count is kept for backward compatibility
+            self.count = epoch_detail // self.period
+
             if previous_epoch_detail is None:
                 return False
             return previous_epoch_detail // self.period != \
