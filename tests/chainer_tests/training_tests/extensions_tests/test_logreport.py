@@ -1,3 +1,5 @@
+import shutil
+import tempfile
 import unittest
 
 import mock
@@ -9,29 +11,32 @@ from chainer.training import extensions
 
 class TestLogReport(unittest.TestCase):
 
+    def setUp(self):
+        self.temp_dir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.temp_dir)
+
     def test_trigger(self):
-        trainer = _get_mocked_trainer((10, 'iteration'))
-        with mock.patch.object(extensions.LogReport, '_write') as mocked:
-            log_report = extensions.LogReport(trigger=(1, 'iteration'))
-            trainer.extend(log_report)
-            trainer.run()
-            mocked.assert_called()
-            self.assertEqual(mocked.call_count, 10)
-            self.assertEqual(len(log_report._log), 10)
+        trainer = _get_mocked_trainer(self.temp_dir, (10, 'iteration'))
+        log_report = extensions.LogReport(trigger=(1, 'iteration'))
+        trainer.extend(log_report)
+        trainer.run()
 
     def test_write_trigger(self):
-        trainer = _get_mocked_trainer((10, 'iteration'))
+        stops, aggregates, writes = 10, 2, 5
+        trainer = _get_mocked_trainer(self.temp_dir, (stops, 'iteration'))
         with mock.patch.object(extensions.LogReport, '_write') as mocked:
-            log_report = extensions.LogReport(trigger=(1, 'iteration'),
-                                              write_trigger=(10, 'iteration'))
+            log_report = extensions.LogReport(trigger=(aggregates, 'iteration'),
+                                              write_trigger=(writes, 'iteration'))
             trainer.extend(log_report)
             trainer.run()
             mocked.assert_called()
-            self.assertEqual(mocked.call_count, 1)
-            self.assertEqual(len(log_report._log), 10)
+            self.assertEqual(mocked.call_count, stops // writes)
+            self.assertEqual(len(log_report._log), stops // aggregates)
 
 
-def _get_mocked_trainer(stop_trigger=(10, 'iteration')):
+def _get_mocked_trainer(out, stop_trigger=(10, 'iteration')):
     updater = mock.Mock()
     updater.get_all_optimizers.return_value = {}
     updater.iteration = 0
@@ -47,7 +52,7 @@ def _get_mocked_trainer(stop_trigger=(10, 'iteration')):
         updater.is_new_epoch = updater.epoch == updater.epoch_detail
 
     updater.update = update
-    return training.Trainer(updater, stop_trigger)
+    return training.Trainer(updater, stop_trigger, out)
 
 
 testing.run_module(__name__, __file__)
