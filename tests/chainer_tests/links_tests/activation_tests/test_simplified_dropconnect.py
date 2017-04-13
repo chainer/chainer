@@ -66,7 +66,7 @@ class TestSimplifiedDropconnect(unittest.TestCase):
 
     def check_forward(self, x_data, mask):
         x = chainer.Variable(x_data)
-        y = self.link(x, True, True, mask)
+        y = self.link(x, train=True, mask=mask, batchwise_mask=True)
         self.assertEqual(y.data.dtype, self.x_dtype)
         testing.assert_allclose(self.y_expect, y.data,
                                 **self.check_forward_options)
@@ -80,7 +80,8 @@ class TestSimplifiedDropconnect(unittest.TestCase):
         self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.mask))
 
     def link_wrapper(self, *data):
-        return self.link(data[0], True, True, data[1])
+        return self.link(x=data[0], train=True, mask=data[1],
+                         batchwise_mask=True)
 
     def check_backward(self, x_data, y_grad, mask):
         gradient_check.check_backward(
@@ -135,7 +136,7 @@ class TestSimplifiedDropconnectParameterShapePlaceholder(unittest.TestCase):
 
     def check_forward(self, x_data, mask):
         x = chainer.Variable(x_data)
-        y = self.link(x, True, True, mask)
+        y = self.link(x, train=True, mask=mask, batchwise_mask=True)
         self.assertEqual(y.data.dtype, numpy.float32)
         testing.assert_allclose(self.y_expect, y.data)
 
@@ -148,7 +149,8 @@ class TestSimplifiedDropconnectParameterShapePlaceholder(unittest.TestCase):
         self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.mask))
 
     def link_wrapper(self, *data):
-        return self.link(data[0], True, True, data[1])
+        return self.link(x=data[0], train=True, mask=data[1],
+                         batchwise_mask=True)
 
     def check_backward(self, x_data, y_grad, mask):
         gradient_check.check_backward(

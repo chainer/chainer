@@ -44,12 +44,16 @@ class TestSimplifiedDropconnect(unittest.TestCase):
         x = chainer.Variable(x_data)
         W = chainer.Variable(W_data)
         if b_data is None:
-            y = functions.simplified_dropconnect(x, W, None, self.ratio, True,
-                                                 self.train)
+            y = functions.simplified_dropconnect(x, W, None,
+                                                 ratio=self.ratio,
+                                                 train=self.train,
+                                                 batchwise_mask=True)
         else:
             b = chainer.Variable(b_data)
-            y = functions.simplified_dropconnect(x, W, b, self.ratio, True,
-                                                 self.train)
+            y = functions.simplified_dropconnect(x, W, b,
+                                                 ratio=self.ratio,
+                                                 train=self.train,
+                                                 batchwise_mask=True)
         self.assertEqual(y.data.dtype, self.x_dtype)
 
     def test_forward_cpu(self):
@@ -71,10 +75,11 @@ class TestSimplifiedDropconnect(unittest.TestCase):
     def check_backward(self, x_data, W_data, b_data, y_grad):
         args = x_data, W_data
         if b_data is not None:
-            args = args + (b_data,)
+            args += (b_data,)
 
         gradient_check.check_backward(
-            simplified_dropconnect.SimplifiedDropconnect(self.ratio, True),
+            simplified_dropconnect.SimplifiedDropconnect(self.ratio, None,
+                                                         True),
             args, y_grad, eps=1e-2, **self.check_backward_options)
 
     @condition.retry(3)
@@ -117,7 +122,7 @@ class TestSimplifiedDropconnectBatchwiseMask(unittest.TestCase):
         x = chainer.Variable(x_data)
         W = chainer.Variable(W_data)
         b = chainer.Variable(b_data)
-        func = simplified_dropconnect.SimplifiedDropconnect(0.5, True)
+        func = simplified_dropconnect.SimplifiedDropconnect(0.5, None, True)
         y = func(x, W, b)
         self.assertEqual(y.data.dtype, numpy.float32)
         self.assertEqual(func.mask.shape, (x.shape[0],) + W.shape)
@@ -150,7 +155,7 @@ class TestSimplifiedDropconnectNotBatchwiseMask(unittest.TestCase):
         x = chainer.Variable(x_data)
         W = chainer.Variable(W_data)
         b = chainer.Variable(b_data)
-        func = simplified_dropconnect.SimplifiedDropconnect(0.5, False)
+        func = simplified_dropconnect.SimplifiedDropconnect(0.5, None, False)
         y = func(x, W, b)
         self.assertEqual(y.data.dtype, numpy.float32)
         self.assertEqual(func.mask.shape, W.shape)
@@ -168,7 +173,7 @@ class TestSimplifiedDropconnectNotBatchwiseMask(unittest.TestCase):
         args = args + (b_data,)
 
         gradient_check.check_backward(
-            simplified_dropconnect.SimplifiedDropconnect(0.5, True),
+            simplified_dropconnect.SimplifiedDropconnect(0.5, None, True),
             args, y_grad, eps=1e-2, **self.check_backward_options)
 
     @condition.retry(3)
