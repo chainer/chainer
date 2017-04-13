@@ -134,7 +134,8 @@ def simplified_dropconnect(x, W, b=None, ratio=.5, batchwise_mask=True,
         ratio (float):
             Dropconnect ratio.
         batchwise_mask (bool):
-            If ``True``, dropped value depends on each sample in mini-batch.
+            If ``True``, dropped connections depend on each sample in
+            mini-batch.
         train (bool):
             If ``True``, executes simplified dropconnect.
             Otherwise, simplified dropconnect function works as a linear

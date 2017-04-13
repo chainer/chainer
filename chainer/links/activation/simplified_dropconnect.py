@@ -79,7 +79,7 @@ class SimplifiedDropconnect(link.Link):
                 Batch of input vectors. Its first dimension ``n`` is assumed
                 to be the *minibatch dimension*.
             batchwise_mask (bool):
-                If ``True``, dropped value depends on each sample in
+                If ``True``, dropped connections depend on each sample in
                 mini-batch.
             train (bool):
                 If ``True``, executes simplified dropconnect.
