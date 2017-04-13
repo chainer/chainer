@@ -101,7 +101,7 @@ class LogReport(extension.Extension):
                 self._log.append(stats_cpu)
 
             if self._write_trigger(trainer):
-                self._write(trainer)
+                self._write(stats_cpu, trainer.out)
 
             # reset the summary for the next output
             self._init_summary()
