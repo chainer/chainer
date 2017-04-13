@@ -55,6 +55,51 @@ https://github.com/pfnet/chainer/issues/new.
         raise ValueError(make_message(msg))
 
 
+def variable_repr(var):
+    """Return the string representation of a variable.
+
+    Args:
+        var (~chainer.Variable): Input Variable.
+    .. seealso:: numpy.array_repr
+    """
+    xp = cuda.get_array_module(var)
+    if xp is numpy:
+        arr = var.data
+    else:
+        arr = var.data.get()
+
+    if var.name:
+        prefix = 'variable ' + var.name
+    else:
+        prefix = 'variable'
+
+    if arr.size > 0 or arr.shape == (0,):
+        lst = numpy.array2string(arr, None, None, None, ', ', prefix + '(')
+    else:  # show zero-length shape unless it is (0,)
+        lst = '[], shape=%s' % (repr(arr.shape),)
+    return '%s(%s)' % (prefix, lst)
+
+
+def variable_str(var):
+    """Return the string representation of a variable.
+
+    Args:
+        var (~chainer.Variable): Input Variable.
+    .. seealso:: numpy.array_str
+    """
+    xp = cuda.get_array_module(var)
+    if xp is numpy:
+        arr = var.data
+    else:
+        arr = var.data.get()
+    if var.name:
+        prefix = 'variable ' + var.name + '('
+    else:
+        prefix = 'variable('
+    return (prefix + numpy.array2string(arr, None, None, None, ' ', prefix) +
+            ')')
+
+
 class VariableNode(object):
 
     """Node in the backward computational graph representing a variable.
@@ -216,6 +261,9 @@ class Variable(object):
         initializer (~chainer.Initializer): Initializer of the data array.
             If `data` is None, this object is used for initializing the data
             array in the :meth:`initialize` method.
+        update_rule: :class:`~chainer.optimizer.UpdateRule` instance that
+            updates this variable as a parameter. This argument is set to
+            :attr:`update_rule`.
 
     Attributes:
         data: Data array of type either :class:`numpy.ndarray` or
@@ -226,6 +274,9 @@ class Variable(object):
             variable is not created by any function.
         initializer: Initializer of the data array. It is used for initializing
             the data array of an uninitialized variable.
+        update_rule: :class:`~chainer.optimizer.UpdateRule` instance that
+            updates this variable as a parameter. This argument is set to
+            :attr:`update_rule`.
 
     """
 
@@ -233,7 +284,8 @@ class Variable(object):
     _grad_initializer = None
     _initial_device = -1
 
-    def __init__(self, data=None, name=None, grad=None, initializer=None):
+    def __init__(self, data=None, name=None, grad=None, initializer=None,
+                 update_rule=None):
         if data is None:
             self.initializer = (
                 initializers.NaN() if initializer is None else initializer)
@@ -248,6 +300,7 @@ Actual: {0}'''.format(type(data))
         # abstract its initialized/uninitialized state.
         self._data = [data]
         self.name = name
+        self.update_rule = update_rule
 
         self._node = VariableNode(self, grad)
 
@@ -259,16 +312,19 @@ Actual: {0}'''.format(type(data))
 
     def __reduce__(self):
         return Variable, (self.data, self.name, self._node._grad,
-                          self.initializer)
+                          self.initializer, self.update_rule)
 
     def __repr__(self):
+        return variable_repr(self)
+
+    def __str__(self):
+        return variable_str(self)
+
+    def summary(self):
         if self.name:
             return '<variable %s>' % self.name
         else:
             return '<variable at 0x%x>' % id(self)
-
-    def __str__(self):
-        return self.name or ('<var@%x>' % id(self))
 
     def debug_print(self):
         """Display a summary of the stored data and location of the Variable"""
@@ -302,7 +358,7 @@ Actual: {0}'''.format(type(data))
             stats = stats_msg.format(float(xp.mean(self.data)),
                                      float(xp.std(self.data)))
 
-        return msg.format(summary=repr(self),
+        return msg.format(summary=self.summary(),
                           grad=grad, shape=self.data.shape,
                           background=type(self.data),
                           dtype=self.data.dtype, device=device,
@@ -742,6 +798,16 @@ Actual: {0}'''.format(type(data))
     def retain_data(self):
         """Lets the corresponding variable node keep the underlying array."""
         self._node.data = self._data[0]
+
+    def update(self):
+        """Updates the data array using the gradient and the update rule.
+
+        This method updates the variable using the update rule attached to this
+        variable.
+
+        """
+        if self.update_rule is not None:
+            self.update_rule.update(self)
 
     def __lt__(self, other):
         raise NotImplementedError()

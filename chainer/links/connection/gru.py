@@ -10,7 +10,7 @@ from chainer.links.connection import linear
 class GRUBase(link.Chain):
 
     def __init__(self, in_size, out_size, init=None,
-                 inner_init=None, bias_init=0):
+                 inner_init=None, bias_init=None):
         super(GRUBase, self).__init__(
             W_r=linear.Linear(in_size, out_size,
                               initialW=init, initial_bias=bias_init),
@@ -109,19 +109,24 @@ class StatefulGRU(GRUBase):
     Args:
         in_size(int): Dimension of input vector :math:`x`.
         out_size(int): Dimension of hidden vector :math:`h`.
-        init: A callable that takes ``numpy.ndarray`` or
+        init: Initializer for GRU's input units (:math:`W`).
+            It should be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
-            It is used for initialization of the
-            GRU's input units (:math:`W`). Maybe be `None` to use default
-            initialization.
-        inner_init: A callable that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value.
-            It is used for initialization of the GRU's inner
+            If it is ``None``, the default initializer is used.
+            If it is `numpy.ndarray`, the array is used as initial
+            weight value.
+        inner_init: Initializer for the GRU's inner
             recurrent units (:math:`U`).
-            Maybe be ``None`` to use default initialization.
-        bias_init: A callable or scalar used to initialize the bias values for
-            both the GRU's inner and input units. Maybe be ``None`` to use
-            default initialization.
+            It should be a callable that takes ``numpy.ndarray`` or
+            ``cupy.ndarray`` and edits its value.
+            If it is ``None``, the default initializer is used.
+            If it is `numpy.ndarray`, the array is used as initial
+            weight value.
+        bias_init: Bias initializer.
+            It should be a callable that takes ``numpy.ndarray`` or
+            ``cupy.ndarray`` and edits its value.
+            If ``None``, the default initializer is used.
+            If it is `numpy.ndarray`, the array is used as initial bias value.
 
     Attributes:
         h(~chainer.Variable): Hidden vector that indicates the state of
