@@ -498,7 +498,7 @@ class GradientMethod(Optimizer):
 
         """
         if lossfun is not None:
-            use_cleargrads = getattr(self, '_use_cleargrads', False)
+            use_cleargrads = getattr(self, '_use_cleargrads', True)
             loss = lossfun(*args, **kwds)
             if use_cleargrads:
                 self.target.cleargrads()
@@ -530,10 +530,11 @@ class GradientMethod(Optimizer):
                 (`zerograds` is used).
 
         .. note::
-           Note that :meth:`update` calls :meth:`~Link.zerograds` by default
-           for backward compatibility. It is recommended to call this method
-           before first call of `update` because `cleargrads` is more
-           efficient than `zerograds`.
+           Note that :meth:`update` calls :meth:`~Link.cleargrads` by default.
+           :meth:`~Link.cleargrads` is more efficient than
+           :meth:`~Link.cleargrads`, so one do not have to call
+           :meth:`use_cleargrads`. This method remains for backward
+           compatibility.
 
         """
         self._use_cleargrads = use
