@@ -167,8 +167,8 @@ def main():
                         help='Resume the training from snapshot')
     parser.add_argument('--unit', '-u', type=int, default=1024,
                         help='Number of units')
-    parser.add_argument('--input', '-i', type=str, default="wmt",
-                        help="Input directory")
+    parser.add_argument('--input', '-i', type=str, default='wmt',
+                        help='Input directory')
     parser.add_argument('--out', '-o', default='result',
                         help='Directory to output the result')
     args = parser.parse_args()
