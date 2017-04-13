@@ -25,7 +25,7 @@ class SimplifiedDropconnect(function.Function):
 
     """Linear unit regularized by simplified dropconnect."""
 
-    def __init__(self, ratio: object, mask: object = None, batchwise_mask: object = True) -> object:
+    def __init__(self, ratio, mask=None, batchwise_mask=True):
         self.ratio = ratio
         self.mask = mask
         self.batchwise_mask = batchwise_mask
