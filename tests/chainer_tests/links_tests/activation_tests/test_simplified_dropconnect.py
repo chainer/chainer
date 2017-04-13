@@ -204,9 +204,9 @@ class TestSimplifiedDropconnectNotBatchwiseMask(unittest.TestCase):
         y = self.link(x, False, True)
 
         # check mask equality here.
-        self.assertTrue((y.data[0] == y.data[1]).all())
-        self.assertTrue((y.data[0] == y.data[2]).all())
-        self.assertTrue((y.data[0] == y.data[3]).all())
+        testing.assert_allclose(y.data[0], y.data[1])
+        testing.assert_allclose(y.data[0], y.data[2])
+        testing.assert_allclose(y.data[0], y.data[3])
 
     def test_forward_cpu(self):
         self.check_forward(self.x)
