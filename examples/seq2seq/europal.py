@@ -1,14 +1,15 @@
 # coding: utf-8
 import collections
 import gzip
+import os
 import re
 
 import numpy
 import progressbar
 
 
-split_pattern = re.compile(b'([.,!?"\':;)(])')
-digit_pattern = re.compile(br'\d')
+split_pattern = re.compile(r'([.,!?"\':;)(])')
+digit_pattern = re.compile(r'\d')
 
 
 def split_sentence(s):
@@ -26,7 +27,12 @@ def open_file(path):
     if path.endswith('.gz'):
         return gzip.open(path)
     else:
-        return open(path)
+        # Find gzipped version of the file
+        gz = path + '.gz'
+        if os.path.exists(gz):
+            return open_file(gz)
+        else:
+            return open(path)
 
 
 def count_lines(path):
