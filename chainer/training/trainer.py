@@ -127,6 +127,7 @@ class Trainer(object):
         self.stop_trigger = trigger_module.get_trigger(stop_trigger)
         self.observation = {}
         self.out = out
+        self.resumed = False
 
         reporter = reporter_module.Reporter()
         for name, optimizer in six.iteritems(updater.get_all_optimizers()):
@@ -296,6 +297,7 @@ class Trainer(object):
                     for name, entry in extensions:
                         if entry.trigger(self):
                             entry.extension(self)
+                self.resumed = False
         finally:
             for _, entry in extensions:
                 finalize = getattr(entry.extension, 'finalize', None)
@@ -307,6 +309,7 @@ class Trainer(object):
         self._done = True
 
     def serialize(self, serializer):
+        self.resumed = serializer('resumed', self.resumed)
         self.updater.serialize(serializer['updater'])
         if hasattr(self.stop_trigger, 'serialize'):
             self.stop_trigger.serialize(serializer['stop_trigger'])

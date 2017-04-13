@@ -75,7 +75,7 @@ class LogReport(extension.Extension):
         else:
             summary.add({k: observation[k] for k in keys if k in observation})
 
-        if self._trigger(trainer):
+        if self._trigger(trainer) and not trainer.resumed:
             # output the result
             stats = self._summary.compute_mean()
             stats_cpu = {}
