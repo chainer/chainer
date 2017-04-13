@@ -103,7 +103,7 @@ class TestSimplifiedDropconnect(unittest.TestCase):
                             None, cuda.to_gpu(self.gy))
 
 
-class TestSimplifiedDropconnectBatchwiseMask(unittest.TestCase):
+class TestSimplifiedDropconnectBatchwiseMaskShape(unittest.TestCase):
 
     def setUp(self):
         self.W = numpy.random.uniform(
