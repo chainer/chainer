@@ -27,8 +27,10 @@ class TestLogReport(unittest.TestCase):
         stops, aggregates, writes = 10, 2, 5
         trainer = _get_mocked_trainer(self.temp_dir, (stops, 'iteration'))
         with mock.patch.object(extensions.LogReport, '_write') as mocked:
-            log_report = extensions.LogReport(trigger=(aggregates, 'iteration'),
-                                              write_trigger=(writes, 'iteration'))
+            log_report = extensions.LogReport(
+                trigger=(aggregates, 'iteration'),
+                write_trigger=(writes, 'iteration')
+            )
             trainer.extend(log_report)
             trainer.run()
             mocked.assert_called()
