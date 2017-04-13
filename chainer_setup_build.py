@@ -383,9 +383,14 @@ class NvidiaCCompiler(unixccompiler.UnixCCompiler):
             postargs += ['--compiler-options=-fPIC']
 
         nvcc_cmd = 'nvcc -O2 ' + ' '.join(postargs) + ' ' + cflags
+        if not sys.platform == 'win32':
+            cxx_cmd = 'g++'
+        else:
+            cxx_cmd = 'nvcc'
+        cxx_cmd += ' -O2 ' + ' '.join(postargs) + ' ' + cflags
         self.set_executables(compiler=nvcc_cmd,
                              compiler_so=nvcc_cmd,
-                             compiler_cxx=['g++', '-O2'] + postargs,
+                             compiler_cxx=cxx_cmd,
                              linker_so=ldshared,
                              linker_exe=['nvcc'])
 
