@@ -8,8 +8,8 @@ import numpy
 import progressbar
 
 
-split_pattern = re.compile('([.,!?"\':;)(])')
-digit_pattern = re.compile('\d')
+split_pattern = re.compile(r'([.,!?"\':;)(])')
+digit_pattern = re.compile(r'\d')
 
 
 def split_sentence(s):
