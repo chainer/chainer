@@ -14,8 +14,6 @@ class SigmoidCrossEntropy(function.Function):
     ignore_label = -1
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
-
         x_type, t_type = in_types
         type_check.expect(
             x_type.dtype == numpy.float32,
@@ -46,9 +44,8 @@ def sigmoid_cross_entropy(x, t):
     """Computes cross entropy loss for pre-sigmoid activations.
 
     Args:
-        x (Variable): A variable object holding a matrix whose (i, j)-th
-            element indicates the unnormalized log probability of the j-th unit
-            at the i-th example.
+        x (Variable): A variable object holding an array matrix whose elements
+            indicate the unnormalized log probabilities.
         t (Variable): Variable holding an int32 vector of ground truth labels.
             If ``t[i] == -1``, corresponding ``x[i]`` is ignored.
             Loss is zero if all ground truth labels are ``-1``.

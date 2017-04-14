@@ -3,7 +3,6 @@ import unittest
 
 import mock
 import numpy
-import six
 
 import chainer
 from chainer import cuda
@@ -17,6 +16,8 @@ from chainer.testing import condition
 @testing.parameterize(
     {'shape': (8, 7)},
     {'shape': (8, 7), 'ignore_all': True},
+    {'shape': (8, 7, 6)},
+    {'shape': (8,)},
     # too large shape causes int32 -> float64 issue
     {'shape': (65536, 1)},
 )
@@ -41,17 +42,16 @@ class TestSigmoidCrossEntropy(unittest.TestCase):
         loss_value = cuda.to_cpu(loss.data)
 
         # Compute expected value
-        for i in six.moves.range(self.x.shape[0]):
-            for j in six.moves.range(self.x.shape[1]):
-                xd, td = self.x[i, j], self.t[i, j]
-                if td == -1:
-                    loss_expect = 0
-                else:
-                    loss_expect = -(
-                        xd * (td - (xd >= 0)) -
-                        math.log(1 + math.exp(-numpy.abs(xd))))
-                self.assertAlmostEqual(
-                    loss_expect, loss_value[i, j], places=5)
+        for i in numpy.ndindex(self.shape):
+            xd, td = self.x[i], self.t[i]
+            if td == -1:
+                loss_expect = 0
+            else:
+                loss_expect = -(
+                    xd * (td - (xd >= 0)) -
+                    math.log(1 + math.exp(-numpy.abs(xd))))
+            self.assertAlmostEqual(
+                loss_expect, loss_value[i], places=5)
 
     @condition.retry(3)
     def test_forward_cpu(self):
