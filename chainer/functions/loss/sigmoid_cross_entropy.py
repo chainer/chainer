@@ -44,16 +44,16 @@ def sigmoid_cross_entropy(x, t):
     """Computes cross entropy loss for pre-sigmoid activations.
 
     Args:
-        x (Variable): A variable object holding an array matrix whose elements
+        x (Variable): Variable holding a float32 array whose elements
             indicate the unnormalized log probabilities.
-        t (Variable): Variable holding an int32 vector of ground truth labels.
-            If ``t[i] == -1``, corresponding ``x[i]`` is ignored.
-            Loss is zero if all ground truth labels are ``-1``.
+        t (Variable): Variable holding an int32 array of ground truth labels.
+            If ``t[i0, i1, ... ] == -1``, corresponding ``x[i0, i1, ... ]`` is
+            ignored. In this case, the loss value of the ignored instance is
+            set to ``0``.
 
     Returns:
-        Variable: A variable object holding an array of the cross entropy.
-            The shape is same as ``x``. The value of the ignored instance
-            is set to ``0``.
+        Variable: Variable holding a float32 array of the cross entropy.
+            The shape is same as ``x``.
 
     .. note::
 
