@@ -55,7 +55,7 @@ def sigmoid_cross_entropy(x, t):
 
     Returns:
         Variable: A variable object holding an array of the cross entropy.
-            The shape is same as ``x``. The value of the ignored instance,
+            The shape is same as ``x``. The value of the ignored instance
             is set to ``0``.
 
     .. note::
