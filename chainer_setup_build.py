@@ -241,7 +241,7 @@ def make_extensions(options, compiler, use_cython):
                 # In mac environment, openmp is not required.
                 args.append('-fopenmp')
             elif compiler.compiler_type == 'msvc':
-                args.append('/openmp')
+                args.append('--compiler-options=/openmp')
 
         for f in module['file']:
             name = module_extension_name(f)
