@@ -63,7 +63,7 @@ from chainer.functions.loss import ctc  # NOQA
 from chainer.functions.loss import decov  # NOQA
 from chainer.functions.loss import hinge  # NOQA
 from chainer.functions.loss import huber_loss  # NOQA
-from chainer.functions.loss import mean_absolute_error  # NOQA
+from chainer.functions.loss import absolute_error  # NOQA
 from chainer.functions.loss import mean_squared_error  # NOQA
 from chainer.functions.loss import negative_sampling  # NOQA
 from chainer.functions.loss import sigmoid_cross_entropy  # NOQA
@@ -236,8 +236,8 @@ from chainer.functions.loss.hinge import hinge  # NOQA
 from chainer.functions.loss.hinge import Hinge  # NOQA
 from chainer.functions.loss.huber_loss import huber_loss  # NOQA
 from chainer.functions.loss.huber_loss import HuberLoss  # NOQA
-from chainer.functions.loss.mean_absolute_error import mean_absolute_error  # NOQA
-from chainer.functions.loss.mean_absolute_error import MeanAbsoluteError  # NOQA
+from chainer.functions.loss.absolute_error import absolute_error  # NOQA
+from chainer.functions.loss.absolute_error import AbsoluteError  # NOQA
 from chainer.functions.loss.mean_squared_error import mean_squared_error  # NOQA
 from chainer.functions.loss.mean_squared_error import MeanSquaredError  # NOQA
 from chainer.functions.loss.negative_sampling import negative_sampling  # NOQA
