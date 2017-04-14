@@ -6,7 +6,7 @@ from chainer.utils import type_check
 
 class SquaredError(function.Function):
 
-    """Squared error (a.k.a. Euclidean loss) function."""
+    """Squared error function."""
 
     def check_type_forward(self, in_types):
         type_check.expect(
