@@ -3,6 +3,7 @@ import collections
 import gzip
 import os
 import re
+import sys
 
 import numpy
 import progressbar
@@ -25,7 +26,7 @@ def split_sentence(s):
 
 def open_file(path):
     if path.endswith('.gz'):
-        return gzip.open(path)
+        return gzip.open(path, 'rt', sys.getdefaultencoding())
     else:
         # Find gzipped version of the file
         gz = path + '.gz'
