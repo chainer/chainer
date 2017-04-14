@@ -84,12 +84,17 @@ class BatchNormalization(link.Link):
         self.decay = decay
         self.eps = eps
 
-    def __call__(self, x, finetune=False):
+    def __call__(self, x, test=None, finetune=False):
         """Invokes the forward propagation of BatchNormalization.
 
         In training mode, the BatchNormalization computes moving averages of
         mean and variance for evaluatino during training, and normalizes the
         input using batch statistics.
+
+        .. warning::
+
+           Do not use ``test`` argument. This argument is obsolete in v2.
+           Instead use ``chainer.using_config('train', train)``.
 
         Args:
             x (Variable): Input variable.
@@ -100,6 +105,10 @@ class BatchNormalization(link.Link):
                 statistics.
 
         """
+        if test is not None:
+            raise ValueError(
+                'test argument is obsolete. Use chainer.using_config')
+
         if hasattr(self, 'gamma'):
             gamma = self.gamma
         else:
