@@ -13,7 +13,6 @@ from chainer import testing
 from chainer.testing import attr
 from chainer.testing import condition
 from chainer.utils import type_check
-import cupy
 
 
 def gen_mask(ratio, shape):
@@ -215,8 +214,7 @@ class TestSimplifiedDropconnectNotBatchwiseMask(unittest.TestCase):
 
         xp = cuda.get_array_module(x)
         mask = y.creator.mask
-        if xp is cupy:
-            mask = mask.get()
+        mask = cuda.to_cpu(mask)
 
         y_expect = self.x.dot(self.W.T * mask.T) * (1. / (1 - self.ratio))
         y_expect += self.b
