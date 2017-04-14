@@ -13,6 +13,7 @@ from chainer import testing
 from chainer.testing import attr
 from chainer.testing import condition
 from chainer.utils import type_check
+import cupy
 
 
 def gen_mask(ratio, shape):
@@ -200,15 +201,26 @@ class TestSimplifiedDropconnectNotBatchwiseMask(unittest.TestCase):
 
         x_shape = (4,) + self.in_shape
         self.x = numpy.ones(x_shape).astype(numpy.float32)
+        self.W = self.link.W.data
+        self.b = self.link.b.data
 
     def check_forward(self, x_data):
         x = chainer.Variable(x_data)
-        y = self.link(x, False, True)
+        y = self.link(x, train=True, batchwise_mask=False)
 
         # check mask equality here.
         testing.assert_allclose(y.data[0], y.data[1])
         testing.assert_allclose(y.data[0], y.data[2])
         testing.assert_allclose(y.data[0], y.data[3])
+
+        xp = cuda.get_array_module(x)
+        mask = y.creator.mask
+        if xp is cupy:
+            mask = mask.get()
+
+        y_expect = self.x.dot(self.W.T * mask.T) * (1. / (1 - self.ratio))
+        y_expect += self.b
+        testing.assert_allclose(y_expect, y.data)
 
     def test_forward_cpu(self):
         self.check_forward(self.x)
