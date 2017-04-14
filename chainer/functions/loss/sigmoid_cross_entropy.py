@@ -13,9 +13,6 @@ class SigmoidCrossEntropy(function.Function):
 
     ignore_label = -1
 
-    def __init__(self, normalize=True):
-        self.normalize = normalize
-
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 2)
 
@@ -30,29 +27,22 @@ class SigmoidCrossEntropy(function.Function):
         xp = cuda.get_array_module(*inputs)
         x, t = inputs
         self.ignore_mask = (t != self.ignore_label)
-        if self.normalize:
-            count = xp.maximum(1, self.ignore_mask.sum())
-        else:
-            count = max(1, len(x))
-        self.count = count
         # stable computation of the cross entropy.
-        loss = -xp.sum(
-            self.ignore_mask * (x * (t - (x >= 0)) -
-                                xp.log1p(xp.exp(-xp.abs(x)))))
-        return utils.force_array(xp.divide(loss, self.count, dtype=x.dtype)),
+        loss = -(
+            self.ignore_mask *
+            (x * (t - (x >= 0)) - xp.log1p(xp.exp(-xp.abs(x)))))
+
+        return utils.force_array(loss.astype(x.dtype)),
 
     def backward(self, inputs, grad_outputs):
-        xp = cuda.get_array_module(*inputs)
         x, t = inputs
         gloss = grad_outputs[0]
         y, = sigmoid.Sigmoid().forward((x,))
-        gx = xp.divide(
-            gloss * self.ignore_mask * (y - t), self.count,
-            dtype=y.dtype)
+        gx = (gloss * self.ignore_mask * (y - t)).astype(y.dtype)
         return gx, None
 
 
-def sigmoid_cross_entropy(x, t, normalize=True):
+def sigmoid_cross_entropy(x, t):
     """Computes cross entropy loss for pre-sigmoid activations.
 
     Args:
@@ -62,18 +52,15 @@ def sigmoid_cross_entropy(x, t, normalize=True):
         t (Variable): Variable holding an int32 vector of ground truth labels.
             If ``t[i] == -1``, corresponding ``x[i]`` is ignored.
             Loss is zero if all ground truth labels are ``-1``.
-        normalize (bool): Variable holding a boolean value which
-            determines the normalization constant. If true, this function
-            normalizes the cross entropy loss across all instances. If else,
-            it only normalizes along a batch size.
 
     Returns:
-        Variable: A variable object holding a scalar array of the cross entropy
-            loss.
+        Variable: A variable object holding an array of the cross entropy.
+            The shape is same as ``x``. The value of the ignored instance,
+            is set to ``0``.
 
     .. note::
 
        This function is differentiable only by ``x``.
 
     """
-    return SigmoidCrossEntropy(normalize)(x, t)
+    return SigmoidCrossEntropy()(x, t)
