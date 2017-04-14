@@ -64,10 +64,10 @@ from chainer.functions.loss import decov  # NOQA
 from chainer.functions.loss import hinge  # NOQA
 from chainer.functions.loss import huber_loss  # NOQA
 from chainer.functions.loss import mean_absolute_error  # NOQA
-from chainer.functions.loss import squared_error  # NOQA
 from chainer.functions.loss import negative_sampling  # NOQA
 from chainer.functions.loss import sigmoid_cross_entropy  # NOQA
 from chainer.functions.loss import softmax_cross_entropy  # NOQA
+from chainer.functions.loss import squared_error  # NOQA
 from chainer.functions.loss import triplet  # NOQA
 from chainer.functions.loss import vae  # NOQA  # NOQA
 from chainer.functions.math import basic_math  # NOQA
@@ -238,13 +238,13 @@ from chainer.functions.loss.huber_loss import huber_loss  # NOQA
 from chainer.functions.loss.huber_loss import HuberLoss  # NOQA
 from chainer.functions.loss.mean_absolute_error import mean_absolute_error  # NOQA
 from chainer.functions.loss.mean_absolute_error import MeanAbsoluteError  # NOQA
-from chainer.functions.loss.squared_error import squared_error  # NOQA
-from chainer.functions.loss.squared_error import SquaredError  # NOQA
 from chainer.functions.loss.negative_sampling import negative_sampling  # NOQA
 from chainer.functions.loss.sigmoid_cross_entropy import sigmoid_cross_entropy  # NOQA
 from chainer.functions.loss.sigmoid_cross_entropy import SigmoidCrossEntropy  # NOQA
 from chainer.functions.loss.softmax_cross_entropy import softmax_cross_entropy  # NOQA
 from chainer.functions.loss.softmax_cross_entropy import SoftmaxCrossEntropy  # NOQA
+from chainer.functions.loss.squared_error import squared_error  # NOQA
+from chainer.functions.loss.squared_error import SquaredError  # NOQA
 from chainer.functions.loss.triplet import triplet  # NOQA
 from chainer.functions.loss.triplet import Triplet  # NOQA
 from chainer.functions.loss.vae import bernoulli_nll  # NOQA
