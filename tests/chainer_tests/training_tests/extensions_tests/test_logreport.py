@@ -18,14 +18,14 @@ class TestLogReport(unittest.TestCase):
         shutil.rmtree(self.temp_dir)
 
     def test_trigger(self):
-        trainer = _get_mocked_trainer(self.temp_dir, (10, 'iteration'))
+        trainer = _get_mocked_trainer((10, 'iteration'), self.temp_dir)
         log_report = extensions.LogReport(trigger=(1, 'iteration'))
         trainer.extend(log_report)
         trainer.run()
 
     def test_write_trigger(self):
         stops, aggregates, writes = 10, 2, 5
-        trainer = _get_mocked_trainer(self.temp_dir, (stops, 'iteration'))
+        trainer = _get_mocked_trainer((stops, 'iteration'), self.temp_dir)
         with mock.patch.object(extensions.LogReport, '_write') as mocked:
             log_report = extensions.LogReport(
                 trigger=(aggregates, 'iteration'),
@@ -33,12 +33,12 @@ class TestLogReport(unittest.TestCase):
             )
             trainer.extend(log_report)
             trainer.run()
-            mocked.assert_called()
+            mocked.assert_called_with(log_report.log[-1], self.temp_dir)
             self.assertEqual(mocked.call_count, stops // writes)
             self.assertEqual(len(log_report._log), stops // aggregates)
 
 
-def _get_mocked_trainer(out, stop_trigger=(10, 'iteration')):
+def _get_mocked_trainer(stop_trigger=(10, 'iteration'), out='result'):
     updater = mock.Mock()
     updater.get_all_optimizers.return_value = {}
     updater.iteration = 0
