@@ -713,7 +713,7 @@ class ChainList(Link):
         return iter(self._children)
 
     def __len__(self):
-        """Returns a number of children."""
+        """Returns the number of children."""
         return len(self._children)
 
     def add_link(self, link):
