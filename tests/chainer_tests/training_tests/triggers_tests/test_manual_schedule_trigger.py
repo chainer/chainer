@@ -10,8 +10,8 @@ from chainer import training
 
 class DummyUpdater(training.Updater):
 
-    def __init__(self, iters_per_epoch, initial_iteration=0):
-        self.iteration = initial_iteration
+    def __init__(self, iters_per_epoch):
+        self.iteration = 0
         self.iters_per_epoch = iters_per_epoch
 
     def finalize(self):
