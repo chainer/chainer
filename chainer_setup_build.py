@@ -1,6 +1,7 @@
 from __future__ import print_function
 from distutils import ccompiler
 from distutils import errors
+from distutils import msvccompiler
 from distutils import sysconfig
 from distutils import unixccompiler
 import os
@@ -241,7 +242,7 @@ def make_extensions(options, compiler, use_cython):
                 # In mac environment, openmp is not required.
                 args.append('-fopenmp')
             elif compiler.compiler_type == 'msvc':
-                args.append('--compiler-options=/openmp')
+                args.append('/openmp')
 
         for f in module['file']:
             name = module_extension_name(f)
@@ -358,41 +359,111 @@ def _nvcc_gencode_options():
     return gencode_options
 
 
-class NvidiaCCompiler(unixccompiler.UnixCCompiler):
-    compiler_type = "nvidia"
-    src_extensions = ['.cpp', '.cu']
+class _UnixCCompiler(unixccompiler.UnixCCompiler):
+    src_extensions = list(unixccompiler.UnixCCompiler.src_extensions)
+    src_extensions.append('.cu')
 
-    def __init__(self, verbose=0, dry_run=0, force=0):
-        unixccompiler.UnixCCompiler.__init__(
-            self, verbose=verbose, dry_run=dry_run, force=force)
-        postargs = _nvcc_gencode_options()
+    def _compile(self, obj, src, ext, cc_args, extra_postargs, pp_opts):
+        # For ordinal extension source files, just call the super class method.
+        if os.path.splitext(src)[1] != '.cu':
+            return unixccompiler.UnixCCompiler._compile(
+                self, obj, src, ext, cc_args, extra_postargs, pp_opts)
 
-        # Copied from distutils.sysconfig.customize_compiler
-        ldshared = 'nvcc -shared'
+        # For CUDA C source files, compile them with NVCC.
+        _compiler_so = self.compiler_so
+        try:
+            nvcc_path = build.get_nvcc_path()
+            self.set_executable('compiler_so', nvcc_path)
+
+            postargs = (_nvcc_gencode_options() +
+                        ['-O2', '--compiler-options="-fPIC"'])
+
+            cflags = ''
+            if 'CFLAGS' in os.environ:
+                cflags = cflags + ' ' + os.environ['CFLAGS']
+            if 'CPPFLAGS' in os.environ:
+                cflags = cflags + ' ' + os.environ['CPPFLAGS']
+            if cflags != '':
+                postargs += [cflags]
+            print('NVCC options:', postargs)
+
+            return unixccompiler.UnixCCompiler._compile(
+                self, obj, src, ext, cc_args, postargs, pp_opts)
+        finally:
+            self.compiler_so = _compiler_so
+
+
+class _MSVCCompiler(msvccompiler.MSVCCompiler):
+    _cu_extensions = ['.cu']
+
+    src_extensions = list(unixccompiler.UnixCCompiler.src_extensions)
+    src_extensions.extend(_cu_extensions)
+
+    def _compile_cu(self, sources, output_dir=None, macros=None,
+                    include_dirs=None, debug=0, extra_preargs=None,
+                    extra_postargs=None, depends=None):
+        # Compile CUDA C files, mainly derived from UnixCCompiler._compile().
+
+        macros, objects, extra_postargs, pp_opts, _build = \
+            self._setup_compile(output_dir, macros, include_dirs, sources,
+                                depends, extra_postargs)
+
+        compiler_so = [build.get_nvcc_path()]
+        cc_args = self._get_cc_args(pp_opts, debug, extra_preargs)
+        postargs = _nvcc_gencode_options() + ['-O2']
+
         cflags = ''
-        if 'LDFLAGS' in os.environ:
-            ldshared = ldshared + ' ' + os.environ['LDFLAGS']
         if 'CFLAGS' in os.environ:
             cflags = cflags + ' ' + os.environ['CFLAGS']
-            ldshared = ldshared + ' ' + os.environ['CFLAGS']
         if 'CPPFLAGS' in os.environ:
             cflags = cflags + ' ' + os.environ['CPPFLAGS']
-            ldshared = ldshared + ' ' + os.environ['CPPFLAGS']
+        if cflags != '':
+            postargs += [cflags]
+        print('NVCC options:', postargs)
 
-        if not sys.platform == 'win32':
-            postargs += ['--compiler-options=-fPIC']
+        for obj in objects:
+            try:
+                src, ext = _build[obj]
+            except KeyError:
+                continue
+            try:
+                self.spawn(compiler_so + cc_args + [src, '-o', obj] + postargs)
+            except errors.DistutilsExecError as e:
+                raise errors.CompileError(e.message)
 
-        nvcc_cmd = 'nvcc -O2 ' + ' '.join(postargs) + ' ' + cflags
-        if not sys.platform == 'win32':
-            cxx_cmd = 'g++'
-        else:
-            cxx_cmd = 'nvcc'
-        cxx_cmd += ' -O2 ' + ' '.join(postargs) + ' ' + cflags
-        self.set_executables(compiler=nvcc_cmd,
-                             compiler_so=nvcc_cmd,
-                             compiler_cxx=cxx_cmd,
-                             linker_so=ldshared,
-                             linker_exe=['nvcc'])
+        return objects
+
+    def compile(self, sources,
+                output_dir=None, macros=None, include_dirs=None, debug=0,
+                extra_preargs=None, extra_postargs=None, depends=None):
+        # Compile source files other than CUDA C ones.
+        sources_base = [source for source in sources
+                        if not os.path.splitext(source)[1] == '.cu']
+        super = msvccompiler.MSVCCompiler
+        objects_base = super.compile(self,
+                                     sources_base,
+                                     output_dir=output_dir,
+                                     macros=macros,
+                                     include_dirs=include_dirs,
+                                     debug=debug,
+                                     extra_preargs=extra_preargs,
+                                     extra_postargs=extra_postargs,
+                                     depends=depends)
+
+        # Compile CUDA C files
+        sources_cu = [source for source in sources
+                      if os.path.splitext(source)[1] == '.cu']
+        objects_cu = self._compile_cu(sources_cu,
+                                      output_dir=output_dir,
+                                      macros=macros,
+                                      include_dirs=include_dirs,
+                                      debug=debug,
+                                      extra_preargs=extra_preargs,
+                                      extra_postargs=extra_postargs,
+                                      depends=depends)
+
+        # Return compiled object filenames.
+        return objects_base + objects_cu
 
 
 class custom_build_ext(build_ext.build_ext):
@@ -406,9 +477,15 @@ class custom_build_ext(build_ext.build_ext):
                     try:
                         return func(*args, **kwargs)
                     except errors.DistutilsPlatformError:
-                        return NvidiaCCompiler(
+                        if not sys.platform == 'win32':
+                            CCompiler = _UnixCCompiler
+                        else:
+                            CCompiler = _MSVCCompiler
+                        return CCompiler(
                             None, kwargs['dry_run'], kwargs['force'])
                 return _wrap_new_compiler
             ccompiler.new_compiler = wrap_new_compiler(ccompiler.new_compiler)
-            self.compiler = "nvidia"
+            # Intentionally causes DistutilsPlatformError in
+            # ccompiler.new_compiler() function to hook.
+            self.compiler = 'nvidia'
         build_ext.build_ext.run(self)
