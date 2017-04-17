@@ -32,14 +32,14 @@ class SigmoidCrossEntropy(function.Function):
             self.ignore_mask *
             (x * (t - (x >= 0)) - xp.log1p(xp.exp(-xp.abs(x)))))
 
-        return utils.force_array(loss.astype(x.dtype)),
+        return utils.force_array(loss, dtype=x.dtype),
 
     def backward(self, inputs, grad_outputs):
         x, t = inputs
         gloss = grad_outputs[0]
         y, = sigmoid.Sigmoid().forward((x,))
-        gx = (gloss * self.ignore_mask * (y - t)).astype(y.dtype)
-        gx = utils.force_array(gx)
+        gx = (gloss * self.ignore_mask * (y - t))
+        gx = utils.force_array(gx, dtype=y.dtype)
         return gx, None
 
 
