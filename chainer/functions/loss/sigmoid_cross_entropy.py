@@ -14,6 +14,8 @@ class SigmoidCrossEntropy(function.Function):
     ignore_label = -1
 
     def check_type_forward(self, in_types):
+        type_check.expect(in_types.size() == 2)
+
         x_type, t_type = in_types
         type_check.expect(
             x_type.dtype == numpy.float32,
