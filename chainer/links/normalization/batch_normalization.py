@@ -5,6 +5,7 @@ from chainer import cuda
 from chainer.functions.normalization import batch_normalization
 from chainer import initializers
 from chainer import link
+from chainer.utils import argument
 from chainer import variable
 
 
@@ -107,13 +108,9 @@ class BatchNormalization(link.Link):
                 statistics.
 
         """
-        if 'test' in kwargs:
-            raise ValueError(
-                'test argument is obsolete. Use chainer.using_config')
-        finetune = kwargs.pop('finetune', False)
-        if kwargs:
-            args = ', '.join(["'%s'" % arg for arg in kwargs.keys()])
-            raise TypeError('got an unexpected keyword argument %s' % args)
+        argument.check_unexpected_kwargs(
+            kwargs, test='test argument is obsolete. Use chainer.using_config')
+        finetune, = argument.parse_kwargs(kwargs, ('finetune', False))
 
         if hasattr(self, 'gamma'):
             gamma = self.gamma
