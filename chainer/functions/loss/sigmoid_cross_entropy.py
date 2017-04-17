@@ -55,7 +55,7 @@ def sigmoid_cross_entropy(x, t):
 
     Returns:
         Variable: Variable holding a float32 array of the cross entropy.
-            The shape is same as ``x``.
+            The shape is same as that of ``x``.
 
     .. note::
 
