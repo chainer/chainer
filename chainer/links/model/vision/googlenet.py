@@ -174,14 +174,13 @@ class GoogLeNet(link.Chain):
         _transfer_googlenet(caffemodel, chainermodel)
         npz.save_npz(path_npz, chainermodel, compression=False)
 
-    def __call__(self, x, layers=['prob'], train=False):
+    def __call__(self, x, layers=['prob']):
         """Computes all the feature maps specified by ``layers``.
 
         Args:
             x (~chainer.Variable): Input variable. It should be prepared by
             ``prepare`` function.
             layers (list of str): The list of layer names you want to extract.
-            train (bool): If ``True``, Dropout runs in training mode.
 
         Returns:
             Dictionary of ~chainer.Variable: A directory in which
@@ -205,11 +204,7 @@ class GoogLeNet(link.Chain):
                 h = inception_4d_cache
 
             for func in funcs:
-                if func is _dropout:
-                    h = func(h, train=train)
-                else:
-                    h = func(h)
-
+                h = func(h)
             if key in target_layers:
                 activations[key] = h
                 target_layers.remove(key)
@@ -222,7 +217,7 @@ class GoogLeNet(link.Chain):
         return activations
 
     def extract(self, images, layers=['pool5'], size=(224, 224),
-                train=False, volatile=flag.OFF):
+                volatile=flag.OFF):
         """Extracts all the feature maps of given images.
 
         The difference of directly executing ``__call__`` is that
@@ -238,7 +233,6 @@ class GoogLeNet(link.Chain):
                 an input of CNN. All the given images are not resized
                 if this argument is ``None``, but the resolutions of
                 all the images should be the same.
-            train (bool): If ``True``, Dropout runs in training mode.
             volatile (~chainer.Flag): Volatility flag used for input variables.
 
         Returns:
@@ -250,7 +244,7 @@ class GoogLeNet(link.Chain):
 
         x = concat_examples([prepare(img, size=size) for img in images])
         x = Variable(self.xp.asarray(x), volatile=volatile)
-        return self(x, layers=layers, train=train)
+        return self(x, layers=layers)
 
     def predict(self, images, oversample=True):
         """Computes all the probabilities of given images.
