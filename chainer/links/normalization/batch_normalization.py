@@ -84,8 +84,10 @@ class BatchNormalization(link.Link):
         self.decay = decay
         self.eps = eps
 
-    def __call__(self, x, test=None, finetune=False):
-        """Invokes the forward propagation of BatchNormalization.
+    def __call__(self, x, **kwargs):
+        """__call__(self, x, finetune=False)
+
+        Invokes the forward propagation of BatchNormalization.
 
         In training mode, the BatchNormalization computes moving averages of
         mean and variance for evaluatino during training, and normalizes the
@@ -105,9 +107,13 @@ class BatchNormalization(link.Link):
                 statistics.
 
         """
-        if test is not None:
+        if 'test' in kwargs:
             raise ValueError(
                 'test argument is obsolete. Use chainer.using_config')
+        finetune = kwargs.pop('finetune', False)
+        if kwargs:
+            args = ', '.join(["'%s'" % arg for arg in kwargs.keys()])
+            raise TypeError('got an unexpected keyword argument %s' % args)
 
         if hasattr(self, 'gamma'):
             gamma = self.gamma

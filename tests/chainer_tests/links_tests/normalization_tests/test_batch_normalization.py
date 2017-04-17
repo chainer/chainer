@@ -362,4 +362,24 @@ class TestInvalidInitialize(unittest.TestCase):
             self.link = links.BatchNormalization({})
 
 
+class TestInvalidArgument(unittest.TestCase):
+
+    def setUp(self):
+        self.link = links.BatchNormalization(1)
+        self.x = numpy.random.uniform(-1, 1, (3,)).astype('f')
+
+    def test_test_argument(self):
+        with self.assertRaises(ValueError):
+            self.link(self.x, test=True)
+
+    def test_positional_argument(self):
+        # positional argument is prohibited from v2
+        with self.assertRaises(TypeError):
+            self.link(self.x, True)
+
+    def test_redundant_argument(self):
+        with self.assertRaises(TypeError):
+            self.link(self.x, unknown_argument=1)
+
+
 testing.run_module(__name__, __file__)
