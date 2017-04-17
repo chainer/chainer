@@ -66,7 +66,10 @@ class EmbedIDFunction(function.Function):
             if self.ignore_label is None:
                 cuda.elementwise(
                     'T gy, int32 x, int32 n_out', 'raw T gW',
-                    'int w_ind[] = {x, i % n_out}; atomicAdd(&gW[w_ind], gy)',
+                    '''
+                    ptrdiff_t w_ind[] = {x, i % n_out};
+                    atomicAdd(&gW[w_ind], gy);
+                    ''',
                     'embed_id_bwd')(
                         gy, xp.expand_dims(x, -1), gW.shape[1], gW)
             else:
@@ -74,7 +77,7 @@ class EmbedIDFunction(function.Function):
                     'T gy, int32 x, int32 n_out, int32 ignore', 'raw T gW',
                     '''
                     if (x != ignore) {
-                      int w_ind[] = {x, i % n_out};
+                      ptrdiff_t w_ind[] = {x, i % n_out};
                       atomicAdd(&gW[w_ind], gy);
                     }
                     ''',

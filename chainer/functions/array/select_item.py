@@ -39,7 +39,7 @@ class SelectItem(function.Function):
             y = cuda.elementwise(
                 'S t, raw T x',
                 'T y',
-                'int ind[] = {i, t}; y = x[ind];',
+                'ptrdiff_t ind[] = {i, t}; y = x[ind];',
                 'getitem_fwd'
             )(t, x)
             return y,
@@ -58,7 +58,7 @@ class SelectItem(function.Function):
         gx = cuda.elementwise(
             'S t, T gloss',
             'raw T gx',
-            'int ind[] = {i, t}; gx[ind] = gloss;',
+            'ptrdiff_t ind[] = {i, t}; gx[ind] = gloss;',
             'getitem_bwd'
         )(t, gloss, gx)
         return gx, None

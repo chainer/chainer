@@ -64,8 +64,8 @@ class NegativeSamplingFunction(function.Function):
             T f = 0;
             if (mask == 1) {
                 for (int j = 0; j < c; ++j) {
-                  int x_ind[] = {(i / m), j};
-                  int w_ind[] = {k, j};
+                  ptrdiff_t x_ind[] = {(i / m), j};
+                  ptrdiff_t w_ind[] = {k, j};
                   f += x[x_ind] * W[w_ind];
                 }
             }
@@ -133,7 +133,7 @@ class NegativeSamplingFunction(function.Function):
               y = -1;
             }
 
-            g = -y * gloss[0] / (1.0f + __expf(wx * y));
+            g = -y * gloss[0L] / (1.0f + __expf(wx * y));
             ''',
             'negative_sampling_calculate_g'
         )(self.wx, gloss, self.sample_size + 1)
@@ -141,11 +141,11 @@ class NegativeSamplingFunction(function.Function):
         cuda.elementwise(
             'raw T g, raw T W, bool mask, raw S k, int32 c, int32 m', 'T gx',
             '''
-            int d = i / c;
+            ptrdiff_t d = i / c;
             T w = 0;
             if (mask == 1){
                 for (int j = 0; j < m; ++j) {
-                  w += g[d * m + j] * W[k[d * m + j] * c + i % c];
+                  w += g[d * m + j] * W[(ptrdiff_t)k[d * m + j] * c + i % c];
                 }
             }
             gx = w;
@@ -160,7 +160,7 @@ class NegativeSamplingFunction(function.Function):
             '''
             T gi = g;
             if (mask == 1) {
-                for (int j = 0; j < c; ++j) {
+                for (ptrdiff_t j = 0; j < c; ++j) {
                   atomicAdd(&gW[k * c + j], gi * x[(i / m) * c + j]);
                 }
             }

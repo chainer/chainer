@@ -133,8 +133,8 @@ class ConnectionistTemporalClassification(function.Function):
                     '''
                     T value = z;
                     I c = i % b_max, b = i / b_max;
-                    int ind[2] = {b, -1};
-                    for (int index = 0; index < c_max; ++index) {
+                    ptrdiff_t ind[2] = {b, -1};
+                    for (ptrdiff_t index = 0; index < c_max; ++index) {
                         ind[1] = index;
                         if (ind[1] < l[ind[0]] && y[ind] == c) {
                             T xvalue = x[ind];

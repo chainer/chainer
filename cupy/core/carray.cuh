@@ -135,7 +135,7 @@ __device__ float16 nextafter(float16 x, float16 y) {return float16::nextafter(x,
 
 // CArray
 #define CUPY_FOR(i, n) \
-    for (int i = blockIdx.x * blockDim.x + threadIdx.x; \
+    for (ptrdiff_t i = blockIdx.x * blockDim.x + threadIdx.x; \
          i < (n); \
          i += blockDim.x * gridDim.x)
 
@@ -172,7 +172,19 @@ public:
     return (*const_cast<CArray<T, ndim>*>(this))[idx];
   }
 
-  __device__ T& operator[](int i) {
+  __device__ T& operator[](const ptrdiff_t* idx) {
+    char* ptr = reinterpret_cast<char*>(data_);
+    for (int dim = 0; dim < ndim; ++dim) {
+      ptr += strides_[dim] * idx[dim];
+    }
+    return *reinterpret_cast<T*>(ptr);
+  }
+
+  __device__ T operator[](const ptrdiff_t* idx) const {
+    return (*const_cast<CArray<T, ndim>*>(this))[idx];
+  }
+
+  __device__ T& operator[](ptrdiff_t i) {
     char* ptr = reinterpret_cast<char*>(data_);
     for (int dim = ndim; --dim > 0; ) {
       ptr += strides_[dim] * (i % shape_[dim]);
@@ -185,7 +197,7 @@ public:
     return *reinterpret_cast<T*>(ptr);
   }
 
-  __device__ T operator[](int i) const {
+  __device__ T operator[](ptrdiff_t i) const {
     return (*const_cast<CArray<T, ndim>*>(this))[i];
   }
 };
@@ -209,11 +221,19 @@ public:
     return (*const_cast<CArray<T, 0>*>(this))[idx];
   }
 
-  __device__ T& operator[](int i) {
+  __device__ T& operator[](const ptrdiff_t* idx) {
     return *reinterpret_cast<T*>(data_);
   }
 
-  __device__ T operator[](int i) const {
+  __device__ T operator[](const ptrdiff_t* idx) const {
+    return (*const_cast<CArray<T, 0>*>(this))[idx];
+  }
+
+  __device__ T& operator[](ptrdiff_t i) {
+    return *reinterpret_cast<T*>(data_);
+  }
+
+  __device__ T operator[](ptrdiff_t i) const {
     return (*const_cast<CArray<T, 0>*>(this))[i];
   }
 };
@@ -226,20 +246,18 @@ private:
   int index_[ndim];
 
 public:
-  __device__ int size() const {
+  __device__ ptrdiff_t size() const {
     return size_;
   }
 
-  __device__ void set(int i) {
+  __device__ void set(ptrdiff_t i) {
     unsigned int a = i;
     for (int dim = ndim; --dim > 0; ) {
-      unsigned int s = shape_[dim];
-      index_[dim] = (a % s);
+      unsigned s = shape_[dim];
+      index_[dim] = a % s;
       a /= s;
     }
-    if (ndim > 0) {
-      index_[0] = a;
-    }
+    index_[0] = a;
   }
 
   __device__ const int* get() const {
@@ -253,11 +271,11 @@ private:
   int size_;
 
 public:
-  __device__ int size() const {
+  __device__ ptrdiff_t size() const {
     return size_;
   }
 
-  __device__ void set(int i) {
+  __device__ void set(ptrdiff_t i) {
   }
 
   __device__ const int* get() const {
