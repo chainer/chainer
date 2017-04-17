@@ -39,6 +39,7 @@ class SigmoidCrossEntropy(function.Function):
         gloss = grad_outputs[0]
         y, = sigmoid.Sigmoid().forward((x,))
         gx = (gloss * self.ignore_mask * (y - t)).astype(y.dtype)
+        gx = utils.force_array(gx)
         return gx, None
 
 

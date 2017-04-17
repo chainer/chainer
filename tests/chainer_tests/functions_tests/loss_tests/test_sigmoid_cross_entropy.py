@@ -20,8 +20,9 @@ from chainer.testing import condition
     {'shape': (8,)},
     {'shape': (1, 1)},
     {'shape': (1,)},
+    {'shape': ()},
     # too large shape causes int32 -> float64 issue
-    {'shape': (65536, 1)},
+    {'shape': (65536, 1), 'skip_backward': True},
 )
 class TestSigmoidCrossEntropy(unittest.TestCase):
 
@@ -71,7 +72,7 @@ class TestSigmoidCrossEntropy(unittest.TestCase):
 
     def check_backward(self, x_data, t_data, y_grad, use_cudnn='always'):
         # Skip too large case. That requires a long time.
-        if self.shape[0] == 65536:
+        if getattr(self, 'skip_backward', False):
             return
 
         gradient_check.check_backward(
