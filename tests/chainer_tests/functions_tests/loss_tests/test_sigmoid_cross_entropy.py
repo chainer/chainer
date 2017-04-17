@@ -18,6 +18,8 @@ from chainer.testing import condition
     {'shape': (8, 7), 'ignore_all': True},
     {'shape': (8, 7, 6)},
     {'shape': (8,)},
+    {'shape': (1, 1)},
+    {'shape': (1,)},
     # too large shape causes int32 -> float64 issue
     {'shape': (65536, 1)},
 )
