@@ -532,7 +532,7 @@ class GradientMethod(Optimizer):
         .. note::
            Note that :meth:`update` calls :meth:`~Link.cleargrads` by default.
            :meth:`~Link.cleargrads` is more efficient than
-           :meth:`~Link.cleargrads`, so one do not have to call
+           :meth:`~Link.zerograds`, so one does not have to call
            :meth:`use_cleargrads`. This method remains for backward
            compatibility.
 
