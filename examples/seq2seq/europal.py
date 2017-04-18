@@ -49,6 +49,8 @@ def read_file(path):
     with open_file(path) as f:
         for line in bar(f, max_value=n_lines):
             words = split_sentence(line)
+            if len(words) == 0:
+                continue
             yield words
 
 
