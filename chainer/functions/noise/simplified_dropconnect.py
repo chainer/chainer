@@ -53,13 +53,13 @@ class SimplifiedDropconnect(function.Function):
     def forward(self, inputs):
         scale = inputs[1].dtype.type(1. / (1 - self.ratio))
         xp = cuda.get_array_module(*inputs)
-        if self.batchwise_mask:
-            mask_shape = (inputs[0].shape[0], inputs[1].shape[0],
-                          inputs[1].shape[1])
-        else:
-            mask_shape = (inputs[1].shape[0], inputs[1].shape[1])
 
         if self.mask is None:
+            if self.batchwise_mask:
+                mask_shape = (inputs[0].shape[0], inputs[1].shape[0],
+                              inputs[1].shape[1])
+            else:
+                mask_shape = (inputs[1].shape[0], inputs[1].shape[1])
             if xp == numpy:
                 self.mask = xp.random.rand(*mask_shape) >= self.ratio
             else:
