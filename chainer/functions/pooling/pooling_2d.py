@@ -69,13 +69,13 @@ class Pooling2D(function.Function):
         libcudnn.poolingForward(
             handle, pool_desc.value, one.data, x_desc.value,
             x.data.ptr, zero.data, y_desc.value, y.data.ptr)
-        self.y = y
-
+        self.retain_outputs((0,))
         return y,
 
     def backward_gpu(self, x, gy):
         # Implementation using cudnn
         x = x[0]
+        y = self.output_data[0]
         handle = cudnn.get_handle()
         pool_desc = self.create_pool_desc()
 
@@ -91,7 +91,7 @@ class Pooling2D(function.Function):
         gx = cuda.cupy.empty_like(x)
         libcudnn.poolingBackward(
             handle, pool_desc.value, one.data, y_desc.value,
-            self.y.data.ptr, y_desc.value, gy.data.ptr, x_desc.value,
+            y.data.ptr, y_desc.value, gy.data.ptr, x_desc.value,
             x.data.ptr, zero.data, x_desc.value, gx.data.ptr)
         return gx,
 

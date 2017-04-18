@@ -36,19 +36,21 @@ class Softmax(function.Function):
             handle = cudnn.get_handle()
             x_cube = x[0].reshape(x[0].shape[:2] + (-1, 1))
             desc = cudnn.create_tensor_descriptor(x_cube)
-            self.y = xp.empty_like(x[0])
+            y = xp.empty_like(x[0])
             libcudnn.softmaxForward(
                 handle, _algorithm, _mode, one.data, desc.value,
                 x_cube.data.ptr, zero.data, desc.value,
-                self.y.data.ptr)
+                y.data.ptr)
         else:
-            self.y = x[0] - x[0].max(axis=1, keepdims=True)
-            xp.exp(self.y, out=self.y)
-            self.y /= self.y.sum(axis=1, keepdims=True)
+            y = x[0] - x[0].max(axis=1, keepdims=True)
+            xp.exp(y, out=y)
+            y /= y.sum(axis=1, keepdims=True)
 
-        return self.y,
+        self.retain_outputs((0,))
+        return y,
 
     def backward(self, x, gy):
+        y = self.output_data[0]
         xp = cuda.get_array_module(*x)
         if (xp is not numpy and chainer.should_use_cudnn('>=auto') and
                 (_cudnn_version >= 3000 or x[0].dtype != numpy.float16)):
@@ -61,12 +63,12 @@ class Softmax(function.Function):
             desc = cudnn.create_tensor_descriptor(gx_cube)
             libcudnn.softmaxBackward(
                 handle, _algorithm, _mode, one.data, desc.value,
-                self.y.data.ptr, desc.value, gy[0].data.ptr, zero.data,
+                y.data.ptr, desc.value, gy[0].data.ptr, zero.data,
                 desc.value, gx.data.ptr)
         else:
-            gx = self.y * gy[0]
+            gx = y * gy[0]
             sumdx = gx.sum(axis=1, keepdims=True)
-            gx -= self.y * sumdx
+            gx -= y * sumdx
 
         return gx,
 
