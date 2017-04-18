@@ -82,8 +82,3 @@ def make_dataset(path, vocab):
 def make_array(word_id, words):
     ids = [word_id.get(word, 1) for word in words]
     return numpy.array(ids, 'i')
-
-
-if __name__ == '__main__':
-    vocab = count_words('wmt/giga-fren.release2.fixed.en')
-    make_dataset('wmt/giga-fren.release2.fixed.en', vocab)
