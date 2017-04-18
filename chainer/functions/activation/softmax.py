@@ -86,19 +86,9 @@ def softmax(x, use_cudnn=True, axis=1):
     """Softmax function.
 
     This function computes its softmax along an axis. Let
-    :math:`x = (x_1, x_2, \\dots, x_d)^{\\top}` be the d dimensional index
-    array and :math:`f(x)` be the d dimensional input array. For each index
-    :math:`x` of the input array :math:`f(x)`, it computes the probability
-    :math:`p(x)` defined as
-    :math:`p(x) = {\\exp(f(x)) \\over \\sum_{x_2} \\exp(f(x))}`.
->>>>>>> master
-    """Channel-wise softmax function.
-
-    This function computes its softmax along the second axis. Let
-    :math:`x=(x_1, x_2, \\dots, x_D)^{\\top}` be the D dimensional input
-    array.
-    For each input array :math:`x`, it computes the function :math:`f(x)`
-    defined as :math:`f(x)={\\exp(x) \\over \\sum_{x_d} \\exp(x_d)}`.
+    :math:`c = (c_1, c_2, \\dots, c_D)` be the slice of ``x`` along with
+    the axis. For each slice :math:`c`, it computes the function :math:`f(c)`
+    defined as :math:`f(c)={\\exp(c) \\over \\sum_{d} \\exp(c_d)}`.
 
     Args:
         x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
@@ -107,7 +97,7 @@ def softmax(x, use_cudnn=True, axis=1):
             A :math:`n`-dimensional (:math:`n \\geq 2`) float array.
         use_cudnn (bool): If ``True`` and cuDNN is enabled, then this function
             uses cuDNN as the core implementation.
-        axis: The axis along which the softmax is to be computed.
+        axis (int): The axis along which the softmax is to be computed.
 
     Returns:
         ~chainer.Variable: Output variable.
@@ -120,7 +110,7 @@ def softmax(x, use_cudnn=True, axis=1):
         >>> x
         array([[ 0.,  1.,  2.],
                [ 0.,  2.,  4.]], dtype=float32)
-        >>> y = F.softmax(x)
+        >>> y = F.softmax(x, axis=1)
         >>> y.data
         array([[ 0.09003057,  0.24472848,  0.66524094],
                [ 0.01587624,  0.11731043,  0.86681336]], dtype=float32)
