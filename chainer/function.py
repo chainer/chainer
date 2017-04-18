@@ -490,7 +490,7 @@ class Function(object):
         """
         self._input_indexes_to_retain = indexes
 
-    def retain_outputs(self, indexes):
+    def retain_outputs(self, indexes, retain_after_backward=False):
         """Lets specified output variable nodes keep data arrays.
 
         By calling this method from :meth:`forward`, the function can specify
@@ -515,6 +515,8 @@ class Function(object):
 
         """
         self._output_indexes_to_retain = indexes
+        if retain_after_backward:
+            self._retain_after_backward = retain_after_backward
 
 
 class FunctionHook(object):

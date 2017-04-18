@@ -405,7 +405,7 @@ class FunctionWithRetaining(chainer.Function):
 
     def forward(self, inputs):
         self.retain_inputs([1])
-        self.retain_outputs([1])
+        self.retain_outputs([1], retain_after_backward=True)
         return inputs
 
     def backward(self, inputs, grad_outputs):
