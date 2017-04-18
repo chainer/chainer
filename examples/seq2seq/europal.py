@@ -1,4 +1,3 @@
-# coding: utf-8
 from __future__ import unicode_literals
 
 import codecs
@@ -17,7 +16,7 @@ digit_pattern = re.compile(r'\d')
 
 def split_sentence(s):
     s = s.lower()
-    s = s.replace("’", "'")
+    s = s.replace('\u2019', "'")
     s = digit_pattern.sub('0', s)
     words = []
     for word in s.strip().split():
