@@ -1,5 +1,6 @@
 import collections
 import copy
+import warnings
 
 import numpy
 import six
@@ -525,7 +526,7 @@ class GradientMethod(Optimizer):
                 `cleargrads`. If ``False``, disables use of `cleargrads`
                 (`zerograds` is used).
 
-        .. note::
+        .. deprecated:: v2.0
            Note that :meth:`update` calls :meth:`~Link.cleargrads` by default.
            :meth:`~Link.cleargrads` is more efficient than
            :meth:`~Link.zerograds`, so one does not have to call
@@ -533,6 +534,10 @@ class GradientMethod(Optimizer):
            compatibility.
 
         """
+        warnings.warn(
+            'GradientMethod.use_cleargrads is deprecated.',
+            DeprecationWarning)
+
         self._use_cleargrads = use
 
     def create_update_rule(self):
