@@ -6,8 +6,6 @@ from chainer.functions.array import concat
 from chainer.functions.pooling import max_pooling_2d
 from chainer.functions.pooling import pooling_2d
 
-import cupy.testing as testing
-
 
 class SpatialPyramidPooling2D(pooling_2d.Pooling2D):
 
@@ -54,7 +52,6 @@ class SpatialPyramidPooling2D(pooling_2d.Pooling2D):
             n, c, h, w = pooler.out_shape = y.shape
             self.ys.append(y.reshape((n, c * h * w, 1, 1)))
 
-        self.retain_outputs((0,))
         return concat.Concat(axis=1).forward(self.ys)
 
     def backward(self, x, gy):
