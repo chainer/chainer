@@ -461,10 +461,6 @@ class GradientMethod(Optimizer):
     provide such an alias to each attribute. It can be done by only adding one
     line for each attribute using :class:`HyperparameterProxy`.
 
-    .. note::
-       It is recommended to call :meth:`use_cleargrads` after creating a
-       :class:`GradientMethod` object for efficiency.
-
     Attributes:
         hyperparam (Hyperparameter): The hyperparameter of the gradient
             method. It is used as the default configuration of each update
