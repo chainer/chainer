@@ -231,7 +231,6 @@ class Function(object):
                 for index in output_indexes_to_retain:
                     ret[index].retain_data()
             del self._output_indexes_to_retain
-            self.output_data = tuple([y.node.data for y in ret])
 
         if len(ret) == 1:
             return ret[0]
