@@ -21,11 +21,15 @@ def _batch_normalization(expander, gamma, beta, x, mean, var):
     return y_expect
 
 
-@testing.parameterize(*testing.product({
-    'param_shape': [(3,), (3, 4), (3, 4, 5)],
-    'ndim': [0, 1, 2, 3],
+@testing.parameterize(*(testing.product({
+    'param_shape': [(3,), (3, 4), (3, 2, 3)],
+    'ndim': [0, 1, 2],
+    'dtype': [numpy.float32],
+}) + testing.product({
+    'param_shape': [(3,)],
+    'ndim': [1],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
-}))
+})))
 class TestBatchNormalization(unittest.TestCase):
 
     def setUp(self):
@@ -81,12 +85,18 @@ class TestBatchNormalization(unittest.TestCase):
     def test_forward_gpu_no_cudnn(self):
         self.check_forward([cuda.to_gpu(i) for i in self.args], False)
 
-    def check_backward(self, args, y_grad):
+    @attr.cudnn
+    @condition.retry(3)
+    def test_forward_gpu_non_contiguous(self):
+        self.check_forward([cuda.cupy.asfortranarray(cuda.to_gpu(i))
+                            for i in self.args])
+
+    def check_backward(self, args, y_grad, use_cudnn=True):
         gradient_check.check_backward(
             batch_normalization.BatchNormalizationFunction(
                 mean=None, var=None, train=self.train,
-                decay=self.decay, eps=self.eps), args, y_grad,
-            **self.check_backward_options)
+                decay=self.decay, eps=self.eps, use_cudnn=use_cudnn),
+            args, y_grad, **self.check_backward_options)
 
     @condition.retry(3)
     def test_backward_cpu(self):
@@ -98,12 +108,29 @@ class TestBatchNormalization(unittest.TestCase):
         self.check_backward(
             [cuda.to_gpu(i) for i in self.args], cuda.to_gpu(self.gy))
 
+    @attr.gpu
+    @condition.retry(3)
+    def test_backward_gpu_no_cudnn(self):
+        self.check_backward(
+            [cuda.to_gpu(i) for i in self.args], cuda.to_gpu(self.gy), False)
 
-@testing.parameterize(*testing.product({
-    'param_shape': [(3,), (3, 4), (3, 4, 5)],
-    'ndim': [0, 1, 2, 3],
+    @attr.cudnn
+    @condition.retry(3)
+    def test_backward_gpu_non_contiguous(self):
+        self.check_backward(
+            [cuda.cupy.asfortranarray(cuda.to_gpu(i)) for i in self.args],
+            cuda.cupy.asfortranarray(cuda.to_gpu(self.gy)))
+
+
+@testing.parameterize(*(testing.product({
+    'param_shape': [(3, 4), (3, 2, 3)],
+    'ndim': [0, 1, 2],
+    'dtype': [numpy.float32],
+}) + testing.product({
+    'param_shape': [(3,)],
+    'ndim': [1],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
-}))
+})))
 class TestFixedBatchNormalization(unittest.TestCase):
 
     def setUp(self):
@@ -158,11 +185,17 @@ class TestFixedBatchNormalization(unittest.TestCase):
     def test_forward_gpu_no_cudnn(self):
         self.check_forward([cuda.to_gpu(i) for i in self.args], False)
 
-    def check_backward(self, args, y_grad):
+    @attr.cudnn
+    @condition.retry(3)
+    def test_forward_gpu_non_contiguous(self):
+        self.check_forward([cuda.cupy.asfortranarray(cuda.to_gpu(i))
+                            for i in self.args])
+
+    def check_backward(self, args, y_grad, use_cudnn=True):
         gradient_check.check_backward(
             batch_normalization.BatchNormalizationFunction(
                 mean=None, var=None, train=self.train,
-                decay=self.decay, eps=self.eps),
+                decay=self.decay, eps=self.eps, use_cudnn=use_cudnn),
             args, y_grad,  **self.check_backward_options)
 
     @condition.retry(3)
@@ -174,6 +207,19 @@ class TestFixedBatchNormalization(unittest.TestCase):
     def test_backward_gpu(self):
         self.check_backward(
             [cuda.to_gpu(i) for i in self.args], cuda.to_gpu(self.gy))
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_backward_gpu_no_cudnn(self):
+        self.check_backward(
+            [cuda.to_gpu(i) for i in self.args], cuda.to_gpu(self.gy), False)
+
+    @attr.cudnn
+    @condition.retry(3)
+    def test_backward_gpu_no_contiguous(self):
+        self.check_backward(
+            [cuda.cupy.asfortranarray(cuda.to_gpu(i)) for i in self.args],
+            cuda.cupy.asfortranarray(cuda.to_gpu(self.gy)))
 
 
 @testing.parameterize(*testing.product({

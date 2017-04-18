@@ -16,8 +16,9 @@ class Softmax(function.Function):
 
     """Softmax activation function."""
 
-    def __init__(self, use_cudnn=True):
+    def __init__(self, use_cudnn=True, axis=1):
         self.use_cudnn = use_cudnn
+        self.axis = axis
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)
@@ -26,6 +27,7 @@ class Softmax(function.Function):
         type_check.expect(
             x_type.dtype.kind == 'f',
             x_type.ndim > 1,
+            self.axis < x_type.ndim
         )
 
     def forward(self, x):
@@ -36,17 +38,17 @@ class Softmax(function.Function):
             one = numpy.array(1, dtype=oz_dtype).ctypes
             zero = numpy.array(0, dtype=oz_dtype).ctypes
             handle = cudnn.get_handle()
-            x_cube = x[0].reshape(x[0].shape[:2] + (-1, 1))
-            desc = cudnn.create_tensor_descriptor(x_cube)
+            x_tensor4d = x[0].reshape(self._get_tensor4d_shape(x[0].shape))
+            desc = cudnn.create_tensor_descriptor(x_tensor4d)
             self.y = xp.empty_like(x[0])
             libcudnn.softmaxForward(
                 handle, _algorithm, _mode, one.data, desc.value,
-                x_cube.data.ptr, zero.data, desc.value,
+                x_tensor4d.data.ptr, zero.data, desc.value,
                 self.y.data.ptr)
         else:
-            self.y = x[0] - x[0].max(axis=1, keepdims=True)
+            self.y = x[0] - x[0].max(axis=self.axis, keepdims=True)
             xp.exp(self.y, out=self.y)
-            self.y /= self.y.sum(axis=1, keepdims=True)
+            self.y /= self.y.sum(axis=self.axis, keepdims=True)
 
         return self.y,
 
@@ -59,29 +61,44 @@ class Softmax(function.Function):
             zero = numpy.array(0, dtype=oz_dtype).ctypes
             handle = cudnn.get_handle()
             gx = xp.empty_like(x[0])
-            gx_cube = gx.reshape(gx.shape[:2] + (-1, 1))
-            desc = cudnn.create_tensor_descriptor(gx_cube)
+            gx_tensor4d = gx.reshape(self._get_tensor4d_shape(gx.shape))
+            desc = cudnn.create_tensor_descriptor(gx_tensor4d)
             libcudnn.softmaxBackward(
                 handle, _algorithm, _mode, one.data, desc.value,
                 self.y.data.ptr, desc.value, gy[0].data.ptr, zero.data,
                 desc.value, gx.data.ptr)
         else:
             gx = self.y * gy[0]
-            sumdx = gx.sum(axis=1, keepdims=True)
+            sumdx = gx.sum(axis=self.axis, keepdims=True)
             gx -= self.y * sumdx
 
         return gx,
 
+    def _get_tensor4d_shape(self, shape):
+        left_shape = numpy.prod(shape[slice(0, self.axis)], dtype=numpy.int)
+        center_shape = shape[self.axis]
+        right_shape = numpy.prod(
+            shape[slice(self.axis + 1, len(shape))], dtype=numpy.int)
+        return left_shape, center_shape, right_shape, 1
 
-def softmax(x, use_cudnn=True):
+
+def softmax(x, use_cudnn=True, axis=1):
+    """Softmax function.
+
+    This function computes its softmax along an axis. Let
+    :math:`x = (x_1, x_2, \\dots, x_d)^{\\top}` be the d dimensional index
+    array and :math:`f(x)` be the d dimensional input array. For each index
+    :math:`x` of the input array :math:`f(x)`, it computes the probability
+    :math:`p(x)` defined as
+    :math:`p(x) = {\\exp(f(x)) \\over \\sum_{x_2} \\exp(f(x))}`.
+>>>>>>> master
     """Channel-wise softmax function.
 
     This function computes its softmax along the second axis. Let
-    :math:`x=(x_1, x_2, \\dots, x_D)^{\\top}` be the D dimensional
-    input array.
+    :math:`x=(x_1, x_2, \\dots, x_D)^{\\top}` be the D dimensional input
+    array.
     For each input array :math:`x`, it computes the function :math:`f(x)`
-    defined as
-    :math:`f(x)={\\exp(x) \\over \\sum_{x_d} \\exp(x_d)}`.
+    defined as :math:`f(x)={\\exp(x) \\over \\sum_{x_d} \\exp(x_d)}`.
 
     Args:
         x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
@@ -90,6 +107,7 @@ def softmax(x, use_cudnn=True):
             A :math:`n`-dimensional (:math:`n \\geq 2`) float array.
         use_cudnn (bool): If ``True`` and cuDNN is enabled, then this function
             uses cuDNN as the core implementation.
+        axis: The axis along which the softmax is to be computed.
 
     Returns:
         ~chainer.Variable: Output variable.
@@ -110,4 +128,4 @@ def softmax(x, use_cudnn=True):
         array([ 1.,  1.], dtype=float32)
 
     """
-    return Softmax(use_cudnn)(x)
+    return Softmax(use_cudnn=use_cudnn, axis=axis)(x)
