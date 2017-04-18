@@ -73,9 +73,7 @@ def snapshot(savefun=npz.save_npz,
     """
     @extension.make_extension(trigger=(1, 'epoch'), priority=-100)
     def snapshot(trainer):
-        trainer.resumed = True
         _snapshot_object(trainer, trainer, filename.format(trainer), savefun)
-        trainer.resumed = False
 
     return snapshot
 
