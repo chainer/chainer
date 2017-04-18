@@ -212,7 +212,6 @@ class TestSimplifiedDropconnectNotBatchwiseMask(unittest.TestCase):
         testing.assert_allclose(y.data[0], y.data[2])
         testing.assert_allclose(y.data[0], y.data[3])
 
-        xp = cuda.get_array_module(x)
         mask = y.creator.mask
         mask = cuda.to_cpu(mask)
 
