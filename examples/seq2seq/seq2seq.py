@@ -102,25 +102,16 @@ class Seq2seq(chainer.Chain):
 
 
 def convert(batch, device):
-    if device is None:
-        def to_device(x):
-            return x
-    elif device < 0:
-        to_device = cuda.to_cpu
-    else:
-        def to_device(x):
-            return cuda.to_gpu(x, device, cuda.Stream.null)
-
     def to_device_batch(batch):
         if device is None:
             return batch
         elif device < 0:
-            return [to_device(x) for x in batch]
+            return [chainer.dataset.to_device(device, x) for x in batch]
         else:
             xp = cuda.cupy.get_array_module(*batch)
             concat = xp.concatenate(batch, axis=0)
             sections = numpy.cumsum([len(x) for x in batch[:-1]], dtype='i')
-            concat_dev = to_device(concat)
+            concat_dev = chainer.dataset.to_device(device, concat)
             batch_dev = cuda.cupy.split(concat_dev, sections)
             return batch_dev
 
