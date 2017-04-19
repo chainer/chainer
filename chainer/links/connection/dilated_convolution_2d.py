@@ -1,3 +1,5 @@
+import numpy
+
 from chainer.functions.connection import dilated_convolution_2d
 from chainer import initializers
 from chainer import link
@@ -24,16 +26,18 @@ class DilatedConvolution2D(link.Link):
             ``pad=p`` and ``pad=(p, p)`` are equivalent.
         dilate (int or pair of ints): Dilation factor of filter applications.
             ``dilate=d`` and ``dilate=(d, d)`` are equivalent.
-        bias (float): Initial bias value.
         nobias (bool): If ``True``, then this link does not use the bias term.
-        initialW (4-D array): Initial weight value. If ``None``, the default
-            initializer is used to initialize the weight matrix.
-            May also be a callable that takes ``numpy.ndarray`` or
+        initialW (callable): Weight initializer.
+            It should be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
-        initial_bias (1-D array): Initial bias value. If ``None``, then this
-            function uses to initialize ``bias``.
-            May also be a callable that takes ``numpy.ndarray`` or
+            If it is ``None``, the default initializer is used.
+            If it is `numpy.ndarray`, the array is used as initial
+            weight value.
+        initial_bias (callable): Bias initializer.
+            It should be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
+            If ``None``, the default initializer is used.
+            If it is `numpy.ndarray`, the array is used as initial bias value.
 
     .. seealso::
        See :func:`chainer.functions.dilated_convolution_2d`
@@ -92,8 +96,7 @@ class DilatedConvolution2D(link.Link):
     """
 
     def __init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0,
-                 dilate=1, bias=0, nobias=False, initialW=None,
-                 initial_bias=None):
+                 dilate=1, nobias=False, initialW=None, initial_bias=None):
         super(DilatedConvolution2D, self).__init__()
 
         if ksize is None:
@@ -104,7 +107,11 @@ class DilatedConvolution2D(link.Link):
         self.pad = _pair(pad)
         self.dilate = _pair(dilate)
         self.out_channels = out_channels
-        self.initialW = initialW
+
+        if initialW is None:
+            self.initialW = initializers.HeNormal(1.0 / numpy.sqrt(2))
+        else:
+            self.initialW = initialW
 
         # For backward compatibility, the scale of weights is proportional to
         # the square root of wscale.
@@ -116,10 +123,10 @@ class DilatedConvolution2D(link.Link):
         if nobias:
             self.b = None
         else:
-            self.add_param('b', out_channels)
             if initial_bias is None:
-                initial_bias = bias
-            initializers.init_weight(self.b.data, initial_bias)
+                initial_bias = 0
+            initial_bias = initializers._get_initializer(initial_bias)
+            self.add_param('b', out_channels, initializer=initial_bias)
 
     def _initialize_params(self, in_channels):
         kh, kw = _pair(self.ksize)

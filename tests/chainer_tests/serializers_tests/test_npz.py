@@ -229,6 +229,9 @@ class TestGroupHierachy(unittest.TestCase):
         self.optimizer = optimizers.AdaDelta()
         self.optimizer.setup(self.parent)
 
+        self.parent.zerograds()
+        self.optimizer.update()  # init all states
+
         self.savez = numpy.savez_compressed if self.compress else numpy.savez
 
     def _save(self, target, obj, name):
@@ -252,8 +255,8 @@ class TestGroupHierachy(unittest.TestCase):
                 'child/linear/b/msdx',
                 'child/Wc/msg',
                 'child/Wc/msdx') + state
-        self.assertSetEqual(set(file.keys()),
-                            {prefix + x for x in keys})
+        self.assertEqual(set(file.keys()),
+                         {prefix + x for x in keys})
 
     def test_save_chain(self):
         d = {}

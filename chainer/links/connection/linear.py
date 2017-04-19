@@ -2,6 +2,8 @@ from chainer.functions.connection import linear
 from chainer import initializers
 from chainer import link
 
+import numpy
+
 
 class Linear(link.Link):
 
@@ -22,17 +24,18 @@ class Linear(link.Link):
             parameter initialization will be deferred until the first forward
             data pass at which time the size will be determined.
         out_size (int): Dimension of output vectors.
-        bias (float): Initial bias value.
         nobias (bool): If ``True``, then this function does not use the bias.
-        initialW (2-D array): Initial weight value. If ``None``, the default
-            initializer is used to initialize the weight matrix.
-            May also be a callable that takes ``numpy.ndarray`` or
+        initialW (callable): Weight initializer.
+            It should be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
-        initial_bias (1-D array): Initial bias value. If ``None``, then this
-            function uses to initialize ``bias``.
-            May also be a callable that takes ``numpy.ndarray`` or
+            If it is ``None``, the default initializer is used.
+            If it is `numpy.ndarray`, the array is used as initial
+            weight value.
+        initial_bias (callable): Bias initializer.
+            It should be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
-
+            If ``None``, the default initializer is used.
+            If it is `numpy.ndarray`, the array is used as initial bias value.
     .. seealso:: :func:`~chainer.functions.linear`
 
     Attributes:
@@ -90,17 +93,16 @@ class Linear(link.Link):
 
     """
 
-    def __init__(self, in_size, out_size=None, bias=0, nobias=False,
+    def __init__(self, in_size, out_size=None, nobias=False,
                  initialW=None, initial_bias=None):
         super(Linear, self).__init__()
 
         if out_size is None:
             in_size, out_size = None, in_size
-
-        # For backward compatibility
-        self.initialW = initialW
         self.out_size = out_size
 
+        if initialW is None:
+            initialW = initializers.HeNormal(1.0 / numpy.sqrt(2))
         self.add_param('W', initializer=initializers._get_initializer(
             initialW))
         if in_size is not None:
@@ -110,7 +112,7 @@ class Linear(link.Link):
             self.b = None
         else:
             if initial_bias is None:
-                initial_bias = bias
+                initial_bias = initializers.Constant(0)
             bias_initializer = initializers._get_initializer(initial_bias)
             self.add_param('b', self.out_size, initializer=bias_initializer)
 

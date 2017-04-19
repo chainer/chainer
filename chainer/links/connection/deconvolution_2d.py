@@ -1,3 +1,6 @@
+import numpy
+
+from chainer import cuda
 from chainer.functions.connection import deconvolution_2d
 from chainer import initializers
 from chainer import link
@@ -22,22 +25,23 @@ class Deconvolution2D(link.Link):
             ``stride=s`` and ``stride=(s, s)`` are equivalent.
         pad (int or pair of ints): Spatial padding width for input arrays.
             ``pad=p`` and ``pad=(p, p)`` are equivalent.
-        bias (float): Initial bias value.
         nobias (bool): If ``True``, then this function does not use the bias
             term.
         outsize (tuple): Expected output size of deconvolutional operation.
             It should be pair of height and width :math:`(out_H, out_W)`.
             Default value is ``None`` and the outsize is estimated by
             input size, stride and pad.
-        initialW (4-D array): Initial weight value. If ``None``, then this
-            function uses the default initializer to initialize
-            the weight tensor.
-            May also be a callable that takes ``numpy.ndarray`` or
+        initialW (callable): Weight initializer.
+            It should be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
-        initial_bias (1-D array): Initial bias value. If ``None``, then this
-            function uses to initialize ``bias``.
-            May also be a callable that takes ``numpy.ndarray`` or
+            If it is ``None``, the default initializer is used.
+            If it is `numpy.ndarray`, the array is used as initial
+            weight value.
+        initial_bias (callable): Bias initializer.
+            It should be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
+            If ``None``, the default initializer is used.
+            If it is `numpy.ndarray`, the array is used as initial bias value.
         deterministic (bool): The output of this link can be
             non-deterministic when it uses cuDNN.
             If this option is ``True``, then it forces cuDNN to use
@@ -116,8 +120,8 @@ class Deconvolution2D(link.Link):
     """
 
     def __init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0,
-                 bias=0, nobias=False, outsize=None, initialW=None,
-                 initial_bias=None, deterministic=False):
+                 nobias=False, outsize=None, initialW=None, initial_bias=None,
+                 deterministic=False):
         super(Deconvolution2D, self).__init__()
 
         if ksize is None:
@@ -127,7 +131,10 @@ class Deconvolution2D(link.Link):
         self.stride = _pair(stride)
         self.pad = _pair(pad)
         self.outsize = (None, None) if outsize is None else outsize
-        self.initialW = initialW
+        if initialW is None:
+            self.initialW = initializers.HeNormal(1.0 / numpy.sqrt(2))
+        else:
+            self.initialW = initialW
         self.out_channels = out_channels
         self.deterministic = deterministic
 
@@ -139,8 +146,10 @@ class Deconvolution2D(link.Link):
         if nobias:
             self.b = None
         else:
+            if isinstance(initial_bias, (numpy.ndarray, cuda.ndarray)):
+                assert initial_bias.shape == (out_channels,)
             if initial_bias is None:
-                initial_bias = bias
+                initial_bias = initializers.Constant(0)
             bias_initializer = initializers._get_initializer(initial_bias)
             self.add_param('b', out_channels, initializer=bias_initializer)
 

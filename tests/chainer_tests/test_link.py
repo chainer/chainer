@@ -20,6 +20,9 @@ class TestLink(unittest.TestCase):
         self.p = numpy.array([1, 2, 3], dtype='f')
         self.link.add_persistent('p', self.p)
         self.link.name = 'a'
+        self.link.x.update_rule = chainer.UpdateRule()
+        self.link.x.update_rule.enabled = False
+        self.link.u.update_rule = chainer.UpdateRule()
 
     def check_param_init(self, name, shape, dtype, data_value=numpy.nan):
         self.assertTrue(hasattr(self.link, name))
@@ -292,11 +295,28 @@ class TestLink(unittest.TestCase):
         self.assertIsInstance(l.x.data, numpy.ndarray)
         numpy.testing.assert_array_equal(l.x.data, ret)
 
+    def test_enable_update(self):
+        self.link.enable_update()
+        self.assertTrue(self.link.x.update_rule.enabled)
+        self.assertTrue(self.link.u.update_rule.enabled)
+
+    def test_disable_update(self):
+        self.link.disable_update()
+        self.assertFalse(self.link.x.update_rule.enabled)
+        self.assertFalse(self.link.u.update_rule.enabled)
+
+    def test_update_enabled(self):
+        self.assertTrue(self.link.update_enabled)
+        self.link.disable_update()
+        self.assertFalse(self.link.update_enabled)
+        self.link.enable_update()
+        self.assertTrue(self.link.update_enabled)
+
 
 class CountVariable(chainer.Variable):
 
     def __init__(self, v):
-        super(CountVariable, self).__init__(v.data, v.volatile, v.name)
+        super(CountVariable, self).__init__(v.data, v.name)
         self.grad = v.grad
         self.count_to_cpu = 0
         self.count_to_gpu = 0

@@ -137,7 +137,7 @@ class TestConvolutionNDNoInitialBias(unittest.TestCase):
         ndim = 3
         ksize = 3
         link = convolution_nd.ConvolutionND(
-            ndim, 3, 2, ksize, initial_bias=None)
+            ndim, 3, 2, ksize, nobias=True)
         self.assertIsNone(link.b)
 
 
