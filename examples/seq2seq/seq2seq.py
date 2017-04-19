@@ -133,10 +133,11 @@ class CalculateBleu(chainer.training.Extension):
 
     trigger = 1, 'epoch'
 
-    def __init__(self, model, test_data, batch=100):
+    def __init__(self, model, test_data, batch=100, device=-1):
         self.model = model
         self.test_data = test_data
         self.batch = batch
+        self.device = device
 
     def __call__(self, trainer):
         with chainer.no_backprop_mode():
@@ -146,6 +147,8 @@ class CalculateBleu(chainer.training.Extension):
                 sources, targets = zip(*self.test_data[i:i + self.batch])
                 references.extend([[t.tolist()] for t in targets])
 
+                sources = [
+                    chainer.dataset.to_device(device, x) for x in sources]
                 ys = [y.tolist() for y in self.model.translate(sources)]
                 hypotheses.extend(ys)
 
@@ -259,7 +262,7 @@ def main():
         translate_one(source, target)
 
     trainer.extend(translate, trigger=(200, 'iteration'))
-    trainer.extend(CalculateBleu(model, test_data),
+    trainer.extend(CalculateBleu(model, test_data, device=args.gpu),
                    trigger=(10000, 'iteration'))
     print('start training')
     trainer.run()
