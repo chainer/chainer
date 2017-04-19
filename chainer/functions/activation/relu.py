@@ -1,6 +1,7 @@
 import numpy
 
 import chainer
+from chainer import configuration
 from chainer import cuda
 from chainer import function
 from chainer import utils
@@ -19,6 +20,12 @@ class ReLU(function.Function):
     """Rectified Linear Unit."""
     # TODO(beam2d): Implement in-place version.
 
+    def __init__(self):
+        self._recompute = False
+        _fnames = getattr(configuration.config, 'recompute_targets', [])
+        if "RELU" in _fnames:
+            self._recompute = True
+
     def check_type_forward(self, in_types):
         type_check.expect(
             in_types.size() == 1,
@@ -26,7 +33,8 @@ class ReLU(function.Function):
         )
 
     def forward_cpu(self, x):
-        self.retain_inputs(())
+        if not self._recompute:
+            self.retain_inputs(())
         self.retain_outputs((0,))
         return utils.force_array(numpy.maximum(x[0], 0, dtype=x[0].dtype)),
 
@@ -37,7 +45,8 @@ class ReLU(function.Function):
             self._use_cudnn = True
             y = cudnn.activation_forward(x[0], _mode)
         else:
-            self.retain_inputs(())
+            if not self._recompute:
+                self.retain_inputs(())
             self._use_cudnn = False
             y = cuda.cupy.maximum(x[0], 0)
         self.retain_outputs((0,))

@@ -1,6 +1,7 @@
 import numpy
 
 import chainer
+from chainer import configuration
 from chainer import cuda
 from chainer import function
 from chainer.utils import conv
@@ -36,6 +37,11 @@ class Convolution2DFunction(function.Function):
         self.ph, self.pw = _pair(pad)
         self.cover_all = cover_all
         self.deterministic = deterministic
+
+        self._recompute = False
+        _fnames = getattr(configuration.config, 'recompute_targets', [])
+        if "CONV" in _fnames:
+            self._recompute = True
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()

@@ -154,6 +154,8 @@ class VariableNode(object):
 
         self.grad = grad
 
+        self._recompute = False
+
     @property
     def creator(self):
         """Function node that created this variable node."""
@@ -225,6 +227,9 @@ class VariableNode(object):
             raise RuntimeError('cannot retain variable data: the variable has '
                                'been already released')
 
+        if self._recompute is True:
+            self.data = None
+
     def _set_data_type(self, d):
         self.dtype = d.dtype
         self.shape = d.shape
@@ -232,6 +237,31 @@ class VariableNode(object):
     def _set_grad_with_check(self, g, func, var):
         _check_grad_type(func, var, g)
         self._grad = g
+
+    def set_recompute(self):
+        """Set recompute mode enabled"""
+        self._recompute = True
+
+    def do_recompute(self):
+        """Re-compute my data"""
+        func = self.creator
+
+        variable = self._variable()
+        if variable is not None:
+            if variable.data is not None:
+                self.data = variable.data
+                return
+
+        # call recompute recursively
+        for x in func.inputs:
+            if x._recompute is True and x.data is None:
+                x.do_recompute()
+
+        in_data = tuple([x.data for x in func.inputs])
+        out_data = func.forward(in_data)
+        out_vars = tuple(y() for y in func.outputs)  # access via weak ref
+        for (var, data) in zip(out_vars, out_data):
+            var.data = data
 
 
 class Variable(object):
@@ -579,6 +609,10 @@ Actual: {0}'''.format(type(data))
         """
         self._node.set_creator(gen_func)
 
+    def do_recompute(self):
+        """Re-compute my data"""
+        self._node.do_recompute()
+
     def backward(self, retain_grad=False):
         """Runs error backpropagation (a.k.a. backprop) from this variable.
 
@@ -644,6 +678,10 @@ Actual: {0}'''.format(type(data))
         while cand_funcs:
             _, _, func = heapq.heappop(cand_funcs)
             outputs = [y() for y in func.outputs]  # access via weak ref
+
+            for x in func.inputs:
+                if x._recompute is True and x.data is None:
+                    x.do_recompute()
 
             in_data = tuple([x.data for x in func.inputs])
             out_grad = tuple([None if y is None else y.grad for y in outputs])
@@ -713,6 +751,12 @@ Actual: {0}'''.format(type(data))
             del gxs  # to reduce memory usage
             if initial_device is not None:
                 initial_device.use()
+
+            # testing
+            for y in outputs:
+                if y is not None and y is not self.node:
+                    if y._recompute is True:
+                        y.data = None
 
     def reshape(self, *shape):
         """Returns a variable of a different shape and the same content.
@@ -802,6 +846,13 @@ Actual: {0}'''.format(type(data))
     def retain_data(self):
         """Lets the corresponding variable node keep the underlying array."""
         self._node.data = self._data[0]
+
+        if self.node._recompute is True:
+            self._node.data = None
+
+    def set_recompute(self):
+        """Set recompute mode enabled"""
+        self.node.set_recompute()
 
     def update(self):
         """Updates the data array using the gradient and the update rule.

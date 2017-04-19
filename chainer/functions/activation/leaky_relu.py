@@ -1,3 +1,4 @@
+from chainer import configuration
 from chainer import cuda
 from chainer import function
 from chainer.utils import type_check
@@ -16,6 +17,11 @@ class LeakyReLU(function.Function):
     def __init__(self, slope=0.2):
         self.slope = slope
 
+        self._recompute = False
+        _fnames = getattr(configuration.config, 'recompute_targets', [])
+        if "RELU" in _fnames:
+            self._recompute = True
+
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)
         x_type, = in_types
@@ -25,18 +31,21 @@ class LeakyReLU(function.Function):
         y = x[0].copy()
         y[x[0] < 0] *= self.slope
         if self.slope >= 0:
-            self.retain_inputs(())
+            if not self._recompute:
+                self.retain_inputs(())
             self.retain_outputs((0,))
         return y,
 
     def forward_gpu(self, x):
         y = _kern()(x[0], x[0], self.slope)
         if self.slope >= 0:
-            self.retain_inputs(())
+            if not self._recompute:
+                self.retain_inputs(())
             self.retain_outputs((0,))
         return y,
 
     def backward_cpu(self, x, gy):
+        y = self.output_data
         gx = gy[0].copy()
         if self.slope >= 0:
             y = self.output_data
