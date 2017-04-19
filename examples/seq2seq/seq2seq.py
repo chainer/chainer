@@ -139,7 +139,7 @@ class CalculateBleu(chainer.training.Extension):
                 references.extend([[t.tolist()] for t in targets])
 
                 sources = [
-                    chainer.dataset.to_device(device, x) for x in sources]
+                    chainer.dataset.to_device(self.device, x) for x in sources]
                 ys = [y.tolist() for y in self.model.translate(sources)]
                 hypotheses.extend(ys)
 
