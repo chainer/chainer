@@ -235,16 +235,13 @@ def make_extensions(options, compiler, use_cython):
             s['libraries'] = module['libraries']
 
         if module['name'] == 'cusolver':
-            compile_args = s.setdefault('extra_compile_args', [])
-            link_args = s.setdefault('extra_link_args', [])
+            args = s.setdefault('extra_compile_args', [])
             # openmp is required for cusolver
             if compiler.compiler_type == 'unix' and sys.platform != 'darwin':
                 # In mac environment, openmp is not required.
-                compile_args.append('-fopenmp')
-                link_args.append('-fopenmp')
+                args.append('-fopenmp')
             elif compiler.compiler_type == 'msvc':
-                compile_args.append('--compiler-options=/openmp')
-                link_args.append('--compiler-options=/openmp')
+                args.append('--compiler-options=/openmp')
 
         for f in module['file']:
             name = module_extension_name(f)
