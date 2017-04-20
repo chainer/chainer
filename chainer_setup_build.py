@@ -107,9 +107,14 @@ MODULES = [
 
 if sys.platform == 'win32':
     mod_cuda = MODULES[0]
-    mod_cuda['file'].remove('cupy.cuda.nvtx')
-    mod_cuda['include'].remove('nvToolsExt.h')
     mod_cuda['libraries'].remove('nvToolsExt')
+    if utils.search_on_path(['nvToolsExt64_1.dll']) is None:
+        mod_cuda['file'].remove('cupy.cuda.nvtx')
+        mod_cuda['include'].remove('nvToolsExt.h')
+        utils.print_warning(
+            'Cannot find nvToolsExt. nvtx was disabled.')
+    else:
+        mod_cuda['libraries'].append('nvToolsExt64_1')
 
 
 def ensure_module_file(file):
@@ -228,6 +233,15 @@ def make_extensions(options, compiler, use_cython):
         s = settings.copy()
         if not no_cuda:
             s['libraries'] = module['libraries']
+
+        if module['name'] == 'cusolver':
+            args = s.setdefault('extra_compile_args', [])
+            # openmp is required for cusolver
+            if compiler.compiler_type == 'unix' and sys.platform != 'darwin':
+                # In mac environment, openmp is not required.
+                args.append('-fopenmp')
+            elif compiler.compiler_type == 'msvc':
+                args.append('--compiler-options=/openmp')
 
         for f in module['file']:
             name = module_extension_name(f)
@@ -352,19 +366,33 @@ class NvidiaCCompiler(unixccompiler.UnixCCompiler):
         unixccompiler.UnixCCompiler.__init__(
             self, verbose=verbose, dry_run=dry_run, force=force)
         postargs = _nvcc_gencode_options()
-        if sys.platform == 'win32':
-            self.set_executables(compiler=['nvcc', '-O'] + postargs,
-                                 compiler_so=['nvcc', '-O'] + postargs,
-                                 compiler_cxx=['nvcc', '-O'] + postargs,
-                                 linker_so=['nvcc', '-shared'],
-                                 linker_exe=['nvcc'])
-        else:
+
+        # Copied from distutils.sysconfig.customize_compiler
+        ldshared = 'nvcc -shared'
+        cflags = ''
+        if 'LDFLAGS' in os.environ:
+            ldshared = ldshared + ' ' + os.environ['LDFLAGS']
+        if 'CFLAGS' in os.environ:
+            cflags = cflags + ' ' + os.environ['CFLAGS']
+            ldshared = ldshared + ' ' + os.environ['CFLAGS']
+        if 'CPPFLAGS' in os.environ:
+            cflags = cflags + ' ' + os.environ['CPPFLAGS']
+            ldshared = ldshared + ' ' + os.environ['CPPFLAGS']
+
+        if not sys.platform == 'win32':
             postargs += ['--compiler-options=-fPIC']
-            self.set_executables(compiler=['nvcc', '-O'] + postargs,
-                                 compiler_so=['nvcc', '-O'] + postargs,
-                                 compiler_cxx=['g++', '-O'] + postargs,
-                                 linker_so=['nvcc', '-shared'],
-                                 linker_exe=['nvcc'])
+
+        nvcc_cmd = 'nvcc -O2 ' + ' '.join(postargs) + ' ' + cflags
+        if not sys.platform == 'win32':
+            cxx_cmd = 'g++'
+        else:
+            cxx_cmd = 'nvcc'
+        cxx_cmd += ' -O2 ' + ' '.join(postargs) + ' ' + cflags
+        self.set_executables(compiler=nvcc_cmd,
+                             compiler_so=nvcc_cmd,
+                             compiler_cxx=cxx_cmd,
+                             linker_so=ldshared,
+                             linker_exe=['nvcc'])
 
 
 class custom_build_ext(build_ext.build_ext):
