@@ -2,6 +2,7 @@ import unittest
 
 import numpy
 
+import chainer
 from chainer import cuda
 from chainer import gradient_check
 from chainer import links
@@ -136,17 +137,17 @@ class TestTreeLSTM(unittest.TestCase):
                 'dtype': numpy.float64, 'atol': 5e-4, 'rtol': 5e-3}
 
     def check_forward(self, *inputs_data):
-        inputs = inputs_data
+        inputs_variable = [chainer.Variable(v) for v in inputs_data]
 
-        c, h = self.link(*inputs)
+        c, h = self.link(*inputs_variable)
         self.assertEqual(c.data.dtype, self.dtype)
         self.assertEqual(h.data.dtype, self.dtype)
 
         # Compute expected out
         if self.model_type == 'ChildSumTreeLSTM':
-            c_expect, h_expect = _child_sum_tree_lstm(self.link, *inputs)
+            c_expect, h_expect = _child_sum_tree_lstm(self.link, *inputs_data)
         elif self.model_type == 'NaryTreeLSTM':
-            c_expect, h_expect = _nary_tree_lstm(self.link, *inputs)
+            c_expect, h_expect = _nary_tree_lstm(self.link, *inputs_data)
         else:
             NotImplementedError()
 
