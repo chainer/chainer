@@ -35,7 +35,7 @@ class TestLogReport(unittest.TestCase):
             trainer.run()
             mocked.assert_called_with(log_report.log[-1], self.temp_dir)
             self.assertEqual(mocked.call_count, stops // writes)
-            self.assertEqual(len(log_report._log), stops // aggregates)
+            self.assertEqual(len(log_report.log), stops // aggregates)
 
 
 def _get_mocked_trainer(stop_trigger=(10, 'iteration'), out='result'):
