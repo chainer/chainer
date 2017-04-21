@@ -117,6 +117,16 @@ StatelessLSTM
 .. autoclass:: StatelessLSTM
    :members:
 
+ChildSumTreeLSTM
+~~~~~~~~~~~~~
+.. autoclass:: ChildSumTreeLSTM
+   :members:
+
+NaryTreeLSTM
+~~~~~~~~~~~~~
+.. autoclass:: NaryTreeLSTM
+   :members:
+
 Activation/loss/normalization functions with parameters
 -------------------------------------------------------
 
