@@ -1,6 +1,7 @@
 from chainer.functions.activation import sigmoid
 from chainer.functions.activation import tanh
 from chainer.functions.array import split_axis
+from chainer.functions.array import concat
 from chainer.links.connection import linear
 
 from chainer import link
@@ -74,7 +75,8 @@ class ChildSumTreeLSTM(link.Chain):
 
         pre_x = self.W_x(x)
         pre_h_aio = self.W_h_aio(sum(hs))
-        pre_h_fs = [self.W_h_f(h) for h in hs]
+        pre_h_fs = split_axis.split_axis(
+            self.W_h_f(concat.concat(hs, axis=0)), len(hs), axis=0)
 
         aio = pre_x[:, :3 * units] + pre_h_aio
         fs = [pre_x[:, 3 * units:] + pre_h_f
