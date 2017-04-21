@@ -23,6 +23,7 @@ class Tanh(function.Function):
 
     def forward_cpu(self, x):
         y = utils.force_array(numpy.tanh(x[0]))
+        self.retain_inputs(())
         self.retain_outputs((0,))
         return y,
 
@@ -34,19 +35,22 @@ class Tanh(function.Function):
         else:
             y = cuda.cupy.empty_like(x[0])
             cuda.cupy.tanh(x[0], out=y)
+            self.retain_inputs(())
+
         self.retain_outputs((0,))
         return y,
 
     def backward_cpu(self, x, gy):
-        one = x[0].dtype.type(1)
         y = self.output_data[0]
+        one = y.dtype.type(1)
         return utils.force_array(gy[0] * (one - y * y)),
 
     def backward_gpu(self, x, gy):
         y = self.output_data[0]
         if (chainer.should_use_cudnn('==always') and
-                x[0].flags.c_contiguous and gy[0].flags.c_contiguous and
-                (_cudnn_version >= 3000 or x[0].dtype != numpy.float16)):
+            x[0] is not None and x[0].flags.c_contiguous and
+            gy[0].flags.c_contiguous and
+            (_cudnn_version >= 3000 or x[0].dtype != numpy.float16)):
             gx = cudnn.activation_backward(x[0], y, gy[0], _mode)
         else:
             gx = cuda.elementwise(

@@ -59,18 +59,22 @@ class LogSoftmax(function.Function):
 
     def forward(self, xs):
         y = _log_softmax(xs[0])
+        self._x_xp = cuda.get_array_module(*xs)
+        self._x_shape = xs[0].shape
+        self._x_dtype = xs[0].dtype
+        self.retain_inputs(())
         self.retain_outputs((0,))
         return y,
 
     def backward(self, x, gy):
         y = self.output_data[0]
-        xp = cuda.get_array_module(*x)
+        xp = self._x_xp
         if xp is not numpy and chainer.should_use_cudnn('>=auto', 3000):
-            oz_dtype = 'd' if x[0].dtype == 'd' else 'f'
+            oz_dtype = 'd' if self._x_dtype == 'd' else 'f'
             one = numpy.array(1, dtype=oz_dtype).ctypes
             zero = numpy.array(0, dtype=oz_dtype).ctypes
             handle = cudnn.get_handle()
-            gx = xp.empty_like(x[0])
+            gx = xp.empty(self._x_shape, dtype=self._x_dtype)
             gx_cube = gx.reshape(gx.shape[:2] + (-1, 1))
             desc = cudnn.create_tensor_descriptor(gx_cube)
             libcudnn.softmaxBackward(

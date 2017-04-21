@@ -37,6 +37,7 @@ class Sigmoid(function.Function):
             y = cuda.elementwise(
                 'T x', 'T y', 'y = tanh(x * 0.5) * 0.5 + 0.5',
                 'sigmoid_fwd')(x)
+            self.retain_inputs(())
         self.retain_outputs((0,))
         return y,
 
@@ -50,8 +51,9 @@ class Sigmoid(function.Function):
         gy = grads[0]
         y = self.output_data[0]
         if (chainer.should_use_cudnn('==always') and
-                x.flags.c_contiguous and
                 gy.flags.c_contiguous and
+                not x is None and
+                x.flags.c_contiguous and
                 (_cudnn_version >= 3000 or x.dtype != numpy.float16)):
             gx = cudnn.activation_backward(x, y, gy, _mode)
         else:
