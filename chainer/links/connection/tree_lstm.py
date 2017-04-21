@@ -18,6 +18,13 @@ class ChildSumTreeLSTM(link.Chain):
     and the output, h, which are produced by this link.
     This link doesn't keep cell and hidden states internally.
 
+    For example, this link is called such as
+    ``func(c1, c2, h1, h2, x)`` if the number of children nodes is 2,
+    while ``func(c1, c2, c3, h1, h2, h3, x)`` if that is 3.
+    This function is independent from an order of children nodes.
+    Thus, the returns of ``func(c1, c2, h1, h2, x)`` equal to
+    those of ``func(c2, c1, h2, h1, x)``.
+
     Args:
         in_size (int): Dimension of input vectors.
         out_size (int): Dimensionality of cell and output vectors.
@@ -33,8 +40,8 @@ class ChildSumTreeLSTM(link.Chain):
         W_h_f (chainer.links.Linear): Linear layer of connections between
             :math:`f` and the output of each child.
 
-    See the paper for details: Improved Semantic Representations From
-    Tree-Structured Long Short-Term Memory Networks
+    See the paper for details: `Improved Semantic Representations From \
+    Tree-Structured Long Short-Term Memory Networks \
     <http://www.aclweb.org/anthology/P15-1150>`_.
 
     """
@@ -54,12 +61,7 @@ class ChildSumTreeLSTM(link.Chain):
         Args:
             cshsx (list of ~chainer.Variable): Variable arguments which include
                 all cell vectors and all output vectors of variable children,
-                and an input vector. For example, this link is called such as
-                `func(c1, c2, h1, h2, x)` if the number of children nodes is 2,
-                while `func(c1, c2, c3, h1, h2, h3, x)` if that is 3.
-                This function is independent from an order of children nodes.
-                Thus, the returns of `func(c1, c2, h1, h2, x)` equals to
-                those of `func(c2, c1, h2, h1, x)`.
+                and an input vector.
 
         Returns:
             tuple of ~chainer.Variable: Returns ``(c_new, h_new)``, where
@@ -99,6 +101,16 @@ class NaryTreeLSTM(link.Chain):
     and the output, h, which are produced by this link.
     This link doesn't keep cell and hidden states internally.
 
+    For example, this link is called such as
+    ``func(c1, c2, h1, h2, x)`` if the number of children nodes
+    was set 2 (``n_ary = 2``), while
+    ``func(c1, c2, c3, h1, h2, h3, x)`` if that was 3
+    (``n_ary = 3``).
+    This function is dependent from an order of children nodes
+    unlike Child-Sum TreeLSTM.
+    Thus, the returns of ``func(c1, c2, h1, h2, x)`` are
+    different from those of ``func(c2, c1, h2, h1, x)``.
+
     Args:
         in_size (int): Dimension of input vectors.
         out_size (int): Dimensionality of cell and output vectors.
@@ -114,8 +126,8 @@ class NaryTreeLSTM(link.Chain):
             (:math:`u` in the paper), input gate, output gate and forget gate,
             respectively.
 
-    See the paper for details: Improved Semantic Representations From
-    Tree-Structured Long Short-Term Memory Networks
+    See the paper for details: `Improved Semantic Representations From \
+    Tree-Structured Long Short-Term Memory Networks \
     <http://www.aclweb.org/anthology/P15-1150>`_.
 
     """
@@ -140,15 +152,7 @@ class NaryTreeLSTM(link.Chain):
             cshsx (list of ~chainer.Variable): Arguments which include all cell
                 vectors and all output vectors of fixed-length children,
                 and an input vector. The number of arguments must be same
-                as ``n_ary * 2 + 1``. For example, this link is called such as
-                `func(c1, c2, h1, h2, x)` if the number of children nodes
-                was set 2 (``n_ary = 2``), while
-                `func(c1, c2, c3, h1, h2, h3, x)` if that was 3
-                (``n_ary = 3``).
-                This function is dependent from an order of children nodes
-                unlike Child-Sum TreeLSTM.
-                Thus, the returns of `func(c1, c2, h1, h2, x)` are
-                different from those of `func(c2, c1, h2, h1, x)`.
+                as ``n_ary * 2 + 1``.
 
         Returns:
             tuple of ~chainer.Variable: Returns ``(c_new, h_new)``, where
