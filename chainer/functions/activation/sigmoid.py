@@ -52,7 +52,7 @@ class Sigmoid(function.Function):
         y = self.output_data[0]
         if (chainer.should_use_cudnn('==always') and
                 gy.flags.c_contiguous and
-                not x is None and
+                x is not None and
                 x.flags.c_contiguous and
                 (_cudnn_version >= 3000 or x.dtype != numpy.float16)):
             gx = cudnn.activation_backward(x, y, gy, _mode)

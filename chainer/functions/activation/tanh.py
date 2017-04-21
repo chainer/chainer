@@ -48,9 +48,9 @@ class Tanh(function.Function):
     def backward_gpu(self, x, gy):
         y = self.output_data[0]
         if (chainer.should_use_cudnn('==always') and
-            x[0] is not None and x[0].flags.c_contiguous and
-            gy[0].flags.c_contiguous and
-            (_cudnn_version >= 3000 or x[0].dtype != numpy.float16)):
+                x[0] is not None and x[0].flags.c_contiguous and
+                gy[0].flags.c_contiguous and
+                (_cudnn_version >= 3000 or x[0].dtype != numpy.float16)):
             gx = cudnn.activation_backward(x[0], y, gy[0], _mode)
         else:
             gx = cuda.elementwise(
