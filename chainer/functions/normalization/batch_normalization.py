@@ -28,7 +28,7 @@ def _xhat(x, mean, std, expander):
 class BatchNormalizationFunction(function.Function):
 
     def __init__(self, eps=2e-5, mean=None, var=None, train=False,
-                 decay=0.9, use_cudnn=True, dtype_param=numpy.float32):
+                 decay=0.9, use_cudnn=True):
         self.running_mean = mean
         self.running_var = var
 
@@ -47,7 +47,6 @@ class BatchNormalizationFunction(function.Function):
         self.use_cudnn = use_cudnn
         self.mean_cache = None
         self.decay = decay
-        self.dtype_param = dtype_param
 
     def check_type_forward(self, in_types):
         n_in = in_types.size().eval()
@@ -78,6 +77,10 @@ class BatchNormalizationFunction(function.Function):
     def forward(self, inputs):
         xp = cuda.get_array_module(*inputs)
         x, gamma, beta = inputs[:3]
+        if gamma.dtype != beta.dtype:
+            msg = 'dtypes of gamma and beta must be the same'
+            raise RuntimeError(msg)
+        dtype_param = gamma.dtype
         if self.train:
             if self.running_mean is None:
                 self.running_mean = xp.zeros_like(gamma)
@@ -124,17 +127,17 @@ class BatchNormalizationFunction(function.Function):
             dtype_bn, _, _, _, _, _, _, _, _ = libcudnn.getTensor4dDescriptor(
                 derivedBnDesc.value)
             if dtype_bn == libcudnn.CUDNN_DATA_DOUBLE:
-                if self.dtype_param != numpy.float64:
+                if dtype_param != numpy.float64:
                     msg = 'data type of parameters of batch normalization ' + \
                           'must be numpy.float64'
                     raise RuntimeError(msg)
             elif dtype_bn == libcudnn.CUDNN_DATA_FLOAT:
-                if self.dtype_param != numpy.float32:
+                if dtype_param != numpy.float32:
                     msg = 'data type of parameters of batch normalization ' + \
                           'must be numpy.float32'
                     raise RuntimeError(msg)
             elif dtype_bn == libcudnn.CUDNN_DATA_HALF:
-                if self.dtype_param != numpy.float16:
+                if dtype_param != numpy.float16:
                     msg = 'data type of parameters of batch normalization ' + \
                           'must be numpy.float16'
                     raise RuntimeError(msg)
@@ -143,8 +146,8 @@ class BatchNormalizationFunction(function.Function):
                       'is obtained by cudnnDeriveBNTensorDescriptor()'
                 raise RuntimeError(msg)
 
-            one = numpy.array(1, dtype=self.dtype_param).ctypes
-            zero = numpy.array(0, dtype=self.dtype_param).ctypes
+            one = numpy.array(1, dtype=dtype_param).ctypes
+            zero = numpy.array(0, dtype=dtype_param).ctypes
             y = cuda.cupy.empty_like(x)
             # Factor used in the moving average
             factor = 1 - self.decay
@@ -354,7 +357,7 @@ def batch_normalization(x, gamma, beta, eps=2e-5, running_mean=None,
 
 
 def fixed_batch_normalization(x, gamma, beta, mean, var, eps=2e-5,
-                              use_cudnn=True, dtype_param=numpy.float32):
+                              use_cudnn=True):
     """Batch normalization function with fixed statistics.
 
     This is a variant of batch normalization, where the mean and variance
@@ -377,5 +380,5 @@ def fixed_batch_normalization(x, gamma, beta, mean, var, eps=2e-5,
        :class:`links.BatchNormalization`
 
     """
-    return BatchNormalizationFunction(eps, None, None, False, 0.0, use_cudnn,
-                                      dtype_param)(x, gamma, beta, mean, var)
+    return BatchNormalizationFunction(eps, None, None, False, 0.0,
+                                      use_cudnn)(x, gamma, beta, mean, var)

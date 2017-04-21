@@ -115,13 +115,15 @@ class BatchNormalization(link.Link):
         else:
             with cuda.get_device(self._device_id):
                 gamma = variable.Variable(self.xp.ones(
-                    self.avg_mean.shape, dtype=x.dtype), volatile='auto')
+                        self.avg_mean.shape, dtype=self.dtype_param),
+                                          volatile='auto')
         if hasattr(self, 'beta'):
             beta = self.beta
         else:
             with cuda.get_device(self._device_id):
                 beta = variable.Variable(self.xp.zeros(
-                    self.avg_mean.shape, dtype=x.dtype), volatile='auto')
+                        self.avg_mean.shape, dtype=self.dtype_param),
+                                         volatile='auto')
 
         if not test:
             if finetune:
@@ -132,7 +134,7 @@ class BatchNormalization(link.Link):
 
             func = batch_normalization.BatchNormalizationFunction(
                 self.eps, self.avg_mean, self.avg_var, True, decay,
-                self.use_cudnn, self.dtype_param)
+                self.use_cudnn)
             ret = func(x, gamma, beta)
 
             self.avg_mean[:] = func.running_mean
@@ -142,8 +144,7 @@ class BatchNormalization(link.Link):
             mean = variable.Variable(self.avg_mean, volatile='auto')
             var = variable.Variable(self.avg_var, volatile='auto')
             ret = batch_normalization.fixed_batch_normalization(
-                x, gamma, beta, mean, var, self.eps, self.use_cudnn,
-                self.dtype_param)
+                x, gamma, beta, mean, var, self.eps, self.use_cudnn)
         return ret
 
     def start_finetuning(self):
