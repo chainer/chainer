@@ -98,6 +98,7 @@ class BatchNormalization(link.Link):
 
            ``test`` argument is not supported anymore since v2.
            Instead, use ``chainer.using_config('train', train)``.
+           See :func:`chainer.using_config`.
 
         Args:
             x (Variable): Input variable.
