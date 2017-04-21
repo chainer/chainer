@@ -96,8 +96,8 @@ class BatchNormalization(link.Link):
 
         .. warning::
 
-           Do not use ``test`` argument. This argument is obsolete in v2.
-           Instead use ``chainer.using_config('train', train)``.
+           ``test`` argument is not supported anymore since v2.
+           Instead, use ``chainer.using_config('train', train)``.
 
         Args:
             x (Variable): Input variable.
@@ -109,7 +109,8 @@ class BatchNormalization(link.Link):
 
         """
         argument.check_unexpected_kwargs(
-            kwargs, test='test argument is obsolete. Use chainer.using_config')
+            kwargs, test='test argument is not supported anymore. '
+            'Use chainer.using_config')
         finetune, = argument.parse_kwargs(kwargs, ('finetune', False))
 
         if hasattr(self, 'gamma'):
