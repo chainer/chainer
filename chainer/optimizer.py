@@ -497,7 +497,7 @@ class GradientMethod(Optimizer):
     def call_hooks(self):
         """Invokes hook functions in registration order."""
         for hook in six.itervalues(self._hooks):
-            hook(self)
+            self._call_hook(hook)
             self.reallocate_cleared_grads()
 
     def update(self, lossfun=None, *args, **kwds):

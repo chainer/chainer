@@ -30,17 +30,14 @@ class Deconvolution2D(link.Link):
             It should be pair of height and width :math:`(out_H, out_W)`.
             Default value is ``None`` and the outsize is estimated by
             input size, stride and pad.
-        initialW (callable): Weight initializer.
-            It can be a callable that takes ``numpy.ndarray`` or
+        initialW (4-D array): Initial weight value. If ``None``, the default
+            initializer is used.
+            May also be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
-            If it is ``None``, the default initializer is used.
-            If it is `numpy.ndarray`, the array is used as initial
-            weight value.
-        initial_bias (callable): Bias initializer.
-            It can be a callable that takes ``numpy.ndarray`` or
+        initial_bias (1-D array): Initial bias value. If ``None``, the bias
+            vector is set to zero.
+            May also be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
-            If ``None``, the default initializer is used.
-            If it is `numpy.ndarray`, the array is used as initial bias value.
         deterministic (bool): The output of this link can be
             non-deterministic when it uses cuDNN.
             If this option is ``True``, then it forces cuDNN to use

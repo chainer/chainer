@@ -110,23 +110,18 @@ class StatefulGRU(GRUBase):
         in_size(int): Dimension of input vector :math:`x`.
         out_size(int): Dimension of hidden vector :math:`h`.
         init: Initializer for GRU's input units (:math:`W`).
-            It should be a callable that takes ``numpy.ndarray`` or
+            It is a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
             If it is ``None``, the default initializer is used.
-            If it is `numpy.ndarray`, the array is used as initial
-            weight value.
         inner_init: Initializer for the GRU's inner
             recurrent units (:math:`U`).
-            It should be a callable that takes ``numpy.ndarray`` or
+            It is a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
             If it is ``None``, the default initializer is used.
-            If it is `numpy.ndarray`, the array is used as initial
-            weight value.
         bias_init: Bias initializer.
-            It should be a callable that takes ``numpy.ndarray`` or
+            It is a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
-            If ``None``, the default initializer is used.
-            If it is `numpy.ndarray`, the array is used as initial bias value.
+            If ``None``, the bias is set to zero.
 
     Attributes:
         h(~chainer.Variable): Hidden vector that indicates the state of
