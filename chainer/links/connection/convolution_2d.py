@@ -14,7 +14,7 @@ class Convolution2D(link.Link):
     holds the filter weight and bias vector as parameters.
 
     Args:
-        in_channels (int): Number of channels of input arrays. If ``None``,
+        in_channels (int or None): Number of channels of input arrays. If ``None``,
             parameter initialization will be deferred until the first forward
             data pass at which time the size will be determined.
         out_channels (int): Number of channels of output arrays.
@@ -28,12 +28,12 @@ class Convolution2D(link.Link):
         bias (float): Initial bias value.
         nobias (bool): If ``True``, then this link does not use the bias term.
         use_cudnn (bool): If ``True``, then this link uses cuDNN if available.
-        initialW (4-D array): Initial weight value. If ``None``, then this
+        initialW (4-D array or None): Initial weight value. If ``None``, then this
             function uses Gaussian distribution scaled by ``w_scale`` to
             initialize weight.
             May also be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
-        initial_bias (1-D array): Initial bias value. If ``None``, then this
+        initial_bias (1-D array or None): Initial bias value. If ``None``, then this
             function uses ``bias`` to initialize bias.
             May also be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
