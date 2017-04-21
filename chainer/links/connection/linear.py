@@ -25,17 +25,14 @@ class Linear(link.Link):
             at which time the size will be determined.
         out_size (int): Dimension of output vectors.
         nobias (bool): If ``True``, then this function does not use the bias.
-        initialW (callable): Weight initializer.
-            It should be a callable that takes ``numpy.ndarray`` or
+        initialW (2-D array): Initial weight value. If ``None``, then the
+            default initializer is used.
+            May also be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
-            If it is ``None``, the default initializer is used.
-            If it is `numpy.ndarray`, the array is used as initial
-            weight value.
-        initial_bias (callable): Bias initializer.
-            It should be a callable that takes ``numpy.ndarray`` or
+        initial_bias (1-D array): Initial bias value. If ``None``, then this
+            function uses ``bias`` to initialize bias.
+            May also be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
-            If ``None``, the default initializer is used.
-            If it is `numpy.ndarray`, the array is used as initial bias value.
     .. seealso:: :func:`~chainer.functions.linear`
 
     Attributes:

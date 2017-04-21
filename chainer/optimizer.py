@@ -479,6 +479,27 @@ class GradientMethod(Optimizer):
         for param in link.params():
             param.update_rule = self.create_update_rule()
 
+    def reallocate_cleared_grads(self):
+        """Reallocate gradients cleared by :meth:`~chainer.Variable.cleargrad`.
+
+        This method allocates arrays for all gradients which have :obj:`None`.
+        This method is called before and after every optimizer hook.
+        If an inheriting optimizer does not require this allocation,
+        the optimizer can override this method with a blank function.
+
+        """
+        for name, param in self.target.namedparams(False):
+            if param.grad is None:
+                with cuda.get_device(param.data):
+                    xp = cuda.get_array_module(param.data)
+                    param.grad = xp.zeros_like(param.data)
+
+    def call_hooks(self):
+        """Invokes hook functions in registration order."""
+        for hook in six.itervalues(self._hooks):
+            hook(self)
+            self.reallocate_cleared_grads()
+
     def update(self, lossfun=None, *args, **kwds):
         """Updates parameters based on a loss function or computed gradients.
 
@@ -504,13 +525,7 @@ class GradientMethod(Optimizer):
             loss.backward()
             del loss
 
-        # TODO(unno): Some optimizers can skip this process if they does not
-        # affect to a parameter when its gradient is zero.
-        for name, param in self.target.namedparams(False):
-            if param.grad is None:
-                with cuda.get_device(param.data):
-                    xp = cuda.get_array_module(param.data)
-                    param.grad = xp.zeros_like(param.data)
+        self.reallocate_cleared_grads()
 
         self.call_hooks()
 

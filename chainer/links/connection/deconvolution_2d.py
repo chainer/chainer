@@ -31,13 +31,13 @@ class Deconvolution2D(link.Link):
             Default value is ``None`` and the outsize is estimated by
             input size, stride and pad.
         initialW (callable): Weight initializer.
-            It should be a callable that takes ``numpy.ndarray`` or
+            It can be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
             If it is ``None``, the default initializer is used.
             If it is `numpy.ndarray`, the array is used as initial
             weight value.
         initial_bias (callable): Bias initializer.
-            It should be a callable that takes ``numpy.ndarray`` or
+            It can be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
             If ``None``, the default initializer is used.
             If it is `numpy.ndarray`, the array is used as initial bias value.

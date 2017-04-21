@@ -34,7 +34,7 @@ class Highway(link.Chain):
             May also be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
         init_bh (1-D array): Initial bias value of plain array. If ``None``,
-            then this function uses it to initialize zero vector.
+            then this function uses zero vector to initialize :math:`b_h`.
             May also be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
         init_Wt (2-D array): Initial weight value of transform array.
