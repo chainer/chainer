@@ -1,6 +1,8 @@
 import shutil
 import tempfile
 import unittest
+import json
+import os.path
 
 import mock
 
@@ -22,6 +24,8 @@ class TestLogReport(unittest.TestCase):
         log_report = extensions.LogReport(trigger=(1, 'iteration'))
         trainer.extend(log_report)
         trainer.run()
+        with open(os.path.join(self.temp_dir, 'log')) as f:
+            self.assertEqual(log_report.log, json.load(f))
 
     def test_write_trigger(self):
         stops, aggregates, writes = 10, 2, 5
