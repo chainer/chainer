@@ -60,18 +60,24 @@ def force_backprop_mode():
 def use_recompute(*fnames):
     """Enable re-compute for specified functions."""
     targets = copy.copy(getattr(configuration.config, 'recompute_targets', []))
-    for f in fnames:
-        if f not in targets:
-            targets.append(f)
+    for fname in fnames:
+        for f in fname:  # in case fname is a tuple
+            if f not in targets:
+                targets.append(f)
+    print('targets: {}'.format(targets))
     return configuration.using_config('recompute_targets', targets)
 
 
 def no_recompute(*fnames):
     """Disable re-compute for specified functions."""
     targets = []
-    for f in getattr(configuration.config, 'recompute_targets', []):
-        if f not in fnames:
-            targets.append(f)
+    for t in getattr(configuration.config, 'recompute_targets', []):
+        is_found = False
+        for fname in fnames:
+            if t in fname:  # in case fname is a tuple
+                is_found = True
+        if not is_found and t not in targets:
+            targets.append(t)
     return configuration.using_config('recompute_targets', targets)
 
 
