@@ -214,4 +214,5 @@ class TestTreeLSTM(unittest.TestCase):
         self.check_backward(cuda.to_gpu(self.gc), None,
                             *[cuda.to_gpu(v) for v in self.inputs])
 
+
 testing.run_module(__name__, __file__)
