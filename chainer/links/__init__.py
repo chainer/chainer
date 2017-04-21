@@ -20,6 +20,7 @@ from chainer.links.connection import mlp_convolution_2d  # NOQA
 from chainer.links.connection import n_step_lstm  # NOQA
 from chainer.links.connection import peephole  # NOQA
 from chainer.links.connection import scale  # NOQA
+from chainer.links.connection import tree_lstm  # NOQA
 from chainer.links.connection import zoneoutlstm  # NOQA
 from chainer.links.loss import black_out  # NOQA
 from chainer.links.loss import crf1d  # NOQA
@@ -54,6 +55,8 @@ from chainer.links.connection.mlp_convolution_2d import MLPConvolution2D  # NOQA
 from chainer.links.connection.n_step_lstm import NStepLSTM  # NOQA
 from chainer.links.connection.peephole import StatefulPeepholeLSTM  # NOQA
 from chainer.links.connection.scale import Scale  # NOQA
+from chainer.links.connection.tree_lstm import ChildSumTreeLSTM  # NOQA
+from chainer.links.connection.tree_lstm import NaryTreeLSTM  # NOQA
 from chainer.links.connection.zoneoutlstm import StatefulZoneoutLSTM  # NOQA
 from chainer.links.loss.black_out import BlackOut  # NOQA
 from chainer.links.loss.crf1d import CRF1d  # NOQA
