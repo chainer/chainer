@@ -1,5 +1,6 @@
 import collections
 import copy
+import warnings
 
 import numpy
 import six
@@ -461,10 +462,6 @@ class GradientMethod(Optimizer):
     provide such an alias to each attribute. It can be done by only adding one
     line for each attribute using :class:`HyperparameterProxy`.
 
-    .. note::
-       It is recommended to call :meth:`use_cleargrads` after creating a
-       :class:`GradientMethod` object for efficiency.
-
     Attributes:
         hyperparam (Hyperparameter): The hyperparameter of the gradient
             method. It is used as the default configuration of each update
@@ -498,7 +495,7 @@ class GradientMethod(Optimizer):
 
         """
         if lossfun is not None:
-            use_cleargrads = getattr(self, '_use_cleargrads', False)
+            use_cleargrads = getattr(self, '_use_cleargrads', True)
             loss = lossfun(*args, **kwds)
             if use_cleargrads:
                 self.target.cleargrads()
@@ -529,13 +526,18 @@ class GradientMethod(Optimizer):
                 `cleargrads`. If ``False``, disables use of `cleargrads`
                 (`zerograds` is used).
 
-        .. note::
-           Note that :meth:`update` calls :meth:`~Link.zerograds` by default
-           for backward compatibility. It is recommended to call this method
-           before first call of `update` because `cleargrads` is more
-           efficient than `zerograds`.
+        .. deprecated:: v2.0
+           Note that :meth:`update` calls :meth:`~Link.cleargrads` by default.
+           :meth:`~Link.cleargrads` is more efficient than
+           :meth:`~Link.zerograds`, so one does not have to call
+           :meth:`use_cleargrads`. This method remains for backward
+           compatibility.
 
         """
+        warnings.warn(
+            'GradientMethod.use_cleargrads is deprecated.',
+            DeprecationWarning)
+
         self._use_cleargrads = use
 
     def create_update_rule(self):
