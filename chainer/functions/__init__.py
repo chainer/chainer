@@ -8,6 +8,7 @@ from chainer.functions.activation import leaky_relu  # NOQA
 from chainer.functions.activation import log_softmax  # NOQA
 from chainer.functions.activation import lstm  # NOQA
 from chainer.functions.activation import maxout  # NOQA
+from chainer.functions.activation import n_ary_tree_lstm  # NOQA
 from chainer.functions.activation import prelu  # NOQA
 from chainer.functions.activation import relu  # NOQA
 from chainer.functions.activation import sigmoid  # NOQA
@@ -131,6 +132,7 @@ from chainer.functions.activation.log_softmax import LogSoftmax  # NOQA
 from chainer.functions.activation.lstm import lstm  # NOQA
 from chainer.functions.activation.lstm import LSTM  # NOQA
 from chainer.functions.activation.maxout import maxout  # NOQA
+from chainer.functions.activation.n_ary_tree_lstm import n_ary_tree_lstm  # NOQA
 from chainer.functions.activation.prelu import prelu  # NOQA
 from chainer.functions.activation.relu import relu  # NOQA
 from chainer.functions.activation.relu import ReLU  # NOQA

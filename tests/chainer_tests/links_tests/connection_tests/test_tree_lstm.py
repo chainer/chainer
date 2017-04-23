@@ -60,8 +60,10 @@ def _nary_tree_lstm(func, *inputs):
         W_h_list = [getattr(func, 'W_h{}'.format(i)).W.data.T
                     for i in range(1, func.n_ary + 1)]
 
-        W_xa, W_xi, W_xo, W_xf = xp.split(W_x, 4, 1)
-        b_a, b_i, b_o, b_f = xp.split(b_x[None, ], 4, 1)
+        W_xs = xp.split(W_x, 3 + func.n_ary, 1)
+        W_xa, W_xi, W_xo, W_xfs = W_xs[0], W_xs[1], W_xs[2], W_xs[3:]
+        b_xs = xp.split(b_x[None, ], 3 + func.n_ary, 1)
+        b_a, b_i, b_o, b_fs = b_xs[0], b_xs[1], b_xs[2], b_xs[3:]
         W_ha_list = [xp.split(W_h, 3 + func.n_ary, 1)[0]
                      for W_h in W_h_list]
         W_hi_list = [xp.split(W_h, 3 + func.n_ary, 1)[1]
@@ -80,7 +82,8 @@ def _nary_tree_lstm(func, *inputs):
             sum(h.dot(W_ho) for h, W_ho in zip(hs, W_ho_list))
         f_list = [x.dot(W_xf) + b_f +
                   sum(h.dot(W_hf) for h, W_hf in zip(hs, W_hf_list))
-                  for W_hf_list in zip(*W_hfs_list)]
+                  for W_xf, b_f, W_hf_list
+                  in zip(W_xfs, b_fs, zip(*W_hfs_list))]
 
         a = xp.tanh(a)
         i = _sigmoid(i)
@@ -94,7 +97,8 @@ def _nary_tree_lstm(func, *inputs):
 
 @testing.parameterize(*testing.product({
     'dtype': [numpy.float32],
-    'n_ary': [2, 3],
+    #    'n_ary': [2, 3],
+    'n_ary': [2],
     'in_size': [6, 9],
     'out_size': [9],
     'model_type': ['ChildSumTreeLSTM', 'NaryTreeLSTM'],
