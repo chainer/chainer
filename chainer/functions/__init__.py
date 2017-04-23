@@ -8,7 +8,6 @@ from chainer.functions.activation import leaky_relu  # NOQA
 from chainer.functions.activation import log_softmax  # NOQA
 from chainer.functions.activation import lstm  # NOQA
 from chainer.functions.activation import maxout  # NOQA
-from chainer.functions.activation import n_ary_tree_lstm  # NOQA
 from chainer.functions.activation import prelu  # NOQA
 from chainer.functions.activation import relu  # NOQA
 from chainer.functions.activation import sigmoid  # NOQA
@@ -16,6 +15,7 @@ from chainer.functions.activation import slstm  # NOQA
 from chainer.functions.activation import softmax  # NOQA
 from chainer.functions.activation import softplus  # NOQA
 from chainer.functions.activation import tanh  # NOQA
+from chainer.functions.activation import tree_lstm  # NOQA
 from chainer.functions.array import broadcast  # NOQA
 from chainer.functions.array import cast  # NOQA
 from chainer.functions.array import concat  # NOQA
@@ -132,7 +132,6 @@ from chainer.functions.activation.log_softmax import LogSoftmax  # NOQA
 from chainer.functions.activation.lstm import lstm  # NOQA
 from chainer.functions.activation.lstm import LSTM  # NOQA
 from chainer.functions.activation.maxout import maxout  # NOQA
-from chainer.functions.activation.n_ary_tree_lstm import n_ary_tree_lstm  # NOQA
 from chainer.functions.activation.prelu import prelu  # NOQA
 from chainer.functions.activation.relu import relu  # NOQA
 from chainer.functions.activation.relu import ReLU  # NOQA
@@ -146,6 +145,7 @@ from chainer.functions.activation.softplus import softplus  # NOQA
 from chainer.functions.activation.softplus import Softplus  # NOQA
 from chainer.functions.activation.tanh import tanh  # NOQA
 from chainer.functions.activation.tanh import Tanh  # NOQA
+from chainer.functions.activation.tree_lstm import n_ary_tree_lstm  # NOQA
 
 from chainer.functions.array.broadcast import broadcast  # NOQA
 from chainer.functions.array.broadcast import Broadcast  # NOQA

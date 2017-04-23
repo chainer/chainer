@@ -1,6 +1,6 @@
-from chainer.functions.activation import n_ary_tree_lstm
 from chainer.functions.activation import sigmoid
 from chainer.functions.activation import tanh
+from chainer.functions.activation import tree_lstm
 from chainer.functions.array import concat
 from chainer.functions.array import split_axis
 from chainer.links.connection import linear
@@ -201,4 +201,4 @@ class NaryTreeLSTM(link.Chain):
                             xp.zeros((x.shape[0], self.state_size),
                                      dtype=x.dtype))
             cs = tuple(cs)
-        return n_ary_tree_lstm.n_ary_tree_lstm(*(cs + (tree_lstm_in, )))
+        return tree_lstm.n_ary_tree_lstm(*(cs + (tree_lstm_in, )))
