@@ -7,7 +7,8 @@ from chainer.utils import type_check
 
 
 def _extract_gates(x):
-    """
+    """Extract gates by split.
+
     This is a different from ``_extract_gates`` in lstm.py,
     which is as follows
     ```
@@ -16,6 +17,7 @@ def _extract_gates(x):
     ```
     In other words, it thinly slices x and merge them,
     while this thickly slices x.
+
     """
     r = x.reshape((x.shape[0], 5, x.shape[1] // 5) + x.shape[2:])
     return (r[:, i, :] for i in six.moves.range(5))
@@ -112,7 +114,8 @@ class NaryTreeLSTM(function.Function):
                     c = aa * ai + af1 * c_prev1 + af2 * c_prev2;
                     h = ao * tanh(c);
                 ''',
-                'treelstm_fwd', preamble=_preamble)(c_prev1, c_prev2, a, i, o, f1, f2)
+                'treelstm_fwd', preamble=_preamble)(
+                    c_prev1, c_prev2, a, i, o, f1, f2)
 
         return self.c, h
 
@@ -145,7 +148,8 @@ class NaryTreeLSTM(function.Function):
             gc_prev1 = xp.empty_like(c_prev1)
             gc_prev2 = xp.empty_like(c_prev2)
             cuda.elementwise(
-                'T c_prev1, T c_prev2, T c, T gc, T gh, T a, T i_, T o, T f1, T f2',
+                'T c_prev1, T c_prev2, T c, T gc, T gh, T a, T i_, T o, '
+                'T f1, T f2',
                 'T gc_prev1, T gc_prev2, T ga, T gi, T go, T gf1, T gf2',
                 '''
                     COMMON_ROUTINE;
@@ -170,7 +174,7 @@ def n_ary_tree_lstm(c_prev1, c_prev2, x):
     """N-ary Tree-LSTM unit as an activation function.
 
     This function implements N-ary Tree-LSTM units, which is proposed
-    by Tai et al. and modified by Bowman et al. Let the 
+    by Tai et al. and modified by Bowman et al. Let the
     previous cell states :math:`c_{\\text{prev1}}` :math:`c_{\\text{prev2}}`
     and the incoming signal :math:`x`.
 
@@ -192,7 +196,7 @@ def n_ary_tree_lstm(c_prev1, c_prev2, x):
     .. math::
 
         c &= \\tanh(a) \\text{sigmoid}(i)
-           + c_{\\text{prev1}} \\text{sigmoid}(f1), 
+           + c_{\\text{prev1}} \\text{sigmoid}(f1),
            + c_{\\text{prev2}} \\text{sigmoid}(f2), \\\\
         h &= \\tanh(c) \\text{sigmoid}(o).
 
@@ -212,10 +216,11 @@ def n_ary_tree_lstm(c_prev1, c_prev2, x):
         tuple: Two :class:`~chainer.Variable` objects ``c`` and ``h``. ``c`` is
             the updated cell state. ``h`` indicates the outgoing signal.
 
-    See Tai et al. paper's proposal for N-Ary Tree-LSTM (Sec. 3.2, but note that
-        Eq. 10 only has one W matrix, applied to x, for all children,
+    See Tai et al. paper's proposal for N-Ary Tree-LSTM (Sec. 3.2, but note
+        that Eq. 10 only has one W matrix, applied to x, for all children,
         while we have one for each, as shown in Bowman et al. paper):
-    `Improved Semantic Representations From Tree-Structured Long Short-Term Memory Networks \
+    `Improved Semantic Representations From Tree-Structured Long \
+    Short-Term Memory Networks \
     <http://arxiv.org/pdf/1503.00075v3.pdf>`_.
     `A Fast Unified Model for Parsing and Sentence Understanding \
     <https://arxiv.org/pdf/1603.06021.pdf>`_.
