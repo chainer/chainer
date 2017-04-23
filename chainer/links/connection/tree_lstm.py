@@ -1,6 +1,6 @@
+from chainer.functions.activation import n_ary_tree_lstm
 from chainer.functions.activation import sigmoid
 from chainer.functions.activation import tanh
-from chainer.functions.activation import n_ary_tree_lstm
 from chainer.functions.array import concat
 from chainer.functions.array import split_axis
 from chainer.links.connection import linear
