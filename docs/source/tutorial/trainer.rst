@@ -69,7 +69,7 @@ Here, we are going to use the same model as before.
 :class:`~chainer.tarining.Trainer` is a class that holds all of the necessary
 components needed for training. The main components are shown below.
 
-.. image:: image/trainer/trainer.png
+.. image:: ../../image/trainer/trainer.png
 
 Basically, all you need to pass to :class:`~chainer.training.Trainer` is an
 :class:`~chainer.training.Updator`. However, :class:`~chainer.training.Updator`
@@ -145,8 +145,7 @@ the training will not stop automatically.
 .. testcode::
 
     # Send Updater to Trainer
-    trainer = training.Trainer(updater, (max_epoch, 'epoch'),
-                               out='mnist_result')
+    trainer = training.Trainer(updater, (max_epoch, 'epoch'), out='mnist_result')
 
 The :attr:`~chainer.training.Trainer.out` argument in the
 :class:`~chainer.training.Trainer` will set up an output directory to save the
@@ -270,6 +269,7 @@ To start training, just call :meth:`~chainer.training.Trainer.run` method from
     trainer.run()
 
 ::
+
     epoch       main/loss   main/accuracy  validation/main/loss  validation/main/accuracy  elapsed_time
     1           1.53241     0.638409       0.74935               0.835839                  4.93409
     2           0.578334    0.858059       0.444722              0.882812                  7.72883
@@ -284,21 +284,21 @@ To start training, just call :meth:`~chainer.training.Trainer.run` method from
 
 Let's see the graph of loss saved in the ``mnist_result`` directory.
 
-.. image:: image/trainer/mnist_loss.png
+.. image:: ../../image/trainer/mnist_loss.png
 
 How about the accuracy?
 
-.. image:: image/trainer/mnist_accuracy.png
+.. image:: ../../image/trainer/mnist_accuracy.png
 
 Furthermore, let's visualize the computaional graph output by
 :meth:`~chainer.training.extensions.dump_graph` of
 :class:`~chainer.training.Extension` using Graphviz.
 
-.. code::
+::
 
-    dot -Tpng mnist_result/cg.dot -o mnist_result/cg.png
+    % dot -Tpng mnist_result/cg.dot -o mnist_result/cg.png
 
-.. image:: image/trainer/mnist_graph.png
+.. image:: ../../image/trainer/mnist_graph.png
 
 From the top to the bottom, you can track the data flow of the computations,
 how data and paremeters are passed to what type of :class:`~chainer.Function`
@@ -330,9 +330,10 @@ and the calculated loss is output.
 
     print('predicted_label:', y.argmax(axis=1)[0])
 
-.. image:: image/trainer/mnist_graph.png
+.. image:: ../../image/trainer/mnist_output.png
 
-.. bash::
+::
+
     label: 7
     predicted_label: 7
 
