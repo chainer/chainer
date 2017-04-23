@@ -5,6 +5,7 @@ import numpy
 import chainer
 from chainer import cuda
 from chainer.functions import vae
+from chainer import functions as F
 from chainer import testing
 from chainer.testing import attr
 from chainer.testing import condition
