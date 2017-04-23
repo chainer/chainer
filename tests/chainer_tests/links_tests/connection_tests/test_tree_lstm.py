@@ -97,8 +97,7 @@ def _nary_tree_lstm(func, *inputs):
 
 @testing.parameterize(*testing.product({
     'dtype': [numpy.float32],
-    #    'n_ary': [2, 3],
-    'n_ary': [2],
+    'n_ary': [2, 3],
     'in_size': [6, 9],
     'out_size': [9],
     'model_type': ['ChildSumTreeLSTM', 'NaryTreeLSTM'],
