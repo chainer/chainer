@@ -2,6 +2,7 @@ from chainer.functions.activation import sigmoid
 from chainer.functions.activation import tanh
 from chainer.functions.activation import tree_lstm
 from chainer.functions.array import concat
+from chainer.functions.array import reshape
 from chainer.functions.array import split_axis
 from chainer.links.connection import linear
 
@@ -55,6 +56,7 @@ class ChildSumTreeLSTM(link.Chain):
             W_h_aio=linear.Linear(out_size, 3 * out_size, nobias=True),
             W_h_f=linear.Linear(out_size, out_size, nobias=True),
         )
+        self.in_size = in_size
         self.state_size = out_size
         utils.experimental('chainer.links.tree_lstm.py')
 
@@ -76,22 +78,41 @@ class ChildSumTreeLSTM(link.Chain):
         cs = cshsx[:len(cshsx) // 2]
         hs = cshsx[len(cshsx) // 2:-1]
         x = cshsx[-1]
-        units = self.state_size
 
-        pre_x = self.W_x(x)
-        pre_h_aio = self.W_h_aio(sum(hs))
-        pre_h_fs = split_axis.split_axis(
-            self.W_h_f(concat.concat(hs, axis=0)), len(hs), axis=0)
+        if x is None:
+            x = self.xp.zeros(
+                (cs[0].shape[0], self.in_size), dtype=cs[0].dtype)
 
-        aio = pre_x[:, :3 * units] + pre_h_aio
-        fs = [pre_x[:, 3 * units:] + pre_h_f
-              for pre_h_f in pre_h_fs]
+        W_x_in = self.W_x(x)
+        W_x_aio_in, W_x_f_in = split_axis.split_axis(
+            W_x_in, [3 * self.state_size], axis=1)
 
-        c = sigmoid.sigmoid(aio[:, units:2 * units]) * \
-            tanh.tanh(aio[:, :units]) + \
-            sum(sigmoid.sigmoid(f) * c for f, c in zip(fs, cs))
-        h = sigmoid.sigmoid(aio[:, 2 * units:]) * tanh.tanh(c)
-        return c, h
+        if any(h is None for h in hs):
+            hs = list(hs)
+            for i, h in enumerate(hs, start=1):
+                if h is not None:
+                    hs[i] = self.xp.zeros(
+                        (cs[0].shape[0], self.in_size), dtype=cs[0].dtype)
+
+        aio_in = self.W_h_aio(sum(hs)) + W_x_aio_in
+        W_h_fs_in = concat.concat(split_axis.split_axis(
+            self.W_h_f(concat.concat(hs, axis=0)), len(hs), axis=0), axis=1)
+        f_in = W_h_fs_in + \
+            concat.concat([W_x_f_in] * len(hs), axis=1)
+        tree_lstm_in = concat.concat([aio_in, f_in], axis=1)
+
+        if any(c is None for c in cs):
+            cs = list(cs)
+            for i, c in enumerate(cs):
+                if c is None:
+                    xp = self.xp
+                    with cuda.get_device(self._device_id):
+                        cs[i] = variable.Variable(
+                            xp.zeros((x.shape[0], self.state_size),
+                                     dtype=x.dtype))
+            cs = tuple(cs)
+
+        return tree_lstm.tree_lstm(*(cs + (tree_lstm_in, )))
 
 
 class NaryTreeLSTM(link.Chain):
@@ -201,4 +222,4 @@ class NaryTreeLSTM(link.Chain):
                             xp.zeros((x.shape[0], self.state_size),
                                      dtype=x.dtype))
             cs = tuple(cs)
-        return tree_lstm.n_ary_tree_lstm(*(cs + (tree_lstm_in, )))
+        return tree_lstm.tree_lstm(*(cs + (tree_lstm_in, )))

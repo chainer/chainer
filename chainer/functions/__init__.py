@@ -145,7 +145,7 @@ from chainer.functions.activation.softplus import softplus  # NOQA
 from chainer.functions.activation.softplus import Softplus  # NOQA
 from chainer.functions.activation.tanh import tanh  # NOQA
 from chainer.functions.activation.tanh import Tanh  # NOQA
-from chainer.functions.activation.tree_lstm import n_ary_tree_lstm  # NOQA
+from chainer.functions.activation.tree_lstm import tree_lstm  # NOQA
 
 from chainer.functions.array.broadcast import broadcast  # NOQA
 from chainer.functions.array.broadcast import Broadcast  # NOQA

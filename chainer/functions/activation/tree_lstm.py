@@ -52,17 +52,15 @@ template <typename T> __device__ T grad_tanh(T y) { return 1 - y * y; }
 '''
 
 
-class NaryTreeLSTM(function.Function):
+class TreeLSTM(function.Function):
 
-    """N-ary TreeLSTM unit with N forget gates.
+    """TreeLSTM unit with N forget gates.
 
-    Modified from Tai et al. (arxiv:1503.00075) and exactly as in Bowman et al.
-    (arxiv:1603.06021); we have variable inputs (c1, c2, ..., cN, x)
-    where x is (3 + N) times larger in the feature dimension and represents
-    everything inside the activation functions. This means the modified version
-    has an additional independent matrix to Tai; in particular,
-    f1, f2, ..., fN can depend in different ways on
-    the TreeLSTM input from the current node. There are two outputs (c, h).
+    This have variable inputs (c1, c2, ..., cN, x)
+    where x is (3 + N) times larger than each cell.
+    Forget gates (f1, f2, ..., fN) can depend in
+    different partitions of ``x[:, 3 * cell_units:]``.
+    There are two outputs (c, h).
 
     """
 
@@ -194,12 +192,12 @@ class NaryTreeLSTM(function.Function):
         return list(gcs) + [gx]
 
 
-def n_ary_tree_lstm(*inputs):
-    """N-ary TreeLSTM unit as an activation function.
+def tree_lstm(*inputs):
+    """TreeLSTM unit as an activation function.
 
-    This function implements N-ary TreeLSTM units, which is proposed
-    by Tai et al. and modified by Bowman et al. Let the
-    previous cell states :math:`c_{\\text{1}}` `:math:c_{\\text{2}}`
+    This function implements TreeLSTM units both for
+    N-ary TreeLSTM and Child-Sum TreeLSTM.
+    Let the children cell states :math:`c_{\\text{1}}` `:math:c_{\\text{2}}`
     ... `:math:c_{\\text{N}}`,
     and the incoming signal :math:`x`.
 
@@ -263,10 +261,9 @@ def n_ary_tree_lstm(*inputs):
         Using 2-ary (binary) TreeLSTM,
         most typical preparation of ``x`` is:
 
-        >>> model = FunctionSet(w=F.Linear(n_units, 5 * n_units),
-        ...                     v1=F.Linear(n_units, 5 * n_units),
-        ...                     v2=F.Linear(n_units, 5 * n_units),
-        ...                     ...)
+        >>> model = chainer.Chain(w=F.Linear(n_units, 5 * n_units),
+        ...                       v1=F.Linear(n_units, 5 * n_units),
+        ...                       v2=F.Linear(n_units, 5 * n_units),)
         >>> x = model.w(y) + model.v1(h1) + model.v2(h2)
         >>> c, h = F.n_ary_tree_lstm(c1, c2, x)
 
@@ -276,4 +273,4 @@ def n_ary_tree_lstm(*inputs):
         input sources.
 
     """
-    return NaryTreeLSTM()(*inputs)
+    return TreeLSTM()(*inputs)
