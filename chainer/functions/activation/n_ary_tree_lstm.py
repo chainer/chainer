@@ -9,7 +9,7 @@ from chainer.utils import type_check
 def _extract_gates(x, n_split=5):
     """Extract gates by split.
 
-    This is a different from ``_extract_gates`` in lstm.py,
+    This is different from ``_extract_gates`` in lstm.py,
     which is as follows
     ```
         r = x.reshape((x.shape[0], x.shape[1] // 4, 4) + x.shape[2:])

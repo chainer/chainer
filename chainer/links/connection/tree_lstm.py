@@ -122,12 +122,13 @@ class NaryTreeLSTM(link.Chain):
     Attributes:
         W_x (chainer.links.Linear): Linear layer of
             connections from input vectors.
-        W_h_aio (chainer.links.Linear): Linear layer of connections between
+        W_h (chainer.links.Linear): Linear layer of connections between
             (:math:`a`, :math:`i`, :math:`o`, all :math:`f`s)
             and the output of each child
-            :math:`a`, :math:`i`, :math:`o` and :math:`f` denotes input compund
-            (:math:`u` in the paper), input gate, output gate and forget gate,
-            respectively.
+            :math:`a`, :math:`i`, :math:`o` and :math:`f` denotes input
+            compound, input gate, output gate and forget gate, respectively.
+            :math:`a`, input compound, equals to :math:`u` in
+            the paper by Tai et al.
 
     See the papers for details: `Improved Semantic Representations From \
     Tree-Structured Long Short-Term Memory Networks \
