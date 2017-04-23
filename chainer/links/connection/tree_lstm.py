@@ -129,9 +129,19 @@ class NaryTreeLSTM(link.Chain):
             (:math:`u` in the paper), input gate, output gate and forget gate,
             respectively.
 
-    See the paper for details: `Improved Semantic Representations From \
+    See the papers for details: `Improved Semantic Representations From \
     Tree-Structured Long Short-Term Memory Networks \
-    <http://www.aclweb.org/anthology/P15-1150>`_.
+    <http://www.aclweb.org/anthology/P15-1150>`_, and
+    `A Fast Unified Model for Parsing and Sentence Understanding \
+    <https://arxiv.org/pdf/1603.06021.pdf>`_.
+
+    Tai et al.'s N-Ary TreeLSTM is little extended in
+    Bowman et al., and this link is based on
+    the variant by Bowman et al.
+    Specifically, eq. 10 in Tai et al. only has one W matrix
+    to be applied to x, consistently for all children.
+    On the other hand, Bowman et al.'s model has multiple matrices,
+    each of which affects the forget gate for each child's cell individually.
 
     """
 

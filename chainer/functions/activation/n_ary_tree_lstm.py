@@ -54,7 +54,7 @@ template <typename T> __device__ T grad_tanh(T y) { return 1 - y * y; }
 
 class NaryTreeLSTM(function.Function):
 
-    """N-ary TreeLSTM unit with two forget gates.
+    """N-ary TreeLSTM unit with N forget gates.
 
     Modified from Tai et al. (arxiv:1503.00075) and exactly as in Bowman et al.
     (arxiv:1603.06021); we have variable inputs (c1, c2, ..., cN, x)
@@ -240,14 +240,19 @@ def n_ary_tree_lstm(*inputs):
         tuple: Two :class:`~chainer.Variable` objects ``c`` and ``h``. ``c`` is
             the updated cell state. ``h`` indicates the outgoing signal.
 
-    See Tai et al. paper's proposal for N-Ary Tree-LSTM (Sec. 3.2, but note
-        that Eq. 10 only has one W matrix, applied to x, for all children,
-        while we have one for each, as shown in Bowman et al. paper):
-    `Improved Semantic Representations From Tree-Structured Long \
-    Short-Term Memory Networks \
-    <http://arxiv.org/pdf/1503.00075v3.pdf>`_.
+    See the papers for details: `Improved Semantic Representations From \
+    Tree-Structured Long Short-Term Memory Networks \
+    <http://www.aclweb.org/anthology/P15-1150>`_, and
     `A Fast Unified Model for Parsing and Sentence Understanding \
     <https://arxiv.org/pdf/1603.06021.pdf>`_.
+
+    Tai et al.'s N-Ary TreeLSTM is little extended in
+    Bowman et al., and this link is based on
+    the variant by Bowman et al.
+    Specifically, eq. 10 in Tai et al. only has one W matrix
+    to be applied to x, consistently for all children.
+    On the other hand, Bowman et al.'s model has multiple matrices,
+    each of which affects the forget gate for each child's cell individually.
 
     .. admonition:: Example
 
