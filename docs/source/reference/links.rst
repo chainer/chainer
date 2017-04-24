@@ -96,6 +96,11 @@ NStepRNN
 .. autoclass:: NStepRNN
    :members:
 
+NStepBiLSTM
+~~~~~~~~~~~
+.. autoclass:: NStepBiLSTM
+  :members:
+
 NStepLSTM
 ~~~~~~~~~
 .. autoclass:: NStepLSTM
