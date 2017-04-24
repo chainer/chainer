@@ -59,7 +59,8 @@ class Linear(link.Link):
             >>> y.shape
             (1, 10)
 
-        2. Omit ``in_size`` (give the output size only as the first argument):
+        2. Omit ``in_size`` (give the output size only as the first argument)
+                or fill it with ``None``:
 
             In this case, the size of second axis of ``x`` is used as the
             input size. So the below two cases are the same.
@@ -73,9 +74,6 @@ class Linear(link.Link):
             >>> y = l(x)
             >>> y.shape
             (1, 10)
-
-        3. Give arguments other than the first three arguments besides omitting
-                ``in_channels``:
 
             When you omit the first argument, you need to specify the other
             subsequent arguments from ``bias`` as keyword arguments. So the

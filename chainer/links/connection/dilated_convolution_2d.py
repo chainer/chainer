@@ -62,7 +62,7 @@ class DilatedConvolution2D(link.Link):
             >>> y.shape
             (1, 7, 6, 6)
 
-        2. Omit ``in_channels``:
+        2. Omit ``in_channels`` or fill it with ``None``:
 
             The below two cases are the same.
 
@@ -75,9 +75,6 @@ class DilatedConvolution2D(link.Link):
             >>> y = l(x)
             >>> y.shape
             (1, 7, 6, 6)
-
-        3. Give arguments other than the first three arguments besides omitting
-                ``in_channels``:
 
             When you omit the first argument, you need to specify the other
             subsequent arguments from ``stride`` as keyword auguments. So the

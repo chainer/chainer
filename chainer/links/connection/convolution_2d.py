@@ -64,7 +64,7 @@ class Convolution2D(link.Link):
             >>> y.shape
             (1, 7, 6, 6)
 
-        2. Omit ``in_channels``:
+        2. Omit ``in_channels`` or fill it with ``None``:
 
             The below two cases are the same.
 
@@ -78,19 +78,16 @@ class Convolution2D(link.Link):
             >>> y.shape
             (1, 7, 6, 6)
 
-        3. Give arguments other than the first three arguments besides omitting
-            ``in_channels``:
-
             When you omit the first argument, you need to specify the other
             subsequent arguments from ``stride`` as keyword auguments. So the
             below two cases are the same.
 
-            >>> l = L.Convolution2D(None, 7, 5, 1, 0)
+            >>> l = L.Convolution2D(7, 5, stride=1, pad=0)
             >>> y = l(x)
             >>> y.shape
             (1, 7, 6, 6)
 
-            >>> l = L.Convolution2D(7, 5, stride=1, pad=0)
+            >>> l = L.Convolution2D(None, 7, 5, 1, 0)
             >>> y = l(x)
             >>> y.shape
             (1, 7, 6, 6)

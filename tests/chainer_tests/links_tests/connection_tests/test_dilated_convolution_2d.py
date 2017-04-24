@@ -113,10 +113,16 @@ class TestDilatedConvolution2D(unittest.TestCase):
         self.check_pickling(cuda.to_gpu(self.x))
 
 
+@testing.parameterize(
+    {'init_args': {'args': (2, 3),
+                   'kwargs': {'stride': 2, 'pad': 2, 'dilate': 2}}}
+    {'init_args': {'args': (None, 2, 3),
+                   'kwargs': {'stride': 2, 'pad': 2, 'dilate': 2}}}
 class TestDilatedConvolution2DParameterShapePlaceholder(unittest.TestCase):
 
     def setUp(self):
-        self.link = links.DilatedConvolution2D(2, 3, stride=2, pad=2, dilate=2)
+        args, kwargs = self.init_args.items()
+        self.link = links.DilatedConvolution2D(*args, **kwargs)
         self.x = numpy.random.uniform(-1, 1,
                                       (2, 3, 4, 3)).astype(numpy.float32)
         self.link(chainer.Variable(self.x))

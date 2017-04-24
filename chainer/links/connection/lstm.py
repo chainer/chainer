@@ -94,7 +94,7 @@ class StatelessLSTM(LSTMBase):
             >>> h_new.shape
             (1, 20)
 
-        2. Omit ``in_size`` argument:
+        2. Omit ``in_size`` argument or fill it with ``None``:
 
             The below two cases are the same.
 
