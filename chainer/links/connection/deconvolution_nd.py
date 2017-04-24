@@ -27,17 +27,13 @@ class DeconvolutionND(link.Link):
             operation. It should be a tuple of ints that represents the output
             size of each dimension. Default value is ``None`` and the outsize
             is estimated with input size, stride and pad.
-        initialW (callable): Weight initializer.
-            It should be a callable that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value.
-            If it is ``None``, the default initializer is used.
-            If it is `numpy.ndarray`, the array is used as initial
-            weight value.
-        initial_bias (callable): Bias initializer.
-            It should be a callable that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value.
-            If ``None``, the default initializer is used.
-            If it is `numpy.ndarray`, the array is used as initial bias value.
+        initialW (array): Initial weight array. If ``None``, the default
+            initializer is used. May be an
+            initializer instance of another value the same with that
+            :func:`~chainer.init_weight` function can take.
+        initial_bias (array): Initial bias array. If ``None``, the bias vector
+            is set to zero. May be an initializer instance of another value
+            the same with that :func:`~chainer.init_weight` function can take.
 
     .. seealso::
        :func:`~chainer.functions.deconvolution_nd`
