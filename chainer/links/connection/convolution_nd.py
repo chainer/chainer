@@ -23,17 +23,14 @@ class ConvolutionND(link.Link):
         pad (int or tuple of ints): Spatial padding width for input arrays.
             ``pad=p`` and ``pad=(p, p, ..., p)`` are equivalent.
         nobias (bool): If ``True``, then this function does not use the bias.
-        initialW (callable): Weight initializer.
-            It should be a callable that takes ``numpy.ndarray`` or
+        initialW (array): Initial weight array. If ``None``, the default
+            initializer is used.
+            May be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
-            If it is ``None``, the default initializer is used.
-            If it is `numpy.ndarray`, the array is used as initial
-            weight value.
-        initial_bias (callable): Bias initializer.
-            It should be a callable that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value.
-            If ``None``, the default initializer is used.
-            If it is `numpy.ndarray`, the array is used as initial bias value.
+        initial_bias (array): Initial bias vector. If ``None``, the bias is
+            set to zero.
+            May be a callable that takes ``numpy.ndarray`` or ``cupy.ndarray``
+            and edits its value.
         cover_all (bool): If ``True``, all spatial locations are convoluted
             into some output pixels. It may make the output size larger.
             ``cover_all`` needs to be ``False`` if you want to use cuDNN.

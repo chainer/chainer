@@ -1,5 +1,6 @@
 import collections
 import copy
+import warnings
 
 import numpy
 import six
@@ -461,10 +462,6 @@ class GradientMethod(Optimizer):
     provide such an alias to each attribute. It can be done by only adding one
     line for each attribute using :class:`HyperparameterProxy`.
 
-    .. note::
-       It is recommended to call :meth:`use_cleargrads` after creating a
-       :class:`GradientMethod` object for efficiency.
-
     Attributes:
         hyperparam (Hyperparameter): The hyperparameter of the gradient
             method. It is used as the default configuration of each update
@@ -482,6 +479,27 @@ class GradientMethod(Optimizer):
         for param in link.params():
             param.update_rule = self.create_update_rule()
 
+    def reallocate_cleared_grads(self):
+        """Reallocate gradients cleared by :meth:`~chainer.Variable.cleargrad`.
+
+        This method allocates arrays for all gradients which have :obj:`None`.
+        This method is called before and after every optimizer hook.
+        If an inheriting optimizer does not require this allocation,
+        the optimizer can override this method with a blank function.
+
+        """
+        for name, param in self.target.namedparams(False):
+            if param.grad is None:
+                with cuda.get_device(param.data):
+                    xp = cuda.get_array_module(param.data)
+                    param.grad = xp.zeros_like(param.data)
+
+    def call_hooks(self):
+        """Invokes hook functions in registration order."""
+        for hook in six.itervalues(self._hooks):
+            self._call_hook(hook)
+            self.reallocate_cleared_grads()
+
     def update(self, lossfun=None, *args, **kwds):
         """Updates parameters based on a loss function or computed gradients.
 
@@ -498,7 +516,7 @@ class GradientMethod(Optimizer):
 
         """
         if lossfun is not None:
-            use_cleargrads = getattr(self, '_use_cleargrads', False)
+            use_cleargrads = getattr(self, '_use_cleargrads', True)
             loss = lossfun(*args, **kwds)
             if use_cleargrads:
                 self.target.cleargrads()
@@ -507,13 +525,7 @@ class GradientMethod(Optimizer):
             loss.backward()
             del loss
 
-        # TODO(unno): Some optimizers can skip this process if they does not
-        # affect to a parameter when its gradient is zero.
-        for name, param in self.target.namedparams(False):
-            if param.grad is None:
-                with cuda.get_device(param.data):
-                    xp = cuda.get_array_module(param.data)
-                    param.grad = xp.zeros_like(param.data)
+        self.reallocate_cleared_grads()
 
         self.call_hooks()
 
@@ -529,13 +541,18 @@ class GradientMethod(Optimizer):
                 `cleargrads`. If ``False``, disables use of `cleargrads`
                 (`zerograds` is used).
 
-        .. note::
-           Note that :meth:`update` calls :meth:`~Link.zerograds` by default
-           for backward compatibility. It is recommended to call this method
-           before first call of `update` because `cleargrads` is more
-           efficient than `zerograds`.
+        .. deprecated:: v2.0
+           Note that :meth:`update` calls :meth:`~Link.cleargrads` by default.
+           :meth:`~Link.cleargrads` is more efficient than
+           :meth:`~Link.zerograds`, so one does not have to call
+           :meth:`use_cleargrads`. This method remains for backward
+           compatibility.
 
         """
+        warnings.warn(
+            'GradientMethod.use_cleargrads is deprecated.',
+            DeprecationWarning)
+
         self._use_cleargrads = use
 
     def create_update_rule(self):

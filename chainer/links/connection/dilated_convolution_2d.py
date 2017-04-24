@@ -26,17 +26,12 @@ class DilatedConvolution2D(link.Link):
         dilate (int or pair of ints): Dilation factor of filter applications.
             ``dilate=d`` and ``dilate=(d, d)`` are equivalent.
         nobias (bool): If ``True``, then this link does not use the bias term.
-        initialW (callable): Weight initializer.
-            It should be a callable that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value.
-            If it is ``None``, the default initializer is used.
-            If it is `numpy.ndarray`, the array is used as initial
-            weight value.
-        initial_bias (callable): Bias initializer.
-            It should be a callable that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value.
-            If ``None``, the default initializer is used.
-            If it is `numpy.ndarray`, the array is used as initial bias value.
+        initialW (4-D array): Initial weight value. If ``None``, the defaul
+            initializer is used. May also be a callable that takes
+            ``numpy.ndarray`` or ``cupy.ndarray`` and edits its value.
+        initial_bias (1-D array): Initial bias value. If ``None``, the default
+            initializer is used. May also be a callable that takes
+            ``numpy.ndarray`` or ``cupy.ndarray`` and edits its value.
 
     .. seealso::
        See :func:`chainer.functions.dilated_convolution_2d`
