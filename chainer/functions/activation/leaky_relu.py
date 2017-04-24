@@ -45,7 +45,6 @@ class LeakyReLU(function.Function):
         return y,
 
     def backward_cpu(self, x, gy):
-        y = self.output_data
         gx = gy[0].copy()
         if self.slope >= 0:
             y = self.output_data

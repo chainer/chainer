@@ -162,7 +162,6 @@ def main():
 
     _recompute = args.recompute
     _recompute = _recompute.split(" ")
-    print('_recompute: {}'.format(_recompute))
     with chainer.use_recompute(_recompute):
         trainer.run()
 
