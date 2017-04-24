@@ -22,7 +22,7 @@ class ChildSumTreeLSTM(link.Chain):
     For example, this link is called such as
     ``func(c1, c2, h1, h2, x)`` if the number of children nodes is 2,
     while ``func(c1, c2, c3, h1, h2, h3, x)`` if that is 3.
-    This function is independent from an order of children nodes.
+    This function is *independent* from an order of children nodes.
     Thus, the returns of ``func(c1, c2, h1, h2, x)`` equal to
     those of ``func(c2, c1, h2, h1, x)``.
 
@@ -36,10 +36,12 @@ class ChildSumTreeLSTM(link.Chain):
         W_h_aio (chainer.links.Linear): Linear layer of connections between
             (:math:`a`, :math:`i`, :math:`o`) and summation of children's
             output vectors. :math:`a`, :math:`i` and :math:`o` denotes
-            input compound (:math:`u` in the paper),
+            input compound,
             input gate and output gate, respectively.
+            :math:`a`, input compound, equals to :math:`u` in
+            the paper by Tai et al.
         W_h_f (chainer.links.Linear): Linear layer of connections between
-            :math:`f` and the output of each child.
+            forget gate :math:`f` and the output of each child.
 
     See the paper for details: `Improved Semantic Representations From \
     Tree-Structured Long Short-Term Memory Networks \
@@ -127,7 +129,7 @@ class NaryTreeLSTM(link.Chain):
     was set 2 (``n_ary = 2``), while
     ``func(c1, c2, c3, h1, h2, h3, x)`` if that was 3
     (``n_ary = 3``).
-    This function is dependent from an order of children nodes
+    This function is *dependent* from an order of children nodes
     unlike Child-Sum TreeLSTM.
     Thus, the returns of ``func(c1, c2, h1, h2, x)`` are
     different from those of ``func(c2, c1, h2, h1, x)``.
@@ -141,8 +143,8 @@ class NaryTreeLSTM(link.Chain):
         W_x (chainer.links.Linear): Linear layer of
             connections from input vectors.
         W_h (chainer.links.Linear): Linear layer of connections between
-            (:math:`a`, :math:`i`, :math:`o`, all :math:`f`s)
-            and the output of each child
+            (:math:`a`, :math:`i`, :math:`o`, all :math:`f`)
+            and the output of each child.
             :math:`a`, :math:`i`, :math:`o` and :math:`f` denotes input
             compound, input gate, output gate and forget gate, respectively.
             :math:`a`, input compound, equals to :math:`u` in
@@ -157,7 +159,7 @@ class NaryTreeLSTM(link.Chain):
     Tai et al.'s N-Ary TreeLSTM is little extended in
     Bowman et al., and this link is based on
     the variant by Bowman et al.
-    Specifically, eq. 10 in Tai et al. only has one W matrix
+    Specifically, eq. 10 in Tai et al. has only one W matrix
     to be applied to x, consistently for all children.
     On the other hand, Bowman et al.'s model has multiple matrices,
     each of which affects the forget gate for each child's cell individually.
