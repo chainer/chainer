@@ -74,12 +74,14 @@ class TransposeSequence(function.Function):
             )
 
     def forward(self, xs):
+        self.retain_inputs(())
+        self._in_length = len(xs)
         if len(xs) == 0:
             return ()
         return _transpose(xs, len(xs[0]))
 
     def backward(self, xs, gs):
-        return _transpose(gs, len(xs))
+        return _transpose(gs, self._in_length)
 
 
 def transpose_sequence(xs):
