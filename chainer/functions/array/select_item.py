@@ -23,7 +23,10 @@ class SelectItem(function.Function):
         )
 
     def forward(self, inputs):
+        self.retain_inputs((1,))
         x, t = inputs
+        self._in_shape = x.shape
+        self._in_dtype = x.dtype
         if chainer.is_debug():
             if not ((0 <= t).all() and
                     (t < x.shape[1]).all()):
@@ -45,16 +48,16 @@ class SelectItem(function.Function):
             return y,
 
     def backward_cpu(self, inputs, grad_outputs):
-        x, t = inputs
+        t = inputs[1]
         gloss = grad_outputs[0]
-        gx = numpy.zeros_like(x)
+        gx = numpy.zeros(self._in_shape, self._in_dtype)
         gx[six.moves.range(t.size), t] = gloss
         return gx, None
 
     def backward_gpu(self, inputs, grad_outputs):
-        x, t = inputs
+        t = inputs[1]
         gloss = grad_outputs[0]
-        gx = cuda.cupy.zeros_like(x)
+        gx = cuda.cupy.zeros(self._in_shape, self._in_dtype)
         gx = cuda.elementwise(
             'S t, T gloss',
             'raw T gx',
