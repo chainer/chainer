@@ -51,7 +51,7 @@ class Broadcast(function.Function):
         return tuple(
             _backward_one(self._xp, shape, dtype, g)
             for shape, dtype, g in six.moves.zip(
-                    self._in_shapes, self._in_dtypes, grads))
+                self._in_shapes, self._in_dtypes, grads))
 
 
 def broadcast(*args):
