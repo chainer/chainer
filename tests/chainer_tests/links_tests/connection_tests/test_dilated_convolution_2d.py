@@ -117,7 +117,7 @@ class TestDilatedConvolution2D(unittest.TestCase):
     {'init_args': {'args': (2, 3),
                    'kwargs': {'stride': 2, 'pad': 2, 'dilate': 2}}}
     {'init_args': {'args': (None, 2, 3),
-                   'kwargs': {'stride': 2, 'pad': 2, 'dilate': 2}}}
+                   'kwargs': {'stride': 2, 'pad': 2, 'dilate': 2}}})
 class TestDilatedConvolution2DParameterShapePlaceholder(unittest.TestCase):
 
     def setUp(self):
