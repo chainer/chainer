@@ -77,9 +77,6 @@ class BatchNormalizationFunction(function.Function):
     def forward(self, inputs):
         xp = cuda.get_array_module(*inputs)
         x, gamma, beta = inputs[:3]
-        if gamma.dtype != beta.dtype:
-            msg = 'dtypes of gamma and beta must be the same'
-            raise RuntimeError(msg)
         dtype_param = gamma.dtype
         if self.train:
             if self.running_mean is None:
