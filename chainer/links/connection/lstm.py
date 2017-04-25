@@ -175,25 +175,25 @@ class LSTM(LSTMBase):
         lateral_init: A callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
             It is used for initialization of the lateral connections.
-            Maybe be ``None`` to use default initialization.
+            May be ``None`` to use default initialization.
         upward_init: A callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
             It is used for initialization of the upward connections.
-            Maybe be ``None`` to use default initialization.
+            May be ``None`` to use default initialization.
         bias_init: A callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value
             It is used for initialization of the biases of cell input,
             input gate and output gate.and gates of the upward connection.
-            Maybe a scalar, in that case, the bias is
+            May be a scalar, in that case, the bias is
             initialized by this value.
-            Maybe be ``None`` to use default initialization.
+            If it is ``None``, the cell-input bias is initialized to zero.
         forget_bias_init: A callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value
             It is used for initialization of the biases of the forget gate of
             the upward connection.
-            Maybe a scalar, in that case, the bias is
+            May be a scalar, in that case, the bias is
             initialized by this value.
-            Maybe be ``None`` to use default initialization.
+            If it is ``None``, the forget bias is initialized to one.
 
 
     Attributes:

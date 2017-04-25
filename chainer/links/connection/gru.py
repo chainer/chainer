@@ -3,6 +3,7 @@ import numpy
 import chainer
 from chainer.functions.activation import sigmoid
 from chainer.functions.activation import tanh
+from chainer.functions.math import linear_interpolate
 from chainer import link
 from chainer.links.connection import linear
 
@@ -77,7 +78,7 @@ class GRU(GRUBase):
         r = sigmoid.sigmoid(self.W_r(x) + self.U_r(h))
         z = sigmoid.sigmoid(self.W_z(x) + self.U_z(h))
         h_bar = tanh.tanh(self.W(x) + self.U(r * h))
-        h_new = (1 - z) * h + z * h_bar
+        h_new = linear_interpolate.linear_interpolate(z, h_bar, h)
         return h_new
 
 
@@ -109,23 +110,18 @@ class StatefulGRU(GRUBase):
         in_size(int): Dimension of input vector :math:`x`.
         out_size(int): Dimension of hidden vector :math:`h`.
         init: Initializer for GRU's input units (:math:`W`).
-            It should be a callable that takes ``numpy.ndarray`` or
+            It is a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
             If it is ``None``, the default initializer is used.
-            If it is `numpy.ndarray`, the array is used as initial
-            weight value.
         inner_init: Initializer for the GRU's inner
             recurrent units (:math:`U`).
-            It should be a callable that takes ``numpy.ndarray`` or
+            It is a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
             If it is ``None``, the default initializer is used.
-            If it is `numpy.ndarray`, the array is used as initial
-            weight value.
         bias_init: Bias initializer.
-            It should be a callable that takes ``numpy.ndarray`` or
+            It is a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
-            If ``None``, the default initializer is used.
-            If it is `numpy.ndarray`, the array is used as initial bias value.
+            If ``None``, the bias is set to zero.
 
     Attributes:
         h(~chainer.Variable): Hidden vector that indicates the state of
@@ -174,8 +170,9 @@ class StatefulGRU(GRUBase):
         z = sigmoid.sigmoid(z)
         h_bar = tanh.tanh(h_bar)
 
-        h_new = z * h_bar
         if self.h is not None:
-            h_new += (1 - z) * self.h
+            h_new = linear_interpolate.linear_interpolate(z, h_bar, self.h)
+        else:
+            h_new = z * h_bar
         self.h = h_new
         return self.h
