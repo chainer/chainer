@@ -1,11 +1,19 @@
 import collections
 import contextlib
+import copy
 
 import numpy
 import six
 
+from chainer import configuration
 from chainer import cuda
 from chainer import variable
+
+
+def _copy_variable(value):
+    if isinstance(value, variable.Variable):
+        return copy.copy(value)
+    return value
 
 
 class Reporter(object):
@@ -126,6 +134,13 @@ class Reporter(object):
         The values are written with the key, prefixed by the name of the
         observer object if given.
 
+        .. note::
+           As of v2.0.0, if a value is of type :class:`~chainer.Variable`, the
+           variable is copied without preserving the computational graph and
+           the new variable object purged from the graph is stored to the
+           observer. This behavior can be changed by setting
+           ``chainer.config.keep_graph_on_report`` to ``True``.
+
         Args:
             values (dict): Dictionary of observed values.
             observer: Observer object. Its object ID is used to retrieve the
@@ -133,6 +148,9 @@ class Reporter(object):
                 name of the observed value.
 
         """
+        if not configuration.config.keep_graph_on_report:
+            values = {k: _copy_variable(v) for k, v in six.iteritems(values)}
+
         if observer is not None:
             observer_id = id(observer)
             if observer_id not in self._observer_names:
