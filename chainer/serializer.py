@@ -29,7 +29,7 @@ class AbstractSerializer(object):
         restored value to be converted, and the converted value is returned.
         For arrays, the restored elements are directly copied into the
         ``value`` argument. String values are treated like scalars.
-        
+
         .. note::
            As of v2.0.0, serializers and deserializers are required to
            correctly handle the ``None`` value. When ``value`` is ``None``,
