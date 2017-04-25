@@ -3,6 +3,7 @@ import numpy
 from chainer import configuration
 from chainer import cuda
 from chainer import function
+from chainer.utils import argument
 from chainer.utils import type_check
 
 
@@ -34,12 +35,20 @@ class Zoneout(function.Function):
         return gy[0] * self.flag_h, gy[0] * self.flag_x,
 
 
-def zoneout(h, x, ratio=.5):
-    """Drops elements of input variable and sets to previous variable randomly.
+def zoneout(h, x, ratio=.5, **kwargs):
+    """zoneout(h, x, ratio=.5):
+
+    Drops elements of input variable and sets to previous variable randomly.
 
     This function drops input elements randomly with probability ``ratio`` and
     instead sets dropping element to their previous variable. In testing mode ,
     it does nothing and just returns ``x``.
+
+    .. warning::
+
+       ``train`` argument is not supported anymore since v2.
+       Instead, use ``chainer.using_config('train', train)``.
+       See :func:`chainer.using_config`.
 
     Args:
         h (~chainer.Variable): Previous variable.
@@ -53,6 +62,11 @@ def zoneout(h, x, ratio=.5):
     Activations <https://arxiv.org/abs/1606.01305>`_.
 
     """
+    argument.check_unexpected_kwargs(
+        kwargs, train='train argument is not supported anymore. '
+        'Use chainer.using_config')
+    argument.parse_kwargs(kwargs)
+
     if configuration.config.train:
         return Zoneout(ratio)(h, x)
     return x

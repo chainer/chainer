@@ -17,6 +17,7 @@ from chainer.functions.array import split_axis
 from chainer.functions.array import stack
 from chainer.functions.connection import linear
 from chainer.functions.noise import dropout
+from chainer.utils import argument
 from chainer.utils import type_check
 
 
@@ -373,8 +374,10 @@ def _stack_weight(ws):
 
 
 def n_step_lstm(
-        n_layers, dropout_ratio, hx, cx, ws, bs, xs):
-    """Stacked Long Short-Term Memory function for sequence inputs.
+        n_layers, dropout_ratio, hx, cx, ws, bs, xs, **kwargs):
+    """n_step_lstm(n_layers, dropout_ratio, hx, cx, ws, bs, xs)
+
+    Stacked Long Short-Term Memory function for sequence inputs.
 
     This function calculates stacked LSTM with sequences. This function gets
     an initial hidden state :math:`h_0`, an initial cell state :math:`c_0`,
@@ -401,6 +404,14 @@ def n_step_lstm(
     of ``k``-th layer is hidden state ``h_t`` of ``k-1``-th layer.
     Note that all input variables except first layer may have different shape
     from the first layer.
+
+    .. warning::
+
+       ``train`` and ``use_cudnn`` arguments are not supported anymore since
+       v2.
+       Instead, use ``chainer.using_config('train', train)`` and
+       ``chainer.using_config('use_cudnn', use_cudnn)``.
+       See :func:`chainer.using_config`.
 
     Args:
         n_layers(int): Number of layers.
@@ -453,6 +464,13 @@ def n_step_lstm(
        :func:`chainer.functions.lstm`
 
     """
+
+    argument.check_unexpected_kwargs(
+        kwargs, train='train argument is not supported anymore. '
+        'Use chainer.using_config',
+        use_cudnn='use_cudnn argument is not supported anymore. '
+        'Use chainer.using_config')
+    argument.parse_kwargs(kwargs)
 
     xp = cuda.get_array_module(hx, hx.data)
 

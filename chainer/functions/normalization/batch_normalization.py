@@ -4,6 +4,7 @@ import chainer
 from chainer import configuration
 from chainer import cuda
 from chainer import function
+from chainer.utils import argument
 from chainer.utils import type_check
 
 if cuda.cudnn_enabled:
@@ -262,9 +263,10 @@ class BatchNormalizationFunction(function.Function):
         return gx, ggamma, gbeta
 
 
-def batch_normalization(x, gamma, beta, eps=2e-5, running_mean=None,
-                        running_var=None, decay=0.9):
-    """Batch normalization function.
+def batch_normalization(x, gamma, beta, **kwargs):
+    """batch_normalization(x, gamma, beta, eps=2e-5, running_mean=None, running_var=None, decay=0.9):
+
+    Batch normalization function.
 
     It takes the input variable ``x`` and two parameter variables ``gamma`` and
     ``beta``. The parameter variables must both have the same dimensionality,
@@ -319,6 +321,14 @@ def batch_normalization(x, gamma, beta, eps=2e-5, running_mean=None,
     .. seealso:: :class:`links.BatchNormalization`
 
     """
+
+    argument.check_unexpected_kwargs(
+        kwargs, train='train argument is not supported anymore. '
+        'Use chainer.using_config')
+    eps, running_mean, running_var, decay = argument.parse_kwargs(
+        kwargs, ('eps', 2e-5), ('running_mean', None),
+        ('running_var', None), ('decay', 0.9))
+
     return BatchNormalizationFunction(eps, running_mean, running_var,
                                       decay)(x, gamma, beta)
 
