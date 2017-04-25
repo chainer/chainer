@@ -27,7 +27,6 @@ class ExponentialShift(extension.Extension):
             used.
 
     """
-    invoke_before_training = True
 
     def __init__(self, attr, rate, init=None, target=None, optimizer=None):
         self._attr = attr
@@ -38,11 +37,21 @@ class ExponentialShift(extension.Extension):
         self._target = target
         self._optimizer = optimizer
         self._t = 0
+        self._last_value = None
 
-    def __call__(self, trainer):
-        optimizer = self._optimizer or trainer.updater.get_optimizer('main')
+    def initialize(self, trainer):
+        optimizer = self._get_optimizer(trainer)
+        # ensure that _init is set
         if self._init is None:
             self._init = getattr(optimizer, self._attr)
+
+        if self._last_value is not None:  # resuming from a snapshot
+            self._update_value(optimizer, self._last_value)
+        else:
+            self._update_value(optimizer, self._init)
+
+    def __call__(self, trainer):
+        optimizer = self._get_optimizer(trainer)
         value = self._init * (self._rate ** self._t)
         if self._target is not None:
             if self._rate > 1:
@@ -54,8 +63,16 @@ class ExponentialShift(extension.Extension):
                 # ditto
                 if value / self._target < 1:
                     value = self._target
-        setattr(optimizer, self._attr, value)
+        self._update_value(optimizer, value)
         self._t += 1
 
     def serialize(self, serializer):
         self._t = serializer('_t', self._t)
+        self._last_value = serializer('_last_value', self._last_value)
+
+    def _get_optimizer(self, trainer):
+        return self._optimizer or trainer.updater.get_optimizer('main')
+
+    def _update_value(self, optimizer, value):
+        setattr(optimizer, self._attr, value)
+        self._last_value = value
