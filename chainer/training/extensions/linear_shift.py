@@ -29,7 +29,6 @@ class LinearShift(extension.Extension):
             the main optimizer of the trainer is used.
 
     """
-    invoke_before_training = True
 
     def __init__(self, attr, value_range, time_range, optimizer=None):
         self._attr = attr
@@ -37,22 +36,40 @@ class LinearShift(extension.Extension):
         self._time_range = time_range
         self._optimizer = optimizer
         self._t = 0
+        self._last_value = None
+
+    def initialize(self, trainer):
+        optimizer = self._get_optimizer(trainer)
+        if self._last_value is not None:
+            value = self._last_value
+        else:
+            value = self._compute_next_value()
+        self._update_value(optimizer, value)
 
     def __call__(self, trainer):
-        optimizer = self._optimizer or trainer.updater.get_optimizer('main')
-        t1, t2 = self._time_range
-        v1, v2 = self._value_range
-
-        if self._t <= t1:
-            value = v1
-        elif self._t >= t2:
-            value = v2
-        else:
-            rate = (self._t - t1) / (t2 - t1)
-            value = v1 + rate * (v2 - v1)
-        setattr(optimizer, self._attr, value)
-
+        optimizer = self._get_optimizer(trainer)
+        value = self._compute_next_value()
+        self._update_value(optimizer, value)
         self._t += 1
 
     def serialize(self, serializer):
         self._t = serializer('_t', self._t)
+        self._last_value = serializer('_last_value', self._last_value)
+
+    def _get_optimizer(self, trainer):
+        return self._optimizer or trainer.updater.get_optimizer('main')
+
+    def _compute_next_value(self):
+        t1, t2 = self._time_range
+        v1, v2 = self._value_range
+
+        if self._t <= t1:
+            return v1
+        elif self._t >= t2:
+            return v2
+        rate = (self._t - t1) / (t2 - t1)
+        return v1 + rate * (v2 - v1)
+
+    def _update_value(self, optimizer, value):
+        setattr(optimizer, self._attr, value)
+        self._last_value = value
