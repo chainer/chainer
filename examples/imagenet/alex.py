@@ -54,14 +54,18 @@ class AlexFp16(Alex):
         chainer.Chain.__init__(
             self,
             conv1=L.Convolution2D(None, 96, 11,
-                                  stride=4, initialW=W, bias=bias),
-            conv2=L.Convolution2D(None, 256, 5, pad=2, initialW=W, bias=bias),
-            conv3=L.Convolution2D(None, 384, 3, pad=1, initialW=W, bias=bias),
-            conv4=L.Convolution2D(None, 384, 3, pad=1, initialW=W, bias=bias),
-            conv5=L.Convolution2D(None, 256, 3, pad=1, initialW=W, bias=bias),
-            fc6=L.Linear(None, 4096, initialW=W, bias=bias),
-            fc7=L.Linear(None, 4096, initialW=W, bias=bias),
-            fc8=L.Linear(None, 1000, initialW=W, bias=bias),
+                                  stride=4, initialW=W, initial_bias=bias),
+            conv2=L.Convolution2D(None, 256, 5, pad=2,
+                                  initialW=W, initial_bias=bias),
+            conv3=L.Convolution2D(None, 384, 3, pad=1,
+                                  initialW=W, initial_bias=bias),
+            conv4=L.Convolution2D(None, 384, 3, pad=1,
+                                  initialW=W, initial_bias=bias),
+            conv5=L.Convolution2D(None, 256, 3, pad=1,
+                                  initialW=W, initial_bias=bias),
+            fc6=L.Linear(None, 4096, initialW=W, initial_bias=bias),
+            fc7=L.Linear(None, 4096, initialW=W, initial_bias=bias),
+            fc8=L.Linear(None, 1000, initialW=W, initial_bias=bias),
         )
 
     def __call__(self, x, t):
