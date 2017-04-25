@@ -115,15 +115,15 @@ class BatchNormalization(link.Link):
         else:
             with cuda.get_device(self._device_id):
                 gamma = variable.Variable(self.xp.ones(
-                        self.avg_mean.shape, dtype=self.dtype_param),
-                                          volatile='auto')
+                    self.avg_mean.shape, dtype=self.dtype_param),
+                    volatile='auto')
         if hasattr(self, 'beta'):
             beta = self.beta
         else:
             with cuda.get_device(self._device_id):
                 beta = variable.Variable(self.xp.zeros(
-                        self.avg_mean.shape, dtype=self.dtype_param),
-                                         volatile='auto')
+                    self.avg_mean.shape, dtype=self.dtype_param),
+                    volatile='auto')
 
         if not test:
             if finetune:
