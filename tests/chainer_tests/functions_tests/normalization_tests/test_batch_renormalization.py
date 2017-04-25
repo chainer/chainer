@@ -59,12 +59,11 @@ class TestBatchRenormalization(unittest.TestCase):
             self.check_backward_options = {
                 'dtype': numpy.float64, 'atol': 1e-3, 'rtol': 1e-2}
 
-    def check_forward(self, args, use_cudnn=True):
+    def check_forward(self, args):
         y = batch_renormalization.batch_renormalization(
             *[chainer.Variable(i) for i in args],
             rmax=self.rmax, dmax=self.dmax, running_mean=self.running_mean,
-            running_var=self.running_var, decay=self.decay, eps=self.eps,
-            use_cudnn=use_cudnn)
+            running_var=self.running_var, decay=self.decay, eps=self.eps)
         self.assertEqual(y.data.dtype, self.dtype)
 
         sigma_batch = numpy.sqrt(self.var)
@@ -140,10 +139,10 @@ class TestFixedBatchRenormalization(unittest.TestCase):
             self.check_backward_options = {
                 'dtype': numpy.float64, 'atol': 1e-3, 'rtol': 1e-2}
 
-    def check_forward(self, args, use_cudnn=True):
+    def check_forward(self, args):
         y = batch_renormalization.fixed_batch_renormalization(
             *[chainer.Variable(i) for i in args],
-            eps=self.eps, use_cudnn=use_cudnn)
+            eps=self.eps)
         self.assertEqual(y.data.dtype, self.dtype)
 
         y_expect = _batch_renormalization(

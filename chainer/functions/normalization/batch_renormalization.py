@@ -6,12 +6,6 @@ from chainer import function
 from chainer.utils import type_check
 
 
-if cuda.cudnn_enabled:
-    cudnn = cuda.cudnn
-    libcudnn = cudnn.cudnn
-    _cudnn_version = libcudnn.getVersion()
-
-
 def _as4darray(arr):
     if arr.ndim == 0:
         return arr.reshape(1, 1, 1, 1)
@@ -30,7 +24,7 @@ def _xhat(x, mean, std, expander):
 class BatchRenormalizationFunction(function.Function):
 
     def __init__(self, eps=2e-5, mean=None, var=None, train=False,
-                 decay=0.9, use_cudnn=True, rmax=1, dmax=0,
+                 decay=0.9, rmax=1, dmax=0,
                  keep_r_d_fixed=False):
         self.running_mean = mean
         self.running_var = var
@@ -44,16 +38,7 @@ class BatchRenormalizationFunction(function.Function):
         # If train is true, use batch statistics (training mode). Otherwise, if
         # false, use the supplied mean and variance.
         self.train = train
-        # Note: cuDNN v5 requires that eps be greater than 1e-5. Otherwise, an
-        # error will occur.
-        # See CUDNN_BN_MIN_EPSILON value in cudnn.h to verify minimum allowable
-        # value.
         self.eps = eps
-        if cuda.cudnn_enabled and use_cudnn:
-            if eps < 1e-5:
-                msg = 'cuDNN does not allow an eps value less than 1e-5.'
-                raise RuntimeError(msg)
-        self.use_cudnn = use_cudnn
         self.mean_cache = None
         self.decay = decay
 
@@ -98,23 +83,9 @@ class BatchRenormalizationFunction(function.Function):
             self.fixed_mean = inputs[3]
             self.fixed_var = inputs[4]
 
-        # TODO(bkvogel): Check for float16 support again in next cuDNN version.
-        if x[0].dtype == numpy.float16:
-            # cuDNN v5 batch normalization does not seem to support float16.
-            self.use_cudnn = False
-
         head_ndim = gamma.ndim + 1
         expander = (None, Ellipsis) + (None,) * (x.ndim - head_ndim)
 
-        # cuDNN only supports these tensor dimensions because they are
-        # the most commonly used. If there is a need to support other
-        # dimensions with cuDNN, we could consider reshaping the input
-        # into a 2-dim array with channels as second dim and m=<product
-        # of all dimensions except the 2nd dimension> as the first
-        # dimension.
-        self.cudnn_dim_ok = x.ndim == 2 or x.ndim == 4
-
-        cudnn_updated_running_stats = False
         # NOTE(tommi): Removed cuDNN support since it does not support
         # batch renormalization
         if self.train:
@@ -177,10 +148,7 @@ class BatchRenormalizationFunction(function.Function):
                 'bn_fwd')(x, mean[expander], self.std[expander], gamma,
                           beta, self.r[expander], self.d[expander])
 
-        if self.train and (not cudnn_updated_running_stats):
-            # Note: If in training mode, the cuDNN forward training function
-            # will do this for us, so
-            # only run following code if cuDNN was not used.
+        if self.train:
             # Update running statistics:
             m = x.size // gamma.size
             adjust = m / max(m - 1., 1.)  # unbiased estimation
@@ -245,8 +213,7 @@ class BatchRenormalizationFunction(function.Function):
 
 
 def batch_renormalization(x, gamma, beta, rmax, dmax, eps=2e-5,
-                          running_mean=None, running_var=None, decay=0.9,
-                          use_cudnn=True):
+                          running_mean=None, running_var=None, decay=0.9):
     """Batch renormalization function.
 
     This is an extension of batch normalization, which ensures that the
@@ -261,11 +228,9 @@ def batch_renormalization(x, gamma, beta, rmax, dmax, eps=2e-5,
 
     """
     return BatchRenormalizationFunction(eps, running_mean, running_var, True,
-                                        decay, use_cudnn, rmax, dmax)(x, gamma,
+                                        decay, rmax, dmax)(x, gamma,
                                                                       beta)
 
 
-def fixed_batch_renormalization(x, gamma, beta, mean, var, eps=2e-5,
-                              use_cudnn=True):
-    return BatchRenormalizationFunction(eps, None, None, False, 0.0,
-                                        use_cudnn)(x, gamma, beta, mean, var)
+def fixed_batch_renormalization(x, gamma, beta, mean, var, eps=2e-5):
+    return BatchRenormalizationFunction(eps, None, None, False, 0.0)(x, gamma, beta, mean, var)
