@@ -40,7 +40,8 @@ class BatchNormalizationTest(unittest.TestCase):
         self.expander = (None, Ellipsis) + (None,) * self.ndim
         self.aggr_axes = (0,) + tuple(six.moves.range(2, self.ndim + 2))
 
-        self.link = links.BatchNormalization(3, dtype=self.dtype, use_cudnn=False)
+        self.link = links.BatchNormalization(3, dtype=self.dtype,
+                                             use_cudnn=False)
         gamma = self.link.gamma.data
         gamma[...] = numpy.random.uniform(.5, 1, gamma.shape)
         beta = self.link.beta.data
@@ -147,14 +148,15 @@ class BatchNormalizationTestCudnn(unittest.TestCase):
         self.x = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
         self.gy = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
 
-        self.link = links.BatchNormalization(3, dtype=self.dtype, use_cudnn=True)
+        self.link = links.BatchNormalization(3, dtype=self.dtype,
+                                             use_cudnn=True)
 
         # This is work-around to ensure that the parameters like gamma and beta
         # are to be initialized as expected data type
         x = self.x.copy()
         x = cuda.to_gpu(x)
         self.link.to_gpu()
-        y = self.link(x)
+        self.link(x)
         self.link.to_cpu()
 
         gamma = self.link.gamma.data
@@ -407,7 +409,7 @@ class BatchNormalizationTestCudnnWithoutGammaAndBeta(unittest.TestCase):
         x = self.x.copy()
         x = cuda.to_gpu(x)
         self.link.to_gpu()
-        y = self.link(x)
+        self.link(x)
         self.link.to_cpu()
 
         if self.test:
@@ -479,7 +481,8 @@ class TestInitialize(unittest.TestCase):
         self.initial_beta = self.initial_beta.astype(numpy.float32)
         self.link = links.BatchNormalization(self.size, self.decay,
                                              initial_gamma=self.initial_gamma,
-                                             initial_beta=self.initial_beta, use_cudnn=False)
+                                             initial_beta=self.initial_beta,
+                                             use_cudnn=False)
 
     @condition.retry(3)
     def test_initialize_cpu(self):
@@ -499,7 +502,8 @@ class TestDefaultInitializer(unittest.TestCase):
     def setUp(self):
         self.decay = 0.9
         self.size = 3
-        self.link = links.BatchNormalization(self.size, self.decay, use_cudnn=False)
+        self.link = links.BatchNormalization(self.size, self.decay,
+                                             use_cudnn=False)
 
     def test_initialize_cpu(self):
         testing.assert_allclose(numpy.ones(self.size), self.link.gamma.data)
