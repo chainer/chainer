@@ -84,14 +84,36 @@ class BatchNormalization(link.Link):
         self.use_cudnn = use_cudnn
 
         self.do_init_params = True
-        if not use_cudnn:
-            self.init_params(None)
+        if not use_cudnn or dtype != numpy.float16:
+            self.init_params()
 
+    def init_params(self, x=None):
+        """Initializes parameters such as gamma, beta, avg_mean and avg_var
 
-    def init_params(self, x):
-        """ """
-        # [cuDNN] dtype of prameters like gamma, beta, etc. must be float32,
-        # even when dtype of input/output tensors are float16.
+        Parameters initilization was done in the :meth:`__init__`, but it
+        has been separated from the :meth:`__init__`.
+
+        When an argument `use_cudnn` of the :meth:`__init__` is `False` and
+        cuDNN is never used, this method is called from the :meth:`__init__`,
+        because data types of all parameters are always the same as data type
+        of inputs that is specified by an argument `dtype` of the
+        :meth:`__init__`.
+
+        However, when the argument `use_cudnn` is `True` and cuDNN may be used,
+        data type of parameters can not be determined until the
+        :meth:`__call__` is called and the shape of inputs get known. In that
+        case, this method is called from the :meth:`__call__` when it is first
+        called.
+
+        Args:
+            x (Variable): Input variable.
+        """
+        self.do_init_params = False
+
+        # [cuDNN]
+        # if you want to use cudnn routines for batch normalization,
+        # dtype of prameters like gamma, beta, etc. must be float32,
+        # when dtype of input/output tensors are float16.
         dtype_param = self.dtype
         size_param = self.size_param
         initial_gamma = self.initial_gamma
@@ -112,18 +134,22 @@ class BatchNormalization(link.Link):
             if initial_beta is None:
                 initial_beta = initializers.Zero()
             initializers.init_weight(self.beta.data, initial_beta)
-        self.add_persistent('avg_mean', numpy.zeros(size_param, dtype=dtype_param))
-        self.add_persistent('avg_var', numpy.zeros(size_param, dtype=dtype_param))
+        self.add_persistent('avg_mean',
+                            numpy.zeros(size_param, dtype=dtype_param))
+        self.add_persistent('avg_var',
+                            numpy.zeros(size_param, dtype=dtype_param))
         self.add_persistent('N', 0)
 
         self.dtype_param = dtype_param
 
-        self.do_init_params = False
-
+        # When this method is called from a method `__call__()`,
+        # a method `to_gpu()` may be applied to this instance.
+        # In that case, the method `to_gpu()` must be applied again
+        # to make sure that all parameters initialized above are
+        # also copied from CPU to GPU.
         if not self._cpu:
             self.to_cpu()
             self.to_gpu()
-
 
     def __call__(self, x, test=False, finetune=False):
         """Invokes the forward propagation of BatchNormalization.
