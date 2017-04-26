@@ -239,10 +239,12 @@ class Trainer(object):
 
         if on_signal:
             trigger = trigger_module.get_trigger(None)
+
             def signal_handler(_signal, _frame):
                 extension(self)
                 if _signal == signal.SIGINT:
                     raise KeyboardInterrupt
+
             signal.signal(on_signal, signal_handler)
 
         extension.name = modified_name
