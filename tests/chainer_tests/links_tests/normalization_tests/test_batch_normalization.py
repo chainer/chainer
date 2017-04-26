@@ -140,6 +140,7 @@ class BatchNormalizationTest(unittest.TestCase):
 })))
 class BatchNormalizationTestCudnn(unittest.TestCase):
 
+    @attr.gpu
     def setUp(self):
         self.expander = (None, Ellipsis) + (None,) * self.ndim
         self.aggr_axes = (0,) + tuple(six.moves.range(2, self.ndim + 2))
@@ -183,6 +184,7 @@ class BatchNormalizationTestCudnn(unittest.TestCase):
             self.check_forward_optionss = {'atol': 1e-3, 'rtol': 1e-2}
             self.check_backward_optionss = {'atol': 5e-1, 'rtol': 1e-1}
 
+    @attr.gpu
     def check_forward(self, x_data):
         x = chainer.Variable(x_data, volatile=self.volatile)
         y = self.link(x, test=self.test)
@@ -201,6 +203,7 @@ class BatchNormalizationTestCudnn(unittest.TestCase):
         self.link.to_gpu()
         self.check_forward(cuda.to_gpu(self.x))
 
+    @attr.gpu
     @attr.multi_gpu(2)
     @condition.retry(3)
     def test_forward_multi_gpu(self):
@@ -210,6 +213,7 @@ class BatchNormalizationTestCudnn(unittest.TestCase):
         with cuda.get_device(0):
             self.check_forward(x)
 
+    @attr.gpu
     def check_backward(self, x_data, y_grad):
         gradient_check.check_backward(
             self.link, x_data, y_grad, (self.link.gamma, self.link.beta),
@@ -396,6 +400,7 @@ class BatchNormalizationTestWithoutGammaAndBeta(unittest.TestCase):
 }))
 class BatchNormalizationTestCudnnWithoutGammaAndBeta(unittest.TestCase):
 
+    @attr.gpu
     def setUp(self):
         shape = (7, 3) + (2,) * self.ndim
         self.x = numpy.random.uniform(-1, 1, shape).astype(numpy.float32)
@@ -432,10 +437,12 @@ class BatchNormalizationTestCudnnWithoutGammaAndBeta(unittest.TestCase):
         self.y_expected = _batch_normalization(
             expander, gamma, beta, self.x, mean, var, self.link.eps, self.test)
 
+    @attr.gpu
     def test_no_gamma_and_beta(self):
         self.assertFalse(hasattr(self.link, 'gamma'))
         self.assertFalse(hasattr(self.link, 'beta'))
 
+    @attr.gpu
     def check_forward(self, x_data):
         x = chainer.Variable(x_data)
         y = self.link(x, test=self.test)
@@ -447,6 +454,7 @@ class BatchNormalizationTestCudnnWithoutGammaAndBeta(unittest.TestCase):
         x = cuda.to_gpu(self.x)
         self.check_forward(x)
 
+    @attr.gpu
     @attr.multi_gpu(2)
     def test_forward_gpu_multi(self):
         with cuda.get_device(0):
@@ -455,6 +463,7 @@ class BatchNormalizationTestCudnnWithoutGammaAndBeta(unittest.TestCase):
         with cuda.get_device(1):
             self.check_forward(x)
 
+    @attr.gpu
     def check_backward(self, x_data, y_grad):
         gradient_check.check_backward(self.link, x_data, y_grad,
                                       eps=1e-2, rtol=1e-3, atol=1e-4)
