@@ -290,10 +290,7 @@ Here we use the simplest one, called Stochastic Gradient Descent (SGD):
 
    >>> model = MyChain()
    >>> optimizer = optimizers.SGD()
-   >>> optimizer.use_cleargrads()
    >>> optimizer.setup(model)
-
-The method :meth:`~GradientMethod.use_cleargrads` is for efficiency. See :meth:`~GradientMethod.use_cleargrads` for detail.
 
 The method :meth:`~Optimizer.setup` prepares for the optimization given a link.
 
