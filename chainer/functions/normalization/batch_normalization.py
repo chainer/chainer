@@ -61,16 +61,17 @@ class BatchNormalizationFunction(function.Function):
             x_type.ndim >= gamma_type.ndim + 1,
             x_type.shape[1:1 + M] == gamma_type.shape,
             # TODO(beam2d): Check shape
-            gamma_type.dtype == x_type.dtype,
-            beta_type.dtype == x_type.dtype,
+            # gamma_type.dtype == x_type.dtype,  # to fix ...
+            # beta_type.dtype == x_type.dtype,  # to fix ...
+            gamma_type.dtype == beta_type.dtype,
             gamma_type.shape == beta_type.shape,
         )
         if len(in_types) == 5:
             mean_type, var_type = in_types[3:]
             type_check.expect(
-                mean_type.dtype == x_type.dtype,
+                mean_type.dtype == gamma_type.dtype,
                 mean_type.shape == gamma_type.shape,
-                var_type.dtype == x_type.dtype,
+                var_type.dtype == gamma_type.dtype,
                 var_type.shape == gamma_type.shape,
             )
 
@@ -251,7 +252,7 @@ class BatchNormalizationFunction(function.Function):
             x = cuda.cupy.ascontiguousarray(x)
             gamma = cuda.cupy.ascontiguousarray(gamma)
             gy = cuda.cupy.ascontiguousarray(gy)
-            dtype = x.dtype
+            dtype = gamma.dtype
             handle = cudnn.get_handle()
             x_desc = cudnn.create_tensor_descriptor(_as4darray(x))
             derivedBnDesc = cudnn.create_uninitialized_tensor_descriptor()

@@ -6,6 +6,11 @@ from chainer import initializers
 from chainer import link
 from chainer import variable
 
+if cuda.cudnn_enabled:
+    cudnn = cuda.cudnn
+    libcudnn = cudnn.cudnn
+    _cudnn_version = libcudnn.getVersion()
+
 
 class BatchNormalization(link.Link):
 
@@ -66,28 +71,59 @@ class BatchNormalization(link.Link):
                  use_gamma=True, use_beta=True,
                  initial_gamma=None, initial_beta=None, use_cudnn=True):
         super(BatchNormalization, self).__init__()
-        # [cuDNN] dtype of prameters like gamma, beta, etc. must be float32,
-        # even when dtype of input/output tensors are float16.
-        dtype_param = dtype
-        if use_cudnn and dtype_param == numpy.float16:
-            dtype_param = numpy.float32
-        if use_gamma:
-            self.add_param('gamma', size, dtype=dtype_param)
-            if initial_gamma is None:
-                initial_gamma = initializers.One()
-            initializers.init_weight(self.gamma.data, initial_gamma)
-        if use_beta:
-            self.add_param('beta', size, dtype=dtype_param)
-            if initial_beta is None:
-                initial_beta = initializers.Zero()
-            initializers.init_weight(self.beta.data, initial_beta)
-        self.add_persistent('avg_mean', numpy.zeros(size, dtype=dtype_param))
-        self.add_persistent('avg_var', numpy.zeros(size, dtype=dtype_param))
-        self.add_persistent('N', 0)
+
+        self.size_param = size
+        self.dtype = dtype
+        self.use_gamma = use_gamma
+        self.use_beta = use_beta
+        self.initial_gamma = initial_gamma
+        self.initial_beta = initial_beta
+
         self.decay = decay
         self.eps = eps
         self.use_cudnn = use_cudnn
+
+        self.do_init_params = True
+        if not use_cudnn:
+            self.init_params(None)
+
+
+    def init_params(self, x):
+        """ """
+        # [cuDNN] dtype of prameters like gamma, beta, etc. must be float32,
+        # even when dtype of input/output tensors are float16.
+        dtype_param = self.dtype
+        size_param = self.size_param
+        initial_gamma = self.initial_gamma
+        initial_beta = self.initial_beta
+        if self.use_cudnn and cuda.cudnn_enabled and _cudnn_version >= 5000:
+            xp = cuda.get_array_module(x)
+            if xp is not numpy and (x.ndim == 2 or x.ndim == 4):
+                if dtype_param == numpy.float16:
+                    dtype_param = numpy.float32
+
+        if self.use_gamma:
+            self.add_param('gamma', size_param, dtype=dtype_param)
+            if initial_gamma is None:
+                initial_gamma = initializers.One()
+            initializers.init_weight(self.gamma.data, initial_gamma)
+        if self.use_beta:
+            self.add_param('beta', size_param, dtype=dtype_param)
+            if initial_beta is None:
+                initial_beta = initializers.Zero()
+            initializers.init_weight(self.beta.data, initial_beta)
+        self.add_persistent('avg_mean', numpy.zeros(size_param, dtype=dtype_param))
+        self.add_persistent('avg_var', numpy.zeros(size_param, dtype=dtype_param))
+        self.add_persistent('N', 0)
+
         self.dtype_param = dtype_param
+
+        self.do_init_params = False
+
+        if not self._cpu:
+            self.to_cpu()
+            self.to_gpu()
+
 
     def __call__(self, x, test=False, finetune=False):
         """Invokes the forward propagation of BatchNormalization.
@@ -110,6 +146,9 @@ class BatchNormalization(link.Link):
         during training, and normalizes the input using batch statistics.
 
         """
+        if self.do_init_params:
+            self.init_params(x)
+
         if hasattr(self, 'gamma'):
             gamma = self.gamma
         else:
