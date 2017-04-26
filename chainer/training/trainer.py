@@ -1,5 +1,6 @@
 import collections
 import os
+import signal
 import time
 
 import six
@@ -160,7 +161,7 @@ class Trainer(object):
         return time.time() - self._start_at + self._snapshot_elapsed_time
 
     def extend(self, extension, name=None, trigger=None, priority=None,
-               invoke_before_training=None):
+               invoke_before_training=None, on_signal=None):
         """Registers an extension to the trainer.
 
         :class:`Extension` is a callable object which is called after each
@@ -200,6 +201,10 @@ class Trainer(object):
                 the training configuration (e.g., learning rates); in such a
                 case, resuming from snapshots require the call of extension to
                 recover the configuration before any updates.
+            on_signal (Signals): When this argment is given, the trigger is
+                ignored and the given extension is executed only when this
+                specified signal is fired. The default is ``None`` and ignores
+                all signals.
 
         """
         if name is None:
@@ -231,6 +236,14 @@ class Trainer(object):
         while modified_name in self._extensions:
             ordinal += 1
             modified_name = '%s_%d' % (name, ordinal)
+
+        if on_signal:
+            trigger = trigger_module.get_trigger(None)
+            def signal_handler(_signal, _frame):
+                extension(self)
+                if _signal == signal.SIGINT:
+                    raise KeyboardInterrupt
+            signal.signal(on_signal, signal_handler)
 
         extension.name = modified_name
         self._extensions[modified_name] = _ExtensionEntry(
