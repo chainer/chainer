@@ -120,10 +120,6 @@ cudnnStatus_t cudnnDestroyConvolutionDescriptor(...) {
     return CUDNN_STATUS_SUCCESS;
 }
 
-cudnnStatus_t cudnnFindConvolutionForwardAlgorithm(...) {
-    return CUDNN_STATUS_SUCCESS;
-}
-
 cudnnStatus_t cudnnGetConvolutionForwardAlgorithm(...) {
     return CUDNN_STATUS_SUCCESS;
 }
@@ -224,6 +220,10 @@ cudnnStatus_t cudnnAddTensor_v3(...) {
     return CUDNN_STATUS_NOT_SUPPORTED;
 }
 
+cudnnStatus_t cudnnFindConvolutionForwardAlgorithm(...) {
+    return CUDNN_STATUS_NOT_SUPPORTED;
+}
+
 cudnnStatus_t cudnnConvolutionBackwardFilter_v3(...) {
     return CUDNN_STATUS_NOT_SUPPORTED;
 }
@@ -233,7 +233,7 @@ cudnnStatus_t cudnnGetConvolutionBackwardFilterWorkspaceSize(...) {
 }
 
 cudnnStatus_t cudnnFindConvolutionBackwardFilterAlgorithm(...) {
-    return CUDNN_STATUS_SUCCESS;
+    return CUDNN_STATUS_NOT_SUPPORTED;
 }
 
 cudnnStatus_t cudnnGetConvolutionBackwardFilterAlgorithm(...) {
@@ -245,7 +245,7 @@ cudnnStatus_t cudnnConvolutionBackwardData_v3(...) {
 }
 
 cudnnStatus_t cudnnFindConvolutionBackwardDataAlgorithm(...) {
-    return CUDNN_STATUS_SUCCESS;
+    return CUDNN_STATUS_NOT_SUPPORTED;
 }
 
 cudnnStatus_t cudnnGetConvolutionBackwardDataAlgorithm(...) {
@@ -397,15 +397,15 @@ cudnnStatus_t cudnnRNNBackwardWeights(...) {
 }
 
 cudnnStatus_t cudnnFindConvolutionBackwardFilterAlgorithmEx(...) {
-    return CUDNN_STATUS_SUCCESS;
+    return CUDNN_STATUS_NOT_SUPPORTED;
 }
 
 cudnnStatus_t cudnnFindConvolutionForwardAlgorithmEx(...) {
-    return CUDNN_STATUS_SUCCESS;
+    return CUDNN_STATUS_NOT_SUPPORTED;
 }
 
 cudnnStatus_t cudnnFindConvolutionBackwardDataAlgorithmEx(...) {
-    return CUDNN_STATUS_SUCCESS;
+    return CUDNN_STATUS_NOT_SUPPORTED;
 }
 
 #endif // #if defined(CUPY_NO_CUDA) || (CUDNN_VERSION < 5000)
