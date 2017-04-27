@@ -181,18 +181,9 @@ class Link(object):
                 % name)
         if initializer is None:
             initializer = initializers.NaN(dtype)
-        if shape is None:
-            if callable(initializer):
-                # uninitialized parameter
-                var = variable.Variable(name=name, initializer=initializer)
-            else:
-                # initialize parameter by the initial array
-                var = variable.Variable(initializer, name=name)
-        else:
-            data = initializers.generate_array(initializer, shape, self.xp)
-            grad = self.xp.full_like(data, numpy.nan)
-            var = variable.Variable(data, name=name, grad=grad)
-
+        var = variable.Parameter(shape, initializer, name)
+        if not self._cpu:
+            var.to_gpu()
         self._params.append(name)
         d[name] = var
 
@@ -468,7 +459,7 @@ class Link(object):
             param = d[name]
             data = serializer(name, param.data)
             if param.data is None and data is not None:
-                # Initialize the variable here
+                # Initialize the parameter here
                 param.initialize(data.shape)
                 if isinstance(param.data, numpy.ndarray):
                     numpy.copyto(param.data, data)

@@ -146,11 +146,7 @@ class VariableNode(object):
         self.name = variable.name
 
         vdata = variable.data
-        if vdata is not None:
-            self._set_data_type(vdata)
-        else:
-            self.dtype = None
-            self.shape = None
+        self._set_data_type(vdata)
 
         self.grad = grad
 
@@ -171,8 +167,7 @@ class VariableNode(object):
     @data.setter
     def data(self, d):
         self._data = d
-        if d is not None:
-            self._set_data_type(d)
+        self._set_data_type(d)
 
     @property
     def grad(self):
@@ -226,8 +221,12 @@ class VariableNode(object):
                                'been already released')
 
     def _set_data_type(self, d):
-        self.dtype = d.dtype
-        self.shape = d.shape
+        if d is None:
+            self.dtype = None
+            self.shape = None
+        else:
+            self.dtype = d.dtype
+            self.shape = d.shape
 
     def _set_grad_with_check(self, g, func, var):
         _check_grad_type(func, var, g)
@@ -258,12 +257,6 @@ class Variable(object):
         data (array): Initial data array.
         name (str): Name of the variable.
         grad (array): Initial gradient array.
-        initializer (~chainer.Initializer): Initializer of the data array.
-            If `data` is None, this object is used for initializing the data
-            array in the :meth:`initialize` method.
-        update_rule: :class:`~chainer.optimizer.UpdateRule` instance that
-            updates this variable as a parameter. This argument is set to
-            :attr:`update_rule`.
 
     Attributes:
         data: Data array of type either :class:`numpy.ndarray` or
@@ -272,26 +265,12 @@ class Variable(object):
         grad: Gradient array.
         creator: The function who creates this variable. It is ``None`` if the
             variable is not created by any function.
-        initializer: Initializer of the data array. It is used for initializing
-            the data array of an uninitialized variable.
-        update_rule: :class:`~chainer.optimizer.UpdateRule` instance that
-            updates this variable as a parameter. This argument is set to
-            :attr:`update_rule`.
 
     """
 
-    initializer = None
-    _grad_initializer = None
-    _initial_device = -1
-
-    def __init__(self, data=None, name=None, grad=None, initializer=None,
-                 update_rule=None):
-        if data is None:
-            self.initializer = (
-                initializers.NaN() if initializer is None else initializer)
-            dtype = getattr(self.initializer, 'dtype', numpy.float32)
-            self._grad_initializer = initializers.NaN(dtype)
-        elif not isinstance(data, (numpy.ndarray, cuda.ndarray)):
+    def __init__(self, data=None, name=None, grad=None):
+        if (data is not None and
+                not isinstance(data, (numpy.ndarray, cuda.ndarray))):
             msg = '''numpy.ndarray or cuda.ndarray are expected.
 Actual: {0}'''.format(type(data))
             raise TypeError(msg)
@@ -300,19 +279,18 @@ Actual: {0}'''.format(type(data))
         # abstract its initialized/uninitialized state.
         self._data = [data]
         self.name = name
-        self.update_rule = update_rule
-
         self._node = VariableNode(self, grad)
 
     def __copy__(self):
-        copied = Variable()
-        copied.__dict__ = copy.copy(self.__dict__)
-        copied._node = VariableNode(copied)
-        return copied
+        return self._copy_to(Variable())
+
+    def _copy_to(self, target):
+        target.__dict__ = copy.copy(self.__dict__)
+        target._node = VariableNode(target)
+        return target
 
     def __reduce__(self):
-        return Variable, (self.data, self.name, self._node._grad,
-                          self.initializer, self.update_rule)
+        return Variable, (self.data, self.name, self._node._grad)
 
     def __repr__(self):
         return variable_repr(self)
@@ -429,15 +407,15 @@ Actual: {0}'''.format(type(data))
     def to_cpu(self):
         """Copies the data and gradient arrays to CPU."""
         if self.data is None:
-            self._initial_device = -1
-        else:
-            self._data = [cuda.to_cpu(self.data)]
-            # ensure that the node tracks the device migration
-            node = self._node
-            if node._data is not None:
-                node.retain_data()
-            if node._grad is not None:
-                node._grad = cuda.to_cpu(node._grad)
+            return
+
+        self._data = [cuda.to_cpu(self.data)]
+        # ensure that the node tracks the device migration
+        node = self._node
+        if node._data is not None:
+            node.retain_data()
+        if node._grad is not None:
+            node._grad = cuda.to_cpu(node._grad)
 
     def to_gpu(self, device=None):
         """Copies the data and gradient arrays to specified GPU.
@@ -448,23 +426,20 @@ Actual: {0}'''.format(type(data))
 
         """
         if self.data is None:
-            current = cuda.Device().id
-            self._initial_device = current if device is None else device
-        else:
-            with cuda.get_device(device):
-                self._data = [cuda.to_gpu(self.data)]
-                # ensure that the node tracks the device migration
-                node = self._node
-                if node._data is not None:
-                    node.retain_data()
-                if node._grad is not None:
-                    node._grad = cuda.to_gpu(node._grad)
+            return
+
+        with cuda.get_device(device):
+            self._data = [cuda.to_gpu(self.data)]
+            # ensure that the node tracks the device migration
+            node = self._node
+            if node._data is not None:
+                node.retain_data()
+            if node._grad is not None:
+                node._grad = cuda.to_gpu(node._grad)
 
     def cleargrad(self):
         """Clears the gradient array."""
         self._node._grad = None
-        if self.data is None:
-            self._grad_initializer = None
 
     def zerograd(self):
         """Initializes the gradient array by zeros.
@@ -478,8 +453,6 @@ Actual: {0}'''.format(type(data))
             DeprecationWarning)
 
         if self.data is None:
-            dtype = getattr(self.initializer, 'dtype', None)
-            self._grad_initializer = initializers.Zero(dtype)
             return
 
         with cuda.get_device(self.data) as dev:
@@ -770,44 +743,9 @@ Actual: {0}'''.format(type(data))
                 add_cand(var.creator)
             func.unchain()
 
-    def initialize(self, shape):
-        """Initializes the uninitialized variable.
-
-        Uninitialized variable is a variable created with the data array set to
-        None. This method creates and initializes the data array. The shape of
-        the variable can be left unknown until this method is called.
-
-        Args:
-            shape (tuple of int): Shape of the data array.
-
-        """
-        data = initializers.generate_array(self.initializer, shape, numpy)
-
-        ginit = self._grad_initializer
-        grad = None if ginit is None else initializers.generate_array(
-            ginit, shape, numpy)
-
-        if self._initial_device >= 0:
-            data = cuda.to_gpu(data, device=self._initial_device)
-            if grad is not None:
-                grad = cuda.to_gpu(grad, device=self._initial_device)
-
-        self._data[0] = data
-        self._node._grad = grad
-
     def retain_data(self):
         """Lets the corresponding variable node keep the underlying array."""
         self._node.data = self._data[0]
-
-    def update(self):
-        """Updates the data array using the gradient and the update rule.
-
-        This method updates the variable using the update rule attached to this
-        variable.
-
-        """
-        if self.update_rule is not None:
-            self.update_rule.update(self)
 
     def __lt__(self, other):
         raise NotImplementedError()
@@ -837,3 +775,138 @@ Actual: {0}'''.format(type(data))
         return super(Variable, self).__hash__()
 
     __array_priority__ = 200
+
+
+class Parameter(Variable):
+
+    """Parameter variable that can be registered to a link.
+
+    Parameter is a subclass of :class:`Variable`. It almost behaves as same
+    as a usual variable except that a parameter can be registered to a
+    :class:`~chainer.Link` object just by substituting it to an attribute of
+    the link.
+
+    Parameter also supports an initialization by an initializer. It can have
+    two initializers: one for the data array, and the other for the gradient
+    array. The initializer only specifies the way of filling the elements of
+    these arrays, and the shape information is specified at the initialization
+    point.
+
+    When a link that the parameter has been registered to is passed to an
+    :class:`~chainer.GradientMethod`, an update rule is set to the parameter.
+    This update rule specifies how to update the data array of the parameter
+    using its gradient array.
+
+    Args:
+        shape (tuple of int): Shape of the parameter. If it is omitted, the
+            initialization is deferred.
+        initializer (~chainer.Initializer): Initializer of the data array.
+            If `shape` is ``None``, this object is used for initializing the
+            data array in the :meth:`initialize` method.
+        name (str): Name of the parameter.
+
+    Attributes:
+        initializer: Initializer of the data array. It is used for
+            initializing the data array of an uninitialized variable.
+        update_rule: :class:`~chainer.optimizer.UpdateRule` instance that
+            updates this variable as a parameter. This argument is set to
+            :attr:`update_rule`.
+
+    """
+
+    initializer = None
+    _grad_initializer = None
+    _initial_device = -1
+
+    def __init__(self, shape=None, initializer=None, name=None):
+        if initializer is None:
+            initializer = initializers.NaN()
+        if shape is None:
+            if callable(initializer):
+                # uninitialized parameter
+                super(Parameter, self).__init__(name=name)
+                self.initializer = initializer
+                dtype = getattr(initializer, 'dtype', numpy.float32)
+                self._grad_initializer = initializers.NaN(dtype)
+            else:
+                # parameter initialized by the initial array
+                super(Parameter, self).__init__(initializer, name=name)
+        else:
+            # parameter initialized with a given shape
+            data = initializers.generate_array(initializer, shape, numpy)
+            grad = numpy.full_like(data, numpy.nan)
+            super(Parameter, self).__init__(data, name=name, grad=grad)
+
+        self.update_rule = None
+
+    def __copy__(self):
+        return self._copy_to(Parameter())
+
+    def __reduce__(self):
+        return _recover_parameter, (self.data, self.name, self.grad,
+                                    self.initializer, self.update_rule)
+
+    def to_cpu(self):
+        super(Parameter, self).to_cpu()
+        if self.data is None:
+            self._initial_device = -1
+
+    def to_gpu(self, device=None):
+        super(Parameter, self).to_gpu(device)
+        if self.data is None:
+            if device is None:
+                device = cuda.Device().id
+            self._initial_device = device
+
+    def cleargrad(self):
+        super(Parameter, self).cleargrad()
+        if self.data is None:
+            self._grad_initializer = None
+
+    def zerograd(self):
+        super(Parameter, self).zerograd()
+        if self.data is None:
+            dtype = getattr(self.initializer, 'dtype', None)
+            self._grad_initializer = initializers.Zero(dtype)
+
+    def initialize(self, shape):
+        """Initializes the uninitialized variable.
+
+        Uninitialized variable is a variable created with the data array set to
+        None. This method creates and initializes the data array. The shape of
+        the variable can be left unknown until this method is called.
+
+        Args:
+            shape (tuple of int): Shape of the data array.
+
+        """
+        data = initializers.generate_array(self.initializer, shape, numpy)
+
+        ginit = self._grad_initializer
+        grad = None if ginit is None else initializers.generate_array(
+            ginit, shape, numpy)
+
+        if self._initial_device >= 0:
+            data = cuda.to_gpu(data, device=self._initial_device)
+            if grad is not None:
+                grad = cuda.to_gpu(grad, device=self._initial_device)
+
+        self._data[0] = data
+        self._node._grad = grad
+
+    def update(self):
+        """Updates the data array using the gradient and the update rule.
+
+        This method updates the parameter using the attached update rule.
+
+        """
+        if self.update_rule is not None:
+            self.update_rule.update(self)
+
+
+def _recover_parameter(data, name, grad, initializer, update_rule):
+    p = Parameter(initializer=initializer, name=name)
+    p.data = data
+    p.grad = grad
+    p.update_rule = update_rule
+    return p

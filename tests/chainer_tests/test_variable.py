@@ -564,24 +564,49 @@ class TestVariable(unittest.TestCase):
         cp.testing.assert_array_equal(x.data, d.data)
         cp.testing.assert_array_equal(x.grad, d.grad)
 
+
+class TestParameter(unittest.TestCase):
+
+    def setUp(self):
+        self.a = np.random.rand(3, 2).astype(np.float32)
+
     def test_initializer(self):
-        x = chainer.Variable(self.x)
+        x = chainer.Parameter(shape=(1,))
         self.assertIsNone(x.initializer)
 
+    def test_update_rule(self):
+        update_rule = mock.MagicMock()
+        g = self.a.copy()
+        x = chainer.Parameter()
+        x.data = self.a
+        x.grad = g
+        x.update_rule = update_rule
+        x.update()
+        self.assertEqual(update_rule.update.call_count, 1)
+        self.assertEqual(update_rule.update.call_args_list[0], [(x,), {}])
 
-class TestUninitializedVariable(unittest.TestCase):
+    def test_update_rule_without_grad(self):
+        update_rule = mock.MagicMock()
+        x = chainer.Parameter()
+        x.data = self.a
+        x.update_rule = update_rule
+        x.update()
+        self.assertEqual(update_rule.update.call_count, 1)
+
+
+class TestUninitializedParameter(unittest.TestCase):
 
     def setUp(self):
         self.a = np.random.rand(3, 2).astype(np.float32)
         self.b = np.random.rand(*self.a.shape).astype(self.a.dtype)
 
     def test_init_without_data(self):
-        x = chainer.Variable()
+        x = chainer.Parameter()
         self.assertIsNone(x.data)
         self.assertIsNone(x.grad)
 
     def test_initialize(self):
-        x = chainer.Variable()
+        x = chainer.Parameter()
         x.initialize((3, 2))
         self.assertEqual(x.shape, (3, 2))
         self.assertEqual(x.dtype, np.float32)
@@ -595,38 +620,38 @@ class TestUninitializedVariable(unittest.TestCase):
         xp.testing.assert_array_equal(x.grad, np.float32('nan'))
 
     def test_initialize_with_initializer(self):
-        x = chainer.Variable(initializer=initializers.Constant(self.a))
+        x = chainer.Parameter(initializer=initializers.Constant(self.a))
         self.check_constant_initialization(x, self.a, np)
 
     def test_initialize_dtype(self):
         initializer = initializers.Zero(np.float64)
-        x = chainer.Variable(initializer=initializer)
+        x = chainer.Parameter(initializer=initializer)
         x.initialize((2, 3))
         self.assertEqual(x.data.dtype, np.float64)
         self.assertEqual(x.grad.dtype, np.float64)
 
     @attr.gpu
     def test_initialize_to_gpu(self):
-        x = chainer.Variable(initializer=initializers.Constant(self.a))
+        x = chainer.Parameter(initializer=initializers.Constant(self.a))
         x.to_gpu()
         self.check_constant_initialization(x, self.a, cuda.cupy)
 
     @attr.gpu
     def test_initialize_to_cpu(self):
-        x = chainer.Variable(initializer=initializers.Constant(self.a))
+        x = chainer.Parameter(initializer=initializers.Constant(self.a))
         x.to_gpu()
         x.to_cpu()
         self.check_constant_initialization(x, self.a, np)
 
     def test_copy_to_initialize(self):
         # This test intends the use case of link.copy() method.
-        x = chainer.Variable()
+        x = chainer.Parameter()
         y = copy.copy(x)
         x.initialize((3, 2))
         self.assertIs(x.data, y.data)
 
     def test_cleargrad(self):
-        x = chainer.Variable()
+        x = chainer.Parameter()
         x.cleargrad()
         x.initialize((3, 2))
         self.assertIsNone(x.grad)
@@ -638,14 +663,14 @@ class TestUninitializedVariable(unittest.TestCase):
         xp.testing.assert_array_equal(x.grad, 0)
 
     def test_zerograd(self):
-        x = chainer.Variable()
+        x = chainer.Parameter()
         x.zerograd()
         x.initialize((3, 2))
         self.check_zerograd(x, np)
 
     @attr.gpu
     def test_zerograd_to_gpu(self):
-        x = chainer.Variable()
+        x = chainer.Parameter()
         x.zerograd()
         x.to_gpu()
         x.initialize((3, 2))
@@ -653,48 +678,52 @@ class TestUninitializedVariable(unittest.TestCase):
 
     @attr.gpu
     def test_to_gpu_zerograd(self):
-        x = chainer.Variable()
+        x = chainer.Parameter()
         x.to_gpu()
         x.zerograd()
         x.initialize((3, 2))
         self.check_zerograd(x, cuda.cupy)
 
     def test_zerograd_dtype(self):
-        x = chainer.Variable(initializer=initializers.Zero(dtype=np.float16))
+        x = chainer.Parameter(initializer=initializers.Zero(dtype=np.float16))
         x.zerograd()
         x.initialize((3, 2))
         self.assertEqual(x.grad.dtype, x.data.dtype)
 
-    def test_copydata_to_uninitialized_variable(self):
-        x = chainer.Variable()
-        y = chainer.Variable(self.a)
+    def test_copydata_to_uninitialized_parameter(self):
+        x = chainer.Parameter()
+        y = chainer.Parameter()
+        y.data = self.a
         x.copydata(y)
         np.testing.assert_array_equal(x.data, self.a)
 
     @attr.gpu
-    def test_copydata_to_uninitialized_variable_gpu(self):
-        x = chainer.Variable()
-        y = chainer.Variable(self.a)
+    def test_copydata_to_uninitialized_parameter_gpu(self):
+        x = chainer.Parameter()
+        y = chainer.Parameter()
+        y.data = self.a
         x.to_gpu()
         x.copydata(y)
         cp = cuda.cupy
         self.assertIsInstance(x.data, cp.ndarray)
         cp.testing.assert_array_equal(x.data, self.a)
 
-    def test_copydata_from_uninitialized_variable(self):
+    def test_copydata_from_uninitialized_parameter(self):
         initializer = initializers.Zero()
-        x = chainer.Variable(self.a)
-        y = chainer.Variable(initializer=initializer)
+        x = chainer.Parameter()
+        x.data = self.a
+        y = chainer.Parameter(initializer=initializer)
         x.copydata(y)
         self.assertIsInstance(x.data, np.ndarray)
         self.assertIsInstance(y.data, np.ndarray)
         np.testing.assert_array_equal(x.data, y.data)
 
     @attr.gpu
-    def test_copydata_from_uninitialized_variable_gpu(self):
+    def test_copydata_from_uninitialized_parameter_gpu(self):
         initializer = initializers.Zero()
-        x = chainer.Variable(self.a)
-        y = chainer.Variable(initializer=initializer)
+        x = chainer.Parameter()
+        x.data = self.a
+        y = chainer.Parameter(initializer=initializer)
         y.to_gpu()
         x.copydata(y)
         cp = cuda.cupy
@@ -702,16 +731,18 @@ class TestUninitializedVariable(unittest.TestCase):
         self.assertIsInstance(y.data, cp.ndarray)
         cp.testing.assert_array_equal(x.data, y.data)
 
-    def test_copydata_from_to_uninitialized_variables(self):
-        x = chainer.Variable()
-        y = chainer.Variable()
+    def test_copydata_from_to_uninitialized_parameters(self):
+        x = chainer.Parameter()
+        y = chainer.Parameter()
         x.copydata(y)
         self.assertIsNone(x.data)
         self.assertIsNone(y.data)
 
-    def test_addgrad_to_uninitialized_variable(self):
-        x = chainer.Variable()
-        y = chainer.Variable(self.a, grad=self.b)
+    def test_addgrad_to_uninitialized_parameter(self):
+        x = chainer.Parameter()
+        y = chainer.Parameter()
+        y.data = self.a
+        y.grad = self.b
         x.cleargrad()
         x.addgrad(y)
         self.assertIsInstance(x.data, np.ndarray)
@@ -719,9 +750,11 @@ class TestUninitializedVariable(unittest.TestCase):
         np.testing.assert_array_equal(x.grad, self.b)
 
     @attr.gpu
-    def test_addgrad_to_uninitialized_variable_cpu_to_gpu(self):
-        x = chainer.Variable()
-        y = chainer.Variable(self.a, grad=self.b)
+    def test_addgrad_to_uninitialized_parameter_cpu_to_gpu(self):
+        x = chainer.Parameter()
+        y = chainer.Parameter()
+        y.data = self.a
+        y.grad = self.b
         x.to_gpu()
         x.cleargrad()
         x.addgrad(y)
@@ -731,9 +764,11 @@ class TestUninitializedVariable(unittest.TestCase):
         cp.testing.assert_array_equal(x.grad, self.b)
 
     @attr.gpu
-    def test_addgrad_to_uninitialized_variable_gpu_to_cpu(self):
-        x = chainer.Variable()
-        y = chainer.Variable(self.a, grad=self.b)
+    def test_addgrad_to_uninitialized_parameter_gpu_to_cpu(self):
+        x = chainer.Parameter()
+        y = chainer.Parameter()
+        y.data = self.a
+        y.grad = self.b
         y.to_gpu()
         x.cleargrad()
         x.addgrad(y)
@@ -742,9 +777,11 @@ class TestUninitializedVariable(unittest.TestCase):
         np.testing.assert_array_equal(x.grad, self.b)
 
     @attr.gpu
-    def test_addgrad_to_uninitialized_variable_gpu_to_gpu(self):
-        x = chainer.Variable()
-        y = chainer.Variable(self.a, grad=self.b)
+    def test_addgrad_to_uninitialized_parameter_gpu_to_gpu(self):
+        x = chainer.Parameter()
+        y = chainer.Parameter()
+        y.data = self.a
+        y.grad = self.b
         x.to_gpu()
         y.to_gpu()
         x.cleargrad()
@@ -755,9 +792,11 @@ class TestUninitializedVariable(unittest.TestCase):
         cp.testing.assert_array_equal(x.grad, self.b)
 
     @attr.multi_gpu(2)
-    def test_addgrad_to_uninitialized_variable_gpu_to_another_gpu(self):
-        x = chainer.Variable()
-        y = chainer.Variable(self.a, grad=self.b)
+    def test_addgrad_to_uninitialized_parameter_gpu_to_another_gpu(self):
+        x = chainer.Parameter()
+        y = chainer.Parameter()
+        y.data = self.a
+        y.grad = self.b
         x.to_gpu(1)
         y.to_gpu(0)
         x.cleargrad()
@@ -768,22 +807,6 @@ class TestUninitializedVariable(unittest.TestCase):
         self.assertEqual(int(x.data.device), 1)
         self.assertEqual(int(x.grad.device), 1)
         cp.testing.assert_array_equal(x.grad, self.b)
-
-    def test_update_rule(self):
-        update_rule = mock.MagicMock()
-        g = self.a.copy()
-        x = chainer.Variable(self.a, grad=g)
-        x.update_rule = update_rule
-        x.update()
-        self.assertEqual(update_rule.update.call_count, 1)
-        self.assertEqual(update_rule.update.call_args_list[0], [(x,), {}])
-
-    def test_update_rule_without_grad(self):
-        update_rule = mock.MagicMock()
-        x = chainer.Variable(self.a)
-        x.update_rule = update_rule
-        x.update()
-        self.assertEqual(update_rule.update.call_count, 1)
 
 
 class TestDebugPrint(unittest.TestCase):
