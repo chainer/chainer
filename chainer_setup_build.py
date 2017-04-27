@@ -103,6 +103,7 @@ MODULES = [
         'libraries': [
             'cudart',
         ],
+        'check_method': build.check_cuda_version,
     }
 ]
 
@@ -330,33 +331,16 @@ def get_ext_modules():
     return extensions
 
 
-def _nvcc_gencode_options():
-    """Returns NVCC gencode options generated from NVCC command line help."""
-    help_string = subprocess.check_output(
-        ['nvcc', '--help']).decode('ascii').replace('\n', '')
+def _nvcc_gencode_options(cuda_version):
+    """Returns NVCC GPU code generation options."""
+    arch = ['sm_30', 'sm_32', 'sm_35', 'sm_37', 'sm_50', 'sm_52']
+    if cuda_version >= 7000:
+        arch += ['sm_53']
+    if cuda_version >= 8000:
+        arch += ['sm_60', 'sm_61', 'sm_62']
 
-    arch_options = re.findall("'(compute_\d{2})'", help_string)
-    arch_options = sorted(list(set(arch_options)))
-    arch_options = list(filter(lambda x: x >= 'compute_30', arch_options))
-
-    code_options = re.findall("'(sm_\d{2})'", help_string)
-    code_options = sorted(list(set(code_options)))
-    code_options = list(filter(lambda x: x >= 'sm_30', code_options))
-
-    pairs = []
-    for code_option in code_options:
-        arch_option = code_option.replace('sm_', 'compute_')
-        if arch_option not in arch_options:
-            msg = "No virtual architecture corresponding to '{}'.".format(
-                code_option)
-            raise ValueError(msg)
-        pairs.append((arch_option, code_option))
-
-    gencode_options = []
-    for pair in pairs:
-        gencode_options.append('-gencode=arch={},code={}'.format(*pair))
-
-    return gencode_options
+    return ['--gpu-architecture=compute_30',
+            '--gpu-code=compute_30,{}'.format(','.join(arch))]
 
 
 def _escape(str):
@@ -390,7 +374,8 @@ class _UnixCCompiler(unixccompiler.UnixCCompiler):
                 compiler_options += ' ' + cflags
             compiler_options = _escape(compiler_options)
 
-            postargs = _nvcc_gencode_options() + [
+            cuda_version = build.get_cuda_version()
+            postargs = _nvcc_gencode_options(cuda_version) + [
                 '-O2', '--compiler-options="{}"'.format(compiler_options)]
             print('NVCC options:', postargs)
 
