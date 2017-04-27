@@ -26,22 +26,23 @@ class Pad(function.Function):
         type_check.expect(x_type.dtype.kind == 'f')
 
     def forward(self, inputs):
+        self.retain_inputs(())
+        self._in_shape = inputs[0].shape
         xp = cuda.get_array_module(*inputs)
         return xp.pad(inputs[0], self.pad_width, mode=self.mode,
                       **self.keywords),
 
     def backward(self, inputs, grads):
-        xp = cuda.get_array_module(*inputs)
+        xp = cuda.get_array_module(*grads)
         gy = grads[0]
-        array = inputs[0]
-        ndims = array.ndim
+        ndims = len(self._in_shape)
         if self.pad_bw.ndim == 1:
             self.pad_bw = numpy.tile(self.pad_bw, (ndims, 1))
         for i in range(ndims):
             gy = xp.take(gy,
                          indices=numpy.arange(self.pad_bw[i][0],
                                               self.pad_bw[i][0]
-                                              + array.shape[i]),
+                                              + self._in_shape[i]),
                          axis=i)
         return gy,
 
