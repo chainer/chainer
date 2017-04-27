@@ -63,7 +63,7 @@ def dropout(x, ratio=.5, **kwargs):
     argument.check_unexpected_kwargs(
         kwargs, train='train argument is not supported anymore. '
         'Use chainer.using_config')
-    argument.parse_kwargs(kwargs)
+    argument.assert_kwargs_empty(kwargs)
 
     if configuration.config.train:
         return Dropout(ratio)(x)

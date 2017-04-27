@@ -25,6 +25,7 @@ from chainer import link
 from chainer.links.connection.convolution_2d import Convolution2D
 from chainer.links.connection.linear import Linear
 from chainer.serializers import npz
+from chainer.utils import argument
 from chainer.utils import imgproc
 from chainer.variable import Variable
 
@@ -179,7 +180,7 @@ class VGG16Layers(link.Chain):
         argument.check_unexpected_kwargs(
             kwargs, test='test argument is not supported anymore. '
             'Use chainer.using_config')
-        argument.parse_kwargs(kwargs)
+        argument.assert_kwargs_empty(kwargs)
 
         h = x
         activations = {}

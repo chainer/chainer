@@ -176,7 +176,7 @@ class ResNetLayers(link.Chain):
         argument.check_unexpected_kwargs(
             kwargs, test='test argument is not supported anymore. '
             'Use chainer.using_config')
-        argument.parse_kwargs(kwargs)
+        argument.assert_kwargs_empty(kwargs)
 
         h = x
         activations = {}

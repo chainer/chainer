@@ -297,6 +297,12 @@ def batch_normalization(x, gamma, beta, **kwargs):
     access the running_mean and/or running_var attributes. See the
     corresponding Link class for an example of how to do this.
 
+    .. warning::
+
+       ``train`` argument is not supported anymore since v2.
+       Instead, use ``chainer.using_config('train', train)``.
+       See :func:`chainer.using_config`.
+
     Args:
         x (Variable): Input variable.
         gamma (Variable): Scaling parameter of normalized data.

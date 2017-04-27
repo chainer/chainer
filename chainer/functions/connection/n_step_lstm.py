@@ -410,7 +410,7 @@ def n_step_lstm(
        ``train`` and ``use_cudnn`` arguments are not supported anymore since
        v2.
        Instead, use ``chainer.using_config('train', train)`` and
-       ``chainer.using_config('use_cudnn', use_cudnn)``.
+       ``chainer.using_config('use_cudnn', use_cudnn)`` respectively.
        See :func:`chainer.using_config`.
 
     Args:

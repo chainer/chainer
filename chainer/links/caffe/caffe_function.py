@@ -191,7 +191,7 @@ class CaffeFunction(link.Chain):
         argument.check_unexpected_kwargs(
             kwargs, train='train argument is not supported anymore. '
             'Use chainer.using_config')
-        argument.parse_kwargs(kwargs)
+        argument.assert_kwargs_empty(kwargs)
 
         variables = dict(inputs)
         for func_name, bottom, top in self.layers:
