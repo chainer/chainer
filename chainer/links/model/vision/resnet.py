@@ -207,7 +207,8 @@ class ResNetLayers(link.Chain):
            ``test`` and ``volatile`` arguments are not supported anymore since
            v2.
            Instead, use ``chainer.using_config('train', train)`` and
-           ``chainer.using_config('enable_backprop', not volatile)``.
+           ``chainer.using_config('enable_backprop', not volatile)``
+           respectively.
            See :func:`chainer.using_config`.
 
         Args:
