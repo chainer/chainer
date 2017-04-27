@@ -393,6 +393,17 @@ class _UnixCCompiler(unixccompiler.UnixCCompiler):
             self.compiler_so = _compiler_so
 
 
+def _split(lst, fn):
+    then_list = []
+    else_list = []
+    for x in lst:
+        if fn(x):
+            then_list.append(x)
+        else:
+            else_list.append(x)
+    return then_list, else_list
+
+
 class _MSVCCompiler(msvccompiler.MSVCCompiler):
     _cu_extensions = ['.cu']
 
@@ -433,34 +444,16 @@ class _MSVCCompiler(msvccompiler.MSVCCompiler):
 
         return objects
 
-    def compile(self, sources,
-                output_dir=None, macros=None, include_dirs=None, debug=0,
-                extra_preargs=None, extra_postargs=None, depends=None):
+    def compile(self, sources, **kwargs):
+        sources_cu, sources_base = _split(
+            sources, lambda x: os.path.splitext(x)[1] == '.cu')
+
         # Compile source files other than CUDA C ones.
-        sources_base = [source for source in sources
-                        if not os.path.splitext(source)[1] == '.cu']
         super = msvccompiler.MSVCCompiler
-        objects_base = super.compile(self,
-                                     sources_base,
-                                     output_dir=output_dir,
-                                     macros=macros,
-                                     include_dirs=include_dirs,
-                                     debug=debug,
-                                     extra_preargs=extra_preargs,
-                                     extra_postargs=extra_postargs,
-                                     depends=depends)
+        objects_base = super.compile(self, sources_base, **kwargs)
 
         # Compile CUDA C files
-        sources_cu = [source for source in sources
-                      if os.path.splitext(source)[1] == '.cu']
-        objects_cu = self._compile_cu(sources_cu,
-                                      output_dir=output_dir,
-                                      macros=macros,
-                                      include_dirs=include_dirs,
-                                      debug=debug,
-                                      extra_preargs=extra_preargs,
-                                      extra_postargs=extra_postargs,
-                                      depends=depends)
+        objects_cu = self._compile_cu(sources_cu, *kwargs)
 
         # Return compiled object filenames.
         return objects_base + objects_cu
