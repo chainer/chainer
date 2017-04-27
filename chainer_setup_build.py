@@ -407,7 +407,7 @@ class custom_build_ext(build_ext.build_ext):
                         return func(*args, **kwargs)
                     except errors.DistutilsPlatformError:
                         return NvidiaCCompiler(
-                            None, kwargs["dry_run"], kwargs["force"])
+                            None, kwargs['dry_run'], kwargs['force'])
                 return _wrap_new_compiler
             ccompiler.new_compiler = wrap_new_compiler(ccompiler.new_compiler)
             self.compiler = "nvidia"
