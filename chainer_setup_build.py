@@ -359,6 +359,10 @@ def _nvcc_gencode_options():
     return gencode_options
 
 
+def _escape(str):
+    return str.replace('\\', r'\\').replace('"', r'\"')
+
+
 class _UnixCCompiler(unixccompiler.UnixCCompiler):
     src_extensions = list(unixccompiler.UnixCCompiler.src_extensions)
     src_extensions.append('.cu')
@@ -375,16 +379,19 @@ class _UnixCCompiler(unixccompiler.UnixCCompiler):
             nvcc_path = build.get_nvcc_path()
             self.set_executable('compiler_so', nvcc_path)
 
-            postargs = (_nvcc_gencode_options() +
-                        ['-O2', '--compiler-options="-fPIC"'])
-
             cflags = ''
             if 'CFLAGS' in os.environ:
                 cflags = cflags + ' ' + os.environ['CFLAGS']
             if 'CPPFLAGS' in os.environ:
                 cflags = cflags + ' ' + os.environ['CPPFLAGS']
+
+            compiler_options = '-fPIC'
             if cflags != '':
-                postargs += [cflags]
+                compiler_options += ' ' + cflags
+            compiler_options = _escape(compiler_options)
+
+            postargs = _nvcc_gencode_options() + [
+                '-O2', '--compiler-options="{}"'.format(compiler_options)]
             print('NVCC options:', postargs)
 
             return unixccompiler.UnixCCompiler._compile(
