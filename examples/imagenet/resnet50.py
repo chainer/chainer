@@ -101,14 +101,8 @@ class ResNet50(chainer.Chain):
             res5=Block(3, 1024, 512, 2048),
             fc=L.Linear(2048, 1000),
         )
-        self.train = True
-
-    def clear(self):
-        self.loss = None
-        self.accuracy = None
 
     def __call__(self, x, t):
-        self.clear()
         h = self.bn1(self.conv1(x))
         h = F.max_pooling_2d(F.relu(h), 3, stride=2)
         h = self.res2(h)
