@@ -114,14 +114,12 @@ class TestDilatedConvolution2D(unittest.TestCase):
 
 
 @testing.parameterize(
-    {'init_args': {'args': (2, 3),
-                   'kwargs': {'stride': 2, 'pad': 2, 'dilate': 2}}},
-    {'init_args': {'args': (None, 2, 3),
-                   'kwargs': {'stride': 2, 'pad': 2, 'dilate': 2}}})
+    {'init_args': ((2, 3), {'stride': 2, 'pad': 2, 'dilate': 2})},
+    {'init_args': ((None, 2, 3), {'stride': 2, 'pad': 2, 'dilate': 2})})
 class TestDilatedConvolution2DParameterShapePlaceholder(unittest.TestCase):
 
     def setUp(self):
-        args, kwargs = self.init_args.items()
+        args, kwargs = self.init_args
         self.link = links.DilatedConvolution2D(*args, **kwargs)
         self.x = numpy.random.uniform(-1, 1,
                                       (2, 3, 4, 3)).astype(numpy.float32)
