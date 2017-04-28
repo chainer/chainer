@@ -6,7 +6,7 @@ from chainer.functions.math import sum
 from chainer import variable
 
 
-def gaussian_kl_divergence(mean, ln_var, reduce='sum'):
+def gaussian_kl_divergence(mean, ln_var):
     """Computes the KL-divergence of Gaussian variables from the standard one.
 
     Given two variable ``mean`` representing :math:`\\mu` and ``ln_var``
@@ -21,42 +21,26 @@ def gaussian_kl_divergence(mean, ln_var, reduce='sum'):
     where :math:`S` is a diagonal matrix such that :math:`S_{ii} = \\sigma_i^2`
     and :math:`I` is an identity matrix.
 
-    The output is a varialbe whose value depends on the value of
-    the option ``reduce``. If it is ``'no'``, it holds the elementwise
-    loss values. If it is ``'sum'``, loss values are summed up.
-
     Args:
         mean (~chainer.Variable): A variable representing mean of given
             gaussian distribution, :math:`\\mu`.
         ln_var (~chainer.Variable): A variable representing logarithm of
             variance of given gaussian distribution, :math:`\\log(\\sigma^2)`.
-        recude (str): Reduction option. Its value must be either
-            ``'sum'`` or ``'no'``. Otherwise, :class:`ValueError` is raised.
 
     Returns:
         ~chainer.Variable:
             A variable representing KL-divergence between
             given gaussian distribution and the standard gaussian.
-            If ``reduce`` is ``'no'``, the output varialbe holds array
-            whose shape is same as one of (hence both of) input variables.
-            If it is ``'sum'``, the output variable holds a scalar value.
+            It holds an array whose shape is same as one of
+            (hence both of) input variables.
 
     """
     assert isinstance(mean, variable.Variable)
     assert isinstance(ln_var, variable.Variable)
 
-    if reduce not in ('sum', 'no'):
-        raise ValueError(
-            "only 'sum' and 'no' are valid for 'reduce', but '%s' is "
-            'given' % reduce)
-
     var = exponential.exp(ln_var)
     mean_square = mean * mean
-    loss = (mean_square + var - ln_var - 1) * 0.5
-    if reduce == 'sum':
-        return sum.sum(loss)
-    else:
-        return loss
+    return (mean_square + var - ln_var - 1) * 0.5
 
 
 def bernoulli_nll(x, y):
