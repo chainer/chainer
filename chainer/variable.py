@@ -145,6 +145,7 @@ class VariableNode(object):
         self._data = None
         self._rank = 0
         self.name = variable.name
+        self._requires_grad = variable.requires_grad
 
         vdata = variable.data
         self._set_data_type(vdata)
@@ -191,6 +192,11 @@ class VariableNode(object):
     @property
     def rank(self):
         return self._rank
+
+    @property
+    def requires_grad(self):
+        """It indicates that ``grad`` will be set in backward calculation."""
+        return self._requires_grad
 
     def set_creator(self, creator):
         """Sets a :class:`Function` object that created this node.
@@ -266,10 +272,12 @@ class Variable(object):
         grad: Gradient array.
         creator: The function who creates this variable. It is ``None`` if the
             variable is not created by any function.
+        requires_grad (bool): Boolean indicating whether ``grad`` will be set
+            in backward calculation.
 
     """
 
-    def __init__(self, data=None, name=None, grad=None):
+    def __init__(self, data=None, name=None, grad=None, requires_grad=True):
         if (data is not None and
                 not isinstance(data, (numpy.ndarray, cuda.ndarray))):
             msg = '''numpy.ndarray or cuda.ndarray are expected.
@@ -279,6 +287,7 @@ Actual: {0}'''.format(type(data))
         # Use a list as a data structure to hold the data array indirectly to
         # abstract its initialized/uninitialized state.
         self._data = [data]
+        self._requires_grad = requires_grad
         self.name = name
         self._node = VariableNode(self, grad)
 
@@ -291,7 +300,8 @@ Actual: {0}'''.format(type(data))
         return target
 
     def __reduce__(self):
-        return Variable, (self.data, self.name, self._node._grad)
+        return Variable, (self.data, self.name, self._node._grad,
+                          self._requires_grad)
 
     def __repr__(self):
         return variable_repr(self)
@@ -404,6 +414,11 @@ Actual: {0}'''.format(type(data))
     @property
     def node(self):
         return self._node
+
+    @property
+    def requires_grad(self):
+        """It indicates that ``grad`` will be set in backward calculation."""
+        return self._requires_grad
 
     def to_cpu(self):
         """Copies the data and gradient arrays to CPU."""
@@ -649,6 +664,8 @@ Actual: {0}'''.format(type(data))
                         y.grad = None
             for x, gx in zip(func.inputs, gxs):
                 if gx is None:
+                    continue
+                if not x.requires_grad:
                     continue
 
                 _check_grad_type(func, x, gx)
