@@ -40,7 +40,7 @@ def gaussian_kl_divergence(mean, ln_var):
     return (sum.sum(mean * mean) + sum.sum(var) - sum.sum(ln_var) - J) * 0.5
 
 
-def bernoulli_nll(x, y, reduce='sum'):
+def bernoulli_nll(x, y):
     """Computes the negative log-likelihood of a Bernoulli distribution.
 
     This function calculates the negative log-likelihood of a Bernoulli
@@ -53,11 +53,6 @@ def bernoulli_nll(x, y, reduce='sum'):
     where :math:`p = \\sigma(y)`, :math:`\\sigma(\\cdot)` is a sigmoid
     function, and :math:`B(x; p)` is a Bernoulli distribution.
 
-
-    The output is a varialbe whose value depends on the value of
-    the option ``reduce``. If it is ``'no'``, it holds the elementwise
-    loss values. If it is ``'sum'``, loss values are summed up.
-
     .. note::
 
        As this function uses a sigmoid function, you can pass a result of
@@ -68,30 +63,18 @@ def bernoulli_nll(x, y, reduce='sum'):
         x (~chainer.Variable): Input variable.
         y (~chainer.Variable): A variable representing the parameter of
             Bernoulli distribution.
-        recude (str): Reduction option. Its value must be either
-            ``'sum'`` or ``'no'``. Otherwise, :class:`ValueError` is raised.
 
     Returns:
         ~chainer.Variable:
             A variable representing the negative log-likelihood.
-            If ``reduce`` is ``'no'``, the output varialbe holds array
-            whose shape is same as one of (hence both of) input variables.
-            If it is ``'sum'``, the output variable holds a scalar value.
+            It holds an array whose shape is same as one of
+            (hence both of) input variables.
 
     """
     assert isinstance(x, variable.Variable)
     assert isinstance(y, variable.Variable)
 
-    if reduce not in ('sum', 'no'):
-        raise ValueError(
-            "only 'sum' and 'no' are valid for 'reduce', but '%s' is "
-            'given' % reduce)
-
-    loss = softplus.softplus(y) - x * y
-    if reduce == 'sum':
-        return sum.sum(loss)
-    else:
-        return loss
+    return softplus.softplus(y) - x * y
 
 
 def gaussian_nll(x, mean, ln_var):

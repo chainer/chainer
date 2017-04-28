@@ -4,6 +4,7 @@ import numpy
 
 import chainer
 from chainer import cuda
+from chainer import functions as F
 from chainer.functions import vae
 from chainer import testing
 from chainer.testing import attr
@@ -40,10 +41,6 @@ class TestGaussianKLDivergence(unittest.TestCase):
                                           cuda.to_gpu(self.ln_var))
 
 
-@testing.parameterize(
-    {'reduce': 'no'},
-    {'reduce': 'sum'}
-)
 class TestBernoulliNLL(unittest.TestCase):
 
     def setUp(self):
@@ -55,13 +52,11 @@ class TestBernoulliNLL(unittest.TestCase):
         p = 1 / (1 + numpy.exp(-self.y))
         self.expect = -(self.x * numpy.log(p) +
                         (1 - self.x) * numpy.log(1 - p))
-        if self.reduce == 'sum':
-            self.expect = numpy.sum(self.expect)
 
     def check_bernoulli_nll(self, x_data, y_data):
         x = chainer.Variable(x_data)
         y = chainer.Variable(y_data)
-        actual = cuda.to_cpu(F.bernoulli_nll(x, y, self.reduce).data)
+        actual = cuda.to_cpu(F.bernoulli_nll(x, y).data)
         testing.assert_allclose(self.expect, actual)
 
     @condition.retry(3)
@@ -73,26 +68,6 @@ class TestBernoulliNLL(unittest.TestCase):
     def test_bernoulli_nll_gpu(self):
         self.check_bernoulli_nll(cuda.to_gpu(self.x),
                                  cuda.to_gpu(self.y))
-
-
-class TestBernoulliNLLInvalidReductionOption(unittest.TestCase):
-
-    def setUp(self):
-        self.x = numpy.random.uniform(-1, 1, (3,)).astype(numpy.float32)
-        self.y = numpy.random.uniform(-1, 1, (3,)).astype(numpy.float32)
-
-    def check_invalid_option(self, xp):
-        x = chainer.Variable(xp.asarray(self.x))
-        y = chainer.Variable(xp.asarray(self.y))
-        with self.assertRaises(ValueError):
-            F.bernoulli_nll(x, y, 'invalid_option')
-
-    def test_invalid_option_cpu(self):
-        self.check_invalid_option(numpy)
-
-    @attr.gpu
-    def test_invalid_option_gpu(self):
-        self.check_invalid_option(cuda.cupy)
 
 
 class TestGaussianNLL(unittest.TestCase):
