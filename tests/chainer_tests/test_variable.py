@@ -574,6 +574,15 @@ class TestParameter(unittest.TestCase):
         x = chainer.Parameter(shape=(1,))
         self.assertIsNone(x.initializer)
 
+    def test_initialize_by_scalar(self):
+        x = chainer.Parameter(2., (3,))
+        np.testing.assert_array_equal(x.data, np.array([2., 2., 2.]))
+
+    def test_initialize_by_initializer(self):
+        x = chainer.Parameter(initializers.One(), (3,))
+        np.testing.assert_array_equal(
+            x.data, np.array([1., 1., 1.], dtype='f'))
+
     def test_update_rule(self):
         update_rule = mock.MagicMock()
         g = self.a.copy()

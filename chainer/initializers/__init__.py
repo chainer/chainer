@@ -55,5 +55,6 @@ def _get_initializer(initializer):
     if isinstance(initializer, numpy.ndarray):
         return Constant(initializer)
 
-    assert callable(initializer)
+    if not callable(initializer):
+        raise TypeError('invalid type of initializer: %s' % type(initializer))
     return initializer

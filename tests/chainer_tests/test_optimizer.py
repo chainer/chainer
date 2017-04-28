@@ -273,8 +273,8 @@ class TestOptimizerHook(unittest.TestCase):
 class SimpleLink(chainer.Link):
 
     def __init__(self, w, g):
-        super(SimpleLink, self).__init__(param=w.shape)
-        self.param.data = w
+        super(SimpleLink, self).__init__()
+        self.param = chainer.Parameter(w)
         self.param.grad = g
 
 

@@ -15,8 +15,10 @@ class TestLink(unittest.TestCase):
     def setUp(self):
         x_shape_0 = 2
         x_shape_1 = numpy.int64(3)
-        self.link = chainer.Link(x=((x_shape_0, x_shape_1), 'd'), y=2,
-                                 u=(None, 'd'), v=None)
+        self.link = chainer.Link(x=((x_shape_0, x_shape_1), 'd'),
+                                 u=(None, 'd'))
+        self.link.y = chainer.Parameter(shape=(2,))
+        self.link.v = chainer.Parameter()
         self.p = numpy.array([1, 2, 3], dtype='f')
         self.link.add_persistent('p', self.p)
         self.link.name = 'a'
@@ -345,7 +347,8 @@ class TestChain(unittest.TestCase):
 
         self.c1 = chainer.Chain(l1=self.l1)
         self.c1.add_link('l2', self.l2)
-        self.c2 = chainer.Chain(c1=self.c1, l3=self.l3)
+        self.c2 = chainer.Chain(c1=self.c1)
+        self.c2.l3 = self.l3
 
     def test_init(self):
         self.assertIs(self.c1.l1, self.l1)
@@ -588,19 +591,22 @@ class TestChainList(unittest.TestCase):
         self.l3 = chainer.Link(x=3)
         self.c1 = chainer.ChainList(self.l1)
         self.c1.add_link(self.l2)
-        self.c2 = chainer.ChainList(self.c1, self.l3)
+        self.c2 = chainer.ChainList(self.c1)
+        self.c2.append(self.l3)
 
     def test_init(self):
         self.assertIs(self.c1[0], self.l1)
         self.assertEqual(self.l1.name, '0')
         self.assertIs(self.c2[0], self.c1)
         self.assertEqual(self.c1.name, '0')
-        self.assertIs(self.c2[1], self.l3)
-        self.assertEqual(self.l3.name, '1')
 
     def test_add_link(self):
         self.assertIs(self.c1[1], self.l2)
         self.assertEqual(self.l2.name, '1')
+
+    def test_append(self):
+        self.assertIs(self.c2[1], self.l3)
+        self.assertEqual(self.l3.name, '1')
 
     def test_iter(self):
         links = list(self.c2)
@@ -829,14 +835,17 @@ class TestChainList(unittest.TestCase):
         numpy.testing.assert_array_equal(self.l3.x.grad, numpy.zeros(3))
 
     def test_serialize(self):
-        l1 = chainer.Link(x=(2, 3))
-        l1.add_param('y', (1, 1))
-        l2 = chainer.Link(x=2)
+        l1 = chainer.Link(y=(1, 1))
+
+        l2 = chainer.Link()
+        l2.x = chainer.Parameter(2)
         c1 = chainer.ChainList(l1, l2)
         mocks = {'0': mock.MagicMock(), '1': mock.MagicMock()}
         serializer = mock.MagicMock()
         serializer.__getitem__.side_effect = lambda k: mocks[k]
         serializer.return_value = None
+        mocks['0'].return_value = None
+        mocks['1'].return_value = None
         c1.serialize(serializer)
 
         self.assertEqual(serializer.call_count, 0)

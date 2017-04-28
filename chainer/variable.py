@@ -11,6 +11,7 @@ import six
 import chainer
 from chainer import cuda
 from chainer import initializers
+from chainer.initializers import constant
 from chainer import utils
 
 
@@ -254,9 +255,9 @@ class Variable(object):
     whereas in the latter context, it is forced to create.
 
     Args:
-        data (array): Initial data array.
+        data (numpy.ndarray or cupy.ndarray): Initial data array.
         name (str): Name of the variable.
-        grad (array): Initial gradient array.
+        grad (numpy.ndarray or cupy.ndarray): Initial gradient array.
 
     Attributes:
         data: Data array of type either :class:`numpy.ndarray` or
@@ -798,11 +799,17 @@ class Parameter(Variable):
     using its gradient array.
 
     Args:
-        shape (tuple of int): Shape of the parameter. If it is omitted, the
-            initialization is deferred.
-        initializer (~chainer.Initializer): Initializer of the data array.
-            If `shape` is ``None``, this object is used for initializing the
-            data array in the :meth:`initialize` method.
+        initializer (~chainer.Initializer or numpy.ndarray or cupy.ndarray):
+            Initializer of the data array. If ``shape`` is given, this
+            initializer is immediately used to initialize the data array.
+            Otherwise, if it is an array, it is immediately used as the data
+            array, and otherwise the data array is left uninitialized and will
+            be initialized by this initializer in :meth:`initialize`. It can
+            also be a scalar, in which case the data array will be filled by
+            this scalar. Note that float32 is used in this case.
+        shape (int or tuple of int or None): Shape of the parameter. If it is
+            omitted, the initialization is deferred to the call of
+            :meth:`initialize`.
         name (str): Name of the parameter.
 
     Attributes:
@@ -818,21 +825,25 @@ class Parameter(Variable):
     _grad_initializer = None
     _initial_device = -1
 
-    def __init__(self, shape=None, initializer=None, name=None):
+    def __init__(self, initializer=None, shape=None, name=None):
         if initializer is None:
-            initializer = initializers.NaN()
+            initializer = constant.NaN()
+        elif numpy.isscalar(initializer):
+            initializer = constant.Constant(initializer)
         if shape is None:
-            if callable(initializer):
+            if isinstance(initializer, (numpy.ndarray, cuda.ndarray)):
+                # parameter initialized by the initial array
+                super(Parameter, self).__init__(initializer, name=name)
+            else:
                 # uninitialized parameter
                 super(Parameter, self).__init__(name=name)
                 self.initializer = initializer
                 dtype = getattr(initializer, 'dtype', numpy.float32)
-                self._grad_initializer = initializers.NaN(dtype)
-            else:
-                # parameter initialized by the initial array
-                super(Parameter, self).__init__(initializer, name=name)
+                self._grad_initializer = constant.NaN(dtype)
         else:
             # parameter initialized with a given shape
+            if isinstance(initializer, (numpy.ndarray, cuda.ndarray)):
+                initializer = constant.Constant(initializer)
             data = initializers.generate_array(initializer, shape, numpy)
             grad = numpy.full_like(data, numpy.nan)
             super(Parameter, self).__init__(data, name=name, grad=grad)
