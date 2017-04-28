@@ -12,7 +12,7 @@ class BottleNeckA(chainer.Chain):
     def __init__(self, in_size, ch, out_size, stride=2):
         super(BottleNeckA, self).__init__(
             conv1=L.Convolution2D(in_size, ch, 1, stride, 0,
-                                  initialW=initializers.HeNormal()
+                                  initialW=initializers.HeNormal(),
                                   nobias=True),
             bn1=L.BatchNormalization(ch),
             conv2=L.Convolution2D(ch, ch, 3, 1, 1,
@@ -86,7 +86,7 @@ class ResNet50(chainer.Chain):
     def __init__(self):
         super(ResNet50, self).__init__(
             conv1=L.Convolution2D(3, 64, 7, 2, 3,
-                                  initialW=initializers.HeNormal())
+                                  initialW=initializers.HeNormal()),
             bn1=L.BatchNormalization(64),
             res2=Block(3, 64, 64, 256, 1),
             res3=Block(4, 256, 128, 512),
