@@ -259,6 +259,7 @@ class TestLoadNpz(unittest.TestCase):
         self.assertEqual(obj.serialize.call_count, 1)
         (serializer,), _ = obj.serialize.call_args
         self.assertIsInstance(serializer, npz.NpzDeserializer)
+        self.assertEqual(serializer.strict, False)
 
 
 @testing.parameterize(*testing.product({'compress': [False, True]}))
