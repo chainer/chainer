@@ -65,23 +65,17 @@ class BottleNeckB(chainer.Chain):
         return F.relu(h + x)
 
 
-class Block(chainer.Chain):
+class Block(chainer.ChainList):
 
     def __init__(self, layer, in_size, ch, out_size, stride=2):
         super(Block, self).__init__()
-        links = [('a', BottleNeckA(in_size, ch, out_size, stride))]
+        self.add_link(BottleNeckA(in_size, ch, out_size, stride))
         for i in range(layer - 1):
-            links += [('b{}'.format(i + 1), BottleNeckB(out_size, ch))]
-
-        for l in links:
-            self.add_link(*l)
-        self.forward = links
+            self.add_link(BottleNeckB(out_size, ch))
 
     def __call__(self, x):
-        for name, _ in sorted(self.forward):
-            f = getattr(self, name)
+        for f in self.children():
             x = f(x)
-
         return x
 
 
