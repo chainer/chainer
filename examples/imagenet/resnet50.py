@@ -85,8 +85,7 @@ class ResNet50(chainer.Chain):
     def __init__(self):
         super(ResNet50, self).__init__(
             conv1=L.Convolution2D(3, 64, 7, 2, 3,
-                                  initialW=initializers.HeNormal(),
-                                  nobias=True),
+                                  initialW=initializers.HeNormal())
             bn1=L.BatchNormalization(64),
             res2=Block(3, 64, 64, 256, 1),
             res3=Block(4, 256, 128, 512),
