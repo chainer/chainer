@@ -12,7 +12,8 @@ class BottleNeckA(chainer.Chain):
     def __init__(self, in_size, ch, out_size, stride=2):
         super(BottleNeckA, self).__init__(
             conv1=L.Convolution2D(in_size, ch, 1, stride, 0,
-                                  initialW=initializers.HeNormal()),
+                                  initialW=initializers.HeNormal()
+                                  nobias=True),
             bn1=L.BatchNormalization(ch),
             conv2=L.Convolution2D(ch, ch, 3, 1, 1,
                                   initialW=initializers.HeNormal(),
