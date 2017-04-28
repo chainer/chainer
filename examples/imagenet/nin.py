@@ -11,17 +11,16 @@ class NIN(chainer.Chain):
     insize = 227
 
     def __init__(self):
+        super(NIN, self).__init__()
         conv_init = I.HeNormal()  # MSRA scaling
-        super(NIN, self).__init__(
-            mlpconv1=L.MLPConvolution2D(
-                None, (96, 96, 96), 11, stride=4, conv_init=conv_init),
-            mlpconv2=L.MLPConvolution2D(
-                None, (256, 256, 256), 5, pad=2, conv_init=conv_init),
-            mlpconv3=L.MLPConvolution2D(
-                None, (384, 384, 384), 3, pad=1, conv_init=conv_init),
-            mlpconv4=L.MLPConvolution2D(
-                None, (1024, 1024, 1000), 3, pad=1, conv_init=conv_init),
-        )
+        self.mlpconv1 = L.MLPConvolution2D(
+            None, (96, 96, 96), 11, stride=4, conv_init=conv_init)
+        self.mlpconv2 = L.MLPConvolution2D(
+            None, (256, 256, 256), 5, pad=2, conv_init=conv_init)
+        self.mlpconv3 = L.MLPConvolution2D(
+            None, (384, 384, 384), 3, pad=1, conv_init=conv_init)
+        self.mlpconv4 = L.MLPConvolution2D(
+            None, (1024, 1024, 1000), 3, pad=1, conv_init=conv_init)
 
     def __call__(self, x, t):
         h = F.max_pooling_2d(F.relu(self.mlpconv1(x)), 3, stride=2)

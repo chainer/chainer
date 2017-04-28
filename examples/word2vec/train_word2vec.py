@@ -65,11 +65,10 @@ print('')
 class ContinuousBoW(chainer.Chain):
 
     def __init__(self, n_vocab, n_units, loss_func):
-        super(ContinuousBoW, self).__init__(
-            embed=L.EmbedID(
-                n_vocab, n_units, initialW=I.Uniform(1. / n_units)),
-            loss_func=loss_func,
-        )
+        super(ContinuousBoW, self).__init__()
+        self.embed = L.EmbedID(
+            n_vocab, n_units, initialW=I.Uniform(1. / n_units))
+        self.loss_func = loss_func
 
     def __call__(self, x, context):
         e = self.embed(context)
@@ -82,11 +81,10 @@ class ContinuousBoW(chainer.Chain):
 class SkipGram(chainer.Chain):
 
     def __init__(self, n_vocab, n_units, loss_func):
-        super(SkipGram, self).__init__(
-            embed=L.EmbedID(
-                n_vocab, n_units, initialW=I.Uniform(1. / n_units)),
-            loss_func=loss_func,
-        )
+        super(SkipGram, self).__init__()
+        self.embed = L.EmbedID(
+            n_vocab, n_units, initialW=I.Uniform(1. / n_units))
+        self.loss_func = loss_func
 
     def __call__(self, x, context):
         e = self.embed(context)
@@ -102,9 +100,8 @@ class SkipGram(chainer.Chain):
 class SoftmaxCrossEntropyLoss(chainer.Chain):
 
     def __init__(self, n_in, n_out):
-        super(SoftmaxCrossEntropyLoss, self).__init__(
-            out=L.Linear(n_in, n_out, initialW=0),
-        )
+        super(SoftmaxCrossEntropyLoss, self).__init__()
+        self.out = L.Linear(n_in, n_out, initialW=0)
 
     def __call__(self, x, t):
         return F.softmax_cross_entropy(self.out(x), t)

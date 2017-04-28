@@ -13,16 +13,15 @@ class Alex(chainer.Chain):
     insize = 227
 
     def __init__(self):
-        super(Alex, self).__init__(
-            conv1=L.Convolution2D(None,  96, 11, stride=4),
-            conv2=L.Convolution2D(None, 256,  5, pad=2),
-            conv3=L.Convolution2D(None, 384,  3, pad=1),
-            conv4=L.Convolution2D(None, 384,  3, pad=1),
-            conv5=L.Convolution2D(None, 256,  3, pad=1),
-            fc6=L.Linear(None, 4096),
-            fc7=L.Linear(None, 4096),
-            fc8=L.Linear(None, 1000),
-        )
+        super(Alex, self).__init__()
+        self.conv1 = L.Convolution2D(None,  96, 11, stride=4)
+        self.conv2 = L.Convolution2D(None, 256,  5, pad=2)
+        self.conv3 = L.Convolution2D(None, 384,  3, pad=1)
+        self.conv4 = L.Convolution2D(None, 384,  3, pad=1)
+        self.conv5 = L.Convolution2D(None, 256,  3, pad=1)
+        self.fc6 = L.Linear(None, 4096)
+        self.fc7 = L.Linear(None, 4096)
+        self.fc8 = L.Linear(None, 1000)
 
     def __call__(self, x, t):
         h = F.max_pooling_2d(F.local_response_normalization(
@@ -48,25 +47,23 @@ class AlexFp16(Alex):
     insize = 227
 
     def __init__(self):
+        chainer.Chain.__init__(self)
         self.dtype = np.float16
         W = initializers.HeNormal(1 / np.sqrt(2), self.dtype)
         bias = initializers.Zero(self.dtype)
-        chainer.Chain.__init__(
-            self,
-            conv1=L.Convolution2D(None, 96, 11,
-                                  stride=4, initialW=W, initial_bias=bias),
-            conv2=L.Convolution2D(None, 256, 5, pad=2,
-                                  initialW=W, initial_bias=bias),
-            conv3=L.Convolution2D(None, 384, 3, pad=1,
-                                  initialW=W, initial_bias=bias),
-            conv4=L.Convolution2D(None, 384, 3, pad=1,
-                                  initialW=W, initial_bias=bias),
-            conv5=L.Convolution2D(None, 256, 3, pad=1,
-                                  initialW=W, initial_bias=bias),
-            fc6=L.Linear(None, 4096, initialW=W, initial_bias=bias),
-            fc7=L.Linear(None, 4096, initialW=W, initial_bias=bias),
-            fc8=L.Linear(None, 1000, initialW=W, initial_bias=bias),
-        )
+        self.conv1 = L.Convolution2D(None, 96, 11, stride=4,
+                                     initialW=W, initial_bias=bias)
+        self.conv2 = L.Convolution2D(None, 256, 5, pad=2,
+                                     initialW=W, initial_bias=bias)
+        self.conv3 = L.Convolution2D(None, 384, 3, pad=1,
+                                     initialW=W, initial_bias=bias)
+        self.conv4 = L.Convolution2D(None, 384, 3, pad=1,
+                                     initialW=W, initial_bias=bias)
+        self.conv5 = L.Convolution2D(None, 256, 3, pad=1,
+                                     initialW=W, initial_bias=bias)
+        self.fc6 = L.Linear(None, 4096, initialW=W, initial_bias=bias)
+        self.fc7 = L.Linear(None, 4096, initialW=W, initial_bias=bias)
+        self.fc8 = L.Linear(None, 1000, initialW=W, initial_bias=bias)
 
     def __call__(self, x, t):
         return Alex.__call__(self, F.cast(x, self.dtype), t)
