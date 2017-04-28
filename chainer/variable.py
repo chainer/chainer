@@ -270,7 +270,7 @@ class Variable(object):
         update_rule: :class:`~chainer.optimizer.UpdateRule` instance that
             updates this variable as a parameter. This argument is set to
             :attr:`update_rule`.
-        requires_grad (bool): Boolean indicating whether ``grid`` will be set
+        requires_grad (bool): Boolean indicating whether ``grad`` will be set
             in backward calculation.
 
     Attributes:
