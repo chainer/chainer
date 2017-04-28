@@ -6,7 +6,9 @@ from chainer import cuda
 from chainer.functions.array import permutate
 from chainer.functions.array import transpose_sequence
 from chainer.functions.connection import n_step_lstm as rnn
+from chainer.initializers import normal
 from chainer import link
+from chainer import variable
 
 
 def argsort_list_descent(lst):
@@ -57,11 +59,11 @@ class NStepLSTM(link.ChainList):
                     w_in = in_size
                 else:
                     w_in = out_size
-                weight.add_param('w%d' % j, (out_size, w_in))
-                weight.add_param('b%d' % j, (out_size,))
-                getattr(weight, 'w%d' % j).data[...] = numpy.random.normal(
-                    0, numpy.sqrt(1. / w_in), (out_size, w_in))
-                getattr(weight, 'b%d' % j).data[...] = 0
+                setattr(weight, 'w%d' % j,
+                        variable.Parameter(normal.Normal(1. / w_in),
+                                           (out_size, w_in)))
+                setattr(weight, 'b%d' % j,
+                        variable.Parameter(0, out_size))
             weights.append(weight)
 
         super(NStepLSTM, self).__init__(*weights)

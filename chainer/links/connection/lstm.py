@@ -21,11 +21,11 @@ class LSTMBase(link.Chain):
     def __init__(self, in_size, out_size,
                  lateral_init=None, upward_init=None,
                  bias_init=0, forget_bias_init=1):
-        super(LSTMBase, self).__init__(
-            upward=linear.Linear(in_size, 4 * out_size, initialW=0),
-            lateral=linear.Linear(out_size, 4 * out_size,
-                                  initialW=0, nobias=True),
-        )
+        super(LSTMBase, self).__init__()
+        self.upward = linear.Linear(in_size, 4 * out_size, initialW=0)
+        self.lateral = linear.Linear(out_size, 4 * out_size, initialW=0,
+                                     nobias=True)
+
         self.state_size = out_size
         self.lateral_init = lateral_init
         self.upward_init = upward_init

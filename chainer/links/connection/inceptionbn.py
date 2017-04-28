@@ -22,14 +22,15 @@ class InceptionBN(link.Chain):
     Internal Covariate Shift <https://arxiv.org/abs/1502.03167>`_.
 
     Args:
-        in_channels (int): Number of channels of input arrays.
+        in_channels (int or None): Number of channels of input arrays.
         out1 (int): Output size of the 1x1 convolution path.
         proj3 (int): Projection size of the single 3x3 convolution path.
         out3 (int): Output size of the single 3x3 convolution path.
         proj33 (int): Projection size of the double 3x3 convolutions path.
         out33 (int): Output size of the double 3x3 convolutions path.
         pooltype (str): Pooling type. It must be either ``'max'`` or ``'avg'``.
-        proj_pool (bool): If ``True``, do projection in the pooling path.
+        proj_pool (int or None): Projection size in the pooling path. If
+            ``None``, no projection is done.
         stride (int): Stride parameter of the last convolution of each path.
         conv_init: A callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
@@ -45,46 +46,45 @@ class InceptionBN(link.Chain):
     def __init__(self, in_channels, out1, proj3, out3, proj33, out33,
                  pooltype, proj_pool=None, stride=1, conv_init=None,
                  dtype=numpy.float32):
-        super(InceptionBN, self).__init__(
-            proj3=convolution_2d.Convolution2D(
-                in_channels, proj3, 1, nobias=True, initialW=conv_init),
-            conv3=convolution_2d.Convolution2D(
-                proj3, out3, 3, pad=1, stride=stride, nobias=True,
-                initialW=conv_init),
-            proj33=convolution_2d.Convolution2D(
-                in_channels, proj33, 1, nobias=True, initialW=conv_init),
-            conv33a=convolution_2d.Convolution2D(
-                proj33, out33, 3, pad=1, nobias=True, initialW=conv_init),
-            conv33b=convolution_2d.Convolution2D(
-                out33, out33, 3, pad=1, stride=stride, nobias=True,
-                initialW=conv_init),
-            proj3n=batch_normalization.BatchNormalization(proj3, dtype=dtype),
-            conv3n=batch_normalization.BatchNormalization(out3, dtype=dtype),
-            proj33n=batch_normalization.BatchNormalization(proj33,
-                                                           dtype=dtype),
-            conv33an=batch_normalization.BatchNormalization(out33,
-                                                            dtype=dtype),
-            conv33bn=batch_normalization.BatchNormalization(out33,
-                                                            dtype=dtype),
-        )
+        super(InceptionBN, self).__init__()
+        self.proj3 = convolution_2d.Convolution2D(
+            in_channels, proj3, 1, nobias=True, initialW=conv_init)
+        self.conv3 = convolution_2d.Convolution2D(
+            proj3, out3, 3, pad=1, stride=stride, nobias=True,
+            initialW=conv_init)
+        self.proj33 = convolution_2d.Convolution2D(
+            in_channels, proj33, 1, nobias=True, initialW=conv_init)
+        self.conv33a = convolution_2d.Convolution2D(
+            proj33, out33, 3, pad=1, nobias=True, initialW=conv_init)
+        self.conv33b = convolution_2d.Convolution2D(
+            out33, out33, 3, pad=1, stride=stride, nobias=True,
+            initialW=conv_init)
+        self.proj3n = batch_normalization.BatchNormalization(
+            proj3, dtype=dtype)
+        self.conv3n = batch_normalization.BatchNormalization(
+            out3, dtype=dtype)
+        self.proj33n = batch_normalization.BatchNormalization(
+            proj33, dtype=dtype)
+        self.conv33an = batch_normalization.BatchNormalization(
+            out33, dtype=dtype)
+        self.conv33bn = batch_normalization.BatchNormalization(
+            out33, dtype=dtype)
 
         if out1 > 0:
             assert stride == 1
             assert proj_pool is not None
-            self.add_link('conv1',
-                          convolution_2d.Convolution2D(in_channels, out1, 1,
-                                                       stride=stride,
-                                                       nobias=True,
-                                                       initialW=conv_init))
-            self.add_link('conv1n', batch_normalization.BatchNormalization(
-                out1, dtype=dtype))
+            self.conv1 = convolution_2d.Convolution2D(
+                in_channels, out1, 1, stride=stride, nobias=True,
+                initialW=conv_init)
+            self.conv1n = batch_normalization.BatchNormalization(
+                out1, dtype=dtype)
         self.out1 = out1
 
         if proj_pool is not None:
-            self.add_link('poolp', convolution_2d.Convolution2D(
-                in_channels, proj_pool, 1, nobias=True, initialW=conv_init))
-            self.add_link('poolpn', batch_normalization.BatchNormalization(
-                proj_pool, dtype=dtype))
+            self.poolp = convolution_2d.Convolution2D(
+                in_channels, proj_pool, 1, nobias=True, initialW=conv_init)
+            self.poolpn = batch_normalization.BatchNormalization(
+                proj_pool, dtype=dtype)
         self.proj_pool = proj_pool
 
         self.stride = stride

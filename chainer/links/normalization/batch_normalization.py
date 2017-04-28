@@ -68,20 +68,22 @@ class BatchNormalization(link.Link):
         super(BatchNormalization, self).__init__()
         if use_gamma:
             if initial_gamma is None:
-                initial_gamma = initializers.One(dtype=dtype)
-            else:
-                initial_gamma = initializers._get_initializer(initial_gamma)
-            self.add_param('gamma', size, dtype=dtype,
-                           initializer=initial_gamma)
+                initial_gamma = 1
+            initial_gamma = initializers._get_initializer(initial_gamma)
+            initial_gamma.dtype = dtype
+            self.gamma = variable.Parameter(initial_gamma, size)
         if use_beta:
             if initial_beta is None:
-                initial_beta = initializers.Zero(dtype=dtype)
-            else:
-                initial_beta = initializers._get_initializer(initial_beta)
-            self.add_param('beta', size, dtype=dtype, initializer=initial_beta)
-        self.add_persistent('avg_mean', numpy.zeros(size, dtype=dtype))
-        self.add_persistent('avg_var', numpy.zeros(size, dtype=dtype))
-        self.add_persistent('N', 0)
+                initial_beta = 0
+            initial_beta = initializers._get_initializer(initial_beta)
+            initial_beta.dtype = dtype
+            self.beta = variable.Parameter(initial_beta, size)
+        self.avg_mean = numpy.zeros(size, dtype=dtype)
+        self.register_persistent('avg_mean')
+        self.avg_var = numpy.zeros(size, dtype=dtype)
+        self.register_persistent('avg_var')
+        self.N = 0
+        self.register_persistent('N')
         self.decay = decay
         self.eps = eps
 

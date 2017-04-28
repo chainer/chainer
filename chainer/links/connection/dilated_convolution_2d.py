@@ -1,8 +1,7 @@
-import numpy
-
 from chainer.functions.connection import dilated_convolution_2d
 from chainer import initializers
 from chainer import link
+from chainer import variable
 
 
 class DilatedConvolution2D(link.Link):
@@ -53,15 +52,7 @@ class DilatedConvolution2D(link.Link):
         self.dilate = _pair(dilate)
         self.out_channels = out_channels
 
-        if initialW is None:
-            self.initialW = initializers.HeNormal(1.0 / numpy.sqrt(2))
-        else:
-            self.initialW = initialW
-
-        # For backward compatibility, the scale of weights is proportional to
-        # the square root of wscale.
-        self.add_param('W', initializer=initializers._get_initializer(
-            initialW))
+        self.W = variable.Parameter(initializers._get_initializer(initialW))
         if in_channels is not None:
             self._initialize_params(in_channels)
 
@@ -71,7 +62,7 @@ class DilatedConvolution2D(link.Link):
             if initial_bias is None:
                 initial_bias = 0
             initial_bias = initializers._get_initializer(initial_bias)
-            self.add_param('b', out_channels, initializer=initial_bias)
+            self.b = variable.Parameter(initial_bias, out_channels)
 
     def _initialize_params(self, in_channels):
         kh, kw = _pair(self.ksize)

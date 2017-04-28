@@ -55,6 +55,8 @@ class Maxout(link.Chain):
 
     def __init__(self, in_size, out_size, pool_size,
                  initialW=None, initial_bias=0):
+        super(Maxout, self).__init__()
+
         linear_out_size = out_size * pool_size
         if initialW is not None:
             initialW = initialW.reshape(linear_out_size, in_size)
@@ -69,11 +71,11 @@ class Maxout(link.Chain):
                 raise ValueError(
                     'initial bias must be float, ndarray, or None')
 
-        super(Maxout, self).__init__(
-            linear=linear.Linear(
-                in_size, linear_out_size,
-                nobias=initial_bias is None, initialW=initialW,
-                initial_bias=initial_bias))
+        self.linear = linear.Linear(
+            in_size, linear_out_size,
+            nobias=initial_bias is None, initialW=initialW,
+            initial_bias=initial_bias)
+
         self.out_size = out_size
         self.pool_size = pool_size
 

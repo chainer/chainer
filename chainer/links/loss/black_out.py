@@ -5,6 +5,7 @@ from chainer import cuda
 from chainer.functions.loss import black_out
 from chainer import link
 from chainer.utils import walker_alias
+from chainer import variable
 
 
 class BlackOut(link.Link):
@@ -19,13 +20,14 @@ class BlackOut(link.Link):
         sample_size (int): Number of negative samples.
 
     Attributes:
-        W (~chainer.Variable): Weight parameter matrix.
+        W (~chainer.Parameter): Weight parameter matrix.
 
     """
 
     def __init__(self, in_size, counts, sample_size):
+        super(BlackOut, self).__init__()
         vocab_size = len(counts)
-        super(BlackOut, self).__init__(W=(vocab_size, in_size))
+        self.W = variable.Parameter(shape=(vocab_size, in_size))
         p = numpy.array(counts, dtype=numpy.float32)
         self.sampler = walker_alias.WalkerAlias(p)
         self.sample_size = sample_size

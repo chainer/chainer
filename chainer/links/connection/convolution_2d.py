@@ -1,8 +1,7 @@
-import numpy
-
 from chainer.functions.connection import convolution_2d
 from chainer import initializers
 from chainer import link
+from chainer import variable
 
 
 class Convolution2D(link.Link):
@@ -13,9 +12,9 @@ class Convolution2D(link.Link):
     holds the filter weight and bias vector as parameters.
 
     Args:
-        in_channels (int): Number of channels of input arrays. If ``None``,
-            parameter initialization will be deferred until the first forward
-            data pass at which time the size will be determined.
+        in_channels (int or None): Number of channels of input arrays. If 
+            ``None``, parameter initialization will be deferred until the
+            first forward data pass at which time the size will be determined.
         out_channels (int): Number of channels of output arrays.
         ksize (int or pair of ints): Size of filters (a.k.a. kernels).
             ``ksize=k`` and ``ksize=(k, k)`` are equivalent.
@@ -58,10 +57,7 @@ class Convolution2D(link.Link):
         self.out_channels = out_channels
         self.deterministic = deterministic
 
-        if initialW is None:
-            initialW = initializers.HeNormal(1. / numpy.sqrt(2))
-        self.add_param('W', initializer=initializers._get_initializer(
-            initialW))
+        self.W = variable.Parameter(initializers._get_initializer(initialW))
         if in_channels is not None:
             self._initialize_params(in_channels)
 
@@ -69,9 +65,9 @@ class Convolution2D(link.Link):
             self.b = None
         else:
             if initial_bias is None:
-                initial_bias = initializers.Constant(0)
-            bias_initilizer = initializers._get_initializer(initial_bias)
-            self.add_param('b', out_channels, initializer=bias_initilizer)
+                initial_bias = 0
+            bias_initializer = initializers._get_initializer(initial_bias)
+            self.b = variable.Parameter(bias_initializer, out_channels)
 
     def _initialize_params(self, in_channels):
         kh, kw = _pair(self.ksize)

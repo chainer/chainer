@@ -16,10 +16,10 @@ from chainer import variable
 class StatefulZoneoutLSTM(link.Chain):
 
     def __init__(self, in_size, out_size, c_ratio=0.5, h_ratio=0.5):
-        super(StatefulZoneoutLSTM, self).__init__(
-            upward=linear.Linear(in_size, 4 * out_size),
-            lateral=linear.Linear(out_size, 4 * out_size, nobias=True),
-        )
+        super(StatefulZoneoutLSTM, self).__init__()
+        self.upward = linear.Linear(in_size, 4 * out_size)
+        self.lateral = linear.Linear(out_size, 4 * out_size, nobias=True)
+
         self.state_size = out_size
         self.c_ratio = c_ratio
         self.h_ratio = h_ratio

@@ -1,9 +1,8 @@
-import numpy
-
 from chainer.functions.connection import convolution_nd
 from chainer import initializers
 from chainer import link
 from chainer.utils import conv_nd
+from chainer import variable
 
 
 class ConvolutionND(link.Link):
@@ -51,26 +50,24 @@ class ConvolutionND(link.Link):
     def __init__(self, ndim, in_channels, out_channels, ksize, stride=1, pad=0,
                  nobias=False, initialW=None, initial_bias=None,
                  cover_all=False):
+        super(ConvolutionND, self).__init__()
+
         ksize = conv_nd.as_tuple(ksize, ndim)
         self.stride = stride
         self.pad = pad
         self.cover_all = cover_all
 
-        super(ConvolutionND, self).__init__()
-
         W_shape = (out_channels, in_channels) + ksize
-        if initialW is None:
-            initializers.HeNormal(1. / numpy.sqrt(2))
-        initialW = initializers._get_initializer(initialW)
-        self.add_param('W', W_shape, initializer=initialW)
+        self.W = variable.Parameter(initializers._get_initializer(initialW),
+                                    W_shape)
 
         if nobias:
             self.b = None
         else:
             if initial_bias is None:
-                initial_bias = initializers.Constant(0)
+                initial_bias = 0
             initial_bias = initializers._get_initializer(initial_bias)
-            self.add_param('b', out_channels, initializer=initial_bias)
+            self.b = variable.Parameter(initial_bias, out_channels)
 
     def __call__(self, x):
         """Applies N-dimensional convolution layer.

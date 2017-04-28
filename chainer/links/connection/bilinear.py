@@ -4,6 +4,7 @@ from chainer import cuda
 from chainer.functions.connection import bilinear
 from chainer import initializers
 from chainer import link
+from chainer import variable
 
 
 class Bilinear(link.Link):
@@ -62,10 +63,8 @@ class Bilinear(link.Link):
         shape = (left_size, right_size, out_size)
         if isinstance(initialW, (numpy.ndarray, cuda.ndarray)):
             assert initialW.shape == shape
-        if initialW is None:
-            initialW = initializers.HeNormal(1.0 / numpy.sqrt(2))
-        self.add_param('W', shape,
-                       initializer=initializers._get_initializer(initialW))
+        self.W = variable.Parameter(
+            initializers._get_initializer(initialW), shape)
 
         if not self.nobias:
             V1_shape = (left_size, out_size)
@@ -83,15 +82,15 @@ class Bilinear(link.Link):
                 initialV2 = initializers._get_initializer(initialV2)
                 initialb = initializers._get_initializer(initialb)
             elif initial_bias is None:
-                initialV1 = initializers.HeNormal(1.0 / numpy.sqrt(2))
-                initialV2 = initializers.HeNormal(1.0 / numpy.sqrt(2))
-                initialb = initializers.Constant(0)
+                initialV1 = initializers._get_initializer(None)
+                initialV2 = initializers._get_initializer(None)
+                initialb = 0
             else:
                 raise ValueError('initial_bias must be tuple or None')
 
-            self.add_param('V1', V1_shape, initializer=initialV1)
-            self.add_param('V2', V2_shape, initializer=initialV2)
-            self.add_param('b', b_shape, initializer=initialb)
+            self.V1 = variable.Parameter(initialV1, V1_shape)
+            self.V2 = variable.Parameter(initialV2, V2_shape)
+            self.b = variable.Parameter(initialb, b_shape)
 
     def __call__(self, e1, e2):
         """Applies the bilinear function to inputs and the internal parameters.

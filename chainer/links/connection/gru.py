@@ -12,22 +12,23 @@ class GRUBase(link.Chain):
 
     def __init__(self, n_units, n_inputs=None,
                  init=None, inner_init=None, bias_init=None):
+        super(GRUBase, self).__init__()
+
         if n_inputs is None:
             n_inputs = n_units
-        super(GRUBase, self).__init__(
-            W_r=linear.Linear(n_inputs, n_units,
-                              initialW=init, initial_bias=bias_init),
-            U_r=linear.Linear(n_units, n_units,
-                              initialW=inner_init, initial_bias=bias_init),
-            W_z=linear.Linear(n_inputs, n_units,
-                              initialW=init, initial_bias=bias_init),
-            U_z=linear.Linear(n_units, n_units,
-                              initialW=inner_init, initial_bias=bias_init),
-            W=linear.Linear(n_inputs, n_units,
-                            initialW=init, initial_bias=bias_init),
-            U=linear.Linear(n_units, n_units,
-                            initialW=inner_init, initial_bias=bias_init),
-        )
+
+        self.W_r = linear.Linear(
+            n_inputs, n_units, initialW=init, initial_bias=bias_init)
+        self.U_r = linear.Linear(
+            n_units, n_units, initialW=inner_init, initial_bias=bias_init)
+        self.W_z = linear.Linear(
+            n_inputs, n_units, initialW=init, initial_bias=bias_init)
+        self.U_z = linear.Linear(
+            n_units, n_units, initialW=inner_init, initial_bias=bias_init)
+        self.W = linear.Linear(
+            n_inputs, n_units, initialW=init, initial_bias=bias_init)
+        self.U = linear.Linear(
+            n_units, n_units, initialW=inner_init, initial_bias=bias_init)
 
 
 class GRU(GRUBase):

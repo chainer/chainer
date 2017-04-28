@@ -1,16 +1,17 @@
-from chainer import initializers
-from chainer import link
-from chainer import utils
-
 from chainer.functions.array import broadcast
 from chainer.functions.math import bias
 from chainer.functions.math import scale
 from chainer.functions.math import sqrt
 from chainer.functions.math import square
 from chainer.functions.math import sum
+from chainer import initializers
+from chainer.initializers import constant
+from chainer import link
+from chainer import utils
+from chainer import variable
 
 
-class LayerNormalization(link.Chain):
+class LayerNormalization(link.Link):
 
     """Layer normalization layer on outputs of linear functions.
 
@@ -37,8 +38,8 @@ class LayerNormalization(link.Chain):
             If ``numpy.ndarray``, the vector is set by it.
 
     Attributes:
-        gamma (~chainer.Variable): Scaling parameter.
-        beta (~chainer.Variable): Shifting parameter.
+        gamma (~chainer.Parameter): Scaling parameter.
+        beta (~chainer.Parameter): Shifting parameter.
         eps (float): Epsilon value for numerical stability.
 
     See: `Layer Normalization <https://arxiv.org/abs/1607.06450>`_
@@ -48,12 +49,12 @@ class LayerNormalization(link.Chain):
                  initial_beta=None):
         super(LayerNormalization, self).__init__()
         if initial_gamma is None:
-            initial_gamma = initializers.One()
+            initial_gamma = 1
         if initial_beta is None:
-            initial_beta = initializers.Zero()
+            initial_beta = 0
 
-        self.add_param('gamma', initializer=initial_gamma)
-        self.add_param('beta', initializer=initial_beta)
+        self.gamma = variable.Parameter(initial_gamma)
+        self.beta = variable.Parameter(initial_beta)
         self.eps = eps
 
         if size is not None:

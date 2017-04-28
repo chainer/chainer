@@ -33,7 +33,8 @@ class Classifier(link.Chain):
     def __init__(self, predictor,
                  lossfun=softmax_cross_entropy.softmax_cross_entropy,
                  accfun=accuracy.accuracy):
-        super(Classifier, self).__init__(predictor=predictor)
+        super(Classifier, self).__init__()
+        self.predictor = predictor
         self.lossfun = lossfun
         self.accfun = accfun
         self.y = None

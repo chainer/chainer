@@ -1,6 +1,7 @@
 from chainer.functions.connection import embed_id
-from chainer import initializers
+from chainer.initializers import normal
 from chainer import link
+from chainer import variable
 
 
 class EmbedID(link.Link):
@@ -33,8 +34,8 @@ class EmbedID(link.Link):
     def __init__(self, in_size, out_size, initialW=None, ignore_label=None):
         super(EmbedID, self).__init__()
         if initialW is None:
-            initialW = initializers.Normal(1.0)
-        self.add_param('W', (in_size, out_size), initializer=initialW)
+            initialW = normal.Normal(1.0)
+        self.W = variable.Parameter(initialW, (in_size, out_size))
         self.ignore_label = ignore_label
 
     def __call__(self, x):

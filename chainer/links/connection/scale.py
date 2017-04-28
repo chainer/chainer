@@ -2,6 +2,7 @@ import chainer
 from chainer.functions.math import scale
 from chainer import link
 from chainer.links.connection import bias
+from chainer import variable
 
 
 class Scale(link.Chain):
@@ -29,7 +30,7 @@ class Scale(link.Chain):
     .. seealso:: See :func:`~chainer.functions.scale` for details.
 
     Attributes:
-        W (~chainer.Variable): Weight parameter if ``W_shape`` is given.
+        W (~chainer.Parameter): Weight parameter if ``W_shape`` is given.
             Otherwise, no W attribute.
         bias (~chainer.links.Bias): Bias term if ``bias_term`` is ``True``.
             Otherwise, no bias attribute.
@@ -41,18 +42,15 @@ class Scale(link.Chain):
 
         # Add W parameter and/or bias term.
         if W_shape is not None:
-            self.add_param('W', W_shape)
-            self.W.data.fill(1)
+            self.W = variable.Parameter(1, W_shape)
             if bias_term:
-                func = bias.Bias(axis, W_shape)
-                self.add_link('bias', func)
+                self.bias = bias.Bias(axis, W_shape)
         else:
             if bias_term:
                 if bias_shape is None:
                     raise ValueError('bias_shape should be given if W is not '
                                      'learnt parameter and bias_term is True.')
-                func = bias.Bias(axis, bias_shape)
-                self.add_link('bias', func)
+                self.bias = bias.Bias(axis, bias_shape)
 
         self.axis = axis
 
