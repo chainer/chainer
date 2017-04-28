@@ -264,6 +264,8 @@ class Variable(object):
         data (numpy.ndarray or cupy.ndarray): Initial data array.
         name (str): Name of the variable.
         grad (numpy.ndarray or cupy.ndarray): Initial gradient array.
+        requires_grad (bool): Boolean indicating whether ``grad`` will be set
+            in backward calculation.
 
     Attributes:
         data: Data array of type either :class:`numpy.ndarray` or
@@ -272,8 +274,6 @@ class Variable(object):
         grad: Gradient array.
         creator: The function who creates this variable. It is ``None`` if the
             variable is not created by any function.
-        requires_grad (bool): Boolean indicating whether ``grad`` will be set
-            in backward calculation.
 
     """
 
