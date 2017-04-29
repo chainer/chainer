@@ -28,6 +28,10 @@ class MaxPoolingND(pooling_nd._PoolingND):
             ndim, ksize, stride=stride, pad=pad, cover_all=cover_all)
 
     def forward_cpu(self, x):
+        self.retain_inputs(())
+        self._in_shape = x[0].shape
+        self._in_dtype = x[0].dtype
+
         col = conv_nd.im2col_nd_cpu(
             x[0], self.ksize, self.stride, self.pad, pval=-float('inf'),
             cover_all=self.cover_all)
@@ -57,6 +61,10 @@ class MaxPoolingND(pooling_nd._PoolingND):
             elif self.ndim == 2:
                 return super(MaxPoolingND, self).forward_gpu(x)
 
+        self.retain_inputs(())
+        self._in_shape = x[0].shape
+        self._in_dtype = x[0].dtype
+
         n, c = x[0].shape[:2]
         dims = x[0].shape[2:]
         ys = tuple(conv_nd.get_conv_outsize(d, k, s, p, self.cover_all)
@@ -80,11 +88,11 @@ class MaxPoolingND(pooling_nd._PoolingND):
         ndim = self.ndim
         n, c = gy[0].shape[:2]
         outs = gy[0].shape[2:]
-        dims = x[0].shape[2:]
+        dims = self._in_shape[2:]
         prod_outs = functools.reduce(mul, outs)
         prod_ksize = functools.reduce(mul, self.ksize)
 
-        gcol = numpy.zeros(n * c * prod_outs * prod_ksize, dtype=x[0].dtype)
+        gcol = numpy.zeros(n * c * prod_outs * prod_ksize, dtype=self._in_dtype)
 
         indexes = self.indexes.flatten()
         indexes += numpy.arange(0, indexes.size * prod_ksize, prod_ksize)
@@ -102,10 +110,10 @@ class MaxPoolingND(pooling_nd._PoolingND):
         if self._used_cudnn:
             return super(MaxPoolingND, self).backward_gpu(x, gy)
 
-        n, c = x[0].shape[:2]
-        dims = x[0].shape[2:]
+        n, c = self._in_shape[:2]
+        dims = self._in_shape[2:]
         ys = gy[0].shape[2:]
-        gx = cuda.cupy.empty_like(x[0])
+        gx = cuda.cupy.empty(self._in_shape, self._in_dtype)
 
         ndim = self.ndim
         in_params, out_params, operation, name = \

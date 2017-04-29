@@ -15,6 +15,10 @@ class MaxPooling2D(pooling_2d.Pooling2D):
     """Max pooling over a set of 2d planes."""
 
     def forward_cpu(self, x):
+        self.retain_inputs(())
+        self._in_shape = x[0].shape
+        self._in_dtype = x[0].dtype
+
         col = conv.im2col_cpu(
             x[0], self.kh, self.kw, self.sy, self.sx, self.ph, self.pw,
             pval=-float('inf'), cover_all=self.cover_all)
@@ -31,6 +35,10 @@ class MaxPooling2D(pooling_2d.Pooling2D):
         if (chainer.should_use_cudnn('>=auto') and
                 pooling_2d._check_cudnn_acceptable_type(x[0].dtype)):
             return super(MaxPooling2D, self).forward_gpu(x)
+
+        self.retain_inputs(())
+        self._in_shape = x[0].shape
+        self._in_dtype = x[0].dtype
 
         n, c, h, w = x[0].shape
         y_h = conv.get_conv_outsize(
@@ -80,11 +88,11 @@ class MaxPooling2D(pooling_2d.Pooling2D):
 
     def backward_cpu(self, x, gy):
         n, c, out_h, out_w = gy[0].shape
-        h, w = x[0].shape[2:]
+        h, w = self._in_shape[2:]
         kh, kw = self.kh, self.kw
 
         gcol = numpy.zeros(
-            (n * c * out_h * out_w * kh * kw), dtype=x[0].dtype)
+            (n * c * out_h * out_w * kh * kw), dtype=self._in_dtype)
 
         indexes = self.indexes.flatten()
         indexes += numpy.arange(0, indexes.size * kh * kw, kh * kw)
@@ -101,9 +109,9 @@ class MaxPooling2D(pooling_2d.Pooling2D):
         if self._used_cudnn:
             return super(MaxPooling2D, self).backward_gpu(x, gy)
 
-        n, c, h, w = x[0].shape
+        n, c, h, w = self._in_shape
         y_h, y_w = gy[0].shape[2:]
-        gx = cuda.cupy.empty_like(x[0])
+        gx = cuda.cupy.empty(self._in_shape, self._in_dtype)
 
         cuda.elementwise(
             'raw T gy, raw S indexes, int32 h, int32 w,'
