@@ -16,6 +16,8 @@ class Zoneout(function.Function):
         type_check.expect(in_types.size() == 2)
 
     def forward(self, inputs):
+        self.retain_inputs(())
+
         h, x = inputs
         xp = cuda.get_array_module(*x)
         if xp is numpy:
@@ -28,8 +30,6 @@ class Zoneout(function.Function):
         return h * self.flag_h + x * self.flag_x,
 
     def backward(self, inputs, gy):
-        h, x = inputs
-
         return gy[0] * self.flag_h, gy[0] * self.flag_x,
 
 
