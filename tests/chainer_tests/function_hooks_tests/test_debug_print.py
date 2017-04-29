@@ -10,11 +10,27 @@ from chainer.testing import attr
 import numpy
 
 
+class DummyFunction(chainer.Function):
+
+    def forward(self, inputs):
+        self.retain_inputs((0,))
+        return inputs[0],
+
+    def backward(self, inputs, grads):
+        return (grads[0],) + (None,) * (len(inputs) - 1)
+
+
+class DummyLink(chainer.Link):
+
+    def __call__(self, *inputs):
+        return DummyFunction()(*inputs)
+
+
 class TestPrintHookToLink(unittest.TestCase):
 
     def setUp(self):
         self.h = function_hooks.PrintHook()
-        self.l = links.Linear(5, 5)
+        self.l = DummyLink()
         self.x = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
         self.gy = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
 
@@ -50,7 +66,7 @@ class TestPrintHookToFunction(unittest.TestCase):
 
     def setUp(self):
         self.h = function_hooks.PrintHook()
-        self.f = functions.Exp()
+        self.f = DummyFunction()
         self.f.add_hook(self.h)
         self.x = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
         self.gy = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
