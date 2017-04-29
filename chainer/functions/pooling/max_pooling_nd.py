@@ -92,7 +92,8 @@ class MaxPoolingND(pooling_nd._PoolingND):
         prod_outs = functools.reduce(mul, outs)
         prod_ksize = functools.reduce(mul, self.ksize)
 
-        gcol = numpy.zeros(n * c * prod_outs * prod_ksize, dtype=self._in_dtype)
+        gcol = numpy.zeros(
+            n * c * prod_outs * prod_ksize, dtype=self._in_dtype)
 
         indexes = self.indexes.flatten()
         indexes += numpy.arange(0, indexes.size * prod_ksize, prod_ksize)
