@@ -4,7 +4,6 @@ import chainer
 from chainer import cuda
 from chainer import function_hooks
 from chainer import functions
-from chainer import gradient_check
 from chainer import links
 from chainer import testing
 from chainer.testing import attr
@@ -33,15 +32,18 @@ class TestPrintHookToLink(unittest.TestCase):
             self.l(chainer.Variable(cuda.to_gpu(self.x)))
 
     def test_backward_cpu(self):
+        y = self.l(chainer.Variable(self.x))
+        y.grad = self.gy
         with self.h:
-            gradient_check.check_backward(self.l, self.x, self.gy)
+            y.backward()
 
     @attr.gpu
     def test_backward_gpu(self):
         self.l.to_gpu()
+        y = self.l(chainer.Variable(cuda.to_gpu(self.x)))
+        y.grad = cuda.to_gpu(self.gy)
         with self.h:
-            gradient_check.check_backward(
-                self.l, cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
+            y.backward()
 
 
 class TestPrintHookToFunction(unittest.TestCase):
@@ -61,12 +63,15 @@ class TestPrintHookToFunction(unittest.TestCase):
         self.f(chainer.Variable(cuda.to_gpu(self.x)))
 
     def test_backward_cpu(self):
-        gradient_check.check_backward(self.f, self.x, self.gy)
+        y = self.f(chainer.Variable(self.x))
+        y.grad = self.gy
+        y.backward()
 
     @attr.gpu
     def test_backward_gpu(self):
-        gradient_check.check_backward(
-            self.f, cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
+        y = self.f(chainer.Variable(cuda.to_gpu(self.x)))
+        y.grad = cuda.to_gpu(self.gy)
+        y.backward()
 
 
 testing.run_module(__name__, __file__)
