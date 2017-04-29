@@ -489,6 +489,8 @@ class Link(object):
             # Note: There should only be uninitialized parameters
             # during deserialization.
             initialized_value = serializer(name, None)
+            if initialized_value is None:
+                continue
             self.add_param(name, initialized_value.shape)
             uninitialized_value = d[name].data
             if isinstance(uninitialized_value, numpy.ndarray):
