@@ -174,7 +174,7 @@ public:
 
   __device__ T& operator[](int i) {
     char* ptr = reinterpret_cast<char*>(data_);
-    for (int dim = ndim; --dim > 0; ) {
+    for (int dim = ndim - 1; --dim > 0; ) {
       ptr += strides_[dim] * (i % shape_[dim]);
       i /= shape_[dim];
     }
