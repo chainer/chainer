@@ -264,7 +264,7 @@ class BatchNormalizationFunction(function.Function):
 
 
 def batch_normalization(x, gamma, beta, **kwargs):
-    """batch_normalization(x, gamma, beta, eps=2e-5, running_mean=None, running_var=None, decay=0.9):
+    """batch_normalization(x, gamma, beta, eps=2e-5, running_mean=None, running_var=None, decay=0.9)
 
     Batch normalization function.
 
@@ -326,7 +326,7 @@ def batch_normalization(x, gamma, beta, **kwargs):
 
     .. seealso:: :class:`links.BatchNormalization`
 
-    """
+    """  # NOQA
 
     argument.check_unexpected_kwargs(
         kwargs, train='train argument is not supported anymore. '
