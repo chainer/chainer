@@ -14,4 +14,5 @@ def parse_kwargs(kwargs, *name_and_values):
 
 
 def assert_kwargs_empty(kwargs):
-    return parse_kwargs(kwargs)
+    # It only checks if kwargs is empty.
+    parse_kwargs(kwargs)
