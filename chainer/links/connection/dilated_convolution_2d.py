@@ -78,12 +78,12 @@ class DilatedConvolution2D(link.Link):
             >>> l = L.DilatedConvolution2D(None, 7, 5, 1, 0, 2)
             >>> y = l(x)
             >>> y.shape
-            >>> (1, 7, 2, 2)
+            (1, 7, 2, 2)
 
             >>> l = L.DilatedConvolution2D(7, 5, stride=1, pad=0, dilate=2)
             >>> y = l(x)
             >>> y.shape
-            >>> (1, 7, 2, 2)
+            (1, 7, 2, 2)
 
     """
 
