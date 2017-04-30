@@ -37,14 +37,14 @@ class TestPrintHookToFunction(unittest.TestCase):
 input data
 <variable at 0x[0-9a-f]+>
 - device: CPU
-- backend: <type 'numpy.ndarray'>
+- backend: <(type|class) 'numpy.ndarray'>
 - shape: \(3, 5\)
 - dtype: float32
 - statistics: mean=[0-9.\-e]+, std=[0-9.\-e]+
 - grad: None
 <variable at 0x[0-9a-f]+>
 - device: CPU
-- backend: <type 'numpy.ndarray'>
+- backend: <(type|class) 'numpy.ndarray'>
 - shape: \(3, 5\)
 - dtype: float32
 - statistics: mean=[0-9.\-e]+, std=[0-9.\-e]+
@@ -62,14 +62,14 @@ input data
 input data
 <variable at 0x[0-9a-f]+>
 - device: <CUDA Device 0>
-- backend: <type 'cupy.core.core.ndarray'>
+- backend: <(type|class) 'cupy.core.core.ndarray'>
 - shape: \(3, 5\)
 - dtype: float32
 - statistics: mean=[0-9.\-e]+, std=[0-9.\-e]+
 - grad: None
 <variable at 0x[0-9a-f]+>
 - device: <CUDA Device 0>
-- backend: <type 'cupy.core.core.ndarray'>
+- backend: <(type|class) 'cupy.core.core.ndarray'>
 - shape: \(3, 5\)
 - dtype: float32
 - statistics: mean=[0-9.\-e]+, std=[0-9.\-e]+
@@ -87,7 +87,7 @@ input data
 input data
 <variable at 0x[0-9a-f]+>
 - device: CPU
-- backend: <type 'numpy.ndarray'>
+- backend: <(type|class) 'numpy.ndarray'>
 - shape: \(3, 5\)
 - dtype: float32
 - statistics: mean=[0-9.\-e]+, std=[0-9.\-e]+
@@ -96,7 +96,7 @@ input data
 output gradient
 <variable at 0x[0-9a-f]+>
 - device: CPU
-- backend: <type 'numpy.ndarray'>
+- backend: <(type|class) 'numpy.ndarray'>
 - shape: \(3, 5\)
 - dtype: float32
 - statistics: mean=[0-9.\-e]+, std=[0-9.\-e]+
@@ -116,7 +116,7 @@ output gradient
 input data
 <variable at 0x[0-9a-f]+>
 - device: <CUDA Device 0>
-- backend: <type 'cupy.core.core.ndarray'>
+- backend: <(type|class) 'cupy.core.core.ndarray'>
 - shape: \(3, 5\)
 - dtype: float32
 - statistics: mean=[0-9.\-e]+, std=[0-9.\-e]+
@@ -125,7 +125,7 @@ input data
 output gradient
 <variable at 0x[0-9a-f]+>
 - device: <CUDA Device 0>
-- backend: <type 'cupy.core.core.ndarray'>
+- backend: <(type|class) 'cupy.core.core.ndarray'>
 - shape: \(3, 5\)
 - dtype: float32
 - statistics: mean=[0-9.\-e]+, std=[0-9.\-e]+
