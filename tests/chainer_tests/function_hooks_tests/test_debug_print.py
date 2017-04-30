@@ -35,7 +35,7 @@ class TestPrintHookToFunction(unittest.TestCase):
     def test_forward_cpu(self):
         self.f.add_hook(self.h)
         self.f(chainer.Variable(self.x))
-        expect = '''function\tDummyFunction
+        expect = '''^function\tDummyFunction
 input data
 <variable at 0x[0-9a-f]+>
 - device: CPU
@@ -43,7 +43,7 @@ input data
 - shape: \(3, 5\)
 - dtype: float32
 - statistics: mean=[0-9.\-e]+, std=[0-9.\-e]+
-- grad: None
+- grad: None$
 '''
         actual = self.io.getvalue()
         self.assertTrue(re.match(expect, actual), actual)
@@ -52,7 +52,7 @@ input data
     def test_forward_gpu(self):
         self.f.add_hook(self.h)
         self.f(chainer.Variable(cuda.to_gpu(self.x)))
-        expect = '''function\tDummyFunction
+        expect = '''^function\tDummyFunction
 input data
 <variable at 0x[0-9a-f]+>
 - device: <CUDA Device 0>
@@ -60,7 +60,7 @@ input data
 - shape: \(3, 5\)
 - dtype: float32
 - statistics: mean=[0-9.\-e]+, std=[0-9.\-e]+
-- grad: None
+- grad: None$
 '''
         actual = self.io.getvalue()
         self.assertTrue(re.match(expect, actual), actual)
@@ -70,7 +70,7 @@ input data
         y.grad = self.gy
         self.f.add_hook(self.h)
         y.backward()
-        expect = '''function\tDummyFunction
+        expect = '''^function\tDummyFunction
 input data
 <variable at 0x[0-9a-f]+>
 - device: CPU
@@ -86,7 +86,7 @@ output gradient
 - shape: \(3, 5\)
 - dtype: float32
 - statistics: mean=[0-9.\-e]+, std=[0-9.\-e]+
-- grad: mean=[0-9.\-e]+, std=[0-9.\-e]+
+- grad: mean=[0-9.\-e]+, std=[0-9.\-e]+$
 '''
         actual = self.io.getvalue()
         self.assertTrue(re.match(expect, actual), actual)
@@ -97,7 +97,7 @@ output gradient
         y.grad = cuda.to_gpu(self.gy)
         self.f.add_hook(self.h)
         y.backward()
-        expect = '''function\tDummyFunction
+        expect = '''^function\tDummyFunction
 input data
 <variable at 0x[0-9a-f]+>
 - device: <CUDA Device 0>
@@ -113,7 +113,7 @@ output gradient
 - shape: \(3, 5\)
 - dtype: float32
 - statistics: mean=[0-9.\-e]+, std=[0-9.\-e]+
-- grad: mean=[0-9.\-e]+, std=[0-9.\-e]+
+- grad: mean=[0-9.\-e]+, std=[0-9.\-e]+$
 '''
         actual = self.io.getvalue()
         self.assertTrue(re.match(expect, actual), actual)
