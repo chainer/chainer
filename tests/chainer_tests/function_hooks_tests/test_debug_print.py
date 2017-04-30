@@ -34,9 +34,16 @@ class TestPrintHookToFunction(unittest.TestCase):
 
     def test_forward_cpu(self):
         self.f.add_hook(self.h)
-        self.f(chainer.Variable(self.x))
+        self.f(chainer.Variable(self.x), chainer.Variable(self.x))
         expect = '''^function\tDummyFunction
 input data
+<variable at 0x[0-9a-f]+>
+- device: CPU
+- backend: <type 'numpy.ndarray'>
+- shape: \(3, 5\)
+- dtype: float32
+- statistics: mean=[0-9.\-e]+, std=[0-9.\-e]+
+- grad: None
 <variable at 0x[0-9a-f]+>
 - device: CPU
 - backend: <type 'numpy.ndarray'>
@@ -51,9 +58,17 @@ input data
     @attr.gpu
     def test_forward_gpu(self):
         self.f.add_hook(self.h)
-        self.f(chainer.Variable(cuda.to_gpu(self.x)))
+        self.f(chainer.Variable(cuda.to_gpu(self.x)),
+               chainer.Variable(cuda.to_gpu(self.x)))
         expect = '''^function\tDummyFunction
 input data
+<variable at 0x[0-9a-f]+>
+- device: <CUDA Device 0>
+- backend: <type 'cupy.core.core.ndarray'>
+- shape: \(3, 5\)
+- dtype: float32
+- statistics: mean=[0-9.\-e]+, std=[0-9.\-e]+
+- grad: None
 <variable at 0x[0-9a-f]+>
 - device: <CUDA Device 0>
 - backend: <type 'cupy.core.core.ndarray'>
@@ -66,7 +81,7 @@ input data
         self.assertTrue(re.match(expect, actual), actual)
 
     def test_backward_cpu(self):
-        y = self.f(chainer.Variable(self.x))
+        y = self.f(chainer.Variable(self.x), chainer.Variable(self.x))
         y.grad = self.gy
         self.f.add_hook(self.h)
         y.backward()
@@ -79,6 +94,7 @@ input data
 - dtype: float32
 - statistics: mean=[0-9.\-e]+, std=[0-9.\-e]+
 - grad: None
+\(removed\)
 output gradient
 <variable at 0x[0-9a-f]+>
 - device: CPU
@@ -93,7 +109,8 @@ output gradient
 
     @attr.gpu
     def test_backward_gpu(self):
-        y = self.f(chainer.Variable(cuda.to_gpu(self.x)))
+        y = self.f(chainer.Variable(cuda.to_gpu(self.x)),
+                   chainer.Variable(cuda.to_gpu(self.x)))
         y.grad = cuda.to_gpu(self.gy)
         self.f.add_hook(self.h)
         y.backward()
@@ -106,6 +123,7 @@ input data
 - dtype: float32
 - statistics: mean=[0-9.\-e]+, std=[0-9.\-e]+
 - grad: None
+\(removed\)
 output gradient
 <variable at 0x[0-9a-f]+>
 - device: <CUDA Device 0>
