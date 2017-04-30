@@ -25,7 +25,7 @@ install_requires = [
     'mock',
     'nose',
     'numpy>=1.9.0',
-    'protobuf>=2.6.0',
+    'protobuf>=3.0.0',
     'six>=1.9.0',
 ]
 cupy_require = 'cupy==2.0.0a1'
