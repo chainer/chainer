@@ -76,12 +76,12 @@ class Linear(link.Link):
             subsequent arguments from ``bias`` as keyword arguments. So the
             below two cases are the same.
 
-            >>> l = L.Linear(None, 10, 0, False)
+            >>> l = L.Linear(None, 10, False, None, 0)
             >>> y = l(x)
             >>> y.shape
             (1, 10)
 
-            >>> l = L.Linear(10, bias=0, nobias=False)
+            >>> l = L.Linear(10, nobias=False, initialW=None, initial_bias=0)
             >>> y = l(x)
             >>> y.shape
             (1, 10)
