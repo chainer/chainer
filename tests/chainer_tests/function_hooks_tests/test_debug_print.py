@@ -6,8 +6,6 @@ import six
 import chainer
 from chainer import cuda
 from chainer import function_hooks
-from chainer import functions
-from chainer import links
 from chainer import testing
 from chainer.testing import attr
 import numpy
