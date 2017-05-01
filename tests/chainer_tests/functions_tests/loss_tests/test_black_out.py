@@ -11,10 +11,6 @@ from chainer.testing import attr
 from chainer.testing import condition
 
 
-@testing.parameterize(
-    {'reduce': 'mean'},
-    {'reduce': 'no'}
-)
 class TestBlackOut(unittest.TestCase):
 
     batch_size = 5
@@ -34,11 +30,8 @@ class TestBlackOut(unittest.TestCase):
         self.samples = numpy.random.randint(
             self.n_vocab, size=self.batch_size * self.n_samples) \
             .astype(numpy.int32).reshape((self.batch_size, self.n_samples))
-        if self.reduce == 'no':
-            self.gy = numpy.random.uniform(
-                -1, 1, (self.batch_size,)).astype(numpy.float32)
-        else:
-            self.gy = numpy.random.uniform(-1, 1, ()).astype(numpy.float32)
+        self.gy = numpy.random.uniform(
+            -1, 1, (self.batch_size,)).astype(numpy.float32)
 
     def check_forward(self, x_data, t_data, w_data, samples_data):
         x = chainer.Variable(x_data)
@@ -46,7 +39,7 @@ class TestBlackOut(unittest.TestCase):
         w = chainer.Variable(w_data)
         samples = chainer.Variable(samples_data)
 
-        y = functions.black_out(x, t, w, samples, self.reduce)
+        y = functions.black_out(x, t, w, samples)
 
         expect_y = numpy.empty((self.batch_size), dtype=numpy.float32)
         for b in range(self.batch_size):
@@ -63,12 +56,8 @@ class TestBlackOut(unittest.TestCase):
 
             expect_y[b] = l
 
-        if self.reduce == 'mean':
-            loss = -numpy.sum(expect_y) / self.batch_size
-        else:
-            loss = -expect_y
-
-        testing.assert_allclose(y.data, loss, atol=1.e-4)
+        expect_y *= -1
+        testing.assert_allclose(y.data, expect_y, atol=1.e-4)
 
     @condition.retry(3)
     def test_forward_cpu(self):
@@ -83,7 +72,7 @@ class TestBlackOut(unittest.TestCase):
 
     def check_backward(self, x_data, t_data, w_data, samples_data, gy_data):
         def _black_out(x, t, W, samples):
-            return functions.black_out(x, t, W, samples, self.reduce)
+            return functions.black_out(x, t, W, samples)
 
         gradient_check.check_backward(
             _black_out, (x_data, t_data, w_data, samples_data),
