@@ -231,7 +231,7 @@ class ResNetLayers(link.Chain):
             'Use chainer.using_config',
             volatile='volatile argument is not supported anymore. '
             'Use chainer.using_config')
-        argument.parse_kwargs(kwargs)
+        argument.assert_kwargs_empty(kwargs)
 
         x = concat_examples([prepare(img, size=size) for img in images])
         x = Variable(self.xp.asarray(x))

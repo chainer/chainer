@@ -470,7 +470,7 @@ def n_step_lstm(
         'Use chainer.using_config',
         use_cudnn='use_cudnn argument is not supported anymore. '
         'Use chainer.using_config')
-    argument.parse_kwargs(kwargs)
+    argument.assert_kwargs_empty(kwargs)
 
     xp = cuda.get_array_module(hx, hx.data)
 

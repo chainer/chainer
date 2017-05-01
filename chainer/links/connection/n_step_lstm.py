@@ -53,7 +53,7 @@ class NStepLSTM(link.ChainList):
         argument.check_unexpected_kwargs(
             kwargs, use_cudnn='use_cudnn argument is not supported anymore. '
             'Use chainer.using_config')
-        argument.parse_kwargs(kwargs)
+        argument.assert_kwargs_empty(kwargs)
 
         weights = []
         for i in six.moves.range(n_layers):
