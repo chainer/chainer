@@ -17,7 +17,7 @@ class Copy(function.Function):
 
     def forward_cpu(self, x):
         self.retain_inputs(())
-        self._in_device = cuda.get_device(x[0])
+        self._in_device = cuda.get_device_from_array(x[0])
         if self.out_device == -1:
             return x[0].copy(),
         else:
@@ -25,7 +25,7 @@ class Copy(function.Function):
 
     def forward_gpu(self, x):
         self.retain_inputs(())
-        self._in_device = cuda.get_device(x[0])
+        self._in_device = cuda.get_device_from_array(x[0])
         if self.out_device == -1:
             return cuda.to_cpu(x[0]),
         else:
