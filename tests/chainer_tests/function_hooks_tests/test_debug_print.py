@@ -33,19 +33,20 @@ class TestPrintHookToFunction(unittest.TestCase):
     def test_forward_cpu(self):
         self.f.add_hook(self.h)
         self.f(chainer.Variable(self.x), chainer.Variable(self.x))
+        # In some environments, shape is long.
         expect = '''^function\tDummyFunction
 input data
 <variable at 0x[0-9a-f]+>
 - device: CPU
 - backend: <(type|class) 'numpy.ndarray'>
-- shape: \(3, 5\)
+- shape: \(3L?, 5L?\)
 - dtype: float32
 - statistics: mean=[0-9.\-e]+, std=[0-9.\-e]+
 - grad: None
 <variable at 0x[0-9a-f]+>
 - device: CPU
 - backend: <(type|class) 'numpy.ndarray'>
-- shape: \(3, 5\)
+- shape: \(3L?, 5L?\)
 - dtype: float32
 - statistics: mean=[0-9.\-e]+, std=[0-9.\-e]+
 - grad: None$
@@ -63,14 +64,14 @@ input data
 <variable at 0x[0-9a-f]+>
 - device: <CUDA Device 0>
 - backend: <(type|class) 'cupy.core.core.ndarray'>
-- shape: \(3, 5\)
+- shape: \(3L?, 5L?\)
 - dtype: float32
 - statistics: mean=[0-9.\-e]+, std=[0-9.\-e]+
 - grad: None
 <variable at 0x[0-9a-f]+>
 - device: <CUDA Device 0>
 - backend: <(type|class) 'cupy.core.core.ndarray'>
-- shape: \(3, 5\)
+- shape: \(3L?, 5L?\)
 - dtype: float32
 - statistics: mean=[0-9.\-e]+, std=[0-9.\-e]+
 - grad: None$
@@ -88,7 +89,7 @@ input data
 <variable at 0x[0-9a-f]+>
 - device: CPU
 - backend: <(type|class) 'numpy.ndarray'>
-- shape: \(3, 5\)
+- shape: \(3L?, 5L?\)
 - dtype: float32
 - statistics: mean=[0-9.\-e]+, std=[0-9.\-e]+
 - grad: None
@@ -97,7 +98,7 @@ output gradient
 <variable at 0x[0-9a-f]+>
 - device: CPU
 - backend: <(type|class) 'numpy.ndarray'>
-- shape: \(3, 5\)
+- shape: \(3L?, 5L?\)
 - dtype: float32
 - statistics: mean=[0-9.\-e]+, std=[0-9.\-e]+
 - grad: mean=[0-9.\-e]+, std=[0-9.\-e]+$
@@ -117,7 +118,7 @@ input data
 <variable at 0x[0-9a-f]+>
 - device: <CUDA Device 0>
 - backend: <(type|class) 'cupy.core.core.ndarray'>
-- shape: \(3, 5\)
+- shape: \(3L?, 5L?\)
 - dtype: float32
 - statistics: mean=[0-9.\-e]+, std=[0-9.\-e]+
 - grad: None
@@ -126,7 +127,7 @@ output gradient
 <variable at 0x[0-9a-f]+>
 - device: <CUDA Device 0>
 - backend: <(type|class) 'cupy.core.core.ndarray'>
-- shape: \(3, 5\)
+- shape: \(3L?, 5L?\)
 - dtype: float32
 - statistics: mean=[0-9.\-e]+, std=[0-9.\-e]+
 - grad: mean=[0-9.\-e]+, std=[0-9.\-e]+$
