@@ -62,6 +62,10 @@ class PrintHook(function.FunctionHook):
         self._print('function\t{}'.format(function.label))
         self._print('input data')
         for d in in_data:
+            if d is None:
+                # Some inputs can be removed with `retain_grad`.
+                self._print('(removed)')
+                continue
             self._print(chainer.Variable(d).debug_print())
         if out_grad is not None:
             self._print('output gradient')
