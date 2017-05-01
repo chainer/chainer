@@ -7,7 +7,7 @@ from chainer.functions.array.concat import concat
 from chainer.functions.array.pad import pad as pad_func
 from chainer.functions.array.spatial_transformer_sampler import\
     spatial_transformer_sampler
-from chainer.functions.math.matmul import batch_matmul
+from chainer.functions.math.matmul import matmul
 
 
 def deformable_convolution_2d_sampler(x, offset, W, b=None, stride=1, pad=0,
@@ -80,11 +80,10 @@ def deformable_convolution_2d_sampler(x, offset, W, b=None, stride=1, pad=0,
     x_pad = pad_func(x, ((0, 0), (0, 0), (ph, ph), (pw, pw)), 'constant')
     x_st = spatial_transformer_sampler(x_pad, grid, use_cudnn)
 
-    x_st = x_st.reshape(n, c * kh * kw, out_h * out_w)
-    W = W.reshape(out_c, c * kh * kw)
-    W = broadcast_to(W, (n, out_c, c * kh * kw))
-    y = batch_matmul(W, x_st)
-    y = y.reshape(n, out_c, out_h, out_w)
+    x_st = x_st.transpose(0, 3, 1, 2).reshape(n * out_h * out_w, c * kh * kw)
+    W = W.transpose(1, 2, 3, 0).reshape(c * kh * kw, out_c)
+    y = matmul(x_st, W)
+    y = y.reshape(n, out_h, out_w, out_c).transpose(0, 3, 1, 2)
 
     if b is not None:
         b = broadcast_to(b[None, :, None, None], y.shape)
