@@ -115,7 +115,7 @@ class NpzDeserializer(serializer.Deserializer):
         return value
 
 
-def load_npz(filename, obj):
+def load_npz(filename, obj, path=''):
     """Loads an object from the file in NPZ format.
 
     This is a short-cut function to load from an `.npz` file that contains only
@@ -127,5 +127,5 @@ def load_npz(filename, obj):
 
     """
     with numpy.load(filename) as f:
-        d = NpzDeserializer(f)
+        d = NpzDeserializer(f, path=path)
         d.load(obj)
