@@ -23,7 +23,7 @@ def _create_ln(*args, **kwargs):
 
 @testing.parameterize(*(testing.product({
     'batchsize': [1, 5],
-    'size': [10, 100],
+    'size': [10, 20],
     'dtype': [numpy.float32],
 })))
 class LayerNormalizationTest(unittest.TestCase):
@@ -43,8 +43,7 @@ class LayerNormalizationTest(unittest.TestCase):
             self.check_backward_optionss = {'atol': 5e-1, 'rtol': 1e-1}
 
     def check_forward(self, x_data):
-        x = chainer.Variable(x_data)
-        y = self.link(x)
+        y = self.link(x_data)
         self.assertEqual(y.data.dtype, self.dtype)
 
         unbatched_concat_y = chainer.functions.concat(

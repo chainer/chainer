@@ -18,6 +18,7 @@ class Depth2Space(function.Function):
                           )
 
     def forward(self, inputs):
+        self.retain_inputs(())
         X, = inputs
         xp = cuda.get_array_module(X)
         bsize, c, a, b = X.shape

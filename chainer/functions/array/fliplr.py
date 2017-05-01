@@ -15,11 +15,12 @@ class FlipLR(function.Function):
             x_type.ndim >= 2)
 
     def forward(self, inputs):
+        self.retain_inputs(())
         xp = cuda.get_array_module(*inputs)
         return xp.fliplr(inputs[0]),
 
     def backward(self, inputs, grads):
-        xp = cuda.get_array_module(*inputs)
+        xp = cuda.get_array_module(*grads)
         return xp.fliplr(grads[0]),
 
 
