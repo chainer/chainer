@@ -86,7 +86,6 @@ class TestHDF5Serializer(unittest.TestCase):
         ret = self.serializer('x', None)
         self.assertIs(ret, None)
 
-        print(list(self.hdf5file.keys()))
         dset = self.hdf5file['x']
         self.assertIsInstance(dset, h5py.Dataset)
         self.assertIs(dset.shape, None)
