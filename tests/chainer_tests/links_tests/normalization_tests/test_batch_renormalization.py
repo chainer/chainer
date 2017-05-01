@@ -73,7 +73,7 @@ class BatchRenormalizationTest(unittest.TestCase):
             # Need to add some noise to running_mean and running_var,
             # otherwise we will always get r=1, d=0
             self.running_mean = self.mean + numpy.random.uniform(
-                    -1, 1, self.mean.shape).astype(self.dtype)
+                -1, 1, self.mean.shape).astype(self.dtype)
             self.running_var = numpy.abs(self.var + numpy.random.uniform(
                 -1, 1, self.var.shape).astype(self.dtype))
             self.link.avg_mean[...] = self.running_mean

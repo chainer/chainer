@@ -233,4 +233,4 @@ def batch_renormalization(x, gamma, beta, rmax, dmax, eps=2e-5,
 
 def fixed_batch_renormalization(x, gamma, beta, mean, var, eps=2e-5):
     return BatchRenormalizationFunction(eps, None, None, False, 0.0)(
-                                        x, gamma, beta, mean, var)
+        x, gamma, beta, mean, var)
