@@ -9,16 +9,10 @@ class Contrastive(function.Function):
 
     """Contrastive loss function."""
 
-    def __init__(self, margin, reduce='mean'):
+    def __init__(self, margin):
         if margin <= 0:
             raise ValueError("margin should be positive value.")
         self.margin = margin
-
-        if reduce not in ('mean', 'no'):
-            raise ValueError(
-                "only 'mean' and 'no' are valid for 'reduce', but '%s' is "
-                'given' % reduce)
-        self.reduce = reduce
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 3)
@@ -46,8 +40,6 @@ class Contrastive(function.Function):
         self.mdist = self.margin - self.dist
         dist = xp.maximum(self.mdist, 0)
         loss = (y * self.dist_sq + (1 - y) * dist * dist) * .5
-        if self.reduce == 'mean':
-            loss = xp.sum(loss) / x0.shape[0]
         return xp.array(loss, dtype=xp.float32),
 
     def backward(self, inputs, gy):
@@ -56,10 +48,7 @@ class Contrastive(function.Function):
 
         x_dim = x0.shape[1]
         y = xp.repeat(y[:, None], x_dim, axis=1)
-        if self.reduce == 'mean':
-            alpha = gy[0] / y.shape[0]
-        else:
-            alpha = gy[0][:, None]
+        alpha = gy[0][:, None]
         dist = xp.repeat(self.dist[:, None], x_dim, axis=1)
         # avoid division by zero
         dist = xp.maximum(dist, 1e-8)
@@ -74,7 +63,7 @@ class Contrastive(function.Function):
         return gx0, -gx0, None
 
 
-def contrastive(x0, x1, y, margin=1, reduce='mean'):
+def contrastive(x0, x1, y, margin=1):
     """Computes contrastive loss.
 
     It takes a pair of samples and a label as inputs.
@@ -94,11 +83,6 @@ def contrastive(x0, x1, y, margin=1, reduce='mean'):
     :math:`{\\bf x_0}_n` and :math:`{\\bf x_1}_n` are :math:`n`-th
     K-dimensional vectors of ``x0`` and ``x1``.
 
-    The output is a variable whose value depends on the value of
-    the option ``reduce``. If it is ``'no'``, it holds the elementwise
-    loss values. If it is ``'mean'``, this function takes a mean of
-    loss values.
-
     Args:
         x0 (~chainer.Variable): The first input variable. The shape should be
             (N, K), where N denotes the mini-batch size, and K denotes the
@@ -109,16 +93,12 @@ def contrastive(x0, x1, y, margin=1, reduce='mean'):
             should be ``(N,)``, where N denotes the mini-batch size.
         margin (float): A parameter for contrastive loss. It should be positive
             value.
-        recude (str): Reduction option. Its value must be either
-            ``'mean'`` or ``'no'``. Otherwise, :class:`ValueError` is raised.
 
     Returns:
         ~chainer.Variable:
             A variable holding the loss value(s) calculated by the
-            above equation.
-            If ``reduce`` is ``'no'``, the output variable holds array
-            whose shape is same as one of (hence both of) input variables.
-            If it is ``'mean'``, the output variable holds a scalar value.
+            above equation, whose shape is same as one of (hence both of)
+            input variables.
 
     .. note::
         This cost can be used to train siamese networks. See `Learning a
@@ -127,4 +107,4 @@ def contrastive(x0, x1, y, margin=1, reduce='mean'):
         for details.
 
     """
-    return Contrastive(margin, reduce)(x0, x1, y)
+    return Contrastive(margin)(x0, x1, y)
