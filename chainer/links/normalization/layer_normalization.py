@@ -4,8 +4,6 @@ from chainer.functions.math import scale
 from chainer.functions.math import sqrt
 from chainer.functions.math import square
 from chainer.functions.math import sum
-from chainer import initializers
-from chainer.initializers import constant
 from chainer import link
 from chainer import utils
 from chainer import variable

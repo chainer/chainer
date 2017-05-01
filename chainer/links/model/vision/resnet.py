@@ -448,7 +448,7 @@ def prepare(image, size=(224, 224)):
     return image
 
 
-class BuildingBlock(link.ChainList):
+class BuildingBlock(link.Chain):
 
     """A building block that consists of several Bottleneck layers.
 
@@ -465,16 +465,18 @@ class BuildingBlock(link.ChainList):
     def __init__(self, n_layer, in_channels, mid_channels,
                  out_channels, stride, initialW=None):
         super(BuildingBlock, self).__init__()
-        self.append(BottleneckA(
-                in_channels, mid_channels, out_channels, stride, initialW))
+        self.a = BottleneckA(
+            in_channels, mid_channels, out_channels, stride, initialW)
+        self.forward = [self.a]
         for i in range(n_layer - 1):
             name = 'b{}'.format(i + 1)
             bottleneck = BottleneckB(out_channels, mid_channels, initialW)
-            self.append(bottleneck)
+            setattr(self, name, bottleneck)
+            self.forward.append(bottleneck)
 
     def __call__(self, x):
-        for layer in self:
-            x = layer(x)
+        for l in self.forward:
+            x = l(x)
         return x
 
 
