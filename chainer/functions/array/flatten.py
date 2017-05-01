@@ -16,7 +16,7 @@ def flatten(x):
     """Flatten a given array into one dimension.
 
     Args:
-        x (list of :class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`): Input variable.
 
     Returns:

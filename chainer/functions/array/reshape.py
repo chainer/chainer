@@ -51,12 +51,36 @@ def reshape(x, shape):
     """Reshapes an input variable without copy.
 
     Args:
-        x (~chainer.Variable): Input variable.
-        shape (tuple of ints): Target shape.
+        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Input variable.
+        shape (:class:`tuple` of :class:`int` s):
+            The `size` of shape (`size` means the number of elements) must be
+            equal to that of original shape. One shape dimension can be -1. In
+            this case, the value is inferred from the length of the array and
+            remaining dimensions.
 
     Returns:
-        ~chainer.Variable: Variable that holds a reshaped version of the input
-            variable.
+        ~chainer.Variable:
+            Variable that holds a reshaped version of the input variable.
+
+    .. seealso:: :func:`numpy.reshape`, :func:`cupy.reshape`
+
+    .. admonition:: Example
+
+        >>> x = np.array([[1, 2, 3, 4], [5, 6, 7, 8]])
+        >>> y = F.reshape(x, (8,))
+        >>> y.shape
+        (8,)
+        >>> y.data
+        array([1, 2, 3, 4, 5, 6, 7, 8])
+        >>> y = F.reshape(x, (4,-1))
+        >>> y.shape
+        (4, 2)
+        >>> y.data
+        array([[1, 2],
+               [3, 4],
+               [5, 6],
+               [7, 8]])
 
     """
     return Reshape(shape)(x)
