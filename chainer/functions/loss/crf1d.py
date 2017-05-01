@@ -6,10 +6,9 @@ from chainer.functions.array import split_axis
 from chainer.functions.connection import embed_id
 from chainer.functions.math import logsumexp
 from chainer.functions.math import minmax
-from chainer.functions.math import sum as _sum
 
 
-def crf1d(cost, xs, ys, reduce='mean'):
+def crf1d(cost, xs, ys):
     """Calculates negative log-likelihood of linear-chain CRF.
 
     It takes a transition cost matrix, a sequence of costs, and a sequence of
@@ -63,10 +62,6 @@ def crf1d(cost, xs, ys, reduce='mean'):
        It calculates mean of the negative log-likelihood of the three
        sequences.
 
-       The output is a variable whose value depends on the value of
-       the option ``reduce``. If it is ``'no'``, it holds the elementwise
-       loss values. If it is ``'mean'``, it holds mean of the loss values.
-
 
     Args:
         cost (Variable): A :math:`K \\times K` matrix which holds transition
@@ -85,12 +80,12 @@ def crf1d(cost, xs, ys, reduce='mean'):
             When ``x`` in ``xs`` has the different :math:`B`, correspoding
             ``y`` has the same :math:`B`. In other words, ``ys`` must satisfy
             ``ys[i].shape == xs[i].shape[0:1]`` for all ``i``.
-        reduce (str): Reduction option. Its value must be either
-            ``'mean'`` or ``'no'``. Otherwise, :class:`ValueError` is raised.
 
     Returns:
-        ~chainer.Variable: A variable holding the average negative
-            log-likelihood of the input sequences.
+        ~chainer.Variable:
+            A variable holding an 1-dimensional array of negative
+            log-likelihood of the input sequences, whose length is same
+            as minibatch size.
 
     .. note::
 
@@ -99,15 +94,9 @@ def crf1d(cost, xs, ys, reduce='mean'):
         <http://repository.upenn.edu/cis_papers/159/>`_.
 
     """
-    if reduce not in ('mean', 'no'):
-        raise ValueError(
-            "only 'mean' and 'no' are valid for 'reduce', but '%s' is "
-            'given' % reduce)
-
     assert xs[0].shape[1] == cost.shape[0]
 
     n_label = cost.shape[0]
-    n_batch = xs[0].shape[0]
 
     alpha = xs[0]
     alphas = []
@@ -143,10 +132,7 @@ def crf1d(cost, xs, ys, reduce='mean'):
         score = concat.concat(scores[::-1], axis=0)
 
     loss = logz - score
-    if reduce == 'mean':
-        return _sum.sum(loss) / n_batch
-    else:
-        return loss
+    return loss
 
 
 def argmax_crf1d(cost, xs):
