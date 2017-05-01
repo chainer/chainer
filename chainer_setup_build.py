@@ -381,9 +381,9 @@ class _UnixCCompiler(unixccompiler.UnixCCompiler):
 
             cflags = ''
             if 'CFLAGS' in os.environ:
-                cflags = cflags + ' ' + os.environ['CFLAGS']
+                cflags += ' ' + os.environ['CFLAGS']
             if 'CPPFLAGS' in os.environ:
-                cflags = cflags + ' ' + os.environ['CPPFLAGS']
+                cflags += ' ' + os.environ['CPPFLAGS']
 
             compiler_options = '-fPIC'
             if cflags != '':
