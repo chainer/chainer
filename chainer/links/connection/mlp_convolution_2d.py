@@ -44,8 +44,7 @@ class MLPConvolution2D(link.ChainList):
     """
 
     def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
-                 activation=relu.relu, wscale=1,
-                 conv_init=None, bias_init=None):
+                 activation=relu.relu, conv_init=None, bias_init=None):
         assert len(out_channels) > 0
         convs = [convolution_2d.Convolution2D(
             in_channels, out_channels[0], ksize, stride, pad,
