@@ -87,25 +87,27 @@ class NegativeSamplingFunction(function.Function):
         )(W, x, self.ignore_mask[:, None], self.samples, n_in,
           self.sample_size + 1)
 
-        y = cuda.elementwise(
-            'T wx, int32 c, int32 m', 'T y',
+        loss = cuda.elementwise(
+            'T wx, int32 c, int32 m, bool mask', 'T y',
             '''
-            T f = wx;
-            if (i % m == 0) {
-              f = -f;
-            }
-            T loss;
-            if (f < 0) {
-              loss = __logf(1 + __expf(f));
+            if (mask) {
+              T f = wx;
+              if (i % m == 0) {
+                f = -f;
+              }
+              T loss;
+              if (f < 0) {
+                loss = __logf(1 + __expf(f));
+              } else {
+                loss = f + __logf(1 + __expf(-f));
+              }
+              y = loss;
             } else {
-              loss = f + __logf(1 + __expf(-f));
+              y = 0;
             }
-            y = loss;
             ''',
             'negative_sampling_forward'
-        )(self.wx, n_in, self.sample_size + 1)
-        # TODO(okuta): merge elementwise
-        loss = y * self.ignore_mask[:, None].astype('float32')
+        )(self.wx, n_in, self.sample_size + 1, self.ignore_mask[:, None])
         if self.reduce == 'sum':
             loss = loss.sum()
         else:  # 'no':
