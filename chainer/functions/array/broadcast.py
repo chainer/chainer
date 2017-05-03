@@ -42,6 +42,7 @@ class Broadcast(function.Function):
                 raise type_check.InvalidType(expect, actual)
 
     def forward(self, xs):
+        self.retain_inputs(())
         self._xp = cuda.get_array_module(*xs)
         self._in_shapes = [x.shape for x in xs]
         self._in_dtypes = [x.dtype for x in xs]
@@ -92,6 +93,7 @@ class BroadcastTo(function.Function):
             raise type_check.InvalidType(expect, actual)
 
     def forward(self, xs):
+        self.retain_inputs(())
         xp = cuda.get_array_module(*xs)
         x = xs[0]
         self._xp = xp
