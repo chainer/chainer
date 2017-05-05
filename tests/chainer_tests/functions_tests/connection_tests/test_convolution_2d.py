@@ -151,6 +151,7 @@ class TestConvolution2DFunction(unittest.TestCase):
 
 @testing.parameterize(*testing.product({
     'use_cudnn': ['always', 'auto', 'never'],
+    'deterministic': [True, False],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
 @attr.cudnn
@@ -182,21 +183,23 @@ class TestConvolution2DCudnnCall(unittest.TestCase):
 
     def test_call_cudnn_forward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
-            with mock.patch('cupy.cudnn.cudnn.convolutionForward') as func:
-                self.forward()
-                self.assertEqual(func.called, self.expect)
+            with chainer.using_config('deterministic', self.deterministic):
+                with mock.patch('cupy.cudnn.cudnn.convolutionForward') as func:
+                    self.forward()
+                    self.assertEqual(func.called, self.expect)
 
     def test_call_cudnn_backward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
-            y = self.forward()
-            y.grad = self.gy
-            if cuda.cudnn.cudnn.getVersion() >= 3000:
-                name = 'cupy.cudnn.cudnn.convolutionBackwardData_v3'
-            else:
-                name = 'cupy.cudnn.cudnn.convolutionBackwardData_v2'
-            with mock.patch(name) as func:
-                y.backward()
-                self.assertEqual(func.called, self.expect)
+            with chainer.using_config('deterministic', self.deterministic):
+                y = self.forward()
+                y.grad = self.gy
+                if cuda.cudnn.cudnn.getVersion() >= 3000:
+                    name = 'cupy.cudnn.cudnn.convolutionBackwardData_v3'
+                else:
+                    name = 'cupy.cudnn.cudnn.convolutionBackwardData_v2'
+                with mock.patch(name) as func:
+                    y.backward()
+                    self.assertEqual(func.called, self.expect)
 
 
 @testing.parameterize(*testing.product({
