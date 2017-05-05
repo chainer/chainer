@@ -187,9 +187,10 @@ class TestDeconvolution2DCudnnCall(unittest.TestCase):
         else:
             name = 'cupy.cudnn.cudnn.convolutionBackwardData_v2'
         with chainer.using_config('use_cudnn', self.use_cudnn):
-            with mock.patch(name) as func:
-                self.forward()
-                self.assertEqual(func.called, self.expect)
+            with chainer.using_config('deterministic', self.deterministic):
+                with mock.patch(name) as func:
+                    self.forward()
+                    self.assertEqual(func.called, self.expect)
 
     def test_call_cudnn_backward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
@@ -203,6 +204,7 @@ class TestDeconvolution2DCudnnCall(unittest.TestCase):
 
 @testing.parameterize(*testing.product({
     'c_contiguous': [True, False],
+    'deterministic': [True, False],
     'nobias': [True, False],
 }))
 @attr.gpu
