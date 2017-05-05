@@ -348,6 +348,10 @@ def convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False):
     If the bias vector is given, then it is added to all spatial locations of
     the output of convolution.
 
+    The output of this function can be non-deterministic when it uses cuDNN.
+    If ``chainer.configuration.config.deterministic`` is ``True`` and
+    cuDNN version is >= v3, it forces cuDNN to use a deterministic algorithm.
+
     .. seealso:: :class:`~chainer.links.Convolution2D`
 
     """
