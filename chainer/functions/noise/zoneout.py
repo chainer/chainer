@@ -36,7 +36,7 @@ class Zoneout(function.Function):
 
 
 def zoneout(h, x, ratio=.5, **kwargs):
-    """zoneout(h, x, ratio=.5):
+    """zoneout(h, x, ratio=.5)
 
     Drops elements of input variable and sets to previous variable randomly.
 

@@ -35,7 +35,7 @@ class Dropout(function.Function):
 
 
 def dropout(x, ratio=.5, **kwargs):
-    """dropout(x, ratio=.5):
+    """dropout(x, ratio=.5)
 
     Drops elements of input variable randomly.
 
