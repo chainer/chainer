@@ -16,18 +16,11 @@ class Hinge(function.Function):
 
     """Hinge loss."""
 
-    def __init__(self, norm='L1', reduce='mean'):
+    def __init__(self, norm='L1'):
         if norm in ['L1', 'L2']:
             self.norm = norm
         else:
             raise NotImplementedError("norm should be either 'L1' or 'L2'")
-
-        if reduce in ['mean', 'no']:
-            self.reduce = reduce
-        else:
-            raise ValueError(
-                "only 'mean' and 'no' are valid for 'reduce', but '%s' is "
-                'given' % reduce)
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 2)
@@ -55,14 +48,10 @@ class Hinge(function.Function):
         else:
             raise NotImplementedError()
 
-        if self.reduce == 'mean':
-            loss = loss.sum() / num
-
         return numpy.array(loss, dtype=x.dtype),
 
     def forward_gpu(self, inputs):
         x, t = inputs
-        num = x.dtype.type(len(x))
         self.bottom_diff = cuda.cupy.maximum(
             0, 1 + _hinge_fwd_kernel()(t, x.copy()))
         if self.norm == 'L1':
@@ -72,16 +61,10 @@ class Hinge(function.Function):
         else:
             raise NotImplementedError()
 
-        if self.reduce == 'mean':
-            loss = loss.sum() / num
-
         return loss,
 
     def backward_cpu(self, inputs, grad_outputs):
         t, gloss = inputs[1], grad_outputs[0]
-
-        if self.reduce == 'mean':
-            gloss /= len(t)
 
         self.bottom_diff[numpy.arange(len(t)), t] *= -1
         if self.norm == 'L1':
@@ -97,9 +80,6 @@ class Hinge(function.Function):
         xp = cuda.get_array_module(*inputs)
         t, gloss = inputs[1], grad_outputs[0]
 
-        if self.reduce == 'mean':
-            gloss /= len(t)
-
         self.bottom_diff = _hinge_fwd_kernel()(t, self.bottom_diff)
         if self.norm == 'L1':
             gx = gloss * xp.sign(self.bottom_diff)
@@ -111,7 +91,7 @@ class Hinge(function.Function):
         return gx, None
 
 
-def hinge(x, t, norm='L1', reduce='mean'):
+def hinge(x, t, norm='L1'):
     """Computes the hinge loss for a one-of-many classification task.
 
         .. math::
@@ -135,10 +115,6 @@ def hinge(x, t, norm='L1', reduce='mean'):
             2 & {\\rm if~norm} = {\\rm 'L2'.}
             \\end{array} \\right.
 
-        The output is a varialbe whose value depends on the value of
-        the option ``reduce``. If it is ``'no'``, it holds the elementwise
-        loss values. If it is ``'mean'``, it takes the mean of loss values.
-
     Args:
         x (~chainer.Variable): Input variable. The shape of ``x`` should be
             (:math:`N`, :math:`K`).
@@ -148,17 +124,12 @@ def hinge(x, t, norm='L1', reduce='mean'):
             be (:math:`N`,).
         norm (string): Specifies norm type. Only either ``'L1'`` or ``'L2'`` is
             acceptable.
-        recude (str): Reduction option. Its value must be either
-            ``'mean'`` or ``'no'``. Otherwise, :class:`ValueError` is raised.
-
 
     Returns:
         ~chainer.Variable:
-            A variable object holding a scalar array of the
-            hinge loss :math:`L`.
-            If ``reduce`` is ``'no'``, the output varialbe holds array
-            whose shape is same as one of (hence both of) input variables.
-            If it is ``'mean'``, the output variable holds a scalar value.
+            A variable object holding an array of the
+            hinge loss :math:`L` whose shape is same as one of
+            (hence both of) input variables.
 
     """
-    return Hinge(norm, reduce)(x, t)
+    return Hinge(norm)(x, t)
