@@ -54,10 +54,10 @@ def reshape(x, shape):
         x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`): Input variable.
         shape (:class:`tuple` of :class:`int` s):
-            The **size** of shape (**size** means the number of elements) must
-            be equal to that of original shape. One shape dimension can be -1.
-            In this case, the value is inferred from the length of the array
-            and remaining dimensions.
+            Expected shape of the output array. The number of elements which
+            the array of ``shape`` contains must be equal to that of input
+            array. One shape dimension can be -1. In this case, the value is
+            inferred from the length of the array and remaining dimensions.
 
     Returns:
         ~chainer.Variable:
@@ -73,7 +73,7 @@ def reshape(x, shape):
         (8,)
         >>> y.data
         array([1, 2, 3, 4, 5, 6, 7, 8])
-        >>> y = F.reshape(x, (4,-1))
+        >>> y = F.reshape(x, (4, -1))
         >>> y.shape
         (4, 2)
         >>> y.data

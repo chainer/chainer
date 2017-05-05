@@ -22,6 +22,11 @@ def flatten(x):
     Returns:
         ~chainer.Variable: Output variable flatten to one dimension.
 
+    .. note::
+
+        When you input a scalar array (i.e. the shape is ``()``),
+        you can also get the one dimension array whose shape is ``(1,)``.
+
     .. admonition:: Example
 
         >>> x = np.array([[1, 2], [3, 4]])
