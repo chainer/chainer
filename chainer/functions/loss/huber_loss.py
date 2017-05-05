@@ -7,14 +7,8 @@ from chainer.utils import type_check
 
 class HuberLoss(function.Function):
 
-    def __init__(self, delta, reduce='sum_along_second_axis'):
+    def __init__(self, delta):
         self.delta = delta
-
-        if reduce not in ('sum_along_second_axis', 'no'):
-            raise ValueError(
-                "only 'sum_along_second_axis' and 'no' are valid "
-                "for 'reduce', but '%s' is given" % reduce)
-        self.reduce = reduce
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 2)
@@ -32,10 +26,7 @@ class HuberLoss(function.Function):
         mask = y > (self.delta ** 2)
         y -= mask * xp.square(abs(self.diff) - self.delta)
         y *= 0.5
-        if self.reduce == 'sum_along_second_axis':
-            return y.sum(axis=1),
-        else:
-            return y,
+        return y,
 
     def backward(self, inputs, gy):
         xp = cuda.get_array_module(*inputs)
@@ -43,13 +34,11 @@ class HuberLoss(function.Function):
 
         gx = xp.where(mask, self.diff, self.delta * xp.sign(self.diff))
         gy_ = gy[0]
-        if self.reduce == 'sum_along_second_axis':
-            gy_ = gy_.reshape(gy[0].shape + (1,) * (self.diff.ndim - 1))
         gx = gy_ * gx
         return gx, -gx
 
 
-def huber_loss(x, t, delta, reduce='sum_along_second_axis'):
+def huber_loss(x, t, delta):
     """Loss function which is less sensitive to outliers in data than MSE.
 
         .. math::
@@ -63,11 +52,6 @@ def huber_loss(x, t, delta, reduce='sum_along_second_axis'):
             \\delta (|a| - \\frac{1}{2} \\delta) & {\\rm otherwise,}
             \\end{array} \\right.
 
-        The output is a varialbe whose value depends on the value of
-        the option ``reduce``. If it is ``'no'``, it holds the elementwise
-        loss values. If it is ``'sum_along_second_axis'``, loss values are
-        summed up along the second axis (i.e. ``axis=1``).
-
     Args:
         x (~chainer.Variable): Input variable.
             The shape of ``x`` should be (:math:`N`, :math:`K`).
@@ -75,21 +59,15 @@ def huber_loss(x, t, delta, reduce='sum_along_second_axis'):
             The shape of ``t`` should be (:math:`N`, :math:`K`).
         delta (float): Constant variable for huber loss function
             as used in definition.
-        recude (str): Reduction option. Its value must be either
-            ``'sum_along_second_axis'`` or ``'no'``. Otherwise,
-            :class:`ValueError` is raised.
 
     Returns:
         ~chainer.Variable:
-            A variable object holding a scalar array of the
-            huber loss :math:`L_{\\delta}`.
-            If ``reduce`` is ``'no'``, the output varialbe holds array
-            whose shape is same as one of (hence both of) input variables.
-            If it is ``'sum_along_second_axis'``, the shape of the array
-            is same as the input variables, except the second axis is removed.
+            A variable object holding an array of the
+            huber loss :math:`L_{\\delta}` whose  whose shape is
+            same as one of (hence both of) input variables.
 
     See:
         `Huber loss - Wikipedia <https://en.wikipedia.org/wiki/Huber_loss>`_.
 
     """
-    return HuberLoss(delta=delta, reduce=reduce)(x, t)
+    return HuberLoss(delta=delta)(x, t)
