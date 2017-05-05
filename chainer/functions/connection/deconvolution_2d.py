@@ -357,6 +357,10 @@ def deconvolution_2d(x, W, b=None, stride=1, pad=0, outsize=None):
        h_O &= s_Y (h - 1) + k_H - 2p_H,\\\\
        w_O &= s_X (w - 1) + k_W - 2p_W.
 
+    The output of this function can be non-deterministic when it uses cuDNN.
+    If ``chainer.configuration.config.deterministic`` is ``True`` and
+    cuDNN version is >= v3, it forces cuDNN to use a deterministic algorithm.
+
     """
     func = Deconvolution2DFunction(stride, pad, outsize)
     if b is None:

@@ -38,11 +38,6 @@ class Deconvolution2D(link.Link):
             vector is set to zero.
             May also be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
-        deterministic (bool): The output of this link can be
-            non-deterministic when it uses cuDNN.
-            If this option is ``True``, then it forces cuDNN to use
-            a deterministic algorithm. This option is only available for
-            cuDNN version >= v4.
 
     The filter weight has four dimensions :math:`(c_I, c_O, k_H, k_W)`
     which indicate the number of input channels, output channels,
@@ -56,6 +51,10 @@ class Deconvolution2D(link.Link):
     If ``nobias`` argument is set to True, then this function does not hold
     the bias parameter.
 
+    The output of this function can be non-deterministic when it uses cuDNN.
+    If ``chainer.configuration.config.deterministic`` is ``True`` and
+    cuDNN version is >= v3, it forces cuDNN to use a deterministic algorithm.
+
     .. seealso::
        See :func:`chainer.functions.deconvolution_2d` for the definition of
        two-dimensional convolution.
@@ -63,8 +62,7 @@ class Deconvolution2D(link.Link):
     """
 
     def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
-                 nobias=False, outsize=None,
-                 initialW=None, initial_bias=None, deterministic=False):
+                 nobias=False, outsize=None, initialW=None, initial_bias=None):
         super(Deconvolution2D, self).__init__()
         self.ksize = ksize
         self.stride = _pair(stride)
@@ -75,7 +73,6 @@ class Deconvolution2D(link.Link):
         else:
             self.initialW = initialW
         self.out_channels = out_channels
-        self.deterministic = deterministic
 
         self.add_param('W', initializer=initializers._get_initializer(
             initialW))
@@ -101,8 +98,7 @@ class Deconvolution2D(link.Link):
         if self.W.data is None:
             self._initialize_params(x.shape[1])
         return deconvolution_2d.deconvolution_2d(
-            x, self.W, self.b, self.stride, self.pad,
-            self.outsize, deterministic=self.deterministic)
+            x, self.W, self.b, self.stride, self.pad, self.outsize)
 
 
 def _pair(x):
