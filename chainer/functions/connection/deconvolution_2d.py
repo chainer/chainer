@@ -1,6 +1,7 @@
 import numpy
 
 import chainer
+from chainer import configuration
 from chainer import cuda
 from chainer import function
 from chainer.functions.connection import convolution_2d
@@ -30,11 +31,10 @@ def _pair(x):
 
 class Deconvolution2DFunction(function.Function):
 
-    def __init__(self, stride=1, pad=0, outsize=None, deterministic=False):
+    def __init__(self, stride=1, pad=0, outsize=None):
         self.sy, self.sx = _pair(stride)
         self.ph, self.pw = _pair(pad)
         self.outh, self.outw = (None, None) if outsize is None else outsize
-        self.deterministic = deterministic
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -155,13 +155,13 @@ class Deconvolution2DFunction(function.Function):
             if _cudnn_version >= 3000:
                 workspace_size = cuda.get_max_workspace_size()
                 workspace = cuda.cupy.empty((workspace_size,), dtype='b')
-                if not self.deterministic:
+                if configuration.config.deterministic:
+                    algo = cuda.cupy.cuda.cudnn.CUDNN_CONVOLUTION_BWD_DATA_ALGO_1  # NOQA
+                else:
                     algo = libcudnn.getConvolutionBackwardDataAlgorithm(
                         handle, self.filter_desc.value, x_desc.value,
                         self.conv_desc.value, y_desc.value, _bwd_data_pref,
                         workspace_size)
-                else:
-                    algo = cuda.cupy.cuda.cudnn.CUDNN_CONVOLUTION_BWD_DATA_ALGO_1  # NOQA
 
                 libcudnn.convolutionBackwardData_v3(
                     handle, one.data, self.filter_desc.value, W.data.ptr,
@@ -278,13 +278,13 @@ class Deconvolution2DFunction(function.Function):
             gW = cuda.cupy.empty_like(W)
             # filter backward
             if _cudnn_version >= 3000:
-                if not self.deterministic:
+                if configuration.config.deterministic:
+                    algo = cuda.cupy.cuda.cudnn.CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1  # NOQA
+                else:
                     algo = libcudnn.getConvolutionBackwardFilterAlgorithm(
                         handle, gy_desc.value, gx_desc.value,
                         self.conv_desc.value, self.filter_desc.value,
                         _bwd_filter_pref, workspace_size)
-                else:
-                    algo = cuda.cupy.cuda.cudnn.CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1  # NOQA
 
                 libcudnn.convolutionBackwardFilter_v3(
                     handle, one.data, gy_desc.value, gy.data.ptr,
@@ -292,7 +292,7 @@ class Deconvolution2DFunction(function.Function):
                     algo, workspace.data.ptr, workspace_size,
                     zero.data, self.filter_desc.value, gW.data.ptr)
             else:
-                if self.deterministic:
+                if configuration.config.deterministic:
                     raise ValueError("'deterministic' option not available "
                                      "for cuDNN versions < v3")
                 libcudnn.convolutionBackwardFilter_v2(
@@ -320,8 +320,7 @@ class Deconvolution2DFunction(function.Function):
             return gx, gW, gb
 
 
-def deconvolution_2d(x, W, b=None, stride=1, pad=0,
-                     outsize=None, deterministic=False):
+def deconvolution_2d(x, W, b=None, stride=1, pad=0, outsize=None):
     """Two dimensional deconvolution function.
 
     This is an implementation of two-dimensional deconvolution.
@@ -341,12 +340,6 @@ def deconvolution_2d(x, W, b=None, stride=1, pad=0,
             It should be pair of height and width :math:`(out_H, out_W)`.
             Default value is ``None`` and the outsize is estimated by
             input size, stride and pad.
-        deterministic (bool): The output of this function can be
-            non-deterministic when it uses cuDNN.
-            If this option is ``True``, then it forces cuDNN to use
-            a deterministic algorithm. This option is only available for
-            cuDNN version >= v3.
-
 
     The filter weight has four dimensions :math:`(c_I, c_O, k_H, k_W)`
     which indicate the number of input channels, output channels,
@@ -365,7 +358,7 @@ def deconvolution_2d(x, W, b=None, stride=1, pad=0,
        w_O &= s_X (w - 1) + k_W - 2p_W.
 
     """
-    func = Deconvolution2DFunction(stride, pad, outsize, deterministic)
+    func = Deconvolution2DFunction(stride, pad, outsize)
     if b is None:
         return func(x, W)
     else:

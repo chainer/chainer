@@ -27,6 +27,7 @@ def _pair(x):
     'nobias': [True],
     'stride': [1, 2],
     'use_cudnn': ['always'],
+    'deterministic': [True, False],
     'x_dtype': [numpy.float32],
     'W_dtype': [numpy.float32],
 }) + testing.product({
@@ -35,6 +36,7 @@ def _pair(x):
     'nobias': [False],
     'stride': [1, 2],
     'use_cudnn': ['always', 'never'],
+    'deterministic': [False],
     'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'W_dtype': [numpy.float16, numpy.float32, numpy.float64],
 })))
@@ -80,18 +82,20 @@ class TestDeconvolution2DFunction(unittest.TestCase):
         x_cpu = chainer.Variable(self.x)
         W_cpu = chainer.Variable(self.W)
         b_cpu = None if self.nobias else chainer.Variable(self.b)
-        y_cpu = F.deconvolution_2d(
-            x_cpu, W_cpu, b_cpu, stride=self.stride, pad=self.pad,
-            outsize=self.outsize)
+        with chainer.using_config('deterministic', self.deterministic):
+            y_cpu = F.deconvolution_2d(
+                x_cpu, W_cpu, b_cpu, stride=self.stride, pad=self.pad,
+                outsize=self.outsize)
 
         x_gpu = chainer.Variable(cuda.to_gpu(self.x))
         W_gpu = chainer.Variable(cuda.to_gpu(self.W))
         b_gpu = None if self.nobias else chainer.Variable(
             cuda.to_gpu(self.b))
         with chainer.using_config('use_cudnn', self.use_cudnn):
-            y_gpu = F.deconvolution_2d(
-                x_gpu, W_gpu, b_gpu, stride=self.stride, pad=self.pad,
-                outsize=self.outsize)
+            with chainer.using_config('deterministic', self.deterministic):
+                y_gpu = F.deconvolution_2d(
+                    x_gpu, W_gpu, b_gpu, stride=self.stride, pad=self.pad,
+                    outsize=self.outsize)
 
         self.assertEqual(y_cpu.data.dtype, self.x_dtype)
         self.assertEqual(y_gpu.data.dtype, self.x_dtype)
@@ -123,10 +127,11 @@ class TestDeconvolution2DFunction(unittest.TestCase):
             args = args + (b_data,)
 
         with chainer.using_config('use_cudnn', self.use_cudnn):
-            gradient_check.check_backward(
-                deconvolution_2d.Deconvolution2DFunction(
-                    self.stride, self.pad, self.outsize),
-                args, y_grad, **self.check_backward_options)
+            with chainer.using_config('deterministic', self.deterministic):
+                gradient_check.check_backward(
+                    deconvolution_2d.Deconvolution2DFunction(
+                        self.stride, self.pad, self.outsize),
+                    args, y_grad, **self.check_backward_options)
 
     @condition.retry(10)
     def test_backward_cpu(self):
@@ -142,6 +147,7 @@ class TestDeconvolution2DFunction(unittest.TestCase):
 
 @testing.parameterize(*testing.product({
     'use_cudnn': ['always', 'auto', 'never'],
+    'deterministic': [True, False],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
 @attr.cudnn
@@ -187,11 +193,12 @@ class TestDeconvolution2DCudnnCall(unittest.TestCase):
 
     def test_call_cudnn_backward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
-            y = self.forward()
-            y.grad = self.gy
-            with mock.patch('cupy.cudnn.cudnn.convolutionForward') as func:
-                y.backward()
-                self.assertEqual(func.called, self.expect)
+            with chainer.using_config('deterministic', self.deterministic):
+                y = self.forward()
+                y.grad = self.gy
+                with mock.patch('cupy.cudnn.cudnn.convolutionForward') as func:
+                    y.backward()
+                    self.assertEqual(func.called, self.expect)
 
 
 @testing.parameterize(*testing.product({
@@ -271,23 +278,23 @@ class TestDeconvolution2DFunctionDeterministic(unittest.TestCase):
         return x_data, W_data, b_data, gy_data
 
     def _run(self):
-        # verify data continuity and move to gpu
-        x_data, W_data, b_data, gy_data = \
-            tuple(cuda.to_gpu(data) for data in self._contiguous(
-                self.x, self.W, self.b, self.gy))
-        x, W, b, y = self._run_forward(x_data, W_data, b_data)
+        with chainer.using_config('deterministic', True):
+            # verify data continuity and move to gpu
+            x_data, W_data, b_data, gy_data = tuple(
+                cuda.to_gpu(data) for data in self._contiguous(
+                    self.x, self.W, self.b, self.gy))
+            x, W, b, y = self._run_forward(x_data, W_data, b_data)
 
-        y.grad = gy_data
-        y.backward()
-        return x, W, b, y
+            y.grad = gy_data
+            y.backward()
+            return x, W, b, y
 
     def _run_forward(self, x_data, W_data, b_data):
         x = chainer.Variable(x_data)
         W = chainer.Variable(W_data)
         b = None if self.nobias else chainer.Variable(b_data)
         with chainer.using_config('use_cudnn', 'always'):
-            y = F.deconvolution_2d(x, W, b, stride=self.stride, pad=self.pad,
-                                   deterministic=True)
+            y = F.deconvolution_2d(x, W, b, stride=self.stride, pad=self.pad)
         return x, W, b, y
 
 

@@ -48,7 +48,7 @@ class Convolution2D(link.Link):
     """
 
     def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
-                 nobias=False, initialW=None, initial_bias=None)
+                 nobias=False, initialW=None, initial_bias=None):
         super(Convolution2D, self).__init__()
         self.ksize = ksize
         self.stride = _pair(stride)
