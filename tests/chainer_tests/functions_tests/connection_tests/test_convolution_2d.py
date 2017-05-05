@@ -22,6 +22,7 @@ from chainer.testing import condition
 }) + testing.product({
     'c_contiguous': [False],
     'cover_all': [False],
+    'deterministic': [False],
     'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'W_dtype': [numpy.float16, numpy.float32, numpy.float64],
 })))
@@ -279,7 +280,7 @@ class TestConvolution2DFunctionDeterministic(unittest.TestCase):
     def _run(self):
         with chainer.using_config('use_cudnn', 'always'):
             print(chainer.should_use_cudnn('>=auto'))
-            with chainer.using_config('deterministic', False):
+            with chainer.using_config('deterministic', True):
                 # verify data continuity and move to gpu
                 x_data, W_data, b_data, gy_data = \
                     tuple(cuda.to_gpu(data) for data in self._contiguous(
@@ -296,7 +297,7 @@ class TestConvolution2DFunctionDeterministic(unittest.TestCase):
         b = None if self.nobias else chainer.Variable(b_data)
         y = functions.convolution_2d(
             x, W, b, stride=self.stride, pad=self.pad,
-            cover_all=False, deterministic=True)
+            cover_all=False)
         return x, W, b, y
 
 
