@@ -99,7 +99,7 @@ class SoftmaxCrossEntropy(function.Function):
             }
             ''',
             'softmax_crossent_no_reduce_fwd'
-            )(t, log_y.reduced_view(), log_y.shape[-1], self.ignore_label)
+        )(t, log_y.reduced_view(), log_y.shape[-1], self.ignore_label)
         ret = ret.reshape(t.shape)
         return ret,
 
