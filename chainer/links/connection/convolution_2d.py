@@ -12,6 +12,10 @@ class Convolution2D(link.Link):
     This link wraps the :func:`~chainer.functions.convolution_2d` function and
     holds the filter weight and bias vector as parameters.
 
+    The output of this function can be non-deterministic when it uses cuDNN.
+    If ``chainer.configuration.config.deterministic`` is ``True`` and
+    cuDNN version is >= v3, it forces cuDNN to use a deterministic algorithm.
+
     Args:
         in_channels (int): Number of channels of input arrays. If ``None``,
             parameter initialization will be deferred until the first forward
@@ -32,11 +36,6 @@ class Convolution2D(link.Link):
             is set to 0.
             May also be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
-        deterministic (bool): The output of this link can be
-            non-deterministic when it uses cuDNN.
-            If this option is ``True``, then it forces cuDNN to use
-            a deterministic algorithm. This option is only available for
-            cuDNN version >= v4.
 
     .. seealso::
        See :func:`chainer.functions.convolution_2d` for the definition of
@@ -49,14 +48,12 @@ class Convolution2D(link.Link):
     """
 
     def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
-                 nobias=False, initialW=None, initial_bias=None,
-                 deterministic=False):
+                 nobias=False, initialW=None, initial_bias=None)
         super(Convolution2D, self).__init__()
         self.ksize = ksize
         self.stride = _pair(stride)
         self.pad = _pair(pad)
         self.out_channels = out_channels
-        self.deterministic = deterministic
 
         if initialW is None:
             initialW = initializers.HeNormal(1. / numpy.sqrt(2))
@@ -91,8 +88,7 @@ class Convolution2D(link.Link):
         if self.W.data is None:
             self._initialize_params(x.shape[1])
         return convolution_2d.convolution_2d(
-            x, self.W, self.b, self.stride, self.pad,
-            deterministic=self.deterministic)
+            x, self.W, self.b, self.stride, self.pad)
 
 
 def _pair(x):
