@@ -4,6 +4,7 @@ import chainer
 from chainer import configuration
 from chainer import cuda
 from chainer import function
+from chainer.utils import argument
 from chainer.utils import conv
 from chainer.utils import type_check
 
@@ -32,7 +33,12 @@ def _pair(x):
 
 class Convolution2DFunction(function.Function):
 
-    def __init__(self, stride=1, pad=0, cover_all=False):
+    def __init__(self, stride=1, pad=0, cover_all=False, **kwargs):
+        argument.check_unexpected_kwargs(
+            kwargs, deterministic='deterministic argument is not '
+            'supported anymore. Use chainer.using_config')
+        argument.assert_kwargs_empty(kwargs)
+
         self.sy, self.sx = _pair(stride)
         self.ph, self.pw = _pair(pad)
         self.cover_all = cover_all
@@ -294,8 +300,10 @@ class Convolution2DFunction(function.Function):
             return gx, gW, gb
 
 
-def convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False):
-    """Two-dimensional convolution function.
+def convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False, **kwargs):
+    """convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False)
+
+    Two-dimensional convolution function.
 
     This is an implementation of two-dimensional convolution in ConvNets.
     It takes three variables: the input image ``x``, the filter weight ``W``,
@@ -352,9 +360,20 @@ def convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False):
     If ``chainer.configuration.config.deterministic`` is ``True`` and
     cuDNN version is >= v3, it forces cuDNN to use a deterministic algorithm.
 
+    .. warning::
+
+        ``deterministic`` argument is not supported anymore since v2.
+        Instead, use ``chainer.using_config('deterministic', train)``.
+        See :func:`chainer.using_config`.
+
     .. seealso:: :class:`~chainer.links.Convolution2D`
 
     """
+    argument.check_unexpected_kwargs(
+        kwargs, deterministic='deterministic argument is not '
+        'supported anymore. Use chainer.using_config')
+    argument.assert_kwargs_empty(kwargs)
+
     func = Convolution2DFunction(stride, pad, cover_all)
     if b is None:
         return func(x, W)

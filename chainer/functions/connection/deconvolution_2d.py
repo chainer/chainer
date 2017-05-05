@@ -5,6 +5,7 @@ from chainer import configuration
 from chainer import cuda
 from chainer import function
 from chainer.functions.connection import convolution_2d
+from chainer.utils import argument
 from chainer.utils import conv
 from chainer.utils import type_check
 
@@ -31,7 +32,12 @@ def _pair(x):
 
 class Deconvolution2DFunction(function.Function):
 
-    def __init__(self, stride=1, pad=0, outsize=None):
+    def __init__(self, stride=1, pad=0, outsize=None, **kwargs):
+        argument.check_unexpected_kwargs(
+            kwargs, deterministic='deterministic argument is not '
+            'supported anymore. Use chainer.using_config')
+        argument.assert_kwargs_empty(kwargs)
+
         self.sy, self.sx = _pair(stride)
         self.ph, self.pw = _pair(pad)
         self.outh, self.outw = (None, None) if outsize is None else outsize
@@ -320,12 +326,20 @@ class Deconvolution2DFunction(function.Function):
             return gx, gW, gb
 
 
-def deconvolution_2d(x, W, b=None, stride=1, pad=0, outsize=None):
-    """Two dimensional deconvolution function.
+def deconvolution_2d(x, W, b=None, stride=1, pad=0, outsize=None, **kwargs):
+    """deconvolution_2d(x, W, b=None, stride=1, pad=0, outsize=None)
+
+    Two dimensional deconvolution function.
 
     This is an implementation of two-dimensional deconvolution.
     It takes three variables: input image ``x``,
     the filter weight ``W``, and the bias vector ``b``.
+
+    .. warning::
+
+        ``deterministic`` argument is not supported anymore since v2.
+        Instead, use ``chainer.using_config('deterministic', train)``.
+        See :func:`chainer.using_config`.
 
     Args:
         x (~chainer.Variable): Input variable of shape :math:`(n, c_I, h, w)`.
@@ -362,6 +376,11 @@ def deconvolution_2d(x, W, b=None, stride=1, pad=0, outsize=None):
     cuDNN version is >= v3, it forces cuDNN to use a deterministic algorithm.
 
     """
+    argument.check_unexpected_kwargs(
+        kwargs, deterministic='deterministic argument is not '
+        'supported anymore. Use chainer.using_config')
+    argument.assert_kwargs_empty(kwargs)
+
     func = Deconvolution2DFunction(stride, pad, outsize)
     if b is None:
         return func(x, W)

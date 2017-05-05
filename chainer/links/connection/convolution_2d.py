@@ -3,6 +3,7 @@ import numpy
 from chainer.functions.connection import convolution_2d
 from chainer import initializers
 from chainer import link
+from chainer.utils import argument
 
 
 class Convolution2D(link.Link):
@@ -15,6 +16,12 @@ class Convolution2D(link.Link):
     The output of this function can be non-deterministic when it uses cuDNN.
     If ``chainer.configuration.config.deterministic`` is ``True`` and
     cuDNN version is >= v3, it forces cuDNN to use a deterministic algorithm.
+
+    .. warning::
+
+        ``deterministic`` argument is not supported anymore since v2.
+        Instead, use ``chainer.using_config('deterministic', train)``.
+        See :func:`chainer.using_config`.
 
     Args:
         in_channels (int): Number of channels of input arrays. If ``None``,
@@ -48,8 +55,14 @@ class Convolution2D(link.Link):
     """
 
     def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
-                 nobias=False, initialW=None, initial_bias=None):
+                 nobias=False, initialW=None, initial_bias=None, **kwargs):
         super(Convolution2D, self).__init__()
+
+        argument.check_unexpected_kwargs(
+            kwargs, deterministic='deterministic argument is not '
+            'supported anymore. Use chainer.using_config')
+        argument.assert_kwargs_empty(kwargs)
+
         self.ksize = ksize
         self.stride = _pair(stride)
         self.pad = _pair(pad)

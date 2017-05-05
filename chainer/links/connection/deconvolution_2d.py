@@ -4,6 +4,7 @@ from chainer import cuda
 from chainer.functions.connection import deconvolution_2d
 from chainer import initializers
 from chainer import link
+from chainer.utils import argument
 
 
 class Deconvolution2D(link.Link):
@@ -12,6 +13,12 @@ class Deconvolution2D(link.Link):
 
     This link wraps the :func:`~chainer.functions.deconvolution_2d` function
     and holds the filter weight and bias vector as parameters.
+
+    .. warning::
+
+        ``deterministic`` argument is not supported anymore since v2.
+        Instead, use ``chainer.using_config('deterministic', train)``.
+        See :func:`chainer.using_config`.
 
     Args:
         in_channels (int): Number of channels of input arrays. If ``None``,
@@ -62,8 +69,15 @@ class Deconvolution2D(link.Link):
     """
 
     def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
-                 nobias=False, outsize=None, initialW=None, initial_bias=None):
+                 nobias=False, outsize=None, initialW=None, initial_bias=None,
+                 **kwargs):
         super(Deconvolution2D, self).__init__()
+
+        argument.check_unexpected_kwargs(
+            kwargs, deterministic='deterministic argument is not '
+            'supported anymore. Use chainer.using_config')
+        argument.assert_kwargs_empty(kwargs)
+
         self.ksize = ksize
         self.stride = _pair(stride)
         self.pad = _pair(pad)
