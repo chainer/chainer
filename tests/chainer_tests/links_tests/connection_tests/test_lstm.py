@@ -1,3 +1,6 @@
+import os
+import shutil
+import tempfile
 import unittest
 
 import numpy
@@ -290,6 +293,119 @@ class TestStatelessLSTM(unittest.TestCase):
             x = cuda.to_gpu(self.x)
         with cuda.get_device(1):
             self.check_forward(x)
+
+
+class TestLSTMSerializationCompatibility(unittest.TestCase):
+
+    def setUp(self):
+        self.path = tempfile.mkdtemp()
+
+    def tearDown(self):
+        if hasattr(self, 'path'):
+            shutil.rmtree(self.path)
+
+    def check_call(self, n_step, lstm):
+        x = numpy.random.uniform(-1, 1, (3, 2, 3)).astype('f')
+        hy1, cy1, ys1 = n_step(None, None, [x[0], x[1], x[2]])
+
+        ys2 = []
+        for i in range(x.shape[1]):
+            h1 = lstm[0](x[:, i, :])
+            h2 = lstm[1](h1)
+            ys2.append(h2)
+
+        testing.assert_allclose(
+            functions.stack(ys1, axis=0).data,
+            functions.stack(ys2, axis=1).data)
+        testing.assert_allclose(
+            hy1.data[0], lstm[0].h.data)
+        testing.assert_allclose(
+            hy1.data[1], lstm[1].h.data)
+        testing.assert_allclose(
+            cy1.data[0], lstm[0].c.data)
+        testing.assert_allclose(
+            cy1.data[1], lstm[1].c.data)
+
+    def test_n_step_to_lstm(self):
+        path = os.path.join(self.path, 'lstm.npz')
+
+        n_step = chainer.links.NStepLSTM(2, 3, 4, 0.0)
+        chainer.serializers.save_npz(path, n_step)
+
+        lstm = chainer.ChainList(
+            chainer.links.LSTM(3, 4),
+            chainer.links.LSTM(4, 4))
+        chainer.serializers.load_npz(path, lstm)
+
+        self.check_call(n_step, lstm)
+
+    def test_n_step_to_lstm_uninitiliazed(self):
+        path = os.path.join(self.path, 'lstm.npz')
+
+        n_step = chainer.links.NStepLSTM(2, 3, 4, 0.0)
+        chainer.serializers.save_npz(path, n_step)
+
+        lstm = chainer.ChainList(
+            chainer.links.LSTM(None, 4),
+            chainer.links.LSTM(4, 4))
+        chainer.serializers.load_npz(path, lstm)
+
+        self.check_call(n_step, lstm)
+
+    def test_lstom_to_n_step(self):
+        path = os.path.join(self.path, 'lstm.npz')
+
+        lstm = chainer.ChainList(
+            chainer.links.LSTM(3, 4),
+            chainer.links.LSTM(4, 4))
+        chainer.serializers.save_npz(path, lstm)
+
+        # Note NStepLSTM does not support uninitialized parameter.
+        n_step = chainer.links.NStepLSTM(2, 3, 4, 0.0)
+        chainer.serializers.load_npz(path, n_step)
+
+        self.check_call(n_step, lstm)
+
+    def test_load_v1_format(self):
+        path = os.path.join(self.path, 'lstm.npz')
+
+        # Make an old format file
+        model = chainer.Chain(
+            upward=chainer.links.Linear(3, 4 * 4),
+            lateral=chainer.links.Linear(4, 4 * 4, nobias=True))
+        chainer.serializers.save_npz(path, model)
+
+        lstm = links.LSTM(3, 4)
+        lstm.v1_serialize_format = True
+        chainer.serializers.load_npz(path, lstm)
+
+        testing.assert_allclose(
+            model.upward.W.data, lstm.upward.W.data)
+        testing.assert_allclose(
+            model.upward.b.data, lstm.upward.b.data)
+        testing.assert_allclose(
+            model.lateral.W.data, lstm.lateral.W.data)
+        self.assertIsNone(lstm.lateral.b)
+
+    def test_save_v1_format(self):
+        path = os.path.join(self.path, 'lstm.npz')
+
+        lstm = links.LSTM(3, 4)
+        lstm.v1_serialize_format = True
+        chainer.serializers.save_npz(path, lstm)
+
+        model = chainer.Chain(
+            upward=chainer.links.Linear(3, 4 * 4),
+            lateral=chainer.links.Linear(4, 4 * 4, nobias=True))
+        chainer.serializers.load_npz(path, model)
+
+        testing.assert_allclose(
+            model.upward.W.data, lstm.upward.W.data)
+        testing.assert_allclose(
+            model.upward.b.data, lstm.upward.b.data)
+        testing.assert_allclose(
+            model.lateral.W.data, lstm.lateral.W.data)
+        self.assertIsNone(model.lateral.b)
 
 
 testing.run_module(__name__, __file__)

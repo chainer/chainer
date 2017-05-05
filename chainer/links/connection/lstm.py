@@ -18,6 +18,8 @@ def _init_weight(weights, initializer):
 
 class LSTMBase(link.Chain):
 
+    v1_serialize_format = False
+
     def __init__(self, in_size, out_size,
                  lateral_init=None, upward_init=None,
                  bias_init=0, forget_bias_init=1):
@@ -49,6 +51,48 @@ class LSTMBase(link.Chain):
         _init_weight(i, self.bias_init)
         _init_weight(f, self.forget_bias_init)
         _init_weight(o, self.bias_init)
+
+    def serialize(self, serializer):
+        if self.v1_serialize_format:
+            return super(LSTMBase, self).serialize(serializer)
+
+        # Order of parameters are diffrent in LSTM and NStepLSTM.
+        # See chainer.functions.n_step_lstm
+        weight_index = [2, 0, 1, 3]
+
+        # Only update.W may not be initialized.
+        if self.upward.W.data is not None:
+            for i in six.moves.range(4):
+                w = self.upward.W.data[i::4, :]
+                serializer('w%d' % weight_index[i], w)
+        else:
+            ws = [serializer('w%d' % weight_index[i], None)
+                  for i in six.moves.range(4)]
+            if all(w is not None for w in ws):
+                w = numpy.concatenate(
+                    [w[:, None, :] for w in ws], axis=1).reshape(
+                        (-1, ws[0].shape[1]))
+
+                param = self.upward.W
+                param.initialize(w.shape)
+                if isinstance(param.data, numpy.ndarray):
+                    numpy.copyto(param.data, w)
+                else:
+                    param.data.set(numpy.asarray(w))
+
+        for i in six.moves.range(4):
+            b = self.upward.b.data[i::4]
+            serializer('b%d' % weight_index[i], b)
+
+            w = self.lateral.W.data[i::4, :]
+            serializer('w%d' % (weight_index[i] + 4), w)
+            # lateral of LSTM link does not have bias parameter.
+            # It is needed for compatibility with NStepLSTM link.
+            b = numpy.zeros(
+                self.state_size, self.upward.b.data.dtype)
+            serializer('b%d' % (weight_index[i] + 4), b)
+            if isinstance(serializer, chainer.Deserializer):
+                self.upward.b.data[i::4] += b
 
 
 class StatelessLSTM(LSTMBase):
