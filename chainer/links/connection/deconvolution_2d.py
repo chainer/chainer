@@ -17,7 +17,8 @@ class Deconvolution2D(link.Link):
     .. warning::
 
         ``deterministic`` argument is not supported anymore since v2.
-        Instead, use ``chainer.using_config('deterministic', train)``.
+        Instead, use ``chainer.using_config('deterministic', deterministic)``
+        (deterministic is either ``True`` or ``False``).
         See :func:`chainer.using_config`.
 
     Args:

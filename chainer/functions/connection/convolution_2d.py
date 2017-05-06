@@ -363,7 +363,8 @@ def convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False, **kwargs):
     .. warning::
 
         ``deterministic`` argument is not supported anymore since v2.
-        Instead, use ``chainer.using_config('deterministic', train)``.
+        Instead, use ``chainer.using_config('deterministic', deterministic)``
+        (deterministic is either ``True`` or ``False``).
         See :func:`chainer.using_config`.
 
     .. seealso:: :class:`~chainer.links.Convolution2D`
