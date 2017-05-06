@@ -172,7 +172,7 @@ class TestDeconvolution2DCudnnCall(unittest.TestCase):
         self.gy = cuda.cupy.random.uniform(
             -1, 1, (N, self.out_channels, outh, outw)).astype(self.dtype)
         with chainer.using_config('use_cudnn', self.use_cudnn):
-            self.expect = chainer.should_use_cudnn('>=auto') and (
+            self.should_call_cudnn = chainer.should_use_cudnn('>=auto') and (
                 cuda.cudnn.cudnn.getVersion() >= 3000 or
                 self.dtype != numpy.float16)
 
@@ -188,9 +188,15 @@ class TestDeconvolution2DCudnnCall(unittest.TestCase):
             name = 'cupy.cudnn.cudnn.convolutionBackwardData_v2'
         with chainer.using_config('use_cudnn', self.use_cudnn):
             with chainer.using_config('deterministic', self.deterministic):
-                with mock.patch(name) as func:
-                    self.forward()
-                    self.assertEqual(func.called, self.expect)
+                should_raise_error = (self.deterministic and self.should_call_cudnn
+                                      and cuda.cudnn.cudnn.getVersion() < 3000)
+                if should_raise_error:
+                    with self.assertRaises(ValueError):
+                        self.forward()
+                else:
+                    with mock.patch(name) as func:
+                        self.forward()
+                    self.assertEqual(func.called, self.should_call_cudnn)
 
     def test_call_cudnn_backward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
@@ -199,7 +205,7 @@ class TestDeconvolution2DCudnnCall(unittest.TestCase):
                 y.grad = self.gy
                 with mock.patch('cupy.cudnn.cudnn.convolutionForward') as func:
                     y.backward()
-                    self.assertEqual(func.called, self.expect)
+                    self.assertEqual(func.called, self.should_call_cudnn)
 
 
 @testing.parameterize(*testing.product({
