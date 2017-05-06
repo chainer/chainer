@@ -151,7 +151,7 @@ class TestConvolution2DFunction(unittest.TestCase):
 
 @testing.parameterize(*testing.product({
     'use_cudnn': ['always', 'auto', 'never'],
-    'deterministic': [True, False],
+    'deterministic': [False, True],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
 @attr.cudnn
@@ -171,7 +171,7 @@ class TestConvolution2DCudnnCall(unittest.TestCase):
         self.gy = cuda.cupy.random.uniform(
             -1, 1, (2, 2, 2, 2)).astype(self.dtype)
         with chainer.using_config('use_cudnn', self.use_cudnn):
-            self.expect = chainer.should_use_cudnn('>=auto') and (
+            self.should_call_cudnn = chainer.should_use_cudnn('>=auto') and (
                 cuda.cudnn.cudnn.getVersion() >= 3000 or
                 self.dtype != numpy.float16)
 
@@ -186,7 +186,7 @@ class TestConvolution2DCudnnCall(unittest.TestCase):
             with chainer.using_config('deterministic', self.deterministic):
                 with mock.patch('cupy.cudnn.cudnn.convolutionForward') as func:
                     self.forward()
-                    self.assertEqual(func.called, self.expect)
+                    self.assertEqual(func.called, self.should_call_cudnn)
 
     def test_call_cudnn_backward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
@@ -197,9 +197,16 @@ class TestConvolution2DCudnnCall(unittest.TestCase):
                     name = 'cupy.cudnn.cudnn.convolutionBackwardData_v3'
                 else:
                     name = 'cupy.cudnn.cudnn.convolutionBackwardData_v2'
-                with mock.patch(name) as func:
-                    y.backward()
-                    self.assertEqual(func.called, self.expect)
+
+                if self.should_call_cudnn:
+                    self.assertFalse(self.deterministic)
+                    with mock.patch(name) as func:
+                        y.backward()
+                    self.assertEqual(func.called, True)
+                else:
+                    self.assertTrue(self.deterministic)
+                    with assertRaises(ValueError):
+                        y.backward()
 
 
 @testing.parameterize(*testing.product({
