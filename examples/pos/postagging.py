@@ -8,7 +8,6 @@ import chainer
 from chainer import datasets
 import chainer.functions as F
 import chainer.links as L
-import chainer.optimizers as O
 from chainer import reporter
 from chainer import training
 from chainer.training import extensions
@@ -104,7 +103,7 @@ def main():
     if args.gpu >= 0:
         chainer.cuda.get_device(args.gpu).use()
         model.to_gpu(args.gpu)
-    optimizer = O.Adam()
+    optimizer = chainer.optimizers.Adam()
     optimizer.setup(model)
     optimizer.add_hook(chainer.optimizer.WeightDecay(0.0001))
 
