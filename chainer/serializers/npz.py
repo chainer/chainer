@@ -124,6 +124,9 @@ def load_npz(filename, obj, path=''):
     Args:
         filename (str): Name of the file to be loaded.
         obj: Object to be deserialized. It must support serialization protocol.
+        path: The path in the hierarchy of the serialized data under which the
+            data is to be loaded. The default behavior (blank) will load all data
+            under the root path.
 
     """
     with numpy.load(filename) as f:
