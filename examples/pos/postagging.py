@@ -22,8 +22,8 @@ class CRF(chainer.Chain):
         )
 
     def __call__(self, *args):
-        # NOTE: Chain.__call__ currently cannot use a list as an argument.
-        # We simply concate two list and make a list.
+        # NOTE: As a current Chain.__call__ cannot use a list as an argument,
+        # we simply concatenate two lists into a single list.
         # Each xs[i] is a word-id sequences, and ys[i] is a pos-id sequence.
         # They of course have difference lengths.
         xs = args[:len(args) // 2]
@@ -35,7 +35,7 @@ class CRF(chainer.Chain):
         xs = [xs[i] for i in inds]
         ys = [ys[i] for i in inds]
 
-        # Make a transpose of sequences.
+        # Make transposed sequences.
         # Now xs[t] is a batch of words at time t.
         xs = F.transpose_sequence(xs)
         ys = F.transpose_sequence(ys)
