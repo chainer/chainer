@@ -124,7 +124,7 @@ class HDF5Deserializer(serializer.Deserializer):
         return value
 
 
-def load_hdf5(filename, obj, path=''):
+def load_hdf5(filename, obj):
     """Loads an object from the file in HDF5 format.
 
     This is a short-cut function to load from an HDF5 file that contains only
@@ -139,5 +139,5 @@ def load_hdf5(filename, obj, path=''):
     """
     _check_available()
     with h5py.File(filename, 'r') as f:
-        d = HDF5Deserializer(f, path=path)
+        d = HDF5Deserializer(f)
         d.load(obj)
