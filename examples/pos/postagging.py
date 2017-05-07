@@ -131,6 +131,8 @@ def main():
         ['epoch', 'main/loss', 'validation/main/loss',
          'main/accuracy', 'validation/main/accuracy', 'elapsed_time']))
 
+    trainer.extend(extensions.ProgressBar(update_interval=10))
+
     if args.resume:
         chainer.serializers.load_npz(args.resume, trainer)
 
