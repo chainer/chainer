@@ -17,6 +17,9 @@ This table compares Chainer with other actively developed deep learning framewor
    ,"Primary sponsor","Preferred Networks","Facebook","Google","MILA","Facebook","Facebook","Amazon/Apache","CMU","Baidu","Skymind","Microsoft","Intel Nervana","Koç University","Joe Redmon","Explosion AI"
    "NNs","CNNs","full","full","full","full","full","full","full","partial","partial","full","full","full","partial","full","none"
    ,"RNNs","full","full","full","full","partial","full","full","full","full","partial","full","partial","partial","partial","partial"
+   ,"Reverse-mode autograd","Y","Y","Y","Y",,,"torch-autograd","Y","Y","Y",,"Y","ngraph","Y",,"with closures"
+   ,"Forward-mode autograd",,,,"Y",,,,,,,,,,,
+   ,"Higher-order grads",,"Y","Y","Y",,,,,,,,,"Y",,
    ,"Variable-length loops","native","native","while_loop","scan","RNNs only","native","none","native","RNNs only","none","dynamic axis","none","native","none","native"
    ,"Per-batch architectures","native","native","fold",,,"torch-autograd","MinPy","native",,,,,"native",,"native"
    "Performance","cuDNN support","full","full","partial","partial","full","full","full","partial","full","partial","full","N/A [2]_",,"partial",
