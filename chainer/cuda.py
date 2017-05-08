@@ -197,8 +197,12 @@ def to_gpu(array, device=None, stream=None):
 
     """
     check_cuda_available()
-    with get_device(device):
-        array_dev = get_device(array)
+    if type(device) in _integer_types:
+        device = get_device_from_id(device)
+    elif device is None:
+        device = DummyDevice
+    with device:
+        array_dev = get_device_from_array(array)
         if array_dev.id == cupy.cuda.device.get_device_id():
             return array
 
@@ -249,7 +253,7 @@ def to_cpu(array, stream=None):
     """
     if isinstance(array, ndarray):
         check_cuda_available()
-        with get_device(array):
+        with get_device_from_array(array):
             return array.get(stream)
     elif isinstance(array, numpy.ndarray):
         return array
@@ -259,7 +263,7 @@ def to_cpu(array, stream=None):
             '\nActual type: {0}.'.format(type(array)))
 
 
-def copy(array, out=None, out_device=None, stream=None):
+def copy(array, out=None, out_device_id=None, stream=None):
     """Copies a :class:`cupy.ndarray` object using the default stream.
 
     This function can copy the device array to the destination array on another
@@ -268,28 +272,30 @@ def copy(array, out=None, out_device=None, stream=None):
     Args:
         array (cupy.ndarray): Array to be copied.
         out (cupy.ndarray): Destination array.
-            If it is not ``None``, then ``out_device`` argument is ignored.
-        out_device: Destination device specifier. Actual device object is
-            obtained by passing this value to :func:`get_device`.
+            If it is not ``None``, then ``out_device_id`` argument is ignored.
+        out_device_id: Destination device ID. Actual device object is obtained
+            by passing this value to :func:`get_device_from_id`.
         stream (cupy.cuda.Stream): CUDA stream.
 
     Returns:
         cupy.ndarray: Copied array.
 
         If ``out`` is not specified, then the array is allocated on the device
-        specified by ``out_device`` argument.
+        specified by ``out_device_id`` argument.
 
     """
     check_cuda_available()
     assert stream is None  # TODO(beam2d): FIX IT
 
     if out is None:
-        if out_device is None:
-            out_device = array
-        with get_device(out_device):
+        if out_device_id is not None:
+            out_device = get_device_from_id(out_device_id)
+        else:
+            out_device = get_device_from_array(array)
+        with out_device:
             out = cupy.empty_like(array)
 
-    with get_device(array):
+    with get_device_from_array(array):
         cupy.copyto(out, array)
 
     return out

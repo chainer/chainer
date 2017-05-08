@@ -49,7 +49,7 @@ class Copy(function.Function):
         if self.out_device == -1:
             return cuda.to_gpu(gy[0], device=self._in_device),
         else:
-            return cuda.copy(gy[0], out_device=self._in_device),
+            return cuda.copy(gy[0], out_device_id=self._in_device.id),
 
 
 def copy(x, dst):
