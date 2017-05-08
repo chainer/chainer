@@ -46,6 +46,10 @@ DeconvolutionND
 ~~~~~~~~~~~~~~~
 .. autoclass:: DeconvolutionND
 
+DepthwiseConvolution2D
+~~~~~~~~~~~~~~~~~~~~~~
+.. autoclass:: DepthwiseConvolution2D
+
 DilatedConvolution2D
 ~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: DilatedConvolution2D
@@ -91,11 +95,30 @@ MLPConvolution2D
 .. autoclass:: MLPConvolution2D
    :members:
 
+NStepBiRNNReLU
+~~~~~~~~~~~~~~
+.. autoclass:: NStepBiRNNReLU
+   :members:
+
+NStepBiRNNTanh
+~~~~~~~~~~~~~~
+.. autoclass:: NStepBiRNNTanh
+  :members:
+
 NStepLSTM
 ~~~~~~~~~
-
 .. autoclass:: NStepLSTM
    :members:
+
+NStepRNNReLU
+~~~~~~~~~~~~
+.. autoclass:: NStepRNNReLU
+   :members:
+
+NStepRNNTanh
+~~~~~~~~~~~~
+.. autoclass:: NStepRNNTanh
+  :members:
 
 Scale
 ~~~~~
@@ -142,6 +165,11 @@ BlackOut
 CRF1d
 ~~~~~
 .. autoclass:: CRF1d
+   :members:
+
+SimplifiedDropconnect
+~~~~~~~~~~~~~~~~~~~~~
+.. autoclass:: SimplifiedDropconnect
    :members:
 
 PReLU
@@ -198,9 +226,25 @@ VGG16Layers
 
 .. autofunction:: chainer.links.model.vision.vgg.prepare
 
-ResNet50Layers
-~~~~~~~~~~~~~~
+GoogLeNet
+~~~~~~~~~
+.. autoclass:: GoogLeNet
+   :members:
+
+.. autofunction:: chainer.links.model.vision.googlenet.prepare
+
+Residual Networks
+~~~~~~~~~~~~~~~~~
+.. autoclass:: chainer.links.model.vision.resnet.ResNetLayers
+   :members:
+
 .. autoclass:: ResNet50Layers
+   :members:
+
+.. autoclass:: ResNet101Layers
+   :members:
+
+.. autoclass:: ResNet152Layers
    :members:
 
 .. autofunction:: chainer.links.model.vision.resnet.prepare

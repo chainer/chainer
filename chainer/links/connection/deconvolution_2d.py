@@ -16,9 +16,9 @@ class Deconvolution2D(link.Link):
     and holds the filter weight and bias vector as parameters.
 
     Args:
-        in_channels (int): Number of channels of input arrays. If ``None``,
-            parameter initialization will be deferred until the first forward
-            data pass at which time the size will be determined.
+        in_channels (int or None): Number of channels of input arrays.
+            If ``None``, parameter initialization will be deferred until the
+            first forward data pass at which time the size will be determined.
         out_channels (int): Number of channels of output arrays.
         ksize (int or pair of ints): Size of filters (a.k.a. kernels).
             ``ksize=k`` and ``ksize=(k, k)`` are equivalent.
@@ -37,11 +37,12 @@ class Deconvolution2D(link.Link):
         use_cudnn (bool): If ``True``, then this function uses cuDNN if
             available.
         initialW (4-D array): Initial weight value. If ``None``, then this
-            function uses to initialize ``wscale``.
+            function uses Gaussian distribution scaled by ``w_scale`` to
+            initialize weight.
             May also be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
         initial_bias (1-D array): Initial bias value. If ``None``, then this
-            function uses to initialize ``bias``.
+            function uses ``bias`` to initialize bias.
             May also be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
         deterministic (bool): The output of this link can be
