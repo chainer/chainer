@@ -189,7 +189,8 @@ class Convolution2DFunction(function.Function):
         else:
             gcol = numpy.tensordot(W, gy, (0, 1)).astype(x.dtype, copy=False)
             gcol = numpy.rollaxis(gcol, 3)
-            gx = conv.col2im_cpu(gcol, self.sy, self.sx, self.ph, self.pw, h, w)
+            gx = conv.col2im_cpu(gcol, self.sy, self.sx, self.ph, self.pw,
+                                 h, w)
 
         if b is None:
             return gx, gW
