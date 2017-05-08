@@ -117,9 +117,34 @@ def _split(inputs, pos):
     return inputs[:pos], inputs[pos:]
 
 
-class NStepLSTM(function.Function):
+# Map string names to enums. Keep enums in the same dict, so that interfaces
+# support both.
+_rnn_dirs = {
+    'uni': libcudnn.CUDNN_UNIDIRECTIONAL,
+    'bi':  libcudnn.CUDNN_BIDIRECTIONAL,
+    libcudnn.CUDNN_UNIDIRECTIONAL: libcudnn.CUDNN_UNIDIRECTIONAL,
+    libcudnn.CUDNN_BIDIRECTIONAL: libcudnn.CUDNN_BIDIRECTIONAL,
+}
 
-    def __init__(self, n_layers, states, train=True):
+
+_rnn_modes = {
+    'relu': libcudnn.CUDNN_RELU,
+    'tanh': libcudnn.CUDNN_TANH,
+    'gru': libcudnn.CUDNN_GRU,
+    'lstm': libcudnn.CUDNN_LSTM,
+    libcudnn.CUDNN_RELU: libcudnn.CUDNN_RELU,
+    libcudnn.CUDNN_TANH: libcudnn.CUDNN_TANH,
+    libcudnn.CUDNN_GRU: libcudnn.CUDNN_GRU,
+    libcudnn.CUDNN_LSTM: libcudnn.CUDNN_LSTM
+
+}
+
+
+class NStepRNN(function.Function):
+
+    def __init__(self, n_layers, states, rnn_dir='uni', rnn_mode='lstm', train=True):
+        self.rnn_dir = _rnn_dirs[rnn_dir.lower()]
+        self.rnn_mode = _rnn_modes[rnn_mode.lower()]
         self.n_layers = n_layers
         self.train = train
         self.states = states
@@ -209,8 +234,8 @@ class NStepLSTM(function.Function):
 
         rnn_desc = cudnn.create_rnn_descriptor(
             n_units, self.n_layers, self.states.desc,
-            libcudnn.CUDNN_LINEAR_INPUT, libcudnn.CUDNN_UNIDIRECTIONAL,
-            libcudnn.CUDNN_LSTM, libcudnn.CUDNN_DATA_FLOAT)
+            libcudnn.CUDNN_LINEAR_INPUT, self.rnn_mode,
+            self.rnn_type, libcudnn.CUDNN_DATA_FLOAT)
         self.rnn_desc = rnn_desc
 
         c_x_descs = _make_tensor_descriptor_array(x_list)
@@ -363,6 +388,18 @@ class NStepLSTM(function.Function):
                 dbs.append(bias.reshape(bs[layer * 8 + lin_layer_id].shape))
 
         return tuple([dhx, dcx] + dws + dbs + dx_list)
+
+
+class NStepLSTM(NStepRNN):
+    def __init__(self, n_layers, states, rnn_dir='uni', train=True):
+        NStepRNN.__init__(self, n_layers, states, rnn_dir=rnn_dir, train=train,
+                          rnn_mode='lstm')
+
+
+class NStepGRU(NStepRNN):
+    def __init__(self, n_layers, states, rnn_dir='uni', train=True):
+        NStepRNN.__init__(self, n_layers, states, rnn_dir=rnn_dir, train=train,
+                          rnn_mode='gru')
 
 
 def _stack_weight(ws):
