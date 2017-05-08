@@ -73,7 +73,7 @@ class Linear(link.Link):
             (1, 10)
 
             When you omit the first argument, you need to specify the other
-            subsequent arguments from ``bias`` as keyword arguments. So the
+            subsequent arguments from ``nobias`` as keyword arguments. So the
             below two cases are the same.
 
             >>> l = L.Linear(None, 10, False, None, 0)
