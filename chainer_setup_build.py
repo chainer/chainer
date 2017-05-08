@@ -333,14 +333,49 @@ def get_ext_modules():
 
 def _nvcc_gencode_options(cuda_version):
     """Returns NVCC GPU code generation options."""
-    arch = ['sm_30', 'sm_32', 'sm_35', 'sm_37', 'sm_50', 'sm_52']
-    if cuda_version >= 7000:
-        arch += ['sm_53']
-    if cuda_version >= 8000:
-        arch += ['sm_60', 'sm_61', 'sm_62']
 
-    return ['--gpu-architecture=compute_30',
-            '--gpu-code=compute_30,{}'.format(','.join(arch))]
+    # The arch_list specifies virtual architectures, such as 'compute_61', and
+    # real architectures, such as 'sm_61', for which the CUDA input files are
+    # to be compiled.
+    #
+    # The syntax of an entry of the list is
+    #
+    #     entry ::= virtual_arch | (virtual_arch, real_arch)
+    #
+    # where virtual_arch is a string which means a virtual architecture and
+    # real_arch is a string which means a real architecture.
+    #
+    # If a virtual architecture is supplied, NVCC generates a PTX code for the
+    # virtual architecture. If a pair of a virtual architecture and a real
+    # architecture is supplied, NVCC generates a PTX code for the virtual
+    # architecture as well as a cubin code for the real architecture.
+    #
+    # For example, making NVCC generate a PTX code for 'compute_60' virtual
+    # architecture, the arch_list has an entry of 'compute_60'.
+    #
+    #     arch_list = ['compute_60']
+    #
+    # For another, making NVCC generate a PTX code for 'compute_61' virtual
+    # architecture and a cubin code for 'sm_61' real architecture, the
+    # arch_list has an entry of ('compute_61', 'sm_61').
+    #
+    #     arch_list = [('compute_61', 'sm_61')]
+
+    arch_list = ['compute_30', 'compute_50']
+    if cuda_version >= 8000:
+        arch_list += ['compute_60']
+
+    options = []
+    for arch in arch_list:
+        if type(arch) is tuple:
+            virtual_arch, real_arch = arch
+            options.append('--generate-code=arch={},code={},{}'.format(
+                virtual_arch, real_arch, virtual_arch))
+        else:
+            options.append('--generate-code=arch={},code={}'.format(
+                arch, arch))
+
+    return options
 
 
 def _escape(str):
