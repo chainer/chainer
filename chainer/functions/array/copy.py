@@ -29,7 +29,8 @@ class Copy(function.Function):
         if self.out_device == -1:
             return cuda.to_cpu(x[0]),
         else:
-            return cuda.copy(x[0], out_device_id=self.out_device_id),
+            out_device = cuda.get_device_from_id(self.out_device_id)
+            return cuda.copy(x[0], out_device=out_device),
 
     def backward(self, inputs, grad_outputs):
         # In this function, `grad_outputs` contains cuda arrays even when
@@ -49,7 +50,7 @@ class Copy(function.Function):
         if self.out_device == -1:
             return cuda.to_gpu(gy[0], device=self._in_device),
         else:
-            return cuda.copy(gy[0], out_device_id=self._in_device.id),
+            return cuda.copy(gy[0], out_device=self._in_device),
 
 
 def copy(x, dst):
