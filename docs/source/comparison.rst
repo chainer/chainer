@@ -4,68 +4,37 @@ Comparison with Other Frameworks
 A table for quick comparison
 ----------------------------
 
-This table compares Chainer with other popular deep learning frameworks.
-We hope it helps you to choose an appropriate framework for the demand.
+This table compares Chainer with other actively developed deep learning frameworks. Content is current as of May 2017.
 
-.. note::
+.. csv-table::
+   :stub-columns: 2
+   :header: ,,"Chainer","PyTorch","TensorFlow","Theano-based","Caffe1/2","Torch7","MXNet","DyNet","PaddlePaddle","DL4J","CNTK","neon","Knet.jl","Darknet"
+   
+   "Basics","Language","Python","Python","Python","Python","Python/C++","LuaJIT","Python/others","Python/C++","Python/C++","Java","BrainScript/ Python/C++","Python","Julia","C"
+   ,"Approach","define-by-run","define-by-run","symbolic autograd","symbolic autograd","static","static/manual grads","symbolic autograd/ manual grads","define-by-run","symbolic autograd","static/manual grads","static/symbolic autograd","static/symbolic autograd [1]_","define-by-run","static"
+   ,"CPU backend","NumPy","TH","Eigen","NumPy","custom","TH","NDArray","Eigen","custom","ND4J","custom","neon","Julia","custom"
+   ,"GPU backend","CuPy","THC","Eigen","libgpuarray","custom","THC","NDArray","Eigen","custom","ND4J","custom","neon","custom","custom"
+   ,"Primary sponsor","Preferred Networks","Facebook","Google","MILA","Facebook","Facebook","Amazon/Apache","CMU","Baidu","Skymind","Microsoft","Intel Nervana","Koç University","Joe Redmon"
+   "NNs","CNNs","full","full","full","full","full","full","full","partial","partial","full","full","full","partial","full"
+   ,"RNNs","full","full","full","full","partial","full","full","full","full","partial","full","partial","partial","partial"
+   ,"Variable-length loops","native","native","while_loop","scan","RNNs only","native","none","native","RNNs only","none","dynamic axis","none","native","none"
+   ,"Per-batch architectures","native","native","fold",,,"torch-autograd","MinPy","native",,,,,"native",
+   "Performance","cuDNN support","full","full","partial","partial","full","full","full","partial","full","partial","full","N/A",,"partial"
+   ,"CPU/GPU generic backend","Y","Y",,,,"Y","Y","Y","Y","Y","Y","Y","Y","Y"
+   ,"Multi-GPU data parallelism","Y","Y","Y","Y","Y","Y","Y",,"Y","Y","Y","Y",,
+   ,"Multi-GPU model parallelism","Y","Y","Y","Y","Y","Y","Y",,"Y",,"Y","Y",,
+   ,"Multiprocessing [2]_","#2213","partial",,,,,,"full",,,,,,
+   ,"Distributed training","2Q 2017","2Q 2017","Y",,2017,"torch-distlearn","Y",,"Y","Y","Y","Y",,
+   "Misc","Runtime debugging","debug mode, typechecking, pdb","pdb","tfdbg",,,,"Monitor","pdb",,,"cntk.debugging",,"Gallium.jl","gdb"
+   ,"Trainer abstraction","native","tnt",,"various packages","native","torchnet",,,"native","native","native","native",,
+   ,"Reporter abstraction","native","tnt","native",,,"torchnet","native",,,"native","native",,,
+   ,"Web interface",,,"TensorBoard",,,,,,,"DL4J-UI",,"Nervana Cloud",,
+   ,"Graph compilation engine",,2017,"XLA",,2017,,"NNVM",,,,,"ngraph",,
 
-   This chart may be out-dated, since the developers of Chainer do not perfectly follow the latest development status of each framework.
-   Please report us if you find an out-dated cell.
-   Requests for new comparison axes are also welcome.
-
-
-+-------+-----------------------------+-------------------+------------------------+---------------------+----------------------------------------------------+
-|       |                             | Chainer           | Theano-based           | Torch7              | Caffe                                              |
-+=======+=============================+===================+========================+=====================+====================================================+
-| Specs | Scripting                   | Python            | Python                 | LuaJIT              | Python                                             |
-|       +-----------------------------+-------------------+------------------------+---------------------+----------------------------------------------------+
-|       | Net definition language     | Python            | Python                 | LuaJIT              | Protocol Buffers                                   |
-|       +-----------------------------+-------------------+------------------------+---------------------+----------------------------------------------------+
-|       | Define-by-Run scheme        | Y                 |                        |                     |                                                    |
-|       +-----------------------------+-------------------+------------------------+---------------------+----------------------------------------------------+
-|       | CPU Array backend           | NumPy             | NumPy                  | Tensor              |                                                    |
-|       +-----------------------------+-------------------+------------------------+---------------------+----------------------------------------------------+
-|       | GPU Array backend           | CuPy              | CudaNdarray [1]_       | CudaTensor          |                                                    |
-+-------+-----------------------------+-------------------+------------------------+---------------------+----------------------------------------------------+
-| NNs   | Reverse-mode AD             | Y                 | Y                      | Y                   | Y                                                  |
-|       +-----------------------------+-------------------+------------------------+---------------------+----------------------------------------------------+
-|       | Basic RNN support           | Y                 | Y                      | Y (``nnx``)         | `#2033 <https://github.com/BVLC/caffe/pull/2033>`_ |
-|       +-----------------------------+-------------------+------------------------+---------------------+----------------------------------------------------+
-|       | Variable-length loops       | Y                 | Y (``scan``)           |                     |                                                    |
-|       +-----------------------------+-------------------+------------------------+---------------------+----------------------------------------------------+
-|       | Stateful RNNs [2]_          | Y                 | Y                      | Y [6]_              |                                                    |
-|       +-----------------------------+-------------------+------------------------+---------------------+----------------------------------------------------+
-|       | Per-batch architectures     | Y                 |                        |                     |                                                    |
-+-------+-----------------------------+-------------------+------------------------+---------------------+----------------------------------------------------+
-| Perf  | CUDA support                | Y                 | Y                      | Y                   | Y                                                  |
-|       +-----------------------------+-------------------+------------------------+---------------------+----------------------------------------------------+
-|       | cuDNN support               | Y                 | Y                      | Y (``cudnn.torch``) | Y                                                  |
-|       +-----------------------------+-------------------+------------------------+---------------------+----------------------------------------------------+
-|       | FFT-based convolution       |                   | Y                      | Y (``fbcunn``)      | `#544 <https://github.com/BVLC/caffe/pull/544>`_   |
-|       +-----------------------------+-------------------+------------------------+---------------------+----------------------------------------------------+
-|       | CPU/GPU generic coding [3]_ | Y                 | [4]_                   | Y                   |                                                    |
-|       +-----------------------------+-------------------+------------------------+---------------------+----------------------------------------------------+
-|       | Multi GPU (data parallel)   | Y                 | Y [7]_                 | Y (``fbcunn``)      | Y                                                  |
-|       +-----------------------------+-------------------+------------------------+---------------------+----------------------------------------------------+
-|       | Multi GPU (model parallel)  | Y                 | Y [8]_                 | Y (``fbcunn``)      |                                                    |
-+-------+-----------------------------+-------------------+------------------------+---------------------+----------------------------------------------------+
-| Misc  | Type checking               | Y                 | Y                      | Y                   | N/A                                                |
-|       +-----------------------------+-------------------+------------------------+---------------------+----------------------------------------------------+
-|       | Model serialization         | Y                 | Y (``pickle``)         | Y                   | Y                                                  |
-|       +-----------------------------+-------------------+------------------------+---------------------+----------------------------------------------------+
-|       | Caffe reference model       | Y                 | [5]_                   | Y (``loadcaffe``)   | Y                                                  |
-+-------+-----------------------------+-------------------+------------------------+---------------------+----------------------------------------------------+
-
-.. [1] They are also developing `libgpuarray <http://deeplearning.net/software/libgpuarray/>`_
-.. [2] Stateful RNN is a type of RNN implementation that maintains states in the loops. It should enable us to use the states arbitrarily to update them.
-.. [3] This row shows whether each array API supports unified codes for CPU and GPU.
-.. [4] The array backend of Theano does not have compatible interface with NumPy, though most users write code on Theano variables, which is generic for CPU and GPU.
-.. [5] Depending on the frameworks.
-.. [6] Also available in the `Torch RNN package <https://github.com/Element-Research/rnn>`_
-.. [7] Via `Platoon <https://github.com/mila-udem/platoon/>`_
-.. [8] `Experimental as May 2016 <http://deeplearning.net/software/theano/tutorial/using_multi_gpu.html>`_
+.. [1] Symbolic autograd is available only with ngraph backend (in development).
+.. [2] Multiprocessing provides a significant performance improvement only for frameworks that use Python at runtime.
 
 Benchmarks
 ----------
 
-We are preparing for the benchmarks.
+Benchmarks for convolutional networks can be found at (convnet-benchmarks)[https://github.com/soumith/convnet-benchmarks] while some NLP benchmarks are at (dynet-benchmark)[https://github.com/neulab/dynet-benchmark]. Chainer wraps the latest available cuDNN kernels for CNNs and RNNs, so performance of most common networks that use these kernels is typically similar to that of other modern frameworks. As Chainer's define-by-run approach means the user's Python code is executed directly at runtime, particularly complex networks or those with very small tensor sizes may be slower than in static-graph frameworks.
