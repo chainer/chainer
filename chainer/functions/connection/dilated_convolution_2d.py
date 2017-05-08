@@ -189,8 +189,8 @@ class DilatedConvolution2DFunction(function.Function):
         else:
             gcol = numpy.tensordot(W, gy, (0, 1)).astype(x.dtype, copy=False)
             gcol = numpy.rollaxis(gcol, 3)
-            gx = conv.col2im_cpu(gcol, self.sy, self.sx,
-                                 self.ph, self.pw, h, w, dy=self.dy, dx=self.dx)
+            gx = conv.col2im_cpu(gcol, self.sy, self.sx, self.ph, self.pw,
+                                 h, w, dy=self.dy, dx=self.dx)
 
         if b is None:
             return gx, gW
