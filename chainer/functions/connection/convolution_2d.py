@@ -183,9 +183,13 @@ class Convolution2DFunction(function.Function):
 
         gW = numpy.tensordot(
             gy, self.col, ((0, 2, 3), (0, 4, 5))).astype(W.dtype, copy=False)
-        gcol = numpy.tensordot(W, gy, (0, 1)).astype(x.dtype, copy=False)
-        gcol = numpy.rollaxis(gcol, 3)
-        gx = conv.col2im_cpu(gcol, self.sy, self.sx, self.ph, self.pw, h, w)
+
+        if self.no_data_grad:
+            gx = None
+        else:
+            gcol = numpy.tensordot(W, gy, (0, 1)).astype(x.dtype, copy=False)
+            gcol = numpy.rollaxis(gcol, 3)
+            gx = conv.col2im_cpu(gcol, self.sy, self.sx, self.ph, self.pw, h, w)
 
         if b is None:
             return gx, gW
@@ -213,6 +217,8 @@ class Convolution2DFunction(function.Function):
         kh, kw = W.shape[2:]
 
         gW = cuda.cupy.empty_like(W)
+        gx = None
+
         if (not self.cover_all and cuda.cudnn_enabled and self.use_cudnn and
                 _check_cudnn_acceptable_type(x.dtype, W.dtype)):
             x = cuda.cupy.ascontiguousarray(x)
@@ -225,7 +231,6 @@ class Convolution2DFunction(function.Function):
             oz_dtype = 'd' if x.dtype == 'd' else 'f'
             one = numpy.array(1, dtype=oz_dtype).ctypes
             zero = numpy.array(0, dtype=oz_dtype).ctypes
-            gx = cuda.cupy.empty_like(x)
 
             if _cudnn_version >= 3000:
                 workspace_size = cuda.get_max_workspace_size()
@@ -245,15 +250,16 @@ class Convolution2DFunction(function.Function):
                     algo, workspace.data.ptr, workspace_size,
                     zero.data, self.filter_desc.value, gW.data.ptr)
 
-                if not self.deterministic:
-                    algo = libcudnn.getConvolutionBackwardDataAlgorithm(
-                        handle, self.filter_desc.value, gy_desc.value,
-                        self.conv_desc.value, x_desc.value, _bwd_data_pref,
-                        workspace_size)
-                else:
-                    algo = cuda.cupy.cuda.cudnn.CUDNN_CONVOLUTION_BWD_DATA_ALGO_1  # NOQA
-
                 if not self.no_data_grad:
+                    if not self.deterministic:
+                        algo = libcudnn.getConvolutionBackwardDataAlgorithm(
+                            handle, self.filter_desc.value, gy_desc.value,
+                            self.conv_desc.value, x_desc.value, _bwd_data_pref,
+                            workspace_size)
+                    else:
+                        algo = cuda.cupy.cuda.cudnn.CUDNN_CONVOLUTION_BWD_DATA_ALGO_1  # NOQA
+
+                    gx = cuda.cupy.empty_like(x)
                     libcudnn.convolutionBackwardData_v3(
                         handle, one.data, self.filter_desc.value, W.data.ptr,
                         gy_desc.value, gy.data.ptr, self.conv_desc.value,
@@ -267,10 +273,12 @@ class Convolution2DFunction(function.Function):
                     handle, one.data, x_desc.value, x.data.ptr,
                     gy_desc.value, gy.data.ptr, self.conv_desc.value,
                     zero.data, self.filter_desc.value, gW.data.ptr)
-                libcudnn.convolutionBackwardData_v2(
-                    handle, one.data, self.filter_desc.value, W.data.ptr,
-                    gy_desc.value, gy.data.ptr, self.conv_desc.value,
-                    zero.data, x_desc.value, gx.data.ptr)
+                if not self.no_data_grad:
+                    gx = cuda.cupy.empty_like(x)
+                    libcudnn.convolutionBackwardData_v2(
+                        handle, one.data, self.filter_desc.value, W.data.ptr,
+                        gy_desc.value, gy.data.ptr, self.conv_desc.value,
+                        zero.data, x_desc.value, gx.data.ptr)
 
             if b is not None:
                 gb = cuda.cupy.empty_like(b)
@@ -281,12 +289,12 @@ class Convolution2DFunction(function.Function):
             gW = cuda.cupy.tensordot(
                 gy, self.col, ((0, 2, 3), (0, 4, 5))).astype(W.dtype,
                                                              copy=False)
-            gcol = cuda.cupy.tensordot(W, gy, (0, 1)).astype(x.dtype,
-                                                             copy=False)
-            gcol = cuda.cupy.rollaxis(gcol, 3)
-
-            gx = conv.col2im_gpu(
-                gcol, self.sy, self.sx, self.ph, self.pw, h, w)
+            if not self.no_data_grad:
+                gcol = cuda.cupy.tensordot(W, gy, (0, 1)).astype(x.dtype,
+                                                                 copy=False)
+                gcol = cuda.cupy.rollaxis(gcol, 3)
+                gx = conv.col2im_gpu(
+                    gcol, self.sy, self.sx, self.ph, self.pw, h, w)
 
             if b is not None:
                 gb = gy.sum(axis=(0, 2, 3))
