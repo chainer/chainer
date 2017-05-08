@@ -30,12 +30,13 @@ def _pair(x):
 class Deconvolution2DFunction(function.Function):
 
     def __init__(self, stride=1, pad=0, outsize=None, use_cudnn=True,
-                 deterministic=False):
+                 deterministic=False, no_data_grad=False):
         self.sy, self.sx = _pair(stride)
         self.ph, self.pw = _pair(pad)
         self.use_cudnn = use_cudnn
         self.outh, self.outw = (None, None) if outsize is None else outsize
         self.deterministic = deterministic
+        self.no_data_grad = no_data_grad
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -213,9 +214,12 @@ class Deconvolution2DFunction(function.Function):
             gy, kh, kw, self.sy, self.sx, self.ph, self.pw)
         gW = numpy.tensordot(
             x, col, ([0, 2, 3], [0, 4, 5])).astype(W.dtype, copy=False)
-        gx = numpy.tensordot(
-            col, W, ([1, 2, 3], [1, 2, 3])).astype(x.dtype, copy=False)
-        gx = numpy.rollaxis(gx, 3, 1)
+        if self.no_data_grad:
+            gx = None
+        else:
+            gx = numpy.tensordot(
+                col, W, ([1, 2, 3], [1, 2, 3])).astype(x.dtype, copy=False)
+            gx = numpy.rollaxis(gx, 3, 1)
 
         if b is None:
             return gx, gW
@@ -241,10 +245,11 @@ class Deconvolution2DFunction(function.Function):
         n, in_c, in_h, in_w = x.shape
         _, out_channels, kh, kw = W.shape
         c, h, w = gy.shape[1:]
-        gx = cuda.cupy.empty((n, in_c, in_h, in_w), dtype=x.dtype)
+        gx = None
 
         if (cuda.cudnn_enabled and self.use_cudnn and
                 _check_cudnn_acceptable_type(x.dtype, W.dtype)):
+            gx = cuda.cupy.empty((n, in_c, in_h, in_w), dtype=x.dtype)
             x = cuda.cupy.ascontiguousarray(x)
             W = cuda.cupy.ascontiguousarray(W)
             gy = cuda.cupy.ascontiguousarray(gy)
@@ -309,9 +314,10 @@ class Deconvolution2DFunction(function.Function):
 
             gW = cuda.cupy.tensordot(
                 x, col, ([0, 2, 3], [0, 4, 5])).astype(W.dtype, copy=False)
-            gx = cuda.cupy.tensordot(
-                col, W, ([1, 2, 3], [1, 2, 3])).astype(x.dtype, copy=False)
-            gx = cuda.cupy.rollaxis(gx, 3, 1)
+            if not self.no_data_grad:
+                gx = cuda.cupy.tensordot(
+                    col, W, ([1, 2, 3], [1, 2, 3])).astype(x.dtype, copy=False)
+                gx = cuda.cupy.rollaxis(gx, 3, 1)
 
             # bias backward
             if b is not None:
