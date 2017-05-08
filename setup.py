@@ -1,6 +1,22 @@
 #!/usr/bin/env python
 
+import os
+import pkg_resources
+import sys
+
 from setuptools import setup
+
+
+if sys.version_info[:3] == (3, 5, 0):
+    if not int(os.getenv('CHAINER_PYTHON_350_FORCE', '0')):
+        msg = """
+Chainer does not work with Python 3.5.0.
+
+We strongly recommend to use another version of Python.
+If you want to use Chainer with Python 3.5.0 at your own risk,
+set CHAINER_PYTHON_350_FORCE environment variable to 1."""
+        print(msg)
+        sys.exit(1)
 
 
 setup_requires = []
@@ -11,10 +27,21 @@ install_requires = [
     'protobuf',
     'six>=1.9.0',
 ]
+cupy_require = 'cupy==1.0.0b1'
+
+cupy_pkg = None
+try:
+    cupy_pkg = pkg_resources.get_distribution('cupy')
+except pkg_resources.DistributionNotFound:
+    pass
+
+if cupy_pkg is not None:
+    install_requires.append(cupy_require)
+    print('Use %s' % cupy_require)
 
 setup(
     name='chainer',
-    version='2.0.0a1',
+    version='2.0.0b1',
     description='A flexible framework of neural networks',
     author='Seiya Tokui',
     author_email='tokui@preferred.jp',

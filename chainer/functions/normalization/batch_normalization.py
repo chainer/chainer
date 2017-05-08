@@ -4,6 +4,7 @@ import chainer
 from chainer import configuration
 from chainer import cuda
 from chainer import function
+from chainer.utils import argument
 from chainer.utils import type_check
 
 if cuda.cudnn_enabled:
@@ -45,13 +46,13 @@ class BatchNormalizationFunction(function.Function):
         self.decay = decay
 
     def check_type_forward(self, in_types):
-        n_in = in_types.size().eval()
+        n_in = type_check.eval(in_types.size())
         if n_in != 3 and n_in != 5:
             raise type_check.InvalidType(
                 '%s or %s' % (in_types.size() == 3, in_types.size() == 5),
                 '%s == %s' % (in_types.size(), n_in))
         x_type, gamma_type, beta_type = in_types[:3]
-        M = gamma_type.ndim.eval()
+        M = type_check.eval(gamma_type.ndim)
         type_check.expect(
             x_type.dtype.kind == 'f',
             x_type.ndim >= gamma_type.ndim + 1,
@@ -95,7 +96,7 @@ class BatchNormalizationFunction(function.Function):
         # into a 2-dim array with channels as second dim and m=<product
         # of all dimensions except the 2nd dimension> as the first
         # dimension.
-        cudnn_dim_ok = x.ndim == 2 or x.ndim == 4
+        cudnn_dim_ok = x.ndim == 2 or (x.ndim == 4 and head_ndim == 2)
         # TODO(bkvogel): Check for float16 support again in next cuDNN version.
         # cuDNN v5 batch normalization does not seem to support float16.
         self._can_use_cudnn = cudnn_dim_ok and x[0].dtype != numpy.float16
@@ -103,14 +104,14 @@ class BatchNormalizationFunction(function.Function):
         cudnn_updated_running_stats = False
         if (xp is not numpy and chainer.should_use_cudnn('>=auto', 5000) and
                 self._can_use_cudnn):
-            if x.ndim == 4:
+            x = cuda.cupy.ascontiguousarray(x)
+            if x.ndim == 4 and head_ndim == 2:
                 # for convolutional layer
                 self.mode = libcudnn.CUDNN_BATCHNORM_SPATIAL
             else:
                 # for linear layer
                 self.mode = libcudnn.CUDNN_BATCHNORM_PER_ACTIVATION
 
-            x = cuda.cupy.ascontiguousarray(x)
             gamma = cuda.cupy.ascontiguousarray(gamma)
             beta = cuda.cupy.ascontiguousarray(beta)
             dtype = x.dtype
@@ -262,17 +263,31 @@ class BatchNormalizationFunction(function.Function):
         return gx, ggamma, gbeta
 
 
-def batch_normalization(x, gamma, beta, eps=2e-5, running_mean=None,
-                        running_var=None, decay=0.9):
-    """Batch normalization function.
+def batch_normalization(x, gamma, beta, **kwargs):
+    """batch_normalization(x, gamma, beta, eps=2e-5, running_mean=None, running_var=None, decay=0.9)
+
+    Batch normalization function.
 
     It takes the input variable ``x`` and two parameter variables ``gamma`` and
-    ``beta``. The input must have the batch size and the features (or channels)
-    as the first two dimensions of its shape. The input can have more than two
-    dimensions, where the remaining dimensions are considered as spatial
-    dimensions, which are considered as a part of the batch size. That is,
+    ``beta``. The parameter variables must both have the same dimensionality,
+    which is referred to as the channel shape. This channel shape corresponds
+    to the dimensions in the input which are not averaged over. Since the
+    first dimension of the input corresponds to the batch size, the second
+    dimension of `x` will correspond to the first dimension of the channel
+    shape, the third dimension of `x` will correspond to the second channel
+    dimension (if it exists) and so on. Therefore, the dimensionality of the
+    input must be at least one plus the number of channel dimensions. The
+    total effective "batch size" will then be considered to be the product of
+    all dimensions in `x` except for the channel dimensions.
+
+    As an example, if the input is four dimensional and the parameter
+    variables are one dimensional, then it is assumed that the first
+    dimension of the input is the batch size, the second dimension is the
+    channel size, and the remaining two dimensions are considered
+    to be spatial dimensions that will be averaged over along with the
+    batch size in the batch normalization computations. That is,
     the total batch size will be considered to be the product of all
-    dimensions except the second dimension.
+    input dimensions except the second dimension.
 
     Note: If this function is called, it will not be possible to access the
     updated running mean and variance statistics, because they are members
@@ -281,6 +296,12 @@ def batch_normalization(x, gamma, beta, eps=2e-5, running_mean=None,
     to get a new instance of the function object, call the object, and then
     access the running_mean and/or running_var attributes. See the
     corresponding Link class for an example of how to do this.
+
+    .. warning::
+
+       ``train`` argument is not supported anymore since v2.
+       Instead, use ``chainer.using_config('train', train)``.
+       See :func:`chainer.using_config`.
 
     Args:
         x (Variable): Input variable.
@@ -305,7 +326,15 @@ def batch_normalization(x, gamma, beta, eps=2e-5, running_mean=None,
 
     .. seealso:: :class:`links.BatchNormalization`
 
-    """
+    """  # NOQA
+
+    argument.check_unexpected_kwargs(
+        kwargs, train='train argument is not supported anymore. '
+        'Use chainer.using_config')
+    eps, running_mean, running_var, decay = argument.parse_kwargs(
+        kwargs, ('eps', 2e-5), ('running_mean', None),
+        ('running_var', None), ('decay', 0.9))
+
     return BatchNormalizationFunction(eps, running_mean, running_var,
                                       decay)(x, gamma, beta)
 

@@ -10,6 +10,7 @@ from chainer import configuration
 from chainer import functions
 from chainer import link
 from chainer import links
+from chainer.utils import argument
 
 
 def _protobuf3():
@@ -157,13 +158,21 @@ class CaffeFunction(link.Chain):
                         'Skip the layer "%s", since CaffeFunction does not'
                         'support it' % layer.name)
 
-    def __call__(self, inputs, outputs, disable=()):
-        """Executes a sub-network of the network.
+    def __call__(self, inputs, outputs, disable=(), **kwargs):
+        """__call__(self, inputs, outputs, disable=())
+
+        Executes a sub-network of the network.
 
         This function acts as an interpreter of the network definition for
         Caffe. On execution, it interprets each layer one by one, and if the
         bottom blobs are already computed, then emulates the layer and stores
         output blobs as :class:`~chainer.Variable` objects.
+
+        .. warning::
+
+           ``train`` argument is not supported anymore since v2.
+           Instead, use ``chainer.using_config('train', train)``.
+           See :func:`chainer.using_config`.
 
         Args:
             inputs (dict): A dictionary whose key-value pairs indicate initial
@@ -179,6 +188,11 @@ class CaffeFunction(link.Chain):
                 corresponding to elements of the  `outputs` argument.
 
         """
+        argument.check_unexpected_kwargs(
+            kwargs, train='train argument is not supported anymore. '
+            'Use chainer.using_config')
+        argument.assert_kwargs_empty(kwargs)
+
         variables = dict(inputs)
         for func_name, bottom, top in self.layers:
             if (func_name in disable or

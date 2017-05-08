@@ -15,13 +15,13 @@ from chainer.utils import conv
 
 
 @parameterize(*testing.product({
-    'dims': [(5, 4, 3), (4, 3), (3,)],
+    'dims': [(3, 2), (2,)],
     'nobias': [True, False],
     'dtype': [numpy.float32],
     'use_cudnn': ['always', 'auto', 'never'],
     'used_outsize': ['case1', 'case2', 'None'],
 }) + testing.product({
-    'dims': [(5, 4, 3)],
+    'dims': [(4, 3, 2)],
     'nobias': [False],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'use_cudnn': ['always'],
@@ -62,7 +62,7 @@ class TestDeconvolutionND(unittest.TestCase):
 
         self.link = deconvolution_nd.DeconvolutionND(
             ndim, in_channels, out_channels, ksize, stride=stride, pad=pad,
-            outsize=outsize, initial_bias=initial_bias)
+            outsize=outsize, initial_bias=initial_bias, nobias=self.nobias)
         self.link.cleargrads()
 
         x_shape = (N, in_channels) + self.dims
@@ -124,7 +124,7 @@ class TestDeconvolutionNDNoInitialBias(unittest.TestCase):
         ndim = 3
         ksize = 3
         link = deconvolution_nd.DeconvolutionND(
-            ndim, 3, 2, ksize, initial_bias=None)
+            ndim, 3, 2, ksize, nobias=True)
         self.assertIsNone(link.b)
 
 

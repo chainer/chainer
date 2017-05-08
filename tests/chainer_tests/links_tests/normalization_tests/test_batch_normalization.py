@@ -25,12 +25,6 @@ def _batch_normalization(expander, gamma, beta, x, mean, var, eps, test):
 
 @testing.parameterize(*(testing.product({
     'test': [True, False],
-    'volatile': ['on'],
-    'ndim': [0],
-    'dtype': [numpy.float32],
-}) + testing.product({
-    'test': [True, False],
-    'volatile': ['off'],
     'ndim': [0, 1, 2, 3],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 })))
@@ -70,7 +64,7 @@ class BatchNormalizationTest(unittest.TestCase):
 
     def check_forward(self, x_data):
         with chainer.using_config('train', not self.test):
-            x = chainer.Variable(x_data, volatile=self.volatile)
+            x = chainer.Variable(x_data)
             y = self.link(x)
             self.assertEqual(y.data.dtype, self.dtype)
 
@@ -366,6 +360,26 @@ class TestInvalidInitialize(unittest.TestCase):
     def test_invalid_type(self):
         with self.assertRaises(TypeError):
             self.link = links.BatchNormalization({})
+
+
+class TestInvalidArgument(unittest.TestCase):
+
+    def setUp(self):
+        self.link = links.BatchNormalization(1)
+        self.x = numpy.random.uniform(-1, 1, (3,)).astype('f')
+
+    def test_test_argument(self):
+        with self.assertRaises(ValueError):
+            self.link(self.x, test=True)
+
+    def test_positional_argument(self):
+        # positional argument is prohibited from v2
+        with self.assertRaises(TypeError):
+            self.link(self.x, True)
+
+    def test_redundant_argument(self):
+        with self.assertRaises(TypeError):
+            self.link(self.x, unknown_argument=1)
 
 
 testing.run_module(__name__, __file__)

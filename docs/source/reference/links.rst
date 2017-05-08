@@ -198,17 +198,18 @@ VGG16Layers
 
 .. autofunction:: chainer.links.model.vision.vgg.prepare
 
-ResNet50Layers
-~~~~~~~~~~~~~~
+Residual Networks
+~~~~~~~~~~~~~~~~~
+.. autoclass:: chainer.links.model.vision.resnet.ResNetLayers
+   :members:
+
 .. autoclass:: ResNet50Layers
    :members:
 
-.. autofunction:: chainer.links.model.vision.resnet.prepare
-
-Deprecated links
-----------------
-
-Parameter
-~~~~~~~~~
-.. autoclass:: Parameter
+.. autoclass:: ResNet101Layers
    :members:
+
+.. autoclass:: ResNet152Layers
+   :members:
+
+.. autofunction:: chainer.links.model.vision.resnet.prepare

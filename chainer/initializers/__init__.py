@@ -47,37 +47,6 @@ def generate_array(initializer, shape, xp):
     return array
 
 
-def init_weight(weights, initializer):
-    """Helper function for initialization of the weight tensor.
-
-    This function accepts several types of initializer, prepares
-    the appropriate ``~chainer.Initializer`` if necessary,
-    and does the initialization.
-
-    Args:
-         weights (numpy.ndarray or cupy.ndarray):
-             Weight tensor to be initialized.
-         initializer: The value used to initialize the data.
-             May be ``None`` (in which case
-             :class:`~chainer.initializers.HeNormal`
-             is used as an initializer), a scalar to set all values to,
-             an ``numpy.ndarray`` to be assigned,
-             or a callable that takes :class:`numpy.ndarray`
-             or :class:`cupy.ndarray` and edits its value.
-
-    """
-
-    if initializer is None:
-        initializer = HeNormal(1 / numpy.sqrt(2))
-    elif numpy.isscalar(initializer):
-        initializer = Constant(initializer)
-    elif isinstance(initializer, numpy.ndarray):
-        initializer = Constant(initializer)
-
-    assert callable(initializer)
-    initializer(weights)
-
-
 def _get_initializer(initializer):
     if initializer is None:
         return HeNormal(1 / numpy.sqrt(2))

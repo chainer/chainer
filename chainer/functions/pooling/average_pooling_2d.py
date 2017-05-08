@@ -16,6 +16,10 @@ class AveragePooling2D(pooling_2d.Pooling2D):
     # TODO(beam2d): Support cover_all mode.
 
     def forward_cpu(self, x):
+        self.retain_inputs(())
+        self._in_shape = x[0].shape
+        self._in_dtype = x[0].dtype
+
         col = conv.im2col_cpu(x[0], self.kh, self.kw, self.sy, self.sx,
                               self.ph, self.pw)
         y = col.mean(axis=(2, 3))
@@ -25,6 +29,10 @@ class AveragePooling2D(pooling_2d.Pooling2D):
         if (chainer.should_use_cudnn('>=auto') and
                 pooling_2d._check_cudnn_acceptable_type(x[0].dtype)):
             return super(AveragePooling2D, self).forward_gpu(x)
+
+        self.retain_inputs(())
+        self._in_shape = x[0].shape
+        self._in_dtype = x[0].dtype
 
         n, c, h, w = x[0].shape
         y_h = conv.get_conv_outsize(h, self.kh, self.sy, self.ph)
@@ -58,7 +66,7 @@ class AveragePooling2D(pooling_2d.Pooling2D):
         return y,
 
     def backward_cpu(self, x, gy):
-        h, w = x[0].shape[2:]
+        h, w = self._in_shape[2:]
         gcol = numpy.tile(gy[0][:, :, None, None],
                           (1, 1, self.kh, self.kw, 1, 1))
         gx = conv.col2im_cpu(gcol, self.sy, self.sx, self.ph, self.pw, h, w)
@@ -69,9 +77,9 @@ class AveragePooling2D(pooling_2d.Pooling2D):
         if self._used_cudnn:
             return super(AveragePooling2D, self).backward_gpu(x, gy)
 
-        n, c, h, w = x[0].shape
+        n, c, h, w = self._in_shape
         y_h, y_w = gy[0].shape[2:]
-        gx = cuda.cupy.empty_like(x[0])
+        gx = cuda.cupy.empty(self._in_shape, self._in_dtype)
         coeff = 1. / (self.kh * self.kw)
         cuda.elementwise(
             'raw T gy, int32 h, int32 w,'

@@ -17,6 +17,7 @@ from chainer.functions.array import split_axis
 from chainer.functions.array import stack
 from chainer.functions.connection import linear
 from chainer.functions.noise import dropout
+from chainer.utils import argument
 from chainer.utils import type_check
 
 
@@ -150,6 +151,10 @@ class NStepLSTM(function.Function):
                 x_type.dtype == numpy.float32,
                 x_type.ndim == 2,
             )
+
+        # Check batch size
+        type_check.expect(x_types[0].shape[0] == h_type.shape[1])
+
         for x1_type, x2_type in zip(x_types, x_types[1:]):
             type_check.expect(
                 # Check if xs are sorted by descending lengths
@@ -185,6 +190,9 @@ class NStepLSTM(function.Function):
         ws, inputs = _split(inputs, self.n_layers * 8)
         bs, inputs = _split(inputs, self.n_layers * 8)
         x_list = inputs
+
+        if not type_check.same_types(*inputs):
+            raise ValueError('numpy and cupy must not be used together')
 
         hx = cuda.cupy.ascontiguousarray(hx)
         cx = cuda.cupy.ascontiguousarray(cx)
@@ -276,6 +284,9 @@ class NStepLSTM(function.Function):
         bs, inputs = _split(inputs, self.n_layers * 8)
         x_list = inputs
 
+        if not type_check.same_types(*inputs):
+            raise ValueError('numpy and cupy must not be used together')
+
         hx = cuda.cupy.ascontiguousarray(hx)
         cx = cuda.cupy.ascontiguousarray(cx)
 
@@ -363,8 +374,10 @@ def _stack_weight(ws):
 
 
 def n_step_lstm(
-        n_layers, dropout_ratio, hx, cx, ws, bs, xs):
-    """Stacked Long Short-Term Memory function for sequence inputs.
+        n_layers, dropout_ratio, hx, cx, ws, bs, xs, **kwargs):
+    """n_step_lstm(n_layers, dropout_ratio, hx, cx, ws, bs, xs)
+
+    Stacked Long Short-Term Memory function for sequence inputs.
 
     This function calculates stacked LSTM with sequences. This function gets
     an initial hidden state :math:`h_0`, an initial cell state :math:`c_0`,
@@ -391,6 +404,14 @@ def n_step_lstm(
     of ``k``-th layer is hidden state ``h_t`` of ``k-1``-th layer.
     Note that all input variables except first layer may have different shape
     from the first layer.
+
+    .. warning::
+
+       ``train`` and ``use_cudnn`` arguments are not supported anymore since
+       v2.
+       Instead, use ``chainer.using_config('train', train)`` and
+       ``chainer.using_config('use_cudnn', use_cudnn)`` respectively.
+       See :func:`chainer.using_config`.
 
     Args:
         n_layers(int): Number of layers.
@@ -444,6 +465,13 @@ def n_step_lstm(
 
     """
 
+    argument.check_unexpected_kwargs(
+        kwargs, train='train argument is not supported anymore. '
+        'Use chainer.using_config',
+        use_cudnn='use_cudnn argument is not supported anymore. '
+        'Use chainer.using_config')
+    argument.assert_kwargs_empty(kwargs)
+
     xp = cuda.get_array_module(hx, hx.data)
 
     if xp is not numpy and chainer.should_use_cudnn('>=auto', 5000):
@@ -486,7 +514,6 @@ def n_step_lstm(
                     h_rest = None
 
                 x = dropout.dropout(x, ratio=dropout_ratio)
-                h = dropout.dropout(h, ratio=dropout_ratio)
                 lstm_in = linear.linear(x, xws[layer], xbs[layer]) + \
                     linear.linear(h, hws[layer], hbs[layer])
 

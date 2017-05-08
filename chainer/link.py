@@ -184,17 +184,14 @@ class Link(object):
         if shape is None:
             if callable(initializer):
                 # uninitialized parameter
-                var = variable.Variable(
-                    volatile='auto', name=name, initializer=initializer)
+                var = variable.Variable(name=name, initializer=initializer)
             else:
                 # initialize parameter by the initial array
-                var = variable.Variable(
-                    initializer, volatile='auto', name=name)
+                var = variable.Variable(initializer, name=name)
         else:
             data = initializers.generate_array(initializer, shape, self.xp)
             grad = self.xp.full_like(data, numpy.nan)
-            var = variable.Variable(
-                data, volatile='auto', name=name, grad=grad)
+            var = variable.Variable(data, name=name, grad=grad)
 
         self._params.append(name)
         d[name] = var
@@ -425,6 +422,39 @@ class Link(object):
         dst = self.__dict__
         for name in self._params:
             dst[name].addgrad(src[name])
+
+    def enable_update(self):
+        """Enables update rules of all parameters under the link hierarchy.
+
+        This method sets the :attr:`~chainer.UpdateRule.enabled` flag of the
+        update rule of each parameter variable to ``True``.
+
+        """
+        for param in self.params():
+            rule = param.update_rule
+            if rule is not None:
+                rule.enabled = True
+
+    def disable_update(self):
+        """Disables update rules of all parameters under the link hierarchy.
+
+        This method sets the :attr:~chainer.UpdateRule.enabled` flag of the
+        update rule of each parameter variable to ``False``.
+
+        """
+        for param in self.params():
+            rule = param.update_rule
+            if rule is not None:
+                rule.enabled = False
+
+    @property
+    def update_enabled(self):
+        """``True`` if at least one parameter has an update rule enabled."""
+        for param in self.params():
+            rule = param.update_rule
+            if rule is not None and rule.enabled:
+                return True
+        return False
 
     def serialize(self, serializer):
         """Serializes the link object.
@@ -683,7 +713,7 @@ class ChainList(Link):
         return iter(self._children)
 
     def __len__(self):
-        """Returns a number of children."""
+        """Returns the number of children."""
         return len(self._children)
 
     def add_link(self, link):

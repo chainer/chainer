@@ -13,8 +13,8 @@ class Hstack(function.Function):
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() > 0)
 
-        ndim = in_types[0].ndim.eval()
-        for i in six.moves.range(1, in_types.size().eval()):
+        ndim = type_check.eval(in_types[0].ndim)
+        for i in six.moves.range(1, type_check.eval(in_types.size())):
             type_check.expect(
                 in_types[0].dtype == in_types[i].dtype,
                 in_types[0].ndim == in_types[i].ndim,
@@ -27,25 +27,28 @@ class Hstack(function.Function):
                 type_check.expect(in_types[0].shape[d] == in_types[i].shape[d])
 
     def forward(self, xs):
+        self.retain_inputs(())
+        self._in_shapes = [x.shape for x in xs]
         xp = cuda.get_array_module(*xs)
         return xp.hstack(xs),
 
     def backward(self, xs, gy):
-        if len(xs) == 1:
-            if xs[0].ndim == 0:
+        if len(self._in_shapes) == 1:
+            if len(self._in_shapes[0]) == 0:
                 return (gy[0].reshape(()),)
             return gy
 
-        xp = cuda.get_array_module(*xs)
-
-        if xs[0].ndim == 0:
-            ys = xp.hsplit(gy[0], len(xs))
+        xp = cuda.get_array_module(*gy)
+        if len(self._in_shapes[0]) == 0:
+            ys = xp.hsplit(gy[0], len(self._in_shapes))
             return [y.reshape(()) for y in ys]
 
-        if xs[0].ndim == 1:
-            sizes = numpy.array([x.shape[0] for x in xs[:-1]]).cumsum()
+        if len(self._in_shapes[0]) == 1:
+            sizes = numpy.array(
+                [shape[0] for shape in self._in_shapes[:-1]]).cumsum()
         else:
-            sizes = numpy.array([x.shape[1] for x in xs[:-1]]).cumsum()
+            sizes = numpy.array(
+                [shape[1] for shape in self._in_shapes[:-1]]).cumsum()
         return xp.hsplit(gy[0], sizes)
 
 

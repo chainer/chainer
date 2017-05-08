@@ -3,14 +3,15 @@ import numpy
 import chainer
 from chainer.functions.activation import sigmoid
 from chainer.functions.activation import tanh
+from chainer.functions.math import linear_interpolate
 from chainer import link
 from chainer.links.connection import linear
 
 
 class GRUBase(link.Chain):
 
-    def __init__(self, n_units, n_inputs=None, init=None,
-                 inner_init=None, bias_init=0):
+    def __init__(self, n_units, n_inputs=None,
+                 init=None, inner_init=None, bias_init=None):
         if n_inputs is None:
             n_inputs = n_units
         super(GRUBase, self).__init__(
@@ -77,7 +78,7 @@ class GRU(GRUBase):
         r = sigmoid.sigmoid(self.W_r(x) + self.U_r(h))
         z = sigmoid.sigmoid(self.W_z(x) + self.U_z(h))
         h_bar = tanh.tanh(self.W(x) + self.U(r * h))
-        h_new = (1 - z) * h + z * h_bar
+        h_new = linear_interpolate.linear_interpolate(z, h_bar, h)
         return h_new
 
 
@@ -108,19 +109,19 @@ class StatefulGRU(GRUBase):
     Args:
         in_size(int): Dimension of input vector :math:`x`.
         out_size(int): Dimension of hidden vector :math:`h`.
-        init: A callable that takes ``numpy.ndarray`` or
+        init: Initializer for GRU's input units (:math:`W`).
+            It is a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
-            It is used for initialization of the
-            GRU's input units (:math:`W`). Maybe be `None` to use default
-            initialization.
-        inner_init: A callable that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value.
-            It is used for initialization of the GRU's inner
+            If it is ``None``, the default initializer is used.
+        inner_init: Initializer for the GRU's inner
             recurrent units (:math:`U`).
-            Maybe be ``None`` to use default initialization.
-        bias_init: A callable or scalar used to initialize the bias values for
-            both the GRU's inner and input units. Maybe be ``None`` to use
-            default initialization.
+            It is a callable that takes ``numpy.ndarray`` or
+            ``cupy.ndarray`` and edits its value.
+            If it is ``None``, the default initializer is used.
+        bias_init: Bias initializer.
+            It is a callable that takes ``numpy.ndarray`` or
+            ``cupy.ndarray`` and edits its value.
+            If ``None``, the bias is set to zero.
 
     Attributes:
         h(~chainer.Variable): Hidden vector that indicates the state of
@@ -169,8 +170,9 @@ class StatefulGRU(GRUBase):
         z = sigmoid.sigmoid(z)
         h_bar = tanh.tanh(h_bar)
 
-        h_new = z * h_bar
         if self.h is not None:
-            h_new += (1 - z) * self.h
+            h_new = linear_interpolate.linear_interpolate(z, h_bar, self.h)
+        else:
+            h_new = z * h_bar
         self.h = h_new
         return self.h

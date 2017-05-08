@@ -13,8 +13,8 @@ class Vstack(function.Function):
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() > 0)
 
-        ndim = in_types[0].ndim.eval()
-        for i in six.moves.range(1, in_types.size().eval()):
+        ndim = type_check.eval(in_types[0].ndim)
+        for i in six.moves.range(1, type_check.eval(in_types.size())):
             type_check.expect(
                 in_types[0].dtype == in_types[i].dtype,
                 in_types[0].ndim == in_types[i].ndim,
@@ -26,22 +26,25 @@ class Vstack(function.Function):
                 type_check.expect(in_types[0].shape[d] == in_types[i].shape[d])
 
     def forward(self, xs):
+        self.retain_inputs(())
+        self._in_shapes = [x.shape for x in xs]
         xp = cuda.get_array_module(*xs)
         return xp.vstack(xs),
 
     def backward(self, xs, gy):
-        if len(xs) == 1:
-            if xs[0].ndim <= 1:
-                return gy[0].reshape(xs[0].shape),
+        if len(self._in_shapes) == 1:
+            if len(self._in_shapes[0]) <= 1:
+                return gy[0].reshape(self._in_shapes[0]),
             return gy
 
-        xp = cuda.get_array_module(*xs)
+        xp = cuda.get_array_module(*gy)
 
-        if xs[0].ndim <= 1:
+        if len(self._in_shapes[0]) <= 1:
             ys = xp.vsplit(gy[0], len(xs))
-            return [y.reshape(xs[0].shape) for y in ys]
+            return [y.reshape(self._in_shapes[0]) for y in ys]
         else:
-            sizes = numpy.array([x.shape[0] for x in xs[:-1]]).cumsum()
+            sizes = numpy.array(
+                [shape[0] for shape in self._in_shapes[:-1]]).cumsum()
             return xp.vsplit(gy[0], sizes)
 
 

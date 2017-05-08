@@ -45,9 +45,12 @@ try:
     from cupy.cuda import Event  # NOQA
     from cupy.cuda import Stream  # NOQA
 
+    from . import cuda_fusion as fusion  # NOQA
+
     available = True
 except Exception as e:
     _resolution_error = e
+    fusion = numpy
 
     class ndarray(object):
         pass  # for type testing
@@ -141,16 +144,14 @@ else:
 # ------------------------------------------------------------------------------
 # Global states
 # ------------------------------------------------------------------------------
-
 def get_device_from_id(device_id):
     """Gets the device from an ID integer.
 
     Args:
         device_id (int or None): The ID of the device which this function
             returns.
-
     """
-    if type(device_id) in _integer_types:
+    if device_id is not None:
         check_cuda_available()
         return Device(device_id)
     else:
@@ -167,12 +168,9 @@ def get_device_from_array(*arrays):
             A CuPy array which this function returns the device corresponding
             to. If a list of :class:`cupy.ndarray`s are given, it returns
             the first device object of an array in the list.
-
     """
     for array in arrays:
-        if isinstance(array, ndarray):
-            if array.device is None:
-                continue
+        if isinstance(array, ndarray) and array.device is not None:
             return array.device
     return DummyDevice
 
@@ -181,12 +179,12 @@ def get_device_from_array(*arrays):
 # cupy.ndarray allocation and copy
 # ------------------------------------------------------------------------------
 
-def to_gpu(array, device_id=None, stream=None):
+def to_gpu(array, device=None, stream=None):
     """Copies the given CPU array to specified device.
 
     Args:
-        array (:class:`~numpy.ndarray`): Array to be sent to GPU.
-        device_id (int): Device id.
+        array: Array to be sent to GPU.
+        device: Device specifier.
         stream (cupy.cuda.Stream): CUDA stream. If not ``None``, the copy runs
             asynchronously.
 
@@ -199,8 +197,8 @@ def to_gpu(array, device_id=None, stream=None):
 
     """
     check_cuda_available()
-    with get_device_from_id(device_id):
-        array_dev = get_device_from_array(array)
+    with get_device(device):
+        array_dev = get_device(array)
         if array_dev.id == cupy.cuda.device.get_device_id():
             return array
 
@@ -251,7 +249,7 @@ def to_cpu(array, stream=None):
     """
     if isinstance(array, ndarray):
         check_cuda_available()
-        with get_device_from_array(array):
+        with get_device(array):
             return array.get(stream)
     elif isinstance(array, numpy.ndarray):
         return array
@@ -261,7 +259,7 @@ def to_cpu(array, stream=None):
             '\nActual type: {0}.'.format(type(array)))
 
 
-def copy(array, out=None, out_device_id=None, stream=None):
+def copy(array, out=None, out_device=None, stream=None):
     """Copies a :class:`cupy.ndarray` object using the default stream.
 
     This function can copy the device array to the destination array on another
@@ -271,10 +269,8 @@ def copy(array, out=None, out_device_id=None, stream=None):
         array (cupy.ndarray): Array to be copied.
         out (cupy.ndarray): Destination array.
             If it is not ``None``, then ``out_device`` argument is ignored.
-        out_device_id (int or None) : The device ID of the destination device.
-            Actual device object is obtained by passing this value to
-            :func:`get_device_from_id`. If None, the device of the first
-            argument `array` is used.
+        out_device: Destination device specifier. Actual device object is
+            obtained by passing this value to :func:`get_device`.
         stream (cupy.cuda.Stream): CUDA stream.
 
     Returns:
@@ -288,14 +284,12 @@ def copy(array, out=None, out_device_id=None, stream=None):
     assert stream is None  # TODO(beam2d): FIX IT
 
     if out is None:
-        if out_device_id is None:
-            out_device = get_device_from_array(array)
-        else:
-            out_device = get_device_from_id(out_device_id)
-        with out_device:
+        if out_device is None:
+            out_device = array
+        with get_device(out_device):
             out = cupy.empty_like(array)
 
-    with get_device_from_array(array):
+    with get_device(array):
         cupy.copyto(out, array)
 
     return out

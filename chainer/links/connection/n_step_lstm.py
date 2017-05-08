@@ -1,10 +1,13 @@
 import numpy
 import six
 
+import chainer
+from chainer import cuda
 from chainer.functions.array import permutate
 from chainer.functions.array import transpose_sequence
 from chainer.functions.connection import n_step_lstm as rnn
 from chainer import link
+from chainer.utils import argument
 
 
 def argsort_list_descent(lst):
@@ -46,7 +49,12 @@ class NStepLSTM(link.ChainList):
 
     """
 
-    def __init__(self, n_layers, in_size, out_size, dropout):
+    def __init__(self, n_layers, in_size, out_size, dropout, **kwargs):
+        argument.check_unexpected_kwargs(
+            kwargs, use_cudnn='use_cudnn argument is not supported anymore. '
+            'Use chainer.using_config')
+        argument.assert_kwargs_empty(kwargs)
+
         weights = []
         for i in six.moves.range(n_layers):
             weight = link.Link()
@@ -66,23 +74,55 @@ class NStepLSTM(link.ChainList):
 
         self.n_layers = n_layers
         self.dropout = dropout
+        self.out_size = out_size
 
-    def __call__(self, hx, cx, xs):
-        """Calculate all hidden states and cell states.
+    def __call__(self, hx, cx, xs, **kwargs):
+        """__call__(self, hx, cx, xs)
+
+        Calculate all hidden states and cell states.
+
+        .. warning::
+
+           ``train`` argument is not supported anymore since v2.
+           Instead, use ``chainer.using_config('train', train)``.
+           See :func:`chainer.using_config`.
 
         Args:
-            hx (~chainer.Variable): Initial hidden states.
-            cx (~chainer.Variable): Initial cell states.
+            hx (~chainer.Variable or None): Initial hidden states. If ``None``
+                is specified zero-vector is used.
+            cx (~chainer.Variable or None): Initial cell states. If ``None``
+                is specified zero-vector is used.
             xs (list of ~chianer.Variable): List of input sequences.
                 Each element ``xs[i]`` is a :class:`chainer.Variable` holding
                 a sequence.
         """
+        argument.check_unexpected_kwargs(
+            kwargs, train='train argument is not supported anymore. '
+            'Use chainer.using_config')
+        argument.assert_kwargs_empty(kwargs)
+
         assert isinstance(xs, (list, tuple))
         indices = argsort_list_descent(xs)
 
         xs = permutate_list(xs, indices, inv=False)
-        hx = permutate.permutate(hx, indices, axis=1, inv=False)
-        cx = permutate.permutate(cx, indices, axis=1, inv=False)
+        if hx is None:
+            with cuda.get_device(self._device_id):
+                hx = chainer.Variable(
+                    self.xp.zeros(
+                        (self.n_layers, len(xs), self.out_size),
+                        dtype=xs[0].dtype))
+        else:
+            hx = permutate.permutate(hx, indices, axis=1, inv=False)
+
+        if cx is None:
+            with cuda.get_device(self._device_id):
+                cx = chainer.Variable(
+                    self.xp.zeros(
+                        (self.n_layers, len(xs), self.out_size),
+                        dtype=xs[0].dtype))
+        else:
+            cx = permutate.permutate(cx, indices, axis=1, inv=False)
+
         trans_x = transpose_sequence.transpose_sequence(xs)
 
         ws = [[w.w0, w.w1, w.w2, w.w3, w.w4, w.w5, w.w6, w.w7] for w in self]

@@ -59,9 +59,11 @@ script:
   - autopep8 -r . --global-config .pep8 | tee check_autopep8
   - test ! -s check_autopep8
   - cd tests
-  - PYTHONWARNINGS='module::DeprecationWarning' nosetests -a '!gpu,!slow' --with-doctest chainer_tests
-  - cd ..
-  - READTHEDOCS=True python setup.py develop
+  - PYTHONWARNINGS='ignore::FutureWarning,module::DeprecationWarning' nosetests -a '!gpu,!slow' --with-doctest chainer_tests
+  - if [[ $TRAVIS_OS_NAME == "linux" ]]; then
+      cd ..;
+      READTHEDOCS=True python setup.py develop;
+    fi
 
 sudo: false
 

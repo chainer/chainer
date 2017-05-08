@@ -98,7 +98,9 @@ class TestTanhCudnnCall(unittest.TestCase):
 
     def test_call_cudnn_forward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
-            with mock.patch('cupy.cudnn.cudnn.activationForward_v3') as func:
+            default_func = cuda.cupy.cudnn.activation_forward
+            with mock.patch('cupy.cudnn.activation_forward') as func:
+                func.side_effect = default_func
                 self.forward()
                 self.assertEqual(func.called, self.expect)
 
@@ -106,7 +108,9 @@ class TestTanhCudnnCall(unittest.TestCase):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             y = self.forward()
             y.grad = self.gy
-            with mock.patch('cupy.cudnn.cudnn.activationBackward_v3') as func:
+            default_func = cuda.cupy.cudnn.activation_backward
+            with mock.patch('cupy.cudnn.activation_backward') as func:
+                func.side_effect = default_func
                 y.backward()
                 self.assertEqual(func.called, self.expect)
 
