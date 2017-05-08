@@ -316,7 +316,7 @@ class TestLink(unittest.TestCase):
 class CountVariable(chainer.Variable):
 
     def __init__(self, v):
-        super(CountVariable, self).__init__(v.data, v.name)
+        super(CountVariable, self).__init__(v.data, name=v.name)
         self.grad = v.grad
         self.count_to_cpu = 0
         self.count_to_gpu = 0
