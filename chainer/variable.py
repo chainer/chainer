@@ -99,7 +99,9 @@ def variable_str(var):
 
 class Variable(object):
 
-    """Array with a structure to keep track of computation.
+    """__init__(data=None, name=None, grad=None, initializer=None, update_rule=None, requires_grad=True)
+
+    Array with a structure to keep track of computation.
 
     Every variable holds a data array of type either :class:`numpy.ndarray` or
     :class:`cupy.ndarray`.
@@ -140,7 +142,7 @@ class Variable(object):
         initializer: Initializer of the data array. It is used for initializing
             the data array of an uninitialized variable.
 
-    """
+    """  # NOQA
 
     initializer = None
     _grad_initializer = None
