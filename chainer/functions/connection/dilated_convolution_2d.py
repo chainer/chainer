@@ -32,12 +32,13 @@ def _pair(x):
 class DilatedConvolution2DFunction(function.Function):
 
     def __init__(self, stride=1, pad=0, dilate=1,
-                 use_cudnn=True, cover_all=False):
+                 use_cudnn=True, cover_all=False, no_data_grad=False):
         self.sy, self.sx = _pair(stride)
         self.ph, self.pw = _pair(pad)
         self.dy, self.dx = _pair(dilate)
         self.use_cudnn = use_cudnn
         self.cover_all = cover_all
+        self.no_data_grad = no_data_grad
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -183,10 +184,13 @@ class DilatedConvolution2DFunction(function.Function):
 
         gW = numpy.tensordot(
             gy, self.col, ((0, 2, 3), (0, 4, 5))).astype(W.dtype, copy=False)
-        gcol = numpy.tensordot(W, gy, (0, 1)).astype(x.dtype, copy=False)
-        gcol = numpy.rollaxis(gcol, 3)
-        gx = conv.col2im_cpu(gcol, self.sy, self.sx,
-                             self.ph, self.pw, h, w, dy=self.dy, dx=self.dx)
+        if self.no_data_grad:
+            gx = None
+        else:
+            gcol = numpy.tensordot(W, gy, (0, 1)).astype(x.dtype, copy=False)
+            gcol = numpy.rollaxis(gcol, 3)
+            gx = conv.col2im_cpu(gcol, self.sy, self.sx,
+                                 self.ph, self.pw, h, w, dy=self.dy, dx=self.dx)
 
         if b is None:
             return gx, gW
@@ -226,6 +230,8 @@ class DilatedConvolution2DFunction(function.Function):
                    gy_ph:gy_ph + out_sh:self.sy,
                    gy_pw:gy_pw + out_sw:self.sx] = gy
 
+            gx = None
+
             for j in moves.range(kh):
                 for i in moves.range(kw):
                     xji = cuda.cupy.ascontiguousarray(
@@ -254,7 +260,8 @@ class DilatedConvolution2DFunction(function.Function):
                         oz_dtype = 'd' if x.dtype == 'd' else 'f'
                         one = numpy.array(1, dtype=oz_dtype).ctypes
                         zero = numpy.array(0, dtype=oz_dtype).ctypes
-                        gx = cuda.cupy.zeros_like(x)
+                        if not self.no_data_grad:
+                            gx = cuda.cupy.zeros_like(x)
                         gWji = cuda.cupy.empty((out_c, c, 1, 1), dtype=W.dtype)
 
                         if _cudnn_version >= 4000:
@@ -281,22 +288,27 @@ class DilatedConvolution2DFunction(function.Function):
                             gy_desc.value, gy.data.ptr, self.conv_desc.value,
                             algo_filter, workspace.data.ptr, workspace_size,
                             zero.data, self.filter_desc.value, gWji.data.ptr)
-                        libcudnn.convolutionBackwardData_v3(
-                            handle, one.data, self.filter_desc.value,
-                            Wji.data.ptr, gyji_desc.value,
-                            gyji.data.ptr, conv_desc_data.value,
-                            algo_data, workspace.data.ptr, workspace_size,
-                            one.data, x_desc.value, gx.data.ptr)
                     else:
                         libcudnn.convolutionBackwardFilter_v2(
                             handle, one.data, xji_desc.value, xji.data.ptr,
                             gy_desc.value, gy.data.ptr, self.conv_desc.value,
                             zero.data, self.filter_desc.value, gWji.data.ptr)
-                        libcudnn.convolutionBackwardData_v2(
-                            handle, one.data, self.filter_desc.value,
-                            Wji.data.ptr, gyji_desc.value,
-                            gyji.data.ptr, conv_desc_data.value,
-                            one.data, x_desc.value, gx.data.ptr)
+
+                    if not self.no_data_grad:
+                        if _cudnn_version >= 4000:
+                            libcudnn.convolutionBackwardData_v3(
+                                handle, one.data, self.filter_desc.value,
+                                Wji.data.ptr, gyji_desc.value,
+                                gyji.data.ptr, conv_desc_data.value,
+                                algo_data, workspace.data.ptr, workspace_size,
+                                one.data, x_desc.value, gx.data.ptr)
+                        else:
+                            libcudnn.convolutionBackwardData_v2(
+                                handle, one.data, self.filter_desc.value,
+                                Wji.data.ptr, gyji_desc.value,
+                                gyji.data.ptr, conv_desc_data.value,
+                                one.data, x_desc.value, gx.data.ptr)
+
                     gW[:, :, j:j + 1, i:i + 1] = gWji
 
             if b is not None:
@@ -308,11 +320,14 @@ class DilatedConvolution2DFunction(function.Function):
             gW = cuda.cupy.tensordot(
                 gy, self.col, ((0, 2, 3), (0, 4, 5))).astype(W.dtype,
                                                              copy=False)
-            gcol = cuda.cupy.tensordot(W, gy, (0, 1)).astype(x.dtype,
-                                                             copy=False)
-            gcol = cuda.cupy.rollaxis(gcol, 3)
-            gx = conv.col2im_gpu(gcol, self.sy, self.sx, self.ph, self.pw,
-                                 h, w, dy=self.dy, dx=self.dx)
+            if self.no_data_grad:
+                gx = None
+            else:
+                gcol = cuda.cupy.tensordot(W, gy, (0, 1)).astype(x.dtype,
+                                                                 copy=False)
+                gcol = cuda.cupy.rollaxis(gcol, 3)
+                gx = conv.col2im_gpu(gcol, self.sy, self.sx, self.ph, self.pw,
+                                     h, w, dy=self.dy, dx=self.dx)
 
             if b is not None:
                 gb = gy.sum(axis=(0, 2, 3))
