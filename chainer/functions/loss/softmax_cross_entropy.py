@@ -66,17 +66,8 @@ class SoftmaxCrossEntropy(function.Function):
         log_yd = log_yd.reshape(len(log_yd), -1)
         log_p = log_yd[numpy.maximum(t.ravel(), 0), numpy.arange(t.size)]
 
-        # deal with the case where the SoftmaxCrossEntropy is
-        # unpickled from the old version
-        if self.normalize:
-            count = (t != self.ignore_label).sum()
-        else:
-            count = len(x)
-        self._coeff = 1.0 / max(count, 1)
-
-        y = (log_p * (t.ravel() != self.ignore_label)).sum(keepdims=True) \
-            * (-self._coeff)
-        return y.reshape(()),
+        log_p *= (t.ravel() != self.ignore_label)
+        return -log_p.reshape(t.shape),
 
     def forward_gpu(self, inputs):
         cupy = cuda.cupy
@@ -98,11 +89,18 @@ class SoftmaxCrossEntropy(function.Function):
         self._coeff = cupy.divide(1.0, coeff, dtype=x.dtype)
 
         log_y = cupy.rollaxis(log_y, 1, log_y.ndim)
-        ret = cuda.reduce(
-            'S t, raw T log_y, int32 n_channel, raw T coeff', 'T out',
-            't == -1 ? T(0) : log_y[_j * n_channel + t]',
-            'a + b', 'out = a * -coeff[0]', '0', 'crossent_fwd'
-        )(t, log_y.reduced_view(), log_y.shape[-1], self._coeff)
+        ret = cuda.elementwise(
+            'S t, raw T log_y, int32 n_channel, T ignore', 'T out',
+            '''
+            if (t == ignore) {
+              out = 0;
+            } else {
+              out = -log_y[i * n_channel + t];
+            }
+            ''',
+            'softmax_crossent_no_reduce_fwd'
+        )(t, log_y.reduced_view(), log_y.shape[-1], self.ignore_label)
+        ret = ret.reshape(t.shape)
         return ret,
 
     def backward_cpu(self, inputs, grad_outputs):
@@ -142,7 +140,7 @@ class SoftmaxCrossEntropy(function.Function):
                 gx *= numpy.broadcast_to(c, gx.shape)
             gx *= (t != self.ignore_label).reshape((len(t), 1, -1))
             gx = gx.reshape(y.shape)
-        gx *= gloss * self._coeff
+        gx *= gloss[:, None]
         return gx, None
 
     def backward_gpu(self, inputs, grad_outputs):
@@ -155,28 +153,29 @@ class SoftmaxCrossEntropy(function.Function):
             cupy.exp(y, out=y)
         gloss = grad_outputs[0]
         n_unit = t.size // len(t)
-        coeff = gloss * self._coeff
+        coeff = gloss[:, None, ...]
         if self.class_weight is None:
             gx = cuda.elementwise(
-                'T y, S t, raw T coeff, S n_channel, S n_unit',
+                'T y, S t, T coeff, S n_channel, S n_unit',
                 'T gx',
                 '''
                     const int c = (i / n_unit % n_channel);
-                    gx = (t == -1) ? 0 : (coeff[0] * (y - (c == t)));
+                    gx = t == -1 ? 0 : coeff * (y - (c == t));
                 ''',
                 'softmax_crossent_bwd')(
                     y, cupy.expand_dims(t, 1), coeff, x.shape[1], n_unit)
         else:
             gx = cuda.elementwise(
-                'T y, raw T w, S t, raw T coeff, S n_channel, S n_unit',
+                'T y, raw T w, S t, T coeff, S n_channel, S n_unit',
                 'T gx',
                 '''
                     const int c = (i / n_unit % n_channel);
-                    gx = t == -1 ? 0 : coeff[0] * (y - (c == t)) * w[t];
+                    gx = t == -1 ? 0 : coeff * (y - (c == t)) * w[t];
                 ''',
-                'softmax_crossent_bwd')(
+                'softmax_crossent_weight_bwd')(
                     y, self.class_weight, cupy.expand_dims(t, 1), coeff,
                     x.shape[1], n_unit)
+
         return gx, None
 
 
@@ -214,7 +213,9 @@ def softmax_cross_entropy(
             is ``-1``. See description of the argument `t`.
 
     Returns:
-        Variable: A variable holding a scalar array of the cross entropy loss.
+        Variable:
+            A variable holding an array of the cross entropy loss
+            whose shape is same as the of ``x``.
 
     .. note::
 

@@ -57,7 +57,7 @@ class LinearModel(object):
                                  self.dtype)
             model.cleargrads()
             y = model(x)
-            loss = F.softmax_cross_entropy(y, t)
+            loss = F.sum(F.softmax_cross_entropy(y, t))
             loss.backward()
             optimizer.update()
 
