@@ -10,22 +10,20 @@ from chainer.links.connection import linear
 
 class GRUBase(link.Chain):
 
-    def __init__(self, n_units, n_inputs=None,
-                 init=None, inner_init=None, bias_init=None):
-        if n_inputs is None:
-            n_inputs = n_units
+    def __init__(self, in_size, out_size, init=None,
+                 inner_init=None, bias_init=None):
         super(GRUBase, self).__init__(
-            W_r=linear.Linear(n_inputs, n_units,
+            W_r=linear.Linear(in_size, out_size,
                               initialW=init, initial_bias=bias_init),
-            U_r=linear.Linear(n_units, n_units,
+            U_r=linear.Linear(out_size, out_size,
                               initialW=inner_init, initial_bias=bias_init),
-            W_z=linear.Linear(n_inputs, n_units,
+            W_z=linear.Linear(in_size, out_size,
                               initialW=init, initial_bias=bias_init),
-            U_z=linear.Linear(n_units, n_units,
+            U_z=linear.Linear(out_size, out_size,
                               initialW=inner_init, initial_bias=bias_init),
-            W=linear.Linear(n_inputs, n_units,
+            W=linear.Linear(in_size, out_size,
                             initialW=init, initial_bias=bias_init),
-            U=linear.Linear(n_units, n_units,
+            U=linear.Linear(out_size, out_size,
                             initialW=inner_init, initial_bias=bias_init),
         )
 
@@ -57,9 +55,12 @@ class GRU(GRUBase):
     Use :class:`~chainer.links.StatefulGRU` as a *stateful* GRU.
 
     Args:
-        n_units(int): Dimension of hidden vector :math:`h`.
-        n_inputs(int): Dimension of input vector :math:`x`. If ``None``,
-            it is set to the same value as ``n_units``.
+        in_size(int): Dimension of input vector :math:`x`.
+            If ``None``, parameter initialization will be deferred
+            until the first forward data pass
+            at which time the size will be determined.
+        out_size(int): Dimension of hidden vector :math:`h`,
+            :math:`\\bar{h}` and :math:`h'`.
 
     See:
         - `On the Properties of Neural Machine Translation: Encoder-Decoder
@@ -134,7 +135,7 @@ class StatefulGRU(GRUBase):
     def __init__(self, in_size, out_size, init=None,
                  inner_init=None, bias_init=0):
         super(StatefulGRU, self).__init__(
-            out_size, in_size, init, inner_init, bias_init)
+            in_size, out_size, init, inner_init, bias_init)
         self.state_size = out_size
         self.reset_state()
 

@@ -20,9 +20,9 @@ class Linear(link.Link):
     does not hold a bias vector.
 
     Args:
-        in_size (int): Dimension of input vectors. If ``None``, parameter
-            initialization will be deferred until the first forward data pass
-            at which time the size will be determined.
+        in_size (int): Dimension of input vectors. If it's ``None`` or ommited,
+            parameter initialization will be deferred until the first forward
+            data pass at which time the size will be determined.
         out_size (int): Dimension of output vectors.
         nobias (bool): If ``True``, then this function does not use the bias.
         initialW (2-D array): Initial weight value. If ``None``, then the
@@ -39,12 +39,61 @@ class Linear(link.Link):
         W (~chainer.Variable): Weight parameter.
         b (~chainer.Variable): Bias parameter.
 
+    .. admonition:: Example
+
+        There are several ways to make a Linear link.
+
+        Define an input vector ``x`` as:
+
+        >>> x = np.array([[0, 1, 2, 3, 4]], 'f')
+
+        1. Give the first two arguments explicitly:
+
+            Those numbers are considered as the input size and the output size.
+
+            >>> l = L.Linear(5, 10)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 10)
+
+        2. Omit ``in_size`` (give the output size only as the first argument)
+                or fill it with ``None``:
+
+            In this case, the size of second axis of ``x`` is used as the
+            input size. So the below two cases are the same.
+
+            >>> l = L.Linear(10)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 10)
+
+            >>> l = L.Linear(None, 10)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 10)
+
+            When you omit the first argument, you need to specify the other
+            subsequent arguments from ``nobias`` as keyword arguments. So the
+            below two cases are the same.
+
+            >>> l = L.Linear(None, 10, False, None, 0)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 10)
+
+            >>> l = L.Linear(10, nobias=False, initialW=None, initial_bias=0)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 10)
+
     """
 
-    def __init__(self, in_size, out_size, nobias=False,
+    def __init__(self, in_size, out_size=None, nobias=False,
                  initialW=None, initial_bias=None):
         super(Linear, self).__init__()
 
+        if out_size is None:
+            in_size, out_size = None, in_size
         self.out_size = out_size
 
         if initialW is None:
@@ -60,7 +109,7 @@ class Linear(link.Link):
             if initial_bias is None:
                 initial_bias = initializers.Constant(0)
             bias_initializer = initializers._get_initializer(initial_bias)
-            self.add_param('b', out_size, initializer=bias_initializer)
+            self.add_param('b', self.out_size, initializer=bias_initializer)
 
     def _initialize_params(self, in_size):
         self.W.initialize((self.out_size, in_size))

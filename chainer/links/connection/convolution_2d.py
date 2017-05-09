@@ -25,9 +25,10 @@ class Convolution2D(link.Link):
         See :func:`chainer.using_config`.
 
     Args:
-        in_channels (int): Number of channels of input arrays. If ``None``,
-            parameter initialization will be deferred until the first forward
-            data pass at which time the size will be determined.
+        in_channels (int): Number of channels of input arrays. If it is
+            ``None`` or omitted, parameter initialization will be deferred
+            until the first forward data pass at which time the size will be
+            determined.
         out_channels (int): Number of channels of output arrays.
         ksize (int or pair of ints): Size of filters (a.k.a. kernels).
             ``ksize=k`` and ``ksize=(k, k)`` are equivalent.
@@ -53,6 +54,50 @@ class Convolution2D(link.Link):
         W (~chainer.Variable): Weight parameter.
         b (~chainer.Variable): Bias parameter.
 
+
+    .. admonition:: Example
+
+        There are several ways to make a Convolution2D link.
+
+        Let an input vector ``x`` be:
+
+        >>> x = np.arange(1 * 3 * 10 * 10, dtype='f').reshape(1, 3, 10, 10)
+
+        1. Give the first three arguments explicitly:
+
+            >>> l = L.Convolution2D(3, 7, 5)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 7, 6, 6)
+
+        2. Omit ``in_channels`` or fill it with ``None``:
+
+            The below two cases are the same.
+
+            >>> l = L.Convolution2D(7, 5)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 7, 6, 6)
+
+            >>> l = L.Convolution2D(None, 7, 5)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 7, 6, 6)
+
+            When you omit the first argument, you need to specify the other
+            subsequent arguments from ``stride`` as keyword auguments. So the
+            below two cases are the same.
+
+            >>> l = L.Convolution2D(7, 5, stride=1, pad=0)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 7, 6, 6)
+
+            >>> l = L.Convolution2D(None, 7, 5, 1, 0)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 7, 6, 6)
+
     """
 
     def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
@@ -63,6 +108,9 @@ class Convolution2D(link.Link):
             kwargs, deterministic='deterministic argument is not '
             'supported anymore. Use chainer.using_config')
         argument.assert_kwargs_empty(kwargs)
+
+        if ksize is None:
+            out_channels, ksize, in_channels = in_channels, out_channels, None
 
         self.ksize = ksize
         self.stride = _pair(stride)
