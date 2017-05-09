@@ -188,7 +188,8 @@ class TestDeconvolution2DCudnnCall(unittest.TestCase):
             name = 'cupy.cudnn.cudnn.convolutionBackwardData_v2'
         with chainer.using_config('use_cudnn', self.use_cudnn):
             with chainer.using_config('deterministic', self.deterministic):
-                should_raise_error = (self.deterministic and self.should_call_cudnn
+                should_raise_error = (self.deterministic and
+                                      self.should_call_cudnn
                                       and cuda.cudnn.cudnn.getVersion() < 3000)
                 if should_raise_error:
                     with self.assertRaises(ValueError):
