@@ -79,7 +79,6 @@ class TestMLPConvolution2DCudnnCall(unittest.TestCase):
     def test_call_cudnn_backrward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             y = self.forward()
-            print(y.data.shape)
             y.grad = self.gy
             if cuda.cudnn.cudnn.getVersion() >= 3000:
                 patch = 'cupy.cudnn.cudnn.convolutionBackwardData_v3'
@@ -91,16 +90,18 @@ class TestMLPConvolution2DCudnnCall(unittest.TestCase):
                                  chainer.should_use_cudnn('>=auto'))
 
 
-@testing.parameterize(
-    {'use_cudnn': 'always'},
-    {'use_cudnn': 'never'},
-)
+@testing.parameterize(*testing.product({
+    'use_cudnn': ['always', 'never'],
+    'mlpconv_args': [
+        ((None, (96, 96, 96), 11), {'activation': functions.sigmoid}),
+        (((96, 96, 96), 11), {'activation': functions.sigmoid})
+    ]
+}))
 class TestMLPConvolution2DShapePlaceholder(unittest.TestCase):
 
     def setUp(self):
-        self.mlp = links.MLPConvolution2D(
-            None, (96, 96, 96), 11,
-            activation=functions.sigmoid)
+        args, kwargs = self.mlpconv_args
+        self.mlp = links.MLPConvolution2D(*args, **kwargs)
         self.x = numpy.zeros((10, 3, 20, 20), dtype=numpy.float32)
 
     def test_init(self):

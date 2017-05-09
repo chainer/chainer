@@ -18,14 +18,18 @@ def _init_weight(weights, initializer):
 
 class LSTMBase(link.Chain):
 
-    def __init__(self, in_size, out_size,
-                 lateral_init=None, upward_init=None,
-                 bias_init=0, forget_bias_init=1):
+    def __init__(self, in_size, out_size=None, lateral_init=None,
+                 upward_init=None, bias_init=0, forget_bias_init=1):
+
+        if out_size is None:
+            out_size, in_size = in_size, None
+
         super(LSTMBase, self).__init__(
             upward=linear.Linear(in_size, 4 * out_size, initialW=0),
             lateral=linear.Linear(out_size, 4 * out_size,
                                   initialW=0, nobias=True),
         )
+
         self.state_size = out_size
         self.lateral_init = lateral_init
         self.upward_init = upward_init
@@ -61,14 +65,52 @@ class StatelessLSTM(LSTMBase):
     hidden states.
 
     Args:
-        in_size (int): Dimension of input vectors. If ``None``, parameter
-            initialization will be deferred until the first forward data pass
-            at which time the size will be determined.
+        in_size (int): Dimension of input vectors. If it is ``None`` or
+            omitted, parameter initialization will be deferred until the first
+            forward data pass at which time the size will be determined.
         out_size (int): Dimensionality of output vectors.
 
     Attributes:
         upward (chainer.links.Linear): Linear layer of upward connections.
         lateral (chainer.links.Linear): Linear layer of lateral connections.
+
+    .. admonition:: Example
+
+        There are several ways to make a StatelessLSTM link.
+
+        Let a two-dimensional input array :math:`x`, a cell state array
+        :math:`h`, and the output array of the previous step :math:`h` be:
+
+        >>> x = np.zeros((1, 10), dtype='f')
+        >>> c = np.zeros((1, 20), dtype='f')
+        >>> h = np.zeros((1, 20), dtype='f')
+
+        1. Give both ``in_size`` and ``out_size`` arguments:
+
+            >>> l = L.StatelessLSTM(10, 20)
+            >>> c_new, h_new = l(c, h, x)
+            >>> c_new.shape
+            (1, 20)
+            >>> h_new.shape
+            (1, 20)
+
+        2. Omit ``in_size`` argument or fill it with ``None``:
+
+            The below two cases are the same.
+
+            >>> l = L.StatelessLSTM(20)
+            >>> c_new, h_new = l(c, h, x)
+            >>> c_new.shape
+            (1, 20)
+            >>> h_new.shape
+            (1, 20)
+
+            >>> l = L.StatelessLSTM(None, 20)
+            >>> c_new, h_new = l(c, h, x)
+            >>> c_new.shape
+            (1, 20)
+            >>> h_new.shape
+            (1, 20)
 
     """
 
@@ -126,9 +168,9 @@ class LSTM(LSTMBase):
     applying the function.
 
     Args:
-        in_size (int): Dimension of input vectors. If ``None``, parameter
-            initialization will be deferred until the first forward data pass
-            at which time the size will be determined.
+        in_size (int): Dimension of input vectors. If it is ``None`` or
+            omitted, parameter initialization will be deferred until the first
+            forward data pass at which time the size will be determined.
         out_size (int): Dimensionality of output vectors.
         lateral_init: A callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
@@ -162,7 +204,9 @@ class LSTM(LSTMBase):
 
     """
 
-    def __init__(self, in_size, out_size, **kwargs):
+    def __init__(self, in_size, out_size=None, **kwargs):
+        if out_size is None:
+            in_size, out_size = None, in_size
         super(LSTM, self).__init__(in_size, out_size, **kwargs)
         self.reset_state()
 
