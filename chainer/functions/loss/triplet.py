@@ -30,27 +30,23 @@ class Triplet(function.Function):
         xp = cuda.get_array_module(*inputs)
 
         anchor, positive, negative = inputs
-        N = anchor.shape[0]
 
         dist = xp.sum(
             (anchor - positive) ** 2 - (anchor - negative) ** 2,
             axis=1) + self.margin
         self.dist_hinge = xp.maximum(dist, 0)
-        loss = xp.sum(self.dist_hinge) / N
-
-        return xp.array(loss, dtype=numpy.float32),
+        return xp.array(self.dist_hinge, dtype=numpy.float32),
 
     def backward(self, inputs, gy):
         xp = cuda.get_array_module(*inputs)
 
         anchor, positive, negative = inputs
-        N = anchor.shape[0]
 
         x_dim = anchor.shape[1]
         tmp = xp.repeat(self.dist_hinge[:, None], x_dim, axis=1)
         mask = xp.array(tmp > 0, dtype=numpy.float32)
 
-        tmp = 2 * gy[0] * mask / N
+        tmp = 2 * gy[0][:, None] * mask
         gx0 = (tmp * (negative - positive)).astype(numpy.float32)
         gx1 = (tmp * (positive - anchor)).astype(numpy.float32)
         gx2 = (tmp * (anchor - negative)).astype(numpy.float32)
@@ -86,8 +82,10 @@ def triplet(anchor, positive, negative, margin=0.2):
             value.
 
     Returns:
-        ~chainer.Variable: A variable holding a scalar that is the loss value
-            calculated by the above equation.
+        ~chainer.Variable:
+            A variable holding an array of the loss value
+            calculated by the above equation whose shape is same
+            as one of (hence both of) input variables.
 
     .. note::
         This cost can be used to train triplet networks. See `Learning \
