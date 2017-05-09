@@ -26,13 +26,15 @@ class HuberLoss(function.Function):
         mask = y > (self.delta ** 2)
         y -= mask * xp.square(abs(self.diff) - self.delta)
         y *= 0.5
-        return y.sum(axis=1),
+        return y,
 
     def backward(self, inputs, gy):
         xp = cuda.get_array_module(*inputs)
         mask = xp.abs(self.diff) <= self.delta
-        gx = gy[0].reshape(gy[0].shape + (1,) * (self.diff.ndim - 1)) * \
-            xp.where(mask, self.diff, self.delta * xp.sign(self.diff))
+
+        gx = xp.where(mask, self.diff, self.delta * xp.sign(self.diff))
+        gy_ = gy[0]
+        gx = gy_ * gx
         return gx, -gx
 
 
@@ -59,8 +61,10 @@ def huber_loss(x, t, delta):
             as used in definition.
 
     Returns:
-        ~chainer.Variable: A variable object holding a scalar array of the
-            huber loss :math:`L_{\\delta}`.
+        ~chainer.Variable:
+            A variable object holding an array of the
+            huber loss :math:`L_{\\delta}` whose  whose shape is
+            same as one of (hence both of) input variables.
 
     See:
         `Huber loss - Wikipedia <https://en.wikipedia.org/wiki/Huber_loss>`_.

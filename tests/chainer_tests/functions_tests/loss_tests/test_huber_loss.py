@@ -18,7 +18,7 @@ class TestHuberLoss(unittest.TestCase):
         self.x = (numpy.random.random(self.shape) - 0.5) * 20
         self.x = self.x.astype(numpy.float32)
         self.t = numpy.random.random(self.shape).astype(numpy.float32)
-        self.gy = numpy.random.random(self.shape[0]).astype(numpy.float32)
+        self.gy = numpy.random.random(self.shape).astype(numpy.float32)
 
     def check_forward(self, x_data, t_data):
         x = chainer.Variable(x_data)
@@ -28,11 +28,10 @@ class TestHuberLoss(unittest.TestCase):
         loss_value = cuda.to_cpu(loss.data)
 
         diff_data = cuda.to_cpu(x_data) - cuda.to_cpu(t_data)
-        expected_result = numpy.zeros(self.shape)
+        loss_expect = numpy.zeros(self.shape)
         mask = numpy.abs(diff_data) < 1
-        expected_result[mask] = 0.5 * diff_data[mask] ** 2
-        expected_result[~mask] = numpy.abs(diff_data[~mask]) - 0.5
-        loss_expect = numpy.sum(expected_result, axis=1)
+        loss_expect[mask] = 0.5 * diff_data[mask] ** 2
+        loss_expect[~mask] = numpy.abs(diff_data[~mask]) - 0.5
         testing.assert_allclose(loss_value, loss_expect)
 
     @condition.retry(3)
