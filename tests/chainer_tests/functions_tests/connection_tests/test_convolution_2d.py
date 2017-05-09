@@ -198,15 +198,15 @@ class TestConvolution2DCudnnCall(unittest.TestCase):
                 else:
                     name = 'cupy.cudnn.cudnn.convolutionBackwardData_v2'
 
-                if self.should_call_cudnn:
-                    self.assertFalse(self.deterministic)
+                should_raise_error = (self.deterministic and self.should_call_cudnn
+                                      and cuda.cudnn.cudnn.getVersion() < 3000)
+                if should_raise_error:
+                    with self.assertRaises(ValueError):
+                        y.backward()
+                else:
                     with mock.patch(name) as func:
                         y.backward()
-                    self.assertEqual(func.called, True)
-                else:
-                    self.assertTrue(self.deterministic)
-                    with assertRaises(ValueError):
-                        y.backward()
+                    self.assertEqual(func.called, self.should_call_cudnn)
 
 
 @testing.parameterize(*testing.product({
