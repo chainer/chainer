@@ -403,9 +403,13 @@ class TestBackpropModeMultiThread(unittest.TestCase):
 
 class FunctionWithRetaining(chainer.Function):
 
+    def __init__(self, retain_after_backward=False):
+        self.retain_after_backward = retain_after_backward
+
     def forward(self, inputs):
         self.retain_inputs([1])
-        self.retain_outputs([1], retain_after_backward=True)
+        self.retain_outputs([1],
+                            retain_after_backward=self.retain_after_backward)
         return inputs
 
     def backward(self, inputs, grad_outputs):
@@ -416,32 +420,45 @@ class FunctionWithRetaining(chainer.Function):
 class TestFunctionRetaining(unittest.TestCase):
 
     def setUp(self):
-        self.f = FunctionWithRetaining()
         inputs = [chainer.Variable(numpy.array([1], dtype=numpy.float32)),
                   chainer.Variable(numpy.array([1], dtype=numpy.float32))]
         self.input_data = [x.data for x in inputs]
         self.input_nodes = [x.node for x in inputs]
 
-        outputs = self.f(*inputs)
-        inputs = None  # release non-retained inputs
-
+        # case1: self.f1.output_data will remain after backprop.
+        self.f1 = FunctionWithRetaining(retain_after_backward=True)
+        outputs = self.f1(*inputs)
         outputs[0].grad = numpy.array([1], dtype=numpy.float32)
         outputs[0].backward()
+        self.f1_output_data = [y.data for y in outputs]
+        self.f1_output_nodes = [y.node for y in outputs]
 
-        self.output_data = [y.data for y in outputs]
-        self.output_nodes = [y.node for y in outputs]
+        # case2: self.f2.output_data will be deleted after backprop.
+        self.f2 = FunctionWithRetaining(retain_after_backward=False)
+        outputs = self.f2(*inputs)
+        outputs[0].grad = numpy.array([1], dtype=numpy.float32)
+        outputs[0].backward()
+        self.f2_output_data = [y.data for y in outputs]
+        self.f2_output_nodes = [y.node for y in outputs]
+
+        inputs = None  # release non-retained inputs
 
     def test_retain_inputs(self):
         self.assertEqual([x.data for x in self.input_nodes],
                          [None, self.input_data[1]])
         self.assertEqual(tuple(x.data for x in self.input_nodes),
-                         self.f.backward_inputs)
+                         self.f1.backward_inputs)
 
-    def test_retain_outputs(self):
-        self.assertEqual([y.data for y in self.output_nodes],
-                         [None, self.output_data[1]])
-        self.assertEqual(tuple(y.data for y in self.output_nodes),
-                         self.f.output_data)
+    def test_retain_outputs_f1(self):
+        self.assertEqual([y.data for y in self.f1_output_nodes],
+                         [None, self.f1_output_data[1]])
+        self.assertEqual(tuple(y.data for y in self.f1_output_nodes),
+                         self.f1.output_data)
+
+    def test_retain_outputs_f2(self):
+        self.assertEqual([y.data for y in self.f2_output_nodes],
+                         [None, self.f2_output_data[1]])
+        self.assertEqual(None, self.f2.output_data)
 
 
 testing.run_module(__name__, __file__)
