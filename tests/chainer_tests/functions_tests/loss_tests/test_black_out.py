@@ -30,6 +30,8 @@ class TestBlackOut(unittest.TestCase):
         self.samples = numpy.random.randint(
             self.n_vocab, size=self.batch_size * self.n_samples) \
             .astype(numpy.int32).reshape((self.batch_size, self.n_samples))
+        self.gy = numpy.random.uniform(
+            -1, 1, (self.batch_size,)).astype(numpy.float32)
 
     def check_forward(self, x_data, t_data, w_data, samples_data):
         x = chainer.Variable(x_data)
@@ -54,8 +56,8 @@ class TestBlackOut(unittest.TestCase):
 
             expect_y[b] = l
 
-        loss = -numpy.sum(expect_y) / self.batch_size
-        testing.assert_allclose(y.data, loss, atol=1.e-4)
+        expect_y *= -1
+        testing.assert_allclose(y.data, expect_y, atol=1.e-4)
 
     @condition.retry(3)
     def test_forward_cpu(self):
@@ -68,21 +70,24 @@ class TestBlackOut(unittest.TestCase):
             cuda.to_gpu(self.x), cuda.to_gpu(self.t), cuda.to_gpu(self.W),
             cuda.to_gpu(self.samples))
 
-    def check_backward(self, x_data, t_data, w_data, samples_data):
+    def check_backward(self, x_data, t_data, w_data, samples_data, gy_data):
+        def _black_out(x, t, W, samples):
+            return functions.black_out(x, t, W, samples)
+
         gradient_check.check_backward(
-            functions.black_out, (x_data, t_data, w_data, samples_data),
-            None, atol=1.e-3)
+            _black_out, (x_data, t_data, w_data, samples_data),
+            gy_data, atol=1.e-3)
 
     @condition.retry(3)
     def test_backward_cpu(self):
-        self.check_backward(self.x, self.t, self.W, self.samples)
+        self.check_backward(self.x, self.t, self.W, self.samples, self.gy)
 
     @attr.gpu
     @condition.retry(3)
     def test_backward_gpu(self):
         self.check_backward(
             cuda.to_gpu(self.x), cuda.to_gpu(self.t), cuda.to_gpu(self.W),
-            cuda.to_gpu(self.samples))
+            cuda.to_gpu(self.samples), cuda.to_gpu(self.gy))
 
 
 testing.run_module(__name__, __file__)

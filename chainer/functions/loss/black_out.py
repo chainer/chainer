@@ -29,12 +29,21 @@ def black_out(x, t, W, samples):
 
     Args:
         x (~chainer.Variable): Batch of input vectors.
+            Its shape should be :math:`(N, D)`.
         t (~chainer.Variable): Vector of ground truth labels.
+            Its shape should be :math:`(N,)`. Each elements :math:`v`
+            should satisfy :math:`0 \geq v \geq V` or :math:`-1`
+            where :math:`V` is the number of label types.
         W (~chainer.Variable): Weight matrix.
+            Its shape should be :math:`(V, D)`
         samples (~chainer.Variable): Negative samples.
+            Its shape should be :math:`(N, S)` where :math:`S` is
+            the number of negative samples.
 
     Returns:
-        ~chainer.Variable: Loss value.
+        ~chainer.Variable:
+            A variable object holding loss value(s).
+            whose shape is :math:`(N,)`.
 
     See: `BlackOut: Speeding up Recurrent Neural Network Language Models With \
          Very Large Vocabularies <https://arxiv.org/abs/1511.06909>`_
@@ -58,5 +67,5 @@ def black_out(x, t, W, samples):
         reshape.reshape(logz, (batch_size, 1)), neg_y)
     ny = exponential.log(1 - exponential.exp(bneg_y - blogz))
     py = reshape.reshape(pos_y, (batch_size,))
-    loss = py - logz + _sum.sum(ny, axis=1)
-    return -_sum.sum(loss) / batch_size
+    loss = -(py - logz + _sum.sum(ny, axis=1))
+    return loss
