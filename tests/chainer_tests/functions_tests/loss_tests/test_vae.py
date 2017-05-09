@@ -4,6 +4,7 @@ import numpy
 
 import chainer
 from chainer import cuda
+from chainer import functions as F
 from chainer.functions import vae
 from chainer import testing
 from chainer.testing import attr
@@ -78,19 +79,18 @@ class TestGaussianNLL(unittest.TestCase):
 
         # Refer to Appendix C.2 in the original paper
         # Auto-Encoding Variational Bayes (https://arxiv.org/abs/1312.6114)
-        D = self.x.size
         x_d = self.x - self.mean
         var = numpy.exp(self.ln_var)
 
-        self.expect = (0.5 * D * numpy.log(2 * numpy.pi) +
-                       0.5 * numpy.sum(self.ln_var) +
-                       numpy.sum(x_d * x_d / var) * 0.5)
+        self.expect = (0.5 * numpy.log(2 * numpy.pi) +
+                       0.5 * self.ln_var +
+                       x_d * x_d / var * 0.5)
 
     def check_gaussian_nll(self, x_data, mean_data, ln_var_data):
         x = chainer.Variable(x_data)
         mean = chainer.Variable(mean_data)
         ln_var = chainer.Variable(ln_var_data)
-        actual = cuda.to_cpu(vae.gaussian_nll(x, mean, ln_var).data)
+        actual = cuda.to_cpu(F.gaussian_nll(x, mean, ln_var).data)
         testing.assert_allclose(self.expect, actual)
 
     @condition.retry(3)

@@ -78,8 +78,9 @@ def gaussian_nll(x, mean, ln_var):
     """Computes the negative log-likelihood of a Gaussian distribution.
 
     Given two variable ``mean`` representing :math:`\\mu` and ``ln_var``
-    representing :math:`\\log(\\sigma^2)`, this function returns the negative
-    log-likelihood of :math:`x` on a Gaussian distribution :math:`N(\\mu, S)`,
+    representing :math:`\\log(\\sigma^2)`, this function computes in
+    elementwise manner the negative log-likelihood of :math:`x` on a
+    Gaussianx distribution :math:`N(\\mu, S)`,
 
     .. math::
 
@@ -98,15 +99,17 @@ def gaussian_nll(x, mean, ln_var):
             variance of a Gaussian distribution, :math:`\\log(\\sigma^2)`.
 
     Returns:
-        ~chainer.Variable: A variable representing the negative log-likelihood.
+        ~chainer.Variable:
+            A variable representing the negative log-likelihood.
+            It holds an array whose shape is same as one of
+            (hence both of) input variables.
 
     """
     assert isinstance(x, variable.Variable)
     assert isinstance(mean, variable.Variable)
     assert isinstance(ln_var, variable.Variable)
 
-    D = x.size
     x_prec = exponential.exp(-ln_var)
     x_diff = x - mean
     x_power = (x_diff * x_diff) * x_prec * -0.5
-    return (sum.sum(ln_var) + D * math.log(2 * math.pi)) / 2 - sum.sum(x_power)
+    return (ln_var + math.log(2 * math.pi)) / 2 - x_power
