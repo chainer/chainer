@@ -513,6 +513,10 @@ class Function(object):
             indexes (iterable of int): Indexes of input variables that the
                 function does not require for backprop.
 
+            retain_after_backward (bool): If ``True``, a reference to the
+                outputs wil remain after the backprop of the function is over.
+                If ``False``, the reference will be deleted.
+
         """
         self._output_indexes_to_retain = indexes
         if retain_after_backward:
