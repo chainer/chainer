@@ -6,7 +6,6 @@ from chainer.functions.array import split_axis
 from chainer.functions.connection import embed_id
 from chainer.functions.math import logsumexp
 from chainer.functions.math import minmax
-from chainer.functions.math import sum as _sum
 
 
 def crf1d(cost, xs, ys):
@@ -30,7 +29,7 @@ def crf1d(cost, xs, ys):
        When you want to calculate the negative log-likelihood of sequences
        which have different lengths, sort the sequences in descending order of
        lengths and transpose the sequences.
-       For example, you have three input seuqnces:
+       For example, you have three input sequences:
 
        >>> a1 = a2 = a3 = a4 = np.random.uniform(-1, 1, 3).astype('f')
        >>> b1 = b2 = b3 = np.random.uniform(-1, 1, 3).astype('f')
@@ -60,7 +59,8 @@ def crf1d(cost, xs, ys):
        >>> ys = [np.zeros(x.shape[0:1], dtype='i') for x in xs]
        >>> loss = F.crf1d(cost, xs, ys)
 
-       It calculates sum of the negative log-likelihood of the three sequences.
+       It calculates mean of the negative log-likelihood of the three
+       sequences.
 
 
     Args:
@@ -82,8 +82,10 @@ def crf1d(cost, xs, ys):
             ``ys[i].shape == xs[i].shape[0:1]`` for all ``i``.
 
     Returns:
-        ~chainer.Variable: A variable holding the average negative
-            log-likelihood of the input sequences.
+        ~chainer.Variable:
+            A variable holding an 1-dimensional array of negative
+            log-likelihood of the input sequences, whose length is same
+            as minibatch size.
 
     .. note::
 
@@ -95,7 +97,6 @@ def crf1d(cost, xs, ys):
     assert xs[0].shape[1] == cost.shape[0]
 
     n_label = cost.shape[0]
-    n_batch = xs[0].shape[0]
 
     alpha = xs[0]
     alphas = []
@@ -129,7 +130,8 @@ def crf1d(cost, xs, ys):
         scores.append(score)
         score = concat.concat(scores[::-1], axis=0)
 
-    return _sum.sum(logz - score) / n_batch
+    loss = logz - score
+    return loss
 
 
 def argmax_crf1d(cost, xs):

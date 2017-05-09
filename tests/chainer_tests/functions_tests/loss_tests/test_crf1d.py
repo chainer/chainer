@@ -18,7 +18,6 @@ from chainer.testing import attr
     {'lengths': [1, 1], 'batches': [2]},
 )
 class TestCRF1d(unittest.TestCase):
-
     n_label = 3
 
     def setUp(self):
@@ -30,9 +29,8 @@ class TestCRF1d(unittest.TestCase):
             numpy.random.randint(
                 0, self.n_label, (b,)).astype(numpy.int32)
             for b in self.batches]
-
-        self.gs = [numpy.random.uniform(
-            -1, 1, (b, 3)).astype(numpy.float32) for b in self.batches]
+        self.g = numpy.random.uniform(
+            -1, 1, (len(self.lengths))).astype(numpy.float32)
 
     def _calc_score(self, batch, ys):
         return sum(x[batch, y] for x, y in zip(self.xs, ys)) + \
@@ -42,7 +40,7 @@ class TestCRF1d(unittest.TestCase):
         cost = chainer.Variable(cost_data)
         xs = [chainer.Variable(x) for x in xs_data]
         ys = [chainer.Variable(y) for y in ys_data]
-        log_p = functions.crf1d(cost, xs, ys)
+        actual = functions.crf1d(cost, xs, ys)
 
         z = numpy.zeros((self.batches[0],), numpy.float32)
         for b, length in enumerate(self.lengths):
@@ -54,8 +52,8 @@ class TestCRF1d(unittest.TestCase):
             ys = [self.ys[i][b] for i in range(length)]
             score[b] = self._calc_score(b, ys)
 
-        expect = numpy.sum(-(score - numpy.log(z))) / self.batches[0]
-        testing.assert_allclose(log_p.data, expect)
+        expect = -(score - numpy.log(z))
+        testing.assert_allclose(actual.data, expect)
 
     def test_forward_cpu(self):
         self.check_forward(self.cost, self.xs, self.ys)
@@ -66,7 +64,7 @@ class TestCRF1d(unittest.TestCase):
                            [cuda.to_gpu(x) for x in self.xs],
                            [cuda.to_gpu(y) for y in self.ys])
 
-    def check_backward(self, cost_data, xs_data, ys_data):
+    def check_backward(self, cost_data, xs_data, ys_data, g_data):
         def f(cost, *args):
             xs = args[:len(args) // 2]
             ys = args[len(args) // 2:]
@@ -80,16 +78,17 @@ class TestCRF1d(unittest.TestCase):
         else:
             no_grads = None
         gradient_check.check_backward(
-            f, args, None, no_grads=no_grads, rtol=1e-3, atol=1e-3)
+            f, args, g_data, no_grads=no_grads, rtol=1e-3, atol=1e-3)
 
     def test_backward_cpu(self):
-        self.check_backward(self.cost, self.xs, self.ys)
+        self.check_backward(self.cost, self.xs, self.ys, self.g)
 
     @attr.gpu
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.cost),
                             [cuda.to_gpu(x) for x in self.xs],
-                            [cuda.to_gpu(y) for y in self.ys])
+                            [cuda.to_gpu(y) for y in self.ys],
+                            cuda.to_gpu(self.g))
 
     def check_argmax(self, cost_data, xs_data):
         cost = chainer.Variable(cost_data)
