@@ -659,7 +659,7 @@ Actual: {0}'''.format(type(data))
                 [None if y is None else y.data for y in outputs])
             gxs = func.backward(in_data, out_grad)
             assert len(gxs) == len(in_data)
-            if not hasattr(func, '_retain_after_backward'):
+            if not getattr(func, '_retain_after_backward', False):
                 func.output_data = None
             for hook in six.itervalues(hooks):
                 hook.backward_postprocess(func, in_data, out_grad)
