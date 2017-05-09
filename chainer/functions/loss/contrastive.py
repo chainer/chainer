@@ -39,9 +39,7 @@ class Contrastive(function.Function):
         self.dist = xp.sqrt(self.dist_sq)
         self.mdist = self.margin - self.dist
         dist = xp.maximum(self.mdist, 0)
-        loss = y * self.dist_sq + (1 - y) * dist * dist
-        loss = xp.sum(loss) / 2.0 / x0.shape[0]
-
+        loss = (y * self.dist_sq + (1 - y) * dist * dist) * .5
         return xp.array(loss, dtype=xp.float32),
 
     def backward(self, inputs, gy):
@@ -50,7 +48,7 @@ class Contrastive(function.Function):
 
         x_dim = x0.shape[1]
         y = xp.repeat(y[:, None], x_dim, axis=1)
-        alpha = gy[0] / y.shape[0]
+        alpha = gy[0][:, None]
         dist = xp.repeat(self.dist[:, None], x_dim, axis=1)
         # avoid division by zero
         dist = xp.maximum(dist, 1e-8)
@@ -68,21 +66,22 @@ class Contrastive(function.Function):
 def contrastive(x0, x1, y, margin=1):
     """Computes contrastive loss.
 
-    It takes a pair of variables and a label as inputs. The label is 1 when
-    those two input variables are similar, or 0 when they are dissimilar. Let
-    :math:`N` and :math:`K` denote mini-batch size and the dimension of input
-    variables, respectively. The shape of both input variables should be
-    ``(N, K)``.
+    It takes a pair of samples and a label as inputs.
+    The label is :math:`1` when those samples are similar,
+    or :math:`0` when they are dissimilar.
+
+    Let :math:`N` and :math:`K` denote mini-batch size and the dimension
+    of input variables, respectively. The shape of both input variables
+    ``x0`` and ``x1`` should be ``(N, K)``.
+    The loss value of the :math:`n`-th sample pair :math:`L_n` is
 
     .. math::
-        L = \\frac{1}{2N} \\left( \\sum_{n=1}^N y_n d_n^2
-            + (1 - y_n) \\max ({\\rm margin} - d_n, 0)^2 \\right)
+        L_n = \\frac{1}{2} \\left( y_n d_n^2
+        + (1 - y_n) \\max ({\\rm margin} - d_n, 0)^2 \\right)
 
-    where :math:`d_n = \\| {\\bf x_0}_n - {\\bf x_1}_n \\|_2`. :math:`N`
-    denotes the mini-batch size. Input variables, x0 and x1, have :math:`N`
-    vectors, and each vector is K-dimensional. Therefore, :math:`{\\bf x_0}_n`
-    and :math:`{\\bf x_1}_n` are :math:`n`-th K-dimensional vectors of x0 and
-    x1.
+    where :math:`d_n = \\| {\\bf x_0}_n - {\\bf x_1}_n \\|_2`,
+    :math:`{\\bf x_0}_n` and :math:`{\\bf x_1}_n` are :math:`n`-th
+    K-dimensional vectors of ``x0`` and ``x1``.
 
     Args:
         x0 (~chainer.Variable): The first input variable. The shape should be
@@ -96,8 +95,10 @@ def contrastive(x0, x1, y, margin=1):
             value.
 
     Returns:
-        ~chainer.Variable: A variable holding a scalar that is the loss value
-            calculated by the above equation.
+        ~chainer.Variable:
+            A variable holding the loss value(s) calculated by the
+            above equation, whose shape is same as one of (hence both of)
+            input variables.
 
     .. note::
         This cost can be used to train siamese networks. See `Learning a
