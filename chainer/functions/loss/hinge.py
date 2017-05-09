@@ -40,10 +40,11 @@ class Hinge(function.Function):
         self.bottom_diff = numpy.copy(x)
         self.bottom_diff[numpy.arange(num), t] *= -1
         self.bottom_diff = numpy.maximum(0, 1 + self.bottom_diff)
+
         if self.norm == 'L1':
-            loss = self.bottom_diff.sum() / num
+            loss = self.bottom_diff
         elif self.norm == 'L2':
-            loss = (self.bottom_diff ** 2).sum() / num
+            loss = self.bottom_diff ** 2
         else:
             raise NotImplementedError()
 
@@ -51,13 +52,12 @@ class Hinge(function.Function):
 
     def forward_gpu(self, inputs):
         x, t = inputs
-        num = x.dtype.type(len(x))
         self.bottom_diff = cuda.cupy.maximum(
             0, 1 + _hinge_fwd_kernel()(t, x.copy()))
         if self.norm == 'L1':
-            loss = self.bottom_diff.sum() / num
+            loss = self.bottom_diff
         elif self.norm == 'L2':
-            loss = (self.bottom_diff ** 2).sum() / num
+            loss = self.bottom_diff ** 2
         else:
             raise NotImplementedError()
 
@@ -65,11 +65,12 @@ class Hinge(function.Function):
 
     def backward_cpu(self, inputs, grad_outputs):
         t, gloss = inputs[1], grad_outputs[0]
+
         self.bottom_diff[numpy.arange(len(t)), t] *= -1
         if self.norm == 'L1':
-            gx = (gloss / len(t)) * numpy.sign(self.bottom_diff)
+            gx = gloss * numpy.sign(self.bottom_diff)
         elif self.norm == 'L2':
-            gx = (2 * gloss / len(t)) * self.bottom_diff
+            gx = 2 * gloss * self.bottom_diff
         else:
             raise NotImplementedError()
 
@@ -78,11 +79,12 @@ class Hinge(function.Function):
     def backward_gpu(self, inputs, grad_outputs):
         xp = cuda.get_array_module(*inputs)
         t, gloss = inputs[1], grad_outputs[0]
+
         self.bottom_diff = _hinge_fwd_kernel()(t, self.bottom_diff)
         if self.norm == 'L1':
-            gx = (gloss / len(t)) * xp.sign(self.bottom_diff)
+            gx = gloss * xp.sign(self.bottom_diff)
         elif self.norm == 'L2':
-            gx = (2 * gloss / len(t)) * self.bottom_diff
+            gx = 2 * gloss * self.bottom_diff
         else:
             raise NotImplementedError()
 
@@ -120,12 +122,14 @@ def hinge(x, t, norm='L1'):
             :math:`{\\bf l}` with values
             :math:`l_n \in \{0, 1, 2, \dots, K-1\}`. The shape of ``t`` should
             be (:math:`N`,).
-        norm (string): Specifies norm type. Only either 'L1' or 'L2' is
+        norm (string): Specifies norm type. Only either ``'L1'`` or ``'L2'`` is
             acceptable.
 
     Returns:
-        ~chainer.Variable: A variable object holding a scalar array of the
-            hinge loss :math:`L`.
+        ~chainer.Variable:
+            A variable object holding an array of the
+            hinge loss :math:`L` whose shape is same as one of
+            (hence both of) input variables.
 
     """
     return Hinge(norm)(x, t)
