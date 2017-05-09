@@ -805,9 +805,9 @@ Actual: {0}'''.format(type(data))
             ginit, shape, numpy)
 
         if self._initial_device >= 0:
-            data = cuda.to_gpu(data, device_id=self._initial_device)
+            data = cuda.to_gpu(data, device=self._initial_device)
             if grad is not None:
-                grad = cuda.to_gpu(grad, device_id=self._initial_device)
+                grad = cuda.to_gpu(grad, device=self._initial_device)
 
         self._data[0] = data
         self._node._grad = grad
