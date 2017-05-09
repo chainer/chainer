@@ -4,6 +4,7 @@ import numpy
 
 import chainer
 from chainer import cuda
+from chainer import functions as F
 from chainer.functions import vae
 from chainer import testing
 from chainer.testing import attr
@@ -49,13 +50,13 @@ class TestBernoulliNLL(unittest.TestCase):
         # Refer to Appendix C.1 in the original paper
         # Auto-Encoding Variational Bayes (https://arxiv.org/abs/1312.6114)
         p = 1 / (1 + numpy.exp(-self.y))
-        self.expect = - (numpy.sum(self.x * numpy.log(p)) +
-                         numpy.sum((1 - self.x) * numpy.log(1 - p)))
+        self.expect = -(self.x * numpy.log(p) +
+                        (1 - self.x) * numpy.log(1 - p))
 
     def check_bernoulli_nll(self, x_data, y_data):
         x = chainer.Variable(x_data)
         y = chainer.Variable(y_data)
-        actual = cuda.to_cpu(vae.bernoulli_nll(x, y).data)
+        actual = cuda.to_cpu(F.bernoulli_nll(x, y).data)
         testing.assert_allclose(self.expect, actual)
 
     @condition.retry(3)

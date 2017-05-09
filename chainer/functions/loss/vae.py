@@ -65,13 +65,16 @@ def bernoulli_nll(x, y):
             Bernoulli distribution.
 
     Returns:
-        ~chainer.Variable: A variable representing negative log-likelihood.
+        ~chainer.Variable:
+            A variable representing the negative log-likelihood.
+            It holds an array whose shape is same as one of
+            (hence both of) input variables.
 
     """
     assert isinstance(x, variable.Variable)
     assert isinstance(y, variable.Variable)
 
-    return sum.sum(softplus.softplus(y)) - sum.sum(x * y)
+    return softplus.softplus(y) - x * y
 
 
 def gaussian_nll(x, mean, ln_var):
