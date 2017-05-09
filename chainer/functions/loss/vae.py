@@ -10,9 +10,9 @@ def gaussian_kl_divergence(mean, ln_var):
     """Computes the KL-divergence of Gaussian variables from the standard one.
 
     Given two variable ``mean`` representing :math:`\\mu` and ``ln_var``
-    representing :math:`\\log(\\sigma^2)`, this function returns a variable
-    representing the KL-divergence between the given multi-dimensional Gaussian
-    :math:`N(\\mu, S)` and the standard Gaussian :math:`N(0, I)`
+    representing :math:`\\log(\\sigma^2)`, this function calculates
+    the KL-divergence in elementwise manner between the given multi-dimensional
+    Gaussian :math:`N(\\mu, S)` and the standard Gaussian :math:`N(0, I)`
 
     .. math::
 
@@ -28,16 +28,19 @@ def gaussian_kl_divergence(mean, ln_var):
             variance of given gaussian distribution, :math:`\\log(\\sigma^2)`.
 
     Returns:
-        ~chainer.Variable: A variable representing KL-divergence between
+        ~chainer.Variable:
+            A variable representing KL-divergence between
             given gaussian distribution and the standard gaussian.
+            It holds an array whose shape is same as one of
+            (hence both of) input variables.
 
     """
     assert isinstance(mean, variable.Variable)
     assert isinstance(ln_var, variable.Variable)
 
-    J = mean.size
     var = exponential.exp(ln_var)
-    return (sum.sum(mean * mean) + sum.sum(var) - sum.sum(ln_var) - J) * 0.5
+    mean_square = mean * mean
+    return (mean_square + var - ln_var - 1) * 0.5
 
 
 def bernoulli_nll(x, y):
