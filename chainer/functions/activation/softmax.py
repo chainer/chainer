@@ -46,23 +46,21 @@ class Softmax(function.Function):
             xp.exp(y, out=y)
             y /= y.sum(axis=1, keepdims=True)
 
-        self._x_xp = cuda.get_array_module(*x)
         self._x_shape = x[0].shape
-        self._x_dtype = x[0].dtype
         self.retain_inputs(())
         self.retain_outputs((0,))
         return y,
 
     def backward(self, x, gy):
         y = self.output_data[0]
-        xp = self._x_xp
+        xp = cuda.get_array_module(*y)
         if (xp is not numpy and chainer.should_use_cudnn('>=auto') and
-                (_cudnn_version >= 3000 or self._x_dtype != numpy.float16)):
+                (_cudnn_version >= 3000 or y.dtype != numpy.float16)):
             oz_dtype = 'd' if y[0].dtype == 'd' else 'f'
             one = numpy.array(1, dtype=oz_dtype).ctypes
             zero = numpy.array(0, dtype=oz_dtype).ctypes
             handle = cudnn.get_handle()
-            gx = xp.empty(self._x_shape, dtype=self._x_dtype)
+            gx = xp.empty(self._x_shape, dtype=y.dtype)
             gx_cube = gx.reshape(gx.shape[:2] + (-1, 1))
             desc = cudnn.create_tensor_descriptor(gx_cube)
             libcudnn.softmaxBackward(
