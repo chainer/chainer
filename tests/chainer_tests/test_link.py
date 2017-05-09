@@ -28,7 +28,7 @@ class TestLink(unittest.TestCase):
         self.assertTrue(hasattr(self.link, name))
         var = getattr(self.link, name)
         self.assertEqual(var.name, name)
-        self.assertIsInstance(var, chainer.Variable)
+        self.assertIsInstance(var, chainer.Parameter)
         self.assertEqual(var.data.shape, shape)
         self.assertEqual(var.data.dtype, dtype)
         numpy.testing.assert_array_equal(var.data, data_value)
@@ -39,7 +39,7 @@ class TestLink(unittest.TestCase):
     def check_param_uninit(self, name, initializer=None):
         self.assertTrue(hasattr(self.link, name))
         var = getattr(self.link, name)
-        self.assertIsInstance(var, chainer.Variable)
+        self.assertIsInstance(var, chainer.Parameter)
         self.assertEqual(var.name, name)
         self.assertIsNone(var.data)
         if initializer is not None:
@@ -313,10 +313,11 @@ class TestLink(unittest.TestCase):
         self.assertTrue(self.link.update_enabled)
 
 
-class CountVariable(chainer.Variable):
+class CountParameter(chainer.Parameter):
 
     def __init__(self, v):
-        super(CountVariable, self).__init__(v.data, v.name)
+        super(CountParameter, self).__init__(name=v.name)
+        self.data = v.data
         self.grad = v.grad
         self.count_to_cpu = 0
         self.count_to_gpu = 0
@@ -324,15 +325,15 @@ class CountVariable(chainer.Variable):
 
     def to_cpu(self):
         self.count_to_cpu += 1
-        super(CountVariable, self).to_cpu()
+        super(CountParameter, self).to_cpu()
 
     def to_gpu(self, device=None):
         self.count_to_gpu += 1
-        super(CountVariable, self).to_gpu(device)
+        super(CountParameter, self).to_gpu(device)
 
     def zerograd(self):
         self.count_zerograd += 1
-        super(CountVariable, self).zerograd()
+        super(CountParameter, self).zerograd()
 
 
 class TestChain(unittest.TestCase):
@@ -406,14 +407,14 @@ class TestChain(unittest.TestCase):
         self.assertIs(self.l3.x.data, x3)
         self.assertIs(self.l3.x.grad, gx3)
 
-    def set_count_variables(self):
-        self.l1.x = CountVariable(self.l1.x)
-        self.l2.x = CountVariable(self.l2.x)
-        self.l3.x = CountVariable(self.l3.x)
+    def set_count_parameters(self):
+        self.l1.x = CountParameter(self.l1.x)
+        self.l2.x = CountParameter(self.l2.x)
+        self.l3.x = CountParameter(self.l3.x)
 
     @attr.gpu
     def test_to_cpu(self):
-        self.set_count_variables()
+        self.set_count_parameters()
         self.c2.to_gpu()
         self.c2.to_cpu()
         self.assertIs(self.c2.xp, numpy)
@@ -440,7 +441,7 @@ class TestChain(unittest.TestCase):
 
     @attr.gpu
     def test_to_gpu(self):
-        self.set_count_variables()
+        self.set_count_parameters()
         cupy = cuda.cupy
         self.c2.to_gpu()
         self.assertIs(self.c2.xp, cupy)
@@ -534,7 +535,7 @@ class TestChain(unittest.TestCase):
         numpy.testing.assert_array_equal(self.l3.x.data, l3.x.data)
 
     def test_zerograds(self):
-        self.set_count_variables()
+        self.set_count_parameters()
         self.c2.zerograds()
         numpy.testing.assert_array_equal(self.l1.x.grad, numpy.zeros((2, 3)))
         numpy.testing.assert_array_equal(self.l2.x.grad, numpy.zeros(2))
