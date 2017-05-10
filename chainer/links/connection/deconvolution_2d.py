@@ -9,7 +9,9 @@ from chainer.utils import argument
 
 class Deconvolution2D(link.Link):
 
-    """Two dimensional deconvolution function.
+    """__init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0, nobias=False, outsize=None, initialW=None, initial_bias=None)
+
+    Two dimensional deconvolution function.
 
     This link wraps the :func:`~chainer.functions.deconvolution_2d` function
     and holds the filter weight and bias vector as parameters.
@@ -118,7 +120,7 @@ class Deconvolution2D(link.Link):
             >>> y.shape
             (1, 7, 20, 20)
 
-    """
+    """  # NOQA
 
     def __init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0,
                  nobias=False, outsize=None, initialW=None, initial_bias=None,

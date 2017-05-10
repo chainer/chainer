@@ -8,7 +8,9 @@ from chainer.utils import argument
 
 class Convolution2D(link.Link):
 
-    """Two-dimensional convolutional layer.
+    """__init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0, nobias=False, initialW=None, initial_bias=None)
+
+    Two-dimensional convolutional layer.
 
     This link wraps the :func:`~chainer.functions.convolution_2d` function and
     holds the filter weight and bias vector as parameters.
@@ -98,7 +100,7 @@ class Convolution2D(link.Link):
             >>> y.shape
             (1, 7, 6, 6)
 
-    """
+    """  # NOQA
 
     def __init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0,
                  nobias=False, initialW=None, initial_bias=None, **kwargs):
