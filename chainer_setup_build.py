@@ -6,8 +6,6 @@ from distutils import sysconfig
 from distutils import unixccompiler
 import os
 from os import path
-import re
-import subprocess
 import sys
 
 import pkg_resources
@@ -103,6 +101,7 @@ MODULES = [
         'libraries': [
             'cudart',
         ],
+        'check_method': build.check_cuda_version,
     }
 ]
 
@@ -330,33 +329,51 @@ def get_ext_modules():
     return extensions
 
 
-def _nvcc_gencode_options():
-    """Returns NVCC gencode options generated from NVCC command line help."""
-    help_string = subprocess.check_output(
-        ['nvcc', '--help']).decode('ascii').replace('\n', '')
+def _nvcc_gencode_options(cuda_version):
+    """Returns NVCC GPU code generation options."""
 
-    arch_options = re.findall("'(compute_\d{2})'", help_string)
-    arch_options = sorted(list(set(arch_options)))
-    arch_options = list(filter(lambda x: x >= 'compute_30', arch_options))
+    # The arch_list specifies virtual architectures, such as 'compute_61', and
+    # real architectures, such as 'sm_61', for which the CUDA input files are
+    # to be compiled.
+    #
+    # The syntax of an entry of the list is
+    #
+    #     entry ::= virtual_arch | (virtual_arch, real_arch)
+    #
+    # where virtual_arch is a string which means a virtual architecture and
+    # real_arch is a string which means a real architecture.
+    #
+    # If a virtual architecture is supplied, NVCC generates a PTX code for the
+    # virtual architecture. If a pair of a virtual architecture and a real
+    # architecture is supplied, NVCC generates a PTX code for the virtual
+    # architecture as well as a cubin code for the real architecture.
+    #
+    # For example, making NVCC generate a PTX code for 'compute_60' virtual
+    # architecture, the arch_list has an entry of 'compute_60'.
+    #
+    #     arch_list = ['compute_60']
+    #
+    # For another, making NVCC generate a PTX code for 'compute_61' virtual
+    # architecture and a cubin code for 'sm_61' real architecture, the
+    # arch_list has an entry of ('compute_61', 'sm_61').
+    #
+    #     arch_list = [('compute_61', 'sm_61')]
 
-    code_options = re.findall("'(sm_\d{2})'", help_string)
-    code_options = sorted(list(set(code_options)))
-    code_options = list(filter(lambda x: x >= 'sm_30', code_options))
+    arch_list = ['compute_30', 'compute_50']
+    if cuda_version >= 8000:
+        arch_list += ['compute_60']
 
-    pairs = []
-    for code_option in code_options:
-        arch_option = code_option.replace('sm_', 'compute_')
-        if arch_option not in arch_options:
-            msg = "No virtual architecture corresponding to '{}'.".format(
-                code_option)
-            raise ValueError(msg)
-        pairs.append((arch_option, code_option))
+    options = []
+    for arch in arch_list:
+        if type(arch) is tuple:
+            virtual_arch, real_arch = arch
+            options.append('--generate-code=arch={},code={},{}'.format(
+                virtual_arch, real_arch, virtual_arch))
+        else:
+            options.append('--generate-code=arch={},code={}'.format(
+                arch, arch))
 
-    gencode_options = []
-    for pair in pairs:
-        gencode_options.append('-gencode=arch={},code={}'.format(*pair))
-
-    return gencode_options
+    return options
 
 
 def _escape(str):
@@ -390,7 +407,8 @@ class _UnixCCompiler(unixccompiler.UnixCCompiler):
                 compiler_options += ' ' + cflags
             compiler_options = _escape(compiler_options)
 
-            postargs = _nvcc_gencode_options() + [
+            cuda_version = build.get_cuda_version()
+            postargs = _nvcc_gencode_options(cuda_version) + [
                 '-O2', '--compiler-options="{}"'.format(compiler_options)]
             print('NVCC options:', postargs)
 
