@@ -7,6 +7,7 @@ import os.path
 from nltk.corpus import comtrans
 from nltk.translate import bleu_score
 import numpy
+import six
 
 import chainer
 from chainer import cuda
@@ -190,16 +191,20 @@ def main():
         fr_path = os.path.join(args.input, 'giga-fren.release2.fixed.fr')
         target_vocab = ['<eos>', '<unk>'] + europal.count_words(fr_path)
         target_data = europal.make_dataset(fr_path, target_vocab)
+        assert len(source_data) == len(target_data)
         print('Original training data size: %d' % len(source_data))
-        train_data = [(s, t) for s, t in zip(source_data, target_data)
-                      if len(s) < 50 and len(t) < 50]
+        train_data = [(s, t)
+                      for s, t in six.moves.zip(source_data, target_data)
+                      if 0 < len(s) < 50 and 0 < len(t) < 50]
         print('Filtered training data size: %d' % len(train_data))
 
         en_path = os.path.join(args.input, 'dev', 'newstest2013.en')
         source_data = europal.make_dataset(en_path, source_vocab)
         fr_path = os.path.join(args.input, 'dev', 'newstest2013.fr')
         target_data = europal.make_dataset(fr_path, target_vocab)
-        test_data = list(zip(source_data, target_data))
+        assert len(source_data) == len(target_data)
+        test_data = [(s, t) for s, t in six.moves.zip(source_data, target_data)
+                     if 0 < len(s) and 0 < len(t)]
 
         source_ids = {word: index for index, word in enumerate(source_vocab)}
         target_ids = {word: index for index, word in enumerate(target_vocab)}
