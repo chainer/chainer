@@ -6,8 +6,6 @@ from distutils import sysconfig
 from distutils import unixccompiler
 import os
 from os import path
-import re
-import subprocess
 import sys
 
 import pkg_resources
