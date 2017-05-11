@@ -177,6 +177,71 @@ class TestTreeLSTM(unittest.TestCase):
         with cuda.get_device(1):
             self.check_forward(*inputs)
 
+    def check_forward_valid_none(self, *inputs_data):
+        inputs_variable = [chainer.Variable(v)
+                           if v is not None else v for v in inputs_data]
+        base_shape = self.h_prevs[0].shape
+        base_dtype = self.h_prevs[0].dtype
+        inputs_data = [self.xp.zeros(base_shape, dtype=base_dtype)
+                       if v is None else v for v in inputs_data]
+
+        c, h = self.link(*inputs_variable)
+        self.assertEqual(c.data.dtype, self.dtype)
+        self.assertEqual(h.data.dtype, self.dtype)
+
+        # Compute expected out
+        if self.model_type == 'ChildSumTreeLSTM':
+            c_expect, h_expect = _child_sum_tree_lstm(self.link, *inputs_data)
+        elif self.model_type == 'NaryTreeLSTM':
+            c_expect, h_expect = _nary_tree_lstm(self.link, *inputs_data)
+        else:
+            NotImplementedError()
+
+        testing.assert_allclose(
+            c_expect, c.data, **self.check_forward_options)
+        testing.assert_allclose(
+            h_expect, h.data, **self.check_forward_options)
+
+    def test_forward_none_ch_cpu(self):
+        inputs = [None] * len(self.c_prevs) + \
+                 [None] * len(self.h_prevs) + [self.x]
+        self.check_forward_valid_none(*inputs)
+
+    @attr.gpu
+    def test_forward_none_ch_gpu(self):
+        self.link.to_gpu()
+        inputs = [None] * len(self.c_prevs) + \
+                 [None] * len(self.h_prevs) + \
+                 [cuda.to_gpu(self.x)]
+        self.check_forward_valid_none(*inputs)
+
+    def test_forward_none_x_cpu(self):
+        inputs = self.c_prevs + self.h_prevs + [None]
+        self.check_forward_valid_none(*inputs)
+
+    @attr.gpu
+    def test_forward_none_x_gpu(self):
+        self.link.to_gpu()
+        inputs = [cuda.to_gpu(v) for v in self.c_prevs] + \
+                 [cuda.to_gpu(v) for v in self.h_prevs] + [None]
+        self.check_forward_valid_none(*inputs)
+
+    def check_forward_invalid_none(self, *inputs_data):
+        inputs_variable = [chainer.Variable(v)
+                           if v is not None else v for v in inputs_data]
+        with self.assertRaises(ValueError):
+            c, h = self.link(*inputs_variable)
+
+    def test_forward_none_chx_cpu(self):
+        inputs = [None] * len(self.inputs)
+        self.check_forward_invalid_none(*inputs)
+
+    @attr.gpu
+    def test_forward_none_chx_gpu(self):
+        self.link.to_gpu()
+        inputs = [None] * len(self.inputs)
+        self.check_forward_invalid_none(*inputs)
+
     def check_backward(self, c_grad, h_grad, *inputs):
         gradient_check.check_backward(
             self.link,
