@@ -579,6 +579,10 @@ class TestVariableBasic(unittest.TestCase):
             a == b
         with self.assertRaises(Exception):
             a == a
+        with self.assertRaises(Exception):
+            a != b
+        with self.assertRaises(Exception):
+            a != a
 
     def test_uncomparable(self):
         a = chainer.Variable(np.ones((2,)))
