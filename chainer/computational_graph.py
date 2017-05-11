@@ -87,6 +87,13 @@ class ComputationalGraph(object):
     def __init__(self, nodes, edges, variable_style=_var_style,
                  function_style=_func_style, rankdir='TB',
                  remove_variable=False, show_name=True):
+        assert all(isinstance(_, (variable.Variable, function.Function))
+                   for _ in nodes)
+        assert all(len(_) == 2 for _ in edges)
+        assert all(
+            isinstance(_[0], (variable.Variable, function.Function)) and
+            isinstance(_[1], (variable.Variable, function.Function))
+            for _ in edges)
         self.nodes = nodes
         self.edges = edges
         self.variable_style = variable_style
@@ -262,7 +269,7 @@ def build_computational_graph(
             self.v = v
 
         def __hash__(self):
-            return self.v.__hash__()
+            return hash(id(self.v))
 
         def __eq__(self, r):
             return self.v is r.v
@@ -277,20 +284,23 @@ def build_computational_graph(
 
     while cands:
         _, _, cand = heapq.heappop(cands)
+        cand_hash = HashableObject(cand)
         if isinstance(cand, variable.Variable):
             creator = cand.creator
-            if creator is not None and (creator, cand) not in seen_edges:
+            creator_hash = HashableObject(creator)
+            if creator is not None and (creator_hash, cand_hash) not in seen_edges:
                 add_cand(creator)
-                seen_edges.add((creator, cand))
-                nodes.add(HashableObject(creator))
-                nodes.add(HashableObject(cand))
+                seen_edges.add((creator_hash, cand_hash))
+                nodes.add(creator_hash)
+                nodes.add(cand_hash)
         elif isinstance(cand, function.Function):
             for input_ in cand.inputs:
-                if input_ is not cand and (input_, cand) not in seen_edges:
+                input_hash = HashableObject(input_)
+                if input_ is not cand and (input_hash, cand_hash) not in seen_edges:
                     add_cand(input_)
-                    seen_edges.add((input_, cand))
-                    nodes.add(HashableObject(input_))
-                    nodes.add(HashableObject(cand))
+                    seen_edges.add((input_hash, cand_hash))
+                    nodes.add(input_hash)
+                    nodes.add(cand_hash)
     return ComputationalGraph(
-        list(i.v for i in nodes), list(seen_edges), variable_style,
-        function_style, rankdir, remove_variable, show_name)
+        [i.v for i in nodes], [(_[0].v, _[1].v) for _ in seen_edges],
+        variable_style, function_style, rankdir, remove_variable, show_name)
