@@ -307,5 +307,6 @@ def build_computational_graph(
             assert False
 
     return ComputationalGraph(
-        [i.v for i in nodes], [(_[0].v, _[1].v) for _ in seen_edges],
+        [node.v for node in nodes],
+        [(edge[0].v, edge[1].v) for edge in seen_edges],
         variable_style, function_style, rankdir, remove_variable, show_name)
