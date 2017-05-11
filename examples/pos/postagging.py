@@ -108,7 +108,7 @@ def main():
     optimizer.add_hook(chainer.optimizer.WeightDecay(0.0001))
 
     test_data, train_data = datasets.split_dataset_random(
-        data, len(data) / 10, seed=0)
+        data, len(data) // 10, seed=0)
 
     train_iter = chainer.iterators.SerialIterator(train_data, args.batchsize)
     test_iter = chainer.iterators.SerialIterator(test_data, args.batchsize,
