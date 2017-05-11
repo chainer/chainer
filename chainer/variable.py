@@ -527,7 +527,5 @@ Actual: {0}'''.format(type(data))
     def __bool__(self):
         raise NotImplementedError()
 
-    def __hash__(self):
-        return super(Variable, self).__hash__()
-
     __array_priority__ = 200
+    __hash__ = None

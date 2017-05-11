@@ -566,6 +566,40 @@ class TestVariable(unittest.TestCase):
         cp.testing.assert_array_equal(x.grad, d.grad)
 
 
+class TestVariableBasic(unittest.TestCase):
+    def test_unhashable(self):
+        a = chainer.Variable(np.ones((2,)))
+        with self.assertRaises(TypeError):
+            hash(a)
+
+    def test_unequatable(self):
+        a = chainer.Variable(np.ones((2,)))
+        b = chainer.Variable(np.ones((2,)))
+        with self.assertRaises(Exception):
+            a == b
+        with self.assertRaises(Exception):
+            a == a
+
+    def test_uncomparable(self):
+        a = chainer.Variable(np.ones((2,)))
+        b = chainer.Variable(np.ones((2,)))
+        with self.assertRaises(Exception):
+            a < b
+        with self.assertRaises(Exception):
+            a <= b
+        with self.assertRaises(Exception):
+            a > b
+        with self.assertRaises(Exception):
+            a >= b
+
+    def test_bool_inconvertible(self):
+        a = chainer.Variable(np.ones((2,)))
+        with self.assertRaises(Exception):
+            if a: pass
+        with self.assertRaises(Exception):
+            if not a: pass
+
+
 class TestDebugPrint(unittest.TestCase):
 
     def setUp(self):
