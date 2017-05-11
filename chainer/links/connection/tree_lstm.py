@@ -75,10 +75,21 @@ class ChildSumTreeLSTM(link.Chain):
         cs = cshsx[:len(cshsx) // 2]
         hs = cshsx[len(cshsx) // 2:-1]
         x = cshsx[-1]
+        assert(len(cs) >= 1)
+        assert(len(hs) >= 1)
+        assert(len(cs) == len(hs))
 
         if x is None:
+            if any(c is not None for c in cs):
+                base = [c for c in cs if c is not None][0]
+                batchsize, dtype = base.shape[0], base.dtype
+            elif any(h is not None for h in hs):
+                base = [h for h in hs if h is not None][0]
+                batchsize, dtype = base.shape[0], base.dtype
+            else:
+                ValueError('All inputs are None.')
             x = self.xp.zeros(
-                (cs[0].shape[0], self.in_size), dtype=cs[0].dtype)
+                (batchsize, self.in_size), dtype=dtype)
 
         W_x_in = self.W_x(x)
         W_x_aio_in, W_x_f_in = split_axis.split_axis(
@@ -194,8 +205,16 @@ class NaryTreeLSTM(link.Chain):
         x = cshsx[-1]
 
         if x is None:
+            if any(c is not None for c in cs):
+                base = [c for c in cs if c is not None][0]
+                batchsize, dtype = base.shape[0], base.dtype
+            elif any(h is not None for h in hs):
+                base = [h for h in hs if h is not None][0]
+                batchsize, dtype = base.shape[0], base.dtype
+            else:
+                ValueError('All inputs are None.')
             x = self.xp.zeros(
-                (cs[0].shape[0], self.in_size), dtype=cs[0].dtype)
+                (batchsize, self.in_size), dtype=dtype)
 
         tree_lstm_in = self.W_x(x)
 
