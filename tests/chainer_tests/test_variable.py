@@ -569,39 +569,39 @@ class TestVariable(unittest.TestCase):
 class TestVariableBasic(unittest.TestCase):
     def test_unhashable(self):
         a = chainer.Variable(np.ones((2,)))
-        with self.assertRaises(TypeError):
+        with self.assertRaisesRegex(TypeError, '^unhashable type: '):
             hash(a)
 
     def test_unequatable(self):
         a = chainer.Variable(np.ones((2,)))
         b = chainer.Variable(np.ones((2,)))
-        with self.assertRaises(Exception):
+        with self.assertRaises(NotImplementedError):
             a == b
-        with self.assertRaises(Exception):
+        with self.assertRaises(NotImplementedError):
             a == a
-        with self.assertRaises(Exception):
+        with self.assertRaises(NotImplementedError):
             a != b
-        with self.assertRaises(Exception):
+        with self.assertRaises(NotImplementedError):
             a != a
 
     def test_uncomparable(self):
         a = chainer.Variable(np.ones((2,)))
         b = chainer.Variable(np.ones((2,)))
-        with self.assertRaises(Exception):
+        with self.assertRaises(NotImplementedError):
             a < b
-        with self.assertRaises(Exception):
+        with self.assertRaises(NotImplementedError):
             a <= b
-        with self.assertRaises(Exception):
+        with self.assertRaises(NotImplementedError):
             a > b
-        with self.assertRaises(Exception):
+        with self.assertRaises(NotImplementedError):
             a >= b
 
     def test_bool_inconvertible(self):
         a = chainer.Variable(np.ones((2,)))
-        with self.assertRaises(Exception):
+        with self.assertRaises(NotImplementedError):
             if a:
                 pass
-        with self.assertRaises(Exception):
+        with self.assertRaises(NotImplementedError):
             if not a:
                 pass
 
