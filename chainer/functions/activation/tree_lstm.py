@@ -11,10 +11,10 @@ def _extract_gates(x, n_split=5):
 
     This is different from ``_extract_gates`` in lstm.py,
     which is as follows
-    ```
+    ::
         r = x.reshape((x.shape[0], x.shape[1] // 4, 4) + x.shape[2:])
         return (r[:, :, i] for i in six.moves.range(4))
-    ```
+    ::
     In other words, it thinly slices x and merge them,
     while this thickly slices x.
 
