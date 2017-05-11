@@ -569,7 +569,7 @@ class TestVariable(unittest.TestCase):
 class TestVariableBasic(unittest.TestCase):
     def test_unhashable(self):
         a = chainer.Variable(np.ones((2,)))
-        with self.assertRaisesRegex(TypeError, '^unhashable type: '):
+        with six.assertRaisesRegex(self, TypeError, '^unhashable type: '):
             hash(a)
 
     def test_unequatable(self):
