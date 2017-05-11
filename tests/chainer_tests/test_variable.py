@@ -599,9 +599,11 @@ class TestVariableBasic(unittest.TestCase):
     def test_bool_inconvertible(self):
         a = chainer.Variable(np.ones((2,)))
         with self.assertRaises(Exception):
-            if a: pass
+            if a:
+                pass
         with self.assertRaises(Exception):
-            if not a: pass
+            if not a:
+                pass
 
 
 class TestDebugPrint(unittest.TestCase):
