@@ -182,7 +182,7 @@ class TestTreeLSTM(unittest.TestCase):
                            if v is not None else v for v in inputs_data]
         base_shape = self.h_prevs[0].shape
         base_dtype = self.h_prevs[0].dtype
-        xp = cuda.get_array_module(x)
+        xp = cuda.get_array_module(h_prevs[0])
         inputs_data = [xp.zeros(base_shape, dtype=base_dtype)
                        if v is None else v for v in inputs_data]
 
