@@ -303,6 +303,9 @@ def build_computational_graph(
                     seen_edges.add((input_hash, cand_hash))
                     nodes.add(input_hash)
                     nodes.add(cand_hash)
+        else:
+            assert False
+
     return ComputationalGraph(
         [i.v for i in nodes], [(_[0].v, _[1].v) for _ in seen_edges],
         variable_style, function_style, rankdir, remove_variable, show_name)
