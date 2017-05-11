@@ -86,12 +86,10 @@ class ChildSumTreeLSTM(link.Chain):
         W_x_aio_in, W_x_f_in = split_axis.split_axis(
             W_x_in, [3 * self.state_size], axis=1)
 
-        if any(h is None for h in hs):
-            hs = list(hs)
-            for i, h in enumerate(hs, start=1):
-                if h is not None:
-                    hs[i] = self.xp.zeros(
-                        (cs[0].shape[0], self.in_size), dtype=cs[0].dtype)
+        hs = self._pad_zero_nodes(
+            hs, (x.shape[0], self.state_size), dtype=x.dtype)
+        cs = self._pad_zero_nodes(
+            cs, (x.shape[0], self.state_size), dtype=x.dtype)
 
         aio_in = self.W_h_aio(sum(hs)) + W_x_aio_in
         W_h_fs_in = concat.concat(split_axis.split_axis(
@@ -100,18 +98,14 @@ class ChildSumTreeLSTM(link.Chain):
             concat.concat([W_x_f_in] * len(hs), axis=1)
         tree_lstm_in = concat.concat([aio_in, f_in], axis=1)
 
-        if any(c is None for c in cs):
-            cs = list(cs)
-            for i, c in enumerate(cs):
-                if c is None:
-                    xp = self.xp
-                    with cuda.get_device(self._device_id):
-                        cs[i] = variable.Variable(
-                            xp.zeros((x.shape[0], self.state_size),
-                                     dtype=x.dtype))
-            cs = tuple(cs)
-
         return tree_lstm.tree_lstm(*(cs + (tree_lstm_in, )))
+
+    def _pad_zero_nodes(self, vs, shape, dtype='f'):
+        if any(v is None for v in vs):
+            zero = self.xp.zeros(shape, dtype=dtype)
+            return tuple(zero if v is None else v for v in vs)
+        else:
+            return vs
 
 
 class NaryTreeLSTM(link.Chain):
@@ -211,14 +205,14 @@ class NaryTreeLSTM(link.Chain):
             if h is not None:
                 tree_lstm_in += getattr(self, 'W_h{}'.format(i))(h)
 
-        if any(c is None for c in cs):
-            cs = list(cs)
-            for i, c in enumerate(cs):
-                if c is None:
-                    xp = self.xp
-                    with cuda.get_device(self._device_id):
-                        cs[i] = variable.Variable(
-                            xp.zeros((x.shape[0], self.state_size),
-                                     dtype=x.dtype))
-            cs = tuple(cs)
+        cs = self._pad_zero_nodes(
+            cs, (x.shape[0], self.state_size), dtype=x.dtype)
+
         return tree_lstm.tree_lstm(*(cs + (tree_lstm_in, )))
+
+    def _pad_zero_nodes(self, vs, shape, dtype='f'):
+        if any(v is None for v in vs):
+            zero = self.xp.zeros(shape, dtype=dtype)
+            return tuple(zero if v is None else v for v in vs)
+        else:
+            return vs
