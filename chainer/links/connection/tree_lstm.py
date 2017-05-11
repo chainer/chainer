@@ -82,12 +82,11 @@ class ChildSumTreeLSTM(link.Chain):
         if x is None:
             if any(c is not None for c in cs):
                 base = [c for c in cs if c is not None][0]
-                batchsize, dtype = base.shape[0], base.dtype
             elif any(h is not None for h in hs):
                 base = [h for h in hs if h is not None][0]
-                batchsize, dtype = base.shape[0], base.dtype
             else:
                 ValueError('All inputs are None.')
+            batchsize, dtype = base.shape[0], base.dtype
             x = self.xp.zeros(
                 (batchsize, self.in_size), dtype=dtype)
 
@@ -207,12 +206,11 @@ class NaryTreeLSTM(link.Chain):
         if x is None:
             if any(c is not None for c in cs):
                 base = [c for c in cs if c is not None][0]
-                batchsize, dtype = base.shape[0], base.dtype
             elif any(h is not None for h in hs):
                 base = [h for h in hs if h is not None][0]
-                batchsize, dtype = base.shape[0], base.dtype
             else:
                 ValueError('All inputs are None.')
+            batchsize, dtype = base.shape[0], base.dtype
             x = self.xp.zeros(
                 (batchsize, self.in_size), dtype=dtype)
 

@@ -182,7 +182,8 @@ class TestTreeLSTM(unittest.TestCase):
                            if v is not None else v for v in inputs_data]
         base_shape = self.h_prevs[0].shape
         base_dtype = self.h_prevs[0].dtype
-        inputs_data = [self.xp.zeros(base_shape, dtype=base_dtype)
+        xp = cuda.get_array_module(x)
+        inputs_data = [xp.zeros(base_shape, dtype=base_dtype)
                        if v is None else v for v in inputs_data]
 
         c, h = self.link(*inputs_variable)
@@ -229,8 +230,7 @@ class TestTreeLSTM(unittest.TestCase):
     def check_forward_invalid_none(self, *inputs_data):
         inputs_variable = [chainer.Variable(v)
                            if v is not None else v for v in inputs_data]
-        with self.assertRaises(ValueError):
-            c, h = self.link(*inputs_variable)
+        self.assertRaises(ValueError, self.link, *inputs_variable)
 
     def test_forward_none_chx_cpu(self):
         inputs = [None] * len(self.inputs)
