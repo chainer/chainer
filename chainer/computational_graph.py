@@ -288,7 +288,8 @@ def build_computational_graph(
         if isinstance(cand, variable.Variable):
             creator = cand.creator
             creator_hash = HashableObject(creator)
-            if creator is not None and (creator_hash, cand_hash) not in seen_edges:
+            if (creator is not None and
+                    (creator_hash, cand_hash) not in seen_edges):
                 add_cand(creator)
                 seen_edges.add((creator_hash, cand_hash))
                 nodes.add(creator_hash)
@@ -296,7 +297,8 @@ def build_computational_graph(
         elif isinstance(cand, function.Function):
             for input_ in cand.inputs:
                 input_hash = HashableObject(input_)
-                if input_ is not cand and (input_hash, cand_hash) not in seen_edges:
+                if (input_ is not cand and
+                        (input_hash, cand_hash) not in seen_edges):
                     add_cand(input_)
                     seen_edges.add((input_hash, cand_hash))
                     nodes.add(input_hash)
