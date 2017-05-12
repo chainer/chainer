@@ -363,7 +363,7 @@ class TestNumpyLikeMatMulInvalid(unittest.TestCase):
         y = chainer.Variable(y_data)
 
         with self.assertRaises(type_check.InvalidType):
-            F.matmul(x, y)
+            F.numpy_like_matmul(x, y)
 
     def test_invalid_ndim(self):
         x_data = numpy.zeros((3, 2, 5), dtype=numpy.float32)
@@ -372,7 +372,7 @@ class TestNumpyLikeMatMulInvalid(unittest.TestCase):
         y = chainer.Variable(y_data)
 
         with self.assertRaises(type_check.InvalidType):
-            F.matmul(x, y)
+            F.numpy_like_matmul(x, y)
 
 
 testing.run_module(__name__, __file__)
