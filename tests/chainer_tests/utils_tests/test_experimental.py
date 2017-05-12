@@ -38,7 +38,6 @@ class TestExperimental(unittest.TestCase):
 
     def test_experimental_with_api_name(self):
         with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
             f()
 
         self.assertEqual(len(w), 1)
@@ -47,7 +46,6 @@ class TestExperimental(unittest.TestCase):
 
     def test_experimental_with_no_api_name_2(self):
         with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
             C()
 
         self.assertEqual(len(w), 1)
@@ -56,11 +54,9 @@ class TestExperimental(unittest.TestCase):
 
     def test_experimental_with_no_api_name_3(self):
         with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
             c = C()
 
         with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
             c.f()
 
         self.assertEqual(len(w), 1)
@@ -69,7 +65,6 @@ class TestExperimental(unittest.TestCase):
 
     def test_experimental_static_method(self):
         with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
             C.static_method()
 
         self.assertEqual(len(w), 1)
@@ -79,7 +74,6 @@ class TestExperimental(unittest.TestCase):
 
     def test_experimental_class_method(self):
         with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
             C.class_method()
 
         self.assertEqual(len(w), 1)
@@ -99,7 +93,6 @@ class TestDisableExperimentalWarning(unittest.TestCase):
 
     def test_experimental(self):
         with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
             f()
 
         self.assertEqual(len(w), 0)

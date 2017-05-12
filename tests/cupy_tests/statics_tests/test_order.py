@@ -51,7 +51,6 @@ class TestOrder(unittest.TestCase):
     def test_nanmax_all_nan(self, xp, dtype):
         a = xp.array([float('nan'), float('nan')], dtype)
         with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
             m = xp.nanmax(a)
         self.assertEqual(len(w), 1)
         self.assertIs(w[0].category, RuntimeWarning)
@@ -99,7 +98,6 @@ class TestOrder(unittest.TestCase):
     def test_nanmin_all_nan(self, xp, dtype):
         a = xp.array([float('nan'), float('nan')], dtype)
         with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
             m = xp.nanmin(a)
         self.assertEqual(len(w), 1)
         self.assertIs(w[0].category, RuntimeWarning)
