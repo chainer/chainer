@@ -1,10 +1,13 @@
 import collections
+import sys
+import warnings
 
 import numpy
 import six
 
 from chainer import cuda
 import chainer.link as link_module
+from chainer import optimizer_hooks
 
 
 def _sum_sqnorm(arr):
@@ -15,16 +18,6 @@ def _sum_sqnorm(arr):
             s = x.dot(x)
             sq_sum[int(dev)] += s
     return sum([float(i) for i in six.itervalues(sq_sum)])
-
-
-def exponential_decay_noise(xp, shape, dtype, hook, opt):
-    """Time-dependent annealed Gaussian noise function from the paper:
-
-    `Adding Gradient Noise Improves Learning for Very Deep Networks
-    <https://arxiv.org/pdf/1511.06807>`_.
-    """
-    std = numpy.sqrt(hook.eta / numpy.power(1 + opt.t, 0.55))
-    return xp.random.normal(0, std, shape).astype(dtype)
 
 
 class Optimizer(object):
@@ -299,11 +292,11 @@ class Optimizer(object):
             maxnorm (float): Threshold of gradient L2 norm.
 
         .. deprecated:: v1.5
-           Use the :class:`~chainer.optimizer.GradientClipping` hook function
-           instead.
+           Use the :class:`~chainer.optimizer_hooks.GradientClipping`
+           hook function instead.
 
         """
-        GradientClipping(maxnorm)(self)
+        optimizer_hooks.GradientClipping(maxnorm)(self)
 
     def weight_decay(self, decay):
         """Applies weight decay to the parameter/gradient pairs.
@@ -316,7 +309,7 @@ class Optimizer(object):
            instead.
 
         """
-        WeightDecay(decay)(self)
+        optimizer_hooks.WeightDecay(decay)(self)
 
     def accumulate_grads(self, grads):
         """Accumulates gradients from other source.
@@ -481,176 +474,42 @@ class GradientMethod(Optimizer):
         self._use_cleargrads = use
 
 
-class WeightDecay(object):
-    """Optimizer hook function for weight decay regularization.
+def DeprecationWarningWrapper(mod, deprecated):
 
-    This hook function adds a scaled parameter to the corresponding gradient.
-    It can be used as a regularization.
+    deprecated = set(deprecated)
 
-    Args:
-        rate (float): Coefficient for the weight decay.
+    class Wrapper(object):
 
-    Attributes:
-        rate (float): Coefficient for the weight decay.
+        def __getattr__(self, attr):
+            if attr in deprecated:
+                warnings.warn(
+                    "chainer.optimizer.{0} is deprecated since v1.23.0. "
+                    "Use chainer.optimizer_hooks.{0} instead.".format(attr),
+                    DeprecationWarning)
 
-    """
-    name = 'WeightDecay'
+            return getattr(mod, attr)
 
-    def __init__(self, rate):
-        self.rate = rate
-
-    def kernel(self):
-        return cuda.elementwise(
-            'T p, T decay', 'T g', 'g += decay * p', 'weight_decay')
-
-    def __call__(self, opt):
-        rate = self.rate
-        for param in opt.target.params():
-            p, g = param.data, param.grad
-            with cuda.get_device(p) as dev:
-                if int(dev) == -1:
-                    g += rate * p
-                else:
-                    self.kernel()(p, rate, g)
+        def __setattr__(self, attr, value):
+            if attr in deprecated:
+                warnings.warn(
+                    "chainer.optimizer.{0} is deprecated since v1.23.0. "
+                    "Use chainer.optimizer_hooks.{0} instead".format(attr),
+                    DeprecationWarning)
+            return setattr(mod, attr, value)
+    return Wrapper()
 
 
-class Lasso(object):
-    """Optimizer hook function for Lasso regularization.
+#  Backward compatibility
+GradientClipping = optimizer_hooks.GradientClipping
+GradientHardClipping = optimizer_hooks.GradientHardClipping
+GradientNoise = optimizer_hooks.GradientNoise
+Lasso = optimizer_hooks.Lasso
+WeightDecay = optimizer_hooks.WeightDecay
 
-    This hook function adds a scaled parameter to the sign of each weight.
-    It can be used as a regularization.
-
-    Args:
-        rate (float): Coefficient for the weight decay.
-
-    Attributes:
-        rate (float): Coefficient for the weight decay.
-
-    """
-    name = 'Lasso'
-
-    def __init__(self, rate):
-        self.rate = rate
-
-    def kernel(self):
-        return cuda.elementwise(
-            'T s, T decay', 'T g', 'g += decay * s', 'lasso')
-
-    def __call__(self, opt):
-        rate = self.rate
-        for param in opt.target.params():
-            p, g = param.data, param.grad
-            xp = cuda.get_array_module(p)
-            sign = xp.sign(p)
-            with cuda.get_device(p) as dev:
-                if int(dev) == -1:
-                    g += rate * sign
-                else:
-                    self.kernel()(sign, rate, g)
-
-
-class GradientClipping(object):
-    """Optimizer hook function for gradient clipping.
-
-    This hook function scales all gradient arrays to fit to the defined L2 norm
-    threshold.
-
-    Args:
-        threshold (float): L2 norm threshold.
-
-    Attributes:
-        threshold (float): L2 norm threshold of gradient norm.
-
-    """
-    name = 'GradientClipping'
-
-    def __init__(self, threshold):
-        self.threshold = threshold
-
-    def __call__(self, opt):
-        norm = numpy.sqrt(_sum_sqnorm([p.grad for p in opt.target.params()]))
-        rate = self.threshold / norm
-        if rate < 1:
-            for param in opt.target.params():
-                grad = param.grad
-                with cuda.get_device(grad):
-                    grad *= rate
-
-
-class GradientNoise(object):
-    """Optimizer hook function for adding gradient noise.
-
-    This hook function simply adds noise generated by the ``noise_func``
-    to the gradient. By default it adds time-dependent annealed Gaussian
-    noise to the gradient at every training step:
-
-    .. math::
-
-        g_t \\leftarrow g_t + N(0, \\sigma_t^2)
-
-    where
-
-    .. math::
-
-        \\sigma_t^2 = \\frac{\\eta}{(1+t)^\\gamma}
-
-    with :math:`\\eta` selected from {0.01, 0.3, 1.0} and
-    :math:`\\gamma = 0.55`.
-
-    Args:
-        eta (float): Parameter that defines the scale of the noise, which for
-            the default noise function is recommended to be either 0.01, 0.3
-            or 1.0.
-        noise_func (function): Noise generating function which by default
-            is given by `Adding Gradient Noise Improves Learning for Very Deep\
-            Networks <https://arxiv.org/pdf/1511.06807>`_.
-    """
-    name = 'GradientNoise'
-
-    def __init__(self, eta, noise_func=exponential_decay_noise):
-        self.eta = eta
-        self.noise_func = noise_func
-
-    def kernel(self):
-        return cuda.elementwise(
-            'T noise', 'T g', 'g += noise', 'gradient_noise')
-
-    def __call__(self, opt):
-        for param in opt.target.params():
-            g = param.grad
-            xp = cuda.get_array_module(g)
-            with cuda.get_device(g) as dev:
-                noise = self.noise_func(xp, g.shape, g.dtype, self, opt)
-                if int(dev) == -1:
-                    g += noise
-                else:
-                    self.kernel()(noise, g)
-
-
-class GradientHardClipping(object):
-    """Optimizer hook function for gradient clipping.
-
-    This hook function clips all gradient arrays to be within a lower and upper
-    bound.
-
-    Args:
-        lower_bound (float): The lower bound of the gradient value.
-        upper_bound (float): The upper bound of the gradient value.
-
-    Attributes:
-        lower_bound (float): The lower bound of the gradient value.
-        upper_bound (float): The upper bound of the gradient value.
-
-    """
-    name = 'GradientHardClipping'
-
-    def __init__(self, lower_bound, upper_bound):
-        self.lower_bound = lower_bound
-        self.upper_bound = upper_bound
-
-    def __call__(self, opt):
-        xp = opt.target.xp
-        for param in opt.target.params():
-            grad = param.grad
-            with cuda.get_device(grad):
-                xp.clip(grad, self.lower_bound, self.upper_bound, out=grad)
+sys.modules[__name__] = DeprecationWarningWrapper(
+    sys.modules[__name__],
+    deprecated=['GradientClipping',
+                'GradientHardClipping',
+                'GradientNoise',
+                'Lasso',
+                'WeightDecay'])
