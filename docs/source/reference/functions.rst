@@ -87,6 +87,9 @@ tanh
 ~~~~
 .. autofunction:: tanh
 
+tree_lstm
+~~~~~~~~~
+.. autofunction:: tree_lstm
 
 Array manipulations
 -------------------

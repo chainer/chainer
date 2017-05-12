@@ -118,12 +118,12 @@ StatelessLSTM
    :members:
 
 ChildSumTreeLSTM
-~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~
 .. autoclass:: ChildSumTreeLSTM
    :members:
 
 NaryTreeLSTM
-~~~~~~~~~~~~~
+~~~~~~~~~~~~
 .. autoclass:: NaryTreeLSTM
    :members:
 
