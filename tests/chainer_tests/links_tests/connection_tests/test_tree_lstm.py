@@ -184,8 +184,8 @@ class TestTreeLSTM(unittest.TestCase):
         xp = cuda.get_array_module(base)
         inputs_data = [xp.zeros(self.h_prevs[0].shape, dtype=self.dtype)
                        if v is None else v for v in inputs_data[:-1]] + \
-                          [xp.zeros(self.x.shape, dtype=self.dtype)
-                           if inputs_data[-1] is None else inputs_data[-1]]
+            [xp.zeros(self.x.shape, dtype=self.dtype)
+             if inputs_data[-1] is None else inputs_data[-1]]
 
         c, h = self.link(*inputs_variable)
         self.assertEqual(c.data.dtype, self.dtype)
