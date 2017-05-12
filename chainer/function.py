@@ -13,8 +13,11 @@ from chainer import flag
 from chainer.utils import type_check
 from chainer import variable
 
+import copy
 
 _thread_local = threading.local()
+
+_debug = False  # debug
 
 
 @contextlib.contextmanager
@@ -76,6 +79,37 @@ def force_backprop_mode():
     _thread_local.default_backprop = True
     yield
     _thread_local.default_backprop = default
+
+
+@contextlib.contextmanager
+def use_recompute(*fnames):
+    """Enable re-compute for specified functions."""
+    if not hasattr(_thread_local, 'recompute_targets'):
+        _thread_local.recompute_targets = []
+    _thread_local.recompute_is_used = True
+
+    default = copy.copy(getattr(_thread_local, 'recompute_targets', []))
+    for fname in fnames:
+        if fname not in _thread_local.recompute_targets:
+            _thread_local.recompute_targets.append(fname)
+    try:
+        yield
+    finally:
+        _thread_local.recompute_targets = default
+
+
+@contextlib.contextmanager
+def no_recompute(*fnames):
+    """Enable re-compute for specified functions."""
+    default = copy.copy(getattr(_thread_local, 'recompute_targets', []))
+    _thread_local.recompute_targets = []
+    for fname in default:
+        if fname not in fnames:
+            _thread_local.recompute_targets.append(fname)
+    try:
+        yield
+    finally:
+        _thread_local.recompute_targets = default
 
 
 class Function(object):
@@ -176,10 +210,20 @@ class Function(object):
             :class:`Variable` objects.
 
         """
+        if _debug:
+            print('  forward: {}'.format(self))
 
         inputs = [x if isinstance(x, chainer.Variable)
                   else chainer.Variable(x, volatile=flag.AUTO)
                   for x in inputs]
+
+        # check wheter inputs are forgotten or not
+        for x in inputs:
+            if x.is_forgotten:
+                print('# This variable should not be target of recompute')
+                print('#   var:{}, func:{}'.format(x, x.creator))
+                x.recompute()
+                x.set_break_point()
 
         in_data = tuple([x.data for x in inputs])
         if chainer.is_debug():
@@ -227,6 +271,21 @@ class Function(object):
             self.inputs = inputs
             # Forward edges (must be weak references)
             self.outputs = tuple([weakref.ref(y) for y in ret])
+
+        # forget inputs which are set to forget
+        for x in inputs:
+            if x.will_be_forgotten:
+                x.forget()
+                if _debug:
+                    print('    {} forgets {}'.format(self, x))
+
+        # set outputs to forget later
+        if hasattr(self, 'recompute'):
+            if self.recompute:
+                for y in ret:
+                    y.will_be_forgotten = True
+                    if _debug:
+                        print('    {} will be forgotten'.format(y))
 
         if len(ret) == 1:
             return ret[0]
@@ -423,11 +482,19 @@ class Function(object):
         This method is called from :meth:`Variable.unchain_backward` method.
 
         """
+        if _debug:
+            print('  unchain: {}'.format(self))
+
         for y in self.outputs:
             y_ref = y()
             if y_ref is not None:
                 y_ref.creator = None
+                y_ref.g_creator = None
         self.inputs = None
+
+        # work-around for ReLU
+        if hasattr(self, "y"):
+            self.y = None
 
     def add_hook(self, hook, name=None):
         """Registers the function hook.

@@ -13,7 +13,6 @@ from cupy.cuda import runtime
 from cupy.cuda cimport device
 from cupy.cuda cimport runtime
 
-
 cdef class Memory:
 
     """Memory allocation on a CUDA device.
@@ -320,6 +319,10 @@ cdef class PooledMemory(Memory):
         buffer to the memory pool for reuse.
 
         """
+        if False:  # debug
+            print('[memory.pyx, free()] size: {}, ptr: {}'.
+                  format(self.size, self.ptr))
+
         pool = self.pool()
         if pool and self.ptr != 0:
             pool.free(self.ptr, self.size)
@@ -369,6 +372,9 @@ cdef class SingleDeviceMemoryPool:
 
         self._in_use[mem.ptr] = mem
         pmem = PooledMemory(mem, self._weakref)
+        if False:  # debug
+            print('[memory.ptx, malloc()] size: {}, ptr: {}'.
+                  format(pmem.size, pmem.ptr))
         return MemoryPointer(pmem, 0)
 
     cpdef free(self, size_t ptr, Py_ssize_t size):
@@ -394,6 +400,26 @@ cdef class SingleDeviceMemoryPool:
         for v in six.itervalues(self._free):
             n += len(v)
         return n
+
+    # testing
+    cpdef size_in_use_mem(self):
+        cdef Py_ssize_t size = 0
+        cdef Memory mem
+        for ptr in self._in_use:
+            mem = self._in_use[ptr]
+            size += mem.size
+        return size
+
+    # testing
+    cpdef size_free_mem(self):
+        cdef Py_ssize_t size = 0
+        cdef list free
+        cdef Memory mem
+        for s in self._free:
+            free = self._free[s]
+            for mem in free:
+                size += mem.size
+        return size
 
 
 cdef class MemoryPool(object):
@@ -466,3 +492,13 @@ cdef class MemoryPool(object):
         """
         dev = device.get_device_id()
         return self._pools[dev].n_free_blocks()
+
+    # testing
+    cpdef size_in_use_mem(self):
+        dev = device.get_device_id()
+        return self._pools[dev].size_in_use_mem()
+
+    # testing
+    cpdef size_free_mem(self):
+        dev = device.get_device_id()
+        return self._pools[dev].size_free_mem()

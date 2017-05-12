@@ -22,6 +22,7 @@ import alex
 import googlenet
 import googlenetbn
 import nin
+import resnet152
 
 
 class PreprocessedDataset(chainer.dataset.DatasetMixin):
@@ -82,7 +83,9 @@ def main():
         'googlenet': googlenet.GoogLeNet,
         'googlenetbn': googlenetbn.GoogLeNetBN,
         'googlenetbn_fp16': googlenetbn.GoogLeNetBNFp16,
-        'nin': nin.NIN
+        'nin': nin.NIN,
+        'resnet152': resnet152.ResNet,
+        'resnet152_recomp': resnet152.ResNet_recomp,
     }
 
     parser = argparse.ArgumentParser(

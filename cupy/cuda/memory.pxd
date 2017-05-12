@@ -56,7 +56,8 @@ cdef class SingleDeviceMemoryPool:
     cpdef free_all_blocks(self)
     cpdef free_all_free(self)
     cpdef n_free_blocks(self)
-
+    cpdef size_in_use_mem(self)  # testing
+    cpdef size_free_mem(self)  # testing
 
 cdef class MemoryPool:
 
@@ -67,3 +68,5 @@ cdef class MemoryPool:
     cpdef free_all_blocks(self)
     cpdef free_all_free(self)
     cpdef n_free_blocks(self)
+    cpdef size_in_use_mem(self)  # testing
+    cpdef size_free_mem(self)  # testing

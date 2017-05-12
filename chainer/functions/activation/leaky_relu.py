@@ -16,6 +16,11 @@ class LeakyReLU(function.Function):
     def __init__(self, slope=0.2):
         self.slope = slope
 
+        _fnames = getattr(function._thread_local, 'recompute_targets', [])
+        if "RELU" in _fnames:
+            self.recompute = True
+            # print('  recompute is enabled: {}'.format(self))
+
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)
         x_type, = in_types
