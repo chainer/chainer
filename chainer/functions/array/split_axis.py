@@ -46,7 +46,8 @@ class SplitAxis(function.Function):
             ind = list(self.indices_or_sections)
             ind.append(cdimx)
         xp = cuda.get_array_module(*x)
-        return tuple(xp.split(x[0], self.indices_or_sections, self.axis))
+        ret = xp.split(x[0], self.indices_or_sections, self.axis)
+        return tuple([cuda.cupy.ascontiguousarray(xi) for xi in ret])
 
     def backward(self, x, gys):
         xp = cuda.get_array_module(*x)
