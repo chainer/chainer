@@ -26,8 +26,8 @@ This table compares Chainer with other actively developed deep learning framewor
    ,"CPU/GPU generic backend","Y","Y",,,,"Y","Y","Y","Y","Y","Y","Y","Y","Y","Y"
    ,"Multi-GPU data parallelism","Y","Y","Y","Y","Y","Y","Y",,"Y","Y","Y","Y",,,
    ,"Multi-GPU model parallelism","Y","Y","Y","Y","Y","Y","Y",,"Y",,"Y","Y",,,
-   ,"Multiprocessing [4]_","[#2213]","partial",,,,,,"full",,,,,,,
-   ,"Distributed training","2Q 2017","2Q 2017","Y",,2017,"torch-distlearn","Y",,"Y","Y","Y","Y",,,
+   ,"Multiprocessing [4]_","full","partial",,,,,,"full",,,,,,,
+   ,"Distributed training","ChainerMN","2Q 2017","Y",,2017,"torch-distlearn","Y",,"Y","Y","Y","Y",,,
    "Misc","Runtime debugging","debug mode, typechecking, pdb","pdb","tfdbg",,,,"Monitor","pdb",,,"cntk.debugging",,"Gallium.jl","gdb","pdb"
    ,"Trainer abstraction","native","tnt",,"various packages","native","torchnet",,,"native","native","native","native",,,"native"
    ,"Reporter abstraction","native","tnt","native",,,"torchnet","native",,,"native","native",,,,
