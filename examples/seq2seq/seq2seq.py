@@ -124,10 +124,13 @@ def convert(batch, device):
 class CalculateBleu(chainer.training.Extension):
 
     trigger = 1, 'epoch'
+    priority = chainer.training.PRIORITY_WRITER
 
-    def __init__(self, model, test_data, batch=100, device=-1, max_length=100):
+    def __init__(
+            self, model, test_data, key, batch=100, device=-1, max_length=100):
         self.model = model
         self.test_data = test_data
+        self.key = key
         self.batch = batch
         self.device = device
         self.max_length = max_length
@@ -149,7 +152,7 @@ class CalculateBleu(chainer.training.Extension):
         bleu = bleu_score.corpus_bleu(
             references, hypotheses,
             smoothing_function=bleu_score.SmoothingFunction().method1)
-        print('BLEU {}'.format(bleu))
+        reporter.report({self.key: bleu})
 
 
 def main():
@@ -230,7 +233,8 @@ def main():
                    trigger=(200, 'iteration'))
     trainer.extend(extensions.PrintReport(
         ['epoch', 'iteration', 'main/loss', 'validation/main/loss',
-         'main/perp', 'validation/main/perp', 'elapsed_time']),
+         'main/perp', 'validation/main/perp', 'validation/main/bleu',
+         'elapsed_time']),
         trigger=(200, 'iteration'))
 
     def translate_one(source, target):
@@ -260,8 +264,10 @@ def main():
         translate_one(source, target)
 
     trainer.extend(translate, trigger=(200, 'iteration'))
-    trainer.extend(CalculateBleu(model, test_data, device=args.gpu),
-                   trigger=(10000, 'iteration'))
+    trainer.extend(
+        CalculateBleu(
+            model, test_data, 'validation/main/bleu', device=args.gpu),
+        trigger=(4000, 'iteration'))
     print('start training')
     trainer.run()
 
