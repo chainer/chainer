@@ -260,7 +260,7 @@ def main():
         target = ' '.join([target_words[i] for i in target])
         translate_one(source, target)
 
-    trainer.extend(translate, trigger=(200, 'iteration'))
+    trainer.extend(translate, trigger=(4000, 'iteration'))
     trainer.extend(
         CalculateBleu(
             model, test_data, 'validation/main/bleu', device=args.gpu),
