@@ -55,15 +55,13 @@ class Seq2seq(chainer.Chain):
         eys = sequence_embed(self.embed_y, ys_in)
 
         batch = len(xs)
-        # Initial hidden variable and cell variable
-        zero = self.xp.zeros((self.n_layers, batch, self.n_units), 'f')
-        hx, cx, _ = self.encoder(zero, zero, exs)
+        # None represents a zero vector in an encoder.
+        hx, cx, _ = self.encoder(None, None, exs)
         _, _, os = self.decoder(hx, cx, eys)
         concat_os = F.concat(os, axis=0)
         concat_ys_out = F.concat(ys_out, axis=0)
-        loss = F.softmax_cross_entropy(
-            self.W(concat_os), concat_ys_out, normalize=False) \
-            * concat_ys_out.shape[0] / batch
+        loss = F.sum(F.softmax_cross_entropy(
+            self.W(concat_os), concat_ys_out, reduce='no')) / batch
 
         reporter.report({'loss': loss.data}, self)
         perp = self.xp.exp(loss.data / concat_ys_out.shape[0] * batch)
@@ -75,9 +73,7 @@ class Seq2seq(chainer.Chain):
         with chainer.no_backprop_mode():
             xs = [x[::-1] for x in xs]
             exs = sequence_embed(self.embed_x, xs)
-            # Initial hidden variable and cell variable
-            zero = self.xp.zeros((self.n_layers, batch, self.n_units), 'f')
-            h, c, _ = self.encoder(zero, zero, exs, train=False)
+            h, c, _ = self.encoder(None, None, exs, train=False)
             ys = self.xp.zeros(batch, 'i')
             result = []
             for i in range(max_length):
