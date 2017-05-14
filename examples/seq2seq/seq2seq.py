@@ -143,7 +143,7 @@ class CalculateBleu(chainer.training.Extension):
                 sources = [
                     chainer.dataset.to_device(self.device, x) for x in sources]
                 ys = [y.tolist()
-                      for y in self.model.translate(sources, max_length)]
+                      for y in self.model.translate(sources, self.max_length)]
                 hypotheses.extend(ys)
 
         bleu = bleu_score.corpus_bleu(
