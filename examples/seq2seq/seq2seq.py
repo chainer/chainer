@@ -64,7 +64,8 @@ class Seq2seq(chainer.Chain):
             self.W(concat_os), concat_ys_out, reduce='no')) / batch
 
         reporter.report({'loss': loss.data}, self)
-        perp = self.xp.exp(loss.data / concat_ys_out.shape[0] * batch)
+        n_words = concat_ys_out.shape[0]
+        perp = self.xp.exp(loss.data * batch / n_words)
         reporter.report({'perp': perp}, self)
         return loss
 
