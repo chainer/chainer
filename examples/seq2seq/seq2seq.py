@@ -51,6 +51,7 @@ class Seq2seq(chainer.Chain):
         ys_in = [F.concat([eos, y], axis=0) for y in ys]
         ys_out = [F.concat([y, eos], axis=0) for y in ys]
 
+        # Both xs and ys_in are lists of arrays.
         exs = sequence_embed(self.embed_x, xs)
         eys = sequence_embed(self.embed_y, ys_in)
 
@@ -58,6 +59,9 @@ class Seq2seq(chainer.Chain):
         # None represents a zero vector in an encoder.
         hx, cx, _ = self.encoder(None, None, exs)
         _, _, os = self.decoder(hx, cx, eys)
+
+        # It is faster to concatenate data before calculating loss
+        # because only one matrix multiplication is called.
         concat_os = F.concat(os, axis=0)
         concat_ys_out = F.concat(ys_out, axis=0)
         loss = F.sum(F.softmax_cross_entropy(
