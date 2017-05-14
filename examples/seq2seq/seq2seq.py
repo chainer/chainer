@@ -70,7 +70,7 @@ class Seq2seq(chainer.Chain):
         reporter.report({'perp': perp}, self)
         return loss
 
-    def translate(self, xs, max_length=50):
+    def translate(self, xs, max_length=100):
         batch = len(xs)
         with chainer.no_backprop_mode():
             xs = [x[::-1] for x in xs]
@@ -125,11 +125,12 @@ class CalculateBleu(chainer.training.Extension):
 
     trigger = 1, 'epoch'
 
-    def __init__(self, model, test_data, batch=100, device=-1):
+    def __init__(self, model, test_data, batch=100, device=-1, max_length=100):
         self.model = model
         self.test_data = test_data
         self.batch = batch
         self.device = device
+        self.max_length = max_length
 
     def __call__(self, trainer):
         with chainer.no_backprop_mode():
@@ -141,7 +142,8 @@ class CalculateBleu(chainer.training.Extension):
 
                 sources = [
                     chainer.dataset.to_device(self.device, x) for x in sources]
-                ys = [y.tolist() for y in self.model.translate(sources)]
+                ys = [y.tolist()
+                      for y in self.model.translate(sources, max_length)]
                 hypotheses.extend(ys)
 
         bleu = bleu_score.corpus_bleu(
