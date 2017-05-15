@@ -242,7 +242,7 @@ the given dataset at the specified timing interval.
 .................................................
 
 :class:`~chainer.Reporter` aggregates the results to output to the standard
-output. The timing for displaying the output can be given by the list.
+output. The content for displaying the output can be given by the list.
 
 :class:`~chainer.training.extensions.PlotReport`
 ................................................
