@@ -305,3 +305,241 @@ and run your training loop.
     # Give the optimizer a reference to the model so that it
     # can locate the model's parameters.
     optimizer.setup(model)
+
+
+NOTE
+____
+
+Observe that above, we set :attr:`~chainer.optimizers.SGD.lr` to 0.01 in the
+SGD constructor. This value is known as a the "learning rate", one of the most
+important hyper paremeters that need to be adjusted in order to obtain the best
+performance. The various optimizers may each have differnt hyper-parameters and
+so be sure to check the documentation for the details.
+
+5. Write the training loop
+''''''''''''''''''''''''''
+
+We now show how to write the training loop. Since we are working on a digit
+classification problem, we will use
+:func:`~chainer.functions.softmax_cross_entropy` as the loss function for the
+optimizer to minimize. For other types of problems, such as regression models,
+other loss functions might be more appropriate. See the
+`Chainer documentation for detailed information on the various loss functions <http://docs.chainer.org/en/stable/reference/functions.html#loss-functions>`_  that are available.
+
+Our training loop will be structured as follows. We will first get a mini-batch
+of examples from the training dataset. We will then feed the batch into our
+model by calling or model (a :class:`~chainer.Chain` object) like a function.
+This will execute the forward-pass code that we wrote for the chain's
+:meth:`~chainer.Chain.__call__` method that we wrote above. This will cause the
+model to output class label predictions that we supply to the loss function
+along with the true (that is, target) values. The loss function will output the
+loss as a :class:`~chainer.Variable` object. We then clear any previous
+gradients and perform the backward pass by calling the
+:meth:`~chainer.Variable.backward` method on the loss variable which computes
+the parameter gradients. We need to clear the gradients first because the
+:meth:`~chainer.Variable.backward` method accumulates gradients instead of
+overwriting the previous values. Since the optimizer already was given a
+reference to the model, it already has access to the parameters and the
+newly-computed gradients and so we can now call the update method of the
+optimizer which will update the model parameters.
+
+At this point you might be wondering how calling backward on the loss variable
+could possibly compute the gradients for all of the model parameters. This
+works as follows. First recall that all activation and parameter arrays in the
+model are instances of :class:`~chainer.Variable`. During the forward pass, as
+each function is called on its inputs, we save references in each output
+variable that refer to the function that created it and its input variables.
+In this way, by the time the final loss variable is computed, it actually
+contains backward references that lead all the way back to the input variables
+of the model. That is, the loss variable contains a representation of the
+entire computational graph of the model, which is recomputed each time the
+forward pass is performed. By following these backward references from the loss
+variable, each function as a backward method that gets called to compute any
+parameter gradients. Thus, by the time the end of the backward graph is reached
+(at the input variables of the model), all parameter gradients have been
+computed.
+
+Thus, there are four steps in single training loop iteration as shown below.
+
+1. Obtain and pass a mini-batch of example images into the model and obtain the output digit predictions ``prediction_train``.
+2. Compute the loss function, giving it the predicted labels from the output of our model and also the true "target" label values.
+3. Clear any previous gradients and call the :meth:`~chainer.Variable.backward` method of :class:`~chainer.Variable` to compute the parameter gradients for the model.
+4. Call the :meth:`~chainer.Optimizer.update` method of Optimizer, which performs one optimization step and updates all of the model parameters.
+
+In addition to the above steps, it is good to occasionally check the
+performance of our model on a validation and/or test set. This allows us to
+observe how well it can generalize to new data and also check whether it is
+overfitting. The code below checks the performance on the test set at the end
+of each epoch. The code has the same structure as the training code except that
+no backpropagation is performed and we also commpute the accuracy on the test
+set using the :meth:`~chainer.functions.accuracy` function.
+
+We can write the training loop code as follows:
+
+.. testcode::
+
+    from chainer.dataset import concat_examples
+    from chainer.cuda import to_cpu
+
+    max_epoch = 10
+
+    while train_iter.epoch < max_epoch:
+
+        # ---------- The first iteration of Trainig loop ----------
+        train_batch = train_iter.next()
+        image_train, target_train = concat_examples(train_batch, gpu_id)
+
+        # calculate the prediction of the model
+        prediction_train = model(image_train)
+
+        # calculation of loss function, softmax_cross_entropy
+        loss = F.softmax_cross_entropy(prediction_train, target_train)
+
+        # calculate the gradients in the model
+        model.cleargrads()
+        loss.backward()
+
+        # update the paremters of the model
+        optimizer.update()
+        # --------------- until here One loop ----------------
+
+        # Check if the generalization of the model is improving
+        # by measuring the accuracy of prediction after every epoch
+
+        if train_iter.is_new_epoch:  # after finishing the first epoch
+
+            # display the result of the loss function
+            print('epoch:{:02d} train_loss:{:.04f} '.format(
+                train_iter.epoch, float(to_cpu(loss.data))), end='')
+
+            test_losses = []
+            test_accuracies = []
+            while True:
+                test_batch = test_iter.next()
+                image_test, target_test = concat_examples(test_batch, gpu_id)
+
+                # forward the test data
+                prediction_test = model(image_test)
+
+                # calculate the loss function
+                loss_test = F.softmax_cross_entropy(prediction_test, target_test)
+                test_losses.append(to_cpu(loss_test.data))
+
+                # calculate the accuracy
+                accuracy = F.accuracy(prediction_test, target_test)
+                accuracy.to_cpu()
+                test_accuracies.append(accuracy.data)
+
+                if test_iter.is_new_epoch:
+                    test_iter.epoch = 0
+                    test_iter.current_position = 0
+                    test_iter.is_new_epoch = False
+                    test_iter._pushed_position = None
+                    break
+
+            print('val_loss:{:.04f} val_accuracy:{:.04f}'.format(
+                np.mean(test_losses), np.mean(test_accuracies)))
+
+Output
+......
+
+.. code-block::
+
+    epoch:01 train_loss:0.8072 val_loss:0.7592 val_accuracy:0.8289
+    epoch:02 train_loss:0.5021 val_loss:0.4467 val_accuracy:0.8841
+    epoch:03 train_loss:0.3539 val_loss:0.3673 val_accuracy:0.9007
+    epoch:04 train_loss:0.2524 val_loss:0.3307 val_accuracy:0.9067
+    epoch:05 train_loss:0.4232 val_loss:0.3076 val_accuracy:0.9136
+    epoch:06 train_loss:0.3033 val_loss:0.2910 val_accuracy:0.9167
+    epoch:07 train_loss:0.2004 val_loss:0.2773 val_accuracy:0.9222
+    epoch:08 train_loss:0.2885 val_loss:0.2679 val_accuracy:0.9239
+    epoch:09 train_loss:0.2818 val_loss:0.2579 val_accuracy:0.9266
+    epoch:10 train_loss:0.2403 val_loss:0.2484 val_accuracy:0.9307
+
+6. Save the trained model
+'''''''''''''''''''''''''
+
+Chainer provides two types of :mod:`~chainer.serializers` that can be used to
+save and restore model state. One supports the HDF5 format and the other
+supports the NumPy NPZ format. For this example, we are going to use the NPZ
+format to save our model since it is easy to use with NumPy without requiring
+any additional dependencies or libraries.
+
+.. testcode::
+
+    serializers.save_npz('my_mnist.model', model)
+
+7. Perform classification by restoring a previously trained model
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+We will now use our previously trained and saved MNIST model to classify a new
+image. In order to load a previously-trained model, we need to perform the
+following two steps:
+
+1. We must use the same model definition code that was used to create the previously-trained model. For our example, this is the MLP :class:`~chainer.Chain` that we created earlier.
+2. We then overwrite any parameters in the newly-created model with the values that were saved earlier using the serializer. The :meth:`~chainer.serializers.load_npz` function can be used to do this.
+
+Now the model has been restored, it can be used to predict image labels on new input images.
+
+.. testcode::
+
+    # Create the infrence (evaluation) model as the preivious model
+    infer_model = MLP()
+
+    # Load the saved paremeters into the parametes of the new inference model to overwrite
+    serializers.load_npz('my_mnist.model', infer_model)
+
+    # Send the model to utilize GPU by to_GPU
+    infer_model.to_gpu(gpu_id)
+
+    # Get a test image and label
+    x, t = test[0]
+    plt.imshow(x.reshape(28, 28), cmap='gray')
+    plt.show()
+    print('label:', t)
+
+Output
+......
+
+.. image:: ../../image/train_loop/7.png
+
+.. code-block::
+
+    label: 7
+
+.. testcode::
+
+    from chainer.cuda import to_gpu
+
+    # change the shape to minibutch.
+    # In this example, the size of minibatch is 1.
+    # Inference using any mini-batch size can be performed.
+
+    print(x.shape, end=' -> ')
+    x = x[None, ...]
+    print(x.shape)
+
+    # to calculate by GPU, send the data to GPU, too.
+    x = to_gpu(x, 0)
+
+    # forward calculation of the model by sending X
+    y = infer_model(x)
+
+    # The result is given as Variable, then we can take a look at the contents by the attribute, .data.
+    y = y.data
+
+    # send the gpu result to cpu
+    y = to_cpu(y)
+
+    # The most probable number by looking at the argmax
+    pred_label = y.argmax(axis=1)
+
+    print('predicted label:', pred_label[0])
+
+Output
+......
+
+.. code-block::
+
+    (784,) -> (1, 784)
+    predicted label: 7
