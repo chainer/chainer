@@ -15,7 +15,7 @@ After reading this section, you will be able to:
 A convolutional network (ConvNet) is mainly comprised of convolutional layers.
 This type of network is commonly used for various visual recognition tasks,
 e.g., classifying hand-written digits or natural images into given object
-classes, detectiong objects from an image, and labeling all pixels of an image
+classes, detecting objects from an image, and labeling all pixels of an image
 with the object classes (semantic segmenation), and so on.
 
 In such tasks, a typical ConvNet takes a set of images whose shape is
