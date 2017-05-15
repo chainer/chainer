@@ -1,3 +1,5 @@
+import warnings
+
 import numpy
 
 from chainer import configuration
@@ -108,13 +110,9 @@ class BatchRenormalizationFunction(function.Function):
             if self.keep_r_d_fixed:
                 # Hack for making gradient check treat r and d as true
                 # constants with respect to the batch.
-                print("Warning: self.keep_r_d_fixed is True, which is needed "
-                      "for gradient check, but must be disabled during real "
-                      "training")
-                print("running_var:", self.running_var)
-                print("running_mean:", self.running_mean)
-                print("Set r = {}".format(r))
-                print("Set d = {}".format(d))
+                warnings.warn("Warning: self.keep_r_d_fixed is True, which is "
+                              "needed for gradient check, but must be disabled"
+                              " during real training.", RuntimeWarning)
             self.r = r
             self.d = d
 
