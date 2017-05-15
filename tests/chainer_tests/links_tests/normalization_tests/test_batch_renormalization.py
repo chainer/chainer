@@ -85,9 +85,10 @@ class BatchRenormalizationTest(unittest.TestCase):
             self.check_backward_optionss = {'atol': 5e-1, 'rtol': 1e-1}
 
     def check_forward(self, x_data):
-        x = chainer.Variable(x_data, volatile=self.volatile)
-        y = self.link(x, test=self.test)
-        self.assertEqual(y.data.dtype, self.dtype)
+        with chainer.using_config('train', not self.test):
+            x = chainer.Variable(x_data, volatile=self.volatile)
+            y = self.link(x)
+            self.assertEqual(y.data.dtype, self.dtype)
 
         sigma_batch = numpy.sqrt(self.var)
         running_sigma = numpy.sqrt(self.running_var)
@@ -166,10 +167,11 @@ class TestPopulationStatistics(unittest.TestCase):
         unbiased_var = self.x.var(axis=0) * self.nx / (self.nx - 1)
         testing.assert_allclose(unbiased_var, self.link.avg_var)
 
-        y = chainer.Variable(y)
-        self.link(y, test=True, finetune=True)
-        testing.assert_allclose(mean, self.link.avg_mean)
-        testing.assert_allclose(unbiased_var, self.link.avg_var)
+        with chainer.using_config('train', False):
+            y = chainer.Variable(y)
+            self.link(y, finetune=True)
+            testing.assert_allclose(mean, self.link.avg_mean)
+            testing.assert_allclose(unbiased_var, self.link.avg_var)
 
     @condition.retry(3)
     def test_statistics_cpu(self):

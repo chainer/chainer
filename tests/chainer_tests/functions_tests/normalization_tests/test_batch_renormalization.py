@@ -88,12 +88,14 @@ class TestBatchRenormalization(unittest.TestCase):
         self.check_forward([cuda.to_gpu(i) for i in self.args])
 
     def check_backward(self, args, y_grad):
-        gradient_check.check_backward(
-            batch_renormalization.BatchRenormalizationFunction(
-                mean=self.running_mean, var=self.running_var, train=self.train,
-                decay=self.decay, eps=self.eps, rmax=self.rmax, dmax=self.dmax,
-                keep_r_d_fixed=True), args, y_grad,
-            **self.check_backward_options)
+        with chainer.using_config('train',  self.train):
+            gradient_check.check_backward(
+                batch_renormalization.BatchRenormalizationFunction(
+                    mean=self.running_mean, var=self.running_var,
+                    decay=self.decay, eps=self.eps, rmax=self.rmax,
+                    dmax=self.dmax,
+                    keep_r_d_fixed=True), args, y_grad,
+                **self.check_backward_options)
 
     @condition.retry(3)
     def test_backward_cpu(self):
@@ -162,12 +164,13 @@ class TestFixedBatchRenormalization(unittest.TestCase):
         self.check_forward([cuda.to_gpu(i) for i in self.args])
 
     def check_backward(self, args, y_grad):
-        gradient_check.check_backward(
-            batch_renormalization.BatchRenormalizationFunction(
-                mean=None, var=None, train=self.train,
-                decay=self.decay, eps=self.eps,
-                rmax=self.rmax, dmax=self.dmax),
-            args, y_grad, **self.check_backward_options)
+        with chainer.using_config('train',  self.train):
+            gradient_check.check_backward(
+                batch_renormalization.BatchRenormalizationFunction(
+                    mean=None, var=None,
+                    decay=self.decay, eps=self.eps,
+                    rmax=self.rmax, dmax=self.dmax),
+                args, y_grad, **self.check_backward_options)
 
     @condition.retry(3)
     def test_backward_cpu(self):

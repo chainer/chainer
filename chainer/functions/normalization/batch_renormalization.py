@@ -1,5 +1,6 @@
 import numpy
 
+from chainer import configuration
 from chainer import cuda
 
 from chainer import function
@@ -23,9 +24,8 @@ def _xhat(x, mean, std, expander):
 
 class BatchRenormalizationFunction(function.Function):
 
-    def __init__(self, eps=2e-5, mean=None, var=None, train=False,
-                 decay=0.9, rmax=1, dmax=0,
-                 keep_r_d_fixed=False):
+    def __init__(self, eps=2e-5, mean=None, var=None, decay=0.9,
+                 rmax=1, dmax=0, keep_r_d_fixed=False):
         self.running_mean = mean
         self.running_var = var
         self.rmax = rmax
@@ -35,9 +35,6 @@ class BatchRenormalizationFunction(function.Function):
         # Needed for gradient check to be possible
         self.keep_r_d_fixed = keep_r_d_fixed
 
-        # If train is true, use batch statistics (training mode). Otherwise, if
-        # false, use the supplied mean and variance.
-        self.train = train
         self.eps = eps
         self.mean_cache = None
         self.decay = decay
@@ -54,7 +51,7 @@ class BatchRenormalizationFunction(function.Function):
             x_type.dtype.kind == 'f',
             x_type.ndim >= gamma_type.ndim + 1,
             x_type.shape[1:1 + M] == gamma_type.shape,
-            # TODO(beam2d): Check shape
+            # TODO(tkerola): Check shape
             gamma_type.dtype == x_type.dtype,
             beta_type.dtype == x_type.dtype,
             gamma_type.shape == beta_type.shape,
@@ -71,7 +68,7 @@ class BatchRenormalizationFunction(function.Function):
     def forward(self, inputs):
         xp = cuda.get_array_module(*inputs)
         x, gamma, beta = inputs[:3]
-        if self.train:
+        if configuration.config.train:
             if self.running_mean is None:
                 print("Set running_mean,var to zero")
                 self.running_mean = xp.zeros_like(gamma)
@@ -88,7 +85,7 @@ class BatchRenormalizationFunction(function.Function):
 
         # NOTE(tommi): Removed cuDNN support since it does not support
         # batch renormalization
-        if self.train:
+        if configuration.config.train:
             axis = (0,) + tuple(range(head_ndim, x.ndim))
             mean = x.mean(axis=axis)
             var = x.var(axis=axis)
@@ -98,7 +95,7 @@ class BatchRenormalizationFunction(function.Function):
             var = self.fixed_var + self.eps
         self.std = xp.sqrt(var, dtype=var.dtype)
         if not self.keep_r_d_fixed or self.r is None:
-            if self.train:
+            if configuration.config.train:
                 running_sigma = xp.sqrt(self.running_var + self.eps)
                 r = xp.clip(self.std / running_sigma,
                             1.0 / self.rmax, self.rmax)
@@ -148,7 +145,7 @@ class BatchRenormalizationFunction(function.Function):
                 'bn_fwd')(x, mean[expander], self.std[expander], gamma,
                           beta, self.r[expander], self.d[expander])
 
-        if self.train:
+        if configuration.config.train:
             # Update running statistics:
             m = x.size // gamma.size
             adjust = m / max(m - 1., 1.)  # unbiased estimation
@@ -188,7 +185,7 @@ class BatchRenormalizationFunction(function.Function):
             return gx, ggamma, gbeta, gmean, gvar
 
         # Note: If length of inputs is not 5, we must be in train mode.
-        assert self.train
+        assert configuration.config.train
         # NOTE(tommi): Removed cuDNN support since it does not support
         # batch renormalization
         gbeta = gy.sum(axis=axis)
@@ -227,10 +224,11 @@ def batch_renormalization(x, gamma, beta, rmax, dmax, eps=2e-5,
     .. seealso:: :func:`functions.BatchNormalization`
 
     """
-    return BatchRenormalizationFunction(eps, running_mean, running_var, True,
+    return BatchRenormalizationFunction(eps, running_mean, running_var,
                                         decay, rmax, dmax)(x, gamma, beta)
 
 
 def fixed_batch_renormalization(x, gamma, beta, mean, var, eps=2e-5):
-    return BatchRenormalizationFunction(eps, None, None, False, 0.0)(
-        x, gamma, beta, mean, var)
+    with configuration.using_config('train', False):
+        return BatchRenormalizationFunction(eps, None, None, 0.0)(
+            x, gamma, beta, mean, var)

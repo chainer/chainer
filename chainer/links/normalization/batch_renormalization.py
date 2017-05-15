@@ -1,5 +1,6 @@
 import numpy
 
+from chainer import configuration
 from chainer import cuda
 from chainer.functions.normalization import batch_renormalization
 from chainer.links.normalization.batch_normalization import BatchNormalization
@@ -40,7 +41,7 @@ class BatchRenormalization(BatchNormalization):
         self.d = None
         self.keep_r_d_fixed = keep_r_d_fixed
 
-    def __call__(self, x, test=False, finetune=False):
+    def __call__(self, x, finetune=False):
         if hasattr(self, 'gamma'):
             gamma = self.gamma
         else:
@@ -54,7 +55,7 @@ class BatchRenormalization(BatchNormalization):
                 beta = variable.Variable(self.xp.zeros(
                     self.avg_mean.shape, dtype=x.dtype), volatile='auto')
 
-        if not test:
+        if configuration.config.train:
             if finetune:
                 self.N += 1
                 decay = 1. - 1. / self.N
