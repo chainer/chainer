@@ -13,7 +13,7 @@ dataset.
 .. note::
 
     Please read the custom training loop tutorial:
-    :doc:`tutorial/custom_training.rst` before this tutorial.
+    :doc:`tutorial/train_loop.rst` before this tutorial.
 
 1. Prepare the dataset
 ''''''''''''''''''''''
