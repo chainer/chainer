@@ -309,6 +309,7 @@ and the calculated loss is output.
 
 .. testcode::
 
+    import matplotlib.pyplot as plt
     from chainer.cuda import to_gpu
     from chainer.cuda import to_cpu
 
