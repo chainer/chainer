@@ -37,6 +37,7 @@ retreives the MNIST dataset.
 
 .. testcode::
 
+    import matplotlib.pyplot as plt
     from chainer.datasets import mnist
 
     # Download the MNIST data if you haven't downloaded it yet
