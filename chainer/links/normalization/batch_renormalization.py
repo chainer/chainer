@@ -47,13 +47,13 @@ class BatchRenormalization(BatchNormalization):
         else:
             with cuda.get_device(self._device_id):
                 gamma = variable.Variable(self.xp.ones(
-                    self.avg_mean.shape, dtype=x.dtype), volatile='auto')
+                    self.avg_mean.shape, dtype=x.dtype))
         if hasattr(self, 'beta'):
             beta = self.beta
         else:
             with cuda.get_device(self._device_id):
                 beta = variable.Variable(self.xp.zeros(
-                    self.avg_mean.shape, dtype=x.dtype), volatile='auto')
+                    self.avg_mean.shape, dtype=x.dtype))
 
         if configuration.config.train:
             if finetune:
@@ -63,7 +63,7 @@ class BatchRenormalization(BatchNormalization):
                 decay = self.decay
 
             func = batch_renormalization.BatchRenormalizationFunction(
-                self.eps, self.avg_mean, self.avg_var, True, decay,
+                self.eps, self.avg_mean, self.avg_var, decay,
                 self.rmax, self.dmax, self.keep_r_d_fixed)
             if self.keep_r_d_fixed:
                 func.r = self.r
@@ -77,8 +77,8 @@ class BatchRenormalization(BatchNormalization):
             self.avg_var[:] = func.running_var
         else:
             # Use running average statistics or fine-tuned statistics.
-            mean = variable.Variable(self.avg_mean, volatile='auto')
-            var = variable.Variable(self.avg_var, volatile='auto')
+            mean = variable.Variable(self.avg_mean)
+            var = variable.Variable(self.avg_var)
             ret = batch_renormalization.fixed_batch_renormalization(
                 x, gamma, beta, mean, var, self.eps)
         return ret

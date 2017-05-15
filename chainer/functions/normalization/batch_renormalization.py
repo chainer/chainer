@@ -42,13 +42,13 @@ class BatchRenormalizationFunction(function.Function):
         self.decay = decay
 
     def check_type_forward(self, in_types):
-        n_in = in_types.size().eval()
+        n_in = type_check.eval(in_types.size())
         if n_in != 3 and n_in != 5:
             raise type_check.InvalidType(
                 '%s or %s' % (in_types.size() == 3, in_types.size() == 5),
                 '%s == %s' % (in_types.size(), n_in))
         x_type, gamma_type, beta_type = in_types[:3]
-        M = gamma_type.ndim.eval()
+        M = type_check.eval(gamma_type.ndim)
         type_check.expect(
             x_type.dtype.kind == 'f',
             x_type.ndim >= gamma_type.ndim + 1,
