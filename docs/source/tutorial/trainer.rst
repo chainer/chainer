@@ -46,17 +46,17 @@ Here, we are going to use the same model as before.
 
     class MLP(Chain):
 
-    def __init__(self, n_mid_units=100, n_out=10):
-        super(MLP, self).__init__(
-            l1=L.Linear(None, n_mid_units),
-            l2=L.Linear(None, n_mid_units),
-            l3=L.Linear(None, n_out),
-        )
+        def __init__(self, n_mid_units=100, n_out=10):
+            super(MLP, self).__init__(
+                l1=L.Linear(None, n_mid_units),
+                l2=L.Linear(None, n_mid_units),
+                l3=L.Linear(None, n_out),
+            )
 
-    def __call__(self, x):
-        h1 = F.relu(self.l1(x))
-        h2 = F.relu(self.l2(h1))
-        return self.l3(h2)
+        def __call__(self, x):
+            h1 = F.relu(self.l1(x))
+            h2 = F.relu(self.l2(h1))
+            return self.l3(h2)
 
     gpu_id = 0
 
@@ -72,20 +72,20 @@ components needed for training. The main components are shown below.
 .. image:: ../../image/trainer/trainer.png
 
 Basically, all you need to pass to :class:`~chainer.training.Trainer` is an
-:class:`~chainer.training.Updator`. However, :class:`~chainer.training.Updator`
+:class:`~chainer.training.updater`. However, :class:`~chainer.training.updater`
 contains an :class:`~chainer.training.Iterator` and
 :class:`~chainer.Optimizer`. Since :class:`~chainer.training.Iterator` can
 access the dataset and :class:`~chainer.Optimizer` has references to the model,
-:class:`~chainer.training.Updator` can update the parameters of models.
+:class:`~chainer.training.updater` can update the parameters of models.
 
-So, :class:`~chainer.training.Updator` can perform the training procedure as
+So, :class:`~chainer.training.updater` can perform the training procedure as
 shown below:
 
 1. Retrieve the data from dataset, one batch at a time (:class:`~chainer.dataset.Iterator`)
 2. Pass the data to the model and calculate the loss (Model = :attr:`~chainer.Optimizer.target`)
 3. Update the parameters of the model (:class:`~chainer.Optimizer`)
 
-Now let's create the :class:`~chainer.training.Updator` object !
+Now let's create the :class:`~chainer.training.updater` object !
 
 .. testcode::
 
@@ -93,7 +93,7 @@ Now let's create the :class:`~chainer.training.Updator` object !
     # Note: If you don't have a GPU, set this to -1 to run on CPU only
     gpu_id = 0
 
-    # Wrapp your model by Classifier and include the process of loss calculation within your model.
+    # Wapp your model by Classifier and include the process of loss calculation within your model.
     # Since we do not specify a loss funciton here, the default 'softmax_cross_entropy' is
     # used.
     model = L.Classifier(model)
@@ -104,7 +104,7 @@ Now let's create the :class:`~chainer.training.Updator` object !
     # Give the optimizer a reference to the model
     optimizer.setup(model)
 
-    # Get an Updator that uses the Iterator and Optimizer
+    # Get an updater that uses the Iterator and Optimizer
     updater = training.StandardUpdater(train_iter, optimizer, device=gpu_id)
 
 .. note::
@@ -124,10 +124,10 @@ Now let's create the :class:`~chainer.training.Updator` object !
     ``L.Classifiler``, the :attr:`~chainer.links.Classifier.lossfun` is set to
     :meth:`~chainer.functions.softmax_cross_entropy` as default.
 
-    :class:`~chainer.training.StandardUpdator` is the simplest class to process
-    the :class:`~chainer.training.Updator` described above. Other than this
-    :class:`~chainer.training.StandardUpdator`, there is also a
-    :class:`~chainer.training.ParallelUpdator` to utilize multiple GPUs.
+    :class:`~chainer.training.Standardupdater` is the simplest class to process
+    the :class:`~chainer.training.updater` described above. Other than this
+    :class:`~chainer.training.Standardupdater`, there is also a
+    :class:`~chainer.training.Parallelupdater` to utilize multiple GPUs.
 
 5. Setup Trainer
 ''''''''''''''''
@@ -187,7 +187,7 @@ simply pass the desired :class:`~chainer.training.Extension` object to the
 :class:`~chainer.training.extensions.LogReport`
 ...............................................
 
-Collect ``loss`` and ``accuracy`` automarically every ``epoch`` or
+Collect ``loss`` and ``accuracy`` automatically every ``epoch`` or
 ``iteration`` and store the information under the ``log`` file in the directory
 assigned by the :attr:`~chainer.training.Trainer.out` argument of
 :class:`~chainer.training.Trainer`.
@@ -200,7 +200,7 @@ The :meth:`~chainer.training.extensions.snapshot` method saves the
 every epoch) in the directory assigned by :attr:`~chainer.training.Trainer.out`
 argument in :class:`~chainer.training.Trainer`. The
 :class:`~chainer.training.Trainer` object, as mentioned before, has an
-:class:`~chainer.training.Updator` which contains an
+:class:`~chainer.training.updater` which contains an
 :class:`~chainer.Optimizer` and a model inside. Therefore, as long as you have
 the snapshot file, you can use it to come back to the training or make
 inferences using the previously trained model later.
@@ -224,8 +224,8 @@ example code.
 :meth:`~chainer.training.extensions.dump_graph`
 ...............................................
 
-This method save the computaional graph of the model. The graph is saved in the
-`Graphviz`_<http://www.graphviz.org/>'s dot format. The output location
+This method save the computational graph of the model. The graph is saved in the
+`Graphviz <http://www.graphviz.org/>_`s dot format. The output location
 (directory) to save the graph is set by the
 :attr:`~chainer.training.Trainer.out` argument of
 :class:`~chainer.training.Trainer`.
@@ -256,7 +256,7 @@ those mentioned here. For instance, by using the
 :attr:`~chainer.training.Extension.trigger` option, you can set individual
 timings to activate the :class:`~chainer.training.Extension` more flexibly.
 Please take a look at the official document in more detail：
-`Trainer extensions`_<reference/extensions.html>.
+`Trainer extensions <reference/extensions.html>_`.
 
 7. Start Training
 '''''''''''''''''
@@ -301,7 +301,7 @@ Furthermore, let's visualize the computaional graph output by
 .. image:: ../../image/trainer/mnist_graph.png
 
 From the top to the bottom, you can track the data flow of the computations,
-how data and paremeters are passed to what type of :class:`~chainer.Function`
+how data and parameters are passed to what type of :class:`~chainer.Function`
 and the calculated loss is output.
 
 8. Evaluate a pre-trained model
@@ -316,9 +316,7 @@ and the calculated loss is output.
     serializers.load_npz('mnist_result/model_epoch-10', model)
     model.to_gpu(gpu_id)
 
-    %matplotlib inline
-    import matplotlib.pyplot as plt
-
+    # Show the output
     x, t = test[0]
     plt.imshow(x.reshape(28, 28), cmap='gray')
     plt.show()
