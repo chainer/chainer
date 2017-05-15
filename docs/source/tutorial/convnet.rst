@@ -196,7 +196,7 @@ wrapping the model object (:class:`~chainer.Chain` or
 model defined above and register it through the constructor of its superclass
 or :meth:`~chainer.Chain.add_link`. :class:`~chainer.Chain` is actually
 inherited from :class:`~chainer.Link`, so that :class:`~chainer.Chain` itself
-can also be registedred as a trainable :class:`~chainer.Link` to another
+can also be registered as a trainable :class:`~chainer.Link` to another
 :class:`~chainer.Chain`. Actually, :class:`~chainer.links.Classifier` class to
 wrap the model and add the loss computation to the model already exists.
 Actually, there is already a :class:`~chainer.links.Classifier` class that can
