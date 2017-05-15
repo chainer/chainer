@@ -14,7 +14,7 @@ import chainer.serializer as serializer_module
 def _sum_sqnorm(arr):
     sq_sum = collections.defaultdict(float)
     for x in arr:
-        with cuda.get_device(x) as dev:
+        with cuda.get_device_from_array(x) as dev:
             x = x.ravel()
             s = x.dot(x)
             sq_sum[int(dev)] += s
@@ -193,7 +193,7 @@ class UpdateRule(object):
             param (~chainer.Variable): Variable to be updated.
 
         """
-        with cuda.get_device(param.data) as dev:
+        with cuda.get_device_from_array(param.data) as dev:
             if int(dev) == -1:
                 self.update_core_cpu(param)
             else:
@@ -490,7 +490,7 @@ class GradientMethod(Optimizer):
         """
         for name, param in self.target.namedparams(False):
             if param.grad is None:
-                with cuda.get_device(param.data):
+                with cuda.get_device_from_array(param.data):
                     xp = cuda.get_array_module(param.data)
                     param.grad = xp.zeros_like(param.data)
 
@@ -647,7 +647,7 @@ class Lasso(object):
     def __call__(self, rule, param):
         p, g = param.data, param.grad
         xp = cuda.get_array_module(p)
-        with cuda.get_device(p) as dev:
+        with cuda.get_device_from_array(p) as dev:
             sign = xp.sign(p)
             if int(dev) == -1:
                 g += self.rate * sign
@@ -682,7 +682,7 @@ class GradientClipping(object):
         if rate < 1:
             for param in opt.target.params(False):
                 grad = param.grad
-                with cuda.get_device(grad):
+                with cuda.get_device_from_array(grad):
                     grad *= rate
 
 
@@ -724,7 +724,7 @@ class GradientNoise(object):
     def __call__(self, rule, param):
         g = param.grad
         xp = cuda.get_array_module(g)
-        with cuda.get_device(g) as dev:
+        with cuda.get_device_from_array(g) as dev:
             noise = self.noise_func(xp, g.shape, g.dtype, self, rule)
             if int(dev) == -1:
                 g += noise
@@ -760,5 +760,5 @@ class GradientHardClipping(object):
     def __call__(self, rule, param):
         grad = param.grad
         xp = cuda.get_array_module(grad)
-        with cuda.get_device(grad):
+        with cuda.get_device_from_array(grad):
             xp.clip(grad, self.lower_bound, self.upper_bound, out=grad)
