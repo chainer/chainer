@@ -64,6 +64,9 @@ class ResNetLayers(link.Chain):
             this costructor. Note that in this case the converted chainer
             model is stored on the same directory and automatically used from
             the next time.
+            If this argument is specified as ``zeros``, it initializes
+            weights by zeros. This option is useful when the model needs
+            to initialize quickly.
             If this argument is specified as ``None``, all the parameters
             are not initialized by the pre-trained model, but the default
             initializer used in the original paper, i.e.,
@@ -108,6 +111,8 @@ class ResNetLayers(link.Chain):
         if pretrained_model and pretrained_model.endswith('.caffemodel'):
             _retrieve(n_layers, 'ResNet-{}-model.npz'.format(n_layers),
                       pretrained_model, self)
+        elif pretrained_model == 'zeros':
+            pass
         elif pretrained_model:
             npz.load_npz(pretrained_model, self)
         self.functions = collections.OrderedDict([

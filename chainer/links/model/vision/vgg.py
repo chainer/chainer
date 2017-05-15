@@ -61,6 +61,9 @@ class VGG16Layers(link.Chain):
             ``$HOME/.chainer/dataset`` unless you specify another value
             as a environment variable. The converted chainer model is
             automatically used from the second time.
+            If this argument is specified as ``zeros``, it initializes
+            weights by zeros. This option is useful when the model needs
+            to initialize quickly.
             If the argument is specified as ``None``, all the parameters
             are not initialized by the pre-trained model, but the default
             initializer used in the original paper, i.e.,
@@ -108,6 +111,8 @@ class VGG16Layers(link.Chain):
                 'http://www.robots.ox.ac.uk/%7Evgg/software/very_deep/'
                 'caffe/VGG_ILSVRC_16_layers.caffemodel',
                 self)
+        elif pretrained_model == 'zeros':
+            pass
         elif pretrained_model:
             npz.load_npz(pretrained_model, self)
 

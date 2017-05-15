@@ -12,6 +12,7 @@ from chainer.variable import Variable
 
 @testing.parameterize(*testing.product({
     'n_layers': [50, 101, 152],
+    'pretrained_model': [None, 'zeros'],
 }))
 @unittest.skipUnless(resnet.available, 'Pillow is required')
 @attr.slow
@@ -19,11 +20,14 @@ class TestResNetLayers(unittest.TestCase):
 
     def setUp(self):
         if self.n_layers == 50:
-            self.link = resnet.ResNet50Layers(pretrained_model=None)
+            self.link = resnet.ResNet50Layers(
+                pretrained_model=self.pretrained_model)
         elif self.n_layers == 101:
-            self.link = resnet.ResNet101Layers(pretrained_model=None)
+            self.link = resnet.ResNet101Layers(
+                pretrained_model=self.pretrained_model)
         elif self.n_layers == 152:
-            self.link = resnet.ResNet152Layers(pretrained_model=None)
+            self.link = resnet.ResNet152Layers(
+                pretrained_model=self.pretrained_model)
 
     def test_available_layers(self):
         result = self.link.available_layers
@@ -128,12 +132,16 @@ class TestResNetLayers(unittest.TestCase):
         self.check_predict()
 
 
+@testing.parameterize(*testing.product({
+    'pretrained_model': [None, 'zeros'],
+}))
 @unittest.skipUnless(resnet.available, 'Pillow is required')
 @attr.slow
 class TestVGG16Layers(unittest.TestCase):
 
     def setUp(self):
-        self.link = vgg.VGG16Layers(pretrained_model=None)
+        self.link = vgg.VGG16Layers(
+            pretrained_model=self.pretrained_model)
 
     def test_available_layers(self):
         result = self.link.available_layers
