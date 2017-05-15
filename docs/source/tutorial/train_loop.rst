@@ -42,10 +42,6 @@ retreives the MNIST dataset.
     # Download the MNIST data if you haven't downloaded it yet
     train, test = mnist.get_mnist(withlabel=True, ndim=1)
 
-    # set matplotlib so that we can see our drawing inside this notebook
-    %matplotlib inline
-    import matplotlib.pyplot as plt
-
     # Display an example from the MNIST dataset.
     # `x` contains the input image array and `t` contains that target class
     # label as an integer.
@@ -266,7 +262,7 @@ code shows how to access the bias parameter of layer ``l1``:
 Output
 ^^^^^^
 
-.. code-block::
+::
 
     The shape of the bias of the first layer, l1, in the model: (100,)
     The values of the bias of the first layer in the model after initialization:
@@ -443,7 +439,7 @@ We can write the training loop code as follows:
 Output
 ......
 
-.. code-block::
+::
 
     epoch:01 train_loss:0.8072 val_loss:0.7592 val_accuracy:0.8289
     epoch:02 train_loss:0.5021 val_loss:0.4467 val_accuracy:0.8841
@@ -503,7 +499,7 @@ Output
 
 .. image:: ../../image/train_loop/7.png
 
-.. code-block::
+::
 
     label: 7
 
@@ -539,7 +535,7 @@ Output
 Output
 ......
 
-.. code-block::
+::
 
     (784,) -> (1, 784)
     predicted label: 7
