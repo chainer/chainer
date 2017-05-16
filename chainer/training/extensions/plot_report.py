@@ -11,7 +11,7 @@ from chainer.training import extension
 import chainer.training.trigger as trigger_module
 
 try:
-    from matplotlib import pyplot as plot
+    import matplotlib  # NOQA
 
     _available = True
 
@@ -111,7 +111,11 @@ class PlotReport(extension.Extension):
         return _available
 
     def __call__(self, trainer):
-        if not _available:
+        if _available:
+            # Dynamically import pyplot to be able to call matplotlib.use()
+            # even after importing chainer.training.extensions
+            import matplotlib.pyplot as plot
+        else:
             return
 
         keys = self._y_keys
