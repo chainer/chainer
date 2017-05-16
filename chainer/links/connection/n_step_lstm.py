@@ -68,13 +68,9 @@ class NStepLSTMBase(link.ChainList):
         self.rnn = rnn.n_step_bilstm if use_bi_direction else rnn.n_step_lstm
 
     def init_hx(self, xs):
-        hx_shape = self.n_layers * self.direction
+        shape = (self.n_layers * self.direction, len(xs), self.out_size)
         with cuda.get_device_from_id(self._device_id):
-            hx = chainer.Variable(
-                self.xp.zeros(
-                    (hx_shape, len(xs), self.out_size),
-                    dtype=xs[0].dtype),
-                volatile='auto')
+            hx = chainer.Variable(self.xp.zeros(shape, dtype=xs[0].dtype))
         return hx
 
     def __call__(self, hx, cx, xs, **kwargs):
@@ -121,7 +117,7 @@ class NStepLSTMBase(link.ChainList):
         ws = [[w.w0, w.w1, w.w2, w.w3, w.w4, w.w5, w.w6, w.w7] for w in self]
         bs = [[w.b0, w.b1, w.b2, w.b3, w.b4, w.b5, w.b6, w.b7] for w in self]
 
-        hy, cy, trans_y = rnn.rnn(
+        hy, cy, trans_y = self.rnn(
             self.n_layers, self.dropout, hx, cx, ws, bs, trans_x)
 
         hy = permutate.permutate(hy, indices, axis=1, inv=True)
@@ -133,7 +129,9 @@ class NStepLSTMBase(link.ChainList):
 
 
 class NStepLSTM(NStepLSTMBase):
-    """Stacked Uni-directional LSTM for sequnces.
+    """__init__(self, n_layers, in_size, out_size, dropout)
+
+    Stacked Uni-directional LSTM for sequnces.
 
     This link is stacked version of Uni-directional LSTM for sequences.
     It calculates hidden and cell states of all layer at end-of-string,
@@ -144,25 +142,33 @@ class NStepLSTM(NStepLSTMBase):
     Users just need to call the link with a list of :class:`chainer.Variable`
     holding sequences.
 
+    .. warning::
+
+       ``use_cudnn`` argument is not supported anymore since v2.
+       Instead, use ``chainer.using_config('use_cudnn', use_cudnn)``.
+       See :func:`chainer.using_config`.
+
     Args:
         n_layers (int): Number of layers.
         in_size (int): Dimensionality of input vectors.
         out_size (int): Dimensionality of hidden states and output vectors.
         dropout (float): Dropout ratio.
-        use_cudnn (bool): Use cuDNN.
 
     .. seealso::
         :func:`chainer.functions.n_step_lstm`
 
     """
 
-    def __init__(self, n_layers, in_size, out_size, dropout, use_cudnn=True):
-        NStepLSTMBase.__init__(self, n_layers, in_size, out_size, dropout,
-                               use_cudnn, use_bi_direction=False)
+    def __init__(self, n_layers, in_size, out_size, dropout, **kwargs):
+        NStepLSTMBase.__init__(
+            self, n_layers, in_size, out_size, dropout,
+            use_bi_direction=False, **kwargs)
 
 
 class NStepBiLSTM(NStepLSTMBase):
-    """Stacked Bi-directional LSTM for sequnces.
+    """__init__(self, n_layers, in_size, out_size, dropout)
+
+    Stacked Bi-directional LSTM for sequnces.
 
     This link is stacked version of Bi-directional LSTM for sequences.
     It calculates hidden and cell states of all layer at end-of-string,
@@ -173,18 +179,24 @@ class NStepBiLSTM(NStepLSTMBase):
     Users just need to call the link with a list of :class:`chainer.Variable`
     holding sequences.
 
+    .. warning::
+
+       ``use_cudnn`` argument is not supported anymore since v2.
+       Instead, use ``chainer.using_config('use_cudnn', use_cudnn)``.
+       See :func:`chainer.using_config`.
+
     Args:
         n_layers (int): Number of layers.
         in_size (int): Dimensionality of input vectors.
         out_size (int): Dimensionality of hidden states and output vectors.
         dropout (float): Dropout ratio.
-        use_cudnn (bool): Use cuDNN.
 
     .. seealso::
         :func:`chainer.functions.n_step_bilstm`
 
     """
 
-    def __init__(self, n_layers, in_size, out_size, dropout, use_cudnn=True):
-        NStepLSTMBase.__init__(self, n_layers, in_size, out_size, dropout,
-                               use_cudnn, use_bi_direction=True)
+    def __init__(self, n_layers, in_size, out_size, dropout, **kwargs):
+        NStepLSTMBase.__init__(
+            self, n_layers, in_size, out_size, dropout,
+            use_bi_direction=True, **kwargs)
