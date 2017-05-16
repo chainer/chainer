@@ -1,6 +1,5 @@
 import numpy
 
-from chainer import cuda
 from chainer.functions.noise import simplified_dropconnect
 from chainer import initializers
 from chainer import link

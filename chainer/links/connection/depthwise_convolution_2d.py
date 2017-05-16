@@ -1,6 +1,5 @@
 import numpy
 
-from chainer import cuda
 from chainer.functions.connection import depthwise_convolution_2d
 from chainer import initializers
 from chainer import link

@@ -4,7 +4,6 @@ import numpy
 import six
 
 import chainer
-from chainer import configuration
 from chainer import cuda
 from chainer.functions.activation import lstm
 from chainer.functions.array import concat
