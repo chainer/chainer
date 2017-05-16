@@ -61,11 +61,11 @@ class TestSigmoidCrossEntropy(unittest.TestCase):
             loss_expect /= self.t.shape[0]
         self.assertAlmostEqual(loss_expect, loss_value, places=5)
 
-    def check_forward_no_reduction(self, x_data, t_data, use_cudnn=True):
+    def check_forward_no_reduction(self, x_data, t_data):
         x_val = chainer.Variable(x_data)
         t_val = chainer.Variable(t_data)
         loss = functions.sigmoid_cross_entropy(
-            x_val, t_val, use_cudnn, self.normalize, reduce='no')
+            x_val, t_val, self.normalize, reduce='no')
         self.assertEqual(loss.data.shape, self.x.shape)
         self.assertEqual(loss.data.dtype, numpy.float32)
         loss_value = cuda.to_cpu(loss.data)
@@ -86,86 +86,98 @@ class TestSigmoidCrossEntropy(unittest.TestCase):
 
     @condition.retry(3)
     def test_forward_cpu(self):
-        self.check_forward(self.x, self.t)
+        with chainer.using_config('use_cudnn', 'always'):
+            self.check_forward(self.x, self.t)
 
     @condition.retry(3)
     def test_forward_no_reduction_cpu(self):
-        self.check_forward_no_reduction(self.x, self.t)
+        with chainer.using_config('use_cudnn', 'always'):
+            self.check_forward_no_reduction(self.x, self.t)
 
     @attr.gpu
     @condition.retry(3)
     def test_forward_gpu(self):
-        self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.t))
+        with chainer.using_config('use_cudnn', 'always'):
+            self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.t))
 
     @attr.gpu
     @condition.retry(3)
     def test_forward_no_reduction_gpu(self):
-        self.check_forward_no_reduction(
-            cuda.to_gpu(self.x), cuda.to_gpu(self.t))
+        with chainer.using_config('use_cudnn', 'always'):
+            self.check_forward_no_reduction(
+                cuda.to_gpu(self.x), cuda.to_gpu(self.t))
 
     @attr.gpu
     @condition.retry(3)
     def test_forward_gpu_no_cudnn(self):
-        self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.t), False)
+        with chainer.using_config('use_cudnn', 'never'):
+            self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.t))
 
     @attr.gpu
     @condition.retry(3)
     def test_forward_no_reduction_gpu_no_cudnn(self):
-        self.check_forward_no_reduction(
-            cuda.to_gpu(self.x), cuda.to_gpu(self.t), False)
+        with chainer.using_config('use_cudnn', 'never'):
+            self.check_forward_no_reduction(
+                cuda.to_gpu(self.x), cuda.to_gpu(self.t))
 
-    def check_backward(self, x_data, t_data, y_grad, use_cudnn='always'):
+    def check_backward(self, x_data, t_data, y_grad):
         # Skip too large case. That requires a long time.
         if self.shape[0] == 65536:
             return
 
         gradient_check.check_backward(
-            functions.SigmoidCrossEntropy(use_cudnn),
+            functions.SigmoidCrossEntropy(),
             (x_data, t_data), None, eps=1e-2)
 
     def check_backward_no_reduction(
-            self, x_data, t_data, y_grad, use_cudnn=True):
+            self, x_data, t_data, y_grad):
         # Skip too large case. That requires a long time.
         if self.shape[0] == 65536:
             return
 
         gradient_check.check_backward(
-            functions.SigmoidCrossEntropy(use_cudnn, reduce='no'),
+            functions.SigmoidCrossEntropy(reduce='no'),
             (x_data, t_data), y_grad, eps=1e-2)
 
     @condition.retry(3)
     def test_backward_cpu(self):
-        self.check_backward(self.x, self.t, self.gy)
+        with chainer.using_config('use_cudnn', 'never'):
+            self.check_backward(self.x, self.t, self.gy)
 
     @condition.retry(3)
     def test_backward_no_reduction_cpu(self):
-        self.check_backward_no_reduction(self.x, self.t, self.gy)
+        with chainer.using_config('use_cudnn', 'never'):
+            self.check_backward_no_reduction(self.x, self.t, self.gy)
 
     @attr.gpu
     @condition.retry(3)
     def test_backward_gpu(self):
-        self.check_backward(
-            cuda.to_gpu(self.x), cuda.to_gpu(self.t), cuda.to_gpu(self.gy))
+        with chainer.using_config('use_cudnn', 'always'):
+            self.check_backward(
+                cuda.to_gpu(self.x), cuda.to_gpu(self.t), cuda.to_gpu(self.gy))
 
     @attr.gpu
     @condition.retry(3)
     def test_backward_no_reduction_gpu(self):
-        self.check_backward_no_reduction(
-            cuda.to_gpu(self.x), cuda.to_gpu(self.t), cuda.to_gpu(self.gy))
+        with chainer.using_config('use_cudnn', 'always'):
+            self.check_backward_no_reduction(
+                cuda.to_gpu(self.x), cuda.to_gpu(self.t), cuda.to_gpu(self.gy))
 
     @attr.gpu
     @condition.retry(3)
     def test_backward_gpu_no_cudnn(self):
-        self.check_backward(
-            cuda.to_gpu(self.x), cuda.to_gpu(self.t),
-            cuda.to_gpu(self.gy), False)
+        with chainer.using_config('use_cudnn', 'never'):
+            self.check_backward(
+                cuda.to_gpu(self.x), cuda.to_gpu(self.t),
+                cuda.to_gpu(self.gy))
 
     @attr.gpu
     @condition.retry(3)
     def test_backward_no_reduction_gpu_no_cudnn(self):
-        self.check_backward_no_reduction(
-            cuda.to_gpu(self.x), cuda.to_gpu(self.t),
-            cuda.to_gpu(self.gy), False)
+        with chainer.using_config('use_cudnn', 'never'):
+            self.check_backward_no_reduction(
+                cuda.to_gpu(self.x), cuda.to_gpu(self.t),
+                cuda.to_gpu(self.gy))
 
 
 @testing.parameterize(
