@@ -25,7 +25,7 @@ def _relu(x):
 
 
 @testing.parameterize(*testing.product({
-    'use_cudnn': ['always', 'auto','never'],
+    'use_cudnn': ['always', 'auto', 'never'],
     'activation': ['tanh', 'relu']
 }))
 class TestNStepRNN(unittest.TestCase):
