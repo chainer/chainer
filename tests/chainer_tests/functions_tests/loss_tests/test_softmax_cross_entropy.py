@@ -246,6 +246,7 @@ class TestClassWeightAssertion(unittest.TestCase):
     'ignore_index': [None, (slice(None),), (0,), (0, 1), (0, 1, 0)],
     'dtype': [numpy.float32],
     'weight_apply': [False, True],
+    'use_cudnn': ['always', 'auto', 'never'],
 }) + testing.product({
     'shape': [None, (2, 3), (2, 3, 2), (2, 3, 2, 2)],
     'cache_score': [False],
@@ -330,7 +331,7 @@ class TestElementwiseSoftmaxCrossEntropy(unittest.TestCase):
     def check_backward(
             self, x_data, t_data, g_data, class_weight):
         func = functions.SoftmaxCrossEntropy(
-            use_cudnn=use_cudnn, cache_score=self.cache_score,
+            cache_score=self.cache_score,
             class_weight=class_weight, reduce='no')
         gradient_check.check_backward(
             func, (x_data, t_data), g_data, eps=0.02,
