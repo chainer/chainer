@@ -252,6 +252,7 @@ class TestClassWeightAssertion(unittest.TestCase):
     'ignore_index': [(0, 1)],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'weight_apply': [False, True],
+    'use_cudnn': ['always', 'auto', 'never'],
 })))
 class TestElementwiseSoftmaxCrossEntropy(unittest.TestCase):
 
@@ -283,12 +284,11 @@ class TestElementwiseSoftmaxCrossEntropy(unittest.TestCase):
         else:
             self.class_weight = None
 
-    def check_forward(self, x_data, t_data, class_weight, use_cudnn=True):
+    def check_forward(self, x_data, t_data, class_weight):
         x = chainer.Variable(x_data)
         t = chainer.Variable(t_data)
         loss = functions.softmax_cross_entropy(
-            x, t, use_cudnn=use_cudnn,
-            cache_score=self.cache_score, class_weight=class_weight,
+            x, t, cache_score=self.cache_score, class_weight=class_weight,
             reduce='no')
         self.assertEqual(loss.shape, t_data.shape)
         self.assertEqual(loss.data.dtype, self.dtype)
@@ -313,25 +313,22 @@ class TestElementwiseSoftmaxCrossEntropy(unittest.TestCase):
 
     @condition.retry(3)
     def test_forward_cpu(self):
-        self.check_forward(self.x, self.t, self.class_weight)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.check_forward(self.x, self.t, self.class_weight)
 
     @attr.gpu
     @condition.retry(3)
     def test_forward_gpu(self):
-        self.check_forward(
-            cuda.to_gpu(self.x), cuda.to_gpu(self.t),
-            None if not self.weight_apply else cuda.to_gpu(self.class_weight))
-
-    @attr.gpu
-    @condition.retry(3)
-    def test_forward_gpu_no_cudnn(self):
-        self.check_forward(
-            cuda.to_gpu(self.x), cuda.to_gpu(self.t),
-            None if not self.weight_apply else cuda.to_gpu(self.class_weight),
-            False)
+        if not self.weight_apply:
+            weight = None
+        else:
+            weight = cuda.to_gpu(self.class_weight)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.check_forward(
+                cuda.to_gpu(self.x), cuda.to_gpu(self.t), weight)
 
     def check_backward(
-            self, x_data, t_data, g_data, class_weight, use_cudnn=True):
+            self, x_data, t_data, g_data, class_weight):
         func = functions.SoftmaxCrossEntropy(
             use_cudnn=use_cudnn, cache_score=self.cache_score,
             class_weight=class_weight, reduce='no')
@@ -341,26 +338,24 @@ class TestElementwiseSoftmaxCrossEntropy(unittest.TestCase):
 
     @condition.retry(3)
     def test_backward_cpu(self):
-        self.check_backward(self.x, self.t, self.g, self.class_weight)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.check_backward(self.x, self.t, self.g, self.class_weight)
 
     @attr.gpu
     @condition.retry(3)
     def test_backward_gpu(self):
-        self.check_backward(
-            cuda.to_gpu(self.x), cuda.to_gpu(self.t), cuda.to_gpu(self.g),
-            None if not self.weight_apply else cuda.to_gpu(self.class_weight))
-
-    @attr.gpu
-    @condition.retry(3)
-    def test_backward_gpu_no_cudnn(self):
-        self.check_backward(
-            cuda.to_gpu(self.x), cuda.to_gpu(self.t), cuda.to_gpu(self.g),
-            None if not self.weight_apply else cuda.to_gpu(self.class_weight),
-            False)
+        if not self.weight_apply:
+            weight = None
+        else:
+            weight = cuda.to_gpu(self.class_weight)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.check_backward(
+                cuda.to_gpu(self.x), cuda.to_gpu(self.t), cuda.to_gpu(self.g),
+                weight)
 
 
 @testing.parameterize(*testing.product({
-    'use_cudnn': [True, False],
+    'use_cudnn': ['always', 'auto', 'never'],
     'normalize': [True, False],
     'cache_score': [True, False],
 }))
@@ -371,10 +366,11 @@ class TestSoftmaxCrossEntropyInvalidReduce(unittest.TestCase):
         self.t = numpy.zeros((2,), 'i')
 
     def check_invalid_reduce(self, x, t):
-        with self.assertRaises(ValueError):
-            functions.softmax_cross_entropy(
-                x, t, self.use_cudnn, self.normalize, self.cache_score,
-                reduce='unknown_reduce_type')
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            with self.assertRaises(ValueError):
+                functions.softmax_cross_entropy(
+                    x, t, self.normalize, self.cache_score,
+                    reduce='unknown_reduce_type')
 
     def test_invalid_reduce_cpu(self):
         self.check_invalid_reduce(self.x, self.t)
