@@ -46,6 +46,16 @@ Note that the default values are set in the global config.
    If it is ``True``, Chainer checks the types (data types and shapes) of inputs on :class:`Function` applications.
    Otherwise, it skips type checking.
    The default value is given by ``CHAINER_TYPE_CHECK`` environment variable (set to 0 or 1) if available, otherwise uses ``True``.
+``chainer.config.use_cudnn``
+   Flag to configure whether or not to use cuDNN.
+   This is a ternary flag with ``'always'``, ``'auto'``, and ``'never'`` as its allowed values.
+   The meaning of each flag is as follows.
+
+       - If it is ``'always'``, Chainer will try to use cuDNN everywhere if possible.
+       - If it is ``'auto'``, Chainer will use cuDNN only if it is known that the usage does not degrade the performance.
+       - If it is ``'never'``, Chainer will never use cuDNN anywhere.
+
+   The default value is ``'auto'``.
 
 Users can also define their own configurations.
 There are two ways:
