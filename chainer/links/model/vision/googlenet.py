@@ -12,7 +12,7 @@ except ImportError as e:
 
 from chainer.dataset.convert import concat_examples
 from chainer.dataset import download
-from chainer import flag
+from chainer import function
 from chainer.functions.activation.relu import relu
 from chainer.functions.activation.softmax import softmax
 from chainer.functions.array.reshape import reshape
@@ -221,15 +221,25 @@ class GoogLeNet(link.Chain):
 
         return activations
 
-    def extract(self, images, layers=['pool5'], size=(224, 224),
-                train=False, volatile=flag.OFF):
-        """Extracts all the feature maps of given images.
+    def extract(self, images, layers=['pool5'], size=(224, 224), **kwargs):
+        """extract(self, images, layers=['pool5'], size=(224, 224))
+
+        Extracts all the feature maps of given images.
 
         The difference of directly executing ``__call__`` is that
         it directly accepts images as an input and automatically
         transforms them to a proper variable. That is,
         it is also interpreted as a shortcut method that implicitly calls
         ``prepare`` and ``__call__`` functions.
+
+        .. warning::
+
+           ``test`` and ``volatile`` arguments are not supported anymore since
+           v2.
+           Instead, use ``chainer.using_config('train', train)`` and
+           ``chainer.using_config('enable_backprop', not volatile)``
+           respectively.
+           See :func:`chainer.using_config`.
 
         Args:
             images (iterable of PIL.Image or numpy.ndarray): Input images.
@@ -239,7 +249,6 @@ class GoogLeNet(link.Chain):
                 if this argument is ``None``, but the resolutions of
                 all the images should be the same.
             train (bool): If ``True``, Dropout runs in training mode.
-            volatile (~chainer.Flag): Volatility flag used for input variables.
 
         Returns:
             Dictionary of ~chainer.Variable: A directory in which
@@ -249,8 +258,8 @@ class GoogLeNet(link.Chain):
         """
 
         x = concat_examples([prepare(img, size=size) for img in images])
-        x = Variable(self.xp.asarray(x), volatile=volatile)
-        return self(x, layers=layers, train=train)
+        x = Variable(self.xp.asarray(x))
+        return self(x, layers=layers)
 
     def predict(self, images, oversample=True):
         """Computes all the probabilities of given images.
@@ -272,14 +281,15 @@ class GoogLeNet(link.Chain):
             x = imgproc.oversample(x, crop_dims=(224, 224))
         else:
             x = x[:, :, 16:240, 16:240]
-        # Set volatile option to ON to reduce memory consumption
-        x = Variable(self.xp.asarray(x), volatile=flag.ON)
-        y = self(x, layers=['prob'])['prob']
-        if oversample:
-            n = y.data.shape[0] // 10
-            y_shape = y.data.shape[1:]
-            y = reshape(y, (n, 10) + y_shape)
-            y = average(y, axis=1)
+        # Use no_backprop_mode to reduce memory consumption
+        with function.no_backprop_mode():
+            x = Variable(self.xp.asarray(x))
+            y = self(x, layers=['prob'])['prob']
+            if oversample:
+                n = y.data.shape[0] // 10
+                y_shape = y.data.shape[1:]
+                y = reshape(y, (n, 10) + y_shape)
+                y = average(y, axis=1)
         return y
 
 
