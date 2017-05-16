@@ -18,7 +18,6 @@ class Softmax(function.Function):
     """Softmax activation function."""
 
     def __init__(self, axis=1):
-        self.use_cudnn = use_cudnn
         self.axis = axis
 
     def check_type_forward(self, in_types):

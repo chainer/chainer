@@ -27,24 +27,23 @@ if cuda.cudnn_enabled:
 
 class NStepLSTM(n_step_rnn.BaseNStepRNN):
 
-    def __init__(self, n_layers, states, train=True):
+    def __init__(self, n_layers, states):
         n_step_rnn.BaseNStepRNN.__init__(self, n_layers, states,
-                                         rnn_dir='uni', rnn_mode='lstm',
-                                         train=train)
+                                         rnn_dir='uni', rnn_mode='lstm')
 
 
 class NStepBiLSTM(n_step_rnn.BaseNStepRNN):
 
-    def __init__(self, n_layers, states, train=True):
+    def __init__(self, n_layers, states):
         n_step_rnn.BaseNStepRNN.__init__(self, n_layers, states,
-                                         rnn_dir='bi', rnn_mode='lstm',
-                                         train=train)
+                                         rnn_dir='bi', rnn_mode='lstm')
 
 
 def n_step_lstm(
-        n_layers, dropout_ratio, hx, cx, ws, bs, xs, train=True,
-        use_cudnn=True):
-    """Stacked Uni-directional Long Short-Term Memory function.
+        n_layers, dropout_ratio, hx, cx, ws, bs, xs, **kwargs):
+    """n_step_lstm(n_layers, dropout_ratio, hx, cx, ws, bs, xs)
+
+    Stacked Uni-directional Long Short-Term Memory function.
 
     This function calculates stacked Uni-directional LSTM with sequences.
     This function gets an initial hidden state :math:`h_0`, an initial cell
@@ -70,6 +69,14 @@ def n_step_lstm(
     of ``k``-th layer is hidden state ``h_t`` of ``k-1``-th layer.
     Note that all input variables except first layer may have different shape
     from the first layer.
+
+    .. warning::
+
+       ``train`` and ``use_cudnn`` arguments are not supported anymore since
+       v2.
+       Instead, use ``chainer.using_config('train', train)`` and
+       ``chainer.using_config('use_cudnn', use_cudnn)`` respectively.
+       See :func:`chainer.using_config`.
 
     Args:
         n_layers(int): Number of layers.
@@ -104,8 +111,6 @@ def n_step_lstm(
             of :func:`~chainer.Variable` holding sequence.
             So ``xs`` needs to satisfy
             ``xs[t].shape[0] >= xs[t + 1].shape[0]``.
-        train (bool): If ``True``, this function executes dropout.
-        use_cudnn (bool): If ``True``, this function uses cuDNN if available.
 
     Returns:
         tuple: This functions returns a tuple concaining three elements,
@@ -124,151 +129,15 @@ def n_step_lstm(
 
     """
 
-    def __init__(self, n_layers, states):
-        self.n_layers = n_layers
-        self.states = states
-
-    def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() > 2 + 16 * self.n_layers)
-        (h_type, c_type), in_types = _split(in_types, 2)
-        type_check.expect(
-            h_type.dtype == numpy.float32,
-            c_type.dtype == numpy.float32,
-
-            h_type.ndim == 3,
-            h_type.shape[0] == self.n_layers,
-            c_type.ndim == 3,
-            c_type.shape[0] == self.n_layers,
-
-            # mini-batch size
-            h_type.shape[1] == c_type.shape[1],
-
-            # hidden size
-            h_type.shape[2] == c_type.shape[2],
-        )
-        w_types, in_types = _split(in_types, self.n_layers * 8)
-        b_types, in_types = _split(in_types, self.n_layers * 8)
-        x_types = in_types
-        for x_type in x_types:
-            type_check.expect(
-                x_type.dtype == numpy.float32,
-                x_type.ndim == 2,
-            )
-
-        # Check batch size
-        type_check.expect(x_types[0].shape[0] == h_type.shape[1])
-
-        for x1_type, x2_type in zip(x_types, x_types[1:]):
-            type_check.expect(
-                # Check if xs are sorted by descending lengths
-                x1_type.shape[0] >= x2_type.shape[0],
-                x1_type.shape[1] == x2_type.shape[1])
-
-        in_size = x_types[0].shape[1]
-        out_size = h_type.shape[2]
-
-        for layer in six.moves.range(self.n_layers):
-            for i in six.moves.range(8):
-                ind = layer * 8 + i
-                w_type = w_types[ind]
-                b_type = b_types[ind]
-                if layer == 0 and i < 4:
-                    w_in = in_size
-                else:
-                    w_in = out_size
-
-                type_check.expect(
-                    w_type.dtype == numpy.float32,
-                    w_type.ndim == 2,
-                    w_type.shape[0] == out_size,
-                    w_type.shape[1] == w_in,
-
-                    b_type.dtype == numpy.float32,
-                    b_type.ndim == 1,
-                    b_type.shape[0] == out_size,
-                )
-
-    def forward(self, inputs):
-        (hx, cx), inputs = _split(inputs, 2)
-        ws, inputs = _split(inputs, self.n_layers * 8)
-        bs, inputs = _split(inputs, self.n_layers * 8)
-        x_list = inputs
-
-        if not type_check.same_types(*inputs):
-            raise ValueError('numpy and cupy must not be used together')
-
-        hx = cuda.cupy.ascontiguousarray(hx)
-        cx = cuda.cupy.ascontiguousarray(cx)
-
-        x_desc = cudnn.create_tensor_nd_descriptor(x_list[0][..., None])
-
-        length = len(x_list)
-        n_units = hx.shape[2]
-
-        xs = cuda.cupy.concatenate(x_list, axis=0)
-        ys = cuda.cupy.empty((len(xs), n_units), dtype=xs.dtype)
-
-        handle = cudnn.get_handle()
-        self.handle = handle
-
-        rnn_desc = cudnn.create_rnn_descriptor(
-            n_units, self.n_layers, self.states.desc,
-            libcudnn.CUDNN_LINEAR_INPUT, libcudnn.CUDNN_UNIDIRECTIONAL,
-            libcudnn.CUDNN_LSTM, libcudnn.CUDNN_DATA_FLOAT)
-        self.rnn_desc = rnn_desc
-
-        c_x_descs = _make_tensor_descriptor_array(x_list)
-        hx_desc = cudnn.create_tensor_nd_descriptor(hx)
-        cx_desc = cudnn.create_tensor_nd_descriptor(cx)
-
-        weights_size = libcudnn.getRNNParamsSize(
-            handle, rnn_desc.value, x_desc.value, libcudnn.CUDNN_DATA_FLOAT)
-        w = cuda.cupy.empty((weights_size // 4, 1, 1), dtype=numpy.float32)
-        w_desc = cudnn.create_filter_descriptor(w)
-
-        for layer in six.moves.range(self.n_layers):
-            for lin_layer_id in six.moves.range(8):
-                mat = cudnn.get_rnn_lin_layer_matrix_params(
-                    handle, rnn_desc, layer, x_desc, w_desc, w,
-                    lin_layer_id)
-                m = mat.reshape(mat.size)
-                m[...] = ws[layer * 8 + lin_layer_id].ravel()
-                bias = cudnn.get_rnn_lin_layer_bias_params(
-                    handle, rnn_desc, layer, x_desc, w_desc, w,
-                    lin_layer_id)
-                b = bias.reshape(bias.size)
-                b[...] = bs[layer * 8 + lin_layer_id]
-        self.w = w
-        self.w_desc = w_desc
-
-        sections = numpy.cumsum([len(x) for x in x_list[:-1]])
-        y_list = cuda.cupy.split(ys, sections)
-
-        c_y_descs = _make_tensor_descriptor_array(y_list)
-        hy = cuda.cupy.empty_like(hx)
-        cy = cuda.cupy.empty_like(cx)
-        hy_desc = cudnn.create_tensor_nd_descriptor(hy)
-        cy_desc = cudnn.create_tensor_nd_descriptor(cy)
-
-        work_size = libcudnn.getRNNWorkspaceSize(
-            handle, rnn_desc.value, length, c_x_descs.data)
-        workspace = cuda.cupy.empty((work_size,), dtype='b')
-
-        if not configuration.config.train:
-            libcudnn.RNNForwardInference(
-                handle, rnn_desc.value, length,
-                c_x_descs.data, xs.data.ptr, hx_desc.value, hx.data.ptr,
-                cx_desc.value, cx.data.ptr, w_desc.value, w.data.ptr,
-                c_y_descs.data, ys.data.ptr, hy_desc.value, hy.data.ptr,
-                cy_desc.value, cy.data.ptr, workspace.data.ptr, work_size)
-
-    return n_step_lstm_base(n_layers, dropout_ratio, hx, cx, ws, bs, xs, train,
-                            use_cudnn, use_bi_direction=False)
+    return n_step_lstm_base(n_layers, dropout_ratio, hx, cx, ws, bs, xs,
+                            use_bi_direction=False, **kwargs)
 
 
 def n_step_bilstm(
         n_layers, dropout_ratio, hx, cx, ws, bs, xs, **kwargs):
-    """Stacked Bi-directional Long Short-Term Memory function.
+    """n_step_bilstm(n_layers, dropout_ratio, hx, cx, ws, bs, xs)
+
+    Stacked Bi-directional Long Short-Term Memory function.
 
     This function calculates stacked Bi-directional LSTM with sequences.
     This function gets an initial hidden state :math:`h_0`, an initial cell
@@ -369,13 +238,13 @@ def n_step_bilstm(
               units. Note that ``B_t`` is the same value as ``xs[t]``.
 
     """
-    return n_step_lstm_base(n_layers, dropout_ratio, hx, cx, ws, bs, xs, train,
-                            use_cudnn, use_bi_direction=True)
+    return n_step_lstm_base(n_layers, dropout_ratio, hx, cx, ws, bs, xs,
+                            use_bi_direction=True, **kwargs)
 
 
 def n_step_lstm_base(
-        n_layers, dropout_ratio, hx, cx, ws, bs, xs, train, use_cudnn,
-        use_bi_direction):
+        n_layers, dropout_ratio, hx, cx, ws, bs, xs, use_bi_direction,
+        **kwargs):
     """Base function for Stack LSTM/BiLSTM functions.
 
     This function is used at :func:`chainer.functions.n_step_lstm` and
@@ -416,8 +285,6 @@ def n_step_lstm_base(
             of :func:`~chainer.Variable` holding sequence.
             So ``xs`` needs to satisfy
             ``xs[t].shape[0] >= xs[t + 1].shape[0]``.
-        train (bool): If ``True``, this function executes dropout.
-        use_cudnn (bool): If ``True``, this function uses cuDNN if available.
         use_bi_direction (bool): If ``True``, this function uses Bi-directional
             LSTM.
 

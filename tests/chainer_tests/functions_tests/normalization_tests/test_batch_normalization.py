@@ -93,7 +93,7 @@ class TestBatchNormalization(unittest.TestCase):
 
     def check_backward(self, args, y_grad, use_cudnn='always'):
         with chainer.using_config('use_cudnn', use_cudnn), \
-             chainer.using_config('train', self.train):
+                chainer.using_config('train', self.train):
             gradient_check.check_backward(
                 batch_normalization.BatchNormalizationFunction(
                     mean=None, var=None,
@@ -195,7 +195,7 @@ class TestFixedBatchNormalization(unittest.TestCase):
 
     def check_backward(self, args, y_grad, use_cudnn='always'):
         with chainer.using_config('use_cudnn', use_cudnn), \
-             chainer.using_config('train', self.train):
+                chainer.using_config('train', self.train):
             gradient_check.check_backward(
                 batch_normalization.BatchNormalizationFunction(
                     mean=None, var=None,
