@@ -66,7 +66,7 @@ class Sum(function.Function):
         else:
             # NumPy 1.9 does not support broadcast_to.
             dummy_x = xp.empty(self._in_shape, 'b')
-            _, gx = xp.broadcast_arrays(gy, dummy_x)
+            gx, _ = xp.broadcast_arrays(gy, dummy_x)
 
         return gx,
 
