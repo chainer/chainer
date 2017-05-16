@@ -23,7 +23,6 @@ class SoftmaxCrossEntropy(function.Function):
 
     def __init__(self, normalize=True, cache_score=True, class_weight=None,
                  ignore_label=-1, reduce='mean'):
-        self.use_cudnn = use_cudnn
         self.normalize = normalize
         self.cache_score = cache_score
         self.class_weight = class_weight
