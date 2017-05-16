@@ -21,7 +21,7 @@ def _split(inputs, pos):
 
 
 @testing.parameterize(*testing.product({
-    'use_cudnn': ['always', 'never'],
+    'use_cudnn': ['always', 'auto', 'never'],
 }))
 class TestNStepLSTM(unittest.TestCase):
 
@@ -200,17 +200,16 @@ class TestNStepBiLSTM(unittest.TestCase):
         self.dhy = numpy.random.uniform(-1, 1, h_shape).astype(numpy.float32)
 
     def check_forward(
-            self, h_data, c_data, xs_data, ws_data, bs_data, volatile):
-        h = chainer.Variable(h_data, volatile=volatile)
-        c = chainer.Variable(c_data, volatile=volatile)
-        xs = [chainer.Variable(x, volatile=volatile) for x in xs_data]
-        ws = [[chainer.Variable(w, volatile=volatile) for w in ws]
+            self, h_data, c_data, xs_data, ws_data, bs_data):
+        h = chainer.Variable(h_data)
+        c = chainer.Variable(c_data)
+        xs = [chainer.Variable(x) for x in xs_data]
+        ws = [[chainer.Variable(w) for w in ws]
               for ws in ws_data]
-        bs = [[chainer.Variable(b, volatile=volatile) for b in bs]
+        bs = [[chainer.Variable(b) for b in bs]
               for bs in bs_data]
         hy, cy, ys = functions.n_step_bilstm(
-            self.n_layers, self.dropout, h, c, ws, bs, xs,
-            use_cudnn=self.use_cudnn)
+            self.n_layers, self.dropout, h, c, ws, bs, xs)
 
         xs_next = self.xs
         e_hy = self.hx.copy()
@@ -273,28 +272,36 @@ class TestNStepBiLSTM(unittest.TestCase):
         testing.assert_allclose(cy.data, e_cy, rtol=1e-4, atol=1e-4)
 
     def test_forward_cpu(self):
-        self.check_forward(self.hx, self.cx, self.xs, self.ws, self.bs, False)
+        with chainer.using_config('use_cudnn', self.use_cudnn), \
+                chainer.using_config('enable_backprop', True):
+            self.check_forward(self.hx, self.cx, self.xs, self.ws, self.bs)
 
     def test_forward_cpu_volatile(self):
-        self.check_forward(self.hx, self.cx, self.xs, self.ws, self.bs, True)
+        with chainer.using_config('use_cudnn', self.use_cudnn), \
+                chainer.using_config('enable_backprop', False):
+            self.check_forward(self.hx, self.cx, self.xs, self.ws, self.bs)
 
     @attr.gpu
     def test_forward_gpu(self):
-        self.check_forward(cuda.to_gpu(self.hx),
-                           cuda.to_gpu(self.cx),
-                           [cuda.to_gpu(x) for x in self.xs],
-                           [[cuda.to_gpu(w) for w in ws] for ws in self.ws],
-                           [[cuda.to_gpu(b) for b in bs] for bs in self.bs],
-                           False)
+        with chainer.using_config('use_cudnn', self.use_cudnn), \
+                chainer.using_config('enable_backprop', True):
+            self.check_forward(
+                cuda.to_gpu(self.hx),
+                cuda.to_gpu(self.cx),
+                [cuda.to_gpu(x) for x in self.xs],
+                [[cuda.to_gpu(w) for w in ws] for ws in self.ws],
+                [[cuda.to_gpu(b) for b in bs] for bs in self.bs])
 
     @attr.gpu
     def test_forward_gpu_volatile(self):
-        self.check_forward(cuda.to_gpu(self.hx),
-                           cuda.to_gpu(self.cx),
-                           [cuda.to_gpu(x) for x in self.xs],
-                           [[cuda.to_gpu(w) for w in ws] for ws in self.ws],
-                           [[cuda.to_gpu(b) for b in bs] for bs in self.bs],
-                           True)
+        with chainer.using_config('use_cudnn', self.use_cudnn), \
+                chainer.using_config('enable_backprop', False):
+            self.check_forward(
+                cuda.to_gpu(self.hx),
+                cuda.to_gpu(self.cx),
+                [cuda.to_gpu(x) for x in self.xs],
+                [[cuda.to_gpu(w) for w in ws] for ws in self.ws],
+                [[cuda.to_gpu(b) for b in bs] for bs in self.bs])
 
     def check_backward(self, h_data, c_data, xs_data, ws_data, bs_data,
                        dhy_data, dcy_data, dys_data):
@@ -314,31 +321,33 @@ class TestNStepBiLSTM(unittest.TestCase):
                 bs.append(biases)
             xs = inputs
             hy, cy, ys = functions.n_step_bilstm(
-                self.n_layers, self.dropout, hx, cx, ws, bs, xs,
-                use_cudnn=self.use_cudnn)
+                self.n_layers, self.dropout, hx, cx, ws, bs, xs)
             return (hy, cy) + ys
 
         gradient_check.check_backward(
             f, args, grads, eps=1e-2, rtol=1e-3, atol=1e-3)
 
     def test_backward_cpu(self):
-        self.check_backward(self.hx, self.cx, self.xs, self.ws, self.bs,
-                            self.dhy, self.dcy, self.dys)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.check_backward(self.hx, self.cx, self.xs, self.ws, self.bs,
+                                self.dhy, self.dcy, self.dys)
 
     @attr.gpu
     def test_backward_gpu(self):
-        self.check_backward(cuda.to_gpu(self.hx),
-                            cuda.to_gpu(self.cx),
-                            [cuda.to_gpu(x) for x in self.xs],
-                            [[cuda.to_gpu(w) for w in ws] for ws in self.ws],
-                            [[cuda.to_gpu(b) for b in bs] for bs in self.bs],
-                            cuda.to_gpu(self.dhy),
-                            cuda.to_gpu(self.dcy),
-                            [cuda.to_gpu(dy) for dy in self.dys])
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.check_backward(
+                cuda.to_gpu(self.hx),
+                cuda.to_gpu(self.cx),
+                [cuda.to_gpu(x) for x in self.xs],
+                [[cuda.to_gpu(w) for w in ws] for ws in self.ws],
+                [[cuda.to_gpu(b) for b in bs] for bs in self.bs],
+                cuda.to_gpu(self.dhy),
+                cuda.to_gpu(self.dcy),
+                [cuda.to_gpu(dy) for dy in self.dys])
 
 
 @testing.parameterize(*testing.product({
-    'use_cudnn': [True, False],
+    'use_cudnn': ['always', 'auto', 'never'],
 }))
 @attr.cudnn
 class TestNStepLSTMCudnnCall(unittest.TestCase):
@@ -419,7 +428,7 @@ class TestNStepLSTMCudnnCall(unittest.TestCase):
 
 
 @testing.parameterize(*testing.product({
-    'use_cudnn': [True, False],
+    'use_cudnn': ['always', 'auto', 'never'],
 }))
 @attr.cudnn
 class TestNStepBiLSTMCudnnCall(unittest.TestCase):
@@ -466,21 +475,22 @@ class TestNStepBiLSTMCudnnCall(unittest.TestCase):
             for b in self.batches]
         self.dcy = cuda.cupy.random.uniform(-1, 1, h_shape).astype('f')
         self.dhy = cuda.cupy.random.uniform(-1, 1, h_shape).astype('f')
-        self.expect = self.use_cudnn and (
-            cuda.cudnn.cudnn.getVersion() >= 5000)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.expect = chainer.should_use_cudnn('>=auto', 5000)
 
     def forward(self, train):
-        volatile = not train
-        h = chainer.Variable(self.hx, volatile=volatile)
-        c = chainer.Variable(self.cx, volatile=volatile)
-        xs = [chainer.Variable(x, volatile=volatile) for x in self.xs]
-        ws = [[chainer.Variable(w, volatile=volatile) for w in ws]
-              for ws in self.ws]
-        bs = [[chainer.Variable(b, volatile=volatile) for b in bs]
-              for bs in self.bs]
-        return functions.n_step_bilstm(
-            self.n_layers, self.dropout, h, c, ws, bs, xs,
-            train=train, use_cudnn=self.use_cudnn)
+        with chainer.using_config('use_cudnn', self.use_cudnn), \
+                chainer.using_config('enable_backprop', train), \
+                chainer.using_config('train', train):
+            h = chainer.Variable(self.hx)
+            c = chainer.Variable(self.cx)
+            xs = [chainer.Variable(x) for x in self.xs]
+            ws = [[chainer.Variable(w) for w in ws]
+                  for ws in self.ws]
+            bs = [[chainer.Variable(b) for b in bs]
+                  for bs in self.bs]
+            return functions.n_step_bilstm(
+                self.n_layers, self.dropout, h, c, ws, bs, xs)
 
     def test_call_cudnn_forward_training(self):
         with mock.patch('cupy.cuda.cudnn.RNNForwardTraining') as func:
@@ -550,7 +560,7 @@ def rand_vector(shape):
 
 
 @testing.parameterize(*testing.product({
-    'use_cudnn': [True, False],
+    'use_cudnn': ['always', 'auto', 'never'],
 }))
 @attr.cudnn
 class TestNStepLSTMDropout(unittest.TestCase):
@@ -599,9 +609,10 @@ class TestNStepLSTMDropout(unittest.TestCase):
             hy1, cy1, ys1 = lstm_without_dropout(
                 self.n_layers, self.dropout, self.hx, self.cx, self.ws,
                 self.bs, self.xs)
-            hy2, cy2, ys2 = functions.n_step_lstm(
-                self.n_layers, self.dropout, self.hx, self.cx, self.ws,
-                self.bs, self.xs, train=True, use_cudnn=self.use_cudnn)
+            with chainer.using_config('use_cudnn', self.use_cudnn):
+                hy2, cy2, ys2 = functions.n_step_lstm(
+                    self.n_layers, self.dropout, self.hx, self.cx, self.ws,
+                    self.bs, self.xs)
 
             for i in range(self.length):
                 y_counts[i] += count_close(ys1[i].data, ys2[i].data)

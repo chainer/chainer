@@ -17,7 +17,6 @@ from chainer.functions.connection.n_step_rnn import _stack_weight
 from chainer.functions.connection.n_step_rnn import get_random_state
 from chainer.functions.noise import dropout
 from chainer.utils import argument
-from chainer.utils import type_check
 
 
 if cuda.cudnn_enabled:
@@ -324,9 +323,9 @@ def n_step_lstm_base(
             itertools.chain.from_iterable(bs),
             xs))
         if use_bi_direction:
-            rnn = NStepBiLSTM(n_layers, states, train=train)
+            rnn = NStepBiLSTM(n_layers, states)
         else:
-            rnn = NStepLSTM(n_layers, states, train=train)
+            rnn = NStepLSTM(n_layers, states)
 
         ret = rnn(*inputs)
         hy, cy = ret[:2]
@@ -373,8 +372,7 @@ def n_step_lstm_base(
                         c_rest = None
 
                     if layer != 0:
-                        x = dropout.dropout(x, ratio=dropout_ratio,
-                                            train=train)
+                        x = dropout.dropout(x, ratio=dropout_ratio)
                     lstm_in = linear.linear(x, xws[layer_idx],
                                             xbs[layer_idx]) + \
                         linear.linear(h, hws[layer_idx], hbs[layer_idx])
