@@ -316,7 +316,7 @@ Actual: {0}'''.format(type(data))
     def __copy__(self):
         copied = Variable()
         copied.__dict__ = copy.copy(self.__dict__)
-        copied._node = VariableNode(copied)
+        copied._node = VariableNode(copied, self.name)
         return copied
 
     def __reduce__(self):
