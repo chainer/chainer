@@ -1,8 +1,8 @@
+import json
+import os.path
 import shutil
 import tempfile
 import unittest
-import json
-import os.path
 
 import mock
 
