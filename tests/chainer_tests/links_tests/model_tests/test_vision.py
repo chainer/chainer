@@ -3,6 +3,10 @@ import unittest
 import numpy
 
 from chainer import cuda
+from chainer.initializers.constant import Zero
+from chainer.initializers.normal import Normal
+from chainer.link import Chain
+from chainer.links.connection.convolution_2d import Convolution2D
 from chainer.links.model.vision import resnet
 from chainer.links.model.vision import vgg
 from chainer import testing
@@ -12,7 +16,7 @@ from chainer.variable import Variable
 
 @testing.parameterize(*testing.product({
     'n_layers': [50, 101, 152],
-    'pretrained_model': [None, 'zeros'],
+    'initialW': [None, Normal()],
 }))
 @unittest.skipUnless(resnet.available, 'Pillow is required')
 @attr.slow
@@ -21,13 +25,13 @@ class TestResNetLayers(unittest.TestCase):
     def setUp(self):
         if self.n_layers == 50:
             self.link = resnet.ResNet50Layers(
-                pretrained_model=self.pretrained_model)
+                pretrained_model=None, initialW=self.initialW)
         elif self.n_layers == 101:
             self.link = resnet.ResNet101Layers(
-                pretrained_model=self.pretrained_model)
+                pretrained_model=None, initialW=self.initialW)
         elif self.n_layers == 152:
             self.link = resnet.ResNet152Layers(
-                pretrained_model=self.pretrained_model)
+                pretrained_model=None, initialW=self.initialW)
 
     def test_available_layers(self):
         result = self.link.available_layers
@@ -133,7 +137,36 @@ class TestResNetLayers(unittest.TestCase):
 
 
 @testing.parameterize(*testing.product({
-    'pretrained_model': [None, 'zeros'],
+    'n_layers': [50, 101, 152],
+}))
+@attr.slow
+class TestResNetZeroInitializer(unittest.TestCase):
+
+    def setUp(self):
+        if self.n_layers == 50:
+            self.link = resnet.ResNet50Layers(
+                pretrained_model=None, initialW=Zero())
+        elif self.n_layers == 101:
+            self.link = resnet.ResNet101Layers(
+                pretrained_model=None, initialW=Zero())
+        elif self.n_layers == 152:
+            self.link = resnet.ResNet152Layers(
+                pretrained_model=None, initialW=Zero())
+
+    def _check_children_zero(self, link):
+        for child in link.children():
+            if isinstance(child, Convolution2D):
+                numpy.testing.assert_equal(child.W.data, 0)
+            elif isinstance(child, Chain):
+                self._check_children_zero(child)
+
+    def test_zero_initializer(self):
+        self._check_children_zero(self.link)
+
+
+@testing.parameterize(*testing.product({
+    'initialW': [None, Normal()],
+    'initial_bias': [None, Normal()]
 }))
 @unittest.skipUnless(resnet.available, 'Pillow is required')
 @attr.slow
@@ -141,7 +174,9 @@ class TestVGG16Layers(unittest.TestCase):
 
     def setUp(self):
         self.link = vgg.VGG16Layers(
-            pretrained_model=self.pretrained_model)
+            pretrained_model=None,
+            initialW=self.initialW,
+            initial_bias=self.initial_bias)
 
     def test_available_layers(self):
         result = self.link.available_layers
@@ -233,6 +268,26 @@ class TestVGG16Layers(unittest.TestCase):
     def test_predict_gpu(self):
         self.link.to_gpu()
         self.check_predict()
+
+
+@attr.slow
+class TestVGG16ZeroInitializer(unittest.TestCase):
+
+    def setUp(self):
+        self.link = vgg.VGG16Layers(
+            pretrained_model=None,
+            initialW=Zero(),
+            initial_bias=Zero())
+
+    def _check_children_zero(self, link):
+        for child in link.children():
+            if isinstance(child, Convolution2D):
+                numpy.testing.assert_equal(child.W.data, 0)
+            elif isinstance(child, Chain):
+                self._check_children_zero(child)
+
+    def test_zero_initializer(self):
+        self._check_children_zero(self.link)
 
 
 testing.run_module(__name__, __file__)
