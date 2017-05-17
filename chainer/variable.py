@@ -130,6 +130,7 @@ class VariableNode(object):
 
     Args:
         variable (Variable): The corresponding variable object.
+        name (str): Name of the variable node.
 
     Attributes:
         dtype: Data type of the data array.
