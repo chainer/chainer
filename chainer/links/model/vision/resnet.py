@@ -70,6 +70,11 @@ class ResNetLayers(link.Chain):
             ``chainer.initializers.HeNormal(scale=1.0)``.
         n_layers (int): The number of layers of this model. It should be either
             50, 101, or 152.
+        initialW (callable): The initial weight value initializer for
+            convolution layers. This is a callable that takes
+            ``numpy.ndarray`` or ``cupy.ndarray``
+            and edits its value.
+            If ``None``, the default initializer is used.
 
     Attributes:
         available_layers (list of str): The list of available layer names
@@ -77,14 +82,16 @@ class ResNetLayers(link.Chain):
 
     """
 
-    def __init__(self, pretrained_model, n_layers):
-        if pretrained_model:
-            # As a sampling process is time-consuming,
-            # we employ a zero initializer for faster computation.
-            kwargs = {'initialW': constant.Zero()}
-        else:
-            # employ default initializers used in the original paper
-            kwargs = {'initialW': normal.HeNormal(scale=1.0)}
+    def __init__(self, pretrained_model, n_layers, initialW=None):
+        if initialW is None:
+            if pretrained_model:
+                # As a sampling process is time-consuming,
+                # we employ a zero initializer for faster computation.
+                initialW = constant.Zero()
+            else:
+                # employ default initializers used in the original paper
+                initialW = normal.HeNormal(scale=1.0)
+        kwargs = {'initialW': initialW}
 
         if n_layers == 50:
             block = [3, 4, 6, 3]
@@ -108,6 +115,8 @@ class ResNetLayers(link.Chain):
         if pretrained_model and pretrained_model.endswith('.caffemodel'):
             _retrieve(n_layers, 'ResNet-{}-model.npz'.format(n_layers),
                       pretrained_model, self)
+        elif pretrained_model == 'zeros':
+            pass
         elif pretrained_model:
             npz.load_npz(pretrained_model, self)
         self.functions = collections.OrderedDict([
@@ -313,6 +322,10 @@ class ResNet50Layers(ResNetLayers):
             are not initialized by the pre-trained model, but the default
             initializer used in the original paper, i.e.,
             ``chainer.initializers.HeNormal(scale=1.0)``.
+        initialW (callable): The initial weight value initializer. This is a
+            callable that takes ``numpy.ndarray`` or ``cupy.ndarray``
+            and edits its value.
+            If ``None``, the default initializer is used.
 
     Attributes:
         available_layers (list of str): The list of available layer names
@@ -320,10 +333,10 @@ class ResNet50Layers(ResNetLayers):
 
     """
 
-    def __init__(self, pretrained_model='auto'):
+    def __init__(self, pretrained_model='auto', initialW=None):
         if pretrained_model == 'auto':
             pretrained_model = 'ResNet-50-model.caffemodel'
-        super(ResNet50Layers, self).__init__(pretrained_model, 50)
+        super(ResNet50Layers, self).__init__(pretrained_model, 50, initialW)
 
 
 class ResNet101Layers(ResNetLayers):
@@ -366,6 +379,10 @@ class ResNet101Layers(ResNetLayers):
             are not initialized by the pre-trained model, but the default
             initializer used in the original paper, i.e.,
             ``chainer.initializers.HeNormal(scale=1.0)``.
+        initialW (callable): The initial weight value initializer. This is a
+            callable that takes ``numpy.ndarray`` or ``cupy.ndarray``
+            and edits its value.
+            If ``None``, the default initializer is used.
 
     Attributes:
         available_layers (list of str): The list of available layer names
@@ -373,10 +390,10 @@ class ResNet101Layers(ResNetLayers):
 
     """
 
-    def __init__(self, pretrained_model='auto'):
+    def __init__(self, pretrained_model='auto', initialW=None):
         if pretrained_model == 'auto':
             pretrained_model = 'ResNet-101-model.caffemodel'
-        super(ResNet101Layers, self).__init__(pretrained_model, 101)
+        super(ResNet101Layers, self).__init__(pretrained_model, 101, initialW)
 
 
 class ResNet152Layers(ResNetLayers):
@@ -418,6 +435,10 @@ class ResNet152Layers(ResNetLayers):
             are not initialized by the pre-trained model, but the default
             initializer used in the original paper, i.e.,
             ``chainer.initializers.HeNormal(scale=1.0)``.
+        initialW (callable): The initial weight value initializer. This is a
+            callable that takes ``numpy.ndarray`` or ``cupy.ndarray``
+            and edits its value.
+            If ``None``, the default initializer is used.
 
     Attributes:
         available_layers (list of str): The list of available layer names
@@ -425,10 +446,10 @@ class ResNet152Layers(ResNetLayers):
 
     """
 
-    def __init__(self, pretrained_model='auto'):
+    def __init__(self, pretrained_model='auto', initialW=None):
         if pretrained_model == 'auto':
             pretrained_model = 'ResNet-152-model.caffemodel'
-        super(ResNet152Layers, self).__init__(pretrained_model, 152)
+        super(ResNet152Layers, self).__init__(pretrained_model, 152, initialW)
 
 
 def prepare(image, size=(224, 224)):

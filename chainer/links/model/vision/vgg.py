@@ -65,6 +65,16 @@ class VGG16Layers(link.Chain):
             are not initialized by the pre-trained model, but the default
             initializer used in the original paper, i.e.,
             ``chainer.initializers.Normal(scale=0.01)``.
+        initialW (callable): The initial weight value initializer for
+            convolution layers and fully connected layers. This is a
+            callable that takes ``numpy.ndarray`` or ``cupy.ndarray``
+            and edits its value.
+            If ``None``, the default initializer is used.
+        initial_bias (callable): The initial bias value initializer for
+            convolution layers and fully connected layers. This is a
+            callable that takes ``numpy.ndarray`` or ``cupy.ndarray``
+            and edits its value.
+            If ``None``, the default initializer is used.
 
     Attributes:
         available_layers (list of str): The list of available layer names
@@ -72,18 +82,25 @@ class VGG16Layers(link.Chain):
 
     """
 
-    def __init__(self, pretrained_model='auto'):
+    def __init__(self, pretrained_model='auto',
+                 initialW=None, initial_bias=None):
         if pretrained_model:
             # As a sampling process is time-consuming,
             # we employ a zero initializer for faster computation.
             init = constant.Zero()
-            kwargs = {'initialW': init, 'initial_bias': init}
+            default_kwargs = {'initialW': init, 'initial_bias': init}
         else:
             # employ default initializers used in the original paper
-            kwargs = {
+            default_kwargs = {
                 'initialW': normal.Normal(0.01),
                 'initial_bias': constant.Zero(),
             }
+        if initialW is None:
+            initialW = default_kwargs['initialW']
+        if initial_bias is None:
+            initial_bias = default_kwargs['initial_bias']
+        kwargs = {'initialW': initialW, 'initial_bias': initial_bias}
+
         super(VGG16Layers, self).__init__(
             conv1_1=Convolution2D(3, 64, 3, 1, 1, **kwargs),
             conv1_2=Convolution2D(64, 64, 3, 1, 1, **kwargs),
