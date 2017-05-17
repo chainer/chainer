@@ -138,12 +138,12 @@ class VariableNode(object):
 
     """
 
-    def __init__(self, variable, grad=None):
+    def __init__(self, variable, name, grad=None):
         self._variable = weakref.ref(variable)
         self._creator = None
         self._data = None
         self._rank = 0
-        self.name = variable.name
+        self.name = name
         self._requires_grad = variable.requires_grad
 
         vdata = variable.data
@@ -308,10 +308,9 @@ Actual: {0}'''.format(type(data))
         # abstract its initialized/uninitialized state.
         self._data = [data]
         self._requires_grad = requires_grad
-        self.name = name
         self.update_rule = update_rule
 
-        self._node = VariableNode(self, grad)
+        self._node = VariableNode(self, name, grad)
 
     def __copy__(self):
         copied = Variable()
@@ -329,6 +328,14 @@ Actual: {0}'''.format(type(data))
 
     def __str__(self):
         return variable_str(self)
+
+    @property
+    def name(self):
+        return self._node.name
+
+    @name.setter
+    def name(self, n):
+        self._node.name = n
 
     def summary(self):
         if self.name:
