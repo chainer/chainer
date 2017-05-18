@@ -70,42 +70,45 @@ class BatchRenormalizationFunction(function.Function):
     def forward(self, inputs):
         xp = cuda.get_array_module(*inputs)
         x, gamma, beta = inputs[:3]
+
+        # Note: If length of inputs is not 5, we must be in train mode.
+        if len(inputs) != 5:
+            assert configuration.config.train
+
         if configuration.config.train:
             if self.running_mean is None:
-                print("Set running_mean,var to zero")
                 self.running_mean = xp.zeros_like(gamma)
                 self.running_var = xp.zeros_like(gamma)
             else:
                 self.running_mean = xp.array(self.running_mean)
                 self.running_var = xp.array(self.running_var)
         elif len(inputs) == 5:
-            self.fixed_mean = inputs[3]
-            self.fixed_var = inputs[4]
+            fixed_mean = inputs[3]
+            fixed_var = inputs[4]
 
         head_ndim = gamma.ndim + 1
         expander = (None, Ellipsis) + (None,) * (x.ndim - head_ndim)
 
-        # NOTE(tommi): Removed cuDNN support since it does not support
+        # NOTE(tommi): cuDNN is not used since it does not support
         # batch renormalization
         if configuration.config.train:
             axis = (0,) + tuple(range(head_ndim, x.ndim))
             mean = x.mean(axis=axis)
-            var = x.var(axis=axis)
-            var += self.eps
+            var = x.var(axis=axis) + self.eps
         else:
-            mean = self.fixed_mean
-            var = self.fixed_var + self.eps
+            mean = fixed_mean
+            var = fixed_var + self.eps
         self.std = xp.sqrt(var, dtype=var.dtype)
         if not self.keep_r_d_fixed or self.r is None:
             if configuration.config.train:
                 running_sigma = xp.sqrt(self.running_var + self.eps)
-                r = xp.clip(self.std / running_sigma,
+                self.r = xp.clip(self.std / running_sigma,
                             1.0 / self.rmax, self.rmax)
-                d = xp.clip((mean - self.running_mean) / running_sigma,
+                self.d = xp.clip((mean - self.running_mean) / running_sigma,
                             -self.dmax, self.dmax)
             else:
-                r = xp.ones_like(gamma)
-                d = xp.zeros_like(gamma)
+                self.r = xp.ones_like(gamma)
+                self.d = xp.zeros_like(gamma)
 
             if self.keep_r_d_fixed:
                 # Hack for making gradient check treat r and d as true
@@ -113,8 +116,6 @@ class BatchRenormalizationFunction(function.Function):
                 warnings.warn("Warning: self.keep_r_d_fixed is True, which is "
                               "needed for gradient check, but must be disabled"
                               " during real training.", RuntimeWarning)
-            self.r = r
-            self.d = d
 
         if self.keep_r_d_fixed:
             # Need to explicitly cast during gradient check, as r and d are
@@ -184,7 +185,7 @@ class BatchRenormalizationFunction(function.Function):
 
         # Note: If length of inputs is not 5, we must be in train mode.
         assert configuration.config.train
-        # NOTE(tommi): Removed cuDNN support since it does not support
+        # NOTE(tommi): cuDNN is not used since it does not support
         # batch renormalization
         gbeta = gy.sum(axis=axis)
         ggamma = (gy * self.x_hat_renorm).sum(axis=axis)

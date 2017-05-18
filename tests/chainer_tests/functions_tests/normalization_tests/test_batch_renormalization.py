@@ -19,10 +19,15 @@ def _batch_renormalization(expander, gamma, beta, x, mean, var, r, d):
     return y_expect
 
 
-@testing.parameterize(*testing.product({
-    'ndim': [0, 1, 2, 3],
+@testing.parameterize(*(testing.product({
+    'param_shape': [(3, 4), (3, 2, 3)],
+    'ndim': [0, 1, 2],
+    'dtype': [numpy.float32],
+}) + testing.product({
+    'param_shape': [(3,)],
+    'ndim': [1],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
-}))
+})))
 class TestBatchRenormalization(unittest.TestCase):
 
     def setUp(self):
