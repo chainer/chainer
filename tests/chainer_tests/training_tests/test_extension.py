@@ -13,6 +13,14 @@ class TestExtension(unittest.TestCase):
         ext = MyExtension()
         self.assertEqual(ext.default_name, 'MyExtension')
 
+    def test_deleted_invoke_before_training(self):
+        class MyExtension(training.Extension):
+            pass
+
+        ext = MyExtension()
+        with self.assertRaises(AttributeError):
+            ext.invoke_before_training
+
     def test_make_extension(self):
         def initialize(trainer):
             pass
@@ -37,5 +45,16 @@ class TestExtension(unittest.TestCase):
         self.assertEqual(my_extension.priority, training.PRIORITY_READER)
         self.assertIsNone(my_extension.initialize)
 
+    def test_make_extension_deleted_argument(self):
+        with self.assertRaises(ValueError):
+            @training.make_extension(invoke_before_training=False)
+            def my_extension(_):
+                pass
+
+    def test_make_extension_unexpected_kwargs(self):
+        with self.assertRaises(TypeError):
+            @training.make_extension(foo=1)
+            def my_extension(_):
+                pass
 
 testing.run_module(__name__, __file__)
