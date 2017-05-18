@@ -514,7 +514,7 @@ class Function(object):
                 function does not require for backprop.
 
             retain_after_backward (bool): If ``True``, a reference to the
-                outputs wil remain after the backprop of the function is over.
+                outputs will remain after the backprop of the function is over.
                 If ``False``, the reference will be deleted.
 
         """
