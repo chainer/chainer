@@ -9,14 +9,12 @@ We recommend these Linux distributions.
 * `Ubuntu <http://www.ubuntu.com/>`_ 14.04/16.04 LTS 64bit
 * `CentOS <https://www.centos.org/>`_ 7 64bit
 
-Chainer might also run on Windows and macOS platforms, although we do not guarantee that Chainer run correctly (especially with CUDA support).
-
 The following versions of Python can be used: 2.7.6+, 3.4.3+, 3.5.1+, and 3.6.0+.
 
 .. note::
 
    We are testing Chainer automatically with Jenkins, where all the above *recommended* environments are tested.
-   We cannot guarantee that Chainer works on other environments, even if Chainer looks running correctly.
+   We cannot guarantee that Chainer works on other environments including Windows and macOS (especially with CUDA support), even if Chainer looks running correctly.
 
 
 
