@@ -227,6 +227,29 @@ In Chainer v2, the ``force_tuple`` argument of :func:`functions.split_axis` is s
 Therefore, it always returns a tuple regardless of the number of sections made after the split.
 It was ``False`` by default in Chainer v1.
 
+Type check APIs are updated to enable lazy building of the error messages
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In Chainer v2, the type check APIs are updated so that the overhead of checking types is greatly reduced.
+In order to achieve the overhead reduction, some APIs are changed.
+
+**If you have custom Function implementations that do type checking, you have to update your code.**
+The following list shows which part has to be updated.
+
+- Use :func:`utils.type_check.eval` instead of ``Exp.eval``.
+- Use :func:`utils.type_check.make_variable` to create a :class:`utils.type_check.Variable` object instead of directly constructing it by yourself.
+- Stop using ``.name`` attribute of any expression.
+
+*Background of this change:*
+In Chainer v1, the type checking APIs build an abstract syntax tree (AST) based on each expression that tests some condition.
+The AST is used to emit a kind error message.
+However, building an AST requires constructions of many Python objects, which adds large Python overheads.
+In Chainer v2, the :meth:`Function.type_check_forward` method is called once or twice.
+At the first call, the type checking APIs run in *light-weight mode*, where it does not build an AST and just checks the condition.
+The second call is made only if there is a test that fails, where it builds an AST.
+This change makes the ordinary path of running the type checking much faster, while keeping the kindful error messages.
+
+
 Methods to release unneeded arrays are added
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
