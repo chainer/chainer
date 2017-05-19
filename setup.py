@@ -24,7 +24,7 @@ install_requires = [
     'filelock',
     'nose',
     'numpy>=1.9.0',
-    'protobuf',
+    'protobuf>=2.6.0',
     'six>=1.9.0',
 ]
 cupy_require = 'cupy==1.0.0b1'
@@ -82,6 +82,7 @@ setup(
               'chainer.training',
               'chainer.training.extensions',
               'chainer.training.triggers',
+              'chainer.training.updaters',
               'chainer.utils'],
     zip_safe=False,
     setup_requires=setup_requires,
