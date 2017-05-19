@@ -29,6 +29,7 @@ from chainer.links.connection.convolution_2d import Convolution2D
 from chainer.links.connection.inception import Inception
 from chainer.links.connection.linear import Linear
 from chainer.serializers import npz
+from chainer.utils import argument
 from chainer.utils import imgproc
 from chainer.variable import Variable
 
@@ -174,14 +175,21 @@ class GoogLeNet(link.Chain):
         _transfer_googlenet(caffemodel, chainermodel)
         npz.save_npz(path_npz, chainermodel, compression=False)
 
-    def __call__(self, x, layers=['prob'], train=False):
-        """Computes all the feature maps specified by ``layers``.
+    def __call__(self, x, layers=['prob'], **kwargs):
+        """__call__(self, x, layers=['prob'])
+
+        Computes all the feature maps specified by ``layers``.
+
+        .. warning::
+
+           ``train`` argument is not supported anymore since v2.
+           Instead, use ``chainer.using_config('train', train)``.
+           See :func:`chainer.using_config`.
 
         Args:
             x (~chainer.Variable): Input variable. It should be prepared by
             ``prepare`` function.
             layers (list of str): The list of layer names you want to extract.
-            train (bool): If ``True``, Dropout runs in training mode.
 
         Returns:
             Dictionary of ~chainer.Variable: A directory in which
@@ -189,6 +197,11 @@ class GoogLeNet(link.Chain):
             the corresponding feature map variable.
 
         """
+
+        argument.check_unexpected_kwargs(
+            kwargs, train='train argument is not supported anymore. '
+            'Use chainer.using_config')
+        argument.assert_kwargs_empty(kwargs)
 
         h = x
         activations = {}
@@ -205,11 +218,7 @@ class GoogLeNet(link.Chain):
                 h = inception_4d_cache
 
             for func in funcs:
-                if func is _dropout:
-                    h = func(h, train=train)
-                else:
-                    h = func(h)
-
+                h = func(h)
             if key in target_layers:
                 activations[key] = h
                 target_layers.remove(key)
@@ -234,7 +243,7 @@ class GoogLeNet(link.Chain):
 
         .. warning::
 
-           ``test`` and ``volatile`` arguments are not supported anymore since
+           ``train`` and ``volatile`` arguments are not supported anymore since
            v2.
            Instead, use ``chainer.using_config('train', train)`` and
            ``chainer.using_config('enable_backprop', not volatile)``
@@ -248,7 +257,6 @@ class GoogLeNet(link.Chain):
                 an input of CNN. All the given images are not resized
                 if this argument is ``None``, but the resolutions of
                 all the images should be the same.
-            train (bool): If ``True``, Dropout runs in training mode.
 
         Returns:
             Dictionary of ~chainer.Variable: A directory in which
@@ -256,6 +264,13 @@ class GoogLeNet(link.Chain):
             the corresponding feature map variable.
 
         """
+
+        argument.check_unexpected_kwargs(
+            kwargs, train='train argument is not supported anymore. '
+            'Use chainer.using_config',
+            volatile='volatile argument is not supported anymore. '
+            'Use chainer.using_config')
+        argument.assert_kwargs_empty(kwargs)
 
         x = concat_examples([prepare(img, size=size) for img in images])
         x = Variable(self.xp.asarray(x))
