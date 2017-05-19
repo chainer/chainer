@@ -24,7 +24,7 @@ def sequence_embed(embed, xs):
     x_len = [len(x) for x in xs]
     x_section = numpy.cumsum(x_len[:-1])
     ex = embed(F.concat(xs, axis=0))
-    exs = F.split_axis(ex, x_section, 0, force_tuple=True)
+    exs = F.split_axis(ex, x_section, 0)
     return exs
 
 
@@ -72,17 +72,16 @@ class Seq2seq(chainer.Chain):
 
     def translate(self, xs, max_length=100):
         batch = len(xs)
-        with chainer.no_backprop_mode():
+        with chainer.no_backprop_mode(), chainer.using_config('train', False):
             xs = [x[::-1] for x in xs]
             exs = sequence_embed(self.embed_x, xs)
-            h, c, _ = self.encoder(None, None, exs, train=False)
+            h, c, _ = self.encoder(None, None, exs)
             ys = self.xp.zeros(batch, 'i')
             result = []
             for i in range(max_length):
                 eys = self.embed_y(ys)
-                eys = chainer.functions.split_axis(
-                    eys, batch, 0, force_tuple=True)
-                h, c, ys = self.decoder(h, c, eys, train=False)
+                eys = chainer.functions.split_axis(eys, batch, 0)
+                h, c, ys = self.decoder(h, c, eys)
                 cys = chainer.functions.concat(ys, axis=0)
                 wy = self.W(cys)
                 ys = self.xp.argmax(wy.data, axis=1).astype('i')
