@@ -21,17 +21,10 @@ class CRF(chainer.Chain):
             crf=L.CRF1d(n_pos),
         )
 
-    def __call__(self, *args):
-        # NOTE: As a current Chain.__call__ cannot use a list as an argument,
-        # we simply concatenate two lists into a single list.
-        # Each xs[i] is a word-id sequences, and ys[i] is a pos-id sequence.
-        # They of course have difference lengths.
-        xs = args[:len(args) // 2]
-        ys = args[len(args) // 2:]
-
+    def __call__(self, xs, ys):
         # Before making a transpose, you need to sort two lists in descending
         # order of length.
-        inds = numpy.argsort([-len(x.data) for x in xs]).astype('i')
+        inds = numpy.argsort([-len(x) for x in xs]).astype('i')
         xs = [xs[i] for i in inds]
         ys = [ys[i] for i in inds]
 
@@ -66,7 +59,7 @@ def convert(batch, device):
     sentences = [
         chainer.dataset.to_device(device, sentence) for sentence, _ in batch]
     poses = [chainer.dataset.to_device(device, pos) for _, pos in batch]
-    return tuple(sentences + poses)
+    return {'xs': sentences, 'ys': poses}
 
 
 def main():
