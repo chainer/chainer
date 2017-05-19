@@ -41,10 +41,7 @@ class Seq2seq(chainer.Chain):
         self.n_layers = n_layers
         self.n_units = n_units
 
-    def __call__(self, *inputs):
-        xs = inputs[:len(inputs) // 2]
-        ys = inputs[len(inputs) // 2:]
-
+    def __call__(self, xs, ys):
         xs = [x[::-1] for x in xs]
 
         eos = self.xp.zeros(1, 'i')
@@ -117,9 +114,8 @@ def convert(batch, device):
             batch_dev = cuda.cupy.split(concat_dev, sections)
             return batch_dev
 
-    return tuple(
-        to_device_batch([x for x, _ in batch]) +
-        to_device_batch([y for _, y in batch]))
+    return {'xs': to_device_batch([x for x, _ in batch]),
+            'ys': to_device_batch([y for _, y in batch])}
 
 
 class CalculateBleu(chainer.training.Extension):
