@@ -176,9 +176,7 @@ class GoogLeNet(link.Chain):
         npz.save_npz(path_npz, chainermodel, compression=False)
 
     def __call__(self, x, layers=['prob'], **kwargs):
-        """__call__(self, x, layers=['prob'])
-
-        Computes all the feature maps specified by ``layers``.
+        """Computes all the feature maps specified by ``layers``.
 
         .. warning::
 
