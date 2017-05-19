@@ -420,8 +420,8 @@ def _average_pooling_2d_k7(x):
     return average_pooling_2d(x, ksize=7, stride=1)
 
 
-def _dropout(x, train):
-    return dropout(x, ratio=0.4, train=train)
+def _dropout(x):
+    return dropout(x, ratio=0.4)
 
 
 def _make_npz(path_npz, url, model):
