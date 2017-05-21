@@ -36,7 +36,7 @@ class CRF(chainer.Chain):
         # h[i] is feature vector for each batch of words.
         hs = [self.feature(x) for x in xs]
         loss = self.crf(hs, ys)
-        reporter.report({'loss': loss}, self)
+        reporter.report({'loss': loss.data}, self)
 
         # To predict labels, call argmax method.
         _, predict = self.crf.argmax(hs)
