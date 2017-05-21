@@ -86,11 +86,11 @@ def softmax(x, use_cudnn=True, axis=1):
     """Softmax function.
 
     This function computes its softmax along an axis. Let
-    :math:`x = (x_1, x_2, \\dots, x_d)^{\\top}` be the d dimensional index
-    array and :math:`f(x)` be the d dimensional input array. For each index
+    :math:`x = (x_1, x_2, \\dots, x_D)^{\\top}` be the D dimensional index
+    array and :math:`f(x)` be the D dimensional input array. For each index
     :math:`x` of the input array :math:`f(x)`, it computes the probability
     :math:`p(x)` defined as
-    :math:`p(x) = {\\exp(f(x)) \\over \\sum_{x_2} \\exp(f(x))}`.
+    :math:`p(x) = {\\exp(f(x)) \\over \\sum_{d} \\exp(f(x_d))}`.
 
     Args:
         x (~chainer.Variable): Input variable.
