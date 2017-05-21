@@ -3,6 +3,7 @@ import collections
 
 import nltk
 import numpy
+import six
 
 import chainer
 from chainer import datasets
@@ -42,7 +43,7 @@ class CRF(chainer.Chain):
         _, predict = self.crf.argmax(hs)
         correct = 0
         total = 0
-        for y, p in zip(ys, predict):
+        for y, p in six.moves.zip(ys, predict):
             correct += self.xp.sum(y.data == p)
             total += len(y.data)
         reporter.report({'correct': correct}, self)
