@@ -111,19 +111,26 @@ def main():
         train_iter, optimizer, converter=convert, device=args.gpu)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
 
-    trainer.extend(extensions.Evaluator(
-        test_iter, model, device=args.gpu, converter=convert))
-    trainer.extend(extensions.LogReport())
+    evaluator = extensions.Evaluator(
+        test_iter, model, device=args.gpu, converter=convert)
+    # Only validate in each 1000 iteration
+    trainer.extend(evaluator, trigger=(1000, 'iteration'))
+    trainer.extend(extensions.LogReport(trigger=(100, 'iteration')),
+                   trigger=(100, 'iteration'))
 
-    trainer.extend(extensions.MicroAverage(
-        'main/correct', 'main/total', 'main/accuracy'))
-    trainer.extend(extensions.MicroAverage(
-        'validation/main/correct', 'validation/main/total',
-        'validation/main/accuracy'))
+    trainer.extend(
+        extensions.MicroAverage(
+            'main/correct', 'main/total', 'main/accuracy'))
+    trainer.extend(
+        extensions.MicroAverage(
+            'validation/main/correct', 'validation/main/total',
+            'validation/main/accuracy'))
 
-    trainer.extend(extensions.PrintReport(
-        ['epoch', 'main/loss', 'validation/main/loss',
-         'main/accuracy', 'validation/main/accuracy', 'elapsed_time']))
+    trainer.extend(
+        extensions.PrintReport(
+            ['epoch', 'main/loss', 'validation/main/loss',
+             'main/accuracy', 'validation/main/accuracy', 'elapsed_time']),
+        trigger=(100, 'iteration'))
 
     trainer.extend(extensions.ProgressBar(update_interval=10))
 
