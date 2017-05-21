@@ -66,7 +66,7 @@ class TestSort(unittest.TestCase):
 
     @testing.numpy_cupy_allclose()
     def test_sort_contiguous(self, xp):
-        a = testing.shaped_random((10,), xp)[::]  # C contiguous view
+        a = testing.shaped_random((10,), xp)  # C contiguous view
         a.sort()
         return a
 
@@ -77,7 +77,7 @@ class TestSort(unittest.TestCase):
 
     @testing.numpy_cupy_allclose()
     def test_external_sort_contiguous(self, xp):
-        a = testing.shaped_random((10,), xp)[::]  # C contiguous view
+        a = testing.shaped_random((10,), xp)  # C contiguous view
         return xp.sort(a)
 
     @testing.numpy_cupy_allclose()
