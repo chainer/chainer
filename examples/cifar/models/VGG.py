@@ -24,9 +24,10 @@ class Block(chainer.Chain):
 
     def __init__(self, out_channels, ksize, pad=1):
         super(Block, self).__init__()
-        self.conv = L.Convolution2D(None, out_channels, ksize, pad=pad,
-                                    nobias=True)
-        self.bn = L.BatchNormalization(out_channels)
+        with self.init_scope():
+            self.conv = L.Convolution2D(None, out_channels, ksize, pad=pad,
+                                        nobias=True)
+            self.bn = L.BatchNormalization(out_channels)
 
     def __call__(self, x):
         h = self.conv(x)
@@ -60,22 +61,23 @@ class VGG(chainer.Chain):
 
     def __init__(self, class_labels=10):
         super(VGG, self).__init__()
-        self.block1_1 = Block(64, 3)
-        self.block1_2 = Block(64, 3)
-        self.block2_1 = Block(128, 3)
-        self.block2_2 = Block(128, 3)
-        self.block3_1 = Block(256, 3)
-        self.block3_2 = Block(256, 3)
-        self.block3_3 = Block(256, 3)
-        self.block4_1 = Block(512, 3)
-        self.block4_2 = Block(512, 3)
-        self.block4_3 = Block(512, 3)
-        self.block5_1 = Block(512, 3)
-        self.block5_2 = Block(512, 3)
-        self.block5_3 = Block(512, 3)
-        self.fc1 = L.Linear(None, 512, nobias=True)
-        self.bn_fc1 = L.BatchNormalization(512)
-        self.fc2 = L.Linear(None, class_labels, nobias=True)
+        with self.init_scope():
+            self.block1_1 = Block(64, 3)
+            self.block1_2 = Block(64, 3)
+            self.block2_1 = Block(128, 3)
+            self.block2_2 = Block(128, 3)
+            self.block3_1 = Block(256, 3)
+            self.block3_2 = Block(256, 3)
+            self.block3_3 = Block(256, 3)
+            self.block4_1 = Block(512, 3)
+            self.block4_2 = Block(512, 3)
+            self.block4_3 = Block(512, 3)
+            self.block5_1 = Block(512, 3)
+            self.block5_2 = Block(512, 3)
+            self.block5_3 = Block(512, 3)
+            self.fc1 = L.Linear(None, 512, nobias=True)
+            self.bn_fc1 = L.BatchNormalization(512)
+            self.fc2 = L.Linear(None, class_labels, nobias=True)
 
     def __call__(self, x):
         # 64 channel blocks:

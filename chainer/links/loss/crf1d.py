@@ -21,7 +21,8 @@ class CRF1d(link.Link):
 
     def __init__(self, n_label):
         super(CRF1d, self).__init__()
-        self.cost = variable.Parameter(0, (n_label, n_label))
+        with self.init_scope():
+            self.cost = variable.Parameter(0, (n_label, n_label))
 
     def __call__(self, xs, ys):
         return crf1d.crf1d(self.cost, xs, ys)

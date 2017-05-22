@@ -39,20 +39,21 @@ class Scale(link.Chain):
 
     def __init__(self, axis=1, W_shape=None, bias_term=False, bias_shape=None):
         super(Scale, self).__init__()
-
-        # Add W parameter and/or bias term.
-        if W_shape is not None:
-            self.W = variable.Parameter(1, W_shape)
-            if bias_term:
-                self.bias = bias.Bias(axis, W_shape)
-        else:
-            if bias_term:
-                if bias_shape is None:
-                    raise ValueError('bias_shape should be given if W is not '
-                                     'learnt parameter and bias_term is True.')
-                self.bias = bias.Bias(axis, bias_shape)
-
         self.axis = axis
+
+        with self.init_scope():
+            # Add W parameter and/or bias term.
+            if W_shape is not None:
+                self.W = variable.Parameter(1, W_shape)
+                if bias_term:
+                    self.bias = bias.Bias(axis, W_shape)
+            else:
+                if bias_term:
+                    if bias_shape is None:
+                        raise ValueError(
+                            'bias_shape should be given if W is not '
+                            'learnt parameter and bias_term is True.')
+                    self.bias = bias.Bias(axis, bias_shape)
 
     def __call__(self, *xs):
         """Applies broadcasted elementwise product.

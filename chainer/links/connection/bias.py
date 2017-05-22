@@ -33,7 +33,8 @@ class Bias(link.Link):
 
         # Add b parameter if given.
         if shape is not None:
-            self.b = variable.Parameter(0, shape)
+            with self.init_scope():
+                self.b = variable.Parameter(0, shape)
 
         self.axis = axis
 

@@ -16,16 +16,17 @@ class ParallelMLP(chainer.Chain):
 
     def __init__(self, n_units, n_out, gpu0, gpu1):
         super(ParallelMLP, self).__init__()
-        # the input size, 784, is inferred
-        self.first0 = train_mnist.MLP(n_units // 2, n_units).to_gpu(gpu0)
-        self.first1 = train_mnist.MLP(n_units // 2, n_units).to_gpu(gpu1)
-
-        # the input size, n_units, is inferred
-        self.second0 = train_mnist.MLP(n_units // 2, n_out).to_gpu(gpu0)
-        self.second1 = train_mnist.MLP(n_units // 2, n_out).to_gpu(gpu1)
-
         self.gpu0 = gpu0
         self.gpu1 = gpu1
+
+        with self.init_scope():
+            # the input size, 784, is inferred
+            self.first0 = train_mnist.MLP(n_units // 2, n_units).to_gpu(gpu0)
+            self.first1 = train_mnist.MLP(n_units // 2, n_units).to_gpu(gpu1)
+
+            # the input size, n_units, is inferred
+            self.second0 = train_mnist.MLP(n_units // 2, n_out).to_gpu(gpu0)
+            self.second1 = train_mnist.MLP(n_units // 2, n_out).to_gpu(gpu1)
 
     def __call__(self, x):
         # assume x is on gpu0

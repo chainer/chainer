@@ -54,16 +54,17 @@ class NStepLSTM(link.ChainList):
         weights = []
         for i in six.moves.range(n_layers):
             weight = link.Link()
-            for j in six.moves.range(8):
-                if i == 0 and j < 4:
-                    w_in = in_size
-                else:
-                    w_in = out_size
-                setattr(weight, 'w%d' % j,
-                        variable.Parameter(normal.Normal(1. / w_in),
-                                           (out_size, w_in)))
-                setattr(weight, 'b%d' % j,
-                        variable.Parameter(0, out_size))
+            with weight.init_scope():
+                for j in six.moves.range(8):
+                    if i == 0 and j < 4:
+                        w_in = in_size
+                    else:
+                        w_in = out_size
+                    setattr(weight, 'w%d' % j,
+                            variable.Parameter(normal.Normal(1. / w_in),
+                                               (out_size, w_in)))
+                    setattr(weight, 'b%d' % j,
+                            variable.Parameter(0, out_size))
             weights.append(weight)
 
         super(NStepLSTM, self).__init__(*weights)

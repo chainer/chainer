@@ -274,8 +274,9 @@ class SimpleLink(chainer.Link):
 
     def __init__(self, w, g):
         super(SimpleLink, self).__init__()
-        self.param = chainer.Parameter(w)
-        self.param.grad = g
+        with self.init_scope():
+            self.param = chainer.Parameter(w)
+            self.param.grad = g
 
 
 class TestOptimizerWeightDecay(unittest.TestCase):

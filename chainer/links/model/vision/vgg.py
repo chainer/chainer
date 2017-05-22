@@ -84,22 +84,24 @@ class VGG16Layers(link.Chain):
                 'initial_bias': constant.Zero(),
             }
         super(VGG16Layers, self).__init__()
-        self.conv1_1 = Convolution2D(3, 64, 3, 1, 1, **kwargs)
-        self.conv1_2 = Convolution2D(64, 64, 3, 1, 1, **kwargs)
-        self.conv2_1 = Convolution2D(64, 128, 3, 1, 1, **kwargs)
-        self.conv2_2 = Convolution2D(128, 128, 3, 1, 1, **kwargs)
-        self.conv3_1 = Convolution2D(128, 256, 3, 1, 1, **kwargs)
-        self.conv3_2 = Convolution2D(256, 256, 3, 1, 1, **kwargs)
-        self.conv3_3 = Convolution2D(256, 256, 3, 1, 1, **kwargs)
-        self.conv4_1 = Convolution2D(256, 512, 3, 1, 1, **kwargs)
-        self.conv4_2 = Convolution2D(512, 512, 3, 1, 1, **kwargs)
-        self.conv4_3 = Convolution2D(512, 512, 3, 1, 1, **kwargs)
-        self.conv5_1 = Convolution2D(512, 512, 3, 1, 1, **kwargs)
-        self.conv5_2 = Convolution2D(512, 512, 3, 1, 1, **kwargs)
-        self.conv5_3 = Convolution2D(512, 512, 3, 1, 1, **kwargs)
-        self.fc6 = Linear(512 * 7 * 7, 4096, **kwargs)
-        self.fc7 = Linear(4096, 4096, **kwargs)
-        self.fc8 = Linear(4096, 1000, **kwargs)
+
+        with self.init_scope():
+            self.conv1_1 = Convolution2D(3, 64, 3, 1, 1, **kwargs)
+            self.conv1_2 = Convolution2D(64, 64, 3, 1, 1, **kwargs)
+            self.conv2_1 = Convolution2D(64, 128, 3, 1, 1, **kwargs)
+            self.conv2_2 = Convolution2D(128, 128, 3, 1, 1, **kwargs)
+            self.conv3_1 = Convolution2D(128, 256, 3, 1, 1, **kwargs)
+            self.conv3_2 = Convolution2D(256, 256, 3, 1, 1, **kwargs)
+            self.conv3_3 = Convolution2D(256, 256, 3, 1, 1, **kwargs)
+            self.conv4_1 = Convolution2D(256, 512, 3, 1, 1, **kwargs)
+            self.conv4_2 = Convolution2D(512, 512, 3, 1, 1, **kwargs)
+            self.conv4_3 = Convolution2D(512, 512, 3, 1, 1, **kwargs)
+            self.conv5_1 = Convolution2D(512, 512, 3, 1, 1, **kwargs)
+            self.conv5_2 = Convolution2D(512, 512, 3, 1, 1, **kwargs)
+            self.conv5_3 = Convolution2D(512, 512, 3, 1, 1, **kwargs)
+            self.fc6 = Linear(512 * 7 * 7, 4096, **kwargs)
+            self.fc7 = Linear(4096, 4096, **kwargs)
+            self.fc8 = Linear(4096, 1000, **kwargs)
 
         if pretrained_model == 'auto':
             _retrieve(

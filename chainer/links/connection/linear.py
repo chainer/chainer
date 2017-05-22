@@ -46,17 +46,19 @@ class Linear(link.Link):
 
         self.out_size = out_size
 
-        self.W = variable.Parameter(initializers._get_initializer(initialW))
-        if in_size is not None:
-            self._initialize_params(in_size)
+        with self.init_scope():
+            W_initializer = initializers._get_initializer(initialW)
+            self.W = variable.Parameter(W_initializer)
+            if in_size is not None:
+                self._initialize_params(in_size)
 
-        if nobias:
-            self.b = None
-        else:
-            if initial_bias is None:
-                initial_bias = 0
-            bias_initializer = initializers._get_initializer(initial_bias)
-            self.b = variable.Parameter(bias_initializer, out_size)
+            if nobias:
+                self.b = None
+            else:
+                if initial_bias is None:
+                    initial_bias = 0
+                bias_initializer = initializers._get_initializer(initial_bias)
+                self.b = variable.Parameter(bias_initializer, out_size)
 
     def _initialize_params(self, in_size):
         self.W.initialize((self.out_size, in_size))

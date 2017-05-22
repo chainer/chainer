@@ -17,8 +17,9 @@ class TestLink(unittest.TestCase):
         x_shape_1 = numpy.int64(3)
         self.link = chainer.Link(x=((x_shape_0, x_shape_1), 'd'),
                                  u=(None, 'd'))
-        self.link.y = chainer.Parameter(shape=(2,))
-        self.link.v = chainer.Parameter()
+        with self.link.init_scope():
+            self.link.y = chainer.Parameter(shape=(2,))
+            self.link.v = chainer.Parameter()
         self.p = numpy.array([1, 2, 3], dtype='f')
         self.link.add_persistent('p', self.p)
         self.link.name = 'a'
@@ -348,7 +349,8 @@ class TestChain(unittest.TestCase):
         self.c1 = chainer.Chain(l1=self.l1)
         self.c1.add_link('l2', self.l2)
         self.c2 = chainer.Chain(c1=self.c1)
-        self.c2.l3 = self.l3
+        with self.c2.init_scope():
+            self.c2.l3 = self.l3
 
     def test_init(self):
         self.assertIs(self.c1.l1, self.l1)
@@ -838,7 +840,8 @@ class TestChainList(unittest.TestCase):
         l1 = chainer.Link(y=(1, 1))
 
         l2 = chainer.Link()
-        l2.x = chainer.Parameter(2)
+        with l2.init_scope():
+            l2.x = chainer.Parameter(0, 2)
         c1 = chainer.ChainList(l1, l2)
         mocks = {'0': mock.MagicMock(), '1': mock.MagicMock()}
         serializer = mock.MagicMock()

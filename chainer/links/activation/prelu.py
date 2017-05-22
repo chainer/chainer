@@ -24,7 +24,8 @@ class PReLU(link.Link):
 
     def __init__(self, shape=(), init=0.25):
         super(PReLU, self).__init__()
-        self.W = variable.Parameter(init, shape)
+        with self.init_scope():
+            self.W = variable.Parameter(init, shape)
 
     def __call__(self, x):
         """Applies the parametric ReLU activation function.

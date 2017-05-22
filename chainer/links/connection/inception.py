@@ -43,19 +43,25 @@ class Inception(link.Chain):
     def __init__(self, in_channels, out1, proj3, out3, proj5, out5, proj_pool,
                  conv_init=None, bias_init=None):
         super(Inception, self).__init__()
-        self.conv1 = convolution_2d.Convolution2D(
-            in_channels, out1, 1, initialW=conv_init, initial_bias=bias_init)
-        self.proj3 = convolution_2d.Convolution2D(
-            in_channels, proj3, 1, initialW=conv_init, initial_bias=bias_init)
-        self.conv3 = convolution_2d.Convolution2D(
-            proj3, out3, 3, pad=1, initialW=conv_init, initial_bias=bias_init)
-        self.proj5 = convolution_2d.Convolution2D(
-            in_channels, proj5, 1, initialW=conv_init, initial_bias=bias_init)
-        self.conv5 = convolution_2d.Convolution2D(
-            proj5, out5, 5, pad=2, initialW=conv_init, initial_bias=bias_init)
-        self.projp = convolution_2d.Convolution2D(
-            in_channels, proj_pool, 1, initialW=conv_init,
-            initial_bias=bias_init)
+        with self.init_scope():
+            self.conv1 = convolution_2d.Convolution2D(
+                in_channels, out1, 1, initialW=conv_init,
+                initial_bias=bias_init)
+            self.proj3 = convolution_2d.Convolution2D(
+                in_channels, proj3, 1, initialW=conv_init,
+                initial_bias=bias_init)
+            self.conv3 = convolution_2d.Convolution2D(
+                proj3, out3, 3, pad=1, initialW=conv_init,
+                initial_bias=bias_init)
+            self.proj5 = convolution_2d.Convolution2D(
+                in_channels, proj5, 1, initialW=conv_init,
+                initial_bias=bias_init)
+            self.conv5 = convolution_2d.Convolution2D(
+                proj5, out5, 5, pad=2, initialW=conv_init,
+                initial_bias=bias_init)
+            self.projp = convolution_2d.Convolution2D(
+                in_channels, proj_pool, 1, initialW=conv_init,
+                initial_bias=bias_init)
 
     def __call__(self, x):
         """Computes the output of the Inception module.

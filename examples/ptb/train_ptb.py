@@ -23,10 +23,11 @@ class RNNForLM(chainer.Chain):
 
     def __init__(self, n_vocab, n_units):
         super(RNNForLM, self).__init__()
-        self.embed = L.EmbedID(n_vocab, n_units)
-        self.l1 = L.LSTM(n_units, n_units)
-        self.l2 = L.LSTM(n_units, n_units)
-        self.l3 = L.Linear(n_units, n_vocab)
+        with self.init_scope():
+            self.embed = L.EmbedID(n_vocab, n_units)
+            self.l1 = L.LSTM(n_units, n_units)
+            self.l2 = L.LSTM(n_units, n_units)
+            self.l3 = L.Linear(n_units, n_vocab)
 
         for param in self.params():
             param.data[...] = np.random.uniform(-0.1, 0.1, param.data.shape)

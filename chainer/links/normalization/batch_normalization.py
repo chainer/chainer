@@ -66,18 +66,6 @@ class BatchNormalization(link.Link):
                  use_gamma=True, use_beta=True,
                  initial_gamma=None, initial_beta=None):
         super(BatchNormalization, self).__init__()
-        if use_gamma:
-            if initial_gamma is None:
-                initial_gamma = 1
-            initial_gamma = initializers._get_initializer(initial_gamma)
-            initial_gamma.dtype = dtype
-            self.gamma = variable.Parameter(initial_gamma, size)
-        if use_beta:
-            if initial_beta is None:
-                initial_beta = 0
-            initial_beta = initializers._get_initializer(initial_beta)
-            initial_beta.dtype = dtype
-            self.beta = variable.Parameter(initial_beta, size)
         self.avg_mean = numpy.zeros(size, dtype=dtype)
         self.register_persistent('avg_mean')
         self.avg_var = numpy.zeros(size, dtype=dtype)
@@ -86,6 +74,20 @@ class BatchNormalization(link.Link):
         self.register_persistent('N')
         self.decay = decay
         self.eps = eps
+
+        with self.init_scope():
+            if use_gamma:
+                if initial_gamma is None:
+                    initial_gamma = 1
+                initial_gamma = initializers._get_initializer(initial_gamma)
+                initial_gamma.dtype = dtype
+                self.gamma = variable.Parameter(initial_gamma, size)
+            if use_beta:
+                if initial_beta is None:
+                    initial_beta = 0
+                initial_beta = initializers._get_initializer(initial_beta)
+                initial_beta.dtype = dtype
+                self.beta = variable.Parameter(initial_beta, size)
 
     def __call__(self, x, **kwargs):
         """__call__(self, x, finetune=False)

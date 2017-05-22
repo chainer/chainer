@@ -47,50 +47,51 @@ class InceptionBN(link.Chain):
                  pooltype, proj_pool=None, stride=1, conv_init=None,
                  dtype=numpy.float32):
         super(InceptionBN, self).__init__()
-        self.proj3 = convolution_2d.Convolution2D(
-            in_channels, proj3, 1, nobias=True, initialW=conv_init)
-        self.conv3 = convolution_2d.Convolution2D(
-            proj3, out3, 3, pad=1, stride=stride, nobias=True,
-            initialW=conv_init)
-        self.proj33 = convolution_2d.Convolution2D(
-            in_channels, proj33, 1, nobias=True, initialW=conv_init)
-        self.conv33a = convolution_2d.Convolution2D(
-            proj33, out33, 3, pad=1, nobias=True, initialW=conv_init)
-        self.conv33b = convolution_2d.Convolution2D(
-            out33, out33, 3, pad=1, stride=stride, nobias=True,
-            initialW=conv_init)
-        self.proj3n = batch_normalization.BatchNormalization(
-            proj3, dtype=dtype)
-        self.conv3n = batch_normalization.BatchNormalization(
-            out3, dtype=dtype)
-        self.proj33n = batch_normalization.BatchNormalization(
-            proj33, dtype=dtype)
-        self.conv33an = batch_normalization.BatchNormalization(
-            out33, dtype=dtype)
-        self.conv33bn = batch_normalization.BatchNormalization(
-            out33, dtype=dtype)
-
-        if out1 > 0:
-            assert stride == 1
-            assert proj_pool is not None
-            self.conv1 = convolution_2d.Convolution2D(
-                in_channels, out1, 1, stride=stride, nobias=True,
-                initialW=conv_init)
-            self.conv1n = batch_normalization.BatchNormalization(
-                out1, dtype=dtype)
         self.out1 = out1
-
-        if proj_pool is not None:
-            self.poolp = convolution_2d.Convolution2D(
-                in_channels, proj_pool, 1, nobias=True, initialW=conv_init)
-            self.poolpn = batch_normalization.BatchNormalization(
-                proj_pool, dtype=dtype)
         self.proj_pool = proj_pool
-
         self.stride = stride
         self.pooltype = pooltype
         if pooltype != 'max' and pooltype != 'avg':
             raise NotImplementedError()
+
+        with self.init_scope():
+            self.proj3 = convolution_2d.Convolution2D(
+                in_channels, proj3, 1, nobias=True, initialW=conv_init)
+            self.conv3 = convolution_2d.Convolution2D(
+                proj3, out3, 3, pad=1, stride=stride, nobias=True,
+                initialW=conv_init)
+            self.proj33 = convolution_2d.Convolution2D(
+                in_channels, proj33, 1, nobias=True, initialW=conv_init)
+            self.conv33a = convolution_2d.Convolution2D(
+                proj33, out33, 3, pad=1, nobias=True, initialW=conv_init)
+            self.conv33b = convolution_2d.Convolution2D(
+                out33, out33, 3, pad=1, stride=stride, nobias=True,
+                initialW=conv_init)
+            self.proj3n = batch_normalization.BatchNormalization(
+                proj3, dtype=dtype)
+            self.conv3n = batch_normalization.BatchNormalization(
+                out3, dtype=dtype)
+            self.proj33n = batch_normalization.BatchNormalization(
+                proj33, dtype=dtype)
+            self.conv33an = batch_normalization.BatchNormalization(
+                out33, dtype=dtype)
+            self.conv33bn = batch_normalization.BatchNormalization(
+                out33, dtype=dtype)
+
+            if out1 > 0:
+                assert stride == 1
+                assert proj_pool is not None
+                self.conv1 = convolution_2d.Convolution2D(
+                    in_channels, out1, 1, stride=stride, nobias=True,
+                    initialW=conv_init)
+                self.conv1n = batch_normalization.BatchNormalization(
+                    out1, dtype=dtype)
+
+            if proj_pool is not None:
+                self.poolp = convolution_2d.Convolution2D(
+                    in_channels, proj_pool, 1, nobias=True, initialW=conv_init)
+                self.poolpn = batch_normalization.BatchNormalization(
+                    proj_pool, dtype=dtype)
 
     def __call__(self, x):
         outs = []

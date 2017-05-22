@@ -97,13 +97,14 @@ class ResNetLayers(link.Chain):
             raise ValueError('The n_layers argument should be either 50, 101,'
                              ' or 152, but {} was given.'.format(n_layers))
 
-        self.conv1 = Convolution2D(3, 64, 7, 2, 3, **kwargs)
-        self.bn1 = BatchNormalization(64)
-        self.res2 = BuildingBlock(block[0], 64, 64, 256, 1, **kwargs)
-        self.res3 = BuildingBlock(block[1], 256, 128, 512, 2, **kwargs)
-        self.res4 = BuildingBlock(block[2], 512, 256, 1024, 2, **kwargs)
-        self.res5 = BuildingBlock(block[3], 1024, 512, 2048, 2, **kwargs)
-        self.fc6 = Linear(2048, 1000)
+        with self.init_scope():
+            self.conv1 = Convolution2D(3, 64, 7, 2, 3, **kwargs)
+            self.bn1 = BatchNormalization(64)
+            self.res2 = BuildingBlock(block[0], 64, 64, 256, 1, **kwargs)
+            self.res3 = BuildingBlock(block[1], 256, 128, 512, 2, **kwargs)
+            self.res4 = BuildingBlock(block[2], 512, 256, 1024, 2, **kwargs)
+            self.res5 = BuildingBlock(block[3], 1024, 512, 2048, 2, **kwargs)
+            self.fc6 = Linear(2048, 1000)
 
         if pretrained_model and pretrained_model.endswith('.caffemodel'):
             _retrieve(n_layers, 'ResNet-{}-model.npz'.format(n_layers),
@@ -465,14 +466,15 @@ class BuildingBlock(link.Chain):
     def __init__(self, n_layer, in_channels, mid_channels,
                  out_channels, stride, initialW=None):
         super(BuildingBlock, self).__init__()
-        self.a = BottleneckA(
-            in_channels, mid_channels, out_channels, stride, initialW)
-        self.forward = [self.a]
-        for i in range(n_layer - 1):
-            name = 'b{}'.format(i + 1)
-            bottleneck = BottleneckB(out_channels, mid_channels, initialW)
-            setattr(self, name, bottleneck)
-            self.forward.append(bottleneck)
+        with self.init_scope():
+            self.a = BottleneckA(
+                in_channels, mid_channels, out_channels, stride, initialW)
+            self.forward = [self.a]
+            for i in range(n_layer - 1):
+                name = 'b{}'.format(i + 1)
+                bottleneck = BottleneckB(out_channels, mid_channels, initialW)
+                setattr(self, name, bottleneck)
+                self.forward.append(bottleneck)
 
     def __call__(self, x):
         for l in self.forward:
@@ -496,22 +498,23 @@ class BottleneckA(link.Chain):
     def __init__(self, in_channels, mid_channels, out_channels,
                  stride=2, initialW=None):
         super(BottleneckA, self).__init__()
-        self.conv1 = Convolution2D(
-            in_channels, mid_channels, 1, stride, 0, initialW=initialW,
-            nobias=True)
-        self.bn1 = BatchNormalization(mid_channels)
-        self.conv2 = Convolution2D(
-            mid_channels, mid_channels, 3, 1, 1, initialW=initialW,
-            nobias=True)
-        self.bn2 = BatchNormalization(mid_channels)
-        self.conv3 = Convolution2D(
-            mid_channels, out_channels, 1, 1, 0, initialW=initialW,
-            nobias=True)
-        self.bn3 = BatchNormalization(out_channels)
-        self.conv4 = Convolution2D(
-            in_channels, out_channels, 1, stride, 0, initialW=initialW,
-            nobias=True)
-        self.bn4 = BatchNormalization(out_channels)
+        with self.init_scope():
+            self.conv1 = Convolution2D(
+                in_channels, mid_channels, 1, stride, 0, initialW=initialW,
+                nobias=True)
+            self.bn1 = BatchNormalization(mid_channels)
+            self.conv2 = Convolution2D(
+                mid_channels, mid_channels, 3, 1, 1, initialW=initialW,
+                nobias=True)
+            self.bn2 = BatchNormalization(mid_channels)
+            self.conv3 = Convolution2D(
+                mid_channels, out_channels, 1, 1, 0, initialW=initialW,
+                nobias=True)
+            self.bn3 = BatchNormalization(out_channels)
+            self.conv4 = Convolution2D(
+                in_channels, out_channels, 1, stride, 0, initialW=initialW,
+                nobias=True)
+            self.bn4 = BatchNormalization(out_channels)
 
     def __call__(self, x):
         h1 = relu(self.bn1(self.conv1(x)))
@@ -534,18 +537,19 @@ class BottleneckB(link.Chain):
 
     def __init__(self, in_channels, mid_channels, initialW=None):
         super(BottleneckB, self).__init__()
-        self.conv1 = Convolution2D(
-            in_channels, mid_channels, 1, 1, 0, initialW=initialW,
-            nobias=True)
-        self.bn1 = BatchNormalization(mid_channels)
-        self.conv2 = Convolution2D(
-            mid_channels, mid_channels, 3, 1, 1, initialW=initialW,
-            nobias=True)
-        self.bn2 = BatchNormalization(mid_channels)
-        self.conv3 = Convolution2D(
-            mid_channels, in_channels, 1, 1, 0, initialW=initialW,
-            nobias=True)
-        self.bn3 = BatchNormalization(in_channels)
+        with self.init_scope():
+            self.conv1 = Convolution2D(
+                in_channels, mid_channels, 1, 1, 0, initialW=initialW,
+                nobias=True)
+            self.bn1 = BatchNormalization(mid_channels)
+            self.conv2 = Convolution2D(
+                mid_channels, mid_channels, 3, 1, 1, initialW=initialW,
+                nobias=True)
+            self.bn2 = BatchNormalization(mid_channels)
+            self.conv3 = Convolution2D(
+                mid_channels, in_channels, 1, 1, 0, initialW=initialW,
+                nobias=True)
+            self.bn3 = BatchNormalization(in_channels)
 
     def __call__(self, x):
         h = relu(self.bn1(self.conv1(x)))

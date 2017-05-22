@@ -71,10 +71,11 @@ class Maxout(link.Chain):
                 raise ValueError(
                     'initial bias must be float, ndarray, or None')
 
-        self.linear = linear.Linear(
-            in_size, linear_out_size,
-            nobias=initial_bias is None, initialW=initialW,
-            initial_bias=initial_bias)
+        with self.init_scope():
+            self.linear = linear.Linear(
+                in_size, linear_out_size,
+                nobias=initial_bias is None, initialW=initialW,
+                initial_bias=initial_bias)
 
         self.out_size = out_size
         self.pool_size = pool_size

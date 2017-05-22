@@ -51,9 +51,10 @@ class LayerNormalization(link.Link):
         if initial_beta is None:
             initial_beta = 0
 
-        self.gamma = variable.Parameter(initial_gamma)
-        self.beta = variable.Parameter(initial_beta)
-        self.eps = eps
+        with self.init_scope():
+            self.gamma = variable.Parameter(initial_gamma)
+            self.beta = variable.Parameter(initial_beta)
+            self.eps = eps
 
         if size is not None:
             self._initialize_params(size)

@@ -57,17 +57,18 @@ class ConvolutionND(link.Link):
         self.pad = pad
         self.cover_all = cover_all
 
-        W_shape = (out_channels, in_channels) + ksize
-        self.W = variable.Parameter(initializers._get_initializer(initialW),
-                                    W_shape)
+        with self.init_scope():
+            W_shape = (out_channels, in_channels) + ksize
+            self.W = variable.Parameter(
+                initializers._get_initializer(initialW), W_shape)
 
-        if nobias:
-            self.b = None
-        else:
-            if initial_bias is None:
-                initial_bias = 0
-            initial_bias = initializers._get_initializer(initial_bias)
-            self.b = variable.Parameter(initial_bias, out_channels)
+            if nobias:
+                self.b = None
+            else:
+                if initial_bias is None:
+                    initial_bias = 0
+                initial_bias = initializers._get_initializer(initial_bias)
+                self.b = variable.Parameter(initial_bias, out_channels)
 
     def __call__(self, x):
         """Applies N-dimensional convolution layer.

@@ -299,8 +299,10 @@ class BinaryHierarchicalSoftmax(link.Link):
         # This function object is copied on every forward computation.
         super(BinaryHierarchicalSoftmax, self).__init__()
         self._func = BinaryHierarchicalSoftmaxFunction(tree)
-        self.W = variable.Parameter(uniform.Uniform(1),
-                                    (self._func.parser_size, in_size))
+
+        with self.init_scope():
+            self.W = variable.Parameter(uniform.Uniform(1),
+                                        (self._func.parser_size, in_size))
 
     def to_gpu(self, device=None):
         with cuda.get_device(device):

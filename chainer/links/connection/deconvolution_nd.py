@@ -54,16 +54,17 @@ class DeconvolutionND(link.Link):
         self.pad = pad
         self.outsize = outsize
 
-        self.W = variable.Parameter(initializers._get_initializer(initialW),
-                                    (in_channels, out_channels) + ksize)
-
-        if nobias:
-            self.b = None
-        else:
-            if initial_bias is None:
-                initial_bias = 0
-            initial_bias = initializers._get_initializer(initial_bias)
-            self.b = variable.Parameter(initial_bias, out_channels)
+        with self.init_scope():
+            W_initializer = initializers._get_initializer(initialW)
+            self.W = variable.Parameter(W_initializer,
+                                        (in_channels, out_channels) + ksize)
+            if nobias:
+                self.b = None
+            else:
+                if initial_bias is None:
+                    initial_bias = 0
+                initial_bias = initializers._get_initializer(initial_bias)
+                self.b = variable.Parameter(initial_bias, out_channels)
 
     def __call__(self, x):
         return deconvolution_nd.deconvolution_nd(
