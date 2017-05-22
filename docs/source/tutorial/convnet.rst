@@ -15,8 +15,8 @@ After reading this section, you will be able to:
 A convolutional network (ConvNet) is mainly comprised of convolutional layers.
 This type of network is commonly used for various visual recognition tasks,
 e.g., classifying hand-written digits or natural images into given object
-classes, detectiong objects from an image, and labeling all pixels of an image
-with the object classes (semantic segmenation), and so on.
+classes, detecting objects from an image, and labeling all pixels of an image
+with the object classes (semantic segmentation), and so on.
 
 In such tasks, a typical ConvNet takes a set of images whose shape is
 :math:`(N, C, H, W)`, where
@@ -196,7 +196,7 @@ wrapping the model object (:class:`~chainer.Chain` or
 model defined above and register it through the constructor of its superclass
 or :meth:`~chainer.Chain.add_link`. :class:`~chainer.Chain` is actually
 inherited from :class:`~chainer.Link`, so that :class:`~chainer.Chain` itself
-can also be registedred as a trainable :class:`~chainer.Link` to another
+can also be registered as a trainable :class:`~chainer.Link` to another
 :class:`~chainer.Chain`. Actually, :class:`~chainer.links.Classifier` class to
 wrap the model and add the loss computation to the model already exists.
 Actually, there is already a :class:`~chainer.links.Classifier` class that can
