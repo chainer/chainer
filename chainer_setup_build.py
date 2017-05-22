@@ -376,16 +376,12 @@ def _nvcc_gencode_options(cuda_version):
     return options
 
 
-def _escape(str):
-    return str.replace('\\', r'\\').replace('"', r'\"')
-
-
 class _UnixCCompiler(unixccompiler.UnixCCompiler):
     src_extensions = list(unixccompiler.UnixCCompiler.src_extensions)
     src_extensions.append('.cu')
 
     def _compile(self, obj, src, ext, cc_args, extra_postargs, pp_opts):
-        # For ordinal extension source files, just call the super class method.
+        # For sources other than CUDA C ones, just call the super class method.
         if os.path.splitext(src)[1] != '.cu':
             return unixccompiler.UnixCCompiler._compile(
                 self, obj, src, ext, cc_args, extra_postargs, pp_opts)
@@ -396,37 +392,15 @@ class _UnixCCompiler(unixccompiler.UnixCCompiler):
             nvcc_path = build.get_nvcc_path()
             self.set_executable('compiler_so', nvcc_path)
 
-            cflags = ''
-            if 'CFLAGS' in os.environ:
-                cflags += ' ' + os.environ['CFLAGS']
-            if 'CPPFLAGS' in os.environ:
-                cflags += ' ' + os.environ['CPPFLAGS']
-
-            compiler_options = '-fPIC'
-            if cflags != '':
-                compiler_options += ' ' + cflags
-            compiler_options = _escape(compiler_options)
-
             cuda_version = build.get_cuda_version()
             postargs = _nvcc_gencode_options(cuda_version) + [
-                '-O2', '--compiler-options="{}"'.format(compiler_options)]
+                '-O2', '--compiler-options="-fPIC"']
             print('NVCC options:', postargs)
 
             return unixccompiler.UnixCCompiler._compile(
                 self, obj, src, ext, cc_args, postargs, pp_opts)
         finally:
             self.compiler_so = _compiler_so
-
-
-def _split(lst, fn):
-    then_list = []
-    else_list = []
-    for x in lst:
-        if fn(x):
-            then_list.append(x)
-        else:
-            else_list.append(x)
-    return then_list, else_list
 
 
 class _MSVCCompiler(msvccompiler.MSVCCompiler):
@@ -447,14 +421,6 @@ class _MSVCCompiler(msvccompiler.MSVCCompiler):
         compiler_so = [build.get_nvcc_path()]
         cc_args = self._get_cc_args(pp_opts, debug, extra_preargs)
         postargs = _nvcc_gencode_options() + ['-O2']
-
-        cflags = ''
-        if 'CFLAGS' in os.environ:
-            cflags = cflags + ' ' + os.environ['CFLAGS']
-        if 'CPPFLAGS' in os.environ:
-            cflags = cflags + ' ' + os.environ['CPPFLAGS']
-        if cflags != '':
-            postargs += [cflags]
         print('NVCC options:', postargs)
 
         for obj in objects:
@@ -470,18 +436,24 @@ class _MSVCCompiler(msvccompiler.MSVCCompiler):
         return objects
 
     def compile(self, sources, **kwargs):
-        sources_cu, sources_base = _split(
-            sources, lambda x: os.path.splitext(x)[1] == '.cu')
+        # Split CUDA C sources and others.
+        cu_sources = []
+        other_sources = []
+        for source in sources:
+            if os.path.splitext(source)[1] == '.cu':
+                cu_sources.append(source)
+            else:
+                other_sources.append(source)
 
         # Compile source files other than CUDA C ones.
-        super = msvccompiler.MSVCCompiler
-        objects_base = super.compile(self, sources_base, **kwargs)
+        other_objects = msvccompiler.MSVCCompiler.compile(
+            self, other_sources, **kwargs)
 
-        # Compile CUDA C files
-        objects_cu = self._compile_cu(sources_cu, *kwargs)
+        # Compile CUDA C sources.
+        cu_objects = self._compile_cu(cu_sources, **kwargs)
 
         # Return compiled object filenames.
-        return objects_base + objects_cu
+        return other_objects + cu_objects
 
 
 class custom_build_ext(build_ext.build_ext):
