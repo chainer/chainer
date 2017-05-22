@@ -27,6 +27,7 @@ from chainer.functions.array import fliplr  # NOQA
 from chainer.functions.array import flipud  # NOQA
 from chainer.functions.array import get_item  # NOQA
 from chainer.functions.array import hstack  # NOQA
+from chainer.functions.array import im2col  # NOQA
 from chainer.functions.array import pad  # NOQA
 from chainer.functions.array import pad_sequence  # NOQA
 from chainer.functions.array import permutate  # NOQA
@@ -36,6 +37,8 @@ from chainer.functions.array import rollaxis  # NOQA
 from chainer.functions.array import select_item  # NOQA
 from chainer.functions.array import separate  # NOQA
 from chainer.functions.array import space2depth  # NOQA
+from chainer.functions.array import spatial_transformer_grid  # NOQA
+from chainer.functions.array import spatial_transformer_sampler  # NOQA
 from chainer.functions.array import split_axis  # NOQA
 from chainer.functions.array import squeeze  # NOQA
 from chainer.functions.array import stack  # NOQA
@@ -50,13 +53,17 @@ from chainer.functions.connection import convolution_2d  # NOQA
 from chainer.functions.connection import convolution_nd  # NOQA
 from chainer.functions.connection import deconvolution_2d  # NOQA
 from chainer.functions.connection import deconvolution_nd  # NOQA
+from chainer.functions.connection import depthwise_convolution_2d  # NOQA
 from chainer.functions.connection import dilated_convolution_2d  # NOQA
 from chainer.functions.connection import embed_id  # NOQA
 from chainer.functions.connection import linear  # NOQA
+from chainer.functions.connection import n_step_gru  # NOQA
 from chainer.functions.connection import n_step_lstm  # NOQA
+from chainer.functions.connection import n_step_rnn  # NOQA
 from chainer.functions.evaluation import accuracy  # NOQA
 from chainer.functions.evaluation import binary_accuracy  # NOQA
 from chainer.functions.evaluation import classification_summary  # NOQA
+from chainer.functions.loss import absolute_error  # NOQA
 from chainer.functions.loss import black_out  # NOQA
 from chainer.functions.loss import contrastive  # NOQA
 from chainer.functions.loss import crf1d  # NOQA
@@ -70,6 +77,7 @@ from chainer.functions.loss import mean_squared_error  # NOQA
 from chainer.functions.loss import negative_sampling  # NOQA
 from chainer.functions.loss import sigmoid_cross_entropy  # NOQA
 from chainer.functions.loss import softmax_cross_entropy  # NOQA
+from chainer.functions.loss import squared_error  # NOQA
 from chainer.functions.loss import triplet  # NOQA
 from chainer.functions.loss import vae  # NOQA  # NOQA
 from chainer.functions.math import average  # NOQA
@@ -101,6 +109,7 @@ from chainer.functions.math import sum  # NOQA
 from chainer.functions.math import trigonometric  # NOQA
 from chainer.functions.noise import dropout  # NOQA
 from chainer.functions.noise import gaussian  # NOQA
+from chainer.functions.noise import simplified_dropconnect  # NOQA
 from chainer.functions.noise import zoneout  # NOQA
 from chainer.functions.normalization import batch_normalization  # NOQA
 from chainer.functions.normalization import l2_normalization  # NOQA
@@ -172,6 +181,8 @@ from chainer.functions.array.flipud import FlipUD  # NOQA
 from chainer.functions.array.get_item import get_item  # NOQA
 from chainer.functions.array.get_item import GetItem  # NOQA
 from chainer.functions.array.hstack import hstack  # NOQA
+from chainer.functions.array.im2col import im2col  # NOQA
+from chainer.functions.array.im2col import Im2Col  # NOQA
 from chainer.functions.array.pad import pad  # NOQA
 from chainer.functions.array.pad import Pad  # NOQA
 from chainer.functions.array.pad_sequence import pad_sequence  # NOQA
@@ -189,6 +200,10 @@ from chainer.functions.array.select_item import SelectItem  # NOQA
 from chainer.functions.array.separate import separate  # NOQA
 from chainer.functions.array.space2depth import space2depth  # NOQA
 from chainer.functions.array.space2depth import Space2Depth  # NOQA
+from chainer.functions.array.spatial_transformer_grid import spatial_transformer_grid  # NOQA
+from chainer.functions.array.spatial_transformer_grid import SpatialTransformerGrid  # NOQA
+from chainer.functions.array.spatial_transformer_sampler import spatial_transformer_sampler  # NOQA
+from chainer.functions.array.spatial_transformer_sampler import SpatialTransformerSampler  # NOQA
 from chainer.functions.array.split_axis import split_axis  # NOQA
 from chainer.functions.array.split_axis import SplitAxis  # NOQA
 from chainer.functions.array.squeeze import squeeze  # NOQA
@@ -211,11 +226,24 @@ from chainer.functions.connection.convolution_2d import convolution_2d  # NOQA
 from chainer.functions.connection.convolution_nd import convolution_nd  # NOQA
 from chainer.functions.connection.deconvolution_2d import deconvolution_2d  # NOQA
 from chainer.functions.connection.deconvolution_nd import deconvolution_nd  # NOQA
+from chainer.functions.connection.depthwise_convolution_2d import depthwise_convolution_2d  # NOQA
 from chainer.functions.connection.dilated_convolution_2d import dilated_convolution_2d  # NOQA
 from chainer.functions.connection.embed_id import embed_id  # NOQA
 from chainer.functions.connection.linear import linear  # NOQA
+from chainer.functions.connection.n_step_gru import n_step_bigru  # NOQA
+from chainer.functions.connection.n_step_gru import n_step_gru  # NOQA
+from chainer.functions.connection.n_step_gru import NStepBiGRU  # NOQA
+from chainer.functions.connection.n_step_gru import NStepGRU  # NOQA
+from chainer.functions.connection.n_step_lstm import n_step_bilstm  # NOQA
 from chainer.functions.connection.n_step_lstm import n_step_lstm  # NOQA
+from chainer.functions.connection.n_step_lstm import NStepBiLSTM  # NOQA
 from chainer.functions.connection.n_step_lstm import NStepLSTM  # NOQA
+from chainer.functions.connection.n_step_rnn import n_step_birnn  # NOQA
+from chainer.functions.connection.n_step_rnn import n_step_rnn  # NOQA
+from chainer.functions.connection.n_step_rnn import NStepBiRNNReLU  # NOQA
+from chainer.functions.connection.n_step_rnn import NStepBiRNNTanh  # NOQA
+from chainer.functions.connection.n_step_rnn import NStepRNNReLU  # NOQA
+from chainer.functions.connection.n_step_rnn import NStepRNNTanh  # NOQA
 
 from chainer.functions.evaluation.accuracy import accuracy  # NOQA
 from chainer.functions.evaluation.accuracy import Accuracy  # NOQA
@@ -228,6 +256,8 @@ from chainer.functions.evaluation.classification_summary import precision  # NOQ
 from chainer.functions.evaluation.classification_summary import recall  # NOQA
 from chainer.functions.evaluation.r2_score import r2_score  # NOQA
 
+from chainer.functions.loss.absolute_error import absolute_error  # NOQA
+from chainer.functions.loss.absolute_error import AbsoluteError  # NOQA
 from chainer.functions.loss.black_out import black_out  # NOQA
 from chainer.functions.loss.contrastive import contrastive  # NOQA
 from chainer.functions.loss.contrastive import Contrastive  # NOQA
@@ -252,6 +282,8 @@ from chainer.functions.loss.sigmoid_cross_entropy import sigmoid_cross_entropy  
 from chainer.functions.loss.sigmoid_cross_entropy import SigmoidCrossEntropy  # NOQA
 from chainer.functions.loss.softmax_cross_entropy import softmax_cross_entropy  # NOQA
 from chainer.functions.loss.softmax_cross_entropy import SoftmaxCrossEntropy  # NOQA
+from chainer.functions.loss.squared_error import squared_error  # NOQA
+from chainer.functions.loss.squared_error import SquaredError  # NOQA
 from chainer.functions.loss.triplet import triplet  # NOQA
 from chainer.functions.loss.triplet import Triplet  # NOQA
 from chainer.functions.loss.vae import bernoulli_nll  # NOQA
@@ -343,6 +375,8 @@ from chainer.functions.noise.dropout import dropout  # NOQA
 from chainer.functions.noise.dropout import Dropout  # NOQA
 from chainer.functions.noise.gaussian import gaussian  # NOQA
 from chainer.functions.noise.gaussian import Gaussian  # NOQA
+from chainer.functions.noise.simplified_dropconnect import simplified_dropconnect  # NOQA
+from chainer.functions.noise.simplified_dropconnect import SimplifiedDropconnect  # NOQA
 from chainer.functions.noise.zoneout import zoneout  # NOQA
 from chainer.functions.noise.zoneout import Zoneout  # NOQA
 
@@ -376,3 +410,6 @@ from chainer.functions.theano.theano_function import TheanoFunction  # NOQA
 
 from chainer.functions.util.forget import forget  # NOQA
 from chainer.functions.util.forget import Forget  # NOQA
+
+# Aliases
+mean = average

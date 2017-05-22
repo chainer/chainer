@@ -45,7 +45,7 @@ class RMSpropGravesRule(optimizer.UpdateRule):
 
     def init_state(self, param):
         xp = cuda.get_array_module(param.data)
-        with cuda.get_device(param.data):
+        with cuda.get_device_from_array(param.data):
             self.state['n'] = xp.zeros_like(param.data)
             self.state['g'] = xp.zeros_like(param.data)
             self.state['delta'] = xp.zeros_like(param.data)
