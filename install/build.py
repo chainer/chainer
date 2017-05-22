@@ -113,7 +113,7 @@ def get_cuda_version():
     """Return CUDA Toolkit version cached in check_cuda_version()."""
     global _cuda_version
     if _cuda_version is None:
-        msg = 'check_cuda_version() should be called first.'
+        msg = 'check_cuda_version() must be called first.'
         raise Exception(msg)
     return _cuda_version
 
