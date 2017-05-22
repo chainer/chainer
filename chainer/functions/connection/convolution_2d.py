@@ -345,8 +345,6 @@ def convolution_2d(x, W, b=None, stride=1, pad=0,
     If the bias vector is given, then it is added to all spatial locations of
     the output of convolution.
 
-    The two-dimensional convolution function is defined as follows.
-
     Args:
         x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`):
