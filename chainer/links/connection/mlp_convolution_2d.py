@@ -59,7 +59,7 @@ class MLPConvolution2D(link.ChainList):
                  activation=relu.relu, *args, **kwargs):
 
         # If `args` is not empty, users assume the API for v1 and
-        # specifie `wscale` as a positonal argument, which we want
+        # specify `wscale` as a positonal argument, which we want
         # to detect and forbid with an explicit error message.
         msg = ('wscale is not supported anymore. '
                'Use conv_init and bias_init argument to change '
