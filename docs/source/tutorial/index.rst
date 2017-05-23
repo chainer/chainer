@@ -6,6 +6,7 @@ Chainer Tutorial
 
    basic
    writenet
+   recurrentnet
    gpu
    function
    type_check
