@@ -1,5 +1,8 @@
 import numpy
 
+import chainer
+import warnings
+
 from chainer import cuda
 from chainer import function
 from chainer.utils import conv
@@ -15,6 +18,9 @@ if cuda.cudnn_enabled:
             libcudnn.CUDNN_CONVOLUTION_BWD_FILTER_SPECIFY_WORKSPACE_LIMIT
         _bwd_data_pref = \
             libcudnn.CUDNN_CONVOLUTION_BWD_DATA_SPECIFY_WORKSPACE_LIMIT
+
+    from cupy.cuda import device  # NOQA
+    _cc = device.Device().compute_capability  # compute capability
 
 
 def _check_cudnn_acceptable_type(x_dtype, W_dtype):
@@ -37,6 +43,15 @@ class Convolution2DFunction(function.Function):
         self.use_cudnn = use_cudnn
         self.cover_all = cover_all
         self.deterministic = deterministic
+
+        self.fp16_compute_mode = getattr(function._thread_local,
+                                         'fp16_compute_mode', False)
+        if self.fp16_compute_mode:
+            # fp16 compute is available on GPUs with compute capability 6.0.
+            if not _cc == '60':
+                msg = 'fp16 compute is not supported by the GPU ' + \
+                      'with compute capability {}'.format(_cc)
+                raise RuntimeError(msg)
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -122,7 +137,14 @@ class Convolution2DFunction(function.Function):
 
             self.filter_desc = cudnn.create_filter_descriptor(W)
             self.conv_desc = cudnn.create_convolution_descriptor(
-                (self.ph, self.pw), (self.sy, self.sx), x.dtype)
+                (self.ph, self.pw), (self.sy, self.sx), x.dtype,
+                fp16_compute_mode=self.fp16_compute_mode)
+            if x.dtype == numpy.float16 and self.fp16_compute_mode:
+                # fp16 compute may not be available in some case.
+                # make descriptor for convolution at fp32 precision.
+                self.conv_desc_fp32 = cudnn.create_convolution_descriptor(
+                    (self.ph, self.pw), (self.sy, self.sx), x.dtype,
+                    fp16_compute_mode=False)
             if b is not None:
                 self.bias_desc = cudnn.create_tensor_descriptor(
                     b[None, :, None, None])
@@ -244,17 +266,44 @@ class Convolution2DFunction(function.Function):
                     algo, workspace.data.ptr, workspace_size,
                     zero.data, self.filter_desc.value, gW.data.ptr)
 
-                if not self.deterministic:
-                    algo = libcudnn.getConvolutionBackwardDataAlgorithm(
-                        handle, self.filter_desc.value, gy_desc.value,
-                        self.conv_desc.value, x_desc.value, _bwd_data_pref,
-                        workspace_size)
+                conv_desc_bd = self.conv_desc
+                if hasattr(self, 'conv_desc_fp32'):
+                    # WA for cuDNN 6.0 or below.
+                    # When stride > 1, fp16 is slower than fp32.
+                    # Try to remove the WA, when new cuDNN is released.
+                    if self.sx != 1 or self.sy != 1:
+                        conv_desc_bd = self.conv_desc_fp32
+
+                    try:
+                        # try to find algo for fp16 compute
+                        algo = libcudnn.getConvolutionBackwardDataAlgorithm(
+                            handle, self.filter_desc.value, gy_desc.value,
+                            conv_desc_bd.value, x_desc.value, _bwd_data_pref,
+                            workspace_size)
+                    except RuntimeError:
+                        if chainer.is_debug():
+                            warnings.warn('No algorithm found for fp16 compute (kh:{}, kw:{}, n:{}, c:{}, h:{}, w:{}, out_c:{}, out_h:{}, out_w:{})'.format(kh, kw, n, c, h, w, out_c, out_h, out_w))  # NOQA
+                        # use fp32 compute instead
+                        conv_desc_bd = self.conv_desc_fp32
+                        algo = libcudnn.getConvolutionBackwardDataAlgorithm(
+                            handle, self.filter_desc.value, gy_desc.value,
+                            conv_desc_bd.value, x_desc.value, _bwd_data_pref,
+                            workspace_size)
+
+                    if self.deterministic:
+                        algo = cuda.cupy.cuda.cudnn.CUDNN_CONVOLUTION_BWD_DATA_ALGO_1  # NOQA
                 else:
-                    algo = cuda.cupy.cuda.cudnn.CUDNN_CONVOLUTION_BWD_DATA_ALGO_1  # NOQA
+                    if not self.deterministic:
+                        algo = libcudnn.getConvolutionBackwardDataAlgorithm(
+                            handle, self.filter_desc.value, gy_desc.value,
+                            conv_desc_bd.value, x_desc.value, _bwd_data_pref,
+                            workspace_size)
+                    else:
+                        algo = cuda.cupy.cuda.cudnn.CUDNN_CONVOLUTION_BWD_DATA_ALGO_1  # NOQA
 
                 libcudnn.convolutionBackwardData_v3(
                     handle, one.data, self.filter_desc.value, W.data.ptr,
-                    gy_desc.value, gy.data.ptr, self.conv_desc.value,
+                    gy_desc.value, gy.data.ptr, conv_desc_bd.value,
                     algo, workspace.data.ptr, workspace_size,
                     zero.data, x_desc.value, gx.data.ptr)
             else:

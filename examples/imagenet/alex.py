@@ -68,3 +68,14 @@ class AlexFp16(Alex):
 
     def __call__(self, x, t):
         return Alex.__call__(self, F.cast(x, self.dtype), t)
+
+
+class AlexFp16c(AlexFp16):
+
+    """Single-GPU AlexNet without partition toward the channel axis."""
+
+    insize = 227
+
+    def __call__(self, x, t):
+        with chainer.use_fp16_compute():
+            return AlexFp16.__call__(self, x, t)
