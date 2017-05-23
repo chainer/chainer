@@ -188,7 +188,7 @@ class GoogLeNet(link.Chain):
 
         Args:
             x (~chainer.Variable): Input variable. It should be prepared by
-            ``prepare`` function.
+                ``prepare`` function.
             layers (list of str): The list of layer names you want to extract.
 
         Returns:
