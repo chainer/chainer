@@ -178,6 +178,22 @@ An instance of the Linear link acts like a usual function:
    array([[ 3.1757617 ,  1.75755572],
           [ 8.61950684,  7.18090773]], dtype=float32)
 
+.. note::
+
+  Sometimes it is cumbersome to compute the dimension of input space.
+  The linear link and some of (de)convolution links can omit the input dimension
+  in their instantiation and infer it from the first mini-batch.
+
+  For example, the following line creates a linear link whose output dimension
+  is two::
+
+      f = L.Linear(2)
+
+  If we feed a mini-batch of shape ``(N, M)``, the input dimension will be inferred as ``M``,
+  which means ``f.W`` is a 2 x M matrix.
+  Note that its parameters are initialized in a lazy manner at the first mini-batch.
+  Therefore, ``f`` does not have ``W`` attribute if no data is put to the link.
+
 Gradients of parameters are computed by the :meth:`~Variable.backward` method.
 Note that gradients are **accumulated** by the method rather than overwritten.
 So first you must clear gradients to renew the computation.
