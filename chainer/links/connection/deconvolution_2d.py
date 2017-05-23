@@ -19,8 +19,8 @@ class Deconvolution2D(link.Link):
     .. warning::
 
         ``deterministic`` argument is not supported anymore since v2.
-        Instead, use ``chainer.using_config('deterministic', deterministic)``
-        (deterministic is either ``True`` or ``False``).
+        Instead, use ``chainer.using_config('cudnn_deterministic', value)``
+        (value is either ``True`` or ``False``).
         See :func:`chainer.using_config`.
 
     Args:
@@ -62,7 +62,7 @@ class Deconvolution2D(link.Link):
     the bias parameter.
 
     The output of this function can be non-deterministic when it uses cuDNN.
-    If ``chainer.configuration.config.deterministic`` is ``True`` and
+    If ``chainer.configuration.config.cudnn_deterministic`` is ``True`` and
     cuDNN version is >= v3, it forces cuDNN to use a deterministic algorithm.
 
     .. seealso::
@@ -127,8 +127,10 @@ class Deconvolution2D(link.Link):
         super(Deconvolution2D, self).__init__()
 
         argument.check_unexpected_kwargs(
-            kwargs, deterministic='deterministic argument is not '
-            'supported anymore. Use chainer.using_config')
+            kwargs, deterministic="deterministic argument is not "
+            "supported anymore. "
+            "Use chainer.using_config('cudnn_deterministic', value) "
+            "context where value is either `True` or `False`.")
         argument.assert_kwargs_empty(kwargs)
 
         if ksize is None:

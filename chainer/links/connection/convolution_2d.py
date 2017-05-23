@@ -22,8 +22,8 @@ class Convolution2D(link.Link):
     .. warning::
 
         ``deterministic`` argument is not supported anymore since v2.
-        Instead, use ``chainer.using_config('deterministic', deterministic``
-        (deterministic is either ``True`` or ``False``).
+        Instead, use ``chainer.using_config('cudnn_deterministic', value``
+        (value is either ``True`` or ``False``).
         See :func:`chainer.using_config`.
 
     Args:
@@ -106,8 +106,10 @@ class Convolution2D(link.Link):
         super(Convolution2D, self).__init__()
 
         argument.check_unexpected_kwargs(
-            kwargs, deterministic='deterministic argument is not '
-            'supported anymore. Use chainer.using_config')
+            kwargs, deterministic="deterministic argument is not "
+            "supported anymore. "
+            "Use chainer.using_config('cudnn_deterministic', value) "
+            "context where value is either `True` or `False`.")
         argument.assert_kwargs_empty(kwargs)
 
         if ksize is None:

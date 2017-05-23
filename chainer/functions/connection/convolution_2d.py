@@ -35,8 +35,10 @@ class Convolution2DFunction(function.Function):
 
     def __init__(self, stride=1, pad=0, cover_all=False, **kwargs):
         argument.check_unexpected_kwargs(
-            kwargs, deterministic='deterministic argument is not '
-            'supported anymore. Use chainer.using_config')
+            kwargs, deterministic="deterministic argument is not "
+            "supported anymore. "
+            "Use chainer.using_config('cudnn_deterministic', value) "
+            "context where value is either `True` or `False`.")
         argument.assert_kwargs_empty(kwargs)
 
         self.sy, self.sx = _pair(stride)
@@ -235,7 +237,7 @@ class Convolution2DFunction(function.Function):
                 workspace_size = cuda.get_max_workspace_size()
                 workspace = cuda.cupy.empty((workspace_size,), dtype='b')
 
-                if configuration.config.deterministic:
+                if configuration.config.cudnn_deterministic:
                     algo = cuda.cupy.cuda.cudnn.CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1  # NOQA
                 else:
                     algo = libcudnn.getConvolutionBackwardFilterAlgorithm(
@@ -249,7 +251,7 @@ class Convolution2DFunction(function.Function):
                     algo, workspace.data.ptr, workspace_size,
                     zero.data, self.filter_desc.value, gW.data.ptr)
 
-                if configuration.config.deterministic:
+                if configuration.config.cudnn_deterministic:
                     algo = cuda.cupy.cuda.cudnn.CUDNN_CONVOLUTION_BWD_DATA_ALGO_1  # NOQA
                 else:
                     algo = libcudnn.getConvolutionBackwardDataAlgorithm(
@@ -263,9 +265,15 @@ class Convolution2DFunction(function.Function):
                     algo, workspace.data.ptr, workspace_size,
                     zero.data, x_desc.value, gx.data.ptr)
             else:
-                if configuration.config.deterministic:
-                    raise ValueError("'deterministic' option not available "
-                                     "for cuDNN versions < v3")
+                if configuration.config.cudnn_deterministic:
+                    raise ValueError(
+                        "`cudnn_deterministic` option must be False "
+                        "if the back propagation of "
+                        "chainer.functions.Convolution2D "
+                        "uses cuDNN and cuDNN versions < v3. "
+                        "Turn off cudnn_deterministic option with "
+                        "`chainer.using_config('cudnn_deterministic', False)` "
+                        "context.")
                 libcudnn.convolutionBackwardFilter_v2(
                     handle, one.data, x_desc.value, x.data.ptr,
                     gy_desc.value, gy.data.ptr, self.conv_desc.value,
@@ -353,14 +361,14 @@ def convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False, **kwargs):
     the output of convolution.
 
     The output of this function can be non-deterministic when it uses cuDNN.
-    If ``chainer.configuration.config.deterministic`` is ``True`` and
+    If ``chainer.configuration.config.cudnn_deterministic`` is ``True`` and
     cuDNN version is >= v3, it forces cuDNN to use a deterministic algorithm.
 
     .. warning::
 
         ``deterministic`` argument is not supported anymore since v2.
-        Instead, use ``chainer.using_config('deterministic', deterministic)``
-        (deterministic is either ``True`` or ``False``).
+        Instead, use ``chainer.using_config('cudnn_deterministic', value)``
+        (value is either ``True`` or ``False``).
         See :func:`chainer.using_config`.
 
     The two-dimensional convolution function is defined as follows.
@@ -420,8 +428,10 @@ cover_all=True)
 
     """
     argument.check_unexpected_kwargs(
-        kwargs, deterministic='deterministic argument is not '
-        'supported anymore. Use chainer.using_config')
+        kwargs, deterministic="deterministic argument is not "
+        "supported anymore. "
+        "Use chainer.using_config('cudnn_deterministic', value) "
+        "context where value is either `True` or `False`.")
     argument.assert_kwargs_empty(kwargs)
 
     func = Convolution2DFunction(stride, pad, cover_all)
