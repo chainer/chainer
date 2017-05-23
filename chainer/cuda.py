@@ -181,8 +181,8 @@ def get_device(*args):
     .. note::
 
         This API is deprecated. Please use
-        :method:`cupy.cuda.get_device_from_id`
-        or :method:`cupy.cuda.get_device_from_array` instead.
+        :func:`~chainer.cuda.get_device_from_id`
+        or :func:`~chainer.cuda.get_device_from_array` instead.
 
     This is a convenient utility to select a correct device if the type of
     ``arg`` is unknown (i.e., one can use this function on arrays that may be
