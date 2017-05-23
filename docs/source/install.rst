@@ -235,6 +235,12 @@ Or, run the interpreter directly::
   $ nvidia-docker run -it chainer/chainer /usr/bin/python
 
 
+Run Chainer from AWS Marketplace
+--------------------------------
+
+Bitfusion provides an EC2 AMI pre-installed with Nvidia drivers, CUDA, cuDNN, Chainer, Jupyter, and more.  `Launch <https://aws.amazon.com/marketplace/pp/B01KKDQD84/ref=_ptnr_referral_docs_chainer>`_ an instance from the AWS Marketplace.
+
+
 What "recommend" means?
 -----------------------
 
