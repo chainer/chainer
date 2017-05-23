@@ -471,8 +471,7 @@ We can also initialize the parameter after the initialization by the :meth:`Link
    class EltwiseParamProduct(Link):
        def __init__(self, shape):
            super(EltwiseParamProduct, self).__init__()
-           self.add_param('W', shape)
-           self.W.data[...] = np.random.randn(*shape)
+           self.add_param('W', shape, initializers.Normal(scale=1.)
 
        def __call__(self, x):
            return self.W * x
@@ -512,9 +511,10 @@ In order to make a convenient module, let's wrap it into a link:
 
    class Linear(Link):
        def __init__(self, in_size, out_size):
-           super(Linear, self).__init__(W=(out_size, in_size), b=out_size)
-           self.W.data[...] = np.random.randn(out_size, in_size) / math.sqrt(in_size)
-           self.b.data.fill(0)
+           super(Linear, self).__init__()
+           self.add_param('W', (out_size, in_size),
+                          initializers.Normal(1. / math.sqrt(in_size)))
+           self.add_param('b', (out_size,), initializers.Constant(0))
 
        def __call__(self, x):
            return linear(x, self.W, self.b)
@@ -585,7 +585,8 @@ This is a test example of :func:`functions.relu` function
            y.grad = np.random.randn(3, 2).astype(np.float32)
            y.backward()
 
-           f = lambda: (F.relu(x).data,)
+           def f():
+               return F.relu(x).data,
            gx, = gradient_check.numerical_grad(f, (x.data,), (y.grad,))
 
            testing.assert_allclose(gx, x.grad)
@@ -602,5 +603,33 @@ The first four lines of the test code are simple forward and backward computatio
 The next two lines compute numerical gradient using the same forward function without backward routine.
 And at last, we compare these two results elementwise.
 Note that the above test code can be easily modified to test GPU version just by replacing CPU arrays to GPU arrays.
+
+In most case, we do not write the code like the above explicitly because Chainer
+offers a utility function :func:`chainer.gradient_check.check_backward` that does
+follow this procedure.
+
+.. testcode::
+
+   import unittest
+
+   from chainer import gradient_check
+
+   class TestReLU(unittest.TestCase):
+       def test_backward_cpu(self):
+
+           def f():
+               return F.relu(x).data,
+
+           x = Variable(np.random.randn(3, 2).astype(np.float32))
+           y_grad = np.random.randn(3, 2).astype(np.float32)
+
+           gradient_check.check_backward(f, x, y_grad)
+
+.. testcode::
+   :hide:
+
+   suite = unittest.TestLoader().loadTestsFromTestCase(TestReLU)
+   unittest.TextTestRunner().run(suite)
+
 
 You can find many examples of function tests under ``tests/chainer_tests/function_tests`` directory.
