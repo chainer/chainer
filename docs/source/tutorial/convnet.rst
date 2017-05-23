@@ -57,7 +57,6 @@ digit images in 1998. In Chainer, the model can be written as follows:
                 fc4=L.Linear(None, 84),
                 fc5=L.Linear(84, 10),
             )
-            self.train = True
 
         def __call__(self, x):
             h = F.sigmoid(self.conv1(x))
@@ -66,7 +65,7 @@ digit images in 1998. In Chainer, the model can be written as follows:
             h = F.max_pooling_2d(h, 2, 2)
             h = F.sigmoid(self.conv3(h))
             h = F.sigmoid(self.fc4(h))
-            if self.train:
+            if chainer.config.train:
                 return self.fc5(h)
             return F.softmax(self.fc5(h))
 
@@ -83,14 +82,13 @@ that the above :meth:`__init__` can also be written as follows:
 
 .. code-block:: python
 
-    def __init__(self
+    def __init__(self):
         super(LeNet5, self).__init__()
         self.add_link('conv1', L.Convolution2D(1, 6, 5, 1))
         self.add_link('conv2', L.Convolution2D(6, 16, 5, 1))
         self.add_link('conv3', L.Convolution2D(16, 120, 4, 1))
         self.add_link('fc4', L.Linear(None, 84))
         self.add_link('fc5', L.Linear(84, 10))
-        self.train = True
 
 (Argments to :class:`~chainer.links.Convolution2D` are given without keywords
 here for simplicity.)
@@ -107,10 +105,19 @@ computations in the model. Just prepare the data, then give it to the model.
 The way this works is the resulting output :class:`~chainer.Variable` from the
 forward computation has a :meth:`~chainer.Variable.backward` method to perform
 autograd. In the above model, :meth:`__call__` has a ``if`` statement at the
-end to switch its behavior by the model's running mode, i.e., training mode or
-not. When it's in training mode, this method returns the output value of the
+end to switch its behavior by the Chainer's running mode, i.e., training mode or
+not. Chainer presents the running mode as a global variable `chainer.config.train`.
+When it's in training mode, this method returns the output value of the
 last layer as is to compute the loss later on, otherwise it returns a
 prediction result by calculating :meth:`~chainer.functions.softmax`.
+
+.. note::
+
+  In Chainer v1, if a function or link behaves differently in
+  training and other modes, it is common that it holds an attribute
+  that represents its running mode or is provided with the mode
+  form outside as an argument. In Chainer v2, it is recommended to use
+  the global configuration `chainer.config.train` to switch the running mode.
 
 If you don't want to write ``conv1`` and the other layers more than once, you
 can also write the model like in this way:
@@ -137,7 +144,6 @@ can also write the model like in this way:
                 if not n[0].startswith('_'):
                     self.add_link(*n)
             self.forward = net
-            self.train = True
 
         def __call__(self, x):
             for n, f in self.forward:
@@ -145,7 +151,7 @@ can also write the model like in this way:
                     x = getattr(self, n)(x)
                 else:
                     x = f(x)
-            if self.train:
+            if chainer.config.train:
                 return x
             return F.softmax(x)
 
@@ -243,12 +249,11 @@ useful. First, let's see how to write a VGG16 [Simonyan14] model.
                 VGGBlock(256, 3),
                 VGGBlock(512, 3),
                 VGGBlock(512, 3, True))
-            self.train = True
 
         def __call__(self, x):
             for f in self.children():
-                x = f(x, self.train)
-            if self.train:
+                x = f(x)
+            if chainer.config.train:
                 return x
             return F.softmax(x)
 
@@ -271,15 +276,15 @@ useful. First, let's see how to write a VGG16 [Simonyan14] model.
             self.n_convs = n_convs
             self.fc = fc
 
-        def __call__(self, x, train):
+        def __call__(self, x):
             h = F.relu(self.conv1(x))
             h = F.relu(self.conv2(h))
             if self.n_convs == 3:
                 h = F.relu(self.conv3(h))
             h = F.max_pooling_2d(h, 2, 2)
             if self.fc:
-                h = F.dropout(F.relu(self.fc4(h)), train=train)
-                h = F.dropout(F.relu(self.fc5(h)), train=train)
+                h = F.dropout(F.relu(self.fc4(h)))
+                h = F.dropout(F.relu(self.fc5(h)))
                 h = self.fc6(h)
             return h
 
@@ -305,7 +310,7 @@ laborious to build, but it can be implemented in almost same manner as VGG16.
 In the other words, it's easy. One possible way to write ResNet-152 is:
 
 .. doctest::
-    
+
     class ResNet152(chainer.Chain):
         def __init__(self, n_blocks=[3, 8, 36, 3]):
             w = chainer.initializers.HeNormal()
@@ -318,18 +323,17 @@ In the other words, it's easy. One possible way to write ResNet-152 is:
                 res4=ResBlock(n_blocks[2], 512, 256, 1024),
                 res5=ResBlock(n_blocks[3], 1024, 512, 2048),
                 fc6=L.Linear(2048, 1000))
-            self.train = True
 
         def __call__(self, x):
-            h = self.bn1(self.conv1(x), test=not self.train)
+            h = self.bn1(self.conv1(x))
             h = F.max_pooling_2d(F.relu(h), 2, 2)
-            h = self.res2(h, self.train)
-            h = self.res3(h, self.train)
-            h = self.res4(h, self.train)
-            h = self.res5(h, self.train)
+            h = self.res2(h)
+            h = self.res3(h)
+            h = self.res4(h)
+            h = self.res5(h)
             h = F.average_pooling_2d(h, h.shape[2:], stride=1)
             h = self.fc6(h)
-            if self.train:
+            if chainer.config.train:
                 return h
             return F.softmax(h)
 
@@ -342,9 +346,9 @@ In the other words, it's easy. One possible way to write ResNet-152 is:
             for _ in range(n_layers - 1):
                 self.add_link(BottleNeck(n_out, n_mid, n_out))
 
-        def __call__(self, x, train):
+        def __call__(self, x):
             for f in self.children():
-                x = f(x, train)
+                x = f(x)
             return x
 
 
@@ -367,12 +371,12 @@ In the other words, it's easy. One possible way to write ResNet-152 is:
                 self.add_link('bn_r', L.BatchNormalization(n_out))
             self.proj = proj
 
-        def __call__(self, x, train):
-            h = F.relu(self.bn_a(self.conv1x1a(x), test=not train))
-            h = F.relu(self.bn_b(self.conv3x3b(h), test=not train))
-            h = self.bn_c(self.conv1x1c(h), test=not train)
+        def __call__(self, x):
+            h = F.relu(self.bn_a(self.conv1x1a(x)))
+            h = F.relu(self.bn_b(self.conv3x3b(h)))
+            h = self.bn_c(self.conv1x1c(h))
             if self.proj:
-                x = self.bn_r(self.conv1x1r(x), test=not train)
+                x = self.bn_r(self.conv1x1r(x))
             return F.relu(h + x)
 
 In the :class:`BottleNeck` class, depending on the value of the proj argument
