@@ -9,9 +9,13 @@ import weakref
 import six
 
 from cupy.cuda import runtime
+from cupy.cuda import stream
 
-from cupy.cuda cimport device
+from cupy.cuda cimport device as device_mod
 from cupy.cuda cimport runtime
+
+
+_cuda_version = runtime.runtimeGetVersion()
 
 
 cdef class Memory:
@@ -31,7 +35,7 @@ cdef class Memory:
         self.device = None
         self.ptr = 0
         if size > 0:
-            self.device = device.Device()
+            self.device = device_mod.Device()
             self.ptr = runtime.malloc(size)
 
     def __dealloc__(self):
@@ -41,6 +45,47 @@ cdef class Memory:
     def __int__(self):
         """Returns the pointer value to the head of the allocation."""
         return self.ptr
+
+
+cdef class ManagedMemory(Memory):
+
+    """Managed memory allocation on a CUDA device.
+
+    This class provides an RAII interface of the CUDA managed memory
+    allocation.
+
+    Args:
+        device (cupy.cuda.Device): Device whose memory the pointer refers to.
+        size (int): Size of the memory allocation in bytes.
+
+    """
+
+    def __init__(self, Py_ssize_t size):
+        self.size = size
+        self.device = None
+        self.ptr = 0
+        if size > 0:
+            self.device = device_mod.Device()
+            self.ptr = runtime.mallocManaged(size)
+
+    cpdef prefetch(self, stream):
+        """ Prefetch memory.
+
+        Args:
+            stream (cupy.cuda.Stream): CUDA stream.
+        """
+        runtime.memPrefetchAsync(self.ptr, self.size, self.device.id,
+                                 stream.ptr)
+
+    cpdef advise(self, int advise, device_mod.Device device):
+        """ Advise about the usage of this memory.
+
+        Args:
+            advics (int): Advise to be applied for this memory.
+            device (cupy.cuda.Device): Device to apply the advice for.
+
+        """
+        runtime.memAdvise(self.ptr, self.size, advise, device.id)
 
 
 cdef set _peer_access_checked = set()
@@ -262,6 +307,19 @@ cpdef MemoryPointer _malloc(Py_ssize_t size):
     return MemoryPointer(mem, 0)
 
 
+cpdef MemoryPointer malloc_managed(Py_ssize_t size):
+    """Allocate managed memory.
+
+    Args:
+        size (int): Size of the memory allocation in bytes.
+
+    Returns:
+        ~cupy.cuda.MemoryPointer: Pointer to the allocated buffer.
+    """
+    mem = ManagedMemory(size)
+    return MemoryPointer(mem, 0)
+
+
 cdef object _current_allocator = _malloc
 
 
@@ -443,12 +501,12 @@ cdef class MemoryPool(object):
             ~cupy.cuda.MemoryPointer: Pointer to the allocated buffer.
 
         """
-        dev = device.get_device_id()
+        dev = device_mod.get_device_id()
         return self._pools[dev].malloc(size)
 
     cpdef free_all_blocks(self):
         """Release free blocks."""
-        dev = device.get_device_id()
+        dev = device_mod.get_device_id()
         self._pools[dev].free_all_blocks()
 
     cpdef free_all_free(self):
@@ -464,5 +522,5 @@ cdef class MemoryPool(object):
         Returns:
             int: The total number of free blocks.
         """
-        dev = device.get_device_id()
+        dev = device_mod.get_device_id()
         return self._pools[dev].n_free_blocks()
