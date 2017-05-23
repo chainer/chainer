@@ -348,6 +348,17 @@ class Link(object):
         for name in self._params:
             yield d[name]
 
+    def persistent(self):
+        """Returns a generator of all persistent parameters under the link hierarchy.
+
+        Returns:
+            A generator object that generates all persistent parameters.
+
+        """
+        d = self.__dict__
+        for name in self._persistent:
+            yield d[name]
+
     def namedparams(self):
         """Returns a generator of all (path, param) pairs under the hierarchy.
 
@@ -635,6 +646,14 @@ class Chain(Link):
             for param in d[name].params():
                 yield param
 
+    def persistent(self):
+        for persistent in super(Chain, self).persistent():
+            yield persistent
+        d = self.__dict__
+        for name in self._children:
+            for persistent in d[name].persistent():
+                yield persistent
+
     def namedparams(self):
         for ret in super(Chain, self).namedparams():
             yield ret
@@ -786,6 +805,13 @@ class ChainList(Link):
         for link in self._children:
             for param in link.params():
                 yield param
+
+    def persistent(self):
+        for persistent in super(ChainList, self).persistent():
+            yield persistent
+        for link in self._children:
+            for persistent in link.persistent():
+                yield persistent
 
     def namedparams(self):
         for ret in super(ChainList, self).namedparams():
