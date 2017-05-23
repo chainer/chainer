@@ -43,11 +43,14 @@ cdef extern from "cupy_cuda.h":
         int32_t    messageType
         message_t  message
     ctypedef nvtxEventAttributes_v1 nvtxEventAttributes_t
+    ctypedef unsigned long long range_id_t
     void nvtxMarkA(const char *message) nogil
     void nvtxMarkEx(const nvtxEventAttributes_t *eventAttrib) nogil
     int nvtxRangePushA(const char *message) nogil
     int nvtxRangePushEx(const nvtxEventAttributes_t *eventAttrib) nogil
     int nvtxRangePop() nogil
+    range_id_t nvtxRangeStartEx(const nvtxEventAttributes_t *eventAttrib) nogil
+    void nvtxRangeEnd(range_id_t) nogil
 
 cdef int num_colors = 10
 cdef uint32_t colors[10]
@@ -170,3 +173,22 @@ cpdef void RangePop() except *:
     pair of ``RangePush*()`` to ``RangePop()`` calls.
     """
     nvtxRangePop()
+
+
+cpdef unsigned long long RangeStartC(str message, uint32_t color=0) except *:
+    cdef bytes b_message = message.encode()
+
+    cdef nvtxEventAttributes_t attrib
+    string.memset(&attrib, 0, sizeof(attrib))
+    attrib.version = NVTX_VERSION
+    attrib.size = sizeof(attrib)
+    attrib.color = color
+    attrib.colorType = NVTX_COLOR_ARGB
+    attrib.messageType = NVTX_MESSAGE_TYPE_ASCII
+    attrib.message.ascii = b_message
+
+    return nvtxRangeStartEx(&attrib)
+
+
+cpdef void RangeEnd(unsigned long long range_id) except *:
+    nvtxRangeEnd(range_id)
