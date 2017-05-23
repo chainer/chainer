@@ -60,23 +60,27 @@ class BatchNormalizationFunction(function.Function):
             x_type.dtype.kind == 'f',
             x_type.ndim >= gamma_type.ndim + 1,
             x_type.shape[1:1 + M] == gamma_type.shape,
-            # TODO(beam2d): Check shape
-            gamma_type.dtype == x_type.dtype,
-            beta_type.dtype == x_type.dtype,
-            gamma_type.shape == beta_type.shape,
+            beta_type.dtype == gamma_type.dtype,
+            beta_type.shape == gamma_type.shape,
         )
+        if x_type.dtype.eval() != numpy.float16:
+            type_check.expect(
+                # TODO(beam2d): Check shape
+                x_type.dtype == gamma_type.dtype,
+            )
         if len(in_types) == 5:
             mean_type, var_type = in_types[3:]
             type_check.expect(
-                mean_type.dtype == x_type.dtype,
+                mean_type.dtype == gamma_type.dtype,
                 mean_type.shape == gamma_type.shape,
-                var_type.dtype == x_type.dtype,
+                var_type.dtype == gamma_type.dtype,
                 var_type.shape == gamma_type.shape,
             )
 
     def forward(self, inputs):
         xp = cuda.get_array_module(*inputs)
         x, gamma, beta = inputs[:3]
+        dtype_param = gamma.dtype
         if self.train:
             if self.running_mean is None:
                 self.running_mean = xp.zeros_like(gamma)
@@ -87,11 +91,6 @@ class BatchNormalizationFunction(function.Function):
         elif len(inputs) == 5:
             self.fixed_mean = inputs[3]
             self.fixed_var = inputs[4]
-
-        # TODO(bkvogel): Check for float16 support again in next cuDNN version.
-        if x[0].dtype == numpy.float16:
-            # cuDNN v5 batch normalization does not seem to support float16.
-            self.use_cudnn = False
 
         head_ndim = gamma.ndim + 1
         expander = (None, Ellipsis) + (None,) * (x.ndim - head_ndim)
@@ -119,14 +118,36 @@ class BatchNormalizationFunction(function.Function):
 
             gamma = cuda.cupy.ascontiguousarray(gamma)
             beta = cuda.cupy.ascontiguousarray(beta)
-            dtype = x.dtype
             handle = cudnn.get_handle()
             x_desc = cudnn.create_tensor_descriptor(_as4darray(x))
             derivedBnDesc = cudnn.create_uninitialized_tensor_descriptor()
             libcudnn.deriveBNTensorDescriptor(derivedBnDesc.value,
                                               x_desc.value, self.mode)
-            one = numpy.array(1, dtype=dtype).ctypes
-            zero = numpy.array(0, dtype=dtype).ctypes
+            # check data type of derivedBnDesc
+            dtype_bn, _, _, _, _, _, _, _, _ = libcudnn.getTensor4dDescriptor(
+                derivedBnDesc.value)
+            if dtype_bn == libcudnn.CUDNN_DATA_DOUBLE:
+                if dtype_param != numpy.float64:
+                    msg = 'data type of parameters of batch normalization ' + \
+                          'must be numpy.float64'
+                    raise RuntimeError(msg)
+            elif dtype_bn == libcudnn.CUDNN_DATA_FLOAT:
+                if dtype_param != numpy.float32:
+                    msg = 'data type of parameters of batch normalization ' + \
+                          'must be numpy.float32'
+                    raise RuntimeError(msg)
+            elif dtype_bn == libcudnn.CUDNN_DATA_HALF:
+                if dtype_param != numpy.float16:
+                    msg = 'data type of parameters of batch normalization ' + \
+                          'must be numpy.float16'
+                    raise RuntimeError(msg)
+            else:
+                msg = 'Unknow cudnn data type {} '.format(dtype_bn) + \
+                      'is obtained by cudnnDeriveBNTensorDescriptor()'
+                raise RuntimeError(msg)
+
+            one = numpy.array(1, dtype=dtype_param).ctypes
+            zero = numpy.array(0, dtype=dtype_param).ctypes
             y = cuda.cupy.empty_like(x)
             # Factor used in the moving average
             factor = 1 - self.decay
@@ -233,7 +254,7 @@ class BatchNormalizationFunction(function.Function):
             x = cuda.cupy.ascontiguousarray(x)
             gamma = cuda.cupy.ascontiguousarray(gamma)
             gy = cuda.cupy.ascontiguousarray(gy)
-            dtype = x.dtype
+            dtype = gamma.dtype
             handle = cudnn.get_handle()
             x_desc = cudnn.create_tensor_descriptor(_as4darray(x))
             derivedBnDesc = cudnn.create_uninitialized_tensor_descriptor()

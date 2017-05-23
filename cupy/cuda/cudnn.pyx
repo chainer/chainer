@@ -35,6 +35,10 @@ cdef extern from "cupy_cudnn.h":
         TensorDescriptor tensorDesc, DataType dataType,
         int n, int c, int h, int w,
         int nStride, int cStride, int hStride, int wStride) nogil
+    int cudnnGetTensor4dDescriptor(
+        TensorDescriptor tensorDesc, DataType* dataType,
+        int* n, int* c, int* h, int* w,
+        int* nStride, int* cStride, int* hStride, int* wStride) nogil
     int cudnnSetTensorNdDescriptor(
         TensorDescriptor tensorDesc, DataType dataType, int nbDims,
         int* dimA, int* strideA) nogil
@@ -481,6 +485,23 @@ cpdef setTensor4dDescriptorEx(size_t tensorDesc, int dataType,
         <TensorDescriptor>tensorDesc, <DataType>dataType, n, c, h, w,
         nStride, cStride, hStride, wStride)
     check_status(status)
+
+
+cpdef getTensor4dDescriptor(size_t tensorDesc):
+    cdef DataType dataType
+    cdef int n
+    cdef int c
+    cdef int h
+    cdef int w
+    cdef int nStride
+    cdef int cStride
+    cdef int hStride
+    cdef int wStride
+    status = cudnnGetTensor4dDescriptor(
+        <TensorDescriptor>tensorDesc, &dataType,
+        &n, &c, &h, &w, &nStride, &cStride, &hStride, &wStride)
+    check_status(status)
+    return(dataType, n, c, h, w, nStride, cStride, hStride, wStride)
 
 
 cpdef setTensorNdDescriptor(size_t tensorDesc, int dataType, int nbDims,
