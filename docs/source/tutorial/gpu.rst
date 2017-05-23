@@ -49,9 +49,7 @@ Chainer changes the default allocator of CuPy to the memory pool, so user can us
 Basics of :class:`cupy.ndarray`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. note::
-
-   CuPy does not require explicit initialization, so ``cuda.init()`` function is deprecated.
+See `the document of CuPy <http://docs.cupy.chainer.org/en/latest/>`_ for the basic usage of :class:`cupy.ndarray`
 
 CuPy is a GPU array backend that implements a subset of NumPy interface.
 The :class:`cupy.ndarray` class is in its core, which is a compatible GPU alternative of :class:`numpy.ndarray`.
@@ -122,13 +120,8 @@ Here are some other examples:
    cuda.get_device_from_id(1).use()
    x_gpu1 = cupy.empty((4, 3), dtype='f')  # 'f' indicates float32
 
-<<<<<<< HEAD
-   with cuda.get_device(1):
-       x_gpu1 = cupy.empty((4, 3), dtype='f')
-=======
    with cuda.get_device_from_id(1):
        x_gpu1 = cuda.empty((4, 3), dtype='f')
->>>>>>> origin/master
 
    with cuda.get_device_from_array(x_gpu1):
        y_gpu1 = x_gpu + 1
