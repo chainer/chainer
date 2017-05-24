@@ -34,7 +34,8 @@ class EmbedID(link.Link):
         super(EmbedID, self).__init__()
         if initialW is None:
             initialW = initializers.Normal(1.0)
-        self.add_param('W', (in_size, out_size), initializer=initialW)
+        self.add_param('W', (in_size, out_size),
+                       initializer=initializers._get_initializer(initialW))
         self.ignore_label = ignore_label
 
     def __call__(self, x):
