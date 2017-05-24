@@ -13,6 +13,7 @@ from chainer.initializers.constant import One  # NOQA
 from chainer.initializers.constant import Zero  # NOQA
 from chainer.initializers.normal import GlorotNormal  # NOQA
 from chainer.initializers.normal import HeNormal
+from chainer.initializers.normal import LeCunNormal
 from chainer.initializers.normal import Normal  # NOQA
 from chainer.initializers.orthogonal import Orthogonal  # NOQA
 from chainer.initializers.uniform import GlorotUniform  # NOQA
