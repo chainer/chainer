@@ -305,7 +305,7 @@ class Deconvolution2DFunction(function.Function):
                 if configuration.config.cudnn_deterministic:
                     raise ValueError(
                         "`cudnn_deterministic` option must be False "
-                        "if the back propagation of "
+                        "if the backpropagation of "
                         "chainer.functions.Convolution2D "
                         "uses cuDNN and cuDNN versions < v3. "
                         "Turn off cudnn_deterministic option with "
