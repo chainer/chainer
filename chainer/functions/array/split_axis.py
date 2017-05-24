@@ -6,6 +6,7 @@ import chainer
 from chainer import cuda
 from chainer import function
 from chainer.utils import type_check
+from chainer import variable
 
 
 class SplitAxis(function.Function):
@@ -93,6 +94,6 @@ def split_axis(x, indices_or_sections, axis, force_tuple=True):
 
     """
     res = SplitAxis(indices_or_sections, axis)(x)
-    if force_tuple and isinstance(res, chainer.Variable):
+    if force_tuple and isinstance(res, variable.Variable):
         res = (res,)
     return res
