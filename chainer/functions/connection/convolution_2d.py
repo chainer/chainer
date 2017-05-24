@@ -371,8 +371,6 @@ def convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False, **kwargs):
         (value is either ``True`` or ``False``).
         See :func:`chainer.using_config`.
 
-    The two-dimensional convolution function is defined as follows.
-
     Args:
         x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`):
