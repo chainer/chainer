@@ -16,199 +16,64 @@ Chainer provides many :class:`~chainer.Link` implementations in the
 Learnable connections
 ---------------------
 
-Bias
-~~~~
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
 
-.. autoclass:: Bias
-   :members:
-
-Bilinear
-~~~~~~~~
-.. autoclass:: Bilinear
-   :members:
-
-Convolution2D
-~~~~~~~~~~~~~
-.. autoclass:: Convolution2D
-   :members:
-
-ConvolutionND
-~~~~~~~~~~~~~
-.. autoclass:: ConvolutionND
-   :members:
-
-Deconvolution2D
-~~~~~~~~~~~~~~~
-.. autoclass:: Deconvolution2D
-   :members:
-
-DeconvolutionND
-~~~~~~~~~~~~~~~
-.. autoclass:: DeconvolutionND
-
-DepthwiseConvolution2D
-~~~~~~~~~~~~~~~~~~~~~~
-.. autoclass:: DepthwiseConvolution2D
-
-DilatedConvolution2D
-~~~~~~~~~~~~~~~~~~~~
-.. autoclass:: DilatedConvolution2D
-   :members:
-
-EmbedID
-~~~~~~~
-.. autoclass:: EmbedID
-   :members:
-
-GRU
-~~~
-.. autoclass:: GRU
-   :members:
-
-Highway
-~~~~~~~
-.. autoclass:: Highway
-   :members:
-
-Inception
-~~~~~~~~~
-.. autoclass:: Inception
-   :members:
-
-InceptionBN
-~~~~~~~~~~~
-.. autoclass:: InceptionBN
-   :members:
-
-Linear
-~~~~~~
-.. autoclass:: Linear
-   :members:
-
-LSTM
-~~~~
-.. autoclass:: LSTM
-   :members:
-
-MLPConvolution2D
-~~~~~~~~~~~~~~~~
-.. autoclass:: MLPConvolution2D
-   :members:
-
-NStepBiGRU
-~~~~~~~~~~
-.. autoclass:: NStepBiGRU
-   :members:
-
-NStepBiLSTM
-~~~~~~~~~~~
-.. autoclass:: NStepBiLSTM
-  :members:
-
-NStepBiRNNReLU
-~~~~~~~~~~~~~~
-.. autoclass:: NStepBiRNNReLU
-   :members:
-
-NStepBiRNNTanh
-~~~~~~~~~~~~~~
-.. autoclass:: NStepBiRNNTanh
-  :members:
-
-NStepGRU
-~~~~~~~~
-.. autoclass:: NStepGRU
-  :members:
-
-NStepLSTM
-~~~~~~~~~
-.. autoclass:: NStepLSTM
-   :members:
-
-NStepRNNReLU
-~~~~~~~~~~~~
-.. autoclass:: NStepRNNReLU
-   :members:
-
-NStepRNNTanh
-~~~~~~~~~~~~
-.. autoclass:: NStepRNNTanh
-  :members:
-
-Scale
-~~~~~
-.. autoclass:: Scale
-   :members:
-
-StatefulGRU
-~~~~~~~~~~~
-.. autoclass:: StatefulGRU
-   :members:
-
-StatefulPeepholeLSTM
-~~~~~~~~~~~~~~~~~~~~
-.. autoclass:: StatefulPeepholeLSTM
-   :members:
-
-StatelessLSTM
-~~~~~~~~~~~~~
-.. autoclass:: StatelessLSTM
-   :members:
+   chainer.links.Bias
+   chainer.links.Bilinear
+   chainer.links.Convolution2D
+   chainer.links.ConvolutionND
+   chainer.links.Deconvolution2D
+   chainer.links.DeconvolutionND
+   chainer.links.DepthwiseConvolution2D
+   chainer.links.DilatedConvolution2D
+   chainer.links.EmbedID
+   chainer.links.GRU
+   chainer.links.Highway
+   chainer.links.Inception
+   chainer.links.InceptionBN
+   chainer.links.Linear
+   chainer.links.LSTM
+   chainer.links.MLPConvolution2D
+   chainer.links.NStepBiGRU
+   chainer.links.NStepBiLSTM
+   chainer.links.NStepBiRNNReLU
+   chainer.links.NStepBiRNNTanh
+   chainer.links.NStepGRU
+   chainer.links.NStepLSTM
+   chainer.links.NStepRNNReLU
+   chainer.links.NStepRNNTanh
+   chainer.links.Scale
+   chainer.links.StatefulGRU
+   chainer.links.StatefulPeepholeLSTM
+   chainer.links.StatelessLSTM
 
 Activation/loss/normalization functions with parameters
 -------------------------------------------------------
 
-BatchNormalization
-~~~~~~~~~~~~~~~~~~
-.. autoclass:: BatchNormalization
-   :members:
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
 
-LayerNormalization
-~~~~~~~~~~~~~~~~~~
-.. autoclass:: LayerNormalization
-   :members:
-
-BinaryHierarchicalSoftmax
-~~~~~~~~~~~~~~~~~~~~~~~~~
-.. autoclass:: BinaryHierarchicalSoftmax
-   :members:
-
-BlackOut
-~~~~~~~~
-.. autoclass:: BlackOut
-
-CRF1d
-~~~~~
-.. autoclass:: CRF1d
-   :members:
-
-SimplifiedDropconnect
-~~~~~~~~~~~~~~~~~~~~~
-.. autoclass:: SimplifiedDropconnect
-   :members:
-
-PReLU
-~~~~~
-.. autoclass:: PReLU
-   :members:
-
-Maxout
-~~~~~~
-.. autoclass:: Maxout
-   :members:
-
-NegativeSampling
-~~~~~~~~~~~~~~~~
-.. autoclass:: NegativeSampling
-   :members:
+   chainer.links.BatchNormalization
+   chainer.links.LayerNormalization
+   chainer.links.BinaryHierarchicalSoftmax
+   chainer.links.BlackOut
+   chainer.links.CRF1d
+   chainer.links.SimplifiedDropconnect
+   chainer.links.PReLU
+   chainer.links.Maxout
+   chainer.links.NegativeSampling
 
 Machine learning models
 -----------------------
 
-Classifier
-~~~~~~~~~~
-.. autoclass:: Classifier
-   :members:
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.links.Classifier
 
 Pre-trained models
 ------------------
@@ -236,30 +101,32 @@ parameters from the pre-trained models during initialization.
 
 VGG16Layers
 ~~~~~~~~~~~
-.. autoclass:: VGG16Layers
-   :members:
 
-.. autofunction:: chainer.links.model.vision.vgg.prepare
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.links.VGG16Layers
+   chainer.links.model.vision.vgg.prepare
 
 GoogLeNet
 ~~~~~~~~~
-.. autoclass:: GoogLeNet
-   :members:
 
-.. autofunction:: chainer.links.model.vision.googlenet.prepare
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.links.GoogLeNet
+   chainer.links.model.vision.googlenet.prepare
 
 Residual Networks
 ~~~~~~~~~~~~~~~~~
-.. autoclass:: chainer.links.model.vision.resnet.ResNetLayers
-   :members:
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
 
-.. autoclass:: ResNet50Layers
-   :members:
-
-.. autoclass:: ResNet101Layers
-   :members:
-
-.. autoclass:: ResNet152Layers
-   :members:
-
-.. autofunction:: chainer.links.model.vision.resnet.prepare
+   chainer.links.model.vision.resnet.ResNetLayers
+   chainer.links.ResNet50Layers
+   chainer.links.ResNet101Layers
+   chainer.links.ResNet152Layers
+   chainer.links.model.vision.resnet.prepare

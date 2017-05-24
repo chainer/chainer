@@ -17,7 +17,6 @@ Most of them are wrapper of other datasets to introduce some structures (e.g., t
 The other one is a group of concrete, popular datasets.
 These concrete examples use the downloading utilities in the :mod:`chainer.dataset` module to cache downloaded and converted datasets.
 
-
 General datasets
 ----------------
 
@@ -35,53 +34,71 @@ The last one is a group of domain-specific datasets. Currently, :class:`ImageDat
 
 DictDataset
 ~~~~~~~~~~~
-.. autoclass:: DictDataset
-   :members:
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.datasets.DictDataset
 
 TupleDataset
 ~~~~~~~~~~~~
-.. autoclass:: TupleDataset
-   :members:
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.datasets.TupleDataset
 
 SubDataset
 ~~~~~~~~~~
-.. autoclass:: SubDataset
-   :members:
 
-.. autofunction:: split_dataset
-.. autofunction:: split_dataset_random
-.. autofunction:: get_cross_validation_datasets
-.. autofunction:: get_cross_validation_datasets_random
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.datasets.SubDataset
+   chainer.datasets.split_dataset
+   chainer.datasets.split_dataset_random
+   chainer.datasets.get_cross_validation_datasets
+   chainer.datasets.get_cross_validation_datasets_random
 
 TransformDataset
 ~~~~~~~~~~~~~~~~
-.. autoclass:: TransformDataset
-   :members:
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.datasets.TransformDataset
 
 ImageDataset
 ~~~~~~~~~~~~
-.. autoclass:: ImageDataset
-   :members:
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.datasets.ImageDataset
 
 LabeledImageDataset
 ~~~~~~~~~~~~~~~~~~~
-.. autoclass:: LabeledImageDataset
-   :members:
 
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.datasets.LabeledImageDataset
 
 Concrete datasets
 -----------------
 
-MNIST
-~~~~~
-.. autofunction:: get_mnist
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
 
-CIFAR10/100
-~~~~~~~~~~~
-.. autofunction:: get_cifar10
-.. autofunction:: get_cifar100
-
-Penn Tree Bank
-~~~~~~~~~~~~~~
-.. autofunction:: get_ptb_words
-.. autofunction:: get_ptb_words_vocabulary
+   chainer.datasets.get_mnist
+   chainer.datasets.get_cifar10
+   chainer.datasets.get_cifar100
+   chainer.datasets.get_ptb_words
+   chainer.datasets.get_ptb_words_vocabulary

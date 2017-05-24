@@ -1,6 +1,8 @@
 Variable
 --------
 
-.. currentmodule:: chainer
-.. autoclass:: Variable
-   :members:
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.Variable
