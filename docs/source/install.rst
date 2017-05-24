@@ -36,7 +36,7 @@ Chainer can be installed without them, in which case the corresponding features 
 
 * CUDA/cuDNN support
 
-  * `cupy <http://docs.cupy.chainer.org/>`_
+  * `cupy <http://docs.cupy.chainer.org/>`_ 1.0+
 
 * Caffe model support
 
