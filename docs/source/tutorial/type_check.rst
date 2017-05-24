@@ -67,7 +67,7 @@ Otherwise this code throws an exception, and the user gets a message like this:
 
    Traceback (most recent call last):
    ...
-   chainer.utils.type_check.InvalidType: Expect: in_types[0].ndim == 2
+   InvalidType: Expect: in_types[0].ndim == 2
    Actual: 3 != 2
 
 This error message means that "``ndim`` of the first argument expected to be ``2``, but actually it is ``3``".
@@ -102,7 +102,7 @@ And an error is like this:
 
    Traceback (most recent call last):
    ...
-   chainer.utils.type_check.InvalidType: Expect: in_types[0].dtype == <class 'numpy.float64'>
+   InvalidType: Expect: in_types[0].dtype == <class 'numpy.float64'>
    Actual: float32 != <class 'numpy.float64'>
 
 You can also check ``kind`` of ``dtype``.
@@ -162,7 +162,7 @@ When ``x_type.shape[0] == 3`` and ``y_type.shape[0] == 1``, users can get the er
 
    Traceback (most recent call last):
    ...
-   chainer.utils.type_check.InvalidType: Expect: in_types[0].shape[0] == in_types[1].shape[0] * 4
+   InvalidType: Expect: in_types[0].shape[0] == in_types[1].shape[0] * 4
    Actual: 3 != 4
 
 
@@ -188,14 +188,14 @@ This code can check the equivalent condition below:
 However, the latter condition doesn't know the meaning of this value.
 When this condition is not satisfied, the latter code shows unreadable error message::
 
-  chainer.utils.type_check.InvalidType: Expect: in_types[0].shape[0] == 4  # what does '4' mean?
+  InvalidType: Expect: in_types[0].shape[0] == 4  # what does '4' mean?
   Actual: 3 != 4
 
 Note that the second argument of :class:`utils.type_check.Variable` is only for readability.
 
 The former shows this message::
 
-  chainer.utils.type_check.InvalidType: Expect: in_types[0].shape[0] == in_size  # OK, `in_size` is a value that is given to the constructor
+  InvalidType: Expect: in_types[0].shape[0] == in_size  # OK, `in_size` is a value that is given to the constructor
   Actual: 3 != 4  # You can also check actual value here
 
 
@@ -222,7 +222,7 @@ The above example produces an error message like this:
 
    Traceback (most recent call last):
    ...
-   chainer.utils.type_check.InvalidType: Expect: sum(in_types[0].shape) == 10
+   InvalidType: Expect: sum(in_types[0].shape) == 10
    Actual: 7 != 10
 
 
@@ -255,7 +255,7 @@ This code generates the following error message:
 
    Traceback (most recent call last):
    ...
-   chainer.utils.type_check.InvalidType: Expect: Shape is expected to be ...
+   InvalidType: Expect: Shape is expected to be ...
    Actual: Shape is ...
 
 
