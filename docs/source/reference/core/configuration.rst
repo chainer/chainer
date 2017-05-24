@@ -103,12 +103,12 @@ There are two ways:
           pass  # code only running in the test mode
 
 
-.. autodata:: global_config
-.. autodata:: config
-.. autofunction:: using_config
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
 
-.. autoclass:: chainer.configuration.GlobalConfig
-   :members:
-
-.. autoclass:: chainer.configuration.LocalConfig
-   :members:
+   chainer.global_config
+   chainer.config
+   chainer.using_config
+   chainer.configuration.GlobalConfig
+   chainer.configuration.LocalConfig
