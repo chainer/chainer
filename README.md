@@ -6,14 +6,14 @@
 
 # Chainer: a deep learning framework
 
-[Website](http://chainer.org/)
-| [Docs](http://docs.chainer.org/en/stable/)
-| [Install Guide](http://docs.chainer.org/en/stable/install.html)
-| [Tutorial](http://docs.chainer.org/en/stable/tutorial/)
-| Examples ([Official](https://github.com/pfnet/chainer/blob/master/examples), [External](https://github.com/pfnet/chainer/wiki/External-examples))
-| Forum ([en](https://groups.google.com/forum/#!forum/chainer), [ja](https://groups.google.com/forum/#!forum/chainer-jp))
-| Slack ([en](https://bit.ly/chainer-slack), [ja](https://bit.ly/chainer-jp-slack))
-| Twitter ([en](https://twitter.com/ChainerOfficial), [ja](https://twitter.com/ChainerJP))
+[**Website**](http://chainer.org/)
+| [**Docs**](http://docs.chainer.org/en/stable/)
+| [**Install Guide**](http://docs.chainer.org/en/stable/install.html)
+| [**Tutorial**](http://docs.chainer.org/en/stable/tutorial/)
+| **Examples** ([Official](https://github.com/pfnet/chainer/blob/master/examples), [External](https://github.com/pfnet/chainer/wiki/External-examples))
+| **Forum** ([en](https://groups.google.com/forum/#!forum/chainer), [ja](https://groups.google.com/forum/#!forum/chainer-jp))
+| **Slack** ([en](https://bit.ly/chainer-slack), [ja](https://bit.ly/chainer-jp-slack))
+| **Twitter** ([en](https://twitter.com/ChainerOfficial), [ja](https://twitter.com/ChainerJP))
 
 *Chainer* is a Python-based deep learning framework aiming at flexibility.
 It provides automatic differentiation APIs based on the **define-by-run** approach (a.k.a. dynamic computational graphs) as well as object-oriented high-level APIs to build and train neural networks.
@@ -52,7 +52,7 @@ $ nvidia-docker run -it chainer/chainer /bin/bash
 ## Contribution
 
 Any contributions to Chainer are welcome!
-If you want to file an issue or send a pull request, [follow the contribution guide](https://docs.chainer.org/contribution.html).
+If you want to file an issue or send a pull request, [please follow the contribution guide](https://docs.chainer.org/contribution.html).
 
 
 ## License
