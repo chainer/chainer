@@ -82,6 +82,14 @@ class TestHDF5Serializer(unittest.TestCase):
 
         self.assertIs(ret, 10)
 
+    def test_serialize_none(self):
+        ret = self.serializer('x', None)
+        self.assertIs(ret, None)
+
+        dset = self.hdf5file['x']
+        self.assertIsInstance(dset, h5py.Dataset)
+        self.assertIs(dset.shape, None)
+
 
 @unittest.skipUnless(hdf5._available, 'h5py is not available')
 class TestHDF5Deserializer(unittest.TestCase):
@@ -96,6 +104,7 @@ class TestHDF5Deserializer(unittest.TestCase):
             f.require_group('x')
             f.create_dataset('y', data=self.data)
             f.create_dataset('z', data=numpy.asarray(10))
+            f.create_dataset('w', data=h5py.Empty('f'))
 
         self.hdf5file = h5py.File(path, 'r')
         self.deserializer = hdf5.HDF5Deserializer(self.hdf5file)
@@ -156,6 +165,15 @@ class TestHDF5Deserializer(unittest.TestCase):
                 self.assertEqual(ret, data)
         finally:
             os.remove(path)
+
+    def test_deserialize_none(self):
+        ret = self.deserializer('w', None)
+        self.assertIs(ret, None)
+
+    def test_deserialize_none_by_passing_array(self):
+        y = numpy.empty((1,))
+        ret = self.deserializer('w', y)
+        self.assertIs(ret, None)
 
 
 @unittest.skipUnless(hdf5._available, 'h5py is not available')

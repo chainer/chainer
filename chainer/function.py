@@ -192,7 +192,7 @@ class Function(object):
             hook.forward_preprocess(self, in_data)
 
         # Forward prop
-        with cuda.get_device(*in_data):
+        with cuda.get_device_from_array(*in_data):
             self._input_indexes_to_retain = None
             self._output_indexes_to_retain = None
             outputs = self.forward(in_data)

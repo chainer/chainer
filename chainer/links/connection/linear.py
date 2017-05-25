@@ -38,12 +38,61 @@ class Linear(link.Link):
         W (~chainer.Variable): Weight parameter.
         b (~chainer.Variable): Bias parameter.
 
+    .. admonition:: Example
+
+        There are several ways to make a Linear link.
+
+        Define an input vector ``x`` as:
+
+        >>> x = np.array([[0, 1, 2, 3, 4]], 'f')
+
+        1. Give the first two arguments explicitly:
+
+            Those numbers are considered as the input size and the output size.
+
+            >>> l = L.Linear(5, 10)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 10)
+
+        2. Omit ``in_size`` (give the output size only as the first argument)
+                or fill it with ``None``:
+
+            In this case, the size of second axis of ``x`` is used as the
+            input size. So the below two cases are the same.
+
+            >>> l = L.Linear(10)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 10)
+
+            >>> l = L.Linear(None, 10)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 10)
+
+            When you omit the first argument, you need to specify the other
+            subsequent arguments from ``nobias`` as keyword arguments. So the
+            below two cases are the same.
+
+            >>> l = L.Linear(None, 10, False, None, 0)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 10)
+
+            >>> l = L.Linear(10, nobias=False, initialW=None, initial_bias=0)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 10)
+
     """
 
-    def __init__(self, in_size, out_size, nobias=False,
+    def __init__(self, in_size, out_size=None, nobias=False,
                  initialW=None, initial_bias=None):
         super(Linear, self).__init__()
 
+        if out_size is None:
+            in_size, out_size = None, in_size
         self.out_size = out_size
 
         with self.init_scope():

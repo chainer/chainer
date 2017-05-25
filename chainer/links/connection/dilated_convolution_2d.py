@@ -12,9 +12,9 @@ class DilatedConvolution2D(link.Link):
     function and holds the filter weight and bias vector as parameters.
 
     Args:
-        in_channels (int): Number of channels of input arrays. If ``None``,
-            parameter initialization will be deferred until the first forward
-            data pass at which time the size will be determined.
+        in_channels (int or None): Number of channels of input arrays.
+            If ``None``, parameter initialization will be deferred until the
+            first forward data pass at which time the size will be determined.
         out_channels (int): Number of channels of output arrays.
         ksize (int or pair of ints): Size of filters (a.k.a. kernels).
             ``ksize=k`` and ``ksize=(k, k)`` are equivalent.
@@ -40,12 +40,58 @@ class DilatedConvolution2D(link.Link):
         W (~chainer.Variable): Weight parameter.
         b (~chainer.Variable): Bias parameter.
 
+    .. admonition:: Example
+
+        There are several ways to make a DilatedConvolution2D link.
+
+        Let an input vector ``x`` be:
+
+        >>> x = np.arange(1 * 3 * 10 * 10, dtype='f').reshape(1, 3, 10, 10)
+
+        1. Give the first three arguments explicitly:
+
+            >>> l = L.DilatedConvolution2D(3, 7, 5)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 7, 6, 6)
+
+        2. Omit ``in_channels`` or fill it with ``None``:
+
+            The below two cases are the same.
+
+            >>> l = L.DilatedConvolution2D(7, 5)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 7, 6, 6)
+
+            >>> l = L.DilatedConvolution2D(None, 7, 5)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 7, 6, 6)
+
+            When you omit the first argument, you need to specify the other
+            subsequent arguments from ``stride`` as keyword auguments. So the
+            below two cases are the same.
+
+            >>> l = L.DilatedConvolution2D(None, 7, 5, 1, 0, 2)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 7, 2, 2)
+
+            >>> l = L.DilatedConvolution2D(7, 5, stride=1, pad=0, dilate=2)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 7, 2, 2)
+
     """
 
-    def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
-                 dilate=1, nobias=False,
-                 initialW=None, initial_bias=None):
+    def __init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0,
+                 dilate=1, nobias=False, initialW=None, initial_bias=None):
         super(DilatedConvolution2D, self).__init__()
+
+        if ksize is None:
+            out_channels, ksize, in_channels = in_channels, out_channels, None
+
         self.ksize = ksize
         self.stride = _pair(stride)
         self.pad = _pair(pad)

@@ -6,7 +6,7 @@ import chainer
 from chainer import cuda
 from chainer import gradient_check
 from chainer import initializers
-from chainer.links import deconvolution_nd
+from chainer.links.connection import deconvolution_nd
 from chainer import testing
 from chainer.testing import attr
 from chainer.testing import condition

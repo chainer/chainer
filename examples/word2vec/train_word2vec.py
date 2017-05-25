@@ -2,7 +2,6 @@
 """Sample script of word embedding model.
 
 This code implements skip-gram model and continuous-bow model.
-Use ../ptb/download.py to download 'ptb.train.txt'.
 """
 import argparse
 import collections
@@ -49,7 +48,7 @@ parser.set_defaults(test=False)
 args = parser.parse_args()
 
 if args.gpu >= 0:
-    chainer.cuda.get_device(args.gpu).use()
+    chainer.cuda.get_device_from_id(args.gpu).use()
     cuda.check_cuda_available()
 
 print('GPU: {}'.format(args.gpu))
@@ -173,7 +172,7 @@ def convert(batch, device):
 
 
 if args.gpu >= 0:
-    cuda.get_device(args.gpu).use()
+    cuda.get_device_from_id(args.gpu).use()
 
 train, val, _ = chainer.datasets.get_ptb_words()
 counts = collections.Counter(train)

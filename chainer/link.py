@@ -24,13 +24,11 @@ def _is_shape(value):
     except TypeError:
         return False
 
-    return False
-
 
 def _ensure_shape_dtype(value):
     # Return value paired with dtype FP32 if it is a shape.
     if _is_shape(value):
-        return (value, 'f')
+        return value, 'f'
     # Otherwise, returns it with assuming a shape-dtype pair.
     else:
         return value
@@ -366,7 +364,7 @@ instead.
         if not self._cpu:
             return self
         d = self.__dict__
-        with cuda.get_device(device):
+        with cuda._get_device(device):
             for name in self._params:
                 d[name].to_gpu()
             for name in self._persistent:
@@ -723,7 +721,7 @@ Substitute a Link object directly to an attribute within \
         return self
 
     def to_gpu(self, device=None):
-        with cuda.get_device(device):
+        with cuda._get_device(device):
             super(Chain, self).to_gpu()
             d = self.__dict__
             for name in self._children:
@@ -875,7 +873,7 @@ class ChainList(Link):
         return self
 
     def to_gpu(self, device=None):
-        with cuda.get_device(device):
+        with cuda._get_device(device):
             super(ChainList, self).to_gpu()
             for link in self._children:
                 link.to_gpu()

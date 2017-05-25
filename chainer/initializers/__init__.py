@@ -5,7 +5,6 @@ from chainer.initializers import normal  # NOQA
 from chainer.initializers import orthogonal  # NOQA
 from chainer.initializers import uniform  # NOQA
 
-
 # import class and function
 from chainer.initializers.constant import Constant
 from chainer.initializers.constant import Identity  # NOQA
