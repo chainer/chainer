@@ -47,10 +47,10 @@ class LinearShift(extension.Extension):
         self._update_value(optimizer, value)
 
     def __call__(self, trainer):
+        self._t += 1
         optimizer = self._get_optimizer(trainer)
         value = self._compute_next_value()
         self._update_value(optimizer, value)
-        self._t += 1
 
     def serialize(self, serializer):
         self._t = serializer('_t', self._t)

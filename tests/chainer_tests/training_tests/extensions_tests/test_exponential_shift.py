@@ -27,26 +27,30 @@ class TestExponentialShift(unittest.TestCase):
         self.trigger = util.get_trigger((self.interval, 'iteration'))
 
         self.trainer = testing.get_trainer_with_mock_updater(self.trigger)
+        self.trainer.updater.get_optimizer.return_value = self.optimizer
 
     def _run_trainer(self, extension, expect, optimizer=None):
         if optimizer is None:
-            optimizer = self.trainer.updater.optimizer
-        extension.init(self.trainer)
+            optimizer = self.optimizer
+        extension.initialize(self.trainer)
 
-        for e in expect:
+        actual = []
+        for _ in expect:
             self.trainer.updater.update()
-            self.assertEqual(optimizer.x, e)
+            actual.append(optimizer.x)
             if self.trigger(self.trainer):
                 extension(self.trainer)
 
+        self.assertEqual(actual, expect)
+
     def test_basic(self):
-        self.trainer.updater.optimizer.x = 0
+        self.optimizer.x = 0
         extension = extensions.ExponentialShift(
             'x', self.rate, init=self.init, target=self.target)
         self._run_trainer(extension, self.expect)
 
     def test_without_init(self):
-        self.trainer.updater.optimizer.x = self.init
+        self.optimizer.x = self.init
         extension = extensions.ExponentialShift(
             'x', self.rate, target=self.target)
         self._run_trainer(extension, self.expect)
