@@ -3,6 +3,7 @@ import unittest
 import mock
 
 from chainer import testing
+from chainer import training
 from chainer.training import extensions
 
 
@@ -10,18 +11,41 @@ class TestLinearShift(unittest.TestCase):
 
     value_range = (2.0, 6.0)
     time_range = (1, 3)
-    expect = [2.0, 2.0, 4.0, 6.0, 6.0]
+    expect = [2.0, 2.0, 2.0, 2.0, 4.0, 4.0, 6.0, 6.0, 6.0, 6.0]
 
     def setUp(self):
         self.optimizer = mock.MagicMock()
-        self.trainer = testing.get_trainer_with_mock_updater((3, 'iteration'))
         self.extension = extensions.LinearShift(
             'x', self.value_range, self.time_range, self.optimizer)
 
-    def test_call(self):
-        for e in self.expect:
-            self.extension(self.trainer)
-            self.assertEqual(self.optimizer.x, e)
+        self.interval = 2
+        self.trigger = training.get_trigger((self.interval, 'iteration'))
+
+    def _run_trainer(self, extension, expect, optimizer=None):
+        if optimizer is None:
+            optimizer = self.trainer.updater.optimizer
+
+        if extension.invoke_before_training:
+            extension(self.trainer)
+
+        for e in expect:
+            self.trainer.updater.update()
+            self.assertEqual(optimizer.x, e)
+            if self.trigger(self.trainer):
+                extension(self.trainer)
+
+    def test_basic(self):
+        self.trainer.updater.optimizer.x = 0
+        extension = extensions.LinearShift(
+            'x', self.value_range, self.time_range)
+        self._run_trainer(extension, self.expect)
+
+    def test_with_optimizer(self):
+        optimizer = mock.Mock()
+        optimizer.x = 0
+        extension = extensions.LinearShift(
+            'x', self.value_range, self.time_range, optimizer)
+        self._run_trainer(extension, self.expect, optimizer)
 
     def test_resume(self):
         new_optimizer = mock.Mock()
