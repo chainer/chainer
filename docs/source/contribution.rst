@@ -1,9 +1,14 @@
-Chainer Contribution Guide
-==========================
+Contribution Guide
+==================
 
 This is a guide for all contributions to Chainer.
 The development of Chainer is running on `the official repository at GitHub <https://github.com/pfnet/chainer>`_.
 Anyone that wants to register an issue or to send a pull request should read through this document.
+
+.. note::
+
+   Many points of this document are updated at v2.
+   We strongly recommend all contributors of v1 to read through the document again.
 
 Classification of Contributions
 -------------------------------
@@ -12,37 +17,113 @@ There are several ways to contribute to Chainer community:
 
 1. Registering an issue
 2. Sending a pull request (PR)
-3. Sending a question to `Chainer User Group <https://groups.google.com/forum/#!forum/chainer>`_
+3. Sending a question/reply to `StackOverflow <https://stackoverflow.com/>`_ (with ``chainer`` tag) or `Chainer User Group <https://groups.google.com/forum/#!forum/chainer>`_
 4. Open-sourcing an external example
 5. Writing a post about Chainer
 
 This document mainly focuses on 1 and 2, though other contributions are also appreciated.
 
-Release and Milestone
----------------------
 
-We are using `GitHub Flow <http://scottchacon.com/2011/08/31/github-flow.html>`_ as our basic working process.
-In particular, we are using the master branch for our development, and releases are made as tags.
+Development Cycle
+-----------------
 
-Releases are classified into three groups: major, minor, and revision.
-This classification is based on following criteria:
+This section explains the development process of Chainer.
+Before contributing to Chainer, it is strongly recommended to understand the development cycle.
 
-- **Major update** contains disruptive changes that break the backward compatibility.
-- **Minor update** contains additions and extensions to the APIs keeping the supported backward compatibility.
-- **Revision update** contains improvements on the API implementations without changing any API specification.
+Versioning
+~~~~~~~~~~
 
-The release classification is reflected into the version number x.y.z, where x, y, and z corresponds to major, minor, and revision updates, respectively.
+The versioning of Chainer follows `PEP 440 <https://www.python.org/dev/peps/pep-0440/>`_ and a part of `Semantic versioning <http://semver.org/>`_.
+The version number consists of three or four parts: ``X.Y.Zw`` where ``X`` denotes the **major version**, ``Y`` denotes the **minor version**, ``Z`` denotes the **revision number**, and the optional ``w`` denotes the prelease suffix.
+While the major, minor, and revision numbers follow the rule of semantic versioning, the pre-release suffix follows PEP 440 so that the version string is much friendly with Python eco-system.
 
-We set a milestone for an upcoming release.
-The milestone is of name 'vX.Y.Z', where the version number represents a revision release at the outset.
-If at least one *feature* PR is merged in the period, we rename the milestone to represent a minor release (see the next section for the PR types).
+**Note that a major update basically does not contain compatibility-breaking changes from the last release candidate (RC).**
+This is not a strict rule, though; if there is a critical API bug that we have to fix for the major version, we may add breaking changes to the major version up.
 
-See also :doc:`compatibility`.
+As for the backward compatibility, see :ref:`compatibility`.
 
-Issues and PRs
---------------
 
-Issues and PRs are classified into following categories:
+.. _contrib-release-cycle:
+
+Release Cycle
+~~~~~~~~~~~~~
+
+Starting from v2.0.0, we are developing two tracks of versions at the same time.
+The first one is the track of **stable versions**, which is a series of revision updates for the latest major version.
+The second one is the track of **development versions**, which is a series of pre-releases for the upcoming major version.
+
+Consider that ``X.0.0`` is the latest major version and ``Y.0.0``, ``Z.0.0`` are the succeeding major versions.
+Then, the timeline of the updates is depicted by the following table.
+
+========== =========== =========== ============
+   Date       ver X       ver Y       ver Z
+========== =========== =========== ============
+  0 weeks    X.0.0rc1    --         --
+  4 weeks    X.0.0       Y.0.0a1    --
+  8 weeks    X.0.1       Y.0.0b1    --
+ 12 weeks    X.0.2       Y.0.0rc1   --
+ 16 weeks    --          Y.0.0      Z.0.0a1
+========== =========== =========== ============
+
+The dates shown in the left-most column are relative to the release of ``X.0.0rc1``.
+In particular, each revision release is made four weeks after the previous one of the same major version, and the pre-release of the upcoming major version is made at the same time.
+
+Note that the development of ``X.0.x`` stops at ``X.0.2``.
+During the parallel development of ``Y.0.0`` and ``Z.0.0a1``, the version ``Y`` is treated as an **almost-stable version** and ``Z`` is treated as a development version.
+
+If there is a critical bug found in ``X.0.2`` after stopping the development of version ``X``, we may release a hot-fix for this version at any time.
+
+.. note::
+
+   The release cycle of ``2.0.x`` and ``3.0.0x`` are slightly different from this table because we do not have ``3.0.0a1`` at the timing of the release of ``2.0.0``.
+   In this case, the releases of ``3.0.0x`` are shifted four weeks behind the usual timeline, that is, ``3.0.0a1`` will be released at the same time with ``2.0.1``.
+
+As you can see in the above table, we basically do not have any minor releases from v2.
+All changes that add and/or modify APIs should be made by the pre-release updates.
+
+We create a milestone for each upcoming release at GitHub.
+The GitHub milestone is basically used for collecting the issues and PRs resolved in the release.
+
+.. _contrib-git-branches:
+
+Git Branches
+~~~~~~~~~~~~
+
+There are two main branches: ``master`` and ``dev``.
+
+The ``master`` branch is used to develop stable versions.
+It means that **major updates and revision updates are developed at the** ``master`` **branch**.
+
+The ``dev`` branch is used to develop pre-release versions.
+It means that **alpha, beta, and RC updates are developed at the** ``dev`` **branch**.
+
+After we release the RC of the next major version, we create a *maintenance branch* for the current stable version.
+The maintenance branch is named as ``vX`` (e.g. the maintenance branch for v2 is ``v2``).
+
+**Notes for contributors:**
+When you send a pull request, you have to choose an appropriate branch.
+You basically only have to consider the ``master`` and ``dev`` branches.
+The following simple rule is enough to know the appropriate branch to send a pull request:
+
+- If the change does not add nor modify APIs and it can be applied to the stable version, choose the ``master`` branch.
+- Otherwise, choose the ``dev`` branch.
+
+For example, a change to fix a bug of the stable version should basically be sent to the ``master`` branch.
+A change to fix a bug caused by newly-introduced APIs in the development version should be sent to the ``dev`` branch.
+A change to introduce a new function/class, add a new argument to an existing function, and/or modify the existing arguments of a function should be sent to the ``dev`` branch.
+
+*Note: a change that can be applied to both branches should be sent to the* ``master`` *branch.*
+*Each release of the stable version is also merged to the development version so that the change is also reflected to the next major version.*
+
+Issues and Pull Requests
+------------------------
+
+In this section, we explain how to file issues and send pull requests (PRs).
+
+Issue/PR Labels
+~~~~~~~~~~~~~~~
+
+Issues and PRs are labeled by the following tags:
 
 * **Bug**: bug reports (issues) and bug fixes (PRs)
 * **Enhancement**: implementation improvements without breaking the interface
@@ -55,54 +136,71 @@ Issues and PRs are classified into following categories:
 * **Contribution-Welcome**: issues that we request for contribution (only issues are categorized to this)
 * **Other**: other issues and PRs
 
-Issues and PRs are labeled by these categories.
-This classification is often reflected into its corresponding release category: Feature issues/PRs are contained into minor/major releases and NoCompat issues/PRs are contained into major releases, while other issues/PRs can be contained into any releases including revision ones.
+Multiple tags might be labeled to one issue/PR.
+**Note that revision releases cannot include PRs in Feature and NoCompat categories.**
 
-On registering an issue, write precise explanations on what you want Chainer to be.
+How to File an Issue
+~~~~~~~~~~~~~~~~~~~~
+
+On registering an issue, write precise explanations on how you want Chainer to be.
 Bug reports must include necessary and sufficient conditions to reproduce the bugs.
-Feature requests must include **what** you want to do (and **why** you want to do, if needed).
+Feature requests must include **what** you want to do (and **why** you want to do, if needed) with Chainer.
 You can contain your thoughts on **how** to realize it into the feature requests, though **what** part is most important for discussions.
 
 .. warning::
 
-   If you have a question on usages of Chainer, it is highly recommended to send a post to `Chainer User Group <https://groups.google.com/forum/#!forum/chainer>`_ instead of the issue tracker.
+   If you have a question on usages of Chainer, it is highly recommended to send a post to `StackOverflow <https://stackoverflow.com/>`_ or `Chainer User Group <https://groups.google.com/forum/#!forum/chainer>`_ instead of the issue tracker.
    The issue tracker is not a place to share knowledge on practices.
-   We may redirect question issues to Chainer User Group.
+   We may suggest these places and immediately close how-to question issues.
 
-If you can write code to fix an issue, send a PR to the master branch.
-Before writing your code for PRs, read through the :ref:`coding-guide`.
-The description of any PR must contain a precise explanation of **what** and **how** you want to do; it is the first documentation of your code for developers, a very important part of your PR.
+How to Send a Pull Request
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you can write code to fix an issue, we encourage to send a PR.
+
+First of all, before starting to write any code, do not forget to confirm the following points.
+
+- Read through the :ref:`coding-guide` and :ref:`testing-guide`.
+- Check the appropriate branch that you should send the PR following :ref:`contrib-git-branches`.
+
+In particular, **check the branch before writing any code.**
+The current source tree of the chosen branch is the starting point of your change.
+
+After writing your code **(including unit tests and hopefully documentations!)**, send a PR on GitHub.
+You have to write a precise explanation of **what** and **how** you fix;
+it is the first documentation of your code that developers read, which is a very important part of your PR.
 
 Once you send a PR, it is automatically tested on `Travis CI <https://travis-ci.org/pfnet/chainer/>`_ for Linux and Mac OS X, and on `AppVeyor <https://ci.appveyor.com/project/pfnet/chainer>`_ for Windows.
-Your PR need to pass at least the test for Linux on Travis CI.
+Your PR needs to pass at least the test for Linux on Travis CI.
 After the automatic test passes, some of the core developers will start reviewing your code.
 Note that this automatic PR test only includes CPU tests.
 
 .. note::
 
-   We are also running continuous integration with GPU tests for the master branch.
-   Since this service is running on our internal server, we do not use it for automatic PR tests to keep the server secure.
+   We are also running continuous integration with GPU tests for the ``master`` and ``dev`` branches.
+   Since this service is currently running on our internal server, we do not use it for automatic PR tests to keep the server secure.
 
+If you are planning to add a new feature or modify existing APIs, **it is recommended to open an issue and discuss the design first.**
+The design discussion needs lower cost for the core developers than code review.
+Following the consequences of the discussions, you can send a PR that is smoothly reviewed in a shorter time.
 
 Even if your code is not complete, you can send a pull request as a *work-in-progress PR* by putting the ``[WIP]`` prefix to the PR title.
 If you write a precise explanation about the PR, core developers and other contributors can join the discussion about how to proceed the PR.
+WIP PR is also useful to have discussions based on a concrete code.
+
 
 .. _coding-guide:
 
 Coding Guidelines
 -----------------
 
-We use `PEP8 <https://www.python.org/dev/peps/pep-0008/>`_ and a part of `OpenStack Style Guidelines <http://docs.openstack.org/developer/hacking/>`_ related to general coding style as our basic style guidelines.
+We use `PEP 8 <https://www.python.org/dev/peps/pep-0008/>`_ and a part of `OpenStack Style Guidelines <http://docs.openstack.org/developer/hacking/>`_ related to general coding style as our basic style guidelines.
 
 To check your code, use ``autopep8`` and ``flake8`` command installed by ``hacking`` package::
 
   $ pip install autopep8 hacking
   $ autopep8 --global-config .pep8 path/to/your/code.py
   $ flake8 path/to/your/code.py
-
-To check Cython code, use ``.flake8.cython`` configuration file::
-
-  $ flake8 --config=.flake8.cython path/to/your/cython/code.pyx
 
 The ``autopep8`` supports automatically correct Python code to conform to the PEP 8 style guide::
 
@@ -122,13 +220,15 @@ Here is a (not-complete) list of the rules that ``flake8`` cannot check.
 In addition, we restrict the usage of *shortcut symbols* in our code base.
 They are symbols imported by packages and sub-packages of ``chainer``.
 For example, ``chainer.Variable`` is a shortcut of ``chainer.variable.Variable``.
-**It is not allowed to use such shortcuts in the ``chainer`` library implementation**.
+**It is not allowed to use such shortcuts in the ``chainer`` library implementation.**
 Note that you can still use them in ``tests`` and ``examples`` directories.
 Also note that you should use shortcut names of CuPy APIs in Chainer implementation.
 
 Once you send a pull request, your coding style is automatically checked by `Travis-CI <https://travis-ci.org/pfnet/chainer/>`_.
 The reviewing process starts after the check passes.
 
+
+.. _testing-guide:
 
 Testing Guidelines
 ------------------
@@ -139,13 +239,20 @@ Note that we are using the nose package and the mock package for testing, so ins
 
   $ pip install nose mock
 
-In order to run unit tests at the repository root, you first have to build Cython files in place by running the following command::
+How to Run Tests
+~~~~~~~~~~~~~~~~
 
-  $ python setup.py develop
-
-Once the Cython modules are built, you can run unit tests simply by running ``nosetests`` command at the repository root::
+You can run unit tests simply by running ``nosetests`` command at the repository root::
 
   $ nosetests
+
+or specify the test script that you want to run::
+
+  $ nosetests path/to/your/test.py
+
+You can also run all unit tests under a specified directory::
+
+  $ nosetests tests/chainer_tests/<directory name>
 
 It requires CUDA by default.
 In order to run unit tests that do not require CUDA, pass ``--attr='!gpu'`` option to the ``nosetests`` command::
@@ -163,24 +270,25 @@ If you want to skip such tests, pass ``--attr='!slow'`` option to the ``nosetest
 
   $ nosetests path/to/your/test.py --attr='!slow'
 
+If you modify the code related to existing unit tests, you must run appropriate commands and confirm that the tests pass.
+
+Test File and Directory Naming Conventions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 Tests are put into the ``tests/chainer_tests`` directory.
 In order to enable test runner to find test scripts correctly, we are using special naming convention for the test subdirectories and the test scripts.
 
 * The name of each subdirectory of ``tests`` must end with the ``_tests`` suffix.
 * The name of each test script must start with the ``test_`` prefix.
 
-Following this naming convention, you can run all the tests by just typing ``nosetests`` at the repository root::
+When we write a test for a module, we use the appropriate path and file name for the test script whose correspondence to the tested module is clear.
+For example, if you want to write a test for a module ``chainer.x.y.z``, the test script must be located at ``tests/chainer_tests/x_tests/y_tests/test_z.py``.
 
-  $ nosetests
+How to Write Tests
+~~~~~~~~~~~~~~~~~~
 
-Or you can also specify a root directory to search test scripts from::
-
-  $ nosetests tests/chainer_tests  # to just run tests of Chainer
-
-If you modify the code related to existing unit tests, you must run appropriate commands.
-
-There are many examples of unit tests under the ``tests`` directory.
-They simply use the ``unittest`` package of the standard library.
+There are many examples of unit tests under the ``tests`` directory, so reading some of them is a good and recommended way to learn how to write tests for Chainer.
+They simply use the ``unittest`` package of the standard library, while some tests are using utilities from :mod:`chainer.testing`.
 
 Even if your patch includes GPU-related code, your tests should not fail without GPU capability.
 Test functions that require CUDA must be tagged by ``chainer.testing.attr.gpu`` decorator::
@@ -235,4 +343,4 @@ Note that reviewers will test your code without the option to check CUDA-related
 
 .. note::
    Some of numerically unstable tests might cause errors irrelevant to your changes.
-   In such a case, we ignore the failures and go on to the review process, so do not worry about it.
+   In such a case, we ignore the failures and go on to the review process, so do not worry about it!

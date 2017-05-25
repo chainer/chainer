@@ -1,3 +1,5 @@
+.. _compatibility:
+
 API Compatibility Policy
 ========================
 
