@@ -5,6 +5,7 @@ from chainer import cuda
 from chainer.functions.normalization import batch_normalization
 from chainer import initializers
 from chainer import link
+from chainer.utils import argument
 from chainer import variable
 
 
@@ -66,27 +67,38 @@ class BatchNormalization(link.Link):
                  initial_gamma=None, initial_beta=None):
         super(BatchNormalization, self).__init__()
         if use_gamma:
-            self.add_param('gamma', size, dtype=dtype)
             if initial_gamma is None:
-                initial_gamma = initializers.One()
-            initializers.init_weight(self.gamma.data, initial_gamma)
+                initial_gamma = initializers.One(dtype=dtype)
+            else:
+                initial_gamma = initializers._get_initializer(initial_gamma)
+            self.add_param('gamma', size, dtype=dtype,
+                           initializer=initial_gamma)
         if use_beta:
-            self.add_param('beta', size, dtype=dtype)
             if initial_beta is None:
-                initial_beta = initializers.Zero()
-            initializers.init_weight(self.beta.data, initial_beta)
+                initial_beta = initializers.Zero(dtype=dtype)
+            else:
+                initial_beta = initializers._get_initializer(initial_beta)
+            self.add_param('beta', size, dtype=dtype, initializer=initial_beta)
         self.add_persistent('avg_mean', numpy.zeros(size, dtype=dtype))
         self.add_persistent('avg_var', numpy.zeros(size, dtype=dtype))
         self.add_persistent('N', 0)
         self.decay = decay
         self.eps = eps
 
-    def __call__(self, x, finetune=False):
-        """Invokes the forward propagation of BatchNormalization.
+    def __call__(self, x, **kwargs):
+        """__call__(self, x, finetune=False)
+
+        Invokes the forward propagation of BatchNormalization.
 
         In training mode, the BatchNormalization computes moving averages of
         mean and variance for evaluatino during training, and normalizes the
         input using batch statistics.
+
+        .. warning::
+
+           ``test`` argument is not supported anymore since v2.
+           Instead, use ``chainer.using_config('train', train)``.
+           See :func:`chainer.using_config`.
 
         Args:
             x (Variable): Input variable.
@@ -97,16 +109,21 @@ class BatchNormalization(link.Link):
                 statistics.
 
         """
+        argument.check_unexpected_kwargs(
+            kwargs, test='test argument is not supported anymore. '
+            'Use chainer.using_config')
+        finetune, = argument.parse_kwargs(kwargs, ('finetune', False))
+
         if hasattr(self, 'gamma'):
             gamma = self.gamma
         else:
-            with cuda.get_device(self._device_id):
+            with cuda.get_device_from_id(self._device_id):
                 gamma = variable.Variable(self.xp.ones(
                     self.avg_mean.shape, dtype=x.dtype))
         if hasattr(self, 'beta'):
             beta = self.beta
         else:
-            with cuda.get_device(self._device_id):
+            with cuda.get_device_from_id(self._device_id):
                 beta = variable.Variable(self.xp.zeros(
                     self.avg_mean.shape, dtype=x.dtype))
 

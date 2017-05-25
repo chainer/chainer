@@ -43,9 +43,9 @@ class SelectorBase(function.Function):
                     )
 
     def forward(self, x):
+        self.retain_outputs((0,))
         xp = cuda.get_array_module(*x)
-        self.y = xp.asarray(self._fwd(x[0], xp))
-        return self.y,
+        return xp.asarray(self._fwd(x[0], xp)),
 
     def backward(self, x, gy):
         x = x[0]
@@ -59,7 +59,7 @@ class SelectorBase(function.Function):
         # for each one that was reduced in the forward operation
         shape = [s if ax not in axis else 1 for ax, s in enumerate(x.shape)]
         gy = gy[0].reshape(shape)
-        y = self.y.reshape(shape)
+        y = self.output_data[0].reshape(shape)
 
         # Compute the gradient
         return gy * (x == y),

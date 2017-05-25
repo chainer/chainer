@@ -20,6 +20,16 @@ class TestLink(unittest.TestCase):
         self.p = numpy.array([1, 2, 3], dtype='f')
         self.link.add_persistent('p', self.p)
         self.link.name = 'a'
+        self.link.x.update_rule = chainer.UpdateRule()
+        self.link.x.update_rule.enabled = False
+        self.link.u.update_rule = chainer.UpdateRule()
+        if cuda.available:
+            self.current_device_id = cuda.cupy.cuda.get_device_id()
+
+    def tearDown(self):
+        if cuda.available \
+                and cuda.cupy.cuda.get_device_id() != self.current_device_id:
+            cuda.Device(self.current_device_id).use()
 
     def check_param_init(self, name, shape, dtype, data_value=numpy.nan):
         self.assertTrue(hasattr(self.link, name))
@@ -149,6 +159,18 @@ class TestLink(unittest.TestCase):
         self.assertIsInstance(self.link.v.data, cupy.ndarray)
         self.assertIsInstance(self.link.v.grad, cupy.ndarray)
         self.assertIsInstance(self.link.p, cupy.ndarray)
+
+    @attr.multi_gpu(2)
+    def test_to_gpu_different_device(self):
+        cuda.Device(1).use()
+        self.link.to_gpu(0)
+        self.assertEqual(self.link._device_id, 0)
+
+    @attr.multi_gpu(2)
+    def test_to_gpu_current_device(self):
+        cuda.Device(1).use()
+        self.link.to_gpu()
+        self.assertEqual(self.link._device_id, 1)
 
     def test_params(self):
         params = list(self.link.params())
@@ -291,6 +313,23 @@ class TestLink(unittest.TestCase):
         serializer.assert_any_call('x', None)
         self.assertIsInstance(l.x.data, numpy.ndarray)
         numpy.testing.assert_array_equal(l.x.data, ret)
+
+    def test_enable_update(self):
+        self.link.enable_update()
+        self.assertTrue(self.link.x.update_rule.enabled)
+        self.assertTrue(self.link.u.update_rule.enabled)
+
+    def test_disable_update(self):
+        self.link.disable_update()
+        self.assertFalse(self.link.x.update_rule.enabled)
+        self.assertFalse(self.link.u.update_rule.enabled)
+
+    def test_update_enabled(self):
+        self.assertTrue(self.link.update_enabled)
+        self.link.disable_update()
+        self.assertFalse(self.link.update_enabled)
+        self.link.enable_update()
+        self.assertTrue(self.link.update_enabled)
 
 
 class CountVariable(chainer.Variable):

@@ -63,6 +63,17 @@ class DilatedConvolution2DFunction(function.Function):
     def forward_cpu(self, inputs):
         x, W = inputs[:2]
         b = inputs[2] if len(inputs) == 3 else None
+
+        if not type_check.same_types(*inputs):
+            if b is not None:
+                raise ValueError('numpy and cupy must not be used together\n'
+                                 'type(W): {0}, type(x): {1}, type(b): {2}'
+                                 .format(type(W), type(x), type(b)))
+            else:
+                raise ValueError('numpy and cupy must not be used together\n'
+                                 'type(W): {0}, type(x): {1}'
+                                 .format(type(W), type(x)))
+
         kh, kw = W.shape[2:]
         self.col = conv.im2col_cpu(
             x, kh, kw, self.sy, self.sx, self.ph, self.pw,
@@ -76,6 +87,16 @@ class DilatedConvolution2DFunction(function.Function):
     def forward_gpu(self, inputs):
         x, W = inputs[:2]
         b = inputs[2] if len(inputs) == 3 else None
+
+        if not type_check.same_types(*inputs):
+            if b is not None:
+                raise ValueError('numpy and cupy must not be used together\n'
+                                 'type(W): {0}, type(x): {1}, type(b): {2}'
+                                 .format(type(W), type(x), type(b)))
+            else:
+                raise ValueError('numpy and cupy must not be used together\n'
+                                 'type(W): {0}, type(x): {1}'
+                                 .format(type(W), type(x)))
 
         out_c, _, kh, kw = W.shape
         n, c, h, w = x.shape
@@ -108,7 +129,7 @@ class DilatedConvolution2DFunction(function.Function):
 
                     if i == 0 and j == 0:
                         handle = cudnn.get_handle()
-                        x_desc = cudnn.create_tensor_descriptor(xji)
+                        xji_desc = cudnn.create_tensor_descriptor(xji)
                         y_desc = cudnn.create_tensor_descriptor(y)
                         self.filter_desc = cudnn.create_filter_descriptor(Wji)
                         self.conv_desc = cudnn.create_convolution_descriptor(
@@ -118,7 +139,7 @@ class DilatedConvolution2DFunction(function.Function):
                         workspace = cuda.cupy.empty(
                             (workspace_size,), dtype='b')
                         algo = libcudnn.getConvolutionForwardAlgorithm(
-                            handle, x_desc.value, self.filter_desc.value,
+                            handle, xji_desc.value, self.filter_desc.value,
                             self.conv_desc.value, y_desc.value, _fwd_pref,
                             workspace_size)
 
@@ -126,7 +147,7 @@ class DilatedConvolution2DFunction(function.Function):
                         one = numpy.array(1, dtype=oz_dtype).ctypes
 
                     libcudnn.convolutionForward(
-                        handle, one.data, x_desc.value, xji.data.ptr,
+                        handle, one.data, xji_desc.value, xji.data.ptr,
                         self.filter_desc.value, Wji.data.ptr,
                         self.conv_desc.value, algo, workspace.data.ptr,
                         workspace_size, one.data, y_desc.value, y.data.ptr)

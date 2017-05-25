@@ -23,13 +23,11 @@ def _is_shape(value):
     except TypeError:
         return False
 
-    return False
-
 
 def _ensure_shape_dtype(value):
     # Return value paired with dtype FP32 if it is a shape.
     if _is_shape(value):
-        return (value, 'f')
+        return value, 'f'
     # Otherwise, returns it with assuming a shape-dtype pair.
     else:
         return value
@@ -283,7 +281,7 @@ class Link(object):
         if not self._cpu:
             return self
         d = self.__dict__
-        with cuda.get_device(device):
+        with cuda._get_device(device):
             for name in self._params:
                 d[name].to_gpu()
             for name in self._persistent:
@@ -422,6 +420,39 @@ class Link(object):
         dst = self.__dict__
         for name in self._params:
             dst[name].addgrad(src[name])
+
+    def enable_update(self):
+        """Enables update rules of all parameters under the link hierarchy.
+
+        This method sets the :attr:`~chainer.UpdateRule.enabled` flag of the
+        update rule of each parameter variable to ``True``.
+
+        """
+        for param in self.params():
+            rule = param.update_rule
+            if rule is not None:
+                rule.enabled = True
+
+    def disable_update(self):
+        """Disables update rules of all parameters under the link hierarchy.
+
+        This method sets the :attr:~chainer.UpdateRule.enabled` flag of the
+        update rule of each parameter variable to ``False``.
+
+        """
+        for param in self.params():
+            rule = param.update_rule
+            if rule is not None:
+                rule.enabled = False
+
+    @property
+    def update_enabled(self):
+        """``True`` if at least one parameter has an update rule enabled."""
+        for param in self.params():
+            rule = param.update_rule
+            if rule is not None and rule.enabled:
+                return True
+        return False
 
     def serialize(self, serializer):
         """Serializes the link object.
@@ -570,7 +601,7 @@ class Chain(Link):
         return self
 
     def to_gpu(self, device=None):
-        with cuda.get_device(device):
+        with cuda._get_device(device):
             super(Chain, self).to_gpu()
             d = self.__dict__
             for name in self._children:
@@ -680,7 +711,7 @@ class ChainList(Link):
         return iter(self._children)
 
     def __len__(self):
-        """Returns a number of children."""
+        """Returns the number of children."""
         return len(self._children)
 
     def add_link(self, link):
@@ -724,7 +755,7 @@ class ChainList(Link):
         return self
 
     def to_gpu(self, device=None):
-        with cuda.get_device(device):
+        with cuda._get_device(device):
             super(ChainList, self).to_gpu()
             for link in self._children:
                 link.to_gpu()

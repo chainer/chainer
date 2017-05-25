@@ -12,16 +12,24 @@ from chainer.links.connection import linear
 from chainer import variable
 
 
+def _init_weight(weights, initializer):
+    initializers._get_initializer(initializer)(weights)
+
+
 class LSTMBase(link.Chain):
 
-    def __init__(self, in_size, out_size,
-                 lateral_init=None, upward_init=None,
-                 bias_init=0, forget_bias_init=1):
+    def __init__(self, in_size, out_size=None, lateral_init=None,
+                 upward_init=None, bias_init=0, forget_bias_init=1):
+
+        if out_size is None:
+            out_size, in_size = in_size, None
+
         super(LSTMBase, self).__init__(
             upward=linear.Linear(in_size, 4 * out_size, initialW=0),
             lateral=linear.Linear(out_size, 4 * out_size,
                                   initialW=0, nobias=True),
         )
+
         self.state_size = out_size
         self.lateral_init = lateral_init
         self.upward_init = upward_init
@@ -32,19 +40,19 @@ class LSTMBase(link.Chain):
             self._initialize_params()
 
     def _initialize_params(self):
+        lateral_init = initializers._get_initializer(self.lateral_init)
+        upward_init = initializers._get_initializer(self.upward_init)
+
         for i in six.moves.range(0, 4 * self.state_size, self.state_size):
-            initializers.init_weight(
-                self.lateral.W.data[i:i + self.state_size, :],
-                self.lateral_init)
-            initializers.init_weight(
-                self.upward.W.data[i:i + self.state_size, :], self.upward_init)
+            lateral_init(self.lateral.W.data[i:i + self.state_size, :])
+            upward_init(self.upward.W.data[i:i + self.state_size, :])
 
         a, i, f, o = lstm._extract_gates(
             self.upward.b.data.reshape(1, 4 * self.state_size, 1))
-        initializers.init_weight(a, self.bias_init)
-        initializers.init_weight(i, self.bias_init)
-        initializers.init_weight(f, self.forget_bias_init)
-        initializers.init_weight(o, self.bias_init)
+        _init_weight(a, self.bias_init)
+        _init_weight(i, self.bias_init)
+        _init_weight(f, self.forget_bias_init)
+        _init_weight(o, self.bias_init)
 
 
 class StatelessLSTM(LSTMBase):
@@ -57,14 +65,52 @@ class StatelessLSTM(LSTMBase):
     hidden states.
 
     Args:
-        in_size (int): Dimension of input vectors. If ``None``, parameter
-            initialization will be deferred until the first forward data pass
-            at which time the size will be determined.
+        in_size (int or None): Dimension of input vectors. If ``None``,
+            parameter initialization will be deferred until the first forward
+            data pass at which time the size will be determined.
         out_size (int): Dimensionality of output vectors.
 
     Attributes:
         upward (chainer.links.Linear): Linear layer of upward connections.
         lateral (chainer.links.Linear): Linear layer of lateral connections.
+
+    .. admonition:: Example
+
+        There are several ways to make a StatelessLSTM link.
+
+        Let a two-dimensional input array :math:`x`, a cell state array
+        :math:`h`, and the output array of the previous step :math:`h` be:
+
+        >>> x = np.zeros((1, 10), dtype='f')
+        >>> c = np.zeros((1, 20), dtype='f')
+        >>> h = np.zeros((1, 20), dtype='f')
+
+        1. Give both ``in_size`` and ``out_size`` arguments:
+
+            >>> l = L.StatelessLSTM(10, 20)
+            >>> c_new, h_new = l(c, h, x)
+            >>> c_new.shape
+            (1, 20)
+            >>> h_new.shape
+            (1, 20)
+
+        2. Omit ``in_size`` argument or fill it with ``None``:
+
+            The below two cases are the same.
+
+            >>> l = L.StatelessLSTM(20)
+            >>> c_new, h_new = l(c, h, x)
+            >>> c_new.shape
+            (1, 20)
+            >>> h_new.shape
+            (1, 20)
+
+            >>> l = L.StatelessLSTM(None, 20)
+            >>> c_new, h_new = l(c, h, x)
+            >>> c_new.shape
+            (1, 20)
+            >>> h_new.shape
+            (1, 20)
 
     """
 
@@ -84,7 +130,7 @@ class StatelessLSTM(LSTMBase):
         """
         if self.upward.W.data is None:
             in_size = x.size // x.shape[0]
-            with cuda.get_device(self._device_id):
+            with cuda.get_device_from_id(self._device_id):
                 self.upward._initialize_params(in_size)
                 self._initialize_params()
 
@@ -93,7 +139,7 @@ class StatelessLSTM(LSTMBase):
             lstm_in += self.lateral(h)
         if c is None:
             xp = self.xp
-            with cuda.get_device(self._device_id):
+            with cuda.get_device_from_id(self._device_id):
                 c = variable.Variable(
                     xp.zeros((x.shape[0], self.state_size), dtype=x.dtype))
         return lstm.lstm(c, lstm_in)
@@ -122,32 +168,32 @@ class LSTM(LSTMBase):
     applying the function.
 
     Args:
-        in_size (int): Dimension of input vectors. If ``None``, parameter
-            initialization will be deferred until the first forward data pass
-            at which time the size will be determined.
+        in_size (int): Dimension of input vectors. If it is ``None`` or
+            omitted, parameter initialization will be deferred until the first
+            forward data pass at which time the size will be determined.
         out_size (int): Dimensionality of output vectors.
         lateral_init: A callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
             It is used for initialization of the lateral connections.
-            Maybe be ``None`` to use default initialization.
+            May be ``None`` to use default initialization.
         upward_init: A callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
             It is used for initialization of the upward connections.
-            Maybe be ``None`` to use default initialization.
+            May be ``None`` to use default initialization.
         bias_init: A callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value
             It is used for initialization of the biases of cell input,
             input gate and output gate.and gates of the upward connection.
-            Maybe a scalar, in that case, the bias is
+            May be a scalar, in that case, the bias is
             initialized by this value.
-            Maybe be ``None`` to use default initialization.
+            If it is ``None``, the cell-input bias is initialized to zero.
         forget_bias_init: A callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value
             It is used for initialization of the biases of the forget gate of
             the upward connection.
-            Maybe a scalar, in that case, the bias is
+            May be a scalar, in that case, the bias is
             initialized by this value.
-            Maybe be ``None`` to use default initialization.
+            If it is ``None``, the forget bias is initialized to one.
 
 
     Attributes:
@@ -158,7 +204,9 @@ class LSTM(LSTMBase):
 
     """
 
-    def __init__(self, in_size, out_size, **kwargs):
+    def __init__(self, in_size, out_size=None, **kwargs):
+        if out_size is None:
+            in_size, out_size = None, in_size
         super(LSTM, self).__init__(in_size, out_size, **kwargs)
         self.reset_state()
 
@@ -218,7 +266,7 @@ class LSTM(LSTMBase):
 
         """
         if self.upward.W.data is None:
-            with cuda.get_device(self._device_id):
+            with cuda.get_device_from_id(self._device_id):
                 in_size = x.size // x.shape[0]
                 self.upward._initialize_params(in_size)
                 self._initialize_params()
@@ -242,7 +290,7 @@ class LSTM(LSTMBase):
                 lstm_in += self.lateral(self.h)
         if self.c is None:
             xp = self.xp
-            with cuda.get_device(self._device_id):
+            with cuda.get_device_from_id(self._device_id):
                 self.c = variable.Variable(
                     xp.zeros((batch, self.state_size), dtype=x.dtype))
         self.c, y = lstm.lstm(self.c, lstm_in)

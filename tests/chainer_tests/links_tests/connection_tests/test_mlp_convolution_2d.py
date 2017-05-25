@@ -79,7 +79,6 @@ class TestMLPConvolution2DCudnnCall(unittest.TestCase):
     def test_call_cudnn_backrward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             y = self.forward()
-            print(y.data.shape)
             y.grad = self.gy
             if cuda.cudnn.cudnn.getVersion() >= 3000:
                 patch = 'cupy.cudnn.cudnn.convolutionBackwardData_v3'
@@ -91,16 +90,18 @@ class TestMLPConvolution2DCudnnCall(unittest.TestCase):
                                  chainer.should_use_cudnn('>=auto'))
 
 
-@testing.parameterize(
-    {'use_cudnn': 'always'},
-    {'use_cudnn': 'never'},
-)
+@testing.parameterize(*testing.product({
+    'use_cudnn': ['always', 'never'],
+    'mlpconv_args': [
+        ((None, (96, 96, 96), 11), {'activation': functions.sigmoid}),
+        (((96, 96, 96), 11), {'activation': functions.sigmoid})
+    ]
+}))
 class TestMLPConvolution2DShapePlaceholder(unittest.TestCase):
 
     def setUp(self):
-        self.mlp = links.MLPConvolution2D(
-            None, (96, 96, 96), 11,
-            activation=functions.sigmoid)
+        args, kwargs = self.mlpconv_args
+        self.mlp = links.MLPConvolution2D(*args, **kwargs)
         self.x = numpy.zeros((10, 3, 20, 20), dtype=numpy.float32)
 
     def test_init(self):
@@ -129,6 +130,67 @@ class TestMLPConvolution2DShapePlaceholder(unittest.TestCase):
     def test_call_gpu(self):
         self.mlp.to_gpu()
         self.check_call(cuda.to_gpu(self.x))
+
+
+class TestInitArgumentForv2(unittest.TestCase):
+
+    in_channels = 10
+    out_channels = (15, 20)
+    ksize = 3
+    stride = 1
+    pad = 0
+
+    def test_valid_instantiation_ksize_is_not_none(self):
+        l = links.MLPConvolution2D(
+            self.in_channels, self.out_channels, self.ksize, self.stride,
+            self.pad, functions.relu, conv_init=None, bias_init=None)
+        self.assertEqual(len(l), 2)
+        self.assertEqual(l[0].W.shape,
+                         (self.out_channels[0], self.in_channels,
+                          self.ksize, self.ksize))
+        self.assertEqual(l[1].W.shape,
+                         (self.out_channels[1], self.out_channels[0], 1, 1))
+
+    def test_valid_instantiation_ksize_is_none(self):
+        l = links.MLPConvolution2D(self.out_channels, self.ksize, None,
+                                   self.stride, self.pad, functions.relu,
+                                   conv_init=None, bias_init=None)
+        x = numpy.random.uniform(
+            -1, 1, (10, self.in_channels, 10, 10)).astype(numpy.float32)
+        l(x)  # create weight tensors of convolutions by initialization
+
+        self.assertEqual(len(l), 2)
+        self.assertEqual(l[0].W.shape,
+                         (self.out_channels[0], self.in_channels,
+                          self.ksize, self.ksize))
+        self.assertEqual(l[1].W.shape,
+                         (self.out_channels[1], self.out_channels[0], 1, 1))
+
+    def test_valid_instantiation_in_channels_is_omitted(self):
+        l = links.MLPConvolution2D(
+            self.out_channels, self.ksize, stride=self.stride, pad=self.pad,
+            activation=functions.relu, conv_init=None, bias_init=None)
+        x = numpy.random.uniform(
+            -1, 1, (10, self.in_channels, 10, 10)).astype(numpy.float32)
+        l(x)  # create weight tensors of convolutions by initialization
+
+        self.assertEqual(len(l), 2)
+        self.assertEqual(l[0].W.shape,
+                         (self.out_channels[0], self.in_channels,
+                          self.ksize, self.ksize))
+        self.assertEqual(l[1].W.shape,
+                         (self.out_channels[1], self.out_channels[0], 1, 1))
+
+    def test_forbid_wscale_as_a_positional_argument(self):
+        with self.assertRaises(TypeError):
+            # 7th positional argument was wscale in v1
+            links.MLPConvolution2D(self.in_channels, self.out_channels, None,
+                                   self.stride, self.pad, functions.relu, 1)
+
+    def test_forbid_wscale_as_a_keyword_argument(self):
+        with self.assertRaises(ValueError):
+            links.MLPConvolution2D(
+                self.in_channels, self.out_channels, wscale=1)
 
 
 testing.run_module(__name__, __file__)
