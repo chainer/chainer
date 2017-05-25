@@ -200,7 +200,7 @@ This class has an interface convenient on setting up a parameter variable regist
 
 You basically do not need to update your code because :meth:`Link.add_param` creates a :class:`Parameter` object in Chainer v2.
 There is a new recommended way of registering parameters to a link in Chainer v2, though.
-TODO
+:ref:`See here <upgrade-new-param-register>` for the recommended way of parameter registration.
 
 .. _upgrade-variable-changes:
 
@@ -476,11 +476,13 @@ The ``chainer.links.Parameter`` link is removed in Chainer v2.
 This link existed in Chainer v1 only for the backward compatibility.
 Use :class:`chainer.Parameter` instead (for the new :class:`Parameter` class, see :ref:`upgrade-parameter`).
 
+.. _upgrade-new-param-register:
+
 New-style parameter registration APIs are added to Link
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In Chainer v2, a :class:`Parameter` object is automatically registered to a :class:`Link` object just by substituting it to an attribute of the link.
-If you are using IDE like PyCharm, it is recommended to use the new-style parameter registration so that IDEs can easily detect the existence of the parameter as an attribute.
+In Chainer v2, :meth:`Link.init_scope` method returns a context manager that automatically registers a :class:`Parameter` object to the link at setting it to an attribute.
+If you are using IDE like PyCharm, it is recommended to use this new-style parameter registration so that IDEs can easily detect the existence of the parameter as an attribute.
 It is also a good practice to use the new-style API even if you are not using IDEs, if you are planning to make the code public.
 
 .. note::
@@ -512,14 +514,19 @@ It is also a good practice to use the new-style API even if you are not using ID
       class MyLink(chainer.Link):
           def __init__(self):
               super(MyLink, self).__init__()
-              self.W = chainer.Parameter(chainer.initializers.Normal(0.05), (10, 5))
-              self.b = chainer.Parameter(0, (5,))  # initialize by zero
+              with self.init_scope():
+                  self.W = chainer.Parameter(chainer.initializers.Normal(0.05), (10, 5))
+                  self.b = chainer.Parameter(0, (5,))  # initialize by zero
           ...
+
+.. note::
+
+   To keep a :class:`Parameter` object as an attribute without registration, you can set the attribute without using the ``with self.init_scope():`` block.
 
 New-style child link registration APIs are added to Chain
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In Chainer v2, a :class:`Link` object is automatically registered to a :class:`Chain` object just by substituting it to an attribute of the chain.
+Like :class:`Parameter`, a :class:`Link` object is also automatically registered to a :class:`Chain` object by substitution to an attribute within a :meth:`~Link.init_scope` scope.
 If you are using IDE like PyCharm, it is recommended to use the new-style child link registration so that IDEs can easily detect the existence of the child link as an attribute.
 It is also a good practice to use the new-style API even if you are not using IDEs, if you are planning to make the code public.
 
@@ -550,10 +557,15 @@ It is also a good practice to use the new-style API even if you are not using ID
       class MyMLP(chainer.Chain):
           def __init__(self):
               super(MyMLP, self).__init__()
-              self.layer1 = L.Linear(20)
-              self.layer2 = L.Linear(30)
+              with self.init_scope():
+                  self.layer1 = L.Linear(20)
+                  self.layer2 = L.Linear(30)
 
    Note that this example also demonstrates the use of new APIs with :ref:`the omitted input size <update-omit-input-size>`, explained below.
+
+.. note::
+
+   To keep a :class:`Link` object as an attribute without registration, you can set the attribute without using the ``with self.init_scope():`` block.
 
 .. _update-omit-input-size:
 
