@@ -102,8 +102,8 @@ And an error is like this:
 
    Traceback (most recent call last):
    ...
-   InvalidType: Expect: in_types[0].dtype == <class 'numpy.float64'>
-   Actual: float32 != <class 'numpy.float64'>
+   InvalidType: Expect: in_types[0].dtype == <type 'numpy.float64'>
+   Actual: float32 != <type 'numpy.float64'>
 
 You can also check ``kind`` of ``dtype``.
 This code checks if the type is floating point
