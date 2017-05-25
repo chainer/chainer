@@ -131,8 +131,7 @@ def simplified_dropconnect(x, W, b=None, ratio=.5, train=True, mask=None):
             If ``True``, executes simplified dropconnect.
             Otherwise, simplified dropconnect function works as a linear
             function.
-        mask (None or chainer.Variable or :class:`numpy.ndarray` or
-            cupy.ndarray):
+        mask (None or chainer.Variable or numpy.ndarray or cupy.ndarray):
             If ``None``, randomized dropconnect mask is generated.
             Otherwise, The mask must be ``(n, M, N)`` shaped array.
             Main purpose of this option is debugging.

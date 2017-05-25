@@ -77,7 +77,7 @@ def split_axis(x, indices_or_sections, axis, force_tuple=True):
         force_tuple (bool): If ``True`` (the default) this method returns a
             tuple even when the number of outputs is one. Otherwise, if
             ``False`` a Variable will be returned when the number of outputs
-             is one.
+            is one.
 
     Returns:
         tuple or Variable: Tuple of :class:`~chainer.Variable` objects

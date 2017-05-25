@@ -109,6 +109,7 @@ def n_step_gru(
     Returns:
         tuple: This functions returns a tuple concaining three elements,
             ``hy`` and ``ys``.
+
             - ``hy`` is an updated hidden states whose shape is same as ``hx``.
             - ``ys`` is a list of :class:`~chainer.Variable` . Each element
               ``ys[t]`` holds hidden states of the last layer corresponding
@@ -211,6 +212,7 @@ def n_step_bigru(
     Returns:
         tuple: This functions returns a tuple concaining three elements,
             ``hy`` and ``ys``.
+
             - ``hy`` is an updated hidden states whose shape is same as ``hx``.
             - ``ys`` is a list of :class:`~chainer.Variable` . Each element
               ``ys[t]`` holds hidden states of the last layer corresponding

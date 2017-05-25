@@ -57,10 +57,11 @@ def pad(x, pad_width, mode, **keywords):
             Number of values padded to the edges of each axis.
         mode (str):
             Specifies how the function fills the periphery of the array.
-            `constant`
-                Pads with a constant values.
+            The mode is passed to :func:`numpy.pad` or :func:`cupy.pad`.
+            If it is ``'constant'``, the input is padded by a constant value
+            specified by ``constant_values``.
         constant_values (int or array-like):
-            The values are padded for each axis.
+            Constant values to fill the periphery in the ``'constant'`` mode.
 
     Returns:
         ~chainer.Variable: Output variable.

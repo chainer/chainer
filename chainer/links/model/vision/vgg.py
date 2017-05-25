@@ -32,7 +32,7 @@ from chainer.variable import Variable
 
 class VGG16Layers(link.Chain):
 
-    """A pre-trained CNN model with 16 layers provided by VGG team [1].
+    """A pre-trained CNN model with 16 layers provided by VGG team.
 
     During initialization, this chain model automatically downloads
     the pre-trained caffemodel, convert to another chainer model,
@@ -47,8 +47,8 @@ class VGG16Layers(link.Chain):
     model that can be specified in the constructor,
     please use ``convert_caffemodel_to_npz`` classmethod instead.
 
-    .. [1] K. Simonyan and A. Zisserman, `Very Deep Convolutional Networks
-        for Large-Scale Image Recognition <https://arxiv.org/abs/1409.1556>`_
+    See: K. Simonyan and A. Zisserman, `Very Deep Convolutional Networks
+    for Large-Scale Image Recognition <https://arxiv.org/abs/1409.1556>`_
 
     Args:
         pretrained_model (str): the destination of the pre-trained

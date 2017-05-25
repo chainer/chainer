@@ -33,7 +33,7 @@ from chainer.variable import Variable
 
 class ResNetLayers(link.Chain):
 
-    """A pre-trained CNN model provided by MSRA [1].
+    """A pre-trained CNN model provided by MSRA.
 
     When you specify the path of the pre-trained chainer model serialized as
     a ``.npz`` file in the constructor, this chain model automatically
@@ -48,8 +48,8 @@ class ResNetLayers(link.Chain):
     model that can be specified in the constructor,
     please use ``convert_caffemodel_to_npz`` classmethod instead.
 
-    .. [1] K. He et. al., `Deep Residual Learning for Image Recognition
-        <https://arxiv.org/abs/1512.03385>`_
+    See: K. He et. al., `Deep Residual Learning for Image Recognition
+    <https://arxiv.org/abs/1512.03385>`_
 
     Args:
         pretrained_model (str): the destination of the pre-trained
@@ -273,7 +273,7 @@ class ResNetLayers(link.Chain):
 
 class ResNet50Layers(ResNetLayers):
 
-    """A pre-trained CNN model with 50 layers provided by MSRA [1].
+    """A pre-trained CNN model with 50 layers provided by MSRA.
 
     When you specify the path of the pre-trained chainer model serialized as
     a ``.npz`` file in the constructor, this chain model automatically
@@ -297,8 +297,8 @@ class ResNet50Layers(ResNetLayers):
     or semantic segmentation use deeper ones as their building blocks, so these
     deeper ResNets are here for making reproduction work easier.
 
-    .. [1] K. He et. al., `Deep Residual Learning for Image Recognition
-        <https://arxiv.org/abs/1512.03385>`_
+    See: K. He et. al., `Deep Residual Learning for Image Recognition
+    <https://arxiv.org/abs/1512.03385>`_
 
     Args:
         pretrained_model (str): the destination of the pre-trained
@@ -330,7 +330,7 @@ class ResNet50Layers(ResNetLayers):
 
 class ResNet101Layers(ResNetLayers):
 
-    """A pre-trained CNN model with 101 layers provided by MSRA [1].
+    """A pre-trained CNN model with 101 layers provided by MSRA.
 
     When you specify the path of the pre-trained chainer model serialized as
     a ``.npz`` file in the constructor, this chain model automatically
@@ -350,8 +350,8 @@ class ResNet101Layers(ResNetLayers):
     dataset drops 1.1% from ResNet152. For many cases, ResNet50 may have the
     best balance between the accuracy and the model size.
 
-    .. [1] K. He et. al., `Deep Residual Learning for Image Recognition
-        <https://arxiv.org/abs/1512.03385>`_
+    See: K. He et. al., `Deep Residual Learning for Image Recognition
+    <https://arxiv.org/abs/1512.03385>`_
 
     Args:
         pretrained_model (str): the destination of the pre-trained
@@ -383,7 +383,7 @@ class ResNet101Layers(ResNetLayers):
 
 class ResNet152Layers(ResNetLayers):
 
-    """A pre-trained CNN model with 152 layers provided by MSRA [1].
+    """A pre-trained CNN model with 152 layers provided by MSRA.
 
     When you specify the path of the pre-trained chainer model serialized as
     a ``.npz`` file in the constructor, this chain model automatically
@@ -402,8 +402,8 @@ class ResNet152Layers(ResNetLayers):
     model and it achieves the best result on ImageNet classification task in
     `ILSVRC 2015 <http://image-net.org/challenges/LSVRC/2015/results#loc>`_.
 
-    .. [1] K. He et. al., `Deep Residual Learning for Image Recognition
-        <https://arxiv.org/abs/1512.03385>`_
+    See: K. He et. al., `Deep Residual Learning for Image Recognition
+    <https://arxiv.org/abs/1512.03385>`_
 
     Args:
         pretrained_model (str): the destination of the pre-trained

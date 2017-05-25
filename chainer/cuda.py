@@ -164,9 +164,9 @@ def get_device_from_array(*arrays):
     The device on which the given CuPy array reside is returned.
 
     Args:
-        array (:class:`cupy.ndarray` or list of :class:`cupy.ndarray`):
+        array (cupy.ndarray or list of cupy.ndarray):
             A CuPy array which this function returns the device corresponding
-            to. If a list of :class:`cupy.ndarray`s are given, it returns
+            to. If a list of :class:`cupy.ndarray` s are given, it returns
             the first device object of an array in the list.
     """
     for array in arrays:
