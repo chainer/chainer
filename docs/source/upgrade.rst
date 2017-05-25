@@ -158,16 +158,16 @@ If you are using the ``Variable.volatile`` flag, you have to stop setting this f
 
    .. code-block:: py
 
-      # Chainer 1.x
+      # Chainer v1
       x_data = ...   # ndarray
       x = chainer.Variable(x_data, volatile=True)
       y = model(x)
 
-   In Chainer 2.x, it should be updated as follows.
+   In Chainer v2, it should be updated as follows.
 
    .. code-block:: py
 
-      # Chainer 2.x
+      # Chainer v2
       x_data = ...   # ndarray
       x = chainer.Variable(x)
       with chainer.no_backprop_mode():
