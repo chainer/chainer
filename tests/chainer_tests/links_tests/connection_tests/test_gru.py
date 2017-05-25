@@ -227,4 +227,5 @@ class InvalidCallOfGRU(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.gru(x, h, z)
 
+
 testing.run_module(__name__, __file__)
