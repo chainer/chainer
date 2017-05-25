@@ -161,6 +161,12 @@ class VariableNode(object):
         """Function node that created this variable node."""
         return self._creator
 
+    @creator.setter
+    def creator(self, func):
+        self._creator = func
+        if func is not None:
+            self._rank = func.rank + 1
+
     @property
     def data(self):
         """Data array of the corresponding variable.
@@ -206,16 +212,21 @@ class VariableNode(object):
     def set_creator(self, creator):
         """Sets a :class:`Function` object that created this node.
 
+        This method is equivalent to ``self.creator = creator``.
+
         Args:
             creator (Function): Function object that created this node.
 
         """
-        self._creator = creator
-        self._rank = creator.rank + 1
+        self.creator = creator
 
     def unchain(self):
-        """Deletes the reference to the creator of this variable node."""
-        self._creator = None
+        """Deletes the reference to the creator of this variable node.
+
+        This method is equivalent to ``self.creator = None``.
+
+        """
+        self.creator = None
 
     def retain_data(self):
         """Lets the node hold a reference to the underlying data array.
@@ -401,7 +412,27 @@ Actual: {0}'''.format(type(data))
 
     @property
     def creator(self):
+        """:meth:`Function` object that created this variable.
+
+        This property has a setter to which ``None`` can be set. Setting
+        ``None`` to this property is equivalent to call :meth:`unchain`;
+        it purges the variable from the function that created this variable.
+
+        The setter also accepts the original :meth:`Function` object that
+        created this variable. For example, you can once set ``None`` to this
+        property and then set the original value again.
+
+        .. note::
+           Setting an irrelevant :meth:`Function` object does not emit any
+           error immediately, whereas the behavior is undefined. Do not set
+           a :meth:`Function` object that did not create this variable object.
+
+        """
         return self._node._creator
+
+    @creator.setter
+    def creator(self, func):
+        self._node.creator = func
 
     @property
     def data(self):
@@ -766,8 +797,10 @@ Actual: {0}'''.format(type(data))
         variable node. Unlike :meth:`unchain_backward`, it does not backtrack
         the graph.
 
+        This method is equivalent to ``self.creator = None``.
+
         """
-        self._node.unchain()
+        self.creator = None
 
     def unchain_backward(self):
         """Deletes references between variable nodes and functions backward.

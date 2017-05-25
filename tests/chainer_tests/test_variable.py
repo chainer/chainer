@@ -183,6 +183,23 @@ class TestVariable(unittest.TestCase):
         ret = self.create_linear_chain(2, True)
         self.check_backward((ret[0], ), (ret[1], ), (ret[2], ), True)
 
+    def test_unchain(self):
+        ret = self.create_linear_chain(3, False)
+        ret[1].unchain()
+        self.check_backward((ret[1],), (ret[2],), (ret[3],), False)
+
+    def test_set_none_to_creator(self):
+        ret = self.create_linear_chain(3, False)
+        ret[1].creator = None
+        self.check_backward((ret[1],), (ret[2],), (ret[3],), False)
+
+    def test_set_none_and_original_to_creator(self):
+        ret = self.create_linear_chain(2, False)
+        creator = ret[1].creator
+        ret[1].creator = None
+        ret[1].creator = creator
+        self.check_backward((ret[0],), (ret[1],), (ret[2],), False)
+
     def test_unchain_backward_cpu(self):
         ret = self.create_linear_chain(3, False)
         ret[1].unchain_backward()
