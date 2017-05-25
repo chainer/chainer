@@ -1,7 +1,6 @@
 import numpy
 import six
 
-import chainer
 from chainer import cuda
 from chainer.functions.activation import lstm
 from chainer.functions.array import concat
@@ -234,8 +233,8 @@ class LSTM(LSTMBase):
             h (~chainer.Variable): A new output at the previous time step.
 
         """
-        assert isinstance(c, chainer.Variable)
-        assert isinstance(h, chainer.Variable)
+        assert isinstance(c, variable.Variable)
+        assert isinstance(h, variable.Variable)
         c_ = c
         h_ = h
         if self.xp == numpy:
