@@ -132,4 +132,65 @@ class TestMLPConvolution2DShapePlaceholder(unittest.TestCase):
         self.check_call(cuda.to_gpu(self.x))
 
 
+class TestInitArgumentForv2(unittest.TestCase):
+
+    in_channels = 10
+    out_channels = (15, 20)
+    ksize = 3
+    stride = 1
+    pad = 0
+
+    def test_valid_instantiation_ksize_is_not_none(self):
+        l = links.MLPConvolution2D(
+            self.in_channels, self.out_channels, self.ksize, self.stride,
+            self.pad, functions.relu, conv_init=None, bias_init=None)
+        self.assertEqual(len(l), 2)
+        self.assertEqual(l[0].W.shape,
+                         (self.out_channels[0], self.in_channels,
+                          self.ksize, self.ksize))
+        self.assertEqual(l[1].W.shape,
+                         (self.out_channels[1], self.out_channels[0], 1, 1))
+
+    def test_valid_instantiation_ksize_is_none(self):
+        l = links.MLPConvolution2D(self.out_channels, self.ksize, None,
+                                   self.stride, self.pad, functions.relu,
+                                   conv_init=None, bias_init=None)
+        x = numpy.random.uniform(
+            -1, 1, (10, self.in_channels, 10, 10)).astype(numpy.float32)
+        l(x)  # create weight tensors of convolutions by initialization
+
+        self.assertEqual(len(l), 2)
+        self.assertEqual(l[0].W.shape,
+                         (self.out_channels[0], self.in_channels,
+                          self.ksize, self.ksize))
+        self.assertEqual(l[1].W.shape,
+                         (self.out_channels[1], self.out_channels[0], 1, 1))
+
+    def test_valid_instantiation_in_channels_is_omitted(self):
+        l = links.MLPConvolution2D(
+            self.out_channels, self.ksize, stride=self.stride, pad=self.pad,
+            activation=functions.relu, conv_init=None, bias_init=None)
+        x = numpy.random.uniform(
+            -1, 1, (10, self.in_channels, 10, 10)).astype(numpy.float32)
+        l(x)  # create weight tensors of convolutions by initialization
+
+        self.assertEqual(len(l), 2)
+        self.assertEqual(l[0].W.shape,
+                         (self.out_channels[0], self.in_channels,
+                          self.ksize, self.ksize))
+        self.assertEqual(l[1].W.shape,
+                         (self.out_channels[1], self.out_channels[0], 1, 1))
+
+    def test_forbid_wscale_as_a_positional_argument(self):
+        with self.assertRaises(TypeError):
+            # 7th positional argument was wscale in v1
+            links.MLPConvolution2D(self.in_channels, self.out_channels, None,
+                                   self.stride, self.pad, functions.relu, 1)
+
+    def test_forbid_wscale_as_a_keyword_argument(self):
+        with self.assertRaises(ValueError):
+            links.MLPConvolution2D(
+                self.in_channels, self.out_channels, wscale=1)
+
+
 testing.run_module(__name__, __file__)

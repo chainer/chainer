@@ -10,10 +10,10 @@ Before installing Chainer
 
 We recommend these platforms.
 
-* `Ubuntu <http://www.ubuntu.com/>`_ 14.04 LTS 64bit
-* `CentOS <https://www.centos.org/>`_ 7 64bit
+* `Ubuntu <http://www.ubuntu.com/>`__ 14.04 LTS 64bit
+* `CentOS <https://www.centos.org/>`__ 7 64bit
 
-Chainer is supported on Python 2.7.6+, 3.4.3+, 3.5.1+.
+Chainer is supported on Python 2.7.6+, 3.4.3+, 3.5.1+, 3.6.0+.
 Chainer uses C++ compiler such as g++.
 You need to install it before installing Chainer.
 This is typical installation method for each platform::
@@ -34,27 +34,27 @@ Install Chainer
 
 Chainer depends on these Python packages:
 
-* `NumPy <http://www.numpy.org/>`_ 1.9, 1.10, 1.11
-* `Six <https://pythonhosted.org/six/>`_ 1.9
+* `NumPy <http://www.numpy.org/>`__ 1.9, 1.10, 1.11, 1.12
+* `Six <https://pythonhosted.org/six/>`__ 1.9
 
 Caffe model support
 
-* `Protocol Buffers <https://developers.google.com/protocol-buffers/>`_
+* `Protocol Buffers <https://developers.google.com/protocol-buffers/>`__
 * protobuf>=3.0.0 is required for Py3
 
 All of the above libraries are automatically installed with ``pip`` or ``setup.py``.
 
 CUDA/cuDNN support
 
-* `CuPy <http://docs.cupy.chainer.org/>`_
+* `CuPy <http://docs.cupy.chainer.org/>`__
 
 Image dataset is optional
 
-* `Pillow <https://pillow.readthedocs.io/>`_
+* `Pillow <https://pillow.readthedocs.io/>`__
 
 HDF5 serialization is optional
 
-* `h5py <http://www.h5py.org/>`_ 2.5.0
+* `h5py <http://www.h5py.org/>`__ 2.5.0
 
 
 Install Chainer via pip

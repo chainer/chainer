@@ -46,6 +46,10 @@ DeconvolutionND
 ~~~~~~~~~~~~~~~
 .. autoclass:: DeconvolutionND
 
+DepthwiseConvolution2D
+~~~~~~~~~~~~~~~~~~~~~~
+.. autoclass:: DepthwiseConvolution2D
+
 DilatedConvolution2D
 ~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: DilatedConvolution2D
@@ -91,11 +95,45 @@ MLPConvolution2D
 .. autoclass:: MLPConvolution2D
    :members:
 
+NStepBiGRU
+~~~~~~~~~~
+.. autoclass:: NStepBiGRU
+   :members:
+
+NStepBiLSTM
+~~~~~~~~~~~
+.. autoclass:: NStepBiLSTM
+  :members:
+
+NStepBiRNNReLU
+~~~~~~~~~~~~~~
+.. autoclass:: NStepBiRNNReLU
+   :members:
+
+NStepBiRNNTanh
+~~~~~~~~~~~~~~
+.. autoclass:: NStepBiRNNTanh
+  :members:
+
+NStepGRU
+~~~~~~~~
+.. autoclass:: NStepGRU
+  :members:
+
 NStepLSTM
 ~~~~~~~~~
-
 .. autoclass:: NStepLSTM
    :members:
+
+NStepRNNReLU
+~~~~~~~~~~~~
+.. autoclass:: NStepRNNReLU
+   :members:
+
+NStepRNNTanh
+~~~~~~~~~~~~
+.. autoclass:: NStepRNNTanh
+  :members:
 
 Scale
 ~~~~~
@@ -142,6 +180,11 @@ BlackOut
 CRF1d
 ~~~~~
 .. autoclass:: CRF1d
+   :members:
+
+SimplifiedDropconnect
+~~~~~~~~~~~~~~~~~~~~~
+.. autoclass:: SimplifiedDropconnect
    :members:
 
 PReLU
@@ -197,6 +240,13 @@ VGG16Layers
    :members:
 
 .. autofunction:: chainer.links.model.vision.vgg.prepare
+
+GoogLeNet
+~~~~~~~~~
+.. autoclass:: GoogLeNet
+   :members:
+
+.. autofunction:: chainer.links.model.vision.googlenet.prepare
 
 Residual Networks
 ~~~~~~~~~~~~~~~~~
