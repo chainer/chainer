@@ -81,8 +81,7 @@ class SimplifiedDropconnect(link.Link):
             train (bool):
                 If ``True``, executes simplified dropconnect.
                 Otherwise, simplified dropconnect link works as a linear unit.
-            mask (None or chainer.Variable or :class:`numpy.ndarray` or
-                cupy.ndarray):
+            mask (None or chainer.Variable or numpy.ndarray or cupy.ndarray):
                 If ``None``, randomized simplified dropconnect mask is
                 generated. Otherwise, The mask must be ``(n, M, N)``
                 shaped array. Main purpose of this option is debugging.

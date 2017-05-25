@@ -56,7 +56,7 @@ class ComputationalGraph(object):
 
     .. note::
 
-      We assume that the computational graph is directed and acyclic.
+        We assume that the computational graph is directed and acyclic.
 
     Args:
         nodes (list): List of nodes. Each node is either
@@ -67,11 +67,11 @@ class ComputationalGraph(object):
         rankdir (str): Direction of the graph that must be
             TB (top to bottom), BT (bottom to top), LR (left to right)
             or RL (right to left).
-        remove_variable (bool): If `True`, :class:`~chainer.Variable`s are
+        remove_variable (bool): If ``True``, :class:`~chainer.Variable` s are
             removed from the resulting computational graph. Only
-            :class:`~chainer.Function`s are shown in the output.
-        show_name (bool): If `True`, the `name` attribute of each node is
-            added to the label of the node. Default is `True`.
+            :class:`~chainer.Function` s are shown in the output.
+        show_name (bool): If ``True``, the ``name`` attribute of each node is
+            added to the label of the node. Default is ``True``.
 
     .. note::
 
@@ -206,11 +206,11 @@ def build_computational_graph(
         rankdir (str): Direction of the graph that must be
             TB (top to bottom), BT (bottom to top), LR (left to right)
             or RL (right to left).
-        remove_variable (bool): If `True`, :class:`~chainer.Variable`s are
+        remove_variable (bool): If ``True``, :class:`~chainer.Variable` s are
             removed from the resulting computational graph. Only
-            :class:`~chainer.Function`s are shown in the output.
-        show_name (bool): If `True`, the `name` attribute of each node is
-            added to the label of the node. Default is `True`.
+            :class:`~chainer.Function` s are shown in the output.
+        show_name (bool): If ``True``, the ``name`` attribute of each node is
+            added to the label of the node. Default is ``True``.
 
     Returns:
         ComputationalGraph: A graph consisting of nodes and edges that
