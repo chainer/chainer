@@ -29,7 +29,7 @@ import warnings
 import numpy
 import six
 
-from chainer import variable
+import chainer
 
 
 available = False
@@ -446,7 +446,7 @@ def get_array_module(*args):
 
     """
     if available:
-        args = [arg.data if isinstance(arg, variable.Variable) else arg
+        args = [arg.data if isinstance(arg, chainer.variable.Variable) else arg
                 for arg in args]
         return cupy.get_array_module(*args)
     else:
