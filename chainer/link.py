@@ -152,7 +152,7 @@ class Link(object):
     @property
     def within_init_scope(self):
         """True if the current code is inside of an initialization scope.
-        
+
         See :meth:`init_scope` for the details of the initialization scope.
 
         """
@@ -166,21 +166,21 @@ class Link(object):
         of parameters (and links for :class:`~chainer.Chain`) by substitution.
         A :class:`~chainer.Parameter` object can be automatically registered
         by substituting it to an attribute under this context manager.
-        
+
         .. admonition:: Example
-        
+
            In most cases, the parameter registration is done in the
            initializer method. Using the ``init_scope`` method, we can
            simply substitute a :class:`~chainer.Parameter` object to register
            it to the link.
-           
+
            class MyLink(chainer.Link):
                def __init__(self):
                    super().__init__()
                    with self.init_scope():
                        self.W = chainer.Parameter(0, (10, 5))
                        self.b = chainer.Parameter(0, (5,))
-        
+
         """
         old_flag = self.within_init_scope
         self._within_init_scope = True

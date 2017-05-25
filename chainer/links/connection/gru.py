@@ -17,15 +17,18 @@ class GRUBase(link.Chain):
             self.W_r = linear.Linear(
                 in_size, out_size, initialW=init, initial_bias=bias_init)
             self.U_r = linear.Linear(
-                in_size, out_size, initialW=inner_init, initial_bias=bias_init)
+                out_size, out_size, initialW=inner_init,
+                initial_bias=bias_init)
             self.W_z = linear.Linear(
                 in_size, out_size, initialW=init, initial_bias=bias_init)
             self.U_z = linear.Linear(
-                in_size, out_size, initialW=inner_init, initial_bias=bias_init)
+                out_size, out_size, initialW=inner_init,
+                initial_bias=bias_init)
             self.W = linear.Linear(
                 in_size, out_size, initialW=init, initial_bias=bias_init)
             self.U = linear.Linear(
-                in_size, out_size, initialW=inner_init, initial_bias=bias_init)
+                out_size, out_size, initialW=inner_init,
+                initial_bias=bias_init)
 
 
 class GRU(GRUBase):
