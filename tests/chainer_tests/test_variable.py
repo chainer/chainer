@@ -213,6 +213,13 @@ class TestVariable(unittest.TestCase):
         self.assertEqual(ret[1].rank, creator.rank + 1)
         self.check_backward((ret[0],), (ret[1],), (ret[2],), False)
 
+    def test_set_fresh_creator(self):
+        v = chainer.Variable()
+        f = chainer.Function()
+        v.creator = f
+        self.assertIs(v.creator, f)
+        self.assertEqual(v.rank, 1)
+
     def test_unchain_backward_cpu(self):
         ret = self.create_linear_chain(3, False)
         ret[1].unchain_backward()

@@ -146,6 +146,8 @@ class Function(object):
 
     """
 
+    rank = 0  # default value of the rank
+
     def __call__(self, *inputs):
         """Applies forward propagation with chaining backward references.
 
