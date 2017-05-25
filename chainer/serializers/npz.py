@@ -104,6 +104,9 @@ class NpzDeserializer(serializer.Deserializer):
             return value
 
         dataset = self.npz[key]
+        if dataset[()] is None:
+            return None
+
         if value is None:
             return dataset
         elif isinstance(value, numpy.ndarray):

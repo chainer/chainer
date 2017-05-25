@@ -11,3 +11,8 @@ def parse_kwargs(kwargs, *name_and_values):
         args = ', '.join(["'%s'" % arg for arg in kwargs.keys()])
         raise TypeError('got unexpected keyword argument(s) %s' % args)
     return tuple(values)
+
+
+def assert_kwargs_empty(kwargs):
+    # It only checks if kwargs is empty.
+    parse_kwargs(kwargs)

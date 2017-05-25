@@ -68,6 +68,17 @@ class TestDictionarySerializer(unittest.TestCase):
 
         self.assertIs(ret, 10)
 
+    def test_serialize_none(self):
+        ret = self.serializer('x', None)
+        dset = self.serializer.target['x']
+
+        self.assertIsInstance(dset, numpy.ndarray)
+        self.assertEqual(dset.shape, ())
+        self.assertEqual(dset.dtype, numpy.object)
+        self.assertIs(dset[()], None)
+
+        self.assertIs(ret, None)
+
 
 @testing.parameterize(*testing.product({'compress': [False, True]}))
 class TestNpzDeserializer(unittest.TestCase):
@@ -81,7 +92,8 @@ class TestNpzDeserializer(unittest.TestCase):
         with open(path, 'wb') as f:
             savez = numpy.savez_compressed if self.compress else numpy.savez
             savez(
-                f, **{'x/': None, 'y': self.data, 'z': numpy.asarray(10)})
+                f, **{'x/': None, 'y': self.data, 'z': numpy.asarray(10),
+                      'w': None})
 
         self.npzfile = numpy.load(path)
         self.deserializer = npz.NpzDeserializer(self.npzfile)
@@ -106,7 +118,7 @@ class TestNpzDeserializer(unittest.TestCase):
         numpy.testing.assert_array_equal(cuda.to_cpu(y), self.data)
         self.assertIs(ret, y)
 
-    def check_deserialize_none_value(self, y, query):
+    def check_deserialize_by_passing_none(self, y, query):
         ret = self.deserializer(query, None)
         numpy.testing.assert_array_equal(cuda.to_cpu(ret), self.data)
 
@@ -114,9 +126,9 @@ class TestNpzDeserializer(unittest.TestCase):
         y = numpy.empty((2, 3), dtype=numpy.float32)
         self.check_deserialize(y, 'y')
 
-    def test_deserialize_none_value_cpu(self):
+    def test_deserialize_by_passing_none_cpu(self):
         y = numpy.empty((2, 3), dtype=numpy.float32)
-        self.check_deserialize_none_value(y, 'y')
+        self.check_deserialize_by_passing_none(y, 'y')
 
     @attr.gpu
     def test_deserialize_gpu(self):
@@ -124,9 +136,9 @@ class TestNpzDeserializer(unittest.TestCase):
         self.check_deserialize(cuda.to_gpu(y), 'y')
 
     @attr.gpu
-    def test_deserialize_none_value_gpu(self):
+    def test_deserialize_by_passing_none_gpu(self):
         y = numpy.empty((2, 3), dtype=numpy.float32)
-        self.check_deserialize_none_value(cuda.to_gpu(y), 'y')
+        self.check_deserialize_by_passing_none(cuda.to_gpu(y), 'y')
 
     def test_deserialize_cpu_strip_slashes(self):
         y = numpy.empty((2, 3), dtype=numpy.float32)
@@ -141,6 +153,15 @@ class TestNpzDeserializer(unittest.TestCase):
         z = 5
         ret = self.deserializer('z', z)
         self.assertEqual(ret, 10)
+
+    def test_deserialize_none(self):
+        ret = self.deserializer('w', None)
+        self.assertIs(ret, None)
+
+    def test_deserialize_by_passing_array(self):
+        y = numpy.empty((1,), dtype=numpy.float32)
+        ret = self.deserializer('w', y)
+        self.assertIs(ret, None)
 
 
 class TestNpzDeserializerNonStrict(unittest.TestCase):

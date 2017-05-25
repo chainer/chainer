@@ -26,13 +26,14 @@ from chainer.links.connection.convolution_2d import Convolution2D
 from chainer.links.connection.linear import Linear
 from chainer.links.normalization.batch_normalization import BatchNormalization
 from chainer.serializers import npz
+from chainer.utils import argument
 from chainer.utils import imgproc
 from chainer.variable import Variable
 
 
 class ResNetLayers(link.Chain):
 
-    """A pre-trained CNN model provided by MSRA [1].
+    """A pre-trained CNN model provided by MSRA.
 
     When you specify the path of the pre-trained chainer model serialized as
     a ``.npz`` file in the constructor, this chain model automatically
@@ -47,8 +48,8 @@ class ResNetLayers(link.Chain):
     model that can be specified in the constructor,
     please use ``convert_caffemodel_to_npz`` classmethod instead.
 
-    .. [1] K. He et. al., `Deep Residual Learning for Image Recognition
-        <https://arxiv.org/abs/1512.03385>`_
+    See: K. He et. al., `Deep Residual Learning for Image Recognition
+    <https://arxiv.org/abs/1512.03385>`_
 
     Args:
         pretrained_model (str): the destination of the pre-trained
@@ -150,8 +151,16 @@ class ResNetLayers(link.Chain):
                              ' or 152, but {} was given.'.format(n_layers))
         npz.save_npz(path_npz, chainermodel, compression=False)
 
-    def __call__(self, x, layers=['prob']):
-        """Computes all the feature maps specified by ``layers``.
+    def __call__(self, x, layers=['prob'], **kwargs):
+        """__call__(self, x, layers=['prob'])
+
+        Computes all the feature maps specified by ``layers``.
+
+        .. warning::
+
+           ``test`` argument is not supported anymore since v2.
+           Instead, use ``chainer.using_config('train', train)``.
+           See :func:`chainer.using_config`.
 
         Args:
             x (~chainer.Variable): Input variable.
@@ -163,6 +172,11 @@ class ResNetLayers(link.Chain):
             the corresponding feature map variable.
 
         """
+
+        argument.check_unexpected_kwargs(
+            kwargs, test='test argument is not supported anymore. '
+            'Use chainer.using_config')
+        argument.assert_kwargs_empty(kwargs)
 
         h = x
         activations = {}
@@ -177,14 +191,25 @@ class ResNetLayers(link.Chain):
                 target_layers.remove(key)
         return activations
 
-    def extract(self, images, layers=['pool5'], size=(224, 224)):
-        """Extracts all the feature maps of given images.
+    def extract(self, images, layers=['pool5'], size=(224, 224), **kwargs):
+        """extract(self, images, layers=['pool5'], size=(224, 224))
+
+        Extracts all the feature maps of given images.
 
         The difference of directly executing ``__call__`` is that
         it directly accepts images as an input and automatically
         transforms them to a proper variable. That is,
         it is also interpreted as a shortcut method that implicitly calls
         ``prepare`` and ``__call__`` functions.
+
+        .. warning::
+
+           ``test`` and ``volatile`` arguments are not supported anymore since
+           v2.
+           Instead, use ``chainer.using_config('train', train)`` and
+           ``chainer.using_config('enable_backprop', not volatile)``
+           respectively.
+           See :func:`chainer.using_config`.
 
         Args:
             images (iterable of PIL.Image or numpy.ndarray): Input images.
@@ -200,6 +225,13 @@ class ResNetLayers(link.Chain):
             the corresponding feature map variable.
 
         """
+
+        argument.check_unexpected_kwargs(
+            kwargs, test='test argument is not supported anymore. '
+            'Use chainer.using_config',
+            volatile='volatile argument is not supported anymore. '
+            'Use chainer.using_config')
+        argument.assert_kwargs_empty(kwargs)
 
         x = concat_examples([prepare(img, size=size) for img in images])
         x = Variable(self.xp.asarray(x))
@@ -239,7 +271,7 @@ class ResNetLayers(link.Chain):
 
 class ResNet50Layers(ResNetLayers):
 
-    """A pre-trained CNN model with 50 layers provided by MSRA [1].
+    """A pre-trained CNN model with 50 layers provided by MSRA.
 
     When you specify the path of the pre-trained chainer model serialized as
     a ``.npz`` file in the constructor, this chain model automatically
@@ -263,8 +295,8 @@ class ResNet50Layers(ResNetLayers):
     or semantic segmentation use deeper ones as their building blocks, so these
     deeper ResNets are here for making reproduction work easier.
 
-    .. [1] K. He et. al., `Deep Residual Learning for Image Recognition
-        <https://arxiv.org/abs/1512.03385>`_
+    See: K. He et. al., `Deep Residual Learning for Image Recognition
+    <https://arxiv.org/abs/1512.03385>`_
 
     Args:
         pretrained_model (str): the destination of the pre-trained
@@ -296,7 +328,7 @@ class ResNet50Layers(ResNetLayers):
 
 class ResNet101Layers(ResNetLayers):
 
-    """A pre-trained CNN model with 101 layers provided by MSRA [1].
+    """A pre-trained CNN model with 101 layers provided by MSRA.
 
     When you specify the path of the pre-trained chainer model serialized as
     a ``.npz`` file in the constructor, this chain model automatically
@@ -316,8 +348,8 @@ class ResNet101Layers(ResNetLayers):
     dataset drops 1.1% from ResNet152. For many cases, ResNet50 may have the
     best balance between the accuracy and the model size.
 
-    .. [1] K. He et. al., `Deep Residual Learning for Image Recognition
-        <https://arxiv.org/abs/1512.03385>`_
+    See: K. He et. al., `Deep Residual Learning for Image Recognition
+    <https://arxiv.org/abs/1512.03385>`_
 
     Args:
         pretrained_model (str): the destination of the pre-trained
@@ -349,7 +381,7 @@ class ResNet101Layers(ResNetLayers):
 
 class ResNet152Layers(ResNetLayers):
 
-    """A pre-trained CNN model with 152 layers provided by MSRA [1].
+    """A pre-trained CNN model with 152 layers provided by MSRA.
 
     When you specify the path of the pre-trained chainer model serialized as
     a ``.npz`` file in the constructor, this chain model automatically
@@ -368,8 +400,8 @@ class ResNet152Layers(ResNetLayers):
     model and it achieves the best result on ImageNet classification task in
     `ILSVRC 2015 <http://image-net.org/challenges/LSVRC/2015/results#loc>`_.
 
-    .. [1] K. He et. al., `Deep Residual Learning for Image Recognition
-        <https://arxiv.org/abs/1512.03385>`_
+    See: K. He et. al., `Deep Residual Learning for Image Recognition
+    <https://arxiv.org/abs/1512.03385>`_
 
     Args:
         pretrained_model (str): the destination of the pre-trained
@@ -621,7 +653,7 @@ def _transfer_resnet101(src, dst):
     _transfer_block(src, dst.res2, ['2a', '2b', '2c'])
     _transfer_block(src, dst.res3, ['3a', '3b1', '3b2', '3b3'])
     _transfer_block(src, dst.res4,
-                    ['4a'] + ['4b'.format(i) for i in range(1, 23)])
+                    ['4a'] + ['4b{}'.format(i) for i in range(1, 23)])
     _transfer_block(src, dst.res5, ['5a', '5b', '5c'])
 
     dst.fc6.W.data[:] = src.fc1000.W.data
