@@ -51,6 +51,7 @@ from chainer.serializer import AbstractSerializer  # NOQA
 from chainer.serializer import Deserializer  # NOQA
 from chainer.serializer import Serializer  # NOQA
 from chainer.variable import Variable  # NOQA
+from chainer.variable import VariableNode  # NOQA
 
 
 if sys.version_info[:3] == (3, 5, 0):
