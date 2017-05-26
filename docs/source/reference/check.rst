@@ -3,9 +3,6 @@ Assertion and Testing
 
 Chainer provides some facilities to make debugging easy.
 
-
-
-
 .. _type-check-utils:
 
 Type checking utilities
@@ -43,12 +40,12 @@ The assertions have same names as NumPy's ones.
 The difference from NumPy is that they can accept both :class:`numpy.ndarray`
 and :class:`cupy.ndarray`.
 
-.. automodule:: chainer.testing
+.. currentmodule:: chainer.testing
 .. autofunction:: assert_allclose
 
 Function testing utilities
 --------------------------
 Chainer provides some utilities for testing its functions.
 
-.. automodule:: chainer.testing
+.. currentmodule:: chainer.testing
 .. autofunction:: unary_math_function_unittest

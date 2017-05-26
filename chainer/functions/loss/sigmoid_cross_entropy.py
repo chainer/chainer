@@ -2,7 +2,7 @@ import numpy
 
 from chainer import cuda
 from chainer import function
-from chainer.functions import sigmoid
+from chainer.functions.activation import sigmoid
 from chainer import utils
 from chainer.utils import type_check
 

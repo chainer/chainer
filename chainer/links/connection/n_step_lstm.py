@@ -1,15 +1,14 @@
 import numpy
 import six
 
-import chainer
 from chainer import cuda
 from chainer.functions.array import permutate
 from chainer.functions.array import transpose_sequence
 from chainer.functions.connection import n_step_lstm as rnn
 from chainer import link
-from chainer.links.connection.n_step_rnn import argsort_list_descent
-from chainer.links.connection.n_step_rnn import permutate_list
+from chainer.links.connection import n_step_rnn
 from chainer.utils import argument
+from chainer import variable
 
 
 class NStepLSTMBase(link.ChainList):
@@ -70,7 +69,7 @@ class NStepLSTMBase(link.ChainList):
     def init_hx(self, xs):
         shape = (self.n_layers * self.direction, len(xs), self.out_size)
         with cuda.get_device_from_id(self._device_id):
-            hx = chainer.Variable(self.xp.zeros(shape, dtype=xs[0].dtype))
+            hx = variable.Variable(self.xp.zeros(shape, dtype=xs[0].dtype))
         return hx
 
     def __call__(self, hx, cx, xs, **kwargs):
@@ -99,9 +98,9 @@ class NStepLSTMBase(link.ChainList):
         argument.assert_kwargs_empty(kwargs)
 
         assert isinstance(xs, (list, tuple))
-        indices = argsort_list_descent(xs)
+        indices = n_step_rnn.argsort_list_descent(xs)
 
-        xs = permutate_list(xs, indices, inv=False)
+        xs = n_step_rnn.permutate_list(xs, indices, inv=False)
         if hx is None:
             hx = self.init_hx(xs)
         else:
@@ -123,7 +122,7 @@ class NStepLSTMBase(link.ChainList):
         hy = permutate.permutate(hy, indices, axis=1, inv=True)
         cy = permutate.permutate(cy, indices, axis=1, inv=True)
         ys = transpose_sequence.transpose_sequence(trans_y)
-        ys = permutate_list(ys, indices, inv=True)
+        ys = n_step_rnn.permutate_list(ys, indices, inv=True)
 
         return hy, cy, ys
 

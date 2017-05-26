@@ -6,6 +6,7 @@ from chainer import cuda
 from chainer import function
 from chainer.functions.activation import log_softmax
 from chainer.utils import type_check
+from chainer import variable
 
 
 def _broadcast_to(array, shape):
@@ -31,7 +32,7 @@ class SoftmaxCrossEntropy(function.Function):
                 raise ValueError('class_weight.ndim should be 1')
             if self.class_weight.dtype.kind != 'f':
                 raise ValueError('The dtype of class_weight should be \'f\'')
-            if isinstance(self.class_weight, chainer.Variable):
+            if isinstance(self.class_weight, variable.Variable):
                 raise ValueError('class_weight should be a numpy.ndarray or '
                                  'cupy.ndarray, not a chainer.Variable')
         self.ignore_label = ignore_label

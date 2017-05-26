@@ -113,6 +113,7 @@ def n_step_lstm(
     Returns:
         tuple: This functions returns a tuple concaining three elements,
             ``hy``, ``cy`` and ``ys``.
+
             - ``hy`` is an updated hidden states whose shape is same as ``hx``.
             - ``cy`` is an updated cell states whose shape is same as ``cx``.
             - ``ys`` is a list of :class:`~chainer.Variable` . Each element
@@ -227,6 +228,7 @@ def n_step_bilstm(
     Returns:
         tuple: This functions returns a tuple concaining three elements,
             ``hy``, ``cy`` and ``ys``.
+
             - ``hy`` is an updated hidden states whose shape is same as ``hx``.
             - ``cy`` is an updated cell states whose shape is same as ``cx``.
             - ``ys`` is a list of :class:`~chainer.Variable` . Each element
@@ -289,6 +291,7 @@ def n_step_lstm_base(
     Returns:
         tuple: This functions returns a tuple concaining three elements,
             ``hy``, ``cy`` and ``ys``.
+
             - ``hy`` is an updated hidden states whose shape is same as ``hx``.
             - ``cy`` is an updated cell states whose shape is same as ``cx``.
             - ``ys`` is a list of :class:`~chainer.Variable` . Each element
