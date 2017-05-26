@@ -58,8 +58,8 @@ class HuberLoss(function.Function):
         gy_ = gy[0]
         if self.reduce == 'sum_each_data':
             gy_ = gy_.reshape(
-                gy_.shape[:self._n_batch_axes] + \
-                    (1,) * (self.diff.ndim - self._n_batch_axes))
+                gy_.shape[:self._n_batch_axes] + (1,) * (
+                    self.diff.ndim - self._n_batch_axes))
         gx = gy_ * gx
         return gx, -gx
 
