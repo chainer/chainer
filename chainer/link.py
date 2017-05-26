@@ -23,13 +23,11 @@ def _is_shape(value):
     except TypeError:
         return False
 
-    return False
-
 
 def _ensure_shape_dtype(value):
     # Return value paired with dtype FP32 if it is a shape.
     if _is_shape(value):
-        return (value, 'f')
+        return value, 'f'
     # Otherwise, returns it with assuming a shape-dtype pair.
     else:
         return value
@@ -265,7 +263,7 @@ class Link(object):
         self._device_id = None
         return self
 
-    def to_gpu(self, device_id=None):
+    def to_gpu(self, device=None):
         """Copies parameter variables and persistent values to GPU.
 
         This method does not handle non-registered attributes. If some of such
@@ -273,8 +271,9 @@ class Link(object):
         override this method to do so.
 
         Args:
-            device_id (int): The device id to specify the target device. If
-                omitted, the current device is used.
+            device (int or cupy.cuda.Device): The device id to specify the
+                target device or a Device object of the target. If omitted,
+                the current device is used.
 
         Returns: self
 
@@ -283,7 +282,7 @@ class Link(object):
         if not self._cpu:
             return self
         d = self.__dict__
-        with cuda.get_device_from_id(device_id):
+        with cuda.get_device_from_id(device):
             for name in self._params:
                 d[name].to_gpu()
             for name in self._persistent:
@@ -602,8 +601,8 @@ class Chain(Link):
             d[name].to_cpu()
         return self
 
-    def to_gpu(self, device_id=None):
-        with cuda.get_device_from_id(device_id):
+    def to_gpu(self, device=None):
+        with cuda.get_device_from_id(device):
             super(Chain, self).to_gpu()
             d = self.__dict__
             for name in self._children:
@@ -756,8 +755,8 @@ class ChainList(Link):
             link.to_cpu()
         return self
 
-    def to_gpu(self, device_id=None):
-        with cuda.get_device_from_id(device_id):
+    def to_gpu(self, device=None):
+        with cuda.get_device_from_id(device):
             super(ChainList, self).to_gpu()
             for link in self._children:
                 link.to_gpu()

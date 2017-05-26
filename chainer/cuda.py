@@ -31,6 +31,7 @@ import six
 
 import chainer
 
+
 available = False
 cudnn_enabled = False
 
@@ -164,9 +165,9 @@ def get_device_from_array(*arrays):
     The device on which the given CuPy array reside is returned.
 
     Args:
-        array (:class:`cupy.ndarray` or list of :class:`cupy.ndarray`):
+        array (cupy.ndarray or list of cupy.ndarray):
             A CuPy array which this function returns the device corresponding
-            to. If a list of :class:`cupy.ndarray`s are given, it returns
+            to. If a list of :class:`cupy.ndarray` s are given, it returns
             the first device object of an array in the list.
     """
     for array in arrays:
@@ -178,7 +179,6 @@ def get_device_from_array(*arrays):
 # ------------------------------------------------------------------------------
 # cupy.ndarray allocation and copy
 # ------------------------------------------------------------------------------
-
 def to_gpu(array, device=None, stream=None):
     """Copies the given CPU array to specified device.
 
@@ -197,11 +197,7 @@ def to_gpu(array, device=None, stream=None):
 
     """
     check_cuda_available()
-    if type(device) in _integer_types:
-        device = get_device_from_id(device)
-    elif device is None:
-        device = DummyDevice
-    with device:
+    with get_device_from_id(device):
         array_dev = get_device_from_array(array)
         if array_dev.id == cupy.cuda.device.get_device_id():
             return array
@@ -399,7 +395,7 @@ def get_array_module(*args):
 
     """
     if available:
-        args = [arg.data if isinstance(arg, chainer.Variable) else arg
+        args = [arg.data if isinstance(arg, chainer.variable.Variable) else arg
                 for arg in args]
         return cupy.get_array_module(*args)
     else:

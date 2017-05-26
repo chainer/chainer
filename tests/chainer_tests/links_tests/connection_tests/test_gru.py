@@ -37,9 +37,9 @@ class TestGRU(unittest.TestCase):
     def setUp(self):
         if self.gru == links.GRU:
             if hasattr(self, 'in_size'):
-                self.link = self.gru(self.out_size, self.in_size)
+                self.link = self.gru(self.in_size, self.out_size)
             else:
-                self.link = self.gru(self.out_size)
+                self.link = self.gru(None, self.out_size)
                 self.in_size = self.out_size
         elif self.gru == links.StatefulGRU:
             self.link = self.gru(self.in_size, self.out_size)

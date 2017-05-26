@@ -5,10 +5,10 @@ import warnings
 import numpy
 import six
 
-import chainer
 from chainer import cuda
-import chainer.link as link_module
-import chainer.serializer as serializer_module
+from chainer import link as link_module
+from chainer import serializer as serializer_module
+from chainer import variable
 
 
 def _sum_sqnorm(arr):
@@ -57,6 +57,8 @@ class Hyperparameter(object):
         self._parent = parent
 
     def __getattr__(self, name):
+        if '_parent' not in self.__dict__:
+            raise AttributeError('_parent is not set up yet')
         return getattr(self._parent, name)
 
     def __repr__(self):
@@ -64,6 +66,11 @@ class Hyperparameter(object):
         keys = sorted(d.keys())
         values_repr = ', '.join('%s=%s' % (k, d[k]) for k in keys)
         return 'Hyperparameter(%s)' % values_repr
+
+    @property
+    def parent(self):
+        """Parent hyperparmaeter object."""
+        return self._parent
 
     def get_dict(self):
         """Converts the hyperparameter into a dictionary.
@@ -252,7 +259,7 @@ class UpdateRule(object):
                 self._state = {}
                 self_copy = copy.copy(self)
                 arr = numpy.empty(1, dtype=numpy.float32)
-                self_copy.init_state(chainer.Variable(arr, grad=arr))
+                self_copy.init_state(variable.Variable(arr, grad=arr))
 
                 for key in self._state:
                     self._state[key] = serializer(key, None)

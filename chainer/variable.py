@@ -130,6 +130,7 @@ class VariableNode(object):
 
     Args:
         variable (Variable): The corresponding variable object.
+        name (str): Name of the variable node.
 
     Attributes:
         dtype: Data type of the data array.
@@ -138,12 +139,12 @@ class VariableNode(object):
 
     """
 
-    def __init__(self, variable, grad=None):
+    def __init__(self, variable, name, grad=None):
         self._variable = weakref.ref(variable)
         self._creator = None
         self._data = None
         self._rank = 0
-        self.name = variable.name
+        self.name = name
         self._requires_grad = variable.requires_grad
 
         vdata = variable.data
@@ -308,15 +309,14 @@ Actual: {0}'''.format(type(data))
         # abstract its initialized/uninitialized state.
         self._data = [data]
         self._requires_grad = requires_grad
-        self.name = name
         self.update_rule = update_rule
 
-        self._node = VariableNode(self, grad)
+        self._node = VariableNode(self, name, grad)
 
     def __copy__(self):
         copied = Variable()
         copied.__dict__ = copy.copy(self.__dict__)
-        copied._node = VariableNode(copied)
+        copied._node = VariableNode(copied, self.name)
         return copied
 
     def __reduce__(self):
@@ -329,6 +329,14 @@ Actual: {0}'''.format(type(data))
 
     def __str__(self):
         return variable_str(self)
+
+    @property
+    def name(self):
+        return self._node.name
+
+    @name.setter
+    def name(self, n):
+        self._node.name = n
 
     def summary(self):
         if self.name:
@@ -454,7 +462,7 @@ Actual: {0}'''.format(type(data))
             if node._grad is not None:
                 node._grad = cuda.to_cpu(node._grad)
 
-    def to_gpu(self, device_id=None):
+    def to_gpu(self, device=None):
         """Copies the data and gradient arrays to specified GPU.
 
         Args:
@@ -466,14 +474,13 @@ Actual: {0}'''.format(type(data))
             current = cuda.Device().id
             self._initial_device = current if device_id is None else device_id
         else:
-            with cuda.get_device_from_id(device_id):
-                self._data = [cuda.to_gpu(self.data)]
-                # ensure that the node tracks the device migration
-                node = self._node
-                if node._data is not None:
-                    node.retain_data()
-                if node._grad is not None:
-                    node._grad = cuda.to_gpu(node._grad)
+            self._data = [cuda.to_gpu(self.data, device)]
+            # ensure that the node tracks the device migration
+            node = self._node
+            if node._data is not None:
+                node.retain_data()
+            if node._grad is not None:
+                node._grad = cuda.to_gpu(node._grad, device)
 
     def cleargrad(self):
         """Clears the gradient array."""
@@ -745,8 +752,10 @@ Actual: {0}'''.format(type(data))
            :func:`chainer.functions.transpose` for full documentation.
 
         """
-        if len(axes) == 1 and (isinstance(axes[0], (tuple, list)) or
-                               axes[0] is None):
+        if len(axes) == 0:
+            axes = None
+        elif len(axes) == 1 and (isinstance(axes[0], (tuple, list)) or
+                                 axes[0] is None):
             axes = axes[0]
         return chainer.functions.transpose(self, axes)
 
