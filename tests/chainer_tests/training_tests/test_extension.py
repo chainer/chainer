@@ -57,4 +57,5 @@ class TestExtension(unittest.TestCase):
             def my_extension(_):
                 pass
 
+
 testing.run_module(__name__, __file__)
