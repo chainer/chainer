@@ -6,8 +6,8 @@ Recommended Environments
 
 We recommend these Linux distributions.
 
-* `Ubuntu <http://www.ubuntu.com/>`_ 14.04/16.04 LTS 64bit
-* `CentOS <https://www.centos.org/>`_ 7 64bit
+* `Ubuntu <http://www.ubuntu.com/>`__ 14.04/16.04 LTS 64bit
+* `CentOS <https://www.centos.org/>`__ 7 64bit
 
 The following versions of Python can be used: 2.7.6+, 3.4.3+, 3.5.1+, and 3.6.0+.
 
@@ -28,27 +28,27 @@ Before installing Chainer, we recommend to upgrade ``setuptools`` if you are usi
 The following Python packages are required to install Chainer.
 The latest version of each package will automatically be installed if missing.
 
-* `NumPy <http://www.numpy.org/>`_ 1.9, 1.10, 1.11, 1.12
-* `Six <https://pythonhosted.org/six/>`_ 1.9+
+* `NumPy <http://www.numpy.org/>`__ 1.9, 1.10, 1.11, 1.12
+* `Six <https://pythonhosted.org/six/>`__ 1.9+
 
 The following packages are optional dependencies.
 Chainer can be installed without them, in which case the corresponding features are not available.
 
 * CUDA/cuDNN support
 
-  * `cupy <http://docs.cupy.chainer.org/>`_ 1.0+
+  * `cupy <http://docs.cupy.chainer.org/>`__ 1.0+
 
 * Caffe model support
 
-  * `protobuf <https://developers.google.com/protocol-buffers/>`_ 3.0+
+  * `protobuf <https://developers.google.com/protocol-buffers/>`__ 3.0+
 
 * Image dataset support
 
-  * `pillow <https://pillow.readthedocs.io/>`_ 2.3+
+  * `pillow <https://pillow.readthedocs.io/>`__ 2.3+
 
 * HDF5 serialization support
 
-  * `h5py <http://www.h5py.org/>`_ 2.5+
+  * `h5py <http://www.h5py.org/>`__ 2.5+
 
 
 Install Chainer

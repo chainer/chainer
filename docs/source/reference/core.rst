@@ -7,7 +7,6 @@ Core functionalities
    :maxdepth: 1
 
    core/variable
-   core/flag
    core/function
    core/link
    core/optimizer

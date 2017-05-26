@@ -36,7 +36,7 @@ from chainer.variable import Variable
 
 class GoogLeNet(link.Chain):
 
-    """A pre-trained GoogLeNet model provided by BVLC [1].
+    """A pre-trained GoogLeNet model provided by BVLC.
 
     When you specify the path of the pre-trained chainer model serialized as
     a ``.npz`` file in the constructor, this chain model automatically
@@ -57,7 +57,8 @@ class GoogLeNet(link.Chain):
     want an off-the-shelf classifier, we recommend you to use ResNet50 or other
     models since they are more accurate than GoogLeNet.
 
-    .. [1] `<https://github.com/BVLC/caffe/tree/master/models/bvlc_googlenet>`_
+    The original model is provided here:
+    `<https://github.com/BVLC/caffe/tree/master/models/bvlc_googlenet>`_
 
     Args:
         pretrained_model (str): the destination of the pre-trained
@@ -188,7 +189,7 @@ class GoogLeNet(link.Chain):
 
         Args:
             x (~chainer.Variable): Input variable. It should be prepared by
-            ``prepare`` function.
+                ``prepare`` function.
             layers (list of str): The list of layer names you want to extract.
 
         Returns:
