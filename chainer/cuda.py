@@ -31,6 +31,7 @@ import six
 
 import chainer
 
+
 available = False
 cudnn_enabled = False
 
@@ -445,7 +446,7 @@ def get_array_module(*args):
 
     """
     if available:
-        args = [arg.data if isinstance(arg, chainer.Variable) else arg
+        args = [arg.data if isinstance(arg, chainer.variable.Variable) else arg
                 for arg in args]
         return cupy.get_array_module(*args)
     else:
