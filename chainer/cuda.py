@@ -284,8 +284,7 @@ def copy(array, out=None, out_device=None, stream=None):
         array (cupy.ndarray): Array to be copied.
         out (cupy.ndarray): Destination array.
             If it is not ``None``, then ``out_device`` argument is ignored.
-        out_device: Destination device specifier. Actual device object is
-            obtained by passing this value to :func:`get_device`.
+        out_device: Destination device specifier.
         stream (cupy.cuda.Stream): CUDA stream.
 
     Returns:
