@@ -23,7 +23,7 @@ class LinearFunction(function.Function):
         n_in = in_types.size()
         type_check.expect(2 <= n_in, n_in <= 3)
         x_type, w_type = in_types[:2]
-        
+
         type_check.expect(
             x_type.dtype.kind == 'f',
             w_type.dtype.kind == 'f',
