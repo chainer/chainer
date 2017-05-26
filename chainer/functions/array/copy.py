@@ -8,10 +8,7 @@ class Copy(function.Function):
     """Copies the input variable onto the specified device."""
 
     def __init__(self, out_device):
-        if type(out_device) in cuda._integer_types:
-            self.out_device = cuda.get_device_from_id(out_device)
-        else:
-            self.out_device = out_device
+        self.out_device = cuda.get_device_from_id(out_device)
 
     def check_type_forward(self, in_types):
         type_check.expect(
