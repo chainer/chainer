@@ -132,7 +132,7 @@ class HDF5Deserializer(serializer.Deserializer):
         return value
 
 
-def load_hdf5(filename, obj):
+def load_hdf5(filename, obj, strict=True):
     """Loads an object from the file in HDF5 format.
 
     This is a short-cut function to load from an HDF5 file that contains only
@@ -143,9 +143,12 @@ def load_hdf5(filename, obj):
     Args:
         filename (str): Name of the file to be loaded.
         obj: Object to be deserialized. It must support serialization protocol.
+        strict (bool): If ``True``, the loader raises an error when an
+            expected value is not found in the given HDF5 file. Otherwise,
+            it ignores the value and skip deserialization.
 
     """
     _check_available()
     with h5py.File(filename, 'r') as f:
-        d = HDF5Deserializer(f)
+        d = HDF5Deserializer(f, strict=strict)
         d.load(obj)
