@@ -3,8 +3,8 @@
 Upgrade Guide from v1 to v2
 ===========================
 
-This document provides detailed information for fixing your codes originally written for Chainer v1 to fit much better to Chainer v2.
-It also explains which part of your codes needs fixes when you upgrade Chainer from v1 to v2.
+This document provides detailed information of differences between Chainer v1 and v2.
+You will know by reading it which part of your codes is required (or recommended) to be fixed when you upgrade Chainer from v1 to v2.
 
 .. contents::
    :local:
@@ -22,7 +22,7 @@ It changes the way to set up Chainer with CUDA support.
 In particular, you have to separately install :mod:`cupy` package to enable CUDA support.
 See :ref:`install-guide` for the recommended installation steps.
 
-Fortunately, there is no need of updating your source code to catch up with this change.
+**Fortunately, there is no need of updating your source code to catch up with this change.**
 
 
 Global configurations
@@ -35,13 +35,13 @@ Training mode is configured by a thread-local flag
 
 In Chainer v2, the concept of *training mode* is added.
 It is represented by a thread-local flag ``chainer.config.train``, which is a part of :ref:`the unified configuration <configuration>`.
-When ``chainer.config.train`` is true, functions of Chainer run in the training mode, and otherwise they run in the test mode.
+When ``chainer.config.train`` is ``True``, functions of Chainer run in the training mode, and otherwise they run in the test mode.
 For example, :class:`~links.BatchNormalization` and :func:`~functions.dropout` behave differently in each mode.
 
-In Chainer v1, such a behavior was configured by the ``train`` argument of each function.
-**This train argument has been removed in Chainer v2.**
-If your code is using the ``train`` argument, you have to update it.
-In most cases, what you have to do is just removing the ``train`` argument from any function calls.
+In Chainer v1, such a behavior was configured by the ``train`` or ``test`` argument of each function.
+**This train/test argument has been removed in Chainer v2.**
+If your code is using the ``train`` or ``test`` argument, you have to update it.
+In most cases, what you have to do is just removing the ``train`` / ``test`` argument from any function calls.
 
 .. admonition:: Example
 
@@ -72,7 +72,7 @@ In most cases, what you have to do is just removing the ``train`` argument from 
           ...
 
           def __call__(self, x):
-              return f(chainer.functions.dropout(x))
+              return f(F.dropout(x))
 
       m = MyModel(...)
       with chainer.using_config('train', False):
@@ -86,18 +86,23 @@ Configurations are added and replace some of existing global flags
 There are many global settings moved to :ref:`the unified configuration <configuration>` other than the training mode.
 Following is the complete list of the configuration entries that have corresponding features in Chainer v1.
 
+``chainer.config.cudnn_deterministic``
+    It is corresponding to the ``deterministic`` argument of some convolution functions in Chainer v1.
+    **This argument has been removed since Chainer v2.**
+    If you are using this argument, you have to use the ``chainer.config.cudnn_deterministic`` flag to change the behavior of the convolution functions.
 ``chainer.config.debug``
     It is corresponding to the debug mode in Chainer v1, which was configured by :func:`set_debug` and extracted by :func:`is_debug`.
     These functions are also available in Chainer v2, so you basically do not need to update the code related to the debug mode.
-``chainer.config.deterministic``
-    It is corresponding to the ``deterministic`` argument of some convolution functions in Chainer v1.
-    **This argument has been removed since Chainer v2.**
-    If you are using this argumetn, you have to use the ``chainer.config.deterministic`` flag instead to change the behavior of the convolution functions.
 ``chainer.config.enable_backprop``
-    It is corresponding to *the backprop mode* in Chainer v1, which was configured by :func:`no_backprop_mode` and :func:`force_backprop_mode`.
-    These functions are also available in Chainer v2.
-    One important difference is that **the** ``volatile`` **flag is removed from** :class:`Variable`.
-    Therefore, there is more situations that you need to modify the ``enable_backprop`` flag.
+    It is corresponding to the *backprop mode* in Chainer v1.
+    The functions :func:`no_backprop_mode` and :func:`force_backprop_mode` are still available in Chainer v2, which automatically turns on/off the ``enable_backprop`` flag.
+    One important difference from Chainer v1 is that **the** ``volatile`` **flag is removed from** :class:`Variable`.
+    Therefore, there are more situations that you need to modify the ``enable_backprop`` flag.
+``chainer.config.keep_graph_on_report``
+    This flag configures whether or not to keep the computational graph alive for a reported variable.
+    In Chainer v2, when a :class:`Variable` object is reported by :func:`report`, a copy of the variable isolated from the computational graph is created and stored by default.
+    Setting ``True`` to this flag, you can change this behavior and then the original :class:`Variable` object is stored as is.
+    See :ref:`upgrade-reporter-purge-variable` for the details.
 ``chainer.config.train``
     It is corresponding to the ``train`` or ``test`` argument of some functions in Chainer v1.
     **This argument has been removed since Chainer v2.**
@@ -178,15 +183,15 @@ If you are using the ``Variable.volatile`` flag, you have to stop setting this f
 Variable is not a part of a computational graph anymore
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The :class:`Variable` class has been separated into two distinct classes, the ``Variable`` class and the :class:`VariableNode` class, since Chainer v2.
+The :class:`Variable` class has been separated into two distinct classes, the :class:`Variable` class and the :class:`VariableNode` class, since Chainer v2.
 Every class:`Variable` object owns its own :class:`VariableNode` object.
-A computational graph consists of :class:`Function` objects and :class:``VariableNode` objects.
+A computational graph consists of :class:`Function` objects and :class:`VariableNode` objects.
 When one applies a :class:`Function` to a :class:`Variable`, the :class:`VariableNode` object of the variable is extracted and set to one of the inputs of the function.
 
 Note that the underlying data array of the variable is till held by the :class:`Variable` object.
 It allows each :class:`Function` implementation to release unneeded arrays from the computational graph, resulting in greatly reduced memory consumption.
 
-This change does not affect most users' code.
+**This change does not affect most users' code.**
 If you are directly traversing the computational graph by yourself or modifying the graph ad-hoc, you may have to update your code.
 In most cases, it is enough to just change :class:`Variable` into :class:`VariableNode` in the code traversing the computational graph.
 
@@ -213,6 +218,7 @@ There are some changes on the interface and specification of methods.
   This is equivalent to ``len(variable.data)``.
   It is different from the behavior of Chainer v1, in which ``len`` returned the total number of elements in the underlying array.
 - ``repr(variable)`` returns a NumPy-like text representation of the underlying array in Chainer v2.
+  In Chainer v1, it just returns a string that shows the name of the variable.
 
 
 Function
@@ -236,7 +242,7 @@ In order to achieve the overhead reduction, some APIs are changed.
 **If you have custom Function implementations that do type checking, you have to update your code.**
 The following list shows which part has to be updated.
 
-- Use :func:`utils.type_check.eval` instead of ``Exp.eval``.
+- Use :func:`utils.type_check.eval` instead of ``Expr.eval``.
 - Use :func:`utils.type_check.make_variable` to create a :class:`utils.type_check.Variable` object instead of directly constructing it by yourself.
 - Stop using ``.name`` attribute of any expression.
 
@@ -368,9 +374,19 @@ The recommended way is to explicitly set the initializer.
 bias option is removed from links
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In Chainer v2, the ``bias`` option is removed from links including :class:`~links.Linear`.
+In Chainer v2, the ``bias`` option is removed from the following links: :class:`~links.Linear`, :class:`~links.Convolution2D`, :class:`~links.Deconvolution2D`, and :class:`~links.DilatedConvolution2D`.
 The effect of this argument was duplicated with the ``initial_bias`` option.
 Use ``initial_bias`` instead.
+
+The bias vector is enabled by default in N-dimensional convolution links
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In Chainer v2, the bias parameter is enabled by default in :class:`~links.ConvolutionND` and :class:`~linkd.DeconvolutionND`.
+It was unintentionally disabled by default in Chainer v1.
+
+**If you are using ConvolutionND or DeconvolutionND without specifying the** ``initial_bias`` **argument, you have to fix your code.**
+If you want to keep the old behavior (i.e., no bias vector is created by the link), pass ``nobias=True`` to the link at the construction.
+Otherwise it will automatically create a bias vector.
 
 .. _upgrade-init-weight-removed:
 
@@ -602,7 +618,7 @@ These methods have been already deprecated in the past versions.
 - ``compute_grads_norm``: you can compute the gradient norm by iterating the list of parameters by :meth:`Link.params`.
 - ``clip_grads``: use :class:`~optimizer.GradientClipping` instead.
 - ``weight_decay``: use :class:`~optimizer.WeightDecay` instead.
-- ``accumulate_grads``: use :meth:`Link.addgrads`` instead.
+- ``accumulate_grads``: use :meth:`Link.addgrads` instead.
 
 .. _upgrade-gradient-method-cleargrads:
 
@@ -611,8 +627,9 @@ GradientMethod uses Link.cleargrads instead of Link.zerograds by default
 
 In Chainer v2, :class:`GradientMethod` clears the gradient before running backprop by :meth:`Link.cleargrads`.
 It means that the gradient of each parameter is initialized by ``None`` instead of a zero array.
+Note that all the optimizer implementations provided by Chainer are subclasses of :class:`GradientMethod`, and therefore this change affects all of them.
 
-In most cases, you do not need to update your code.
+**In most cases, you do not need to update your code.**
 If your code relies on the zeroing initialization, you have to fix your code to explicitly initialize the gradient by zero, or to pass ``False`` to :meth:`GradientMethod.use_cleargrads`.
 
 .. _upgrade-update-rule:
@@ -659,8 +676,33 @@ Updater and Evaluator pass raw data arrays to the loss function
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In Chainer v2, :class:`~training.Updater` and :class:`~training.extensions.Evaluator` pass raw data arrays to the loss function without wrapping them with :class:`Variable`.
-**You might need to update your code so that the loss function (in most cases, the model's** ``__call__``, **accepts raw arrays.**
+**You might need to update your code so that the loss function (in most cases, the model's** ``__call__``**) accepts raw arrays.**
+
 Note that raw arrays can be directly passed to any :class:`Function`; they are automatically wrapped by :class:`Variable`.
+For example, if the input is directly passed to a :class:`Function` object (or any function under :mod:`chainer.functions`), you do not need to update the code.
+
+.. admonition:: Example
+
+   Consider the following code that obtains the shape of the input via :attr:`Variable.data`.
+
+   .. code-block:: py
+
+       # Chainer v1
+       class MyLink(chainer.Link):
+           def __call__(self, x):
+               shape = x.data.shape  # valid if x is Variable, invalid if x is ndarray
+               ...
+
+   It should be updated so that the link also accepts a raw array as the input.
+   In this case, we have :attr:`Variable.shape` which is equivalent to ``data.shape``, so you can simply write as follows.
+
+   .. code-block:: py
+
+       # Chainer v2
+       class MyLink(chainer.Link):
+           def __call__(self, x):
+               shape = x.shape  # valid regardless of x being Variable or ndarray
+               ...
 
 .. _upgrade-snapshot-trigger-removed:
 
@@ -698,8 +740,9 @@ Instead, the :meth:`Extension.initialize <training.Extension.initialize>` method
 This method is called by :meth:`Trainer.run <training.Trainer.run>` before entering the training loop.
 
 In Chainer v1, the extension is just called before entering the training loop when ``invoke_before_training`` is ``True``.
-**You need to fix the extension and override** :meth:`~training.Extension.initialize` **if you have custom extensions.**
-If you are using the :func:`~training.make_extension` decorator, you can set the ``initialize`` function by passing ``initializer`` to :func:`~training.make_extension`.
+**If you have a custom extension that has** ``invoke_before_training=True``**, you have to update the code.**
+What you have to do is to remove the ``invoke_before_training`` flag and override :meth:`~training.Extension.initialize` method.
+If you are using the :func:`~training.make_extension` decorator, you can set the ``initialize`` function by passing the ``initializer`` argument to :func:`~training.make_extension`.
 
 .. _upgrade-dump-graph-only-once:
 
@@ -734,7 +777,15 @@ In Chainer v2, when a :class:`Variable` object is reported using :func:`report` 
 **If your code depends on the reachability of the computational graph from the reported variable, you have to update your code.**
 The easiest way to update your code is setting ``chainer.config.keep_graph_on_report`` to ``True``, then Chainer will keep the computational graph reachable from the reported variable.
 
-This change is made for the memory performance reasone; with this change, the memory used by the computational graph for training is immediately released before invoking extensions.
+The possible examples that are affected by this change are as follows (not exhaustive).
+
+- A custom extension that runs backprop from a reported variable.
+  It is definitely an example of assuming the reachability of the computational graph from the reported variable.
+- An extension that visualizes the computational graph from a reported variable.
+  If you are writing such an extension by yourself, you have to turn on the ``keep_graph_on_report`` flag.
+  The :func:`~training.extensions.dump_graph` extension is another example, for which see :ref:`the above item <upgrade-dump-graph-only-once>` for the details.
+
+This change is made for the memory performance reason; with this change, the memory used by the computational graph for training is immediately released before invoking extensions.
 Therefore, *changing the behavior by overwriting* ``chainer.config.keep_graph_on_report`` *may increase the memory consumption.*
 It may cause an out-of-memory error if the computational graph of the loss function consumes almost all the memory available in your environment and there is an extension that uses a certain amount of memory (e.g. :class:`~training.extensions.Evaluator`).
 
@@ -747,13 +798,13 @@ Some obsolete classes and functions are removed
 The following classes and functions are removed in Chainer v2.
 
 - ``chainer.Flag``
-- ``chainer.FunctionSet``
-- ``chainer.cuda.init``
-- ``chainer.cuda.empty``
-- ``chainer.cuda.empty_like``
-- ``chainer.cuda.full``
-- ``chainer.cuda.full_like``
-- ``chainer.cuda.ones``
-- ``chainer.cuda.ones_like``
-- ``chainer.cuda.zeros``
-- ``chainer.cuda.zeros_like``
+- ``chainer.FunctionSet`` (Use :class:`Chain` or :class:`ChainList` instead)
+- ``chainer.cuda.init`` (It did nothing except for calling :func:`~cuda.check_cuda_available`)
+- ``chainer.cuda.empty`` (Use :func:`cupy.empty`)
+- ``chainer.cuda.empty_like`` (Use :func:`cupy.empty_like`)
+- ``chainer.cuda.full`` (Use :func:`cupy.full`)
+- ``chainer.cuda.full_like`` (Use :func:`cupy.full_like`)
+- ``chainer.cuda.ones`` (Use :func:`cupy.ones`)
+- ``chainer.cuda.ones_like`` (Use :func:`cupy.ones_like`)
+- ``chainer.cuda.zeros`` (Use :func:`cupy.zeros`)
+- ``chainer.cuda.zeros_like`` (Use :func:`cupy.zeros_like`)
