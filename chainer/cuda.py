@@ -268,7 +268,7 @@ def copy(array, out=None, out_device=None, stream=None):
     Args:
         array (cupy.ndarray): Array to be copied.
         out (cupy.ndarray): Destination array.
-            If it is not ``None``, then ``out_device_id`` argument is ignored.
+            If it is not ``None``, then ``out_device`` argument is ignored.
         out_device: Destination device specifier. This argument should be a
             device object or ``None``.
         stream (cupy.cuda.Stream): CUDA stream.
@@ -277,7 +277,7 @@ def copy(array, out=None, out_device=None, stream=None):
         cupy.ndarray: Copied array.
 
         If ``out`` is not specified, then the array is allocated on the device
-        specified by ``out_device_id`` argument.
+        specified by ``out_device`` argument.
 
     """
     check_cuda_available()

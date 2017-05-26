@@ -466,13 +466,13 @@ Actual: {0}'''.format(type(data))
         """Copies the data and gradient arrays to specified GPU.
 
         Args:
-            device_id (int or None): The device ID to specify the target
-                device. If omitted or None, the current device is used.
+            device: The device specifier. If omitted or None, the current
+                device is used.
 
         """
         if self.data is None:
             current = cuda.Device().id
-            self._initial_device = current if device_id is None else device_id
+            self._initial_device = current if device is None else device
         else:
             self._data = [cuda.to_gpu(self.data, device)]
             # ensure that the node tracks the device migration
