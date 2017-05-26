@@ -177,6 +177,15 @@ class Deconvolution2DFunction(function.Function):
                     algo, workspace.data.ptr, workspace_size,
                     zero.data, y_desc.value, y.data.ptr)
             else:
+                if configuration.config.cudnn_deterministic:
+                    raise ValueError(
+                        "`cudnn_deterministic` option must be False "
+                        "if the forward propagation of "
+                        "chainer.functions.Deconvolution2D "
+                        "uses cuDNN and cuDNN versions < v3. "
+                        "Turn off cudnn_deterministic option with "
+                        "`chainer.using_config('cudnn_deterministic', False)` "
+                        "context.")
                 libcudnn.convolutionBackwardData_v2(
                     handle, one.data, self.filter_desc.value, W.data.ptr,
                     x_desc.value, x.data.ptr, self.conv_desc.value,
