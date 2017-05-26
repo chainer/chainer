@@ -5,10 +5,10 @@ import warnings
 import numpy
 import six
 
-import chainer
 from chainer import cuda
-import chainer.link as link_module
-import chainer.serializer as serializer_module
+from chainer import link as link_module
+from chainer import serializer as serializer_module
+from chainer import variable
 
 
 def _sum_sqnorm(arr):
@@ -259,7 +259,7 @@ class UpdateRule(object):
                 self._state = {}
                 self_copy = copy.copy(self)
                 arr = numpy.empty(1, dtype=numpy.float32)
-                self_copy.init_state(chainer.Variable(arr, grad=arr))
+                self_copy.init_state(variable.Variable(arr, grad=arr))
 
                 for key in self._state:
                     self._state[key] = serializer(key, None)
