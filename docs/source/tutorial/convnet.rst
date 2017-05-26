@@ -33,7 +33,7 @@ labeling task, etc.
 .. note::
 
     The below example code assumes that some packages are already imported.
-    Please see the details here: :doc:`tutorial/basic`.
+    Please see the details here: :doc:`basic`.
 
 LeNet5
 ''''''
@@ -229,7 +229,7 @@ VGG16
 
 Next, let's write some larger models in Chainer. When you write a large network
 consisting of several building block networks, :class:`~chainer.ChainList` is
-useful. First, let's see how to write a VGG16 [Simonyan14] model.
+useful. First, let's see how to write a VGG16 [Simonyan14]_ model.
 
 .. doctest::
 
@@ -305,7 +305,7 @@ laborious to build, but it can be implemented in almost same manner as VGG16.
 In the other words, it's easy. One possible way to write ResNet-152 is:
 
 .. doctest::
-    
+
     class ResNet152(chainer.Chain):
         def __init__(self, n_blocks=[3, 8, 36, 3]):
             w = chainer.initializers.HeNormal()

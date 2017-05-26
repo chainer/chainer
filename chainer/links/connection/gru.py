@@ -1,11 +1,11 @@
 import numpy
 
-import chainer
 from chainer.functions.activation import sigmoid
 from chainer.functions.activation import tanh
 from chainer.functions.math import linear_interpolate
 from chainer import link
 from chainer.links.connection import linear
+from chainer import variable
 
 
 class GRUBase(link.Chain):
@@ -150,7 +150,7 @@ class StatefulGRU(GRUBase):
             self.h.to_gpu(device)
 
     def set_state(self, h):
-        assert isinstance(h, chainer.Variable)
+        assert isinstance(h, variable.Variable)
         h_ = h
         if self.xp == numpy:
             h_.to_cpu()
