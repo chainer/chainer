@@ -471,7 +471,7 @@ We can also initialize the parameter after the initialization by the :meth:`Link
    class EltwiseParamProduct(Link):
        def __init__(self, shape):
            super(EltwiseParamProduct, self).__init__()
-           self.add_param('W', shape, initializers.Normal(scale=1.)
+           self.add_param('W', shape, initializers.Normal(scale=1.))
 
        def __call__(self, x):
            return self.W * x
