@@ -205,13 +205,43 @@ class TestDeconvolution2DCudnnCall(unittest.TestCase):
 
     def test_call_cudnn_backward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
+            # This test includes the case in which cudnn < v3
+            # and cudnn_deterministic is True, in which
+            # the backward method of chainer.functions.Deconvolution2D
+            # must raise an error.
+            # But in this case, its forward method should raise
+            # an error as well.
+            # Therefore, we intentionally set cudnn_deterministic
+            # to False so that the forward method does not
+            # raise an error.
+            with chainer.using_config('cudnn_deterministic', False):
+                y = self.forward()
+        y.grad = self.gy
+
+        data_func_name = 'cupy.cudnn.cudnn.convolutionForward'
+        if cuda.cudnn.cudnn.getVersion() >= 3000:
+            filter_func_name = 'cupy.cudnn.cudnn.convolutionBackwardFilter_v3'
+        else:
+            filter_func_name = 'cupy.cudnn.cudnn.convolutionBackwardFilter_v2'
+
+        with chainer.using_config('use_cudnn', self.use_cudnn):
             with chainer.using_config('cudnn_deterministic',
                                       self.cudnn_deterministic):
-                y = self.forward()
-                y.grad = self.gy
-                with mock.patch('cupy.cudnn.cudnn.convolutionForward') as func:
-                    y.backward()
-                    self.assertEqual(func.called, self.should_call_cudnn)
+
+                should_raise_error = (self.cudnn_deterministic and
+                                      self.should_call_cudnn
+                                      and cuda.cudnn.cudnn.getVersion() < 3000)
+                if should_raise_error:
+                    with self.assertRaises(ValueError):
+                        y.backward()
+                else:
+                    with mock.patch(data_func_name) as data_func,\
+                            mock.patch(filter_func_name) as filter_func:
+                        y.backward()
+                        self.assertEqual(
+                            data_func.called, self.should_call_cudnn)
+                        self.assertEqual(
+                            filter_func.called, self.should_call_cudnn)
 
 
 @testing.parameterize(*testing.product({
