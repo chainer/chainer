@@ -126,7 +126,7 @@ class TestDeconvolution2DFunction(unittest.TestCase):
         # In that case, Chainer should raise errors.
         # As this behavior is tested by TestDeconvolution2DCudnnCall,
         # we simply skip the test here.
-        should_raise_error = ((xp is cuda.cupy) and
+        should_raise_error = ((xp is not numpy) and
                               self.use_cudnn and
                               self.cudnn_deterministic and
                               cuda.cudnn.cudnn.getVersion() < 3000)
