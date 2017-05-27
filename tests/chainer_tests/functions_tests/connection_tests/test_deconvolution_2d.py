@@ -111,6 +111,18 @@ class TestDeconvolution2DFunction(unittest.TestCase):
 
     def check_backward(self, x_data, W_data, b_data, y_grad):
         xp = cuda.get_array_module(x_data)
+
+        # cuDNN < v3 does not support deterministic algorithms.
+        # In that case, Chainer should raise errors.
+        # As this behavior is tested by TestDeconvolution2DCudnnCall,
+        # we simply skip the test here.
+        should_raise_error = ((xp is cuda.cupy) and
+                              self.use_cudnn and
+                              self.cudnn_deterministic and
+                              cuda.cudnn.cudnn.getVersion() < 3000)
+        if should_raise_error:
+            return
+
         if not self.c_contiguous:
             x_data = xp.asfortranarray(x_data)
             W_data = xp.asfortranarray(W_data)
