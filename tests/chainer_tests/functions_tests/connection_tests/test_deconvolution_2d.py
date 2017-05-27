@@ -79,6 +79,16 @@ class TestDeconvolution2DFunction(unittest.TestCase):
 
     @attr.gpu
     def test_forward_consistency(self):
+        # cuDNN < v3 does not support deterministic algorithms
+        # and Chainer should raise errors.
+        # In that case, we have no consistency to check
+        # and therefore, imply skip the test here.
+        should_raise_error = (self.use_cudnn and
+                              self.cudnn_deterministic and
+                              cuda.cudnn.cudnn.getVersion() < 3000)
+        if should_raise_error:
+            return
+
         x_cpu = chainer.Variable(self.x)
         W_cpu = chainer.Variable(self.W)
         b_cpu = None if self.nobias else chainer.Variable(self.b)
