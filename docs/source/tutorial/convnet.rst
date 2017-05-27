@@ -197,7 +197,7 @@ It can be used like this:
     # Foward & Loss calculation
     loss = model(x, t)
 
-This class takes a model object as an iput argument and registers it to
+This class takes a model object as an input argument and registers it to
 a ``predictor`` property as a trained parameter. As shown above, the returned
 object can then be called like a function in which we pass ``x`` and ``t`` as
 the input arguments and the resulting loss value (which we recall is a
