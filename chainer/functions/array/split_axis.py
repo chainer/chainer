@@ -6,6 +6,7 @@ import chainer
 from chainer import cuda
 from chainer import function
 from chainer.utils import type_check
+from chainer import variable
 
 
 class SplitAxis(function.Function):
@@ -46,12 +47,6 @@ class SplitAxis(function.Function):
             cdimx = x[0].shape[self.axis]
             ind = list(self.indices_or_sections)
             ind.append(cdimx)
-            prev_i = 0
-            for i in ind:
-                cdimy = max(0, min(i, cdimx) - prev_i)
-                if cdimy == 0:
-                    raise ValueError('Not support if shape contains 0')
-                prev_i = i
         self._xp = cuda.get_array_module(*x)
         self._x_shape = x[0].shape
         self._x_dtype = x[0].dtype
@@ -83,7 +78,7 @@ def split_axis(x, indices_or_sections, axis, force_tuple=True):
         force_tuple (bool): If ``True`` (the default) this method returns a
             tuple even when the number of outputs is one. Otherwise, if
             ``False`` a Variable will be returned when the number of outputs
-             is one.
+            is one.
 
     Returns:
         tuple or Variable: Tuple of :class:`~chainer.Variable` objects
@@ -99,6 +94,6 @@ def split_axis(x, indices_or_sections, axis, force_tuple=True):
 
     """
     res = SplitAxis(indices_or_sections, axis)(x)
-    if force_tuple and isinstance(res, chainer.Variable):
+    if force_tuple and isinstance(res, variable.Variable):
         res = (res,)
     return res

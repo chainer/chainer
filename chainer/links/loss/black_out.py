@@ -1,10 +1,10 @@
 import numpy
 
-import chainer
 from chainer import cuda
 from chainer.functions.loss import black_out
 from chainer import link
 from chainer.utils import walker_alias
+from chainer import variable
 
 
 class BlackOut(link.Link):
@@ -35,7 +35,7 @@ class BlackOut(link.Link):
         self.sampler.to_cpu()
 
     def to_gpu(self, device=None):
-        with cuda.get_device(device):
+        with cuda._get_device(device):
             super(BlackOut, self).to_gpu()
             self.sampler.to_gpu()
 
@@ -58,5 +58,5 @@ class BlackOut(link.Link):
         else:
             shape = (batch_size, self.sample_size)
             sample_data = self.sampler.sample(shape)
-        samples = chainer.Variable(sample_data)
+        samples = variable.Variable(sample_data)
         return black_out.black_out(x, t, self.W, samples)

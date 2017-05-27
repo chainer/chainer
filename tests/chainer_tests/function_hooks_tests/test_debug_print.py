@@ -1,72 +1,139 @@
+import re
 import unittest
+
+import six
 
 import chainer
 from chainer import cuda
 from chainer import function_hooks
-from chainer import functions
-from chainer import gradient_check
-from chainer import links
 from chainer import testing
 from chainer.testing import attr
 import numpy
 
 
-class TestPrintHookToLink(unittest.TestCase):
+class DummyFunction(chainer.Function):
 
-    def setUp(self):
-        self.h = function_hooks.PrintHook()
-        self.l = links.Linear(5, 5)
-        self.x = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
-        self.gy = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
+    def forward(self, inputs):
+        self.retain_inputs((0,))
+        return inputs[0],
 
-    def test_name(self):
-        self.assertEqual(self.h.name, 'PrintHook')
-
-    def test_forward_cpu(self):
-        with self.h:
-            self.l(chainer.Variable(self.x))
-
-    @attr.gpu
-    def test_forward_gpu(self):
-        self.l.to_gpu()
-        with self.h:
-            self.l(chainer.Variable(cuda.to_gpu(self.x)))
-
-    def test_backward_cpu(self):
-        with self.h:
-            gradient_check.check_backward(self.l, self.x, self.gy)
-
-    @attr.gpu
-    def test_backward_gpu(self):
-        self.l.to_gpu()
-        with self.h:
-            gradient_check.check_backward(
-                self.l, cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
+    def backward(self, inputs, grads):
+        return (grads[0],) + (None,) * (len(inputs) - 1)
 
 
 class TestPrintHookToFunction(unittest.TestCase):
 
     def setUp(self):
-        self.h = function_hooks.PrintHook()
-        self.f = functions.Exp()
-        self.f.add_hook(self.h)
+        self.io = six.StringIO()
+        self.h = function_hooks.PrintHook(file=self.io)
+        self.f = DummyFunction()
         self.x = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
         self.gy = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
 
     def test_forward_cpu(self):
-        self.f(chainer.Variable(self.x))
+        self.f.add_hook(self.h)
+        self.f(chainer.Variable(self.x), chainer.Variable(self.x))
+        # In some environments, shape is long.
+        expect = '''^function\tDummyFunction
+input data
+<variable at 0x[0-9a-f]+>
+- device: CPU
+- backend: <(type|class) 'numpy.ndarray'>
+- shape: \(3L?, 5L?\)
+- dtype: float32
+- statistics: mean=[0-9.\-e]+, std=[0-9.\-e]+
+- grad: None
+<variable at 0x[0-9a-f]+>
+- device: CPU
+- backend: <(type|class) 'numpy.ndarray'>
+- shape: \(3L?, 5L?\)
+- dtype: float32
+- statistics: mean=[0-9.\-e]+, std=[0-9.\-e]+
+- grad: None$
+'''
+        actual = self.io.getvalue()
+        self.assertTrue(re.match(expect, actual), actual)
 
     @attr.gpu
     def test_forward_gpu(self):
-        self.f(chainer.Variable(cuda.to_gpu(self.x)))
+        self.f.add_hook(self.h)
+        self.f(chainer.Variable(cuda.to_gpu(self.x)),
+               chainer.Variable(cuda.to_gpu(self.x)))
+        expect = '''^function\tDummyFunction
+input data
+<variable at 0x[0-9a-f]+>
+- device: <CUDA Device 0>
+- backend: <(type|class) 'cupy.core.core.ndarray'>
+- shape: \(3L?, 5L?\)
+- dtype: float32
+- statistics: mean=[0-9.\-e]+, std=[0-9.\-e]+
+- grad: None
+<variable at 0x[0-9a-f]+>
+- device: <CUDA Device 0>
+- backend: <(type|class) 'cupy.core.core.ndarray'>
+- shape: \(3L?, 5L?\)
+- dtype: float32
+- statistics: mean=[0-9.\-e]+, std=[0-9.\-e]+
+- grad: None$
+'''
+        actual = self.io.getvalue()
+        self.assertTrue(re.match(expect, actual), actual)
 
     def test_backward_cpu(self):
-        gradient_check.check_backward(self.f, self.x, self.gy)
+        y = self.f(chainer.Variable(self.x), chainer.Variable(self.x))
+        y.grad = self.gy
+        self.f.add_hook(self.h)
+        y.backward()
+        expect = '''^function\tDummyFunction
+input data
+<variable at 0x[0-9a-f]+>
+- device: CPU
+- backend: <(type|class) 'numpy.ndarray'>
+- shape: \(3L?, 5L?\)
+- dtype: float32
+- statistics: mean=[0-9.\-e]+, std=[0-9.\-e]+
+- grad: None
+\(removed\)
+output gradient
+<variable at 0x[0-9a-f]+>
+- device: CPU
+- backend: <(type|class) 'numpy.ndarray'>
+- shape: \(3L?, 5L?\)
+- dtype: float32
+- statistics: mean=[0-9.\-e]+, std=[0-9.\-e]+
+- grad: mean=[0-9.\-e]+, std=[0-9.\-e]+$
+'''
+        actual = self.io.getvalue()
+        self.assertTrue(re.match(expect, actual), actual)
 
     @attr.gpu
     def test_backward_gpu(self):
-        gradient_check.check_backward(
-            self.f, cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
+        y = self.f(chainer.Variable(cuda.to_gpu(self.x)),
+                   chainer.Variable(cuda.to_gpu(self.x)))
+        y.grad = cuda.to_gpu(self.gy)
+        self.f.add_hook(self.h)
+        y.backward()
+        expect = '''^function\tDummyFunction
+input data
+<variable at 0x[0-9a-f]+>
+- device: <CUDA Device 0>
+- backend: <(type|class) 'cupy.core.core.ndarray'>
+- shape: \(3L?, 5L?\)
+- dtype: float32
+- statistics: mean=[0-9.\-e]+, std=[0-9.\-e]+
+- grad: None
+\(removed\)
+output gradient
+<variable at 0x[0-9a-f]+>
+- device: <CUDA Device 0>
+- backend: <(type|class) 'cupy.core.core.ndarray'>
+- shape: \(3L?, 5L?\)
+- dtype: float32
+- statistics: mean=[0-9.\-e]+, std=[0-9.\-e]+
+- grad: mean=[0-9.\-e]+, std=[0-9.\-e]+$
+'''
+        actual = self.io.getvalue()
+        self.assertTrue(re.match(expect, actual), actual)
 
 
 testing.run_module(__name__, __file__)

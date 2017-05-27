@@ -173,10 +173,11 @@ class Function(object):
         """
 
         inputs = [x if isinstance(x, variable.Variable)
-                  else variable.Variable(x)
+                  else variable.Variable(x, requires_grad=False)
                   for x in inputs]
-
         in_data = tuple([x.data for x in inputs])
+        requires_grad = any([x.requires_grad for x in inputs])
+
         if chainer.is_debug():
             self._stack = traceback.extract_stack()
 
@@ -191,7 +192,7 @@ class Function(object):
             hook.forward_preprocess(self, in_data)
 
         # Forward prop
-        with cuda.get_device(*in_data):
+        with cuda.get_device_from_array(*in_data):
             self._input_indexes_to_retain = None
             self._output_indexes_to_retain = None
             outputs = self.forward(in_data)
@@ -206,7 +207,8 @@ class Function(object):
                 msg = 'NaN is detected on forward computation'
                 raise RuntimeError(msg)
 
-        ret = tuple([variable.Variable(y) for y in outputs])
+        ret = tuple([variable.Variable(y, requires_grad=requires_grad)
+                     for y in outputs])
 
         if configuration.config.enable_backprop:
             # Topological ordering

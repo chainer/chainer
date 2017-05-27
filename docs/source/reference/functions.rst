@@ -146,6 +146,10 @@ hstack
 ~~~~~~
 .. autofunction:: hstack
 
+im2col
+~~~~~~
+.. autofunction:: im2col
+
 pad
 ~~~
 .. autofunction:: pad
@@ -177,6 +181,14 @@ separate
 space2depth
 ~~~~~~~~~~~
 .. autofunction:: space2depth
+
+spatial_transformer_grid
+~~~~~~~~~~~~~~~~~~~~~~~~
+.. autofunction:: spatial_transformer_grid
+
+spatial_transformer_sampler
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autofunction:: spatial_transformer_sampler
 
 split_axis
 ~~~~~~~~~~
@@ -238,6 +250,10 @@ deconvolution_nd
 ~~~~~~~~~~~~~~~~
 .. autofunction:: deconvolution_nd
 
+depthwise_convolution_2d
+~~~~~~~~~~~~~~~~~~~~~~~~
+.. autofunction:: depthwise_convolution_2d
+
 dilated_convolution_2d
 ~~~~~~~~~~~~~~~~~~~~~~
 .. autofunction:: dilated_convolution_2d
@@ -250,9 +266,29 @@ linear
 ~~~~~~
 .. autofunction:: linear
 
+n_step_bigru
+~~~~~~~~~~~~
+.. autofunction:: n_step_bigru
+
+n_step_bilstm
+~~~~~~~~~~~~~
+.. autofunction:: n_step_bilstm
+
+n_step_birnn
+~~~~~~~~~~~~
+.. autofunction:: n_step_birnn
+
+n_step_gru
+~~~~~~~~~~
+.. autofunction:: n_step_gru
+
 n_step_lstm
 ~~~~~~~~~~~
 .. autofunction:: n_step_lstm
+
+n_step_rnn
+~~~~~~~~~~
+.. autofunction:: n_step_rnn
 
 
 Evaluation functions
@@ -459,6 +495,10 @@ maximum
 ~~~~~~~
 .. autofunction:: maximum
 
+mean
+~~~~
+.. autofunction:: mean
+
 min
 ~~~
 .. autofunction:: min
@@ -520,6 +560,10 @@ dropout
 gaussian
 ~~~~~~~~
 .. autofunction:: gaussian
+
+simplified_dropconnect
+~~~~~~~~~~~~~~~~~~~~~~
+.. autofunction:: simplified_dropconnect
 
 
 Normalization functions
