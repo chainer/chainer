@@ -11,7 +11,7 @@ class TestConcatenatedDataset(unittest.TestCase):
     def test_concatenated_dataset(self):
         dataset0 = np.random.uniform(size=(5, 3, 32, 32))
         dataset1 = np.random.uniform(size=(15, 3, 32, 32))
-        concatenated_dataset = ConcatenatedDataset([dataset0, dataset1])
+        concatenated_dataset = ConcatenatedDataset(dataset0, dataset1)
 
         self.assertEqual(len(concatenated_dataset), 20)
 
@@ -23,7 +23,7 @@ class TestConcatenatedDataset(unittest.TestCase):
     def test_concatenated_dataset_slice(self):
         dataset0 = np.random.uniform(size=(5, 3, 32, 32))
         dataset1 = np.random.uniform(size=(15, 3, 32, 32))
-        concatenated_dataset = ConcatenatedDataset([dataset0, dataset1])
+        concatenated_dataset = ConcatenatedDataset(dataset0, dataset1)
 
         self.assertEqual(len(concatenated_dataset), 20)
 
