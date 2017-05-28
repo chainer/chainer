@@ -13,8 +13,8 @@ class ChildSumTreeLSTM(link.Chain):
     This is a Child-Sum TreeLSTM unit as a chain.
     This link is a variable arguments function, which compounds
     the states of all children nodes into the new states of
-    a current (parent) node. *states* denotes the cell state, c,
-    and the output, h, which are produced by this link.
+    a current (parent) node. *states* denotes the cell state, :math:`c`,
+    and the output, :math:`h`, which are produced by this link.
     This link doesn't keep cell and hidden states internally.
 
     For example, this link is called such as
@@ -61,14 +61,14 @@ class ChildSumTreeLSTM(link.Chain):
         """Returns new cell state and output of Child-Sum TreeLSTM.
 
         Args:
-            cshsx (list of ~chainer.Variable): Variable arguments which include
-                all cell vectors and all output vectors of variable children,
-                and an input vector.
+            cshsx (list of :class:`~chainer.Variable`): Variable arguments which
+                include all cell vectors and all output vectors of variable
+                children, and an input vector.
 
         Returns:
-            tuple of ~chainer.Variable: Returns ``(c_new, h_new)``, where
-                ``c_new`` represents new cell state vector, and ``h_new`` is
-                new output vector.
+            tuple of ~chainer.Variable: Returns
+                :math:`(c_{new}, h_{new})`, where :math:`c_{new}` represents
+                new cell state vector, and :math:`h_{new}` is new output vector.
 
         """
 
@@ -122,8 +122,8 @@ class NaryTreeLSTM(link.Chain):
     This is a N-ary TreeLSTM unit as a chain.
     This link is a fixed-length arguments function, which compounds
     the states of all children nodes into the new states of
-    a current (parent) node. *states* denotes the cell state, c,
-    and the output, h, which are produced by this link.
+    a current (parent) node. *states* denotes the cell state, :math:`c`,
+    and the output, :math:`h`, which are produced by this link.
     This link doesn't keep cell and hidden states internally.
 
     For example, this link is called such as
@@ -161,8 +161,8 @@ class NaryTreeLSTM(link.Chain):
     Tai et al.'s N-Ary TreeLSTM is little extended in
     Bowman et al., and this link is based on
     the variant by Bowman et al.
-    Specifically, eq. 10 in Tai et al. has only one W matrix
-    to be applied to x, consistently for all children.
+    Specifically, eq. 10 in Tai et al. has only one :math:`W` matrix
+    to be applied to :math:`x`, consistently for all children.
     On the other hand, Bowman et al.'s model has multiple matrices,
     each of which affects the forget gate for each child's cell individually.
 
@@ -186,15 +186,15 @@ class NaryTreeLSTM(link.Chain):
         """Returns new cell state and output of N-ary TreeLSTM.
 
         Args:
-            cshsx (list of ~chainer.Variable): Arguments which include all cell
+            cshsx (list of :class:`~chainer.Variable`): Arguments which include all cell
                 vectors and all output vectors of fixed-length children,
                 and an input vector. The number of arguments must be same
                 as ``n_ary * 2 + 1``.
 
         Returns:
-            tuple of ~chainer.Variable: Returns ``(c_new, h_new)``, where
-                ``c_new`` represents new cell state vector, and ``h_new`` is
-                new output vector.
+            tuple of ~chainer.Variable: Returns :math:`(c_{new}, h_{new})`,
+                where :math:`c_{new}` represents new cell state vector,
+                and :math:`h_{new}` is new output vector.
 
         """
 
