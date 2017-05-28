@@ -250,7 +250,7 @@ def _create_variable(
 
 class Variable(object):
 
-    """__init__(data=None, name=None, grad=None, initializer=None, update_rule=None, requires_grad=True)
+    """__init__(data=None, *, name=None, grad=None, initializer=None, update_rule=None, requires_grad=True)
 
     Array with a structure to keep track of computation.
 
