@@ -68,7 +68,7 @@ class ChildSumTreeLSTM(link.Chain):
         Returns:
             tuple of ~chainer.Variable: Returns
                 :math:`(c_{new}, h_{new})`, where :math:`c_{new}` represents
-                new cell state vector, and :math:`h_{new}` is new output 
+                new cell state vector, and :math:`h_{new}` is new output
                 vector.
 
         """
