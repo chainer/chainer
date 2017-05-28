@@ -61,14 +61,15 @@ class ChildSumTreeLSTM(link.Chain):
         """Returns new cell state and output of Child-Sum TreeLSTM.
 
         Args:
-            cshsx (list of :class:`~chainer.Variable`): Variable arguments which
-                include all cell vectors and all output vectors of variable
-                children, and an input vector.
+            cshsx (list of :class:`~chainer.Variable`): Variable arguments
+                which include all cell vectors and all output vectors of
+                variable children, and an input vector.
 
         Returns:
             tuple of ~chainer.Variable: Returns
                 :math:`(c_{new}, h_{new})`, where :math:`c_{new}` represents
-                new cell state vector, and :math:`h_{new}` is new output vector.
+                new cell state vector, and :math:`h_{new}` is new output 
+                vector.
 
         """
 
@@ -186,10 +187,10 @@ class NaryTreeLSTM(link.Chain):
         """Returns new cell state and output of N-ary TreeLSTM.
 
         Args:
-            cshsx (list of :class:`~chainer.Variable`): Arguments which include all cell
-                vectors and all output vectors of fixed-length children,
-                and an input vector. The number of arguments must be same
-                as ``n_ary * 2 + 1``.
+            cshsx (list of :class:`~chainer.Variable`): Arguments which include
+                all cell vectors and all output vectors of fixed-length
+                children, and an input vector. The number of arguments must be
+                same as ``n_ary * 2 + 1``.
 
         Returns:
             tuple of ~chainer.Variable: Returns :math:`(c_{new}, h_{new})`,
