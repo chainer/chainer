@@ -48,7 +48,7 @@ class Softmax(function.Function):
         else:
             y = x[0] - x[0].max(axis=self.axis, keepdims=True)
             xp.exp(y, out=y)
-            y /= y.sum(axis=axis=self.axis, keepdims=True)
+            y /= y.sum(axis=self.axis, keepdims=True)
 
         self._x_shape = x[0].shape
         self.retain_inputs(())
@@ -64,7 +64,7 @@ class Softmax(function.Function):
             one = numpy.array(1, dtype=oz_dtype).ctypes
             zero = numpy.array(0, dtype=oz_dtype).ctypes
             handle = cudnn.get_handle()
-            gx = xp.empty_like(x[0])
+            gx = xp.empty_like(y)
             gx_tensor4d = gx.reshape(self._get_tensor4d_shape(gx.shape))
             desc = cudnn.create_tensor_descriptor(gx_tensor4d)
             libcudnn.softmaxBackward(
