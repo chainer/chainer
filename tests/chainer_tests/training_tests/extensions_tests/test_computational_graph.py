@@ -83,8 +83,8 @@ class TestGraphBuilderKeepGraphOnReport(unittest.TestCase):
             graph_dot = f.read()
 
         # Check that only the first iteration is dumped
-        self.assertTrue('Sigmoid' in graph_dot)
-        self.assertTrue('Tanh' not in graph_dot)
+        self.assertIn('Sigmoid', graph_dot)
+        self.assertNotIn('Tanh', graph_dot)
 
     def _check(self, initial_flag):
         tempdir = tempfile.mkdtemp()
