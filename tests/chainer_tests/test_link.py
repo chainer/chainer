@@ -412,7 +412,7 @@ class TestChain(unittest.TestCase):
     def test_assign_link_outside_of_init_scope(self):
         l = chainer.Link()
         self.l1.l = l
-        self.assertTrue(l is not link for link in self.l1.links())
+        self.assertTrue(all(l is not link for link in self.l1.links()))
 
     def test_copy(self):
         c2 = self.c2.copy()
