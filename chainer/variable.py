@@ -322,7 +322,7 @@ Actual: {0}'''.format(type(data))
 
     def __reduce__(self):
         return _create_variable, (self.data, self.name, self._node._grad,
-                          self._requires_grad)
+                                  self._requires_grad)
 
     def __repr__(self):
         return variable_repr(self)
