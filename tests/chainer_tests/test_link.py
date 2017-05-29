@@ -94,6 +94,11 @@ class TestLink(unittest.TestCase):
         self.assertIsInstance(self.link.z.data, numpy.ndarray)
         numpy.testing.assert_array_equal(self.link.z.data, z)
 
+    def test_add_param_duplicated_with_persistent(self):
+        self.link.add_persistent('z', 'abc')
+        with self.assertRaises(AttributeError):
+            self.link.add_param('z', (2, 3))
+
     def test_add_persistent(self):
         self.assertTrue(hasattr(self.link, 'p'))
         self.assertIs(self.link.p, self.p)
