@@ -473,10 +473,13 @@ It will improve the most use cases of LSTMs, although this change would break th
 **If you want to keep the same initialization procedure, you have to update your code.**
 The change is simple: pass ``forget_bias_init=0`` to :class:`~links.LSTM` and :class:`~links.StatelessLSTM`.
 
-The serialization format of LSTM and StatelessLSTM is changed (TODO)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The interfaces of GRU and LSTM are aligned
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-TODO: write after fixing the specification
+In Chainer v1, :class:`~chainer.links.GRU` was *stateless*, as opposed to the current implementation.
+To align with the naming convension of LSTM links, we have changed the naming convension from Chainer v2 so that the shorthand name points the stateful links.
+**If you are using** :class:`~links.GRU`**, you have to update your code.**
+You can use :class:`~chainer.links.StatelessGRU` for stateless version, whose implementation is identical to ``chainer.linksGRU`` in v1.
 
 Aliases of links in chainer.functions are removed
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
