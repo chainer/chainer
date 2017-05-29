@@ -25,6 +25,11 @@ The following entries of the configuration are currently provided by Chainer.
 Some entries support environment variables to set the default values.
 Note that the default values are set in the global config.
 
+``chainer.config.cudnn_deterministic``
+   Flag to configure deterministic computations in cuDNN APIs.
+   If it is ``True``, convolution functions that use cuDNN use the deterministic mode (i.e, the computation is reproducible).
+   Otherwise, the results of convolution functions using cuDNN may be non-deterministic in exchange of the performance.
+   The defualt value is ``False``.
 ``chainer.config.debug``
    Debug mode flag.
    If it is ``True``, Chainer runs in the debug mode.
@@ -36,6 +41,12 @@ Note that the default values are set in the global config.
    Otherwise, it does not make a computational graph.
    So a user cannot call :func:`~chainer.Variable.backward` method to results of the function.
    The default value is ``True``.
+``chainer.config.keep_graph_on_report``
+   Flag to configure whether or not to let :func:`report` keep the computational graph.
+   If it is ``False``, :func:`report` does not keep the computational graph when a :class:`Variable` object is reported.
+   It means that :func:`report` stores a copy of the :class:`Variable` object which is purged from the computational graph.
+   If it is ``True``, :func:`report` just stores the :class:`Variable` object as is with the computational graph left attached.
+   The default value is ``False``.
 ``chainer.config.train``
    Training mode flag.
    If it is ``True``, Chainer runs in the training mode.
