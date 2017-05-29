@@ -5,6 +5,7 @@ from chainer import cuda
 from chainer.functions.normalization import batch_normalization
 from chainer import initializers
 from chainer import link
+from chainer.utils import argument
 from chainer import variable
 
 
@@ -84,12 +85,20 @@ class BatchNormalization(link.Link):
         self.decay = decay
         self.eps = eps
 
-    def __call__(self, x, finetune=False):
-        """Invokes the forward propagation of BatchNormalization.
+    def __call__(self, x, **kwargs):
+        """__call__(self, x, finetune=False)
+
+        Invokes the forward propagation of BatchNormalization.
 
         In training mode, the BatchNormalization computes moving averages of
         mean and variance for evaluatino during training, and normalizes the
         input using batch statistics.
+
+        .. warning::
+
+           ``test`` argument is not supported anymore since v2.
+           Instead, use ``chainer.using_config('train', train)``.
+           See :func:`chainer.using_config`.
 
         Args:
             x (Variable): Input variable.
@@ -100,16 +109,21 @@ class BatchNormalization(link.Link):
                 statistics.
 
         """
+        argument.check_unexpected_kwargs(
+            kwargs, test='test argument is not supported anymore. '
+            'Use chainer.using_config')
+        finetune, = argument.parse_kwargs(kwargs, ('finetune', False))
+
         if hasattr(self, 'gamma'):
             gamma = self.gamma
         else:
-            with cuda.get_device(self._device_id):
+            with cuda.get_device_from_id(self._device_id):
                 gamma = variable.Variable(self.xp.ones(
                     self.avg_mean.shape, dtype=x.dtype))
         if hasattr(self, 'beta'):
             beta = self.beta
         else:
-            with cuda.get_device(self._device_id):
+            with cuda.get_device_from_id(self._device_id):
                 beta = variable.Variable(self.xp.zeros(
                     self.avg_mean.shape, dtype=x.dtype))
 

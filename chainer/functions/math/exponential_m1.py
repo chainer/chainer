@@ -17,15 +17,18 @@ class Expm1(function.Function):
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward_cpu(self, x):
-        self.y = utils.force_array(numpy.expm1(x[0]))
-        return self.y,
+        self.retain_inputs(())
+        self.retain_outputs((0,))
+        return utils.force_array(numpy.expm1(x[0])),
 
     def forward_gpu(self, x):
-        self.y = cuda.cupy.expm1(x[0])
-        return self.y,
+        self.retain_inputs(())
+        self.retain_outputs((0,))
+        return cuda.cupy.expm1(x[0]),
 
     def backward(self, x, gy):
-        return utils.force_array((self.y + self.y.dtype.type(1.0)) * gy[0]),
+        y = self.output_data[0]
+        return utils.force_array((y + y.dtype.type(1.0)) * gy[0]),
 
 
 def expm1(x):

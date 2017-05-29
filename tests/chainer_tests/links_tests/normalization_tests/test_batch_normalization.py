@@ -93,10 +93,10 @@ class BatchNormalizationTest(unittest.TestCase):
     @attr.multi_gpu(2)
     @condition.retry(3)
     def test_forward_multi_gpu(self):
-        with cuda.get_device(1):
+        with cuda.get_device_from_id(1):
             self.link.to_gpu()
             x = cuda.to_gpu(self.x)
-        with cuda.get_device(0):
+        with cuda.get_device_from_id(0):
             self.check_forward(x)
 
     def check_backward(self, x_data, y_grad):
@@ -257,10 +257,10 @@ class BatchNormalizationTestWithoutGammaAndBeta(unittest.TestCase):
 
     @attr.multi_gpu(2)
     def test_forward_gpu_multi(self):
-        with cuda.get_device(0):
+        with cuda.get_device_from_id(0):
             self.link.to_gpu()
             x = cuda.to_gpu(self.x)
-        with cuda.get_device(1):
+        with cuda.get_device_from_id(1):
             self.check_forward(x)
 
     @attr.cudnn
@@ -360,6 +360,26 @@ class TestInvalidInitialize(unittest.TestCase):
     def test_invalid_type(self):
         with self.assertRaises(TypeError):
             self.link = links.BatchNormalization({})
+
+
+class TestInvalidArgument(unittest.TestCase):
+
+    def setUp(self):
+        self.link = links.BatchNormalization(1)
+        self.x = numpy.random.uniform(-1, 1, (3,)).astype('f')
+
+    def test_test_argument(self):
+        with self.assertRaises(ValueError):
+            self.link(self.x, test=True)
+
+    def test_positional_argument(self):
+        # positional argument is prohibited from v2
+        with self.assertRaises(TypeError):
+            self.link(self.x, True)
+
+    def test_redundant_argument(self):
+        with self.assertRaises(TypeError):
+            self.link(self.x, unknown_argument=1)
 
 
 testing.run_module(__name__, __file__)

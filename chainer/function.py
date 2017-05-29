@@ -146,6 +146,8 @@ class Function(object):
 
     """
 
+    rank = 0  # default value of the rank
+
     def __call__(self, *inputs):
         """Applies forward propagation with chaining backward references.
 
@@ -173,10 +175,11 @@ class Function(object):
         """
 
         inputs = [x if isinstance(x, variable.Variable)
-                  else variable.Variable(x)
+                  else variable.Variable(x, requires_grad=False)
                   for x in inputs]
-
         in_data = tuple([x.data for x in inputs])
+        requires_grad = any([x.requires_grad for x in inputs])
+
         if chainer.is_debug():
             self._stack = traceback.extract_stack()
 
@@ -191,7 +194,7 @@ class Function(object):
             hook.forward_preprocess(self, in_data)
 
         # Forward prop
-        with cuda.get_device(*in_data):
+        with cuda.get_device_from_array(*in_data):
             self._input_indexes_to_retain = None
             self._output_indexes_to_retain = None
             outputs = self.forward(in_data)
@@ -206,7 +209,8 @@ class Function(object):
                 msg = 'NaN is detected on forward computation'
                 raise RuntimeError(msg)
 
-        ret = tuple([variable.Variable(y) for y in outputs])
+        ret = tuple([variable.Variable(y, requires_grad=requires_grad)
+                     for y in outputs])
 
         if configuration.config.enable_backprop:
             # Topological ordering
@@ -560,32 +564,35 @@ class FunctionHook(object):
     in this way are registered to all functions within ``with`` statement
     and are unregistered at the end of ``with`` statement.
 
-    The following code is a simple example in which
-    we measure the elapsed time of a part of forward propagation procedure
-    with :class:`~chainer.function_hooks.TimerHook`, which is a subclass of
-    :class:`~chainer.function.FunctionHook`.
+    .. admonition:: Example
 
-    >>> import chainer, chainer.links as L, chainer.functions as F
-    ... class Model(chainer.Chain):
-    ...     def __call__(self, x1):
-    ...         return F.exp(self.l(x1))
-    ... model1 = Model(l=L.Linear(10, 10))
-    ... model2 = Model(l=L.Linear(10, 10))
-    ... x = chainer.Variable(numpy.zeros((1, 10), 'f'))
-    ... with chainer.function_hooks.TimerHook() as m:
-    ...     _ = model1(x)
-    ...     y = model2(x)
-    ...     print(m.total_time())
-    ... model3 = Model(l=L.Linear(10, 10))
-    ... z = model3(y)
+        The following code is a simple example in which
+        we measure the elapsed time of a part of forward propagation procedure
+        with :class:`~chainer.function_hooks.TimerHook`, which is a subclass of
+        :class:`~chainer.function.FunctionHook`.
 
-    In this example, we measure the elapsed times for each forward propagation
-    of all functions in ``model1`` and ``model2`` (specifically,
-    :class:`~chainer.functions.LinearFunction` and
-    :class:`~chainer.functions.Exp` of ``model1`` and ``model2``).
-    Note that ``model3`` is not a target of measurement
-    as :class:`~chainer.function_hooks.TimerHook` is unregistered
-    before forward propagation of ``model3``.
+        >>> from chainer import function_hooks
+        >>> class Model(chainer.Chain):
+        ...     def __call__(self, x1):
+        ...         return F.exp(self.l(x1))
+        >>> model1 = Model(l=L.Linear(10, 10))
+        >>> model2 = Model(l=L.Linear(10, 10))
+        >>> x = chainer.Variable(np.zeros((1, 10), 'f'))
+        >>> with chainer.function_hooks.TimerHook() as m:
+        ...     _ = model1(x)
+        ...     y = model2(x)
+        ...     print("Total time : " + str(m.total_time()))
+        ...     model3 = Model(l=L.Linear(10, 10))
+        ...     z = model3(y) # doctest:+ELLIPSIS
+        Total time : ...
+
+        In this example, we measure the elapsed times for each forward
+        propagation of all functions in ``model1`` and ``model2``
+        (specifically, :class:`~chainer.functions.LinearFunction` and
+        :class:`~chainer.functions.Exp` of ``model1`` and ``model2``).
+        Note that ``model3`` is not a target of measurement
+        as :class:`~chainer.function_hooks.TimerHook` is unregistered
+        before forward propagation of ``model3``.
 
     .. note::
 

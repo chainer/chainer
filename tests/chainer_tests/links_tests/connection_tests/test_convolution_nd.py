@@ -7,7 +7,7 @@ import chainer
 from chainer import cuda
 from chainer import gradient_check
 from chainer import initializers
-from chainer.links import convolution_nd
+from chainer.links.connection import convolution_nd
 from chainer import testing
 from chainer.testing import attr
 from chainer.testing import condition
@@ -15,10 +15,13 @@ from chainer.utils import conv
 from chainer.utils import conv_nd
 
 
-@testing.parameterize(*testing.product({
-    'dims': [(5,), (5, 4), (4, 3, 3)],
+@testing.parameterize(*(testing.product({
+    'dims': [(3, 4), (3, 4, 3)],
+    'dtype': [numpy.float32]
+}) + testing.product({
+    'dims': [(5,)],
     'dtype': [numpy.float16, numpy.float32, numpy.float64]
-}))
+})))
 class TestConvolutionND(unittest.TestCase):
 
     def setUp(self):

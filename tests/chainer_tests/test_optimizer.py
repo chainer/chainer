@@ -1,3 +1,4 @@
+import copy
 import unittest
 
 import mock
@@ -42,6 +43,12 @@ class TestHyperparameter(unittest.TestCase):
     def test_repr(self):
         self.assertEqual(repr(self.parent), 'Hyperparameter(x=1, y=2)')
         self.assertEqual(repr(self.child), 'Hyperparameter(x=1, y=3, z=4)')
+
+    def test_deep_copy(self):
+        parent_copy, child_copy = copy.deepcopy([self.parent, self.child])
+        self.assertEqual(self.child.get_dict(), child_copy.get_dict())
+        self.assertEqual(self.parent.get_dict(), parent_copy.get_dict())
+        self.assertIs(child_copy.parent, parent_copy)
 
 
 class TestUpdateRule(unittest.TestCase):
@@ -458,6 +465,30 @@ class TestGradientMethod(unittest.TestCase):
         self.check_update()
 
 
+class TestCleargradHook(unittest.TestCase):
+
+    def setUp(self):
+        self.target = SimpleLink(
+            np.arange(6, dtype=np.float32).reshape(2, 3),
+            np.arange(3, -3, -1, dtype=np.float32).reshape(2, 3))
+
+    def check_cleargrad(self):
+        opt = optimizers.SGD(lr=1)
+        opt.setup(self.target)
+        opt.add_hook(CleargradHook(self))
+        opt.add_hook(DummyHook(self))
+
+        opt.update()
+
+    def test_cleargrad_cpu(self):
+        self.check_cleargrad()
+
+    @attr.gpu
+    def test_cleargrad_gpu(self):
+        self.target.to_gpu()
+        self.check_cleargrad()
+
+
 class DummyOptimizer(chainer.GradientMethod):
 
     def __init__(self, test):
@@ -479,6 +510,19 @@ class DummyHook(object):
         for param in opt.target.params():
             # Confirm all grads are not None
             self.test.assertIsNotNone(param.grad)
+
+
+class CleargradHook(object):
+
+    name = 'Cleargrad'
+
+    def __init__(self, _):
+        pass
+
+    def __call__(self, opt):
+        for param in opt.target.params():
+            # Clear all grads
+            param.cleargrad()
 
 
 class TestGradientMethodClearGrads(unittest.TestCase):

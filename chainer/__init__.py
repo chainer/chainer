@@ -33,7 +33,7 @@ from chainer.function import force_backprop_mode  # NOQA
 from chainer.function import Function  # NOQA
 from chainer.function import no_backprop_mode  # NOQA
 from chainer.functions import array  # NOQA
-from chainer.functions import basic_math  # NOQA
+from chainer.functions.math import basic_math  # NOQA
 from chainer.initializer import Initializer  # NOQA
 from chainer.link import Chain  # NOQA
 from chainer.link import ChainList  # NOQA
@@ -78,6 +78,7 @@ def get_function_hooks():
 
 
 global_config.debug = bool(int(os.environ.get('CHAINER_DEBUG', '0')))
+global_config.cudnn_deterministic = False
 global_config.enable_backprop = True
 global_config.train = True
 global_config.type_check = bool(int(os.environ.get('CHAINER_TYPE_CHECK', '1')))

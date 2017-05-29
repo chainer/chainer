@@ -40,6 +40,8 @@ def main():
                         help='Number of images in each mini-batch')
     parser.add_argument('--epoch', '-e', type=int, default=20,
                         help='Number of sweeps over the dataset to train')
+    parser.add_argument('--frequency', '-f', type=int, default=-1,
+                        help='Frequency of taking a snapshot')
     parser.add_argument('--gpu', '-g', type=int, default=-1,
                         help='GPU ID (negative value indicates CPU)')
     parser.add_argument('--out', '-o', default='result',
@@ -61,7 +63,8 @@ def main():
     # iteration, which will be used by the PrintReport extension below.
     model = L.Classifier(MLP(args.unit, 10))
     if args.gpu >= 0:
-        chainer.cuda.get_device(args.gpu).use()  # Make a specified GPU current
+        # Make a specified GPU current
+        chainer.cuda.get_device_from_id(args.gpu).use()
         model.to_gpu()  # Copy the model to the GPU
 
     # Setup an optimizer
@@ -86,8 +89,9 @@ def main():
     # The "main" refers to the target link of the "main" optimizer.
     trainer.extend(extensions.dump_graph('main/loss'))
 
-    # Take a snapshot at each epoch
-    trainer.extend(extensions.snapshot(), trigger=(args.epoch, 'epoch'))
+    # Take a snapshot for each specified epoch
+    frequency = args.epoch if args.frequency == -1 else max(1, args.frequency)
+    trainer.extend(extensions.snapshot(), trigger=(frequency, 'epoch'))
 
     # Write a log of evaluation statistics for each epoch
     trainer.extend(extensions.LogReport())
