@@ -250,7 +250,7 @@ def main():
         print('#  result : ' + ' '.join(words))
         print('#  expect : ' + target)
 
-    @chainer.training.make_extension(trigger):
+    @chainer.training.make_extension(trigger)
     def translate(trainer):
         translate_one(
             'Who are we ?',
