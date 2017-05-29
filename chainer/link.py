@@ -245,6 +245,10 @@ Parameter registeration via Link.__init__ and Link.add_param are deprecated.
 Assign a Parameter object directly to an attribute within a \
 "with Link.init_scope():" block instead.
 ''', DeprecationWarning)
+        if name in self.__dict__:
+            raise AttributeError(
+                'cannot register a new parameter %s: attribute exists'
+                % name)
         if initializer is None:
             initializer = initializers.NaN(dtype)
         param = variable.Parameter(initializer, shape)
