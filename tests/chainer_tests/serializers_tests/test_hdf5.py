@@ -399,4 +399,28 @@ class TestNoH5py(unittest.TestCase):
             chainer.serializers.HDF5Deserializer(None)
 
 
+@unittest.skipUnless(hdf5._available, 'h5py is not available')
+class Test5pyEmptyNotAvailable(unittest.TestCase):
+
+    def setUp(self):
+        # Set h5py.version.version_tuple to emulate situation that h5py is
+        # so old that it doesn't have h5py.Empty.
+        self.original_version_tuple = h5py.version.version_tuple
+        h5py.version.version_tuple = (2, 6, 0)
+
+        # Prepare serializer
+        fd, path = tempfile.mkstemp()
+        os.close(fd)
+        self.temp_file_path = path
+        self.hdf5file = h5py.File(path, 'w')
+        self.serializer = hdf5.HDF5Serializer(self.hdf5file, compression=3)
+
+    def tearDown(self):
+        h5py.version.version_tuple = self.original_version_tuple
+
+    def test_raise1(self):
+        with self.assertRaises(RuntimeError):
+            self.serializer('x', None)
+
+
 testing.run_module(__name__, __file__)
