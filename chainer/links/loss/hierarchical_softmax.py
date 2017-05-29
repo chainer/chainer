@@ -5,8 +5,10 @@ import six
 
 from chainer import cuda
 from chainer import function
+from chainer.initializers import uniform
 from chainer import link
 from chainer.utils import type_check
+from chainer import variable
 
 
 class TreeParser(object):
@@ -295,10 +297,12 @@ class BinaryHierarchicalSoftmax(link.Link):
 
     def __init__(self, in_size, tree):
         # This function object is copied on every forward computation.
+        super(BinaryHierarchicalSoftmax, self).__init__()
         self._func = BinaryHierarchicalSoftmaxFunction(tree)
-        super(BinaryHierarchicalSoftmax, self).__init__(
-            W=(self._func.parser_size, in_size))
-        self.W.data[...] = numpy.random.uniform(-1, 1, self.W.shape)
+
+        with self.init_scope():
+            self.W = variable.Parameter(uniform.Uniform(1),
+                                        (self._func.parser_size, in_size))
 
     def to_gpu(self, device=None):
         with cuda._get_device(device):

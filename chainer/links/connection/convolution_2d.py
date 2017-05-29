@@ -1,9 +1,8 @@
-import numpy
-
 from chainer.functions.connection import convolution_2d
 from chainer import initializers
 from chainer import link
 from chainer.utils import argument
+from chainer import variable
 
 
 class Convolution2D(link.Link):
@@ -120,20 +119,19 @@ class Convolution2D(link.Link):
         self.pad = _pair(pad)
         self.out_channels = out_channels
 
-        if initialW is None:
-            initialW = initializers.HeNormal(1. / numpy.sqrt(2))
-        self.add_param('W', initializer=initializers._get_initializer(
-            initialW))
-        if in_channels is not None:
-            self._initialize_params(in_channels)
+        with self.init_scope():
+            W_initializer = initializers._get_initializer(initialW)
+            self.W = variable.Parameter(W_initializer)
+            if in_channels is not None:
+                self._initialize_params(in_channels)
 
-        if nobias:
-            self.b = None
-        else:
-            if initial_bias is None:
-                initial_bias = initializers.Constant(0)
-            bias_initilizer = initializers._get_initializer(initial_bias)
-            self.add_param('b', out_channels, initializer=bias_initilizer)
+            if nobias:
+                self.b = None
+            else:
+                if initial_bias is None:
+                    initial_bias = 0
+                bias_initializer = initializers._get_initializer(initial_bias)
+                self.b = variable.Parameter(bias_initializer, out_channels)
 
     def _initialize_params(self, in_channels):
         kh, kw = _pair(self.ksize)

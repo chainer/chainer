@@ -53,13 +53,16 @@ class Highway(link.Chain):
 
     def __init__(self, in_out_size, nobias=False, activate=relu.relu,
                  init_Wh=None, init_Wt=None, init_bh=None, init_bt=-1):
-        super(Highway, self).__init__(
-            plain=linear.Linear(in_out_size, in_out_size, nobias=nobias,
-                                initialW=init_Wh, initial_bias=init_bh),
-            transform=linear.Linear(in_out_size, in_out_size, nobias=nobias,
-                                    initialW=init_Wt, initial_bias=init_bt)
-        )
+        super(Highway, self).__init__()
         self.activate = activate
+
+        with self.init_scope():
+            self.plain = linear.Linear(
+                in_out_size, in_out_size, nobias=nobias,
+                initialW=init_Wh, initial_bias=init_bh)
+            self.transform = linear.Linear(
+                in_out_size, in_out_size, nobias=nobias,
+                initialW=init_Wt, initial_bias=init_bt)
 
     def __call__(self, x):
         """Computes the output of the Highway module.

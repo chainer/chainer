@@ -12,20 +12,23 @@ class GRUBase(link.Chain):
 
     def __init__(self, in_size, out_size, init=None,
                  inner_init=None, bias_init=None):
-        super(GRUBase, self).__init__(
-            W_r=linear.Linear(in_size, out_size,
-                              initialW=init, initial_bias=bias_init),
-            U_r=linear.Linear(out_size, out_size,
-                              initialW=inner_init, initial_bias=bias_init),
-            W_z=linear.Linear(in_size, out_size,
-                              initialW=init, initial_bias=bias_init),
-            U_z=linear.Linear(out_size, out_size,
-                              initialW=inner_init, initial_bias=bias_init),
-            W=linear.Linear(in_size, out_size,
-                            initialW=init, initial_bias=bias_init),
-            U=linear.Linear(out_size, out_size,
-                            initialW=inner_init, initial_bias=bias_init),
-        )
+        super(GRUBase, self).__init__()
+        with self.init_scope():
+            self.W_r = linear.Linear(
+                in_size, out_size, initialW=init, initial_bias=bias_init)
+            self.U_r = linear.Linear(
+                out_size, out_size, initialW=inner_init,
+                initial_bias=bias_init)
+            self.W_z = linear.Linear(
+                in_size, out_size, initialW=init, initial_bias=bias_init)
+            self.U_z = linear.Linear(
+                out_size, out_size, initialW=inner_init,
+                initial_bias=bias_init)
+            self.W = linear.Linear(
+                in_size, out_size, initialW=init, initial_bias=bias_init)
+            self.U = linear.Linear(
+                out_size, out_size, initialW=inner_init,
+                initial_bias=bias_init)
 
 
 class StatelessGRU(GRUBase):

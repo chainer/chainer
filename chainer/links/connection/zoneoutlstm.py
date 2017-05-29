@@ -20,14 +20,15 @@ class StatefulZoneoutLSTM(link.Chain):
             'Use chainer.using_config')
         argument.assert_kwargs_empty(kwargs)
 
-        super(StatefulZoneoutLSTM, self).__init__(
-            upward=linear.Linear(in_size, 4 * out_size),
-            lateral=linear.Linear(out_size, 4 * out_size, nobias=True),
-        )
+        super(StatefulZoneoutLSTM, self).__init__()
         self.state_size = out_size
         self.c_ratio = c_ratio
         self.h_ratio = h_ratio
         self.reset_state()
+
+        with self.init_scope():
+            self.upward = linear.Linear(in_size, 4 * out_size)
+            self.lateral = linear.Linear(out_size, 4 * out_size, nobias=True)
 
     def to_cpu(self):
         super(StatefulZoneoutLSTM, self).to_cpu()
