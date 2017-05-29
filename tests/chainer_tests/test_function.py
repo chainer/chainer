@@ -379,7 +379,7 @@ class TestFunctionBackwardDebug(unittest.TestCase):
 class TestNoBackpropMode(unittest.TestCase):
 
     def setUp(self):
-        self.x = chainer.Variable(numpy.array([1.], 'f'), 'auto')
+        self.x = chainer.Variable(numpy.array([1.], 'f'))
 
     def test_no_backprop_mode(self):
         y = self.x + 1
