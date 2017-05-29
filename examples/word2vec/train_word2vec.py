@@ -65,11 +65,11 @@ class ContinuousBoW(chainer.Chain):
 
     def __init__(self, n_vocab, n_units, loss_func):
         super(ContinuousBoW, self).__init__()
-        self.loss_func = loss_func
 
         with self.init_scope():
             self.embed = L.EmbedID(
                 n_vocab, n_units, initialW=I.Uniform(1. / n_units))
+            self.loss_func = loss_func
 
     def __call__(self, x, context):
         e = self.embed(context)
@@ -83,11 +83,11 @@ class SkipGram(chainer.Chain):
 
     def __init__(self, n_vocab, n_units, loss_func):
         super(SkipGram, self).__init__()
-        self.loss_func = loss_func
 
         with self.init_scope():
             self.embed = L.EmbedID(
                 n_vocab, n_units, initialW=I.Uniform(1. / n_units))
+            self.loss_func = loss_func
 
     def __call__(self, x, context):
         e = self.embed(context)
