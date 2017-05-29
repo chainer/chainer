@@ -48,6 +48,7 @@ class SpatialPyramidPooling2D(pooling_2d.Pooling2D):
         self.ys = []
         for pooler in self.poolers:
             y = pooler.forward(x)[0]
+            pooler.output_data = y  # work around
             n, c, h, w = pooler.out_shape = y.shape
             self.ys.append(y.reshape((n, c * h * w, 1, 1)))
 
