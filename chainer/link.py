@@ -163,7 +163,7 @@ class Link(object):
         """Creates an initialization scope.
 
         This method returns a context manager object that enables registration
-        of parameters (and links for :class:`~chainer.Chain`) by substitution.
+        of parameters (and links for :class:`~chainer.Chain`) by an assignment.
         A :class:`~chainer.Parameter` object can be automatically registered
         by assigning it to an attribute under this context manager.
 
@@ -171,7 +171,7 @@ class Link(object):
 
            In most cases, the parameter registration is done in the
            initializer method. Using the ``init_scope`` method, we can
-           simply substitute a :class:`~chainer.Parameter` object to register
+           simply assign a :class:`~chainer.Parameter` object to register
            it to the link.
 
            class MyLink(chainer.Link):
@@ -209,7 +209,7 @@ class Link(object):
 
         .. deprecated:: v2.0.0
 
-           Substitute a :class:`~chainer.Parameter` object directly to an
+           Assign a :class:`~chainer.Parameter` object directly to an
            attribute within :meth:`an initialization scope <init_scope>`
            instead. For example, the following code
 
@@ -217,7 +217,7 @@ class Link(object):
 
                link.add_param('W', shape=(5, 3))
 
-           can be replaced by the following substitution.
+           can be replaced by the following assignment.
 
            .. code-block:: python
 
@@ -242,8 +242,8 @@ class Link(object):
         """
         warnings.warn('''\
 Parameter registeration via Link.__init__ and Link.add_param are deprecated.
-Substitute a chainer.Parameter object directly to an attribute of the link \
-instead.
+Assign a Parameter object directly to an attribute within a \
+"with Link.init_scope():" block instead.
 ''', DeprecationWarning)
         if initializer is None:
             initializer = initializers.NaN(dtype)
@@ -575,7 +575,7 @@ class Chain(Link):
     like a file path in UNIX, consisting of names of nodes on the path, joined
     by slashes ``/``.
 
-    A child link can be added just by substituting it to an attribute of the
+    A child link can be added just by assigning it to an attribute of the
     chain within :meth:`an initialization scope <chainer.Link.init_scope>`.
 
     The registered child link is saved and loaded on serialization and
@@ -584,7 +584,7 @@ class Chain(Link):
     generator, which returns a generator running through the children in
     registered order.
 
-    On registeration of a child link, its :attr:`~Link.name` attribute is also
+    On registration of a child link, its :attr:`~Link.name` attribute is also
     set.
 
     .. admonition:: Example
@@ -660,7 +660,7 @@ class Chain(Link):
 
         .. deprecated:: v2.0.0
 
-           Substitute the child link directly to an attribute within
+           Assign the child link directly to an attribute within
            :meth:`an initialization scope <chainer.Link.init_scope>`, instead.
            For example, the following code
 
@@ -686,7 +686,7 @@ class Chain(Link):
         """
         warnings.warn('''\
 Child link registeration via Chain.__init__ and Chain.add_link are deprecated.
-Substitute a Link object directly to an attribute within \
+Assign a Link object directly to an attribute within a \
 "with link.init_scope():" block instead.
         ''', DeprecationWarning)
         if not isinstance(link, Link):
