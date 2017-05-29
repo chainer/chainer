@@ -22,6 +22,7 @@ def fusion_default_array_equal():
 
 
 @testing.gpu
+@testing.suppress_feature_warning()
 class TestFusionElementwise(unittest.TestCase):
 
     _multiprocess_can_split_ = True
@@ -61,6 +62,7 @@ class TestFusionElementwise(unittest.TestCase):
 
 
 @testing.gpu
+@testing.suppress_feature_warning()
 class TestFusionComparison(unittest.TestCase):
 
     _multiprocess_can_split_ = True
@@ -93,6 +95,7 @@ class TestFusionComparison(unittest.TestCase):
 
 
 @testing.gpu
+@testing.suppress_feature_warning()
 class TestFusionContent(unittest.TestCase):
 
     _multiprocess_can_split_ = True
@@ -125,6 +128,7 @@ class TestFusionContent(unittest.TestCase):
 
 
 @testing.gpu
+@testing.suppress_feature_warning()
 class TestFusionOps(unittest.TestCase):
 
     _multiprocess_can_split_ = True
@@ -158,6 +162,7 @@ class TestFusionOps(unittest.TestCase):
 
 
 @testing.gpu
+@testing.suppress_feature_warning()
 class TestFusionTrigonometric(unittest.TestCase):
 
     _multiprocess_can_split_ = True
@@ -216,6 +221,7 @@ class TestFusionTrigonometric(unittest.TestCase):
 
 
 @testing.gpu
+@testing.suppress_feature_warning()
 class TestFusionHyperbolic(unittest.TestCase):
 
     _multiprocess_can_split_ = True
@@ -261,6 +267,7 @@ class TestFusionHyperbolic(unittest.TestCase):
 
 
 @testing.gpu
+@testing.suppress_feature_warning()
 class TestFusionRounding(unittest.TestCase):
 
     _multiprocess_can_split_ = True
@@ -299,6 +306,7 @@ class TestFusionRounding(unittest.TestCase):
 
 
 @testing.gpu
+@testing.suppress_feature_warning()
 class TestFusionExplog(unittest.TestCase):
 
     _multiprocess_can_split_ = True
@@ -350,6 +358,7 @@ class TestFusionExplog(unittest.TestCase):
 
 
 @testing.gpu
+@testing.suppress_feature_warning()
 class TestFusionFloating(unittest.TestCase):
 
     _multiprocess_can_split_ = True
@@ -410,6 +419,7 @@ class TestFusionFloating(unittest.TestCase):
 
 
 @testing.gpu
+@testing.suppress_feature_warning()
 class TestFusionArithmetic(unittest.TestCase):
 
     _multiprocess_can_split_ = True
@@ -527,11 +537,8 @@ class TestFusionArithmetic(unittest.TestCase):
             self.check_binary_negative('remainder')
 
 
+@testing.suppress_feature_warning()
 class TestFusionUfunc(unittest.TestCase):
-
-    @cupy.fuse()
-    def sample_function(x, y, z):
-        return cupy.square(cupy.add(x, y))
 
     def random_bool(self):
         return numpy.random.randint(0, 1, (10, 10)) == 0
@@ -706,6 +713,7 @@ class TestFusionUfunc(unittest.TestCase):
 
 
 @testing.gpu
+@testing.suppress_feature_warning()
 class TestFusionMisc(unittest.TestCase):
 
     _multiprocess_can_split_ = True
@@ -817,6 +825,7 @@ class TestFusionMisc(unittest.TestCase):
 
 
 @testing.gpu
+@testing.suppress_feature_warning()
 class TestFusionFuse(unittest.TestCase):
 
     _multiprocess_can_split_ = True

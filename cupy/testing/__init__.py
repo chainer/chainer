@@ -34,6 +34,7 @@ for_int_dtypes_combination = helper.for_int_dtypes_combination
 for_orders = helper.for_orders
 for_CF_orders = helper.for_CF_orders
 
+suppress_feature_warning = helper.suppress_feature_warning
 with_requires = helper.with_requires
 
 parameterize = parameterized.parameterize

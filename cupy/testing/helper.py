@@ -6,6 +6,7 @@ import pkg_resources
 import random
 import traceback
 import unittest
+import warnings
 
 import numpy
 
@@ -861,3 +862,43 @@ class NumpyError(object):
 
     def __exit__(self, *_):
         numpy.seterr(**self.err)
+
+
+def _gen_supress_feature_warning_class(klass):
+    assert issubclass(klass, unittest.TestCase)
+    original_setup = klass.setUp
+    original_teardown = klass.tearDown
+
+    def setUp(self):
+        self._warn = warnings.catch_warnings()
+        self._warn.__enter__()
+        warnings.simplefilter('ignore', FutureWarning)
+        original_setup(self)
+
+    def tearDown(self):
+        self._warn.__exit__(None, None, None)
+        original_teardown(self)
+
+    klass.setUp = setUp
+    klass.tearDown = tearDown
+
+    return klass
+
+
+def suppress_feature_warning():
+    """Decorator that suppress feature warning.
+
+    The feature warning is suppressed in decorated test class.
+
+    .. admonition:: Example
+
+       >>> import warnings
+       ... from chainer import testing
+       ...
+       ... @testing.suppress_feature_warning()
+       ... class Test(unittest.TestCase):
+       ...     def test_warning(self):
+       ...         warnings.warn('warn.', FutureWarning)
+
+    """
+    return _gen_supress_feature_warning_class
