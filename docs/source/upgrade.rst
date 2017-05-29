@@ -4,7 +4,7 @@ Upgrade Guide from v1 to v2
 ===========================
 
 This document provides detailed information of differences between Chainer v1 and v2.
-You will know by reading it which part of your codes is required (or recommended) to be fixed when you upgrade Chainer from v1 to v2.
+You will know by reading it which part of your code is required (or recommended) to be fixed when you upgrade Chainer from v1 to v2.
 
 .. contents::
    :local:
@@ -48,7 +48,7 @@ In most cases, what you have to do is just removing the ``train`` / ``test`` arg
    Consider the following model definition and the code to call it in test mode written for Chainer v1.
 
    .. code-block:: py
-
+p
       # Chainer v1
       import chainer.functions as F
 
@@ -291,7 +291,7 @@ This method must not be called from the outside of :meth:`Function.forward`.
                return grad_outputs[0], grad_outputs[0]
 
 In some cases, the function can (or have to) use the output arrays instead of the inputs in its backward computation.
-In Chainer v1, we have written codes that store the output arrays to attributes of the :class:`Function` object and reuse them in the :meth:`~Function.backward` method.
+In Chainer v1, we have written code that store the output arrays to attributes of the :class:`Function` object and reuse them in the :meth:`~Function.backward` method.
 In Chainer v2, it is recommended to use :meth:`Function.retain_outputs` to declare which outputs are required in the backward computation.
 The retained output arrays can be accessed via :attr:`Function.output_data`.
 
@@ -650,7 +650,7 @@ In Chainer v2, this is officially supported by these methods.
 Each :class:`UpdateRule` object can also hold its own hook functions similar to :class:`Optimizer`.
 The built-in hook functions except for :class:`~optimizer.GradientClipping` can also be used as a hook function of :class:`UpdateRule`.
 
-**In most cases, you do not have to update your codes** because each optimizer automatically sets up an appropriate :class:`UpdaterRule` object to each parameter.
+**In most cases, you do not have to update your code** because each optimizer automatically sets up an appropriate :class:`UpdaterRule` object to each parameter.
 
 **If you are using a custom gradient-based optimizer implementation, you need to update the implementation.**
 The following list shows what you have to do.

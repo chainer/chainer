@@ -28,7 +28,7 @@ Note that the default values are set in the global config.
 ``chainer.config.cudnn_deterministic``
    Flag to configure deterministic computations in cuDNN APIs.
    If it is ``True``, convolution functions that use cuDNN use the deterministic mode (i.e, the computation is reproducible).
-   Otherwise, the results of convolution functions using cuDNN may be non-deterministic in exchange of the performance.
+   Otherwise, the results of convolution functions using cuDNN may be non-deterministic in exchange for the performance.
    The defualt value is ``False``.
 ``chainer.config.debug``
    Debug mode flag.
