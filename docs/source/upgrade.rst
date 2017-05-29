@@ -639,7 +639,13 @@ GradientMethod is redesigned to allow parameter-specific update rules
 
 In Chainer v2, the new class :class:`UpdateRule` is used to define an update rule specific to each :class:`Parameter` object.
 The :class:`UpdateRule` is set to each :class:`Parameter` object, and is used at each update step.
-This object implements *an update formula* using the data and gradient arrays.
+This object implements an *update formula* using the data and gradient arrays.
+
+Each :class:`UpdateRule` object has :attr:`~UpdateRule.enabled` flag, which configures if the update rule should be applied to that parameter on update.
+By setting the flag to ``False``, you can *freeze* the parameter.
+There is also a convenient method :meth:`Link.enable_update` and :meth:`Link.disable_update`, which configure the flag of each parameter under the link hierarchy.
+In other frameworks, a similar feature is called *layer freezing*.
+In Chainer v2, this is officially supported by these methods.
 
 Each :class:`UpdateRule` object can also hold its own hook functions similar to :class:`Optimizer`.
 The built-in hook functions except for :class:`~optimizer.GradientClipping` can also be used as a hook function of :class:`UpdateRule`.
