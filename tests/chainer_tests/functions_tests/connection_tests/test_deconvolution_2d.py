@@ -85,6 +85,7 @@ class TestDeconvolution2DFunction(unittest.TestCase):
         # and therefore, imply skip the test here.
         should_raise_error = (self.use_cudnn and
                               self.cudnn_deterministic and
+                              cuda.cudnn_enabled and
                               cuda.cudnn.cudnn.getVersion() < 3000)
         if should_raise_error:
             return
@@ -129,6 +130,7 @@ class TestDeconvolution2DFunction(unittest.TestCase):
         should_raise_error = ((xp is not numpy) and
                               self.use_cudnn and
                               self.cudnn_deterministic and
+                              cuda.cudnn_enabled and
                               cuda.cudnn.cudnn.getVersion() < 3000)
         if should_raise_error:
             return

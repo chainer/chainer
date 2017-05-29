@@ -28,9 +28,11 @@ class TestUseCuDNN(unittest.TestCase):
             self.assertFalse(chainer.should_use_cudnn('==always'))
             self.assertFalse(chainer.should_use_cudnn('>=auto'))
 
+    @attr.cudnn
     def test_invalid_level(self):
         self.assertRaises(ValueError, chainer.should_use_cudnn, '==auto')
 
+    @attr.cudnn
     def test_invalid_config(self):
         with chainer.using_config('use_cudnn', True):
             self.assertRaises(ValueError, chainer.should_use_cudnn, '>=auto')
