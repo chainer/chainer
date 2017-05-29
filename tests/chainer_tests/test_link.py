@@ -65,6 +65,17 @@ class TestLink(unittest.TestCase):
         self.link.v.initialize((2, 3))
         self.check_param_init('v', (2, 3), 'f')
 
+    def test_assign_param_outside_of_init_scope(self):
+        p = chainer.Parameter()
+        self.link.p = p
+        self.assertTrue(all(p is not param for param in self.link.params()))
+
+    def test_assign_var_in_init_scope(self):
+        p = chainer.Variable()
+        with self.link.init_scope():
+            self.link.p = p
+        self.assertTrue(all(p is not param for param in self.link.params()))
+
     def test_add_param(self):
         self.link.add_param('z', (2, 3))
         self.check_param_init('z', (2, 3), 'f')
@@ -397,6 +408,11 @@ class TestChain(unittest.TestCase):
         self.l1.z = 0
         with self.assertRaises(AttributeError):
             self.l1.add_link('z', chainer.Link())
+
+    def test_assign_link_outside_of_init_scope(self):
+        l = chainer.Link()
+        self.l1.l = l
+        self.assertTrue(l is not link for link in self.l1.links())
 
     def test_copy(self):
         c2 = self.c2.copy()
