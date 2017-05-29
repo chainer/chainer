@@ -48,12 +48,12 @@ class Link(object):
 
     Parameter is an instance of :class:`~chainer.Parameter` registered to a
     link. A :class:`~chainer.Parameter` object can be registered as a
-    parameter of the link by substituting it to an attribute within *an
+    parameter of the link by assigning it to an attribute within *an
     initialization scope*, which is a code surrounded by a
     :meth:`init_scope` context manager using the ``with`` statement.
 
     Persistent values are arrays, scalars, or any other serializable values
-    registered via the :meth:`register_persistent` method.
+    registered via :meth:`register_persistent` or :meth:`add_persistent`.
 
     .. note::
        Whereas arbitrary serializable objects can be registered as persistent
@@ -165,7 +165,7 @@ class Link(object):
         This method returns a context manager object that enables registration
         of parameters (and links for :class:`~chainer.Chain`) by substitution.
         A :class:`~chainer.Parameter` object can be automatically registered
-        by substituting it to an attribute under this context manager.
+        by assigning it to an attribute under this context manager.
 
         .. admonition:: Example
 
@@ -239,9 +239,6 @@ class Link(object):
                 initializer. Note that in these cases, ``dtype`` argument is
                 ignored.
 
-        Returns:
-            ~chainer.Parameter: The registered parameter object.
-
         """
         warnings.warn('''\
 Parameter registeration via Link.__init__ and Link.add_param are deprecated.
@@ -253,7 +250,6 @@ instead.
         param = variable.Parameter(initializer, shape)
         with self.init_scope():
             setattr(self, name, param)
-        return param
 
     def add_persistent(self, name, value):
         """Registers a persistent value to the link.
@@ -266,9 +262,6 @@ instead.
                 for the attribute name.
             value: Value to be registered.
 
-        Returns:
-            The registered value.
-
         """
         d = self.__dict__
         if name in d:
@@ -278,7 +271,6 @@ instead.
         self._persistent.add(name)
         self._params.discard(name)
         d[name] = value
-        return value
 
     def register_persistent(self, name):
         """Registers an attribute of a given name as a persistent value.
@@ -624,7 +616,7 @@ class Chain(Link):
                   h2 = F.relu(self.layer2(h1))
                   return self.layer3(h2)
 
-       Child links are registered via the substitutions within a
+       Child links are registered via the assignment within a
        ``with self.init_scope():`` block. The forward propagation is often
        implemented as The ``__call__`` operator as the above example, though
        it is not mandatory.
@@ -635,7 +627,7 @@ class Chain(Link):
 
             .. deprecated:: v2.0.0
 
-               Substitute child links directly to attributes, instead.
+               Assign child links directly to attributes, instead.
 
     """
 

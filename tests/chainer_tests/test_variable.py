@@ -586,11 +586,20 @@ class TestParameter(unittest.TestCase):
         np.testing.assert_array_equal(
             x.data, np.array([1., 1., 1.], dtype='f'))
 
+    def test_initialize_by_none(self):
+        x = chainer.Parameter(None, (3,))
+        np.testing.assert_array_equal(
+            x.data, np.full((3,), np.nan, dtype='f'))
+
+    def test_initialize_by_array(self):
+        data = np.array([1., 2., 3.], dtype='f')
+        x = chainer.Parameter(data)
+        self.assertIs(x.data, data)
+
     def test_update_rule(self):
         update_rule = mock.MagicMock()
         g = self.a.copy()
-        x = chainer.Parameter()
-        x.data = self.a
+        x = chainer.Parameter(self.a)
         x.grad = g
         x.update_rule = update_rule
         x.update()
@@ -599,8 +608,7 @@ class TestParameter(unittest.TestCase):
 
     def test_update_rule_without_grad(self):
         update_rule = mock.MagicMock()
-        x = chainer.Parameter()
-        x.data = self.a
+        x = chainer.Parameter(self.a)
         x.update_rule = update_rule
         x.update()
         self.assertEqual(update_rule.update.call_count, 1)
@@ -632,7 +640,7 @@ class TestUninitializedParameter(unittest.TestCase):
         xp.testing.assert_array_equal(x.grad, np.float32('nan'))
 
     def test_initialize_with_initializer(self):
-        x = chainer.Parameter(initializer=initializers.Constant(self.a))
+        x = chainer.Parameter(initializers.Constant(self.a))
         self.check_constant_initialization(x, self.a, np)
 
     def test_initialize_dtype(self):
@@ -697,23 +705,21 @@ class TestUninitializedParameter(unittest.TestCase):
         self.check_zerograd(x, cuda.cupy)
 
     def test_zerograd_dtype(self):
-        x = chainer.Parameter(initializer=initializers.Zero(dtype=np.float16))
+        x = chainer.Parameter(initializers.Zero(dtype=np.float16))
         x.zerograd()
         x.initialize((3, 2))
         self.assertEqual(x.grad.dtype, x.data.dtype)
 
     def test_copydata_to_uninitialized_parameter(self):
         x = chainer.Parameter()
-        y = chainer.Parameter()
-        y.data = self.a
+        y = chainer.Parameter(self.a)
         x.copydata(y)
         np.testing.assert_array_equal(x.data, self.a)
 
     @attr.gpu
     def test_copydata_to_uninitialized_parameter_gpu(self):
         x = chainer.Parameter()
-        y = chainer.Parameter()
-        y.data = self.a
+        y = chainer.Parameter(self.a)
         x.to_gpu()
         x.copydata(y)
         cp = cuda.cupy
@@ -722,9 +728,8 @@ class TestUninitializedParameter(unittest.TestCase):
 
     def test_copydata_from_uninitialized_parameter(self):
         initializer = initializers.Zero()
-        x = chainer.Parameter()
-        x.data = self.a
-        y = chainer.Parameter(initializer=initializer)
+        x = chainer.Parameter(self.a)
+        y = chainer.Parameter(initializer)
         x.copydata(y)
         self.assertIsInstance(x.data, np.ndarray)
         self.assertIsInstance(y.data, np.ndarray)
@@ -733,9 +738,8 @@ class TestUninitializedParameter(unittest.TestCase):
     @attr.gpu
     def test_copydata_from_uninitialized_parameter_gpu(self):
         initializer = initializers.Zero()
-        x = chainer.Parameter()
-        x.data = self.a
-        y = chainer.Parameter(initializer=initializer)
+        x = chainer.Parameter(self.a)
+        y = chainer.Parameter(initializer)
         y.to_gpu()
         x.copydata(y)
         cp = cuda.cupy
@@ -752,8 +756,7 @@ class TestUninitializedParameter(unittest.TestCase):
 
     def test_addgrad_to_uninitialized_parameter(self):
         x = chainer.Parameter()
-        y = chainer.Parameter()
-        y.data = self.a
+        y = chainer.Parameter(self.a)
         y.grad = self.b
         x.cleargrad()
         x.addgrad(y)
@@ -764,8 +767,7 @@ class TestUninitializedParameter(unittest.TestCase):
     @attr.gpu
     def test_addgrad_to_uninitialized_parameter_cpu_to_gpu(self):
         x = chainer.Parameter()
-        y = chainer.Parameter()
-        y.data = self.a
+        y = chainer.Parameter(self.a)
         y.grad = self.b
         x.to_gpu()
         x.cleargrad()
@@ -778,8 +780,7 @@ class TestUninitializedParameter(unittest.TestCase):
     @attr.gpu
     def test_addgrad_to_uninitialized_parameter_gpu_to_cpu(self):
         x = chainer.Parameter()
-        y = chainer.Parameter()
-        y.data = self.a
+        y = chainer.Parameter(self.a)
         y.grad = self.b
         y.to_gpu()
         x.cleargrad()
@@ -791,8 +792,7 @@ class TestUninitializedParameter(unittest.TestCase):
     @attr.gpu
     def test_addgrad_to_uninitialized_parameter_gpu_to_gpu(self):
         x = chainer.Parameter()
-        y = chainer.Parameter()
-        y.data = self.a
+        y = chainer.Parameter(self.a)
         y.grad = self.b
         x.to_gpu()
         y.to_gpu()
@@ -806,8 +806,7 @@ class TestUninitializedParameter(unittest.TestCase):
     @attr.multi_gpu(2)
     def test_addgrad_to_uninitialized_parameter_gpu_to_another_gpu(self):
         x = chainer.Parameter()
-        y = chainer.Parameter()
-        y.data = self.a
+        y = chainer.Parameter(self.a)
         y.grad = self.b
         x.to_gpu(1)
         y.to_gpu(0)

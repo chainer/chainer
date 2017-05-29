@@ -811,8 +811,8 @@ class Parameter(Variable):
 
     Parameter is a subclass of :class:`Variable`. It almost behaves as same
     as a usual variable except that a parameter can be registered to a
-    :class:`~chainer.Link` object just by substituting it to an attribute of
-    the link.
+    :class:`~chainer.Link` object just by assigning it to an attribute of
+    the link within an :meth:`~chainer.Link.init_scope` context.
 
     Parameter also supports an initialization by an initializer. It can have
     two initializers: one for the data array, and the other for the gradient
@@ -835,7 +835,7 @@ class Parameter(Variable):
             also be a scalar, in which case the data array will be filled by
             this scalar. Note that float32 is used in this case.
         shape (int or tuple of int or None): Shape of the parameter. If it is
-            omitted, the initialization is deferred to the call of
+            ``None``, the initialization is deferred to the call of
             :meth:`initialize`.
         name (str): Name of the parameter.
 
