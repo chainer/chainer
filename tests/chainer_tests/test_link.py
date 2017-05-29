@@ -338,7 +338,7 @@ class TestLink(unittest.TestCase):
 class CountParameter(chainer.Parameter):
 
     def __init__(self, v):
-        super(CountParameter, self).__init__(name=v.name)
+        super(CountParameter, self).__init__(v.data, name=v.name)
         self.data = v.data
         self.grad = v.grad
         self.count_to_cpu = 0

@@ -13,6 +13,7 @@ from chainer import cuda
 from chainer import initializers
 from chainer.initializers import constant
 from chainer import utils
+from chainer.utils import argument
 
 
 def _check_grad_type(func, x, gx):
@@ -241,9 +242,18 @@ class VariableNode(object):
         self._grad = g
 
 
+def _create_variable(
+        data, name, grad, initializer, update_rule, requires_grad):
+    return Variable(
+        data, name=name, grad=grad, initializer=initializer,
+        update_rule=update_rule, requires_grad=requires_grad)
+
+
 class Variable(object):
 
-    """Array with a structure to keep track of computation.
+    """__init__(data=None, *, name=None, grad=None, initializer=None, update_rule=None, requires_grad=True)
+
+    Array with a structure to keep track of computation.
 
     Every variable holds a data array of type either :class:`numpy.ndarray` or
     :class:`cupy.ndarray`.
@@ -261,6 +271,11 @@ class Variable(object):
     In the former context, a variable never creates a computational graph,
     whereas in the latter context, it is forced to create.
 
+    .. warning::
+
+       ``volatile`` argument is not supported anymore since v2.
+       Instead, use :func:`chainer.no_backprop_mode`.
+
     Args:
         data (numpy.ndarray or cupy.ndarray): Initial data array.
         name (str): Name of the variable.
@@ -276,9 +291,17 @@ class Variable(object):
         creator: The function who creates this variable. It is ``None`` if the
             variable is not created by any function.
 
-    """
+    """  # NOQA
 
-    def __init__(self, data=None, name=None, grad=None, requires_grad=True):
+    def __init__(self, data=None, **kwargs):
+        argument.check_unexpected_kwargs(
+            kwargs, volatile='volatile argument is not supported anymore. '
+            'Use chainer.using_config')
+        name, grad, requires_grad \
+            = argument.parse_kwargs(
+                kwargs, ('name', None), ('grad', None),
+                ('requires_grad', True))
+
         if (data is not None and
                 not isinstance(data, (numpy.ndarray, cuda.ndarray))):
             msg = '''numpy.ndarray or cuda.ndarray are expected.
@@ -300,7 +323,8 @@ Actual: {0}'''.format(type(data))
         return target
 
     def __reduce__(self):
-        return Variable, (self.data, self.name, self._node._grad,
+        return _create_variable, (self.data, self.name, self._node._grad,
+
                           self._requires_grad)
 
     def __repr__(self):
