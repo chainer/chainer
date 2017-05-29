@@ -224,7 +224,7 @@ def main():
     train_iter = chainer.iterators.SerialIterator(train_data, args.batchsize)
     updater = training.StandardUpdater(
         train_iter, optimizer, converter=convert, device=args.gpu)
-    trainer = training.Trainer(updater, (args.epoch, 'epoch'))
+    trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
     trainer.extend(extensions.LogReport(trigger=(200, 'iteration')),
                    trigger=(200, 'iteration'))
     trainer.extend(extensions.PrintReport(
