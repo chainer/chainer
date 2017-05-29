@@ -591,7 +591,8 @@ class Chain(Link):
     registered order.
 
     On registration of a child link, its :attr:`~Link.name` attribute is also
-    set.
+    set (or overwritten if the link has already been registered to another
+    chain).
 
     .. admonition:: Example
 
