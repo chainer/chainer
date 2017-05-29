@@ -26,12 +26,13 @@ def dump_graph(root_name, out_name='cg.dot',
 
        The detailed behavior of this extension since v2.0.0 is as follows.
 
-       1. In the initializer, it turns on the
+       1. In its initializer, it turns on the
           ``chainer.config.keep_graph_on_report`` flag.
-       2. At the first iteration, it dumps the graph using the preserved
-          graph.
+       2. At the first iteration, it dumps the graph using the graph held by
+          the reported variable.
        3. After dumping the graph, it turns off the flag (if it was originally
-          turned off).
+          turned off) so that any variable reported afterward does not hold
+          a computational graph.
 
        When the ``keep_graph_on_report`` flag is turned on, the computational
        graph created by the updater is kept during the invocation of
