@@ -6,7 +6,7 @@ add = core.add
 
 reciprocal = core.create_ufunc(
     'cupy_reciprocal',
-    ('b', 'B', 'h', 'H', 'i', 'I', 'l', 'L', 'q', 'Q',
+    ('b', 'B', 'h', 'H', 'i', 'I', 'l', 'L', 'q->l', 'Q->L',
      ('e', 'out0 = 1 / in0'),
      ('f', 'out0 = 1 / in0'),
      ('d', 'out0 = 1 / in0')),
@@ -42,7 +42,7 @@ floor_divide = core.floor_divide
 fmod = core.create_ufunc(
     'cupy_fmod',
     ('bb->b', 'BB->B', 'hh->h', 'HH->H', 'ii->i', 'II->I', 'll->l', 'LL->L',
-     'qq->q', 'QQ->Q',
+     'qq->l', 'QQ->L',
      ('ee->e', 'out0 = fmodf(in0, in1)'),
      ('ff->f', 'out0 = fmodf(in0, in1)'),
      ('dd->d', 'out0 = fmod(in0, in1)')),

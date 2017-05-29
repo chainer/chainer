@@ -3365,8 +3365,8 @@ cdef create_arithmetic(name, op, boolop, doc):
     return create_ufunc(
         'cupy_' + name,
         (('??->?', 'out0 = in0 %s in1' % boolop),
-         'bb->b', 'BB->B', 'hh->h', 'HH->H', 'ii->i', 'II->I', 'll->l',
-         'LL->L', 'qq->q', 'QQ->Q', 'ee->e', 'ff->f', 'dd->d'),
+         'bb->b', 'BB->B', 'hh->h', 'HH->H', 'ii->i', 'II->I', 'qq->q',
+         'QQ->Q', 'll->l', 'LL->L', 'ee->e', 'ff->f', 'dd->d'),
         'out0 = in0 %s in1' % op,
         doc=doc)
 
@@ -3404,8 +3404,8 @@ multiply = create_arithmetic(
 
 divide = create_ufunc(
     'cupy_divide',
-    ('bb->b', 'BB->B', 'hh->h', 'HH->H', 'ii->i', 'II->I', 'll->l', 'LL->L',
-     'qq->q', 'QQ->Q',
+    ('bb->b', 'BB->B', 'hh->h', 'HH->H', 'ii->i', 'II->I', 'qq->q', 'QQ->Q',
+     'll->l', 'LL->L',
      ('ee->e', 'out0 = in0 / in1'),
      ('ff->f', 'out0 = in0 / in1'),
      ('dd->d', 'out0 = in0 / in1')),
@@ -3419,8 +3419,8 @@ divide = create_ufunc(
 
 power = create_ufunc(
     'cupy_power',
-    ('bb->b', 'BB->B', 'hh->h', 'HH->H', 'ii->i', 'II->I', 'll->l', 'LL->L',
-     'qq->q', 'QQ->Q',
+    ('bb->b', 'BB->B', 'hh->h', 'HH->H', 'ii->i', 'II->I', 'qq->l', 'QQ->L',
+     'll->l', 'LL->L',
      ('ee->e', 'out0 = powf(in0, in1)'),
      ('ff->f', 'out0 = powf(in0, in1)'),
      ('dd->d', 'out0 = pow(in0, in1)')),
@@ -3443,8 +3443,8 @@ subtract = create_arithmetic(
 
 true_divide = create_ufunc(
     'cupy_true_divide',
-    ('bb->d', 'BB->d', 'hh->d', 'HH->d', 'ii->d', 'II->d', 'll->d', 'LL->d',
-     'qq->d', 'QQ->d', 'ee->e', 'ff->f', 'dd->d'),
+    ('bb->d', 'BB->d', 'hh->d', 'HH->d', 'ii->d', 'II->d', 'qq->d', 'QQ->d',
+     'll->d', 'LL->d', 'ee->e', 'ff->f', 'dd->d'),
     'out0 = (out0_type)in0 / (out0_type)in1',
     doc='''Elementwise true division (i.e. division as floating values).
 
@@ -3460,7 +3460,7 @@ if six.PY3:
 floor_divide = create_ufunc(
     'cupy_floor_divide',
     ('bb->b', 'BB->B', 'hh->h', 'HH->H', 'ii->i', 'II->I', 'll->l', 'LL->L',
-     'qq->q', 'QQ->Q', 'ee->e', 'ff->f', 'dd->d'),
+     'qq->l', 'QQ->L', 'ee->e', 'ff->f', 'dd->d'),
     'out0 = _floor_divide(in0, in1)',
     doc='''Elementwise floor division (i.e. integer quotient).
 
@@ -3471,8 +3471,8 @@ floor_divide = create_ufunc(
 
 remainder = create_ufunc(
     'cupy_remainder',
-    ('bb->b', 'BB->B', 'hh->h', 'HH->H', 'ii->i', 'II->I', 'll->l', 'LL->L',
-     'qq->q', 'QQ->Q',
+    ('bb->b', 'BB->B', 'hh->h', 'HH->H', 'ii->i', 'II->I', 'qq->l', 'QQ->L',
+     'll->l', 'LL->L',
      ('ee->e', 'out0 = in0 - _floor_divide(in0, in1) * in1'),
      ('ff->f', 'out0 = in0 - _floor_divide(in0, in1) * in1'),
      ('dd->d', 'out0 = in0 - _floor_divide(in0, in1) * in1')),
@@ -3510,7 +3510,13 @@ sqrt = create_ufunc(
 _clip = create_ufunc(
     'cupy_clip',
     ('???->?', 'bbb->b', 'BBB->B', 'hhh->h', 'HHH->H', 'iii->i', 'III->I',
-     'lll->l', 'LLL->L', 'qqq->q', 'QQQ->Q', 'eee->e', 'fff->f', 'ddd->d'),
+     'qqq->q', 'qql->q', 'qlq->q', 'qll->q',
+     'QQQ->Q', 'QQL->Q', 'QLQ->Q', 'QLL->Q',
+     'Qqq->Q', 'qQQ->q',
+     'lll->l', 'lql->l', 'llq->l', 'lqq->l',
+     'LLL->L', 'LQL->L', 'LLQ->L', 'LQQ->L',
+     'Lll->L', 'lLL->l',
+     'eee->e', 'fff->f', 'ddd->d'),
     'out0 = in0 < in1 ? in1 : (in0 > in2 ? in2 : in0)')
 
 

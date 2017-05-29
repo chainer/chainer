@@ -1,6 +1,10 @@
+import itertools
 import unittest
 
+import cupy
 from cupy import testing
+
+import numpy
 
 
 @testing.gpu
@@ -43,6 +47,18 @@ class TestArithmetic(unittest.TestCase):
 
     def test_add(self):
         self.check_binary('add')
+
+    def test_dtype(self):
+        type_chars = 'ql'
+        type_chars_product = itertools.product(
+            *itertools.repeat(type_chars, len(type_chars)))
+
+        for chars in type_chars_product:
+            cx, cy = (cupy.array([1], dtype=_) for _ in chars)
+            cz = cx + cy
+            nx, ny = (numpy.array([1], dtype=_) for _ in chars)
+            nz = nx + ny
+            self.assertEqual(cz.dtype.char, nz.dtype.char)
 
     def test_reciprocal(self):
         with testing.NumpyError(divide='ignore', invalid='ignore'):

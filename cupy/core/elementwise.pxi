@@ -51,7 +51,7 @@ cdef dict _typenames_base = {
 cdef str _all_type_chars = 'dfeqlihbQLIHB?'
 
 cdef dict _typenames = {
-    numpy.dtype(i).type: _typenames_base[numpy.dtype(i)]
+    numpy.dtype(i): _typenames_base[numpy.dtype(i)]
     for i in _all_type_chars}
 
 cdef tuple _python_scalar_type = six.integer_types + (float, bool)
@@ -80,7 +80,7 @@ cpdef str _get_typename(dtype):
     if dtype is None:
         raise ValueError('dtype is None')
     if dtype not in _typenames:
-        dtype = numpy.dtype(dtype).type
+        dtype = numpy.dtype(dtype)
     return _typenames[dtype]
 
 
@@ -291,7 +291,7 @@ def _decide_params_type(in_params, out_params, in_args_dtype, out_args_dtype):
                 unknown_ctype.append(p.ctype)
         else:
             if p.dtype is not None:
-                if numpy.dtype(a) != numpy.dtype(p.dtype):
+                if a != numpy.dtype(p.dtype):
                     raise TypeError(
                         'Type is mismatched. %s %s %s' % (p.name, a, p.dtype))
             elif p.ctype in type_dict:
@@ -515,9 +515,9 @@ cdef class ElementwiseKernel:
         out_args = values[self.nin:]
 
         in_ndarray_types = tuple(
-            [a.dtype.type if isinstance(a, ndarray) else None
+            [a.dtype if isinstance(a, ndarray) else None
              for a in in_args])
-        out_ndarray_types = tuple([a.dtype.type for a in out_args])
+        out_ndarray_types = tuple([a.dtype for a in out_args])
 
         in_types, out_types, types = _decide_params_type(
             self.in_params, self.out_params,
@@ -587,17 +587,54 @@ def _get_ufunc_kernel(
 
 cdef tuple _guess_routine_from_in_types(list ops, tuple in_types):
     cdef Py_ssize_t i, n
-    cdef tuple op, op_types
+    cdef tuple op, op_types, op_first_acceptable
+    cdef bint is_exact
+    cdef int n_exact
     n = len(in_types)
     can_cast = numpy.can_cast
+    op_first_acceptable = None
+    #print('Input: {}'.format([(_.char if isinstance(_, numpy.dtype) else _.dtype.char) for _ in in_types]))
     for op in ops:
         op_types = op[0]
+        n_exact = 0
+        #print(' op: {}'.format([(_.char if isinstance(_, numpy.dtype) else _.dtype.char) for _ in op_types]))
         for i in range(n):
-            if not can_cast(in_types[i], op_types[i]):
+            in_type = in_types[i]
+            op_type = op_types[i]
+            is_exact = False
+
+            if isinstance(op_type, numpy.dtype):
+                if isinstance(in_type, numpy.dtype):
+                    is_exact = in_type.char == op_type.char
+                    #print('  exact1(i={}): {} {}'.format(i, in_type.char, op_type.char))
+                else:
+                    is_exact = in_type.dtype.char == op_type.char
+                    #print('  exact2(i={}): {} {}'.format(i, in_type.dtype.char, op_type.char))
+
+            #if not is_exact:
+            #    print('  not-exact(i={}): {} {} {} {}'.format(
+            #        i,
+            #        in_type.char if isinstance(in_type, numpy.dtype) else in_type.dtype.char, op_type.char,
+            #        type(in_type), type(op_type)))
+
+
+            if is_exact:
+                n_exact += 1
+            elif op_first_acceptable is not None:
+                break
+            elif not can_cast(in_type, op_type):
                 break
         else:
-            return op
-    return None
+            if n_exact == n:
+                # All types match exactly
+                #print('Exact: {}'.format([_.char for _ in op_types]))
+                return op
+            else:
+                # All types are compatible
+                op_first_acceptable = op
+                #print('Acceptable: {}'.format([_.char for _ in op_types]))
+
+    return op_first_acceptable
 
 
 cdef tuple _guess_routine_from_dtype(list ops, object dtype):
@@ -630,25 +667,31 @@ cdef bint _check_should_use_min_scalar(list in_args) except *:
             max_array_kind >= max_scalar_kind)
 
 
-cdef tuple _guess_routine(str name, dict cache, list ops, list in_args, dtype):
+cdef tuple _guess_routine(str name, dict cache, list ops, list in_args,
+                          object dtype):
+    cdef tuple in_types, op, cache_key
+
     if dtype is None:
         use_raw_value = _check_should_use_min_scalar(in_args)
         if use_raw_value:
             in_types = tuple(in_args)
             op = ()
         else:
-            in_types = tuple([i.dtype.type for i in in_args])
-            op = cache.get(in_types, ())
+            in_types = tuple([
+                i.dtype if isinstance(i, ndarray) else numpy.dtype(i)
+                for i in in_args])
+            cache_key = tuple([_.char for _ in in_types])
+            op = cache.get(cache_key, ())
 
         if op is ():
             op = _guess_routine_from_in_types(ops, in_types)
             if not use_raw_value:
-                cache[in_types] = op
+                cache[cache_key] = op
     else:
-        op = cache.get(dtype, ())
+        op = cache.get(dtype.char, ())
         if op is ():
             op = _guess_routine_from_dtype(ops, dtype)
-            cache[dtype] = op
+            cache[dtype.char] = op
 
     if op:
         return op
@@ -725,7 +768,7 @@ class ufunc(object):
         # Note default behavior of casting is 'same_kind' on numpy>=1.10
         casting = kwargs.pop('casting', 'same_kind')
         if dtype is not None:
-            dtype = numpy.dtype(dtype).type
+            dtype = numpy.dtype(dtype)
         if kwargs:
             raise TypeError('Wrong arguments %s' % kwargs)
 
@@ -766,7 +809,7 @@ class ufunc(object):
         inout_args = []
         for i, t in enumerate(in_types):
             x = broad.values[i]
-            inout_args.append(x if isinstance(x, ndarray) else t(x))
+            inout_args.append(x if isinstance(x, ndarray) else t.type(x))
         inout_args.extend(out_args)
         inout_args, shape = _reduce_dims(inout_args, self._params, shape)
         indexer = Indexer(shape)
@@ -795,8 +838,8 @@ cpdef create_ufunc(name, ops, routine=None, preamble='', doc=''):
             in_types = out_types = tuple(types)
         else:
             in_types, out_types = map(tuple, types)
-        in_types = tuple([numpy.dtype(t).type for t in in_types])
-        out_types = tuple([numpy.dtype(t).type for t in out_types])
+        in_types = tuple([numpy.dtype(t) for t in in_types])
+        out_types = tuple([numpy.dtype(t) for t in out_types])
         _ops.append((in_types, out_types, rt))
 
     return ufunc(name, len(_ops[0][0]), len(_ops[0][1]), _ops, preamble, doc)

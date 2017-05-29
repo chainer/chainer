@@ -97,14 +97,19 @@ def cumsum(a, axis=None, dtype=None, out=None):
     if out is None:
         if dtype is None:
             kind = a.dtype.kind
+            dtype = a.dtype
+            char = a.dtype.char
+
             if kind == 'b':
                 dtype = numpy.dtype('l')
+            elif char == 'q':
+                dtype = numpy.dtype('l')
+            elif char == 'Q':
+                dtype = numpy.dtype('L')
             elif kind == 'i' and a.dtype.itemsize < numpy.dtype('l').itemsize:
                 dtype = numpy.dtype('l')
             elif kind == 'u' and a.dtype.itemsize < numpy.dtype('L').itemsize:
                 dtype = numpy.dtype('L')
-            else:
-                dtype = a.dtype
 
         out = a.astype(dtype)
     else:
