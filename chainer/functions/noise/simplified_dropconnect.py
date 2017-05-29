@@ -1,9 +1,9 @@
 import numpy
 
-import chainer
 from chainer import cuda
 from chainer import function
 from chainer.utils import type_check
+from chainer import variable
 
 
 def _as_mat(x):
@@ -60,7 +60,7 @@ class SimplifiedDropconnect(function.Function):
             else:
                 self.mask = xp.random.rand(*mask_shape,
                                            dtype=numpy.float32) >= self.ratio
-        elif isinstance(self.mask, chainer.Variable):
+        elif isinstance(self.mask, variable.Variable):
             self.mask = self.mask.data
 
         x = _as_mat(inputs[0])

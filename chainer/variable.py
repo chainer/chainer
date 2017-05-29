@@ -12,6 +12,7 @@ import chainer
 from chainer import cuda
 from chainer import initializers
 from chainer import utils
+from chainer.utils import argument
 
 
 def _check_grad_type(func, x, gx):
@@ -241,9 +242,18 @@ class VariableNode(object):
         self._grad = g
 
 
+def _create_variable(
+        data, name, grad, initializer, update_rule, requires_grad):
+    return Variable(
+        data, name=name, grad=grad, initializer=initializer,
+        update_rule=update_rule, requires_grad=requires_grad)
+
+
 class Variable(object):
 
-    """Array with a structure to keep track of computation.
+    """__init__(data=None, *, name=None, grad=None, initializer=None, update_rule=None, requires_grad=True)
+
+    Array with a structure to keep track of computation.
 
     Every variable holds a data array of type either :class:`numpy.ndarray` or
     :class:`cupy.ndarray`.
@@ -260,6 +270,11 @@ class Variable(object):
     :func:`~chainer.force_backprop_mode`).
     In the former context, a variable never creates a computational graph,
     whereas in the latter context, it is forced to create.
+
+    .. warning::
+
+       ``volatile`` argument is not supported anymore since v2.
+       Instead, use :func:`chainer.no_backprop_mode`.
 
     Args:
         data (array): Initial data array.
@@ -287,14 +302,21 @@ class Variable(object):
             updates this variable as a parameter. This argument is set to
             :attr:`update_rule`.
 
-    """
+    """  # NOQA
 
     initializer = None
     _grad_initializer = None
     _initial_device = -1
 
-    def __init__(self, data=None, name=None, grad=None, initializer=None,
-                 update_rule=None, requires_grad=True):
+    def __init__(self, data=None, **kwargs):
+        argument.check_unexpected_kwargs(
+            kwargs, volatile='volatile argument is not supported anymore. '
+            'Use chainer.using_config')
+        name, grad, initializer, update_rule, requires_grad \
+            = argument.parse_kwargs(
+                kwargs, ('name', None), ('grad', None), ('initializer', None),
+                ('update_rule', None), ('requires_grad', True))
+
         if data is None:
             self.initializer = (
                 initializers.NaN() if initializer is None else initializer)
@@ -320,9 +342,9 @@ Actual: {0}'''.format(type(data))
         return copied
 
     def __reduce__(self):
-        return Variable, (self.data, self.name, self._node._grad,
-                          self.initializer, self.update_rule,
-                          self._requires_grad)
+        return _create_variable, (self.data, self.name, self._node._grad,
+                                  self.initializer, self.update_rule,
+                                  self._requires_grad)
 
     def __repr__(self):
         return variable_repr(self)
