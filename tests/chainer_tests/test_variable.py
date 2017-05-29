@@ -183,6 +183,43 @@ class TestVariable(unittest.TestCase):
         ret = self.create_linear_chain(2, True)
         self.check_backward((ret[0], ), (ret[1], ), (ret[2], ), True)
 
+    def test_unchain(self):
+        ret = self.create_linear_chain(3, False)
+        old_rank = ret[1].rank
+        ret[1].unchain()
+        self.assertIsNone(ret[1].creator)
+        self.assertEqual(ret[1].rank, old_rank)
+        self.check_backward((ret[1],), (ret[2],), (ret[3],), False)
+
+    def test_set_none_to_creator(self):
+        ret = self.create_linear_chain(3, False)
+        old_rank = ret[1].rank
+        ret[1].creator = None
+        self.assertIsNone(ret[1].creator)
+        self.assertEqual(ret[1].rank, old_rank)
+        self.check_backward((ret[1],), (ret[2],), (ret[3],), False)
+
+    def test_set_none_and_original_to_creator(self):
+        ret = self.create_linear_chain(2, False)
+        old_rank = ret[1].rank
+        creator = ret[1].creator
+        ret[1].creator = None
+        self.assertIsNone(ret[1].creator)
+        self.assertEqual(ret[1].rank, old_rank)
+
+        ret[1].node._rank = -1
+        ret[1].creator = creator
+        self.assertIs(ret[1].creator, creator)
+        self.assertEqual(ret[1].rank, creator.rank + 1)
+        self.check_backward((ret[0],), (ret[1],), (ret[2],), False)
+
+    def test_set_fresh_creator(self):
+        v = chainer.Variable()
+        f = chainer.Function()
+        v.creator = f
+        self.assertIs(v.creator, f)
+        self.assertEqual(v.rank, 1)
+
     def test_unchain_backward_cpu(self):
         ret = self.create_linear_chain(3, False)
         ret[1].unchain_backward()
