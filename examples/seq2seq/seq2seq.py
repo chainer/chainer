@@ -161,8 +161,12 @@ def main():
                         help='GPU ID (negative value indicates CPU)')
     parser.add_argument('--resume', '-r', default='',
                         help='Resume the training from snapshot')
-    parser.add_argument('--unit', '-u', type=int, default=1024,
+    parser.add_argument('--unit', '-u', type=int, default=512,
                         help='Number of units')
+    parser.add_argument('--layer', '-l', type=int, default=2,
+                        help='Number of layers')
+    parser.add_argument('--limit', '-v', type=int, default=40000,
+                        help='Size of vocabulary')
     parser.add_argument('--input', '-i', type=str, default='wmt',
                         help='Input directory')
     parser.add_argument('--out', '-o', default='result',
@@ -187,10 +191,12 @@ def main():
     else:
         # Check file
         en_path = os.path.join(args.input, 'giga-fren.release2.fixed.en')
-        source_vocab = ['<eos>', '<unk>'] + europal.count_words(en_path)
+        source_vocab = ['<eos>', '<unk>'] + europal.count_words(
+            en_path, limit=args.vocab)
         source_data = europal.make_dataset(en_path, source_vocab)
         fr_path = os.path.join(args.input, 'giga-fren.release2.fixed.fr')
-        target_vocab = ['<eos>', '<unk>'] + europal.count_words(fr_path)
+        target_vocab = ['<eos>', '<unk>'] + europal.count_words(
+            fr_path, limit=args.vocab)
         target_data = europal.make_dataset(fr_path, target_vocab)
         assert len(source_data) == len(target_data)
         print('Original training data size: %d' % len(source_data))
@@ -213,7 +219,7 @@ def main():
     target_words = {i: w for w, i in target_ids.items()}
     source_words = {i: w for w, i in source_ids.items()}
 
-    model = Seq2seq(3, len(source_ids), len(target_ids), args.unit)
+    model = Seq2seq(args.layer, len(source_ids), len(target_ids), args.unit)
     if args.gpu >= 0:
         chainer.cuda.get_device(args.gpu).use()
         model.to_gpu(args.gpu)
