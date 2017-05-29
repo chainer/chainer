@@ -125,6 +125,7 @@ class TestFunction(unittest.TestCase):
             # rank is (maximum rank in xs) + 1
             self.assertEqual(y.rank, 4)
             self.assertIs(y.creator, self.f)
+            self.assertTrue(y.requires_grad)
 
         self.assertIsInstance(y.creator.outputs, tuple)
 
@@ -135,6 +136,27 @@ class TestFunction(unittest.TestCase):
     def test_call_gpu(self):
         self.setup_gpu()
         self.check_call()
+
+    def check_call_all_ndarray(self):
+        x1 = self.x1
+        x2 = self.x2
+        ys = self.f(x1, x2)
+
+        self.assertEqual(len(ys), 2)
+        self.check_check_type_forward()
+
+        for y in ys:
+            self.assertIsInstance(y, chainer.Variable)
+            self.assertIsInstance(y.data, type(x1))
+            self.assertFalse(y.requires_grad)
+
+    def test_call_all_ndarray_cpu(self):
+        self.check_call_all_ndarray()
+
+    @attr.gpu
+    def test_call_all_ndarray_gpu(self):
+        self.setup_gpu()
+        self.check_call_all_ndarray()
 
     def check_call_ndarray(self):
         x1 = chainer.Variable(self.x1)
@@ -150,6 +172,7 @@ class TestFunction(unittest.TestCase):
             # rank is (maximum rank in xs) + 1
             self.assertEqual(y.rank, 2)
             self.assertIs(y.creator, self.f)
+            self.assertTrue(y.requires_grad)
 
         self.assertIsInstance(y.creator.outputs, tuple)
 

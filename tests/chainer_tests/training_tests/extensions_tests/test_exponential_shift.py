@@ -4,6 +4,7 @@ import mock
 
 from chainer import testing
 from chainer.training import extensions
+from chainer.training import util
 
 
 @testing.parameterize(
@@ -18,14 +19,64 @@ class TestExponentialShift(unittest.TestCase):
 
     def setUp(self):
         self.optimizer = mock.MagicMock()
-        self.trainer = testing.get_trainer_with_mock_updater((2, 'iteration'))
         self.extension = extensions.ExponentialShift(
             'x', self.rate, self.init, self.target, self.optimizer)
 
-    def test_call(self):
-        for e in self.expect:
-            self.extension(self.trainer)
-            self.assertEqual(self.optimizer.x, e)
+        self.interval = 4
+        self.expect = [e for e in self.expect for _ in range(self.interval)]
+        self.trigger = util.get_trigger((self.interval, 'iteration'))
+
+        self.trainer = testing.get_trainer_with_mock_updater(self.trigger)
+        self.trainer.updater.get_optimizer.return_value = self.optimizer
+
+    def _run_trainer(self, extension, expect, optimizer=None):
+        if optimizer is None:
+            optimizer = self.optimizer
+        extension.initialize(self.trainer)
+
+        actual = []
+        for _ in expect:
+            self.trainer.updater.update()
+            actual.append(optimizer.x)
+            if self.trigger(self.trainer):
+                extension(self.trainer)
+
+        self.assertEqual(actual, expect)
+
+    def test_basic(self):
+        self.optimizer.x = 0
+        extension = extensions.ExponentialShift(
+            'x', self.rate, init=self.init, target=self.target)
+        self._run_trainer(extension, self.expect)
+
+    def test_without_init(self):
+        self.optimizer.x = self.init
+        extension = extensions.ExponentialShift(
+            'x', self.rate, target=self.target)
+        self._run_trainer(extension, self.expect)
+
+    def test_with_optimizer(self):
+        optimizer = mock.Mock()
+        optimizer.x = 0
+        extension = extensions.ExponentialShift(
+            'x', self.rate, init=self.init, target=self.target,
+            optimizer=optimizer)
+        self._run_trainer(extension, self.expect, optimizer)
+
+    def test_resume(self):
+        new_optimizer = mock.Mock()
+        new_extension = extensions.ExponentialShift(
+            'x', self.rate, self.init, self.target, new_optimizer)
+
+        self.trainer.extend(self.extension)
+        self.trainer.run()
+
+        new_trainer = testing.get_trainer_with_mock_updater((3, 'iteration'))
+        new_trainer.extend(new_extension)
+        testing.save_and_load_npz(self.trainer, new_trainer)
+
+        new_extension.initialize(new_trainer)
+        self.assertEqual(new_optimizer.x, self.optimizer.x)
 
     def test_resume(self):
         new_optimizer = mock.Mock()

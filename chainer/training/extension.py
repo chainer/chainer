@@ -1,3 +1,6 @@
+from chainer.utils import argument
+
+
 PRIORITY_WRITER = 300
 PRIORITY_EDITOR = 200
 PRIORITY_READER = 100
@@ -55,6 +58,14 @@ class Extension(object):
         """
         pass
 
+    def __getattr__(self, name):
+        if name == 'invoke_before_training':
+            raise AttributeError(
+                'invoke_before_training has been removed since Chainer '
+                'v2.0.0. Use Extension.initialize instead.')
+        raise AttributeError('{} object has no attribute {}'.format(
+            type(self).__name__, name))
+
     def finalize(self):
         """Finalizes the extension.
 
@@ -77,9 +88,9 @@ class Extension(object):
         extension changes the optimizer's hyperparameter at each invocation.
         Note that the hyperparameter is not saved to the snapshot; it is the
         responsibility of the extension to recover the hyperparameter.
-        The ``ExponentialShift`` extension recovers it in its ``initialize``
-        method if it has been loaded from a snapshot, or just setting the
-        initial value otherwise.
+        The :class:`~chainer.training.extensions.ExponentialShift` extension
+        recovers it in its ``initialize`` method if it has been loaded from a
+        snapshot, or just setting the initial value otherwise.
 
         Args:
             trainer (Trainer): Trainer object that runs the training loop.
@@ -98,7 +109,7 @@ class Extension(object):
 
 
 def make_extension(trigger=None, default_name=None, priority=None,
-                   finalizer=None, initializer=None):
+                   finalizer=None, initializer=None, **kwargs):
     """Decorator to make given functions into trainer extensions.
 
     This decorator just adds some attributes to a given function. The value of
@@ -118,6 +129,11 @@ def make_extension(trigger=None, default_name=None, priority=None,
             the beginning of the training loop.
 
     """
+    msg = ('invoke_before_training has been removed since Chainer v2.0.0. '
+           'Use initializer= instead.')
+    argument.check_unexpected_kwargs(kwargs, invoke_before_training=msg)
+    argument.assert_kwargs_empty(kwargs)
+
     if trigger is None:
         trigger = Extension.trigger
     if priority is None:

@@ -1,21 +1,25 @@
 import numpy
 
-import chainer
 from chainer import cuda
 from chainer.functions.activation import sigmoid
 from chainer.functions.activation import tanh
 from chainer.functions.array import reshape
 from chainer.functions.array import split_axis
 from chainer.functions.noise import zoneout
-
 from chainer import link
 from chainer.links.connection import linear
+from chainer.utils import argument
 from chainer import variable
 
 
 class StatefulZoneoutLSTM(link.Chain):
 
-    def __init__(self, in_size, out_size, c_ratio=0.5, h_ratio=0.5):
+    def __init__(self, in_size, out_size, c_ratio=0.5, h_ratio=0.5, **kwargs):
+        argument.check_unexpected_kwargs(
+            kwargs, train='train argument is not supported anymore. '
+            'Use chainer.using_config')
+        argument.assert_kwargs_empty(kwargs)
+
         super(StatefulZoneoutLSTM, self).__init__(
             upward=linear.Linear(in_size, 4 * out_size),
             lateral=linear.Linear(out_size, 4 * out_size, nobias=True),
@@ -49,8 +53,8 @@ class StatefulZoneoutLSTM(link.Chain):
             h (~chainer.Variable): A new output at the previous time step.
 
         """
-        assert isinstance(c, chainer.Variable)
-        assert isinstance(h, chainer.Variable)
+        assert isinstance(c, variable.Variable)
+        assert isinstance(h, variable.Variable)
         c_ = c
         h_ = h
         if self.xp is numpy:
@@ -85,13 +89,13 @@ class StatefulZoneoutLSTM(link.Chain):
             lstm_in += self.lateral(self.h)
         else:
             xp = self.xp
-            with cuda.get_device(self._device_id):
+            with cuda.get_device_from_id(self._device_id):
                 self.h = variable.Variable(
                     xp.zeros((len(x.data), self.state_size),
                              dtype=x.data.dtype))
         if self.c is None:
             xp = self.xp
-            with cuda.get_device(self._device_id):
+            with cuda.get_device_from_id(self._device_id):
                 self.c = variable.Variable(
                     xp.zeros((len(x.data), self.state_size),
                              dtype=x.data.dtype))

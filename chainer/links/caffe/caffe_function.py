@@ -9,7 +9,11 @@ import six
 from chainer import configuration
 from chainer import functions
 from chainer import link
-from chainer import links
+from chainer.links.connection import convolution_2d
+from chainer.links.connection import linear
+from chainer.links.connection import scale
+from chainer.links.normalization import batch_normalization
+from chainer.utils import argument
 
 
 def _protobuf3():
@@ -157,13 +161,21 @@ class CaffeFunction(link.Chain):
                         'Skip the layer "%s", since CaffeFunction does not'
                         'support it' % layer.name)
 
-    def __call__(self, inputs, outputs, disable=()):
-        """Executes a sub-network of the network.
+    def __call__(self, inputs, outputs, disable=(), **kwargs):
+        """__call__(self, inputs, outputs, disable=())
+
+        Executes a sub-network of the network.
 
         This function acts as an interpreter of the network definition for
         Caffe. On execution, it interprets each layer one by one, and if the
         bottom blobs are already computed, then emulates the layer and stores
         output blobs as :class:`~chainer.Variable` objects.
+
+        .. warning::
+
+           ``train`` argument is not supported anymore since v2.
+           Instead, use ``chainer.using_config('train', train)``.
+           See :func:`chainer.using_config`.
 
         Args:
             inputs (dict): A dictionary whose key-value pairs indicate initial
@@ -179,6 +191,11 @@ class CaffeFunction(link.Chain):
                 corresponding to elements of the  `outputs` argument.
 
         """
+        argument.check_unexpected_kwargs(
+            kwargs, train='train argument is not supported anymore. '
+            'Use chainer.using_config')
+        argument.assert_kwargs_empty(kwargs)
+
         variables = dict(inputs)
         for func_name, bottom, top in self.layers:
             if (func_name in disable or
@@ -226,8 +243,8 @@ class CaffeFunction(link.Chain):
 
         n_in = channels * param.group
         n_out = num
-        func = links.Convolution2D(n_in, n_out, ksize, stride, pad,
-                                   nobias=not param.bias_term)
+        func = convolution_2d.Convolution2D(n_in, n_out, ksize, stride, pad,
+                                            nobias=not param.bias_term)
         func.W.data[...] = 0
 
         part_size = len(blobs[0].data) // param.group
@@ -272,7 +289,7 @@ class CaffeFunction(link.Chain):
 
         blobs = layer.blobs
         width, height = _get_width(blobs[0]), _get_height(blobs[0])
-        func = links.Linear(width, height, nobias=not bias_term)
+        func = linear.Linear(width, height, nobias=not bias_term)
         func.W.data.ravel()[:] = blobs[0].data
         if bias_term:
             func.b.data[:] = blobs[1].data
@@ -335,8 +352,8 @@ class CaffeFunction(link.Chain):
         size = int(blobs[0].shape.dim[0])  # Get channel dim from mean blob.
 
         # Make BatchNormalization link.
-        func = links.BatchNormalization(size, decay=decay, eps=eps,
-                                        use_gamma=False, use_beta=False)
+        func = batch_normalization.BatchNormalization(
+            size, decay=decay, eps=eps, use_gamma=False, use_beta=False)
         func.avg_mean.ravel()[:] = blobs[0].data
         func.avg_var.ravel()[:] = blobs[1].data
         self.add_link(layer.name, func)
@@ -375,14 +392,14 @@ class CaffeFunction(link.Chain):
         # Case of only one bottom where W is learnt parameter.
         if len(bottom) == 1:
             W_shape = blobs[0].shape.dim
-            func = links.scale.Scale(axis, W_shape, bias_term)
+            func = scale.Scale(axis, W_shape, bias_term)
             func.W.data.ravel()[:] = blobs[0].data
             if bias_term:
                 func.bias.b.data.ravel()[:] = blobs[1].data
         # Case of two bottoms where W is given as a bottom.
         else:
             shape = blobs[0].shape.dim if bias_term else None
-            func = links.scale.Scale(
+            func = scale.Scale(
                 axis, bias_term=bias_term, bias_shape=shape)
             if bias_term:
                 func.bias.b.data.ravel()[:] = blobs[0].data
