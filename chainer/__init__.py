@@ -52,6 +52,7 @@ from chainer.reporter import Summary  # NOQA
 from chainer.serializer import AbstractSerializer  # NOQA
 from chainer.serializer import Deserializer  # NOQA
 from chainer.serializer import Serializer  # NOQA
+from chainer.variable import get_array  # NOQA
 from chainer.variable import Variable  # NOQA
 
 

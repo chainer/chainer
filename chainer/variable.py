@@ -530,3 +530,38 @@ Actual: {0}'''.format(type(data))
         return super(Variable, self).__hash__()
 
     __array_priority__ = 200
+
+
+def get_array(arg):
+    """Extracts the data array of a :class:`~chainer.Variable`.
+
+    This method is helper function for :class:`~chainer.Variable`.
+    :member:`chainer.Function.__call__` returns :class:`numpy.ndarray` OR
+    :class:`cupy.ndarray` under certain conditions.
+
+    .. admonition:: Example
+
+        >>> x = np.array([[-1, 0], [2, -3], [-2, 1]], 'f')
+        >>> x_val = chainer.Variable(x)
+        >>> y = F.relu(x)
+        >>> y_val = F.relu(y_val)
+        >>> tyep(y)
+        numpy.ndarray
+        >>> tyep(y_val)
+        chainer.variable.Variable
+        >>> type(chainer.get_array(y))
+        numpy.ndarray
+        >>> type(chainer.get_array(y_val))
+        numpy.ndarray
+
+    Args:
+        arg (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`):
+            Object to extract an array from.
+
+    Returns:
+        numpy.ndarray or cupy.ndarray: An ndarray data.
+    """
+    if isinstance(arg, Variable):
+        return arg.data
+    return arg
