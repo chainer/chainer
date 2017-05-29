@@ -75,7 +75,7 @@ class TestGraphBuilderKeepGraphOnReport(unittest.TestCase):
 
         # Check flag history
         self.assertEqual(model.flag_history,
-                         [True] + [initial_flag] * (n_data * n_epochs-1))
+                         [True] + [initial_flag] * (n_data * n_epochs - 1))
 
         # Check the dumped graph
         graph_path = os.path.join(outdir, 'test.dot')
