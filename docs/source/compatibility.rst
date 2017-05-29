@@ -28,7 +28,7 @@ See :ref:`contrib` for details of versioning.
 
 The backward compatibility is kept for **revision updates**, which are applied to the latest stable version.
 A **major update** from the latest release candidate basically keeps the backward compatibility, although it is not guaranteed.
-Any **pre-releases** may break the bakward compatibility.
+Any **pre-releases** may break the backward compatibility.
 
 
 Breaking the Compatibility
@@ -52,7 +52,7 @@ The following list shows an example of what we can do to reduce the cost (*Note:
 .. note::
 
    Since Chainer v2, we have stopped adopting any solid processes to break backward compatibilities (e.g. a solid schedule for deprecating and removing a feature) in order to keep the development fast enough to support the cutting-edge research.
-   **It does not mean we stop taking care of mantenability of user codes.**
+   **It does not mean we stop taking care of maintenability of user codes.**
    We are still paying much attention to not breaking user codes.
 
 
