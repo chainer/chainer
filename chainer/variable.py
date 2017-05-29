@@ -891,9 +891,12 @@ class Parameter(Variable):
         else:
             # parameter initialized with a given shape
             if isinstance(initializer, (numpy.ndarray, cuda.ndarray)):
+                xp = cuda.get_array_module(initializer)
                 initializer = constant.Constant(initializer)
-            data = initializers.generate_array(initializer, shape, numpy)
-            grad = numpy.full_like(data, numpy.nan)
+            else:
+                xp = numpy
+            data = initializers.generate_array(initializer, shape, xp)
+            grad = xp.full_like(data, numpy.nan)
             super(Parameter, self).__init__(data, name=name, grad=grad)
 
         self.update_rule = None

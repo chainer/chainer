@@ -596,6 +596,13 @@ class TestParameter(unittest.TestCase):
         x = chainer.Parameter(data)
         self.assertIs(x.data, data)
 
+    @attr.gpu
+    def test_initialize_by_cupy_array(self):
+        data = cuda.cupy.array([1., 2., 3.], dtype='f')
+        x = chainer.Parameter(data, (3,))
+        self.assertIsInstance(x.data, cuda.cupy.ndarray)
+        cuda.cupy.testing.assert_array_equal(x.data, data)
+
     def test_update_rule(self):
         update_rule = mock.MagicMock()
         g = self.a.copy()
