@@ -50,6 +50,54 @@ https://github.com/pfnet/chainer/issues/new.
         raise ValueError(make_message(msg))
 
 
+def variable_repr(var):
+    """Return the string representation of a variable.
+
+    Args:
+        var (~chainer.Variable): Input Variable.
+
+    .. seealso:: numpy.array_repr
+    """
+    xp = cuda.get_array_module(var)
+    if xp is numpy:
+        arr = var.data
+    else:
+        arr = var.data.get()
+
+    if arr.size > 0 or arr.shape == (0,):
+        if var.name:
+            prefix = 'variable ' + var.name + '('
+        else:
+            prefix = 'variable('
+        lst = numpy.array2string(arr, None, None, None, ', ', prefix)
+    else:  # show zero-length shape unless it is (0,)
+        lst = '[], shape=%s' % (repr(arr.shape),)
+        if var.name:
+            lst = var.name + lst
+    return '%s(%s)' % (prefix[:-1], lst)
+
+
+def variable_str(var):
+    """Return the string representation of a variable.
+
+    Args:
+        var (~chainer.Variable): Input Variable.
+
+    .. seealso:: numpy.array_str
+    """
+    xp = cuda.get_array_module(var)
+    if xp is numpy:
+        arr = var.data
+    else:
+        arr = var.data.get()
+    if var.name:
+        prefix = 'variable ' + var.name + '('
+    else:
+        prefix = 'variable('
+    return (prefix + numpy.array2string(arr, None, None, None, ' ', prefix) +
+            ')')
+
+
 class Variable(object):
 
     """Array with a structure to keep track of computation.
@@ -108,13 +156,16 @@ Actual: {0}'''.format(type(data))
         return Variable, (self.data, self.volatile, self.name, self._grad)
 
     def __repr__(self):
+        return variable_repr(self)
+
+    def __str__(self):
+        return variable_str(self)
+
+    def summary(self):
         if self.name:
             return '<variable %s>' % self.name
         else:
             return '<variable at 0x%x>' % id(self)
-
-    def __str__(self):
-        return self.name or ('<var@%x>' % id(self))
 
     def debug_print(self):
         """Display a summary of the stored data and location of the Variable"""
@@ -149,7 +200,7 @@ Actual: {0}'''.format(type(data))
             stats = stats_msg.format(float(xp.mean(self.data)),
                                      float(xp.std(self.data)))
 
-        return msg.format(summary=repr(self), volatile=self.volatile,
+        return msg.format(summary=self.summary(), volatile=self.volatile,
                           grad=grad, shape=self.data.shape,
                           background=type(self.data),
                           dtype=self.data.dtype, device=device,
