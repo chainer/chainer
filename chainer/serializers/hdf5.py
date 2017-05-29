@@ -49,6 +49,9 @@ class HDF5Serializer(serializer.Serializer):
             value = cuda.to_cpu(value)
         if value is None:
             # use Empty to represent None
+            if h5py.version.version_tuple < (2, 7, 0):
+                raise RuntimeError(
+                    'h5py>=2.7.0 is required to serialize None.')
             arr = h5py.Empty('f')
             compression = None
         else:
