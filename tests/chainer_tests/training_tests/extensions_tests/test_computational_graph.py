@@ -93,8 +93,10 @@ class TestGraphBuilderKeepGraphOnReport(unittest.TestCase):
         finally:
             shutil.rmtree(tempdir)
 
-    def test_keep_graph_on_report_flag(self):
+    def test_keep_graph_on_report_flag_true(self):
         self._check(True)
+
+    def test_keep_graph_on_report_flag_false(self):
         self._check(False)
 
 
