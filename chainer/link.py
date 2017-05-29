@@ -280,7 +280,9 @@ Assign a Parameter object directly to an attribute within a \
         """Registers an attribute of a given name as a persistent value.
 
         This is a convenient method to register an existing attribute as a
-        persistent value.
+        persistent value. If ``name`` has been already registered as a
+        parameter, this method removes it from the list of parameter names
+        and re-registers it as a persistent value.
 
         Args:
             name (str): Name of the attribute to be registered.
@@ -693,6 +695,9 @@ Child link registeration via Chain.__init__ and Chain.add_link are deprecated.
 Assign a Link object directly to an attribute within a \
 "with link.init_scope():" block instead.
         ''', DeprecationWarning)
+        if name in self.__dict__:
+            raise AttributeError(
+                'cannot register a new link %s: attribute exists' % name)
         if not isinstance(link, Link):
             raise TypeError('cannot register a non-link object as a child')
         with self.init_scope():

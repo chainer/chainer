@@ -393,6 +393,11 @@ class TestChain(unittest.TestCase):
         self.assertIs(self.c1.l2, self.l2)
         self.assertEqual(self.l2.name, 'l2')
 
+    def test_add_link_to_existing_attribute(self):
+        self.l1.z = 0
+        with self.assertRaises(AttributeError):
+            self.l1.add_link('z', chainer.Link())
+
     def test_copy(self):
         c2 = self.c2.copy()
         self.assertIs(c2.name, None)
