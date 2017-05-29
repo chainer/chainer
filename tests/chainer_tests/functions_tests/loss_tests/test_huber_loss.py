@@ -1,4 +1,5 @@
 import unittest
+import warnings
 
 import numpy
 
@@ -13,7 +14,7 @@ from chainer.testing import condition
 
 @testing.parameterize(
     {'reduce': 'no'},
-    {'reduce': 'sum_along_second_axis'}
+    {'reduce': 'sum_each_data'}
 )
 class TestHuberLoss(unittest.TestCase):
 
@@ -22,7 +23,7 @@ class TestHuberLoss(unittest.TestCase):
         self.x = (numpy.random.random(self.shape) - 0.5) * 20
         self.x = self.x.astype(numpy.float32)
         self.t = numpy.random.random(self.shape).astype(numpy.float32)
-        if self.reduce == 'sum_along_second_axis':
+        if self.reduce == 'sum_each_data':
             gy_shape = self.shape[0]
         else:
             gy_shape = self.shape
@@ -40,7 +41,7 @@ class TestHuberLoss(unittest.TestCase):
         mask = numpy.abs(diff_data) < 1
         loss_expect[mask] = 0.5 * diff_data[mask] ** 2
         loss_expect[~mask] = numpy.abs(diff_data[~mask]) - 0.5
-        if self.reduce == 'sum_along_second_axis':
+        if self.reduce == 'sum_each_data':
             loss_expect = numpy.sum(loss_expect, axis=1)
         testing.assert_allclose(loss_value, loss_expect)
 
@@ -87,6 +88,30 @@ class TestHuberLossInvalidReductionOption(unittest.TestCase):
     @attr.gpu
     def test_invalid_option_gpu(self):
         self.check_invalid_option(cuda.cupy)
+
+
+class TestHuberLossDeprecatedReductionOption(unittest.TestCase):
+
+    def setUp(self):
+        self.x = numpy.random.uniform(-1, 1, (4, 10)).astype(numpy.float32)
+        self.t = numpy.random.uniform(-1, 1, (4, 10)).astype(numpy.float32)
+
+    def check_deprecated_option(self, xp):
+        x = xp.asarray(self.x)
+        t = xp.asarray(self.t)
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
+            functions.huber_loss(x, t, 1, 'sum_along_second_axis')
+
+        self.assertEqual(len(w), 1)
+        self.assertEqual(w[0].category, DeprecationWarning)
+
+    def test_deprecated_option_cpu(self):
+        self.check_deprecated_option(numpy)
+
+    @attr.gpu
+    def test_deprecated_option_gpu(self):
+        self.check_deprecated_option(cuda.cupy)
 
 
 testing.run_module(__name__, __file__)
