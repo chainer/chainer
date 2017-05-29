@@ -82,7 +82,8 @@ class TestHDF5Serializer(unittest.TestCase):
 
         self.assertIs(ret, 10)
 
-    @unittest.skipUnless(h5py.version.version_tuple >= (2, 7, 0),
+    @unittest.skipUnless(hdf5._available and
+                         h5py.version.version_tuple >= (2, 7, 0),
                          'h5py>=2.7.0 is not available')
     def test_serialize_none(self):
         ret = self.serializer('x', None)
@@ -170,13 +171,15 @@ class TestHDF5Deserializer(unittest.TestCase):
         finally:
             os.remove(path)
 
-    @unittest.skipUnless(h5py.version.version_tuple >= (2, 7, 0),
+    @unittest.skipUnless(hdf5._available and
+                         h5py.version.version_tuple >= (2, 7, 0),
                          'h5py>=2.7.0 is not available')
     def test_deserialize_none(self):
         ret = self.deserializer('w', None)
         self.assertIs(ret, None)
 
-    @unittest.skipUnless(h5py.version.version_tuple >= (2, 7, 0),
+    @unittest.skipUnless(hdf5._available and
+                         h5py.version.version_tuple >= (2, 7, 0),
                          'h5py>=2.7.0 is not available')
     def test_deserialize_none_by_passing_array(self):
         y = numpy.empty((1,))
