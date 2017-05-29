@@ -242,11 +242,9 @@ class VariableNode(object):
         self._grad = g
 
 
-def _create_variable(
-        data, name, grad, initializer, update_rule, requires_grad):
+def _create_variable(data, name, grad, requires_grad):
     return Variable(
-        data, name=name, grad=grad, initializer=initializer,
-        update_rule=update_rule, requires_grad=requires_grad)
+        data, name=name, grad=grad, requires_grad=requires_grad)
 
 
 class Variable(object):
@@ -324,7 +322,6 @@ Actual: {0}'''.format(type(data))
 
     def __reduce__(self):
         return _create_variable, (self.data, self.name, self._node._grad,
-
                           self._requires_grad)
 
     def __repr__(self):
