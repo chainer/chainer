@@ -26,7 +26,7 @@ def dump_graph(root_name, out_name='cg.dot',
 
        The detailed behavior of this extension since v2.0.0 is as follows.
 
-       1. In :meth:`initialize`, it turns on the
+       1. In the initializer, it turns on the
           ``chainer.config.keep_graph_on_report`` flag.
        2. At the first iteration, it dumps the graph using the preserved
           graph.
@@ -40,8 +40,9 @@ def dump_graph(root_name, out_name='cg.dot',
        :class:`~chainer.training.extensions.Evaluator`.
 
        With the default setting, the ``dump_graph`` extension is called at the
-       first iteration. Since ``Evaluator`` is not called at the first
-       iteration in most cases, it does not cause any memory problem.
+       first iteration. Since :class:`~chainer.training.extensions.Evaluator`
+       is not called at the first iteration in most cases, it does not cause
+       any memory problem.
 
     Args:
         root_name (str): Name of the root of the computational graph. The
@@ -73,20 +74,21 @@ def dump_graph(root_name, out_name='cg.dot',
 
     @extension.make_extension(trigger=trigger, initializer=initializer)
     def dump_graph(trainer):
-        var = trainer.observation[root_name]
-        if not isinstance(var, variable.Variable):
-            raise TypeError('root value is not a Variable')
-        cg = computational_graph.build_computational_graph(
-            [var],
-            variable_style=variable_style,
-            function_style=function_style
-        ).dump()
+        try:
+            var = trainer.observation[root_name]
+            if not isinstance(var, variable.Variable):
+                raise TypeError('root value is not a Variable')
+            cg = computational_graph.build_computational_graph(
+                [var],
+                variable_style=variable_style,
+                function_style=function_style
+            ).dump()
 
-        out_path = os.path.join(trainer.out, out_name)
-        # TODO(beam2d): support outputting images by the dot command
-        with open(out_path, 'w') as f:
-            f.write(cg)
-
-        configuration.config.keep_graph_on_report = original_flag
+            out_path = os.path.join(trainer.out, out_name)
+            # TODO(beam2d): support outputting images by the dot command
+            with open(out_path, 'w') as f:
+                f.write(cg)
+        finally:
+            configuration.config.keep_graph_on_report = original_flag
 
     return dump_graph
