@@ -266,6 +266,9 @@ def main():
             model, test_data, 'validation/main/bleu', device=args.gpu),
         trigger=trigger)
     trainer.extend(extensions.snapshot(), trigger=trigger)
+    if args.resume:
+        chainer.serializers.load_npz(args.resume, trainer)
+
     print('start training')
     trainer.run()
 
