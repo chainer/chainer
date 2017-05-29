@@ -67,9 +67,10 @@ def dump_graph(root_name, out_name='cg.dot',
     if function_style is None:
         function_style = _func_style
 
-    original_flag = configuration.config.keep_graph_on_report
+    original_flag = [None]
 
     def initializer(_):
+        original_flag[0] = configuration.config.keep_graph_on_report
         configuration.config.keep_graph_on_report = True
 
     @extension.make_extension(trigger=trigger, initializer=initializer)
@@ -89,6 +90,6 @@ def dump_graph(root_name, out_name='cg.dot',
             with open(out_path, 'w') as f:
                 f.write(cg)
         finally:
-            configuration.config.keep_graph_on_report = original_flag
+            configuration.config.keep_graph_on_report = original_flag[0]
 
     return dump_graph
