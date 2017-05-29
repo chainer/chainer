@@ -66,20 +66,5 @@ class TestLinearShift(unittest.TestCase):
         new_extension.initialize(new_trainer)
         self.assertEqual(new_optimizer.x, self.optimizer.x)
 
-    def test_resume(self):
-        new_optimizer = mock.Mock()
-        new_extension = extensions.LinearShift(
-            'x', self.value_range, self.time_range, new_optimizer)
-
-        self.trainer.extend(self.extension)
-        self.trainer.run()
-
-        new_trainer = testing.get_trainer_with_mock_updater((5, 'iteration'))
-        new_trainer.extend(new_extension)
-        testing.save_and_load_npz(self.trainer, new_trainer)
-
-        new_extension.initialize(new_trainer)
-        self.assertEqual(new_optimizer.x, self.optimizer.x)
-
 
 testing.run_module(__name__, __file__)

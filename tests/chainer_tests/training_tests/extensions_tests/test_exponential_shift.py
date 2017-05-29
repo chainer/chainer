@@ -78,21 +78,6 @@ class TestExponentialShift(unittest.TestCase):
         new_extension.initialize(new_trainer)
         self.assertEqual(new_optimizer.x, self.optimizer.x)
 
-    def test_resume(self):
-        new_optimizer = mock.Mock()
-        new_extension = extensions.ExponentialShift(
-            'x', self.rate, self.init, self.target, new_optimizer)
-
-        self.trainer.extend(self.extension)
-        self.trainer.run()
-
-        new_trainer = testing.get_trainer_with_mock_updater((3, 'iteration'))
-        new_trainer.extend(new_extension)
-        testing.save_and_load_npz(self.trainer, new_trainer)
-
-        new_extension.initialize(new_trainer)
-        self.assertEqual(new_optimizer.x, self.optimizer.x)
-
 
 class TestExponentialShiftInvalidArgument(unittest.TestCase):
 
