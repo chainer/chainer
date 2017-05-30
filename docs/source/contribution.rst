@@ -91,28 +91,19 @@ The GitHub milestone is basically used for collecting the issues and PRs resolve
 Git Branches
 ~~~~~~~~~~~~
 
-There are two main branches: ``master`` and ``dev``.
+The ``master`` branch is used to develop pre-release versions.
+It means that **alpha, beta, and RC updates are developed at the** ``master`` **branch**.
+This branch contains the most up-to-date source tree that includes features newly added after the latest major version.
 
-The ``master`` branch is used to develop stable versions.
-It means that **major updates and revision updates are developed at the** ``master`` **branch**.
-
-The ``dev`` branch is used to develop pre-release versions.
-It means that **alpha, beta, and RC updates are developed at the** ``dev`` **branch**.
-
-After we release the RC of the next major version, we create a *maintenance branch* for the current stable version.
-The maintenance branch is named as ``vX`` (e.g. the maintenance branch for v2 is ``v2``).
+The stable version is developed at the individual branch named as ``vN`` where "N" reflects the version number (we call it a *versioned branch*).
+For example, v3.0.0, v3.0.1, and v3.0.2 will be developed at the ``v3`` branch.
 
 **Notes for contributors:**
-When you send a pull request, you have to choose an appropriate branch.
-You basically only have to consider the ``master`` and ``dev`` branches.
-The following simple rule is enough to know the appropriate branch to send a pull request:
+When you send a pull request, you basically have to send it to the ``master`` branch.
+If the change can also be applied to the stable version, a core team member will apply the same change to the stable version so that the change is also included in the next revision update.
 
-- If the change does not add nor modify APIs and it can be applied to the stable version, choose the ``master`` branch.
-- Otherwise, choose the ``dev`` branch.
-
-For example, a change to fix a bug of the stable version should basically be sent to the ``master`` branch.
-A change to fix a bug caused by newly-introduced APIs in the development version should be sent to the ``dev`` branch.
-A change to introduce a new function/class, add a new argument to an existing function, and/or modify the existing arguments of a function should be sent to the ``dev`` branch.
+If the change is only applicable to the stable version and not to the ``master`` branch, please send it to the versioned branch.
+We basically only accept changes to the latest versioned branch (where the stable version is developed) unless the fix is critical.
 
 *Note: a change that can be applied to both branches should be sent to the* ``master`` *branch.*
 *Each release of the stable version is also merged to the development version so that the change is also reflected to the next major version.*
@@ -164,6 +155,7 @@ First of all, before starting to write any code, do not forget to confirm the fo
 
 - Read through the :ref:`coding-guide` and :ref:`testing-guide`.
 - Check the appropriate branch that you should send the PR following :ref:`contrib-git-branches`.
+  If you do not have any idea about selecting a branch, please choose the ``master`` branch.
 
 In particular, **check the branch before writing any code.**
 The current source tree of the chosen branch is the starting point of your change.
@@ -179,7 +171,7 @@ Note that this automatic PR test only includes CPU tests.
 
 .. note::
 
-   We are also running continuous integration with GPU tests for the ``master`` and ``dev`` branches.
+   We are also running continuous integration with GPU tests for the ``master`` branch and the versioned branch of the latest major version.
    Since this service is currently running on our internal server, we do not use it for automatic PR tests to keep the server secure.
 
 If you are planning to add a new feature or modify existing APIs, **it is recommended to open an issue and discuss the design first.**
