@@ -581,9 +581,8 @@ The next two lines compute numerical gradient using the same forward function wi
 And at last, we compare these two results elementwise.
 Note that the above test code can be easily modified to test GPU version just by replacing CPU arrays to GPU arrays.
 
-In most case, we do not write the code like the above explicitly because Chainer
-offers a utility function :func:`chainer.gradient_check.check_backward` that does
-follow this procedure.
+In most cases, we do not write the code like the above explicitly because Chainer
+offers a utility function :func:`chainer.gradient_check.check_backward` that follows this procedure.
 
 .. testcode::
 
