@@ -488,8 +488,9 @@ In order to make a convenient module, let's wrap it into a link:
        def __init__(self, in_size, out_size):
            super(Linear, self).__init__()
            with self.init_scope():
-               self.W = chainer.Parameter(initializers.Normal(1. / math.sqrt(in_size)),
-                                          (out_size, in_size))
+               self.W = chainer.Parameter(
+                   initializers.Normal(1. / math.sqrt(in_size)),
+                   (out_size, in_size))
                self.b = chainer.Parameter(0, (out_size,))
 
        def __call__(self, x):
