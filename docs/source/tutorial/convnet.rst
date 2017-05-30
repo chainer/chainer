@@ -47,16 +47,16 @@ digit images in 1998. In Chainer, the model can be written as follows:
 
     class LeNet5(Chain):
         def __init__(self):
-            super(LeNet5, self).__init__(
-                conv1=L.Convolution2D(
-                    in_channels=1, out_channels=6, ksize=5, stride=1),
-                conv2=L.Convolution2D(
-                    in_channels=6, out_channels=16, ksize=5, stride=1),
-                conv3=L.Convolution2D(
+            super(LeNet5, self).__init__()
+	    with self.init_scope():
+                self.conv1 = L.Convolution2D(
+                    in_channels=1, out_channels=6, ksize=5, stride=1)
+                self.conv2 = L.Convolution2D(
+                    in_channels=6, out_channels=16, ksize=5, stride=1)
+                self.conv3 = L.Convolution2D(
                     in_channels=16, out_channels=120, ksize=4, stride=1),
-                fc4=L.Linear(None, 84),
-                fc5=L.Linear(84, 10),
-            )
+                self.fc4 = L.Linear(None, 84)
+                self.fc5 = L.Linear(84, 10)
 
         def __call__(self, x):
             h = F.sigmoid(self.conv1(x))
@@ -72,26 +72,16 @@ digit images in 1998. In Chainer, the model can be written as follows:
 A typical way to write your network is creating a new class inherited from
 :class:`~chainer.Chain` class. When defining your model in this way, typically,
 all the layers which have trainable parameters are registered to the model
-by giving the objects of :class:`~chainer.Link` to the superclass's constructer
-as keyword arguments (see the above :meth:`__init__`).
+by assigning the objects of :class:`~chainer.Link` as an attribute.
 
-There is also another way to do the same thing. For example,
-:meth:`~chainer.Chain.add_link` of :class:`~chainer.Chain` class enables to
-register the trainable layers (i.e., :class:`~chainer.Link` s) to the model, so
-that the above :meth:`__init__` can also be written as follows:
+.. note::
 
-.. code-block:: python
+    In Chainer v1, there was also another way to do the same thing. Specifically,
+    :meth:`~chainer.Chain.add_link` of :class:`~chainer.Chain` class enabled to
+    register the trainable layers (i.e., :class:`~chainer.Link` s) to the model.
+    But as :meth:`~chainer.Chain.add_link` is deprecated in Chainer v2,
+    users are recommended to use the previous way.
 
-    def __init__(self):
-        super(LeNet5, self).__init__()
-        self.add_link('conv1', L.Convolution2D(1, 6, 5, 1))
-        self.add_link('conv2', L.Convolution2D(6, 16, 5, 1))
-        self.add_link('conv3', L.Convolution2D(16, 120, 4, 1))
-        self.add_link('fc4', L.Linear(None, 84))
-        self.add_link('fc5', L.Linear(84, 10))
-
-(Argments to :class:`~chainer.links.Convolution2D` are given without keywords
-here for simplicity.)
 
 The model class is instantiated before the forward and backward computations.
 To give input images and label vectors simply by calling the model object
@@ -140,9 +130,10 @@ can also write the model like in this way:
             net += [('_sigm4', F.Sigmoid())]
             net += [('fc5', L.Linear(84, 10))]
             net += [('_sigm5', F.Sigmoid())]
-            for n in net:
-                if not n[0].startswith('_'):
-                    self.add_link(*n)
+	    with self.init_scope():
+	        for n in net:
+                    if not n[0].startswith('_'):
+                        setattr(self, n[0], n[1])
             self.forward = net
 
         def __call__(self, x):
@@ -162,8 +153,7 @@ trainable layers when the name of an element doesn't start with ``_``
 character. This operation can be freely replaced with many other ways because
 those names are just designed to select :class:`~chainer.Link` s only from the
 list ``net`` easily. :class:`~chainer.Function` doesn't have any trainable
-parameters, so that we can't register it to the model with
-:meth:`~chainer.Chain.add_link`, but we want to use
+parameters, so that we can't register it to the model, but we want to use
 :class:`~chainer.Function` s for constructing a forward path. The list
 ``net`` is stored as an attribute attr:`forward` to refer it in
 :meth:`__call__`. In :meth:`__call__`, it retrieves all layers in the network
@@ -199,8 +189,8 @@ On the other hand, the loss computation can be included in the model itself by
 wrapping the model object (:class:`~chainer.Chain` or
 :class:`~chainer.ChainList` object) with a class inherited from
 :class:`~chainer.Chain`. The outer :class:`~chainer.Chain` should take the
-model defined above and register it through the constructor of its superclass
-or :meth:`~chainer.Chain.add_link`. :class:`~chainer.Chain` is actually
+model defined above and register it with :meth:`~chainer.Chain.init_scope`.
+:class:`~chainer.Chain` is actually
 inherited from :class:`~chainer.Link`, so that :class:`~chainer.Chain` itself
 can also be registedred as a trainable :class:`~chainer.Link` to another
 :class:`~chainer.Chain`. Actually, :class:`~chainer.links.Classifier` class to
@@ -261,17 +251,18 @@ useful. First, let's see how to write a VGG16 [Simonyan14]_ model.
     class VGGBlock(chainer.Chain):
         def __init__(self, n_channels, n_convs=2, fc=False):
             w = chainer.initializers.HeNormal()
-            super(VGGBlock, self).__init__(
-                conv1=L.Convolution2D(None, n_channels, 3, 1, 1, initialW=w),
-                conv2=L.Convolution2D(
-                    n_channels, n_channels, 3, 1, 1, initialW=w))
-            if n_convs == 3:
-                self.add_link('conv3', L.Convolution2D(
-                    n_channels, n_channels, 3, 1, 1, initialW=w))
-            if fc:
-                self.add_link('fc4', L.Linear(None, 4096, initialW=w))
-                self.add_link('fc5', L.Linear(4096, 4096, initialW=w))
-                self.add_link('fc6', L.Linear(4096, 1000, initialW=w))
+            super(VGGBlock, self).__init__()
+	    with self.init_scope():
+                self.conv1 = L.Convolution2D(None, n_channels, 3, 1, 1, initialW=w),
+                self.conv2 = L.Convolution2D(
+                    n_channels, n_channels, 3, 1, 1, initialW=w)
+                if n_convs == 3:
+                    self.conv3 = L.Convolution2D(
+                        n_channels, n_channels, 3, 1, 1, initialW=w)
+                if fc:
+                    self.fc4 = L.Linear(None, 4096, initialW=w)
+		    self.fc5 = L.Linear(4096, 4096, initialW=w)
+                    self.fc6 = L.Linear(4096, 1000, initialW=w)
 
             self.n_convs = n_convs
             self.fc = fc
@@ -355,20 +346,21 @@ In the other words, it's easy. One possible way to write ResNet-152 is:
     class BottleNeck(chainer.Chain):
         def __init__(self, n_in, n_mid, n_out, stride=1, proj=False):
             w = chainer.initializers.HeNormal()
-            super(BottleNeck, self).__init__(
-                conv1x1a=L.Convolution2D(
-                    n_in, n_mid, 1, stride, 0, initialW=w, nobias=True),
-                conv3x3b=L.Convolution2D(
-                    n_mid, n_mid, 3, 1, 1, initialW=w, nobias=True),
-                conv1x1c=L.Convolution2D(
-                    n_mid, n_out, 1, 1, 0, initialW=w, nobias=True),
-                bn_a=L.BatchNormalization(n_mid),
-                bn_b=L.BatchNormalization(n_mid),
-                bn_c=L.BatchNormalization(n_out))
-            if proj:
-                self.add_link('conv1x1r', L.Convolution2D(
-                    n_in, n_out, 1, stride, 0, initialW=w, nobias=True))
-                self.add_link('bn_r', L.BatchNormalization(n_out))
+            super(BottleNeck, self).__init__()
+	    with self.init_scope():
+	        self.conv1x1a = L.Convolution2D(
+                    n_in, n_mid, 1, stride, 0, initialW=w, nobias=True)
+                self.conv3x3b = L.Convolution2D(
+                    n_mid, n_mid, 3, 1, 1, initialW=w, nobias=True)
+                self.conv1x1c = L.Convolution2D(
+                    n_mid, n_out, 1, 1, 0, initialW=w, nobias=True)
+                self.bn_a = L.BatchNormalization(n_mid)
+                self.bn_b = L.BatchNormalization(n_mid)
+                self.bn_c = L.BatchNormalization(n_out)
+                if proj:
+                    self.conv1x1r = L.Convolution2D(
+                        n_in, n_out, 1, stride, 0, initialW=w, nobias=True)
+                    self.bn_r = L.BatchNormalization(n_out)
             self.proj = proj
 
         def __call__(self, x):
