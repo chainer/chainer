@@ -15,6 +15,7 @@ from chainer.testing import condition
 @testing.parameterize(*testing.product({
     'shape': [(3, 2), ()],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'inplace': [False, True],
 }))
 class TestReLU(unittest.TestCase):
 
@@ -31,7 +32,7 @@ class TestReLU(unittest.TestCase):
 
     def check_forward(self, x_data, use_cudnn=True):
         x = chainer.Variable(x_data)
-        y = functions.relu(x, use_cudnn)
+        y = functions.relu(x, use_cudnn, self.inplace)
         self.assertEqual(y.data.dtype, self.dtype)
 
         expected = self.x.copy()
@@ -58,7 +59,7 @@ class TestReLU(unittest.TestCase):
 
     def check_backward(self, x_data, y_grad, use_cudnn=True):
         gradient_check.check_backward(
-            functions.ReLU(use_cudnn), x_data, y_grad,
+            functions.ReLU(use_cudnn, self.inplace), x_data, y_grad,
             **self.check_backward_options)
 
     @condition.retry(3)
@@ -85,6 +86,7 @@ class TestReLU(unittest.TestCase):
 @testing.parameterize(*testing.product({
     'use_cudnn': [True, False],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'inplace': [False, True],
 }))
 @attr.cudnn
 class TestReLUCudnnCall(unittest.TestCase):
@@ -98,7 +100,8 @@ class TestReLUCudnnCall(unittest.TestCase):
 
     def forward(self):
         x = chainer.Variable(self.x)
-        return functions.relu(x, use_cudnn=self.use_cudnn)
+        return functions.relu(x, use_cudnn=self.use_cudnn,
+                              inplace=self.inplace)
 
     def test_call_cudnn_forward(self):
         default_func = cuda.cupy.cudnn.activation_forward

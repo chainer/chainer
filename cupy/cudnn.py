@@ -225,9 +225,15 @@ def _as4darray(arr):
         return arr.reshape(arr.shape[0], -1, 1, 1)
 
 
-def activation_forward(x, mode):
+def activation_forward(x, mode, out=None):
     x = cupy.ascontiguousarray(x)
-    y = cupy.empty_like(x)
+
+    if out is None:
+        y = cupy.empty_like(x)
+    else:
+        if not out.flags.c_contiguous:
+            raise ValueError('out must be c_contiguous')
+        y = out
 
     dtype = 'd' if x.dtype == 'd' else 'f'
     one = numpy.array(1, dtype=dtype).ctypes
@@ -250,11 +256,17 @@ def activation_forward(x, mode):
     return y
 
 
-def activation_backward(x, y, gy, mode):
+def activation_backward(x, y, gy, mode, out=None):
     x = cupy.ascontiguousarray(x)
     gy = cupy.ascontiguousarray(gy)
 
-    gx = cupy.empty_like(x)
+    if out is None:
+        gx = cupy.empty_like(x)
+    else:
+        if not out.flags.c_contiguous:
+            raise ValueError('out must be c_contiguous')
+        gx = out
+
     dtype = 'd' if x.dtype == 'd' else 'f'
     one = numpy.array(1, dtype=dtype).ctypes
     zero = numpy.array(0, dtype=dtype).ctypes
