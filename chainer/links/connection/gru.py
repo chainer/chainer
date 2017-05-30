@@ -12,23 +12,26 @@ class GRUBase(link.Chain):
 
     def __init__(self, in_size, out_size, init=None,
                  inner_init=None, bias_init=None):
-        super(GRUBase, self).__init__(
-            W_r=linear.Linear(in_size, out_size,
-                              initialW=init, initial_bias=bias_init),
-            U_r=linear.Linear(out_size, out_size,
-                              initialW=inner_init, initial_bias=bias_init),
-            W_z=linear.Linear(in_size, out_size,
-                              initialW=init, initial_bias=bias_init),
-            U_z=linear.Linear(out_size, out_size,
-                              initialW=inner_init, initial_bias=bias_init),
-            W=linear.Linear(in_size, out_size,
-                            initialW=init, initial_bias=bias_init),
-            U=linear.Linear(out_size, out_size,
-                            initialW=inner_init, initial_bias=bias_init),
-        )
+        super(GRUBase, self).__init__()
+        with self.init_scope():
+            self.W_r = linear.Linear(
+                in_size, out_size, initialW=init, initial_bias=bias_init)
+            self.U_r = linear.Linear(
+                out_size, out_size, initialW=inner_init,
+                initial_bias=bias_init)
+            self.W_z = linear.Linear(
+                in_size, out_size, initialW=init, initial_bias=bias_init)
+            self.U_z = linear.Linear(
+                out_size, out_size, initialW=inner_init,
+                initial_bias=bias_init)
+            self.W = linear.Linear(
+                in_size, out_size, initialW=init, initial_bias=bias_init)
+            self.U = linear.Linear(
+                out_size, out_size, initialW=inner_init,
+                initial_bias=bias_init)
 
 
-class GRU(GRUBase):
+class StatelessGRU(GRUBase):
 
     """Stateless Gated Recurrent Unit function (GRU).
 
@@ -177,3 +180,49 @@ class StatefulGRU(GRUBase):
             h_new = z * h_bar
         self.h = h_new
         return self.h
+
+
+class GRU(StatefulGRU):
+    """Stateful Gated Recurrent Unit function (GRU)
+
+    This is an alias of "~chainer.links.StatefulGRU".
+    Its documented API is identical to the function.
+
+    .. warning::
+
+       In Chainer v1, :class:`~chainer.links.GRU` was *stateless*,
+       as opposed to the current implementation.
+       To align with the naming convension of LSTM links, we have changed
+       the naming convension from Chainer v2 so that the shorthand name
+       points the stateful links.
+       You can use :class:`~chainer.links.StatelessGRU` for stateless version,
+       whose implementation is identical to ``chainer.linksGRU`` in v1.
+
+       See issue `#2537 <https://github.com/pfnet/chainer/issues/2537>_`
+       for detail.
+
+    .. seealso:: :class:`~chainer.links.GRU`
+
+    """
+
+    def __call__(self, *args):
+        """__call__(self, x)
+
+        Does forward propagation.
+
+        """
+
+        n_args = len(args)
+        msg = ("Invalid argument. The length of GRU.__call__ must be 1. "
+               "But %d is given. " % n_args)
+
+        if n_args == 0 or n_args >= 3:
+            raise ValueError(msg)
+        elif n_args == 2:
+            msg += ("In Chainer v2, chainer.links.GRU is changed "
+                    "from stateless to stateful. "
+                    "One possiblity is you assume GRU to be stateless. "
+                    "Use chainer.links.StatelessGRU instead.")
+            raise ValueError(msg)
+
+        return super(GRU, self).__call__(args[0])
