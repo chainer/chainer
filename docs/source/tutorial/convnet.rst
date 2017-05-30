@@ -107,16 +107,16 @@ forward computation has a :meth:`~chainer.Variable.backward` method to perform
 autograd. In the above model, :meth:`__call__` has a ``if`` statement at the
 end to switch its behavior by the Chainer's running mode, i.e., training mode or
 not. Chainer presents the running mode as a global variable `chainer.config.train`.
-When it's in training mode, this method returns the output value of the
+When it's in training mode, :meth:`__call__` returns the output value of the
 last layer as is to compute the loss later on, otherwise it returns a
 prediction result by calculating :meth:`~chainer.functions.softmax`.
 
 .. note::
 
-  In Chainer v1, if a function or link behaves differently in
-  training and other modes, it is common that it holds an attribute
-  that represents its running mode or is provided with the mode
-  form outside as an argument. In Chainer v2, it is recommended to use
+  In Chainer v1, if a function or link behaved differently in
+  training and other modes, it was common that it held an attribute
+  that represented its running mode or was provided with the mode
+  from outside as an argument. In Chainer v2, it is recommended to use
   the global configuration `chainer.config.train` to switch the running mode.
 
 If you don't want to write ``conv1`` and the other layers more than once, you

@@ -447,37 +447,12 @@ It can be defined as follows:
 
    class EltwiseParamProduct(Link):
        def __init__(self, shape):
-           # By passing a shape of the parameter, the initializer allocates a
-           # parameter variable of the shape.
-           super(EltwiseParamProduct, self).__init__(W=shape)
-           self.W.data[...] = np.random.randn(*shape)
-
-       def __call__(self, x):
-           return self.W * x
-
-.. testcode::
-   :hide:
-
-   x = Variable(np.random.uniform(-1, 1, (3, 2)).astype(np.float32))
-   f = EltwiseParamProduct((3, 2))
-   y = f(x)
-   y.grad = np.random.uniform(-1, 1, (3, 2)).astype(np.float32)
-   y.backward()
-
-We can also initialize the parameter after the initialization by the :meth:`Link.add_param` method.
-
-.. testcode::
-
-   class EltwiseParamProduct(Link):
-       def __init__(self, shape):
            super(EltwiseParamProduct, self).__init__()
-           self.add_param('W', shape, initializers.Normal(scale=1.))
+           with self.init_scope():
+               self.W = chainer.Parameter(initializers.Normal(scale=1.), shape)
 
        def __call__(self, x):
            return self.W * x
-
-Note that the initializer and the :meth:`~Link.add_param` method does not initialize elements of the parameter array.
-We have to manually initialize the elements by random values, zeros, etc.
 
 For another example, assume we want to define a simple linear layer.
 It is already defined as :class:`~chainer.links.Linear`, so this is an educational example.
@@ -512,9 +487,10 @@ In order to make a convenient module, let's wrap it into a link:
    class Linear(Link):
        def __init__(self, in_size, out_size):
            super(Linear, self).__init__()
-           self.add_param('W', (out_size, in_size),
-                          initializers.Normal(1. / math.sqrt(in_size)))
-           self.add_param('b', (out_size,), initializers.Constant(0))
+           with self.init_scope():
+               self.W = chainer.Parameter(initializers.Normal(1. / math.sqrt(in_size)),
+                                          (out_size, in_size))
+               self.b = chainer.Parameter(0, (out_size,))
 
        def __call__(self, x):
            return linear(x, self.W, self.b)

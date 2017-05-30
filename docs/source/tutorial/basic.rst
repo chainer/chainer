@@ -180,7 +180,7 @@ An instance of the Linear link acts like a usual function:
 
 .. note::
 
-  Sometimes it is cumbersome to compute the dimension of input space.
+  Sometimes it is cumbersome to compute the dimension of the input space.
   The linear link and some of (de)convolution links can omit the input dimension
   in their instantiation and infer it from the first mini-batch.
 
@@ -190,7 +190,7 @@ An instance of the Linear link acts like a usual function:
       f = L.Linear(2)
 
   If we feed a mini-batch of shape ``(N, M)``, the input dimension will be inferred as ``M``,
-  which means ``f.W`` is a 2 x M matrix.
+  which means ``f.W`` will be a 2 x M matrix.
   Note that its parameters are initialized in a lazy manner at the first mini-batch.
   Therefore, ``f`` does not have ``W`` attribute if no data is put to the link.
 
