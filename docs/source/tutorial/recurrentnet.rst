@@ -61,11 +61,11 @@ Based on this LSTM link, let's write our recurrent network as a new chain:
 
    class RNN(Chain):
        def __init__(self):
-           super(RNN, self).__init__(
-               embed=L.EmbedID(1000, 100),  # word embedding
-               mid=L.LSTM(100, 50),  # the first LSTM layer
-               out=L.Linear(50, 1000),  # the feed-forward output layer
-           )
+           super(RNN, self).__init__()
+           with self.init_scope():
+               self.embed = L.EmbedID(1000, 100)  # word embedding
+               self.mid = L.LSTM(100, 50)  # the first LSTM layer
+               self.out = L.Linear(50, 1000)  # the feed-forward output layer
 
        def reset_state(self):
            self.mid.reset_state()

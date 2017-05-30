@@ -74,15 +74,6 @@ A typical way to write your network is creating a new class inherited from
 all the layers which have trainable parameters are registered to the model
 by assigning the objects of :class:`~chainer.Link` as an attribute.
 
-.. note::
-
-    In Chainer v1, there was also another way to do the same thing. Specifically,
-    :meth:`~chainer.Chain.add_link` of :class:`~chainer.Chain` class enabled to
-    register the trainable layers (i.e., :class:`~chainer.Link` s) to the model.
-    But as :meth:`~chainer.Chain.add_link` is deprecated in Chainer v2,
-    users are recommended to use the previous way.
-
-
 The model class is instantiated before the forward and backward computations.
 To give input images and label vectors simply by calling the model object
 like a function, :meth:`__call__` is usually defined in the model class.

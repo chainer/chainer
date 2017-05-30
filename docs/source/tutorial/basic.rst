@@ -258,23 +258,33 @@ Then, what we have to do here is just define the above class as a subclass of Ch
 
    >>> class MyChain(Chain):
    ...     def __init__(self):
-   ...         super(MyChain, self).__init__(
-   ...             l1=L.Linear(4, 3),
-   ...             l2=L.Linear(3, 2),
-   ...         )
+   ...         super(MyChain, self).__init__()
+   ...         with self.init_scope():
+   ...             self.l1 = L.Linear(4, 3)
+   ...             self.l2 = L.Linear(3, 2)
    ...
    ...     def __call__(self, x):
    ...         h = self.l1(x)
    ...         return self.l2(h)
 
-.. note::
-   We often define a single forward method of a link by ``__call__`` operator.
-   Such links and chains are callable and behave like regular functions of Variables.
-
 It shows how a complex chain is constructed by simpler links.
 Links like ``l1`` and ``l2`` are called *child links* of MyChain.
 **Note that Chain itself inherits Link**.
 It means we can define more complex chains that hold MyChain objects as their child links.
+
+.. note::
+
+   We often define a single forward method of a link by ``__call__`` operator.
+   Such links and chains are callable and behave like regular functions of Variables.
+
+.. note::
+
+    In Chainer v1, we could also register the trainable layers
+    (i.e., :class:`~chainer.Link` s) to the model by putting them to the
+    :meth:`~chainer.Chain.__init__` of :class:`~chainer.Chain`
+    or registering them via :meth:`~chainer.Chain.add_link`.
+    But as these ways are deprecated in Chainer v2, users are recommended
+    to use the way explained above.
 
 Another way to define a chain is using the :class:`ChainList` class, which behaves like a list of links:
 
@@ -483,12 +493,12 @@ We use a simple three-layer rectifier network with 100 units per layer as an exa
 
    >>> class MLP(Chain):
    ...     def __init__(self, n_units, n_out):
-   ...         super(MLP, self).__init__(
+   ...         super(MLP, self).__init__()
+   ...         with self.init_scope():
    ...             # the size of the inputs to each layer will be inferred
-   ...             l1=L.Linear(None, n_units),  # n_in -> n_units
-   ...             l2=L.Linear(None, n_units),  # n_units -> n_units
-   ...             l3=L.Linear(None, n_out),    # n_units -> n_out
-   ...         )
+   ...             self.l1 = L.Linear(None, n_units)  # n_in -> n_units
+   ...             self.l2 = L.Linear(None, n_units)  # n_units -> n_units
+   ...             self.l3 = L.Linear(None, n_out)    # n_units -> n_out
    ...
    ...     def __call__(self, x):
    ...         h1 = F.relu(self.l1(x))
@@ -505,7 +515,9 @@ In order to compute loss values or evaluate the accuracy of the predictions, we 
 
    >>> class Classifier(Chain):
    ...     def __init__(self, predictor):
-   ...         super(Classifier, self).__init__(predictor=predictor)
+   ...         super(Classifier, self).__init__()
+   ...         with self.init_scope():
+   ...             self.predictor = predictor
    ...
    ...     def __call__(self, x, t):
    ...         y = self.predictor(x)

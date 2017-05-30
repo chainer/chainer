@@ -161,11 +161,11 @@ A :class:`Link` object can be transferred to the specified GPU using the :meth:`
 
    class MLP(Chain):
        def __init__(self, n_units, n_out):
-           super(MLP, self).__init__(
-               l1=L.Linear(None, n_units),
-               l2=L.Linear(None, n_units),
-               l3=L.Linear(None, n_out),
-           )
+           super(MLP, self).__init__()
+           with self.init_scope():
+               self.l1 = L.Linear(None, n_units)
+               self.l2 = L.Linear(None, n_units)
+               self.l3 = L.Linear(None, n_out)
 
        def __call__(self, x):
            h1 = F.relu(self.l1(x))
