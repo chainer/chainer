@@ -564,8 +564,8 @@ This is a test example of :func:`functions.relu` function
 
            def f():
                return F.relu(x).data,
-           gx, = gradient_check.numerical_grad(f, (x.data,), (y.grad,))
 
+           gx, = gradient_check.numerical_grad(f, (x.data,), (y.grad,))
            testing.assert_allclose(gx, x.grad)
 
 
