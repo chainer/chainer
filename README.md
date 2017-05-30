@@ -20,6 +20,9 @@ It provides automatic differentiation APIs based on the **define-by-run** approa
 It also supports CUDA/cuDNN using [CuPy](https://github.com/cupy/cupy) for high performance training and inference.
 For more details of Chainer, see the documents and resources listed above and join the community in Forum, Slack, and Twitter.
 
+## Stable version
+
+The stable version of current Chainer is separated in here: [v2](https://github.com/pfnet/chainer/tree/v2).
 
 ## Installation
 
