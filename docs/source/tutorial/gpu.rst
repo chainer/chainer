@@ -49,9 +49,7 @@ Chainer changes the default allocator of CuPy to the memory pool, so user can us
 Basics of :class:`cupy.ndarray`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. note::
-
-   CuPy does not require explicit initialization, so ``cuda.init()`` function is deprecated.
+See `the document of CuPy <http://docs.cupy.chainer.org/en/latest/>`_ for the basic usage of :class:`cupy.ndarray`
 
 CuPy is a GPU array backend that implements a subset of NumPy interface.
 The :class:`cupy.ndarray` class is in its core, which is a compatible GPU alternative of :class:`numpy.ndarray`.
@@ -163,11 +161,11 @@ A :class:`Link` object can be transferred to the specified GPU using the :meth:`
 
    class MLP(Chain):
        def __init__(self, n_units, n_out):
-           super(MLP, self).__init__(
-               l1=L.Linear(None, n_units),
-               l2=L.Linear(None, n_units),
-               l3=L.Linear(None, n_out),
-           )
+           super(MLP, self).__init__()
+           with self.init_scope():
+               self.l1 = L.Linear(None, n_units)
+               self.l2 = L.Linear(None, n_units)
+               self.l3 = L.Linear(None, n_out)
 
        def __call__(self, x):
            h1 = F.relu(self.l1(x))
