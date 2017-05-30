@@ -18,7 +18,7 @@ def dump_graph(root_name, out_name='cg.dot',
 
     It only dumps a graph at the first iteration by default.
 
-    Args:0
+    Args:
         root_name (str): Name of the root of the computational graph. The
             root variable is retrieved by this name from the observation
             dictionary of the trainer.

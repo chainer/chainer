@@ -48,7 +48,7 @@ In most cases, what you have to do is just removing the ``train`` / ``test`` arg
    Consider the following model definition and the code to call it in test mode written for Chainer v1.
 
    .. code-block:: py
-p
+
       # Chainer v1
       import chainer.functions as F
 

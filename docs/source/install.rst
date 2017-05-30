@@ -3,9 +3,6 @@
 Installation Guide
 ==================
 
-Install Guide
-=============
-
 Recommended Environments
 ------------------------
 
