@@ -1,0 +1,6 @@
+#ifndef INCLUDE_GUARD_CUPY_CUSPARSE_H
+#define INCLUDE_GUARD_CUPY_CUSPARSE_H
+
+#include <cusparse.h>
+
+#endif  // INCLUDE_GUARD_CUPY_CUSPARSE_H

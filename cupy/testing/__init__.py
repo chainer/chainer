@@ -12,6 +12,7 @@ assert_array_list_equal = array.assert_array_list_equal
 assert_array_less = array.assert_array_less
 
 numpy_cupy_allclose = helper.numpy_cupy_allclose
+scipy_cupy_allclose = helper.scipy_cupy_allclose
 numpy_cupy_array_almost_equal = helper.numpy_cupy_array_almost_equal
 numpy_cupy_array_almost_equal_nulp = \
     helper.numpy_cupy_array_almost_equal_nulp
