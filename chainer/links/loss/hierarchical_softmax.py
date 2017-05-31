@@ -1,8 +1,7 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 import copy
 
+from collections import defaultdict
 import numpy
 import six
 
@@ -39,8 +38,7 @@ class TreeParser(object):
         self.code = []
         self.paths = {}
         self.codes = {}
-        self.parent2child = {}
-        self.parent_index = None
+        self.parent2child = defaultdict(list)
         self._parse(tree)
 
         assert(len(self.path) == 0)
@@ -54,22 +52,18 @@ class TreeParser(object):
                 raise ValueError(
                     'All internal nodes must have two child nodes')
             left, right = node
-            if self.parent_index is not None:
-                lst = self.parent2child.get(self.parent_index, []) + [LEAF]
-                self.parent2child[self.parent_index] = lst
 
-            left_is_leaf = not isinstance(left, tuple)
-            right_is_leaf = not isinstance(right, tuple)
-            flag = left_is_leaf and not right_is_leaf
-            self.parent_index = self.next_id if flag else None
+            left_node_is_leaf = isinstance(left, int)
+            if left_node_is_leaf:
+                self.parent2child[self.next_id] += [LEAF]
+
             self.path.append(self.next_id)
 
             if len(self.path) >= 2:
                 # Add {parent_node => child_node} into dictironary.
-                # this dictionary will be used in sampling step.
+                # This dictionary will be used in sampling step.
                 parent_node_id, child_node_id = self.path[-2:]
-                lst = self.parent2child.get(parent_node_id, [])+[child_node_id]
-                self.parent2child[parent_node_id] = lst
+                self.parent2child[parent_node_id] += [child_node_id]
 
             self.next_id += 1
             self.code.append(1.0)
@@ -112,9 +106,9 @@ class BinaryHierarchicalSoftmaxFunction(function.Function):
         n_vocab = max(paths.keys()) + 1
         self.n_vocab = n_vocab
         self.paths = numpy.concatenate(
-            [paths[i] for i in range(n_vocab) if i in paths])
+            [paths[i] for i in six.moves.range(n_vocab) if i in paths])
         self.codes = numpy.concatenate(
-            [codes[i] for i in range(n_vocab) if i in codes])
+            [codes[i] for i in six.moves.range(n_vocab) if i in codes])
 
         def _convert(x):
             if len(x) == 1:
@@ -128,12 +122,13 @@ class BinaryHierarchicalSoftmaxFunction(function.Function):
             else:
                 return [LEAF, LEAF]
 
-        self.parent2child = numpy.array([_convert_func(parent2child, i) for i
-                                         in range(n_vocab+2)])
+        parent2child = [_convert_func(parent2child, i) for i in
+                        six.moves.range(n_vocab+2)]
+        self.parent2child = numpy.array(parent2child, dtype=numpy.int32)
 
         begins = numpy.empty((n_vocab + 1,), dtype=numpy.int32)
         begins[0] = 0
-        for i in range(0, n_vocab):
+        for i in six.moves.range(0, n_vocab):
             length = len(paths[i]) if i in paths else 0
             begins[i + 1] = begins[i] + length
         self.begins = begins
@@ -410,9 +405,9 @@ class BinaryHierarchicalSoftmax(link.Link):
             raise ValueError('Empty tree')
 
         xp = self.xp
-        parent2child = xp.array(self._func.parent2child).astype('i')
+        parent2child = self._func.parent2child
         batchsize = x.data.shape[0]
-        start_ids = xp.zeros((batchsize, )).astype('i')
+        start_ids = xp.zeros(batchsize, 'i')
         _lst_next_ids = []
         _lst_choose_ids = []
 
@@ -424,15 +419,13 @@ class BinaryHierarchicalSoftmax(link.Link):
             w = self.W.data[start_ids]
             x_t = xp.transpose(x.data)
             score = xp.sum(xp.dot(w, x_t), axis=1)
-            prob_left = _sigmoid(score)
-            prob_left = xp.reshape(prob_left, (batchsize, 1))
-            prob_right = xp.ones(prob_left.shape) - prob_left
+            prob_left = _sigmoid(score)[:, None]
+            prob_right = xp.ones_like(prob_left) - prob_left
             prob = xp.concatenate([prob_left, prob_right], axis=1)
 
             choosed_idx = xp.argmax(xp.random.gumbel(size=prob.shape) + prob,
                                     axis=1)
-            rows = six.moves.range(batchsize)
-            rows = xp.array(rows)
+            rows = xp.arange(batchsize, dtype=xp.int32)
             columns = choosed_idx
 
             nodes_ids = parent2child[start_ids]
