@@ -45,6 +45,11 @@ snapshot_object
 ---------------
 .. autofunction:: snapshot_object
 
+ParameterStatistics
+-------------------
+.. autoclass:: ParameterStatistics
+   :members:
+
 PlotReport
 ----------
 .. autoclass:: PlotReport
