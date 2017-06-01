@@ -3,6 +3,7 @@ import itertools
 import numpy
 import six
 
+import chainer
 from chainer import cuda
 from chainer.functions.activation import lstm
 from chainer.functions.array import concat
@@ -14,33 +15,33 @@ from chainer.functions.connection import n_step_rnn
 from chainer.functions.connection.n_step_rnn import _stack_weight
 from chainer.functions.connection.n_step_rnn import get_random_state
 from chainer.functions.noise import dropout
+from chainer.utils import argument
+
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
     libcudnn = cuda.cudnn.cudnn
-    _cudnn_version = libcudnn.getVersion()
 
 
 class NStepLSTM(n_step_rnn.BaseNStepRNN):
 
-    def __init__(self, n_layers, states, train=True):
+    def __init__(self, n_layers, states):
         n_step_rnn.BaseNStepRNN.__init__(self, n_layers, states,
-                                         rnn_dir='uni', rnn_mode='lstm',
-                                         train=train)
+                                         rnn_dir='uni', rnn_mode='lstm')
 
 
 class NStepBiLSTM(n_step_rnn.BaseNStepRNN):
 
-    def __init__(self, n_layers, states, train=True):
+    def __init__(self, n_layers, states):
         n_step_rnn.BaseNStepRNN.__init__(self, n_layers, states,
-                                         rnn_dir='bi', rnn_mode='lstm',
-                                         train=train)
+                                         rnn_dir='bi', rnn_mode='lstm')
 
 
 def n_step_lstm(
-        n_layers, dropout_ratio, hx, cx, ws, bs, xs, train=True,
-        use_cudnn=True):
-    """Stacked Uni-directional Long Short-Term Memory function.
+        n_layers, dropout_ratio, hx, cx, ws, bs, xs, **kwargs):
+    """n_step_lstm(n_layers, dropout_ratio, hx, cx, ws, bs, xs)
+
+    Stacked Uni-directional Long Short-Term Memory function.
 
     This function calculates stacked Uni-directional LSTM with sequences.
     This function gets an initial hidden state :math:`h_0`, an initial cell
@@ -66,6 +67,14 @@ def n_step_lstm(
     of ``k``-th layer is hidden state ``h_t`` of ``k-1``-th layer.
     Note that all input variables except first layer may have different shape
     from the first layer.
+
+    .. warning::
+
+       ``train`` and ``use_cudnn`` arguments are not supported anymore since
+       v2.
+       Instead, use ``chainer.using_config('train', train)`` and
+       ``chainer.using_config('use_cudnn', use_cudnn)`` respectively.
+       See :func:`chainer.using_config`.
 
     Args:
         n_layers(int): Number of layers.
@@ -100,12 +109,11 @@ def n_step_lstm(
             of :func:`~chainer.Variable` holding sequence.
             So ``xs`` needs to satisfy
             ``xs[t].shape[0] >= xs[t + 1].shape[0]``.
-        train (bool): If ``True``, this function executes dropout.
-        use_cudnn (bool): If ``True``, this function uses cuDNN if available.
 
     Returns:
         tuple: This functions returns a tuple concaining three elements,
             ``hy``, ``cy`` and ``ys``.
+
             - ``hy`` is an updated hidden states whose shape is same as ``hx``.
             - ``cy`` is an updated cell states whose shape is same as ``cx``.
             - ``ys`` is a list of :class:`~chainer.Variable` . Each element
@@ -120,14 +128,15 @@ def n_step_lstm(
 
     """
 
-    return n_step_lstm_base(n_layers, dropout_ratio, hx, cx, ws, bs, xs, train,
-                            use_cudnn, use_bi_direction=False)
+    return n_step_lstm_base(n_layers, dropout_ratio, hx, cx, ws, bs, xs,
+                            use_bi_direction=False, **kwargs)
 
 
 def n_step_bilstm(
-        n_layers, dropout_ratio, hx, cx, ws, bs, xs, train=True,
-        use_cudnn=True):
-    """Stacked Bi-directional Long Short-Term Memory function.
+        n_layers, dropout_ratio, hx, cx, ws, bs, xs, **kwargs):
+    """n_step_bilstm(n_layers, dropout_ratio, hx, cx, ws, bs, xs)
+
+    Stacked Bi-directional Long Short-Term Memory function.
 
     This function calculates stacked Bi-directional LSTM with sequences.
     This function gets an initial hidden state :math:`h_0`, an initial cell
@@ -174,6 +183,14 @@ def n_step_bilstm(
     Note that all input variables except first layer may have different shape
     from the first layer.
 
+    .. warning::
+
+       ``train`` and ``use_cudnn`` arguments are not supported anymore since
+       v2.
+       Instead, use ``chainer.using_config('train', train)`` and
+       ``chainer.using_config('use_cudnn', use_cudnn)`` respectively.
+       See :func:`chainer.using_config`.
+
     Args:
         n_layers(int): Number of layers.
         dropout_ratio(float): Dropout ratio.
@@ -207,12 +224,11 @@ def n_step_bilstm(
             of :func:`~chainer.Variable` holding sequence.
             So ``xs`` needs to satisfy
             ``xs[t].shape[0] >= xs[t + 1].shape[0]``.
-        train (bool): If ``True``, this function executes dropout.
-        use_cudnn (bool): If ``True``, this function uses cuDNN if available.
 
     Returns:
         tuple: This functions returns a tuple concaining three elements,
             ``hy``, ``cy`` and ``ys``.
+
             - ``hy`` is an updated hidden states whose shape is same as ``hx``.
             - ``cy`` is an updated cell states whose shape is same as ``cx``.
             - ``ys`` is a list of :class:`~chainer.Variable` . Each element
@@ -222,13 +238,13 @@ def n_step_bilstm(
               units. Note that ``B_t`` is the same value as ``xs[t]``.
 
     """
-    return n_step_lstm_base(n_layers, dropout_ratio, hx, cx, ws, bs, xs, train,
-                            use_cudnn, use_bi_direction=True)
+    return n_step_lstm_base(n_layers, dropout_ratio, hx, cx, ws, bs, xs,
+                            use_bi_direction=True, **kwargs)
 
 
 def n_step_lstm_base(
-        n_layers, dropout_ratio, hx, cx, ws, bs, xs, train, use_cudnn,
-        use_bi_direction):
+        n_layers, dropout_ratio, hx, cx, ws, bs, xs, use_bi_direction,
+        **kwargs):
     """Base function for Stack LSTM/BiLSTM functions.
 
     This function is used at :func:`chainer.functions.n_step_lstm` and
@@ -269,14 +285,13 @@ def n_step_lstm_base(
             of :func:`~chainer.Variable` holding sequence.
             So ``xs`` needs to satisfy
             ``xs[t].shape[0] >= xs[t + 1].shape[0]``.
-        train (bool): If ``True``, this function executes dropout.
-        use_cudnn (bool): If ``True``, this function uses cuDNN if available.
         use_bi_direction (bool): If ``True``, this function uses Bi-directional
             LSTM.
 
     Returns:
         tuple: This functions returns a tuple concaining three elements,
             ``hy``, ``cy`` and ``ys``.
+
             - ``hy`` is an updated hidden states whose shape is same as ``hx``.
             - ``cy`` is an updated cell states whose shape is same as ``cx``.
             - ``ys`` is a list of :class:`~chainer.Variable` . Each element
@@ -292,10 +307,16 @@ def n_step_lstm_base(
 
     """
 
+    argument.check_unexpected_kwargs(
+        kwargs, train='train argument is not supported anymore. '
+        'Use chainer.using_config',
+        use_cudnn='use_cudnn argument is not supported anymore. '
+        'Use chainer.using_config')
+    argument.assert_kwargs_empty(kwargs)
+
     xp = cuda.get_array_module(hx, hx.data)
 
-    if use_cudnn and xp is not numpy and cuda.cudnn_enabled and \
-       _cudnn_version >= 5000:
+    if xp is not numpy and chainer.should_use_cudnn('>=auto', 5000):
         states = get_random_state().create_dropout_states(dropout_ratio)
         # flatten all input variables
         inputs = tuple(itertools.chain(
@@ -304,9 +325,9 @@ def n_step_lstm_base(
             itertools.chain.from_iterable(bs),
             xs))
         if use_bi_direction:
-            rnn = NStepBiLSTM(n_layers, states, train=train)
+            rnn = NStepBiLSTM(n_layers, states)
         else:
-            rnn = NStepLSTM(n_layers, states, train=train)
+            rnn = NStepLSTM(n_layers, states)
 
         ret = rnn(*inputs)
         hy, cy = ret[:2]
@@ -353,8 +374,7 @@ def n_step_lstm_base(
                         c_rest = None
 
                     if layer != 0:
-                        x = dropout.dropout(x, ratio=dropout_ratio,
-                                            train=train)
+                        x = dropout.dropout(x, ratio=dropout_ratio)
                     lstm_in = linear.linear(x, xws[layer_idx],
                                             xbs[layer_idx]) + \
                         linear.linear(h, hws[layer_idx], hbs[layer_idx])

@@ -53,11 +53,3 @@ Concrete initializers
 
 .. autoclass:: HeUniform
   :members:
-
-
-.. module:: chainer
-
-Helper function
----------------
-
-.. autofunction:: init_weight

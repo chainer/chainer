@@ -1,70 +1,50 @@
 import collections
-import contextlib
-import os
-import threading
 import traceback
 import weakref
 
 import six
 
 import chainer
+from chainer import configuration
 from chainer import cuda
-from chainer import flag
 from chainer.utils import type_check
 from chainer import variable
 
 
-_thread_local = threading.local()
-
-
-@contextlib.contextmanager
 def no_backprop_mode():
-    """Disable back-propagation for Variable whose volatile is auto.
+    """Make a context manager which disables back-propagation.
 
-    In the default setting a :class:`~chainer.Variable` object whose
-    ``volatile`` attribute is ``'auto'`` behaves like a **non-volatile**
-    variable. That means such a :class:`~chainer.Variable` object builds a
-    computational graph, consumes memory to store the graph, and you can
-    execute back-propagation for it. With this context such a
-    :class:`~chainer.Variable` object behaves like a **volatile** variable.
-    So, you can easily switch training and evaluation.
+    In this context, Chainer does not make a computational graph.
+    :class:`~chainer.Variable` created in this context does not have
+    reference to the :class:`~chainer.Function` which created the variable.
+    So, you cannot compute gradient with :func:`~chainer.Variable.backward`.
+    Instead memory consumption is reduced.
 
-    In this example, the volatility of ``x`` and ``y`` is ``'auto'``. So, ``y``
-    does not have a computational graph.
+    In this example, ``y`` is created in this context. So you cannot call
+    :func:`~chianer.Variable.backward`.
 
-    >>> x = chainer.Variable(numpy.array([1,], 'f'), volatile='auto')
+    >>> x = chainer.Variable(numpy.array([1,], 'f'))
     >>> with chainer.no_backprop_mode():
     ...    y = x + 1
 
     """
-    default = getattr(_thread_local, 'default_backprop', True)
-    _thread_local.default_backprop = False
-    yield
-    _thread_local.default_backprop = default
+    return configuration.using_config('enable_backprop', False)
 
 
-@contextlib.contextmanager
 def force_backprop_mode():
-    """Enable back-propagation for Variable whose volatile is auto.
+    """Make a context manager which enables back-propagation.
 
     When you want to enable back-propagation in :func:`no_backprop_mode`,
-    call this method. In this context, :class:`~chainer.Variable` object
-    whose ``volatile`` attribute is ``'auto'`` behaves like a **volatile**
-    variable. That means you can disable :func:`no_backprop_mode` in this
-    context.
-
+    call this method. :~chainer.Variable: created in this context always has
+    a computational graph.
     If you call this method outside of :func:`no_backprop_mode` context, it
-    changes nothing. :class:`~chainer.Variable` object with ``volatile='auto'``
-    behaves like a volatile variable by default.
+    changes nothing.
 
-    In this example, the volatility of ``x`` and ``y`` is ``'auto'``. In
-    :func:`no_backprop_mode` context, ``y`` does not have a computational graph
-    but in :func:`force_backprop_mode` it has a graph.
+    In this example, ``y`` has a computational graph and ``y.backward``
+    computes gradients of variables in the graph.
 
     >>> with chainer.no_backprop_mode():
-    ...   # Variable with volatile='auto' behaves like volatile='on'
     ...   with chainer.force_backprop_mode():
-    ...     # Variable with volatile='auto' behaves like volatile='off'
     ...     y = x + 1
 
     .. seealso::
@@ -72,10 +52,7 @@ def force_backprop_mode():
        See :func:`no_backprop_mode` for details of back-prop mode.
 
     """
-    default = getattr(_thread_local, 'default_backprop', True)
-    _thread_local.default_backprop = True
-    yield
-    _thread_local.default_backprop = default
+    return configuration.using_config('enable_backprop', True)
 
 
 class Function(object):
@@ -89,7 +66,15 @@ class Function(object):
     a backward graph. When a function is applied to :class:`Variable` objects,
     its :meth:`forward` method is called on :data:`~Variable.data` fields of
     input variables, and at the same time it chains references from output
-    variables to the function and from the function to its inputs.
+    variable nodes to the function and from the function to its input nodes.
+
+    .. note::
+       As of v2.0, the input/output variables and their corresponding variable
+       nodes in the graph are distinguished. Function acts like a function on
+       :class:`Variable` objects that returns :class:`Variable` objects as
+       outputs, whereas these objects do not appear directly in the graph.
+       Instead, their corresponding :class:`VariableNode` objects are inserted
+       to the graph.
 
     .. note::
        As of v1.5, a function instance cannot be used twice in any
@@ -104,7 +89,6 @@ class Function(object):
 
     .. admonition:: Example
 
-
        Let ``x`` an instance of :class:`Variable` and ``f`` an instance of
        :class:`Function` taking only one argument. Then a line
 
@@ -116,7 +100,7 @@ class Function(object):
        computes a new variable ``y`` and creates backward references. Actually,
        backward references are set as per the following diagram::
 
-           x <--- f <--- y
+           x.node <--- f <--- y.node
 
        If an application of another function ``g`` occurs as
 
@@ -125,9 +109,9 @@ class Function(object):
 
        then the graph grows with a branch::
 
-               |--- f <--- y
-           x <-+
-               |--- g <--- z
+                    |--- f <--- y.node
+           x.node <-+
+                    |--- g <--- z.node
 
        Note that the branching is correctly managed on backward computation,
        i.e. the gradients from ``f`` and ``g`` are accumulated to the gradient
@@ -140,16 +124,29 @@ class Function(object):
     just return ``None``, which indicates that the function is non-
     differentiable.
 
+    For functions that do not need a part of inputs in backward computation,
+    there is a way to possibly reduce the memory consumption by quickly
+    releasing the input arrays after the forward propagation. This is done by
+    calling :meth:`retain_inputs` from inside of :meth:`forward` (including
+    :meth:`forward_cpu` and :meth:`forward_gpu`). See the documentation of
+    :meth:`retain_inputs` for details.
+
+    For functions that need a part of outputs in backward computation, it is
+    **strongly recommended** to call :meth:`retain_outputs` from inside of
+    :meth:`forward` (including :meth:`forward_cpu` and :meth:`forward_gpu`).
+    It marks the specified output variable nodes to retain the data. The
+    retained data can be accessed by :attr:`output_arrays` property.
+
     Attributes:
         inputs: A tuple or list of input variables.
         outputs: A tuple or list of output variables.
-        type_check_enable: When it is ``True``, the function checks types of
-            input arguments. Set ``CHAINER_TYPE_CHECK`` environment variable
-            ``0`` to disable type check, or set the variable directly in
-            your own program.
+        output_data: A tuple of retained output arrays. It has the same length
+            as :attr:`outputs`. The data of variables that are not retained are
+            set to ``None``. See :meth:`retain_outputs` for details.
 
     """
-    type_check_enable = int(os.environ.get('CHAINER_TYPE_CHECK', '1')) != 0
+
+    rank = 0  # default value of the rank
 
     def __call__(self, *inputs):
         """Applies forward propagation with chaining backward references.
@@ -166,9 +163,9 @@ class Function(object):
 
         Args:
             inputs: Tuple of input :class:`Variable`, :class:`numpy.ndarray` or
-                :class:`cupy.ndarray` objects. The volatile flags of all input
-                variables must agree. If the input is an :class:`numpy.ndarray`
-                or a :class:`cupy.ndarray`, it is automatically wrapped with
+                :class:`cupy.ndarray` objects.
+                If the input is an :class:`numpy.ndarray` or a
+                :class:`cupy.ndarray`, it is automatically wrapped with
                 :class:`Variable`.
 
         Returns:
@@ -177,15 +174,16 @@ class Function(object):
 
         """
 
-        inputs = [x if isinstance(x, chainer.Variable)
-                  else chainer.Variable(x, volatile=flag.AUTO)
+        inputs = [x if isinstance(x, variable.Variable)
+                  else variable.Variable(x, requires_grad=False)
                   for x in inputs]
-
         in_data = tuple([x.data for x in inputs])
+        requires_grad = any([x.requires_grad for x in inputs])
+
         if chainer.is_debug():
             self._stack = traceback.extract_stack()
 
-        if self.type_check_enable:
+        if configuration.config.type_check:
             self._check_data_type_forward(in_data)
 
         hooks = chainer.get_function_hooks()
@@ -194,8 +192,11 @@ class Function(object):
             hooks.update(self.local_function_hooks)
         for hook in six.itervalues(hooks):
             hook.forward_preprocess(self, in_data)
+
         # Forward prop
         with cuda.get_device_from_array(*in_data):
+            self._input_indexes_to_retain = None
+            self._output_indexes_to_retain = None
             outputs = self.forward(in_data)
             assert type(outputs) == tuple
         for hook in six.itervalues(hooks):
@@ -208,25 +209,32 @@ class Function(object):
                 msg = 'NaN is detected on forward computation'
                 raise RuntimeError(msg)
 
-        out_v = flag.aggregate_flags([x.volatile for x in inputs])
-        ret = tuple([variable.Variable(y, volatile=out_v) for y in outputs])
+        ret = tuple([variable.Variable(y, requires_grad=requires_grad)
+                     for y in outputs])
 
-        if out_v == 'on':
-            build_graph = False
-        elif out_v == 'off':
-            build_graph = True
-        else:
-            build_graph = getattr(_thread_local, 'default_backprop', True)
-
-        if build_graph:
+        if configuration.config.enable_backprop:
             # Topological ordering
             self.rank = max([x.rank for x in inputs]) if inputs else 0
             # Backward edges
             for y in ret:
                 y.set_creator(self)
-            self.inputs = inputs
+            self.inputs = tuple([x.node for x in inputs])
             # Forward edges (must be weak references)
-            self.outputs = tuple([weakref.ref(y) for y in ret])
+            self.outputs = tuple([weakref.ref(y.node) for y in ret])
+
+            input_indexes_to_retain = self._input_indexes_to_retain
+            if input_indexes_to_retain is None:
+                # input arrays are retained by default
+                input_indexes_to_retain = six.moves.range(len(inputs))
+            for index in input_indexes_to_retain:
+                inputs[index].retain_data()
+            del self._input_indexes_to_retain
+
+            output_indexes_to_retain = self._output_indexes_to_retain
+            if output_indexes_to_retain is not None:
+                for index in output_indexes_to_retain:
+                    ret[index].retain_data()
+            del self._output_indexes_to_retain
 
         if len(ret) == 1:
             return ret[0]
@@ -268,6 +276,15 @@ class Function(object):
             return None
 
     def _check_data_type_forward(self, in_data):
+        in_type = type_check.get_light_types(in_data)
+        try:
+            with type_check.light_mode:
+                self.check_type_forward(in_type)
+            return
+        except type_check.InvalidType:
+            # Ignore errors on first run
+            pass
+
         in_type = type_check.get_types(in_data, 'in_types', False)
         with type_check.get_function_check_context(self):
             self.check_type_forward(in_type)
@@ -418,7 +435,7 @@ class Function(object):
         return tuple(None for _ in inputs)
 
     def unchain(self):
-        """Purges in/out variables and this function itself from the graph.
+        """Purges in/out nodes and this function itself from the graph.
 
         This method is called from :meth:`Variable.unchain_backward` method.
 
@@ -426,7 +443,7 @@ class Function(object):
         for y in self.outputs:
             y_ref = y()
             if y_ref is not None:
-                y_ref.creator = None
+                y_ref.unchain()
         self.inputs = None
 
     def add_hook(self, hook, name=None):
@@ -456,6 +473,58 @@ class Function(object):
                 to be unregistered.
         """
         del self.local_function_hooks[name]
+
+    def retain_inputs(self, indexes):
+        """Lets specified input variable nodes keep data arrays.
+
+        By calling this method from :meth:`forward`, the function can specify
+        which inputs are required for backprop.
+
+        If this method is not called, the function keeps all input arrays. If
+        you want to release all input arrays, call this method by passing an
+        empty sequence.
+
+        Note that **this method must not be called from the outside of
+        forward method.**
+
+        Args:
+            indexes (iterable of int): Indexes of input variables that the
+                function does not require for backprop.
+
+        """
+        self._input_indexes_to_retain = indexes
+
+    def retain_outputs(self, indexes, retain_after_backward=False):
+        """Lets specified output variable nodes keep data arrays.
+
+        By calling this method from :meth:`forward`, the function can specify
+        which outputs are required for backprop. If this method is not called,
+        any output variables are not marked to keep the data array at the point
+        of returning from :meth:`__call__`. The retained arrays are stored to
+        :attr:`output_data`.
+
+        .. note::
+           It is STRONGLY RECOMMENDED to use this method if the function
+           requires some or all output arrays in backprop. The function can
+           also use output arrays just by keeping references to them directly,
+           whereas it might influence on the performance of later function
+           applications to the output variables.
+
+        Note that **this method must not be called from the outside of
+        forward method.**
+
+        Args:
+            indexes (iterable of int): Indexes of input variables that the
+                function does not require for backprop.
+
+            retain_after_backward (bool): If ``True``, a reference to the
+                outputs will remain after the backprop of the function is over.
+                If ``False``, the reference will be deleted.
+
+        """
+        self._output_indexes_to_retain = indexes
+        if retain_after_backward:
+            self._retain_after_backward = retain_after_backward
 
 
 class FunctionHook(object):

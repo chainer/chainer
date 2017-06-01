@@ -23,10 +23,11 @@ Relationship between Chainer and CuPy
 
 .. note::
 
-   As of the release of v1.3.0, Chainer changes its GPU backend from `PyCUDA <http://mathema.tician.de/software/pycuda/>`_ to CuPy.
-   CuPy covers all features of PyCUDA used by Chainer, though their interfaces are not compatible.
+   From v2.0.0, CuPy is turned into a separate package and repository.
+   Even if you have CUDA installed in your environment, you have to install CuPy separately to use GPUs.
+   See :ref:`install_cuda` for the way to set up CUDA support.
 
-Chainer uses :ref:`CuPy <cupy_reference>` as its backend for GPU computation.
+Chainer uses `CuPy <http://docs.cupy.chainer.org/>`_ as its backend for GPU computation.
 In particular, the :class:`cupy.ndarray` class is the GPU array implementation for Chainer.
 CuPy supports a subset of features of NumPy with a compatible interface.
 It enables us to write a common code for CPU and GPU.
@@ -48,9 +49,7 @@ Chainer changes the default allocator of CuPy to the memory pool, so user can us
 Basics of :class:`cupy.ndarray`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. note::
-
-   CuPy does not require explicit initialization, so ``cuda.init()`` function is deprecated.
+See `the document of CuPy <http://docs.cupy.chainer.org/en/latest/>`_ for the basic usage of :class:`cupy.ndarray`
 
 CuPy is a GPU array backend that implements a subset of NumPy interface.
 The :class:`cupy.ndarray` class is in its core, which is a compatible GPU alternative of :class:`numpy.ndarray`.
@@ -122,7 +121,7 @@ Here are some other examples:
    x_gpu1 = cupy.empty((4, 3), dtype='f')  # 'f' indicates float32
 
    with cuda.get_device_from_id(1):
-       x_gpu1 = cuda.empty((4, 3), dtype='f')
+       x_gpu1 = cupy.empty((4, 3), dtype='f')
 
    with cuda.get_device_from_array(x_gpu1):
        y_gpu1 = x_gpu + 1
@@ -162,11 +161,11 @@ A :class:`Link` object can be transferred to the specified GPU using the :meth:`
 
    class MLP(Chain):
        def __init__(self, n_units, n_out):
-           super(MLP, self).__init__(
-               l1=L.Linear(None, n_units),
-               l2=L.Linear(None, n_units),
-               l3=L.Linear(None, n_out),
-           )
+           super(MLP, self).__init__()
+           with self.init_scope():
+               self.l1 = L.Linear(None, n_units)
+               self.l2 = L.Linear(None, n_units)
+               self.l3 = L.Linear(None, n_out)
 
        def __call__(self, x):
            h1 = F.relu(self.l1(x))
@@ -298,7 +297,7 @@ The copy supports backprop, which just reversely transfers an output gradient to
    Above code is not parallelized on CPU, but is parallelized on GPU.
    This is because all the functions in the above code run asynchronously to the host CPU.
 
-An almost identical example code can be found at `examples/mnist/train_mnist_model_parallel.py <https://github.com/pfnet/chainer/blob/master/examples/mnist/train_mnist_model_parallel.py>`_.
+An almost identical example code can be found at `examples/mnist/train_mnist_model_parallel.py <https://github.com/chainer/chainer/blob/master/examples/mnist/train_mnist_model_parallel.py>`_.
 
 
 Data-parallel Computation on Multiple GPUs with Trainer
@@ -335,7 +334,7 @@ In the above example, the model is also cloned and sent to GPU 1.
 Half of each mini-batch is fed to this cloned model.
 After every backward computation, the gradient is accumulated into the main device, the parameter update runs on it, and then the updated parameters are sent to GPU 1 again.
 
-See also the example code in `examples/mnist/train_mnist_data_parallel.py <https://github.com/pfnet/chainer/blob/master/examples/mnist/train_mnist_data_parallel.py>`_.
+See also the example code in `examples/mnist/train_mnist_data_parallel.py <https://github.com/chainer/chainer/blob/master/examples/mnist/train_mnist_data_parallel.py>`_.
 
 
 Data-parallel Computation on Multiple GPUs without Trainer

@@ -3,6 +3,7 @@ import itertools
 import numpy
 import six
 
+import chainer
 from chainer import cuda
 from chainer.functions.activation import sigmoid
 from chainer.functions.activation import tanh
@@ -14,6 +15,8 @@ from chainer.functions.connection import linear
 from chainer.functions.connection import n_step_rnn
 from chainer.functions.connection.n_step_rnn import get_random_state
 from chainer.functions.noise import dropout
+from chainer.utils import argument
+
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
@@ -23,24 +26,23 @@ if cuda.cudnn_enabled:
 
 class NStepGRU(n_step_rnn.BaseNStepRNN):
 
-    def __init__(self, n_layers, states, train=True):
-        n_step_rnn.BaseNStepRNN.__init__(self, n_layers, states,
-                                         rnn_dir='uni', rnn_mode='gru',
-                                         train=train)
+    def __init__(self, n_layers, states, **kwargs):
+        n_step_rnn.BaseNStepRNN.__init__(
+            self, n_layers, states, rnn_dir='uni', rnn_mode='gru', **kwargs)
 
 
 class NStepBiGRU(n_step_rnn.BaseNStepRNN):
 
-    def __init__(self, n_layers, states, train=True):
-        n_step_rnn.BaseNStepRNN.__init__(self, n_layers, states,
-                                         rnn_dir='bi', rnn_mode='gru',
-                                         train=train)
+    def __init__(self, n_layers, states, **kwargs):
+        n_step_rnn.BaseNStepRNN.__init__(
+            self, n_layers, states, rnn_dir='bi', rnn_mode='gru', **kwargs)
 
 
 def n_step_gru(
-        n_layers, dropout_ratio, hx, ws, bs, xs, train=True,
-        use_cudnn=True):
-    """Stacked Uni-directional Gated Recurrent Unit function.
+        n_layers, dropout_ratio, hx, ws, bs, xs, **kwargs):
+    """n_step_gru(n_layers, dropout_ratio, hx, ws, bs, xs)
+
+    Stacked Uni-directional Gated Recurrent Unit function.
 
     This function calculates stacked Uni-directional GRU with sequences.
     This function gets an initial hidden state :math:`h_0`, an input
@@ -63,6 +65,14 @@ def n_step_gru(
     of ``k``-th layer is hidden state ``h_t`` of ``k-1``-th layer.
     Note that all input variables except first layer may have different shape
     from the first layer.
+
+    .. warning::
+
+       ``train`` and ``use_cudnn`` arguments are not supported anymore since
+       v2.
+       Instead, use ``chainer.using_config('train', train)`` and
+       ``chainer.using_config('use_cudnn', use_cudnn)`` respectively.
+       See :func:`chainer.using_config`.
 
     Args:
         n_layers(int): Number of layers.
@@ -95,12 +105,11 @@ def n_step_gru(
             of :func:`~chainer.Variable` holding sequence.
             So ``xs`` needs to satisfy
             ``xs[t].shape[0] >= xs[t + 1].shape[0]``.
-        train (bool): If ``True``, this function executes dropout.
-        use_cudnn (bool): If ``True``, this function uses cuDNN if available.
 
     Returns:
         tuple: This functions returns a tuple concaining three elements,
             ``hy`` and ``ys``.
+
             - ``hy`` is an updated hidden states whose shape is same as ``hx``.
             - ``ys`` is a list of :class:`~chainer.Variable` . Each element
               ``ys[t]`` holds hidden states of the last layer corresponding
@@ -110,14 +119,15 @@ def n_step_gru(
 
     """
 
-    return n_step_gru_base(n_layers, dropout_ratio, hx, ws, bs, xs, train,
-                           use_cudnn, use_bi_direction=False)
+    return n_step_gru_base(n_layers, dropout_ratio, hx, ws, bs, xs,
+                           use_bi_direction=False, **kwargs)
 
 
 def n_step_bigru(
-        n_layers, dropout_ratio, hx, ws, bs, xs, train=True,
-        use_cudnn=True):
-    """Stacked Bi-directional Gated Recurrent Unit function.
+        n_layers, dropout_ratio, hx, ws, bs, xs, **kwargs):
+    """n_step_bigru(n_layers, dropout_ratio, hx, ws, bs, xs)
+
+    Stacked Bi-directional Gated Recurrent Unit function.
 
     This function calculates stacked Bi-directional GRU with sequences.
     This function gets an initial hidden state :math:`h_0`, an input
@@ -157,6 +167,14 @@ def n_step_bigru(
     Note that all input variables except first layer may have different shape
     from the first layer.
 
+    .. warning::
+
+       ``train`` and ``use_cudnn`` arguments are not supported anymore since
+       v2.
+       Instead, use ``chainer.using_config('train', train)`` and
+       ``chainer.using_config('use_cudnn', use_cudnn)`` respectively.
+       See :func:`chainer.using_config`.
+
     Args:
         n_layers(int): Number of layers.
         dropout_ratio(float): Dropout ratio.
@@ -188,14 +206,13 @@ def n_step_bigru(
             of :func:`~chainer.Variable` holding sequence.
             So ``xs`` needs to satisfy
             ``xs[t].shape[0] >= xs[t + 1].shape[0]``.
-        train (bool): If ``True``, this function executes dropout.
-        use_cudnn (bool): If ``True``, this function uses cuDNN if available.
         use_bi_direction (bool): If ``True``, this function uses
             Bi-direction GRU.
 
     Returns:
         tuple: This functions returns a tuple concaining three elements,
             ``hy`` and ``ys``.
+
             - ``hy`` is an updated hidden states whose shape is same as ``hx``.
             - ``ys`` is a list of :class:`~chainer.Variable` . Each element
               ``ys[t]`` holds hidden states of the last layer corresponding
@@ -205,17 +222,27 @@ def n_step_bigru(
 
     """
 
-    return n_step_gru_base(n_layers, dropout_ratio, hx, ws, bs, xs, train,
-                           use_cudnn, use_bi_direction=True)
+    return n_step_gru_base(n_layers, dropout_ratio, hx, ws, bs, xs,
+                           use_bi_direction=True, **kwargs)
 
 
-def n_step_gru_base(n_layers, dropout_ratio, hx, ws, bs, xs, train, use_cudnn,
-                    use_bi_direction):
-    """Base function for Stack GRU/BiGRU functions.
+def n_step_gru_base(n_layers, dropout_ratio, hx, ws, bs, xs,
+                    use_bi_direction, **kwargs):
+    """n_step_gru_base(n_layers, dropout_ratio, hx, ws, bs, xs, use_bi_direction)
+
+    Base function for Stack GRU/BiGRU functions.
 
     This function is used at  :func:`chainer.functions.n_step_bigru` and
     :func:`chainer.functions.n_step_gru`.
     This function's behavior depends on argument ``use_bi_direction``.
+
+    .. warning::
+
+       ``train`` and ``use_cudnn`` arguments are not supported anymore since
+       v2.
+       Instead, use ``chainer.using_config('train', train)`` and
+       ``chainer.using_config('use_cudnn', use_cudnn)`` respectively.
+       See :func:`chainer.using_config`.
 
     Args:
         n_layers(int): Number of layers.
@@ -248,8 +275,6 @@ def n_step_gru_base(n_layers, dropout_ratio, hx, ws, bs, xs, train, use_cudnn,
             of :func:`~chainer.Variable` holding sequence.
             So ``xs`` needs to satisfy
             ``xs[t].shape[0] >= xs[t + 1].shape[0]``.
-        train (bool): If ``True``, this function executes dropout.
-        use_cudnn (bool): If ``True``, this function uses cuDNN if available.
         activation (str): Activation function name.
             Please select ``tanh`` or ``relu``.
         use_bi_direction (bool): If ``True``, this function uses
@@ -259,11 +284,17 @@ def n_step_gru_base(n_layers, dropout_ratio, hx, ws, bs, xs, train, use_cudnn,
        :func:`chainer.functions.n_step_rnn`
        :func:`chainer.functions.n_step_birnn`
 
-    """
+    """  # NOQA
+    argument.check_unexpected_kwargs(
+        kwargs, train='train argument is not supported anymore. '
+        'Use chainer.using_config',
+        use_cudnn='use_cudnn argument is not supported anymore. '
+        'Use chainer.using_config')
+    argument.assert_kwargs_empty(kwargs)
+
     xp = cuda.get_array_module(hx, hx.data)
 
-    if use_cudnn and xp is not numpy and cuda.cudnn_enabled and \
-       _cudnn_version >= 5000:
+    if xp is not numpy and chainer.should_use_cudnn('>=auto', 5000):
         states = get_random_state().create_dropout_states(dropout_ratio)
         # flatten all input variables
         inputs = tuple(itertools.chain(
@@ -272,9 +303,9 @@ def n_step_gru_base(n_layers, dropout_ratio, hx, ws, bs, xs, train, use_cudnn,
             itertools.chain.from_iterable(bs),
             xs))
         if use_bi_direction:
-            rnn = NStepBiGRU(n_layers, states, train=train)
+            rnn = NStepBiGRU(n_layers, states)
         else:
-            rnn = NStepGRU(n_layers, states, train=train)
+            rnn = NStepGRU(n_layers, states)
 
         ret = rnn(*inputs)
         hy, = ret[:1]
@@ -311,8 +342,7 @@ def n_step_gru_base(n_layers, dropout_ratio, hx, ws, bs, xs, train, use_cudnn,
                         h_rest = None
 
                     if layer > 0:
-                        x = dropout.dropout(x, ratio=dropout_ratio,
-                                            train=train)
+                        x = dropout.dropout(x, ratio=dropout_ratio)
 
                     gru_x = linear.linear(x, xws[layer_idx], xbs[layer_idx])
                     gru_h = linear.linear(h, hws[layer_idx], hbs[layer_idx])
