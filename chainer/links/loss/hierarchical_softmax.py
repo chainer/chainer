@@ -411,8 +411,8 @@ class BinaryHierarchicalSoftmax(link.Link):
         parent2child = xp.array(self._func.parent2child, dtype=xp.int32)
         batchsize = x.data.shape[0]
         start_ids = xp.zeros(batchsize, 'i')
-        _lst_next_ids = []
-        _lst_choose_ids = []
+        list_next_ids = []
+        list_choose_ids = []
 
         def _sigmoid(x):
             half = x.dtype.type(0.5)
@@ -431,8 +431,8 @@ class BinaryHierarchicalSoftmax(link.Link):
             rows = xp.arange(batchsize, dtype=xp.int32)
             columns = choosed_idx
 
-            _lst_next_ids.append(start_ids)
-            _lst_choose_ids.append(choosed_idx)
+            list_next_ids.append(start_ids)
+            list_choose_ids.append(choosed_idx)
 
             next_ids = parent2child[start_ids][rows, columns]
             next_ids = xp.where(next_ids != LEAF, next_ids, FINISH_SAMPLING)
@@ -444,8 +444,8 @@ class BinaryHierarchicalSoftmax(link.Link):
             start_ids = next_ids
 
         sampling = []
-        next_ids = xp.stack(_lst_next_ids).T
-        choose_ids = xp.stack(_lst_choose_ids).T
+        next_ids = xp.stack(list_next_ids).T
+        choose_ids = xp.stack(list_choose_ids).T
         lengths = xp.argmax(next_ids == FINISH_SAMPLING, axis=1)
         max_length = choose_ids.shape[1]
         lengths = xp.where(lengths == 0, max_length, lengths)
