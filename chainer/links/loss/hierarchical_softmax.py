@@ -444,9 +444,9 @@ class BinaryHierarchicalSoftmax(link.Link):
             start_ids = next_ids
 
         sampling = []
-        next_ids_np = xp.stack(_lst_next_ids).T
+        next_ids = xp.stack(_lst_next_ids).T
         choose_ids = xp.stack(_lst_choose_ids).T
-        lengths = xp.argmax(next_ids_np == FINISH_SAMPLING, axis=1)
+        lengths = xp.argmax(next_ids == FINISH_SAMPLING, axis=1)
         max_length = choose_ids.shape[1]
         lengths = xp.where(lengths == 0, max_length, lengths)
         for length, path in zip(lengths, choose_ids):
