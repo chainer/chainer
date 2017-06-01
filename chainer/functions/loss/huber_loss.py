@@ -1,3 +1,5 @@
+import warnings
+
 import numpy
 
 from chainer import cuda
@@ -7,12 +9,18 @@ from chainer.utils import type_check
 
 class HuberLoss(function.Function):
 
-    def __init__(self, delta, reduce='sum_along_second_axis'):
+    def __init__(self, delta, reduce='sum_each_data'):
         self.delta = delta
 
-        if reduce not in ('sum_along_second_axis', 'no'):
+        if reduce == 'sum_along_second_axis':
+            warnings.warn("sum_along_second_axis for the 'reduce' argment is"
+                          " deprecated. It is treated as sum_each_data. "
+                          "Please use sum_each_data instead.",
+                          DeprecationWarning)
+            reduce = 'sum_each_data'
+        elif reduce not in ('sum_each_data', 'no'):
             raise ValueError(
-                "only 'sum_along_second_axis' and 'no' are valid "
+                "only 'sum_each_data' and 'no' are valid "
                 "for 'reduce', but '%s' is given" % reduce)
         self.reduce = reduce
 
@@ -32,7 +40,7 @@ class HuberLoss(function.Function):
         mask = y > (self.delta ** 2)
         y -= mask * xp.square(abs(self.diff) - self.delta)
         y *= 0.5
-        if self.reduce == 'sum_along_second_axis':
+        if self.reduce == 'sum_each_data':
             return y.sum(axis=1),
         else:
             return y,
@@ -43,13 +51,13 @@ class HuberLoss(function.Function):
 
         gx = xp.where(mask, self.diff, self.delta * xp.sign(self.diff))
         gy_ = gy[0]
-        if self.reduce == 'sum_along_second_axis':
+        if self.reduce == 'sum_each_data':
             gy_ = gy_.reshape(gy[0].shape + (1,) * (self.diff.ndim - 1))
         gx = gy_ * gx
         return gx, -gx
 
 
-def huber_loss(x, t, delta, reduce='sum_along_second_axis'):
+def huber_loss(x, t, delta, reduce='sum_each_data'):
     """Loss function which is less sensitive to outliers in data than MSE.
 
         .. math::
@@ -65,8 +73,8 @@ def huber_loss(x, t, delta, reduce='sum_along_second_axis'):
 
         The output is a variable whose value depends on the value of
         the option ``reduce``. If it is ``'no'``, it holds the elementwise
-        loss values. If it is ``'sum_along_second_axis'``, loss values are
-        summed up along the second axis (i.e. ``axis=1``).
+        loss values. If it is ``'sum_each_data'``, loss values are
+        summed up along all the later axes than the first (i.e. 0-th) axis.
 
     Args:
         x (~chainer.Variable): Input variable.
@@ -76,7 +84,7 @@ def huber_loss(x, t, delta, reduce='sum_along_second_axis'):
         delta (float): Constant variable for huber loss function
             as used in definition.
         reduce (str): Reduction option. Its value must be either
-            ``'sum_along_second_axis'`` or ``'no'``. Otherwise,
+            ``'sum_each_data'`` or ``'no'``. Otherwise,
             :class:`ValueError` is raised.
 
     Returns:
@@ -85,7 +93,7 @@ def huber_loss(x, t, delta, reduce='sum_along_second_axis'):
             huber loss :math:`L_{\\delta}`.
             If ``reduce`` is ``'no'``, the output variable holds array
             whose shape is same as one of (hence both of) input variables.
-            If it is ``'sum_along_second_axis'``, the shape of the array
+            If it is ``'sum_each_data'``, the shape of the array
             is same as the input variables, except the second axis is removed.
 
     See:
