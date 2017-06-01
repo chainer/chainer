@@ -92,12 +92,8 @@ class TestCuda(unittest.TestCase):
     def test_get_device_for_builtin_int(self):
         # builtins.int is from future package and it is different
         # from builtin int/long on Python 2.
-        self.assertEqual(cuda.get_device(builtins.int(0)), cuda.Device(0))
-
-    @attr.gpu
-    def test_get_device_for_device(self):
-        device = cuda.get_device(0)
-        self.assertIs(cuda.get_device(device), device)
+        self.assertEqual(cuda.get_device_from_id(builtins.int(0)),
+                         cuda.Device(0))
 
     def test_to_gpu_unavailable(self):
         x = numpy.array([1])

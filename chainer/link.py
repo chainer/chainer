@@ -352,8 +352,9 @@ Assign a Parameter object directly to an attribute within a \
         override this method to do so.
 
         Args:
-            device: Target device specifier. If omitted, the current device is
-                used.
+            device (int or cupy.cuda.Device): The device id to specify the
+                target device or a Device object of the target. If omitted,
+                the current device is used.
 
         Returns: self
 
@@ -362,7 +363,7 @@ Assign a Parameter object directly to an attribute within a \
         if not self._cpu:
             return self
         d = self.__dict__
-        with cuda._get_device(device):
+        with cuda.get_device_from_id(device):
             for name in self._params:
                 d[name].to_gpu()
             for name in self._persistent:
@@ -723,7 +724,7 @@ Assign a Link object directly to an attribute within a \
         return self
 
     def to_gpu(self, device=None):
-        with cuda._get_device(device):
+        with cuda.get_device_from_id(device):
             super(Chain, self).to_gpu()
             d = self.__dict__
             for name in self._children:
@@ -875,7 +876,7 @@ class ChainList(Link):
         return self
 
     def to_gpu(self, device=None):
-        with cuda._get_device(device):
+        with cuda.get_device_from_id(device):
             super(ChainList, self).to_gpu()
             for link in self._children:
                 link.to_gpu()

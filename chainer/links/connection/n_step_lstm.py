@@ -71,7 +71,7 @@ class NStepLSTMBase(link.ChainList):
 
     def init_hx(self, xs):
         shape = (self.n_layers * self.direction, len(xs), self.out_size)
-        with cuda.get_device_from_id(self._device_id):
+        with cuda.get_device_from_array(xs[0]):
             hx = variable.Variable(self.xp.zeros(shape, dtype=xs[0].dtype))
         return hx
 

@@ -114,7 +114,7 @@ class BinaryHierarchicalSoftmaxFunction(function.Function):
         )
 
     def to_gpu(self, device=None):
-        with cuda._get_device(device):
+        with cuda.get_device_from_id(device):
             self.paths = cuda.to_gpu(self.paths)
             self.codes = cuda.to_gpu(self.codes)
             self.begins = cuda.to_gpu(self.begins)

@@ -70,13 +70,13 @@ The current device can be changed by :class:`cupy.cuda.Device` object as follows
 Most operations of CuPy is done on the current device.
 Be careful that it causes an error to process an array on a non-current device.
 
-Chainer provides some convenient functions to automatically switch and choose the device.
+Chainer provides some functions to automatically switch and choose the device.
 For example, the :func:`chainer.cuda.to_gpu` function copies a :class:`numpy.ndarray` object to a specified device:
 
 .. testcode::
 
    x_cpu = np.ones((5, 4, 3), dtype=np.float32)
-   x_gpu = cuda.to_gpu(x_cpu, device=1)
+   x_gpu = cuda.to_gpu(x_cpu, device_id=1)
 
 It is equivalent to the following code using CuPy:
 

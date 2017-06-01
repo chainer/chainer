@@ -497,8 +497,8 @@ Actual: {0}'''.format(type(data))
         """Copies the data and gradient arrays to specified GPU.
 
         Args:
-            device: Target device specifier. If omitted, the current device is
-                used.
+            device: The device specifier. If omitted or None, the current
+                device is used.
 
         """
         if self.data is None:
@@ -610,7 +610,7 @@ Actual: {0}'''.format(type(data))
         if dst_dev.id < 0:
             src_grad = cuda.to_cpu(src)
         else:
-            src_grad = cuda.to_gpu(src, device=dst_dev)
+            src_grad = cuda.to_gpu(src, device_id=dst_dev.id)
 
         if dst is None:
             self._node.grad = src_grad

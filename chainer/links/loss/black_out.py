@@ -38,7 +38,7 @@ class BlackOut(link.Link):
         self.sampler.to_cpu()
 
     def to_gpu(self, device=None):
-        with cuda._get_device(device):
+        with cuda.get_device_from_id(device):
             super(BlackOut, self).to_gpu()
             self.sampler.to_gpu()
 

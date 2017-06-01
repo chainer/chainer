@@ -8,7 +8,7 @@ class Copy(function.Function):
     """Copies the input variable onto the specified device."""
 
     def __init__(self, out_device):
-        self.out_device = out_device
+        self.out_device = cuda.get_device_from_id(out_device)
 
     def check_type_forward(self, in_types):
         type_check.expect(
@@ -18,7 +18,7 @@ class Copy(function.Function):
     def forward_cpu(self, x):
         self.retain_inputs(())
         self._in_device = cuda.get_device_from_array(x[0])
-        if self.out_device == -1:
+        if self.out_device.id == -1:
             return x[0].copy(),
         else:
             return cuda.to_gpu(x[0], device=self.out_device),
@@ -26,7 +26,7 @@ class Copy(function.Function):
     def forward_gpu(self, x):
         self.retain_inputs(())
         self._in_device = cuda.get_device_from_array(x[0])
-        if self.out_device == -1:
+        if self.out_device.id == -1:
             return cuda.to_cpu(x[0]),
         else:
             return cuda.copy(x[0], out_device=self.out_device),
@@ -40,13 +40,13 @@ class Copy(function.Function):
             return self.backward_cpu(inputs, grad_outputs)
 
     def backward_cpu(self, x, gy):
-        if self.out_device == -1:
+        if self.out_device.id == -1:
             return gy[0].copy(),
         else:
             return cuda.to_cpu(gy[0]),
 
     def backward_gpu(self, x, gy):
-        if self.out_device == -1:
+        if self.out_device.id == -1:
             return cuda.to_gpu(gy[0], device=self._in_device),
         else:
             return cuda.copy(gy[0], out_device=self._in_device),

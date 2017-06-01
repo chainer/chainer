@@ -222,10 +222,10 @@ class TestOptimizerUtility(unittest.TestCase):
 
     @attr.multi_gpu(2)
     def test_sqnorm_array_multi_gpu(self):
-        x0 = cuda.to_gpu(self.x, device=0)
-        x1 = cuda.to_gpu(self.x, device=1)
-        a0 = cuda.to_gpu(self.a, device=0)
-        a1 = cuda.to_gpu(self.a, device=1)
+        x0 = cuda.to_gpu(self.x, device_id=0)
+        x1 = cuda.to_gpu(self.x, device_id=1)
+        a0 = cuda.to_gpu(self.a, device_id=0)
+        a1 = cuda.to_gpu(self.a, device_id=1)
         self.assertAlmostEqual(optimizer._sum_sqnorm(
             [self.x, self.a, x0, a0, x1, a1]), 8.75 * 3)
 

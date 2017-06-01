@@ -176,60 +176,9 @@ def get_device_from_array(*arrays):
     return DummyDevice
 
 
-def get_device(*args):
-    """Gets the device from a device object, an ID integer or an array object.
-
-    .. note::
-
-        This API is deprecated. Please use
-        :func:`~chainer.cuda.get_device_from_id`
-        or :func:`~chainer.cuda.get_device_from_array` instead.
-
-    This is a convenient utility to select a correct device if the type of
-    ``arg`` is unknown (i.e., one can use this function on arrays that may be
-    on CPU or GPU). The returned device object supports the context management
-    protocol of Python for the *with* statement.
-
-    Args:
-        args: Values to specify a GPU device. The first device object, integer
-            or :class:`cupy.ndarray` object is used to select a device.
-            If it is a device object, it is returned. If it is an integer,
-            the corresponding device is returned. If it is a CuPy array,
-            the device on which this array reside is returned. If any
-            arguments are neither integers nor CuPy arrays, a dummy device
-            object representing CPU is returned.
-
-    Returns:
-        Device object specified by given ``args``.
-
-    .. seealso::
-       See :class:`cupy.cuda.Device` for the device selection not by arrays.
-
-    """
-    warnings.warn('get_device is deprecated. Please use get_device_from_id or'
-                  ' get_device_from_array instead.', DeprecationWarning)
-    return _get_device(*args)
-
-
-def _get_device(*args):
-    for arg in args:
-        if type(arg) in _integer_types:
-            check_cuda_available()
-            return Device(arg)
-        if isinstance(arg, ndarray):
-            if arg.device is None:
-                continue
-            return arg.device
-        if available and isinstance(arg, Device):
-            return arg
-
-    return DummyDevice
-
-
 # ------------------------------------------------------------------------------
 # cupy.ndarray allocation and copy
 # ------------------------------------------------------------------------------
-
 def to_gpu(array, device=None, stream=None):
     """Copies the given CPU array to specified device.
 
@@ -248,7 +197,7 @@ def to_gpu(array, device=None, stream=None):
 
     """
     check_cuda_available()
-    with _get_device(device):
+    with get_device_from_id(device):
         array_dev = get_device_from_array(array)
         if array_dev.id == cupy.cuda.device.get_device_id():
             return array
@@ -300,7 +249,7 @@ def to_cpu(array, stream=None):
     """
     if isinstance(array, ndarray):
         check_cuda_available()
-        with get_device(array):
+        with get_device_from_array(array):
             return array.get(stream)
     elif isinstance(array, numpy.ndarray):
         return array
@@ -320,8 +269,8 @@ def copy(array, out=None, out_device=None, stream=None):
         array (cupy.ndarray): Array to be copied.
         out (cupy.ndarray): Destination array.
             If it is not ``None``, then ``out_device`` argument is ignored.
-        out_device: Destination device specifier. Actual device object is
-            obtained by passing this value to :func:`get_device`.
+        out_device: Destination device specifier. This argument should be a
+            device object or ``None``.
         stream (cupy.cuda.Stream): CUDA stream.
 
     Returns:
@@ -336,11 +285,11 @@ def copy(array, out=None, out_device=None, stream=None):
 
     if out is None:
         if out_device is None:
-            out_device = array
-        with get_device(out_device):
+            out_device = get_device_from_array(array)
+        with out_device:
             out = cupy.empty_like(array)
 
-    with get_device(array):
+    with get_device_from_array(array):
         cupy.copyto(out, array)
 
     return out
