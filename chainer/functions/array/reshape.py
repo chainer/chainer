@@ -35,16 +35,18 @@ class Reshape(function.Function):
             for s in self.shape:
                 if s > 0:
                     known_size *= s
-            size_var = type_check.Variable(known_size,
-                                           'known_size(=%d)' % known_size)
+            size_var = type_check.make_variable(
+                known_size, 'known_size(=%d)' % known_size)
             type_check.expect(
                 type_check.prod(x_type.shape) % size_var == 0)
 
     def forward(self, x):
+        self.retain_inputs(())
+        self._in_shape = x[0].shape
         return x[0].reshape(self.shape),
 
     def backward(self, x, gy):
-        return gy[0].reshape(x[0].shape),
+        return gy[0].reshape(self._in_shape),
 
 
 def reshape(x, shape):

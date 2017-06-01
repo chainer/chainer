@@ -7,8 +7,10 @@ import six
 
 from chainer import cuda
 from chainer import function
+from chainer.initializers import uniform
 from chainer import link
 from chainer.utils import type_check
+from chainer import variable
 
 
 LEAF = -1
@@ -152,7 +154,7 @@ class BinaryHierarchicalSoftmaxFunction(function.Function):
         )
 
     def to_gpu(self, device=None):
-        with cuda.get_device(device):
+        with cuda._get_device(device):
             self.paths = cuda.to_gpu(self.paths)
             self.codes = cuda.to_gpu(self.codes)
             self.begins = cuda.to_gpu(self.begins)
@@ -335,14 +337,15 @@ class BinaryHierarchicalSoftmax(link.Link):
 
     def __init__(self, in_size, tree):
         # This function object is copied on every forward computation.
+        super(BinaryHierarchicalSoftmax, self).__init__()
         self._func = BinaryHierarchicalSoftmaxFunction(tree)
-        super(BinaryHierarchicalSoftmax, self).__init__(
-            W=(self._func.parser_size, in_size))
-        self.W.data[...] = numpy.random.uniform(-1, 1, self.W.shape)
         self.tree = tree
+        with self.init_scope():
+            self.W = variable.Parameter(uniform.Uniform(1),
+                                        (self._func.parser_size, in_size))
 
     def to_gpu(self, device=None):
-        with cuda.get_device(device):
+        with cuda._get_device(device):
             super(BinaryHierarchicalSoftmax, self).to_gpu(device)
             self._func.to_gpu(device)
 

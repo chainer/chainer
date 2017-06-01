@@ -68,7 +68,7 @@ N_test = y_test.size
 # Prepare VAE model, defined in net.py
 model = net.VAE(784, n_latent, 500)
 if args.gpu >= 0:
-    cuda.get_device(args.gpu).use()
+    cuda.get_device_from_id(args.gpu).use()
     model.to_gpu()
 xp = np if args.gpu < 0 else cuda.cupy
 
@@ -111,14 +111,14 @@ for epoch in six.moves.range(1, n_epoch + 1):
     # evaluation
     sum_loss = 0
     sum_rec_loss = 0
-    for i in six.moves.range(0, N_test, batchsize):
-        x = chainer.Variable(xp.asarray(x_test[i:i + batchsize]),
-                             volatile='on')
-        loss_func = model.get_loss_func(k=10, train=False)
-        loss_func(x)
-        sum_loss += float(model.loss.data) * len(x.data)
-        sum_rec_loss += float(model.rec_loss.data) * len(x.data)
-        del model.loss
+    with chainer.no_backprop_mode():
+        for i in six.moves.range(0, N_test, batchsize):
+            x = chainer.Variable(xp.asarray(x_test[i:i + batchsize]))
+            loss_func = model.get_loss_func(k=10)
+            loss_func(x)
+            sum_loss += float(model.loss.data) * len(x.data)
+            sum_rec_loss += float(model.rec_loss.data) * len(x.data)
+            del model.loss
     print('test  mean loss={}, mean reconstruction loss={}'
           .format(sum_loss / N_test, sum_rec_loss / N_test))
 
@@ -141,14 +141,16 @@ def save_images(x, filename):
 
 
 train_ind = [1, 3, 5, 10, 2, 0, 13, 15, 17]
-x = chainer.Variable(np.asarray(x_train[train_ind]), volatile='on')
-x1 = model(x)
+x = chainer.Variable(np.asarray(x_train[train_ind]))
+with chainer.no_backprop_mode():
+    x1 = model(x)
 save_images(x.data, 'train')
 save_images(x1.data, 'train_reconstructed')
 
 test_ind = [3, 2, 1, 18, 4, 8, 11, 17, 61]
-x = chainer.Variable(np.asarray(x_test[test_ind]), volatile='on')
-x1 = model(x)
+x = chainer.Variable(np.asarray(x_test[test_ind]))
+with chainer.no_backprop_mode():
+    x1 = model(x)
 save_images(x.data, 'test')
 save_images(x1.data, 'test_reconstructed')
 
