@@ -1042,6 +1042,8 @@ class TestTranspose(unittest.TestCase):
 
 
 @testing.parameterize(
+    {'x_shape': None, 'dtype': None, 'repr': 'variable(None)',
+     'str': 'variable(None)'},
     {'x_shape': (2, 2,), 'dtype': np.float16,
      'repr': 'variable([[ 0.,  1.],\n          [ 2.,  3.]])',
      'str': 'variable([[ 0.  1.]\n          [ 2.  3.]])'},
@@ -1059,10 +1061,13 @@ class TestTranspose(unittest.TestCase):
 class TestUnnamedVariableToString(unittest.TestCase):
 
     def setUp(self):
-        x = np.empty(self.x_shape)
-        x = np.arange(x.size).reshape(self.x_shape)
-        x = x.astype(self.dtype)
-        self.x = chainer.Variable(x)
+        if self.x_shape is None:
+            self.x = chainer.Variable()
+        else:
+            x = np.empty(self.x_shape)
+            x = np.arange(x.size).reshape(self.x_shape)
+            x = x.astype(self.dtype)
+            self.x = chainer.Variable(x)
 
     def test_repr_cpu(self):
         self.assertEqual(repr(self.x), self.repr)
@@ -1082,6 +1087,8 @@ class TestUnnamedVariableToString(unittest.TestCase):
 
 
 @testing.parameterize(
+    {'x_shape': None, 'dtype': None, 'repr': 'variable x(None)',
+     'str': 'variable x(None)'},
     {'x_shape': (2, 2,), 'dtype': np.float32,
      'repr': 'variable x([[ 0.,  1.],\n            [ 2.,  3.]])',
      'str': 'variable x([[ 0.  1.]\n            [ 2.  3.]])'},
@@ -1093,10 +1100,13 @@ class TestUnnamedVariableToString(unittest.TestCase):
 class TestNamedVariableToString(unittest.TestCase):
 
     def setUp(self):
-        x = np.empty(self.x_shape)
-        x = np.arange(x.size).reshape(self.x_shape)
-        x = x.astype(self.dtype)
-        self.x = chainer.Variable(x, name='x')
+        if self.x_shape is None:
+            self.x = chainer.Variable(name='x')
+        else:
+            x = np.empty(self.x_shape)
+            x = np.arange(x.size).reshape(self.x_shape)
+            x = x.astype(self.dtype)
+            self.x = chainer.Variable(x, name='x')
 
     def test_named_repr(self):
         self.assertEqual(repr(self.x), self.repr)
