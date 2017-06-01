@@ -4,7 +4,7 @@ Contribution Guide
 ==================
 
 This is a guide for all contributions to Chainer.
-The development of Chainer is running on `the official repository at GitHub <https://github.com/pfnet/chainer>`_.
+The development of Chainer is running on `the official repository at GitHub <https://github.com/chainer/chainer>`_.
 Anyone that wants to register an issue or to send a pull request should read through this document.
 
 .. note::
@@ -164,7 +164,7 @@ After writing your code **(including unit tests and hopefully documentations!)**
 You have to write a precise explanation of **what** and **how** you fix;
 it is the first documentation of your code that developers read, which is a very important part of your PR.
 
-Once you send a PR, it is automatically tested on `Travis CI <https://travis-ci.org/pfnet/chainer/>`_ for Linux and Mac OS X, and on `AppVeyor <https://ci.appveyor.com/project/pfnet/chainer>`_ for Windows.
+Once you send a PR, it is automatically tested on `Travis CI <https://travis-ci.org/chainer/chainer/>`_ for Linux and Mac OS X, and on `AppVeyor <https://ci.appveyor.com/project/chainer/chainer>`_ for Windows.
 Your PR needs to pass at least the test for Linux on Travis CI.
 After the automatic test passes, some of the core developers will start reviewing your code.
 Note that this automatic PR test only includes CPU tests.
@@ -218,7 +218,7 @@ For example, ``chainer.Variable`` is a shortcut of ``chainer.variable.Variable``
 Note that you can still use them in ``tests`` and ``examples`` directories.
 Also note that you should use shortcut names of CuPy APIs in Chainer implementation.
 
-Once you send a pull request, your coding style is automatically checked by `Travis-CI <https://travis-ci.org/pfnet/chainer/>`_.
+Once you send a pull request, your coding style is automatically checked by `Travis-CI <https://travis-ci.org/chainer/chainer/>`_.
 The reviewing process starts after the check passes.
 
 
@@ -330,7 +330,7 @@ The test functions decorated by ``slow`` are skipped if ``--attr='!slow'`` is gi
    If you want to specify more than two attributes, separate them with a comma such as ``--attr='!gpu,!slow'``.
    See detail in `the document of nose <https://nose.readthedocs.io/en/latest/plugins/attrib.html#simple-syntax>`_.
 
-Once you send a pull request, your code is automatically tested by `Travis-CI <https://travis-ci.org/pfnet/chainer/>`_ **with --attr='!gpu,!slow' option**.
+Once you send a pull request, your code is automatically tested by `Travis-CI <https://travis-ci.org/chainer/chainer/>`_ **with --attr='!gpu,!slow' option**.
 Since Travis-CI does not support CUDA, we cannot check your CUDA-related code automatically.
 The reviewing process starts after the test passes.
 Note that reviewers will test your code without the option to check CUDA-related code.

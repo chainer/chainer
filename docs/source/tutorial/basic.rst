@@ -442,7 +442,7 @@ Example: Multi-layer Perceptron on MNIST
 
 Now you can solve a multiclass classification task using a multi-layer perceptron (MLP).
 We use a hand-written digits dataset called `MNIST <http://yann.lecun.com/exdb/mnist/>`_, which is one of the long-standing de facto "hello world" examples used in machine learning.
-This MNIST example is also found in the `examples/mnist <https://github.com/pfnet/chainer/tree/master/examples/mnist>`_ directory of the official repository.
+This MNIST example is also found in the `examples/mnist <https://github.com/chainer/chainer/tree/master/examples/mnist>`_ directory of the official repository.
 We show how to use :class:`~training.Trainer` to construct and run the training loop in this section.
 
 We first have to prepare the MNIST dataset.
@@ -595,4 +595,4 @@ These extensions perform the following tasks:
 There are many extensions implemented in the :mod:`chainer.training.extensions` module.
 The most important one that is not included above is :func:`~training.extensions.snapshot`, which saves the snapshot of the training procedure (i.e., the Trainer object) to a file in the output directory.
 
-The `example code <https://github.com/pfnet/chainer/blob/master/examples/mnist/train_mnist.py>`_ in the `examples/mnist` directory additionally contains GPU support, though the essential part is the same as the code in this tutorial. We will review in later sections how to use GPU(s).
+The `example code <https://github.com/chainer/chainer/blob/master/examples/mnist/train_mnist.py>`_ in the `examples/mnist` directory additionally contains GPU support, though the essential part is the same as the code in this tutorial. We will review in later sections how to use GPU(s).
