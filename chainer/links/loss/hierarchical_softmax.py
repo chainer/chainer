@@ -442,7 +442,7 @@ class BinaryHierarchicalSoftmax(link.Link):
 
         sampling = [[] for _ in six.moves.range(batchsize)]
         for _next_ids, _choose_ids in zip(_lst_next_ids, _lst_choose_ids):
-            _next_ids = numpy.array(_next_ids, dtype=numpy.int32)
+            _next_ids = cuda.to_cpu(_next_ids)
             for m in six.moves.range(batchsize):
                 if _next_ids[m] != FINISH_SAMPLING:
                     sampling[m].append(_choose_ids[m])
