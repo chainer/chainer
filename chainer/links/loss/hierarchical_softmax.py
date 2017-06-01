@@ -443,12 +443,14 @@ class BinaryHierarchicalSoftmax(link.Link):
                 break
             start_ids = next_ids
 
-        sampling = [[] for _ in six.moves.range(batchsize)]
-        for _next_ids, _choose_ids in zip(_lst_next_ids, _lst_choose_ids):
-            _next_ids = cuda.to_cpu(_next_ids)
-            for m in six.moves.range(batchsize):
-                if _next_ids[m] != FINISH_SAMPLING:
-                    sampling[m].append(_choose_ids[m])
+        sampling = []
+        next_ids_np = xp.stack(_lst_next_ids).T
+        choose_ids = xp.stack(_lst_choose_ids).T
+        lengths = xp.argmax(next_ids_np == FINISH_SAMPLING, axis=1)
+        max_length = choose_ids.shape[1]
+        lengths = xp.where(lengths == 0, max_length, lengths)
+        for length, path in zip(lengths, choose_ids):
+            sampling.append(path[0:length])
 
         # Find word id from tree.
         output = []
