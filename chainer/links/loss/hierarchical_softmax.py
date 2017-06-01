@@ -123,7 +123,7 @@ class BinaryHierarchicalSoftmaxFunction(function.Function):
                 return [LEAF, LEAF]
 
         parent2child = [_convert_func(parent2child, i) for i in
-                        six.moves.range(n_vocab+2)]
+                        six.moves.range(n_vocab + 2)]
         self.parent2child = numpy.array(parent2child, dtype=numpy.int32)
 
         begins = numpy.empty((n_vocab + 1,), dtype=numpy.int32)
@@ -405,7 +405,7 @@ class BinaryHierarchicalSoftmax(link.Link):
             raise ValueError('Empty tree')
 
         xp = self.xp
-        parent2child = self._func.parent2child
+        parent2child = xp.array(self._func.parent2child, dtype=xp.int32)
         batchsize = x.data.shape[0]
         start_ids = xp.zeros(batchsize, 'i')
         _lst_next_ids = []
@@ -428,12 +428,11 @@ class BinaryHierarchicalSoftmax(link.Link):
             rows = xp.arange(batchsize, dtype=xp.int32)
             columns = choosed_idx
 
-            nodes_ids = parent2child[start_ids]
-            next_ids = nodes_ids[rows, columns]
-            next_ids = xp.where(next_ids != LEAF, next_ids, FINISH_SAMPLING)
-
             _lst_next_ids.append(start_ids)
             _lst_choose_ids.append(choosed_idx)
+
+            next_ids = parent2child[start_ids][rows, columns]
+            next_ids = xp.where(next_ids != LEAF, next_ids, FINISH_SAMPLING)
 
             # check whether all nodes are LEAF.
             if xp.all(next_ids == FINISH_SAMPLING):
@@ -443,6 +442,7 @@ class BinaryHierarchicalSoftmax(link.Link):
 
         sampling = [[] for _ in six.moves.range(batchsize)]
         for _next_ids, _choose_ids in zip(_lst_next_ids, _lst_choose_ids):
+            _next_ids = numpy.array(_next_ids, dtype=numpy.int32)
             for m in six.moves.range(batchsize):
                 if _next_ids[m] != FINISH_SAMPLING:
                     sampling[m].append(_choose_ids[m])
