@@ -662,7 +662,7 @@ The following list shows what you have to do.
 - Rewrite your :class:`GradientMethod` implementation.
   The new implementation only has to set up the update rule for each parameter in the target link.
 
-You can see live examples in `the optimizer implementations provided by Chainer <https://github.com/pfnet/chainer/tree/master/chainer/optimizers>`_.
+You can see live examples in `the optimizer implementations provided by Chainer <https://github.com/chainer/chainer/tree/master/chainer/optimizers>`_.
 
 
 Serializer

@@ -72,7 +72,7 @@ We recommend to install Chainer via pip::
 Install Chainer from source
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The tarball of the source tree is available via ``pip download chainer`` or from `the release notes page <https://github.com/pfnet/chainer/releases>`_.
+The tarball of the source tree is available via ``pip download chainer`` or from `the release notes page <https://github.com/chainer/chainer/releases>`_.
 You can use ``setup.py`` to install Chainer from the tarball::
 
   $ tar zxf chainer-x.x.x.tar.gz
@@ -81,7 +81,7 @@ You can use ``setup.py`` to install Chainer from the tarball::
 
 You can also install the development version of Chainer from a cloned Git repository::
 
-  $ git clone https://github.com/pfnet/chainer.git
+  $ git clone https://github.com/chainer/chainer.git
   $ cd chainer
   $ python setup.py install
 
