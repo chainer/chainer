@@ -443,12 +443,15 @@ class BinaryHierarchicalSoftmax(link.Link):
                 break
             start_ids = next_ids
 
-        sampling = []
-        next_ids = xp.stack(list_next_ids).T
-        choose_ids = xp.stack(list_choose_ids).T
+        def xp_stack_func(x):
+            return xp.reshape(xp.concatenate(x), (-1, batchsize)).T
+
+        next_ids = xp_stack_func(list_next_ids)
+        choose_ids = xp_stack_func(list_choose_ids)
         lengths = xp.argmax(next_ids == FINISH_SAMPLING, axis=1)
         max_length = choose_ids.shape[1]
         lengths = xp.where(lengths == 0, max_length, lengths)
+        sampling = []
         for length, path in zip(lengths, choose_ids):
             sampling.append(path[0:length])
 
