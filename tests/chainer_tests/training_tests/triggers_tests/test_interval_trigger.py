@@ -5,6 +5,8 @@ import unittest
 from chainer import testing
 from chainer import training
 
+from chainer.serializers import npz
+
 
 class DummyUpdater(training.Updater):
 
@@ -49,6 +51,10 @@ class TestIterationIntervalTrigger(unittest.TestCase):
         expected = [False, True, False, True, False, True, False]
         _test_trigger(self, updater, trigger, expected)
 
+        _serialized = npz.DictionarySerializer()
+        trigger.serialize(_serialized)
+        self.assertEqual(_serialized.target['_count'], 0)
+
 
 class TestEpochIntervalTrigger(unittest.TestCase):
 
@@ -57,6 +63,10 @@ class TestEpochIntervalTrigger(unittest.TestCase):
         trigger = training.trigger.IntervalTrigger(1, 'epoch')
         expected = [False, False, False, False, True, False, False]
         _test_trigger(self, updater, trigger, expected)
+
+        _serialized = npz.DictionarySerializer()
+        trigger.serialize(_serialized)
+        self.assertEqual(_serialized.target['_count'], 1)
 
 
 class TestFractionalEpochIntervalTrigger(unittest.TestCase):
@@ -67,6 +77,10 @@ class TestFractionalEpochIntervalTrigger(unittest.TestCase):
         expected = [False, False, True, False, False, True, False]
         _test_trigger(self, updater, trigger, expected)
 
+        _serialized = npz.DictionarySerializer()
+        trigger.serialize(_serialized)
+        self.assertEqual(_serialized.target['_count'], 2)
+
 
 class TestUnalignedEpochIntervalTrigger(unittest.TestCase):
 
@@ -75,6 +89,10 @@ class TestUnalignedEpochIntervalTrigger(unittest.TestCase):
         trigger = training.trigger.IntervalTrigger(1, 'epoch')
         expected = [False, False, True, False, True, False, False]
         _test_trigger(self, updater, trigger, expected)
+
+        _serialized = npz.DictionarySerializer()
+        trigger.serialize(_serialized)
+        self.assertEqual(_serialized.target['_count'], 2)
 
 
 testing.run_module(__name__, __file__)

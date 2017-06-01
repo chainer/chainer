@@ -116,7 +116,11 @@ class LogReport(extension.Extension):
         if isinstance(serializer, serializer_module.Serializer):
             log = json.dumps(self._log)
             serializer('_log', log)
+            serializer('_trigger', self._trigger)
         else:
+            trigger = serializer('_trigger', None)
+            if trigger is not None:
+                self._trigger = trigger.item()
             log = serializer('_log', '')
             self._log = json.loads(log)
 

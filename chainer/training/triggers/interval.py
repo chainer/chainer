@@ -1,3 +1,6 @@
+import chainer.serializer as serializer_module
+
+
 class IntervalTrigger(object):
 
     """Trigger based on a fixed interval.
@@ -46,3 +49,9 @@ class IntervalTrigger(object):
         else:
             iteration = updater.iteration
             return iteration > 0 and iteration % self.period == 0
+
+    def serialize(self, serializer):
+        if isinstance(serializer, serializer_module.Serializer):
+            serializer('_count', self.count)
+        else:
+            self.count = serializer('_count', 0)
