@@ -1,3 +1,6 @@
+<div align="center"><img src="docs/image/chainer_red_h.png" width="600"/></div>
+<br />
+
 [![pypi](https://img.shields.io/pypi/v/chainer.svg)](https://pypi.python.org/pypi/chainer)
 [![GitHub license](https://img.shields.io/github/license/chainer/chainer.svg)](https://github.com/chainer/chainer)
 [![travis](https://img.shields.io/travis/chainer/chainer/master.svg)](https://travis-ci.org/chainer/chainer)
