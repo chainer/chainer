@@ -5,16 +5,16 @@ import warnings
 import numpy
 import six
 
-import chainer
 from chainer import cuda
-import chainer.link as link_module
-import chainer.serializer as serializer_module
+from chainer import link as link_module
+from chainer import serializer as serializer_module
+from chainer import variable
 
 
 def _sum_sqnorm(arr):
     sq_sum = collections.defaultdict(float)
     for x in arr:
-        with cuda.get_device(x) as dev:
+        with cuda.get_device_from_array(x) as dev:
             x = x.ravel()
             s = x.dot(x)
             sq_sum[int(dev)] += s
@@ -57,6 +57,8 @@ class Hyperparameter(object):
         self._parent = parent
 
     def __getattr__(self, name):
+        if '_parent' not in self.__dict__:
+            raise AttributeError('_parent is not set up yet')
         return getattr(self._parent, name)
 
     def __repr__(self):
@@ -64,6 +66,11 @@ class Hyperparameter(object):
         keys = sorted(d.keys())
         values_repr = ', '.join('%s=%s' % (k, d[k]) for k in keys)
         return 'Hyperparameter(%s)' % values_repr
+
+    @property
+    def parent(self):
+        """Parent hyperparmaeter object."""
+        return self._parent
 
     def get_dict(self):
         """Converts the hyperparameter into a dictionary.
@@ -193,7 +200,7 @@ class UpdateRule(object):
             param (~chainer.Variable): Variable to be updated.
 
         """
-        with cuda.get_device(param.data) as dev:
+        with cuda.get_device_from_array(param.data) as dev:
             if int(dev) == -1:
                 self.update_core_cpu(param)
             else:
@@ -252,7 +259,7 @@ class UpdateRule(object):
                 self._state = {}
                 self_copy = copy.copy(self)
                 arr = numpy.empty(1, dtype=numpy.float32)
-                self_copy.init_state(chainer.Variable(arr, grad=arr))
+                self_copy.init_state(variable.Variable(arr, grad=arr))
 
                 for key in self._state:
                     self._state[key] = serializer(key, None)
@@ -479,6 +486,27 @@ class GradientMethod(Optimizer):
         for param in link.params():
             param.update_rule = self.create_update_rule()
 
+    def reallocate_cleared_grads(self):
+        """Reallocate gradients cleared by :meth:`~chainer.Variable.cleargrad`.
+
+        This method allocates arrays for all gradients which have :obj:`None`.
+        This method is called before and after every optimizer hook.
+        If an inheriting optimizer does not require this allocation,
+        the optimizer can override this method with a blank function.
+
+        """
+        for name, param in self.target.namedparams(False):
+            if param.grad is None:
+                with cuda.get_device_from_array(param.data):
+                    xp = cuda.get_array_module(param.data)
+                    param.grad = xp.zeros_like(param.data)
+
+    def call_hooks(self):
+        """Invokes hook functions in registration order."""
+        for hook in six.itervalues(self._hooks):
+            self._call_hook(hook)
+            self.reallocate_cleared_grads()
+
     def update(self, lossfun=None, *args, **kwds):
         """Updates parameters based on a loss function or computed gradients.
 
@@ -504,13 +532,7 @@ class GradientMethod(Optimizer):
             loss.backward()
             del loss
 
-        # TODO(unno): Some optimizers can skip this process if they does not
-        # affect to a parameter when its gradient is zero.
-        for name, param in self.target.namedparams(False):
-            if param.grad is None:
-                with cuda.get_device(param.data):
-                    xp = cuda.get_array_module(param.data)
-                    param.grad = xp.zeros_like(param.data)
+        self.reallocate_cleared_grads()
 
         self.call_hooks()
 
@@ -632,7 +654,7 @@ class Lasso(object):
     def __call__(self, rule, param):
         p, g = param.data, param.grad
         xp = cuda.get_array_module(p)
-        with cuda.get_device(p) as dev:
+        with cuda.get_device_from_array(p) as dev:
             sign = xp.sign(p)
             if int(dev) == -1:
                 g += self.rate * sign
@@ -667,7 +689,7 @@ class GradientClipping(object):
         if rate < 1:
             for param in opt.target.params(False):
                 grad = param.grad
-                with cuda.get_device(grad):
+                with cuda.get_device_from_array(grad):
                     grad *= rate
 
 
@@ -709,7 +731,7 @@ class GradientNoise(object):
     def __call__(self, rule, param):
         g = param.grad
         xp = cuda.get_array_module(g)
-        with cuda.get_device(g) as dev:
+        with cuda.get_device_from_array(g) as dev:
             noise = self.noise_func(xp, g.shape, g.dtype, self, rule)
             if int(dev) == -1:
                 g += noise
@@ -745,5 +767,5 @@ class GradientHardClipping(object):
     def __call__(self, rule, param):
         grad = param.grad
         xp = cuda.get_array_module(grad)
-        with cuda.get_device(grad):
+        with cuda.get_device_from_array(grad):
             xp.clip(grad, self.lower_bound, self.upper_bound, out=grad)

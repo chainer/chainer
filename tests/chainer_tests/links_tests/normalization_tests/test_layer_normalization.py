@@ -23,7 +23,7 @@ def _create_ln(*args, **kwargs):
 
 @testing.parameterize(*(testing.product({
     'batchsize': [1, 5],
-    'size': [10, 100],
+    'size': [10, 20],
     'dtype': [numpy.float32],
 })))
 class LayerNormalizationTest(unittest.TestCase):
@@ -43,8 +43,7 @@ class LayerNormalizationTest(unittest.TestCase):
             self.check_backward_optionss = {'atol': 5e-1, 'rtol': 1e-1}
 
     def check_forward(self, x_data):
-        x = chainer.Variable(x_data)
-        y = self.link(x)
+        y = self.link(x_data)
         self.assertEqual(y.data.dtype, self.dtype)
 
         unbatched_concat_y = chainer.functions.concat(
@@ -71,10 +70,10 @@ class LayerNormalizationTest(unittest.TestCase):
     @attr.multi_gpu(2)
     @condition.retry(3)
     def test_forward_multi_gpu(self):
-        with cuda.get_device(1):
+        with cuda.get_device_from_id(1):
             self.link.to_gpu()
             x = cuda.to_gpu(self.x)
-        with cuda.get_device(0):
+        with cuda.get_device_from_id(0):
             self.check_forward(x)
 
     def check_backward(self, x_data, y_grad):

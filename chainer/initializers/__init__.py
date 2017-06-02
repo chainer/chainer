@@ -5,7 +5,6 @@ from chainer.initializers import normal  # NOQA
 from chainer.initializers import orthogonal  # NOQA
 from chainer.initializers import uniform  # NOQA
 
-
 # import class and function
 from chainer.initializers.constant import Constant
 from chainer.initializers.constant import Identity  # NOQA
@@ -55,5 +54,6 @@ def _get_initializer(initializer):
     if isinstance(initializer, numpy.ndarray):
         return Constant(initializer)
 
-    assert callable(initializer)
+    if not callable(initializer):
+        raise TypeError('invalid type of initializer: %s' % type(initializer))
     return initializer

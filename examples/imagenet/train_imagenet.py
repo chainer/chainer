@@ -23,6 +23,7 @@ import googlenet
 import googlenetbn
 import nin
 import resnet
+import resnet50
 
 
 class PreprocessedDataset(chainer.dataset.DatasetMixin):
@@ -74,8 +75,9 @@ def main():
         'googlenetbn': googlenetbn.GoogLeNetBN,
         'googlenetbn_fp16': googlenetbn.GoogLeNetBNFp16,
         'nin': nin.NIN,
-        'resnet50': resnet.ResNet50,
-        'resnet152': resnet.ResNet152,
+        'resnet50': resnet50.ResNet50,
+        'resnet_50': resnet.ResNet50,
+        'resnet_152': resnet.ResNet152
     }
 
     parser = argparse.ArgumentParser(
@@ -116,7 +118,7 @@ def main():
         print('Load model from', args.initmodel)
         chainer.serializers.load_npz(args.initmodel, model)
     if args.gpu >= 0:
-        chainer.cuda.get_device(args.gpu).use()  # Make the GPU current
+        chainer.cuda.get_device_from_id(args.gpu).use()  # Make the GPU current
         model.to_gpu()
 
     # Load the datasets and mean file

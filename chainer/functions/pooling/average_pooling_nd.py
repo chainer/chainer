@@ -33,6 +33,10 @@ class AveragePoolingND(pooling_nd._PoolingND):
             ndim, ksize, stride=stride, pad=pad, cover_all=cover_all)
 
     def forward_cpu(self, x):
+        self.retain_inputs(())
+        self._in_shape = x[0].shape
+        self._in_dtype = x[0].dtype
+
         col = conv_nd.im2col_nd_cpu(
             x[0], self.ksize, self.stride, self.pad, cover_all=self.cover_all)
 
@@ -52,6 +56,10 @@ class AveragePoolingND(pooling_nd._PoolingND):
             # spatial dimensions of two.
             elif self.ndim == 2:
                 return super(AveragePoolingND, self).forward_gpu(x)
+
+        self.retain_inputs(())
+        self._in_shape = x[0].shape
+        self._in_dtype = x[0].dtype
 
         n, c = x[0].shape[:2]
         dims = x[0].shape[2:]
@@ -74,7 +82,7 @@ class AveragePoolingND(pooling_nd._PoolingND):
         return y,
 
     def backward_cpu(self, x, gy):
-        dims = x[0].shape[2:]
+        dims = self._in_shape[2:]
         outs = gy[0].shape[2:]
         colon = slice(None, None, None)
         gy_index = (colon, colon) + (None,) * len(dims)
@@ -88,10 +96,10 @@ class AveragePoolingND(pooling_nd._PoolingND):
         if self._used_cudnn:
             return super(AveragePoolingND, self).backward_gpu(x, gy)
 
-        n, c = x[0].shape[:2]
-        dims = x[0].shape[2:]
+        n, c = self._in_shape[:2]
+        dims = self._in_shape[2:]
         ys = gy[0].shape[2:]
-        gx = cuda.cupy.empty_like(x[0])
+        gx = cuda.cupy.empty(self._in_shape, self._in_dtype)
         coeff = 1. / functools.reduce(operator.mul, self.ksize)
 
         in_params, out_params, operation, name = \

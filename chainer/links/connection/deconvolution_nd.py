@@ -1,9 +1,8 @@
-import numpy
-
 from chainer.functions.connection import deconvolution_nd
 from chainer import initializers
 from chainer import link
 from chainer.utils import conv_nd
+from chainer import variable
 
 
 class DeconvolutionND(link.Link):
@@ -27,17 +26,13 @@ class DeconvolutionND(link.Link):
             operation. It should be a tuple of ints that represents the output
             size of each dimension. Default value is ``None`` and the outsize
             is estimated with input size, stride and pad.
-        initialW (callable): Weight initializer.
-            It should be a callable that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value.
-            If it is ``None``, the default initializer is used.
-            If it is `numpy.ndarray`, the array is used as initial
-            weight value.
-        initial_bias (callable): Bias initializer.
-            It should be a callable that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value.
-            If ``None``, the default initializer is used.
-            If it is `numpy.ndarray`, the array is used as initial bias value.
+        initialW (array): Initial weight array. If ``None``, the default
+            initializer is used. May be an
+            initializer instance of another value the same with that
+            :func:`~chainer.init_weight` function can take.
+        initial_bias (array): Initial bias array. If ``None``, the bias vector
+            is set to zero. May be an initializer instance of another value
+            the same with that :func:`~chainer.init_weight` function can take.
 
     .. seealso::
        :func:`~chainer.functions.deconvolution_nd`
@@ -52,26 +47,24 @@ class DeconvolutionND(link.Link):
     def __init__(self, ndim, in_channels, out_channels, ksize, stride=1, pad=0,
                  nobias=False, outsize=None,
                  initialW=None, initial_bias=None):
+        super(DeconvolutionND, self).__init__()
+
         ksize = conv_nd.as_tuple(ksize, ndim)
         self.stride = stride
         self.pad = pad
         self.outsize = outsize
 
-        super(DeconvolutionND, self).__init__()
-
-        W_shape = (in_channels, out_channels) + ksize
-        if initialW is None:
-            initialW = initializers.HeNormal(1. / numpy.sqrt(2))
-        initialW = initializers._get_initializer(initialW)
-        self.add_param('W', W_shape, initializer=initialW)
-
-        if nobias:
-            self.b = None
-        else:
-            if initial_bias is None:
-                initial_bias = initializers.Constant(0)
-            initial_bias = initializers._get_initializer(initial_bias)
-            self.add_param('b', out_channels, initializer=initial_bias)
+        with self.init_scope():
+            W_initializer = initializers._get_initializer(initialW)
+            self.W = variable.Parameter(W_initializer,
+                                        (in_channels, out_channels) + ksize)
+            if nobias:
+                self.b = None
+            else:
+                if initial_bias is None:
+                    initial_bias = 0
+                initial_bias = initializers._get_initializer(initial_bias)
+                self.b = variable.Parameter(initial_bias, out_channels)
 
     def __call__(self, x):
         return deconvolution_nd.deconvolution_nd(

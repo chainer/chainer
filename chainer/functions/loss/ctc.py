@@ -7,6 +7,7 @@ from chainer import cuda
 from chainer import function
 from chainer import utils
 from chainer.utils import type_check
+from chainer import variable
 
 
 def _logsumexp(a, xp, axis=None):
@@ -58,9 +59,15 @@ class ConnectionistTemporalClassification(function.Function):
     backward values before the activation function is applied.
     """
 
-    def __init__(self, blank_symbol):
+    def __init__(self, blank_symbol, reduce='mean'):
         self.blank_symbol = blank_symbol
         self.zero_padding = -10000000000.0
+
+        if reduce not in ('mean', 'no'):
+            raise ValueError(
+                "only 'mean' and 'no' are valid "
+                "for 'reduce', but '%s' is given" % reduce)
+        self.reduce = reduce
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() > 3)  # TODO(okuta): > 3?
@@ -87,16 +94,24 @@ class ConnectionistTemporalClassification(function.Function):
             res = create_recurrence_relation(x, self.zero_padding)
         return res.astype(numpy.float32)
 
-    def recurrence_relation(self, path_length, max_length, dtype, xp):
+    def recurrence_relation(self, label, path_length, max_length, dtype, xp):
         """Transition in forword and backword algorithms is represented as matrix.
 
         See also
         https://blog.wtf.sg/2014/10/06/connectionist-temporal-classification-ctc-with-theano/
         """
-        rr = (xp.eye(max_length, dtype=dtype) +
-              xp.eye(max_length, k=1, dtype=dtype) +
-              xp.eye(max_length, k=2, dtype=dtype) *
-              (xp.arange(max_length, dtype=dtype) % dtype(2)))
+        batch, lab = label.shape
+        repeat_mask = xp.ones((batch, lab * 2 + 1))
+        repeat_mask[:, 1::2] = (label !=
+                                xp.take(label, xp.arange(-1, lab - 1)
+                                        % lab + xp.arange(0, batch * lab,
+                                                          lab)[:, None]))
+        repeat_mask[:, 1] = 1
+        rr = (xp.eye(max_length, dtype=dtype)[None, :] +
+              xp.eye(max_length, k=1, dtype=dtype)[None, :] +
+              (xp.eye(max_length, k=2, dtype=dtype) *
+               (xp.arange(max_length, dtype=dtype) % dtype(2))[None, :]
+               * repeat_mask[:, None]))
         return self.log_matrix(
             rr * (path_length[:, None] > xp.arange(max_length))[..., None], xp)
 
@@ -145,7 +160,8 @@ class ConnectionistTemporalClassification(function.Function):
                                           path.shape[1], ret[i])
         return ret
 
-    def calc_trans(self, path, yseq, xp):
+    def calc_trans(self, yseq, input_length,
+                   label, label_length, path, path_length, xp):
         forward_prob = self.log_matrix(
             xp.eye(path.shape[1], dtype='f')[0], xp)[None, :]
         backward_prob = forward_prob
@@ -155,7 +171,7 @@ class ConnectionistTemporalClassification(function.Function):
         # prob[i] := forward[i] + backward[-i-1]
         index = offset + path
         frr = self.recurrence_relation(
-            self.path_length, path.shape[1], numpy.float32, xp)
+            label, path_length, path.shape[1], numpy.float32, xp)
         prob = xp.empty(
             (len(yseq),) + index.shape, dtype=forward_prob.dtype)
         # forward computation.
@@ -164,21 +180,21 @@ class ConnectionistTemporalClassification(function.Function):
             forward_prob = xp.take(y, index) + _log_dot(
                 forward_prob[:, None, :], frr, xp)
             prob[i] = forward_prob
-        r_index = offset + _move_label_to_back(path, self.path_length, xp)
+        r_index = offset + _move_label_to_back(path, path_length, xp)
 
         # rotate yseq with path_length
-        yseq_inv = _move_inputs(yseq, self.input_length, xp)[::-1]
+        yseq_inv = _move_inputs(yseq, input_length, xp)[::-1]
         brr = self.recurrence_relation(
-            self.path_length, path.shape[1], numpy.float32, xp)
-
+            _move_label_to_back(label, label_length, xp),
+            path_length, path.shape[1], numpy.float32, xp)
         # move to back.
-        prob = _move_inputs(prob, self.input_length, xp)
+        prob = _move_inputs(prob, input_length, xp)
 
         # backward computation.
         ps1 = path.shape[1]
         backward_prob_index = (
             xp.arange(0, path.size, ps1, dtype=numpy.int32)[:, None] +
-            (xp.arange(ps1) - self.path_length[:, None]) % ps1)
+            (xp.arange(ps1) - path_length[:, None]) % ps1)
         for i, y_inv in enumerate(yseq_inv):
             # calc backward probability
             backward_prob = _log_dot(backward_prob[:, None, :], brr, xp)
@@ -208,16 +224,17 @@ class ConnectionistTemporalClassification(function.Function):
 
         self.path_length = 2 * label_length + 1
 
-        batch_size = len(t)
         yseq_shape = (len(xs),) + xs[0].shape
         self.yseq = _softmax(xp.vstack(xs).reshape(yseq_shape), xp)
         log_yseq = self.log_matrix(self.yseq, xp)
         self.path = _label_to_path(t, self.blank_symbol, xp)
-        self.prob_trans = self.calc_trans(self.path, log_yseq, xp)
+        self.prob_trans = self.calc_trans(
+            log_yseq, self.input_length, t,
+            label_length, self.path, self.path_length, xp)
 
-        loss = utils.force_array(xp.sum(
-            _logsumexp(self.prob_trans[0], xp, axis=1)))
-        loss /= -batch_size
+        loss = -_logsumexp(self.prob_trans[0], xp, axis=1)
+        if self.reduce == 'mean':
+            loss = utils.force_array(xp.mean(loss))
         return loss,
 
     def backward(self, inputs, grad_output):
@@ -229,7 +246,10 @@ class ConnectionistTemporalClassification(function.Function):
             self.yseq.shape[2], self.path, self.path_length,
             self.prob_trans, xp)
         self.yseq -= xp.exp(label_prob - total_probability[:, None])
-        self.yseq *= grad_output[0] / batch_size
+        if self.reduce == 'mean':
+            self.yseq *= grad_output[0] / batch_size
+        else:
+            self.yseq *= grad_output[0][..., None]
         # mask
         self.yseq *= (
             xp.arange(len(self.yseq))[:, None] < self.input_length)[..., None]
@@ -237,12 +257,18 @@ class ConnectionistTemporalClassification(function.Function):
 
 
 def connectionist_temporal_classification(
-        x, t, blank_symbol, input_length=None, label_length=None):
+        x, t, blank_symbol, input_length=None, label_length=None,
+        reduce='mean'):
     """Connectionist Temporal Classification loss function.
 
     Connectionist Temporal Classification(CTC) [Graves2006]_ is a loss function
     of sequence labeling where the alignment between the inputs and target is
     unknown. See also [Graves2012]_
+
+    The output is a varialbe whose value depends on the value of
+    the option ``reduce``. If it is ``'no'``, it holds the samplewise
+    loss values. If it is ``'mean'``, it takes the mean of loss values.
+
 
     Args:
         x (sequence of Variable): RNN output at each time. ``x`` must be a list
@@ -258,9 +284,16 @@ def connectionist_temporal_classification(
         label_length (Variable): Length of valid sequence for each of mini
             batch ``t`` (optional). If label_length is skipped, It regards that
             all of ``t`` is valid input.
+        reduce (str): Reduction option. Its value must be either
+            ``'mean'`` or ``'no'``. Otherwise,
+            :class:`ValueError` is raised.
 
     Returns:
-        Variable: A variable holding a scalar value of the CTC loss.
+       ~chainer.Variable:
+           A variable holding a scalar value of the CTC loss.
+           If ``reduce`` is ``'no'``, the output varialbe holds array
+           whose shape is `(B,)` where `B` is the number of samples.
+           If it is ``'mean'``, it holds a scalar.
 
     .. note::
        You need to input ``x`` without applying to activation functions(e.g.
@@ -298,10 +331,10 @@ def connectionist_temporal_classification(
 
     if input_length is None:
         xp = cuda.get_array_module(x[0].data)
-        input_length = chainer.Variable(
+        input_length = variable.Variable(
             xp.full((len(x[0].data),), len(x), dtype=numpy.int32))
-        label_length = chainer.Variable(
+        label_length = variable.Variable(
             xp.full((len(t.data),), len(t.data[0]), dtype=numpy.int32))
 
-    return ConnectionistTemporalClassification(blank_symbol)(
+    return ConnectionistTemporalClassification(blank_symbol, reduce)(
         input_length, label_length, t, *x)

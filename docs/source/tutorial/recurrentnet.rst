@@ -1,5 +1,5 @@
 Recurrent Nets and their Computational Graph
---------------------------------------------
+````````````````````````````````````````````
 
 .. currentmodule:: chainer
 
@@ -17,7 +17,7 @@ After reading this section, you will be able to:
 
 
 Recurrent Nets
-~~~~~~~~~~~~~~
+''''''''''''''
 
 Recurrent nets are neural networks with loops.
 They are often used to learn from sequential input/output.
@@ -61,11 +61,11 @@ Based on this LSTM link, let's write our recurrent network as a new chain:
 
    class RNN(Chain):
        def __init__(self):
-           super(RNN, self).__init__(
-               embed=L.EmbedID(1000, 100),  # word embedding
-               mid=L.LSTM(100, 50),  # the first LSTM layer
-               out=L.Linear(50, 1000),  # the feed-forward output layer
-           )
+           super(RNN, self).__init__()
+           with self.init_scope():
+               self.embed = L.EmbedID(1000, 100)  # word embedding
+               self.mid = L.LSTM(100, 50)  # the first LSTM layer
+               self.out = L.Linear(50, 1000)  # the feed-forward output layer
 
        def reset_state(self):
            self.mid.reset_state()
@@ -127,7 +127,7 @@ Or equivalently we can use the ``compute_loss`` as a loss function:
 
 
 Truncate the Graph by Unchaining
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+''''''''''''''''''''''''''''''''
 
 Learning from very long sequences is also a typical use case of recurrent nets.
 Suppose the input and state sequence is too long to fit into memory.
@@ -174,7 +174,7 @@ For example, we can easily extend the above code to use different schedules betw
 
 
 Network Evaluation without Storing the Computation History
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 On evaluation of recurrent nets, there is typically no need to store the computation history.
 While unchaining enables us to walk through unlimited length of sequences with limited memory, it is a bit of a work-around.
@@ -207,7 +207,7 @@ Since the history of computation is only memorized between variables ``feat`` an
 
 
 Making it with Trainer
-~~~~~~~~~~~~~~~~~~~~~~
+''''''''''''''''''''''
 
 The above codes are written with plain Function/Variable APIs.
 When we write a training loop, it is better to use Trainer, since we can then easily add functionalities by extensions.

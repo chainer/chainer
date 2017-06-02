@@ -1,3 +1,6 @@
+from chainer.utils import argument
+
+
 PRIORITY_WRITER = 300
 PRIORITY_EDITOR = 200
 PRIORITY_READER = 100
@@ -28,14 +31,10 @@ class Extension(object):
             ``(1, 'iteration')`` by default.
         priority: Default priority of the extension. It is set to
             ``PRIORITY_READER`` by default.
-        invoke_before_training: Default flag to decide whether this extension
-            should be invoked before the training starts. The default value is
-            ``False``.
 
     """
     trigger = 1, 'iteration'
     priority = PRIORITY_READER
-    invoke_before_training = False
 
     @property
     def default_name(self):
@@ -59,10 +58,42 @@ class Extension(object):
         """
         pass
 
+    def __getattr__(self, name):
+        if name == 'invoke_before_training':
+            raise AttributeError(
+                'invoke_before_training has been removed since Chainer '
+                'v2.0.0. Use Extension.initialize instead.')
+        raise AttributeError('{} object has no attribute {}'.format(
+            type(self).__name__, name))
+
     def finalize(self):
         """Finalizes the extension.
 
         This method is called at the end of the training loop.
+
+        """
+        pass
+
+    def initialize(self, trainer):
+        """Initializes up the trainer state.
+
+        This method is called before entering the training loop. An extension
+        that modifies the state of :class:`~chainer.training.Trainer` can
+        override this method to initialize it.
+
+        When the trainer has been restored from a snapshot, this method has to
+        recover an appropriate part of the state of the trainer.
+
+        For example, :class:`~chainer.training.extensions.ExponentialShift`
+        extension changes the optimizer's hyperparameter at each invocation.
+        Note that the hyperparameter is not saved to the snapshot; it is the
+        responsibility of the extension to recover the hyperparameter.
+        The :class:`~chainer.training.extensions.ExponentialShift` extension
+        recovers it in its ``initialize`` method if it has been loaded from a
+        snapshot, or just setting the initial value otherwise.
+
+        Args:
+            trainer (Trainer): Trainer object that runs the training loop.
 
         """
         pass
@@ -78,7 +109,7 @@ class Extension(object):
 
 
 def make_extension(trigger=None, default_name=None, priority=None,
-                   invoke_before_training=False, finalizer=None):
+                   finalizer=None, initializer=None, **kwargs):
     """Decorator to make given functions into trainer extensions.
 
     This decorator just adds some attributes to a given function. The value of
@@ -92,12 +123,17 @@ def make_extension(trigger=None, default_name=None, priority=None,
         default_name: Default name of the extension. The name of a given
             function is used by default.
         priority (int): Default priority of the extension.
-        invoke_before_training (bool): Default flag to decide whether the
-            extension should be invoked before any training.
-        finalizer: Finalizer function of this extension. The finalizer is
+        finalizer: Finalizer function of this extension. It is
             called at the end of the training loop.
+        initializer: Initializer function of this extension. It is called at
+            the beginning of the training loop.
 
     """
+    msg = ('invoke_before_training has been removed since Chainer v2.0.0. '
+           'Use initializer= instead.')
+    argument.check_unexpected_kwargs(kwargs, invoke_before_training=msg)
+    argument.assert_kwargs_empty(kwargs)
+
     if trigger is None:
         trigger = Extension.trigger
     if priority is None:
@@ -107,8 +143,8 @@ def make_extension(trigger=None, default_name=None, priority=None,
         ext.trigger = trigger
         ext.default_name = default_name or ext.__name__
         ext.priority = priority
-        ext.invoke_before_training = invoke_before_training
         ext.finalize = finalizer
+        ext.initialize = initializer
         return ext
 
     return decorator

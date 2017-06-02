@@ -29,6 +29,14 @@ LogReport
 .. autoclass:: LogReport
    :members:
 
+observe_lr
+----------
+.. autofunction:: observe_lr
+
+observe_value
+-------------
+.. autofunction:: observe_value
+
 snapshot
 --------
 .. autofunction:: snapshot
@@ -36,6 +44,11 @@ snapshot
 snapshot_object
 ---------------
 .. autofunction:: snapshot_object
+
+ParameterStatistics
+-------------------
+.. autoclass:: ParameterStatistics
+   :members:
 
 PlotReport
 ----------

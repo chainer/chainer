@@ -15,17 +15,18 @@ import train_mnist
 class ParallelMLP(chainer.Chain):
 
     def __init__(self, n_units, n_out, gpu0, gpu1):
-        super(ParallelMLP, self).__init__(
-            # the input size, 784, is inferred
-            first0=train_mnist.MLP(n_units // 2, n_units).to_gpu(gpu0),
-            first1=train_mnist.MLP(n_units // 2, n_units).to_gpu(gpu1),
-
-            # the input size, n_units, is inferred
-            second0=train_mnist.MLP(n_units // 2, n_out).to_gpu(gpu0),
-            second1=train_mnist.MLP(n_units // 2, n_out).to_gpu(gpu1),
-        )
+        super(ParallelMLP, self).__init__()
         self.gpu0 = gpu0
         self.gpu1 = gpu1
+
+        with self.init_scope():
+            # the input size, 784, is inferred
+            self.first0 = train_mnist.MLP(n_units // 2, n_units).to_gpu(gpu0)
+            self.first1 = train_mnist.MLP(n_units // 2, n_units).to_gpu(gpu1)
+
+            # the input size, n_units, is inferred
+            self.second0 = train_mnist.MLP(n_units // 2, n_out).to_gpu(gpu0)
+            self.second1 = train_mnist.MLP(n_units // 2, n_out).to_gpu(gpu1)
 
     def __call__(self, x):
         # assume x is on gpu0
@@ -73,7 +74,7 @@ def main():
     # See train_mnist.py for the meaning of these lines
 
     model = L.Classifier(ParallelMLP(args.unit, 10, args.gpu0, args.gpu1))
-    chainer.cuda.get_device(args.gpu0).use()
+    chainer.cuda.get_device_from_id(args.gpu0).use()
 
     optimizer = chainer.optimizers.Adam()
     optimizer.setup(model)

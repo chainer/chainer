@@ -95,24 +95,25 @@ class TestDeconvolution2D(unittest.TestCase):
 @parameterize(
     *testing.product({
         'nobias': [True, False],
-        'use_cudnn': ['always', 'never']
+        'use_cudnn': ['always', 'never'],
+        'deconv_args': [((3, 2, 3), {}), ((2, 3), {}), ((None, 2, 3), {}),
+                        ((2, 3), {'stride': 2, 'pad': 1}),
+                        ((None, 2, 3, 2, 1), {})]
     })
 )
 class TestDeconvolution2DParameterShapePlaceholder(unittest.TestCase):
 
     def setUp(self):
-        out_channels = 2
-        ksize = 3
-        stride = 2
-        pad = 1
-        in_channels = None
-        self.link = L.Deconvolution2D(
-            in_channels, out_channels, ksize,
-            stride=stride, pad=pad, nobias=self.nobias)
+        args, kwargs = self.deconv_args
+        kwargs['nobias'] = self.nobias
+        self.link = L.Deconvolution2D(*args, **kwargs)
         if not self.nobias:
             self.link.b.data[...] = numpy.random.uniform(
                 -1, 1, self.link.b.data.shape).astype(numpy.float32)
-
+        out_channels = self.link.out_channels
+        ksize = self.link.ksize
+        stride = self.link.stride[0]
+        pad = self.link.pad[0]
         N = 2
         h, w = 3, 2
         kh, kw = _pair(ksize)
