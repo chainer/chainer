@@ -1,38 +1,43 @@
+import numpy as np
+import six
 import unittest
 
-import numpy as np
 
 from chainer.datasets import ConcatenatedDataset
 from chainer import testing
 
 
+@testing.parameterize(
+    # basic usage
+    {'datasets': (
+        np.random.uniform(size=(5, 3, 32, 32)),
+        np.random.uniform(size=(15, 3, 32, 32)),
+    )},
+)
 class TestConcatenatedDataset(unittest.TestCase):
 
+    def setUp(self):
+        self.concatenated_dataset = ConcatenatedDataset(*self.datasets)
+        self.expected_dataset = [
+            sample for dataset in self.datasets for sample in dataset]
+
     def test_concatenated_dataset(self):
-        dataset0 = np.random.uniform(size=(5, 3, 32, 32))
-        dataset1 = np.random.uniform(size=(15, 3, 32, 32))
-        concatenated_dataset = ConcatenatedDataset(dataset0, dataset1)
+        self.assertEqual(
+            len(self.concatenated_dataset), len(self.expected_dataset))
 
-        self.assertEqual(len(concatenated_dataset), 20)
-
-        np.testing.assert_equal(concatenated_dataset[0], dataset0[0])
-        np.testing.assert_equal(concatenated_dataset[4], dataset0[4])
-        np.testing.assert_equal(concatenated_dataset[5], dataset1[0])
-        np.testing.assert_equal(concatenated_dataset[8], dataset1[3])
+        for i, expected in enumerate(self.expected_dataset):
+            np.testing.assert_equal(self.concatenated_dataset[i], expected)
 
     def test_concatenated_dataset_slice(self):
-        dataset0 = np.random.uniform(size=(5, 3, 32, 32))
-        dataset1 = np.random.uniform(size=(15, 3, 32, 32))
-        concatenated_dataset = ConcatenatedDataset(dataset0, dataset1)
+        concatenated_slice = self.concatenated_dataset[1:8:2]
+        expected_slice = self.concatenated_dataset[1:8:2]
 
-        self.assertEqual(len(concatenated_dataset), 20)
+        self.assertEqual(
+            len(concatenated_slice), len(expected_slice))
 
-        out = concatenated_dataset[1:8:2]
-        self.assertEqual(len(out), 4)
-        np.testing.assert_equal(out[0], dataset0[1])
-        np.testing.assert_equal(out[1], dataset0[3])
-        np.testing.assert_equal(out[2], dataset1[0])
-        np.testing.assert_equal(out[3], dataset1[2])
+        for concatenated, expected in six.moves.zip(
+                concatenated_slice, expected_slice):
+            np.testing.assert_equal(concatenated, expected)
 
 
 testing.run_module(__name__, __file__)
