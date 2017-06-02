@@ -171,13 +171,13 @@ class TestGraphBuilder5(unittest.TestCase):
     def test_edges(self):
         _assert_edges_equal(self,
                             self.g.edges,
-                            [(self.x, self.f),
-                             (self.f, self.y)])
+                            [(self.x.node, self.f),
+                             (self.f, self.y.node)])
 
     def test_nodes(self):
         _assert_nodes_equal(self,
                             self.g.nodes,
-                            [self.x, self.f, self.y])
+                            [self.x.node, self.f, self.y.node])
 
 
 class TestGraphBuilder6(unittest.TestCase):
@@ -192,14 +192,14 @@ class TestGraphBuilder6(unittest.TestCase):
     def test_edges(self):
         _assert_edges_equal(self,
                             self.g.edges,
-                            [(self.x1, self.f),
-                             (self.x2, self.f),
-                             (self.f, self.y)])
+                            [(self.x1.node, self.f),
+                             (self.x2.node, self.f),
+                             (self.f, self.y.node)])
 
     def test_nodes(self):
         _assert_nodes_equal(self,
                             self.g.nodes,
-                            [self.x1, self.x2, self.f, self.y])
+                            [self.x1.node, self.x2.node, self.f, self.y.node])
 
 
 class TestGraphBuilder7(unittest.TestCase):

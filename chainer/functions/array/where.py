@@ -21,13 +21,14 @@ class Where(function.Function):
         )
 
     def forward(self, inputs):
+        self.retain_inputs((0,))
         xp = cuda.get_array_module(*inputs)
         condition, x, y = inputs
         return xp.where(condition, x, y),
 
     def backward(self, inputs, grads):
-        xp = cuda.get_array_module(*inputs)
-        condition, x, y = inputs
+        xp = cuda.get_array_module(inputs[0])
+        condition = inputs[0]
         gx = xp.where(condition, grads[0], 0)
         gy = xp.where(condition, 0, grads[0])
         return None, gx, gy

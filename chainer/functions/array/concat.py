@@ -20,15 +20,15 @@ class Concat(function.Function):
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() > 0)
         type_check.expect(in_types[0].ndim >
-                          type_check.Variable(self.axis, 'axis'))
+                          type_check.make_variable(self.axis, 'axis'))
 
         type_check.expect(
             -in_types[0].ndim <= self.axis,
             self.axis < in_types[0].ndim
         )
-        ndim = in_types[0].ndim.eval()
+        ndim = type_check.eval(in_types[0].ndim)
         axis = self.axis % ndim
-        for i in six.moves.range(1, in_types.size().eval()):
+        for i in six.moves.range(1, type_check.eval(in_types.size())):
             type_check.expect(
                 in_types[0].dtype == in_types[i].dtype,
                 in_types[0].ndim == in_types[i].ndim,
@@ -39,16 +39,19 @@ class Concat(function.Function):
                 type_check.expect(in_types[0].shape[d] == in_types[i].shape[d])
 
     def forward(self, xs):
-        xp = cuda.get_array_module(*xs)
-        return xp.concatenate(xs, axis=self.axis),
+        self.retain_inputs(())
+        self._xp = cuda.get_array_module(*xs)
+        self._x_shapes = [x.shape for x in xs]
+        return self._xp.concatenate(xs, axis=self.axis),
 
     def backward(self, xs, gy):
         if len(xs) == 1:
             return gy
 
-        xp = cuda.get_array_module(*xs)
-        sizes = numpy.array([x.shape[self.axis] for x in xs[:-1]]).cumsum()
-        return xp.split(gy[0], sizes, axis=self.axis)
+        sizes = numpy.array(
+            [shape[self.axis] for shape in self._x_shapes[:-1]]
+        ).cumsum()
+        return self._xp.split(gy[0], sizes, axis=self.axis)
 
 
 def concat(xs, axis=1):

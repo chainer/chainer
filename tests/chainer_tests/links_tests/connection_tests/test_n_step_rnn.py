@@ -16,7 +16,7 @@ def relu(x):
 
 
 @testing.parameterize(*testing.product({
-    'use_cudnn': [True, False],
+    'use_cudnn': ['always', 'never'],
     'hidden_none': [True, False],
     'activation': ['tanh', 'relu'],
 }))
@@ -47,8 +47,7 @@ class TestNStepRNN(unittest.TestCase):
         elif self.activation == 'relu':
             rnn_link_class = links.NStepRNNReLU
         self.rnn = rnn_link_class(
-            self.n_layer, self.in_size, self.out_size, self.dropout,
-            use_cudnn=self.use_cudnn)
+            self.n_layer, self.in_size, self.out_size, self.dropout)
 
         for layer in self.rnn:
             for p in layer.params():
@@ -95,14 +94,16 @@ class TestNStepRNN(unittest.TestCase):
                 testing.assert_allclose(y, ey)
 
     def test_forward_cpu(self):
-        self.check_forward(self.h, self.xs)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.check_forward(self.h, self.xs)
 
     @attr.gpu
     def test_forward_gpu(self):
         self.rnn.to_gpu()
-        self.check_forward(
-            cuda.to_gpu(self.h),
-            [cuda.to_gpu(x) for x in self.xs])
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.check_forward(
+                cuda.to_gpu(self.h),
+                [cuda.to_gpu(x) for x in self.xs])
 
     def check_backward(
             self, h_data, xs_data, gh_data, gys_data):
@@ -133,22 +134,24 @@ class TestNStepRNN(unittest.TestCase):
 
     @condition.retry(3)
     def test_backward_cpu(self):
-        self.check_backward(
-            self.h, self.xs, self.gh, self.gys)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.check_backward(
+                self.h, self.xs, self.gh, self.gys)
 
     @attr.gpu
     @condition.retry(3)
     def test_backward_gpu(self):
         self.rnn.to_gpu()
-        self.check_backward(
-            cuda.to_gpu(self.h),
-            [cuda.to_gpu(x) for x in self.xs],
-            cuda.to_gpu(self.gh),
-            [cuda.to_gpu(gy) for gy in self.gys])
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.check_backward(
+                cuda.to_gpu(self.h),
+                [cuda.to_gpu(x) for x in self.xs],
+                cuda.to_gpu(self.gh),
+                [cuda.to_gpu(gy) for gy in self.gys])
 
 
 @testing.parameterize(*testing.product({
-    'use_cudnn': [True, False],
+    'use_cudnn': ['always', 'never'],
     'hidden_none': [True, False],
     'activation': ['tanh', 'relu'],
 }))
@@ -179,8 +182,7 @@ class TestNStepBiRNN(unittest.TestCase):
         elif self.activation == 'relu':
             rnn_link_class = links.NStepBiRNNReLU
         self.rnn = rnn_link_class(
-            self.n_layer, self.in_size, self.out_size, self.dropout,
-            use_cudnn=self.use_cudnn)
+            self.n_layer, self.in_size, self.out_size, self.dropout)
 
         for layer in self.rnn:
             for p in layer.params():
@@ -249,14 +251,16 @@ class TestNStepBiRNN(unittest.TestCase):
                 testing.assert_allclose(y, ey)
 
     def test_forward_cpu(self):
-        self.check_forward(self.h, self.xs)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.check_forward(self.h, self.xs)
 
     @attr.gpu
     def test_forward_gpu(self):
         self.rnn.to_gpu()
-        self.check_forward(
-            cuda.to_gpu(self.h),
-            [cuda.to_gpu(x) for x in self.xs])
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.check_forward(
+                cuda.to_gpu(self.h),
+                [cuda.to_gpu(x) for x in self.xs])
 
     def check_backward(
             self, h_data, xs_data, gh_data, gys_data):
@@ -287,18 +291,20 @@ class TestNStepBiRNN(unittest.TestCase):
 
     @condition.retry(3)
     def test_backward_cpu(self):
-        self.check_backward(
-            self.h, self.xs, self.gh, self.gys)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.check_backward(
+                self.h, self.xs, self.gh, self.gys)
 
     @attr.gpu
     @condition.retry(3)
     def test_backward_gpu(self):
         self.rnn.to_gpu()
-        self.check_backward(
-            cuda.to_gpu(self.h),
-            [cuda.to_gpu(x) for x in self.xs],
-            cuda.to_gpu(self.gh),
-            [cuda.to_gpu(gy) for gy in self.gys])
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.check_backward(
+                cuda.to_gpu(self.h),
+                [cuda.to_gpu(x) for x in self.xs],
+                cuda.to_gpu(self.gh),
+                [cuda.to_gpu(gy) for gy in self.gys])
 
 
 testing.run_module(__name__, __file__)

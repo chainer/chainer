@@ -1,3 +1,4 @@
+import chainer
 from chainer import cuda
 from chainer import gradient_check
 from chainer import testing
@@ -18,8 +19,9 @@ class TestUpsampling2D(unittest.TestCase):
 
     def setUp(self):
         self.x = numpy.random.uniform(-1, 1, self.in_shape).astype('f')
-        self.p = F.MaxPooling2D(2, 2, use_cudnn=False)
-        self.pooled_y = self.p(self.x)
+        self.p = F.MaxPooling2D(2, 2)
+        with chainer.using_config('use_cudnn', 'never'):
+            self.pooled_y = self.p(self.x)
         self.gy = numpy.random.uniform(
             -1, 1, self.in_shape).astype(numpy.float32)
 

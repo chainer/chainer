@@ -2,12 +2,13 @@ import copy
 
 import six
 
+from chainer import configuration
 from chainer.dataset import convert
 from chainer.dataset import iterator as iterator_module
+from chainer import function
 from chainer import link
 from chainer import reporter as reporter_module
 from chainer.training import extension
-from chainer import variable
 
 
 class Evaluator(extension.Extension):
@@ -38,7 +39,8 @@ class Evaluator(extension.Extension):
     overriding the :meth:`evaluate` method. In latter case, users have to
     create and handle a reporter object manually. Users also have to copy the
     iterators before using them, in order to reuse them at the next time of
-    evaluation.
+    evaluation. In both cases, the functions are called in testing mode
+    (i.e., ``chainer.config.train`` is set to ``False``).
 
     This extension is called at the end of each epoch by default.
 
@@ -131,7 +133,8 @@ class Evaluator(extension.Extension):
                                    target.namedlinks(skipself=True))
 
         with reporter:
-            result = self.evaluate()
+            with configuration.using_config('train', False):
+                result = self.evaluate()
 
         reporter_module.report(result)
         return result
@@ -169,17 +172,13 @@ class Evaluator(extension.Extension):
             observation = {}
             with reporter_module.report_scope(observation):
                 in_arrays = self.converter(batch, self.device)
-                if isinstance(in_arrays, tuple):
-                    in_vars = tuple(variable.Variable(x, volatile='on')
-                                    for x in in_arrays)
-                    eval_func(*in_vars)
-                elif isinstance(in_arrays, dict):
-                    in_vars = {key: variable.Variable(x, volatile='on')
-                               for key, x in six.iteritems(in_arrays)}
-                    eval_func(**in_vars)
-                else:
-                    in_var = variable.Variable(in_arrays, volatile='on')
-                    eval_func(in_var)
+                with function.no_backprop_mode():
+                    if isinstance(in_arrays, tuple):
+                        eval_func(*in_arrays)
+                    elif isinstance(in_arrays, dict):
+                        eval_func(**in_arrays)
+                    else:
+                        eval_func(in_arrays)
 
             summary.add(observation)
 

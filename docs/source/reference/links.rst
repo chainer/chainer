@@ -95,10 +95,10 @@ MLPConvolution2D
 .. autoclass:: MLPConvolution2D
    :members:
 
- NStepBiGRU
- ~~~~~~~~~~
- .. autoclass:: NStepBiGRU
-    :members:
+NStepBiGRU
+~~~~~~~~~~
+.. autoclass:: NStepBiGRU
+   :members:
 
 NStepBiLSTM
 ~~~~~~~~~~~
@@ -263,11 +263,3 @@ Residual Networks
    :members:
 
 .. autofunction:: chainer.links.model.vision.resnet.prepare
-
-Deprecated links
-----------------
-
-Parameter
-~~~~~~~~~
-.. autoclass:: Parameter
-   :members:

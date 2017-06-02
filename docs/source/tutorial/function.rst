@@ -398,6 +398,40 @@ There are more functionalities on user-defined kernels in CuPy.
 :ref:`See the CuPy documentation on user-defined kernels for more details. <udkernel>`
 
 
+Write a function with training/test mode
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+We sometimes want to make a function behave differently in training and test modes.
+The training/test mode in Chainer is configured by :data:`chainer.config`.
+This is a thread-local configuration object, and users can substitute True or False to its ``train`` attribute.
+You can refer to :ref:`configuration` to see how to configure this flag as well as other configuration items.
+
+Here, we just show how to use this flag to make a function support training/test mode.
+You will need to check the value of the boolean flag ``chainer.config.train`` and branch appropriately.
+
+For example, consider the following simple dropout function::
+
+  def dropout(x):
+      xp = cuda.get_array_module(x.data)
+      mask = 2 * (xp.random.rand(*x.shape) > 0.5).astype(x.dtype)
+      return x * mask
+
+This function applies dropout to each element and doubles survived elemenets to preserve the scale.
+The above implementation applies dropout even in test mode, but it is not a desired behavior.
+We can fix it as follows::
+
+  def dropout(x):
+      if not chainer.config.train:
+          return x
+
+      xp = cuda.get_array_module(x.data)
+      mask = 2 * (xp.random.rand(*x.shape) > 0.5).astype(x.dtype)
+      return x * mask
+
+The function now supports test mode.
+Note that you usually do not have to implement your own dropout function because :func:`~chainer.functions.dropout` is officially provided.
+
+
 Links that wrap functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -413,38 +447,12 @@ It can be defined as follows:
 
    class EltwiseParamProduct(Link):
        def __init__(self, shape):
-           # By passing a shape of the parameter, the initializer allocates a
-           # parameter variable of the shape.
-           super(EltwiseParamProduct, self).__init__(W=shape)
-           self.W.data[...] = np.random.randn(*shape)
-
-       def __call__(self, x):
-           return self.W * x
-
-.. testcode::
-   :hide:
-
-   x = Variable(np.random.uniform(-1, 1, (3, 2)).astype(np.float32))
-   f = EltwiseParamProduct((3, 2))
-   y = f(x)
-   y.grad = np.random.uniform(-1, 1, (3, 2)).astype(np.float32)
-   y.backward()
-
-We can also initialize the parameter after the initialization by the :meth:`Link.add_param` method.
-
-.. testcode::
-
-   class EltwiseParamProduct(Link):
-       def __init__(self, shape):
            super(EltwiseParamProduct, self).__init__()
-           self.add_param('W', shape)
-           self.W.data[...] = np.random.randn(*shape)
+           with self.init_scope():
+               self.W = chainer.Parameter(initializers.Normal(scale=1.), shape)
 
        def __call__(self, x):
            return self.W * x
-
-Note that the initializer and the :meth:`~Link.add_param` method does not initialize elements of the parameter array.
-We have to manually initialize the elements by random values, zeros, etc.
 
 For another example, assume we want to define a simple linear layer.
 It is already defined as :class:`~chainer.links.Linear`, so this is an educational example.
@@ -478,9 +486,12 @@ In order to make a convenient module, let's wrap it into a link:
 
    class Linear(Link):
        def __init__(self, in_size, out_size):
-           super(Linear, self).__init__(W=(out_size, in_size), b=out_size)
-           self.W.data[...] = np.random.randn(out_size, in_size) / math.sqrt(in_size)
-           self.b.data.fill(0)
+           super(Linear, self).__init__()
+           with self.init_scope():
+               self.W = chainer.Parameter(
+                   initializers.Normal(1. / math.sqrt(in_size)),
+                   (out_size, in_size))
+               self.b = chainer.Parameter(0, (out_size,))
 
        def __call__(self, x):
            return linear(x, self.W, self.b)
@@ -551,9 +562,10 @@ This is a test example of :func:`functions.relu` function
            y.grad = np.random.randn(3, 2).astype(np.float32)
            y.backward()
 
-           f = lambda: (F.relu(x).data,)
-           gx, = gradient_check.numerical_grad(f, (x.data,), (y.grad,))
+           def f():
+               return F.relu(x).data,
 
+           gx, = gradient_check.numerical_grad(f, (x.data,), (y.grad,))
            testing.assert_allclose(gx, x.grad)
 
 
@@ -568,5 +580,32 @@ The first four lines of the test code are simple forward and backward computatio
 The next two lines compute numerical gradient using the same forward function without backward routine.
 And at last, we compare these two results elementwise.
 Note that the above test code can be easily modified to test GPU version just by replacing CPU arrays to GPU arrays.
+
+In most cases, we do not write the code like the above explicitly because Chainer
+offers a utility function :func:`chainer.gradient_check.check_backward` that follows this procedure.
+
+.. testcode::
+
+   import unittest
+
+   from chainer import gradient_check
+
+   class TestReLU(unittest.TestCase):
+       def test_backward_cpu(self):
+
+           def f():
+               return F.relu(x).data,
+
+           x = Variable(np.random.randn(3, 2).astype(np.float32))
+           y_grad = np.random.randn(3, 2).astype(np.float32)
+
+           gradient_check.check_backward(f, x, y_grad)
+
+.. testcode::
+   :hide:
+
+   suite = unittest.TestLoader().loadTestsFromTestCase(TestReLU)
+   unittest.TextTestRunner().run(suite)
+
 
 You can find many examples of function tests under ``tests/chainer_tests/function_tests`` directory.

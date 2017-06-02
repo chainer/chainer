@@ -21,16 +21,16 @@ from chainer.training import extensions
 # Definition of a recurrent net for language modeling
 class RNNForLM(chainer.Chain):
 
-    def __init__(self, n_vocab, n_units, train=True):
-        super(RNNForLM, self).__init__(
-            embed=L.EmbedID(n_vocab, n_units),
-            l1=L.LSTM(n_units, n_units),
-            l2=L.LSTM(n_units, n_units),
-            l3=L.Linear(n_units, n_vocab),
-        )
+    def __init__(self, n_vocab, n_units):
+        super(RNNForLM, self).__init__()
+        with self.init_scope():
+            self.embed = L.EmbedID(n_vocab, n_units)
+            self.l1 = L.LSTM(n_units, n_units)
+            self.l2 = L.LSTM(n_units, n_units)
+            self.l3 = L.Linear(n_units, n_vocab)
+
         for param in self.params():
             param.data[...] = np.random.uniform(-0.1, 0.1, param.data.shape)
-        self.train = train
 
     def reset_state(self):
         self.l1.reset_state()
@@ -38,9 +38,9 @@ class RNNForLM(chainer.Chain):
 
     def __call__(self, x):
         h0 = self.embed(x)
-        h1 = self.l1(F.dropout(h0, train=self.train))
-        h2 = self.l2(F.dropout(h1, train=self.train))
-        y = self.l3(F.dropout(h2, train=self.train))
+        h1 = self.l1(F.dropout(h0))
+        h2 = self.l2(F.dropout(h1))
+        y = self.l3(F.dropout(h2))
         return y
 
 
@@ -194,7 +194,8 @@ def main():
     model = L.Classifier(rnn)
     model.compute_accuracy = False  # we only want the perplexity
     if args.gpu >= 0:
-        chainer.cuda.get_device(args.gpu).use()  # make the GPU current
+        # Make a specified GPU current
+        chainer.cuda.get_device_from_id(args.gpu).use()
         model.to_gpu()
 
     # Set up an optimizer
@@ -208,7 +209,6 @@ def main():
 
     eval_model = model.copy()  # Model with shared params and distinct states
     eval_rnn = eval_model.predictor
-    eval_rnn.train = False
     trainer.extend(extensions.Evaluator(
         val_iter, eval_model, device=args.gpu,
         # Reset the RNN state at the beginning of each evaluation
