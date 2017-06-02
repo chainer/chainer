@@ -112,7 +112,10 @@ class ResNetLayers(link.Chain):
                       pretrained_model, self)
         elif pretrained_model:
             npz.load_npz(pretrained_model, self)
-        self.functions = collections.OrderedDict([
+
+    @property
+    def functions(self):
+        return collections.OrderedDict([
             ('conv1', [self.conv1, self.bn1, relu]),
             ('pool1', [lambda x: max_pooling_2d(x, ksize=3, stride=2)]),
             ('res2', [self.res2]),
