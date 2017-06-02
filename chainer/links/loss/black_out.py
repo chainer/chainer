@@ -19,16 +19,19 @@ class BlackOut(link.Link):
         sample_size (int): Number of negative samples.
 
     Attributes:
-        W (~chainer.Variable): Weight parameter matrix.
+        W (~chainer.Parameter): Weight parameter matrix.
 
     """
 
     def __init__(self, in_size, counts, sample_size):
+        super(BlackOut, self).__init__()
         vocab_size = len(counts)
-        super(BlackOut, self).__init__(W=(vocab_size, in_size))
         p = numpy.array(counts, dtype=numpy.float32)
         self.sampler = walker_alias.WalkerAlias(p)
         self.sample_size = sample_size
+
+        with self.init_scope():
+            self.W = variable.Parameter(shape=(vocab_size, in_size))
 
     def to_cpu(self):
         super(BlackOut, self).to_cpu()

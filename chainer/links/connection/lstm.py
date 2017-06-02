@@ -19,24 +19,22 @@ class LSTMBase(link.Chain):
 
     def __init__(self, in_size, out_size=None, lateral_init=None,
                  upward_init=None, bias_init=0, forget_bias_init=1):
-
         if out_size is None:
             out_size, in_size = in_size, None
 
-        super(LSTMBase, self).__init__(
-            upward=linear.Linear(in_size, 4 * out_size, initialW=0),
-            lateral=linear.Linear(out_size, 4 * out_size,
-                                  initialW=0, nobias=True),
-        )
-
+        super(LSTMBase, self).__init__()
         self.state_size = out_size
         self.lateral_init = lateral_init
         self.upward_init = upward_init
         self.bias_init = bias_init
         self.forget_bias_init = forget_bias_init
 
-        if in_size is not None:
-            self._initialize_params()
+        with self.init_scope():
+            self.upward = linear.Linear(in_size, 4 * out_size, initialW=0)
+            self.lateral = linear.Linear(out_size, 4 * out_size, initialW=0,
+                                         nobias=True)
+            if in_size is not None:
+                self._initialize_params()
 
     def _initialize_params(self):
         lateral_init = initializers._get_initializer(self.lateral_init)

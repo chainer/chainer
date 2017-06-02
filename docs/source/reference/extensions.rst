@@ -18,6 +18,8 @@ Trainer extensions
    chainer.training.extensions.observe_value
    chainer.training.extensions.snapshot
    chainer.training.extensions.snapshot_object
+   chainer.training.extensions.ParameterStatistics
    chainer.training.extensions.PlotReport
    chainer.training.extensions.PrintReport
    chainer.training.extensions.ProgressBar
+   

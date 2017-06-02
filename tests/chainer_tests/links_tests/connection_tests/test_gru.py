@@ -27,25 +27,28 @@ def _gru(func, h, x):
 
 
 @testing.parameterize(
+    {'gru': links.StatelessGRU, 'state': 'random',
+     'in_size': 3, 'out_size': 5},
+    {'gru': links.StatelessGRU, 'state': 'random', 'out_size': 5},
     {'gru': links.GRU, 'state': 'random', 'in_size': 3, 'out_size': 5},
-    {'gru': links.GRU, 'state': 'random', 'out_size': 5},
+    {'gru': links.GRU, 'state': 'zero', 'in_size': 3, 'out_size': 5},
     {'gru': links.StatefulGRU, 'state': 'random', 'in_size': 3, 'out_size': 5},
     {'gru': links.StatefulGRU, 'state': 'zero', 'in_size': 3, 'out_size': 5},
 )
 class TestGRU(unittest.TestCase):
 
     def setUp(self):
-        if self.gru == links.GRU:
+        if self.gru == links.StatelessGRU:
             if hasattr(self, 'in_size'):
                 self.link = self.gru(self.in_size, self.out_size)
             else:
                 self.link = self.gru(None, self.out_size)
                 self.in_size = self.out_size
-        elif self.gru == links.StatefulGRU:
+        elif self.gru == links.StatefulGRU or self.gru == links.GRU:
             self.link = self.gru(self.in_size, self.out_size)
         else:
-            self.fail('Unsupported link(only GRU and StatefulGRU '
-                      'are supported):{}'.format(self.gru))
+            self.fail('Unsupported link(only GRU, StatelessGRU and '
+                      'StatefulGRU are supported):{}'.format(self.gru))
 
         self.x = numpy.random.uniform(
             -1, 1, (3, self.in_size)).astype(numpy.float32)
@@ -60,7 +63,7 @@ class TestGRU(unittest.TestCase):
             -1, 1, (3, self.out_size)).astype(numpy.float32)
 
     def _forward(self, link, h, x):
-        if isinstance(link, links.GRU):
+        if isinstance(link, links.StatelessGRU):
             return link(h, x)
         else:
             if self.state != 'zero':
@@ -99,7 +102,7 @@ class TestGRU(unittest.TestCase):
         gx, = gradient_check.numerical_grad(f, (x.data,), (y.grad,))
         testing.assert_allclose(gx, x.grad, atol=1e-3)
 
-        if isinstance(self.link, links.GRU):
+        if isinstance(self.link, links.StatelessGRU):
             gh, = gradient_check.numerical_grad(f, (h.data,), (y.grad,))
             testing.assert_allclose(gh, h.grad, atol=1e-3)
 
@@ -117,13 +120,14 @@ class TestGRU(unittest.TestCase):
 @testing.parameterize(
     *testing.product({
         'link_array_module': ['to_cpu', 'to_gpu'],
-        'state_array_module': ['to_cpu', 'to_gpu']
+        'state_array_module': ['to_cpu', 'to_gpu'],
+        'gru': [links.GRU, links.StatefulGRU]
     }))
 class TestGRUState(unittest.TestCase):
 
     def setUp(self):
         in_size, out_size = 10, 8
-        self.link = links.StatefulGRU(in_size, out_size)
+        self.link = self.gru(in_size, out_size)
         self.h = chainer.Variable(
             numpy.random.uniform(-1, 1, (3, out_size)).astype(numpy.float32))
 
@@ -153,6 +157,10 @@ class TestGRUState(unittest.TestCase):
         self.check_reset_state()
 
 
+@testing.parameterize(
+    {'gru': links.GRU},
+    {'gru': links.StatefulGRU}
+)
 class TestGRUToCPUToGPU(unittest.TestCase):
 
     def setUp(self):
@@ -195,6 +203,29 @@ class TestGRUToCPUToGPU(unittest.TestCase):
     def test_to_cpu_to_gpu_gpu(self):
         self.h.to_gpu()
         self.check_to_cpu_to_gpu(self.h)
+
+
+class InvalidCallOfGRU(unittest.TestCase):
+
+    def setUp(self):
+        self.gru = links.GRU(10, 10)
+
+    def test_no_argument(self):
+        with self.assertRaises(ValueError):
+            self.gru()
+
+    def test_too_many_argument_1(self):
+        x = numpy.random.uniform(-1, 1, (5, 10))
+        h = numpy.random.uniform(-1, 1, (5, 10))
+        with self.assertRaises(ValueError):
+            self.gru(x, h)
+
+    def test_too_many_argument_2(self):
+        x = numpy.random.uniform(-1, 1, (5, 10))
+        h = numpy.random.uniform(-1, 1, (5, 10))
+        z = numpy.random.uniform(-1, 1, (5, 10))
+        with self.assertRaises(ValueError):
+            self.gru(x, h, z)
 
 
 testing.run_module(__name__, __file__)

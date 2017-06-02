@@ -4,14 +4,25 @@ from chainer import cuda
 from chainer.functions.connection import deconvolution_2d
 from chainer import initializers
 from chainer import link
+from chainer.utils import argument
+from chainer import variable
 
 
 class Deconvolution2D(link.Link):
 
-    """Two dimensional deconvolution function.
+    """__init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0, nobias=False, outsize=None, initialW=None, initial_bias=None)
+
+    Two dimensional deconvolution function.
 
     This link wraps the :func:`~chainer.functions.deconvolution_2d` function
     and holds the filter weight and bias vector as parameters.
+
+    .. warning::
+
+        ``deterministic`` argument is not supported anymore since v2.
+        Instead, use ``chainer.using_config('cudnn_deterministic', value)``
+        (value is either ``True`` or ``False``).
+        See :func:`chainer.using_config`.
 
     Args:
         in_channels (int or None): Number of channels of input arrays.
@@ -38,11 +49,6 @@ class Deconvolution2D(link.Link):
             vector is set to zero.
             May also be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
-        deterministic (bool): The output of this link can be
-            non-deterministic when it uses cuDNN.
-            If this option is ``True``, then it forces cuDNN to use
-            a deterministic algorithm. This option is only available for
-            cuDNN version >= v4.
 
     The filter weight has four dimensions :math:`(c_I, c_O, k_H, k_W)`
     which indicate the number of input channels, output channels,
@@ -55,6 +61,10 @@ class Deconvolution2D(link.Link):
     Its elements are initialized by ``bias`` argument.
     If ``nobias`` argument is set to True, then this function does not hold
     the bias parameter.
+
+    The output of this function can be non-deterministic when it uses cuDNN.
+    If ``chainer.configuration.config.cudnn_deterministic`` is ``True`` and
+    cuDNN version is >= v3, it forces cuDNN to use a deterministic algorithm.
 
     .. seealso::
        See :func:`chainer.functions.deconvolution_2d` for the definition of
@@ -110,12 +120,19 @@ class Deconvolution2D(link.Link):
             >>> y.shape
             (1, 7, 20, 20)
 
-    """
+    """  # NOQA
 
     def __init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0,
                  nobias=False, outsize=None, initialW=None, initial_bias=None,
-                 deterministic=False):
+                 **kwargs):
         super(Deconvolution2D, self).__init__()
+
+        argument.check_unexpected_kwargs(
+            kwargs, deterministic="deterministic argument is not "
+            "supported anymore. "
+            "Use chainer.using_config('cudnn_deterministic', value) "
+            "context where value is either `True` or `False`.")
+        argument.assert_kwargs_empty(kwargs)
 
         if ksize is None:
             out_channels, ksize, in_channels = in_channels, out_channels, None
@@ -124,27 +141,23 @@ class Deconvolution2D(link.Link):
         self.stride = _pair(stride)
         self.pad = _pair(pad)
         self.outsize = (None, None) if outsize is None else outsize
-        if initialW is None:
-            self.initialW = initializers.HeNormal(1.0 / numpy.sqrt(2))
-        else:
-            self.initialW = initialW
         self.out_channels = out_channels
-        self.deterministic = deterministic
 
-        self.add_param('W', initializer=initializers._get_initializer(
-            initialW))
-        if in_channels is not None:
-            self._initialize_params(in_channels)
+        with self.init_scope():
+            W_initializer = initializers._get_initializer(initialW)
+            self.W = variable.Parameter(W_initializer)
+            if in_channels is not None:
+                self._initialize_params(in_channels)
 
-        if nobias:
-            self.b = None
-        else:
-            if isinstance(initial_bias, (numpy.ndarray, cuda.ndarray)):
-                assert initial_bias.shape == (out_channels,)
-            if initial_bias is None:
-                initial_bias = initializers.Constant(0)
-            bias_initializer = initializers._get_initializer(initial_bias)
-            self.add_param('b', out_channels, initializer=bias_initializer)
+            if nobias:
+                self.b = None
+            else:
+                if isinstance(initial_bias, (numpy.ndarray, cuda.ndarray)):
+                    assert initial_bias.shape == (out_channels,)
+                if initial_bias is None:
+                    initial_bias = 0
+                bias_initializer = initializers._get_initializer(initial_bias)
+                self.b = variable.Parameter(bias_initializer, out_channels)
 
     def _initialize_params(self, in_channels):
         kh, kw = _pair(self.ksize)
@@ -155,8 +168,7 @@ class Deconvolution2D(link.Link):
         if self.W.data is None:
             self._initialize_params(x.shape[1])
         return deconvolution_2d.deconvolution_2d(
-            x, self.W, self.b, self.stride, self.pad,
-            self.outsize, deterministic=self.deterministic)
+            x, self.W, self.b, self.stride, self.pad, self.outsize)
 
 
 def _pair(x):

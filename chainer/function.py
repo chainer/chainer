@@ -146,6 +146,8 @@ class Function(object):
 
     """
 
+    rank = 0  # default value of the rank
+
     def __call__(self, *inputs):
         """Applies forward propagation with chaining backward references.
 
@@ -233,7 +235,6 @@ class Function(object):
                 for index in output_indexes_to_retain:
                     ret[index].retain_data()
             del self._output_indexes_to_retain
-            self.output_data = tuple([y.node.data for y in ret])
 
         if len(ret) == 1:
             return ret[0]
@@ -493,7 +494,7 @@ class Function(object):
         """
         self._input_indexes_to_retain = indexes
 
-    def retain_outputs(self, indexes):
+    def retain_outputs(self, indexes, retain_after_backward=False):
         """Lets specified output variable nodes keep data arrays.
 
         By calling this method from :meth:`forward`, the function can specify
@@ -516,8 +517,14 @@ class Function(object):
             indexes (iterable of int): Indexes of input variables that the
                 function does not require for backprop.
 
+            retain_after_backward (bool): If ``True``, a reference to the
+                outputs will remain after the backprop of the function is over.
+                If ``False``, the reference will be deleted.
+
         """
         self._output_indexes_to_retain = indexes
+        if retain_after_backward:
+            self._retain_after_backward = retain_after_backward
 
 
 class FunctionHook(object):
