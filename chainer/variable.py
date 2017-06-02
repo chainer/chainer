@@ -194,7 +194,7 @@ class VariableNode(object):
     @property
     def label(self):
         """Short text that represents the variable node."""
-        if self.shape == ():
+        if self.shape == () or self.shape is None:
             return str(self.dtype)
         return '(%s), %s' % (', '.join(map(str, self.shape)),
                              str(self.dtype))
@@ -877,6 +877,13 @@ Actual: {0}'''.format(type(data))
         """Lets the corresponding variable node keep the underlying array."""
         self._node.data = self._data[0]
 
+        if self.node._recompute is True:
+            self._node.data = None
+
+    def set_recompute(self):
+        """Set recompute mode enabled"""
+        self.node.set_recompute()
+
     def __lt__(self, other):
         raise NotImplementedError()
 
@@ -1036,10 +1043,6 @@ class Parameter(Variable):
 
         self._data[0] = data
         self._node._grad = grad
-
-    def set_recompute(self):
-        """Set recompute mode enabled"""
-        self.node.set_recompute()
 
     def update(self):
         """Updates the data array using the gradient and the update rule.
