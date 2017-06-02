@@ -192,11 +192,11 @@ def main():
         # Check file
         en_path = os.path.join(args.input, 'giga-fren.release2.fixed.en')
         source_vocab = ['<eos>', '<unk>'] + europal.count_words(
-            en_path, limit=args.vocab)
+            en_path, limit=args.limit)
         source_data = europal.make_dataset(en_path, source_vocab)
         fr_path = os.path.join(args.input, 'giga-fren.release2.fixed.fr')
         target_vocab = ['<eos>', '<unk>'] + europal.count_words(
-            fr_path, limit=args.vocab)
+            fr_path, limit=args.limit)
         target_data = europal.make_dataset(fr_path, target_vocab)
         assert len(source_data) == len(target_data)
         print('Original training data size: %d' % len(source_data))
