@@ -227,18 +227,19 @@ def main():
     optimizer = chainer.optimizers.Adam()
     optimizer.setup(model)
 
-    trigger = (4000, 'iteration')
+    short_term = (400, 'iteration')
+    long_term = (4000, 'iteration')
     train_iter = chainer.iterators.SerialIterator(train_data, args.batchsize)
     updater = training.StandardUpdater(
         train_iter, optimizer, converter=convert, device=args.gpu)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
-    trainer.extend(extensions.LogReport(trigger=trigger),
-                   trigger=trigger)
+    trainer.extend(extensions.LogReport(trigger=short_term),
+                   trigger=short_term)
     trainer.extend(extensions.PrintReport(
         ['epoch', 'iteration', 'main/loss', 'validation/main/loss',
          'main/perp', 'validation/main/perp', 'validation/main/bleu',
          'elapsed_time']),
-        trigger=trigger)
+        trigger=short_term)
 
     def translate_one(source, target):
         words = europal.split_sentence(source)
@@ -250,7 +251,7 @@ def main():
         print('#  result : ' + ' '.join(words))
         print('#  expect : ' + target)
 
-    @chainer.training.make_extension(trigger)
+    @chainer.training.make_extension(short_term)
     def translate(trainer):
         translate_one(
             'Who are we ?',
@@ -266,12 +267,13 @@ def main():
         target = ' '.join([target_words[i] for i in target])
         translate_one(source, target)
 
-    trainer.extend(translate, trigger=trigger)
+    trainer.extend(translate, trigger=short_term)
+
     trainer.extend(
         CalculateBleu(
             model, test_data, 'validation/main/bleu', device=args.gpu),
-        trigger=trigger)
-    trainer.extend(extensions.snapshot(), trigger=trigger)
+        trigger=long_term)
+    trainer.extend(extensions.snapshot(), trigger=long_term)
     if args.resume:
         chainer.serializers.load_npz(args.resume, trainer)
 
