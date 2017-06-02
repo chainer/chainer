@@ -10,9 +10,30 @@ from chainer import testing
 @testing.parameterize(
     # basic usage
     {'datasets': (
-        np.random.uniform(size=(5, 3, 32, 32)),
-        np.random.uniform(size=(15, 3, 32, 32)),
+        np.random.uniform(size=(5, 3, 48, 32)),
+        np.random.uniform(size=(15, 3, 64, 48)),
     )},
+    # more than two datasets
+    {'datasets': (
+        np.random.uniform(size=(5, 3, 48, 32)),
+        np.random.uniform(size=(15, 3, 16, 48)),
+        np.random.uniform(size=(20, 3, 5, 5)),
+    )},
+    # single dataset
+    {'datasets': (
+        np.random.uniform(size=(5, 3, 48, 32)),
+    )},
+    # no dataset
+    {'datasets': ()},
+    # some datasets are empty
+    {'datasets': (
+        np.random.uniform(size=(5, 3, 48, 32)),
+        [],
+        np.random.uniform(size=(20, 3, 5, 5)),
+        [],
+    )},
+    # all datasets are empty
+    {'datasets': ([], [], [])},
 )
 class TestConcatenatedDataset(unittest.TestCase):
 
