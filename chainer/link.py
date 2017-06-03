@@ -102,9 +102,9 @@ class Link(object):
                   super(LinearLayer, self).__init__()
                   with self.init_scope():
                       self.W = chainer.Parameter(
-                          (n_out, n_in), initializers.Normal())
+                          initializers.Normal(), (n_out, n_in))
                       self.b = chainer.Parameter(
-                          (n_out,), initializers.Zero())
+                          initializers.Zero(), (n_out,))
 
               def __call__(self, x):
                   return F.linear(x, self.W, self.b)
