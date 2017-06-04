@@ -151,8 +151,7 @@ class Evaluator(extension.Extension):
 
         """
         iterator = self._iterators['main']
-        target = self._targets['main']
-        eval_func = self.eval_func or target
+        eval_func = self.eval_func or self._targets['main']
 
         if self.eval_hook:
             self.eval_hook(self)
