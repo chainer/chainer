@@ -45,18 +45,18 @@ config = {
         'url': 'https://tripod.nih.gov/tox21/challenge/download?'
         'id=tox21_10k_data_allsdf',
         'filename': 'tox21_10k_data_all.sdf'
-        },
+    },
     'val': {
         'url': 'https://tripod.nih.gov/tox21/challenge/download?'
         'id=tox21_10k_challenge_testsdf',
         'filename': 'tox21_10k_challenge_test.sdf'
-        },
+    },
     'test': {
         'url': 'https://tripod.nih.gov/tox21/challenge/download?'
         'id=tox21_10k_challenge_scoresdf',
         'filename': 'tox21_10k_challenge_score.sdf'
-        }
     }
+}
 
 root = 'pfnet/chainer/tox21'
 
@@ -79,7 +79,7 @@ def _ECFP(mol_supplier, label_names, radius=2):
                 label.append(-1)
         try:
             fp = rdMolDescriptors.GetMorganFingerprintAsBitVect(mol, radius)
-        except Exception as e:
+        except:
             continue
         descriptors.append(fp)
         labels.append(label)
@@ -142,7 +142,7 @@ def get_tox21(preprocessor=_ECFP):
         not have labels.
 
     """
-    
+
     if check_available():
         train = _get_tox21('train', preprocessor)
         val = _get_tox21('val', preprocessor)
