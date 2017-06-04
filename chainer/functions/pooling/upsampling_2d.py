@@ -38,6 +38,9 @@ class Upsampling2D(pooling_2d.Pooling2D):
             type_check.expect(x_type.shape[3] == expected_w)
 
     def forward_cpu(self, x):
+        self.retain_inputs(())
+        self._in_dtype = x[0].dtype
+
         n, c, h, w = x[0].shape
         if self.outh is None:
             self.outh = conv.get_deconv_outsize(
@@ -62,6 +65,9 @@ class Upsampling2D(pooling_2d.Pooling2D):
         return up_y,
 
     def forward_gpu(self, x):
+        self.retain_inputs(())
+        self._in_dtype = x[0].dtype
+
         xp = cuda.cupy
         n, c, h, w = x[0].shape
         if self.outh is None:
@@ -105,7 +111,7 @@ class Upsampling2D(pooling_2d.Pooling2D):
         gcol = gcol.transpose(0, 1, 4, 5, 2, 3)
         n, c, oy, ox, ky, kx = gcol.shape
         gcol = gcol.reshape((n, c, oy, ox, ky * kx))
-        gx = numpy.empty((n, c, oy, ox), dtype=x[0].dtype)
+        gx = numpy.empty((n, c, oy, ox), dtype=self._in_dtype)
         for n in six.moves.range(gcol.shape[0]):
             for c in six.moves.range(gcol.shape[1]):
                 for oy in six.moves.range(gcol.shape[2]):
@@ -124,7 +130,7 @@ class Upsampling2D(pooling_2d.Pooling2D):
         n, c, oy, ox, ky, kx = gcol.shape
         gcol = gcol.reshape((n, c, oy, ox, ky * kx))
         indexes = xp.asarray(self.indexes, dtype=numpy.int32)
-        gx = xp.empty((n, c, oy, ox), dtype=x[0].dtype)
+        gx = xp.empty((n, c, oy, ox), dtype=self._in_dtype)
         xp.ElementwiseKernel(
             'int32 indexes, raw float32 gcol, int32 n, int32 c, int32 oy,'
             'int32 ox, int32 ky, int32 kx',
@@ -160,12 +166,13 @@ def upsampling_2d(
 
     .. admonition:: Example
 
-        It should be noted that you need to specify ``use_cudnn=False`` when
-        you create MaxPooling2D object because if cuDNN used for operating
-        max pooling, ``indexes`` is never created and stored in the
-        MaxPooling2D object.
+        It should be noted that you need to turn off
+        ``chainer.config.use_cudnn`` flag when you create MaxPooling2D object
+        because if cuDNN used for operating max pooling, ``indexes`` is never
+        created and stored in the MaxPooling2D object.
 
-        >>> p = F.MaxPooling2D(2, 2, use_cudnn=False)
+        >>> with chainer.using_config('use_cudnn', 'never'):
+        ...     p = F.MaxPooling2D(2, 2)
         >>> x = np.arange(1, 37).reshape(1, 1, 6, 6).astype('f')
         >>> x = chainer.Variable(x)
         >>> x.data

@@ -1,9 +1,12 @@
+import contextlib
 import unittest
 
 import numpy
 
 import chainer
+from chainer import configuration
 from chainer import cuda
+from chainer import functions
 from chainer import testing
 from chainer.testing import attr
 
@@ -73,6 +76,47 @@ class TestReporter(unittest.TestCase):
         observation = reporter.observation
         self.assertIn('x', observation)
         self.assertEqual(observation['x'], 1)
+
+
+class TestKeepGraphOnReportFlag(unittest.TestCase):
+
+    @contextlib.contextmanager
+    def _scope(self, flag):
+        # If flag is None, return the nop context.
+        # Otherwise, return the context in which
+        # keep_graph_on_report is set temporarily.
+        old = configuration.config.keep_graph_on_report
+        if flag is not None:
+            configuration.config.keep_graph_on_report = flag
+        try:
+            yield
+        finally:
+            configuration.config.keep_graph_on_report = old
+
+    def test_keep_graph_default(self):
+        x = chainer.Variable(numpy.array([1], numpy.float32))
+        y = functions.Sigmoid()(x)
+        reporter = chainer.Reporter()
+        with self._scope(None):
+            reporter.report({'y': y})
+        self.assertIsNone(reporter.observation['y'].creator)
+
+    def test_keep_graph(self):
+        x = chainer.Variable(numpy.array([1], numpy.float32))
+        y = functions.Sigmoid()(x)
+        reporter = chainer.Reporter()
+        with self._scope(True):
+            reporter.report({'y': y})
+        self.assertIsInstance(reporter.observation['y'].creator,
+                              functions.Sigmoid)
+
+    def test_not_keep_graph(self):
+        x = chainer.Variable(numpy.array([1], numpy.float32))
+        y = functions.Sigmoid()(x)
+        reporter = chainer.Reporter()
+        with self._scope(False):
+            reporter.report({'y': y})
+        self.assertIsNone(reporter.observation['y'].creator)
 
 
 class TestReport(unittest.TestCase):
