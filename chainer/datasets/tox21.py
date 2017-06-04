@@ -5,7 +5,7 @@ import zipfile
 
 
 from chainer.dataset import download
-from chainer import datasets as D
+from chainer.datasets import tuple_dataset
 import numpy
 
 try:
@@ -116,7 +116,7 @@ def _get_tox21(config_name, preprocessor, with_label=True):
 
     descriptors, labels = preprocessor(mol_supplier, label_names)
     if with_label:
-        return D.TupleDataset(descriptors, labels)
+        return tuple_dataset.TupleDataset(descriptors, labels)
     else:
         return descriptors
 
