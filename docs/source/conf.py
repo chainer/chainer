@@ -124,6 +124,7 @@ todo_include_todos = False
 
 # Napoleon settings
 napoleon_use_ivar = True
+napoleon_include_special_with_doc = True
 
 # -- Options for HTML output ----------------------------------------------
 
@@ -321,6 +322,7 @@ autosummary_generate = True
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3/', None),
     'numpy': ('http://docs.scipy.org/doc/numpy/', None),
+    'cupy': ('http://docs.cupy.chainer.org/en/latest/', None),
 }
 
 doctest_global_setup = '''

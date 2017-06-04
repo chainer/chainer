@@ -46,6 +46,7 @@ class Copy(unittest.TestCase):
         y.backward()
 
         x_grad = x.grad
+        self.assertEqual(cuda.get_device_from_array(x_grad).id, src_id)
         numpy.testing.assert_array_equal(
             cuda.to_cpu(x_grad), self.gy)
 
