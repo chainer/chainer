@@ -504,17 +504,22 @@ class BuildingBlock(link.Chain):
         with self.init_scope():
             self.a = BottleneckA(
                 in_channels, mid_channels, out_channels, stride, initialW)
-            self.forward = [self.a]
+            self._forward = ["a"]
             for i in range(n_layer - 1):
                 name = 'b{}'.format(i + 1)
                 bottleneck = BottleneckB(out_channels, mid_channels, initialW)
                 setattr(self, name, bottleneck)
-                self.forward.append(bottleneck)
+                self._forward.append(name)
 
     def __call__(self, x):
-        for l in self.forward:
+        for name in self._forward:
+            l = getattr(self, name)
             x = l(x)
         return x
+
+    @property
+    def forward(self):
+        return [getattr(self, name) for name in self._forward]
 
 
 class BottleneckA(link.Chain):
