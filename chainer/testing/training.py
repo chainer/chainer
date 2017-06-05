@@ -1,3 +1,5 @@
+from __future__ import division
+
 import mock
 
 from chainer import training
@@ -21,10 +23,16 @@ def get_trainer_with_mock_updater(stop_trigger=(10, 'iteration')):
     updater = mock.Mock()
     updater.get_all_optimizers.return_value = {}
     updater.iteration = 0
-    updater.epoch_detail = 1
+    updater.epoch = 0
+    updater.epoch_detail = 0
+    updater.is_new_epoch = True
+    iter_per_epoch = 10
 
     def update():
         updater.iteration += 1
+        updater.epoch = updater.iteration // iter_per_epoch
+        updater.epoch_detail = updater.iteration / iter_per_epoch
+        updater.is_new_epoch = updater.epoch == updater.epoch_detail
 
     updater.update = update
     trainer = training.Trainer(updater, stop_trigger)
