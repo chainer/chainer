@@ -79,7 +79,7 @@ def _ECFP(mol_supplier, label_names, radius=2):
                 label.append(-1)
         try:
             fp = rdMolDescriptors.GetMorganFingerprintAsBitVect(mol, radius)
-        except:
+        except Exception:
             continue
         descriptors.append(fp)
         labels.append(label)
