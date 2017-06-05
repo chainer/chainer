@@ -10,3 +10,5 @@ Trainer triggers
    chainer.training.triggers.MaxValueTrigger
    chainer.training.triggers.MinValueTrigger
 
+.. autoclass:: BestValueTrigger
+   :members:
