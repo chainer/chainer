@@ -66,13 +66,73 @@ class Tile(function.Function):
 def tile(x, reps):
     """Construct an array by tiling a given array.
 
+
     Args:
-        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
-            Input data.
-        reps (int or tuple of ints): The number of times for each axis with
-            which x is replicated.
+        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`):
+            Input variable. If ``x.ndim < d``, ``x`` is treated as
+            ``d``-dimensional array. For example, when the shape of ``x`` is
+            ``(2,)`` and tiled with 2-dim repetitions, ``x`` is treated as the
+            shape ``(1, 2)``. If ``x.ndim > d``, ``reps`` is treated as
+            ``x.ndim`` by pre-pending 1's.
+        reps (:class:`int` or :class:`tuple` of :class:`int` s):
+            The number of times which x is replicated along each axis.
 
     Returns:
-        ~chainer.Variable: Variable tiled the given array.
+        ~chainer.Variable: The tiled output Variable. Let the length of
+        ``reps`` be ``d``, the output has the dimension of
+        ``max(d, x.ndim)``.
+
+    .. admonition:: Example
+
+        >>> x = np.array([0, 1, 2])
+        >>> x.shape
+        (3,)
+        >>> y = np.tile(x, 2)
+        >>> y.shape
+        (6,)
+        >>> y
+        array([0, 1, 2, 0, 1, 2])
+        >>> y = np.tile(x, (2, 2))
+        >>> y.shape
+        (2, 6)
+        >>> y
+        array([[0, 1, 2, 0, 1, 2],
+               [0, 1, 2, 0, 1, 2]])
+        >>> y = np.tile(x, (2, 1, 2))
+        >>> y.shape
+        (2, 1, 6)
+        >>> y
+        array([[[0, 1, 2, 0, 1, 2]],
+        <BLANKLINE>
+               [[0, 1, 2, 0, 1, 2]]])
+
+        >>> x = np.array([[1, 2], [3, 4]])
+        >>> x.shape
+        (2, 2)
+        >>> y = np.tile(x, 2)
+        >>> y.shape
+        (2, 4)
+        >>> y
+        array([[1, 2, 1, 2],
+               [3, 4, 3, 4]])
+        >>> y = np.tile(x, (2, 2))
+        >>> y.shape
+        (4, 4)
+        >>> y
+        array([[1, 2, 1, 2],
+               [3, 4, 3, 4],
+               [1, 2, 1, 2],
+               [3, 4, 3, 4]])
+        >>> y = np.tile(x, (2, 1, 2))
+        >>> y.shape
+        (2, 2, 4)
+        >>> y
+        array([[[1, 2, 1, 2],
+                [3, 4, 3, 4]],
+        <BLANKLINE>
+               [[1, 2, 1, 2],
+                [3, 4, 3, 4]]])
+
     """
     return Tile(reps)(x)
