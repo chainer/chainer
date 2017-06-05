@@ -87,12 +87,12 @@ class ComputationalGraph(object):
     def __init__(self, nodes, edges, variable_style=_var_style,
                  function_style=_func_style, rankdir='TB',
                  remove_variable=False, show_name=True):
-        assert all(isinstance(_, (variable.Variable, function.Function))
+        assert all(isinstance(_, (variable.VariableNode, function.Function))
                    for _ in nodes)
         assert all(len(_) == 2 for _ in edges)
         assert all(
-            isinstance(_[0], (variable.Variable, function.Function)) and
-            isinstance(_[1], (variable.Variable, function.Function))
+            isinstance(_[0], (variable.VariableNode, function.Function)) and
+            isinstance(_[1], (variable.VariableNode, function.Function))
             for _ in edges)
         self.nodes = nodes
         self.edges = edges
