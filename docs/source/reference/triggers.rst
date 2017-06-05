@@ -21,3 +21,5 @@ Minimum and maximum values
 .. autoclass:: MinValueTrigger
    :members:
 
+.. autoclass:: BestValueTrigger
+   :members:
