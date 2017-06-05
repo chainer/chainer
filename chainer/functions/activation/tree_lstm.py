@@ -263,9 +263,14 @@ def tree_lstm(*inputs):
         Using 2-ary (binary) TreeLSTM,
         most typical preparation of ``x`` is:
 
-        >>> model = chainer.Chain(w=F.Linear(n_units, 5 * n_units),
-        ...                       v1=F.Linear(n_units, 5 * n_units),
-        ...                       v2=F.Linear(n_units, 5 * n_units),)
+        >>> model = chainer.Chain(w=F.Linear(10, 5 * 10),
+        ...                       v1=F.Linear(10, 5 * 10),
+        ...                       v2=F.Linear(10, 5 * 10),)
+        >>> y = np.random.uniform(-1, 1, (4, 10)).astype('f')
+        >>> h1 = np.random.uniform(-1, 1, (4, 10)).astype('f')
+        >>> h2 = np.random.uniform(-1, 1, (4, 10)).astype('f')
+        >>> c1 = np.random.uniform(-1, 1, (4, 10)).astype('f')
+        >>> c2 = np.random.uniform(-1, 1, (4, 10)).astype('f')
         >>> x = model.w(y) + model.v1(h1) + model.v2(h2)
         >>> c, h = F.n_ary_tree_lstm(c1, c2, x)
 
