@@ -29,9 +29,9 @@ from chainer.testing import attr
         {'shape': (2, 7, 3), 'axis': 1, 'ys_section': [2, 5],
          'slices': [[slice(None), slice(None, 2)], [slice(None), slice(2, 5)],
                     [slice(None), slice(5, None)]]},
-        {'shape': (2, 7, 3), 'axis': 1, 'ys_section': [2, 5],
-         'slices': [[slice(None), slice(None, 2)], [slice(None), slice(2, 5)],
-                    [slice(None), slice(5, None)]]},
+        {'shape': (2, 7, 3), 'axis': 1, 'ys_section': [0],
+         'slices': [[slice(None), slice(None, 0)], [slice(None), slice(0, 7)]]
+         },
     ],
     [
         {'dtype': numpy.float16},
@@ -131,7 +131,7 @@ class TestSplitAxisForceArray(unittest.TestCase):
 
     def check_forward_single(self, x_data, axis):
         x = chainer.Variable(x_data)
-        ys = functions.split_axis(x, 1, axis)
+        ys = functions.split_axis(x, 1, axis, force_tuple=False)
         self.assertIsInstance(ys, chainer.Variable)
 
     def test_forward_single_cpu(self):

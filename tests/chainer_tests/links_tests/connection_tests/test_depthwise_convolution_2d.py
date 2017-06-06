@@ -14,6 +14,7 @@ from chainer.testing import condition
 @testing.parameterize(*testing.product({
     'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'W_dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'nobias': [True, False],
 }))
 class TestDepthwiseConvolution2D(unittest.TestCase):
 

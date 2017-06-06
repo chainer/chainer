@@ -24,18 +24,22 @@ class Tile(function.Function):
         type_check.expect(in_types.size() == 1)
 
     def forward(self, inputs):
+        self.retain_inputs(())
+        self._in_shape = inputs[0].shape
+        self._in_dtype = inputs[0].dtype
         xp = cuda.get_array_module(*inputs)
         return xp.tile(inputs[0], self.reps),
 
     def backward(self, inputs, grads):
-        x = inputs[0]
         reps = self.reps
+        shape = tuple(self._in_shape)
+        ndim = len(shape)
 
         # Ensure input and reps have the same length.
-        if x.ndim > len(reps):
-            reps = (1,) * (x.ndim - len(reps)) + reps
-        elif x.ndim < len(reps):
-            x = x.reshape((1,) * (len(reps) - x.ndim) + x.shape)
+        if ndim > len(reps):
+            reps = (1,) * (ndim - len(reps)) + reps
+        elif ndim < len(reps):
+            shape = (1,) * (len(reps) - ndim) + shape
 
         if grads[0].shape == ():
             # This case should be treated differently because numpy.num would
@@ -46,15 +50,15 @@ class Tile(function.Function):
         new_shape = []
         for i in range(grads[0].ndim):
             new_shape.append(reps[i])
-            new_shape.append(x.shape[i])
+            new_shape.append(shape[i])
         new_shape = tuple(new_shape)
 
         # Sum along reps axis
         reps_axis = tuple(range(0, 2 * grads[0].ndim, 2))
         gy = grads[0].reshape(new_shape).sum(axis=reps_axis)
 
-        if inputs[0].ndim < len(reps):
-            return gy.reshape(inputs[0].shape),
+        if ndim < len(reps):
+            return gy.reshape(self._in_shape),
         else:
             return gy,
 

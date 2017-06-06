@@ -95,11 +95,45 @@ MLPConvolution2D
 .. autoclass:: MLPConvolution2D
    :members:
 
+NStepBiGRU
+~~~~~~~~~~
+.. autoclass:: NStepBiGRU
+   :members:
+
+NStepBiLSTM
+~~~~~~~~~~~
+.. autoclass:: NStepBiLSTM
+  :members:
+
+NStepBiRNNReLU
+~~~~~~~~~~~~~~
+.. autoclass:: NStepBiRNNReLU
+   :members:
+
+NStepBiRNNTanh
+~~~~~~~~~~~~~~
+.. autoclass:: NStepBiRNNTanh
+  :members:
+
+NStepGRU
+~~~~~~~~
+.. autoclass:: NStepGRU
+  :members:
+
 NStepLSTM
 ~~~~~~~~~
-
 .. autoclass:: NStepLSTM
    :members:
+
+NStepRNNReLU
+~~~~~~~~~~~~
+.. autoclass:: NStepRNNReLU
+   :members:
+
+NStepRNNTanh
+~~~~~~~~~~~~
+.. autoclass:: NStepRNNTanh
+  :members:
 
 Scale
 ~~~~~
@@ -207,6 +241,13 @@ VGG16Layers
 
 .. autofunction:: chainer.links.model.vision.vgg.prepare
 
+GoogLeNet
+~~~~~~~~~
+.. autoclass:: GoogLeNet
+   :members:
+
+.. autofunction:: chainer.links.model.vision.googlenet.prepare
+
 Residual Networks
 ~~~~~~~~~~~~~~~~~
 .. autoclass:: chainer.links.model.vision.resnet.ResNetLayers
@@ -222,11 +263,3 @@ Residual Networks
    :members:
 
 .. autofunction:: chainer.links.model.vision.resnet.prepare
-
-Deprecated links
-----------------
-
-Parameter
-~~~~~~~~~
-.. autoclass:: Parameter
-   :members:

@@ -82,15 +82,12 @@ def _check_ndim(in_type, lower=1, upper=2):
     )
 
 
-def _convert_type(in_type, vector_ndim=1):
-    if in_type.ndim.eval() == vector_ndim:
-        in_type = type_check.Variable(
-            type_check.TypeInfo(in_type.shape.eval() + (1,),
-                                in_type.dtype),
-            '%s(1-D array)' % in_type.name)
+def _get_size(typ, index, vector_ndim):
+    if type_check.eval(typ.ndim) == vector_ndim and \
+       type_check.eval(index) == vector_ndim:
+        return 1
     else:
-        in_type.name = '%s(2-D array)' % in_type.name
-    return in_type
+        return typ.shape[index]
 
 
 def _get_check_index(trans, right, row_idx=0, col_idx=1):
@@ -118,12 +115,12 @@ class MatMul(function.Function):
         _check_ndim(a_type)
         _check_ndim(b_type)
 
-        a_type = _convert_type(a_type)
-        b_type = _convert_type(b_type)
         a_idx = _get_check_index(self.transa, False)
         b_idx = _get_check_index(self.transb, True)
+        a_size = _get_size(a_type, a_idx, 1)
+        b_size = _get_size(b_type, b_idx, 1)
         type_check.expect(
-            a_type.shape[a_idx] == b_type.shape[b_idx]
+            a_size == b_size
         )
 
     def forward(self, x):
@@ -186,12 +183,12 @@ class BatchMatMul(function.Function):
         _check_ndim(a_type, lower=2, upper=3)
         _check_ndim(b_type, lower=2, upper=3)
 
-        a_type = _convert_type(a_type, vector_ndim=2)
-        b_type = _convert_type(b_type, vector_ndim=2)
         a_idx = _get_check_index(self.transa, False, row_idx=1, col_idx=2)
         b_idx = _get_check_index(self.transb, True, row_idx=1, col_idx=2)
+        a_size = _get_size(a_type, a_idx, 2)
+        b_size = _get_size(b_type, b_idx, 2)
         type_check.expect(
-            a_type.shape[a_idx] == b_type.shape[b_idx]
+            a_size == b_size
         )
 
     def forward(self, x):

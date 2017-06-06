@@ -1,7 +1,7 @@
 import functools
 import six
 
-import chainer
+from chainer import cuda
 
 
 def mulexp(xs, init=None):
@@ -161,7 +161,7 @@ class Im2colNDKernel(object):
         return in_params, out_params, operation, name
 
     @staticmethod
-    @chainer.cuda.memoize()
+    @cuda.memoize()
     def generate(ndim):
         return _im2col_nd_kernel._generate(ndim)
 
@@ -286,7 +286,7 @@ class Col2imNDKernel(object):
         return in_params, out_params, operation, name
 
     @staticmethod
-    @chainer.cuda.memoize()
+    @cuda.memoize()
     def generate(ndim):
         return _col2im_nd_kernel._generate(ndim)
 

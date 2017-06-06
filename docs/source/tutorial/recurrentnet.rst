@@ -1,5 +1,5 @@
 Recurrent Nets and their Computational Graph
---------------------------------------------
+````````````````````````````````````````````
 
 .. currentmodule:: chainer
 
@@ -13,11 +13,11 @@ After reading this section, you will be able to:
 
 * Handle input sequences of variable length
 * Truncate upper stream of the network during forward computation
-* Use volatile variables to prevent network construction
+* Use no-backprop mode to prevent network construction
 
 
 Recurrent Nets
-~~~~~~~~~~~~~~
+''''''''''''''
 
 Recurrent nets are neural networks with loops.
 They are often used to learn from sequential input/output.
@@ -61,11 +61,11 @@ Based on this LSTM link, let's write our recurrent network as a new chain:
 
    class RNN(Chain):
        def __init__(self):
-           super(RNN, self).__init__(
-               embed=L.EmbedID(1000, 100),  # word embedding
-               mid=L.LSTM(100, 50),  # the first LSTM layer
-               out=L.Linear(50, 1000),  # the feed-forward output layer
-           )
+           super(RNN, self).__init__()
+           with self.init_scope():
+               self.embed = L.EmbedID(1000, 100)  # word embedding
+               self.mid = L.LSTM(100, 50)  # the first LSTM layer
+               self.out = L.Linear(50, 1000)  # the feed-forward output layer
 
        def reset_state(self):
            self.mid.reset_state()
@@ -127,7 +127,7 @@ Or equivalently we can use the ``compute_loss`` as a loss function:
 
 
 Truncate the Graph by Unchaining
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+''''''''''''''''''''''''''''''''
 
 Learning from very long sequences is also a typical use case of recurrent nets.
 Suppose the input and state sequence is too long to fit into memory.
@@ -174,48 +174,40 @@ For example, we can easily extend the above code to use different schedules betw
 
 
 Network Evaluation without Storing the Computation History
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 On evaluation of recurrent nets, there is typically no need to store the computation history.
 While unchaining enables us to walk through unlimited length of sequences with limited memory, it is a bit of a work-around.
 
 As an alternative, Chainer provides an evaluation mode of forward computation which does not store the computation history.
-This is enabled by just passing ``volatile`` flag to all input variables.
-Such variables are called *volatile variables*.
+This is enabled by just calling :func:`~chainer.no_backprop_mode` context::
 
-Volatile variable is created by passing ``volatile='on'`` at the construction::
+   with chainer.no_backprop_mode():
+       x_list = [Variable(...) for _ in range(100)]  # list of 100 words
+       loss = compute_loss(x_list)
 
-   x_list = [Variable(..., volatile='on') for _ in range(100)]  # list of 100 words
-   loss = compute_loss(x_list)
+Note that we cannot call ``loss.backward()`` to compute the gradient here, since the variable created in the no-backprop context does not remember the computation history.
 
-Note that we cannot call ``loss.backward()`` to compute the gradient here, since the volatile variable does not remember the computation history.
+No-backprop context is also useful to evaluate feed-forward networks to reduce the memory footprint.
 
-Volatile variables are also useful to evaluate feed-forward networks to reduce the memory footprint.
-
-Variable's volatility can be changed directly by setting the :attr:`Variable.volatile` attribute.
-This enables us to combine a fixed feature extractor network and a trainable predictor network.
+We can combine a fixed feature extractor network and a trainable predictor network using :func:`~chainer.no_backprop_mode`.
 For example, suppose we want to train a feed-forward network ``predictor_func``, which is located on top of another fixed pre-trained network ``fixed_func``.
 We want to train ``predictor_func`` without storing the computation history for ``fixed_func``.
 This is simply done by following code snippets (suppose ``x_data`` and ``y_data`` indicate input data and label, respectively)::
 
-   x = Variable(x_data, volatile='on')
-   feat = fixed_func(x)
-   feat.volatile = 'off'
+   with chainer.no_backprop_mode():
+       x = Variable(x_data)
+       feat = fixed_func(x)
    y = predictor_func(feat)
    y.backward()
 
-At first, the input variable ``x`` is volatile, so ``fixed_func`` is executed in volatile mode, i.e. without memorizing the computation history.
-Then the intermediate variable ``feat`` is manually set to non-volatile, so ``predictor_func`` is executed in non-volatile mode, i.e., with memorizing the history of computation.
+At first, the input variable ``x`` is in no-backprop mode, so ``fixed_func`` does not memorize the computation history.
+Then ``predictor_func`` is executed in backprop mode, i.e., with memorizing the history of computation.
 Since the history of computation is only memorized between variables ``feat`` and ``y``, the backward computation stops at the ``feat`` variable.
-
-.. warning::
-
-   It is not allowed to mix volatile and non-volatile variables as arguments to same function.
-   If you want to create a variable that behaves like a non-volatile variable while can be mixed with volatile ones, use ``'auto'`` flag instead of ``'off'`` flag.
 
 
 Making it with Trainer
-~~~~~~~~~~~~~~~~~~~~~~
+''''''''''''''''''''''
 
 The above codes are written with plain Function/Variable APIs.
 When we write a training loop, it is better to use Trainer, since we can then easily add functionalities by extensions.
