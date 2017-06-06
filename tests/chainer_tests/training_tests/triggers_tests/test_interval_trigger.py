@@ -1,6 +1,7 @@
 from __future__ import division
 
 import mock
+import numpy as np
 import random
 import tempfile
 import unittest
@@ -16,9 +17,12 @@ def get_trainer_with_mock_updater(iter_per_epoch):
     updater.iteration = 0
     updater.epoch = 0
     updater.epoch_detail = 0
+    updater.previous_epoch_detail = None
     updater.is_new_epoch = True
 
     def update():
+        updater.previous_epoch_detail = updater.epoch_detail
+
         updater.iteration += 1
         updater.epoch = updater.iteration // iter_per_epoch
         updater.epoch_detail = updater.iteration / iter_per_epoch
@@ -111,6 +115,22 @@ class TestIntervalTrigger(unittest.TestCase):
                 if random.randrange(2):
                     self.assertEqual(trigger(trainer), accumulated)
                     accumulated = False
+
+    def test_resumed_trigger_backward_compat(self):
+        trainer = get_trainer_with_mock_updater(self.iter_per_epoch)
+        with tempfile.NamedTemporaryFile(delete=False) as f:
+            trigger = training.trigger.IntervalTrigger(*self.interval)
+            for expected in self.expected[:self.resume]:
+                trainer.updater.update()
+                self.assertEqual(trigger(trainer), expected)
+            # old version does not save anything
+            np.savez(f, dummy=0)
+
+            trigger = training.trigger.IntervalTrigger(*self.interval)
+            serializers.load_npz(f.name, trigger)
+            for expected in self.expected[self.resume:]:
+                trainer.updater.update()
+                self.assertEqual(trigger(trainer), expected)
 
 
 testing.run_module(__name__, __file__)
