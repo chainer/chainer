@@ -1,5 +1,6 @@
 from __future__ import division
 
+import random
 import tempfile
 import unittest
 
@@ -70,10 +71,9 @@ class TestIntervalTrigger(unittest.TestCase):
             updater.update()
 
     def test_resumed_trigger(self):
+        updater = DummyUpdater(self.iters_per_epoch)
+        trainer = training.Trainer(updater)
         with tempfile.NamedTemporaryFile(delete=False) as f:
-            updater = DummyUpdater(self.iters_per_epoch)
-            trainer = training.Trainer(updater)
-
             trigger = training.trigger.IntervalTrigger(*self.interval)
             for expected in self.expected[:self.resume]:
                 updater.update()
@@ -85,6 +85,44 @@ class TestIntervalTrigger(unittest.TestCase):
             for expected in self.expected[self.resume:]:
                 updater.update()
                 self.assertEqual(trigger(trainer), expected)
+
+    @testing.condition.repeat(10)
+    def test_trigger_sparse_call(self):
+        trigger = training.trigger.IntervalTrigger(*self.interval)
+        updater = DummyUpdater(self.iters_per_epoch)
+        trainer = training.Trainer(updater)
+        accumulated = False
+        # before the first iteration, trigger should be False
+        for expected in [False] + self.expected:
+            accumulated = accumulated or expected
+            if random.randrange(2):
+                self.assertEqual(trigger(trainer), accumulated)
+                accumulated = False
+            updater.update()
+
+    @testing.condition.repeat(10)
+    def test_resumed_trigger_sparse_call(self):
+        updater = DummyUpdater(self.iters_per_epoch)
+        trainer = training.Trainer(updater)
+        accumulated = False
+        with tempfile.NamedTemporaryFile(delete=False) as f:
+            trigger = training.trigger.IntervalTrigger(*self.interval)
+            for expected in self.expected[:self.resume]:
+                updater.update()
+                accumulated = accumulated or expected
+                if random.randrange(2):
+                    self.assertEqual(trigger(trainer), accumulated)
+                    accumulated = False
+            serializers.save_npz(f.name, trigger)
+
+            trigger = training.trigger.IntervalTrigger(*self.interval)
+            serializers.load_npz(f.name, trigger)
+            for expected in self.expected[self.resume:]:
+                updater.update()
+                accumulated = accumulated or expected
+                if random.randrange(2):
+                    self.assertEqual(trigger(trainer), accumulated)
+                    accumulated = False
 
 
 testing.run_module(__name__, __file__)
