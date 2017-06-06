@@ -24,8 +24,8 @@ class IntervalTrigger(object):
         assert unit == 'epoch' or unit == 'iteration'
         self.unit = unit
 
-        self._previous_iteration = -1
-        self._previous_epoch_detail = -1.
+        self._previous_iteration = 0
+        self._previous_epoch_detail = 0.
 
         # count is kept for backward compatibility
         self.count = 0
@@ -53,8 +53,6 @@ class IntervalTrigger(object):
             # count is kept for backward compatibility
             self.count = epoch_detail // self.period
 
-            if previous_epoch_detail < 0:
-                return False
             return previous_epoch_detail // self.period != \
                 epoch_detail // self.period
         else:
@@ -63,8 +61,6 @@ class IntervalTrigger(object):
 
             self._previous_iteration = iteration
 
-            if previous_iteration < 0:
-                return False
             return previous_iteration // self.period != \
                 iteration // self.period
 
