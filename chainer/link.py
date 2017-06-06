@@ -174,12 +174,14 @@ class Link(object):
            simply assign a :class:`~chainer.Parameter` object to register
            it to the link.
 
-           class MyLink(chainer.Link):
-               def __init__(self):
-                   super().__init__()
-                   with self.init_scope():
-                       self.W = chainer.Parameter(0, (10, 5))
-                       self.b = chainer.Parameter(0, (5,))
+           .. code-block:: python
+
+              class MyLink(chainer.Link):
+                  def __init__(self):
+                      super().__init__()
+                      with self.init_scope():
+                          self.W = chainer.Parameter(0, (10, 5))
+                          self.b = chainer.Parameter(0, (5,))
 
         """
         old_flag = self.within_init_scope
@@ -280,7 +282,7 @@ Assign a Parameter object directly to an attribute within a \
         """Registers an attribute of a given name as a persistent value.
 
         This is a convenient method to register an existing attribute as a
-        persistent value. If ``name`` has been already registered as a
+        persistent value. If `name` has been already registered as a
         parameter, this method removes it from the list of parameter names
         and re-registers it as a persistent value.
 
