@@ -24,6 +24,9 @@ class IntervalTrigger(object):
         assert unit == 'epoch' or unit == 'iteration'
         self.unit = unit
 
+        self._previous_iteration = -1
+        self._previous_epoch_detail = -1.
+
         # count is kept for backward compatibility
         self.count = 0
 
@@ -43,15 +46,30 @@ class IntervalTrigger(object):
         updater = trainer.updater
         if self.unit == 'epoch':
             epoch_detail = updater.epoch_detail
-            previous_epoch_detail = updater.previous_epoch_detail
+            previous_epoch_detail = self._previous_epoch_detail
+
+            self._previous_epoch_detail = epoch_detail
 
             # count is kept for backward compatibility
             self.count = epoch_detail // self.period
 
-            if previous_epoch_detail is None:
+            if previous_epoch_detail < 0:
                 return False
             return previous_epoch_detail // self.period != \
                 epoch_detail // self.period
         else:
             iteration = updater.iteration
-            return iteration > 0 and iteration % self.period == 0
+            previous_iteration = self._previous_iteration
+
+            self._previous_iteration = iteration
+
+            if previous_iteration < 0:
+                return False
+            return previous_iteration // self.period != \
+                iteration // self.period
+
+    def serialize(self, serializer):
+        self._previous_iteration = serializer(
+            'previous_iteration', self._previous_iteration)
+        self._previous_epoch_detail = serializer(
+            'previous_epoch_detail', self._previous_epoch_detail)
