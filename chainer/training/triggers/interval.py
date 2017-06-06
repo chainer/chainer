@@ -1,3 +1,6 @@
+import warnings
+
+
 class IntervalTrigger(object):
 
     """Trigger based on a fixed interval.
@@ -78,6 +81,12 @@ class IntervalTrigger(object):
             self._previous_iteration = serializer(
                 'previous_iteration', self._previous_iteration)
         except KeyError:
+            warnings.warn(
+                'The previous value of iteration is not saved.'
+                'IntervalTrigger guesses it using  current iteration.'
+                'If this trigger is not called for every iterations,'
+                'it may not work correctly',
+                RuntimeWarning)
             # set a negative value for invalid
             self._previous_iteration = -1
 
@@ -85,5 +94,12 @@ class IntervalTrigger(object):
             self._previous_epoch_detail = serializer(
                 'previous_epoch_detail', self._previous_epoch_detail)
         except KeyError:
+            warnings.warn(
+                'The previous value of epoch_detail is not saved.'
+                'IntervalTrigger uses the value of '
+                'trainer.updater.previous_epoch_detail.'
+                'If this trigger is not called for every iterations,'
+                'it may not work correctly',
+                RuntimeWarning)
             # set a negative value for invalid
             self._previous_epoch_detail = -1.
