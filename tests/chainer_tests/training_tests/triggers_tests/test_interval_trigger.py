@@ -5,6 +5,7 @@ import numpy as np
 import random
 import tempfile
 import unittest
+import warnings
 
 from chainer import serializers
 from chainer import testing
@@ -127,7 +128,9 @@ class TestIntervalTrigger(unittest.TestCase):
             np.savez(f, dummy=0)
 
             trigger = training.trigger.IntervalTrigger(*self.interval)
-            serializers.load_npz(f.name, trigger)
+            with warnings.catch_warnings(record=True) as w:
+                serializers.load_npz(f.name, trigger)
+            self.assertEqual(len(w), 2)
             for expected in self.expected[self.resume:]:
                 trainer.updater.update()
                 self.assertEqual(trigger(trainer), expected)
