@@ -2,8 +2,26 @@ Optimizer
 ---------
 
 .. currentmodule:: chainer
+
+Hyperparameter
+~~~~~~~~~~~~~~
+
+.. autoclass:: chainer.optimizer.Hyperparameter
+   :members:
+
+UpdateRule
+~~~~~~~~~~
+
+.. autoclass:: UpdateRule
+   :members:
+
+Optimizer
+~~~~~~~~~
 .. autoclass:: Optimizer
    :members:
+
+GradientMethod
+~~~~~~~~~~~~~~
 .. autoclass:: GradientMethod
    :members:
 
