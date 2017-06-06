@@ -1,7 +1,6 @@
-
 import copy
 
-from collections import defaultdict
+import collections
 import numpy
 import six
 
@@ -40,7 +39,7 @@ class TreeParser(object):
         self.code = []
         self.paths = {}
         self.codes = {}
-        self.parent2child = defaultdict(list)
+        self.parent2child = collections.defaultdict(list)
         self._parse(tree)
 
         assert(len(self.path) == 0)
@@ -333,6 +332,14 @@ class BinaryHierarchicalSoftmax(link.Link):
     See: Hierarchical Probabilistic Neural Network Language Model [Morin+,
     AISTAT2005].
 
+    .. admonition:: Example
+
+        Let an a dictionary containing word counts ``word_counts`` be:
+
+        >>> word_counts = {0: 8, 1: 5, 2: 6, 3: 4, 4: 10, 5: 1, 6: 32, 7: 21}
+        >>> tree = BinaryHierarchicalSoftmax.create_huffman_tree(word_counts)
+        >>> hsm = BinaryHierarchicalSoftmax(in_size=3, tree)
+
     """
 
     def __init__(self, in_size, tree):
@@ -389,27 +396,31 @@ class BinaryHierarchicalSoftmax(link.Link):
 
         return q.get()[2]
 
-    def sampling(self, x):
-        """Sampling word id for given input from tree path.
+    def sample(self, x):
+        """Sample an example for a given input form the tree.
 
         Args:
-            x (~chainer.Variable): Input variable for sampling word ids.
-                                 : Examples: Variable(
-                                            [
-                                              [0.2, 0.2, 0.3],
-                                              [0.1, 0.3, 0.1],
-                                              [0.2, 0.3, 0.4]
-                                            ])
+            x (~chainer.Variable): Input variable for sample word ids.
+
         Returns:
-            ~chainer.Variable: List of word indexes.
-                             : Examples: [0, 10, 3]
+            List of word indexes.
+
+        .. admonition:: Example
+
+            Let an input vector ``x`` be:
+
+            >>> x = np.array([[0.2, 0.2, 0.3], [0.1, 0.3, 0.1]], dtype='f')
+            >>> hsm.sample(Variable(x))
+            [0, 3]
+
+
         """
         if len(self.tree) == 0:
             raise ValueError('Empty tree')
 
-        xp = self.xp
+        xp = cuda.get_array_module(*x)
         parent2child = xp.array(self._func.parent2child, dtype=xp.int32)
-        batchsize = x.data.shape[0]
+        batchsize = x.shape[0]
         start_ids = xp.zeros(batchsize, 'i')
         list_next_ids = []
         list_choose_ids = []

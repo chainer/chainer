@@ -120,9 +120,9 @@ class TestBinaryHierarchicalSoftmax(unittest.TestCase):
         self.assertTrue((f.paths == g.paths).all())
         self.assertTrue((f.codes == g.codes).all())
 
-    def check_sampling(self, x):
+    def check_sample(self, x):
         x = chainer.Variable(x)
-        result = self.link.sampling(x)
+        result = self.link.sample(x)
         self.assertEqual(len(result), x.shape[0])
         for word_id in result:
             self.assertIsInstance(word_id, int)
@@ -130,15 +130,15 @@ class TestBinaryHierarchicalSoftmax(unittest.TestCase):
             self.assertLessEqual(0, word_id)
             self.assertLessEqual(word_id, self.max_value_tree)
 
-    def test_sampling_cpu(self):
+    def test_sample_cpu(self):
         x = numpy.array([[1.0, 2.0, 3.0]], numpy.float32)
-        self.check_sampling(x)
+        self.check_sample(x)
 
     @attr.gpu
-    def test_sampling_gpu(self):
+    def test_sample_gpu(self):
         x = numpy.array([[1.0, 2.0, 3.0]], numpy.float32)
         self.link.to_gpu()
-        self.check_sampling(cuda.to_gpu(x))
+        self.check_sample(cuda.to_gpu(x))
 
 
 testing.run_module(__name__, __file__)
