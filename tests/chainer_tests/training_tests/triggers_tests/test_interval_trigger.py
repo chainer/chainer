@@ -1,7 +1,9 @@
 from __future__ import division
 
+import tempfile
 import unittest
 
+from chainer import serializers
 from chainer import testing
 from chainer import training
 
@@ -28,12 +30,6 @@ class DummyUpdater(training.Updater):
     @property
     def epoch_detail(self):
         return self.iteration / self.iters_per_epoch
-
-    @property
-    def previous_epoch_detail(self):
-        if self.iteration == 0:
-            return None
-        return (self.iteration - 1) / self.iters_per_epoch
 
     @property
     def is_new_epoch(self):
@@ -74,18 +70,21 @@ class TestTrigger(unittest.TestCase):
             updater.update()
 
     def test_resumed_trigger(self):
-        updater = DummyUpdater(self.iters_per_epoch)
-        trainer = training.Trainer(updater)
+        with tempfile.NamedTemporaryFile(delete=False) as f:
+            updater = DummyUpdater(self.iters_per_epoch)
+            trainer = training.Trainer(updater)
 
-        trigger = training.trigger.IntervalTrigger(*self.interval)
-        for expected in self.expected[:self.resume]:
-            updater.update()
-            self.assertEqual(trigger(trainer), expected)
+            trigger = training.trigger.IntervalTrigger(*self.interval)
+            for expected in self.expected[:self.resume]:
+                updater.update()
+                self.assertEqual(trigger(trainer), expected)
+            serializers.save_npz(f.name, trigger)
 
-        trigger = training.trigger.IntervalTrigger(*self.interval)
-        for expected in self.expected[self.resume:]:
-            updater.update()
-            self.assertEqual(trigger(trainer), expected)
+            trigger = training.trigger.IntervalTrigger(*self.interval)
+            serializers.load_npz(f.name, trigger)
+            for expected in self.expected[self.resume:]:
+                updater.update()
+                self.assertEqual(trigger(trainer), expected)
 
 
 testing.run_module(__name__, __file__)
