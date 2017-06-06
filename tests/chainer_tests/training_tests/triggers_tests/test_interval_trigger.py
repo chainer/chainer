@@ -58,7 +58,7 @@ class DummyUpdater(training.Updater):
         'iters_per_epoch': 0.5, 'interval': (1, 'epoch'), 'resume': 4,
         'expected': [True, True, True, True, True, True, True]},
 )
-class TestTrigger(unittest.TestCase):
+class TestIntervalTrigger(unittest.TestCase):
 
     def test_trigger(self):
         trigger = training.trigger.IntervalTrigger(*self.interval)
