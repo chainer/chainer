@@ -95,13 +95,11 @@ class NegativeSamplingFunction(function.Function):
               if (i % m == 0) {
                 f = -f;
               }
-              T loss;
               if (f < 0) {
-                loss = __logf(1 + __expf(f));
+                y = __logf(1 + __expf(f));
               } else {
-                loss = f + __logf(1 + __expf(-f));
+                y = f + __logf(1 + __expf(-f));
               }
-              y = loss;
             } else {
               y = 0;
             }
