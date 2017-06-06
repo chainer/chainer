@@ -48,6 +48,9 @@ class IntervalTrigger(object):
             epoch_detail = updater.epoch_detail
             previous_epoch_detail = self._previous_epoch_detail
 
+            if previous_epoch_detail < 0:
+                previous_epoch_detail = updater.previous_epoch_detail
+
             # count is kept for backward compatibility
             self.count = epoch_detail // self.period
 
@@ -56,6 +59,9 @@ class IntervalTrigger(object):
         else:
             iteration = updater.iteration
             previous_iteration = self._previous_iteration
+
+            if previous_iteration < 0:
+                previous_iteration = iteration - 1
 
             fire = previous_iteration // self.period != \
                 iteration // self.period
@@ -68,7 +74,16 @@ class IntervalTrigger(object):
         return fire
 
     def serialize(self, serializer):
-        self._previous_iteration = serializer(
-            'previous_iteration', self._previous_iteration)
-        self._previous_epoch_detail = serializer(
-            'previous_epoch_detail', self._previous_epoch_detail)
+        try:
+            self._previous_iteration = serializer(
+                'previous_iteration', self._previous_iteration)
+        except KeyError:
+            # set a negative value for invalid
+            self._previous_iteration = -1
+
+        try:
+            self._previous_epoch_detail = serializer(
+                'previous_epoch_detail', self._previous_epoch_detail)
+        except KeyError:
+            # set a negative value for invalid
+            self._previous_epoch_detail = -1.
