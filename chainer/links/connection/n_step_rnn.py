@@ -162,7 +162,7 @@ class NStepRNNTanh(NStepRNNBase):
     and all hidden states of the last layer for each time.
 
     Unlike :func:`chainer.functions.n_step_rnn`, this function automatically
-    sort inputs in descending order by length, and transpose the seuqnece.
+    sort inputs in descending order by length, and transpose the sequence.
     Users just need to call the link with a list of :class:`chainer.Variable`
     holding sequences.
 
@@ -200,7 +200,7 @@ class NStepRNNReLU(NStepRNNBase):
     and all hidden states of the last layer for each time.
 
     Unlike :func:`chainer.functions.n_step_rnn`, this function automatically
-    sort inputs in descending order by length, and transpose the seuqnece.
+    sort inputs in descending order by length, and transpose the sequence.
     Users just need to call the link with a list of :class:`chainer.Variable`
     holding sequences.
 
@@ -238,7 +238,7 @@ class NStepBiRNNTanh(NStepRNNBase):
     and all hidden states of the last layer for each time.
 
     Unlike :func:`chainer.functions.n_step_birnn`, this function automatically
-    sort inputs in descending order by length, and transpose the seuqnece.
+    sort inputs in descending order by length, and transpose the sequence.
     Users just need to call the link with a list of :class:`chainer.Variable`
     holding sequences.
 
@@ -277,7 +277,7 @@ class NStepBiRNNReLU(NStepRNNBase):
     and all hidden states of the last layer for each time.
 
     Unlike :func:`chainer.functions.n_step_birnn`, this function automatically
-    sort inputs in descending order by length, and transpose the seuqnece.
+    sort inputs in descending order by length, and transpose the sequence.
     Users just need to call the link with a list of :class:`chainer.Variable`
     holding sequences.
 
