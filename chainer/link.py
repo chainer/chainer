@@ -282,7 +282,7 @@ Assign a Parameter object directly to an attribute within a \
         """Registers an attribute of a given name as a persistent value.
 
         This is a convenient method to register an existing attribute as a
-        persistent value. If `name` has been already registered as a
+        persistent value. If ``name`` has been already registered as a
         parameter, this method removes it from the list of parameter names
         and re-registers it as a persistent value.
 
