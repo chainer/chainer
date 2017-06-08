@@ -46,6 +46,10 @@ class EmbedIDFunction(function.Function):
             return xp.where(
                 mask[..., None], 0, W.take(xp.where(mask, 0, x), axis=0)),
 
+        if type(x) != type(W):
+            raise ValueError('Type of W and x must be the same\n'
+                             '%s != %s' % (type(x), type(W)))
+
         return W.take(x, axis=0),
 
     def backward(self, inputs, grad_outputs):
