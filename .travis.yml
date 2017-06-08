@@ -35,6 +35,8 @@ matrix:
 before_install:
   - if [[ $TRAVIS_OS_NAME = "osx" ]]; then
       brew update >/dev/null;
+      brew install ccache;
+      export PATH="/usr/local/opt/ccache/libexec:$PATH";
       brew outdated pyenv || brew upgrade --quiet pyenv;
       brew install homebrew/boneyard/pyenv-pip-rehash;
 
