@@ -32,18 +32,24 @@ class Classifier(link.Chain):
 
     def __init__(self, predictor,
                  lossfun=softmax_cross_entropy.softmax_cross_entropy,
-                 accfun=accuracy.accuracy):
+                 accfun=accuracy.accuracy,
+                 label_key=-1):
+        if not (isinstance(label_key, (int, str))):
+            raise TypeError('label_key must be int or str, but is %s' %
+                            type(label_key))
+
         super(Classifier, self).__init__()
         self.lossfun = lossfun
         self.accfun = accfun
         self.y = None
         self.loss = None
         self.accuracy = None
+        self.label_key = label_key
 
         with self.init_scope():
             self.predictor = predictor
 
-    def __call__(self, *args):
+    def __call__(self, *args, **kwargs):
         """Computes the loss value for an input and label pair.
 
         It also computes accuracy and stores it to the attribute.
@@ -61,13 +67,27 @@ class Classifier(link.Chain):
 
         """
 
-        assert len(args) >= 2
-        x = args[:-1]
-        t = args[-1]
+        if isinstance(self.label_key, int):
+            if (self.label_key >= 0 and len(args) <= self.label_key or
+                    self.label_key < 0 and len(args) < -self.label_key):
+                msg = 'Label key %d is out of bounds' % self.label_key
+                raise ValueError(msg)
+            t = args[self.label_key]
+            args = list(args)
+            print(len(args))
+            del args[self.label_key]
+            print(args)
+        elif isinstance(self.label_key, str):
+            if self.label_key not in kwargs:
+                msg = 'Label key "%s" is not found' % self.label_key
+                raise ValueError(msg)
+            t = kwargs[self.label_key]
+            del kwargs[self.label_key]
+
         self.y = None
         self.loss = None
         self.accuracy = None
-        self.y = self.predictor(*x)
+        self.y = self.predictor(*args, **kwargs)
         self.loss = self.lossfun(self.y, t)
         reporter.report({'loss': self.loss}, self)
         if self.compute_accuracy:

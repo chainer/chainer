@@ -24,16 +24,18 @@ class AccuracyWithIgnoreLabel(object):
 @testing.parameterize(*testing.product({
     'accfun': [AccuracyWithIgnoreLabel(), None],
     'compute_accuracy': [True, False],
-    'x_num': [1, 2]
+    'x_num': [1, 2],
+    'label_key': [-1, 't'],
 }))
 class TestClassifier(unittest.TestCase):
 
     def setUp(self):
         if self.accfun is None:
-            self.link = links.Classifier(chainer.Link())
+            self.link = links.Classifier(
+                chainer.Link(), label_key=self.label_key)
         else:
-            self.link = links.Classifier(chainer.Link(),
-                                         accfun=self.accfun)
+            self.link = links.Classifier(
+                chainer.Link(), accfun=self.accfun, label_key=self.label_key)
         self.link.compute_accuracy = self.compute_accuracy
 
         self.x = numpy.random.uniform(-1, 1, (5, 10)).astype(numpy.float32)
@@ -48,13 +50,22 @@ class TestClassifier(unittest.TestCase):
 
         x = chainer.Variable(xp.asarray(self.x))
         t = chainer.Variable(xp.asarray(self.t))
-        if self.x_num == 1:
-            loss = self.link(x, t)
-            self.link.predictor.assert_called_with(x)
-        elif self.x_num == 2:
-            x_ = chainer.Variable(xp.asarray(self.x.copy()))
-            loss = self.link(x, x_, t)
-            self.link.predictor.assert_called_with(x, x_)
+        if self.label_key == -1:
+            if self.x_num == 1:
+                loss = self.link(x, t)
+                self.link.predictor.assert_called_with(x)
+            elif self.x_num == 2:
+                x_ = chainer.Variable(xp.asarray(self.x.copy()))
+                loss = self.link(x, x_, t)
+                self.link.predictor.assert_called_with(x, x_)
+        elif self.label_key == 't':
+            if self.x_num == 1:
+                loss = self.link(x=x, t=t)
+                self.link.predictor.assert_called_with(x=x)
+            elif self.x_num == 2:
+                x_ = chainer.Variable(xp.asarray(self.x.copy()))
+                loss = self.link(x=x, y=x_, t=t)
+                self.link.predictor.assert_called_with(x=x, y=x_)
 
         self.assertTrue(hasattr(self.link, 'y'))
         self.assertIsNotNone(self.link.y)
@@ -84,7 +95,7 @@ class TestInvalidArgument(unittest.TestCase):
         self.x = numpy.random.uniform(-1, 1, (5, 10)).astype(numpy.float32)
 
     def check_invalid_argument(self):
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(TypeError):
             x = chainer.Variable(self.link.xp.asarray(self.x))
             self.link(x)
 
@@ -95,6 +106,45 @@ class TestInvalidArgument(unittest.TestCase):
     def test_invalid_argument_gpu(self):
         self.link.to_gpu()
         self.check_invalid_argument()
+
+
+class TestInvalidLabelKey(unittest.TestCase):
+
+    def setUp(self):
+        self.x = numpy.random.uniform(-1, 1, (5, 10)).astype(numpy.float32)
+
+    def test_invalid_label_key_type(self):
+        with self.assertRaises(TypeError):
+            links.Classifier(links.Linear(10, 3), label_key=None)
+
+    def check_invalid_key(self, gpu, label_key):
+        link = links.Classifier(links.Linear(10, 3), label_key=label_key)
+        if gpu:
+            link.to_gpu()
+        with self.assertRaises(ValueError):
+            x = chainer.Variable(link.xp.asarray(self.x))
+            link(x)
+
+    def test_invalid_index_cpu(self):
+        self.check_invalid_key(False, 1)
+
+    @attr.gpu
+    def test_invalid_argument_gpu(self):
+        self.check_invalid_key(True, 1)
+
+    def test_invalid_index_cpu(self):
+        self.check_invalid_key(False, -2)
+
+    @attr.gpu
+    def test_invalid_argument_gpu(self):
+        self.check_invalid_key(True, -2)
+
+    def test_invalid_str_key_cpu(self):
+        self.check_invalid_key(False, 't')
+
+    @attr.gpu
+    def test_invalid_str_key_gpu(self):
+        self.check_invalid_key(True, 't')
 
 
 testing.run_module(__name__, __file__)
