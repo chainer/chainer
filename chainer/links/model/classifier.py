@@ -15,6 +15,9 @@ class Classifier(link.Chain):
         predictor (~chainer.Link): Predictor network.
         lossfun (function): Loss function.
         accfun (function): Function that computes accuracy.
+        label_key (int or str): Key to specify label variable from arguments.
+            When it is ``int``, a variable in positional arguments is used.
+            And when it is ``str``, a variable in keyword arguments is used.
 
     Attributes:
         predictor (~chainer.Link): Predictor network.
@@ -56,9 +59,13 @@ class Classifier(link.Chain):
 
         Args:
             args (list of ~chainer.Variable): Input minibatch.
+            kwargs (dict of ~chainer.Variable): Input minibatch.
 
-        The all elements of ``args`` but last one are features and
-        the last element corresponds to ground truth labels.
+        When ``label_key`` is ``int``, the correpoding element in ``args``
+        is treated as ground truth labels. And when it is ``str``, the
+        element in ``kwargs`` is used.
+        The all elements of ``args`` and ``kwargs`` except the ground trush
+        labels are features.
         It feeds features to the predictor and compare the result
         with ground truth labels.
 
