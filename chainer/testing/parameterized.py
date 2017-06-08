@@ -1,4 +1,5 @@
 import itertools
+import random
 import sys
 import types
 import unittest
@@ -47,11 +48,15 @@ def parameterize(*params):
     return f
 
 
-def product(parameter):
+def product(parameter, max_count=-1):
     keys = sorted(parameter)
     values = [parameter[key] for key in keys]
     values_product = itertools.product(*values)
-    return [dict(zip(keys, vals)) for vals in values_product]
+    ret = [dict(zip(keys, vals)) for vals in values_product]
+    if max_count == -1 or len(ret) <= max_count:
+        return ret
+    random.shuffle(ret)
+    return ret[:max_count]
 
 
 def product_dict(*parameters):
