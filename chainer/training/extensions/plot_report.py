@@ -159,7 +159,7 @@ class PlotReport(extension.Extension):
                     self._postprocess(f, a, summary)
                 l = a.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
                 f.savefig(path.join(trainer.out, self._file_name),
-                          bbox_extra_artists=(l,), bbox_inches='tight')
+                          bbox_extra_artists=(l,))
 
             plot.close()
             self._init_summary()
