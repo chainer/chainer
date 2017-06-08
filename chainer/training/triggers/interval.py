@@ -102,6 +102,6 @@ class IntervalTrigger(object):
                 'IntervalTrigger uses the value of '
                 'trainer.updater.previous_epoch_detail.'
                 'If this trigger is not called for every iterations,'
-                'it may not work correctly,')
+                'it may not work correctly.')
             # set a negative value for invalid
             self._previous_epoch_detail = -1.
