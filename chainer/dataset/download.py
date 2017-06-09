@@ -56,11 +56,8 @@ def get_dataset_directory(dataset_name, create_directory=True):
 
     """
     path = os.path.join(_dataset_root, dataset_name)
-    if create_directory:
-        try:
-            os.makedirs(path)
-        except OSError:
-            pass
+    if create_directory and not os.path.isdir(path):
+        os.makedirs(path)
     return path
 
 
