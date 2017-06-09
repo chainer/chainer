@@ -54,7 +54,7 @@ digit images in 1998. In Chainer, the model can be written as follows:
                 self.conv2 = L.Convolution2D(
                     in_channels=6, out_channels=16, ksize=5, stride=1)
                 self.conv3 = L.Convolution2D(
-                    in_channels=16, out_channels=120, ksize=4, stride=1),
+                    in_channels=16, out_channels=120, ksize=4, stride=1)
                 self.fc4 = L.Linear(None, 84)
                 self.fc5 = L.Linear(84, 10)
 
@@ -244,7 +244,7 @@ useful. First, let's see how to write a VGG16 [Simonyan14]_ model.
             w = chainer.initializers.HeNormal()
             super(VGGBlock, self).__init__()
 	    with self.init_scope():
-                self.conv1 = L.Convolution2D(None, n_channels, 3, 1, 1, initialW=w),
+                self.conv1 = L.Convolution2D(None, n_channels, 3, 1, 1, initialW=w)
                 self.conv2 = L.Convolution2D(
                     n_channels, n_channels, 3, 1, 1, initialW=w)
                 if n_convs == 3:
