@@ -161,9 +161,9 @@ def main():
                         help='GPU ID (negative value indicates CPU)')
     parser.add_argument('--resume', '-r', default='',
                         help='Resume the training from snapshot')
-    parser.add_argument('--unit', '-u', type=int, default=512,
+    parser.add_argument('--unit', '-u', type=int, default=1024,
                         help='Number of units')
-    parser.add_argument('--layer', '-l', type=int, default=2,
+    parser.add_argument('--layer', '-l', type=int, default=3,
                         help='Number of layers')
     parser.add_argument('--vocab-size', '-v', type=int, default=40000,
                         help='Size of vocabulary')
