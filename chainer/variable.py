@@ -525,7 +525,7 @@ Actual: {0}'''.format(type(data))
 
         """
         warnings.warn(
-            'Variable.zerograd is deprecated. Use Variable.cleargard instead.',
+            'Variable.zerograd is deprecated. Use Variable.cleargrad instead.',
             DeprecationWarning)
 
         if self.data is None:
