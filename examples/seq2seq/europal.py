@@ -51,13 +51,14 @@ def read_file(path):
             yield words
 
 
-def count_words(path, limit=40000):
+def count_words(path, vocab_size=40000):
     counts = collections.Counter()
     for words in read_file(path):
         for word in words:
             counts[word] += 1
 
-    vocab = [word for (word, _) in counts.most_common(limit)]
+    vocab = [word for (word, _) in counts.most_common(vocab_size)]
+
     return vocab
 
 

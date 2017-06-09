@@ -165,7 +165,7 @@ def main():
                         help='Number of units')
     parser.add_argument('--layer', '-l', type=int, default=2,
                         help='Number of layers')
-    parser.add_argument('--limit', '-v', type=int, default=40000,
+    parser.add_argument('--vocab-size', '-v', type=int, default=40000,
                         help='Size of vocabulary')
     parser.add_argument('--input', '-i', type=str, default='wmt',
                         help='Input directory')
@@ -192,11 +192,11 @@ def main():
         # Check file
         en_path = os.path.join(args.input, 'giga-fren.release2.fixed.en')
         source_vocab = ['<eos>', '<unk>'] + europal.count_words(
-            en_path, limit=args.limit)
+            en_path, vocab_size=args.vocab_size)
         source_data = europal.make_dataset(en_path, source_vocab)
         fr_path = os.path.join(args.input, 'giga-fren.release2.fixed.fr')
         target_vocab = ['<eos>', '<unk>'] + europal.count_words(
-            fr_path, limit=args.limit)
+            fr_path, vocab_size=args.vocab_size)
         target_data = europal.make_dataset(fr_path, target_vocab)
         assert len(source_data) == len(target_data)
         print('Original training data size: %d' % len(source_data))
