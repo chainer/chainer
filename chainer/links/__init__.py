@@ -14,6 +14,7 @@ from chainer.links.connection.dilated_convolution_2d import DilatedConvolution2D
 from chainer.links.connection.embed_id import EmbedID  # NOQA
 from chainer.links.connection.gru import GRU  # NOQA
 from chainer.links.connection.gru import StatefulGRU  # NOQA
+from chainer.links.connection.gru import StatelessGRU  # NOQA
 from chainer.links.connection.highway import Highway  # NOQA
 from chainer.links.connection.inception import Inception  # NOQA
 from chainer.links.connection.inceptionbn import InceptionBN  # NOQA

@@ -1,4 +1,5 @@
 import collections
+import contextlib
 import copy
 import warnings
 
@@ -43,10 +44,16 @@ class Link(object):
 
     Link is the primitive structure for the model definitions. It supports
     management of parameter variables and *persistent values* that should be
-    incorporated to serialization. Parameters are variables registered via
-    the :meth:`add_param` method, or given to the initializer method.
+    incorporated to serialization.
+
+    Parameter is an instance of :class:`~chainer.Parameter` registered to a
+    link. A :class:`~chainer.Parameter` object can be registered as a
+    parameter of the link by assigning it to an attribute within *an
+    initialization scope*, which is a code surrounded by a
+    :meth:`init_scope` context manager using the ``with`` statement.
+
     Persistent values are arrays, scalars, or any other serializable values
-    registered via the :meth:`add_persistent` method.
+    registered via :meth:`register_persistent` or :meth:`add_persistent`.
 
     .. note::
        Whereas arbitrary serializable objects can be registered as persistent
@@ -86,32 +93,33 @@ class Link(object):
 
           import chainer
           import chainer.functions as F
+          from chainer import initializers
           import numpy as np
 
           class LinearLayer(chainer.Link):
 
               def __init__(self, n_in, n_out):
-                  # Parameters are initialized as a numpy array of given shape.
-                  super(LinearLayer, self).__init__(
-                      W=(n_out, n_in),
-                      b=(n_out,),
-                  )
-                  self.W.data[...] = np.random.randn(n_out, n_in)
-                  self.b.data.fill(0)
+                  super(LinearLayer, self).__init__()
+                  with self.init_scope():
+                      self.W = chainer.Parameter(
+                          initializers.Normal(), (n_out, n_in))
+                      self.b = chainer.Parameter(
+                          initializers.Zero(), (n_out,))
 
               def __call__(self, x):
                   return F.linear(x, self.W, self.b)
 
        This example shows that a user can define arbitrary parameters and use
        them in any methods. Links typically implement the ``__call__``
-       operator.
+       operator, although they can also provide other methods to implement the
+       forward propagation.
 
     Args:
-        params: Names, shapes, and optional dtypes of initial parameters. The
-            keywords are used as the parameter names and the corresponding
-            values consist either of the shape or a tuple of shape and a dtype
-            `(shape, dtype)`. If only the shape is supplied, the default dtype
-            will be used.
+        params: *(deprecated since v2.0.0)* Names, shapes, and optional dtypes
+            of initial parameters. The keywords are used as the parameter
+            names and the corresponding values consist either of the shape or
+            a tuple of shape and a dtype ``(shape, dtype)``. If only the shape
+            is supplied, the default dtype will be used.
 
     Attributes:
         name (str): Name of this link, given by the parent chain (if exists).
@@ -119,13 +127,15 @@ class Link(object):
     """
 
     def __init__(self, **params):
-        self._params = []
-        self._persistent = []
+        self._params = set()
+        self._persistent = set()
         self._cpu = True
         self._device_id = None
+        self._within_init_scope = False
         self.name = None
 
         for name, value in six.iteritems(params):
+            # Note: deprecation warning will be raised in add_param
             shape, dtype = _ensure_shape_dtype(value)
             self.add_param(name, shape, dtype=dtype)
 
@@ -139,25 +149,85 @@ class Link(object):
         """
         return numpy if self._cpu else cuda.cupy
 
+    @property
+    def within_init_scope(self):
+        """True if the current code is inside of an initialization scope.
+
+        See :meth:`init_scope` for the details of the initialization scope.
+
+        """
+        return getattr(self, '_within_init_scope', False)
+
+    @contextlib.contextmanager
+    def init_scope(self):
+        """Creates an initialization scope.
+
+        This method returns a context manager object that enables registration
+        of parameters (and links for :class:`~chainer.Chain`) by an assignment.
+        A :class:`~chainer.Parameter` object can be automatically registered
+        by assigning it to an attribute under this context manager.
+
+        .. admonition:: Example
+
+           In most cases, the parameter registration is done in the
+           initializer method. Using the ``init_scope`` method, we can
+           simply assign a :class:`~chainer.Parameter` object to register
+           it to the link.
+
+           .. code-block:: python
+
+              class MyLink(chainer.Link):
+                  def __init__(self):
+                      super().__init__()
+                      with self.init_scope():
+                          self.W = chainer.Parameter(0, (10, 5))
+                          self.b = chainer.Parameter(0, (5,))
+
+        """
+        old_flag = self.within_init_scope
+        self._within_init_scope = True
+        try:
+            yield
+        finally:
+            self._within_init_scope = old_flag
+
+    def __setattr__(self, name, value):
+        if self.within_init_scope and isinstance(value, variable.Parameter):
+            value.name = name
+            if not self._cpu:
+                value.to_gpu(self._device_id)
+            self._params.add(name)
+            self._persistent.discard(name)
+        super(Link, self).__setattr__(name, value)
+
+    def __delattr__(self, name):
+        self._params.discard(name)
+        self._persistent.discard(name)
+        super(Link, self).__delattr__(name)
+
     def add_param(self, name, shape=None, dtype=numpy.float32,
                   initializer=None):
         """Registers a parameter to the link.
 
-        The registered parameter is saved and loaded on serialization and
-        deserialization, and involved in the optimization. The data and
-        gradient of the variable are initialized by NaN arrays.
-        If ``initializer`` is not ``None``, the data is initialized by
-        ``initializer``. The initializer can be an array, in which case the
-        parameter array is directly initialized by it.
+        .. deprecated:: v2.0.0
 
-        If ``shape`` is None and the initializer is not an array, this method
-        does not initialize the data and gradient arrays of the parameter
-        variable. They should be initialized by calling the
-        :meth:`chainer.Variable.initialize` method before using the parameter
-        in the forward computation. The shape can be specified at the
-        initialization.
+           Assign a :class:`~chainer.Parameter` object directly to an
+           attribute within :meth:`an initialization scope <init_scope>`
+           instead. For example, the following code
 
-        The parameter is set to an attribute of the link with the given name.
+           .. code-block:: python
+
+               link.add_param('W', shape=(5, 3))
+
+           can be replaced by the following assignment.
+
+           .. code-block:: python
+
+               with self.init_scope():
+                   link.W = chainer.Parameter(None, (5, 3))
+
+           The latter one is easier for IDEs to keep track of the attribute's
+           type.
 
         Args:
             name (str): Name of the parameter. This name is also used as the
@@ -172,27 +242,20 @@ class Link(object):
                 ignored.
 
         """
-        d = self.__dict__
-        if name in d:
+        warnings.warn('''\
+Parameter registeration via Link.__init__ and Link.add_param are deprecated.
+Assign a Parameter object directly to an attribute within a \
+"with Link.init_scope():" block instead.
+''', DeprecationWarning)
+        if name in self.__dict__:
             raise AttributeError(
                 'cannot register a new parameter %s: attribute exists'
                 % name)
         if initializer is None:
             initializer = initializers.NaN(dtype)
-        if shape is None:
-            if callable(initializer):
-                # uninitialized parameter
-                var = variable.Variable(name=name, initializer=initializer)
-            else:
-                # initialize parameter by the initial array
-                var = variable.Variable(initializer, name=name)
-        else:
-            data = initializers.generate_array(initializer, shape, self.xp)
-            grad = self.xp.full_like(data, numpy.nan)
-            var = variable.Variable(data, name=name, grad=grad)
-
-        self._params.append(name)
-        d[name] = var
+        param = variable.Parameter(initializer, shape)
+        with self.init_scope():
+            setattr(self, name, param)
 
     def add_persistent(self, name, value):
         """Registers a persistent value to the link.
@@ -211,8 +274,28 @@ class Link(object):
             raise AttributeError(
                 'cannot register a new persistent value %s: attribute exists'
                 % name)
-        self._persistent.append(name)
+        self._persistent.add(name)
+        self._params.discard(name)
         d[name] = value
+
+    def register_persistent(self, name):
+        """Registers an attribute of a given name as a persistent value.
+
+        This is a convenient method to register an existing attribute as a
+        persistent value. If ``name`` has been already registered as a
+        parameter, this method removes it from the list of parameter names
+        and re-registers it as a persistent value.
+
+        Args:
+            name (str): Name of the attribute to be registered.
+
+        """
+        if not hasattr(self, name):
+            raise AttributeError(
+                'cannot register non-existent attribute %s as a persistent '
+                'value' % name)
+        self._persistent.add(name)
+        self._params.discard(name)
 
     def copy(self):
         """Copies the link hierarchy to new one.
@@ -466,7 +549,7 @@ class Link(object):
             param = d[name]
             data = serializer(name, param.data)
             if param.data is None and data is not None:
-                # Initialize the variable here
+                # Initialize the parameter here
                 param.initialize(data.shape)
                 if isinstance(param.data, numpy.ndarray):
                     numpy.copyto(param.data, data)
@@ -500,6 +583,19 @@ class Chain(Link):
     like a file path in UNIX, consisting of names of nodes on the path, joined
     by slashes ``/``.
 
+    A child link can be added just by assigning it to an attribute of the
+    chain within :meth:`an initialization scope <chainer.Link.init_scope>`.
+
+    The registered child link is saved and loaded on serialization and
+    deserialization, and involved in the optimization. The registered link
+    is called a child. The child link is accessible via :meth:`children`
+    generator, which returns a generator running through the children in
+    registered order.
+
+    On registration of a child link, its :attr:`~Link.name` attribute is also
+    set (or overwritten if the link has already been registered to another
+    chain).
+
     .. admonition:: Example
 
        This is a simple example of custom chain definition. Chainer itself also
@@ -517,12 +613,11 @@ class Chain(Link):
           class MultiLayerPerceptron(chainer.Chain):
 
               def __init__(self, n_in, n_hidden, n_out):
-                  # Create and register three layers for this MLP
-                  super(MultiLayerPerceptron, self).__init__(
-                      layer1=L.Linear(n_in, n_hidden),
-                      layer2=L.Linear(n_hidden, n_hidden),
-                      layer3=L.Linear(n_hidden, n_out),
-                  )
+                  super(MultilayerPerceptron, self).__init__()
+                  with self.init_scope():
+                      self.layer1 = L.Linear(n_in, n_hidden)
+                      self.layer2 = L.Linear(n_hidden, n_hidden)
+                      self.layer3 = L.Linear(n_hidden, n_out)
 
               def __call__(self, x):
                   # Forward propagation
@@ -530,20 +625,24 @@ class Chain(Link):
                   h2 = F.relu(self.layer2(h1))
                   return self.layer3(h2)
 
-       Child links are registered via the initializer method. They also can be
-       registered by the :meth:`add_link` method. The forward propagation is
-       often implemented as The ``__call__`` operator as the above example,
-       though it is not mandatory.
+       Child links are registered via the assignment within a
+       ``with self.init_scope():`` block. The forward propagation is often
+       implemented as The ``__call__`` operator as the above example, though
+       it is not mandatory.
 
     Args:
         links: Child links. The keywords are used as their names. The names are
             also set to the links.
 
+            .. deprecated:: v2.0.0
+
+               Assign child links directly to attributes, instead.
+
     """
 
     def __init__(self, **links):
         super(Chain, self).__init__()
-        self._children = []
+        self._children = set()
 
         for name, link in six.iteritems(links):
             self.add_link(name, link)
@@ -552,17 +651,41 @@ class Chain(Link):
         """Equivalent to getattr."""
         return getattr(self, name)
 
+    def __setattr__(self, name, value):
+        if self.within_init_scope and isinstance(value, Link):
+            if hasattr(self, name):
+                raise AttributeError(
+                    'cannot register a new link %s: attribute exists' % name)
+            value.name = name
+            self._children.add(name)
+        super(Chain, self).__setattr__(name, value)
+
+    def __delattr__(self, name):
+        self._children.discard(name)
+        super(Chain, self).__delattr__(name)
+
     def add_link(self, name, link):
         """Registers a child link to this chain.
 
-        The registered link is saved and loaded on serialization and
-        deserialization, and involved in the optimization. The registered link
-        is called a child. The child link is set to an attribute of the chain
-        with the given name.
+        .. deprecated:: v2.0.0
 
-        This method also sets the :attr:`~Link.name` attribute of the
-        registered link. If the given link already has the name attribute set,
-        then it raises an error.
+           Assign the child link directly to an attribute within
+           :meth:`an initialization scope <chainer.Link.init_scope>`, instead.
+           For example, the following code
+
+           .. code-block:: python
+
+              chain.add_link('l1', L.Linear(3, 5))
+
+           can be replaced by the following line.
+
+           .. code-block:: python
+
+              with self.init_scope():
+                  chain.l1 = L.Linear(3, 5)
+
+           The latter one is easier for IDEs to keep track of the attribute's
+           type.
 
         Args:
             name (str): Name of the child link. This name is also used as the
@@ -570,17 +693,18 @@ class Chain(Link):
             link (Link): The link object to be registered.
 
         """
-        if link.name is not None:
-            raise ValueError(
-                'given link is already registered to another chain by name %s'
-                % link.name)
-        d = self.__dict__
-        if name in d:
+        warnings.warn('''\
+Child link registeration via Chain.__init__ and Chain.add_link are deprecated.
+Assign a Link object directly to an attribute within a \
+"with link.init_scope():" block instead.
+        ''', DeprecationWarning)
+        if name in self.__dict__:
             raise AttributeError(
                 'cannot register a new link %s: attribute exists' % name)
-        self._children.append(name)
-        link.name = name
-        d[name] = link
+        if not isinstance(link, Link):
+            raise TypeError('cannot register a non-link object as a child')
+        with self.init_scope():
+            setattr(self, name, link)
 
     def copy(self):
         ret = super(Chain, self).copy()
@@ -714,27 +838,25 @@ class ChainList(Link):
         """Returns the number of children."""
         return len(self._children)
 
+    def append(self, link):
+        """Registers a child link and adds it to the tail of the list.
+
+        This is equivalent to :meth:`add_link`. This method has been added to
+        emulate the ``list`` interface.
+
+        Args:
+            link (Link): The link object to be regsitered.
+
+        """
+        self.add_link(link)
+
     def add_link(self, link):
-        """Registers a child link to this chain.
-
-        The registered link is saved and loaded on serialization and
-        deserialization, and involved in the optimization. The registered link
-        is called a child. The child link is accessible via :meth:`children`
-        generator, which returns a generator running through the children in
-        registered order.
-
-        This method also sets the :attr:`~Link.name` attribute of the
-        registered link. If the given link already has the name attribute set,
-        then it raises an error.
+        """Registers a child link and adds it to the tail of the list.
 
         Args:
             link (Link): The link object to be registered.
 
         """
-        if link.name is not None:
-            raise ValueError(
-                'given link is already registered to another chain by name %s'
-                % link.name)
         link.name = str(len(self._children))
         self._children.append(link)
 

@@ -15,8 +15,8 @@ After reading this section, you will be able to:
 A convolutional network (ConvNet) is mainly comprised of convolutional layers.
 This type of network is commonly used for various visual recognition tasks,
 e.g., classifying hand-written digits or natural images into given object
-classes, detectiong objects from an image, and labeling all pixels of an image
-with the object classes (semantic segmenation), and so on.
+classes, detecting objects from an image, and labeling all pixels of an image
+with the object classes (semantic segmentation), and so on.
 
 In such tasks, a typical ConvNet takes a set of images whose shape is
 :math:`(N, C, H, W)`, where
@@ -47,17 +47,16 @@ digit images in 1998. In Chainer, the model can be written as follows:
 
     class LeNet5(Chain):
         def __init__(self):
-            super(LeNet5, self).__init__(
-                conv1=L.Convolution2D(
-                    in_channels=1, out_channels=6, ksize=5, stride=1),
-                conv2=L.Convolution2D(
-                    in_channels=6, out_channels=16, ksize=5, stride=1),
-                conv3=L.Convolution2D(
+            super(LeNet5, self).__init__()
+	    with self.init_scope():
+                self.conv1 = L.Convolution2D(
+                    in_channels=1, out_channels=6, ksize=5, stride=1)
+                self.conv2 = L.Convolution2D(
+                    in_channels=6, out_channels=16, ksize=5, stride=1)
+                self.conv3 = L.Convolution2D(
                     in_channels=16, out_channels=120, ksize=4, stride=1),
-                fc4=L.Linear(None, 84),
-                fc5=L.Linear(84, 10),
-            )
-            self.train = True
+                self.fc4 = L.Linear(None, 84)
+                self.fc5 = L.Linear(84, 10)
 
         def __call__(self, x):
             h = F.sigmoid(self.conv1(x))
@@ -66,34 +65,14 @@ digit images in 1998. In Chainer, the model can be written as follows:
             h = F.max_pooling_2d(h, 2, 2)
             h = F.sigmoid(self.conv3(h))
             h = F.sigmoid(self.fc4(h))
-            if self.train:
+            if chainer.config.train:
                 return self.fc5(h)
             return F.softmax(self.fc5(h))
 
 A typical way to write your network is creating a new class inherited from
 :class:`~chainer.Chain` class. When defining your model in this way, typically,
 all the layers which have trainable parameters are registered to the model
-by giving the objects of :class:`~chainer.Link` to the superclass's constructer
-as keyword arguments (see the above :meth:`__init__`).
-
-There is also another way to do the same thing. For example,
-:meth:`~chainer.Chain.add_link` of :class:`~chainer.Chain` class enables to
-register the trainable layers (i.e., :class:`~chainer.Link` s) to the model, so
-that the above :meth:`__init__` can also be written as follows:
-
-.. code-block:: python
-
-    def __init__(self
-        super(LeNet5, self).__init__()
-        self.add_link('conv1', L.Convolution2D(1, 6, 5, 1))
-        self.add_link('conv2', L.Convolution2D(6, 16, 5, 1))
-        self.add_link('conv3', L.Convolution2D(16, 120, 4, 1))
-        self.add_link('fc4', L.Linear(None, 84))
-        self.add_link('fc5', L.Linear(84, 10))
-        self.train = True
-
-(Argments to :class:`~chainer.links.Convolution2D` are given without keywords
-here for simplicity.)
+by assigning the objects of :class:`~chainer.Link` as an attribute.
 
 The model class is instantiated before the forward and backward computations.
 To give input images and label vectors simply by calling the model object
@@ -107,10 +86,19 @@ computations in the model. Just prepare the data, then give it to the model.
 The way this works is the resulting output :class:`~chainer.Variable` from the
 forward computation has a :meth:`~chainer.Variable.backward` method to perform
 autograd. In the above model, :meth:`__call__` has a ``if`` statement at the
-end to switch its behavior by the model's running mode, i.e., training mode or
-not. When it's in training mode, this method returns the output value of the
+end to switch its behavior by the Chainer's running mode, i.e., training mode or
+not. Chainer presents the running mode as a global variable `chainer.config.train`.
+When it's in training mode, :meth:`__call__` returns the output value of the
 last layer as is to compute the loss later on, otherwise it returns a
 prediction result by calculating :meth:`~chainer.functions.softmax`.
+
+.. note::
+
+  In Chainer v1, if a function or link behaved differently in
+  training and other modes, it was common that it held an attribute
+  that represented its running mode or was provided with the mode
+  from outside as an argument. In Chainer v2, it is recommended to use
+  the global configuration `chainer.config.train` to switch the running mode.
 
 If you don't want to write ``conv1`` and the other layers more than once, you
 can also write the model like in this way:
@@ -133,11 +121,11 @@ can also write the model like in this way:
             net += [('_sigm4', F.Sigmoid())]
             net += [('fc5', L.Linear(84, 10))]
             net += [('_sigm5', F.Sigmoid())]
-            for n in net:
-                if not n[0].startswith('_'):
-                    self.add_link(*n)
+	    with self.init_scope():
+	        for n in net:
+                    if not n[0].startswith('_'):
+                        setattr(self, n[0], n[1])
             self.forward = net
-            self.train = True
 
         def __call__(self, x):
             for n, f in self.forward:
@@ -145,7 +133,7 @@ can also write the model like in this way:
                     x = getattr(self, n)(x)
                 else:
                     x = f(x)
-            if self.train:
+            if chainer.config.train:
                 return x
             return F.softmax(x)
 
@@ -156,8 +144,7 @@ trainable layers when the name of an element doesn't start with ``_``
 character. This operation can be freely replaced with many other ways because
 those names are just designed to select :class:`~chainer.Link` s only from the
 list ``net`` easily. :class:`~chainer.Function` doesn't have any trainable
-parameters, so that we can't register it to the model with
-:meth:`~chainer.Chain.add_link`, but we want to use
+parameters, so that we can't register it to the model, but we want to use
 :class:`~chainer.Function` s for constructing a forward path. The list
 ``net`` is stored as an attribute attr:`forward` to refer it in
 :meth:`__call__`. In :meth:`__call__`, it retrieves all layers in the network
@@ -193,10 +180,10 @@ On the other hand, the loss computation can be included in the model itself by
 wrapping the model object (:class:`~chainer.Chain` or
 :class:`~chainer.ChainList` object) with a class inherited from
 :class:`~chainer.Chain`. The outer :class:`~chainer.Chain` should take the
-model defined above and register it through the constructor of its superclass
-or :meth:`~chainer.Chain.add_link`. :class:`~chainer.Chain` is actually
+model defined above and register it with :meth:`~chainer.Chain.init_scope`.
+:class:`~chainer.Chain` is actually
 inherited from :class:`~chainer.Link`, so that :class:`~chainer.Chain` itself
-can also be registedred as a trainable :class:`~chainer.Link` to another
+can also be registered as a trainable :class:`~chainer.Link` to another
 :class:`~chainer.Chain`. Actually, :class:`~chainer.links.Classifier` class to
 wrap the model and add the loss computation to the model already exists.
 Actually, there is already a :class:`~chainer.links.Classifier` class that can
@@ -210,7 +197,7 @@ It can be used like this:
     # Foward & Loss calculation
     loss = model(x, t)
 
-This class takes a model object as an iput argument and registers it to
+This class takes a model object as an input argument and registers it to
 a ``predictor`` property as a trained parameter. As shown above, the returned
 object can then be called like a function in which we pass ``x`` and ``t`` as
 the input arguments and the resulting loss value (which we recall is a
@@ -243,12 +230,11 @@ useful. First, let's see how to write a VGG16 [Simonyan14]_ model.
                 VGGBlock(256, 3),
                 VGGBlock(512, 3),
                 VGGBlock(512, 3, True))
-            self.train = True
 
         def __call__(self, x):
             for f in self.children():
-                x = f(x, self.train)
-            if self.train:
+                x = f(x)
+            if chainer.config.train:
                 return x
             return F.softmax(x)
 
@@ -256,30 +242,31 @@ useful. First, let's see how to write a VGG16 [Simonyan14]_ model.
     class VGGBlock(chainer.Chain):
         def __init__(self, n_channels, n_convs=2, fc=False):
             w = chainer.initializers.HeNormal()
-            super(VGGBlock, self).__init__(
-                conv1=L.Convolution2D(None, n_channels, 3, 1, 1, initialW=w),
-                conv2=L.Convolution2D(
-                    n_channels, n_channels, 3, 1, 1, initialW=w))
-            if n_convs == 3:
-                self.add_link('conv3', L.Convolution2D(
-                    n_channels, n_channels, 3, 1, 1, initialW=w))
-            if fc:
-                self.add_link('fc4', L.Linear(None, 4096, initialW=w))
-                self.add_link('fc5', L.Linear(4096, 4096, initialW=w))
-                self.add_link('fc6', L.Linear(4096, 1000, initialW=w))
+            super(VGGBlock, self).__init__()
+	    with self.init_scope():
+                self.conv1 = L.Convolution2D(None, n_channels, 3, 1, 1, initialW=w),
+                self.conv2 = L.Convolution2D(
+                    n_channels, n_channels, 3, 1, 1, initialW=w)
+                if n_convs == 3:
+                    self.conv3 = L.Convolution2D(
+                        n_channels, n_channels, 3, 1, 1, initialW=w)
+                if fc:
+                    self.fc4 = L.Linear(None, 4096, initialW=w)
+		    self.fc5 = L.Linear(4096, 4096, initialW=w)
+                    self.fc6 = L.Linear(4096, 1000, initialW=w)
 
             self.n_convs = n_convs
             self.fc = fc
 
-        def __call__(self, x, train):
+        def __call__(self, x):
             h = F.relu(self.conv1(x))
             h = F.relu(self.conv2(h))
             if self.n_convs == 3:
                 h = F.relu(self.conv3(h))
             h = F.max_pooling_2d(h, 2, 2)
             if self.fc:
-                h = F.dropout(F.relu(self.fc4(h)), train=train)
-                h = F.dropout(F.relu(self.fc5(h)), train=train)
+                h = F.dropout(F.relu(self.fc4(h)))
+                h = F.dropout(F.relu(self.fc5(h)))
                 h = self.fc6(h)
             return h
 
@@ -318,18 +305,17 @@ In the other words, it's easy. One possible way to write ResNet-152 is:
                 res4=ResBlock(n_blocks[2], 512, 256, 1024),
                 res5=ResBlock(n_blocks[3], 1024, 512, 2048),
                 fc6=L.Linear(2048, 1000))
-            self.train = True
 
         def __call__(self, x):
-            h = self.bn1(self.conv1(x), test=not self.train)
+            h = self.bn1(self.conv1(x))
             h = F.max_pooling_2d(F.relu(h), 2, 2)
-            h = self.res2(h, self.train)
-            h = self.res3(h, self.train)
-            h = self.res4(h, self.train)
-            h = self.res5(h, self.train)
+            h = self.res2(h)
+            h = self.res3(h)
+            h = self.res4(h)
+            h = self.res5(h)
             h = F.average_pooling_2d(h, h.shape[2:], stride=1)
             h = self.fc6(h)
-            if self.train:
+            if chainer.config.train:
                 return h
             return F.softmax(h)
 
@@ -342,37 +328,38 @@ In the other words, it's easy. One possible way to write ResNet-152 is:
             for _ in range(n_layers - 1):
                 self.add_link(BottleNeck(n_out, n_mid, n_out))
 
-        def __call__(self, x, train):
+        def __call__(self, x):
             for f in self.children():
-                x = f(x, train)
+                x = f(x)
             return x
 
 
     class BottleNeck(chainer.Chain):
         def __init__(self, n_in, n_mid, n_out, stride=1, proj=False):
             w = chainer.initializers.HeNormal()
-            super(BottleNeck, self).__init__(
-                conv1x1a=L.Convolution2D(
-                    n_in, n_mid, 1, stride, 0, initialW=w, nobias=True),
-                conv3x3b=L.Convolution2D(
-                    n_mid, n_mid, 3, 1, 1, initialW=w, nobias=True),
-                conv1x1c=L.Convolution2D(
-                    n_mid, n_out, 1, 1, 0, initialW=w, nobias=True),
-                bn_a=L.BatchNormalization(n_mid),
-                bn_b=L.BatchNormalization(n_mid),
-                bn_c=L.BatchNormalization(n_out))
-            if proj:
-                self.add_link('conv1x1r', L.Convolution2D(
-                    n_in, n_out, 1, stride, 0, initialW=w, nobias=True))
-                self.add_link('bn_r', L.BatchNormalization(n_out))
+            super(BottleNeck, self).__init__()
+	    with self.init_scope():
+	        self.conv1x1a = L.Convolution2D(
+                    n_in, n_mid, 1, stride, 0, initialW=w, nobias=True)
+                self.conv3x3b = L.Convolution2D(
+                    n_mid, n_mid, 3, 1, 1, initialW=w, nobias=True)
+                self.conv1x1c = L.Convolution2D(
+                    n_mid, n_out, 1, 1, 0, initialW=w, nobias=True)
+                self.bn_a = L.BatchNormalization(n_mid)
+                self.bn_b = L.BatchNormalization(n_mid)
+                self.bn_c = L.BatchNormalization(n_out)
+                if proj:
+                    self.conv1x1r = L.Convolution2D(
+                        n_in, n_out, 1, stride, 0, initialW=w, nobias=True)
+                    self.bn_r = L.BatchNormalization(n_out)
             self.proj = proj
 
-        def __call__(self, x, train):
-            h = F.relu(self.bn_a(self.conv1x1a(x), test=not train))
-            h = F.relu(self.bn_b(self.conv3x3b(h), test=not train))
-            h = self.bn_c(self.conv1x1c(h), test=not train)
+        def __call__(self, x):
+            h = F.relu(self.bn_a(self.conv1x1a(x)))
+            h = F.relu(self.bn_b(self.conv3x3b(h)))
+            h = self.bn_c(self.conv1x1c(h))
             if self.proj:
-                x = self.bn_r(self.conv1x1r(x), test=not train)
+                x = self.bn_r(self.conv1x1r(x))
             return F.relu(h + x)
 
 In the :class:`BottleNeck` class, depending on the value of the proj argument

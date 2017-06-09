@@ -15,8 +15,11 @@ class TestLink(unittest.TestCase):
     def setUp(self):
         x_shape_0 = 2
         x_shape_1 = numpy.int64(3)
-        self.link = chainer.Link(x=((x_shape_0, x_shape_1), 'd'), y=2,
-                                 u=(None, 'd'), v=None)
+        self.link = chainer.Link(x=((x_shape_0, x_shape_1), 'd'),
+                                 u=(None, 'd'))
+        with self.link.init_scope():
+            self.link.y = chainer.Parameter(shape=(2,))
+            self.link.v = chainer.Parameter()
         self.p = numpy.array([1, 2, 3], dtype='f')
         self.link.add_persistent('p', self.p)
         self.link.name = 'a'
@@ -35,7 +38,7 @@ class TestLink(unittest.TestCase):
         self.assertTrue(hasattr(self.link, name))
         var = getattr(self.link, name)
         self.assertEqual(var.name, name)
-        self.assertIsInstance(var, chainer.Variable)
+        self.assertIsInstance(var, chainer.Parameter)
         self.assertEqual(var.data.shape, shape)
         self.assertEqual(var.data.dtype, dtype)
         numpy.testing.assert_array_equal(var.data, data_value)
@@ -46,7 +49,7 @@ class TestLink(unittest.TestCase):
     def check_param_uninit(self, name, initializer=None):
         self.assertTrue(hasattr(self.link, name))
         var = getattr(self.link, name)
-        self.assertIsInstance(var, chainer.Variable)
+        self.assertIsInstance(var, chainer.Parameter)
         self.assertEqual(var.name, name)
         self.assertIsNone(var.data)
         if initializer is not None:
@@ -61,6 +64,17 @@ class TestLink(unittest.TestCase):
         self.check_param_uninit('v')
         self.link.v.initialize((2, 3))
         self.check_param_init('v', (2, 3), 'f')
+
+    def test_assign_param_outside_of_init_scope(self):
+        p = chainer.Parameter()
+        self.link.p = p
+        self.assertTrue(all(p is not param for param in self.link.params()))
+
+    def test_assign_var_in_init_scope(self):
+        p = chainer.Variable()
+        with self.link.init_scope():
+            self.link.p = p
+        self.assertTrue(all(p is not param for param in self.link.params()))
 
     def test_add_param(self):
         self.link.add_param('z', (2, 3))
@@ -90,6 +104,11 @@ class TestLink(unittest.TestCase):
         self.link.add_param('z', initializer=z)
         self.assertIsInstance(self.link.z.data, numpy.ndarray)
         numpy.testing.assert_array_equal(self.link.z.data, z)
+
+    def test_add_param_duplicated_with_persistent(self):
+        self.link.add_persistent('z', 'abc')
+        with self.assertRaises(AttributeError):
+            self.link.add_param('z', (2, 3))
 
     def test_add_persistent(self):
         self.assertTrue(hasattr(self.link, 'p'))
@@ -332,10 +351,11 @@ class TestLink(unittest.TestCase):
         self.assertTrue(self.link.update_enabled)
 
 
-class CountVariable(chainer.Variable):
+class CountParameter(chainer.Parameter):
 
     def __init__(self, v):
-        super(CountVariable, self).__init__(v.data, v.name)
+        super(CountParameter, self).__init__(v.data, name=v.name)
+        self.data = v.data
         self.grad = v.grad
         self.count_to_cpu = 0
         self.count_to_gpu = 0
@@ -343,15 +363,15 @@ class CountVariable(chainer.Variable):
 
     def to_cpu(self):
         self.count_to_cpu += 1
-        super(CountVariable, self).to_cpu()
+        super(CountParameter, self).to_cpu()
 
     def to_gpu(self, device=None):
         self.count_to_gpu += 1
-        super(CountVariable, self).to_gpu(device)
+        super(CountParameter, self).to_gpu(device)
 
     def zerograd(self):
         self.count_zerograd += 1
-        super(CountVariable, self).zerograd()
+        super(CountParameter, self).zerograd()
 
 
 class TestChain(unittest.TestCase):
@@ -363,7 +383,9 @@ class TestChain(unittest.TestCase):
 
         self.c1 = chainer.Chain(l1=self.l1)
         self.c1.add_link('l2', self.l2)
-        self.c2 = chainer.Chain(c1=self.c1, l3=self.l3)
+        self.c2 = chainer.Chain(c1=self.c1)
+        with self.c2.init_scope():
+            self.c2.l3 = self.l3
 
     def test_init(self):
         self.assertIs(self.c1.l1, self.l1)
@@ -381,6 +403,16 @@ class TestChain(unittest.TestCase):
     def test_add_link(self):
         self.assertIs(self.c1.l2, self.l2)
         self.assertEqual(self.l2.name, 'l2')
+
+    def test_add_link_to_existing_attribute(self):
+        self.l1.z = 0
+        with self.assertRaises(AttributeError):
+            self.l1.add_link('z', chainer.Link())
+
+    def test_assign_link_outside_of_init_scope(self):
+        l = chainer.Link()
+        self.l1.l = l
+        self.assertTrue(all(l is not link for link in self.l1.links()))
 
     def test_copy(self):
         c2 = self.c2.copy()
@@ -425,14 +457,14 @@ class TestChain(unittest.TestCase):
         self.assertIs(self.l3.x.data, x3)
         self.assertIs(self.l3.x.grad, gx3)
 
-    def set_count_variables(self):
-        self.l1.x = CountVariable(self.l1.x)
-        self.l2.x = CountVariable(self.l2.x)
-        self.l3.x = CountVariable(self.l3.x)
+    def set_count_parameters(self):
+        self.l1.x = CountParameter(self.l1.x)
+        self.l2.x = CountParameter(self.l2.x)
+        self.l3.x = CountParameter(self.l3.x)
 
     @attr.gpu
     def test_to_cpu(self):
-        self.set_count_variables()
+        self.set_count_parameters()
         self.c2.to_gpu()
         self.c2.to_cpu()
         self.assertIs(self.c2.xp, numpy)
@@ -459,7 +491,7 @@ class TestChain(unittest.TestCase):
 
     @attr.gpu
     def test_to_gpu(self):
-        self.set_count_variables()
+        self.set_count_parameters()
         cupy = cuda.cupy
         self.c2.to_gpu()
         self.assertIs(self.c2.xp, cupy)
@@ -553,7 +585,7 @@ class TestChain(unittest.TestCase):
         numpy.testing.assert_array_equal(self.l3.x.data, l3.x.data)
 
     def test_zerograds(self):
-        self.set_count_variables()
+        self.set_count_parameters()
         self.c2.zerograds()
         numpy.testing.assert_array_equal(self.l1.x.grad, numpy.zeros((2, 3)))
         numpy.testing.assert_array_equal(self.l2.x.grad, numpy.zeros(2))
@@ -606,19 +638,22 @@ class TestChainList(unittest.TestCase):
         self.l3 = chainer.Link(x=3)
         self.c1 = chainer.ChainList(self.l1)
         self.c1.add_link(self.l2)
-        self.c2 = chainer.ChainList(self.c1, self.l3)
+        self.c2 = chainer.ChainList(self.c1)
+        self.c2.append(self.l3)
 
     def test_init(self):
         self.assertIs(self.c1[0], self.l1)
         self.assertEqual(self.l1.name, '0')
         self.assertIs(self.c2[0], self.c1)
         self.assertEqual(self.c1.name, '0')
-        self.assertIs(self.c2[1], self.l3)
-        self.assertEqual(self.l3.name, '1')
 
     def test_add_link(self):
         self.assertIs(self.c1[1], self.l2)
         self.assertEqual(self.l2.name, '1')
+
+    def test_append(self):
+        self.assertIs(self.c2[1], self.l3)
+        self.assertEqual(self.l3.name, '1')
 
     def test_iter(self):
         links = list(self.c2)
@@ -847,14 +882,18 @@ class TestChainList(unittest.TestCase):
         numpy.testing.assert_array_equal(self.l3.x.grad, numpy.zeros(3))
 
     def test_serialize(self):
-        l1 = chainer.Link(x=(2, 3))
-        l1.add_param('y', (1, 1))
-        l2 = chainer.Link(x=2)
+        l1 = chainer.Link(y=(1, 1))
+
+        l2 = chainer.Link()
+        with l2.init_scope():
+            l2.x = chainer.Parameter(0, 2)
         c1 = chainer.ChainList(l1, l2)
         mocks = {'0': mock.MagicMock(), '1': mock.MagicMock()}
         serializer = mock.MagicMock()
         serializer.__getitem__.side_effect = lambda k: mocks[k]
         serializer.return_value = None
+        mocks['0'].return_value = None
+        mocks['1'].return_value = None
         c1.serialize(serializer)
 
         self.assertEqual(serializer.call_count, 0)

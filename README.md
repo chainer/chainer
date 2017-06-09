@@ -1,7 +1,7 @@
 [![pypi](https://img.shields.io/pypi/v/chainer.svg)](https://pypi.python.org/pypi/chainer)
-[![GitHub license](https://img.shields.io/github/license/pfnet/chainer.svg)](https://github.com/pfnet/chainer)
-[![travis](https://img.shields.io/travis/pfnet/chainer/master.svg)](https://travis-ci.org/pfnet/chainer)
-[![coveralls](https://img.shields.io/coveralls/pfnet/chainer.svg)](https://coveralls.io/github/pfnet/chainer)
+[![GitHub license](https://img.shields.io/github/license/chainer/chainer.svg)](https://github.com/chainer/chainer)
+[![travis](https://img.shields.io/travis/chainer/chainer/master.svg)](https://travis-ci.org/chainer/chainer)
+[![coveralls](https://img.shields.io/coveralls/chainer/chainer.svg)](https://coveralls.io/github/chainer/chainer)
 [![Read the Docs](https://readthedocs.org/projects/chainer/badge/?version=stable)](http://docs.chainer.org/en/stable/?badge=stable)
 
 # Chainer: a deep learning framework
@@ -10,7 +10,7 @@
 | [**Docs**](http://docs.chainer.org/en/stable/)
 | [**Install Guide**](http://docs.chainer.org/en/stable/install.html)
 | [**Tutorial**](http://docs.chainer.org/en/stable/tutorial/)
-| **Examples** ([Official](https://github.com/pfnet/chainer/blob/master/examples), [External](https://github.com/pfnet/chainer/wiki/External-examples))
+| **Examples** ([Official](https://github.com/chainer/chainer/blob/master/examples), [External](https://github.com/chainer/chainer/wiki/External-examples))
 | **Forum** ([en](https://groups.google.com/forum/#!forum/chainer), [ja](https://groups.google.com/forum/#!forum/chainer-jp))
 | **Slack** ([en](https://bit.ly/chainer-slack), [ja](https://bit.ly/chainer-jp-slack))
 | **Twitter** ([en](https://twitter.com/ChainerOfficial), [ja](https://twitter.com/ChainerJP))
@@ -20,6 +20,9 @@ It provides automatic differentiation APIs based on the **define-by-run** approa
 It also supports CUDA/cuDNN using [CuPy](https://github.com/cupy/cupy) for high performance training and inference.
 For more details of Chainer, see the documents and resources listed above and join the community in Forum, Slack, and Twitter.
 
+## Stable version
+
+The stable version of current Chainer is separated in here: [v2](https://github.com/chainer/chainer/tree/v2).
 
 ## Installation
 
@@ -52,7 +55,7 @@ $ nvidia-docker run -it chainer/chainer /bin/bash
 ## Contribution
 
 Any contributions to Chainer are welcome!
-If you want to file an issue or send a pull request, [please follow the contribution guide](https://docs.chainer.org/contribution.html).
+If you want to file an issue or send a pull request, [please follow the contribution guide](https://docs.chainer.org/en/stable/contribution.html).
 
 
 ## License
@@ -62,8 +65,8 @@ MIT License (see `LICENSE` file).
 
 ## More information
 
-- [Release notes](https://github.com/pfnet/chainer/releases)
-- [Research projects using Chainer](https://github.com/pfnet/chainer/wiki/Research-projects-using-Chainer)
+- [Release notes](https://github.com/chainer/chainer/releases)
+- [Research projects using Chainer](https://github.com/chainer/chainer/wiki/Research-projects-using-Chainer)
 
 
 ## Reference
