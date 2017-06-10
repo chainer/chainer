@@ -1,25 +1,26 @@
 Function hooks
 ==============
 
-
 Chainer provides a function-hook mechanism that enriches
 the behavior of forward and backward propagation of :class:`~chainer.Function`.
-
-.. module:: chainer.function
 
 Base class
 ----------
 
-.. autoclass:: FunctionHook
-  :members:
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.function.FunctionHook
 
 .. module:: chainer.function_hooks
 
 Concrete function hooks
 -----------------------
 
-.. autoclass:: PrintHook
-  :members:
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
 
-.. autoclass:: TimerHook
-  :members:
+   chainer.function_hooks.PrintHook
+   chainer.function_hooks.TimerHook

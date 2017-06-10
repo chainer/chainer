@@ -22,7 +22,7 @@ def _batch_normalization(expander, gamma, beta, x, mean, var):
 
 
 @testing.parameterize(*(testing.product({
-    'param_shape': [(3, 4), (3, 2, 3)],
+    'param_shape': [(3,), (3, 4), (3, 2, 3)],
     'ndim': [0, 1, 2],
     'dtype': [numpy.float32],
 }) + testing.product({
@@ -58,11 +58,11 @@ class TestBatchNormalization(unittest.TestCase):
             self.check_backward_options = {
                 'dtype': numpy.float64, 'atol': 1e-2, 'rtol': 1e-2}
 
-    def check_forward(self, args, use_cudnn=True):
-        y = functions.batch_normalization(
-            *[chainer.Variable(i) for i in args], running_mean=None,
-            running_var=None, decay=self.decay, eps=self.eps,
-            use_cudnn=use_cudnn)
+    def check_forward(self, args, use_cudnn='always'):
+        with chainer.using_config('use_cudnn', use_cudnn):
+            y = functions.batch_normalization(
+                *[chainer.Variable(i) for i in args], running_mean=None,
+                running_var=None, decay=self.decay, eps=self.eps)
         self.assertEqual(y.data.dtype, self.dtype)
 
         y_expect = _batch_normalization(
@@ -83,14 +83,22 @@ class TestBatchNormalization(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_forward_gpu_no_cudnn(self):
-        self.check_forward([cuda.to_gpu(i) for i in self.args], False)
+        self.check_forward([cuda.to_gpu(i) for i in self.args], 'never')
 
-    def check_backward(self, args, y_grad):
-        gradient_check.check_backward(
-            batch_normalization.BatchNormalizationFunction(
-                mean=None, var=None, train=self.train,
-                decay=self.decay, eps=self.eps), args, y_grad,
-            **self.check_backward_options)
+    @attr.cudnn
+    @condition.retry(3)
+    def test_forward_gpu_non_contiguous(self):
+        self.check_forward([cuda.cupy.asfortranarray(cuda.to_gpu(i))
+                            for i in self.args])
+
+    def check_backward(self, args, y_grad, use_cudnn='always'):
+        with chainer.using_config('use_cudnn', use_cudnn), \
+                chainer.using_config('train', self.train):
+            gradient_check.check_backward(
+                batch_normalization.BatchNormalizationFunction(
+                    mean=None, var=None,
+                    decay=self.decay, eps=self.eps), args, y_grad,
+                **self.check_backward_options)
 
     @condition.retry(3)
     def test_backward_cpu(self):
@@ -101,6 +109,19 @@ class TestBatchNormalization(unittest.TestCase):
     def test_backward_gpu(self):
         self.check_backward(
             [cuda.to_gpu(i) for i in self.args], cuda.to_gpu(self.gy))
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_backward_gpu_no_cudnn(self):
+        self.check_backward(
+            [cuda.to_gpu(i) for i in self.args], cuda.to_gpu(self.gy), 'never')
+
+    @attr.cudnn
+    @condition.retry(3)
+    def test_backward_gpu_non_contiguous(self):
+        self.check_backward(
+            [cuda.cupy.asfortranarray(cuda.to_gpu(i)) for i in self.args],
+            cuda.cupy.asfortranarray(cuda.to_gpu(self.gy)))
 
 
 @testing.parameterize(*(testing.product({
@@ -140,10 +161,10 @@ class TestFixedBatchNormalization(unittest.TestCase):
             self.check_backward_options = {
                 'dtype': numpy.float64, 'atol': 1e-2, 'rtol': 1e-2}
 
-    def check_forward(self, args, use_cudnn=True):
-        y = functions.fixed_batch_normalization(
-            *[chainer.Variable(i) for i in args],
-            eps=self.eps, use_cudnn=use_cudnn)
+    def check_forward(self, args, use_cudnn='always'):
+        with chainer.using_config('use_cudnn', use_cudnn):
+            y = functions.fixed_batch_normalization(
+                *[chainer.Variable(i) for i in args], eps=self.eps)
         self.assertEqual(y.data.dtype, self.dtype)
 
         y_expect = _batch_normalization(
@@ -164,14 +185,22 @@ class TestFixedBatchNormalization(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_forward_gpu_no_cudnn(self):
-        self.check_forward([cuda.to_gpu(i) for i in self.args], False)
+        self.check_forward([cuda.to_gpu(i) for i in self.args], 'never')
 
-    def check_backward(self, args, y_grad):
-        gradient_check.check_backward(
-            batch_normalization.BatchNormalizationFunction(
-                mean=None, var=None, train=self.train,
-                decay=self.decay, eps=self.eps),
-            args, y_grad,  **self.check_backward_options)
+    @attr.cudnn
+    @condition.retry(3)
+    def test_forward_gpu_non_contiguous(self):
+        self.check_forward([cuda.cupy.asfortranarray(cuda.to_gpu(i))
+                            for i in self.args])
+
+    def check_backward(self, args, y_grad, use_cudnn='always'):
+        with chainer.using_config('use_cudnn', use_cudnn), \
+                chainer.using_config('train', self.train):
+            gradient_check.check_backward(
+                batch_normalization.BatchNormalizationFunction(
+                    mean=None, var=None,
+                    decay=self.decay, eps=self.eps),
+                args, y_grad,  **self.check_backward_options)
 
     @condition.retry(3)
     def test_backward_cpu(self):
@@ -183,9 +212,22 @@ class TestFixedBatchNormalization(unittest.TestCase):
         self.check_backward(
             [cuda.to_gpu(i) for i in self.args], cuda.to_gpu(self.gy))
 
+    @attr.gpu
+    @condition.retry(3)
+    def test_backward_gpu_no_cudnn(self):
+        self.check_backward(
+            [cuda.to_gpu(i) for i in self.args], cuda.to_gpu(self.gy), 'never')
+
+    @attr.cudnn
+    @condition.retry(3)
+    def test_backward_gpu_no_contiguous(self):
+        self.check_backward(
+            [cuda.cupy.asfortranarray(cuda.to_gpu(i)) for i in self.args],
+            cuda.cupy.asfortranarray(cuda.to_gpu(self.gy)))
+
 
 @testing.parameterize(*testing.product({
-    'use_cudnn': [True, False],
+    'use_cudnn': ['always', 'auto', 'never'],
     # TODO(bkvogel): Check float16 support again in next cuDNN version.
     'dtype': [numpy.float32, numpy.float64],
 }))
@@ -212,28 +254,32 @@ class TestBatchNormalizationCudnnCall(unittest.TestCase):
         self.mean = self.x.mean(axis=self.aggr_axes)
         print('setUp, self.mean.shape: ', self.mean.shape)
         self.var = self.x.var(axis=self.aggr_axes) + self.eps
-        self.expect = self.use_cudnn and (
-            cuda.cudnn.cudnn.getVersion() >= 5000)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.expect = chainer.should_use_cudnn('>=auto', 5000)
         print('self.expect: ', self.expect)
 
     def forward(self):
         return functions.batch_normalization(
             *[chainer.Variable(i) for i in self.args], eps=self.eps,
-            running_mean=self.mean, running_var=self.var,
-            use_cudnn=self.use_cudnn)
+            running_mean=self.mean, running_var=self.var)
 
     def test_call_cudnn_forward(self):
-        with mock.patch('cupy.cudnn.cudnn.batchNormalizationForwardTraining') \
-                as func:
-            self.forward()
-            self.assertEqual(func.called, self.expect)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            with mock.patch(
+                    'cupy.cudnn.cudnn.batchNormalizationForwardTraining'
+            ) as func:
+                self.forward()
+                self.assertEqual(func.called, self.expect)
 
     def test_call_cudnn_backward(self):
-        y = self.forward()
-        y.grad = self.gy
-        with mock.patch('cupy.cudnn.cudnn.batchNormalizationBackward') as func:
-            y.backward()
-            self.assertEqual(func.called, self.expect)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            y = self.forward()
+            y.grad = self.gy
+            with mock.patch(
+                    'cupy.cudnn.cudnn.batchNormalizationBackward'
+            ) as func:
+                y.backward()
+                self.assertEqual(func.called, self.expect)
 
 
 testing.run_module(__name__, __file__)

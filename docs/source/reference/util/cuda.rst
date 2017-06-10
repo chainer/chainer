@@ -2,50 +2,57 @@ CUDA utilities
 --------------
 .. automodule:: chainer.cuda
 
+.. currentmodule:: /
+
 Devices
 ~~~~~~~
-.. autofunction:: get_device
-.. autofunction:: get_device_from_id
-.. autofunction:: get_device_from_array
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.cuda.get_device
+   chainer.cuda.get_device_from_id
+   chainer.cuda.get_device_from_array
 
 CuPy array allocation and copy
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. note::
-   As of v1.3.0, the following array construction wrappers are marked as
-   deprecated. Use the corresponding functions of the :mod:`cupy` module
-   instead. The main difference of them is that the default dtype is changed
-   from float32 to float64.
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
 
-   ============================= =========================
-    Deprecated functions          Recommended functions
-   ============================= =========================
-    ``chainer.cuda.empty``        :func:`cupy.empty`
-    ``chainer.cuda.empty_like``   :func:`cupy.empty_like`
-    ``chainer.cuda.zeros``        :func:`cupy.zeros`
-    ``chainer.cuda.zeros_like``   :func:`cupy.zeros_like`
-    ``chainer.cuda.ones``         :func:`cupy.ones`
-    ``chainer.cuda.ones_like``    :func:`cupy.ones_like`
-    ``chainer.cuda.full``         :func:`cupy.full`
-    ``chainer.cuda.full_like``    :func:`cupy.full_like`
-   ============================= =========================
-
-.. autofunction:: copy
-.. autofunction:: to_cpu
-.. autofunction:: to_gpu
+   chainer.cuda.copy
+   chainer.cuda.to_cpu
+   chainer.cuda.to_gpu
 
 Kernel definition utilities
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. autofunction:: memoize
-.. autofunction:: clear_memo
-.. autofunction:: elementwise
-.. autofunction:: reduce
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.cuda.memoize
+   chainer.cuda.clear_memo
+   chainer.cuda.elementwise
+   chainer.cuda.reduce
 
 CPU/GPU generic code support
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. autofunction:: get_array_module
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.cuda.get_array_module
 
 cuDNN support
 ~~~~~~~~~~~~~
-.. autofunction:: set_max_workspace_size
-.. autofunction:: get_max_workspace_size
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.cuda.set_max_workspace_size
+   chainer.cuda.get_max_workspace_size

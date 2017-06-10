@@ -47,8 +47,16 @@ class HDF5Serializer(serializer.Serializer):
         ret = value
         if isinstance(value, cuda.ndarray):
             value = cuda.to_cpu(value)
-        arr = numpy.asarray(value)
-        compression = None if arr.size <= 1 else self.compression
+        if value is None:
+            # use Empty to represent None
+            if h5py.version.version_tuple < (2, 7, 0):
+                raise RuntimeError(
+                    'h5py>=2.7.0 is required to serialize None.')
+            arr = h5py.Empty('f')
+            compression = None
+        else:
+            arr = numpy.asarray(value)
+            compression = None if arr.size <= 1 else self.compression
         self.group.create_dataset(key, data=arr, compression=compression)
         return ret
 
@@ -113,9 +121,12 @@ class HDF5Deserializer(serializer.Deserializer):
             return value
 
         dataset = self.group[key]
+        if dataset.shape is None:  # Empty
+            return None
         if value is None:
             return numpy.asarray(dataset)
-        elif isinstance(value, numpy.ndarray):
+
+        if isinstance(value, numpy.ndarray):
             dataset.read_direct(value)
         elif isinstance(value, cuda.ndarray):
             value.set(numpy.asarray(dataset))

@@ -149,12 +149,12 @@ class TestGraphBuilder5(unittest.TestCase):
     def test_edges(self):
         self.assertEqual(len(self.g.edges), 2)
         self.assertSetEqual(set(self.g.edges),
-                            {(self.x, self.f), (self.f, self.y)})
+                            {(self.x.node, self.f), (self.f, self.y.node)})
 
     def test_nodes(self):
         self.assertEqual(len(self.g.nodes), 3)
         self.assertSetEqual(set(self.g.nodes),
-                            {self.x, self.f, self.y})
+                            {self.x.node, self.f, self.y.node})
 
 
 class TestGraphBuilder6(unittest.TestCase):
@@ -169,14 +169,14 @@ class TestGraphBuilder6(unittest.TestCase):
     def test_edges(self):
         self.assertEqual(len(self.g.edges), 3)
         self.assertSetEqual(set(self.g.edges),
-                            {(self.x1, self.f),
-                             (self.x2, self.f),
-                             (self.f, self.y)})
+                            {(self.x1.node, self.f),
+                             (self.x2.node, self.f),
+                             (self.f, self.y.node)})
 
     def test_nodes(self):
         self.assertEqual(len(self.g.nodes), 4)
         self.assertSetEqual(set(self.g.nodes),
-                            {self.x1, self.x2, self.f, self.y})
+                            {self.x1.node, self.x2.node, self.f, self.y.node})
 
 
 class TestGraphBuilder7(unittest.TestCase):
@@ -211,6 +211,30 @@ class TestGraphBuilderStylization(unittest.TestCase):
         for style in [self.variable_style, self.function_style]:
             for key, value in style.items():
                 self.assertIn('{0}="{1}"'.format(key, value), dotfile_content)
+
+
+class TestGraphBuilderShowName(unittest.TestCase):
+
+    def setUp(self):
+        self.x1 = variable.Variable(
+            np.zeros((1, 2)).astype(np.float32), name='x1')
+        self.x2 = variable.Variable(
+            np.zeros((1, 2)).astype(np.float32), name='x2')
+        self.y = self.x1 + self.x2
+        self.y.name = 'y'
+
+    def test_show_name(self):
+        g = c.build_computational_graph((self.x1, self.x2, self.y))
+        dotfile_content = g.dump()
+        for var in [self.x1, self.x2, self.y]:
+            self.assertIn('label="%s:' % var.name, dotfile_content)
+
+    def test_dont_show_name(self):
+        g = c.build_computational_graph(
+            (self.x1, self.x2, self.y), show_name=False)
+        dotfile_content = g.dump()
+        for var in [self.x1, self.x2, self.y]:
+            self.assertNotIn('label="%s:' % var.name, dotfile_content)
 
 
 class TestGraphBuilderRankdir(unittest.TestCase):

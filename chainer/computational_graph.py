@@ -14,7 +14,7 @@ class DotNode(object):
     with some utilities for dot language.
 
     Args:
-        node: :class: `Variable` object or :class: `Function` object.
+        node: :class: `VariableNode` object or :class: `Function` object.
         attribute (dict): Attributes for the node.
         show_name (bool): If `True`, the `name` attribute of the node is added
             to the label. Default is `True`.
@@ -22,11 +22,11 @@ class DotNode(object):
     """
 
     def __init__(self, node, attribute=None, show_name=True):
-        assert isinstance(node, (variable.Variable, function.Function))
+        assert isinstance(node, (variable.VariableNode, function.Function))
         self.node = node
         self.id_ = id(node)
         self.attribute = {'label': node.label}
-        if isinstance(node, variable.Variable):
+        if isinstance(node, variable.VariableNode):
             if show_name and hasattr(node, 'name') and node.name is not None:
                 self.attribute['label'] = '{}: {}'.format(
                     node.name, self.attribute['label'])
@@ -56,22 +56,22 @@ class ComputationalGraph(object):
 
     .. note::
 
-      We assume that the computational graph is directed and acyclic.
+        We assume that the computational graph is directed and acyclic.
 
     Args:
         nodes (list): List of nodes. Each node is either
-             :class:`Variable` object or :class:`Function` object.
+             :class:`VariableNode` object or :class:`Function` object.
         edges (list): List of edges. Each edge consists of pair of nodes.
         variable_style (dict): Dot node style for variable.
         function_style (dict): Dot node style for function.
         rankdir (str): Direction of the graph that must be
             TB (top to bottom), BT (bottom to top), LR (left to right)
             or RL (right to left).
-        remove_variable (bool): If `True`, :class:`~chainer.Variable`s are
+        remove_variable (bool): If ``True``, :class:`~chainer.Variable` s are
             removed from the resulting computational graph. Only
-            :class:`~chainer.Function`s are shown in the output.
-        show_name (bool): If `True`, the `name` attribute of each node is
-            added to the label of the node. Default is `True`.
+            :class:`~chainer.Function` s are shown in the output.
+        show_name (bool): If ``True``, the ``name`` attribute of each node is
+            added to the label of the node. Default is ``True``.
 
     .. note::
 
@@ -111,8 +111,8 @@ class ComputationalGraph(object):
             self.nodes, self.edges = _skip_variable(self.nodes, self.edges)
 
         for node in self.nodes:
-            assert isinstance(node, (variable.Variable, function.Function))
-            if isinstance(node, variable.Variable):
+            assert isinstance(node, (variable.VariableNode, function.Function))
+            if isinstance(node, variable.VariableNode):
                 if not self.remove_variable:
                     ret += DotNode(
                         node, self.variable_style, self.show_name).label
@@ -122,18 +122,18 @@ class ComputationalGraph(object):
         drawn_edges = []
         for edge in self.edges:
             head, tail = edge
-            if (isinstance(head, variable.Variable) and
+            if (isinstance(head, variable.VariableNode) and
                     isinstance(tail, function.Function)):
                 head_attr = self.variable_style
                 tail_attr = self.function_style
             elif (isinstance(head, function.Function) and
-                  isinstance(tail, variable.Variable)):
+                  isinstance(tail, variable.VariableNode)):
                 head_attr = self.function_style
                 tail_attr = self.variable_style
             else:
                 if not self.remove_variable:
                     raise TypeError('head and tail should be the set of '
-                                    'Variable and Function')
+                                    'VariableNode and Function')
                 else:
                     head_attr = self.function_style
                     tail_attr = self.function_style
@@ -168,12 +168,12 @@ def _skip_variable(nodes, edges):
     func_edges = []
     for edge_i, edge in enumerate(edges):
         head, tail = edge
-        if isinstance(head, variable.Variable):
+        if isinstance(head, variable.VariableNode):
             if head.creator is not None:
                 head = head.creator
             else:
                 continue
-        if isinstance(tail, variable.Variable):
+        if isinstance(tail, variable.VariableNode):
             for node in nodes:
                 if isinstance(node, function.Function):
                     for input_var in node.inputs:
@@ -197,7 +197,7 @@ def build_computational_graph(
     Args:
         outputs(list): nodes from which the graph is constructed.
             Each element of outputs must be either :class:`Variable`
-            object or :class:`Function` object.
+            object, :class:`VariableNode object, or :class:`Function` object.
         remove_split(bool): It must be ``True``. This argument is left for
             backward compatibility.
         variable_style(dict): Dot node style for variable.
@@ -206,11 +206,11 @@ def build_computational_graph(
         rankdir (str): Direction of the graph that must be
             TB (top to bottom), BT (bottom to top), LR (left to right)
             or RL (right to left).
-        remove_variable (bool): If `True`, :class:`~chainer.Variable`s are
+        remove_variable (bool): If ``True``, :class:`~chainer.Variable` s are
             removed from the resulting computational graph. Only
-            :class:`~chainer.Function`s are shown in the output.
-        show_name (bool): If `True`, the `name` attribute of each node is
-            added to the label of the node. Default is `True`.
+            :class:`~chainer.Function` s are shown in the output.
+        show_name (bool): If ``True``, the ``name`` attribute of each node is
+            added to the label of the node. Default is ``True``.
 
     Returns:
         ComputationalGraph: A graph consisting of nodes and edges that
@@ -272,12 +272,14 @@ def build_computational_graph(
         push_count[0] += 1
 
     for o in outputs:
+        if isinstance(o, variable.Variable):
+            o = o.node
         add_cand(o)
         nodes.add(HashableObject(o))
 
     while cands:
         _, _, cand = heapq.heappop(cands)
-        if isinstance(cand, variable.Variable):
+        if isinstance(cand, variable.VariableNode):
             creator = cand.creator
             if creator is not None and (creator, cand) not in seen_edges:
                 add_cand(creator)

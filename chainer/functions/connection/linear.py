@@ -22,7 +22,7 @@ class LinearFunction(function.Function):
             w_type.ndim == 2,
             type_check.prod(x_type.shape[1:]) == w_type.shape[1],
         )
-        if n_in.eval() == 3:
+        if type_check.eval(n_in) == 3:
             b_type = in_types[2]
             type_check.expect(
                 b_type.dtype == x_type.dtype,
@@ -69,7 +69,7 @@ def linear(x, W, b=None):
 
     It accepts two or three arguments: an input minibatch ``x``, a weight
     matrix ``W``, and optionally a bias vector ``b``. It computes
-     .. math:: Y = xW^\\top + b.
+    .. math:: Y = xW^\\top + b.
 
     Args:
         x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \

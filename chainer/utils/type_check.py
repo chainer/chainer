@@ -52,14 +52,37 @@ class TypeInfoTuple(tuple):
         return Variable(len(self), '{0}.size'.format(self.name))
 
 
+class LightTypeInfoTuple(tuple):
+
+    """Type information of input/gradient tuples for light-weight check.
+
+    It is a sub-class of tuple containing :class:`TypeInfo`. The i-th element
+    of this object contains type information of the i-th input/gradient data.
+    """
+
+    def size(self):
+        """Returns its length.
+
+        Returns:
+            int: Length of the tuple.
+        """
+        return len(self)
+
+
 def get_types(data, name, accept_none):
-    assert(isinstance(data, tuple))
+    assert isinstance(data, tuple)
 
     info = TypeInfoTuple(
         _get_type(name, i, x, accept_none) for i, x in enumerate(data))
     # I don't know a method to set an attribute in an initializer of tuple.
     info.name = name
     return info
+
+
+def get_light_types(data):
+    assert(isinstance(data, tuple))
+
+    return LightTypeInfoTuple(data)
 
 
 def _get_type(name, index, array, accept_none):
@@ -482,9 +505,13 @@ def expect(*bool_exprs):
         bool_exprs (tuple of Bool expressions): Bool expressions you want to
             evaluate.
     """
-    for expr in bool_exprs:
-        assert isinstance(expr, Testable)
-        expr.expect()
+    if in_light_mode():
+        if not all(bool_exprs):
+            raise InvalidType('', '')
+    else:
+        for expr in bool_exprs:
+            assert isinstance(expr, Testable)
+            expr.expect()
 
 
 def same_types(*arrays):
@@ -499,4 +526,47 @@ def same_types(*arrays):
         return all_numpy_arrays
 
 
-prod = Variable(numpy.prod, 'prod')
+def eval(exp):
+    if in_light_mode():
+        return exp
+    else:
+        return exp.eval()
+
+
+def make_variable(value, name):
+    if in_light_mode():
+        return value
+    else:
+        return Variable(value, name)
+
+
+class LightMode(object):
+
+    def __enter__(self):
+        _thread_local.light_mode = True
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        _thread_local.light_mode = False
+
+
+def _prod_impl(xs):
+    result = 1
+    for x in xs:
+        result *= x
+    return result
+
+
+_thread_local = threading.local()
+_prod = Variable(_prod_impl, 'prod')
+light_mode = LightMode()
+
+
+def in_light_mode():
+    return getattr(_thread_local, 'light_mode', False)
+
+
+def prod(xs):
+    if in_light_mode():
+        return _prod_impl(xs)
+    else:
+        return _prod(xs)
