@@ -10,6 +10,10 @@ class ConcatenatedDataset(dataset_mixin.DatasetMixin):
     another base dataset with 20 samples are given, this dataset works as
     a dataset which has 30 samples.
 
+    Args:
+        datasets: The underlying datasets. Each dataset has to support
+            :meth:`__len__` and :meth:`__getitem__`.
+
     """
 
     def __init__(self, *datasets):
