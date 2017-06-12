@@ -9,7 +9,7 @@ second column is zero-origin label (this format is same as that used by Caffe's
 ImageDataLayer).
 
 You need to install chainer with NCCL to run this example.
-Please see https://github.com/pfnet/chainer#installation .
+Please see https://github.com/nvidia/nccl#build--run .
 
 """
 from __future__ import print_function

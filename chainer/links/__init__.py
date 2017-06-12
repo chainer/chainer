@@ -1,42 +1,5 @@
 """Collection of :class:`~chainer.Link` implementations."""
 
-from chainer.links.activation import maxout  # NOQA
-from chainer.links.activation import prelu  # NOQA
-from chainer.links.activation import simplified_dropconnect  # NOQA
-from chainer.links.connection import bias  # NOQA
-from chainer.links.connection import bilinear  # NOQA
-from chainer.links.connection import convolution_2d  # NOQA
-from chainer.links.connection import convolution_nd  # NOQA
-from chainer.links.connection import deconvolution_2d  # NOQA
-from chainer.links.connection import deconvolution_nd  # NOQA
-from chainer.links.connection import depthwise_convolution_2d  # NOQA
-from chainer.links.connection import dilated_convolution_2d  # NOQA
-from chainer.links.connection import embed_id  # NOQA
-from chainer.links.connection import gru  # NOQA
-from chainer.links.connection import highway  # NOQA
-from chainer.links.connection import inception  # NOQA
-from chainer.links.connection import inceptionbn  # NOQA
-from chainer.links.connection import linear  # NOQA
-from chainer.links.connection import lstm  # NOQA
-from chainer.links.connection import mlp_convolution_2d  # NOQA
-from chainer.links.connection import n_step_gru  # NOQA
-from chainer.links.connection import n_step_lstm  # NOQA
-from chainer.links.connection import n_step_rnn  # NOQA
-from chainer.links.connection import parameter  # NOQA
-from chainer.links.connection import peephole  # NOQA
-from chainer.links.connection import scale  # NOQA
-from chainer.links.connection import zoneoutlstm  # NOQA
-from chainer.links.loss import black_out  # NOQA
-from chainer.links.loss import crf1d  # NOQA
-from chainer.links.loss import hierarchical_softmax  # NOQA
-from chainer.links.loss import negative_sampling  # NOQA
-from chainer.links.model import classifier  # NOQA
-from chainer.links.normalization import batch_normalization  # NOQA
-from chainer.links.normalization import layer_normalization  # NOQA
-from chainer.links.theano import theano_function  # NOQA
-
-
-# import class and function
 from chainer.links.activation.maxout import Maxout  # NOQA
 from chainer.links.activation.prelu import PReLU  # NOQA
 from chainer.links.activation.simplified_dropconnect import SimplifiedDropconnect  # NOQA
@@ -51,6 +14,7 @@ from chainer.links.connection.dilated_convolution_2d import DilatedConvolution2D
 from chainer.links.connection.embed_id import EmbedID  # NOQA
 from chainer.links.connection.gru import GRU  # NOQA
 from chainer.links.connection.gru import StatefulGRU  # NOQA
+from chainer.links.connection.gru import StatelessGRU  # NOQA
 from chainer.links.connection.highway import Highway  # NOQA
 from chainer.links.connection.inception import Inception  # NOQA
 from chainer.links.connection.inceptionbn import InceptionBN  # NOQA

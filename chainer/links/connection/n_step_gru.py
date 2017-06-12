@@ -1,7 +1,6 @@
 import numpy
 import six
 
-import chainer
 from chainer import cuda
 from chainer.functions.array import permutate
 from chainer.functions.array import transpose_sequence
@@ -9,22 +8,31 @@ from chainer.functions.connection import n_step_gru as rnn
 from chainer import link
 from chainer.links.connection.n_step_rnn import argsort_list_descent
 from chainer.links.connection.n_step_rnn import permutate_list
+from chainer.utils import argument
+from chainer import variable
 
 
 class NStepGRUBase(link.ChainList):
 
-    """Base link class for Stacked GRU/BiGRU links.
+    """__init__(self, n_layers, in_size, out_size, dropout, use_bi_direction)
+
+    Base link class for Stacked GRU/BiGRU links.
 
     This link is base link class for :func:`chainer.links.NStepRNN` and
     :func:`chainer.links.NStepBiRNN`.
     This link's behavior depends on argument, ``use_bi_direction``.
+
+    .. warning::
+
+       ``use_cudnn`` argument is not supported anymore since v2.
+       Instead, use ``chainer.using_config('use_cudnn', use_cudnn)``.
+       See :func:`chainer.using_config`.
 
     Args:
         n_layers (int): Number of layers.
         in_size (int): Dimensionality of input vectors.
         out_size (int): Dimensionality of hidden states and output vectors.
         dropout (float): Dropout ratio.
-        use_cudnn (bool): Use cuDNN.
         use_bi_direction (bool): if ``True``, use Bi-directional GRU.
             if ``False``, use Uni-directional GRU.
     .. seealso::
@@ -33,8 +41,13 @@ class NStepGRUBase(link.ChainList):
 
     """
 
-    def __init__(self, n_layers, in_size, out_size, dropout, use_cudnn,
-                 use_bi_direction):
+    def __init__(self, n_layers, in_size, out_size, dropout, use_bi_direction,
+                 **kwargs):
+        argument.check_unexpected_kwargs(
+            kwargs, use_cudnn='use_cudnn argument is not supported anymore. '
+            'Use chainer.using_config')
+        argument.assert_kwargs_empty(kwargs)
+
         weights = []
         direction = 2 if use_bi_direction else 1
         for i in six.moves.range(n_layers):
@@ -58,22 +71,26 @@ class NStepGRUBase(link.ChainList):
 
         self.n_layers = n_layers
         self.dropout = dropout
-        self.use_cudnn = use_cudnn
         self.out_size = out_size
         self.direction = direction
         self.rnn = rnn.n_step_bigru if use_bi_direction else rnn.n_step_gru
 
     def init_hx(self, xs):
-        with cuda.get_device(self._device_id):
-            hx = chainer.Variable(
-                self.xp.zeros((self.n_layers * self.direction,
-                               len(xs), self.out_size),
-                              dtype=xs[0].dtype),
-                volatile='auto')
+        shape = (self.n_layers * self.direction, len(xs), self.out_size)
+        with cuda.get_device_from_id(self._device_id):
+            hx = variable.Variable(self.xp.zeros(shape, dtype=xs[0].dtype))
         return hx
 
-    def __call__(self, hx, xs, train=True):
-        """Calculate all hidden states and cell states.
+    def __call__(self, hx, xs, **kwargs):
+        """__call__(self, hx, xs)
+
+        Calculate all hidden states and cell states.
+
+        .. warning::
+
+           ``train`` argument is not supported anymore since v2.
+           Instead, use ``chainer.using_config('train', train)``.
+           See :func:`chainer.using_config`.
 
         Args:
             hx (~chainer.Variable or None): Initial hidden states. If ``None``
@@ -83,6 +100,11 @@ class NStepGRUBase(link.ChainList):
                 a sequence.
 
         """
+        argument.check_unexpected_kwargs(
+            kwargs, train='train argument is not supported anymore. '
+            'Use chainer.using_config')
+        argument.assert_kwargs_empty(kwargs)
+
         assert isinstance(xs, (list, tuple))
         indices = argsort_list_descent(xs)
 
@@ -98,8 +120,7 @@ class NStepGRUBase(link.ChainList):
         bs = [[w.b0, w.b1, w.b2, w.b3, w.b4, w.b5] for w in self]
 
         hy, trans_y = self.rnn(
-            self.n_layers, self.dropout, hx, ws, bs, trans_x,
-            train=train, use_cudnn=self.use_cudnn)
+            self.n_layers, self.dropout, hx, ws, bs, trans_x)
 
         hy = permutate.permutate(hy, indices, axis=1, inv=True)
         ys = transpose_sequence.transpose_sequence(trans_y)
@@ -110,59 +131,75 @@ class NStepGRUBase(link.ChainList):
 
 class NStepGRU(NStepGRUBase):
 
-    """Stacked Uni-directional GRU for sequnces.
+    """__init__(self, n_layers, in_size, out_size, dropout)
+
+    Stacked Uni-directional GRU for sequnces.
 
     This link is stacked version of Uni-directional GRU for sequences.
     It calculates hidden and cell states of all layer at end-of-string,
     and all hidden states of the last layer for each time.
 
     Unlike :func:`chainer.functions.n_step_gru`, this function automatically
-    sort inputs in descending order by length, and transpose the seuqnece.
+    sort inputs in descending order by length, and transpose the sequence.
     Users just need to call the link with a list of :class:`chainer.Variable`
     holding sequences.
+
+    .. warning::
+
+       ``use_cudnn`` argument is not supported anymore since v2.
+       Instead, use ``chainer.using_config('use_cudnn', use_cudnn)``.
+       See :func:`chainer.using_config`.
 
     Args:
         n_layers (int): Number of layers.
         in_size (int): Dimensionality of input vectors.
         out_size (int): Dimensionality of hidden states and output vectors.
         dropout (float): Dropout ratio.
-        use_cudnn (bool): Use cuDNN.
 
     .. seealso::
         :func:`chainer.functions.n_step_gru`
 
     """
 
-    def __init__(self, n_layers, in_size, out_size, dropout, use_cudnn=True):
-        NStepGRUBase.__init__(self, n_layers, in_size, out_size, dropout,
-                              use_cudnn, use_bi_direction=False)
+    def __init__(self, n_layers, in_size, out_size, dropout, **kwargs):
+        NStepGRUBase.__init__(
+            self, n_layers, in_size, out_size, dropout,
+            use_bi_direction=False, **kwargs)
 
 
 class NStepBiGRU(NStepGRUBase):
 
-    """Stacked Bi-directional GRU for sequnces.
+    """__init__(self, n_layers, in_size, out_size, dropout)
+
+    Stacked Bi-directional GRU for sequnces.
 
     This link is stacked version of Bi-directional GRU for sequences.
     It calculates hidden and cell states of all layer at end-of-string,
     and all hidden states of the last layer for each time.
 
     Unlike :func:`chainer.functions.n_step_bigru`, this function automatically
-    sort inputs in descending order by length, and transpose the seuqnece.
+    sort inputs in descending order by length, and transpose the sequence.
     Users just need to call the link with a list of :class:`chainer.Variable`
     holding sequences.
+
+    .. warning::
+
+       ``use_cudnn`` argument is not supported anymore since v2.
+       Instead, use ``chainer.using_config('use_cudnn', use_cudnn)``.
+       See :func:`chainer.using_config`.
 
     Args:
         n_layers (int): Number of layers.
         in_size (int): Dimensionality of input vectors.
         out_size (int): Dimensionality of hidden states and output vectors.
         dropout (float): Dropout ratio.
-        use_cudnn (bool): Use cuDNN.
 
     .. seealso::
         :func:`chainer.functions.n_step_bigru`
 
     """
 
-    def __init__(self, n_layers, in_size, out_size, dropout, use_cudnn=True):
-        NStepGRUBase.__init__(self, n_layers, in_size, out_size, dropout,
-                              use_cudnn, use_bi_direction=True)
+    def __init__(self, n_layers, in_size, out_size, dropout, **kwargs):
+        NStepGRUBase.__init__(
+            self, n_layers, in_size, out_size, dropout,
+            use_bi_direction=True, **kwargs)

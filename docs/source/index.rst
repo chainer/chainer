@@ -10,7 +10,7 @@ This is the `Chainer <http://chainer.org>`_ documentation.
    install
    tutorial/index
    reference/index
-   cupy-reference/index
+   upgrade
    contribution
    compatibility
    tips

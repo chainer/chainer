@@ -68,6 +68,17 @@ class TestDictionarySerializer(unittest.TestCase):
 
         self.assertIs(ret, 10)
 
+    def test_serialize_none(self):
+        ret = self.serializer('x', None)
+        dset = self.serializer.target['x']
+
+        self.assertIsInstance(dset, numpy.ndarray)
+        self.assertEqual(dset.shape, ())
+        self.assertEqual(dset.dtype, numpy.object)
+        self.assertIs(dset[()], None)
+
+        self.assertIs(ret, None)
+
 
 @testing.parameterize(*testing.product({'compress': [False, True]}))
 class TestNpzDeserializer(unittest.TestCase):
@@ -81,7 +92,8 @@ class TestNpzDeserializer(unittest.TestCase):
         with open(path, 'wb') as f:
             savez = numpy.savez_compressed if self.compress else numpy.savez
             savez(
-                f, **{'x/': None, 'y': self.data, 'z': numpy.asarray(10)})
+                f, **{'x/': None, 'y': self.data, 'z': numpy.asarray(10),
+                      'w': None})
 
         self.npzfile = numpy.load(path)
         self.deserializer = npz.NpzDeserializer(self.npzfile)
@@ -106,7 +118,7 @@ class TestNpzDeserializer(unittest.TestCase):
         numpy.testing.assert_array_equal(cuda.to_cpu(y), self.data)
         self.assertIs(ret, y)
 
-    def check_deserialize_none_value(self, y, query):
+    def check_deserialize_by_passing_none(self, y, query):
         ret = self.deserializer(query, None)
         numpy.testing.assert_array_equal(cuda.to_cpu(ret), self.data)
 
@@ -114,9 +126,9 @@ class TestNpzDeserializer(unittest.TestCase):
         y = numpy.empty((2, 3), dtype=numpy.float32)
         self.check_deserialize(y, 'y')
 
-    def test_deserialize_none_value_cpu(self):
+    def test_deserialize_by_passing_none_cpu(self):
         y = numpy.empty((2, 3), dtype=numpy.float32)
-        self.check_deserialize_none_value(y, 'y')
+        self.check_deserialize_by_passing_none(y, 'y')
 
     @attr.gpu
     def test_deserialize_gpu(self):
@@ -124,9 +136,9 @@ class TestNpzDeserializer(unittest.TestCase):
         self.check_deserialize(cuda.to_gpu(y), 'y')
 
     @attr.gpu
-    def test_deserialize_none_value_gpu(self):
+    def test_deserialize_by_passing_none_gpu(self):
         y = numpy.empty((2, 3), dtype=numpy.float32)
-        self.check_deserialize_none_value(cuda.to_gpu(y), 'y')
+        self.check_deserialize_by_passing_none(cuda.to_gpu(y), 'y')
 
     def test_deserialize_cpu_strip_slashes(self):
         y = numpy.empty((2, 3), dtype=numpy.float32)
@@ -141,6 +153,15 @@ class TestNpzDeserializer(unittest.TestCase):
         z = 5
         ret = self.deserializer('z', z)
         self.assertEqual(ret, 10)
+
+    def test_deserialize_none(self):
+        ret = self.deserializer('w', None)
+        self.assertIs(ret, None)
+
+    def test_deserialize_by_passing_array(self):
+        y = numpy.empty((1,), dtype=numpy.float32)
+        ret = self.deserializer('w', y)
+        self.assertIs(ret, None)
 
 
 class TestNpzDeserializerNonStrict(unittest.TestCase):
@@ -236,9 +257,13 @@ class TestLoadNpz(unittest.TestCase):
         fd, path = tempfile.mkstemp()
         os.close(fd)
         self.temp_file_path = path
-        with open(path, 'wb') as f:
-            savez = numpy.savez_compressed if self.compress else numpy.savez
-            savez(f, None)
+        child = link.Chain(child_linear=links.Linear(2, 3))
+        parent = link.Chain(
+            parent_linear=links.Linear(3, 2), child=child)
+        npz.save_npz(path, parent, self.compress)
+
+        self.source_child = child
+        self.source_parent = parent
 
     def tearDown(self):
         if hasattr(self, 'temp_file_path'):
@@ -251,6 +276,19 @@ class TestLoadNpz(unittest.TestCase):
         self.assertEqual(obj.serialize.call_count, 1)
         (serializer,), _ = obj.serialize.call_args
         self.assertIsInstance(serializer, npz.NpzDeserializer)
+
+    def test_load_with_path(self):
+        target = link.Chain(child_linear=links.Linear(2, 3))
+        npz.load_npz(self.temp_file_path, target, 'child/')
+        numpy.testing.assert_array_equal(
+            self.source_child.child_linear.W.data, target.child_linear.W.data)
+
+    def test_load_without_path(self):
+        target = link.Chain(parent_linear=links.Linear(3, 2))
+        npz.load_npz(self.temp_file_path, target, path='')
+        numpy.testing.assert_array_equal(
+            self.source_parent.parent_linear.W.data,
+            target.parent_linear.W.data)
 
 
 @testing.parameterize(*testing.product({'compress': [False, True]}))
@@ -268,6 +306,9 @@ class TestGroupHierachy(unittest.TestCase):
 
         self.optimizer = optimizers.AdaDelta()
         self.optimizer.setup(self.parent)
+
+        self.parent.zerograds()
+        self.optimizer.update()  # init all states
 
         self.savez = numpy.savez_compressed if self.compress else numpy.savez
 
@@ -292,8 +333,8 @@ class TestGroupHierachy(unittest.TestCase):
                 'child/linear/b/msdx',
                 'child/Wc/msg',
                 'child/Wc/msdx') + state
-        self.assertSetEqual(set(file.keys()),
-                            {prefix + x for x in keys})
+        self.assertEqual(set(file.keys()),
+                         {prefix + x for x in keys})
 
     def test_save_chain(self):
         d = {}
