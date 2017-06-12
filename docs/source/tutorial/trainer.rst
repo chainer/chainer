@@ -61,7 +61,7 @@ Here, we are going to use the same model as before.
     gpu_id = 0
 
     model = MLP()
-    model.to_gpu(gpu_id)  # If you use CPU, comment out this Linear
+    model.to_gpu(gpu_id)  # If you use CPU, comment out this line
 
 4. Prepare the Updater
 ''''''''''''''''''''''
@@ -72,20 +72,20 @@ components needed for training. The main components are shown below.
 .. image:: ../../image/trainer/trainer.png
 
 Basically, all you need to pass to :class:`~chainer.training.Trainer` is an
-:class:`~chainer.training.updater`. However, :class:`~chainer.training.updater`
+:class:`~chainer.training.Updater`. However, :class:`~chainer.training.Updater`
 contains an :class:`~chainer.training.Iterator` and
 :class:`~chainer.Optimizer`. Since :class:`~chainer.training.Iterator` can
 access the dataset and :class:`~chainer.Optimizer` has references to the model,
-:class:`~chainer.training.updater` can update the parameters of models.
+:class:`~chainer.training.Updater` can update the parameters of models.
 
-So, :class:`~chainer.training.updater` can perform the training procedure as
+So, :class:`~chainer.training.Updater` can perform the training procedure as
 shown below:
 
 1. Retrieve the data from dataset, one batch at a time (:class:`~chainer.dataset.Iterator`)
 2. Pass the data to the model and calculate the loss (Model = :attr:`~chainer.Optimizer.target`)
 3. Update the parameters of the model (:class:`~chainer.Optimizer`)
 
-Now let's create the :class:`~chainer.training.updater` object !
+Now let's create the :class:`~chainer.training.Updater` object !
 
 .. testcode::
 
@@ -93,7 +93,7 @@ Now let's create the :class:`~chainer.training.updater` object !
     # Note: If you don't have a GPU, set this to -1 to run on CPU only
     gpu_id = 0
 
-    # Wapp your model by Classifier and include the process of loss calculation within your model.
+    # Wrapp your model by Classifier and include the process of loss calculation within your model.
     # Since we do not specify a loss funciton here, the default 'softmax_cross_entropy' is
     # used.
     model = L.Classifier(model)
@@ -125,7 +125,7 @@ Now let's create the :class:`~chainer.training.updater` object !
     :meth:`~chainer.functions.softmax_cross_entropy` as default.
 
     :class:`~chainer.training.Standardupdater` is the simplest class to process
-    the :class:`~chainer.training.updater` described above. Other than this
+    the :class:`~chainer.training.Updater` described above. Other than this
     :class:`~chainer.training.Standardupdater`, there is also a
     :class:`~chainer.training.Parallelupdater` to utilize multiple GPUs.
 
@@ -200,7 +200,7 @@ The :meth:`~chainer.training.extensions.snapshot` method saves the
 every epoch) in the directory assigned by :attr:`~chainer.training.Trainer.out`
 argument in :class:`~chainer.training.Trainer`. The
 :class:`~chainer.training.Trainer` object, as mentioned before, has an
-:class:`~chainer.training.updater` which contains an
+:class:`~chainer.training.Updater` which contains an
 :class:`~chainer.Optimizer` and a model inside. Therefore, as long as you have
 the snapshot file, you can use it to come back to the training or make
 inferences using the previously trained model later.
