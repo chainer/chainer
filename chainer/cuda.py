@@ -281,7 +281,7 @@ def to_gpu(array, device=None, stream=None):
             return cupy.asarray(array)
 
         # Need to make a copy when an array is copied to another device
-        return cupy.array(array, copy=True)
+        return array.copy()
 
 
 def to_cpu(array, stream=None):
