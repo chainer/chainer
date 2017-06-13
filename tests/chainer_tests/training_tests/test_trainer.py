@@ -1,3 +1,4 @@
+import time
 import unittest
 
 from chainer import testing
@@ -53,7 +54,8 @@ class DummyClass(object):
 class TestTrainer(unittest.TestCase):
 
     def setUp(self):
-        self.trainer = testing.get_trainer_with_mock_updater()
+        self.trainer = testing.get_trainer_with_mock_updater(
+            update_core=lambda: time.sleep(0.001))
         self.trainer.is_initialized = False
 
     def test_elapsed_time(self):
