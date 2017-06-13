@@ -86,7 +86,7 @@ def cached_download(url):
         os.makedirs(cache_root)
     except OSError:
         if not os.path.isdir(cache_root):
-            raise RuntimeError('cannot create download cache directory')
+            raise
 
     lock_path = os.path.join(cache_root, '_dl_lock')
     urlhash = hashlib.md5(url.encode('utf-8')).hexdigest()
