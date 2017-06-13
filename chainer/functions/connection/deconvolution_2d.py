@@ -30,7 +30,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
 
     cover_all = None
 
-    def __init__(self, stride=1, pad=0, outsize=None, **kwargs):
+    def __init__(self, stride=1, pad=0, outsize=None, dilate=1, **kwargs):
         argument.check_unexpected_kwargs(
             kwargs,
             deterministic="deterministic argument is not supported anymore. "
@@ -46,6 +46,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         self.sy, self.sx = _pair(stride)
         self.ph, self.pw = _pair(pad)
         self.outh, self.outw = (None, None) if outsize is None else outsize
+        self.dy, self.dx = _pair(dilate)
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -140,10 +141,12 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         n, in_c, in_h, in_w = x.shape
         c = W.shape[1]  # out_c
         if self.outh is None:
-            self.outh = conv.get_deconv_outsize(in_h, kh, self.sy, self.ph)
+            self.outh = conv.get_deconv_outsize(in_h, kh, self.sy, self.ph,
+                                                d=self.dy)
             assert self.outh > 0, 'Height in the output should be positive.'
         if self.outw is None:
-            self.outw = conv.get_deconv_outsize(in_w, kw, self.sx, self.pw)
+            self.outw = conv.get_deconv_outsize(in_w, kw, self.sx, self.pw,
+                                                d=self.dx)
             assert self.outw > 0, 'Width in the output should be positive.'
 
         self._set_cover_all(x, W)
@@ -163,7 +166,8 @@ class Deconvolution2DFunction(function_node.FunctionNode):
 
             filter_desc = cudnn.create_filter_descriptor(W)
             conv_desc = cudnn.create_convolution_descriptor(
-                (self.ph, self.pw), (self.sy, self.sx), x.dtype)
+                (self.ph, self.pw), (self.sy, self.sx), x.dtype,
+                (self.dy, self.dx))
             if b is not None:
                 bias_desc = cudnn.create_tensor_descriptor(
                     b[None, :, None, None])
@@ -216,7 +220,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
                 self._set_cover_all(x, W)
             gx = chainer.functions.convolution_2d(
                 gy, W, stride=(self.sy, self.sx), pad=(self.ph, self.pw),
-                cover_all=self.cover_all)
+                cover_all=self.cover_all, dilate=(self.dy, self.dx))
             ret.append(gx)
         if 1 in indexes:
             if self.cover_all is None:

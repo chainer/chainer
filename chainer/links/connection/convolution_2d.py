@@ -100,7 +100,8 @@ class Convolution2D(link.Link):
     """  # NOQA
 
     def __init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0,
-                 nobias=False, initialW=None, initial_bias=None, **kwargs):
+                 dilate=1, nobias=False, initialW=None, initial_bias=None,
+                 **kwargs):
         super(Convolution2D, self).__init__()
 
         argument.check_unexpected_kwargs(
@@ -116,6 +117,7 @@ class Convolution2D(link.Link):
         self.ksize = ksize
         self.stride = _pair(stride)
         self.pad = _pair(pad)
+        self.dilate = _pair(dilate)
         self.out_channels = out_channels
 
         with self.init_scope():
@@ -150,7 +152,7 @@ class Convolution2D(link.Link):
         if self.W.data is None:
             self._initialize_params(x.shape[1])
         return convolution_2d.convolution_2d(
-            x, self.W, self.b, self.stride, self.pad)
+            x, self.W, self.b, self.stride, self.pad, dilate=self.dilate)
 
 
 def _pair(x):

@@ -8,6 +8,8 @@ from chainer.utils import conv
 from chainer.utils import type_check
 from chainer import variable
 
+from chainer.functions.connection import convolution_2d
+
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
     libcudnn = cuda.cudnn.cudnn
@@ -83,6 +85,15 @@ class DilatedConvolution2DFunction(function.Function):
     def forward_gpu(self, inputs):
         x, W = inputs[:2]
         b = inputs[2] if len(inputs) == 3 else None
+
+        if (not self.cover_all and chainer.should_use_cudnn('>=auto') and
+                _check_cudnn_acceptable_type(x.dtype, W.dtype)):
+            if _cudnn_version >= 6000:
+                # standard convolution is used when cudnn >= 6.0.
+                self._func = convolution_2d.Convolution2DFunction(
+                    (self.sy, self.sx), (self.ph, self.pw), self.cover_all,
+                    (self.dy, self.dx))
+                return self._func.forward_gpu(inputs)
 
         if not all([isinstance(i, cuda.ndarray) for i in inputs]):
             if b is not None:
@@ -192,6 +203,10 @@ class DilatedConvolution2DFunction(function.Function):
             return gx, gW, gb
 
     def backward_gpu(self, inputs, grad_outputs):
+        if getattr(self, '_func', False):
+            # standard convolution is used when cudnn >= 6.0.
+            return self._func.backward(inputs, grad_outputs)
+
         x, W = inputs[:2]
         b = inputs[2] if len(inputs) == 3 else None
         gy = grad_outputs[0]
