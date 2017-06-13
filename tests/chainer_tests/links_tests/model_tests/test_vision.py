@@ -131,8 +131,8 @@ class TestResNetLayers(unittest.TestCase):
     def check_copy(self):
         copied = self.link.copy()
 
-        self.assertTrue(copied.conv1 is copied.functions['conv1'][0])
-        self.assertTrue(copied.res2.a is copied.res2.forward[0])
+        self.assertIs(copied.conv1, copied.functions['conv1'][0])
+        self.assertIs(copied.res2.a, copied.res2.forward[0])
 
     def test_copy_cpu(self):
         self.check_copy()
@@ -244,7 +244,7 @@ class TestVGG16Layers(unittest.TestCase):
     def check_copy(self):
         copied = self.link.copy()
 
-        self.assertTrue(copied.conv1_1 is copied.functions['conv1_1'][0])
+        self.assertIs(copied.conv1_1, copied.functions['conv1_1'][0])
 
     def test_copy_cpu(self):
         self.check_copy()
@@ -378,7 +378,7 @@ class TestGoogLeNet(unittest.TestCase):
     def check_copy(self):
         copied = self.link.copy()
 
-        self.assertTrue(copied.conv1 is copied.functions['conv1'][0])
+        self.assertIs(copied.conv1, copied.functions['conv1'][0])
 
     def test_copy_cpu(self):
         self.check_copy()
