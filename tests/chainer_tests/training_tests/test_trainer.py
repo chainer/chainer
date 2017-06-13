@@ -54,9 +54,13 @@ class DummyClass(object):
 class TestTrainer(unittest.TestCase):
 
     def setUp(self):
-        self.trainer = testing.get_trainer_with_mock_updater(
-            update_core=lambda: time.sleep(0.001))
+        self.trainer = self._create_mock_trainer(10)
         self.trainer.is_initialized = False
+
+    def _create_mock_trainer(self, iterations):
+        return testing.get_trainer_with_mock_updater(
+            (iterations, 'iteration'),
+            update_core=lambda: time.sleep(0.001))
 
     def test_elapsed_time(self):
         with self.assertRaises(RuntimeError):
@@ -70,7 +74,7 @@ class TestTrainer(unittest.TestCase):
         self.trainer.run()
         serialized_time = self.trainer.elapsed_time
 
-        new_trainer = testing.get_trainer_with_mock_updater((20, 'iteration'))
+        new_trainer = self._create_mock_trainer(5)
         testing.save_and_load_npz(self.trainer, new_trainer)
 
         new_trainer.run()
