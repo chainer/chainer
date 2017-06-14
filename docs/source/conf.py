@@ -323,7 +323,7 @@ autosummary_generate = True
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3/', None),
     'numpy': ('http://docs.scipy.org/doc/numpy/', None),
-    'cupy': ('http://docs.cupy.chainer.org/en/latest/', None),
+    'cupy': ('https://docs.cupy.chainer.org/en/latest/', None),
 }
 
 doctest_global_setup = '''

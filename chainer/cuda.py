@@ -1,6 +1,6 @@
 """Device, context and memory management on CuPy.
 
-Chainer uses `CuPy <http://docs.cupy.chainer.org/>`_ (with very thin wrapper)
+Chainer uses `CuPy <https://docs.cupy.chainer.org/>`_ (with very thin wrapper)
 to exploit the speed of GPU computation. Following modules and classes defined
 in CuPy are imported to :mod:`chainer.cuda` module for convenience (refer to
 this table when reading chainer's source codes).
