@@ -1,5 +1,4 @@
 <div align="center"><img src="docs/image/chainer_red_h.png" width="400"/></div>
-<br />
 
 # Chainer: a deep learning framework
 
