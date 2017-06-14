@@ -46,6 +46,7 @@ Activation functions
    chainer.functions.softmax
    chainer.functions.softplus
    chainer.functions.tanh
+   chainer.functions.tree_lstm
 
 Array manipulations
 -------------------
