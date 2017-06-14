@@ -38,7 +38,7 @@ Chainer can be installed without them, in which case the corresponding features 
 
 * CUDA/cuDNN support
 
-  * `cupy <https://docs.cupy.chainer.org/>`__ 1.0+
+  * `cupy <http://docs.cupy.chainer.org/>`__ 1.0+
 
 * Caffe model support
 
@@ -103,9 +103,9 @@ It may help you::
 Enable CUDA/cuDNN support
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In order to enable CUDA support, you have to install `CuPy <https://docs.cupy.chainer.org/>`_ manually.
+In order to enable CUDA support, you have to install `CuPy <http://docs.cupy.chainer.org/>`_ manually.
 If you also want to use cuDNN, you have to install CuPy with cuDNN support.
-See `CuPy's installation guide <https://docs.cupy.chainer.org/en/latest/install.html>`_ to install CuPy.
+See `CuPy's installation guide <http://docs.cupy.chainer.org/en/latest/install.html>`_ to install CuPy.
 Once CuPy is correctly set up, Chainer will automatically enable CUDA support.
 
 You can refer to the following flags to confirm if CUDA/cuDNN support is actually available.
@@ -212,4 +212,4 @@ If you don't need cuDNN, ignore this message.
 Otherwise, retry to install CuPy with cuDNN.
 ``-vvvv`` option helps you.
 There is no need of re-installing Chainer itself.
-See `CuPy's installation guide <https://docs.cupy.chainer.org/en/latest/install.html>`_ for more details.
+See `CuPy's installation guide <http://docs.cupy.chainer.org/en/latest/install.html>`_ for more details.
