@@ -218,6 +218,7 @@ Normalization functions
 
    chainer.functions.batch_normalization
    chainer.functions.fixed_batch_normalization
+   chainer.functions.layer_normalization
    chainer.functions.local_response_normalization
    chainer.functions.normalize
 
