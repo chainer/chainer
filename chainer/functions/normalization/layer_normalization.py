@@ -3,6 +3,16 @@ from chainer import function
 from chainer.utils import type_check
 
 
+def _broadcast_to(xp, x, shape):
+    if hasattr(xp, 'broadcast_to'):
+        return xp.broadcast_to(x, shape)
+    else:
+        # numpy 1.9 doesn't support broadcast_to method
+        dummy = xp.empty(shape)
+        bx, _ = xp.broadcast_arrays(x, dummy)
+        return bx
+
+
 class LayerNormalization(function.Function):
 
     """Layer normalization"""
@@ -59,14 +69,14 @@ class LayerNormalization(function.Function):
         # = g_std * 0.5 * 1. / xp.sqrt(self.var + self.eps)
 
         n_units = x.shape[1]
-        g_squ_x_mu = xp.broadcast_to(g_var * 1. / n_units, x.shape)
+        g_squ_x_mu = _broadcast_to(xp, g_var * 1. / n_units, x.shape)
         g_x_mu_2 = g_squ_x_mu * 2 * self.x_mu
 
         g_x_1 = g_x_mu_1 + g_x_mu_2
         g_mu = xp.sum(g_x_1, axis=1, keepdims=True) * (- 1.)
         # = xp.sum(g_x_mu_1 + g_x_mu_2, axis=1, keepdims=True) * (- 1.)
 
-        g_x_2 = xp.broadcast_to(g_mu * 1. / n_units, x.shape)
+        g_x_2 = _broadcast_to(xp, g_mu * 1. / n_units, x.shape)
 
         g_x = g_x_1 + g_x_2
 
