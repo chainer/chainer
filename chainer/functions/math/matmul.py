@@ -114,8 +114,10 @@ class MatMul(function.Function):
         if ndim == 1:
             type_check.expect(a_type.shape == b_type.shape)
         else:
-            a_idx = _get_check_index(self.transa, False, row_idx=-2, col_idx=-1)
-            b_idx = _get_check_index(self.transb, True, row_idx=-2, col_idx=-1)
+            a_idx = _get_check_index(self.transa, False,
+                                     row_idx=-2, col_idx=-1)
+            b_idx = _get_check_index(self.transb, True,
+                                     row_idx=-2, col_idx=-1)
             type_check.expect(
                 a_type.shape[:-2] == b_type.shape[:-2],
                 a_type.shape[a_idx] == b_type.shape[b_idx],
