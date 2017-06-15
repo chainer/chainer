@@ -51,17 +51,20 @@ class PlotReport(extension.Extension):
     .. warning::
 
         If your environment needs to specify a backend of matplotlib
-        explicitly, please call ``matplotlib.use`` before importing Chainer.
-        For example:
+        explicitly, please call ``matplotlib.use`` before calling
+        ``trainer.run``. For example:
 
         .. code-block:: python
 
             import matplotlib
             matplotlib.use('Agg')
 
-            import chainer
+            trainer.extend(
+                extensions.PlotReport(['main/loss', 'validation/main/loss'],
+                                      'epoch', file_name='loss.png'))
+            trainer.run()
 
-        Then, once ``chainer.training.extensions`` is imported,
+        Then, once ``trainer.run`` is called,
         ``matplotlib.use`` will have no effect.
 
     For the details, please see here:
@@ -113,8 +116,8 @@ class PlotReport(extension.Extension):
 
     def __call__(self, trainer):
         if _available:
-            # Dynamically import pyplot to be able to call matplotlib.use()
-            # even after importing chainer.training.extensions
+            # Dynamically import pyplot to call matplotlib.use()
+            # after importing chainer.training.extensions
             import matplotlib.pyplot as plot
         else:
             return
