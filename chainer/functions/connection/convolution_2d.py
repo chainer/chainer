@@ -47,7 +47,7 @@ class Convolution2DFunction(function.Function):
 
         self._recompute = False
         _fnames = getattr(configuration.config, 'recompute_targets', [])
-        if "CONV" in _fnames:
+        if 'Convolution2D' in _fnames:
             self._recompute = True
 
     def check_type_forward(self, in_types):

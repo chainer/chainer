@@ -163,8 +163,8 @@ def main():
         chainer.serializers.load_npz(args.resume, trainer)
 
     _recompute = args.recompute
-    _recompute = _recompute.split(" ")
-    with chainer.use_recompute(_recompute):
+    _recompute = _recompute.split(",")
+    with chainer.enable_recompute(_recompute):
         trainer.run()
 
 

@@ -57,9 +57,20 @@ def force_backprop_mode():
     return configuration.using_config('enable_backprop', True)
 
 
-def use_recompute(*fnames):
+def _get_supported_fnames():
+    """Gets function names that are supported by re-compute."""
+    supported_fnames = []
+    supported_fnames.append('BatchNormalization')
+    supported_fnames.append('ReLU')
+    supported_fnames.append('LeakyReLU')
+    supported_fnames.append('Convolution2D')
+    return supported_fnames
+
+
+def enable_recompute(*fnames):
     """Enable re-compute for specified functions."""
     _tmp_list = list(fnames)
+    supported_fnames = _get_supported_fnames()
     _fnames = []
     while _tmp_list:
         f = _tmp_list.pop()
@@ -67,6 +78,10 @@ def use_recompute(*fnames):
             for _f in f:
                 _tmp_list.append(_f)
             continue
+        if f not in supported_fnames:
+            raise RuntimeError('{} is not supported by recompute. '
+                               'Supported function names are as followings:'
+                               '\n {}'.format(f, supported_fnames))
         _fnames.append(f)
 
     targets = copy.copy(getattr(configuration.config, 'recompute_targets', []))
@@ -76,9 +91,10 @@ def use_recompute(*fnames):
     return configuration.using_config('recompute_targets', targets)
 
 
-def no_recompute(*fnames):
+def disable_recompute(*fnames):
     """Disable re-compute for specified functions."""
     _tmp_list = list(fnames)
+    supported_fnames = _get_supported_fnames()
     _fnames = []
     while _tmp_list:
         f = _tmp_list.pop()
@@ -86,6 +102,10 @@ def no_recompute(*fnames):
             for _f in f:
                 _tmp_list.append(_f)
             continue
+        if f not in supported_fnames:
+            raise RuntimeError('{} is not supported by recompute. '
+                               'Supported function names are as followings:'
+                               '\n {}'.format(f, supported_fnames))
         _fnames.append(f)
 
     targets = []

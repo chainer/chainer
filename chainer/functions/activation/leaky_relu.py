@@ -19,7 +19,7 @@ class LeakyReLU(function.Function):
 
         self._recompute = False
         _fnames = getattr(configuration.config, 'recompute_targets', [])
-        if "RELU" in _fnames:
+        if "LeakyReLU" in _fnames:
             self._recompute = True
 
     def check_type_forward(self, in_types):

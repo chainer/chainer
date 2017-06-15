@@ -47,7 +47,7 @@ class BatchNormalizationFunction(function.Function):
 
         self._recompute = False
         _fnames = getattr(configuration.config, 'recompute_targets', [])
-        if "BN" in _fnames:
+        if 'BatchNormalization' in _fnames:
             self._recompute = True
 
     def check_type_forward(self, in_types):
