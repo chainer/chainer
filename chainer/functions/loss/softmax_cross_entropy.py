@@ -6,6 +6,7 @@ from chainer import cuda
 from chainer import function
 from chainer.functions.activation import log_softmax
 from chainer.utils import type_check
+from chainer import variable
 
 
 def _broadcast_to(array, shape):
@@ -21,9 +22,8 @@ class SoftmaxCrossEntropy(function.Function):
 
     normalize = True
 
-    def __init__(self, use_cudnn=True, normalize=True, cache_score=True,
-                 class_weight=None, ignore_label=-1, reduce='mean'):
-        self.use_cudnn = use_cudnn
+    def __init__(self, normalize=True, cache_score=True, class_weight=None,
+                 ignore_label=-1, reduce='mean'):
         self.normalize = normalize
         self.cache_score = cache_score
         self.class_weight = class_weight
@@ -32,7 +32,7 @@ class SoftmaxCrossEntropy(function.Function):
                 raise ValueError('class_weight.ndim should be 1')
             if self.class_weight.dtype.kind != 'f':
                 raise ValueError('The dtype of class_weight should be \'f\'')
-            if isinstance(self.class_weight, chainer.Variable):
+            if isinstance(self.class_weight, variable.Variable):
                 raise ValueError('class_weight should be a numpy.ndarray or '
                                  'cupy.ndarray, not a chainer.Variable')
         self.ignore_label = ignore_label
@@ -68,7 +68,7 @@ class SoftmaxCrossEntropy(function.Function):
         if chainer.is_debug():
             self._check_input_values(x, t)
 
-        log_y = log_softmax._log_softmax(x, self.use_cudnn)
+        log_y = log_softmax._log_softmax(x)
         if self.cache_score:
             self.y = numpy.exp(log_y)
         if self.class_weight is not None:
@@ -99,7 +99,7 @@ class SoftmaxCrossEntropy(function.Function):
         if chainer.is_debug():
             self._check_input_values(x, t)
 
-        log_y = log_softmax._log_softmax(x, self.use_cudnn)
+        log_y = log_softmax._log_softmax(x)
         if self.cache_score:
             self.y = cupy.exp(log_y)
         if self.class_weight is not None:
@@ -143,7 +143,7 @@ class SoftmaxCrossEntropy(function.Function):
         if hasattr(self, 'y'):
             y = self.y.copy()
         else:
-            y = log_softmax._log_softmax(x, self.use_cudnn)
+            y = log_softmax._log_softmax(x)
             numpy.exp(y, out=y)
         if y.ndim == 2:
             gx = y
@@ -184,7 +184,7 @@ class SoftmaxCrossEntropy(function.Function):
         if hasattr(self, 'y'):
             y = self.y
         else:
-            y = log_softmax._log_softmax(x, self.use_cudnn)
+            y = log_softmax._log_softmax(x)
             cupy.exp(y, out=y)
         gloss = grad_outputs[0]
         n_unit = t.size // len(t)
@@ -221,8 +221,8 @@ class SoftmaxCrossEntropy(function.Function):
 
 
 def softmax_cross_entropy(
-        x, t, use_cudnn=True, normalize=True, cache_score=True,
-        class_weight=None, ignore_label=-1, reduce='mean'):
+        x, t, normalize=True, cache_score=True, class_weight=None,
+        ignore_label=-1, reduce='mean'):
     """Computes cross entropy loss for pre-softmax activations.
 
     Args:
@@ -272,5 +272,4 @@ def softmax_cross_entropy(
     """
 
     return SoftmaxCrossEntropy(
-        use_cudnn, normalize, cache_score, class_weight, ignore_label, reduce)(
-            x, t)
+        normalize, cache_score, class_weight, ignore_label, reduce)(x, t)

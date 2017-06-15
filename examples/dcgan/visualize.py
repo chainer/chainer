@@ -17,7 +17,8 @@ def out_generated_image(gen, dis, rows, cols, seed, dst):
         n_images = rows * cols
         xp = gen.xp
         z = Variable(xp.asarray(gen.make_hidden(n_images)))
-        x = gen(z, test=True)
+        with chainer.using_config('train', False):
+            x = gen(z)
         x = chainer.cuda.to_cpu(x.data)
         np.random.seed()
 

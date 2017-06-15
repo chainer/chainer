@@ -1,6 +1,5 @@
 import numpy
 
-from chainer import cuda
 from chainer.functions.connection import depthwise_convolution_2d
 from chainer import initializers
 from chainer import link
@@ -55,29 +54,26 @@ class DepthwiseConvolution2D(link.Link):
 
         if initialW is None:
             initialW = initializers.HeNormal(1. / numpy.sqrt(2))
-        self._W_initializer = initializers._get_initializer(initialW)
+        self.add_param('W', initializer=initializers._get_initializer(
+            initialW))
 
         if nobias:
             self.b = None
         else:
             if initial_bias is None:
                 initial_bias = initializers.Constant(0)
-            self.bias_initilizer = initializers._get_initializer(initial_bias)
-            if in_channels is None:
-                self.add_uninitialized_param('b')
+            bias_initilizer = initializers._get_initializer(initial_bias)
+            self.add_param('b', initializer=bias_initilizer)
 
-        if in_channels is None:
-            self.add_uninitialized_param('W')
-        else:
+        if in_channels is not None:
             self._initialize_params(in_channels)
 
     def _initialize_params(self, in_channels):
         kh, kw = _pair(self.ksize)
         W_shape = (self.channel_multiplier, in_channels, kh, kw)
-        self.add_param('W', W_shape, initializer=self._W_initializer)
-        if not self.nobias:
-            self.add_param('b', self.channel_multiplier * in_channels,
-                           initializer=self.bias_initilizer)
+        self.W.initialize(W_shape)
+        if self.b is not None:
+            self.b.initialize(self.channel_multiplier * in_channels)
 
     def __call__(self, x):
         """Applies the depthwise convolution layer.
@@ -90,9 +86,8 @@ class DepthwiseConvolution2D(link.Link):
             ~chainer.Variable: Output of the depthwise convolution.
 
         """
-        if self.has_uninitialized_params:
-            with cuda.get_device_from_id(self._device_id):
-                self._initialize_params(x.shape[1])
+        if self.W.data is None:
+            self._initialize_params(x.shape[1])
         return depthwise_convolution_2d.depthwise_convolution_2d(
             x, self.W, self.b, self.stride, self.pad)
 

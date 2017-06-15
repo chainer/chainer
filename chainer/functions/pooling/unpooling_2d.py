@@ -35,6 +35,8 @@ class Unpooling2D(pooling_2d.Pooling2D):
             type_check.expect(x_type.shape[3] == expected_w)
 
     def forward(self, x):
+        self.retain_inputs(())
+
         h, w = x[0].shape[2:]
         if self.outh is None:
             self.outh = conv.get_deconv_outsize(

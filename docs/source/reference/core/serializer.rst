@@ -1,10 +1,10 @@
 Serializer
 ----------
 
-.. currentmodule:: chainer
-.. autoclass:: AbstractSerializer
-   :members:
-.. autoclass:: Serializer
-   :members:
-.. autoclass:: Deserializer
-   :members:
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.AbstractSerializer
+   chainer.Serializer
+   chainer.Deserializer

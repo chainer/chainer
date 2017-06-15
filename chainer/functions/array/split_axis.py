@@ -6,6 +6,7 @@ import chainer
 from chainer import cuda
 from chainer import function
 from chainer.utils import type_check
+from chainer import variable
 
 
 class SplitAxis(function.Function):
@@ -32,37 +33,39 @@ class SplitAxis(function.Function):
 
         if isinstance(self.indices_or_sections, collections.Iterable):
             if len(self.indices_or_sections) > 0:
-                max_index = type_check.Variable(
+                max_index = type_check.make_variable(
                     self.indices_or_sections[-1], 'max_index')
                 type_check.expect(in_types[0].shape[self.axis] > max_index)
         else:
-            sections = type_check.Variable(
+            sections = type_check.make_variable(
                 self.indices_or_sections, 'sections')
             type_check.expect(in_types[0].shape[self.axis] % sections == 0)
 
     def forward(self, x):
+        self.retain_inputs(())
         if isinstance(self.indices_or_sections, collections.Iterable):
             cdimx = x[0].shape[self.axis]
             ind = list(self.indices_or_sections)
             ind.append(cdimx)
-        xp = cuda.get_array_module(*x)
-        return tuple(xp.split(x[0], self.indices_or_sections, self.axis))
+        self._xp = cuda.get_array_module(*x)
+        self._x_shape = x[0].shape
+        self._x_dtype = x[0].dtype
+        return tuple(self._xp.split(x[0], self.indices_or_sections, self.axis))
 
     def backward(self, x, gys):
-        xp = cuda.get_array_module(*x)
         if any(gy is None for gy in gys):
-            gx = xp.zeros_like(x[0])
-            gxs = xp.split(gx, self.indices_or_sections, self.axis)
+            gx = self._xp.zeros(self._x_shape, dtype=self._x_dtype)
+            gxs = self._xp.split(gx, self.indices_or_sections, self.axis)
             for gxi, gy in six.moves.zip(gxs, gys):
                 if gy is None:
                     continue
                 gxi[:] = gy
             return gx,
         else:
-            return xp.concatenate(gys, axis=self.axis),
+            return self._xp.concatenate(gys, axis=self.axis),
 
 
-def split_axis(x, indices_or_sections, axis, force_tuple=False):
+def split_axis(x, indices_or_sections, axis, force_tuple=True):
     """Splits given variables along an axis.
 
     Args:
@@ -72,8 +75,10 @@ def split_axis(x, indices_or_sections, axis, force_tuple=False):
             If it is a 1-D array of sorted integers, it
             indicates the positions where the array is split.
         axis (int): Axis that the input array is split along.
-        force_tuple (bool): If ``True``, this method returns a tuple even when
-            the number of outputs is one.
+        force_tuple (bool): If ``True`` (the default) this method returns a
+            tuple even when the number of outputs is one. Otherwise, if
+            ``False`` a Variable will be returned when the number of outputs
+            is one.
 
     Returns:
         tuple or Variable: Tuple of :class:`~chainer.Variable` objects
@@ -89,6 +94,6 @@ def split_axis(x, indices_or_sections, axis, force_tuple=False):
 
     """
     res = SplitAxis(indices_or_sections, axis)(x)
-    if force_tuple and isinstance(res, chainer.Variable):
+    if force_tuple and isinstance(res, variable.Variable):
         res = (res,)
     return res

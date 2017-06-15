@@ -40,6 +40,7 @@ def main():
     args = parser.parse_args()
 
     np.random.seed(args.seed)
+    chainer.config.train = False
 
     xp = cuda.cupy if args.gpu >= 0 else np
 
@@ -52,7 +53,7 @@ def main():
     # should be same as n_units , described in train_ptb.py
     n_units = args.unit
 
-    lm = train_ptb.RNNForLM(len(vocab), n_units, train=False)
+    lm = train_ptb.RNNForLM(len(vocab), n_units)
     model = L.Classifier(lm)
 
     serializers.load_npz(args.model, model)

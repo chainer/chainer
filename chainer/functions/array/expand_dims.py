@@ -19,11 +19,13 @@ class ExpandDims(function.Function):
             type_check.expect(x_type.ndim >= -self.axis - 1)
 
     def forward(self, x):
+        self.retain_inputs(())
+        self._in_shape = x[0].shape
         xp = cuda.get_array_module(*x)
         return xp.expand_dims(x[0], self.axis),
 
     def backward(self, x, gy):
-        return gy[0].reshape(x[0].shape),
+        return gy[0].reshape(self._in_shape),
 
 
 def expand_dims(x, axis):

@@ -17,12 +17,14 @@ class Sqrt(function.Function):
         )
 
     def forward(self, x):
+        self.retain_inputs(())
+        self.retain_outputs((0,))
         xp = cuda.get_array_module(*x)
         return utils.force_array(xp.sqrt(x[0], dtype=x[0].dtype)),
 
     def backward(self, x, gy):
-        xp = cuda.get_array_module(*x)
-        gx = utils.force_array(xp.sqrt(x[0], dtype=x[0].dtype))
+        xp = cuda.get_array_module(*gy)
+        gx = xp.copy(self.output_data[0])
         gx *= 2.0
         xp.reciprocal(gx, out=gx)
         gx *= gy[0]
