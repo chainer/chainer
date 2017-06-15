@@ -54,7 +54,7 @@ digit images in 1998. In Chainer, the model can be written as follows:
                 self.conv2 = L.Convolution2D(
                     in_channels=6, out_channels=16, ksize=5, stride=1)
                 self.conv3 = L.Convolution2D(
-                    in_channels=16, out_channels=120, ksize=4, stride=1),
+                    in_channels=16, out_channels=120, ksize=4, stride=1)
                 self.fc4 = L.Linear(None, 84)
                 self.fc5 = L.Linear(84, 10)
 
@@ -79,15 +79,15 @@ To give input images and label vectors simply by calling the model object
 like a function, :meth:`__call__` is usually defined in the model class.
 This method performs the forward computation of the model. Chainer uses
 the powerful autograd system for any computational graphs written with
-:class:`~chainer.Function`s and :class:`~chainer.Links`s (actually a
-:class:`~chainer.Links` calls a corresponding :class:`~chainer.Function` inside
-of it), so that you don't need to explicitly write the code for backward
+:class:`~chainer.Function` s and :class:`~chainer.Link` s (actually a
+:class:`~chainer.Link` calls a corresponding :class:`~chainer.Function`
+inside of it), so that you don't need to explicitly write the code for backward
 computations in the model. Just prepare the data, then give it to the model.
 The way this works is the resulting output :class:`~chainer.Variable` from the
 forward computation has a :meth:`~chainer.Variable.backward` method to perform
 autograd. In the above model, :meth:`__call__` has a ``if`` statement at the
 end to switch its behavior by the Chainer's running mode, i.e., training mode or
-not. Chainer presents the running mode as a global variable `chainer.config.train`.
+not. Chainer presents the running mode as a global variable ``chainer.config.train``.
 When it's in training mode, :meth:`__call__` returns the output value of the
 last layer as is to compute the loss later on, otherwise it returns a
 prediction result by calculating :meth:`~chainer.functions.softmax`.
@@ -146,7 +146,7 @@ those names are just designed to select :class:`~chainer.Link` s only from the
 list ``net`` easily. :class:`~chainer.Function` doesn't have any trainable
 parameters, so that we can't register it to the model, but we want to use
 :class:`~chainer.Function` s for constructing a forward path. The list
-``net`` is stored as an attribute attr:`forward` to refer it in
+``net`` is stored as an attribute :attr:`forward` to refer it in
 :meth:`__call__`. In :meth:`__call__`, it retrieves all layers in the network
 from :attr:`self.forward` sequentially regardless of what types of object (
 :class:`~chainer.Link` or :class:`~chainer.Function`) it is, and gives the
@@ -244,7 +244,7 @@ useful. First, let's see how to write a VGG16 [Simonyan14]_ model.
             w = chainer.initializers.HeNormal()
             super(VGGBlock, self).__init__()
 	    with self.init_scope():
-                self.conv1 = L.Convolution2D(None, n_channels, 3, 1, 1, initialW=w),
+                self.conv1 = L.Convolution2D(None, n_channels, 3, 1, 1, initialW=w)
                 self.conv2 = L.Convolution2D(
                     n_channels, n_channels, 3, 1, 1, initialW=w)
                 if n_convs == 3:

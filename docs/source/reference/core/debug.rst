@@ -16,8 +16,10 @@ See :ref:`configuration` for the way to use the config object.
 We leave the reference of the conventional ways (which have been available since Chainer v1) as follows.
 
 
-.. currentmodule:: chainer
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
 
-.. autofunction:: is_debug
-.. autofunction:: set_debug
-.. autoclass:: DebugMode
+   chainer.is_debug
+   chainer.set_debug
+   chainer.DebugMode
