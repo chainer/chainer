@@ -25,10 +25,18 @@ class Dropout(function.Function):
             xp = cuda.get_array_module(*x)
             if xp == numpy:
                 flag = xp.random.rand(*x[0].shape) >= self.dropout_ratio
+                self.mask = scale * flag
             else:
-                flag = (xp.random.rand(*x[0].shape, dtype=numpy.float32) >=
-                        self.dropout_ratio)
-            self.mask = scale * flag
+                rand = xp.random.rand(*x[0].shape, dtype=numpy.float32)
+                self.mask, y = cuda.elementwise(
+                    'T x, R r, T scale, T ratio', 'T mask, T y',
+                    '''
+                    mask = (r >= ratio) * scale;
+                    y = x * mask;
+                    ''',
+                    'dropout_fwd',
+                )(x[0], rand, scale, self.dropout_ratio)
+                return y,
         return x[0] * self.mask,
 
     def backward(self, x, gy):
