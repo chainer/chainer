@@ -132,11 +132,11 @@ class TestInvalidLabelKey(unittest.TestCase):
     def test_invalid_argument_gpu(self):
         self.check_invalid_key(True, 1)
 
-    def test_invalid_index_cpu(self):
+    def test_invalid_index_too_small_cpu(self):
         self.check_invalid_key(False, -2)
 
     @attr.gpu
-    def test_invalid_argument_gpu(self):
+    def test_invalid_index_too_small_gpu(self):
         self.check_invalid_key(True, -2)
 
     def test_invalid_str_key_cpu(self):
