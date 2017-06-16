@@ -58,9 +58,10 @@ class TestTrainer(unittest.TestCase):
         self.trainer.is_initialized = False
 
     def _create_mock_trainer(self, iterations):
-        return testing.get_trainer_with_mock_updater(
-            (iterations, 'iteration'),
-            update_core=lambda: time.sleep(0.001))
+        trainer = testing.get_trainer_with_mock_updater(
+            (iterations, 'iteration'))
+        trainer.updater.update_core = lambda: time.sleep(0.001)
+        return trainer
 
     def test_elapsed_time(self):
         with self.assertRaises(RuntimeError):
