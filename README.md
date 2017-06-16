@@ -1,10 +1,12 @@
+<div align="center"><img src="docs/image/chainer_red_h.png" width="400"/></div>
+
+# Chainer: a deep learning framework
+
 [![pypi](https://img.shields.io/pypi/v/chainer.svg)](https://pypi.python.org/pypi/chainer)
 [![GitHub license](https://img.shields.io/github/license/chainer/chainer.svg)](https://github.com/chainer/chainer)
 [![travis](https://img.shields.io/travis/chainer/chainer/master.svg)](https://travis-ci.org/chainer/chainer)
 [![coveralls](https://img.shields.io/coveralls/chainer/chainer.svg)](https://coveralls.io/github/chainer/chainer)
 [![Read the Docs](https://readthedocs.org/projects/chainer/badge/?version=stable)](http://docs.chainer.org/en/stable/?badge=stable)
-
-# Chainer: a deep learning framework
 
 [**Website**](http://chainer.org/)
 | [**Docs**](http://docs.chainer.org/en/stable/)
