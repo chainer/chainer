@@ -6,6 +6,7 @@ from chainer import cuda
 from chainer import function
 from chainer.utils import conv
 from chainer.utils import type_check
+from chainer import variable
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
@@ -401,7 +402,9 @@ def dilated_convolution_2d(x, W, b=None, stride=1, pad=0, dilate=1,
     .. seealso:: :class:`DilatedConvolution2D`
 
     """
-    func = DilatedConvolution2DFunction(stride, pad, dilate, cover_all)
+    no_data_grad = not (isinstance(x, variable.Variable) and x.requires_grad)
+    func = DilatedConvolution2DFunction(stride, pad, dilate, cover_all,
+                                        no_data_grad)
     if b is None:
         return func(x, W)
     else:

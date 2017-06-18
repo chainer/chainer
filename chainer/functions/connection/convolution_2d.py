@@ -7,6 +7,7 @@ from chainer import function
 from chainer.utils import argument
 from chainer.utils import conv
 from chainer.utils import type_check
+from chainer import variable
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
@@ -320,8 +321,7 @@ class Convolution2DFunction(function.Function):
             return gx, gW, gb
 
 
-def convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False,
-                   no_data_grad=False, **kwargs):
+def convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False, **kwargs):
     """convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False)
 
     Two-dimensional convolution function.
@@ -445,6 +445,7 @@ cover_all=True)
         "context where value is either `True` or `False`.")
     argument.assert_kwargs_empty(kwargs)
 
+    no_data_grad = not (isinstance(x, variable.Variable) and x.requires_grad)
     func = Convolution2DFunction(stride, pad, cover_all, no_data_grad)
     if b is None:
         return func(x, W)

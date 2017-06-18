@@ -8,6 +8,7 @@ from chainer.functions.connection import convolution_2d
 from chainer.utils import argument
 from chainer.utils import conv
 from chainer.utils import type_check
+from chainer import variable
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
@@ -459,7 +460,8 @@ http://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf
         "context where value is either `True` or `False`.")
     argument.assert_kwargs_empty(kwargs)
 
-    func = Deconvolution2DFunction(stride, pad, outsize)
+    no_data_grad = not (isinstance(x, variable.Variable) and x.requires_grad)
+    func = Deconvolution2DFunction(stride, pad, outsize, no_data_grad)
     if b is None:
         return func(x, W)
     else:
