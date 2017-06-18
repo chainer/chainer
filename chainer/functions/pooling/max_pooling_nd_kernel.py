@@ -22,7 +22,7 @@ class MaxPoolingNDKernelForward(pooling_nd_kernel.PoolingNDKernelForward):
             return 'int {} = 0;'.format(argmax)
         self.argmaxs = conv_nd_kernel.vars('argmax', self.ndim)
         argmax_decls = conv_nd_kernel.map_(aux, self.argmaxs)
-        return '\n'.join(['T maxval = (T)-INFINITY;'] + argmax_decls)
+        return '\n'.join(['T maxval = (T)-(1.0/0.0);'] + argmax_decls)
 
     def main(self, offset, xs):
         # 2D: T v = in[offset_1];
