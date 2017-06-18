@@ -16,10 +16,10 @@ class _TestMatMul(unittest.TestCase):
 
     def _get_forward_answer(self, x1, x2, transa, transb):
         if x1.ndim >= 2:
-            x1 = x1.swapaxes(-1, -2) if self.transa else self.x1
+            x1 = x1.swapaxes(-1, -2) if transa else x1
 
-        if x2.ndim >= 1:
-            x2 = x2.swapaxes(-1, -2) if self.transb else self.x2
+        if x2.ndim >= 2:
+            x2 = x2.swapaxes(-1, -2) if transb else x2
 
         if x1.ndim <= 2:
             return numpy.dot(x1, x2)
