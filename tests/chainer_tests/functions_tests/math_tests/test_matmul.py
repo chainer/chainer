@@ -14,6 +14,18 @@ from chainer.utils import type_check
 
 class _TestMatMul(unittest.TestCase):
 
+    def _get_forward_answer(self, x1, x2, transa, transb):
+        if x1.ndim >= 2:
+            x1 = x1.swapaxes(-1, -2) if self.transa else self.x1
+
+        if x2.ndim >= 1:
+            x2 = x2.swapaxes(-1, -2) if self.transb else self.x2
+
+        if x1.ndim <= 2:
+            return numpy.dot(x1, x2)
+        else:
+            return numpy.einsum('...ij,...jk->...ik', x1, x2)
+
     def check_forward(self, x1_data, x2_data, atol=1e-4, rtol=1e-5):
         x1 = chainer.Variable(x1_data)
         x2 = chainer.Variable(x2_data)
@@ -112,19 +124,9 @@ class TestMatMul(_TestMatMul):
 
         self.op = lambda x, y: F.matmul(x, y, transa=self.transa,
                                         transb=self.transb)
-        if self.x1.ndim == 1:
-            x1 = self.x1
-        else:
-            x1 = self.x1.swapaxes(-1, -2) if self.transa else self.x1
-
-        if self.x2.ndim == 1:
-            x2 = self.x2
-        else:
-            x2 = self.x2.swapaxes(-1, -2) if self.transb else self.x2
-        if x1.ndim <= 2:
-            self.forward_answer = numpy.dot(x1, x2)
-        else:
-            self.forward_answer = numpy.einsum('...ij,...jk->...ik', x1, x2)
+        self.forward_answer = self._get_forward_answer(self.x1, self.x2,
+                                                       self.transa,
+                                                       self.transb)
 
 
 class TestMatMulInvalid(unittest.TestCase):
