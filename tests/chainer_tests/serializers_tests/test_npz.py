@@ -257,9 +257,13 @@ class TestLoadNpz(unittest.TestCase):
         fd, path = tempfile.mkstemp()
         os.close(fd)
         self.temp_file_path = path
-        with open(path, 'wb') as f:
-            savez = numpy.savez_compressed if self.compress else numpy.savez
-            savez(f, None)
+        child = link.Chain(child_linear=links.Linear(2, 3))
+        parent = link.Chain(
+            parent_linear=links.Linear(3, 2), child=child)
+        npz.save_npz(path, parent, self.compress)
+
+        self.source_child = child
+        self.source_parent = parent
 
     def tearDown(self):
         if hasattr(self, 'temp_file_path'):
@@ -272,6 +276,19 @@ class TestLoadNpz(unittest.TestCase):
         self.assertEqual(obj.serialize.call_count, 1)
         (serializer,), _ = obj.serialize.call_args
         self.assertIsInstance(serializer, npz.NpzDeserializer)
+
+    def test_load_with_path(self):
+        target = link.Chain(child_linear=links.Linear(2, 3))
+        npz.load_npz(self.temp_file_path, target, 'child/')
+        numpy.testing.assert_array_equal(
+            self.source_child.child_linear.W.data, target.child_linear.W.data)
+
+    def test_load_without_path(self):
+        target = link.Chain(parent_linear=links.Linear(3, 2))
+        npz.load_npz(self.temp_file_path, target, path='')
+        numpy.testing.assert_array_equal(
+            self.source_parent.parent_linear.W.data,
+            target.parent_linear.W.data)
 
 
 @testing.parameterize(*testing.product({'compress': [False, True]}))
