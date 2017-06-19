@@ -279,10 +279,11 @@ class TestLoadNpz(unittest.TestCase):
 
     def test_load_without_strict(self):
         obj = mock.MagicMock()
-        npz.load_npz(self.temp_file_path, obj, False)
+        npz.load_npz(self.temp_file_path, obj, strict=False)
 
         self.assertEqual(obj.serialize.call_count, 1)
         (serializer,), _ = obj.serialize.call_args
+        self.assertFalse(serializer.strict)
         self.assertIsInstance(serializer, npz.NpzDeserializer)
         self.assertEqual(serializer.strict, False)
 
@@ -388,7 +389,7 @@ class TestGroupHierachy(unittest.TestCase):
         npz.save_npz(self.temp_file_path, self.parent, self.compress)
         for param in self.parent.params():
             param.data.fill(0)
-        npz.load_npz(self.temp_file_path, self.parent, False)
+        npz.load_npz(self.temp_file_path, self.parent, strict=False)
         for param in self.parent.params():
             self.assertTrue((param.data == 1).all())
 
