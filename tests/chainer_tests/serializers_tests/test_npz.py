@@ -288,7 +288,7 @@ class TestLoadNpz(unittest.TestCase):
 
     def test_load_with_path(self):
         target = link.Chain(child_linear=links.Linear(2, 3))
-        npz.load_npz(self.temp_file_path, target, 'child/')
+        npz.load_npz(self.temp_file_path, target, path='child/')
         numpy.testing.assert_array_equal(
             self.source_child.child_linear.W.data, target.child_linear.W.data)
 
