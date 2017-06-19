@@ -387,11 +387,14 @@ class TestGroupHierachy(unittest.TestCase):
         for param in self.parent.params():
             param.data.fill(1)
         npz.save_npz(self.temp_file_path, self.parent, self.compress)
+        # Remove a param
+        del self.parent.child.linear.b
         for param in self.parent.params():
             param.data.fill(0)
         npz.load_npz(self.temp_file_path, self.parent, strict=False)
         for param in self.parent.params():
             self.assertTrue((param.data == 1).all())
+        self.assertFalse(hasattr(self.parent.child.linear, 'b'))
 
 
 testing.run_module(__name__, __file__)
