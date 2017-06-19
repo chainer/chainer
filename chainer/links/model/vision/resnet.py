@@ -144,7 +144,7 @@ class ResNetLayers(link.Chain):
         # we import CaffeFunction here.
         from chainer.links.caffe.caffe_function import CaffeFunction
         caffemodel = CaffeFunction(path_caffemodel)
-        chainermodel = cls(pretrained_model=None)
+        chainermodel = cls(pretrained_model=None, n_layers=n_layers)
         if n_layers == 50:
             _transfer_resnet50(caffemodel, chainermodel)
         elif n_layers == 101:
