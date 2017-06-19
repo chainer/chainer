@@ -12,59 +12,6 @@ from chainer.testing import condition
 from chainer.utils import type_check
 
 
-class _TestMatMul(unittest.TestCase):
-
-    def _get_forward_answer(self, x1, x2, transa, transb):
-        if x1.ndim >= 2:
-            x1 = x1.swapaxes(-1, -2) if transa else x1
-
-        if x2.ndim >= 2:
-            x2 = x2.swapaxes(-1, -2) if transb else x2
-
-        if x1.ndim <= 2:
-            return numpy.dot(x1, x2)
-        else:
-            return numpy.einsum('...ij,...jk->...ik', x1, x2)
-
-    def check_forward(self, x1_data, x2_data, atol=1e-4, rtol=1e-5):
-        x1 = chainer.Variable(x1_data)
-        x2 = chainer.Variable(x2_data)
-        y = self.op(x1, x2)
-        testing.assert_allclose(self.forward_answer, y.data, atol, rtol)
-
-    @condition.retry(3)
-    def test_matmul_forward_cpu(self):
-        if self.x1.dtype == numpy.float16 or self.x2.dtype == numpy.float16:
-            self.check_forward(self.x1, self.x2, atol=1e-3, rtol=1e-3)
-        else:
-            self.check_forward(self.x1, self.x2)
-
-    @attr.gpu
-    @condition.retry(3)
-    def test_matmul_forward_gpu(self):
-        if self.x1.dtype == numpy.float16 or self.x2.dtype == numpy.float16:
-            self.check_forward(cuda.to_gpu(self.x1), cuda.to_gpu(self.x2),
-                               atol=1e-3, rtol=1e-3)
-        else:
-            self.check_forward(cuda.to_gpu(self.x1), cuda.to_gpu(self.x2))
-
-    def check_backward(self, x1_data, x2_data, y_grad, atol, rtol):
-        gradient_check.check_backward(
-            self.op, (x1_data, x2_data), y_grad, atol=atol, rtol=rtol,
-            dtype=numpy.float32)
-
-    @condition.retry(3)
-    def test_matmul_backward_cpu(self):
-        self.check_backward(self.x1, self.x2, self.gy, atol=1e-2, rtol=5e-2)
-
-    @attr.gpu
-    @condition.retry(3)
-    def test_matmul_backward_gpu(self):
-        self.check_backward(
-            cuda.to_gpu(self.x1), cuda.to_gpu(self.x2),
-            cuda.to_gpu(self.gy), atol=1e-2, rtol=1e-2)
-
-
 @testing.parameterize(*testing.product_dict(
     [
         # matmul
@@ -112,7 +59,7 @@ class _TestMatMul(unittest.TestCase):
         {'x2_dtype': numpy.float64},
     ]
 ))
-class TestMatMul(_TestMatMul):
+class TestMatMul(unittest.TestCase):
 
     def setUp(self):
         self.x1 = numpy.random.uniform(.5, 1, self.x1_shape)
@@ -127,6 +74,56 @@ class TestMatMul(_TestMatMul):
         self.forward_answer = self._get_forward_answer(self.x1, self.x2,
                                                        self.transa,
                                                        self.transb)
+
+    def _get_forward_answer(self, x1, x2, transa, transb):
+        if transa and x1.ndim >= 2:
+            x1 = x1.swapaxes(-1, -2)
+
+        if transb and x2.ndim >= 2:
+            x2 = x2.swapaxes(-1, -2)
+
+        if x1.ndim <= 2:
+            return numpy.dot(x1, x2)
+        else:
+            return numpy.einsum('...ij,...jk->...ik', x1, x2)
+
+    def check_forward(self, x1_data, x2_data, atol=1e-4, rtol=1e-5):
+        x1 = chainer.Variable(x1_data)
+        x2 = chainer.Variable(x2_data)
+        y = self.op(x1, x2)
+        testing.assert_allclose(self.forward_answer, y.data, atol, rtol)
+
+    @condition.retry(3)
+    def test_matmul_forward_cpu(self):
+        if self.x1.dtype == numpy.float16 or self.x2.dtype == numpy.float16:
+            self.check_forward(self.x1, self.x2, atol=1e-3, rtol=1e-3)
+        else:
+            self.check_forward(self.x1, self.x2)
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_matmul_forward_gpu(self):
+        if self.x1.dtype == numpy.float16 or self.x2.dtype == numpy.float16:
+            self.check_forward(cuda.to_gpu(self.x1), cuda.to_gpu(self.x2),
+                               atol=1e-3, rtol=1e-3)
+        else:
+            self.check_forward(cuda.to_gpu(self.x1), cuda.to_gpu(self.x2))
+
+    def check_backward(self, x1_data, x2_data, y_grad, atol, rtol):
+        gradient_check.check_backward(
+            self.op, (x1_data, x2_data), y_grad, atol=atol, rtol=rtol,
+            dtype=numpy.float32)
+
+    @condition.retry(3)
+    def test_matmul_backward_cpu(self):
+        self.check_backward(self.x1, self.x2, self.gy, atol=1e-2, rtol=5e-2)
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_matmul_backward_gpu(self):
+        self.check_backward(
+            cuda.to_gpu(self.x1), cuda.to_gpu(self.x2),
+            cuda.to_gpu(self.gy), atol=1e-2, rtol=1e-2)
 
 
 class TestMatMulInvalid(unittest.TestCase):
