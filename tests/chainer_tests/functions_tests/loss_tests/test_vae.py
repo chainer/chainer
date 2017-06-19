@@ -11,8 +11,11 @@ from chainer.testing import condition
 
 
 @testing.parameterize(
-    {'reduce': 'no'},
-    {'reduce': 'sum'}
+    *testing.product({
+        'wrap_m': [True, False],
+        'wrap_v': [True, False],
+        'reduce': ['no', 'sum']
+    })
 )
 class TestGaussianKLDivergence(unittest.TestCase):
 
@@ -31,9 +34,14 @@ class TestGaussianKLDivergence(unittest.TestCase):
             self.expect = loss
 
     def check_gaussian_kl_divergence(self, mean, ln_var):
-        m = chainer.Variable(mean)
-        v = chainer.Variable(ln_var)
-        actual = cuda.to_cpu(F.gaussian_kl_divergence(m, v, self.reduce).data)
+        if self.wrap_m:
+            mean = chainer.Variable(mean)
+        if self.wrap_v:
+            ln_var = chainer.Variable(ln_var)
+        actual = cuda.to_cpu(
+            F.gaussian_kl_divergence(mean, ln_var, self.reduce).data)
+        actual = cuda.to_cpu(
+            F.gaussian_kl_divergence(mean, ln_var, self.reduce).data)
         testing.assert_allclose(self.expect, actual)
 
     @condition.retry(3)
@@ -47,7 +55,7 @@ class TestGaussianKLDivergence(unittest.TestCase):
                                           cuda.to_gpu(self.ln_var))
 
 
-class TestGaussianNLLInvalidReductionOption(unittest.TestCase):
+class TestGaussianKLDivergenceInvalidReductionOption(unittest.TestCase):
 
     def setUp(self):
         self.mean = numpy.random.uniform(-1, 1, (3,)).astype(numpy.float32)
@@ -68,8 +76,11 @@ class TestGaussianNLLInvalidReductionOption(unittest.TestCase):
 
 
 @testing.parameterize(
-    {'reduce': 'no'},
-    {'reduce': 'sum'}
+    *testing.product({
+        'wrap_x': [True, False],
+        'wrap_y': [True, False],
+        'reduce': ['no', 'sum']
+    })
 )
 class TestBernoulliNLL(unittest.TestCase):
 
@@ -85,9 +96,11 @@ class TestBernoulliNLL(unittest.TestCase):
         if self.reduce == 'sum':
             self.expect = numpy.sum(self.expect)
 
-    def check_bernoulli_nll(self, x_data, y_data):
-        x = chainer.Variable(x_data)
-        y = chainer.Variable(y_data)
+    def check_bernoulli_nll(self, x, y):
+        if self.wrap_x:
+            x = chainer.Variable(x)
+        if self.wrap_y:
+            y = chainer.Variable(y)
         actual = cuda.to_cpu(F.bernoulli_nll(x, y, self.reduce).data)
         testing.assert_allclose(self.expect, actual)
 
@@ -122,6 +135,14 @@ class TestBernoulliNLLInvalidReductionOption(unittest.TestCase):
         self.check_invalid_option(cuda.cupy)
 
 
+@testing.parameterize(
+    *testing.product({
+        'wrap_x': [True, False],
+        'wrap_m': [True, False],
+        'wrap_v': [True, False],
+        'reduce': ['no', 'sum']
+    })
+)
 class TestGaussianNLL(unittest.TestCase):
 
     def setUp(self):
@@ -131,19 +152,23 @@ class TestGaussianNLL(unittest.TestCase):
 
         # Refer to Appendix C.2 in the original paper
         # Auto-Encoding Variational Bayes (https://arxiv.org/abs/1312.6114)
-        D = self.x.size
         x_d = self.x - self.mean
         var = numpy.exp(self.ln_var)
 
-        self.expect = (0.5 * D * numpy.log(2 * numpy.pi) +
-                       0.5 * numpy.sum(self.ln_var) +
-                       numpy.sum(x_d * x_d / var) * 0.5)
+        self.expect = (0.5 * numpy.log(2 * numpy.pi) +
+                       0.5 * self.ln_var +
+                       x_d * x_d / var * 0.5)
+        if self.reduce == 'sum':
+            self.expect = numpy.sum(self.expect)
 
-    def check_gaussian_nll(self, x_data, mean_data, ln_var_data):
-        x = chainer.Variable(x_data)
-        mean = chainer.Variable(mean_data)
-        ln_var = chainer.Variable(ln_var_data)
-        actual = cuda.to_cpu(F.gaussian_nll(x, mean, ln_var).data)
+    def check_gaussian_nll(self, x, mean, ln_var):
+        if self.wrap_x:
+            x = chainer.Variable(x)
+        if self.wrap_m:
+            mean = chainer.Variable(mean)
+        if self.wrap_v:
+            ln_var = chainer.Variable(ln_var)
+        actual = cuda.to_cpu(F.gaussian_nll(x, mean, ln_var, self.reduce).data)
         testing.assert_allclose(self.expect, actual)
 
     @condition.retry(3)
@@ -156,6 +181,29 @@ class TestGaussianNLL(unittest.TestCase):
         self.check_gaussian_nll(cuda.to_gpu(self.x),
                                 cuda.to_gpu(self.mean),
                                 cuda.to_gpu(self.ln_var))
+
+
+class TestGaussianNLLInvalidReductionOption(unittest.TestCase):
+
+    def setUp(self):
+        self.x = numpy.random.uniform(-1, 1, (3,)).astype(numpy.float32)
+        self.mean = numpy.random.uniform(-1, 1, (3,)).astype(numpy.float32)
+        self.ln_var = numpy.random.uniform(-1, 1, (3,)).astype(numpy.float32)
+
+    def check_invalid_option(self, xp):
+        x = chainer.Variable(xp.asarray(self.x))
+        mean = chainer.Variable(xp.asarray(self.mean))
+        ln_var = chainer.Variable(xp.asarray(self.ln_var))
+
+        with self.assertRaises(ValueError):
+            F.gaussian_nll(x, mean, ln_var, 'invalid_option')
+
+    def test_invalid_option_cpu(self):
+        self.check_invalid_option(numpy)
+
+    @attr.gpu
+    def test_invalid_option_gpu(self):
+        self.check_invalid_option(cuda.cupy)
 
 
 testing.run_module(__name__, __file__)

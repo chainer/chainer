@@ -41,23 +41,32 @@ class Sum(function.Function):
                     )
 
     def forward(self, x):
-        xp = cuda.get_array_module(*x)
-        return xp.asarray(x[0].sum(axis=self.axis, keepdims=self.keepdims)),
+        self.retain_inputs(())
+        self._in_shape = x[0].shape
+        self._in_dtype = x[0].dtype
+        self._xp = cuda.get_array_module(*x)
+        return self._xp.asarray(
+            x[0].sum(axis=self.axis, keepdims=self.keepdims)),
 
     def backward(self, x, gy):
-        xp = cuda.get_array_module(*x)
+        xp = self._xp
 
-        x = x[0]
         gy = gy[0]
-        if not (x.ndim == 0 or self.axis is None or self.keepdims):
+        if not (len(self._in_shape) == 0 or
+                self.axis is None or self.keepdims):
             actual_axis = []
             for axis in self.axis:
                 if axis < 0:
-                    axis += len(x.shape)
+                    axis += len(self._in_shape)
                 actual_axis.append(axis)
             for axis in sorted(actual_axis):
                 gy = xp.expand_dims(gy, axis=axis)
-        _, gx = xp.broadcast_arrays(x, gy)
+        if hasattr(xp, 'broadcast_to'):
+            gx = xp.broadcast_to(gy, self._in_shape)
+        else:
+            # NumPy 1.9 does not support broadcast_to.
+            dummy_x = xp.empty(self._in_shape, 'b')
+            gx, _ = xp.broadcast_arrays(gy, dummy_x)
 
         return gx,
 

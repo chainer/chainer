@@ -1,9 +1,9 @@
 import numpy
 
-import chainer
 from chainer import cuda
 from chainer import function
 from chainer.utils import type_check
+from chainer import variable
 
 
 def _as_mat(x):
@@ -41,7 +41,7 @@ class SimplifiedDropconnect(function.Function):
             w_type.ndim == 2,
             type_check.prod(x_type.shape[1:]) == w_type.shape[1],
         )
-        if n_in.eval() == 3:
+        if type_check.eval(n_in) == 3:
             b_type = in_types[2]
             type_check.expect(
                 b_type.dtype == x_type.dtype,
@@ -60,7 +60,7 @@ class SimplifiedDropconnect(function.Function):
             else:
                 self.mask = xp.random.rand(*mask_shape,
                                            dtype=numpy.float32) >= self.ratio
-        elif isinstance(self.mask, chainer.Variable):
+        elif isinstance(self.mask, variable.Variable):
             self.mask = self.mask.data
 
         x = _as_mat(inputs[0])
@@ -131,8 +131,7 @@ def simplified_dropconnect(x, W, b=None, ratio=.5, train=True, mask=None):
             If ``True``, executes simplified dropconnect.
             Otherwise, simplified dropconnect function works as a linear
             function.
-        mask (None or chainer.Variable or :class:`numpy.ndarray` or
-            cupy.ndarray):
+        mask (None or chainer.Variable or numpy.ndarray or cupy.ndarray):
             If ``None``, randomized dropconnect mask is generated.
             Otherwise, The mask must be ``(n, M, N)`` shaped array.
             Main purpose of this option is debugging.

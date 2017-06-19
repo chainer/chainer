@@ -46,18 +46,19 @@ class Inv(function.Function):
         type_check.expect(a_type.shape[0] == a_type.shape[1])
 
     def forward_cpu(self, x):
+        self.retain_inputs(())
         self.invx = utils.force_array(numpy.linalg.inv(x[0]))
         return self.invx,
 
     def forward_gpu(self, x):
+        self.retain_inputs(())
         shape = x[0].shape
         self.invx = _inv_gpu(x[0].reshape(1, *shape))[0].reshape(shape)
         return self.invx,
 
     def backward(self, x, gy):
         # Gradient is - x^-T (dx) x^-T
-        x, = x
-        xp = cuda.get_array_module(x)
+        xp = cuda.get_array_module(*gy)
         gx = xp.dot(xp.dot(-self.invx.T, gy[0]), self.invx.T)
         return gx,
 
@@ -75,10 +76,12 @@ class BatchInv(function.Function):
         type_check.expect(a_type.shape[-1] == a_type.shape[-2])
 
     def forward_cpu(self, x):
+        self.retain_inputs(())
         self.invx = utils.force_array(numpy.linalg.inv(x[0]))
         return self.invx,
 
     def forward_gpu(self, x):
+        self.retain_inputs(())
         self.invx, _ = _inv_gpu(x[0])
         return self.invx,
 

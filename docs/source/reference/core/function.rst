@@ -1,9 +1,10 @@
 Function
 --------
 
-.. currentmodule:: chainer
-.. autoclass:: Function
-   :members:
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
 
-.. autofunction:: force_backprop_mode
-.. autofunction:: no_backprop_mode
+   chainer.Function
+   chainer.force_backprop_mode
+   chainer.no_backprop_mode

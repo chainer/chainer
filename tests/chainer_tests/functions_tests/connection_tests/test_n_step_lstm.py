@@ -21,7 +21,7 @@ def _split(inputs, pos):
 
 
 @testing.parameterize(*testing.product({
-    'use_cudnn': [True, False],
+    'use_cudnn': ['always', 'auto', 'never'],
 }))
 class TestNStepLSTM(unittest.TestCase):
 
@@ -63,17 +63,17 @@ class TestNStepLSTM(unittest.TestCase):
         self.dhy = numpy.random.uniform(-1, 1, h_shape).astype(numpy.float32)
 
     def check_forward(
-            self, h_data, c_data, xs_data, ws_data, bs_data, volatile):
-        h = chainer.Variable(h_data, volatile=volatile)
-        c = chainer.Variable(c_data, volatile=volatile)
-        xs = [chainer.Variable(x, volatile=volatile) for x in xs_data]
-        ws = [[chainer.Variable(w, volatile=volatile) for w in ws]
+            self, h_data, c_data, xs_data, ws_data, bs_data):
+        h = chainer.Variable(h_data)
+        c = chainer.Variable(c_data)
+        xs = [chainer.Variable(x) for x in xs_data]
+        ws = [[chainer.Variable(w) for w in ws]
               for ws in ws_data]
-        bs = [[chainer.Variable(b, volatile=volatile) for b in bs]
+        bs = [[chainer.Variable(b) for b in bs]
               for bs in bs_data]
-        hy, cy, ys = functions.n_step_lstm(
-            self.n_layers, self.dropout, h, c, ws, bs, xs,
-            use_cudnn=self.use_cudnn)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            hy, cy, ys = functions.n_step_lstm(
+                self.n_layers, self.dropout, h, c, ws, bs, xs)
 
         e_hy = self.hx.copy()
         e_cy = self.cx.copy()
@@ -104,10 +104,7 @@ class TestNStepLSTM(unittest.TestCase):
         testing.assert_allclose(cy.data, e_cy, rtol=1e-4, atol=1e-4)
 
     def test_forward_cpu(self):
-        self.check_forward(self.hx, self.cx, self.xs, self.ws, self.bs, False)
-
-    def test_forward_cpu_volatile(self):
-        self.check_forward(self.hx, self.cx, self.xs, self.ws, self.bs, True)
+        self.check_forward(self.hx, self.cx, self.xs, self.ws, self.bs)
 
     @attr.gpu
     def test_forward_gpu(self):
@@ -115,17 +112,7 @@ class TestNStepLSTM(unittest.TestCase):
                            cuda.to_gpu(self.cx),
                            [cuda.to_gpu(x) for x in self.xs],
                            [[cuda.to_gpu(w) for w in ws] for ws in self.ws],
-                           [[cuda.to_gpu(b) for b in bs] for bs in self.bs],
-                           False)
-
-    @attr.gpu
-    def test_forward_gpu_volatile(self):
-        self.check_forward(cuda.to_gpu(self.hx),
-                           cuda.to_gpu(self.cx),
-                           [cuda.to_gpu(x) for x in self.xs],
-                           [[cuda.to_gpu(w) for w in ws] for ws in self.ws],
-                           [[cuda.to_gpu(b) for b in bs] for bs in self.bs],
-                           True)
+                           [[cuda.to_gpu(b) for b in bs] for bs in self.bs])
 
     def check_backward(self, h_data, c_data, xs_data, ws_data, bs_data,
                        dhy_data, dcy_data, dys_data):
@@ -168,7 +155,199 @@ class TestNStepLSTM(unittest.TestCase):
 
 
 @testing.parameterize(*testing.product({
-    'use_cudnn': [True, False],
+    'use_cudnn': ['always', 'auto', 'never'],
+}))
+class TestNStepBiLSTM(unittest.TestCase):
+
+    batches = [3, 2, 1]
+    length = len(batches)
+    in_size = 3
+    out_size = 2
+    n_layers = 3
+    dropout = 0.0
+
+    def setUp(self):
+        self.xs = [numpy.random.uniform(-1, 1, (b, self.in_size)).astype('f')
+                   for b in self.batches]
+        h_shape = (self.n_layers * 2, self.batches[0], self.out_size)
+        self.cx = numpy.random.uniform(-1, 1, h_shape).astype(numpy.float32)
+        self.hx = numpy.random.uniform(-1, 1, h_shape).astype(numpy.float32)
+
+        self.ws = []
+        self.bs = []
+        for i in range(self.n_layers):
+            for di in [0, 1]:
+                weights = []
+                biases = []
+                for j in range(8):
+                    if i == 0 and j < 4:
+                        w_in = self.in_size
+                    elif i > 0 and j < 4:
+                        w_in = self.out_size * 2
+                    else:
+                        w_in = self.out_size
+
+                    weights.append(numpy.random.uniform(
+                        -1, 1, (self.out_size, w_in)).astype('f'))
+                    biases.append(numpy.random.uniform(
+                        -1, 1, (self.out_size,)).astype('f'))
+                self.ws.append(weights)
+                self.bs.append(biases)
+
+        self.dys = [numpy.random.uniform(-1, 1, (b, self.out_size * 2))
+                    .astype('f') for b in self.batches]
+        self.dcy = numpy.random.uniform(-1, 1, h_shape).astype(numpy.float32)
+        self.dhy = numpy.random.uniform(-1, 1, h_shape).astype(numpy.float32)
+
+    def check_forward(
+            self, h_data, c_data, xs_data, ws_data, bs_data):
+        h = chainer.Variable(h_data)
+        c = chainer.Variable(c_data)
+        xs = [chainer.Variable(x) for x in xs_data]
+        ws = [[chainer.Variable(w) for w in ws]
+              for ws in ws_data]
+        bs = [[chainer.Variable(b) for b in bs]
+              for bs in bs_data]
+        hy, cy, ys = functions.n_step_bilstm(
+            self.n_layers, self.dropout, h, c, ws, bs, xs)
+
+        xs_next = self.xs
+        e_hy = self.hx.copy()
+        e_cy = self.cx.copy()
+        for layer in range(self.n_layers):
+            # forward
+            di = 0
+            xf = []
+            layer_idx = layer * 2 + di
+            w = self.ws[layer_idx]
+            b = self.bs[layer_idx]
+            for ind in range(self.length):
+                x = xs_next[ind]
+                batch = x.shape[0]
+                h_prev = e_hy[layer_idx, :batch]
+                c_prev = e_cy[layer_idx, :batch]
+                i = sigmoid(x.dot(w[0].T) + h_prev.dot(w[4].T) + b[0] + b[4])
+                f = sigmoid(x.dot(w[1].T) + h_prev.dot(w[5].T) + b[1] + b[5])
+                c_bar = numpy.tanh(
+                    x.dot(w[2].T) + h_prev.dot(w[6].T) + b[2] + b[6])
+                o = sigmoid(x.dot(w[3].T) + h_prev.dot(w[7].T) + b[3] + b[7])
+                e_c = (f * c_prev + i * c_bar)
+                e_h = o * numpy.tanh(e_c)
+                e_hy[layer_idx, :batch] = e_h
+                e_cy[layer_idx, :batch] = e_c
+
+                xf.append(e_h)
+
+            # backward
+            di = 1
+            xb = []
+            layer_idx = layer * 2 + di
+            w = self.ws[layer_idx]
+            b = self.bs[layer_idx]
+            for ind in reversed(range(self.length)):
+                x = xs_next[ind]
+                batch = x.shape[0]
+                h_prev = e_hy[layer_idx, :batch]
+                c_prev = e_cy[layer_idx, :batch]
+                i = sigmoid(x.dot(w[0].T) + h_prev.dot(w[4].T) + b[0] + b[4])
+                f = sigmoid(x.dot(w[1].T) + h_prev.dot(w[5].T) + b[1] + b[5])
+                c_bar = numpy.tanh(
+                    x.dot(w[2].T) + h_prev.dot(w[6].T) + b[2] + b[6])
+                o = sigmoid(x.dot(w[3].T) + h_prev.dot(w[7].T) + b[3] + b[7])
+                e_c = (f * c_prev + i * c_bar)
+                e_h = o * numpy.tanh(e_c)
+                e_hy[layer_idx, :batch] = e_h
+                e_cy[layer_idx, :batch] = e_c
+
+                xb.append(e_h)
+
+            xb.reverse()
+            xs_next = [numpy.concatenate([hfi, hbi], axis=1) for (hfi, hbi) in
+                       zip(xf, xb)]
+
+        for k, (ysi, xsi) in enumerate(zip(ys, xs_next)):
+            testing.assert_allclose(ysi.data, xsi, rtol=1e-4, atol=1e-4)
+
+        testing.assert_allclose(hy.data, e_hy, rtol=1e-4, atol=1e-4)
+        testing.assert_allclose(cy.data, e_cy, rtol=1e-4, atol=1e-4)
+
+    def test_forward_cpu(self):
+        with chainer.using_config('use_cudnn', self.use_cudnn), \
+                chainer.using_config('enable_backprop', True):
+            self.check_forward(self.hx, self.cx, self.xs, self.ws, self.bs)
+
+    def test_forward_cpu_volatile(self):
+        with chainer.using_config('use_cudnn', self.use_cudnn), \
+                chainer.using_config('enable_backprop', False):
+            self.check_forward(self.hx, self.cx, self.xs, self.ws, self.bs)
+
+    @attr.gpu
+    def test_forward_gpu(self):
+        with chainer.using_config('use_cudnn', self.use_cudnn), \
+                chainer.using_config('enable_backprop', True):
+            self.check_forward(
+                cuda.to_gpu(self.hx),
+                cuda.to_gpu(self.cx),
+                [cuda.to_gpu(x) for x in self.xs],
+                [[cuda.to_gpu(w) for w in ws] for ws in self.ws],
+                [[cuda.to_gpu(b) for b in bs] for bs in self.bs])
+
+    @attr.gpu
+    def test_forward_gpu_volatile(self):
+        with chainer.using_config('use_cudnn', self.use_cudnn), \
+                chainer.using_config('enable_backprop', False):
+            self.check_forward(
+                cuda.to_gpu(self.hx),
+                cuda.to_gpu(self.cx),
+                [cuda.to_gpu(x) for x in self.xs],
+                [[cuda.to_gpu(w) for w in ws] for ws in self.ws],
+                [[cuda.to_gpu(b) for b in bs] for bs in self.bs])
+
+    def check_backward(self, h_data, c_data, xs_data, ws_data, bs_data,
+                       dhy_data, dcy_data, dys_data):
+        args = tuple([h_data, c_data] + sum(ws_data, []) + sum(bs_data, []) +
+                     xs_data)
+        grads = tuple([dhy_data, dcy_data] + dys_data)
+
+        def f(*inputs):
+            (hx, cx), inputs = _split(inputs, 2)
+            ws = []
+            for i in range(self.n_layers * 2):
+                weights, inputs = _split(inputs, 8)
+                ws.append(weights)
+            bs = []
+            for i in range(self.n_layers * 2):
+                biases, inputs = _split(inputs, 8)
+                bs.append(biases)
+            xs = inputs
+            hy, cy, ys = functions.n_step_bilstm(
+                self.n_layers, self.dropout, hx, cx, ws, bs, xs)
+            return (hy, cy) + ys
+
+        gradient_check.check_backward(
+            f, args, grads, eps=1e-2, rtol=1e-3, atol=1e-3)
+
+    def test_backward_cpu(self):
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.check_backward(self.hx, self.cx, self.xs, self.ws, self.bs,
+                                self.dhy, self.dcy, self.dys)
+
+    @attr.gpu
+    def test_backward_gpu(self):
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.check_backward(
+                cuda.to_gpu(self.hx),
+                cuda.to_gpu(self.cx),
+                [cuda.to_gpu(x) for x in self.xs],
+                [[cuda.to_gpu(w) for w in ws] for ws in self.ws],
+                [[cuda.to_gpu(b) for b in bs] for bs in self.bs],
+                cuda.to_gpu(self.dhy),
+                cuda.to_gpu(self.dcy),
+                [cuda.to_gpu(dy) for dy in self.dys])
+
+
+@testing.parameterize(*testing.product({
+    'use_cudnn': ['always', 'auto', 'never'],
 }))
 @attr.cudnn
 class TestNStepLSTMCudnnCall(unittest.TestCase):
@@ -212,21 +391,106 @@ class TestNStepLSTMCudnnCall(unittest.TestCase):
             for b in self.batches]
         self.dcy = cuda.cupy.random.uniform(-1, 1, h_shape).astype('f')
         self.dhy = cuda.cupy.random.uniform(-1, 1, h_shape).astype('f')
-        self.expect = self.use_cudnn and (
-            cuda.cudnn.cudnn.getVersion() >= 5000)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.expect = chainer.should_use_cudnn('>=auto', 5000)
 
     def forward(self, train):
-        volatile = not train
-        h = chainer.Variable(self.hx, volatile=volatile)
-        c = chainer.Variable(self.cx, volatile=volatile)
-        xs = [chainer.Variable(x, volatile=volatile) for x in self.xs]
-        ws = [[chainer.Variable(w, volatile=volatile) for w in ws]
+        h = chainer.Variable(self.hx)
+        c = chainer.Variable(self.cx)
+        xs = [chainer.Variable(x) for x in self.xs]
+        ws = [[chainer.Variable(w) for w in ws]
               for ws in self.ws]
-        bs = [[chainer.Variable(b, volatile=volatile) for b in bs]
+        bs = [[chainer.Variable(b) for b in bs]
               for bs in self.bs]
-        return functions.n_step_lstm(
-            self.n_layers, self.dropout, h, c, ws, bs, xs,
-            train=train, use_cudnn=self.use_cudnn)
+        with chainer.using_config('train', train):
+            return functions.n_step_lstm(
+                self.n_layers, self.dropout, h, c, ws, bs, xs)
+
+    def test_call_cudnn_forward_training(self):
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            with mock.patch('cupy.cuda.cudnn.RNNForwardTraining') as func:
+                self.forward(True)
+                self.assertEqual(func.called, self.expect)
+
+    def test_call_cudnn_forward_inference(self):
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            with mock.patch('cupy.cuda.cudnn.RNNForwardInference') as func:
+                self.forward(False)
+                self.assertEqual(func.called, self.expect)
+
+    def test_call_cudnn_backward(self):
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            hy, cy, ys = self.forward(True)
+            hy.grad = self.dhy
+            with mock.patch('cupy.cuda.cudnn.RNNBackwardWeights') as func:
+                hy.backward()
+                self.assertEqual(func.called, self.expect)
+
+
+@testing.parameterize(*testing.product({
+    'use_cudnn': ['always', 'auto', 'never'],
+}))
+@attr.cudnn
+class TestNStepBiLSTMCudnnCall(unittest.TestCase):
+
+    batches = [4, 3, 2, 1]
+    length = len(batches)
+    in_size = 3
+    out_size = 4
+    n_layers = 2
+    dropout = 0.0
+
+    def setUp(self):
+        self.xs = [cuda.cupy.random.uniform(
+            -1, 1, (b, self.in_size)).astype('f')
+            for b in self.batches]
+        h_shape = (self.n_layers * 2, self.batches[0], self.out_size)
+        self.cx = cuda.cupy.random.uniform(-1, 1, h_shape).astype('f')
+        self.hx = cuda.cupy.random.uniform(-1, 1, h_shape).astype('f')
+
+        self.ws = []
+        self.bs = []
+        for i in range(self.n_layers):
+            for di in [0, 1]:
+                weights = []
+                biases = []
+                for j in range(8):
+                    if i == 0 and j < 4:
+                        w_in = self.in_size
+                    elif i > 0 and j < 4:
+                        w_in = self.out_size * 2
+                    else:
+                        w_in = self.out_size
+
+                    weights.append(cuda.cupy.random.uniform(
+                        -1, 1, (self.out_size, w_in)).astype('f'))
+                    biases.append(cuda.cupy.random.uniform(
+                        -1, 1, (self.out_size,)).astype('f'))
+
+                self.ws.append(weights)
+                self.bs.append(biases)
+
+        self.dys = [cuda.cupy.random.uniform(
+            -1, 1, (b, self.out_size * 2)).astype('f')
+            for b in self.batches]
+        self.dcy = cuda.cupy.random.uniform(-1, 1, h_shape).astype('f')
+        self.dhy = cuda.cupy.random.uniform(-1, 1, h_shape).astype('f')
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.expect = chainer.should_use_cudnn('>=auto', 5000)
+
+    def forward(self, train):
+        with chainer.using_config('use_cudnn', self.use_cudnn), \
+                chainer.using_config('enable_backprop', train), \
+                chainer.using_config('train', train):
+            h = chainer.Variable(self.hx)
+            c = chainer.Variable(self.cx)
+            xs = [chainer.Variable(x) for x in self.xs]
+            ws = [[chainer.Variable(w) for w in ws]
+                  for ws in self.ws]
+            bs = [[chainer.Variable(b) for b in bs]
+                  for bs in self.bs]
+            return functions.n_step_bilstm(
+                self.n_layers, self.dropout, h, c, ws, bs, xs)
 
     def test_call_cudnn_forward_training(self):
         with mock.patch('cupy.cuda.cudnn.RNNForwardTraining') as func:
@@ -296,7 +560,7 @@ def rand_vector(shape):
 
 
 @testing.parameterize(*testing.product({
-    'use_cudnn': [True, False],
+    'use_cudnn': ['always', 'auto', 'never'],
 }))
 @attr.cudnn
 class TestNStepLSTMDropout(unittest.TestCase):
@@ -315,7 +579,6 @@ class TestNStepLSTMDropout(unittest.TestCase):
         h_shape = (self.n_layers, self.batch, self.out_size)
         self.cx = rand_vector(h_shape)
         self.hx = rand_vector(h_shape)
-
         self.ws = []
         self.bs = []
         for i in range(self.n_layers):
@@ -346,9 +609,10 @@ class TestNStepLSTMDropout(unittest.TestCase):
             hy1, cy1, ys1 = lstm_without_dropout(
                 self.n_layers, self.dropout, self.hx, self.cx, self.ws,
                 self.bs, self.xs)
-            hy2, cy2, ys2 = functions.n_step_lstm(
-                self.n_layers, self.dropout, self.hx, self.cx, self.ws,
-                self.bs, self.xs, train=True, use_cudnn=self.use_cudnn)
+            with chainer.using_config('use_cudnn', self.use_cudnn):
+                hy2, cy2, ys2 = functions.n_step_lstm(
+                    self.n_layers, self.dropout, self.hx, self.cx, self.ws,
+                    self.bs, self.xs)
 
             for i in range(self.length):
                 y_counts[i] += count_close(ys1[i].data, ys2[i].data)
