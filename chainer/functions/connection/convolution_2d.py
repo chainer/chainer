@@ -133,7 +133,7 @@ class Convolution2DFunction(function_node.FunctionNode):
             filter_desc = cudnn.create_filter_descriptor(W)
             conv_desc = cudnn.create_convolution_descriptor(
                 (self.ph, self.pw), (self.sy, self.sx), x.dtype,
-                (self.dy, self.dx))
+                dilation=(self.dy, self.dx))
             if b is not None:
                 bias_desc = cudnn.create_tensor_descriptor(
                     b[None, :, None, None])
