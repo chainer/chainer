@@ -109,8 +109,7 @@ def main():
         val_interval = 100000, 'iteration'
         log_interval = 1000, 'iteration'
 
-    trainer.extend(train_imagenet.TestModeEvaluator(val_iter, model,
-                                                    device=args.gpus[0]),
+    trainer.extend(extensions.Evaluator(val_iter, model, device=args.gpus[0]),
                    trigger=val_interval)
     trainer.extend(extensions.dump_graph('main/loss'))
     trainer.extend(extensions.snapshot(), trigger=val_interval)
