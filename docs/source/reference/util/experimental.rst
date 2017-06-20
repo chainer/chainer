@@ -1,5 +1,7 @@
 Experimental feature annotation
 -------------------------------
-.. automodule:: chainer.utils
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
 
-.. autofunction:: experimental
+   chainer.utils.experimental

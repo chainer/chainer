@@ -174,12 +174,14 @@ class Link(object):
            simply assign a :class:`~chainer.Parameter` object to register
            it to the link.
 
-           class MyLink(chainer.Link):
-               def __init__(self):
-                   super().__init__()
-                   with self.init_scope():
-                       self.W = chainer.Parameter(0, (10, 5))
-                       self.b = chainer.Parameter(0, (5,))
+           .. code-block:: python
+
+              class MyLink(chainer.Link):
+                  def __init__(self):
+                      super().__init__()
+                      with self.init_scope():
+                          self.W = chainer.Parameter(0, (10, 5))
+                          self.b = chainer.Parameter(0, (5,))
 
         """
         old_flag = self.within_init_scope
