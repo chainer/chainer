@@ -24,6 +24,7 @@ def get_trainer_with_mock_updater(stop_trigger=(10, 'iteration')):
     updater.epoch_detail = 1
 
     def update():
+        updater.update_core()
         updater.iteration += 1
 
     updater.update = update
