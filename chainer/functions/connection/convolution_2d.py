@@ -85,7 +85,7 @@ class Convolution2DFunction(function_node.FunctionNode):
         kh, kw = W.shape[2:]
         col = conv.im2col_cpu(
             x, kh, kw, self.sy, self.sx, self.ph, self.pw,
-            cover_all=self.cover_all)
+            cover_all=self.cover_all, dy=self.dy, dx=self.dx)
         y = numpy.tensordot(
             col, W, ((1, 2, 3), (1, 2, 3))).astype(x.dtype, copy=False)
         if b is not None:
@@ -118,9 +118,13 @@ class Convolution2DFunction(function_node.FunctionNode):
         assert out_w > 0, 'Width in the output should be positive.'
 
         y = cuda.cupy.empty((n, out_c, out_h, out_w), dtype=x.dtype)
-        # print('# conv_2d.py:120, y.shape: {}'.format(y.shape))  # debug
+        self._use_cudnn = False
         if (not self.cover_all and chainer.should_use_cudnn('>=auto') and
                 x.dtype == W.dtype):
+            self._use_cudnn = True
+        if (self.dy > 1 or self.dx > 1) and _cudnn_version < 6000:
+            self._use_cudnn = False
+        if self._use_cudnn:
             x = cuda.cupy.ascontiguousarray(x)
             W = cuda.cupy.ascontiguousarray(W)
             if b is not None:
@@ -162,7 +166,7 @@ class Convolution2DFunction(function_node.FunctionNode):
             # Implementation using im2col
             col = conv.im2col_gpu(
                 x, kh, kw, self.sy, self.sx, self.ph, self.pw,
-                cover_all=self.cover_all)
+                cover_all=self.cover_all, dy=self.dy, dx=self.dx)
             y = cuda.cupy.tensordot(
                 col, W, ((1, 2, 3), (1, 2, 3))).astype(x.dtype, copy=False)
             # TODO(beam2d): Support unshared bias
@@ -243,7 +247,8 @@ class Convolution2DGradW(function_node.FunctionNode):
 
         filter_desc = cudnn.create_filter_descriptor(gW)
         conv_desc = cudnn.create_convolution_descriptor(
-            (self.ph, self.pw), (self.sy, self.sx), x.dtype)
+            (self.ph, self.pw), (self.sy, self.sx), x.dtype,
+            dilation=(self.dy, self.dx))
 
         oz_dtype = 'd' if x.dtype == 'd' else 'f'
         one = numpy.array(1, dtype=oz_dtype).ctypes

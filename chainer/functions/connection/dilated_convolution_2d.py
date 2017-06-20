@@ -36,6 +36,13 @@ class DilatedConvolution2DFunction(function.Function):
         self.cover_all = cover_all
         self.requires_x_grad = requires_x_grad
 
+        _use_standard_convolution = False
+        if _use_standard_convolution:
+            # standard convolution is used
+            self._func = convolution_2d.Convolution2DFunction(
+                (self.sy, self.sx), (self.ph, self.pw), self.cover_all,
+                (self.dy, self.dx))
+
     def check_type_forward(self, in_types):
         n_in = in_types.size()
         type_check.expect(2 <= n_in, n_in <= 3)
@@ -59,6 +66,9 @@ class DilatedConvolution2DFunction(function.Function):
             )
 
     def forward_cpu(self, inputs):
+        if getattr(self, '_func', False):
+            return self._func.forward_cpu(inputs)
+
         x, W = inputs[:2]
         b = inputs[2] if len(inputs) == 3 else None
 
@@ -83,6 +93,9 @@ class DilatedConvolution2DFunction(function.Function):
         return numpy.rollaxis(y, 3, 1),
 
     def forward_gpu(self, inputs):
+        if getattr(self, '_func', False):
+            return self._func.forward_gpu(inputs)
+
         x, W = inputs[:2]
         b = inputs[2] if len(inputs) == 3 else None
 
@@ -181,6 +194,9 @@ class DilatedConvolution2DFunction(function.Function):
         return y,
 
     def backward_cpu(self, inputs, grad_outputs):
+        if getattr(self, '_func', False):
+            return self._func.backward_cpu(inputs, grad_outputs)
+
         x, W = inputs[:2]
         b = inputs[2] if len(inputs) == 3 else None
         gy = grad_outputs[0]
