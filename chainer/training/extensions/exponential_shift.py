@@ -1,5 +1,7 @@
 from __future__ import division
 
+import numpy as np
+
 from chainer.training import extension
 
 
@@ -70,6 +72,8 @@ class ExponentialShift(extension.Extension):
     def serialize(self, serializer):
         self._t = serializer('_t', self._t)
         self._last_value = serializer('_last_value', self._last_value)
+        if isinstance(self._last_value, np.ndarray):
+            self._last_value = np.asscalar(self._last_value)
 
     def _get_optimizer(self, trainer):
         return self._optimizer or trainer.updater.get_optimizer('main')
