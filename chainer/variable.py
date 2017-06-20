@@ -6,7 +6,6 @@ import warnings
 import weakref
 
 import numpy
-import six
 
 import chainer
 from chainer import cuda
@@ -700,9 +699,10 @@ Actual: {0}'''.format(type(data))
             if func._n_local_function_hooks != 0:
                 hooks = collections.OrderedDict(hooks)
                 hooks.update(func.local_function_hooks)
+            hooks = hooks.values()  # avoid six for performance
 
             cuda.get_device_from_array(*(in_data + out_grad)).use()
-            for hook in six.itervalues(hooks):
+            for hook in hooks:
                 hook.backward_preprocess(func, in_data, out_grad)
             func.output_data = tuple(
                 [None if y is None else y.data for y in outputs])
@@ -710,7 +710,7 @@ Actual: {0}'''.format(type(data))
             assert len(gxs) == len(in_data)
             if not getattr(func, '_retain_after_backward', False):
                 func.output_data = None
-            for hook in six.itervalues(hooks):
+            for hook in hooks:
                 hook.backward_postprocess(func, in_data, out_grad)
 
             if is_debug:
