@@ -20,12 +20,15 @@ class Dropout(function.Function):
 
     def forward(self, x):
         self.retain_inputs(())
-        if not hasattr(self, 'mask'):
+        if hasattr(self, 'mask'):
+            y = x[0] * self.mask
+        else:
             scale = x[0].dtype.type(1. / (1 - self.dropout_ratio))
             xp = cuda.get_array_module(*x)
             if xp == numpy:
                 flag = xp.random.rand(*x[0].shape) >= self.dropout_ratio
                 self.mask = scale * flag
+                y = x[0] * self.mask
             else:
                 rand = xp.random.rand(*x[0].shape, dtype=numpy.float32)
                 self.mask, y = cuda.elementwise(
@@ -36,8 +39,7 @@ class Dropout(function.Function):
                     ''',
                     'dropout_fwd',
                 )(x[0], rand, scale, self.dropout_ratio)
-                return y,
-        return x[0] * self.mask,
+        return y,
 
     def backward(self, x, gy):
         return gy[0] * self.mask,
