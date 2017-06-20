@@ -307,7 +307,7 @@ def gather_grads(link):
     info = numpy.empty(num + 1, dtype=numpy.int32)
     info[0] = 0
     i = 0
-    for param in link.params():
+    for _, param in sorted(link.namedparams(), key=lambda x: x[0]):
         if param.size == 0:
             continue
         ptrs[i] = 0  # NULL pointer
@@ -340,7 +340,7 @@ def gather_params(link):
     info = numpy.empty(num + 1, dtype=numpy.int32)
     info[0] = 0
     i = 0
-    for param in link.params():
+    for _, param in sorted(link.namedparams(), key=lambda x: x[0]):
         if param.size == 0:
             continue
         ptrs[i] = 0  # NULL pointer
@@ -364,10 +364,11 @@ def scatter_grads(link, array):
         array (cupy.ndarray): gathered array created by gather_grads()
     """
     offset = 0
-    for param in link.params():
+    for _, param in sorted(link.namedparams(), key=lambda x: x[0]):
         next_offset = offset + param.size
         param.grad = array[offset:next_offset].reshape(param.data.shape)
         offset = next_offset
+    assert array.size == offset
 
 
 def scatter_params(link, array):
@@ -378,7 +379,8 @@ def scatter_params(link, array):
         array (cupy.ndarray): gathered array created by gather_params()
     """
     offset = 0
-    for param in link.params():
+    for _, param in sorted(link.namedparams(), key=lambda x: x[0]):
         next_offset = offset + param.size
         param.data = array[offset:next_offset].reshape(param.data.shape)
         offset = next_offset
+    assert array.size == offset
