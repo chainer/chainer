@@ -46,6 +46,7 @@ Activation functions
    chainer.functions.softmax
    chainer.functions.softplus
    chainer.functions.tanh
+   chainer.functions.tree_lstm
 
 Array manipulations
 -------------------
@@ -69,6 +70,7 @@ Array manipulations
    chainer.functions.hstack
    chainer.functions.im2col
    chainer.functions.pad
+   chainer.functions.pad_sequence
    chainer.functions.permutate
    chainer.functions.reshape
    chainer.functions.resize_images

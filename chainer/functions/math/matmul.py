@@ -35,13 +35,6 @@ def _get_ld(a):
     return trans, int(max(a.shape[trans - 2], max(strides) // a.itemsize))
 
 
-def _get_batch_mat_shape(shape):
-    s = 1
-    for x in shape[2:]:
-        s *= x
-    return shape[:2] + (s,)
-
-
 def _matmul(a, b, transa=False, transb=False, transout=False):
     a = array.as_mat(a)
     b = array.as_mat(b)
@@ -83,147 +76,11 @@ def _check_ndim(in_type, lower=1, upper=2):
     )
 
 
-def _get_size(typ, index, vector_ndim):
-    if type_check.eval(typ.ndim) == vector_ndim and \
-       type_check.eval(index) == vector_ndim:
-        return 1
-    else:
-        return typ.shape[index]
-
-
 def _get_check_index(trans, right, row_idx=0, col_idx=1):
     if trans ^ right:
         return row_idx
     else:
         return col_idx
-
-
-class MatMul(function.Function):
-
-    def __init__(self, transa=False, transb=False):
-        self.transa = transa
-        self.transb = transb
-
-    def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
-        a_type, b_type = in_types
-
-        type_check.expect(
-            a_type.dtype.kind == 'f',
-            a_type.dtype == b_type.dtype
-        )
-
-        _check_ndim(a_type)
-        _check_ndim(b_type)
-
-        a_idx = _get_check_index(self.transa, False)
-        b_idx = _get_check_index(self.transb, True)
-        a_size = _get_size(a_type, a_idx, 1)
-        b_size = _get_size(b_type, b_idx, 1)
-        type_check.expect(
-            a_size == b_size
-        )
-
-    def forward(self, x):
-        a, b = x
-        return _matmul(a, b, transa=self.transa, transb=self.transb),
-
-    def backward(self, x, gy):
-        a, b = x
-        ga = _matmul(
-            gy[0], b, transb=not self.transb, transout=self.transa
-        ).reshape(a.shape)
-        gb = _matmul(
-            a, gy[0], transa=not self.transa, transout=self.transb
-        ).reshape(b.shape)
-        return ga, gb
-
-
-def matmul(a, b, transa=False, transb=False):
-    """Computes the matrix multiplication of two arrays.
-
-    Args:
-        a (Variable): The left operand of the matrix multiplication.
-            A 1-D array of shape ``(N,)`` is considered as an
-            :math:`N \\times 1` matrix.
-            A 2-D array of shape ``(M, N)`` is considered as an
-            :math:`M \\times N` matrix.
-        b (Variable): The right operand of the matrix multiplication.
-            Its array is treated as a matrix in the same way as ``a``'s array.
-        transa (bool): If ``True``, transpose ``a``.
-        transb (bool): If ``True``, transpose ``b``.
-
-    Returns:
-        ~chainer.Variable: The result of the matrix multiplication as a 2-D
-            array.
-    """
-    return MatMul(transa=transa, transb=transb)(a, b)
-
-
-class BatchMatMul(function.Function):
-
-    def __init__(self, transa=False, transb=False):
-        self.transa = transa
-        self.transb = transb
-
-    def _output_shape(self, a, b):
-        batch_size = len(a)
-        m = _get_batch_mat_shape(a.shape)[2 if self.transa else 1]
-        n = _get_batch_mat_shape(b.shape)[1 if self.transb else 2]
-        return batch_size, m, n
-
-    def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
-        a_type, b_type = in_types
-
-        type_check.expect(
-            a_type.dtype == numpy.float32,
-            b_type.dtype == numpy.float32
-        )
-
-        _check_ndim(a_type, lower=2, upper=3)
-        _check_ndim(b_type, lower=2, upper=3)
-
-        a_idx = _get_check_index(self.transa, False, row_idx=1, col_idx=2)
-        b_idx = _get_check_index(self.transb, True, row_idx=1, col_idx=2)
-        a_size = _get_size(a_type, a_idx, 2)
-        b_size = _get_size(b_type, b_idx, 2)
-        type_check.expect(
-            a_size == b_size
-        )
-
-    def forward(self, x):
-        a, b = x
-        return _batch_matmul(a, b, self.transa, self.transb),
-
-    def backward(self, x, gy):
-        a, b = x
-        ga = _batch_matmul(gy[0], b, transb=not self.transb,
-                           transout=self.transa).reshape(a.shape)
-        gb = _batch_matmul(a, gy[0], transa=not self.transa,
-                           transout=self.transb).reshape(b.shape)
-        return ga, gb
-
-
-def batch_matmul(a, b, transa=False, transb=False):
-    """Computes the batch matrix multiplications of two sets of arrays.
-
-    Args:
-        a (Variable): The left operand of the batch matrix multiplications.
-            A 2-D array of shape ``(B, N)`` is considered as B
-            :math:`N \\times 1` matrices.
-            A 3-D array of shape ``(B, M, N)`` is considered as B
-            :math:`M \\times N` matrices.
-        b (Variable): The right operand of the batch matrix multiplications.
-            Its array is treated as matrices in the same way as ``a``'s array.
-        transa (bool): If ``True``, transpose each matrix in ``a``.
-        transb (bool): If ``True``, transpose each matrix in ``b``.
-
-    Returns:
-        ~chainer.Variable: The result of the batch matrix multiplications as a
-            3-D array.
-    """
-    return BatchMatMul(transa=transa, transb=transb)(a, b)
 
 
 def _numpy_like_matmul(a, b, xp):
@@ -236,7 +93,7 @@ def _numpy_like_matmul(a, b, xp):
         return xp.matmul(a, b)
 
 
-class NumpyLikeMatMul(function.Function):
+class MatMul(function.Function):
 
     def __init__(self, transa=False, transb=False):
         self.transa = transa
@@ -253,14 +110,18 @@ class NumpyLikeMatMul(function.Function):
             a_type.ndim == b_type.ndim,
         )
 
-        a_type = _convert_type(a_type)
-        b_type = _convert_type(b_type)
-        a_idx = _get_check_index(self.transa, False, row_idx=-2, col_idx=-1)
-        b_idx = _get_check_index(self.transb, True, row_idx=-2, col_idx=-1)
-        type_check.expect(
-            a_type.shape[:-2] == b_type.shape[:-2],
-            a_type.shape[a_idx] == b_type.shape[b_idx],
-        )
+        ndim = type_check.eval(a_type.ndim)
+        if ndim == 1:
+            type_check.expect(a_type.shape == b_type.shape)
+        else:
+            a_idx = _get_check_index(self.transa, False,
+                                     row_idx=-2, col_idx=-1)
+            b_idx = _get_check_index(self.transb, True,
+                                     row_idx=-2, col_idx=-1)
+            type_check.expect(
+                a_type.shape[:-2] == b_type.shape[:-2],
+                a_type.shape[a_idx] == b_type.shape[b_idx],
+            )
 
     def forward(self, x):
         xp = cuda.get_array_module(*x)
@@ -300,22 +161,22 @@ class NumpyLikeMatMul(function.Function):
         return ga.astype(a.dtype), gb.astype(b.dtype)
 
 
-def numpy_like_matmul(a, b, transa=False, transb=False):
+def matmul(a, b, transa=False, transb=False):
     """Computes the matrix multiplication of two arrays.
-
-    This function has consistent behavior with numpy.matmul.
-
-    .. seealso:: :data:`numpy.matmul`
 
     Args:
         a (Variable): The left operand of the matrix multiplication.
-            A 1-D array of shape ``(N,)`` is considered as an
-            :math:`N \\times 1` matrix.
+            If ``a`` and ``b`` are both 1-D arrays, ``matmul`` returns a dot
+            product of vector `a` and vector `b`. If 2-D arrays, ``matmul``
+            returns matrix product of ``a`` and ``b``. If arrays' dimension is
+            larger than 2, they are treated as a stack of matrices residing in
+            the last two indexes. ``matmul`` returns a stack of each two
+            arrays. ``a`` and ``b`` must have the same dimension.
         b (Variable): The right operand of the matrix multiplication.
             Its array is treated as a matrix in the same way as ``a``'s array.
-        transa (bool): If ``True``, transpose ``a``.
+        transa (bool): If ``True``, each matrices in ``a`` will be transposed.
             If ``a.ndim == 1``, do nothing.
-        transb (bool): If ``True``, transpose ``b``.
+        transb (bool): If ``True``, each matrices in ``b`` will be transposed.
             If ``b.ndim == 1``, do nothing.
 
     Returns:
@@ -330,4 +191,4 @@ def numpy_like_matmul(a, b, transa=False, transb=False):
                [ 2.,  2.]], dtype=float32)
 
     """
-    return NumpyLikeMatMul(transa=transa, transb=transb)(a, b)
+    return MatMul(transa=transa, transb=transb)(a, b)
