@@ -1,10 +1,8 @@
 import numpy
-import six
 
 from chainer import cuda
 from chainer import function
 from chainer import utils
-from chainer.utils import array
 from chainer.utils import type_check
 
 
@@ -36,36 +34,20 @@ def _get_ld(a):
 
 
 def _matmul(a, b, transa=False, transb=False, transout=False):
-    a = array.as_mat(a)
-    b = array.as_mat(b)
-    if transout:
-        # (A B)^T = B^T A^T
-        transa, transb = not transb, not transa
-        a, b = b, a
-    if transa:
-        a = a.T
-    if transb:
-        b = b.T
-    return a.dot(b)
-
-
-def _batch_matmul(a, b, transa=False, transb=False, transout=False):
-    a = a.reshape(a.shape[:2] + (-1,))
-    b = b.reshape(b.shape[:2] + (-1,))
-    trans_axis = (0, 2, 1)
     if transout:
         transa, transb = not transb, not transa
         a, b = b, a
-    if transa:
-        a = a.transpose(trans_axis)
-    if transb:
-        b = b.transpose(trans_axis)
+    if transa and a.ndim != 1:
+        a = a.swapaxes(-1, -2)
+    if transb and b.ndim != 1:
+        b = b.swapaxes(-1, -2)
     xp = cuda.get_array_module(a)
+
     if xp is numpy:
-        ret = numpy.empty(a.shape[:2] + b.shape[2:], dtype=a.dtype)
-        for i in six.moves.range(len(a)):
-            ret[i] = numpy.dot(a[i], b[i])
-        return ret
+        if a.ndim <= 2:
+            return numpy.dot(a, b)
+        else:
+            return numpy.einsum('...ij,...jk->...ik', a, b)
     return xp.matmul(a, b)
 
 
@@ -81,16 +63,6 @@ def _get_check_index(trans, right, row_idx=0, col_idx=1):
         return row_idx
     else:
         return col_idx
-
-
-def _numpy_like_matmul(a, b, xp):
-    if xp is numpy:
-        if a.ndim <= 2:
-            return numpy.dot(a, b)
-        else:
-            return numpy.einsum('...ij,...jk->...ik', a, b)
-    else:
-        return xp.matmul(a, b)
 
 
 class MatMul(function.Function):
@@ -124,29 +96,19 @@ class MatMul(function.Function):
             )
 
     def forward(self, x):
-        xp = cuda.get_array_module(*x)
         a, b = x
-        if self.transa and a.ndim != 1:
-            a = a.swapaxes(-1, -2)
-        if self.transb and b.ndim != 1:
-            b = b.swapaxes(-1, -2)
-        y = _numpy_like_matmul(a, b, xp)
+        y = _matmul(a, b, self.transa, self.transb)
         return utils.force_array(y),
 
     def backward(self, x, gy):
-        xp = cuda.get_array_module(*x)
         a, b = x
         a_shape = a.shape
         b_shape = b.shape
-        if not self.transa and a.ndim != 1:
-            a = a.swapaxes(-1, -2)
-        if not self.transb and b.ndim != 1:
-            b = b.swapaxes(-1, -2)
 
         if gy[0].ndim == 0:
             ga = gy[0] * b
         else:
-            ga = _numpy_like_matmul(gy[0], b, xp)
+            ga = _matmul(gy[0], b, False, not self.transb)
         if self.transa and a.ndim != 1:
             ga = ga.swapaxes(-1, -2)
         ga = ga.reshape(a_shape)
@@ -154,7 +116,7 @@ class MatMul(function.Function):
         if gy[0].ndim == 0:
             gb = a * gy[0]
         else:
-            gb = _numpy_like_matmul(a, gy[0], xp)
+            gb = _matmul(a, gy[0], not self.transa, False)
         if self.transb and a.ndim != 1:
             gb = gb.swapaxes(-1, -2)
         gb = gb.reshape(b_shape)
