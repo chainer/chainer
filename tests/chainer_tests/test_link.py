@@ -120,6 +120,8 @@ class TestLink(unittest.TestCase):
 
     def test_copy(self):
         link = self.link.copy()
+        self.assertIsInstance(link._params, set)
+        self.assertIsInstance(link._persistent, set)
         self.assertTrue(hasattr(link, 'x'))
         self.assertTrue(hasattr(link, 'y'))
         self.assertTrue(hasattr(link, 'u'))
@@ -417,8 +419,10 @@ class TestChain(unittest.TestCase):
     def test_copy(self):
         c2 = self.c2.copy()
         self.assertIs(c2.name, None)
+        self.assertIsInstance(c2._children, set)
         self.assertTrue(hasattr(c2, 'c1'))
         self.assertEqual(c2.c1.name, 'c1')
+        self.assertIsInstance(c2.c1._children, set)
         self.assertIsNot(c2.c1, self.c1)
         self.assertEqual(c2.c1.l1.name, 'l1')
         self.assertIsNot(c2.c1.l1, self.l1)
@@ -669,8 +673,10 @@ class TestChainList(unittest.TestCase):
         c2 = self.c2.copy()
 
         self.assertIs(c2.name, None)
+        self.assertIsInstance(c2._children, list)
         self.assertIsNot(c2[0], self.c1)
         self.assertEqual(c2[0].name, '0')
+        self.assertIsInstance(c2[0]._children, list)
         self.assertIsNot(c2[0][0], self.l1)
         self.assertEqual(c2[0][0].name, '0')
         self.assertIsNot(c2[0][0].x, self.l1.x)
