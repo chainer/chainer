@@ -154,8 +154,8 @@ class TestRawArray(unittest.TestCase):
     @attr.gpu
     def test_update_uses_raw_array(self):
         model = SimpleNetRawArray(self)
-        dataset = [((numpy.ones((2, 5, 5))*i).astype(numpy.float32),
-                   numpy.int32(0)) for i in range(100)]
+        dataset = [((numpy.ones((2, 5, 5)) * i).astype(numpy.float32),
+                    numpy.int32(0)) for i in range(100)]
 
         batch_size = 5
         devices = (1,)
