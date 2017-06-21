@@ -11,9 +11,10 @@ import numpy
 try:
     from rdkit import Chem
     from rdkit.Chem import rdMolDescriptors
-    _available = True
-except ImportError:
-    _available = False
+    available = True
+except Exception as e:
+    available = False
+    _resolution_error = e
 
 
 def check_available():
@@ -32,12 +33,13 @@ def check_available():
         Otherwise ``False``.
 
     """
-    if not _available:
-        warnings.warn('rdkit is not install on your environment '
-                      'Please install it to use tox21 dataset.\n'
-                      'See the official document for installation.'
-                      'http://www.rdkit.org/docs/Install.html')
-    return _available
+    if not available:
+        msg = ('rdkit is not install on your environment '
+               'Please install it to use tox21 dataset.\n'
+               'See the official document for installation.'
+               'http://www.rdkit.org/docs/Install.html')
+        msg += str(_resolution_error)
+        raise RuntimeError(msg)
 
 
 config = {
