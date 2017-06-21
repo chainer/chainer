@@ -144,8 +144,8 @@ def get_tox21(preprocessor=_ECFP):
 
     """
 
-    if check_available():
-        train = _get_tox21('train', preprocessor)
-        val = _get_tox21('val', preprocessor)
-        test = _get_tox21('test', preprocessor, False)
-        return train, val, test
+    check_available()
+    train = _get_tox21('train', preprocessor)
+    val = _get_tox21('val', preprocessor)
+    test = _get_tox21('test', preprocessor, False)
+    return train, val, test
