@@ -2,11 +2,11 @@ from __future__ import print_function
 import sys
 
 from chainer import cuda
-from chainer import function
+from chainer import function_hook
 from chainer import variable
 
 
-class PrintHook(function.FunctionHook):
+class PrintHook(function_hook.FunctionHook):
     """Function hook that prints debug information.
 
     This function hook outputs the debug information of input arguments of

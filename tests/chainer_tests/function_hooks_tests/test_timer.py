@@ -15,7 +15,7 @@ from chainer.testing import attr
 
 
 def check_history(self, t, function_type, return_type):
-    self.assertIsInstance(t[0], function_type)
+    self.assertIsInstance(t[0].function, function_type)
     self.assertIsInstance(t[1], return_type)
 
 
@@ -51,9 +51,12 @@ class TestTimerHookToLink(unittest.TestCase):
         y.grad = gy
         with self.h:
             y.backward()
-        self.assertEqual(1, len(self.h.call_history))
-        check_history(self, self.h.call_history[0],
-                      linear.LinearFunction, float)
+        # It includes forward of + that accumulates gradients to W and b
+        self.assertEqual(3, len(self.h.call_history), self.h.call_history)
+        for entry in self.h.call_history:
+            if entry[0].label == '_ + _':
+                continue
+            check_history(self, entry, linear.LinearFunction, float)
 
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy)
@@ -82,7 +85,7 @@ class TestTimerHookToFunction(unittest.TestCase):
         self.check_forward(self.x)
 
     @attr.gpu
-    def test_fowward_gpu(self):
+    def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x))
 
     def check_backward(self, x, gy):
