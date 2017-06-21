@@ -28,7 +28,7 @@ class DetFunctionTest(unittest.TestCase):
             self.gy = numpy.random.uniform(-1, 1, (6,)).astype(numpy.float32)
             self.ct = self.x.transpose(0, 2, 1)
             self.det = F.batch_det
-            self.matmul = F.batch_matmul
+            self.matmul = F.matmul
         else:
             self.x = numpy.random.uniform(.5, 1, (5, 5)).astype(numpy.float32)
             self.y = numpy.random.uniform(.5, 1, (5, 5)).astype(numpy.float32)

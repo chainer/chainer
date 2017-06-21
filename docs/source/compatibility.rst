@@ -17,7 +17,7 @@ Targeted Versions
 
 **This policy is applied to Chainer v2.0.0 and higher.**
 Note that this policy is not applied to Chainer of lower versions.
-For older versions of Chainer, see `the old version of API Compatiblity Policy <http://docs.chainer.org/en/v1.24.0/compatibility.html>`_.
+For older versions of Chainer, see `the old version of API Compatiblity Policy <https://docs.chainer.org/en/v1.24.0/compatibility.html>`_.
 
 
 Versioning and Backward Compatibility

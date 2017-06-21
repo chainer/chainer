@@ -140,7 +140,7 @@ class NStepGRU(NStepGRUBase):
     and all hidden states of the last layer for each time.
 
     Unlike :func:`chainer.functions.n_step_gru`, this function automatically
-    sort inputs in descending order by length, and transpose the seuqnece.
+    sort inputs in descending order by length, and transpose the sequence.
     Users just need to call the link with a list of :class:`chainer.Variable`
     holding sequences.
 
@@ -178,7 +178,7 @@ class NStepBiGRU(NStepGRUBase):
     and all hidden states of the last layer for each time.
 
     Unlike :func:`chainer.functions.n_step_bigru`, this function automatically
-    sort inputs in descending order by length, and transpose the seuqnece.
+    sort inputs in descending order by length, and transpose the sequence.
     Users just need to call the link with a list of :class:`chainer.Variable`
     holding sequences.
 

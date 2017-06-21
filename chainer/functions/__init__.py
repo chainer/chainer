@@ -28,6 +28,7 @@ from chainer.functions.activation.softplus import softplus  # NOQA
 from chainer.functions.activation.softplus import Softplus  # NOQA
 from chainer.functions.activation.tanh import tanh  # NOQA
 from chainer.functions.activation.tanh import Tanh  # NOQA
+from chainer.functions.activation.tree_lstm import tree_lstm  # NOQA
 
 from chainer.functions.array.broadcast import broadcast  # NOQA
 from chainer.functions.array.broadcast import Broadcast  # NOQA
@@ -204,8 +205,8 @@ from chainer.functions.math.logarithm_1p import Log1p  # NOQA
 from chainer.functions.math.logarithm_1p import log1p  # NOQA
 from chainer.functions.math.logsumexp import logsumexp  # NOQA
 from chainer.functions.math.logsumexp import LogSumExp  # NOQA
-from chainer.functions.math.matmul import batch_matmul  # NOQA
-from chainer.functions.math.matmul import BatchMatMul  # NOQA
+from chainer.functions.math.matmul import matmul  # NOQA
+from chainer.functions.math.matmul import MatMul  # NOQA
 from chainer.functions.math.matmul import matmul  # NOQA
 from chainer.functions.math.matmul import MatMul  # NOQA
 from chainer.functions.math.maximum import maximum  # NOQA
