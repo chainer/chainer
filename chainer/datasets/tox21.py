@@ -42,7 +42,7 @@ def check_available():
         raise RuntimeError(msg)
 
 
-config = {
+_config = {
     'train': {
         'url': 'https://tripod.nih.gov/tox21/challenge/download?'
         'id=tox21_10k_data_allsdf',
@@ -60,7 +60,7 @@ config = {
     }
 }
 
-root = 'pfnet/chainer/tox21'
+_root = 'pfnet/chainer/tox21'
 
 label_names = ['NR-AR', 'NR-AR-LBD', 'NR-AhR', 'NR-Aromatase', 'NR-ER',
                'NR-ER-LBD', 'NR-PPAR-gamma', 'SR-ARE', 'SR-ATAD5',
@@ -102,11 +102,11 @@ def _creator(cached_file_path, sdffile, url):
 
 def _get_tox21(config_name, preprocessor, with_label=True):
     basename = config_name
-    c = config[config_name]
+    c = _config[config_name]
     url = c['url']
     sdffile = c['filename']
 
-    cache_root = download.get_dataset_directory(root)
+    cache_root = download.get_dataset_directory(_root)
     cache_path = os.path.join(cache_root, basename + ".sdf")
 
     def creator(path):
