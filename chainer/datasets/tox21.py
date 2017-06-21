@@ -102,7 +102,6 @@ def _creator(cached_file_path, sdffile, url):
 
 def _get_tox21(config_name, preprocessor, with_label=True):
     basename = config_name
-    global config
     c = config[config_name]
     url = c['url']
     sdffile = c['filename']
