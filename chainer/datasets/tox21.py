@@ -67,7 +67,7 @@ label_names = ['NR-AR', 'NR-AR-LBD', 'NR-AhR', 'NR-Aromatase', 'NR-ER',
                'SR-HSE', 'SR-MMP', 'SR-p53']
 
 
-def _ECFP(mol_supplier, label_names, radius=2):
+def _ECFP(mol_supplier, radius=2):
     descriptors = []
     labels = []
     for mol in mol_supplier:
@@ -115,7 +115,7 @@ def _get_tox21(config_name, preprocessor, with_label=True):
     mol_supplier = download.cache_or_load_file(
         cache_path, creator, Chem.SDMolSupplier)
 
-    descriptors, labels = preprocessor(mol_supplier, label_names)
+    descriptors, labels = preprocessor(mol_supplier)
     if with_label:
         return tuple_dataset.TupleDataset(descriptors, labels)
     else:
