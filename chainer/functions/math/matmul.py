@@ -43,12 +43,12 @@ def _matmul(a, b, transa=False, transb=False, transout=False):
         b = b.swapaxes(-1, -2)
     xp = cuda.get_array_module(a)
 
-    if xp is numpy:
-        if a.ndim <= 2:
-            return numpy.dot(a, b)
-        else:
-            return numpy.einsum('...ij,...jk->...ik', a, b)
-    return xp.matmul(a, b)
+    if hasattr(xp, 'matmul'):
+        return xp.matmul(a, b)
+    if a.ndim <= 2:
+        return numpy.dot(a, b)
+    else:
+        return numpy.einsum('...ij,...jk->...ik', a, b)
 
 
 def _check_ndim(in_type, lower=1, upper=2):
