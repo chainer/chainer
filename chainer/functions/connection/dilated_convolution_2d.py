@@ -34,12 +34,12 @@ def _pair(x):
 class DilatedConvolution2DFunction(function.Function):
 
     def __init__(self, stride=1, pad=0, dilate=1, cover_all=False,
-                 no_data_grad=False):
+                 requires_x_grad=True):
         self.sy, self.sx = _pair(stride)
         self.ph, self.pw = _pair(pad)
         self.dy, self.dx = _pair(dilate)
         self.cover_all = cover_all
-        self.no_data_grad = no_data_grad
+        self.requires_x_grad = requires_x_grad
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -185,7 +185,7 @@ class DilatedConvolution2DFunction(function.Function):
 
         gW = numpy.tensordot(
             gy, self.col, ((0, 2, 3), (0, 4, 5))).astype(W.dtype, copy=False)
-        if self.no_data_grad:
+        if not self.requires_x_grad:
             gx = None
         else:
             gcol = numpy.tensordot(W, gy, (0, 1)).astype(x.dtype, copy=False)
@@ -261,7 +261,7 @@ class DilatedConvolution2DFunction(function.Function):
                         oz_dtype = 'd' if x.dtype == 'd' else 'f'
                         one = numpy.array(1, dtype=oz_dtype).ctypes
                         zero = numpy.array(0, dtype=oz_dtype).ctypes
-                        if not self.no_data_grad:
+                        if self.requires_x_grad:
                             gx = cuda.cupy.zeros_like(x)
                         gWji = cuda.cupy.empty((out_c, c, 1, 1), dtype=W.dtype)
 
@@ -295,7 +295,7 @@ class DilatedConvolution2DFunction(function.Function):
                             gy_desc.value, gy.data.ptr, self.conv_desc.value,
                             zero.data, self.filter_desc.value, gWji.data.ptr)
 
-                    if not self.no_data_grad:
+                    if self.requires_x_grad:
                         if _cudnn_version >= 4000:
                             libcudnn.convolutionBackwardData_v3(
                                 handle, one.data, self.filter_desc.value,
@@ -321,7 +321,7 @@ class DilatedConvolution2DFunction(function.Function):
             gW = cuda.cupy.tensordot(
                 gy, self.col, ((0, 2, 3), (0, 4, 5))).astype(W.dtype,
                                                              copy=False)
-            if self.no_data_grad:
+            if not self.requires_x_grad:
                 gx = None
             else:
                 gcol = cuda.cupy.tensordot(W, gy, (0, 1)).astype(x.dtype,
@@ -402,9 +402,9 @@ def dilated_convolution_2d(x, W, b=None, stride=1, pad=0, dilate=1,
     .. seealso:: :class:`DilatedConvolution2D`
 
     """
-    no_data_grad = not (isinstance(x, variable.Variable) and x.requires_grad)
+    requires_x_grad = isinstance(x, variable.Variable) and x.requires_grad
     func = DilatedConvolution2DFunction(stride, pad, dilate, cover_all,
-                                        no_data_grad)
+                                        requires_x_grad)
     if b is None:
         return func(x, W)
     else:

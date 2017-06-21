@@ -34,7 +34,7 @@ def _pair(x):
 
 class Convolution2DFunction(function.Function):
 
-    def __init__(self, stride=1, pad=0, cover_all=False, no_data_grad=False,
+    def __init__(self, stride=1, pad=0, cover_all=False, requires_x_grad=True,
                  **kwargs):
         argument.check_unexpected_kwargs(
             kwargs, deterministic="deterministic argument is not "
@@ -46,7 +46,7 @@ class Convolution2DFunction(function.Function):
         self.sy, self.sx = _pair(stride)
         self.ph, self.pw = _pair(pad)
         self.cover_all = cover_all
-        self.no_data_grad = no_data_grad
+        self.requires_x_grad = requires_x_grad
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -193,7 +193,7 @@ class Convolution2DFunction(function.Function):
         gW = numpy.tensordot(
             gy, self.col, ((0, 2, 3), (0, 4, 5))).astype(W.dtype, copy=False)
 
-        if self.no_data_grad:
+        if not self.requires_x_grad:
             gx = None
         else:
             gcol = numpy.tensordot(W, gy, (0, 1)).astype(x.dtype, copy=False)
@@ -260,7 +260,7 @@ class Convolution2DFunction(function.Function):
                     algo, workspace.data.ptr, workspace_size,
                     zero.data, self.filter_desc.value, gW.data.ptr)
 
-                if not self.no_data_grad:
+                if self.requires_x_grad:
                     if configuration.config.cudnn_deterministic:
                         algo = cuda.cupy.cuda.cudnn.CUDNN_CONVOLUTION_BWD_DATA_ALGO_1  # NOQA
                     else:
@@ -289,7 +289,7 @@ class Convolution2DFunction(function.Function):
                     handle, one.data, x_desc.value, x.data.ptr,
                     gy_desc.value, gy.data.ptr, self.conv_desc.value,
                     zero.data, self.filter_desc.value, gW.data.ptr)
-                if not self.no_data_grad:
+                if self.requires_x_grad:
                     gx = cuda.cupy.empty_like(x)
                     libcudnn.convolutionBackwardData_v2(
                         handle, one.data, self.filter_desc.value, W.data.ptr,
@@ -305,7 +305,7 @@ class Convolution2DFunction(function.Function):
             gW = cuda.cupy.tensordot(
                 gy, self.col, ((0, 2, 3), (0, 4, 5))).astype(W.dtype,
                                                              copy=False)
-            if not self.no_data_grad:
+            if self.requires_x_grad:
                 gcol = cuda.cupy.tensordot(W, gy, (0, 1)).astype(x.dtype,
                                                                  copy=False)
                 gcol = cuda.cupy.rollaxis(gcol, 3)
@@ -445,8 +445,8 @@ cover_all=True)
         "context where value is either `True` or `False`.")
     argument.assert_kwargs_empty(kwargs)
 
-    no_data_grad = not (isinstance(x, variable.Variable) and x.requires_grad)
-    func = Convolution2DFunction(stride, pad, cover_all, no_data_grad)
+    requires_x_grad = isinstance(x, variable.Variable) and x.requires_grad
+    func = Convolution2DFunction(stride, pad, cover_all, requires_x_grad)
     if b is None:
         return func(x, W)
     else:

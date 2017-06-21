@@ -33,7 +33,7 @@ def _pair(x):
 
 class Deconvolution2DFunction(function.Function):
 
-    def __init__(self, stride=1, pad=0, outsize=None, no_data_grad=False,
+    def __init__(self, stride=1, pad=0, outsize=None, requires_x_grad=True,
                  **kwargs):
         argument.check_unexpected_kwargs(
             kwargs, deterministic="deterministic argument is not "
@@ -45,7 +45,7 @@ class Deconvolution2DFunction(function.Function):
         self.sy, self.sx = _pair(stride)
         self.ph, self.pw = _pair(pad)
         self.outh, self.outw = (None, None) if outsize is None else outsize
-        self.no_data_grad = no_data_grad
+        self.requires_x_grad = requires_x_grad
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -232,7 +232,7 @@ class Deconvolution2DFunction(function.Function):
             gy, kh, kw, self.sy, self.sx, self.ph, self.pw)
         gW = numpy.tensordot(
             x, col, ([0, 2, 3], [0, 4, 5])).astype(W.dtype, copy=False)
-        if self.no_data_grad:
+        if not self.requires_x_grad:
             gx = None
         else:
             gx = numpy.tensordot(
@@ -338,7 +338,7 @@ class Deconvolution2DFunction(function.Function):
 
             gW = cuda.cupy.tensordot(
                 x, col, ([0, 2, 3], [0, 4, 5])).astype(W.dtype, copy=False)
-            if not self.no_data_grad:
+            if self.requires_x_grad:
                 gx = cuda.cupy.tensordot(
                     col, W, ([1, 2, 3], [1, 2, 3])).astype(x.dtype, copy=False)
                 gx = cuda.cupy.rollaxis(gx, 3, 1)
@@ -460,8 +460,8 @@ http://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf
         "context where value is either `True` or `False`.")
     argument.assert_kwargs_empty(kwargs)
 
-    no_data_grad = not (isinstance(x, variable.Variable) and x.requires_grad)
-    func = Deconvolution2DFunction(stride, pad, outsize, no_data_grad)
+    requires_x_grad = isinstance(x, variable.Variable) and x.requires_grad
+    func = Deconvolution2DFunction(stride, pad, outsize, requires_x_grad)
     if b is None:
         return func(x, W)
     else:
