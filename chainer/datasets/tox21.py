@@ -3,10 +3,10 @@ import shutil
 import warnings
 import zipfile
 
+import numpy
 
 from chainer.dataset import download
 from chainer.datasets import tuple_dataset
-import numpy
 
 try:
     from rdkit import Chem
