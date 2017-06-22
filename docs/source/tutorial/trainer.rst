@@ -47,18 +47,18 @@ Here, we are going to use the same model as before.
     class MLP(Chain):
 
         def __init__(self, n_mid_units=100, n_out=10):
-            super(MLP, self).__init__(
-                l1=L.Linear(None, n_mid_units),
-                l2=L.Linear(None, n_mid_units),
-                l3=L.Linear(None, n_out),
-            )
+            super(MLP, self).__init__()
+            self.init_scope():
+                self.l1 = L.Linear(None, n_mid_units)
+                self.l2 = L.Linear(None, n_mid_units)
+                self.l3 = L.Linear(None, n_out)
 
         def __call__(self, x):
             h1 = F.relu(self.l1(x))
             h2 = F.relu(self.l2(h1))
             return self.l3(h2)
 
-    gpu_id = 0
+    gpu_id = 0  # Set to -1 if you use CPU
 
     model = MLP()
     model.to_gpu(gpu_id)  # If you use CPU, comment out this line
@@ -91,7 +91,7 @@ Now let's create the :class:`~chainer.training.Updater` object !
 
     max_epoch = 10
     # Note: If you don't have a GPU, set this to -1 to run on CPU only
-    gpu_id = 0
+    gpu_id = 0  
 
     # Wrapp your model by Classifier and include the process of loss calculation within your model.
     # Since we do not specify a loss funciton here, the default 'softmax_cross_entropy' is
