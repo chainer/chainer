@@ -47,7 +47,7 @@ def _check_grad_type(func, x, gx):
         detail += '''
 Please report this error to the issue tracker with the stack trace,
 the information of your environment, and your script:
-https://github.com/pfnet/chainer/issues/new.
+https://github.com/chainer/chainer/issues/new.
 '''.format(type(func).__name__, func.label)
 
     raise typ(detail + msg)
