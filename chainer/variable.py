@@ -74,10 +74,13 @@ def variable_repr(var):
     else:
         prefix = 'variable'
 
-    if arr.size > 0 or arr.shape == (0,):
+    if arr is None:
+        lst = 'None'
+    elif arr.size > 0 or arr.shape == (0,):
         lst = numpy.array2string(arr, None, None, None, ', ', prefix + '(')
     else:  # show zero-length shape unless it is (0,)
         lst = '[], shape=%s' % (repr(arr.shape),)
+
     return '%s(%s)' % (prefix, lst)
 
 
@@ -93,12 +96,18 @@ def variable_str(var):
         arr = var.data
     else:
         arr = var.data.get()
+
     if var.name:
-        prefix = 'variable ' + var.name + '('
+        prefix = 'variable ' + var.name
     else:
-        prefix = 'variable('
-    return (prefix + numpy.array2string(arr, None, None, None, ' ', prefix) +
-            ')')
+        prefix = 'variable'
+
+    if arr is None:
+        lst = 'None'
+    else:
+        lst = numpy.array2string(arr, None, None, None, ' ', prefix + '(')
+
+    return '%s(%s)' % (prefix, lst)
 
 
 class VariableNode(object):
