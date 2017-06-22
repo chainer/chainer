@@ -221,7 +221,7 @@ How to run a model on GPU
         def __init__(self, n_mid_units=100, n_out=10):
             # register layers with parameters by super initializer
             super(MLP, self).__init__()
-            self.init_scode():
+            self.init_scope():
                 self.l1 = L.Linear(None, n_mid_units)
                 self.l2 = L.Linear(None, n_mid_units)
                 self.l3 = L.Linear(None, n_out)
