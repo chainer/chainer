@@ -6,6 +6,14 @@ from chainer import cuda
 from chainer import function
 from chainer.functions.activation import log_softmax
 from chainer.utils import type_check
+from chainer import variable
+
+
+def _broadcast_to(array, shape):
+    if hasattr(numpy, "broadcast_to"):
+        return numpy.broadcast_to(array, shape)
+    dummy = numpy.empty(shape, array.dtype)
+    return numpy.broadcast_arrays(array, dummy)[0]
 
 
 class SoftmaxCrossEntropy(function.Function):
@@ -14,9 +22,8 @@ class SoftmaxCrossEntropy(function.Function):
 
     normalize = True
 
-    def __init__(self, use_cudnn=True, normalize=True, cache_score=True,
-                 class_weight=None, ignore_label=-1, reduce='mean'):
-        self.use_cudnn = use_cudnn
+    def __init__(self, normalize=True, cache_score=True, class_weight=None,
+                 ignore_label=-1, reduce='mean'):
         self.normalize = normalize
         self.cache_score = cache_score
         self.class_weight = class_weight
@@ -25,7 +32,7 @@ class SoftmaxCrossEntropy(function.Function):
                 raise ValueError('class_weight.ndim should be 1')
             if self.class_weight.dtype.kind != 'f':
                 raise ValueError('The dtype of class_weight should be \'f\'')
-            if isinstance(self.class_weight, chainer.Variable):
+            if isinstance(self.class_weight, variable.Variable):
                 raise ValueError('class_weight should be a numpy.ndarray or '
                                  'cupy.ndarray, not a chainer.Variable')
         self.ignore_label = ignore_label
@@ -61,13 +68,12 @@ class SoftmaxCrossEntropy(function.Function):
         if chainer.is_debug():
             self._check_input_values(x, t)
 
-        log_y = log_softmax._log_softmax(x, self.use_cudnn)
+        log_y = log_softmax._log_softmax(x)
         if self.cache_score:
             self.y = numpy.exp(log_y)
         if self.class_weight is not None:
             shape = [1 if d != 1 else -1 for d in six.moves.range(x.ndim)]
-            log_y *= numpy.broadcast_to(
-                self.class_weight.reshape(shape), x.shape)
+            log_y *= _broadcast_to(self.class_weight.reshape(shape), x.shape)
         log_yd = numpy.rollaxis(log_y, 1)
         log_yd = log_yd.reshape(len(log_yd), -1)
         log_p = log_yd[numpy.maximum(t.ravel(), 0), numpy.arange(t.size)]
@@ -93,7 +99,7 @@ class SoftmaxCrossEntropy(function.Function):
         if chainer.is_debug():
             self._check_input_values(x, t)
 
-        log_y = log_softmax._log_softmax(x, self.use_cudnn)
+        log_y = log_softmax._log_softmax(x)
         if self.cache_score:
             self.y = cupy.exp(log_y)
         if self.class_weight is not None:
@@ -109,10 +115,13 @@ class SoftmaxCrossEntropy(function.Function):
         log_y = cupy.rollaxis(log_y, 1, log_y.ndim)
         if self.reduce == 'mean':
             ret = cuda.reduce(
-                'S t, raw T log_y, int32 n_channel, raw T coeff', 'T out',
-                't == -1 ? T(0) : log_y[_j * n_channel + t]',
+                'S t, raw T log_y, int32 n_channel, raw T coeff, '
+                'S ignore_label',
+                'T out',
+                't == ignore_label ? T(0) : log_y[_j * n_channel + t]',
                 'a + b', 'out = a * -coeff[0]', '0', 'crossent_fwd'
-            )(t, log_y.reduced_view(), log_y.shape[-1], self._coeff)
+            )(t, log_y.reduced_view(), log_y.shape[-1],
+              self._coeff, self.ignore_label)
         else:
             ret = cuda.elementwise(
                 'S t, raw T log_y, int32 n_channel, T ignore', 'T out',
@@ -134,17 +143,16 @@ class SoftmaxCrossEntropy(function.Function):
         if hasattr(self, 'y'):
             y = self.y.copy()
         else:
-            y = log_softmax._log_softmax(x, self.use_cudnn)
+            y = log_softmax._log_softmax(x)
             numpy.exp(y, out=y)
         if y.ndim == 2:
             gx = y
             gx[numpy.arange(len(t)), numpy.maximum(t, 0)] -= 1
             if self.class_weight is not None:
                 shape = [1 if d != 1 else -1 for d in six.moves.range(x.ndim)]
-                c = numpy.broadcast_to(
-                    self.class_weight.reshape(shape), x.shape)
+                c = _broadcast_to(self.class_weight.reshape(shape), x.shape)
                 c = c[numpy.arange(len(t)), numpy.maximum(t, 0)]
-                gx *= numpy.broadcast_to(numpy.expand_dims(c, 1), gx.shape)
+                gx *= _broadcast_to(numpy.expand_dims(c, 1), gx.shape)
             gx *= (t != self.ignore_label).reshape((len(t), 1))
         else:
             # in the case where y.ndim is higher than 2,
@@ -157,12 +165,11 @@ class SoftmaxCrossEntropy(function.Function):
             gx[fst_index, numpy.maximum(t.ravel(), 0), trd_index] -= 1
             if self.class_weight is not None:
                 shape = [1 if d != 1 else -1 for d in six.moves.range(x.ndim)]
-                c = numpy.broadcast_to(
-                    self.class_weight.reshape(shape), x.shape)
+                c = _broadcast_to(self.class_weight.reshape(shape), x.shape)
                 c = c.reshape(gx.shape)
                 c = c[fst_index, numpy.maximum(t.ravel(), 0), trd_index]
                 c = c.reshape(y.shape[0], 1, -1)
-                gx *= numpy.broadcast_to(c, gx.shape)
+                gx *= _broadcast_to(c, gx.shape)
             gx *= (t != self.ignore_label).reshape((len(t), 1, -1))
             gx = gx.reshape(y.shape)
         if self.reduce == 'mean':
@@ -177,7 +184,7 @@ class SoftmaxCrossEntropy(function.Function):
         if hasattr(self, 'y'):
             y = self.y
         else:
-            y = log_softmax._log_softmax(x, self.use_cudnn)
+            y = log_softmax._log_softmax(x)
             cupy.exp(y, out=y)
         gloss = grad_outputs[0]
         n_unit = t.size // len(t)
@@ -188,32 +195,34 @@ class SoftmaxCrossEntropy(function.Function):
 
         if self.class_weight is None:
             gx = cuda.elementwise(
-                'T y, S t, T coeff, S n_channel, S n_unit',
+                'T y, S t, T coeff, S n_channel, S n_unit, S ignore_label',
                 'T gx',
                 '''
                     const int c = (i / n_unit % n_channel);
-                    gx = t == -1 ? 0 : coeff * (y - (c == t));
+                    gx = t == ignore_label ? 0 : coeff * (y - (c == t));
                 ''',
                 'softmax_crossent_bwd')(
-                    y, cupy.expand_dims(t, 1), coeff, x.shape[1], n_unit)
+                    y, cupy.expand_dims(t, 1), coeff, x.shape[1],
+                    n_unit, self.ignore_label)
         else:
             gx = cuda.elementwise(
-                'T y, raw T w, S t, T coeff, S n_channel, S n_unit',
+                'T y, raw T w, S t, T coeff, S n_channel, S n_unit, '
+                'S ignore_label',
                 'T gx',
                 '''
                     const int c = (i / n_unit % n_channel);
-                    gx = t == -1 ? 0 : coeff * (y - (c == t)) * w[t];
+                    gx = t == ignore_label ? 0 : coeff * (y - (c == t)) * w[t];
                 ''',
                 'softmax_crossent_weight_bwd')(
                     y, self.class_weight, cupy.expand_dims(t, 1), coeff,
-                    x.shape[1], n_unit)
+                    x.shape[1], n_unit, self.ignore_label)
 
         return gx, None
 
 
 def softmax_cross_entropy(
-        x, t, use_cudnn=True, normalize=True, cache_score=True,
-        class_weight=None, ignore_label=-1, reduce='mean'):
+        x, t, normalize=True, cache_score=True, class_weight=None,
+        ignore_label=-1, reduce='mean'):
     """Computes cross entropy loss for pre-softmax activations.
 
     Args:
@@ -263,5 +272,4 @@ def softmax_cross_entropy(
     """
 
     return SoftmaxCrossEntropy(
-        use_cudnn, normalize, cache_score, class_weight, ignore_label, reduce)(
-            x, t)
+        normalize, cache_score, class_weight, ignore_label, reduce)(x, t)

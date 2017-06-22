@@ -2,7 +2,6 @@
 """Sample script of word embedding model.
 
 This code implements skip-gram model and continuous-bow model.
-Use ../ptb/download.py to download 'ptb.train.txt'.
 """
 import argparse
 import collections
@@ -49,7 +48,7 @@ parser.set_defaults(test=False)
 args = parser.parse_args()
 
 if args.gpu >= 0:
-    chainer.cuda.get_device(args.gpu).use()
+    chainer.cuda.get_device_from_id(args.gpu).use()
     cuda.check_cuda_available()
 
 print('GPU: {}'.format(args.gpu))
@@ -65,15 +64,16 @@ print('')
 class ContinuousBoW(chainer.Chain):
 
     def __init__(self, n_vocab, n_units, loss_func):
-        super(ContinuousBoW, self).__init__(
-            embed=F.EmbedID(
-                n_vocab, n_units, initialW=I.Uniform(1. / n_units)),
-            loss_func=loss_func,
-        )
+        super(ContinuousBoW, self).__init__()
+
+        with self.init_scope():
+            self.embed = L.EmbedID(
+                n_vocab, n_units, initialW=I.Uniform(1. / n_units))
+            self.loss_func = loss_func
 
     def __call__(self, x, context):
         e = self.embed(context)
-        h = F.sum(e, axis=1) * (1. / context.data.shape[1])
+        h = F.sum(e, axis=1) * (1. / context.shape[1])
         loss = self.loss_func(h, x)
         reporter.report({'loss': loss}, self)
         return loss
@@ -82,15 +82,16 @@ class ContinuousBoW(chainer.Chain):
 class SkipGram(chainer.Chain):
 
     def __init__(self, n_vocab, n_units, loss_func):
-        super(SkipGram, self).__init__(
-            embed=L.EmbedID(
-                n_vocab, n_units, initialW=I.Uniform(1. / n_units)),
-            loss_func=loss_func,
-        )
+        super(SkipGram, self).__init__()
+
+        with self.init_scope():
+            self.embed = L.EmbedID(
+                n_vocab, n_units, initialW=I.Uniform(1. / n_units))
+            self.loss_func = loss_func
 
     def __call__(self, x, context):
         e = self.embed(context)
-        shape = e.data.shape
+        shape = e.shape
         x = F.broadcast_to(x[:, None], (shape[0], shape[1]))
         e = F.reshape(e, (shape[0] * shape[1], shape[2]))
         x = F.reshape(x, (shape[0] * shape[1],))
@@ -102,9 +103,9 @@ class SkipGram(chainer.Chain):
 class SoftmaxCrossEntropyLoss(chainer.Chain):
 
     def __init__(self, n_in, n_out):
-        super(SoftmaxCrossEntropyLoss, self).__init__(
-            out=L.Linear(n_in, n_out, initialW=0),
-        )
+        super(SoftmaxCrossEntropyLoss, self).__init__()
+        with self.init_scope():
+            self.out = L.Linear(n_in, n_out, initialW=0)
 
     def __call__(self, x, t):
         return F.softmax_cross_entropy(self.out(x), t)
@@ -171,7 +172,7 @@ def convert(batch, device):
 
 
 if args.gpu >= 0:
-    cuda.get_device(args.gpu).use()
+    cuda.get_device_from_id(args.gpu).use()
 
 train, val, _ = chainer.datasets.get_ptb_words()
 counts = collections.Counter(train)

@@ -20,24 +20,40 @@ Dataset representation
 ~~~~~~~~~~~~~~~~~~~~~~
 See :ref:`datasets` for dataset implementations.
 
-.. autoclass:: DatasetMixin
-   :members:
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.dataset.DatasetMixin
 
 Iterator interface
 ~~~~~~~~~~~~~~~~~~
 See :ref:`iterators` for dataset iterator implementations.
 
-.. autoclass:: Iterator
-   :members:
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.dataset.Iterator
 
 Batch conversion function
 ~~~~~~~~~~~~~~~~~~~~~~~~~
-.. autofunction:: concat_examples
-.. autofunction:: to_device
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.dataset.concat_examples
+   chainer.dataset.to_device
 
 Dataset management
 ~~~~~~~~~~~~~~~~~~
-.. autofunction:: get_dataset_root
-.. autofunction:: set_dataset_root
-.. autofunction:: cached_download
-.. autofunction:: cache_or_load_file
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.dataset.get_dataset_root
+   chainer.dataset.set_dataset_root
+   chainer.dataset.cached_download
+   chainer.dataset.cache_or_load_file

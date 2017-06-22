@@ -74,4 +74,4 @@ Check if `blas_opt_info` refers to `openblas`.
    blas_mkl_info:
        NOT AVAILABLE
 
-See detail about this problem in `issue #704 <https://github.com/pfnet/chainer/issues/704>`_.
+See detail about this problem in `issue #704 <https://github.com/chainer/chainer/issues/704>`_.
