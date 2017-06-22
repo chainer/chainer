@@ -529,9 +529,9 @@ class MatMulVarConst(function.Function):
             type_check.expect(a_type.shape == b_type.shape)
         else:
             a_idx = _matmul._get_check_index(False, False,
-                                     row_idx=-2, col_idx=-1)
+                                             row_idx=-2, col_idx=-1)
             b_idx = _matmul._get_check_index(False, True,
-                                     row_idx=-2, col_idx=-1)
+                                             row_idx=-2, col_idx=-1)
             type_check.expect(
                 a_type.shape[:-2] == b_type.shape[:-2],
                 a_type.shape[a_idx] == b_type.shape[b_idx],
@@ -578,9 +578,9 @@ class MatMulConstVar(function.Function):
             type_check.expect(a_type.shape == b_type.shape)
         else:
             a_idx = _matmul._get_check_index(False, False,
-                                     row_idx=-2, col_idx=-1)
+                                             row_idx=-2, col_idx=-1)
             b_idx = _matmul._get_check_index(False, True,
-                                     row_idx=-2, col_idx=-1)
+                                             row_idx=-2, col_idx=-1)
             type_check.expect(
                 a_type.shape[:-2] == b_type.shape[:-2],
                 a_type.shape[a_idx] == b_type.shape[b_idx],
