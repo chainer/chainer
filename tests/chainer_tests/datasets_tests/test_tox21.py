@@ -1,14 +1,10 @@
-import os
-import shutil
 import unittest
 
 import numpy
-import mock
 
-from chainer.dataset import download
+from chainer import datasets
 from chainer.datasets import tuple_dataset
 from chainer.testing import attr
-from chainer import datasets 
 
 
 class Preprocessor(object):
@@ -27,7 +23,7 @@ class TestTox21(unittest.TestCase):
 
     def _check(self, dataset, with_label=True):
         if with_label:
-            self.assertIs(dataset, tuple_dataset.TupleDataset)
+            self.assertIsInstance(dataset, tuple_dataset.TupleDataset)
             first_elem = dataset[0]
             self.assertEqual(len(first_elem), 2)
         else:
@@ -67,3 +63,12 @@ class TestTox21Preprocessor(unittest.TestCase):
         self._check_labeled_data(train)
         self._check_labeled_data(test)
         self._check_unlabeled_data(val)
+
+
+class TestTox21NotAvailable(unittest.TestCase):
+
+    def test_available(self):
+        if datasets.tox21.available:
+            return
+        with self.assertRaises(RuntimeError):
+            datasets.get_tox21()
