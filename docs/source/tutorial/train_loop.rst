@@ -48,15 +48,17 @@ retrieves the MNIST dataset.
     # label as an integer.
     x, t = train[0]
     plt.imshow(x.reshape(28, 28), cmap='gray')
-    plt.show()
+    plt.savefig('5.png')
     print('label:', t)
 
-Output
-......
+.. testoutput::
+
+    label: 5
+
+The saved image ``5.png`` will look like:
 
 .. image:: ../../image/train_loop/5.png
 
-label: 5
 
 2. Create the dataset iterators
 ''''''''''''''''''''''''''''''
@@ -221,7 +223,7 @@ How to run a model on GPU
         def __init__(self, n_mid_units=100, n_out=10):
             # register layers with parameters by super initializer
             super(MLP, self).__init__()
-            self.init_scope():
+            with self.init_scope():
                 self.l1 = L.Linear(None, n_mid_units)
                 self.l2 = L.Linear(None, n_mid_units)
                 self.l3 = L.Linear(None, n_out)
@@ -232,7 +234,7 @@ How to run a model on GPU
             h2 = F.relu(self.l2(h1))
             return self.l3(h2)
 
-    gpu_id = 0  # Set to 0 if you use CPU
+    gpu_id = 0  # Set to -1 if you use CPU
 
     model = MLP()
     model.to_gpu(gpu_id)
@@ -262,14 +264,11 @@ code shows how to access the bias parameter of layer ``l1``:
     print('The shape of the bias of the first layer, l1, in the model:', model.l1.b.shape)
     print('The values of the bias of the first layer in the model after initialization:\n', model.l1.b.data)
 
-Output
-^^^^^^
-
-::
+.. testoutput::
 
     The shape of the bias of the first layer, l1, in the model: (100,)
     The values of the bias of the first layer in the model after initialization:
-    [ 0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.
+     [ 0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.
       0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.
       0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.
       0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.
@@ -377,7 +376,7 @@ set using the :meth:`~chainer.functions.accuracy` function.
 
 We can write the training loop code as follows:
 
-.. testcode::
+.. code-block:: python
 
     import numpy as np
     from chainer.dataset import concat_examples
@@ -488,34 +487,37 @@ Now the model has been restored, it can be used to predict image labels on new i
     from chainer import serializers
 
     # Create the infrence (evaluation) model as the preivious model
-    infer_model = MLP()
+    model = MLP()
 
     # Load the saved paremeters into the parametes of the new inference model to overwrite
-    serializers.load_npz('my_mnist.model', infer_model)
+    serializers.load_npz('my_mnist.model', model)
 
     # Send the model to utilize GPU by to_GPU
-    infer_model.to_gpu(gpu_id)
+    model.to_gpu(gpu_id)
 
     # Get a test image and label
     x, t = test[0]
     plt.imshow(x.reshape(28, 28), cmap='gray')
-    plt.show()
+    plt.savefig('7.png')
     print('label:', t)
 
-Output
-......
+.. testoutput::
+
+    label: 7
+
+The saved test image looks like:
 
 .. image:: ../../image/train_loop/7.png
 
-::
+.. testsetup::
 
-    label: 7
+    from chainer.cuda import to_cpu
 
 .. testcode::
 
     from chainer.cuda import to_gpu
 
-    # change the shape to minibutch.
+    # Change the shape of the minibatch.
     # In this example, the size of minibatch is 1.
     # Inference using any mini-batch size can be performed.
 
@@ -523,11 +525,11 @@ Output
     x = x[None, ...]
     print(x.shape)
 
-    # to calculate by GPU, send the data to GPU, too.
+    # To calculate by GPU, send the data to GPU, too.
     x = to_gpu(x, 0)
 
     # forward calculation of the model by sending X
-    y = infer_model(x)
+    y = model(x)
 
     # The result is given as Variable, then we can take a look at the contents by the attribute, .data.
     y = y.data
@@ -540,10 +542,7 @@ Output
 
     print('predicted label:', pred_label[0])
 
-Output
-......
-
-::
+.. testoutput::
 
     (784,) -> (1, 784)
-    predicted label: 7
+    predicted label: 2
