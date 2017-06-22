@@ -81,9 +81,7 @@ class Classifier(link.Chain):
                 raise ValueError(msg)
             t = args[self.label_key]
             args = list(args)
-            print(len(args))
             del args[self.label_key]
-            print(args)
         elif isinstance(self.label_key, str):
             if self.label_key not in kwargs:
                 msg = 'Label key "%s" is not found' % self.label_key
