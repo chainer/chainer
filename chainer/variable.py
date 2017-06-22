@@ -23,12 +23,15 @@ def _check_grad_type(func, x, gx):
     if type(gx) is not type(x.data):
         msg = ('Type of data and grad mismatch\n%s != %s' %
                (type(x.data), type(gx)))
+        typ = TypeError
     elif gx.dtype != x.data.dtype:
         msg = ('Dtype of data and grad mismatch\n%s != %s' %
                (x.data.dtype, gx.dtype))
+        typ = TypeError
     elif gx.shape != x.data.shape:
         msg = ('Shape of data and grad mismatch\n%s != %s' %
                (x.data.shape, gx.shape))
+        typ = ValueError
     else:
         return
 
@@ -47,7 +50,7 @@ the information of your environment, and your script:
 https://github.com/pfnet/chainer/issues/new.
 '''.format(type(func).__name__, func.label)
 
-    raise ValueError(detail + msg)
+    raise typ(detail + msg)
 
 
 def variable_repr(var):
