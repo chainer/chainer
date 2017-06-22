@@ -17,15 +17,15 @@ want to write their own training loop and so we will explain how to do so here.
 
 The complete training process consists of the following steps:
 
-1. Prepare a datasets that contain the train/validation/test examples.
-2. Optionally set of iterators for the datasets.
+1. Prepare datasets that contain the train/validation/test examples.
+2. Optionally set iterators for the datasets.
 3. Write a training loop that performs the following operations in each iteration:
-    A. Retreive batches of examples from the training dataset.
-    B. Feed the batches into the model.
-    C. Run the forward pass on the model to compute the loss.
-    D. Run the backward pass on the model to compute the gradients.
+    A. Retreive a batch of examples from the training dataset.
+    B. Feed the batch into the model.
+    C. Run a forward pass on the model to compute the loss.
+    D. Run a backward pass on the model to compute the gradients.
     E. Run the optimizer on the model to update the parameters.
-    F. (Optional): Ocassionally check the performance on a validation/test set.
+    F. (Optional): Ocassionally check the model performance on a validation/test set.
 
 1. Prepare the dataset
 ''''''''''''''''''''''
@@ -64,13 +64,13 @@ The saved image ``5.png`` will look like:
 ''''''''''''''''''''''''''''''
 
 Although this is an optional step, it can often be convenient to use iterators
-that operate on a dataset and return a certain number of examples (often called
+that operate on a dataset and retrieve a certain number of examples (often called
 a "mini-batch") at a time. The number of examples that is returned at a time is
-called the "batch size" or "mini-batch size." Chainer already has an Iterator
-class and some subclasses that can be used for this purpose and it is
+called the "batch size" or "mini-batch size." Chainer already has an :class:`~chainer.dataset.Iterator`
+class and some subclasses that can be used for this purpose and it might be
 straightforward for users to write their own as well.
 
-We will use the :class:`~chainer.iterators.SerialIterator` subclass of
+We will use :class:`~chainer.iterators.SerialIterator`, which is a subclass of
 :class:`~chainer.dataset.Iterator` in this example. The
 :class:`~chainer.iterators.SerialIterator` can either return the examples in
 the same order that they appear in the dataset (that is, in sequential order)
@@ -100,7 +100,7 @@ Details about SerialIterator
 - :class:`~chainer.iterators.SerialIterator` is a built-in subclass of :class:`~chainer.dataset.Iterator` that can be used to retrieve a dataset in either sequential or shuffled order.
 - The :class:`~chainer.dataset.Iterator` initializer takes two arguments: the dataset object and a batch size.
 - When data need to be used repeatedly for training, set the ``repeat`` argument to ``True`` (the default). When data is needed only once and no longer necessary for retrieving the data anymore, set ``repeat`` to ``False``.
-- When you want to shuffle the training dataset for every epoch, set the ``shuffle`` argument ``True``.
+- When you want to shuffle the training dataset for every epoch, set the ``shuffle`` argument to ``True``.
 
 In the example above, we set ``batchsize = 128``, ``train_iter`` is the
 :class:`~chainer.dataset.Iterator` for the training dataset, and ``test_iter``
@@ -180,7 +180,7 @@ allows us to reuse the same code for both NumPy and CuPy arrays.
 Create our model as a subclass of Chain
 .......................................
 
-We can create our model be writing a new subclass of :class:`~chainer.Chain`.
+We can create our model by writing a new subclass of :class:`~chainer.Chain`.
 The two main steps are:
 
 1. Any :class:`~chainer.Link` objects (possibly also including other :class:`chainer.Chain` objects) that we wish to call during the forward computation of our :class:`~chainer.Chain` must first be supplied to the :class:`~chainer.Chain`'s :meth:`~chainer.Chain.__init__` method. After the :meth:`~chainer.Chain.__init__` method has been called, these :class:`~chainer.Link` objects will then be accessible as attributes of our :class:`~chainer.Chain` object. This means that we also need to provide the attribute name that we want to use for each :class:`~chainer.Link` object that is supplied. We do this by providing the attribute name and corresponding :class:`~chainer.Link` object as keyword arguments to :meth:`~chainer.Chain.__init__`, as we will do in the MLP chain below.
