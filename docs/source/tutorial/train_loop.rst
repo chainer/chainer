@@ -220,11 +220,11 @@ How to run a model on GPU
 
         def __init__(self, n_mid_units=100, n_out=10):
             # register layers with parameters by super initializer
-            super(MLP, self).__init__(
-                l1=L.Linear(None, n_mid_units),
-                l2=L.Linear(None, n_mid_units),
-                l3=L.Linear(None, n_out),
-            )
+            super(MLP, self).__init__()
+            self.init_scode():
+                self.l1 = L.Linear(None, n_mid_units)
+                self.l2 = L.Linear(None, n_mid_units)
+                self.l3 = L.Linear(None, n_out)
 
         def __call__(self, x):
             # describe the forward pass, given x (input data)
@@ -232,7 +232,7 @@ How to run a model on GPU
             h2 = F.relu(self.l2(h1))
             return self.l3(h2)
 
-    gpu_id = 0
+    gpu_id = 0  # Set to 0 if you use CPU
 
     model = MLP()
     model.to_gpu(gpu_id)
