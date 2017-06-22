@@ -47,7 +47,6 @@ before_install:
 
 install:
   - pip install -U pip wheel
-  - pip install cython
   - python setup.py sdist
   - pip install dist/*.tar.gz
   - pip install h5py pillow
@@ -60,7 +59,6 @@ script:
   - flake8 --config=.flake8.cython
   - autopep8 -r . --global-config .pep8 --diff | tee check_autopep8
   - test ! -s check_autopep8
-  - PYTHONWARNINGS='ignore::FutureWarning,module::DeprecationWarning' nosetests -a '!gpu,!slow' --with-doctest tests/install_tests
   - cd tests
   - PYTHONWARNINGS='ignore::FutureWarning,module::DeprecationWarning' nosetests -a '!gpu,!slow' --with-doctest chainer_tests
   - if [[ $TRAVIS_OS_NAME == "linux" ]]; then

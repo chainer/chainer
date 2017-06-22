@@ -28,8 +28,7 @@ class Pooling2D(function.Function):
 
     """Base class of pooling function over a set of 2d planes."""
 
-    def __init__(self, ksize, stride=None, pad=0, cover_all=True,
-                 use_cudnn=True):
+    def __init__(self, ksize, stride=None, pad=0, cover_all=True):
         if stride is None:
             stride = ksize
 
@@ -38,7 +37,7 @@ class Pooling2D(function.Function):
         self.ph, self.pw = _pair(pad)
 
         self.cover_all = cover_all
-        self.use_cudnn = use_cudnn
+        self._used_cudnn = False
 
     def check_type_forward(self, in_types):
         type_check.expect(
@@ -48,6 +47,8 @@ class Pooling2D(function.Function):
         )
 
     def forward_gpu(self, x):
+        self._used_cudnn = True
+
         # Implementation using cudnn
         x = cuda.cupy.ascontiguousarray(x[0])
         n, c, h, w = x.shape
@@ -70,13 +71,13 @@ class Pooling2D(function.Function):
         libcudnn.poolingForward(
             handle, pool_desc.value, one.data, x_desc.value,
             x.data.ptr, zero.data, y_desc.value, y.data.ptr)
-        self.y = y
-
+        self.retain_outputs((0,))
         return y,
 
     def backward_gpu(self, x, gy):
         # Implementation using cudnn
         x = cuda.cupy.ascontiguousarray(x[0])
+        y = self.output_data[0]
         handle = cudnn.get_handle()
         pool_desc = self.create_pool_desc()
 
@@ -91,7 +92,7 @@ class Pooling2D(function.Function):
         gx = cuda.cupy.empty_like(x)
         libcudnn.poolingBackward(
             handle, pool_desc.value, one.data, y_desc.value,
-            self.y.data.ptr, y_desc.value, gy.data.ptr, x_desc.value,
+            y.data.ptr, y_desc.value, gy.data.ptr, x_desc.value,
             x.data.ptr, zero.data, x_desc.value, gx.data.ptr)
         return gx,
 

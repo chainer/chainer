@@ -3,10 +3,10 @@ import warnings
 
 import six
 
-import chainer
 from chainer import cuda
 from chainer.dataset import convert
-from chainer.training.updater import StandardUpdater
+from chainer import reporter
+from chainer.training import updater
 from chainer import variable
 
 try:
@@ -36,7 +36,7 @@ class _Worker(multiprocessing.Process):
                                           self.proc_id)
 
         self.model.to_gpu(self.device)
-        self.reporter = chainer.reporter.Reporter()
+        self.reporter = reporter.Reporter()
         self.reporter.add_observer('main', self.model)
 
     def run(self):
@@ -77,7 +77,7 @@ class _Worker(multiprocessing.Process):
                 gp = None
 
 
-class MultiprocessParallelUpdater(StandardUpdater):
+class MultiprocessParallelUpdater(updater.StandardUpdater):
 
     """Implementation of a multiprocess parallel GPU Updater.
 

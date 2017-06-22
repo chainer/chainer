@@ -2,7 +2,7 @@ import numpy
 
 from chainer import cuda
 from chainer import function
-from chainer.functions import sigmoid
+from chainer.functions.activation import sigmoid
 from chainer import utils
 from chainer.utils import type_check
 
@@ -13,8 +13,7 @@ class SigmoidCrossEntropy(function.Function):
 
     ignore_label = -1
 
-    def __init__(self, use_cudnn=True, normalize=True, reduce='mean'):
-        self.use_cudnn = use_cudnn
+    def __init__(self, normalize=True, reduce='mean'):
         self.normalize = normalize
         if reduce not in ('mean', 'no'):
             raise ValueError(
@@ -58,7 +57,7 @@ class SigmoidCrossEntropy(function.Function):
         xp = cuda.get_array_module(*inputs)
         x, t = inputs
         gloss = grad_outputs[0]
-        y, = sigmoid.Sigmoid(self.use_cudnn).forward((x,))
+        y, = sigmoid.Sigmoid().forward((x,))
         if self.reduce == 'mean':
             gx = xp.divide(
                 gloss * self.ignore_mask * (y - t), self.count,
@@ -69,7 +68,7 @@ class SigmoidCrossEntropy(function.Function):
 
 
 def sigmoid_cross_entropy(
-        x, t, use_cudnn=True, normalize=True, reduce='mean'):
+        x, t, normalize=True, reduce='mean'):
     """Computes cross entropy loss for pre-sigmoid activations.
 
     Args:
@@ -102,4 +101,4 @@ def sigmoid_cross_entropy(
        This function is differentiable only by ``x``.
 
     """
-    return SigmoidCrossEntropy(use_cudnn, normalize, reduce)(x, t)
+    return SigmoidCrossEntropy(normalize, reduce)(x, t)

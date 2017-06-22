@@ -1,7 +1,10 @@
 import numpy
 
+import chainer
+from chainer import configuration
 from chainer import cuda
 from chainer import function
+from chainer.utils import argument
 from chainer.utils import conv
 from chainer.utils import type_check
 
@@ -30,13 +33,17 @@ def _pair(x):
 
 class Convolution2DFunction(function.Function):
 
-    def __init__(self, stride=1, pad=0, use_cudnn=True, cover_all=False,
-                 deterministic=False):
+    def __init__(self, stride=1, pad=0, cover_all=False, **kwargs):
+        argument.check_unexpected_kwargs(
+            kwargs, deterministic="deterministic argument is not "
+            "supported anymore. "
+            "Use chainer.using_config('cudnn_deterministic', value) "
+            "context where value is either `True` or `False`.")
+        argument.assert_kwargs_empty(kwargs)
+
         self.sy, self.sx = _pair(stride)
         self.ph, self.pw = _pair(pad)
-        self.use_cudnn = use_cudnn
         self.cover_all = cover_all
-        self.deterministic = deterministic
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -52,7 +59,7 @@ class Convolution2DFunction(function.Function):
             x_type.shape[1] == w_type.shape[1],
         )
 
-        if n_in.eval() == 3:
+        if type_check.eval(n_in) == 3:
             b_type = in_types[2]
             type_check.expect(
                 b_type.dtype == x_type.dtype,
@@ -109,7 +116,7 @@ class Convolution2DFunction(function.Function):
         assert out_w > 0, 'Width in the output should be positive.'
 
         y = cuda.cupy.empty((n, out_c, out_h, out_w), dtype=x.dtype)
-        if (not self.cover_all and cuda.cudnn_enabled and self.use_cudnn and
+        if (not self.cover_all and chainer.should_use_cudnn('>=auto') and
                 _check_cudnn_acceptable_type(x.dtype, W.dtype)):
             x = cuda.cupy.ascontiguousarray(x)
             W = cuda.cupy.ascontiguousarray(W)
@@ -212,7 +219,7 @@ class Convolution2DFunction(function.Function):
         kh, kw = W.shape[2:]
 
         gW = cuda.cupy.empty_like(W)
-        if (not self.cover_all and cuda.cudnn_enabled and self.use_cudnn and
+        if (not self.cover_all and chainer.should_use_cudnn('>=auto') and
                 _check_cudnn_acceptable_type(x.dtype, W.dtype)):
             x = cuda.cupy.ascontiguousarray(x)
             W = cuda.cupy.ascontiguousarray(W)
@@ -230,13 +237,13 @@ class Convolution2DFunction(function.Function):
                 workspace_size = cuda.get_max_workspace_size()
                 workspace = cuda.cupy.empty((workspace_size,), dtype='b')
 
-                if not self.deterministic:
+                if configuration.config.cudnn_deterministic:
+                    algo = cuda.cupy.cuda.cudnn.CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1  # NOQA
+                else:
                     algo = libcudnn.getConvolutionBackwardFilterAlgorithm(
                         handle, x_desc.value, gy_desc.value,
                         self.conv_desc.value, self.filter_desc.value,
                         _bwd_filter_pref, workspace_size)
-                else:
-                    algo = cuda.cupy.cuda.cudnn.CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1  # NOQA
 
                 libcudnn.convolutionBackwardFilter_v3(
                     handle, one.data, x_desc.value, x.data.ptr,
@@ -244,13 +251,13 @@ class Convolution2DFunction(function.Function):
                     algo, workspace.data.ptr, workspace_size,
                     zero.data, self.filter_desc.value, gW.data.ptr)
 
-                if not self.deterministic:
+                if configuration.config.cudnn_deterministic:
+                    algo = cuda.cupy.cuda.cudnn.CUDNN_CONVOLUTION_BWD_DATA_ALGO_1  # NOQA
+                else:
                     algo = libcudnn.getConvolutionBackwardDataAlgorithm(
                         handle, self.filter_desc.value, gy_desc.value,
                         self.conv_desc.value, x_desc.value, _bwd_data_pref,
                         workspace_size)
-                else:
-                    algo = cuda.cupy.cuda.cudnn.CUDNN_CONVOLUTION_BWD_DATA_ALGO_1  # NOQA
 
                 libcudnn.convolutionBackwardData_v3(
                     handle, one.data, self.filter_desc.value, W.data.ptr,
@@ -258,9 +265,15 @@ class Convolution2DFunction(function.Function):
                     algo, workspace.data.ptr, workspace_size,
                     zero.data, x_desc.value, gx.data.ptr)
             else:
-                if self.deterministic:
-                    raise ValueError("'deterministic' option not available "
-                                     "for cuDNN versions < v3")
+                if configuration.config.cudnn_deterministic:
+                    raise ValueError(
+                        "`cudnn_deterministic` option must be False "
+                        "if the backpropagation of "
+                        "chainer.functions.Convolution2D "
+                        "uses cuDNN and cuDNN versions < v3. "
+                        "Turn off cudnn_deterministic option with "
+                        "`chainer.using_config('cudnn_deterministic', False)` "
+                        "context.")
                 libcudnn.convolutionBackwardFilter_v2(
                     handle, one.data, x_desc.value, x.data.ptr,
                     gy_desc.value, gy.data.ptr, self.conv_desc.value,
@@ -295,9 +308,10 @@ class Convolution2DFunction(function.Function):
             return gx, gW, gb
 
 
-def convolution_2d(x, W, b=None, stride=1, pad=0, use_cudnn=True,
-                   cover_all=False, deterministic=False):
-    """Two-dimensional convolution function.
+def convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False, **kwargs):
+    """convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False)
+
+    Two-dimensional convolution function.
 
     This is an implementation of two-dimensional convolution in ConvNets.
     It takes three variables: the input image ``x``, the filter weight ``W``,
@@ -346,7 +360,16 @@ def convolution_2d(x, W, b=None, stride=1, pad=0, use_cudnn=True,
     If the bias vector is given, then it is added to all spatial locations of
     the output of convolution.
 
-    The two-dimensional convolution function is defined as follows.
+    The output of this function can be non-deterministic when it uses cuDNN.
+    If ``chainer.configuration.config.cudnn_deterministic`` is ``True`` and
+    cuDNN version is >= v3, it forces cuDNN to use a deterministic algorithm.
+
+    .. warning::
+
+        ``deterministic`` argument is not supported anymore since v2.
+        Instead, use ``chainer.using_config('cudnn_deterministic', value)``
+        (value is either ``True`` or ``False``).
+        See :func:`chainer.using_config`.
 
     Args:
         x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
@@ -363,15 +386,8 @@ def convolution_2d(x, W, b=None, stride=1, pad=0, use_cudnn=True,
         pad (:class:`int` or pair of :class:`int` s):
             Spatial padding width for input arrays.
             ``pad=p`` and ``pad=(p, p)`` are equivalent.
-        use_cudnn (bool): If ``True``, then this function uses cuDNN if
-            available.
         cover_all (bool): If ``True``, all spatial locations are convoluted
             into some output pixels.
-        deterministic (bool): The output of this function can be
-            non-deterministic when it uses cuDNN.
-            If this option is ``True``, then it forces cuDNN to use
-            a deterministic algorithm. This option is only available for
-            cuDNN version >= v3.
 
     Returns:
         ~chainer.Variable:
@@ -409,8 +425,14 @@ cover_all=True)
         True
 
     """
-    func = Convolution2DFunction(
-        stride, pad, use_cudnn, cover_all, deterministic)
+    argument.check_unexpected_kwargs(
+        kwargs, deterministic="deterministic argument is not "
+        "supported anymore. "
+        "Use chainer.using_config('cudnn_deterministic', value) "
+        "context where value is either `True` or `False`.")
+    argument.assert_kwargs_empty(kwargs)
+
+    func = Convolution2DFunction(stride, pad, cover_all)
     if b is None:
         return func(x, W)
     else:

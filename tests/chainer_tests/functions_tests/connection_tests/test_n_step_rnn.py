@@ -25,7 +25,7 @@ def _relu(x):
 
 
 @testing.parameterize(*testing.product({
-    'use_cudnn': [True, False],
+    'use_cudnn': ['always', 'auto', 'never'],
     'activation': ['tanh', 'relu']
 }))
 class TestNStepRNN(unittest.TestCase):
@@ -66,16 +66,16 @@ class TestNStepRNN(unittest.TestCase):
         self.dhy = numpy.random.uniform(-1, 1, h_shape).astype(numpy.float32)
 
     def check_forward(
-            self, h_data, xs_data, ws_data, bs_data, volatile):
-        h = chainer.Variable(h_data, volatile=volatile)
-        xs = [chainer.Variable(x, volatile=volatile) for x in xs_data]
-        ws = [[chainer.Variable(w, volatile=volatile) for w in ws]
+            self, h_data, xs_data, ws_data, bs_data):
+        h = chainer.Variable(h_data)
+        xs = [chainer.Variable(x) for x in xs_data]
+        ws = [[chainer.Variable(w) for w in ws]
               for ws in ws_data]
-        bs = [[chainer.Variable(b, volatile=volatile) for b in bs]
+        bs = [[chainer.Variable(b) for b in bs]
               for bs in bs_data]
         hy, ys = functions.n_step_rnn(
             self.n_layers, self.dropout, h, ws, bs, xs,
-            use_cudnn=self.use_cudnn, activation=self.activation)
+            activation=self.activation)
 
         e_hy = self.hx.copy()
         for ind in range(self.length):
@@ -102,26 +102,34 @@ class TestNStepRNN(unittest.TestCase):
         testing.assert_allclose(hy.data, e_hy, rtol=1e-4, atol=1e-4)
 
     def test_forward_cpu(self):
-        self.check_forward(self.hx, self.xs, self.ws, self.bs, False)
+        with chainer.using_config('use_cudnn', self.use_cudnn), \
+                chainer.using_config('enable_backprop', True):
+            self.check_forward(self.hx, self.xs, self.ws, self.bs)
 
     def test_forward_cpu_volatile(self):
-        self.check_forward(self.hx, self.xs, self.ws, self.bs, True)
+        with chainer.using_config('use_cudnn', self.use_cudnn), \
+                chainer.using_config('enable_backprop', False):
+            self.check_forward(self.hx, self.xs, self.ws, self.bs)
 
     @attr.gpu
     def test_forward_gpu(self):
-        self.check_forward(cuda.to_gpu(self.hx),
-                           [cuda.to_gpu(x) for x in self.xs],
-                           [[cuda.to_gpu(w) for w in ws] for ws in self.ws],
-                           [[cuda.to_gpu(b) for b in bs] for bs in self.bs],
-                           False)
+        with chainer.using_config('use_cudnn', self.use_cudnn), \
+                chainer.using_config('enable_backprop', True):
+            self.check_forward(
+                cuda.to_gpu(self.hx),
+                [cuda.to_gpu(x) for x in self.xs],
+                [[cuda.to_gpu(w) for w in ws] for ws in self.ws],
+                [[cuda.to_gpu(b) for b in bs] for bs in self.bs])
 
     @attr.gpu
     def test_forward_gpu_volatile(self):
-        self.check_forward(cuda.to_gpu(self.hx),
-                           [cuda.to_gpu(x) for x in self.xs],
-                           [[cuda.to_gpu(w) for w in ws] for ws in self.ws],
-                           [[cuda.to_gpu(b) for b in bs] for bs in self.bs],
-                           True)
+        with chainer.using_config('use_cudnn', self.use_cudnn), \
+                chainer.using_config('enable_backprop', False):
+            self.check_forward(
+                cuda.to_gpu(self.hx),
+                [cuda.to_gpu(x) for x in self.xs],
+                [[cuda.to_gpu(w) for w in ws] for ws in self.ws],
+                [[cuda.to_gpu(b) for b in bs] for bs in self.bs])
 
     def check_backward(self, h_data, xs_data, ws_data, bs_data,
                        dhy_data, dys_data):
@@ -142,7 +150,7 @@ class TestNStepRNN(unittest.TestCase):
             xs = inputs
             hy, ys = functions.n_step_rnn(
                 self.n_layers, self.dropout, hx, ws, bs, xs,
-                use_cudnn=self.use_cudnn, activation=self.activation)
+                activation=self.activation)
             return (hy, ) + ys
 
         gradient_check.check_backward(
@@ -165,7 +173,7 @@ class TestNStepRNN(unittest.TestCase):
 
 
 @testing.parameterize(*testing.product({
-    'use_cudnn': [True, False],
+    'use_cudnn': ['always', 'auto', 'never'],
     'activation': ['tanh', 'relu']
 }))
 class TestNStepBiRNN(unittest.TestCase):
@@ -210,16 +218,16 @@ class TestNStepBiRNN(unittest.TestCase):
         self.dhy = numpy.random.uniform(-1, 1, h_shape).astype(numpy.float32)
 
     def check_forward(
-            self, h_data, xs_data, ws_data, bs_data, volatile):
-        h = chainer.Variable(h_data, volatile=volatile)
-        xs = [chainer.Variable(x, volatile=volatile) for x in xs_data]
-        ws = [[chainer.Variable(w, volatile=volatile) for w in ws]
+            self, h_data, xs_data, ws_data, bs_data):
+        h = chainer.Variable(h_data)
+        xs = [chainer.Variable(x) for x in xs_data]
+        ws = [[chainer.Variable(w) for w in ws]
               for ws in ws_data]
-        bs = [[chainer.Variable(b, volatile=volatile) for b in bs]
+        bs = [[chainer.Variable(b) for b in bs]
               for bs in bs_data]
         hy, ys = functions.n_step_birnn(
             self.n_layers, self.dropout, h, ws, bs, xs,
-            use_cudnn=self.use_cudnn, activation=self.activation)
+            activation=self.activation)
 
         xs_next = self.xs
         e_hy = self.hx.copy()
@@ -273,26 +281,34 @@ class TestNStepBiRNN(unittest.TestCase):
         testing.assert_allclose(hy.data, e_hy, rtol=1e-4, atol=1e-4)
 
     def test_forward_cpu(self):
-        self.check_forward(self.hx, self.xs, self.ws, self.bs, False)
+        with chainer.using_config('use_cudnn', self.use_cudnn), \
+                chainer.using_config('enable_backprop', True):
+            self.check_forward(self.hx, self.xs, self.ws, self.bs)
 
     def test_forward_cpu_volatile(self):
-        self.check_forward(self.hx, self.xs, self.ws, self.bs, True)
+        with chainer.using_config('use_cudnn', self.use_cudnn), \
+                chainer.using_config('enable_backprop', False):
+            self.check_forward(self.hx, self.xs, self.ws, self.bs)
 
     @attr.gpu
     def test_forward_gpu(self):
-        self.check_forward(cuda.to_gpu(self.hx),
-                           [cuda.to_gpu(x) for x in self.xs],
-                           [[cuda.to_gpu(w) for w in ws] for ws in self.ws],
-                           [[cuda.to_gpu(b) for b in bs] for bs in self.bs],
-                           False)
+        with chainer.using_config('use_cudnn', self.use_cudnn), \
+                chainer.using_config('enable_backprop', True):
+            self.check_forward(
+                cuda.to_gpu(self.hx),
+                [cuda.to_gpu(x) for x in self.xs],
+                [[cuda.to_gpu(w) for w in ws] for ws in self.ws],
+                [[cuda.to_gpu(b) for b in bs] for bs in self.bs])
 
     @attr.gpu
     def test_forward_gpu_volatile(self):
-        self.check_forward(cuda.to_gpu(self.hx),
-                           [cuda.to_gpu(x) for x in self.xs],
-                           [[cuda.to_gpu(w) for w in ws] for ws in self.ws],
-                           [[cuda.to_gpu(b) for b in bs] for bs in self.bs],
-                           True)
+        with chainer.using_config('use_cudnn', self.use_cudnn), \
+                chainer.using_config('enable_backprop', False):
+            self.check_forward(
+                cuda.to_gpu(self.hx),
+                [cuda.to_gpu(x) for x in self.xs],
+                [[cuda.to_gpu(w) for w in ws] for ws in self.ws],
+                [[cuda.to_gpu(b) for b in bs] for bs in self.bs])
 
     def check_backward(self, h_data, xs_data, ws_data, bs_data,
                        dhy_data, dys_data):
@@ -313,7 +329,7 @@ class TestNStepBiRNN(unittest.TestCase):
             xs = inputs
             hy, ys = functions.n_step_birnn(
                 self.n_layers, self.dropout, hx, ws, bs, xs,
-                use_cudnn=self.use_cudnn, activation=self.activation)
+                activation=self.activation)
             return (hy, ) + ys
 
         gradient_check.check_backward(
@@ -321,22 +337,25 @@ class TestNStepBiRNN(unittest.TestCase):
 
     @condition.retry(3)
     def test_backward_cpu(self):
-        self.check_backward(self.hx, self.xs, self.ws, self.bs,
-                            self.dhy, self.dys)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.check_backward(self.hx, self.xs, self.ws, self.bs,
+                                self.dhy, self.dys)
 
     @attr.gpu
     @condition.retry(3)
     def test_backward_gpu(self):
-        self.check_backward(cuda.to_gpu(self.hx),
-                            [cuda.to_gpu(x) for x in self.xs],
-                            [[cuda.to_gpu(w) for w in ws] for ws in self.ws],
-                            [[cuda.to_gpu(b) for b in bs] for bs in self.bs],
-                            cuda.to_gpu(self.dhy),
-                            [cuda.to_gpu(dy) for dy in self.dys])
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.check_backward(
+                cuda.to_gpu(self.hx),
+                [cuda.to_gpu(x) for x in self.xs],
+                [[cuda.to_gpu(w) for w in ws] for ws in self.ws],
+                [[cuda.to_gpu(b) for b in bs] for bs in self.bs],
+                cuda.to_gpu(self.dhy),
+                [cuda.to_gpu(dy) for dy in self.dys])
 
 
 @testing.parameterize(*testing.product({
-    'use_cudnn': [True, False],
+    'use_cudnn': ['always', 'auto', 'never'],
 }))
 @attr.cudnn
 class TestNStepRNNCudnnCall(unittest.TestCase):
@@ -378,20 +397,21 @@ class TestNStepRNNCudnnCall(unittest.TestCase):
             -1, 1, (b, self.out_size)).astype('f')
             for b in self.batches]
         self.dhy = cuda.cupy.random.uniform(-1, 1, h_shape).astype('f')
-        self.expect = self.use_cudnn and (
-            cuda.cudnn.cudnn.getVersion() >= 5000)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.expect = chainer.should_use_cudnn('>=auto', 5000)
 
     def forward(self, train):
-        volatile = not train
-        h = chainer.Variable(self.hx, volatile=volatile)
-        xs = [chainer.Variable(x, volatile=volatile) for x in self.xs]
-        ws = [[chainer.Variable(w, volatile=volatile) for w in ws]
-              for ws in self.ws]
-        bs = [[chainer.Variable(b, volatile=volatile) for b in bs]
-              for bs in self.bs]
-        return functions.n_step_rnn(
-            self.n_layers, self.dropout, h, ws, bs, xs,
-            train=train, use_cudnn=self.use_cudnn)
+        with chainer.using_config('use_cudnn', self.use_cudnn), \
+                chainer.using_config('enable_backprop', train), \
+                chainer.using_config('train', train):
+            h = chainer.Variable(self.hx)
+            xs = [chainer.Variable(x) for x in self.xs]
+            ws = [[chainer.Variable(w) for w in ws]
+                  for ws in self.ws]
+            bs = [[chainer.Variable(b) for b in bs]
+                  for bs in self.bs]
+            return functions.n_step_rnn(
+                self.n_layers, self.dropout, h, ws, bs, xs)
 
     def test_call_cudnn_forward_training(self):
         with mock.patch('cupy.cuda.cudnn.RNNForwardTraining') as func:
@@ -412,7 +432,7 @@ class TestNStepRNNCudnnCall(unittest.TestCase):
 
 
 @testing.parameterize(*testing.product({
-    'use_cudnn': [True, False],
+    'use_cudnn': ['always', 'auto', 'never'],
 }))
 @attr.cudnn
 class TestNStepBiRNNCudnnCall(unittest.TestCase):
@@ -457,20 +477,21 @@ class TestNStepBiRNNCudnnCall(unittest.TestCase):
             -1, 1, (b, self.out_size * 2)).astype('f')
             for b in self.batches]
         self.dhy = cuda.cupy.random.uniform(-1, 1, h_shape).astype('f')
-        self.expect = self.use_cudnn and (
-            cuda.cudnn.cudnn.getVersion() >= 5000)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.expect = chainer.should_use_cudnn('>=auto', 5000)
 
     def forward(self, train):
-        volatile = not train
-        h = chainer.Variable(self.hx, volatile=volatile)
-        xs = [chainer.Variable(x, volatile=volatile) for x in self.xs]
-        ws = [[chainer.Variable(w, volatile=volatile) for w in ws]
-              for ws in self.ws]
-        bs = [[chainer.Variable(b, volatile=volatile) for b in bs]
-              for bs in self.bs]
-        return functions.n_step_birnn(
-            self.n_layers, self.dropout, h, ws, bs, xs,
-            train=train, use_cudnn=self.use_cudnn)
+        with chainer.using_config('use_cudnn', self.use_cudnn), \
+                chainer.using_config('enable_backprop', train), \
+                chainer.using_config('train', train):
+            h = chainer.Variable(self.hx)
+            xs = [chainer.Variable(x) for x in self.xs]
+            ws = [[chainer.Variable(w) for w in ws]
+                  for ws in self.ws]
+            bs = [[chainer.Variable(b) for b in bs]
+                  for bs in self.bs]
+            return functions.n_step_birnn(
+                self.n_layers, self.dropout, h, ws, bs, xs)
 
     def test_call_cudnn_forward_training(self):
         with mock.patch('cupy.cuda.cudnn.RNNForwardTraining') as func:

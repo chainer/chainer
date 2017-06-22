@@ -42,6 +42,8 @@ class UnpoolingND(function.Function):
             type_check.expect(x_type.shape[2:] == expected_dims)
 
     def forward(self, x):
+        self.retain_inputs(())
+
         dims = x[0].shape[2:]
         ndim = self.ndim
         ksize = self.ksize
@@ -70,7 +72,7 @@ class UnpoolingND(function.Function):
         return y,
 
     def backward(self, x, gy):
-        xp = cuda.get_array_module(*x)
+        xp = cuda.get_array_module(*gy)
         if xp is numpy:
             im2col_nd = conv_nd.im2col_nd_cpu
         else:

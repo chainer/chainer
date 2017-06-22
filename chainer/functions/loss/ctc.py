@@ -7,6 +7,7 @@ from chainer import cuda
 from chainer import function
 from chainer import utils
 from chainer.utils import type_check
+from chainer import variable
 
 
 def _logsumexp(a, xp, axis=None):
@@ -330,12 +331,10 @@ def connectionist_temporal_classification(
 
     if input_length is None:
         xp = cuda.get_array_module(x[0].data)
-        input_length = chainer.Variable(
-            xp.full((len(x[0].data),), len(x), dtype=numpy.int32),
-            volatile='auto')
-        label_length = chainer.Variable(
-            xp.full((len(t.data),), len(t.data[0]), dtype=numpy.int32),
-            volatile='auto')
+        input_length = variable.Variable(
+            xp.full((len(x[0].data),), len(x), dtype=numpy.int32))
+        label_length = variable.Variable(
+            xp.full((len(t.data),), len(t.data[0]), dtype=numpy.int32))
 
     return ConnectionistTemporalClassification(blank_symbol, reduce)(
         input_length, label_length, t, *x)

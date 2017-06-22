@@ -25,12 +25,6 @@ def _batch_normalization(expander, gamma, beta, x, mean, var, eps, test):
 
 @testing.parameterize(*(testing.product({
     'test': [True, False],
-    'volatile': ['on'],
-    'ndim': [0],
-    'dtype': [numpy.float32],
-}) + testing.product({
-    'test': [True, False],
-    'volatile': ['off'],
     'ndim': [0, 1, 2, 3],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 })))
@@ -69,9 +63,10 @@ class BatchNormalizationTest(unittest.TestCase):
             self.check_backward_optionss = {'atol': 5e-1, 'rtol': 1e-1}
 
     def check_forward(self, x_data):
-        x = chainer.Variable(x_data, volatile=self.volatile)
-        y = self.link(x, test=self.test)
-        self.assertEqual(y.data.dtype, self.dtype)
+        with chainer.using_config('train', not self.test):
+            x = chainer.Variable(x_data)
+            y = self.link(x)
+            self.assertEqual(y.data.dtype, self.dtype)
 
         y_expect = _batch_normalization(
             self.expander, self.gamma, self.beta, self.x, self.mean,
@@ -92,8 +87,8 @@ class BatchNormalizationTest(unittest.TestCase):
 
     @attr.cudnn
     def test_forward_gpu_without_cudnn(self):
-        self.link.use_cudnn = False
-        self.test_forward_gpu()
+        with chainer.using_config('use_cudnn', 'never'):
+            self.test_forward_gpu()
 
     @attr.multi_gpu(2)
     @condition.retry(3)
@@ -121,8 +116,8 @@ class BatchNormalizationTest(unittest.TestCase):
 
     @attr.cudnn
     def test_backward_gpu_without_cudnn(self):
-        self.link.use_cudnn = False
-        self.test_backward_gpu()
+        with chainer.using_config('use_cudnn', 'never'):
+            self.test_backward_gpu()
 
 
 @testing.parameterize(
@@ -151,7 +146,8 @@ class TestPopulationStatistics(unittest.TestCase):
         testing.assert_allclose(unbiased_var, self.link.avg_var)
 
         y = chainer.Variable(y)
-        self.link(y, test=True, finetune=True)
+        with chainer.using_config('train', False):
+            self.link(y, finetune=True)
         testing.assert_allclose(mean, self.link.avg_mean)
         testing.assert_allclose(unbiased_var, self.link.avg_var)
 
@@ -167,8 +163,8 @@ class TestPopulationStatistics(unittest.TestCase):
 
     @attr.cudnn
     def test_statistics_gpu_without_cudnn(self):
-        self.link.use_cudnn = False
-        self.test_statistics_gpu()
+        with chainer.using_config('use_cudnn', 'never'):
+            self.test_statistics_gpu()
 
     def check_statistics2(self, x, y):
         x = chainer.Variable(x)
@@ -203,8 +199,8 @@ class TestPopulationStatistics(unittest.TestCase):
 
     @attr.cudnn
     def test_statistics2_gpu_without_cudnn(self):
-        self.link.use_cudnn = False
-        self.test_statistics2_gpu()
+        with chainer.using_config('use_cudnn', 'never'):
+            self.test_statistics2_gpu()
 
 
 @testing.parameterize(*testing.product({
@@ -246,7 +242,8 @@ class BatchNormalizationTestWithoutGammaAndBeta(unittest.TestCase):
 
     def check_forward(self, x_data):
         x = chainer.Variable(x_data)
-        y = self.link(x, test=self.test)
+        with chainer.using_config('train', not self.test):
+            y = self.link(x)
         testing.assert_allclose(self.y_expected, y.data)
 
     def test_forward_cpu(self):
@@ -268,8 +265,8 @@ class BatchNormalizationTestWithoutGammaAndBeta(unittest.TestCase):
 
     @attr.cudnn
     def test_forward_gpu_without_cudnn(self):
-        self.link.use_cudnn = False
-        self.test_forward_gpu()
+        with chainer.using_config('use_cudnn', 'never'):
+            self.test_forward_gpu()
 
     def check_backward(self, x_data, y_grad):
         gradient_check.check_backward(self.link, x_data, y_grad,
@@ -289,8 +286,8 @@ class BatchNormalizationTestWithoutGammaAndBeta(unittest.TestCase):
 
     @attr.cudnn
     def test_backward_gpu_without_cudnn(self):
-        self.link.use_cudnn = False
-        self.test_backward_gpu()
+        with chainer.using_config('use_cudnn', 'never'):
+            self.test_backward_gpu()
 
 
 @testing.parameterize(*testing.product({
@@ -363,6 +360,26 @@ class TestInvalidInitialize(unittest.TestCase):
     def test_invalid_type(self):
         with self.assertRaises(TypeError):
             self.link = links.BatchNormalization({})
+
+
+class TestInvalidArgument(unittest.TestCase):
+
+    def setUp(self):
+        self.link = links.BatchNormalization(1)
+        self.x = numpy.random.uniform(-1, 1, (3,)).astype('f')
+
+    def test_test_argument(self):
+        with self.assertRaises(ValueError):
+            self.link(self.x, test=True)
+
+    def test_positional_argument(self):
+        # positional argument is prohibited from v2
+        with self.assertRaises(TypeError):
+            self.link(self.x, True)
+
+    def test_redundant_argument(self):
+        with self.assertRaises(TypeError):
+            self.link(self.x, unknown_argument=1)
 
 
 testing.run_module(__name__, __file__)

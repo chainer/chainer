@@ -6,6 +6,8 @@ import time
 import numpy
 import six
 
+import chainer
+from chainer import configuration
 from chainer import cuda
 from chainer import function
 from chainer.functions.activation import relu
@@ -16,6 +18,7 @@ from chainer.functions.array import split_axis
 from chainer.functions.array import stack
 from chainer.functions.connection import linear
 from chainer.functions.noise import dropout
+from chainer.utils import argument
 from chainer.utils import type_check
 
 
@@ -161,7 +164,12 @@ if cuda.cudnn_enabled and _cudnn_version >= 5000:
 
 class BaseNStepRNN(function.Function):
 
-    def __init__(self, n_layers, states, rnn_dir, rnn_mode, train=True):
+    def __init__(self, n_layers, states, rnn_dir, rnn_mode, **kwargs):
+        argument.check_unexpected_kwargs(
+            kwargs, train='train argument is not supported anymore. '
+            'Use chainer.using_config')
+        argument.assert_kwargs_empty(kwargs)
+
         if rnn_dir not in _rnn_dirs:
             candidate_list = ','.join(_rnn_dirs.keys())
             raise ValueError('Invalid rnn_dir: "%s". Please select from [%s]'
@@ -174,7 +182,6 @@ class BaseNStepRNN(function.Function):
         self.rnn_mode = _rnn_modes[rnn_mode]
         self.rnn_direction = _rnn_params_direction[self.rnn_dir]
         self.n_layers = n_layers
-        self.train = train
         self.states = states
         self.use_cell = _rnn_params_use_cell[self.rnn_mode]
         self.n_W = _rnn_n_params[self.rnn_mode]
@@ -355,7 +362,7 @@ class BaseNStepRNN(function.Function):
         workspace = cuda.cupy.empty((work_size,), dtype='b')
         self.workspace = workspace
 
-        if not self.train:
+        if not configuration.config.train:
             libcudnn.RNNForwardInference(
                 handle, rnn_desc.value, length,
                 c_x_descs.data, xs.data.ptr, hx_desc.value, hx.data.ptr,
@@ -502,35 +509,37 @@ class BaseNStepRNN(function.Function):
 
 class NStepRNNTanh(BaseNStepRNN):
 
-    def __init__(self, n_layers, states, train=True):
+    def __init__(self, n_layers, states, **kwargs):
         BaseNStepRNN.__init__(self, n_layers, states, rnn_dir='uni',
-                              rnn_mode='rnn_tanh', train=train)
+                              rnn_mode='rnn_tanh', **kwargs)
 
 
 class NStepRNNReLU(BaseNStepRNN):
 
-    def __init__(self, n_layers, states, train=True):
+    def __init__(self, n_layers, states, **kwargs):
         BaseNStepRNN.__init__(self, n_layers, states, rnn_dir='uni',
-                              rnn_mode='rnn_relu', train=train)
+                              rnn_mode='rnn_relu', **kwargs)
 
 
 class NStepBiRNNTanh(BaseNStepRNN):
 
-    def __init__(self, n_layers, states, train=True):
+    def __init__(self, n_layers, states, **kwargs):
         BaseNStepRNN.__init__(self, n_layers, states, rnn_dir='bi',
-                              rnn_mode='rnn_tanh', train=train)
+                              rnn_mode='rnn_tanh', **kwargs)
 
 
 class NStepBiRNNReLU(BaseNStepRNN):
 
-    def __init__(self, n_layers, states, train=True):
+    def __init__(self, n_layers, states, **kwargs):
         BaseNStepRNN.__init__(self, n_layers, states, rnn_dir='bi',
-                              rnn_mode='rnn_relu', train=train)
+                              rnn_mode='rnn_relu', **kwargs)
 
 
-def n_step_rnn(n_layers, dropout_ratio, hx, ws, bs, xs, train=True,
-               use_cudnn=True, activation='tanh'):
-    """Stacked Uni-directional RNN function for sequence inputs.
+def n_step_rnn(
+        n_layers, dropout_ratio, hx, ws, bs, xs, activation='tanh', **kwargs):
+    """n_step_rnn(n_layers, dropout_ratio, hx, ws, bs, xs, activation='tanh')
+
+    Stacked Uni-directional RNN function for sequence inputs.
 
     This function calculates stacked Uni-directional RNN with sequences.
     This function gets an initial hidden state :math:`h_0`,
@@ -561,6 +570,14 @@ def n_step_rnn(n_layers, dropout_ratio, hx, ws, bs, xs, train=True,
     of ``k``-th layer is hidden state ``h_t`` of ``k-1``-th layer.
     Note that all input variables except first layer may have different shape
     from the first layer.
+
+    .. warning::
+
+       ``train`` and ``use_cudnn`` arguments are not supported anymore since
+       v2.
+       Instead, use ``chainer.using_config('train', train)`` and
+       ``chainer.using_config('use_cudnn', use_cudnn)`` respectively.
+       See :func:`chainer.using_config`.
 
     Args:
         n_layers(int): Number of layers.
@@ -593,8 +610,6 @@ def n_step_rnn(n_layers, dropout_ratio, hx, ws, bs, xs, train=True,
             of :func:`~chainer.Variable` holding sequence.
             So ``xs`` needs to satisfy
             ``xs[t].shape[0] >= xs[t + 1].shape[0]``.
-        train (bool): If ``True``, this function executes dropout.
-        use_cudnn (bool): If ``True``, this function uses cuDNN if available.
         activation (str): Activation function name.
             Please select ``tanh`` or ``relu``.
 
@@ -610,13 +625,15 @@ def n_step_rnn(n_layers, dropout_ratio, hx, ws, bs, xs, train=True,
               units. Note that ``B_t`` is the same value as ``xs[t]``.
 
     """
-    return n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs, train,
-                           use_cudnn, activation, use_bi_direction=False)
+    return n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
+                           activation, use_bi_direction=False, **kwargs)
 
 
-def n_step_birnn(n_layers, dropout_ratio, hx, ws, bs, xs, train=True,
-                 use_cudnn=True, activation='tanh'):
-    """Stacked Bi-directional RNN function for sequence inputs.
+def n_step_birnn(
+        n_layers, dropout_ratio, hx, ws, bs, xs, activation='tanh', **kwargs):
+    """n_step_birnn(n_layers, dropout_ratio, hx, ws, bs, xs, activation='tanh')
+
+    Stacked Bi-directional RNN function for sequence inputs.
 
     This function calculates stacked Bi-directional RNN with sequences.
     This function gets an initial hidden state :math:`h_0`, an initial
@@ -657,6 +674,14 @@ def n_step_birnn(n_layers, dropout_ratio, hx, ws, bs, xs, train=True,
     Note that all input variables except first layer may have different shape
     from the first layer.
 
+    .. warning::
+
+       ``train`` and ``use_cudnn`` arguments are not supported anymore since
+       v2.
+       Instead, use ``chainer.using_config('train', train)`` and
+       ``chainer.using_config('use_cudnn', use_cudnn)`` respectively.
+       See :func:`chainer.using_config`.
+
     Args:
         n_layers(int): Number of layers.
         dropout_ratio(float): Dropout ratio.
@@ -694,8 +719,6 @@ def n_step_birnn(n_layers, dropout_ratio, hx, ws, bs, xs, train=True,
             of :func:`~chainer.Variable` holding sequence.
             So ``xs`` needs to satisfy
             ``xs[t].shape[0] >= xs[t + 1].shape[0]``.
-        train (bool): If ``True``, this function executes dropout.
-        use_cudnn (bool): If ``True``, this function uses cuDNN if available.
         activation (str): Activation function name.
             Please select ``tanh`` or ``relu``.
 
@@ -711,18 +734,28 @@ def n_step_birnn(n_layers, dropout_ratio, hx, ws, bs, xs, train=True,
               units. Note that ``B_t`` is the same value as ``xs[t]``.
 
     """
-    return n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs, train,
-                           use_cudnn, activation, use_bi_direction=True)
+    return n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
+                           activation, use_bi_direction=True)
 
 
-def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs, train,
-                    use_cudnn, activation, use_bi_direction):
-    """Base function for Stack RNN/BiRNN functions.
+def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
+                    activation, use_bi_direction, **kwargs):
+    """n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs, activation, use_bi_direction)
+
+    Base function for Stack RNN/BiRNN functions.
 
     This function is used at  :func:`chainer.functions.n_step_birnn` and
     :func:`chainer.functions.n_step_rnn`.
     This function's behavior depends on following arguments,
     ``activation`` and ``use_bi_direction``.
+
+    .. warning::
+
+       ``train`` and ``use_cudnn`` arguments are not supported anymore since
+       v2.
+       Instead, use ``chainer.using_config('train', train)`` and
+       ``chainer.using_config('use_cudnn', use_cudnn)`` respectively.
+       See :func:`chainer.using_config`.
 
     Args:
         n_layers(int): Number of layers.
@@ -755,8 +788,6 @@ def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs, train,
             of :func:`~chainer.Variable` holding sequence.
             So ``xs`` needs to satisfy
             ``xs[t].shape[0] >= xs[t + 1].shape[0]``.
-        train (bool): If ``True``, this function executes dropout.
-        use_cudnn (bool): If ``True``, this function uses cuDNN if available.
         activation (str): Activation function name.
             Please select ``tanh`` or ``relu``.
         use_bi_direction (bool): If ``True``, this function uses
@@ -777,7 +808,15 @@ def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs, train,
        :func:`chainer.functions.n_step_rnn`
        :func:`chainer.functions.n_step_birnn`
 
-    """
+    """  # NOQA
+
+    argument.check_unexpected_kwargs(
+        kwargs, train='train argument is not supported anymore. '
+        'Use chainer.using_config',
+        use_cudnn='use_cudnn argument is not supported anymore. '
+        'Use chainer.using_config')
+    argument.assert_kwargs_empty(kwargs)
+
     activation_list = ['tanh', 'relu']
     if activation not in activation_list:
         candidate = ','.join(activation_list)
@@ -786,8 +825,7 @@ def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs, train,
 
     xp = cuda.get_array_module(hx)
 
-    if use_cudnn and xp is not numpy and cuda.cudnn_enabled and \
-       _cudnn_version >= 5000:
+    if xp is not numpy and chainer.should_use_cudnn('>=auto', 5000):
         states = get_random_state().create_dropout_states(dropout_ratio)
         # flatten all input variables
         inputs = tuple(itertools.chain(
@@ -798,15 +836,15 @@ def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs, train,
         if use_bi_direction:
             # Bi-directional RNN
             if activation == 'tanh':
-                rnn = NStepBiRNNTanh(n_layers, states, train=train)
+                rnn = NStepBiRNNTanh(n_layers, states)
             elif activation == 'relu':
-                rnn = NStepBiRNNReLU(n_layers, states, train=train)
+                rnn = NStepBiRNNReLU(n_layers, states)
         else:
             # Uni-directional RNN
             if activation == 'tanh':
-                rnn = NStepRNNTanh(n_layers, states, train=train)
+                rnn = NStepRNNTanh(n_layers, states)
             elif activation == 'relu':
-                rnn = NStepRNNReLU(n_layers, states, train=train)
+                rnn = NStepRNNReLU(n_layers, states)
 
         ret = rnn(*inputs)
         hy, = ret[:1]
@@ -844,8 +882,7 @@ def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs, train,
                         h_rest = None
 
                     if layer > 0:
-                        x = dropout.dropout(x, ratio=dropout_ratio,
-                                            train=train)
+                        x = dropout.dropout(x, ratio=dropout_ratio)
 
                     rnn_in = (linear.linear(x, xws[layer_idx],
                                             xbs[layer_idx]) +

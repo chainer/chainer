@@ -15,7 +15,7 @@ def sigmoid(x):
 
 
 @testing.parameterize(*testing.product({
-    'use_cudnn': [True, False],
+    'use_cudnn': ['always', 'auto', 'never'],
     'hidden_none': [True, False],
 }))
 class TestNStepLSTM(unittest.TestCase):
@@ -43,8 +43,7 @@ class TestNStepLSTM(unittest.TestCase):
             numpy.random.uniform(-1, 1, (l, self.out_size)).astype('f')
             for l in self.lengths]
         self.rnn = links.NStepLSTM(
-            self.n_layer, self.in_size, self.out_size, self.dropout,
-            use_cudnn=self.use_cudnn)
+            self.n_layer, self.in_size, self.out_size, self.dropout)
 
         for layer in self.rnn:
             for p in layer.params():
@@ -58,7 +57,8 @@ class TestNStepLSTM(unittest.TestCase):
             h = chainer.Variable(h_data)
             c = chainer.Variable(c_data)
         xs = [chainer.Variable(x) for x in xs_data]
-        hy, cy, ys = self.rnn(h, c, xs)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            hy, cy, ys = self.rnn(h, c, xs)
 
         self.assertEqual(hy.data.shape, h_data.shape)
         self.assertEqual(cy.data.shape, c_data.shape)
@@ -132,10 +132,11 @@ class TestNStepLSTM(unittest.TestCase):
             in_data = xs_data
         else:
             in_data = [h_data, c_data] + xs_data
-        gradient_check.check_backward(
-            fun, tuple(in_data),
-            tuple([gh_data, gc_data] + gys_data),
-            tuple(params), eps=1e-2, rtol=1e-3, atol=1e-3)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            gradient_check.check_backward(
+                fun, tuple(in_data),
+                tuple([gh_data, gc_data] + gys_data),
+                tuple(params), eps=1e-2, rtol=1e-3, atol=1e-3)
 
     def test_backward_cpu(self):
         self.check_backward(
@@ -154,7 +155,7 @@ class TestNStepLSTM(unittest.TestCase):
 
 
 @testing.parameterize(*testing.product({
-    'use_cudnn': [True, False],
+    'use_cudnn': ['always', 'auto', 'never'],
     'hidden_none': [True, False],
 }))
 class TestNStepBiLSTM(unittest.TestCase):
@@ -182,8 +183,7 @@ class TestNStepBiLSTM(unittest.TestCase):
             numpy.random.uniform(-1, 1, (l, self.out_size * 2)).astype('f')
             for l in self.lengths]
         self.rnn = links.NStepBiLSTM(
-            self.n_layer, self.in_size, self.out_size, self.dropout,
-            use_cudnn=self.use_cudnn)
+            self.n_layer, self.in_size, self.out_size, self.dropout)
 
         for layer in self.rnn:
             for p in layer.params():
@@ -276,15 +276,17 @@ class TestNStepBiLSTM(unittest.TestCase):
                 testing.assert_allclose(y, ey)
 
     def test_forward_cpu(self):
-        self.check_forward(self.h, self.c, self.xs)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.check_forward(self.h, self.c, self.xs)
 
     @attr.gpu
     def test_forward_gpu(self):
         self.rnn.to_gpu()
-        self.check_forward(
-            cuda.to_gpu(self.h),
-            cuda.to_gpu(self.c),
-            [cuda.to_gpu(x) for x in self.xs])
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.check_forward(
+                cuda.to_gpu(self.h),
+                cuda.to_gpu(self.c),
+                [cuda.to_gpu(x) for x in self.xs])
 
     def check_backward(
             self, h_data, c_data, xs_data, gh_data, gc_data, gys_data):
@@ -314,19 +316,21 @@ class TestNStepBiLSTM(unittest.TestCase):
             tuple(params), eps=1e-2, rtol=1e-3, atol=1e-3)
 
     def test_backward_cpu(self):
-        self.check_backward(
-            self.h, self.c, self.xs, self.gh, self.gc, self.gys)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.check_backward(
+                self.h, self.c, self.xs, self.gh, self.gc, self.gys)
 
     @attr.gpu
     def test_backward_gpu(self):
         self.rnn.to_gpu()
-        self.check_backward(
-            cuda.to_gpu(self.h),
-            cuda.to_gpu(self.c),
-            [cuda.to_gpu(x) for x in self.xs],
-            cuda.to_gpu(self.gh),
-            cuda.to_gpu(self.gc),
-            [cuda.to_gpu(gy) for gy in self.gys])
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.check_backward(
+                cuda.to_gpu(self.h),
+                cuda.to_gpu(self.c),
+                [cuda.to_gpu(x) for x in self.xs],
+                cuda.to_gpu(self.gh),
+                cuda.to_gpu(self.gc),
+                [cuda.to_gpu(gy) for gy in self.gys])
 
 
 testing.run_module(__name__, __file__)

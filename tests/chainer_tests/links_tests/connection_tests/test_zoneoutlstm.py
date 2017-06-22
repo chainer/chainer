@@ -108,6 +108,7 @@ class TestZoneoutlstm(unittest.TestCase):
             self.check_forward(c, h, x)
 
     def check_backward(self, c_data, h_data, x_data, y_grad):
+        print(chainer.config.train)
         x = chainer.Variable(x_data)
         y = self._forward(self.link, x)
         c = self.link.c
