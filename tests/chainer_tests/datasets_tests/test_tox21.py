@@ -67,25 +67,3 @@ class TestTox21Preprocessor(unittest.TestCase):
         self._check_labeled_data(train)
         self._check_labeled_data(test)
         self._check_unlabeled_data(val)
-
-
-class TestTox21Cache(unittest.TestCase):
-        
-    def setUp(self):
-        self.dataset_root = download.get_dataset_root()
-        download.set_dataset_root('/tmp')
-        root = download.get_dataset_directory(
-            os.path.join('pfnet', 'chainer', 'tox21'))
-        if os.path.exists(root):
-            shutil.rmtree(root)
-
-    def tearDown(self):
-        download.set_dataset_root = self.dataset_root
-
-    def test(self):
-
-        with mock.patch('chainer.datasets.tox21.Chem') as m:
-            datasets.get_tox21()
-            self.assertEqual(m.SDMolSupplier.call_count, 0)
-            datasets.get_tox21()
-            self.assertEqual(m.SDMolSupplier.call_count, 3)
