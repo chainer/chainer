@@ -261,7 +261,7 @@ def to_gpu(array, device=None, stream=None):
                         mem, array.dtype, array.size).reshape(array.shape)
                     src[...] = array
                     ret.set(src, stream)
-                    cupy.cuda.pinned_memory._add_to_watch_lsit(
+                    cupy.cuda.pinned_memory._add_to_watch_list(
                         stream.record(), mem)
                 else:
                     # gpu to gpu
