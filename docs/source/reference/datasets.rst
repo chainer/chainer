@@ -20,11 +20,13 @@ These concrete examples use the downloading utilities in the :mod:`chainer.datas
 General datasets
 ----------------
 
-General datasets are further divided into three types.
+General datasets are further divided into four types.
 
 The first one is :class:`DictDataset` and :class:`TupleDataset`, both of which combine other datasets and introduce some structures on them.
 
-The second one is :class:`SubDataset`, which represents a subset of an existing dataset. It can be used to separate a dataset for hold-out validation or cross validation. Convenient functions to make random splits are also provided.
+The second one is :class:`ConcatenatedDataset` and :class:`SubDataset`.
+:class:`ConcatenatedDataset` represents a concatenation of existing datasets. It can be used to merge datasets and make a larger dataset.
+:class:`SubDataset` represents a subset of an existing dataset. It can be used to separate a dataset for hold-out validation or cross validation. Convenient functions to make random splits are also provided.
 
 The third one is :class:`TransformDataset`, which wraps around a dataset by applying a function to data indexed from the underlying dataset.
 It can be used to modify behavior of a dataset that is already prepared.
@@ -49,6 +51,11 @@ TupleDataset
    :nosignatures:
 
    chainer.datasets.TupleDataset
+
+ConcatenatedDataset
+~~~~~~~~~~~~~~~~~~~
+.. autoclass:: ConcatenatedDataset
+   :members:
 
 SubDataset
 ~~~~~~~~~~

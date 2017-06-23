@@ -128,6 +128,20 @@ class TestResNetLayers(unittest.TestCase):
         self.link.to_gpu()
         self.check_predict()
 
+    def check_copy(self):
+        copied = self.link.copy()
+
+        self.assertIs(copied.conv1, copied.functions['conv1'][0])
+        self.assertIs(copied.res2.a, copied.res2.forward[0])
+
+    def test_copy_cpu(self):
+        self.check_copy()
+
+    @attr.gpu
+    def test_copy_gpu(self):
+        self.link.to_gpu()
+        self.check_copy()
+
 
 @unittest.skipUnless(resnet.available, 'Pillow is required')
 @attr.slow
@@ -226,6 +240,19 @@ class TestVGG16Layers(unittest.TestCase):
     def test_predict_gpu(self):
         self.link.to_gpu()
         self.check_predict()
+
+    def check_copy(self):
+        copied = self.link.copy()
+
+        self.assertIs(copied.conv1_1, copied.functions['conv1_1'][0])
+
+    def test_copy_cpu(self):
+        self.check_copy()
+
+    @attr.gpu
+    def test_copy_gpu(self):
+        self.link.to_gpu()
+        self.check_copy()
 
 
 @unittest.skipUnless(googlenet.available, 'Pillow is required')
@@ -347,6 +374,19 @@ class TestGoogLeNet(unittest.TestCase):
     def test_predict_gpu(self):
         self.link.to_gpu()
         self.check_predict()
+
+    def check_copy(self):
+        copied = self.link.copy()
+
+        self.assertIs(copied.conv1, copied.functions['conv1'][0])
+
+    def test_copy_cpu(self):
+        self.check_copy()
+
+    @attr.gpu
+    def test_copy_gpu(self):
+        self.link.to_gpu()
+        self.check_copy()
 
 
 testing.run_module(__name__, __file__)

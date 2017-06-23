@@ -314,8 +314,8 @@ Assign a Parameter object directly to an attribute within a \
 
         """
         ret = copy.copy(self)
-        ret._params = list(self._params)
-        ret._persistent = list(self._persistent)
+        ret._params = set(self._params)
+        ret._persistent = set(self._persistent)
         ret.name = None
         d = ret.__dict__
         for name in ret._params:
@@ -708,7 +708,7 @@ Assign a Link object directly to an attribute within a \
 
     def copy(self):
         ret = super(Chain, self).copy()
-        ret._children = list(ret._children)
+        ret._children = set(ret._children)
         d = ret.__dict__
         for name in ret._children:
             # copy child links recursively
