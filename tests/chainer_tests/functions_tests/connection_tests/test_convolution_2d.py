@@ -282,6 +282,8 @@ class TestConvolution2DCudnnCall(unittest.TestCase):
             -1, 1, (2, 2, 2, 2)).astype(self.dtype)
         with chainer.using_config('use_cudnn', self.use_cudnn):
             self.should_call_cudnn = chainer.should_use_cudnn('>=auto')
+            if self.dilate > 1 and cuda.cudnn.cudnn.getVersion() < 6000:
+                self.should_call_cudnn = False
 
     def forward(self):
         x = chainer.Variable(self.x)
