@@ -6,7 +6,6 @@ import numpy
 import chainer
 from chainer import cuda
 from chainer import functions
-from chainer.functions.connection import convolution_2d
 from chainer.functions.connection import dilated_convolution_2d
 from chainer import gradient_check
 from chainer import testing
