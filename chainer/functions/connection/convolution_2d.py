@@ -348,6 +348,9 @@ def convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False, dilate=1,
     If ``chainer.configuration.config.cudnn_deterministic`` is ``True`` and
     cuDNN version is >= v3, it forces cuDNN to use a deterministic algorithm.
 
+    When the dilation factor is greater than one, cuDNN is not used unless
+    the version is 6.0 or higher.
+
     .. warning::
 
         ``deterministic`` argument is not supported anymore since v2.
@@ -372,6 +375,8 @@ def convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False, dilate=1,
             ``pad=p`` and ``pad=(p, p)`` are equivalent.
         cover_all (bool): If ``True``, all spatial locations are convoluted
             into some output pixels.
+        dilate (int or pair of ints): Dilation factor of filter applications.
+            ``dilate=d`` and ``dilate=(d, d)`` are equivalent.
 
     Returns:
         ~chainer.Variable:
