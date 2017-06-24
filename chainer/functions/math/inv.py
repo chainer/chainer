@@ -89,8 +89,8 @@ class BatchInv(function.Function):
         # Unpack 1-length tuples
         gy, = gy
         # Gradient is - x^-T (dx) x^-T
-        ret = matmul._batch_matmul(-self.invx, gy, transa=True)
-        ret2 = matmul._batch_matmul(ret, self.invx, transb=True)
+        ret = matmul._matmul(-self.invx, gy, transa=True)
+        ret2 = matmul._matmul(ret, self.invx, transb=True)
         return ret2,
 
 
