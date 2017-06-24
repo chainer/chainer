@@ -20,7 +20,7 @@ def _check_grad_type(func, x, gx):
     if x.data is None or gx is None:
         # ``x.data is None`` implies that the data array is not retained
         return
-    if type(gx) is not type(x.data):
+    if isinstance(gx, type(x.data)):
         msg = ('Type of data and grad mismatch\n%s != %s' %
                (type(x.data), type(gx)))
         typ = TypeError
