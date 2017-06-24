@@ -1,3 +1,5 @@
+import warnings
+
 import numpy
 
 from chainer import cuda
@@ -153,4 +155,31 @@ def matmul(a, b, transa=False, transb=False):
                [ 2.,  2.]], dtype=float32)
 
     """
+    return MatMul(transa=transa, transb=transb)(a, b)
+
+
+def batch_matmul(a, b, transa=False, transb=False):
+    """Computes the batch matrix multiplications of two sets of arrays.
+
+    Args:
+        a (Variable): The left operand of the batch matrix multiplications.
+            A 2-D array of shape ``(B, N)`` is considered as B
+            :math:`N \\times 1` matrices.
+            A 3-D array of shape ``(B, M, N)`` is considered as B
+            :math:`M \\times N` matrices.
+        b (Variable): The right operand of the batch matrix multiplications.
+            Its array is treated as matrices in the same way as ``a``'s array.
+        transa (bool): If ``True``, transpose each matrix in ``a``.
+        transb (bool): If ``True``, transpose each matrix in ``b``.
+
+    Returns:
+        ~chainer.Variable: The result of the batch matrix multiplications as a
+            3-D array.
+
+    .. deprecated:: v3.0.0
+       batch_matmul is deprecated. Use ``matmul`` instead.
+
+    """
+    warnings.warn('batch_matmul is deprecated. Use matmul instead.',
+                  DeprecationWarning)
     return MatMul(transa=transa, transb=transb)(a, b)

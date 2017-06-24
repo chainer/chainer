@@ -205,8 +205,7 @@ from chainer.functions.math.logarithm_1p import Log1p  # NOQA
 from chainer.functions.math.logarithm_1p import log1p  # NOQA
 from chainer.functions.math.logsumexp import logsumexp  # NOQA
 from chainer.functions.math.logsumexp import LogSumExp  # NOQA
-from chainer.functions.math.matmul import matmul  # NOQA
-from chainer.functions.math.matmul import MatMul  # NOQA
+from chainer.functions.math.matmul import batch_matmul  # NOQA
 from chainer.functions.math.matmul import matmul  # NOQA
 from chainer.functions.math.matmul import MatMul  # NOQA
 from chainer.functions.math.maximum import maximum  # NOQA
