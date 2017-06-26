@@ -1,33 +1,23 @@
 Optimizer
 ---------
 
-.. currentmodule:: chainer
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
 
-Hyperparameter
-~~~~~~~~~~~~~~
-
-.. autoclass:: chainer.optimizer.Hyperparameter
-   :members:
-
-UpdateRule
-~~~~~~~~~~
-
-.. autoclass:: UpdateRule
-   :members:
-
-Optimizer
-~~~~~~~~~
-.. autoclass:: Optimizer
-   :members:
-
-GradientMethod
-~~~~~~~~~~~~~~
-.. autoclass:: GradientMethod
-   :members:
+   chainer.Hyperparameter
+   chainer.UpdateRule
+   chainer.Optimizer
+   chainer.GradientMethod
 
 Hook functions
 ~~~~~~~~~~~~~~
-.. autoclass:: chainer.optimizer.WeightDecay
-.. autoclass:: chainer.optimizer.Lasso
-.. autoclass:: chainer.optimizer.GradientClipping
-.. autoclass:: chainer.optimizer.GradientNoise
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.optimizer.WeightDecay
+   chainer.optimizer.Lasso
+   chainer.optimizer.GradientClipping
+   chainer.optimizer.GradientNoise
