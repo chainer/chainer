@@ -49,10 +49,10 @@ A computational graph is a series of function applications, so that it can be de
 When such function is a layer of neural network, the parameters of the function will be updated through training.
 Therefore, the function needs to keep trainable parameters inside, so that Chainer has :class:`Link` class that can keep trainable parameters in the object of the class.
 The parameters of the function performed inside the :class:`Link` object are represented as :class:`Variable` objects.
-In short, the difference between these two objects, :class:`Link` and :class:`Function`, is basically whether it has trainable parameters inside or not.
+In short, the difference between these two objects, :class:`Link` and :class:`Function`, is whether it contains trainable parameters or not.
 A neural network model is typically described as a series of :class:`Function` and :class:`Link`.
 
-You can build a computational graph by dynamically 'chaining' various kinds of :class:`Link` and :class:`Function` to define a :class:`Chain`, and define a network by *running* the graph, so that it's called **Chainer**.
+You can build a computational graph by dynamically 'chaining' various kinds of :class:`Link` s and :class:`Function` s to define a :class:`Chain`. In the framework, the network is defined by *running* the chained graph, hence the name is **Chainer**.
 
 .. note::
 
@@ -135,7 +135,7 @@ Otherwise, ``z.grad`` will be ``None`` as follows:
 All these computations are easily generalized to multi-element array input.
 Note that if we want to start backward computation from a variable holding a multi-element array, we must set the *initial error* manually.
 Because when the :attr:`~Variable.size` of a variable (it means the number of elements in the array) is ``1``, it's considered as a variable object that represents a loss value, so that the :attr:`~Variable.grad` attribute of the variable is automatically filled with ``1``.
-On the other hand, when the size of a variable is larger than ``1``, the :attr:`~Variable.grad` attribute remains ``None``, so that we need to give *initial error* explicitly by hand before :meth:`~Variable.backward`.
+On the other hand, when the size of a variable is larger than ``1``, the :attr:`~Variable.grad` attribute remains ``None``, and it is necessary to set the *initial error* explicitly before running :meth:`~Variable.backward`.
 This is simply done by setting the :attr:`~Variable.grad` attribute of the output variable as follows:
 
 .. doctest::
