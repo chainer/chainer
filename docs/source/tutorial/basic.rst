@@ -49,7 +49,7 @@ A computational graph is a series of function applications, so that it can be de
 When such function is a layer of neural network, the parameters of the function will be updated through training.
 Therefore, the function needs to keep trainable parameters inside, so that Chainer has :class:`Link` class that can keep trainable parameters in the object of the class.
 The parameters of the function performed inside the :class:`Link` object are represented as :class:`Variable` objects.
-In short, the difference between these two objects, :class:`Link` and :class:`Function`, is basically whether it has trainable parameters inside or not.
+In short, the difference between these two objects, :class:`Link` and :class:`Function`, is whether it contains trainable parameters or not.
 A neural network model is typically described as a series of :class:`Function` and :class:`Link`.
 
 You can build a computational graph by dynamically 'chaining' various kinds of :class:`Link` and :class:`Function` to define a :class:`Chain`, and define a network by *running* the graph, so that it's called **Chainer**.
