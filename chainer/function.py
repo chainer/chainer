@@ -235,6 +235,25 @@ class Function(object):
             if output_indexes_to_retain is not None:
                 for index in output_indexes_to_retain:
                     ret[index].retain_data()
+
+            # Work-around to prevent variable nodes in a computational graph
+            # from being released unexpectedly
+            self._outputs = [None for y in ret]
+            if output_indexes_to_retain is not None:
+                for index in output_indexes_to_retain:
+                    # Make a temporary reference to the variable node
+                    # of the retained output
+                    self._outputs[index] = ret[index].node
+
+            for x in self.inputs:
+                if x.creator is None:
+                    continue
+                for index in range(0, len(x.creator._outputs)):
+                    if (x.creator._outputs[index] is x):
+                        # Remove a temporary reference to my inputs
+                        # from the correspondig creator functions
+                        x.creator._outputs[index] = None
+
             del self._output_indexes_to_retain
 
         if len(ret) == 1:
