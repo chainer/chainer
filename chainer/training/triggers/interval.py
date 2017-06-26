@@ -86,9 +86,9 @@ class IntervalTrigger(object):
                 'previous_iteration', self._previous_iteration)
         except KeyError:
             warnings.warn(
-                'The previous value of iteration is not saved.'
-                'IntervalTrigger guesses it using current iteration.'
-                'If this trigger is not called at every iteration,'
+                'The previous value of iteration is not saved. '
+                'IntervalTrigger guesses it using current iteration. '
+                'If this trigger is not called at every iteration, '
                 'it may not work correctly.')
             # set a negative value for invalid
             self._previous_iteration = -1
@@ -98,10 +98,10 @@ class IntervalTrigger(object):
                 'previous_epoch_detail', self._previous_epoch_detail)
         except KeyError:
             warnings.warn(
-                'The previous value of epoch_detail is not saved.'
+                'The previous value of epoch_detail is not saved. '
                 'IntervalTrigger uses the value of '
-                'trainer.updater.previous_epoch_detail.'
-                'If this trigger is not called at every iteration,'
+                'trainer.updater.previous_epoch_detail. '
+                'If this trigger is not called at every iteration, '
                 'it may not work correctly.')
             # set a negative value for invalid
             self._previous_epoch_detail = -1.
