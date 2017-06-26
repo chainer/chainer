@@ -135,7 +135,7 @@ Otherwise, ``z.grad`` will be ``None`` as follows:
 All these computations are easily generalized to multi-element array input.
 Note that if we want to start backward computation from a variable holding a multi-element array, we must set the *initial error* manually.
 Because when the :attr:`~Variable.size` of a variable (it means the number of elements in the array) is ``1``, it's considered as a variable object that represents a loss value, so that the :attr:`~Variable.grad` attribute of the variable is automatically filled with ``1``.
-On the other hand, when the size of a variable is larger than ``1``, the :attr:`~Variable.grad` attribute remains ``None``, so that we need to give *initial error* explicitly by hand before :meth:`~Variable.backward`.
+On the other hand, when the size of a variable is larger than ``1``, the :attr:`~Variable.grad` attribute remains ``None``, and it is necessary to set the *initial error* explicitly before running :meth:`~Variable.backward`.
 This is simply done by setting the :attr:`~Variable.grad` attribute of the output variable as follows:
 
 .. doctest::
