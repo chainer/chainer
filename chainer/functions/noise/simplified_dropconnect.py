@@ -25,10 +25,10 @@ class SimplifiedDropconnect(function.Function):
 
     """Linear unit regularized by simplified dropconnect."""
 
-    def __init__(self, ratio, mask=None, batchwise_mask=True):
+    def __init__(self, ratio, mask=None, use_batchwise_mask=True):
         self.ratio = ratio
         self.mask = mask
-        self.batchwise_mask = batchwise_mask
+        self.use_batchwise_mask = use_batchwise_mask
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -55,7 +55,7 @@ class SimplifiedDropconnect(function.Function):
         xp = cuda.get_array_module(*inputs)
 
         if self.mask is None:
-            if self.batchwise_mask:
+            if self.use_batchwise_mask:
                 mask_shape = (inputs[0].shape[0], inputs[1].shape[0],
                               inputs[1].shape[1])
             else:
@@ -103,7 +103,7 @@ class SimplifiedDropconnect(function.Function):
 
 
 def simplified_dropconnect(x, W, b=None, ratio=.5, train=True, mask=None,
-                           batchwise_mask=True):
+                           use_batchwise_mask=True):
     """Linear unit regularized by simplified dropconnect.
 
     Simplified dropconnect drops weight matrix elements randomly with
@@ -139,10 +139,11 @@ def simplified_dropconnect(x, W, b=None, ratio=.5, train=True, mask=None,
             function.
         mask (None or chainer.Variable or numpy.ndarray or cupy.ndarray):
             If ``None``, randomized dropconnect mask is generated.
-            Otherwise, The mask must be ``(n, M, N)`` shaped array.
+            Otherwise, The mask must be ``(n, M, N)`` or ``(M, N)`` shaped
+            array, and `use_batchwise_mask` is ignored.
             Main purpose of this option is debugging.
             `mask` array will be used as a dropconnect mask.
-        batchwise_mask (bool):
+        use_batchwise_mask (bool):
             If ``True``, dropped connections depend on each sample in
             mini-batch.
 
@@ -160,6 +161,6 @@ def simplified_dropconnect(x, W, b=None, ratio=.5, train=True, mask=None,
     if not train:
         ratio = 0
     if b is None:
-        return SimplifiedDropconnect(ratio, mask, batchwise_mask)(x, W)
+        return SimplifiedDropconnect(ratio, mask, use_batchwise_mask)(x, W)
     else:
-        return SimplifiedDropconnect(ratio, mask, batchwise_mask)(x, W, b)
+        return SimplifiedDropconnect(ratio, mask, use_batchwise_mask)(x, W, b)

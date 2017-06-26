@@ -23,6 +23,8 @@ def gen_mask(ratio, shape):
     'in_shape': [(3,), (3, 2, 2)],
     'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'W_dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'use_batchwise_mask_option': [True, False],
+    'batchwise_mask': [True, False],
 }))
 class TestSimplifiedDropconnect(unittest.TestCase):
 
@@ -45,7 +47,10 @@ class TestSimplifiedDropconnect(unittest.TestCase):
         W = self.link.W.data
         b = self.link.b.data
 
-        mask_shape = (4,) + self.link.W.shape
+        if self.batchwise_mask:
+            mask_shape = (4,) + self.link.W.shape
+        else:
+            mask_shape = self.link.W.shape
         self.mask = gen_mask(self.ratio, mask_shape)
 
         W = (W * self.mask) * (1. / (1 - self.ratio))
@@ -53,8 +58,12 @@ class TestSimplifiedDropconnect(unittest.TestCase):
 
         # numpy 1.9 does not support matmul.
         # So we use numpy.einsum instead of numpy.matmul.
-        self.y_expect = numpy.einsum('ijk,ikl->ijl',
-                                     W, x[:, :, None]).reshape(4, -1) + b
+        if self.batchwise_mask:
+            self.y_expect = numpy.einsum('ijk,ikl->ijl',
+                                         W, x[:, :, None]).reshape(4, -1) + b
+        else:
+            self.y_expect = numpy.einsum('jk,ikl->ijl',
+                                         W, x[:, :, None]).reshape(4, -1) + b
 
         self.check_forward_options = {}
         self.check_backward_options = {}
@@ -66,7 +75,8 @@ class TestSimplifiedDropconnect(unittest.TestCase):
 
     def check_forward(self, x_data, mask):
         x = chainer.Variable(x_data)
-        y = self.link(x, train=True, mask=mask, batchwise_mask=True)
+        y = self.link(x, train=True, mask=mask,
+                      use_batchwise_mask=self.use_batchwise_mask_option)
         self.assertEqual(y.data.dtype, self.x_dtype)
         testing.assert_allclose(self.y_expect, y.data,
                                 **self.check_forward_options)
@@ -81,7 +91,7 @@ class TestSimplifiedDropconnect(unittest.TestCase):
 
     def link_wrapper(self, *data):
         return self.link(x=data[0], train=True, mask=data[1],
-                         batchwise_mask=True)
+                         use_batchwise_mask=True)
 
     def check_backward(self, x_data, y_grad, mask):
         gradient_check.check_backward(
@@ -136,7 +146,7 @@ class TestSimplifiedDropconnectParameterShapePlaceholder(unittest.TestCase):
 
     def check_forward(self, x_data, mask):
         x = chainer.Variable(x_data)
-        y = self.link(x, train=True, mask=mask, batchwise_mask=True)
+        y = self.link(x, train=True, mask=mask, use_batchwise_mask=True)
         self.assertEqual(y.data.dtype, numpy.float32)
         testing.assert_allclose(self.y_expect, y.data)
 
@@ -150,7 +160,7 @@ class TestSimplifiedDropconnectParameterShapePlaceholder(unittest.TestCase):
 
     def link_wrapper(self, *data):
         return self.link(x=data[0], train=True, mask=data[1],
-                         batchwise_mask=True)
+                         use_batchwise_mask=True)
 
     def check_backward(self, x_data, y_grad, mask):
         gradient_check.check_backward(
@@ -205,7 +215,7 @@ class TestSimplifiedDropconnectNotBatchwiseMask(unittest.TestCase):
 
     def check_forward(self, x_data):
         x = chainer.Variable(x_data)
-        y = self.link(x, train=True, batchwise_mask=False)
+        y = self.link(x, train=True, use_batchwise_mask=False)
 
         # check mask equality here.
         testing.assert_allclose(y.data[0], y.data[1])

@@ -71,7 +71,7 @@ class SimplifiedDropconnect(link.Link):
     def _initialize_params(self, in_size):
         self.W.initialize((self.out_size, in_size))
 
-    def __call__(self, x, train=True, mask=None, batchwise_mask=True):
+    def __call__(self, x, train=True, mask=None, use_batchwise_mask=True):
         """Applies the simplified dropconnect layer.
 
         Args:
@@ -83,10 +83,11 @@ class SimplifiedDropconnect(link.Link):
                 Otherwise, simplified dropconnect link works as a linear unit.
             mask (None or chainer.Variable or numpy.ndarray or cupy.ndarray):
                 If ``None``, randomized simplified dropconnect mask is
-                generated. Otherwise, The mask must be ``(n, M, N)``
-                shaped array. Main purpose of this option is debugging.
+                generated. Otherwise, The mask must be ``(n, M, N)`` or
+                ``(M, N)`` shaped array, and `use_batchwise_mask` is ignored.
+                Main purpose of this option is debugging.
                 `mask` array will be used as a dropconnect mask.
-            batchwise_mask (bool):
+            use_batchwise_mask (bool):
                 If ``True``, dropped connections depend on each sample in
                 mini-batch.
 
@@ -101,4 +102,4 @@ class SimplifiedDropconnect(link.Link):
         return simplified_dropconnect.simplified_dropconnect(x, self.W, self.b,
                                                              self.ratio,
                                                              train, mask,
-                                                             batchwise_mask)
+                                                             use_batchwise_mask)
