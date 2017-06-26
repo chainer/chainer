@@ -21,7 +21,7 @@ This table compares Chainer with other actively developed deep learning framewor
    ,"Forward-mode autograd",,,,"Y",,,,,,,,,,,
    ,"Higher-order grads",,"Y","Y","Y",,,,,,,,,"Y",,
    ,"Variable-length loops","native","native","while_loop","scan","RNNs only","native","2017","native","RNNs only","none","dynamic axis","none","native","none","native"
-   ,"Per-batch architectures","native","native","fold",,,"torch-autograd","MinPy","native",,,,,"native",,"native"
+   ,"Different architectures per batch","native","native","fold",,,"torch-autograd","MinPy","native",,,,,"native",,"native"
    "Performance","cuDNN support","full","full","partial","partial","full","full","full","partial","full","partial","full","N/A [3]_",,"partial",
    ,"CPU/GPU generic backend","Y","Y",,,,"Y","Y","Y","Y","Y","Y","Y","Y","Y","Y"
    ,"Multi-GPU data parallelism","Y","Y","Y","Y","Y","Y","Y",,"Y","Y","Y","Y",,,
