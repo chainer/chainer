@@ -713,12 +713,14 @@ Actual: {0}'''.format(type(data))
             cuda.get_device_from_array(*(in_data + out_grad)).use()
             for hook in hooks:
                 hook.backward_preprocess(func, in_data, out_grad)
-            func.output_data = tuple(
-                [None if y is None else y.data for y in outputs])
+            for index, y in enumerate(outputs):
+                if y is None or y.data is None:
+                    continue
+                func.output_data[index] = y.data
             gxs = func.backward(in_data, out_grad)
             assert len(gxs) == len(in_data)
             if not getattr(func, '_retain_after_backward', False):
-                func.output_data = None
+                func.output_data = [None for y in outputs]
             for hook in hooks:
                 hook.backward_postprocess(func, in_data, out_grad)
 
