@@ -127,7 +127,10 @@ class GoogLeNet(link.Chain):
                 self)
         elif pretrained_model:
             npz.load_npz(pretrained_model, self)
-        self.functions = collections.OrderedDict([
+
+    @property
+    def functions(self):
+        return collections.OrderedDict([
             ('conv1', [self.conv1, relu]),
             ('pool1', [_max_pooling_2d, _local_response_normalization]),
             ('conv2_reduce', [self.conv2_reduce, relu]),

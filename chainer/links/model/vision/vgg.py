@@ -113,7 +113,9 @@ class VGG16Layers(link.Chain):
         elif pretrained_model:
             npz.load_npz(pretrained_model, self)
 
-        self.functions = collections.OrderedDict([
+    @property
+    def functions(self):
+        return collections.OrderedDict([
             ('conv1_1', [self.conv1_1, relu]),
             ('conv1_2', [self.conv1_2, relu]),
             ('pool1', [_max_pooling_2d]),

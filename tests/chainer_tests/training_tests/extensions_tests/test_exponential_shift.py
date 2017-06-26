@@ -77,6 +77,7 @@ class TestExponentialShift(unittest.TestCase):
 
         new_extension.initialize(new_trainer)
         self.assertEqual(new_optimizer.x, self.optimizer.x)
+        self.assertIsInstance(new_optimizer.x, float)
 
 
 class TestExponentialShiftInvalidArgument(unittest.TestCase):
