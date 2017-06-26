@@ -66,7 +66,6 @@ class TestGatherScatter(unittest.TestCase):
         t = chainer.Variable(chainer.cuda.to_gpu(t))
 
         loss0 = model0(x, t)
-        model1(x, t)
 
         model0.cleargrads()
         model1.cleargrads()
