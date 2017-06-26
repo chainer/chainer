@@ -63,10 +63,7 @@ class LayerNormalization(function.Function):
         g_x_mu_1 = g_x_hat * self.inv_std
 
         g_std = g_inv_std * (- 1. / self.var)
-        # = g_inv_std * (- 1. / (self.std ** 2))
-
         g_var = g_std * 0.5 * self.inv_std
-        # = g_std * 0.5 * 1. / xp.sqrt(self.var + self.eps)
 
         n_units = x.shape[1]
         g_squ_x_mu = _broadcast_to(xp, g_var * 1. / n_units, x.shape)
@@ -74,7 +71,6 @@ class LayerNormalization(function.Function):
 
         g_x_1 = g_x_mu_1 + g_x_mu_2
         g_mu = xp.sum(g_x_1, axis=1, keepdims=True) * (- 1.)
-        # = xp.sum(g_x_mu_1 + g_x_mu_2, axis=1, keepdims=True) * (- 1.)
 
         g_x_2 = _broadcast_to(xp, g_mu * 1. / n_units, x.shape)
 
