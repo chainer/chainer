@@ -257,6 +257,8 @@ from chainer.functions.normalization.batch_normalization import batch_normalizat
 from chainer.functions.normalization.batch_normalization import fixed_batch_normalization  # NOQA
 from chainer.functions.normalization.l2_normalization import normalize  # NOQA
 from chainer.functions.normalization.l2_normalization import NormalizeL2  # NOQA
+from chainer.functions.normalization.layer_normalization import layer_normalization  # NOQA
+from chainer.functions.normalization.layer_normalization import LayerNormalization  # NOQA
 from chainer.functions.normalization.local_response_normalization import local_response_normalization  # NOQA
 from chainer.functions.normalization.local_response_normalization import LocalResponseNormalization  # NOQA
 
