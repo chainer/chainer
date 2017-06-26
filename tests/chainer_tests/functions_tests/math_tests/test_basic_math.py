@@ -997,14 +997,24 @@ class TestNegativePow(unittest.TestCase):
         {'dtype': numpy.float16},
         {'dtype': numpy.float32},
         {'dtype': numpy.float64},
+    ], [
+        {'x_shape': (3, 2), 'y_shape': (2, 4), 'z_shape': (3, 4)},
+        {'x_shape': (2, 3, 2), 'y_shape': (2, 2, 4), 'z_shape': (2, 3, 4)},
+        {'x_shape': (3,), 'y_shape': (3,), 'z_shape': ()},
     ]
 ))
 class TestMatMulVarVar(unittest.TestCase):
 
     def setUp(self):
-        self.x = numpy.random.uniform(-1, 1, (3, 2)).astype(self.dtype)
-        self.y = numpy.random.uniform(-1, 1, (2, 4)).astype(self.dtype)
-        self.gz = numpy.random.uniform(-1, 1, (3, 4)).astype(self.dtype)
+        self.x = numpy.random.uniform(-1, 1, self.x_shape).astype(self.dtype)
+        self.y = numpy.random.uniform(-1, 1, self.y_shape).astype(self.dtype)
+        self.gz = numpy.random.uniform(-1, 1, self.z_shape).astype(self.dtype)
+
+    def _get_forward_answer(self, x, y):
+        if x.ndim <= 2:
+            return numpy.dot(x, y)
+        else:
+            return numpy.einsum('...ij,...jk->...ik', x, y)
 
     def check_forward(self, x_data, y_data):
         if self.left_const:
@@ -1021,7 +1031,7 @@ class TestMatMulVarVar(unittest.TestCase):
         else:
             options = {'atol': 1e-7, 'rtol': 1e-7}
         testing.assert_allclose(
-            self.x.dot(self.y), z.data, **options)
+            self._get_forward_answer(self.x, self.y), z.data, **options)
 
     @unittest.skipUnless(sys.version_info >= (3, 5),
                          'Only for Python3.5 or higher')

@@ -45,7 +45,7 @@ setup(
     description='A flexible framework of neural networks',
     author='Seiya Tokui',
     author_email='tokui@preferred.jp',
-    url='http://chainer.org/',
+    url='https://chainer.org/',
     license='MIT License',
     packages=['chainer',
               'chainer.dataset',

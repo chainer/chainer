@@ -6,50 +6,43 @@ destructively edits the contents of :class:`numpy.ndarray` or :class:`cupy.ndarr
 Typically, weight initializers are passed to ``__init__`` of :class:`~chainer.Link`
 and initializes its the weights and biases.
 
-.. module:: chainer.initializer
-
 Base class
 ----------
 
-.. autoclass:: Initializer
-  :members:
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
 
+   chainer.Initializer
 
 .. module:: chainer.initializers
 
 Concrete initializers
 ---------------------
 
-.. autoclass:: Identity
-  :members:
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
 
-.. autoclass:: Constant
-  :members:
+   chainer.initializers.Identity
+   chainer.initializers.Constant
+   chainer.initializers.Zero
+   chainer.initializers.One
+   chainer.initializers.Normal
+   chainer.initializers.LeCunNormal
+   chainer.initializers.GlorotNormal
+   chainer.initializers.HeNormal
+   chainer.initializers.Orthogonal
+   chainer.initializers.Uniform
+   chainer.initializers.LeCunUniform
+   chainer.initializers.GlorotUniform
+   chainer.initializers.HeUniform
 
-.. autofunction:: Zero
+Helper function
+---------------
 
-.. autofunction:: One
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
 
-.. autoclass:: Normal
-  :members:
-
-.. autoclass:: GlorotNormal
-  :members:
-
-.. autoclass:: HeNormal
-  :members:
-
-.. autoclass:: Orthogonal
-  :members:
-
-.. autoclass:: Uniform
-  :members:
-
-.. autoclass:: LeCunUniform
-  :members:
-
-.. autoclass:: GlorotUniform
-  :members:
-
-.. autoclass:: HeUniform
-  :members:
+   chainer.initializers.generate_array

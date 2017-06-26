@@ -1,17 +1,15 @@
 from __future__ import division
 
-import tempfile
 import unittest
 
-from chainer import serializers
 from chainer import testing
 from chainer import training
 
 
 class DummyUpdater(training.Updater):
 
-    def __init__(self, iters_per_epoch, initial_iteration=0):
-        self.iteration = initial_iteration
+    def __init__(self, iters_per_epoch):
+        self.iteration = 0
         self.iters_per_epoch = iters_per_epoch
 
     def finalize(self):
@@ -40,9 +38,6 @@ class DummyUpdater(training.Updater):
     @property
     def is_new_epoch(self):
         return 0 <= self.iteration % self.iters_per_epoch < 1
-
-    def serialize(self, serializer):
-        self.iteration = serializer('iteration', self.iteration)
 
 
 @testing.parameterize(
@@ -98,22 +93,18 @@ class TestTrigger(unittest.TestCase):
             self.assertEqual(trigger(trainer), expected)
 
     def test_resumed_trigger(self):
-        with tempfile.NamedTemporaryFile(delete=False) as f:
-            trigger = training.triggers.ManualScheduleTrigger(*self.schedule)
-            updater = DummyUpdater(self.iters_per_epoch)
-            trainer = training.Trainer(updater)
-            for expected in self.expected[:self.resume]:
-                updater.update()
-                self.assertEqual(trigger(trainer), expected)
-            serializers.save_npz(f.name, updater)
+        updater = DummyUpdater(self.iters_per_epoch)
+        trainer = training.Trainer(updater)
 
-            trigger = training.triggers.ManualScheduleTrigger(*self.schedule)
-            updater = DummyUpdater(self.iters_per_epoch)
-            serializers.load_npz(f.name, updater)
-            trainer = training.Trainer(updater)
-            for expected in self.expected[self.resume:]:
-                updater.update()
-                self.assertEqual(trigger(trainer), expected)
+        trigger = training.triggers.ManualScheduleTrigger(*self.schedule)
+        for expected in self.expected[:self.resume]:
+            updater.update()
+            self.assertEqual(trigger(trainer), expected)
+
+        trigger = training.triggers.ManualScheduleTrigger(*self.schedule)
+        for expected in self.expected[self.resume:]:
+            updater.update()
+            self.assertEqual(trigger(trainer), expected)
 
 
 testing.run_module(__name__, __file__)

@@ -49,7 +49,7 @@ class PadSequence(function.Function):
         else:
             # This code assumes that all arrays are c_contiguous
             ptr_shape = (Ellipsis,) + (None,) * xs[0].ndim
-            ptrs = cuda.cupy.array([x.data for x in xs], 'L')[ptr_shape]
+            ptrs = cuda.cupy.array([x.data for x in xs], 'P')[ptr_shape]
             lengths = cuda.cupy.array([len(x) for x in xs], 'i')[ptr_shape]
             base = numpy.prod(xs[0].shape[1:], dtype='i')
             cuda.elementwise(
