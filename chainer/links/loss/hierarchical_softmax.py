@@ -33,6 +33,9 @@ class TreeParser(object):
     def get_parent2child(self):
         return self.parent2child
 
+    def get_node2word(self):
+        return self.node2word
+
     def parse(self, tree):
         self.next_id = 0
         self.path = []
@@ -40,6 +43,7 @@ class TreeParser(object):
         self.paths = {}
         self.codes = {}
         self.parent2child = collections.defaultdict(list)
+        self.node2word = collections.defaultdict(list)
         self._parse(tree)
 
         assert(len(self.path) == 0)
@@ -55,8 +59,15 @@ class TreeParser(object):
             left, right = node
 
             left_node_is_leaf = isinstance(left, int)
+            right_node_is_leaf = isinstance(right, int)
             if left_node_is_leaf:
                 self.parent2child[self.next_id] += [LEAF]
+                self.node2word[self.next_id] += [left]
+            else:
+                self.node2word[self.next_id] += [-1]
+
+            if right_node_is_leaf:
+                self.node2word[self.next_id] += [right]
 
             self.path.append(self.next_id)
 
@@ -104,6 +115,7 @@ class BinaryHierarchicalSoftmaxFunction(function.Function):
         paths = parser.get_paths()
         codes = parser.get_codes()
         parent2child = parser.get_parent2child()
+        node2word = parser.get_node2word()
         n_vocab = max(paths.keys()) + 1
         self.n_vocab = n_vocab
         self.paths = numpy.concatenate(
@@ -111,21 +123,19 @@ class BinaryHierarchicalSoftmaxFunction(function.Function):
         self.codes = numpy.concatenate(
             [codes[i] for i in six.moves.range(n_vocab) if i in codes])
 
-        def _convert(x):
-            if len(x) == 1:
-                return x + [LEAF]
-            else:
-                return x
-
-        def _convert_func(parent2child, i):
+        self.parent2child = numpy.empty((n_vocab, 2), dtype=numpy.int32)
+        self.parent2child[:, :] = LEAF
+        _tree = tree
+        for i in six.moves.range(len(parent2child)):
             if i in parent2child:
-                return _convert(parent2child[i])
-            else:
-                return [LEAF, LEAF]
+                x = parent2child[i]
+                self.parent2child[i, 0:len(x)] = x
 
-        parent2child = [_convert_func(parent2child, i) for i in
-                        six.moves.range(n_vocab + 2)]
-        self.parent2child = numpy.array(parent2child, dtype=numpy.int32)
+        self.node2word = numpy.zeros((n_vocab, 2), dtype=numpy.int32) - 1
+        for i in six.moves.range(len(node2word)):
+            if i in node2word:
+                x = node2word[i]
+                self.node2word[i, 0:len(x)] = x
 
         begins = numpy.empty((n_vocab + 1,), dtype=numpy.int32)
         begins[0] = 0
@@ -157,11 +167,15 @@ class BinaryHierarchicalSoftmaxFunction(function.Function):
             self.paths = cuda.to_gpu(self.paths)
             self.codes = cuda.to_gpu(self.codes)
             self.begins = cuda.to_gpu(self.begins)
+            self.parent2child = cuda.to_gpu(self.parent2child)
+            self.node2word = cuda.to_gpu(self.node2word)
 
     def to_cpu(self):
         self.paths = cuda.to_cpu(self.paths)
         self.codes = cuda.to_cpu(self.codes)
         self.begins = cuda.to_cpu(self.begins)
+        self.parent2child = cuda.to_cpu(self.parent2child)
+        self.node2word = cuda.to_cpu(self.node2word)
 
     def forward_cpu(self, inputs):
         x, t, W = inputs
@@ -338,7 +352,7 @@ class BinaryHierarchicalSoftmax(link.Link):
 
         >>> word_counts = {0: 8, 1: 5, 2: 6, 3: 4, 4: 10, 5: 1, 6: 32, 7: 21}
         >>> tree = BinaryHierarchicalSoftmax.create_huffman_tree(word_counts)
-        >>> hsm = BinaryHierarchicalSoftmax(in_size=3, tree)
+        >>> hsm = BinaryHierarchicalSoftmax(3, tree)
 
     """
 
@@ -397,18 +411,21 @@ class BinaryHierarchicalSoftmax(link.Link):
         return q.get()[2]
 
     def sample(self, x):
-        """Sample an example for a given input form the tree.
+        """Sample an example for a given input from the tree.
 
         Args:
             x (~chainer.Variable): Input variable for sample word ids.
 
         Returns:
-            List of word indexes.
+            list: List of word indexes in a binary tree ``self.tree``.
 
         .. admonition:: Example
 
             Let an input vector ``x`` be:
 
+            >>> word_cnts = {0: 8, 1: 5, 2: 6, 3: 4, 4: 10, 5: 1, 6: 32}
+            >>> tree = BinaryHierarchicalSoftmax.create_huffman_tree(word_cnts)
+            >>> hsm = BinaryHierarchicalSoftmax(3, tree)
             >>> x = np.array([[0.2, 0.2, 0.3], [0.1, 0.3, 0.1]], dtype='f')
             >>> hsm.sample(Variable(x))
             [0, 3]
@@ -419,16 +436,18 @@ class BinaryHierarchicalSoftmax(link.Link):
             raise ValueError('Empty tree')
 
         xp = cuda.get_array_module(*x)
-        parent2child = xp.array(self._func.parent2child, dtype=xp.int32)
+        parent2child = self._func.parent2child
+        node2word = self._func.node2word
         batchsize = x.shape[0]
         start_ids = xp.zeros(batchsize, 'i')
         list_next_ids = []
-        list_choose_ids = []
+        list_sampled_ids = []
 
         def _sigmoid(x):
             half = x.dtype.type(0.5)
             return self.xp.tanh(x * half) * half + half
 
+        rows = xp.arange(batchsize, dtype=xp.int32)
         while True:
             w = self.W.data[start_ids]
             x_t = xp.transpose(x.data)
@@ -439,11 +458,9 @@ class BinaryHierarchicalSoftmax(link.Link):
 
             choosed_idx = xp.argmax(xp.random.gumbel(size=prob.shape) + prob,
                                     axis=1)
-            rows = xp.arange(batchsize, dtype=xp.int32)
             columns = choosed_idx
-
+            list_sampled_ids.append(node2word[start_ids, columns])
             list_next_ids.append(start_ids)
-            list_choose_ids.append(choosed_idx)
 
             next_ids = parent2child[start_ids][rows, columns]
             next_ids = xp.where(next_ids != LEAF, next_ids, FINISH_SAMPLING)
@@ -458,21 +475,13 @@ class BinaryHierarchicalSoftmax(link.Link):
             return xp.reshape(xp.concatenate(x), (-1, batchsize)).T
 
         next_ids = xp_stack_func(list_next_ids)
-        choose_ids = xp_stack_func(list_choose_ids)
+        sampled_word_ids = xp_stack_func(list_sampled_ids)
         lengths = xp.argmax(next_ids == FINISH_SAMPLING, axis=1)
-        max_length = choose_ids.shape[1]
+        max_length = next_ids.shape[1]
         lengths = xp.where(lengths == 0, max_length, lengths)
-        sampling = []
-        for length, path in zip(lengths, choose_ids):
-            sampling.append(path[0:length])
 
-        # Find word id from tree.
-        output = []
-        for sampling_lst in sampling:
-            tree = self.tree
-            for node_id in sampling_lst:
-                tree = tree[int(node_id)]
-            output.append(tree)
+        output = sampled_word_ids[xp.arange(batchsize), lengths - 1]
+
         return output
 
     def __call__(self, x, t):
