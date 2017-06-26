@@ -10,15 +10,15 @@ class VAE(chainer.Chain):
     """Variational AutoEncoder"""
 
     def __init__(self, n_in, n_latent, n_h):
-        super(VAE, self).__init__(
+        super(VAE, self).__init__()
+        with self.init_scope():
             # encoder
-            le1=L.Linear(n_in, n_h),
-            le2_mu=L.Linear(n_h, n_latent),
-            le2_ln_var=L.Linear(n_h, n_latent),
+            self.le1 = L.Linear(n_in, n_h)
+            self.le2_mu = L.Linear(n_h, n_latent)
+            self.le2_ln_var = L.Linear(n_h, n_latent)
             # decoder
-            ld1=L.Linear(n_latent, n_h),
-            ld2=L.Linear(n_h, n_in),
-        )
+            self.ld1 = L.Linear(n_latent, n_h)
+            self.ld2 = L.Linear(n_h, n_in)
 
     def __call__(self, x, sigmoid=True):
         """AutoEncoder"""
@@ -38,7 +38,7 @@ class VAE(chainer.Chain):
         else:
             return h2
 
-    def get_loss_func(self, C=1.0, k=1, train=True):
+    def get_loss_func(self, C=1.0, k=1):
         """Get loss function of VAE.
 
         The loss value is equal to ELBO (Evidence Lower Bound)
@@ -48,7 +48,6 @@ class VAE(chainer.Chain):
             C (int): Usually this is 1.0. Can be changed to control the
                 second term of ELBO bound, which works as regularization.
             k (int): Number of Monte Carlo samples used in encoded vector.
-            train (bool): If true loss_function is used for training.
         """
         def lf(x):
             mu, ln_var = self.encode(x)

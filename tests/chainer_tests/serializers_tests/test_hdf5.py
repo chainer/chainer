@@ -82,6 +82,17 @@ class TestHDF5Serializer(unittest.TestCase):
 
         self.assertIs(ret, 10)
 
+    @unittest.skipUnless(hdf5._available and
+                         h5py.version.version_tuple >= (2, 7, 0),
+                         'h5py>=2.7.0 is not available')
+    def test_serialize_none(self):
+        ret = self.serializer('x', None)
+        self.assertIs(ret, None)
+
+        dset = self.hdf5file['x']
+        self.assertIsInstance(dset, h5py.Dataset)
+        self.assertIs(dset.shape, None)
+
 
 @unittest.skipUnless(hdf5._available, 'h5py is not available')
 class TestHDF5Deserializer(unittest.TestCase):
@@ -96,6 +107,9 @@ class TestHDF5Deserializer(unittest.TestCase):
             f.require_group('x')
             f.create_dataset('y', data=self.data)
             f.create_dataset('z', data=numpy.asarray(10))
+            # h5py.Empty is introduced from 2.7.0
+            if h5py.version.version_tuple >= (2, 7, 0):
+                f.create_dataset('w', data=h5py.Empty('f'))
 
         self.hdf5file = h5py.File(path, 'r')
         self.deserializer = hdf5.HDF5Deserializer(self.hdf5file)
@@ -142,6 +156,99 @@ class TestHDF5Deserializer(unittest.TestCase):
         z = 5
         ret = self.deserializer('z', z)
         self.assertEqual(ret, 10)
+
+    def test_string(self):
+        fd, path = tempfile.mkstemp()
+        os.close(fd)
+        try:
+            data = 'abc'
+            with h5py.File(path, 'w') as f:
+                f.create_dataset('str', data=data)
+            with h5py.File(path, 'r') as f:
+                deserializer = hdf5.HDF5Deserializer(f)
+                ret = deserializer('str', '')
+                self.assertEqual(ret, data)
+        finally:
+            os.remove(path)
+
+    @unittest.skipUnless(hdf5._available and
+                         h5py.version.version_tuple >= (2, 7, 0),
+                         'h5py>=2.7.0 is not available')
+    def test_deserialize_none(self):
+        ret = self.deserializer('w', None)
+        self.assertIs(ret, None)
+
+    @unittest.skipUnless(hdf5._available and
+                         h5py.version.version_tuple >= (2, 7, 0),
+                         'h5py>=2.7.0 is not available')
+    def test_deserialize_none_by_passing_array(self):
+        y = numpy.empty((1,))
+        ret = self.deserializer('w', y)
+        self.assertIs(ret, None)
+
+
+@unittest.skipUnless(hdf5._available, 'h5py is not available')
+class TestHDF5DeserializerNonStrict(unittest.TestCase):
+
+    def setUp(self):
+        fd, path = tempfile.mkstemp()
+        os.close(fd)
+        self.temp_file_path = path
+        with h5py.File(path, 'w') as f:
+            f.require_group('x')
+
+        self.hdf5file = h5py.File(path, 'r')
+        self.deserializer = hdf5.HDF5Deserializer(self.hdf5file, strict=False)
+
+    def tearDown(self):
+        if hasattr(self, 'hdf5file'):
+            self.hdf5file.close()
+        if hasattr(self, 'temp_file_path'):
+            os.remove(self.temp_file_path)
+
+    def test_deserialize_partial(self):
+        y = numpy.empty((2, 3), dtype=numpy.float32)
+        ret = self.deserializer('y', y)
+        self.assertIs(ret, y)
+
+
+@unittest.skipUnless(hdf5._available, 'h5py is not available')
+class TestHDF5DeserializerNonStrictGroupHierachy(unittest.TestCase):
+
+    def setUp(self):
+        fd, path = tempfile.mkstemp()
+        os.close(fd)
+        self.temp_file_path = path
+
+        child = link.Chain(linear=links.Linear(2, 3))
+        parent = link.Chain(linear=links.Linear(3, 2), child=child)
+        hdf5.save_hdf5(self.temp_file_path, parent)
+        self.source = parent
+
+        self.hdf5file = h5py.File(path, 'r')
+        self.deserializer = hdf5.HDF5Deserializer(self.hdf5file, strict=False)
+
+    def tearDown(self):
+        if hasattr(self, 'hdf5file'):
+            self.hdf5file.close()
+        if hasattr(self, 'temp_file_path'):
+            os.remove(self.temp_file_path)
+
+    def test_deserialize_hierarchy(self):
+        child = link.Chain(linear2=links.Linear(2, 3))
+        target = link.Chain(linear=links.Linear(3, 2), child=child)
+        target_child_W = numpy.copy(child.linear2.W.data)
+        target_child_b = numpy.copy(child.linear2.b.data)
+        self.deserializer.load(target)
+
+        numpy.testing.assert_array_equal(
+            self.source.linear.W.data, target.linear.W.data)
+        numpy.testing.assert_array_equal(
+            self.source.linear.b.data, target.linear.b.data)
+        numpy.testing.assert_array_equal(
+            target.child.linear2.W.data, target_child_W)
+        numpy.testing.assert_array_equal(
+            target.child.linear2.b.data, target_child_b)
 
 
 @unittest.skipUnless(hdf5._available, 'h5py is not available')
@@ -204,6 +311,9 @@ class TestGroupHierachy(unittest.TestCase):
 
         self.optimizer = optimizers.AdaDelta()
         self.optimizer.setup(self.parent)
+
+        self.parent.zerograds()
+        self.optimizer.update()  # init states
 
     def _save(self, h5, obj, name):
         group = h5.create_group(name)
@@ -290,6 +400,30 @@ class TestNoH5py(unittest.TestCase):
             chainer.serializers.HDF5Serializer(None)
         with self.assertRaises(RuntimeError):
             chainer.serializers.HDF5Deserializer(None)
+
+
+@unittest.skipUnless(hdf5._available, 'h5py is not available')
+class Test5pyEmptyNotAvailable(unittest.TestCase):
+
+    def setUp(self):
+        # Set h5py.version.version_tuple to emulate situation that h5py is
+        # so old that it doesn't have h5py.Empty.
+        self.original_version_tuple = h5py.version.version_tuple
+        h5py.version.version_tuple = (2, 6, 0)
+
+        # Prepare serializer
+        fd, path = tempfile.mkstemp()
+        os.close(fd)
+        self.temp_file_path = path
+        self.hdf5file = h5py.File(path, 'w')
+        self.serializer = hdf5.HDF5Serializer(self.hdf5file, compression=3)
+
+    def tearDown(self):
+        h5py.version.version_tuple = self.original_version_tuple
+
+    def test_raise1(self):
+        with self.assertRaises(RuntimeError):
+            self.serializer('x', None)
 
 
 testing.run_module(__name__, __file__)

@@ -22,7 +22,7 @@ def _pair(x):
 @parameterize(
     *testing.product({
         'nobias': [True, False],
-        'use_cudnn': [True, False]
+        'use_cudnn': ['always', 'never']
     })
 )
 class TestDeconvolution2D(unittest.TestCase):
@@ -69,8 +69,8 @@ class TestDeconvolution2D(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_forward_consistency(self):
-        self.link.use_cudnn = self.use_cudnn
-        self.check_forward_consistency()
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.check_forward_consistency()
 
     def check_backward(self, x_data, y_grad):
         params = [self.link.W]
@@ -87,32 +87,33 @@ class TestDeconvolution2D(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_backward_gpu(self):
-        self.link.use_cudnn = self.use_cudnn
         self.link.to_gpu()
-        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
 
 @parameterize(
     *testing.product({
         'nobias': [True, False],
-        'use_cudnn': [True, False]
+        'use_cudnn': ['always', 'never'],
+        'deconv_args': [((3, 2, 3), {}), ((2, 3), {}), ((None, 2, 3), {}),
+                        ((2, 3), {'stride': 2, 'pad': 1}),
+                        ((None, 2, 3, 2, 1), {})]
     })
 )
 class TestDeconvolution2DParameterShapePlaceholder(unittest.TestCase):
 
     def setUp(self):
-        out_channels = 2
-        ksize = 3
-        stride = 2
-        pad = 1
-        in_channels = None
-        self.link = L.Deconvolution2D(
-            in_channels, out_channels, ksize,
-            stride=stride, pad=pad, nobias=self.nobias)
+        args, kwargs = self.deconv_args
+        kwargs['nobias'] = self.nobias
+        self.link = L.Deconvolution2D(*args, **kwargs)
         if not self.nobias:
             self.link.b.data[...] = numpy.random.uniform(
                 -1, 1, self.link.b.data.shape).astype(numpy.float32)
-
+        out_channels = self.link.out_channels
+        ksize = self.link.ksize
+        stride = self.link.stride[0]
+        pad = self.link.pad[0]
         N = 2
         h, w = 3, 2
         kh, kw = _pair(ksize)
@@ -140,8 +141,8 @@ class TestDeconvolution2DParameterShapePlaceholder(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_forward_consistency(self):
-        self.link.use_cudnn = self.use_cudnn
-        self.check_forward_consistency()
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.check_forward_consistency()
 
     def check_backward(self, x_data, y_grad):
         params = [self.link.W]
@@ -158,9 +159,9 @@ class TestDeconvolution2DParameterShapePlaceholder(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_backward_gpu(self):
-        self.link.use_cudnn = self.use_cudnn
         self.link.to_gpu()
-        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
 
 testing.run_module(__name__, __file__)

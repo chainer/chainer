@@ -1,6 +1,7 @@
 import numpy
 from six import moves
 
+import chainer
 from chainer import cuda
 from chainer import function
 from chainer.utils import conv
@@ -31,12 +32,10 @@ def _pair(x):
 
 class DilatedConvolution2DFunction(function.Function):
 
-    def __init__(self, stride=1, pad=0, dilate=1,
-                 use_cudnn=True, cover_all=False):
+    def __init__(self, stride=1, pad=0, dilate=1, cover_all=False):
         self.sy, self.sx = _pair(stride)
         self.ph, self.pw = _pair(pad)
         self.dy, self.dx = _pair(dilate)
-        self.use_cudnn = use_cudnn
         self.cover_all = cover_all
 
     def check_type_forward(self, in_types):
@@ -53,7 +52,7 @@ class DilatedConvolution2DFunction(function.Function):
             x_type.shape[1] == w_type.shape[1],
         )
 
-        if n_in.eval() == 3:
+        if type_check.eval(n_in) == 3:
             b_type = in_types[2]
             type_check.expect(
                 b_type.dtype == x_type.dtype,
@@ -64,6 +63,17 @@ class DilatedConvolution2DFunction(function.Function):
     def forward_cpu(self, inputs):
         x, W = inputs[:2]
         b = inputs[2] if len(inputs) == 3 else None
+
+        if not type_check.same_types(*inputs):
+            if b is not None:
+                raise ValueError('numpy and cupy must not be used together\n'
+                                 'type(W): {0}, type(x): {1}, type(b): {2}'
+                                 .format(type(W), type(x), type(b)))
+            else:
+                raise ValueError('numpy and cupy must not be used together\n'
+                                 'type(W): {0}, type(x): {1}'
+                                 .format(type(W), type(x)))
+
         kh, kw = W.shape[2:]
         self.col = conv.im2col_cpu(
             x, kh, kw, self.sy, self.sx, self.ph, self.pw,
@@ -78,6 +88,16 @@ class DilatedConvolution2DFunction(function.Function):
         x, W = inputs[:2]
         b = inputs[2] if len(inputs) == 3 else None
 
+        if not type_check.same_types(*inputs):
+            if b is not None:
+                raise ValueError('numpy and cupy must not be used together\n'
+                                 'type(W): {0}, type(x): {1}, type(b): {2}'
+                                 .format(type(W), type(x), type(b)))
+            else:
+                raise ValueError('numpy and cupy must not be used together\n'
+                                 'type(W): {0}, type(x): {1}'
+                                 .format(type(W), type(x)))
+
         out_c, _, kh, kw = W.shape
         n, c, h, w = x.shape
         dkh, dkw = kh + (kh - 1) * (self.dy - 1), kw + (kw - 1) * (self.dx - 1)
@@ -88,7 +108,7 @@ class DilatedConvolution2DFunction(function.Function):
                                       cover_all=self.cover_all, d=self.dx)
 
         y = cuda.cupy.zeros((n, out_c, out_h, out_w), dtype=x.dtype)
-        if (not self.cover_all and cuda.cudnn_enabled and self.use_cudnn and
+        if (not self.cover_all and chainer.should_use_cudnn('>=auto') and
                 _check_cudnn_acceptable_type(x.dtype, W.dtype)):
 
             pad_x = cuda.cupy.zeros((n, c, h + 2 * self.ph, w + 2 * self.pw),
@@ -109,7 +129,7 @@ class DilatedConvolution2DFunction(function.Function):
 
                     if i == 0 and j == 0:
                         handle = cudnn.get_handle()
-                        x_desc = cudnn.create_tensor_descriptor(xji)
+                        xji_desc = cudnn.create_tensor_descriptor(xji)
                         y_desc = cudnn.create_tensor_descriptor(y)
                         self.filter_desc = cudnn.create_filter_descriptor(Wji)
                         self.conv_desc = cudnn.create_convolution_descriptor(
@@ -119,7 +139,7 @@ class DilatedConvolution2DFunction(function.Function):
                         workspace = cuda.cupy.empty(
                             (workspace_size,), dtype='b')
                         algo = libcudnn.getConvolutionForwardAlgorithm(
-                            handle, x_desc.value, self.filter_desc.value,
+                            handle, xji_desc.value, self.filter_desc.value,
                             self.conv_desc.value, y_desc.value, _fwd_pref,
                             workspace_size)
 
@@ -127,7 +147,7 @@ class DilatedConvolution2DFunction(function.Function):
                         one = numpy.array(1, dtype=oz_dtype).ctypes
 
                     libcudnn.convolutionForward(
-                        handle, one.data, x_desc.value, xji.data.ptr,
+                        handle, one.data, xji_desc.value, xji.data.ptr,
                         self.filter_desc.value, Wji.data.ptr,
                         self.conv_desc.value, algo, workspace.data.ptr,
                         workspace_size, one.data, y_desc.value, y.data.ptr)
@@ -183,7 +203,7 @@ class DilatedConvolution2DFunction(function.Function):
         dkh, dkw = kh + (kh - 1) * (self.dy - 1), kw + (kw - 1) * (self.dx - 1)
 
         gW = cuda.cupy.empty_like(W)
-        if (not self.cover_all and cuda.cudnn_enabled and self.use_cudnn and
+        if (not self.cover_all and chainer.should_use_cudnn('>=auto') and
                 _check_cudnn_acceptable_type(x.dtype, W.dtype)):
 
             pad_x = cuda.cupy.zeros(
@@ -303,7 +323,7 @@ class DilatedConvolution2DFunction(function.Function):
 
 
 def dilated_convolution_2d(x, W, b=None, stride=1, pad=0, dilate=1,
-                           use_cudnn=True, cover_all=False):
+                           cover_all=False):
     """Two-dimensional dilated convolution function.
 
     This is an implementation of two-dimensional dilated convolution
@@ -332,8 +352,6 @@ def dilated_convolution_2d(x, W, b=None, stride=1, pad=0, dilate=1,
             ``pad=p`` and ``pad=(p, p)`` are equivalent.
         dilate (int or pair of ints): Dilation factor of filter applications.
             ``dilate=d`` and ``dilate=(d, d)`` are equivalent.
-        use_cudnn (bool): If ``True``, then this function uses cuDNN if
-            available.
         cover_all (bool): If ``True``, all spatial locations are convoluted
             into some output pixels. It may make the output size larger.
 
@@ -367,8 +385,7 @@ def dilated_convolution_2d(x, W, b=None, stride=1, pad=0, dilate=1,
     .. seealso:: :class:`DilatedConvolution2D`
 
     """
-    func = DilatedConvolution2DFunction(
-        stride, pad, dilate, use_cudnn, cover_all)
+    func = DilatedConvolution2DFunction(stride, pad, dilate, cover_all)
     if b is None:
         return func(x, W)
     else:

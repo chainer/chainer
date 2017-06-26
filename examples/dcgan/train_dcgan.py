@@ -49,7 +49,8 @@ def main():
     dis = Discriminator()
 
     if args.gpu >= 0:
-        chainer.cuda.get_device(args.gpu).use()  # Make a specified GPU current
+        # Make a specified GPU current
+        chainer.cuda.get_device_from_id(args.gpu).use()
         gen.to_gpu()  # Copy the model to the GPU
         dis.to_gpu()
 
@@ -110,6 +111,7 @@ def main():
 
     # Run the training
     trainer.run()
+
 
 if __name__ == '__main__':
     main()

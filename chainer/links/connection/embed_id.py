@@ -1,6 +1,7 @@
 from chainer.functions.connection import embed_id
-from chainer import initializers
+from chainer.initializers import normal
 from chainer import link
+from chainer import variable
 
 
 class EmbedID(link.Link):
@@ -31,11 +32,13 @@ class EmbedID(link.Link):
     ignore_label = None
 
     def __init__(self, in_size, out_size, initialW=None, ignore_label=None):
-        super(EmbedID, self).__init__(W=(in_size, out_size))
-        if initialW is None:
-            initialW = initializers.Normal(1.0)
-        initializers.init_weight(self.W.data, initialW)
+        super(EmbedID, self).__init__()
         self.ignore_label = ignore_label
+
+        with self.init_scope():
+            if initialW is None:
+                initialW = normal.Normal(1.0)
+            self.W = variable.Parameter(initialW, (in_size, out_size))
 
     def __call__(self, x):
         """Extracts the word embedding of given IDs.

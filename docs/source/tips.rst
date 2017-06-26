@@ -34,7 +34,7 @@ We are suspecting it is caused by vecLib, that is a default BLAS library install
 We recommend to use other BLAS libraries such as `OpenBLAS <http://www.openblas.net/>`_.
 We empirically found that it fixes this problem.
 It is necessary to reinstall NumPy to use replaced BLAS library.
-Here is an instruction to install NumPy with OpneBLAS using `Homebrew <http://brew.sh/>`_.
+Here is an instruction to install NumPy with OpenBLAS using `Homebrew <http://brew.sh/>`_.
 
 ::
 
@@ -74,4 +74,4 @@ Check if `blas_opt_info` refers to `openblas`.
    blas_mkl_info:
        NOT AVAILABLE
 
-See detail about this problem in `issue #704 <https://github.com/pfnet/chainer/issues/704>`_.
+See detail about this problem in `issue #704 <https://github.com/chainer/chainer/issues/704>`_.
