@@ -52,7 +52,7 @@ The parameters of the function performed inside the :class:`Link` object are rep
 In short, the difference between these two objects, :class:`Link` and :class:`Function`, is whether it contains trainable parameters or not.
 A neural network model is typically described as a series of :class:`Function` and :class:`Link`.
 
-You can build a computational graph by dynamically 'chaining' various kinds of :class:`Link` and :class:`Function` to define a :class:`Chain`, and define a network by *running* the graph, so that it's called **Chainer**.
+You can build a computational graph by dynamically 'chaining' various kinds of :class:`Link` s and :class:`Function` s to define a :class:`Chain`. In the framework, the network is defined by *running* the chained graph, hence the name is **Chainer**.
 
 .. note::
 
