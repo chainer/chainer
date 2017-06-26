@@ -1,6 +1,5 @@
 from __future__ import division
 
-import mock
 import numpy as np
 import random
 import tempfile
@@ -9,28 +8,6 @@ import unittest
 from chainer import serializers
 from chainer import testing
 from chainer import training
-
-
-def get_trainer_with_mock_updater(iter_per_epoch):
-    updater = mock.Mock()
-    updater.get_all_optimizers.return_value = {}
-    updater.iteration = 0
-    updater.epoch = 0
-    updater.epoch_detail = 0
-    updater.previous_epoch_detail = None
-    updater.is_new_epoch = True
-
-    def update():
-        updater.previous_epoch_detail = updater.epoch_detail
-
-        updater.iteration += 1
-        updater.epoch = updater.iteration // iter_per_epoch
-        updater.epoch_detail = updater.iteration / iter_per_epoch
-        updater.is_new_epoch = updater.epoch == updater.epoch_detail
-
-    updater.update = update
-    trainer = training.Trainer(updater)
-    return trainer
 
 
 @testing.parameterize(
@@ -58,7 +35,8 @@ def get_trainer_with_mock_updater(iter_per_epoch):
 class TestIntervalTrigger(unittest.TestCase):
 
     def test_trigger(self):
-        trainer = get_trainer_with_mock_updater(self.iter_per_epoch)
+        trainer = testing.get_trainer_with_mock_updater(
+            stop_trigger=None, iter_per_epoch=self.iter_per_epoch)
         trigger = training.trigger.IntervalTrigger(*self.interval)
         # before the first iteration, trigger should be False
         for expected in [False] + self.expected:
@@ -66,7 +44,8 @@ class TestIntervalTrigger(unittest.TestCase):
             trainer.updater.update()
 
     def test_resumed_trigger(self):
-        trainer = get_trainer_with_mock_updater(self.iter_per_epoch)
+        trainer = testing.get_trainer_with_mock_updater(
+            stop_trigger=None, iter_per_epoch=self.iter_per_epoch)
         with tempfile.NamedTemporaryFile(delete=False) as f:
             trigger = training.trigger.IntervalTrigger(*self.interval)
             for expected in self.expected[:self.resume]:
@@ -82,7 +61,8 @@ class TestIntervalTrigger(unittest.TestCase):
 
     @testing.condition.repeat(10)
     def test_trigger_sparse_call(self):
-        trainer = get_trainer_with_mock_updater(self.iter_per_epoch)
+        trainer = testing.get_trainer_with_mock_updater(
+            stop_trigger=None, iter_per_epoch=self.iter_per_epoch)
         trigger = training.trigger.IntervalTrigger(*self.interval)
         accumulated = False
         # before the first iteration, trigger should be False
@@ -95,7 +75,8 @@ class TestIntervalTrigger(unittest.TestCase):
 
     @testing.condition.repeat(10)
     def test_resumed_trigger_sparse_call(self):
-        trainer = get_trainer_with_mock_updater(self.iter_per_epoch)
+        trainer = testing.get_trainer_with_mock_updater(
+            stop_trigger=None, iter_per_epoch=self.iter_per_epoch)
         accumulated = False
         with tempfile.NamedTemporaryFile(delete=False) as f:
             trigger = training.trigger.IntervalTrigger(*self.interval)
@@ -117,7 +98,8 @@ class TestIntervalTrigger(unittest.TestCase):
                     accumulated = False
 
     def test_resumed_trigger_backward_compat(self):
-        trainer = get_trainer_with_mock_updater(self.iter_per_epoch)
+        trainer = testing.get_trainer_with_mock_updater(
+            stop_trigger=None, iter_per_epoch=self.iter_per_epoch)
         with tempfile.NamedTemporaryFile(delete=False) as f:
             trigger = training.trigger.IntervalTrigger(*self.interval)
             for expected in self.expected[:self.resume]:
