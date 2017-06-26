@@ -28,6 +28,7 @@ def get_trainer_with_mock_updater(
     updater.epoch = 0
     updater.epoch_detail = 0
     updater.is_new_epoch = True
+    updater.previous_epoch_detail = None
 
     def update():
         updater.update_core()
@@ -36,6 +37,8 @@ def get_trainer_with_mock_updater(
         updater.epoch_detail = updater.iteration / iter_per_epoch
         updater.is_new_epoch = (updater.iteration - 1) // \
             iter_per_epoch != updater.epoch
+        updater.previous_epoch_detail = (updater.iteration - 1) \
+            / iter_per_epoch
 
     updater.update = update
     trainer = training.Trainer(updater, stop_trigger)
