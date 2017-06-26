@@ -1,5 +1,6 @@
 from __future__ import division
 
+import math
 import unittest
 
 from chainer import testing
@@ -40,7 +41,7 @@ class TestGetTrainerWithMockUpdater(unittest.TestCase):
         elif self.stop_trigger[1] == 'epoch':
             self.assertEqual(
                 iteration[0],
-                self.stop_trigger[0] * self.iter_per_epoch)
+                math.ceil(self.stop_trigger[0] * self.iter_per_epoch))
 
 
 testing.run_module(__name__, __file__)
