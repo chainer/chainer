@@ -941,11 +941,10 @@ class Sequential(Chain):
     This class enables to construct a network which has sequential structure
     easily. While :class:`~Chain` and :class:`~ChainList` can only take
     :class:`~Link` object as input to their constructor, this
-    :class:`~Sequential` can also take :class:`~Function` s and remember them
-    for the forward pass computation. A :class:`~Sequential` takes arbitrary
-    number of :class:`~Function` classes, :class:`~Link` objects, and any other
-    callable object as the inputs to the constructor and call them inside of
-    the :meth:`~Sequential.__call__` method in the order given as the argments.
+    :class:`~Sequential` can take arbitrary number of any callable objects for
+    the forward pass computation. A :class:`~Sequential` calls the given
+    callable objects sequentially inside of the :meth:`~Sequential.__call__`
+    method in the same order as the given argments.
     Therefore, you don't need to write the forward pass computation explicitly.
 
     .. admonition:: Example
@@ -982,26 +981,28 @@ class Sequential(Chain):
           model_C = model_A + model_B
           model_D = 3 * model_A
 
-        You can add your own functions or any callable objects to a
+        You can also add your own functions or any callable objects to a
         :class:`~Sequential` object::
 
           from chainer.links.model.vision.vgg import VGG16Layers()
 
-          model.append(F.relu)
+          model = Sequential()
           model.append(L.Linear(n_out, n_hidden))
+          model.append(F.relu)
           model.append(F.Reshape((1, 3, 224, 224)))
           model.append(VGG16Layers())
           model.append(lambda x: x['prob'])
 
           y = model(x)
 
-        The above code snippet shows that adding some layers to the ``model``
-        and then adding a large network (``VGG16Layers``) and finally adding
-        a lambda function to extract the ``prob`` output.
+        The above code example shows how to add some layers to the ``model``
+        using :meth:`~Sequential.append` method and then add a large network
+        (``VGG16Layers``) and finally add a lambda function to extract the
+        ``prob`` output.
 
     Args:
         layers: The layers which are called in its order. Each component should
-            be an :class:`~Link`/:class:`~Chain`/:class:`~ChainList` object or
+            be a callable object including :class:`~Link` object and
             :class:`~Function` class.
 
     """
@@ -1014,6 +1015,10 @@ class Sequential(Chain):
                 if isinstance(layer, Link):
                     name = layer.__class__.__name__
                     setattr(self, '{}_{}'.format(name, i), layer)
+                if not callable(layer):
+                    raise ValueError(
+                        'All elements of the argment should be'
+                        'callable. But {} is not callable.'.format(layer))
 
     def __len__(self):
         return len(self.layers)
@@ -1056,31 +1061,31 @@ class Sequential(Chain):
             for layer in other:
                 ret.append(layer)
             return ret
-        elif isinstance(other, Link):
+        elif callable(other):
             self.append(other)
             return self
         else:
-            raise ValueError('add operator is support only with Link and '
-                             'Sequential objects, but {} was given'.format(
+            raise ValueError('add (+) operator is support only callable '
+                             'objects, but {} is not callable'.format(
                                  str(type(other))))
 
     def __radd__(self, other):
-        if isinstance(other, Link):
+        if callable(other):
             return Sequential(other) + self
         else:
-            raise ValueError('add operator is support only with Link and '
-                             'Sequential objects, but '
-                             '{} object was given'.format(str(type(other))))
+            raise ValueError('add (+) operator is support only callable '
+                             'objects, but {} is not callable'.format(
+                                 str(type(other))))
 
     def __iadd__(self, other):
         if isinstance(other, Sequential):
             for layer in other:
                 self.append(layer)
-        elif isinstance(other, Link):
+        elif callable(other):
             self.append(other)
         else:
-            raise ValueError('add operator is support only with Link and '
-                             'Sequential objects, but {} was given'.format(
+            raise ValueError('add (+) operator is support only callable '
+                             'objects, but {} is not callable'.format(
                                  str(type(other))))
         return self
 
@@ -1107,7 +1112,7 @@ class Sequential(Chain):
                     self[i].copy() if isinstance(self[i], Link) else self[i])
         return self
 
-    def __call__(self, x):
+    def __call__(self, *x):
         """Forward pass computation.
 
         This method performs the forward pass computation by giving the input
@@ -1122,7 +1127,10 @@ class Sequential(Chain):
 
         """
         for layer in self.layers:
-            x = layer(x)
+            if isinstance(x, tuple):
+                x = layer(*x)
+            else:
+                x = layer(x)
         return x
 
     def append(self, layer):
@@ -1158,8 +1166,8 @@ class Sequential(Chain):
         layer's class name or function name. If you want to remove a
         :class:`~Link`, the argment ``type_name`` should be its class name,
         e.g., :class:`~links.Linear` or :class:`~links.Convolution2D`, etc.
-        If you want to remove a :class:`~Function` class or a user-defined
-        function, ``type_name`` should be the function name, e.g., ``relu`` or
+        If you want to remove a :class:`~Function` class or any other callable
+        objects, ``type_name`` should be the function name, e.g., ``relu`` or
         ``reshape``, etc.
 
         Args:
@@ -1169,8 +1177,10 @@ class Sequential(Chain):
 
         names = []
         for layer in self:
-            name = layer.__class__.__name__ if isinstance(
-                layer, Link) else layer.__name__
+            if isinstance(layer, Link):
+                name = layer.__class__.__name__
+            else:
+                name = layer.__name__
             names.append((name, layer))
         for _name, _layer in names:
             if type_name == _name:

@@ -921,6 +921,10 @@ class TestSequential(unittest.TestCase):
         self.model = chainer.Sequential(self.l1, self.l2, self.l3)
         self.layers = [self.l1, self.l2, self.l3]
 
+    def test_init(self):
+        with self.assertRaises(ValueError):
+            chainer.Sequential(5)
+
     def test_len(self):
         self.assertIs(len(self.model), 3)
 
@@ -996,6 +1000,9 @@ class TestSequential(unittest.TestCase):
             self.assertEqual(layer.__class__, self.model[j].__class__)
         self.assertEqual(len(mul), 3 * len(self.model))
 
+        mul = self.model * 0
+        self.assertEqual(len(mul), 0)
+
     def test_rmul(self):
         mul = 3 * self.model
         for i, layer in enumerate(mul):
@@ -1027,6 +1034,14 @@ class TestSequential(unittest.TestCase):
         y = self.model(self.x)
         self.assertIs(y.creator.inputs[1].data, self.l3.W.data)
         self.assertIs(y.creator.inputs[2].data, self.l3.b.data)
+
+    def test_call_with_multiple_inputs(self):
+        model = chainer.Sequential(
+            lambda x: (x * 2, x * 3),
+            lambda x, y: x + y
+        )
+        y = model(3)  # 6 + 9 = 15
+        self.assertEqual(y, 15)
 
     def test_append(self):
         l4 = chainer.links.Linear(3, 3)
