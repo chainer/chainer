@@ -3,37 +3,28 @@ How to write a training loop in Chainer
 
 .. currentmodule:: chainer
 
-In this tutorial section we will learn how to train a deep neural network to
-classify hand-written digits using the popular MNIST dataset. This dataset
-contains 50000 training examples and 10000 test examples. Each example contains
-a 28x28 greyscale image and a corresponding class label for the digit. Since
-the digits 0-9 are used, there are 10 class labels.
+In this tutorial section, we will learn how to train a deep neural network to classify images of hand-written digits in the popular MNIST dataset. This dataset contains 50,000 training examples and 10,000 test examples. Each example is a set of a 28 x 28 greyscale image and a corresponding class label. Since the digits from 0 to 9 are used, there are 10 classes for the labels.
 
-Chainer provides a feature called :class:`~chainer.training.Trainer` that can
-be used to simplify the training process. However, we think it is good for
-first-time users to understand how the training process works before using the
-:class:`~chainer.training.Trainer` feature. Even advanced users might sometimes
-want to write their own training loop and so we will explain how to do so here.
+Chainer provides a feature called :class:`~chainer.training.Trainer` that can simplify the training procedure of your model. However, it is also good to know how the training works in Chainer before starting to use the useful :class:`~chainer.training.Trainer` class that hides the actual processes. For advanced users, it sometimes needs to write their own custom training loop.
 
-The complete training process consists of the following steps:
+The complete training procedure consists of the following steps:
 
-1. Prepare datasets that contain the train/validation/test examples.
-2. Optionally set iterators for the datasets.
+1. Prepare a dataset.
+2. Create an iterator for the dataset.
 3. Write a training loop that performs the following operations in each iteration:
-    A. Retreive a batch of examples from the training dataset.
-    B. Feed the batch into the model.
-    C. Run a forward pass on the model to compute the loss.
-    D. Run a backward pass on the model to compute the gradients.
-    E. Run the optimizer on the model to update the parameters.
-    F. (Optional): Ocassionally check the model performance on a validation/test set.
+    1. Retrieve a set of examples (mini-batch) from the training dataset.
+    2. Feed the mini-batch to your network.
+    3. Run a forward pass of the network and compute the loss.
+    4. Just call the :meth:`~chainer.Variable.backward` method from the loss :class:`~chainer.Variable` to compute the gradients for all trainable parameters.
+    5. Run the optimizer to update those parameters.
+    6. (Optional): Check the network performance on the validation/test set.
 
 1. Prepare the dataset
 ''''''''''''''''''''''
 
-Chainer contains some built-in functions that can be used to download and
-return Chainer-formatted versions of popular datasets used by the ML and deep
-learning communities. In this example, we will use the built-in function that
-retrieves the MNIST dataset.
+Chainer contains some built-in functions to use some popular datasets like MNIST, CIFAR10/100, etc. Those can automatically download the data from servers and provide dataset objects which are easy to use.
+
+The below code shows how to retrieve the MNIST dataset from the server and save an image from its training split to make sure the images are correctly obtained.
 
 .. testcode::
 
@@ -61,27 +52,16 @@ The saved image ``5.png`` will look like:
 
 
 2. Create the dataset iterators
-''''''''''''''''''''''''''''''
+'''''''''''''''''''''''''''''''
 
-Although this is an optional step, it can often be convenient to use iterators
-that operate on a dataset and retrieve a certain number of examples (often called
-a "mini-batch") at a time. The number of examples that is returned at a time is
-called the "batch size" or "mini-batch size." Chainer already has an :class:`~chainer.dataset.Iterator`
-class and some subclasses that can be used for this purpose and it might be
-straightforward for users to write their own as well.
+Although this is an optional step, we'd like to introduce the :class:`~chainer.dataset.Iterator` class that enables to retrieve a set of data and labels from the given dataset and give a mini-batch easily. There are some subclasses that can perform the same thing in different ways, e.g., using multi-processing to parallelize the data loading part, etc.
 
-We will use :class:`~chainer.iterators.SerialIterator`, which is a subclass of
-:class:`~chainer.dataset.Iterator` in this example. The
-:class:`~chainer.iterators.SerialIterator` can either return the examples in
-the same order that they appear in the dataset (that is, in sequential order)
-or can shuffle the examples so that they are returned in a random order.
+Here, we use :class:`~chainer.iterators.SerialIterator`, which is also a subclass of :class:`~chainer.dataset.Iterator` in the below example code. The :class:`~chainer.iterators.SerialIterator` can provide mini-batches with or without shuffling the order of data in the given dataset.
 
-An :class:`~chainer.dataset.Iterator` can return a new mini-batch by calling its
-:meth:`~chainer.dataset.Iterator.next` method. An
-:class:`~chainer.dataset.Iterator` also has properties to manage the training
-such as :attr:`~chainer.dataset.Iterator.epoch`: how many times we have gone
-through the entire dataset, :attr:`~chainer.dataset.Iterator.is_new_epoch`:
-whether the current iteration is the first iteration of a new epoch.
+All :class:`~chainer.dataset.Iterator` s produce a new mini-batch by calling its :meth:`~chainer.dataset.Iterator.next` method. All
+:class:`~chainer.dataset.Iterator` s also have properties to know how many times we have taken all the data from the given dataset (:attr:`~chainer.dataset.Iterator.epoch`) and whether the next mini-batch will be the start of a new epoch (:attr:`~chainer.dataset.Iterator.is_new_epoch`), and so on.
+
+The below code shows how to create a :class:`~chainer.iterators.SerialIterator` object from a dataset object.
 
 .. testcode::
 
@@ -94,108 +74,94 @@ whether the current iteration is the first iteration of a new epoch.
     test_iter = iterators.SerialIterator(test, batchsize,
                                          repeat=False, shuffle=False)
 
-Details about SerialIterator
+.. note::
+
+    :class:`~chainer.dataset.iterator` s can take a built-in Python list as a given dataset. It means that the below code example is able to work,
+
+    .. code-block:: python
+
+        train = [(x1, t1), (x2, t2), ...]  # A list of tuples
+        train_iter = iterators.SerialIterator(train, batchsize)
+
+    where ``x1, x2, ...`` denote the input data and ``t1, t2, ...`` denote the corresponding labels.
+
+Details of SerialIterator
 ............................
 
-- :class:`~chainer.iterators.SerialIterator` is a built-in subclass of :class:`~chainer.dataset.Iterator` that can be used to retrieve a dataset in either sequential or shuffled order.
-- The :class:`~chainer.dataset.Iterator` initializer takes two arguments: the dataset object and a batch size.
-- When data need to be used repeatedly for training, set the ``repeat`` argument to ``True`` (the default). When data is needed only once and no longer necessary for retrieving the data anymore, set ``repeat`` to ``False``.
-- When you want to shuffle the training dataset for every epoch, set the ``shuffle`` argument to ``True``.
+- :class:`~chainer.iterators.SerialIterator` is a built-in subclass of :class:`~chainer.dataset.Iterator` that can retrieve a mini-batch from a given dataset in either sequential or shuffled order.
+- The :class:`~chainer.dataset.Iterator` 's constructor takes two arguments: a dataset object and a mini-batch size.
+- If you want to use the same dataset repeatedly during the training process, set the ``repeat`` argument to ``True`` (default). Otherwise, the dataset will be used only one time. The latter case is actually for the evaluation.
+- If you want to shuffle the training dataset every epoch, set the ``shuffle`` argument to ``True``. Otherwise, the order of each data retrieved from the dataset will be always the same at each epoch.
 
-In the example above, we set ``batchsize = 128``, ``train_iter`` is the
-:class:`~chainer.dataset.Iterator` for the training dataset, and ``test_iter``
-is the :class:`~chainer.dataset.Iterator` for test dataset. These iterators
-will therefore return 128 image examples as a bundle.
+In the example code shown above, we set ``batchsize = 128`` create both ``train_iter`` and ``test_iter``. So, these iterators will provide 128 images and corresponding labels at a time.
 
-3. Define the model
+3. Define a network
 '''''''''''''''''''
 
-Now let's define a neural network that we will train to classify the MNIST
-images. For simplicity, we will use a fully-connected network with three
-layers. We will set each hidden layer to have 100 units and set the output
-layer to have 10 units, corresponding to the 10 class labels for the MNIST
-digits 0-9.
+Now let's define a neural network that we will train to classify the MNIST images. For simplicity, we use a three-layer perceptron here. We set each hidden layer to have 100 units and set the output layer to have 10 units, which is corresponding to the number of class labels of the MNIST.
 
-We first briefly explain :class:`~chainer.Link`, :class:`~chainer.Function`,
-:class:`~chainer.Chain`, and :class:`~chainer.Variable` which are the basic
-components used for defining and running a model in Chainer.
+We first briefly explain about :class:`~chainer.Link`, :class:`~chainer.Function`, :class:`~chainer.Chain`, and :class:`~chainer.Variable`. These are the basic components to define a network in Chainer.
 
 Link and Function
-.....................................................
+.................
 
-In Chainer, each layer of a neural network is decomposed into one of two broad
-types of functions (actually, they are function objects):
-:class:`~chainer.Link` and :class:`~chainer.Function`.
+In Chainer, each layer of a neural network is usually a :class:`~chainer.Function` or a :class:`~chainer.Link`.
 
-- **:class:`~chainer.Function` is a function without learnable paremeters.**
-- **:class:`~chainer.Link` is a function that contains (learnable) parameters.** We can think of :class:`~chainer.Link` as wrapping a :class:`~chainer.Function` to give it parameters. That is, :class:`~chainer.Link` will contain the parameters and when it is called, it will also call a corresponding :class:`~chainer.Function`.
+- **:class:`~chainer.Function` is a function without any learnable paremeters.**
+- **:class:`~chainer.Link` is a function that contains learnable parameters.** A :class:`~chainer.Link` calls a corresponding :class:`~chainer.Function` with the learnable parameters which are kept as its object properties.
 
-We then describe a model by implementing code that performs the "forward pass"
-computations. This code will call various links and functions (recall that
-:class:`~chainer.Link` and :class:`~chainer.Function` are callable objects).
-Chainer will take care of the "backward pass" automatically and so we do not
-need to worry about that unless we want to write some custom functions.
+In Chainer, a network is written as a code for its forward pass computation. It typically uses several links and functions. Chainer takes care of the backward pass automatically and so you do not need to write backward computation explicitly for the network unless it contained user-defined differentiable functions (when you use a custom function in the network, the implementation of the function should have `backward` method explicitly.)
 
-- For examples of links, see the :mod:`chainer.links` module.
-- For examples of functions, see the :mod:`chainer.functions` module.
-- For example, see the :class:`~chainer.links.Linear` link, which wraps the :class:`~chainer.functions.linear` function to give it weight and bias parameters.
-- Before we can start using them, we first need to import the modules as shown below.
+- See :mod:`chainer.functions` module for various built-in :class:`~chainer.Function` s.
+- See :mod:`chainer.links` module for various built-in :class:`~chainer.Link` s.
+- For example, see the :class:`~chainer.links.Linear` link which wraps the :meth:`~chainer.functions.linear` method to give it learnable parameters like weights (:attr:``~chainer.links.Linear.W``) and biases (:attr:``~chainer.links.Linear.b``).
+- Before we can start using them, we first need to import the below modules:
 
 .. testcode::
 
     import chainer.links as L
     import chainer.functions as F
 
-The Chainer convention is to use ``L`` for links and ``F`` for functions, like
+The Chainer convention is to use ``L`` for the alias of :mod:`~chainer.links` and ``F`` for the alias of :mod:`~chainer.functions`, like
 ``L.Convolution2D(...)`` or ``F.relu(...)``.
 
 Chain
 .....
 
-- :class:`~chainer.Chain` is a class that can hold multiple links and/or functions. It is a subclass of :class:`~chainer.Link` and so it is also a :class:`~chainer.Link`.
-- This means that a :class:`~chainer.Chain` can contain parameters, which are the parameters of any links that it deeply contains.
-- In this way, :class:`~chainer.Chain` allows us to construct models with a potentially deep hierarchy of functions and links.
-- It is often convenient to use a single :class:`~chainer.Chain` that contains all of the layers (other chains, links, and functions) of the model. This is because we will need to optimize the model's parameters during training and if all of the parameters are contained by a single :class:`~chainer.Chain`, it turns out to be straightforward to pass these parameters into an optimizer (which we describe in more detail below).
+- :class:`~chainer.Chain` is a class that can hold multiple links. It is a subclass of :class:`~chainer.Link` and so it can also hold a :class:`~chainer.Parameter` object.
+- This means that a :class:`~chainer.Chain` can contain parameters to be optimized directory by keeping :class:`~chainer.Parameter` objects as its properties. The network components which have learnable parameters represented as :class:`~chainer.Link` s can also be contained.
+- :class:`~chainer.Chain` is a subclass of :class:`~chainer.Link`, so it's possible to contain another :class:`~chainer.Chain` in the parent :class:`~chainer.Chain`. This allows us to construct deep hierarchical networks easily.
 
-Variable
-........
+Variable and Parameter
+......................
 
-In Chainer, both the activations (that is, the inputs and outputs of functions
-and links) and the model parameters are instances of the
-:class:`~chainer.Variable` class. A :class:`~chainer.Variable` holds two
-arrays: a data array that contains the values that are read/written during the
-forward pass (or the parameter values), and a :attr:`~chainer.Variable.grad`
-array that contains the corresponding gradients that will be computed during
-the backward pass.
+In Chainer, an activation (that is, the input or output of a function or link) is a :class:`~chainer.Variable` object. A :class:`~chainer.Variable` basically holds two arrays:
 
-A :class:`~chainer.Variable` can potentially contain two types of arrays as
-well, depending whether the array resides in CPU or GPU memory. By default,
-the CPU is used and these will be NumPy arrays. However, it is possible to move
-or create these arrays on the GPU as well, in which case they will be CuPy
-arrays. Fortunately, CuPy uses an API that is nearly identical to NumPy. This
-is convenient because in addition to making it easier for users to learn (there
-is almost nothing to learn if you are already familiar with NumPy), it often
-allows us to reuse the same code for both NumPy and CuPy arrays.
+1. A :attr:`~chainer.Variable.data` array that contains the values read/written during the forward pass
+2. A :attr:`~chainer.Variable.grad` array that contains the corresponding gradients that will be computed through the backward process.
 
-Create our model as a subclass of Chain
-.......................................
+:class:`~chainer.Parameter` is a subclass of :class:`~chainer.Variable` and it means that it is not an intermediate output of the network but it is a trainable parameter of a :class:`~chainer.Link`.
 
-We can create our model by writing a new subclass of :class:`~chainer.Chain`.
-The two main steps are:
 
-1. Any :class:`~chainer.Link` objects (possibly also including other :class:`chainer.Chain` objects) that we wish to call during the forward computation of our :class:`~chainer.Chain` must first be supplied to the :class:`~chainer.Chain`'s :meth:`~chainer.Chain.__init__` method. After the :meth:`~chainer.Chain.__init__` method has been called, these :class:`~chainer.Link` objects will then be accessible as attributes of our :class:`~chainer.Chain` object. This means that we also need to provide the attribute name that we want to use for each :class:`~chainer.Link` object that is supplied. We do this by providing the attribute name and corresponding :class:`~chainer.Link` object as keyword arguments to :meth:`~chainer.Chain.__init__`, as we will do in the MLP chain below.
-2. We need to define a :meth:`~chainer.Chain.__call__` method that allows our :class:`~chainer.Chain` to be called like a function. This method takes one or more :class:`~chainer.Variable` objects as input (that is, the input activations) and returns one or more :class:`~chainer.Variable` objects. This method executes the forward pass of the model by calling any of the links that we supplied to :meth:`~chainer.Chain.__init__` earlier as well as any functions.
+Create your network as a subclass of Chain
+..........................................
 
-Note that only the :class:`~chainer.Link` objects need to be supplied to
-:meth:`~chainer.Chain.__init__`. This is because they contain parameters. Since
-:class:`~chainer.Function`s do not contain any parameters, they can be called
-in :meth:`~chainer.Chain.__call__` without having to supply them to the
-:class:`~chainer.Chain` beforehand. For example, we can use a
-:class:`~chainer.Function` such as :meth:`~chainer.functions.relu` by simply
-calling it in :meth:`~chainer.Chain.__call__` but a :class:`~chainer.Link` such
-as :class:`~chainer.links.Linear` would need to first be supplied to the
-:class:`~chainer.Chain`'s :meth:`~chainer.Chain.__init__` in order to call it
-in :meth:`~chainer.Chain.__call__`.
+You can create your network by writing a new subclass of :class:`~chainer.Chain`.
+The main steps are twofold:
+
+1. Register the network components which have trainable parameters to the subclass. Each of them must be instantiated and assigned to a property in the scope specified by ``with self.init_scope():`` inside of the constructor of the subclass.
+2. Define a :meth:`~chainer.Chain.__call__` method that represents the actual **forward computation** of your network. This method takes one or more :class:`~chainer.Variable`, :class:`numpy.array`, or :class:`cupy.array` as its inputs and calculate the forward pass using them.
+
+It should be noted that only :class:`~chainer.Link`, :class:`~chainer.Chain`,
+and :class:`~chainer.ChainList` objects can be registered to the model inside
+the ``init_scope``. This is because they contain trainable parameters.
+For example, a :class:`~chainer.Function` does not contain any trainable
+parameters, so there is no need to keep the object as a property of your
+network. For example, we can use :meth:`~chainer.functions.relu` by simply
+calling it in :meth:`~chainer.Chain.__call__` but a :class:`~chainer.Link`  (recall that both :class:`~chainer.Link` and :class:`~chainer.Function` are callable objects) such
+as :class:`~chainer.links.Linear` is need to be registered as a property
+beforehand to keep the trainable parameter in your network and update them
+during the training.
 
 If we decide that we want to call a :class:`~chainer.Link` in a
 :class:`~chainer.Chain` after :meth:`~chainer.Chain.__init__` has already been

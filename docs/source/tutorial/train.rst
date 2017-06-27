@@ -1,4 +1,4 @@
-How to Train Your Network
+How to Train a Network
 -------------------------
 
 .. toctree::
