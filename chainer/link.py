@@ -932,3 +932,179 @@ class ChainList(Link):
         super(ChainList, self).serialize(serializer)
         for idx, child in enumerate(self._children):
             child.serialize(serializer['%d' % idx])
+
+
+class Sequential(Chain):
+
+    """Utility class to define a model with sequential Link/Function calls.
+
+    This class enables to construct a network which has sequential structure
+    easily. :class:`~Chain` and :class:`~ChainList` can only take
+    :class:`~Link` object as input to their constructor, but
+    :class:`~Sequential` can also take :class:`~Function` s and remember them
+    for the forward pass computation. :class:`~Sequential` takes arbitrary
+    number of :class:`~Function` classes and :class:`~Link` objects as the
+    inputs to the constructor and call them inside of the
+    :meth:`~Sequential.__call__` method in the order given as the argments.
+    Therefore, you don't need to write the forward pass computation explicitly.
+
+    .. admonition:: Example
+
+        The below example code shows how to use this class to construct a simple
+        sequential network::
+
+          import chainer
+          import chainer.functions as F
+          import chainer.links as L
+          from chainer import Sequential
+
+          # Model definition without writing __call__ function
+          model = Sequential(
+              L.Linear(n_in, n_hidden),
+              F.relu,
+              L.Linear(n_hidden, n_hidden),
+              F.relu,
+              L.Linear(n_hidden, n_out)
+          )
+
+          # Compute the forward pass
+          y = model(x)
+
+        where ``x`` denotes a mini-batch of ``n_in``-dimensional input vectors.
+
+    Args:
+        layers: The layers which are called in its order. Each component should
+            be an :class:`~Link`/:class:`~Chain`/:class:`~ChainList` object or
+            :class:`~Function` class.
+
+    """
+
+    def __init__(self, *layers):
+        super(Sequential, self).__init__()
+        self.layers = list(layers)
+        with self.init_scope():
+            for i, layer in enumerate(layers):
+                if isinstance(layer, Link):
+                    name = layer.__class__.__name__
+                    setattr(self, '{}_{}'.format(name, i), layer)
+
+    def __len__(self):
+        return len(self.layers)
+
+    def __getitem__(self, key):
+        return self.layers[key]
+
+    def __setitem__(self, key, value):
+        if key >= len(self):
+            raise ValueError(
+                '{} should be less than {}'.format(key, len(self)))
+        name = self.layers[key].__class__.__name__
+        delattr(self, '{}_{}'.format(name, key))
+        with self.init_scope():
+            if isinstance(layer, Link):
+                name = value.__class__.__name__
+                setattr(self, '{}_{}'.format(name, key), value)
+
+    def __delitem__(self, key):
+        name = self.layers[key].__class__.__name__
+        delattr(self, '{}_{}'.format(name, key))
+        del self.layers[key]
+
+    def __iter__(self):
+        for layer in self.layers:
+            yield layer
+
+    def __reversed__(self):
+        for layer in reversed(self.layers):
+            yield layer
+
+    def __contains__(self, item):
+        return item in self.layers
+
+    def __add__(self, other):
+        ret = Sequential()
+        for layer in self.layers:
+            ret.append(layer)
+        for layer in other:
+            ret.append(layer)
+        return ret
+
+    def __call__(self, x):
+        """Forward pass computation.
+
+        This method performs the forward pass computation by giving the input
+        variable ``x`` to the layers registered in the constructor in the same
+        order as the order in which the argments are given to the constructor.
+
+        Args:
+            x (~chainer.Variable): Input variables.
+
+        Returns:
+            The output of the final layer in the given layers.
+
+        """
+        for layer in self.layers:
+            x = layer(x)
+        return x
+
+    def append(self, layer):
+        self.layers.append(layer)
+        with self.init_scope():
+            name = layer.__class__.__name__
+            setattr(self, '{}_{}'.format(name, len(self.layers)), layer)
+
+    def extend(self, iterable):
+        for x in iterable:
+            self.append(x)
+
+    def insert(self, i, layer):
+        self.layers.insert(i, layer)
+        if isinstance(layer, Link):
+            with self.init_scope():
+                name = layer.__class__.__name__
+                setattr(self, '{}_{}'.format(name, i), layer)
+
+    def remove(self, layer):
+        if layer in self.layers:
+            if isinstance(layer, Link):
+                i = self.layers.index(layer)
+                name = layer.__class__.__name__
+                delattr(self, '{}_{}'.format(name, i), layer)
+            self.layers.remove(layer)
+        else:
+            raise ValueError(
+                'There is no layer object that is same as {}'.format(layer))
+
+    def remove_by_class_name(self, name):
+        names = [(layer.__class__.__name__, layer) for layer in self.layers]
+        for _name, _layer in names:
+            if name == _name:
+                self.remove(_layer)
+
+    def pop(self, i=-1):
+        layer = self.layers[i]
+        self.remove(self.layers[i])
+        return layer
+
+    def clear(self):
+        for layer in self.layers:
+            self.remove(layer)
+
+    def index(self, layer, start=0, end=-1):
+        return self.layers[start:end].index(layer)
+
+    def count(self, layer_type):
+        num = 0
+        for layer in self.layers:
+            if layer.__class__.__name__ == layer_name:
+                num += 1
+        return num
+
+    def sort(self, key=None, reverse=None):
+        self.layers.sort(key, reverse)
+
+    def reverse(self):
+        self.layers.reverse()
+
+    def copy(self):
+        return self.layers.copy()

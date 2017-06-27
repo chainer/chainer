@@ -8,3 +8,4 @@ Link and Chain
    chainer.Link
    chainer.Chain
    chainer.ChainList
+   chainer.Sequential
