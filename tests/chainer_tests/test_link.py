@@ -911,4 +911,204 @@ class TestChainList(unittest.TestCase):
         mocks['1'].assert_called_with('x', l2.x.data)
 
 
+class TestSequential(unittest.TestCase):
+
+    def setUp(self):
+        self.l1 = chainer.links.Linear(3, 3)
+        self.l2 = chainer.links.Linear(3, 3)
+        self.l3 = chainer.links.Linear(3, 4)
+        self.x = chainer.Variable(numpy.zeros((1, 3), dtype=numpy.float32))
+        self.model = chainer.Sequential(self.l1, self.l2, self.l3)
+        self.layers = [self.l1, self.l2, self.l3]
+
+    def test_len(self):
+        self.assertIs(len(self.model), 3)
+
+    def test_getitem(self):
+        self.assertIs(self.model[0], self.l1)
+
+    def test_delitem(self):
+        del self.model[0]
+        self.assertIsNot(self.model[0], self.l1)
+
+    def test_iter(self):
+        i = 0
+        for layer in self.model:
+            self.assertIs(layer, self.layers[i])
+            i += 1
+
+    def test_reversed(self):
+        i = 0
+        for layer in reversed(self.model):
+            self.assertIs(layer, self.layers[len(self.layers) - 1 - i])
+            i += 1
+
+    def test_contains(self):
+        for layer in self.layers:
+            self.assertTrue(layer in self.model)
+
+    def test_add(self):
+        l1 = chainer.links.Linear(3, 3)
+        l2 = chainer.links.Linear(3, 3)
+        l3 = chainer.links.Linear(3, 4)
+        other = chainer.Sequential(l1, l2, l3)
+        add = self.model + other
+        self.assertEqual(len(add), len(self.model) + len(other))
+        for i, layer in enumerate(add):
+            if i < len(self.model):
+                self.assertIs(layer, self.model[i])
+            else:
+                i -= len(self.model)
+                self.assertIs(layer, other[i])
+
+        with self.assertRaises(ValueError):
+            self.model + 5
+
+    def test_radd(self):
+        l0 = chainer.links.Linear(3, 3)
+        add = l0 + self.model
+        for i, layer in enumerate(add):
+            if i == 0:
+                self.assertIs(layer, l0)
+            else:
+                i -= 1
+                self.assertIs(layer, self.model[i])
+
+        with self.assertRaises(ValueError):
+            5 + self.model
+
+    def test_iadd(self):
+        l4 = chainer.links.Linear(3, 3)
+        self.model += l4
+        for i, layer in enumerate(self.model):
+            if i < len(self.layers):
+                self.assertIs(layer, self.layers[i])
+            else:
+                self.assertIs(layer, l4)
+
+        with self.assertRaises(ValueError):
+            self.model += 5
+
+    def test_mul(self):
+        mul = self.model * 3
+        for i, layer in enumerate(mul):
+            j = i % 3
+            self.assertEqual(layer.__class__, self.model[j].__class__)
+        self.assertEqual(len(mul), 3 * len(self.model))
+
+    def test_rmul(self):
+        mul = 3 * self.model
+        for i, layer in enumerate(mul):
+            j = i % 3
+            self.assertEqual(layer.__class__, self.model[j].__class__)
+        self.assertEqual(len(mul), 3 * len(self.model))
+
+    def test_imul(self):
+        mul = self.model.copy()
+        mul *= 3
+        for i, layer in enumerate(mul):
+            j = i % 3
+            self.assertEqual(layer.__class__, self.model[j].__class__)
+        self.assertEqual(len(mul), 3 * len(self.model))
+
+    def test_call(self):
+        l1 = mock.MagicMock()
+        l2 = mock.MagicMock()
+        l3 = mock.MagicMock()
+        model = chainer.Sequential(l1, l2, l3)
+        y = model(self.x)
+        model[0].assert_called_once()
+        model[1].assert_called_once()
+        model[2].assert_called_once()
+        self.assertEqual(model[0], l1)
+        self.assertEqual(model[1], l2)
+        self.assertEqual(model[2], l3)
+
+        y = self.model(self.x)
+        self.assertIs(y.creator.inputs[1].data, self.l3.W.data)
+        self.assertIs(y.creator.inputs[2].data, self.l3.b.data)
+
+    def test_append(self):
+        l4 = chainer.links.Linear(3, 3)
+        self.model.append(l4)
+        self.assertIs(self.model[-1], l4)
+
+    def test_extend(self):
+        l1 = chainer.links.Linear(3, 3)
+        l2 = chainer.links.Linear(3, 3)
+        l3 = chainer.links.Linear(3, 3)
+        model_b = chainer.Sequential(l1, l2, l3)
+        orig_n = len(self.model)
+        self.model.extend(model_b)
+        for i, layer in enumerate(self.model):
+            if i < orig_n:
+                self.assertIs(layer, self.model[i])
+            else:
+                self.assertIs(layer, model_b[i - orig_n])
+        self.assertEqual(len(self.model), orig_n + len(model_b))
+
+    def test_insert(self):
+        l = chainer.links.Linear(3, 3)
+        self.model.insert(2, l)
+        self.assertEqual(len(self.model), 4)
+        self.assertIs(self.model[2], l)
+
+    def test_remove(self):
+        l2 = self.layers[1]
+        self.model.remove(l2)
+        self.assertEqual(len(self.model), 2)
+        self.assertIs(self.layers[0], self.model[0])
+        self.assertIs(self.layers[2], self.model[1])
+
+    def test_remove_by_layer_type(self):
+        self.model.insert(2, chainer.functions.relu)
+        self.model.remove_by_layer_type('Linear')
+        self.assertEqual(len(self.model), 1)
+        self.assertIs(self.model[0], chainer.functions.relu)
+
+    def test_pop(self):
+        l2 = self.model.pop(1)
+        self.assertIs(l2, self.layers[1])
+        self.assertEqual(len(self.model), len(self.layers) - 1)
+
+    def test_clear(self):
+        self.model.clear()
+        self.assertEqual(len(self.model), 0)
+
+    def test_index(self):
+        l3 = self.layers[2]
+        self.assertEqual(self.model.index(l3), 2)
+
+    def test_count(self):
+        self.model.insert(1, chainer.functions.relu)
+        self.model.insert(3, chainer.functions.relu)
+        self.assertEqual(self.model.count(chainer.functions.relu), 2)
+        self.assertEqual(self.model.count(self.layers[0]), 1)
+        self.assertEqual(self.model.count(self.layers[1]), 1)
+        self.assertEqual(self.model.count(self.layers[2]), 1)
+
+    def test_count_by_layer_type(self):
+        self.assertEqual(self.model.count_by_layer_type('Linear'), 3)
+        self.model.insert(1, chainer.functions.relu)
+        self.model.insert(3, chainer.functions.relu)
+        self.assertEqual(self.model.count_by_layer_type('relu'), 2)
+
+    def test_sort(self):
+        with self.assertRaises(NotImplementedError):
+            self.model.sort()
+
+    def test_reverse(self):
+        with self.assertRaises(NotImplementedError):
+            self.model.reverse()
+
+    def test_copy(self):
+        model = self.model.copy()
+        for l1, l2 in zip(model, self.model):
+            self.assertIsNot(l1, l2)
+            if isinstance(l1, chainer.Link):
+                self.assertEqual(l1.__class__.__name__, l2.__class__.__name__)
+            else:
+                self.assertEqual(l1.__name__, l2.__name__)
+
+
 testing.run_module(__name__, __file__)

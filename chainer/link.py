@@ -936,16 +936,16 @@ class ChainList(Link):
 
 class Sequential(Chain):
 
-    """Utility class to define a model with sequential Link/Function calls.
+    """Sequential model which has a single-stream forward pass.
 
     This class enables to construct a network which has sequential structure
-    easily. :class:`~Chain` and :class:`~ChainList` can only take
-    :class:`~Link` object as input to their constructor, but
+    easily. While :class:`~Chain` and :class:`~ChainList` can only take
+    :class:`~Link` object as input to their constructor, this
     :class:`~Sequential` can also take :class:`~Function` s and remember them
-    for the forward pass computation. :class:`~Sequential` takes arbitrary
-    number of :class:`~Function` classes and :class:`~Link` objects as the
-    inputs to the constructor and call them inside of the
-    :meth:`~Sequential.__call__` method in the order given as the argments.
+    for the forward pass computation. A :class:`~Sequential` takes arbitrary
+    number of :class:`~Function` classes, :class:`~Link` objects, and any other
+    callable object as the inputs to the constructor and call them inside of
+    the :meth:`~Sequential.__call__` method in the order given as the argments.
     Therefore, you don't need to write the forward pass computation explicitly.
 
     .. admonition:: Example
@@ -1039,16 +1039,22 @@ class Sequential(Chain):
 
     def __radd__(self, other):
         if isinstance(other, Link):
-            self.insert(0, other)
-            return self
+            return Sequential(other) + self
         else:
             raise ValueError('add operator is support only with Link and '
                              'Sequential objects, but '
                              '{} object was given'.format(str(type(other))))
 
     def __iadd__(self, other):
-        for layer in other:
-            self.append(layer)
+        if isinstance(other, Sequential):
+            for layer in other:
+                self.append(layer)
+        elif isinstance(other, Link):
+            self.append(other)
+        else:
+            raise ValueError('add operator is support only with Link and '
+                             'Sequential objects, but {} was given'.format(
+                                 str(type(other))))
         return self
 
     def __mul__(self, n_repeat):
@@ -1105,23 +1111,22 @@ class Sequential(Chain):
         if isinstance(layer, Link):
             with self.init_scope():
                 name = layer.__class__.__name__
-                setattr(self, '{}_{}'.format(name, i), layer)
+                setattr(self, '{}_{}'.format(name, len(self)), layer)
 
     def remove(self, layer):
         if layer in self:
             if isinstance(layer, Link):
-                i = self.layers.index(layer)
-                name = layer.__class__.__name__
-                delattr(self, '{}_{}'.format(name, i), layer)
+                delattr(self, layer.name)
             self.layers.remove(layer)
         else:
             raise ValueError(
                 'There is no layer object that is same as {}'.format(layer))
 
-    def remove_by_class_name(self, name):
-        names = [(layer.__class__.__name__, layer) for layer in self.layers]
+    def remove_by_layer_type(self, type_name):
+        names = [(layer.__class__.__name__, layer)
+                 for layer in self.layers]
         for _name, _layer in names:
-            if name == _name:
+            if type_name == _name:
                 self.remove(_layer)
 
     def pop(self, i=-1):
@@ -1130,27 +1135,34 @@ class Sequential(Chain):
         return layer
 
     def clear(self):
-        for layer in self.layers:
-            self.remove(layer)
+        for layer in self:
+            if isinstance(layer, Link):
+                delattr(self, layer.name)
+        self.layers = []
 
-    def index(self, layer, start=0, end=-1):
+    def index(self, layer, start=None, end=None):
         return self.layers[start:end].index(layer)
 
     def count(self, layer):
         return self.layers.count(layer)
 
-    def count_by_class_name(self, name):
+    def count_by_layer_type(self, type_name):
         num = 0
         for layer in self.layers:
-            if layer.__class__.__name__ == name:
-                num += 1
+            if isinstance(layer, Link):
+                if layer.__class__.__name__ == type_name:
+                    num += 1
+            else:
+                if layer.__name__ == type_name:
+                    num += 1
         return num
 
     def sort(self, key=None, reverse=None):
-        self.layers.sort(key, reverse)
+        raise NotImplementedError
 
     def reverse(self):
-        self.layers.reverse()
+        raise NotImplementedError
 
     def copy(self):
-        return self.layers.copy()
+        return Sequential(*[l.copy() if isinstance(l, Link) else l
+                            for l in self.layers])
