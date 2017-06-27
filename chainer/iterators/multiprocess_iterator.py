@@ -97,13 +97,31 @@ class MultiprocessIterator(iterator.Iterator):
 
         self._finalized.set()
         self._ordered_data_queue.put(self._last_signal)
-        self._data_queue.put((-1, -1, -1))
-        for _ in self._workers:
-            self._index_queue.put((-1, -1, -1))  # termination signal
 
-        for worker in self._workers:
-            worker.join()
+        # Send termination signal to each worker
+        for _ in self._workers:
+            self._index_queue.put((-1, -1, -1))
+
+        # Wait for the workers to stop generating data
+        for worker, status_event in self._workers:
+            status_event.wait()
+
+        # Send termination signal to _get_data_loop_thread
+        # Wait for the thread to terminate
+        self._data_queue.put((-1, -1, -1))
         self._get_data_loop_thread.join()
+
+        # Clear data_queue, discarding any remaining data
+        while True:
+            try:
+                self._data_queue.get(False)
+            except six.moves.queue.Empty:
+                break
+
+        # Wait for the workers to terminate
+        # data_queue must be empty at this moment
+        for worker, status_event in self._workers:
+            worker.join()
 
     def serialize(self, serializer):
         self.current_position = serializer('current_position',
@@ -162,9 +180,11 @@ class MultiprocessIterator(iterator.Iterator):
         args = (self.dataset, self._index_queue, self._data_queue,
                 self._mem_list)
         for _ in range(self.n_processes):
-            worker = multiprocessing.Process(target=_worker, args=args)
+            status_event = multiprocessing.Event()
+            args_ = args + (status_event,)
+            worker = multiprocessing.Process(target=_worker, args=args_)
             worker.daemon = True
-            self._workers.append(worker)
+            self._workers.append((worker, status_event))
             worker.start()
 
     def _invoke_prefetch(self):
@@ -381,7 +401,7 @@ def _unpack(data, mem):
     return data
 
 
-def _worker(dataset, in_queue, out_queue, mem_list):
+def _worker(dataset, in_queue, out_queue, mem_list, status_event):
     while True:
         cnt, mem_index, index = in_queue.get()
         if cnt < 0:
@@ -389,5 +409,7 @@ def _worker(dataset, in_queue, out_queue, mem_list):
         mem = mem_list[mem_index]
         data = _pack(dataset[index], mem)
         out_queue.put((cnt, mem_index, data))
+
     out_queue.close()
+    status_event.set()  # Set as dying
     out_queue.join_thread()
