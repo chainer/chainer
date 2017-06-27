@@ -9,7 +9,6 @@ from chainer.utils import type_check
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
     libcudnn = cudnn.cudnn
-    _cudnn_version = libcudnn.getVersion()
     _mode = libcudnn.CUDNN_ACTIVATION_SIGMOID
 
 
@@ -29,9 +28,7 @@ class Sigmoid(function.Function):
 
     def forward_gpu(self, inputs):
         x = inputs[0]
-        if (chainer.should_use_cudnn('==always') and
-                x.flags.c_contiguous and
-                (_cudnn_version >= 3000 or x.dtype != numpy.float16)):
+        if chainer.should_use_cudnn('==always') and x.flags.c_contiguous:
             y = cudnn.activation_forward(x, _mode)
         else:
             y = cuda.elementwise(
@@ -50,11 +47,8 @@ class Sigmoid(function.Function):
         x = inputs[0]
         gy = grads[0]
         y = self.output_data[0]
-        if (chainer.should_use_cudnn('==always') and
-                gy.flags.c_contiguous and
-                x is not None and
-                x.flags.c_contiguous and
-                (_cudnn_version >= 3000 or x.dtype != numpy.float16)):
+        if (chainer.should_use_cudnn('==always') and gy.flags.c_contiguous and
+                x is not None and x.flags.c_contiguous):
             gx = cudnn.activation_backward(x, y, gy, _mode)
         else:
             gx = cuda.elementwise(

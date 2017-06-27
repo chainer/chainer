@@ -24,7 +24,7 @@ def logsumexp(x):
 
 
 def _log_softmax(x):
-    if chainer.should_use_cudnn('>=auto', 3000):
+    if chainer.should_use_cudnn('>=auto'):
         xp = cuda.get_array_module(x)
         if xp is not numpy:
             oz_dtype = 'd' if x.dtype == 'd' else 'f'
@@ -69,7 +69,7 @@ class LogSoftmax(function.Function):
     def backward(self, x, gy):
         y = self.output_data[0]
         xp = self._x_xp
-        if xp is not numpy and chainer.should_use_cudnn('>=auto', 3000):
+        if xp is not numpy and chainer.should_use_cudnn('>=auto'):
             oz_dtype = 'd' if self._x_dtype == 'd' else 'f'
             one = numpy.array(1, dtype=oz_dtype).ctypes
             zero = numpy.array(0, dtype=oz_dtype).ctypes
