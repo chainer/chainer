@@ -972,6 +972,33 @@ class Sequential(Chain):
 
         where ``x`` denotes a mini-batch of ``n_in``-dimensional input vectors.
 
+        Furthermore, :class:`~Sequential` supports build-in list APIs, so you
+        can concatenate :class:`~Sequential` objects and repeat a
+        :class:`~Sequential` object to create a longer :class:`~Sequential`
+        model easily with the same ways as Python lists::
+
+          model_A = Sequential(L.Linear(10, 10), F.relu)
+          model_B = Sequential(L.Linear(10, 10), F.sigmoid)
+          model_C = model_A + model_B
+          model_D = 3 * model_A
+
+        You can add your own functions or any callable objects to a
+        :class:`~Sequential` object::
+
+          from chainer.links.model.vision.vgg import VGG16Layers()
+
+          model.append(F.relu)
+          model.append(L.Linear(n_out, n_hidden))
+          model.append(F.Reshape((1, 3, 224, 224)))
+          model.append(VGG16Layers())
+          model.append(lambda x: x['prob'])
+
+          y = model(x)
+
+        The above code snippet shows that adding some layers to the ``model``
+        and then adding a large network (``VGG16Layers``) and finally adding
+        a lambda function to extract the ``prob`` output.
+
     Args:
         layers: The layers which are called in its order. Each component should
             be an :class:`~Link`/:class:`~Chain`/:class:`~ChainList` object or
