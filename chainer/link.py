@@ -1073,9 +1073,11 @@ class Sequential(Chain):
         if n_repeat <= 0:
             self.clear()
             return self
+        n_layers = len(self)
         for _ in range(n_repeat - 1):
-            for layer in self:
-                self.append(layer.copy() if isinstance(layer, Link) else layer)
+            for i in range(n_layers):
+                self.append(
+                    self[i].copy() if isinstance(self[i], Link) else self[i])
         return self
 
     def __call__(self, x):
