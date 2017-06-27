@@ -1022,12 +1022,55 @@ class Sequential(Chain):
         return item in self.layers
 
     def __add__(self, other):
-        ret = Sequential()
-        for layer in self.layers:
-            ret.append(layer)
+        if isinstance(other, Sequential):
+            ret = Sequential()
+            for layer in self.layers:
+                ret.append(layer)
+            for layer in other:
+                ret.append(layer)
+            return ret
+        elif isinstance(other, Link):
+            self.append(other)
+            return self
+        else:
+            raise ValueError('add operator is support only with Link and '
+                             'Sequential objects, but {} was given'.format(
+                                 str(type(other))))
+
+    def __radd__(self, other):
+        if isinstance(other, Link):
+            self.insert(0, other)
+            return self
+        else:
+            raise ValueError('add operator is support only with Link and '
+                             'Sequential objects, but '
+                             '{} object was given'.format(str(type(other))))
+
+    def __iadd__(self, other):
         for layer in other:
-            ret.append(layer)
+            self.append(layer)
+        return self
+
+    def __mul__(self, n_repeat):
+        if n_repeat <= 0:
+            return Sequential()
+        ret = Sequential()
+        for _ in range(n_repeat):
+            for layer in self:
+                ret.append(layer.copy() if isinstance(layer, Link) else layer)
         return ret
+
+    def __rmul__(self, n_repeat):
+        return self * n_repeat
+
+    def __imul__(self, n_repeat):
+        if n_repeat <= 0:
+            self.clear()
+            return self
+        for _ in range(n_repeat - 1):
+            for layer in self:
+                self.append(layer.copy() if isinstance(layer, Link) else layer)
+        return self
 
     def __call__(self, x):
         """Forward pass computation.
@@ -1051,11 +1094,11 @@ class Sequential(Chain):
         self.layers.append(layer)
         with self.init_scope():
             name = layer.__class__.__name__
-            setattr(self, '{}_{}'.format(name, len(self.layers)), layer)
+            setattr(self, '{}_{}'.format(name, len(self)), layer)
 
-    def extend(self, iterable):
-        for x in iterable:
-            self.append(x)
+    def extend(self, sequential):
+        for layer in sequential:
+            self.append(layer)
 
     def insert(self, i, layer):
         self.layers.insert(i, layer)
@@ -1065,7 +1108,7 @@ class Sequential(Chain):
                 setattr(self, '{}_{}'.format(name, i), layer)
 
     def remove(self, layer):
-        if layer in self.layers:
+        if layer in self:
             if isinstance(layer, Link):
                 i = self.layers.index(layer)
                 name = layer.__class__.__name__
@@ -1093,10 +1136,13 @@ class Sequential(Chain):
     def index(self, layer, start=0, end=-1):
         return self.layers[start:end].index(layer)
 
-    def count(self, layer_type):
+    def count(self, layer):
+        return self.layers.count(layer)
+
+    def count_by_class_name(self, name):
         num = 0
         for layer in self.layers:
-            if layer.__class__.__name__ == layer_name:
+            if layer.__class__.__name__ == name:
                 num += 1
         return num
 
