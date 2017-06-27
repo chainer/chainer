@@ -125,7 +125,6 @@ class BinaryHierarchicalSoftmaxFunction(function.Function):
 
         self.parent2child = numpy.empty((n_vocab, 2), dtype=numpy.int32)
         self.parent2child[:, :] = LEAF
-        _tree = tree
         for i in six.moves.range(len(parent2child)):
             if i in parent2child:
                 x = parent2child[i]
@@ -417,7 +416,7 @@ class BinaryHierarchicalSoftmax(link.Link):
             x (~chainer.Variable): Input variable for sample word ids.
 
         Returns:
-            list: List of word indexes in a binary tree ``self.tree``.
+            array: Array of word indexes in a binary tree ``self.tree``.
 
         .. admonition:: Example
 
