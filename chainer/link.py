@@ -950,8 +950,8 @@ class Sequential(Chain):
 
     .. admonition:: Example
 
-        The below example code shows how to use this class to construct a simple
-        sequential network::
+        The below example code shows how to use this class to construct a
+        simple sequential network::
 
           import chainer
           import chainer.functions as F
@@ -991,24 +991,24 @@ class Sequential(Chain):
     def __len__(self):
         return len(self.layers)
 
-    def __getitem__(self, key):
-        return self.layers[key]
+    def __getitem__(self, i):
+        return self.layers[i]
 
-    def __setitem__(self, key, value):
-        if key >= len(self):
+    def __setitem__(self, i, layer):
+        if i >= len(self):
             raise ValueError(
-                '{} should be less than {}'.format(key, len(self)))
-        name = self.layers[key].__class__.__name__
-        delattr(self, '{}_{}'.format(name, key))
+                '{} should be less than {}'.format(i, len(self)))
+        name = self.layers[i].__class__.__name__
+        delattr(self, '{}_{}'.format(name, i))
         with self.init_scope():
             if isinstance(layer, Link):
-                name = value.__class__.__name__
-                setattr(self, '{}_{}'.format(name, key), value)
+                name = layer.__class__.__name__
+                setattr(self, '{}_{}'.format(name, i), layer)
 
-    def __delitem__(self, key):
-        name = self.layers[key].__class__.__name__
-        delattr(self, '{}_{}'.format(name, key))
-        del self.layers[key]
+    def __delitem__(self, i):
+        name = self.layers[i].__class__.__name__
+        delattr(self, '{}_{}'.format(name, i))
+        del self.layers[i]
 
     def __iter__(self):
         for layer in self.layers:
