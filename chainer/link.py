@@ -1119,8 +1119,14 @@ class Sequential(Chain):
         variable ``x`` to the layers registered in the constructor in the same
         order as the order in which the argments are given to the constructor.
 
+        It should be noted that the input variable is given directly to the
+        first layer and all intermediate outputs generated during the forward
+        pass are also directly feeded to the next layer. Therefore, the number
+        of output at a layer should be the same as the number of input at the
+        next layer.
+
         Args:
-            x (~chainer.Variable): Input variables.
+            x: Input variables.
 
         Returns:
             The output of the final layer in the given layers.
