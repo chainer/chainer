@@ -1125,8 +1125,26 @@ class Sequential(Chain):
                 'There is no layer object that is same as {}'.format(layer))
 
     def remove_by_layer_type(self, type_name):
-        names = [(layer.__class__.__name__, layer)
-                 for layer in self.layers]
+        """Remove layers by layer type.
+
+        This method removes layers from the Sequential object by the
+        layer's class name or function name. If you want to remove a
+        :class:`~Link`, the argment ``type_name`` should be its class name,
+        e.g., :class:`~links.Linear` or :class:`~links.Convolution2D`, etc.
+        If you want to remove a :class:`~Function` class or a user-defined
+        function, ``type_name`` should be the function name, e.g., ``relu`` or
+        ``reshape``, etc.
+
+        Args:
+            type_name (str): The name of a layer you want to remove.
+
+        """
+
+        names = []
+        for layer in self:
+            name = layer.__class__.__name__ if isinstance(
+                layer, Link) else layer.__name__
+            names.append((name, layer))
         for _name, _layer in names:
             if type_name == _name:
                 self.remove(_layer)
@@ -1149,6 +1167,21 @@ class Sequential(Chain):
         return self.layers.count(layer)
 
     def count_by_layer_type(self, type_name):
+        """Count the number of layers by layer type.
+
+        This method counts the number of layers which have the name given by
+        the argment ``type_name``. For example, if you want to know the number
+        of :class:`~links.Linear` layers included in this model, ``type_name``
+        should be ``Linear``. If you want to know the number of
+        :class:`~Function` classes or user-defined functions which have a
+        specific name, ``type_name`` should be the function name, e.g.,
+        ``relu`` or ``reshape``, etc.
+
+        Args:
+            type_name (str): The name of a layer you want to enumerate.
+
+        """
+
         num = 0
         for layer in self.layers:
             if isinstance(layer, Link):
