@@ -475,13 +475,14 @@ class TestFunctionRetaining(unittest.TestCase):
     def test_retain_outputs_f1(self):
         self.assertEqual([y.data for y in self.f1_output_nodes],
                          [None, self.f1_output_data[1]])
-        self.assertEqual(tuple(y.data for y in self.f1_output_nodes),
+        self.assertEqual([y.data for y in self.f1_output_nodes],
                          self.f1.output_data)
 
     def test_retain_outputs_f2(self):
         self.assertEqual([y.data for y in self.f2_output_nodes],
                          [None, self.f2_output_data[1]])
-        self.assertEqual(None, self.f2.output_data)
+        nones = [None for y in self.f2_output_nodes]
+        self.assertEqual(nones, self.f2.output_data)
 
 
 testing.run_module(__name__, __file__)
