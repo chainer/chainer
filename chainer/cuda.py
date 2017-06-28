@@ -305,7 +305,7 @@ def to_cpu(array, stream=None):
     """
     if isinstance(array, ndarray):
         check_cuda_available()
-        with get_device(array):
+        with get_device_from_array(array):
             return array.get(stream)
     elif isinstance(array, numpy.ndarray):
         return array
@@ -342,10 +342,10 @@ def copy(array, out=None, out_device=None, stream=None):
     if out is None:
         if out_device is None:
             out_device = array
-        with get_device(out_device):
+        with _get_device(out_device):
             out = cupy.empty_like(array)
 
-    with get_device(array):
+    with get_device_from_array(array):
         cupy.copyto(out, array)
 
     return out
