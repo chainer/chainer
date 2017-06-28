@@ -96,6 +96,7 @@ class BinaryHierarchicalSoftmaxFunction(function.Function):
         self.begins = begins
 
         self.parser_size = parser.size()
+        self.n_vocab = n_vocab
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 3)
@@ -299,10 +300,35 @@ class BinaryHierarchicalSoftmax(link.Link):
         # This function object is copied on every forward computation.
         super(BinaryHierarchicalSoftmax, self).__init__()
         self._func = BinaryHierarchicalSoftmaxFunction(tree)
+        self.tree = tree
+        self.PAD_paths, self.PAD_codes = self.init_padding_params()
 
         with self.init_scope():
             self.W = variable.Parameter(uniform.Uniform(1),
                                         (self._func.parser_size, in_size))
+
+    def init_padding_params(self):
+        # Padding `paths` and `codes`
+        paths = self._func.paths
+        codes = self._func.codes
+        begins = self._func.begins
+        n_vocab = self._func.n_vocab
+
+        split_paths = numpy.split(paths, begins[1:-1])
+        split_codes = numpy.split(codes, begins[1:-1])
+
+        max_length = max([_.shape[0] for _ in split_paths])
+
+        PAD_paths = numpy.zeros((n_vocab, max_length), 'i') - 1
+        for i, path in enumerate(split_paths):
+            PAD_paths[i, 0:len(path)] = path
+
+        PAD_codes = numpy.zeros((n_vocab, max_length))
+        for i, code in enumerate(split_codes):
+            PAD_codes[i, 0:len(code)] = code
+        PAD_codes = PAD_codes[:, :, None]
+
+        return PAD_paths, PAD_codes
 
     def to_gpu(self, device=None):
         with cuda._get_device(device):
@@ -348,6 +374,53 @@ class BinaryHierarchicalSoftmax(link.Link):
             q.put((count, min(id1, id2), tree))
 
         return q.get()[2]
+
+    def argmax(self, x):
+        """Argmax an example for a given input from the tree.
+
+        Args:
+            x (~chainer.Variable): Input variable for sample word ids.
+
+        Returns:
+            array: Array of word indexes in a binary tree ``self.tree``.
+
+        .. admonition:: Example
+
+            Let an input vector ``x`` be:
+
+            >>> word_cnts = {0: 8, 1: 5, 2: 6, 3: 4, 4: 10, 5: 1, 6: 32}
+            >>> tree = BinaryHierarchicalSoftmax.create_huffman_tree(word_cnts)
+            >>> hsm = BinaryHierarchicalSoftmax(3, tree)
+            >>> x = np.array([[0.2, 0.2, 0.3], [0.1, 0.3, 0.1]], dtype='f')
+            >>> hsm.argmax(Variable(x))
+            [0, 3]
+        """
+        if len(self.tree) == 0:
+            raise ValueError('Empty tree')
+
+        xp = cuda.get_array_module(*x)
+        batchsize = x.shape[0]
+        paths = self._func.paths
+        codes = self._func.codes
+        begins = self._func.begins
+        n_vocab = self._func.n_vocab
+        PAD_codes = self.PAD_codes
+        PAD_paths = self.PAD_paths
+
+        # padding
+        w = self.W.data[PAD_paths]
+        PAD_codes = xp.broadcast_to(PAD_codes, w.shape)
+        w = w * PAD_codes
+        flatten_shape = (w.shape[0] * w.shape[1], w.shape[2])
+        w = xp.reshape(w, flatten_shape)
+        # score
+        wxy = x.data.dot(w.T)
+        wxy = xp.reshape(wxy, (batchsize, n_vocab, -1))
+        scores = - xp.logaddexp(0.0, - wxy)
+
+        scores = xp.sum(scores, axis=2)
+        result = xp.argmax(scores, axis=1).astype('i')
+        return result
 
     def __call__(self, x, t):
         """Computes the loss value for given input and ground truth labels.
