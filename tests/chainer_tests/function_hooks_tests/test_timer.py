@@ -1,6 +1,7 @@
 import unittest
 
 import numpy
+import six
 
 import chainer
 from chainer import cuda
@@ -97,6 +98,34 @@ class TestTimerHookToFunction(unittest.TestCase):
     @attr.gpu
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
+
+
+class TestTimerPrintReport(unittest.TestCase):
+
+    def setUp(self):
+        self.h = function_hooks.TimerHook()
+        self.f = functions.Exp()
+        self.f.add_hook(self.h)
+        self.x = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
+
+    def test_summary(self):
+        x = self.x
+        self.f(chainer.Variable(x))
+        self.f(chainer.Variable(x))
+        self.assertEqual(2, len(self.h.call_history))
+        self.assertEqual(1, len(self.h.summary()))
+
+    def test_print_report(self):
+        x = self.x
+        self.f(chainer.Variable(x))
+        self.f(chainer.Variable(x))
+        io = six.StringIO()
+        self.h.print_report(file=io)
+        expect = r'''\AFunctionName  ElapsedTime  Occurrence
+ +Exp +[0-9.\-e]+.s +[0-9]+$
+'''
+        actual = io.getvalue()
+        six.assertRegex(self, actual, expect)
 
 
 testing.run_module(__name__, __file__)
