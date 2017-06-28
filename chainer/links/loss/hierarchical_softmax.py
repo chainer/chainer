@@ -334,10 +334,14 @@ class BinaryHierarchicalSoftmax(link.Link):
         with cuda._get_device(device):
             super(BinaryHierarchicalSoftmax, self).to_gpu(device)
             self._func.to_gpu(device)
+            self.PAD_paths = cuda.to_gpu(self.PAD_paths)
+            self.PAD_codes = cuda.to_gpu(self.PAD_codes)
 
     def to_cpu(self):
         super(BinaryHierarchicalSoftmax, self).to_cpu()
         self._func.to_cpu()
+        self.PAD_paths = cuda.to_cpu(self.PAD_paths)
+        self.PAD_codes = cuda.to_cpu(self.PAD_codes)
 
     @staticmethod
     def create_huffman_tree(word_counts):
