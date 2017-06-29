@@ -11,6 +11,16 @@ from chainer.utils import type_check
 from chainer import variable
 
 
+def _broadcast_to(xp, x, shape):
+    if hasattr(xp, 'broadcast_to'):
+        return xp.broadcast_to(x, shape)
+    else:
+        # numpy 1.9 doesn't support broadcast_to method
+        dummy = xp.empty(shape)
+        bx, _ = xp.broadcast_arrays(x, dummy)
+        return bx
+
+
 class TreeParser(object):
 
     def __init__(self):
@@ -404,16 +414,13 @@ class BinaryHierarchicalSoftmax(link.Link):
 
         xp = cuda.get_array_module(*x)
         batchsize = x.shape[0]
-        # paths = self._func.paths
-        # codes = self._func.codes
-        # begins = self._func.begins
         n_vocab = self._func.n_vocab
         PAD_codes = self.PAD_codes
         PAD_paths = self.PAD_paths
 
         # padding
         w = self.W.data[PAD_paths]
-        PAD_codes = xp.broadcast_to(PAD_codes, w.shape)
+        PAD_codes = _broadcast_to(xp, PAD_codes, w.shape)
         w = w * PAD_codes
         flatten_shape = (w.shape[0] * w.shape[1], w.shape[2])
         w = xp.reshape(w, flatten_shape)
