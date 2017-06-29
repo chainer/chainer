@@ -95,8 +95,8 @@ class TestInvalidArgument(unittest.TestCase):
         self.x = numpy.random.uniform(-1, 1, (5, 10)).astype(numpy.float32)
 
     def check_invalid_argument(self):
-        with self.assertRaises(TypeError):
-            x = chainer.Variable(self.link.xp.asarray(self.x))
+        x = chainer.Variable(self.link.xp.asarray(self.x))
+        with self.assertRaisesRegexp(TypeError, 'missing'):
             self.link(x)
 
     def test_invalid_argument_cpu(self):
@@ -114,15 +114,16 @@ class TestInvalidLabelKey(unittest.TestCase):
         self.x = numpy.random.uniform(-1, 1, (5, 10)).astype(numpy.float32)
 
     def test_invalid_label_key_type(self):
-        with self.assertRaises(TypeError):
+        with self.assertRaisesRegexp(
+                TypeError, 'label_key must be int or str'):
             links.Classifier(links.Linear(10, 3), label_key=None)
 
     def check_invalid_key(self, gpu, label_key):
         link = links.Classifier(links.Linear(10, 3), label_key=label_key)
         if gpu:
             link.to_gpu()
-        with self.assertRaises(ValueError):
-            x = chainer.Variable(link.xp.asarray(self.x))
+        x = chainer.Variable(link.xp.asarray(self.x))
+        with self.assertRaisesRegexp(ValueError, 'Label key'):
             link(x)
 
     def test_invalid_index_cpu(self):
