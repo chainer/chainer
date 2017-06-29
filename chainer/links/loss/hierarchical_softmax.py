@@ -404,9 +404,9 @@ class BinaryHierarchicalSoftmax(link.Link):
 
         xp = cuda.get_array_module(*x)
         batchsize = x.shape[0]
-        paths = self._func.paths
-        codes = self._func.codes
-        begins = self._func.begins
+        # paths = self._func.paths
+        # codes = self._func.codes
+        # begins = self._func.begins
         n_vocab = self._func.n_vocab
         PAD_codes = self.PAD_codes
         PAD_paths = self.PAD_paths
