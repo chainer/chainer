@@ -14,6 +14,7 @@ from chainer.links.connection.dilated_convolution_2d import DilatedConvolution2D
 from chainer.links.connection.embed_id import EmbedID  # NOQA
 from chainer.links.connection.gru import GRU  # NOQA
 from chainer.links.connection.gru import StatefulGRU  # NOQA
+from chainer.links.connection.gru import StatelessGRU  # NOQA
 from chainer.links.connection.highway import Highway  # NOQA
 from chainer.links.connection.inception import Inception  # NOQA
 from chainer.links.connection.inceptionbn import InceptionBN  # NOQA
@@ -32,6 +33,8 @@ from chainer.links.connection.n_step_rnn import NStepRNNTanh  # NOQA
 from chainer.links.connection.parameter import Parameter  # NOQA
 from chainer.links.connection.peephole import StatefulPeepholeLSTM  # NOQA
 from chainer.links.connection.scale import Scale  # NOQA
+from chainer.links.connection.tree_lstm import ChildSumTreeLSTM  # NOQA
+from chainer.links.connection.tree_lstm import NaryTreeLSTM  # NOQA
 from chainer.links.connection.zoneoutlstm import StatefulZoneoutLSTM  # NOQA
 from chainer.links.loss.black_out import BlackOut  # NOQA
 from chainer.links.loss.crf1d import CRF1d  # NOQA

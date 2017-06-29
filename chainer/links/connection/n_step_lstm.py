@@ -1,15 +1,15 @@
 import numpy
 import six
 
-import chainer
 from chainer import cuda
 from chainer.functions.array import permutate
 from chainer.functions.array import transpose_sequence
 from chainer.functions.connection import n_step_lstm as rnn
+from chainer.initializers import normal
 from chainer import link
-from chainer.links.connection.n_step_rnn import argsort_list_descent
-from chainer.links.connection.n_step_rnn import permutate_list
+from chainer.links.connection import n_step_rnn
 from chainer.utils import argument
+from chainer import variable
 
 
 class NStepLSTMBase(link.ChainList):
@@ -45,18 +45,20 @@ class NStepLSTMBase(link.ChainList):
         for i in six.moves.range(n_layers):
             for di in six.moves.range(direction):
                 weight = link.Link()
-                for j in six.moves.range(8):
-                    if i == 0 and j < 4:
-                        w_in = in_size
-                    elif i > 0 and j < 4:
-                        w_in = out_size * direction
-                    else:
-                        w_in = out_size
-                    weight.add_param('w%d' % j, (out_size, w_in))
-                    weight.add_param('b%d' % j, (out_size,))
-                    getattr(weight, 'w%d' % j).data[...] = numpy.random.normal(
-                        0, numpy.sqrt(1. / w_in), (out_size, w_in))
-                    getattr(weight, 'b%d' % j).data[...] = 0
+                with weight.init_scope():
+                    for j in six.moves.range(8):
+                        if i == 0 and j < 4:
+                            w_in = in_size
+                        elif i > 0 and j < 4:
+                            w_in = out_size * direction
+                        else:
+                            w_in = out_size
+                        w = variable.Parameter(
+                            normal.Normal(numpy.sqrt(1. / w_in)),
+                            (out_size, w_in))
+                        b = variable.Parameter(0, (out_size,))
+                        setattr(weight, 'w%d' % j, w)
+                        setattr(weight, 'b%d' % j, b)
                 weights.append(weight)
 
         super(NStepLSTMBase, self).__init__(*weights)
@@ -70,7 +72,7 @@ class NStepLSTMBase(link.ChainList):
     def init_hx(self, xs):
         shape = (self.n_layers * self.direction, len(xs), self.out_size)
         with cuda.get_device_from_id(self._device_id):
-            hx = chainer.Variable(self.xp.zeros(shape, dtype=xs[0].dtype))
+            hx = variable.Variable(self.xp.zeros(shape, dtype=xs[0].dtype))
         return hx
 
     def __call__(self, hx, cx, xs, **kwargs):
@@ -99,9 +101,9 @@ class NStepLSTMBase(link.ChainList):
         argument.assert_kwargs_empty(kwargs)
 
         assert isinstance(xs, (list, tuple))
-        indices = argsort_list_descent(xs)
+        indices = n_step_rnn.argsort_list_descent(xs)
 
-        xs = permutate_list(xs, indices, inv=False)
+        xs = n_step_rnn.permutate_list(xs, indices, inv=False)
         if hx is None:
             hx = self.init_hx(xs)
         else:
@@ -123,7 +125,7 @@ class NStepLSTMBase(link.ChainList):
         hy = permutate.permutate(hy, indices, axis=1, inv=True)
         cy = permutate.permutate(cy, indices, axis=1, inv=True)
         ys = transpose_sequence.transpose_sequence(trans_y)
-        ys = permutate_list(ys, indices, inv=True)
+        ys = n_step_rnn.permutate_list(ys, indices, inv=True)
 
         return hy, cy, ys
 
@@ -138,7 +140,7 @@ class NStepLSTM(NStepLSTMBase):
     and all hidden states of the last layer for each time.
 
     Unlike :func:`chainer.functions.n_step_lstm`, this function automatically
-    sort inputs in descending order by length, and transpose the seuqnece.
+    sort inputs in descending order by length, and transpose the sequence.
     Users just need to call the link with a list of :class:`chainer.Variable`
     holding sequences.
 
@@ -175,7 +177,7 @@ class NStepBiLSTM(NStepLSTMBase):
     and all hidden states of the last layer for each time.
 
     Unlike :func:`chainer.functions.n_step_bilstm`, this function automatically
-    sort inputs in descending order by length, and transpose the seuqnece.
+    sort inputs in descending order by length, and transpose the sequence.
     Users just need to call the link with a list of :class:`chainer.Variable`
     holding sequences.
 

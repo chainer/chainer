@@ -7,14 +7,14 @@ from chainer import cuda
 def to_device(device, x):
     """Send an array to a given device.
 
-    This method send a given array to a given device. This method is used in
+    This method sends a given array to a given device. This method is used in
     :func:`~chainer.dataset.concat_examples`.
     You can also use this method in a custom converter method used in
     :class:`~chainer.training.Updater` and :class:`~chainer.training.Extension`
     such as :class:`~chainer.training.StandardUpdater` and
     :class:`~chainer.training.extensions.Evaluator`.
 
-    .. see:: :func:`chainer.dataset.concat_examples`
+    See also :func:`chainer.dataset.concat_examples`.
 
     Args:
         device (int or None): Device ID to which an array is sent. If it is
@@ -32,7 +32,7 @@ def to_device(device, x):
     elif device < 0:
         return cuda.to_cpu(x)
     else:
-        return cuda.to_gpu(x, device, cuda.Stream.null)
+        return cuda.to_gpu(x, device)
 
 
 def concat_examples(batch, device=None, padding=None):

@@ -10,6 +10,7 @@ import numpy
 @testing.parameterize(*testing.product({
     'target': [
         initializers.Normal,
+        initializers.LeCunNormal,
         initializers.GlorotNormal,
         initializers.HeNormal,
     ],

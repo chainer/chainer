@@ -107,10 +107,11 @@ def read_corpus(path, vocab, max_size):
 class RecursiveNet(chainer.Chain):
 
     def __init__(self, n_vocab, n_units):
-        super(RecursiveNet, self).__init__(
-            embed=L.EmbedID(n_vocab, n_units),
-            l=L.Linear(n_units * 2, n_units),
-            w=L.Linear(n_units, n_label))
+        super(RecursiveNet, self).__init__()
+        with self.init_scope():
+            self.embed = L.EmbedID(n_vocab, n_units)
+            self.l = L.Linear(n_units * 2, n_units)
+            self.w = L.Linear(n_units, n_label)
 
     def leaf(self, x):
         return self.embed(x)

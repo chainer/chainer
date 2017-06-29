@@ -178,6 +178,22 @@ An instance of the Linear link acts like a usual function:
    array([[ 3.1757617 ,  1.75755572],
           [ 8.61950684,  7.18090773]], dtype=float32)
 
+.. note::
+
+  Sometimes it is cumbersome to compute the dimension of the input space.
+  The linear link and some of (de)convolution links can omit the input dimension
+  in their instantiation and infer it from the first mini-batch.
+
+  For example, the following line creates a linear link whose output dimension
+  is two::
+
+      f = L.Linear(2)
+
+  If we feed a mini-batch of shape ``(N, M)``, the input dimension will be inferred as ``M``,
+  which means ``f.W`` will be a 2 x M matrix.
+  Note that its parameters are initialized in a lazy manner at the first mini-batch.
+  Therefore, ``f`` does not have ``W`` attribute if no data is put to the link.
+
 Gradients of parameters are computed by the :meth:`~Variable.backward` method.
 Note that gradients are **accumulated** by the method rather than overwritten.
 So first you must clear gradients to renew the computation.
@@ -242,23 +258,33 @@ Then, what we have to do here is just define the above class as a subclass of Ch
 
    >>> class MyChain(Chain):
    ...     def __init__(self):
-   ...         super(MyChain, self).__init__(
-   ...             l1=L.Linear(4, 3),
-   ...             l2=L.Linear(3, 2),
-   ...         )
+   ...         super(MyChain, self).__init__()
+   ...         with self.init_scope():
+   ...             self.l1 = L.Linear(4, 3)
+   ...             self.l2 = L.Linear(3, 2)
    ...
    ...     def __call__(self, x):
    ...         h = self.l1(x)
    ...         return self.l2(h)
 
-.. note::
-   We often define a single forward method of a link by ``__call__`` operator.
-   Such links and chains are callable and behave like regular functions of Variables.
-
 It shows how a complex chain is constructed by simpler links.
 Links like ``l1`` and ``l2`` are called *child links* of MyChain.
 **Note that Chain itself inherits Link**.
 It means we can define more complex chains that hold MyChain objects as their child links.
+
+.. note::
+
+   We often define a single forward method of a link by the ``__call__`` operator.
+   Such links and chains are callable and behave like regular functions of Variables.
+
+.. note::
+
+    In Chainer v1, we could also register the trainable layers
+    (i.e., :class:`~chainer.Link` s) to the model by putting them to the
+    :meth:`~chainer.Chain.__init__` of :class:`~chainer.Chain`
+    or registering them via :meth:`~chainer.Chain.add_link`.
+    But as these ways are deprecated in Chainer v2, users are recommended
+    to use the way explained above.
 
 Another way to define a chain is using the :class:`ChainList` class, which behaves like a list of links:
 
@@ -416,7 +442,7 @@ Example: Multi-layer Perceptron on MNIST
 
 Now you can solve a multiclass classification task using a multi-layer perceptron (MLP).
 We use a hand-written digits dataset called `MNIST <http://yann.lecun.com/exdb/mnist/>`_, which is one of the long-standing de facto "hello world" examples used in machine learning.
-This MNIST example is also found in the `examples/mnist <https://github.com/pfnet/chainer/tree/master/examples/mnist>`_ directory of the official repository.
+This MNIST example is also found in the `examples/mnist <https://github.com/chainer/chainer/tree/master/examples/mnist>`_ directory of the official repository.
 We show how to use :class:`~training.Trainer` to construct and run the training loop in this section.
 
 We first have to prepare the MNIST dataset.
@@ -467,12 +493,12 @@ We use a simple three-layer rectifier network with 100 units per layer as an exa
 
    >>> class MLP(Chain):
    ...     def __init__(self, n_units, n_out):
-   ...         super(MLP, self).__init__(
+   ...         super(MLP, self).__init__()
+   ...         with self.init_scope():
    ...             # the size of the inputs to each layer will be inferred
-   ...             l1=L.Linear(None, n_units),  # n_in -> n_units
-   ...             l2=L.Linear(None, n_units),  # n_units -> n_units
-   ...             l3=L.Linear(None, n_out),    # n_units -> n_out
-   ...         )
+   ...             self.l1 = L.Linear(None, n_units)  # n_in -> n_units
+   ...             self.l2 = L.Linear(None, n_units)  # n_units -> n_units
+   ...             self.l3 = L.Linear(None, n_out)    # n_units -> n_out
    ...
    ...     def __call__(self, x):
    ...         h1 = F.relu(self.l1(x))
@@ -489,7 +515,9 @@ In order to compute loss values or evaluate the accuracy of the predictions, we 
 
    >>> class Classifier(Chain):
    ...     def __init__(self, predictor):
-   ...         super(Classifier, self).__init__(predictor=predictor)
+   ...         super(Classifier, self).__init__()
+   ...         with self.init_scope():
+   ...             self.predictor = predictor
    ...
    ...     def __call__(self, x, t):
    ...         y = self.predictor(x)
@@ -567,4 +595,4 @@ These extensions perform the following tasks:
 There are many extensions implemented in the :mod:`chainer.training.extensions` module.
 The most important one that is not included above is :func:`~training.extensions.snapshot`, which saves the snapshot of the training procedure (i.e., the Trainer object) to a file in the output directory.
 
-The `example code <https://github.com/pfnet/chainer/blob/master/examples/mnist/train_mnist.py>`_ in the `examples/mnist` directory additionally contains GPU support, though the essential part is the same as the code in this tutorial. We will review in later sections how to use GPU(s).
+The `example code <https://github.com/chainer/chainer/blob/master/examples/mnist/train_mnist.py>`_ in the `examples/mnist` directory additionally contains GPU support, though the essential part is the same as the code in this tutorial. We will review in later sections how to use GPU(s).

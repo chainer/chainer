@@ -1,58 +1,10 @@
-import numpy
 import unittest
 
 import mock
 
-from chainer import serializer
 from chainer import testing
 from chainer import training
 from chainer.training import extensions
-
-
-class DummySerializer(serializer.Serializer):
-
-    def __init__(self, target):
-        super(DummySerializer, self).__init__()
-        self.target = target
-
-    def __getitem__(self, key):
-        raise NotImplementedError
-
-    def __call__(self, key, value):
-        self.target[key] = value
-        return self.target[key]
-
-
-class DummyDeserializer(serializer.Deserializer):
-
-    def __init__(self, target):
-        super(DummyDeserializer, self).__init__()
-        self.target = target
-
-    def __getitem__(self, key):
-        raise NotImplementedError
-
-    def __call__(self, key, value):
-        if value is None:
-            value = self.target[key]
-        elif isinstance(value, numpy.ndarray):
-            numpy.copyto(value, self.target[key])
-        else:
-            value = type(value)(numpy.asarray(self.target[key]))
-        return value
-
-
-def _get_mocked_trainer():
-    trainer = mock.Mock()
-
-    def update():
-        trainer.updater.iteration += 1
-    trainer.updater.iteration = 0
-    trainer.updater.update = update
-
-    trainer.updater.get_optimizer = lambda _: trainer.updater.optimizer
-
-    return trainer
 
 
 class TestLinearShift(unittest.TestCase):
@@ -62,26 +14,32 @@ class TestLinearShift(unittest.TestCase):
     expect = [2.0, 2.0, 2.0, 2.0, 4.0, 4.0, 6.0, 6.0, 6.0, 6.0]
 
     def setUp(self):
-        self.trainer = _get_mocked_trainer()
-        self.optimizer = self.trainer.updater.get_optimizer('main')
+        self.optimizer = mock.MagicMock()
+        self.extension = extensions.LinearShift(
+            'x', self.value_range, self.time_range, self.optimizer)
+
         self.interval = 2
         self.trigger = training.get_trigger((self.interval, 'iteration'))
 
+        self.trainer = testing.get_trainer_with_mock_updater(self.trigger)
+        self.trainer.updater.get_optimizer.return_value = self.optimizer
+
     def _run_trainer(self, extension, expect, optimizer=None):
         if optimizer is None:
-            optimizer = self.trainer.updater.optimizer
+            optimizer = self.optimizer
+        extension.initialize(self.trainer)
 
-        if extension.invoke_before_training:
-            extension(self.trainer)
-
-        for e in expect:
+        actual = []
+        for _ in expect:
             self.trainer.updater.update()
-            self.assertEqual(optimizer.x, e)
+            actual.append(optimizer.x)
             if self.trigger(self.trainer):
                 extension(self.trainer)
 
+        self.assertEqual(actual, expect)
+
     def test_basic(self):
-        self.trainer.updater.optimizer.x = 0
+        self.optimizer.x = 0
         extension = extensions.LinearShift(
             'x', self.value_range, self.time_range)
         self._run_trainer(extension, self.expect)
@@ -93,33 +51,21 @@ class TestLinearShift(unittest.TestCase):
             'x', self.value_range, self.time_range, optimizer)
         self._run_trainer(extension, self.expect, optimizer)
 
-    def test_serialize(self):
-        self.trainer.updater.optimizer.x = 0
-        extension = extensions.LinearShift(
-            'x', self.value_range, self.time_range)
-        self._run_trainer(extension, self.expect[:len(self.expect) // 2])
-        target = dict()
-        extension.serialize(DummySerializer(target))
+    def test_resume(self):
+        new_optimizer = mock.Mock()
+        new_extension = extensions.LinearShift(
+            'x', self.value_range, self.time_range, new_optimizer)
 
-        self.trainer.updater.optimizer.x = 0
-        extension = extensions.LinearShift(
-            'x', self.value_range, self.time_range)
-        extension.serialize(DummyDeserializer(target))
-        self._run_trainer(extension, self.expect[len(self.expect) // 2:])
+        self.trainer.extend(self.extension)
+        self.trainer.run()
 
-    def test_serialize_before_first_interval(self):
-        self.trainer.updater.optimizer.x = 0
-        extension = extensions.LinearShift(
-            'x', self.value_range, self.time_range)
-        self._run_trainer(extension, self.expect[:self.interval - 1])
-        target = dict()
-        extension.serialize(DummySerializer(target))
+        new_trainer = testing.get_trainer_with_mock_updater((5, 'iteration'))
+        new_trainer.extend(new_extension)
+        testing.save_and_load_npz(self.trainer, new_trainer)
 
-        self.trainer.updater.optimizer.x = 0
-        extension = extensions.LinearShift(
-            'x', self.value_range, self.time_range)
-        extension.serialize(DummyDeserializer(target))
-        self._run_trainer(extension, self.expect[self.interval - 1:])
+        new_extension.initialize(new_trainer)
+        self.assertEqual(new_optimizer.x, self.optimizer.x)
+        self.assertIsInstance(new_optimizer.x, float)
 
 
 testing.run_module(__name__, __file__)

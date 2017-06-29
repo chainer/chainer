@@ -9,7 +9,7 @@ second column is zero-origin label (this format is same as that used by Caffe's
 ImageDataLayer).
 
 You need to install chainer with NCCL to run this example.
-Please see https://github.com/pfnet/chainer#installation .
+Please see https://github.com/nvidia/nccl#build--run .
 
 """
 from __future__ import print_function
@@ -109,8 +109,7 @@ def main():
         val_interval = 100000, 'iteration'
         log_interval = 1000, 'iteration'
 
-    trainer.extend(train_imagenet.TestModeEvaluator(val_iter, model,
-                                                    device=args.gpus[0]),
+    trainer.extend(extensions.Evaluator(val_iter, model, device=args.gpus[0]),
                    trigger=val_interval)
     trainer.extend(extensions.dump_graph('main/loss'))
     trainer.extend(extensions.snapshot(), trigger=val_interval)

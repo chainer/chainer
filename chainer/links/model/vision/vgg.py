@@ -32,7 +32,7 @@ from chainer.variable import Variable
 
 class VGG16Layers(link.Chain):
 
-    """A pre-trained CNN model with 16 layers provided by VGG team [1].
+    """A pre-trained CNN model with 16 layers provided by VGG team.
 
     During initialization, this chain model automatically downloads
     the pre-trained caffemodel, convert to another chainer model,
@@ -47,8 +47,8 @@ class VGG16Layers(link.Chain):
     model that can be specified in the constructor,
     please use ``convert_caffemodel_to_npz`` classmethod instead.
 
-    .. [1] K. Simonyan and A. Zisserman, `Very Deep Convolutional Networks
-        for Large-Scale Image Recognition <https://arxiv.org/abs/1409.1556>`_
+    See: K. Simonyan and A. Zisserman, `Very Deep Convolutional Networks
+    for Large-Scale Image Recognition <https://arxiv.org/abs/1409.1556>`_
 
     Args:
         pretrained_model (str): the destination of the pre-trained
@@ -84,24 +84,26 @@ class VGG16Layers(link.Chain):
                 'initialW': normal.Normal(0.01),
                 'initial_bias': constant.Zero(),
             }
-        super(VGG16Layers, self).__init__(
-            conv1_1=Convolution2D(3, 64, 3, 1, 1, **kwargs),
-            conv1_2=Convolution2D(64, 64, 3, 1, 1, **kwargs),
-            conv2_1=Convolution2D(64, 128, 3, 1, 1, **kwargs),
-            conv2_2=Convolution2D(128, 128, 3, 1, 1, **kwargs),
-            conv3_1=Convolution2D(128, 256, 3, 1, 1, **kwargs),
-            conv3_2=Convolution2D(256, 256, 3, 1, 1, **kwargs),
-            conv3_3=Convolution2D(256, 256, 3, 1, 1, **kwargs),
-            conv4_1=Convolution2D(256, 512, 3, 1, 1, **kwargs),
-            conv4_2=Convolution2D(512, 512, 3, 1, 1, **kwargs),
-            conv4_3=Convolution2D(512, 512, 3, 1, 1, **kwargs),
-            conv5_1=Convolution2D(512, 512, 3, 1, 1, **kwargs),
-            conv5_2=Convolution2D(512, 512, 3, 1, 1, **kwargs),
-            conv5_3=Convolution2D(512, 512, 3, 1, 1, **kwargs),
-            fc6=Linear(512 * 7 * 7, 4096, **kwargs),
-            fc7=Linear(4096, 4096, **kwargs),
-            fc8=Linear(4096, 1000, **kwargs),
-        )
+        super(VGG16Layers, self).__init__()
+
+        with self.init_scope():
+            self.conv1_1 = Convolution2D(3, 64, 3, 1, 1, **kwargs)
+            self.conv1_2 = Convolution2D(64, 64, 3, 1, 1, **kwargs)
+            self.conv2_1 = Convolution2D(64, 128, 3, 1, 1, **kwargs)
+            self.conv2_2 = Convolution2D(128, 128, 3, 1, 1, **kwargs)
+            self.conv3_1 = Convolution2D(128, 256, 3, 1, 1, **kwargs)
+            self.conv3_2 = Convolution2D(256, 256, 3, 1, 1, **kwargs)
+            self.conv3_3 = Convolution2D(256, 256, 3, 1, 1, **kwargs)
+            self.conv4_1 = Convolution2D(256, 512, 3, 1, 1, **kwargs)
+            self.conv4_2 = Convolution2D(512, 512, 3, 1, 1, **kwargs)
+            self.conv4_3 = Convolution2D(512, 512, 3, 1, 1, **kwargs)
+            self.conv5_1 = Convolution2D(512, 512, 3, 1, 1, **kwargs)
+            self.conv5_2 = Convolution2D(512, 512, 3, 1, 1, **kwargs)
+            self.conv5_3 = Convolution2D(512, 512, 3, 1, 1, **kwargs)
+            self.fc6 = Linear(512 * 7 * 7, 4096, **kwargs)
+            self.fc7 = Linear(4096, 4096, **kwargs)
+            self.fc8 = Linear(4096, 1000, **kwargs)
+
         if pretrained_model == 'auto':
             _retrieve(
                 'VGG_ILSVRC_16_layers.npz',
@@ -111,7 +113,9 @@ class VGG16Layers(link.Chain):
         elif pretrained_model:
             npz.load_npz(pretrained_model, self)
 
-        self.functions = collections.OrderedDict([
+    @property
+    def functions(self):
+        return collections.OrderedDict([
             ('conv1_1', [self.conv1_1, relu]),
             ('conv1_2', [self.conv1_2, relu]),
             ('pool1', [_max_pooling_2d]),

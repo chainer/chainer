@@ -1,23 +1,13 @@
-.. module:: chainer.training.triggers
-
 Trainer triggers
 ================
 
-Interval
---------
-.. autoclass:: IntervalTrigger
-   :members:
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
 
-ManualSchedule
---------------
-.. autoclass:: ManualScheduleTrigger
-   :members:
-
-Minimum and maximum values
---------------------------
-.. autoclass:: MaxValueTrigger
-   :members:
-
-.. autoclass:: MinValueTrigger
-   :members:
+   chainer.training.triggers.BestValueTrigger
+   chainer.training.triggers.IntervalTrigger
+   chainer.training.triggers.ManualScheduleTrigger
+   chainer.training.triggers.MaxValueTrigger
+   chainer.training.triggers.MinValueTrigger
 
