@@ -82,7 +82,7 @@ class Classifier(link.Chain):
             if self.label_key == -1:
                 args = args[:-1]
             else:
-                args = args[:self.label_key] + args[self.label_key+1:]
+                args = args[:self.label_key] + args[self.label_key + 1:]
         elif isinstance(self.label_key, str):
             if self.label_key not in kwargs:
                 msg = 'Label key "%s" is not found' % self.label_key
