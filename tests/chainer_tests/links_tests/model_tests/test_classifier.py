@@ -129,7 +129,9 @@ class TestInvalidArgument(unittest.TestCase):
 
     def check_invalid_argument(self):
         x = chainer.Variable(self.link.xp.asarray(self.x))
-        with self.assertRaisesRegexp(TypeError, 'missing'):
+        with self.assertRaises(TypeError):
+            # link.__call__ raises TypeError as the number of arguments
+            # is illegal
             self.link(x)
 
     def test_invalid_argument_cpu(self):
