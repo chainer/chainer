@@ -1,10 +1,10 @@
 import unittest
 
-
 import mock
 import numpy
 
 import chainer
+from chainer import cuda
 from chainer import functions
 from chainer import links
 from chainer import testing
@@ -24,68 +24,101 @@ class AccuracyWithIgnoreLabel(object):
 @testing.parameterize(*testing.product({
     'accfun': [AccuracyWithIgnoreLabel(), None],
     'compute_accuracy': [True, False],
-    'x_num': [1, 2],
-    'label_key': [-1, 't'],
 }))
 class TestClassifier(unittest.TestCase):
 
     def setUp(self):
-        if self.accfun is None:
-            self.link = links.Classifier(
-                chainer.Link(), label_key=self.label_key)
-        else:
-            self.link = links.Classifier(
-                chainer.Link(), accfun=self.accfun, label_key=self.label_key)
-        self.link.compute_accuracy = self.compute_accuracy
-
         self.x = numpy.random.uniform(-1, 1, (5, 10)).astype(numpy.float32)
         self.t = numpy.random.randint(3, size=5).astype(numpy.int32)
+        self.y = numpy.random.uniform(-1, 1, (5, 7)).astype(numpy.float32)
 
-    def check_call(self):
-        xp = self.link.xp
+    def check_call(
+            self, gpu, label_key, args, kwargs, model_args, model_kwargs):
+        init_kwargs = {'label_key': label_key}
+        if self.accfun is not None:
+            init_kwargs['accfun'] = self.accfun
+        link = links.Classifier(chainer.Link(), **init_kwargs)
 
-        y = chainer.Variable(xp.random.uniform(
-            -1, 1, (5, 7)).astype(numpy.float32))
-        self.link.predictor = mock.MagicMock(return_value=y)
-
-        x = chainer.Variable(xp.asarray(self.x))
-        t = chainer.Variable(xp.asarray(self.t))
-        if self.label_key == -1:
-            if self.x_num == 1:
-                loss = self.link(x, t)
-                self.link.predictor.assert_called_with(x)
-            elif self.x_num == 2:
-                x_ = chainer.Variable(xp.asarray(self.x.copy()))
-                loss = self.link(x, x_, t)
-                self.link.predictor.assert_called_with(x, x_)
-        elif self.label_key == 't':
-            if self.x_num == 1:
-                loss = self.link(x=x, t=t)
-                self.link.predictor.assert_called_with(x=x)
-            elif self.x_num == 2:
-                x_ = chainer.Variable(xp.asarray(self.x.copy()))
-                loss = self.link(x=x, y=x_, t=t)
-                self.link.predictor.assert_called_with(x=x, y=x_)
-
-        self.assertTrue(hasattr(self.link, 'y'))
-        self.assertIsNotNone(self.link.y)
-
-        self.assertTrue(hasattr(self.link, 'loss'))
-        xp.testing.assert_allclose(self.link.loss.data, loss.data)
-
-        self.assertTrue(hasattr(self.link, 'accuracy'))
-        if self.compute_accuracy:
-            self.assertIsNotNone(self.link.accuracy)
+        if gpu:
+            xp = cuda.cupy
+            link.to_gpu()
         else:
-            self.assertIsNone(self.link.accuracy)
+            xp = numpy
+
+        link.compute_accuracy = self.compute_accuracy
+
+        y = chainer.Variable(self.y)
+        link.predictor = mock.MagicMock(return_value=y)
+
+        loss = link(*args, **kwargs)
+        link.predictor.assert_called_with(*model_args, **model_kwargs)
+
+        self.assertTrue(hasattr(link, 'y'))
+        self.assertIsNotNone(link.y)
+
+        self.assertTrue(hasattr(link, 'loss'))
+        xp.testing.assert_allclose(link.loss.data, loss.data)
+
+        self.assertTrue(hasattr(link, 'accuracy'))
+        if self.compute_accuracy:
+            self.assertIsNotNone(link.accuracy)
+        else:
+            self.assertIsNone(link.accuracy)
 
     def test_call_cpu(self):
-        self.check_call()
+        self.check_call(
+            False, -1, (self.x, self.t), {}, (self.x,), {})
+
+    def test_call_three_args_cpu(self):
+        self.check_call(
+            False, -1, (self.x, self.x, self.t), {}, (self.x, self.x), {})
+
+    def test_call_positive_cpu(self):
+        self.check_call(
+            False, 2, (self.x, self.x, self.t), {}, (self.x, self.x), {})
+
+    def test_call_kwargs_cpu(self):
+        self.check_call(
+            False, 't', (self.x,), {'t': self.t}, (self.x,), {})
+
+    def test_call_no_arg_cpu(self):
+        self.check_call(
+            False, 0, (self.t,), {}, (), {})
 
     @attr.gpu
     def test_call_gpu(self):
-        self.link.to_gpu()
-        self.check_call()
+        self.to_gpu()
+        self.check_call(
+            True, -1, (self.x, self.t), {}, (self.x,), {})
+
+    @attr.gpu
+    def test_call_three_args_gpu(self):
+        self.to_gpu()
+        self.check_call(
+            True, -1, (self.x, self.x, self.t), {}, (self.x, self.x), {})
+
+    @attr.gpu
+    def test_call_positive_gpu(self):
+        self.to_gpu()
+        self.check_call(
+            True, 2, (self.x, self.x, self.t), {}, (self.x, self.x), {})
+
+    @attr.gpu
+    def test_call_kwargs_gpu(self):
+        self.to_gpu()
+        self.check_call(
+            True, 't', (self.x,), {'t': self.t}, (self.x,), {})
+
+    @attr.gpu
+    def test_call_no_arg_gpu(self):
+        self.to_gpu()
+        self.check_call(
+            True, 0, (self.t,), {}, (), {})
+
+    def to_gpu(self):
+        self.x = cuda.to_gpu(self.x)
+        self.t = cuda.to_gpu(self.t)
+        self.y = cuda.to_gpu(self.y)
 
 
 class TestInvalidArgument(unittest.TestCase):
