@@ -1099,8 +1099,8 @@ class TestSequential(unittest.TestCase):
         self.model.insert(3, chainer.functions.relu)
         self.assertEqual(self.model.count(chainer.functions.relu), 2)
         self.assertEqual(self.model.count(self.layers[0]), 1)
-        self.assertEqual(self.model.count(self.layers[1]), 1)
-        self.assertEqual(self.model.count(self.layers[2]), 1)
+        self.model.append(self.layers[1])
+        self.assertEqual(self.model.count(self.layers[1]), 2)
 
     def test_count_by_layer_type(self):
         self.assertEqual(self.model.count_by_layer_type('Linear'), 3)
