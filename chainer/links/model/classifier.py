@@ -75,13 +75,14 @@ class Classifier(link.Chain):
         """
 
         if isinstance(self.label_key, int):
-            if (self.label_key >= 0 and len(args) <= self.label_key or
-                    self.label_key < 0 and len(args) < -self.label_key):
+            if not (-len(args) <= self.label_key < len(args)):
                 msg = 'Label key %d is out of bounds' % self.label_key
                 raise ValueError(msg)
             t = args[self.label_key]
-            args = list(args)
-            del args[self.label_key]
+            if self.label_key == -1:
+                args = args[:-1]
+            else:
+                args = args[:self.label_key] + args[self.label_key+1:]
         elif isinstance(self.label_key, str):
             if self.label_key not in kwargs:
                 msg = 'Label key "%s" is not found' % self.label_key
