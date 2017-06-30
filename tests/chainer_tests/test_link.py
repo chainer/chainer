@@ -1149,5 +1149,8 @@ class TestSequential(unittest.TestCase):
             with tempfile.TemporaryFile() as fp:
                 six.moves.cPickle.dump(self.model, fp)
 
+    def test_repr(self):
+        self.assertEqual(repr(self.model), '0\tLinear\n1\tLinear\n2\tLinear\n')
+
 
 testing.run_module(__name__, __file__)

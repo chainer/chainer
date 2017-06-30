@@ -6,6 +6,7 @@ import warnings
 import numpy
 import six
 
+from chainer import function
 from chainer import cuda
 from chainer import initializers
 from chainer import variable
@@ -1156,6 +1157,16 @@ class Sequential(ChainList):
                 'enables pickling a object including lambda functions intead '
                 'of built-in pickle.')
         return super(Sequential, self).__reduce__()
+
+    def __repr__(self):
+        ret = ''
+        for i, layer in enumerate(self):
+            if isinstance(layer, (Link, function.Function)):
+                name = layer.__class__.__name__
+            else:
+                name = layer.__name__
+            ret += '{}\t{}\n'.format(i, name)
+        return ret
 
     def append(self, layer):
         self.insert(len(self), layer)
