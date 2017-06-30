@@ -1,12 +1,13 @@
+import six
+
+from chainer import cuda
 from chainer import function
 from chainer.utils import type_check
 
 
 def _as_mat(x, n_batch_axes):
-    if x.ndim == 2:
+    if n_batch_axes == 1:
         return x
-    elif n_batch_axes == 1:
-        return x.reshape(len(x), -1)
     elif 1 < n_batch_axes < x.ndim:
         return x.reshape(x.shape[:n_batch_axes] + (-1,))
     else:
@@ -27,7 +28,7 @@ class LinearFunction(function.Function):
         type_check.expect(
             x_type.dtype.kind == 'f',
             w_type.dtype.kind == 'f',
-            x_type.ndim >= 2,
+            x_type.ndim == self._n_batch_axes + 1,
             w_type.ndim == 2,
             type_check.prod(
                 x_type.shape[self._n_batch_axes:]) == w_type.shape[1],
@@ -65,10 +66,17 @@ class LinearFunction(function.Function):
                              'type(W): {0}, type(x): {1}'
                              .format(type(W), type(x)))
 
-        gx = gy.dot(W).astype(x.dtype, copy=False).reshape(inputs[0].shape)
-        gW = gy.T.dot(x).astype(W.dtype, copy=False)
+        if self._n_batch_axes == 1:
+            gx = gy.dot(W).astype(x.dtype, copy=False).reshape(inputs[0].shape)
+            gW = gy.T.dot(x).astype(W.dtype, copy=False)
+        else:
+            xp = cuda.get_array_module(*inputs)
+            gy_ax = six.moves.range(self._n_batch_axes, gy.ndim)
+            gx = xp.tensordot(gy, W, axes=(gy_ax, 0)).astype(x.dtype, copy=False)
+            ax = six.moves.range(self._n_batch_axes)
+            gW = xp.tensordot(gy, x, axes=(ax, ax)).astype(W.dtype, copy=False)
         if len(inputs) == 3:
-            gb = gy.sum(0)
+            gb = gy.sum(tuple(range(self._n_batch_axes)))
             return gx, gW, gb
         else:
             return gx, gW
