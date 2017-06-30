@@ -2,9 +2,9 @@ import copy
 import unittest
 import warnings
 
-import os
 import mock
 import numpy
+import os
 import six
 import tempfile
 
