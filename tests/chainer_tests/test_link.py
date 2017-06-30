@@ -235,7 +235,7 @@ class TestLink(unittest.TestCase):
         self.link.u.initialize((2, 3))
         self.link.u.data.fill(0)
         self.link.u.grad.fill(1)
-        self.link.v.zerograd()
+        self.link.v.cleargrad()
         gx = self.link.x.grad.copy()
         gy = self.link.y.grad.copy()
         gu = self.link.u.grad.copy()
@@ -612,7 +612,7 @@ class TestChain(unittest.TestCase):
 
         self.l1.x.grad.fill(-1)
         self.l2.x.grad.fill(-2)
-        self.l3.zerograds()
+        self.l3.cleargrads()
 
         self.c2.addgrads(c2)
         numpy.testing.assert_array_equal(self.l1.x.grad, numpy.zeros((2, 3)))
