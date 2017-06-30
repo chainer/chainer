@@ -147,8 +147,9 @@ class MultiprocessIterator(iterator.Iterator):
 
     def _init(self):
         finalized = threading.Event()
-        self._index_queue = multiprocessing.Queue()
-        self._data_queue = multiprocessing.Queue()
+        manager = multiprocessing.Manager()
+        self._index_queue = manager.Queue()
+        self._data_queue = manager.Queue()
         self._ordered_data_queue = six.moves.queue.Queue()
         self._unused_mem_queue = six.moves.queue.Queue()
         self._mem_list = []
@@ -410,6 +411,4 @@ def _worker(dataset, in_queue, out_queue, mem_list, status_event):
         data = _pack(dataset[index], mem)
         out_queue.put((cnt, mem_index, data))
 
-    out_queue.close()
     status_event.set()  # Set as dying
-    out_queue.join_thread()
