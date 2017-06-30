@@ -262,7 +262,8 @@ class CaffeFunction(link.Chain):
         if param.bias_term:
             func.b.data[:] = blobs[1].data
 
-        self.add_link(layer.name, func)
+        with self.init_scope():
+            setattr(self, layer.name, func)
         self.forwards[layer.name] = _CallChildLink(self, layer.name)
         self._add_layer(layer)
 
@@ -294,7 +295,8 @@ class CaffeFunction(link.Chain):
         if bias_term:
             func.b.data[:] = blobs[1].data
 
-        self.add_link(layer.name, func)
+        with self.init_scope():
+            setattr(self, layer.name, func)
         self.forwards[layer.name] = _CallChildLink(self, layer.name)
         self._add_layer(layer)
 
@@ -356,7 +358,8 @@ class CaffeFunction(link.Chain):
             size, decay=decay, eps=eps, use_gamma=False, use_beta=False)
         func.avg_mean.ravel()[:] = blobs[0].data
         func.avg_var.ravel()[:] = blobs[1].data
-        self.add_link(layer.name, func)
+        with self.init_scope():
+            setattr(self, layer.name, func)
 
         # Add layer.
         if use_global_stats:
@@ -405,7 +408,8 @@ class CaffeFunction(link.Chain):
                 func.bias.b.data.ravel()[:] = blobs[0].data
 
         # Add layer.
-        self.add_link(layer.name, func)
+        with self.init_scope():
+            setattr(self, layer.name, func)
         self.forwards[layer.name] = _CallChildLink(self, layer.name)
         self._add_layer(layer)
 

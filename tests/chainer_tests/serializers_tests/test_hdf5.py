@@ -6,6 +6,7 @@ import unittest
 import mock
 import numpy
 
+import chainer
 from chainer import cuda
 from chainer import link
 from chainer import links
@@ -304,10 +305,15 @@ class TestGroupHierachy(unittest.TestCase):
         os.close(fd)
         self.temp_file_path = path
 
-        child = link.Chain(linear=links.Linear(2, 3))
-        child.add_param('Wc', (2, 3))
-        self.parent = link.Chain(child=child)
-        self.parent.add_param('Wp', (2, 3))
+        child = link.Chain()
+        with child.init_scope():
+            child.linear = links.Linear(2, 3)
+            child.Wc = chainer.Parameger(shape=(2, 3))
+
+        self.parent = link.Chain()
+        with self.parent.init_scope():
+            self.parent.child = child
+            self.parent.Wp = chainer.Variable(shape=(2, 3))
 
         self.optimizer = optimizers.AdaDelta()
         self.optimizer.setup(self.parent)

@@ -5,6 +5,7 @@ import unittest
 import mock
 import numpy
 
+import chainer
 from chainer import cuda
 from chainer import link
 from chainer import links
@@ -196,8 +197,13 @@ class TestNpzDeserializerNonStrictGroupHierachy(unittest.TestCase):
         os.close(fd)
         self.temp_file_path = path
 
-        child = link.Chain(linear=links.Linear(2, 3))
-        parent = link.Chain(linear=links.Linear(3, 2), child=child)
+        child = link.Chain()
+        with child.init_scope():
+            child.linear = links.Linear(2, 3)
+        parent = link.Chain()
+        with parent.init_scope():
+            parent.linear = links.Linear(3, 2)
+            parent.child = child
         npz.save_npz(self.temp_file_path, parent)
         self.source = parent
 
@@ -211,8 +217,13 @@ class TestNpzDeserializerNonStrictGroupHierachy(unittest.TestCase):
             os.remove(self.temp_file_path)
 
     def test_deserialize_hierarchy(self):
-        child = link.Chain(linear2=links.Linear(2, 3))
-        target = link.Chain(linear=links.Linear(3, 2), child=child)
+        child = link.Chain()
+        with child.init_scope():
+            child.linear2 = links.Linear(2, 3)
+        target = link.Chain()
+        with target.init_scope():
+            target.linear = links.Linear(3, 2)
+            target.child = child
         target_child_W = numpy.copy(child.linear2.W.data)
         target_child_b = numpy.copy(child.linear2.b.data)
         self.deserializer.load(target)
@@ -257,9 +268,13 @@ class TestLoadNpz(unittest.TestCase):
         fd, path = tempfile.mkstemp()
         os.close(fd)
         self.temp_file_path = path
-        child = link.Chain(child_linear=links.Linear(2, 3))
-        parent = link.Chain(
-            parent_linear=links.Linear(3, 2), child=child)
+        child = link.Chain()
+        with child.init_scope():
+            child.child_linear = links.Linear(2, 3)
+        parent = link.Chain()
+        with parent.init_scope():
+            parent.parent_linear = links.Linear(3, 2)
+            parent.child = child
         npz.save_npz(path, parent, self.compress)
 
         self.source_child = child
@@ -278,13 +293,17 @@ class TestLoadNpz(unittest.TestCase):
         self.assertIsInstance(serializer, npz.NpzDeserializer)
 
     def test_load_with_path(self):
-        target = link.Chain(child_linear=links.Linear(2, 3))
+        target = link.Chain()
+        with target.init_scope():
+            target.child_linear = links.Linear(2, 3)
         npz.load_npz(self.temp_file_path, target, 'child/')
         numpy.testing.assert_array_equal(
             self.source_child.child_linear.W.data, target.child_linear.W.data)
 
     def test_load_without_path(self):
-        target = link.Chain(parent_linear=links.Linear(3, 2))
+        target = link.Chain()
+        with target.init_scope():
+            target.parent_linear = links.Linear(3, 2)
         npz.load_npz(self.temp_file_path, target, path='')
         numpy.testing.assert_array_equal(
             self.source_parent.parent_linear.W.data,
@@ -299,10 +318,15 @@ class TestGroupHierachy(unittest.TestCase):
         os.close(fd)
         self.temp_file_path = path
 
-        child = link.Chain(linear=links.Linear(2, 3))
-        child.add_param('Wc', (2, 3))
-        self.parent = link.Chain(child=child)
-        self.parent.add_param('Wp', (2, 3))
+        child = link.Chain()
+        with child.init_scope():
+            child.linear = links.Linear(2, 3)
+            child.Wc = chainer.Parameter(shape=(2, 3))
+
+        self.parent = link.Chain()
+        with self.parent.init_scope():
+            self.parent.child = child
+            self.parent.Wp = chainer.Parameter(shape=(2, 3))
 
         self.optimizer = optimizers.AdaDelta()
         self.optimizer.setup(self.parent)
