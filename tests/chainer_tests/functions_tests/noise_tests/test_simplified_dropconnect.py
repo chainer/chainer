@@ -46,16 +46,12 @@ class TestSimplifiedDropconnect(unittest.TestCase):
         W = chainer.Variable(W_data)
         if b_data is None:
             y = functions.simplified_dropconnect(x, W, None,
-                                                 ratio=self.ratio,
-                                                 train=self.train,
-                                                 use_batchwise_mask=
+                                                 self.ratio, self.train, None,
                                                  self.use_batchwise_mask)
         else:
             b = chainer.Variable(b_data)
             y = functions.simplified_dropconnect(x, W, b,
-                                                 ratio=self.ratio,
-                                                 train=self.train,
-                                                 use_batchwise_mask=
+                                                 self.ratio, self.train, None,
                                                  self.use_batchwise_mask)
         self.assertEqual(y.data.dtype, self.x_dtype)
         mask = y.creator.mask
