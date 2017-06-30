@@ -1,13 +1,15 @@
 import collections
 import contextlib
 import copy
+import functools
+import inspect
 import warnings
 
 import numpy
 import six
 
-from chainer import function
 from chainer import cuda
+from chainer import function
 from chainer import initializers
 from chainer import variable
 
@@ -1161,8 +1163,23 @@ class Sequential(ChainList):
     def __repr__(self):
         ret = ''
         for i, layer in enumerate(self):
-            if isinstance(layer, (Link, function.Function)):
+            if isinstance(layer, Link):
                 name = layer.__class__.__name__
+                param_info = '\t'
+                for param in layer.params():
+                    param_info += param.name
+                    if param._data[0] is not None:
+                        param_info += str(param._data[0].shape)
+                    else:
+                        param_info += '(None)'
+                    param_info += '\t'
+                name = name + param_info
+            elif isinstance(layer, function.Function):
+                name = layer.__class__.__name__
+            elif isinstance(layer, functools.partial):
+                name = repr(layer)
+            elif layer.__name__ == '<lambda>':
+                name = inspect.getsource(layer).strip()
             else:
                 name = layer.__name__
             ret += '{}\t{}\n'.format(i, name)
