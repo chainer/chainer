@@ -23,8 +23,7 @@ def gen_mask(ratio, shape):
     'in_shape': [(3,), (3, 2, 2)],
     'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'W_dtype': [numpy.float16, numpy.float32, numpy.float64],
-    'use_batchwise_mask_option': [True, False],
-    'batchwise_mask': [True, False],
+    'use_batchwise_mask': [True, False],
 }))
 class TestSimplifiedDropconnect(unittest.TestCase):
 
@@ -47,7 +46,7 @@ class TestSimplifiedDropconnect(unittest.TestCase):
         W = self.link.W.data
         b = self.link.b.data
 
-        if self.batchwise_mask:
+        if self.use_batchwise_mask:
             mask_shape = (4,) + self.link.W.shape
         else:
             mask_shape = self.link.W.shape
@@ -58,7 +57,7 @@ class TestSimplifiedDropconnect(unittest.TestCase):
 
         # numpy 1.9 does not support matmul.
         # So we use numpy.einsum instead of numpy.matmul.
-        if self.batchwise_mask:
+        if self.use_batchwise_mask:
             self.y_expect = numpy.einsum('ijk,ikl->ijl',
                                          W, x[:, :, None]).reshape(4, -1) + b
         else:
@@ -76,7 +75,7 @@ class TestSimplifiedDropconnect(unittest.TestCase):
     def check_forward(self, x_data, mask):
         x = chainer.Variable(x_data)
         y = self.link(x, train=True, mask=mask,
-                      use_batchwise_mask=self.use_batchwise_mask_option)
+                      use_batchwise_mask=self.use_batchwise_mask)
         self.assertEqual(y.data.dtype, self.x_dtype)
         testing.assert_allclose(self.y_expect, y.data,
                                 **self.check_forward_options)
@@ -91,7 +90,7 @@ class TestSimplifiedDropconnect(unittest.TestCase):
 
     def link_wrapper(self, *data):
         return self.link(x=data[0], train=True, mask=data[1],
-                         use_batchwise_mask=True)
+                         use_batchwise_mask=self.use_batchwise_mask)
 
     def check_backward(self, x_data, y_grad, mask):
         gradient_check.check_backward(
@@ -240,13 +239,25 @@ class TestSimplifiedDropconnectNotBatchwiseMask(unittest.TestCase):
 
 class TestInvalidSimplifiedDropconnect(unittest.TestCase):
 
-    def setUp(self):
-        self.link = links.SimplifiedDropconnect(3, 2)
-        self.x = numpy.random.uniform(-1, 1, (4, 1, 2)).astype(numpy.float32)
-
-    def test_invalid_size(self):
+    def test_invalid_input_size(self):
+        link = links.SimplifiedDropconnect(3, 2)
+        x = numpy.random.uniform(-1, 1, (4, 1, 2)).astype(numpy.float32)
         with self.assertRaises(type_check.InvalidType):
-            self.link(chainer.Variable(self.x))
+            link(chainer.Variable(x))
+
+    def test_invalid_mask_size(self):
+        link = links.SimplifiedDropconnect(3, 2)
+        x = numpy.random.uniform(-1, 1, (4, 3)).astype(numpy.float32)
+        mask = numpy.random.uniform(-1, 1, (3, 2)).astype(numpy.float32)
+        with self.assertRaises(type_check.InvalidType):
+            link(chainer.Variable(x), use_batchwise_mask=True, mask=mask)
+
+    def test_invalid_mask_size2(self):
+        link = links.SimplifiedDropconnect(3, 2)
+        x = numpy.random.uniform(-1, 1, (4, 3)).astype(numpy.float32)
+        mask = numpy.random.uniform(-1, 1, (4, 3, 2)).astype(numpy.float32)
+        with self.assertRaises(type_check.InvalidType):
+            link(chainer.Variable(x), use_batchwise_mask=False, mask=mask)
 
 
 testing.run_module(__name__, __file__)

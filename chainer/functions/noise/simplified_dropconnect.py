@@ -50,6 +50,15 @@ class SimplifiedDropconnect(function.Function):
                 b_type.shape[0] == w_type.shape[0],
             )
 
+        if self.mask is not None:
+            if self.use_batchwise_mask:
+                type_check.expect(
+                    self.mask.shape[0] == x_type.shape[0],
+                    self.mask.shape[1:] == w_type.shape,
+                )
+            else:
+                type_check.expect(self.mask.shape == w_type.shape)
+
     def forward(self, inputs):
         scale = inputs[1].dtype.type(1. / (1 - self.ratio))
         xp = cuda.get_array_module(*inputs)
