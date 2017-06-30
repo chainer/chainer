@@ -1,7 +1,10 @@
 import unittest
 
+import os
 import mock
 import numpy
+import six
+import tempfile
 
 import chainer
 from chainer import cuda
@@ -1124,6 +1127,27 @@ class TestSequential(unittest.TestCase):
                 self.assertEqual(l1.__class__.__name__, l2.__class__.__name__)
             else:
                 self.assertEqual(l1.__name__, l2.__name__)
+
+    def test_pickle_without_lambda(self):
+        fd, path = tempfile.mkstemp()
+        six.moves.cPickle.dump(self.model, open(path, 'wb'))
+        model = six.moves.cPickle.load(open(path, 'rb'))
+        self.assertEqual(len(model), len(self.model))
+        for l1, l2 in zip(model, self.model):
+            numpy.testing.assert_array_equal(l1.W.data, l2.W.data)
+            numpy.testing.assert_array_equal(l1.b.data, l2.b.data)
+            self.assertIsNot(l1, l2)
+        os.remove(path)
+
+    def test_has_lambda(self):
+        self.model.append(lambda x: x)
+        self.assertTrue(self.model._has_lambda)
+
+    def test_pickle_with_lambda(self):
+        self.model.append(lambda x: x)
+        with self.assertRaises(ValueError):
+            with tempfile.TemporaryFile() as fp:
+                six.moves.cPickle.dump(self.model, fp)
 
 
 testing.run_module(__name__, __file__)
