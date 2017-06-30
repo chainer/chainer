@@ -28,7 +28,7 @@ class LinearFunction(function.Function):
         type_check.expect(
             x_type.dtype.kind == 'f',
             w_type.dtype.kind == 'f',
-            x_type.ndim == self._n_batch_axes + 1,
+            x_type.ndim > self._n_batch_axes,
             w_type.ndim == 2,
             type_check.prod(
                 x_type.shape[self._n_batch_axes:]) == w_type.shape[1],
@@ -76,7 +76,7 @@ class LinearFunction(function.Function):
             ax = six.moves.range(self._n_batch_axes)
             gW = xp.tensordot(gy, x, axes=(ax, ax)).astype(W.dtype, copy=False)
         if len(inputs) == 3:
-            gb = gy.sum(tuple(range(self._n_batch_axes)))
+            gb = gy.sum(tuple(six.moves.range(self._n_batch_axes)))
             return gx, gW, gb
         else:
             return gx, gW

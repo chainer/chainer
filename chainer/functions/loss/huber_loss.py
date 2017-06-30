@@ -1,6 +1,7 @@
 import warnings
 
 import numpy
+import six
 
 from chainer import cuda
 from chainer import function
@@ -46,7 +47,7 @@ class HuberLoss(function.Function):
         y *= 0.5
         if self.reduce == 'sum_each_data':
             return y.sum(
-                axis=tuple(range(self._n_batch_axes, y.ndim))),
+                axis=tuple(six.moves.range(self._n_batch_axes, y.ndim))),
         else:
             return y,
 
