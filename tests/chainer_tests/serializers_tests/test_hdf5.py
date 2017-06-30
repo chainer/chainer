@@ -308,12 +308,12 @@ class TestGroupHierachy(unittest.TestCase):
         child = link.Chain()
         with child.init_scope():
             child.linear = links.Linear(2, 3)
-            child.Wc = chainer.Parameger(shape=(2, 3))
+            child.Wc = chainer.Parameter(shape=(2, 3))
 
         self.parent = link.Chain()
         with self.parent.init_scope():
             self.parent.child = child
-            self.parent.Wp = chainer.Variable(shape=(2, 3))
+            self.parent.Wp = chainer.Parameter(shape=(2, 3))
 
         self.optimizer = optimizers.AdaDelta()
         self.optimizer.setup(self.parent)
