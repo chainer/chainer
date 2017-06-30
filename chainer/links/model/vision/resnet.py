@@ -112,7 +112,10 @@ class ResNetLayers(link.Chain):
                       pretrained_model, self)
         elif pretrained_model:
             npz.load_npz(pretrained_model, self)
-        self.functions = collections.OrderedDict([
+
+    @property
+    def functions(self):
+        return collections.OrderedDict([
             ('conv1', [self.conv1, self.bn1, relu]),
             ('pool1', [lambda x: max_pooling_2d(x, ksize=3, stride=2)]),
             ('res2', [self.res2]),
@@ -141,7 +144,7 @@ class ResNetLayers(link.Chain):
         # we import CaffeFunction here.
         from chainer.links.caffe.caffe_function import CaffeFunction
         caffemodel = CaffeFunction(path_caffemodel)
-        chainermodel = cls(pretrained_model=None)
+        chainermodel = cls(pretrained_model=None, n_layers=n_layers)
         if n_layers == 50:
             _transfer_resnet50(caffemodel, chainermodel)
         elif n_layers == 101:
@@ -501,17 +504,22 @@ class BuildingBlock(link.Chain):
         with self.init_scope():
             self.a = BottleneckA(
                 in_channels, mid_channels, out_channels, stride, initialW)
-            self.forward = [self.a]
+            self._forward = ["a"]
             for i in range(n_layer - 1):
                 name = 'b{}'.format(i + 1)
                 bottleneck = BottleneckB(out_channels, mid_channels, initialW)
                 setattr(self, name, bottleneck)
-                self.forward.append(bottleneck)
+                self._forward.append(name)
 
     def __call__(self, x):
-        for l in self.forward:
+        for name in self._forward:
+            l = getattr(self, name)
             x = l(x)
         return x
+
+    @property
+    def forward(self):
+        return [getattr(self, name) for name in self._forward]
 
 
 class BottleneckA(link.Chain):

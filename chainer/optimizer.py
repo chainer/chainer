@@ -268,7 +268,7 @@ class UpdateRule(object):
                 self._state[key] = serializer(key, self._state[key])
 
     def _prepare(self, param):
-        with cuda.get_device(param.data) as device:
+        with cuda.get_device_from_array(param.data) as device:
             state = self.state
             if state is None:
                 state = self._state = {}
@@ -277,7 +277,7 @@ class UpdateRule(object):
             for name, value in six.iteritems(state):
                 if not isinstance(value, (numpy.ndarray, cuda.ndarray)):
                     continue
-                value_device = cuda.get_device(value)
+                value_device = cuda.get_device_from_array(value)
                 if value_device.id != device.id:
                     if device.id >= 0:
                         state[name] = cuda.to_gpu(value)
@@ -595,6 +595,8 @@ class HyperparameterProxy(object):
         self.__doc__ = 'Alias to ``self.hyperparam.{}``'.format(attr_name)
 
     def __get__(self, obj, type=None):
+        if obj is None:
+            return self
         return getattr(obj.hyperparam, self._attr_name)
 
     def __set__(self, obj, value):
@@ -623,7 +625,7 @@ class WeightDecay(object):
 
     def __call__(self, rule, param):
         p, g = param.data, param.grad
-        with cuda.get_device(p) as dev:
+        with cuda.get_device_from_array(p) as dev:
             if int(dev) == -1:
                 g += self.rate * p
             else:

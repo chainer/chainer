@@ -36,6 +36,38 @@ class Normal(initializer.Initializer):
         array[...] = xp.random.normal(**args)
 
 
+class LeCunNormal(initializer.Initializer):
+
+    """Initializes array with scaled Gaussian distribution.
+
+    Each element of the array is initialized by the value drawn
+    independently from Gaussian distribution whose mean is 0,
+    and standard deviation is
+    :math:`scale \\times \\sqrt{\\frac{1}{fan_{in}}}`,
+    where :math:`fan_{in}` is the number of input units.
+
+    Reference: LeCun 98, Efficient Backprop
+    http://yann.lecun.com/exdb/publis/pdf/lecun-98b.pdf
+
+    Args:
+        scale (float): A constant that determines the scale
+            of the standard deviation.
+        dtype: Data type specifier.
+
+    """
+
+    def __init__(self, scale=1.0, dtype=None):
+        self.scale = scale
+        super(LeCunNormal, self).__init__(dtype)
+
+    def __call__(self, array):
+        if self.dtype is not None:
+            assert array.dtype == self.dtype
+        fan_in, fan_out = initializer.get_fans(array.shape)
+        s = self.scale * numpy.sqrt(1. / fan_in)
+        Normal(s)(array)
+
+
 class GlorotNormal(initializer.Initializer):
 
     """Initializes array with scaled Gaussian distribution.
