@@ -1016,7 +1016,8 @@ class Sequential(ChainList):
             for layer in layers:
                 if isinstance(layer, Link):
                     self.add_link(layer)
-                if layer.__name__ == '<lambda>':
+                elif callable(layer) and hasattr(layer, '__name__') \
+                        and layer.__name__ == '<lambda>':
                     self._has_lambda = True
                 if not callable(layer):
                     raise ValueError(
@@ -1034,6 +1035,11 @@ class Sequential(ChainList):
             raise ValueError(
                 '{} should be less than {}'.format(i, len(self)))
 
+        if not callable(layer):
+            raise ValueError(
+                'All elements of a Sequential class should be callable. But '
+                'given {} is not callable.'.format(layer))
+
         # Remove the registered link from self._children
         if isinstance(self._layers[i], Link):
             for j, link in enumerate(self._children):
@@ -1048,20 +1054,20 @@ class Sequential(ChainList):
             with self.init_scope():
                 self.add_link(layer)
 
-        if layer.__name__ == '<lambda>':
+        if hasattr(layer, '__name__') and layer.__name__ == '<lambda>':
             self._has_lambda = True
 
     def __delitem__(self, i):
         self.remove(self._layers[i])
 
     def __iter__(self):
-        return iter(self.layers)
+        return iter(self._layers)
 
     def __reversed__(self):
-        return reversed(self.layers)
+        return reversed(self._layers)
 
     def __contains__(self, item):
-        return item in self.layers
+        return item in self._layers
 
     def __add__(self, other):
         if isinstance(other, Sequential):
@@ -1104,7 +1110,7 @@ class Sequential(ChainList):
             return Sequential()
         ret = self.copy()
         for _ in range(n_repeat - 1):
-            for layer in ret:
+            for layer in self:
                 if isinstance(layer, Link):
                     for param in layer.params(include_uninit=False):
                         param.initialize(param.shape)
@@ -1123,7 +1129,7 @@ class Sequential(ChainList):
         n_layers = len(self)
         for _ in range(n_repeat - 1):
             for i in range(n_layers):
-                if isinstance(layer, Link):
+                if isinstance(self[i], Link):
                     layer = self[i].copy()
                     for param in layer.params(include_uninit=False):
                         param.initialize(param.shape)
@@ -1218,7 +1224,7 @@ class Sequential(ChainList):
                 self.remove(_layer)
 
     def pop(self, i=-1):
-        layer = self.layers[i]
+        layer = self._layers[i]
         self.remove(self._layers[i])
         return layer
 
@@ -1251,7 +1257,7 @@ class Sequential(ChainList):
         """
 
         num = 0
-        for layer in self.layers:
+        for layer in self._layers:
             if isinstance(layer, Link):
                 if layer.__class__.__name__ == type_name:
                     num += 1
@@ -1267,13 +1273,11 @@ class Sequential(ChainList):
         raise NotImplementedError
 
     def copy(self):
-        ret = super(Sequential, self).copy()
-        ret._layers = list(ret._layers)
-        layers = ret._layers
-        for i, layer in enumerate(layers):
+        ret = Sequential()
+        ret._has_lambda = self._has_lambda
+        for layer in self:
             if isinstance(layer, Link):
-                layer = layer.copy()
+                ret.append(layer.copy())
             else:
-                layer = copy.copy(layer)
-            layers[i] = layer
+                ret.append(copy.copy(layer))
         return ret
