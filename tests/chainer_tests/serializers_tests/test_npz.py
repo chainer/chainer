@@ -276,6 +276,7 @@ class TestLoadNpz(unittest.TestCase):
         self.assertEqual(obj.serialize.call_count, 1)
         (serializer,), _ = obj.serialize.call_args
         self.assertIsInstance(serializer, npz.NpzDeserializer)
+        self.assertTrue(serializer.strict)
 
     def test_load_without_strict(self):
         obj = mock.MagicMock()
@@ -285,7 +286,6 @@ class TestLoadNpz(unittest.TestCase):
         (serializer,), _ = obj.serialize.call_args
         self.assertFalse(serializer.strict)
         self.assertIsInstance(serializer, npz.NpzDeserializer)
-        self.assertEqual(serializer.strict, False)
 
     def test_load_with_path(self):
         target = link.Chain(child_linear=links.Linear(2, 3))
