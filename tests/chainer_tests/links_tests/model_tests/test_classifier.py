@@ -149,7 +149,7 @@ class TestInvalidLabelKey(unittest.TestCase):
         self.x = numpy.random.uniform(-1, 1, (5, 10)).astype(numpy.float32)
 
     def test_invalid_label_key_type(self):
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 TypeError, 'label_key must be int or str'):
             links.Classifier(links.Linear(10, 3), label_key=None)
 
@@ -158,7 +158,7 @@ class TestInvalidLabelKey(unittest.TestCase):
         if gpu:
             link.to_gpu()
         x = chainer.Variable(link.xp.asarray(self.x))
-        with self.assertRaisesRegexp(ValueError, 'Label key'):
+        with self.assertRaisesRegex(ValueError, 'Label key'):
             link(x)
 
     def test_invalid_index_cpu(self):
