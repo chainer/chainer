@@ -934,7 +934,7 @@ class ChainList(Link):
             child.serialize(serializer['%d' % idx])
 
 
-class Sequential(Chain):
+class Sequential(ChainList):
 
     """Sequential model which has a single-stream forward pass.
 
@@ -1009,46 +1009,56 @@ class Sequential(Chain):
 
     def __init__(self, *layers):
         super(Sequential, self).__init__()
-        self.layers = list(layers)
+        self._layers = list(layers)
+        self._has_lambda = False
+
         with self.init_scope():
-            for i, layer in enumerate(layers):
+            for layer in layers:
                 if isinstance(layer, Link):
-                    name = layer.__class__.__name__
-                    setattr(self, '{}_{}'.format(name, i), layer)
+                    self.add_link(layer)
+                if layer.__name__ == '<lambda>':
+                    self._has_lambda = True
                 if not callable(layer):
                     raise ValueError(
-                        'All elements of the argment should be'
-                        'callable. But {} is not callable.'.format(layer))
+                        'All elements of the argment should be callable. But '
+                        'given {} is not callable.'.format(layer))
 
     def __len__(self):
-        return len(self.layers)
+        return len(self._layers)
 
     def __getitem__(self, i):
-        return self.layers[i]
+        return self._layers[i]
 
     def __setitem__(self, i, layer):
         if i >= len(self):
             raise ValueError(
                 '{} should be less than {}'.format(i, len(self)))
-        name = self.layers[i].__class__.__name__
-        delattr(self, '{}_{}'.format(name, i))
-        with self.init_scope():
-            if isinstance(layer, Link):
-                name = layer.__class__.__name__
-                setattr(self, '{}_{}'.format(name, i), layer)
+
+        # Remove the registered link from self._children
+        if isinstance(self._layers[i], Link):
+            for j, link in enumerate(self._children):
+                if link is self._layers[i]:
+                    del self._children[j]
+                    break
+
+        self._layers[i] = layer
+
+        # Register the new layer if it's a Link
+        if isinstance(layer, Link):
+            with self.init_scope():
+                self.add_link(layer)
+
+        if layer.__name__ == '<lambda>':
+            self._has_lambda = True
 
     def __delitem__(self, i):
-        name = self.layers[i].__class__.__name__
-        delattr(self, '{}_{}'.format(name, i))
-        del self.layers[i]
+        self.remove(self._layers[i])
 
     def __iter__(self):
-        for layer in self.layers:
-            yield layer
+        return iter(self.layers)
 
     def __reversed__(self):
-        for layer in reversed(self.layers):
-            yield layer
+        return reversed(self.layers)
 
     def __contains__(self, item):
         return item in self.layers
@@ -1056,7 +1066,7 @@ class Sequential(Chain):
     def __add__(self, other):
         if isinstance(other, Sequential):
             ret = Sequential()
-            for layer in self.layers:
+            for layer in self:
                 ret.append(layer)
             for layer in other:
                 ret.append(layer)
@@ -1092,10 +1102,15 @@ class Sequential(Chain):
     def __mul__(self, n_repeat):
         if n_repeat <= 0:
             return Sequential()
-        ret = Sequential()
-        for _ in range(n_repeat):
-            for layer in self:
-                ret.append(layer.copy() if isinstance(layer, Link) else layer)
+        ret = self.copy()
+        for _ in range(n_repeat - 1):
+            for layer in ret:
+                if isinstance(layer, Link):
+                    for param in layer.params(include_uninit=False):
+                        param.initialize(param.shape)
+                else:
+                    layer = copy.copy(layer)
+                ret.append(layer)
         return ret
 
     def __rmul__(self, n_repeat):
@@ -1108,8 +1123,13 @@ class Sequential(Chain):
         n_layers = len(self)
         for _ in range(n_repeat - 1):
             for i in range(n_layers):
-                self.append(
-                    self[i].copy() if isinstance(self[i], Link) else self[i])
+                if isinstance(layer, Link):
+                    layer = self[i].copy()
+                    for param in layer.params(include_uninit=False):
+                        param.initialize(param.shape)
+                else:
+                    layer = copy.copy(layer)
+                self.append(layer)
         return self
 
     def __call__(self, *x):
@@ -1132,35 +1152,40 @@ class Sequential(Chain):
             The output of the final layer in the given layers.
 
         """
-        for layer in self.layers:
+        for layer in self._layers:
             if isinstance(x, tuple):
                 x = layer(*x)
             else:
                 x = layer(x)
         return x
 
+    def __reduce__(self):
+        pass
+
     def append(self, layer):
-        self.layers.append(layer)
-        with self.init_scope():
-            name = layer.__class__.__name__
-            setattr(self, '{}_{}'.format(name, len(self)), layer)
+        self._layers.append(layer)
+        if isinstance(layer, Link):
+            with self.init_scope():
+                self.add_link(layer)
 
     def extend(self, sequential):
         for layer in sequential:
             self.append(layer)
 
     def insert(self, i, layer):
-        self.layers.insert(i, layer)
+        self._layers.insert(i, layer)
         if isinstance(layer, Link):
             with self.init_scope():
-                name = layer.__class__.__name__
-                setattr(self, '{}_{}'.format(name, len(self)), layer)
+                self.add_link(layer)
 
     def remove(self, layer):
         if layer in self:
             if isinstance(layer, Link):
-                delattr(self, layer.name)
-            self.layers.remove(layer)
+                for i, link in enumerate(self._children):
+                    if link is layer:
+                        del self._children[i]
+                        break
+            self._layers.remove(layer)
         else:
             raise ValueError(
                 'There is no layer object that is same as {}'.format(layer))
@@ -1194,20 +1219,19 @@ class Sequential(Chain):
 
     def pop(self, i=-1):
         layer = self.layers[i]
-        self.remove(self.layers[i])
+        self.remove(self._layers[i])
         return layer
 
     def clear(self):
-        for layer in self:
-            if isinstance(layer, Link):
-                delattr(self, layer.name)
-        self.layers = []
+        for i, link in enumerate(self._children):
+            del self._children[i]
+        self._layers = []
 
     def index(self, layer, start=None, end=None):
-        return self.layers[start:end].index(layer)
+        return self._layers[start:end].index(layer)
 
     def count(self, layer):
-        return self.layers.count(layer)
+        return self._layers.count(layer)
 
     def count_by_layer_type(self, type_name):
         """Count the number of layers by layer type.
@@ -1221,7 +1245,8 @@ class Sequential(Chain):
         ``relu`` or ``reshape``, etc.
 
         Args:
-            type_name (str): The name of a layer you want to enumerate.
+            type_name (str): The class or function name of a layer you want to
+                enumerate.
 
         """
 
@@ -1242,5 +1267,13 @@ class Sequential(Chain):
         raise NotImplementedError
 
     def copy(self):
-        return Sequential(*[l.copy() if isinstance(l, Link) else l
-                            for l in self.layers])
+        ret = super(Sequential, self).copy()
+        ret._layers = list(ret._layers)
+        layers = ret._layers
+        for i, layer in enumerate(layers):
+            if isinstance(layer, Link):
+                layer = layer.copy()
+            else:
+                layer = copy.copy(layer)
+            layers[i] = layer
+        return ret
