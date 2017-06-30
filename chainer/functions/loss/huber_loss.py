@@ -46,7 +46,7 @@ class HuberLoss(function.Function):
         y *= 0.5
         if self.reduce == 'sum_each_data':
             return y.sum(
-                axis=tuple([i for i in range(self._n_batch_axes, y.ndim)])),
+                axis=tuple(range(self._n_batch_axes, y.ndim))),
         else:
             return y,
 
@@ -58,8 +58,7 @@ class HuberLoss(function.Function):
         gy_ = gy[0]
         if self.reduce == 'sum_each_data':
             gy_ = gy_.reshape(
-                gy_.shape[:self._n_batch_axes] + (1,) * (
-                    self.diff.ndim - self._n_batch_axes))
+                gy_.shape + (1,) * (self.diff.ndim - self._n_batch_axes))
         gx = gy_ * gx
         return gx, -gx
 
