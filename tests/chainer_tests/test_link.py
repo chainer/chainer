@@ -1,8 +1,8 @@
 import unittest
 
-import os
 import mock
 import numpy
+import os
 import six
 import tempfile
 
