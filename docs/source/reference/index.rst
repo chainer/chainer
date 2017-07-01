@@ -13,6 +13,7 @@ Chainer Reference Manual
    functions
    links
    optimizers
+   optimizer_hooks
    serializers
    function_hooks
    initializers
