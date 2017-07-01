@@ -32,7 +32,7 @@ class SquaredError(function.Function):
 def squared_error(x0, x1):
     """Squared error function.
 
-    This function computes squared error between two variables:
+    This function computes the squared error between two variables:
 
     .. math::
 
