@@ -6,7 +6,6 @@ import warnings
 import weakref
 
 import numpy
-import six
 
 import chainer
 from chainer import cuda
@@ -75,10 +74,13 @@ def variable_repr(var):
     else:
         prefix = 'variable'
 
-    if arr.size > 0 or arr.shape == (0,):
+    if arr is None:
+        lst = 'None'
+    elif arr.size > 0 or arr.shape == (0,):
         lst = numpy.array2string(arr, None, None, None, ', ', prefix + '(')
     else:  # show zero-length shape unless it is (0,)
         lst = '[], shape=%s' % (repr(arr.shape),)
+
     return '%s(%s)' % (prefix, lst)
 
 
@@ -94,12 +96,18 @@ def variable_str(var):
         arr = var.data
     else:
         arr = var.data.get()
+
     if var.name:
-        prefix = 'variable ' + var.name + '('
+        prefix = 'variable ' + var.name
     else:
-        prefix = 'variable('
-    return (prefix + numpy.array2string(arr, None, None, None, ' ', prefix) +
-            ')')
+        prefix = 'variable'
+
+    if arr is None:
+        lst = 'None'
+    else:
+        lst = numpy.array2string(arr, None, None, None, ' ', prefix + '(')
+
+    return '%s(%s)' % (prefix, lst)
 
 
 class VariableNode(object):
@@ -260,7 +268,7 @@ def _create_variable(data, name, grad, requires_grad):
 
 class Variable(object):
 
-    """__init__(data=None, *, name=None, grad=None, initializer=None, update_rule=None, requires_grad=True)
+    """__init__(data=None, *, name=None, grad=None, requires_grad=True)
 
     Array with a structure to keep track of computation.
 
@@ -525,7 +533,7 @@ Actual: {0}'''.format(type(data))
 
         """
         warnings.warn(
-            'Variable.zerograd is deprecated. Use Variable.cleargard instead.',
+            'Variable.zerograd is deprecated. Use Variable.cleargrad instead.',
             DeprecationWarning)
 
         if self.data is None:
@@ -700,9 +708,10 @@ Actual: {0}'''.format(type(data))
             if func._n_local_function_hooks != 0:
                 hooks = collections.OrderedDict(hooks)
                 hooks.update(func.local_function_hooks)
+            hooks = hooks.values()  # avoid six for performance
 
             cuda.get_device_from_array(*(in_data + out_grad)).use()
-            for hook in six.itervalues(hooks):
+            for hook in hooks:
                 hook.backward_preprocess(func, in_data, out_grad)
             func.output_data = tuple(
                 [None if y is None else y.data for y in outputs])
@@ -710,7 +719,7 @@ Actual: {0}'''.format(type(data))
             assert len(gxs) == len(in_data)
             if not getattr(func, '_retain_after_backward', False):
                 func.output_data = None
-            for hook in six.itervalues(hooks):
+            for hook in hooks:
                 hook.backward_postprocess(func, in_data, out_grad)
 
             if is_debug:

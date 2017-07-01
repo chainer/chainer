@@ -12,7 +12,8 @@ from chainer.initializers.constant import NaN  # NOQA
 from chainer.initializers.constant import One  # NOQA
 from chainer.initializers.constant import Zero  # NOQA
 from chainer.initializers.normal import GlorotNormal  # NOQA
-from chainer.initializers.normal import HeNormal
+from chainer.initializers.normal import HeNormal  # NOQA
+from chainer.initializers.normal import LeCunNormal
 from chainer.initializers.normal import Normal  # NOQA
 from chainer.initializers.orthogonal import Orthogonal  # NOQA
 from chainer.initializers.uniform import GlorotUniform  # NOQA
@@ -48,7 +49,7 @@ def generate_array(initializer, shape, xp):
 
 def _get_initializer(initializer):
     if initializer is None:
-        return HeNormal(1 / numpy.sqrt(2))
+        return LeCunNormal()
     if numpy.isscalar(initializer):
         return Constant(initializer)
     if isinstance(initializer, numpy.ndarray):
