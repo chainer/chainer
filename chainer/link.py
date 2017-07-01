@@ -1,12 +1,15 @@
 import collections
 import contextlib
 import copy
+import functools
+import inspect
 import warnings
 
 import numpy
 import six
 
 from chainer import cuda
+from chainer import function
 from chainer import initializers
 from chainer import variable
 
@@ -1009,20 +1012,10 @@ class Sequential(ChainList):
 
     def __init__(self, *layers):
         super(Sequential, self).__init__()
-        self._layers = list(layers)
-        self._has_lambda = False
-
-        with self.init_scope():
-            for layer in layers:
-                if isinstance(layer, Link):
-                    self.add_link(layer)
-                elif callable(layer) and hasattr(layer, '__name__') \
-                        and layer.__name__ == '<lambda>':
-                    self._has_lambda = True
-                if not callable(layer):
-                    raise ValueError(
-                        'All elements of the argment should be callable. But '
-                        'given {} is not callable.'.format(layer))
+        self._layers = []
+        self._n_lambda = 0
+        for layer in layers:
+            self.append(layer)
 
     def __len__(self):
         return len(self._layers)
@@ -1034,31 +1027,25 @@ class Sequential(ChainList):
         if i >= len(self):
             raise ValueError(
                 '{} should be less than {}'.format(i, len(self)))
-
         if not callable(layer):
             raise ValueError(
                 'All elements of a Sequential class should be callable. But '
                 'given {} is not callable.'.format(layer))
 
-        # Remove the registered link from self._children
-        if isinstance(self._layers[i], Link):
-            for j, link in enumerate(self._children):
-                if link is self._layers[i]:
-                    del self._children[j]
-                    break
-
-        self._layers[i] = layer
-
-        # Register the new layer if it's a Link
-        if isinstance(layer, Link):
-            with self.init_scope():
-                self.add_link(layer)
-
-        if hasattr(layer, '__name__') and layer.__name__ == '<lambda>':
-            self._has_lambda = True
+        if self._layers[i] is not layer:
+            del self[i]
+            self.insert(i, layer)
 
     def __delitem__(self, i):
-        self.remove(self._layers[i])
+        layer = self._layers.pop(i)
+        if isinstance(layer, Link):
+            for i, link in enumerate(self._children):
+                if link is layer:
+                    del self._children[i]
+                    break
+        elif callable(layer) and hasattr(layer, '__name__') \
+                and layer.__name__ == '<lambda>':
+            self._n_lambda -= 1
 
     def __iter__(self):
         return iter(self._layers)
@@ -1112,6 +1099,7 @@ class Sequential(ChainList):
         for _ in range(n_repeat - 1):
             for layer in self:
                 if isinstance(layer, Link):
+                    layer = copy.deepcopy(layer)
                     for param in layer.params(include_uninit=False):
                         param.initialize(param.shape)
                 else:
@@ -1130,7 +1118,7 @@ class Sequential(ChainList):
         for _ in range(n_repeat - 1):
             for i in range(n_layers):
                 if isinstance(self[i], Link):
-                    layer = self[i].copy()
+                    layer = copy.deepcopy(self[i])
                     for param in layer.params(include_uninit=False):
                         param.initialize(param.shape)
                 else:
@@ -1166,32 +1154,75 @@ class Sequential(ChainList):
         return x
 
     def __reduce__(self):
-        pass
+        if self._n_lambda > 0:
+            raise ValueError(
+                'This Sequential object has at least one lambda function as '
+                'its component. Lambda function can\'t be pickled, so please '
+                'consider to use functools.partial instead of the lambda '
+                'function or use "dill" which is an external package that '
+                'enables pickling an object including lambda functions intead '
+                'of built-in pickle.')
+        return super(Sequential, self).__reduce__()
+
+    def __str__(self):
+        ret = ''
+        for i, layer in enumerate(self):
+            if isinstance(layer, Sequential):
+                name = layer.__class__.__name__
+                name += '\twhich has {} layers'.format(len(layer))
+            elif isinstance(layer, Chain):
+                name = layer.__class__.__name__
+                name += '\tThe structure behind a Chain is determined at '
+                name += 'runtime.'
+            elif isinstance(layer, ChainList):
+                name = layer.__class__.__name__
+                name += '\tThe structure behind a ChainList is determined at '
+                name += 'runtime.'
+            elif isinstance(layer, Link):
+                name = layer.__class__.__name__
+                param_info = '\t'
+                for param in sorted(layer.params(), key=lambda p: p.name):
+                    param_info += param.name
+                    if param._data[0] is not None:
+                        param_info += str(param._data[0].shape)
+                    else:
+                        param_info += '(None)'
+                    param_info += '\t'
+                name = name + param_info
+            elif isinstance(layer, function.Function):
+                name = layer.__class__.__name__
+            elif isinstance(layer, functools.partial):
+                name = repr(layer)
+            elif layer.__name__ == '<lambda>':
+                name = inspect.getsource(layer).strip()
+            else:
+                name = layer.__name__
+            ret += '{}\t{}\n'.format(i, name)
+        return ret
 
     def append(self, layer):
-        self._layers.append(layer)
-        if isinstance(layer, Link):
-            with self.init_scope():
-                self.add_link(layer)
+        self.insert(len(self), layer)
 
     def extend(self, sequential):
         for layer in sequential:
             self.append(layer)
 
     def insert(self, i, layer):
+        if not callable(layer):
+            raise ValueError(
+                'All elements of the argment should be callable. But '
+                'given {} is not callable.'.format(layer))
+
         self._layers.insert(i, layer)
         if isinstance(layer, Link):
-            with self.init_scope():
-                self.add_link(layer)
+            self.add_link(layer)
+        elif callable(layer) and hasattr(layer, '__name__') \
+                and layer.__name__ == '<lambda>':
+            self._n_lambda += 1
 
     def remove(self, layer):
         if layer in self:
-            if isinstance(layer, Link):
-                for i, link in enumerate(self._children):
-                    if link is layer:
-                        del self._children[i]
-                        break
-            self._layers.remove(layer)
+            del self[self.index(layer)]
         else:
             raise ValueError(
                 'There is no layer object that is same as {}'.format(layer))
@@ -1225,7 +1256,7 @@ class Sequential(ChainList):
 
     def pop(self, i=-1):
         layer = self._layers[i]
-        self.remove(self._layers[i])
+        del self[i]
         return layer
 
     def clear(self):
@@ -1274,7 +1305,7 @@ class Sequential(ChainList):
 
     def copy(self):
         ret = Sequential()
-        ret._has_lambda = self._has_lambda
+        ret._n_lambda = self._n_lambda
         for layer in self:
             if isinstance(layer, Link):
                 ret.append(layer.copy())
