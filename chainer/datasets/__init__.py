@@ -27,5 +27,6 @@ from chainer.datasets.sub_dataset import split_dataset_n_random  # NOQA
 from chainer.datasets.sub_dataset import split_dataset_random  # NOQA
 from chainer.datasets.sub_dataset import SubDataset  # NOQA
 from chainer.datasets.tox21 import get_tox21  # NOQA
+from chainer.datasets.tox21 import get_tox21_label_names  # NOQA
 from chainer.datasets.transform_dataset import TransformDataset  # NOQA
 from chainer.datasets.tuple_dataset import TupleDataset  # NOQA

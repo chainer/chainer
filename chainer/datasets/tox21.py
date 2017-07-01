@@ -60,9 +60,14 @@ _config = {
 
 _root = 'pfnet/chainer/tox21'
 
-label_names = ['NR-AR', 'NR-AR-LBD', 'NR-AhR', 'NR-Aromatase', 'NR-ER',
+_label_names = ['NR-AR', 'NR-AR-LBD', 'NR-AhR', 'NR-Aromatase', 'NR-ER',
                'NR-ER-LBD', 'NR-PPAR-gamma', 'SR-ARE', 'SR-ATAD5',
                'SR-HSE', 'SR-MMP', 'SR-p53']
+
+
+def get_tox21_label_names():
+    """Returns label names of Tox21 datasets."""
+    return _label_names
 
 
 def _ECFP(mol_supplier, radius=2):
@@ -72,7 +77,7 @@ def _ECFP(mol_supplier, radius=2):
         if mol is None:
             continue
         label = []
-        for task in label_names:
+        for task in _label_names:
             if mol.HasProp(task):
                 label.append(int(mol.GetProp(task)))
             else:

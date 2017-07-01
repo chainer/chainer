@@ -19,6 +19,16 @@ class Preprocessor(object):
         return descriptors, labels
 
 
+class TestTox21LabelNames(unittest.TestCase):
+
+    def test_get_label_names(self):
+        actual = datasets.get_tox21_label_names()
+        expect = ['NR-AR', 'NR-AR-LBD', 'NR-AhR', 'NR-Aromatase', 'NR-ER',
+                  'NR-ER-LBD', 'NR-PPAR-gamma', 'SR-ARE', 'SR-ATAD5',
+                  'SR-HSE', 'SR-MMP', 'SR-p53']
+        self.assertEqual(actual, expect)
+
+
 class TestTox21(unittest.TestCase):
 
     def _check(self, dataset, with_label=True):
