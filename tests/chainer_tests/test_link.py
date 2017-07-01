@@ -1150,7 +1150,11 @@ class TestSequential(unittest.TestCase):
                 six.moves.cPickle.dump(self.model, fp)
 
     def test_repr(self):
-        self.assertEqual(repr(self.model), '0\tLinear\n1\tLinear\n2\tLinear\n')
+        self.assertEqual(
+            repr(self.model),
+            '0\tLinear\tW(3, 3)\tb(3,)\t\n'
+            '1\tLinear\tW(3, 3)\tb(3,)\t\n'
+            '2\tLinear\tW(4, 3)\tb(4,)\t\n')
 
 
 testing.run_module(__name__, __file__)

@@ -1163,10 +1163,18 @@ class Sequential(ChainList):
     def __repr__(self):
         ret = ''
         for i, layer in enumerate(self):
-            if isinstance(layer, Link):
+            if isinstance(layer, Chain):
+                name = layer.__class__.__name__
+                name += '\tThe structure behind a Chain is determined at '
+                name += 'runtime.'
+            elif isinstance(layer, ChainList):
+                name = layer.__class__.__name__
+                name += '\tThe structure behind a ChainList is determined at '
+                name += 'runtime.'
+            elif isinstance(layer, Link):
                 name = layer.__class__.__name__
                 param_info = '\t'
-                for param in layer.params():
+                for param in sorted(layer.params(), key=lambda p: p.name):
                     param_info += param.name
                     if param._data[0] is not None:
                         param_info += str(param._data[0].shape)
