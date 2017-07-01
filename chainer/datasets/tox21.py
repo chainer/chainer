@@ -25,18 +25,16 @@ def check_available():
     Specifically, we use `RDKit <https://github.com/rdkit/rdkit>`_
     to extract features and labels from raw files, whose format are
     `SDF <https://en.wikipedia.org/wiki/Chemical_table_file#SDF>`_.
-    So, it returns ``True`` if Chainer successfully imports the
-    RDKit module.
+    So, it raises error when Chainer failed to import RDKit module.
 
     Returns:
-        ``True`` is Tox21 dataset is available.
-        Otherwise ``False``.
+        None
 
     """
     if not available:
-        msg = ('rdkit is not install on your environment '
+        msg = ('rdkit is not installed in your environment. '
                'Please install it to use tox21 dataset.\n'
-               'See the official document for installation.'
+               'See the official document for installation. '
                'http://www.rdkit.org/docs/Install.html')
         msg += str(_resolution_error)
         raise RuntimeError(msg)

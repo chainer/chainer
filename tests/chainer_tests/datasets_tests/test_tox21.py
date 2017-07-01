@@ -30,9 +30,9 @@ class TestTox21(unittest.TestCase):
             self.assertIsInstance(dataset, numpy.ndarray)
 
     @attr.slow
+    @unittest.skipUnless(datasets.tox21.available,
+                         'tox21 dataset is not available')
     def test_get_tox21(self):
-        if not datasets.tox21.available:
-            return
         train, test, val = datasets.get_tox21()
         self._check(train)
         self._check(test)
@@ -54,9 +54,9 @@ class TestTox21Preprocessor(unittest.TestCase):
             dataset, numpy.zeros((10, 10), dtype=numpy.float32))
 
     @attr.slow
+    @unittest.skipUnless(datasets.tox21.available,
+                         'tox21 dataset is not available')
     def test_get_tox21_customized_preprocessor(self):
-        if not datasets.tox21.available:
-            return
         p = Preprocessor()
         train, test, val = datasets.get_tox21(p)
         self.assertEqual(p.call_count, 3)
@@ -67,8 +67,8 @@ class TestTox21Preprocessor(unittest.TestCase):
 
 class TestTox21NotAvailable(unittest.TestCase):
 
+    @unittest.skipIf(datasets.tox21.available,
+                     'tox21 dataset should not be available')
     def test_available(self):
-        if datasets.tox21.available:
-            return
         with self.assertRaises(RuntimeError):
             datasets.get_tox21()
