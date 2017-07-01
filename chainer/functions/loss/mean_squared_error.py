@@ -48,8 +48,8 @@ def mean_squared_error(x0, x1):
 
     Returns:
         ~chainer.Variable:
-            A variable holding an array representing the squared error of
-            two inputs.
+            A variable holding an array representing the mean squared
+            error of two inputs.
 
 
     """
