@@ -1,13 +1,15 @@
 import collections
 import contextlib
 import copy
+import functools
+import inspect
 import warnings
 
 import numpy
 import six
 
-from chainer.backends import cuda
-from chainer.backends import intel64
+from chainer import cuda
+from chainer import function
 from chainer import initializers
 from chainer import variable
 
@@ -123,8 +125,7 @@ class Link(object):
             is supplied, the default dtype will be used.
 
     Attributes:
-        ~Link.name (str): Name of this link, given by the parent chain (if
-            exists).
+        name (str): Name of this link, given by the parent chain (if exists).
 
     """
 
@@ -214,8 +215,8 @@ class Link(object):
         .. deprecated:: v2.0.0
 
            Assign a :class:`~chainer.Parameter` object directly to an
-           attribute within :meth:`~chainer.Link.init_scope` instead.
-           For example, the following code
+           attribute within :meth:`an initialization scope <init_scope>`
+           instead. For example, the following code
 
            .. code-block:: python
 
@@ -225,10 +226,10 @@ class Link(object):
 
            .. code-block:: python
 
-               with link.init_scope():
+               with self.init_scope():
                    link.W = chainer.Parameter(None, (5, 3))
 
-           The latter is easier for IDEs to keep track of the attribute's
+           The latter one is easier for IDEs to keep track of the attribute's
            type.
 
         Args:
@@ -335,6 +336,8 @@ Assign a Parameter object directly to an attribute within a \
         Returns: self
 
         """
+        if self._cpu:
+            return self
         d = self.__dict__
         for name in self._params:
             d[name].to_cpu()
@@ -342,8 +345,6 @@ Assign a Parameter object directly to an attribute within a \
             value = d[name]
             if isinstance(value, cuda.ndarray):
                 d[name] = value.get()
-            elif isinstance(value, intel64.mdarray):
-                d[name] = numpy.array(value)
         self._cpu = True
         self._device_id = None
         return self
@@ -371,29 +372,10 @@ Assign a Parameter object directly to an attribute within a \
                 d[name].to_gpu()
             for name in self._persistent:
                 value = d[name]
-                if isinstance(value, intel64.mdarray):
-                    value = numpy.array(value)
                 if isinstance(value, numpy.ndarray):
                     d[name] = cuda.to_gpu(value)
             self._device_id = cuda.cupy.cuda.get_device_id()
         self._cpu = False
-        return self
-
-    def to_intel64(self):
-        """Copies parameter variables and persistent values to CPU."""
-        intel64.check_ideep_available()
-        d = self.__dict__
-        for name in self._params:
-            d[name].to_intel64()
-        for name in self._persistent:
-            value = d[name]
-            if isinstance(value, cuda.ndarray):
-                value = value.get()  # to numpy.ndarray
-            if isinstance(value, numpy.ndarray):
-                d[name] = intel64.ideep.array(
-                    value, itype=intel64.ideep.wgt_array)
-        self._cpu = True
-        self._device_id = None
         return self
 
     def params(self, include_uninit=True):
@@ -540,7 +522,7 @@ Assign a Parameter object directly to an attribute within a \
     def disable_update(self):
         """Disables update rules of all parameters under the link hierarchy.
 
-        This method sets the :attr:`~chainer.UpdateRule.enabled` flag of the
+        This method sets the :attr:~chainer.UpdateRule.enabled` flag of the
         update rule of each parameter variable to ``False``.
 
         """
@@ -579,32 +561,6 @@ Assign a Parameter object directly to an attribute within a \
         for name in self._persistent:
             d[name] = serializer(name, d[name])
 
-    def count_params(self):
-        """Counts the total number of parameters.
-
-        This method counts the total number of scalar values included in all
-        the :class:`~chainer.Parameter`\\ s held by this link and its
-        descendants.
-
-        If the link containts uninitialized parameters, this method raises a
-        warning.
-
-        Returns:
-            The total size of parameters (int)
-
-        """
-
-        size = 0
-        for name, param in self.namedparams():
-            if param.array is None:
-                warnings.warn(
-                    'Parameter \'{}\' has not been initialized, so the '
-                    'resulting count will not include the number of parameters'
-                    ' in it.'.format(name))
-                continue
-            size += param.size
-        return size
-
 
 class Chain(Link):
 
@@ -631,7 +587,7 @@ class Chain(Link):
     by slashes ``/``.
 
     A child link can be added just by assigning it to an attribute of the
-    chain within :meth:`~chainer.Chain.init_scope`.
+    chain within :meth:`an initialization scope <chainer.Link.init_scope>`.
 
     The registered child link is saved and loaded on serialization and
     deserialization, and involved in the optimization. The registered link
@@ -674,7 +630,7 @@ class Chain(Link):
 
        Child links are registered via the assignment within a
        ``with self.init_scope():`` block. The forward propagation is often
-       implemented as the ``__call__`` operator as the above example, though
+       implemented as The ``__call__`` operator as the above example, though
        it is not mandatory.
 
     Args:
@@ -683,7 +639,7 @@ class Chain(Link):
 
             .. deprecated:: v2.0.0
 
-               Assign child links directly to attributes instead.
+               Assign child links directly to attributes, instead.
 
     """
 
@@ -717,7 +673,7 @@ class Chain(Link):
         .. deprecated:: v2.0.0
 
            Assign the child link directly to an attribute within
-           :meth:`~chainer.Chain.init_scope` instead.
+           :meth:`an initialization scope <chainer.Link.init_scope>`, instead.
            For example, the following code
 
            .. code-block:: python
@@ -728,10 +684,10 @@ class Chain(Link):
 
            .. code-block:: python
 
-              with chain.init_scope():
+              with self.init_scope():
                   chain.l1 = L.Linear(3, 5)
 
-           The latter is easier for IDEs to keep track of the attribute's
+           The latter one is easier for IDEs to keep track of the attribute's
            type.
 
         Args:
@@ -777,13 +733,6 @@ Assign a Link object directly to an attribute within a \
             d = self.__dict__
             for name in self._children:
                 d[name].to_gpu()
-        return self
-
-    def to_intel64(self):
-        super(Chain, self).to_intel64()
-        d = self.__dict__
-        for name in self._children:
-            d[name].to_intel64()
         return self
 
     def params(self, include_uninit=True):
@@ -873,13 +822,6 @@ class ChainList(Link):
         for link in links:
             self.add_link(link)
 
-    def __setattr__(self, name, value):
-        if self.within_init_scope and isinstance(value, Link):
-            raise TypeError(
-                'cannot register a new link'
-                ' within a "with chainlist.init_scope():" block.')
-        super(ChainList, self).__setattr__(name, value)
-
     def __getitem__(self, index):
         """Returns the child at given index.
 
@@ -942,12 +884,6 @@ class ChainList(Link):
             super(ChainList, self).to_gpu()
             for link in self._children:
                 link.to_gpu()
-        return self
-
-    def to_intel64(self):
-        super(ChainList, self).to_intel64()
-        for link in self._children:
-            link.to_intel64()
         return self
 
     def params(self, include_uninit=True):
@@ -1077,7 +1013,7 @@ class Sequential(ChainList):
     def __init__(self, *layers):
         super(Sequential, self).__init__()
         self._layers = []
-        self._has_lambda = False
+        self._n_lambda = 0
         for layer in layers:
             self.append(layer)
 
@@ -1107,6 +1043,9 @@ class Sequential(ChainList):
                 if link is layer:
                     del self._children[i]
                     break
+        elif callable(layer) and hasattr(layer, '__name__') \
+                and layer.__name__ == '<lambda>':
+            self._n_lambda -= 1
 
     def __iter__(self):
         return iter(self._layers)
@@ -1160,6 +1099,7 @@ class Sequential(ChainList):
         for _ in range(n_repeat - 1):
             for layer in self:
                 if isinstance(layer, Link):
+                    layer = copy.deepcopy(layer)
                     for param in layer.params(include_uninit=False):
                         param.initialize(param.shape)
                 else:
@@ -1178,7 +1118,7 @@ class Sequential(ChainList):
         for _ in range(n_repeat - 1):
             for i in range(n_layers):
                 if isinstance(self[i], Link):
-                    layer = self[i].copy()
+                    layer = copy.deepcopy(self[i])
                     for param in layer.params(include_uninit=False):
                         param.initialize(param.shape)
                 else:
@@ -1214,15 +1154,51 @@ class Sequential(ChainList):
         return x
 
     def __reduce__(self):
-        if self._has_lambda:
+        if self._n_lambda > 0:
             raise ValueError(
                 'This Sequential object has at least one lambda function as '
                 'its component. Lambda function can\'t be pickled, so please '
                 'consider to use functools.partial instead of the lambda '
                 'function or use "dill" which is an external package that '
-                'enables pickling a object including lambda functions intead '
+                'enables pickling an object including lambda functions intead '
                 'of built-in pickle.')
         return super(Sequential, self).__reduce__()
+
+    def __str__(self):
+        ret = ''
+        for i, layer in enumerate(self):
+            if isinstance(layer, Sequential):
+                name = layer.__class__.__name__
+                name += '\twhich has {} layers'.format(len(layer))
+            elif isinstance(layer, Chain):
+                name = layer.__class__.__name__
+                name += '\tThe structure behind a Chain is determined at '
+                name += 'runtime.'
+            elif isinstance(layer, ChainList):
+                name = layer.__class__.__name__
+                name += '\tThe structure behind a ChainList is determined at '
+                name += 'runtime.'
+            elif isinstance(layer, Link):
+                name = layer.__class__.__name__
+                param_info = '\t'
+                for param in sorted(layer.params(), key=lambda p: p.name):
+                    param_info += param.name
+                    if param._data[0] is not None:
+                        param_info += str(param._data[0].shape)
+                    else:
+                        param_info += '(None)'
+                    param_info += '\t'
+                name = name + param_info
+            elif isinstance(layer, function.Function):
+                name = layer.__class__.__name__
+            elif isinstance(layer, functools.partial):
+                name = repr(layer)
+            elif layer.__name__ == '<lambda>':
+                name = inspect.getsource(layer).strip()
+            else:
+                name = layer.__name__
+            ret += '{}\t{}\n'.format(i, name)
+        return ret
 
     def append(self, layer):
         self.insert(len(self), layer)
@@ -1242,7 +1218,7 @@ class Sequential(ChainList):
             self.add_link(layer)
         elif callable(layer) and hasattr(layer, '__name__') \
                 and layer.__name__ == '<lambda>':
-            self._has_lambda = True
+            self._n_lambda += 1
 
     def remove(self, layer):
         if layer in self:
@@ -1329,7 +1305,7 @@ class Sequential(ChainList):
 
     def copy(self):
         ret = Sequential()
-        ret._has_lambda = self._has_lambda
+        ret._n_lambda = self._n_lambda
         for layer in self:
             if isinstance(layer, Link):
                 ret.append(layer.copy())
