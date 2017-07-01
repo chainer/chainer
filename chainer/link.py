@@ -1013,7 +1013,7 @@ class Sequential(ChainList):
     def __init__(self, *layers):
         super(Sequential, self).__init__()
         self._layers = []
-        self._has_lambda = False
+        self._n_lambda = 0
         for layer in layers:
             self.append(layer)
 
@@ -1043,6 +1043,9 @@ class Sequential(ChainList):
                 if link is layer:
                     del self._children[i]
                     break
+        elif callable(layer) and hasattr(layer, '__name__') \
+                and layer.__name__ == '<lambda>':
+            self._n_lambda -= 1
 
     def __iter__(self):
         return iter(self._layers)
@@ -1096,6 +1099,7 @@ class Sequential(ChainList):
         for _ in range(n_repeat - 1):
             for layer in self:
                 if isinstance(layer, Link):
+                    layer = copy.deepcopy(layer)
                     for param in layer.params(include_uninit=False):
                         param.initialize(param.shape)
                 else:
@@ -1114,7 +1118,7 @@ class Sequential(ChainList):
         for _ in range(n_repeat - 1):
             for i in range(n_layers):
                 if isinstance(self[i], Link):
-                    layer = self[i].copy()
+                    layer = copy.deepcopy(self[i])
                     for param in layer.params(include_uninit=False):
                         param.initialize(param.shape)
                 else:
@@ -1150,20 +1154,23 @@ class Sequential(ChainList):
         return x
 
     def __reduce__(self):
-        if self._has_lambda:
+        if self._n_lambda > 0:
             raise ValueError(
                 'This Sequential object has at least one lambda function as '
                 'its component. Lambda function can\'t be pickled, so please '
                 'consider to use functools.partial instead of the lambda '
                 'function or use "dill" which is an external package that '
-                'enables pickling a object including lambda functions intead '
+                'enables pickling an object including lambda functions intead '
                 'of built-in pickle.')
         return super(Sequential, self).__reduce__()
 
-    def __repr__(self):
+    def __str__(self):
         ret = ''
         for i, layer in enumerate(self):
-            if isinstance(layer, Chain):
+            if isinstance(layer, Sequential):
+                name = layer.__class__.__name__
+                name += '\twhich has {} layers'.format(len(layer))
+            elif isinstance(layer, Chain):
                 name = layer.__class__.__name__
                 name += '\tThe structure behind a Chain is determined at '
                 name += 'runtime.'
@@ -1211,7 +1218,7 @@ class Sequential(ChainList):
             self.add_link(layer)
         elif callable(layer) and hasattr(layer, '__name__') \
                 and layer.__name__ == '<lambda>':
-            self._has_lambda = True
+            self._n_lambda += 1
 
     def remove(self, layer):
         if layer in self:
@@ -1298,7 +1305,7 @@ class Sequential(ChainList):
 
     def copy(self):
         ret = Sequential()
-        ret._has_lambda = self._has_lambda
+        ret._n_lambda = self._n_lambda
         for layer in self:
             if isinstance(layer, Link):
                 ret.append(layer.copy())

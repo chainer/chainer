@@ -612,7 +612,7 @@ class TestParameter(unittest.TestCase):
 
     def test_initializer(self):
         x = chainer.Parameter(shape=(1,))
-        self.assertIsNone(x.initializer)
+        self.assertIsNotNone(x.initializer)
 
     def test_initialize_by_scalar(self):
         x = chainer.Parameter(2., (3,))
