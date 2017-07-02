@@ -20,9 +20,6 @@ def _split(inputs, pos):
     return inputs[:pos], inputs[pos:]
 
 
-@testing.parameterize(*testing.product({
-    'use_cudnn': ['always', 'auto', 'never'],
-}))
 class TestNStepLSTM(unittest.TestCase):
 
     batches = [3, 2, 1]
@@ -71,7 +68,6 @@ class TestNStepLSTM(unittest.TestCase):
               for ws in ws_data]
         bs = [[chainer.Variable(b) for b in bs]
               for bs in bs_data]
-        with chainer.using_config('use_cudnn', self.use_cudnn):
             hy, cy, ys = functions.n_step_lstm(
                 self.n_layers, self.dropout, h, c, ws, bs, xs)
 
@@ -106,13 +102,26 @@ class TestNStepLSTM(unittest.TestCase):
     def test_forward_cpu(self):
         self.check_forward(self.hx, self.cx, self.xs, self.ws, self.bs)
 
+    def check_forward_gpu(self, use_cudnn):
+        with chainer.using_config('use_cudnn', use_cudnn):
+            self.check_forward(
+                cuda.to_gpu(self.hx),
+                cuda.to_gpu(self.cx),
+                [cuda.to_gpu(x) for x in self.xs],
+                [[cuda.to_gpu(w) for w in ws] for ws in self.ws],
+                [[cuda.to_gpu(b) for b in bs] for bs in self.bs])
+
     @attr.gpu
-    def test_forward_gpu(self):
-        self.check_forward(cuda.to_gpu(self.hx),
-                           cuda.to_gpu(self.cx),
-                           [cuda.to_gpu(x) for x in self.xs],
-                           [[cuda.to_gpu(w) for w in ws] for ws in self.ws],
-                           [[cuda.to_gpu(b) for b in bs] for bs in self.bs])
+    def test_forward_gpu_cudnn_always(self):
+        self.check_forward_gpu('always')
+
+    @attr.gpu
+    def test_forward_gpu_cudnn_auto(self):
+        self.check_forward_gpu('auto')
+
+    @attr.gpu
+    def test_forward_gpu_cudnn_never(self):
+        self.check_forward_gpu('never')
 
     def check_backward(self, h_data, c_data, xs_data, ws_data, bs_data,
                        dhy_data, dcy_data, dys_data):
@@ -144,19 +153,18 @@ class TestNStepLSTM(unittest.TestCase):
 
     @attr.gpu
     def test_backward_gpu(self):
-        self.check_backward(cuda.to_gpu(self.hx),
-                            cuda.to_gpu(self.cx),
-                            [cuda.to_gpu(x) for x in self.xs],
-                            [[cuda.to_gpu(w) for w in ws] for ws in self.ws],
-                            [[cuda.to_gpu(b) for b in bs] for bs in self.bs],
-                            cuda.to_gpu(self.dhy),
-                            cuda.to_gpu(self.dcy),
-                            [cuda.to_gpu(dy) for dy in self.dys])
+        with chainer.using_config('use_cudnn', 'always'):
+            self.check_backward(
+                cuda.to_gpu(self.hx),
+                cuda.to_gpu(self.cx),
+                [cuda.to_gpu(x) for x in self.xs],
+                [[cuda.to_gpu(w) for w in ws] for ws in self.ws],
+                [[cuda.to_gpu(b) for b in bs] for bs in self.bs],
+                cuda.to_gpu(self.dhy),
+                cuda.to_gpu(self.dcy),
+                [cuda.to_gpu(dy) for dy in self.dys])
 
 
-@testing.parameterize(*testing.product({
-    'use_cudnn': ['always', 'auto', 'never'],
-}))
 class TestNStepBiLSTM(unittest.TestCase):
 
     batches = [3, 2, 1]
@@ -272,19 +280,10 @@ class TestNStepBiLSTM(unittest.TestCase):
         testing.assert_allclose(cy.data, e_cy, rtol=1e-4, atol=1e-4)
 
     def test_forward_cpu(self):
-        with chainer.using_config('use_cudnn', self.use_cudnn), \
-                chainer.using_config('enable_backprop', True):
-            self.check_forward(self.hx, self.cx, self.xs, self.ws, self.bs)
+        self.check_forward(self.hx, self.cx, self.xs, self.ws, self.bs)
 
-    def test_forward_cpu_volatile(self):
-        with chainer.using_config('use_cudnn', self.use_cudnn), \
-                chainer.using_config('enable_backprop', False):
-            self.check_forward(self.hx, self.cx, self.xs, self.ws, self.bs)
-
-    @attr.gpu
-    def test_forward_gpu(self):
-        with chainer.using_config('use_cudnn', self.use_cudnn), \
-                chainer.using_config('enable_backprop', True):
+    def check_forward_gpu(self, use_cudnn):
+        with chainer.using_config('use_cudnn', use_cudnn):
             self.check_forward(
                 cuda.to_gpu(self.hx),
                 cuda.to_gpu(self.cx),
@@ -293,15 +292,16 @@ class TestNStepBiLSTM(unittest.TestCase):
                 [[cuda.to_gpu(b) for b in bs] for bs in self.bs])
 
     @attr.gpu
-    def test_forward_gpu_volatile(self):
-        with chainer.using_config('use_cudnn', self.use_cudnn), \
-                chainer.using_config('enable_backprop', False):
-            self.check_forward(
-                cuda.to_gpu(self.hx),
-                cuda.to_gpu(self.cx),
-                [cuda.to_gpu(x) for x in self.xs],
-                [[cuda.to_gpu(w) for w in ws] for ws in self.ws],
-                [[cuda.to_gpu(b) for b in bs] for bs in self.bs])
+    def test_forward_gpu_cudnn_always(self):
+        self.check_forward_gpu('always')
+
+    @attr.gpu
+    def test_forward_gpu_cudnn_auto(self):
+        self.check_forward_gpu('auto')
+
+    @attr.gpu
+    def test_forward_gpu_cudnn_never(self):
+        self.check_forward_gpu('never')
 
     def check_backward(self, h_data, c_data, xs_data, ws_data, bs_data,
                        dhy_data, dcy_data, dys_data):
@@ -328,13 +328,12 @@ class TestNStepBiLSTM(unittest.TestCase):
             f, args, grads, eps=1e-2, rtol=1e-3, atol=1e-3)
 
     def test_backward_cpu(self):
-        with chainer.using_config('use_cudnn', self.use_cudnn):
-            self.check_backward(self.hx, self.cx, self.xs, self.ws, self.bs,
-                                self.dhy, self.dcy, self.dys)
+        self.check_backward(self.hx, self.cx, self.xs, self.ws, self.bs,
+                            self.dhy, self.dcy, self.dys)
 
     @attr.gpu
-    def test_backward_gpu(self):
-        with chainer.using_config('use_cudnn', self.use_cudnn):
+    def check_backward_gpu(self):
+        with chainer.using_config('use_cudnn', 'always'):
             self.check_backward(
                 cuda.to_gpu(self.hx),
                 cuda.to_gpu(self.cx),
