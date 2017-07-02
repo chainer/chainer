@@ -417,7 +417,7 @@ class TestVariable(unittest.TestCase):
             a.grad_var = chainer.Variable(xp.full_like(a_data, np.nan))
             a.grad_var.creator_node = chainer.FunctionNode()
 
-        with self.assertWarns(DeprecationWarning):
+        with testing.assert_warns(DeprecationWarning):
             a.zerograd()
         self.assertIsNot(a.grad, None)
         if fill:
@@ -789,7 +789,7 @@ class TestUninitializedParameter(unittest.TestCase):
 
     def test_zerograd(self):
         x = chainer.Parameter()
-        with self.assertWarns(DeprecationWarning):
+        with testing.assert_warns(DeprecationWarning):
             x.zerograd()
         x.initialize((3, 2))
         self.check_zerograd(x, np)
@@ -812,7 +812,7 @@ class TestUninitializedParameter(unittest.TestCase):
 
     def test_zerograd_dtype(self):
         x = chainer.Parameter(initializers.Zero(dtype=np.float16))
-        with self.assertWarns(DeprecationWarning):
+        with testing.assert_warns(DeprecationWarning):
             x.zerograd()
         x.initialize((3, 2))
         self.assertEqual(x.grad.dtype, x.data.dtype)
@@ -947,7 +947,7 @@ class TestDebugPrint(unittest.TestCase):
         self.assertIn('grad: None', result)
 
         # zero grad
-        with self.assertWarns(DeprecationWarning):
+        with testing.assert_warns(DeprecationWarning):
             v.zerograd()
         result = v.debug_print()
         self.assertIn('grad: 0', result)
