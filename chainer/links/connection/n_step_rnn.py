@@ -5,6 +5,7 @@ from chainer import cuda
 from chainer.functions.array import permutate
 from chainer.functions.array import transpose_sequence
 from chainer.functions.connection import n_step_rnn as rnn
+from chainer.initializers import normal
 from chainer import link
 from chainer.utils import argument
 from chainer import variable
@@ -71,18 +72,20 @@ class NStepRNNBase(link.ChainList):
         for i in six.moves.range(n_layers):
             for di in six.moves.range(direction):
                 weight = link.Link()
-                for j in six.moves.range(2):
-                    if i == 0 and j < 1:
-                        w_in = in_size
-                    elif i > 0 and j < 1:
-                        w_in = out_size * direction
-                    else:
-                        w_in = out_size
-                    weight.add_param('w%d' % j, (out_size, w_in))
-                    weight.add_param('b%d' % j, (out_size,))
-                    getattr(weight, 'w%d' % j).data[...] = numpy.random.normal(
-                        0, numpy.sqrt(1. / w_in), (out_size, w_in))
-                    getattr(weight, 'b%d' % j).data[...] = 0
+                with weight.init_scope():
+                    for j in six.moves.range(2):
+                        if i == 0 and j < 1:
+                            w_in = in_size
+                        elif i > 0 and j < 1:
+                            w_in = out_size * direction
+                        else:
+                            w_in = out_size
+                        w = variable.Parameter(
+                            normal.Normal(numpy.sqrt(1. / w_in)),
+                            (out_size, w_in))
+                        b = variable.Parameter(0, (out_size,))
+                        setattr(weight, 'w%d' % j, w)
+                        setattr(weight, 'b%d' % j, b)
                 weights.append(weight)
 
         super(NStepRNNBase, self).__init__(*weights)
