@@ -312,7 +312,8 @@ class TestLink(unittest.TestCase):
     def test_zerograds(self):
         gx_expect = numpy.zeros_like(self.link.x.data)
         gy_expect = numpy.zeros_like(self.link.y.data)
-        self.link.zerograds()
+        with self.assertWarns(DeprecationWarning):
+            self.link.zerograds()
         numpy.testing.assert_array_equal(self.link.x.grad, gx_expect)
         numpy.testing.assert_array_equal(self.link.y.grad, gy_expect)
         self.link.u.initialize((2, 3))
@@ -656,7 +657,8 @@ class TestChain(unittest.TestCase):
 
     def test_zerograds(self):
         self.set_count_parameters()
-        self.c2.zerograds()
+        with self.assertWarns(DeprecationWarning):
+            self.c2.zerograds()
         numpy.testing.assert_array_equal(self.l1.x.grad, numpy.zeros((2, 3)))
         numpy.testing.assert_array_equal(self.l2.x.grad, numpy.zeros(2))
         self.assertEqual(self.l1.x.count_zerograd, 1)
@@ -942,7 +944,8 @@ class TestChainList(unittest.TestCase):
         numpy.testing.assert_array_equal(self.l3.x.data, l3.x.data)
 
     def test_zerograds(self):
-        self.c2.zerograds()
+        with self.assertWarns(DeprecationWarning):
+            self.c2.zerograds()
         numpy.testing.assert_array_equal(self.l1.x.grad, numpy.zeros((2, 3)))
         numpy.testing.assert_array_equal(self.l2.x.grad, numpy.zeros(2))
         numpy.testing.assert_array_equal(self.l3.x.grad, numpy.zeros(3))
