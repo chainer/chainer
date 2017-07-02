@@ -48,11 +48,12 @@ class ChildSumTreeLSTM(link.Chain):
     """
 
     def __init__(self, in_size, out_size):
-        super(ChildSumTreeLSTM, self).__init__(
-            W_x=linear.Linear(in_size, 4 * out_size),
-            W_h_aio=linear.Linear(out_size, 3 * out_size, nobias=True),
-            W_h_f=linear.Linear(out_size, out_size, nobias=True),
-        )
+        super(ChildSumTreeLSTM, self).__init__()
+        with self.init_scope():
+            self.W_x = linear.Linear(in_size, 4 * out_size)
+            self.W_h_aio = linear.Linear(out_size, 3 * out_size, nobias=True)
+            self.W_h_f = linear.Linear(out_size, out_size, nobias=True)
+
         self.in_size = in_size
         self.state_size = out_size
         utils.experimental('chainer.links.tree_lstm.py')
@@ -171,13 +172,14 @@ class NaryTreeLSTM(link.Chain):
 
     def __init__(self, in_size, out_size, n_ary=2):
         assert(n_ary >= 2)
-        super(NaryTreeLSTM, self).__init__(
-            W_x=linear.Linear(in_size, (3 + n_ary) * out_size),
-        )
-        for i in range(1, n_ary + 1):
-            self.add_link(
-                'W_h{}'.format(i),
-                linear.Linear(out_size, (3 + n_ary) * out_size, nobias=True))
+        super(NaryTreeLSTM, self).__init__()
+        with self.init_scope():
+            self.W_x = linear.Linear(in_size, (3 + n_ary) * out_size)
+
+            for i in range(1, n_ary + 1):
+                l = linear.Linear(
+                    out_size, (3 + n_ary) * out_size, nobias=True)
+                setattr(self, 'W_h{}'.format(i), l)
         self.in_size = in_size
         self.state_size = out_size
         self.n_ary = n_ary

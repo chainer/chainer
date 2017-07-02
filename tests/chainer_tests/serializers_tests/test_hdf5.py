@@ -221,8 +221,13 @@ class TestHDF5DeserializerNonStrictGroupHierachy(unittest.TestCase):
         os.close(fd)
         self.temp_file_path = path
 
-        child = link.Chain(linear=links.Linear(2, 3))
-        parent = link.Chain(linear=links.Linear(3, 2), child=child)
+        child = link.Chain()
+        with child.init_scope():
+            child.linear = links.Linear(2, 3)
+        parent = link.Chain()
+        with parent.init_scope():
+            parent.linear = links.Linear(3, 2)
+            parent.child = child
         hdf5.save_hdf5(self.temp_file_path, parent)
         self.source = parent
 
@@ -236,8 +241,13 @@ class TestHDF5DeserializerNonStrictGroupHierachy(unittest.TestCase):
             os.remove(self.temp_file_path)
 
     def test_deserialize_hierarchy(self):
-        child = link.Chain(linear2=links.Linear(2, 3))
-        target = link.Chain(linear=links.Linear(3, 2), child=child)
+        child = link.Chain()
+        with child.init_scope():
+            child.linear2 = links.Linear(2, 3)
+        target = link.Chain()
+        with target.init_scope():
+            target.linear = links.Linear(3, 2)
+            target.child = child
         target_child_W = numpy.copy(child.linear2.W.data)
         target_child_b = numpy.copy(child.linear2.b.data)
         self.deserializer.load(target)
