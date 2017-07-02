@@ -515,10 +515,15 @@ def expect(*bool_exprs):
 
 
 def same_types(*arrays):
-    if all(map(lambda x: isinstance(x, numpy.ndarray), arrays)):
+    for x in arrays:
+        if not isinstance(x, numpy.ndarray):
+            break
+    else:
         return True
-    return cuda.available and all([isinstance(x, cuda.ndarray)
-                                   for x in arrays])
+    for x in arrays:
+        if not isinstance(x, cuda.ndarray):
+            return False
+    return True
 
 
 def eval(exp):
