@@ -68,8 +68,8 @@ class TestNStepLSTM(unittest.TestCase):
               for ws in ws_data]
         bs = [[chainer.Variable(b) for b in bs]
               for bs in bs_data]
-            hy, cy, ys = functions.n_step_lstm(
-                self.n_layers, self.dropout, h, c, ws, bs, xs)
+        hy, cy, ys = functions.n_step_lstm(
+            self.n_layers, self.dropout, h, c, ws, bs, xs)
 
         e_hy = self.hx.copy()
         e_cy = self.cx.copy()
