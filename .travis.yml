@@ -47,27 +47,30 @@ before_install:
 
 install:
   - pip install -U pip wheel
-  - pip install cython
   - python setup.py sdist
   - pip install dist/*.tar.gz
   - pip install h5py pillow
+  - travis_wait pip install theano
   - pip install nose hacking mock
   - pip install autopep8
 
 script:
   - flake8
   - flake8 --config=.flake8.cython
-  - autopep8 -r . --global-config .pep8 | tee check_autopep8
+  - autopep8 -r . --global-config .pep8 --diff | tee check_autopep8
   - test ! -s check_autopep8
-  - PYTHONWARNINGS='module::DeprecationWarning' nosetests -a '!gpu,!slow' --with-doctest tests/install_tests
   - cd tests
-  - PYTHONWARNINGS='module::DeprecationWarning' nosetests -a '!gpu,!slow' --with-doctest chainer_tests
-  - cd ..
-  - READTHEDOCS=True python setup.py develop
+  - PYTHONWARNINGS='ignore::FutureWarning,module::DeprecationWarning' nosetests -a '!gpu,!slow' --with-doctest chainer_tests
+  - if [[ $TRAVIS_OS_NAME == "linux" ]]; then
+      cd ..;
+      READTHEDOCS=True python setup.py develop;
+    fi
 
 sudo: false
 
 addons:
   apt:
     packages:
+      - gfortran
       - libhdf5-serial-dev
+      - liblapack-dev

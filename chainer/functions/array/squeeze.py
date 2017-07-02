@@ -42,6 +42,8 @@ class Squeeze(function.Function):
                     type_check.expect(-x_type.ndim <= x)
 
     def forward(self, inputs):
+        self.retain_inputs(())
+        self._in_ndim = inputs[0].ndim
         xp = cuda.get_array_module(*inputs)
         if self.axis is None:
             self._axis = tuple(argone(inputs[0].shape))
@@ -52,7 +54,7 @@ class Squeeze(function.Function):
             axis = self._axis
         else:
             axis = self.axis
-            axis = [x + inputs[0].ndim if x < 0 else x for x in axis]
+            axis = [x + self._in_ndim if x < 0 else x for x in axis]
             axis.sort()
 
         shape = list(grads[0].shape)
@@ -65,7 +67,7 @@ def squeeze(x, axis=None):
     """Remove demensions of size one from the shape of a ndarray.
 
     Args:
-        x (chainer.Variable or :class:``numpy.ndarray` or cupy.ndarray): Input
+        x (chainer.Variable or :class:``numpy.ndarray`` or cupy.ndarray): Input
             data.
         axis (None or int or tuple of ints): A subset of the single-dimensional
             entries in the shape to remove. If ``None`` is supplied, all of

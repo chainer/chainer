@@ -3,7 +3,9 @@ import unittest
 
 import numpy
 
+from chainer import cuda
 from chainer import testing
+from chainer.testing import attr
 from chainer.utils import type_check as T
 
 
@@ -347,10 +349,48 @@ class TestListItem(unittest.TestCase):
 class TestProd(unittest.TestCase):
 
     def test_name(self):
-        self.assertEqual(T.prod.name, 'prod')
+        p = T.prod([])
+        self.assertEqual(str(p), 'prod([])')
 
     def test_value(self):
-        self.assertIs(T.prod.value, numpy.prod)
+        value = T.prod([2, 3]).eval()
+        self.assertEqual(value, 6)
+
+
+class TestSameTypes(unittest.TestCase):
+
+    def test_all_numpy_array(self):
+        x = numpy.array([0])
+        y = numpy.array([1])
+        z = numpy.array([2])
+        self.assertTrue(T.same_types(x, y, z))
+
+    def test_all_numpy_subclasses(self):
+        x = numpy.array([0])
+        y = numpy.array([[1], [2]])
+        z = numpy.matrix("3,4; 5,6")
+        self.assertTrue(T.same_types(x, y, z))
+
+    @attr.gpu
+    def test_all_cupy_array(self):
+        x = cuda.cupy.array([0])
+        y = cuda.cupy.array([1])
+        z = cuda.cupy.array([2])
+        self.assertTrue(T.same_types(x, y, z))
+
+    @attr.gpu
+    def test_numpy_cupy_mixed_1(self):
+        x = numpy.array([0])
+        y = cuda.cupy.array([1])
+        z = numpy.array([2])
+        self.assertFalse(T.same_types(x, y, z))
+
+    @attr.gpu
+    def test_numpy_cupy_mixed_2(self):
+        x = cuda.cupy.array([0])
+        y = numpy.array([1])
+        z = cuda.cupy.array([2])
+        self.assertFalse(T.same_types(x, y, z))
 
 
 testing.run_module(__name__, __file__)

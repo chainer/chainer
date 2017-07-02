@@ -107,10 +107,11 @@ def read_corpus(path, vocab, max_size):
 class RecursiveNet(chainer.Chain):
 
     def __init__(self, n_vocab, n_units):
-        super(RecursiveNet, self).__init__(
-            embed=L.EmbedID(n_vocab, n_units),
-            l=L.Linear(n_units * 2, n_units),
-            w=L.Linear(n_units, n_label))
+        super(RecursiveNet, self).__init__()
+        with self.init_scope():
+            self.embed = L.EmbedID(n_vocab, n_units)
+            self.l = L.Linear(n_units * 2, n_units)
+            self.w = L.Linear(n_units, n_label)
 
     def leaf(self, x):
         return self.embed(x)
@@ -122,28 +123,27 @@ class RecursiveNet(chainer.Chain):
         return self.w(v)
 
 
-def traverse(model, node, train=True, evaluate=None, root=True):
+def traverse(model, node, evaluate=None, root=True):
     if isinstance(node['node'], int):
         # leaf node
         word = xp.array([node['node']], np.int32)
         loss = 0
-        x = chainer.Variable(word, volatile=not train)
-        v = model.leaf(x)
+        v = model.leaf(word)
     else:
         # internal node
         left_node, right_node = node['node']
         left_loss, left = traverse(
-            model, left_node, train=train, evaluate=evaluate, root=False)
+            model, left_node, evaluate=evaluate, root=False)
         right_loss, right = traverse(
-            model, right_node, train=train, evaluate=evaluate, root=False)
+            model, right_node, evaluate=evaluate, root=False)
         v = model.node(left, right)
         loss = left_loss + right_loss
 
     y = model.label(v)
 
-    if train:
+    if chainer.config.train:
         label = xp.array([node['label']], np.int32)
-        t = chainer.Variable(label, volatile=not train)
+        t = chainer.Variable(label)
         loss += F.softmax_cross_entropy(y, t)
 
     if evaluate is not None:
@@ -161,11 +161,10 @@ def traverse(model, node, train=True, evaluate=None, root=True):
 
 
 def evaluate(model, test_trees):
-    m = model.copy()
-    m.volatile = True
     result = collections.defaultdict(lambda: 0)
-    for tree in test_trees:
-        traverse(m, tree, train=False, evaluate=result)
+    with chainer.using_config('train', False), chainer.no_backprop_mode():
+        for tree in test_trees:
+            traverse(model, tree, evaluate=result)
 
     acc_node = 100.0 * result['correct_node'] / result['total_node']
     acc_root = 100.0 * result['correct_root'] / result['total_root']
@@ -173,6 +172,7 @@ def evaluate(model, test_trees):
         acc_node, result['correct_node'], result['total_node']))
     print(' Root accuracy: {0:.2f} %% ({1:,d}/{2:,d})'.format(
         acc_root, result['correct_root'], result['total_root']))
+
 
 vocab = {}
 if args.test:
@@ -203,7 +203,7 @@ for epoch in range(n_epoch):
     cur_at = time.time()
     random.shuffle(train_trees)
     for tree in train_trees:
-        loss, v = traverse(model, tree, train=True)
+        loss, v = traverse(model, tree)
         accum_loss += loss
         count += 1
 

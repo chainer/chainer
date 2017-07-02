@@ -1,9 +1,9 @@
 from __future__ import print_function
 import sys
 
-import chainer
 from chainer import cuda
 from chainer import function
+from chainer import variable
 
 
 class PrintHook(function.FunctionHook):
@@ -12,22 +12,6 @@ class PrintHook(function.FunctionHook):
     This function hook outputs the debug information of input arguments of
     ``forward`` and ``backward`` methods involved in the hooked functions
     at preprocessing time (that is, just before each method is called).
-
-    The basic usage is to use it with ``with`` statement.
-
-    >>> import chainer, chainer.functions as F, chainer.links as L
-    ... from chainer import function_hooks
-    ... l = L.Linear(10, 10)
-    ... x = chainer.Variable(numpy.zeros((1, 10), 'f'))
-    ... with function_hooks.PrintHook():
-    ...     y = l(x)
-    ...     z = F.sum(y)
-    ...     z.backward()
-
-    In this example, ``PrintHook`` shows the debug information of
-    forward propagation of ``LinearFunction`` (which is implicitly
-    called by ``l``) and ``Sum`` (called by ``F.sum``)
-    and backward propagation of ``z`` and ``y``.
 
     Unlike simple "debug print" technique, where users insert print functions
     at every function to be inspected, we can show the information
@@ -43,6 +27,24 @@ class PrintHook(function.FunctionHook):
         file: Output file_like object that that redirect to.
         flush: If ``True``, this hook forcibly flushes the text stream
             at the end of preprocessing.
+
+    .. admonition:: Example
+
+        The basic usage is to use it with ``with`` statement.
+
+        >>> from chainer import function_hooks
+        >>> l = L.Linear(10, 10)
+        >>> x = chainer.Variable(np.zeros((1, 10), 'f'))
+        >>> with chainer.function_hooks.PrintHook():
+        ...     y = l(x)
+        ...     z = F.sum(y)
+        ...     z.backward() # doctest:+SKIP
+
+        In this example, ``PrintHook`` shows the debug information of
+        forward propagation of ``LinearFunction`` (which is implicitly
+        called by ``l``) and ``Sum`` (called by ``F.sum``)
+        and backward propagation of ``z`` and ``y``.
+
     """
 
     name = 'PrintHook'
@@ -60,12 +62,16 @@ class PrintHook(function.FunctionHook):
         self._print('function\t{}'.format(function.label))
         self._print('input data')
         for d in in_data:
-            self._print(chainer.Variable(d).debug_print())
+            if d is None:
+                # Some inputs can be removed with `retain_grad`.
+                self._print('(removed)')
+                continue
+            self._print(variable.Variable(d).debug_print())
         if out_grad is not None:
             self._print('output gradient')
             for d in out_grad:
                 xp = cuda.get_array_module(d)
-                v = chainer.Variable(xp.zeros_like(d, dtype=d.dtype))
+                v = variable.Variable(xp.zeros_like(d, dtype=d.dtype))
                 v.grad = d
                 self._print(v.debug_print())
         if self.flush:

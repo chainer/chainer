@@ -110,4 +110,75 @@ class TestUnpooling2D(unittest.TestCase):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
 
+@testing.parameterize(*testing.product({
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'h': [5],
+    'k': [3],
+    's': [3],
+    'p': [0],
+    'cover_all': [True, False],
+}))
+class TestMaxPoolingUnpooling(unittest.TestCase):
+
+    def check_left_inverse(self, xp, use_cudnn='never'):
+        x = xp.arange(self.h * self.h).reshape(
+            (1, 1, self.h, self.h)).astype(self.dtype)
+        with chainer.using_config('use_cudnn', use_cudnn):
+            y = chainer.functions.unpooling_2d(
+                x, self.k, self.s, self.p, None, self.cover_all)
+            x_ = chainer.functions.max_pooling_2d(
+                y, self.k, self.s, self.p, self.cover_all).data
+
+        self.assertEqual(x.shape, x_.shape)
+        self.assertEqual(x.dtype, x_.dtype)
+        chainer.testing.assert_allclose(x, x_)
+
+    def test_left_inverse_cpu(self):
+        self.check_left_inverse(numpy)
+
+    @attr.gpu
+    def test_left_inverse_cupy(self):
+        self.check_left_inverse(cuda.cupy)
+
+    @attr.gpu
+    def test_left_inverse_cudnn(self):
+        self.check_left_inverse(cuda.cupy, 'always')
+
+
+@testing.parameterize(*testing.product({
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'h': [5],
+    'k': [3],
+    's': [3],
+    'p': [0],
+}))
+class TestAveragePoolingUnpooling(unittest.TestCase):
+
+    def check_left_inverse(self, xp, use_cudnn='never'):
+        x = xp.arange(self.h * self.h).reshape(
+            (1, 1, self.h, self.h)).astype(self.dtype)
+        with chainer.using_config('use_cudnn', use_cudnn):
+            # average_pooling_2d does not have cover_all option
+            # as max_pooling_2d has.
+            y = chainer.functions.unpooling_2d(
+                x, self.k, self.s, self.p, None, False)
+            x_ = chainer.functions.average_pooling_2d(
+                y, self.k, self.s, self.p).data
+
+        self.assertEqual(x.shape, x_.shape)
+        self.assertEqual(x.dtype, x_.dtype)
+        chainer.testing.assert_allclose(x, x_)
+
+    def test_left_inverse_cpu(self):
+        self.check_left_inverse(numpy)
+
+    @attr.gpu
+    def test_left_inverse_cupy(self):
+        self.check_left_inverse(cuda.cupy)
+
+    @attr.gpu
+    def test_left_inverse_cudnn(self):
+        self.check_left_inverse(cuda.cupy, 'always')
+
+
 testing.run_module(__name__, __file__)

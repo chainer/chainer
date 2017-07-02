@@ -3,8 +3,7 @@ import six
 
 from chainer.dataset import convert
 from chainer.dataset import iterator as iterator_module
-from chainer import optimizer as optimizer_module
-from chainer import variable
+from chainer import function
 
 
 class Updater(object):
@@ -123,9 +122,13 @@ class StandardUpdater(Updater):
             iterator = {'main': iterator}
         self._iterators = iterator
 
-        if isinstance(optimizer, optimizer_module.Optimizer):
+        if not isinstance(optimizer, dict):
             optimizer = {'main': optimizer}
         self._optimizers = optimizer
+
+        if device is not None and device >= 0:
+            for optimizer in six.itervalues(self._optimizers):
+                optimizer.target.to_gpu(device)
 
         self.converter = converter
         self.loss_func = loss_func
@@ -139,6 +142,10 @@ class StandardUpdater(Updater):
     @property
     def epoch_detail(self):
         return self._iterators['main'].epoch_detail
+
+    @property
+    def previous_epoch_detail(self):
+        return self._iterators['main'].previous_epoch_detail
 
     @property
     def is_new_epoch(self):
@@ -178,15 +185,11 @@ class StandardUpdater(Updater):
         loss_func = self.loss_func or optimizer.target
 
         if isinstance(in_arrays, tuple):
-            in_vars = tuple(variable.Variable(x) for x in in_arrays)
-            optimizer.update(loss_func, *in_vars)
+            optimizer.update(loss_func, *in_arrays)
         elif isinstance(in_arrays, dict):
-            in_vars = {key: variable.Variable(x)
-                       for key, x in six.iteritems(in_arrays)}
-            optimizer.update(loss_func, **in_vars)
+            optimizer.update(loss_func, **in_arrays)
         else:
-            in_var = variable.Variable(in_arrays)
-            optimizer.update(loss_func, in_var)
+            optimizer.update(loss_func, in_arrays)
 
     def serialize(self, serializer):
         for name, iterator in six.iteritems(self._iterators):
@@ -298,16 +301,14 @@ class ParallelUpdater(StandardUpdater):
             in_arrays = in_arrays_list[model_key]
             loss_func = self.loss_func or model
 
-            if isinstance(in_arrays, tuple):
-                in_vars = tuple(variable.Variable(x) for x in in_arrays)
-                losses.append(loss_func(*in_vars))
-            elif isinstance(in_arrays, dict):
-                in_vars = {key: variable.Variable(x)
-                           for key, x in six.iteritems(in_arrays)}
-                losses.append(loss_func(**in_vars))
-            else:
-                in_vars = variable.Variable(in_arrays)
-                losses.append(loss_func(in_vars))
+            with function.force_backprop_mode():
+                if isinstance(in_arrays, tuple):
+                    loss = loss_func(*in_arrays)
+                elif isinstance(in_arrays, dict):
+                    loss = loss_func(**in_arrays)
+                else:
+                    loss = loss_func(in_arrays)
+            losses.append(loss)
 
         # For _uninitialized_params
         for model in six.itervalues(self._models):
