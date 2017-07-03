@@ -146,7 +146,7 @@ def main():
                         help=('Number of iterations after which replay is '
                               'started'))
     parser.add_argument('--tau', type=float, default=1e-2,
-                        help='Softness of soft target update')
+                        help='Softness of soft target update (0, 1]')
     parser.add_argument('--noise-scale', type=float, default=0.4,
                         help='Scale of additive Gaussian noises')
     parser.add_argument('--record', action='store_true', default=True,
