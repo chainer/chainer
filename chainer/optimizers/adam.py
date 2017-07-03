@@ -76,8 +76,8 @@ class AdamRule(optimizer.UpdateRule):
 
     @property
     def lr(self):
-        fix1 = 1. - self.hyperparam.beta1 ** self.t
-        fix2 = 1. - self.hyperparam.beta2 ** self.t
+        fix1 = 1. - math.pow(self.hyperparam.beta1, self.t)
+        fix2 = 1. - math.pow(self.hyperparam.beta2, self.t)
         return self.hyperparam.alpha * math.sqrt(fix2) / fix1
 
 
@@ -116,6 +116,6 @@ class Adam(optimizer.GradientMethod):
 
     @property
     def lr(self):
-        fix1 = 1. - self.hyperparam.beta1 ** self.t
-        fix2 = 1. - self.hyperparam.beta2 ** self.t
+        fix1 = 1. - math.pow(self.hyperparam.beta1, self.t)
+        fix2 = 1. - math.pow(self.hyperparam.beta2, self.t)
         return self.hyperparam.alpha * math.sqrt(fix2) / fix1
