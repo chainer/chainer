@@ -113,7 +113,7 @@ def main():
     obs_size = env.observation_space.low.size
     n_actions = env.action_space.n
     if args.record:
-        env.monitor.start(args.out, force=True)
+        env = gym.wrappers.Monitor(env, args.out, force=True)
 
     # Initialize variables
     D = collections.deque(maxlen=10 ** 6)
