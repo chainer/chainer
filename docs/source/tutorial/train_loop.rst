@@ -107,10 +107,10 @@ Link and Function
 
 In Chainer, each layer of a neural network is usually a :class:`~chainer.Function` or a :class:`~chainer.Link`.
 
-- **:class:`~chainer.Function` is a function without any learnable paremeters.**
-- **:class:`~chainer.Link` is a function that contains learnable parameters.** A :class:`~chainer.Link` calls a corresponding :class:`~chainer.Function` with the learnable parameters which are kept as its object properties.
+- :class:`~chainer.Function` is a function without any learnable paremeters.
+- :class:`~chainer.Link` is a function that contains learnable parameters. A :class:`~chainer.Link` calls a corresponding :class:`~chainer.Function` with the learnable parameters which are kept as its object properties.
 
-In Chainer, a network is written as a code for its forward pass computation. It typically uses several links and functions. Chainer takes care of the backward pass automatically and so you do not need to write backward computation explicitly for the network unless it contained user-defined differentiable functions (when you use a custom function in the network, the implementation of the function should have `backward` method explicitly.)
+In Chainer, a network is written as a code for its forward pass computation. It typically uses several links and functions. Chainer takes care of the backward pass automatically and so you do not need to write backward computation explicitly for the network unless it contains user-defined differentiable functions. When you use a custom function in the network, the implementation of the function should have `backward` method explicitly.
 
 - See :mod:`chainer.functions` module for various built-in :class:`~chainer.Function` s.
 - See :mod:`chainer.links` module for various built-in :class:`~chainer.Link` s.
@@ -140,8 +140,7 @@ In Chainer, an activation (that is, the input or output of a function or link) i
 1. A :attr:`~chainer.Variable.data` array that contains the values read/written during the forward pass
 2. A :attr:`~chainer.Variable.grad` array that contains the corresponding gradients that will be computed through the backward process.
 
-:class:`~chainer.Parameter` is a subclass of :class:`~chainer.Variable` and it means that it is not an intermediate output of the network but it is a trainable parameter of a :class:`~chainer.Link`.
-
+:class:`~chainer.Parameter` is a subclass of :class:`~chainer.Variable` and it will never be an intermediate output of the network but it is used as a trainable parameter of a :class:`~chainer.Link`.
 
 Create your network as a subclass of Chain
 ..........................................
@@ -149,19 +148,10 @@ Create your network as a subclass of Chain
 You can create your network by writing a new subclass of :class:`~chainer.Chain`.
 The main steps are twofold:
 
-1. Register the network components which have trainable parameters to the subclass. Each of them must be instantiated and assigned to a property in the scope specified by ``with self.init_scope():`` inside of the constructor of the subclass.
+1. Register the network components which have trainable parameters to the subclass. Each of them must be instantiated and assigned to a property in the scope specified by ``with self.init_scope():``.
 2. Define a :meth:`~chainer.Chain.__call__` method that represents the actual **forward computation** of your network. This method takes one or more :class:`~chainer.Variable`, :class:`numpy.array`, or :class:`cupy.array` as its inputs and calculate the forward pass using them.
 
-It should be noted that only :class:`~chainer.Link`, :class:`~chainer.Chain`,
-and :class:`~chainer.ChainList` objects can be registered to the model inside
-the ``init_scope``. This is because they contain trainable parameters.
-For example, a :class:`~chainer.Function` does not contain any trainable
-parameters, so there is no need to keep the object as a property of your
-network. For example, we can use :meth:`~chainer.functions.relu` by simply
-calling it in :meth:`~chainer.Chain.__call__` but a :class:`~chainer.Link`  (recall that both :class:`~chainer.Link` and :class:`~chainer.Function` are callable objects) such
-as :class:`~chainer.links.Linear` is need to be registered as a property
-beforehand to keep the trainable parameter in your network and update them
-during the training.
+It should be noted that only :class:`~chainer.Link`, :class:`~chainer.Chain`, and :class:`~chainer.ChainList` objects can be registered to the model by assinging it as a property inside the ``init_scope``. This is because they contain trainable parameters. For example, a :class:`~chainer.Function` does not contain any trainable parameters, so there is no need to keep the object as a property of your network. When you want to use :meth:`~chainer.functions.relu` in your network, just simply using it as a function in :meth:`~chainer.Chain.__call__` works correctly. But a :class:`~chainer.Link` such as :class:`~chainer.links.Linear` or :class:`~chainer.links.Convolution2D` etc. should be registered as a property beforehand. This is for keeping the trainable parameter in your network and enabling to update them during the training.
 
 If we decide that we want to call a :class:`~chainer.Link` in a
 :class:`~chainer.Chain` after :meth:`~chainer.Chain.__init__` has already been
