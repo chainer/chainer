@@ -263,16 +263,33 @@ def check_backward(func, x_data, y_grad, params=(),
         if len(no_grads) != len(xs):
             raise ValueError(
                 'Length of no_grads param and xs should be same.')
+    casted_data = [x.data.copy() for x in casted_xs]
     for skip, x, cx in six.moves.zip(no_grads, xs, casted_xs):
         if skip:
             assert x.grad is None
             continue
-        gx, = numerical_grad(f, (cx.data,), y_grad, eps=eps)
-        testing.assert_allclose(gx, x.grad, atol=atol, rtol=rtol)
-        if dtype is None:
-            assert gx.dtype == x.grad.dtype
-        else:
-            assert gx.dtype.kind == 'f' and gx.dtype == dtype
+
+    one = variable.Variable(numpy.array(1., dtype))
+
+    def g():
+        for skip, cx, data in zip(no_grads, casted_xs, casted_data):
+            if skip:
+                continue
+            cx.data = (one.data * data).astype(cx.data.dtype)
+        y = f()
+        for cx, data in zip(casted_xs, casted_data):
+            if skip:
+                continue
+            cx.data = data
+        return y
+
+    gx, = numerical_grad(g, (one.data,), y_grad, eps=eps)
+    gx_accum = 0
+    for skip, x, cx in six.moves.zip(no_grads, xs, casted_xs):
+        if skip:
+            continue
+        gx_accum += x.grad.ravel().dot(cx.data.ravel())
+    testing.assert_allclose(gx, gx_accum, atol=atol, rtol=rtol)
 
     for p in params:
         gp, = numerical_grad(f, (p.data,), y_grad, eps=eps)
