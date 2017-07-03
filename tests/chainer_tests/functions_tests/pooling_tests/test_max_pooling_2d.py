@@ -66,13 +66,15 @@ class TestMaxPooling2D(unittest.TestCase):
         functions.max_pooling_2d(x, 6, stride=6, pad=0)
 
     def test_forward_output_size_zero_cpu(self):
-        with self.assertRaisesRegex(
-                AssertionError, 'Height in the output should be positive.'):
+        with six.assertRaisesRegex(
+                self, AssertionError,
+                'Height in the output should be positive.'):
             x_data = numpy.random.rand(4, 4, 1, 4).astype(self.dtype)
             x = chainer.Variable(x_data)
             functions.max_pooling_2d(x, 3, stride=2)
-        with self.assertRaisesRegex(
-                AssertionError, 'Width in the output should be positive.'):
+        with six.assertRaisesRegex(
+                self, AssertionError,
+                'Width in the output should be positive.'):
             x_data = numpy.random.rand(4, 4, 4, 1).astype(self.dtype)
             x = chainer.Variable(x_data)
             functions.max_pooling_2d(x, 3, stride=2)
@@ -94,14 +96,16 @@ class TestMaxPooling2D(unittest.TestCase):
 
     @attr.gpu
     def test_forward_output_size_zero_gpu(self):
-        with self.assertRaisesRegex(
-                AssertionError, 'Height in the output should be positive.'):
+        with six.assertRaisesRegex(
+                self, AssertionError,
+                'Height in the output should be positive.'):
             x_data = cuda.cupy.random.rand(4, 4, 1, 4).astype(self.dtype)
             x = chainer.Variable(x_data)
             with chainer.using_config('use_cudnn', 'never'):
                 functions.max_pooling_2d(x, 3, stride=2)
-        with self.assertRaisesRegex(
-                AssertionError, 'Width in the output should be positive.'):
+        with six.assertRaisesRegex(
+                self, AssertionError,
+                'Width in the output should be positive.'):
             x_data = cuda.cupy.random.rand(4, 4, 4, 1).astype(self.dtype)
             x = chainer.Variable(x_data)
             with chainer.using_config('use_cudnn', 'never'):
@@ -109,14 +113,16 @@ class TestMaxPooling2D(unittest.TestCase):
 
     @attr.cudnn
     def test_forward_output_size_zero_cudnn(self):
-        with self.assertRaisesRegex(
-                AssertionError, 'Height in the output should be positive.'):
+        with six.assertRaisesRegex(
+                self, AssertionError,
+                'Height in the output should be positive.'):
             x_data = cuda.cupy.random.rand(4, 4, 1, 4).astype(self.dtype)
             x = chainer.Variable(x_data)
             with chainer.using_config('use_cudnn', 'always'):
                 functions.max_pooling_2d(x, 3, stride=2)
-        with self.assertRaisesRegex(
-                AssertionError, 'Width in the output should be positive.'):
+        with six.assertRaisesRegex(
+                self, AssertionError,
+                'Width in the output should be positive.'):
             x_data = cuda.cupy.random.rand(4, 4, 4, 1).astype(self.dtype)
             x = chainer.Variable(x_data)
             with chainer.using_config('use_cudnn', 'always'):
