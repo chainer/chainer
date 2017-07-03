@@ -161,7 +161,8 @@ def main():
     obs_size = env.observation_space.low.size
     action_size = env.action_space.low.size
     if args.record:
-        env.monitor.start(args.out, force=True)
+        env = gym.wrappers.Monitor(env, args.out, force=True)
+    reward_threshold = env.spec.reward_threshold
 
     # Initialize variables
     D = collections.deque(maxlen=10 ** 6)
@@ -223,6 +224,12 @@ def main():
         average_R = np.mean(Rs)
         print('episode: {} iteration: {} R:{} average_R:{}'.format(
               episode, iteration, R, average_R))
+
+        if reward_threshold is not None and average_R >= reward_threshold:
+            print('Solved the environment by getting an average reward of '
+                  '{} >= {} over 100 consecutive episodes.'.format(
+                      average_R, reward_threshold))
+            break
 
 
 if __name__ == '__main__':
