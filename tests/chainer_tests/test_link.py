@@ -1344,7 +1344,6 @@ class TestSequential(unittest.TestCase):
         l1 = chainer.links.Linear(3, 2)
         l2 = chainer.links.Linear(2, 3)
         s3 = chainer.Sequential(l1, l2)
-        orig_n = len(self.s2)
         self.s2.extend(s3)
         self.assertEqual(len(self.s2), 4)
         self.assertIs(self.s2[2], s3[0])
