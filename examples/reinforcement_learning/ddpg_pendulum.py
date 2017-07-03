@@ -69,11 +69,10 @@ class Policy(chainer.Chain):
 
 
 def get_greedy_action(policy, obs):
-    xp = policy.xp
-    obs = xp.expand_dims(xp.asarray(obs, dtype=np.float32), 0)
+    obs = policy.xp.asarray(obs[None], dtype=np.float32)
     with chainer.no_backprop_mode():
-        a = policy(obs).data[0]
-    return chainer.cuda.to_cpu(a)
+        action = policy(obs).data[0]
+    return chainer.cuda.to_cpu(action)
 
 
 def update(Q, target_Q, policy, target_policy, opt_Q, opt_policy,
