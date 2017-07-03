@@ -23,12 +23,12 @@ from chainer import optimizers
 class QFunction(chainer.Chain):
     """Q-function represented by a MLP."""
 
-    def __init__(self, ndim_obs, n_actions, n_units=100):
-        super(QFunction, self).__init__(
-            l0=L.Linear(ndim_obs, n_units),
-            l1=L.Linear(n_units, n_units),
-            l2=L.Linear(n_units, n_actions),
-        )
+    def __init__(self, obs_size, n_actions, n_units=100):
+        super(QFunction, self).__init__()
+        with self.init_scope():
+            self.l0 = L.Linear(obs_size, n_units)
+            self.l1 = L.Linear(n_units, n_units)
+            self.l2 = L.Linear(n_units, n_actions)
 
     def __call__(self, x):
         """Compute Q-values of actions for given observations."""
