@@ -69,7 +69,7 @@ def update(Q, target_Q, opt, samples, gamma=0.99, target_type='double_dqn'):
         else:
             raise ValueError('Unsupported target_type: {}'.format(target_type))
         target = reward + gamma * (1 - done) * next_q
-    loss = mean_clipped_loss(y, t)
+    loss = mean_clipped_loss(y, target)
     Q.cleargrads()
     loss.backward()
     opt.update()
