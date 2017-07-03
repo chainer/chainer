@@ -112,7 +112,15 @@ def update(Q, target_Q, policy, target_policy, opt_Q, opt_policy,
 
 
 def soft_copy_params(source, target, tau):
-    for s, t in zip(source.params(), target.params()):
+    """Make the parameters of a link close to the ones of another link.
+
+    Making tau close to 0 slows the pace of updates, and close to 1 might lead
+    to faster, but more volatile updates.
+    """
+    # Sort params by name
+    source_params = [param for _, param in sorted(source.namedparams())]
+    target_params = [param for _, param in sorted(target.namedparams())]
+    for s, t in zip(source_params, target_params):
         t.data[:] += tau * (s.data - t.data)
 
 
