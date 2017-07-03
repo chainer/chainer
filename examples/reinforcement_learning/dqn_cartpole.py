@@ -172,7 +172,8 @@ def main():
 
             # Sample a random minibatch of transitions and replay
             if len(D) >= args.replay_start_size:
-                samples = random.sample(D, args.batch_size)
+                sample_indices = random.sample(range(len(D)), args.batch_size)
+                samples = [D[i] for i in sample_indices]
                 update(Q, target_Q, opt, samples, target_type=args.target_type)
 
             # Update the target network
