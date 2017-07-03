@@ -109,8 +109,8 @@ class TestSpatialTransformerSamplerConsistencyWithCuDNN(unittest.TestCase):
         grid = Variable(grid)
         with chainer.using_config('use_cudnn', use_cudnn):
             y = functions.spatial_transformer_sampler(x, grid)
-            x.zerograd()
-            grid.zerograd()
+            x.cleargrad()
+            grid.cleargrad()
             y.grad = grads
             y.backward()
         return x, grid, y
