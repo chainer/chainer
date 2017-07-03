@@ -68,7 +68,8 @@ class Policy(chainer.Chain):
                       self.xp.asarray(self.action_high))
 
 
-def get_greedy_action(policy, obs):
+def get_action(policy, obs):
+    """Get an action by evaluating a given policy."""
     obs = policy.xp.asarray(obs[None], dtype=np.float32)
     with chainer.no_backprop_mode():
         action = policy(obs).data[0]
@@ -193,7 +194,7 @@ def main():
         while not done and timestep < env.spec.timestep_limit:
 
             # Select an action with additive noises for exploration
-            action = (get_greedy_action(policy, obs) +
+            action = (get_action(policy, obs) +
                       np.random.normal(scale=args.noise_scale))
 
             # Execute an action
