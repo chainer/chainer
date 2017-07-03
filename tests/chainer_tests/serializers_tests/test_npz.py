@@ -306,7 +306,7 @@ class TestGroupHierachy(unittest.TestCase):
         self.optimizer = optimizers.AdaDelta()
         self.optimizer.setup(self.parent)
 
-        self.parent.zerograds()
+        self.parent.cleargrads()
         self.optimizer.update()  # init all states
 
         self.savez = numpy.savez_compressed if self.compress else numpy.savez
