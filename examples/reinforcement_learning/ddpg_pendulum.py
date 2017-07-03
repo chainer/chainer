@@ -22,16 +22,17 @@ from chainer import optimizers
 class QFunction(chainer.Chain):
     """Q-function represented by a MLP."""
 
-    def __init__(self, ndim_obs, ndim_action, n_units=100):
-        super(QFunction, self).__init__(
-            l0=L.Linear(ndim_obs + ndim_action, n_units),
-            l1=L.Linear(n_units, n_units),
-            l2=L.Linear(n_units, 1, wscale=1e-3),
-        )
+    def __init__(self, obs_size, action_size, n_units=100):
+        super(QFunction, self).__init__()
+        with self.init_scope():
+            self.l0 = L.Linear(obs_size + action_size, n_units)
+            self.l1 = L.Linear(n_units, n_units)
+            self.l2 = L.Linear(n_units, 1,
+                               initialW=chainer.initializers.HeNormal(1e-3))
 
-    def __call__(self, s, a):
+    def __call__(self, obs, action):
         """Compute Q-values for given state-action pairs."""
-        x = F.concat((s, a), axis=1)
+        x = F.concat((obs, action), axis=1)
         h = F.relu(self.l0(x))
         h = F.relu(self.l1(h))
         return self.l2(h)
@@ -47,15 +48,16 @@ def squash(x, low, high):
 class Policy(chainer.Chain):
     """Policy represented by a MLP."""
 
-    def __init__(self, ndim_obs, ndim_action, action_low, action_high,
+    def __init__(self, obs_size, action_size, action_low, action_high,
                  n_units=100):
+        super(Policy, self).__init__()
         self.action_high = action_high
         self.action_low = action_low
-        super(Policy, self).__init__(
-            l0=L.Linear(ndim_obs, n_units),
-            l1=L.Linear(n_units, n_units),
-            l2=L.Linear(n_units, 1, wscale=1e-3),
-        )
+        with self.init_scope():
+            self.l0 = L.Linear(obs_size, n_units)
+            self.l1 = L.Linear(n_units, n_units)
+            self.l2 = L.Linear(n_units, action_size,
+                               initialW=chainer.initializers.HeNormal(1e-3))
 
     def __call__(self, x):
         """Compute actions for given observations."""
