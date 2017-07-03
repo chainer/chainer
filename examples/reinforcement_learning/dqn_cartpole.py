@@ -62,12 +62,13 @@ def update(Q, target_Q, opt, samples, gamma=0.99, target_type='double_dqn'):
     # Target values: r + gamma * max_b Q(s',b)
     with chainer.no_backprop_mode():
         if target_type == 'dqn':
-            t = reward + gamma * (1 - done) * F.max(target_Q(obs_next), axis=1)
+            next_q = F.max(target_Q(obs_next), axis=1)
         elif target_type == 'double_dqn':
-            t = reward + gamma * (1 - done) * F.select_item(
-                target_Q(obs_next), F.argmax(Q(obs_next), axis=1))
+            next_q = F.select_item(target_Q(obs_next),
+                                   F.argmax(Q(obs_next), axis=1))
         else:
             raise ValueError('Unsupported target_type: {}'.format(target_type))
+        target = reward + gamma * (1 - done) * next_q
     loss = mean_clipped_loss(y, t)
     Q.cleargrads()
     loss.backward()
