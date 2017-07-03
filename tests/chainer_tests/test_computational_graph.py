@@ -37,6 +37,28 @@ def _check(self, outputs, node_num, edge_num):
     self.assertEqual(len(g.edges), edge_num)
 
 
+def _assert_edges_equal(self, edges_actual, edges_expected):
+    self.assertEqual(len(edges_actual), len(edges_expected))
+
+    # The order of edges is arbitrary, so we make a set of edges in order to
+    # compare.
+    # Variables are converted to ids, because they are not hashable.
+    id_edges_actual = {tuple(id(_2) for _2 in _) for _ in edges_actual}
+    id_edges_expected = {tuple(id(_2) for _2 in _) for _ in edges_expected}
+    self.assertSetEqual(id_edges_actual, id_edges_expected)
+
+
+def _assert_nodes_equal(self, nodes_actual, nodes_expected):
+    self.assertEqual(len(nodes_actual), len(nodes_expected))
+
+    # The order of nodes is arbitrary, so we make a set of nodes in order to
+    # compare.
+    # Variables are converted to ids, because they are not hashable.
+    id_nodes_actual = {id(_) for _ in nodes_actual}
+    id_nodes_expected = {id(_) for _ in nodes_expected}
+    self.assertSetEqual(id_nodes_actual, id_nodes_expected)
+
+
 class TestGraphBuilder(unittest.TestCase):
 
     # x-f-y-g-z
@@ -147,14 +169,15 @@ class TestGraphBuilder5(unittest.TestCase):
         self.g = c.build_computational_graph((self.y,))
 
     def test_edges(self):
-        self.assertEqual(len(self.g.edges), 2)
-        self.assertSetEqual(set(self.g.edges),
-                            {(self.x.node, self.f), (self.f, self.y.node)})
+        _assert_edges_equal(self,
+                            self.g.edges,
+                            [(self.x.node, self.f),
+                             (self.f, self.y.node)])
 
     def test_nodes(self):
-        self.assertEqual(len(self.g.nodes), 3)
-        self.assertSetEqual(set(self.g.nodes),
-                            {self.x.node, self.f, self.y.node})
+        _assert_nodes_equal(self,
+                            self.g.nodes,
+                            [self.x.node, self.f, self.y.node])
 
 
 class TestGraphBuilder6(unittest.TestCase):
@@ -167,16 +190,16 @@ class TestGraphBuilder6(unittest.TestCase):
         self.g = c.build_computational_graph((self.y,))
 
     def test_edges(self):
-        self.assertEqual(len(self.g.edges), 3)
-        self.assertSetEqual(set(self.g.edges),
-                            {(self.x1.node, self.f),
+        _assert_edges_equal(self,
+                            self.g.edges,
+                            [(self.x1.node, self.f),
                              (self.x2.node, self.f),
-                             (self.f, self.y.node)})
+                             (self.f, self.y.node)])
 
     def test_nodes(self):
-        self.assertEqual(len(self.g.nodes), 4)
-        self.assertSetEqual(set(self.g.nodes),
-                            {self.x1.node, self.x2.node, self.f, self.y.node})
+        _assert_nodes_equal(self,
+                            self.g.nodes,
+                            [self.x1.node, self.x2.node, self.f, self.y.node])
 
 
 class TestGraphBuilder7(unittest.TestCase):
