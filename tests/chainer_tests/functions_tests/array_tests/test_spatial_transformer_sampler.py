@@ -2,6 +2,7 @@ import unittest
 
 import numpy
 
+import chainer
 from chainer import cuda
 from chainer import functions
 from chainer import gradient_check
@@ -41,7 +42,7 @@ def _rotate_BCHW(x):
 
 
 @testing.parameterize(*testing.product({
-    'use_cudnn': [True, False],
+    'use_cudnn': ['always', 'never'],
 }))
 class TestSpatialTransformerSampler(unittest.TestCase):
 
@@ -57,8 +58,8 @@ class TestSpatialTransformerSampler(unittest.TestCase):
         self.grads = numpy.random.uniform(
             size=self.out_shape).astype(numpy.float32)
 
-    def check_forward(self, x, grid, use_cudnn=True):
-        y = functions.spatial_transformer_sampler(x, grid, use_cudnn)
+    def check_forward(self, x, grid):
+        y = functions.spatial_transformer_sampler(x, grid)
         self.assertEqual(y.shape, self.out_shape)
 
     @condition.retry(3)
@@ -68,12 +69,12 @@ class TestSpatialTransformerSampler(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_forward_gpu(self):
-        self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.grid),
-                           self.use_cudnn)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.grid))
 
-    def check_backward(self, x, grid, grads, use_cudnn=True):
+    def check_backward(self, x, grid, grads):
         gradient_check.check_backward(
-            functions.SpatialTransformerSampler(use_cudnn),
+            functions.SpatialTransformerSampler(),
             (x, grid), (grads,), atol=1e-2, rtol=1e-2, eps=1e-5)
 
     @condition.retry(3)
@@ -83,10 +84,10 @@ class TestSpatialTransformerSampler(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_backward_gpu(self):
-        self.check_backward(cuda.to_gpu(self.x),
-                            cuda.to_gpu(self.grid),
-                            cuda.to_gpu(self.grads),
-                            self.use_cudnn)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.check_backward(cuda.to_gpu(self.x),
+                                cuda.to_gpu(self.grid),
+                                cuda.to_gpu(self.grads))
 
 
 class TestSpatialTransformerSamplerConsistencyWithCuDNN(unittest.TestCase):
@@ -103,11 +104,10 @@ class TestSpatialTransformerSamplerConsistencyWithCuDNN(unittest.TestCase):
         self.grads = numpy.random.uniform(
             size=self.out_shape).astype(numpy.float32)
 
-    def _apply_backward(self, x, grid, grads, use_cudnn):
+    def _apply_backward(self, x, grid, grads):
         x = Variable(x)
         grid = Variable(grid)
-        y = functions.spatial_transformer_sampler(
-            x, grid, use_cudnn=use_cudnn)
+        y = functions.spatial_transformer_sampler(x, grid)
         x.zerograd()
         grid.zerograd()
         y.grad = grads
@@ -117,11 +117,13 @@ class TestSpatialTransformerSamplerConsistencyWithCuDNN(unittest.TestCase):
     @attr.gpu
     @attr.cudnn
     def test_consistency_with_cudnn_cpu(self):
-        x_cpu, grid_cpu, y_cpu = self._apply_backward(
-            self.x, self.grid, self.grads, use_cudnn=False)
-        x_cudnn, grid_cudnn, y_cudnn = self._apply_backward(
-            cuda.to_gpu(self.x), cuda.to_gpu(self.grid),
-            cuda.to_gpu(self.grads), use_cudnn=True)
+        with chainer.using_config('use_cudnn', 'never'):
+            x_cpu, grid_cpu, y_cpu = self._apply_backward(
+                self.x, self.grid, self.grads)
+        with chainer.using_config('use_cudnn', 'always'):
+            x_cudnn, grid_cudnn, y_cudnn = self._apply_backward(
+                cuda.to_gpu(self.x), cuda.to_gpu(self.grid),
+                cuda.to_gpu(self.grads))
 
         testing.assert_allclose(y_cpu.data, y_cudnn.data)
         testing.assert_allclose(x_cpu.grad, x_cudnn.grad)
@@ -130,12 +132,14 @@ class TestSpatialTransformerSamplerConsistencyWithCuDNN(unittest.TestCase):
     @attr.gpu
     @attr.cudnn
     def test_consistency_with_cudnn_gpu(self):
-        x_gpu, grid_gpu, y_gpu = self._apply_backward(
-            cuda.to_gpu(self.x), cuda.to_gpu(self.grid),
-            cuda.to_gpu(self.grads), use_cudnn=False)
-        x_cudnn, grid_cudnn, y_cudnn = self._apply_backward(
-            cuda.to_gpu(self.x), cuda.to_gpu(self.grid),
-            cuda.to_gpu(self.grads), use_cudnn=True)
+        with chainer.using_config('use_cudnn', 'never'):
+            x_gpu, grid_gpu, y_gpu = self._apply_backward(
+                cuda.to_gpu(self.x), cuda.to_gpu(self.grid),
+                cuda.to_gpu(self.grads))
+        with chainer.using_config('use_cudnn', 'always'):
+            x_cudnn, grid_cudnn, y_cudnn = self._apply_backward(
+                cuda.to_gpu(self.x), cuda.to_gpu(self.grid),
+                cuda.to_gpu(self.grads))
 
         testing.assert_allclose(y_gpu.data, y_cudnn.data)
         testing.assert_allclose(x_gpu.grad, x_cudnn.grad)
@@ -144,13 +148,13 @@ class TestSpatialTransformerSamplerConsistencyWithCuDNN(unittest.TestCase):
 
 @testing.parameterize(
     {'grid_creator': _identiy_grid, 'operator': lambda x: x,
-     'use_cudnn': True},
+     'use_cudnn': 'always'},
     {'grid_creator': _identiy_grid, 'operator': lambda x: x,
-     'use_cudnn': False},
+     'use_cudnn': 'never'},
     {'grid_creator': _rotate_grid, 'operator': _rotate_BCHW,
-     'use_cudnn': True},
+     'use_cudnn': 'always'},
     {'grid_creator': _rotate_grid, 'operator': _rotate_BCHW,
-     'use_cudnn': False},
+     'use_cudnn': 'never'},
 )
 class TestSpatialTransformerSamplerForwardToyCases(unittest.TestCase):
 
@@ -162,8 +166,8 @@ class TestSpatialTransformerSamplerForwardToyCases(unittest.TestCase):
             size=self.in_shape).astype(numpy.float32)
         self.grid = self.grid_creator(self.in_shape)
 
-    def check_forward(self, x, grid, use_cudnn=True):
-        y = functions.spatial_transformer_sampler(x, grid, use_cudnn)
+    def check_forward(self, x, grid):
+        y = functions.spatial_transformer_sampler(x, grid)
         testing.assert_allclose(y.data, self.operator(self.x))
 
     @condition.retry(3)
@@ -173,12 +177,12 @@ class TestSpatialTransformerSamplerForwardToyCases(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_forward_gpu(self):
-        self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.grid),
-                           self.use_cudnn)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.grid))
 
 
 @testing.parameterize(*testing.product({
-    'use_cudnn': [True, False],
+    'use_cudnn': ['always', 'never'],
 }))
 class TestSpatialTransformerSamplerForwardPaddedImage(unittest.TestCase):
 
@@ -212,8 +216,8 @@ class TestSpatialTransformerSamplerForwardPaddedImage(unittest.TestCase):
              exp_p4[:, None]), axis=1)
         self.expected = self.expected.reshape(1, 2, 4, 1).astype(numpy.float32)
 
-    def check_forward(self, x, grid, expected, use_cudnn=True):
-        y = functions.spatial_transformer_sampler(x, grid, use_cudnn)
+    def check_forward(self, x, grid, expected):
+        y = functions.spatial_transformer_sampler(x, grid)
         testing.assert_allclose(y.data, expected)
 
     @condition.retry(3)
@@ -223,9 +227,9 @@ class TestSpatialTransformerSamplerForwardPaddedImage(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_forward_gpu(self):
-        self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.grid),
-                           cuda.to_gpu(self.expected),
-                           self.use_cudnn)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.grid),
+                               cuda.to_gpu(self.expected))
 
 
 testing.run_module(__name__, __file__)
