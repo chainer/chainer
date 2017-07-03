@@ -15,10 +15,10 @@ class SimpleNet(chainer.Chain):
     insize = 5
 
     def __init__(self):
-        super(SimpleNet, self).__init__(
-            conv=chainer.links.Convolution2D(2, 2, 3),
-            fc=chainer.links.Linear(18, 2),
-        )
+        super(SimpleNet, self).__init__()
+        with self.init_scope():
+            self.conv = chainer.links.Convolution2D(2, 2, 3)
+            self.fc = chainer.links.Linear(18, 2)
         self.train = True
 
     def clear(self):

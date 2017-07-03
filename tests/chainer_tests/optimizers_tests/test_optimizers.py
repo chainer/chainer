@@ -23,7 +23,9 @@ from chainer import testing
 class TestOptimizerHyperparameter(unittest.TestCase):
 
     def setUp(self):
-        self.target = chainer.Link(w=())
+        self.target = chainer.Link()
+        with self.target.init_scope():
+            self.target.w = chainer.Parameter()
 
     def create(self, *args, **kwargs):
         self.optimizer = self.impl(*args, **kwargs)
