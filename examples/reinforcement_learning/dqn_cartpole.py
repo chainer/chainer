@@ -38,6 +38,7 @@ class QFunction(chainer.Chain):
 
 
 def get_greedy_action(Q, obs):
+    """Get greedy action wrt a given Q-function."""
     xp = Q.xp
     obs = xp.expand_dims(xp.asarray(obs, dtype=np.float32), 0)
     with chainer.no_backprop_mode():
@@ -53,6 +54,7 @@ def mean_clipped_loss(y, t):
 
 
 def update(Q, target_Q, opt, samples, gamma=0.99, target_type='double_dqn'):
+    """Update a Q-function with given samples and a target Q-function."""
     xp = Q.xp
     s = xp.asarray([sample[0] for sample in samples], dtype=np.float32)
     a = xp.asarray([sample[1] for sample in samples], dtype=np.int32)
