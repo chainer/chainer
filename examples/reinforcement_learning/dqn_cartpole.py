@@ -95,7 +95,8 @@ def main():
     parser.add_argument('--reward-scale', type=float, default=1e-2,
                         help='Reward scale factor')
     parser.add_argument('--replay-start-size', type=int, default=500,
-                        help='Number of steps after which replay is started')
+                        help=('Number of iterations after which replay is '
+                              'started'))
     parser.add_argument('--iterations-to-decay-epsilon', type=int, default=5000,
                         help='Number of steps used to linearly decay epsilon')
     parser.add_argument('--min-epsilon', type=float, default=0.01,
