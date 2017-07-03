@@ -40,17 +40,13 @@ class QFunction(chainer.Chain):
 def get_greedy_action(Q, obs):
     """Get greedy action wrt a given Q-function."""
     xp = Q.xp
-    obs = xp.expand_dims(xp.asarray(obs, dtype=np.float32), 0)
     with chainer.no_backprop_mode():
-        q = Q(obs).data[0]
+        q = Q(obs[None].astype(np.float32)).data[0]
     return int(xp.argmax(q))
 
 
 def mean_clipped_loss(y, t):
-    # Add an axis because F.huber_loss only accepts arrays with ndim >= 2
-    y = F.expand_dims(y, axis=-1)
-    t = F.expand_dims(t, axis=-1)
-    return F.sum(F.huber_loss(y, t, 1.0)) / y.shape[0]
+    return F.mean(F.huber_loss(y, t, delta=1.0, reduce='no'))
 
 
 def update(Q, target_Q, opt, samples, gamma=0.99, target_type='double_dqn'):
