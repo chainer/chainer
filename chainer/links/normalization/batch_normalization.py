@@ -53,8 +53,8 @@ class BatchNormalization(link.Link):
     Attributes:
         gamma (~chainer.Variable): Scaling parameter.
         beta (~chainer.Variable): Shifting parameter.
-        avg_mean (~chainer.Variable): Population mean.
-        avg_var (~chainer.Variable): Population variance.
+        avg_mean (numpy.ndarray or cupy.ndarray): Population mean.
+        avg_var (numpy.ndarray or cupy.ndarray): Population variance.
         N (int): Count of batches given for fine-tuning.
         decay (float): Decay rate of moving average. It is used on training.
         eps (float): Epsilon value for numerical stability. This value is added
