@@ -129,7 +129,7 @@ def main():
     parser = argparse.ArgumentParser(description='Chainer example: DRL(DDPG)')
     parser.add_argument('--env', type=str, default='Pendulum-v0',
                         help='Name of the OpenAI Gym environment to play')
-    parser.add_argument('--batchsize', '-b', type=int, default=64,
+    parser.add_argument('--batch-size', '-b', type=int, default=64,
                         help='Number of transitions in each mini-batch')
     parser.add_argument('--episodes', '-e', type=int, default=1000,
                         help='Number of episodes to run')
@@ -142,7 +142,8 @@ def main():
     parser.add_argument('--reward-scale', type=float, default=1e-3,
                         help='Reward scale factor')
     parser.add_argument('--replay-start-size', type=int, default=500,
-                        help='Number of steps after which replay is started')
+                        help=('Number of iterations after which replay is '
+                              'started'))
     parser.add_argument('--tau', type=float, default=1e-2,
                         help='Softness of soft target update')
     parser.add_argument('--noise-scale', type=float, default=0.4,
@@ -156,19 +157,19 @@ def main():
     env = gym.make(args.env)
     assert isinstance(env.observation_space, gym.spaces.Box)
     assert isinstance(env.action_space, gym.spaces.Box)
-    ndim_obs = env.observation_space.low.size
-    ndim_action = env.action_space.low.size
+    obs_size = env.observation_space.low.size
+    action_size = env.action_space.low.size
     if args.record:
         env.monitor.start(args.out, force=True)
 
     # Initialize variables
     D = collections.deque(maxlen=10 ** 6)
     Rs = collections.deque(maxlen=100)
-    step = 0
+    iteration = 0
 
     # Initialize models and optimizers
-    Q = QFunction(ndim_obs, ndim_action, n_units=args.unit)
-    policy = Policy(ndim_obs, ndim_action,
+    Q = QFunction(obs_size, action_size, n_units=args.unit)
+    policy = Policy(obs_size, action_size,
                     env.action_space.low, env.action_space.high,
                     n_units=args.unit)
     if args.gpu >= 0:
@@ -187,26 +188,26 @@ def main():
         obs = env.reset()
         done = False
         R = 0.0
-        t = 0
+        timestep = 0
 
-        while not done and t < env.spec.timestep_limit:
+        while not done and timestep < env.spec.timestep_limit:
 
             # Select an action with additive noises for exploration
-            a = (get_greedy_action(policy, obs) +
-                 np.random.normal(scale=args.noise_scale))
+            action = (get_greedy_action(policy, obs) +
+                      np.random.normal(scale=args.noise_scale))
 
             # Execute an action
-            new_obs, r, done, _ = env.step(
-                np.clip(a, env.action_space.low, env.action_space.high))
-            R += r
+            new_obs, reward, done, _ = env.step(
+                np.clip(action, env.action_space.low, env.action_space.high))
+            R += reward
 
             # Store a transition
-            D.append((obs, a, r * args.reward_scale, done, new_obs))
+            D.append((obs, action, reward * args.reward_scale, done, new_obs))
             obs = new_obs
 
             # Sample a random minibatch of transitions and replay
             if len(D) >= args.replay_start_size:
-                samples = random.sample(D, args.batchsize)
+                samples = random.sample(D, args.batch_size)
                 update(Q, target_Q, policy, target_policy,
                        opt_Q, opt_policy, samples)
 
@@ -214,16 +215,13 @@ def main():
             soft_copy_params(Q, target_Q, args.tau)
             soft_copy_params(policy, target_policy, args.tau)
 
-            step += 1
-            t += 1
+            iteration += 1
+            timestep += 1
 
         Rs.append(R)
         average_R = np.mean(Rs)
-        print('episode: {} step: {} R:{} average_R:{}'.format(
-              episode, step, R, average_R))
-
-    if args.record:
-        env.monitor.close()
+        print('episode: {} iteration: {} R:{} average_R:{}'.format(
+              episode, iteration, R, average_R))
 
 
 if __name__ == '__main__':
