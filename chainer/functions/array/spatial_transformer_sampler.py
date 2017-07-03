@@ -14,9 +14,6 @@ if cuda.cudnn_enabled:
 
 class SpatialTransformerSampler(function.Function):
 
-    def __init__(self, use_cudnn=True):
-        self.use_cudnn = use_cudnn
-
     def check_type_forward(self, in_types):
         n_in = in_types.size()
         type_check.expect(2 == n_in)
@@ -36,7 +33,7 @@ class SpatialTransformerSampler(function.Function):
         return self._forward(inputs)
 
     def forward_gpu(self, inputs):
-        if not (cuda.cudnn_enabled and self.use_cudnn and
+        if not (cuda.cudnn_enabled and chainer.should_use_cudnn('>=auto') and
                 _cudnn_version >= 5000):
             return self._forward(inputs)
         x, grid = inputs
@@ -124,7 +121,7 @@ class SpatialTransformerSampler(function.Function):
         return self._backward(inputs, grad_outputs)
 
     def backward_gpu(self, inputs, grad_outputs):
-        if not (cuda.cudnn_enabled and self.use_cudnn and
+        if not (cuda.cudnn_enabled and chainer.should_use_cudnn('>=auto') and
                 _cudnn_version >= 5000):
             return self._backward(inputs, grad_outputs)
         x, grid = inputs
@@ -253,7 +250,7 @@ class SpatialTransformerSampler(function.Function):
         return gx, ggrid
 
 
-def spatial_transformer_sampler(x, grid, use_cudnn=True):
+def spatial_transformer_sampler(x, grid):
     """2D Spatial Transformer sampler.
 
     This is a differentiable image sampler. With a set of sampling points
@@ -278,6 +275,10 @@ def spatial_transformer_sampler(x, grid, use_cudnn=True):
     See detail in the following paper: `Spatial Transformer Networks \
     <https://arxiv.org/abs/1506.02025>`_.
 
+    .. note::
+
+        cuDNN supports SpatialTransformerSampler from version 5.0.0.
+
     Args:
         x (~chainer.Variable):  Input variable of shape :math:`(n, c_I, h, w)`.
         grid (~chainer.Variable): Coordinate variable of shape
@@ -294,13 +295,10 @@ def spatial_transformer_sampler(x, grid, use_cudnn=True):
 
             The coordinate :math:`(-1, -1)` corresponds to the upper-left
             corner of the input image.
-        use_cudnn (bool): If ``True``, then this function uses cuDNN if
-            available. Note that, cuDNN supports SpatialTransformerSampler
-            from version 5.0.0.
 
     Returns:
         ~chainer.Variable: Output feature map of shape \
             :math:`(n, c_I, h_O, w_O)`.
 
     """
-    return SpatialTransformerSampler(use_cudnn)(x, grid)
+    return SpatialTransformerSampler()(x, grid)

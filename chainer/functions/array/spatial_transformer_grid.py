@@ -14,9 +14,8 @@ if cuda.cudnn_enabled:
 
 class SpatialTransformerGrid(function.Function):
 
-    def __init__(self, output_shape, use_cudnn=True):
+    def __init__(self, output_shape):
         self.output_shape = output_shape
-        self.use_cudnn = use_cudnn
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -34,7 +33,7 @@ class SpatialTransformerGrid(function.Function):
         return self._forward(inputs)
 
     def forward_gpu(self, inputs):
-        if not (cuda.cudnn_enabled and self.use_cudnn and
+        if not (cuda.cudnn_enabled and chainer.should_use_cudnn('>=auto') and
                 _cudnn_version >= 5000):
             return self._forward(inputs)
         theta, = inputs
@@ -79,7 +78,7 @@ class SpatialTransformerGrid(function.Function):
         return self._backward(inputs, grad_outputs)
 
     def backward_gpu(self, inputs, grad_outputs):
-        if not (cuda.cudnn_enabled and self.use_cudnn and
+        if not (cuda.cudnn_enabled and chainer.should_use_cudnn('>=auto') and
                 _cudnn_version >= 5000):
             return self._backward(inputs, grad_outputs)
         theta, = inputs
@@ -115,7 +114,7 @@ class SpatialTransformerGrid(function.Function):
         return gtheta,
 
 
-def spatial_transformer_grid(theta, output_shape, use_cudnn=True):
+def spatial_transformer_grid(theta, output_shape):
     """2D Spatial Transformer grid.
 
     This function generates coordinates of the points sampled from an image
@@ -125,6 +124,10 @@ def spatial_transformer_grid(theta, output_shape, use_cudnn=True):
     Given a coordinate in the warped image :math:`(x_i^t, y_i^t)`, the point
     sampled from the source image :math:`(x_i^s, y_i^s)` are calculated
     by the following equation.
+
+    .. note::
+
+        cuDNN supports SpatialTransformerGrid from version 5.0.0.
 
     .. math::
 
@@ -148,9 +151,6 @@ def spatial_transformer_grid(theta, output_shape, use_cudnn=True):
             This is a batch of :math:`2 \\times 3` matrix used for
             the warping described above.
         output_shape (tuple): A tuple of 2 elements: :math:`h_O, w_O`.
-        use_cudnn (bool): If ``True``, then this function uses cuDNN if
-            available. Note that, cuDNN supports SpatialTransformerGrid
-            from version 5.0.0.
 
     Returns:
         ~chainer.Variable:  A variable of shape :math:`(n, 2, h_O, w_O)`.
@@ -162,4 +162,4 @@ def spatial_transformer_grid(theta, output_shape, use_cudnn=True):
         the upper-left corner of the input image.
 
     """
-    return SpatialTransformerGrid(output_shape, use_cudnn)(theta)
+    return SpatialTransformerGrid(output_shape)(theta)
