@@ -52,20 +52,20 @@ def mean_clipped_loss(y, t):
 def update(Q, target_Q, opt, samples, gamma=0.99, target_type='double_dqn'):
     """Update a Q-function with given samples and a target Q-function."""
     xp = Q.xp
-    s = xp.asarray([sample[0] for sample in samples], dtype=np.float32)
-    a = xp.asarray([sample[1] for sample in samples], dtype=np.int32)
-    r = xp.asarray([sample[2] for sample in samples], dtype=np.float32)
+    obs = xp.asarray([sample[0] for sample in samples], dtype=np.float32)
+    action = xp.asarray([sample[1] for sample in samples], dtype=np.int32)
+    reward = xp.asarray([sample[2] for sample in samples], dtype=np.float32)
     done = xp.asarray([sample[3] for sample in samples], dtype=np.float32)
-    s_next = xp.asarray([sample[4] for sample in samples], dtype=np.float32)
+    obs_next = xp.asarray([sample[4] for sample in samples], dtype=np.float32)
     # Predicted values: Q(s,a)
-    y = F.select_item(Q(s), a)
+    y = F.select_item(Q(obs), action)
     # Target values: r + gamma * max_b Q(s',b)
     with chainer.no_backprop_mode():
         if target_type == 'dqn':
-            t = r + gamma * (1 - done) * F.max(target_Q(s_next), axis=1)
+            t = reward + gamma * (1 - done) * F.max(target_Q(obs_next), axis=1)
         elif target_type == 'double_dqn':
-            t = r + gamma * (1 - done) * F.select_item(
-                target_Q(s_next), F.argmax(Q(s_next), axis=1))
+            t = reward + gamma * (1 - done) * F.select_item(
+                target_Q(obs_next), F.argmax(Q(obs_next), axis=1))
         else:
             raise ValueError('Unsupported target_type: {}'.format(target_type))
     loss = mean_clipped_loss(y, t)
@@ -95,7 +95,7 @@ def main():
                         help='Reward scale factor')
     parser.add_argument('--replay-start-size', type=int, default=500,
                         help='Number of steps after which replay is started')
-    parser.add_argument('--steps-to-decay-epsilon', type=int, default=5000,
+    parser.add_argument('--iterations-to-decay-epsilon', type=int, default=5000,
                         help='Number of steps used to linearly decay epsilon')
     parser.add_argument('--min-epsilon', type=float, default=0.01,
                         help='Minimum value of epsilon')
@@ -110,7 +110,7 @@ def main():
     env = gym.make(args.env)
     assert isinstance(env.observation_space, gym.spaces.Box)
     assert isinstance(env.action_space, gym.spaces.Discrete)
-    ndim_obs = env.observation_space.low.size
+    obs_size = env.observation_space.low.size
     n_actions = env.action_space.n
     if args.record:
         env.monitor.start(args.out, force=True)
@@ -118,10 +118,10 @@ def main():
     # Initialize variables
     D = collections.deque(maxlen=10 ** 6)
     Rs = collections.deque(maxlen=100)
-    step = 0
+    iteration = 0
 
     # Initialize a model and its optimizer
-    Q = QFunction(ndim_obs, n_actions, n_units=args.unit)
+    Q = QFunction(obs_size, n_actions, n_units=args.unit)
     if args.gpu >= 0:
         chainer.cuda.get_device(args.gpu).use()
         Q.to_gpu(args.gpu)
@@ -134,30 +134,30 @@ def main():
         obs = env.reset()
         done = False
         R = 0.0
-        t = 0
+        timestep = 0
 
-        while not done and t < env.spec.timestep_limit:
+        while not done and timestep < env.spec.timestep_limit:
 
             # Epsilon is linearly decayed
             epsilon = 1.0 if len(D) < args.replay_start_size else \
                 max(args.min_epsilon,
                     np.interp(
-                        step,
-                        [0, args.steps_to_decay_epsilon],
+                        iteration,
+                        [0, args.iterations_to_decay_epsilon],
                         [1.0, args.min_epsilon]))
 
             # Select an action epsilon-greedily
             if np.random.rand() < epsilon:
-                a = env.action_space.sample()
+                action = env.action_space.sample()
             else:
-                a = get_greedy_action(Q, obs)
+                action = get_greedy_action(Q, obs)
 
             # Execute an action
-            new_obs, r, done, _ = env.step(a)
-            R += r
+            new_obs, reward, done, _ = env.step(action)
+            R += reward
 
             # Store a transition
-            D.append((obs, a, r * args.reward_scale, done, new_obs))
+            D.append((obs, action, reward * args.reward_scale, done, new_obs))
             obs = new_obs
 
             # Sample a random minibatch of transitions and replay
@@ -166,19 +166,16 @@ def main():
                 update(Q, target_Q, opt, samples, target_type=args.target_type)
 
             # Update the target network
-            if step % args.target_update_freq == 0:
+            if iteration % args.target_update_freq == 0:
                 target_Q = copy.deepcopy(Q)
 
-            step += 1
-            t += 1
+            iteration += 1
+            timestep += 1
 
         Rs.append(R)
         average_R = np.mean(Rs)
-        print('episode: {} step: {} R:{} average_R:{}'.format(
-              episode, step, R, average_R))
-
-    if args.record:
-        env.monitor.close()
+        print('episode: {} iteration: {} R: {} average_R: {}'.format(
+              episode, iteration, R, average_R))
 
 
 if __name__ == '__main__':
