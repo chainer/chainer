@@ -258,7 +258,7 @@ class TestLink(unittest.TestCase):
         numpy.testing.assert_array_equal(self.link.u.data, l.u.data)
         numpy.testing.assert_array_equal(self.link.u.grad, gu)
         numpy.testing.assert_array_equal(self.link.v.data, l.v.data)
-        numpy.testing.assert_array_equal(self.link.v.grad, 0)
+        numpy.testing.assert_array_equal(self.link.v.grad, None)
 
     def test_cleargrads(self):
         self.link.cleargrads()
