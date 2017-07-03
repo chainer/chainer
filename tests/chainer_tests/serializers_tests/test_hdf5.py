@@ -328,7 +328,7 @@ class TestGroupHierachy(unittest.TestCase):
         self.optimizer = optimizers.AdaDelta()
         self.optimizer.setup(self.parent)
 
-        self.parent.zerograds()
+        self.parent.cleargrads()
         self.optimizer.update()  # init states
 
     def _save(self, h5, obj, name):
