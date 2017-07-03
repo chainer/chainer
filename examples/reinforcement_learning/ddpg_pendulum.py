@@ -127,7 +127,7 @@ def soft_copy_params(source, target, tau):
 
 def main():
 
-    parser = argparse.ArgumentParser(description='Chainer example: DRL(DDPG)')
+    parser = argparse.ArgumentParser(description='Chainer example: DDPG')
     parser.add_argument('--env', type=str, default='Pendulum-v0',
                         help='Name of the OpenAI Gym environment to play')
     parser.add_argument('--batch-size', '-b', type=int, default=64,

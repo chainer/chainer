@@ -77,7 +77,7 @@ def update(Q, target_Q, opt, samples, gamma=0.99, target_type='double_dqn'):
 
 def main():
 
-    parser = argparse.ArgumentParser(description='Chainer example: DRL(DQN)')
+    parser = argparse.ArgumentParser(description='Chainer example: DQN')
     parser.add_argument('--env', type=str, default='CartPole-v0',
                         help='Name of the OpenAI Gym environment to play')
     parser.add_argument('--batch-size', '-b', type=int, default=64,
