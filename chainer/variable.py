@@ -16,44 +16,40 @@ from chainer.utils import argument
 
 
 def _check_grad_type(func, x, gx):
-    def make_message(message):
-        if func:
-            detail = 'Function `{0}` ({1}) has a bug.\n'.format(
-                type(func).__name__, func.label)
-
-            stack = func.stack
-            if stack:
-                detail += 'Stacktrace of the function is below:\n'
-                for line in traceback.format_list(func._stack):
-                    detail += line
-
-            detail += '''
-Please report this error to the issue tracker with the stack trace,
-the information of your environment, and your script:
-https://github.com/pfnet/chainer/issues/new.
-'''.format(type(func).__name__, func.label)
-
-        else:
-            detail = ''
-
-        detail += message
-        return detail
-
     if x.data is None or gx is None:
         # ``x.data is None`` implies that the data array is not retained
         return
     if not isinstance(gx, type(x.data)):
         msg = ('Type of data and grad mismatch\n%s != %s' %
                (type(x.data), type(gx)))
-        raise TypeError(make_message(msg))
-    if gx.dtype != x.data.dtype:
+        typ = TypeError
+    elif gx.dtype != x.data.dtype:
         msg = ('Dtype of data and grad mismatch\n%s != %s' %
                (x.data.dtype, gx.dtype))
-        raise TypeError(make_message(msg))
-    if gx.shape != x.data.shape:
+        typ = TypeError
+    elif gx.shape != x.data.shape:
         msg = ('Shape of data and grad mismatch\n%s != %s' %
                (x.data.shape, gx.shape))
-        raise ValueError(make_message(msg))
+        typ = ValueError
+    else:
+        return
+
+    detail = ''
+    if func:
+        detail = 'Function `{0}` ({1}) has a bug.\n'.format(
+            type(func).__name__, func.label)
+        stack = func.stack
+        if stack:
+            detail += 'Stacktrace of the function is below:\n'
+            for line in traceback.format_list(func._stack):
+                detail += line
+        detail += '''
+Please report this error to the issue tracker with the stack trace,
+the information of your environment, and your script:
+https://github.com/chainer/chainer/issues/new.
+'''.format(type(func).__name__, func.label)
+
+    raise typ(detail + msg)
 
 
 def variable_repr(var):
