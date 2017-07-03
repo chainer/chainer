@@ -163,6 +163,13 @@ def main():
     if args.record:
         env = gym.wrappers.Monitor(env, args.out, force=True)
     reward_threshold = env.spec.reward_threshold
+    if reward_threshold is not None:
+        print('{} defines "solving" as getting average reward of {} over 100 '
+              'consecutive trials.'.format(args.env, reward_threshold))
+    else:
+        print('{} is an unsolved environment, which means it does not have a '
+              'specified reward threshold at which it\'s considered '
+              'solved.'.format(args.env))
 
     # Initialize variables
     D = collections.deque(maxlen=10 ** 6)
@@ -226,9 +233,9 @@ def main():
               episode, iteration, R, average_R))
 
         if reward_threshold is not None and average_R >= reward_threshold:
-            print('Solved the environment by getting an average reward of '
+            print('Solved {} by getting average reward of '
                   '{} >= {} over 100 consecutive episodes.'.format(
-                      average_R, reward_threshold))
+                      args.env, average_R, reward_threshold))
             break
 
 
