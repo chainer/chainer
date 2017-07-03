@@ -39,10 +39,10 @@ class QFunction(chainer.Chain):
 
 def get_greedy_action(Q, obs):
     """Get a greedy action wrt a given Q-function."""
-    xp = Q.xp
+    obs = Q.xp.asarray(obs[None], dtype=np.float32)
     with chainer.no_backprop_mode():
-        q = Q(obs[None].astype(np.float32)).data[0]
-    return int(xp.argmax(q))
+        q = Q(obs).data[0]
+    return int(q.argmax())
 
 
 def mean_clipped_loss(y, t):
