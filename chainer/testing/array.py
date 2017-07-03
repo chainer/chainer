@@ -38,7 +38,7 @@ def assert_allclose(x, y, atol=1e-5, rtol=1e-4, verbose=True):
         f.flush()
         opts = numpy.get_printoptions()
         try:
-            numpy.set_printoptions(threshold=numpy.inf)
+            numpy.set_printoptions(threshold=10000)
             f.write('x: ' + numpy.array2string(x, prefix='x: ') + '\n')
             f.write('y: ' + numpy.array2string(y, prefix='y: ') + '\n')
             f.flush()
