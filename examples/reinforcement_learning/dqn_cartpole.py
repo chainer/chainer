@@ -38,7 +38,7 @@ class QFunction(chainer.Chain):
 
 
 def get_greedy_action(Q, obs):
-    """Get greedy action wrt a given Q-function."""
+    """Get a greedy action wrt a given Q-function."""
     xp = Q.xp
     with chainer.no_backprop_mode():
         q = Q(obs[None].astype(np.float32)).data[0]
