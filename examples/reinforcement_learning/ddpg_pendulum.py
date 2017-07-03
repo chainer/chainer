@@ -76,30 +76,33 @@ def get_greedy_action(policy, obs):
 
 
 def update(Q, target_Q, policy, target_policy, opt_Q, opt_policy,
-           samples, gamma=0.99, target_type='double_dqn'):
-    n = len(samples)
+           samples, gamma=0.99):
+    """Update a Q-function and a policy."""
     xp = Q.xp
-    s = xp.asarray([sample[0] for sample in samples], dtype=np.float32)
-    a = xp.asarray([sample[1] for sample in samples], dtype=np.float32)
-    r = xp.asarray([sample[2] for sample in samples], dtype=np.float32)
+    obs = xp.asarray([sample[0] for sample in samples], dtype=np.float32)
+    action = xp.asarray([sample[1] for sample in samples], dtype=np.float32)
+    reward = xp.asarray([sample[2] for sample in samples], dtype=np.float32)
     done = xp.asarray([sample[3] for sample in samples], dtype=np.float32)
-    s_next = xp.asarray([sample[4] for sample in samples], dtype=np.float32)
+    obs_next = xp.asarray([sample[4] for sample in samples], dtype=np.float32)
 
     def update_Q():
         # Predicted values: Q(s,a)
-        y = F.reshape(Q(s, a), (n,))
+        y = F.squeeze(Q(obs, action), axis=1)
         # Target values: r + gamma * Q(s,policy(s))
         with chainer.no_backprop_mode():
-            next_q = F.reshape(target_Q(s_next, target_policy(s_next)), (n,))
-            t = r + gamma * (1 - done) * next_q
-        loss = F.mean_squared_error(y, t)
+            next_q = F.squeeze(target_Q(obs_next, target_policy(obs_next)),
+                               axis=1)
+            target = reward + gamma * (1 - done) * next_q
+        loss = F.mean_squared_error(y, target)
         Q.cleargrads()
         loss.backward()
         opt_Q.update()
 
     def update_policy():
         # Maximize Q(s,policy(s))
-        loss = - F.sum(Q(s, policy(s))) / n
+        q = Q(obs, policy(obs))
+        q = q[:]  # Avoid https://github.com/chainer/chainer/issues/2744
+        loss = - F.mean(q)
         policy.cleargrads()
         loss.backward()
         opt_policy.update()
