@@ -2,6 +2,7 @@ from chainer.datasets import cifar  # NOQA
 from chainer.datasets import dict_dataset  # NOQA
 from chainer.datasets import image_dataset  # NOQA
 from chainer.datasets import mnist  # NOQA
+from chainer.datasets import svhn # NOQA
 from chainer.datasets import ptb  # NOQA
 from chainer.datasets import sub_dataset  # NOQA
 from chainer.datasets import transform_dataset  # NOQA
