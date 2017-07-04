@@ -3,7 +3,6 @@ import os
 import numpy
 from scipy import io
 
-
 from chainer.dataset import download
 from chainer.datasets import tuple_dataset
 
@@ -43,8 +42,9 @@ def _preprocess_svhn(raw, withlabel, scale, image_dtype, label_dtype):
     images *= scale / 255.
 
     labels = raw["y"].astype(label_dtype).flatten()
-    # labels go from 1-10, but we want zero-ed 0-9
-    labels -= 1
+    # labels go from 1-10, with the digit "0" having label 10.
+    # Set "0" to be label 0 to restore expected ordering
+    labels[labels==10] = 0
 
     if withlabel:
         return tuple_dataset.TupleDataset(images, labels)
