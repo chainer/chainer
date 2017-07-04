@@ -9,7 +9,6 @@ from chainer.utils import type_check
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
     libcudnn = cudnn.cudnn
-    _cudnn_version = libcudnn.getVersion()
     _sampler_type = libcudnn.CUDNN_SAMPLER_BILINEAR
 
 
@@ -34,8 +33,7 @@ class SpatialTransformerSampler(function.Function):
         return self._forward(inputs)
 
     def forward_gpu(self, inputs):
-        if not (cuda.cudnn_enabled and chainer.should_use_cudnn('>=auto') and
-                _cudnn_version >= 5000):
+        if not chainer.should_use_cudnn('>=auto', 5000):
             return self._forward(inputs)
         x, grid = inputs
         out_shape = x.shape[:2] + grid.shape[2:]
@@ -122,8 +120,7 @@ class SpatialTransformerSampler(function.Function):
         return self._backward(inputs, grad_outputs)
 
     def backward_gpu(self, inputs, grad_outputs):
-        if not (cuda.cudnn_enabled and chainer.should_use_cudnn('>=auto') and
-                _cudnn_version >= 5000):
+        if not chainer.should_use_cudnn('>=auto', 5000):
             return self._backward(inputs, grad_outputs)
         x, grid = inputs
         gy, = grad_outputs
