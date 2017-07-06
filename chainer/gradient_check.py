@@ -252,11 +252,6 @@ def check_backward(func, x_data, y_grad, params=(),
                                        if x.dtype.kind == 'f' else x)
                      for x in x_data]
 
-    def f():
-        ys = func(*casted_xs)
-        ys = _as_tuple(ys)
-        return tuple(y.data for y in ys)
-
     if no_grads is None:
         no_grads = [x.dtype.kind != 'f' for x in xs]
     else:
@@ -276,13 +271,18 @@ def check_backward(func, x_data, y_grad, params=(),
         for skip, cx, data in zip(no_grads, casted_xs, casted_data):
             if skip:
                 continue
-            cx.data = (one.data * data).astype(cx.data.dtype)
-        y = f()
+            data = (one.data * data).astype(cx.data.dtype)
+            if numpy.isscalar(data):
+                data = xp.array(data)
+            cx.data = data
+        ys = func(*casted_xs)
+        ys = _as_tuple(ys)
+        ys_data = tuple(y.data for y in ys)
         for cx, data in zip(casted_xs, casted_data):
             if skip:
                 continue
             cx.data = data
-        return y
+        return ys_data
 
     gx, = numerical_grad(g, (one.data,), y_grad, eps=eps)
     gx_accum = 0
