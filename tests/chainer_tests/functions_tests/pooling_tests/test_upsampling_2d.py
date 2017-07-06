@@ -11,19 +11,19 @@ import numpy
 import unittest
 
 
-@testing.parameterize(
-    {'in_shape': (4, 3, 6, 8)},
-    {'in_shape': (4, 3, 5, 7)},
-)
+@testing.parameterize(*testing.product({
+    'in_shape': [(4, 3, 6, 8), (4, 3, 5, 7)],
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+}))
 class TestUpsampling2D(unittest.TestCase):
 
     def setUp(self):
-        self.x = numpy.random.uniform(-1, 1, self.in_shape).astype('f')
+        self.x = numpy.random.uniform(-1, 1, self.in_shape).astype(self.dtype)
         self.p = F.MaxPooling2D(2, 2)
         with chainer.using_config('use_cudnn', 'never'):
             self.pooled_y = self.p(self.x)
         self.gy = numpy.random.uniform(
-            -1, 1, self.in_shape).astype(numpy.float32)
+            -1, 1, self.in_shape).astype(self.dtype)
 
     def check_forward(self, y):
         y = F.upsampling_2d(
