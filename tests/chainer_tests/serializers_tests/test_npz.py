@@ -284,12 +284,22 @@ class TestLoadNpz(unittest.TestCase):
         if hasattr(self, 'temp_file_path'):
             os.remove(self.temp_file_path)
 
-    def test_load(self):
+    def test_load_with_strict(self):
         obj = mock.MagicMock()
         npz.load_npz(self.temp_file_path, obj)
 
         self.assertEqual(obj.serialize.call_count, 1)
         (serializer,), _ = obj.serialize.call_args
+        self.assertIsInstance(serializer, npz.NpzDeserializer)
+        self.assertTrue(serializer.strict)
+
+    def test_load_without_strict(self):
+        obj = mock.MagicMock()
+        npz.load_npz(self.temp_file_path, obj, strict=False)
+
+        self.assertEqual(obj.serialize.call_count, 1)
+        (serializer,), _ = obj.serialize.call_args
+        self.assertFalse(serializer.strict)
         self.assertIsInstance(serializer, npz.NpzDeserializer)
 
     def test_load_with_path(self):
@@ -387,7 +397,7 @@ class TestGroupHierachy(unittest.TestCase):
         with numpy.load(self.temp_file_path) as f:
             self._check_optimizer_group(f, ('Wp/msg', 'Wp/msdx', 'epoch', 't'))
 
-    def test_load_optimizer(self):
+    def test_load_optimizer_with_strict(self):
         for param in self.parent.params():
             param.data.fill(1)
         npz.save_npz(self.temp_file_path, self.parent, self.compress)
@@ -396,6 +406,19 @@ class TestGroupHierachy(unittest.TestCase):
         npz.load_npz(self.temp_file_path, self.parent)
         for param in self.parent.params():
             self.assertTrue((param.data == 1).all())
+
+    def test_load_optimizer_without_strict(self):
+        for param in self.parent.params():
+            param.data.fill(1)
+        npz.save_npz(self.temp_file_path, self.parent, self.compress)
+        # Remove a param
+        del self.parent.child.linear.b
+        for param in self.parent.params():
+            param.data.fill(0)
+        npz.load_npz(self.temp_file_path, self.parent, strict=False)
+        for param in self.parent.params():
+            self.assertTrue((param.data == 1).all())
+        self.assertFalse(hasattr(self.parent.child.linear, 'b'))
 
 
 testing.run_module(__name__, __file__)
