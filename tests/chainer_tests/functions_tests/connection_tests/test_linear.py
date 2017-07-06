@@ -53,6 +53,14 @@ class TestNonparameterizedLinear(unittest.TestCase):
         testing.assert_allclose(
             y_expect, y.data, **self.check_forward_options)
 
+        with self.assertRaises(ValueError) as e:
+            functions.linear(x, W, n_batch_axes=0)
+        self.assertIn('n_batch_axes should be less than x.ndim', e.error_msg)
+
+        with self.assertRaises(ValueError) as e:
+            functions.linear(x, W, n_batch_axes=-1)
+        self.assertIn('n_batch_axes should be less than x.ndim', e.error_msg)
+
     @condition.retry(3)
     def test_forward_cpu(self):
         self.check_forward(self.x, self.W, self.b,
