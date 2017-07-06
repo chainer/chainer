@@ -377,7 +377,14 @@ class TestMultiprocessIteratorSerialize(unittest.TestCase):
 
 class TestMultiprocessIteratorConcurrency(unittest.TestCase):
 
+    def setUp(self):
+        iterators.multiprocess_iterator.install_logger()
+
+    def tearDown(self):
+        iterators.multiprocess_iterator.uninstall_logger()
+
     def test_finalize_not_deadlock(self):
+
         dataset = numpy.ones((1000, 1000))
         it = iterators.MultiprocessIterator(dataset, 10, n_processes=4)
         for _ in range(10):
