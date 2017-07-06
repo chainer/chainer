@@ -99,7 +99,5 @@ class SimplifiedDropconnect(link.Link):
             self._initialize_params(x.size // len(x.data))
         if mask is not None and 'mask' not in self.__dict__:
             self.add_persistent('mask', mask)
-        return simplified_dropconnect.simplified_dropconnect(x, self.W, self.b,
-                                                             self.ratio,
-                                                             train, mask,
-                                                             use_batchwise_mask)
+        return simplified_dropconnect.simplified_dropconnect(
+            x, self.W, self.b, self.ratio, train, mask, use_batchwise_mask)
