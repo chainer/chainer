@@ -454,12 +454,9 @@ class BinaryHierarchicalSoftmax(link.Link):
             choosed_idx = xp.argmax(xp.random.gumbel(size=prob.shape) + prob,
                                     axis=1)
             columns = choosed_idx
-
             list_sampled_ids.append(node2word[start_ids, columns])
             list_next_ids.append(start_ids)
-
             next_ids = parent2child[start_ids][rows, columns]
-
             next_ids = xp.where(next_ids != LEAF, next_ids, FINISH_SAMPLING)
 
             # check whether all nodes are LEAF.
