@@ -1,6 +1,10 @@
+from __future__ import print_function
+
 import collections
 import os
+import sys
 import time
+import traceback
 
 import six
 
@@ -252,7 +256,7 @@ class Trainer(object):
         else:
             raise ValueError('extension %s not found' % name)
 
-    def run(self):
+    def run(self, show_loop_exception_msg=True):
         """Executes the training loop.
 
         This method is the core of ``Trainer``. It executes the whole loop of
@@ -297,6 +301,17 @@ class Trainer(object):
                     for name, entry in extensions:
                         if entry.trigger(self):
                             entry.extension(self)
+        except Exception as e:
+            if show_loop_exception_msg:
+                # Show the exception here, as it will appear as if chainer
+                # hanged in case any finalize method below deadlocks.
+                print('Exception in main training loop: {}'.format(e),
+                      file=sys.stderr)
+                print('Traceback (most recent call last):', file=sys.stderr)
+                traceback.print_tb(sys.exc_info()[2])
+                print('Will finalize trainer extensions and updater before '
+                      'reraising the exception.', file=sys.stderr)
+            six.reraise(*sys.exc_info())
         finally:
             for _, entry in extensions:
                 finalize = getattr(entry.extension, 'finalize', None)
