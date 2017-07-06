@@ -1,9 +1,8 @@
 import sys
 
-import six
-
-from chainer.cuda import memory_pool
 from chainer import function
+
+from cupy.cuda import memory_hook
 
 
 class CupyMemoryProfileHook(function.FunctionHook):
@@ -20,11 +19,11 @@ class CupyMemoryProfileHook(function.FunctionHook):
 
         Output example::
 
-            FunctionName        UsedBytes AcquiredBytes Occurrence
-            LinearFunction      5.16GB    179.98MB      3900
-            ReLU                992.77MB  458.97MB      2600
-            SoftmaxCrossEntropy 5.76MB    5.08MB        1300
-            Accuracy            350.00KB  351.00KB      700
+                   FunctionName  UsedBytes  AcquiredBytes  Occurrence
+                 LinearFunction     5.16GB       179.98MB        3900
+                           ReLU   991.82MB       458.97MB        2600
+            SoftmaxCrossEntropy     7.71MB         5.08MB        1300
+                       Accuracy   617.97KB       351.00KB         700
 
         where *FunctionName* is the name of function that calls the hook, and
         *UsedBytes* is the memory bytes the function used from cupy memory
@@ -33,7 +32,7 @@ class CupyMemoryProfileHook(function.FunctionHook):
         is the number of calls.
     Attributes:
         call_history: List of measurement results. It consists of the function
-            that calls this hook,  the memory bytes the function used from cupy
+            that calls this hook, the memory bytes the function used from cupy
             memory pool, and the memory bytes the cupy memory pool acquired
             from GPU device on the function call.
     """
@@ -42,10 +41,17 @@ class CupyMemoryProfileHook(function.FunctionHook):
 
     def __init__(self):
         self.call_history = []
+        self._memory_hook = CupyMemoryCumulativeHook()
+
+    def added(self, function=None):
+        self._memory_hook.__enter__()
+
+    def deleted(self, function=None):
+        self._memory_hook.__exit__()
 
     def _preprocess(self):
-        self.start_used_bytes = memory_pool.used_bytes()
-        self.start_total_bytes = memory_pool.total_bytes()
+        self.start_used_bytes = self._memory_hook.used_bytes
+        self.start_acquired_bytes = self._memory_hook.acquired_bytes
 
     def forward_preprocess(self, function, in_data):
         self._preprocess()
@@ -54,8 +60,10 @@ class CupyMemoryProfileHook(function.FunctionHook):
         self._preprocess()
 
     def _postprocess(self, function):
-        used_bytes = memory_pool.used_bytes() - self.start_used_bytes
-        acquired_bytes = memory_pool.total_bytes() - self.start_total_bytes
+        end_used_bytes = self._memory_hook.used_bytes
+        end_acquired_bytes = self._memory_hook.acquired_bytes
+        used_bytes = end_used_bytes - self.start_used_bytes
+        acquired_bytes = end_acquired_bytes - self.start_acquired_bytes
         self.call_history.append((function, used_bytes, acquired_bytes))
 
     def forward_postprocess(self, function, in_data):
@@ -64,13 +72,21 @@ class CupyMemoryProfileHook(function.FunctionHook):
     def backward_postprocess(self, function, in_data, out_grad):
         self._postprocess(function)
 
+    def total_used_bytes(self):
+        """Returns total bytes that functions used from cupy memory pool."""
+        return sum(u for (_, u, _) in self.call_history)
+
+    def total_acquired_bytes(self):
+        """Returns total bytes that cupy memory pool acquired from GPU."""
+        return sum(a for (_, _, a) in self.call_history)
+
     def summary(self):
         """Returns a summary of memory profiling in functions.
 
         Returns:
             A summarized dictionary whose keys are function names and
-            values are dictionaries of ``used_bytes``, ``acquired_bytes``,
-            and ``occurrrence``.
+            values are dictionaries of
+            ``used_bytes``, ``acquired_bytes``, and ``occurrrence``.
         """
         summary = {}
         for func, used_bytes, acquired_bytes in self.call_history:
@@ -92,14 +108,16 @@ class CupyMemoryProfileHook(function.FunctionHook):
             size /= 1024.0
         return '%.2f%sB' % (size, 'Z')
 
-    def print_report(self, end='\n', file=sys.stdout):
+    def print_report(self, file=sys.stdout):
         """Prints a summary report of memory profiling in functions."""
-        entries = [['FunctionName', 'UsedBytes', 'AcquiredBytes', 'Occurrence']]
+        entries = [[
+            'FunctionName', 'UsedBytes', 'AcquiredBytes', 'Occurrence']]
         for function_name, record in self.summary().items():
             used_bytes = self._humanized_size(record['used_bytes'])
             acquired_bytes = self._humanized_size(record['acquired_bytes'])
             occurrence = str(record['occurrence'])
-            entries.append([function_name, used_bytes, acquired_bytes, occurrence])
+            entries.append(
+                [function_name, used_bytes, acquired_bytes, occurrence])
         entry_widths = []
         entry_widths.append(max(len(f) for f, _, _, _ in entries))
         entry_widths.append(max(len(u) for _, u, _, _ in entries))
@@ -107,5 +125,31 @@ class CupyMemoryProfileHook(function.FunctionHook):
         entry_widths.append(max(len(o) for _, _, _, o in entries))
         template = '  '.join('{:>%d}' % w for w in entry_widths)
         for function_name, used_bytes, acquired_bytes, occurrence in entries:
-            line = template.format(function_name, used_bytes, acquired_bytes, occurrence)
-            six.print_(line, end=end, file=file)
+            line = template.format(
+                function_name, used_bytes, acquired_bytes, occurrence)
+            file.write(line)
+            file.write('\n')
+        file.flush()
+
+
+class CupyMemoryCumulativeHook(memory_hook.MemoryHook):
+    """A simple memory hook for cupy measuring memory usage cumulatively.
+
+    Attributes:
+        used_bytes (int): cumulative bytes that application used from cupy
+            memory pool.
+        acquired_bytes (int): cumulative bytes that cupy memory pool acquired
+            from GPU device.
+    """
+
+    name = 'CupyMemoryCumulativeHook'
+
+    def __init__(self):
+        self.used_bytes = 0
+        self.acquired_bytes = 0
+
+    def alloc_preprocess(self, device_id, rounded_size):
+        self.acquired_bytes += rounded_size
+
+    def malloc_preprocess(self, device_id, size, rounded_size):
+        self.used_bytes += rounded_size

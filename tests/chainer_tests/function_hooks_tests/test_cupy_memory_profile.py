@@ -1,11 +1,11 @@
 import unittest
 
 import numpy
-import re
 import six
 
 import chainer
 from chainer import cuda
+from chainer.cuda import memory_pool
 from chainer import function_hooks
 from chainer import functions
 from chainer.functions.connection import linear
@@ -14,13 +14,14 @@ from chainer import testing
 from chainer.testing import attr
 
 
-def check_history(self, t, function_type, used_bytes_type, acquired_bytes_type):
+def check_history(self, t, function_type, used_bytes_type,
+                  acquired_bytes_type):
     self.assertIsInstance(t[0], function_type)
     self.assertIsInstance(t[1], used_bytes_type)
     self.assertIsInstance(t[2], acquired_bytes_type)
 
 
-class TestCupyMemoryProfileHookHookToLink(unittest.TestCase):
+class TestCupyMemoryProfileHookToLink(unittest.TestCase):
 
     def setUp(self):
         self.h = function_hooks.CupyMemoryProfileHook()
@@ -59,7 +60,7 @@ class TestCupyMemoryProfileHookHookToLink(unittest.TestCase):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
 
-class TestCupyMemoryProfileHookHookToFunction(unittest.TestCase):
+class TestCupyMemoryProfileHookToFunction(unittest.TestCase):
 
     def setUp(self):
         self.h = function_hooks.CupyMemoryProfileHook()
@@ -67,6 +68,9 @@ class TestCupyMemoryProfileHookHookToFunction(unittest.TestCase):
         self.f.add_hook(self.h)
         self.x = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
         self.gy = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
+
+    def tearDown(self):
+        self.f.delete_hook(self.h.name)
 
     def check_forward(self, x):
         self.f(chainer.Variable(x))
@@ -92,34 +96,47 @@ class TestCupyMemoryProfileHookHookToFunction(unittest.TestCase):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
 
-class TestCupyMemoryProfileSummary(unittest.TestCase):
+class TestCupyMemoryProfileReport(unittest.TestCase):
 
     def setUp(self):
+        memory_pool.free_all_blocks()
         self.h = function_hooks.CupyMemoryProfileHook()
-        self.f = functions.Exp()
-        self.f.add_hook(self.h)
+        self.f1 = functions.Exp()
+        self.f2 = functions.Log()
         self.x = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
+        x = cuda.to_gpu(self.x)
+        with self.h:
+            self.f1(chainer.Variable(x))
+            self.f1(chainer.Variable(x))
+            self.f2(chainer.Variable(x))
+            self.f2(chainer.Variable(x))
+
+    @attr.gpu
+    def test_call_history(self):
+        self.assertEqual(4, len(self.h.call_history))
+
+    @attr.gpu
+    def test_total_used_bytes(self):
+        self.assertNotEqual(0, self.h.total_used_bytes())
+
+    @attr.gpu
+    def test_total_acquired_bytes(self):
+        self.assertNotEqual(0, self.h.total_acquired_bytes())
 
     @attr.gpu
     def test_summary(self):
-        x = cuda.to_gpu(self.x)
-        self.f(chainer.Variable(x))
-        self.f(chainer.Variable(x))
-        self.assertEqual(2, len(self.h.call_history))
-        self.assertEqual(1, len(self.h.summary()))
+        self.assertEqual(2, len(self.h.summary()))
 
     @attr.gpu
     def test_print_report(self):
-        x = cuda.to_gpu(self.x)
-        self.f(chainer.Variable(x))
-        self.f(chainer.Variable(x))
         io = six.StringIO()
         self.h.print_report(file=io)
-        expect = '''\AFunctionName  UsedBytes  AcquiredBytes  Occurrence
- +Exp +[0-9.\-e]+.?B +[0-9.\-e]+.?B +[0-9]+$
+        expect = r'''\AFunctionName  UsedBytes  AcquiredBytes  Occurrence
+ +Exp +[0-9.\-e]+.?B +[0-9.\-e]+.?B +[0-9]+
+ +Log +[0-9.\-e]+.?B +[0-9.\-e]+.?B +[0-9]+$
 '''
         actual = io.getvalue()
-        self.assertTrue(re.match(expect, actual), actual)
+        six.assertRegex(self, actual, expect)
 
 
 testing.run_module(__name__, __file__)
