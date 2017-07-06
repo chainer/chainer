@@ -148,6 +148,7 @@ Loss functions
    chainer.functions.negative_sampling
    chainer.functions.sigmoid_cross_entropy
    chainer.functions.softmax_cross_entropy
+   chainer.functions.squared_error
    chainer.functions.triplet
 
 Mathematical functions
