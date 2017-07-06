@@ -269,7 +269,8 @@ def check_backward(func, x_data, y_grad, params=(),
             assert x.grad is None
             continue
 
-    one = variable.Variable(numpy.array(1., dtype))
+    xp = cuda.get_array_module(*xs)
+    one = variable.Variable(xp.array(1., dtype))
 
     def g():
         for skip, cx, data in zip(no_grads, casted_xs, casted_data):
