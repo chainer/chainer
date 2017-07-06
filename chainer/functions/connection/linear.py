@@ -18,6 +18,10 @@ def _as_mat(x, n_batch_axes):
 class LinearFunction(function.Function):
 
     def __init__(self, n_batch_axes=1):
+        if n_batch_axes < 1:
+            raise ValueError(
+                'n_batch_axes should be less than x.ndim and greater '
+                'than 0 but {} was given.'.format(n_batch_axes))
         self._n_batch_axes = n_batch_axes
 
     def check_type_forward(self, in_types):
