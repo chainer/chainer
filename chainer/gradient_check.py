@@ -288,7 +288,12 @@ def check_backward(func, x_data, y_grad, params=(),
     for skip, x, cx in six.moves.zip(no_grads, xs, casted_xs):
         if skip:
             continue
-        gx_accum += x.grad.ravel().dot(cx.data.ravel())
+        gxi = x.grad.ravel()
+        cxi = cx.data.ravel()
+        if dtype is not None:
+            gxi = gxi.astype(dtype)
+            cxi = cxi.astype(dtype)
+        gx_accum += gxi.dot(cxi)
     testing.assert_allclose(gx, gx_accum, atol=atol, rtol=rtol)
 
     for p in params:
