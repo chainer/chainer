@@ -5,49 +5,21 @@
 Trainer extensions
 ==================
 
-dump_graph
-----------
-.. autofunction:: dump_graph
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
 
-Evaluator
----------
-.. autoclass:: Evaluator
-   :members:
-
-ExponentialShift
-----------------
-.. autoclass:: ExponentialShift
-   :members:
-
-LinearShift
------------
-.. autoclass:: LinearShift
-   :members:
-
-LogReport
----------
-.. autoclass:: LogReport
-   :members:
-
-snapshot
---------
-.. autofunction:: snapshot
-
-snapshot_object
----------------
-.. autofunction:: snapshot_object
-
-PlotReport
-----------
-.. autoclass:: PlotReport
-   :members:
-
-PrintReport
------------
-.. autoclass:: PrintReport
-   :members:
-
-ProgressBar
------------
-.. autoclass:: ProgressBar
-   :members:
+   chainer.training.extensions.dump_graph
+   chainer.training.extensions.Evaluator
+   chainer.training.extensions.ExponentialShift
+   chainer.training.extensions.LinearShift
+   chainer.training.extensions.LogReport
+   chainer.training.extensions.observe_lr
+   chainer.training.extensions.observe_value
+   chainer.training.extensions.snapshot
+   chainer.training.extensions.snapshot_object
+   chainer.training.extensions.ParameterStatistics
+   chainer.training.extensions.PlotReport
+   chainer.training.extensions.PrintReport
+   chainer.training.extensions.ProgressBar
+   

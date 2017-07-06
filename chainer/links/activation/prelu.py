@@ -1,5 +1,6 @@
 from chainer.functions.activation import prelu
 from chainer import link
+from chainer import variable
 
 
 class PReLU(link.Link):
@@ -17,13 +18,14 @@ class PReLU(link.Link):
     .. seealso:: :func:`chainer.functions.prelu`
 
     Attributes:
-        W (~chainer.Variable): Coefficient of parametric ReLU.
+        W (~chainer.Parameter): Coefficient of parametric ReLU.
 
     """
 
     def __init__(self, shape=(), init=0.25):
-        super(PReLU, self).__init__(W=shape)
-        self.W.data.fill(init)
+        super(PReLU, self).__init__()
+        with self.init_scope():
+            self.W = variable.Parameter(init, shape)
 
     def __call__(self, x):
         """Applies the parametric ReLU activation function.

@@ -134,9 +134,8 @@ def crf1d(cost, xs, ys, reduce='mean'):
             y_prev, _ = split_axis.split_axis(y_prev, [batch], axis=0)
             score, score_rest = split_axis.split_axis(score, [batch], axis=0)
             scores.append(score_rest)
-        score += (select_item.select_item(x, y)
-                  + reshape.reshape(
-                      embed_id.embed_id(y_prev * n_label + y, cost), (batch,)))
+        score += (select_item.select_item(x, y) + reshape.reshape(
+            embed_id.embed_id(y_prev * n_label + y, cost), (batch,)))
 
     if len(scores) > 0:
         scores.append(score)

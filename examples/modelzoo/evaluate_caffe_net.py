@@ -43,6 +43,8 @@ if args.gpu >= 0:
 xp = cuda.cupy if args.gpu >= 0 else np
 assert args.batchsize > 0
 
+chainer.config.train = False  # All the codes will run in test mode
+
 
 dataset = []
 with open(args.dataset) as list_file:
@@ -58,7 +60,7 @@ print('Loading Caffe model file %s...' % args.model, file=sys.stderr)
 func = caffe.CaffeFunction(args.model)
 print('Loaded', file=sys.stderr)
 if args.gpu >= 0:
-    cuda.get_device(args.gpu).use()
+    cuda.get_device_from_id(args.gpu).use()
     func.to_gpu()
 
 if args.model_type == 'alexnet' or args.model_type == 'caffenet':
@@ -66,7 +68,7 @@ if args.model_type == 'alexnet' or args.model_type == 'caffenet':
     mean_image = np.load(args.mean)
 
     def forward(x, t):
-        y, = func(inputs={'data': x}, outputs=['fc8'], train=False)
+        y, = func(inputs={'data': x}, outputs=['fc8'])
         return F.softmax_cross_entropy(y, t), F.accuracy(y, t)
 elif args.model_type == 'googlenet':
     in_size = 224
@@ -78,15 +80,14 @@ elif args.model_type == 'googlenet':
 
     def forward(x, t):
         y, = func(inputs={'data': x}, outputs=['loss3/classifier'],
-                  disable=['loss1/ave_pool', 'loss2/ave_pool'],
-                  train=False)
+                  disable=['loss1/ave_pool', 'loss2/ave_pool'])
         return F.softmax_cross_entropy(y, t), F.accuracy(y, t)
 elif args.model_type == 'resnet':
     in_size = 224
     mean_image = np.load(args.mean)
 
     def forward(x, t):
-        y, = func(inputs={'data': x}, outputs=['prob'], train=False)
+        y, = func(inputs={'data': x}, outputs=['prob'])
         return F.softmax_cross_entropy(y, t), F.accuracy(y, t)
 
 
@@ -112,17 +113,15 @@ for path, label in dataset:
     i += 1
 
     if i == args.batchsize:
-        x_data = xp.asarray(x_batch)
-        y_data = xp.asarray(y_batch)
+        x = xp.asarray(x_batch)
+        y = xp.asarray(y_batch)
 
-        x = chainer.Variable(x_data, volatile=True)
-        t = chainer.Variable(y_data, volatile=True)
-
-        loss, accuracy = forward(x, t)
+        with chainer.no_backprop_mode():
+            loss, accuracy = forward(x, y)
 
         accum_loss += float(loss.data) * args.batchsize
         accum_accuracy += float(accuracy.data) * args.batchsize
-        del x, t, loss, accuracy
+        del x, y, loss, accuracy
 
         count += args.batchsize
         print('{} / {}'.format(count, len(dataset)), end='\r', file=sys.stderr)

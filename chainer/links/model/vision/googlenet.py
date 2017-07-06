@@ -12,7 +12,7 @@ except ImportError as e:
 
 from chainer.dataset.convert import concat_examples
 from chainer.dataset import download
-from chainer import flag
+from chainer import function
 from chainer.functions.activation.relu import relu
 from chainer.functions.activation.softmax import softmax
 from chainer.functions.array.reshape import reshape
@@ -29,13 +29,14 @@ from chainer.links.connection.convolution_2d import Convolution2D
 from chainer.links.connection.inception import Inception
 from chainer.links.connection.linear import Linear
 from chainer.serializers import npz
+from chainer.utils import argument
 from chainer.utils import imgproc
 from chainer.variable import Variable
 
 
 class GoogLeNet(link.Chain):
 
-    """A pre-trained GoogLeNet model provided by BVLC [1].
+    """A pre-trained GoogLeNet model provided by BVLC.
 
     When you specify the path of the pre-trained chainer model serialized as
     a ``.npz`` file in the constructor, this chain model automatically
@@ -56,7 +57,8 @@ class GoogLeNet(link.Chain):
     want an off-the-shelf classifier, we recommend you to use ResNet50 or other
     models since they are more accurate than GoogLeNet.
 
-    .. [1] `<https://github.com/BVLC/caffe/tree/master/models/bvlc_googlenet>`_
+    The original model is provided here:
+    `<https://github.com/BVLC/caffe/tree/master/models/bvlc_googlenet>`_
 
     Args:
         pretrained_model (str): the destination of the pre-trained
@@ -125,7 +127,10 @@ class GoogLeNet(link.Chain):
                 self)
         elif pretrained_model:
             npz.load_npz(pretrained_model, self)
-        self.functions = collections.OrderedDict([
+
+    @property
+    def functions(self):
+        return collections.OrderedDict([
             ('conv1', [self.conv1, relu]),
             ('pool1', [_max_pooling_2d, _local_response_normalization]),
             ('conv2_reduce', [self.conv2_reduce, relu]),
@@ -174,14 +179,21 @@ class GoogLeNet(link.Chain):
         _transfer_googlenet(caffemodel, chainermodel)
         npz.save_npz(path_npz, chainermodel, compression=False)
 
-    def __call__(self, x, layers=['prob'], train=False):
-        """Computes all the feature maps specified by ``layers``.
+    def __call__(self, x, layers=['prob'], **kwargs):
+        """__call__(self, x, layers=['prob'])
+
+        Computes all the feature maps specified by ``layers``.
+
+        .. warning::
+
+           ``train`` argument is not supported anymore since v2.
+           Instead, use ``chainer.using_config('train', train)``.
+           See :func:`chainer.using_config`.
 
         Args:
             x (~chainer.Variable): Input variable. It should be prepared by
-            ``prepare`` function.
+                ``prepare`` function.
             layers (list of str): The list of layer names you want to extract.
-            train (bool): If ``True``, Dropout runs in training mode.
 
         Returns:
             Dictionary of ~chainer.Variable: A directory in which
@@ -189,6 +201,11 @@ class GoogLeNet(link.Chain):
             the corresponding feature map variable.
 
         """
+
+        argument.check_unexpected_kwargs(
+            kwargs, train='train argument is not supported anymore. '
+            'Use chainer.using_config')
+        argument.assert_kwargs_empty(kwargs)
 
         h = x
         activations = {}
@@ -205,11 +222,7 @@ class GoogLeNet(link.Chain):
                 h = inception_4d_cache
 
             for func in funcs:
-                if func is _dropout:
-                    h = func(h, train=train)
-                else:
-                    h = func(h)
-
+                h = func(h)
             if key in target_layers:
                 activations[key] = h
                 target_layers.remove(key)
@@ -221,15 +234,25 @@ class GoogLeNet(link.Chain):
 
         return activations
 
-    def extract(self, images, layers=['pool5'], size=(224, 224),
-                train=False, volatile=flag.OFF):
-        """Extracts all the feature maps of given images.
+    def extract(self, images, layers=['pool5'], size=(224, 224), **kwargs):
+        """extract(self, images, layers=['pool5'], size=(224, 224))
+
+        Extracts all the feature maps of given images.
 
         The difference of directly executing ``__call__`` is that
         it directly accepts images as an input and automatically
         transforms them to a proper variable. That is,
         it is also interpreted as a shortcut method that implicitly calls
         ``prepare`` and ``__call__`` functions.
+
+        .. warning::
+
+           ``train`` and ``volatile`` arguments are not supported anymore since
+           v2.
+           Instead, use ``chainer.using_config('train', train)`` and
+           ``chainer.using_config('enable_backprop', not volatile)``
+           respectively.
+           See :func:`chainer.using_config`.
 
         Args:
             images (iterable of PIL.Image or numpy.ndarray): Input images.
@@ -238,8 +261,6 @@ class GoogLeNet(link.Chain):
                 an input of CNN. All the given images are not resized
                 if this argument is ``None``, but the resolutions of
                 all the images should be the same.
-            train (bool): If ``True``, Dropout runs in training mode.
-            volatile (~chainer.Flag): Volatility flag used for input variables.
 
         Returns:
             Dictionary of ~chainer.Variable: A directory in which
@@ -248,9 +269,16 @@ class GoogLeNet(link.Chain):
 
         """
 
+        argument.check_unexpected_kwargs(
+            kwargs, train='train argument is not supported anymore. '
+            'Use chainer.using_config',
+            volatile='volatile argument is not supported anymore. '
+            'Use chainer.using_config')
+        argument.assert_kwargs_empty(kwargs)
+
         x = concat_examples([prepare(img, size=size) for img in images])
-        x = Variable(self.xp.asarray(x), volatile=volatile)
-        return self(x, layers=layers, train=train)
+        x = Variable(self.xp.asarray(x))
+        return self(x, layers=layers)
 
     def predict(self, images, oversample=True):
         """Computes all the probabilities of given images.
@@ -272,14 +300,15 @@ class GoogLeNet(link.Chain):
             x = imgproc.oversample(x, crop_dims=(224, 224))
         else:
             x = x[:, :, 16:240, 16:240]
-        # Set volatile option to ON to reduce memory consumption
-        x = Variable(self.xp.asarray(x), volatile=flag.ON)
-        y = self(x, layers=['prob'])['prob']
-        if oversample:
-            n = y.data.shape[0] // 10
-            y_shape = y.data.shape[1:]
-            y = reshape(y, (n, 10) + y_shape)
-            y = average(y, axis=1)
+        # Use no_backprop_mode to reduce memory consumption
+        with function.no_backprop_mode():
+            x = Variable(self.xp.asarray(x))
+            y = self(x, layers=['prob'])['prob']
+            if oversample:
+                n = y.data.shape[0] // 10
+                y_shape = y.data.shape[1:]
+                y = reshape(y, (n, 10) + y_shape)
+                y = average(y, axis=1)
         return y
 
 
@@ -395,8 +424,8 @@ def _average_pooling_2d_k7(x):
     return average_pooling_2d(x, ksize=7, stride=1)
 
 
-def _dropout(x, train):
-    return dropout(x, ratio=0.4, train=train)
+def _dropout(x):
+    return dropout(x, ratio=0.4)
 
 
 def _make_npz(path_npz, url, model):

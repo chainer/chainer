@@ -3,7 +3,6 @@ import math
 from chainer.functions.activation import softplus
 from chainer.functions.math import exponential
 from chainer.functions.math import sum
-from chainer import variable
 
 
 def gaussian_kl_divergence(mean, ln_var, reduce='sum'):
@@ -21,30 +20,29 @@ def gaussian_kl_divergence(mean, ln_var, reduce='sum'):
     where :math:`S` is a diagonal matrix such that :math:`S_{ii} = \\sigma_i^2`
     and :math:`I` is an identity matrix.
 
-    The output is a varialbe whose value depends on the value of
+    The output is a variable whose value depends on the value of
     the option ``reduce``. If it is ``'no'``, it holds the elementwise
     loss values. If it is ``'sum'``, loss values are summed up.
 
     Args:
-        mean (~chainer.Variable): A variable representing mean of given
+        mean (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): A variable representing mean of given
             gaussian distribution, :math:`\\mu`.
-        ln_var (~chainer.Variable): A variable representing logarithm of
+        ln_var (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): A variable representing logarithm of
             variance of given gaussian distribution, :math:`\\log(\\sigma^2)`.
-        recude (str): Reduction option. Its value must be either
+        reduce (str): Reduction option. Its value must be either
             ``'sum'`` or ``'no'``. Otherwise, :class:`ValueError` is raised.
 
     Returns:
         ~chainer.Variable:
             A variable representing KL-divergence between
             given gaussian distribution and the standard gaussian.
-            If ``reduce`` is ``'no'``, the output varialbe holds array
+            If ``reduce`` is ``'no'``, the output variable holds array
             whose shape is same as one of (hence both of) input variables.
             If it is ``'sum'``, the output variable holds a scalar value.
 
     """
-    assert isinstance(mean, variable.Variable)
-    assert isinstance(ln_var, variable.Variable)
-
     if reduce not in ('sum', 'no'):
         raise ValueError(
             "only 'sum' and 'no' are valid for 'reduce', but '%s' is "
@@ -73,7 +71,7 @@ def bernoulli_nll(x, y, reduce='sum'):
     function, and :math:`B(x; p)` is a Bernoulli distribution.
 
 
-    The output is a varialbe whose value depends on the value of
+    The output is a variable whose value depends on the value of
     the option ``reduce``. If it is ``'no'``, it holds the elementwise
     loss values. If it is ``'sum'``, loss values are summed up.
 
@@ -84,23 +82,22 @@ def bernoulli_nll(x, y, reduce='sum'):
        directly.
 
     Args:
-        x (~chainer.Variable): Input variable.
-        y (~chainer.Variable): A variable representing the parameter of
+        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Input variable.
+        y (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): A variable representing the parameter of
             Bernoulli distribution.
-        recude (str): Reduction option. Its value must be either
+        reduce (str): Reduction option. Its value must be either
             ``'sum'`` or ``'no'``. Otherwise, :class:`ValueError` is raised.
 
     Returns:
         ~chainer.Variable:
             A variable representing the negative log-likelihood.
-            If ``reduce`` is ``'no'``, the output varialbe holds array
+            If ``reduce`` is ``'no'``, the output variable holds array
             whose shape is same as one of (hence both of) input variables.
             If it is ``'sum'``, the output variable holds a scalar value.
 
     """
-    assert isinstance(x, variable.Variable)
-    assert isinstance(y, variable.Variable)
-
     if reduce not in ('sum', 'no'):
         raise ValueError(
             "only 'sum' and 'no' are valid for 'reduce', but '%s' is "
@@ -113,12 +110,13 @@ def bernoulli_nll(x, y, reduce='sum'):
         return loss
 
 
-def gaussian_nll(x, mean, ln_var):
+def gaussian_nll(x, mean, ln_var, reduce='sum'):
     """Computes the negative log-likelihood of a Gaussian distribution.
 
     Given two variable ``mean`` representing :math:`\\mu` and ``ln_var``
-    representing :math:`\\log(\\sigma^2)`, this function returns the negative
-    log-likelihood of :math:`x` on a Gaussian distribution :math:`N(\\mu, S)`,
+    representing :math:`\\log(\\sigma^2)`, this function computes in
+    elementwise manner the negative log-likelihood of :math:`x` on a
+    Gaussianx distribution :math:`N(\\mu, S)`,
 
     .. math::
 
@@ -129,23 +127,40 @@ def gaussian_nll(x, mean, ln_var):
     where :math:`D` is a dimension of :math:`x` and :math:`S` is a diagonal
     matrix where :math:`S_{ii} = \\sigma_i^2`.
 
+    The output is a varialbe whose value depends on the value of
+    the option ``reduce``. If it is ``'no'``, it holds the elementwise
+    loss values. If it is ``'sum'``, loss values are summed up.
+
     Args:
-        x (~chainer.Variable): Input variable.
-        mean (~chainer.Variable): A variable representing mean of a Gaussian
+        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Input variable.
+        mean (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): A variable representing mean of a Gaussian
             distribution, :math:`\\mu`.
-        ln_var (~chainer.Variable): A variable representing logarithm of
+        ln_var (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): A variable representing logarithm of
             variance of a Gaussian distribution, :math:`\\log(\\sigma^2)`.
+        reduce (str): Reduction option. Its value must be either
+            ``'sum'`` or ``'no'``. Otherwise, :class:`ValueError` is raised.
 
     Returns:
-        ~chainer.Variable: A variable representing the negative log-likelihood.
+        ~chainer.Variable:
+            A variable representing the negative log-likelihood.
+            If ``reduce`` is ``'no'``, the output varialbe holds array
+            whose shape is same as one of (hence both of) input variables.
+            If it is ``'sum'``, the output variable holds a scalar value.
 
     """
-    assert isinstance(x, variable.Variable)
-    assert isinstance(mean, variable.Variable)
-    assert isinstance(ln_var, variable.Variable)
+    if reduce not in ('sum', 'no'):
+        raise ValueError(
+            "only 'sum' and 'no' are valid for 'reduce', but '%s' is "
+            'given' % reduce)
 
-    D = x.size
     x_prec = exponential.exp(-ln_var)
     x_diff = x - mean
     x_power = (x_diff * x_diff) * x_prec * -0.5
-    return (sum.sum(ln_var) + D * math.log(2 * math.pi)) / 2 - sum.sum(x_power)
+    loss = (ln_var + math.log(2 * math.pi)) / 2 - x_power
+    if reduce == 'sum':
+        return sum.sum(loss)
+    else:
+        return loss

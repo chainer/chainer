@@ -17,7 +17,8 @@ from chainer.testing import attr
     ],
     [
         {'input_none': False},
-        {'input_none': True},
+        {'input_none': True, 'input_omit': True},
+        {'input_none': True, 'input_omit': False},
     ],
     [
         {'input_variable': False},
@@ -27,8 +28,13 @@ from chainer.testing import attr
 class TestLSTM(unittest.TestCase):
 
     def setUp(self):
-        in_size = None if self.input_none else self.in_size
-        self.link = links.LSTM(in_size, self.out_size)
+        if self.input_none:
+            if self.input_omit:
+                self.link = links.LSTM(self.out_size)
+            else:
+                self.link = links.LSTM(None, self.out_size)
+        else:
+            self.link = links.LSTM(self.in_size, self.out_size)
         self.link.cleargrads()
         x1_shape = (4, self.in_size)
         self.x1 = numpy.random.uniform(-1, 1, x1_shape).astype(numpy.float32)
@@ -41,7 +47,7 @@ class TestLSTM(unittest.TestCase):
         xp = self.link.xp
         x1 = chainer.Variable(x1_data) if self.input_variable else x1_data
         h1 = self.link(x1)
-        with cuda.get_device(x1_data):
+        with cuda.get_device_from_array(x1_data):
             c0 = chainer.Variable(xp.zeros((len(self.x1), self.out_size),
                                            dtype=self.x1.dtype))
             c1_expect, h1_expect = functions.lstm(c0, self.link.upward(x1))
@@ -54,7 +60,7 @@ class TestLSTM(unittest.TestCase):
         h1_in, h1_rest = functions.split_axis(
             self.link.h.data, [batch], axis=0)
         y2 = self.link(x2)
-        with cuda.get_device(x1):
+        with cuda.get_device_from_array(x1):
             c2_expect, y2_expect = \
                 functions.lstm(c1_expect,
                                self.link.upward(x2) + self.link.lateral(h1_in))
@@ -81,12 +87,12 @@ class TestLSTM(unittest.TestCase):
 
     @attr.multi_gpu(2)
     def test_forward_gpu_multi(self):
-        with cuda.get_device(0):
+        with cuda.get_device_from_id(0):
             self.link.to_gpu()
             x1 = cuda.to_gpu(self.x1)
             x2 = cuda.to_gpu(self.x2)
             x3 = cuda.to_gpu(self.x3)
-        with cuda.get_device(1):
+        with cuda.get_device_from_id(1):
             self.check_forward(x1, x2, x3)
 
 
@@ -240,7 +246,8 @@ class TestLSTMInvalidSize(unittest.TestCase):
     ],
     [
         {'input_none': False},
-        {'input_none': True},
+        {'input_none': True, 'input_omit': True},
+        {'input_none': True, 'input_omit': False},
     ],
     [
         {'input_variable': False},
@@ -250,8 +257,13 @@ class TestLSTMInvalidSize(unittest.TestCase):
 class TestStatelessLSTM(unittest.TestCase):
 
     def setUp(self):
-        in_size = None if self.input_none else self.in_size
-        self.link = links.StatelessLSTM(in_size, self.out_size)
+        if self.input_none:
+            if self.input_omit:
+                self.link = links.StatelessLSTM(self.out_size)
+            else:
+                self.link = links.StatelessLSTM(None, self.out_size)
+        else:
+            self.link = links.StatelessLSTM(self.in_size, self.out_size)
         self.link.cleargrads()
 
         x_shape = (4, self.in_size)
@@ -261,7 +273,7 @@ class TestStatelessLSTM(unittest.TestCase):
         xp = self.link.xp
         x = chainer.Variable(x_data) if self.input_variable else x_data
         c1, h1 = self.link(None, None, x)
-        with cuda.get_device(x_data):
+        with cuda.get_device_from_array(x_data):
             c0 = chainer.Variable(xp.zeros((len(self.x), self.out_size),
                                            dtype=self.x.dtype))
             c1_expect, h1_expect = functions.lstm(c0, self.link.upward(x))
@@ -285,10 +297,10 @@ class TestStatelessLSTM(unittest.TestCase):
 
     @attr.multi_gpu(2)
     def test_forward_gpu_multi(self):
-        with cuda.get_device(0):
+        with cuda.get_device_from_id(0):
             self.link.to_gpu()
             x = cuda.to_gpu(self.x)
-        with cuda.get_device(1):
+        with cuda.get_device_from_id(1):
             self.check_forward(x)
 
 

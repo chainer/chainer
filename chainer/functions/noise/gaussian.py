@@ -28,6 +28,8 @@ class Gaussian(function.Function):
         )
 
     def forward_cpu(self, inputs):
+        self.retain_inputs(())
+
         mean, ln_var = inputs
         if self.eps is None:
             self.eps = numpy.random.standard_normal(ln_var.shape) \
@@ -37,6 +39,8 @@ class Gaussian(function.Function):
         return utils.force_array(mean + self.noise),
 
     def forward_gpu(self, inputs):
+        self.retain_inputs(())
+
         cupy = cuda.cupy
         mean, ln_var = inputs
         if self.eps is None:
