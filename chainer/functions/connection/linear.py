@@ -72,7 +72,8 @@ class LinearFunction(function.Function):
         else:
             xp = cuda.get_array_module(*inputs)
             gy_ax = six.moves.range(self._n_batch_axes, gy.ndim)
-            gx = xp.tensordot(gy, W, axes=(gy_ax, 0)).astype(x.dtype, copy=False)
+            gx = xp.tensordot(
+                gy, W, axes=(gy_ax, 0)).astype(x.dtype, copy=False)
             ax = six.moves.range(self._n_batch_axes)
             gW = xp.tensordot(gy, x, axes=(ax, ax)).astype(W.dtype, copy=False)
         if len(inputs) == 3:

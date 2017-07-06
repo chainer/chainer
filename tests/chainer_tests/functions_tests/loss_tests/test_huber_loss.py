@@ -1,4 +1,5 @@
 import unittest
+import warnings
 
 import numpy
 
@@ -91,6 +92,15 @@ class TestHuberLossInvalidReductionOption(unittest.TestCase):
     @attr.gpu
     def test_invalid_option_gpu(self):
         self.check_invalid_option(cuda.cupy)
+
+    def check_obsolete_option_warning(self, xp):
+        x = xp.asarray(self.x)
+        t = xp.asarray(self.t)
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
+            functions.huber_loss(x, t, 1, 1, 'sum_along_second_axis')
+        self.assertIs(w[0].category, DeprecationWarning)
+        self.assertIn('Please use sum_each_data instead', str(w[0].message))
 
 
 testing.run_module(__name__, __file__)

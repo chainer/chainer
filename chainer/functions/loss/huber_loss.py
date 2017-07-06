@@ -10,7 +10,7 @@ from chainer.utils import type_check
 
 class HuberLoss(function.Function):
 
-    def __init__(self, delta, n_batch_axes=1, reduce='sum_each_data'):
+    def __init__(self, delta, reduce='sum_each_data', n_batch_axes=1):
         self.delta = delta
         self._n_batch_axes = n_batch_axes
 
@@ -64,7 +64,7 @@ class HuberLoss(function.Function):
         return gx, -gx
 
 
-def huber_loss(x, t, delta, n_batch_axes=1, reduce='sum_each_data'):
+def huber_loss(x, t, delta, reduce='sum_each_data', n_batch_axes=1):
     """Loss function which is less sensitive to outliers in data than MSE.
 
         .. math::
@@ -111,4 +111,4 @@ def huber_loss(x, t, delta, n_batch_axes=1, reduce='sum_each_data'):
 
     """
     return HuberLoss(
-        delta=delta, n_batch_axes=n_batch_axes, reduce=reduce)(x, t)
+        delta=delta, reduce=reduce, n_batch_axes=n_batch_axes)(x, t)

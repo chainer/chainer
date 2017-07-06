@@ -26,11 +26,10 @@ class TestNonparameterizedLinear(unittest.TestCase):
             -1, 1, 2).astype(self.x_dtype)
 
         batch_shape = (4,) + (2,) * (self.n_batch_axes - 1)
-        n_batch = numpy.prod(batch_shape)
-        self.x = numpy.random.uniform(-1, 1,
-                                      batch_shape + (3,)).astype(self.x_dtype)
-        self.gy = numpy.random.uniform(-1, 1,
-                                      batch_shape + (2,)).astype(self.x_dtype)
+        self.x = numpy.random.uniform(
+            -1, 1, batch_shape + (3,)).astype(self.x_dtype)
+        self.gy = numpy.random.uniform(
+            -1, 1, batch_shape + (2,)).astype(self.x_dtype)
         self.y = self.x.dot(self.W.T) + self.b
         self.check_forward_options = {}
         self.check_backward_options = {}
