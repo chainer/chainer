@@ -13,6 +13,7 @@ from chainer import variable
 
 
 LEAF = -1
+NOT_LEAF = -1
 FINISH_SAMPLING = -2
 
 
@@ -58,24 +59,22 @@ class TreeParser(object):
                     'All internal nodes must have two child nodes')
             left, right = node
 
-            left_node_is_leaf = isinstance(left, int)
-            right_node_is_leaf = isinstance(right, int)
+            left_node_is_leaf = not isinstance(left, tuple)
+            right_node_is_leaf = not isinstance(right, tuple)
             if left_node_is_leaf:
-                self.parent2child[self.next_id] += [LEAF]
-                self.node2word[self.next_id] += [left]
+                self.parent2child[self.next_id].append(LEAF)
+                self.node2word[self.next_id].append(left)
             else:
-                self.node2word[self.next_id] += [-1]
+                self.node2word[self.next_id].append(NOT_LEAF)
 
             if right_node_is_leaf:
-                self.node2word[self.next_id] += [right]
+                self.node2word[self.next_id].append(right)
 
             self.path.append(self.next_id)
 
             if len(self.path) >= 2:
-                # Add {parent_node => child_node} into dictironary.
-                # This dictionary will be used in sampling step.
                 parent_node_id, child_node_id = self.path[-2:]
-                self.parent2child[parent_node_id] += [child_node_id]
+                self.parent2child[parent_node_id].append(child_node_id)
 
             self.next_id += 1
             self.code.append(1.0)
@@ -117,24 +116,21 @@ class BinaryHierarchicalSoftmaxFunction(function.Function):
         parent2child = parser.get_parent2child()
         node2word = parser.get_node2word()
         n_vocab = max(paths.keys()) + 1
+        n_parent = max(parent2child.keys()) + 1
+        n_node = max(node2word.keys()) + 1
         self.n_vocab = n_vocab
         self.paths = numpy.concatenate(
             [paths[i] for i in six.moves.range(n_vocab) if i in paths])
         self.codes = numpy.concatenate(
             [codes[i] for i in six.moves.range(n_vocab) if i in codes])
 
-        self.parent2child = numpy.empty((n_vocab, 2), dtype=numpy.int32)
-        self.parent2child[:, :] = LEAF
-        for i in six.moves.range(len(parent2child)):
-            if i in parent2child:
-                x = parent2child[i]
-                self.parent2child[i, 0:len(x)] = x
+        self.parent2child = numpy.full((n_parent, 2), LEAF, dtype=numpy.int32)
+        for i, x in six.iteritems(parent2child):
+            self.parent2child[i, 0:len(x)] = x
 
-        self.node2word = numpy.zeros((n_vocab, 2), dtype=numpy.int32) - 1
-        for i in six.moves.range(len(node2word)):
-            if i in node2word:
-                x = node2word[i]
-                self.node2word[i, 0:len(x)] = x
+        self.node2word = numpy.full((n_node, 2), NOT_LEAF, dtype=numpy.int32)
+        for i, x in six.iteritems(node2word):
+            self.node2word[i, 0:len(x)] = x
 
         begins = numpy.empty((n_vocab + 1,), dtype=numpy.int32)
         begins[0] = 0
@@ -458,10 +454,12 @@ class BinaryHierarchicalSoftmax(link.Link):
             choosed_idx = xp.argmax(xp.random.gumbel(size=prob.shape) + prob,
                                     axis=1)
             columns = choosed_idx
+
             list_sampled_ids.append(node2word[start_ids, columns])
             list_next_ids.append(start_ids)
 
             next_ids = parent2child[start_ids][rows, columns]
+
             next_ids = xp.where(next_ids != LEAF, next_ids, FINISH_SAMPLING)
 
             # check whether all nodes are LEAF.

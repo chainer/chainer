@@ -123,10 +123,10 @@ class TestBinaryHierarchicalSoftmax(unittest.TestCase):
     def check_sample(self, x):
         x = chainer.Variable(x)
         result = self.link.sample(x)
-        self.assertIsInstance(result, self.xp.array)
+        self.assertIsInstance(result, self.link.xp.ndarray)
         self.assertEqual(len(result), x.shape[0])
         for word_id in result:
-            self.assertIsInstance(word_id, int)
+            self.assertEqual(word_id.dtype, self.link.xp.int32)
             # Check if the result is in the valid range
             self.assertLessEqual(0, word_id)
             self.assertLessEqual(word_id, self.max_value_tree)
