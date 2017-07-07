@@ -2,7 +2,6 @@ import sys
 import time
 
 import numpy
-import six
 
 from chainer import cuda
 from chainer import function
@@ -109,7 +108,7 @@ class TimerHook(function.FunctionHook):
             second *= 1000.0
         return '%.2f%s' % (second, 'ns')
 
-    def print_report(self, end='\n', file=sys.stdout):
+    def print_report(self, file=sys.stdout):
         """Prints a summary report of time profiling in functions."""
         entries = [['FunctionName', 'ElapsedTime', 'Occurrence']]
         for function_name, record in self.summary().items():
@@ -123,4 +122,6 @@ class TimerHook(function.FunctionHook):
         template = '  '.join('{:>%d}' % w for w in entry_widths)
         for function_name, elapsed_time, occurrence in entries:
             line = template.format(function_name, elapsed_time, occurrence)
-            six.print_(line, end=end, file=file)
+            file.write(line)
+            file.write('\n')
+        file.flush()
