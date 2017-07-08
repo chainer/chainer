@@ -185,7 +185,7 @@ class StatefulGRU(GRUBase):
 class GRU(StatefulGRU):
     """Stateful Gated Recurrent Unit function (GRU)
 
-    This is an alias of "~chainer.links.StatefulGRU".
+    This is an alias of :class:`~chainer.links.StatefulGRU`.
     Its documented API is identical to the function.
 
     .. warning::
