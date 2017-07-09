@@ -70,17 +70,20 @@ def tile(x, reps):
     Args:
         x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`):
-            Input variable. If ``x.ndim < d``, ``x`` is treated as
-            ``d``-dimensional array. For example, when the shape of ``x`` is
+            Input variable. Let the length of ``reps`` be ``d`` and
+            ``x.ndim < d``, ``x`` is treated as ``d``-dimensional array by
+            prepending new axes. For example, when the shape of ``x`` is
             ``(2,)`` and tiled with 2-dim repetitions, ``x`` is treated as the
             shape ``(1, 2)``. If ``x.ndim > d``, ``reps`` is treated as
-            ``x.ndim`` by pre-pending 1's.
+            ``x.ndim`` by pre-pending 1's. For example, when the shape of
+            ``x`` is ``(2, 3, 2, 3)``, the 2-dim ``reps`` of ``(2, 2)`` is
+            treated as ``(1, 1, 2, 2)``.
         reps (:class:`int` or :class:`tuple` of :class:`int` s):
-            The number of times which x is replicated along each axis.
+            The number of times which ``x`` is replicated along each axis.
 
     Returns:
-        ~chainer.Variable: The tiled output Variable. Let the length of
-        ``reps`` be ``d``, the output has the dimension of
+        ~chainer.Variable: The tiled output Variable.
+        Let the length of ``reps`` be ``d``, the output has the dimension of
         ``max(d, x.ndim)``.
 
     .. admonition:: Example
