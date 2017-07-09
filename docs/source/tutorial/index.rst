@@ -9,3 +9,4 @@ Chainer Tutorial
    gpu
    function
    type_check
+   various_tasks
