@@ -52,7 +52,7 @@ class TestNStepRNN(unittest.TestCase):
         for layer in self.rnn:
             for p in layer.params():
                 p.data[...] = numpy.random.uniform(-1, 1, p.data.shape)
-        self.rnn.zerograds()
+        self.rnn.cleargrads()
 
     def check_forward(self, h_data, xs_data):
         if self.hidden_none:
@@ -187,7 +187,7 @@ class TestNStepBiRNN(unittest.TestCase):
         for layer in self.rnn:
             for p in layer.params():
                 p.data[...] = numpy.random.uniform(-1, 1, p.data.shape)
-        self.rnn.zerograds()
+        self.rnn.cleargrads()
 
     def check_forward(self, h_data, xs_data):
         if self.hidden_none:

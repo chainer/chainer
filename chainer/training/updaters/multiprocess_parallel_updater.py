@@ -7,7 +7,6 @@ from chainer import cuda
 from chainer.dataset import convert
 from chainer import reporter
 from chainer.training import updater
-from chainer import variable
 
 try:
     from cupy.cuda import nccl
@@ -233,15 +232,11 @@ class MultiprocessParallelUpdater(updater.StandardUpdater):
 
 def _calc_loss(model, in_arrays):
     if isinstance(in_arrays, tuple):
-        in_vars = tuple(variable.Variable(x) for x in in_arrays)
-        return model(*in_vars)
+        return model(*in_arrays)
     elif isinstance(in_arrays, dict):
-        in_vars = {key: variable.Variable(x)
-                   for key, x in six.iteritems(in_arrays)}
-        return model(**in_vars)
+        return model(**in_arrays)
     else:
-        in_vars = variable.Variable(in_arrays)
-        return model(in_vars)
+        return model(in_arrays)
 
 
 def size_num_grads(link):
