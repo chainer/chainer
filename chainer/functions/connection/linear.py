@@ -18,6 +18,10 @@ def _as_mat(x, n_batch_axes):
 class LinearFunction(function.Function):
 
     def __init__(self, n_batch_axes=1):
+        if n_batch_axes < 1:
+            raise ValueError(
+                'n_batch_axes should be less than x.ndim and greater '
+                'than 0 but {} was given.'.format(n_batch_axes))
         self._n_batch_axes = n_batch_axes
 
     def check_type_forward(self, in_types):
@@ -72,7 +76,8 @@ class LinearFunction(function.Function):
         else:
             xp = cuda.get_array_module(*inputs)
             gy_ax = six.moves.range(self._n_batch_axes, gy.ndim)
-            gx = xp.tensordot(gy, W, axes=(gy_ax, 0)).astype(x.dtype, copy=False)
+            gx = xp.tensordot(
+                gy, W, axes=(gy_ax, 0)).astype(x.dtype, copy=False)
             ax = six.moves.range(self._n_batch_axes)
             gW = xp.tensordot(gy, x, axes=(ax, ax)).astype(W.dtype, copy=False)
         if len(inputs) == 3:
