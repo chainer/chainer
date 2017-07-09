@@ -984,16 +984,13 @@ class Parameter(Variable):
             shape (tuple of int): Shape of the data array.
 
         """
-        data = initializers.generate_array(self.initializer, shape, numpy)
+        xp = cuda.cupy if self._initial_device > 0 else numpy
+        with cuda.get_device_from_id(self._initial_device):
+            data = initializers.generate_array(self.initializer, shape, xp)
 
-        ginit = self._grad_initializer
-        grad = None if ginit is None else initializers.generate_array(
-            ginit, shape, numpy)
-
-        if self._initial_device >= 0:
-            data = cuda.to_gpu(data, device=self._initial_device)
-            if grad is not None:
-                grad = cuda.to_gpu(grad, device=self._initial_device)
+            ginit = self._grad_initializer
+            grad = None if ginit is None else initializers.generate_array(
+                ginit, shape, xp)
 
         self._data[0] = data
         self._node._grad = grad
