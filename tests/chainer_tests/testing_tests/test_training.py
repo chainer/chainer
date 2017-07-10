@@ -32,6 +32,9 @@ class TestGetTrainerWithMockUpdater(unittest.TestCase):
                 trainer.updater.is_new_epoch,
                 (iteration[0] - 1) // self.iter_per_epoch !=
                 iteration[0] // self.iter_per_epoch)
+            self.assertEqual(
+                trainer.updater.previous_epoch_detail,
+                (iteration[0] - 1) / self.iter_per_epoch)
 
         self.trainer.extend(check)
         self.trainer.run()
