@@ -9,43 +9,43 @@ from chainer import training
 @testing.parameterize(
     # single iteration
     {
-        'iters_per_epoch': 2, 'schedule': (2, 'iteration'), 'resume': 3,
+        'iter_per_epoch': 2, 'schedule': (2, 'iteration'), 'resume': 3,
         'expected': [False, True, False, False, False, False, False]},
     # multiple iteration
     {
-        'iters_per_epoch': 2, 'schedule': ([2, 4], 'iteration'), 'resume': 3,
+        'iter_per_epoch': 2, 'schedule': ([2, 4], 'iteration'), 'resume': 3,
         'expected': [False, True, False, True, False, False, False]},
     # single epoch
     {
-        'iters_per_epoch': 3, 'schedule': (1, 'epoch'), 'resume': 3,
+        'iter_per_epoch': 3, 'schedule': (1, 'epoch'), 'resume': 3,
         'expected': [False, False, True, False, False, False, False]},
     # multiple epoch
     {
-        'iters_per_epoch': 3, 'schedule': ([1, 2], 'epoch'), 'resume': 4,
+        'iter_per_epoch': 3, 'schedule': ([1, 2], 'epoch'), 'resume': 4,
         'expected': [False, False, True, False, False, True, False]},
     # single fractional epoch
     {
-        'iters_per_epoch': 2, 'schedule': (1.5, 'epoch'), 'resume': 4,
+        'iter_per_epoch': 2, 'schedule': (1.5, 'epoch'), 'resume': 4,
         'expected': [False, False, True, False, False, False, False]},
     # multiple fractional epoch
     {
-        'iters_per_epoch': 2, 'schedule': ([1.5, 2.5], 'epoch'), 'resume': 4,
+        'iter_per_epoch': 2, 'schedule': ([1.5, 2.5], 'epoch'), 'resume': 4,
         'expected': [False, False, True, False, True, False, False]},
     # single unaligned epoch
     {
-        'iters_per_epoch': 2.5, 'schedule': (1, 'epoch'), 'resume': 4,
+        'iter_per_epoch': 2.5, 'schedule': (1, 'epoch'), 'resume': 4,
         'expected': [False, False, True, False, False, False, False]},
     # multiple unaligned epoch
     {
-        'iters_per_epoch': 2.5, 'schedule': ([1, 2], 'epoch'), 'resume': 4,
+        'iter_per_epoch': 2.5, 'schedule': ([1, 2], 'epoch'), 'resume': 4,
         'expected': [False, False, True, False, True, False, False]},
     # single tiny epoch
     {
-        'iters_per_epoch': 0.5, 'schedule': (1, 'epoch'), 'resume': 4,
+        'iter_per_epoch': 0.5, 'schedule': (1, 'epoch'), 'resume': 4,
         'expected': [True, False, False, False, False, False, False]},
     # multiple tiny epoch
     {
-        'iters_per_epoch': 0.5, 'schedule': ([1, 2], 'epoch'), 'resume': 4,
+        'iter_per_epoch': 0.5, 'schedule': ([1, 2], 'epoch'), 'resume': 4,
         'expected': [True, False, False, False, False, False, False]},
 )
 class TestTrigger(unittest.TestCase):
