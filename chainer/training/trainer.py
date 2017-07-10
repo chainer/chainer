@@ -14,6 +14,16 @@ from chainer.training import extension as extension_module
 from chainer.training import trigger as trigger_module
 
 
+# Select the best-resolution timer function
+try:
+    _get_time = time.perf_counter
+except AttributeError:
+    if os.name == 'nt':
+        _get_time = time.clock
+    else:
+        _get_time = time.time
+
+
 class _ExtensionEntry(object):
 
     def __init__(self, extension, priority, trigger, invoke_before_training):
@@ -161,7 +171,7 @@ class Trainer(object):
             return self._final_elapsed_time
         if self._start_at is None:
             raise RuntimeError('training has not been started yet')
-        return time.time() - self._start_at + self._snapshot_elapsed_time
+        return _get_time() - self._start_at + self._snapshot_elapsed_time
 
     def extend(self, extension, name=None, trigger=None, priority=None,
                invoke_before_training=None):
@@ -280,7 +290,7 @@ class Trainer(object):
         extensions = [(name, self._extensions[name])
                       for name in extension_order]
 
-        self._start_at = time.time()
+        self._start_at = _get_time()
 
         # invoke initializer of each extension
         for _, entry in extensions:
