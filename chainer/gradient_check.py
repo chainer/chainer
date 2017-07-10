@@ -282,7 +282,7 @@ def check_backward(func, x_data, y_grad, params=(),
                 param_dtype = dtype
             else:
                 param_dtype = param.dtype
-            param.data = (one * data.astype(dtype)).astype(dtype)
+            param.data = (one * data.astype(param_dtype)).astype(param_dtype)
         ys = func(*casted_xs)
         ys = _as_tuple(ys)
         ys_data = tuple(y.data for y in ys)
