@@ -283,7 +283,7 @@ def check_backward(func, x_data, y_grad, params=(),
         ys = func(*casted_xs)
         ys = _as_tuple(ys)
         ys_data = tuple(y.data for y in ys)
-        for cx, data in six.moves.zip(casted_xs, casted_data):
+        for skip, cx, data in six.moves.zip(no_grads, casted_xs, casted_data):
             if skip:
                 continue
             cx.data = data
