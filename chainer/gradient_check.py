@@ -258,10 +258,13 @@ def check_backward(func, x_data, y_grad, params=(),
             raise ValueError(
                 'Length of no_grads param and xs should be same.')
     casted_data = [x.data.copy() for x in casted_xs]
-    for skip, x, cx in six.moves.zip(no_grads, xs, casted_xs):
+    for skip, x in six.moves.zip(no_grads, xs):
         if skip:
             assert x.grad is None
-            continue
+        else:
+            if x.grad is None:
+                raise TypeError(
+                    'gradients of some arguments are not calculated')
 
     xp = cuda.get_array_module(*xs)
     one = xp.array(1., dtype)
