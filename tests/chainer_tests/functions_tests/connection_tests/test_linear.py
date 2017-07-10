@@ -53,10 +53,10 @@ class TestNonparameterizedLinear(unittest.TestCase):
         testing.assert_allclose(
             y_expect, y.data, **self.check_forward_options)
 
-        with self.assertRaisesRegex(ValueError, 'n_batch_axes'):
+        with self.assertRaisesRegexp(ValueError, 'n_batch_axes'):
             functions.linear(x, W, n_batch_axes=0)
 
-        with self.assertRaisesRegex(ValueError, 'n_batch_axes'):
+        with self.assertRaisesRegexp(ValueError, 'n_batch_axes'):
             functions.linear(x, W, n_batch_axes=-1)
 
     @condition.retry(3)
