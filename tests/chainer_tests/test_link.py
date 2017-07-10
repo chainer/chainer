@@ -144,12 +144,12 @@ class TestLink(unittest.TestCase):
         self.assertTrue(hasattr(link, 'p'))
         self.assertIsNot(link.x, self.link.x)
         self.assertIsNot(link.x.data, self.link.x.data)
-        numpy.testing.assert_array_equal(cuda.cupy.asnumpy(link.x.data),
-                                         cuda.cupy.asnumpy(self.link.x.data))
+        numpy.testing.assert_array_equal(cuda.to_cpu(link.x.data),
+                                         cuda.to_cpu(self.link.x.data))
         self.assertIsNot(link.y, self.link.y)
         self.assertIsNot(link.y.data, self.link.y.data)
-        numpy.testing.assert_array_equal(cuda.cupy.asnumpy(link.y.data),
-                                         cuda.cupy.asnumpy(self.link.y.data))
+        numpy.testing.assert_array_equal(cuda.to_cpu(link.y.data),
+                                         cuda.to_cpu(self.link.y.data))
         self.assertIsNone(link.u.data)
         self.assertIsNot(link.p, self.link.p)
         self.assertEqual(link.name, self.link.name)
