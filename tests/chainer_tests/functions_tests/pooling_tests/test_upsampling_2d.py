@@ -61,7 +61,7 @@ class TestUpsampling2D(unittest.TestCase):
             self.p.indexes, ksize=(self.p.kh, self.p.kw),
             stride=(self.p.sy, self.p.sx), pad=(self.p.ph, self.p.pw),
             outsize=self.in_shape[2:], cover_all=self.p.cover_all)
-        gradient_check.check_backward(func, x_data, y_grad)
+        gradient_check.check_backward(func, x_data, y_grad, dtype='d')
 
     @condition.retry(3)
     def test_backward_cpu(self):
