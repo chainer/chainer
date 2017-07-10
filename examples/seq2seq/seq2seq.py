@@ -155,6 +155,21 @@ class CalculateBleu(chainer.training.Extension):
         reporter.report({self.key: bleu})
 
 
+def load_vocabulary(path):
+    with open(path) as f:
+        return {line.strip(): i for i, line in enumerate(f)}
+
+
+def load_data(vocabulary, path):
+    data = []
+    with open(path) as f:
+        for line in f:
+            words = line.strip().split()
+            array = numpy.array([vocabulary.get(w, UNK) for w in words], 'i')
+            data.append(array)
+    return data
+
+
 def main():
     parser = argparse.ArgumentParser(description='Chainer example: seq2seq')
     parser.add_argument('--batchsize', '-b', type=int, default=64,
@@ -173,7 +188,22 @@ def main():
                         help='Directory to output the result')
     args = parser.parse_args()
 
-    if False:
+    if True:
+        source_ids = load_vocabulary('vocab.50K.en')
+        target_ids = load_vocabulary('vocab.50K.de')
+        train_source = load_data(source_ids, 'train.en')
+        train_target = load_data(target_ids, 'train.de')
+        train_data = list(six.moves.zip(train_source, train_target))
+        test_source = load_data(source_ids, 'newstest2012.en')
+        test_target = load_data(target_ids, 'newstest2012.de')
+        test_data = list(six.moves.zip(test_source, test_target))
+
+        print('Source vocabulary: %d' % len(source_ids))
+        print('Target vocabulary: %d' % len(target_ids))
+        print('Train data: %d' % len(train_data))
+        print('Test data: %d' % len(test_data))
+
+    elif False:
         sentences = comtrans.aligned_sents('alignment-en-fr.txt')
         source_ids = collections.defaultdict(lambda: len(source_ids))
         target_ids = collections.defaultdict(lambda: len(target_ids))
