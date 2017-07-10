@@ -6,40 +6,6 @@ from chainer import testing
 from chainer import training
 
 
-class DummyUpdater(training.Updater):
-
-    def __init__(self, iters_per_epoch):
-        self.iteration = 0
-        self.iters_per_epoch = iters_per_epoch
-
-    def finalize(self):
-        pass
-
-    def get_all_optimizers(self):
-        return {}
-
-    def update(self):
-        self.iteration += 1
-
-    @property
-    def epoch(self):
-        return self.iteration // self.iters_per_epoch
-
-    @property
-    def epoch_detail(self):
-        return self.iteration / self.iters_per_epoch
-
-    @property
-    def previous_epoch_detail(self):
-        if self.iteration == 0:
-            return None
-        return (self.iteration - 1) / self.iters_per_epoch
-
-    @property
-    def is_new_epoch(self):
-        return 0 <= self.iteration % self.iters_per_epoch < 1
-
-
 @testing.parameterize(
     # single iteration
     {
@@ -85,25 +51,25 @@ class DummyUpdater(training.Updater):
 class TestTrigger(unittest.TestCase):
 
     def test_trigger(self):
+        trainer = testing.get_trainer_with_mock_updater(
+            stop_trigger=None, iter_per_epoch=self.iter_per_epoch)
         trigger = training.triggers.ManualScheduleTrigger(*self.schedule)
-        updater = DummyUpdater(self.iters_per_epoch)
-        trainer = training.Trainer(updater)
         for expected in self.expected:
-            updater.update()
+            trainer.updater.update()
             self.assertEqual(trigger(trainer), expected)
 
     def test_resumed_trigger(self):
-        updater = DummyUpdater(self.iters_per_epoch)
-        trainer = training.Trainer(updater)
+        trainer = testing.get_trainer_with_mock_updater(
+            stop_trigger=None, iter_per_epoch=self.iter_per_epoch)
 
         trigger = training.triggers.ManualScheduleTrigger(*self.schedule)
         for expected in self.expected[:self.resume]:
-            updater.update()
+            trainer.updater.update()
             self.assertEqual(trigger(trainer), expected)
 
         trigger = training.triggers.ManualScheduleTrigger(*self.schedule)
         for expected in self.expected[self.resume:]:
-            updater.update()
+            trainer.updater.update()
             self.assertEqual(trigger(trainer), expected)
 
 
