@@ -20,6 +20,10 @@ from chainer.training import extensions
 import europal
 
 
+UNK = 0
+EOS = 1
+
+
 def sequence_embed(embed, xs):
     x_len = [len(x) for x in xs]
     x_section = numpy.cumsum(x_len[:-1])
@@ -44,7 +48,7 @@ class Seq2seq(chainer.Chain):
     def __call__(self, xs, ys):
         xs = [x[::-1] for x in xs]
 
-        eos = self.xp.zeros(1, 'i')
+        eos = self.xp.array([EOS], 'i')
         ys_in = [F.concat([eos, y], axis=0) for y in ys]
         ys_out = [F.concat([y, eos], axis=0) for y in ys]
 
@@ -76,7 +80,7 @@ class Seq2seq(chainer.Chain):
             xs = [x[::-1] for x in xs]
             exs = sequence_embed(self.embed_x, xs)
             h, c, _ = self.encoder(None, None, exs)
-            ys = self.xp.zeros(batch, 'i')
+            ys = self.xp.full(batch, EOS, 'i')
             result = []
             for i in range(max_length):
                 eys = self.embed_y(ys)
@@ -92,7 +96,7 @@ class Seq2seq(chainer.Chain):
         # Remove EOS taggs
         outs = []
         for y in result:
-            inds = numpy.argwhere(y == 0)
+            inds = numpy.argwhere(y == EOS)
             if len(inds) > 0:
                 y = y[:inds[0, 0]]
             outs.append(y)
@@ -237,7 +241,7 @@ def main():
         words = europal.split_sentence(source)
         print('# source : ' + ' '.join(words))
         x = model.xp.array(
-            [source_ids.get(w, 1) for w in words], 'i')
+            [source_ids.get(w, UNK) for w in words], 'i')
         ys = model.translate([x])[0]
         words = [target_words[y] for y in ys]
         print('#  result : ' + ' '.join(words))
