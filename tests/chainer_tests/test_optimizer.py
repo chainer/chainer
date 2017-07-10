@@ -1,3 +1,4 @@
+import copy
 import unittest
 
 import mock
@@ -42,6 +43,12 @@ class TestHyperparameter(unittest.TestCase):
     def test_repr(self):
         self.assertEqual(repr(self.parent), 'Hyperparameter(x=1, y=2)')
         self.assertEqual(repr(self.child), 'Hyperparameter(x=1, y=3, z=4)')
+
+    def test_deep_copy(self):
+        parent_copy, child_copy = copy.deepcopy([self.parent, self.child])
+        self.assertEqual(self.child.get_dict(), child_copy.get_dict())
+        self.assertEqual(self.parent.get_dict(), parent_copy.get_dict())
+        self.assertIs(child_copy.parent, parent_copy)
 
 
 class TestUpdateRule(unittest.TestCase):
@@ -273,9 +280,10 @@ class TestOptimizerHook(unittest.TestCase):
 class SimpleLink(chainer.Link):
 
     def __init__(self, w, g):
-        super(SimpleLink, self).__init__(param=w.shape)
-        self.param.data = w
-        self.param.grad = g
+        super(SimpleLink, self).__init__()
+        with self.init_scope():
+            self.param = chainer.Parameter(w)
+            self.param.grad = g
 
 
 class TestOptimizerWeightDecay(unittest.TestCase):

@@ -21,22 +21,23 @@ def add_noise(h, sigma=0.2):
 class Generator(chainer.Chain):
 
     def __init__(self, n_hidden, bottom_width=4, ch=512, wscale=0.02):
+        super(Generator, self).__init__()
         self.n_hidden = n_hidden
         self.ch = ch
         self.bottom_width = bottom_width
-        w = chainer.initializers.Normal(wscale)
-        super(Generator, self).__init__(
-            l0=L.Linear(self.n_hidden, bottom_width *
-                        bottom_width * ch, initialW=w),
-            dc1=L.Deconvolution2D(ch, ch // 2, 4, 2, 1, initialW=w),
-            dc2=L.Deconvolution2D(ch // 2, ch // 4, 4, 2, 1, initialW=w),
-            dc3=L.Deconvolution2D(ch // 4, ch // 8, 4, 2, 1, initialW=w),
-            dc4=L.Deconvolution2D(ch // 8, 3, 3, 1, 1, initialW=w),
-            bn0=L.BatchNormalization(bottom_width * bottom_width * ch),
-            bn1=L.BatchNormalization(ch // 2),
-            bn2=L.BatchNormalization(ch // 4),
-            bn3=L.BatchNormalization(ch // 8),
-        )
+
+        with self.init_scope():
+            w = chainer.initializers.Normal(wscale)
+            self.l0 = L.Linear(self.n_hidden, bottom_width * bottom_width * ch,
+                               initialW=w)
+            self.dc1 = L.Deconvolution2D(ch, ch // 2, 4, 2, 1, initialW=w)
+            self.dc2 = L.Deconvolution2D(ch // 2, ch // 4, 4, 2, 1, initialW=w)
+            self.dc3 = L.Deconvolution2D(ch // 4, ch // 8, 4, 2, 1, initialW=w)
+            self.dc4 = L.Deconvolution2D(ch // 8, 3, 3, 1, 1, initialW=w)
+            self.bn0 = L.BatchNormalization(bottom_width * bottom_width * ch)
+            self.bn1 = L.BatchNormalization(ch // 2)
+            self.bn2 = L.BatchNormalization(ch // 4)
+            self.bn3 = L.BatchNormalization(ch // 8)
 
     def make_hidden(self, batchsize):
         return numpy.random.uniform(-1, 1, (batchsize, self.n_hidden, 1, 1))\
@@ -56,22 +57,22 @@ class Discriminator(chainer.Chain):
 
     def __init__(self, bottom_width=4, ch=512, wscale=0.02):
         w = chainer.initializers.Normal(wscale)
-        super(Discriminator, self).__init__(
-            c0_0=L.Convolution2D(3, ch // 8, 3, 1, 1, initialW=w),
-            c0_1=L.Convolution2D(ch // 8, ch // 4, 4, 2, 1, initialW=w),
-            c1_0=L.Convolution2D(ch // 4, ch // 4, 3, 1, 1, initialW=w),
-            c1_1=L.Convolution2D(ch // 4, ch // 2, 4, 2, 1, initialW=w),
-            c2_0=L.Convolution2D(ch // 2, ch // 2, 3, 1, 1, initialW=w),
-            c2_1=L.Convolution2D(ch // 2, ch // 1, 4, 2, 1, initialW=w),
-            c3_0=L.Convolution2D(ch // 1, ch // 1, 3, 1, 1, initialW=w),
-            l4=L.Linear(bottom_width * bottom_width * ch, 1, initialW=w),
-            bn0_1=L.BatchNormalization(ch // 4, use_gamma=False),
-            bn1_0=L.BatchNormalization(ch // 4, use_gamma=False),
-            bn1_1=L.BatchNormalization(ch // 2, use_gamma=False),
-            bn2_0=L.BatchNormalization(ch // 2, use_gamma=False),
-            bn2_1=L.BatchNormalization(ch // 1, use_gamma=False),
-            bn3_0=L.BatchNormalization(ch // 1, use_gamma=False),
-        )
+        super(Discriminator, self).__init__()
+        with self.init_scope():
+            self.c0_0 = L.Convolution2D(3, ch // 8, 3, 1, 1, initialW=w)
+            self.c0_1 = L.Convolution2D(ch // 8, ch // 4, 4, 2, 1, initialW=w)
+            self.c1_0 = L.Convolution2D(ch // 4, ch // 4, 3, 1, 1, initialW=w)
+            self.c1_1 = L.Convolution2D(ch // 4, ch // 2, 4, 2, 1, initialW=w)
+            self.c2_0 = L.Convolution2D(ch // 2, ch // 2, 3, 1, 1, initialW=w)
+            self.c2_1 = L.Convolution2D(ch // 2, ch // 1, 4, 2, 1, initialW=w)
+            self.c3_0 = L.Convolution2D(ch // 1, ch // 1, 3, 1, 1, initialW=w)
+            self.l4 = L.Linear(bottom_width * bottom_width * ch, 1, initialW=w)
+            self.bn0_1 = L.BatchNormalization(ch // 4, use_gamma=False)
+            self.bn1_0 = L.BatchNormalization(ch // 4, use_gamma=False)
+            self.bn1_1 = L.BatchNormalization(ch // 2, use_gamma=False)
+            self.bn2_0 = L.BatchNormalization(ch // 2, use_gamma=False)
+            self.bn2_1 = L.BatchNormalization(ch // 1, use_gamma=False)
+            self.bn3_0 = L.BatchNormalization(ch // 1, use_gamma=False)
 
     def __call__(self, x):
         h = add_noise(x)

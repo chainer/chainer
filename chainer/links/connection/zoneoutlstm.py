@@ -1,6 +1,5 @@
 import numpy
 
-import chainer
 from chainer import cuda
 from chainer.functions.activation import sigmoid
 from chainer.functions.activation import tanh
@@ -21,14 +20,15 @@ class StatefulZoneoutLSTM(link.Chain):
             'Use chainer.using_config')
         argument.assert_kwargs_empty(kwargs)
 
-        super(StatefulZoneoutLSTM, self).__init__(
-            upward=linear.Linear(in_size, 4 * out_size),
-            lateral=linear.Linear(out_size, 4 * out_size, nobias=True),
-        )
+        super(StatefulZoneoutLSTM, self).__init__()
         self.state_size = out_size
         self.c_ratio = c_ratio
         self.h_ratio = h_ratio
         self.reset_state()
+
+        with self.init_scope():
+            self.upward = linear.Linear(in_size, 4 * out_size)
+            self.lateral = linear.Linear(out_size, 4 * out_size, nobias=True)
 
     def to_cpu(self):
         super(StatefulZoneoutLSTM, self).to_cpu()
@@ -54,8 +54,8 @@ class StatefulZoneoutLSTM(link.Chain):
             h (~chainer.Variable): A new output at the previous time step.
 
         """
-        assert isinstance(c, chainer.Variable)
-        assert isinstance(h, chainer.Variable)
+        assert isinstance(c, variable.Variable)
+        assert isinstance(h, variable.Variable)
         c_ = c
         h_ = h
         if self.xp is numpy:
@@ -90,13 +90,13 @@ class StatefulZoneoutLSTM(link.Chain):
             lstm_in += self.lateral(self.h)
         else:
             xp = self.xp
-            with cuda.get_device(self._device_id):
+            with cuda.get_device_from_id(self._device_id):
                 self.h = variable.Variable(
                     xp.zeros((len(x.data), self.state_size),
                              dtype=x.data.dtype))
         if self.c is None:
             xp = self.xp
-            with cuda.get_device(self._device_id):
+            with cuda.get_device_from_id(self._device_id):
                 self.c = variable.Variable(
                     xp.zeros((len(x.data), self.state_size),
                              dtype=x.data.dtype))

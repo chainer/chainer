@@ -53,8 +53,8 @@ class BatchNormalization(link.Link):
     Attributes:
         gamma (~chainer.Variable): Scaling parameter.
         beta (~chainer.Variable): Shifting parameter.
-        avg_mean (~chainer.Variable): Population mean.
-        avg_var (~chainer.Variable): Population variance.
+        avg_mean (numpy.ndarray or cupy.ndarray): Population mean.
+        avg_var (numpy.ndarray or cupy.ndarray): Population variance.
         N (int): Count of batches given for fine-tuning.
         decay (float): Decay rate of moving average. It is used on training.
         eps (float): Epsilon value for numerical stability. This value is added
@@ -66,24 +66,28 @@ class BatchNormalization(link.Link):
                  use_gamma=True, use_beta=True,
                  initial_gamma=None, initial_beta=None):
         super(BatchNormalization, self).__init__()
-        if use_gamma:
-            if initial_gamma is None:
-                initial_gamma = initializers.One(dtype=dtype)
-            else:
-                initial_gamma = initializers._get_initializer(initial_gamma)
-            self.add_param('gamma', size, dtype=dtype,
-                           initializer=initial_gamma)
-        if use_beta:
-            if initial_beta is None:
-                initial_beta = initializers.Zero(dtype=dtype)
-            else:
-                initial_beta = initializers._get_initializer(initial_beta)
-            self.add_param('beta', size, dtype=dtype, initializer=initial_beta)
-        self.add_persistent('avg_mean', numpy.zeros(size, dtype=dtype))
-        self.add_persistent('avg_var', numpy.zeros(size, dtype=dtype))
-        self.add_persistent('N', 0)
+        self.avg_mean = numpy.zeros(size, dtype=dtype)
+        self.register_persistent('avg_mean')
+        self.avg_var = numpy.zeros(size, dtype=dtype)
+        self.register_persistent('avg_var')
+        self.N = 0
+        self.register_persistent('N')
         self.decay = decay
         self.eps = eps
+
+        with self.init_scope():
+            if use_gamma:
+                if initial_gamma is None:
+                    initial_gamma = 1
+                initial_gamma = initializers._get_initializer(initial_gamma)
+                initial_gamma.dtype = dtype
+                self.gamma = variable.Parameter(initial_gamma, size)
+            if use_beta:
+                if initial_beta is None:
+                    initial_beta = 0
+                initial_beta = initializers._get_initializer(initial_beta)
+                initial_beta.dtype = dtype
+                self.beta = variable.Parameter(initial_beta, size)
 
     def __call__(self, x, **kwargs):
         """__call__(self, x, finetune=False)
@@ -117,13 +121,13 @@ class BatchNormalization(link.Link):
         if hasattr(self, 'gamma'):
             gamma = self.gamma
         else:
-            with cuda.get_device(self._device_id):
+            with cuda.get_device_from_id(self._device_id):
                 gamma = variable.Variable(self.xp.ones(
                     self.avg_mean.shape, dtype=x.dtype))
         if hasattr(self, 'beta'):
             beta = self.beta
         else:
-            with cuda.get_device(self._device_id):
+            with cuda.get_device_from_id(self._device_id):
                 beta = variable.Variable(self.xp.zeros(
                     self.avg_mean.shape, dtype=x.dtype))
 

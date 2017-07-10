@@ -75,7 +75,7 @@ class LinearModel(object):
         optimizer = self.optimizer
         model.to_gpu(device=device)
         optimizer.setup(model)
-        with cuda.get_device(device):
+        with cuda.get_device_from_id(device):
             return self._train_linear_classifier(model, optimizer, True)
 
 
@@ -113,7 +113,7 @@ class OptimizerTestBase(object):
             optimizer.setup(model)
         # Initialize the optimizer state by running an update
         for param in optimizer.target.params(False):
-            param.zerograd()
+            param.cleargrad()
             param.update()
             for v in six.itervalues(param.update_rule.state):
                 self.assertEqual(int(param.data.device), int(v.device))

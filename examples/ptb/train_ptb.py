@@ -22,12 +22,13 @@ from chainer.training import extensions
 class RNNForLM(chainer.Chain):
 
     def __init__(self, n_vocab, n_units):
-        super(RNNForLM, self).__init__(
-            embed=L.EmbedID(n_vocab, n_units),
-            l1=L.LSTM(n_units, n_units),
-            l2=L.LSTM(n_units, n_units),
-            l3=L.Linear(n_units, n_vocab),
-        )
+        super(RNNForLM, self).__init__()
+        with self.init_scope():
+            self.embed = L.EmbedID(n_vocab, n_units)
+            self.l1 = L.LSTM(n_units, n_units)
+            self.l2 = L.LSTM(n_units, n_units)
+            self.l3 = L.Linear(n_units, n_vocab)
+
         for param in self.params():
             param.data[...] = np.random.uniform(-0.1, 0.1, param.data.shape)
 
@@ -170,6 +171,8 @@ def main():
     parser.set_defaults(test=False)
     parser.add_argument('--unit', '-u', type=int, default=650,
                         help='Number of LSTM units in each layer')
+    parser.add_argument('--model', '-m', default='model.npz',
+                        help='Model file name to serialize')
     args = parser.parse_args()
 
     # Load the Penn Tree Bank long word sequence dataset
@@ -191,7 +194,8 @@ def main():
     model = L.Classifier(rnn)
     model.compute_accuracy = False  # we only want the perplexity
     if args.gpu >= 0:
-        chainer.cuda.get_device(args.gpu).use()  # make the GPU current
+        # Make a specified GPU current
+        chainer.cuda.get_device_from_id(args.gpu).use()
         model.to_gpu()
 
     # Set up an optimizer
@@ -232,6 +236,9 @@ def main():
     evaluator = extensions.Evaluator(test_iter, eval_model, device=args.gpu)
     result = evaluator()
     print('test perplexity:', np.exp(float(result['main/loss'])))
+
+    # Serialize the final model
+    chainer.serializers.save_npz(args.model, model)
 
 
 if __name__ == '__main__':

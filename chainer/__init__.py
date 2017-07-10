@@ -33,7 +33,7 @@ from chainer.function import force_backprop_mode  # NOQA
 from chainer.function import Function  # NOQA
 from chainer.function import no_backprop_mode  # NOQA
 from chainer.functions import array  # NOQA
-from chainer.functions import basic_math  # NOQA
+from chainer.functions.math import basic_math  # NOQA
 from chainer.initializer import Initializer  # NOQA
 from chainer.link import Chain  # NOQA
 from chainer.link import ChainList  # NOQA
@@ -50,6 +50,7 @@ from chainer.reporter import Summary  # NOQA
 from chainer.serializer import AbstractSerializer  # NOQA
 from chainer.serializer import Deserializer  # NOQA
 from chainer.serializer import Serializer  # NOQA
+from chainer.variable import Parameter  # NOQA
 from chainer.variable import Variable  # NOQA
 
 
@@ -78,7 +79,10 @@ def get_function_hooks():
 
 
 global_config.debug = bool(int(os.environ.get('CHAINER_DEBUG', '0')))
+global_config.cudnn_deterministic = False
 global_config.enable_backprop = True
+global_config.keep_graph_on_report = bool(int(
+    os.environ.get('CHAINER_KEEP_GRAPH_ON_REPORT', '0')))
 global_config.train = True
 global_config.type_check = bool(int(os.environ.get('CHAINER_TYPE_CHECK', '1')))
 global_config.use_cudnn = os.environ.get('CHAINER_USE_CUDNN', 'auto')
@@ -90,7 +94,7 @@ _SHOULD_USE_CUDNN = {
 }
 
 
-_cudnn_version = cuda.cudnn.cudnn.getVersion() if cuda.cudnn_enabled else 1
+_cudnn_version = cuda.cudnn.cudnn.getVersion() if cuda.cudnn_enabled else -1
 
 
 def should_use_cudnn(level, lowest_version=0):

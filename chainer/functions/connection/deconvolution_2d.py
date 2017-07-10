@@ -1,11 +1,14 @@
 import numpy
 
 import chainer
+from chainer import configuration
 from chainer import cuda
 from chainer import function
 from chainer.functions.connection import convolution_2d
+from chainer.utils import argument
 from chainer.utils import conv
 from chainer.utils import type_check
+from chainer import variable
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
@@ -30,11 +33,19 @@ def _pair(x):
 
 class Deconvolution2DFunction(function.Function):
 
-    def __init__(self, stride=1, pad=0, outsize=None, deterministic=False):
+    def __init__(self, stride=1, pad=0, outsize=None, requires_x_grad=True,
+                 **kwargs):
+        argument.check_unexpected_kwargs(
+            kwargs, deterministic="deterministic argument is not "
+            "supported anymore. "
+            "Use chainer.using_config('cudnn_deterministic', value) "
+            "context where value is either `True` or `False`.")
+        argument.assert_kwargs_empty(kwargs)
+
         self.sy, self.sx = _pair(stride)
         self.ph, self.pw = _pair(pad)
         self.outh, self.outw = (None, None) if outsize is None else outsize
-        self.deterministic = deterministic
+        self.requires_x_grad = requires_x_grad
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -155,13 +166,13 @@ class Deconvolution2DFunction(function.Function):
             if _cudnn_version >= 3000:
                 workspace_size = cuda.get_max_workspace_size()
                 workspace = cuda.cupy.empty((workspace_size,), dtype='b')
-                if not self.deterministic:
+                if configuration.config.cudnn_deterministic:
+                    algo = cuda.cupy.cuda.cudnn.CUDNN_CONVOLUTION_BWD_DATA_ALGO_1  # NOQA
+                else:
                     algo = libcudnn.getConvolutionBackwardDataAlgorithm(
                         handle, self.filter_desc.value, x_desc.value,
                         self.conv_desc.value, y_desc.value, _bwd_data_pref,
                         workspace_size)
-                else:
-                    algo = cuda.cupy.cuda.cudnn.CUDNN_CONVOLUTION_BWD_DATA_ALGO_1  # NOQA
 
                 libcudnn.convolutionBackwardData_v3(
                     handle, one.data, self.filter_desc.value, W.data.ptr,
@@ -169,6 +180,15 @@ class Deconvolution2DFunction(function.Function):
                     algo, workspace.data.ptr, workspace_size,
                     zero.data, y_desc.value, y.data.ptr)
             else:
+                if configuration.config.cudnn_deterministic:
+                    raise ValueError(
+                        "`cudnn_deterministic` option must be False "
+                        "if the forward propagation of "
+                        "chainer.functions.Deconvolution2D "
+                        "uses cuDNN and cuDNN versions < v3. "
+                        "Turn off cudnn_deterministic option with "
+                        "`chainer.using_config('cudnn_deterministic', False)` "
+                        "context.")
                 libcudnn.convolutionBackwardData_v2(
                     handle, one.data, self.filter_desc.value, W.data.ptr,
                     x_desc.value, x.data.ptr, self.conv_desc.value,
@@ -212,9 +232,12 @@ class Deconvolution2DFunction(function.Function):
             gy, kh, kw, self.sy, self.sx, self.ph, self.pw)
         gW = numpy.tensordot(
             x, col, ([0, 2, 3], [0, 4, 5])).astype(W.dtype, copy=False)
-        gx = numpy.tensordot(
-            col, W, ([1, 2, 3], [1, 2, 3])).astype(x.dtype, copy=False)
-        gx = numpy.rollaxis(gx, 3, 1)
+        if not self.requires_x_grad:
+            gx = None
+        else:
+            gx = numpy.tensordot(
+                col, W, ([1, 2, 3], [1, 2, 3])).astype(x.dtype, copy=False)
+            gx = numpy.rollaxis(gx, 3, 1)
 
         if b is None:
             return gx, gW
@@ -240,13 +263,16 @@ class Deconvolution2DFunction(function.Function):
         n, in_c, in_h, in_w = x.shape
         _, out_channels, kh, kw = W.shape
         c, h, w = gy.shape[1:]
-        gx = cuda.cupy.empty((n, in_c, in_h, in_w), dtype=x.dtype)
+        gx = None
 
         if (chainer.should_use_cudnn('>=auto') and
                 _check_cudnn_acceptable_type(x.dtype, W.dtype)):
+            gx = cuda.cupy.empty((n, in_c, in_h, in_w), dtype=x.dtype)
             x = cuda.cupy.ascontiguousarray(x)
             W = cuda.cupy.ascontiguousarray(W)
             gy = cuda.cupy.ascontiguousarray(gy)
+            if b is not None:
+                b = cuda.cupy.ascontiguousarray(b)
 
             handle = cudnn.get_handle()
             gy_desc = cudnn.create_tensor_descriptor(gy)
@@ -278,13 +304,13 @@ class Deconvolution2DFunction(function.Function):
             gW = cuda.cupy.empty_like(W)
             # filter backward
             if _cudnn_version >= 3000:
-                if not self.deterministic:
+                if configuration.config.cudnn_deterministic:
+                    algo = cuda.cupy.cuda.cudnn.CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1  # NOQA
+                else:
                     algo = libcudnn.getConvolutionBackwardFilterAlgorithm(
                         handle, gy_desc.value, gx_desc.value,
                         self.conv_desc.value, self.filter_desc.value,
                         _bwd_filter_pref, workspace_size)
-                else:
-                    algo = cuda.cupy.cuda.cudnn.CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1  # NOQA
 
                 libcudnn.convolutionBackwardFilter_v3(
                     handle, one.data, gy_desc.value, gy.data.ptr,
@@ -292,9 +318,15 @@ class Deconvolution2DFunction(function.Function):
                     algo, workspace.data.ptr, workspace_size,
                     zero.data, self.filter_desc.value, gW.data.ptr)
             else:
-                if self.deterministic:
-                    raise ValueError("'deterministic' option not available "
-                                     "for cuDNN versions < v3")
+                if configuration.config.cudnn_deterministic:
+                    raise ValueError(
+                        "`cudnn_deterministic` option must be False "
+                        "if the backpropagation of "
+                        "chainer.functions.Deconvolution2D "
+                        "uses cuDNN and cuDNN versions < v3. "
+                        "Turn off cudnn_deterministic option with "
+                        "`chainer.using_config('cudnn_deterministic', False)` "
+                        "context.")
                 libcudnn.convolutionBackwardFilter_v2(
                     handle, one.data, gy_desc.value, gy.data.ptr,
                     gx_desc.value, x.data.ptr, self.conv_desc.value,
@@ -306,9 +338,10 @@ class Deconvolution2DFunction(function.Function):
 
             gW = cuda.cupy.tensordot(
                 x, col, ([0, 2, 3], [0, 4, 5])).astype(W.dtype, copy=False)
-            gx = cuda.cupy.tensordot(
-                col, W, ([1, 2, 3], [1, 2, 3])).astype(x.dtype, copy=False)
-            gx = cuda.cupy.rollaxis(gx, 3, 1)
+            if self.requires_x_grad:
+                gx = cuda.cupy.tensordot(
+                    col, W, ([1, 2, 3], [1, 2, 3])).astype(x.dtype, copy=False)
+                gx = cuda.cupy.rollaxis(gx, 3, 1)
 
             # bias backward
             if b is not None:
@@ -320,52 +353,115 @@ class Deconvolution2DFunction(function.Function):
             return gx, gW, gb
 
 
-def deconvolution_2d(x, W, b=None, stride=1, pad=0,
-                     outsize=None, deterministic=False):
-    """Two dimensional deconvolution function.
+def deconvolution_2d(x, W, b=None, stride=1, pad=0, outsize=None, **kwargs):
+    """deconvolution_2d(x, W, b=None, stride=1, pad=0, outsize=None)
 
-    This is an implementation of two-dimensional deconvolution.
+    Two dimensional deconvolution function.
+
+    This is an implementation of two-dimensional deconvolution. In most of deep
+    learning frameworks and papers, this function is called
+    **transposed convolution**. But because of historical reasons (e.g. paper
+    by Ziller `Deconvolutional Networks`_) and backward compatibility, this
+    function is called **deconvolution** in Chainer.
+
+    .. _Deconvolutional Networks: \
+http://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf
+
     It takes three variables: input image ``x``,
     the filter weight ``W``, and the bias vector ``b``.
 
-    Args:
-        x (~chainer.Variable): Input variable of shape :math:`(n, c_I, h, w)`.
-        W (~chainer.Variable): Weight variable of shape
-            :math:`(c_I, c_O, k_H, k_W)`.
-        b (~chainer.Variable): Bias variable of length :math:`c_O` (optional).
-        stride (int or pair of ints): Stride of filter applications.
-            ``stride=s`` and ``stride=(s, s)`` are equivalent.
-        pad (int or pair of ints): Spatial padding width for input arrays.
-            ``pad=p`` and ``pad=(p, p)`` are equivalent.
-        outsize (tuple): Expected output size of deconvolutional operation.
-            It should be pair of height and width :math:`(out_H, out_W)`.
-            Default value is ``None`` and the outsize is estimated by
-            input size, stride and pad.
-        deterministic (bool): The output of this function can be
-            non-deterministic when it uses cuDNN.
-            If this option is ``True``, then it forces cuDNN to use
-            a deterministic algorithm. This option is only available for
-            cuDNN version >= v3.
+    Notation: here is a notation for dimensionalities.
 
+    - :math:`n` is the batch size.
+    - :math:`c_I` and :math:`c_O` are the number of the input and output
+      channels, respectively.
+    - :math:`h_I` and :math:`w_I` are the height and width of the input image,
+      respectively.
+    - :math:`h_K` and :math:`w_K` are the height and width of the filters,
+      respectively.
+    - :math:`h_P` and :math:`w_P` are the height and width of the spatial
+      padding size, respectively.
 
-    The filter weight has four dimensions :math:`(c_I, c_O, k_H, k_W)`
-    which indicate the number of input channels, output channels,
-    height and width of the kernels, respectively.
-
-    The bias vector is of size :math:`c_O`.
-
-    Let :math:`X` be the input tensor of dimensions :math:`(n, c_I, h, w)`,
-    :math:`(s_Y, s_X)` the stride of filter application, and
-    :math:`(p_H, p_W)` the spatial padding size. Then, the output size
-    :math:`(h_O, w_O)` is determined by the following equations:
+    Let :math:`(s_Y, s_X)` be the stride of filter application. Then, the
+    output size :math:`(h_O, w_O)` is estimated by the following equations:
 
     .. math::
 
-       h_O &= s_Y (h - 1) + k_H - 2p_H,\\\\
-       w_O &= s_X (w - 1) + k_W - 2p_W.
+       h_O &= s_Y (h_I - 1) + h_K - 2h_P,\\\\
+       w_O &= s_X (w_I - 1) + w_K - 2w_P.
+
+    The output of this function can be non-deterministic when it uses cuDNN.
+    If ``chainer.configuration.config.deterministic`` is ``True`` and
+    cuDNN version is >= v3, it forces cuDNN to use a deterministic algorithm.
+
+    .. warning::
+
+        ``deterministic`` argument is not supported anymore since v2.
+        Instead, use ``chainer.using_config('cudnn_deterministic', value)``
+        (value is either ``True`` or ``False``).
+        See :func:`chainer.using_config`.
+
+    Args:
+        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`):
+            Input variable of shape :math:`(n, c_I, h_I, w_I)`.
+        W (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`):
+            Weight variable of shape :math:`(c_I, c_O, h_K, w_K)`.
+        b (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Bias variable of length :math:`c_O` (optional).
+        stride (:class:`int` or pair of :class:`int` s):
+            Stride of filter applications. ``stride=s`` and ``stride=(s, s)``
+            are equivalent.
+        pad (:class:`int` or pair of :class:`int` s):
+            Spatial padding width for input arrays.
+            ``pad=p`` and ``pad=(p, p)`` are equivalent.
+        outsize (:class:`tuple` of :class:`int`):
+            Expected output size of deconvolutional operation.
+            It should be pair of height and width :math:`(h_O, w_O)`.
+            Default value is ``None`` and the outsize is estimated by
+            input size, stride and pad.
+
+    Returns:
+        ~chainer.Variable:
+            Output variable of shape :math:`(n, c_O, h_O, w_O)`.
+
+    .. admonition:: Example
+
+        >>> n = 10
+        >>> c_i, c_o = 1, 3
+        >>> h_i, w_i = 5, 10
+        >>> h_k, w_k = 10, 10
+        >>> h_p, w_p = 5, 5
+        >>> x = np.random.uniform(0, 1, (n, c_i, h_i, w_i)).astype('f')
+        >>> x.shape
+        (10, 1, 5, 10)
+        >>> W = np.random.uniform(0, 1, (c_i, c_o, h_k, w_k)).astype('f')
+        >>> W.shape
+        (1, 3, 10, 10)
+        >>> b = np.random.uniform(0, 1, c_o).astype('f')
+        >>> b.shape
+        (3,)
+        >>> s_y, s_x = 5, 5
+        >>> y = F.deconvolution_2d(x, W, b, stride=(s_y, s_x), pad=(h_p, w_p))
+        >>> y.shape
+        (10, 3, 20, 45)
+        >>> h_o = s_y * (h_i - 1) + h_k - 2 * h_p
+        >>> w_o = s_x * (w_i - 1) + w_k - 2 * w_p
+        >>> y.shape == (n, c_o, h_o, w_o)
+        True
+
 
     """
-    func = Deconvolution2DFunction(stride, pad, outsize, deterministic)
+    argument.check_unexpected_kwargs(
+        kwargs, deterministic="deterministic argument is not "
+        "supported anymore. "
+        "Use chainer.using_config('cudnn_deterministic', value) "
+        "context where value is either `True` or `False`.")
+    argument.assert_kwargs_empty(kwargs)
+
+    requires_x_grad = isinstance(x, variable.Variable) and x.requires_grad
+    func = Deconvolution2DFunction(stride, pad, outsize, requires_x_grad)
     if b is None:
         return func(x, W)
     else:

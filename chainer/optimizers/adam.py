@@ -45,7 +45,7 @@ class AdamRule(optimizer.UpdateRule):
 
     def init_state(self, param):
         xp = cuda.get_array_module(param.data)
-        with cuda.get_device(param.data):
+        with cuda.get_device_from_array(param.data):
             self.state['m'] = xp.zeros_like(param.data)
             self.state['v'] = xp.zeros_like(param.data)
 
@@ -76,8 +76,8 @@ class AdamRule(optimizer.UpdateRule):
 
     @property
     def lr(self):
-        fix1 = 1. - self.hyperparam.beta1 ** self.t
-        fix2 = 1. - self.hyperparam.beta2 ** self.t
+        fix1 = 1. - math.pow(self.hyperparam.beta1, self.t)
+        fix2 = 1. - math.pow(self.hyperparam.beta2, self.t)
         return self.hyperparam.alpha * math.sqrt(fix2) / fix1
 
 
@@ -116,6 +116,6 @@ class Adam(optimizer.GradientMethod):
 
     @property
     def lr(self):
-        fix1 = 1. - self.hyperparam.beta1 ** self.t
-        fix2 = 1. - self.hyperparam.beta2 ** self.t
+        fix1 = 1. - math.pow(self.hyperparam.beta1, self.t)
+        fix2 = 1. - math.pow(self.hyperparam.beta2, self.t)
         return self.hyperparam.alpha * math.sqrt(fix2) / fix1

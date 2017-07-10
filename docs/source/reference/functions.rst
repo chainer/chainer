@@ -27,557 +27,226 @@ functions, which users should use.
 Activation functions
 --------------------
 
-clipped_relu
-~~~~~~~~~~~~
-.. autofunction:: clipped_relu
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
 
-crelu
-~~~~~
-.. autofunction:: crelu
-
-elu
-~~~
-.. autofunction:: elu
-
-hard_sigmoid
-~~~~~~~~~~~~
-.. autofunction:: hard_sigmoid
-
-leaky_relu
-~~~~~~~~~~
-.. autofunction:: leaky_relu
-
-log_softmax
-~~~~~~~~~~~
-.. autofunction:: log_softmax
-
-lstm
-~~~~
-.. autofunction:: lstm
-
-maxout
-~~~~~~
-.. autofunction:: maxout
-
-prelu
-~~~~~
-.. autofunction:: prelu
-
-relu
-~~~~
-.. autofunction:: relu
-
-sigmoid
-~~~~~~~
-.. autofunction:: sigmoid
-
-slstm
-~~~~~
-.. autofunction:: slstm
-
-softmax
-~~~~~~~
-.. autofunction:: softmax
-
-softplus
-~~~~~~~~
-.. autofunction:: softplus
-
-tanh
-~~~~
-.. autofunction:: tanh
-
+   chainer.functions.clipped_relu
+   chainer.functions.crelu
+   chainer.functions.elu
+   chainer.functions.hard_sigmoid
+   chainer.functions.leaky_relu
+   chainer.functions.log_softmax
+   chainer.functions.lstm
+   chainer.functions.maxout
+   chainer.functions.prelu
+   chainer.functions.relu
+   chainer.functions.sigmoid
+   chainer.functions.slstm
+   chainer.functions.softmax
+   chainer.functions.softplus
+   chainer.functions.tanh
+   chainer.functions.tree_lstm
 
 Array manipulations
 -------------------
 
-broadcast
-~~~~~~~~~
-.. autofunction:: broadcast
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
 
-broadcast_to
-~~~~~~~~~~~~
-.. autofunction:: broadcast_to
-
-cast
-~~~~
-.. autofunction:: cast
-
-concat
-~~~~~~
-.. autofunction:: concat
-
-copy
-~~~~
-.. autofunction:: copy
-
-depth2space
-~~~~~~~~~~~
-.. autofunction:: depth2space
-
-dstack
-~~~~~~
-.. autofunction:: dstack
-
-expand_dims
-~~~~~~~~~~~
-.. autofunction:: expand_dims
-
-flatten
-~~~~~~~
-.. autofunction:: flatten
-
-fliplr
-~~~~~~
-.. autofunction:: fliplr
-
-flipud
-~~~~~~
-.. autofunction:: flipud
-
-get_item
-~~~~~~~~
-.. autofunction:: get_item
-
-hstack
-~~~~~~
-.. autofunction:: hstack
-
-pad
-~~~
-.. autofunction:: pad
-
-permutate
-~~~~~~~~~
-.. autofunction:: permutate
-
-reshape
-~~~~~~~
-.. autofunction:: reshape
-
-resize_images
-~~~~~~~~~~~~~
-.. autofunction:: resize_images
-
-rollaxis
-~~~~~~~~
-.. autofunction:: rollaxis
-
-select_item
-~~~~~~~~~~~
-.. autofunction:: select_item
-
-separate
-~~~~~~~~
-.. autofunction:: separate
-
-space2depth
-~~~~~~~~~~~
-.. autofunction:: space2depth
-
-split_axis
-~~~~~~~~~~
-.. autofunction:: split_axis
-
-squeeze
-~~~~~~~
-.. autofunction:: squeeze
-
-stack
-~~~~~
-.. autofunction:: stack
-
-swapaxes
-~~~~~~~~
-.. autofunction:: swapaxes
-
-tile
-~~~~
-.. autofunction:: tile
-
-transpose
-~~~~~~~~~
-.. autofunction:: transpose
-
-transpose_sequence
-~~~~~~~~~~~~~~~~~~
-.. autofunction:: transpose_sequence
-
-vstack
-~~~~~~
-.. autofunction:: vstack
-
-where
-~~~~~
-.. autofunction:: where
-
+   chainer.functions.broadcast
+   chainer.functions.broadcast_to
+   chainer.functions.cast
+   chainer.functions.concat
+   chainer.functions.copy
+   chainer.functions.depth2space
+   chainer.functions.dstack
+   chainer.functions.expand_dims
+   chainer.functions.flatten
+   chainer.functions.fliplr
+   chainer.functions.flipud
+   chainer.functions.get_item
+   chainer.functions.hstack
+   chainer.functions.im2col
+   chainer.functions.pad
+   chainer.functions.pad_sequence
+   chainer.functions.permutate
+   chainer.functions.reshape
+   chainer.functions.resize_images
+   chainer.functions.rollaxis
+   chainer.functions.select_item
+   chainer.functions.separate
+   chainer.functions.space2depth
+   chainer.functions.spatial_transformer_grid
+   chainer.functions.spatial_transformer_sampler
+   chainer.functions.split_axis
+   chainer.functions.squeeze
+   chainer.functions.stack
+   chainer.functions.swapaxes
+   chainer.functions.tile
+   chainer.functions.transpose
+   chainer.functions.transpose_sequence
+   chainer.functions.vstack
+   chainer.functions.where
 
 Neural network connections
 --------------------------
 
-bilinear
-~~~~~~~~
-.. autofunction:: bilinear
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
 
-convolution_2d
-~~~~~~~~~~~~~~
-.. autofunction:: convolution_2d
-
-convolution_nd
-~~~~~~~~~~~~~~
-.. autofunction:: convolution_nd
-
-deconvolution_2d
-~~~~~~~~~~~~~~~~
-.. autofunction:: deconvolution_2d
-
-deconvolution_nd
-~~~~~~~~~~~~~~~~
-.. autofunction:: deconvolution_nd
-
-dilated_convolution_2d
-~~~~~~~~~~~~~~~~~~~~~~
-.. autofunction:: dilated_convolution_2d
-
-embed_id
-~~~~~~~~
-.. autofunction:: embed_id
-
-linear
-~~~~~~
-.. autofunction:: linear
-
-n_step_lstm
-~~~~~~~~~~~
-.. autofunction:: n_step_lstm
+   chainer.functions.bilinear
+   chainer.functions.convolution_2d
+   chainer.functions.convolution_nd
+   chainer.functions.deconvolution_2d
+   chainer.functions.deconvolution_nd
+   chainer.functions.depthwise_convolution_2d
+   chainer.functions.dilated_convolution_2d
+   chainer.functions.embed_id
+   chainer.functions.linear
+   chainer.functions.n_step_bigru
+   chainer.functions.n_step_bilstm
+   chainer.functions.n_step_birnn
+   chainer.functions.n_step_gru
+   chainer.functions.n_step_lstm
+   chainer.functions.n_step_rnn
 
 
 Evaluation functions
 --------------------
 
-accuracy
-~~~~~~~~
-.. autofunction:: accuracy
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
 
-binary_accuracy
-~~~~~~~~~~~~~~~
-.. autofunction:: binary_accuracy
-
-classification_summary
-~~~~~~~~~~~~~~~~~~~~~~
-.. autofunction:: classification_summary
-
-r2_score
-~~~~~~~~
-.. autofunction:: r2_score
-
+   chainer.functions.accuracy
+   chainer.functions.binary_accuracy
+   chainer.functions.classification_summary
+   chainer.functions.r2_score
 
 Loss functions
 --------------
 
-bernoulli_nll
-~~~~~~~~~~~~~
-.. autofunction:: bernoulli_nll
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
 
-black_out
-~~~~~~~~~
-.. autofunction:: black_out
-
-connectionist_temporal_classification
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. autofunction:: connectionist_temporal_classification
-
-contrastive
-~~~~~~~~~~~
-.. autofunction:: contrastive
-
-crf1d
-~~~~~
-.. autofunction:: crf1d
-.. autofunction:: argmax_crf1d
-
-cross_covariance
-~~~~~~~~~~~~~~~~
-.. autofunction:: cross_covariance
-
-gaussian_kl_divergence
-~~~~~~~~~~~~~~~~~~~~~~
-.. autofunction:: gaussian_kl_divergence
-
-gaussian_nll
-~~~~~~~~~~~~
-.. autofunction:: gaussian_nll
-
-hinge
-~~~~~
-.. autofunction:: hinge
-
-huber_loss
-~~~~~~~~~~
-.. autofunction:: huber_loss
-
-mean_absolute_error
-~~~~~~~~~~~~~~~~~~~
-.. autofunction:: mean_absolute_error
-
-mean_squared_error
-~~~~~~~~~~~~~~~~~~
-.. autofunction:: mean_squared_error
-
-negative_sampling
-~~~~~~~~~~~~~~~~~
-.. autofunction:: negative_sampling
-
-sigmoid_cross_entropy
-~~~~~~~~~~~~~~~~~~~~~
-.. autofunction:: sigmoid_cross_entropy
-
-softmax_cross_entropy
-~~~~~~~~~~~~~~~~~~~~~
-.. autofunction:: softmax_cross_entropy
-
-triplet
-~~~~~~~
-.. autofunction:: triplet
-
+   chainer.functions.bernoulli_nll
+   chainer.functions.black_out
+   chainer.functions.connectionist_temporal_classification
+   chainer.functions.contrastive
+   chainer.functions.crf1d
+   chainer.functions.argmax_crf1d
+   chainer.functions.cross_covariance
+   chainer.functions.gaussian_kl_divergence
+   chainer.functions.gaussian_nll
+   chainer.functions.hinge
+   chainer.functions.huber_loss
+   chainer.functions.mean_absolute_error
+   chainer.functions.mean_squared_error
+   chainer.functions.negative_sampling
+   chainer.functions.sigmoid_cross_entropy
+   chainer.functions.softmax_cross_entropy
+   chainer.functions.squared_error
+   chainer.functions.triplet
 
 Mathematical functions
 ----------------------
 
-arccos
-~~~~~~
-.. autofunction:: arccos
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
 
-arcsin
-~~~~~~
-.. autofunction:: arcsin
-
-arctan
-~~~~~~
-.. autofunction:: arctan
-
-argmax
-~~~~~~
-.. autofunction:: argmax
-
-argmin
-~~~~~~
-.. autofunction:: argmin
-
-average
-~~~~~~~
-.. autofunction:: average
-
-batch_inv
-~~~~~~~~~
-.. autofunction:: batch_inv
-
-batch_l2_norm_squared
-~~~~~~~~~~~~~~~~~~~~~
-.. autofunction:: batch_l2_norm_squared
-
-batch_matmul
-~~~~~~~~~~~~
-.. autofunction:: batch_matmul
-
-bias
-~~~~
-.. autofunction:: bias
-
-ceil
-~~~~
-.. autofunction:: ceil
-
-clip
-~~~~
-.. autofunction:: clip
-
-cos
-~~~
-.. autofunction:: cos
-
-cosh
-~~~~
-.. autofunction:: cosh
-
-exp
-~~~
-.. autofunction:: exp
-
-fmod
-~~~~
-.. autofunction:: fmod
-
-floor
-~~~~~
-.. autofunction:: floor
-
-identity
-~~~~~~~~
-.. autofunction:: identity
-
-inv
-~~~
-.. autofunction:: inv
-
-linear_interpolate
-~~~~~~~~~~~~~~~~~~
-.. autofunction:: linear_interpolate
-
-log
-~~~
-.. autofunction:: log
-
-log10
-~~~~~
-.. autofunction:: log10
-
-log1p
-~~~~~
-.. autofunction:: log1p
-
-log2
-~~~~
-.. autofunction:: log2
-
-logsumexp
-~~~~~~~~~
-.. autofunction:: logsumexp
-
-matmul
-~~~~~~
-.. autofunction:: matmul
-
-max
-~~~
-.. autofunction:: max
-
-maximum
-~~~~~~~
-.. autofunction:: maximum
-
-min
-~~~
-.. autofunction:: min
-
-minimum
-~~~~~~~
-.. autofunction:: minimum
-
-rsqrt
-~~~~~
-.. autofunction:: rsqrt
-
-scale
-~~~~~
-.. autofunction:: scale
-
-sin
-~~~
-.. autofunction:: sin
-
-sinh
-~~~~
-.. autofunction:: sinh
-
-sqrt
-~~~~
-.. autofunction:: sqrt
-
-square
-~~~~~~
-.. autofunction:: square
-
-squared_difference
-~~~~~~~~~~~~~~~~~~
-.. autofunction:: squared_difference
-
-sum
-~~~
-.. autofunction:: sum
-
-tanh
-~~~~
-Hyperbolic tangent function is described in "Activation functions" section.
-
-.. seealso:: :func:`~chainer.functions.tanh`
-
-tan
-~~~
-.. autofunction:: tan
-
+   chainer.functions.arccos
+   chainer.functions.arcsin
+   chainer.functions.arctan
+   chainer.functions.argmax
+   chainer.functions.argmin
+   chainer.functions.average
+   chainer.functions.batch_inv
+   chainer.functions.batch_l2_norm_squared
+   chainer.functions.bias
+   chainer.functions.ceil
+   chainer.functions.clip
+   chainer.functions.cos
+   chainer.functions.cosh
+   chainer.functions.exp
+   chainer.functions.fmod
+   chainer.functions.floor
+   chainer.functions.identity
+   chainer.functions.inv
+   chainer.functions.linear_interpolate
+   chainer.functions.log
+   chainer.functions.log10
+   chainer.functions.log1p
+   chainer.functions.log2
+   chainer.functions.logsumexp
+   chainer.functions.matmul
+   chainer.functions.max
+   chainer.functions.maximum
+   chainer.functions.mean
+   chainer.functions.min
+   chainer.functions.minimum
+   chainer.functions.rsqrt
+   chainer.functions.scale
+   chainer.functions.sin
+   chainer.functions.sinh
+   chainer.functions.sqrt
+   chainer.functions.square
+   chainer.functions.squared_difference
+   chainer.functions.sum
+   chainer.functions.tanh
+   chainer.functions.tan
 
 Noise injections
 ----------------
 
-dropout
-~~~~~~~
-.. autofunction:: dropout
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
 
-gaussian
-~~~~~~~~
-.. autofunction:: gaussian
-
+   chainer.functions.dropout
+   chainer.functions.gaussian
+   chainer.functions.simplified_dropconnect
 
 Normalization functions
 -----------------------
 
-batch_normalization
-~~~~~~~~~~~~~~~~~~~
-.. autofunction:: batch_normalization
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
 
-fixed_batch_normalization
-~~~~~~~~~~~~~~~~~~~~~~~~~
-.. autofunction:: fixed_batch_normalization
-
-local_response_normalization
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. autofunction:: local_response_normalization
-
-normalize
-~~~~~~~~~
-.. autofunction:: normalize
+   chainer.functions.batch_normalization
+   chainer.functions.fixed_batch_normalization
+   chainer.functions.layer_normalization
+   chainer.functions.local_response_normalization
+   chainer.functions.normalize
 
 
 Spatial pooling
 ---------------
 
-average_pooling_2d
-~~~~~~~~~~~~~~~~~~
-.. autofunction:: average_pooling_2d
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
 
-average_pooling_nd
-~~~~~~~~~~~~~~~~~~
-.. autofunction:: average_pooling_nd
-
-max_pooling_2d
-~~~~~~~~~~~~~~
-.. autofunction:: max_pooling_2d
-
-max_pooling_nd
-~~~~~~~~~~~~~~
-.. autofunction:: max_pooling_nd
-
-roi_pooling_2d
-~~~~~~~~~~~~~~
-.. autofunction:: roi_pooling_2d
-
-spatial_pyramid_pooling_2d
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. autofunction:: spatial_pyramid_pooling_2d
-
-unpooling_2d
-~~~~~~~~~~~~
-.. autofunction:: unpooling_2d
-
-upsampling_2d
-~~~~~~~~~~~~~
-.. autofunction:: upsampling_2d
+   chainer.functions.average_pooling_2d
+   chainer.functions.average_pooling_nd
+   chainer.functions.max_pooling_2d
+   chainer.functions.max_pooling_nd
+   chainer.functions.roi_pooling_2d
+   chainer.functions.spatial_pyramid_pooling_2d
+   chainer.functions.unpooling_2d
+   chainer.functions.upsampling_2d
 
 
 Utility functions
 -----------------
 
-forget
-~~~~~~
-.. autofunction:: forget
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.functions.forget

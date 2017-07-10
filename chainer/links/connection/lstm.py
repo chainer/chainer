@@ -1,7 +1,6 @@
 import numpy
 import six
 
-import chainer
 from chainer import cuda
 from chainer.functions.activation import lstm
 from chainer.functions.array import concat
@@ -20,24 +19,22 @@ class LSTMBase(link.Chain):
 
     def __init__(self, in_size, out_size=None, lateral_init=None,
                  upward_init=None, bias_init=0, forget_bias_init=1):
-
         if out_size is None:
             out_size, in_size = in_size, None
 
-        super(LSTMBase, self).__init__(
-            upward=linear.Linear(in_size, 4 * out_size, initialW=0),
-            lateral=linear.Linear(out_size, 4 * out_size,
-                                  initialW=0, nobias=True),
-        )
-
+        super(LSTMBase, self).__init__()
         self.state_size = out_size
         self.lateral_init = lateral_init
         self.upward_init = upward_init
         self.bias_init = bias_init
         self.forget_bias_init = forget_bias_init
 
-        if in_size is not None:
-            self._initialize_params()
+        with self.init_scope():
+            self.upward = linear.Linear(in_size, 4 * out_size, initialW=0)
+            self.lateral = linear.Linear(out_size, 4 * out_size, initialW=0,
+                                         nobias=True)
+            if in_size is not None:
+                self._initialize_params()
 
     def _initialize_params(self):
         lateral_init = initializers._get_initializer(self.lateral_init)
@@ -65,9 +62,9 @@ class StatelessLSTM(LSTMBase):
     hidden states.
 
     Args:
-        in_size (int): Dimension of input vectors. If it is ``None`` or
-            omitted, parameter initialization will be deferred until the first
-            forward data pass at which time the size will be determined.
+        in_size (int or None): Dimension of input vectors. If ``None``,
+            parameter initialization will be deferred until the first forward
+            data pass at which time the size will be determined.
         out_size (int): Dimensionality of output vectors.
 
     Attributes:
@@ -130,7 +127,7 @@ class StatelessLSTM(LSTMBase):
         """
         if self.upward.W.data is None:
             in_size = x.size // x.shape[0]
-            with cuda.get_device(self._device_id):
+            with cuda.get_device_from_id(self._device_id):
                 self.upward._initialize_params(in_size)
                 self._initialize_params()
 
@@ -139,7 +136,7 @@ class StatelessLSTM(LSTMBase):
             lstm_in += self.lateral(h)
         if c is None:
             xp = self.xp
-            with cuda.get_device(self._device_id):
+            with cuda.get_device_from_id(self._device_id):
                 c = variable.Variable(
                     xp.zeros((x.shape[0], self.state_size), dtype=x.dtype))
         return lstm.lstm(c, lstm_in)
@@ -234,8 +231,8 @@ class LSTM(LSTMBase):
             h (~chainer.Variable): A new output at the previous time step.
 
         """
-        assert isinstance(c, chainer.Variable)
-        assert isinstance(h, chainer.Variable)
+        assert isinstance(c, variable.Variable)
+        assert isinstance(h, variable.Variable)
         c_ = c
         h_ = h
         if self.xp == numpy:
@@ -266,7 +263,7 @@ class LSTM(LSTMBase):
 
         """
         if self.upward.W.data is None:
-            with cuda.get_device(self._device_id):
+            with cuda.get_device_from_id(self._device_id):
                 in_size = x.size // x.shape[0]
                 self.upward._initialize_params(in_size)
                 self._initialize_params()
@@ -290,7 +287,7 @@ class LSTM(LSTMBase):
                 lstm_in += self.lateral(self.h)
         if self.c is None:
             xp = self.xp
-            with cuda.get_device(self._device_id):
+            with cuda.get_device_from_id(self._device_id):
                 self.c = variable.Variable(
                     xp.zeros((batch, self.state_size), dtype=x.dtype))
         self.c, y = lstm.lstm(self.c, lstm_in)

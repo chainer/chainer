@@ -1,8 +1,7 @@
 from chainer.functions.connection import linear
 from chainer import initializers
 from chainer import link
-
-import numpy
+from chainer import variable
 
 
 class Linear(link.Link):
@@ -20,7 +19,7 @@ class Linear(link.Link):
     does not hold a bias vector.
 
     Args:
-        in_size (int): Dimension of input vectors. If it's ``None`` or ommited,
+        in_size (int or None): Dimension of input vectors. If ``None``,
             parameter initialization will be deferred until the first forward
             data pass at which time the size will be determined.
         out_size (int): Dimension of output vectors.
@@ -96,20 +95,19 @@ class Linear(link.Link):
             in_size, out_size = None, in_size
         self.out_size = out_size
 
-        if initialW is None:
-            initialW = initializers.HeNormal(1.0 / numpy.sqrt(2))
-        self.add_param('W', initializer=initializers._get_initializer(
-            initialW))
-        if in_size is not None:
-            self._initialize_params(in_size)
+        with self.init_scope():
+            W_initializer = initializers._get_initializer(initialW)
+            self.W = variable.Parameter(W_initializer)
+            if in_size is not None:
+                self._initialize_params(in_size)
 
-        if nobias:
-            self.b = None
-        else:
-            if initial_bias is None:
-                initial_bias = initializers.Constant(0)
-            bias_initializer = initializers._get_initializer(initial_bias)
-            self.add_param('b', self.out_size, initializer=bias_initializer)
+            if nobias:
+                self.b = None
+            else:
+                if initial_bias is None:
+                    initial_bias = 0
+                bias_initializer = initializers._get_initializer(initial_bias)
+                self.b = variable.Parameter(bias_initializer, out_size)
 
     def _initialize_params(self, in_size):
         self.W.initialize((self.out_size, in_size))

@@ -1,16 +1,10 @@
-from chainer import initializers
+from chainer.functions.normalization import layer_normalization
 from chainer import link
 from chainer import utils
-
-from chainer.functions.array import broadcast
-from chainer.functions.math import bias
-from chainer.functions.math import scale
-from chainer.functions.math import sqrt
-from chainer.functions.math import square
-from chainer.functions.math import sum
+from chainer import variable
 
 
-class LayerNormalization(link.Chain):
+class LayerNormalization(link.Link):
 
     """Layer normalization layer on outputs of linear functions.
 
@@ -37,8 +31,8 @@ class LayerNormalization(link.Chain):
             If ``numpy.ndarray``, the vector is set by it.
 
     Attributes:
-        gamma (~chainer.Variable): Scaling parameter.
-        beta (~chainer.Variable): Shifting parameter.
+        gamma (~chainer.Parameter): Scaling parameter.
+        beta (~chainer.Parameter): Shifting parameter.
         eps (float): Epsilon value for numerical stability.
 
     See: `Layer Normalization <https://arxiv.org/abs/1607.06450>`_
@@ -48,13 +42,14 @@ class LayerNormalization(link.Chain):
                  initial_beta=None):
         super(LayerNormalization, self).__init__()
         if initial_gamma is None:
-            initial_gamma = initializers.One()
+            initial_gamma = 1
         if initial_beta is None:
-            initial_beta = initializers.Zero()
+            initial_beta = 0
 
-        self.add_param('gamma', initializer=initial_gamma)
-        self.add_param('beta', initializer=initial_beta)
-        self.eps = eps
+        with self.init_scope():
+            self.gamma = variable.Parameter(initial_gamma)
+            self.beta = variable.Parameter(initial_beta)
+            self.eps = eps
 
         if size is not None:
             self._initialize_params(size)
@@ -65,16 +60,6 @@ class LayerNormalization(link.Chain):
     def _initialize_params(self, size):
         self.gamma.initialize(size)
         self.beta.initialize(size)
-
-    def _normalize(self, x):
-        size = x.shape[1]
-        mean = broadcast.broadcast_to(
-            (sum.sum(x, axis=1) / size)[:, None],
-            x.shape)
-        std = broadcast.broadcast_to(sqrt.sqrt(
-            sum.sum(square.square(x - mean), axis=1) / size)[:, None],
-            x.shape) + self.eps
-        return (x - mean) / std
 
     def __call__(self, x):
         """Apply layer normalization to given input.
@@ -91,5 +76,5 @@ class LayerNormalization(link.Chain):
         if self.gamma.data is None:
             self._initialize_params(x.size // x.shape[0])
 
-        normalized = self._normalize(x)
-        return bias.bias(scale.scale(normalized, self.gamma), self.beta)
+        return layer_normalization.layer_normalization(
+            x, self.gamma, self.beta, self.eps)
