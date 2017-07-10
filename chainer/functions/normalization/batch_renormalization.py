@@ -1,5 +1,3 @@
-import warnings
-
 import numpy
 
 from chainer import configuration
@@ -27,15 +25,14 @@ def _xhat(x, mean, std, expander):
 class BatchRenormalizationFunction(function.Function):
 
     def __init__(self, eps=2e-5, mean=None, var=None, decay=0.9,
-                 rmax=1, dmax=0, keep_r_d_fixed=False):
+                 rmax=1, dmax=0, freeze_running_statistics=False):
         self.running_mean = mean
         self.running_var = var
         self.rmax = rmax
         self.dmax = dmax
         self.r = None
         self.d = None
-        # Needed for gradient check to be possible
-        self.keep_r_d_fixed = keep_r_d_fixed
+        self.freeze_running_statistics = freeze_running_statistics
 
         self.eps = eps
         self.mean_cache = None
@@ -99,25 +96,33 @@ class BatchRenormalizationFunction(function.Function):
             mean = fixed_mean
             var = fixed_var + self.eps
         self.std = xp.sqrt(var, dtype=var.dtype)
-        if not self.keep_r_d_fixed or self.r is None:
+
+        if not self.freeze_running_statistics or self.r is None:
             if configuration.config.train:
                 running_sigma = xp.sqrt(self.running_var + self.eps)
                 self.r = xp.clip(self.std / running_sigma,
-                            1.0 / self.rmax, self.rmax)
+                                 1.0 / self.rmax, self.rmax)
                 self.d = xp.clip((mean - self.running_mean) / running_sigma,
-                            -self.dmax, self.dmax)
+                                 -self.dmax, self.dmax)
+
+                # Update running statistics:
+                m = x.size // gamma[expander].size
+                self.running_mean *= self.decay
+                adjust = m / max(m - 1., 1.)  # unbiased estimation
+                temp_ar = xp.array(mean)
+                temp_ar *= (1 - self.decay)
+                self.running_mean += temp_ar
+                del temp_ar
+                self.running_var *= self.decay
+                temp_ar = xp.array(var)
+                temp_ar *= (1 - self.decay) * adjust
+                self.running_var += temp_ar
+                del temp_ar
             else:
                 self.r = xp.ones_like(gamma)
                 self.d = xp.zeros_like(gamma)
 
-            if self.keep_r_d_fixed:
-                # Hack for making gradient check treat r and d as true
-                # constants with respect to the batch.
-                warnings.warn("Warning: self.keep_r_d_fixed is True, which is "
-                              "needed for gradient check, but must be disabled"
-                              " during real training.", RuntimeWarning)
-
-        if self.keep_r_d_fixed:
+        if self.freeze_running_statistics:
             # Need to explicitly cast during gradient check, as r and d are
             # not updated during finite differences
             self.r = self.r.astype(gamma.dtype)
@@ -144,20 +149,6 @@ class BatchRenormalizationFunction(function.Function):
                 'bn_fwd')(x, mean[expander], self.std[expander], gamma,
                           beta, self.r[expander], self.d[expander])
 
-        if configuration.config.train:
-            # Update running statistics:
-            m = x.size // gamma.size
-            adjust = m / max(m - 1., 1.)  # unbiased estimation
-            self.running_mean *= self.decay
-            temp_ar = xp.array(mean)
-            temp_ar *= (1 - self.decay)
-            self.running_mean += temp_ar
-            del temp_ar
-            self.running_var *= self.decay
-            temp_ar = xp.array(var)
-            temp_ar *= (1 - self.decay) * adjust
-            self.running_var += temp_ar
-            del temp_ar
         return y,
 
     def backward(self, inputs, grad_outputs):

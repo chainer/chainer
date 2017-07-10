@@ -94,12 +94,17 @@ class TestBatchRenormalization(unittest.TestCase):
 
     def check_backward(self, args, y_grad):
         with chainer.using_config('train',  self.train):
+            # Freezing the update of running statistics is needed in order to
+            # make gradient check work, since the parameters r and d in batch
+            # renormalization are calculated from the input, but should be
+            # treated as constants during gradient computation, as stated in
+            # the paper.
             gradient_check.check_backward(
                 batch_renormalization.BatchRenormalizationFunction(
                     mean=self.running_mean, var=self.running_var,
                     decay=self.decay, eps=self.eps, rmax=self.rmax,
                     dmax=self.dmax,
-                    keep_r_d_fixed=True), args, y_grad,
+                    freeze_running_statistics=True), args, y_grad,
                 **self.check_backward_options)
 
     @condition.retry(3)
@@ -174,7 +179,8 @@ class TestFixedBatchRenormalization(unittest.TestCase):
                 batch_renormalization.BatchRenormalizationFunction(
                     mean=None, var=None,
                     decay=self.decay, eps=self.eps,
-                    rmax=self.rmax, dmax=self.dmax),
+                    rmax=self.rmax, dmax=self.dmax,
+                    freeze_running_statistics=True),
                 args, y_grad, **self.check_backward_options)
 
     @condition.retry(3)

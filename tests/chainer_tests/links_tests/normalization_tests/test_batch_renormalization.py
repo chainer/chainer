@@ -118,12 +118,17 @@ class BatchRenormalizationTest(unittest.TestCase):
 
     def check_backward(self, x_data, y_grad):
         try:
-            self.link.keep_r_d_fixed = True
+            # Freezing the update of running statistics is needed in order to
+            # make gradient check work, since the parameters r and d in batch
+            # renormalization are calculated from the input, but should be
+            # treated as constants during gradient computation, as stated in
+            # the paper.
+            self.link.freeze_running_statistics = True
             gradient_check.check_backward(
                 self.link, x_data, y_grad, (self.link.gamma, self.link.beta),
                 eps=1e-2, **self.check_backward_optionss)
         finally:
-            self.link.keep_r_d_fixed = False
+            self.link.freeze_running_statistics = False
 
     @condition.retry(3)
     def test_backward_cpu(self):
