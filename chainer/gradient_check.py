@@ -270,7 +270,7 @@ def check_backward(func, x_data, y_grad, params=(),
     one = xp.array(1., dtype)
 
     def g():
-        for skip, cx, data in zip(no_grads, casted_xs, casted_data):
+        for skip, cx, data in six.moves.zip(no_grads, casted_xs, casted_data):
             if skip:
                 continue
             data = (one * data).astype(cx.data.dtype)
