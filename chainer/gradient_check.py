@@ -265,13 +265,13 @@ def check_backward(func, x_data, y_grad, params=(),
             continue
 
     xp = cuda.get_array_module(*xs)
-    one = variable.Variable(xp.array(1., dtype))
+    one = xp.array(1., dtype)
 
     def g():
         for skip, cx, data in zip(no_grads, casted_xs, casted_data):
             if skip:
                 continue
-            data = (one.data * data).astype(cx.data.dtype)
+            data = (one * data).astype(cx.data.dtype)
             if numpy.isscalar(data):
                 data = xp.array(data)
             cx.data = data
@@ -284,7 +284,7 @@ def check_backward(func, x_data, y_grad, params=(),
             cx.data = data
         return ys_data
 
-    gx, = numerical_grad(g, (one.data,), y_grad, eps=eps)
+    gx, = numerical_grad(g, (one,), y_grad, eps=eps)
     gx_accum = 0
     for skip, x, cx in six.moves.zip(no_grads, xs, casted_xs):
         if skip:
