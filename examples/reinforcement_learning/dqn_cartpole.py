@@ -97,7 +97,8 @@ def main():
     parser.add_argument('--replay-start-size', type=int, default=500,
                         help=('Number of iterations after which replay is '
                               'started'))
-    parser.add_argument('--iterations-to-decay-epsilon', type=int, default=5000,
+    parser.add_argument('--iterations-to-decay-epsilon', type=int,
+                        default=5000,
                         help='Number of steps used to linearly decay epsilon')
     parser.add_argument('--min-epsilon', type=float, default=0.01,
                         help='Minimum value of epsilon')
