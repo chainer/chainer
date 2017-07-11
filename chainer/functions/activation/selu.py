@@ -1,4 +1,4 @@
-from chainer.functions.activation.elu import elu
+from chainer.functions.activation import elu
 
 
 def selu(x,
@@ -28,4 +28,4 @@ def selu(x,
         :math:`(s_1, s_2, ..., s_N)`-shaped float array.
 
     """
-    return scale * elu(x, alpha=alpha)
+    return scale * elu.elu(x, alpha=alpha)
