@@ -170,6 +170,12 @@ def load_data(vocabulary, path):
     return data
 
 
+def calculate_unknown_ratio(data):
+    unknown = sum((s == UNK).sum() for s in data)
+    total =  sum(s.size for s in data)
+    return unknown / total
+
+
 def main():
     parser = argparse.ArgumentParser(description='Chainer example: seq2seq')
     parser.add_argument('--batchsize', '-b', type=int, default=64,
@@ -193,7 +199,11 @@ def main():
         target_ids = load_vocabulary('vocab.50K.de')
         train_source = load_data(source_ids, 'train.en')
         train_target = load_data(target_ids, 'train.de')
+        assert len(train_source) == len(train_target)
         train_data = list(six.moves.zip(train_source, train_target))
+        train_source_unknown = calculate_unknown_ratio(train_source)
+        train_target_unknown = calculate_unknown_ratio(train_target)
+
         test_source = load_data(source_ids, 'newstest2012.en')
         test_target = load_data(target_ids, 'newstest2012.de')
         test_data = list(six.moves.zip(test_source, test_target))
@@ -202,6 +212,8 @@ def main():
         print('Target vocabulary: %d' % len(target_ids))
         print('Train data: %d' % len(train_data))
         print('Test data: %d' % len(test_data))
+        print('Source unknown: %.2f%%' % (train_source_unknown * 100))
+        print('Target unknown: %.2f%%' % (train_target_unknown * 100))
 
     elif False:
         sentences = comtrans.aligned_sents('alignment-en-fr.txt')
