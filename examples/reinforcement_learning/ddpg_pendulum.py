@@ -129,7 +129,7 @@ def main():
 
     parser = argparse.ArgumentParser(description='Chainer example: DDPG')
     parser.add_argument('--env', type=str, default='Pendulum-v0',
-                        help='Name of the OpenAI Gym environment to play')
+                        help='Name of the OpenAI Gym environment')
     parser.add_argument('--batch-size', '-b', type=int, default=64,
                         help='Number of transitions in each mini-batch')
     parser.add_argument('--episodes', '-e', type=int, default=1000,
