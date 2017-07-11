@@ -73,9 +73,11 @@ class ROIPooling2D(function.Function):
         bottom_data, bottom_rois = inputs
         channels, height, width = bottom_data.shape[1:]
         n_rois = bottom_rois.shape[0]
-        top_data = numpy.empty((n_rois, channels, self.outh, self.outw),
+        # `numpy.zeros` needs to be used because the arrays can be
+        # returned without having some of its values updated.
+        top_data = numpy.zeros((n_rois, channels, self.outh, self.outw),
                                dtype=numpy.float32)
-        self.argmax_data = numpy.empty(top_data.shape, numpy.int32)
+        self.argmax_data = numpy.zeros(top_data.shape, numpy.int32)
 
         for i_roi in six.moves.range(n_rois):
             idx, xmin, ymin, xmax, ymax = bottom_rois[i_roi]
