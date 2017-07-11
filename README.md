@@ -16,7 +16,7 @@
 
 **Forum** ([en](https://groups.google.com/forum/#!forum/chainer), [ja](https://groups.google.com/forum/#!forum/chainer-jp))
 | **Slack (en)** [Invitation](https://bit.ly/chainer-slack), [Archive](https://chainer.slackarchive.io)
-| **Slack (ja)** [Invitation](https://bit.ly/chainer-jp-slack), [Archive](https://chainer-jp.slackarchive.io))
+| **Slack (ja)** [Invitation](https://bit.ly/chainer-jp-slack), [Archive](https://chainer-jp.slackarchive.io)
 | **Twitter** ([en](https://twitter.com/ChainerOfficial), [ja](https://twitter.com/ChainerJP))
 
 *Chainer* is a Python-based deep learning framework aiming at flexibility.
