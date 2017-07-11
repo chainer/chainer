@@ -14,7 +14,8 @@
 | [**Tutorial**](https://docs.chainer.org/en/stable/tutorial/)
 | **Examples** ([Official](https://github.com/chainer/chainer/blob/master/examples), [External](https://github.com/chainer/chainer/wiki/External-examples))
 | **Forum** ([en](https://groups.google.com/forum/#!forum/chainer), [ja](https://groups.google.com/forum/#!forum/chainer-jp))
-| **Slack** ([en](https://bit.ly/chainer-slack), [ja](https://bit.ly/chainer-jp-slack))
+| **Slack (Invitation)** ([en](https://bit.ly/chainer-slack), [ja](https://bit.ly/chainer-jp-slack))
+| **Slack (Archive)** ([en](https://chainer.slackarchive.io), [ja](https://chainer-jp.slackarchive.io))
 | **Twitter** ([en](https://twitter.com/ChainerOfficial), [ja](https://twitter.com/ChainerJP))
 
 *Chainer* is a Python-based deep learning framework aiming at flexibility.
