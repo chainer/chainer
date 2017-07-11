@@ -126,8 +126,8 @@ def main():
               'solved.'.format(args.env))
 
     # Initialize variables
-    D = collections.deque(maxlen=10 ** 6)
-    Rs = collections.deque(maxlen=100)
+    D = collections.deque(maxlen=10 ** 6)  # Replay buffer
+    Rs = collections.deque(maxlen=100)  # History of returns
     iteration = 0
 
     # Initialize a model and its optimizer
@@ -143,7 +143,7 @@ def main():
 
         obs = env.reset()
         done = False
-        R = 0.0
+        R = 0.0  # Return (sum of rewards obtained in an episode)
         timestep = 0
 
         while not done and timestep < env.spec.timestep_limit:
