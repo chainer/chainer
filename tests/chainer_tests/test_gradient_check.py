@@ -54,7 +54,6 @@ class NumericalGradientTest(unittest.TestCase):
             return f(xs)
         dx_actual = gradient_check.numerical_grad(func, xs, gys, eps)
 
-        print('eps: {}'.format(eps))
         self.assertEqual(len(dx_expect), len(dx_actual))
         for e, a in zip(dx_expect, dx_actual):
             testing.assert_allclose(e, a, atol=1e-3, rtol=1e-3)
