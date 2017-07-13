@@ -60,7 +60,7 @@ class TestTrainer(unittest.TestCase):
     def _create_mock_trainer(self, iterations):
         trainer = testing.get_trainer_with_mock_updater(
             (iterations, 'iteration'))
-        trainer.updater.update_core = lambda: time.sleep(0.001)
+        trainer.updater.update_core = lambda: time.sleep(0.01)
         return trainer
 
     def test_elapsed_time(self):
