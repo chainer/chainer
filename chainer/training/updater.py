@@ -21,7 +21,7 @@ class Updater(object):
 
     The first line is processed by :meth:`chainer.dataset.Iterator.__next__`
     and the second and third lines are processed by :meth:`~chainer.Optimizer.update`.
-    but also users can implements the original updating process by overide :meth:`update`.
+    but also users can implements the original updating process by overiding :meth:`update`.
 
     """
 
