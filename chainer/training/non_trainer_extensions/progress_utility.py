@@ -5,11 +5,11 @@ import os
 import sys
 import time
 
+from chainer import utils
 from chainer.dataset import iterator as iterator_module
+from chainer.training.non_trainer_extensions import ProgressBarPrinter
 
-from chainer.training.non_trainer_extensions import ProgressBarUtility
 
-# fixme: mark experimental API.
 class TimerUtility(object):
     """Timer utility
 
@@ -34,6 +34,7 @@ class TimerUtility(object):
     """
 
     def __init__(self, interval_seconds=2):
+        utils.experimental('chainer.training.non_trainer_extensions.TimerUtility')
         self.iteration = 0
         self.speed = 0
 
@@ -76,6 +77,13 @@ class ProgressUtility(TimerUtility):
     current epoch, when a new epoch is reached, and when
     the end of the training is reached.
 
+    Usage:
+        This utility is intended to be used to display a progress bar
+        and track epoch/iteration progress in a cutom training loop
+        (that is not using Trainer) in which a dataset iterator is
+        not used. If a dataset iterator is used then
+        `IteratorProgressBar` may be more appropriate.
+
     Args:
         iters_per_epoch (int): The number of iterations in one epoch.
 
@@ -97,13 +105,11 @@ class ProgressUtility(TimerUtility):
             number of times this object has been called so far.
         is_new_epoch (bool): ``True`` if the epoch count was incremented at the last
             update.
-        speed (float): The average training speed since the start of training
-            in units of iterations per second.
 
     """
 
-    def __init__(self, iters_per_epoch, training_length=None,
-                 enable_progress_bar=False, interval_seconds=1):
+    def __init__(self, iters_per_epoch, training_length,
+                 enable_progress_bar=False, interval_seconds=2):
         super(ProgressUtility, self).__init__(interval_seconds)
         # public attributes:
         # int-valued epoch
@@ -118,7 +124,7 @@ class ProgressUtility(TimerUtility):
         self._iters_per_epoch = iters_per_epoch
         self._training_length = training_length
         self._enable_progress_bar = enable_progress_bar
-        self._progress_bar = ProgressBarUtility(training_length);
+        self._progress_bar = ProgressBarPrinter(training_length);
 
 
     def __call__(self):
@@ -151,31 +157,30 @@ class IteratorProgressBar(TimerUtility):
     from a supplied iterator. The progress bar display is updated at the
     same rate that `__call__()` returns True.
 
+    Usage:
+        This utility is intended to be used to display a progress bar
+        in a custom training loop (that is not using Trainer) in which
+        a dataset iterator is also used.
+
     Args:
         iterator (Iterator): The epoch progress information is read from
         the supplied iterator.
 
         training_length (tuple): Length of whole training. It consists of an
-            integer and either ``'epoch'`` or ``'iteration'``. fixme: what if it is None?
+            integer and either ``'epoch'`` or ``'iteration'``.
 
         interval_seconds (float): This sets the maximum rate, in seconds, at
         which this object will return True when called. This is also the rate
         at which the progress bar display will be updated.
 
-    Attributes:
-        interation (int): The number of iterations which is equal to the
-            number of times this object has been called so far.
-        speed (float): The average training speed since the start of training
-            in units of iterations per second.
-
     """
 
-    def __init__(self, iterator, training_length=None,
-                 interval_seconds=1):
+    def __init__(self, iterator, training_length,
+                 interval_seconds=2):
         super(IteratorProgressBar, self).__init__(interval_seconds)
         self._iterator = iterator
         self._training_length = training_length
-        self._progress_bar = ProgressBarUtility(training_length);
+        self._progress_bar = ProgressBarPrinter(training_length);
 
 
     def __call__(self):

@@ -1,6 +1,6 @@
-from chainer.training.non_trainer_extensions import progress_bar_utility
+from chainer.training.non_trainer_extensions import progress_bar_printer
 
-from chainer.training.non_trainer_extensions.progress_bar_utility import ProgressBarUtility
+from chainer.training.non_trainer_extensions.progress_bar_printer import ProgressBarPrinter
 
 from chainer.training.non_trainer_extensions import progress_utility
 

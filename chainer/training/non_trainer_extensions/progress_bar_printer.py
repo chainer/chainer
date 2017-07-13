@@ -6,11 +6,21 @@ import sys
 import time
 
 
-class ProgressBarUtility(object):
+class ProgressBarPrinter(object):
     """Training utility to print a progress bar and recent training status.
 
-    This utility prints a progress bar at every call. It watches the current
-    iteration and epoch to print the bar.
+    This is a callable object that prints an updated progress bar on each
+    call. It must be supplied with the total training length (that is, the
+    desired number of training iterations or epochs) when it is created. It
+    also must be supplied with the current iteration and epoch values when it
+    is called.
+
+    Note: In an actualy training loop, users will typically find it more
+    convinient to use either the Trainer-based or timer-based progress bar
+    implementations since the releive the user of the responsiblity of
+    determining when to print the progress bar. Those implementations
+    actually use a timer or counter to then automatically call this
+    implementation at the appropriate time.
 
     Args:
         training_length (tuple): Length of whole training. It consists of an
@@ -19,10 +29,7 @@ class ProgressBarUtility(object):
         out: Stream to print the bar. Standard output is used by default.
 
     """
-    #todo: There is currently code duplication between this class and ProgressBar
-    # since this borrows some code from that class. Consider making ProgressBar
-    # be a wrapper around this class.
-    def __init__(self, training_length=(1, 'epoch'), bar_length=50,
+    def __init__(self, training_length, bar_length=50,
                  out=sys.stdout):
         self._training_length = training_length
         self._status_template = None
@@ -40,8 +47,6 @@ class ProgressBarUtility(object):
         training_length = self._training_length
         length, unit = training_length
         out = self._out
-
-        # print the progress bar
         recent_timing = self._recent_timing
         now = time.time()
 

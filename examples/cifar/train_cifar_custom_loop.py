@@ -94,7 +94,7 @@ def main():
             print('Reducing learning rate to: ', optimizer.lr)
         if train_progress():
             # You can periodically print additional progress updates here.
-            # The default interval returns true once per second.
+            # The default interval returns true overy two seconds.
             # To obtain the same behavior without the progress bar display,
             # use a TimerUtility instead.
             pass
