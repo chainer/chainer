@@ -15,9 +15,11 @@ import copy
 import numpy as np
 
 import chainer
+from chainer import configuration
 from chainer.dataset import convert
 import chainer.links as L
 from chainer import serializers
+from chainer.training.non_trainer_extensions import IteratorProgressBar
 
 import train_ptb
 
@@ -91,6 +93,11 @@ def main():
     optimizer.setup(model)
     optimizer.add_hook(chainer.optimizer.GradientClipping(args.gradclip))
 
+    # This is a timer utility that displays a progress bar using information
+    # from the supplied iterator. It must be called each iteration.
+    train_progress = IteratorProgressBar(train_iter,
+                                         training_length=(args.epoch, 'epoch'))
+
     sum_perp = 0
     count = 0
     iteration = 0
@@ -115,7 +122,11 @@ def main():
         loss.unchain_backward()  # Truncate the graph
         optimizer.update()  # Update the parameters
 
-        if iteration % 20 == 0:
+        if train_progress():
+            # You can periodically print additional progress updates here.
+            # The default interval returns true once per second.
+            # To obtain the same behavior without the progress bar display,
+            # use a TimerUtility instead.
             print('iteration: ', iteration)
             print('training perplexity: ', np.exp(float(sum_perp) / count))
             sum_perp = 0

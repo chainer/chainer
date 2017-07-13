@@ -10,12 +10,13 @@ from __future__ import print_function
 import argparse
 
 import chainer
+from chainer import configuration
 from chainer.dataset import convert
 import chainer.links as L
 from chainer import serializers
-
 from chainer.datasets import get_cifar10
 from chainer.datasets import get_cifar100
+from chainer.training.non_trainer_extensions import IteratorProgressBar
 
 import models.VGG
 
@@ -81,14 +82,22 @@ def main():
 
     sum_accuracy = 0
     sum_loss = 0
-
+    # This is a timer utility that displays a progress bar using information
+    # from the supplied iterator. It must be called each iteration.
+    train_progress = IteratorProgressBar(train_iter,
+                                         training_length=(args.epoch, 'epoch'))
     while train_iter.epoch < args.epoch:
         batch = train_iter.next()
         # Reduce learning rate by 0.5 every 25 epochs.
         if train_iter.epoch % 25 == 0 and train_iter.is_new_epoch:
             optimizer.lr *= 0.5
             print('Reducing learning rate to: ', optimizer.lr)
-
+        if train_progress():
+            # You can periodically print additional progress updates here.
+            # The default interval returns true once per second.
+            # To obtain the same behavior without the progress bar display,
+            # use a TimerUtility instead.
+            pass
         x_array, t_array = convert.concat_examples(batch, args.gpu)
         x = chainer.Variable(x_array)
         t = chainer.Variable(t_array)
@@ -100,20 +109,20 @@ def main():
             print('epoch: ', train_iter.epoch)
             print('train mean loss: {}, accuracy: {}'.format(
                 sum_loss / train_count, sum_accuracy / train_count))
-            # evaluation
+            # Evaluate the model.
             sum_accuracy = 0
             sum_loss = 0
-            model.predictor.train = False
-            for batch in test_iter:
-                x_array, t_array = convert.concat_examples(batch, args.gpu)
-                x = chainer.Variable(x_array)
-                t = chainer.Variable(t_array)
-                loss = model(x, t)
-                sum_loss += float(loss.data) * len(t.data)
-                sum_accuracy += float(model.accuracy.data) * len(t.data)
+            # It is good practice to turn off train mode during evaluation.
+            with configuration.using_config('train', False):
+                for batch in test_iter:
+                    x_array, t_array = convert.concat_examples(batch, args.gpu)
+                    x = chainer.Variable(x_array)
+                    t = chainer.Variable(t_array)
+                    loss = model(x, t)
+                    sum_loss += float(loss.data) * len(t.data)
+                    sum_accuracy += float(model.accuracy.data) * len(t.data)
 
             test_iter.reset()
-            model.predictor.train = True
             print('test mean  loss: {}, accuracy: {}'.format(
                 sum_loss / test_count, sum_accuracy / test_count))
             sum_accuracy = 0

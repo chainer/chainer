@@ -7,6 +7,7 @@ import time
 from chainer.training import extension
 from chainer.training.extensions import util
 from chainer.training import trigger
+from chainer.training.non_trainer_extensions import ProgressBarUtility
 
 
 class ProgressBar(extension.Extension):
@@ -37,6 +38,7 @@ class ProgressBar(extension.Extension):
         self._bar_length = bar_length
         self._out = out
         self._recent_timing = []
+        self._progress_bar = None
 
     def __call__(self, trainer):
         training_length = self._training_length
@@ -55,74 +57,13 @@ class ProgressBar(extension.Extension):
                 '{0.iteration:10} iter, {0.epoch} epoch / %s %ss\n' %
                 training_length)
 
-        length, unit = training_length
+        if self._progress_bar is None:
+            self._progress_bar = ProgressBarUtility(training_length);
+
         out = self._out
 
         iteration = trainer.updater.iteration
 
         # print the progress bar
         if iteration % self._update_interval == 0:
-            epoch = trainer.updater.epoch_detail
-            recent_timing = self._recent_timing
-            now = time.time()
-
-            recent_timing.append((iteration, epoch, now))
-
-            if os.name == 'nt':
-                util.erase_console(0, 0)
-            else:
-                out.write('\033[J')
-
-            if unit == 'iteration':
-                rate = iteration / length
-            else:
-                rate = epoch / length
-
-            bar_length = self._bar_length
-            marks = '#' * int(rate * bar_length)
-            out.write('     total [{}{}] {:6.2%}\n'.format(
-                marks, '.' * (bar_length - len(marks)), rate))
-
-            epoch_rate = epoch - int(epoch)
-            marks = '#' * int(epoch_rate * bar_length)
-            out.write('this epoch [{}{}] {:6.2%}\n'.format(
-                marks, '.' * (bar_length - len(marks)), epoch_rate))
-
-            status = stat_template.format(trainer.updater)
-            out.write(status)
-
-            old_t, old_e, old_sec = recent_timing[0]
-            span = now - old_sec
-            if span != 0:
-                speed_t = (iteration - old_t) / span
-                speed_e = (epoch - old_e) / span
-            else:
-                speed_t = float('inf')
-                speed_e = float('inf')
-
-            if unit == 'iteration':
-                estimated_time = (length - iteration) / speed_t
-            else:
-                estimated_time = (length - epoch) / speed_e
-            out.write('{:10.5g} iters/sec. Estimated time to finish: {}.\n'
-                      .format(speed_t,
-                              datetime.timedelta(seconds=estimated_time)))
-
-            # move the cursor to the head of the progress bar
-            if os.name == 'nt':
-                util.set_console_cursor_position(0, -4)
-            else:
-                out.write('\033[4A')
-            out.flush()
-
-            if len(recent_timing) > 100:
-                del recent_timing[0]
-
-    def finalize(self):
-        # delete the progress bar
-        out = self._out
-        if os.name == 'nt':
-            util.erase_console(0, 0)
-        else:
-            out.write('\033[J')
-        out.flush()
+            self._progress_bar(iteration, trainer.updater.epoch_detail)
