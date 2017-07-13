@@ -8,6 +8,7 @@ from chainer.functions.connection import convolution_2d
 from chainer.utils import argument
 from chainer.utils import conv
 from chainer.utils import type_check
+from chainer import variable
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
@@ -32,7 +33,8 @@ def _pair(x):
 
 class Deconvolution2DFunction(function.Function):
 
-    def __init__(self, stride=1, pad=0, outsize=None, **kwargs):
+    def __init__(self, stride=1, pad=0, outsize=None, requires_x_grad=True,
+                 **kwargs):
         argument.check_unexpected_kwargs(
             kwargs, deterministic="deterministic argument is not "
             "supported anymore. "
@@ -43,6 +45,7 @@ class Deconvolution2DFunction(function.Function):
         self.sy, self.sx = _pair(stride)
         self.ph, self.pw = _pair(pad)
         self.outh, self.outw = (None, None) if outsize is None else outsize
+        self.requires_x_grad = requires_x_grad
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -82,7 +85,7 @@ class Deconvolution2DFunction(function.Function):
         x, W = inputs[:2]
         b = inputs[2] if len(inputs) == 3 else None
 
-        if not type_check.same_types(*inputs):
+        if not all([isinstance(i, numpy.ndarray) for i in inputs]):
             if b is not None:
                 raise ValueError('numpy and cupy must not be used together\n'
                                  'type(W): {0}, type(x): {1}, type(b): {2}'
@@ -117,7 +120,7 @@ class Deconvolution2DFunction(function.Function):
         x, W = inputs[:2]
         b = inputs[2] if len(inputs) == 3 else None
 
-        if not type_check.same_types(*inputs):
+        if not all([isinstance(i, cuda.ndarray) for i in inputs]):
             if b is not None:
                 raise ValueError('numpy and cupy must not be used together\n'
                                  'type(W): {0}, type(x): {1}, type(b): {2}'
@@ -213,25 +216,18 @@ class Deconvolution2DFunction(function.Function):
         x, W = inputs[:2]
         b = inputs[2] if len(inputs) == 3 else None
 
-        if not type_check.same_types(*inputs):
-            if b is not None:
-                raise ValueError('numpy and cupy must not be used together\n'
-                                 'type(W): {0}, type(x): {1}, type(b): {2}'
-                                 .format(type(W), type(x), type(b)))
-            else:
-                raise ValueError('numpy and cupy must not be used together\n'
-                                 'type(W): {0}, type(x): {1}'
-                                 .format(type(W), type(x)))
-
         gy = grad_outputs[0]
         kh, kw = W.shape[2:]
         col = conv.im2col_cpu(
             gy, kh, kw, self.sy, self.sx, self.ph, self.pw)
         gW = numpy.tensordot(
             x, col, ([0, 2, 3], [0, 4, 5])).astype(W.dtype, copy=False)
-        gx = numpy.tensordot(
-            col, W, ([1, 2, 3], [1, 2, 3])).astype(x.dtype, copy=False)
-        gx = numpy.rollaxis(gx, 3, 1)
+        if not self.requires_x_grad:
+            gx = None
+        else:
+            gx = numpy.tensordot(
+                col, W, ([1, 2, 3], [1, 2, 3])).astype(x.dtype, copy=False)
+            gx = numpy.rollaxis(gx, 3, 1)
 
         if b is None:
             return gx, gW
@@ -243,24 +239,15 @@ class Deconvolution2DFunction(function.Function):
         x, W = inputs[:2]
         b = inputs[2] if len(inputs) == 3 else None
 
-        if not type_check.same_types(*inputs):
-            if b is not None:
-                raise ValueError('numpy and cupy must not be used together\n'
-                                 'type(W): {0}, type(x): {1}, type(b): {2}'
-                                 .format(type(W), type(x), type(b)))
-            else:
-                raise ValueError('numpy and cupy must not be used together\n'
-                                 'type(W): {0}, type(x): {1}'
-                                 .format(type(W), type(x)))
-
         gy = grad_outputs[0]
         n, in_c, in_h, in_w = x.shape
         _, out_channels, kh, kw = W.shape
         c, h, w = gy.shape[1:]
-        gx = cuda.cupy.empty((n, in_c, in_h, in_w), dtype=x.dtype)
+        gx = None
 
         if (chainer.should_use_cudnn('>=auto') and
                 _check_cudnn_acceptable_type(x.dtype, W.dtype)):
+            gx = cuda.cupy.empty((n, in_c, in_h, in_w), dtype=x.dtype)
             x = cuda.cupy.ascontiguousarray(x)
             W = cuda.cupy.ascontiguousarray(W)
             gy = cuda.cupy.ascontiguousarray(gy)
@@ -331,9 +318,10 @@ class Deconvolution2DFunction(function.Function):
 
             gW = cuda.cupy.tensordot(
                 x, col, ([0, 2, 3], [0, 4, 5])).astype(W.dtype, copy=False)
-            gx = cuda.cupy.tensordot(
-                col, W, ([1, 2, 3], [1, 2, 3])).astype(x.dtype, copy=False)
-            gx = cuda.cupy.rollaxis(gx, 3, 1)
+            if self.requires_x_grad:
+                gx = cuda.cupy.tensordot(
+                    col, W, ([1, 2, 3], [1, 2, 3])).astype(x.dtype, copy=False)
+                gx = cuda.cupy.rollaxis(gx, 3, 1)
 
             # bias backward
             if b is not None:
@@ -452,7 +440,8 @@ http://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf
         "context where value is either `True` or `False`.")
     argument.assert_kwargs_empty(kwargs)
 
-    func = Deconvolution2DFunction(stride, pad, outsize)
+    requires_x_grad = isinstance(x, variable.Variable) and x.requires_grad
+    func = Deconvolution2DFunction(stride, pad, outsize, requires_x_grad)
     if b is None:
         return func(x, W)
     else:

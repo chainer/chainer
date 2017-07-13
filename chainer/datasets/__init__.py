@@ -11,6 +11,7 @@ from chainer.datasets import tuple_dataset  # NOQA
 # import class and function
 from chainer.datasets.cifar import get_cifar10  # NOQA
 from chainer.datasets.cifar import get_cifar100  # NOQA
+from chainer.datasets.concatenated_dataset import ConcatenatedDataset  # NOQA
 from chainer.datasets.dict_dataset import DictDataset  # NOQA
 from chainer.datasets.image_dataset import ImageDataset  # NOQA
 from chainer.datasets.image_dataset import LabeledImageDataset  # NOQA

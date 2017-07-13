@@ -167,12 +167,13 @@ def upsampling_2d(
     .. admonition:: Example
 
         It should be noted that you need to turn off
-        ``chainer.config.use_cudnn`` flag when you create MaxPooling2D object
-        because if cuDNN used for operating max pooling, ``indexes`` is never
-        created and stored in the MaxPooling2D object.
+        ``chainer.config.use_cudnn`` flag when you perform
+        :meth:`~chainer.functions.max_pooling_2d` function which will make a
+        pooling indicies for this :meth:`~chainer.functions.upsampling_2d`.
+        It is because :attr:`~chainer.functions.MaxPooling2D.indexes` is never
+        created and stored in the :attr:`~chainer.functions.MaxPooling2D`
+        object when cuDNN is used for it.
 
-        >>> with chainer.using_config('use_cudnn', 'never'):
-        ...     p = F.MaxPooling2D(2, 2)
         >>> x = np.arange(1, 37).reshape(1, 1, 6, 6).astype('f')
         >>> x = chainer.Variable(x)
         >>> x.data
@@ -185,14 +186,18 @@ def upsampling_2d(
 
         This is the original ``x`` before max pooling.
 
-        >>> pooled_x = p(x)
+        >>> p = F.MaxPooling2D(2, 2)
+        >>> with chainer.using_config('use_cudnn', 'never'):
+        ...     pooled_x = p(x)
         >>> pooled_x.data
         array([[[[  8.,  10.,  12.],
                  [ 20.,  22.,  24.],
                  [ 32.,  34.,  36.]]]], dtype=float32)
 
-        This is the output of the max pooling operation. ``upsampling_2d``
-        needs ``indexes`` array stored in the max pooling object ``p``.
+        This is the output of the max pooling operation.
+        :meth:`~chainer.functions.upsampling_2d` needs
+        :attr:`~chainer.functions.MaxPooling2D.indexes` array stored in the max
+        pooling object ``p``.
 
         >>> upsampled_x = F.upsampling_2d(
         ...     pooled_x, p.indexes, p.kh, p.sy, p.ph, x.shape[2:])

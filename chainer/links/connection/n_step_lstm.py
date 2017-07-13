@@ -140,7 +140,7 @@ class NStepLSTM(NStepLSTMBase):
     and all hidden states of the last layer for each time.
 
     Unlike :func:`chainer.functions.n_step_lstm`, this function automatically
-    sort inputs in descending order by length, and transpose the seuqnece.
+    sort inputs in descending order by length, and transpose the sequence.
     Users just need to call the link with a list of :class:`chainer.Variable`
     holding sequences.
 
@@ -177,7 +177,7 @@ class NStepBiLSTM(NStepLSTMBase):
     and all hidden states of the last layer for each time.
 
     Unlike :func:`chainer.functions.n_step_bilstm`, this function automatically
-    sort inputs in descending order by length, and transpose the seuqnece.
+    sort inputs in descending order by length, and transpose the sequence.
     Users just need to call the link with a list of :class:`chainer.Variable`
     holding sequences.
 

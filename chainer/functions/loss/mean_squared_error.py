@@ -40,5 +40,17 @@ def mean_squared_error(x0, x1):
     This function computes mean squared error between two variables. The mean
     is taken over the minibatch. Note that the error is not scaled by 1/2.
 
+    Args:
+        x0 (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Input variable.
+        x1 (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Input variable.
+
+    Returns:
+        ~chainer.Variable:
+            A variable holding an array representing the mean squared
+            error of two inputs.
+
+
     """
     return MeanSquaredError()(x0, x1)

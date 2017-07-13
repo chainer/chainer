@@ -11,7 +11,7 @@ def get_ptb_words():
     `Penn Tree Bank <https://www.cis.upenn.edu/~treebank/>`_ is originally a
     corpus of English sentences with linguistic structure annotations. This
     function uses a variant distributed at
-    `https://github.com/tomsercu/lstm <https://github.com/tomsercu/lstm>`_,
+    `https://github.com/wojzaremba/lstm <https://github.com/wojzaremba/lstm>`_,
     which omits the annotation and splits the dataset into three parts:
     training, validation, and test.
 
@@ -48,9 +48,9 @@ def get_ptb_words_vocabulary():
     return _retrieve_word_vocabulary()
 
 
-_train_url = 'https://raw.githubusercontent.com/tomsercu/lstm/master/data/ptb.train.txt'  # NOQA
-_valid_url = 'https://raw.githubusercontent.com/tomsercu/lstm/master/data/ptb.valid.txt'  # NOQA
-_test_url = 'https://raw.githubusercontent.com/tomsercu/lstm/master/data/ptb.test.txt'  # NOQA
+_train_url = 'https://raw.githubusercontent.com/wojzaremba/lstm/master/data/ptb.train.txt'  # NOQA
+_valid_url = 'https://raw.githubusercontent.com/wojzaremba/lstm/master/data/ptb.valid.txt'  # NOQA
+_test_url = 'https://raw.githubusercontent.com/wojzaremba/lstm/master/data/ptb.test.txt'  # NOQA
 
 
 def _retrieve_ptb_words(name, url):
