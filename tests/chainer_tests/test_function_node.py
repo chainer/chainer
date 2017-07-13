@@ -1,3 +1,4 @@
+from __future__ import print_function
 import threading
 import unittest
 
@@ -469,6 +470,149 @@ class TestFunctionNodeRetaining(unittest.TestCase):
         self.assertEqual(len(self.f1.backward_outputs), 1)
         numpy.testing.assert_array_equal(self.f1.backward_outputs[0].data,
                                          self.f1_output_data[1])
+
+
+def _get_value(x):
+    if isinstance(x, chainer.Variable):
+        return x.data
+    return x
+
+
+class GradTestBase(object):
+
+    shape = 3,
+    x_names = ()
+    y_names = ()
+
+    def _init_attrs(self, names):
+        ret = []
+        for name in names:
+            v = chainer.Variable(
+                numpy.random.randint(-4, 6, self.shape).astype('f'), name=name)
+            ret.append(v)
+            setattr(self, name, v)
+        return ret
+
+    @staticmethod
+    def _get_value(x):
+        if isinstance(x, chainer.Variable):
+            return x.data
+        return x
+
+    @staticmethod
+    def _to_grad_names(names):
+        return ['g%s' % name for name in names]
+
+    def setUp(self):
+        self.xs = self._init_attrs(self.x_names)
+        self.gxs = self._init_attrs(self._to_grad_names(self.x_names))
+        self.gys = self._init_attrs(self._to_grad_names(self.y_names))
+
+    def use_gpu(self):
+        for value in six.itervalues(self.__dict__):
+            if isinstance(value, chainer.Variable):
+                value.to_gpu()
+
+    def forward(self):
+        raise NotImplementedError
+
+    def expected_grad(self):
+        raise NotImplementedError
+
+    def expected_double_grad(self):
+        raise NotImplementedError
+
+    def _print_variables(self, name, vs):
+        print('{}: '.format(name), end='')
+        print(*(self._get_value(v) for v in vs), sep=', ')
+
+    def _print_inputs(self):
+        self._print_variables('xs  ', self.xs)
+        self._print_variables('gxs ', self.gxs)
+        self._print_variables('gys ', self.gys)
+
+    def check_grad(self):
+        self.forward()
+        ys = [getattr(self, name) for name in self.y_names]
+        gxs = chainer.grad(ys, self.xs, self.gys, self.gxs)
+
+        expected = self.expected_grad()
+        for i, gx in enumerate(self.gxs):
+            expected[i] += gx
+
+        self.assertEqual(len(gxs), len(expected))
+        try:
+            for a, e in zip(gxs, expected):
+                testing.assert_allclose(self._get_value(a), self._get_value(e))
+        except Exception:
+            self._print_inputs()
+            self._print_variables('gxs (actual)  ', gxs)
+            self._print_variables('gxs (expected)', expected)
+            raise
+
+    def test_grad_cpu(self):
+        self.check_grad()
+
+    @attr.gpu
+    def test_grad_gpu(self):
+        self.use_gpu()
+        self.check_grad()
+
+    def check_double_grad(self):
+        self.ys = self.forward()
+        gxs = chainer.grad(self.ys, self.xs, self.gys, self.gxs)
+        y = sum(gxs)
+        ggxs = chainer.grad((y,), self.xs)
+
+        expected = self.expected_double_grad()
+        self.assertEqual(len(ggxs), len(expected))
+        try:
+            for a, e in zip(ggxs, expected):
+                testing.assert_allclose(self._get_value(a), self._get_value(e))
+        except Exception:
+            self._print_inputs()
+            self._print_variables('gxs            ', gxs)
+            self._print_variables('ggxs (actual)  ', ggxs)
+            self._print_variables('ggxs (expected)', expected)
+            raise
+
+
+class TestGradSimple(GradTestBase, unittest.TestCase):
+
+    x_names = 'x',
+    y_names = 'y',
+
+    def forward(self):
+        self.y = self.x * self.x
+
+    def expected_grad(self):
+        return [2 * self.x * self.gy]
+
+    def expected_double_grad(self):
+        return [2 * self.gy]
+
+
+class TestGradComplex(GradTestBase, unittest.TestCase):
+
+    x_names = 'x1', 'x2', 'x3'
+    y_names = 'y1', 'y2'
+
+    def forward(self):
+        self.z = self.x1 * self.x1
+        self.y1 = self.z + self.x1 * self.x2 + self.x2
+        self.y2 = self.z * self.x3
+
+    def expected_grad(self):
+        dz_dx = 2 * self.x1
+        return [self.gy1 * (dz_dx + self.x2) + self.gy2 * dz_dx * self.x3,
+                self.gy1 * (self.x1 + 1),
+                self.gy2 * self.z]
+
+    def expected_double_grad(self):
+        dz_dx = 2 * self.x1
+        return [2 * (self.gy1 + self.gy2) + self.gy1 + self.gy2 * dz_dx,
+                self.gy1,
+                self.gy2 * dz_dx]
 
 
 testing.run_module(__name__, __file__)
