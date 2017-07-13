@@ -7,6 +7,7 @@ from chainer import utils
 
 
 class TimerUtility(object):
+
     """Timer utility
 
     This is a callable utility that will always return True if called at a
@@ -61,6 +62,7 @@ class TimerUtility(object):
 
 
 class ProgressUtility(TimerUtility):
+
     """TimerUtility that tracks progress for a training loop.
 
     This is a TimerUtility that also tracks the progress within a training
@@ -135,7 +137,8 @@ class ProgressUtility(TimerUtility):
             self.epoch += 1
         else:
             self.is_new_epoch = False
-        self.epoch_detail = float(self.iteration)/float(self._iters_per_epoch)
+        self.epoch_detail = float(self.iteration) /\
+            float(self._iters_per_epoch)
 
         ret_val = super(ProgressUtility, self).__call__()
         if ret_val:
@@ -146,6 +149,7 @@ class ProgressUtility(TimerUtility):
 
 
 class IteratorProgressBar(TimerUtility):
+
     """TimerUtility that displays a progress bar for a training loop.
 
     This is a TimerUtility that displays a progress bar using information

@@ -9,6 +9,7 @@ from chainer.training.extensions import util
 
 
 class ProgressBarPrinter(object):
+
     """Training utility to print a progress bar and recent training status.
 
     This is a callable object that prints an updated progress bar on each
@@ -31,6 +32,7 @@ class ProgressBarPrinter(object):
         out: Stream to print the bar. Standard output is used by default.
 
     """
+
     def __init__(self, training_length, bar_length=50,
                  out=sys.stdout):
         self._training_length = training_length
