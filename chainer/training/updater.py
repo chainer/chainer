@@ -10,7 +10,18 @@ class Updater(object):
 
     """Interface of updater objects for trainers.
 
-    TODO(beam2d): document it.
+    :class:`~chainer.training.Updater` is an implementation of a single training iteration.
+    Users can invoke the updating by calling the :meth:`update` method.
+
+    Typically, a single updating iteration proceeds as follows.
+
+    - Fetch a minibatch from :class:`~chainer.dataset.DatasetMixin`.
+    - Run forward and backward process of :class:`~chainer.Chain`.
+    - Update parameters according to :class:`~chainer.UpdateRule` of the parameters.
+
+    The first line is processed by :meth:`chainer.dataset.Iterator.__next__`
+    and the second and third lines are processed by :meth:`~chainer.Optimizer.update`.
+    but also users can implements the original updating process by overide :meth:`update`.
 
     """
 
