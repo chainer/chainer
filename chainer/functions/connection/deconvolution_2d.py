@@ -159,7 +159,7 @@ class Deconvolution2DFunction(function.Function):
             workspace_size = cuda.get_max_workspace_size()
             workspace = cuda.cupy.empty((workspace_size,), dtype='b')
             if configuration.config.cudnn_deterministic:
-                algo = cuda.cupy.cuda.cudnn.CUDNN_CONVOLUTION_BWD_DATA_ALGO_1  # NOQA
+                algo = libcudnn.CUDNN_CONVOLUTION_BWD_DATA_ALGO_1
             else:
                 algo = libcudnn.getConvolutionBackwardDataAlgorithm(
                     handle, self.filter_desc.value, x_desc.value,
@@ -281,7 +281,7 @@ class Deconvolution2DFunction(function.Function):
             gW = cuda.cupy.empty_like(W)
             # filter backward
             if configuration.config.cudnn_deterministic:
-                algo = cuda.cupy.cuda.cudnn.CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1  # NOQA
+                algo = libcudnn.CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1
             else:
                 algo = libcudnn.getConvolutionBackwardFilterAlgorithm(
                     handle, gy_desc.value, gx_desc.value,

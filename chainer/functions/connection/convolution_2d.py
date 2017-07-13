@@ -239,7 +239,7 @@ class Convolution2DFunction(function.Function):
             workspace = cuda.cupy.empty((workspace_size,), dtype='b')
 
             if configuration.config.cudnn_deterministic:
-                algo = cuda.cupy.cuda.cudnn.CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1  # NOQA
+                algo = libcudnn.CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1
             else:
                 algo = libcudnn.getConvolutionBackwardFilterAlgorithm(
                     handle, x_desc.value, gy_desc.value,
@@ -254,7 +254,7 @@ class Convolution2DFunction(function.Function):
 
             if self.requires_x_grad:
                 if configuration.config.cudnn_deterministic:
-                    algo = cuda.cupy.cuda.cudnn.CUDNN_CONVOLUTION_BWD_DATA_ALGO_1  # NOQA
+                    algo = libcudnn.CUDNN_CONVOLUTION_BWD_DATA_ALGO_1
                 else:
                     algo = libcudnn.getConvolutionBackwardDataAlgorithm(
                         handle, self.filter_desc.value, gy_desc.value,
