@@ -17,7 +17,7 @@ class Updater(object):
 
     - Fetch a minibatch from :class:`~chainer.dataset.DatasetMixin`.
     - Run forward and backward process of :class:`~chainer.Chain`.
-    - Update parameters according to :class:`~chainer.UpdateRule` of the parameters.
+    - Update parameters according to :class:`~chainer.UpdateRule` of them.
 
     In :class:`~chainer.training.StandardUpdater`,
     the first line is processed by :meth:`chainer.dataset.Iterator.__next__` and
