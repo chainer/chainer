@@ -1,9 +1,5 @@
-from chainer.training.non_trainer_extensions import progress_bar_printer
+from chainer.training.non_trainer_extensions import progress_utility  # NOQA
 
-from chainer.training.non_trainer_extensions.progress_bar_printer import ProgressBarPrinter
-
-from chainer.training.non_trainer_extensions import progress_utility
-
-from chainer.training.non_trainer_extensions.progress_utility import TimerUtility
-from chainer.training.non_trainer_extensions.progress_utility import ProgressUtility
-from chainer.training.non_trainer_extensions.progress_utility import IteratorProgressBar
+from chainer.training.non_trainer_extensions.progress_utility import IteratorProgressBar  # NOQA
+from chainer.training.non_trainer_extensions.progress_utility import ProgressUtility  # NOQA
+from chainer.training.non_trainer_extensions.progress_utility import TimerUtility  # NOQA

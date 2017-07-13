@@ -1,13 +1,10 @@
 from __future__ import division
-import datetime
-import os
 import sys
-import time
 
 from chainer.training import extension
-from chainer.training.extensions import util
 from chainer.training import trigger
-from chainer.training.non_trainer_extensions import ProgressBarPrinter
+
+from chainer.training.extensions.progress_bar_printer import ProgressBarPrinter
 
 
 class ProgressBar(extension.Extension):
@@ -58,9 +55,7 @@ class ProgressBar(extension.Extension):
                 training_length)
 
         if self._progress_bar is None:
-            self._progress_bar = ProgressBarPrinter(training_length);
-
-        out = self._out
+            self._progress_bar = ProgressBarPrinter(training_length)
 
         iteration = trainer.updater.iteration
 

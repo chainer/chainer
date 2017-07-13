@@ -12,10 +12,10 @@ import argparse
 import chainer
 from chainer import configuration
 from chainer.dataset import convert
-import chainer.links as L
-from chainer import serializers
 from chainer.datasets import get_cifar10
 from chainer.datasets import get_cifar100
+import chainer.links as L
+from chainer import serializers
 from chainer.training.non_trainer_extensions import IteratorProgressBar
 
 import models.VGG

@@ -8,6 +8,7 @@ from chainer.training.extensions import micro_average  # NOQA
 from chainer.training.extensions import plot_report  # NOQA
 from chainer.training.extensions import print_report  # NOQA
 from chainer.training.extensions import progress_bar  # NOQA
+from chainer.training.extensions import progress_bar_printer  # NOQA
 from chainer.training.extensions import value_observation  # NOQA
 
 
@@ -24,5 +25,6 @@ from chainer.training.extensions.parameter_statistics import ParameterStatistics
 from chainer.training.extensions.plot_report import PlotReport  # NOQA
 from chainer.training.extensions.print_report import PrintReport  # NOQA
 from chainer.training.extensions.progress_bar import ProgressBar  # NOQA
+from chainer.training.extensions.progress_bar_printer import ProgressBarPrinter  # NOQA
 from chainer.training.extensions.value_observation import observe_lr  # NOQA
 from chainer.training.extensions.value_observation import observe_value  # NOQA

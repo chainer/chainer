@@ -15,7 +15,6 @@ import copy
 import numpy as np
 
 import chainer
-from chainer import configuration
 from chainer.dataset import convert
 import chainer.links as L
 from chainer import serializers
@@ -93,8 +92,8 @@ def main():
     optimizer.setup(model)
     optimizer.add_hook(chainer.optimizer.GradientClipping(args.gradclip))
 
-    # This is a timer utility that allows us to print training progress information
-    # at the specified time interval (every 5 seconds).
+    # This is a timer utility that allows us to print training progress
+    # information at the specified time interval (every 5 seconds).
     train_progress = TimerUtility(interval_seconds=5)
 
     sum_perp = 0

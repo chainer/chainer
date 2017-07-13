@@ -1,13 +1,9 @@
 from __future__ import print_function
 from __future__ import division
-import datetime
-import os
-import sys
 import time
 
+from chainer.training.extensions import ProgressBarPrinter
 from chainer import utils
-from chainer.dataset import iterator as iterator_module
-from chainer.training.non_trainer_extensions import ProgressBarPrinter
 
 
 class TimerUtility(object):
@@ -34,14 +30,13 @@ class TimerUtility(object):
     """
 
     def __init__(self, interval_seconds=2):
-        utils.experimental('chainer.training.non_trainer_extensions.TimerUtility')
+        utils.experimental('chainer.training.non_trainer_extensions.TimerUtility')  # NOQA
         self.iteration = 0
         self.speed = 0
 
         self._start_time = time.time()
         self._interval_seconds = interval_seconds
         self._last_time = time.time()
-
 
     def __call__(self):
         """Return True or False depending on elapsed time since last call.
@@ -97,14 +92,15 @@ class ProgressUtility(TimerUtility):
         which this object will return True when called.
 
     Attributes:
-        epoch (int): Integer-valued number of completed sweeps over the dataset.
+        epoch (int): Integer-valued number of completed sweeps over the
+            dataset.
         epoch_detail (float): Floating point number version of the epoch. For
             example, if the iterator is at the middle of the dataset at the
             third epoch, then this value is 2.5.
         interation (int): The number of iterations which is equal to the
             number of times this object has been called so far.
-        is_new_epoch (bool): ``True`` if the epoch count was incremented at the last
-            update.
+        is_new_epoch (bool): ``True`` if the epoch count was incremented at
+            the last update.
 
     """
 
@@ -124,8 +120,7 @@ class ProgressUtility(TimerUtility):
         self._iters_per_epoch = iters_per_epoch
         self._training_length = training_length
         self._enable_progress_bar = enable_progress_bar
-        self._progress_bar = ProgressBarPrinter(training_length);
-
+        self._progress_bar = ProgressBarPrinter(training_length)
 
     def __call__(self):
         """Return True or False depending on elapsed time since last call.
@@ -180,8 +175,7 @@ class IteratorProgressBar(TimerUtility):
         super(IteratorProgressBar, self).__init__(interval_seconds)
         self._iterator = iterator
         self._training_length = training_length
-        self._progress_bar = ProgressBarPrinter(training_length);
-
+        self._progress_bar = ProgressBarPrinter(training_length)
 
     def __call__(self):
         """Return True or False depending on elapsed time since last call.

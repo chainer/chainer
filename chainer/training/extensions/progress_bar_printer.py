@@ -5,6 +5,8 @@ import os
 import sys
 import time
 
+from chainer.training.extensions import util
+
 
 class ProgressBarPrinter(object):
     """Training utility to print a progress bar and recent training status.
@@ -38,7 +40,7 @@ class ProgressBarPrinter(object):
         self._recent_timing = []
 
     def __call__(self, iteration, epoch):
-        """
+        """Redraw progress bar.
 
         Args:
             iteration (int): Current iteration.
@@ -72,8 +74,8 @@ class ProgressBarPrinter(object):
         out.write('this epoch [{}{}] {:6.2%}\n'.format(
             marks, '.' * (bar_length - len(marks)), epoch_rate))
 
-        data = {'iteration': iteration, 'epoch': epoch}
-        status = '{} iter, {} epoch / {}\n'.format(iteration, int(epoch), training_length[0])
+        status = '{} iter, {} epoch / {}\n'.format(iteration, int(epoch),
+                                                   training_length[0])
         out.write(status)
 
         old_t, old_e, old_sec = recent_timing[0]
@@ -89,9 +91,7 @@ class ProgressBarPrinter(object):
             estimated_time = (length - iteration) / speed_t
         else:
             estimated_time = (length - epoch) / speed_e
-        out.write('{:10.5g} iters/sec. Estimated time to finish: {}.\n'
-                    .format(speed_t,
-                            datetime.timedelta(seconds=estimated_time)))
+        out.write('{:10.5g} iters/sec. Estimated time to finish: {}.\n'.format(speed_t, datetime.timedelta(seconds=estimated_time)))  # NOQA
 
         # move the cursor to the head of the progress bar
         if os.name == 'nt':
