@@ -627,7 +627,7 @@ class Chain(Link):
 
        Child links are registered via the assignment within a
        ``with self.init_scope():`` block. The forward propagation is often
-       implemented as The ``__call__`` operator as the above example, though
+       implemented as the ``__call__`` operator as the above example, though
        it is not mandatory.
 
     Args:
