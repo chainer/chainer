@@ -110,22 +110,23 @@ def fix_random():
             # Applied to test case class
             klass = impl
 
-            def wrap_setUp(f):
-                def func(self):
-                    _setup_random()
-                    f(self)
-                return func
+            setUp_ = klass.setUp
+            tearDown_ = klass.tearDown
 
-            def wrap_tearDown(f):
-                def func(self):
-                    try:
-                        f(self)
-                    finally:
-                        _teardown_random()
-                return func
+            @functools.wrap(setUp_)
+            def setUp(self):
+                _setup_random()
+                setUp_(self)
 
-            klass.setUp = wrap_setUp(klass.setUp)
-            klass.tearDown = wrap_tearDown(klass.tearDown)
+            @functools.wrap(tearDown_)
+            def tearDown(self):
+                try:
+                    tearDown_(self)
+                finally:
+                    _teardown_random()
+
+            klass.setUp = setUp
+            klass.tearDown = tearDown
             return klass
         else:
             raise ValueError('Can\'t apply fix_random to {}'.format(impl))
