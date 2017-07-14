@@ -1,3 +1,4 @@
+import time
 import unittest
 
 import numpy
@@ -98,6 +99,28 @@ class TestTimerHookToFunction(unittest.TestCase):
     @attr.gpu
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
+
+    def test_reentrant(self):
+        # In/grad data are random; these do not simulate the actually possible
+        # cases.
+        g = functions.Identity()  # any time other than Exp is ok
+
+        self.h.backward_preprocess(self.f, (self.x,), (self.gy,))
+        t1 = time.time()
+        time.sleep(0.001)  # longer than each hook call
+        self.h.forward_preprocess(g, (self.x,))
+        self.h.forward_postprocess(g, (self.x,))
+        t2 = time.time()
+        self.h.backward_postprocess(self.f, (self.x,), (self.gy,))
+
+        history = dict(self.h.call_history)
+        self.assertEqual(len(history), 2)
+        self.assertIn(self.f, history)
+        self.assertIn(g, history)
+        f_time = history[self.f]
+        g_time = history[g]
+        self.assertLessEqual(g_time, t2 - t1)
+        self.assertGreaterEqual(f_time, t2 - t1)
 
 
 class TestTimerPrintReport(unittest.TestCase):
