@@ -20,6 +20,17 @@ Load the MNIST dataset, which contains a training set of images and class labels
 
     train, test = mnist.get_mnist()
 
+.. note::
+
+    **You can use a Python list as a dataset.** Because all types of objects whose element can be accessed via ``[]`` accessor and lengh can be obtained with ``len()`` function, can be used as a dataset given to the :class:`~chainer.training.Iterator`. For example,
+
+    .. code-block:: python
+
+        train = [(x1, t1), (x2, t2), ...]
+
+    a list of tuples like this can also be used equally to a :class:`~chainer.dataset.DatasetMixin` object. But many useful :mod:`~chainer.dataset` classes enable to avoid storing all data on the memory at a time, so it's better to use them for large datasets.
+
+
 2. Prepare the dataset iterations
 '''''''''''''''''''''''''''''''''
 
