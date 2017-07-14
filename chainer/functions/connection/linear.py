@@ -6,9 +6,7 @@ from chainer.utils import type_check
 
 
 def _as_mat(x, n_batch_axes):
-    if n_batch_axes == 1:
-        return x
-    elif 1 < n_batch_axes < x.ndim:
+    if 1 <= n_batch_axes < x.ndim:
         return x.reshape(x.shape[:n_batch_axes] + (-1,))
     else:
         raise ValueError('n_batch_axes should be less than x.ndim and greater '
