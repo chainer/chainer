@@ -12,10 +12,10 @@ This table compares Chainer with other actively developed deep learning framewor
    
    "Basics","Language","Python","Python","Python","Python","Python/C++","LuaJIT","Python/others","Python/C++","Python/C++","Java","BrainScript/ Python/C++","Python","Julia","C","Python"
    ,"Approach","define-by-run","define-by-run","symbolic autograd","symbolic autograd","static","static/ manual grads","symbolic autograd/ manual grads/ define-by-run [1]_","define-by-run","symbolic autograd","static/ manual grads/ symbolic autograd [2]_","static/ symbolic autograd","static/ symbolic autograd [3]_","define-by-run","static","callback-based define-by-run"
-   ,"CPU backend package","NumPy","`TH <https://github.com/torch/torch>`_","`Eigen <https://github.com/PX4/eigen>`_","NumPy",,"TH","`mshadow <https://github.com/dmlc/mshadow>`_","Eigen",,"`ND4J <https://github.com/deeplearning4j/nd4j>`_",,"neon","`Julia <https://github.com/julialang/julia>`_",,"NumPy"
-   ,"GPU backend package","`CuPy <https://github.com/cupy/cupy>`_","`THC <https://github.com/torch/cutorch>`_","Eigen","`libgpuarray <https://github.com/Theano/libgpuarray>`_",,"THC","mshadow","Eigen",,"ND4J",,"neon",,,"CuPy"
+   ,"CPU backend package","NumPy","`TH <https://github.com/torch/torch>`_","`Eigen <https://github.com/PX4/eigen>`_","NumPy",,"TH","`mshadow <https://github.com/dmlc/mshadow>`_","Eigen",,"`ND4J <https://github.com/deeplearning4j/nd4j>`_",,"NumPy","`Julia <https://github.com/julialang/julia>`_",,"NumPy"
+   ,"GPU backend package","`CuPy <https://github.com/cupy/cupy>`_","`THC <https://github.com/torch/cutorch>`_","Eigen","`libgpuarray <https://github.com/Theano/libgpuarray>`_",,"THC","mshadow","Eigen",,"ND4J",,"neon",KnetArrays,,"CuPy"
    ,"Primary sponsor","Preferred Networks","Facebook","Google","MILA","Facebook","Facebook","Amazon/Apache","CMU","Baidu","Skymind","Microsoft","Intel Nervana","Koç University","Joe Redmon","Explosion AI"
-   "NNs","CNNs","full","full","full","full","full","full","full","partial","partial","full","full","full","partial","full","none"
+   "NNs","CNNs","full","full","full","full","full","full","full","partial","full","full","full","full","partial","full","none"
    ,"RNNs","full","full","full","full","partial","full","full","full","full","full","full","partial","partial","partial","partial"
    ,"Reverse-mode autograd","Y","Y","Y","Y",,"`torch-autograd <https://github.com/twitter/torch-autograd>`_","Y","Y","Y",,"Y","`ngraph <https://github.com/NervanaSystems/ngraph>`_","Y",,"with closures"
    ,"Forward-mode autograd",,,"`tensorflow-forward-ad <https://github.com/renmengye/tensorflow-forward-ad>`_","Y",,,,,,,,,,,
