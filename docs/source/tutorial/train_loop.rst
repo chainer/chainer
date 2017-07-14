@@ -153,7 +153,7 @@ You can easily try out other optimizers as well. Please test and observe the res
 
 
 NOTE
-````
+....
 
 In the above example, we set :attr:`~chainer.optimizers.MomentumSGD.lr` to 0.01 in the constructor. This value is known as a the "learning rate", one of the most important hyper parameters that need to be adjusted in order to obtain the best performance. The various optimizers may each have different hyper-parameters and so be sure to check the documentation for the details.
 
