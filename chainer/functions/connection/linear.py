@@ -65,11 +65,6 @@ class LinearFunction(function.Function):
         W = inputs[1]
         gy = grad_outputs[0]
 
-        if not type_check.same_types(*inputs):
-            raise ValueError('numpy and cupy must not be used together\n'
-                             'type(W): {0}, type(x): {1}'
-                             .format(type(W), type(x)))
-
         if self._n_batch_axes == 1:
             gx = gy.dot(W).astype(x.dtype, copy=False).reshape(inputs[0].shape)
             gW = gy.T.dot(x).astype(W.dtype, copy=False)

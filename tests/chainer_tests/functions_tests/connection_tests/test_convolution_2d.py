@@ -308,7 +308,6 @@ class TestConvolution2DFunctionCudnnDeterministic(unittest.TestCase):
 
     def _run(self):
         with chainer.using_config('use_cudnn', 'always'):
-            print(chainer.should_use_cudnn('>=auto'))
             with chainer.using_config('cudnn_deterministic', True):
                 # verify data continuity and move to gpu
                 x_data, W_data, b_data, gy_data = \

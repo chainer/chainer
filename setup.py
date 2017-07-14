@@ -22,6 +22,7 @@ set CHAINER_PYTHON_350_FORCE environment variable to 1."""
 setup_requires = []
 install_requires = [
     'filelock',
+    'mock',
     'nose',
     'numpy>=1.9.0',
     'protobuf>=2.6.0',
