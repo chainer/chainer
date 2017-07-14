@@ -53,12 +53,44 @@ def reshape(x, shape):
     """Reshapes an input variable without copy.
 
     Args:
-        x (~chainer.Variable): Input variable.
-        shape (tuple of ints): Target shape.
+        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Input variable.
+        shape (:class:`tuple` of :class:`int` s):
+            Expected shape of the output array. The number of elements which
+            the array of ``shape`` contains must be equal to that of input
+            array. One shape dimension can be -1. In this case, the value is
+            inferred from the length of the array and remaining dimensions.
 
     Returns:
-        ~chainer.Variable: Variable that holds a reshaped version of the input
-            variable.
+        ~chainer.Variable:
+            Variable that holds a reshaped version of the input variable.
+
+    .. seealso:: :func:`numpy.reshape`, :func:`cupy.reshape`
+
+    .. admonition:: Example
+
+        >>> x = np.array([[1, 2, 3, 4], [5, 6, 7, 8]])
+        >>> y = F.reshape(x, (8,))
+        >>> y.shape
+        (8,)
+        >>> y.data
+        array([1, 2, 3, 4, 5, 6, 7, 8])
+        >>> y = F.reshape(x, (4, -1)) # the shape of output is inferred
+        >>> y.shape
+        (4, 2)
+        >>> y.data
+        array([[1, 2],
+               [3, 4],
+               [5, 6],
+               [7, 8]])
+        >>> y = F.reshape(x, (4, 3)) \
+# the shape of input and output are not consistent
+        Traceback (most recent call last):
+         ...
+        chainer.utils.type_check.InvalidType:
+        Invalid operation is performed in: Reshape (Forward)
+        Expect: prod(in_types[0].shape) == prod((4, 3))
+        Actual: 8 != 12
 
     """
     return Reshape(shape)(x)

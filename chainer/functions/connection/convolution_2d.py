@@ -7,6 +7,7 @@ from chainer import function
 from chainer.utils import argument
 from chainer.utils import conv
 from chainer.utils import type_check
+from chainer import variable
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
@@ -33,7 +34,8 @@ def _pair(x):
 
 class Convolution2DFunction(function.Function):
 
-    def __init__(self, stride=1, pad=0, cover_all=False, **kwargs):
+    def __init__(self, stride=1, pad=0, cover_all=False, requires_x_grad=True,
+                 **kwargs):
         argument.check_unexpected_kwargs(
             kwargs, deterministic="deterministic argument is not "
             "supported anymore. "
@@ -44,6 +46,7 @@ class Convolution2DFunction(function.Function):
         self.sy, self.sx = _pair(stride)
         self.ph, self.pw = _pair(pad)
         self.cover_all = cover_all
+        self.requires_x_grad = requires_x_grad
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -71,7 +74,7 @@ class Convolution2DFunction(function.Function):
         x, W = inputs[:2]
         b = inputs[2] if len(inputs) == 3 else None
 
-        if not type_check.same_types(*inputs):
+        if not all([isinstance(i, numpy.ndarray) for i in inputs]):
             if b is not None:
                 raise ValueError('numpy and cupy must not be used together\n'
                                  'type(W): {0}, type(x): {1}, type(b): {2}'
@@ -95,7 +98,7 @@ class Convolution2DFunction(function.Function):
         x, W = inputs[:2]
         b = inputs[2] if len(inputs) == 3 else None
 
-        if not type_check.same_types(*inputs):
+        if not all([isinstance(i, cuda.ndarray) for i in inputs]):
             if b is not None:
                 raise ValueError('numpy and cupy must not be used together\n'
                                  'type(W): {0}, type(x): {1}, type(b): {2}'
@@ -174,24 +177,19 @@ class Convolution2DFunction(function.Function):
         x, W = inputs[:2]
         b = inputs[2] if len(inputs) == 3 else None
 
-        if not type_check.same_types(*inputs):
-            if b is not None:
-                raise ValueError('numpy and cupy must not be used together\n'
-                                 'type(W): {0}, type(x): {1}, type(b): {2}'
-                                 .format(type(W), type(x), type(b)))
-            else:
-                raise ValueError('numpy and cupy must not be used together\n'
-                                 'type(W): {0}, type(x): {1}'
-                                 .format(type(W), type(x)))
-
         gy = grad_outputs[0]
         h, w = x.shape[2:]
 
         gW = numpy.tensordot(
             gy, self.col, ((0, 2, 3), (0, 4, 5))).astype(W.dtype, copy=False)
-        gcol = numpy.tensordot(W, gy, (0, 1)).astype(x.dtype, copy=False)
-        gcol = numpy.rollaxis(gcol, 3)
-        gx = conv.col2im_cpu(gcol, self.sy, self.sx, self.ph, self.pw, h, w)
+
+        if not self.requires_x_grad:
+            gx = None
+        else:
+            gcol = numpy.tensordot(W, gy, (0, 1)).astype(x.dtype, copy=False)
+            gcol = numpy.rollaxis(gcol, 3)
+            gx = conv.col2im_cpu(gcol, self.sy, self.sx, self.ph, self.pw,
+                                 h, w)
 
         if b is None:
             return gx, gW
@@ -203,22 +201,14 @@ class Convolution2DFunction(function.Function):
         x, W = inputs[:2]
         b = inputs[2] if len(inputs) == 3 else None
 
-        if not type_check.same_types(*inputs):
-            if b is not None:
-                raise ValueError('numpy and cupy must not be used together\n'
-                                 'type(W): {0}, type(x): {1}, type(b): {2}'
-                                 .format(type(W), type(x), type(b)))
-            else:
-                raise ValueError('numpy and cupy must not be used together\n'
-                                 'type(W): {0}, type(x): {1}'
-                                 .format(type(W), type(x)))
-
         gy = grad_outputs[0]
         _, out_c, out_h, out_w = gy.shape
         n, c, h, w = x.shape
         kh, kw = W.shape[2:]
 
         gW = cuda.cupy.empty_like(W)
+        gx = None
+
         if (not self.cover_all and chainer.should_use_cudnn('>=auto') and
                 _check_cudnn_acceptable_type(x.dtype, W.dtype)):
             x = cuda.cupy.ascontiguousarray(x)
@@ -231,7 +221,6 @@ class Convolution2DFunction(function.Function):
             oz_dtype = 'd' if x.dtype == 'd' else 'f'
             one = numpy.array(1, dtype=oz_dtype).ctypes
             zero = numpy.array(0, dtype=oz_dtype).ctypes
-            gx = cuda.cupy.empty_like(x)
 
             if _cudnn_version >= 3000:
                 workspace_size = cuda.get_max_workspace_size()
@@ -251,19 +240,21 @@ class Convolution2DFunction(function.Function):
                     algo, workspace.data.ptr, workspace_size,
                     zero.data, self.filter_desc.value, gW.data.ptr)
 
-                if configuration.config.cudnn_deterministic:
-                    algo = cuda.cupy.cuda.cudnn.CUDNN_CONVOLUTION_BWD_DATA_ALGO_1  # NOQA
-                else:
-                    algo = libcudnn.getConvolutionBackwardDataAlgorithm(
-                        handle, self.filter_desc.value, gy_desc.value,
-                        self.conv_desc.value, x_desc.value, _bwd_data_pref,
-                        workspace_size)
+                if self.requires_x_grad:
+                    if configuration.config.cudnn_deterministic:
+                        algo = cuda.cupy.cuda.cudnn.CUDNN_CONVOLUTION_BWD_DATA_ALGO_1  # NOQA
+                    else:
+                        algo = libcudnn.getConvolutionBackwardDataAlgorithm(
+                            handle, self.filter_desc.value, gy_desc.value,
+                            self.conv_desc.value, x_desc.value, _bwd_data_pref,
+                            workspace_size)
 
-                libcudnn.convolutionBackwardData_v3(
-                    handle, one.data, self.filter_desc.value, W.data.ptr,
-                    gy_desc.value, gy.data.ptr, self.conv_desc.value,
-                    algo, workspace.data.ptr, workspace_size,
-                    zero.data, x_desc.value, gx.data.ptr)
+                    gx = cuda.cupy.empty_like(x)
+                    libcudnn.convolutionBackwardData_v3(
+                        handle, one.data, self.filter_desc.value, W.data.ptr,
+                        gy_desc.value, gy.data.ptr, self.conv_desc.value,
+                        algo, workspace.data.ptr, workspace_size,
+                        zero.data, x_desc.value, gx.data.ptr)
             else:
                 if configuration.config.cudnn_deterministic:
                     raise ValueError(
@@ -278,10 +269,12 @@ class Convolution2DFunction(function.Function):
                     handle, one.data, x_desc.value, x.data.ptr,
                     gy_desc.value, gy.data.ptr, self.conv_desc.value,
                     zero.data, self.filter_desc.value, gW.data.ptr)
-                libcudnn.convolutionBackwardData_v2(
-                    handle, one.data, self.filter_desc.value, W.data.ptr,
-                    gy_desc.value, gy.data.ptr, self.conv_desc.value,
-                    zero.data, x_desc.value, gx.data.ptr)
+                if self.requires_x_grad:
+                    gx = cuda.cupy.empty_like(x)
+                    libcudnn.convolutionBackwardData_v2(
+                        handle, one.data, self.filter_desc.value, W.data.ptr,
+                        gy_desc.value, gy.data.ptr, self.conv_desc.value,
+                        zero.data, x_desc.value, gx.data.ptr)
 
             if b is not None:
                 gb = cuda.cupy.empty_like(b)
@@ -292,12 +285,12 @@ class Convolution2DFunction(function.Function):
             gW = cuda.cupy.tensordot(
                 gy, self.col, ((0, 2, 3), (0, 4, 5))).astype(W.dtype,
                                                              copy=False)
-            gcol = cuda.cupy.tensordot(W, gy, (0, 1)).astype(x.dtype,
-                                                             copy=False)
-            gcol = cuda.cupy.rollaxis(gcol, 3)
-
-            gx = conv.col2im_gpu(
-                gcol, self.sy, self.sx, self.ph, self.pw, h, w)
+            if self.requires_x_grad:
+                gcol = cuda.cupy.tensordot(W, gy, (0, 1)).astype(x.dtype,
+                                                                 copy=False)
+                gcol = cuda.cupy.rollaxis(gcol, 3)
+                gx = conv.col2im_gpu(
+                    gcol, self.sy, self.sx, self.ph, self.pw, h, w)
 
             if b is not None:
                 gb = gy.sum(axis=(0, 2, 3))
@@ -432,7 +425,8 @@ cover_all=True)
         "context where value is either `True` or `False`.")
     argument.assert_kwargs_empty(kwargs)
 
-    func = Convolution2DFunction(stride, pad, cover_all)
+    requires_x_grad = isinstance(x, variable.Variable) and x.requires_grad
+    func = Convolution2DFunction(stride, pad, cover_all, requires_x_grad)
     if b is None:
         return func(x, W)
     else:

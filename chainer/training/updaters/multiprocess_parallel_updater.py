@@ -7,7 +7,6 @@ from chainer import cuda
 from chainer.dataset import convert
 from chainer import reporter
 from chainer.training import updater
-from chainer import variable
 
 try:
     from cupy.cuda import nccl
@@ -233,15 +232,11 @@ class MultiprocessParallelUpdater(updater.StandardUpdater):
 
 def _calc_loss(model, in_arrays):
     if isinstance(in_arrays, tuple):
-        in_vars = tuple(variable.Variable(x) for x in in_arrays)
-        return model(*in_vars)
+        return model(*in_arrays)
     elif isinstance(in_arrays, dict):
-        in_vars = {key: variable.Variable(x)
-                   for key, x in six.iteritems(in_arrays)}
-        return model(**in_vars)
+        return model(**in_arrays)
     else:
-        in_vars = variable.Variable(in_arrays)
-        return model(in_vars)
+        return model(in_arrays)
 
 
 def size_num_grads(link):
@@ -290,6 +285,30 @@ def _batch_memcpy():
             ''')
 
 
+def _gather(link, target):
+    size, num = size_num_grads(link)
+
+    ptrs = numpy.empty(num, dtype=numpy.uint64)
+    info = numpy.empty(num + 1, dtype=numpy.int32)
+    info[0] = 0
+    i = 0
+    for _, param in sorted(link.namedparams()):
+        if param.size == 0:
+            continue
+        ptrs[i] = 0  # NULL pointer
+        d = getattr(param, target)
+        if d is not None:
+            ptrs[i] = d.data.ptr
+        info[i + 1] = info[i] + param.size
+        i += 1
+    info[0] = num
+
+    ptrs = cuda.to_gpu(ptrs, stream=cuda.Stream.null)
+    info = cuda.to_gpu(info, stream=cuda.Stream.null)
+
+    return _batch_memcpy()(ptrs, info, size=size)
+
+
 def gather_grads(link):
     """Put together all gradient arrays and make a single array
 
@@ -300,27 +319,7 @@ def gather_grads(link):
     """
     if link.xp is numpy:
         raise RuntimeError('gather_grads works only on GPU.')
-
-    size, num = size_num_grads(link)
-
-    ptrs = numpy.empty(num, dtype=numpy.uint64)
-    info = numpy.empty(num + 1, dtype=numpy.int32)
-    info[0] = 0
-    i = 0
-    for param in link.params():
-        if param.size == 0:
-            continue
-        ptrs[i] = 0  # NULL pointer
-        if param.grad is not None:
-            ptrs[i] = param.grad.data.ptr
-        info[i + 1] = info[i] + param.size
-        i += 1
-    info[0] = num
-
-    ptrs = cuda.to_gpu(ptrs, stream=cuda.Stream.null)
-    info = cuda.to_gpu(info, stream=cuda.Stream.null)
-
-    return _batch_memcpy()(ptrs, info, size=size)
+    return _gather(link, "grad")
 
 
 def gather_params(link):
@@ -333,27 +332,7 @@ def gather_params(link):
     """
     if link.xp is numpy:
         raise RuntimeError('Link.gather_params works only on GPU.')
-
-    size, num = size_num_grads(link)
-
-    ptrs = numpy.empty(num, dtype=numpy.uint64)
-    info = numpy.empty(num + 1, dtype=numpy.int32)
-    info[0] = 0
-    i = 0
-    for param in link.params():
-        if param.size == 0:
-            continue
-        ptrs[i] = 0  # NULL pointer
-        if param.data is not None:
-            ptrs[i] = param.data.data.ptr
-        info[i + 1] = info[i] + param.size
-        i += 1
-    info[0] = num
-
-    ptrs = cuda.to_gpu(ptrs, stream=cuda.Stream.null)
-    info = cuda.to_gpu(info, stream=cuda.Stream.null)
-
-    return _batch_memcpy()(ptrs, info, size=size)
+    return _gather(link, "data")
 
 
 def scatter_grads(link, array):
@@ -364,10 +343,11 @@ def scatter_grads(link, array):
         array (cupy.ndarray): gathered array created by gather_grads()
     """
     offset = 0
-    for param in link.params():
+    for _, param in sorted(link.namedparams()):
         next_offset = offset + param.size
         param.grad = array[offset:next_offset].reshape(param.data.shape)
         offset = next_offset
+    assert array.size == offset
 
 
 def scatter_params(link, array):
@@ -378,7 +358,8 @@ def scatter_params(link, array):
         array (cupy.ndarray): gathered array created by gather_params()
     """
     offset = 0
-    for param in link.params():
+    for _, param in sorted(link.namedparams()):
         next_offset = offset + param.size
         param.data = array[offset:next_offset].reshape(param.data.shape)
         offset = next_offset
+    assert array.size == offset

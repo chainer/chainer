@@ -6,7 +6,6 @@ import warnings
 import weakref
 
 import numpy
-import six
 
 import chainer
 from chainer import cuda
@@ -17,44 +16,40 @@ from chainer.utils import argument
 
 
 def _check_grad_type(func, x, gx):
-    def make_message(message):
-        if func:
-            detail = 'Function `{0}` ({1}) has a bug.\n'.format(
-                type(func).__name__, func.label)
-
-            stack = func.stack
-            if stack:
-                detail += 'Stacktrace of the function is below:\n'
-                for line in traceback.format_list(func._stack):
-                    detail += line
-
-            detail += '''
-Please report this error to the issue tracker with the stack trace,
-the information of your environment, and your script:
-https://github.com/pfnet/chainer/issues/new.
-'''.format(type(func).__name__, func.label)
-
-        else:
-            detail = ''
-
-        detail += message
-        return detail
-
     if x.data is None or gx is None:
         # ``x.data is None`` implies that the data array is not retained
         return
     if not isinstance(gx, type(x.data)):
         msg = ('Type of data and grad mismatch\n%s != %s' %
                (type(x.data), type(gx)))
-        raise TypeError(make_message(msg))
-    if gx.dtype != x.data.dtype:
+        typ = TypeError
+    elif gx.dtype != x.data.dtype:
         msg = ('Dtype of data and grad mismatch\n%s != %s' %
                (x.data.dtype, gx.dtype))
-        raise TypeError(make_message(msg))
-    if gx.shape != x.data.shape:
+        typ = TypeError
+    elif gx.shape != x.data.shape:
         msg = ('Shape of data and grad mismatch\n%s != %s' %
                (x.data.shape, gx.shape))
-        raise ValueError(make_message(msg))
+        typ = ValueError
+    else:
+        return
+
+    detail = ''
+    if func:
+        detail = 'Function `{0}` ({1}) has a bug.\n'.format(
+            type(func).__name__, func.label)
+        stack = func.stack
+        if stack:
+            detail += 'Stacktrace of the function is below:\n'
+            for line in traceback.format_list(func._stack):
+                detail += line
+        detail += '''
+Please report this error to the issue tracker with the stack trace,
+the information of your environment, and your script:
+https://github.com/chainer/chainer/issues/new.
+'''.format(type(func).__name__, func.label)
+
+    raise typ(detail + msg)
 
 
 def variable_repr(var):
@@ -75,10 +70,13 @@ def variable_repr(var):
     else:
         prefix = 'variable'
 
-    if arr.size > 0 or arr.shape == (0,):
+    if arr is None:
+        lst = 'None'
+    elif arr.size > 0 or arr.shape == (0,):
         lst = numpy.array2string(arr, None, None, None, ', ', prefix + '(')
     else:  # show zero-length shape unless it is (0,)
         lst = '[], shape=%s' % (repr(arr.shape),)
+
     return '%s(%s)' % (prefix, lst)
 
 
@@ -94,12 +92,18 @@ def variable_str(var):
         arr = var.data
     else:
         arr = var.data.get()
+
     if var.name:
-        prefix = 'variable ' + var.name + '('
+        prefix = 'variable ' + var.name
     else:
-        prefix = 'variable('
-    return (prefix + numpy.array2string(arr, None, None, None, ' ', prefix) +
-            ')')
+        prefix = 'variable'
+
+    if arr is None:
+        lst = 'None'
+    else:
+        lst = numpy.array2string(arr, None, None, None, ' ', prefix + '(')
+
+    return '%s(%s)' % (prefix, lst)
 
 
 class VariableNode(object):
@@ -502,8 +506,8 @@ Actual: {0}'''.format(type(data))
 
         """
         if self.data is None:
-            current = cuda.Device().id
-            self._initial_device = current if device is None else device
+            self._initial_device = (cuda.Device().id
+                                    if device is None else device)
         else:
             self._data = [cuda.to_gpu(self.data, device)]
             # ensure that the node tracks the device migration
@@ -700,9 +704,10 @@ Actual: {0}'''.format(type(data))
             if func._n_local_function_hooks != 0:
                 hooks = collections.OrderedDict(hooks)
                 hooks.update(func.local_function_hooks)
+            hooks = hooks.values()  # avoid six for performance
 
             cuda.get_device_from_array(*(in_data + out_grad)).use()
-            for hook in six.itervalues(hooks):
+            for hook in hooks:
                 hook.backward_preprocess(func, in_data, out_grad)
             func.output_data = tuple(
                 [None if y is None else y.data for y in outputs])
@@ -710,7 +715,7 @@ Actual: {0}'''.format(type(data))
             assert len(gxs) == len(in_data)
             if not getattr(func, '_retain_after_backward', False):
                 func.output_data = None
-            for hook in six.itervalues(hooks):
+            for hook in hooks:
                 hook.backward_postprocess(func, in_data, out_grad)
 
             if is_debug:
@@ -908,7 +913,7 @@ class Parameter(Variable):
 
     initializer = None
     _grad_initializer = None
-    _initial_device = -1
+    _initial_device = None
 
     def __init__(self, initializer=None, shape=None, name=None):
         if initializer is None:
@@ -948,7 +953,7 @@ class Parameter(Variable):
     def to_cpu(self):
         super(Parameter, self).to_cpu()
         if self.data is None:
-            self._initial_device = -1
+            self._initial_device = None
 
     def to_gpu(self, device=None):
         super(Parameter, self).to_gpu(device)
@@ -979,16 +984,13 @@ class Parameter(Variable):
             shape (tuple of int): Shape of the data array.
 
         """
-        data = initializers.generate_array(self.initializer, shape, numpy)
+        xp = numpy if self._initial_device is None else cuda.cupy
+        with cuda.get_device_from_id(self._initial_device):
+            data = initializers.generate_array(self.initializer, shape, xp)
 
-        ginit = self._grad_initializer
-        grad = None if ginit is None else initializers.generate_array(
-            ginit, shape, numpy)
-
-        if self._initial_device >= 0:
-            data = cuda.to_gpu(data, device=self._initial_device)
-            if grad is not None:
-                grad = cuda.to_gpu(grad, device=self._initial_device)
+            ginit = self._grad_initializer
+            grad = None if ginit is None else initializers.generate_array(
+                ginit, shape, xp)
 
         self._data[0] = data
         self._node._grad = grad

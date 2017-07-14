@@ -149,6 +149,7 @@ Loss functions
    chainer.functions.negative_sampling
    chainer.functions.sigmoid_cross_entropy
    chainer.functions.softmax_cross_entropy
+   chainer.functions.squared_error
    chainer.functions.triplet
 
 Mathematical functions
@@ -166,7 +167,6 @@ Mathematical functions
    chainer.functions.average
    chainer.functions.batch_inv
    chainer.functions.batch_l2_norm_squared
-   chainer.functions.batch_matmul
    chainer.functions.bias
    chainer.functions.ceil
    chainer.functions.clip
@@ -220,6 +220,7 @@ Normalization functions
 
    chainer.functions.batch_normalization
    chainer.functions.fixed_batch_normalization
+   chainer.functions.layer_normalization
    chainer.functions.local_response_normalization
    chainer.functions.normalize
 

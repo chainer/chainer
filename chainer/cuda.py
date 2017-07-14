@@ -1,6 +1,6 @@
 """Device, context and memory management on CuPy.
 
-Chainer uses `CuPy <http://docs.cupy.chainer.org/>`_ (with very thin wrapper)
+Chainer uses `CuPy <https://cupy.chainer.org/>`_ (with very thin wrapper)
 to exploit the speed of GPU computation. Following modules and classes defined
 in CuPy are imported to :mod:`chainer.cuda` module for convenience (refer to
 this table when reading chainer's source codes).
@@ -254,28 +254,33 @@ def to_gpu(array, device=None, stream=None):
             return array
 
         if stream is not None:
-            ret = cupy.empty_like(array)
-            mem = None
-            if array_dev.id == -1:
-                # cpu to gpu
-                mem = cupy.cuda.alloc_pinned_memory(array.nbytes)
-                src = numpy.frombuffer(
-                    mem, array.dtype, array.size).reshape(array.shape)
-                src[...] = array
-                ret.set(src, stream)
-            else:
-                # gpu to gpu
-                with array_dev:
-                    src = array.copy()
-                    event = cupy.cuda.Event()
-                    event.record()
-                stream.wait_event(event)
-                ret.data.copy_from_device_async(src.data, src.nbytes, stream)
+            warnings.warn(
+                'The stream option is deprecated in chainer.cuda.to_gpu. '
+                'Please remove it.', DeprecationWarning)
+            if stream.ptr != 0:
+                ret = cupy.empty_like(array)
+                if array_dev.id == -1:
+                    # cpu to gpu
+                    mem = cupy.cuda.alloc_pinned_memory(array.nbytes)
+                    src = numpy.frombuffer(
+                        mem, array.dtype, array.size).reshape(array.shape)
+                    src[...] = array
+                    ret.set(src, stream)
+                    cupy.cuda.pinned_memory._add_to_watch_list(
+                        stream.record(), mem)
+                else:
+                    # gpu to gpu
+                    with array_dev:
+                        src = array.copy()
+                        event = Stream.null.record()
+                    stream.wait_event(event)
+                    ret.data.copy_from_device_async(
+                        src.data, src.nbytes, stream)
 
-            # to hold a reference until the end of the asynchronous memcpy
-            stream.add_callback(lambda *x: None, (src, mem, ret))
-
-            return ret
+                    # to hold a reference until the end of the asynchronous
+                    # memcpy
+                    stream.add_callback(lambda *x: None, (src, ret))
+                return ret
 
         if array_dev.id == -1:
             return cupy.asarray(array)
@@ -300,7 +305,7 @@ def to_cpu(array, stream=None):
     """
     if isinstance(array, ndarray):
         check_cuda_available()
-        with get_device(array):
+        with get_device_from_array(array):
             return array.get(stream)
     elif isinstance(array, numpy.ndarray):
         return array
@@ -337,10 +342,10 @@ def copy(array, out=None, out_device=None, stream=None):
     if out is None:
         if out_device is None:
             out_device = array
-        with get_device(out_device):
+        with _get_device(out_device):
             out = cupy.empty_like(array)
 
-    with get_device(array):
+    with get_device_from_array(array):
         cupy.copyto(out, array)
 
     return out
