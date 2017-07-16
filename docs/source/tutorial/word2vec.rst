@@ -16,9 +16,9 @@ or "word embeddings". In this tutorial we will use the term "distributed
 representation of words".
 
 Let's think about what the meaning of words is. As you are a human, you can
-understand that the words "animal" and "dog" are similar. But what information will
+understand that the words **animal** and **dog** are similar. But what information will
 Word2vec use in order to learn the vectors of meanings? Such that the words
-"animal" and "dog" are similar, but the words "food" and "dog" are not similar.
+**animal** and **dog** are similar, but the words "food" and **dog** are not similar.
 
 1. Basic idea
 ==============
@@ -31,9 +31,9 @@ be learned is called "Center Word", and the words around it are called
 "Context Words". Depending on the window size ``c``, the number of Contex Words
 will change.
 
-For example, I will explain with the sentence "The cute cat jumps over the lazy dog.".
+For example, I will explain with the sentence **The cute cat jumps over the lazy dog.**.
 
-* All of the following figures consider "cat" as Center Word.
+* All of the following figures consider **cat** as Center Word.
 * According to the window size ``c``, you can see that Context Words are changing.
 
 .. image:: ../../image/word2vec/center_context_word.png
@@ -87,37 +87,38 @@ In this tutorial, we mainly explain Skip-gram from the following viewpoints.
 2. Even if the number of words increases, the accuracy is hard to fall down. So, it is more scalable.
 
 3.1 Explanation using specific example
-----------------------------------------
+---------------------------------------
 
 In this example, we use the following setups.
 
 * The number of vocabulary :math:`N` is 10.
 * The size of distributed representation vector :math:`D` is 2.
-* Center word is "dog".
-* Context word is "animal".i
+* Center word is **dog**.
+* Context word is **animal**.
 
-Since there should be more than one Context Word, repeat the following
-process for each Context Word.
+Since there should be more than one Context Word, repeat the following process for each Context Word.
 
-1. The one-hot vector of "dog" is ``[0 0 1 0 0 0 0 0 0 0]`` and you input it as
+1. The one-hot vector of **dog** is ``[0 0 1 0 0 0 0 0 0 0]`` and you input it as
    Center Word.
 2. After that, the third row of distributed representation matrix :math:`W_H`
-   for Center Word is the distributed representation of "dog" :math:`L_H`.
+   for Center Word is the distributed representation of **dog** :math:`L_H`.
 3. The output layer :math:`L_O` is the result of multiplying the distributed 
    representation matrix :math:`W_O` for Context Words by the distributed
-   representation of "dog" :math:`L_H`.
+   representation of **dog** :math:`L_H`.
 4. In order to limit the value of each element of the output layer, 
    softmax function is applied to the output layer :math:`L_O` to calculate
    :math:`softmax(L_O)`.
-  * Ultimately, it is necessary to update the parameter by making an error
-    between the output layer and Context Word and back propagating the error
-    back to the network.
-  * However, the value of each element of the output layer takes a value 
-    from -∞ to + ∞ because the range is not limited. Context Word's one-hot
-    vector takes only 0 or 1 for each element like ``[1 0 0 0 0 0 0 0 0 0]``.
-  * To limit the value of each element of the output layer to 0 to 1, apply 
-    softmax that limits the value of each element to the range ``[0, 1]``.
-5. Calculate the error between [tex: {W_O}] and animal's one-hot vector` [1 0 0 0 0 0 0 0 0 0 0] `, and propagate the error back to the network to update the parameters
+        * To update the parameters, it is necessary to back-propagete the error
+          between the output layer and Context Word.
+        * However, the value of each element of the output layer takes the range
+          :math:`[-\infty, +\infty]`. Context Word's one-hot vector takes only
+          the range :math:`[0, 1]` for each element like ``[1 0 0 0 0 0 0 0 0 0]``.
+        * To limit the value of each element of the output layer between
+          :math:`[0, 1]`, the softmax functions is applied to the layer
+          because the function limits the value between :math:`[0, 1]`.
+5. Calculate the error between :math:`W_O` and **animal**'s one-hot vector
+   ``[1 0 0 0 0 0 0 0 0 0 0]``, and propagate the error back to the network
+   to update the parameters.
 
 .. image:: ../../image/word2vec/skipgram_detail.png
 
