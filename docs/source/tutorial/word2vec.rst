@@ -41,59 +41,85 @@ For example, I will explain with the sentence "The cute cat jumps over the lazy 
 2. Main algorithm
 ==================
 
-- Word distribution expression creation tool 'word 2 vec' actually has two models built in Skip-gram and CBoW.
-- I will explain with the figure below, but the meaning of the sign at that time is explained here.
-    - N: Number of vocabulary.
-    - D: Size of vector of distributed representation.
-    - [tex: {v_t}]: Center Word. The size is [N, 1].
-    - [tex: {v_ {t + c}}]: Context Word. The size is [N, 1].
-    - [tex: {L_H}]: Input converted to distributed expression. The size is [D, 1].
-    - [tex: {L_O}]: output layer. The size is [N, 1].
-    - [tex: {W_H}]: Distributed representation matrix for input. The size is [N, D].
-    - [tex: {W_O}]: Distributed representation matrix for the output. The size is [D, N].
+The tool for createing the distributed representation of words, Word2vec actually
+is built with the two models, which are "Skip-gram" and "CBoW".
+
+When we will explain the models with the figures below, we will use the following
+symbols.
+
+- :math:`N`: the number of vocabulary.
+- :math:`D`: the size of distributed representation vector.
+- :math:`v_t`: Center Word. The size is ``[N, 1]``.
+- :math:`v_{t+c}`: Context Word. The size is ``[N, 1]``.
+- :math:`L_H`: Distributed representation converted from input.
+  The size is ``[D, 1]``.
+- :math:`L_O`: Output layer. The size is ``[N, 1]``.
+- :math:`W_H`: Distributed representation matrix for input.
+  The size is ``[N, D]``.
+- :math:`W_O`: Distributed representation matrix for the output.
+  The size is ``[D, N]``.
 
 2.1 Skip-gram
 --------------
 
-- Learn to predict Context Word [tex: {v_ {t + c}}] when Center Word [tex: {v_t}] is given
-- At this time, each line of the distributed representation matrix W_H for Target Word becomes a distributed representation of each word.
+This model learns to predict Context Words :math:`v_{t+c}` when Center Word
+:math:`v_t` is given. In the model, each row of the distributed representation
+matrix for input :math:`W_H` becomes a distributed representation of each word.
+
+.. image:: ../../image/word2vec/skipgram.png
 
 2.2 Continuous Bag of Words (CBoW)
 -----------------------------------
 
-- Context Word [tex: {v_ {t + c}}] is given, learning to predict Center Word [tex: {v_t}]
-- At this time, each column of the distributed representation matrix [tex: {W_O}] for the output becomes a distributed representation of each word.
+This model learns to predict Center Word :math:`v_t` when Context Words
+:math:`v_{t+c}` is given. In the model, each column of the distributed
+representation matrix for output :math:`W_O` becomes a distributed representation
+of each word.
 
-2.3 Details of Skip-gram
--------------------------
+.. image:: ../../image/word2vec/cbow.png
 
-- In this tutorial, Skip-gram is handled mainly from the following viewpoint.
-    1. Learning algorithm is easier to understand than CBoW
-    2. Even if the number of words increases, the accuracy is hard to fall down and it is easy to scale
+3. Details of Skip-gram
+========================
 
-2.4 Explanation using specific examples
+In this tutorial, we mainly explain Skip-gram from the following viewpoints.
+
+1. It is easier to understand the algorithm than CBoW.
+2. Even if the number of words increases, the accuracy is hard to fall down. So, it is more scalable.
+
+3.1 Explanation using specific example
 ----------------------------------------
 
-- As in the example above, the number of vocabulary N is 10 and the size D of the vector of distributed representation is 2.
-- Explain how to learn the word "dog" as Center Word and the word "animal" as Context Word.
-- Since there should be more than one Context Word, repeat the following process for Context Word.
-    1. The one - hot vector of the word dog is `[0 0 1 0 0 0 0 0 0 0]` and you enter it as Center Word.
-    2. At this time, the third line of Distributed Expression Matrix [tex: {W_H}] for Center Word is the distributed representation of the word "dog" [tex: {L_H}].
-        - By the way, the value here becomes a distributed expression of the word dog after learning.
-    3. The output layer [tex: {L_O}] is the result of multiplying the distributed expression matrix [tex: {W_O}] for Context Word by the distributed expression of the word dog [tex: {L_H}].
-    4. In order to limit the value of each element of the output layer, softmax function is applied to the output layer [tex: {L_O}] to calculate [tex: {W_O}]
-       - Ultimately, it is necessary to update the parameter by making an error between the output layer and Context Word and back propagating the error back to the network.
-       - However, the value of each element of the output layer takes a value from -∞ to + ∞ because the range is not limited. Context Word's one-hot vector takes only 0 or 1 for each element like `[1 0 0 0 0 0 0 0 0 0]`.
-       - To limit the value of each element of the output layer to 0 to 1, apply softmax that limits the value of each element to the range 0 to 1.
-    5. Calculate the error between [tex: {W_O}] and animal's one-hot vector` [1 0 0 0 0 0 0 0 0 0 0] `, and propagate the error back to the network to update the parameters
+In this example, we use the following setups.
 
-3. Implementation by Chainer
-=============================
+- The number of vocabulary :math:`N` is 10.
+- The size of distributed representation vector :math:`D` is 2.
+- Center word is "dog".
+- Context word is "animal".i
+
+Since there should be more than one Context Word, repeat the following
+process for each Context Word.
+
+1. The one-hot vector of "dog" is `[0 0 1 0 0 0 0 0 0 0]` and you input it as
+   Center Word.
+2. After that, the third row of distributed representation matrix :math:`W_H`
+   for input is the distributed representation of "dog" :math:`L_H`.
+    - By the way, the value here becomes a distributed expression of the word dog after learning.
+3. The output layer [tex: {L_O}] is the result of multiplying the distributed expression matrix [tex: {W_O}] for Context Word by the distributed expression of the word dog [tex: {L_H}].
+4. In order to limit the value of each element of the output layer, softmax function is applied to the output layer [tex: {L_O}] to calculate [tex: {W_O}]
+   - Ultimately, it is necessary to update the parameter by making an error between the output layer and Context Word and back propagating the error back to the network.
+   - However, the value of each element of the output layer takes a value from -∞ to + ∞ because the range is not limited. Context Word's one-hot vector takes only 0 or 1 for each element like `[1 0 0 0 0 0 0 0 0 0]`.
+   - To limit the value of each element of the output layer to 0 to 1, apply softmax that limits the value of each element to the range 0 to 1.
+5. Calculate the error between [tex: {W_O}] and animal's one-hot vector` [1 0 0 0 0 0 0 0 0 0 0] `, and propagate the error back to the network to update the parameters
+
+.. image:: ../../image/word2vec/skipgram_detail.png
+
+4. Implementation of Skip-gram by Chainer
+==========================================
 
 - There is a code related to word 2vec in examples on the GitHub repository, so we will explain based on that.
     - [https://github.com/chainer/chainer/tree/master/examples/word2vec:title]
 
-3.1 Implementation method
+4.1 Implementation method
 --------------------------
 
 - Basically if you use chainer you import in this way.
