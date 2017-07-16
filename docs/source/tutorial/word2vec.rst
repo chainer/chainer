@@ -33,8 +33,8 @@ will change.
 
 For example, I will explain with the sentence "The cute cat jumps over the lazy dog.".
 
-- All of the following figures consider "cat" as Center Word.
-- According to the window size ``c``, you can see that Context Words are changing.
+* All of the following figures consider "cat" as Center Word.
+* According to the window size ``c``, you can see that Context Words are changing.
 
 .. image:: ../../image/word2vec/center_context_word.png
 
@@ -47,16 +47,16 @@ is built with the two models, which are "Skip-gram" and "CBoW".
 When we will explain the models with the figures below, we will use the following
 symbols.
 
-- :math:`N`: the number of vocabulary.
-- :math:`D`: the size of distributed representation vector.
-- :math:`v_t`: Center Word. The size is ``[N, 1]``.
-- :math:`v_{t+c}`: Context Word. The size is ``[N, 1]``.
-- :math:`L_H`: Distributed representation converted from input.
+* :math:`N`: the number of vocabulary.
+* :math:`D`: the size of distributed representation vector.
+* :math:`v_t`: Center Word. The size is ``[N, 1]``.
+* :math:`v_{t+c}`: Context Word. The size is ``[N, 1]``.
+* :math:`L_H`: Distributed representation converted from input.
   The size is ``[D, 1]``.
-- :math:`L_O`: Output layer. The size is ``[N, 1]``.
-- :math:`W_H`: Distributed representation matrix for input.
+* :math:`L_O`: Output layer. The size is ``[N, 1]``.
+* :math:`W_H`: Distributed representation matrix for input.
   The size is ``[N, D]``.
-- :math:`W_O`: Distributed representation matrix for the output.
+* :math:`W_O`: Distributed representation matrix for the output.
   The size is ``[D, N]``.
 
 2.1 Skip-gram
@@ -91,24 +91,32 @@ In this tutorial, we mainly explain Skip-gram from the following viewpoints.
 
 In this example, we use the following setups.
 
-- The number of vocabulary :math:`N` is 10.
-- The size of distributed representation vector :math:`D` is 2.
-- Center word is "dog".
-- Context word is "animal".i
+* The number of vocabulary :math:`N` is 10.
+* The size of distributed representation vector :math:`D` is 2.
+* Center word is "dog".
+* Context word is "animal".i
 
 Since there should be more than one Context Word, repeat the following
 process for each Context Word.
 
-1. The one-hot vector of "dog" is `[0 0 1 0 0 0 0 0 0 0]` and you input it as
+1. The one-hot vector of "dog" is ``[0 0 1 0 0 0 0 0 0 0]`` and you input it as
    Center Word.
 2. After that, the third row of distributed representation matrix :math:`W_H`
-   for input is the distributed representation of "dog" :math:`L_H`.
-    - By the way, the value here becomes a distributed expression of the word dog after learning.
-3. The output layer [tex: {L_O}] is the result of multiplying the distributed expression matrix [tex: {W_O}] for Context Word by the distributed expression of the word dog [tex: {L_H}].
-4. In order to limit the value of each element of the output layer, softmax function is applied to the output layer [tex: {L_O}] to calculate [tex: {W_O}]
-   - Ultimately, it is necessary to update the parameter by making an error between the output layer and Context Word and back propagating the error back to the network.
-   - However, the value of each element of the output layer takes a value from -∞ to + ∞ because the range is not limited. Context Word's one-hot vector takes only 0 or 1 for each element like `[1 0 0 0 0 0 0 0 0 0]`.
-   - To limit the value of each element of the output layer to 0 to 1, apply softmax that limits the value of each element to the range 0 to 1.
+   for Center Word is the distributed representation of "dog" :math:`L_H`.
+3. The output layer :math:`L_O` is the result of multiplying the distributed 
+   representation matrix :math:`W_O` for Context Words by the distributed
+   representation of "dog" :math:`L_H`.
+4. In order to limit the value of each element of the output layer, 
+   softmax function is applied to the output layer :math:`L_O` to calculate
+   :math:`softmax(L_O)`.
+  * Ultimately, it is necessary to update the parameter by making an error
+    between the output layer and Context Word and back propagating the error
+    back to the network.
+  * However, the value of each element of the output layer takes a value 
+    from -∞ to + ∞ because the range is not limited. Context Word's one-hot
+    vector takes only 0 or 1 for each element like ``[1 0 0 0 0 0 0 0 0 0]``.
+  * To limit the value of each element of the output layer to 0 to 1, apply 
+    softmax that limits the value of each element to the range ``[0, 1]``.
 5. Calculate the error between [tex: {W_O}] and animal's one-hot vector` [1 0 0 0 0 0 0 0 0 0 0] `, and propagate the error back to the network to update the parameters
 
 .. image:: ../../image/word2vec/skipgram_detail.png
