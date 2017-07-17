@@ -118,6 +118,8 @@ def main():
     trainer.extend(extensions.ProgressBar())
 
     # Save vocabulary and model's setting
+    if not os.path.isdir(args.out):
+        os.mkdir(args.out)
     current = os.path.dirname(os.path.abspath(__file__))
     vocab_path = os.path.join(current, args.out, 'vocab.json')
     json.dump(vocab, open(vocab_path, 'w'))
