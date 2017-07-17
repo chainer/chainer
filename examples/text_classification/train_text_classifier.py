@@ -3,6 +3,7 @@
 from __future__ import print_function
 
 import argparse
+import datetime
 import json
 import os
 
@@ -11,11 +12,12 @@ from chainer import training
 from chainer.training import extensions
 
 import nets
-from nlp_utils import convert_seq_and_label
+from nlp_utils import convert_seq
 import text_datasets
 
 
 def main():
+    current_datetime = '{}'.format(datetime.datetime.today())
     parser = argparse.ArgumentParser(
         description='Chainer example: Text Classification')
     parser.add_argument('--batchsize', '-b', type=int, default=32,
@@ -91,13 +93,13 @@ def main():
     # Set up a trainer
     updater = training.StandardUpdater(
         train_iter, optimizer,
-        converter=convert_seq_and_label, device=args.gpu)
+        converter=convert_seq, device=args.gpu)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
 
     # Evaluate the model with the test dataset for each epoch
     trainer.extend(extensions.Evaluator(
         test_iter, model,
-        converter=convert_seq_and_label, device=args.gpu))
+        converter=convert_seq, device=args.gpu))
 
     # Take a best snapshot
     record_trigger = training.triggers.MaxValueTrigger(
@@ -116,8 +118,16 @@ def main():
     trainer.extend(extensions.ProgressBar())
 
     # Save vocabulary and model's setting
+    current = os.path.dirname(os.path.abspath(__file__))
+    vocab_path = os.path.join(current, args.out, 'vocab.json')
+    json.dump(vocab, open(vocab_path, 'w'))
+    model_path = os.path.join(current, args.out, 'best_model.npz')
+    model_setup = args.__dict__
+    model_setup['vocab_path'] = vocab_path
+    model_setup['model_path'] = model_path
+    model_setup['n_class'] = n_class
+    model_setup['datetime'] = current_datetime
     json.dump(args.__dict__, open(os.path.join(args.out, 'args.json'), 'w'))
-    json.dump(vocab, open(os.path.join(args.out, 'vocab.json'), 'w'))
 
     # Run the training
     trainer.run()
