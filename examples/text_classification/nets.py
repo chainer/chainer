@@ -19,16 +19,28 @@ def sequence_embed(embed, xs, dropout=0.):
 def block_embed(embed, x, dropout=0.):
     batch, length = x.shape
     e = embed(x.reshape((batch * length, )))
-    # (batch * length, units)
+    # shape=(batch * length, units)
     e = F.transpose(F.stack(F.split_axis(e, batch, axis=0), axis=0), (0, 2, 1))
-    # (batch, units, length)
+    # shape=(batch, units, length)
     e = e[:, :, :, None]
-    # (batch, units, length, 1)
+    # shape=(batch, units, length, 1)
     e = F.dropout(e, ratio=dropout)
     return e
 
 
 class Classifier(chainer.Chain):
+
+    """A Classifier Using a Given Encoder.
+
+     This chain encodes a sentence and classify it into classes.
+
+     Args:
+         encoder (callable): A callable encoder, which extracts a feature.
+             Input is a list of variables whose shape is `(sentence_length, )`.
+             Output is a variable whose shape is `(batchsize, n_units)`.
+         n_class (int): The number of classes to be predicted.
+
+     """
 
     def __init__(self, encoder, n_class, dropout=0.1):
         super(Classifier, self).__init__()
@@ -60,6 +72,18 @@ class Classifier(chainer.Chain):
 
 class RNNEncoder(chainer.Chain):
 
+    """A LSTM-RNN Encoder with Word Embedding.
+
+    This model encodes a sentence sequentially using LSTM.
+
+    Args:
+        n_layers (int): The number of LSTM layers.
+        n_vocab (int): The size of vocabulary.
+        n_units (int): The number of units of a LSTM layer and word embedding.
+        dropout (float): The dropout ratio.
+
+    """
+
     def __init__(self, n_layers, n_vocab, n_units, dropout=0.1):
         super(RNNEncoder, self).__init__(
             embed=L.EmbedID(n_vocab, n_units),
@@ -77,6 +101,21 @@ class RNNEncoder(chainer.Chain):
 
 
 class CNNEncoder(chainer.Chain):
+
+    """A CNN Encoder with Word Embedding.
+
+    This model encodes a sentence as a set of n-gram chunks
+    using convolutional filters.
+    After convolution, max-pooling is applied over time.
+    Finally, the output is fed into a multilayer perceptron.
+
+    Args:
+        n_layers (int): The number of layers of MLP.
+        n_vocab (int): The size of vocabulary.
+        n_units (int): The number of units of MLP and word embedding.
+        dropout (float): The dropout ratio.
+
+    """
 
     def __init__(self, n_layers, n_vocab, n_units, dropout=0.1):
         out_units = n_units // 3
@@ -111,6 +150,15 @@ class CNNEncoder(chainer.Chain):
 
 class MLP(chainer.ChainList):
 
+    """A Multilayer Perceptron.
+
+    Args:
+        n_vocab (int): The size of vocabulary.
+        n_units (int): The number of units in a hidden or output layer.
+        dropout (float): The dropout ratio.
+
+    """
+
     def __init__(self, n_layers, n_units, dropout=0.1):
         super(MLP, self).__init__()
         for i in range(n_layers):
@@ -127,7 +175,18 @@ class MLP(chainer.ChainList):
 
 class BOWEncoder(chainer.Chain):
 
-    def __init__(self, n_layers, n_vocab, n_units, dropout=0.1):
+    """A BOW Encoder with Word Embedding.
+
+    This model encodes a sentence as just a set of words by averaging.
+
+    Args:
+        n_vocab (int): The size of vocabulary.
+        n_units (int): The number of units of word embedding.
+        dropout (float): The dropout ratio.
+
+    """
+
+    def __init__(self, n_vocab, n_units, dropout=0.1):
         super(BOWEncoder, self).__init__(
             embed=L.EmbedID(n_vocab, n_units, ignore_label=-1),
         )
@@ -143,9 +202,23 @@ class BOWEncoder(chainer.Chain):
 
 
 class BOWMLPEncoder(chainer.Chain):
+
+    """A BOW Encoder with Word Embedding and MLP.
+
+    This model encodes a sentence as just a set of words by averaging.
+    Additionally, its output is fed into a multilayer perceptron.
+
+    Args:
+        n_layers (int): The number of layers of MLP.
+        n_vocab (int): The size of vocabulary.
+        n_units (int): The number of units of MLP and word embedding.
+        dropout (float): The dropout ratio.
+
+    """
+
     def __init__(self, n_layers, n_vocab, n_units, dropout=0.1):
         super(BOWMLPEncoder, self).__init__(
-            bow_encoder=BOWEncoder(n_layers, n_vocab, n_units, dropout),
+            bow_encoder=BOWEncoder(n_vocab, n_units, dropout),
             mlp_encoder=MLP(n_layers, n_units, dropout)
         )
         self.out_units = n_units
