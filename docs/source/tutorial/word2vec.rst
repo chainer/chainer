@@ -108,14 +108,16 @@ Since there should be more than one Context Word, repeat the following process f
 4. In order to limit the value of each element of the output layer, 
    softmax function is applied to the output layer :math:`L_O` to calculate
    :math:`softmax(L_O)`.
-        * To update the parameters, it is necessary to back-propagete the error
-          between the output layer and Context Word.
-        * However, the value of each element of the output layer takes the range
-          :math:`[-\infty, +\infty]`. Context Word's one-hot vector takes only
-          the range :math:`[0, 1]` for each element like ``[1 0 0 0 0 0 0 0 0 0]``.
-        * To limit the value of each element of the output layer between
-          :math:`[0, 1]`, the softmax functions is applied to the layer
-          because the function limits the value between :math:`[0, 1]`.
+
+    * To update the parameters, it is necessary to back-propagete the error
+      between the output layer and Context Word.
+    * However, the value of each element of the output layer takes the range
+      :math:`[-\infty, +\infty]`. Context Word's one-hot vector takes only
+      the range :math:`[0, 1]` for each element like ``[1 0 0 0 0 0 0 0 0 0]``.
+    * To limit the value of each element of the output layer between
+      :math:`[0, 1]`, the softmax functions is applied to the layer
+      because the function limits the value between :math:`[0, 1]`.
+
 5. Calculate the error between :math:`W_O` and **animal**'s one-hot vector
    ``[1 0 0 0 0 0 0 0 0 0 0]``, and propagate the error back to the network
    to update the parameters.
@@ -125,28 +127,101 @@ Since there should be more than one Context Word, repeat the following process f
 4. Implementation of Skip-gram by Chainer
 ==========================================
 
-- There is a code related to word 2vec in examples on the GitHub repository, so we will explain based on that.
-    - [https://github.com/chainer/chainer/tree/master/examples/word2vec:title]
+* There is an example related to Word2vec on the GitHub repository, so we will explain based on that.
+        * `chainer/examples/word2vec <https://github.com/chainer/chainer/tree/master/examples/word2vec>`_
 
 4.1 Implementation method
 --------------------------
 
-- Basically if you use chainer you import in this way.
-    
-    - Importing functions like F, links like L makes it easy to use.
-- Next is the definition of the network structure of skip-gram.
-    -
-    - We pass the vocabulary number `n_vocab`, the size of the dispersion vector` n_units`, and the loss function `loss_func` to the constructor` __init__`.
-        - Parameter is being initialized in init_scope ().
-            - It is recommended to initialize Parameter here.
-            - Since we set Prameter as the attribute of Link, there are effects such as making IDE easier to follow code.
-            - For details here [https://docs.chainer.org/en/stable/upgrade.html?highlight=init_scope#new-style-parameter-registration-apis-are-added-to-link:title]
-        - Here the weight matrix `W` in` self.embed` is the distributed expression matrix [tex: {W_H}] for Center Word.
-        - In case of Skip-gram, since we correspond one-to-one with Center Word and Context Word, there is no problem switching Context Word and Center Word, and changing Context Word and Center Word I am learning. (This is because it is easy to match the CBoW model and code.)
-    - Function call `__call__` receives ID 'x` of Center Word, ID`context` of Context Word and returns error with loss function` loss_func`.
-        - Obtaining the distributed representation corresponding to context with `e = self.embed (context)`.
-        - Broad cast ID 'x' of Center Word for `batch_size` by the number of Context Word.
-        - `x` is` [batch_size * n_context,] `,` e` is `[batch_size * n_context, n_units]`.
+Import package
+^^^^^^^^^^^^^^^
+
+.. literalinclude:: ../../../examples/word2vec/train_word2vec.py
+   :language: python
+   :lines: 12-20
+   :caption: train_word2vec.py
+   :lineno-match:
+
+* Basically if you use chainer you import in this way.
+* Importing functions like F, links like L makes it easy to use.
+
+Define network structures
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. literalinclude:: ../../../examples/word2vec/train_word2vec.py
+   :language: python
+   :lines: 82-100
+   :caption: train_word2vec.py
+   :lineno-match:
+
+* Next, we define the network structures of skip-gram.
+* When we call the constructor ``__init__``, we pass the vocabulary size
+  ``n_vocab``, the size of the distributed vector ``n_units`` and the loss function
+  ``loss_func`` as arguments.
+* The :class:`chaier.Parameter` s are initialized in ``self.init_scope()``.
+
+    * It is recommended to initialize :class:`chaier.Parameter` here.
+    * Since we set :class:`chaier.Parameter` as the attribute of Link, there are
+      effects such as making IDE easier to follow code.
+    * For details, see :ref:`upgrade-new-param-register`.
+
+* The weight matrix of ``self.embed`` is the distributed representation matrix
+  :math:`W_H` for input.
+
+    * In the Skip-gram, since each Center Word has only one Context Word, there is
+      no problem to switch Context Word and Center Word. So, in tha code, we switch
+      the input and output to learn the distributed vectors.
+    * This is because it is easy to match the CBoW model code.
+    * Obtaining the distributed representation corresponding to context with
+      ``e = self.embed (context)``.
+    * Broad cast ID 'x' of Center Word for `batch_size` by the number of Context Word.
+    * `x` is` [batch_size * n_context,] `,` e` is `[batch_size * n_context, n_units]`.
+
+Define error function
+^^^^^^^^^^^^^^^^^^^^^^
+
+.. literalinclude:: ../../../examples/word2vec/train_word2vec.py
+   :language: python
+   :lines: 103-111
+   :caption: train_word2vec.py
+   :lineno-match:
+
+Define iterator for data
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. literalinclude:: ../../../examples/word2vec/train_word2vec.py
+   :language: python
+   :lines: 114-155
+   :caption: train_word2vec.py
+   :lineno-match:
+
+Main function
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. literalinclude:: ../../../examples/word2vec/train_word2vec.py
+   :language: python
+   :lines: 177-180
+   :caption: train_word2vec.py
+   :lineno-match:
+
+.. literalinclude:: ../../../examples/word2vec/train_word2vec.py
+   :language: python
+   :lines: 202
+   :caption: train_word2vec.py
+   :lineno-match:
+
+.. literalinclude:: ../../../examples/word2vec/train_word2vec.py
+   :language: python
+   :lines: 207
+   :caption: train_word2vec.py
+   :lineno-match:
+
+.. literalinclude:: ../../../examples/word2vec/train_word2vec.py
+   :language: python
+   :lines: 217-232
+   :caption: train_word2vec.py
+   :lineno-match:
+
 - Definition of the loss function. In effect, we are defining the network structure of skip-gram.
     -
     - After computing the linear mapping `self.out (x)` (`self.out: = L. Linear (n_in, n_out, initialW = 0) (x)`) with weight matrix for `x`, Calculate F.softmax_cross_entropy`.
