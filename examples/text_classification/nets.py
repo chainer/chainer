@@ -38,8 +38,7 @@ class Classifier(chainer.Chain):
         self.dropout = dropout
 
     def __call__(self, xs, ys):
-        concat_encodings = F.dropout(self.encoder(xs), ratio=self.dropout)
-        concat_outputs = self.output(concat_encodings)
+        concat_outputs = self.predict(xs)
         concat_truths = F.concat(ys, axis=0)
 
         loss = F.softmax_cross_entropy(concat_outputs, concat_truths)
@@ -47,6 +46,16 @@ class Classifier(chainer.Chain):
         reporter.report({'loss': loss.data}, self)
         reporter.report({'accuracy': accuracy.data}, self)
         return loss
+
+    def predict(self, xs, softmax=False, argmax=False):
+        concat_encodings = F.dropout(self.encoder(xs), ratio=self.dropout)
+        concat_outputs = self.output(concat_encodings)
+        if softmax:
+            return F.softmax(concat_outputs).data
+        elif argmax:
+            return self.xp.argmax(concat_outputs.data, axis=1)
+        else:
+            return concat_outputs
 
 
 class RNNEncoder(chainer.Chain):

@@ -54,12 +54,16 @@ def make_array(tokens, vocab, add_eos=True):
     return numpy.array(ids, 'i')
 
 
-def transform_to_array(dataset, vocab):
-    return [(make_array(tokens, vocab), numpy.array([cls], 'i'))
-            for tokens, cls in dataset]
+def transform_to_array(dataset, vocab, with_label=True):
+    if with_label:
+        return [(make_array(tokens, vocab), numpy.array([cls], 'i'))
+                for tokens, cls in dataset]
+    else:
+        return [make_array(tokens, vocab)
+                for tokens in dataset]
 
 
-def convert_seq_and_label(batch, device):
+def convert_seq(batch, device=None, with_label=True):
     def to_device_batch(batch):
         if device is None:
             return batch
@@ -73,5 +77,8 @@ def convert_seq_and_label(batch, device):
             batch_dev = cuda.cupy.split(concat_dev, sections)
             return batch_dev
 
-    return {'xs': to_device_batch([x for x, _ in batch]),
-            'ys': to_device_batch([y for _, y in batch])}
+    if with_label:
+        return {'xs': to_device_batch([x for x, _ in batch]),
+                'ys': to_device_batch([y for _, y in batch])}
+    else:
+        return to_device_batch([x for x in batch])
