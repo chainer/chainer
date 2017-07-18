@@ -41,6 +41,8 @@ class TimerHook(function.FunctionHook):
     def __init__(self):
         self.call_history = []
         self._running_stack = []
+        self._depth = 0
+        self._total_time = 0
 
     def _preprocess(self):
         if self.xp == numpy:
@@ -51,6 +53,7 @@ class TimerHook(function.FunctionHook):
             stop = cuda.Event()
             start.record()
             self._running_stack.append((start, stop))
+        self._depth += 1
 
     def forward_preprocess(self, function, in_data):
         self.xp = cuda.get_array_module(*in_data)
@@ -74,6 +77,11 @@ class TimerHook(function.FunctionHook):
                 start, stop) / 1000
         self.call_history.append((function, elapsed_time))
 
+        assert self._depth > 0
+        self._depth -= 1
+        if self._depth == 0:
+            self._total_time += elapsed_time
+
     def forward_postprocess(self, function, in_data):
         xp = cuda.get_array_module(*in_data)
         assert xp == self.xp
@@ -86,7 +94,8 @@ class TimerHook(function.FunctionHook):
 
     def total_time(self):
         """Returns total elapsed time in seconds."""
-        return sum(t for (_, t) in self.call_history)
+        return self._total_time
+        # return sum(t for (_, t) in self.call_history)
 
     def summary(self):
         """Returns a summary of time profiling in functions.

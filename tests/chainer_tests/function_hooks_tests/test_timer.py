@@ -122,6 +122,22 @@ class TestTimerHookToFunction(unittest.TestCase):
         self.assertLessEqual(g_time, t2 - t1)
         self.assertGreaterEqual(f_time, t2 - t1)
 
+    def test_reentrant_total_time(self):
+        g = functions.Identity()
+
+        t0 = time.time()
+        self.h.backward_preprocess(self.f, (self.x,), (self.gy,))
+        t1 = time.time()
+        self.h.forward_preprocess(g, (self.x,))
+        time.sleep(0.001)
+        self.h.forward_postprocess(g, (self.x,))
+        t2 = time.time()
+        self.h.backward_postprocess(self.f, (self.x,), (self.gy,))
+        t3 = time.time()
+
+        self.assertLessEqual(self.h.total_time(), t3 - t0)
+        self.assertGreaterEqual(self.h.total_time(), t2 - t1)
+
 
 class TestTimerPrintReport(unittest.TestCase):
 
