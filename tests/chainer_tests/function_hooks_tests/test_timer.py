@@ -103,7 +103,7 @@ class TestTimerHookToFunction(unittest.TestCase):
     def test_reentrant(self):
         # In/grad data are random; these do not simulate the actually possible
         # cases.
-        g = functions.Identity()  # any time other than Exp is ok
+        g = functions.Identity()  # any function other than Exp is ok
 
         self.h.backward_preprocess(self.f, (self.x,), (self.gy,))
         t1 = time.time()
