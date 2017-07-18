@@ -1,7 +1,11 @@
 from chainer.training import extension  # NOQA
+from chainer.training import extensions # NOQA
 from chainer.training import trainer  # NOQA
 from chainer.training import trigger  # NOQA
+from chainer.training import triggers  # NOQA
 from chainer.training import updater  # NOQA
+from chainer.training import updaters  # NOQA
+from chainer.training import util  # NOQA
 
 
 # import class and function
