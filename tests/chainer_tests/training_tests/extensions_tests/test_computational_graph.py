@@ -63,7 +63,7 @@ class TestGraphBuilderKeepGraphOnReport(unittest.TestCase):
 
         dataset = Dataset([i for i in range(n_data)])
         iterator = chainer.iterators.SerialIterator(dataset, 1, shuffle=False)
-        updater = training.StandardUpdater(iterator, optimizer)
+        updater = training.updaters.StandardUpdater(iterator, optimizer)
         trainer = training.Trainer(updater, (n_epochs, 'epoch'), out=outdir)
 
         extension = c.dump_graph('main/loss', out_name='test.dot')

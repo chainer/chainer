@@ -303,7 +303,7 @@ Backprop Through Time is implemented as follows.
        loss.unchain_backward()  # truncate
        optimizer.update()
 
-   updater = training.StandardUpdater(train_iter, optimizer, update_bptt)
+   updater = training.updaters.StandardUpdater(train_iter, optimizer, update_bptt)
 
 In this case, we update the parameters on every 35 consecutive words.
 The call of ``unchain_backward`` cuts the history of computation accumulated to the LSTM links.

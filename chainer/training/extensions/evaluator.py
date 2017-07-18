@@ -24,7 +24,7 @@ class Evaluator(extension.Extension):
     :class:`~chainer.Reporter` for details in naming rules of the reports.
 
     Evaluator has a structure to customize similar to that of
-    :class:`~chainer.training.StandardUpdater`. The main differences are:
+    :class:`~chainer.training.updaters.StandardUpdater`. The main differences are:
 
     - There are no optimizers in an evaluator. Instead, it holds links
       to evaluate.

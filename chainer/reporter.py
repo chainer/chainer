@@ -205,7 +205,7 @@ def report(values, observer=None):
 
        If the link is named ``'main'`` in the hierarchy (which is the default
        name of the target link in the
-       :class:`~chainer.training.StandardUpdater`), these reported values are
+       :class:`~chainer.training.updaters.StandardUpdater`), these reported values are
        named ``'main/abs_error'`` and ``'main/squared_error'``. If these values
        are reported inside the :class:`~chainer.training.extension.Evaluator`
        extension, ``'validation/'`` is added at the head of the link name, thus

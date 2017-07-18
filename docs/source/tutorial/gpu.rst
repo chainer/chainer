@@ -196,7 +196,7 @@ If we use :class:`chainer.training.Trainer`, what we have to do is just let the 
 
 .. testcode::
 
-   updater = training.StandardUpdater(train_iter, optimizer, device=0)
+   updater = training.updaters.StandardUpdater(train_iter, optimizer, device=0)
    trainer = training.Trainer(updater, (20, 'epoch'), out='result')
 
 We also have to specify the device ID for an evaluator extension as well.
@@ -319,7 +319,7 @@ First, define a model and optimizer instances:
    optimizer.setup(model)
 
 Recall that the ``MLP`` link implements the multi-layer perceptron, and the :class:`~chainer.links.Classifier` link wraps it to provide a classifier interface.
-We used :class:`~training.StandardUpdater` in the previous example.
+We used :class:`~training.updaters.StandardUpdater` in the previous example.
 In order to enable data-parallel computation with multiple GPUs, we only have to replace it with :class:`~training.ParallelUpdater`.
 
 .. doctest::

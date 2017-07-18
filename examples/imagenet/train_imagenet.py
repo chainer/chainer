@@ -132,7 +132,7 @@ def main():
     optimizer.setup(model)
 
     # Set up a trainer
-    updater = training.StandardUpdater(train_iter, optimizer, device=args.gpu)
+    updater = training.updaters.StandardUpdater(train_iter, optimizer, device=args.gpu)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), args.out)
 
     val_interval = (10 if args.test else 100000), 'iteration'

@@ -219,7 +219,7 @@ optimizer.setup(model)
 
 train_iter = WindowIterator(train, args.window, args.batchsize)
 val_iter = WindowIterator(val, args.window, args.batchsize, repeat=False)
-updater = training.StandardUpdater(
+updater = training.updaters.StandardUpdater(
     train_iter, optimizer, converter=convert, device=args.gpu)
 trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
 

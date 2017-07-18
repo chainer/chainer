@@ -549,7 +549,7 @@ Now we can build a trainer object.
 
 .. doctest::
 
-   >>> updater = training.StandardUpdater(train_iter, optimizer)
+   >>> updater = training.updaters.StandardUpdater(train_iter, optimizer)
    >>> trainer = training.Trainer(updater, (20, 'epoch'), out='result')
 
 The second argument ``(20, 'epoch')`` represents the duration of training.

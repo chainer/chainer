@@ -7,7 +7,7 @@ import chainer.functions as F
 from chainer import Variable
 
 
-class DCGANUpdater(chainer.training.StandardUpdater):
+class DCGANUpdater(chainer.training.updaters.StandardUpdater):
 
     def __init__(self, *args, **kwargs):
         self.gen, self.dis = kwargs.pop('models')

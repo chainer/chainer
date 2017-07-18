@@ -11,7 +11,7 @@ def to_device(device, x):
     :func:`~chainer.dataset.concat_examples`.
     You can also use this method in a custom converter method used in
     :class:`~chainer.training.Updater` and :class:`~chainer.training.Extension`
-    such as :class:`~chainer.training.StandardUpdater` and
+    such as :class:`~chainer.training.updaters.StandardUpdater` and
     :class:`~chainer.training.extensions.Evaluator`.
 
     See also :func:`chainer.dataset.concat_examples`.
