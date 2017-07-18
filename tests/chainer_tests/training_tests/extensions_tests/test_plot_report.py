@@ -23,14 +23,15 @@ class TestPlotReport(unittest.TestCase):
         else:
             self.assertEqual(len(w), 1)
 
+    @unittest.skipUnless(
+        extensions.PlotReport.available(), 'matplotlib is not installed')
     def test_lazy_import(self):
-        if extensions.PlotReport.available():
-            # To support python2, we do not use self.assertWarns()
-            with warnings.catch_warnings(record=True) as w:
-                import matplotlib
-                matplotlib.use('Agg')
+        # To support python2, we do not use self.assertWarns()
+        with warnings.catch_warnings(record=True) as w:
+            import matplotlib
+            matplotlib.use('Agg')
 
-            self.assertEqual(len(w), 0)
+        self.assertEqual(len(w), 0)
 
 
 testing.run_module(__name__, __file__)
