@@ -191,29 +191,27 @@ def main():
     parser.add_argument('--validation-target',
                         help='target sentence list for validation')
     parser.add_argument('--batchsize', '-b', type=int, default=64,
-                        help='Number of sentence pairs in each mini-batch')
+                        help='number of sentence pairs in each mini-batch')
     parser.add_argument('--epoch', '-e', type=int, default=20,
-                        help='Number of sweeps over the dataset to train')
+                        help='number of sweeps over the dataset to train')
     parser.add_argument('--gpu', '-g', type=int, default=-1,
                         help='GPU ID (negative value indicates CPU)')
     parser.add_argument('--resume', '-r', default='',
-                        help='Resume the training from snapshot')
+                        help='resume the training from snapshot')
     parser.add_argument('--unit', '-u', type=int, default=1024,
-                        help='Number of units')
+                        help='number of units')
     parser.add_argument('--layer', '-l', type=int, default=3,
-                        help='Number of layers')
+                        help='number of layers')
     parser.add_argument('--min-source-sentence', type=int, default=1,
-                        help='Minimium length of source sentence')
+                        help='minimium length of source sentence')
     parser.add_argument('--max-source-sentence', type=int, default=50,
-                        help='Maximum length of source sentence')
+                        help='maximum length of source sentence')
     parser.add_argument('--min-target-sentence', type=int, default=1,
-                        help='Minimium length of target sentence')
+                        help='minimium length of target sentence')
     parser.add_argument('--max-target-sentence', type=int, default=50,
-                        help='Maximum length of target sentence')
-    parser.add_argument('--input', '-i', type=str, default='wmt',
-                        help='Input directory')
+                        help='maximum length of target sentence')
     parser.add_argument('--out', '-o', default='result',
-                        help='Directory to output the result')
+                        help='directory to output the result')
     args = parser.parse_args()
 
     source_ids = load_vocabulary(args.SOURCE_VOCAB)
