@@ -40,7 +40,7 @@ def read_file(path, use_lower):
             yield words
 
 
-def split_dataset(
+def proc_dataset(
         path, outpath, vocab_path=None, vocab_size=None, use_lower=False):
     token_count = 0
     counts = collections.Counter()
@@ -78,7 +78,7 @@ def main():
         '--lower', action='store_true', help='use lower case')
     args = parser.parse_args()
 
-    split_dataset(
+    proc_dataset(
         args.INPUT, args.OUTPUT, vocab_path=args.vocab_file,
         vocab_size=args.vocab_size, use_lower=args.lower)
 
