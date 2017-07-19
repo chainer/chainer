@@ -46,6 +46,11 @@ def numerical_grad(f, inputs, grad_outputs, eps=1e-3):
 
     if gpu:
         xp = cuda.cupy
+        numerical_grad_kernel = cuda.reduce(
+            'T y1, T y2, U gy, T eps', 'V gxi',
+            '(y1 - y2) * gy', 'a + b', 'gxi += a / (eps * 2)', '0',
+            'numerical_grad_kernel'
+        )
     else:
         xp = numpy
     grads = [xp.zeros_like(x) for x in inputs]
@@ -61,8 +66,13 @@ def numerical_grad(f, inputs, grad_outputs, eps=1e-3):
                 x[i] = orig
                 for y1, y2, gy in six.moves.zip(ys1, ys2, grad_outputs):
                     if gy is not None:
-                        dot = ((y1 - y2) * gy).sum()
-                        gx[i] += dot / (2 * eps)
+                        if (gpu and isinstance(y1, cuda.ndarray) and
+                                isinstance(y2, cuda.ndarray) and
+                                isinstance(gy, cuda.ndarray)):
+                            numerical_grad_kernel(y1, y2, gy, eps, gx[i])
+                        else:
+                            dot = ((y1 - y2) * gy).sum()
+                            gx[i] += dot / (2 * eps)
 
     return grads
 

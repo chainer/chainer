@@ -8,7 +8,6 @@ from chainer.utils import type_check
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
     libcudnn = cudnn.cudnn
-    _cudnn_version = libcudnn.getVersion()
     _algorithm = libcudnn.CUDNN_SOFTMAX_ACCURATE
     _mode = libcudnn.CUDNN_SOFTMAX_MODE_CHANNEL
 
@@ -32,8 +31,7 @@ class Softmax(function.Function):
 
     def forward(self, x):
         xp = cuda.get_array_module(*x)
-        if (xp is not numpy and chainer.should_use_cudnn('>=auto') and
-                (_cudnn_version >= 3000 or x[0].dtype != numpy.float16)):
+        if xp is not numpy and chainer.should_use_cudnn('>=auto'):
             oz_dtype = 'd' if x[0].dtype == 'd' else 'f'
             one = numpy.array(1, dtype=oz_dtype).ctypes
             zero = numpy.array(0, dtype=oz_dtype).ctypes
@@ -58,8 +56,7 @@ class Softmax(function.Function):
     def backward(self, x, gy):
         y = self.output_data[0]
         xp = cuda.get_array_module(*y)
-        if (xp is not numpy and chainer.should_use_cudnn('>=auto') and
-                (_cudnn_version >= 3000 or y.dtype != numpy.float16)):
+        if xp is not numpy and chainer.should_use_cudnn('>=auto'):
             oz_dtype = 'd' if y[0].dtype == 'd' else 'f'
             one = numpy.array(1, dtype=oz_dtype).ctypes
             zero = numpy.array(0, dtype=oz_dtype).ctypes

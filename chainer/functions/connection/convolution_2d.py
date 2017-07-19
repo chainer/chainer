@@ -12,18 +12,11 @@ from chainer import variable
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
     libcudnn = cuda.cudnn.cudnn
-    _cudnn_version = libcudnn.getVersion()
     _fwd_pref = libcudnn.CUDNN_CONVOLUTION_FWD_SPECIFY_WORKSPACE_LIMIT
-    if _cudnn_version >= 3000:
-        _bwd_filter_pref = \
-            libcudnn.CUDNN_CONVOLUTION_BWD_FILTER_SPECIFY_WORKSPACE_LIMIT
-        _bwd_data_pref = \
-            libcudnn.CUDNN_CONVOLUTION_BWD_DATA_SPECIFY_WORKSPACE_LIMIT
-
-
-def _check_cudnn_acceptable_type(x_dtype, W_dtype):
-    return x_dtype == W_dtype and (
-        _cudnn_version >= 3000 or x_dtype != numpy.float16)
+    _bwd_filter_pref = \
+        libcudnn.CUDNN_CONVOLUTION_BWD_FILTER_SPECIFY_WORKSPACE_LIMIT
+    _bwd_data_pref = \
+        libcudnn.CUDNN_CONVOLUTION_BWD_DATA_SPECIFY_WORKSPACE_LIMIT
 
 
 def _pair(x):
@@ -120,7 +113,7 @@ class Convolution2DFunction(function.Function):
 
         y = cuda.cupy.empty((n, out_c, out_h, out_w), dtype=x.dtype)
         if (not self.cover_all and chainer.should_use_cudnn('>=auto') and
-                _check_cudnn_acceptable_type(x.dtype, W.dtype)):
+                x.dtype == W.dtype):
             x = cuda.cupy.ascontiguousarray(x)
             W = cuda.cupy.ascontiguousarray(W)
             if b is not None:
@@ -210,7 +203,7 @@ class Convolution2DFunction(function.Function):
         gx = None
 
         if (not self.cover_all and chainer.should_use_cudnn('>=auto') and
-                _check_cudnn_acceptable_type(x.dtype, W.dtype)):
+                x.dtype == W.dtype):
             x = cuda.cupy.ascontiguousarray(x)
             W = cuda.cupy.ascontiguousarray(W)
             gy = cuda.cupy.ascontiguousarray(gy)
@@ -222,59 +215,38 @@ class Convolution2DFunction(function.Function):
             one = numpy.array(1, dtype=oz_dtype).ctypes
             zero = numpy.array(0, dtype=oz_dtype).ctypes
 
-            if _cudnn_version >= 3000:
-                workspace_size = cuda.get_max_workspace_size()
-                workspace = cuda.cupy.empty((workspace_size,), dtype='b')
+            workspace_size = cuda.get_max_workspace_size()
+            workspace = cuda.cupy.empty((workspace_size,), dtype='b')
 
+            if configuration.config.cudnn_deterministic:
+                algo = libcudnn.CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1
+            else:
+                algo = libcudnn.getConvolutionBackwardFilterAlgorithm(
+                    handle, x_desc.value, gy_desc.value,
+                    self.conv_desc.value, self.filter_desc.value,
+                    _bwd_filter_pref, workspace_size)
+
+            libcudnn.convolutionBackwardFilter_v3(
+                handle, one.data, x_desc.value, x.data.ptr,
+                gy_desc.value, gy.data.ptr, self.conv_desc.value,
+                algo, workspace.data.ptr, workspace_size,
+                zero.data, self.filter_desc.value, gW.data.ptr)
+
+            if self.requires_x_grad:
                 if configuration.config.cudnn_deterministic:
-                    algo = cuda.cupy.cuda.cudnn.CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1  # NOQA
+                    algo = libcudnn.CUDNN_CONVOLUTION_BWD_DATA_ALGO_1
                 else:
-                    algo = libcudnn.getConvolutionBackwardFilterAlgorithm(
-                        handle, x_desc.value, gy_desc.value,
-                        self.conv_desc.value, self.filter_desc.value,
-                        _bwd_filter_pref, workspace_size)
+                    algo = libcudnn.getConvolutionBackwardDataAlgorithm(
+                        handle, self.filter_desc.value, gy_desc.value,
+                        self.conv_desc.value, x_desc.value, _bwd_data_pref,
+                        workspace_size)
 
-                libcudnn.convolutionBackwardFilter_v3(
-                    handle, one.data, x_desc.value, x.data.ptr,
+                gx = cuda.cupy.empty_like(x)
+                libcudnn.convolutionBackwardData_v3(
+                    handle, one.data, self.filter_desc.value, W.data.ptr,
                     gy_desc.value, gy.data.ptr, self.conv_desc.value,
                     algo, workspace.data.ptr, workspace_size,
-                    zero.data, self.filter_desc.value, gW.data.ptr)
-
-                if self.requires_x_grad:
-                    if configuration.config.cudnn_deterministic:
-                        algo = cuda.cupy.cuda.cudnn.CUDNN_CONVOLUTION_BWD_DATA_ALGO_1  # NOQA
-                    else:
-                        algo = libcudnn.getConvolutionBackwardDataAlgorithm(
-                            handle, self.filter_desc.value, gy_desc.value,
-                            self.conv_desc.value, x_desc.value, _bwd_data_pref,
-                            workspace_size)
-
-                    gx = cuda.cupy.empty_like(x)
-                    libcudnn.convolutionBackwardData_v3(
-                        handle, one.data, self.filter_desc.value, W.data.ptr,
-                        gy_desc.value, gy.data.ptr, self.conv_desc.value,
-                        algo, workspace.data.ptr, workspace_size,
-                        zero.data, x_desc.value, gx.data.ptr)
-            else:
-                if configuration.config.cudnn_deterministic:
-                    raise ValueError(
-                        "`cudnn_deterministic` option must be False "
-                        "if the backpropagation of "
-                        "chainer.functions.Convolution2D "
-                        "uses cuDNN and cuDNN versions < v3. "
-                        "Turn off cudnn_deterministic option with "
-                        "`chainer.using_config('cudnn_deterministic', False)` "
-                        "context.")
-                libcudnn.convolutionBackwardFilter_v2(
-                    handle, one.data, x_desc.value, x.data.ptr,
-                    gy_desc.value, gy.data.ptr, self.conv_desc.value,
-                    zero.data, self.filter_desc.value, gW.data.ptr)
-                if self.requires_x_grad:
-                    gx = cuda.cupy.empty_like(x)
-                    libcudnn.convolutionBackwardData_v2(
-                        handle, one.data, self.filter_desc.value, W.data.ptr,
-                        gy_desc.value, gy.data.ptr, self.conv_desc.value,
-                        zero.data, x_desc.value, gx.data.ptr)
+                    zero.data, x_desc.value, gx.data.ptr)
 
             if b is not None:
                 gb = cuda.cupy.empty_like(b)
