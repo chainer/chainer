@@ -172,7 +172,7 @@ def load_data(vocabulary, path):
 
 def calculate_unknown_ratio(data):
     unknown = sum((s == UNK).sum() for s in data)
-    total =  sum(s.size for s in data)
+    total = sum(s.size for s in data)
     return unknown / total
 
 
