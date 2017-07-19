@@ -1,10 +1,7 @@
 # encoding: utf-8
 
 import argparse
-import collections
-import os.path
 
-from nltk.corpus import comtrans
 from nltk.translate import bleu_score
 import numpy
 import progressbar
@@ -17,8 +14,6 @@ import chainer.links as L
 from chainer import reporter
 from chainer import training
 from chainer.training import extensions
-
-import europal
 
 
 UNK = 0
