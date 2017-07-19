@@ -109,14 +109,14 @@ Since there should be more than one Context Word, repeat the following process f
    softmax function is applied to the output layer :math:`L_O` to calculate
    :math:`softmax(L_O)`.
 
-    * To update the parameters, it is necessary to back-propagete the error
-      between the output layer and Context Word.
-    * However, the value of each element of the output layer takes the range
-      :math:`[-\infty, +\infty]`. Context Word's one-hot vector takes only
-      the range :math:`[0, 1]` for each element like ``[1 0 0 0 0 0 0 0 0 0]``.
-    * To limit the value of each element of the output layer between
-      :math:`[0, 1]`, the softmax functions is applied to the layer
-      because the function limits the value between :math:`[0, 1]`.
+        * To update the parameters, it is necessary to back-propagete the error
+          between the output layer and Context Word.
+        * However, the value of each element of the output layer takes the range
+          :math:`[-\infty, +\infty]`. Context Word's one-hot vector takes only
+          the range :math:`[0, 1]` for each element like ``[1 0 0 0 0 0 0 0 0 0]``.
+        * To limit the value of each element of the output layer between
+          :math:`[0, 1]`, the softmax functions is applied to the layer
+          because the function limits the value between :math:`[0, 1]`.
 
 5. Calculate the error between :math:`W_O` and **animal**'s one-hot vector
    ``[1 0 0 0 0 0 0 0 0 0 0]``, and propagate the error back to the network
@@ -128,6 +128,7 @@ Since there should be more than one Context Word, repeat the following process f
 ==========================================
 
 * There is an example related to Word2vec on the GitHub repository, so we will explain based on that.
+
         * `chainer/examples/word2vec <https://github.com/chainer/chainer/tree/master/examples/word2vec>`_
 
 4.1 Implementation method
@@ -158,24 +159,35 @@ Define network structures
 * When we call the constructor ``__init__``, we pass the vocabulary size
   ``n_vocab``, the size of the distributed vector ``n_units`` and the loss function
   ``loss_func`` as arguments.
-* The :class:`chaier.Parameter` s are initialized in ``self.init_scope()``.
 
-    * It is recommended to initialize :class:`chaier.Parameter` here.
-    * Since we set :class:`chaier.Parameter` as the attribute of Link, there are
-      effects such as making IDE easier to follow code.
-    * For details, see :ref:`upgrade-new-param-register`.
+        * The :class:`chaier.Parameter` s are initialized in ``self.init_scope()``.
 
-* The weight matrix of ``self.embed`` is the distributed representation matrix
-  :math:`W_H` for input.
+                * It is recommended to initialize :class:`chaier.Parameter` here.
+                * Since we set :class:`chaier.Parameter` as the attribute of Link,
+                  there are effects such as making IDE easier to follow code.
+                * For details, see :ref:`upgrade-new-param-register`.
 
-    * In the Skip-gram, since each Center Word has only one Context Word, there is
-      no problem to switch Context Word and Center Word. So, in tha code, we switch
-      the input and output to learn the distributed vectors.
-    * This is because it is easy to match the CBoW model code.
-    * Obtaining the distributed representation corresponding to context with
-      ``e = self.embed (context)``.
-    * Broad cast ID 'x' of Center Word for `batch_size` by the number of Context Word.
-    * `x` is` [batch_size * n_context,] `,` e` is `[batch_size * n_context, n_units]`.
+        * The weight matrix ``self.embed.W`` is the distributed representation
+          matrix for input :math:`W_H`.
+
+* The function call ``__call__`` takes Center Word's ID ``x`` and Context Word's ID
+  ``context``  as arguments, and returns the error calculated by the loss functions
+  ``self.loss_func``.
+
+        * When the function ``__call__`` is called, the size of ``x`` is
+          ``[batch_size]`` and the size of ``context`` is
+          ``[batch_size, n_context]``. The variable ``batch_size`` means the size
+          of mini-batch, and ``n_context`` means the size of Context Words.
+        * First, we obtain the distributed representation of ``context`` by
+          ``e = self.embed(context)``. In the Skip-gram, since each Center Word
+          has only one Context Word, there is no problem to switch Context Word and
+          Center Word. So, in tha code, Context Word is used as input for the
+          network. (This is because it is easy to match the CBoW code.)
+        * By ``F.broadcast_to(x[:, None], (shape[0], shape[1]))``, the Center Word's
+          ID ``x`` is broadcasted to each Context Word.
+        * At the end, the size of ``x`` is ``[batch_size * n_context,]`` and the
+          size of ``e`` is ``[batch_size * n_context, n_units]``. By
+          ``self.loss_func(e, x)``, the error is calculated.
 
 Define error function
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -186,17 +198,53 @@ Define error function
    :caption: train_word2vec.py
    :lineno-match:
 
+* Next, we define the loss function. Actually, this codes also include the part of
+  the network structures.
+
+        * After computing the linear transformation ``self.out(x)``, which is
+          defined by ``L.Linear(n_in, n_out, initialW = 0)``, we calculate
+          the error function of cross entropy followed by softmax function with
+          ``F.softmax_cross_entropy``.
+        * Here, the linear transformation matrix ``self.out.W`` corresponds to the
+          distributed representation matrix for output :math:`W_O`, and
+          ``F.softmax_cross_entropy`` corresponds to the softmax function and the
+          loss function.
+
 Define iterator for data
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. literalinclude:: ../../../examples/word2vec/train_word2vec.py
    :language: python
-   :lines: 114-155
+   :lines: 114-151
    :caption: train_word2vec.py
    :lineno-match:
 
+* The constructor ``__init__`` receives the document dataset ``dataset`` as a list of word IDs,
+  the window size ``window`` and the mini batch size ``batch_size``.
+
+        * In the constructor, we create a array ``self.order`` which shuffled
+          ``[window, window + 1, ..., len(dataset) - window - 1]`` in order to
+          iterate random-orderered ``dataset``.
+        * ex.) If the number of words in ``dataset`` is 100 and the window size
+          ``window`` is 5, ``self.order`` becomes :class:`numpy.ndarray` where
+          numbers from 5 to 94 are shuffled.
+
+* The iterator definition ``__next__`` returns mini batch sized Center Word
+  ``center`` and Context Word ``context`` according to the parameters of the
+  constructor.
+
+        * The code ``self.order[i:i_end]`` generates the indices ``position``
+          of Center Words, which size is ``batch_size``, from the random-ordered
+          array ``self.order``. The indices ``position`` will be converted to
+          Center Words ``center`` by ``self.dataset.take``.
+        * The code ``np.concatenate([np.arange (-w, 0), np.arange(1, w + 1)])``
+          creates the window offset ``offset``.
+        * The code ``position[:, None] + offset[None,:]`` generates the indices
+          of Context Words ``pos`` for each Center Word. The indices ``pos`` will
+          be converted to Context Words ``context`` by ``self.dataset.take``.
+
 Main function
-^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^
 
 .. literalinclude:: ../../../examples/word2vec/train_word2vec.py
    :language: python
@@ -204,11 +252,26 @@ Main function
    :caption: train_word2vec.py
    :lineno-match:
 
+* ``train`` and ``val`` means training data and validation data. Each data contains
+  the list of Document IDs
+
+        .. code-block:: console
+        
+            >>> train
+            array([ 0,  1,  2, ..., 39, 26, 24], dtype=int32)
+            >>> val
+            array([2211,  396, 1129, ...,  108,   27,   24], dtype=int32)
+
+* The maximum id in ``train`` will be the vocabulary size ``n_vocab``.
+
+
 .. literalinclude:: ../../../examples/word2vec/train_word2vec.py
    :language: python
    :lines: 202
    :caption: train_word2vec.py
    :lineno-match:
+
+* we create the ``model`` as Skip-gram.
 
 .. literalinclude:: ../../../examples/word2vec/train_word2vec.py
    :language: python
@@ -216,25 +279,31 @@ Main function
    :caption: train_word2vec.py
    :lineno-match:
 
+* we create the error function ``loss_func`` as ``SoftmaxCrossEntropyLoss``.
+
 .. literalinclude:: ../../../examples/word2vec/train_word2vec.py
    :language: python
-   :lines: 217-232
+   :lines: 217-218
    :caption: train_word2vec.py
    :lineno-match:
 
-- Definition of the loss function. In effect, we are defining the network structure of skip-gram.
-    -
-    - After computing the linear mapping `self.out (x)` (`self.out: = L. Linear (n_in, n_out, initialW = 0) (x)`) with weight matrix for `x`, Calculate F.softmax_cross_entropy`.
-    - Here, the linear mapping `self.out (x)` corresponds to the distributed expression matrix [tex: {W_O}] for Context Word, `F.softmax_cross_entropy` corresponds to the softmax function and loss calculation part.
-- Definition of Iterator
-    -
-    - The constructor `__init__` is passed a document dataset` dataset` with a list of word ids, a window size `window`, and a mini batch size` batch_size`.
-        - In this, we create a list `self.order` which shuffled the position of the word in the document. In order to learn, we do not learn from the beginning to the end of the document in order, but to select and learn words randomly from the document. The position of the word that cut off the beginning and the end by the window size is shuffled and entered.
-        - Example: If the number of words in the document dataset `dataset` is 100 and the window size` window` is 5, `self.order` becomes numpy.array where numbers from 5 to 94 are shuffled.
-    - Iterator definition `__next__` returns mini batch sized Center Word` center` and Context Word `context` according to the parameters of the constructor.
-        - `position = self.order [i: i_end]` generates the index `position` of Center Word of` batch_size` minutes from the list `self.order` shuffling the position of the word. (`Position` will be converted to Center Word` center` later by `self.dataset.take`.)
-        - `offset = np.concatenate ([np.arange (-w, 0), np.arange (1, w + 1)])` creates an offset `offset` representing the window.
-        - `pos = position [:, None] + offset [None,:]` for each C
+* we create the ``optimizer`` as Adam (Adaptive moment estimation).
+
+.. literalinclude:: ../../../examples/word2vec/train_word2vec.py
+   :language: python
+   :lines: 220-224
+   :caption: train_word2vec.py
+   :lineno-match:
+
+* we create the iterators, updater and trainer.
+
+.. literalinclude:: ../../../examples/word2vec/train_word2vec.py
+   :language: python
+   :lines: 232
+   :caption: train_word2vec.py
+   :lineno-match:
+
+* we run the trainer to start learning.
 
 4.2 Run example
 ----------------
@@ -243,7 +312,7 @@ Main function
 
     $ pwd
     /root2chainer/chainer/examples/word2vec
-    $ $ python train_word2vec.py --test  # test modeで実行。全データで学習したいときは--testを消去
+    $ python train_word2vec.py --test  # run by test mode. If you want to use all data, remove "--test".
     GPU: -1
     # unit: 100
     Window: 5
