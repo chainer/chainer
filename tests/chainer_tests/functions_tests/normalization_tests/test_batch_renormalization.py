@@ -36,8 +36,8 @@ class TestBatchRenormalization(unittest.TestCase):
         self.eps = 2e-5
         self.decay = 0.9
 
-        self.rmax = 3.
-        self.dmax = 5.
+        self.rmax = self.dtype(3)
+        self.dmax = self.dtype(5)
 
         self.gamma = numpy.random.uniform(.5, 1, (3,)).astype(self.dtype)
         self.beta = numpy.random.uniform(-1, 1, (3,)).astype(self.dtype)
@@ -65,10 +65,11 @@ class TestBatchRenormalization(unittest.TestCase):
                 'dtype': numpy.float64, 'atol': 1e-3, 'rtol': 1e-2}
 
     def check_forward(self, args):
-        y = batch_renormalization.batch_renormalization(
-            *[chainer.Variable(i) for i in args],
-            rmax=self.rmax, dmax=self.dmax, running_mean=self.running_mean,
-            running_var=self.running_var, decay=self.decay, eps=self.eps)
+        with chainer.using_config('train',  self.train):
+            y = batch_renormalization.batch_renormalization(
+                *[chainer.Variable(i) for i in args],
+                rmax=self.rmax, dmax=self.dmax, running_mean=self.running_mean,
+                running_var=self.running_var, decay=self.decay, eps=self.eps)
         self.assertEqual(y.data.dtype, self.dtype)
 
         sigma_batch = numpy.sqrt(self.var)
@@ -129,8 +130,8 @@ class TestFixedBatchRenormalization(unittest.TestCase):
         self.beta = numpy.random.uniform(-1, 1, (3,)).astype(self.dtype)
         self.expander = (None, Ellipsis) + (None,) * self.ndim
 
-        self.rmax = 3.
-        self.dmax = 5.
+        self.rmax = self.dtype(3)
+        self.dmax = self.dtype(5)
 
         shape = (5, 3) + (2,) * self.ndim
         self.x = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
@@ -152,9 +153,10 @@ class TestFixedBatchRenormalization(unittest.TestCase):
                 'dtype': numpy.float64, 'atol': 1e-3, 'rtol': 1e-2}
 
     def check_forward(self, args):
-        y = batch_renormalization.fixed_batch_renormalization(
-            *[chainer.Variable(i) for i in args],
-            eps=self.eps)
+        with chainer.using_config('train',  self.train):
+            y = batch_renormalization.fixed_batch_renormalization(
+                *[chainer.Variable(i) for i in args],
+                eps=self.eps)
         self.assertEqual(y.data.dtype, self.dtype)
 
         y_expect = _batch_renormalization(

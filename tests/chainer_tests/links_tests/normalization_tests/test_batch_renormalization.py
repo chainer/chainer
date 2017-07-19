@@ -35,8 +35,8 @@ class BatchRenormalizationTest(unittest.TestCase):
         self.expander = (None, Ellipsis) + (None,) * self.ndim
         self.aggr_axes = (0,) + tuple(six.moves.range(2, self.ndim + 2))
 
-        self.rmax = 3.
-        self.dmax = 5.
+        self.rmax = self.dtype(3)
+        self.dmax = self.dtype(5)
 
         self.link = links.BatchRenormalization(3, rmax=self.rmax,
                                                dmax=self.dmax,
