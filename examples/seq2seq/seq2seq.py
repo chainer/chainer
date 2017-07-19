@@ -7,6 +7,7 @@ import os.path
 from nltk.corpus import comtrans
 from nltk.translate import bleu_score
 import numpy
+import progressbar
 import six
 
 import chainer
@@ -155,15 +156,23 @@ class CalculateBleu(chainer.training.Extension):
         reporter.report({self.key: bleu})
 
 
+def count_lines(path):
+    with open(path) as f:
+        return sum([1 for _ in f])
+
+
 def load_vocabulary(path):
     with open(path) as f:
         return {line.strip(): i for i, line in enumerate(f)}
 
 
 def load_data(vocabulary, path):
+    n_lines = count_lines(path)
+    bar = progressbar.ProgressBar()
     data = []
+    print('loading...: %s' % path)
     with open(path) as f:
-        for line in f:
+        for line in bar(f, max_value=n_lines):
             words = line.strip().split()
             array = numpy.array([vocabulary.get(w, UNK) for w in words], 'i')
             data.append(array)
