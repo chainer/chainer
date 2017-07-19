@@ -178,6 +178,14 @@ def calculate_unknown_ratio(data):
 
 def main():
     parser = argparse.ArgumentParser(description='Chainer example: seq2seq')
+    parser.add_argument('SOURCE', help='source sentence list')
+    parser.add_argument('TARGET', help='target sentence list')
+    parser.add_argument('SOURCE_VOCAB', help='source vocabulary file')
+    parser.add_argument('TARGET_VOCAB', help='target vocabulary file')
+    parser.add_argument('--validation-source',
+                        help='source sentence list for validation')
+    parser.add_argument('--validation-target',
+                        help='target sentence list for validation')
     parser.add_argument('--batchsize', '-b', type=int, default=64,
                         help='Number of sentence pairs in each mini-batch')
     parser.add_argument('--epoch', '-e', type=int, default=20,
@@ -194,67 +202,24 @@ def main():
                         help='Directory to output the result')
     args = parser.parse_args()
 
-    if True:
-        source_ids = load_vocabulary('vocab.50K.en')
-        target_ids = load_vocabulary('vocab.50K.de')
-        train_source = load_data(source_ids, 'train.en')
-        train_target = load_data(target_ids, 'train.de')
-        assert len(train_source) == len(train_target)
-        train_data = list(six.moves.zip(train_source, train_target))
-        train_source_unknown = calculate_unknown_ratio(train_source)
-        train_target_unknown = calculate_unknown_ratio(train_target)
+    source_ids = load_vocabulary(args.SOURCE_VOCAB)
+    target_ids = load_vocabulary(args.TARGET_VOCAB)
+    train_source = load_data(source_ids, args.SOURCE)
+    train_target = load_data(target_ids, args.TARGET)
+    assert len(train_source) == len(train_target)
+    train_data = [(s, t)
+                  for s, t in six.moves.zip(train_source, train_target)
+                  if 0 < len(s) < 50 and 0 < len(t) < 50]
+    train_source_unknown = calculate_unknown_ratio(
+        [s for s, _ in train_data])
+    train_target_unknown = calculate_unknown_ratio(
+        [t for _, t in train_data])
 
-        test_source = load_data(source_ids, 'newstest2012.en')
-        test_target = load_data(target_ids, 'newstest2012.de')
-        test_data = list(six.moves.zip(test_source, test_target))
-
-        print('Source vocabulary: %d' % len(source_ids))
-        print('Target vocabulary: %d' % len(target_ids))
-        print('Train data: %d' % len(train_data))
-        print('Test data: %d' % len(test_data))
-        print('Source unknown: %.2f%%' % (train_source_unknown * 100))
-        print('Target unknown: %.2f%%' % (train_target_unknown * 100))
-
-    elif False:
-        sentences = comtrans.aligned_sents('alignment-en-fr.txt')
-        source_ids = collections.defaultdict(lambda: len(source_ids))
-        target_ids = collections.defaultdict(lambda: len(target_ids))
-        target_ids['eos']
-        data = []
-        for sentence in sentences:
-            source = numpy.array([source_ids[w] for w in sentence.words], 'i')
-            target = numpy.array([target_ids[w] for w in sentence.mots], 'i')
-            data.append((source, target))
-        print('Source vocabulary: %d' % len(source_ids))
-        print('Target vocabulary: %d' % len(target_ids))
-
-        test_data = data[:len(data) / 10]
-        train_data = data[len(data) / 10:]
-    else:
-        # Check file
-        en_path = os.path.join(args.input, 'giga-fren.release2.fixed.en')
-        source_vocab = ['<eos>', '<unk>'] + europal.count_words(en_path)
-        source_data = europal.make_dataset(en_path, source_vocab)
-        fr_path = os.path.join(args.input, 'giga-fren.release2.fixed.fr')
-        target_vocab = ['<eos>', '<unk>'] + europal.count_words(fr_path)
-        target_data = europal.make_dataset(fr_path, target_vocab)
-        assert len(source_data) == len(target_data)
-        print('Original training data size: %d' % len(source_data))
-        train_data = [(s, t)
-                      for s, t in six.moves.zip(source_data, target_data)
-                      if 0 < len(s) < 50 and 0 < len(t) < 50]
-        print('Filtered training data size: %d' % len(train_data))
-
-        en_path = os.path.join(args.input, 'dev', 'newstest2013.en')
-        source_data = europal.make_dataset(en_path, source_vocab)
-        fr_path = os.path.join(args.input, 'dev', 'newstest2013.fr')
-        target_data = europal.make_dataset(fr_path, target_vocab)
-        assert len(source_data) == len(target_data)
-        test_data = [(s, t) for s, t in six.moves.zip(source_data, target_data)
-                     if 0 < len(s) and 0 < len(t)]
-
-        source_ids = {word: index for index, word in enumerate(source_vocab)}
-        target_ids = {word: index for index, word in enumerate(target_vocab)}
+    print('Source vocabulary size: %d' % len(source_ids))
+    print('Target vocabulary size: %d' % len(target_ids))
+    print('Train data size: %d' % len(train_data))
+    print('Train source unknown ratio: %.2f%%' % (train_source_unknown * 100))
+    print('Train target unknown ratio: %.2f%%' % (train_target_unknown * 100))
 
     target_words = {i: w for w, i in target_ids.items()}
     source_words = {i: w for w, i in source_ids.items()}
@@ -279,37 +244,41 @@ def main():
          'elapsed_time']),
         trigger=(200, 'iteration'))
 
-    def translate_one(source, target):
-        words = europal.split_sentence(source)
-        print('# source : ' + ' '.join(words))
-        x = model.xp.array(
-            [source_ids.get(w, UNK) for w in words], 'i')
-        ys = model.translate([x])[0]
-        words = [target_words[y] for y in ys]
-        print('#  result : ' + ' '.join(words))
-        print('#  expect : ' + target)
+    if args.validation_source and args.validation_target:
+        test_source = load_data(source_ids, args.validation_source)
+        test_target = load_data(target_ids, args.validation_target)
+        assert len(test_source) == len(test_target)
+        test_data = list(six.moves.zip(test_source, test_target))
+        test_data = [(s, t) for s, t in test_data if 0 < len(s) and 0 < len(t)]
+        test_source_unknown = calculate_unknown_ratio(
+            [s for s, _ in test_data])
+        test_target_unknown = calculate_unknown_ratio(
+            [t for _, t in test_data])
 
-    @chainer.training.make_extension(trigger=(200, 'iteration'))
-    def translate(trainer):
-        translate_one(
-            'Who are we ?',
-            'Qui sommes-nous?')
-        translate_one(
-            'And it often costs over a hundred dollars ' +
-            'to obtain the required identity card .',
-            'Or, il en coûte souvent plus de cent dollars ' +
-            'pour obtenir la carte d\'identité requise.')
+        print('Validation data: %d' % len(test_data))
+        print('Validation source unknown ratio: %.2f%%' %
+              (test_source_unknown * 100))
+        print('Validation target unknown ratio: %.2f%%' %
+              (test_target_unknown * 100))
 
-        source, target = test_data[numpy.random.choice(len(test_data))]
-        source = ' '.join([source_words[i] for i in source])
-        target = ' '.join([target_words[i] for i in target])
-        translate_one(source, target)
+        @chainer.training.make_extension(trigger=(200, 'iteration'))
+        def translate(trainer):
+            source, target = test_data[numpy.random.choice(len(test_data))]
+            result = model.translate([model.xp.array(source)])[0]
 
-    trainer.extend(translate, trigger=(4000, 'iteration'))
-    trainer.extend(
-        CalculateBleu(
-            model, test_data, 'validation/main/bleu', device=args.gpu),
-        trigger=(4000, 'iteration'))
+            source_sentence = ' '.join([source_words[x] for x in source])
+            target_sentence = ' '.join([target_words[y] for y in target])
+            result_sentence = ' '.join([target_words[y] for y in result])
+            print('# source : ' + source_sentence)
+            print('#  result : ' + result_sentence)
+            print('#  expect : ' + target_sentence)
+
+        trainer.extend(translate, trigger=(4000, 'iteration'))
+        trainer.extend(
+            CalculateBleu(
+                model, test_data, 'validation/main/bleu', device=args.gpu),
+            trigger=(4000, 'iteration'))
+
     print('start training')
     trainer.run()
 
