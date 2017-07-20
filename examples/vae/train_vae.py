@@ -4,9 +4,6 @@
 from __future__ import print_function
 import argparse
 
-import matplotlib
-# Disable interactive backend
-matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 import six
