@@ -32,7 +32,6 @@ Updater
    chainer.training.updaters.StandardUpdater
    chainer.training.updaters.ParallelUpdater
    chainer.training.updaters.MultiprocessParallelUpdater
->>>>>>> master
 
 Extension
 ---------
