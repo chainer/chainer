@@ -435,7 +435,8 @@ class BaseNStepRNN(function.Function):
         dy_list = list(grads[self._n_cell:])
         for i in six.moves.range(len(dy_list)):
             if dy_list[i] is None:
-                dy_list[i] = cuda.cupy.zeros_like(x_list[i])
+                shape = (x_list[i].shape[0], self.rnn_direction * hx.shape[2])
+                dy_list[i] = cuda.cupy.zeros(shape, dtype='f')
 
         xs = cuda.cupy.concatenate(x_list, axis=0)
         length = len(x_list)
