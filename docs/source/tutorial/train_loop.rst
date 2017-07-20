@@ -5,7 +5,7 @@ How to write a training loop in Chainer
 
 In this tutorial section, we will learn how to train a deep neural network to classify images of hand-written digits in the popular MNIST dataset. This dataset contains 50,000 training examples and 10,000 test examples. Each example is a set of a 28 x 28 greyscale image and a corresponding class label. Since the digits from 0 to 9 are used, there are 10 classes for the labels.
 
-Chainer provides a feature called :class:`~chainer.training.Trainer` that can simplify the training procedure of your model. However, it is also good to know how the training works in Chainer before starting to use the useful :class:`~chainer.training.Trainer` class that hides the actual processes. For advanced users, it sometimes needs to write their own custom training loop.
+Chainer provides a feature called :class:`~chainer.training.Trainer` that can simplify the training procedure of your model. However, it is also good to know how the training works in Chainer before starting to use the useful :class:`~chainer.training.Trainer` class that hides the actual processes. Writing your own training loop can be useful for learning how :class:`~chainer.training.Trainer` works or for implementing features not included in the standard trainer.
 
 The complete training procedure consists of the following steps:
 
@@ -54,7 +54,7 @@ The saved image ``5.png`` will look like:
 2. Create the dataset iterators
 '''''''''''''''''''''''''''''''
 
-Although this is an optional step, we'd like to introduce the :class:`~chainer.dataset.Iterator` class that enables to retrieve a set of data and labels from the given dataset and give a mini-batch easily. There are some subclasses that can perform the same thing in different ways, e.g., using multi-processing to parallelize the data loading part, etc.
+Although this is an optional step, we'd like to introduce the :class:`~chainer.dataset.Iterator` class that retrieves a set of data and labels from the given dataset to easily make a mini-batch. There are some subclasses that can perform the same thing in different ways, e.g., using multi-processing to parallelize the data loading part, etc.
 
 Here, we use :class:`~chainer.iterators.SerialIterator`, which is also a subclass of :class:`~chainer.dataset.Iterator` in the below example code. The :class:`~chainer.iterators.SerialIterator` can provide mini-batches with or without shuffling the order of data in the given dataset.
 
@@ -108,7 +108,7 @@ The main steps are twofold:
 
 1. Register the network components which have trainable parameters to the subclass. Each of them must be instantiated and assigned to a property in the scope specified by :meth:`~chainer.Chain.init_scope`:
 
-2. Define a :meth:`~chainer.Chain.__call__` method that represents the actual **forward computation** of your network. This method takes one or more :class:`~chainer.Variable`, :class:`numpy.array`, or :class:`cupy.array` as its inputs and calculate the forward pass using them.
+2. Define a :meth:`~chainer.Chain.__call__` method that represents the actual **forward computation** of your network. This method takes one or more :class:`~chainer.Variable`, :class:`numpy.array`, or :class:`cupy.array` as its inputs and calculates the forward pass using them.
 
     .. testcode::
 
@@ -126,7 +126,7 @@ The main steps are twofold:
                 h = F.relu(self.l2(h))
                 return self.l3(h)
 
-It should be noted that only :class:`~chainer.Link`, :class:`~chainer.Chain`, and :class:`~chainer.ChainList` objects can be registered to the model by assinging it as a property inside the :meth:`~chainer.Chain.init_scope`. This is because they can contain trainable parameters. For example, a :class:`~chainer.Function` does not contain any trainable parameters, so there is no need to keep the object as a property of your network. When you want to use :meth:`~chainer.functions.relu` in your network, just simply using it as a function in :meth:`~chainer.Chain.__call__` works correctly.
+It should be noted that only :class:`~chainer.Link`, :class:`~chainer.Chain`, and :class:`~chainer.ChainList` objects can be registered to the model by assigning it as a property inside the :meth:`~chainer.Chain.init_scope`. This is because they can contain trainable parameters. For example, a :class:`~chainer.Function` does not contain any trainable parameters, so there is no need to keep the object as a property of your network. When you want to use :meth:`~chainer.functions.relu` in your network, using it as a function in :meth:`~chainer.Chain.__call__` works correctly.
 
 In Chainer, the Python code that implements the forward computation code itself represents the network. In other words, we can conceptually think of the computation graph for our network being constructed dynamically as this forward computation code executes. This allows Chainer to describe networks in which different computations can be performed in each iteration, such as branched networks, intuitively and with a high degree of flexibility. This is the key feature of Chainer that we call **Define-by-Run**.
 
@@ -185,7 +185,7 @@ The training loop code is as follows:
 
     while train_iter.epoch < max_epoch:
 
-        # ---------- One iteration of the trainig loop ----------
+        # ---------- One iteration of the training loop ----------
         train_batch = train_iter.next()
         image_train, target_train = concat_examples(train_batch, gpu_id)
 
