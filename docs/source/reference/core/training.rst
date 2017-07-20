@@ -29,8 +29,10 @@ Updater
    :nosignatures:
 
    chainer.training.Updater
-   chainer.training.updaters.standard_updater.StandardUpdater
-   chainer.training.updaters.parallel_updater.ParallelUpdater
+   chainer.training.updaters.StandardUpdater
+   chainer.training.updaters.ParallelUpdater
+   chainer.training.updaters.MultiprocessParallelUpdater
+>>>>>>> master
 
 Extension
 ---------
