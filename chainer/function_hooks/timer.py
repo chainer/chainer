@@ -40,14 +40,20 @@ class TimerHook(function.FunctionHook):
 
     def __init__(self):
         self.call_history = []
+        self._running_stack = []
+        self._depth = 0
+        self._total_time = 0
 
     def _preprocess(self):
         if self.xp == numpy:
-            self.start = time.time()
+            start = time.time()
+            self._running_stack.append(start)
         else:
-            self.start = cuda.Event()
-            self.stop = cuda.Event()
-            self.start.record()
+            start = cuda.Event()
+            stop = cuda.Event()
+            start.record()
+            self._running_stack.append((start, stop))
+        self._depth += 1
 
     def forward_preprocess(self, function, in_data):
         self.xp = cuda.get_array_module(*in_data)
@@ -59,15 +65,22 @@ class TimerHook(function.FunctionHook):
 
     def _postprocess(self, function):
         if self.xp == numpy:
-            self.stop = time.time()
-            elapsed_time = self.stop - self.start
+            start = self._running_stack.pop()
+            stop = time.time()
+            elapsed_time = stop - start
         else:
-            self.stop.record()
-            self.stop.synchronize()
+            start, stop = self._running_stack.pop()
+            stop.record()
+            stop.synchronize()
             # Note that `get_elapsed_time` returns result in milliseconds
             elapsed_time = cuda.cupy.cuda.get_elapsed_time(
-                self.start, self.stop) / 1000
+                start, stop) / 1000
         self.call_history.append((function, elapsed_time))
+
+        assert self._depth > 0
+        self._depth -= 1
+        if self._depth == 0:
+            self._total_time += elapsed_time
 
     def forward_postprocess(self, function, in_data):
         xp = cuda.get_array_module(*in_data)
@@ -81,7 +94,7 @@ class TimerHook(function.FunctionHook):
 
     def total_time(self):
         """Returns total elapsed time in seconds."""
-        return sum(t for (_, t) in self.call_history)
+        return self._total_time
 
     def summary(self):
         """Returns a summary of time profiling in functions.
