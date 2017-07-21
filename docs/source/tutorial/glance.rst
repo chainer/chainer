@@ -20,6 +20,8 @@ How will Chainer learn which mushrooms are edible and which mushrooms will kill 
 
 Let's start our python program. Matplotlib is used for the graphs to show training progress.
  
+.. doctest::
+
    #!/usr/bin/env python
    
    from __future__ import print_function
@@ -32,6 +34,8 @@ Let's start our python program. Matplotlib is used for the graphs to show traini
 
 Typical imports for a Chainer program. Links contain trainable parameters and functions do not.
 
+.. doctest::
+
    import chainer
    import chainer.functions as F
    import chainer.links as L
@@ -43,6 +47,8 @@ Typical imports for a Chainer program. Links contain trainable parameters and fu
    
 From the raw mushroom.csv, we format the data into a Chainer dataset. Chainer requires a numpy array for the features in the X matrix and a flattened array if the label is one-dimensional.
 
+.. doctest::
+
    data_array = np.genfromtxt('mushrooms.csv', delimiter=',',dtype=str, skip_header=1)
    labelEncoder = sp.LabelEncoder()
    for col in range(data_array.shape[1]):
@@ -53,6 +59,8 @@ From the raw mushroom.csv, we format the data into a Chainer dataset. Chainer re
    train, test = datasets.split_dataset_random(datasets.TupleDataset(X, Y), 623)
    
 Define the neural network. For our mushrooms, we'll use two fully-connected, hidden layers between the input and output layers.
+
+.. doctest::
 
    # Network definition
    class MLP(chainer.Chain):
@@ -67,6 +75,8 @@ Define the neural network. For our mushrooms, we'll use two fully-connected, hid
    
 As an activation function, we'll use standard Rectified Linear Units (relu).
 
+.. doctest::
+
        def __call__(self, x):
    	h1 = F.relu(self.l1(x))
    	h2 = F.relu(self.l2(h1))
@@ -74,9 +84,13 @@ As an activation function, we'll use standard Rectified Linear Units (relu).
    
 Since mushrooms are either edible or poisonous (no information on psychedelic effects!) in the dataset, we'll use a classifier Link for the output, with 100 units in the hidden layers and 2 possible categories to be classified into.
    
+.. doctest::
+
    model = L.Classifier(MLP(100, 2))
 
 If using a CPU instead of the GPU, set gpu_id to -1. Otherwise, use the ID of the GPU, usually 0.
+
+.. doctest::
 
    gpu_id = -1
    
@@ -87,11 +101,15 @@ If using a CPU instead of the GPU, set gpu_id to -1. Otherwise, use the ID of th
    
 Pick and optimizer, and set up the model to use it.
 
+.. doctest::
+
    # Setup an optimizer
    optimizer = chainer.optimizers.SGD()
    optimizer.setup(model)
    
 Configure iterators to step through batches of the data for training and for testing validation. In this case, we'll use a batch size of 100, no repeating, and shuffling not required since we already shuffled the dataset on reading it in.
+
+.. doctest::
 
    train_iter = chainer.iterators.SerialIterator(train, 100)
    test_iter = chainer.iterators.SerialIterator(test, 100,
@@ -99,27 +117,39 @@ Configure iterators to step through batches of the data for training and for tes
 
 Set up the updater to be called after the training batches and set the number of batches per epoch to 100. The learning rate per epoch will be output to the directory `result`.
    
+.. doctest::
+
    # Set up a trainer
    updater = training.StandardUpdater(train_iter, optimizer, device=gpu_id)
    trainer = training.Trainer(updater, (100, 'epoch'), out='result')
    
 Set the model to be evaluated after each epoch.
 
+.. doctest::
+
    trainer.extend(extensions.Evaluator(test_iter, model, device=gpu_id))
    
 Dump a computational graph from 'loss' variable at the first iteration. The "main" refers to the target link of the "main" optimizer.
+
+.. doctest::
 
    trainer.extend(extensions.dump_graph('main/loss'))
    
 Take a snapshot of the training every 20 epochs.
 
+.. doctest::
+
    trainer.extend(extensions.snapshot(), trigger=(20, 'epoch'))
    
 Write a log of evaluation statistics for each epoch.
 
+.. doctest::
+
    trainer.extend(extensions.LogReport())
    
 Save two plot images to the result directory.
+
+.. doctest::
 
    if extensions.PlotReport.available():
        trainer.extend(
@@ -132,15 +162,21 @@ Save two plot images to the result directory.
    
 Print selected entries of the log to standard output.
 
+.. doctest::
+
    trainer.extend(extensions.PrintReport(
        ['epoch', 'main/loss', 'validation/main/loss',
         'main/accuracy', 'validation/main/accuracy', 'elapsed_time']))
    
 Print a progress bar to standard output.
 
+.. doctest::
+
    trainer.extend(extensions.ProgressBar())
    
 Run the training.
+
+.. doctest::
 
    trainer.run()
    
