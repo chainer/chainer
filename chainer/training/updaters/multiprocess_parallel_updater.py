@@ -85,9 +85,11 @@ class MultiprocessParallelUpdater(standard_updater.StandardUpdater):
     with multi-process data parallelism. It uses Nvidia NCCL for communication
     between multiple GPUs.
 
-    It behaves similarly to :class:`~chainer.training.updaters.StandardUpdater`. The
-    update routine is modified to support data-parallel computation on multiple
-    GPUs in one machine. It is based on synchronous parallel SGD: it
+    It behaves similarly to
+    :class:`~chainer.training.updaters.StandardUpdater`.
+    The update routine is modified to support data-parallel
+    computation on multiple GPUs in one machine.
+    It is based on synchronous parallel SGD: it
     parallelizes the gradient computation over a mini-batch, and updates the
     parameters only in the main device.
 

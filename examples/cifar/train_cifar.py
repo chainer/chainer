@@ -62,7 +62,8 @@ def main():
     test_iter = chainer.iterators.SerialIterator(test, args.batchsize,
                                                  repeat=False, shuffle=False)
     # Set up a trainer
-    updater = training.updaters.StandardUpdater(train_iter, optimizer, device=args.gpu)
+    updater = training.updaters.StandardUpdater(
+        train_iter, optimizer, device=args.gpu)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
 
     # Evaluate the model with the test dataset for each epoch

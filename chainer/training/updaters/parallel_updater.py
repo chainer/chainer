@@ -11,9 +11,11 @@ class ParallelUpdater(standard_updater.StandardUpdater):
     """Implementation of a parallel GPU Updater.
 
     This is an implementation of :class:`Updater` that uses multiple GPUs.
-    It behaves similarly to :class:`~chainer.training.updaters.StandardUpdater`. The
-    update routine is modified to support data-parallel computation on multiple
-    GPUs in one machine. It is based on synchronous parallel SGD: it
+    It behaves similarly to
+    :class:`~chainer.training.updaters.StandardUpdater`.
+    The update routine is modified to support data-parallel computation
+    on multiple GPUs in one machine.
+    It is based on synchronous parallel SGD: it
     parallelizes the gradient computation over a mini-batch, and updates the
     parameters only in the main device.
 

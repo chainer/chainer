@@ -61,7 +61,8 @@ class TestUpdater(unittest.TestCase):
         self.iterator = DummyIterator([(numpy.array(1), numpy.array(2))])
         self.optimizer = DummyOptimizer()
         self.optimizer.setup(self.target)
-        self.updater = training.updaters.StandardUpdater(self.iterator, self.optimizer)
+        self.updater = training.updaters.StandardUpdater(
+            self.iterator, self.optimizer)
 
     def test_init_values(self):
         self.assertIsNone(self.updater.device)
