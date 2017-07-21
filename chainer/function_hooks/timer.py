@@ -95,7 +95,6 @@ class TimerHook(function.FunctionHook):
     def total_time(self):
         """Returns total elapsed time in seconds."""
         return self._total_time
-        # return sum(t for (_, t) in self.call_history)
 
     def summary(self):
         """Returns a summary of time profiling in functions.
