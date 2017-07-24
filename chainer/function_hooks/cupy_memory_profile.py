@@ -42,6 +42,9 @@ class CupyMemoryProfileHook(function.FunctionHook):
     def __init__(self):
         self.call_history = []
         self._memory_hook = CupyMemoryCumulativeHook()
+        self._running_stack = []
+        self._total_used_bytes = 0
+        self._total_acquired_bytes = 0
 
     def added(self, function=None):
         self._memory_hook.__enter__()
@@ -50,8 +53,9 @@ class CupyMemoryProfileHook(function.FunctionHook):
         self._memory_hook.__exit__()
 
     def _preprocess(self):
-        self.start_used_bytes = self._memory_hook.used_bytes
-        self.start_acquired_bytes = self._memory_hook.acquired_bytes
+        start_used_bytes = self._memory_hook.used_bytes
+        start_acquired_bytes = self._memory_hook.acquired_bytes
+        self._running_stack.append((start_used_bytes, start_acquired_bytes))
 
     def forward_preprocess(self, function, in_data):
         self._preprocess()
@@ -60,11 +64,16 @@ class CupyMemoryProfileHook(function.FunctionHook):
         self._preprocess()
 
     def _postprocess(self, function):
+        start_used_bytes, start_acquired_bytes = self._running_stack.pop()
         end_used_bytes = self._memory_hook.used_bytes
         end_acquired_bytes = self._memory_hook.acquired_bytes
-        used_bytes = end_used_bytes - self.start_used_bytes
-        acquired_bytes = end_acquired_bytes - self.start_acquired_bytes
-        self.call_history.append((function, used_bytes, acquired_bytes))
+        used_bytes = end_used_bytes - start_used_bytes
+        acquired_bytes = end_acquired_bytes - start_acquired_bytes
+        depth = len(self._running_stack)
+        self.call_history.append((function, used_bytes, acquired_bytes, depth))
+        if depth == 0:
+            self._total_used_bytes += used_bytes
+            self._total_acquired_bytes += acquired_bytes
 
     def forward_postprocess(self, function, in_data):
         self._postprocess(function)
@@ -74,11 +83,11 @@ class CupyMemoryProfileHook(function.FunctionHook):
 
     def total_used_bytes(self):
         """Returns total bytes that functions used from cupy memory pool."""
-        return sum(u for (_, u, _) in self.call_history)
+        return self._total_used_bytes
 
     def total_acquired_bytes(self):
         """Returns total bytes that cupy memory pool acquired from GPU."""
-        return sum(a for (_, _, a) in self.call_history)
+        return self._total_acquired_bytes
 
     def summary(self):
         """Returns a summary of memory profiling in functions.
@@ -88,8 +97,9 @@ class CupyMemoryProfileHook(function.FunctionHook):
             values are dictionaries of
             ``used_bytes``, ``acquired_bytes``, and ``occurrrence``.
         """
+        # TODO(sonots): PROBLEM: takes count of nested functions duplicately
         summary = {}
-        for func, used_bytes, acquired_bytes in self.call_history:
+        for func, used_bytes, acquired_bytes, depth in self.call_history:
             function_name = func.__class__.__name__
             if function_name not in summary:
                 summary[function_name] = {'used_bytes': 0,
