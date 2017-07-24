@@ -95,6 +95,48 @@ class TestCupyMemoryProfileHookToFunction(unittest.TestCase):
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
+    def test_reentrant(self):
+        # In/grad data are random; these do not simulate the actually possible
+        # cases.
+        f = self.f
+        g = functions.Identity()  # any function other than f: Exp is ok
+
+        self.h.backward_preprocess(f, (self.x,), (self.gy,))
+        self.h.forward_preprocess(g, (self.x,))
+        self.h._memory_hook.used_bytes += 512
+        self.h._memory_hook.acquired_bytes += 512
+        self.h.forward_postprocess(g, (self.x,))
+        self.h._memory_hook.used_bytes += 512
+        self.h._memory_hook.acquired_bytes += 512
+        self.h.backward_postprocess(f, (self.x,), (self.gy,))
+
+        history = {f: (u, a, d) for (f, u, a, d) in self.h.call_history}
+        self.assertEqual(len(history), 2)
+        self.assertIn(f, history)
+        self.assertIn(g, history)
+        f_used_bytes, f_acquired_bytes, f_depth = history[f]
+        g_used_bytes, g_acquired_bytes, g_depth = history[g]
+        self.assertEqual(f_depth, 0)
+        self.assertEqual(g_depth, 1)
+        self.assertGreater(f_used_bytes, g_used_bytes)
+        self.assertGreater(f_acquired_bytes, g_acquired_bytes)
+
+    def test_reentrant_total_bytes(self):
+        f = self.f
+        g = functions.Identity()
+
+        self.h.backward_preprocess(f, (self.x,), (self.gy,))
+        self.h.forward_preprocess(g, (self.x,))
+        self.h._memory_hook.used_bytes += 512
+        self.h._memory_hook.acquired_bytes += 512
+        self.h.forward_postprocess(g, (self.x,))
+        self.h._memory_hook.used_bytes += 512
+        self.h._memory_hook.acquired_bytes += 512
+        self.h.backward_postprocess(f, (self.x,), (self.gy,))
+
+        self.assertEqual(self.h.total_used_bytes(), 1024)
+        self.assertEqual(self.h.total_acquired_bytes(), 1024)
+
 
 class TestCupyMemoryProfileReport(unittest.TestCase):
 
