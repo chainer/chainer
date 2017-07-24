@@ -198,7 +198,7 @@ class GRU(StatefulGRU):
        You can use :class:`~chainer.links.StatelessGRU` for stateless version,
        whose implementation is identical to ``chainer.linksGRU`` in v1.
 
-       See issue `#2537 <https://github.com/pfnet/chainer/issues/2537>_`
+       See issue `#2537 <https://github.com/chainer/chainer/issues/2537>_`
        for detail.
 
     .. seealso:: :class:`~chainer.links.GRU`
