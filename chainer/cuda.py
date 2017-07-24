@@ -34,27 +34,26 @@ import chainer
 
 available = False
 cudnn_enabled = False
+_resolution_error = None
 
 try:
     import cupy
-    from cupy import cuda  # NOQA
-    from cupy.cuda import cublas  # NOQA
 
-    from cupy import ndarray  # NOQA
+    if cupy.is_available():
+        from cupy import cuda  # NOQA
+        from cupy.cuda import cublas  # NOQA
 
-    from cupy.cuda import Device  # NOQA
-    from cupy.cuda import Event  # NOQA
-    from cupy.cuda import Stream  # NOQA
+        from cupy import ndarray  # NOQA
 
-    from . import cuda_fusion as fusion  # NOQA
+        from cupy.cuda import Device  # NOQA
+        from cupy.cuda import Event  # NOQA
+        from cupy.cuda import Stream  # NOQA
 
-    available = True
+        from . import cuda_fusion as fusion  # NOQA
+
+        available = True
 except Exception as e:
     _resolution_error = e
-    fusion = numpy
-
-    class ndarray(object):
-        pass  # for type testing
 
 if available:
     _cudnn_disabled_by_user = int(os.environ.get('CHAINER_CUDNN', '1')) == 0
@@ -64,6 +63,10 @@ if available:
         cudnn_enabled = not _cudnn_disabled_by_user
     except Exception as e:
         _resolution_error = e
+else:
+    fusion = numpy
+    class ndarray(object):
+        pass  # for type testing
 
 
 def check_cuda_available():
@@ -75,7 +78,8 @@ def check_cuda_available():
     if not available:
         msg = ('CUDA environment is not correctly set up\n'
                '(see https://github.com/pfnet/chainer#installation).')
-        msg += str(_resolution_error)
+        if _resolution_error is not None:
+            msg += str(_resolution_error)
         raise RuntimeError(msg)
     if (not cudnn_enabled and
             not _cudnn_disabled_by_user and
