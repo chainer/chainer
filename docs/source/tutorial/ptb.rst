@@ -1,10 +1,7 @@
 The Implementation of Recurrent Net Language Model with Chainer
 ****************************************************************
 
-\usepackage{bm}
-
 .. currentmodule:: chainer
-
 
 0. Introduction
 ================
