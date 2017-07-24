@@ -72,8 +72,5 @@ class Updater(object):
 
 
 # For backward compatibility
-from chainer.training.updaters import parallel_updater  # NOQA
-from chainer.training.updaters import standard_updater  # NOQA
-
-StandardUpdater = standard_updater.StandardUpdater
-ParallelUpdater = parallel_updater.ParallelUpdater
+from chainer.training.updaters.parallel_updater import ParallelUpdater  # NOQA
+from chainer.training.updaters.standard_updater import StandardUpdater  # NOQA
