@@ -185,7 +185,12 @@ class UpdateRule(object):
             return
 
         self.t += 1
+
+        if param.data is None:
+            return
+
         self._prepare(param)
+
         for hook in six.itervalues(self._hooks):
             hook(self, param)
         self.update_core(param)
@@ -422,7 +427,8 @@ class Optimizer(object):
     def _call_hook(self, hook):
         if getattr(hook, 'call_for_each_param', False):
             for param in self.target.params():
-                hook(param.update_rule, param)
+                if param.data is not None:
+                    hook(param.update_rule, param)
         else:
             hook(self)
 
