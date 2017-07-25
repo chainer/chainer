@@ -24,7 +24,7 @@ class Sqrt(function.Function):
 
     def backward(self, x, gy):
         xp = cuda.get_array_module(*gy)
-        gx = xp.copy(self.output_data[0])
+        gx = self.output_data[0].copy()
         gx *= 2.0
         xp.reciprocal(gx, out=gx)
         gx *= gy[0]
