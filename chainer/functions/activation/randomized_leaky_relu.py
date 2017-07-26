@@ -90,5 +90,17 @@ def randomized_leaky_relu(x, l=1./8, u=1./3, train=True):
     Returns:
         ~chainer.Variable: Outputs variable. A
         :math:`(s_1, s_2, ..., s_N)`-shaped float array.
+
+    .. admonition:: Example
+
+        >>> x = np.array([[-1, 0], [2, -3], [-2, 1]], 'f')
+        >>> x
+        array([[-1.,  0.],
+               [ 2., -3.],
+               [-2.,  1.]], dtype=float32)
+        >>> randomized_leaky_relu(x).data
+        array([[-0.24850948,  0.        ],
+               [ 2.        , -0.50844127],
+               [-0.598535  ,  1.        ]], dtype=float32)
     """
     return RReLU(l, u, train)(x)
