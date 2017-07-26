@@ -1,5 +1,5 @@
-The Implementation of Recurrent Net Language Model with Chainer
-****************************************************************
+The Implementation of Recurrent Neural Net Language Model with Chainer
+**********************************************************************
 
 .. currentmodule:: chainer
 
@@ -29,5 +29,40 @@ the conditional probability by the previous words :math:`P(y_t|Y[0, t-1])`.
 So, in the language model, we model :math:`P(y_t|Y[0, t-1])`.
 
 
-1. Basic Idea of Recurrent Net Language Model
-=============================================
+1. Basic Idea of Recurrent Neural Net Language Model
+=====================================================
+
+**Recurrent Neurral Net Language Model** (RNN language model) is the neural net
+language model which contains the RNN in the network. Since the RNN can deal with
+the variable length inputs, it is suitable for modeling the sequential data such
+that natural languages. 
+
+The probablity of generating the sentence :math:`Y` is denoted as
+:math:`P_{model}(Y)`,
+
+.. math:: P_{model}(Y) = P(y_0) \prod_{t=1}^T P(y_t|Y[0, t-1])
+
+We show the one layer of the RNN language model with these parameters.
+
+- :math:`E` : Embedding matrix
+- :math:`W_h` : Hidden layer matrix
+- :math:`W_o` : Output layer matrix
+
+.. image:: ../../image/ptb/rnnlm.png
+
+#. Get the embedding vector
+
+    .. math:: y_t^* = Ey_{t-1}
+
+#. Calculate the hidden layer
+
+    .. math:: h_t = tanh(W_h [y_t^*; h_{t-1}])
+
+#. Calculate the output layer
+
+    .. math:: o_t = W_o h_t
+
+#. Transform to probability
+
+    .. math:: p_t = softmax(o_t)
+
