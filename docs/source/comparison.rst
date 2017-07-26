@@ -4,7 +4,7 @@ Comparison with Other Frameworks
 A table for quick comparison
 ----------------------------
 
-This table compares Chainer with other actively developed deep learning frameworks. Content is current as of May 2017.
+This table compares Chainer with other actively developed deep learning frameworks. Content is current as of July 2017.
 
 .. csv-table::
    :stub-columns: 2
