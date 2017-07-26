@@ -26,7 +26,7 @@ class TestRReLU(unittest.TestCase):
                 self.x[i] = 0.5
         self.gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         self.l = random.random()
-        self.u = random.random()        
+        self.u = random.random()
         self.check_forward_options = {}
         self.check_backward_options = {'dtype': numpy.float64}
         if self.dtype == numpy.float16:
