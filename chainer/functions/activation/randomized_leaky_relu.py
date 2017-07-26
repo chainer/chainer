@@ -29,7 +29,7 @@ class RReLU(function.Function):
             self.r = np.random.uniform(self.lower, self.upper, x[0].shape[0:2])
         else:
             self.r = np.empty(x[0].shape[0:2])
-            self.r.fill((self.lower+self.upper) / 2)
+            self.r.fill((self.lower + self.upper) / 2)
         y *= np.where(x[0] < 0, self.r, 1)
         if self.lower >= 0 and self.upper >= 0:
             self.retain_inputs(())
@@ -44,7 +44,7 @@ class RReLU(function.Function):
             ).astype(x[0].dtype)
         else:
             self.r = xp.empty(x[0].shape[:2])
-            self.r.fill((self.lower+self.upper) / 2.0)
+            self.r.fill((self.lower + self.upper) / 2.0)
             self.r = self.r.astype(x[0].dtype)
         y = _kern()(x[0], x[0], self.r)
         if self.lower >= 0 and self.upper >= 0:

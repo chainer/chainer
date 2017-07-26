@@ -42,7 +42,7 @@ class TestRReLU(unittest.TestCase):
         expected = self.x.copy()
         for i in numpy.ndindex(self.x.shape):
             if self.x[i] < 0:
-                expected[i] *= (self.l+self.u) / 2
+                expected[i] *= (self.l + self.u) / 2
 
         testing.assert_allclose(
             expected, y.data, **self.check_forward_options)
