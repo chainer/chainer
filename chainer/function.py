@@ -232,9 +232,11 @@ class Function(object):
             del self._input_indexes_to_retain
 
             output_indexes_to_retain = self._output_indexes_to_retain
+            self.output_data = [None for y in ret]
             if output_indexes_to_retain is not None:
                 for index in output_indexes_to_retain:
                     ret[index].retain_data()
+                    self.output_data[index] = ret[index].node.data
             del self._output_indexes_to_retain
 
         if len(ret) == 1:
@@ -495,7 +497,7 @@ class Function(object):
         """
         self._input_indexes_to_retain = indexes
 
-    def retain_outputs(self, indexes, retain_after_backward=False):
+    def retain_outputs(self, indexes, retain_after_backward=True):
         """Lets specified output variable nodes keep data arrays.
 
         By calling this method from :meth:`forward`, the function can specify
