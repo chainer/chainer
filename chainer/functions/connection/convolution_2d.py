@@ -41,6 +41,11 @@ class Convolution2DFunction(function.Function):
         self.cover_all = cover_all
         self.requires_x_grad = requires_x_grad
 
+        self._recompute = False
+        _fnames = getattr(configuration.config, 'recompute_targets', [])
+        if 'Convolution2D' in _fnames:
+            self._recompute = True
+
     def check_type_forward(self, in_types):
         n_in = in_types.size()
         type_check.expect(2 <= n_in, n_in <= 3)

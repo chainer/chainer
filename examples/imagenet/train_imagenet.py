@@ -22,6 +22,7 @@ import alex
 import googlenet
 import googlenetbn
 import nin
+import resnet
 import resnet50
 
 
@@ -74,7 +75,9 @@ def main():
         'googlenetbn': googlenetbn.GoogLeNetBN,
         'googlenetbn_fp16': googlenetbn.GoogLeNetBNFp16,
         'nin': nin.NIN,
-        'resnet50': resnet50.ResNet50
+        'resnet50': resnet50.ResNet50,
+        'resnet_50': resnet.ResNet50,
+        'resnet_152': resnet.ResNet152
     }
 
     parser = argparse.ArgumentParser(
@@ -103,6 +106,8 @@ def main():
                         help='Root directory path of image files')
     parser.add_argument('--val_batchsize', '-b', type=int, default=250,
                         help='Validation minibatch size')
+    parser.add_argument('--recompute', default='',
+                        help='Functions of recompute target')
     parser.add_argument('--test', action='store_true')
     parser.set_defaults(test=False)
     args = parser.parse_args()
@@ -157,7 +162,10 @@ def main():
     if args.resume:
         chainer.serializers.load_npz(args.resume, trainer)
 
-    trainer.run()
+    _recompute = args.recompute
+    _recompute = _recompute.split(",")
+    with chainer.enable_recompute(_recompute):
+        trainer.run()
 
 
 if __name__ == '__main__':

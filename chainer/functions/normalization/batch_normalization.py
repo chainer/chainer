@@ -45,6 +45,11 @@ class BatchNormalizationFunction(function.Function):
         self.mean_cache = None
         self.decay = decay
 
+        self._recompute = False
+        _fnames = getattr(configuration.config, 'recompute_targets', [])
+        if 'BatchNormalization' in _fnames:
+            self._recompute = True
+
     def check_type_forward(self, in_types):
         n_in = type_check.eval(in_types.size())
         if n_in != 3 and n_in != 5:

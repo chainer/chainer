@@ -3,6 +3,8 @@ import contextlib
 import sys
 import threading
 
+import copy
+
 
 class GlobalConfig(object):
 
@@ -113,7 +115,7 @@ def using_config(name, value, config=config):
 
     """
     if hasattr(config._local, name):
-        old_value = getattr(config, name)
+        old_value = copy.copy(getattr(config, name))
         setattr(config, name, value)
         try:
             yield

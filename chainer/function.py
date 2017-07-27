@@ -10,6 +10,8 @@ from chainer import cuda
 from chainer.utils import type_check
 from chainer import variable
 
+import copy
+
 
 def no_backprop_mode():
     """Make a context manager which disables back-propagation.
@@ -53,6 +55,64 @@ def force_backprop_mode():
 
     """
     return configuration.using_config('enable_backprop', True)
+
+
+def _get_supported_fnames():
+    """Gets function names that are supported by re-compute."""
+    supported_fnames = []
+    supported_fnames.append('BatchNormalization')
+    supported_fnames.append('ReLU')
+    supported_fnames.append('LeakyReLU')
+    supported_fnames.append('Convolution2D')
+    return supported_fnames
+
+
+def enable_recompute(*fnames):
+    """Enable re-compute for specified functions."""
+    _tmp_list = list(fnames)
+    supported_fnames = _get_supported_fnames()
+    _fnames = []
+    while _tmp_list:
+        f = _tmp_list.pop()
+        if isinstance(f, tuple) or isinstance(f, list):
+            for _f in f:
+                _tmp_list.append(_f)
+            continue
+        if f not in supported_fnames:
+            raise RuntimeError('{} is not supported by recompute. '
+                               'Supported function names are as followings:'
+                               '\n {}'.format(f, supported_fnames))
+        _fnames.append(f)
+
+    targets = copy.copy(getattr(configuration.config, 'recompute_targets', []))
+    for f in _fnames:
+        if f not in targets:
+            targets.append(f)
+    return configuration.using_config('recompute_targets', targets)
+
+
+def disable_recompute(*fnames):
+    """Disable re-compute for specified functions."""
+    _tmp_list = list(fnames)
+    supported_fnames = _get_supported_fnames()
+    _fnames = []
+    while _tmp_list:
+        f = _tmp_list.pop()
+        if isinstance(f, tuple) or isinstance(f, list):
+            for _f in f:
+                _tmp_list.append(_f)
+            continue
+        if f not in supported_fnames:
+            raise RuntimeError('{} is not supported by recompute. '
+                               'Supported function names are as followings:'
+                               '\n {}'.format(f, supported_fnames))
+        _fnames.append(f)
+
+    targets = []
+    for f in getattr(configuration.config, 'recompute_targets', []):
+        if f not in _fnames:
+            targets.append(f)
+    return configuration.using_config('recompute_targets', targets)
 
 
 class Function(object):
@@ -236,6 +296,11 @@ class Function(object):
                 for index in output_indexes_to_retain:
                     ret[index].retain_data()
             del self._output_indexes_to_retain
+
+            if hasattr(self, '_recompute'):
+                if self._recompute:
+                    for y in ret:
+                        y.set_recompute()
 
         if len(ret) == 1:
             return ret[0]

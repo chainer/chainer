@@ -29,6 +29,8 @@ from chainer import variable  # NOQA
 from chainer.configuration import config  # NOQA
 from chainer.configuration import global_config  # NOQA
 from chainer.configuration import using_config  # NOQA
+from chainer.function import disable_recompute  # NOQA
+from chainer.function import enable_recompute  # NOQA
 from chainer.function import force_backprop_mode  # NOQA
 from chainer.function import Function  # NOQA
 from chainer.function import no_backprop_mode  # NOQA
