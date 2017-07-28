@@ -1,14 +1,10 @@
-from chainer import function
+from chainer import function_node
+from chainer.functions.array import cast
+from chainer.functions.math import sum
 from chainer.utils import type_check
 
 
-def _as_mat(x):
-    if x.ndim == 2:
-        return x
-    return x.reshape(len(x), -1)
-
-
-class LinearFunction(function.Function):
+class LinearFunction(function_node.FunctionNode):
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -18,9 +14,9 @@ class LinearFunction(function.Function):
         type_check.expect(
             x_type.dtype.kind == 'f',
             w_type.dtype.kind == 'f',
-            x_type.ndim >= 2,
+            x_type.ndim == 2,
             w_type.ndim == 2,
-            type_check.prod(x_type.shape[1:]) == w_type.shape[1],
+            x_type.shape[1] == w_type.shape[1],
         )
         if type_check.eval(n_in) == 3:
             b_type = in_types[2]
@@ -31,7 +27,7 @@ class LinearFunction(function.Function):
             )
 
     def forward(self, inputs):
-        x = _as_mat(inputs[0])
+        x = inputs[0]
         W = inputs[1]
 
         if not type_check.same_types(*inputs):
@@ -43,20 +39,25 @@ class LinearFunction(function.Function):
         if len(inputs) == 3:
             b = inputs[2]
             y += b
+        self.retain_inputs((0, 1))  # b is not retained
         return y,
 
-    def backward(self, inputs, grad_outputs):
-        x = _as_mat(inputs[0])
-        W = inputs[1]
-        gy = grad_outputs[0]
+    def backward(self, indexes, grad_outputs):
+        x, W = self.get_retained_inputs()
+        gy, = grad_outputs
 
-        gx = gy.dot(W).astype(x.dtype, copy=False).reshape(inputs[0].shape)
-        gW = gy.T.dot(x).astype(W.dtype, copy=False)
-        if len(inputs) == 3:
-            gb = gy.sum(0)
-            return gx, gW, gb
-        else:
-            return gx, gW
+        ret = []
+        if 0 in indexes:
+            gx, = LinearFunction().apply((gy, W.T))
+            ret.append(cast.cast(gx, x.dtype))
+        if 1 in indexes:
+            gW, = LinearFunction().apply((gy.T, x.T))
+            ret.append(cast.cast(gW, W.dtype))
+        if 2 in indexes:
+            gb = sum.sum(gy, axis=0)
+            ret.append(gb)
+
+        return ret
 
 
 def linear(x, W, b=None):
@@ -96,7 +97,12 @@ def linear(x, W, b=None):
         (3, 5)
 
     """
-    if b is None:
-        return LinearFunction()(x, W)
-    else:
-        return LinearFunction()(x, W, b)
+    if x.ndim > 2:
+        x = x.reshape(len(x), -1)
+
+    args = [x, W]
+    if b is not None:
+        args.append(b)
+
+    y, = LinearFunction().apply(args)
+    return y
