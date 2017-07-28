@@ -224,7 +224,7 @@ The reviewing process starts after the check passes.
 
 .. _testing-guide:
 
-Unit testing
+Unit Testing
 ------------
 
 Testing is one of the most important part of your code.
