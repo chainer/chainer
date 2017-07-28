@@ -144,6 +144,10 @@ class VariableNode(object):
 
     """
 
+    _creator_node = None
+    _data = None
+    _rank = 0
+
     def __init__(self, variable, name, **kwargs):
         argument.check_unexpected_kwargs(
             kwargs,
@@ -151,9 +155,6 @@ class VariableNode(object):
                  'pass the gradient to Variable instead'
         )
         self._variable = weakref.ref(variable)
-        self._creator_node = None
-        self._data = None
-        self._rank = 0
         self.name = name
         self._requires_grad = variable.requires_grad
 
