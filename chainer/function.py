@@ -124,11 +124,19 @@ class FunctionAdapter(function_node.FunctionNode):
         for x, gx in six.moves.zip(self.inputs, gxs):
             variable._check_grad_type(self, x, gx)
 
-        return tuple([
-            None if gxs[i] is None else variable.Variable(
-                gxs[i], requires_grad=False)
-            for i in target_input_indexes
-        ])
+        ret = []
+        for i in target_input_indexes:
+            if gxs[i] is None:
+                g = None
+            else:
+                # Intentionallly not passing requires_grad=False so that
+                # backprop routines can raise an error when a further backprop
+                # is attempted against this gradient variable.
+                g = variable.Variable(gxs[i])
+                g.node._old_style_grad_generator = self._function.label
+            ret.append(g)
+
+        return tuple(ret)
 
 
 class Function(object):

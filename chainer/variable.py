@@ -147,6 +147,9 @@ class VariableNode(object):
     _creator_node = None
     _data = None
     _rank = 0
+    # Name of the Function is assigned if this variable is a gradient generated
+    # by an old-style Function
+    _old_style_grad_generator = None
 
     def __init__(self, variable, name, **kwargs):
         argument.check_unexpected_kwargs(
@@ -363,6 +366,12 @@ class VariableNode(object):
         else:
             self.dtype = d.dtype
             self.shape = d.shape
+
+    def _check_old_style_gradient(self):
+        if self._old_style_grad_generator is not None:
+            raise RuntimeError(
+                'cannot twice-differentiate an old style Function "%s"' %
+                self._old_style_grad_generator)
 
 
 def _create_variable(data, name, grad, requires_grad):
@@ -808,6 +817,7 @@ Actual: {0}'''.format(type(data))
                 and therefore it is recommended to set this flag ``False``.
 
         """
+        self._node._check_old_style_gradient()
         if self.creator_node is None:
             return
         initial_device = None
@@ -895,6 +905,7 @@ Actual: {0}'''.format(type(data))
                 elif x in grads:
                     gx = grads[x]
                 elif x.creator_node is None:
+                    x._check_old_style_gradient()
                     # accumulate the gradient only if the node is a leaf
                     gx = x.grad_var
                 else:

@@ -11,6 +11,7 @@ import six
 
 import chainer
 from chainer import cuda
+import chainer.functions as F
 from chainer import initializers
 from chainer import testing
 from chainer.testing import attr
@@ -1347,6 +1348,33 @@ class TestNamedVariableDim2Size0ToString(unittest.TestCase):
     def test_str_gpu(self):
         self.x.to_gpu()
         self.assertEqual(str(self.x), self.str)
+
+
+class IdentityFunction(chainer.Function):
+
+    def forward(self, inputs):
+        return inputs
+
+    def backward(self, inputs, grad_outputs):
+        return grad_outputs
+
+
+class TestVariableDoubleBackward(unittest.TestCase):
+
+    def test_raise_double_backprop(self):
+        x = chainer.Variable(np.empty(1, np.float32))
+        y = IdentityFunction()(x)
+        y.backward()
+        with self.assertRaises(RuntimeError):
+            x.grad_var.backward()
+
+    def test_raise_double_backprop_2(self):
+        x = chainer.Variable(np.empty(1, np.float32))
+        z = F.identity(x)  # new style
+        y = IdentityFunction()(z)  # old style
+        y.backward()
+        with self.assertRaises(RuntimeError):
+            x.grad_var.backward()
 
 
 testing.run_module(__name__, __file__)
