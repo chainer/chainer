@@ -90,8 +90,9 @@ class TestCaffeFunctionBaseMock(TestCaffeFunctionBase):
             invars.append(chainer.Variable(data))
         self.inputs = invars
 
-        out = self.func(inputs=dict(zip(inputs, invars)),
-                        outputs=outputs, train=False)
+        with chainer.using_config('train', False):
+            out = self.func(inputs=dict(zip(inputs, invars)),
+                            outputs=outputs)
         self.assertEqual(len(out), len(self.outputs))
         for actual, expect in zip(out, self.outputs):
             self.assertIs(actual, expect)
@@ -219,7 +220,7 @@ class TestDropout(TestCaffeFunctionBaseMock):
         self.assertEqual(len(self.func.layers), 1)
         self.call(['x'], ['y'])
         self.mock.assert_called_once_with(
-            self.inputs[0], ratio=0.25, train=False)
+            self.inputs[0], ratio=0.25)
 
 
 class TestInnerProduct(TestCaffeFunctionBaseMock):
@@ -587,8 +588,7 @@ class TestBatchNorm(TestCaffeFunctionBaseMock):
         self.init_func()
         self.assertEqual(len(self.func.layers), 1)
         self.call(['x'], ['y'])
-        self.mock.assert_called_once_with(self.inputs[0],
-                                          test=False, finetune=False)
+        self.mock.assert_called_once_with(self.inputs[0], finetune=False)
 
 
 class TestBatchNormUsingGlobalStats(TestCaffeFunctionBaseMock):
@@ -631,8 +631,7 @@ class TestBatchNormUsingGlobalStats(TestCaffeFunctionBaseMock):
         self.init_func()
         self.assertEqual(len(self.func.layers), 1)
         self.call(['x'], ['y'])
-        self.mock.assert_called_once_with(self.inputs[0],
-                                          test=True, finetune=False)
+        self.mock.assert_called_once_with(self.inputs[0], finetune=False)
 
 
 class TestEltwiseProd(TestCaffeFunctionBaseMock):
@@ -1087,9 +1086,11 @@ class TestSoftmaxCaffeEngine(TestCaffeFunctionBaseMock):
     }
 
     def test_softmax_caffe_engine(self):
+        # TODO(beam2d): Check if the mock is called with
+        # chainer.config.use_cudnn == False
         self.init_func()
         self.call(['x'], ['y'])
-        self.mock.assert_called_once_with(self.inputs[0], use_cudnn=False)
+        self.mock.assert_called_once_with(self.inputs[0])
 
 
 class TestSoftmaxcuDnnEngine(TestCaffeFunctionBaseMock):
@@ -1113,9 +1114,11 @@ class TestSoftmaxcuDnnEngine(TestCaffeFunctionBaseMock):
     }
 
     def test_softmax_cuDNN_engine(self):
+        # TODO(beam2d): Check if the mock is called with
+        # chainer.config.use_cudnn == True
         self.init_func()
         self.call(['x'], ['y'])
-        self.mock.assert_called_once_with(self.inputs[0], use_cudnn=True)
+        self.mock.assert_called_once_with(self.inputs[0])
 
 
 class TestSoftmaxInvalidAxis(TestCaffeFunctionBase):

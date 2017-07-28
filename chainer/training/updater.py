@@ -3,15 +3,27 @@ import six
 
 from chainer.dataset import convert
 from chainer.dataset import iterator as iterator_module
-from chainer import optimizer as optimizer_module
-from chainer import variable
+from chainer import function
 
 
 class Updater(object):
 
     """Interface of updater objects for trainers.
 
-    TODO(beam2d): document it.
+    :class:`~chainer.training.Updater` implements a training iteration
+    as :meth:`update`.
+
+    Typically, the updating iteration proceeds as follows.
+
+    - Fetch a minibatch from :module:`~chainer.dataset`
+        via :class:`~chainer.dataset.Iterator`.
+    - Run forward and backward process of :class:`~chainer.Chain`.
+    - Update parameters according to their :class:`~chainer.UpdateRule`.
+
+    The first line is processed by :meth:`chainer.dataset.Iterator.__next__`.
+    The second and third are processed by :meth:`~chainer.Optimizer.update`.
+
+    Users can also implement original :meth:`update` by overiding it.
 
     """
 
@@ -94,10 +106,12 @@ class StandardUpdater(Updater):
 
     Args:
         iterator: Dataset iterator for the training dataset. It can also be a
-            dictionary of iterators. If this is just an iterator, then the
+            dictionary that maps strings to iterators.
+            If this is just an iterator, then the
             iterator is registered by the name ``'main'``.
         optimizer: Optimizer to update parameters. It can also be a dictionary
-            of optimizers. If this is just an optimizer, then the optimizer is
+            that maps strings to optimizers.
+            If this is just an optimizer, then the optimizer is
             registered by the name ``'main'``.
         converter: Converter function to build input arrays. Each batch
             extracted by the main iterator and the ``device`` option are passed
@@ -123,7 +137,7 @@ class StandardUpdater(Updater):
             iterator = {'main': iterator}
         self._iterators = iterator
 
-        if isinstance(optimizer, optimizer_module.Optimizer):
+        if not isinstance(optimizer, dict):
             optimizer = {'main': optimizer}
         self._optimizers = optimizer
 
@@ -145,17 +159,43 @@ class StandardUpdater(Updater):
         return self._iterators['main'].epoch_detail
 
     @property
+    def previous_epoch_detail(self):
+        return self._iterators['main'].previous_epoch_detail
+
+    @property
     def is_new_epoch(self):
         return self._iterators['main'].is_new_epoch
 
     def finalize(self):
+        """Finalizes the updater object.
+
+        This method calls the `finalize` method of each iterator that
+        this updater has.
+        It is called at the end of training loops.
+
+        """
         for iterator in six.itervalues(self._iterators):
             iterator.finalize()
 
     def get_optimizer(self, name):
+        """Gets the optimizer of given name.
+
+        Args:
+            name (str): Name of the optimizer.
+
+        Returns:
+            ~chainer.Optimizer: Corresponding optimizer.
+
+        """
         return self._optimizers[name]
 
     def get_all_optimizers(self):
+        """Gets a dictionary of all optimizers for this updater.
+
+        Returns:
+            dict: Dictionary that maps names to optimizers.
+
+        """
         return dict(self._optimizers)
 
     def get_iterator(self, name):
@@ -171,6 +211,15 @@ class StandardUpdater(Updater):
         return self._iterators[name]
 
     def update(self):
+        """Updates the parameters of the target model.
+
+        This method implements an update formula for the training task,
+        including data loading, forward/backward computations, and actual
+        updates of parameters.
+
+        This method is called once at each iteration of the training loop.
+
+        """
         self.update_core()
         self.iteration += 1
 
@@ -182,17 +231,14 @@ class StandardUpdater(Updater):
         loss_func = self.loss_func or optimizer.target
 
         if isinstance(in_arrays, tuple):
-            in_vars = tuple(variable.Variable(x) for x in in_arrays)
-            optimizer.update(loss_func, *in_vars)
+            optimizer.update(loss_func, *in_arrays)
         elif isinstance(in_arrays, dict):
-            in_vars = {key: variable.Variable(x)
-                       for key, x in six.iteritems(in_arrays)}
-            optimizer.update(loss_func, **in_vars)
+            optimizer.update(loss_func, **in_arrays)
         else:
-            in_var = variable.Variable(in_arrays)
-            optimizer.update(loss_func, in_var)
+            optimizer.update(loss_func, in_arrays)
 
     def serialize(self, serializer):
+        """Serializes the current state of the updater object."""
         for name, iterator in six.iteritems(self._iterators):
             iterator.serialize(serializer['iterator:' + name])
 
@@ -216,10 +262,12 @@ class ParallelUpdater(StandardUpdater):
 
     Args:
         iterator: Dataset iterator for the training dataset. It can also be a
-            dictionary of iterators. If this is just an iterator, then the
+            dictionary that maps strings to iterators.
+            If this is just an iterator, then the
             iterator is registered by the name ``'main'``.
         optimizer: Optimizer to update parameters. It can also be a dictionary
-            of optimizers. If this is just an optimizer, then the optimizer is
+            that maps strings to optimizers.
+            If this is just an optimizer, then the optimizer is
             registered by the name ``'main'``.
         converter: Converter function to build input arrays. Each batch
             extracted by the main iterator is split equally between the
@@ -302,16 +350,14 @@ class ParallelUpdater(StandardUpdater):
             in_arrays = in_arrays_list[model_key]
             loss_func = self.loss_func or model
 
-            if isinstance(in_arrays, tuple):
-                in_vars = tuple(variable.Variable(x) for x in in_arrays)
-                losses.append(loss_func(*in_vars))
-            elif isinstance(in_arrays, dict):
-                in_vars = {key: variable.Variable(x)
-                           for key, x in six.iteritems(in_arrays)}
-                losses.append(loss_func(**in_vars))
-            else:
-                in_vars = variable.Variable(in_arrays)
-                losses.append(loss_func(in_vars))
+            with function.force_backprop_mode():
+                if isinstance(in_arrays, tuple):
+                    loss = loss_func(*in_arrays)
+                elif isinstance(in_arrays, dict):
+                    loss = loss_func(**in_arrays)
+                else:
+                    loss = loss_func(in_arrays)
+            losses.append(loss)
 
         # For _uninitialized_params
         for model in six.itervalues(self._models):

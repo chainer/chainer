@@ -82,20 +82,31 @@ class NpzDeserializer(serializer.Deserializer):
     Args:
         npz: `npz` file object.
         path: The base path that the deserialization starts from.
+        strict (bool): If ``True``, the deserializer raises an error when an
+            expected value is not found in the given NPZ file. Otherwise,
+            it ignores the value and skip deserialization.
 
     """
 
-    def __init__(self, npz, path=''):
+    def __init__(self, npz, path='', strict=True):
         self.npz = npz
         self.path = path
+        self.strict = strict
 
     def __getitem__(self, key):
         key = key.strip('/')
-        return NpzDeserializer(self.npz, self.path + key + '/')
+        return NpzDeserializer(
+            self.npz, self.path + key + '/', strict=self.strict)
 
     def __call__(self, key, value):
-        key = key.lstrip('/')
-        dataset = self.npz[self.path + key]
+        key = self.path + key.lstrip('/')
+        if not self.strict and key not in self.npz:
+            return value
+
+        dataset = self.npz[key]
+        if dataset[()] is None:
+            return None
+
         if value is None:
             return dataset
         elif isinstance(value, numpy.ndarray):
@@ -107,7 +118,7 @@ class NpzDeserializer(serializer.Deserializer):
         return value
 
 
-def load_npz(filename, obj):
+def load_npz(filename, obj, path='', strict=True):
     """Loads an object from the file in NPZ format.
 
     This is a short-cut function to load from an `.npz` file that contains only
@@ -116,8 +127,14 @@ def load_npz(filename, obj):
     Args:
         filename (str): Name of the file to be loaded.
         obj: Object to be deserialized. It must support serialization protocol.
+        path (str): The path in the hierarchy of the serialized data under
+            which the data is to be loaded. The default behavior (blank) will
+            load all data under the root path.
+        strict (bool): If ``True``, the deserializer raises an error when an
+            expected value is not found in the given NPZ file. Otherwise,
+            it ignores the value and skip deserialization.
 
     """
     with numpy.load(filename) as f:
-        d = NpzDeserializer(f)
+        d = NpzDeserializer(f, path=path, strict=strict)
         d.load(obj)

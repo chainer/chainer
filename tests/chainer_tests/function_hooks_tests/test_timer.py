@@ -1,6 +1,8 @@
+import time
 import unittest
 
 import numpy
+import six
 
 import chainer
 from chainer import cuda
@@ -97,6 +99,72 @@ class TestTimerHookToFunction(unittest.TestCase):
     @attr.gpu
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
+
+    def test_reentrant(self):
+        # In/grad data are random; these do not simulate the actually possible
+        # cases.
+        g = functions.Identity()  # any function other than Exp is ok
+
+        self.h.backward_preprocess(self.f, (self.x,), (self.gy,))
+        t1 = time.time()
+        time.sleep(0.001)  # longer than each hook call
+        self.h.forward_preprocess(g, (self.x,))
+        self.h.forward_postprocess(g, (self.x,))
+        t2 = time.time()
+        self.h.backward_postprocess(self.f, (self.x,), (self.gy,))
+
+        history = dict(self.h.call_history)
+        self.assertEqual(len(history), 2)
+        self.assertIn(self.f, history)
+        self.assertIn(g, history)
+        f_time = history[self.f]
+        g_time = history[g]
+        self.assertLessEqual(g_time, t2 - t1)
+        self.assertGreaterEqual(f_time, t2 - t1)
+
+    def test_reentrant_total_time(self):
+        g = functions.Identity()
+
+        t0 = time.time()
+        self.h.backward_preprocess(self.f, (self.x,), (self.gy,))
+        t1 = time.time()
+        self.h.forward_preprocess(g, (self.x,))
+        time.sleep(0.001)
+        self.h.forward_postprocess(g, (self.x,))
+        t2 = time.time()
+        self.h.backward_postprocess(self.f, (self.x,), (self.gy,))
+        t3 = time.time()
+
+        self.assertLessEqual(self.h.total_time(), t3 - t0)
+        self.assertGreaterEqual(self.h.total_time(), t2 - t1)
+
+
+class TestTimerPrintReport(unittest.TestCase):
+
+    def setUp(self):
+        self.h = function_hooks.TimerHook()
+        self.f = functions.Exp()
+        self.f.add_hook(self.h)
+        self.x = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
+
+    def test_summary(self):
+        x = self.x
+        self.f(chainer.Variable(x))
+        self.f(chainer.Variable(x))
+        self.assertEqual(2, len(self.h.call_history))
+        self.assertEqual(1, len(self.h.summary()))
+
+    def test_print_report(self):
+        x = self.x
+        self.f(chainer.Variable(x))
+        self.f(chainer.Variable(x))
+        io = six.StringIO()
+        self.h.print_report(file=io)
+        expect = r'''\AFunctionName  ElapsedTime  Occurrence
+ +Exp +[0-9.\-e]+.s +[0-9]+$
+'''
+        actual = io.getvalue()
+        six.assertRegex(self, actual, expect)
 
 
 testing.run_module(__name__, __file__)

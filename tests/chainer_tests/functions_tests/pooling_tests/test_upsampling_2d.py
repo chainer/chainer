@@ -1,3 +1,4 @@
+import chainer
 from chainer import cuda
 from chainer import gradient_check
 from chainer import testing
@@ -10,18 +11,19 @@ import numpy
 import unittest
 
 
-@testing.parameterize(
-    {'in_shape': (4, 3, 6, 8)},
-    {'in_shape': (4, 3, 5, 7)},
-)
+@testing.parameterize(*testing.product({
+    'in_shape': [(4, 3, 6, 8), (4, 3, 5, 7)],
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+}))
 class TestUpsampling2D(unittest.TestCase):
 
     def setUp(self):
-        self.x = numpy.random.uniform(-1, 1, self.in_shape).astype('f')
-        self.p = F.MaxPooling2D(2, 2, use_cudnn=False)
-        self.pooled_y = self.p(self.x)
+        self.x = numpy.random.uniform(-1, 1, self.in_shape).astype(self.dtype)
+        self.p = F.MaxPooling2D(2, 2)
+        with chainer.using_config('use_cudnn', 'never'):
+            self.pooled_y = self.p(self.x)
         self.gy = numpy.random.uniform(
-            -1, 1, self.in_shape).astype(numpy.float32)
+            -1, 1, self.in_shape).astype(self.dtype)
 
     def check_forward(self, y):
         y = F.upsampling_2d(
@@ -59,7 +61,7 @@ class TestUpsampling2D(unittest.TestCase):
             self.p.indexes, ksize=(self.p.kh, self.p.kw),
             stride=(self.p.sy, self.p.sx), pad=(self.p.ph, self.p.pw),
             outsize=self.in_shape[2:], cover_all=self.p.cover_all)
-        gradient_check.check_backward(func, x_data, y_grad)
+        gradient_check.check_backward(func, x_data, y_grad, dtype='d')
 
     @condition.retry(3)
     def test_backward_cpu(self):
@@ -70,5 +72,6 @@ class TestUpsampling2D(unittest.TestCase):
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(
             self.pooled_y.data), cuda.to_gpu(self.gy))
+
 
 testing.run_module(__name__, __file__)

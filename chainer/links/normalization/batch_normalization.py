@@ -1,9 +1,11 @@
 import numpy
 
+from chainer import configuration
 from chainer import cuda
 from chainer.functions.normalization import batch_normalization
 from chainer import initializers
 from chainer import link
+from chainer.utils import argument
 from chainer import variable
 
 
@@ -40,7 +42,6 @@ class BatchNormalization(link.Link):
             unit(1) which makes no effect.
         use_beta (bool): If ``True``, use shifting parameter. Otherwise, use
             unit(0) which makes no effect.
-        use_cudnn (bool): If ``True``, then this link uses cuDNN if available.
 
     See: `Batch Normalization: Accelerating Deep Network Training by Reducing\
           Internal Covariate Shift <https://arxiv.org/abs/1502.03167>`_
@@ -52,72 +53,85 @@ class BatchNormalization(link.Link):
     Attributes:
         gamma (~chainer.Variable): Scaling parameter.
         beta (~chainer.Variable): Shifting parameter.
-        avg_mean (~chainer.Variable): Population mean.
-        avg_var (~chainer.Variable): Population variance.
+        avg_mean (numpy.ndarray or cupy.ndarray): Population mean.
+        avg_var (numpy.ndarray or cupy.ndarray): Population variance.
         N (int): Count of batches given for fine-tuning.
         decay (float): Decay rate of moving average. It is used on training.
         eps (float): Epsilon value for numerical stability. This value is added
             to the batch variances.
-        use_cudnn (bool): If ``True``, then this link uses cuDNN if available.
 
     """
 
     def __init__(self, size, decay=0.9, eps=2e-5, dtype=numpy.float32,
                  use_gamma=True, use_beta=True,
-                 initial_gamma=None, initial_beta=None, use_cudnn=True):
+                 initial_gamma=None, initial_beta=None):
         super(BatchNormalization, self).__init__()
-        if use_gamma:
-            self.add_param('gamma', size, dtype=dtype)
-            if initial_gamma is None:
-                initial_gamma = initializers.One()
-            initializers.init_weight(self.gamma.data, initial_gamma)
-        if use_beta:
-            self.add_param('beta', size, dtype=dtype)
-            if initial_beta is None:
-                initial_beta = initializers.Zero()
-            initializers.init_weight(self.beta.data, initial_beta)
-        self.add_persistent('avg_mean', numpy.zeros(size, dtype=dtype))
-        self.add_persistent('avg_var', numpy.zeros(size, dtype=dtype))
-        self.add_persistent('N', 0)
+        self.avg_mean = numpy.zeros(size, dtype=dtype)
+        self.register_persistent('avg_mean')
+        self.avg_var = numpy.zeros(size, dtype=dtype)
+        self.register_persistent('avg_var')
+        self.N = 0
+        self.register_persistent('N')
         self.decay = decay
         self.eps = eps
-        self.use_cudnn = use_cudnn
 
-    def __call__(self, x, test=False, finetune=False):
-        """Invokes the forward propagation of BatchNormalization.
+        with self.init_scope():
+            if use_gamma:
+                if initial_gamma is None:
+                    initial_gamma = 1
+                initial_gamma = initializers._get_initializer(initial_gamma)
+                initial_gamma.dtype = dtype
+                self.gamma = variable.Parameter(initial_gamma, size)
+            if use_beta:
+                if initial_beta is None:
+                    initial_beta = 0
+                initial_beta = initializers._get_initializer(initial_beta)
+                initial_beta.dtype = dtype
+                self.beta = variable.Parameter(initial_beta, size)
 
-        BatchNormalization accepts additional arguments, which controls three
-        different running mode.
+    def __call__(self, x, **kwargs):
+        """__call__(self, x, finetune=False)
+
+        Invokes the forward propagation of BatchNormalization.
+
+        In training mode, the BatchNormalization computes moving averages of
+        mean and variance for evaluatino during training, and normalizes the
+        input using batch statistics.
+
+        .. warning::
+
+           ``test`` argument is not supported anymore since v2.
+           Instead, use ``chainer.using_config('train', train)``.
+           See :func:`chainer.using_config`.
 
         Args:
             x (Variable): Input variable.
-            test (bool): If ``True``, BatchNormalization runs in testing mode;
-                it normalizes the input using pre-computed statistics.
-            finetune (bool): If ``finetune`` is ``True`` and ``test`` is
-                ``False``, BatchNormalization runs in fine-tuning mode; it
+            finetune (bool): If it is in the training mode and ``finetune`` is
+                ``True``, BatchNormalization runs in fine-tuning mode; it
                 accumulates the input array to compute population statistics
                 for normalization, and normalizes the input using batch
                 statistics.
 
-        If ``test`` is ``False``, then BatchNormalization runs in training
-        mode; it computes moving averages of mean and variance for evaluation
-        during training, and normalizes the input using batch statistics.
-
         """
+        argument.check_unexpected_kwargs(
+            kwargs, test='test argument is not supported anymore. '
+            'Use chainer.using_config')
+        finetune, = argument.parse_kwargs(kwargs, ('finetune', False))
+
         if hasattr(self, 'gamma'):
             gamma = self.gamma
         else:
-            with cuda.get_device(self._device_id):
+            with cuda.get_device_from_id(self._device_id):
                 gamma = variable.Variable(self.xp.ones(
-                    self.avg_mean.shape, dtype=x.dtype), volatile='auto')
+                    self.avg_mean.shape, dtype=x.dtype))
         if hasattr(self, 'beta'):
             beta = self.beta
         else:
-            with cuda.get_device(self._device_id):
+            with cuda.get_device_from_id(self._device_id):
                 beta = variable.Variable(self.xp.zeros(
-                    self.avg_mean.shape, dtype=x.dtype), volatile='auto')
+                    self.avg_mean.shape, dtype=x.dtype))
 
-        if not test:
+        if configuration.config.train:
             if finetune:
                 self.N += 1
                 decay = 1. - 1. / self.N
@@ -125,18 +139,17 @@ class BatchNormalization(link.Link):
                 decay = self.decay
 
             func = batch_normalization.BatchNormalizationFunction(
-                self.eps, self.avg_mean, self.avg_var, True, decay,
-                self.use_cudnn)
+                self.eps, self.avg_mean, self.avg_var, decay)
             ret = func(x, gamma, beta)
 
             self.avg_mean[:] = func.running_mean
             self.avg_var[:] = func.running_var
         else:
             # Use running average statistics or fine-tuned statistics.
-            mean = variable.Variable(self.avg_mean, volatile='auto')
-            var = variable.Variable(self.avg_var, volatile='auto')
+            mean = variable.Variable(self.avg_mean)
+            var = variable.Variable(self.avg_var)
             ret = batch_normalization.fixed_batch_normalization(
-                x, gamma, beta, mean, var, self.eps, self.use_cudnn)
+                x, gamma, beta, mean, var, self.eps)
         return ret
 
     def start_finetuning(self):

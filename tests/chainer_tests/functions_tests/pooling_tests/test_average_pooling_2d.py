@@ -30,10 +30,10 @@ class TestAveragePooling2D(unittest.TestCase):
             self.check_backward_options = {
                 'dtype': numpy.float64, 'atol': 5e-4, 'rtol': 5e-3}
 
-    def check_forward(self, x_data, use_cudnn=True):
+    def check_forward(self, x_data, use_cudnn='always'):
         x = chainer.Variable(x_data)
-        y = functions.average_pooling_2d(x, 3, stride=2,
-                                         pad=1, use_cudnn=use_cudnn)
+        with chainer.using_config('use_cudnn', use_cudnn):
+            y = functions.average_pooling_2d(x, 3, stride=2, pad=1)
         self.assertEqual(y.data.dtype, self.dtype)
         y_data = cuda.to_cpu(y.data)
 
@@ -58,13 +58,19 @@ class TestAveragePooling2D(unittest.TestCase):
 
     @attr.gpu
     @condition.retry(3)
-    def test_forward_gpu_no_cudnn(self):
-        self.check_forward(cuda.to_gpu(self.x), False)
+    def test_forward_gpu_non_contiguous(self):
+        self.check_forward(cuda.cupy.asfortranarray(cuda.to_gpu(self.x)))
 
-    def check_backward(self, x_data, y_grad, use_cudnn=True):
-        gradient_check.check_backward(
-            functions.AveragePooling2D(3, 2, 1, False, use_cudnn),
-            x_data, y_grad, **self.check_backward_options)
+    @attr.gpu
+    @condition.retry(3)
+    def test_forward_gpu_no_cudnn(self):
+        self.check_forward(cuda.to_gpu(self.x), 'never')
+
+    def check_backward(self, x_data, y_grad, use_cudnn='always'):
+        with chainer.using_config('use_cudnn', use_cudnn):
+            gradient_check.check_backward(
+                functions.AveragePooling2D(3, 2, 1, False),
+                x_data, y_grad, **self.check_backward_options)
 
     @condition.retry(3)
     def test_backward_cpu(self):
@@ -77,12 +83,19 @@ class TestAveragePooling2D(unittest.TestCase):
 
     @attr.gpu
     @condition.retry(3)
+    def test_backward_gpu_non_contiguous(self):
+        self.check_backward(
+            cuda.cupy.asfortranarray(cuda.to_gpu(self.x)),
+            cuda.cupy.asfortranarray(cuda.to_gpu(self.gy)))
+
+    @attr.gpu
+    @condition.retry(3)
     def test_backward_gpu_no_cudnn(self):
-        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy), False)
+        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy), 'never')
 
 
 @testing.parameterize(*testing.product({
-    'use_cudnn': [True, False],
+    'use_cudnn': ['always', 'auto', 'never'],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
 @attr.cudnn
@@ -96,26 +109,24 @@ class TestAveragePooling2DCudnnCall(unittest.TestCase):
 
     def forward(self):
         x = chainer.Variable(self.x)
-        return functions.average_pooling_2d(
-            x, 3, stride=2, pad=1, use_cudnn=self.use_cudnn)
+        return functions.average_pooling_2d(x, 3, stride=2, pad=1)
 
-    @unittest.skipIf(cuda.cudnn_enabled and
-                     cuda.cudnn.cudnn.getVersion() < 3000,
-                     'Only cudnn ver>=3 supports average-pooling2d')
     def test_call_cudnn_forward(self):
-        with mock.patch('cupy.cudnn.cudnn.poolingForward') as func:
-            self.forward()
-            self.assertEqual(func.called, self.use_cudnn)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            with mock.patch('cupy.cudnn.cudnn.poolingForward') as func:
+                self.forward()
+                self.assertEqual(func.called,
+                                 chainer.should_use_cudnn('>=auto'))
 
-    @unittest.skipIf(cuda.cudnn_enabled and
-                     cuda.cudnn.cudnn.getVersion() < 3000,
-                     'Only cudnn ver>=3 supports average-pooling2d')
     def test_call_cudnn_backward(self):
-        y = self.forward()
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            expect = chainer.should_use_cudnn('>=auto')
+            y = self.forward()
+        # should be consistent to forward regardless of use_cudnn config
         y.grad = self.gy
         with mock.patch('cupy.cudnn.cudnn.poolingBackward') as func:
             y.backward()
-            self.assertEqual(func.called, self.use_cudnn)
+            self.assertEqual(func.called, expect)
 
 
 testing.run_module(__name__, __file__)

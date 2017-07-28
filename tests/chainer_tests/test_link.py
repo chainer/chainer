@@ -5,6 +5,7 @@ import numpy
 
 import chainer
 from chainer import cuda
+from chainer import initializers
 from chainer import testing
 from chainer.testing import attr
 
@@ -14,26 +15,66 @@ class TestLink(unittest.TestCase):
     def setUp(self):
         x_shape_0 = 2
         x_shape_1 = numpy.int64(3)
-        self.link = chainer.Link(x=((x_shape_0, x_shape_1), 'd'), y=2)
+        self.link = chainer.Link(x=((x_shape_0, x_shape_1), 'd'),
+                                 u=(None, 'd'))
+        with self.link.init_scope():
+            self.link.y = chainer.Parameter(shape=(2,))
+            self.link.v = chainer.Parameter()
         self.p = numpy.array([1, 2, 3], dtype='f')
         self.link.add_persistent('p', self.p)
         self.link.name = 'a'
+        self.link.x.update_rule = chainer.UpdateRule()
+        self.link.x.update_rule.enabled = False
+        self.link.u.update_rule = chainer.UpdateRule()
+        if cuda.available:
+            self.current_device_id = cuda.cupy.cuda.get_device_id()
 
-    def check_param_init(self, name, shape, dtype):
+    def tearDown(self):
+        if cuda.available \
+                and cuda.cupy.cuda.get_device_id() != self.current_device_id:
+            cuda.Device(self.current_device_id).use()
+
+    def check_param_init(self, name, shape, dtype, data_value=numpy.nan):
         self.assertTrue(hasattr(self.link, name))
         var = getattr(self.link, name)
         self.assertEqual(var.name, name)
-        self.assertIsInstance(var, chainer.Variable)
+        self.assertIsInstance(var, chainer.Parameter)
         self.assertEqual(var.data.shape, shape)
         self.assertEqual(var.data.dtype, dtype)
-        self.assertTrue(numpy.all(numpy.isnan(var.data)))
+        numpy.testing.assert_array_equal(var.data, data_value)
         self.assertEqual(var.grad.shape, shape)
         self.assertEqual(var.grad.dtype, dtype)
-        self.assertTrue(numpy.all(numpy.isnan(var.grad)))
+        numpy.testing.assert_array_equal(var.grad, numpy.nan)
+
+    def check_param_uninit(self, name, initializer=None):
+        self.assertTrue(hasattr(self.link, name))
+        var = getattr(self.link, name)
+        self.assertIsInstance(var, chainer.Parameter)
+        self.assertEqual(var.name, name)
+        self.assertIsNone(var.data)
+        if initializer is not None:
+            self.assertIs(var.initializer, initializer)
 
     def test_init(self):
         self.check_param_init('x', (2, 3), 'd')
         self.check_param_init('y', (2,), 'f')
+        self.check_param_uninit('u')
+        self.link.u.initialize((2, 3))
+        self.check_param_init('u', (2, 3), 'd')
+        self.check_param_uninit('v')
+        self.link.v.initialize((2, 3))
+        self.check_param_init('v', (2, 3), 'f')
+
+    def test_assign_param_outside_of_init_scope(self):
+        p = chainer.Parameter()
+        self.link.p = p
+        self.assertTrue(all(p is not param for param in self.link.params()))
+
+    def test_assign_var_in_init_scope(self):
+        p = chainer.Variable()
+        with self.link.init_scope():
+            self.link.p = p
+        self.assertTrue(all(p is not param for param in self.link.params()))
 
     def test_add_param(self):
         self.link.add_param('z', (2, 3))
@@ -41,6 +82,33 @@ class TestLink(unittest.TestCase):
 
         self.link.add_param('w', (2, 3), dtype='d')
         self.check_param_init('w', (2, 3), 'd')
+
+        self.link.add_param('r')
+        self.check_param_uninit('r')
+        self.link.r.initialize((2, 3))
+        self.check_param_init('r', (2, 3), 'f')
+
+        self.link.add_param('s', dtype='d')
+        self.check_param_uninit('s')
+        self.link.s.initialize((2, 3))
+        self.check_param_init('s', (2, 3), 'd')
+
+        initializer = initializers.Zero('d')
+        self.link.add_param('t', initializer=initializer)
+        self.check_param_uninit('t', initializer)
+        self.link.t.initialize((2, 3))
+        self.check_param_init('t', (2, 3), 'd', 0)
+
+    def test_add_param_direct_initialization(self):
+        z = numpy.random.rand(2, 3).astype('f')
+        self.link.add_param('z', initializer=z)
+        self.assertIsInstance(self.link.z.data, numpy.ndarray)
+        numpy.testing.assert_array_equal(self.link.z.data, z)
+
+    def test_add_param_duplicated_with_persistent(self):
+        self.link.add_persistent('z', 'abc')
+        with self.assertRaises(AttributeError):
+            self.link.add_param('z', (2, 3))
 
     def test_add_persistent(self):
         self.assertTrue(hasattr(self.link, 'p'))
@@ -52,13 +120,17 @@ class TestLink(unittest.TestCase):
 
     def test_copy(self):
         link = self.link.copy()
+        self.assertIsInstance(link._params, set)
+        self.assertIsInstance(link._persistent, set)
         self.assertTrue(hasattr(link, 'x'))
         self.assertTrue(hasattr(link, 'y'))
+        self.assertTrue(hasattr(link, 'u'))
         self.assertTrue(hasattr(link, 'p'))
         self.assertIsNot(link.x, self.link.x)
         self.assertIs(link.x.data, self.link.x.data)
         self.assertIsNot(link.y, self.link.y)
         self.assertIs(link.y.data, self.link.y.data)
+        self.assertIsNone(link.u.data)
         self.assertIs(link.p, self.link.p)
         self.assertIs(link.name, None)
 
@@ -73,37 +145,73 @@ class TestLink(unittest.TestCase):
         self.assertIs(self.link.x.grad, gx)
         self.assertIs(self.link.y.data, y)
         self.assertIs(self.link.y.grad, gy)
+        self.assertIsNone(self.link.u.data)
+        self.assertIsNone(self.link.u.grad)
         self.assertIs(self.link.p, p)
 
     @attr.gpu
     def test_to_cpu(self):
         self.link.to_gpu()
         self.link.to_cpu()
+        self.link.v.initialize((2, 3))
         self.assertIs(self.link.xp, numpy)
         self.assertIsInstance(self.link.x.data, numpy.ndarray)
         self.assertIsInstance(self.link.x.grad, numpy.ndarray)
         self.assertIsInstance(self.link.y.data, numpy.ndarray)
         self.assertIsInstance(self.link.y.grad, numpy.ndarray)
+        self.assertIsNone(self.link.u.data)
+        self.assertIsNone(self.link.u.grad)
+        self.assertIsInstance(self.link.v.data, numpy.ndarray)
+        self.assertIsInstance(self.link.v.grad, numpy.ndarray)
         self.assertIsInstance(self.link.p, numpy.ndarray)
 
     @attr.gpu
     def test_to_gpu(self):
         cupy = cuda.cupy
         self.link.to_gpu()
+        self.link.v.initialize((2, 3))
         self.assertIs(self.link.xp, cupy)
         self.assertIsInstance(self.link.x.data, cupy.ndarray)
         self.assertIsInstance(self.link.x.grad, cupy.ndarray)
         self.assertIsInstance(self.link.y.data, cupy.ndarray)
         self.assertIsInstance(self.link.y.grad, cupy.ndarray)
+        self.assertIsNone(self.link.u.data)
+        self.assertIsNone(self.link.u.grad)
+        self.assertIsInstance(self.link.v.data, cupy.ndarray)
+        self.assertIsInstance(self.link.v.grad, cupy.ndarray)
         self.assertIsInstance(self.link.p, cupy.ndarray)
+
+    @attr.multi_gpu(2)
+    def test_to_gpu_different_device(self):
+        cuda.Device(1).use()
+        self.link.to_gpu(0)
+        self.assertEqual(self.link._device_id, 0)
+
+    @attr.multi_gpu(2)
+    def test_to_gpu_current_device(self):
+        cuda.Device(1).use()
+        self.link.to_gpu()
+        self.assertEqual(self.link._device_id, 1)
 
     def test_params(self):
         params = list(self.link.params())
+        self.assertEqual({id(p) for p in params},
+                         {id(self.link.x), id(self.link.y),
+                          id(self.link.u), id(self.link.v)})
+
+    def test_params_skip_uninit(self):
+        params = list(self.link.params(include_uninit=False))
         self.assertEqual({id(p) for p in params},
                          {id(self.link.x), id(self.link.y)})
 
     def test_namedparams(self):
         namedparams = list(self.link.namedparams())
+        self.assertEqual({(name, id(p)) for name, p in namedparams},
+                         {('/x', id(self.link.x)), ('/y', id(self.link.y)),
+                          ('/u', id(self.link.u)), ('/v', id(self.link.v))})
+
+    def test_namedparams_skip_uninit(self):
+        namedparams = list(self.link.namedparams(include_uninit=False))
         self.assertEqual({(name, id(p)) for name, p in namedparams},
                          {('/x', id(self.link.x)), ('/y', id(self.link.y))})
 
@@ -124,34 +232,47 @@ class TestLink(unittest.TestCase):
     def test_copyparams(self):
         self.link.x.grad.fill(0)
         self.link.y.grad.fill(1)
+        self.link.u.initialize((2, 3))
+        self.link.u.data.fill(0)
+        self.link.u.grad.fill(1)
+        self.link.v.cleargrad()
         gx = self.link.x.grad.copy()
         gy = self.link.y.grad.copy()
+        gu = self.link.u.grad.copy()
 
-        l = chainer.Link(x=(2, 3), y=2)
+        l = chainer.Link()
+        with l.init_scope():
+            l.x = chainer.Parameter(shape=(2, 3))
+            l.y = chainer.Parameter(shape=2)
+            l.u = chainer.Parameter(shape=(2, 3))
+            l.v = chainer.Parameter(shape=(3, 2))
         l.x.data.fill(2)
         l.x.grad.fill(3)
         l.y.data.fill(4)
         l.y.grad.fill(5)
+        l.u.data.fill(6)
+        l.u.grad.fill(7)
+        l.v.data.fill(8)
+        l.v.grad.fill(9)
+
         self.link.copyparams(l)
         numpy.testing.assert_array_equal(self.link.x.data, l.x.data)
         numpy.testing.assert_array_equal(self.link.x.grad, gx)
         numpy.testing.assert_array_equal(self.link.y.data, l.y.data)
         numpy.testing.assert_array_equal(self.link.y.grad, gy)
-
-    def test_copyparams_uninitialized(self):
-        l = chainer.Link(x=(2, 3))
-        l.add_uninitialized_param('y')
-        self.link.x.data.fill(2)
-        self.link.y.data.fill(4)
-        l.copyparams(self.link)
-        numpy.testing.assert_array_equal(l.x.data, self.link.x.data)
-        self.assertTrue(hasattr(l, 'y'))
-        numpy.testing.assert_array_equal(l.y.data, self.link.y.data)
+        numpy.testing.assert_array_equal(self.link.u.data, l.u.data)
+        numpy.testing.assert_array_equal(self.link.u.grad, gu)
+        numpy.testing.assert_array_equal(self.link.v.data, l.v.data)
+        numpy.testing.assert_array_equal(self.link.v.grad, None)
 
     def test_cleargrads(self):
         self.link.cleargrads()
         self.assertIsNone(self.link.x.grad)
         self.assertIsNone(self.link.y.grad)
+        self.link.u.initialize((2, 3))
+        self.link.v.initialize((2, 3))
+        self.assertIsNone(self.link.u.grad)
+        self.assertIsNone(self.link.v.grad)
 
     def test_zerograds(self):
         gx_expect = numpy.zeros_like(self.link.x.data)
@@ -159,25 +280,44 @@ class TestLink(unittest.TestCase):
         self.link.zerograds()
         numpy.testing.assert_array_equal(self.link.x.grad, gx_expect)
         numpy.testing.assert_array_equal(self.link.y.grad, gy_expect)
+        self.link.u.initialize((2, 3))
+        self.link.v.initialize((2, 3))
+        gu_expect = numpy.zeros_like(self.link.u.data)
+        gv_expect = numpy.zeros_like(self.link.v.data)
+        numpy.testing.assert_array_equal(self.link.u.grad, gu_expect)
+        numpy.testing.assert_array_equal(self.link.v.grad, gv_expect)
 
     def test_addgrads(self):
-        l = chainer.Link(x=(2, 3), y=2)
+        l = chainer.Link()
+        with l.init_scope():
+            l.x = chainer.Parameter(shape=(2, 3))
+            l.y = chainer.Parameter(shape=2)
+            l.u = chainer.Parameter(shape=(2, 3))
+            l.v = chainer.Parameter()
         l.x.grad.fill(1)
         l.y.grad.fill(2)
+        l.u.grad.fill(3)
 
         self.link.x.grad.fill(-1)
         self.link.y.grad.fill(-2)
+        self.link.u.cleargrad()
 
         self.link.addgrads(l)
 
         gx_expect = numpy.zeros_like(l.x.grad)
         gy_expect = numpy.zeros_like(l.y.grad)
+        gu_expect = l.u.grad
         numpy.testing.assert_array_equal(self.link.x.grad, gx_expect)
         numpy.testing.assert_array_equal(self.link.y.grad, gy_expect)
+        numpy.testing.assert_array_equal(self.link.u.grad, gu_expect)
+        self.assertIsNone(self.link.v.grad, None)
 
     def test_serialize(self):
         serializer = mock.MagicMock(return_value=3)
-        l = chainer.Link(x=(2, 3), y=2)
+        l = chainer.Link()
+        with l.init_scope():
+            l.x = chainer.Parameter(shape=(2, 3))
+            l.y = chainer.Parameter(shape=2)
         l.add_persistent('z', 1)
         l.serialize(serializer)
         self.assertEqual(serializer.call_count, 3)
@@ -188,9 +328,11 @@ class TestLink(unittest.TestCase):
 
     def test_serialize_param_shape_placeholder(self):
         serializer = mock.MagicMock(return_value=3)
-        l = chainer.Link(y=2)
-        l.add_uninitialized_param('x')
-        l.add_param('x', (2, 3))
+        l = chainer.Link()
+        with l.init_scope():
+            l.y = chainer.Parameter(shape=2)
+            l.x = chainer.Parameter()
+        l.x.initialize((2, 3))
         l.add_persistent('z', 1)
         l.serialize(serializer)
         self.assertEqual(serializer.call_count, 3)
@@ -199,31 +341,41 @@ class TestLink(unittest.TestCase):
         serializer.assert_any_call('z', 1)
         self.assertEqual(l.z, 3)
 
-    def test_duplicate_uninitialized_param(self):
-        l = chainer.Link(y=2)
-        l.add_uninitialized_param('x')
-        with self.assertRaises(AttributeError):
-            l.add_uninitialized_param('x')
+    def test_serialize_deserialize_to_uninitialized_param(self):
+        ret = numpy.random.rand(2, 3).astype('f')
+        serializer = mock.MagicMock(return_value=ret)
+        l = chainer.Link()
+        with l.init_scope():
+            l.x = chainer.Parameter()
+        l.serialize(serializer)
+        self.assertEqual(serializer.call_count, 1)
+        serializer.assert_any_call('x', None)
+        self.assertIsInstance(l.x.data, numpy.ndarray)
+        numpy.testing.assert_array_equal(l.x.data, ret)
 
-    def test_uninitialized_param_already_param(self):
-        l = chainer.Link(y=2)
-        l.add_param('x', (2, 3))
-        with self.assertRaises(AttributeError):
-            l.add_uninitialized_param('x')
+    def test_enable_update(self):
+        self.link.enable_update()
+        self.assertTrue(self.link.x.update_rule.enabled)
+        self.assertTrue(self.link.u.update_rule.enabled)
 
-    def test_has_uninitialized_params(self):
-        l = chainer.Link(y=2)
-        self.assertFalse(l.has_uninitialized_params)
-        l.add_uninitialized_param('x')
-        self.assertTrue(l.has_uninitialized_params)
-        l.add_param('x', (2, 3))
-        self.assertFalse(l.has_uninitialized_params)
+    def test_disable_update(self):
+        self.link.disable_update()
+        self.assertFalse(self.link.x.update_rule.enabled)
+        self.assertFalse(self.link.u.update_rule.enabled)
+
+    def test_update_enabled(self):
+        self.assertTrue(self.link.update_enabled)
+        self.link.disable_update()
+        self.assertFalse(self.link.update_enabled)
+        self.link.enable_update()
+        self.assertTrue(self.link.update_enabled)
 
 
-class CountVariable(chainer.Variable):
+class CountParameter(chainer.Parameter):
 
     def __init__(self, v):
-        super(CountVariable, self).__init__(v.data, v.volatile, v.name)
+        super(CountParameter, self).__init__(v.data, name=v.name)
+        self.data = v.data
         self.grad = v.grad
         self.count_to_cpu = 0
         self.count_to_gpu = 0
@@ -231,15 +383,15 @@ class CountVariable(chainer.Variable):
 
     def to_cpu(self):
         self.count_to_cpu += 1
-        super(CountVariable, self).to_cpu()
+        super(CountParameter, self).to_cpu()
 
     def to_gpu(self, device=None):
         self.count_to_gpu += 1
-        super(CountVariable, self).to_gpu(device)
+        super(CountParameter, self).to_gpu(device)
 
     def zerograd(self):
         self.count_zerograd += 1
-        super(CountVariable, self).zerograd()
+        super(CountParameter, self).zerograd()
 
 
 class TestChain(unittest.TestCase):
@@ -247,11 +399,13 @@ class TestChain(unittest.TestCase):
     def setUp(self):
         self.l1 = chainer.Link(x=(2, 3))
         self.l2 = chainer.Link(x=2)
-        self.l3 = chainer.Link(x=3)
+        self.l3 = chainer.Link(x=None)
 
         self.c1 = chainer.Chain(l1=self.l1)
         self.c1.add_link('l2', self.l2)
-        self.c2 = chainer.Chain(c1=self.c1, l3=self.l3)
+        self.c2 = chainer.Chain(c1=self.c1)
+        with self.c2.init_scope():
+            self.c2.l3 = self.l3
 
     def test_init(self):
         self.assertIs(self.c1.l1, self.l1)
@@ -270,11 +424,23 @@ class TestChain(unittest.TestCase):
         self.assertIs(self.c1.l2, self.l2)
         self.assertEqual(self.l2.name, 'l2')
 
+    def test_add_link_to_existing_attribute(self):
+        self.l1.z = 0
+        with self.assertRaises(AttributeError):
+            self.l1.add_link('z', chainer.Link())
+
+    def test_assign_link_outside_of_init_scope(self):
+        l = chainer.Link()
+        self.l1.l = l
+        self.assertTrue(all(l is not link for link in self.l1.links()))
+
     def test_copy(self):
         c2 = self.c2.copy()
         self.assertIs(c2.name, None)
+        self.assertIsInstance(c2._children, set)
         self.assertTrue(hasattr(c2, 'c1'))
         self.assertEqual(c2.c1.name, 'c1')
+        self.assertIsInstance(c2.c1._children, set)
         self.assertIsNot(c2.c1, self.c1)
         self.assertEqual(c2.c1.l1.name, 'l1')
         self.assertIsNot(c2.c1.l1, self.l1)
@@ -313,14 +479,14 @@ class TestChain(unittest.TestCase):
         self.assertIs(self.l3.x.data, x3)
         self.assertIs(self.l3.x.grad, gx3)
 
-    def set_count_variables(self):
-        self.l1.x = CountVariable(self.l1.x)
-        self.l2.x = CountVariable(self.l2.x)
-        self.l3.x = CountVariable(self.l3.x)
+    def set_count_parameters(self):
+        self.l1.x = CountParameter(self.l1.x)
+        self.l2.x = CountParameter(self.l2.x)
+        self.l3.x = CountParameter(self.l3.x)
 
     @attr.gpu
     def test_to_cpu(self):
-        self.set_count_variables()
+        self.set_count_parameters()
         self.c2.to_gpu()
         self.c2.to_cpu()
         self.assertIs(self.c2.xp, numpy)
@@ -332,8 +498,8 @@ class TestChain(unittest.TestCase):
         self.assertIsInstance(self.l1.x.grad, numpy.ndarray)
         self.assertIsInstance(self.l2.x.data, numpy.ndarray)
         self.assertIsInstance(self.l2.x.grad, numpy.ndarray)
-        self.assertIsInstance(self.l3.x.data, numpy.ndarray)
-        self.assertIsInstance(self.l3.x.grad, numpy.ndarray)
+        self.assertIsNone(self.l3.x.data)
+        self.assertIsNone(self.l3.x.grad)
         self.assertEqual(self.l1.x.count_to_cpu, 1)
         self.assertEqual(self.l1.x.count_to_gpu, 1)
         self.assertEqual(self.l2.x.count_to_cpu, 1)
@@ -341,9 +507,13 @@ class TestChain(unittest.TestCase):
         self.assertEqual(self.l3.x.count_to_cpu, 1)
         self.assertEqual(self.l3.x.count_to_gpu, 1)
 
+        self.l3.x.initialize(3)
+        self.assertIsInstance(self.l3.x.data, numpy.ndarray)
+        self.assertIsInstance(self.l3.x.grad, numpy.ndarray)
+
     @attr.gpu
     def test_to_gpu(self):
-        self.set_count_variables()
+        self.set_count_parameters()
         cupy = cuda.cupy
         self.c2.to_gpu()
         self.assertIs(self.c2.xp, cupy)
@@ -355,16 +525,25 @@ class TestChain(unittest.TestCase):
         self.assertIsInstance(self.l1.x.grad, cupy.ndarray)
         self.assertIsInstance(self.l2.x.data, cupy.ndarray)
         self.assertIsInstance(self.l2.x.grad, cupy.ndarray)
-        self.assertIsInstance(self.l3.x.data, cupy.ndarray)
-        self.assertIsInstance(self.l3.x.grad, cupy.ndarray)
+        self.assertIsNone(self.l3.x.data)
+        self.assertIsNone(self.l3.x.grad)
         self.assertEqual(self.l1.x.count_to_gpu, 1)
         self.assertEqual(self.l2.x.count_to_gpu, 1)
         self.assertEqual(self.l3.x.count_to_gpu, 1)
+
+        self.l3.x.initialize(3)
+        self.assertIsInstance(self.l3.x.data, cupy.ndarray)
+        self.assertIsInstance(self.l3.x.grad, cupy.ndarray)
 
     def test_params(self):
         params = list(self.c2.params())
         self.assertEqual({id(p) for p in params},
                          {id(self.l1.x), id(self.l2.x), id(self.l3.x)})
+
+    def test_params_skip_uninit(self):
+        params = list(self.c2.params(include_uninit=False))
+        self.assertEqual({id(p) for p in params},
+                         {id(self.l1.x), id(self.l2.x)})
 
     def test_namedparams(self):
         namedparams = list(self.c2.namedparams())
@@ -372,6 +551,12 @@ class TestChain(unittest.TestCase):
                          {('/c1/l1/x', id(self.l1.x)),
                           ('/c1/l2/x', id(self.l2.x)),
                           ('/l3/x', id(self.l3.x))})
+
+    def test_namedparams_skip_uninit(self):
+        namedparams = list(self.c2.namedparams(include_uninit=False))
+        self.assertEqual({(name, id(p)) for name, p in namedparams},
+                         {('/c1/l1/x', id(self.l1.x)),
+                          ('/c1/l2/x', id(self.l2.x))})
 
     def test_links(self):
         links = list(self.c2.links())
@@ -406,11 +591,23 @@ class TestChain(unittest.TestCase):
         self.assertEqual({id(c) for c in children}, {id(self.c1), id(self.l3)})
 
     def test_copyparams(self):
-        l1 = chainer.Link(x=(2, 3))
-        l2 = chainer.Link(x=2)
-        l3 = chainer.Link(x=3)
-        c1 = chainer.Chain(l1=l1, l2=l2)
-        c2 = chainer.Chain(c1=c1, l3=l3)
+        l1 = chainer.Link()
+        with l1.init_scope():
+            l1.x = chainer.Parameter(shape=(2, 3))
+        l2 = chainer.Link()
+        with l2.init_scope():
+            l2.x = chainer.Parameter(shape=2)
+        l3 = chainer.Link()
+        with l3.init_scope():
+            l3.x = chainer.Parameter(shape=3)
+        c1 = chainer.Chain()
+        with c1.init_scope():
+            c1.l1 = l1
+            c1.l2 = l2
+        c2 = chainer.Chain()
+        with c2.init_scope():
+            c2.c1 = c1
+            c2.l3 = l3
         l1.x.data.fill(0)
         l2.x.data.fill(1)
         l3.x.data.fill(2)
@@ -422,33 +619,47 @@ class TestChain(unittest.TestCase):
         numpy.testing.assert_array_equal(self.l3.x.data, l3.x.data)
 
     def test_zerograds(self):
-        self.set_count_variables()
+        self.set_count_parameters()
         self.c2.zerograds()
         numpy.testing.assert_array_equal(self.l1.x.grad, numpy.zeros((2, 3)))
         numpy.testing.assert_array_equal(self.l2.x.grad, numpy.zeros(2))
+        self.assertEqual(self.l1.x.count_zerograd, 1)
+        self.assertEqual(self.l2.x.count_zerograd, 1)
+        self.assertEqual(self.l3.x.count_zerograd, 1)
+
+        self.l3.x.initialize(3)
         numpy.testing.assert_array_equal(self.l3.x.grad, numpy.zeros(3))
-        numpy.testing.assert_array_equal(self.l1.x.count_zerograd, 1)
-        numpy.testing.assert_array_equal(self.l2.x.count_zerograd, 1)
-        numpy.testing.assert_array_equal(self.l3.x.count_zerograd, 1)
 
     def test_addgrads(self):
-        l1 = chainer.Link(x=(2, 3))
-        l2 = chainer.Link(x=2)
-        l3 = chainer.Link(x=3)
-        c1 = chainer.Chain(l1=l1, l2=l2)
-        c2 = chainer.Chain(c1=c1, l3=l3)
+        l1 = chainer.Link()
+        with l1.init_scope():
+            l1.x = chainer.Parameter(shape=(2, 3))
+        l2 = chainer.Link()
+        with l2.init_scope():
+            l2.x = chainer.Parameter(shape=2)
+        l3 = chainer.Link()
+        with l3.init_scope():
+            l3.x = chainer.Parameter(shape=3)
+        c1 = chainer.Chain()
+        with c1.init_scope():
+            c1.l1 = l1
+            c1.l2 = l2
+        c2 = chainer.Chain()
+        with c2.init_scope():
+            c2.c1 = c1
+            c2.l3 = l3
         l1.x.grad.fill(1)
         l2.x.grad.fill(2)
         l3.x.grad.fill(3)
 
         self.l1.x.grad.fill(-1)
         self.l2.x.grad.fill(-2)
-        self.l3.x.grad.fill(-3)
+        self.l3.cleargrads()
 
         self.c2.addgrads(c2)
         numpy.testing.assert_array_equal(self.l1.x.grad, numpy.zeros((2, 3)))
         numpy.testing.assert_array_equal(self.l2.x.grad, numpy.zeros(2))
-        numpy.testing.assert_array_equal(self.l3.x.grad, numpy.zeros(3))
+        numpy.testing.assert_array_equal(self.l3.x.grad, numpy.full(3, 3.))
 
     def test_serialize(self):
         mocks = {'l1': mock.MagicMock(), 'l2': mock.MagicMock()}
@@ -468,25 +679,34 @@ class TestChain(unittest.TestCase):
 class TestChainList(unittest.TestCase):
 
     def setUp(self):
-        self.l1 = chainer.Link(x=(2, 3))
-        self.l1.add_uninitialized_param('y')
-        self.l2 = chainer.Link(x=2)
-        self.l3 = chainer.Link(x=3)
+        self.l1 = chainer.Link()
+        with self.l1.init_scope():
+            self.l1.x = chainer.Parameter(shape=(2, 3))
+            self.l1.y = chainer.Parameter()
+        self.l2 = chainer.Link()
+        with self.l2.init_scope():
+            self.l2.x = chainer.Parameter(shape=2)
+        self.l3 = chainer.Link()
+        with self.l3.init_scope():
+            self.l3.x = chainer.Parameter(shape=3)
         self.c1 = chainer.ChainList(self.l1)
         self.c1.add_link(self.l2)
-        self.c2 = chainer.ChainList(self.c1, self.l3)
+        self.c2 = chainer.ChainList(self.c1)
+        self.c2.append(self.l3)
 
     def test_init(self):
         self.assertIs(self.c1[0], self.l1)
         self.assertEqual(self.l1.name, '0')
         self.assertIs(self.c2[0], self.c1)
         self.assertEqual(self.c1.name, '0')
-        self.assertIs(self.c2[1], self.l3)
-        self.assertEqual(self.l3.name, '1')
 
     def test_add_link(self):
         self.assertIs(self.c1[1], self.l2)
         self.assertEqual(self.l2.name, '1')
+
+    def test_append(self):
+        self.assertIs(self.c2[1], self.l3)
+        self.assertEqual(self.l3.name, '1')
 
     def test_iter(self):
         links = list(self.c2)
@@ -502,8 +722,10 @@ class TestChainList(unittest.TestCase):
         c2 = self.c2.copy()
 
         self.assertIs(c2.name, None)
+        self.assertIsInstance(c2._children, list)
         self.assertIsNot(c2[0], self.c1)
         self.assertEqual(c2[0].name, '0')
+        self.assertIsInstance(c2[0]._children, list)
         self.assertIsNot(c2[0][0], self.l1)
         self.assertEqual(c2[0][0].name, '0')
         self.assertIsNot(c2[0][0].x, self.l1.x)
@@ -602,10 +824,24 @@ class TestChainList(unittest.TestCase):
     def test_params(self):
         params = list(self.c2.params())
         self.assertEqual({id(p) for p in params},
+                         {id(self.l1.x), id(self.l1.y),
+                          id(self.l2.x), id(self.l3.x)})
+
+    def test_params_skip_uninit(self):
+        params = list(self.c2.params(include_uninit=False))
+        self.assertEqual({id(p) for p in params},
                          {id(self.l1.x), id(self.l2.x), id(self.l3.x)})
 
     def test_namedparams(self):
         namedparams = list(self.c2.namedparams())
+        self.assertEqual({(name, id(p)) for name, p in namedparams},
+                         {('/0/0/x', id(self.l1.x)),
+                          ('/0/0/y', id(self.l1.y)),
+                          ('/0/1/x', id(self.l2.x)),
+                          ('/1/x', id(self.l3.x))})
+
+    def test_namedparams_skip_uninit(self):
+        namedparams = list(self.c2.namedparams(include_uninit=False))
         self.assertEqual({(name, id(p)) for name, p in namedparams},
                          {('/0/0/x', id(self.l1.x)),
                           ('/0/1/x', id(self.l2.x)),
@@ -647,9 +883,16 @@ class TestChainList(unittest.TestCase):
                          (id(self.l1), id(self.l2)))
 
     def test_copyparams(self):
-        l1 = chainer.Link(x=(2, 3))
-        l2 = chainer.Link(x=2)
-        l3 = chainer.Link(x=3)
+        l1 = chainer.Link()
+        with l1.init_scope():
+            l1.x = chainer.Parameter(shape=(2, 3))
+            l1.y = chainer.Parameter()
+        l2 = chainer.Link()
+        with l2.init_scope():
+            l2.x = chainer.Parameter(shape=2)
+        l3 = chainer.Link()
+        with l3.init_scope():
+            l3.x = chainer.Parameter(shape=3)
         c1 = chainer.ChainList(l1, l2)
         c2 = chainer.ChainList(c1, l3)
         l1.x.data.fill(0)
@@ -667,50 +910,70 @@ class TestChainList(unittest.TestCase):
         numpy.testing.assert_array_equal(self.l1.x.grad, numpy.zeros((2, 3)))
         numpy.testing.assert_array_equal(self.l2.x.grad, numpy.zeros(2))
         numpy.testing.assert_array_equal(self.l3.x.grad, numpy.zeros(3))
-
-        self.assertTrue(self.l1._uninitialized_params['y']._zeroed)
+        self.l1.y.initialize((2, 3))
+        numpy.testing.assert_array_equal(self.l1.y.grad, numpy.zeros((2, 3)))
 
     def test_cleargrads(self):
         self.c2.cleargrads()
         self.assertIsNone(self.l1.x.grad)
         self.assertIsNone(self.l2.x.grad)
         self.assertIsNone(self.l3.x.grad)
-
-        self.assertTrue(self.l1._uninitialized_params['y']._cleared)
+        self.l1.y.initialize((2, 3))
+        self.assertIsNone(self.l1.y.grad)
 
     def test_addgrads(self):
-        l1 = chainer.Link(x=(2, 3))
-        l2 = chainer.Link(x=2)
-        l3 = chainer.Link(x=3)
+        l1 = chainer.Link()
+        with self.l1.init_scope():
+            l1.x = chainer.Parameter(shape=(2, 3))
+            l1.y = chainer.Parameter(shape=(2, 3))
+        l2 = chainer.Link()
+        with l2.init_scope():
+            l2.x = chainer.Parameter(shape=2)
+        l3 = chainer.Link()
+        with l3.init_scope():
+            l3.x = chainer.Parameter(shape=3)
         c1 = chainer.ChainList(l1, l2)
         c2 = chainer.ChainList(c1, l3)
         l1.x.grad.fill(1)
         l2.x.grad.fill(2)
         l3.x.grad.fill(3)
+        l1.y.grad.fill(4)
 
         self.l1.x.grad.fill(-1)
+        self.l1.y.cleargrad()
         self.l2.x.grad.fill(-2)
         self.l3.x.grad.fill(-3)
 
         self.c2.addgrads(c2)
         numpy.testing.assert_array_equal(self.l1.x.grad, numpy.zeros((2, 3)))
+        numpy.testing.assert_array_equal(self.l1.y.grad, l1.y.grad)
         numpy.testing.assert_array_equal(self.l2.x.grad, numpy.zeros(2))
         numpy.testing.assert_array_equal(self.l3.x.grad, numpy.zeros(3))
 
     def test_serialize(self):
-        self.l1.add_param('y', (1, 1))
+        l1 = chainer.Link()
+        with l1.init_scope():
+            l1.y = chainer.Parameter(shape=(1, 1))
+
+        l2 = chainer.Link()
+        with l2.init_scope():
+            l2.x = chainer.Parameter(0, 2)
+        c1 = chainer.ChainList(l1, l2)
         mocks = {'0': mock.MagicMock(), '1': mock.MagicMock()}
         serializer = mock.MagicMock()
         serializer.__getitem__.side_effect = lambda k: mocks[k]
-        self.c1.serialize(serializer)
+        serializer.return_value = None
+        mocks['0'].return_value = None
+        mocks['1'].return_value = None
+        c1.serialize(serializer)
 
         self.assertEqual(serializer.call_count, 0)
         self.assertEqual(serializer.__getitem__.call_count, 2)
         serializer.__getitem__.assert_any_call('0')
         serializer.__getitem__.assert_any_call('1')
 
-        mocks['0'].assert_called_with('y', self.l1.y.data)
-        mocks['1'].assert_called_with('x', self.l2.x.data)
+        mocks['0'].assert_called_with('y', l1.y.data)
+        mocks['1'].assert_called_with('x', l2.x.data)
 
 
 testing.run_module(__name__, __file__)

@@ -67,12 +67,17 @@ class ROIPooling2D(function.Function):
         )
 
     def forward_cpu(self, inputs):
+        self.retain_inputs((1,))
+        self._bottom_data_shape = inputs[0].shape
+
         bottom_data, bottom_rois = inputs
         channels, height, width = bottom_data.shape[1:]
         n_rois = bottom_rois.shape[0]
-        top_data = numpy.empty((n_rois, channels, self.outh, self.outw),
+        # `numpy.zeros` needs to be used because the arrays can be
+        # returned without having some of its values updated.
+        top_data = numpy.zeros((n_rois, channels, self.outh, self.outw),
                                dtype=numpy.float32)
-        self.argmax_data = numpy.empty(top_data.shape, numpy.int32)
+        self.argmax_data = numpy.zeros(top_data.shape, numpy.int32)
 
         for i_roi in six.moves.range(n_rois):
             idx, xmin, ymin, xmax, ymax = bottom_rois[i_roi]
@@ -110,6 +115,9 @@ class ROIPooling2D(function.Function):
         return top_data,
 
     def forward_gpu(self, inputs):
+        self.retain_inputs((1,))
+        self._bottom_data_shape = inputs[0].shape
+
         bottom_data, bottom_rois = inputs
         channels, height, width = bottom_data.shape[1:]
         n_rois = bottom_rois.shape[0]
@@ -184,10 +192,10 @@ class ROIPooling2D(function.Function):
         return top_data,
 
     def backward_cpu(self, inputs, gy):
-        bottom_data, bottom_rois = inputs
-        channels, height, width = bottom_data.shape[1:]
+        bottom_rois = inputs[1]
+        channels, height, width = self._bottom_data_shape[1:]
         n_rois = bottom_rois.shape[0]
-        bottom_delta = numpy.zeros_like(bottom_data, dtype=numpy.float32)
+        bottom_delta = numpy.zeros(self._bottom_data_shape, numpy.float32)
 
         for i_roi in six.moves.range(n_rois):
             idx, xmin, ymin, xmax, ymax = bottom_rois[i_roi]
@@ -225,9 +233,9 @@ class ROIPooling2D(function.Function):
         return bottom_delta, None
 
     def backward_gpu(self, inputs, gy):
-        bottom_data, bottom_rois = inputs
-        channels, height, width = bottom_data.shape[1:]
-        bottom_diff = cuda.cupy.zeros_like(bottom_data, dtype=numpy.float32)
+        bottom_rois = inputs[1]
+        channels, height, width = self._bottom_data_shape[1:]
+        bottom_diff = cuda.cupy.zeros(self._bottom_data_shape, numpy.float32)
         cuda.cupy.ElementwiseKernel(
             '''
             raw float32 top_diff, raw int32 argmax_data, int32 num_rois,

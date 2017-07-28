@@ -6,16 +6,12 @@ import chainer
 from chainer import cuda
 from chainer import gradient_check
 from chainer import links
-from chainer.links.theano import theano_function
 from chainer import testing
 from chainer.testing import attr
+from chainer.testing import condition
 
 
-if theano_function._available:
-    import theano.tensor as T
-
-
-@unittest.skipUnless(theano_function._available, 'theano is not available')
+@testing.with_requires('theano')
 class TheanoFunctionTestBase(object):
 
     forward_test_options = {}
@@ -47,7 +43,7 @@ class TheanoFunctionTestBase(object):
 
         self.assertEqual(len(outputs), len(expect))
         for o, e in zip(outputs, expect):
-            gradient_check.assert_allclose(
+            testing.assert_allclose(
                 o.data, e, **self.forward_test_options)
 
     def test_forward_cpu(self):
@@ -63,10 +59,12 @@ class TheanoFunctionTestBase(object):
         gradient_check.check_backward(
             func, input_data, grad_data, **self.backward_test_options)
 
+    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.input_data, self.grad_data)
 
     @attr.gpu
+    @condition.retry(3)
     def test_backward_gpu(self):
         inputs = [cuda.to_gpu(x) for x in self.input_data]
         grads = [cuda.to_gpu(x) for x in self.grad_data]
@@ -95,6 +93,7 @@ class TheanoFunctionTestBase(object):
 class TestTheanoFunction(TheanoFunctionTestBase, unittest.TestCase):
 
     def make_func(self):
+        import theano.tensor as T
         x = T.TensorType(self.inputs[0]['type'],
                          (False,) * len(self.inputs[0]['shape']))('x')
         y = T.TensorType(self.inputs[1]['type'],
@@ -124,6 +123,7 @@ class TestTheanoFunction(TheanoFunctionTestBase, unittest.TestCase):
 class TestTheanoFunctionTwoOutputs(TheanoFunctionTestBase, unittest.TestCase):
 
     def make_func(self):
+        import theano.tensor as T
         x = T.TensorType(self.inputs[0]['type'],
                          (False,) * len(self.inputs[0]['shape']))('x')
         y = T.TensorType(self.inputs[1]['type'],
@@ -149,6 +149,7 @@ class TestTheanoFunctionNonDifferential(
         TheanoFunctionTestBase, unittest.TestCase):
 
     def make_func(self):
+        import theano.tensor as T
         x = T.TensorType(self.inputs[0]['type'],
                          (False,) * len(self.inputs[0]['shape']))('x')
         i = T.TensorType(self.inputs[1]['type'],

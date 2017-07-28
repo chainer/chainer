@@ -6,9 +6,14 @@ import warnings
 import numpy
 import six
 
+from chainer import configuration
 from chainer import functions
 from chainer import link
-from chainer import links
+from chainer.links.connection import convolution_2d
+from chainer.links.connection import linear
+from chainer.links.connection import scale
+from chainer.links.normalization import batch_normalization
+from chainer.utils import argument
 
 
 def _protobuf3():
@@ -156,13 +161,21 @@ class CaffeFunction(link.Chain):
                         'Skip the layer "%s", since CaffeFunction does not'
                         'support it' % layer.name)
 
-    def __call__(self, inputs, outputs, disable=(), train=True):
-        """Executes a sub-network of the network.
+    def __call__(self, inputs, outputs, disable=(), **kwargs):
+        """__call__(self, inputs, outputs, disable=())
+
+        Executes a sub-network of the network.
 
         This function acts as an interpreter of the network definition for
         Caffe. On execution, it interprets each layer one by one, and if the
         bottom blobs are already computed, then emulates the layer and stores
         output blobs as :class:`~chainer.Variable` objects.
+
+        .. warning::
+
+           ``train`` argument is not supported anymore since v2.
+           Instead, use ``chainer.using_config('train', train)``.
+           See :func:`chainer.using_config`.
 
         Args:
             inputs (dict): A dictionary whose key-value pairs indicate initial
@@ -172,15 +185,17 @@ class CaffeFunction(link.Chain):
                 :class:`~chainer.Variable` objects are returned.
             disable (Iterable): A list of layer names that will be ignored
                 during the forward computation.
-            train (bool): If ``True``, this function emulates the TRAIN phase
-                of the Caffe layers. Otherwise, it emulates the TEST phase.
 
         Returns:
             tuple: A tuple of output :class:`~chainer.Variable` objects
                 corresponding to elements of the  `outputs` argument.
 
         """
-        self.train = train
+        argument.check_unexpected_kwargs(
+            kwargs, train='train argument is not supported anymore. '
+            'Use chainer.using_config')
+        argument.assert_kwargs_empty(kwargs)
+
         variables = dict(inputs)
         for func_name, bottom, top in self.layers:
             if (func_name in disable or
@@ -228,8 +243,8 @@ class CaffeFunction(link.Chain):
 
         n_in = channels * param.group
         n_out = num
-        func = links.Convolution2D(n_in, n_out, ksize, stride, pad,
-                                   nobias=not param.bias_term)
+        func = convolution_2d.Convolution2D(n_in, n_out, ksize, stride, pad,
+                                            nobias=not param.bias_term)
         func.W.data[...] = 0
 
         part_size = len(blobs[0].data) // param.group
@@ -247,7 +262,8 @@ class CaffeFunction(link.Chain):
         if param.bias_term:
             func.b.data[:] = blobs[1].data
 
-        self.add_link(layer.name, func)
+        with self.init_scope():
+            setattr(self, layer.name, func)
         self.forwards[layer.name] = _CallChildLink(self, layer.name)
         self._add_layer(layer)
 
@@ -260,8 +276,8 @@ class CaffeFunction(link.Chain):
     def _setup_dropout(self, layer):
         param = layer.dropout_param
 
-        self.forwards[layer.name] = _DropoutFunction(
-            self, ratio=param.dropout_ratio)
+        self.forwards[layer.name] = _SingleArgumentFunction(
+            functions.dropout, ratio=param.dropout_ratio)
         self._add_layer(layer)
 
     @_layer('InnerProduct', 'INNER_PRODUCT')
@@ -274,12 +290,13 @@ class CaffeFunction(link.Chain):
 
         blobs = layer.blobs
         width, height = _get_width(blobs[0]), _get_height(blobs[0])
-        func = links.Linear(width, height, nobias=not bias_term)
+        func = linear.Linear(width, height, nobias=not bias_term)
         func.W.data.ravel()[:] = blobs[0].data
         if bias_term:
             func.b.data[:] = blobs[1].data
 
-        self.add_link(layer.name, func)
+        with self.init_scope():
+            setattr(self, layer.name, func)
         self.forwards[layer.name] = _CallChildLink(self, layer.name)
         self._add_layer(layer)
 
@@ -337,16 +354,19 @@ class CaffeFunction(link.Chain):
         size = int(blobs[0].shape.dim[0])  # Get channel dim from mean blob.
 
         # Make BatchNormalization link.
-        func = links.BatchNormalization(size, decay=decay, eps=eps,
-                                        use_gamma=False, use_beta=False)
+        func = batch_normalization.BatchNormalization(
+            size, decay=decay, eps=eps, use_gamma=False, use_beta=False)
         func.avg_mean.ravel()[:] = blobs[0].data
         func.avg_var.ravel()[:] = blobs[1].data
-        self.add_link(layer.name, func)
+        with self.init_scope():
+            setattr(self, layer.name, func)
 
         # Add layer.
-        fwd = _SingleArgumentFunction(
-            _CallChildLink(self, layer.name),
-            test=use_global_stats, finetune=False)
+        if use_global_stats:
+            func_class = _SingleArgumentFunctionTestMode
+        else:
+            func_class = _SingleArgumentFunction
+        fwd = func_class(_CallChildLink(self, layer.name), finetune=False)
         self.forwards[layer.name] = fwd
         self._add_layer(layer)
 
@@ -375,20 +395,21 @@ class CaffeFunction(link.Chain):
         # Case of only one bottom where W is learnt parameter.
         if len(bottom) == 1:
             W_shape = blobs[0].shape.dim
-            func = links.scale.Scale(axis, W_shape, bias_term)
+            func = scale.Scale(axis, W_shape, bias_term)
             func.W.data.ravel()[:] = blobs[0].data
             if bias_term:
                 func.bias.b.data.ravel()[:] = blobs[1].data
         # Case of two bottoms where W is given as a bottom.
         else:
             shape = blobs[0].shape.dim if bias_term else None
-            func = links.scale.Scale(
+            func = scale.Scale(
                 axis, bias_term=bias_term, bias_shape=shape)
             if bias_term:
                 func.bias.b.data.ravel()[:] = blobs[0].data
 
         # Add layer.
-        self.add_link(layer.name, func)
+        with self.init_scope():
+            setattr(self, layer.name, func)
         self.forwards[layer.name] = _CallChildLink(self, layer.name)
         self._add_layer(layer)
 
@@ -423,9 +444,9 @@ class CaffeFunction(link.Chain):
         if layer.softmax_param.engine == 0:  # DEFAULT
             fw = functions.softmax
         elif layer.softmax_param.engine == 1:  # CAFFE
-            fw = _SingleArgumentFunction(functions.softmax, use_cudnn=False)
+            fw = _SingleArgumentFunctionWithCudnn(False, functions.softmax)
         elif layer.softmax_param.engine == 2:  # CUDNN
-            fw = _SingleArgumentFunction(functions.softmax, use_cudnn=True)
+            fw = _SingleArgumentFunctionWithCudnn(True, functions.softmax)
 
         self.forwards[layer.name] = fw
         self._add_layer(layer)
@@ -537,6 +558,13 @@ class _SingleArgumentFunction(object):
         return self.func(x, *self.args, **self.kwargs)
 
 
+class _SingleArgumentFunctionTestMode(_SingleArgumentFunction):
+
+    def __call__(self, x):
+        with configuration.using_config('train', False):
+            return super(_SingleArgumentFunctionTestMode, self).__call__(x)
+
+
 class _ListArgumentFcuntion(object):
 
     def __init__(self, func, **kwargs):
@@ -547,16 +575,16 @@ class _ListArgumentFcuntion(object):
         return self.func(xs, **self.kwargs)
 
 
-class _DropoutFunction(object):
+class _SingleArgumentFunctionWithCudnn(_SingleArgumentFunction):
 
-    def __init__(self, caffe_func, ratio):
-        # `caffe_func.train` is determined when calling `__call__`
-        self.caffe_func = caffe_func
-        self.ratio = ratio
+    def __init__(self, use_cudnn, func, *args, **kwargs):
+        super(_SingleArgumentFunctionWithCudnn, self).__init__(
+            func, *args, **kwargs)
+        self.use_cudnn = use_cudnn
 
     def __call__(self, x):
-        return functions.dropout(
-            x, ratio=self.ratio, train=self.caffe_func.train)
+        with configuration.using_config('use_cudnn', self.use_cudnn):
+            return super(_SingleArgumentFunctionWithCudnn, self).__call__(x)
 
 
 class _CallChildLink(object):

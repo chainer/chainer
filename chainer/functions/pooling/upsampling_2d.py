@@ -38,6 +38,9 @@ class Upsampling2D(pooling_2d.Pooling2D):
             type_check.expect(x_type.shape[3] == expected_w)
 
     def forward_cpu(self, x):
+        self.retain_inputs(())
+        self._in_dtype = x[0].dtype
+
         n, c, h, w = x[0].shape
         if self.outh is None:
             self.outh = conv.get_deconv_outsize(
@@ -46,7 +49,7 @@ class Upsampling2D(pooling_2d.Pooling2D):
             self.outw = conv.get_deconv_outsize(
                 w, self.kw, self.sx, self.pw, cover_all=self.cover_all)
 
-        up_y = numpy.zeros((n, c, self.outh, self.outw), dtype=numpy.float32)
+        up_y = numpy.zeros((n, c, self.outh, self.outw), dtype=self._in_dtype)
         up_y = conv.im2col_cpu(
             up_y, self.kh, self.kw, self.sy, self.sx, self.ph, self.pw,
             cover_all=self.cover_all)
@@ -62,6 +65,9 @@ class Upsampling2D(pooling_2d.Pooling2D):
         return up_y,
 
     def forward_gpu(self, x):
+        self.retain_inputs(())
+        self._in_dtype = x[0].dtype
+
         xp = cuda.cupy
         n, c, h, w = x[0].shape
         if self.outh is None:
@@ -70,7 +76,7 @@ class Upsampling2D(pooling_2d.Pooling2D):
         if self.outw is None:
             self.outw = conv.get_deconv_outsize(
                 w, self.kw, self.sx, self.pw, cover_all=self.cover_all)
-        up_y = xp.zeros((n, c, self.outh, self.outw), dtype=numpy.float32)
+        up_y = xp.zeros((n, c, self.outh, self.outw), dtype=self._in_dtype)
         up_y = conv.im2col_gpu(
             up_y, self.kh, self.kw, self.sy, self.sx, self.ph, self.pw,
             cover_all=self.cover_all)
@@ -78,8 +84,8 @@ class Upsampling2D(pooling_2d.Pooling2D):
         n, c, oy, ox, ky, kx = up_y.shape
         indexes = xp.asarray(self.indexes, dtype=numpy.int32)
         xp.ElementwiseKernel(
-            'int32 index, float32 x, int32 n, int32 c, int32 oy, int32 ox,'
-            'int32 ky, int32 kx', 'raw float32 up_y',
+            'int32 index, T x, int32 n, int32 c, int32 oy, int32 ox,'
+            'int32 ky, int32 kx', 'raw T up_y',
             '''
             int yn = i / c / oy / ox;
             int yc = (i / oy / ox) % c;
@@ -105,7 +111,7 @@ class Upsampling2D(pooling_2d.Pooling2D):
         gcol = gcol.transpose(0, 1, 4, 5, 2, 3)
         n, c, oy, ox, ky, kx = gcol.shape
         gcol = gcol.reshape((n, c, oy, ox, ky * kx))
-        gx = numpy.empty((n, c, oy, ox), dtype=x[0].dtype)
+        gx = numpy.empty((n, c, oy, ox), dtype=self._in_dtype)
         for n in six.moves.range(gcol.shape[0]):
             for c in six.moves.range(gcol.shape[1]):
                 for oy in six.moves.range(gcol.shape[2]):
@@ -124,11 +130,11 @@ class Upsampling2D(pooling_2d.Pooling2D):
         n, c, oy, ox, ky, kx = gcol.shape
         gcol = gcol.reshape((n, c, oy, ox, ky * kx))
         indexes = xp.asarray(self.indexes, dtype=numpy.int32)
-        gx = xp.empty((n, c, oy, ox), dtype=x[0].dtype)
+        gx = xp.empty((n, c, oy, ox), dtype=self._in_dtype)
         xp.ElementwiseKernel(
-            'int32 indexes, raw float32 gcol, int32 n, int32 c, int32 oy,'
+            'int32 indexes, raw T gcol, int32 n, int32 c, int32 oy,'
             'int32 ox, int32 ky, int32 kx',
-            'raw float32 gx',
+            'raw T gx',
             '''
             int ind_n = i / c / oy / ox;
             int ind_c = (i / oy / ox) % c;
@@ -160,12 +166,14 @@ def upsampling_2d(
 
     .. admonition:: Example
 
-        It should be noted that you need to specify ``use_cudnn=False`` when
-        you create MaxPooling2D object because if cuDNN used for operating
-        max pooling, ``indexes`` is never created and stored in the
-        MaxPooling2D object.
+        It should be noted that you need to turn off
+        ``chainer.config.use_cudnn`` flag when you perform
+        :meth:`~chainer.functions.max_pooling_2d` function which will make a
+        pooling indicies for this :meth:`~chainer.functions.upsampling_2d`.
+        It is because :attr:`~chainer.functions.MaxPooling2D.indexes` is never
+        created and stored in the :attr:`~chainer.functions.MaxPooling2D`
+        object when cuDNN is used for it.
 
-        >>> p = F.MaxPooling2D(2, 2, use_cudnn=False)
         >>> x = np.arange(1, 37).reshape(1, 1, 6, 6).astype('f')
         >>> x = chainer.Variable(x)
         >>> x.data
@@ -178,14 +186,18 @@ def upsampling_2d(
 
         This is the original ``x`` before max pooling.
 
-        >>> pooled_x = p(x)
+        >>> p = F.MaxPooling2D(2, 2)
+        >>> with chainer.using_config('use_cudnn', 'never'):
+        ...     pooled_x = p(x)
         >>> pooled_x.data
         array([[[[  8.,  10.,  12.],
                  [ 20.,  22.,  24.],
                  [ 32.,  34.,  36.]]]], dtype=float32)
 
-        This is the output of the max pooling operation. ``upsampling_2d``
-        needs ``indexes`` array stored in the max pooling object ``p``.
+        This is the output of the max pooling operation.
+        :meth:`~chainer.functions.upsampling_2d` needs
+        :attr:`~chainer.functions.MaxPooling2D.indexes` array stored in the max
+        pooling object ``p``.
 
         >>> upsampled_x = F.upsampling_2d(
         ...     pooled_x, p.indexes, p.kh, p.sy, p.ph, x.shape[2:])

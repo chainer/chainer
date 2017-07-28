@@ -1,12 +1,9 @@
 import numpy
 
+import chainer
 from chainer import cuda
 from chainer.functions.pooling import pooling_2d
 from chainer.utils import conv
-
-if cuda.cudnn_enabled:
-    cudnn = cuda.cudnn
-    libcudnn = cudnn.cudnn
 
 
 class MaxPooling2D(pooling_2d.Pooling2D):
@@ -14,6 +11,10 @@ class MaxPooling2D(pooling_2d.Pooling2D):
     """Max pooling over a set of 2d planes."""
 
     def forward_cpu(self, x):
+        self.retain_inputs(())
+        self._in_shape = x[0].shape
+        self._in_dtype = x[0].dtype
+
         col = conv.im2col_cpu(
             x[0], self.kh, self.kw, self.sy, self.sx, self.ph, self.pw,
             pval=-float('inf'), cover_all=self.cover_all)
@@ -27,15 +28,20 @@ class MaxPooling2D(pooling_2d.Pooling2D):
         return y,
 
     def forward_gpu(self, x):
-        if (cuda.cudnn_enabled and self.use_cudnn and
-                pooling_2d._check_cudnn_acceptable_type(x[0].dtype)):
+        if chainer.should_use_cudnn('>=auto'):
             return super(MaxPooling2D, self).forward_gpu(x)
+
+        self.retain_inputs(())
+        self._in_shape = x[0].shape
+        self._in_dtype = x[0].dtype
 
         n, c, h, w = x[0].shape
         y_h = conv.get_conv_outsize(
             h, self.kh, self.sy, self.ph, self.cover_all)
+        assert y_h > 0, 'Height in the output should be positive.'
         y_w = conv.get_conv_outsize(
             w, self.kw, self.sx, self.pw, self.cover_all)
+        assert y_w > 0, 'Width in the output should be positive.'
         y = cuda.cupy.empty((n, c, y_h, y_w), dtype=x[0].dtype)
         self.indexes = cuda.cupy.empty((n, c, y_h, y_w), dtype=numpy.int32)
 
@@ -79,11 +85,11 @@ class MaxPooling2D(pooling_2d.Pooling2D):
 
     def backward_cpu(self, x, gy):
         n, c, out_h, out_w = gy[0].shape
-        h, w = x[0].shape[2:]
+        h, w = self._in_shape[2:]
         kh, kw = self.kh, self.kw
 
         gcol = numpy.zeros(
-            (n * c * out_h * out_w * kh * kw), dtype=x[0].dtype)
+            (n * c * out_h * out_w * kh * kw), dtype=self._in_dtype)
 
         indexes = self.indexes.flatten()
         indexes += numpy.arange(0, indexes.size * kh * kw, kh * kw)
@@ -97,13 +103,12 @@ class MaxPooling2D(pooling_2d.Pooling2D):
         return gx,
 
     def backward_gpu(self, x, gy):
-        if (cuda.cudnn_enabled and self.use_cudnn and
-                pooling_2d._check_cudnn_acceptable_type(x[0].dtype)):
+        if self._used_cudnn:
             return super(MaxPooling2D, self).backward_gpu(x, gy)
 
-        n, c, h, w = x[0].shape
+        n, c, h, w = self._in_shape
         y_h, y_w = gy[0].shape[2:]
-        gx = cuda.cupy.empty_like(x[0])
+        gx = cuda.cupy.empty(self._in_shape, self._in_dtype)
 
         cuda.elementwise(
             'raw T gy, raw S indexes, int32 h, int32 w,'
@@ -139,13 +144,12 @@ class MaxPooling2D(pooling_2d.Pooling2D):
         return gx,
 
     def create_pool_desc(self):
-        return cudnn.create_pooling_descriptor(
+        return cuda.cudnn.create_pooling_descriptor(
             (self.kh, self.kw), (self.sy, self.sx), (self.ph, self.pw),
-            libcudnn.CUDNN_POOLING_MAX)
+            cuda.cudnn.cudnn.CUDNN_POOLING_MAX)
 
 
-def max_pooling_2d(x, ksize, stride=None, pad=0, cover_all=True,
-                   use_cudnn=True):
+def max_pooling_2d(x, ksize, stride=None, pad=0, cover_all=True):
     """Spatial max pooling function.
 
     This function acts similarly to :class:`~functions.Convolution2D`, but
@@ -163,11 +167,9 @@ def max_pooling_2d(x, ksize, stride=None, pad=0, cover_all=True,
             ``pad=p`` and ``pad=(p, p)`` are equivalent.
         cover_all (bool): If ``True``, all spatial locations are pooled into
             some output pixels. It may make the output size larger.
-        use_cudnn (bool): If ``True`` and cuDNN is enabled, then this function
-            uses cuDNN as the core implementation.
 
     Returns:
         ~chainer.Variable: Output variable.
 
     """
-    return MaxPooling2D(ksize, stride, pad, cover_all, use_cudnn)(x)
+    return MaxPooling2D(ksize, stride, pad, cover_all)(x)

@@ -9,7 +9,7 @@ def experimental(api_name):
     this function. When users call experimental APIs, :class:`FutureWarning`
     is issued.
     The presentation of :class:`FutureWarning` is disabled by setting
-    ``chainer.disable_experimental_warning`` to ``True``,
+    ``chainer.disable_experimental_feature_warning`` to ``True``,
     which is ``False`` by default.
 
     The basic usage is to call it in the function or method we want to

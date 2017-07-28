@@ -1,28 +1,52 @@
 #!/usr/bin/env python
 
+import os
+import pkg_resources
+import sys
+
 from setuptools import setup
 
-import chainer_setup_build
+
+if sys.version_info[:3] == (3, 5, 0):
+    if not int(os.getenv('CHAINER_PYTHON_350_FORCE', '0')):
+        msg = """
+Chainer does not work with Python 3.5.0.
+
+We strongly recommend to use another version of Python.
+If you want to use Chainer with Python 3.5.0 at your own risk,
+set CHAINER_PYTHON_350_FORCE environment variable to 1."""
+        print(msg)
+        sys.exit(1)
 
 
 setup_requires = []
 install_requires = [
     'filelock',
+    'mock',
     'nose',
     'numpy>=1.9.0',
-    'protobuf',
+    'protobuf>=2.6.0',
     'six>=1.9.0',
 ]
+cupy_require = 'cupy==2.0.0a1'
 
-ext_modules = chainer_setup_build.get_ext_modules()
+cupy_pkg = None
+try:
+    cupy_pkg = pkg_resources.get_distribution('cupy')
+except pkg_resources.DistributionNotFound:
+    pass
+
+if cupy_pkg is not None:
+    install_requires.append(cupy_require)
+    print('Use %s' % cupy_require)
 
 setup(
     name='chainer',
-    version='1.20.0',
+    version='3.0.0a1',
     description='A flexible framework of neural networks',
     author='Seiya Tokui',
     author_email='tokui@preferred.jp',
-    url='http://chainer.org/',
+    url='https://chainer.org/',
     license='MIT License',
     packages=['chainer',
               'chainer.dataset',
@@ -30,7 +54,6 @@ setup(
               'chainer.functions',
               'chainer.functions.activation',
               'chainer.functions.array',
-              'chainer.functions.caffe',
               'chainer.functions.connection',
               'chainer.functions.evaluation',
               'chainer.functions.loss',
@@ -60,31 +83,11 @@ setup(
               'chainer.training',
               'chainer.training.extensions',
               'chainer.training.triggers',
-              'chainer.utils',
-              'cupy',
-              'cupy.binary',
-              'cupy.core',
-              'cupy.creation',
-              'cupy.cuda',
-              'cupy.ext',
-              'cupy.indexing',
-              'cupy.io',
-              'cupy.linalg',
-              'cupy.logic',
-              'cupy.manipulation',
-              'cupy.math',
-              'cupy.padding',
-              'cupy.random',
-              'cupy.sorting',
-              'cupy.statistics',
-              'cupy.testing'],
-    package_data={
-        'cupy': ['core/carray.cuh'],
-    },
+              'chainer.training.updaters',
+              'chainer.utils'],
     zip_safe=False,
     setup_requires=setup_requires,
     install_requires=install_requires,
     tests_require=['mock',
                    'nose'],
-    ext_modules=ext_modules,
 )
