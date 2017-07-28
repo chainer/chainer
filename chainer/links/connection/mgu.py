@@ -12,10 +12,10 @@ from chainer.links.connection import linear
 class MGUBase(link.Chain):
 
     def __init__(self, n_inputs, n_units):
-        super(MGUBase, self).__init__(
-            W_f=linear.Linear(n_inputs + n_units, n_units),
-            W_h=linear.Linear(n_inputs + n_units, n_units)
-        )
+        super(MGUBase, self).__init__()
+        with self.init_scope():
+            self.W_f = linear.Linear(n_inputs + n_units, n_units)
+            self.W_h = linear.Linear(n_inputs + n_units, n_units)
 
     def _call_mgu(self, h, x):
         f = sigmoid.sigmoid(self.W_f(concat.concat([h, x])))
