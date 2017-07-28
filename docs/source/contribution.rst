@@ -224,11 +224,11 @@ The reviewing process starts after the check passes.
 
 .. _testing-guide:
 
-Testing Guidelines
-------------------
+Unit testing
+------------
 
 Testing is one of the most important part of your code.
-You must test your code by unit tests following our testing guidelines.
+You must test your code by unit tests following our testing guide.
 Note that we are using the nose package and the mock package for testing, so install nose and mock before writing your code::
 
   $ pip install nose mock
