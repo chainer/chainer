@@ -214,7 +214,7 @@ Here is a (not-complete) list of the rules that ``flake8`` cannot check.
 In addition, we restrict the usage of *shortcut symbols* in our code base.
 They are symbols imported by packages and sub-packages of ``chainer``.
 For example, ``chainer.Variable`` is a shortcut of ``chainer.variable.Variable``.
-**It is not allowed to use such shortcuts in the ``chainer`` library implementation.**
+**It is not allowed to use such shortcuts in the Chainer library implementation.**
 Note that you can still use them in ``tests`` and ``examples`` directories.
 Also note that you should use shortcut names of CuPy APIs in Chainer implementation.
 
