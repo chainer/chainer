@@ -110,7 +110,7 @@ def check_backward(func, x_data, y_grad, params=(),
                    eps=1e-3, atol=1e-5, rtol=1e-4, no_grads=None, dtype=None):
     """Test backward procedure of a given function.
 
-    This function automatically check backward-process of given function.
+    This function automatically check backward-process of a given function.
     For example, when you have a :class:`~chainer.Function` class ``MyFunc``,
     that gets two arguments and returns one value, you can make its test like
     this::
@@ -130,6 +130,22 @@ def check_backward(func, x_data, y_grad, params=(),
     To check correctness of the gradients, the function calls
     :func:`numerical_grad` to calculate numerically the gradients and compares
     the types of gradients with :func:`chainer.testing.assert_allclose`.
+
+    To reduce computational time, the method uses a function
+    :math:`g: \\mathbb{R} \\rightarrow \\mathbb{R}^n` defined as 
+    :math:`g(\\alpha) = f(\\alpha x)`, where :math:`\\alpha \in \\mathbb{R}`
+    and :math:`f` is a function which actually
+    you want to test.
+    Its gradient is
+
+    .. math::
+       g'(\\alpha) = f'(\\alpha x) \\cdot x.
+
+    When :math:`\\alpha = 1`, :math:`g'(1) = f'(x) \\cdot x`.
+    So the method caclculates :math:`g'(1)` with :func:`numerical_grad` and
+    compares its result with dot product of the gradient :math:`f` and
+    :math:`x`.
+
     If input objects (``x1_data`` or/and ``x2_data`` in this example) represent
     integer variables, their gradients are ignored.
 
