@@ -263,7 +263,7 @@ def check_backward(func, x_data, y_grad, params=(),
             assert x.grad is None
         else:
             if x.grad is None:
-                raise TypeError(
+                raise RuntimeError(
                     'gradients of some arguments are not calculated')
 
     xp = cuda.get_array_module(*xs)
