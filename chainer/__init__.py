@@ -86,7 +86,8 @@ global_config.keep_graph_on_report = bool(int(
 global_config.train = True
 global_config.type_check = bool(int(os.environ.get('CHAINER_TYPE_CHECK', '1')))
 global_config.use_cudnn = os.environ.get('CHAINER_USE_CUDNN', 'auto')
-
+global_config.retain_all_inputs = bool(int(
+    os.environ.get('CHAINER_RETAIN_ALL_INPUTS', '0')))
 
 _SHOULD_USE_CUDNN = {
     '==always': {'always': True, 'auto': False, 'never': False},

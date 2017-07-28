@@ -488,12 +488,17 @@ class Function(object):
         Note that **this method must not be called from the outside of
         forward method.**
 
+        If the environment variable ``CHAINER_RETAIN_ALL_INPUTS`` is set to 1
+        or ``chainer.config.retain_all_inputs`` is ``True``, this function
+        always does nothing.
+
         Args:
             indexes (iterable of int): Indexes of input variables that the
                 function does not require for backprop.
 
         """
-        self._input_indexes_to_retain = indexes
+        if not configuration.config.retain_all_inputs:
+            self._input_indexes_to_retain = indexes
 
     def retain_outputs(self, indexes, retain_after_backward=False):
         """Lets specified output variable nodes keep data arrays.
