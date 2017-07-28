@@ -138,9 +138,9 @@ class VariableNode(object):
         name (str): Name of the variable node.
 
     Attributes:
-        dtype: Data type of the data array.
-        shape: Shape of the data array.
-        name (str): Name of the variable node.
+        ~VariableNode.dtype: Data type of the data array.
+        ~VariableNode.shape: Shape of the data array.
+        ~VariableNode.name (str): Name of the variable node.
 
     """
 
@@ -414,7 +414,7 @@ class Variable(object):
             in backward calculation.
 
     Attributes:
-        data: Data array of type either :class:`numpy.ndarray` or
+        ~Variable.data: Data array of type either :class:`numpy.ndarray` or
             :class:`cupy.ndarray`. If it is None, the variable is left in an
             uninitialized state.
         grad_var (Variable): Gradient variable.
