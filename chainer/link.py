@@ -122,7 +122,8 @@ class Link(object):
             is supplied, the default dtype will be used.
 
     Attributes:
-        ~Link.name (str): Name of this link, given by the parent chain (if exists).
+        ~Link.name (str): Name of this link, given by the parent chain (if
+            exists).
 
     """
 

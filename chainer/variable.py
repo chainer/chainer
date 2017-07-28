@@ -417,7 +417,7 @@ class Variable(object):
         ~Variable.data: Data array of type either :class:`numpy.ndarray` or
             :class:`cupy.ndarray`. If it is None, the variable is left in an
             uninitialized state.
-        grad_var (Variable): Gradient variable.
+        ~Variable.grad_var (Variable): Gradient variable.
 
     """  # NOQA
 
