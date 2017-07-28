@@ -158,8 +158,8 @@ class CupyMemoryCumulativeHook(memory_hook.MemoryHook):
         self.used_bytes = 0
         self.acquired_bytes = 0
 
-    def alloc_preprocess(self, device_id, rounded_size):
-        self.acquired_bytes += rounded_size
+    def alloc_preprocess(self, **kwargs):
+        self.acquired_bytes += kwargs['mem_size']
 
-    def malloc_preprocess(self, device_id, size, rounded_size):
-        self.used_bytes += rounded_size
+    def malloc_preprocess(self, **kwargs):
+        self.used_bytes += kwargs['mem_size']
