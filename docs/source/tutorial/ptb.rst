@@ -12,21 +12,21 @@ natural a sentence or a document is. Also, with the language model, you can
 generate new sentences or documents.
 
 Let's start with modeling the probability of generating sentences. We represent
-a sentence be :math:`Y = (y_0, y_1, ..., y_T)`, in which :math:`y_t` is a
+a sentence be :math:`X = (x_0, x_1, ..., x_T)`, in which :math:`x_t` is a
 one-hot vector.
-Generally, :math:`y_0` is the one-hot vector of **BOS** (beginning of sentence),
-and :math:`y_T` is that  of **EOS** (end of sentence).
+Generally, :math:`x_0` is the one-hot vector of **BOS** (beginning of sentence),
+and :math:`x_T` is that  of **EOS** (end of sentence).
 
 In the case of language model, we usually model the probability of generating
-the next word under the condition of the previous words. Let :math:`Y[i, j]` be
-:math:`(y_i, y_{i+1}, ..., y_j)`, the occurrence probability of sentence :math:`Y`
+the next word under the condition of the previous words. Let :math:`X[i, j]` be
+:math:`(x_i, x_{i+1}, ..., x_j)`, the occurrence probabilitx of sentence :math:`X`
 can be
 
-.. math:: P(Y) = P(y_0) \prod_{t=1}^T P(y_t|Y[0, t-1])
+.. math:: P(X) = P(x_0) \prod_{t=1}^T P(x_t|X[0, t-1])
 
-As you see above, the occurrence probability :math:`P(Y)` can be decomposed into
-the conditional probability by the previous words :math:`P(y_t|Y[0, t-1])`.
-So, in the language model, we model :math:`P(y_t|Y[0, t-1])`.
+As you see above, the occurrence probability :math:`P(X)` can be decomposed into
+the conditional probability by the previous words :math:`P(x_t|X[0, t-1])`.
+So, in the language model, we model :math:`P(x_t|X[0, t-1])`.
 
 
 1. Basic Idea of Recurrent Neural Net Language Model
@@ -37,13 +37,17 @@ language model which contains the RNN in the network. Since the RNN can deal wit
 the variable length inputs, it is suitable for modeling the sequential data such
 that natural languages. 
 
-The probablity of generating the sentence :math:`Y` is denoted as
-:math:`P_{\rm model}(Y)`,
+The probablity of generating the sentence :math:`X` is denoted as
+:math:`P_{\rm model}(X)`,
 
-.. math:: P_{\rm model}(Y) = P(y_0) \prod_{t=1}^T P(y_t|Y[0, t-1])
+.. math:: P_{\rm model}(X) = P(x_0) \prod_{t=1}^T P(x_t|X[0, t-1])
 
 We show the one layer of the RNN language model with these parameters.
 
+* :math:`x_t` : the one-hot vector of :math:`t`-th word.
+* :math:`y_t` : the :math:`t`-th output.
+* :math:`h_t^i` : the :math:`t`-th hidden layer of `i`-th layer.
+* :math:`p_t` : the next word's probability of :math:`t`-th word.
 * :math:`E` : Embedding matrix
 * :math:`W_h` : Hidden layer matrix
 * :math:`W_o` : Output layer matrix
@@ -52,19 +56,19 @@ We show the one layer of the RNN language model with these parameters.
 
 #. Get the embedding vector
 
-    .. math:: y_t^* = Ey_{t-1}
+    .. math:: h_t^0 = Ex_t
 
 #. Calculate the hidden layer
 
-    .. math:: h_t = {\rm tanh}(W_h [y_t^*; h_{t-1}])
+    .. math:: h_t^1 = {\rm tanh}(W_h [h_t^0; h_{t-1}^1])
 
 #. Calculate the output layer
 
-    .. math:: o_t = W_o h_t
+    .. math:: y_t = W_o h_t^1
 
 #. Transform to probability
 
-    .. math:: p_t = {\rm softmax}(o_t)
+    .. math:: p_t = {\rm softmax}(y_t)
 
 2. Implementation of Recurrent Neural Net Language Model
 =========================================================
