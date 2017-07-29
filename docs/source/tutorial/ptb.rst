@@ -38,15 +38,15 @@ the variable length inputs, it is suitable for modeling the sequential data such
 that natural languages. 
 
 The probablity of generating the sentence :math:`Y` is denoted as
-:math:`P_{model}(Y)`,
+:math:`P_{\rm model}(Y)`,
 
-.. math:: P_{model}(Y) = P(y_0) \prod_{t=1}^T P(y_t|Y[0, t-1])
+.. math:: P_{\rm model}(Y) = P(y_0) \prod_{t=1}^T P(y_t|Y[0, t-1])
 
 We show the one layer of the RNN language model with these parameters.
 
-- :math:`E` : Embedding matrix
-- :math:`W_h` : Hidden layer matrix
-- :math:`W_o` : Output layer matrix
+* :math:`E` : Embedding matrix
+* :math:`W_h` : Hidden layer matrix
+* :math:`W_o` : Output layer matrix
 
 .. image:: ../../image/ptb/rnnlm.png
 
@@ -56,7 +56,7 @@ We show the one layer of the RNN language model with these parameters.
 
 #. Calculate the hidden layer
 
-    .. math:: h_t = tanh(W_h [y_t^*; h_{t-1}])
+    .. math:: h_t = {\rm tanh}(W_h [y_t^*; h_{t-1}])
 
 #. Calculate the output layer
 
@@ -64,5 +64,199 @@ We show the one layer of the RNN language model with these parameters.
 
 #. Transform to probability
 
-    .. math:: p_t = softmax(o_t)
+    .. math:: p_t = {\rm softmax}(o_t)
 
+2. Implementation of Recurrent Neural Net Language Model
+=========================================================
+
+* There is an example related to the RNN language model on the GitHub repository,
+  so we will explain based on that.
+
+    * `chainer/examples/ptb <https://github.com/chainer/chainer/tree/master/examples/ptb>`_
+
+2.1 Overview of the Example
+----------------------------
+
+.. image:: ../../image/ptb/rnnlm_example.png
+
+* In this example, we use the recurrent neural model above.
+
+    * :math:`x_t` : the one-hot vector of :math:`t`-th input.
+    * :math:`y_t` : the :math:`t`-th output.
+    * :math:`h_t^i` : the :math:`t`-th hidden layer of `i`-th layer.
+    * :math:`E` : Embedding matrix
+    * :math:`W_o` : Output layer matrix
+
+* We use the **LSTM** (long short-term memory) for the connection of hidden layers.
+  The LSTM is the one of major recurrent neural net unit. It is desined for
+  remembering the long-term memory, which means the the relation of the separated
+  words, such that the word at beggining of sentence and that at end. 
+* We also use the **dropout** before the LSTM and linear transformation. Dropout is
+  the one of the refularization techniques for reducing overfitting on training
+  data.
+
+2.2 Implementation Method
+--------------------------
+
+Import Package
+^^^^^^^^^^^^^^^
+
+.. literalinclude:: ../../../examples/ptb/train_ptb.py
+   :language: python
+   :lines: 14-18
+   :caption: train_ptb.py
+   :lineno-match:
+
+* Basically, if you use chainer, you import in this way.
+* Importing functions as ``F`` and links as ``L`` makes it easy to use.
+
+Define Network Structure
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. literalinclude:: ../../../examples/ptb/train_ptb.py
+   :language: python
+   :lines: 21-44
+   :caption: train_ptb.py
+   :lineno-match:
+
+* Next, we define the network structure of the RNN language model.
+* When we call the constructor ``__init__``, we pass the vocavulary size
+  ``n_vocab`` and the size of the hidden vectors ``n_units``.
+
+    * As the connection of layers, :class:`~chainer.links.LSTM`,
+      :class:`~chainer.links.Linear`, and :class:`~chainer.functions.dropout` are
+      used.
+    * The :class:`~chainer.Parameter` s are initialized in ``self.init_scope()``.
+
+        * It is recommended to initialize :class:`~chainer.Parameter` here.
+        * Since we set :class:`~chainer.Parameter` as the attribute of Link,
+          there are effects such as making IDE easier to follow code.
+        * For details, see :ref:`upgrade-new-param-register`.
+
+    * You can access all the parameters by ``self.params()`` and initialze by
+      ``np.random.uniform(-0.1, 0.1, param.data.shape)``.
+
+* The function call ``__call__`` takes the input word's ID ``x``. In this function,
+  the nerwork structure of RNN language model is defined.
+
+    * The input word' ID ``x`` is converted to the embedding vector  ``h0``
+      by ``self.embed(x)``.
+    * After tha embedding vector ``h0`` passes through the network, the output ``y``
+      is returned.
+
+Define Iterator for Data
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. literalinclude:: ../../../examples/ptb/train_ptb.py
+   :language: python
+   :lines: 47-94
+   :caption: train_ptb.py
+   :lineno-match:
+
+Define Updater
+^^^^^^^^^^^^^^^
+
+.. literalinclude:: ../../../examples/ptb/train_ptb.py
+   :language: python
+   :lines: 130-162
+   :caption: train_ptb.py
+   :lineno-match:
+
+Define Evaluation Function (Perplexity)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. literalinclude:: ../../../examples/ptb/train_ptb.py
+   :language: python
+   :lines: 165-170
+   :caption: train_ptb.py
+   :lineno-match:
+
+Main Function
+^^^^^^^^^^^^^^
+
+.. literalinclude:: ../../../examples/ptb/train_ptb.py
+   :language: python
+   :lines: 199-200
+   :caption: train_ptb.py
+   :lineno-match:
+
+* We download the Penn Treebank dataset by :class:`~chainer.datasets.get_ptb_words`.
+  Each data contains the list of Document IDs
+  
+    * ``train`` is the training data.
+    * ``val`` is the validation data. 
+    * ``test`` is the test data. 
+
+.. literalinclude:: ../../../examples/ptb/train_ptb.py
+   :language: python
+   :lines: 209-211
+   :caption: train_ptb.py
+   :lineno-match:
+
+* From the datasets ``train``, ``val`` and ``test``, we create the iterators for
+  the datasets.
+  
+.. literalinclude:: ../../../examples/ptb/train_ptb.py
+   :language: python
+   :lines: 214-215
+   :caption: train_ptb.py
+   :lineno-match:
+
+* We create the recurrent neural net ``rnn`` and the classification model ``model``
+  by :class:`~chainer.links.Classifier`.
+  
+.. literalinclude:: ../../../examples/ptb/train_ptb.py
+   :language: python
+   :lines: 222-225
+   :caption: train_ptb.py
+   :lineno-match:
+
+* We setup the optimizer by :class:`~chainer.optimizers.SGD`.
+
+.. literalinclude:: ../../../examples/ptb/train_ptb.py
+   :language: python
+   :lines: 227-252
+   :caption: train_ptb.py
+   :lineno-match:
+
+* We setup and run the trainer.
+
+.. literalinclude:: ../../../examples/ptb/train_ptb.py
+   :language: python
+   :lines: 254-259
+   :caption: train_ptb.py
+   :lineno-match:
+
+* We evaluate the final model.
+
+2.3 Run Example
+----------------
+
+Training the model
+^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: console
+
+    $ pwd
+    /root2chainer/chainer/examples/ptb
+    $ python train_ptb.py --test  # run by test mode. If you want to use all data, remove "--test".
+    Downloading from https://raw.githubusercontent.com/wojzaremba/lstm/master/data/ptb.train.txt...
+    Downloading from https://raw.githubusercontent.com/wojzaremba/lstm/master/data/ptb.valid.txt...
+    Downloading from https://raw.githubusercontent.com/wojzaremba/lstm/master/data/ptb.test.txt...
+    #vocab = 10000
+    test
+    test perplexity: 29889.9857364
+
+Generating sentences
+^^^^^^^^^^^^^^^^^^^^^
+
+* You can generate the sentence which starts with the word in the vocavulary.
+
+    * In this exmaple, we generate the sentence which starts with the word **animal**. 
+
+.. code-block:: console
+
+    $ pwd
+    /root2chainer/chainer/examples/ptb
+    $ python gentxt.py -m model.npz -p "animal"
+    animal automotive moscow <unk> percentage <unk> kia sim advance <unk> rubens <unk> <unk> <unk> <unk> <unk> tom <unk> <unk> jewelry .
