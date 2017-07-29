@@ -32,6 +32,9 @@ So, in the language model, we model :math:`P(x_t|X[0, t-1])`.
 1. Basic Idea of Recurrent Neural Net Language Model
 =====================================================
 
+1.1 Recurrent Neural Net Language Model
+---------------------------------------
+
 **Recurrent Neurral Net Language Model** (RNN language model) is the neural net
 language model which contains the RNN in the network. Since the RNN can deal with
 the variable length inputs, it is suitable for modeling the sequential data such
@@ -69,6 +72,21 @@ We show the one layer of the RNN language model with these parameters.
 #. Transform to probability
 
     .. math:: p_t = {\rm softmax}(y_t)
+
+1.1 Perplexity (Evaluation the language model)
+-----------------------------------------------
+
+In order to evaluate the language model, we use the **perplexity**.
+Let the evaluation dataset be :math:`D = \{X^{(n)}\}_{n=1}^{|D|}`, the :math:`n`-th
+sentence size be :math:`T^{(n)}`, and the vacablary size be :math:`V`.
+The perplexity is :math:`b^z`, s.t.
+
+    .. math:: z = -\frac{1}{V} \sum_{n=1}^{|D|} \sum_{t=1}^{T^{(n)}} \log_b P_{\rm model}(x_t^{(n)}, X_{[a, t-1]}^{(n)})
+
+Usually, :math:`b` is :math:`2` or :math:`e`.
+
+The perplexity can be regarded as entropy function because it evaluates the
+volatility of the probability distribution predicting the next words.
 
 2. Implementation of Recurrent Neural Net Language Model
 =========================================================
@@ -109,7 +127,6 @@ Import Package
    :language: python
    :lines: 14-18
    :caption: train_ptb.py
-   :lineno-match:
 
 * Basically, if you use chainer, you import in this way.
 * Importing functions as ``F`` and links as ``L`` makes it easy to use.
@@ -121,7 +138,6 @@ Define Network Structure
    :language: python
    :pyobject: RNNForLM
    :caption: train_ptb.py
-   :lineno-match:
 
 * Next, we define the network structure of the RNN language model.
 * When we call the constructor ``__init__``, we pass the vocavulary size
@@ -200,11 +216,15 @@ Main Function
 .. literalinclude:: ../../../examples/ptb/train_ptb.py
    :language: python
    :start-after: Prepare an RNNLM model
-   :end-before: model.compute_accuracy
+   :end-before: args.gpu
    :caption: train_ptb.py
 
 * We create the recurrent neural net ``rnn`` and the classification model ``model``
   by :class:`~chainer.links.Classifier`.
+* :class:`~chainer.links.Classifier` computes the loss and accuracy based on a given
+  input/label pair. To learn the RNN language model, we only need the loss 
+  (perplexity). So, we turn off computing the accuracy. In this setting, the loss is
+  calculated by :class:`~chainer.functions.softmax_cross_entropy`.
   
 .. literalinclude:: ../../../examples/ptb/train_ptb.py
    :language: python
