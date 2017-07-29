@@ -112,7 +112,7 @@ volatility of the probability distribution predicting the next words.
 * We use the **LSTM** (long short-term memory) for the connection of hidden layers.
   The LSTM is the one of major recurrent neural net unit. It is desined for
   remembering the long-term memory, which means the the relation of the separated
-  words, such that the word at beggining of sentence and that at end. 
+  words, such that the word at beginning of sentence and that at end. 
 * We also use the **dropout** before the LSTM and linear transformation. Dropout is
   the one of the refularization techniques for reducing overfitting on training
   data.
@@ -271,9 +271,9 @@ Training the model
 Generating sentences
 ^^^^^^^^^^^^^^^^^^^^^
 
-* You can generate the sentence which starts with the word in the vocavulary.
+* You can generate the sentence which starts with the word in the vocabulary.
 
-    * In this exmaple, we generate the sentence which starts with the word **animal**. 
+    * In this example, we generate the sentence which starts with the word **animal**. 
 
 .. code-block:: console
 
