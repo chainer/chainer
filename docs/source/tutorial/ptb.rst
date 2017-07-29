@@ -119,7 +119,7 @@ Define Network Structure
 
 .. literalinclude:: ../../../examples/ptb/train_ptb.py
    :language: python
-   :lines: 21-44
+   :pyobject: RNNForLM
    :caption: train_ptb.py
    :lineno-match:
 
@@ -153,36 +153,33 @@ Define Iterator for Data
 
 .. literalinclude:: ../../../examples/ptb/train_ptb.py
    :language: python
-   :lines: 47-94
+   :pyobject: ParallelSequentialIterator
    :caption: train_ptb.py
-   :lineno-match:
 
 Define Updater
 ^^^^^^^^^^^^^^^
 
 .. literalinclude:: ../../../examples/ptb/train_ptb.py
    :language: python
-   :lines: 130-162
+   :pyobject: BPTTUpdater
    :caption: train_ptb.py
-   :lineno-match:
 
 Define Evaluation Function (Perplexity)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. literalinclude:: ../../../examples/ptb/train_ptb.py
    :language: python
-   :lines: 165-170
+   :pyobject: compute_perplexity
    :caption: train_ptb.py
-   :lineno-match:
 
 Main Function
 ^^^^^^^^^^^^^^
 
 .. literalinclude:: ../../../examples/ptb/train_ptb.py
    :language: python
-   :lines: 199-200
+   :start-after: parser.parse_args
+   :end-before: n_vocab
    :caption: train_ptb.py
-   :lineno-match:
 
 * We download the Penn Treebank dataset by :class:`~chainer.datasets.get_ptb_words`.
   Each data contains the list of Document IDs
@@ -193,43 +190,43 @@ Main Function
 
 .. literalinclude:: ../../../examples/ptb/train_ptb.py
    :language: python
-   :lines: 209-211
+   :start-after: test[:100]
+   :end-before: Prepare an RNNLM model
    :caption: train_ptb.py
-   :lineno-match:
 
 * From the datasets ``train``, ``val`` and ``test``, we create the iterators for
   the datasets.
   
 .. literalinclude:: ../../../examples/ptb/train_ptb.py
    :language: python
-   :lines: 214-215
+   :start-after: Prepare an RNNLM model
+   :end-before: model.compute_accuracy
    :caption: train_ptb.py
-   :lineno-match:
 
 * We create the recurrent neural net ``rnn`` and the classification model ``model``
   by :class:`~chainer.links.Classifier`.
   
 .. literalinclude:: ../../../examples/ptb/train_ptb.py
    :language: python
-   :lines: 222-225
+   :start-after: Set up an optimizer
+   :end-before: Set up a trainer
    :caption: train_ptb.py
-   :lineno-match:
 
 * We setup the optimizer by :class:`~chainer.optimizers.SGD`.
 
 .. literalinclude:: ../../../examples/ptb/train_ptb.py
    :language: python
-   :lines: 227-252
+   :start-after: Set up a trainer
+   :end-before: Evaluate the final model
    :caption: train_ptb.py
-   :lineno-match:
 
 * We setup and run the trainer.
 
 .. literalinclude:: ../../../examples/ptb/train_ptb.py
    :language: python
-   :lines: 254-259
+   :start-after: Evaluate the final model
+   :end-before: Serialize the final model
    :caption: train_ptb.py
-   :lineno-match:
 
 * We evaluate the final model.
 
