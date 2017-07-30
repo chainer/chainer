@@ -77,6 +77,10 @@ We show the one layer of the RNN language model with these parameters.
 -----------------------------------------------
 
 In order to evaluate the language model, we use the **perplexity**.
+Generally, the perplexity is the measure how well the proposed proposed probability
+model :math:`P_{\rm model}` predicts a separate test sample
+:math:`x_1, x_2, ..., x_N` drawn from the unknown probability distribution
+:math:`P`.
 Let the evaluation dataset be :math:`D = \{X^{(n)}\}_{n=1}^{|D|}`, the :math:`n`-th
 sentence size be :math:`T^{(n)}`, and the vacablary size be :math:`V`.
 The perplexity is :math:`b^z`, s.t.
@@ -85,8 +89,14 @@ The perplexity is :math:`b^z`, s.t.
 
 Usually, :math:`b` is :math:`2` or :math:`e`.
 
-The perplexity can be regarded as entropy function because it evaluates the
-volatility of the probability distribution predicting the next words.
+The exponent above :math:`z` of perplexity can be regarded as entropy function,
+
+    .. math:: H(\hat P, P_{\rm model}) = -\sum_x \hat P(x) \log_2 P_{\rm model}(x)
+
+where :math:`\hat P` is the empirical distribution of the test sample. When
+:math:`x` appeared :math:`n` times in the test sample of size :math:`N`,
+:math:`\hat P(x) = n/N`. So, in the implementation of this tutorial, we use the
+cross-entoropy function as the loss function.
 
 2. Implementation of Recurrent Neural Net Language Model
 =========================================================
@@ -273,11 +283,11 @@ Generating sentences
 
 * You can generate the sentence which starts with the word in the vocabulary.
 
-    * In this example, we generate the sentence which starts with the word **animal**. 
+    * In this example, we generate the sentence which starts with the word **apple**. 
 
 .. code-block:: console
 
     $ pwd
     /root2chainer/chainer/examples/ptb
-    $ python gentxt.py -m model.npz -p "animal"
-    animal automotive moscow <unk> percentage <unk> kia sim advance <unk> rubens <unk> <unk> <unk> <unk> <unk> tom <unk> <unk> jewelry .
+    $ python gentxt.py -m model.npz -p apple
+    apple a new u.s. economist with <unk> <unk> fixed more than to N the company said who is looking back to 
