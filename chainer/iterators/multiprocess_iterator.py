@@ -253,7 +253,7 @@ class _PrefetchLoop(object):
             self._allocate_shared_memory()
             pool = multiprocessing.Pool(
                 processes=self.n_processes,
-                initializer=_Fetch.setup,
+                initializer=_fetch_setup,
                 initargs=(self.dataset, self.mem_size, self.mem_bulk))
             try:
                 mem_size = self.mem_size
@@ -270,7 +270,7 @@ class _PrefetchLoop(object):
                         batch = None
                     else:
                         data_it = pool.imap(
-                            _Fetch.run, enumerate(indices), chunk_size)
+                            _fetch_run, enumerate(indices), chunk_size)
                         batch, mem_size = self._extract_result(data_it)
 
                     self.comm.put(batch, self.prefetch_state)
@@ -341,24 +341,26 @@ class _PrefetchLoop(object):
         return batch, mem_size
 
 
-# To avoid restrictions with inherited states or pickled values.
-# It doesn't mean thread unsafity; each process uses different address space.
-# Note that @classmethod can't be used in Python 2.7.
-# Just stick to plain funciton.
-class _Fetch(object):
-    def setup(dataset, mem_size, mem_bulk):
-        _Fetch.dataset = dataset
-        _Fetch.mem_size = mem_size
-        _Fetch.mem_bulk = mem_bulk
+# Using `parametarized` funciton (e.g. bound method) with Pool is tricky due to
+# restrictions imposed by Pickle. Picklable types differ across versions.
+# Just using top-level function with globals seems to be safest.
 
-    def run(inputs):
-        i, index = inputs
-        data = _Fetch.dataset[index]
-        if _Fetch.mem_bulk is not None:
-            offset = i * _Fetch.mem_size
-            limit = offset + _Fetch.mem_size
-            data = _pack(data, _Fetch.mem_bulk, offset, limit)
-        return data
+# it doesn't mean thread safety broken or global variables visible;
+# notice that each process uses different address space.
+def _fetch_setup(dataset, mem_size, mem_bulk):
+    global _fetch_dataset, _fetch_mem_size, _fetch_mem_bulk
+    _fetch_dataset = dataset
+    _fetch_mem_size = mem_size
+    _fetch_mem_bulk = mem_bulk
+
+def _fetch_run(inputs):
+    i, index = inputs
+    data = _fetch_dataset[index]
+    if _fetch_mem_bulk is not None:
+        offset = i * _fetch_mem_size
+        limit = offset + _fetch_mem_size
+        data = _pack(data, _fetch_mem_bulk, offset, limit)
+    return data
 
 
 class _PackedNdarray(object):
