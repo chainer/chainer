@@ -1,7 +1,11 @@
 import os
 
 import numpy
-from scipy import io
+try:
+    from scipy import io
+    _scipy_available = True
+except ImportError:
+    _scipy_available = False
 
 from chainer.dataset import download
 from chainer.datasets import tuple_dataset
@@ -31,6 +35,9 @@ def get_svhn(withlabel=True, scale=1., dtype=numpy.float32,
         datasets are arrays of images.
 
     """
+    if not _scipy_available:
+            raise RuntimeError('scipy is not available')
+
     train_raw = _retrieve_svhn_training()
     train = _preprocess_svhn(train_raw, withlabel, scale, dtype,
                              label_dtype)
