@@ -120,7 +120,8 @@ class FunctionAdapter(function_node.FunctionNode):
         grad_out_data = tuple([None if grad is None else grad.data
                                for grad in grad_outputs])
 
-        gxs = self._function.backward(in_data, grad_out_data)
+        with cuda.get_device_from_array(*(in_data + grad_out_data)):
+            gxs = self._function.backward(in_data, grad_out_data)
         for x, gx in six.moves.zip(self.inputs, gxs):
             variable._check_grad_type(self, x, gx)
 

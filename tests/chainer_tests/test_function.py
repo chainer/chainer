@@ -51,15 +51,15 @@ class TestFunction(unittest.TestCase):
         self.y2 = None
         self.gx1 = None
 
-    def setup_gpu(self):
-        self.x1 = cuda.to_gpu(self.x1)
-        self.x2 = cuda.to_gpu(self.x2)
-        self.y1 = cuda.to_gpu(self.y1)
-        self.y2 = cuda.to_gpu(self.y2)
-        self.gx1 = cuda.to_gpu(self.gx1)
+    def setup_gpu(self, device=0):
+        self.x1 = cuda.to_gpu(self.x1, device)
+        self.x2 = cuda.to_gpu(self.x2, device)
+        self.y1 = cuda.to_gpu(self.y1, device)
+        self.y2 = cuda.to_gpu(self.y2, device)
+        self.gx1 = cuda.to_gpu(self.gx1, device)
         self.gx2 = None
-        self.gy1 = cuda.to_gpu(self.gy1)
-        self.gy2 = cuda.to_gpu(self.gy2)
+        self.gy1 = cuda.to_gpu(self.gy1, device)
+        self.gy2 = cuda.to_gpu(self.gy2, device)
         self.f.forward_gpu = mock.MagicMock(return_value=(self.y1, self.y2))
         self.f.backward_gpu = mock.MagicMock(return_value=(self.gx1, self.gx2))
 
@@ -110,7 +110,7 @@ class TestFunction(unittest.TestCase):
         self.assertEqual(t2.shape, (3,))
         self.assertEqual(t2.dtype, numpy.int32)
 
-    def check_call(self):
+    def check_call(self, check_backward=False):
         x1 = chainer.Variable(self.x1)
         x2 = chainer.Variable(self.x2)
         x1._node._rank = 1
@@ -129,6 +129,9 @@ class TestFunction(unittest.TestCase):
 
         self.assertIsInstance(y.creator.outputs, tuple)
 
+        if check_backward:
+            ys[0].creator_node.backward((0, 1), (self.gy1, self.gy2))
+
     def test_call_cpu(self):
         self.check_call()
 
@@ -136,6 +139,25 @@ class TestFunction(unittest.TestCase):
     def test_call_gpu(self):
         self.setup_gpu()
         self.check_call()
+
+    @attr.multi_gpu(2)
+    def test_call_another_gpu(self):
+        device = 1
+        self.setup_gpu(device)
+
+        test_case = self
+
+        def check_current_device(ret):
+            def meth(self, *args, **kwargs):
+                current_device = cuda.cupy.cuda.Device().id
+                test_case.assertEqual(current_device, device)
+                return ret
+            return meth
+
+        self.f.forward = check_current_device((self.y1, self.y2))
+        self.f.backward = check_current_device((self.gx1, self.gx2))
+
+        self.check_call(check_backward=True)
 
     def check_call_all_ndarray(self):
         x1 = self.x1
