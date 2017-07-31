@@ -33,7 +33,7 @@ def get_svhn(withlabel=True, scale=1., dtype=numpy.float32, label_dtype=numpy.in
 
     """
     if not _scipy_available:
-            raise RuntimeError('scipy is not available')
+        raise RuntimeError('scipy is not available')
 
     train_raw = _retrieve_svhn_training()
     train = _preprocess_svhn(train_raw, withlabel, scale, dtype,
