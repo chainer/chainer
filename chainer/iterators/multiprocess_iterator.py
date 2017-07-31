@@ -1,6 +1,8 @@
 from __future__ import division
+from collections import namedtuple
 import multiprocessing
 from multiprocessing import sharedctypes
+import queue
 import threading
 import warnings
 
@@ -8,6 +10,11 @@ import numpy
 import six
 
 from chainer.dataset import iterator
+
+
+_PrefetchState = namedtuple('_PrefetchState', (
+    'current_position', 'epoch', 'is_new_epoch',
+    'previous_epoch_detail', 'order'))
 
 
 class MultiprocessIterator(iterator.Iterator):
@@ -41,45 +48,62 @@ class MultiprocessIterator(iterator.Iterator):
 
     """
 
-    _last_signal = object()
-
     def __init__(self, dataset, batch_size, repeat=True, shuffle=True,
                  n_processes=None, n_prefetch=1, shared_mem=None):
         self.dataset = dataset
         self.batch_size = batch_size
-        self._repeat = repeat
-        self._shuffle = shuffle
-        self._prefetch_order = None  # used at the end of each epoch
+        self.repeat = repeat
+        self.shuffle = shuffle
 
         self.n_processes = n_processes or multiprocessing.cpu_count()
         self.n_prefetch = max(n_prefetch, 1)
-        self._shared_mem_size = shared_mem
+        self.shared_mem = shared_mem
 
-        self._finalized = None
+        self._finalized = False
 
+        self._comm = _Communicator(self.n_prefetch)
         self.reset()
 
-    def __del__(self):
-        self.finalize()
+        # Do not hold reference to this thread. Otherwise an unused iterator
+        # never get GC'ed whenever the thread is alive, so you lose the
+        # chance to stop the thread.
+        prefetch_loop = _PrefetchLoop(
+            self.dataset, self.batch_size, self.repeat, self.shuffle,
+            self.n_processes, self.n_prefetch, self.shared_mem, self._comm)
+        thread = threading.Thread(target=prefetch_loop, name='prefetch_loop')
+        thread.start()
 
     def __next__(self):
-        if not self._repeat and self.epoch > 0:
+        batch, prefetch_state = self._comm.get()
+        (self.current_position, self.epoch, self.is_new_epoch,
+            self._previous_epoch_detail, self._order) = prefetch_state
+        if batch is None:
             raise StopIteration
-
-        self._previous_epoch_detail = self.epoch_detail
-
-        self.is_new_epoch = False
-        if self._finalized is None:
-            self._init()  # start workers
-            # load for the first iteration
-            for _ in six.moves.range(self.n_prefetch):
-                self._invoke_prefetch()
-
-        batch = self._get()
-        self._invoke_prefetch()  # prefetch for the next iteration
-        return batch
+        else:
+            return batch
 
     next = __next__
+
+    def __del__(self):
+        if not self._finalized:
+            self._finalized = True
+            self._comm.terminate()
+
+    finalize = __del__
+
+    def __copy__(self):
+        other = MultiprocessIterator(
+            self.dataset, self.batch_size, self.repeat, self.shuffle,
+            self.n_processes, self.n_prefetch, self.shared_mem)
+
+        comm = self._comm
+        del self._comm
+        other.__dict__.update(self.__dict__)
+        self._comm = comm
+        other.__class__ = self.__class__
+
+        other._set_prefetch_state()
+        return other
 
     @property
     def epoch_detail(self):
@@ -90,20 +114,6 @@ class MultiprocessIterator(iterator.Iterator):
         if self._previous_epoch_detail < 0:
             return None
         return self._previous_epoch_detail
-
-    def finalize(self):
-        if self._finalized is None or self._finalized.is_set():
-            return
-
-        self._finalized.set()
-        self._ordered_data_queue.put(self._last_signal)
-        self._data_queue.put((-1, -1, -1))
-        for _ in self._workers:
-            self._index_queue.put((-1, -1, -1))  # termination signal
-
-        for worker in self._workers:
-            worker.join()
-        self._get_data_loop_thread.join()
 
     def serialize(self, serializer):
         self.current_position = serializer('current_position',
@@ -126,167 +136,225 @@ class MultiprocessIterator(iterator.Iterator):
                     self._previous_epoch_detail, 0.)
             else:
                 self._previous_epoch_detail = -1.
-
-    def _init(self):
-        finalized = threading.Event()
-        self._index_queue = multiprocessing.Queue()
-        self._data_queue = multiprocessing.Queue()
-        self._ordered_data_queue = six.moves.queue.Queue()
-        self._unused_mem_queue = six.moves.queue.Queue()
-        self._mem_list = []
-        self._cnt = 0
-
-        self._workers = []
-
-        if self._shared_mem_size is not None:
-            self._init_process()
-
-        self._get_data_loop_thread = threading.Thread(
-            target=_get_data_loop, name="get_data_loop",
-            args=(self._data_queue, self._ordered_data_queue,
-                  self._mem_list, self._unused_mem_queue,
-                  finalized, self._last_signal))
-        self._get_data_loop_thread.daemon = True
-        self._get_data_loop_thread.start()
-
-        self._finalized = finalized
-
-    def _init_process(self):
-        assert len(self._workers) == 0
-        assert self._shared_mem_size is not None
-        mem_size = self._shared_mem_size
-        for i in six.moves.range(self.batch_size * (self.n_prefetch + 1)):
-            self._mem_list.append(sharedctypes.RawArray('b', mem_size))
-            self._unused_mem_queue.put(i)
-
-        args = (self.dataset, self._index_queue, self._data_queue,
-                self._mem_list)
-        for _ in range(self.n_processes):
-            worker = multiprocessing.Process(target=_worker, args=args)
-            worker.daemon = True
-            self._workers.append(worker)
-            worker.start()
-
-    def _invoke_prefetch(self):
-        n = len(self.dataset)
-        i = self._pushed_position
-        if i is None:  # first iteration
-            i = self.current_position
-
-        order = self._order
-        measure_mode = len(self._workers) == 0
-        max_size = 0
-        for _ in six.moves.range(self.batch_size):
-            if i >= n:
-                if not self._repeat:
-                    break
-                i = 0
-                if order is not None:
-                    # We cannot shuffle the order directly here, since the
-                    # iterator may be serialized before the prefetched data are
-                    # consumed by the user, in which case an inconsistency
-                    # appears.
-                    order = order.copy()
-                    numpy.random.shuffle(order)
-            index = i if order is None else order[i]
-            if measure_mode:
-                data = self.dataset[index]
-                max_size = max(max_size, _measure(data))
-                self._data_queue.put((self._cnt, None, data))
-                del data
-            else:
-                self._index_queue.put(
-                    (self._cnt, self._unused_mem_queue.get(), index))
-            self._cnt += 1
-            i += 1
-
-        self._prefetch_order = order  # Temporarily store the shuffled order.
-        self._pushed_position = i
-
-        if measure_mode:
-            self._shared_mem_size = max_size
-            self._init_process()
-
-    def _get(self):
-        n = len(self.dataset)
-        i = self.current_position
-
-        batch = []
-        for _ in six.moves.range(self.batch_size):
-            d = self._ordered_data_queue.get()
-            if d is self._last_signal:
-                break
-            batch.append(d)
-            i += 1
-            if i >= n:
-                self.epoch += 1
-                self.is_new_epoch = True
-                i = 0
-                if not self._repeat:
-                    break
-        self.current_position = i
-        # Eventually overwrite the (possibly shuffled) order.
-        self._order = self._prefetch_order
-        return batch
+        self._set_prefetch_state()
 
     def reset(self):
-        if getattr(self, 'current_position', 0) != 0:
-            raise NotImplementedError(
-                'Reset of MultiProcessIterator in the middle of a epoch is '
-                'currently not supported.')
-        if getattr(self, 'epoch', 0) != 0 and self._repeat:
-            raise NotImplementedError(
-                'Reset of repeating MultiProcessIterator is currently not '
-                'supported.')
-        if getattr(self, '_finalized', None) is not None and \
-                self._finalized.is_set():
+        if self._finalized:
             raise NotImplementedError(
                 'Reset of finalized MultiProcessIterator is currently not '
                 'supported.')
-
         self.current_position = 0
         self.epoch = 0
         self.is_new_epoch = False
-
         # use -1 instead of None internally.
         self._previous_epoch_detail = -1.
-
-        self._pushed_position = None  # initialized at the first iteration
-
-        if self._shuffle:
+        if self.shuffle:
             self._order = numpy.random.permutation(len(self.dataset))
         else:
             self._order = None
 
-        if self._finalized is not None:
-            for _ in six.moves.range(self.n_prefetch):
-                self._invoke_prefetch()
+        self._set_prefetch_state()
+
+    def _set_prefetch_state(self):
+        prefetch_state = _PrefetchState(
+            current_position=self.current_position,
+            epoch=self.epoch,
+            is_new_epoch=self.is_new_epoch,
+            previous_epoch_detail=self._previous_epoch_detail,
+            order=self._order)
+        self._comm.reset(prefetch_state)
 
 
-def _get_data_loop(data_queue, ordered_data_queue, mem_list,
-                   unused_mem_queue, finalized, last_signal):
-    buf = {}
-    cnt = 0
-    while not finalized.is_set():
-        if cnt in buf:
-            data = buf.pop(cnt)
-        else:
+class _Communicator(object):
+
+    STATUS_CONTINUE = 0
+    STATUS_RESET = 1
+    STATUS_TERMINATE = 2
+
+    def __init__(self, n_prefetch):
+        self.n_prefetch = n_prefetch
+
+        self._lock = threading.Lock()
+        self._not_full_cond = threading.Condition(self._lock)
+        self._batch_queue = queue.Queue()
+        self._n_reserved = 0
+        self._status = _Communicator.STATUS_CONTINUE
+
+    # called from thread
+    def get(self):
+        batch, prefetch_state = self._batch_queue.get()
+        with self._lock:
+            self._n_reserved -= 1
+            self._not_full_cond.notify()
+        return batch, prefetch_state
+
+    # called from iterator
+    def reset(self, prefetch_state):
+        with self._lock:
+            self._status = _Communicator.STATUS_RESET
+            self._prefetch_state = prefetch_state
+            # ensure prefetcher won't stuck, and
+            # remove all caches no more used
+            n_reserved = self._n_reserved
+            self._n_reserved = 0
+            self._not_full_cond.notify()
+        for _ in six.moves.range(n_reserved):
+            self._batch_queue.get()
+
+    # called from iterator
+    def terminate(self):
+        with self._lock:
+            self._status = _Communicator.STATUS_TERMINATE
+            # ensure prefetcher won't stuck, and
+            # clean up queue
+            n_reserved = self._n_reserved
+            self._n_reserved = 0
+            self._not_full_cond.notify()
+        for _ in six.moves.range(n_reserved):
+            self._batch_queue.get()
+
+    # called from thread
+    def reserve(self):
+        with self._lock:
+            if self._n_reserved == self.n_prefetch:
+                self._not_full_cond.wait()
+
+            status = self._status
+            self._status = _Communicator.STATUS_CONTINUE
+
+            if status != _Communicator.STATUS_TERMINATE:
+                self._n_reserved += 1
+            prefetch_state = None
+            if status == _Communicator.STATUS_RESET:
+                prefetch_state = self._prefetch_state
+
+        return status, prefetch_state
+
+    # called from thread
+    def put(self, batch, prefetch_state):
+        self._batch_queue.put((batch, prefetch_state))
+
+
+class _PrefetchLoop(object):
+
+    def __init__(self, dataset, batch_size, repeat, shuffle,
+                 n_processes, n_prefetch, mem_size, comm):
+        self.dataset = dataset
+        self.batch_size = batch_size
+        self.repeat = repeat
+        self.shuffle = shuffle
+        self.n_processes = n_processes
+        self.mem_size = mem_size
+        self.comm = comm
+
+    def __call__(self):
+        chunk_size = max(self.batch_size // self.n_processes // 2, 1)
+        while True:
+            self._allocate_shared_memory()
+            pool = multiprocessing.Pool(processes=self.n_processes,
+                                        initializer=_Fetch.setup,
+                                        initargs=(self.dataset, self.mem_list))
             try:
-                c, mem_index, data = data_queue.get(timeout=0.5)
-            except six.moves.queue.Empty:
-                continue
-            if c < 0:
-                break
-            if mem_index is not None:
-                data = _unpack(data, mem_list[mem_index])
-                unused_mem_queue.put(mem_index)
-            if c != cnt:
-                buf[c] = data
-                continue
-        ordered_data_queue.put(data)
-        del data
-        cnt += 1
-    ordered_data_queue.put(last_signal)
+                mem_size = self.mem_size
+                while self.mem_size == mem_size:
+
+                    status, prefetch_state = self.comm.reserve()
+                    if status == _Communicator.STATUS_RESET:
+                        self.prefetch_state = prefetch_state
+                    elif status == _Communicator.STATUS_TERMINATE:
+                        return
+
+                    indices = self._proceed()
+                    if indices is None:  # stop iteration
+                        batch = None
+                    else:
+                        data_it = pool.imap(
+                            _Fetch.run, enumerate(indices), chunk_size)
+                        batch, mem_size = self._extract_result(data_it)
+
+                    self.comm.put(batch, self.prefetch_state)
+            finally:
+                pool.close()
+                pool.join()
+            self.mem_size = mem_size
+
+    def _allocate_shared_memory(self):
+        if self.mem_size:
+            self.mem_list = list(sharedctypes.RawArray('b', self.mem_size)
+                                 for _ in six.moves.range(self.batch_size))
+        else:
+            self.mem_list = None
+
+    def _proceed(self):
+        n = len(self.dataset)
+        (pos, epoch, is_new_epoch,
+            previous_epoch_detail, order) = self.prefetch_state
+
+        if pos < self.batch_size and epoch > 0 and not self.repeat:
+            return None  # stop iteration
+
+        previous_epoch_detail = epoch + pos / n
+
+        new_pos = pos + self.batch_size
+        if new_pos < n:
+            if order is None:
+                indices = numpy.arange(pos, new_pos)
+            else:
+                indices = order[pos:new_pos]
+            is_new_epoch = False
+        else:
+            new_pos = new_pos - n if self.repeat else 0
+
+            if order is None:
+                indices = numpy.arange(pos, n)
+                if self.repeat:
+                    indices = \
+                        numpy.concatenate((indices, numpy.arange(new_pos)))
+            else:
+                indices = order[pos:n]
+                if self.repeat:
+                    order = numpy.random.permutation(n)
+                    indices = \
+                        numpy.concatenate((indices, order[:new_pos]))
+            epoch += 1
+            is_new_epoch = True
+
+        self.prefetch_state = _PrefetchState(
+            new_pos, epoch, is_new_epoch,
+            previous_epoch_detail, order)
+        return indices
+
+    def _extract_result(self, data_it):
+        measure_mode = self.mem_list is None
+
+        batch = []
+        max_size = 0
+        for i, data in enumerate(data_it):
+            if measure_mode:
+                max_size = max(max_size, _measure(data))
+                batch.append(data)
+            else:
+                batch.append(_unpack(data, self.mem_list[i]))
+
+        mem_size = max_size if measure_mode else self.mem_size
+        return batch, mem_size
+
+
+# To avoid restrictions with inherited states or pickled values.
+# It doesn't mean thread unsafity; each process uses different address space.
+class _Fetch(object):
+    @classmethod
+    def setup(cls, dataset, mem_list):
+        cls.dataset = dataset
+        cls.mem_list = mem_list
+
+    @classmethod
+    def run(cls, inputs):
+        i, index = inputs
+        data = cls.dataset[index]
+        if cls.mem_list is not None:
+            data = _pack(data, cls.mem_list[i])
+        return data
 
 
 class _PackedNdarray(object):
@@ -379,15 +447,3 @@ def _unpack(data, mem):
             ret[k] = v
         data = ret
     return data
-
-
-def _worker(dataset, in_queue, out_queue, mem_list):
-    while True:
-        cnt, mem_index, index = in_queue.get()
-        if cnt < 0:
-            break
-        mem = mem_list[mem_index]
-        data = _pack(dataset[index], mem)
-        out_queue.put((cnt, mem_index, data))
-    out_queue.close()
-    out_queue.join_thread()

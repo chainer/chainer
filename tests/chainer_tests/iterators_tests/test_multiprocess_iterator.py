@@ -260,20 +260,29 @@ class TestMultiprocessIterator(unittest.TestCase):
                 self.assertRaises(StopIteration, it.next)
             it.reset()
 
-    def test_unsupported_reset_middle(self):
+    def test_reset_middle(self):
         dataset = [1, 2, 3, 4, 5]
         it = iterators.MultiprocessIterator(
             dataset, 2, repeat=False, **self.options)
-        it.next()
-        self.assertRaises(NotImplementedError, it.reset)
 
-    def test_unsupported_reset_repeat(self):
+        for trial in range(4):
+            it.next()
+            it.reset()
+            batches = sum([it.next() for _ in range(3)], [])
+            self.assertEqual(sorted(batches), dataset)
+            for _ in range(2):
+                self.assertRaises(StopIteration, it.next)
+            it.reset()
+
+    def test_reset_repeat(self):
         dataset = [1, 2, 3, 4]
         it = iterators.MultiprocessIterator(
             dataset, 2, repeat=True, **self.options)
-        it.next()
-        it.next()
-        self.assertRaises(NotImplementedError, it.reset)
+
+        for trial in range(4):
+            batches = sum([it.next() for _ in range(4)], [])
+            self.assertEqual(sorted(batches), sorted(2 * dataset))
+            it.reset()
 
     def test_unsupported_reset_finalized(self):
         dataset = [1, 2, 3, 4]
