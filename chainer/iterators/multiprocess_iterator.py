@@ -344,9 +344,14 @@ class _PrefetchLoop(object):
 # Using `parametarized` funciton (e.g. bound method) with Pool is tricky due to
 # restrictions imposed by Pickle. Picklable types differ across versions.
 # Just using top-level function with globals seems to be safest.
-
 # it doesn't mean thread safety broken or global variables visible;
 # notice that each process uses different address space.
+# To make static linker happy, we first initialize global variables.
+_fetch_dataset = None
+_fetch_mem_size = None
+_fetch_mem_bulk = None
+
+
 def _fetch_setup(dataset, mem_size, mem_bulk):
     global _fetch_dataset, _fetch_mem_size, _fetch_mem_bulk
     _fetch_dataset = dataset
