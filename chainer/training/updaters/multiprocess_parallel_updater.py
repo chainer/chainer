@@ -116,7 +116,7 @@ class MultiprocessParallelUpdater(updater.StandardUpdater):
                 'NCCL is not enabled. MultiprocessParallelUpdater '
                 'requires NCCL.\n'
                 'Please reinstall chainer after you install NCCL.\n'
-                '(see https://github.com/pfnet/chainer#installation).')
+                '(see https://github.com/chainer/chainer#installation).')
 
         assert len(iterators) == len(devices)
         for iterator in iterators[1:]:

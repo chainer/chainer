@@ -4,7 +4,6 @@ import six
 import chainer
 from chainer import cuda
 from chainer import function
-from chainer.functions.connection import convolution_2d
 from chainer.utils import conv
 from chainer.utils import conv_nd
 from chainer.utils import type_check
@@ -13,16 +12,11 @@ from chainer.utils import type_check
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
     libcudnn = cuda.cudnn.cudnn
-    _cudnn_version = libcudnn.getVersion()
     _fwd_pref = libcudnn.CUDNN_CONVOLUTION_FWD_SPECIFY_WORKSPACE_LIMIT
-    if _cudnn_version >= 4000:
-        _bwd_filter_pref = \
-            libcudnn.CUDNN_CONVOLUTION_BWD_FILTER_SPECIFY_WORKSPACE_LIMIT
-        _bwd_data_pref = \
-            libcudnn.CUDNN_CONVOLUTION_BWD_DATA_SPECIFY_WORKSPACE_LIMIT
-
-
-_check_cudnn_acceptable_type = convolution_2d._check_cudnn_acceptable_type
+    _bwd_filter_pref = \
+        libcudnn.CUDNN_CONVOLUTION_BWD_FILTER_SPECIFY_WORKSPACE_LIMIT
+    _bwd_data_pref = \
+        libcudnn.CUDNN_CONVOLUTION_BWD_DATA_SPECIFY_WORKSPACE_LIMIT
 
 
 class DeconvolutionND(function.Function):
@@ -66,8 +60,7 @@ class DeconvolutionND(function.Function):
 
     def _use_cudnn(self, x, W):
         return (chainer.should_use_cudnn('>=auto') and
-                self.ndim > 1 and
-                _check_cudnn_acceptable_type(x.dtype, W.dtype))
+                self.ndim > 1 and x.dtype == W.dtype)
 
     def _forward_xp(self, x, W, b, xp):
         ndim = self.ndim
@@ -137,36 +130,24 @@ class DeconvolutionND(function.Function):
         oz_dtype = 'd' if x.dtype == 'd' else 'f'
         one = numpy.array(1, dtype=oz_dtype).ctypes
         zero = numpy.array(0, dtype=oz_dtype).ctypes
-        if _cudnn_version >= 4000:
-            workspace_size = cuda.get_max_workspace_size()
-            workspace = cuda.cupy.empty((workspace_size,), dtype='b')
-            algo = libcudnn.getConvolutionBackwardDataAlgorithm(
-                handle, self.filter_desc.value, x_desc.value,
-                self.conv_desc.value, y_desc.value, _bwd_data_pref,
-                workspace_size)
-            libcudnn.convolutionBackwardData_v3(
-                handle, one.data, self.filter_desc.value, W.data.ptr,
-                x_desc.value, x.data.ptr, self.conv_desc.value,
-                algo, workspace.data.ptr, workspace_size,
-                zero.data, y_desc.value, y.data.ptr)
-        else:
-            libcudnn.convolutionBackwardData_v2(
-                handle, one.data, self.filter_desc.value, W.data.ptr,
-                x_desc.value, x.data.ptr, self.conv_desc.value,
-                zero.data, y_desc.value, y.data.ptr)
+        workspace_size = cuda.get_max_workspace_size()
+        workspace = cuda.cupy.empty((workspace_size,), dtype='b')
+        algo = libcudnn.getConvolutionBackwardDataAlgorithm(
+            handle, self.filter_desc.value, x_desc.value,
+            self.conv_desc.value, y_desc.value, _bwd_data_pref,
+            workspace_size)
+        libcudnn.convolutionBackwardData_v3(
+            handle, one.data, self.filter_desc.value, W.data.ptr,
+            x_desc.value, x.data.ptr, self.conv_desc.value,
+            algo, workspace.data.ptr, workspace_size,
+            zero.data, y_desc.value, y.data.ptr)
 
         # Add bias if given.
         # TODO(takagi) Support unshared bias
         if b is not None:
-            if _cudnn_version >= 3000 or ndim == 2:
-                cudnn.add_tensor(
-                    handle, one.data, self.bias_desc.value, b.data.ptr,
-                    one.data, y_desc.value, y.data.ptr)
-            else:
-                # cuDNN v2 does not seem to support bias addition in spatial
-                # dimensions other than two.
-                b_index = (None, colon) + (None,) * ndim
-                y += b[b_index]
+            cudnn.add_tensor(
+                handle, one.data, self.bias_desc.value, b.data.ptr,
+                one.data, y_desc.value, y.data.ptr)
 
         return y,
 
@@ -259,36 +240,22 @@ class DeconvolutionND(function.Function):
 
         # Compute bias gradient.
         if b is not None:
-            if _cudnn_version >= 3000 or self.ndim == 2:
-                gb = cuda.cupy.empty_like(b)
-                libcudnn.convolutionBackwardBias(
-                    handle, one.data, gy_desc.value, gy.data.ptr,
-                    zero.data, self.bias_desc.value, gb.data.ptr)
-            else:
-                # cuDNN v2 does not seem to support bias backward in spatial
-                # dimensions other than two.
-
-                # (n, _, out_1, out_2, ..., out_N)
-                axis = (0,) + tuple(six.moves.range(2, self.ndim + 2))
-                gb = gy.sum(axis=axis)
+            gb = cuda.cupy.empty_like(b)
+            libcudnn.convolutionBackwardBias(
+                handle, one.data, gy_desc.value, gy.data.ptr,
+                zero.data, self.bias_desc.value, gb.data.ptr)
 
         # Compute filter gradient.
-        if _cudnn_version >= 4000:
-            algo = libcudnn.getConvolutionBackwardFilterAlgorithm(
-                handle, gy_desc.value, gx_desc.value,
-                self.conv_desc.value, self.filter_desc.value,
-                _bwd_filter_pref, workspace_size)
+        algo = libcudnn.getConvolutionBackwardFilterAlgorithm(
+            handle, gy_desc.value, gx_desc.value,
+            self.conv_desc.value, self.filter_desc.value,
+            _bwd_filter_pref, workspace_size)
 
-            libcudnn.convolutionBackwardFilter_v3(
-                handle, one.data, gy_desc.value, gy.data.ptr,
-                gx_desc.value, x.data.ptr, self.conv_desc.value,
-                algo, workspace.data.ptr, workspace_size,
-                zero.data, self.filter_desc.value, gW.data.ptr)
-        else:
-            libcudnn.convolutionBackwardFilter_v2(
-                handle, one.data, gy_desc.value, gy.data.ptr,
-                gx_desc.value, x.data.ptr, self.conv_desc.value,
-                zero.data, self.filter_desc.value, gW.data.ptr)
+        libcudnn.convolutionBackwardFilter_v3(
+            handle, one.data, gy_desc.value, gy.data.ptr,
+            gx_desc.value, x.data.ptr, self.conv_desc.value,
+            algo, workspace.data.ptr, workspace_size,
+            zero.data, self.filter_desc.value, gW.data.ptr)
 
         if b is None:
             return gx, gW
@@ -298,16 +265,6 @@ class DeconvolutionND(function.Function):
     def backward(self, inputs, grad_outputs):
         x, W = inputs[:2]
         b = inputs[2] if len(inputs) == 3 else None
-
-        if not type_check.same_types(*inputs):
-            if b is not None:
-                raise ValueError('numpy and cupy must not be used together\n'
-                                 'type(W): {0}, type(x): {1}, type(b): {2}'
-                                 .format(type(W), type(x), type(b)))
-            else:
-                raise ValueError('numpy and cupy must not be used together\n'
-                                 'type(W): {0}, type(x): {1}'
-                                 .format(type(W), type(x)))
 
         gy = grad_outputs[0]
 

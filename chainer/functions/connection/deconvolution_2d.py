@@ -4,7 +4,6 @@ import chainer
 from chainer import configuration
 from chainer import cuda
 from chainer import function
-from chainer.functions.connection import convolution_2d
 from chainer.utils import argument
 from chainer.utils import conv
 from chainer.utils import type_check
@@ -13,16 +12,11 @@ from chainer import variable
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
     libcudnn = cuda.cudnn.cudnn
-    _cudnn_version = libcudnn.getVersion()
     _fwd_pref = libcudnn.CUDNN_CONVOLUTION_FWD_SPECIFY_WORKSPACE_LIMIT
-    if _cudnn_version >= 3000:
-        _bwd_filter_pref = \
-            libcudnn.CUDNN_CONVOLUTION_BWD_FILTER_SPECIFY_WORKSPACE_LIMIT
-        _bwd_data_pref = \
-            libcudnn.CUDNN_CONVOLUTION_BWD_DATA_SPECIFY_WORKSPACE_LIMIT
-
-
-_check_cudnn_acceptable_type = convolution_2d._check_cudnn_acceptable_type
+    _bwd_filter_pref = \
+        libcudnn.CUDNN_CONVOLUTION_BWD_FILTER_SPECIFY_WORKSPACE_LIMIT
+    _bwd_data_pref = \
+        libcudnn.CUDNN_CONVOLUTION_BWD_DATA_SPECIFY_WORKSPACE_LIMIT
 
 
 def _pair(x):
@@ -85,7 +79,7 @@ class Deconvolution2DFunction(function.Function):
         x, W = inputs[:2]
         b = inputs[2] if len(inputs) == 3 else None
 
-        if not type_check.same_types(*inputs):
+        if not all([isinstance(i, numpy.ndarray) for i in inputs]):
             if b is not None:
                 raise ValueError('numpy and cupy must not be used together\n'
                                  'type(W): {0}, type(x): {1}, type(b): {2}'
@@ -120,7 +114,7 @@ class Deconvolution2DFunction(function.Function):
         x, W = inputs[:2]
         b = inputs[2] if len(inputs) == 3 else None
 
-        if not type_check.same_types(*inputs):
+        if not all([isinstance(i, cuda.ndarray) for i in inputs]):
             if b is not None:
                 raise ValueError('numpy and cupy must not be used together\n'
                                  'type(W): {0}, type(x): {1}, type(b): {2}'
@@ -139,8 +133,7 @@ class Deconvolution2DFunction(function.Function):
         if self.outw is None:
             self.outw = conv.get_deconv_outsize(in_w, kw, self.sx, self.pw)
             assert self.outw > 0, 'Width in the output should be positive.'
-        if (chainer.should_use_cudnn('>=auto') and
-                _check_cudnn_acceptable_type(x.dtype, W.dtype)):
+        if chainer.should_use_cudnn('>=auto') and x.dtype == W.dtype:
             x = cuda.cupy.ascontiguousarray(x)
             W = cuda.cupy.ascontiguousarray(W)
             if b is not None:
@@ -163,36 +156,21 @@ class Deconvolution2DFunction(function.Function):
             one = numpy.array(1, dtype=oz_dtype).ctypes
             zero = numpy.array(0, dtype=oz_dtype).ctypes
 
-            if _cudnn_version >= 3000:
-                workspace_size = cuda.get_max_workspace_size()
-                workspace = cuda.cupy.empty((workspace_size,), dtype='b')
-                if configuration.config.cudnn_deterministic:
-                    algo = cuda.cupy.cuda.cudnn.CUDNN_CONVOLUTION_BWD_DATA_ALGO_1  # NOQA
-                else:
-                    algo = libcudnn.getConvolutionBackwardDataAlgorithm(
-                        handle, self.filter_desc.value, x_desc.value,
-                        self.conv_desc.value, y_desc.value, _bwd_data_pref,
-                        workspace_size)
-
-                libcudnn.convolutionBackwardData_v3(
-                    handle, one.data, self.filter_desc.value, W.data.ptr,
-                    x_desc.value, x.data.ptr, self.conv_desc.value,
-                    algo, workspace.data.ptr, workspace_size,
-                    zero.data, y_desc.value, y.data.ptr)
+            workspace_size = cuda.get_max_workspace_size()
+            workspace = cuda.cupy.empty((workspace_size,), dtype='b')
+            if configuration.config.cudnn_deterministic:
+                algo = libcudnn.CUDNN_CONVOLUTION_BWD_DATA_ALGO_1
             else:
-                if configuration.config.cudnn_deterministic:
-                    raise ValueError(
-                        "`cudnn_deterministic` option must be False "
-                        "if the forward propagation of "
-                        "chainer.functions.Deconvolution2D "
-                        "uses cuDNN and cuDNN versions < v3. "
-                        "Turn off cudnn_deterministic option with "
-                        "`chainer.using_config('cudnn_deterministic', False)` "
-                        "context.")
-                libcudnn.convolutionBackwardData_v2(
-                    handle, one.data, self.filter_desc.value, W.data.ptr,
-                    x_desc.value, x.data.ptr, self.conv_desc.value,
-                    zero.data, y_desc.value, y.data.ptr)
+                algo = libcudnn.getConvolutionBackwardDataAlgorithm(
+                    handle, self.filter_desc.value, x_desc.value,
+                    self.conv_desc.value, y_desc.value, _bwd_data_pref,
+                    workspace_size)
+
+            libcudnn.convolutionBackwardData_v3(
+                handle, one.data, self.filter_desc.value, W.data.ptr,
+                x_desc.value, x.data.ptr, self.conv_desc.value,
+                algo, workspace.data.ptr, workspace_size,
+                zero.data, y_desc.value, y.data.ptr)
 
             if b is not None:
                 cudnn.add_tensor(
@@ -215,16 +193,6 @@ class Deconvolution2DFunction(function.Function):
     def backward_cpu(self, inputs, grad_outputs):
         x, W = inputs[:2]
         b = inputs[2] if len(inputs) == 3 else None
-
-        if not type_check.same_types(*inputs):
-            if b is not None:
-                raise ValueError('numpy and cupy must not be used together\n'
-                                 'type(W): {0}, type(x): {1}, type(b): {2}'
-                                 .format(type(W), type(x), type(b)))
-            else:
-                raise ValueError('numpy and cupy must not be used together\n'
-                                 'type(W): {0}, type(x): {1}'
-                                 .format(type(W), type(x)))
 
         gy = grad_outputs[0]
         kh, kw = W.shape[2:]
@@ -249,24 +217,13 @@ class Deconvolution2DFunction(function.Function):
         x, W = inputs[:2]
         b = inputs[2] if len(inputs) == 3 else None
 
-        if not type_check.same_types(*inputs):
-            if b is not None:
-                raise ValueError('numpy and cupy must not be used together\n'
-                                 'type(W): {0}, type(x): {1}, type(b): {2}'
-                                 .format(type(W), type(x), type(b)))
-            else:
-                raise ValueError('numpy and cupy must not be used together\n'
-                                 'type(W): {0}, type(x): {1}'
-                                 .format(type(W), type(x)))
-
         gy = grad_outputs[0]
         n, in_c, in_h, in_w = x.shape
         _, out_channels, kh, kw = W.shape
         c, h, w = gy.shape[1:]
         gx = None
 
-        if (chainer.should_use_cudnn('>=auto') and
-                _check_cudnn_acceptable_type(x.dtype, W.dtype)):
+        if chainer.should_use_cudnn('>=auto') and x.dtype == W.dtype:
             gx = cuda.cupy.empty((n, in_c, in_h, in_w), dtype=x.dtype)
             x = cuda.cupy.ascontiguousarray(x)
             W = cuda.cupy.ascontiguousarray(W)
@@ -303,34 +260,19 @@ class Deconvolution2DFunction(function.Function):
                     zero.data, self.bias_desc.value, gb.data.ptr)
             gW = cuda.cupy.empty_like(W)
             # filter backward
-            if _cudnn_version >= 3000:
-                if configuration.config.cudnn_deterministic:
-                    algo = cuda.cupy.cuda.cudnn.CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1  # NOQA
-                else:
-                    algo = libcudnn.getConvolutionBackwardFilterAlgorithm(
-                        handle, gy_desc.value, gx_desc.value,
-                        self.conv_desc.value, self.filter_desc.value,
-                        _bwd_filter_pref, workspace_size)
-
-                libcudnn.convolutionBackwardFilter_v3(
-                    handle, one.data, gy_desc.value, gy.data.ptr,
-                    gx_desc.value, x.data.ptr, self.conv_desc.value,
-                    algo, workspace.data.ptr, workspace_size,
-                    zero.data, self.filter_desc.value, gW.data.ptr)
+            if configuration.config.cudnn_deterministic:
+                algo = libcudnn.CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1
             else:
-                if configuration.config.cudnn_deterministic:
-                    raise ValueError(
-                        "`cudnn_deterministic` option must be False "
-                        "if the backpropagation of "
-                        "chainer.functions.Deconvolution2D "
-                        "uses cuDNN and cuDNN versions < v3. "
-                        "Turn off cudnn_deterministic option with "
-                        "`chainer.using_config('cudnn_deterministic', False)` "
-                        "context.")
-                libcudnn.convolutionBackwardFilter_v2(
-                    handle, one.data, gy_desc.value, gy.data.ptr,
-                    gx_desc.value, x.data.ptr, self.conv_desc.value,
-                    zero.data, self.filter_desc.value, gW.data.ptr)
+                algo = libcudnn.getConvolutionBackwardFilterAlgorithm(
+                    handle, gy_desc.value, gx_desc.value,
+                    self.conv_desc.value, self.filter_desc.value,
+                    _bwd_filter_pref, workspace_size)
+
+            libcudnn.convolutionBackwardFilter_v3(
+                handle, one.data, gy_desc.value, gy.data.ptr,
+                gx_desc.value, x.data.ptr, self.conv_desc.value,
+                algo, workspace.data.ptr, workspace_size,
+                zero.data, self.filter_desc.value, gW.data.ptr)
         else:
             # Implementation using im2col
             col = conv.im2col_gpu(

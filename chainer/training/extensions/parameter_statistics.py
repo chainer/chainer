@@ -2,8 +2,8 @@ import numpy
 import six
 
 from chainer import reporter
-from chainer import training
 from chainer.training import extension
+from chainer.training import trigger as trigger_module
 
 
 class ParameterStatistics(extension.Extension):
@@ -75,7 +75,7 @@ class ParameterStatistics(extension.Extension):
         self._attrs = attrs
 
         self._prefix = prefix
-        self._trigger = training.trigger.get_trigger(trigger)
+        self._trigger = trigger_module.get_trigger(trigger)
         self._summary = reporter.DictSummary()
 
     def __call__(self, trainer):
