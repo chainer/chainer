@@ -221,8 +221,7 @@ def check_backward(func, x_data, y_grad, params=(),
     # To do so we need to insert a dummy function `Ident` to the
     # computational graph.
     # Note that `func` may not be a `Function` object.
-    y = identity.Identity()(*y)
-    y = _as_tuple(y)
+    y = identity.Identity().apply(y)
 
     if y_grad is not None:
         if len(y) != len(y_grad):

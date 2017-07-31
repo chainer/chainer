@@ -290,7 +290,8 @@ class TestLink(unittest.TestCase):
     def test_addgrads(self):
         l = chainer.Link()
         with l.init_scope():
-            l.x = chainer.Parameter(shape=(2, 3))
+            l.x = chainer.Parameter(shape=(2, 3),
+                                    initializer=initializers.NaN('d'))
             l.y = chainer.Parameter(shape=2)
             l.u = chainer.Parameter(shape=(2, 3))
             l.v = chainer.Parameter()

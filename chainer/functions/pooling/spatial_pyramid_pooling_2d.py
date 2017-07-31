@@ -47,12 +47,11 @@ class SpatialPyramidPooling2D(pooling_2d.Pooling2D):
     def forward(self, x):
         self.ys = []
         for pooler in self.poolers:
-            y = pooler.forward(x)[0]
-            pooler.output_data = y  # work around
-            n, c, h, w = pooler.out_shape = y.shape
-            self.ys.append(y.reshape((n, c * h * w, 1, 1)))
+            y_var = pooler(*x)
+            n, c, h, w = pooler.out_shape = y_var.shape
+            self.ys.append(y_var.reshape((n, c * h * w, 1, 1)))
 
-        return concat.Concat(axis=1).forward(self.ys)
+        return concat.Concat(axis=1).forward([y.data for y in self.ys])
 
     def backward(self, x, gy):
         xp = cuda.get_array_module(*x)
