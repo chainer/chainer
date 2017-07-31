@@ -2,7 +2,7 @@ from __future__ import division
 from collections import namedtuple
 import multiprocessing
 from multiprocessing import sharedctypes
-import queue
+from six.moves import queue
 import threading
 import warnings
 
