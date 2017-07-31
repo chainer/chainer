@@ -305,6 +305,9 @@ Main Function
 4.2 Run Example
 ----------------
 
+Training the model
+^^^^^^^^^^^^^^^^^^^
+
 .. code-block:: console
 
     $ pwd
@@ -341,6 +344,29 @@ Main Function
     18          2800.31     3742.74               
     19          1397.79     2494.95               
     20          2794.1      3742.66
+
+Search the similar words
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: console
+
+    $ pwd
+    /root2chainer/chainer/examples/word2vec
+    $ python search.py 
+    >> apple
+    query: apple
+    compaq: 0.6169619560241699
+    chip: 0.49579331278800964
+    retailer: 0.4904134273529053
+    maker: 0.4684058427810669
+    computer: 0.4652436673641205
+    >> animal      
+    query: animal
+    beauty: 0.5680124759674072
+    human: 0.5404794216156006
+    insulin: 0.5365156531333923
+    cell: 0.5186758041381836
+    photographs: 0.5077002048492432
 
 5. Reference
 =============
