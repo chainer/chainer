@@ -343,21 +343,21 @@ class _PrefetchLoop(object):
 
 # To avoid restrictions with inherited states or pickled values.
 # It doesn't mean thread unsafity; each process uses different address space.
+# Note that @classmethod can't be used in Python 2.7.
+# Just stick to plain funciton.
 class _Fetch(object):
-    @classmethod
-    def setup(cls, dataset, mem_size, mem_bulk):
-        cls.dataset = dataset
-        cls.mem_size = mem_size
-        cls.mem_bulk = mem_bulk
+    def setup(dataset, mem_size, mem_bulk):
+        _Fetch.dataset = dataset
+        _Fetch.mem_size = mem_size
+        _Fetch.mem_bulk = mem_bulk
 
-    @classmethod
-    def run(cls, inputs):
+    def run(inputs):
         i, index = inputs
-        data = cls.dataset[index]
-        if cls.mem_bulk is not None:
-            offset = i * cls.mem_size
-            limit = offset + cls.mem_size
-            data = _pack(data, cls.mem_bulk, offset, limit)
+        data = _Fetch.dataset[index]
+        if _Fetch.mem_bulk is not None:
+            offset = i * _Fetch.mem_size
+            limit = offset + _Fetch.mem_size
+            data = _pack(data, _Fetch.mem_bulk, offset, limit)
         return data
 
 
