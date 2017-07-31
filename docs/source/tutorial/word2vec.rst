@@ -6,19 +6,19 @@ Word2vec Implementation with Chainer
 0. Introduction
 ================
 
-Word2vec is the tool for generating the distributed representation of words.
+**Word2vec** is the tool for generating the distributed representation of words.
 When the tool assigns a real number vector to each word, the closer
 the meanings of the words, the greater similarity the vectors will indicate.
-As you know, "distributed representation" is assigning a real number vector for each
-object and representing the object by the vector. When representing a word
-by distributed representation, we call it "distributed representation of words"
-or "word embeddings". In this tutorial we will use the term "distributed
-representation of words".
+As you know, **distributed representation** is assigning a real number vector for
+each object and representing the object by the vector. When representing a word
+by distributed representation, we call it **distributed representation of words**
+or **word embeddings**. In this tutorial we will use the term distributed
+representation of words.
 
-Let's think about what the meaning of words is. Since you are a human, you can
-understand that the words **animal** and **dog** are similar. But what information will
-Word2vec use in order to learn the vectors of meanings? The words
-**animal** and **dog** are similar, but the words **food** and **dog** are not similar.
+Let's think about what the meaning of word is. Since you are a human, you can
+understand that the words "animal" and "dog" are similar. But what information
+will Word2vec use in order to learn the vectors of meanings? The words
+"animal" and "dog" are similar, but the words "food" and "dog" are not similar.
 
 1. Basic Idea
 ==============
@@ -26,14 +26,14 @@ Word2vec use in order to learn the vectors of meanings? The words
 Word2vec learns the similarity of word meanings from simple information. It learns
 from a sequence of words in sentences. The idea is that the meaning of the word is
 determined by the words around it. This idea is an old methodology, which is called
-"distributional hypothesis". It is mentioned in papers of 1950's[5]. The word to
-be learned is called the "Center Word", and the words around it are called
-"Context Words". Depending on the window size ``c``, the number of Context Words
+**distributional hypothesis**. It is mentioned in papers of 1950's [1]. The word to
+be learned is called the **Center Word**, and the words around it are called
+**Context Words**. Depending on the window size ``c``, the number of Context Words
 will change.
 
 For example, I will explain with the sentence **The cute cat jumps over the lazy dog.**.
 
-* All of the following figures consider **cat** as Center Word.
+* All of the following figures consider "cat" as Center Word.
 * According to the window size ``c``, you can see that Context Words are changing.
 
 .. image:: ../../image/word2vec/center_context_word.png
@@ -42,7 +42,7 @@ For example, I will explain with the sentence **The cute cat jumps over the lazy
 ==================
 
 Word2vec, the tool for createing the distributed representation of words, is actually
-built with two models, which are "Skip-gram" and "CBoW".
+built with two models, which are **Skip-gram** and **CBoW**.
 
 To explain the models with the figures below, we will use the following
 symbols.
@@ -94,18 +94,18 @@ In this example, we use the following setups.
 
 * The number of vocabulary :math:`N` is 10.
 * The size of distributed representation vector :math:`D` is 2.
-* Center word is **dog**.
-* Context word is **animal**.
+* Center word is "dog".
+* Context word is "animal".
 
 Since there should be more than one Context Word, repeat the following process for each Context Word.
 
-1. The one-hot vector of **dog** is ``[0 0 1 0 0 0 0 0 0 0]`` and you input it as
+1. The one-hot vector of "dog" is ``[0 0 1 0 0 0 0 0 0 0]`` and you input it as
    Center Word.
 2. After that, the third row of distributed representation matrix :math:`W_H`
-   for Center Word is the distributed representation of **dog** :math:`L_H`.
+   for Center Word is the distributed representation of "dog" :math:`L_H`.
 3. The output layer :math:`L_O` is the result of multiplying the distributed 
    representation matrix :math:`W_O` for Context Words by the distributed
-   representation of **dog** :math:`L_H`.
+   representation of "dog" :math:`L_H`.
 4. In order to limit the value of each element of the output layer, 
    softmax function is applied to the output layer :math:`L_O` to calculate
    :math:`softmax(L_O)`.
@@ -119,7 +119,7 @@ Since there should be more than one Context Word, repeat the following process f
           :math:`[0, 1]`, the softmax functions is applied to the layer
           because the function limits the value between :math:`[0, 1]`.
 
-5. Calculate the error between :math:`W_O` and **animal**'s one-hot vector
+5. Calculate the error between :math:`W_O` and "animal"'s one-hot vector
    ``[1 0 0 0 0 0 0 0 0 0 0]``, and propagate the error back to the network
    to update the parameters.
 
@@ -142,19 +142,17 @@ Import Package
    :language: python
    :lines: 12-20
    :caption: train_word2vec.py
-   :lineno-match:
 
 * Basically, if you use chainer, you import in this way.
-* Importing functions as F and links as L makes it easy to use.
+* Importing functions as ``F`` and links as ``L`` makes it easy to use.
 
 Define Network Structures
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. literalinclude:: ../../../examples/word2vec/train_word2vec.py
    :language: python
-   :lines: 82-100
+   :pyobject: SkipGram
    :caption: train_word2vec.py
-   :lineno-match:
 
 * Next, we define the network structures of skip-gram.
 * When we call the constructor ``__init__``, we pass the vocabulary size
@@ -195,9 +193,8 @@ Define Error Function
 
 .. literalinclude:: ../../../examples/word2vec/train_word2vec.py
    :language: python
-   :lines: 103-111
+   :pyobject: SoftmaxCrossEntropyLoss
    :caption: train_word2vec.py
-   :lineno-match:
 
 * Next, we define the loss function. Actually, this code also includes the part of
   the network structures.
@@ -216,9 +213,8 @@ Define Iterator for Data
 
 .. literalinclude:: ../../../examples/word2vec/train_word2vec.py
    :language: python
-   :lines: 114-151
+   :pyobject: WindowIterator
    :caption: train_word2vec.py
-   :lineno-match:
 
 * The constructor ``__init__`` receives the document dataset ``dataset`` as a list of word IDs,
   the window size ``window`` and the mini batch size ``batch_size``.
@@ -249,9 +245,9 @@ Main Function
 
 .. literalinclude:: ../../../examples/word2vec/train_word2vec.py
    :language: python
-   :lines: 177-180
+   :start-after: Load the dataset
+   :end-before: args.test
    :caption: train_word2vec.py
-   :lineno-match:
 
 * ``train`` and ``val`` means training data and validation data. Each data contains
   the list of Document IDs
@@ -268,43 +264,43 @@ Main Function
 
 .. literalinclude:: ../../../examples/word2vec/train_word2vec.py
    :language: python
-   :lines: 202
+   :start-after: if args.model
+   :end-before: elif args.model
    :caption: train_word2vec.py
-   :lineno-match:
 
 * We create the ``model`` as Skip-gram.
 
 .. literalinclude:: ../../../examples/word2vec/train_word2vec.py
    :language: python
-   :lines: 207
+   :start-after: args.out_type == 'original'
+   :end-before: else
    :caption: train_word2vec.py
-   :lineno-match:
 
 * We create the error function ``loss_func`` as ``SoftmaxCrossEntropyLoss``.
 
 .. literalinclude:: ../../../examples/word2vec/train_word2vec.py
    :language: python
-   :lines: 217-218
+   :start-after: Set up an optimizer
+   :end-before: Set up an iterator
    :caption: train_word2vec.py
-   :lineno-match:
 
 * We create the ``optimizer`` as Adam (Adaptive moment estimation).
 
 .. literalinclude:: ../../../examples/word2vec/train_word2vec.py
    :language: python
-   :lines: 220-224
+   :start-after: Set up an iterator
+   :end-before: Set up a trainer
    :caption: train_word2vec.py
-   :lineno-match:
 
-* We create the iterators, updater and trainer.
+* We create the iterators and updater.
 
 .. literalinclude:: ../../../examples/word2vec/train_word2vec.py
    :language: python
-   :lines: 232
+   :start-after: Set up a trainer
+   :end-before: Save the word2vec model
    :caption: train_word2vec.py
-   :lineno-match:
 
-* We run the trainer to start learning.
+* We create the trainer and run it.
 
 4.2 Run Example
 ----------------
@@ -345,3 +341,9 @@ Main Function
     18          2800.31     3742.74               
     19          1397.79     2494.95               
     20          2794.1      3742.66
+
+5. Reference
+=============
+* [1] `Distributional Hypothesis <https://aclweb.org/aclwiki/Distributional_Hypothesis>`_
+
+
