@@ -48,22 +48,20 @@ To explain the models with the figures below, we will use the following
 symbols.
 
 * :math:`N`: the number of vocabulary.
-* :math:`D`: the size of distributed representation vector.
+* :math:`D`: the size of embeddings vector.
 * :math:`v_t`: Center Word. The size is ``[N, 1]``.
 * :math:`v_{t+c}`: Context Word. The size is ``[N, 1]``.
-* :math:`L_H`: Distributed representation converted from input.
+* :math:`L_H`: Embedding vector converted from input.
   The size is ``[D, 1]``.
 * :math:`L_O`: Output layer. The size is ``[N, 1]``.
-* :math:`W_H`: Distributed representation matrix for input.
-  The size is ``[N, D]``.
-* :math:`W_O`: Distributed representation matrix for the output.
-  The size is ``[D, N]``.
+* :math:`W_H`: Embedding matrix for input.  The size is ``[N, D]``.
+* :math:`W_O`: Embedding matrix for the output.  The size is ``[D, N]``.
 
 2.1 Skip-gram
 --------------
 
 This model learns to predict Context Words :math:`v_{t+c}` when Center Word
-:math:`v_t` is given. In the model, each row of the distributed representation
+:math:`v_t` is given. In the model, each row of the embedding
 matrix for input :math:`W_H` becomes a distributed representation of each word.
 
 .. image:: ../../image/word2vec/skipgram.png
@@ -72,8 +70,7 @@ matrix for input :math:`W_H` becomes a distributed representation of each word.
 -----------------------------------
 
 This model learns to predict Center Word :math:`v_t` when Context Words
-:math:`v_{t+c}` is given. In the model, each column of the distributed
-representation matrix for output :math:`W_O` becomes a distributed representation
+:math:`v_{t+c}` is given. In the model, each column of the embedding matrix for output :math:`W_O` becomes a distributed representation
 of each word.
 
 .. image:: ../../image/word2vec/cbow.png
@@ -93,7 +90,7 @@ In this tutorial, we mainly explain Skip-gram from the following viewpoints.
 In this example, we use the following setups.
 
 * The number of vocabulary :math:`N` is 10.
-* The size of distributed representation vector :math:`D` is 2.
+* The size of embedding vector :math:`D` is 2.
 * Center word is "dog".
 * Context word is "animal".
 
@@ -101,11 +98,10 @@ Since there should be more than one Context Word, repeat the following process f
 
 1. The one-hot vector of "dog" is ``[0 0 1 0 0 0 0 0 0 0]`` and you input it as
    Center Word.
-2. After that, the third row of distributed representation matrix :math:`W_H`
+2. After that, the third row of embedding matrix :math:`W_H`
    for Center Word is the distributed representation of "dog" :math:`L_H`.
-3. The output layer :math:`L_O` is the result of multiplying the distributed 
-   representation matrix :math:`W_O` for Context Words by the distributed
-   representation of "dog" :math:`L_H`.
+3. The output layer :math:`L_O` is the result of multiplying the embedding matrix
+   :math:`W_O` for Context Words by the embedding vector of "dog" :math:`L_H`.
 4. In order to limit the value of each element of the output layer, 
    softmax function is applied to the output layer :math:`L_O` to calculate
    :math:`softmax(L_O)`.
@@ -156,29 +152,28 @@ Define Network Structures
 
 * Next, we define the network structures of skip-gram.
 * When we call the constructor ``__init__``, we pass the vocabulary size
-  ``n_vocab``, the size of the distributed vector ``n_units``, and the loss function
+  ``n_vocab``, the size of the embedding vector ``n_units``, and the loss function
   ``loss_func`` as arguments.
 
-        * The :class:`chainer.Parameter` s are initialized in ``self.init_scope()``.
+        * The :class:`~chainer.Parameter` s are initialized in ``self.init_scope()``.
 
-                * It is recommended to initialize :class:`chaier.Parameter` here.
-                * Since we set :class:`chaier.Parameter` as the attribute of Link,
+                * It is recommended to initialize :class:`~chaier.Parameter` here.
+                * Since we set :class:`~chaier.Parameter` as the attribute of Link,
                   there are effects such as making IDE easier to follow code.
                 * For details, see :ref:`upgrade-new-param-register`.
 
-        * The weight matrix ``self.embed.W`` is the distributed representation
-          matrix for input :math:`W_H`.
+        * The weight matrix ``self.embed.W`` is the embbeding matrix for input :math:`W_H`.
 
 * The function call ``__call__`` takes Center Word's ID ``x`` and Context Word's ID
-  ``context``  as arguments, and returns the error calculated by the loss functions
+  ``contexts``  as arguments, and returns the error calculated by the loss functions
   ``self.loss_func``.
 
         * When the function ``__call__`` is called, the size of ``x`` is
-          ``[batch_size]`` and the size of ``context`` is
+          ``[batch_size]`` and the size of ``contexts`` is
           ``[batch_size, n_context]``. The variable ``batch_size`` means the size
           of mini-batch, and ``n_context`` means the size of Context Words.
-        * First, we obtain the distributed representation of ``context`` by
-          ``e = self.embed(context)``. In the Skip-gram, since each Center Word
+        * First, we obtain the embedding vectors of ``contexts`` by
+          ``e = self.embed(contexts)``. In the Skip-gram, since each Center Word
           has only one Context Word, there is no problem to switch Context Word and
           Center Word. So, in the code, Context Word is used as input for the
           network. (This is because it is easy to match the CBoW code.)
@@ -202,11 +197,11 @@ Define Error Function
         * After computing the linear transformation ``self.out(x)``, which is
           defined by ``L.Linear(n_in, n_out, initialW = 0)``, we calculate
           the error function of cross entropy followed by softmax function with
-          ``F.softmax_cross_entropy``.
+          :class:`~chainer.functions.softmax_cross_entropy`.
         * Here, the linear transformation matrix ``self.out.W`` corresponds to the
-          distributed representation matrix for output :math:`W_O`, and
-          ``F.softmax_cross_entropy`` corresponds to the softmax function and the
-          loss function.
+          embedding matrix for output :math:`W_O`, and
+          :class:`~chainer.functions.softmax_cross_entropy` corresponds to the
+          softmax function and the loss function.
 
 Define Iterator for Data
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -227,7 +222,7 @@ Define Iterator for Data
           numbers from 5 to 94 are shuffled.
 
 * The iterator definition ``__next__`` returns mini batch sized Center Word
-  ``center`` and Context Word ``context`` according to the parameters of the
+  ``center`` and Context Word ``contexts`` according to the parameters of the
   constructor.
 
         * The code ``self.order[i:i_end]`` generates the indices ``position``
@@ -238,7 +233,7 @@ Define Iterator for Data
           creates the window offset ``offset``.
         * The code ``position[:, None] + offset[None,:]`` generates the indices
           of Context Words ``pos`` for each Center Word. The indices ``pos`` will
-          be converted to Context Words ``context`` by ``self.dataset.take``.
+          be converted to Context Words ``contexts`` by ``self.dataset.take``.
 
 Main Function
 ^^^^^^^^^^^^^^
