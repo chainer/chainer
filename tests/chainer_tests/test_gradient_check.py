@@ -323,7 +323,7 @@ class Ident(chainer.Function):
         return grads
 
 
-# numpy.float16 is not tested because it is low precision.
+# numpy.float16 is not tested because of the low precision.
 @testing.parameterize(*testing.product({
     'dtype': [None, numpy.float32, numpy.float64],
 }))
@@ -365,6 +365,34 @@ class TestCheckBackward(unittest.TestCase):
         self.assertRaises(RuntimeError, gradient_check.check_backward,
                           f, (x1, x2), g1, no_grads=[False, False])
         gradient_check.check_backward(f, (x1, x2), g1, no_grads=[False, True])
+
+
+class NewIdent(chainer.FunctionNode):
+
+    def forward(self, inputs):
+        return inputs
+
+    def backward(self, indexes, grad_outputs):
+        return NewIdent().apply(grad_outputs)
+
+
+class TestCheckDoubleBackward(unittest.TestCase):
+
+    def test_multiple_input_output(self):
+        x1 = numpy.array([1], dtype='f')
+        x2 = numpy.array([1], dtype='f')
+        gy1 = numpy.array([1], dtype='f')
+        gy2 = numpy.array([1], dtype='f')
+        ggx1 = numpy.array([1], dtype='f')
+        ggx2 = numpy.array([1], dtype='f')
+
+        def f(x, y):
+            w1 = x + y
+            w2 = w1 + y
+            return w1 * w1, w2 * w2
+
+        gradient_check.check_double_backward(f, (x1, x2), (gy1, gy2),
+                                             (ggx1, ggx2))
 
 
 testing.run_module(__name__, __file__)

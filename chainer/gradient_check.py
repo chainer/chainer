@@ -239,18 +239,7 @@ def check_backward(func, x_data, y_grad, params=(),
     # Note that `func` may not be a `Function` object.
     y = identity.Identity().apply(y)
 
-    if y_grad is not None:
-        if len(y) != len(y_grad):
-            raise ValueError(
-                '`y_grad` must have the same length of output values')
-        for iy, igy in six.moves.zip(y, y_grad):
-            iy.grad = igy
-    else:
-        if len(y) != 1:
-            raise ValueError(
-                'When `y_grad` is `None`, the function must return a'
-                'zero-dimentional array')
-        y_grad = (1,)
+    y_grad = _set_y_grad(y, y_grad)
 
     # We only need to call `backward` for one result `Variable`.
     # `Variable.backward` method calls `Function.backward` of its creator.
@@ -337,3 +326,69 @@ def check_backward(func, x_data, y_grad, params=(),
         gx_accum += gpi.dot(pi)
 
     testing.assert_allclose(gx, gx_accum, atol=atol, rtol=rtol)
+
+
+def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
+                          eps=1e-3, atol=1e-4, rtol=1e-3, no_grads=None):
+    """Test twice differentiation of a given procedure.
+
+    This function automatically checks if the backward procedure of ``func``
+    is correctly implemented for further differentiation. It first computes the
+    gradient of ``func`` w.r.t. its inputs in the same way as
+    :func:`~chainer.gradient_check.check_backward`. This function then further
+    invokes the backward procedure against the gradient variables, starting
+    from the initial gradient given by ``x_grad_grad``. It also computes the
+    second gradient using :func:`~chainer.gradient_check.numerical_grad`. The
+    resulting gradients are compared to confirm if the second-order gradients
+    are approximately correct.
+
+    Note that this function **DOES NOT** check if the first-order
+    differentiation is correct; the numerical gradient assumes that the
+    first-order gradient given by the usual :meth:`chainer.Variable.backward`
+    is correct. The implementation of each differentiable function should be
+    tested by :func:`~chainer.gradient_check.check_backward` first, and then
+    should be tested by this function if neccessary.
+
+    For the details of the arguments, see
+    :func:`~chainer.gradient_check.check_backward`. The additional argument
+    ``x_grad_grad`` is a (tuple of) :class:`~chainer.Variable` (s) that
+    includes the initial gradient corresponding to the first-order gradient of
+    each input. Note that the default error tolerance ``atol`` and ``rtol`` are
+    slightly larger than those of
+    :func:`~chainer.gradient_check.check_backward` because the numerical
+    gradients of the second order differentiation are less accurate than those
+    of the first order gradients.
+
+    """
+    def first_order_grad(*xs):
+        y = _as_tuple(func(*xs))
+        # Let all elements of y share the same creator.
+        # See the comment in check_backward.
+        y = identity.Identity().apply(y)
+
+        _set_y_grad(y, y_grad)
+        y[0].backward()
+
+        ret = tuple([x.grad_var for x in xs])
+        for x in xs:
+            x.grad_var = None
+        return ret
+
+    check_backward(first_order_grad, x_data, x_grad_grad, params=params,
+                   eps=eps, atol=atol, rtol=rtol, no_grads=no_grads)
+
+
+def _set_y_grad(y, y_grad):
+    if y_grad is not None:
+        if len(y) != len(y_grad):
+            raise ValueError(
+                '`y_grad` must have the same length of output values')
+        for iy, igy in six.moves.zip(y, y_grad):
+            iy.grad = igy
+    else:
+        if len(y) != 1:
+            raise ValueError(
+                'When `y_grad` is `None`, the function must return a'
+                'zero-dimentional array')
+        y_grad = (1,)
+    return y_grad
