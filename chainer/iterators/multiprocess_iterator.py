@@ -251,9 +251,10 @@ class _PrefetchLoop(object):
         chunk_size = max(self.batch_size // self.n_processes // 2, 1)
         while True:
             self._allocate_shared_memory()
-            pool = multiprocessing.Pool(processes=self.n_processes,
-                                        initializer=_Fetch.setup,
-                                        initargs=(self.dataset, self.mem_list))
+            pool = multiprocessing.Pool(
+                processes=self.n_processes,
+                initializer=_Fetch.setup,
+                initargs=(self.dataset, self.mem_size, self.mem_bulk))
             try:
                 mem_size = self.mem_size
                 while self.mem_size == mem_size:
@@ -280,10 +281,10 @@ class _PrefetchLoop(object):
 
     def _allocate_shared_memory(self):
         if self.mem_size:
-            self.mem_list = list(sharedctypes.RawArray('b', self.mem_size)
-                                 for _ in six.moves.range(self.batch_size))
+            self.mem_bulk = \
+                sharedctypes.RawArray('b', self.batch_size * self.mem_size)
         else:
-            self.mem_list = None
+            self.mem_bulk = None
 
     def _proceed(self):
         n = len(self.dataset)
@@ -325,7 +326,7 @@ class _PrefetchLoop(object):
         return indices
 
     def _extract_result(self, data_it):
-        measure_mode = self.mem_list is None
+        measure_mode = self.mem_bulk is None
 
         batch = []
         max_size = 0
@@ -334,7 +335,7 @@ class _PrefetchLoop(object):
                 max_size = max(max_size, _measure(data))
                 batch.append(data)
             else:
-                batch.append(_unpack(data, self.mem_list[i]))
+                batch.append(_unpack(data, self.mem_bulk))
 
         mem_size = max_size if measure_mode else self.mem_size
         return batch, mem_size
@@ -344,16 +345,19 @@ class _PrefetchLoop(object):
 # It doesn't mean thread unsafity; each process uses different address space.
 class _Fetch(object):
     @classmethod
-    def setup(cls, dataset, mem_list):
+    def setup(cls, dataset, mem_size, mem_bulk):
         cls.dataset = dataset
-        cls.mem_list = mem_list
+        cls.mem_size = mem_size
+        cls.mem_bulk = mem_bulk
 
     @classmethod
     def run(cls, inputs):
         i, index = inputs
         data = cls.dataset[index]
-        if cls.mem_list is not None:
-            data = _pack(data, cls.mem_list[i])
+        if cls.mem_bulk is not None:
+            offset = i * cls.mem_size
+            limit = offset + cls.mem_size
+            data = _pack(data, cls.mem_bulk, offset, limit)
         return data
 
 
@@ -389,17 +393,16 @@ def _measure(data):
     return expect
 
 
-def _pack(data, mem):
+def _pack(data, mem, offset, limit):
     if len(mem) == 0:
         return data
     t = type(data)
-    offset = 0
     over = False
     if t is tuple or t is list:
         ret = []
         for v in data:
             if isinstance(v, numpy.ndarray):
-                if v.nbytes + offset > len(mem):
+                if v.nbytes + offset > limit:
                     over = True
                 else:
                     v = _PackedNdarray(v, mem, offset)
@@ -410,7 +413,7 @@ def _pack(data, mem):
         ret = {}
         for k, v in six.iteritems(data):
             if isinstance(v, numpy.ndarray):
-                if v.nbytes + offset > len(mem):
+                if v.nbytes + offset > limit:
                     over = True
                 else:
                     v = _PackedNdarray(v, mem, offset)
@@ -423,7 +426,7 @@ def _pack(data, mem):
             'Shared memory size is too small.\n' +
             'Please set shared_mem option for MultiprocessIterator.\n' +
             'Expect shared memory size: {} bytes.\n'.format(expect) +
-            'Actual shared memory size: {} bytes.'.format(len(mem)),
+            'Actual shared memory size: {} bytes.'.format(limit - offset),
             UserWarning)
     return data
 
