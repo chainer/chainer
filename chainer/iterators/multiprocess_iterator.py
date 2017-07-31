@@ -353,6 +353,7 @@ def _fetch_setup(dataset, mem_size, mem_bulk):
     _fetch_mem_size = mem_size
     _fetch_mem_bulk = mem_bulk
 
+
 def _fetch_run(inputs):
     i, index = inputs
     data = _fetch_dataset[index]
