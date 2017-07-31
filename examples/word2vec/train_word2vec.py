@@ -21,8 +21,7 @@ from chainer.training import extensions
 
 
 class ContinuousBoW(chainer.Chain):
-    """ Definition of Continuous Bag of Words Model
-    """
+    """Definition of Continuous Bag of Words Model"""
 
     def __init__(self, n_vocab, n_units, loss_func):
         super(ContinuousBoW, self).__init__()
@@ -41,8 +40,7 @@ class ContinuousBoW(chainer.Chain):
 
 
 class SkipGram(chainer.Chain):
-    """ Definition of Skip-gram Model
-    """
+    """Definition of Skip-gram Model"""
 
     def __init__(self, n_vocab, n_units, loss_func):
         super(SkipGram, self).__init__()
@@ -64,8 +62,7 @@ class SkipGram(chainer.Chain):
 
 
 class SoftmaxCrossEntropyLoss(chainer.Chain):
-    """ Softmax cross entropy loss function preceded by linear transformation.
-    """
+    """Softmax cross entropy loss function preceded by linear transformation."""
 
     def __init__(self, n_in, n_out):
         super(SoftmaxCrossEntropyLoss, self).__init__()
