@@ -18,7 +18,8 @@ class Updater(object):
     - Run forward and backward process of :class:`~chainer.Chain`.
     - Update parameters according to their :class:`~chainer.UpdateRule`.
 
-    The first line is processed by :meth:`chainer.dataset.Iterator.__next__`.
+    The first line is processed by
+    :meth:`Iterator.__next__ <chainer.dataset.Iterator.__next__>`.
     The second and third are processed by :meth:`~chainer.Optimizer.update`.
     Users can also implement their original updating iteration by overriding
     :meth:`update`.
