@@ -64,9 +64,7 @@ class MultiprocessIterator(iterator.Iterator):
         self._comm = _Communicator(self.n_prefetch)
         self.reset()
 
-        # Do not hold reference to this thread. Otherwise an unused iterator
-        # never get GC'ed whenever the thread is alive, so you lose the
-        # chance to stop the thread.
+        # don't need to hold a reference to the thread
         prefetch_loop = _PrefetchLoop(
             self.dataset, self.batch_size, self.repeat, self.shuffle,
             self.n_processes, self.n_prefetch, self.shared_mem, self._comm)
@@ -346,7 +344,7 @@ class _PrefetchLoop(object):
 # Just using top-level function with globals seems to be safest.
 # it doesn't mean thread safety broken or global variables visible;
 # notice that each process uses different address space.
-# To make static linker happy, we first initialize global variables.
+# To make static linter happy, we first initialize global variables.
 _fetch_dataset = None
 _fetch_mem_size = None
 _fetch_mem_bulk = None
