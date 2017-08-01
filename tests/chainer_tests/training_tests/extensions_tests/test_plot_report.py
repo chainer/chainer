@@ -17,14 +17,16 @@ class TestPlotReport(unittest.TestCase):
         with warnings.catch_warnings(record=True) as w:
             self.assertEqual(extensions.PlotReport.available(), available)
 
-        # It shows warning only when matplotlib.pyplot is not available
+        # It shows warning only when matplotlib is not available
         if available:
             self.assertEqual(len(w), 0)
         else:
             self.assertEqual(len(w), 1)
 
+    # In Python 2 the above test does not raise UserWarning,
+    # so we use plot_report._available instead of PlotReport.available()
     @unittest.skipUnless(
-        extensions.PlotReport.available(), 'matplotlib is not installed')
+        extensions.plot_report._available, 'matplotlib is not installed')
     def test_lazy_import(self):
         # To support python2, we do not use self.assertWarns()
         with warnings.catch_warnings(record=True) as w:
