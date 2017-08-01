@@ -1,7 +1,7 @@
 from __future__ import division
 import multiprocessing
+from multiprocessing import pool
 from multiprocessing import sharedctypes
-import threading
 import warnings
 
 import numpy
@@ -41,8 +41,6 @@ class MultiprocessIterator(iterator.Iterator):
 
     """
 
-    _last_signal = object()
-
     def __init__(self, dataset, batch_size, repeat=True, shuffle=True,
                  n_processes=None, n_prefetch=1, shared_mem=None):
         self.dataset = dataset
@@ -56,6 +54,7 @@ class MultiprocessIterator(iterator.Iterator):
         self._shared_mem_size = shared_mem
 
         self._finalized = None
+        self._pool = None
 
         self.reset()
 
@@ -92,18 +91,14 @@ class MultiprocessIterator(iterator.Iterator):
         return self._previous_epoch_detail
 
     def finalize(self):
-        if self._finalized is None or self._finalized.is_set():
+        if self._finalized is None or self._finalized:
             return
 
-        self._finalized.set()
-        self._ordered_data_queue.put(self._last_signal)
-        self._data_queue.put((-1, -1, -1))
-        for _ in self._workers:
-            self._index_queue.put((-1, -1, -1))  # termination signal
+        self._finalized = True
 
-        for worker in self._workers:
-            worker.join()
-        self._get_data_loop_thread.join()
+        if self._pool is not None:
+            self._pool.close()
+            self._pool.join()
 
     def serialize(self, serializer):
         self.current_position = serializer('current_position',
@@ -128,44 +123,26 @@ class MultiprocessIterator(iterator.Iterator):
                 self._previous_epoch_detail = -1.
 
     def _init(self):
-        finalized = threading.Event()
-        self._index_queue = multiprocessing.Queue()
-        self._data_queue = multiprocessing.Queue()
-        self._ordered_data_queue = six.moves.queue.Queue()
+        self._result_list = []
         self._unused_mem_queue = six.moves.queue.Queue()
         self._mem_list = []
         self._cnt = 0
 
-        self._workers = []
-
         if self._shared_mem_size is not None:
             self._init_process()
 
-        self._get_data_loop_thread = threading.Thread(
-            target=_get_data_loop, name="get_data_loop",
-            args=(self._data_queue, self._ordered_data_queue,
-                  self._mem_list, self._unused_mem_queue,
-                  finalized, self._last_signal))
-        self._get_data_loop_thread.daemon = True
-        self._get_data_loop_thread.start()
-
-        self._finalized = finalized
+        self._finalized = False
 
     def _init_process(self):
-        assert len(self._workers) == 0
+        assert self._pool is None
         assert self._shared_mem_size is not None
         mem_size = self._shared_mem_size
-        for i in six.moves.range(self.batch_size * (self.n_prefetch + 1)):
+        for i in six.moves.range(self.batch_size * self.n_prefetch):
             self._mem_list.append(sharedctypes.RawArray('b', mem_size))
             self._unused_mem_queue.put(i)
 
-        args = (self.dataset, self._index_queue, self._data_queue,
-                self._mem_list)
-        for _ in range(self.n_processes):
-            worker = multiprocessing.Process(target=_worker, args=args)
-            worker.daemon = True
-            self._workers.append(worker)
-            worker.start()
+        self._pool = pool.Pool(self.n_processes, _init_worker,
+                               (self.dataset, self._mem_list))
 
     def _invoke_prefetch(self):
         n = len(self.dataset)
@@ -174,8 +151,9 @@ class MultiprocessIterator(iterator.Iterator):
             i = self.current_position
 
         order = self._order
-        measure_mode = len(self._workers) == 0
+        measure_mode = self._pool is None
         max_size = 0
+        data_list = []
         for _ in six.moves.range(self.batch_size):
             if i >= n:
                 if not self._repeat:
@@ -192,11 +170,9 @@ class MultiprocessIterator(iterator.Iterator):
             if measure_mode:
                 data = self.dataset[index]
                 max_size = max(max_size, _measure(data))
-                self._data_queue.put((self._cnt, None, data))
-                del data
+                data_list.append(data)
             else:
-                self._index_queue.put(
-                    (self._cnt, self._unused_mem_queue.get(), index))
+                data_list.append((self._unused_mem_queue.get(), index))
             self._cnt += 1
             i += 1
 
@@ -206,16 +182,31 @@ class MultiprocessIterator(iterator.Iterator):
         if measure_mode:
             self._shared_mem_size = max_size
             self._init_process()
+        else:
+            data_list = self._pool.map_async(_worker, data_list)
+        self._result_list.append(data_list)
 
     def _get(self):
+        assert len(self._result_list) != 0
+        result = self._result_list.pop(0)
+        if isinstance(result, list):
+            data_list = result
+        else:
+            while not result.ready():
+                result.wait(0.5)
+            data_list = []
+            for index_data in result.get():
+                mem_index, data = index_data
+                if mem_index is not None:
+                    data = _unpack(data, self._mem_list[mem_index])
+                    self._unused_mem_queue.put(mem_index)
+                data_list.append(data)
+
         n = len(self.dataset)
         i = self.current_position
 
         batch = []
-        for _ in six.moves.range(self.batch_size):
-            d = self._ordered_data_queue.get()
-            if d is self._last_signal:
-                break
+        for d in data_list:
             batch.append(d)
             i += 1
             if i >= n:
@@ -238,8 +229,7 @@ class MultiprocessIterator(iterator.Iterator):
             raise NotImplementedError(
                 'Reset of repeating MultiProcessIterator is currently not '
                 'supported.')
-        if getattr(self, '_finalized', None) is not None and \
-                self._finalized.is_set():
+        if getattr(self, '_finalized', None):
             raise NotImplementedError(
                 'Reset of finalized MultiProcessIterator is currently not '
                 'supported.')
@@ -259,34 +249,10 @@ class MultiprocessIterator(iterator.Iterator):
             self._order = None
 
         if self._finalized is not None:
+            while len(self._result_list) != 0:
+                self._get()
             for _ in six.moves.range(self.n_prefetch):
                 self._invoke_prefetch()
-
-
-def _get_data_loop(data_queue, ordered_data_queue, mem_list,
-                   unused_mem_queue, finalized, last_signal):
-    buf = {}
-    cnt = 0
-    while not finalized.is_set():
-        if cnt in buf:
-            data = buf.pop(cnt)
-        else:
-            try:
-                c, mem_index, data = data_queue.get(timeout=0.5)
-            except six.moves.queue.Empty:
-                continue
-            if c < 0:
-                break
-            if mem_index is not None:
-                data = _unpack(data, mem_list[mem_index])
-                unused_mem_queue.put(mem_index)
-            if c != cnt:
-                buf[c] = data
-                continue
-        ordered_data_queue.put(data)
-        del data
-        cnt += 1
-    ordered_data_queue.put(last_signal)
 
 
 class _PackedNdarray(object):
@@ -381,13 +347,18 @@ def _unpack(data, mem):
     return data
 
 
-def _worker(dataset, in_queue, out_queue, mem_list):
-    while True:
-        cnt, mem_index, index = in_queue.get()
-        if cnt < 0:
-            break
-        mem = mem_list[mem_index]
-        data = _pack(dataset[index], mem)
-        out_queue.put((cnt, mem_index, data))
-    out_queue.close()
-    out_queue.join_thread()
+_dataset = None
+_mem_list = None
+
+
+def _init_worker(dataset, mem_list):
+    global _dataset, _mem_list
+    _dataset = dataset
+    _mem_list = mem_list
+
+
+def _worker(args):
+    mem_index, index = args
+    mem = _mem_list[mem_index]
+    data = _pack(_dataset[index], mem)
+    return mem_index, data
