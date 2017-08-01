@@ -32,7 +32,7 @@ def to_device(device, x):
     elif device < 0:
         return cuda.to_cpu(x)
     else:
-        return cuda.to_gpu(x, device, cuda.Stream.null)
+        return cuda.to_gpu(x, device)
 
 
 def concat_examples(batch, device=None, padding=None):

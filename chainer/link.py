@@ -314,8 +314,8 @@ Assign a Parameter object directly to an attribute within a \
 
         """
         ret = copy.copy(self)
-        ret._params = list(self._params)
-        ret._persistent = list(self._persistent)
+        ret._params = set(self._params)
+        ret._persistent = set(self._persistent)
         ret.name = None
         d = ret.__dict__
         for name in ret._params:
@@ -519,7 +519,7 @@ Assign a Parameter object directly to an attribute within a \
     def disable_update(self):
         """Disables update rules of all parameters under the link hierarchy.
 
-        This method sets the :attr:~chainer.UpdateRule.enabled` flag of the
+        This method sets the :attr:`~chainer.UpdateRule.enabled` flag of the
         update rule of each parameter variable to ``False``.
 
         """
@@ -627,7 +627,7 @@ class Chain(Link):
 
        Child links are registered via the assignment within a
        ``with self.init_scope():`` block. The forward propagation is often
-       implemented as The ``__call__`` operator as the above example, though
+       implemented as the ``__call__`` operator as the above example, though
        it is not mandatory.
 
     Args:
@@ -708,7 +708,7 @@ Assign a Link object directly to an attribute within a \
 
     def copy(self):
         ret = super(Chain, self).copy()
-        ret._children = list(ret._children)
+        ret._children = set(ret._children)
         d = ret.__dict__
         for name in ret._children:
             # copy child links recursively

@@ -6,22 +6,16 @@ from chainer import cuda
 from chainer import function
 from chainer.utils import conv
 from chainer.utils import type_check
+from chainer import variable
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
     libcudnn = cuda.cudnn.cudnn
-    _cudnn_version = libcudnn.getVersion()
     _fwd_pref = libcudnn.CUDNN_CONVOLUTION_FWD_SPECIFY_WORKSPACE_LIMIT
-    if _cudnn_version >= 4000:
-        _bwd_filter_pref = \
-            libcudnn.CUDNN_CONVOLUTION_BWD_FILTER_SPECIFY_WORKSPACE_LIMIT
-        _bwd_data_pref = \
-            libcudnn.CUDNN_CONVOLUTION_BWD_DATA_SPECIFY_WORKSPACE_LIMIT
-
-
-def _check_cudnn_acceptable_type(x_dtype, W_dtype):
-    return x_dtype == W_dtype and (
-        _cudnn_version >= 3000 or x_dtype != numpy.float16)
+    _bwd_filter_pref = \
+        libcudnn.CUDNN_CONVOLUTION_BWD_FILTER_SPECIFY_WORKSPACE_LIMIT
+    _bwd_data_pref = \
+        libcudnn.CUDNN_CONVOLUTION_BWD_DATA_SPECIFY_WORKSPACE_LIMIT
 
 
 def _pair(x):
@@ -32,11 +26,13 @@ def _pair(x):
 
 class DilatedConvolution2DFunction(function.Function):
 
-    def __init__(self, stride=1, pad=0, dilate=1, cover_all=False):
+    def __init__(self, stride=1, pad=0, dilate=1, cover_all=False,
+                 requires_x_grad=True):
         self.sy, self.sx = _pair(stride)
         self.ph, self.pw = _pair(pad)
         self.dy, self.dx = _pair(dilate)
         self.cover_all = cover_all
+        self.requires_x_grad = requires_x_grad
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -64,7 +60,7 @@ class DilatedConvolution2DFunction(function.Function):
         x, W = inputs[:2]
         b = inputs[2] if len(inputs) == 3 else None
 
-        if not type_check.same_types(*inputs):
+        if not all([isinstance(i, numpy.ndarray) for i in inputs]):
             if b is not None:
                 raise ValueError('numpy and cupy must not be used together\n'
                                  'type(W): {0}, type(x): {1}, type(b): {2}'
@@ -88,7 +84,7 @@ class DilatedConvolution2DFunction(function.Function):
         x, W = inputs[:2]
         b = inputs[2] if len(inputs) == 3 else None
 
-        if not type_check.same_types(*inputs):
+        if not all([isinstance(i, cuda.ndarray) for i in inputs]):
             if b is not None:
                 raise ValueError('numpy and cupy must not be used together\n'
                                  'type(W): {0}, type(x): {1}, type(b): {2}'
@@ -109,8 +105,7 @@ class DilatedConvolution2DFunction(function.Function):
 
         y = cuda.cupy.zeros((n, out_c, out_h, out_w), dtype=x.dtype)
         if (not self.cover_all and chainer.should_use_cudnn('>=auto') and
-                _check_cudnn_acceptable_type(x.dtype, W.dtype)):
-
+                x.dtype == W.dtype):
             pad_x = cuda.cupy.zeros((n, c, h + 2 * self.ph, w + 2 * self.pw),
                                     dtype=x.dtype)
             pad_x[:, :, self.ph:self.ph + h, self.pw:self.pw + w] = x
@@ -182,10 +177,13 @@ class DilatedConvolution2DFunction(function.Function):
 
         gW = numpy.tensordot(
             gy, self.col, ((0, 2, 3), (0, 4, 5))).astype(W.dtype, copy=False)
-        gcol = numpy.tensordot(W, gy, (0, 1)).astype(x.dtype, copy=False)
-        gcol = numpy.rollaxis(gcol, 3)
-        gx = conv.col2im_cpu(gcol, self.sy, self.sx,
-                             self.ph, self.pw, h, w, dy=self.dy, dx=self.dx)
+        if not self.requires_x_grad:
+            gx = None
+        else:
+            gcol = numpy.tensordot(W, gy, (0, 1)).astype(x.dtype, copy=False)
+            gcol = numpy.rollaxis(gcol, 3)
+            gx = conv.col2im_cpu(gcol, self.sy, self.sx, self.ph, self.pw,
+                                 h, w, dy=self.dy, dx=self.dx)
 
         if b is None:
             return gx, gW
@@ -204,7 +202,7 @@ class DilatedConvolution2DFunction(function.Function):
 
         gW = cuda.cupy.empty_like(W)
         if (not self.cover_all and chainer.should_use_cudnn('>=auto') and
-                _check_cudnn_acceptable_type(x.dtype, W.dtype)):
+                x.dtype == W.dtype):
 
             pad_x = cuda.cupy.zeros(
                 (n, c, h + 2 * self.ph, w + 2 * self.pw), dtype=x.dtype)
@@ -224,6 +222,8 @@ class DilatedConvolution2DFunction(function.Function):
             pad_gy[:, :,
                    gy_ph:gy_ph + out_sh:self.sy,
                    gy_pw:gy_pw + out_sw:self.sx] = gy
+
+            gx = None
 
             for j in moves.range(kh):
                 for i in moves.range(kw):
@@ -253,49 +253,41 @@ class DilatedConvolution2DFunction(function.Function):
                         oz_dtype = 'd' if x.dtype == 'd' else 'f'
                         one = numpy.array(1, dtype=oz_dtype).ctypes
                         zero = numpy.array(0, dtype=oz_dtype).ctypes
-                        gx = cuda.cupy.zeros_like(x)
+                        if self.requires_x_grad:
+                            gx = cuda.cupy.zeros_like(x)
                         gWji = cuda.cupy.empty((out_c, c, 1, 1), dtype=W.dtype)
 
-                        if _cudnn_version >= 4000:
-                            workspace_size = cuda.get_max_workspace_size()
-                            workspace = cuda.cupy.empty(
-                                (workspace_size,), dtype='b')
+                        workspace_size = cuda.get_max_workspace_size()
+                        workspace = cuda.cupy.empty(
+                            (workspace_size,), dtype='b')
 
-                            algo_filter = (
-                                libcudnn.getConvolutionBackwardFilterAlgorithm(
-                                    handle, xji_desc.value, gy_desc.value,
-                                    self.conv_desc.value,
-                                    self.filter_desc.value,
-                                    _bwd_filter_pref, workspace_size))
-                            algo_data = (
-                                libcudnn.getConvolutionBackwardDataAlgorithm(
-                                    handle, self.filter_desc.value,
-                                    gyji_desc.value, conv_desc_data.value,
-                                    x_desc.value, _bwd_data_pref,
-                                    workspace_size))
+                        algo_filter = (
+                            libcudnn.getConvolutionBackwardFilterAlgorithm(
+                                handle, xji_desc.value, gy_desc.value,
+                                self.conv_desc.value,
+                                self.filter_desc.value,
+                                _bwd_filter_pref, workspace_size))
+                        algo_data = (
+                            libcudnn.getConvolutionBackwardDataAlgorithm(
+                                handle, self.filter_desc.value,
+                                gyji_desc.value, conv_desc_data.value,
+                                x_desc.value, _bwd_data_pref,
+                                workspace_size))
 
-                    if _cudnn_version >= 4000:
-                        libcudnn.convolutionBackwardFilter_v3(
-                            handle, one.data, xji_desc.value, xji.data.ptr,
-                            gy_desc.value, gy.data.ptr, self.conv_desc.value,
-                            algo_filter, workspace.data.ptr, workspace_size,
-                            zero.data, self.filter_desc.value, gWji.data.ptr)
+                    libcudnn.convolutionBackwardFilter_v3(
+                        handle, one.data, xji_desc.value, xji.data.ptr,
+                        gy_desc.value, gy.data.ptr, self.conv_desc.value,
+                        algo_filter, workspace.data.ptr, workspace_size,
+                        zero.data, self.filter_desc.value, gWji.data.ptr)
+
+                    if self.requires_x_grad:
                         libcudnn.convolutionBackwardData_v3(
                             handle, one.data, self.filter_desc.value,
                             Wji.data.ptr, gyji_desc.value,
                             gyji.data.ptr, conv_desc_data.value,
                             algo_data, workspace.data.ptr, workspace_size,
                             one.data, x_desc.value, gx.data.ptr)
-                    else:
-                        libcudnn.convolutionBackwardFilter_v2(
-                            handle, one.data, xji_desc.value, xji.data.ptr,
-                            gy_desc.value, gy.data.ptr, self.conv_desc.value,
-                            zero.data, self.filter_desc.value, gWji.data.ptr)
-                        libcudnn.convolutionBackwardData_v2(
-                            handle, one.data, self.filter_desc.value,
-                            Wji.data.ptr, gyji_desc.value,
-                            gyji.data.ptr, conv_desc_data.value,
-                            one.data, x_desc.value, gx.data.ptr)
+
                     gW[:, :, j:j + 1, i:i + 1] = gWji
 
             if b is not None:
@@ -307,11 +299,14 @@ class DilatedConvolution2DFunction(function.Function):
             gW = cuda.cupy.tensordot(
                 gy, self.col, ((0, 2, 3), (0, 4, 5))).astype(W.dtype,
                                                              copy=False)
-            gcol = cuda.cupy.tensordot(W, gy, (0, 1)).astype(x.dtype,
-                                                             copy=False)
-            gcol = cuda.cupy.rollaxis(gcol, 3)
-            gx = conv.col2im_gpu(gcol, self.sy, self.sx, self.ph, self.pw,
-                                 h, w, dy=self.dy, dx=self.dx)
+            if not self.requires_x_grad:
+                gx = None
+            else:
+                gcol = cuda.cupy.tensordot(W, gy, (0, 1)).astype(x.dtype,
+                                                                 copy=False)
+                gcol = cuda.cupy.rollaxis(gcol, 3)
+                gx = conv.col2im_gpu(gcol, self.sy, self.sx, self.ph, self.pw,
+                                     h, w, dy=self.dy, dx=self.dx)
 
             if b is not None:
                 gb = gy.sum(axis=(0, 2, 3))
@@ -385,7 +380,9 @@ def dilated_convolution_2d(x, W, b=None, stride=1, pad=0, dilate=1,
     .. seealso:: :class:`DilatedConvolution2D`
 
     """
-    func = DilatedConvolution2DFunction(stride, pad, dilate, cover_all)
+    requires_x_grad = isinstance(x, variable.Variable) and x.requires_grad
+    func = DilatedConvolution2DFunction(stride, pad, dilate, cover_all,
+                                        requires_x_grad)
     if b is None:
         return func(x, W)
     else:

@@ -12,12 +12,6 @@ from chainer import utils
 from chainer.utils import conv_nd
 
 
-if cuda.cudnn_enabled:
-    cudnn = cuda.cudnn
-    libcudnn = cudnn.cudnn
-    _cudnn_version = libcudnn.getVersion()
-
-
 class MaxPoolingND(pooling_nd._PoolingND):
 
     """Max pooling over a set of N-dimensional planes."""
@@ -50,16 +44,10 @@ class MaxPoolingND(pooling_nd._PoolingND):
         return y,
 
     def forward_gpu(self, x):
-        if (chainer.should_use_cudnn('>=auto') and
-                pooling_nd._check_cudnn_acceptable_type(x[0].dtype)):
+        if chainer.should_use_cudnn('>=auto') and self.ndim >= 2:
             # With cuDNN v3 or greater, use cuDNN implementation for inputs
             # with spatial dimensions of two or more.
-            if _cudnn_version >= 3000 and self.ndim >= 2:
-                return super(MaxPoolingND, self).forward_gpu(x)
-            # With cuDNN v2, use cuDNN implementation only for inputs with
-            # spatial dimensions of two.
-            elif self.ndim == 2:
-                return super(MaxPoolingND, self).forward_gpu(x)
+            return super(MaxPoolingND, self).forward_gpu(x)
 
         self.retain_inputs(())
         self._in_shape = x[0].shape
@@ -125,8 +113,9 @@ class MaxPoolingND(pooling_nd._PoolingND):
         return gx,
 
     def create_pool_desc(self):
-        return cudnn.create_pooling_descriptor(
-            self.ksize, self.stride, self.pad, libcudnn.CUDNN_POOLING_MAX)
+        return cuda.cudnn.create_pooling_descriptor(
+            self.ksize, self.stride, self.pad,
+            cuda.cudnn.cudnn.CUDNN_POOLING_MAX)
 
 
 def max_pooling_nd(x, ksize, stride=None, pad=0, cover_all=True):

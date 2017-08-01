@@ -1,18 +1,22 @@
+<div align="center"><img src="docs/image/chainer_red_h.png" width="400"/></div>
+
+# Chainer: a deep learning framework
+
 [![pypi](https://img.shields.io/pypi/v/chainer.svg)](https://pypi.python.org/pypi/chainer)
 [![GitHub license](https://img.shields.io/github/license/chainer/chainer.svg)](https://github.com/chainer/chainer)
 [![travis](https://img.shields.io/travis/chainer/chainer/master.svg)](https://travis-ci.org/chainer/chainer)
 [![coveralls](https://img.shields.io/coveralls/chainer/chainer.svg)](https://coveralls.io/github/chainer/chainer)
-[![Read the Docs](https://readthedocs.org/projects/chainer/badge/?version=stable)](http://docs.chainer.org/en/stable/?badge=stable)
+[![Read the Docs](https://readthedocs.org/projects/chainer/badge/?version=stable)](https://docs.chainer.org/en/stable/?badge=stable)
 
-# Chainer: a deep learning framework
-
-[**Website**](http://chainer.org/)
-| [**Docs**](http://docs.chainer.org/en/stable/)
-| [**Install Guide**](http://docs.chainer.org/en/stable/install.html)
-| [**Tutorial**](http://docs.chainer.org/en/stable/tutorial/)
+[**Website**](https://chainer.org/)
+| [**Docs**](https://docs.chainer.org/en/stable/)
+| [**Install Guide**](https://docs.chainer.org/en/stable/install.html)
+| [**Tutorial**](https://docs.chainer.org/en/stable/tutorial/)
 | **Examples** ([Official](https://github.com/chainer/chainer/blob/master/examples), [External](https://github.com/chainer/chainer/wiki/External-examples))
-| **Forum** ([en](https://groups.google.com/forum/#!forum/chainer), [ja](https://groups.google.com/forum/#!forum/chainer-jp))
-| **Slack** ([en](https://bit.ly/chainer-slack), [ja](https://bit.ly/chainer-jp-slack))
+
+**Forum** ([en](https://groups.google.com/forum/#!forum/chainer), [ja](https://groups.google.com/forum/#!forum/chainer-jp))
+| **Slack invitation** ([en](https://bit.ly/chainer-slack), [ja](https://bit.ly/chainer-jp-slack))
+| **Slack archive** ([en](https://chainer.slackarchive.io), [ja](https://chainer-jp.slackarchive.io))
 | **Twitter** ([en](https://twitter.com/ChainerOfficial), [ja](https://twitter.com/ChainerJP))
 
 *Chainer* is a Python-based deep learning framework aiming at flexibility.
@@ -38,7 +42,7 @@ To enable CUDA support, [set up CUDA](http://docs.nvidia.com/cuda/index.html#ins
 $ pip install cupy
 ```
 
-[See the installation guide for more details.](http://docs.chainer.org/en/stable/install.html).
+[See the installation guide for more details.](https://docs.chainer.org/en/stable/install.html).
 
 
 ## Docker image

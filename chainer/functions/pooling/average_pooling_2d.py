@@ -5,10 +5,6 @@ from chainer import cuda
 from chainer.functions.pooling import pooling_2d
 from chainer.utils import conv
 
-if cuda.cudnn_enabled:
-    cudnn = cuda.cudnn
-    libcudnn = cudnn.cudnn
-
 
 class AveragePooling2D(pooling_2d.Pooling2D):
 
@@ -26,8 +22,7 @@ class AveragePooling2D(pooling_2d.Pooling2D):
         return y,
 
     def forward_gpu(self, x):
-        if (chainer.should_use_cudnn('>=auto') and
-                pooling_2d._check_cudnn_acceptable_type(x[0].dtype)):
+        if chainer.should_use_cudnn('>=auto'):
             return super(AveragePooling2D, self).forward_gpu(x)
 
         self.retain_inputs(())
@@ -110,9 +105,9 @@ class AveragePooling2D(pooling_2d.Pooling2D):
         return gx,
 
     def create_pool_desc(self):
-        return cudnn.create_pooling_descriptor(
+        return cuda.cudnn.create_pooling_descriptor(
             (self.kh, self.kw), (self.sy, self.sx), (self.ph, self.pw),
-            libcudnn.CUDNN_POOLING_AVERAGE_COUNT_INCLUDE_PADDING)
+            cuda.cudnn.cudnn.CUDNN_POOLING_AVERAGE_COUNT_INCLUDE_PADDING)
 
 
 def average_pooling_2d(x, ksize, stride=None, pad=0):

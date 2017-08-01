@@ -54,7 +54,6 @@ class Convolution2D(link.Link):
         W (~chainer.Variable): Weight parameter.
         b (~chainer.Variable): Bias parameter.
 
-
     .. admonition:: Example
 
         There are several ways to make a Convolution2D link.

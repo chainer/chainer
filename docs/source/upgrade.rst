@@ -174,7 +174,7 @@ If you are using the ``Variable.volatile`` flag, you have to stop setting this f
 
       # Chainer v2
       x_data = ...   # ndarray
-      x = chainer.Variable(x)
+      x = chainer.Variable(x_data)
       with chainer.no_backprop_mode():
           y = model(x)
 
@@ -685,7 +685,7 @@ Updater and Evaluator pass raw data arrays to the loss function
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In Chainer v2, :class:`~training.Updater` and :class:`~training.extensions.Evaluator` pass raw data arrays to the loss function without wrapping them with :class:`Variable`.
-**You might need to update your code so that the loss function (in most cases, the model's** ``__call__``**) accepts raw arrays.**
+**You might need to update your code so that the loss function (in most cases, the model's** ``__call__`` **) accepts raw arrays.**
 
 Note that raw arrays can be directly passed to any :class:`Function`; they are automatically wrapped by :class:`Variable`.
 For example, if the input is directly passed to a :class:`Function` object (or any function under :mod:`chainer.functions`), you do not need to update the code.

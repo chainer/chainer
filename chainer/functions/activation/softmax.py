@@ -8,7 +8,6 @@ from chainer.utils import type_check
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
     libcudnn = cudnn.cudnn
-    _cudnn_version = libcudnn.getVersion()
     _algorithm = libcudnn.CUDNN_SOFTMAX_ACCURATE
     _mode = libcudnn.CUDNN_SOFTMAX_MODE_CHANNEL
 
@@ -32,8 +31,7 @@ class Softmax(function.Function):
 
     def forward(self, x):
         xp = cuda.get_array_module(*x)
-        if (xp is not numpy and chainer.should_use_cudnn('>=auto') and
-                (_cudnn_version >= 3000 or x[0].dtype != numpy.float16)):
+        if xp is not numpy and chainer.should_use_cudnn('>=auto'):
             oz_dtype = 'd' if x[0].dtype == 'd' else 'f'
             one = numpy.array(1, dtype=oz_dtype).ctypes
             zero = numpy.array(0, dtype=oz_dtype).ctypes
@@ -58,8 +56,7 @@ class Softmax(function.Function):
     def backward(self, x, gy):
         y = self.output_data[0]
         xp = cuda.get_array_module(*y)
-        if (xp is not numpy and chainer.should_use_cudnn('>=auto') and
-                (_cudnn_version >= 3000 or y.dtype != numpy.float16)):
+        if xp is not numpy and chainer.should_use_cudnn('>=auto'):
             oz_dtype = 'd' if y[0].dtype == 'd' else 'f'
             one = numpy.array(1, dtype=oz_dtype).ctypes
             zero = numpy.array(0, dtype=oz_dtype).ctypes
@@ -90,17 +87,34 @@ def softmax(x, axis=1):
     """Softmax function.
 
     This function computes its softmax along an axis. Let
-    :math:`x = (x_1, x_2, \\dots, x_D)^{\\top}` be the D dimensional index
-    array and :math:`f(x)` be the D dimensional input array. For each index
-    :math:`x` of the input array :math:`f(x)`, it computes the probability
-    :math:`p(x)` defined as
-    :math:`p(x) = {\\exp(f(x)) \\over \\sum_{d} \\exp(f(x_d))}`.
+    :math:`c = (c_1, c_2, \\dots, c_D)` be the slice of ``x`` along with
+    the axis. For each slice :math:`c`, it computes the function :math:`f(c)`
+    defined as :math:`f(c)={\\exp(c) \\over \\sum_{d} \\exp(c_d)}`.
 
     Args:
-        x (~chainer.Variable): Input variable.
+        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`):
+            Input variable.
+            A :math:`n`-dimensional (:math:`n \\geq 2`) float array.
+        axis (int): The axis along which the softmax is to be computed.
 
     Returns:
         ~chainer.Variable: Output variable.
+        A :math:`n`-dimensional (:math:`n \\geq 2`) float array, which is the
+        same shape with x.
+
+    .. admonition:: Example
+
+        >>> x = np.array([[0, 1, 2], [0, 2, 4]], 'f')
+        >>> x
+        array([[ 0.,  1.,  2.],
+               [ 0.,  2.,  4.]], dtype=float32)
+        >>> y = F.softmax(x, axis=1)
+        >>> y.data
+        array([[ 0.09003057,  0.24472848,  0.66524094],
+               [ 0.01587624,  0.11731043,  0.86681336]], dtype=float32)
+        >>> F.sum(y, axis=1).data
+        array([ 1.,  1.], dtype=float32)
 
     """
     return Softmax(axis=axis)(x)

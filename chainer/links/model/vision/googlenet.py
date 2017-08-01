@@ -95,7 +95,7 @@ class GoogLeNet(link.Chain):
             kwargs = {'initialW': constant.Zero()}
         else:
             # employ default initializers used in BVLC. For more detail, see
-            # https://github.com/pfnet/chainer/pull/2424#discussion_r109642209
+            # https://github.com/chainer/chainer/pull/2424#discussion_r109642209
             kwargs = {'initialW': uniform.LeCunUniform(scale=1.0)}
         super(GoogLeNet, self).__init__(
             conv1=Convolution2D(3, 64, 7, stride=2, pad=3, **kwargs),
@@ -127,7 +127,10 @@ class GoogLeNet(link.Chain):
                 self)
         elif pretrained_model:
             npz.load_npz(pretrained_model, self)
-        self.functions = collections.OrderedDict([
+
+    @property
+    def functions(self):
+        return collections.OrderedDict([
             ('conv1', [self.conv1, relu]),
             ('pool1', [_max_pooling_2d, _local_response_normalization]),
             ('conv2_reduce', [self.conv2_reduce, relu]),

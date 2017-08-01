@@ -29,6 +29,7 @@ Concrete initializers
    chainer.initializers.Zero
    chainer.initializers.One
    chainer.initializers.Normal
+   chainer.initializers.LeCunNormal
    chainer.initializers.GlorotNormal
    chainer.initializers.HeNormal
    chainer.initializers.Orthogonal

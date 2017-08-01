@@ -1,13 +1,13 @@
-import collections
-import traceback
+import warnings
 import weakref
 
 import six
 
-import chainer
 from chainer import configuration
 from chainer import cuda
-from chainer.utils import type_check
+# for backward compatibility
+from chainer.function_hook import FunctionHook  # NOQA
+from chainer import function_node
 from chainer import variable
 
 
@@ -55,111 +55,138 @@ def force_backprop_mode():
     return configuration.using_config('enable_backprop', True)
 
 
-class Function(object):
+class FunctionAdapter(function_node.FunctionNode):
 
-    """Function on variables with backpropagation ability.
+    """Adapter class to wrap Function with FunctionNode.
 
-    All function implementations defined in :mod:`chainer.functions` inherit
-    this class.
-
-    The main feature of this class is keeping track of function applications as
-    a backward graph. When a function is applied to :class:`Variable` objects,
-    its :meth:`forward` method is called on :data:`~Variable.data` fields of
-    input variables, and at the same time it chains references from output
-    variable nodes to the function and from the function to its input nodes.
+    While :class:`FunctionNode` provides the interface of new-style
+    differentiable functions, the old-style :class:`Function` can still be
+    used for the backward compatibility. This class provides an adapter of
+    there interface; it adds :class:`FunctionNode` interface to any
+    :class:`Function` object by delegation.
 
     .. note::
-       As of v2.0, the input/output variables and their corresponding variable
-       nodes in the graph are distinguished. Function acts like a function on
-       :class:`Variable` objects that returns :class:`Variable` objects as
-       outputs, whereas these objects do not appear directly in the graph.
-       Instead, their corresponding :class:`VariableNode` objects are inserted
-       to the graph.
 
-    .. note::
-       As of v1.5, a function instance cannot be used twice in any
-       computational graphs. In order to reuse a function object multiple
-       times, use :func:`copy.copy` before the function applications to make a
-       copy of the instance.
+       The ownership of ``FunctionAdapter`` and :class:`Function` is a bit
+       tricky. At the initialization, :class:`FunctionAdapter` is owned by the
+       :class:`Function` object. Once the function is applied to variables,
+       the ownership is reversed; the adapter becomes the owner of the
+       :class:`Function` object and the :class:`Function` object changes the
+       reference to a weak one.
 
-       This restriction also means that we cannot make a *stateful function*
-       anymore. For example, it is now not allowed to let a function hold
-       parameters. Define a function as a pure (stateless) procedure, and use
-       :class:`~chainer.Link` to combine it with parameter variables.
+    Args:
+        function (Function): The function object to wrap.
 
-    .. admonition:: Example
-
-       Let ``x`` an instance of :class:`Variable` and ``f`` an instance of
-       :class:`Function` taking only one argument. Then a line
-
-       >>> import numpy, chainer, chainer.functions as F
-       >>> x = chainer.Variable(numpy.zeros(10))
-       >>> f = F.Identity()
-       >>> y = f(x)
-
-       computes a new variable ``y`` and creates backward references. Actually,
-       backward references are set as per the following diagram::
-
-           x.node <--- f <--- y.node
-
-       If an application of another function ``g`` occurs as
-
-       >>> g = F.Identity()
-       >>> z = g(x)
-
-       then the graph grows with a branch::
-
-                    |--- f <--- y.node
-           x.node <-+
-                    |--- g <--- z.node
-
-       Note that the branching is correctly managed on backward computation,
-       i.e. the gradients from ``f`` and ``g`` are accumulated to the gradient
-       of ``x``.
-
-    Every function implementation should provide :meth:`forward_cpu`,
-    :meth:`forward_gpu`, :meth:`backward_cpu` and :meth:`backward_gpu`.
-    Alternatively, one can provide :meth:`forward` and :meth:`backward` instead
-    of separate methods. Backward methods have default implementations that
-    just return ``None``, which indicates that the function is non-
-    differentiable.
-
-    For functions that do not need a part of inputs in backward computation,
-    there is a way to possibly reduce the memory consumption by quickly
-    releasing the input arrays after the forward propagation. This is done by
-    calling :meth:`retain_inputs` from inside of :meth:`forward` (including
-    :meth:`forward_cpu` and :meth:`forward_gpu`). See the documentation of
-    :meth:`retain_inputs` for details.
-
-    For functions that need a part of outputs in backward computation, it is
-    **strongly recommended** to call :meth:`retain_outputs` from inside of
-    :meth:`forward` (including :meth:`forward_cpu` and :meth:`forward_gpu`).
-    It marks the specified output variable nodes to retain the data. The
-    retained data can be accessed by :attr:`output_arrays` property.
-
-    Attributes:
-        inputs: A tuple or list of input variables.
-        outputs: A tuple or list of output variables.
-        output_data: A tuple of retained output arrays. It has the same length
-            as :attr:`outputs`. The data of variables that are not retained are
-            set to ``None``. See :meth:`retain_outputs` for details.
+    .. versionadded:: 3.0.0
 
     """
 
-    rank = 0  # default value of the rank
+    _function = None
+    _weak_function = None
+
+    def __init__(self, function):
+        super(FunctionAdapter, self).__init__()
+        self._weak_function = weakref.ref(function)
+        function._owned_node = self
+
+    @property
+    def function(self):
+        """The :class:`Function` object that this adapter is wrapping."""
+        func = self._function
+        if func is not None:
+            return func
+
+        weak_func = self._weak_function
+        return weak_func and weak_func()
+
+    @property
+    def label(self):
+        return self._function.label
+
+    @property
+    def _impl_name(self):
+        return self._function.__class__.__name__
+
+    def check_type_forward(self, in_types):
+        self._function.check_type_forward(in_types)
+
+    def forward(self, inputs):
+        # Retain all inputs by default in old-style functions.
+        self.retain_inputs(six.moves.range(len(inputs)))
+        return self._function.forward(inputs)
+
+    def backward(self, target_input_indexes, grad_outputs):
+        in_data = tuple([input.data for input in self.inputs])
+        grad_out_data = tuple([None if grad is None else grad.data
+                               for grad in grad_outputs])
+
+        with cuda.get_device_from_array(*(in_data + grad_out_data)):
+            gxs = self._function.backward(in_data, grad_out_data)
+        for x, gx in six.moves.zip(self.inputs, gxs):
+            variable._check_grad_type(self, x, gx)
+
+        ret = []
+        for i in target_input_indexes:
+            if gxs[i] is None:
+                g = None
+            else:
+                # Intentionallly not passing requires_grad=False so that
+                # backprop routines can raise an error when a further backprop
+                # is attempted against this gradient variable.
+                g = variable.Variable(gxs[i])
+                g.node._old_style_grad_generator = self._function.label
+            ret.append(g)
+
+        return tuple(ret)
+
+
+class Function(object):
+
+    """Old-style interface of a differentiable function.
+
+    This class provides an interface to implement an old-style differentiable
+    function (i.e., the function application is recorded to the computational
+    graph). The subclass of :class:`Function` that implement :meth:`forward`
+    and :meth:`backward` can be used to run the forward computation and
+    automatically induce the backpropagation procedure.
+
+    There is another way to implement such a function: subclassing
+    :class:`FunctionNode`. There are mainly two differences between them.
+
+    1. The *differentiable backprop* is available for :class:`FunctionNode`,
+       while it is not for :class:`Function` because the :meth:`backward`
+       of the latter directly operates on the arrays instead of
+       :class:`Variable` objects so that it cannot record the history of
+       the computation.
+    2. The information passed to :meth:`backward` is different. In
+       :class:`FunctionNode`, which inputs the function node has to compute
+       the gradients w.r.t. is passed so that it can omit unnecessary
+       computations, while :class:`Function` always has to compute gradients
+       w.r.t. all the input nodes. The :class:`FunctionNode` also accepts the
+       current gradient values of the input nodes so that the accumulation
+       work can be merged with the gradient computation if an efficient kernel
+       is available.
+
+    This class uses :class:`FunctionAdapter` to convert the interface to that
+    of :class:`FunctionNode` and adds the :class:`FunctionNode` object to the
+    computational graph.
+
+    See :class:`FunctionNode` for the details of building the computational
+    graph in Chainer.
+
+    """
+
+    _node = None
+    _owned_node = None
 
     def __call__(self, *inputs):
         """Applies forward propagation with chaining backward references.
 
-        Basic behavior is expressed in documentation of :class:`Function`
-        class.
+        This method creates a new :class:`FunctionAdapter` object and runs
+        the forward propagation using it.
 
-        .. note::
-
-           If the :data:`~Variable.data` attribute of input variables exist on
-           GPU device, then, before it calls :meth:`forward` method, the
-           appropriate device is selected, so in most cases implementers do
-           not need to take care of device selection.
+        See :class:`FunctionNode` for the detailed behavior of building the
+        computational graph.
 
         Args:
             inputs: Tuple of input :class:`Variable`, :class:`numpy.ndarray` or
@@ -173,91 +200,56 @@ class Function(object):
             :class:`Variable` objects.
 
         """
+        node = self.node
 
-        inputs = [x if isinstance(x, variable.Variable)
-                  else variable.Variable(x, requires_grad=False)
-                  for x in inputs]
-        in_data = tuple([x.data for x in inputs])
-        requires_grad = any([x.requires_grad for x in inputs])
+        # Swap the ownership
+        node._function = self
+        node._weak_function = None
+        self._node = weakref.ref(node)
+        self._owned_node = None
 
-        if chainer.is_debug():
-            self._stack = traceback.extract_stack()
-
-        if configuration.config.type_check:
-            self._check_data_type_forward(in_data)
-
-        hooks = chainer.get_function_hooks()
-        if self._n_local_function_hooks != 0:
-            hooks = collections.OrderedDict(hooks)
-            hooks.update(self.local_function_hooks)
-        for hook in six.itervalues(hooks):
-            hook.forward_preprocess(self, in_data)
-
-        # Forward prop
-        with cuda.get_device_from_array(*in_data):
-            self._input_indexes_to_retain = None
-            self._output_indexes_to_retain = None
-            outputs = self.forward(in_data)
-            assert type(outputs) == tuple
-        for hook in six.itervalues(hooks):
-            hook.forward_postprocess(self, in_data)
-
-        if chainer.is_debug():
-            if any(out.dtype.kind == 'f' and
-                   cuda.get_array_module(out).isnan(out).any()
-                   for out in outputs):
-                msg = 'NaN is detected on forward computation'
-                raise RuntimeError(msg)
-
-        ret = tuple([variable.Variable(y, requires_grad=requires_grad)
-                     for y in outputs])
-
-        if configuration.config.enable_backprop:
-            # Topological ordering
-            self.rank = max([x.rank for x in inputs]) if inputs else 0
-            # Backward edges
-            for y in ret:
-                y.set_creator(self)
-            self.inputs = tuple([x.node for x in inputs])
-            # Forward edges (must be weak references)
-            self.outputs = tuple([weakref.ref(y.node) for y in ret])
-
-            input_indexes_to_retain = self._input_indexes_to_retain
-            if input_indexes_to_retain is None:
-                # input arrays are retained by default
-                input_indexes_to_retain = six.moves.range(len(inputs))
-            for index in input_indexes_to_retain:
-                inputs[index].retain_data()
-            del self._input_indexes_to_retain
-
-            output_indexes_to_retain = self._output_indexes_to_retain
-            if output_indexes_to_retain is not None:
-                for index in output_indexes_to_retain:
-                    ret[index].retain_data()
-            del self._output_indexes_to_retain
+        ret = node.apply(inputs)
 
         if len(ret) == 1:
             return ret[0]
         else:
-            return ret
+            return tuple(ret)
+
+    @property
+    def inputs(self):
+        """The input nodes of the function."""
+        return self.node.inputs
+
+    @property
+    def outputs(self):
+        """Weak references to the output nodes of the function."""
+        return self.node.outputs
+
+    @property
+    def node(self):
+        """The :class:`FunctionAdapter` object that wraps this Function.
+
+        If the Function does not have a node object, this property
+        automatically creates a new one.
+
+        """
+        noderef = self._node
+        nd = (noderef and noderef()) or self._owned_node
+        if nd is not None:
+            return nd
+
+        nd = FunctionAdapter(self)
+        self._owned_node = nd
+        return nd
 
     @property
     def local_function_hooks(self):
         """Ordered Dictionary of registered function hooks.
 
-        Contrary to ``chainer.thread_local.function_hooks``,
-        which registers its elements to all functions,
-        Function hooks in this property is specific to this function.
-        """
-        if not hasattr(self, '_local_function_hooks'):
-            self._local_function_hooks = collections.OrderedDict()
-        return self._local_function_hooks
+        See :attr:`FunctionNode.local_function_hooks` for the detail.
 
-    @property
-    def _n_local_function_hooks(self):
-        if hasattr(self, '_local_function_hooks'):
-            return len(self._local_function_hooks)
-        return 0
+        """
+        return self.node.local_function_hooks
 
     @property
     def label(self):
@@ -265,29 +257,28 @@ class Function(object):
 
         The default implementation returns its type name.
         Each function should override it to give more information.
+
         """
         return self.__class__.__name__
 
     @property
+    def output_data(self):
+        """A tuple of the retained output arrays.
+
+        It has the same length as the :attr:`outputs`. Elements that are not
+        retained are set to ``None``.
+
+        """
+        return self.node.output_data
+
+    @property
+    def rank(self):
+        """The topological ordinal of the corresponding function node."""
+        return self.node.rank
+
+    @property
     def stack(self):
-        if hasattr(self, '_stack'):
-            return self._stack
-        else:
-            return None
-
-    def _check_data_type_forward(self, in_data):
-        in_type = type_check.get_light_types(in_data)
-        try:
-            with type_check.light_mode:
-                self.check_type_forward(in_type)
-            return
-        except type_check.InvalidType:
-            # Ignore errors on first run
-            pass
-
-        in_type = type_check.get_types(in_data, 'in_types', False)
-        with type_check.get_function_check_context(self):
-            self.check_type_forward(in_type)
+        return self.node.stack
 
     def check_type_forward(self, in_types):
         """Checks types of input data before forward propagation.
@@ -437,17 +428,15 @@ class Function(object):
     def unchain(self):
         """Purges in/out nodes and this function itself from the graph.
 
-        This method is called from :meth:`Variable.unchain_backward` method.
+        See :meth:`FunctionNode.unchain` for the detail.
 
         """
-        for y in self.outputs:
-            y_ref = y()
-            if y_ref is not None:
-                y_ref.unchain()
-        self.inputs = None
+        self.node.unchain()
 
     def add_hook(self, hook, name=None):
-        """Registers the function hook.
+        """Registers a function hook.
+
+        See :meth:`FunctionNode.add_hook` for the detail.
 
         Args:
             hook(~chainer.function.FunctionHook):
@@ -456,23 +445,19 @@ class Function(object):
                 name must be unique among function hooks
                 registered to the function. If ``None``,
                 default name of the function hook is used.
+
         """
-        if not isinstance(hook, FunctionHook):
-            raise TypeError('Hook must be a FunctionHook')
-        if name is None:
-            name = hook.name
-        if name in self.local_function_hooks:
-            raise KeyError('Hook %s already exists' % name)
-        self.local_function_hooks[name] = hook
+        self.node.add_hook(hook, name)
 
     def delete_hook(self, name):
-        """Unregisters the function hook.
+        """Unregisters the specified function hook.
 
         Args:
             name(str): the name of the function hook
                 to be unregistered.
+
         """
-        del self.local_function_hooks[name]
+        self.node.delete_hook(name)
 
     def retain_inputs(self, indexes):
         """Lets specified input variable nodes keep data arrays.
@@ -482,7 +467,8 @@ class Function(object):
 
         If this method is not called, the function keeps all input arrays. If
         you want to release all input arrays, call this method by passing an
-        empty sequence.
+        empty sequence. *Note that this behavior is different from that of*
+        :meth:`FunctionNode.retain_inputs`.
 
         Note that **this method must not be called from the outside of
         forward method.**
@@ -492,7 +478,7 @@ class Function(object):
                 function does not require for backprop.
 
         """
-        self._input_indexes_to_retain = indexes
+        self.node.retain_inputs(indexes)
 
     def retain_outputs(self, indexes, retain_after_backward=False):
         """Lets specified output variable nodes keep data arrays.
@@ -517,161 +503,11 @@ class Function(object):
             indexes (iterable of int): Indexes of input variables that the
                 function does not require for backprop.
 
-            retain_after_backward (bool): If ``True``, a reference to the
-                outputs will remain after the backprop of the function is over.
-                If ``False``, the reference will be deleted.
+            retain_after_backward (bool): This option has no effect. It is
+                left only for the backward compatibility.
 
         """
-        self._output_indexes_to_retain = indexes
         if retain_after_backward:
-            self._retain_after_backward = retain_after_backward
-
-
-class FunctionHook(object):
-    """Base class of hooks for Functions.
-
-    :class:`~chainer.function.FunctionHook` is an callback object
-    that is registered to :class:`~chainer.Function`.
-    Registered function hooks are invoked before and after
-    forward and backward operations of each function.
-
-    Function hooks that derive :class:`FunctionHook` are required
-    to implement four methods:
-    :meth:`~chainer.function.FunctionHook.forward_preprocess`,
-    :meth:`~chainer.function.FunctionHook.forward_postprocess`,
-    :meth:`~chainer.function.FunctionHook.backward_preprocess`, and
-    :meth:`~chainer.function.FunctionHook.backward_postprocess`.
-    By default, these methods do nothing.
-
-    Specifically, when :meth:`~chainer.Function.__call__`
-    method of some function is invoked,
-    :meth:`~chainer.function.FunctionHook.forward_preprocess`
-    (resp. :meth:`~chainer.function.FunctionHook.forward_postprocess`)
-    of all function hooks registered to this function are called before
-    (resp. after) forward propagation.
-
-    Likewise, when :meth:`~chainer.Variable.backward` of some
-    :class:`~chainer.Variable` is invoked,
-    :meth:`~chainer.function.FunctionHook.backward_preprocess`
-    (resp. :meth:`~chainer.function.FunctionHook.backward_postprocess`)
-    of all function hooks registered to the function which holds this variable
-    as a gradient are called before (resp. after) backward propagation.
-
-    There are two ways to register :class:`~chainer.function.FunctionHook`
-    objects to :class:`~chainer.Function` objects.
-
-    First one is to use ``with`` statement. Function hooks hooked
-    in this way are registered to all functions within ``with`` statement
-    and are unregistered at the end of ``with`` statement.
-
-    .. admonition:: Example
-
-        The following code is a simple example in which
-        we measure the elapsed time of a part of forward propagation procedure
-        with :class:`~chainer.function_hooks.TimerHook`, which is a subclass of
-        :class:`~chainer.function.FunctionHook`.
-
-        >>> from chainer import function_hooks
-        >>> class Model(chainer.Chain):
-        ...     def __call__(self, x1):
-        ...         return F.exp(self.l(x1))
-        >>> model1 = Model(l=L.Linear(10, 10))
-        >>> model2 = Model(l=L.Linear(10, 10))
-        >>> x = chainer.Variable(np.zeros((1, 10), 'f'))
-        >>> with chainer.function_hooks.TimerHook() as m:
-        ...     _ = model1(x)
-        ...     y = model2(x)
-        ...     print("Total time : " + str(m.total_time()))
-        ...     model3 = Model(l=L.Linear(10, 10))
-        ...     z = model3(y) # doctest:+ELLIPSIS
-        Total time : ...
-
-        In this example, we measure the elapsed times for each forward
-        propagation of all functions in ``model1`` and ``model2``
-        (specifically, :class:`~chainer.functions.LinearFunction` and
-        :class:`~chainer.functions.Exp` of ``model1`` and ``model2``).
-        Note that ``model3`` is not a target of measurement
-        as :class:`~chainer.function_hooks.TimerHook` is unregistered
-        before forward propagation of ``model3``.
-
-    .. note::
-
-       Chainer stores the dictionary of registered function hooks
-       as a thread local object. So, function hooks registered
-       are different depending on threads.
-
-    The other one is to register directly to
-    :class:`~chainer.Function` object with
-    :meth:`~chainer.Function.add_hook` method.
-    Function hooks registered in this way can be removed by
-    :meth:`~chainer.Function.delete_hook` method.
-    Contrary to former registration method, function hooks are registered
-    only to the function which :meth:`~chainer.Function.add_hook`
-    is called.
-
-    Args:
-        name(str): Name of this function hook.
-    """
-
-    name = 'FunctionHook'
-
-    def __enter__(self):
-        function_hooks = chainer.get_function_hooks()
-        if self.name in function_hooks:
-            raise KeyError('hook %s already exists' % self.name)
-
-        function_hooks[self.name] = self
-        return self
-
-    def __exit__(self, *_):
-        del chainer.get_function_hooks()[self.name]
-
-    # forward
-    def forward_preprocess(self, function, in_data):
-        """Callback function invoked before forward propagation.
-
-        Args:
-            function(~chainer.Function): Function object to which
-                the function hook is registered.
-            in_data(tuple of numpy.ndarray or tuple of cupy.ndarray):
-                Input data of forward propagation.
-        """
-        pass
-
-    def forward_postprocess(self, function, in_data):
-        """Callback function invoked after forward propagation.
-
-        Args:
-            function(~chainer.Function): Function object to which
-                the function hook is registered.
-            in_data(tuple of numpy.ndarray or tuple of cupy.ndarray):
-                Input data of forward propagation.
-        """
-        pass
-
-    # backward
-    def backward_preprocess(self, function, in_data, out_grad):
-        """Callback function invoked before backward propagation.
-
-        Args:
-            function(~chainer.Function): Function object to which
-                the function hook is registered.
-            in_data(tuple of numpy.ndarray or tuple of cupy.ndarray):
-                Input data of forward propagation.
-            out_grad(tuple of numpy.ndarray or tuple of cupy.ndarray):
-                Gradient data of backward propagation.
-        """
-        pass
-
-    def backward_postprocess(self, function, in_data, out_grad):
-        """Callback function invoked after backward propagation.
-
-        Args:
-            function(~chainer.Function): Function object to which
-                the function hook is registered.
-            in_data(tuple of numpy.ndarray or tuple of cupy.ndarray):
-                Input of forward propagation.
-            out_grad(tuple of numpy.ndarray or tuple of cupy.ndarray):
-                Gradient data of backward propagation.
-        """
-        pass
+            warnings.warn('retain_after_backward option has no effect',
+                          DeprecationWarning)
+        self.node.retain_outputs(indexes)
