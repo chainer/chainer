@@ -11,9 +11,7 @@ class Updater(object):
     """Interface of updater objects for trainers.
 
     :class:`~chainer.training.Updater` implements a training iteration
-    as :meth:`update`.
-
-    Typically, the updating iteration proceeds as follows.
+    as :meth:`update`.Typically, the updating iteration proceeds as follows.
 
     - Fetch a minibatch from :mod:`~chainer.dataset`
         via :class:`~chainer.dataset.Iterator`.
@@ -22,7 +20,6 @@ class Updater(object):
 
     The first line is processed by :meth:`chainer.dataset.Iterator.__next__`.
     The second and third are processed by :meth:`~chainer.Optimizer.update`.
-
     Users can also implement original :meth:`update` by overiding it.
 
     """
