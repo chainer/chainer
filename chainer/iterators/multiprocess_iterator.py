@@ -2,7 +2,6 @@ from __future__ import division
 from collections import namedtuple
 import multiprocessing
 from multiprocessing import sharedctypes
-from six.moves import queue
 import threading
 import warnings
 
@@ -173,64 +172,56 @@ class _Communicator(object):
         self.n_prefetch = n_prefetch
 
         self._lock = threading.Lock()
+        self._not_empty_cond = threading.Condition(self._lock)
         self._not_full_cond = threading.Condition(self._lock)
-        self._batch_queue = queue.Queue()
-        self._n_reserved = 0
+        self._batch_queue = []
         self._status = _Communicator.STATUS_CONTINUE
+        self._reset_count = 0
 
-    # called from thread
+    # called from iterator
     def get(self):
-        batch, prefetch_state = self._batch_queue.get()
         with self._lock:
-            self._n_reserved -= 1
+            if len(self._batch_queue) == 0:
+                self._not_empty_cond.wait()
+            batch, prefetch_state = self._batch_queue.pop(0)
             self._not_full_cond.notify()
-        return batch, prefetch_state
+            return batch, prefetch_state
 
     # called from iterator
     def reset(self, prefetch_state):
         with self._lock:
             self._status = _Communicator.STATUS_RESET
             self._prefetch_state = prefetch_state
-            # ensure prefetcher won't stuck, and
-            # remove all caches no more used
-            n_reserved = self._n_reserved
-            self._n_reserved = 0
+            self._batch_queue.clear()
             self._not_full_cond.notify()
-        for _ in six.moves.range(n_reserved):
-            self._batch_queue.get()
+            self._reset_count += 1
 
     # called from iterator
     def terminate(self):
         with self._lock:
             self._status = _Communicator.STATUS_TERMINATE
-            # ensure prefetcher won't stuck, and
-            # clean up queue
-            n_reserved = self._n_reserved
-            self._n_reserved = 0
+            self._batch_queue.clear()
             self._not_full_cond.notify()
-        for _ in six.moves.range(n_reserved):
-            self._batch_queue.get()
+            self._reset_count += 1
 
     # called from thread
-    def reserve(self):
+    def check(self):
         with self._lock:
-            if self._n_reserved == self.n_prefetch:
-                self._not_full_cond.wait()
-
             status = self._status
             self._status = _Communicator.STATUS_CONTINUE
-
-            if status != _Communicator.STATUS_TERMINATE:
-                self._n_reserved += 1
             prefetch_state = None
             if status == _Communicator.STATUS_RESET:
                 prefetch_state = self._prefetch_state
-
-        return status, prefetch_state
+            return status, prefetch_state, self._reset_count
 
     # called from thread
-    def put(self, batch, prefetch_state):
-        self._batch_queue.put((batch, prefetch_state))
+    def put(self, batch, prefetch_state, reset_count):
+        with self._lock:
+            if len(self._batch_queue) == self.n_prefetch:
+                self._not_full_cond.wait()
+            if reset_count == self._reset_count:
+                self._batch_queue.append((batch, prefetch_state))
+                self._not_empty_cond.notify()
 
 
 class _PrefetchLoop(object):
@@ -257,7 +248,7 @@ class _PrefetchLoop(object):
                 mem_size = self.mem_size
                 while self.mem_size == mem_size:
 
-                    status, prefetch_state = self.comm.reserve()
+                    status, prefetch_state, reset_count = self.comm.check()
                     if status == _Communicator.STATUS_RESET:
                         self.prefetch_state = prefetch_state
                     elif status == _Communicator.STATUS_TERMINATE:
@@ -271,7 +262,7 @@ class _PrefetchLoop(object):
                             _fetch_run, enumerate(indices), chunk_size)
                         batch, mem_size = self._extract_result(data_it)
 
-                    self.comm.put(batch, self.prefetch_state)
+                    self.comm.put(batch, self.prefetch_state, reset_count)
             finally:
                 pool.close()
                 pool.join()
