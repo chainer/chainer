@@ -14,7 +14,7 @@ class Updater(object):
     as :meth:`update`. Typically, the updating iteration proceeds as follows.
 
     - Fetch a minibatch from :mod:`~chainer.dataset`
-    via :class:`~chainer.dataset.Iterator`.
+      via :class:`~chainer.dataset.Iterator`.
     - Run forward and backward process of :class:`~chainer.Chain`.
     - Update parameters according to their :class:`~chainer.UpdateRule`.
 
