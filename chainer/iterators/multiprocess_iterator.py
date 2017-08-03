@@ -234,42 +234,52 @@ class _PrefetchLoop(object):
         self.shuffle = shuffle
         self.n_processes = n_processes
         self.mem_size = mem_size
+        self._allocate_shared_memory()
         self.comm = comm
 
     def __call__(self):
         chunk_size = max(self.batch_size // self.n_processes // 2, 1)
-        while True:
-            self._allocate_shared_memory()
-            pool = multiprocessing.Pool(
-                processes=self.n_processes,
-                initializer=_fetch_setup,
-                initargs=(self.dataset, self.mem_size, self.mem_bulk))
-            try:
-                mem_size = self.mem_size
-                while self.mem_size == mem_size:
 
-                    status, prefetch_state, reset_count = self.comm.check()
-                    if status == _Communicator.STATUS_RESET:
-                        self.prefetch_state = prefetch_state
-                    elif status == _Communicator.STATUS_TERMINATE:
-                        return
+        def task(pool):
+            status, prefetch_state, reset_count = self.comm.check()
+            if status == _Communicator.STATUS_RESET:
+                self.prefetch_state = prefetch_state
+            elif status == _Communicator.STATUS_TERMINATE:
+                return False  # stop loop
 
-                    indices = self._proceed()
-                    if indices is None:  # stop iteration
-                        batch = None
-                    else:
-                        data_it = pool.imap(
-                            _fetch_run, enumerate(indices), chunk_size)
-                        batch, mem_size = self._extract_result(data_it)
+            indices = self._proceed()
+            if indices is None:  # stop iteration
+                batch = None
+            elif pool is None:  # measure mode
+                batch = list(self.dataset[idx] for idx in indices)
+                self.mem_size = max(map(_measure, batch))
+                self._allocate_shared_memory()
+            else:
+                data_it = pool.imap(
+                    _fetch_run, enumerate(indices), chunk_size)
+                batch = list(_unpack(data, self.mem_bulk) for data in data_it)
 
-                    self.comm.put(batch, self.prefetch_state, reset_count)
-            finally:
-                pool.close()
-                pool.join()
-            self.mem_size = mem_size
+            self.comm.put(batch, self.prefetch_state, reset_count)
+            return True
+
+        if self.mem_bulk == None:
+            if not task(None):
+                return
+
+        pool = multiprocessing.Pool(
+            processes=self.n_processes,
+            initializer=_fetch_setup,
+            initargs=(self.dataset, self.mem_size, self.mem_bulk))
+        alive = True
+        try:
+            while alive:
+                alive = task(pool)
+        finally:
+            pool.close()
+            pool.join()
 
     def _allocate_shared_memory(self):
-        if self.mem_size:
+        if self.mem_size is not None:
             self.mem_bulk = \
                 sharedctypes.RawArray('b', self.batch_size * self.mem_size)
         else:
@@ -313,21 +323,6 @@ class _PrefetchLoop(object):
             new_pos, epoch, is_new_epoch,
             previous_epoch_detail, order)
         return indices
-
-    def _extract_result(self, data_it):
-        measure_mode = self.mem_bulk is None
-
-        batch = []
-        max_size = 0
-        for i, data in enumerate(data_it):
-            if measure_mode:
-                max_size = max(max_size, _measure(data))
-                batch.append(data)
-            else:
-                batch.append(_unpack(data, self.mem_bulk))
-
-        mem_size = max_size if measure_mode else self.mem_size
-        return batch, mem_size
 
 
 # Using `parametarized` funciton (e.g. bound method) with Pool is tricky due to
