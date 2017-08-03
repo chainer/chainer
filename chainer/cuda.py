@@ -74,7 +74,7 @@ def check_cuda_available():
     """
     if not available:
         msg = ('CUDA environment is not correctly set up\n'
-               '(see https://github.com/pfnet/chainer#installation).')
+               '(see https://github.com/chainer/chainer#installation).')
         msg += str(_resolution_error)
         raise RuntimeError(msg)
     if (not cudnn_enabled and
@@ -83,7 +83,7 @@ def check_cuda_available():
         warnings.warn(
             'cuDNN is not enabled.\n'
             'Please reinstall chainer after you install cudnn\n'
-            '(see https://github.com/pfnet/chainer#installation).')
+            '(see https://github.com/chainer/chainer#installation).')
         check_cuda_available._already_warned = True
 
 

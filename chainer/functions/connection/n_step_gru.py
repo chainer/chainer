@@ -21,7 +21,6 @@ from chainer.utils import argument
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
     libcudnn = cuda.cudnn.cudnn
-    _cudnn_version = libcudnn.getVersion()
 
 
 class NStepGRU(n_step_rnn.BaseNStepRNN):
