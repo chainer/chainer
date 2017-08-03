@@ -64,7 +64,7 @@ class PlotReport(extension.Extension):
                                       'epoch', file_name='loss.png'))
             trainer.run()
 
-        Then, once ``trainer.run`` is called,
+        Then, once one of instances of this extension is called,
         ``matplotlib.use`` will have no effect.
 
     For the details, please see here:

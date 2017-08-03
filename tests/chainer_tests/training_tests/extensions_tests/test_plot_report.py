@@ -23,8 +23,11 @@ class TestPlotReport(unittest.TestCase):
         else:
             self.assertEqual(len(w), 1)
 
-    # In Python 2 the above test does not raise UserWarning,
-    # so we use plot_report._available instead of PlotReport.available()
+    # In the following we explicitly use plot_report._available instead of
+    # PlotReport.available() because in some cases `test_available()` fails
+    # because it sometimes does not raise UserWarning despite
+    # matplotlib is not installed (this is due to the difference between
+    # the behavior of unittest in python2 and that in python3).
     @unittest.skipUnless(
         extensions.plot_report._available, 'matplotlib is not installed')
     def test_lazy_import(self):
