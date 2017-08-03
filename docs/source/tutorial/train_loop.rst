@@ -12,19 +12,20 @@ The complete training procedure consists of the following steps:
 1. Prepare a dataset.
 2. Create an iterator for the dataset.
 3. Write a training loop that performs the following operations in each iteration:
-    1. Retrieve a set of examples (mini-batch) from the training dataset.
-    2. Feed the mini-batch to your network.
-    3. Run a forward pass of the network and compute the loss.
-    4. Just call the :meth:`~chainer.Variable.backward` method from the loss :class:`~chainer.Variable` to compute the gradients for all trainable parameters.
-    5. Run the optimizer to update those parameters.
-    6. (Optional): Check the network performance on the validation/test set.
+
+    a. Retrieve a set of examples (mini-batch) from the training dataset.
+    b. Feed the mini-batch to your network.
+    c. Run a forward pass of the network and compute the loss.
+    d. Just call the :meth:`~chainer.Variable.backward` method from the loss :class:`~chainer.Variable` to compute the gradients for all trainable parameters.
+    e. Run the optimizer to update those parameters.
+    f. (Optional): Check the network performance on the validation/test set.
 
 1. Prepare the dataset
 ''''''''''''''''''''''
 
 Chainer contains some built-in functions to use some popular datasets like MNIST, CIFAR10/100, etc. Those can automatically download the data from servers and provide dataset objects which are easy to use.
 
-The below code shows how to retrieve the MNIST dataset from the server and save an image from its training split to make sure the images are correctly obtained.
+The code below shows how to retrieve the MNIST dataset from the server and save an image from its training split to make sure the images are correctly obtained.
 
 .. testcode::
 
@@ -58,10 +59,10 @@ Although this is an optional step, we'd like to introduce the :class:`~chainer.d
 
 Here, we use :class:`~chainer.iterators.SerialIterator`, which is also a subclass of :class:`~chainer.dataset.Iterator` in the below example code. The :class:`~chainer.iterators.SerialIterator` can provide mini-batches with or without shuffling the order of data in the given dataset.
 
-All :class:`~chainer.dataset.Iterator` s produce a new mini-batch by calling its :meth:`~chainer.dataset.Iterator.next` method. All
-:class:`~chainer.dataset.Iterator` s also have properties to know how many times we have taken all the data from the given dataset (:attr:`~chainer.dataset.Iterator.epoch`) and whether the next mini-batch will be the start of a new epoch (:attr:`~chainer.dataset.Iterator.is_new_epoch`), and so on.
+All :class:`~chainer.dataset.Iterator`\s produce a new mini-batch by calling its :meth:`~chainer.dataset.Iterator.next` method. All
+:class:`~chainer.dataset.Iterator`\s also have properties to know how many times we have taken all the data from the given dataset (:attr:`~chainer.dataset.Iterator.epoch`) and whether the next mini-batch will be the start of a new epoch (:attr:`~chainer.dataset.Iterator.is_new_epoch`), and so on.
 
-The below code shows how to create a :class:`~chainer.iterators.SerialIterator` object from a dataset object.
+The code below shows how to create a :class:`~chainer.iterators.SerialIterator` object from a dataset object.
 
 .. testcode::
 
@@ -76,7 +77,7 @@ The below code shows how to create a :class:`~chainer.iterators.SerialIterator` 
 
 .. note::
 
-    :class:`~chainer.dataset.iterator` s can take a built-in Python list as a given dataset. It means that the below code example is able to work,
+    :class:`~chainer.dataset.iterator`\s can take a built-in Python list as a given dataset. It means that the code below example is able to work,
 
     .. code-block:: python
 
@@ -89,11 +90,11 @@ Details of SerialIterator
 ............................
 
 - :class:`~chainer.iterators.SerialIterator` is a built-in subclass of :class:`~chainer.dataset.Iterator` that can retrieve a mini-batch from a given dataset in either sequential or shuffled order.
-- The :class:`~chainer.dataset.Iterator` 's constructor takes two arguments: a dataset object and a mini-batch size.
+- The :class:`~chainer.dataset.Iterator`\'s constructor takes two arguments: a dataset object and a mini-batch size.
 - If you want to use the same dataset repeatedly during the training process, set the ``repeat`` argument to ``True`` (default). Otherwise, the dataset will be used only one time. The latter case is actually for the evaluation.
 - If you want to shuffle the training dataset every epoch, set the ``shuffle`` argument to ``True``. Otherwise, the order of each data retrieved from the dataset will be always the same at each epoch.
 
-In the example code shown above, we set ``batchsize = 128`` create both ``train_iter`` and ``test_iter``. So, these iterators will provide 128 images and corresponding labels at a time.
+In the example code shown above, we set ``batchsize = 128`` in both ``train_iter`` and ``test_iter``. So, these iterators will provide 128 images and corresponding labels at a time.
 
 3. Define a network
 '''''''''''''''''''
@@ -126,18 +127,18 @@ The main steps are twofold:
                 h = F.relu(self.l2(h))
                 return self.l3(h)
 
-It should be noted that only :class:`~chainer.Link`, :class:`~chainer.Chain`, and :class:`~chainer.ChainList` objects can be registered to the model by assigning it as a property inside the :meth:`~chainer.Chain.init_scope`. This is because they can contain trainable parameters. For example, a :class:`~chainer.Function` does not contain any trainable parameters, so there is no need to keep the object as a property of your network. When you want to use :meth:`~chainer.functions.relu` in your network, using it as a function in :meth:`~chainer.Chain.__call__` works correctly.
+:class:`~chainer.Link`, :class:`~chainer.Chain`, :class:`~chainer.ChainList`, and those subclass objects which contain trainable parameters should be registered to the model by assigning it as a property inside the :meth:`~chainer.Chain.init_scope`. For example, a :class:`~chainer.Function` does not contain any trainable parameters, so there is no need to keep the object as a property of your network. When you want to use :meth:`~chainer.functions.relu` in your network, using it as a function in :meth:`~chainer.Chain.__call__` works correctly.
 
-In Chainer, the Python code that implements the forward computation code itself represents the network. In other words, we can conceptually think of the computation graph for our network being constructed dynamically as this forward computation code executes. This allows Chainer to describe networks in which different computations can be performed in each iteration, such as branched networks, intuitively and with a high degree of flexibility. This is the key feature of Chainer that we call **Define-by-Run**.
+In Chainer, the Python code that implements the forward computation itself represents the network. In other words, we can conceptually think of the computation graph for our network being constructed dynamically as this forward computation code executes. This allows Chainer to describe networks in which different computations can be performed in each iteration, such as branched networks, intuitively and with a high degree of flexibility. This is the key feature of Chainer that we call **Define-by-Run**.
 
 4. Select an optimization algorithm
 '''''''''''''''''''''''''''''''''''
 
-Chainer provides a wide variety of optimization algorithms that can be used to optimize the network parameters during training. They are located in the :mod:`~chainear.optimizers` module.
+Chainer provides a wide variety of optimization algorithms that can be used to optimize the network parameters during training. They are located in :mod:`~chainear.optimizers` module.
 
 Here, we are going to use the stochastic gradient descent (SGD) method with momentum, which is implemented by :class:`~chainer.optimizers.MomentumSGD`. To use the optimizer, we give the network object (typically it's a :class:`~chainer.Chain` or :class:`~chainer.ChainList`) to the :meth:`~chainer.Optimizer.setup` method of the optimizer object to register it. In this way, the :class:`~chainer.Optimizer` can automatically find the model parameters and update them during training.
 
-You can easily try out other optimizers as well. Please test and observe the results of various optimizers. For example, you could try to change :class:`chainer.optimizers.MomentumSGD` to :class:`~chainer.optimizers.Adam`,
+You can easily try out other optimizers as well. Please test and observe the results of various optimizers. For example, you could try to change :class:`~chainer.optimizers.MomentumSGD` to :class:`~chainer.optimizers.Adam`,
 :class:`~chainer.optimizers.RMSprop`, etc.
 
 .. testcode::
@@ -152,10 +153,9 @@ You can easily try out other optimizers as well. Please test and observe the res
     optimizer.setup(model)
 
 
-NOTE
-....
+.. note::
 
-In the above example, we set :attr:`~chainer.optimizers.MomentumSGD.lr` to 0.01 in the constructor. This value is known as a the "learning rate", one of the most important hyper parameters that need to be adjusted in order to obtain the best performance. The various optimizers may each have different hyper-parameters and so be sure to check the documentation for the details.
+    In the above example, we set :attr:`~chainer.optimizers.MomentumSGD.lr` to 0.01 in the constructor. This value is known as the "learning rate", one of the most important hyperparameters that need to be adjusted in order to obtain the best performance. The various optimizers may each have different hyperparameters and so be sure to check the documentation for the details.
 
 5. Write the training loop
 ''''''''''''''''''''''''''
@@ -169,7 +169,7 @@ Our training loop will be structured as follows.
 2. We will then feed the batch into our network by calling it (a :class:`~chainer.Chain` object) like a function. This will execute the forward-pass code that are written in the :meth:`~chainer.Chain.__call__` method.
 3. This will return the network output that represents class label predictions. We supply it to the loss function along with the true (that is, target) values. The loss function will output the loss as a :class:`~chainer.Variable` object.
 4. We then clear any previous gradients in the network and perform the backward pass by calling the :meth:`~chainer.Variable.backward` method on the loss variable which computes the parameter gradients. We need to clear the gradients first because the :meth:`~chainer.Variable.backward` method accumulates gradients instead of overwriting the previous values.
-5. Since the optimizer already has a reference to the network, it can access to the parameters and the computed gradients so that we can now call the :meth:`~chainer.Optimizer.update` method of the optimizer which will update the model parameters.
+5. Since the optimizer already has a reference to the network, it has access to the parameters and the computed gradients so that we can now call the :meth:`~chainer.Optimizer.update` method of the optimizer which will update the model parameters.
 
 In addition to the above steps, you might want to check the performance of the network with a validation dataset. This allows you to observe how well it is generalized to new data so far, namely, you can check whether it is overfitting to the training data. The code below checks the performance on the test set at the end of each epoch. The code has the same structure as the training code except that no backpropagation is performed and we also compute the accuracy on the test data using the :meth:`~chainer.functions.accuracy` function.
 
@@ -270,8 +270,8 @@ format to save our model since it is easy to use with NumPy and doesn't need to 
 Let's use the saved model to classify a new image. In order to load the trained model parameters, we need to perform the
 following two steps:
 
-1. Instantiate the same network as what you trained and obtained the saved weights from.
-2. Overwrite all parameters in the model instance with the saved using the :meth:`~chainer.serializers.load_npz` function.
+1. Instantiate the same network as what you trained
+2. Overwrite all parameters in the model instance with the saved weights using the :meth:`~chainer.serializers.load_npz` function.
 
 Once the model is restored, it can be used to predict image labels on new input data.
 
@@ -315,7 +315,7 @@ The saved test image looks like:
     # The result is given as Variable, then we can take a look at the contents by the attribute, .data.
     y = y.data
 
-    # The most probable number by looking at the argmax
+    # Look up the most probable digit number using argmax
     pred_label = y.argmax(axis=1)
 
     print('predicted label:', pred_label[0])
@@ -323,6 +323,6 @@ The saved test image looks like:
 .. testoutput::
 
     (784,) -> (1, 784)
-    predicted label: 2
+    predicted label: 7
 
 The prediction result looks correct. Yay!
