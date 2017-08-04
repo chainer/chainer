@@ -192,7 +192,7 @@ class _Communicator(object):
         with self._lock:
             self._status = _Communicator.STATUS_RESET
             self._prefetch_state = prefetch_state
-            self._batch_queue.clear()
+            self._batch_queue = []
             self._not_full_cond.notify()
             self._reset_count += 1
 
@@ -200,7 +200,7 @@ class _Communicator(object):
     def terminate(self):
         with self._lock:
             self._status = _Communicator.STATUS_TERMINATE
-            self._batch_queue.clear()
+            self._batch_queue = []
             self._not_full_cond.notify()
             self._reset_count += 1
 
