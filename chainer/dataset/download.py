@@ -74,6 +74,10 @@ def cached_download(url):
     for the given URL, it just returns the path to the cache without
     downloading the same file.
 
+    .. note::
+        This function raises :class:`OSError` when it fails to create
+        the cache directory. In older version, it raised :class:`RuntimeError`.
+
     Args:
         url (str): URL to download from.
 
