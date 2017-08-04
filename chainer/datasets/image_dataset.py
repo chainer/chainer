@@ -44,6 +44,13 @@ class ImageDataset(dataset_mixin.DatasetMixin):
        formats you want to use (e.g. libpng for PNG images, and libjpeg for JPG
        images).
 
+    .. note::
+       **You are responsible for preprocessing the images before feeding them to
+       a model.** For example, if your dataset contains both RGB and grayscale
+       images, make sure that you convert them to the same format. Otherwise you
+       will get errors because the input dimensions are different for RGB and
+       grayscale images.
+
     Args:
         paths (str or list of strs): If it is a string, it is a path to a text
             file that contains paths to images in distinct lines. If it is a
@@ -94,6 +101,13 @@ class LabeledImageDataset(dataset_mixin.DatasetMixin):
        install Pillow``). Be careful to prepare appropriate libraries for image
        formats you want to use (e.g. libpng for PNG images, and libjpeg for JPG
        images).
+
+    .. note::
+       **You are responsible for preprocessing the images before feeding them to
+       a model.** For example, if your dataset contains both RGB and grayscale
+       images, make sure that you convert them to the same format. Otherwise you
+       will get errors because the input dimensions are different for RGB and
+       grayscale images.
 
     Args:
         pairs (str or list of tuples): If it is a string, it is a path to a
