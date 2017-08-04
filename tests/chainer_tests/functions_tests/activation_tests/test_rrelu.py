@@ -25,8 +25,11 @@ class TestRReLU(unittest.TestCase):
             if -0.05 < self.x[i] < 0.05:
                 self.x[i] = 0.5
         self.gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        self.l = random.random()
-        self.u = random.random()
+        # Asummption l < u
+        self.l = numpy.random.uniform(0, 1)
+        self.u = numpy.random.uniform(0, 1)
+        if l >= u:
+            l, u = u, l
         self.check_forward_options = {}
         self.check_backward_options = {'dtype': numpy.float64}
         if self.dtype == numpy.float16:
@@ -42,7 +45,7 @@ class TestRReLU(unittest.TestCase):
         expected = self.x.copy()
         for i in numpy.ndindex(self.x.shape):
             if self.x[i] < 0:
-                expected[i] *= (self.l + self.u) / 2
+                expected[i] *= y.creator.r
 
         testing.assert_allclose(
             expected, y.data, **self.check_forward_options)
