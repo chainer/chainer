@@ -1,4 +1,3 @@
-import random
 import unittest
 
 import numpy
@@ -45,7 +44,7 @@ class TestRReLU(unittest.TestCase):
         expected = self.x.copy()
         for i in numpy.ndindex(self.x.shape):
             if self.x[i] < 0:
-                expected[i] *= y.creator.r
+                expected[i] *= y.creator.r[i]
 
         testing.assert_allclose(
             expected, y.data, **self.check_forward_options)
@@ -61,7 +60,7 @@ class TestRReLU(unittest.TestCase):
 
     def check_backward(self, x_data, y_grad):
         gradient_check.check_backward(
-            functions.RReLU(self.l, self.u, False), x_data, y_grad,
+            functions.RReLU(self.l, self.u), x_data, y_grad,
             **self.check_backward_options)
 
     @condition.retry(10)
