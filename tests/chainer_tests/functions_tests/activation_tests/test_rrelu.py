@@ -28,8 +28,8 @@ class TestRReLU(unittest.TestCase):
         # Asummption l < u
         self.l = numpy.random.uniform(0, 1)
         self.u = numpy.random.uniform(0, 1)
-        if l >= u:
-            l, u = u, l
+        if self.l >= self.u:
+            self.l, self.u = self.u, self.l
         self.check_forward_options = {}
         self.check_backward_options = {'dtype': numpy.float64}
         if self.dtype == numpy.float16:
