@@ -44,7 +44,7 @@ class ImageDataset(dataset_mixin.DatasetMixin):
        formats you want to use (e.g. libpng for PNG images, and libjpeg for JPG
        images).
 
-    .. note::
+    .. warning::
        **You are responsible for preprocessing the images before feeding them
        to a model.** For example, if your dataset contains both RGB and
        grayscale images, make sure that you convert them to the same format.
@@ -102,7 +102,7 @@ class LabeledImageDataset(dataset_mixin.DatasetMixin):
        formats you want to use (e.g. libpng for PNG images, and libjpeg for JPG
        images).
 
-    .. note::
+    .. warning::
        **You are responsible for preprocessing the images before feeding them
        to a model.** For example, if your dataset contains both RGB and
        grayscale images, make sure that you convert them to the same format.
