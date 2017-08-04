@@ -13,10 +13,9 @@ def _kern():
 class RReLU(function.Function):
     """Randomized Leaky rectifier unit."""
 
-    def __init__(self, lower=1. / 8, upper=1. / 3, train=True):
+    def __init__(self, lower=1. / 8, upper=1. / 3):
         self.lower = lower
         self.upper = upper
-        self.train = train
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)
@@ -25,7 +24,7 @@ class RReLU(function.Function):
 
     def forward_cpu(self, x):
         y = x[0].copy()
-        if self.train:
+        if chainer.config.train:
             self.r = np.random.uniform(self.lower, self.upper, x[0].shape[0:2])
         else:
             self.r = np.empty(x[0].shape[0:2])
@@ -38,7 +37,7 @@ class RReLU(function.Function):
 
     def forward_gpu(self, x):
         xp = cuda.cupy
-        if self.train:
+        if chainer.config.train:
             self.r = xp.random.uniform(
                 self.lower, self.upper, x[0].shape[:2]
             ).astype(x[0].dtype)
@@ -70,7 +69,7 @@ class RReLU(function.Function):
         return gx,
 
 
-def randomized_leaky_relu(x, l=1. / 8, u=1. / 3, train=True):
+def randomized_leaky_relu(x, l=1. / 8, u=1. / 3):
     """Randomized Leaky Rectified Liner Unit function.
 
     This function is expressed as
@@ -103,4 +102,4 @@ def randomized_leaky_relu(x, l=1. / 8, u=1. / 3, train=True):
                [ 2.        , -0.50844127],
                [-0.598535  ,  1.        ]], dtype=float32)
     """
-    return RReLU(l, u, train)(x)
+    return RReLU(l, u)(x)

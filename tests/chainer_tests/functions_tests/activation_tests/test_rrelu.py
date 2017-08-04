@@ -36,7 +36,7 @@ class TestRReLU(unittest.TestCase):
 
     def check_forward(self, x_data):
         x = chainer.Variable(x_data)
-        y = functions.randomized_leaky_relu(x, l=self.l, u=self.u, train=False)
+        y = functions.randomized_leaky_relu(x, l=self.l, u=self.u)
         self.assertEqual(y.data.dtype, self.dtype)
 
         expected = self.x.copy()
