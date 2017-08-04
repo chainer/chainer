@@ -7,7 +7,6 @@ from chainer import cuda
 from chainer.dataset import convert
 from chainer import reporter
 from chainer.training import updater
-from chainer import variable
 
 try:
     from cupy.cuda import nccl
