@@ -73,14 +73,16 @@ def randomized_leaky_relu(x, l=1. / 8, u=1. / 3):
     .. math:: f(x)=\\max(x, ax),
 
     where :math:`a` is a random number sampled \
-                from a uniform distribution U(l, u).
+                from a uniform distribution :math:`U(l, u)`.
+
+    See: https://arxiv.org/pdf/1505.00853.pdf
 
     Args:
         x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`):
             Input variable. A :math:`(s_1, s_2, ..., s_N)`-shaped float array.
-        l (float):
-        r (float):
+        l (float): The lower bound of the uniform distribution.
+        u (float): The upper bound of the uniform distribution.
 
     Returns:
         ~chainer.Variable: Outputs variable. A
