@@ -262,7 +262,7 @@ class _PrefetchLoop(object):
             self.comm.put(batch, self.prefetch_state, reset_count)
             return True
 
-        if self.mem_bulk == None:
+        if self.mem_bulk is None:
             if not task(None):
                 return
 
