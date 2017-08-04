@@ -14,6 +14,10 @@ class RReLU(function.Function):
     """Randomized Leaky rectifier unit."""
 
     def __init__(self, lower=1. / 8, upper=1. / 3):
+        # lower and upper must be [0, 1) and lower <= upper
+        assert 0 <= lower < 1
+        assert 0 <= upper < 1
+        assert lower < upper
         self.lower = lower
         self.upper = upper
 
@@ -30,9 +34,8 @@ class RReLU(function.Function):
             self.r = np.empty(x[0].shape[0:2])
             self.r.fill((self.lower + self.upper) / 2)
         y *= np.where(x[0] < 0, self.r, 1)
-        if self.lower >= 0 and self.upper >= 0:
-            self.retain_inputs(())
-            self.retain_outputs((0,))
+        self.retain_inputs(())
+        self.retain_outputs((0,))
         return y,
 
     def forward_gpu(self, x):
@@ -46,26 +49,19 @@ class RReLU(function.Function):
             self.r.fill((self.lower + self.upper) / 2.0)
             self.r = self.r.astype(x[0].dtype)
         y = _kern()(x[0], x[0], self.r)
-        if self.lower >= 0 and self.upper >= 0:
-            self.retain_inputs(())
-            self.retain_outputs((0,))
+        self.retain_inputs(())
+        self.retain_outputs((0,))
         return y,
 
     def backward_cpu(self, x, gy):
         gx = gy[0].copy()
-        if self.lower >= 0 and self.upper >= 0:
-            y = self.output_data
-            gx *= np.where(y[0] < 0, self.r, 1)
-        else:
-            gx *= np.where(x[0] < 0, self.r, 1)
+        y = self.output_data
+        gx *= np.where(y[0] < 0, self.r, 1)
         return gx,
 
     def backward_gpu(self, x, gy):
-        if self.lower >= 0 and self.upper >= 0:
-            y = self.output_data
-            gx = _kern()(y[0], gy[0], self.r)
-        else:
-            gx = _kern()(x[0], gy[0], self.r)
+        y = self.output_data
+        gx = _kern()(y[0], gy[0], self.r)
         return gx,
 
 
