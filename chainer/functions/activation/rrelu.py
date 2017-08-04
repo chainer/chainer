@@ -29,9 +29,9 @@ class RReLU(function.Function):
     def forward_cpu(self, x):
         y = x[0].copy()
         if chainer.config.train:
-            self.r = np.random.uniform(self.lower, self.upper, x[0].shape[0:2])
+            self.r = np.random.uniform(self.lower, self.upper, x[0].shape)
         else:
-            self.r = np.empty(x[0].shape[0:2])
+            self.r = np.empty(x[0].shape)
             self.r.fill((self.lower + self.upper) / 2)
         y *= np.where(x[0] < 0, self.r, 1)
         self.retain_inputs(())
@@ -42,10 +42,10 @@ class RReLU(function.Function):
         xp = cuda.cupy
         if chainer.config.train:
             self.r = xp.random.uniform(
-                self.lower, self.upper, x[0].shape[:2]
+                self.lower, self.upper, x[0].shape
             ).astype(x[0].dtype)
         else:
-            self.r = xp.empty(x[0].shape[:2])
+            self.r = xp.empty(x[0].shape)
             self.r.fill((self.lower + self.upper) / 2.0)
             self.r = self.r.astype(x[0].dtype)
         y = _kern()(x[0], x[0], self.r)
