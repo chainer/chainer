@@ -1,6 +1,8 @@
 from __future__ import division
+import logging
 import multiprocessing
 from multiprocessing import sharedctypes
+import sys
 import threading
 import warnings
 
@@ -8,6 +10,28 @@ import numpy
 import six
 
 from chainer.dataset import iterator
+
+
+_logger = multiprocessing.get_logger()
+_handler = None
+
+
+def install_logger():
+    global _handler
+    _handler = logging.StreamHandler(sys.stderr)
+    formatter = logging.Formatter(
+        '[%(asctime)s: %(levelname)s/%(processName)s] %(msg)s')
+    _handler.setFormatter(formatter)
+    _logger.addHandler(_handler)
+    _logger.setLevel(multiprocessing.SUBDEBUG)
+    _logger.info("START")
+
+
+def uninstall_logger():
+    global _handler
+    _logger.info("END")
+    _logger.removeHandler(_handler)
+    _handler = None
 
 
 class MultiprocessIterator(iterator.Iterator):
@@ -97,13 +121,31 @@ class MultiprocessIterator(iterator.Iterator):
 
         self._finalized.set()
         self._ordered_data_queue.put(self._last_signal)
-        self._data_queue.put((-1, -1, -1))
-        for _ in self._workers:
-            self._index_queue.put((-1, -1, -1))  # termination signal
 
-        for worker in self._workers:
-            worker.join()
+        # Send termination signal to each worker
+        for _ in self._workers:
+            self._index_queue.put((-1, -1, -1))
+
+        # Wait for the workers to stop generating data
+        for worker, status_event in self._workers:
+            status_event.wait()
+
+        # Send termination signal to _get_data_loop_thread
+        # Wait for the thread to terminate
+        self._data_queue.put((-1, -1, -1))
         self._get_data_loop_thread.join()
+
+        # Clear data_queue, discarding any remaining data
+        while True:
+            try:
+                self._data_queue.get(False)
+            except six.moves.queue.Empty:
+                break
+
+        # Wait for the workers to terminate
+        # data_queue must be empty at this moment
+        for worker, status_event in self._workers:
+            worker.join()
 
     def serialize(self, serializer):
         self.current_position = serializer('current_position',
@@ -162,9 +204,11 @@ class MultiprocessIterator(iterator.Iterator):
         args = (self.dataset, self._index_queue, self._data_queue,
                 self._mem_list)
         for _ in range(self.n_processes):
-            worker = multiprocessing.Process(target=_worker, args=args)
+            status_event = multiprocessing.Event()
+            args_ = args + (status_event,)
+            worker = multiprocessing.Process(target=_worker, args=args_)
             worker.daemon = True
-            self._workers.append(worker)
+            self._workers.append((worker, status_event))
             worker.start()
 
     def _invoke_prefetch(self):
@@ -265,6 +309,7 @@ class MultiprocessIterator(iterator.Iterator):
 
 def _get_data_loop(data_queue, ordered_data_queue, mem_list,
                    unused_mem_queue, finalized, last_signal):
+    _logger.info("_get_data_loop started")
     buf = {}
     cnt = 0
     while not finalized.is_set():
@@ -286,7 +331,9 @@ def _get_data_loop(data_queue, ordered_data_queue, mem_list,
         ordered_data_queue.put(data)
         del data
         cnt += 1
+    _logger.info("_get_data_loop putting last_signal")
     ordered_data_queue.put(last_signal)
+    _logger.info("_get_data_loop exitting")
 
 
 class _PackedNdarray(object):
@@ -381,7 +428,8 @@ def _unpack(data, mem):
     return data
 
 
-def _worker(dataset, in_queue, out_queue, mem_list):
+def _worker(dataset, in_queue, out_queue, mem_list, status_event):
+    _logger.info("Worker started")
     while True:
         cnt, mem_index, index = in_queue.get()
         if cnt < 0:
@@ -389,5 +437,11 @@ def _worker(dataset, in_queue, out_queue, mem_list):
         mem = mem_list[mem_index]
         data = _pack(dataset[index], mem)
         out_queue.put((cnt, mem_index, data))
+
+    _logger.info("Worker out_queue closing")
     out_queue.close()
+    _logger.info("Worker out_queue closed")
+    status_event.set()  # Set as dying
+    _logger.info("Worker out_queue.join_thread")
     out_queue.join_thread()
+    _logger.info("Worker exitting")
