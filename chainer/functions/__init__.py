@@ -16,8 +16,8 @@ from chainer.functions.activation.lstm import lstm  # NOQA
 from chainer.functions.activation.lstm import LSTM  # NOQA
 from chainer.functions.activation.maxout import maxout  # NOQA
 from chainer.functions.activation.prelu import prelu  # NOQA
-from chainer.functions.activation.randomized_leaky_relu import randomized_leaky_relu  # NOQA
-from chainer.functions.activation.randomized_leaky_relu import RReLU  # NOQA
+from chainer.functions.activation.rrelu import randomized_leaky_relu  # NOQA
+from chainer.functions.activation.rrelu import RReLU  # NOQA
 from chainer.functions.activation.relu import relu  # NOQA
 from chainer.functions.activation.relu import ReLU  # NOQA
 from chainer.functions.activation.selu import selu  # NOQA
