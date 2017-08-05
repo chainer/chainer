@@ -255,13 +255,13 @@ class _PrefetchLoop(object):
             if indices is None:  # stop iteration
                 batch = None
             elif pool is None:  # measure mode
-                batch = list(self.dataset[idx] for idx in indices)
+                batch = [self.dataset[idx] for idx in indices]
                 self.mem_size = max(map(_measure, batch))
                 self._allocate_shared_memory()
             else:
                 data_it = pool.imap(
                     _fetch_run, enumerate(indices), chunk_size)
-                batch = list(_unpack(data, self.mem_bulk) for data in data_it)
+                batch = [_unpack(data, self.mem_bulk) for data in data_it]
 
             self.comm.put(batch, self.prefetch_state, reset_count)
             return True
