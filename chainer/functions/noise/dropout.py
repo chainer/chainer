@@ -12,7 +12,8 @@ class Dropout(function.Function):
     """Dropout regularization."""
 
     def __init__(self, dropout_ratio):
-        assert 0.0 <= dropout_ratio and dropout_ratio <= 1.0
+        if not 0.0 <= dropout_ratio < 1.0:
+            raise ValueError('dropout_ratio must be in the range [0, 1)')
         self.dropout_ratio = dropout_ratio
 
     def check_type_forward(self, in_types):
@@ -64,7 +65,7 @@ def dropout(x, ratio=.5, **kwargs):
     Args:
         x (~chainer.Variable): Input variable.
         ratio (float): Dropout ratio. The ``ratio`` must be
-        ``0.0 <= ratia <= 1.0``, otherwise assertion is failed.
+        ``0.0 <= ratio < 1.0``.
 
     Returns:
         ~chainer.Variable: Output variable.
