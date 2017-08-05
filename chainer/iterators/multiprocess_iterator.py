@@ -2,6 +2,7 @@ from __future__ import division
 from collections import namedtuple
 import multiprocessing
 from multiprocessing import sharedctypes
+import signal
 import threading
 import warnings
 
@@ -11,6 +12,7 @@ import six
 from chainer.dataset import iterator
 
 
+_long_time = 10000000
 _PrefetchState = namedtuple('_PrefetchState', (
     'current_position', 'epoch', 'is_new_epoch',
     'previous_epoch_detail', 'order'))
@@ -63,12 +65,13 @@ class MultiprocessIterator(iterator.Iterator):
         self._comm = _Communicator(self.n_prefetch)
         self.reset()
 
-        # don't need to hold a reference to the thread
         prefetch_loop = _PrefetchLoop(
             self.dataset, self.batch_size, self.repeat, self.shuffle,
             self.n_processes, self.n_prefetch, self.shared_mem, self._comm)
-        thread = threading.Thread(target=prefetch_loop, name='prefetch_loop')
-        thread.start()
+        self._thread = threading.Thread(
+            target=prefetch_loop, name='prefetch_loop')
+        self._thread.setDaemon(True)
+        self._thread.start()
 
     def __next__(self):
         batch, prefetch_state = self._comm.get()
@@ -85,6 +88,7 @@ class MultiprocessIterator(iterator.Iterator):
         if not self._finalized:
             self._finalized = True
             self._comm.terminate()
+            self._thread.join(_long_time)
 
     finalize = __del__
 
@@ -182,7 +186,7 @@ class _Communicator(object):
     def get(self):
         with self._lock:
             if len(self._batch_queue) == 0:
-                self._not_empty_cond.wait()
+                self._not_empty_cond.wait(_long_time)
             batch, prefetch_state = self._batch_queue.pop(0)
             self._not_full_cond.notify()
             return batch, prefetch_state
@@ -338,6 +342,7 @@ _fetch_mem_bulk = None
 
 def _fetch_setup(dataset, mem_size, mem_bulk):
     global _fetch_dataset, _fetch_mem_size, _fetch_mem_bulk
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
     _fetch_dataset = dataset
     _fetch_mem_size = mem_size
     _fetch_mem_bulk = mem_bulk
