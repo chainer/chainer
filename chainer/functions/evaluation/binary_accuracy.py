@@ -68,12 +68,12 @@ def binary_accuracy(y, t):
         >>> t = np.array([[0, 0],
         ...              [1, 1]], 'i')
         >>> F.binary_accuracy(y, t).data \
-# 50% accuracy because t[0][0] and t[1][0] are correct.
+# 50% accuracy because y[0][0] and y[1][0] are correct.
         array(0.5)
         >>> t = np.array([[0, -1],
         ...              [1, -1]], 'i')
         >>> F.binary_accuracy(y, t).data \
-# 100% accuracy because of ignoring t[0][1] and t[1][1].
+# 100% accuracy because of ignoring y[0][1] and y[1][1].
         array(1.0)
     """
     return BinaryAccuracy()(y, t)
