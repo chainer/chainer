@@ -1,5 +1,6 @@
 from __future__ import division
 import copy
+import threading
 import unittest
 
 import numpy
@@ -381,6 +382,24 @@ class TestMultiprocessIteratorSerialize(unittest.TestCase):
         self.assertEqual(sorted(batch1 + batch2 + batch3), dataset)
         self.assertAlmostEqual(it.epoch_detail, 6 / 6)
         self.assertAlmostEqual(it.previous_epoch_detail, 4 / 6)
+
+
+class TestMultiprocessIteratorConcurrency(unittest.TestCase):
+
+    def test_finalize_not_deadlock(self):
+        dataset = numpy.ones((1000, 1000))
+        it = iterators.MultiprocessIterator(dataset, 10, n_processes=4)
+        for _ in range(10):
+            it.next()
+
+        timeout = 5.
+        t = threading.Thread(target=lambda: it.finalize())
+        t.daemon = True
+        t.start()
+        t.join(timeout)
+        deadlock = t.is_alive()
+
+        self.assertFalse(deadlock)
 
 
 testing.run_module(__name__, __file__)
