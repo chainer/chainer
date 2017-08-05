@@ -59,9 +59,11 @@ class TestRReLU(unittest.TestCase):
         self.check_forward(cuda.to_gpu(self.x))
 
     def check_backward(self, x_data, y_grad):
+        chainer.config.train = False
         gradient_check.check_backward(
             functions.RReLU(self.l, self.u), x_data, y_grad,
             **self.check_backward_options)
+        chainer.config.train = True
 
     @condition.retry(10)
     def test_backward_cpu(self):
