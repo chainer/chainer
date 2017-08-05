@@ -1,5 +1,6 @@
 import copy
 import unittest
+import warnings
 
 import mock
 import numpy
@@ -405,6 +406,13 @@ class TestLink(unittest.TestCase):
         self.assertFalse(self.link.update_enabled)
         self.link.enable_update()
         self.assertTrue(self.link.update_enabled)
+
+    def test_size(self):
+        self.assertEqual(self.link.size, 8)
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
+            self.link.size
+        self.assertEqual(len(w), 2)
 
 
 class CountParameter(chainer.Parameter):
