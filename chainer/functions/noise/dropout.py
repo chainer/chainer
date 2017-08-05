@@ -63,7 +63,8 @@ def dropout(x, ratio=.5, **kwargs):
 
     Args:
         x (~chainer.Variable): Input variable.
-        ratio (float): Dropout ratio.
+        ratio (float): Dropout ratio. The ``ratio`` must be
+        ``0.0 <= ratia <= 1.0``, otherwise assertion is failed.
 
     Returns:
         ~chainer.Variable: Output variable.
