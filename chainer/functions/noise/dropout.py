@@ -12,7 +12,7 @@ class Dropout(function.Function):
     """Dropout regularization."""
 
     def __init__(self, dropout_ratio):
-        assert 0.0 <= dropout_ratio <= 1.0
+        assert 0.0 <= dropout_ratio and dropout_ratio <= 1.0
         self.dropout_ratio = dropout_ratio
 
     def check_type_forward(self, in_types):
