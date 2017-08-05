@@ -4,6 +4,7 @@ import warnings
 
 import mock
 import numpy
+import six
 
 import chainer
 from chainer import cuda
@@ -407,6 +408,9 @@ class TestLink(unittest.TestCase):
         self.link.enable_update()
         self.assertTrue(self.link.update_enabled)
 
+    @unittest.skipUnless(
+        six.PY3, 'Python2.7 has a bug in catch_warnings, so this test is '
+                 'skipped for Python2.7')
     def test_size(self):
         self.assertEqual(self.link.size, 8)
         with warnings.catch_warnings(record=True) as w:
