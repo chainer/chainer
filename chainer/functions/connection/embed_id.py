@@ -117,8 +117,8 @@ def embed_id(x, W, ignore_label=None):
         >>> x
         array([2, 1], dtype=int32)
         >>> W = np.array([[0, 0, 0],
-                          [1, 1, 1],
-                          [2, 2, 2]]).astype('f')
+        ...               [1, 1, 1],
+        ...               [2, 2, 2]]).astype('f')
         >>> W
         array([[ 0.,  0.,  0.],
                [ 1.,  1.,  1.],
