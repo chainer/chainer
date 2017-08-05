@@ -97,11 +97,11 @@ class MultiprocessIterator(iterator.Iterator):
             self.dataset, self.batch_size, self.repeat, self.shuffle,
             self.n_processes, self.n_prefetch, self.shared_mem)
 
-        comm = self._comm
-        del self._comm
-        other.__dict__.update(self.__dict__)
-        self._comm = comm
-        other.__class__ = self.__class__
+        other.current_position = self.current_position
+        other.epoch = self.epoch
+        other.is_new_epoch = self.is_new_epoch
+        other._previous_epoch_detail = self._previous_epoch_detail
+        other._order = self._order
 
         other._set_prefetch_state()
         return other
