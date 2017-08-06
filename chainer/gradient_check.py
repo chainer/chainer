@@ -289,7 +289,7 @@ def check_backward(func, x_data, y_grad, params=(),
         for skip, cx, data in six.moves.zip(no_grads, casted_xs, casted_data):
             if skip:
                 continue
-            data = (one * data).astype(cx.data.dtype)
+            data = one * data.astype(cx.data.dtype)
             if numpy.isscalar(data):
                 data = xp.array(data)
             cx.data = data
@@ -298,7 +298,7 @@ def check_backward(func, x_data, y_grad, params=(),
                 param_dtype = dtype
             else:
                 param_dtype = param.dtype
-            param.data = (one * data).astype(param_dtype)
+            param.data = one * data.astype(param_dtype)
         ys = func(*casted_xs)
         ys = _as_tuple(ys)
         ys_data = tuple(y.data for y in ys)
