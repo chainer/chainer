@@ -199,6 +199,35 @@ class LSTM(LSTMBase):
         c (~chainer.Variable): Cell states of LSTM units.
         h (~chainer.Variable): Output at the previous time step.
 
+    .. admonition:: Example
+
+        There are several ways to make a LSTM link.
+
+        Let a two-dimensional input array :math:`x`, a cell state array
+        :math:`h`, and the output array of the previous step :math:`h` be:
+
+        >>> x = np.zeros((1, 10), dtype='f')
+
+        1. Give both ``in_size`` and ``out_size`` arguments:
+
+            >>> l = L.LSTM(10, 20)
+            >>> h_new = l(x)
+            >>> h_new.shape
+            (1, 20)
+
+        2. Omit ``in_size`` argument or fill it with ``None``:
+
+            The below two cases are the same.
+
+            >>> l = L.LSTM(20)
+            >>> h_new = l(x)
+            >>> h_new.shape
+            (1, 20)
+
+            >>> l = L.LSTM(None, 20)
+            >>> h_new = l(x)
+            >>> h_new.shape
+            (1, 20)
     """
 
     def __init__(self, in_size, out_size=None, **kwargs):
