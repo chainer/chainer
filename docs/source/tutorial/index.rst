@@ -7,5 +7,5 @@ Chainer Tutorial
    basic
    writenet
    gpu
-   function
+   customize
    type_check
