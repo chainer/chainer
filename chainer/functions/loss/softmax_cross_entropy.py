@@ -223,17 +223,21 @@ class SoftmaxCrossEntropy(function.Function):
 def softmax_cross_entropy(
         x, t, normalize=True, cache_score=True, class_weight=None,
         ignore_label=-1, reduce='mean'):
-    """Computes cross entropy loss for pre-softmax activations.
+    """Computes cross entropy loss after softmax activations.
 
     Args:
-        x (~chainer.Variable): Variable holding a multidimensional array whose
-            element indicates unnormalized log probability: the first axis of
-            the variable represents the number of samples, and the second axis
-            represents the number of classes. While this function computes
-            a usual softmax cross entropy if the number of dimensions is equal
-            to 2, it computes a cross entropy of the replicated softmax if the
-            number of dimensions is greater than 2.
-        t (~chainer.Variable): Variable holding an int32 vector of ground truth
+        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`):
+            Variable holding a multidimensional array whose element indicates
+            unnormalized log probability: the first axis of the variable
+            represents the number of samples, and the second axis represents
+            the number of classes. While this function computes a usual softmax
+            cross entropy if the number of dimensions is equal to 2, it
+            computes a cross entropy of the replicated softmax if the number of
+            dimensions is greater than 2.
+        t (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`):
+            Variable holding an :class:`numpy.int32` vector of ground truth
             labels. If ``t[i] == ignore_label``, corresponding ``x[i]`` is
             ignored.
         normalize (bool): If ``True``, this function normalizes the cross
@@ -242,11 +246,12 @@ def softmax_cross_entropy(
         cache_score (bool): When it is ``True``, the function stores result
             of forward computation to use it on backward computation. It
             reduces computational cost though consumes more memory.
-        class_weight (~numpy.ndarray or ~chainer.cuda.cupy.ndarray): An array
-            that contains constant weights that will be multiplied with the
-            loss values along with the second dimension. The shape of this
-            array should be ``(x.shape[1],)``. If this is not ``None``, each
-            class weight ``class_weight[i]`` is actually multiplied to
+        class_weight (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`):
+            An array that contains constant weights that will be multiplied
+            with the loss values along with the second dimension. The shape of
+            this array should be ``(x.shape[1],)``. If this is not ``None``,
+            each class weight ``class_weight[i]`` is actually multiplied to
             ``y[:, i]`` that is the corresponding log-softmax output of ``x``
             and has the same shape as ``x`` before calculating the actual loss
             value.
@@ -261,13 +266,31 @@ def softmax_cross_entropy(
             which has ``ignore_label`` as its target value, is set to ``0``.
 
     Returns:
-        Variable: A variable holding a scalar array of the cross entropy loss.
-        If ``reduce`` is ``'mean'``, it is a scalar array.
+        ~chainer.Variable: A variable holding a scalar array of the cross
+        entropy loss.  If ``reduce`` is ``'mean'``, it is a scalar array.
         If ``reduce`` is ``'no'``, the shape is same as that of ``x``.
 
     .. note::
 
        This function is differentiable only by ``x``.
+
+    .. admonition:: Example
+
+        >>> x = np.array([[-1, 0, 1, 2], [2, 0, 1, -1]]).astype('f')
+        >>> x
+        array([[-1.,  0.,  1.,  2.],
+               [ 2.,  0.,  1., -1.]], dtype=float32)
+        >>> t = np.array([3, 0]).astype('i')
+        >>> t
+        array([3, 0], dtype=int32)
+        >>> y = F.softmax_cross_entropy(x, t)
+        >>> y
+        variable(0.4401897192001343)
+        >>> log_softmax = -F.log_softmax(x)
+        >>> expected_loss = np.mean([log_softmax[row, column].data \
+for row, column in enumerate(t)])
+        >>> y.data == expected_loss
+        True
 
     """
 
