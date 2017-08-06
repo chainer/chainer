@@ -56,7 +56,7 @@ The saved image ``5.png`` will look like:
 
 Although this is an optional step, we'd like to introduce the :class:`~chainer.dataset.Iterator` class that retrieves a set of data and labels from the given dataset to easily make a mini-batch. There are some subclasses that can perform the same thing in different ways, e.g., using multi-processing to parallelize the data loading part, etc.
 
-Here, we use :class:`~chainer.iterators.SerialIterator`, which is also a subclass of :class:`~chainer.dataset.Iterator` in the below example code. The :class:`~chainer.iterators.SerialIterator` can provide mini-batches with or without shuffling the order of data in the given dataset.
+Here, we use :class:`~chainer.iterators.SerialIterator`, which is also a subclass of :class:`~chainer.dataset.Iterator` in the example code below. The :class:`~chainer.iterators.SerialIterator` can provide mini-batches with or without shuffling the order of data in the given dataset.
 
 All :class:`~chainer.dataset.Iterator` s produce a new mini-batch by calling its :meth:`~chainer.dataset.Iterator.next` method. All
 :class:`~chainer.dataset.Iterator` s also have properties to know how many times we have taken all the data from the given dataset (:attr:`~chainer.dataset.Iterator.epoch`) and whether the next mini-batch will be the start of a new epoch (:attr:`~chainer.dataset.Iterator.is_new_epoch`), and so on.
@@ -76,7 +76,7 @@ The below code shows how to create a :class:`~chainer.iterators.SerialIterator` 
 
 .. note::
 
-    :class:`~chainer.dataset.iterator` s can take a built-in Python list as a given dataset. It means that the below code example is able to work,
+    :class:`~chainer.dataset.iterator` s can take a built-in Python list as a given dataset. It means that the example code below is able to work,
 
     .. code-block:: python
 
