@@ -8,7 +8,6 @@ from chainer.utils import type_check
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
     libcudnn = cudnn.cudnn
-    _cudnn_version = libcudnn.getVersion()
     _algorithm = libcudnn.CUDNN_SOFTMAX_ACCURATE
     _mode = libcudnn.CUDNN_SOFTMAX_MODE_CHANNEL
 
@@ -32,13 +31,13 @@ class Softmax(function.Function):
 
     def forward(self, x):
         xp = cuda.get_array_module(*x)
-        if (xp is not numpy and chainer.should_use_cudnn('>=auto') and
-                (_cudnn_version >= 3000 or x[0].dtype != numpy.float16)):
+        if xp is not numpy and chainer.should_use_cudnn('>=auto'):
             oz_dtype = 'd' if x[0].dtype == 'd' else 'f'
             one = numpy.array(1, dtype=oz_dtype).ctypes
             zero = numpy.array(0, dtype=oz_dtype).ctypes
             handle = cudnn.get_handle()
-            x_tensor4d = x[0].reshape(self._get_tensor4d_shape(x[0].shape))
+            x_tensor4d = cuda.cupy.ascontiguousarray(
+                x[0].reshape(self._get_tensor4d_shape(x[0].shape)))
             desc = cudnn.create_tensor_descriptor(x_tensor4d)
             y = xp.empty_like(x[0])
             libcudnn.softmaxForward(
@@ -58,18 +57,19 @@ class Softmax(function.Function):
     def backward(self, x, gy):
         y = self.output_data[0]
         xp = cuda.get_array_module(*y)
-        if (xp is not numpy and chainer.should_use_cudnn('>=auto') and
-                (_cudnn_version >= 3000 or y.dtype != numpy.float16)):
+        if xp is not numpy and chainer.should_use_cudnn('>=auto'):
             oz_dtype = 'd' if y[0].dtype == 'd' else 'f'
             one = numpy.array(1, dtype=oz_dtype).ctypes
             zero = numpy.array(0, dtype=oz_dtype).ctypes
             handle = cudnn.get_handle()
             gx = xp.empty_like(y)
-            gx_tensor4d = gx.reshape(self._get_tensor4d_shape(gx.shape))
+            gx_tensor4d = cuda.cupy.ascontiguousarray(
+                gx.reshape(self._get_tensor4d_shape(gx.shape)))
+            gy = cuda.cupy.ascontiguousarray(gy[0])
             desc = cudnn.create_tensor_descriptor(gx_tensor4d)
             libcudnn.softmaxBackward(
                 handle, _algorithm, _mode, one.data, desc.value,
-                y.data.ptr, desc.value, gy[0].data.ptr, zero.data,
+                y.data.ptr, desc.value, gy.data.ptr, zero.data,
                 desc.value, gx.data.ptr)
         else:
             gx = y * gy[0]

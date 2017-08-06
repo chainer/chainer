@@ -1,3 +1,4 @@
+import copy
 import unittest
 
 import mock
@@ -133,6 +134,40 @@ class TestLink(unittest.TestCase):
         self.assertIsNone(link.u.data)
         self.assertIs(link.p, self.link.p)
         self.assertIs(link.name, None)
+
+    def _check_deepcopy(self, link):
+        self.assertIsInstance(link._params, set)
+        self.assertIsInstance(link._persistent, set)
+        self.assertTrue(hasattr(link, 'x'))
+        self.assertTrue(hasattr(link, 'y'))
+        self.assertTrue(hasattr(link, 'u'))
+        self.assertTrue(hasattr(link, 'p'))
+        self.assertIsNot(link.x, self.link.x)
+        self.assertIsNot(link.x.data, self.link.x.data)
+        numpy.testing.assert_array_equal(cuda.to_cpu(link.x.data),
+                                         cuda.to_cpu(self.link.x.data))
+        self.assertIsNot(link.y, self.link.y)
+        self.assertIsNot(link.y.data, self.link.y.data)
+        numpy.testing.assert_array_equal(cuda.to_cpu(link.y.data),
+                                         cuda.to_cpu(self.link.y.data))
+        self.assertIsNone(link.u.data)
+        self.assertIsNot(link.p, self.link.p)
+        self.assertEqual(link.name, self.link.name)
+
+    def test_deepcopy(self):
+        link = copy.deepcopy(self.link)
+        self._check_deepcopy(link)
+        self.assertIsNone(link._device_id)
+
+    @attr.multi_gpu(2)
+    def test_deepcopy_multi_device(self):
+        device_id = 1
+        self.link.to_gpu(device_id)
+        link = copy.deepcopy(self.link)
+        self._check_deepcopy(link)
+        self.assertEqual(link._device_id, device_id)
+        self.assertEqual(link.x.data.device.id, device_id)
+        self.assertEqual(link.y.data.device.id, device_id)
 
     def test_to_cpu_on_cpu(self):
         x = self.link.x.data
@@ -290,7 +325,8 @@ class TestLink(unittest.TestCase):
     def test_addgrads(self):
         l = chainer.Link()
         with l.init_scope():
-            l.x = chainer.Parameter(shape=(2, 3))
+            l.x = chainer.Parameter(shape=(2, 3),
+                                    initializer=initializers.NaN('d'))
             l.y = chainer.Parameter(shape=2)
             l.u = chainer.Parameter(shape=(2, 3))
             l.v = chainer.Parameter()

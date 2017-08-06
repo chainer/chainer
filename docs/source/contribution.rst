@@ -214,7 +214,7 @@ Here is a (not-complete) list of the rules that ``flake8`` cannot check.
 In addition, we restrict the usage of *shortcut symbols* in our code base.
 They are symbols imported by packages and sub-packages of ``chainer``.
 For example, ``chainer.Variable`` is a shortcut of ``chainer.variable.Variable``.
-**It is not allowed to use such shortcuts in the ``chainer`` library implementation.**
+**It is not allowed to use such shortcuts in the Chainer library implementation.**
 Note that you can still use them in ``tests`` and ``examples`` directories.
 Also note that you should use shortcut names of CuPy APIs in Chainer implementation.
 
@@ -224,12 +224,13 @@ The reviewing process starts after the check passes.
 
 .. _testing-guide:
 
-Testing Guidelines
-------------------
+Unit Testing
+------------
 
 Testing is one of the most important part of your code.
-You must test your code by unit tests following our testing guidelines.
-Note that we are using the nose package and the mock package for testing, so install nose and mock before writing your code::
+You must write test cases and verify your implementation by following our testing guide.
+
+Note that we are using nose and mock package for testing, so install them before writing your code::
 
   $ pip install nose mock
 
