@@ -109,7 +109,7 @@ class TestSpatialTransformerSamplerConsistencyWithCuDNN(unittest.TestCase):
         grid = Variable(grid)
         y = functions.spatial_transformer_sampler(x, grid)
         x.cleargrad()
-        grid.claergrad()
+        grid.cleargrad()
         y.grad = grads
         y.backward()
         return x, grid, y
