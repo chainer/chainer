@@ -150,7 +150,7 @@ class TestDeconvolution2DParameterShapePlaceholder(unittest.TestCase):
             params.append(self.link.b)
 
         gradient_check.check_backward(
-            self.link, x_data, y_grad, params, eps=1e-2)
+            self.link, x_data, y_grad, params, eps=1e-2, rtol=1e-3, atol=1e-4)
 
     @condition.retry(3)
     def test_backward_cpu(self):
