@@ -9,19 +9,25 @@ Chainer provides a feature called :class:`~chainer.training.Trainer` that can si
 
 The complete training procedure consists of the following steps:
 
-1. Prepare a dataset.
-2. Create an iterator for the dataset.
-3. Write a training loop that performs the following operations in each iteration:
+1. :ref:`Prepare a dataset<prepare_a_dataset>`
+2. :ref:`Create a dataset iterator<create_an_iterator>`
+3. :ref:`Define a network<define_a_network>`
+4. :ref:`Select an optimization algorithm<select_an_optimization_algorithm>`
+5. :ref:`Write a training loop<write_a_training_loop>`
 
     a. Retrieve a set of examples (mini-batch) from the training dataset.
     b. Feed the mini-batch to your network.
     c. Run a forward pass of the network and compute the loss.
     d. Just call the :meth:`~chainer.Variable.backward` method from the loss :class:`~chainer.Variable` to compute the gradients for all trainable parameters.
     e. Run the optimizer to update those parameters.
-    f. (Optional): Check the network performance on the validation/test set.
 
-1. Prepare the dataset
-''''''''''''''''''''''
+6. :ref:`Save the trained model<save_the_trained_model>`
+7. :ref:`Perform classification by the saved model<perform_classification>` and check the network performance on validation/test sets.
+
+.. _prepare_a_dataset:
+
+1. Prepare a dataset
+''''''''''''''''''''
 
 Chainer contains some built-in functions to use some popular datasets like MNIST, CIFAR10/100, etc. Those can automatically download the data from servers and provide dataset objects which are easy to use.
 
@@ -51,9 +57,10 @@ The saved image ``5.png`` will look like:
 
 .. image:: ../../image/train_loop/5.png
 
+.. _create_an_iterator:
 
-2. Create the dataset iterators
-'''''''''''''''''''''''''''''''
+2. Create a dataset iterator
+''''''''''''''''''''''''''''
 
 Although this is an optional step, we'd like to introduce the :class:`~chainer.dataset.Iterator` class that retrieves a set of data and labels from the given dataset to easily make a mini-batch. There are some subclasses that can perform the same thing in different ways, e.g., using multi-processing to parallelize the data loading part, etc.
 
@@ -96,6 +103,8 @@ Details of SerialIterator
 
 In the example code shown above, we set ``batchsize = 128`` in both ``train_iter`` and ``test_iter``. So, these iterators will provide 128 images and corresponding labels at a time.
 
+.. _define_a_network:
+
 3. Define a network
 '''''''''''''''''''
 
@@ -131,6 +140,8 @@ The main steps are twofold:
 
 In Chainer, the Python code that implements the forward computation itself represents the network. In other words, we can conceptually think of the computation graph for our network being constructed dynamically as this forward computation code executes. This allows Chainer to describe networks in which different computations can be performed in each iteration, such as branched networks, intuitively and with a high degree of flexibility. This is the key feature of Chainer that we call **Define-by-Run**.
 
+.. _select_an_optimization_algorithm:
+
 4. Select an optimization algorithm
 '''''''''''''''''''''''''''''''''''
 
@@ -157,8 +168,10 @@ You can easily try out other optimizers as well. Please test and observe the res
 
     In the above example, we set :attr:`~chainer.optimizers.MomentumSGD.lr` to 0.01 in the constructor. This value is known as the "learning rate", one of the most important hyperparameters that need to be adjusted in order to obtain the best performance. The various optimizers may each have different hyperparameters and so be sure to check the documentation for the details.
 
-5. Write the training loop
-''''''''''''''''''''''''''
+.. _write_a_training_loop:
+
+5. Write a training loop
+''''''''''''''''''''''''
 
 We now show how to write the training loop. Since we are working on a digit classification problem, we will use
 :func:`~chainer.functions.softmax_cross_entropy` as the loss function for the optimizer to minimize. For other types of problems, such as regression models, other loss functions might be more appropriate. See the `Chainer documentation for detailed information on the various loss functions <http://docs.chainer.org/en/stable/reference/functions.html#loss-functions>`_ for more details.
@@ -254,6 +267,8 @@ Output
     epoch:09 train_loss:0.2818 val_loss:0.2579 val_accuracy:0.9266
     epoch:10 train_loss:0.2403 val_loss:0.2484 val_accuracy:0.9307
 
+.. _save_the_trained_model:
+
 6. Save the trained model
 '''''''''''''''''''''''''
 
@@ -263,6 +278,8 @@ format to save our model since it is easy to use with NumPy and doesn't need to 
 .. testcode::
 
     serializers.save_npz('my_mnist.model', model)
+
+.. _perform_classification:
 
 7. Perform classification by the saved model
 ''''''''''''''''''''''''''''''''''''''''''''
