@@ -133,9 +133,9 @@ The main steps are twofold:
             def __init__(self, n_mid_units=100, n_out=10):
                 super().__init__()
                 with self.init_scope():
-                    self.l1 = Linear(None, n_mid_units)
-                    self.l2 = Linear(n_mid_units, n_mid_units)
-                    self.l3 = Linear(n_mid_units, n_out)
+                    self.l1 = L.Linear(None, n_mid_units)
+                    self.l2 = L.Linear(n_mid_units, n_mid_units)
+                    self.l3 = L.Linear(n_mid_units, n_out)
 
             def __call__(self, x):
                 h = F.relu(self.l1(x))
@@ -161,6 +161,20 @@ You can easily try out other optimizers as well. Please test and observe the res
 :class:`~chainer.optimizers.RMSprop`, etc.
 
 .. testsetup:: *
+
+    class MyNetwork(Chain):
+
+        def __init__(self, n_mid_units=100, n_out=10):
+            super().__init__()
+            with self.init_scope():
+                self.l1 = L.Linear(None, n_mid_units)
+                self.l2 = L.Linear(n_mid_units, n_mid_units)
+                self.l3 = L.Linear(n_mid_units, n_out)
+
+        def __call__(self, x):
+            h = F.relu(self.l1(x))
+            h = F.relu(self.l2(h))
+            return self.l3(h)
 
     model = MyNetwork()
 
@@ -328,7 +342,7 @@ The saved test image looks like:
 
 .. image:: ../../image/train_loop/7.png
 
-.. testcode::
+.. code-block:: python
 
     # Change the shape of the minibatch.
     # In this example, the size of minibatch is 1.
@@ -349,7 +363,7 @@ The saved test image looks like:
 
     print('predicted label:', pred_label[0])
 
-.. testoutput::
+::
 
     (784,) -> (1, 784)
     predicted label: 7
