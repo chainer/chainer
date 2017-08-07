@@ -49,7 +49,7 @@ The code below shows how to retrieve the MNIST dataset from the server and save 
     plt.savefig('5.png')
     print('label:', t)
 
-.. code-block:: bash
+::
 
     label: 5
 
@@ -319,7 +319,7 @@ Once the model is restored, it can be used to predict image labels on new input 
     plt.savefig('7.png')
     print('label:', t)
 
-.. code-block:: bash
+::
 
     label: 7
 
