@@ -2,7 +2,8 @@ import numpy
 
 import chainer
 from chainer import cuda
-from chainer import function
+from chainer import function_node
+from chainer.functions.array import cast
 from chainer import utils
 from chainer.utils import type_check
 
@@ -12,7 +13,7 @@ if cuda.cudnn_enabled:
     _mode = libcudnn.CUDNN_ACTIVATION_SIGMOID
 
 
-class Sigmoid(function.Function):
+class Sigmoid(function_node.FunctionNode):
 
     """Logistic sigmoid function."""
 
@@ -20,9 +21,11 @@ class Sigmoid(function.Function):
         type_check.expect(in_types.size() == 1)
         type_check.expect(in_types[0].dtype.kind == 'f')
 
-    def forward_cpu(self, x):
-        half = x[0].dtype.type(0.5)
-        y = utils.force_array(numpy.tanh(x[0] * half) * half + half)
+    def forward_cpu(self, inputs):
+        x = inputs[0]
+        half = x.dtype.type(0.5)
+        y = utils.force_array(numpy.tanh(x * half) * half + half)
+        self.retain_inputs((0,))
         self.retain_outputs((0,))
         return y,
 
@@ -34,28 +37,45 @@ class Sigmoid(function.Function):
             y = cuda.elementwise(
                 'T x', 'T y', 'y = tanh(x * 0.5) * 0.5 + 0.5',
                 'sigmoid_fwd')(x)
-            self.retain_inputs(())
+        self.retain_inputs((0,))
         self.retain_outputs((0,))
         return y,
 
-    def backward_cpu(self, x, gy):
-        one = x[0].dtype.type(1)
-        y = self.output_data[0]
-        return utils.force_array(gy[0] * y * (one - y)),
+    def backward(self, indexes, grad_outputs):
+        print(self.get_retained_inputs()[0])
+        if isinstance(self.get_retained_inputs()[0].data, cuda.ndarray):
+            return self.backward_gpu(indexes, grad_outputs)
+        else:
+            return self.backward_cpu(indexes, grad_outputs)
 
-    def backward_gpu(self, inputs, grads):
-        x = inputs[0]
-        gy = grads[0]
-        y = self.output_data[0]
-        if (chainer.should_use_cudnn('==always') and gy.flags.c_contiguous and
-                x is not None and x.flags.c_contiguous):
+    def backward_cpu(self, indexes, grad_outputs):
+        x, = self.get_retained_inputs()
+        y, = self.get_retained_outputs()
+        gy, = grad_outputs
+        one = x.dtype.type(1)
+        ret = []
+        if 0 in indexes:
+            gx = utils.force_array(gy * y * (one - y))
+            ret.append(cast.cast(gx, x.dtype))
+
+        return ret
+
+    def backward_gpu(self, indexes, grad_outputs):
+        x = self.get_retained_inputs()[0].data
+        y = self.get_retained_outputs()[0].data
+        gy = grad_outputs[0].data
+        if (chainer.should_use_cudnn('==always') and gy.flags.c_contiguous
+                and x is not None and x.flags.c_contiguous):
             gx = cudnn.activation_backward(x, y, gy, _mode)
         else:
             gx = cuda.elementwise(
                 'T y, T gy', 'T gx',
                 'gx = gy * y * (1 - y)',
                 'sigmoid_bwd')(y, gy)
-        return gx,
+        ret = []
+        if 0 in indexes:
+            ret.append(cast.cast(gx, x.dtype))
+        return ret
 
 
 def sigmoid(x):
@@ -80,7 +100,8 @@ def sigmoid(x):
         >>> x
         array([-2.,  0.,  2.], dtype=float32)
         >>> F.sigmoid(x).data
-        array([ 0.11920291,  0.5       ,  0.88079709], dtype=float32)
+        variable([ 0.11920291,  0.5       ,  0.88079709])
 
     """
-    return Sigmoid()(x)
+    y, = Sigmoid().apply((x,))
+    return y

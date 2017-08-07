@@ -57,7 +57,7 @@ class TestSigmoid(unittest.TestCase):
     def check_backward(self, x_data, y_grad, use_cudnn='always'):
         with chainer.using_config('use_cudnn', use_cudnn):
             gradient_check.check_backward(
-                functions.Sigmoid(), x_data, y_grad,
+                functions.sigmoid, x_data, y_grad,
                 **self.check_backward_options)
 
     @condition.retry(3)
