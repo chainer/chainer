@@ -258,7 +258,7 @@ def tree_lstm(*inputs):
 
         Assuming ``y`` is the current input signal, ``c`` is the previous cell
         state, and ``h`` is the previous output signal from an
-        ``n_ary_tree_lstm`` function.
+        :meth:`~chainer.functions.tree_lstm` function.
         Each of ``y``, ``c`` and ``h`` has ``n_units`` channels.
         Using 2-ary (binary) TreeLSTM,
         most typical preparation of ``x`` is:
@@ -274,7 +274,7 @@ def tree_lstm(*inputs):
         >>> c1 = np.random.uniform(-1, 1, (4, 10)).astype('f')
         >>> c2 = np.random.uniform(-1, 1, (4, 10)).astype('f')
         >>> x = model.w(y) + model.v1(h1) + model.v2(h2)
-        >>> c, h = n_ary_tree_lstm(c1, c2, x)
+        >>> c, h = F.tree_lstm(c1, c2, x)
 
         It corresponds to calculate the input sources
         :math:`a, i, o, f_{\\text{1}}, f_{\\text{2}}`
