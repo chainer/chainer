@@ -241,7 +241,7 @@ class FunctionNode(object):
             # Add backward edges
             for i, y in enumerate(ret):
                 y.creator_node = self
-            self.inputs = twrdple([x.node for x in input_vars])
+            self.inputs = tuple([x.node for x in input_vars])
             # Add forward edges (must be weak references)
             self.outputs = tuple([weakref.ref(y.node) for y in ret])
 
