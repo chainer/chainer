@@ -24,7 +24,7 @@ def no_backprop_mode():
     :func:`~chianer.Variable.backward`.
 
     >>> x = chainer.Variable(np.array([1,], 'f'))
-    ... with chainer.no_backprop_mode():
+    >>> with chainer.no_backprop_mode():
     ...   y = x + 1
 
     """
@@ -43,6 +43,7 @@ def force_backprop_mode():
     In this example, ``y`` has a computational graph and ``y.backward``
     computes gradients of variables in the graph.
 
+    >>> x = chainer.Variable(np.array([1,], 'f'))
     >>> with chainer.no_backprop_mode():
     ...   with chainer.force_backprop_mode():
     ...     y = x + 1
