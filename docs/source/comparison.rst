@@ -34,8 +34,8 @@ This table compares Chainer with other actively developed deep learning framewor
    ,"Web interface",,,"`TensorBoard <https://github.com/tensorflow/tensorboard>`_",,,,,,,"DL4J-UI",,"Nervana Cloud",,,
    ,"Graph compilation engine",,2017,"`XLA <https://github.com/tensorflow/tensorflow/tree/master/tensorflow/compiler/xla/>`_",,2017,,"`NNVM <https://github.com/dmlc/nnvm>`_",,,,,"ngraph",,,
 
-.. [1] Define-by-run is in development as of June 2017 and tracked in `this PR <https://github.com/dmlc/mxnet/pull/5705>`_. It is also possible using the much slower MinPy extension.
-.. [2] Symbolic autograd is in development as of June 2017 and tracked in `this PR <https://github.com/deeplearning4j/nd4j/pull/1750>`_.
+.. [1] Define-by-run is in development as of June 2017 and tracked in `dmlc/mxnet#5705 <https://github.com/dmlc/mxnet/pull/5705>`_. It is also possible using the much slower MinPy extension.
+.. [2] Symbolic autograd is in development as of June 2017 and tracked in `deeplearning4j/nd4j#1750 <https://github.com/deeplearning4j/nd4j/pull/1750>`_.
 .. [3] Symbolic autograd is available only with ngraph backend (experimental).
 .. [4] Nervana provides kernels that are meant to compete with cuDNN.
 .. [5] Multiprocessing provides a significant performance improvement only for frameworks that use Python at runtime.
