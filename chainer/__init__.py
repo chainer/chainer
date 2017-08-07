@@ -33,6 +33,7 @@ from chainer.configuration import using_config  # NOQA
 from chainer.function import force_backprop_mode  # NOQA
 from chainer.function import Function  # NOQA
 from chainer.function import no_backprop_mode  # NOQA
+from chainer.function import FunctionAdapter  # NOQA
 from chainer.function_node import FunctionNode  # NOQA
 from chainer.functions import array  # NOQA
 from chainer.functions.math import basic_math  # NOQA
