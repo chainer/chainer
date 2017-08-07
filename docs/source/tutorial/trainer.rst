@@ -192,7 +192,7 @@ It outputs the spcified values to the standard output.
 
 :class:`~chainer.training.extensions.PlotReport` plots the values specified by its arguments saves it as a image file which has the same naem as the :attr:`~chainer.training.extensions.PlotReport.file_name` argument.
 
----
+----
 
 Each :class:`~chainer.training.Extension` class has different options and some extensions are not mentioned here. And one of other important feature is, for instance, by using the :attr:`~chainer.training.Extension.trigger` option, you can set individual timings to fire the :class:`~chainer.training.Extension`. To know more details of all extensions, please take a look at the official document: `Trainer extensions <reference/extensions.html>_`.
 
