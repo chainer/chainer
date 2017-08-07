@@ -23,9 +23,9 @@ def no_backprop_mode():
     In this example, ``y`` is created in this context. So you cannot call
     :func:`~chianer.Variable.backward`.
 
-    >>> x = chainer.Variable(numpy.array([1,], 'f'))
+    >>> x = chainer.Variable(np.array([1,], 'f'))
     >>> with chainer.no_backprop_mode():
-    ...    y = x + 1
+    ...   y = x + 1
 
     """
     return configuration.using_config('enable_backprop', False)
