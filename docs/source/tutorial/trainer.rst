@@ -114,6 +114,7 @@ Now let's create the :class:`~chainer.training.Updater` object !
 
     batchsize = 128
 
+    train, test = mnist.get_mnist()
     train_iter = iterators.SerialIterator(train, batchsize)
     test_iter = iterators.SerialIterator(test, batchsize, False, False)
 
