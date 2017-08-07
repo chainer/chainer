@@ -28,6 +28,7 @@ The below code shows how to retrieve the MNIST dataset from the server and save 
 
 .. code-block:: python
 
+    from __future__ import print_function
     import matplotlib.pyplot as plt
     from chainer.datasets import mnist
 
