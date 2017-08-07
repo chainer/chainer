@@ -22,7 +22,7 @@ Load the MNIST dataset, which contains a training set of images and class labels
 
 .. note::
 
-    **You can use a Python list as a dataset.** Because all types of objects whose element can be accessed via ``[]`` accessor and lengh can be obtained with ``len()`` function, can be used as a dataset given to the :class:`~chainer.training.Iterator`. For example,
+    **You can use a Python list as a dataset.** Because all types of objects whose element can be accessed via ``[]`` accessor and lengh can be obtained with ``len()`` function, can be used as a dataset given to the :class:`~chainer.dataset.Iterator`. For example,
 
     .. code-block:: python
 
