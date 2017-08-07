@@ -28,13 +28,15 @@ Load the MNIST dataset, which contains a training set of images and class labels
 
         train = [(x1, t1), (x2, t2), ...]
 
-    a list of tuples like this can also be used equally to a :class:`~chainer.dataset.DatasetMixin` object. But many useful :mod:`~chainer.dataset` classes enable to avoid storing all data on the memory at a time, so it's better to use them for large datasets.
+    a list of tuples like this can also be used equally to a :class:`~chainer.dataset.DatasetMixin` object.
+
+    But many useful abstracted :mod:`~chainer.datasets` enable to avoid storing all data on the memory at a time, so it's better to use them for large datasets. For example, :class:`~chainer.datasets.ImageDataset` takes paths to image files as its argument, and just keep the list in the dataset object. It means the actual image data will be loaded from disks using given paths when :meth:`~chainer.datasets.ImageDataset.__getitem__` is called. Until then, no images are loaded to the memory, so it can save the memory consumption.
 
 
 2. Prepare the dataset iterations
 '''''''''''''''''''''''''''''''''
 
-:class:`~chainer.training.Iterator` creates a mini-batch from the given dataset.
+:class:`~chainer.dataset.Iterator` creates a mini-batch from the given dataset.
 
 .. testcode::
 
@@ -46,7 +48,7 @@ Load the MNIST dataset, which contains a training set of images and class labels
 3. Prepare the model
 ''''''''''''''''''''
 
-Here, we are going to use the same model as :doc:`tutorial/train_loop.rst`.
+Here, we are going to use the same model as defined in :doc:`tutorial/train_loop.rst`.
 
 .. testcode::
 
@@ -76,7 +78,7 @@ Here, we are going to use the same model as :doc:`tutorial/train_loop.rst`.
 
 .. image:: ../../image/trainer/trainer.png
 
-Basically, all you need to pass to :class:`~chainer.training.Trainer` is an :class:`~chainer.training.Updater`. However, :class:`~chainer.training.Updater` contains an :class:`~chainer.training.Iterator` and :class:`~chainer.Optimizer`. Since :class:`~chainer.training.Iterator` can access the dataset and :class:`~chainer.Optimizer` has references to the model, :class:`~chainer.training.Updater` can access to the model to update its parameters.
+Basically, all you need to pass to :class:`~chainer.training.Trainer` is an :class:`~chainer.training.Updater`. However, :class:`~chainer.training.Updater` contains an :class:`~chainer.dataset.Iterator` and :class:`~chainer.Optimizer`. Since :class:`~chainer.dataset.Iterator` can access the dataset and :class:`~chainer.Optimizer` has references to the model, :class:`~chainer.training.Updater` can access to the model to update its parameters.
 
 So, :class:`~chainer.training.Updater` can perform the training procedure as shown below:
 

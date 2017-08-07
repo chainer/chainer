@@ -14,3 +14,6 @@ chainer.egg-info/
 dist/
 htmlcov/
 .idea/
+docs/source/reference/core
+docs/source/reference/generated
+docs/source/reference/util
