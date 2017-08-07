@@ -107,16 +107,16 @@ Now let's create the :class:`~chainer.training.Updater` object !
 
 .. note::
 
-    Here, the model defined above is passed to :class:`~chainer.links.Classifier` and changed to a new :class:`~chainer.Chain`. :class:`~chainer.links.Classifier`, which in fact inherits from the :class:`~chainer.Chain` class, keeps the :class:`~chainer.Chain` model in its :attr:`~chainer.links.Classifier.predictor` attribute. Once you give the input data and the corresponding class labels to the model by the ``()`` accessor,
+    Here, the model defined above is passed to :class:`~chainer.links.Classifier` and changed to a new :class:`~chainer.Chain`. :class:`~chainer.links.Classifier`, which in fact inherits from the :class:`~chainer.Chain` class, keeps the given :class:`~chainer.Chain` model in its :attr:`~chainer.links.Classifier.predictor` attribute. Once you give the input data and the corresponding class labels to the model by the ``()`` accessor,
 
-    1. :meth:`__call__` of the model is invoked. The data is then given to :attr:`~chainer.links.Classifier.predictor` to obtain the output ``y``.
-    2. Next, together with the given labels, the output ``y`` is passed to the loss function which is determined by :attr:`~chainer.links.Classifier.lossfun` argument in the constructor.
+    1. :meth:`~chainer.links.Classifier.__call__` of the model is invoked. The data is then given to :attr:`~chainer.links.Classifier.predictor` to obtain the output ``y``.
+    2. Next, together with the given labels, the output ``y`` is passed to the loss function which is determined by :attr:`~chainer.links.Classifier.lossfun` argument in the constructor of :class:`~chainer.links.Classifier`.
     3. The loss is returned as a :class:`~chainer.Variable`.
 
-    In :class:`~chianer.links.Classifiler`, the :attr:`~chainer.links.Classifier.lossfun` is set to
+    In :class:`~chainer.links.Classifiler`, the :attr:`~chainer.links.Classifier.lossfun` is set to
     :meth:`~chainer.functions.softmax_cross_entropy` as default.
 
-    :class:`~chainer.training.Standardupdater` is the simplest class among several updaters. There are also the :class:`~chainer.training.Parallelupdater` and the :class:`~chainer.training.updaters.MultiprocessParallelUpdater` to utilize multiple GPUs.
+    :class:`~chainer.training.StandardUpdater` is the simplest class among several updaters. There are also the :class:`~chainer.training.ParallelUpdater` and the :class:`~chainer.training.updaters.MultiprocessParallelUpdater` to utilize multiple GPUs.
 
 5. Setup Trainer
 ''''''''''''''''
@@ -129,7 +129,7 @@ Lastly, we will setup :class:`~chainer.training.Trainer`. The only requirement f
     trainer = training.Trainer(updater, (max_epoch, 'epoch'), out='mnist_result')
 
 The :attr:`~chainer.training.Trainer.out` argument specifies an output directory used to save the
-log files, the image files of graphs to show the time progress of loss, accuracy, etc. Next, we will explain how to display or save those information by using :class:`~chainer.training.Extension`.
+log files, the image files of plots to show the time progress of loss, accuracy, etc. when you use :class:`~chainer.training.extensions.PlotReport` extension. Next, we will explain how to display or save those information by using trainer :class:`~chainer.training.Extension`.
 
 6. Add Extensions to the Trainer object
 '''''''''''''''''''''''''''''''''''''''
