@@ -99,7 +99,7 @@ def sigmoid(x):
         >>> x = np.arange(-2, 3, 2).astype('f')
         >>> x
         array([-2.,  0.,  2.], dtype=float32)
-        >>> F.sigmoid(x).data
+        >>> F.sigmoid(x)
         variable([ 0.11920291,  0.5       ,  0.88079709])
 
     """
