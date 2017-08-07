@@ -243,20 +243,15 @@ class TestBatchNormalizationCudnnCall(unittest.TestCase):
                                              param_shape).astype(self.dtype)
         self.eps = 2e-5
         shape = (7,) + param_shape + (2,) * ndim
-        print('za shape: ', shape)
         self.x = cuda.cupy.random.uniform(-1, 1, shape).astype(self.dtype)
         self.gy = cuda.cupy.random.uniform(-1, 1, shape).astype(self.dtype)
         self.args = [self.x, self.gamma, self.beta]
         head_ndim = self.gamma.ndim + 1
-        print('head_ndim: ', head_ndim)
         self.aggr_axes = (0,) + tuple(six.moves.range(head_ndim, self.x.ndim))
-        print('self.aggr_axes: ', self.aggr_axes)
         self.mean = self.x.mean(axis=self.aggr_axes)
-        print('setUp, self.mean.shape: ', self.mean.shape)
         self.var = self.x.var(axis=self.aggr_axes) + self.eps
         with chainer.using_config('use_cudnn', self.use_cudnn):
             self.expect = chainer.should_use_cudnn('>=auto', 5000)
-        print('self.expect: ', self.expect)
 
     def forward(self):
         return functions.batch_normalization(

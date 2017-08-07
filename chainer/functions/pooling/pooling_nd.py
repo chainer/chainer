@@ -3,7 +3,6 @@ import six
 
 from chainer import cuda
 from chainer import function
-from chainer.functions.pooling import pooling_2d
 from chainer.utils import conv
 from chainer.utils import conv_nd
 from chainer.utils import type_check
@@ -12,10 +11,6 @@ from chainer.utils import type_check
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
     libcudnn = cudnn.cudnn
-    _cudnn_version = libcudnn.getVersion()
-
-
-_check_cudnn_acceptable_type = pooling_2d._check_cudnn_acceptable_type
 
 
 class _PoolingND(function.Function):

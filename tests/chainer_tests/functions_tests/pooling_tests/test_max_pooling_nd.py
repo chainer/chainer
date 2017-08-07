@@ -243,9 +243,6 @@ class TestMaxPoolingNDCudnnCall(unittest.TestCase):
         return functions.max_pooling_nd(
             x, self.ksize, self.stride, self.pad, cover_all=False)
 
-    @unittest.skipIf(cuda.cudnn_enabled and
-                     cuda.cudnn.cudnn.getVersion() < 3000,
-                     'Only cudnn ver>=3 supports max-pooling-nd')
     def test_call_cudnn_forward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             with mock.patch('cupy.cudnn.cudnn.poolingForward') as func:
@@ -254,9 +251,6 @@ class TestMaxPoolingNDCudnnCall(unittest.TestCase):
                                  chainer.should_use_cudnn('>=auto') and
                                  self.ndim > 1)
 
-    @unittest.skipIf(cuda.cudnn_enabled and
-                     cuda.cudnn.cudnn.getVersion() < 3000,
-                     'Only cudnn ver>=3 supports max-pooling-nd')
     def test_call_cudnn_backward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             expect = chainer.should_use_cudnn('>=auto') and self.ndim > 1

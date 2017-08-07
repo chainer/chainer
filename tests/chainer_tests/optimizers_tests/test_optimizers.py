@@ -23,7 +23,9 @@ from chainer import testing
 class TestOptimizerHyperparameter(unittest.TestCase):
 
     def setUp(self):
-        self.target = chainer.Link(w=())
+        self.target = chainer.Link()
+        with self.target.init_scope():
+            self.target.w = chainer.Parameter()
 
     def create(self, *args, **kwargs):
         self.optimizer = self.impl(*args, **kwargs)
@@ -36,7 +38,6 @@ class TestOptimizerHyperparameter(unittest.TestCase):
         self.create()
         default = self.optimizer.hyperparam.get_dict()
         for name, default_value in six.iteritems(default):
-            print('test param "{}"'.format(name))
             self.create()
             self.assertEqual(self.get_hyperparam(name), default_value)
             new_value = default_value + 0.1

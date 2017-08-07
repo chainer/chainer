@@ -12,6 +12,8 @@ from chainer.testing.helper import with_requires  # NOQA
 from chainer.testing.parameterized import parameterize  # NOQA
 from chainer.testing.parameterized import product  # NOQA
 from chainer.testing.parameterized import product_dict  # NOQA
+from chainer.testing.random import fix_random  # NOQA
+from chainer.testing.random import generate_seed  # NOQA
 from chainer.testing.serializer import save_and_load  # NOQA
 from chainer.testing.serializer import save_and_load_hdf5  # NOQA
 from chainer.testing.serializer import save_and_load_npz  # NOQA
