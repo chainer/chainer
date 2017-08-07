@@ -560,13 +560,13 @@ Assign a Parameter object directly to an attribute within a \
 
     @property
     def size(self):
-        """Count the size of parameters.
+        """Count the total size of parameters.
 
         If the link containts uninitialized parameters, this raises a warning
         message that says which parameter has not been initialized.
 
         Returns:
-            The size of parameters (int)
+            The total size of parameters (int)
 
         """
 
