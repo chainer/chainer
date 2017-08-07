@@ -71,6 +71,11 @@ All :class:`~chainer.dataset.Iterator`\s produce a new mini-batch by calling its
 
 The code below shows how to create a :class:`~chainer.iterators.SerialIterator` object from a dataset object.
 
+.. testsetup:: *
+
+    from chainer.datasets import mnist
+    train, test = mnist.get_mnist(withlabel=True, ndim=1)
+
 .. testcode::
 
     from chainer import iterators
@@ -136,6 +141,8 @@ The main steps are twofold:
                 h = F.relu(self.l2(h))
                 return self.l3(h)
 
+        model = MyNetwork()
+
 :class:`~chainer.Link`, :class:`~chainer.Chain`, :class:`~chainer.ChainList`, and those subclass objects which contain trainable parameters should be registered to the model by assigning it as a property inside the :meth:`~chainer.Chain.init_scope`. For example, a :class:`~chainer.Function` does not contain any trainable parameters, so there is no need to keep the object as a property of your network. When you want to use :meth:`~chainer.functions.relu` in your network, using it as a function in :meth:`~chainer.Chain.__call__` works correctly.
 
 In Chainer, the Python code that implements the forward computation itself represents the network. In other words, we can conceptually think of the computation graph for our network being constructed dynamically as this forward computation code executes. This allows Chainer to describe networks in which different computations can be performed in each iteration, such as branched networks, intuitively and with a high degree of flexibility. This is the key feature of Chainer that we call **Define-by-Run**.
@@ -151,6 +158,10 @@ Here, we are going to use the stochastic gradient descent (SGD) method with mome
 
 You can easily try out other optimizers as well. Please test and observe the results of various optimizers. For example, you could try to change :class:`~chainer.optimizers.MomentumSGD` to :class:`~chainer.optimizers.Adam`,
 :class:`~chainer.optimizers.RMSprop`, etc.
+
+.. testsetup:: *
+
+    model = MyNetwork()
 
 .. testcode::
 
