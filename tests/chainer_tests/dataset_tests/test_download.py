@@ -121,14 +121,14 @@ class TestCachedDownload(unittest.TestCase):
     def test_fail_to_make_dir(self):
         with mock.patch('os.makedirs') as f:
             f.side_effect = OSError()
-            with self.assertRaises(RuntimeError):
+            with self.assertRaises(OSError):
                 dataset.cached_download('http://example.com')
 
     def test_file_exists(self):
         # Make an empty file which has the same name as the cache directory
         with open(os.path.join(self.temp_dir, '_dl_cache'), 'w'):
             pass
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(OSError):
             dataset.cached_download('http://example.com')
 
     def test_cached_download(self):

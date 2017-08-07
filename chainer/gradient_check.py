@@ -12,7 +12,7 @@ from chainer import variable
 
 def _copy_arrays(xs):
     xp = cuda.get_array_module(*xs)
-    return [xp.copy(x) for x in xs]
+    return [xp.copy(x, order='C') for x in xs]
 
 
 def numerical_grad(f, inputs, grad_outputs, eps=1e-3):
