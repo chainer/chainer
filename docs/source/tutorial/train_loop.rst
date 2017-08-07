@@ -33,7 +33,7 @@ Chainer contains some built-in functions to use some popular datasets like MNIST
 
 The code below shows how to retrieve the MNIST dataset from the server and save an image from its training split to make sure the images are correctly obtained.
 
-.. testcode::
+.. code-block:: python
 
     import matplotlib.pyplot as plt
     from chainer.datasets import mnist
@@ -42,14 +42,14 @@ The code below shows how to retrieve the MNIST dataset from the server and save 
     train, test = mnist.get_mnist(withlabel=True, ndim=1)
 
     # Display an example from the MNIST dataset.
-    # `x` contains the input image array and `t` contains that target class
+    # `x` contains the inpu t image array and `t` contains that target class
     # label as an integer.
     x, t = train[0]
     plt.imshow(x.reshape(28, 28), cmap='gray')
     plt.savefig('5.png')
     print('label:', t)
 
-.. testoutput::
+.. code-block:: bash
 
     label: 5
 
@@ -292,7 +292,7 @@ following two steps:
 
 Once the model is restored, it can be used to predict image labels on new input data.
 
-.. testcode::
+.. code-block:: python
 
     from chainer import serializers
 
@@ -308,7 +308,7 @@ Once the model is restored, it can be used to predict image labels on new input 
     plt.savefig('7.png')
     print('label:', t)
 
-.. testoutput::
+.. code-block:: bash
 
     label: 7
 
