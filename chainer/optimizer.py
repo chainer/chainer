@@ -595,7 +595,7 @@ class HyperparameterProxy(object):
         setattr(obj.hyperparam, self._attr_name, value)
 
 
-def deprecation_warning_wrappter(mod, deprecated):
+def deprecation_warning_wrapper(mod, deprecated):
 
     deprecated = set(deprecated)
 

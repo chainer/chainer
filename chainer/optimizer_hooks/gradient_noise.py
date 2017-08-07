@@ -3,6 +3,16 @@ import numpy
 from chainer import cuda
 
 
+def exponential_decay_noise(xp, shape, dtype, hook, opt):
+    """Time-dependent annealed Gaussian noise function from the paper:
+
+    `Adding Gradient Noise Improves Learning for Very Deep Networks
+    <https://arxiv.org/pdf/1511.06807>`_.
+    """
+    std = numpy.sqrt(hook.eta / numpy.power(1 + opt.t, 0.55))
+    return xp.random.normal(0, std, shape).astype(dtype)
+
+
 class GradientNoise(object):
     """Optimizer/UpdateRule hook function for adding gradient noise.
 
