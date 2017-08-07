@@ -38,6 +38,10 @@ Load the MNIST dataset, which contains a training set of images and class labels
 
 :class:`~chainer.dataset.Iterator` creates a mini-batch from the given dataset.
 
+.. testsetup:: *
+
+    train, test = mnist.get_mnist()
+
 .. testcode::
 
     batchsize = 128
@@ -56,7 +60,7 @@ Here, we are going to use the same model as defined in :doc:`tutorial/train_loop
 
         def __init__(self, n_mid_units=100, n_out=10):
             super(MLP, self).__init__()
-            self.init_scope():
+            with self.init_scope():
                 self.l1 = L.Linear(None, n_mid_units)
                 self.l2 = L.Linear(None, n_mid_units)
                 self.l3 = L.Linear(None, n_out)
@@ -87,6 +91,31 @@ So, :class:`~chainer.training.Updater` can perform the training procedure as sho
 3. Update the parameters of the model (:class:`~chainer.Optimizer`)
 
 Now let's create the :class:`~chainer.training.Updater` object !
+
+.. testsetup:: *
+
+    from chainer.datasets import mnist
+
+    class MLP(Chain):
+
+        def __init__(self, n_mid_units=100, n_out=10):
+            super(MLP, self).__init__()
+            with self.init_scope():
+                self.l1 = L.Linear(None, n_mid_units)
+                self.l2 = L.Linear(None, n_mid_units)
+                self.l3 = L.Linear(None, n_out)
+
+        def __call__(self, x):
+            h1 = F.relu(self.l1(x))
+            h2 = F.relu(self.l2(h1))
+            return self.l3(h2)
+
+    model = MLP()
+
+    batchsize = 128
+
+    train_iter = iterators.SerialIterator(train, batchsize)
+    test_iter = iterators.SerialIterator(test, batchsize, False, False)
 
 .. testcode::
 
@@ -122,6 +151,13 @@ Now let's create the :class:`~chainer.training.Updater` object !
 ''''''''''''''''
 
 Lastly, we will setup :class:`~chainer.training.Trainer`. The only requirement for creating a :class:`~chainer.training.Trainer` is to pass the :class:`~chainer.training.Updater` object that we previously created above. You can also pass a :attr:`~chainer.training.Trainer.stop_trigger` to the second trainer argument as a tuple like ``(length, unit)`` to tell the trainer when to stop the training. The ``length`` is given as an integer and the ``unit`` is given as a string which should be either ``epoch`` or ``iteration``. Without setting :attr:`~chainer.training.Trainer.stop_trigger`, the training will never be stopped.
+
+.. testsetup:: *
+
+    model = L.Classifier(model)
+    optimizer = optimizers.MomentumSGD()
+    optimizer.setup(model)
+    updater = training.StandardUpdater(train_iter, optimizer)
 
 .. testcode::
 
@@ -202,7 +238,7 @@ Each :class:`~chainer.training.Extension` class has different options and some e
 Just call :meth:`~chainer.training.Trainer.run` method from
 :class:`~chainer.training.Trainer` object to start training.
 
-.. testcode::
+.. code-block:: python
 
     trainer.run()
 
@@ -243,7 +279,7 @@ From the top to the bottom, you can see the data flow in the computational graph
 
 Evaluation using the snapshot of a model is as easy as what explained in the :doc:`tutorial/train_loop.rst`.
 
-.. testcode::
+.. code-block:: python
 
     import matplotlib.pyplot as plt
 
