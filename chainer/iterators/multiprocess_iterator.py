@@ -12,7 +12,8 @@ import six
 from chainer.dataset import iterator
 
 
-_long_time = 1000000
+_response_time = 1.
+_short_time = 0.001
 _PrefetchState = namedtuple('_PrefetchState', (
     'current_position', 'epoch', 'is_new_epoch',
     'previous_epoch_detail', 'order'))
@@ -85,10 +86,15 @@ class MultiprocessIterator(iterator.Iterator):
     next = __next__
 
     def __del__(self):
-        if not self._finalized:
+        d = self.__dict__
+        if '_finalized' in d and not self._finalized:
             self._finalized = True
-            self._comm.terminate()
-            self._thread.join(_long_time)
+            if '_comm' in d:
+                self._comm.terminate()
+            if '_thread' in d:
+                t = self._thread
+                while t.is_alive():
+                    t.join(_response_time)
 
     finalize = __del__
 
@@ -182,11 +188,16 @@ class _Communicator(object):
         self._status = _Communicator.STATUS_CONTINUE
         self._reset_count = 0
 
+    @property
+    def is_terminated(self):
+        with self._lock:
+            return self._status == _Communicator.STATUS_TERMINATE
+
     # called from iterator
     def get(self):
         with self._lock:
-            if len(self._batch_queue) == 0:
-                self._not_empty_cond.wait(_long_time)
+            while len(self._batch_queue) == 0:
+                self._not_empty_cond.wait(_response_time)
             batch, prefetch_state = self._batch_queue.pop(0)
             self._not_full_cond.notify()
             return batch, prefetch_state
@@ -238,49 +249,86 @@ class _PrefetchLoop(object):
         self.shuffle = shuffle
         self.n_processes = n_processes
         self.mem_size = mem_size
-        self._allocate_shared_memory()
         self.comm = comm
 
+        self._allocate_shared_memory()
+        self._pool = None
+
+        self._interruption_testing = _interruption_testing
+
     def __call__(self):
-        chunk_size = max(self.batch_size // self.n_processes // 2, 1)
-
-        def task(pool):
-            status, prefetch_state, reset_count = self.comm.check()
-            if status == _Communicator.STATUS_RESET:
-                self.prefetch_state = prefetch_state
-            elif status == _Communicator.STATUS_TERMINATE:
-                return False  # stop loop
-
-            indices = self._proceed()
-            if indices is None:  # stop iteration
-                batch = None
-            elif pool is None:  # measure mode
-                batch = [self.dataset[idx] for idx in indices]
-                self.mem_size = max(map(_measure, batch))
-                self._allocate_shared_memory()
-            else:
-                data_it = pool.imap(
-                    _fetch_run, enumerate(indices), chunk_size)
-                batch = [_unpack(data, self.mem_bulk) for data in data_it]
-
-            self.comm.put(batch, self.prefetch_state, reset_count)
-            return True
 
         if self.mem_bulk is None:
-            if not task(None):
+            if not self._task():
                 return
 
-        pool = multiprocessing.Pool(
+        self._pool = multiprocessing.Pool(
             processes=self.n_processes,
             initializer=_fetch_setup,
             initargs=(self.dataset, self.mem_size, self.mem_bulk))
         alive = True
         try:
             while alive:
-                alive = task(pool)
+                alive = self._task()
         finally:
-            pool.close()
-            pool.join()
+            self._pool.close()
+            self._pool.join()
+
+    def _task(self):
+        status, prefetch_state, reset_count = self.comm.check()
+        if status == _Communicator.STATUS_RESET:
+            self.prefetch_state = prefetch_state
+        elif status == _Communicator.STATUS_TERMINATE:
+            return False  # stop loop
+
+        indices = self._proceed()
+        if indices is None:  # stop iteration
+            batch = None
+        elif self._pool is None:  # measure mode
+            # To enable terminating the thread on Python 2.7,
+            # we spawn another process.
+            # We don't use Pool here, because creating Pools in short-time
+            # had caused rare deadlock on Python 3.5.2.
+            q = multiprocessing.Queue()
+            p = multiprocessing.Process(target=_measure_run,
+                                        args=(self.dataset, indices, q))
+            p.daemon = True
+            p.start()
+            try:
+                while True:
+                    try:
+                        batch = q.get(timeout=_response_time)
+                    except six.moves.queue.Empty:
+                        if self.comm.is_terminated:
+                            return False
+                        if not p.is_alive():
+                            return False
+                    else:
+                        if isinstance(batch, Exception):
+                            raise batch
+                        else:
+                            break
+            finally:
+                p.terminate()
+                p.join()
+
+            self.mem_size = max(map(_measure, batch))
+            self._allocate_shared_memory()
+        else:
+            future = self._pool.map_async(_fetch_run, enumerate(indices))
+            while True:
+                try:
+                    data_all = future.get(_response_time)
+                except multiprocessing.TimeoutError:
+                    if self.comm.is_terminated:
+                        return False
+                else:
+                    break
+
+            batch = [_unpack(data, self.mem_bulk) for data in data_all]
+
+        self.comm.put(batch, self.prefetch_state, reset_count)
+        return True
 
     def _allocate_shared_memory(self):
         if self.mem_size is not None:
@@ -327,6 +375,14 @@ class _PrefetchLoop(object):
             new_pos, epoch, is_new_epoch,
             previous_epoch_detail, order)
         return indices
+
+
+def _measure_run(dataset, indices, q):
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
+    try:
+        q.put([dataset[idx] for idx in indices])
+    except Exception as e:
+        q.put(e)
 
 
 # Using `parametarized` funciton (e.g. bound method) with Pool is tricky due to
