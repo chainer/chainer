@@ -12,7 +12,7 @@ import six
 from chainer.dataset import iterator
 
 
-_long_time = 10000000
+_long_time = 1000000
 _PrefetchState = namedtuple('_PrefetchState', (
     'current_position', 'epoch', 'is_new_epoch',
     'previous_epoch_detail', 'order'))
