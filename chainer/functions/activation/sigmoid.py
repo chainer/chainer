@@ -3,7 +3,6 @@ import numpy
 import chainer
 from chainer import cuda
 from chainer import function_node
-from chainer.functions.array import cast
 from chainer import utils
 from chainer.utils import type_check
 
@@ -42,40 +41,34 @@ class Sigmoid(function_node.FunctionNode):
         return y,
 
     def backward(self, indexes, grad_outputs):
-        print(self.get_retained_inputs()[0])
-        if isinstance(self.get_retained_inputs()[0].data, cuda.ndarray):
-            return self.backward_gpu(indexes, grad_outputs)
-        else:
-            return self.backward_cpu(indexes, grad_outputs)
-
-    def backward_cpu(self, indexes, grad_outputs):
         x, = self.get_retained_inputs()
         y, = self.get_retained_outputs()
         gy, = grad_outputs
         one = x.dtype.type(1)
         ret = []
         if 0 in indexes:
-            gx = utils.force_array(gy * y * (one - y))
-            ret.append(cast.cast(gx, x.dtype))
-
+            gx = gy * y * (one - y)
+            ret.append(gx)
         return ret
 
-    def backward_gpu(self, indexes, grad_outputs):
-        x = self.get_retained_inputs()[0].data
-        y = self.get_retained_outputs()[0].data
-        gy = grad_outputs[0].data
-        if (chainer.should_use_cudnn('==always') and gy.flags.c_contiguous
-                and x is not None and x.flags.c_contiguous):
+    def backward_cpu(self, x, gy):
+        one = x[0].dtype.type(1)
+        y = self.output_data[0]
+        return utils.force_array(gy[0] * y * (one - y)),
+
+    def backward_gpu(self, inputs, grads):
+        x = inputs[0]
+        gy = grads[0]
+        y = self.output_data[0]
+        if (chainer.should_use_cudnn('==always') and gy.flags.c_contiguous and
+                x is not None and x.flags.c_contiguous):
             gx = cudnn.activation_backward(x, y, gy, _mode)
         else:
             gx = cuda.elementwise(
                 'T y, T gy', 'T gx',
                 'gx = gy * y * (1 - y)',
                 'sigmoid_bwd')(y, gy)
-        ret = []
-        if 0 in indexes:
-            ret.append(cast.cast(gx, x.dtype))
-        return ret
+        return gx,
 
 
 def sigmoid(x):

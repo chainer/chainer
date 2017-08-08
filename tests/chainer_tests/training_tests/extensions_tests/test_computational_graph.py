@@ -39,7 +39,7 @@ class Model(chainer.Link):
 
         h = self.l1(x)
         if self.i == 0:
-            h = functions.Sigmoid()(h)
+            h = functions.Sigmoid().apply((h,))
         else:
             h = functions.Tanh()(h)
         h = self.l2(h)
