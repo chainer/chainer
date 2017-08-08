@@ -131,7 +131,7 @@ The main steps are twofold:
         class MyNetwork(Chain):
 
             def __init__(self, n_mid_units=100, n_out=10):
-                super().__init__()
+                super(MyNetwork, self).__init__()
                 with self.init_scope():
                     self.l1 = L.Linear(None, n_mid_units)
                     self.l2 = L.Linear(n_mid_units, n_mid_units)
@@ -165,7 +165,7 @@ You can easily try out other optimizers as well. Please test and observe the res
     class MyNetwork(Chain):
 
         def __init__(self, n_mid_units=100, n_out=10):
-            super().__init__()
+            super(MyNetwork, self).__init__()
             with self.init_scope():
                 self.l1 = L.Linear(None, n_mid_units)
                 self.l2 = L.Linear(n_mid_units, n_mid_units)
