@@ -77,6 +77,14 @@ The code below shows how to create a :class:`~chainer.iterators.SerialIterator` 
     from chainer.datasets import mnist
     train, test = mnist.get_mnist(withlabel=True, ndim=1)
 
+.. testoutput::
+    :options: -IGNORE_EXCEPTION_DETAIL +NORMALIZE_WHITESPACE
+
+    Downloading from http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz...
+    Downloading from http://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz...
+    Downloading from http://yann.lecun.com/exdb/mnist/t10k-images-idx3-ubyte.gz...
+    Downloading from http://yann.lecun.com/exdb/mnist/t10k-labels-idx1-ubyte.gz...
+
 .. testcode::
 
     from chainer import iterators
