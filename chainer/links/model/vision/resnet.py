@@ -72,8 +72,8 @@ class ResNetLayers(link.Chain):
             50, 101, or 152.
 
     Attributes:
-        available_layers (list of str): The list of available layer names
-            used by ``__call__`` and ``extract`` methods.
+        ~ResNetLayers.available_layers (list of str): The list of available
+            layer names used by ``__call__`` and ``extract`` methods.
 
     """
 
@@ -320,8 +320,8 @@ class ResNet50Layers(ResNetLayers):
             ``chainer.initializers.HeNormal(scale=1.0)``.
 
     Attributes:
-        available_layers (list of str): The list of available layer names
-            used by ``__call__`` and ``extract`` methods.
+        ~ResNet50Layers.available_layers (list of str): The list of available
+            layer names used by ``__call__`` and ``extract`` methods.
 
     """
 
@@ -373,8 +373,8 @@ class ResNet101Layers(ResNetLayers):
             ``chainer.initializers.HeNormal(scale=1.0)``.
 
     Attributes:
-        available_layers (list of str): The list of available layer names
-            used by ``__call__`` and ``extract`` methods.
+        ~ResNet101Layers.available_layers (list of str): The list of available
+            layer names used by ``__call__`` and ``extract`` methods.
 
     """
 
@@ -425,8 +425,8 @@ class ResNet152Layers(ResNetLayers):
             ``chainer.initializers.HeNormal(scale=1.0)``.
 
     Attributes:
-        available_layers (list of str): The list of available layer names
-            used by ``__call__`` and ``extract`` methods.
+        ~ResNet152Layers.available_layers (list of str): The list of available
+            layer names used by ``__call__`` and ``extract`` methods.
 
     """
 

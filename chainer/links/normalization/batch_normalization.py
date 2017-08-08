@@ -57,8 +57,8 @@ class BatchNormalization(link.Link):
         avg_var (numpy.ndarray or cupy.ndarray): Population variance.
         N (int): Count of batches given for fine-tuning.
         decay (float): Decay rate of moving average. It is used on training.
-        eps (float): Epsilon value for numerical stability. This value is added
-            to the batch variances.
+        ~BatchNormalization.eps (float): Epsilon value for numerical stability.
+            This value is added to the batch variances.
 
     """
 

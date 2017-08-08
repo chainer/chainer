@@ -190,6 +190,7 @@ Mathematical functions
    chainer.functions.mean
    chainer.functions.min
    chainer.functions.minimum
+   chainer.functions.prod
    chainer.functions.rsqrt
    chainer.functions.scale
    chainer.functions.sin
