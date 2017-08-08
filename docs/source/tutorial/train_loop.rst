@@ -64,14 +64,6 @@ All :class:`~chainer.dataset.Iterator` s produce a new mini-batch by calling its
 
 The below code shows how to create a :class:`~chainer.iterators.SerialIterator` object from a dataset object.
 
-.. testoutput::
-    :options: -IGNORE_EXCEPTION_DETAIL +NORMALIZE_WHITESPACE
-
-    Downloading from http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz...
-    Downloading from http://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz...
-    Downloading from http://yann.lecun.com/exdb/mnist/t10k-images-idx3-ubyte.gz...
-    Downloading from http://yann.lecun.com/exdb/mnist/t10k-labels-idx1-ubyte.gz...
-
 .. testcode::
 
     from chainer import iterators
@@ -82,6 +74,14 @@ The below code shows how to create a :class:`~chainer.iterators.SerialIterator` 
     train_iter = iterators.SerialIterator(train, batchsize)
     test_iter = iterators.SerialIterator(test, batchsize,
                                          repeat=False, shuffle=False)
+
+.. testoutput::
+    :options: -IGNORE_EXCEPTION_DETAIL +NORMALIZE_WHITESPACE
+
+    Downloading from http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz...
+    Downloading from http://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz...
+    Downloading from http://yann.lecun.com/exdb/mnist/t10k-images-idx3-ubyte.gz...
+    Downloading from http://yann.lecun.com/exdb/mnist/t10k-labels-idx1-ubyte.gz...
 
 .. note::
 
