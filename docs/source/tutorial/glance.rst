@@ -1,4 +1,4 @@
-/hainer at a Glance
+Chainer at a Glance
 -----------------------
 
 .. currentmodule:: chainer
