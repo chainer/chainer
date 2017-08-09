@@ -3,6 +3,7 @@ from collections import namedtuple
 import multiprocessing
 from multiprocessing import sharedctypes
 import signal
+import sys
 import threading
 import warnings
 
@@ -50,6 +51,8 @@ class MultiprocessIterator(iterator.Iterator):
 
     """
 
+    _interruption_testing = False  # for testing
+
     def __init__(self, dataset, batch_size, repeat=True, shuffle=True,
                  n_processes=None, n_prefetch=1, shared_mem=None):
         self.dataset = dataset
@@ -68,7 +71,8 @@ class MultiprocessIterator(iterator.Iterator):
 
         prefetch_loop = _PrefetchLoop(
             self.dataset, self.batch_size, self.repeat, self.shuffle,
-            self.n_processes, self.n_prefetch, self.shared_mem, self._comm)
+            self.n_processes, self.n_prefetch, self.shared_mem, self._comm,
+            self.__class__._interruption_testing)
         self._thread = threading.Thread(
             target=prefetch_loop, name='prefetch_loop')
         self._thread.setDaemon(True)
@@ -242,7 +246,8 @@ class _Communicator(object):
 class _PrefetchLoop(object):
 
     def __init__(self, dataset, batch_size, repeat, shuffle,
-                 n_processes, n_prefetch, mem_size, comm):
+                 n_processes, n_prefetch, mem_size, comm,
+                 _interruption_testing):
         self.dataset = dataset
         self.batch_size = batch_size
         self.repeat = repeat
@@ -266,6 +271,11 @@ class _PrefetchLoop(object):
             processes=self.n_processes,
             initializer=_fetch_setup,
             initargs=(self.dataset, self.mem_size, self.mem_bulk))
+        if self._interruption_testing:
+            pids = self._pool.map(_report_pid, range(self.n_processes))
+            print(' '.join(map(str, pids)))
+            sys.stdout.flush()
+
         alive = True
         try:
             while alive:
@@ -376,6 +386,9 @@ class _PrefetchLoop(object):
             previous_epoch_detail, order)
         return indices
 
+    def _set_testing(self):
+        self._testing = True
+
 
 def _measure_run(dataset, indices, q):
     signal.signal(signal.SIGINT, signal.SIG_IGN)
@@ -412,6 +425,10 @@ def _fetch_run(inputs):
         limit = offset + _fetch_mem_size
         data = _pack(data, _fetch_mem_bulk, offset, limit)
     return data
+
+
+def _report_pid(_):  # for testing
+    return multiprocessing.current_process().pid
 
 
 class _PackedNdarray(object):

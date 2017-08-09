@@ -1,6 +1,13 @@
 from __future__ import division
 import copy
+import errno
+import os
+import signal
+import subprocess
+import sys
+import tempfile
 import threading
+import time
 import unittest
 
 import numpy
@@ -400,6 +407,135 @@ class TestMultiprocessIteratorConcurrency(unittest.TestCase):
         deadlock = t.is_alive()
 
         self.assertFalse(deadlock)
+
+
+class TestMultiprocessIteratorInterruption(unittest.TestCase):
+
+    def setUp(self):
+        self.code_path = None
+        self.sys_path_appended = False
+
+    def tearDown(self):
+        if self.code_path is not None:
+            os.remove(self.code_path)
+        if self.sys_path_appended:
+            sys.path.pop()
+
+    def run_code(self, dataset, n_processes, n_prefetch, shared_mem,
+                 operation):
+        code_template = """
+import random
+import time
+from chainer import iterators
+
+class InfiniteWaitDataSet(object):
+    def __len__(self):
+        return 1000000
+    def __getitem__(self, _):
+        time.sleep(1000000)
+infinite_wait = InfiniteWaitDataSet()
+
+class NoWaitDataSet(object):
+    def __len__(self):
+        return 1000000
+    def __getitem__(self, _):
+        return 0
+no_wait = NoWaitDataSet()
+
+if __name__ == '__main__':
+    if {shared_mem} is not None:
+        iterators.MultiprocessIterator._interruption_testing = True
+    it = iterators.MultiprocessIterator({dataset}, 100,
+                                        n_processes={n_processes},
+                                        n_prefetch={n_prefetch},
+                                        shared_mem={shared_mem})
+    {operation}
+        """
+        code = code_template.format(dataset=dataset,
+                                    n_processes=n_processes,
+                                    n_prefetch=n_prefetch,
+                                    shared_mem=shared_mem,
+                                    operation=operation)
+        fd, self.code_path = tempfile.mkstemp(suffix='.py')
+        os.write(fd, six.b(code))
+        os.close(fd)
+        sys.path.append(os.path.dirname(self.code_path))
+        self.sys_path_appended = True
+
+        stdout = None if shared_mem is None else subprocess.PIPE
+        self.p = subprocess.Popen([sys.executable, self.code_path],
+                                  stdout=stdout)
+        if stdout is None:
+            self.child_pids = []
+        else:
+            self.child_pids = list(map(int, self.p.stdout.readline().split()))
+
+    def send_sigint(self):
+        if os.name == 'nt':
+            try:
+                os.kill(self.p.pid, signal.CTRL_C_EVENT)
+                while True:
+                    pass
+            except KeyboardInterrupt:
+                pass
+        else:
+            os.kill(self.p.pid, signal.SIGINT)
+
+    def killall(self):
+        # try waiting the root process
+        for _ in range(10):
+            time.sleep(1)
+            if self.p.poll() is not None:
+                self.p.wait()
+                break
+
+        pids = [self.p.pid] + self.child_pids
+
+        was_alive = False
+        for pid in pids:
+            try:
+                if os.name == 'nt':
+                    os.kill(pid, signal.SIGTERM)
+                else:
+                    os.kill(pid, signal.SIGKILL)
+            except OSError as e:
+                # no such pid (unix)
+                if e.errno == errno.ESRCH:
+                    pass
+                # process terminated but its handle remains (Windows)
+                elif e.errno == errno.EACCES:
+                    pass
+                # process terminated and its handle erased (Windows)
+                elif e.errno == errno.EINVAL:
+                    pass
+                else:
+                    raise
+            else:  # process had existed and successfully killed
+                was_alive = True
+        return was_alive
+
+    def test_interrupt_infinite_wait_batch(self):
+        for shared_mem in (None, 1000000):
+            self.run_code(dataset='infinite_wait',
+                          n_processes=2,
+                          n_prefetch=1,
+                          shared_mem=shared_mem,
+                          operation='it.next()')
+            time.sleep(1.5)
+            self.send_sigint()
+            self.assertFalse(self.killall())
+
+    def test_interrupt_no_wait_batch(self):
+        for shared_mem in (None, 1000000):
+            for n_prefetch in (1, 2):
+                self.run_code(dataset='no_wait',
+                              n_processes=2,
+                              n_prefetch=n_prefetch,
+                              shared_mem=shared_mem,
+                              operation='time.sleep(1000)')
+                time.sleep(1.5)
+                self.send_sigint()
+                self.assertFalse(self.killall())
 
 
 testing.run_module(__name__, __file__)
