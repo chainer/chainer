@@ -1,4 +1,4 @@
-Chainer at a Glance
+/hainer at a Glance
 -----------------------
 
 .. currentmodule:: chainer
@@ -24,7 +24,7 @@ Full Code
 
 Here's the whole picture of the code:
 
-::
+.. code-block:: python
     
     #!/usr/bin/env python
     
@@ -131,7 +131,7 @@ Code Breakdown
 
 Let's start our python program. Matplotlib is used for the graphs to show training progress.
 
-::
+.. code-block:: python
 
    #!/usr/bin/env python
    
@@ -145,7 +145,7 @@ Let's start our python program. Matplotlib is used for the graphs to show traini
 
 Typical imports for a Chainer program. Links contain trainable parameters and functions do not.
 
-::
+.. code-block:: python
 
    import chainer
    import chainer.functions as F
@@ -158,7 +158,7 @@ Typical imports for a Chainer program. Links contain trainable parameters and fu
    
 From the raw mushroom.csv, we format the data into a Chainer dataset. Chainer requires a numpy array for the features in the X matrix and a flattened array if the label is one-dimensional.
 
-::
+.. code-block:: python
 
    data_array = np.genfromtxt('mushrooms.csv', delimiter=',',dtype=str, skip_header=1)
    labelEncoder = sp.LabelEncoder()
@@ -171,7 +171,7 @@ From the raw mushroom.csv, we format the data into a Chainer dataset. Chainer re
    
 Define the neural network. For our mushrooms, we'll use two fully-connected, hidden layers between the input and output layers.
 
-::
+.. code-block:: python
 
    # Network definition
    class MLP(chainer.Chain):
@@ -186,7 +186,7 @@ Define the neural network. For our mushrooms, we'll use two fully-connected, hid
    
 As an activation function, we'll use standard Rectified Linear Units (relu).
 
-::
+.. code-block:: python
 
        def __call__(self, x):
    	h1 = F.relu(self.l1(x))
@@ -195,13 +195,13 @@ As an activation function, we'll use standard Rectified Linear Units (relu).
    
 Since mushrooms are either edible or poisonous (no information on psychedelic effects!) in the dataset, we'll use a classifier Link for the output, with 100 units in the hidden layers and 2 possible categories to be classified into.
    
-::
+.. code-block:: python
 
    model = L.Classifier(MLP(100, 2))
 
 If using a CPU instead of the GPU, set gpu_id to -1. Otherwise, use the ID of the GPU, usually 0.
 
-::
+.. code-block:: python
 
    gpu_id = -1
    
@@ -212,7 +212,7 @@ If using a CPU instead of the GPU, set gpu_id to -1. Otherwise, use the ID of th
    
 Pick and optimizer, and set up the model to use it.
 
-::
+.. code-block:: python
 
    # Setup an optimizer
    optimizer = chainer.optimizers.SGD()
@@ -220,7 +220,7 @@ Pick and optimizer, and set up the model to use it.
    
 Configure iterators to step through batches of the data for training and for testing validation. In this case, we'll use a batch size of 100, no repeating, and shuffling not required since we already shuffled the dataset on reading it in.
 
-::
+.. code-block:: python
 
    train_iter = chainer.iterators.SerialIterator(train, 100)
    test_iter = chainer.iterators.SerialIterator(test, 100,
@@ -228,7 +228,7 @@ Configure iterators to step through batches of the data for training and for tes
 
 Set up the updater to be called after the training batches and set the number of batches per epoch to 100. The learning rate per epoch will be output to the directory `result`.
    
-::
+.. code-block:: python
 
    # Set up a trainer
    updater = training.StandardUpdater(train_iter, optimizer, device=gpu_id)
@@ -236,31 +236,31 @@ Set up the updater to be called after the training batches and set the number of
    
 Set the model to be evaluated after each epoch.
 
-::
+.. code-block:: python
 
    trainer.extend(extensions.Evaluator(test_iter, model, device=gpu_id))
    
 Dump a computational graph from 'loss' variable at the first iteration. The "main" refers to the target link of the "main" optimizer.
 
-::
+.. code-block:: python
 
    trainer.extend(extensions.dump_graph('main/loss'))
    
 Take a snapshot of the training every 20 epochs.
 
-::
+.. code-block:: python
 
    trainer.extend(extensions.snapshot(), trigger=(20, 'epoch'))
    
 Write a log of evaluation statistics for each epoch.
 
-::
+.. code-block:: python
 
    trainer.extend(extensions.LogReport())
    
 Save two plot images to the result directory.
 
-::
+.. code-block:: python
 
    if extensions.PlotReport.available():
        trainer.extend(
@@ -273,7 +273,7 @@ Save two plot images to the result directory.
    
 Print selected entries of the log to standard output.
 
-::
+.. code-block:: python
 
    trainer.extend(extensions.PrintReport(
        ['epoch', 'main/loss', 'validation/main/loss',
@@ -281,13 +281,13 @@ Print selected entries of the log to standard output.
    
 Print a progress bar to standard output.
 
-::
+.. code-block:: python
 
    trainer.extend(extensions.ProgressBar())
    
 Run the training.
 
-::
+.. code-block:: python
 
    trainer.run()
    
