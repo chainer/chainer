@@ -263,6 +263,12 @@ class UpdateRule(object):
 
                 for key in self._state:
                     self._state[key] = serializer(key, None)
+                    # leave the update rule state as `None` if the keys are not
+                    # contained in the snapshot, so that these states can be
+                    # automatically initialized with the `_prepare` method
+                    if self._state[key] is None:
+                        self._state = None
+                        break
         else:
             for key in self._state:
                 self._state[key] = serializer(key, self._state[key])
