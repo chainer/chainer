@@ -861,6 +861,15 @@ class ChainList(Link):
         link.name = str(len(self._children))
         self._children.append(link)
 
+    @contextlib.contextmanager
+    def init_scope(self):
+        with super().init_scope():
+            warnings.warn('''\
+ChainList does not support child link registration by assigning a link within \
+a "with link.init_scope():" block.
+''', UserWarning)
+            yield
+
     def copy(self):
         ret = super(ChainList, self).copy()
         ret._children = list(ret._children)  # copy
