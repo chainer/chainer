@@ -67,4 +67,6 @@ test_script:
   - "%CMD_IN_ENV% pip install nose mock hacking"
   - "flake8"
   - "cd tests\\chainer_tests"
-  - "nosetests -a \"!gpu,!slow\""
+  # Avoid interuption confirmation of cmd.exe
+  - "echo nosetests -a \"!gpu,!slow\" > tmp.bat"
+  - "call tmp.bat < nul"
