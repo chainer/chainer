@@ -313,8 +313,8 @@ class Optimizer(object):
         target: Target link object. It is set by the :meth:`setup` method.
         t: Number of update steps. It must be incremented by the
             :meth:`update` method.
-        epoch: Current epoch. It is incremented by the :meth:`new_epoch`
-            method.
+        ~Optimizer.epoch: Current epoch. It is incremented by the
+            :meth:`new_epoch` method.
 
     """
 
