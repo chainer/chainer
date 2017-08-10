@@ -411,11 +411,18 @@ class TestMultiprocessIteratorConcurrency(unittest.TestCase):
 
 class TestMultiprocessIteratorInterruption(unittest.TestCase):
 
+    # unless you're debugging tests, this should be false
+    show_interruption_msg = False
+
     def setUp(self):
         self.code_path = None
         self.sys_path_appended = False
+        if not self.__class__.show_interruption_msg:
+            self.nullfd = os.open(os.devnull, os.O_WRONLY)
 
     def tearDown(self):
+        if not self.__class__.show_interruption_msg:
+            os.close(self.nullfd)
         if self.code_path is not None:
             os.remove(self.code_path)
         if self.sys_path_appended:
@@ -463,8 +470,9 @@ if __name__ == '__main__':
         self.sys_path_appended = True
 
         stdout = None if shared_mem is None else subprocess.PIPE
+        stderr = None if self.__class__.show_interruption_msg else self.nullfd
         self.p = subprocess.Popen([sys.executable, self.code_path],
-                                  stdout=stdout)
+                                  stdout=stdout, stderr=stderr)
         if stdout is None:
             self.child_pids = []
         else:
