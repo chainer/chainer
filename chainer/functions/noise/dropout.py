@@ -64,8 +64,8 @@ def dropout(x, ratio=.5, **kwargs):
 
     Args:
         x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Input variable. \
-        A :math:`(s_1, s_2, ..., s_N)` -shaped float array.
+        :class:`cupy.ndarray`):
+            Input variable. A :math:`(s_1, s_2, ..., s_N)` -shaped float array.
         ratio (float): Dropout ratio. The ``ratio`` must be
         ``0.0 <= ratio < 1.0``.
 
