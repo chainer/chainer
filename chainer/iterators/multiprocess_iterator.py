@@ -1,5 +1,6 @@
 from __future__ import division
 from collections import namedtuple
+from contextlib import contextmanager
 import multiprocessing
 from multiprocessing import sharedctypes
 import signal
@@ -95,10 +96,11 @@ class MultiprocessIterator(iterator.Iterator):
             self._finalized = True
             if '_comm' in d:
                 self._comm.terminate()
-            if '_thread' in d:
-                t = self._thread
-                while t.is_alive():
-                    t.join(_response_time)
+                if self._comm.join_required:
+                    if '_thread' in d:
+                        t = self._thread
+                        while t.is_alive():
+                            t.join(_response_time)
 
     finalize = __del__
 
@@ -191,6 +193,7 @@ class _Communicator(object):
         self._batch_queue = []
         self._status = _Communicator.STATUS_CONTINUE
         self._reset_count = 0
+        self._join_required = True
 
     @property
     def is_terminated(self):
@@ -223,6 +226,12 @@ class _Communicator(object):
             self._not_full_cond.notify()
             self._reset_count += 1
 
+    # called_from_iterator
+    @property
+    def join_required(self):
+        with self._lock:
+            return self._join_required
+
     # called from thread
     def check(self):
         with self._lock:
@@ -241,6 +250,15 @@ class _Communicator(object):
             if reset_count == self._reset_count:
                 self._batch_queue.append((batch, prefetch_state))
                 self._not_empty_cond.notify()
+
+    # called from thread
+    @contextmanager
+    def no_join(self):
+        with self._lock:
+            self._join_required = False
+        yield
+        with self._lock:
+            self._join_required = True
 
 
 class _PrefetchLoop(object):
@@ -262,7 +280,6 @@ class _PrefetchLoop(object):
         self._interruption_testing = _interruption_testing
 
     def __call__(self):
-
         if self.mem_bulk is None:
             if not self._task():
                 return
@@ -295,32 +312,9 @@ class _PrefetchLoop(object):
         if indices is None:  # stop iteration
             batch = None
         elif self._pool is None:  # measure mode
-            # To enable terminating the thread on Python 2.7,
-            # we spawn another process.
-            # We don't use Pool here, because creating Pools in short-time
-            # had caused rare deadlock on Python 3.5.2.
-            q = multiprocessing.Queue()
-            p = multiprocessing.Process(target=_measure_run,
-                                        args=(self.dataset, indices, q))
-            p.daemon = True
-            p.start()
-            try:
-                while True:
-                    try:
-                        batch = q.get(timeout=_response_time)
-                    except six.moves.queue.Empty:
-                        if self.comm.is_terminated:
-                            return False
-                        if not p.is_alive():
-                            return False
-                    else:
-                        if isinstance(batch, Exception):
-                            raise batch
-                        else:
-                            break
-            finally:
-                p.terminate()
-                p.join()
+            # program can be terminated ignoring a very very slow dataset
+            with self.comm.no_join():
+                batch = [self.dataset[idx] for idx in indices]
 
             self.mem_size = max(map(_measure, batch))
             self._allocate_shared_memory()
@@ -388,14 +382,6 @@ class _PrefetchLoop(object):
 
     def _set_testing(self):
         self._testing = True
-
-
-def _measure_run(dataset, indices, q):
-    signal.signal(signal.SIGINT, signal.SIG_IGN)
-    try:
-        q.put([dataset[idx] for idx in indices])
-    except Exception as e:
-        q.put(e)
 
 
 # Using `parametarized` funciton (e.g. bound method) with Pool is tricky due to
