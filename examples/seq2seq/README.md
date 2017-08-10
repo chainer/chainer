@@ -1,8 +1,8 @@
 # Sequence-to-sequnce learning example for machine translation
 
-This is a minimal example of sequence-to-sequence learning. Sequence-to-sequence learning model is a conversion model from a sequence to a sequence. You can regard many tasks in natural language processing field as this type of task, such as machine translation, dialogue and summarization.
+This is a minimal example of sequence-to-sequence learning. Sequence-to-sequence is a learning model that converts an input sequence into an output sequence. You can regard many tasks in the natural language processing field as this type of task, such as machine translation, dialogue and summarization.
 
-This example sciprt is simplest one. An input sequence is processed by a stacked LSTM-RNN and it is encoded as a fixed-size of vector. And the an output sequence is also processed by another stacked LSTM-RNN. In decoding time, an output sequence is generated in argmax fashion.
+In this simple example script, an input sequence is processed by a stacked LSTM-RNN and it is encoded as a fixed-size vector. The output sequence is also processed by another stacked LSTM-RNN. At decoding time, an output sequence is generated using argmax.
 
 
 ## Dataset format
@@ -14,8 +14,8 @@ You need to prepare four files.
 3. Targe language sentence file
 4. Target language vocabulary file
 
-In sentence files each line represents a sentece. In each line, each sentence needs to be separated into words by space characters.
-Each line corresponds to other one. So both file need to have the same numbers of lines.
+In the sentence files, each line represents a sentence. In each line, each sentence needs to be separated into words by space characters.
+Since the number of source and target sentences is the same, note that both files need to have the same number of lines.
 
 In vocabulary files each line represents a word. Words which are not in the vocabulary files are treated as special words `<UNKNOWN>`.
 
