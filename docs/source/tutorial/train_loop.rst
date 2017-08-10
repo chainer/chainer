@@ -72,7 +72,8 @@ All :class:`~chainer.dataset.Iterator`\s produce a new mini-batch by calling its
 
 The code below shows how to create a :class:`~chainer.iterators.SerialIterator` object from a dataset object.
 
-.. testsetup:: *
+.. testcode::
+    :hide:
 
     from chainer.datasets import mnist
     train, test = mnist.get_mnist(withlabel=True, ndim=1)
@@ -87,14 +88,6 @@ The code below shows how to create a :class:`~chainer.iterators.SerialIterator` 
     train_iter = iterators.SerialIterator(train, batchsize)
     test_iter = iterators.SerialIterator(test, batchsize,
                                          repeat=False, shuffle=False)
-
-.. testoutput::
-    :options: -IGNORE_EXCEPTION_DETAIL +NORMALIZE_WHITESPACE
-
-    Downloading from http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz...
-    Downloading from http://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz...
-    Downloading from http://yann.lecun.com/exdb/mnist/t10k-images-idx3-ubyte.gz...
-    Downloading from http://yann.lecun.com/exdb/mnist/t10k-labels-idx1-ubyte.gz...
 
 .. note::
 
