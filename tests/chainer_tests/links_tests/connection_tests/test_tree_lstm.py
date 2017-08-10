@@ -22,7 +22,7 @@ def _child_sum_tree_lstm(func, *inputs):
     hs = inputs[len(inputs) // 2:-1]
     x = inputs[-1]
     xp = cuda.get_array_module(x)
-    with cuda.get_device(x):
+    with cuda.get_device_from_array(x):
         W_x = func.W_x.W.data.T
         b_x = func.W_x.b.data
         W_h_aio = func.W_h_aio.W.data.T
@@ -54,7 +54,7 @@ def _nary_tree_lstm(func, *inputs):
     hs = inputs[len(inputs) // 2:-1]
     x = inputs[-1]
     xp = cuda.get_array_module(x)
-    with cuda.get_device(x):
+    with cuda.get_device_from_array(x):
         W_x = func.W_x.W.data.T
         b_x = func.W_x.b.data
         W_h_list = [getattr(func, 'W_h{}'.format(i)).W.data.T
@@ -171,10 +171,10 @@ class TestTreeLSTM(unittest.TestCase):
 
     @attr.multi_gpu(2)
     def test_forward_gpu_multi(self):
-        with cuda.get_device(0):
+        with cuda.get_device_from_id(0):
             self.link.to_gpu()
             inputs = [cuda.to_gpu(v) for v in self.inputs]
-        with cuda.get_device(1):
+        with cuda.get_device_from_id(1):
             self.check_forward(*inputs)
 
     def check_forward_valid_none(self, *inputs_data):

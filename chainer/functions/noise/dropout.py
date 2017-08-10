@@ -12,6 +12,8 @@ class Dropout(function.Function):
     """Dropout regularization."""
 
     def __init__(self, dropout_ratio):
+        if not 0.0 <= dropout_ratio < 1.0:
+            raise ValueError('dropout_ratio must be in the range [0, 1)')
         self.dropout_ratio = dropout_ratio
 
     def check_type_forward(self, in_types):
@@ -20,16 +22,26 @@ class Dropout(function.Function):
 
     def forward(self, x):
         self.retain_inputs(())
-        if not hasattr(self, 'mask'):
+        if hasattr(self, 'mask'):
+            y = x[0] * self.mask
+        else:
             scale = x[0].dtype.type(1. / (1 - self.dropout_ratio))
             xp = cuda.get_array_module(*x)
             if xp == numpy:
                 flag = xp.random.rand(*x[0].shape) >= self.dropout_ratio
+                self.mask = scale * flag
+                y = x[0] * self.mask
             else:
-                flag = (xp.random.rand(*x[0].shape, dtype=numpy.float32) >=
-                        self.dropout_ratio)
-            self.mask = scale * flag
-        return x[0] * self.mask,
+                rand = xp.random.rand(*x[0].shape, dtype=numpy.float32)
+                self.mask, y = cuda.elementwise(
+                    'T x, R r, T scale, T ratio', 'T mask, T y',
+                    '''
+                    mask = (r >= ratio) * scale;
+                    y = x * mask;
+                    ''',
+                    'dropout_fwd',
+                )(x[0], rand, scale, self.dropout_ratio)
+        return y,
 
     def backward(self, x, gy):
         return gy[0] * self.mask,
@@ -52,7 +64,8 @@ def dropout(x, ratio=.5, **kwargs):
 
     Args:
         x (~chainer.Variable): Input variable.
-        ratio (float): Dropout ratio.
+        ratio (float): Dropout ratio. The ``ratio`` must be
+        ``0.0 <= ratio < 1.0``.
 
     Returns:
         ~chainer.Variable: Output variable.

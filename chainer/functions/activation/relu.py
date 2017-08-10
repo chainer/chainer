@@ -9,9 +9,7 @@ from chainer.utils import type_check
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
-    libcudnn = cudnn.cudnn
-    _cudnn_version = libcudnn.getVersion()
-    _mode = libcudnn.CUDNN_ACTIVATION_RELU
+    _mode = cudnn.cudnn.CUDNN_ACTIVATION_RELU
 
 
 class ReLU(function.Function):
@@ -31,9 +29,7 @@ class ReLU(function.Function):
         return utils.force_array(numpy.maximum(x[0], 0, dtype=x[0].dtype)),
 
     def forward_gpu(self, x):
-        if (chainer.should_use_cudnn('==always') and
-                x[0].flags.c_contiguous and
-                (_cudnn_version >= 3000 or x[0].dtype != numpy.float16)):
+        if chainer.should_use_cudnn('==always') and x[0].flags.c_contiguous:
             self._use_cudnn = True
             y = cudnn.activation_forward(x[0], _mode)
         else:

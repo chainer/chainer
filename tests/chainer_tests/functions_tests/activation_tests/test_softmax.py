@@ -65,6 +65,12 @@ class TestSoftmax(unittest.TestCase):
 
     @attr.gpu
     @condition.retry(3)
+    def test_forward_gpu_non_contiguous(self):
+        self.check_forward(
+            cuda.cupy.asfortranarray(cuda.to_gpu(self.x)))
+
+    @attr.gpu
+    @condition.retry(3)
     def test_forward_gpu_no_cudnn(self):
         self.check_forward(cuda.to_gpu(self.x), 'never')
 
@@ -85,6 +91,13 @@ class TestSoftmax(unittest.TestCase):
 
     @attr.gpu
     @condition.retry(10)
+    def test_backward_gpu_non_contiguous(self):
+        self.check_backward(
+            cuda.cupy.asfortranarray(cuda.to_gpu(self.x)),
+            cuda.cupy.asfortranarray(cuda.to_gpu(self.gy)))
+
+    @attr.gpu
+    @condition.retry(10)
     def test_backward_gpu_no_cudnn(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy), 'never')
 
@@ -101,9 +114,7 @@ class TestSoftmaxCudnnCall(unittest.TestCase):
         self.x = cuda.cupy.random.uniform(-1, 1, (2, 3)).astype(self.dtype)
         self.gy = cuda.cupy.random.uniform(-1, 1, (2, 3)).astype(self.dtype)
         with chainer.using_config('use_cudnn', self.use_cudnn):
-            self.expect = chainer.should_use_cudnn('>=auto') and (
-                cuda.cudnn.cudnn.getVersion() >= 3000 or
-                self.dtype != numpy.float16)
+            self.expect = chainer.should_use_cudnn('>=auto')
 
     def forward(self):
         x = chainer.Variable(self.x)

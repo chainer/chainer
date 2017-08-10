@@ -73,7 +73,6 @@ class TestEmpty(unittest.TestCase):
         self.initializer = initializers.Orthogonal()
 
     def check_assert(self, w):
-        print(w.shape)
         with self.assertRaises(ValueError):
             self.initializer(w)
 

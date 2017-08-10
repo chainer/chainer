@@ -1,9 +1,4 @@
-from chainer.functions.array import broadcast
-from chainer.functions.math import bias
-from chainer.functions.math import scale
-from chainer.functions.math import sqrt
-from chainer.functions.math import square
-from chainer.functions.math import sum
+from chainer.functions.normalization import layer_normalization
 from chainer import link
 from chainer import utils
 from chainer import variable
@@ -38,7 +33,7 @@ class LayerNormalization(link.Link):
     Attributes:
         gamma (~chainer.Parameter): Scaling parameter.
         beta (~chainer.Parameter): Shifting parameter.
-        eps (float): Epsilon value for numerical stability.
+        ~LayerNormalization.eps (float): Epsilon value for numerical stability.
 
     See: `Layer Normalization <https://arxiv.org/abs/1607.06450>`_
     """
@@ -66,16 +61,6 @@ class LayerNormalization(link.Link):
         self.gamma.initialize(size)
         self.beta.initialize(size)
 
-    def _normalize(self, x):
-        size = x.shape[1]
-        mean = broadcast.broadcast_to(
-            (sum.sum(x, axis=1) / size)[:, None],
-            x.shape)
-        std = broadcast.broadcast_to(sqrt.sqrt(
-            sum.sum(square.square(x - mean), axis=1) / size)[:, None],
-            x.shape) + self.eps
-        return (x - mean) / std
-
     def __call__(self, x):
         """Apply layer normalization to given input.
 
@@ -91,5 +76,5 @@ class LayerNormalization(link.Link):
         if self.gamma.data is None:
             self._initialize_params(x.size // x.shape[0])
 
-        normalized = self._normalize(x)
-        return bias.bias(scale.scale(normalized, self.gamma), self.beta)
+        return layer_normalization.layer_normalization(
+            x, self.gamma, self.beta, self.eps)

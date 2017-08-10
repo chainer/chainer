@@ -209,9 +209,7 @@ class TestConvolutionNDCudnnCall(unittest.TestCase):
                 self.dims, ksize, self.stride, self.pad))
         self.gy = cuda.cupy.random.uniform(-1, 1, gy_shape).astype(self.dtype)
         with chainer.using_config('use_cudnn', self.use_cudnn):
-            self.expect = chainer.should_use_cudnn('>=auto') and ndim > 1 and (
-                cuda.cudnn.cudnn.getVersion() >= 3000 or
-                self.dtype != numpy.float16)
+            self.expect = chainer.should_use_cudnn('>=auto') and ndim > 1
 
     def forward(self):
         x = chainer.Variable(cuda.to_gpu(self.x))
@@ -229,10 +227,7 @@ class TestConvolutionNDCudnnCall(unittest.TestCase):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             y = self.forward()
             y.grad = self.gy
-            if cuda.cudnn.cudnn.getVersion() >= 4000:
-                name = 'cupy.cudnn.cudnn.convolutionBackwardData_v3'
-            else:
-                name = 'cupy.cudnn.cudnn.convolutionBackwardData_v2'
+            name = 'cupy.cudnn.cudnn.convolutionBackwardData_v3'
             with mock.patch(name) as func:
                 y.backward()
                 self.assertEqual(func.called, self.expect)

@@ -66,13 +66,15 @@ class TestMaxPooling2D(unittest.TestCase):
         functions.max_pooling_2d(x, 6, stride=6, pad=0)
 
     def test_forward_output_size_zero_cpu(self):
-        with self.assertRaisesRegexp(
-                AssertionError, 'Height in the output should be positive.'):
+        with six.assertRaisesRegex(
+                self, AssertionError,
+                'Height in the output should be positive.'):
             x_data = numpy.random.rand(4, 4, 1, 4).astype(self.dtype)
             x = chainer.Variable(x_data)
             functions.max_pooling_2d(x, 3, stride=2)
-        with self.assertRaisesRegexp(
-                AssertionError, 'Width in the output should be positive.'):
+        with six.assertRaisesRegex(
+                self, AssertionError,
+                'Width in the output should be positive.'):
             x_data = numpy.random.rand(4, 4, 4, 1).astype(self.dtype)
             x = chainer.Variable(x_data)
             functions.max_pooling_2d(x, 3, stride=2)
@@ -94,14 +96,16 @@ class TestMaxPooling2D(unittest.TestCase):
 
     @attr.gpu
     def test_forward_output_size_zero_gpu(self):
-        with self.assertRaisesRegexp(
-                AssertionError, 'Height in the output should be positive.'):
+        with six.assertRaisesRegex(
+                self, AssertionError,
+                'Height in the output should be positive.'):
             x_data = cuda.cupy.random.rand(4, 4, 1, 4).astype(self.dtype)
             x = chainer.Variable(x_data)
             with chainer.using_config('use_cudnn', 'never'):
                 functions.max_pooling_2d(x, 3, stride=2)
-        with self.assertRaisesRegexp(
-                AssertionError, 'Width in the output should be positive.'):
+        with six.assertRaisesRegex(
+                self, AssertionError,
+                'Width in the output should be positive.'):
             x_data = cuda.cupy.random.rand(4, 4, 4, 1).astype(self.dtype)
             x = chainer.Variable(x_data)
             with chainer.using_config('use_cudnn', 'never'):
@@ -109,14 +113,16 @@ class TestMaxPooling2D(unittest.TestCase):
 
     @attr.cudnn
     def test_forward_output_size_zero_cudnn(self):
-        with self.assertRaisesRegexp(
-                AssertionError, 'Height in the output should be positive.'):
+        with six.assertRaisesRegex(
+                self, AssertionError,
+                'Height in the output should be positive.'):
             x_data = cuda.cupy.random.rand(4, 4, 1, 4).astype(self.dtype)
             x = chainer.Variable(x_data)
             with chainer.using_config('use_cudnn', 'always'):
                 functions.max_pooling_2d(x, 3, stride=2)
-        with self.assertRaisesRegexp(
-                AssertionError, 'Width in the output should be positive.'):
+        with six.assertRaisesRegex(
+                self, AssertionError,
+                'Width in the output should be positive.'):
             x_data = cuda.cupy.random.rand(4, 4, 4, 1).astype(self.dtype)
             x = chainer.Variable(x_data)
             with chainer.using_config('use_cudnn', 'always'):
@@ -176,9 +182,6 @@ class TestMaxPooling2DCudnnCall(unittest.TestCase):
         return functions.max_pooling_2d(
             x, 3, stride=2, pad=1, cover_all=False)
 
-    @unittest.skipIf(cuda.cudnn_enabled and
-                     cuda.cudnn.cudnn.getVersion() < 3000,
-                     'Only cudnn ver>=3 supports max-pooling2d')
     def test_call_cudnn_forward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             with mock.patch('cupy.cudnn.cudnn.poolingForward') as func:
@@ -186,9 +189,6 @@ class TestMaxPooling2DCudnnCall(unittest.TestCase):
                 self.assertEqual(func.called,
                                  chainer.should_use_cudnn('>=auto'))
 
-    @unittest.skipIf(cuda.cudnn_enabled and
-                     cuda.cudnn.cudnn.getVersion() < 3000,
-                     'Only cudnn ver>=3 supports max-pooling2d')
     def test_call_cudnn_backward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             expect = chainer.should_use_cudnn('>=auto')
