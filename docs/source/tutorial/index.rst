@@ -7,7 +7,6 @@ Chainer Tutorial
    glance
    basic
    writenet
-   train
    gpu
    function
    type_check
