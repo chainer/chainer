@@ -132,7 +132,7 @@ class TestBinaryHierarchicalSoftmax(unittest.TestCase):
         expercted_result = []
         for i in six.moves.range(batchsize):
             scores = []
-            for t in six.moves.range(self.max_value_tree):
+            for t in six.moves.range(self.max_value_tree + 1):
                 begin = self.begins[t]
                 end = self.begins[t + 1]
                 w = self.W[self.paths[begin:end]]

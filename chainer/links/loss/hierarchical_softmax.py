@@ -422,7 +422,9 @@ class BinaryHierarchicalSoftmax(link.Link):
 
         # padding
         w = self.W.data[pad_paths]
+        pad_zero_flag = pad_codes == 0
         pad_codes = _broadcast_to(xp, pad_codes, w.shape)
+
         w = w * pad_codes
         flatten_shape = (w.shape[0] * w.shape[1], w.shape[2])
         w = xp.reshape(w, flatten_shape)
@@ -430,6 +432,12 @@ class BinaryHierarchicalSoftmax(link.Link):
         wxy = x.data.dot(w.T)
         wxy = xp.reshape(wxy, (batchsize, n_vocab, -1))
         scores = -xp.logaddexp(0.0, -wxy)
+
+        # replace zero scores
+        pad_zero_flag = xp.reshape(pad_zero_flag, (1, n_vocab, -1))
+        pad_zero_flag = _broadcast_to(xp, pad_zero_flag, scores.shape)
+        zero_scores = xp.zeros_like(scores.shape)
+        scores = xp.where(pad_zero_flag, zero_scores, scores)
 
         scores = xp.sum(scores, axis=2)
         result = xp.argmax(scores, axis=1).astype('i')
