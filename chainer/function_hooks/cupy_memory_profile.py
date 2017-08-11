@@ -1,11 +1,19 @@
 import sys
 
-from chainer import function
+from chainer import cuda
+from chainer import function_hook
 
-from cupy.cuda import memory_hook
+
+try:
+    MemoryHook = cuda.cupy.cuda.memory_hook.MemoryHook
+    memory_hook_available = True
+except Exception as e:
+    _resolution_error = e
+    MemoryHook = object
+    memory_hook_available = False
 
 
-class CupyMemoryProfileHook(function.FunctionHook):
+class CupyMemoryProfileHook(function_hook.FunctionHook):
     """Function hook for measuring memory usage of functions in cupy memory pool.
 
     Example:
@@ -40,6 +48,10 @@ class CupyMemoryProfileHook(function.FunctionHook):
     name = 'CupyMemoryProfileHook'
 
     def __init__(self):
+        cuda.check_cuda_available()
+        if not memory_hook_available:
+            msg = 'CuPy >= 2.0 is required. %s' % str(_resolution_error)
+            raise RuntimeError(msg)
         self.call_history = []
         self._memory_hook = CupyMemoryCumulativeHook()
         self._running_stack = []
@@ -142,7 +154,7 @@ class CupyMemoryProfileHook(function.FunctionHook):
         file.flush()
 
 
-class CupyMemoryCumulativeHook(memory_hook.MemoryHook):
+class CupyMemoryCumulativeHook(MemoryHook):
     """A simple memory hook for cupy measuring memory usage cumulatively.
 
     Attributes:
