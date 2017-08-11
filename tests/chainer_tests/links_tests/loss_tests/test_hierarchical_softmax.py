@@ -125,8 +125,9 @@ class TestBinaryHierarchicalSoftmax(unittest.TestCase):
         self.assertTrue((f.paths == g.paths).all())
         self.assertTrue((f.codes == g.codes).all())
 
-    def compute_argmax(self, x):
-        x = cuda.to_cpu(x)
+    def compute_argmax(self, x, gpu):
+        if gpu:
+            x = cuda.to_cpu(x)
         batchsize = x.shape[0]
         expercted_result = []
         for i in six.moves.range(batchsize):
@@ -139,13 +140,15 @@ class TestBinaryHierarchicalSoftmax(unittest.TestCase):
                 score = -numpy.logaddexp(0.0, -wxy)
                 score = numpy.sum(score)
                 scores.append(score)
-            max_word_idx = numpy.argmax(scores).astype('i')
-            expercted_result.append(max_word_idx)
+            expect = numpy.argmax(scores).astype('i')
+            if gpu:
+                expect = cuda.to_gpu(expect)
+            expercted_result.append(expect)
         return expercted_result
 
-    def check_argmax(self, x):
+    def check_argmax(self, x, gpu=False):
         # Compute correct argmax word index.
-        expercted_result = self.compute_argmax(x)
+        expercted_result = self.compute_argmax(x, gpu)
 
         x = chainer.Variable(x)
         result = self.link.argmax(x)
@@ -161,13 +164,13 @@ class TestBinaryHierarchicalSoftmax(unittest.TestCase):
 
     def test_argmax_cpu(self):
         x = numpy.array([[1.0, 2.0, 3.0], [1.5, 2.5, 3.5]], numpy.float32)
-        self.check_argmax(x)
+        self.check_argmax(x, gpu=False)
 
     @attr.gpu
     def test_argmax_gpu(self):
         x = numpy.array([[1.0, 2.0, 3.0], [1.5, 2.5, 3.5]], numpy.float32)
         self.link.to_gpu()
-        self.check_argmax(cuda.to_gpu(x))
+        self.check_argmax(cuda.to_gpu(x), gpu=True)
 
 
 testing.run_module(__name__, __file__)
