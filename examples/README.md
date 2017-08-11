@@ -3,6 +3,8 @@ Chainer Examples
 
 This page contains a list of example codes written with Chainer.
 
+**It should be noted that examples marked with :zzz: have not been tested with current version of Chainer and whether it can work with current version of Chainer or not is not guaranteed.**
+
 ### <a name="natual-language-processing"></a> Natural Language Processing
 
 * [Recurrent Net Language Model](https://github.com/chainer/chainer/tree/master/examples/ptb)
@@ -29,12 +31,12 @@ This page contains a list of example codes written with Chainer.
 
 * [Variational AutoEncoder](https://github.com/chainer/chainer/tree/master/examples/vae)
 * [DCGAN](https://github.com/chainer/chainer/tree/master/examples/dcgan)
-* [pfnet-resaerch example: Chainer-GAN-lib](https://github.com/pfnet-research/chainer-gan-lib)
-* [pfnet-resaerch example: Pix2Pix](https://github.com/pfnet-research/chainer-pix2pix)
+* [:zzz: pfnet-resaerch example: Chainer-GAN-lib](https://github.com/pfnet-research/chainer-gan-lib)
+* [:zzz: pfnet-resaerch example: Pix2Pix](https://github.com/pfnet-research/chainer-pix2pix)
 
 ### <a name="graph-cnn"></a> Graph Convolutional Network
 
-* [pfnet-resaerch example: Chainer Graph CNN](https://github.com/pfnet-research/chainer-graph-cnn)
+* [:zzz: pfnet-resaerch example: Chainer Graph CNN](https://github.com/pfnet-research/chainer-graph-cnn)
 
 ### <a name="reinforcement-learning"></a> Reinforcement Learning
 
