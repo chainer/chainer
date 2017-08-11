@@ -2,6 +2,7 @@ import copy
 import unittest
 
 import numpy
+import six
 
 import chainer
 from chainer import cuda
@@ -43,6 +44,10 @@ class TestBinaryHierarchicalSoftmax(unittest.TestCase):
         self.gy = numpy.random.uniform(-1, 1, ()).astype(numpy.float32)
 
         self.W = self.link.W.data.copy()
+        _func = copy.deepcopy(self.link)._func
+        self.paths = _func.paths
+        self.codes = _func.codes
+        self.begins = _func.begins
 
         # Compute max value in `tree`
         self.max_value_tree = 0
@@ -120,16 +125,39 @@ class TestBinaryHierarchicalSoftmax(unittest.TestCase):
         self.assertTrue((f.paths == g.paths).all())
         self.assertTrue((f.codes == g.codes).all())
 
+    def compute_argmax(self, x):
+        x = cuda.to_cpu(x)
+        batchsize = x.shape[0]
+        expercted_result = []
+        for i in six.moves.range(batchsize):
+            scores = []
+            for t in six.moves.range(self.max_value_tree):
+                begin = self.begins[t]
+                end = self.begins[t + 1]
+                w = self.W[self.paths[begin:end]]
+                wxy = w.dot(x[i]) * self.codes[begin:end]
+                score = -numpy.logaddexp(0.0, -wxy)
+                score = numpy.sum(score)
+                scores.append(score)
+            max_word_idx = numpy.argmax(scores).astype('i')
+            expercted_result.append(max_word_idx)
+        return expercted_result
+
     def check_argmax(self, x):
+        # Compute correct argmax word index.
+        expercted_result = self.compute_argmax(x)
+
         x = chainer.Variable(x)
         result = self.link.argmax(x)
         self.assertIsInstance(result, self.link.xp.ndarray)
         self.assertEqual(len(result), x.shape[0])
-        for word_id in result:
+        for word_id, expect in six.moves.zip(result, expercted_result):
             self.assertEqual(word_id.dtype, self.link.xp.int32)
             # Check if the result is in the valid range
             self.assertLessEqual(0, word_id)
             self.assertLessEqual(word_id, self.max_value_tree)
+            # Check if result is equal to expect result.
+            self.assertEqual(expect, word_id)
 
     def test_argmax_cpu(self):
         x = numpy.array([[1.0, 2.0, 3.0], [1.5, 2.5, 3.5]], numpy.float32)
@@ -137,7 +165,7 @@ class TestBinaryHierarchicalSoftmax(unittest.TestCase):
 
     @attr.gpu
     def test_argmax_gpu(self):
-        x = numpy.array([[1.0, 2.0, 3.0]], numpy.float32)
+        x = numpy.array([[1.0, 2.0, 3.0], [1.5, 2.5, 3.5]], numpy.float32)
         self.link.to_gpu()
         self.check_argmax(cuda.to_gpu(x))
 
