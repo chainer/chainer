@@ -16,7 +16,28 @@ This page contains a list of example codes written with Chainer.
 * [ImageNet: Large Scale ConvNets](https://github.com/chainer/chainer/tree/master/examples/imagenet)
 * [Evaluate a Caffe reference model](https://github.com/chainer/chainer/tree/master/examples/modelzoo)
 
+### <a name="object-detection"></a> Object Detection
+
+* [ChainerCV example: Faster R-CNN](https://github.com/chainer/chainercv/tree/master/examples/faster_rcnn)
+* [ChainerCV example: Single Shot Multibox Detector (SSD)](https://github.com/chainer/chainercv/tree/master/examples/ssd)
+
+### <a name="semantic-segmentation"></a> Semantic Segmentation
+
+* [ChainerCV example: SegNet](https://github.com/chainer/chainercv/tree/master/examples/segnet)
+
 ### <a name="generative-models"></a> Generative Models
 
 * [Variational AutoEncoder](https://github.com/chainer/chainer/tree/master/examples/vae)
 * [DCGAN](https://github.com/chainer/chainer/tree/master/examples/dcgan)
+* [pfnet-resaerch example: Chainer-GAN-lib](https://github.com/pfnet-research/chainer-gan-lib)
+* [pfnet-resaerch example: Pix2Pix](https://github.com/pfnet-research/chainer-pix2pix)
+
+### <a name="graph-cnn"></a> Graph Convolutional Network
+
+* [pfnet-resaerch example: Chainer Graph CNN](https://github.com/pfnet-research/chainer-graph-cnn)
+
+### <a name="reinforcement-learning"></a> Reinforcement Learning
+
+* [DQN and DoubleDQN on discrete-action tasks](https://github.com/chainer/chainer/tree/master/examples/reinforcement_learning)
+* [DDPG on continuous-action tasks](https://github.com/chainer/chainer/tree/master/examples/reinforcement_learning)
+* [ChainerRL examples: more examples for OpenAI Gym and Arcade Learning environments](https://github.com/chainer/chainerrl/tree/master/examples)
