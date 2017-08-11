@@ -74,7 +74,6 @@ class TestCaffeFunctionBaseMock(TestCaffeFunctionBase):
 
         ret_value = outs[0] if len(outs) == 1 else tuple(outs)
         m = mock.MagicMock(name=self.func_name, return_value=ret_value)
-        print(self.func_name, m.return_value)
         self.patch = mock.patch(self.func_name, m)
         self.mock = self.patch.start()
 

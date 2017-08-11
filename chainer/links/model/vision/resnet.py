@@ -72,8 +72,8 @@ class ResNetLayers(link.Chain):
             50, 101, or 152.
 
     Attributes:
-        available_layers (list of str): The list of available layer names
-            used by ``__call__`` and ``extract`` methods.
+        ~ResNetLayers.available_layers (list of str): The list of available
+            layer names used by ``__call__`` and ``extract`` methods.
 
     """
 
@@ -320,8 +320,8 @@ class ResNet50Layers(ResNetLayers):
             ``chainer.initializers.HeNormal(scale=1.0)``.
 
     Attributes:
-        available_layers (list of str): The list of available layer names
-            used by ``__call__`` and ``extract`` methods.
+        ~ResNet50Layers.available_layers (list of str): The list of available
+            layer names used by ``__call__`` and ``extract`` methods.
 
     """
 
@@ -373,8 +373,8 @@ class ResNet101Layers(ResNetLayers):
             ``chainer.initializers.HeNormal(scale=1.0)``.
 
     Attributes:
-        available_layers (list of str): The list of available layer names
-            used by ``__call__`` and ``extract`` methods.
+        ~ResNet101Layers.available_layers (list of str): The list of available
+            layer names used by ``__call__`` and ``extract`` methods.
 
     """
 
@@ -425,8 +425,8 @@ class ResNet152Layers(ResNetLayers):
             ``chainer.initializers.HeNormal(scale=1.0)``.
 
     Attributes:
-        available_layers (list of str): The list of available layer names
-            used by ``__call__`` and ``extract`` methods.
+        ~ResNet152Layers.available_layers (list of str): The list of available
+            layer names used by ``__call__`` and ``extract`` methods.
 
     """
 
@@ -696,14 +696,7 @@ def _make_npz(path_npz, path_caffemodel, model, n_layers):
             'from \'https://github.com/KaimingHe/deep-residual-networks\', '
             'and place it on {}'.format(path_caffemodel))
 
-    if n_layers == 50:
-        ResNet50Layers.convert_caffemodel_to_npz(path_caffemodel, path_npz, 50)
-    elif n_layers == 101:
-        ResNet101Layers.convert_caffemodel_to_npz(
-            path_caffemodel, path_npz, 101)
-    elif n_layers == 152:
-        ResNet152Layers.convert_caffemodel_to_npz(
-            path_caffemodel, path_npz, 152)
+    ResNetLayers.convert_caffemodel_to_npz(path_caffemodel, path_npz, n_layers)
     npz.load_npz(path_npz, model)
     return model
 

@@ -118,7 +118,7 @@ class NpzDeserializer(serializer.Deserializer):
         return value
 
 
-def load_npz(filename, obj, path=''):
+def load_npz(filename, obj, path='', strict=True):
     """Loads an object from the file in NPZ format.
 
     This is a short-cut function to load from an `.npz` file that contains only
@@ -127,11 +127,14 @@ def load_npz(filename, obj, path=''):
     Args:
         filename (str): Name of the file to be loaded.
         obj: Object to be deserialized. It must support serialization protocol.
-        path: The path in the hierarchy of the serialized data under which the
-            data is to be loaded. The default behavior (blank) will load all
-            data under the root path.
+        path (str): The path in the hierarchy of the serialized data under
+            which the data is to be loaded. The default behavior (blank) will
+            load all data under the root path.
+        strict (bool): If ``True``, the deserializer raises an error when an
+            expected value is not found in the given NPZ file. Otherwise,
+            it ignores the value and skip deserialization.
 
     """
     with numpy.load(filename) as f:
-        d = NpzDeserializer(f, path=path)
+        d = NpzDeserializer(f, path=path, strict=strict)
         d.load(obj)

@@ -143,7 +143,7 @@ class TestGraphBuilder5(unittest.TestCase):
     def setUp(self):
         self.x = variable.Variable(np.zeros((1, 2)).astype(np.float32))
         self.y = 2 * self.x
-        self.f = self.y.creator
+        self.f = self.y.creator_node
         self.g = c.build_computational_graph((self.y,))
 
     def test_edges(self):
@@ -163,7 +163,7 @@ class TestGraphBuilder6(unittest.TestCase):
         self.x1 = variable.Variable(np.zeros((1, 2)).astype(np.float32))
         self.x2 = variable.Variable(np.zeros((1, 2)).astype(np.float32))
         self.y = self.x1 + self.x2
-        self.f = self.y.creator
+        self.f = self.y.creator_node
         self.g = c.build_computational_graph((self.y,))
 
     def test_edges(self):
@@ -197,7 +197,7 @@ class TestGraphBuilderStylization(unittest.TestCase):
         self.x1 = variable.Variable(np.zeros((1, 2)).astype(np.float32))
         self.x2 = variable.Variable(np.zeros((1, 2)).astype(np.float32))
         self.y = self.x1 + self.x2
-        self.f = self.y.creator
+        self.f = self.y.creator_node
         self.variable_style = {'label': 'variable_0', 'shape': 'octagon',
                                'style': 'filled', 'fillcolor': '#E0E0E0'}
         self.function_style = {'label': 'function_0', 'shape': 'record',
@@ -260,7 +260,7 @@ class TestGraphBuilderRemoveVariable(unittest.TestCase):
         self.x1 = variable.Variable(np.zeros((1, 2)).astype('f'))
         self.x2 = variable.Variable(np.zeros((1, 2)).astype('f'))
         self.y = self.x1 + self.x2
-        self.f = self.y.creator
+        self.f = self.y.creator_node
         self.g = c.build_computational_graph((self.y,), remove_variable=True)
 
     def test_remove_variable(self):

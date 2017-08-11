@@ -2,6 +2,7 @@ import numpy
 
 from chainer import cuda
 from chainer import function
+from chainer import function_node
 from chainer.functions.math import matmul as _matmul
 from chainer import utils
 from chainer.utils import type_check
@@ -105,7 +106,7 @@ def absolute(self):
     return Absolute()(self)
 
 
-class Add(function.Function):
+class Add(function_node.FunctionNode):
 
     @property
     def label(self):
@@ -119,15 +120,14 @@ class Add(function.Function):
         )
 
     def forward(self, x):
-        self.retain_inputs(())
         y = utils.force_array(x[0] + x[1])
         return y,
 
-    def backward(self, x, gy):
+    def backward(self, indexes, gy):
         return gy[0], gy[0]
 
 
-class AddConstant(function.Function):
+class AddConstant(function_node.FunctionNode):
 
     def __init__(self, value):
         self.value = value
@@ -140,11 +140,10 @@ class AddConstant(function.Function):
         type_check.expect(in_types.size() == 1)
 
     def forward(self, x):
-        self.retain_inputs(())
         value = _preprocess_const(x[0], self.value)
         return utils.force_array(x[0] + value),
 
-    def backward(self, x, gy):
+    def backward(self, indexes, gy):
         return gy[0],
 
 
@@ -155,9 +154,9 @@ def add(self, rhs):  # lhs + rhs
         ~chainer.Variable: Output variable.
     """
     if isinstance(rhs, variable.Variable):
-        return Add()(self, rhs)
+        return Add().apply((self, rhs))[0]
     _check_constant_type(rhs)
-    return AddConstant(rhs)(self)
+    return AddConstant(rhs).apply((self,))[0]
 
 
 class Sub(function.Function):
@@ -191,7 +190,7 @@ def sub(self, rhs):  # lhs - rhs
     if isinstance(rhs, variable.Variable):
         return Sub()(self, rhs)
     _check_constant_type(rhs)
-    return AddConstant(-rhs)(self)
+    return AddConstant(-rhs).apply((self,))[0]
 
 
 class SubFromConstant(function.Function):
@@ -227,7 +226,7 @@ def rsub(self, rhs):  # rhs - lhs
     return SubFromConstant(rhs)(self)
 
 
-class Mul(function.Function):
+class Mul(function_node.FunctionNode):
 
     @property
     def label(self):
@@ -242,13 +241,15 @@ class Mul(function.Function):
         )
 
     def forward(self, x):
+        self.retain_inputs((0, 1))
         return utils.force_array(x[0] * x[1]),
 
-    def backward(self, x, gy):
-        return utils.force_array(gy[0] * x[1]), utils.force_array(gy[0] * x[0])
+    def backward(self, indexes, gy):
+        xs = self.get_retained_inputs()
+        return tuple(gy[0] * xs[1 - i] for i in indexes)
 
 
-class MulConstant(function.Function):
+class MulConstant(function_node.FunctionNode):
 
     def __init__(self, value):
         self.value = value
@@ -264,10 +265,8 @@ class MulConstant(function.Function):
         value = _preprocess_const(x[0], self.value)
         return utils.force_array(value * x[0]),
 
-    def backward(self, x, gy):
-        # TODO(beam2d): Make it not use the input
-        value = _preprocess_const(x[0], self.value)
-        return utils.force_array(value * gy[0]),
+    def backward(self, indexes, gy):
+        return self.value * gy[0],
 
 
 def mul(self, rhs):  # lhs * rhs
@@ -278,9 +277,9 @@ def mul(self, rhs):  # lhs * rhs
     """
 
     if isinstance(rhs, variable.Variable):
-        return Mul()(self, rhs)
+        return Mul().apply((self, rhs))[0]
     _check_constant_type(rhs)
-    return MulConstant(rhs)(self)
+    return MulConstant(rhs).apply((self,))[0]
 
 
 class Div(function.Function):
@@ -324,7 +323,7 @@ def div(self, rhs):  # lhs / rhs
     if isinstance(rhs, variable.Variable):
         return Div()(self, rhs)
     _check_constant_type(rhs)
-    return MulConstant(1. / rhs)(self)
+    return MulConstant(1. / rhs).apply((self,))[0]
 
 
 class DivFromConstant(function.Function):
