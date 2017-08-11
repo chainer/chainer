@@ -311,7 +311,7 @@ class BinaryHierarchicalSoftmax(link.Link):
         super(BinaryHierarchicalSoftmax, self).__init__()
         self._func = BinaryHierarchicalSoftmaxFunction(tree)
         self.tree = tree
-        self.PAD_paths, self.PAD_codes = self.init_padding_params()
+        self.init_padding_params()
 
         with self.init_scope():
             self.W = variable.Parameter(uniform.Uniform(1),
@@ -327,31 +327,32 @@ class BinaryHierarchicalSoftmax(link.Link):
         split_paths = numpy.split(paths, begins[1:-1])
         split_codes = numpy.split(codes, begins[1:-1])
 
-        max_length = max([_.shape[0] for _ in split_paths])
+        max_length = max([len(p) for p in split_paths])
 
-        PAD_paths = numpy.zeros((n_vocab, max_length), 'i') - 1
+        pad_paths = numpy.full((n_vocab, max_length), -1, 'i')
         for i, path in enumerate(split_paths):
-            PAD_paths[i, 0:len(path)] = path
+            pad_paths[i, 0:len(path)] = path
 
-        PAD_codes = numpy.zeros((n_vocab, max_length))
+        pad_codes = numpy.zeros((n_vocab, max_length), 'i')
         for i, code in enumerate(split_codes):
-            PAD_codes[i, 0:len(code)] = code
-        PAD_codes = PAD_codes[:, :, None]
+            pad_codes[i, 0:len(code)] = code
+        pad_codes = pad_codes[:, :, None]
 
-        return PAD_paths, PAD_codes
+        self.pad_paths = pad_paths
+        self.pad_codes = pad_codes
 
     def to_gpu(self, device=None):
         with cuda._get_device(device):
             super(BinaryHierarchicalSoftmax, self).to_gpu(device)
             self._func.to_gpu(device)
-            self.PAD_paths = cuda.to_gpu(self.PAD_paths)
-            self.PAD_codes = cuda.to_gpu(self.PAD_codes)
+            self.pad_paths = cuda.to_gpu(self.pad_paths)
+            self.pad_codes = cuda.to_gpu(self.pad_codes)
 
     def to_cpu(self):
         super(BinaryHierarchicalSoftmax, self).to_cpu()
         self._func.to_cpu()
-        self.PAD_paths = cuda.to_cpu(self.PAD_paths)
-        self.PAD_codes = cuda.to_cpu(self.PAD_codes)
+        self.pad_paths = cuda.to_cpu(self.pad_paths)
+        self.pad_codes = cuda.to_cpu(self.pad_codes)
 
     @staticmethod
     def create_huffman_tree(word_counts):
@@ -415,19 +416,19 @@ class BinaryHierarchicalSoftmax(link.Link):
         xp = cuda.get_array_module(*x)
         batchsize = x.shape[0]
         n_vocab = self._func.n_vocab
-        PAD_codes = self.PAD_codes
-        PAD_paths = self.PAD_paths
+        pad_codes = self.pad_codes
+        pad_paths = self.pad_paths
 
         # padding
-        w = self.W.data[PAD_paths]
-        PAD_codes = _broadcast_to(xp, PAD_codes, w.shape)
-        w = w * PAD_codes
+        w = self.W.data[pad_paths]
+        pad_codes = _broadcast_to(xp, pad_codes, w.shape)
+        w = w * pad_codes
         flatten_shape = (w.shape[0] * w.shape[1], w.shape[2])
         w = xp.reshape(w, flatten_shape)
         # score
         wxy = x.data.dot(w.T)
         wxy = xp.reshape(wxy, (batchsize, n_vocab, -1))
-        scores = - xp.logaddexp(0.0, - wxy)
+        scores = -xp.logaddexp(0.0, -wxy)
 
         scores = xp.sum(scores, axis=2)
         result = xp.argmax(scores, axis=1).astype('i')
