@@ -7,17 +7,30 @@ import chainer
 from chainer import cuda
 from chainer import function_hooks
 from chainer import functions
-from chainer.functions.connection import linear
-from chainer import links
+from chainer.functions.math import basic_math
 from chainer import testing
 from chainer.testing import attr
 
 
 def check_history(self, t, function_type, used_bytes_type,
                   acquired_bytes_type):
-    self.assertIsInstance(t[0], function_type)
+    func = getattr(t[0], 'function', t[0])
+    self.assertIsInstance(func, function_type)
     self.assertIsInstance(t[1], used_bytes_type)
     self.assertIsInstance(t[2], acquired_bytes_type)
+
+
+class SimpleLink(chainer.Link):
+
+    def __init__(self):
+        super(SimpleLink, self).__init__()
+        with self.init_scope():
+            init_w = numpy.random.uniform(-1, 1, (3, 5)).astype(
+                numpy.float32)
+            self.w = chainer.Parameter(init_w)
+
+    def __call__(self, x):
+        return self.w * x
 
 
 @attr.gpu
@@ -25,7 +38,7 @@ class TestCupyMemoryProfileHookToLink(unittest.TestCase):
 
     def setUp(self):
         self.h = function_hooks.CupyMemoryProfileHook()
-        self.l = links.Linear(5, 5)
+        self.l = SimpleLink()
         self.x = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
         self.gy = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
 
@@ -37,7 +50,7 @@ class TestCupyMemoryProfileHookToLink(unittest.TestCase):
             self.l(chainer.Variable(x))
         self.assertEqual(1, len(self.h.call_history))
         check_history(self, self.h.call_history[0],
-                      linear.LinearFunction, int, int)
+                      basic_math.Mul, int, int)
 
     def test_forward_gpu(self):
         self.l.to_gpu()
@@ -49,9 +62,13 @@ class TestCupyMemoryProfileHookToLink(unittest.TestCase):
         y.grad = gy
         with self.h:
             y.backward()
-        self.assertEqual(1, len(self.h.call_history))
-        check_history(self, self.h.call_history[0],
-                      linear.LinearFunction, int, int)
+        # It includes forward of + that accumulates gradients to W and b
+        self.assertEqual(3, len(self.h.call_history))
+        for entry in self.h.call_history:
+            if entry[0].label == '_ + _':
+                continue
+            check_history(self, entry,
+                          basic_math.Mul, int, int)
 
     def test_backward_gpu(self):
         self.l.to_gpu()
@@ -72,7 +89,7 @@ class TestCupyMemoryProfileHookToFunction(unittest.TestCase):
         self.f.delete_hook(self.h.name)
 
     def check_forward(self, x):
-        self.f(chainer.Variable(x))
+        self.f.apply((chainer.Variable(x),))
         self.assertEqual(1, len(self.h.call_history))
         check_history(self, self.h.call_history[0],
                       functions.Exp, int, int)
@@ -82,7 +99,7 @@ class TestCupyMemoryProfileHookToFunction(unittest.TestCase):
 
     def check_backward(self, x, gy):
         x = chainer.Variable(x)
-        y = self.f(x)
+        y = self.f.apply((x,))[0]
         y.grad = gy
         y.backward()
         self.assertEqual(2, len(self.h.call_history))
@@ -142,14 +159,14 @@ class TestCupyMemoryProfileReport(unittest.TestCase):
         cuda.memory_pool.free_all_blocks()
         self.h = function_hooks.CupyMemoryProfileHook()
         self.f1 = functions.Exp()
-        self.f2 = functions.Log()
+        self.f2 = functions.ReLU()
         self.x = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
         x = cuda.to_gpu(self.x)
         with self.h:
-            self.f1(chainer.Variable(x))
-            self.f1(chainer.Variable(x))
-            self.f2(chainer.Variable(x))
-            self.f2(chainer.Variable(x))
+            self.f1.apply((chainer.Variable(x),))
+            self.f1.apply((chainer.Variable(x),))
+            self.f2.apply((chainer.Variable(x),))
+            self.f2.apply((chainer.Variable(x),))
 
     def test_call_history(self):
         self.assertEqual(4, len(self.h.call_history))
@@ -168,7 +185,7 @@ class TestCupyMemoryProfileReport(unittest.TestCase):
         self.h.print_report(file=io)
         expect = r'''\AFunctionName  UsedBytes  AcquiredBytes  Occurrence
  +Exp +[0-9.\-e]+.?B +[0-9.\-e]+.?B +[0-9]+
- +Log +[0-9.\-e]+.?B +[0-9.\-e]+.?B +[0-9]+$
+ +ReLU +[0-9.\-e]+.?B +[0-9.\-e]+.?B +[0-9]+$
 '''
         actual = io.getvalue()
         six.assertRegex(self, actual, expect)

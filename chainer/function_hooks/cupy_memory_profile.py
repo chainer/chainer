@@ -112,7 +112,7 @@ class CupyMemoryProfileHook(function_hook.FunctionHook):
         # TODO(sonots): PROBLEM: takes count of nested functions duplicately
         summary = {}
         for func, used_bytes, acquired_bytes, depth in self.call_history:
-            function_name = func.__class__.__name__
+            function_name = func._impl_name
             if function_name not in summary:
                 summary[function_name] = {'used_bytes': 0,
                                           'acquired_bytes': 0, 'occurrence': 0}
