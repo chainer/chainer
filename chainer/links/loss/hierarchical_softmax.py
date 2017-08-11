@@ -436,7 +436,7 @@ class BinaryHierarchicalSoftmax(link.Link):
         # replace zero scores
         pad_zero_flag = xp.reshape(pad_zero_flag, (1, n_vocab, -1))
         pad_zero_flag = _broadcast_to(xp, pad_zero_flag, scores.shape)
-        zero_scores = xp.zeros_like(scores.shape)
+        zero_scores = xp.zeros_like(scores)
         scores = xp.where(pad_zero_flag, zero_scores, scores)
 
         scores = xp.sum(scores, axis=2)
