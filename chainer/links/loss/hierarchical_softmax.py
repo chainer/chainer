@@ -338,6 +338,7 @@ class BinaryHierarchicalSoftmax(link.Link):
             pad_codes[i, 0:len(code)] = code
         pad_codes = pad_codes[:, :, None]
 
+        # set variables
         self.pad_paths = pad_paths
         self.pad_codes = pad_codes
 
