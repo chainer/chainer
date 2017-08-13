@@ -66,7 +66,7 @@ class RReLU(function.Function):
         return gx,
 
 
-def randomized_leaky_relu(x, l=1. / 8, u=1. / 3):
+def rrelu(x, l=1. / 8, u=1. / 3):
     """Randomized Leaky Rectified Liner Unit function.
 
     This function is expressed as
