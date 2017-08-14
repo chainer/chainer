@@ -15,7 +15,7 @@ Chainer is a rapidly growing neural network platform. The strengths of Chainer a
 Mushrooms -- tasty or deathly?
 ~~~~~~~~~~~~
 
-Let's take a look at a basic program of Chainer to see how it works. For a dataset, we'll work with the edible vs. poisonous mushroom dataset, which has over 8,000 examples of mushrooms, labelled by 22 categories including odor, cap color, habitat, etc.
+Let's take a look at a basic program of Chainer to see how it works. For a dataset, we'll work with the edible vs. poisonous mushroom dataset (https://www.kaggle.com/uciml/mushroom-classification), which has over 8,000 examples of mushrooms, labelled by 22 categories including odor, cap color, habitat, etc.
 
 How will Chainer learn which mushrooms are edible and which mushrooms will kill you? Let's see!
 
@@ -24,7 +24,7 @@ Full Code
 
 Here's the whole picture of the code:
 
-.. code-block:: python
+.. testcode::
     
     #!/usr/bin/env python
     
@@ -39,53 +39,58 @@ Here's the whole picture of the code:
     import chainer
     import chainer.functions as F
     import chainer.links as L
-    from chainer import training, datasets
+    from chainer import training
+    from chainer import datasets
     from chainer.training import extensions
     
     import numpy as np
     import sklearn.preprocessing as sp
     
-    data_array = np.genfromtxt('mushrooms.csv', delimiter=',',dtype=str, skip_header=1)
+    data_array = np.genfromtxt(
+        'mushrooms.csv', delimiter=',', dtype=str, skip_header=1)
     labelEncoder = sp.LabelEncoder()
     for col in range(data_array.shape[1]):
         data_array[:, col] = labelEncoder.fit_transform(data_array[:, col])
     
-    X = data_array[:, 1:].astype(np.float32)
+    X = data_array[:, 0].astype(np.float32)[:, None]
     Y = np.ndarray.flatten(data_array[:, 0].astype(np.int32))
-    train, test = datasets.split_dataset_random(datasets.TupleDataset(X, Y), int(data_array.shape[0] * .7))
+    train, test = datasets.split_dataset_random(
+        datasets.TupleDataset(X, Y), int(data_array.shape[0] * .7))
     
-    gpu_id = -1
+    gpu_id = 0  # Change to -1 to use CPU
     
     # Network definition
     class MLP(chainer.Chain):
     
         def __init__(self, n_units, n_out):
-    	super(MLP, self).__init__()
-    	with self.init_scope():
-    	    # the size of the inputs to each layer will be inferred
-    	    self.l1 = L.Linear(n_units)  # n_in -> n_units
-    	    self.l2 = L.Linear(n_units)  # n_units -> n_units
-    	    self.l3 = L.Linear(n_out)  # n_units -> n_out
+    	    super(MLP, self).__init__()
+            with self.init_scope():
+                # the size of the inputs to each layer will be inferred
+                self.l1 = L.Linear(n_units)  # n_in -> n_units
+                self.l2 = L.Linear(n_units)  # n_units -> n_units
+                self.l3 = L.Linear(n_out)  # n_units -> n_out
     
         def __call__(self, x):
-    	h1 = F.relu(self.l1(x))
-    	h2 = F.relu(self.l2(h1))
-    	return self.l3(h2)
+    	    h1 = F.relu(self.l1(x))
+    	    h2 = F.relu(self.l2(h1))
+    	    return self.l3(h2)
     
     
-    model = L.Classifier(MLP(44, 2))
+    model = L.Classifier(
+        MLP(44, 1), lossfun=F.sigmoid_cross_entropy, accfun=F.binary_accuracy)
+
     if gpu_id >= 0:
         # Make a specified GPU current
         chainer.cuda.get_device_from_id(gpu_id).use()
         model.to_gpu()  # Copy the model to the GPU
     
     # Setup an optimizer
-    optimizer = chainer.optimizers.Adam()
+    optimizer = chainer.optimizers.SGD()
     optimizer.setup(model)
     
-    train_iter = chainer.iterators.SerialIterator(train, 100)
-    test_iter = chainer.iterators.SerialIterator(test, 100,
-    					     repeat=False, shuffle=False)
+    train_iter = chainer.iterators.SerialIterator(train, 44)
+    test_iter = chainer.iterators.SerialIterator(test, 44,
+        repeat=False, shuffle=False)
     
     # Set up a trainer
     updater = training.StandardUpdater(train_iter, optimizer, device=gpu_id)
@@ -150,24 +155,27 @@ Typical imports for a Chainer program. Links contain trainable parameters and fu
    import chainer
    import chainer.functions as F
    import chainer.links as L
-   from chainer import training, datasets
+   from chainer import training
+   from chainer import datasets
    from chainer.training import extensions
    
    import numpy as np
    import sklearn.preprocessing as sp
    
-From the raw mushroom.csv, we format the data into a Chainer dataset. Chainer requires a numpy array for the features in the X matrix and a flattened array if the label is one-dimensional.
+From the raw mushroom.csv, we format the data into a Chainer dataset. Chainer requires a numpy array for the features in the ``X`` matrix and a flattened array if the label is one-dimensional.
 
 .. code-block:: python
 
-   data_array = np.genfromtxt('mushrooms.csv', delimiter=',',dtype=str, skip_header=1)
+   data_array = np.genfromtxt(
+       'mushrooms.csv', delimiter=',', dtype=str, skip_header=1)
    labelEncoder = sp.LabelEncoder()
    for col in range(data_array.shape[1]):
        data_array[:, col] = labelEncoder.fit_transform(data_array[:, col])
    
-   X = data_array[:, 1:].astype(np.float32)
+   X = data_array[:, 0].astype(np.float32)[:, None]
    Y = np.ndarray.flatten(data_array[:, 0].astype(np.int32))
-   train, test = datasets.split_dataset_random(datasets.TupleDataset(X, Y), 623)
+   train, test = datasets.split_dataset_random(
+       datasets.TupleDataset(X, Y), 623)
    
 Define the neural network. For our mushrooms, we'll use two fully-connected, hidden layers between the input and output layers.
 
@@ -177,33 +185,34 @@ Define the neural network. For our mushrooms, we'll use two fully-connected, hid
    class MLP(chainer.Chain):
    
        def __init__(self, n_units, n_out):
-   	super(MLP, self).__init__()
-   	with self.init_scope():
-   	    # the size of the inputs to each layer will be inferred
-   	    self.l1 = L.Linear(n_units)  # n_in -> n_units
-   	    self.l2 = L.Linear(n_units)  # n_units -> n_units
-   	    self.l3 = L.Linear(n_out)  # n_units -> n_out
+           super(MLP, self).__init__()
+           with self.init_scope():
+               # the size of the inputs to each layer will be inferred
+               self.l1 = L.Linear(n_units)  # n_in -> n_units
+               self.l2 = L.Linear(n_units)  # n_units -> n_units
+               self.l3 = L.Linear(n_out)  # n_units -> n_out
    
 As an activation function, we'll use standard Rectified Linear Units (relu).
 
 .. code-block:: python
 
        def __call__(self, x):
-   	h1 = F.relu(self.l1(x))
-   	h2 = F.relu(self.l2(h1))
-   	return self.l3(h2)
+           h1 = F.relu(self.l1(x))
+           h2 = F.relu(self.l2(h1))
+           return self.l3(h2)
    
-Since mushrooms are either edible or poisonous (no information on psychedelic effects!) in the dataset, we'll use a classifier Link for the output, with 100 units in the hidden layers and 2 possible categories to be classified into.
+Since mushrooms are either edible or poisonous (no information on psychedelic effects!) in the dataset, we'll use a classifier Link for the output, with 44 units in the hidden layers and 2 possible categories to be classified into.
    
 .. code-block:: python
 
-   model = L.Classifier(MLP(100, 2))
+     model = L.Classifier(
+         MLP(44, 1), lossfun=F.sigmoid_cross_entropy, accfun=F.binary_accuracy)
 
-If using a CPU instead of the GPU, set gpu_id to -1. Otherwise, use the ID of the GPU, usually 0.
+If using a CPU instead of the GPU, set ``gpu_id`` to ``-1``. Otherwise, use the ID of the GPU, usually ``0``.
 
 .. code-block:: python
 
-   gpu_id = -1
+   gpu_id = 0  # Change to -1 to use CPU
    
    if gpu_id >= 0:
        # Make a specified GPU current
@@ -224,7 +233,7 @@ Configure iterators to step through batches of the data for training and for tes
 
    train_iter = chainer.iterators.SerialIterator(train, 100)
    test_iter = chainer.iterators.SerialIterator(test, 100,
-   					     repeat=False, shuffle=False)
+       repeat=False, shuffle=False)
 
 Set up the updater to be called after the training batches and set the number of batches per epoch to 100. The learning rate per epoch will be output to the directory `result`.
    
