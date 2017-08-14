@@ -66,7 +66,7 @@ Let's start training. Add `--validation-source` and `--validation-target` argume
 to specify validation dataset.
 
 ```
-$ python seq2seq.py --gpu=0 giga-fen.preprocess.en giga-fren.preprocess.fr \
+$ python seq2seq.py --gpu=0 giga-fren.preprocess.en giga-fren.preprocess.fr \
 vocab.en vocab.fr \
 --validation-source newstest2013.preprocess.en \
 --validation-target newstest2013.preprocess.fr
