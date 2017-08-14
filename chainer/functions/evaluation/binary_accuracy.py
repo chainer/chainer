@@ -43,7 +43,9 @@ def binary_accuracy(y, t):
             The prediction label :math:`\\hat t[i]` is ``1`` if
             ``y[i] >= 0``, otherwise ``0``.
 
-        t (Variable): Variable holding an int32 vector of ground truth labels.
+        t (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`):
+            Array holding an int32 vector of ground truth labels.
             If ``t[i] == 1``, it indicates that i-th sample is positive.
             If ``t[i] == 0``, it indicates that i-th sample is negative.
             If ``t[i] == -1``, corresponding ``y[i]`` is ignored.
