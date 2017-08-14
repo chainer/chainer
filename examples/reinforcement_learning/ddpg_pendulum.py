@@ -16,6 +16,7 @@ import numpy as np
 import chainer
 from chainer import functions as F
 from chainer import links as L
+from chainer import training
 from chainer import optimizers
 
 
@@ -67,6 +68,90 @@ class Policy(chainer.Chain):
                       self.xp.asarray(self.action_low),
                       self.xp.asarray(self.action_high))
 
+class Updater(training.StandardUpdater):
+
+    def __init__(self, train_iter, optimizer_Q, optimizer_policy, env, reward_scale, tau, noise_scale):
+        super(Updater, self).__init__(train_iter, optimizer_Q)
+        self.optimizer_policy = optimizer_policy
+        self.env = env
+        self.reward_scale = reward_scale
+        self.tau = tau
+        self.noise_scale = noise_scale
+        self.Q = optimizer_Q.target
+        self.policy = optimizer_policy.target
+        self.target_Q = copy.deepcopy(self.Q)
+        self.target_policy = copy.deepcopy(self.policy)
+        self.Rs = collections.deque(maxlen=100)  # History of returns
+        self.episode = 0
+
+    def update_core(self):
+        obs = self.env.reset()
+        done = False
+        R = 0.0  # Return (sum of rewards obtained in an episode)
+        timestep = 0
+
+        train_iter = self.get_iterator('main')
+        optimizer_Q = self.get_optimizer('main')
+        optimizer_policy = self.optimizer_policy
+        env = self.env
+        Q = self.Q
+        policy = self.policy
+        target_Q = self.target_Q
+        target_policy = self.target_policy
+
+        while not done and timestep < env.spec.timestep_limit:
+            # Select an action with additive noises for exploration
+            action = (get_action(policy, obs) +
+                      np.random.normal(scale=self.noise_scale))
+
+            # Execute an action
+            new_obs, reward, done, _ = env.step(
+                np.clip(action, env.action_space.low, env.action_space.high))
+            R += reward
+
+            # Store a transition
+            train_iter.D.append((obs, action, reward * self.reward_scale, done, new_obs))
+            obs = new_obs
+
+            # Sample a random minibatch of transitions and replay
+            batch = train_iter.__next__()
+            update(Q, target_Q, policy, target_policy,
+                       optimizer_Q, optimizer_policy, batch)
+
+            # Soft update of the target networks
+            soft_copy_params(Q, target_Q, self.tau)
+            soft_copy_params(policy, target_policy, self.tau)
+
+            timestep += 1
+
+        self.Rs.append(R)
+        average_R = np.mean(self.Rs)
+        print('episode: {} iteration: {} R:{} average_R:{}'.format(
+              self.episode, train_iter.iteration, R, average_R))
+        self.episode += 1
+
+
+class GymIterator(chainer.dataset.Iterator):
+
+    def __init__(self, batch_size, replay_start_size, timestep_limit):
+        self.batch_size = batch_size
+        self.replay_start_size = replay_start_size
+        self.timestep_limit = timestep_limit
+        self.D = collections.deque(maxlen=10 ** 6)  # Replay buffer
+        self.iteration = 0
+
+    def __next__(self):
+        self.iteration += 1
+        if len(self.D) >= self.replay_start_size:
+            batch_indices = random.sample(range(len(self.D)), self.batch_size)
+            batch = [self.D[i] for i in batch_indices]
+            return batch
+        return self.D
+
+    @property
+    def epoch_detail(self):
+        # Floating point version of epoch.
+        return self.iteration / self.timestep_limit
 
 def get_action(policy, obs):
     """Get an action by evaluating a given policy."""
@@ -172,9 +257,7 @@ def main():
               'solved.'.format(args.env))
 
     # Initialize variables
-    D = collections.deque(maxlen=10 ** 6)  # Replay buffer
-    Rs = collections.deque(maxlen=100)  # History of returns
-    iteration = 0
+    train_iter = GymIterator(args.batch_size, args.replay_start_size, env.spec.timestep_limit)
 
     # Initialize models and optimizers
     Q = QFunction(obs_size, action_size, n_units=args.unit)
@@ -185,59 +268,17 @@ def main():
         chainer.cuda.get_device(args.gpu).use()
         Q.to_gpu(args.gpu)
         policy.to_gpu(args.gpu)
-    target_Q = copy.deepcopy(Q)
-    target_policy = copy.deepcopy(policy)
-    opt_Q = optimizers.Adam()
-    opt_Q.setup(Q)
-    opt_policy = optimizers.Adam(alpha=1e-4)
-    opt_policy.setup(policy)
 
-    for episode in range(args.episodes):
+    optimizer_Q = optimizers.Adam()
+    optimizer_Q.setup(Q)
+    optimizer_policy = optimizers.Adam(alpha=1e-4)
+    optimizer_policy.setup(policy)
 
-        obs = env.reset()
-        done = False
-        R = 0.0  # Return (sum of rewards obtained in an episode)
-        timestep = 0
-
-        while not done and timestep < env.spec.timestep_limit:
-
-            # Select an action with additive noises for exploration
-            action = (get_action(policy, obs) +
-                      np.random.normal(scale=args.noise_scale))
-
-            # Execute an action
-            new_obs, reward, done, _ = env.step(
-                np.clip(action, env.action_space.low, env.action_space.high))
-            R += reward
-
-            # Store a transition
-            D.append((obs, action, reward * args.reward_scale, done, new_obs))
-            obs = new_obs
-
-            # Sample a random minibatch of transitions and replay
-            if len(D) >= args.replay_start_size:
-                sample_indices = random.sample(range(len(D)), args.batch_size)
-                samples = [D[i] for i in sample_indices]
-                update(Q, target_Q, policy, target_policy,
-                       opt_Q, opt_policy, samples)
-
-            # Soft update of the target networks
-            soft_copy_params(Q, target_Q, args.tau)
-            soft_copy_params(policy, target_policy, args.tau)
-
-            iteration += 1
-            timestep += 1
-
-        Rs.append(R)
-        average_R = np.mean(Rs)
-        print('episode: {} iteration: {} R:{} average_R:{}'.format(
-              episode, iteration, R, average_R))
-
-        if reward_threshold is not None and average_R >= reward_threshold:
-            print('Solved {} by getting average reward of '
-                  '{} >= {} over 100 consecutive episodes.'.format(
-                      args.env, average_R, reward_threshold))
-            break
+    # Set up a trainer
+    updater = Updater(train_iter, optimizer_Q, optimizer_policy, env,
+            args.reward_scale, args.tau, args.noise_scale)
+    trainer = training.Trainer(updater, (args.episodes, 'epoch'))
+    trainer.run()
 
 
 if __name__ == '__main__':
