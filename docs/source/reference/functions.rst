@@ -163,6 +163,7 @@ Mathematical functions
    chainer.functions.arccos
    chainer.functions.arcsin
    chainer.functions.arctan
+   chainer.functions.arctan2
    chainer.functions.argmax
    chainer.functions.argmin
    chainer.functions.average
