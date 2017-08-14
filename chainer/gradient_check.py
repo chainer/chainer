@@ -286,6 +286,9 @@ def check_backward(func, x_data, y_grad, params=(),
     one = xp.array(1., dtype)
 
     def g():
+        # This functions is called twice in `numerical_grad`.
+        # `one` is `1 + epsilon` or `1 - epsilon` in these calls.
+        # See the document of `numerical_grad`.
         for skip, cx, data in six.moves.zip(no_grads, casted_xs, casted_data):
             if skip:
                 continue
