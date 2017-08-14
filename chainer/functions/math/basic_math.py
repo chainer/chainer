@@ -46,7 +46,7 @@ def _preprocess_const(x, value):
     return utils.force_type(x.dtype, value)
 
 
-class Neg(function.Function):
+class Neg(function_node.FunctionNode):
 
     @property
     def label(self):
@@ -58,8 +58,8 @@ class Neg(function.Function):
     def forward(self, x):
         return utils.force_array(-x[0]),
 
-    def backward(self, x, gy):
-        return utils.force_array(-gy[0]),
+    def backward(self, indexes, gy):
+        return -gy[0],
 
 
 def neg(self):  # -x
@@ -68,7 +68,7 @@ def neg(self):  # -x
     Returns:
         ~chainer.Variable: Output variable.
     """
-    return Neg()(self)
+    return Neg().apply((self,))[0]
 
 
 class Absolute(function.Function):
