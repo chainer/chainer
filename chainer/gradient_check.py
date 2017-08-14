@@ -299,7 +299,10 @@ def check_backward(func, x_data, y_grad, params=(),
                 param_dtype = dtype
             else:
                 param_dtype = param.dtype
-            param.data = (one * data).astype(param_dtype)
+            # The inner astype is required to calculates __mul__ in
+            # `param_type` when data is low accuracy float.
+            # The outer one is require to store data with the given type.
+            param.data = (one * data.astype(param_dtype)).astype(param_dtype)
         ys = func(*casted_xs)
         ys = _as_tuple(ys)
         ys_data = tuple(y.data for y in ys)
