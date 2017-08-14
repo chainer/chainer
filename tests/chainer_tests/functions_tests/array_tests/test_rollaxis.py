@@ -45,7 +45,8 @@ class TestRollaxis(unittest.TestCase):
 
     def check_backward(self, x_data, g_data):
         gradient_check.check_backward(
-            functions.Rollaxis(self.axis, self.start), x_data, g_data)
+            functions.Rollaxis(self.axis, self.start), x_data, g_data,
+            dtype='d')
 
     def test_backward_cpu(self):
         self.check_backward(self.x, self.g)
