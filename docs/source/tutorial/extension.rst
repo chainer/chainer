@@ -5,18 +5,24 @@ Create your own trainer extension
 
 In this section, you will learn about the following things:
 
-* How to create your own trainer extension
-    * by defining a new simple function
-    * by defining a new function decorated with :meth:`~chainer.training.make_extension`
-    * by defining a new class inherited from :class:`~chainer.training.Extension`
+- :ref:`basic`
+- How to create your own trainer extension
+
+    * :ref:`by defining a new simple function<function>`
+    * :ref:`by defining a new function decorated with @make_extension <decorator>`
+    * :ref:`by defining a new class inherited from Extension class <class>`
+
+.. _basic:
 
 What is trainer Extension?
 --------------------------
 
-:class:`~chainer.training.Extension` is a callable object that takes a :class:`~chainer.training.Trainer` object as an argument. Adding an :class:`~chainer.training.Extension` to a :class:`~chainer.training.Trainer` using :meth:`~chainer.training.Trainer.extend` method, the :class:`~chainer.training.Extension` will be called at given timing you specified by using ``trigger`` object (See the details below.)
+:class:`~chainer.training.Extension` is a callable object that takes a :class:`~chainer.training.Trainer` object as an argument. Adding an :class:`~chainer.training.Extension` to a :class:`~chainer.training.Trainer` using :meth:`~chainer.training.Trainer.extend` method, the :class:`~chainer.training.Extension` will be called at given timing you specified by using ``trigger`` object (See the details in :ref:`trigger`)
 
-A :class:`~chainer.training.Trainer` object has all information used in a training loop, e.g., models, optimizers, updaters, iterators, and datasets, etc. So you can change the settings of optimizers 
+A :class:`~chainer.training.Trainer` object has all information used in a training loop, e.g., models, optimizers, updaters, iterators, and datasets, etc. So you can change the settings of optimizers
 
+
+.. _function:
 
 Write a simple function for a new Extension
 -------------------------------------------
@@ -42,6 +48,7 @@ It performs learning rate dropping at every 10 epochs by multiplying 0.1 with th
 
     lr_drop = lambda trainer: trainer.updater.get_optimizer('main').lr *= 0.1
 
+.. _decorator:
 
 Write a method decorated with @make_extension
 ---------------------------------------------
@@ -54,6 +61,8 @@ Write a method decorated with @make_extension
 
 
 Attributes added by this decorator are follows.
+
+.. _trigger:
 
 1. trigger
 ^^^^^^^^^^
@@ -68,4 +77,7 @@ Attributes added by this decorator are follows.
 
 See the details in the documentation of :meth:`~chainer.training.get_trigger`.
 
-2.
+2. default_name
+^^^^^^^^^^^^^^^
+
+An :class:`~chainer.training.Extension` is kept in a dictionary which is a property in a :class:`~chainer.training.Trainer`. This argument gives the name of the :class:`~chainer.training.Extension`. 
