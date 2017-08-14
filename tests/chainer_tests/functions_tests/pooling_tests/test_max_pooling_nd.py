@@ -44,10 +44,10 @@ class TestMaxPoolingND(unittest.TestCase):
         gy_shape = (2, 3) + outs
         self.gy = numpy.random.uniform(-1, 1, gy_shape).astype(self.dtype)
 
-        self.check_backward_options = {'eps': 2.0 ** -8}
+        self.check_backward_options = {}
         if self.dtype == numpy.float16:
             self.check_backward_options = {
-                'eps': 2.0 ** -8, 'atol': 1e-03, 'rtol': 1e-03}
+                'atol': 1e-03, 'rtol': 1e-03}
 
     def check_forward(self, x_data, use_cudnn='always'):
         dims = self.dims
@@ -135,7 +135,7 @@ class TestMaxPoolingND(unittest.TestCase):
                 functions.MaxPoolingND(
                     self.ndim, self.ksize, stride=self.stride, pad=self.pad,
                     cover_all=self.cover_all),
-                x_data, y_grad, **self.check_backward_options)
+                x_data, y_grad, dtype='d', **self.check_backward_options)
 
     @condition.retry(3)
     def test_backward_cpu(self):

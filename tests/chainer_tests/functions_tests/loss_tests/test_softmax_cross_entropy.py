@@ -45,12 +45,9 @@ class TestSoftmaxCrossEntropy(unittest.TestCase):
             if (self.ignore_index is not None and
                     len(self.ignore_index) <= self.t.ndim):
                 self.t[self.ignore_index] = -1
-        self.check_forward_options = {}
-        self.check_backward_options = {'dtype': numpy.float64}
-        if self.dtype == numpy.float16:
-            self.check_forward_options = {'atol': 5e-4, 'rtol': 5e-3}
-            self.check_backward_options = {
-                'dtype': numpy.float64, 'atol': 5e-4, 'rtol': 5e-3}
+        self.check_forward_options = {'atol': 5e-4, 'rtol': 5e-3}
+        self.check_backward_options = {
+            'dtype': numpy.float64, 'atol': 5e-4, 'rtol': 5e-3}
         if self.weight_apply:
             self.class_weight = numpy.random.uniform(
                 0, 10, (self.x.shape[1],)).astype(self.dtype)
@@ -120,7 +117,7 @@ class TestSoftmaxCrossEntropy(unittest.TestCase):
             func = functions.SoftmaxCrossEntropy(
                 cache_score=self.cache_score, class_weight=class_weight)
             gradient_check.check_backward(
-                func, (x_data, t_data), None, eps=0.02,
+                func, (x_data, t_data), None,
                 **self.check_backward_options)
 
     @condition.retry(3)
@@ -270,12 +267,9 @@ class TestElementwiseSoftmaxCrossEntropy(unittest.TestCase):
                     len(self.ignore_index) <= self.t.ndim):
                 self.t[self.ignore_index] = -1
         self.g = numpy.random.uniform(-1, 1, self.t.shape).astype(self.dtype)
-        self.check_forward_options = {}
-        self.check_backward_options = {'dtype': numpy.float64}
-        if self.dtype == numpy.float16:
-            self.check_forward_options = {'atol': 5e-4, 'rtol': 5e-3}
-            self.check_backward_options = {
-                'dtype': numpy.float64, 'atol': 5e-4, 'rtol': 5e-3}
+        self.check_forward_options = {'atol': 5e-4, 'rtol': 5e-3}
+        self.check_backward_options = {
+            'dtype': numpy.float64, 'atol': 5e-4, 'rtol': 5e-3}
         if self.weight_apply:
             self.class_weight = numpy.random.uniform(
                 0, 10, (self.x.shape[1],)).astype(self.dtype)
@@ -331,7 +325,7 @@ class TestElementwiseSoftmaxCrossEntropy(unittest.TestCase):
             cache_score=self.cache_score,
             class_weight=class_weight, reduce='no')
         gradient_check.check_backward(
-            func, (x_data, t_data), g_data, eps=0.02,
+            func, (x_data, t_data), g_data,
             **self.check_backward_options)
 
     @condition.retry(3)
