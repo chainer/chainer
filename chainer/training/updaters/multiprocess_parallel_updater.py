@@ -285,10 +285,9 @@ def _memcpy_gather():
                 }
             }
             else { // fp16
-                half *src = (half *)(ptrs[id]);
+                float16 *src = (float16 *)(ptrs[id]);
                 if (src != NULL) {
-                    // dst[i_dst] = (float) (src[i_src]);
-                    dst[i_dst] = __half2float(src[i_src]);
+                    dst[i_dst] = (float) (src[i_src]);
                 }
             }
             id_pre = id;
@@ -380,10 +379,9 @@ def _memcpy_scatter():
                 }
             }
             else { // fp16
-                half *dst = (half *)(ptrs[id]);
+                float16 *dst = (float16 *)(ptrs[id]);
                 if (dst != NULL) {
-                    // dst[i_dst] = (half) array[i_src];
-                    dst[i_dst] = __float2half(array[i_src]);
+                    dst[i_dst] = (float) array[i_src];
                 }
             }
             id_pre = id;
