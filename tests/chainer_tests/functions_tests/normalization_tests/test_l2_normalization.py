@@ -60,7 +60,7 @@ class TestL2Normalization(unittest.TestCase):
     def check_backward(self, x_data, axis, y_grad):
         gradient_check.check_backward(
             functions.NormalizeL2(eps=1e-6, axis=axis), x_data, y_grad,
-            rtol=1e-3, atol=1e-4)
+            dtype='d', rtol=1e-3, atol=1e-4)
 
     @condition.retry(3)
     def test_backward_cpu(self):

@@ -31,7 +31,6 @@ class TestMaxPooling2D(unittest.TestCase):
         else:
             self.gy = numpy.random.uniform(
                 -1, 1, (2, 3, 2, 2)).astype(self.dtype)
-        self.check_backward_options = {'eps': 2.0 ** -8}
 
     def check_forward(self, x_data, use_cudnn='always'):
         x = chainer.Variable(x_data)
@@ -133,7 +132,7 @@ class TestMaxPooling2D(unittest.TestCase):
             gradient_check.check_backward(
                 functions.MaxPooling2D(
                     3, stride=2, pad=1, cover_all=self.cover_all),
-                x_data, y_grad, **self.check_backward_options)
+                x_data, y_grad, dtype='d', atol=1e-4, rtol=1e-3)
 
     @condition.retry(3)
     def test_backward_cpu(self):
