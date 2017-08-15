@@ -63,7 +63,7 @@ class _Worker(multiprocessing.Process):
                 del loss
 
                 gg = gather_grads(self.model)
-                nccl_data_type = set_nccl_data_type(gg.dtype)
+                nccl_data_type = get_nccl_data_type(gg.dtype)
                 null_stream = cuda.Stream.null
                 self.comm.reduce(gg.data.ptr, gg.data.ptr, gg.size,
                                  nccl_data_type, nccl.NCCL_SUM, 0,
@@ -71,7 +71,7 @@ class _Worker(multiprocessing.Process):
                 del gg
                 self.model.cleargrads()
                 gp = gather_params(self.model)
-                nccl_data_type = set_nccl_data_type(gp.dtype)
+                nccl_data_type = get_nccl_data_type(gp.dtype)
                 self.comm.bcast(gp.data.ptr, gp.size, nccl_data_type, 0,
                                 null_stream.ptr)
                 scatter_params(self.model, gp)
@@ -214,7 +214,7 @@ class MultiprocessParallelUpdater(updater.StandardUpdater):
             null_stream = cuda.Stream.null
             if self.comm is not None:
                 gg = gather_grads(self._master)
-                nccl_data_type = set_nccl_data_type(gg.dtype)
+                nccl_data_type = get_nccl_data_type(gg.dtype)
                 self.comm.reduce(gg.data.ptr, gg.data.ptr, gg.size,
                                  nccl_data_type, nccl.NCCL_SUM,
                                  0, null_stream.ptr)
@@ -223,7 +223,7 @@ class MultiprocessParallelUpdater(updater.StandardUpdater):
             optimizer.update()
             if self.comm is not None:
                 gp = gather_params(self._master)
-                nccl_data_type = set_nccl_data_type(gp.dtype)
+                nccl_data_type = get_nccl_data_type(gp.dtype)
                 self.comm.bcast(gp.data.ptr, gp.size, nccl_data_type,
                                 0, null_stream.ptr)
 
@@ -446,26 +446,16 @@ def scatter_params(link, array):
     return _scatter(link, array, "data")
 
 
-def set_nccl_data_type(dtype):
-    """Set data type of NCCL"""
+def get_nccl_data_type(dtype):
+    """Get data type for NCCL"""
 
-    if nccl.get_version() < 2000:
-        if dtype == numpy.float32:
-            nccl_data_type = nccl.NCCL_FLOAT
-        elif dtype == numpy.float16:
-            nccl_data_type = nccl.NCCL_HALF
-        elif dtype == numpy.float64:
-            nccl_data_type = nccl.NCCL_DOUBLE
-        else:
-            raise RuntimeError('Unexpected data type:{}'.format(dtype))
+    if dtype == numpy.float32:
+        nccl_data_type = nccl.NCCL_FLOAT
+    elif dtype == numpy.float16:
+        nccl_data_type = nccl.NCCL_HALF
+    elif dtype == numpy.float64:
+        nccl_data_type = nccl.NCCL_DOUBLE
     else:
-        if dtype == numpy.float32:
-            nccl_data_type = nccl.NCCL2_FLOAT
-        elif dtype == numpy.float16:
-            nccl_data_type = nccl.NCCL2_HALF
-        elif dtype == numpy.float64:
-            nccl_data_type = nccl.NCCL2_DOUBLE
-        else:
-            raise RuntimeError('Unexpected data type:{}'.format(dtype))
+        raise RuntimeError('Unexpected data type:{}'.format(dtype))
 
     return nccl_data_type
