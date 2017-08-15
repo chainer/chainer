@@ -436,7 +436,8 @@ class TestVariable(unittest.TestCase):
         cupy = cuda.cupy
         with cuda.get_device_from_id(1):
             a = chainer.Variable(cupy.empty(3, dtype=np.float32))
-        a.zerograd()
+        with testing.assert_warns(DeprecationWarning):
+            a.zerograd()
         self.assertIsNot(a.grad, None)
         self.assertEqual(int(a.grad.device), 1)
         with cuda.get_device_from_id(1):
@@ -449,7 +450,8 @@ class TestVariable(unittest.TestCase):
         with cuda.get_device_from_id(1):
             a = chainer.Variable(cupy.empty(3, dtype=np.float32))
             a.grad = cupy.empty_like(a.data)
-        a.zerograd()
+        with testing.assert_warns(DeprecationWarning):
+            a.zerograd()
         self.assertEqual(int(a.grad.device), 1)
         with cuda.get_device_from_id(1):
             g_expect = cupy.zeros_like(a.data)
@@ -797,7 +799,8 @@ class TestUninitializedParameter(unittest.TestCase):
     @attr.gpu
     def test_zerograd_to_gpu(self):
         x = chainer.Parameter()
-        x.zerograd()
+        with testing.assert_warns(DeprecationWarning):
+            x.zerograd()
         x.to_gpu()
         x.initialize((3, 2))
         self.check_zerograd(x, cuda.cupy)
@@ -806,7 +809,8 @@ class TestUninitializedParameter(unittest.TestCase):
     def test_to_gpu_zerograd(self):
         x = chainer.Parameter()
         x.to_gpu()
-        x.zerograd()
+        with testing.assert_warns(DeprecationWarning):
+            x.zerograd()
         x.initialize((3, 2))
         self.check_zerograd(x, cuda.cupy)
 
