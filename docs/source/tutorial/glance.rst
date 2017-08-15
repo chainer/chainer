@@ -171,6 +171,8 @@ A ``chainer.trainer`` is used to set up our neural network and data for training
 
 Each of the components is fed information from the components within it. Setting up the trainer starts at the inner components, and moves outward, with the exception of extensions, which are added after the trainer is defined.
 
+Dataset
+~~~~~~~
 .. image:: ../../image/glance/trainer-dataset.png
 
 Our first step is to format the data. From the raw mushroom.csv, we format the data into a Chainer dataset. Chainer requires a numpy array for the features in the ``X`` matrix and a flattened array if the label is one-dimensional.
@@ -190,6 +192,8 @@ Our first step is to format the data. From the raw mushroom.csv, we format the d
    
 Configure iterators to step through batches of the data for training and for testing validation. In this case, we'll use a batch size of 100, no repeating, and shuffling not required since we already shuffled the dataset on reading it in.
 
+Iterator
+~~~~~~~~
 .. image:: ../../image/glance/trainer-iterator.png
 
 .. code-block:: python
@@ -198,6 +202,8 @@ Configure iterators to step through batches of the data for training and for tes
    test_iter = chainer.iterators.SerialIterator(test, 100,
        repeat=False, shuffle=False)
 
+Model
+~~~~~~~~~~
 .. image:: ../../image/glance/trainer-model.png
 
 Next, we need to define the neural network for inclusion in our model. For our mushrooms, we'll use two fully-connected, hidden layers between the input and output layers.
@@ -242,6 +248,8 @@ If using a CPU instead of the GPU, set ``gpu_id`` to ``-1``. Otherwise, use the 
        chainer.cuda.get_device_from_id(gpu_id).use()
        model.to_gpu()  # Copy the model to the GPU
    
+Optimizer
+~~~~~~~~~~~~
 .. image:: ../../image/glance/trainer-optimizer.png
 
 Pick an optimizer, and set up the model to use it.
