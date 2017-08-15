@@ -157,7 +157,7 @@ def add(self, rhs):  # lhs + rhs
     return AddConstant(rhs)(self)
 
 
-class Sub(function.Function):
+class Sub(function_node.FunctionNode):
 
     @property
     def label(self):
@@ -173,8 +173,8 @@ class Sub(function.Function):
     def forward(self, x):
         return utils.force_array(x[0] - x[1]),
 
-    def backward(self, x, gy):
-        return gy[0], utils.force_array(-gy[0])
+    def backward(self, indexes, gy):
+        return gy[0], -gy[0]
 
 
 def sub(self, rhs):  # lhs - rhs
@@ -185,7 +185,7 @@ def sub(self, rhs):  # lhs - rhs
     """
 
     if isinstance(rhs, variable.Variable):
-        return Sub()(self, rhs)
+        return Sub().apply((self, rhs))[0]
     _check_constant_type(rhs)
     return AddConstant(-rhs)(self)
 
@@ -217,7 +217,7 @@ def rsub(self, rhs):  # rhs - lhs
         ~chainer.Variable: Output variable.
     """
     if isinstance(rhs, variable.Variable):
-        return Sub()(rhs, self)
+        return Sub().apply((rhs, self))[0]
     _check_constant_type(rhs)
     return SubFromConstant(rhs)(self)
 
