@@ -439,7 +439,7 @@ class Function(object):
         See :meth:`FunctionNode.add_hook` for the detail.
 
         Args:
-            hook(~chainer.function.FunctionHook):
+            hook(~chainer.FunctionHook):
                 Function hook to be registered.
             name(str): Name of the function hook.
                 name must be unique among function hooks

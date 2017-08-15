@@ -565,7 +565,7 @@ class FunctionNode(object):
         """Registers a function hook.
 
         Args:
-            hook (~chainer.function.FunctionHook): Function hook to be
+            hook (~chainer.FunctionHook): Function hook to be
                 registered.
             name (str): Name of the function hook. The name must be unique
                 among function hooks registered to this function. If ``None``,
