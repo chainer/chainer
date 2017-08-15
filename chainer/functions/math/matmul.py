@@ -53,38 +53,11 @@ def _matmul(a, b, transa=False, transb=False, transout=False):
         return numpy.einsum('...ij,...jk->...ik', a, b)
 
 
-def _batch_matmul(a, b, transa=False, transb=False, transout=False):
-    a = a.reshape(a.shape[:2] + (-1,))
-    b = b.reshape(b.shape[:2] + (-1,))
-    trans_axis = (0, 2, 1)
-    if transout:
-        transa, transb = not transb, not transa
-        a, b = b, a
-    if transa:
-        a = a.transpose(trans_axis)
-    if transb:
-        b = b.transpose(trans_axis)
-    xp = cuda.get_array_module(a)
-    if hasattr(xp, 'matmul'):
-        return xp.matmul(a, b)
-    if a.ndim <= 2:
-        return numpy.dot(a, b)
-    else:
-        return numpy.einsum('...ij,...jk->...ik', a, b)
-
-
 def _check_ndim(in_type, lower=1, upper=2):
     type_check.expect(
         in_type.ndim >= lower,
         in_type.ndim <= upper
     )
-
-
-def _get_size(typ, index, vector_ndim):
-    if type_check.eval(typ.ndim) == vector_ndim and index == vector_ndim:
-        return 1
-    else:
-        return typ.shape[index]
 
 
 def _get_check_index(trans, right, row_idx=0, col_idx=1):
@@ -152,45 +125,6 @@ class MatMul(function.Function):
         return ga.astype(a.dtype), gb.astype(b.dtype)
 
 
-class BatchMatMul(function.Function):
-
-    def __init__(self, transa=False, transb=False):
-        self.transa = transa
-        self.transb = transb
-
-    def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
-        a_type, b_type = in_types
-
-        type_check.expect(
-            a_type.dtype == numpy.float32,
-            b_type.dtype == numpy.float32
-        )
-
-        _check_ndim(a_type, lower=2, upper=3)
-        _check_ndim(b_type, lower=2, upper=3)
-
-        a_idx = _get_check_index(self.transa, False, row_idx=1, col_idx=2)
-        b_idx = _get_check_index(self.transb, True, row_idx=1, col_idx=2)
-        a_size = _get_size(a_type, a_idx, 2)
-        b_size = _get_size(b_type, b_idx, 2)
-        type_check.expect(
-            a_size == b_size
-        )
-
-    def forward(self, x):
-        a, b = x
-        return _batch_matmul(a, b, self.transa, self.transb),
-
-    def backward(self, x, gy):
-        a, b = x
-        ga = _batch_matmul(gy[0], b, transb=not self.transb,
-                           transout=self.transa).reshape(a.shape)
-        gb = _batch_matmul(a, gy[0], transa=not self.transa,
-                           transout=self.transb).reshape(b.shape)
-        return ga, gb
-
-
 def matmul(a, b, transa=False, transb=False):
     """Computes the matrix multiplication of two arrays.
 
@@ -222,6 +156,58 @@ def matmul(a, b, transa=False, transb=False):
 
     """
     return MatMul(transa=transa, transb=transb)(a, b)
+
+
+def _get_size(typ, index):
+    if index == 2 and type_check.eval(typ.ndim) == 2:
+        return 1
+    else:
+        return typ.shape[index]
+
+
+def _batch_matmul(a, b, transa, transb, transout):
+    a = a.reshape(a.shape[:2] + (-1,))
+    b = b.reshape(b.shape[:2] + (-1,))
+    return _matmul(a, b, transa, transb, transout)
+
+
+class BatchMatMul(function.Function):
+
+    def __init__(self, transa=False, transb=False):
+        self.transa = transa
+        self.transb = transb
+
+    def check_type_forward(self, in_types):
+        type_check.expect(in_types.size() == 2)
+        a_type, b_type = in_types
+
+        type_check.expect(
+            a_type.dtype == numpy.float32,
+            b_type.dtype == numpy.float32
+        )
+
+        _check_ndim(a_type, lower=2, upper=3)
+        _check_ndim(b_type, lower=2, upper=3)
+
+        a_idx = _get_check_index(self.transa, False, row_idx=1, col_idx=2)
+        b_idx = _get_check_index(self.transb, True, row_idx=1, col_idx=2)
+        a_size = _get_size(a_type, a_idx)
+        b_size = _get_size(b_type, b_idx)
+        type_check.expect(
+            a_size == b_size
+        )
+
+    def forward(self, x):
+        a, b = x
+        return _batch_matmul(a, b, self.transa, self.transb, False),
+
+    def backward(self, x, gy):
+        a, b = x
+        ga = _batch_matmul(gy[0], b, False, not self.transb,
+                           self.transa).reshape(a.shape)
+        gb = _batch_matmul(a, gy[0], not self.transa, False,
+                           self.transb).reshape(b.shape)
+        return ga, gb
 
 
 def batch_matmul(a, b, transa=False, transb=False):
