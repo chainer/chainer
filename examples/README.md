@@ -31,12 +31,12 @@ This page contains a list of example codes written with Chainer.
 
 * [Variational AutoEncoder](https://github.com/chainer/chainer/tree/master/examples/vae)
 * [DCGAN](https://github.com/chainer/chainer/tree/master/examples/dcgan)
-* [:zzz: pfnet-resaerch example: Chainer-GAN-lib](https://github.com/pfnet-research/chainer-gan-lib)
-* [:zzz: pfnet-resaerch example: Pix2Pix](https://github.com/pfnet-research/chainer-pix2pix)
+* [:zzz: pfnet-research example: Chainer-GAN-lib](https://github.com/pfnet-research/chainer-gan-lib)
+* [:zzz: pfnet-research example: Pix2Pix](https://github.com/pfnet-research/chainer-pix2pix)
 
 ### <a name="graph-cnn"></a> Graph Convolutional Network
 
-* [:zzz: pfnet-resaerch example: Chainer Graph CNN](https://github.com/pfnet-research/chainer-graph-cnn)
+* [:zzz: pfnet-research example: Chainer Graph CNN](https://github.com/pfnet-research/chainer-graph-cnn)
 
 ### <a name="reinforcement-learning"></a> Reinforcement Learning
 
