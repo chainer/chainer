@@ -11,6 +11,7 @@ from chainer import dataset  # NOQA
 from chainer import datasets  # NOQA
 from chainer import function  # NOQA
 from chainer import function_hook  # NOQA
+from chainer import function_hooks  # NOQA
 from chainer import function_node  # NOQA
 from chainer import functions  # NOQA
 from chainer import initializer  # NOQA
