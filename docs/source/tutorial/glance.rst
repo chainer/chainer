@@ -65,7 +65,7 @@ Here's the whole picture of the code:
         def __init__(self, n_units, n_out):
     	    super(MLP, self).__init__()
             with self.init_scope():
-                # the size of the inputs to each layer will be inferred
+                # the size of the inputs to each layer inferred from the layer before
                 self.l1 = L.Linear(n_units)  # n_in -> n_units
                 self.l2 = L.Linear(n_units)  # n_units -> n_units
                 self.l3 = L.Linear(n_out)  # n_units -> n_out
@@ -131,7 +131,7 @@ Here's the whole picture of the code:
     
 If you've worked with other neural net frameworks, some of the that code may look familiar. Let's break down what it's doing.
 
-Code Breakdown
+Code Initialization
 ~~~~~~~~~~~~
 
 Let's start our python program. Matplotlib is used for the graphs to show training progress.
@@ -162,7 +162,14 @@ Typical imports for a Chainer program. Links contain trainable parameters and fu
    import numpy as np
    import sklearn.preprocessing as sp
    
-From the raw mushroom.csv, we format the data into a Chainer dataset. Chainer requires a numpy array for the features in the ``X`` matrix and a flattened array if the label is one-dimensional.
+Trainer Structure
+~~~~~~~~~~~~~~~~~
+
+A ``chainer.trainer`` is used to set up our neural network and data for training. The components of the trainer are generally hierarchical, and are organized as follows:
+
+.. image:: ../../image/glance/trainer.png
+
+Our first step is to format the data. From the raw mushroom.csv, we format the data into a Chainer dataset. Chainer requires a numpy array for the features in the ``X`` matrix and a flattened array if the label is one-dimensional.
 
 .. code-block:: python
 
@@ -177,7 +184,15 @@ From the raw mushroom.csv, we format the data into a Chainer dataset. Chainer re
    train, test = datasets.split_dataset_random(
        datasets.TupleDataset(X, Y), 623)
    
-Define the neural network. For our mushrooms, we'll use two fully-connected, hidden layers between the input and output layers.
+Configure iterators to step through batches of the data for training and for testing validation. In this case, we'll use a batch size of 100, no repeating, and shuffling not required since we already shuffled the dataset on reading it in.
+
+.. code-block:: python
+
+   train_iter = chainer.iterators.SerialIterator(train, 100)
+   test_iter = chainer.iterators.SerialIterator(test, 100,
+       repeat=False, shuffle=False)
+
+Next, we need to define the neural network for inclusion in our model. For our mushrooms, we'll use two fully-connected, hidden layers between the input and output layers.
 
 .. code-block:: python
 
@@ -187,7 +202,7 @@ Define the neural network. For our mushrooms, we'll use two fully-connected, hid
        def __init__(self, n_units, n_out):
            super(MLP, self).__init__()
            with self.init_scope():
-               # the size of the inputs to each layer will be inferred
+               # the size of the inputs to each layer inferred from the layer before
                self.l1 = L.Linear(n_units)  # n_in -> n_units
                self.l2 = L.Linear(n_units)  # n_units -> n_units
                self.l3 = L.Linear(n_out)  # n_units -> n_out
@@ -201,7 +216,7 @@ As an activation function, we'll use standard Rectified Linear Units (relu).
            h2 = F.relu(self.l2(h1))
            return self.l3(h2)
    
-Since mushrooms are either edible or poisonous (no information on psychedelic effects!) in the dataset, we'll use a classifier Link for the output, with 44 units in the hidden layers and 2 possible categories to be classified into.
+Since mushrooms are either edible or poisonous (no information on psychedelic effects!) in the dataset, we'll use a classifier Link for the output, with 44 units in the hidden layers and a single true/false category for classification.
    
 .. code-block:: python
 
@@ -219,7 +234,9 @@ If using a CPU instead of the GPU, set ``gpu_id`` to ``-1``. Otherwise, use the 
        chainer.cuda.get_device_from_id(gpu_id).use()
        model.to_gpu()  # Copy the model to the GPU
    
-Pick and optimizer, and set up the model to use it.
+Pick an optimizer, and set up the model to use it.
+
+.. image:: ../../image/glance/trainer-optimizer.png
 
 .. code-block:: python
 
@@ -227,23 +244,22 @@ Pick and optimizer, and set up the model to use it.
    optimizer = chainer.optimizers.SGD()
    optimizer.setup(model)
    
-Configure iterators to step through batches of the data for training and for testing validation. In this case, we'll use a batch size of 100, no repeating, and shuffling not required since we already shuffled the dataset on reading it in.
+Now that we have the training iterator and optimizer set up, we link them both together into the updater. The updater uses the minibatches from the iterator, and then does the forward and backward processing of the model, and updates the parameters of the model according to the optimizer.
 
 .. code-block:: python
 
-   train_iter = chainer.iterators.SerialIterator(train, 100)
-   test_iter = chainer.iterators.SerialIterator(test, 100,
-       repeat=False, shuffle=False)
-
-Set up the updater to be called after the training batches and set the number of batches per epoch to 100. The learning rate per epoch will be output to the directory `result`.
+   updater = training.StandardUpdater(train_iter, optimizer, device=gpu_id)
    
+Set up the updater to be called after the training batches and set the number of batches per epoch to 100. The learning rate per epoch will be output to the directory `result`.
+
 .. code-block:: python
 
    # Set up a trainer
-   updater = training.StandardUpdater(train_iter, optimizer, device=gpu_id)
    trainer = training.Trainer(updater, (100, 'epoch'), out='result')
    
-Set the model to be evaluated after each epoch.
+.. image:: ../../image/glance/trainer-extensions.png
+
+Use the testing iterator defined above for an Evaluator extension to the trainer to provide test scores.
 
 .. code-block:: python
 
