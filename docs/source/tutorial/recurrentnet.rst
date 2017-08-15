@@ -291,19 +291,38 @@ Backprop Through Time is implemented as follows.
 
 .. code-block:: python
 
-   def update_bptt(updater):
-       loss = 0
-       for i in range(35):
-           batch = train_iter.__next__()
-           x, t = chainer.dataset.concat_examples(batch)
-           loss += model(chainer.Variable(x), chainer.Variable(t))
+   class BPTTUpdater(training.StandardUpdater):
 
-       model.cleargrads()
-       loss.backward()
-       loss.unchain_backward()  # truncate
-       optimizer.update()
+       def __init__(self, train_iter, optimizer, bprop_len, device):
+           super(BPTTUpdater, self).__init__(
+               train_iter, optimizer, device=device)
+           self.bprop_len = bprop_len
 
-   updater = training.StandardUpdater(train_iter, optimizer, update_bptt)
+       # The core part of the update routine can be customized by overriding.
+       def update_core(self):
+           loss = 0
+           # When we pass one iterator and optimizer to StandardUpdater.__init__,
+           # they are automatically named 'main'.
+           train_iter = self.get_iterator('main')
+           optimizer = self.get_optimizer('main')
+
+           # Progress the dataset iterator for bprop_len words at each iteration.
+           for i in range(self.bprop_len):
+               # Get the next batch (a list of tuples of two word IDs)
+               batch = train_iter.__next__()
+
+               # Concatenate the word IDs to matrices and send them to the device
+               # self.converter does this job
+               # (it is chainer.dataset.concat_examples by default)
+               x, t = self.converter(batch, self.device)
+
+               # Compute the loss at this time step and accumulate it
+               loss += optimizer.target(chainer.Variable(x), chainer.Variable(t))
+
+           optimizer.target.cleargrads()  # Clear the parameter gradients
+           loss.backward()  # Backprop
+           loss.unchain_backward()  # Truncate the graph
+           optimizer.update()  # Update the parameters
 
 In this case, we update the parameters on every 35 consecutive words.
 The call of ``unchain_backward`` cuts the history of computation accumulated to the LSTM links.
