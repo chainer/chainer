@@ -193,7 +193,7 @@ def sub(self, rhs):  # lhs - rhs
     return AddConstant(-rhs).apply((self,))[0]
 
 
-class SubFromConstant(function.Function):
+class SubFromConstant(function_node.FunctionNode):
 
     def __init__(self, value):
         self.value = value
@@ -210,8 +210,8 @@ class SubFromConstant(function.Function):
         value = _preprocess_const(x[0], self.value)
         return utils.force_array(value - x[0]),
 
-    def backward(self, x, gy):
-        return utils.force_array(-gy[0]),
+    def backward(self, indexes, gy):
+        return -gy[0],
 
 
 def rsub(self, rhs):  # rhs - lhs
@@ -223,7 +223,7 @@ def rsub(self, rhs):  # rhs - lhs
     if isinstance(rhs, variable.Variable):
         return Sub().apply((rhs, self))[0]
     _check_constant_type(rhs)
-    return SubFromConstant(rhs)(self)
+    return SubFromConstant(rhs).apply((self,))[0]
 
 
 class Mul(function_node.FunctionNode):
