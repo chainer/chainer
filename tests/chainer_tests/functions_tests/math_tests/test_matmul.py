@@ -129,27 +129,43 @@ class TestMatMul(unittest.TestCase):
 @testing.parameterize(*testing.product_dict(
     [
         # matmul
-        {'x1_shape': (2, 5), 'x2_shape': (5, 10), 'gy_shape': (2, 10),
-         'transa': False, 'transb': False},
-        {'x1_shape': (5, 2), 'x2_shape': (5, 10), 'gy_shape': (2, 10),
+        {'x1_shape': (2, 3), 'x2_shape': (2, 3), 'gy_shape': (2, 1, 1),
          'transa': True, 'transb': False},
-        {'x1_shape': (2, 5), 'x2_shape': (10, 5), 'gy_shape': (2, 10),
+        {'x1_shape': (2, 3), 'x2_shape': (2, 3), 'gy_shape': (2, 3, 3),
          'transa': False, 'transb': True},
-        {'x1_shape': (5, 2), 'x2_shape': (10, 5), 'gy_shape': (2, 10),
-         'transa': True, 'transb': True},
 
         # batched matmul
-        {'x1_shape': (6, 2, 5), 'x2_shape': (6, 5, 10), 'gy_shape': (6, 2, 10),
+        {'x1_shape': (3, 2, 5), 'x2_shape': (3, 5, 4), 'gy_shape': (3, 2, 4),
          'transa': False, 'transb': False},
-        {'x1_shape': (6, 5, 2), 'x2_shape': (6, 5, 10), 'gy_shape': (6, 2, 10),
+        {'x1_shape': (3, 5, 2), 'x2_shape': (3, 5, 4), 'gy_shape': (3, 2, 4),
          'transa': True, 'transb': False},
-        {'x1_shape': (6, 2, 5), 'x2_shape': (6, 10, 5), 'gy_shape': (6, 2, 10),
+        {'x1_shape': (3, 2, 5), 'x2_shape': (3, 4, 5), 'gy_shape': (3, 2, 4),
          'transa': False, 'transb': True},
-        {'x1_shape': (6, 5, 2), 'x2_shape': (6, 10, 5), 'gy_shape': (6, 2, 10),
+        {'x1_shape': (3, 5, 2), 'x2_shape': (3, 4, 5), 'gy_shape': (3, 2, 4),
+         'transa': True, 'transb': True},
+
+        # batched matmul 2d x 3d
+        {'x1_shape': (3, 5), 'x2_shape': (3, 1, 4), 'gy_shape': (3, 5, 4),
+         'transa': False, 'transb': False},
+        {'x1_shape': (3, 5), 'x2_shape': (3, 5, 4), 'gy_shape': (3, 1, 4),
+         'transa': True, 'transb': False},
+        {'x1_shape': (3, 5), 'x2_shape': (3, 4, 1), 'gy_shape': (3, 5, 4),
+         'transa': False, 'transb': True},
+        {'x1_shape': (3, 5), 'x2_shape': (3, 4, 5), 'gy_shape': (3, 1, 4),
+         'transa': True, 'transb': True},
+
+        # batched matmul 3d x 2d
+        {'x1_shape': (3, 2, 5), 'x2_shape': (3, 5), 'gy_shape': (3, 2, 1),
+         'transa': False, 'transb': False},
+        {'x1_shape': (3, 5, 2), 'x2_shape': (3, 5), 'gy_shape': (3, 2, 1),
+         'transa': True, 'transb': False},
+        {'x1_shape': (3, 2, 1), 'x2_shape': (3, 5), 'gy_shape': (3, 2, 5),
+         'transa': False, 'transb': True},
+        {'x1_shape': (3, 1, 2), 'x2_shape': (3, 5), 'gy_shape': (3, 2, 5),
          'transa': True, 'transb': True},
 
         # batchsize = 1
-        {'x1_shape': (1, 2, 5), 'x2_shape': (1, 5, 10), 'gy_shape': (1, 2, 10),
+        {'x1_shape': (1, 2, 5), 'x2_shape': (1, 5, 4), 'gy_shape': (1, 2, 4),
          'transa': False, 'transb': False},
     ]
 ))
@@ -171,9 +187,11 @@ class TestBatchMatMul(unittest.TestCase):
             self.x1, self.x2, self.transa, self.transb)
 
     def _get_forward_answer(self, x1, x2, transa, transb):
+        x1 = x1.reshape(x1.shape[:2] + (-1,))
         if transa and x1.ndim >= 2:
             x1 = x1.swapaxes(-1, -2)
 
+        x2 = x2.reshape(x2.shape[:2] + (-1,))
         if transb and x2.ndim >= 2:
             x2 = x2.swapaxes(-1, -2)
 
