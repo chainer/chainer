@@ -85,22 +85,27 @@ class NpzDeserializer(serializer.Deserializer):
         strict (bool): If ``True``, the deserializer raises an error when an
             expected value is not found in the given NPZ file. Otherwise,
             it ignores the value and skip deserialization.
+        ignore_names (list of strings): Names of parameters and persistents
+            that are going to be skipped.
 
     """
 
-    def __init__(self, npz, path='', strict=True):
+    def __init__(self, npz, path='', strict=True, ignore_names=[]):
         self.npz = npz
         self.path = path
         self.strict = strict
+        self.ignore_names = ignore_names
 
     def __getitem__(self, key):
         key = key.strip('/')
         return NpzDeserializer(
-            self.npz, self.path + key + '/', strict=self.strict)
+            self.npz, self.path + key + '/', strict=self.strict,
+            ignore_names=self.ignore_names)
 
     def __call__(self, key, value):
         key = self.path + key.lstrip('/')
-        if not self.strict and key not in self.npz:
+        if (not self.strict and key not in self.npz
+                or key in self.ignore_names):
             return value
 
         dataset = self.npz[key]

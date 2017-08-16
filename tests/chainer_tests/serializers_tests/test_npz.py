@@ -173,6 +173,32 @@ class TestNpzDeserializerNonStrict(unittest.TestCase):
         self.temp_file_path = path
         with open(path, 'wb') as f:
             numpy.savez(
+                f, **{'x': numpy.asarray(10), 'y': numpy.empty((2, 3))})
+
+        self.npzfile = numpy.load(path)
+        self.deserializer = npz.NpzDeserializer(
+            self.npzfile, ignore_names=['y'])
+
+    def tearDown(self):
+        if hasattr(self, 'npzfile'):
+            self.npzfile.close()
+        if hasattr(self, 'temp_file_path'):
+            os.remove(self.temp_file_path)
+
+    def test_deserialize_partial(self):
+        y = numpy.ones((2, 3), dtype=numpy.float32)
+        ret = self.deserializer('y', y)
+        self.assertIs(ret, y)
+
+
+class TestNpzDeserializerIgnoreNames(unittest.TestCase):
+
+    def setUp(self):
+        fd, path = tempfile.mkstemp()
+        os.close(fd)
+        self.temp_file_path = path
+        with open(path, 'wb') as f:
+            numpy.savez(
                 f, **{'x': numpy.asarray(10)})
 
         self.npzfile = numpy.load(path)
@@ -184,7 +210,7 @@ class TestNpzDeserializerNonStrict(unittest.TestCase):
         if hasattr(self, 'temp_file_path'):
             os.remove(self.temp_file_path)
 
-    def test_deserialize_partial(self):
+    def test_deserialize_ignore_names(self):
         y = numpy.empty((2, 3), dtype=numpy.float32)
         ret = self.deserializer('y', y)
         self.assertIs(ret, y)
@@ -236,6 +262,55 @@ class TestNpzDeserializerNonStrictGroupHierachy(unittest.TestCase):
             self.source.linear.b.data, target.linear.b.data)
         numpy.testing.assert_array_equal(
             target.child.linear2.W.data, target_child_W)
+        numpy.testing.assert_array_equal(
+            target.child.linear2.b.data, target_child_b)
+
+
+class TestNpzDeserializerIgnoreNamesGroupHierachy(unittest.TestCase):
+
+    def setUp(self):
+        fd, path = tempfile.mkstemp()
+        os.close(fd)
+        self.temp_file_path = path
+
+        child = link.Chain()
+        with child.init_scope():
+            child.linear2 = links.Linear(2, 3)
+        parent = link.Chain()
+        with parent.init_scope():
+            parent.linear = links.Linear(3, 2)
+            parent.child = child
+        npz.save_npz(self.temp_file_path, parent)
+        self.source = parent
+
+        self.npzfile = numpy.load(path)
+        self.deserializer = npz.NpzDeserializer(
+            self.npzfile, ignore_names=['linear/W', 'child/linear2/b'])
+
+    def tearDown(self):
+        if hasattr(self, 'npzfile'):
+            self.npzfile.close()
+        if hasattr(self, 'temp_file_path'):
+            os.remove(self.temp_file_path)
+
+    def test_deserialize_ignore_names(self):
+        child = link.Chain()
+        with child.init_scope():
+            child.linear2 = links.Linear(2, 3)
+        target = link.Chain()
+        with target.init_scope():
+            target.linear = links.Linear(3, 2)
+            target.child = child
+        target_W = numpy.copy(target.linear.W.data)
+        target_child_b = numpy.copy(child.linear2.b.data)
+        self.deserializer.load(target)
+
+        numpy.testing.assert_array_equal(
+            self.source.linear.b.data, target.linear.b.data)
+        numpy.testing.assert_array_equal(
+            self.source.child.linear2.W.data, target.child.linear2.W.data)
+        numpy.testing.assert_array_equal(
+            target.linear.W.data, target_W)
         numpy.testing.assert_array_equal(
             target.child.linear2.b.data, target_child_b)
 
