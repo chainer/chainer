@@ -378,13 +378,9 @@ class NewIdent(chainer.FunctionNode):
 
 class TestCheckDoubleBackward(unittest.TestCase):
 
-    def test_multiple_input_output(self):
-        x1 = numpy.array([1], dtype='f')
-        x2 = numpy.array([1], dtype='f')
-        gy1 = numpy.array([1], dtype='f')
-        gy2 = numpy.array([1], dtype='f')
-        ggx1 = numpy.array([1], dtype='f')
-        ggx2 = numpy.array([1], dtype='f')
+    def check_multiple_input_output(self, xp):
+        arrays = xp.ones((6, 1), dtype='f')
+        x1, x2, gy1, gy2, ggx1, ggx2 = arrays
 
         def f(x, y):
             w1 = x + y
@@ -393,6 +389,13 @@ class TestCheckDoubleBackward(unittest.TestCase):
 
         gradient_check.check_double_backward(f, (x1, x2), (gy1, gy2),
                                              (ggx1, ggx2))
+
+    def test_multiple_input_output_cpu(self):
+        self.check_multiple_input_output(numpy)
+
+    @attr.gpu
+    def test_multiple_input_output_gpu(self):
+        self.check_multiple_input_output(cuda.cupy)
 
 
 testing.run_module(__name__, __file__)
