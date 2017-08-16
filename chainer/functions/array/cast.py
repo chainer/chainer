@@ -16,7 +16,6 @@ class Cast(function_node.FunctionNode):
         type_check.expect(x_type.dtype.kind == 'f')
 
     def forward(self, x):
-        self.retain_inputs(())
         self._in_type = x[0].dtype.type
         return x[0].astype(self.type, copy=False),
 
