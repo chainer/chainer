@@ -173,7 +173,6 @@ class Sub(function.Function):
         )
 
     def forward(self, x):
-        self.retain_inputs(())
         return utils.force_array(x[0] - x[1]),
 
     def backward(self, x, gy):
