@@ -39,9 +39,7 @@ def assert_warns(expected):
         warnings.simplefilter('always')
         yield
 
-    for m in w:
-        if not isinstance(m.message, expected):
-            continue
+    if any(isinstance(m.message, expected) for m in w):
         return
 
     try:
