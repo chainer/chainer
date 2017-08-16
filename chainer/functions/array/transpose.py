@@ -18,7 +18,6 @@ class Transpose(function_node.FunctionNode):
         return 'Transpose'
 
     def forward(self, inputs):
-        self.retain_inputs(())
         x = inputs[0]
         y = x.transpose(self.axes)
         return y,
