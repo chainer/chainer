@@ -1,5 +1,5 @@
-Word2vec Implementation with Chainer
-*************************************
+Word2Vec: Obtain a word embeddings
+***********************************
 
 .. currentmodule:: chainer
 
