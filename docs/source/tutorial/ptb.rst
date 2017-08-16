@@ -1,5 +1,5 @@
-The Implementation of Recurrent Neural Net Language Model with Chainer
-**********************************************************************
+Write an RNN Language Model
+****************************
 
 .. currentmodule:: chainer
 
