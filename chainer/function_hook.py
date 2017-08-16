@@ -47,22 +47,19 @@ class FunctionHook(object):
 
         >>> from chainer import function_hooks
         >>> class Model(chainer.Chain):
+        ...   def __init__(self):
+        ...     with self.init_scope():
+        ...       self.l = L.Linear(10, 10)
         ...   def __call__(self, x1):
         ...     return F.exp(self.l(x1))
         >>> model1 = Model()
-        >>> with model1.init_scope():
-        ...   model1.l = L.Linear(10, 10)
         >>> model2 = Model()
-        >>> with model2.init_scope():
-        ...   model2.l = L.Linear(10, 10)
         >>> x = chainer.Variable(np.zeros((1, 10), 'f'))
         >>> with chainer.function_hooks.TimerHook() as m:
         ...    _ = model1(x)
         ...    y = model2(x)
         ...    print("Total time : " + str(m.total_time()))
         ...    model3 = Model()
-        ...    with model3.init_scope():
-        ...      model3.l = L.Linear(10, 10)
         ...    z = model3(y) # doctest:+ELLIPSIS
         Total time : ...
 
