@@ -229,7 +229,8 @@ class FunctionNode(object):
             if any(out.dtype.kind == 'f' and
                    cuda.get_array_module(out).isnan(out).any()
                    for out in outputs):
-                msg = 'NaN is detected on forward computation'
+                msg = ('NaN is detected on forward computation of '
+                       '{}'.format(self.label))
                 raise RuntimeError(msg)
 
         ret = tuple([variable.Variable(y, requires_grad=requires_grad)
