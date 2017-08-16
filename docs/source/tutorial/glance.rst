@@ -1,5 +1,5 @@
 Chainer at a Glance
------------------------
+================
 
 .. currentmodule:: chainer
 
@@ -7,20 +7,21 @@ Welcome to Chainer!
 
 Chainer is a rapidly growing neural network platform. The strengths of Chainer are:
 
-* 100% pure Python -- Chainer is developed from the beginning in Python, source code and errors follow the Pythonic way
-* Define by Run -- neural networks definitions are defined on-the-fly at run time, allowing for easier customisation
+* 100% pure Python -- Chainer is developed from the entirely in Python, allowing for inspection and customization of all code in python and understandable python messages at run time
+* Define by Run -- neural networks definitions are defined on-the-fly at run time, allowing for dynamic network changes
+* Fully customizable -- since Chainer is pure python, all classes and methods can be adapted to allow for the latest cutting edge or specialized approaches
 * Broad and deep support -- Chainer is actively used for most of the current approaches for neural nets (CNN, RNN, RL, etc.), aggressively adds new approaches as they're developed, and provides support for many kinds of hardware as well as parallelization for multiple GPUs
 
 
 Mushrooms -- tasty or deathly?
 ~~~~~~~~~~~~
 
-Let's take a look at a basic program of Chainer to see how it works. For a dataset, we'll work with the edible vs. poisonous mushroom dataset (https://www.kaggle.com/uciml/mushroom-classification), which has over 8,000 examples of mushrooms, labelled by 22 categories including odor, cap color, habitat, etc.
+Let's take a look at a basic program of Chainer to see how it works. For a dataset, we'll work with the `edible vs. poisonous mushroom dataset <https://www.kaggle.com/uciml/mushroom-classification>_`, which has over 8,000 examples of mushrooms, labelled by 22 categories including odor, cap color, habitat, etc.
 
 How will Chainer learn which mushrooms are edible and which mushrooms will kill you? Let's see!
 
 Full Code
-~~~~~~~~~~~~
+---------------
 
 Here's the whole picture of the code:
 
@@ -131,7 +132,10 @@ Here's the whole picture of the code:
     
 If you've worked with other neural net frameworks, some of the that code may look familiar. Let's break down what it's doing.
 
-Code Initialization
+Code Breakdown
+--------------
+
+Initialization
 ~~~~~~~~~~~~
 
 Let's start our python program. Matplotlib is used for the graphs to show training progress.
@@ -148,7 +152,7 @@ Let's start our python program. Matplotlib is used for the graphs to show traini
    except ImportError:
        pass
 
-Typical imports for a Chainer program. Links contain trainable parameters and functions do not.
+Typical imports for a Chainer program. :class:`~chainer.links` contain trainable parameters and :class:`~chainer.functions` do not.
 
 .. code-block:: python
 
@@ -165,17 +169,17 @@ Typical imports for a Chainer program. Links contain trainable parameters and fu
 Trainer Structure
 ~~~~~~~~~~~~~~~~~
 
-A ``chainer.trainer`` is used to set up our neural network and data for training. The components of the trainer are generally hierarchical, and are organized as follows:
+A :class:`chainer.trainer` is used to set up our neural network and data for training. The components of the :class:`~.chainer.trainer` are generally hierarchical, and are organized as follows:
 
 .. image:: ../../image/glance/trainer.png
 
-Each of the components is fed information from the components within it. Setting up the trainer starts at the inner components, and moves outward, with the exception of extensions, which are added after the trainer is defined.
+Each of the components is fed information from the components within it. Setting up the trainer starts at the inner components, and moves outward, with the exception of :class:`~chainer.extensions`, which are added after the :class:`~.chainer.trainer` is defined.
 
 Dataset
 ~~~~~~~
 .. image:: ../../image/glance/trainer-dataset.png
 
-Our first step is to format the data. From the raw mushroom.csv, we format the data into a Chainer dataset. Chainer requires a numpy array for the features in the ``X`` matrix and a flattened array if the label is one-dimensional.
+Our first step is to format the :mod:`~chainer.datasets`. From the raw mushroom.csv, we format the data into a Chainer dataset. Chainer requires a numpy array for the features in the ``X`` matrix and a flattened array if the label is one-dimensional.
 
 .. code-block:: python
 
