@@ -820,6 +820,13 @@ class ChainList(Link):
         for link in links:
             self.add_link(link)
 
+    def __setattr__(self, name, value):
+        if self.within_init_scope and isinstance(value, Link):
+            raise TypeError(
+                'cannot register a new link'
+                ' within a "with chainlist.init_scope():" block.')
+        super(ChainList, self).__setattr__(name, value)
+
     def __getitem__(self, index):
         """Returns the child at given index.
 
@@ -860,15 +867,6 @@ class ChainList(Link):
         """
         link.name = str(len(self._children))
         self._children.append(link)
-
-    @contextlib.contextmanager
-    def init_scope(self):
-        with super().init_scope():
-            warnings.warn('''\
-ChainList does not support child link registration by assigning a link within \
-a "with link.init_scope():" block.
-''', UserWarning)
-            yield
 
     def copy(self):
         ret = super(ChainList, self).copy()
