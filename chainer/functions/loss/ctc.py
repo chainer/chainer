@@ -265,7 +265,7 @@ def connectionist_temporal_classification(
     of sequence labeling where the alignment between the inputs and target is
     unknown. See also [Graves2012]_
 
-    The output is a varialbe whose value depends on the value of
+    The output is a variable whose value depends on the value of
     the option ``reduce``. If it is ``'no'``, it holds the samplewise
     loss values. If it is ``'mean'``, it takes the mean of loss values.
 
@@ -291,7 +291,7 @@ def connectionist_temporal_classification(
     Returns:
        ~chainer.Variable:
            A variable holding a scalar value of the CTC loss.
-           If ``reduce`` is ``'no'``, the output varialbe holds array
+           If ``reduce`` is ``'no'``, the output variable holds array
            whose shape is `(B,)` where `B` is the number of samples.
            If it is ``'mean'``, it holds a scalar.
 
