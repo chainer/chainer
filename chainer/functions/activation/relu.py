@@ -12,7 +12,7 @@ if cuda.cudnn_enabled:
     _mode = cudnn.cudnn.CUDNN_ACTIVATION_RELU
 
 
-class ReLU(function.FunctionNode):
+class ReLU(function_node.FunctionNode):
 
     """Rectified Linear Unit."""
     # TODO(beam2d): Implement in-place version.
@@ -25,6 +25,7 @@ class ReLU(function.FunctionNode):
 
     def forward_cpu(self, x):
         self.retain_outputs((0,))
+        self._use_cudnn = False
         return utils.force_array(numpy.maximum(x[0], 0, dtype=x[0].dtype)),
 
     def forward_gpu(self, x):
@@ -39,27 +40,24 @@ class ReLU(function.FunctionNode):
         return y,
 
     def backward(self, indexes, gy):
-        x = self.get_retained_inputs()
         y = self.get_retained_outputs()[0]
-        if x:
-            # The only case to use ReLUGrad3 is compute in GPU and use_cudnn is True.
-            return ReLUGrad3(self._use_cudnn).apply((x[0], y, gy[0]))
+        if chainer.should_use_cudnn('==always') and self._use_cudnn:
+            # The only case to use ReLUGrad3 is compute is done in GPU
+            # and _use_cudnn is True.
+            x = self.get_retained_inputs()[0]
+            return ReLUGrad3().apply((x, y, gy[0]))
         else:
-            return ReLUGrad2(self._use_cudnn).apply((y, gy[0]))
+            return ReLUGrad2().apply((y, gy[0]))
 
 
-class _ReLUGradBase(function.FunctionNode):
-
-    def __init__(self, use_cudnn):
-        super(ReLUGrad).__init__()
-        self._use_cudnn = use_cudnn
+class ReLUGrad2(function_node.FunctionNode):
 
     def forward_cpu(self, inputs):
         b, c = inputs
         y = (b > 0) * c
-        self.get_retained_inputs((0,))
-        self.get_retained_outputs((0,))
-        return y,
+        self.retain_inputs((0,))
+        self.retain_outputs((0,))
+        return utils.force_array(y, dtype=y.dtype),
 
     def backward_cpu(self, indexes, gy):
         ret = []
@@ -72,9 +70,6 @@ class _ReLUGradBase(function.FunctionNode):
             gc = gy * (b > 0)
             ret.append(gc)
         return ret
-
-
-class ReLUGrad2(_ReLUGradBase):
 
     def forward_gpu(self, inputs):
         b, c = inputs
@@ -99,12 +94,33 @@ class ReLUGrad2(_ReLUGradBase):
         return ret
 
 
-class ReLUGrad3(_ReLUGradBase):
+class ReLUGrad3(function_node.FunctionNode):
 
-    def forward_gpu(self):
-        assert chainer.should_use_cudnn('==always') and self._use_cudnn
+    def forward_cpu(self, inputs):
+        b, c = inputs
+        y = (b > 0) * c
+        self.retain_inputs((0,))
+        self.retain_outputs((0,))
+        return y,
+
+    def backward_cpu(self, indexes, gy):
+        ret = []
+        if 0 in indexes:
+            ret.append(None)
+        if 1 in indexes:
+            y = self.get_retained_outputs()[0]
+            gb = gy * y
+            ret.append(gb)
+        if 2 in indexes:
+            b = self.get_retained_inputs()[0]
+            gc = gy * (b > 0)
+            ret.append(gc)
+        return ret
+
+    def forward_gpu(self, inputs):
         a, b, c = inputs
-        gx = cudnn.activation_backward(a, b, c, _mode)
+        assert chainer.should_use_cudnn('==always')
+        y = cudnn.activation_backward(a, b, c, _mode)
         self.retain_inputs((1,))
         self.retain_outputs((0,))
         return gx,
@@ -150,4 +166,5 @@ def relu(x):
         (3, 2)
 
     """
-    return ReLU()(x)
+    y, = ReLU().apply((x,))
+    return y
