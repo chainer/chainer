@@ -6,6 +6,8 @@ import numpy as np
 
 import chainer
 from chainer import cuda
+from chainer import functions
+from chainer import links
 from chainer import optimizer
 from chainer import optimizers
 from chainer import testing
@@ -254,6 +256,17 @@ class TestOptimizerHook(unittest.TestCase):
         self.optimizer.call_hooks()
         h1.assert_called_with(self.target.param.update_rule, self.target.param)
 
+    def test_call_hooks_uninitialized_param(self):
+        target = UninitializedChain()
+        h1 = mock.MagicMock()
+        h1.call_for_each_param = True
+        opt = optimizers.MomentumSGD()
+        opt.setup(target)
+        opt.add_hook(h1, 'h1')
+        target(np.ones((4, 10), dtype=np.float32))
+        opt.call_hooks()
+        self.assertEqual(h1.call_count, 5)
+
     def test_remove_hook(self):
         h1 = mock.MagicMock()
         self.optimizer.setup(self.target)
@@ -284,6 +297,26 @@ class SimpleLink(chainer.Link):
         with self.init_scope():
             self.param = chainer.Parameter(w)
             self.param.grad = g
+
+
+class UninitializedChain(chainer.Chain):
+
+    def __init__(self):
+        super(UninitializedChain, self).__init__()
+        w = 10
+        with self.init_scope():
+            self.f0 = links.Linear(w)
+            self.f1 = links.Linear(w)
+            self.f2 = links.Linear(w)
+        self.count = 0
+
+    def __call__(self, h):
+        h = self.f0(h)
+        if self.count % 2 == 1:
+            h = self.f1(h)
+        h = self.f2(h)
+        self.count += 1
+        return functions.sum(h)
 
 
 class TestOptimizerWeightDecay(unittest.TestCase):
