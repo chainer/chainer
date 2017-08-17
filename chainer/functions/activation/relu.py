@@ -36,7 +36,7 @@ class ReLU(function_node.FunctionNode):
         else:
             self._use_cudnn = False
             y = cuda.cupy.maximum(x[0], 0)
-        self.retrain_outputs((0,))
+        self.retain_outputs((0,))
         return y,
 
     def backward(self, indexes, gy):
@@ -123,7 +123,7 @@ class ReLUGrad3(function_node.FunctionNode):
         y = cudnn.activation_backward(a, b, c, _mode)
         self.retain_inputs((1,))
         self.retain_outputs((0,))
-        return gx,
+        return y,
 
     def backward_gpu(self, indexes, gy):
         ret = []
