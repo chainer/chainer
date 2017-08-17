@@ -8,6 +8,7 @@ from chainer.testing import training  # NOQA
 from chainer.testing import unary_math_function_test  # NOQA
 
 from chainer.testing.array import assert_allclose  # NOQA
+from chainer.testing.helper import assert_warns  # NOQA
 from chainer.testing.helper import with_requires  # NOQA
 from chainer.testing.parameterized import parameterize  # NOQA
 from chainer.testing.parameterized import product  # NOQA
