@@ -99,7 +99,8 @@ class BatchRenormalizationFunction(function.Function):
 
         if not self.freeze_running_statistics or self.r is None:
             if configuration.config.train:
-                running_sigma = xp.sqrt(self.running_var + self.eps)
+                running_sigma = xp.sqrt(self.running_var + self.eps,
+                                        dtype=self.running_mean.dtype)
                 self.r = xp.clip(self.std / running_sigma,
                                  1.0 / self.rmax, self.rmax)
                 self.d = xp.clip((mean - self.running_mean) / running_sigma,
