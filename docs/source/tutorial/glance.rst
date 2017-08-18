@@ -179,7 +179,7 @@ Dataset
 ~~~~~~~
 .. image:: ../../image/glance/trainer-dataset.png
 
-Our first step is to format the :mod:`~chainer.datasets`. From the raw mushroom.csv, we format the data into a Chainer :class:`~chainer.datasets.TupleDataset`. Chainer requires a numpy array for the features in the ``X`` matrix and a flattened array if the label is one-dimensional.
+Our first step is to format the :mod:`~chainer.datasets`. From the raw mushroom.csv, we format the data into a Chainer :class:`~chainer.datasets.TupleDataset`.
 
 .. code-block:: python
 
@@ -189,8 +189,8 @@ Our first step is to format the :mod:`~chainer.datasets`. From the raw mushroom.
    for col in range(data_array.shape[1]):
        data_array[:, col] = labelEncoder.fit_transform(data_array[:, col])
    
-   X = data_array[:, 0].astype(np.float32)[:, None]
-   Y = np.ndarray.flatten(data_array[:, 0].astype(np.int32))
+   X = data_array[:, 1:].astype(np.float32)
+   Y = data_array[:, 0].astype(np.int32)[:, None]
    train, test = datasets.split_dataset_random(
        datasets.TupleDataset(X, Y), int(data_array.shape[0] * .7))
    
@@ -232,7 +232,7 @@ As an activation function, we'll use standard Rectified Linear Units (:meth:`~ch
            h2 = F.relu(self.l2(h1))
            return self.l3(h2)
    
-Since mushrooms are either edible or poisonous (no information on psychedelic effects!) in the dataset, we'll use a Link :class:`~chainer.links.Classifier` for the output, with 44 units in the hidden layers and a single true/false category for classification.
+Since mushrooms are either edible or poisonous (no information on psychedelic effects!) in the dataset, we'll use a Link :class:`~chainer.links.Classifier` for the output, with 44 units (double the features of the data) in the hidden layers and a single true/false category for classification.
    
 .. code-block:: python
 
@@ -264,7 +264,7 @@ If using a CPU instead of the GPU, set ``gpu_id`` to ``-1``. Otherwise, use the 
    gpu_id = 0  # Change to -1 to use CPU
    updater = training.StandardUpdater(train_iter, optimizer, device=gpu_id)
    
-Set up the :class:`~chainer.updater` to be called after the training batches and set the number of batches per epoch to 100. The learning rate per epoch will be output to the directory `result`.
+Set up the :class:`~chainer.updater` to be called after the training batches and set the number of batches per epoch to 100. The learning rate per epoch will be output to the directory ``result``.
 
 .. code-block:: python
 
@@ -281,7 +281,7 @@ Use the testing :class:`~chainer.iterator` defined above for an :class:`~chainer
 
    trainer.extend(extensions.Evaluator(test_iter, model, device=gpu_id))
    
-Save a computational graph from 'loss' variable at the first iteration. The "main" refers to the target link of the "main" :class:`~chainer.optimizer`. The graph is saved in the `Graphviz <http://www.graphviz.org/>_`s dot format. The output location (directory) to save the graph is set by the :attr:`~chainer.training.Trainer.out argument of :class:`~chainer.training.Trainer`.
+Save a computational graph from ``loss`` variable at the first iteration. ``main`` refers to the target link of the ``main`` :class:`~chainer.optimizer`. The graph is saved in the `Graphviz <http://www.graphviz.org/>_`s dot format. The output location (directory) to save the graph is set by the :attr:`~chainer.training.Trainer.out argument of :class:`~chainer.training.Trainer`.
 
 .. code-block:: python
 
