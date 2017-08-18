@@ -281,7 +281,7 @@ Use the testing :class:`~chainer.iterator` defined above for an :class:`~chainer
 
    trainer.extend(extensions.Evaluator(test_iter, model, device=gpu_id))
    
-Save a computational graph from 'loss' variable at the first iteration. The "main" refers to the target link of the "main" :class:`~chainer.optimizer`. The graph is saved in the Graphviz <http://www.graphviz.org/>_`s dot format. The output location (directory) to save the graph is set by the :attr:`~chainer.training.Trainer.out argument of :class:`~chainer.training.Trainer`.
+Save a computational graph from 'loss' variable at the first iteration. The "main" refers to the target link of the "main" :class:`~chainer.optimizer`. The graph is saved in the `Graphviz <http://www.graphviz.org/>_`s dot format. The output location (directory) to save the graph is set by the :attr:`~chainer.training.Trainer.out argument of :class:`~chainer.training.Trainer`.
 
 .. code-block:: python
 
