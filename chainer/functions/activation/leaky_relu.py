@@ -59,7 +59,12 @@ def leaky_relu(x, slope=0.2):
 
     This function is expressed as
 
-    .. math:: f(x)=\\max(x, ax),
+     .. math::
+
+        f(x) = \\left \\{ \\begin{array}{ll}
+        x  & {\\rm if}~ x \\ge 0 \\\\
+        ax & {\\rm if}~ x < 0,
+        \\end{array} \\right.
 
     where :math:`a` is a configurable slope value.
 
