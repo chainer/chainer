@@ -25,6 +25,7 @@ class TestReLU(unittest.TestCase):
             if -0.1 < self.x[i] < 0.1:
                 self.x[i] = 0.5
         self.gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        self.ggx = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         self.check_backward_options = {}
         if self.dtype == numpy.float16:
             self.check_backward_options = {'dtype': numpy.float64}
@@ -82,6 +83,26 @@ class TestReLU(unittest.TestCase):
     @condition.retry(3)
     def test_backward_cpu_no_cudnn(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy), 'never')
+
+    def check_double_backward(self, x_data, y_grad, x_grad_grad):
+
+        def f(x):
+            x = functions.relu(x)
+            return x * x
+
+        gradient_check.check_double_backward(f, x_data, y_grad, x_grad_grad,
+                                             **self.check_backward_options)
+
+    @condition.retry(1)
+    def test_double_backward_cpu(self):
+        self.check_double_backward(self.x, self.gy, self.ggx)
+
+    @attr.gpu
+    @condition.retry(1)
+    def test_double_backward_gpu(self):
+        self.check_double_backward(cuda.to_gpu(self.x),
+                                   cuda.to_gpu(self.gy),
+                                   cuda.to_gpu(self.ggx))
 
 
 @testing.parameterize(*testing.product({

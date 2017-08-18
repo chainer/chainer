@@ -50,26 +50,34 @@ class ReLU(function_node.FunctionNode):
             return ReLUGrad2().apply((y, gy[0]))
 
 
+class Zero(function_node.FunctionNode):
+
+    def forward(self, inputs):
+        xp = chainer.cuda.get_array_module(*inputs)
+        return utils.force_array(xp.zeros_like(inputs[0])),
+
+    def backward(self, indexes, gy):
+        return Zero().apply(gy)
+
+
+class Heaviside(function_node.FunctionNode):
+
+    def forward(self, inputs):
+        x, = inputs
+        self.retain_outputs((0,))
+        return utils.force_array((x > 0).astype(x.dtype)),
+
+    def backward(self, indexes, gy):
+        return Zero().apply(gy)
+
+
 class ReLUGrad2(function_node.FunctionNode):
 
     def forward_cpu(self, inputs):
         b, c = inputs
         y = (b > 0) * c
         self.retain_inputs((0,))
-        self.retain_outputs((0,))
         return utils.force_array(y, dtype=y.dtype),
-
-    def backward_cpu(self, indexes, gy):
-        ret = []
-        if 0 in indexes:
-            y = self.get_retained_outputs()[0]
-            gb = gy * y
-            ret.append(gb)
-        if 1 in indexes:
-            b = self.get_retained_inputs()[0]
-            gc = gy * (b > 0)
-            ret.append(gc)
-        return ret
 
     def forward_gpu(self, inputs):
         b, c = inputs
@@ -78,18 +86,16 @@ class ReLUGrad2(function_node.FunctionNode):
             'gx = y > 0 ? gy : (T)0',
             'relu_bwd')(b, c)
         self.retain_inputs((0,))
-        self.retain_outputs((0,))
         return gx,
 
-    def backward_gpu(self, indexes, gy):
+    def backward(self, indexes, gy):
         ret = []
         if 0 in indexes:
-            y = self.get_retained_outputs()[0]
-            gb = gy * y
+            gb = Zero().apply(gy)[0]
             ret.append(gb)
         if 1 in indexes:
             b = self.get_retained_inputs()[0]
-            gc = gy * (b > 0)
+            gc = gy[0] * Heaviside().apply((b,))[0]
             ret.append(gc)
         return ret
 
@@ -97,45 +103,28 @@ class ReLUGrad2(function_node.FunctionNode):
 class ReLUGrad3(function_node.FunctionNode):
 
     def forward_cpu(self, inputs):
-        b, c = inputs
+        a, b, c = inputs
         y = (b > 0) * c
         self.retain_inputs((0,))
-        self.retain_outputs((0,))
         return y,
-
-    def backward_cpu(self, indexes, gy):
-        ret = []
-        if 0 in indexes:
-            ret.append(None)
-        if 1 in indexes:
-            y = self.get_retained_outputs()[0]
-            gb = gy * y
-            ret.append(gb)
-        if 2 in indexes:
-            b = self.get_retained_inputs()[0]
-            gc = gy * (b > 0)
-            ret.append(gc)
-        return ret
 
     def forward_gpu(self, inputs):
         a, b, c = inputs
         assert chainer.should_use_cudnn('==always')
         y = cudnn.activation_backward(a, b, c, _mode)
         self.retain_inputs((1,))
-        self.retain_outputs((0,))
         return y,
 
-    def backward_gpu(self, indexes, gy):
+    def backward(self, indexes, gy):
         ret = []
         if 0 in indexes:
             ret.append(None)
         if 1 in indexes:
-            y = self.get_retained_outputs()[0]
-            gb = gy * y
+            gb = Zero().apply(gy)[0]
             ret.append(gb)
         if 2 in indexes:
             b = self.get_retained_inputs()[0]
-            gc = gy * (b > 0)
+            gc = gy[0] * Heaviside().apply((b,))[0]
             ret.append(gc)
         return ret
 
