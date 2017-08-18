@@ -50,24 +50,8 @@ class ReLU(function_node.FunctionNode):
             return ReLUGrad2().apply((y, gy[0]))
 
 
-class Zero(function_node.FunctionNode):
-
-    def forward(self, inputs):
-        xp = chainer.cuda.get_array_module(*inputs)
-        return utils.force_array(xp.zeros_like(inputs[0])),
-
-    def backward(self, indexes, gy):
-        return Zero().apply(gy)
-
-
-class Heaviside(function_node.FunctionNode):
-
-    def forward(self, inputs):
-        x, = inputs
-        return utils.force_array((x > 0).astype(x.dtype)),
-
-    def backward(self, indexes, gy):
-        return Zero().apply(gy)
+def _heaviside(x):
+    return utils.force_array((x.data > 0).astype(x.dtype))
 
 
 class ReLUGrad2(function_node.FunctionNode):
@@ -90,11 +74,10 @@ class ReLUGrad2(function_node.FunctionNode):
     def backward(self, indexes, gy):
         ret = []
         if 0 in indexes:
-            gb = Zero().apply(gy)[0]
-            ret.append(gb)
+            ret.append(None)
         if 1 in indexes:
             b = self.get_retained_inputs()[0]
-            gc = gy[0] * Heaviside().apply((b,))[0]
+            gc = gy[0] * _heaviside(b)
             ret.append(gc)
         return ret
 
@@ -119,11 +102,10 @@ class ReLUGrad3(function_node.FunctionNode):
         if 0 in indexes:
             ret.append(None)
         if 1 in indexes:
-            gb = Zero().apply(gy)[0]
-            ret.append(gb)
+            ret.append(None)
         if 2 in indexes:
             b = self.get_retained_inputs()[0]
-            gc = gy[0] * Heaviside().apply((b,))[0]
+            gc = gy[0] * _heaviside(b)
             ret.append(gc)
         return ret
 
