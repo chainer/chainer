@@ -84,14 +84,16 @@ class TestReLU(unittest.TestCase):
     def test_backward_cpu_no_cudnn(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy), 'never')
 
-    def check_double_backward(self, x_data, y_grad, x_grad_grad):
-
+    def check_double_backward(self, x_data, y_grad, x_grad_grad,
+                              use_cudnn='always'):
         def f(x):
             x = functions.relu(x)
             return x * x
 
-        gradient_check.check_double_backward(f, x_data, y_grad, x_grad_grad,
-                                             **self.check_backward_options)
+        with chainer.using_config('use_cudnn', use_cudnn):
+            gradient_check.check_double_backward(
+                f, x_data, y_grad, x_grad_grad,
+                **self.check_backward_options)
 
     @condition.retry(1)
     def test_double_backward_cpu(self):
@@ -103,6 +105,22 @@ class TestReLU(unittest.TestCase):
         self.check_double_backward(cuda.to_gpu(self.x),
                                    cuda.to_gpu(self.gy),
                                    cuda.to_gpu(self.ggx))
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_double_backward_gpu_non_contiguous(self):
+        self.check_double_backward(
+            cuda.cupy.asfortranarray(cuda.to_gpu(self.x)),
+            cuda.cupy.asfortranarray(cuda.to_gpu(self.gy)),
+            cuda.cupy.asfortranarray(cuda.to_gpu(self.ggx)))
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_double_backward_cpu_no_cudnn(self):
+        self.check_double_backward(cuda.to_gpu(self.x),
+                                   cuda.to_gpu(self.gy),
+                                   cuda.to_gpu(self.ggx),
+                                   'never')
 
 
 @testing.parameterize(*testing.product({
