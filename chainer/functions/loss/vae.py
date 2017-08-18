@@ -116,7 +116,7 @@ def gaussian_nll(x, mean, ln_var, reduce='sum'):
     Given two variable ``mean`` representing :math:`\\mu` and ``ln_var``
     representing :math:`\\log(\\sigma^2)`, this function computes in
     elementwise manner the negative log-likelihood of :math:`x` on a
-    Gaussianx distribution :math:`N(\\mu, S)`,
+    Gaussian distribution :math:`N(\\mu, S)`,
 
     .. math::
 
@@ -127,7 +127,7 @@ def gaussian_nll(x, mean, ln_var, reduce='sum'):
     where :math:`D` is a dimension of :math:`x` and :math:`S` is a diagonal
     matrix where :math:`S_{ii} = \\sigma_i^2`.
 
-    The output is a varialbe whose value depends on the value of
+    The output is a variable whose value depends on the value of
     the option ``reduce``. If it is ``'no'``, it holds the elementwise
     loss values. If it is ``'sum'``, loss values are summed up.
 
@@ -146,7 +146,7 @@ def gaussian_nll(x, mean, ln_var, reduce='sum'):
     Returns:
         ~chainer.Variable:
             A variable representing the negative log-likelihood.
-            If ``reduce`` is ``'no'``, the output varialbe holds array
+            If ``reduce`` is ``'no'``, the output variable holds array
             whose shape is same as one of (hence both of) input variables.
             If it is ``'sum'``, the output variable holds a scalar value.
 
