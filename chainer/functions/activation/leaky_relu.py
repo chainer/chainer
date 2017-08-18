@@ -1,15 +1,21 @@
 from chainer import cuda
-from chainer import function
+from chainer import function_node
 from chainer.utils import type_check
 
 
-def _kern():
-    return cuda.elementwise(
-        'T cond, T x, T slope', 'T y',
-        'y = cond >= 0 ? x : (T)(slope * x)', 'lrelu')
+_kern = None
 
 
-class LeakyReLU(function.Function):
+def _get_kern():
+    global _kern
+    if _kern is None:
+        _kern = cuda.elementwise(
+            'T cond, T x, T slope', 'T y',
+            'y = cond >= 0 ? x : (T)(slope * x)', 'lrelu')
+    return _kern
+
+
+class LeakyReLU(function_node.FunctionNode):
 
     """Leaky rectifier unit."""
 
@@ -21,37 +27,60 @@ class LeakyReLU(function.Function):
         x_type, = in_types
         type_check.expect(x_type.dtype.kind == 'f')
 
-    def forward_cpu(self, x):
-        y = x[0].copy()
-        y[x[0] < 0] *= self.slope
+    def forward_cpu(self, inputs):
+        x, = inputs
+        y = x.copy()
+        y[x < 0] *= self.slope
         if self.slope >= 0:
-            self.retain_inputs(())
             self.retain_outputs((0,))
+        else:
+            self.retain_inputs((0,))
         return y,
 
-    def forward_gpu(self, x):
-        y = _kern()(x[0], x[0], self.slope)
+    def forward_gpu(self, inputs):
+        x, = inputs
+        y = _get_kern()(x, x, self.slope)
         if self.slope >= 0:
-            self.retain_inputs(())
             self.retain_outputs((0,))
+        else:
+            self.retain_inputs((0,))
         return y,
 
-    def backward_cpu(self, x, gy):
-        gx = gy[0].copy()
+    def backward(self, indexes, grad_outputs):
         if self.slope >= 0:
-            y = self.output_data
-            gx[y[0] < 0] *= self.slope
+            x = None
+            y = self.get_retained_outputs()[0].data
         else:
-            gx[x[0] < 0] *= self.slope
-        return gx,
+            x = self.get_retained_inputs()[0].data
+            y = None
+        return _LeakyReLUGrad(x, y, self.slope).apply(grad_outputs)
 
-    def backward_gpu(self, x, gy):
+
+class _LeakyReLUGrad(function_node.FunctionNode):
+
+    def __init__(self, x, y, slope):
+        self.slope = slope
+        self.x = x
+        self.y = y
+
+    def forward_cpu(self, inputs):
+        gy, = inputs
         if self.slope >= 0:
-            y = self.output_data
-            gx = _kern()(y[0], gy[0], self.slope)
+            gy[self.y < 0] *= self.slope
         else:
-            gx = _kern()(x[0], gy[0], self.slope)
-        return gx,
+            gy[self.x < 0] *= self.slope
+        return gy,
+
+    def forward_gpu(self, inputs):
+        gy, = inputs
+        if self.slope >= 0:
+            gy = _get_kern()(self.y, gy, self.slope)
+        else:
+            gy = _get_kern()(self.x, gy, self.slope)
+        return gy,
+
+    def backward(self, indexes, grad_outputs):
+        return _LeakyReLUGrad(self.x, self.y, self.slope).apply(grad_outputs)
 
 
 def leaky_relu(x, slope=0.2):
@@ -86,4 +115,4 @@ def leaky_relu(x, slope=0.2):
                [-0.40000001,  1.        ]], dtype=float32)
 
     """
-    return LeakyReLU(slope)(x)
+    return LeakyReLU(slope).apply((x,))[0]
