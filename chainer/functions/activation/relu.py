@@ -30,6 +30,8 @@ class ReLU(function_node.FunctionNode):
 
     def forward_gpu(self, x):
         if chainer.should_use_cudnn('==always') and x[0].flags.c_contiguous:
+            # cupy.activation_backward requires the input.
+            # So, we retain it for backward computation.
             self.retain_inputs((0,))
             self._use_cudnn = True
             y = cudnn.activation_forward(x[0], _mode)
@@ -42,8 +44,6 @@ class ReLU(function_node.FunctionNode):
     def backward(self, indexes, gy):
         y = self.get_retained_outputs()[0]
         if chainer.should_use_cudnn('==always') and self._use_cudnn:
-            # The only case to use ReLUGrad3 is compute is done in GPU
-            # and _use_cudnn is True.
             x = self.get_retained_inputs()[0]
             return ReLUGrad3().apply((x, y, gy[0]))
         else:
@@ -64,7 +64,6 @@ class Heaviside(function_node.FunctionNode):
 
     def forward(self, inputs):
         x, = inputs
-        self.retain_outputs((0,))
         return utils.force_array((x > 0).astype(x.dtype)),
 
     def backward(self, indexes, gy):
@@ -74,18 +73,18 @@ class Heaviside(function_node.FunctionNode):
 class ReLUGrad2(function_node.FunctionNode):
 
     def forward_cpu(self, inputs):
+        self.retain_inputs((0,))
         b, c = inputs
         y = (b > 0) * c
-        self.retain_inputs((0,))
         return utils.force_array(y, dtype=y.dtype),
 
     def forward_gpu(self, inputs):
+        self.retain_inputs((0,))
         b, c = inputs
         gx = cuda.elementwise(
             'T y, T gy', 'T gx',
             'gx = y > 0 ? gy : (T)0',
             'relu_bwd')(b, c)
-        self.retain_inputs((0,))
         return gx,
 
     def backward(self, indexes, gy):
@@ -103,16 +102,16 @@ class ReLUGrad2(function_node.FunctionNode):
 class ReLUGrad3(function_node.FunctionNode):
 
     def forward_cpu(self, inputs):
-        a, b, c = inputs
-        y = (b > 0) * c
         self.retain_inputs((0,))
+        _, b, c = inputs
+        y = (b > 0) * c
         return y,
 
     def forward_gpu(self, inputs):
+        self.retain_inputs((1,))
         a, b, c = inputs
         assert chainer.should_use_cudnn('==always')
         y = cudnn.activation_backward(a, b, c, _mode)
-        self.retain_inputs((1,))
         return y,
 
     def backward(self, indexes, gy):
