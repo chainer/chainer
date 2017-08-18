@@ -41,8 +41,8 @@ Here's the whole picture of the code:
    import chainer
    import chainer.functions as F
    import chainer.links as L
-   from chainer import training
    from chainer import datasets
+   from chainer import training
    from chainer.training import extensions
    
    import numpy as np
@@ -59,13 +59,17 @@ Here's the whole picture of the code:
    train, test = datasets.split_dataset_random(
        datasets.TupleDataset(X, Y), int(data_array.shape[0] * .7))
    
+   train_iter = chainer.iterators.SerialIterator(train, 100)
+   test_iter = chainer.iterators.SerialIterator(
+       test, 100, repeat=False, shuffle=False)
+   
    
    # Network definition
    class MLP(chainer.Chain):
        def __init__(self, n_units, n_out):
            super(MLP, self).__init__()
            with self.init_scope():
-               # the size of the inputs to each layer inferred from the layer before
+               # the input size to each layer inferred from the layer before
                self.l1 = L.Linear(n_units)  # n_in -> n_units
                self.l2 = L.Linear(n_units)  # n_units -> n_units
                self.l3 = L.Linear(n_out)  # n_units -> n_out
@@ -82,10 +86,6 @@ Here's the whole picture of the code:
    # Setup an optimizer
    optimizer = chainer.optimizers.SGD()
    optimizer.setup(model)
-   
-   train_iter = chainer.iterators.SerialIterator(train, 100)
-   test_iter = chainer.iterators.SerialIterator(test, 100,
-       repeat=False, shuffle=False)
    
    gpu_id = -1  # Change to -1 to use CPU
    
@@ -127,8 +127,9 @@ Here's the whole picture of the code:
    predict = model.predictor(x[None]).data
    predict = predict[0][0] >= 0
    
-   print('Predicted', 'Edible' if predict == 0 else 'Poisonous', 'Actual', 'Edible' if t[0] == 0 else 'Poisonous')
-      
+   print('Predicted', 'Edible' if predict == 0 else 'Poisonous',
+         'Actual', 'Edible' if t[0] == 0 else 'Poisonous')     
+   
 If you've worked with other neural net frameworks, some of that code may look familiar. Let's break down what it's doing.
 
 Code Breakdown
@@ -191,7 +192,7 @@ Our first step is to format the :mod:`~chainer.datasets`. From the raw mushroom.
    X = data_array[:, 0].astype(np.float32)[:, None]
    Y = np.ndarray.flatten(data_array[:, 0].astype(np.int32))
    train, test = datasets.split_dataset_random(
-       datasets.TupleDataset(X, Y), 623)
+       datasets.TupleDataset(X, Y), int(data_array.shape[0] * .7))
    
 Iterator
 ~~~~~~~~
@@ -202,8 +203,8 @@ Configure :class:`~chainer.iterators` to step through batches of the data for tr
 .. code-block:: python
 
    train_iter = chainer.iterators.SerialIterator(train, 100)
-   test_iter = chainer.iterators.SerialIterator(test, 100,
-       repeat=False, shuffle=False)
+   test_iter = chainer.iterators.SerialIterator(
+       test, 100, repeat=False, shuffle=False)
 
 Model
 ~~~~~~~~~~
@@ -221,7 +222,7 @@ As an activation function, we'll use standard Rectified Linear Units (:meth:`~ch
        def __init__(self, n_units, n_out):
            super(MLP, self).__init__()
            with self.init_scope():
-               # the size of the inputs to each layer inferred from the layer before
+               # the input size to each layer inferred from the layer before
                self.l1 = L.Linear(n_units)  # n_in -> n_units
                self.l2 = L.Linear(n_units)  # n_units -> n_units
                self.l3 = L.Linear(n_out)  # n_units -> n_out
@@ -238,17 +239,6 @@ Since mushrooms are either edible or poisonous (no information on psychedelic ef
      model = L.Classifier(
          MLP(44, 1), lossfun=F.sigmoid_cross_entropy, accfun=F.binary_accuracy)
 
-If using a CPU instead of the GPU, set ``gpu_id`` to ``-1``. Otherwise, use the ID of the GPU, usually ``0``.
-
-.. code-block:: python
-
-   gpu_id = 0  # Change to -1 to use CPU
-   
-   if gpu_id >= 0:
-       # Make a specified GPU current
-       chainer.cuda.get_device_from_id(gpu_id).use()
-       model.to_gpu()  # Copy the model to the GPU
-   
 Optimizer
 ~~~~~~~~~~~~
 .. image:: ../../image/glance/trainer-optimizer.png
@@ -267,8 +257,11 @@ Updater
 
 Now that we have the training :class:`~chainer.iterator` and :class:`~chainer.optimizer` set up, we link them both together into the :class:`~chainer.updater`. The :class:`~chainer.updater` uses the minibatches from the :class:`~chainer.iterator`, and then does the forward and backward processing of the model, and updates the parameters of the model according to the :class:`~chainer.optimizer`.
 
+If using a CPU instead of the GPU, set ``gpu_id`` to ``-1``. Otherwise, use the ID of the GPU, usually ``0``.
+
 .. code-block:: python
 
+   gpu_id = 0  # Change to -1 to use CPU
    updater = training.StandardUpdater(train_iter, optimizer, device=gpu_id)
    
 Set up the :class:`~chainer.updater` to be called after the training batches and set the number of batches per epoch to 100. The learning rate per epoch will be output to the directory `result`.
@@ -276,7 +269,7 @@ Set up the :class:`~chainer.updater` to be called after the training batches and
 .. code-block:: python
 
    # Set up a trainer
-   trainer = training.Trainer(updater, (100, 'epoch'), out='result')
+   trainer = training.Trainer(updater, (50, 'epoch'), out='result')
    
 Extensions
 ~~~~~~~~~
@@ -327,33 +320,26 @@ Print selected entries of the log to standard output.
        ['epoch', 'main/loss', 'validation/main/loss',
         'main/accuracy', 'validation/main/accuracy', 'elapsed_time']))
    
-Print a progress bar to standard output.
-
-.. code-block:: python
-
-   trainer.extend(extensions.ProgressBar())
-   
 Run the training.
 
 .. code-block:: python
 
    trainer.run()
    
-That's it for the basic program.
-
 Inference
 ~~~~~~~~~
 
-Now that we've completed the training, only the model is necessary to make predictions. Let's check the first element of our data and make sure the inference is correct:
+Once the training is complete, only the model is necessary to make predictions. Let's check that a random line from the test data set and see if the inference is correct:
 
 .. code-block:: python
 
-   x, t = test[0]
-   print('Ground Truth: ', ('Edible' if t == 'e' else 'Inedible'))
+   x, t = test[np.random.randint(len(test))]
+   predict = model.predictor(x[None]).data
+   predict = predict[0][0] >= 0
    
-   y = model(x)
-   print('Ground Truth: ', ('Edible' if y == 'e' else 'Inedible'))
-
+   print('Predicted', 'Edible' if predict == 0 else 'Poisonous',
+         'Actual', 'Edible' if t[0] == 0 else 'Poisonous')     
+   
 Output
 -------
 
@@ -361,46 +347,61 @@ Output for this instance will look like:
 
 ::
 
-    epoch       main/loss   validation/main/loss  main/accuracy  validation/main/accuracy  elapsed_time
-    1           0.559586    0.345394              0.728421       0.874147                  0.219806      
-    2           0.284338    0.225777              0.889649       0.9148                    0.883616      
-    3           0.198175    0.172281              0.925439       0.9424                    1.5727        
-    4           0.149827    0.135195              0.945789       0.9516                    2.32576       
-    5           0.11638     0.107237              0.960526       0.9648                    3.18188       
-    6           0.0901659   0.0857776             0.971404       0.9716                    3.85539       
-    7           0.0693224   0.0671695             0.978772       0.98                      4.56471       
-    8           0.0524943   0.0527184             0.985893       0.9816                    5.30566       
-    9           0.0404199   0.0417276             0.989825       0.9868                    5.90703       
-    10          0.0320204   0.0322432             0.99193        0.9892                    6.57901       
-         total [################..................................] 33.42%
-    this epoch [#.................................................]  2.46%
-           570 iter, 10 epoch / 30 epochs
-           inf iters/sec. Estimated time to finish: 0:00:00.
-    11          0.0246184   0.0265795             0.995263       0.9924                    7.30374       
-    12          0.020102    0.0207354             0.995965       0.9944                    7.83883       
-    13          0.0164383   0.0199368             0.997368       0.9972                    8.39198       
-    14          0.0135698   0.0173004             0.997544       0.996                     8.94759       
-    15          0.0107982   0.0116371             0.998214       0.998                     9.55126       
-    16          0.00930458  0.0110862             0.998947       0.998                     10.2036       
-    17          0.00746534  0.0111632             0.999649       0.9968                    10.8803       
-    18          0.00685934  0.00874451            0.999474       0.9984                    11.4715       
-    19          0.00658732  0.0071556             0.999123       0.9988                    12.0214       
-    20          0.00482299  0.00585984            0.999825       0.9996                    12.5992       
-         total [#################################.................] 66.83%
-    this epoch [##................................................]  4.92%
-          1140 iter, 20 epoch / 30 epochs
-        95.654 iters/sec. Estimated time to finish: 0:00:05.915068.
-    21          0.00433979  0.00498487            0.999825       1                         13.2685       
-    22          0.00392953  0.00504426            0.999821       0.9992                    13.8358       
-    23          0.00331257  0.00428024            0.999825       0.9996                    14.4833       
-    24          0.00316109  0.00388227            0.999825       0.9996                    15.1739       
-    25          0.00277103  0.00483679            1              0.9988                    15.8676       
-    26          0.00239999  0.00317067            1              0.9996                    16.5415       
-    27          0.00218161  0.00290506            1              0.9996                    17.1783       
-    28          0.0020123   0.00299441            1              0.9996                    17.771        
-    29          0.00175197  0.00279005            1              0.9996                    18.3446       
-    30          0.00156215  0.00248266            1              0.9996                    18.9357       
-    
+   epoch       main/loss   validation/main/loss  main/accuracy  validation/main/accuracy  elapsed_time
+   1           0.550724    0.502818              0.733509       0.752821                  0.215426      
+   2           0.454206    0.446234              0.805439       0.786926                  0.902108      
+   3           0.402783    0.395893              0.838421       0.835979                  1.50414       
+   4           0.362979    0.359988              0.862807       0.852632                  2.24171       
+   5           0.32713     0.329881              0.88           0.874232                  2.83247       
+   6           0.303469    0.31104               0.892456       0.887284                  3.45173       
+   7           0.284755    0.288553              0.901754       0.903284                  3.9877        
+   8           0.26801     0.272033              0.9125         0.907137                  4.54794       
+   9           0.25669     0.261355              0.920175       0.917937                  5.21672       
+   10          0.241789    0.251821              0.927193       0.917937                  5.79541       
+   11          0.232291    0.238022              0.93           0.925389                  6.3055        
+   12          0.222805    0.22895               0.934035       0.923389                  6.87083       
+   13          0.21276     0.219291              0.93614        0.928189                  7.54113       
+   14          0.204822    0.220736              0.938596       0.922589                  8.12495       
+   15          0.197671    0.207017              0.938393       0.936042                  8.69219       
+   16          0.190285    0.199129              0.941053       0.934842                  9.24302       
+   17          0.182827    0.193303              0.944386       0.942695                  9.80991       
+   18          0.176776    0.194284              0.94614        0.934042                  10.3603       
+   19          0.16964     0.177684              0.945789       0.945242                  10.8531       
+   20          0.164831    0.171988              0.949825       0.947347                  11.3876       
+   21          0.158394    0.167459              0.952982       0.949747                  11.9866       
+   22          0.153353    0.161774              0.956964       0.949347                  12.6433       
+   23          0.148209    0.156644              0.957368       0.951747                  13.3825       
+   24          0.144814    0.15322               0.957018       0.955495                  13.962        
+   25          0.138782    0.148277              0.958947       0.954147                  14.6          
+   26          0.135333    0.145225              0.961228       0.956695                  15.2284       
+   27          0.129593    0.141141              0.964561       0.958295                  15.7413       
+   28          0.128265    0.136866              0.962632       0.960547                  16.2711       
+   29          0.123848    0.133444              0.966071       0.961347                  16.7772       
+   30          0.119687    0.129579              0.967193       0.964547                  17.3311       
+   31          0.115857    0.126606              0.968596       0.966547                  17.8252       
+   32          0.113911    0.124272              0.968772       0.962547                  18.3121       
+   33          0.111502    0.122548              0.968596       0.965095                  18.8973       
+   34          0.107427    0.116724              0.970526       0.969747                  19.4723       
+   35          0.104536    0.114517              0.970877       0.969095                  20.0804       
+   36          0.099408    0.112128              0.971786       0.970547                  20.6509       
+   37          0.0972982   0.107618              0.973158       0.970947                  21.2467       
+   38          0.0927064   0.104918              0.973158       0.969347                  21.7978       
+   39          0.0904702   0.101141              0.973333       0.969747                  22.3328       
+   40          0.0860733   0.0984015             0.975263       0.971747                  22.8447       
+   41          0.0829282   0.0942095             0.977544       0.974947                  23.5113       
+   42          0.082219    0.0947418             0.975965       0.969347                  24.0427       
+   43          0.0773362   0.0906804             0.977857       0.977747                  24.5252       
+   44          0.0751769   0.0886449             0.977895       0.972147                  25.1722       
+   45          0.072056    0.0916797             0.978246       0.977495                  26.0778       
+   46          0.0708111   0.0811359             0.98           0.979347                  26.6648       
+   47          0.0671919   0.0783265             0.982456       0.978947                  27.2929       
+   48          0.0658817   0.0772342             0.981754       0.977747                  27.8119       
+   49          0.0634615   0.0762576             0.983333       0.974947                  28.3876       
+   50          0.0622394   0.0710278             0.982321       0.981747                  28.9067       
+   Predicted Edible Actual Edible
+      
+Our prediction was correct. Success!
+
 The loss function:
 
 .. image:: ../../image/glance/loss.png
