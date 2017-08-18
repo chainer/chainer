@@ -2,12 +2,13 @@ import numpy
 import six
 
 import chainer
-from chainer import cuda
 from chainer import function
+from chainer import cuda
+from chainer import function_node
 from chainer.utils import type_check
 
 
-class EmbedIDFunction(function.Function):
+class EmbedIDFunction(function_node.FunctionNode):
 
     def __init__(self, ignore_label=None):
         self.ignore_label = ignore_label
@@ -25,7 +26,9 @@ class EmbedIDFunction(function.Function):
         )
 
     def forward(self, inputs):
+        self.retain_inputs((0,))
         x, W = inputs
+        self._w_shape = W.shape
 
         if not type_check.same_types(*inputs):
             raise ValueError('numpy and cupy must not be used together\n'
@@ -48,11 +51,24 @@ class EmbedIDFunction(function.Function):
 
         return W.take(x, axis=0),
 
-    def backward(self, inputs, grad_outputs):
+    def backward(self, indexes, grad_outputs):
+        inputs = self.get_retained_inputs()
+        return EmbedIDBackward(
+            self._w_shape, self.ignore_label).apply(inputs + grad_outputs)
+
+
+class EmbedIDBackward(function.Function):
+
+    def __init__(self, shape, ignore_label=None):
+        self.shape = shape
+        self.ignore_label = ignore_label
+
+    def forward(self, inputs):
+        self.retain_inputs((0,))
         xp = cuda.get_array_module(*inputs)
-        x, W = inputs
-        gy = grad_outputs[0]
-        gW = xp.zeros_like(W)
+        x, gy = inputs
+        self._gy_shape = gy.shape
+        gW = xp.zeros(self.shape, dtype=gy.dtype)
 
         if xp is numpy:
             # It is equivalent to `numpy.add.at(gW, x, gy)` but ufunc.at is
@@ -83,6 +99,15 @@ class EmbedIDFunction(function.Function):
                         self.ignore_label, gW)
         return None, gW
 
+    def backward(self, inputs, grads):
+        xp = cuda.get_array_module(*inputs)
+        x = inputs[0]
+        mask = x != self.ignore_label
+        ggW = grads[1]
+        ggy = ggW[xp.where(mask, x, 0)]
+        ggy = xp.where(mask[..., None], ggy, 0)
+        return None, ggy
+
 
 def embed_id(x, W, ignore_label=None):
     """Efficient linear function for one-hot input.
@@ -108,4 +133,4 @@ def embed_id(x, W, ignore_label=None):
     .. seealso:: :class:`~chainer.links.EmbedID`
 
     """
-    return EmbedIDFunction(ignore_label=ignore_label)(x, W)
+    return EmbedIDFunction(ignore_label=ignore_label).apply((x, W))[0]
