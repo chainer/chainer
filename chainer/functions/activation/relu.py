@@ -17,6 +17,8 @@ class ReLU(function_node.FunctionNode):
     """Rectified Linear Unit."""
     # TODO(beam2d): Implement in-place version.
 
+    _use_cudnn = False
+
     def check_type_forward(self, in_types):
         type_check.expect(
             in_types.size() == 1,
@@ -25,7 +27,6 @@ class ReLU(function_node.FunctionNode):
 
     def forward_cpu(self, x):
         self.retain_outputs((0,))
-        self._use_cudnn = False
         return utils.force_array(numpy.maximum(x[0], 0, dtype=x[0].dtype)),
 
     def forward_gpu(self, x):
@@ -36,7 +37,6 @@ class ReLU(function_node.FunctionNode):
             self._use_cudnn = True
             y = cudnn.activation_forward(x[0], _mode)
         else:
-            self._use_cudnn = False
             y = cuda.cupy.maximum(x[0], 0)
         self.retain_outputs((0,))
         return y,
