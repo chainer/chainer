@@ -53,14 +53,14 @@ class EmbedIDFunction(function_node.FunctionNode):
 
     def backward(self, indexes, grad_outputs):
         inputs = self.get_retained_inputs()
-        return EmbedIDBackward(
+        return EmbedIDGrad(
             self._w_shape, self.ignore_label).apply(inputs + grad_outputs)
 
 
-class EmbedIDBackward(function.Function):
+class EmbedIDGrad(function_node.FunctionNode):
 
-    def __init__(self, shape, ignore_label=None):
-        self.shape = shape
+    def __init__(self, w_shape, ignore_label=None):
+        self.w_shape = w_shape
         self.ignore_label = ignore_label
 
     def forward(self, inputs):
@@ -68,7 +68,7 @@ class EmbedIDBackward(function.Function):
         xp = cuda.get_array_module(*inputs)
         x, gy = inputs
         self._gy_shape = gy.shape
-        gW = xp.zeros(self.shape, dtype=gy.dtype)
+        gW = xp.zeros(self.w_shape, dtype=gy.dtype)
 
         if xp is numpy:
             # It is equivalent to `numpy.add.at(gW, x, gy)` but ufunc.at is
@@ -99,13 +99,24 @@ class EmbedIDBackward(function.Function):
                         self.ignore_label, gW)
         return None, gW
 
-    def backward(self, inputs, grads):
-        xp = cuda.get_array_module(*inputs)
-        x = inputs[0]
-        mask = x != self.ignore_label
+    def backward(self, indexes, grads):
+        xp = cuda.get_array_module(*grads)
+        x = self.get_retained_inputs()[0].data
         ggW = grads[1]
-        ggy = ggW[xp.where(mask, x, 0)]
-        ggy = xp.where(mask[..., None], ggy, 0)
+
+        if self.ignore_label is not None:
+            mask = x == self.ignore_label
+            # To prevent index out of bounds, we need to check if ignore_label
+            # is inside of W.
+            if not (0 <= self.ignore_label < self.w_shape[1]):
+                x = xp.where(mask, 0, x)
+
+        ggy = ggW[x]
+
+        if self.ignore_label is not None:
+            mask, zero, _ = xp.broadcast_arrays(
+                mask[..., None], xp.zeros((), 'f'), ggy.data)
+            ggy = chainer.functions.where(mask, zero, ggy)
         return None, ggy
 
 
