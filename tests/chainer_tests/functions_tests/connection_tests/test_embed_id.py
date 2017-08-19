@@ -80,14 +80,23 @@ class TestEmbedID(unittest.TestCase):
 
     def check_double_backward(self, x_data, W_data, gy_data, ggW_data):
         def f(W):
-            return chainer.functions.embed_id(
+            y = chainer.functions.embed_id(
                 x_data, W, self.ignore_label)
+            return y * y
 
         gradient_check.check_double_backward(
             f,  W_data, gy_data, ggW_data)
 
-    def test_double_backward(self):
+    @condition.retry(3)
+    def test_double_backward_cpu(self):
         self.check_double_backward(self.x, self.W, self.gy, self.ggW)
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_double_backward_gpu(self):
+        self.check_double_backward(
+            cuda.to_gpu(self.x), cuda.to_gpu(self.W), cuda.to_gpu(self.gy),
+            cuda.to_gpu(self.ggW))
 
 
 @testing.parameterize(
