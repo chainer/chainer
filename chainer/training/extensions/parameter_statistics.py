@@ -10,7 +10,7 @@ class ParameterStatistics(extension.Extension):
     """Trainer extension to report parameter statistics.
 
     Statistics are collected and reported for a given :class:`~chainer.Link`
-    or an iterable of :class:`~chainer.Link`\\s. If a link contains child
+    or an iterable of :class:`~chainer.Link`\\ s. If a link contains child
     links, the statistics are reported separately for each child.
 
     Any function that takes a one-dimensional :class:`numpy.ndarray` or a
