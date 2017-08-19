@@ -44,22 +44,28 @@ class Sigmoid(function_node.FunctionNode):
         x, = self.get_retained_inputs()
         y, = self.get_retained_outputs()
         gy, = grad_outputs
+        return SigmoidGrad().apply((x, y, gy))
+
+
+
+class SigmoidGrad(function_node.FunctionNode):
+
+    """Logistic sigmoid gradient function."""
+
+    def check_type_forward(self, in_types):
+        type_check.expect(in_types.size() == 3)
+        type_check.expect(in_types[0].dtype.kind == 'f')
+        type_check.expect(in_types[1].dtype.kind == 'f')
+        type_check.expect(in_types[2].dtype.kind == 'f')
+
+    def forward_cpu(self, inputs):
+        x, y, gy = inputs
         one = x.dtype.type(1)
-        ret = []
-        if 0 in indexes:
-            gx = gy * y * (one - y)
-            ret.append(gx)
-        return ret
+        self.retain_inputs((1,))
+        return utils.force_array(gy * y * (one - y)),
 
-    def backward_cpu(self, x, gy):
-        one = x[0].dtype.type(1)
-        y = self.output_data[0]
-        return utils.force_array(gy[0] * y * (one - y)),
-
-    def backward_gpu(self, inputs, grads):
-        x = inputs[0]
-        gy = grads[0]
-        y = self.output_data[0]
+    def forward_gpu(self, inputs):
+        x, y, gy = inputs
         if (chainer.should_use_cudnn('==always') and gy.flags.c_contiguous and
                 x is not None and x.flags.c_contiguous):
             gx = cudnn.activation_backward(x, y, gy, _mode)
@@ -68,7 +74,18 @@ class Sigmoid(function_node.FunctionNode):
                 'T y, T gy', 'T gx',
                 'gx = gy * y * (1 - y)',
                 'sigmoid_bwd')(y, gy)
+        self.retain_inputs((1,))
         return gx,
+
+    def backward(self, indexes, grad_outputs):
+        y, = self.get_retained_inputs()
+        gy, = grad_outputs
+        one = x.dtype.type(1)
+        ret = []
+        if 0 in indexes:
+            ggx = gy * y * (one - y) * (one - 2 * y)
+            ret.append(ggx)
+        return ret
 
 
 def sigmoid(x):
