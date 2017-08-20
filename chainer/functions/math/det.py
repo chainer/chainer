@@ -108,6 +108,6 @@ def det(a):
 
     """
     shape = (1, a.shape[0], a.shape[1])
-    batched_a = reshape.Reshape(shape)(a)
+    batched_a = reshape.reshape(a, shape)
     batched_det = BatchDet()(batched_a)
-    return reshape.Reshape(())(batched_det)
+    return reshape.reshape(batched_det, ())
