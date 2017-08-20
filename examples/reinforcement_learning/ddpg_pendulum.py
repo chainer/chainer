@@ -242,7 +242,7 @@ def main():
     parser.add_argument('--no-record', action='store_false', dest='record')
     args = parser.parse_args()
 
-    # Initialize an environment
+    # Set up an environment
     env = gym.make(args.env)
     assert isinstance(env.observation_space, gym.spaces.Box)
     assert isinstance(env.action_space, gym.spaces.Box)
@@ -259,11 +259,11 @@ def main():
               'specified reward threshold at which it\'s considered '
               'solved.'.format(args.env))
 
-    # Setup Iterator
+    # Set up Iterator
     train_iter = GymIterator(
         args.batch_size, args.replay_start_size, env.spec.timestep_limit)
 
-    # Setup models
+    # Set up models
     Q = QFunction(obs_size, action_size, n_units=args.unit)
     policy = Policy(obs_size, action_size,
                     env.action_space.low, env.action_space.high,
@@ -273,7 +273,7 @@ def main():
         Q.to_gpu(args.gpu)
         policy.to_gpu(args.gpu)
 
-    # Setup optimizers
+    # Set up optimizers
     optimizer_Q = optimizers.Adam()
     optimizer_Q.setup(Q)
     optimizer_policy = optimizers.Adam(alpha=1e-4)
