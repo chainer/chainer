@@ -2,11 +2,11 @@ import numpy
 import six
 
 from chainer import cuda
-from chainer import function
+from chainer import function_node
 from chainer.utils import type_check
 
 
-class Concat(function.Function):
+class Concat(function_node.FunctionNode):
 
     """Concatenate multiple tensors towards specified axis."""
 
@@ -39,19 +39,20 @@ class Concat(function.Function):
                 type_check.expect(in_types[0].shape[d] == in_types[i].shape[d])
 
     def forward(self, xs):
-        self.retain_inputs(())
-        self._xp = cuda.get_array_module(*xs)
+        xp = cuda.get_array_module(*xs)
         self._x_shapes = [x.shape for x in xs]
-        return self._xp.concatenate(xs, axis=self.axis),
+        return xp.concatenate(xs, self.axis),
 
-    def backward(self, xs, gy):
-        if len(xs) == 1:
-            return gy
+    def backward(self, indexes, grad_outputs):
+        if len(self._x_shapes) == 1:
+            return grad_outputs
 
         sizes = numpy.array(
             [shape[self.axis] for shape in self._x_shapes[:-1]]
         ).cumsum()
-        return self._xp.split(gy[0], sizes, axis=self.axis)
+        # to avoid import error
+        from chainer.functions.array import split_axis
+        return split_axis.SplitAxis(sizes, self.axis).apply(grad_outputs)
 
 
 def concat(xs, axis=1):
@@ -87,4 +88,4 @@ def concat(xs, axis=1):
                [ 8,  9, 10, 11,  2]])
 
     """
-    return Concat(axis=axis)(*xs)
+    return Concat(axis).apply(xs)[0]

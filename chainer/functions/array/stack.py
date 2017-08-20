@@ -87,5 +87,5 @@ def stack(xs, axis=0):
         (3, 4, 2)
 
     """
-    xs = [expand_dims.expand_dims(x, axis=axis) for x in xs]
-    return concat.concat(xs, axis=axis)
+    xs = [expand_dims.expand_dims(x, axis) for x in xs]
+    return concat.concat(xs, axis)

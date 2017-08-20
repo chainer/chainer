@@ -4,12 +4,12 @@ import six
 
 import chainer
 from chainer import cuda
-from chainer import function
+from chainer import function_node
+from chainer.functions.array import concat
 from chainer.utils import type_check
-from chainer import variable
 
 
-class SplitAxis(function.Function):
+class SplitAxis(function_node.FunctionNode):
 
     """Function that splits multiple arrays along the specified axis."""
 
@@ -41,28 +41,24 @@ class SplitAxis(function.Function):
                 self.indices_or_sections, 'sections')
             type_check.expect(in_types[0].shape[self.axis] % sections == 0)
 
-    def forward(self, x):
-        self.retain_inputs(())
+    def forward(self, inputs):
+        x, = inputs
         if isinstance(self.indices_or_sections, collections.Iterable):
-            cdimx = x[0].shape[self.axis]
+            cdimx = x.shape[self.axis]
             ind = list(self.indices_or_sections)
             ind.append(cdimx)
-        self._xp = cuda.get_array_module(*x)
-        self._x_shape = x[0].shape
-        self._x_dtype = x[0].dtype
-        return tuple(self._xp.split(x[0], self.indices_or_sections, self.axis))
+        self._xp = cuda.get_array_module(x)
+        self._x_shape = x.shape
+        self._x_dtype = x.dtype
+        ret = tuple(self._xp.split(x, self.indices_or_sections, self.axis))
+        self._shapes = [r.shape for r in ret]
+        return ret
 
-    def backward(self, x, gys):
-        if any(gy is None for gy in gys):
-            gx = self._xp.zeros(self._x_shape, dtype=self._x_dtype)
-            gxs = self._xp.split(gx, self.indices_or_sections, self.axis)
-            for gxi, gy in six.moves.zip(gxs, gys):
-                if gy is None:
-                    continue
-                gxi[:] = gy
-            return gx,
-        else:
-            return self._xp.concatenate(gys, axis=self.axis),
+    def backward(self, indexes, grad_outputs):
+        grads = [
+            self._xp.zeros(shape, dtype=self._x_dtype) if gy is None else gy
+            for gy, shape in six.moves.zip(grad_outputs, self._shapes)]
+        return concat.Concat(self.axis).apply(grads)
 
 
 def split_axis(x, indices_or_sections, axis, force_tuple=True):
@@ -93,7 +89,7 @@ def split_axis(x, indices_or_sections, axis, force_tuple=True):
         (i.e. ``axis``-th value of its shape is zero).
 
     """
-    res = SplitAxis(indices_or_sections, axis)(x)
-    if force_tuple and isinstance(res, variable.Variable):
-        res = (res,)
-    return res
+    res = SplitAxis(indices_or_sections, axis).apply((x,))
+    if force_tuple or len(res) != 1:
+        return res
+    return res[0]
