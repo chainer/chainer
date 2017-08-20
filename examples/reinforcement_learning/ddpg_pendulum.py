@@ -108,8 +108,8 @@ class Updater(training.StandardUpdater):
             R += reward
 
             # Store a transition
-            train_iter.D.append((obs, action, reward * self.reward_scale,
-                                done, new_obs))
+            train_iter.append((obs, action, reward * self.reward_scale,
+                              done, new_obs))
             obs = new_obs
 
             # Sample a random minibatch of transitions and replay
@@ -146,6 +146,9 @@ class GymIterator(chainer.dataset.Iterator):
             batch = [self.D[i] for i in batch_indices]
             return batch
         return self.D
+
+    def append(self, data):
+        self.D.append(data)
 
     @property
     def epoch_detail(self):
@@ -256,11 +259,11 @@ def main():
               'specified reward threshold at which it\'s considered '
               'solved.'.format(args.env))
 
-    # Initialize variables
+    # Setup Iterator
     train_iter = GymIterator(
         args.batch_size, args.replay_start_size, env.spec.timestep_limit)
 
-    # Initialize models and optimizers
+    # Setup models
     Q = QFunction(obs_size, action_size, n_units=args.unit)
     policy = Policy(obs_size, action_size,
                     env.action_space.low, env.action_space.high,
@@ -270,12 +273,13 @@ def main():
         Q.to_gpu(args.gpu)
         policy.to_gpu(args.gpu)
 
+    # Setup optimizers
     optimizer_Q = optimizers.Adam()
     optimizer_Q.setup(Q)
     optimizer_policy = optimizers.Adam(alpha=1e-4)
     optimizer_policy.setup(policy)
 
-    # Set up a trainer
+    # Set up a trainer and run
     updater = Updater(train_iter, optimizer_Q, optimizer_policy, env,
                       args.reward_scale, args.tau, args.noise_scale)
     trainer = training.Trainer(updater, (args.episodes, 'epoch'))
