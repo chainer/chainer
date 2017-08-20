@@ -222,6 +222,8 @@ from chainer.functions.math.minmax import max  # NOQA
 from chainer.functions.math.minmax import Max  # NOQA
 from chainer.functions.math.minmax import min  # NOQA
 from chainer.functions.math.minmax import Min  # NOQA
+from chainer.functions.math.prod import prod  # NOQA
+from chainer.functions.math.prod import Prod  # NOQA
 from chainer.functions.math.scale import scale  # NOQA
 from chainer.functions.math.sqrt import rsqrt  # NOQA
 from chainer.functions.math.sqrt import sqrt  # NOQA
@@ -238,6 +240,8 @@ from chainer.functions.math.trigonometric import arcsin  # NOQA
 from chainer.functions.math.trigonometric import Arcsin  # NOQA
 from chainer.functions.math.trigonometric import arctan  # NOQA
 from chainer.functions.math.trigonometric import Arctan  # NOQA
+from chainer.functions.math.trigonometric import arctan2  # NOQA
+from chainer.functions.math.trigonometric import Arctan2  # NOQA
 from chainer.functions.math.trigonometric import cos  # NOQA
 from chainer.functions.math.trigonometric import Cos  # NOQA
 from chainer.functions.math.trigonometric import sin  # NOQA

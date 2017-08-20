@@ -163,6 +163,7 @@ Mathematical functions
    chainer.functions.arccos
    chainer.functions.arcsin
    chainer.functions.arctan
+   chainer.functions.arctan2
    chainer.functions.argmax
    chainer.functions.argmin
    chainer.functions.average
@@ -190,6 +191,7 @@ Mathematical functions
    chainer.functions.mean
    chainer.functions.min
    chainer.functions.minimum
+   chainer.functions.prod
    chainer.functions.rsqrt
    chainer.functions.scale
    chainer.functions.sin

@@ -1,21 +1,19 @@
-from chainer import function
+from chainer import function_node
 
 
-class Identity(function.Function):
+class Identity(function_node.FunctionNode):
 
     """Identity function."""
-
-    def check_type_forward(self, in_types):
-        pass
 
     def forward(self, xs):
         self.retain_inputs(())
         return xs
 
-    def backward(self, xs, gys):
+    def backward(self, indexes, gys):
         return gys
 
 
 def identity(*inputs):
     """Just returns input variables."""
-    return Identity()(*inputs)
+    ret = Identity().apply(inputs)
+    return ret[0] if len(ret) == 1 else ret

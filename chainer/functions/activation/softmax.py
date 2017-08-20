@@ -36,7 +36,8 @@ class Softmax(function.Function):
             one = numpy.array(1, dtype=oz_dtype).ctypes
             zero = numpy.array(0, dtype=oz_dtype).ctypes
             handle = cudnn.get_handle()
-            x_tensor4d = x[0].reshape(self._get_tensor4d_shape(x[0].shape))
+            x_tensor4d = cuda.cupy.ascontiguousarray(
+                x[0].reshape(self._get_tensor4d_shape(x[0].shape)))
             desc = cudnn.create_tensor_descriptor(x_tensor4d)
             y = xp.empty_like(x[0])
             libcudnn.softmaxForward(
@@ -62,11 +63,13 @@ class Softmax(function.Function):
             zero = numpy.array(0, dtype=oz_dtype).ctypes
             handle = cudnn.get_handle()
             gx = xp.empty_like(y)
-            gx_tensor4d = gx.reshape(self._get_tensor4d_shape(gx.shape))
+            gx_tensor4d = cuda.cupy.ascontiguousarray(
+                gx.reshape(self._get_tensor4d_shape(gx.shape)))
+            gy = cuda.cupy.ascontiguousarray(gy[0])
             desc = cudnn.create_tensor_descriptor(gx_tensor4d)
             libcudnn.softmaxBackward(
                 handle, _algorithm, _mode, one.data, desc.value,
-                y.data.ptr, desc.value, gy[0].data.ptr, zero.data,
+                y.data.ptr, desc.value, gy.data.ptr, zero.data,
                 desc.value, gx.data.ptr)
         else:
             gx = y * gy[0]

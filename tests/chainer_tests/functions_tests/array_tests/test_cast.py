@@ -46,9 +46,12 @@ class TestCast(unittest.TestCase):
         self.check_forward(cuda.to_gpu(self.x))
 
     def check_backward(self, x_data, g_data):
-        func = functions.Cast(self.out_type)
+        def func(x):
+            return functions.cast(x, self.out_type)
+
         gradient_check.check_backward(
-            func, x_data, g_data, eps=2.0 ** -2, atol=1e-3, rtol=1e-3)
+            func, x_data, g_data, dtype='d',
+            eps=2.0 ** -2, atol=1e-2, rtol=1e-3)
 
     def test_backward_cpu(self):
         self.check_backward(self.x, self.g)

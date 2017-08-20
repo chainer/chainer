@@ -57,8 +57,8 @@ class BatchNormalization(link.Link):
         avg_var (numpy.ndarray or cupy.ndarray): Population variance.
         N (int): Count of batches given for fine-tuning.
         decay (float): Decay rate of moving average. It is used on training.
-        eps (float): Epsilon value for numerical stability. This value is added
-            to the batch variances.
+        ~BatchNormalization.eps (float): Epsilon value for numerical stability.
+            This value is added to the batch variances.
 
     """
 
@@ -95,13 +95,13 @@ class BatchNormalization(link.Link):
         Invokes the forward propagation of BatchNormalization.
 
         In training mode, the BatchNormalization computes moving averages of
-        mean and variance for evaluatino during training, and normalizes the
+        mean and variance for evaluation during training, and normalizes the
         input using batch statistics.
 
         .. warning::
 
            ``test`` argument is not supported anymore since v2.
-           Instead, use ``chainer.using_config('train', train)``.
+           Instead, use ``chainer.using_config('train', False)``.
            See :func:`chainer.using_config`.
 
         Args:

@@ -4,10 +4,10 @@ import time
 import numpy
 
 from chainer import cuda
-from chainer import function
+from chainer import function_hook
 
 
-class TimerHook(function.FunctionHook):
+class TimerHook(function_hook.FunctionHook):
     """Function hook for measuring elapsed time of functions.
 
     Example:
@@ -105,7 +105,7 @@ class TimerHook(function.FunctionHook):
         """
         summary = {}
         for func, elapsed_time in self.call_history:
-            function_name = func.__class__.__name__
+            function_name = func._impl_name
             if function_name not in summary:
                 summary[function_name] = {'elapsed_time': 0, 'occurrence': 0}
             record = summary[function_name]
