@@ -21,8 +21,7 @@ class TestSigmoid(unittest.TestCase):
     def setUp(self):
         self.x = numpy.random.uniform(-.5, .5, self.shape).astype(self.dtype)
         self.gy = numpy.random.uniform(-.1, .1, self.shape).astype(self.dtype)
-        self.ggx = numpy.random.uniform(-1, 1, self.x.shape).astype(
-            self.x.dtype)
+        self.ggx = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         self.check_forward_options = {}
         self.check_backward_options = {}
         self.check_double_backward_options = {'dtype': numpy.float64}
@@ -87,12 +86,11 @@ class TestSigmoid(unittest.TestCase):
                               use_cudnn='always'):
         def f(x):
             y = functions.sigmoid(x)
-            gy = y
-            return y * (1 - y)
+            return y * y
 
         with chainer.using_config('use_cudnn', use_cudnn):
             gradient_check.check_double_backward(
-                f, s_data, y_grad, x_grad_grad,
+                f, x_data, y_grad, x_grad_grad,
                 **self.check_backward_options)
 
     @condition.retry(1)
