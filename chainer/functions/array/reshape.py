@@ -46,7 +46,7 @@ class Reshape(function_node.FunctionNode):
         return x.reshape(self.shape),
 
     def backward(self, indexes, grad_outputs):
-        return reshape(grad_outputs[0], self._in_shape),
+        return Reshape(self._in_shape).apply(grad_outputs)
 
 
 def reshape(x, shape):

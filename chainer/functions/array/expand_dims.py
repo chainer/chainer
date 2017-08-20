@@ -26,7 +26,7 @@ class ExpandDims(function_node.FunctionNode):
         return xp.expand_dims(x, self.axis),
 
     def backward(self, indexes, grad_outputs):
-        return reshape.reshape(grad_outputs[0], self._in_shape),
+        return reshape.Reshape(self._in_shape).apply(grad_outputs)
 
 
 def expand_dims(x, axis):
