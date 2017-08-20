@@ -1,4 +1,4 @@
-from chainer import function
+from chainer import function_node
 from chainer.utils import type_check
 
 
@@ -9,7 +9,7 @@ def _count_unknown_dims(shape):
     return cnt
 
 
-class Reshape(function.Function):
+class Reshape(function_node.FunctionNode):
 
     """Reshapes an input array without copy."""
 
@@ -40,13 +40,13 @@ class Reshape(function.Function):
             type_check.expect(
                 type_check.prod(x_type.shape) % size_var == 0)
 
-    def forward(self, x):
-        self.retain_inputs(())
-        self._in_shape = x[0].shape
-        return x[0].reshape(self.shape),
+    def forward(self, inputs):
+        x, = inputs
+        self._in_shape = x.shape
+        return x.reshape(self.shape),
 
-    def backward(self, x, gy):
-        return gy[0].reshape(self._in_shape),
+    def backward(self, indexes, grad_outputs):
+        return reshape(grad_outputs[0], self._in_shape),
 
 
 def reshape(x, shape):
@@ -93,4 +93,4 @@ def reshape(x, shape):
         Actual: 8 != 12
 
     """
-    return Reshape(shape)(x)
+    return Reshape(shape).apply((x,))[0]

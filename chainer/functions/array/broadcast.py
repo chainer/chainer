@@ -2,6 +2,8 @@ import six
 
 from chainer import cuda
 from chainer import function
+from chainer import function_node
+from chainer.functions.math import sum
 from chainer.utils import type_check
 
 
@@ -84,7 +86,7 @@ def broadcast(*args):
     return Broadcast()(*args)
 
 
-class BroadcastTo(function.Function):
+class BroadcastTo(function_node.FunctionNode):
 
     """Function that broadcasts an array to a new shape."""
 
@@ -108,11 +110,9 @@ class BroadcastTo(function.Function):
             actual = 'in_type[0].shape: %s' % str(shape)
             raise type_check.InvalidType(expect, actual)
 
-    def forward(self, xs):
-        self.retain_inputs(())
-        xp = cuda.get_array_module(*xs)
-        x = xs[0]
-        self._xp = xp
+    def forward(self, inputs):
+        x, = inputs
+        xp = cuda.get_array_module(x)
         self._in_shape = x.shape
         self._in_dtype = x.dtype
         if hasattr(xp, 'broadcast_to'):
@@ -123,9 +123,18 @@ class BroadcastTo(function.Function):
             bx, _ = xp.broadcast_arrays(x, dummy)
             return bx,
 
-    def backward(self, xs, grads):
-        return _backward_one(
-            self._xp, self._in_shape, self._in_dtype, grads[0]),
+    def backward(self, indexes, grad_outputs):
+        gx, = grad_outputs
+        shape = self._in_shape
+        ndim = len(shape)
+        if gx.ndim != ndim:
+            gx = sum.sum(gx, axis=tuple(range(gx.ndim - ndim)))
+
+        axis = [i for i, sx in enumerate(shape) if sx == 1]
+        if len(axis) > 0:
+            return sum.sum(gx, tuple(axis), True),
+        else:
+            return gx,
 
 
 def broadcast_to(x, shape):
@@ -154,4 +163,4 @@ def broadcast_to(x, shape):
                [0, 1, 2]])
 
     """
-    return BroadcastTo(shape)(x)
+    return BroadcastTo(shape).apply((x,))[0]

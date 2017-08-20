@@ -1,9 +1,12 @@
+import numpy
+
 from chainer import cuda
-from chainer import function
+from chainer import function_node
+from chainer.functions.array import reshape
 from chainer.utils import type_check
 
 
-class Sum(function.Function):
+class Sum(function_node.FunctionNode):
     """Sum of array elements over a given axis."""
 
     keepdims = False
@@ -40,35 +43,30 @@ class Sum(function.Function):
                         -axis - 1 < in_types[0].ndim,
                     )
 
-    def forward(self, x):
-        self.retain_inputs(())
-        self._in_shape = x[0].shape
-        self._in_dtype = x[0].dtype
-        self._xp = cuda.get_array_module(*x)
-        return self._xp.asarray(
-            x[0].sum(axis=self.axis, keepdims=self.keepdims)),
+    def forward(self, inputs):
+        x, = inputs
+        self._in_shape = x.shape
+        self._in_dtype = x.dtype
+        ret = x.sum(axis=self.axis, keepdims=self.keepdims)
+        if cuda.get_array_module(x) is numpy:
+            ret = numpy.asarray(ret)
+        return ret,
 
-    def backward(self, x, gy):
-        xp = self._xp
-
-        gy = gy[0]
-        if not (len(self._in_shape) == 0 or
-                self.axis is None or self.keepdims):
-            actual_axis = []
-            for axis in self.axis:
-                if axis < 0:
-                    axis += len(self._in_shape)
-                actual_axis.append(axis)
+    def backward(self, indexes, grad_outputs):
+        gy, = grad_outputs
+        ndim = len(self._in_shape)
+        if not (ndim == 0 or self.axis is None or self.keepdims):
+            actual_axis = [
+                axis if axis >= 0 else axis + ndim
+                for axis in self.axis]
+            shape = list(gy.shape)
             for axis in sorted(actual_axis):
-                gy = xp.expand_dims(gy, axis=axis)
-        if hasattr(xp, 'broadcast_to'):
-            gx = xp.broadcast_to(gy, self._in_shape)
-        else:
-            # NumPy 1.9 does not support broadcast_to.
-            dummy_x = xp.empty(self._in_shape, 'b')
-            gx, _ = xp.broadcast_arrays(gy, dummy_x)
+                shape.insert(axis, 1)
+            gy = reshape.reshape(gy, shape)
 
-        return gx,
+        # to avoid import error
+        from chainer.functions.array import broadcast
+        return broadcast.broadcast_to(gy, self._in_shape),
 
 
 def sum(x, axis=None, keepdims=False):
@@ -86,4 +84,4 @@ def sum(x, axis=None, keepdims=False):
         ~chainer.Variable: Output variable.
 
     """
-    return Sum(axis, keepdims)(x)
+    return Sum(axis, keepdims).apply((x,))[0]

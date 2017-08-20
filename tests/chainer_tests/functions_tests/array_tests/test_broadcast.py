@@ -144,7 +144,7 @@ class TestBroadcastTo(unittest.TestCase):
     @condition.retry(3)
     def check_backward(self, data, grads):
         gradient_check.check_backward(
-            functions.BroadcastTo(self.out_shape), data, grads,
+            lambda x: functions.broadcast_to(x, self.out_shape), data, grads,
             **self.check_backward_options)
 
     @condition.retry(3)
