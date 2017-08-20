@@ -52,10 +52,10 @@ class SkipGram(chainer.Chain):
 
     def __call__(self, x, contexts):
         e = self.embed(contexts)
-        shape = e.shape
-        x = F.broadcast_to(x[:, None], (shape[0], shape[1]))
-        e = F.reshape(e, (shape[0] * shape[1], shape[2]))
-        x = F.reshape(x, (shape[0] * shape[1],))
+        batch_size, n_context, n_units = e.shape
+        x = F.broadcast_to(x[:, None], (batch_size, n_context))
+        e = F.reshape(e, (batch_size * n_context, n_units))
+        x = F.reshape(x, (batch_size * n_context,))
         loss = self.loss_func(e, x)
         reporter.report({'loss': loss}, self)
         return loss

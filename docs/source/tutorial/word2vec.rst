@@ -1,5 +1,5 @@
-Word2Vec: Obtain a word embeddings
-***********************************
+Word2Vec: Obtain word embeddings
+*********************************
 
 .. currentmodule:: chainer
 
@@ -7,7 +7,7 @@ Word2Vec: Obtain a word embeddings
 ================
 
 **Word2vec** is the tool for generating the distributed representation of words.
-When the tool assigns a real number vector to each word, the closer
+When the tool assigns a real-valued vector to each word, the closer
 the meanings of the words, the greater similarity the vectors will indicate.
 As you know, **distributed representation** is assigning a real number vector for
 each object and representing the object by the vector. When representing a word
@@ -25,13 +25,13 @@ will Word2vec use in order to learn the vectors of meanings? The words
 
 Word2vec learns the similarity of word meanings from simple information. It learns
 from a sequence of words in sentences. The idea is that the meaning of the word is
-determined by the words around it. This idea is an old methodology, which is called
-**distributional hypothesis**. It is mentioned in papers of 1950's [1]. The word to
-be learned is called the **Center Word**, and the words around it are called
+determined by the words around it. This idea is based on **distributional hypothesis**
+[1]. The word to be learned is called the **Center Word**, and the words around it
+are called
 **Context Words**. Depending on the window size ``c``, the number of Context Words
 will change.
 
-For example, I will explain with the sentence **The cute cat jumps over the lazy dog.**.
+For example, I will explain with the sentence "**The cute cat jumps over the lazy dog.**".
 
 * All of the following figures consider "cat" as Center Word.
 * According to the window size ``c``, you can see that Context Words are changing.
@@ -41,21 +41,27 @@ For example, I will explain with the sentence **The cute cat jumps over the lazy
 2. Main Algorithm
 ==================
 
-Word2vec, the tool for createing the distributed representation of words, is actually
+Word2vec, the tool for creating the distributed representation of words, is actually
 built with two models, which are **Skip-gram** and **CBoW**.
 
 To explain the models with the figures below, we will use the following
 symbols.
 
-* :math:`N`: the number of vocabulary.
+* :math:`N`: the size of vocabulary.
 * :math:`D`: the size of embeddings vector.
-* :math:`v_t`: Center Word. The size is ``[N, 1]``.
-* :math:`v_{t+c}`: Context Word. The size is ``[N, 1]``.
+* :math:`v_t`: Center Word. The shape is ``[N,]``.
+* :math:`v_{t+c}`: Context Word. The shape is ``[N,]``.
 * :math:`L_H`: Embedding vector converted from input.
-  The size is ``[D, 1]``.
-* :math:`L_O`: Output layer. The size is ``[N, 1]``.
-* :math:`W_H`: Embedding matrix for input.  The size is ``[N, D]``.
-* :math:`W_O`: Embedding matrix for the output.  The size is ``[D, N]``.
+  The shape is ``[D,]``.
+* :math:`L_O`: Output layer. The shape is ``[N,]``.
+* :math:`W_H`: Embedding matrix for the input.  The shape is ``[N, D]``.
+* :math:`W_O`: Embedding matrix for the output.  The shape is ``[D, N]``.
+
+.. note::
+
+    It is common to use negative sampling or hierarchical softmax for the loss
+    function. But, in this tutorial, we will use the softmax over all words and
+    skip the other variants because of simplifying the explanation.
 
 2.1 Skip-gram
 --------------
@@ -104,16 +110,9 @@ Since there should be more than one Context Word, repeat the following process f
    :math:`W_O` for Context Words by the embedding vector of "dog" :math:`L_H`.
 4. In order to limit the value of each element of the output layer, 
    softmax function is applied to the output layer :math:`L_O` to calculate
-   :math:`softmax(L_O)`.
-
-        * To update the parameters, it is necessary to back-propagate the error
-          between the output layer and Context Word.
-        * However, the value of each element of the output layer takes the range
-          :math:`[-\infty, +\infty]`. Context Word's one-hot vector takes only
-          the range :math:`[0, 1]` for each element like ``[1 0 0 0 0 0 0 0 0 0]``.
-        * To limit the value of each element of the output layer between
-          :math:`[0, 1]`, the softmax functions is applied to the layer
-          because the function limits the value between :math:`[0, 1]`.
+   :math:`softmax(L_O)`. Softmax function normalizes scores in the output layer
+   :math:`L_O` into sum 1 to see the scores as probability distribution over all
+   words.
 
 5. Calculate the error between :math:`W_O` and "animal"'s one-hot vector
    ``[1 0 0 0 0 0 0 0 0 0 0]``, and propagate the error back to the network
@@ -165,12 +164,12 @@ Define Network Structures
         * The weight matrix ``self.embed.W`` is the embbeding matrix for input :math:`W_H`.
 
 * The function call ``__call__`` takes Center Word's ID ``x`` and Context Word's ID
-  ``contexts``  as arguments, and returns the error calculated by the loss functions
+  ``contexts``  as arguments, and returns the error calculated by the loss function
   ``self.loss_func``.
 
-        * When the function ``__call__`` is called, the size of ``x`` is
-          ``[batch_size]`` and the size of ``contexts`` is
-          ``[batch_size, n_context]``. The variable ``batch_size`` means the size
+        * When the function ``__call__`` is called, the shape of ``x`` is
+          ``[batch_size,]`` and the shape of ``contexts`` is
+          ``[batch_size, n_context]``. The ``batch_size`` means the size
           of mini-batch, and ``n_context`` means the size of Context Words.
         * First, we obtain the embedding vectors of ``contexts`` by
           ``e = self.embed(contexts)``. In the Skip-gram, since each Center Word
@@ -179,12 +178,12 @@ Define Network Structures
           network. (This is because it is easy to match the CBoW code.)
         * By ``F.broadcast_to(x[:, None], (shape[0], shape[1]))``, the Center Word's
           ID ``x`` is broadcasted to each Context Word.
-        * At the end, the size of ``x`` is ``[batch_size * n_context,]`` and the
-          size of ``e`` is ``[batch_size * n_context, n_units]``. By
+        * At the end, the shape of ``x`` is ``[batch_size * n_context,]`` and the
+          shape of ``e`` is ``[batch_size * n_context, n_units]``. By
           ``self.loss_func(e, x)``, the error is calculated.
 
-Define Error Function
-^^^^^^^^^^^^^^^^^^^^^^
+Define Loss Function
+^^^^^^^^^^^^^^^^^^^^^
 
 .. literalinclude:: ../../../examples/word2vec/train_word2vec.py
    :language: python
@@ -195,7 +194,7 @@ Define Error Function
   the network structures.
 
         * After computing the linear transformation ``self.out(x)``, which is
-          defined by ``L.Linear(n_in, n_out, initialW = 0)``, we calculate
+          defined by ``L.Linear(n_in, n_out, initialW=0)``, we calculate
           the error function of cross entropy followed by softmax function with
           :class:`~chainer.functions.softmax_cross_entropy`.
         * Here, the linear transformation matrix ``self.out.W`` corresponds to the
@@ -216,8 +215,8 @@ Define Iterator for Data
 
         * In the constructor, we create a array ``self.order`` which is shuffled
           ``[window, window + 1, ..., len(dataset) - window - 1]`` in order to
-          iterate random-orderered ``dataset``.
-        * ex.) If the number of words in ``dataset`` is 100 and the window size
+          iterate randomly ordered ``dataset``.
+        * e.g. If the number of words in ``dataset`` is 100 and the window size
           ``window`` is 5, ``self.order`` becomes :class:`numpy.ndarray` where
           numbers from 5 to 94 are shuffled.
 
@@ -254,7 +253,7 @@ Main Function
             >>> val
             array([2211,  396, 1129, ...,  108,   27,   24], dtype=int32)
 
-* The maximum id in ``train`` will be the vocabulary size ``n_vocab``.
+* The maximum id in ``train`` will be the vocabulary size ``n_vocab - 1``.
 
 
 .. literalinclude:: ../../../examples/word2vec/train_word2vec.py
@@ -271,7 +270,7 @@ Main Function
    :end-before: else
    :caption: train_word2vec.py
 
-* We create the error function ``loss_func`` as ``SoftmaxCrossEntropyLoss``.
+* We create the loss function ``loss_func`` as ``SoftmaxCrossEntropyLoss``.
 
 .. literalinclude:: ../../../examples/word2vec/train_word2vec.py
    :language: python
