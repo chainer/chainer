@@ -95,7 +95,7 @@ In this tutorial, we mainly explain Skip-gram from the following viewpoints.
 
 In this example, we use the following setups.
 
-* The number of vocabulary :math:`N` is 10.
+* The size of vocabulary :math:`N` is 10.
 * The size of embedding vector :math:`D` is 2.
 * Center word is "dog".
 * Context word is "animal".
