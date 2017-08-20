@@ -16,8 +16,8 @@ import numpy as np
 import chainer
 from chainer import functions as F
 from chainer import links as L
-from chainer import training
 from chainer import optimizers
+from chainer import training
 
 
 class QFunction(chainer.Chain):
@@ -68,9 +68,11 @@ class Policy(chainer.Chain):
                       self.xp.asarray(self.action_low),
                       self.xp.asarray(self.action_high))
 
+
 class Updater(training.StandardUpdater):
 
-    def __init__(self, train_iter, optimizer_Q, optimizer_policy, env, reward_scale, tau, noise_scale):
+    def __init__(self, train_iter, optimizer_Q, optimizer_policy, env,
+                 reward_scale, tau, noise_scale):
         super(Updater, self).__init__(train_iter, optimizer_Q)
         self.optimizer_policy = optimizer_policy
         self.env = env
@@ -85,7 +87,8 @@ class Updater(training.StandardUpdater):
         self.episode = 0
 
     def update_core(self):
-        obs = self.env.reset()
+        env = self.env
+        obs = env.reset()
         done = False
         R = 0.0  # Return (sum of rewards obtained in an episode)
         timestep = 0
@@ -93,15 +96,10 @@ class Updater(training.StandardUpdater):
         train_iter = self.get_iterator('main')
         optimizer_Q = self.get_optimizer('main')
         optimizer_policy = self.optimizer_policy
-        env = self.env
-        Q = self.Q
-        policy = self.policy
-        target_Q = self.target_Q
-        target_policy = self.target_policy
 
         while not done and timestep < env.spec.timestep_limit:
             # Select an action with additive noises for exploration
-            action = (get_action(policy, obs) +
+            action = (get_action(self.policy, obs) +
                       np.random.normal(scale=self.noise_scale))
 
             # Execute an action
@@ -110,17 +108,18 @@ class Updater(training.StandardUpdater):
             R += reward
 
             # Store a transition
-            train_iter.D.append((obs, action, reward * self.reward_scale, done, new_obs))
+            train_iter.D.append((obs, action, reward * self.reward_scale,
+                                done, new_obs))
             obs = new_obs
 
             # Sample a random minibatch of transitions and replay
             batch = train_iter.__next__()
-            update(Q, target_Q, policy, target_policy,
-                       optimizer_Q, optimizer_policy, batch)
+            update(self.Q, self.target_Q, self.policy, self.target_policy,
+                   optimizer_Q, optimizer_policy, batch)
 
             # Soft update of the target networks
-            soft_copy_params(Q, target_Q, self.tau)
-            soft_copy_params(policy, target_policy, self.tau)
+            soft_copy_params(self.Q, self.target_Q, self.tau)
+            soft_copy_params(self.policy, self.target_policy, self.tau)
 
             timestep += 1
 
@@ -152,6 +151,7 @@ class GymIterator(chainer.dataset.Iterator):
     def epoch_detail(self):
         # Floating point version of epoch.
         return self.iteration / self.timestep_limit
+
 
 def get_action(policy, obs):
     """Get an action by evaluating a given policy."""
@@ -257,7 +257,8 @@ def main():
               'solved.'.format(args.env))
 
     # Initialize variables
-    train_iter = GymIterator(args.batch_size, args.replay_start_size, env.spec.timestep_limit)
+    train_iter = GymIterator(
+        args.batch_size, args.replay_start_size, env.spec.timestep_limit)
 
     # Initialize models and optimizers
     Q = QFunction(obs_size, action_size, n_units=args.unit)
@@ -276,7 +277,7 @@ def main():
 
     # Set up a trainer
     updater = Updater(train_iter, optimizer_Q, optimizer_policy, env,
-            args.reward_scale, args.tau, args.noise_scale)
+                      args.reward_scale, args.tau, args.noise_scale)
     trainer = training.Trainer(updater, (args.episodes, 'epoch'))
     trainer.run()
 
