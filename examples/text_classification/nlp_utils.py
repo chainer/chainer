@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 import collections
 import io
 
@@ -21,7 +20,7 @@ def normalize_text(text):
 
 def make_vocab(dataset, max_vocab_size=20000, min_freq=2):
     counts = collections.defaultdict(int)
-    for tokens, cls in dataset:
+    for tokens, _ in dataset:
         for token in tokens:
             counts[token] += 1
 

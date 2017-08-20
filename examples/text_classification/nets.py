@@ -1,4 +1,3 @@
-# encoding: utf-8
 import numpy
 
 import chainer
@@ -30,14 +29,15 @@ def block_embed(embed, x, dropout=0.):
 
 class Classifier(chainer.Chain):
 
-    """A Classifier Using a Given Encoder.
+    """A classifier using a given encoder.
 
-     This chain encodes a sentence and classify it into classes.
+     This chain encodes a sentence and classifies it into classes.
 
      Args:
          encoder (callable): A callable encoder, which extracts a feature.
-             Input is a list of variables whose shape is `(sentence_length, )`.
-             Output is a variable whose shape is `(batchsize, n_units)`.
+             Input is a list of variables whose shapes are
+             "(sentence_length, )".
+             Output is a variable whose shape is "(batchsize, n_units)".
          n_class (int): The number of classes to be predicted.
 
      """
@@ -89,24 +89,25 @@ class RNNEncoder(chainer.Chain):
             embed=L.EmbedID(n_vocab, n_units),
             encoder=L.NStepLSTM(n_layers, n_units, n_units, dropout),
         )
+        self.n_layers = n_layers
         self.out_units = n_units
         self.dropout = dropout
 
     def __call__(self, xs):
         exs = sequence_embed(self.embed, xs, self.dropout)
         last_h, last_c, ys = self.encoder(None, None, exs)
-        # last_h's shape = (n_layer, batchsize, n_units)
+        assert(last_h.shape == (self.n_layers, len(xs), self.out_units))
         concat_outputs = last_h[-1]
         return concat_outputs
 
 
 class CNNEncoder(chainer.Chain):
 
-    """A CNN Encoder with Word Embedding.
+    """A CNN encoder with word embedding.
 
     This model encodes a sentence as a set of n-gram chunks
     using convolutional filters.
-    After convolution, max-pooling is applied over time.
+    Following the convolution, max-pooling is applied over time.
     Finally, the output is fed into a multilayer perceptron.
 
     Args:
@@ -150,7 +151,7 @@ class CNNEncoder(chainer.Chain):
 
 class MLP(chainer.ChainList):
 
-    """A Multilayer Perceptron.
+    """A multilayer perceptron.
 
     Args:
         n_vocab (int): The size of vocabulary.
@@ -175,7 +176,7 @@ class MLP(chainer.ChainList):
 
 class BOWEncoder(chainer.Chain):
 
-    """A BOW Encoder with Word Embedding.
+    """A BoW encoder with word embedding.
 
     This model encodes a sentence as just a set of words by averaging.
 
@@ -203,7 +204,7 @@ class BOWEncoder(chainer.Chain):
 
 class BOWMLPEncoder(chainer.Chain):
 
-    """A BOW Encoder with Word Embedding and MLP.
+    """A BOW encoder with word embedding and MLP.
 
     This model encodes a sentence as just a set of words by averaging.
     Additionally, its output is fed into a multilayer perceptron.

@@ -122,14 +122,16 @@ def main():
         os.mkdir(args.out)
     current = os.path.dirname(os.path.abspath(__file__))
     vocab_path = os.path.join(current, args.out, 'vocab.json')
-    json.dump(vocab, open(vocab_path, 'w'))
+    with open(vocab_path, 'w') as f:
+        json.dump(vocab, f)
     model_path = os.path.join(current, args.out, 'best_model.npz')
     model_setup = args.__dict__
     model_setup['vocab_path'] = vocab_path
     model_setup['model_path'] = model_path
     model_setup['n_class'] = n_class
     model_setup['datetime'] = current_datetime
-    json.dump(args.__dict__, open(os.path.join(args.out, 'args.json'), 'w'))
+    with open(os.path.join(args.out, 'args.json'), 'w') as f:
+        json.dump(args.__dict__, f)
 
     # Run the training
     trainer.run()

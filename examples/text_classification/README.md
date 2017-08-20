@@ -3,7 +3,7 @@
 This is an example of text classification using typical neural networks. This code can switch choices below:  
 - LSTM
 - CNN + MLP
-- BOW + MLP
+- BoW + MLP
 - Character-based variant models of those
 
 And also, dataset is switchable among below:  

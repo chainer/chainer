@@ -3,11 +3,10 @@ import csv
 import glob
 import io
 import os
-import os.path
-from six.moves.urllib import request
 import tarfile
 
 import numpy
+from six.moves.urllib import request
 
 from nlp_utils import make_vocab
 from nlp_utils import normalize_text
@@ -27,11 +26,11 @@ def download_dbpedia():
 def read_dbpedia(path, shrink=1, char_based=False):
     dataset = []
     with io.open(path, encoding='utf-8', errors='ignore') as f:
-        for i, (cls, title, text) in enumerate(csv.reader(f)):
+        for i, (label, title, text) in enumerate(csv.reader(f)):
             if i % shrink != 0:
                 continue
+            label = int(label) - 1  # Index begins from 1
             tokens = split_text(normalize_text(text), char_based)
-            label = int(cls) - 1
             dataset.append((tokens, label))
     return dataset
 
@@ -136,9 +135,9 @@ def read_other_dataset(path, shrink=1, char_based=False):
         for i, l in enumerate(f):
             if i % shrink != 0 or not len(l.strip()) >= 3:
                 continue
-            cls, text = l.strip().split(None, 1)
+            label, text = l.strip().split(None, 1)
+            label = int(label)
             tokens = split_text(normalize_text(text), char_based)
-            label = int(cls)
             dataset.append((tokens, label))
     return dataset
 
