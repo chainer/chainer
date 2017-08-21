@@ -10,6 +10,7 @@ except ImportError as e:
     available = False
     _import_error = e
 
+import chainer
 from chainer.dataset.convert import concat_examples
 from chainer.dataset import download
 from chainer import function
@@ -266,7 +267,7 @@ class VGG16Layers(link.Chain):
         else:
             x = x[:, :, 16:240, 16:240]
         # Use no_backprop_mode to reduce memory consumption
-        with function.no_backprop_mode():
+        with function.no_backprop_mode(), chainer.using_config('train', False):
             x = Variable(self.xp.asarray(x))
             y = self(x, layers=['prob'])['prob']
             if oversample:
