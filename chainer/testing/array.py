@@ -26,7 +26,7 @@ def assert_allclose(x, y, atol=1e-5, rtol=1e-4, verbose=True):
     except AssertionError:
         err = numpy.abs(x - y)
         i = numpy.unravel_index(numpy.argmax(err), err.shape)
-        f = sys.stderr
+        f = sys.stdout
         f.write(
             'assert_allclose failed: \n' +
             '  shape: {}\n'.format(x.shape) +
