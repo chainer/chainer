@@ -1,4 +1,4 @@
-from chainer.functions.array import reshape
+import chainer
 
 
 def flatten(x):
@@ -37,4 +37,4 @@ def flatten(x):
         array([0, 1, 2, 3, 4, 5, 6, 7])
 
     """
-    return reshape.reshape(x, (x.size,))
+    return chainer.functions.reshape(x, (x.size,))
