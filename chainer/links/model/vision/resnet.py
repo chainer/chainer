@@ -10,6 +10,7 @@ except ImportError as e:
     available = False
     _import_error = e
 
+import chainer
 from chainer.dataset.convert import concat_examples
 from chainer.dataset import download
 from chainer import function
@@ -264,13 +265,14 @@ class ResNetLayers(link.Chain):
             x = x[:, :, 16:240, 16:240]
         # Use no_backprop_mode to reduce memory consumption
         with function.no_backprop_mode():
-            x = Variable(self.xp.asarray(x))
-            y = self(x, layers=['prob'])['prob']
-            if oversample:
-                n = y.data.shape[0] // 10
-                y_shape = y.data.shape[1:]
-                y = reshape(y, (n, 10) + y_shape)
-                y = sum(y, axis=1) / 10
+            with chainer.using_config('train', False):
+                x = Variable(self.xp.asarray(x))
+                y = self(x, layers=['prob'])['prob']
+                if oversample:
+                    n = y.data.shape[0] // 10
+                    y_shape = y.data.shape[1:]
+                    y = reshape(y, (n, 10) + y_shape)
+                    y = sum(y, axis=1) / 10
         return y
 
 
