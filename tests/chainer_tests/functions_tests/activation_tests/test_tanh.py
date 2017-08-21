@@ -6,6 +6,7 @@ import numpy
 import chainer
 from chainer import cuda
 from chainer import functions
+from chainer.functions.activation import tanh
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
@@ -53,7 +54,7 @@ class TestTanh(unittest.TestCase):
     def check_backward(self, x_data, gy_data, use_cudnn='always'):
         with chainer.using_config('use_cudnn', use_cudnn):
             gradient_check.check_backward(
-                functions.Tanh(), x_data, gy_data,
+                functions.tanh, x_data, gy_data,
                 **self.check_backward_options)
 
     @condition.retry(3)
@@ -111,6 +112,29 @@ class TestTanhCudnnCall(unittest.TestCase):
                 func.side_effect = default_func
                 y.backward()
                 self.assertEqual(func.called, self.expect)
+
+
+@testing.parameterize(*testing.product({
+    'shape': [(3, 2), ()],
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+}))
+class TestTanhGrad(unittest.TestCase):
+
+    def setUp(self):
+        self.x = numpy.random.uniform(-.5, .5, self.shape).astype(self.dtype)
+        self.gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        self.ggx = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+
+    def check_backward(self, x_data, y_data, gy_data, ggx_data):
+        def f(y, gy):
+            return tanh.TanhGrad(x_data).apply((y, gy))[0]
+
+        gradient_check.check_backward(
+            f, (y_data, gy_data), ggx_data, dtype='d', atol=1e-4, rtol=1e-4)
+
+    def test_backward_cpu(self):
+        y = numpy.array(numpy.tanh(self.x))
+        self.check_backward(self.x, y, self.gy, self.ggx)
 
 
 testing.run_module(__name__, __file__)

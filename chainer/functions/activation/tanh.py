@@ -3,6 +3,7 @@ import numpy
 import chainer
 from chainer import cuda
 from chainer import function
+from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
 
@@ -12,7 +13,7 @@ if cuda.cudnn_enabled:
     _mode = libcudnn.CUDNN_ACTIVATION_TANH
 
 
-class Tanh(function.Function):
+class Tanh(function_node.FunctionNode):
 
     """Hyperbolic tangent function."""
 
@@ -24,36 +25,64 @@ class Tanh(function.Function):
         y = utils.force_array(numpy.tanh(x[0]))
         self.retain_inputs(())
         self.retain_outputs((0,))
+        self._use_cudnn = False
         return y,
 
     def forward_gpu(self, x):
         if chainer.should_use_cudnn('==always') and x[0].flags.c_contiguous:
             y = cudnn.activation_forward(x[0], _mode)
+            self.retain_inputs((0,))
+            self._use_cudnn = True
         else:
             y = cuda.cupy.empty_like(x[0])
             cuda.cupy.tanh(x[0], out=y)
             self.retain_inputs(())
+            self._use_cudnn = False
 
         self.retain_outputs((0,))
         return y,
 
-    def backward_cpu(self, x, gy):
-        y = self.output_data[0]
-        one = y.dtype.type(1)
-        return utils.force_array(gy[0] * (one - y * y)),
+    def backward(self, indexes, grad_outputs):
+        if self._use_cudnn:
+            x = self.get_retained_inputs()[0].data
+        else:
+            x = None
+        y = self.get_retained_outputs()[0]
+        gy = grad_outputs[0]
+        return TanhGrad(x).apply((y, gy))
 
-    def backward_gpu(self, x, gy):
-        y = self.output_data[0]
+
+class TanhGrad(function_node.FunctionNode):
+
+    def __init__(self, x):
+        self.x = x
+
+    def forward_cpu(self, inputs):
+        self.retain_inputs((0, 1))
+        y, gy = inputs
+        one = y.dtype.type(1)
+        return utils.force_array(gy * (one - y * y)),
+
+    def forward_gpu(self, inputs):
+        self.retain_inputs((0, 1))
+        y, gy = inputs
         if (chainer.should_use_cudnn('==always') and
-                x[0] is not None and x[0].flags.c_contiguous and
-                gy[0].flags.c_contiguous):
-            gx = cudnn.activation_backward(x[0], y, gy[0], _mode)
+                self.x is not None and self.x.flags.c_contiguous and
+                gy.flags.c_contiguous):
+            gx = cudnn.activation_backward(self.x, y, gy, _mode)
         else:
             gx = cuda.elementwise(
                 'T y, T gy', 'T gx',
                 'gx = gy * (1 - y * y)',
-                'tanh_bwd')(y, gy[0])
+                'tanh_bwd')(y, gy)
         return gx,
+
+    def backward(self, indexes, grad_outputs):
+        y, gy = self.get_retained_inputs()
+        g = grad_outputs[0]
+        grad_y = -2 * g * gy * y
+        ggy = g * (1 - y * y)
+        return grad_y, ggy
 
 
 def tanh(x):
@@ -79,4 +108,4 @@ def tanh(x):
         array([-0.76159418,  0.76159418,  0.99505478], dtype=float32)
 
     """
-    return Tanh()(x)
+    return Tanh().apply((x,))[0]
