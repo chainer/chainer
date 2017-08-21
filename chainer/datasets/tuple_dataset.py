@@ -101,10 +101,10 @@ class TupleDatasetIxIndexer(BaseIxIndexer):
                     current, stop, step = col_index.indices(len(self.datasets))
                     col_datasets = [self.datasets[col] for col in
                                     six.moves.range(current, stop, step)]
-                elif isinstance(item, list) or isinstance(item, numpy.ndarray):
-                    if isinstance(row_index[0],
+                elif isinstance(col_index, list) or isinstance(col_index, numpy.ndarray):
+                    if isinstance(col_index[0],
                                   (bool, numpy.bool, numpy.bool_)):
-                        assert len(row_index) == len(col_datasets[0])
+                        assert len(col_index) == len(self.datasets)
                         col_datasets = []
                         for col, flag in enumerate(col_index):
                             if flag:
