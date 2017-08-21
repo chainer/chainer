@@ -55,6 +55,9 @@ class Tanh(function_node.FunctionNode):
 class TanhGrad(function_node.FunctionNode):
 
     def __init__(self, x):
+        super(ThanhGrad, self).__init__()
+        # The original input `x` is only required for cuDNN.
+        # If it is None, this class does not use cuDNN.
         self.x = x
 
     def forward_cpu(self, inputs):
