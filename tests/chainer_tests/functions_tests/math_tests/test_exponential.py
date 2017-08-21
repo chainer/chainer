@@ -45,8 +45,13 @@ class UnaryFunctionsTestBase(unittest.TestCase):
     def check_double_backward_cpu(self, op):
         self.check_double_backward(op, self.x, self.gy, self.ggx)
 
+    def check_double_backward_gpu(self, op):
+        self.check_double_backward(op, cuda.to_gpu(self.x),
+                                   cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx))
+
     def check_double_backward(self, op, x_data, y_grad, x_grad_grad):
-        gradient_check.check_double_backward(op, x_data, y_grad, x_grad_grad)
+        gradient_check.check_double_backward(op, x_data, y_grad, x_grad_grad,
+                                             dtype='d')
 
     def check_label(self, op, expected):
         self.assertEqual(op().label, expected)
@@ -88,6 +93,11 @@ class TestExp(UnaryFunctionsTestBase):
     @condition.retry(1)
     def test_double_backward_cpu(self):
         self.check_double_backward_cpu(F.exp)
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_double_backward_gpu(self):
+        self.check_double_backward_gpu(F.exp)
 
 
 @testing.parameterize(*testing.product({
