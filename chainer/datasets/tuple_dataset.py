@@ -62,15 +62,25 @@ class TupleDatasetIxIndexer(BaseIxIndexer):
         # row_index must be one dimensional index
 
         if isinstance(row_index, slice):
-            current, stop, step = row_index.indices(len(col_datasets[0]))
-            res = [numpy.asarray([data[i] for i in six.moves.range(current, stop, step)])
-                    for data in col_datasets]
+            # Accessing by slice, which is much efficient
+            res = [numpy.asarray(data[row_index]) for data in col_datasets]
+
+            # Accessing by each index, copy occurs
+            #current, stop, step = row_index.indices(len(col_datasets[0]))
+            #res = [numpy.asarray([data[i] for i in six.moves.range(current, stop, step)])
+            #        for data in col_datasets]
         elif isinstance(row_index, list) or isinstance(row_index, numpy.ndarray):
-            res = [numpy.asarray([data[i] for i in row_index])
-                   for data in col_datasets]
+            print('type', type(row_index[0]))
+            if isinstance(row_index[0], (bool, numpy.bool, numpy.bool_)):
+                # Access by bool flag list
+                assert len(row_index) == len(col_datasets[0])
+                res = [numpy.asarray(data[row_index])
+                       for data in col_datasets]
+            else:
+                res = [numpy.concatenate([data[i] for i in row_index], axis=0)
+                       for data in col_datasets]
         else:
             res = [numpy.asarray(data[row_index]) for data in col_datasets]
-        # TODO: support bool type
         if len(res) == 1:
             return res[0]
         else:
@@ -92,10 +102,17 @@ class TupleDatasetIxIndexer(BaseIxIndexer):
                     col_datasets = [self.datasets[col] for col in
                                     six.moves.range(current, stop, step)]
                 elif isinstance(item, list) or isinstance(item, numpy.ndarray):
-                    col_datasets = [self.datasets[col] for col in col_index]
+                    if isinstance(row_index[0],
+                                  (bool, numpy.bool, numpy.bool_)):
+                        assert len(row_index) == len(col_datasets[0])
+                        col_datasets = []
+                        for col, flag in enumerate(col_index):
+                            if flag:
+                                col_datasets.append(self.datasets[col])
+                    else:
+                        col_datasets = [self.datasets[col] for col in col_index]
                 else:
                     col_datasets = [self.datasets[col_index]]
-                # TODO: support bool type
                 return self.extract_row(row_index, col_datasets)
             else:
                 print('[Error] out of range, invalid index dimension')
