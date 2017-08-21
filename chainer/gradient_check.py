@@ -133,7 +133,7 @@ def check_backward(func, x_data, y_grad, params=(),
 
     To reduce computational time, it uses a function
     :math:`g: \\mathbb{R} \\rightarrow \\mathbb{R}^n` defined as
-    :math:`g(\\alpha) = f(\\alpha x)`, where :math:`\\alpha \in \\mathbb{R}`
+    :math:`g(\\alpha) = f(\\alpha x)`, where :math:`\\alpha \\in \\mathbb{R}`
     and :math:`f` is a function which actually
     you want to test.
     Its gradient is
