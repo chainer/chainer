@@ -44,69 +44,64 @@ class ReLU(function_node.FunctionNode):
         y = self.get_retained_outputs()[0]
         if chainer.should_use_cudnn('==always') and self._use_cudnn:
             x = self.get_retained_inputs()[0]
-            return ReLUGrad3().apply((x, y, gy[0]))
+            return ReLUGrad3(x, y).apply((gy[0],))
         else:
-            return ReLUGrad2().apply((y, gy[0]))
+            return ReLUGrad2(y).apply((gy[0],))
 
 
 def _heaviside(x):
-    return utils.force_array((x.data > 0).astype(x.dtype))
+    return utils.force_array((x > 0).astype(x.dtype))
 
 
 class ReLUGrad2(function_node.FunctionNode):
+    def __init__(self, b):
+        super(ReLUGrad2).__init__()
+        self.b = b.data
 
     def forward_cpu(self, inputs):
-        self.retain_inputs((0,))
-        b, c = inputs
-        y = (b > 0) * c
+        y = (self.b > 0) * inputs[0]
         return utils.force_array(y, dtype=y.dtype),
 
     def forward_gpu(self, inputs):
-        self.retain_inputs((0,))
-        b, c = inputs
+        b = cuda.to_gpu(self.b)
         gx = cuda.elementwise(
             'T y, T gy', 'T gx',
             'gx = y > 0 ? gy : (T)0',
-            'relu_bwd')(b, c)
+            'relu_bwd')(b, inputs[0])
         return gx,
 
     def backward(self, indexes, gy):
-        ret = []
         if 0 in indexes:
-            ret.append(None)
-        if 1 in indexes:
-            b = self.get_retained_inputs()[0]
+            xp = cuda.get_array_module(gy[0])
+            b = xp.asarray(self.b)
             gc = gy[0] * _heaviside(b)
-            ret.append(gc)
-        return ret
+            return gc,
+        else:
+            return ()
 
 
 class ReLUGrad3(function_node.FunctionNode):
+    def __init__(self, a, b):
+        self.a = a.data
+        self.b = b.data
 
     def forward_cpu(self, inputs):
-        self.retain_inputs((0,))
-        _, b, c = inputs
-        y = (b > 0) * c
-        return y,
+        return (self.b > 0) * inputs[0],
 
     def forward_gpu(self, inputs):
-        self.retain_inputs((1,))
-        a, b, c = inputs
+        a = cuda.to_gpu(self.a)
+        b = cuda.to_gpu(self.b)
         assert chainer.should_use_cudnn('==always')
-        y = cudnn.activation_backward(a, b, c, _mode)
-        return y,
+        return cudnn.activation_backward(a, b, inputs[0], _mode),
 
     def backward(self, indexes, gy):
-        ret = []
         if 0 in indexes:
-            ret.append(None)
-        if 1 in indexes:
-            ret.append(None)
-        if 2 in indexes:
-            b = self.get_retained_inputs()[0]
+            xp = cuda.get_array_module(gy[0])
+            b = xp.asarray(self.b)
             gc = gy[0] * _heaviside(b)
-            ret.append(gc)
-        return ret
+            return gc,
+        else:
+            return ()
 
 
 def relu(x):
