@@ -50,4 +50,6 @@ def cast(x, typ):
         dtype('float16')
 
     """
+    if x.dtype == typ:
+        return x
     return Cast(typ).apply((x,))[0]

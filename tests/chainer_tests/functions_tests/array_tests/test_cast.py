@@ -57,4 +57,21 @@ class TestCast(unittest.TestCase):
         self.check_backward(self.x, self.g)
 
 
+class TestNoCast(unittest.TestCase):
+
+    def setUp(self):
+        self.dtype = numpy.float32
+        self.x = numpy.empty(1, self.dtype)
+
+    def check_forward_no_cast(self, x_data):
+        y = functions.cast(x_data, self.dtype)
+        self.assertIs(y, x_data)
+
+    def test_forward_no_cast_array(self):
+        self.check_forward_no_cast(self.x)
+
+    def test_forward_no_cast_variable(self):
+        self.check_forward_no_cast(chainer.Variable(self.x))
+
+
 testing.run_module(__name__, __file__)
