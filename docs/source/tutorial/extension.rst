@@ -125,7 +125,8 @@ The learning rate will be dropped like the curve below with :math:`{\rm power} =
 
     class PolynomialShift(extension.Extension):
 
-        def __init__(self, attr, power, stop_trigger, batchsize, len_dataset):
+        def __init__(self, attr, power, stop_trigger, batchsize=None,
+                     len_dataset=None):
             self._attr = attr
             self._power = power
             self._init = None
@@ -135,6 +136,11 @@ The learning rate will be dropped like the curve below with :math:`{\rm power} =
             if stop_trigger[1] == 'iteration':
                 self._maxiter = stop_trigger[0]
             elif stop_trigger[1] == 'epoch':
+                if batchsize is None or len_dataset is None:
+                    raise ValueError(
+                        'When the unit of \'stop_trigger\' is \'epoch\', '
+                        '\'batchsize\' and \'len_dataset\' should be '
+                        'specified to calculate the maximum iteration.')
                 n_iter_per_epoch = len_dataset / float(batchsize)
                 self._maxiter = float(stop_trigger[0] * n_iter_per_epoch)
 
@@ -160,10 +166,8 @@ The learning rate will be dropped like the curve below with :math:`{\rm power} =
 
 .. code-block:: python
 
-    stop_trigger = (100, 'epoch')
-    batchsize = 128
-    len_dataset = len(train_dataset)
-    trainer.extend(PolynomialShift('lr', 0.5, stop_trigger, batchsize, len_dataset)
+    stop_trigger = (10000, 'iteration')
+    trainer.extend(PolynomialShift('lr', 0.5, stop_trigger)
 
 This extension ``PolynomialShift`` takes five arguments.
 
