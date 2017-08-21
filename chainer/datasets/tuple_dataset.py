@@ -1,6 +1,8 @@
 import numpy
 import six
 
+from chainer.dataset.indexer import BaseIxIndexer
+
 
 class TupleDataset(object):
 
@@ -43,14 +45,6 @@ class TupleDataset(object):
     @property
     def ix(self):
         return self._ix
-
-
-class BaseIxIndexer(object):
-    def __init__(self, *args, **kwargs):
-        pass
-
-    def __getitem__(self, item):
-        raise NotImplementedError
 
 
 class TupleDatasetIxIndexer(BaseIxIndexer):
