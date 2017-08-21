@@ -50,7 +50,7 @@ class ReLU(function_node.FunctionNode):
 
 
 def _heaviside(x):
-    return utils.force_array((x > 0).astype(x.dtype))
+    return (x > 0).astype(x.dtype)
 
 
 class ReLUGrad2(function_node.FunctionNode):
