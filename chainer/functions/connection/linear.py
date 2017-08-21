@@ -48,10 +48,10 @@ class LinearFunction(function_node.FunctionNode):
 
         ret = []
         if 0 in indexes:
-            gx, = LinearFunction().apply((gy, W.T))
+            gx = linear(gy, W.T)
             ret.append(cast.cast(gx, x.dtype))
         if 1 in indexes:
-            gW, = LinearFunction().apply((gy.T, x.T))
+            gW = linear(gy.T, x.T)
             ret.append(cast.cast(gW, W.dtype))
         if 2 in indexes:
             gb = sum.sum(gy, axis=0)
