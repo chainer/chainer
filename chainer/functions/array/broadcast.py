@@ -1,10 +1,11 @@
 import six
 
+import chainer
 from chainer import cuda
 from chainer import function
 from chainer import function_node
-from chainer.functions.math import sum
 from chainer.utils import type_check
+from chainer import variable
 
 
 def _backward_one(xp, shape, dtype, g):
@@ -128,11 +129,11 @@ class BroadcastTo(function_node.FunctionNode):
         shape = self._in_shape
         ndim = len(shape)
         if gx.ndim != ndim:
-            gx = sum.sum(gx, tuple(range(gx.ndim - ndim)), False)
+            gx = chainer.functions.sum(gx, tuple(range(gx.ndim - ndim)), False)
 
         axis = [i for i, sx in enumerate(shape) if sx == 1]
         if len(axis) > 0:
-            return sum.sum(gx, tuple(axis), True),
+            return chainer.functions.sum(gx, tuple(axis), True),
         else:
             return gx,
 
@@ -163,4 +164,10 @@ def broadcast_to(x, shape):
                [0, 1, 2]])
 
     """
-    return BroadcastTo(shape).apply((x,))[0]
+    if x.shape == shape:
+        if isinstance(x, variable.Variable):
+            return x
+        else:
+            return variable.Variable(x, requires_grad=False)
+    y, = BroadcastTo(shape).apply((x,))
+    return y

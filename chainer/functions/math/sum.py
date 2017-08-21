@@ -1,8 +1,8 @@
 import numpy
 
+import chainer
 from chainer import cuda
 from chainer import function_node
-from chainer.functions.array import reshape
 from chainer.utils import type_check
 
 
@@ -62,11 +62,8 @@ class Sum(function_node.FunctionNode):
             shape = list(gy.shape)
             for axis in sorted(actual_axis):
                 shape.insert(axis, 1)
-            gy = reshape.reshape(gy, shape)
-
-        # to avoid import error
-        from chainer.functions.array import broadcast
-        return broadcast.broadcast_to(gy, self._in_shape),
+            gy = chainer.functions.reshape(gy, shape)
+        return chainer.functions.broadcast_to(gy, self._in_shape),
 
 
 def sum(x, axis=None, keepdims=False):
@@ -84,4 +81,5 @@ def sum(x, axis=None, keepdims=False):
         ~chainer.Variable: Output variable.
 
     """
-    return Sum(axis, keepdims).apply((x,))[0]
+    y, = Sum(axis, keepdims).apply((x,))
+    return y

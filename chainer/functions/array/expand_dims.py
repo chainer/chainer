@@ -1,6 +1,6 @@
+import chainer
 from chainer import cuda
 from chainer import function_node
-from chainer.functions.array import reshape
 from chainer.utils import type_check
 
 
@@ -26,7 +26,8 @@ class ExpandDims(function_node.FunctionNode):
         return xp.expand_dims(x, self.axis),
 
     def backward(self, indexes, grad_outputs):
-        return reshape.Reshape(self._in_shape).apply(grad_outputs)
+        gx, = grad_outputs
+        return chainer.functions.reshape(gx, self._in_shape),
 
 
 def expand_dims(x, axis):
@@ -70,4 +71,5 @@ def expand_dims(x, axis):
         array([[1, 2, 3]])
 
     """
-    return ExpandDims(axis).apply((x,))[0]
+    y, = ExpandDims(axis).apply((x,))
+    return y
