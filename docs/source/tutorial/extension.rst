@@ -110,3 +110,60 @@ Write a class inherited from Extension class
 --------------------------------------------
 
 This is the way to define your own extension with the maximum degree of freedom. You can keep any values inside of the extension and serialize them.
+
+As an example, let's make an extension that drops the learning rate polynomially. It calculates the learning rate by this equation:
+
+.. math::
+
+    \eta = \eta_{\rm init} \left( 1 - \frac{t}{t_{\rm max}} \right)^{\rm power}
+
+The learning rate will be dropped like the curve below with :math:`{\rm power} = 0.5`:
+
+.. image:: ../../image/polynomial.png
+
+.. testcode::
+
+    class PolynomialShift(extension.Extension):
+
+        def __init__(self, attr, power, stop_trigger, batchsize, len_dataset):
+            self._attr = attr
+            self._power = power
+            self._init = None
+            self._t = 0
+            self._last_value = 0
+
+            if stop_trigger[1] == 'iteration':
+                self._maxiter = stop_trigger[0]
+            elif stop_trigger[1] == 'epoch':
+                n_iter_per_epoch = len_dataset / float(batchsize)
+                self._maxiter = float(stop_trigger[0] * n_iter_per_epoch)
+
+        def initialize(self, trainer):
+            optimizer = trainer.updater.get_optimizer('main')
+            # ensure that _init is set
+            if self._init is None:
+                self._init = getattr(optimizer, self._attr)
+
+        def __call__(self, trainer):
+            self._t += 1
+
+            optimizer = trainer.updater.get_optimizer('main')
+            value = self._init * ((1 - (self._t / self._maxiter)) ** self._power)
+            setattr(optimizer, self._attr, value)
+            self._last_value = value
+
+        def serialize(self, serializer):
+            self._t = serializer('_t', self._t)
+            self._last_value = serializer('_last_value', self._last_value)
+            if isinstance(self._last_value, np.ndarray):
+                self._last_value = np.asscalar(self._last_value)
+
+This extension ``PolynomialShift`` takes five arguments.
+
+- ``attr``: The name of optimizer property you want to update by this extension.
+- ``power``: The power of the above equation to calculate the learning rate.
+- ``stop_trigger``: The trigger given to the :class:`~chainer.traininig.Trainer` object to specify when to stop the training loop.
+- ``batchsize``: The training mini-batchsize.
+- ``len_dataset``: The length of dataset, i.e., the number of data in the training dataset.
+
+This extension calculates the number of iterations which will be performed in training by using ``stop_trigger``, ``batchsize``, and ``len_dataset``, then store it as a property ``_maxiter``. This property will be used in :meth:`__call__` method to update the learning rate. :meth:`initialize` method obtains the initial learning rate from the optimizer set to give :class:`~chainer.training.Trainer` object. :meth:`~chainer.traininig.serialize` method stores or recovers the properties, ``_t`` (number of iterations) and ``_last_value`` (the latest learning rate), which this extension has.
