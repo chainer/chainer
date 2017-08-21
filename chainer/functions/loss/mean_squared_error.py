@@ -18,21 +18,25 @@ class MeanSquaredError(function_node.FunctionNode):
         )
 
     def forward_cpu(self, inputs):
+        self.retain_inputs((0, 1))
         x0, x1 = inputs
         self.diff = x0 - x1
         diff = self.diff.ravel()
         return numpy.array(diff.dot(diff) / diff.size, dtype=diff.dtype),
 
     def forward_gpu(self, inputs):
+        self.retain_inputs((0, 1))
         x0, x1 = inputs
         self.diff = x0 - x1
         diff = self.diff.ravel()
         return diff.dot(diff) / diff.dtype.type(diff.size),
 
     def backward(self, indexes, gy):
+        x0, x1 = self.get_retained_inputs()
         ret = []
-        coeff = (self.diff * 2. / self.diff.size).astype(gy[0].dtype)
-        gx0 = broadcast.broadcast_to(gy[0], coeff.shape) * coeff
+        diff = x0 - x1
+        gy0 = broadcast.broadcast_to(gy[0], diff.shape)
+        gx0 = gy0 * diff * (2. / diff.size)
         if 0 in indexes:
             ret.append(gx0)
         if 1 in indexes:
