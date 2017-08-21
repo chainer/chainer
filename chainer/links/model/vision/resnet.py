@@ -264,8 +264,7 @@ class ResNetLayers(link.Chain):
         else:
             x = x[:, :, 16:240, 16:240]
         # Use no_backprop_mode to reduce memory consumption
-        with function.no_backprop_mode():
-            with chainer.using_config('train', False):
+        with function.no_backprop_mode(), chainer.using_config('train', False):
                 x = Variable(self.xp.asarray(x))
                 y = self(x, layers=['prob'])['prob']
                 if oversample:
