@@ -54,6 +54,17 @@ def _heaviside(x):
 
 
 class ReLUGrad2(function_node.FunctionNode):
+    """Computes the gradient of the ReLU function.
+
+    This function takes 2 variables b and c, and
+    computes f(b, c) = sign(b) * c with backpropagation
+    where operations are dones in elementwise manner
+    and sign(x) = 1 when x > 0 is positive and 0 otherwise.
+
+    As the gradient of f with respect to b is 0,
+    we do not backpropagate errors toward b for computational efficiency.
+    """
+
     def __init__(self, b):
         super(ReLUGrad2).__init__()
         self.b = b.data
@@ -81,6 +92,17 @@ class ReLUGrad2(function_node.FunctionNode):
 
 
 class ReLUGrad3(function_node.FunctionNode):
+    """Computes the gradient of the ReLU function.
+
+    This function takes 3 variables a, b, and c, and
+    computes f(a, b, c) = sign(b) * c with backpropagation
+    where operations are dones in elementwise manner
+    and sign(x) = 1 if x > 0 is positive and 0 otherwise.
+
+    As the gradient of f with respect to a and b are 0,
+    we do not backpropagate errors toward them for computational efficiency.
+    """
+
     def __init__(self, a, b):
         self.a = a.data
         self.b = b.data
