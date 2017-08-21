@@ -5,6 +5,7 @@ import numpy
 import chainer
 from chainer import cuda
 from chainer import functions
+from chainer.functions.activation import lstm
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
@@ -35,6 +36,9 @@ class TestLSTM(unittest.TestCase):
 
         self.gc = numpy.random.uniform(-1, 1, hidden_shape).astype(self.dtype)
         self.gh = numpy.random.uniform(-1, 1, y_shape).astype(self.dtype)
+
+        self.ggc = numpy.random.uniform(-1, 1, hidden_shape).astype(self.dtype)
+        self.ggx = numpy.random.uniform(-1, 1, x_shape).astype(self.dtype)
 
         self.check_forward_options = {}
         self.check_backward_options = {'dtype': numpy.float64}
@@ -96,7 +100,7 @@ class TestLSTM(unittest.TestCase):
 
     def check_backward(self, c_prev_data, x_data, c_grad, h_grad):
         gradient_check.check_backward(
-            functions.LSTM(),
+            functions.lstm,
             (c_prev_data, x_data), (c_grad, h_grad),
             **self.check_backward_options)
 
@@ -165,6 +169,76 @@ class TestLSTM(unittest.TestCase):
     def test_flat_no_gh_backward_gpu(self):
         self.flat()
         self.test_no_gh_backward_gpu()
+
+    def check_double_backward(
+            self, c_prev_data, x_data, gc_data, gh_data, ggc_prev_data,
+            ggx_data):
+        gradient_check.check_double_backward(
+            chainer.functions.lstm, (c_prev_data, x_data),
+            (gc_data, gh_data), (ggc_prev_data, ggx_data), dtype='d')
+
+    @condition.retry(3)
+    def test_double_backward_cpu(self):
+        self.check_double_backward(
+            self.c_prev, self.x, self.gc, self.gh, self.ggc, self.ggx)
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_double_backward_gpu(self):
+        self.check_double_backward(
+            cuda.to_gpu(self.c_prev), cuda.to_gpu(self.x),
+            cuda.to_gpu(self.gc), cuda.to_gpu(self.gh),
+            cuda.to_gpu(self.ggc), cuda.to_gpu(self.ggx))
+
+
+@testing.parameterize(*(testing.product({
+    'batch': [3, 2, 0],
+    'dtype': [numpy.float32],
+}) + testing.product({
+    'batch': [3],
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+})))
+class TestLSTMGrad(unittest.TestCase):
+
+    def setUp(self):
+        hidden_shape = (3, 2, 4)
+        x_shape = (self.batch, 8, 4)
+        y_shape = (self.batch, 2, 4)
+        self.c_prev = numpy.random.uniform(
+            -1, 1, hidden_shape).astype(self.dtype)
+        self.x = numpy.random.uniform(-1, 1, x_shape).astype(self.dtype)
+        self.c_next = numpy.random.uniform(
+            -1, 1, hidden_shape).astype(self.dtype)
+
+        self.gc = numpy.random.uniform(-1, 1, hidden_shape).astype(self.dtype)
+        self.gh = numpy.random.uniform(-1, 1, y_shape).astype(self.dtype)
+
+        self.ggc_prev = numpy.random.uniform(
+            -1, 1, hidden_shape).astype(self.dtype)
+        self.ggx = numpy.random.uniform(-1, 1, x_shape).astype(self.dtype)
+
+    def check_backward(
+            self, c_prev_data, x_data, c_next_data, gc_data, gh_data,
+            ggc_prev_data, ggx_data):
+        gradient_check.check_backward(
+            lstm.LSTMGrad(),
+            (c_prev_data, x_data, c_next_data, gc_data, gh_data),
+            (ggc_prev_data, ggx_data), dtype='d', atol=1e-3, rtol=1e-3)
+
+    @condition.retry(3)
+    def test_backward_cpu(self):
+        self.check_backward(
+            self.c_prev, self.x, self.c_next, self.gc,
+            self.gh, self.ggc_prev, self.ggx)
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_backward_gpu(self):
+        self.check_backward(
+            cuda.to_gpu(self.c_prev), cuda.to_gpu(self.x),
+            cuda.to_gpu(self.c_next),
+            cuda.to_gpu(self.gc), cuda.to_gpu(self.gh),
+            cuda.to_gpu(self.ggc_prev), cuda.to_gpu(self.ggx))
 
 
 testing.run_module(__name__, __file__)
