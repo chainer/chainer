@@ -1,6 +1,5 @@
 from chainer import function_node
-from chainer.functions.array import cast
-from chainer.functions.math import sum
+from chainer import functions as F
 from chainer.utils import type_check
 
 
@@ -49,12 +48,12 @@ class LinearFunction(function_node.FunctionNode):
         ret = []
         if 0 in indexes:
             gx = linear(gy, W.T)
-            ret.append(cast.cast(gx, x.dtype))
+            ret.append(F.cast(gx, x.dtype))
         if 1 in indexes:
             gW = linear(gy.T, x.T)
-            ret.append(cast.cast(gW, W.dtype))
+            ret.append(F.cast(gW, W.dtype))
         if 2 in indexes:
-            gb = sum.sum(gy, axis=0)
+            gb = F.sum(gy, axis=0)
             ret.append(gb)
 
         return ret
