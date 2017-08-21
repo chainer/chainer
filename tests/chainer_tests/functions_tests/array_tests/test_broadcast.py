@@ -173,4 +173,21 @@ class TestBroadcastToTypeCheck(unittest.TestCase):
             functions.broadcast_to(x, self.out_shape)
 
 
+class TestBroadcastToSkip(unittest.TestCase):
+
+    shape = (2, 3)
+
+    def setUp(self):
+        self.data = numpy.random.uniform(0, 1, self.shape)
+
+    def test_ndarray(self):
+        ret = functions.broadcast_to(self.data, self.shape)
+        self.assertIs(self.data, ret.data)
+
+    def test_variable(self):
+        x = chainer.Variable(self.data)
+        ret = functions.broadcast_to(x, self.shape)
+        self.assertIs(x, ret)
+
+
 testing.run_module(__name__, __file__)
