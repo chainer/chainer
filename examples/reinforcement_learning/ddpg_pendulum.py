@@ -109,7 +109,7 @@ class Updater(training.StandardUpdater):
 
             # Store a transition
             train_iter.append((obs, action, reward * self.reward_scale,
-                              done, new_obs))
+                               done, new_obs))
             obs = new_obs
 
             # Sample a random minibatch of transitions and replay
