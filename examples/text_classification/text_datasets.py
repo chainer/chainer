@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 import csv
 import glob
 import io
