@@ -1,6 +1,7 @@
 import numpy
 import six
 
+import chainer
 from chainer import cuda
 from chainer import function_node
 from chainer.utils import type_check
@@ -50,9 +51,8 @@ class Concat(function_node.FunctionNode):
         sizes = numpy.array(
             [shape[self.axis] for shape in self._x_shapes[:-1]]
         ).cumsum()
-        # to avoid import error
-        from chainer.functions.array import split_axis
-        return split_axis.SplitAxis(sizes, self.axis).apply(grad_outputs)
+        gx, = grad_outputs
+        return chainer.functions.split_axis(gx, sizes, self.axis)
 
 
 def concat(xs, axis=1):
@@ -88,4 +88,5 @@ def concat(xs, axis=1):
                [ 8,  9, 10, 11,  2]])
 
     """
-    return Concat(axis).apply(xs)[0]
+    y, = Concat(axis).apply(xs)
+    return y

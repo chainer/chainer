@@ -5,7 +5,6 @@ import six
 import chainer
 from chainer import cuda
 from chainer import function_node
-from chainer.functions.array import concat
 from chainer.utils import type_check
 
 
@@ -58,7 +57,7 @@ class SplitAxis(function_node.FunctionNode):
         grads = [
             self._xp.zeros(shape, dtype=self._x_dtype) if gy is None else gy
             for gy, shape in six.moves.zip(grad_outputs, self._shapes)]
-        return concat.Concat(self.axis).apply(grads)
+        return chainer.functions.concat(grads, self.axis),
 
 
 def split_axis(x, indices_or_sections, axis, force_tuple=True):
