@@ -24,16 +24,18 @@ def assert_allclose(x, y, atol=1e-5, rtol=1e-4, verbose=True):
         numpy.testing.assert_allclose(
             x, y, atol=atol, rtol=rtol, verbose=verbose)
     except AssertionError:
+        xx = x if x.ndim != 0 else x.reshape((1,))
+        yy = y if y.ndim != 0 else y.reshape((1,))
         err = numpy.abs(x - y)
         i = numpy.unravel_index(numpy.argmax(err), err.shape)
         f = sys.stdout
         f.write(
             'assert_allclose failed: \n' +
-            '  shape: {}\n'.format(x.shape) +
+            '  shape: {} {}\n'.format(x.shape, y.shape) +
             '  dtype: {} {}\n'.format(x.dtype, y.dtype) +
             '  i: {}\n'.format(i) +
-            '  x[i]: {}\n'.format(x[i]) +
-            '  y[i]: {}\n'.format(y[i]) +
+            '  x[i]: {}\n'.format(xx[i]) +
+            '  y[i]: {}\n'.format(yy[i]) +
             '  err[i]: {}\n'.format(err[i]))
         f.flush()
         opts = numpy.get_printoptions()
