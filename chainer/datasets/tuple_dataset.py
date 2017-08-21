@@ -44,6 +44,20 @@ class TupleDataset(object):
 
     @property
     def ix(self):
+        """ix indexer, which supports dataset extraction more easily.
+        
+        - axis 0 is used to specify dataset id (`i`-th dataset)
+        - axis 1 is used to specify feature index
+        
+        .. admonition:: Example
+
+           >>> from chainer.datasets import TupleDataset
+           >>> tuple_dataset = TupleDataset([0, 1, 2], [0, 1, 4])
+           >>> targets = tuple_dataset.ix[:, 1]
+           >>> print('targets', targets)  # We can extract only target value
+           targets [0, 1, 4]
+        
+        """
         return self._ix
 
 
