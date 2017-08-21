@@ -15,7 +15,10 @@ from chainer.testing import attr
 
 
 def check_history(self, t, function_type, return_type):
-    self.assertIsInstance(t[0].function, function_type)
+    if hasattr(t[0], 'function'):
+        self.assertIsInstance(t[0].function, function_type)
+    else:
+        self.assertIsInstance(t[0], function_type)
     self.assertIsInstance(t[1], return_type)
 
 
@@ -77,7 +80,7 @@ class TestTimerHookToFunction(unittest.TestCase):
         self.gy = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
 
     def check_forward(self, x):
-        self.f(chainer.Variable(x))
+        self.f.apply((chainer.Variable(x),))
         self.assertEqual(1, len(self.h.call_history))
         check_history(self, self.h.call_history[0], functions.Exp, float)
 
@@ -90,7 +93,7 @@ class TestTimerHookToFunction(unittest.TestCase):
 
     def check_backward(self, x, gy):
         x = chainer.Variable(x)
-        y = self.f(x)
+        y = self.f.apply((x,))[0]
         y.grad = gy
         y.backward()
         self.assertEqual(2, len(self.h.call_history))
@@ -152,15 +155,15 @@ class TestTimerPrintReport(unittest.TestCase):
 
     def test_summary(self):
         x = self.x
-        self.f(chainer.Variable(x))
-        self.f(chainer.Variable(x))
+        self.f.apply((chainer.Variable(x),))
+        self.f.apply((chainer.Variable(x),))
         self.assertEqual(2, len(self.h.call_history))
         self.assertEqual(1, len(self.h.summary()))
 
     def test_print_report(self):
         x = self.x
-        self.f(chainer.Variable(x))
-        self.f(chainer.Variable(x))
+        self.f.apply((chainer.Variable(x),))
+        self.f.apply((chainer.Variable(x),))
         io = six.StringIO()
         self.h.print_report(file=io)
         expect = r'''\AFunctionName  ElapsedTime  Occurrence
