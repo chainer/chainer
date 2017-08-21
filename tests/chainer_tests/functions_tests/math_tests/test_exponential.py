@@ -90,7 +90,7 @@ class TestExp(UnaryFunctionsTestBase):
     def test_label(self):
         self.check_label(F.Exp, 'exp')
 
-    @condition.retry(1)
+    @condition.retry(3)
     def test_double_backward_cpu(self):
         self.check_double_backward_cpu(F.exp)
 
