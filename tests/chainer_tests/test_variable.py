@@ -221,6 +221,18 @@ class TestVariable(unittest.TestCase):
     def test_double_backprop_gpu(self):
         self.check_double_backprop(True)
 
+    def test_backward_no_grad_required(self):
+        class DummyId(F.Identity):
+
+            def backward(self, a, b):
+                raise Exception('backward should not be called on inputs that '
+                                'do not require grads')
+
+        x = chainer.Variable(self.x)
+        y1, y2 = DummyId().apply((x, x))
+        x.node._requires_grad = False
+        y1.backward()
+
     def test_unchain(self):
         ret = self.create_linear_chain(3, False)
         old_rank = ret[1].rank

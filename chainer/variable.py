@@ -861,6 +861,11 @@ Actual: {0}'''.format(type(data))
         while cand_funcs:
             _, _, func = heapq.heappop(cand_funcs)
             inputs = func.inputs
+            target_input_indexes = [
+                i for i, x in enumerate(inputs) if x.requires_grad
+            ]
+            if not target_input_indexes:
+                continue
             outputs = [y() for y in func.outputs]  # access via weak ref
 
             in_data = tuple([x.data for x in inputs])
@@ -891,9 +896,6 @@ Actual: {0}'''.format(type(data))
             # input gradient passed to the ``backward_accumulate`` method is
             # ``(gx, None)`` where ``gx`` is the current gradient of ``x``.
             # See also the docstring of ``FunctionNode.backward_accumulate``.
-            target_input_indexes = [
-                i for i, x in enumerate(inputs) if x.requires_grad
-            ]
             target_inputs = [inputs[i] for i in target_input_indexes]
             in_grad = []
             for i, index_i in enumerate(target_input_indexes):
