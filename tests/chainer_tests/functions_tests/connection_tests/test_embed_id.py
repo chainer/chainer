@@ -122,8 +122,9 @@ class estEmbedIdBackward(unittest.TestCase):
         return
 
         def f(x, gy):
-            return embed_id.EmbedIDGrad(
-                self.w_shape, self.ignore_label).apply((x, numpy.zeros(()), gy))[1]
+            emb = embed_id.EmbedIDGrad(
+                self.w_shape, self.ignore_label)
+            return emb.apply((x, numpy.zeros(()), gy))[0]
 
         gradient_check.check_backward(f, (x, gy), (ggW,))
 
