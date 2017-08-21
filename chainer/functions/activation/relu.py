@@ -82,13 +82,10 @@ class ReLUGrad2(function_node.FunctionNode):
         return gx,
 
     def backward(self, indexes, gy):
-        if 0 in indexes:
-            xp = cuda.get_array_module(gy[0])
-            b = xp.asarray(self.b)
-            gc = gy[0] * _heaviside(b)
-            return gc,
-        else:
-            return ()
+        xp = cuda.get_array_module(gy[0])
+        b = xp.asarray(self.b)
+        gc = gy[0] * _heaviside(b)
+        return gc,
 
 
 class ReLUGrad3(function_node.FunctionNode):
@@ -117,13 +114,10 @@ class ReLUGrad3(function_node.FunctionNode):
         return cudnn.activation_backward(a, b, inputs[0], _mode),
 
     def backward(self, indexes, gy):
-        if 0 in indexes:
-            xp = cuda.get_array_module(gy[0])
-            b = xp.asarray(self.b)
-            gc = gy[0] * _heaviside(b)
-            return gc,
-        else:
-            return ()
+        xp = cuda.get_array_module(gy[0])
+        b = xp.asarray(self.b)
+        gc = gy[0] * _heaviside(b)
+        return gc,
 
 
 def relu(x):
