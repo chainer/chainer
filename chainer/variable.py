@@ -1189,7 +1189,7 @@ class Parameter(Variable):
             grad = None if ginit is None else initializers.generate_array(
                 ginit, shape, xp)
 
-        self._data[0] = data
+        self.data = data
         self.grad = grad
 
     def update(self):
