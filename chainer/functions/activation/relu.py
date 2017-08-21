@@ -16,7 +16,6 @@ if cuda.cudnn_enabled:
 class ReLU(function.Function):
 
     """Rectified Linear Unit."""
-    # TODO(beam2d): Implement in-place version.
 
     def __init__(self, use_cudnn=True):
         self.use_cudnn = use_cudnn
