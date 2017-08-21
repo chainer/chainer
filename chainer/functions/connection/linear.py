@@ -1,5 +1,5 @@
 from chainer import function_node
-from chainer import functions as F
+import chainer.functions
 from chainer.utils import type_check
 
 
@@ -48,12 +48,12 @@ class LinearFunction(function_node.FunctionNode):
         ret = []
         if 0 in indexes:
             gx = linear(gy, W.T)
-            ret.append(F.cast(gx, x.dtype))
+            ret.append(chainer.functions.cast(gx, x.dtype))
         if 1 in indexes:
             gW = linear(gy.T, x.T)
-            ret.append(F.cast(gW, W.dtype))
+            ret.append(chainer.functions.cast(gW, W.dtype))
         if 2 in indexes:
-            gb = F.sum(gy, axis=0)
+            gb = chainer.functions.sum(gy, axis=0)
             ret.append(gb)
 
         return ret
@@ -99,9 +99,10 @@ def linear(x, W, b=None):
     if x.ndim > 2:
         x = x.reshape(len(x), -1)
 
-    args = [x, W]
-    if b is not None:
-        args.append(b)
+    if b is None:
+        args = x, W
+    else:
+        args = x, W, b
 
     y, = LinearFunction().apply(args)
     return y
