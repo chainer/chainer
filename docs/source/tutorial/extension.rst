@@ -158,6 +158,13 @@ The learning rate will be dropped like the curve below with :math:`{\rm power} =
             if isinstance(self._last_value, np.ndarray):
                 self._last_value = np.asscalar(self._last_value)
 
+.. code-block:: python
+
+    stop_trigger = (100, 'epoch')
+    batchsize = 128
+    len_dataset = len(train_dataset)
+    trainer.extend(PolynomialShift('lr', 0.5, stop_trigger, batchsize, len_dataset)
+
 This extension ``PolynomialShift`` takes five arguments.
 
 - ``attr``: The name of optimizer property you want to update by this extension.
