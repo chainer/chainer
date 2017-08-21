@@ -83,8 +83,7 @@ class ReLUGrad2(function_node.FunctionNode):
 
     def backward(self, indexes, gy):
         xp = cuda.get_array_module(gy[0])
-        b = xp.asarray(self.b)
-        gc = gy[0] * _heaviside(b)
+        gc = gy[0] * _heaviside(self.b)
         return gc,
 
 
@@ -115,8 +114,7 @@ class ReLUGrad3(function_node.FunctionNode):
 
     def backward(self, indexes, gy):
         xp = cuda.get_array_module(gy[0])
-        b = xp.asarray(self.b)
-        gc = gy[0] * _heaviside(b)
+        gc = gy[0] * _heaviside(self.b)
         return gc,
 
 
