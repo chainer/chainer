@@ -53,8 +53,9 @@ class EmbedIDFunction(function_node.FunctionNode):
 
     def backward(self, indexes, grad_outputs):
         inputs = self.get_retained_inputs()
-        return EmbedIDGrad(
-            self._w_shape, self.ignore_label).apply(inputs + grad_outputs)
+        gW = EmbedIDGrad(
+            self._w_shape, self.ignore_label).apply(inputs + grad_outputs)[0]
+        return None, gW
 
 
 class EmbedIDGrad(function_node.FunctionNode):
@@ -97,12 +98,12 @@ class EmbedIDGrad(function_node.FunctionNode):
                     'embed_id_bwd_ignore_label')(
                         gy, xp.expand_dims(x, -1), gW.shape[1],
                         self.ignore_label, gW)
-        return None, gW
+        return gW,
 
     def backward(self, indexes, grads):
         xp = cuda.get_array_module(*grads)
         x = self.get_retained_inputs()[0].data
-        ggW = grads[1]
+        ggW = grads[0]
 
         if self.ignore_label is not None:
             mask = x == self.ignore_label
