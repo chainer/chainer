@@ -757,6 +757,13 @@ class TestUninitializedParameter(unittest.TestCase):
         self.assertEqual(x.data.dtype, np.float64)
         self.assertEqual(x.grad.dtype, np.float64)
 
+    def test_initialize_node(self):
+        initializer = initializers.Zero(np.float64)
+        x = chainer.Parameter(initializer=initializer)
+        x.initialize((2, 3))
+        self.assertEqual(x.node.shape, (2, 3))
+        self.assertEqual(x.node.dtype, np.float64)
+
     @attr.gpu
     def test_initialize_to_gpu(self):
         x = chainer.Parameter(initializer=initializers.Constant(self.a))
