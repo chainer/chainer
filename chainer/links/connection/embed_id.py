@@ -22,10 +22,28 @@ class EmbedID(link.Link):
         ignore_label (int or None): If ``ignore_label`` is an int value,
             ``i``-th column of return value is filled with ``0``.
 
-    .. seealso:: :func:`chainer.functions.embed_id`
+    .. seealso:: :func:`~chainer.functions.embed_id`
 
     Attributes:
         W (~chainer.Variable): Embedding parameter matrix.
+
+    .. admonition:: Example
+
+        >>> W = np.array([[0, 0, 0],
+        ...               [1, 1, 1],
+        ...               [2, 2, 2]]).astype('f')
+        >>> W
+        array([[ 0.,  0.,  0.],
+               [ 1.,  1.,  1.],
+               [ 2.,  2.,  2.]], dtype=float32)
+        >>> l = L.EmbedID(W.shape[0], W.shape[1], initialW=W)
+        >>> x = np.array([2, 1]).astype('i')
+        >>> x
+        array([2, 1], dtype=int32)
+        >>> y = l(x)
+        >>> y.data
+        array([[ 2.,  2.,  2.],
+               [ 1.,  1.,  1.]], dtype=float32)
 
     """
 
