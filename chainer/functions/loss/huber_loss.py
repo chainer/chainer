@@ -1,4 +1,7 @@
+import warnings
+
 import numpy
+import six
 
 from chainer import cuda
 from chainer import function
@@ -7,13 +10,22 @@ from chainer.utils import type_check
 
 class HuberLoss(function.Function):
 
-    def __init__(self, delta, reduce='sum_along_second_axis'):
+    def __init__(self, delta, reduce='sum_each_data', n_batch_axes=1):
         self.delta = delta
+        self._n_batch_axes = n_batch_axes
 
-        if reduce not in ('sum_along_second_axis', 'no'):
+        if reduce == 'sum_along_second_axis':
+            warnings.warn("sum_along_second_axis for the 'reduce' argment is"
+                          " deprecated. It is treated as sum_each_data. "
+                          "Please use sum_each_data instead.",
+                          DeprecationWarning)
+            reduce = 'sum_each_data'
+
+        if reduce not in ('sum_each_data', 'no'):
             raise ValueError(
-                "only 'sum_along_second_axis' and 'no' are valid "
+                "only 'sum_each_data' and 'no' are valid "
                 "for 'reduce', but '%s' is given" % reduce)
+
         self.reduce = reduce
 
     def check_type_forward(self, in_types):
@@ -21,7 +33,8 @@ class HuberLoss(function.Function):
         type_check.expect(
             in_types[0].dtype == numpy.float32,
             in_types[1].dtype == numpy.float32,
-            in_types[0].shape == in_types[1].shape
+            in_types[0].shape == in_types[1].shape,
+            self._n_batch_axes < in_types[0].ndim
         )
 
     def forward(self, inputs):
@@ -32,8 +45,9 @@ class HuberLoss(function.Function):
         mask = y > (self.delta ** 2)
         y -= mask * xp.square(abs(self.diff) - self.delta)
         y *= 0.5
-        if self.reduce == 'sum_along_second_axis':
-            return y.sum(axis=1),
+        if self.reduce == 'sum_each_data':
+            return y.sum(
+                axis=tuple(six.moves.range(self._n_batch_axes, y.ndim))),
         else:
             return y,
 
@@ -43,13 +57,14 @@ class HuberLoss(function.Function):
 
         gx = xp.where(mask, self.diff, self.delta * xp.sign(self.diff))
         gy_ = gy[0]
-        if self.reduce == 'sum_along_second_axis':
-            gy_ = gy_.reshape(gy[0].shape + (1,) * (self.diff.ndim - 1))
+        if self.reduce == 'sum_each_data':
+            gy_ = gy_.reshape(
+                gy_.shape + (1,) * (self.diff.ndim - self._n_batch_axes))
         gx = gy_ * gx
         return gx, -gx
 
 
-def huber_loss(x, t, delta, reduce='sum_along_second_axis'):
+def huber_loss(x, t, delta, reduce='sum_each_data', n_batch_axes=1):
     """Loss function which is less sensitive to outliers in data than MSE.
 
         .. math::
@@ -65,8 +80,8 @@ def huber_loss(x, t, delta, reduce='sum_along_second_axis'):
 
         The output is a variable whose value depends on the value of
         the option ``reduce``. If it is ``'no'``, it holds the elementwise
-        loss values. If it is ``'sum_along_second_axis'``, loss values are
-        summed up along the second axis (i.e. ``axis=1``).
+        loss values. If it is ``'sum_each_data'``, loss values are summed up
+        along all the later axes than ``n_batch_axes``-th axis.
 
     Args:
         x (~chainer.Variable): Input variable.
@@ -75,8 +90,10 @@ def huber_loss(x, t, delta, reduce='sum_along_second_axis'):
             The shape of ``t`` should be (:math:`N`, :math:`K`).
         delta (float): Constant variable for huber loss function
             as used in definition.
+        n_batch_axes (int): The number of batch axes. The default is 1. It is
+            used when reduce argment is set to ``'sum_each_data'``.
         reduce (str): Reduction option. Its value must be either
-            ``'sum_along_second_axis'`` or ``'no'``. Otherwise,
+            ``'sum_each_data'`` or ``'no'``. Otherwise,
             :class:`ValueError` is raised.
 
     Returns:
@@ -85,11 +102,13 @@ def huber_loss(x, t, delta, reduce='sum_along_second_axis'):
             huber loss :math:`L_{\\delta}`.
             If ``reduce`` is ``'no'``, the output variable holds array
             whose shape is same as one of (hence both of) input variables.
-            If it is ``'sum_along_second_axis'``, the shape of the array
-            is same as the input variables, except the second axis is removed.
+            If it is ``'sum_each_data'``, the shape of the array is same as the
+            input variables, except all the axes later than
+            ``'n_batch_axes'``-th axis are removed.
 
     See:
         `Huber loss - Wikipedia <https://en.wikipedia.org/wiki/Huber_loss>`_.
 
     """
-    return HuberLoss(delta=delta, reduce=reduce)(x, t)
+    return HuberLoss(
+        delta=delta, reduce=reduce, n_batch_axes=n_batch_axes)(x, t)

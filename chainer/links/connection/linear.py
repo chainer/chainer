@@ -112,16 +112,18 @@ class Linear(link.Link):
     def _initialize_params(self, in_size):
         self.W.initialize((self.out_size, in_size))
 
-    def __call__(self, x):
+    def __call__(self, x, n_batch_axes=1):
         """Applies the linear layer.
 
         Args:
             x (~chainer.Variable): Batch of input vectors.
-
+            n_batch_axes (int): The number of batch axes. The default is 1. The
+                input variable is reshaped into
+                :math:`{\\rm n_batch_sxes} + 1`-dimensional tensor.
         Returns:
             ~chainer.Variable: Output of the linear layer.
 
         """
         if self.W.data is None:
             self._initialize_params(x.size // x.shape[0])
-        return linear.linear(x, self.W, self.b)
+        return linear.linear(x, self.W, self.b, n_batch_axes)
