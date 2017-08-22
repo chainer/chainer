@@ -67,7 +67,7 @@ class TestHinge(unittest.TestCase):
     def check_backward(self, x_data, t_data):
         gradient_check.check_backward(
             functions.Hinge(self.norm), (x_data, t_data), None,
-            eps=0.01, atol=1e-4)
+            dtype='d', rtol=1e-3, atol=1e-4)
 
     @condition.retry(3)
     def test_backward_cpu(self):
