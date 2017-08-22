@@ -102,4 +102,5 @@ class TestNonparameterizedLinear(unittest.TestCase):
                             None, cuda.to_gpu(self.gy))
 
 
+
 testing.run_module(__name__, __file__)
