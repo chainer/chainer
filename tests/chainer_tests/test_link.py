@@ -744,6 +744,18 @@ class TestChainList(unittest.TestCase):
         self.assertIs(self.c2[1], self.l3)
         self.assertEqual(self.l3.name, '1')
 
+    def test_assign_param_in_init_scope(self):
+        p = chainer.Parameter()
+        with self.c1.init_scope():
+            self.c1.p = p
+        self.assertIn(p, self.c1.params())
+
+    def test_assign_link_in_init_scope(self):
+        l = chainer.Link()
+        with self.c1.init_scope():
+            with self.assertRaises(TypeError):
+                self.c1.l = l
+
     def test_iter(self):
         links = list(self.c2)
         self.assertEqual(2, len(links))
