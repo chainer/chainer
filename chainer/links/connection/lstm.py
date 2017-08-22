@@ -203,8 +203,7 @@ class LSTM(LSTMBase):
 
         There are several ways to make a LSTM link.
 
-        Let a two-dimensional input array :math:`x`, a cell state array
-        :math:`h`, and the output array of the previous step :math:`h` be:
+        Let a two-dimensional input array :math:`x` be:
 
         >>> x = np.zeros((1, 10), dtype='f')
 
