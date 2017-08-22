@@ -279,21 +279,27 @@ def check_backward(func, x_data, y_grad, params=(),
     params_grad = [param.grad for param in params]
 
     xp = cuda.get_array_module(*xs)
-    one = xp.array(1., dtype)
+    xs_directions = [
+        xp.random.uniform(-1, 1, x.shape).astype(dtype) for x in casted_xs]
+    param_directions = [
+        xp.random.uniform(-1, 1, x.shape).astype(dtype) for x in param_data]
+    delta = xp.array(0., dtype)
 
     def g():
         # This functions is called twice in `numerical_grad`.
         # `one` is `1 + epsilon` or `1 - epsilon` in these calls.
         # See the document of `numerical_grad`.
-        for skip, cx, data in six.moves.zip(no_grads, casted_xs, casted_data):
+        for skip, cx, data, direction in six.moves.zip(
+                no_grads, casted_xs, casted_data, xs_directions):
             if skip:
                 continue
             # astype is require to store data with the given type
-            data = (one * data).astype(data.dtype)
+            data = (data + delta * direction).astype(data.dtype)
             if numpy.isscalar(data):
                 data = xp.array(data)
             cx.data = data
-        for param, data in six.moves.zip(params, param_data):
+        for param, data, direction in six.moves.zip(
+                params, param_data, param_directions):
             if dtype is not None:
                 param_dtype = dtype
             else:
@@ -301,7 +307,8 @@ def check_backward(func, x_data, y_grad, params=(),
             # The inner astype is required to calculates __mul__ in
             # `param_type` when data is low accuracy float.
             # The outer one is require to store data with the given type.
-            param.data = (one * data.astype(param_dtype)).astype(param_dtype)
+            param.data = (data.astype(param_dtype) + delta * direction).astype(
+                param_dtype)
 
         # Clear gradients to support func that calls backward inside of itself.
         _clear_grads(casted_xs)
@@ -318,25 +325,21 @@ def check_backward(func, x_data, y_grad, params=(),
             param.data = data
         return ys_data
 
-    gx, = numerical_grad(g, (one,), y_grad, eps=eps)
+    gx, = numerical_grad(g, (delta,), y_grad, eps=eps)
     gx_accum = 0
-    for skip, x, cx in six.moves.zip(no_grads, xs, casted_xs):
+    for skip, x, direction in six.moves.zip(no_grads, xs, xs_directions):
         if skip:
             continue
         gxi = x.grad.ravel()
-        cxi = cx.data.ravel()
         if dtype is not None:
             gxi = gxi.astype(dtype, copy=False)
-            cxi = cxi.astype(dtype, copy=False)
-        gx_accum += gxi.dot(cxi)
+        gx_accum += gxi.dot(direction)
 
-    for p, gpi in six.moves.zip(params, params_grad):
+    for gpi, direction in six.moves.zip(params_grad, param_directions):
         gpi = gpi.ravel()
-        pi = p.data.ravel()
         if dtype is not None:
             gpi = gpi.astype(dtype, copy=False)
-            pi = pi.astype(dtype, copy=False)
-        gx_accum += gpi.dot(pi)
+        gx_accum += gpi.dot(direction)
 
     testing.assert_allclose(gx, gx_accum, atol=atol, rtol=rtol)
 
