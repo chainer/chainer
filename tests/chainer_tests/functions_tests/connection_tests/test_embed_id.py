@@ -2,6 +2,7 @@ import unittest
 
 import numpy
 
+import chainer
 from chainer import cuda
 from chainer.functions.connection import embed_id
 from chainer import gradient_check
