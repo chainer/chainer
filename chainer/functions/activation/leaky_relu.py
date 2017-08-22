@@ -65,6 +65,7 @@ class _LeakyReLUGrad(function_node.FunctionNode):
 
     def forward_cpu(self, inputs):
         gy, = inputs
+        gy = gy.copy()
         if self.slope >= 0:
             gy[self.y < 0] *= self.slope
         else:
