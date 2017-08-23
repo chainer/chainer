@@ -6,6 +6,6 @@ Variable and Parameter
    :nosignatures:
 
    chainer.Variable
-   chainer.to_variable
+   chainer.as_variable
    chainer.Parameter
    chainer.variable.VariableNode

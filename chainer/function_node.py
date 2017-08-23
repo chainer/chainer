@@ -193,7 +193,7 @@ class FunctionNode(object):
             A tuple of output :class:`Variable` objects.
 
         """
-        input_vars = [chainer.to_variable(x) for x in inputs]
+        input_vars = [chainer.as_variable(x) for x in inputs]
         in_data = tuple([x.data for x in input_vars])
         requires_grad = any([x.requires_grad for x in input_vars])
 

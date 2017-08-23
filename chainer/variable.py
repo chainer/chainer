@@ -1207,7 +1207,7 @@ class Parameter(Variable):
             self.update_rule.update(self)
 
 
-def to_variable(obj):
+def as_variable(obj):
     """Converts an array or a variable into :class:`~chainer.Variable`.
 
     This is a convenient function to get a :class:`~chainer.Variable` object

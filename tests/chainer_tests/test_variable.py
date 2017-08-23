@@ -1392,10 +1392,10 @@ class TestVariableDoubleBackward(unittest.TestCase):
             x.grad_var.backward()
 
 
-class TestToVariable(unittest.TestCase):
+class TestAsVariable(unittest.TestCase):
 
     def check_to_variable_from_array(self, x):
-        y = chainer.to_variable(x)
+        y = chainer.as_variable(x)
         self.assertIsInstance(y, chainer.Variable)
         self.assertIs(y.data, x)
         self.assertFalse(y.requires_grad)
@@ -1409,7 +1409,7 @@ class TestToVariable(unittest.TestCase):
 
     def test_to_variable_from_variable(self):
         x = chainer.Variable(np.array(1, np.float32))
-        y = chainer.to_variable(x)
+        y = chainer.as_variable(x)
         self.assertIs(x, y)
         self.assertTrue(y.requires_grad)
 
