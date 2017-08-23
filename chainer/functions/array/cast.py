@@ -1,3 +1,4 @@
+import chainer
 from chainer import function_node
 from chainer.utils import type_check
 
@@ -51,5 +52,5 @@ def cast(x, typ):
 
     """
     if x.dtype == typ:
-        return x
+        return chainer.as_variable(x)
     return Cast(typ).apply((x,))[0]

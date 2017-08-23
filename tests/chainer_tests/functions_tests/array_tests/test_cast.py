@@ -65,13 +65,18 @@ class TestNoCast(unittest.TestCase):
 
     def check_forward_no_cast(self, x_data):
         y = functions.cast(x_data, self.dtype)
-        self.assertIs(y, x_data)
+        self.assertIsInstance(y, chainer.Variable)
+        self.assertIs(y.data, x_data)
 
     def test_forward_no_cast_array(self):
-        self.check_forward_no_cast(self.x)
+        y = functions.cast(self.x, self.dtype)
+        self.assertIsInstance(y, chainer.Variable)
+        self.assertIs(y.data, self.x)
 
     def test_forward_no_cast_variable(self):
-        self.check_forward_no_cast(chainer.Variable(self.x))
+        x = chainer.Variable(self.x)
+        y = functions.cast(x, self.dtype)
+        self.assertIs(y, x)
 
 
 testing.run_module(__name__, __file__)
