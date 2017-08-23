@@ -47,15 +47,14 @@ class SplitAxis(function_node.FunctionNode):
             ind = list(self.indices_or_sections)
             ind.append(cdimx)
         self._xp = cuda.get_array_module(x)
-        self._x_shape = x.shape
-        self._x_dtype = x.dtype
         ret = tuple(self._xp.split(x, self.indices_or_sections, self.axis))
         self._shapes = [r.shape for r in ret]
         return ret
 
     def backward(self, indexes, grad_outputs):
+        dtype = self.inputs[0].dtype
         grads = [
-            self._xp.zeros(shape, dtype=self._x_dtype) if gy is None else gy
+            self._xp.zeros(shape, dtype=dtype) if gy is None else gy
             for gy, shape in six.moves.zip(grad_outputs, self._shapes)]
         return chainer.functions.concat(grads, self.axis),
 

@@ -41,15 +41,14 @@ class Concat(function_node.FunctionNode):
 
     def forward(self, xs):
         xp = cuda.get_array_module(*xs)
-        self._x_shapes = [x.shape for x in xs]
         return xp.concatenate(xs, self.axis),
 
     def backward(self, indexes, grad_outputs):
-        if len(self._x_shapes) == 1:
+        if len(self.inputs) == 1:
             return grad_outputs
 
         sizes = numpy.array(
-            [shape[self.axis] for shape in self._x_shapes[:-1]]
+            [v.shape[self.axis] for v in self.inputs[:-1]]
         ).cumsum()
         gx, = grad_outputs
         return chainer.functions.split_axis(gx, sizes, self.axis)
