@@ -60,10 +60,12 @@ class TestVariable(unittest.TestCase):
         self.c = np.arange(self.size).reshape(self.c_shape).astype(np.float32)
 
     def check_attributes(self, gpu):
-        x = self.x
+        a = self.x
         if gpu:
-            x = cuda.to_gpu(x)
-        x = chainer.Variable(x)
+            a = cuda.to_gpu(a)
+        x = chainer.Variable(a)
+        self.assertIs(x.data, a)
+        self.assertIs(x.array, a)
         self.assertEqual(x.shape, self.x.shape)
         self.assertEqual(x.ndim, self.x.ndim)
         self.assertEqual(x.size, self.x.size)

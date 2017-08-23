@@ -413,12 +413,6 @@ class Variable(object):
         requires_grad (bool): Boolean indicating whether ``grad`` will be set
             in backward calculation.
 
-    Attributes:
-        ~Variable.data: Data array of type either :class:`numpy.ndarray` or
-            :class:`cupy.ndarray`. If it is None, the variable is left in an
-            uninitialized state.
-        ~Variable.grad_var (Variable): Gradient variable.
-
     """  # NOQA
 
     def __init__(self, data=None, **kwargs):
@@ -575,7 +569,31 @@ Actual: {0}'''.format(type(data))
         self._node.creator_node = func
 
     @property
+    def array(self):
+        """The underlying data array.
+
+        It is either :class:`numpy.ndarray` or :class:`cupy.ndarray` object,
+        or ``None`` if the variable in in an uninitialized state.
+
+        """
+        return self._data[0]
+
+    @array.setter
+    def array(self, d):
+        self._data[0] = d
+        self._node._set_data_type(d)
+
+    @property
     def data(self):
+        """The underlying data array (equivalent to :attr:`array`).
+
+        Note that using this attribute directly is discouraged; use
+        :attr:`array` instead. Using :attr:`array`, you can find an error
+        earlier when your code mixes up Variable and ndarray because
+        ndarray does not have an attribute ``.array`` while it has
+        ``.data``.
+
+        """
         return self._data[0]
 
     @data.setter
@@ -601,6 +619,7 @@ Actual: {0}'''.format(type(data))
 
     @property
     def grad_var(self):
+        """Gradient variable."""
         return self._grad_var
 
     @grad_var.setter
