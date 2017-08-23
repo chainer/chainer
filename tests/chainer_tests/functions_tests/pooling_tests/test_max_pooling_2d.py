@@ -31,6 +31,8 @@ class TestMaxPooling2D(unittest.TestCase):
         else:
             self.gy = numpy.random.uniform(
                 -1, 1, (2, 3, 2, 2)).astype(self.dtype)
+        self.ggx = numpy.random.uniform(
+            -1, 1, (2, 3, 4, 3)).astype(self.dtype)
 
     def check_forward(self, x_data, use_cudnn='always'):
         x = chainer.Variable(x_data)
@@ -128,11 +130,12 @@ class TestMaxPooling2D(unittest.TestCase):
                 functions.max_pooling_2d(x, 3, stride=2)
 
     def check_backward(self, x_data, y_grad, use_cudnn='always'):
+        def f(x):
+            return functions.max_pooling_2d(
+                x, 3, stride=2, pad=1, cover_all=self.cover_all)
         with chainer.using_config('use_cudnn', use_cudnn):
             gradient_check.check_backward(
-                functions.MaxPooling2D(
-                    3, stride=2, pad=1, cover_all=self.cover_all),
-                x_data, y_grad, dtype='d', atol=1e-4, rtol=1e-3)
+                f, x_data, y_grad, dtype='d', atol=1e-4, rtol=1e-3)
 
     @condition.retry(3)
     def test_backward_cpu(self):
@@ -158,9 +161,23 @@ class TestMaxPooling2D(unittest.TestCase):
     def test_backward_cpu_more_than_once(self):
         func = functions.MaxPooling2D(
             3, stride=2, pad=1, cover_all=self.cover_all)
-        func(self.x)
-        func.backward_cpu((self.x,), (self.gy,))
-        func.backward_cpu((self.x,), (self.gy,))
+        func.apply((self.x,))
+        func.backward((0,), (self.gy,))
+        func.backward((0,), (self.gy,))
+
+    def check_double_backward(self, x_data, y_grad, x_grad_grad,
+                              use_cudnn='alyways'):
+        def f(x):
+            return functions.max_pooling_2d(
+                x, 3, stride=2, pad=1, cover_all=self.cover_all)
+        with chainer.using_config('use_cudnn', use_cudnn):
+            gradient_check.check_double_backward(
+                f, x_data, y_grad, x_grad_grad,
+                dtype='d', atol=1e-4, rtol=1e-3)
+
+    @condition.retry(3)
+    def test_double_backward_cpu(self):
+        self.check_double_backward(self.x, self.gy, self.ggx, 'never')
 
 
 @testing.parameterize(*testing.product({
