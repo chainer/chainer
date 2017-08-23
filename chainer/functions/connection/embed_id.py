@@ -3,11 +3,11 @@ import six
 
 import chainer
 from chainer import cuda
-from chainer import function
+from chainer import function_node
 from chainer.utils import type_check
 
 
-class EmbedIDFunction(function.Function):
+class EmbedIDFunction(function_node.FunctionNode):
 
     def __init__(self, ignore_label=None):
         self.ignore_label = ignore_label
@@ -25,7 +25,9 @@ class EmbedIDFunction(function.Function):
         )
 
     def forward(self, inputs):
+        self.retain_inputs((0,))
         x, W = inputs
+        self._w_shape = W.shape
 
         if not type_check.same_types(*inputs):
             raise ValueError('numpy and cupy must not be used together\n'
@@ -48,11 +50,25 @@ class EmbedIDFunction(function.Function):
 
         return W.take(x, axis=0),
 
-    def backward(self, inputs, grad_outputs):
+    def backward(self, indexes, grad_outputs):
+        inputs = self.get_retained_inputs()
+        gW = EmbedIDGrad(
+            self._w_shape, self.ignore_label).apply(inputs + grad_outputs)[0]
+        return None, gW
+
+
+class EmbedIDGrad(function_node.FunctionNode):
+
+    def __init__(self, w_shape, ignore_label=None):
+        self.w_shape = w_shape
+        self.ignore_label = ignore_label
+
+    def forward(self, inputs):
+        self.retain_inputs((0,))
         xp = cuda.get_array_module(*inputs)
-        x, W = inputs
-        gy = grad_outputs[0]
-        gW = xp.zeros_like(W)
+        x, gy = inputs
+        self._gy_shape = gy.shape
+        gW = xp.zeros(self.w_shape, dtype=gy.dtype)
 
         if xp is numpy:
             # It is equivalent to `numpy.add.at(gW, x, gy)` but ufunc.at is
@@ -81,7 +97,27 @@ class EmbedIDFunction(function.Function):
                     'embed_id_bwd_ignore_label')(
                         gy, xp.expand_dims(x, -1), gW.shape[1],
                         self.ignore_label, gW)
-        return None, gW
+        return gW,
+
+    def backward(self, indexes, grads):
+        xp = cuda.get_array_module(*grads)
+        x = self.get_retained_inputs()[0].data
+        ggW = grads[0]
+
+        if self.ignore_label is not None:
+            mask = x == self.ignore_label
+            # To prevent index out of bounds, we need to check if ignore_label
+            # is inside of W.
+            if not (0 <= self.ignore_label < self.w_shape[1]):
+                x = xp.where(mask, 0, x)
+
+        ggy = ggW[x]
+
+        if self.ignore_label is not None:
+            mask, zero, _ = xp.broadcast_arrays(
+                mask[..., None], xp.zeros((), 'f'), ggy.data)
+            ggy = chainer.functions.where(mask, zero, ggy)
+        return None, ggy
 
 
 def embed_id(x, W, ignore_label=None):
@@ -131,4 +167,4 @@ def embed_id(x, W, ignore_label=None):
                [ 0.,  0.,  0.]], dtype=float32)
 
     """
-    return EmbedIDFunction(ignore_label=ignore_label)(x, W)
+    return EmbedIDFunction(ignore_label=ignore_label).apply((x, W))[0]
