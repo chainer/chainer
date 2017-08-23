@@ -66,8 +66,8 @@ def get_item(x, slices):
             or tuple of them.
 
     Returns:
-        Variable: :class:`~chainer.Variable` object
-            which contains sliced array of ``x``.
+        A :class:`~chainer.Variable` object which contains sliced array of
+        ``x``.
 
     .. note::
 
