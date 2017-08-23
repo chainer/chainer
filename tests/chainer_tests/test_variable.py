@@ -11,6 +11,7 @@ import six
 
 import chainer
 from chainer import cuda
+from chainer import functions as F
 from chainer import initializers
 from chainer import testing
 from chainer.testing import attr
