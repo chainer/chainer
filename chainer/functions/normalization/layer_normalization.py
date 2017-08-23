@@ -1,19 +1,11 @@
 from chainer import cuda
-from chainer import function
+from chainer import function_node
+from chainer.functions.array import broadcast
+from chainer.functions.math import sum as sum_
 from chainer.utils import type_check
 
 
-def _broadcast_to(xp, x, shape):
-    if hasattr(xp, 'broadcast_to'):
-        return xp.broadcast_to(x, shape)
-    else:
-        # numpy 1.9 doesn't support broadcast_to method
-        dummy = xp.empty(shape)
-        bx, _ = xp.broadcast_arrays(x, dummy)
-        return bx
-
-
-class LayerNormalization(function.Function):
+class LayerNormalization(function_node.FunctionNode):
 
     """Layer normalization"""
 
@@ -35,6 +27,7 @@ class LayerNormalization(function.Function):
         )
 
     def forward(self, inputs):
+        self.retain_inputs((0, 1, 2))
         xp = cuda.get_array_module(*inputs)
         x, gamma, beta = inputs
         mu = xp.mean(x, axis=1, keepdims=True)
@@ -48,31 +41,30 @@ class LayerNormalization(function.Function):
         shifted_x = scaled_x + beta[None, ]
         return shifted_x,
 
-    def backward(self, inputs, gy):
-        xp = cuda.get_array_module(*inputs)
-        x, gamma, beta = inputs
-        gy = gy[0]
+    def backward(self, indexes, grad_outputs):
+        x, gamma, beta = self.get_retained_inputs()
+        gy, = grad_outputs
 
-        g_beta = gy.sum(axis=0)
+        g_beta = sum_.sum(gy, axis=0)
         g_scaled_x = gy
 
-        g_gamma = xp.sum(g_scaled_x * self.x_hat, axis=0)
-        g_x_hat = g_scaled_x * gamma[None, ]
+        g_gamma = sum_.sum(g_scaled_x * self.x_hat, axis=0)
+        g_x_hat = g_scaled_x * broadcast.broadcast_to(gamma, g_scaled_x.shape)
 
-        g_inv_std = xp.sum(g_x_hat * self.x_mu, axis=1, keepdims=True)
+        g_inv_std = sum_.sum(g_x_hat * self.x_mu, axis=1, keepdims=True)
         g_x_mu_1 = g_x_hat * self.inv_std
 
         g_std = g_inv_std * (- 1. / self.var)
         g_var = g_std * 0.5 * self.inv_std
 
         n_units = x.shape[1]
-        g_squ_x_mu = _broadcast_to(xp, g_var * 1. / n_units, x.shape)
+        g_squ_x_mu = broadcast.broadcast_to(g_var * (1. / n_units), x.shape)
         g_x_mu_2 = g_squ_x_mu * 2 * self.x_mu
 
         g_x_1 = g_x_mu_1 + g_x_mu_2
-        g_mu = xp.sum(g_x_1, axis=1, keepdims=True) * (- 1.)
+        g_mu = sum_.sum(g_x_1, axis=1, keepdims=True) * (- 1.)
 
-        g_x_2 = _broadcast_to(xp, g_mu * 1. / n_units, x.shape)
+        g_x_2 = broadcast.broadcast_to(g_mu * 1. / n_units, x.shape)
 
         g_x = g_x_1 + g_x_2
 
@@ -102,4 +94,4 @@ def layer_normalization(x, gamma, beta, eps=1e-5):
 
     See: `Layer Normalization <https://arxiv.org/abs/1607.06450>`_
     """
-    return LayerNormalization(eps)(x, gamma, beta)
+    return LayerNormalization(eps).apply((x, gamma, beta))[0]

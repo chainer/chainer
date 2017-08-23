@@ -35,6 +35,7 @@ class LayerNormalizationTest(unittest.TestCase):
         self.shape = (self.batchsize, self.size)
         self.x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         self.gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        self.ggx = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
 
         self.check_forward_optionss = {'atol': 1e-4, 'rtol': 1e-3}
         self.check_backward_optionss = {'atol': 1e-4, 'rtol': 1e-3}
@@ -99,6 +100,34 @@ class LayerNormalizationTest(unittest.TestCase):
         self.link.use_cudnn = False
         self.link(numpy.zeros(self.shape, dtype='f'))
         self.test_backward_gpu()
+
+    def check_double_backward(self, x_data, y_grad, x_grad_grad):
+        def func(x):
+            y = self.link(x)
+            return y * y
+        gradient_check.check_double_backward(
+            func, x_data, y_grad, x_grad_grad,
+            (self.link.gamma, self.link.beta),
+            eps=1e-2, **self.check_backward_optionss)
+
+    @condition.retry(3)
+    def test_double_backward_cpu(self):
+        self.link(numpy.zeros(self.shape, dtype='f'))
+        self.check_double_backward(self.x, self.gy, self.ggx)
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_double_backward_gpu(self):
+        self.link.to_gpu()
+        self.link(cuda.cupy.zeros(self.shape, dtype='f'))
+        self.check_double_backward(
+            cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx))
+
+    @attr.cudnn
+    def test_double_backward_gpu_without_cudnn(self):
+        self.link.use_cudnn = False
+        self.link(numpy.zeros(self.shape, dtype='f'))
+        self.test_double_backward_gpu()
 
 
 @testing.parameterize(*testing.product({
