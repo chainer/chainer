@@ -638,6 +638,11 @@ Actual: {0}'''.format(type(data))
         """It indicates that ``grad`` will be set in backward calculation."""
         return self._requires_grad
 
+    @property
+    def T(self):
+        """Transposition of this variable."""
+        return chainer.functions.transpose(self)
+
     def to_cpu(self):
         """Copies the data and gradient arrays to CPU."""
         if self.data is None:
