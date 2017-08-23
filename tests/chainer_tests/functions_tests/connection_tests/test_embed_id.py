@@ -95,7 +95,7 @@ class TestEmbedID(unittest.TestCase):
     {'x_data': [0, 1, 2], 'ignore_label': 2},
     {'x_data': [[0, 1, 0], [1, 0, 1]], 'ignore_label': 1},
 )
-class estEmbedIdBackward(unittest.TestCase):
+class TestEmbedIdGrad(unittest.TestCase):
 
     n_unit = (4,)
     w_shape = (4, 2)
