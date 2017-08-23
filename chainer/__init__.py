@@ -56,6 +56,7 @@ from chainer.serializer import AbstractSerializer  # NOQA
 from chainer.serializer import Deserializer  # NOQA
 from chainer.serializer import Serializer  # NOQA
 from chainer.variable import Parameter  # NOQA
+from chainer.variable import to_variable  # NOQA
 from chainer.variable import Variable  # NOQA
 
 

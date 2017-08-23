@@ -1207,6 +1207,36 @@ class Parameter(Variable):
             self.update_rule.update(self)
 
 
+def to_variable(obj):
+    """Converts an array or a variable into :class:`~chainer.Variable`.
+
+    This is a convenient function to get a :class:`~chainer.Variable` object
+    transparently from a raw array or a variable.
+
+    Note that this function should only be used for type consistency (i.e., to
+    enforce the return value of an API having type :class:`~chainer.Varialbe`).
+    The :class:`~chainer.Variable.requires_grad` flag is kept as is; if ``obj``
+    is a raw array, the newly created variable has ``requires_grad = False``.
+    In order to make a variable w.r.t. which you want to compute the gradient,
+    you should use :class:`~chainer.Variable` directly.
+
+    Args:
+        obj (numpy.ndarray or cupy.ndarray or ~chainer.Variable): An array or
+            a variable that you want to convert to :class:`~chainer.Variable`.
+
+    Returns:
+        ~chainer.Variable:
+        A variable converted from ``obj``. If ``obj`` is a raw array, this is a
+        new :class:`~chainer.Variable` object that wraps the array. If ``obj``
+        is already a :class:`~chainer.Variable` object, this function returns
+        ``obj`` as is.
+
+    """
+    if isinstance(obj, Variable):
+        return obj
+    return Variable(obj, requires_grad=False)
+
+
 def _recover_parameter(data, name, grad, initializer, update_rule):
     p = Parameter(initializer=initializer, name=name)
     p.data = data
