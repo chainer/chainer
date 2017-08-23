@@ -66,7 +66,7 @@ class ReLUGrad2(function_node.FunctionNode):
     """
 
     def __init__(self, b):
-        super(ReLUGrad2).__init__()
+        super(ReLUGrad2, self).__init__()
         self.b = b.data
 
     def forward_cpu(self, inputs):
@@ -98,6 +98,7 @@ class ReLUGrad3(function_node.FunctionNode):
     """
 
     def __init__(self, a, b):
+        super(ReLUGrad3, self).__init__()
         self.a = a.data
         self.b = b.data
 
