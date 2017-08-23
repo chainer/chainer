@@ -1146,6 +1146,21 @@ class TestVariableBackwardErrorTraceback(unittest.TestCase):
     def test_traceback_gpu(self):
         self.check_traceback(cuda.to_gpu(self.x))
 
+    def test_raise(self):
+        x = np.array([1], np.float32)
+        x = chainer.Variable(x)
+        y = F.identity(x)
+        y.grad = np.array([np.nan], np.float32)
+        with self.assertRaises(RuntimeError):
+            y.backward()
+
+    def test_int(self):
+        x = np.array([1], np.int)
+        x = chainer.Variable(x)
+        y = F.identity(x)
+        y.grad = np.array([0], np.int)
+        y.backward()
+
 
 @testing.parameterize(*testing.product({
     'in_shape': [(4, 3, 2)],

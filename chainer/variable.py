@@ -929,11 +929,12 @@ Actual: {0}'''.format(type(data))
                     if gx is None:
                         continue
                     gx_data = gx.data
-                    cuda.get_device_from_array(gx_data).use()
-                    if cuda.get_array_module(gx_data).isnan(gx_data).any():
-                        msg = ('NaN is detected on backward computation of '
-                               '{}'.format(func.label))
-                        raise RuntimeError(msg)
+                    if gx_data.dtype.kind == 'f':
+                        cuda.get_device_from_array(gx_data).use()
+                        if cuda.get_array_module(gx_data).isnan(gx_data).any():
+                            raise RuntimeError(
+                                'NaN is detected on backward computation of '
+                                '{}'.format(func.label))
 
             if not retain_grad:
                 for y in outputs:
