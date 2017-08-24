@@ -1,6 +1,9 @@
 import os
 
 import numpy
+
+from chainer.dataset.indexer import BaseFeaturesIndexer
+
 try:
     from PIL import Image
     available = True
@@ -70,6 +73,7 @@ class ImageDataset(dataset_mixin.DatasetMixin):
         self._paths = paths
         self._root = root
         self._dtype = dtype
+        self._features_indexer = ImageDatasetFeaturesIndexer(self._paths)
 
     def __len__(self):
         return len(self._paths)
@@ -82,6 +86,31 @@ class ImageDataset(dataset_mixin.DatasetMixin):
             # image is greyscale
             image = image[:, :, numpy.newaxis]
         return image.transpose(2, 0, 1)
+
+    @property
+    def features(self):
+        """Extract features according to the specified index.
+
+        - axis 0 is used to specify dataset id (`i`-th dataset)
+        - axis 1 is used to specify feature index
+
+        """
+        return self._features_indexer
+
+
+class ImageDatasetFeaturesIndexer(BaseFeaturesIndexer):
+    """FeaturesIndexer for ImageDataset"""
+
+    def __init__(self, paths):
+        super(ImageDatasetFeaturesIndexer, self).__init__()
+        self.paths = paths
+
+    @property
+    def features_length(self):
+        return 1
+
+    def extract_feature(self, j):
+        return self.datasets[j]
 
 
 class LabeledImageDataset(dataset_mixin.DatasetMixin):

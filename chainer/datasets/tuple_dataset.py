@@ -1,7 +1,7 @@
 import numpy
 import six
 
-from chainer.dataset.indexer import BaseIxIndexer
+from chainer.dataset.indexer import BaseFeaturesIndexer
 
 
 class TupleDataset(object):
@@ -28,7 +28,7 @@ class TupleDataset(object):
                     'dataset of the index {} has a wrong length'.format(i))
         self._datasets = datasets
         self._length = length
-        self._ix = TupleDatasetIxIndexer(self._datasets)
+        self._features_indexer = TupleDatasetFeaturesIndexer(self)
 
     def __getitem__(self, index):
         batches = [dataset[index] for dataset in self._datasets]
@@ -43,102 +43,42 @@ class TupleDataset(object):
         return self._length
 
     @property
-    def ix(self):
-        """ix indexer, which supports dataset extraction more easily.
-        
+    def features(self):
+        """Extract features according to the specified index.
+
         - axis 0 is used to specify dataset id (`i`-th dataset)
         - axis 1 is used to specify feature index
-        
+
         .. admonition:: Example
 
            >>> from chainer.datasets import TupleDataset
            >>> tuple_dataset = TupleDataset([0, 1, 2], [0, 1, 4])
-           >>> targets = tuple_dataset.ix[:, 1]
+           >>> targets = tuple_dataset.features[:, 1]
            >>> print('targets', targets)  # We can extract only target value
            targets [0, 1, 4]
-        
+
         """
-        return self._ix
+        return self._features_indexer
 
 
-class TupleDatasetIxIndexer(BaseIxIndexer):
-    """
-    
-    `dataset.ix[ind]` works same with `dataset.ix[ind, :]`
-    
-    """
+class TupleDatasetFeaturesIndexer(BaseFeaturesIndexer):
+    """FeaturesIndexer for TupleDataset"""
 
-    def __init__(self, datasets):
-        super(TupleDatasetIxIndexer, self).__init__()
-        self.datasets = datasets
+    def __init__(self, dataset):
+        """
+        
+        Args:
+            dataset (TupleDataset): TupleDataset instance
+        """
+        super(TupleDatasetFeaturesIndexer, self).__init__(dataset)
+        self.datasets = dataset._datasets
 
-    def extract_row(self, row_index, col_datasets):
-        # row_index must be one dimensional index
+    @property
+    def features_length(self):
+        return len(self.datasets)
 
-        if isinstance(row_index, slice):
-            # Accessing by slice, which is much efficient
-            res = [numpy.asarray(data[row_index]) for data in col_datasets]
+    def extract_feature_by_slice(self, slice_index, j):
+        return self.datasets[j][slice_index]
 
-            # Accessing by each index, copy occurs
-            #current, stop, step = row_index.indices(len(col_datasets[0]))
-            #res = [numpy.asarray([data[i] for i in six.moves.range(current, stop, step)])
-            #        for data in col_datasets]
-        elif isinstance(row_index, list) or isinstance(row_index, numpy.ndarray):
-            print('type', type(row_index[0]))
-            if isinstance(row_index[0], (bool, numpy.bool, numpy.bool_)):
-                # Access by bool flag list
-                assert len(row_index) == len(col_datasets[0])
-                res = [numpy.asarray(data[row_index])
-                       for data in col_datasets]
-            else:
-                res = [numpy.concatenate([data[i] for i in row_index], axis=0)
-                       for data in col_datasets]
-        else:
-            res = [numpy.asarray(data[row_index]) for data in col_datasets]
-        if len(res) == 1:
-            return res[0]
-        else:
-            return res
-
-    def __getitem__(self, item):
-        if isinstance(item, tuple):
-            index_dim = len(item)
-            # multi dimensional access
-            if index_dim == 1:
-                # currently, this is not expected...
-                print('WARNING, this case not implemented yet...')
-            elif index_dim == 2:
-                # accessed by data.ix[:, 1]
-                row_index = item[0]
-                col_index = item[1]
-                if isinstance(col_index, slice):
-                    current, stop, step = col_index.indices(len(self.datasets))
-                    col_datasets = [self.datasets[col] for col in
-                                    six.moves.range(current, stop, step)]
-                elif isinstance(col_index, list) or isinstance(col_index, numpy.ndarray):
-                    if isinstance(col_index[0],
-                                  (bool, numpy.bool, numpy.bool_)):
-                        assert len(col_index) == len(self.datasets)
-                        col_datasets = []
-                        for col, flag in enumerate(col_index):
-                            if flag:
-                                col_datasets.append(self.datasets[col])
-                    else:
-                        col_datasets = [self.datasets[col] for col in col_index]
-                else:
-                    col_datasets = [self.datasets[col_index]]
-                return self.extract_row(row_index, col_datasets)
-            else:
-                print('[Error] out of range, invalid index dimension')
-        else:
-            # Accessing all feature in dataset with specified id
-            """
-            1. int
-            2. slice
-            3. list, ndarray (advanced indexing) 
-            4. boolean list
-            """
-            return self.extract_row(item, self.datasets)
-
-
-
+    def extract_feature(self, i, j):
+        return self.datasets[j][i]
