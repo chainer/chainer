@@ -204,7 +204,7 @@ if on_rtd:
 #html_split_index = False
 
 # If true, links to the reST sources are added to the pages.
-#html_show_sourcelink = True
+html_show_sourcelink = False
 
 # If true, "Created using Sphinx" is shown in the HTML footer. Default is True.
 #html_show_sphinx = True
@@ -400,6 +400,13 @@ def linkcode_resolve(domain, info):
 
     # Import the object from module path
     obj = _import_object_from_name(info['module'], info['fullname'])
+
+    # If it's not defined in the internal module, return None.
+    mod = inspect.getmodule(obj)
+    if mod is None:
+        return None
+    if not (mod.__name__ == 'chainer' or mod.__name__.startswith('chainer.')):
+        return None
 
     # Get the source file name and line number at which obj is defined.
     try:

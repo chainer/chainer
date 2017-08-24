@@ -17,6 +17,10 @@ chainer.egg-info/
 dist/
 htmlcov/
 .idea/
+docs/my.model
+docs/my.state
+docs/my_mnist.model
+docs/*.png
 docs/source/reference/core
 docs/source/reference/generated
 docs/source/reference/util

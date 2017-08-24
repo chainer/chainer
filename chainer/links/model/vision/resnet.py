@@ -10,6 +10,7 @@ except ImportError as e:
     available = False
     _import_error = e
 
+import chainer
 from chainer.dataset.convert import concat_examples
 from chainer.dataset import download
 from chainer import function
@@ -72,8 +73,8 @@ class ResNetLayers(link.Chain):
             50, 101, or 152.
 
     Attributes:
-        available_layers (list of str): The list of available layer names
-            used by ``__call__`` and ``extract`` methods.
+        ~ResNetLayers.available_layers (list of str): The list of available
+            layer names used by ``__call__`` and ``extract`` methods.
 
     """
 
@@ -263,7 +264,7 @@ class ResNetLayers(link.Chain):
         else:
             x = x[:, :, 16:240, 16:240]
         # Use no_backprop_mode to reduce memory consumption
-        with function.no_backprop_mode():
+        with function.no_backprop_mode(), chainer.using_config('train', False):
             x = Variable(self.xp.asarray(x))
             y = self(x, layers=['prob'])['prob']
             if oversample:
@@ -320,8 +321,8 @@ class ResNet50Layers(ResNetLayers):
             ``chainer.initializers.HeNormal(scale=1.0)``.
 
     Attributes:
-        available_layers (list of str): The list of available layer names
-            used by ``__call__`` and ``extract`` methods.
+        ~ResNet50Layers.available_layers (list of str): The list of available
+            layer names used by ``__call__`` and ``extract`` methods.
 
     """
 
@@ -373,8 +374,8 @@ class ResNet101Layers(ResNetLayers):
             ``chainer.initializers.HeNormal(scale=1.0)``.
 
     Attributes:
-        available_layers (list of str): The list of available layer names
-            used by ``__call__`` and ``extract`` methods.
+        ~ResNet101Layers.available_layers (list of str): The list of available
+            layer names used by ``__call__`` and ``extract`` methods.
 
     """
 
@@ -425,8 +426,8 @@ class ResNet152Layers(ResNetLayers):
             ``chainer.initializers.HeNormal(scale=1.0)``.
 
     Attributes:
-        available_layers (list of str): The list of available layer names
-            used by ``__call__`` and ``extract`` methods.
+        ~ResNet152Layers.available_layers (list of str): The list of available
+            layer names used by ``__call__`` and ``extract`` methods.
 
     """
 

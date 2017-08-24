@@ -122,7 +122,8 @@ class Link(object):
             is supplied, the default dtype will be used.
 
     Attributes:
-        name (str): Name of this link, given by the parent chain (if exists).
+        ~Link.name (str): Name of this link, given by the parent chain (if
+            exists).
 
     """
 
@@ -818,6 +819,13 @@ class ChainList(Link):
 
         for link in links:
             self.add_link(link)
+
+    def __setattr__(self, name, value):
+        if self.within_init_scope and isinstance(value, Link):
+            raise TypeError(
+                'cannot register a new link'
+                ' within a "with chainlist.init_scope():" block.')
+        super(ChainList, self).__setattr__(name, value)
 
     def __getitem__(self, index):
         """Returns the child at given index.

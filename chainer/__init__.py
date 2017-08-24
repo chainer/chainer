@@ -10,6 +10,8 @@ from chainer import cuda  # NOQA
 from chainer import dataset  # NOQA
 from chainer import datasets  # NOQA
 from chainer import function  # NOQA
+from chainer import function_hook  # NOQA
+from chainer import function_hooks  # NOQA
 from chainer import function_node  # NOQA
 from chainer import functions  # NOQA
 from chainer import initializer  # NOQA
@@ -33,6 +35,7 @@ from chainer.configuration import using_config  # NOQA
 from chainer.function import force_backprop_mode  # NOQA
 from chainer.function import Function  # NOQA
 from chainer.function import no_backprop_mode  # NOQA
+from chainer.function_hook import FunctionHook  # NOQA
 from chainer.function_node import FunctionNode  # NOQA
 from chainer.functions import array  # NOQA
 from chainer.functions.math import basic_math  # NOQA
@@ -52,6 +55,7 @@ from chainer.reporter import Summary  # NOQA
 from chainer.serializer import AbstractSerializer  # NOQA
 from chainer.serializer import Deserializer  # NOQA
 from chainer.serializer import Serializer  # NOQA
+from chainer.variable import as_variable  # NOQA
 from chainer.variable import Parameter  # NOQA
 from chainer.variable import Variable  # NOQA
 

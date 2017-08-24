@@ -64,8 +64,8 @@ class TestGetItem(unittest.TestCase):
         self.check_forward(cuda.to_gpu(self.x_data))
 
     def check_backward(self, x_data, y_grad):
-        gradient_check.check_backward(functions.GetItem(self.slices),
-                                      (x_data,), y_grad)
+        gradient_check.check_backward(
+            functions.GetItem(self.slices), (x_data,), y_grad, dtype='d')
 
     def test_backward_cpu(self):
         self.check_backward(self.x_data, self.gy_data)
@@ -136,8 +136,8 @@ class TestGetItemAdvanced(unittest.TestCase):
         self.check_forward(cuda.to_gpu(self.x_data))
 
     def check_backward(self, x_data, y_grad):
-        gradient_check.check_backward(functions.GetItem(self.slices),
-                                      (x_data,), y_grad)
+        gradient_check.check_backward(
+            functions.GetItem(self.slices), (x_data,), y_grad, dtype='d')
 
     def test_backward_cpu(self):
         self.check_backward(self.x_data, self.gy_data)
@@ -192,8 +192,8 @@ class TestCupyIndicesGetItem(unittest.TestCase):
                 s = chainer.cuda.cupy.array(s, dtype=numpy.int32)
             slices.append(s)
         slices = tuple(slices)
-        gradient_check.check_backward(functions.GetItem(slices),
-                                      (x_data,), y_grad)
+        gradient_check.check_backward(
+            functions.GetItem(slices), (x_data,), y_grad, dtype='d')
 
     @attr.gpu
     def test_backward_gpu(self):
