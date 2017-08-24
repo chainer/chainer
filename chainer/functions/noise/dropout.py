@@ -1,6 +1,6 @@
 import numpy
 
-import chainer.functions
+import chainer
 from chainer import configuration
 from chainer import cuda
 from chainer import function
@@ -82,4 +82,4 @@ def dropout(x, ratio=.5, **kwargs):
 
     if configuration.config.train:
         return Dropout(ratio)(x)
-    return chainer.functions.identity(x)
+    return chainer.as_variable(x)
