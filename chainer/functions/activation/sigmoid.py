@@ -24,27 +24,35 @@ class Sigmoid(function_node.FunctionNode):
         x = inputs[0]
         half = x.dtype.type(0.5)
         y = utils.force_array(numpy.tanh(x * half) * half + half)
-        self.retain_inputs((0,))
+        self.retain_inputs(())
         self.retain_outputs((0,))
+        self._use_cudnn = False
         return y,
 
     def forward_gpu(self, inputs):
         x = inputs[0]
         if chainer.should_use_cudnn('==always') and x.flags.c_contiguous:
             y = cudnn.activation_forward(x, _mode)
+            self.retain_inputs((0,))
+            self._use_cudnn = True
         else:
             y = cuda.elementwise(
                 'T x', 'T y', 'y = tanh(x * 0.5) * 0.5 + 0.5',
                 'sigmoid_fwd')(x)
-        self.retain_inputs((0,))
+            self.retain_inputs(())
+            self._use_cudnn = False
+
         self.retain_outputs((0,))
         return y,
 
     def backward(self, indexes, grad_outputs):
-        x, = self.get_retained_inputs()
-        y, = self.get_retained_outputs()
+        if self._use_cudnn:
+            x = self.get_retained_inputs()[0].data
+        else:
+            x = None
+        y = self.get_retained_outputs()[0]
         gy, = grad_outputs
-        return SigmoidGrad((x.data, y.data)).apply((gy,))
+        return SigmoidGrad((x,)).apply((y, gy))
 
 
 class SigmoidGrad(function_node.FunctionNode):
@@ -54,28 +62,24 @@ class SigmoidGrad(function_node.FunctionNode):
     def __init__(self, inputs):
         super(SigmoidGrad, self).__init__()
         self.x = inputs[0]
-        self.y = inputs[1]
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 1)
+        type_check.expect(in_types.size() == 2)
         type_check.expect(in_types[0].dtype.kind == 'f')
+        type_check.expect(in_types[1].dtype.kind == 'f')
 
     def forward_cpu(self, inputs):
-        self.retain_inputs((0,))
-        x = self.x
-        y = self.y
-        gy, = inputs
-        one = x.dtype.type(1)
+        self.retain_inputs((0, 1))
+        y, gy = inputs
+        one = y.dtype.type(1)
         return utils.force_array(gy * y * (one - y)),
 
     def forward_gpu(self, inputs):
-        self.retain_inputs((0,))
-        x = self.x
-        y = self.y
-        gy, = inputs
+        self.retain_inputs((0, 1))
+        y, gy = inputs
         if (chainer.should_use_cudnn('==always') and gy.flags.c_contiguous and
-                x is not None and x.flags.c_contiguous):
-            gx = cudnn.activation_backward(x, y, gy, _mode)
+                self.x is not None and self.x.flags.c_contiguous):
+            gx = cudnn.activation_backward(self.x, y, gy, _mode)
         else:
             gx = cuda.elementwise(
                 'T y, T gy', 'T gx',
@@ -84,12 +88,11 @@ class SigmoidGrad(function_node.FunctionNode):
         return gx,
 
     def backward(self, indexes, grad_outputs):
-        y = self.y
-        gy, = self.get_retained_inputs()
+        y, gy = self.get_retained_inputs()
         g, = grad_outputs
         one = y.dtype.type(1)
         two = y.dtype.type(2)
-        return g * y * (one - y),
+        return g * gy * (one - two * y), g * y * (one - y)
 
 
 def sigmoid(x):
