@@ -1,3 +1,6 @@
+import contextlib
+import inspect
+
 import numpy
 
 from chainer.utils import walker_alias  # NOQA
@@ -32,3 +35,24 @@ def force_type(dtype, value):
         return value.astype(dtype, copy=False)
     else:
         return value
+
+
+def contextmanager(func):
+    """A decorator used to define a factory function for ``with`` statement.
+
+    This does exactlyl the same thing as ``@contextlib.contextmanager``, but
+    with workaround for the issue that it does not transfer source file name
+    and line number at which the original function was defined.
+
+    .. seealso:: ``docs/source/conf.py``
+    """
+
+    sourcefile = inspect.getsourcefile(func)
+    _, linenumber = inspect.getsourcelines(func)
+
+    wrapper = contextlib.contextmanager(func)
+
+    if sourcefile is not None:
+        wrapper.__chainer_wrapped_sourcefile__ = sourcefile
+        wrapper.__chainer_wrapped_linenumber__ = linenumber
+    return wrapper

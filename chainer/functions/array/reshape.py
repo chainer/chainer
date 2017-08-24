@@ -54,7 +54,7 @@ def reshape(x, shape):
     Args:
         x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`): Input variable.
-        shape (:class:`tuple` of :class:`int`\\ s):
+        shape (:class:`tuple` of :class:`int` s):
             Expected shape of the output array. The number of elements which
             the array of ``shape`` contains must be equal to that of input
             array. One shape dimension can be -1. In this case, the value is

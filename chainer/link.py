@@ -8,6 +8,7 @@ import six
 
 from chainer import cuda
 from chainer import initializers
+from chainer import utils
 from chainer import variable
 
 
@@ -159,7 +160,7 @@ class Link(object):
         """
         return getattr(self, '_within_init_scope', False)
 
-    @contextlib.contextmanager
+    @utils.contextmanager
     def init_scope(self):
         """Creates an initialization scope.
 

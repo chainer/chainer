@@ -430,6 +430,31 @@ def _check_object_validity(obj):
                 ''.format(obj, repr(doc)))
 
 
+def _get_sourcefile_and_linenumber(obj):
+    # Check to see `obj` has attributes that are injected by
+    # chainer.utils.contextmanager.
+    if hasattr(obj, '__chainer_wrapped_sourcefile__'):
+        filename = obj.__chainer_wrapped_sourcefile__
+        linenum = obj.__chainer_wrapped_linenumber__
+        return filename, linenum
+
+    # Get the source file name and line number at which obj is defined.
+    try:
+        filename = inspect.getsourcefile(obj)
+    except TypeError:
+        # obj is not a module, class, function, ..etc.
+        return None, None
+
+    # inspect can return None for cython objects
+    if filename is None:
+        return None, None
+
+    # Get the source line number
+    _, linenum = inspect.getsourcelines(obj)
+
+    return filename, linenum
+
+
 def linkcode_resolve(domain, info):
     if domain != 'py' or not info['module']:
         return None
@@ -450,20 +475,10 @@ def linkcode_resolve(domain, info):
     if not (mod.__name__ == 'chainer' or mod.__name__.startswith('chainer.')):
         return None
 
-    # Get the source file name and line number at which obj is defined.
-    try:
-        filename = inspect.getsourcefile(obj)
-    except TypeError:
-        # obj is not a module, class, function, ..etc.
+    # Retrieve source file name and line number
+    filename, linenum = _get_sourcefile_and_linenumber(obj)
+    if filename is None or linenum is None:
         return None
-
-    # inspect can return None for cython objects
-    if filename is None:
-        return None
-
-    # Get the source line number
-    _, linenum = inspect.getsourcelines(obj)
-    assert isinstance(linenum, six.integer_types)
 
     filename = os.path.realpath(filename)
     relpath = _get_source_relative_path(filename)

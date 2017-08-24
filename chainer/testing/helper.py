@@ -4,6 +4,8 @@ import sys
 import unittest
 import warnings
 
+from chainer import utils
+
 
 def with_requires(*requirements):
     """Run a test case only when given requirements are satisfied.
@@ -34,7 +36,7 @@ def with_requires(*requirements):
     return unittest.skipIf(skip, msg)
 
 
-@contextlib.contextmanager
+@utils.contextmanager
 def assert_warns(expected):
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
