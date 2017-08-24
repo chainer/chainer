@@ -413,12 +413,6 @@ class Variable(object):
         requires_grad (bool): Boolean indicating whether ``grad`` will be set
             in backward calculation.
 
-    Attributes:
-        ~Variable.data: Data array of type either :class:`numpy.ndarray` or
-            :class:`cupy.ndarray`. If it is None, the variable is left in an
-            uninitialized state.
-        ~Variable.grad_var (Variable): Gradient variable.
-
     """  # NOQA
 
     def __init__(self, data=None, **kwargs):
@@ -575,7 +569,31 @@ Actual: {0}'''.format(type(data))
         self._node.creator_node = func
 
     @property
+    def array(self):
+        """The underlying data array.
+
+        It is either :class:`numpy.ndarray` or :class:`cupy.ndarray` object,
+        or ``None`` if the variable in in an uninitialized state.
+
+        """
+        return self._data[0]
+
+    @array.setter
+    def array(self, d):
+        self._data[0] = d
+        self._node._set_data_type(d)
+
+    @property
     def data(self):
+        """The underlying data array (equivalent to :attr:`array`).
+
+        Note that using this attribute directly is discouraged; use
+        :attr:`array` instead. Using :attr:`array`, you can find an error
+        earlier when your code mixes up Variable and ndarray because
+        ndarray does not have an attribute ``.array`` while it has
+        ``.data``.
+
+        """
         return self._data[0]
 
     @data.setter
@@ -601,6 +619,7 @@ Actual: {0}'''.format(type(data))
 
     @property
     def grad_var(self):
+        """Gradient variable."""
         return self._grad_var
 
     @grad_var.setter
@@ -637,6 +656,11 @@ Actual: {0}'''.format(type(data))
     def requires_grad(self):
         """It indicates that ``grad`` will be set in backward calculation."""
         return self._requires_grad
+
+    @property
+    def T(self):
+        """Transposition of this variable."""
+        return chainer.functions.transpose(self)
 
     def to_cpu(self):
         """Copies the data and gradient arrays to CPU."""
@@ -924,11 +948,12 @@ Actual: {0}'''.format(type(data))
                     if gx is None:
                         continue
                     gx_data = gx.data
-                    cuda.get_device_from_array(gx_data).use()
-                    if cuda.get_array_module(gx_data).isnan(gx_data).any():
-                        msg = ('NaN is detected on backward computation of '
-                               '{}'.format(func.label))
-                        raise RuntimeError(msg)
+                    if gx_data.dtype.kind == 'f':
+                        cuda.get_device_from_array(gx_data).use()
+                        if cuda.get_array_module(gx_data).isnan(gx_data).any():
+                            raise RuntimeError(
+                                'NaN is detected on backward computation of '
+                                '{}'.format(func.label))
 
             if not retain_grad:
                 for y in outputs:
@@ -1189,7 +1214,7 @@ class Parameter(Variable):
             grad = None if ginit is None else initializers.generate_array(
                 ginit, shape, xp)
 
-        self._data[0] = data
+        self.data = data
         self.grad = grad
 
     def update(self):
@@ -1200,6 +1225,36 @@ class Parameter(Variable):
         """
         if self.update_rule is not None:
             self.update_rule.update(self)
+
+
+def as_variable(obj):
+    """Converts an array or a variable into :class:`~chainer.Variable`.
+
+    This is a convenient function to get a :class:`~chainer.Variable` object
+    transparently from a raw array or a variable.
+
+    Note that this function should only be used for type consistency (i.e., to
+    enforce the return value of an API having type :class:`~chainer.Varialbe`).
+    The :class:`~chainer.Variable.requires_grad` flag is kept as is; if ``obj``
+    is a raw array, the newly created variable has ``requires_grad = False``.
+    In order to make a variable w.r.t. which you want to compute the gradient,
+    you should use :class:`~chainer.Variable` directly.
+
+    Args:
+        obj (numpy.ndarray or cupy.ndarray or ~chainer.Variable): An array or
+            a variable that you want to convert to :class:`~chainer.Variable`.
+
+    Returns:
+        ~chainer.Variable:
+        A variable converted from ``obj``. If ``obj`` is a raw array, this is a
+        new :class:`~chainer.Variable` object that wraps the array. If ``obj``
+        is already a :class:`~chainer.Variable` object, this function returns
+        ``obj`` as is.
+
+    """
+    if isinstance(obj, Variable):
+        return obj
+    return Variable(obj, requires_grad=False)
 
 
 def _recover_parameter(data, name, grad, initializer, update_rule):
