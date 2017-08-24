@@ -45,7 +45,7 @@ class NormalizeL2(function.Function):
 
 
 def normalize(x, eps=1e-5, axis=1):
-    """L2 norm squared (a.k.a. Euclidean norm).
+    """L2 norm squared (a.k.a.\\  Euclidean norm).
 
     This function implements L2 normalization on a vector along the given axis.
     No reduction is done along the normalization axis.
