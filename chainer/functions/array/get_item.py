@@ -2,13 +2,13 @@ import numpy
 
 import chainer
 from chainer import cuda
-from chainer import function
+from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
 from chainer import variable
 
 
-class GetItem(function.Function):
+class GetItem(function_node.FunctionNode):
 
     """Function that slices array and extract elements."""
 
@@ -37,21 +37,34 @@ class GetItem(function.Function):
         type_check.expect(in_types[0].ndim >= valid_slice)
 
     def forward(self, xs):
-        self.retain_inputs(())
         ary = xs[0]
         self._in_shape = ary.shape
         self._in_dtype = ary.dtype
         return utils.force_array(ary[self.slices]),
 
-    def backward(self, xs, gys):
-        xp = cuda.get_array_module(*gys)
-        gy = gys[0]
+    def backward(self, indexes, gy):
+        return GetItemGrad(
+            self.slices, self._in_shape, self._in_dtype).apply(gy)
+
+
+class GetItemGrad(function_node.FunctionNode):
+
+    def __init__(self, slices, in_shape, in_dtype):
+        self.slices = slices
+        self._in_shape = in_shape
+        self._in_dtype = in_dtype
+
+    def forward(self, inputs):
+        xp = cuda.get_array_module(*inputs)
         gx = xp.zeros(self._in_shape, self._in_dtype)
         if xp is numpy:
-            numpy.add.at(gx, self.slices, gy)
+            numpy.add.at(gx, self.slices, inputs[0])
         else:
-            gx.scatter_add(self.slices, gy)
+            gx.scatter_add(self.slices, inputs[0])
         return gx,
+
+    def backwrad(self, indexes, ggx):
+        return GetItem(self.slices).apply(ggx)
 
 
 def get_item(x, slices):
@@ -86,7 +99,7 @@ def get_item(x, slices):
        <http://docs.scipy.org/doc/numpy/reference/arrays.indexing.html>`_.
 
     """
-    return GetItem(slices)(x)
+    return GetItem(slices).apply((x,))[0]
 
 
 def install_variable_get_item():
