@@ -1,7 +1,6 @@
 from chainer import cuda
 from chainer import function_node
-from chainer.functions.array import broadcast
-from chainer.functions.math import sum as sum_
+from chainer import functions
 from chainer.utils import type_check
 
 
@@ -45,26 +44,26 @@ class LayerNormalization(function_node.FunctionNode):
         x, gamma, beta = self.get_retained_inputs()
         gy, = grad_outputs
 
-        g_beta = sum_.sum(gy, axis=0)
+        g_beta = functions.sum(gy, axis=0)
         g_scaled_x = gy
 
-        g_gamma = sum_.sum(g_scaled_x * self.x_hat, axis=0)
-        g_x_hat = g_scaled_x * broadcast.broadcast_to(gamma, g_scaled_x.shape)
+        g_gamma = functions.sum(g_scaled_x * self.x_hat, axis=0)
+        g_x_hat = g_scaled_x * functions.broadcast_to(gamma, g_scaled_x.shape)
 
-        g_inv_std = sum_.sum(g_x_hat * self.x_mu, axis=1, keepdims=True)
+        g_inv_std = functions.sum(g_x_hat * self.x_mu, axis=1, keepdims=True)
         g_x_mu_1 = g_x_hat * self.inv_std
 
         g_std = g_inv_std * (- 1. / self.var)
         g_var = g_std * 0.5 * self.inv_std
 
         n_units = x.shape[1]
-        g_squ_x_mu = broadcast.broadcast_to(g_var * (1. / n_units), x.shape)
+        g_squ_x_mu = functions.broadcast_to(g_var * (1. / n_units), x.shape)
         g_x_mu_2 = g_squ_x_mu * 2 * self.x_mu
 
         g_x_1 = g_x_mu_1 + g_x_mu_2
-        g_mu = sum_.sum(g_x_1, axis=1, keepdims=True) * (- 1.)
+        g_mu = functions.sum(g_x_1, axis=1, keepdims=True) * (- 1.)
 
-        g_x_2 = broadcast.broadcast_to(g_mu * 1. / n_units, x.shape)
+        g_x_2 = functions.broadcast_to(g_mu * 1. / n_units, x.shape)
 
         g_x = g_x_1 + g_x_2
 
