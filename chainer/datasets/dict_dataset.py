@@ -31,7 +31,7 @@ class DictDataset(object):
         batches = {key: dataset[index]
                    for key, dataset in six.iteritems(self._datasets)}
         if isinstance(index, slice):
-            length = len(six.itervalues(batches).next())
+            length = len(six.next(six.itervalues(batches)))
             return [{key: batch[i] for key, batch in six.iteritems(batches)}
                     for i in six.moves.range(length)]
         else:

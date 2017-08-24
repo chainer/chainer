@@ -29,6 +29,17 @@ class TestDictDataset(unittest.TestCase):
             numpy.testing.assert_array_equal(
                 cuda.to_cpu(example['y']), cuda.to_cpu(y[i]))
 
+        example_range = dd[0: len(x)]
+        for i in range(len(x)):
+            example = example_range[i]
+            self.assertIn('x', example)
+            self.assertIn('y', example)
+
+            numpy.testing.assert_array_equal(
+                cuda.to_cpu(example['x']), cuda.to_cpu(x[i]))
+            numpy.testing.assert_array_equal(
+                cuda.to_cpu(example['y']), cuda.to_cpu(y[i]))
+
     def test_dict_dataset_cpu(self):
         self.check_dict_dataset(self.x, self.y)
 
