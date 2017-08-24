@@ -4,6 +4,17 @@ from chainer import functions
 from chainer.utils import type_check
 
 
+def _broadcast_to(xp, x, shape):
+    # xp: numpy, cupy, or chainer.functions
+    if hasattr(xp, 'broadcast_to'):
+        return xp.broadcast_to(x, shape)
+    else:
+        # numpy 1.9 doesn't support broadcast_to method
+        dummy = xp.empty(shape)
+        bx, _ = xp.broadcast_arrays(x, dummy)
+        return bx
+
+
 class LayerNormalization(function_node.FunctionNode):
 
     """Layer normalization"""
@@ -27,12 +38,12 @@ class LayerNormalization(function_node.FunctionNode):
 
     def _compute(self, xp, x):
         mu = xp.mean(x, axis=1, keepdims=True)
-        x_mu = x - xp.broadcast_to(mu, x.shape)
+        x_mu = x - _broadcast_to(xp, mu, x.shape)
         squ_x_mu = xp.square(x_mu)
         var = xp.mean(squ_x_mu, axis=1, keepdims=True)
         std = xp.sqrt(var + self.eps)
         inv_std = 1. / std
-        x_hat = x_mu * xp.broadcast_to(inv_std, x_mu.shape)
+        x_hat = x_mu * _broadcast_to(xp, inv_std, x_mu.shape)
         return x_mu, var, inv_std, x_hat
 
     def forward(self, inputs):
