@@ -25,45 +25,52 @@ class LayerNormalization(function_node.FunctionNode):
             gamma_type.shape == beta_type.shape,
         )
 
+    def _compute(self, xp, x):
+        mu = xp.mean(x, axis=1, keepdims=True)
+        x_mu = x - xp.broadcast_to(mu, x.shape)
+        squ_x_mu = xp.square(x_mu)
+        var = xp.mean(squ_x_mu, axis=1, keepdims=True)
+        std = xp.sqrt(var + self.eps)
+        inv_std = 1. / std
+        x_hat = x_mu * xp.broadcast_to(inv_std, x_mu.shape)
+        return x_mu, var, inv_std, x_hat
+
     def forward(self, inputs):
         self.retain_inputs((0, 1))
         xp = cuda.get_array_module(*inputs)
         x, gamma, beta = inputs
-        mu = xp.mean(x, axis=1, keepdims=True)
-        self.x_mu = x - mu
-        self.squ_x_mu = xp.square(self.x_mu)
-        self.var = xp.mean(self.squ_x_mu, axis=1, keepdims=True)
-        std = xp.sqrt(self.var + self.eps)
-        self.inv_std = 1. / std
-        self.x_hat = self.x_mu * self.inv_std
-        scaled_x = self.x_hat * gamma[None, ]
+        x_mu, var, inv_std, x_hat = self._compute(xp, x)
+        scaled_x = x_hat * gamma[None, ]
         shifted_x = scaled_x + beta[None, ]
         return shifted_x,
 
     def backward(self, indexes, grad_outputs):
+        F = functions
         x, gamma = self.get_retained_inputs()
         gy, = grad_outputs
 
-        g_beta = functions.sum(gy, axis=0)
+        x_mu, var, inv_std, x_hat = self._compute(F, x)
+
+        g_beta = F.sum(gy, axis=0)
         g_scaled_x = gy
 
-        g_gamma = functions.sum(g_scaled_x * self.x_hat, axis=0)
-        g_x_hat = g_scaled_x * functions.broadcast_to(gamma, g_scaled_x.shape)
+        g_gamma = F.sum(g_scaled_x * x_hat, axis=0)
+        g_x_hat = g_scaled_x * F.broadcast_to(gamma, g_scaled_x.shape)
 
-        g_inv_std = functions.sum(g_x_hat * self.x_mu, axis=1, keepdims=True)
-        g_x_mu_1 = g_x_hat * self.inv_std
+        g_inv_std = F.sum(g_x_hat * x_mu, axis=1, keepdims=True)
+        g_x_mu_1 = g_x_hat * F.broadcast_to(inv_std, g_x_hat.shape)
 
-        g_std = g_inv_std * (- 1. / self.var)
-        g_var = g_std * 0.5 * self.inv_std
+        g_std = g_inv_std * (- 1. / var)
+        g_var = g_std * 0.5 * inv_std
 
         n_units = x.shape[1]
-        g_squ_x_mu = functions.broadcast_to(g_var * (1. / n_units), x.shape)
-        g_x_mu_2 = g_squ_x_mu * 2 * self.x_mu
+        g_squ_x_mu = F.broadcast_to(g_var * (1. / n_units), x.shape)
+        g_x_mu_2 = g_squ_x_mu * 2 * x_mu
 
         g_x_1 = g_x_mu_1 + g_x_mu_2
-        g_mu = functions.sum(g_x_1, axis=1, keepdims=True) * (- 1.)
+        g_mu = F.sum(g_x_1, axis=1, keepdims=True) * (- 1.)
 
-        g_x_2 = functions.broadcast_to(g_mu * 1. / n_units, x.shape)
+        g_x_2 = F.broadcast_to(g_mu * 1. / n_units, x.shape)
 
         g_x = g_x_1 + g_x_2
 
