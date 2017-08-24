@@ -11,7 +11,7 @@ Base class
    :toctree: generated/
    :nosignatures:
 
-   chainer.function.FunctionHook
+   chainer.FunctionHook
 
 .. module:: chainer.function_hooks
 

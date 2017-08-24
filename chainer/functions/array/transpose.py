@@ -23,13 +23,11 @@ class Transpose(function_node.FunctionNode):
         return y,
 
     def backward(self, indexes, grad_outputs):
-        gy = grad_outputs[0]
         inv_axes = self.axes
-        if self.axes:
-            axes = tuple(ax % len(self.axes) for ax in self.axes)
-            inv_axes = tuple(numpy.argsort(axes))
-        gx = transpose(gy, inv_axes)
-        return gx,
+        if inv_axes:
+            axes_len = len(inv_axes)
+            inv_axes = tuple(numpy.argsort([ax % axes_len for ax in inv_axes]))
+        return Transpose(inv_axes).apply(grad_outputs)
 
 
 def transpose(x, axes=None):
