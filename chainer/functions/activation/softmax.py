@@ -2,7 +2,7 @@ import numpy
 
 import chainer
 from chainer import cuda
-from chainer import function
+from chainer import function_node
 from chainer.utils import type_check
 
 if cuda.cudnn_enabled:
@@ -12,7 +12,7 @@ if cuda.cudnn_enabled:
     _mode = libcudnn.CUDNN_SOFTMAX_MODE_CHANNEL
 
 
-class Softmax(function.Function):
+class Softmax(function_node.FunctionNode):
 
     """Softmax activation function."""
 
@@ -50,12 +50,23 @@ class Softmax(function.Function):
             y /= y.sum(axis=self.axis, keepdims=True)
 
         self._x_shape = x[0].shape
-        self.retain_inputs(())
         self.retain_outputs((0,))
         return y,
 
-    def backward(self, x, gy):
-        y = self.output_data[0]
+    def backward(self, indexes, grad_outputs):
+        y = self.get_retained_outputs()[0]
+        return _SoftmaxGrad(y, self.axis).apply(grad_outputs)
+
+
+class _SoftmaxGrad(function_node.FunctionNode):
+
+    def __init__(self, y, axis):
+        self.y = y
+        self.axis = axis
+
+    def forward(self, inputs):
+        y = self.y
+        gy, = inputs
         xp = cuda.get_array_module(*y)
         if xp is not numpy and chainer.should_use_cudnn('>=auto'):
             oz_dtype = 'd' if y[0].dtype == 'd' else 'f'
@@ -84,6 +95,11 @@ class Softmax(function.Function):
         right_shape = numpy.prod(
             shape[slice(self.axis + 1, len(shape))], dtype=numpy.int)
         return left_shape, center_shape, right_shape, 1
+
+    def backward(self, indexes, grad_outputs):
+        ggx, = grad_outputs
+        gx = softmax(ggx, axis=self.axis)
+        return gx,
 
 
 def softmax(x, axis=1):
@@ -120,4 +136,4 @@ def softmax(x, axis=1):
         array([ 1.,  1.], dtype=float32)
 
     """
-    return Softmax(axis=axis)(x)
+    return Softmax(axis=axis).apply((x,))[0]
