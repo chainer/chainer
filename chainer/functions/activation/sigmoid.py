@@ -52,6 +52,7 @@ class SigmoidGrad(function_node.FunctionNode):
     """Logistic sigmoid gradient function."""
 
     def __init__(self, inputs):
+        super(SigmoidGrad, self).__init__()
         self.x = inputs[0]
         self.y = inputs[1]
 
@@ -60,6 +61,7 @@ class SigmoidGrad(function_node.FunctionNode):
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward_cpu(self, inputs):
+        self.retain_inputs((0,))
         x = self.x
         y = self.y
         gy, = inputs
@@ -67,6 +69,7 @@ class SigmoidGrad(function_node.FunctionNode):
         return utils.force_array(gy * y * (one - y)),
 
     def forward_gpu(self, inputs):
+        self.retain_inputs((0,))
         x = self.x
         y = self.y
         gy, = inputs
@@ -81,14 +84,12 @@ class SigmoidGrad(function_node.FunctionNode):
         return gx,
 
     def backward(self, indexes, grad_outputs):
-        ret = []
-        if 0 in indexes:
-            y = self.y
-            ggy, = grad_outputs
-            one = y.dtype.type(1)
-            two = y.dtype.type(2)
-            ret.append(ggy * y * (one - y) * (one - two * y))
-        return ret
+        y = self.y
+        gy, = self.get_retained_inputs()
+        g, = grad_outputs
+        one = y.dtype.type(1)
+        two = y.dtype.type(2)
+        return g * y * (one - y),
 
 
 def sigmoid(x):
