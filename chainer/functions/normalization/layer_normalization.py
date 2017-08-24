@@ -26,7 +26,7 @@ class LayerNormalization(function_node.FunctionNode):
         )
 
     def forward(self, inputs):
-        self.retain_inputs((0, 1, 2))
+        self.retain_inputs((0, 1))
         xp = cuda.get_array_module(*inputs)
         x, gamma, beta = inputs
         mu = xp.mean(x, axis=1, keepdims=True)
@@ -41,7 +41,7 @@ class LayerNormalization(function_node.FunctionNode):
         return shifted_x,
 
     def backward(self, indexes, grad_outputs):
-        x, gamma, beta = self.get_retained_inputs()
+        x, gamma = self.get_retained_inputs()
         gy, = grad_outputs
 
         g_beta = functions.sum(gy, axis=0)
