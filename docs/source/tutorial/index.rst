@@ -6,6 +6,6 @@ Chainer Tutorial
 
    glance
    tour
-   customize
+   components
    master
    cutting

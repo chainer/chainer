@@ -16,7 +16,7 @@ Components of Chainer
    iterators
    updaters
    extensions
-   trainers
+   trainer
    serializers
    contribute
 
