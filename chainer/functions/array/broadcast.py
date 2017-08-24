@@ -5,7 +5,6 @@ from chainer import cuda
 from chainer import function
 from chainer import function_node
 from chainer.utils import type_check
-from chainer import variable
 
 
 def _backward_one(xp, shape, dtype, g):
@@ -114,8 +113,6 @@ class BroadcastTo(function_node.FunctionNode):
     def forward(self, inputs):
         x, = inputs
         xp = cuda.get_array_module(x)
-        self._in_shape = x.shape
-        self._in_dtype = x.dtype
         if hasattr(xp, 'broadcast_to'):
             return xp.broadcast_to(x, self._shape),
         else:
@@ -126,7 +123,7 @@ class BroadcastTo(function_node.FunctionNode):
 
     def backward(self, indexes, grad_outputs):
         gx, = grad_outputs
-        shape = self._in_shape
+        shape = self.inputs[0].shape
         ndim = len(shape)
         if gx.ndim != ndim:
             gx = chainer.functions.sum(gx, tuple(range(gx.ndim - ndim)), False)
@@ -165,9 +162,6 @@ def broadcast_to(x, shape):
 
     """
     if x.shape == shape:
-        if isinstance(x, variable.Variable):
-            return x
-        else:
-            return variable.Variable(x, requires_grad=False)
+        return chainer.as_variable(x)
     y, = BroadcastTo(shape).apply((x,))
     return y

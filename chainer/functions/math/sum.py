@@ -45,8 +45,6 @@ class Sum(function_node.FunctionNode):
 
     def forward(self, inputs):
         x, = inputs
-        self._in_shape = x.shape
-        self._in_dtype = x.dtype
         ret = x.sum(axis=self.axis, keepdims=self.keepdims)
         if cuda.get_array_module(x) is numpy:
             ret = numpy.asarray(ret)
@@ -54,7 +52,7 @@ class Sum(function_node.FunctionNode):
 
     def backward(self, indexes, grad_outputs):
         gy, = grad_outputs
-        ndim = len(self._in_shape)
+        ndim = len(self.inputs[0].shape)
         if not (ndim == 0 or self.axis is None or self.keepdims):
             actual_axis = [
                 axis if axis >= 0 else axis + ndim
@@ -63,7 +61,7 @@ class Sum(function_node.FunctionNode):
             for axis in sorted(actual_axis):
                 shape.insert(axis, 1)
             gy = chainer.functions.reshape(gy, shape)
-        return chainer.functions.broadcast_to(gy, self._in_shape),
+        return chainer.functions.broadcast_to(gy, self.inputs[0].shape),
 
 
 def sum(x, axis=None, keepdims=False):

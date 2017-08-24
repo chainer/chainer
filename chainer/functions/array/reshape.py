@@ -1,6 +1,6 @@
+import chainer
 from chainer import function_node
 from chainer.utils import type_check
-from chainer import variable
 
 
 def _count_unknown_dims(shape):
@@ -41,12 +41,11 @@ class Reshape(function_node.FunctionNode):
 
     def forward(self, inputs):
         x, = inputs
-        self._in_shape = x.shape
         return x.reshape(self.shape),
 
     def backward(self, indexes, grad_outputs):
         gx, = grad_outputs
-        return reshape(gx, self._in_shape),
+        return reshape(gx, self.inputs[0].shape),
 
 
 def reshape(x, shape):
@@ -94,9 +93,6 @@ def reshape(x, shape):
 
     """
     if x.shape == shape:
-        if isinstance(x, variable.Variable):
-            return x
-        else:
-            return variable.Variable(x, requires_grad=False)
+        return chainer.as_variable(x)
     y, = Reshape(shape).apply((x,))
     return y

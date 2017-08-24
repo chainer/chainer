@@ -21,13 +21,12 @@ class ExpandDims(function_node.FunctionNode):
 
     def forward(self, inputs):
         x, = inputs
-        self._in_shape = x.shape
         xp = cuda.get_array_module(x)
         return xp.expand_dims(x, self.axis),
 
     def backward(self, indexes, grad_outputs):
         gx, = grad_outputs
-        return chainer.functions.reshape(gx, self._in_shape),
+        return chainer.functions.reshape(gx, self.inputs[0].shape),
 
 
 def expand_dims(x, axis):
