@@ -1,6 +1,5 @@
 from __future__ import division
 from collections import namedtuple
-from contextlib import contextmanager
 import multiprocessing
 from multiprocessing import sharedctypes
 import signal
@@ -70,17 +69,26 @@ class MultiprocessIterator(iterator.Iterator):
         self._comm = _Communicator(self.n_prefetch)
         self.reset()
 
-        prefetch_loop = _PrefetchLoop(
+        self._prefetch_loop = _PrefetchLoop(
             self.dataset, self.batch_size, self.repeat, self.shuffle,
             self.n_processes, self.n_prefetch, self.shared_mem, self._comm,
             self.__class__._interruption_testing)
-        self._thread = threading.Thread(
-            target=prefetch_loop, name='prefetch_loop')
-        self._thread.setDaemon(True)
-        self._thread.start()
+        # defer launching prefetch thread until creating the worker pool,
+        # not to leave a background thread in forked processes.
+        self._thread = None
 
     def __next__(self):
-        batch, prefetch_state = self._comm.get()
+        measure_mode = False
+        if self._thread is None:
+            if self._prefetch_loop.measure_required():
+                measure_mode = True
+                batch, prefetch_state = self._prefetch_loop.measure()
+            self._thread = self._prefetch_loop.launch_thread()
+            del self._prefetch_loop
+
+        if not measure_mode:
+            batch, prefetch_state = self._comm.get()
+
         (self.current_position, self.epoch, self.is_new_epoch,
             self._previous_epoch_detail, self._order) = prefetch_state
         if batch is None:
@@ -96,9 +104,9 @@ class MultiprocessIterator(iterator.Iterator):
             self._finalized = True
             if '_comm' in d:
                 self._comm.terminate()
-                if self._comm.join_required:
-                    if '_thread' in d:
-                        t = self._thread
+                if '_thread' in d:
+                    t = self._thread
+                    if t is not None:
                         while t.is_alive():
                             t.join(_response_time)
 
@@ -193,7 +201,6 @@ class _Communicator(object):
         self._batch_queue = []
         self._status = _Communicator.STATUS_CONTINUE
         self._reset_count = 0
-        self._join_required = True
 
     @property
     def is_terminated(self):
@@ -226,12 +233,6 @@ class _Communicator(object):
             self._not_full_cond.notify()
             self._reset_count += 1
 
-    # called_from_iterator
-    @property
-    def join_required(self):
-        with self._lock:
-            return self._join_required
-
     # called from thread
     def check(self):
         with self._lock:
@@ -250,15 +251,6 @@ class _Communicator(object):
             if reset_count == self._reset_count:
                 self._batch_queue.append((batch, prefetch_state))
                 self._not_empty_cond.notify()
-
-    # called from thread
-    @contextmanager
-    def no_join(self):
-        with self._lock:
-            self._join_required = False
-        yield
-        with self._lock:
-            self._join_required = True
 
 
 class _PrefetchLoop(object):
@@ -279,11 +271,32 @@ class _PrefetchLoop(object):
 
         self._interruption_testing = _interruption_testing
 
-    def __call__(self):
-        if self.mem_bulk is None:
-            if not self._task():
-                return
+    def measure_required(self):
+        return self.mem_size is None
 
+    def measure(self):
+        status, prefetch_state, _ = self.comm.check()
+        if status == _Communicator.STATUS_RESET:
+            self.prefetch_state = prefetch_state
+
+        indices = self._proceed()
+        if indices is None:  # stop iteration
+            batch = None
+        else:
+            batch = [self.dataset[idx] for idx in indices]
+            self.mem_size = max(map(_measure, batch))
+            self._allocate_shared_memory()
+
+        return batch, self.prefetch_state
+
+    def _allocate_shared_memory(self):
+        if self.measure_required():
+            self.mem_bulk = None
+        else:
+            self.mem_bulk = \
+                sharedctypes.RawArray('b', self.batch_size * self.mem_size)
+
+    def launch_thread(self):
         self._pool = multiprocessing.Pool(
             processes=self.n_processes,
             initializer=_fetch_setup,
@@ -293,6 +306,12 @@ class _PrefetchLoop(object):
             print(' '.join(map(str, pids)))
             sys.stdout.flush()
 
+        thread = threading.Thread(target=self._run, name='prefetch_loop')
+        thread.setDaemon(True)
+        thread.start()
+        return thread
+
+    def _run(self):
         alive = True
         try:
             while alive:
@@ -311,13 +330,6 @@ class _PrefetchLoop(object):
         indices = self._proceed()
         if indices is None:  # stop iteration
             batch = None
-        elif self._pool is None:  # measure mode
-            # program can be terminated ignoring a very very slow dataset
-            with self.comm.no_join():
-                batch = [self.dataset[idx] for idx in indices]
-
-            self.mem_size = max(map(_measure, batch))
-            self._allocate_shared_memory()
         else:
             future = self._pool.map_async(_fetch_run, enumerate(indices))
             while True:
@@ -333,13 +345,6 @@ class _PrefetchLoop(object):
 
         self.comm.put(batch, self.prefetch_state, reset_count)
         return True
-
-    def _allocate_shared_memory(self):
-        if self.mem_size is not None:
-            self.mem_bulk = \
-                sharedctypes.RawArray('b', self.batch_size * self.mem_size)
-        else:
-            self.mem_bulk = None
 
     def _proceed(self):
         n = len(self.dataset)
@@ -379,9 +384,6 @@ class _PrefetchLoop(object):
             new_pos, epoch, is_new_epoch,
             previous_epoch_detail, order)
         return indices
-
-    def _set_testing(self):
-        self._testing = True
 
 
 # Using `parametarized` funciton (e.g. bound method) with Pool is tricky due to

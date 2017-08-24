@@ -450,7 +450,7 @@ class NoWaitDataSet(object):
 no_wait = NoWaitDataSet()
 
 if __name__ == '__main__':
-    if {shared_mem} is not None:
+    if {shared_mem} is not None and {dataset} is infinite_wait:
         iterators.MultiprocessIterator._interruption_testing = True
     it = iterators.MultiprocessIterator({dataset}, 100,
                                         n_processes={n_processes},
@@ -469,7 +469,10 @@ if __name__ == '__main__':
         sys.path.append(os.path.dirname(self.code_path))
         self.sys_path_appended = True
 
-        stdout = None if shared_mem is None else subprocess.PIPE
+        if shared_mem is not None and dataset is 'infinite_wait':
+            stdout = subprocess.PIPE
+        else:
+            stdout = None
         stderr = None if self.__class__.show_interruption_msg else self.nullfd
         self.p = subprocess.Popen([sys.executable, self.code_path],
                                   stdout=stdout, stderr=stderr)
