@@ -79,9 +79,9 @@ class Seq2seq(chainer.Chain):
             result = []
             for i in range(max_length):
                 eys = self.embed_y(ys)
-                eys = chainer.functions.split_axis(eys, batch, 0)
+                eys = F.split_axis(eys, batch, 0)
                 h, c, ys = self.decoder(h, c, eys)
-                cys = chainer.functions.concat(ys, axis=0)
+                cys = F.concat(ys, axis=0)
                 wy = self.W(cys)
                 ys = self.xp.argmax(wy.data, axis=1).astype('i')
                 result.append(ys)
