@@ -1407,4 +1407,26 @@ class TestVariableDoubleBackward(unittest.TestCase):
             x.grad_var.backward()
 
 
+class TestAsVariable(unittest.TestCase):
+
+    def check_to_variable_from_array(self, x):
+        y = chainer.as_variable(x)
+        self.assertIsInstance(y, chainer.Variable)
+        self.assertIs(y.data, x)
+        self.assertFalse(y.requires_grad)
+
+    def test_to_variable_from_numpy(self):
+        self.check_to_variable_from_array(np.empty(1, np.float32))
+
+    @attr.gpu
+    def test_to_variable_from_cupy(self):
+        self.check_to_variable_from_array(cuda.cupy.empty(1, np.float32))
+
+    def test_to_variable_from_variable(self):
+        x = chainer.Variable(np.array(1, np.float32))
+        y = chainer.as_variable(x)
+        self.assertIs(x, y)
+        self.assertTrue(y.requires_grad)
+
+
 testing.run_module(__name__, __file__)
