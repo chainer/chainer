@@ -31,13 +31,13 @@ def sequence_embed(embed, xs):
 class Seq2seq(chainer.Chain):
 
     def __init__(self, n_layers, n_source_vocab, n_target_vocab, n_units):
-        super(Seq2seq, self).__init__(
-            embed_x=L.EmbedID(n_source_vocab, n_units),
-            embed_y=L.EmbedID(n_target_vocab, n_units),
-            encoder=L.NStepLSTM(n_layers, n_units, n_units, 0.1),
-            decoder=L.NStepLSTM(n_layers, n_units, n_units, 0.1),
-            W=L.Linear(n_units, n_target_vocab),
-        )
+        with self.init_scope():
+            self.embed_x = L.EmbedID(n_source_vocab, n_units)
+            self.embed_y = L.EmbedID(n_target_vocab, n_units)
+            self.encoder = L.NStepLSTM(n_layers, n_units, n_units, 0.1)
+            self.decoder = L.NStepLSTM(n_layers, n_units, n_units, 0.1)
+            self.W = L.Linear(n_units, n_target_vocab)
+
         self.n_layers = n_layers
         self.n_units = n_units
 
