@@ -27,9 +27,6 @@ def _pair(x):
 
 class Convolution2DFunction(function_node.FunctionNode):
 
-    conv_desc = None
-    filter_desc = None
-
     def __init__(self, stride=1, pad=0, cover_all=False, **kwargs):
         argument.check_unexpected_kwargs(
             kwargs,
@@ -131,33 +128,32 @@ class Convolution2DFunction(function_node.FunctionNode):
             x_desc = cudnn.create_tensor_descriptor(x)
             y_desc = cudnn.create_tensor_descriptor(y)
 
-            self.filter_desc = cudnn.create_filter_descriptor(W)
-            self.conv_desc = cudnn.create_convolution_descriptor(
+            filter_desc = cudnn.create_filter_descriptor(W)
+            conv_desc = cudnn.create_convolution_descriptor(
                 (self.ph, self.pw), (self.sy, self.sx), x.dtype)
             if b is not None:
-                self.bias_desc = cudnn.create_tensor_descriptor(
+                bias_desc = cudnn.create_tensor_descriptor(
                     b[None, :, None, None])
 
             workspace_size = cuda.get_max_workspace_size()
             workspace = cuda.cupy.empty((workspace_size,), dtype='b')
             algo = libcudnn.getConvolutionForwardAlgorithm(
-                handle, x_desc.value, self.filter_desc.value,
-                self.conv_desc.value, y_desc.value, _fwd_pref,
-                workspace_size)
+                handle, x_desc.value, filter_desc.value,
+                conv_desc.value, y_desc.value, _fwd_pref, workspace_size)
 
             oz_dtype = 'd' if x.dtype == 'd' else 'f'
             one = numpy.array(1, dtype=oz_dtype).ctypes
             zero = numpy.array(0, dtype=oz_dtype).ctypes
             libcudnn.convolutionForward(
                 handle, one.data, x_desc.value, x.data.ptr,
-                self.filter_desc.value, W.data.ptr, self.conv_desc.value,
+                filter_desc.value, W.data.ptr, conv_desc.value,
                 algo, workspace.data.ptr, workspace_size, zero.data,
                 y_desc.value, y.data.ptr)
 
             # TODO(beam2d): Support unshared bias
             if b is not None:
                 cudnn.add_tensor(
-                    handle, one.data, self.bias_desc.value, b.data.ptr,
+                    handle, one.data, bias_desc.value, b.data.ptr,
                     one.data, y_desc.value, y.data.ptr)
         else:
             # Implementation using im2col
@@ -205,8 +201,6 @@ class Convolution2DGradW(function_node.FunctionNode):
         self.pw = conv2d.pw
         self.cover_all = conv2d.cover_all
         self.W_dtype = W_node.dtype
-        self.conv_desc = conv2d.conv_desc
-        self.filter_desc = conv2d.filter_desc
 
     def forward_cpu(self, inputs):
         self.retain_inputs((0, 1))
@@ -241,6 +235,11 @@ class Convolution2DGradW(function_node.FunctionNode):
         handle = cudnn.get_handle()
         x_desc = cudnn.create_tensor_descriptor(x)
         gy_desc = cudnn.create_tensor_descriptor(gy)
+
+        filter_desc = cudnn.create_filter_descriptor(gW)
+        conv_desc = cudnn.create_convolution_descriptor(
+            (self.ph, self.pw), (self.sy, self.sx), x.dtype)
+
         oz_dtype = 'd' if x.dtype == 'd' else 'f'
         one = numpy.array(1, dtype=oz_dtype).ctypes
         zero = numpy.array(0, dtype=oz_dtype).ctypes
@@ -252,13 +251,13 @@ class Convolution2DGradW(function_node.FunctionNode):
             algo = libcudnn.CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1
         else:
             algo = libcudnn.getConvolutionBackwardFilterAlgorithm(
-                handle, x_desc.value, gy_desc.value, self.conv_desc.value,
-                self.filter_desc.value, _bwd_filter_pref, workspace_size)
+                handle, x_desc.value, gy_desc.value, conv_desc.value,
+                filter_desc.value, _bwd_filter_pref, workspace_size)
 
         libcudnn.convolutionBackwardFilter_v3(
             handle, one.data, x_desc.value, x.data.ptr, gy_desc.value,
-            gy.data.ptr, self.conv_desc.value, algo, workspace.data.ptr,
-            workspace_size, zero.data, self.filter_desc.value, gW.data.ptr)
+            gy.data.ptr, conv_desc.value, algo, workspace.data.ptr,
+            workspace_size, zero.data, filter_desc.value, gW.data.ptr)
 
         return gW,
 

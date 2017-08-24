@@ -29,8 +29,6 @@ def _pair(x):
 class Deconvolution2DFunction(function_node.FunctionNode):
 
     cover_all = None
-    conv_desc = None
-    filter_desc = None
 
     def __init__(self, stride=1, pad=0, outsize=None, **kwargs):
         argument.check_unexpected_kwargs(
@@ -163,11 +161,11 @@ class Deconvolution2DFunction(function_node.FunctionNode):
                                 dtype=x.dtype)
             y_desc = cudnn.create_tensor_descriptor(y)
 
-            self.filter_desc = cudnn.create_filter_descriptor(W)
-            self.conv_desc = cudnn.create_convolution_descriptor(
+            filter_desc = cudnn.create_filter_descriptor(W)
+            conv_desc = cudnn.create_convolution_descriptor(
                 (self.ph, self.pw), (self.sy, self.sx), x.dtype)
             if b is not None:
-                self.bias_desc = cudnn.create_tensor_descriptor(
+                bias_desc = cudnn.create_tensor_descriptor(
                     b[None, :, None, None])
 
             oz_dtype = 'd' if x.dtype == 'd' else 'f'
@@ -180,19 +178,19 @@ class Deconvolution2DFunction(function_node.FunctionNode):
                 algo = libcudnn.CUDNN_CONVOLUTION_BWD_DATA_ALGO_1
             else:
                 algo = libcudnn.getConvolutionBackwardDataAlgorithm(
-                    handle, self.filter_desc.value, x_desc.value,
-                    self.conv_desc.value, y_desc.value, _bwd_data_pref,
+                    handle, filter_desc.value, x_desc.value,
+                    conv_desc.value, y_desc.value, _bwd_data_pref,
                     workspace_size)
 
             libcudnn.convolutionBackwardData_v3(
-                handle, one.data, self.filter_desc.value, W.data.ptr,
-                x_desc.value, x.data.ptr, self.conv_desc.value,
+                handle, one.data, filter_desc.value, W.data.ptr,
+                x_desc.value, x.data.ptr, conv_desc.value,
                 algo, workspace.data.ptr, workspace_size,
                 zero.data, y_desc.value, y.data.ptr)
 
             if b is not None:
                 cudnn.add_tensor(
-                    handle, one.data, self.bias_desc.value, b.data.ptr,
+                    handle, one.data, bias_desc.value, b.data.ptr,
                     one.data, y_desc.value, y.data.ptr)
         else:
             gcol = cuda.cupy.tensordot(W, x, (0, 1)).astype(x.dtype,
