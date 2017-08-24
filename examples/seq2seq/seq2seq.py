@@ -11,7 +11,6 @@ import chainer
 from chainer import cuda
 import chainer.functions as F
 import chainer.links as L
-from chainer import reporter
 from chainer import training
 from chainer.training import extensions
 
@@ -64,10 +63,10 @@ class Seq2seq(chainer.Chain):
         loss = F.sum(F.softmax_cross_entropy(
             self.W(concat_os), concat_ys_out, reduce='no')) / batch
 
-        reporter.report({'loss': loss.data}, self)
+        chainer.report({'loss': loss.data}, self)
         n_words = concat_ys_out.shape[0]
         perp = self.xp.exp(loss.data * batch / n_words)
-        reporter.report({'perp': perp}, self)
+        chainer.report({'perp': perp}, self)
         return loss
 
     def translate(self, xs, max_length=100):
@@ -148,7 +147,7 @@ class CalculateBleu(chainer.training.Extension):
         bleu = bleu_score.corpus_bleu(
             references, hypotheses,
             smoothing_function=bleu_score.SmoothingFunction().method1)
-        reporter.report({self.key: bleu})
+        chainer.report({self.key: bleu})
 
 
 def count_lines(path):
