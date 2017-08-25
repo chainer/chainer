@@ -154,7 +154,7 @@ class TestTanhGrad(unittest.TestCase):
 
     @attr.gpu
     @condition.retry(3)
-    def test_backward_cpu(self):
+    def test_backward_gpu(self):
         y = numpy.array(numpy.tanh(self.x))
         self.check_backward(
             cuda.to_gpu(self.x), cuda.to_gpu(y), cuda.to_gpu(self.gy),
