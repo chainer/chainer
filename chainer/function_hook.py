@@ -48,6 +48,7 @@ class FunctionHook(object):
         >>> from chainer import function_hooks
         >>> class Model(chainer.Chain):
         ...   def __init__(self):
+        ...     super(Model, self).__init__()
         ...     with self.init_scope():
         ...       self.l = L.Linear(10, 10)
         ...   def __call__(self, x1):
