@@ -22,6 +22,7 @@ Learnable connections
 
    chainer.links.Bias
    chainer.links.Bilinear
+   chainer.links.ChildSumTreeLSTM
    chainer.links.Convolution2D
    chainer.links.ConvolutionND
    chainer.links.Deconvolution2D
@@ -36,6 +37,7 @@ Learnable connections
    chainer.links.Linear
    chainer.links.LSTM
    chainer.links.MLPConvolution2D
+   chainer.links.NaryTreeLSTM
    chainer.links.NStepBiGRU
    chainer.links.NStepBiLSTM
    chainer.links.NStepBiRNNReLU
@@ -48,16 +50,6 @@ Learnable connections
    chainer.links.StatefulGRU
    chainer.links.StatefulPeepholeLSTM
    chainer.links.StatelessLSTM
-
-ChildSumTreeLSTM
-~~~~~~~~~~~~~~~~
-.. autoclass:: ChildSumTreeLSTM
-   :members:
-
-NaryTreeLSTM
-~~~~~~~~~~~~
-.. autoclass:: NaryTreeLSTM
-   :members:
 
 Activation/loss/normalization functions with parameters
 -------------------------------------------------------
