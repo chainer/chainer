@@ -1,6 +1,6 @@
-************************
-Chainer Reference Manual
-************************
+****************
+Reference Manual
+****************
 
 .. module:: chainer
 
