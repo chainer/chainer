@@ -2,11 +2,12 @@ import numpy
 
 from chainer import cuda
 from chainer import function
+from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
 
 
-class Exp(function.Function):
+class Exp(function_node.FunctionNode):
 
     @property
     def label(self):
@@ -26,13 +27,14 @@ class Exp(function.Function):
         self.retain_outputs((0,))
         return cuda.cupy.exp(x[0]),
 
-    def backward(self, x, gy):
-        return utils.force_array(self.output_data[0] * gy[0]),
+    def backward(self, indexes, gy):
+        y = self.get_retained_outputs()[0]
+        return y * gy[0],
 
 
 def exp(x):
     """Elementwise exponential function."""
-    return Exp()(x)
+    return Exp().apply((x,))[0]
 
 
 class Log(function.Function):
