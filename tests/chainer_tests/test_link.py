@@ -457,9 +457,9 @@ class TestChain(unittest.TestCase):
             self.c1.l1 = self.l1
         with testing.assert_warns(DeprecationWarning):
             self.c1.add_link('l2', self.l2)
-        with testing.assert_warns(DeprecationWarning):
-            self.c2 = chainer.Chain(c1=self.c1)
+        self.c2 = chainer.Chain()
         with self.c2.init_scope():
+            self.c2.c1 = self.c1
             self.c2.l3 = self.l3
 
     def test_init(self):
