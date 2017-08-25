@@ -62,7 +62,7 @@ class Softmax(function_node.FunctionNode):
         return y,
 
     def backward(self, indexes, grad_outputs):
-        y = self.output_data[0]
+        y = self.get_retained_outputs()[0].data
         return _SoftmaxGrad(y, self.axis).apply(grad_outputs)
 
 
