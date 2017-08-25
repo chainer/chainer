@@ -72,9 +72,8 @@ class _SoftmaxGrad(function_node.FunctionNode):
         self.y = y
         self.axis = axis
 
-    def forward(self, inputs):
+    def forward(self, gy):
         y = self.y
-        gy, = inputs
         xp = cuda.get_array_module(*y)
         if xp is not numpy and chainer.should_use_cudnn('>=auto'):
             oz_dtype = 'd' if y[0].dtype == 'd' else 'f'
