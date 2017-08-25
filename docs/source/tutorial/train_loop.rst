@@ -76,7 +76,10 @@ The code below shows how to create a :class:`~chainer.iterators.SerialIterator` 
     :hide:
 
     from chainer.datasets import mnist
-    train, test = mnist.get_mnist(withlabel=True, ndim=1)
+    # This is a dummy code which is equivalent to this code
+    # train, test = mnist.get_mnist(withlabel=True, ndim=1)
+    train = [(np.zeros((784,), 'f'), np.zeros((), 'f'))]
+    test = [(np.zeros((784,), 'f'), np.zeros((), 'f'))]
 
 .. testcode::
 
