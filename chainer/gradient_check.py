@@ -333,13 +333,13 @@ def check_backward(func, x_data, y_grad, params=(),
         gxi = x.grad.ravel()
         if dtype is not None:
             gxi = gxi.astype(dtype, copy=False)
-        gx_accum += gxi.dot(direction)
+        gx_accum += gxi.dot(direction.ravel())
 
     for gpi, direction in six.moves.zip(params_grad, param_directions):
         gpi = gpi.ravel()
         if dtype is not None:
             gpi = gpi.astype(dtype, copy=False)
-        gx_accum += gpi.dot(direction)
+        gx_accum += gpi.dot(direction.ravel())
 
     testing.assert_allclose(gx, gx_accum, atol=atol, rtol=rtol)
 
