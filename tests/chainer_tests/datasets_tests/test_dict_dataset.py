@@ -40,10 +40,49 @@ class TestDictDataset(unittest.TestCase):
         with self.assertRaises(ValueError):
             datasets.DictDataset(x=self.x, z=self.z)
 
-    def test_dict_dtaset_overrun(self):
+    def test_dict_dataset_overrun(self):
         dd = datasets.DictDataset(x=self.x, y=self.y)
         with self.assertRaises(IndexError):
             dd[3]
+
+    def test_dict_dataset_features(self):
+        dd = datasets.DictDataset(x=self.x, y=self.y)
+
+        fy = dd.features[:, 'y']
+        self.assertTrue((self.y == fy).all())
+        del fy
+
+        fx = dd.features[:, 'x']
+        self.assertTrue((self.x == fx).all())
+        del fx
+
+        fx, fy = dd.features[:, ['x', 'y']]
+        self.assertTrue((self.x == fx).all())
+        self.assertTrue((self.y == fy).all())
+        del fx, fy
+
+        fx, fy = dd.features[:2, ['x', 'y']]
+        self.assertTrue((self.x[:2] == fx).all())
+        self.assertTrue((self.y[:2] == fy).all())
+        del fx, fy
+
+        fx = dd.features[[True, False, True], ['x']]
+        self.assertTrue((self.x[[0, 2]] == fx).all())
+        del fx
+
+        with self.assertRaises(TypeError):
+            # features key order is not guaranteed,
+            # The order of returned value fx, fy is ambiguous,
+            #  so slice index access is not supported
+            fx, fy = dd.features[:, :]
+        with self.assertRaises(TypeError):
+            fx, fy = dd.features[:1]
+        with self.assertRaises(IndexError):
+            # 3 is out of range
+            fx = dd.features[3, 'x']
+        with self.assertRaises(IndexError):
+            # 'w' is not in the key
+            fw = dd.features[1, 'w']
 
 
 testing.run_module(__name__, __file__)

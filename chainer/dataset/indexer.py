@@ -28,9 +28,18 @@ class BaseFeaturesIndexer(BaseIndexer):
     dataset is initilized with otherformat (e.g. list)
     
     """
-    def __init__(self, dataset, *args, **kwargs):
+    def __init__(self, dataset, *args, access_feature_by_key=False, **kwargs):
         super(BaseFeaturesIndexer, self).__init__(*args, **kwargs)
         self.dataset = dataset
+        self.access_feature_by_key = access_feature_by_key
+
+    @property
+    def features_keys(self):
+        """Returns all the keys of features
+
+        This method is necessary only when `access_feature_by_key` is `True`. 
+        """
+        raise NotImplementedError
 
     @property
     def features_length(self):
@@ -69,53 +78,48 @@ class BaseFeaturesIndexer(BaseIndexer):
         """
         raise NotImplementedError
 
-#    def extract_example(self, index, features_list):
-#        """Extracts `index`-th example of `features_list`
-#
-#        Args:
-#            index (int or slice or list or numpy.ndarray):
-#            example should be extracted according to this index
-#            features_list (list):
-#
-#        Returns: extracted features. They will be numpy array, even though the
-#        dataset is initialized with other format (e.g. list)
-#
-#        """
-#        # row_index must be one dimensional index
-#        if isinstance(index, slice):
-#            try:
-#                # Accessing by slice, which is much efficient
-#                res = [numpy.asarray(data[index]) for data in features_list]
-#            except:
-#                print('[DEBUG] slice index access failed...')
-#                # Accessing by each index, copy occurs
-#                current, stop, step = index.indices(len(features_list[0]))
-#                res = [numpy.asarray([data[i] for i in
-#                                      six.moves.range(current, stop, step)])
-#                       for data in features_list]
-#        elif isinstance(index, (list, numpy.ndarray)):
-#            print('[DEBUG] type', type(index[0]))
-#            if isinstance(index[0], (bool, numpy.bool, numpy.bool_)):
-#                # Access by bool flag list
-#                assert len(index) == len(features_list[0])
-#                res = [numpy.asarray(data[index])
-#                       for data in features_list]
-#            else:
-#                if len(index) == 1:
-#                    res = [data[index] for data in features_list]
-#                else:
-#                    res = [numpy.concatenate([data[i:i+1] for i in index], axis=0)
-#                           for data in features_list]
-#                    #res = numpy.asarray([[data[i] for i in index]
-#                    #                     for data in features_list])
-#        else:
-#            res = [numpy.asarray(data[index]) for data in features_list]
-#        if len(res) == 1:
-#            return res[0]
-#        else:
-#            return res
-#
+    def create_feature_index_list(self, feature_index):
+        if isinstance(feature_index, slice):
+            feature_index_list = numpy.arange(
+                *feature_index.indices(self.features_length)
+            )
+        elif isinstance(feature_index, (list, numpy.ndarray)):
+            if isinstance(feature_index[0],
+                          (bool, numpy.bool, numpy.bool_)):
+                if len(feature_index) != self.features_length:
+                    raise ValueError('Feature index wrong length {} instead of '
+                                     '{}'.format(len(feature_index),
+                                                 self.features_length))
+                feature_index_list = numpy.argwhere(feature_index
+                                                    ).ravel()
+            else:
+                feature_index_list = feature_index
+        else:
+            # assuming int type
+            feature_index_list = [feature_index]
+        return feature_index_list
+
+    def create_feature_index_list_by_key(self, feature_index):
+        if isinstance(feature_index, slice):
+            raise TypeError('Accessing feature by slice is not supported')
+        elif isinstance(feature_index, (list, numpy.ndarray)):
+            feature_index_list = feature_index
+        else:
+            feature_index_list = [feature_index]
+        return feature_index_list
+
+    def preprocess(self):
+        pass
+
+    def postprocess(self):
+        pass
+
     def __getitem__(self, item):
+        self.preprocess()
+        if self.access_feature_by_key:
+            create_feature_index_list_fn = self.create_feature_index_list_by_key
+        else:
+            create_feature_index_list_fn = self.create_feature_index_list
         if isinstance(item, tuple):
             index_dim = len(item)
             # multi dimensional access
@@ -123,67 +127,44 @@ class BaseFeaturesIndexer(BaseIndexer):
                 # currently, this is not expected...
                 print('[WARNING], unexpected case...')
                 data_index = item[0]
-                feature_index_list = numpy.arange(self.features_length)
-                #features_list = [self.extract_feature(j) for j in
-                #                 range(self.features_length)]
-                #return self.extract_example(item, features_list)
+                feature_index_list = create_feature_index_list_fn(slice(None))
+                # feature_index_list = numpy.arange(self.features_length)
             elif index_dim == 2:
-                # accessed by data.ix[:, 1]
-
                 data_index, feature_index = item
-                #row_index = item[0]
-                #feature_index = item[1]
-                if isinstance(feature_index, slice):
-                    feature_index_list = numpy.arange(
-                        *feature_index.indices(self.features_length)
-                    )
-
-                    #current, stop, step = feature_index.indices(self.features_length)
-                    #col_datasets = [self.extract_feature(col) for col in
-                    #                six.moves.range(current, stop, step)]
-                elif isinstance(feature_index, (list, numpy.ndarray)):
-                    if isinstance(feature_index[0],
-                                  (bool, numpy.bool, numpy.bool_)):
-                        assert len(feature_index) == self.features_length
-                        feature_index_list = numpy.argwhere(feature_index
-                                                            ).ravel()
-
-                        #col_datasets = []
-                        #for col, flag in enumerate(feature_index):
-                        #    if flag:
-                        #        col_datasets.append(self.extract_feature(col))
-                    else:
-                        feature_index_list = feature_index
-                        #col_datasets = [self.extract_feature(col) for col
-                        #                in feature_index]
-                else:
-                    # assuming int type
-                    feature_index_list = [feature_index]
-                    #col_datasets = [self.extract_feature(feature_index)]
-                #return self.extract_example(row_index, col_datasets)
+                feature_index_list = create_feature_index_list_fn(
+                    feature_index
+                )
             else:
                 raise IndexError('too many indices for features')
-                #print('[Error] out of range, invalid index dimension')
         else:
             data_index = item
-            feature_index_list = numpy.arange(self.features_length)
-            #features_list = [self.extract_feature(j) for j in
-            #                 range(self.features_length)]
-            #return self.extract_example(item, features_list)
+            feature_index_list = create_feature_index_list_fn(slice(None))
+            #feature_index_list = numpy.arange(self.features_length)
         if len(feature_index_list) == 1:
-            return self._extract_feature(data_index, feature_index_list[0])
+            ret = self._extract_feature(data_index, feature_index_list[0])
         else:
-            return (self._extract_feature(data_index, j) for j in
-                    feature_index_list)
+            ret = (self._extract_feature(data_index, j) for j in
+                   feature_index_list)
+        self.postprocess()
+        return ret
 
     def _extract_feature(self, data_index, j):
         """Format `data_index` and call proper method to extract feature.
         
         Args:
             data_index (int, slice, list or numpy.ndarray):
-            j (int):
+            j (int or key):
 
         """
+        # type check
+        if self.access_feature_by_key:
+            if j not in self.features_keys:
+                raise IndexError('index {} is not found in feature_keys '
+                                 .format(j))
+        else:
+            if j >= self.features_length:
+                raise IndexError('index {} is out of bounds for axis 1 with '
+                                 'size {}'.format(j, self.features_length))
         if isinstance(data_index, slice):
             try:
                 return self.extract_feature_by_slice(data_index, j)
@@ -199,7 +180,10 @@ class BaseFeaturesIndexer(BaseIndexer):
         elif isinstance(data_index, (list, numpy.ndarray)):
             if isinstance(data_index[0], (bool, numpy.bool, numpy.bool_)):
                 # Access by bool flag list
-                assert len(data_index) == self.dataset_length
+                if len(data_index) != self.dataset_length:
+                    raise ValueError('Feature index wrong length {} instead of '
+                                     '{}'.format(len(data_index),
+                                                 self.dataset_length))
                 data_index = numpy.argwhere(data_index).ravel()
 
             if len(data_index) == 1:

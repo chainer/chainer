@@ -73,7 +73,6 @@ class ImageDataset(dataset_mixin.DatasetMixin):
         self._paths = paths
         self._root = root
         self._dtype = dtype
-        self._features_indexer = ImageDatasetFeaturesIndexer(self._paths)
 
     def __len__(self):
         return len(self._paths)
@@ -88,29 +87,12 @@ class ImageDataset(dataset_mixin.DatasetMixin):
         return image.transpose(2, 0, 1)
 
     @property
-    def features(self):
-        """Extract features according to the specified index.
-
-        - axis 0 is used to specify dataset id (`i`-th dataset)
-        - axis 1 is used to specify feature index
-
-        """
-        return self._features_indexer
-
-
-class ImageDatasetFeaturesIndexer(BaseFeaturesIndexer):
-    """FeaturesIndexer for ImageDataset"""
-
-    def __init__(self, paths):
-        super(ImageDatasetFeaturesIndexer, self).__init__()
-        self.paths = paths
-
-    @property
     def features_length(self):
         return 1
 
-    def extract_feature(self, j):
-        return self.datasets[j]
+    def extract_feature(self, i, j):
+        # j is always 0, return is same as `get_example`
+        return self.get_example(i)
 
 
 class LabeledImageDataset(dataset_mixin.DatasetMixin):
@@ -183,6 +165,19 @@ class LabeledImageDataset(dataset_mixin.DatasetMixin):
             image = image[:, :, numpy.newaxis]
         label = numpy.array(int_label, dtype=self._label_dtype)
         return image.transpose(2, 0, 1), label
+
+    @property
+    def features_length(self):
+        return 2
+
+    def extract_feature(self, i, j):
+        if j == 1:
+            # Extract label feature
+            int_label = self._pairs[i]
+            label = numpy.array(int_label, dtype=self._label_dtype)
+            return label
+        else:
+            return self.get_example(i)[j]
 
 
 def _check_pillow_availability():

@@ -1,4 +1,7 @@
+import numpy
 import six
+
+from chainer.dataset.indexer import BaseFeaturesIndexer
 
 
 class DictDataset(object):
@@ -26,6 +29,7 @@ class DictDataset(object):
                     'dataset length conflicts at "{}"'.format(key))
         self._datasets = datasets
         self._length = length
+        self._features_indexer = DictDatasetFeaturesIndexer(self)
 
     def __getitem__(self, index):
         batches = {key: dataset[index]
@@ -39,3 +43,50 @@ class DictDataset(object):
 
     def __len__(self):
         return self._length
+
+    @property
+    def features(self):
+        """Extract features according to the specified index.
+
+        - axis 0 is used to specify dataset id (`i`-th dataset)
+        - axis 1 is used to specify feature label
+
+        .. admonition:: Example
+
+           >>> from chainer.datasets import DictDataset
+           >>> dd = DictDataset(x=[0, 1, 2], t=[0, 1, 4])
+           >>> targets = dd.features[:, 't']
+           >>> print('targets', targets)  # We can extract only target value
+           targets [0, 1, 4]
+
+        """
+        return self._features_indexer
+
+
+class DictDatasetFeaturesIndexer(BaseFeaturesIndexer):
+    """FeaturesIndexer for TupleDataset"""
+
+    def __init__(self, dataset):
+        """
+
+        Args:
+            dataset (TupleDataset): TupleDataset instance
+        """
+        super(DictDatasetFeaturesIndexer, self).__init__(
+            dataset, access_feature_by_key=True
+        )
+        self.datasets = dataset._datasets
+
+    @property
+    def features_keys(self):
+        return self.datasets.keys()
+
+    @property
+    def features_length(self):
+        return len(self.datasets)
+
+    def extract_feature_by_slice(self, slice_index, j):
+        return self.datasets[j][slice_index]
+
+    def extract_feature(self, i, j):
+        return self.datasets[j][i]

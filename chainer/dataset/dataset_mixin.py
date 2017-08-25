@@ -1,6 +1,9 @@
 import numpy
 import six
 
+from chainer.dataset.indexer import BaseFeaturesIndexer, \
+    ExtractBySliceNotSupportedError
+
 
 class DatasetMixin(object):
 
@@ -15,6 +18,7 @@ class DatasetMixin(object):
     :meth:`__len__` operator explicitly.
 
     """
+    _features_indexer = None
 
     def __getitem__(self, index):
         """Returns an example or a sequence of examples.
@@ -84,3 +88,68 @@ class DatasetMixin(object):
 
         """
         raise NotImplementedError
+
+    @property
+    def features_length(self):
+        """Feature size
+        
+        It should return the number of variables returned by `get_example`.
+
+        """
+        raise NotImplementedError
+
+    def extract_feature_by_slice(self, slice_index, j):
+        """This method may be override to support efficient feature extraction.
+        
+        If not override, `extract_feature` is used instead.
+
+        """
+        raise ExtractBySliceNotSupportedError
+
+    def extract_feature(self, i, j):
+        """Extracts `i`-th data's `j`-th feature
+        
+        This method may be override to support efficient feature extraction.
+
+        Args:
+            i (int): `i`-th data to be extracted
+            j (int): `j`-th feature to be extracted
+
+        Returns: feature
+
+        """
+        return self.get_example(i)[j]
+
+    @property
+    def features(self):
+        if self._features_indexer is None:
+            self._features_indexer = DatasetMixinFeaturesIndexer(self)
+        return self._features_indexer
+
+
+class DatasetMixinFeaturesIndexer(BaseFeaturesIndexer):
+    """FeaturesIndexer for DatasetMixin"""
+
+    def __init__(self, dataset):
+        """
+
+        Args:
+            dataset (DatasetMixin): DatasetMixin instance
+        """
+        super(DatasetMixinFeaturesIndexer, self).__init__(dataset)
+
+    @property
+    def features_length(self):
+        return len(self.dataset.features_length)
+
+    def extract_feature_by_slice(self, slice_index, j):
+        return self.dataset.extract_feature_by_slice(slice_index, j)
+
+    def extract_feature(self, i, j):
+        return self.dataset.extract_feature(i, j)
+
+    def preprocess(self):
+        pass
+
+    def postprocess(self):
+        pass
