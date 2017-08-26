@@ -1,5 +1,5 @@
 Use Chainer for various tasks
--------------------------
+------------------------------
 
 .. toctree::
    :maxdepth: 2

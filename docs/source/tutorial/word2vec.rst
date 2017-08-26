@@ -7,11 +7,11 @@ Word2Vec: Obtain word embeddings
 ================
 
 **Word2vec** is the tool for generating the distributed representation of words.
-When the tool assigns a real-valued vector to each word, the closer
-the meanings of the words, the greater similarity the vectors will indicate.
-As you know, **distributed representation** is assigning a real number vector for
-each object and representing the object by the vector. When representing a word
-by distributed representation, we call it **distributed representation of words**
+Word2vec is proposed by Mikolov et al[1]. When the tool assigns a real-valued vector
+to each word, the closer the meanings of the words, the greater similarity the
+vectors will indicate. As you know, **distributed representation** is assigning a
+real number vector for each object and representing the object by the vector. When
+representing a word by distributed representation, we call it **distributed representation of words**
 or **word embeddings**. In this tutorial we will use the term distributed
 representation of words.
 
@@ -26,7 +26,7 @@ will Word2vec use in order to learn the vectors of meanings? The words
 Word2vec learns the similarity of word meanings from simple information. It learns
 from a sequence of words in sentences. The idea is that the meaning of the word is
 determined by the words around it. This idea is based on **distributional hypothesis**
-[1]. The word to be learned is called the **Center Word**, and the words around it
+[2]. The word to be learned is called the **Center Word**, and the words around it
 are called
 **Context Words**. Depending on the window size ``c``, the number of Context Words
 will change.
@@ -364,6 +364,8 @@ Search the similar words
 
 5. Reference
 =============
-* [1] `Distributional Hypothesis <https://aclweb.org/aclwiki/Distributional_Hypothesis>`_
+* [1] `Mikolov, Tomas; et al. "Efficient Estimation of Word Representations in Vector Space". arXiv:1301.3781 <https://arxiv.org/abs/1301.3781>`_
+* [2] `Distributional Hypothesis <https://aclweb.org/aclwiki/Distributional_Hypothesis>`_
+
 
 
