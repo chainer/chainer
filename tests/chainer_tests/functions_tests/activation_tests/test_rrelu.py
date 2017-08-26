@@ -10,6 +10,9 @@ from chainer import testing
 from chainer.testing import attr
 from chainer.testing import condition
 
+def _rrelu(x, creator):
+    return x * numpy.where(x < 0, creator.r, 1)
+
 
 @testing.parameterize(*testing.product({
     'shape': [(3, 2), (5, 6)],
@@ -30,15 +33,14 @@ class TestRReLU(unittest.TestCase):
         if self.l >= self.u:
             self.l, self.u = self.u, self.l
         self.check_forward_options = {}
-        self.check_backward_options = {'dtype': numpy.float64}
+        self.check_backward_options = {}
         if self.dtype == numpy.float16:
             self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
-            self.check_backward_options = {
-                'dtype': numpy.float64, 'atol': 5e-4, 'rtol': 5e-3}
+            self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
 
     def check_forward(self, x_data):
         x = chainer.Variable(x_data)
-        y = functions.randomized_leaky_relu(x, l=self.l, u=self.u)
+        y = functions.rrelu(x, l=self.l, u=self.u)
         self.assertEqual(y.data.dtype, self.dtype)
 
         expected = self.x.copy()
@@ -59,11 +61,17 @@ class TestRReLU(unittest.TestCase):
         self.check_forward(cuda.to_gpu(self.x))
 
     def check_backward(self, x_data, y_grad):
-        chainer.config.train = False
-        gradient_check.check_backward(
-            functions.RReLU(self.l, self.u), x_data, y_grad,
-            **self.check_backward_options)
-        chainer.config.train = True
+        x = chainer.Variable(x_data)
+        y = functions.rrelu(x, self.l, self.u)
+        creator = y.creator
+        y.grad = y_grad
+        y.backward()
+
+        def f():
+            y = _rrelu(x_data, creator)
+            return y,
+        gx, = gradient_check.numerical_grad(f, (x_data, ), (y.grad, ), eps=0.1)
+        testing.assert_allclose(gx, x.grad, **self.check_backward_options)
 
     @condition.retry(10)
     def test_backward_cpu(self):
