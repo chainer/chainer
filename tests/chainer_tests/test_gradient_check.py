@@ -332,6 +332,7 @@ class Ident(chainer.Function):
 }))
 class TestCheckBackward(unittest.TestCase):
 
+    @condition.retry(3)
     def test_multiple_output(self):
         x1 = numpy.array([1], dtype='f')
         x2 = numpy.array([1], dtype='f')
@@ -345,6 +346,7 @@ class TestCheckBackward(unittest.TestCase):
 
         gradient_check.check_backward(f, (x1, x2), (g1, g2), dtype=self.dtype)
 
+    @condition.retry(3)
     def test_no_grads_for_not_float(self):
         x1 = numpy.array([1], dtype='f')
         x2 = numpy.array([0, 1], dtype='i')  # grad check for this is skipped
@@ -354,8 +356,9 @@ class TestCheckBackward(unittest.TestCase):
             s = Ident()(x)
             return s,
 
-        gradient_check.check_backward(f, (x1, x2), g1, dtype='d')
+        gradient_check.check_backward(f, (x1, x2), g1, dtype=self.dtype)
 
+    @condition.retry(3)
     def test_no_grads_option(self):
         x1 = numpy.array([1], dtype='f')
         x2 = numpy.array([1], dtype='f')  # grad check for this is skipped
