@@ -15,8 +15,8 @@ class Linear(link.Link):
     The weight matrix ``W`` is initialized with i.i.d. Gaussian samples, each
     of which has zero mean and deviation :math:`\\sqrt{1/\\text{in_size}}`. The
     bias vector ``b`` is of size ``out_size``. Each element is initialized with
-    the ``bias`` value. If ``nobias`` argument is set to True, then this link
-    does not hold a bias vector.
+    the ``bias`` value. If ``nobias`` argument is set to ``True``, then this
+    link does not hold a bias vector.
 
     Args:
         in_size (int or None): Dimension of input vectors. If ``None``,
@@ -56,7 +56,7 @@ class Linear(link.Link):
             (1, 10)
 
         2. Omit ``in_size`` (give the output size only as the first argument)
-                or fill it with ``None``:
+           or fill it with ``None``:
 
             In this case, the size of second axis of ``x`` is used as the
             input size. So the below two cases are the same.

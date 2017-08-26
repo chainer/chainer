@@ -193,9 +193,7 @@ class FunctionNode(object):
             A tuple of output :class:`Variable` objects.
 
         """
-        input_vars = [x if isinstance(x, variable.Variable)
-                      else variable.Variable(x, requires_grad=False)
-                      for x in inputs]
+        input_vars = [chainer.as_variable(x) for x in inputs]
         in_data = tuple([x.data for x in input_vars])
         requires_grad = any([x.requires_grad for x in input_vars])
 
@@ -229,7 +227,8 @@ class FunctionNode(object):
             if any(out.dtype.kind == 'f' and
                    cuda.get_array_module(out).isnan(out).any()
                    for out in outputs):
-                msg = 'NaN is detected on forward computation'
+                msg = ('NaN is detected on forward computation of '
+                       '{}'.format(self.label))
                 raise RuntimeError(msg)
 
         ret = tuple([variable.Variable(y, requires_grad=requires_grad)
@@ -565,7 +564,7 @@ class FunctionNode(object):
         """Registers a function hook.
 
         Args:
-            hook (~chainer.function.FunctionHook): Function hook to be
+            hook (~chainer.FunctionHook): Function hook to be
                 registered.
             name (str): Name of the function hook. The name must be unique
                 among function hooks registered to this function. If ``None``,

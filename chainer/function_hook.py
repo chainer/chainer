@@ -4,34 +4,34 @@ import chainer
 class FunctionHook(object):
     """Base class of hooks for Functions.
 
-    :class:`~chainer.function.FunctionHook` is an callback object
+    :class:`~chainer.FunctionHook` is an callback object
     that is registered to :class:`~chainer.Function`.
     Registered function hooks are invoked before and after
     forward and backward operations of each function.
 
     Function hooks that derive :class:`FunctionHook` are required
     to implement four methods:
-    :meth:`~chainer.function.FunctionHook.forward_preprocess`,
-    :meth:`~chainer.function.FunctionHook.forward_postprocess`,
-    :meth:`~chainer.function.FunctionHook.backward_preprocess`, and
-    :meth:`~chainer.function.FunctionHook.backward_postprocess`.
+    :meth:`~chainer.FunctionHook.forward_preprocess`,
+    :meth:`~chainer.FunctionHook.forward_postprocess`,
+    :meth:`~chainer.FunctionHook.backward_preprocess`, and
+    :meth:`~chainer.FunctionHook.backward_postprocess`.
     By default, these methods do nothing.
 
     Specifically, when :meth:`~chainer.Function.__call__`
     method of some function is invoked,
-    :meth:`~chainer.function.FunctionHook.forward_preprocess`
-    (resp. :meth:`~chainer.function.FunctionHook.forward_postprocess`)
+    :meth:`~chainer.FunctionHook.forward_preprocess`
+    (resp. :meth:`~chainer.FunctionHook.forward_postprocess`)
     of all function hooks registered to this function are called before
     (resp. after) forward propagation.
 
     Likewise, when :meth:`~chainer.Variable.backward` of some
     :class:`~chainer.Variable` is invoked,
-    :meth:`~chainer.function.FunctionHook.backward_preprocess`
-    (resp. :meth:`~chainer.function.FunctionHook.backward_postprocess`)
+    :meth:`~chainer.FunctionHook.backward_preprocess`
+    (resp. :meth:`~chainer.FunctionHook.backward_postprocess`)
     of all function hooks registered to the function which holds this variable
     as a gradient are called before (resp. after) backward propagation.
 
-    There are two ways to register :class:`~chainer.function.FunctionHook`
+    There are two ways to register :class:`~chainer.FunctionHook`
     objects to :class:`~chainer.Function` objects.
 
     First one is to use ``with`` statement. Function hooks hooked
@@ -43,11 +43,12 @@ class FunctionHook(object):
         The following code is a simple example in which
         we measure the elapsed time of a part of forward propagation procedure
         with :class:`~chainer.function_hooks.TimerHook`, which is a subclass of
-        :class:`~chainer.function.FunctionHook`.
+        :class:`~chainer.FunctionHook`.
 
         >>> from chainer import function_hooks
         >>> class Model(chainer.Chain):
         ...   def __init__(self):
+        ...     super(Model, self).__init__()
         ...     with self.init_scope():
         ...       self.l = L.Linear(10, 10)
         ...   def __call__(self, x1):
