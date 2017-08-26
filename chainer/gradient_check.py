@@ -132,20 +132,22 @@ def check_backward(func, x_data, y_grad, params=(),
     :func:`numerical_grad` to calculate numerically the gradients and compares
     the types of gradients with :func:`chainer.testing.assert_allclose`.
 
-    To reduce computational time, it uses a function
+    To reduce computational time, it uses directional derivative along a
+    rando vector. A function
     :math:`g: \\mathbb{R} \\rightarrow \\mathbb{R}^n` defined as
-    :math:`g(\\alpha) = f(\\alpha x)`, where :math:`\\alpha \\in \\mathbb{R}`
-    and :math:`f` is a function which actually
-    you want to test.
+    :math:`g(\\delta) = f(x + \\delta r)`, where
+    :math:`\\delta \\in \\mathbb{R}`, :math:`r \\in \\mathbb{R}^n`
+    is a random vector
+    and :math:`f` is a function which actually you want to test.
     Its gradient is
 
     .. math::
-       g'(\\alpha) = f'(\\alpha x) \\cdot x.
+       g'(\\delta) = f'(x + \\delta r) \\cdot r.
 
-    When :math:`\\alpha = 1`, :math:`g'(1) = f'(x) \\cdot x`.
-    So :math:`g'(1)` is calculated with :func:`numerical_grad` and
+    When :math:`\\delta = 0`, :math:`g'(0) = f'(x) \\cdot r`.
+    So :math:`g'(0)` is calculated with :func:`numerical_grad` and
     compared with dot product of the gradient :math:`f` and
-    :math:`x`.
+    :math:`r`.
 
     If input objects (``x1_data`` or/and ``x2_data`` in this example) represent
     integer variables, their gradients are ignored.
@@ -287,7 +289,7 @@ def check_backward(func, x_data, y_grad, params=(),
 
     def g():
         # This functions is called twice in `numerical_grad`.
-        # `one` is `1 + epsilon` or `1 - epsilon` in these calls.
+        # `delta` is `epsilon` or `-epsilon` in these calls.
         # See the document of `numerical_grad`.
         for skip, cx, data, direction in six.moves.zip(
                 no_grads, casted_xs, casted_data, xs_directions):
