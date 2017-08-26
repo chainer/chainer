@@ -10,11 +10,12 @@ from chainer import testing
 from chainer.testing import attr
 from chainer.testing import condition
 
-def _rrelu(x, creator):
-    return x * numpy.where(x < 0, creator.r, 1)
+def _rrelu(x, creator, train):
+    return x * numpy.where(x < 0, creator.r if train else (creator.lower + creator.upper) / 2, 1) 
 
 
 @testing.parameterize(*testing.product({
+    'train': [True, False],
     'shape': [(3, 2), (5, 6)],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
@@ -40,13 +41,14 @@ class TestRReLU(unittest.TestCase):
 
     def check_forward(self, x_data):
         x = chainer.Variable(x_data)
+        chainer.config.train = self.train
         y = functions.rrelu(x, l=self.l, u=self.u)
         self.assertEqual(y.data.dtype, self.dtype)
 
         expected = self.x.copy()
         for i in numpy.ndindex(self.x.shape):
             if self.x[i] < 0:
-                expected[i] *= y.creator.r[i]
+                expected[i] *= y.creator.r[i] if self.train else (self.l+self.u)/2
 
         testing.assert_allclose(
             expected, y.data, **self.check_forward_options)
@@ -62,13 +64,14 @@ class TestRReLU(unittest.TestCase):
 
     def check_backward(self, x_data, y_grad):
         x = chainer.Variable(x_data)
+        chainer.config.train = self.train
         y = functions.rrelu(x, self.l, self.u)
         creator = y.creator
         y.grad = y_grad
         y.backward()
 
         def f():
-            y = _rrelu(x_data, creator)
+            y = _rrelu(x_data, creator, self.train)
             return y,
         gx, = gradient_check.numerical_grad(f, (x_data, ), (y.grad, ), eps=0.1)
         testing.assert_allclose(gx, x.grad, **self.check_backward_options)
