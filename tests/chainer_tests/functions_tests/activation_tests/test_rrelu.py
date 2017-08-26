@@ -10,8 +10,10 @@ from chainer import testing
 from chainer.testing import attr
 from chainer.testing import condition
 
+
 def _rrelu(x, creator, train):
-    return x * numpy.where(x < 0, creator.r if train else (creator.lower + creator.upper) / 2, 1) 
+    r = creator.r if train else (creator.lower + creator.upper) / 2
+    return x * numpy.where(x < 0, r, 1)
 
 
 @testing.parameterize(*testing.product({
@@ -48,7 +50,8 @@ class TestRReLU(unittest.TestCase):
         expected = self.x.copy()
         for i in numpy.ndindex(self.x.shape):
             if self.x[i] < 0:
-                expected[i] *= y.creator.r[i] if self.train else (self.l+self.u)/2
+                expected[i] *= y.creator.r[i] if self.train else (
+                    self.l + self.u) / 2
 
         testing.assert_allclose(
             expected, y.data, **self.check_forward_options)
