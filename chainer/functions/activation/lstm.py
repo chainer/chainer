@@ -180,13 +180,18 @@ class LSTMGrad(function.Function):
         c_prev, x, c, gc, gh = inputs
         ggc_prev, ggx = grads
 
-        gc_prev = xp.zeros_like(c_prev)
-        gx = xp.zeros_like(x)
-        gc_next = xp.zeros_like(c)
-        ggc = ggc_prev.copy()
-        ggh = xp.zeros_like(gh)
+        gc_prev = xp.empty_like(c_prev)
+        gx = xp.empty_like(x)
+        gc_next = xp.empty_like(c)
+        ggc = xp.empty_like(ggc_prev)
+        ggh = xp.empty_like(gh)
 
         batch = len(x)
+        gc_prev[batch:] = 0
+        gc_next[batch:] = 0
+        ggc[batch:] = ggc_prev[batch:]
+        ggh[batch:] = 0
+
         c_prev = c_prev[:batch]
         c = c[:batch]
         gc = gc[:batch]
