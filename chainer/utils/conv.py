@@ -20,11 +20,14 @@ def get_deconv_outsize(size, k, s, p, cover_all=False):
 
 
 def im2col_cpu(
-        img, kh, kw, sy, sx, ph, pw, pval=0, cover_all=False, dy=1, dx=1):
+        img, kh, kw, sy, sx, ph, pw, pval=0, cover_all=False, dy=1, dx=1,
+        out_h=None, out_w=None):
     n, c, h, w = img.shape
-    out_h = get_conv_outsize(h, kh, sy, ph, cover_all, dy)
+    if out_h is None:
+        out_h = get_conv_outsize(h, kh, sy, ph, cover_all, dy)
     assert out_h > 0, 'Height in the output should be positive.'
-    out_w = get_conv_outsize(w, kw, sx, pw, cover_all, dx)
+    if out_w is None:
+        out_w = get_conv_outsize(w, kw, sx, pw, cover_all, dx)
     assert out_w > 0, 'Width in the output should be positive.'
 
     img = numpy.pad(img,
@@ -43,11 +46,14 @@ def im2col_cpu(
     return col
 
 
-def im2col_gpu(img, kh, kw, sy, sx, ph, pw, cover_all=False, dy=1, dx=1):
+def im2col_gpu(img, kh, kw, sy, sx, ph, pw, cover_all=False, dy=1, dx=1,
+               out_h=None, out_w=None):
     n, c, h, w = img.shape
-    out_h = get_conv_outsize(h, kh, sy, ph, cover_all, dy)
+    if out_h is None:
+        out_h = get_conv_outsize(h, kh, sy, ph, cover_all, dy)
     assert out_h > 0, 'Height in the output should be positive.'
-    out_w = get_conv_outsize(w, kw, sx, pw, cover_all, dx)
+    if out_w is None:
+        out_w = get_conv_outsize(w, kw, sx, pw, cover_all, dx)
     assert out_w > 0, 'Width in the output should be positive.'
 
     col = cuda.cupy.empty((n, c, kh, kw, out_h, out_w), dtype=img.dtype)

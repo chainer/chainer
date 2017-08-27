@@ -60,10 +60,12 @@ class TestVariable(unittest.TestCase):
         self.c = np.arange(self.size).reshape(self.c_shape).astype(np.float32)
 
     def check_attributes(self, gpu):
-        x = self.x
+        a = self.x
         if gpu:
-            x = cuda.to_gpu(x)
-        x = chainer.Variable(x)
+            a = cuda.to_gpu(a)
+        x = chainer.Variable(a)
+        self.assertIs(x.data, a)
+        self.assertIs(x.array, a)
         self.assertEqual(x.shape, self.x.shape)
         self.assertEqual(x.ndim, self.x.ndim)
         self.assertEqual(x.size, self.x.size)
@@ -1146,6 +1148,21 @@ class TestVariableBackwardErrorTraceback(unittest.TestCase):
     def test_traceback_gpu(self):
         self.check_traceback(cuda.to_gpu(self.x))
 
+    def test_raise(self):
+        x = np.array([1], np.float32)
+        x = chainer.Variable(x)
+        y = F.identity(x)
+        y.grad = np.array([np.nan], np.float32)
+        with self.assertRaises(RuntimeError):
+            y.backward()
+
+    def test_int(self):
+        x = np.array([1], np.int)
+        x = chainer.Variable(x)
+        y = F.identity(x)
+        y.grad = np.array([0], np.int)
+        y.backward()
+
 
 @testing.parameterize(*testing.product({
     'in_shape': [(4, 3, 2)],
@@ -1390,6 +1407,28 @@ class TestVariableDoubleBackward(unittest.TestCase):
         y.backward()
         with self.assertRaises(RuntimeError):
             x.grad_var.backward()
+
+
+class TestAsVariable(unittest.TestCase):
+
+    def check_to_variable_from_array(self, x):
+        y = chainer.as_variable(x)
+        self.assertIsInstance(y, chainer.Variable)
+        self.assertIs(y.data, x)
+        self.assertFalse(y.requires_grad)
+
+    def test_to_variable_from_numpy(self):
+        self.check_to_variable_from_array(np.empty(1, np.float32))
+
+    @attr.gpu
+    def test_to_variable_from_cupy(self):
+        self.check_to_variable_from_array(cuda.cupy.empty(1, np.float32))
+
+    def test_to_variable_from_variable(self):
+        x = chainer.Variable(np.array(1, np.float32))
+        y = chainer.as_variable(x)
+        self.assertIs(x, y)
+        self.assertTrue(y.requires_grad)
 
 
 testing.run_module(__name__, __file__)

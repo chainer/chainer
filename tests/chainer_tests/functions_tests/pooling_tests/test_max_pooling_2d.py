@@ -166,10 +166,11 @@ class TestMaxPooling2D(unittest.TestCase):
         func.backward((0,), (self.gy,))
 
     def check_double_backward(self, x_data, y_grad, x_grad_grad,
-                              use_cudnn='alyways'):
+                              use_cudnn='always'):
         def f(x):
-            return functions.max_pooling_2d(
+            y = functions.max_pooling_2d(
                 x, 3, stride=2, pad=1, cover_all=self.cover_all)
+            return y * y
         with chainer.using_config('use_cudnn', use_cudnn):
             gradient_check.check_double_backward(
                 f, x_data, y_grad, x_grad_grad,
