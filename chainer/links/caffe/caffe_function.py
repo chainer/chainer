@@ -358,6 +358,12 @@ class CaffeFunction(link.Chain):
             size, decay=decay, eps=eps, use_gamma=False, use_beta=False)
         func.avg_mean.ravel()[:] = blobs[0].data
         func.avg_var.ravel()[:] = blobs[1].data
+
+        if len(blobs) == 3:
+            scaling_factor = blobs[2].data
+            func.avg_mean /= scaling_factor[0]
+            func.avg_var /= scaling_factor[0]
+
         with self.init_scope():
             setattr(self, layer.name, func)
 
