@@ -63,7 +63,7 @@ class GetItemGrad(function_node.FunctionNode):
             gx.scatter_add(self.slices, inputs[0])
         return gx,
 
-    def backwrad(self, indexes, ggx):
+    def backward(self, indexes, ggx):
         return GetItem(self.slices).apply(ggx)
 
 
