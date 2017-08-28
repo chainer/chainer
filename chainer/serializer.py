@@ -40,7 +40,8 @@ class AbstractSerializer(object):
 
         Args:
             key (str): Name of the serialization entry.
-            value (scalar, array, None, or str): Object to be (de)serialized.
+            value (scalar, :class:`numpy.ndarray`, :class:`cupy.ndarray`, \
+                None, or str): Object to be (de)serialized.
                 ``None`` is only supported by deserializers.
 
         Returns:
