@@ -285,6 +285,13 @@ def check_backward(func, x_data, y_grad, params=(),
         xp.random.uniform(-1, 1, x.shape).astype(dtype) for x in casted_xs]
     param_directions = [
         xp.random.uniform(-1, 1, x.shape).astype(dtype) for x in param_data]
+    # Use unit vector
+    norm = sum([xp.inner(x, x) for x in xs_directions]) + \
+        sum([xp.inner(x, x) for x in param_directions])
+    scale = 1. / norm
+    xs_directions = [x * scale for x in xs_directions]
+    param_directions = [x * scale for x in param_directions]
+
     delta = xp.array(0., dtype)
 
     def g():
