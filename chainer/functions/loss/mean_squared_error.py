@@ -1,7 +1,7 @@
 import numpy
 
 from chainer import function_node
-from chainer.functions.array import broadcast
+import chainer.functions
 from chainer.utils import type_check
 
 
@@ -35,7 +35,7 @@ class MeanSquaredError(function_node.FunctionNode):
         x0, x1 = self.get_retained_inputs()
         ret = []
         diff = x0 - x1
-        gy0 = broadcast.broadcast_to(gy[0], diff.shape)
+        gy0 = chainer.functions.broadcast_to(gy[0], diff.shape)
         gx0 = gy0 * diff * (2. / diff.size)
         if 0 in indexes:
             ret.append(gx0)
