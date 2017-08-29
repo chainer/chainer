@@ -104,13 +104,15 @@ class TestSoftmax(unittest.TestCase):
     def test_backward_gpu_no_cudnn(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy), 'never')
 
-    def check_double_backward(self, x_data, gy_data, ggx_data):
+    def check_double_backward(self, x_data, gy_data, ggx_data,
+                              use_cudnn='always'):
         def f(x):
             return functions.softmax(x, axis=self.axis)
 
-        gradient_check.check_double_backward(
-            f, (x_data,), (gy_data,), (ggx_data),
-            **self.check_backward_options)
+        with chainer.using_config('use_cudnn', use_cudnn):
+            gradient_check.check_double_backward(
+                f, (x_data,), (gy_data,), (ggx_data),
+                **self.check_backward_options)
 
     @condition.retry(10)
     def test_double_backward_cpu(self):
@@ -122,6 +124,14 @@ class TestSoftmax(unittest.TestCase):
         self.check_double_backward(cuda.to_gpu(self.x),
                                    cuda.to_gpu(self.gy),
                                    cuda.to_gpu(self.ggx))
+
+    @attr.gpu
+    @condition.retry(10)
+    def test_double_backward_gpu_no_cudnn(self):
+        self.check_double_backward(cuda.to_gpu(self.x),
+                                   cuda.to_gpu(self.gy),
+                                   cuda.to_gpu(self.ggx),
+                                   'never')
 
 
 @testing.parameterize(*testing.product({
