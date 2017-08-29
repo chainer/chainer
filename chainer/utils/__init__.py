@@ -43,15 +43,14 @@ def contextmanager(func):
     This does exactlyl the same thing as ``@contextlib.contextmanager``, but
     with workaround for the issue that it does not transfer source file name
     and line number at which the original function was defined.
-
-    .. seealso:: ``docs/source/conf.py``
     """
+
+    wrapper = contextlib.contextmanager(func)
 
     sourcefile = inspect.getsourcefile(func)
     _, linenumber = inspect.getsourcelines(func)
 
-    wrapper = contextlib.contextmanager(func)
-
+    # Note: these attributes are used in docs/source/conf.py.
     if sourcefile is not None:
         wrapper.__chainer_wrapped_sourcefile__ = sourcefile
         wrapper.__chainer_wrapped_linenumber__ = linenumber
