@@ -10,7 +10,7 @@ from chainer.datasets import tuple_dataset
 
 
 def get_mnist(withlabel=True, ndim=1, scale=1., dtype=numpy.float32,
-              label_dtype=numpy.int32):
+              label_dtype=numpy.int32, rgb_format=False):
     """Gets the MNIST dataset.
 
     `MNIST <http://yann.lecun.com/exdb/mnist/>`_ is a set of hand-written
@@ -37,6 +37,9 @@ def get_mnist(withlabel=True, ndim=1, scale=1., dtype=numpy.float32,
             scaled to the interval ``[0, 1]``.
         dtype: Data type of resulting image arrays.
         label_dtype: Data type of the labels.
+        rgb_format (bool): if ``ndim == 3`` and ``rgb_format`` is ``True``, the
+            image will be converted to rgb format by duplicating the channels
+            so the image shape is (3, 28, 28). Default is ``False``.
 
     Returns:
         A tuple of two datasets. If ``withlabel`` is ``True``, both datasets
@@ -46,19 +49,22 @@ def get_mnist(withlabel=True, ndim=1, scale=1., dtype=numpy.float32,
     """
     train_raw = _retrieve_mnist_training()
     train = _preprocess_mnist(train_raw, withlabel, ndim, scale, dtype,
-                              label_dtype)
+                              label_dtype, rgb_format)
     test_raw = _retrieve_mnist_test()
     test = _preprocess_mnist(test_raw, withlabel, ndim, scale, dtype,
-                             label_dtype)
+                             label_dtype, rgb_format)
     return train, test
 
 
-def _preprocess_mnist(raw, withlabel, ndim, scale, image_dtype, label_dtype):
+def _preprocess_mnist(raw, withlabel, ndim, scale, image_dtype, label_dtype,
+                      rgb_format):
     images = raw['x']
     if ndim == 2:
         images = images.reshape(-1, 28, 28)
     elif ndim == 3:
         images = images.reshape(-1, 1, 28, 28)
+        if rgb_format:
+            images = numpy.hstack((images, images, images))
     elif ndim != 1:
         raise ValueError('invalid ndim for MNIST dataset')
     images = images.astype(image_dtype)
