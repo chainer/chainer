@@ -184,8 +184,7 @@ class TestMaxPooling2D(unittest.TestCase):
     @condition.retry(3)
     def test_double_backward_gpu(self):
         self.check_double_backward(
-            cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx),
-            'always')
+            cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx))
 
     @attr.gpu
     @condition.retry(3)
@@ -193,8 +192,7 @@ class TestMaxPooling2D(unittest.TestCase):
         self.check_double_backward(
             cuda.cupy.asfortranarray(cuda.to_gpu(self.x)),
             cuda.cupy.asfortranarray(cuda.to_gpu(self.gy)),
-            cuda.cupy.asfortranarray(cuda.to_gpu(self.ggx)),
-            'always')
+            cuda.cupy.asfortranarray(cuda.to_gpu(self.ggx)))
 
     @attr.gpu
     @condition.retry(3)
