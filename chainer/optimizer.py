@@ -69,7 +69,7 @@ class Hyperparameter(object):
 
     @property
     def parent(self):
-        """Parent hyperparmaeter object."""
+        """Parent hyperparameter object."""
         return self._parent
 
     def get_dict(self):
