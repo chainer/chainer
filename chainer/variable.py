@@ -605,7 +605,7 @@ Actual: {0}'''.format(type(data))
     def grad(self):
         """Gradient array of this variable.
 
-        Not that this property returns the underlying array of the gradient
+        Note that this property returns the underlying array of the gradient
         variable instead of the gradient variable itself; to get/set
         gradient variable, use :attr:`grad_var` instead.
 
