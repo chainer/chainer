@@ -107,7 +107,7 @@ class _SoftmaxGrad(function_node.FunctionNode):
         ret = []
         if 0 in indexes:
             s = broadcast.broadcast_to(
-                sum_.sum(y * gy, axis=self.axis, keepdims=True))
+                sum_.sum(y * gy, axis=self.axis, keepdims=True), gy.shape)
             gy2 = -ggx * s + ga * gy
             ret.append(gy2)
         if 1 in indexes:
