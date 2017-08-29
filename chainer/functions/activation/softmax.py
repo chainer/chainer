@@ -3,6 +3,8 @@ import numpy
 import chainer
 from chainer import cuda
 from chainer import function_node
+from chainer.functions.array import broadcast
+from chainer.functions.math import sum as sum_
 from chainer.utils import type_check
 
 if cuda.cudnn_enabled:
@@ -62,18 +64,19 @@ class Softmax(function_node.FunctionNode):
         return y,
 
     def backward(self, indexes, grad_outputs):
-        y = self.get_retained_outputs()[0].data
-        return _SoftmaxGrad(y, self.axis).apply(grad_outputs)
+        y = self.get_retained_outputs()[0]
+        gy, = grad_outputs
+        return _SoftmaxGrad(self.axis).apply((y, gy))
 
 
 class _SoftmaxGrad(function_node.FunctionNode):
 
-    def __init__(self, y, axis):
-        self.y = y
+    def __init__(self, axis):
         self.axis = axis
 
-    def forward(self, gy):
-        y = self.y
+    def forward(self, inputs):
+        self.retain_inputs((0, 1))
+        y, gy = inputs
         xp = cuda.get_array_module(*y)
         if xp is not numpy and chainer.should_use_cudnn('>=auto'):
             oz_dtype = 'd' if y[0].dtype == 'd' else 'f'
@@ -83,21 +86,32 @@ class _SoftmaxGrad(function_node.FunctionNode):
             gx = xp.empty_like(y)
             gx_tensor4d = cuda.cupy.ascontiguousarray(
                 gx.reshape(_get_tensor4d_shape(self.axis, gx.shape)))
-            gy = cuda.cupy.ascontiguousarray(gy[0])
+            gy = cuda.cupy.ascontiguousarray(gy)
             desc = cudnn.create_tensor_descriptor(gx_tensor4d)
             libcudnn.softmaxBackward(
                 handle, _algorithm, _mode, one.data, desc.value,
                 y.data.ptr, desc.value, gy.data.ptr, zero.data,
                 desc.value, gx.data.ptr)
         else:
-            gx = y * gy[0]
+            gx = y * gy
             sumdx = gx.sum(axis=self.axis, keepdims=True)
             gx -= y * sumdx
 
         return gx,
 
     def backward(self, indexes, grad_outputs):
-        return _SoftmaxGrad(self.y, self.axis).apply(grad_outputs)
+        y, gy = self.get_retained_inputs()
+        ggx, = grad_outputs
+        gs = sum_.sum(-ggx * y, self.axis, True)
+        ga = ggx + broadcast.broadcast_to(gs, gy.shape)
+        ret = []
+        if 0 in indexes:
+            gy = -ggx * gs + ga * gy
+            ret.append(gy)
+        if 1 in indexes:
+            ggy = ga * y
+            ret.append(ggy)
+        return tuple(ret)
 
 
 def softmax(x, axis=1):
