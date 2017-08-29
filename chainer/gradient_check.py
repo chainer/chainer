@@ -241,6 +241,10 @@ def check_backward(func, x_data, y_grad, params=(),
 
     y_grad = _set_y_grad(y, y_grad)
 
+    # Clear gradients which may exist if func calls backward inside of itself.
+    _clear_grads(xs)
+    _clear_grads(params)
+
     # We only need to call `backward` for one result `Variable`.
     # `Variable.backward` method calls `Function.backward` of its creator.
     y[0].backward()
@@ -270,6 +274,9 @@ def check_backward(func, x_data, y_grad, params=(),
                 raise RuntimeError(
                     'gradients of some arguments are not calculated')
 
+    # Keep the gradient arrays of params which may be overwritten by func
+    params_grad = [param.grad for param in params]
+
     xp = cuda.get_array_module(*xs)
     one = xp.array(1., dtype)
 
@@ -294,6 +301,11 @@ def check_backward(func, x_data, y_grad, params=(),
             # `param_type` when data is low accuracy float.
             # The outer one is require to store data with the given type.
             param.data = (one * data.astype(param_dtype)).astype(param_dtype)
+
+        # Clear gradients to support func that calls backward inside of itself.
+        _clear_grads(casted_xs)
+        _clear_grads(params)
+
         ys = func(*casted_xs)
         ys = _as_tuple(ys)
         ys_data = tuple(y.data for y in ys)
@@ -317,8 +329,8 @@ def check_backward(func, x_data, y_grad, params=(),
             cxi = cxi.astype(dtype)
         gx_accum += gxi.dot(cxi)
 
-    for p in params:
-        gpi = p.grad.ravel()
+    for p, gpi in six.moves.zip(params, params_grad):
+        gpi = gpi.ravel()
         pi = p.data.ravel()
         if dtype is not None:
             gpi = gpi.astype(dtype)
@@ -329,8 +341,8 @@ def check_backward(func, x_data, y_grad, params=(),
 
 
 def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
-                          eps=1e-3, atol=1e-4, rtol=1e-3, no_grads=None,
-                          dtype=None):
+                          params_grad_grad=(), eps=1e-3, atol=1e-4, rtol=1e-3,
+                          no_grads=None, dtype=None):
     """Test twice differentiation of a given procedure.
 
     This function automatically checks if the backward procedure of ``func``
@@ -351,17 +363,18 @@ def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
     should be tested by this function if neccessary.
 
     For the details of the arguments, see
-    :func:`~chainer.gradient_check.check_backward`. The additional argument
-    ``x_grad_grad`` is a (tuple of) :class:`~chainer.Variable` (s) that
-    includes the initial gradient corresponding to the first-order gradient of
-    each input. Note that the default error tolerance ``atol`` and ``rtol`` are
-    slightly larger than those of
-    :func:`~chainer.gradient_check.check_backward` because the numerical
-    gradients of the second order differentiation are less accurate than those
-    of the first order gradients.
+    :func:`~chainer.gradient_check.check_backward`. The additional arguments
+    ``x_grad_grad`` and ``params_grad_grad`` are (tuples of)
+    :class:`~chainer.Variable` (s) that include the initial gradient
+    corresponding to the first-order gradient of each input and parameter. Note
+    that the default error tolerance ``atol`` and ``rtol`` are slightly larger
+    than those of :func:`~chainer.gradient_check.check_backward` because the
+    numerical gradients of the second order differentiation are less accurate
+    than those of the first order gradients.
 
     """
     x_data = _as_tuple(x_data)
+    params = _as_tuple(params)
     n_x = len(x_data)
 
     def first_order_grad(*inputs):
@@ -376,13 +389,11 @@ def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
         _set_y_grad(y, gys)
         y[0].backward()
 
-        ret = tuple([x.grad_var for x in xs])
-        for x in xs:
-            x.grad_var = None
-        return ret
+        return tuple([x.grad_var for x in xs] + [p.grad_var for p in params])
 
     inputs = x_data + _as_tuple(y_grad)
-    check_backward(first_order_grad, inputs, x_grad_grad, params=params,
+    grad_grad = _as_tuple(x_grad_grad) + _as_tuple(params_grad_grad)
+    check_backward(first_order_grad, inputs, grad_grad, params=params,
                    eps=eps, atol=atol, rtol=rtol, no_grads=no_grads,
                    dtype=dtype)
 
@@ -404,3 +415,8 @@ def _set_y_grad(y, y_grad):
                 'zero-dimentional array')
         y_grad = (1,)
     return y_grad
+
+
+def _clear_grads(xs):
+    for x in xs:
+        x.grad_var = None
