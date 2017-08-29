@@ -311,13 +311,13 @@ def batch_normalization(x, gamma, beta, **kwargs):
         gamma (Variable): Scaling parameter of normalized data.
         beta (Variable): Shifting parameter of scaled normalized data.
         eps (float): Epsilon value for numerical stability.
-        running_mean (:class:`numpy.ndarray` or :class:`cupy.ndarray`):
+        running_mean (numpy.ndarray or cupy.ndarray):
             Running average of the mean. This is a
             running average of the mean over several mini-batches using
             the decay parameter. If ``None``, the running average is not
             computed. If this is ``None``, then ``runnng_var`` must also
             be ``None``.
-        running_var (:class:`numpy.ndarray` or :class:`cupy.ndarray`):
+        running_var (numpy.ndarray or cupy.ndarray):
             Running average of the variance. This is a
             running average of the variance over several mini-batches using
             the decay parameter. If ``None``, the running average is not
