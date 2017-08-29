@@ -220,6 +220,22 @@ class SoftmaxCrossEntropy(function.Function):
         return gx, None
 
 
+def double_backward_available(normalize, cache_score, class_weight, ignore_label, reduce):
+    return False
+
+
+def _double_backward_softmax_cross_entropy(x, t):
+    log_p = chainer.functions.log_softmax(x)
+    return chainer.functions.get_item(log_p, t)
+
+
+def _softmax_cross_entropy(
+        x, t, normalize=True, cache_score=True, class_weight=None,
+        ignore_label=-1, reduce='mean'):
+    return SoftmaxCrossEntropy(
+        normalize, cache_score, class_weight, ignore_label, reduce)(x, t)
+
+
 def softmax_cross_entropy(
         x, t, normalize=True, cache_score=True, class_weight=None,
         ignore_label=-1, reduce='mean'):
@@ -271,5 +287,9 @@ def softmax_cross_entropy(
 
     """
 
-    return SoftmaxCrossEntropy(
-        normalize, cache_score, class_weight, ignore_label, reduce)(x, t)
+    if double_backward_available(normalize, cache_score, class_weight,
+                                 ignore_label, reduce):
+        _double_backward_softmax_cross_entropy(x, t)
+    else:
+        _single_backward_softmax_cross_entropy(x, t, normalize, cache_score, class_weight
+                                               ignore_label, reduce)
