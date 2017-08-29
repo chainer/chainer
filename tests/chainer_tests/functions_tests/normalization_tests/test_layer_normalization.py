@@ -33,7 +33,8 @@ class TestBatchNormalization(unittest.TestCase):
         beta = numpy.random.uniform(-1, 1, size).astype(self.dtype)
         self.args = [x, gamma, beta]
         self.gy = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
-        self.ggx = [numpy.random.uniform(-1, 1, _.shape).astype(_.dtype) for _ in self.args]
+        self.ggx = [numpy.random.uniform(-1, 1, _.shape).astype(_.dtype)
+                    for _ in self.args]
 
         self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
         self.check_backward_options = {'atol': 1e-4, 'rtol': 1e-3}
