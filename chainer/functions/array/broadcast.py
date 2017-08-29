@@ -125,14 +125,13 @@ class BroadcastTo(function_node.FunctionNode):
         gx, = grad_outputs
         shape = self.inputs[0].shape
         ndim = len(shape)
-        if gx.ndim != ndim:
-            gx = chainer.functions.sum(gx, tuple(range(gx.ndim - ndim)), False)
-
-        axis = [i for i, sx in enumerate(shape) if sx == 1]
-        if len(axis) > 0:
-            return chainer.functions.sum(gx, tuple(axis), True),
-        else:
-            return gx,
+        lead = gx.ndim - ndim
+        lead_axis = tuple(range(lead))
+        axis = [i + lead for i, sx in enumerate(shape) if sx == 1]
+        gx = chainer.functions.sum(gx, lead_axis + tuple(axis), True)
+        if lead > 0:
+            return chainer.functions.squeeze(gx, lead_axis),
+        return gx,
 
 
 def broadcast_to(x, shape):
