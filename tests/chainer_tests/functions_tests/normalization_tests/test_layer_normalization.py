@@ -107,3 +107,6 @@ class TestBatchNormalization(unittest.TestCase):
         self.check_double_backward(
             [cuda.to_gpu(_) for _ in self.args],
             cuda.to_gpu(self.gy), [cuda.to_gpu(_) for _ in self.ggx])
+
+
+testing.run_module(__name__, __file__)
