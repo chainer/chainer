@@ -24,7 +24,6 @@ class Sigmoid(function_node.FunctionNode):
         x = inputs[0]
         half = x.dtype.type(0.5)
         y = utils.force_array(numpy.tanh(x * half) * half + half)
-        self.retain_inputs(())
         self.retain_outputs((0,))
         self._use_cudnn = False
         return y,
@@ -39,7 +38,6 @@ class Sigmoid(function_node.FunctionNode):
             y = cuda.elementwise(
                 'T x', 'T y', 'y = tanh(x * 0.5) * 0.5 + 0.5',
                 'sigmoid_fwd')(x)
-            self.retain_inputs(())
             self._use_cudnn = False
 
         self.retain_outputs((0,))
@@ -92,7 +90,7 @@ class SigmoidGrad(function_node.FunctionNode):
         g, = grad_outputs
         one = y.dtype.type(1)
         two = y.dtype.type(2)
-        return g * gy * (one - two * y), g * y * (one - y)
+        return g * gy * (1 - 2 * y), g * y * (1 - y)
 
 
 def sigmoid(x):
