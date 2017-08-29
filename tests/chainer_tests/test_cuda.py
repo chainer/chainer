@@ -285,10 +285,10 @@ class TestToGPU(unittest.TestCase):
         self.assertIsNot(x, y)  # Do copy
         cuda.cupy.testing.assert_array_equal(x, y)
 
-    def test_variable_cpu(self):
+    def test_variable_gpu(self):
         x = chainer.Variable(self.x)
         with self.assertRaises(TypeError):
-            cuda.to_cpu(x)
+            cuda.to_gpu(x)
 
 
 testing.run_module(__name__, __file__)
