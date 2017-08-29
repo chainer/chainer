@@ -37,14 +37,11 @@ class GetItem(function_node.FunctionNode):
         type_check.expect(in_types[0].ndim >= valid_slice)
 
     def forward(self, xs):
-        ary = xs[0]
-        self._in_shape = ary.shape
-        self._in_dtype = ary.dtype
-        return utils.force_array(ary[self.slices]),
+        return utils.force_array(xs[0][self.slices]),
 
     def backward(self, indexes, gy):
         return GetItemGrad(
-            self.slices, self._in_shape, self._in_dtype).apply(gy)
+            self.slices, self.inputs[0].shape, self.inputs[0].dtype).apply(gy)
 
 
 class GetItemGrad(function_node.FunctionNode):
