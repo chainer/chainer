@@ -121,17 +121,15 @@ class TestSoftmax(unittest.TestCase):
     @attr.gpu
     @condition.retry(1)
     def test_double_backward_gpu(self):
-        self.check_double_backward(cuda.to_gpu(self.x),
-                                   cuda.to_gpu(self.gy),
-                                   cuda.to_gpu(self.ggx))
+        self.check_double_backward(
+            cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx))
 
     @attr.gpu
     @condition.retry(1)
     def test_double_backward_gpu_no_cudnn(self):
-        self.check_double_backward(cuda.to_gpu(self.x),
-                                   cuda.to_gpu(self.gy),
-                                   cuda.to_gpu(self.ggx),
-                                   'never')
+        self.check_double_backward(
+            cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx),
+            'never')
 
 
 @testing.parameterize(*testing.product({
