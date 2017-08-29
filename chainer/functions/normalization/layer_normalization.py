@@ -1,6 +1,6 @@
 from chainer import cuda
 from chainer import function_node
-from chainer import functions
+import chainer.functions
 from chainer.utils import type_check
 
 
@@ -56,7 +56,7 @@ class LayerNormalization(function_node.FunctionNode):
         return shifted_x,
 
     def backward(self, indexes, grad_outputs):
-        F = functions
+        F = chainer.functions
         x, gamma = self.get_retained_inputs()
         gy, = grad_outputs
 
