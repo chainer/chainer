@@ -106,9 +106,7 @@ class MaxPooling2DGrad(function_node.FunctionNode):
         self.pw = mpool2d.pw
         self.cover_all = mpool2d.cover_all
         self._used_cudnn = mpool2d._used_cudnn
-        if self._used_cudnn:
-            self.cudnn_backward = mpool2d.backward_gpu
-        else:
+        if not self._used_cudnn:
             self.indexes = mpool2d.indexes
             self._in_shape = mpool2d._in_shape
             self._in_dtype = mpool2d._in_dtype
@@ -137,7 +135,7 @@ class MaxPooling2DGrad(function_node.FunctionNode):
     def forward_gpu(self, inputs):
         if self._used_cudnn:
             self.x, gy = inputs
-            return self.cudnn_backward((self.x,), (gy,))
+            return self.mpool2d.backward_gpu((self.x,), (gy,))
         gy, = inputs
         n, c, h, w = self._in_shape
         y_h, y_w = gy.shape[2:]
