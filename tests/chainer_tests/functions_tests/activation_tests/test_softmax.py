@@ -106,8 +106,7 @@ class TestSoftmax(unittest.TestCase):
 
     def check_double_backward(self, x_data, gy_data, ggx_data):
         def f(x):
-            y = functions.softmax(x, axis=self.axis)
-            return y * y
+            return functions.softmax(x, axis=self.axis)
 
         gradient_check.check_double_backward(
             f, (x_data,), (gy_data,), (ggx_data),
