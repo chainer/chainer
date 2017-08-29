@@ -88,8 +88,6 @@ class SigmoidGrad(function_node.FunctionNode):
     def backward(self, indexes, grad_outputs):
         y, gy = self.get_retained_inputs()
         g, = grad_outputs
-        one = y.dtype.type(1)
-        two = y.dtype.type(2)
         return g * gy * (1 - 2 * y), g * y * (1 - y)
 
 
