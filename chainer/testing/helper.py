@@ -1,4 +1,3 @@
-import contextlib
 import pkg_resources
 import sys
 import unittest

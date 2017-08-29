@@ -1,5 +1,4 @@
 from __future__ import print_function
-import contextlib
 import sys
 import threading
 
