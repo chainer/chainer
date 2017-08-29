@@ -4,10 +4,10 @@ import unittest
 import mock
 import numpy
 
-from chainer import testing
 from chainer.dataset import download
 from chainer.datasets import get_svhn
 from chainer.datasets import tuple_dataset
+from chainer import testing
 from chainer.testing import attr
 
 
