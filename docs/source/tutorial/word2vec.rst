@@ -6,8 +6,8 @@ Word2Vec: Obtain word embeddings
 0. Introduction
 ================
 
-**Word2vec** is the tool for generating the distributed representation of words.
-Word2vec is proposed by Mikolov et al[1]. When the tool assigns a real-valued vector
+**Word2vec** is the tool for generating the distributed representation of words,
+which is proposed by Mikolov et al[1]. When the tool assigns a real-valued vector
 to each word, the closer the meanings of the words, the greater similarity the
 vectors will indicate. As you know, **distributed representation** is assigning a
 real number vector for each object and representing the object by the vector. When
@@ -72,6 +72,17 @@ matrix for input :math:`W_H` becomes a distributed representation of each word.
 
 .. image:: ../../image/word2vec/skipgram.png
 
+.. math::
+    L_H &= W_H v_t \\
+    L_O &= W_O L_H \\
+        &= W_O W_H v_t \\
+    p(v_{t+c}|v_t) &= \text{softmax}(L_O) \\
+                   &= \frac{\exp(L_O)}{\sum_{v=1}^V \exp(L_O[v])}
+
+.. math::
+    \text{Loss}(v_t) &= \sum_{c=1}^C \log(p(v_{t+c}(v_{t+c} - \hat v_{t+c})^2 \\
+
+
 2.2 Continuous Bag of Words (CBoW)
 -----------------------------------
 
@@ -110,7 +121,7 @@ Since there should be more than one Context Word, repeat the following process f
    :math:`W_O` for Context Words by the embedding vector of "dog" :math:`L_H`.
 4. In order to limit the value of each element of the output layer, 
    softmax function is applied to the output layer :math:`L_O` to calculate
-   :math:`softmax(L_O)`. Softmax function normalizes scores in the output layer
+   :math:`\text{softmax}(L_O)`. Softmax function normalizes scores in the output layer
    :math:`L_O` into sum 1 to see the scores as probability distribution over all
    words.
 
@@ -366,6 +377,3 @@ Search the similar words
 =============
 * [1] `Mikolov, Tomas; et al. "Efficient Estimation of Word Representations in Vector Space". arXiv:1301.3781 <https://arxiv.org/abs/1301.3781>`_
 * [2] `Distributional Hypothesis <https://aclweb.org/aclwiki/Distributional_Hypothesis>`_
-
-
-
