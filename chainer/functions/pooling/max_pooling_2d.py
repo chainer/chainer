@@ -29,6 +29,7 @@ class MaxPooling2D(pooling_2d.Pooling2D):
 
     def forward_gpu(self, x):
         if chainer.should_use_cudnn('>=auto'):
+            self.retain_inputs((0,))
             return super(MaxPooling2D, self).forward_gpu(x)
 
         self._in_shape = x[0].shape
@@ -83,7 +84,13 @@ class MaxPooling2D(pooling_2d.Pooling2D):
         return y,
 
     def backward(self, indexes, gy):
-        return MaxPooling2DGrad(self).apply((gy[0],))
+        if self._used_cudnn:
+            x, = self.get_retained_inputs()
+            gx, = super(MaxPooling2D, self).backward_gpu(
+                (x.data,), (gy[0].data,))
+            return chainer.Variable(gx),
+        else:
+            return MaxPooling2DGrad(self).apply((gy[0],))
 
     def create_pool_desc(self):
         return cuda.cudnn.create_pooling_descriptor(
@@ -102,7 +109,9 @@ class MaxPooling2DGrad(function_node.FunctionNode):
         self.pw = mpool2d.pw
         self.cover_all = mpool2d.cover_all
         self._used_cudnn = mpool2d._used_cudnn
-        if not self._used_cudnn:
+        if self._used_cudnn:
+            self.cudnn_backward = mpool2d.backward_gpu
+        else:
             self.indexes = mpool2d.indexes
             self._in_shape = mpool2d._in_shape
             self._in_dtype = mpool2d._in_dtype
@@ -129,12 +138,12 @@ class MaxPooling2DGrad(function_node.FunctionNode):
         return gx,
 
     def forward_gpu(self, inputs):
-        x, gy = inputs
+        self.retain_inputs((0,))
         if self._used_cudnn:
-            return self.backward(x, gy)
-
+            return self.cudnn_backward(*inputs)
+        gy, = inputs
         n, c, h, w = self._in_shape
-        y_h, y_w = gy[0].shape[2:]
+        y_h, y_w = gy.shape[2:]
         gx = cuda.cupy.empty(self._in_shape, self._in_dtype)
 
         cuda.elementwise(
@@ -164,7 +173,7 @@ class MaxPooling2DGrad(function_node.FunctionNode):
                }
                gx = val;
             ''',
-            'max_pool_bwd')(gy[0].reduced_view(), self.indexes.reduced_view(),
+            'max_pool_bwd')(gy.reduced_view(), self.indexes.reduced_view(),
                             h, w, y_h, y_w, self.kh, self.kw,
                             self.sy, self.sx, self.ph, self.pw,
                             gx)
@@ -187,9 +196,11 @@ class MaxPooling2DWithIndexes(function_node.FunctionNode):
         self.ph = mpool2d.ph
         self.pw = mpool2d.pw
         self.cover_all = mpool2d.cover_all
-        self.indexes = mpool2d.indexes
+        self._used_cudnn = mpool2d._used_cudnn
+        if not self._used_cudnn:
+            self.indexes = mpool2d.indexes
 
-    def forward(self, x):
+    def forward_cpu(self, x):
         col = conv.im2col_cpu(
             x[0], self.kh, self.kw, self.sy, self.sx, self.ph, self.pw,
             pval=-float('inf'), cover_all=self.cover_all)
@@ -199,6 +210,40 @@ class MaxPooling2DWithIndexes(function_node.FunctionNode):
         indexes = self.indexes.ravel()
         col = col[numpy.arange(len(indexes)), indexes]
         return col.reshape(n, c, out_h, out_w),
+
+    def forward_gpu(self, x):
+        if self._used_cudnn:
+            self._forward_gpu_calc_indexes_again(x)
+        else:
+            self._in_shape = x[0].shape
+            self._in_dtype = x[0].dtype
+
+            n, c, h, w = x[0].shape
+            y_h = conv.get_conv_outsize(
+                h, self.kh, self.sy, self.ph, self.cover_all)
+            assert y_h > 0, 'Height in the output should be positive.'
+            y_w = conv.get_conv_outsize(
+                w, self.kw, self.sx, self.pw, self.cover_all)
+            assert y_w > 0, 'Width in the output should be positive.'
+            y = cuda.cupy.empty((n, c, y_h, y_w), dtype=x[0].dtype)
+
+            cuda.elementwise(
+                'raw T in, raw S indexes, int32 h, int32 w, int32 out_h,'
+                'int32 out_w, int32 kh, int32 kw, int32 sy, int32 sx,'
+                'int32 ph, int32 pw', 'T out',
+                '''
+                int c0    = i / (out_h * out_w);
+                int out_y = i / out_w % out_h;
+                int out_x = i % out_w;
+                int index = indexes[i];
+                int max_y = max(0, out_y * sy - ph + index / kw);
+                int max_x = max(0, out_x * sx - pw + index % kw);
+                out = in[max_x + w * (max_y + h * c0)];
+                ''', 'max_pool_grad_fwd')(
+                    x[0].reduced_view(), self.indexes.reduced_view(), h, w,
+                    y_h, y_w, self.kh, self.kw, self.sy, self.sx, self.ph,
+                    self.pw, y)
+            return y,
 
 
 def max_pooling_2d(x, ksize, stride=None, pad=0, cover_all=True):
