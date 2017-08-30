@@ -33,8 +33,10 @@ class BatchNormalization(link.Link):
     fine-tuning mode.
 
     Args:
-        size (int or tuple of ints): Size (or shape) of channel
-            dimensions.
+        size (int, tuples of ints or None): Size (or shape) of channel
+            dimensions. If ``None``, the size will be determined from an axis
+            or axes of channel dimensions given by ``axis`` during the first
+            forward pass.
         decay (float): Decay rate of moving average. It is used on training.
         eps (float): Epsilon value for numerical stability.
         dtype (numpy.dtype): Type to use in computing.
@@ -42,6 +44,9 @@ class BatchNormalization(link.Link):
             unit(1) which makes no effect.
         use_beta (bool): If ``True``, use shifting parameter. Otherwise, use
             unit(0) which makes no effect.
+        axis (int or tuple of ints): Axis or axes of channel dimension(s). When
+             ``size``` is ``None``, this value is used to determine parameter
+             sizes during the first forward pass.
 
     See: `Batch Normalization: Accelerating Deep Network Training by Reducing\
           Internal Covariate Shift <https://arxiv.org/abs/1502.03167>`_
@@ -62,32 +67,41 @@ class BatchNormalization(link.Link):
 
     """
 
-    def __init__(self, size, decay=0.9, eps=2e-5, dtype=numpy.float32,
-                 use_gamma=True, use_beta=True,
-                 initial_gamma=None, initial_beta=None):
+    def __init__(self, size=None, decay=0.9, eps=2e-5,
+                 dtype=numpy.float32, use_gamma=True, use_beta=True,
+                 initial_gamma=None, initial_beta=None, axis=1):
         super(BatchNormalization, self).__init__()
-        self.avg_mean = numpy.zeros(size, dtype=dtype)
-        self.register_persistent('avg_mean')
-        self.avg_var = numpy.zeros(size, dtype=dtype)
-        self.register_persistent('avg_var')
+
         self.N = 0
         self.register_persistent('N')
         self.decay = decay
         self.eps = eps
 
+        self._size = size
+        self._axis = (axis,) if isinstance(axis, int) else tuple(axis)
+        self._dtype = dtype
+
         with self.init_scope():
             if use_gamma:
                 if initial_gamma is None:
                     initial_gamma = 1
-                initial_gamma = initializers._get_initializer(initial_gamma)
-                initial_gamma.dtype = dtype
-                self.gamma = variable.Parameter(initial_gamma, size)
+                gamma_initializer = initializers._get_initializer(initial_gamma)
+                gamma_initializer.dtype = self._dtype
+                self.gamma = variable.Parameter(gamma_initializer)
             if use_beta:
                 if initial_beta is None:
                     initial_beta = 0
-                initial_beta = initializers._get_initializer(initial_beta)
-                initial_beta.dtype = dtype
-                self.beta = variable.Parameter(initial_beta, size)
+                beta_initializer = initializers._get_initializer(initial_beta)
+                beta_initializer.dtype = self._dtype
+                self.beta = variable.Parameter(beta_initializer)
+
+    def _initialize_params(self, shape):
+        self.avg_mean = numpy.zeros(shape, dtype=self._dtype)
+        self.register_persistent('avg_mean')
+        self.avg_var = numpy.zeros(shape, dtype=self._dtype)
+        self.register_persistent('avg_var')
+        self.gamma.initialize(shape)
+        self.beta.initialize(shape)
 
     def __call__(self, x, **kwargs):
         """__call__(self, x, finetune=False)
@@ -113,6 +127,13 @@ class BatchNormalization(link.Link):
                 statistics.
 
         """
+        if self.gamma.data is None:
+            if self._size is not None:
+                self._initialize_params(self._size)
+            else:
+                shape = tuple(x.shape[i] for i in self._axis)
+                self._initialize_params(shape)
+
         argument.check_unexpected_kwargs(
             kwargs, test='test argument is not supported anymore. '
             'Use chainer.using_config')
