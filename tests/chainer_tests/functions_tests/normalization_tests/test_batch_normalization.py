@@ -292,22 +292,6 @@ class TestFixedBatchNormalization(unittest.TestCase):
     def test_double_backward_cpu(self):
         self.check_double_backward(self.args, self.gy, self.ggargs)
 
-    # @attr.gpu
-    # @condition.retry(3)
-    # def test_double_backward_gpu(self):
-    #     self.check_double_backward(
-    #         [cuda.to_gpu(x) for x in self.args], cuda.to_gpu(self.gy),
-    #         [cuda.to_gpu(ggx) for ggx in self.ggargs])
-    #
-    # @attr.cudnn
-    # @condition.retry(3)
-    # def test_double_backward_gpu_non_contiguous(self):
-    #     self.check_double_backward(
-    #         [cuda.cupy.asfortranarray(cuda.to_gpu(x)) for x in self.args],
-    #         cuda.cupy.asfortranarray(cuda.to_gpu(self.gy)),
-    #         [cuda.cupy.asfortranarray(cuda.to_gpu(ggx)) for ggx in self.ggargs]
-    #     )
-
 
 @testing.parameterize(*testing.product({
     'use_cudnn': ['always', 'auto', 'never'],

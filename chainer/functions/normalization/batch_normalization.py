@@ -442,7 +442,7 @@ def _apply_bn_fwd(xp, x, mean, inv_std, gamma, beta):
 
 
 def _zero_if_none(xp, x, shape, dtype):
-    # TODO (Tokui): Return broadcasted 0 instead of a zeroed array.
+    # TODO(Tokui): Return broadcasted 0 instead of a zeroed array.
     if x is None:
         return xp.zeros(shape, dtype=dtype)
     return x
