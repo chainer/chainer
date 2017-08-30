@@ -7,7 +7,6 @@ import six
 import chainer
 from chainer import cuda
 from chainer import functions
-from chainer.functions.normalization import batch_normalization
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
@@ -45,18 +44,30 @@ class TestBatchNormalization(unittest.TestCase):
         shape = (5,) + self.param_shape + (2,) * self.ndim
         self.x = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
         self.gy = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
+        self.ggx = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
+        self.gggamma = numpy.random.uniform(-1, 1, self.param_shape).astype(
+            self.dtype)
+        self.ggbeta = numpy.random.uniform(-1, 1, self.param_shape).astype(
+            self.dtype)
 
         self.args = [self.x, self.gamma, self.beta]
+        self.ggargs = [self.ggx, self.gggamma, self.ggbeta]
         self.aggr_axes = (0,) + tuple(six.moves.range(head_ndim, self.x.ndim))
         self.mean = self.x.mean(axis=self.aggr_axes)
         self.var = self.x.var(axis=self.aggr_axes) + self.eps
         self.train = True
         self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
         self.check_backward_options = {'dtype': numpy.float64}
+        self.check_double_backward_options = {
+            'dtype': numpy.float64, 'atol': 1e-3, 'rtol': 1e-2}
         if self.dtype == numpy.float16:
             self.check_forward_options = {'atol': 1e-2, 'rtol': 1e-2}
             self.check_backward_options = {
                 'dtype': numpy.float64, 'atol': 1e-2, 'rtol': 1e-2}
+
+    def batch_normalization(self, *args):
+        return functions.batch_normalization(
+            *args, decay=self.decay, eps=self.eps)
 
     def check_forward(self, args, use_cudnn='always'):
         with chainer.using_config('use_cudnn', use_cudnn):
@@ -95,9 +106,7 @@ class TestBatchNormalization(unittest.TestCase):
         with chainer.using_config('use_cudnn', use_cudnn), \
                 chainer.using_config('train', self.train):
             gradient_check.check_backward(
-                batch_normalization.BatchNormalizationFunction(
-                    mean=None, var=None,
-                    decay=self.decay, eps=self.eps), args, y_grad,
+                self.batch_normalization, args, y_grad,
                 **self.check_backward_options)
 
     @condition.retry(3)
@@ -123,6 +132,37 @@ class TestBatchNormalization(unittest.TestCase):
             [cuda.cupy.asfortranarray(cuda.to_gpu(i)) for i in self.args],
             cuda.cupy.asfortranarray(cuda.to_gpu(self.gy)))
 
+    def check_double_backward(self, args, y_grad, x_grad_grad,
+                              use_cudnn='always'):
+        def f(*args):
+            y = self.batch_normalization(*args)
+            return y * y  # make nonlinear against beta
+        with chainer.using_config('use_cudnn', use_cudnn), \
+                chainer.using_config('train', self.train):
+            gradient_check.check_double_backward(
+                f, args, y_grad, x_grad_grad,
+                **self.check_double_backward_options)
+
+    @condition.retry(3)
+    def test_double_backward_cpu(self):
+        self.check_double_backward(self.args, self.gy, self.ggargs)
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_double_backward_gpu(self):
+        self.check_double_backward(
+            [cuda.to_gpu(x) for x in self.args], cuda.to_gpu(self.gy),
+            [cuda.to_gpu(ggx) for ggx in self.ggargs])
+
+    @attr.cudnn
+    @condition.retry(3)
+    def test_double_backward_gpu_non_contiguous(self):
+        self.check_double_backward(
+            [cuda.cupy.asfortranarray(cuda.to_gpu(x)) for x in self.args],
+            cuda.cupy.asfortranarray(cuda.to_gpu(self.gy)),
+            [cuda.cupy.asfortranarray(cuda.to_gpu(ggx)) for ggx in self.ggargs]
+        )
+
 
 @testing.parameterize(*(testing.product({
     'param_shape': [(3, 4), (3, 2, 3)],
@@ -143,7 +183,6 @@ class TestFixedBatchNormalization(unittest.TestCase):
         self.expander = (None, Ellipsis) + (None,) * self.ndim
         shape = (5,) + self.param_shape + (2,) * self.ndim
         self.x = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
-        self.gy = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
         self.eps = 2e-5
         self.decay = 0.0
         head_ndim = self.gamma.ndim + 1
@@ -153,6 +192,20 @@ class TestFixedBatchNormalization(unittest.TestCase):
         self.var = numpy.random.uniform(
             0.5, 1, self.param_shape).astype(self.dtype)
         self.args = [self.x, self.gamma, self.beta, self.mean, self.var]
+
+        self.gy = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
+        self.ggx = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
+        self.gggamma = numpy.random.uniform(-1, 1, self.param_shape).astype(
+            self.dtype)
+        self.ggbeta = numpy.random.uniform(-1, 1, self.param_shape).astype(
+            self.dtype)
+        self.ggmean = numpy.random.uniform(-1, 1, self.param_shape).astype(
+            self.dtype)
+        self.ggvar = numpy.random.uniform(-1, 1, self.param_shape).astype(
+            self.dtype)
+        self.ggargs = [self.ggx, self.gggamma, self.ggbeta, self.ggmean,
+                       self.ggvar]
+
         self.train = False
         self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
         self.check_backward_options = {'dtype': numpy.float64}
@@ -161,10 +214,12 @@ class TestFixedBatchNormalization(unittest.TestCase):
             self.check_backward_options = {
                 'dtype': numpy.float64, 'atol': 1e-2, 'rtol': 1e-2}
 
+    def batch_normalization(self, *args):
+        return functions.fixed_batch_normalization(*args, eps=self.eps)
+
     def check_forward(self, args, use_cudnn='always'):
         with chainer.using_config('use_cudnn', use_cudnn):
-            y = functions.fixed_batch_normalization(
-                *[chainer.Variable(i) for i in args], eps=self.eps)
+            y = self.batch_normalization(*[chainer.Variable(x) for x in args])
         self.assertEqual(y.data.dtype, self.dtype)
 
         y_expect = _batch_normalization(
@@ -197,10 +252,8 @@ class TestFixedBatchNormalization(unittest.TestCase):
         with chainer.using_config('use_cudnn', use_cudnn), \
                 chainer.using_config('train', self.train):
             gradient_check.check_backward(
-                batch_normalization.BatchNormalizationFunction(
-                    mean=None, var=None,
-                    decay=self.decay, eps=self.eps),
-                args, y_grad,  **self.check_backward_options)
+                self.batch_normalization, args, y_grad,
+                **self.check_backward_options)
 
     @condition.retry(3)
     def test_backward_cpu(self):
@@ -224,6 +277,36 @@ class TestFixedBatchNormalization(unittest.TestCase):
         self.check_backward(
             [cuda.cupy.asfortranarray(cuda.to_gpu(i)) for i in self.args],
             cuda.cupy.asfortranarray(cuda.to_gpu(self.gy)))
+
+    def check_double_backward(self, args, y_grad, x_grad_grad,
+                              use_cudnn='always'):
+        def f(*args):
+            y = self.batch_normalization(*args)
+            return y * y  # make nonlinear against some beta
+        with chainer.using_config('use_cudnn', use_cudnn):
+            gradient_check.check_double_backward(
+                f, args, y_grad, x_grad_grad,
+                **self.check_backward_options)
+
+    @condition.retry(3)
+    def test_double_backward_cpu(self):
+        self.check_double_backward(self.args, self.gy, self.ggargs)
+
+    # @attr.gpu
+    # @condition.retry(3)
+    # def test_double_backward_gpu(self):
+    #     self.check_double_backward(
+    #         [cuda.to_gpu(x) for x in self.args], cuda.to_gpu(self.gy),
+    #         [cuda.to_gpu(ggx) for ggx in self.ggargs])
+    #
+    # @attr.cudnn
+    # @condition.retry(3)
+    # def test_double_backward_gpu_non_contiguous(self):
+    #     self.check_double_backward(
+    #         [cuda.cupy.asfortranarray(cuda.to_gpu(x)) for x in self.args],
+    #         cuda.cupy.asfortranarray(cuda.to_gpu(self.gy)),
+    #         [cuda.cupy.asfortranarray(cuda.to_gpu(ggx)) for ggx in self.ggargs]
+    #     )
 
 
 @testing.parameterize(*testing.product({
