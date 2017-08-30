@@ -65,9 +65,7 @@ class TestBatchNormalization(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_forward_gpu(self):
-        self.check_forward(
-            [cuda.to_gpu(_) for _ in self.args],
-            cuda.to_gpu(self.gy))
+        self.check_forward([cuda.to_gpu(_) for _ in self.args])
 
     def check_backward(self, args, y_grad):
         def func(*args_):
