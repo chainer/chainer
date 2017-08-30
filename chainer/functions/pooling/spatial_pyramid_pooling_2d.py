@@ -2,6 +2,7 @@ import numpy
 import six
 
 from chainer import cuda
+from chainer import function_node
 from chainer.functions.array import concat
 from chainer.functions.pooling import max_pooling_2d
 from chainer.functions.pooling import pooling_2d
@@ -45,21 +46,34 @@ class SpatialPyramidPooling2D(pooling_2d.Pooling2D):
                 self.split_inds.append(out_dim)
 
     def forward(self, x):
+        self.retain_inputs((0,))
         self.ys = []
         for pooler in self.poolers:
-            y_var = pooler(*x)
+            y_var = pooler.apply(x)[0]
             n, c, h, w = pooler.out_shape = y_var.shape
             self.ys.append(y_var.reshape((n, c * h * w, 1, 1)))
 
         return concat.Concat(axis=1).forward([y.data for y in self.ys])
 
-    def backward(self, x, gy):
-        xp = cuda.get_array_module(*x)
-        gx = xp.zeros_like(x[0])
-        gys = xp.split(gy[0], self.split_inds, axis=1)
+    def backward(self, indexes, gy):
+        x, = self.get_retained_inputs()
+        return SpatialPyramidPooling2DGrad(self).apply((x, gy[0]))
+
+
+class SpatialPyramidPooling2DGrad(function_node.FunctionNode):
+
+    def __init__(self, spp2d):
+        self.split_inds = spp2d.split_inds
+        self.poolers = spp2d.poolers
+
+    def forward(self, inputs):
+        x, gy = inputs
+        xp = cuda.get_array_module(x)
+        gx = xp.zeros_like(x)
+        gys = xp.split(gy, self.split_inds, axis=1)
         for pooler, gy in zip(self.poolers, gys):
             gy = gy.reshape(pooler.out_shape)
-            gx += pooler.backward(x, (gy,))[0]
+            gx += pooler.backward([0], (gy,))[0].data
 
         return gx,
 
@@ -115,4 +129,4 @@ def spatial_pyramid_pooling_2d(x, pyramid_height, pooling_class):
     """
 
     return SpatialPyramidPooling2D(x.shape[1:], pyramid_height,
-                                   pooling_class)(x)
+                                   pooling_class).apply((x,))[0]

@@ -184,7 +184,7 @@ class TestMaxPoolingND(unittest.TestCase):
         with chainer.using_config('use_cudnn', use_cudnn):
             func_2d = functions.MaxPooling2D(ksize, stride=stride, pad=pad,
                                              cover_all=self.cover_all)
-        y_2d = func_2d.apply((x_2d,))
+        y_2d = func_2d.apply((x_2d,))[0]
         y_2d.grad = gy_data
         y_2d.backward()
 

@@ -1,6 +1,7 @@
 import numpy
 
 from chainer import cuda
+from chainer import function_node
 from chainer.functions.pooling import pooling_2d
 from chainer.utils import conv
 from chainer.utils import type_check
@@ -55,7 +56,22 @@ class Unpooling2D(pooling_2d.Pooling2D):
                                 self.outh, self.outw)
         return y,
 
-    def backward(self, x, gy):
+    def backward(self, indexes, grad_outputs):
+        return Unpooling2DGrad(self).apply(grad_outputs)
+
+
+class Unpooling2DGrad(function_node.FunctionNode):
+
+    def __init__(self, unpooling2d):
+        self.kh = unpooling2d.kh
+        self.kw = unpooling2d.kw
+        self.sy = unpooling2d.sy
+        self.sx = unpooling2d.sx
+        self.ph = unpooling2d.ph
+        self.pw = unpooling2d.pw
+        self.cover_all = unpooling2d.cover_all
+
+    def forward(self, gy):
         if isinstance(gy[0], cuda.ndarray):
             gcol = conv.im2col_gpu(
                 gy[0], self.kh, self.kw, self.sy, self.sx, self.ph, self.pw,
@@ -103,4 +119,4 @@ def unpooling_2d(x, ksize, stride=None, pad=0, outsize=None, cover_all=True):
         ~chainer.Variable: Output variable.
 
     """
-    return Unpooling2D(ksize, stride, pad, outsize, cover_all)(x)
+    return Unpooling2D(ksize, stride, pad, outsize, cover_all).apply((x,))[0]

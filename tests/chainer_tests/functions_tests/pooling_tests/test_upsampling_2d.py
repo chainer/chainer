@@ -21,7 +21,7 @@ class TestUpsampling2D(unittest.TestCase):
         self.x = numpy.random.uniform(-1, 1, self.in_shape).astype(self.dtype)
         self.p = F.MaxPooling2D(2, 2)
         with chainer.using_config('use_cudnn', 'never'):
-            self.pooled_y = self.p(self.x)
+            self.pooled_y = self.p.apply((self.x,))[0]
         self.gy = numpy.random.uniform(
             -1, 1, self.in_shape).astype(self.dtype)
 
@@ -57,11 +57,12 @@ class TestUpsampling2D(unittest.TestCase):
         self.check_forward(self.pooled_y)
 
     def check_backward(self, x_data, y_grad):
-        func = F.Upsampling2D(
-            self.p.indexes, ksize=(self.p.kh, self.p.kw),
-            stride=(self.p.sy, self.p.sx), pad=(self.p.ph, self.p.pw),
-            outsize=self.in_shape[2:], cover_all=self.p.cover_all)
-        gradient_check.check_backward(func, x_data, y_grad, dtype='d')
+        def f(x):
+            return F.upsampling_2d(
+                x, self.p.indexes, ksize=(self.p.kh, self.p.kw),
+                stride=(self.p.sy, self.p.sx), pad=(self.p.ph, self.p.pw),
+                outsize=self.in_shape[2:], cover_all=self.p.cover_all)
+        gradient_check.check_backward(f, x_data, y_grad, dtype='d')
 
     @condition.retry(3)
     def test_backward_cpu(self):

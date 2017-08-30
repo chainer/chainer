@@ -95,10 +95,11 @@ class TestUnpooling2D(unittest.TestCase):
         self.check_forward(cuda.to_gpu(self.x))
 
     def check_backward(self, x_data, y_grad):
+        def f(x):
+            return functions.unpooling_2d(x, self.ksize, outsize=self.outsize,
+                                          cover_all=self.cover_all)
         gradient_check.check_backward(
-            functions.Unpooling2D(self.ksize, outsize=self.outsize,
-                                  cover_all=self.cover_all),
-            x_data, y_grad, **self.check_backward_options)
+            f, x_data, y_grad, **self.check_backward_options)
 
     @condition.retry(3)
     def test_backward_cpu(self):
