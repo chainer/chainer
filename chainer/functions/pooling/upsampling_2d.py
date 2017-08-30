@@ -1,11 +1,11 @@
-from chainer import cuda
-from chainer.functions.pooling import pooling_2d
-from chainer import function_node
-from chainer.utils import conv
-from chainer.utils import type_check
-
 import numpy
 import six
+
+from chainer import cuda
+from chainer import function_node
+from chainer.functions.pooling import pooling_2d
+from chainer.utils import conv
+from chainer.utils import type_check
 
 
 class Upsampling2D(pooling_2d.Pooling2D):
