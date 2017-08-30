@@ -313,7 +313,7 @@ http://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf
 
     .. math::
 
-       l_n = s_n (d_n - 1)  + k_n - 2 p_n \ \ (n = 1, ..., N)
+       l_n = s_n (d_n - 1)  + k_n - 2 p_n \\ \\ (n = 1, ..., N)
 
     If ``outsize`` option is given, the output size is determined by
     ``outsize``. In this case, the ``outsize`` :math:`(l_1, l_2, ..., l_N)`
@@ -321,7 +321,8 @@ http://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf
 
     .. math::
 
-       d_n = \\lfloor (l_n + 2p_n - k_n) / s_n \\rfloor + 1 \ \ (n = 1, ..., N)
+       d_n = \\lfloor (l_n + 2p_n - k_n) / s_n \\rfloor + 1 \\ \\ \
+       (n = 1, ..., N)
 
     Args:
         x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
