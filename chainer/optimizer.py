@@ -5,6 +5,7 @@ import warnings
 import numpy
 import six
 
+import chainer
 from chainer import cuda
 from chainer import link as link_module
 from chainer import serializer as serializer_module
@@ -529,7 +530,8 @@ class GradientMethod(Optimizer):
                 self.target.cleargrads()
             else:
                 self.target.zerograds()
-            loss.backward()
+            with chainer.no_backprop_mode():
+                loss.backward()
             del loss
 
         self.reallocate_cleared_grads()
