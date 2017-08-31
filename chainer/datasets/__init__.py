@@ -17,6 +17,7 @@ from chainer.datasets.dict_dataset import DictDataset  # NOQA
 from chainer.datasets.image_dataset import ImageDataset  # NOQA
 from chainer.datasets.image_dataset import LabeledImageDataset  # NOQA
 from chainer.datasets.mnist import get_mnist  # NOQA
+from chainer.datasets.fashion_mnist import get_fashion_mnist # NOQA
 from chainer.datasets.ptb import get_ptb_words  # NOQA
 from chainer.datasets.ptb import get_ptb_words_vocabulary  # NOQA
 from chainer.datasets.sub_dataset import get_cross_validation_datasets  # NOQA
