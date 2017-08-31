@@ -8,7 +8,6 @@ Core functionalities
 
    core/variable
    core/function
-   core/function_node
    core/link
    core/optimizer
    core/serializer
