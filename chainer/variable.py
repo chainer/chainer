@@ -638,7 +638,7 @@ Actual: {0}'''.format(type(data))
         self._node.set_creator(gen_func)
 
     def backward(self, retain_grad=False):
-        """Runs error backpropagation (a.k.a. backprop) from this variable.
+        """Runs error backpropagation (a.k.a.\\  backprop) from this variable.
 
         On backprop, :meth:`Function.backward` is called on each
         :class:`Function` object appearing in the backward graph starting from
