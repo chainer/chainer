@@ -293,9 +293,8 @@ Backprop Through Time is implemented as follows.
 
    class BPTTUpdater(training.StandardUpdater):
 
-       def __init__(self, train_iter, optimizer, bprop_len, device):
-           super(BPTTUpdater, self).__init__(
-               train_iter, optimizer, device=device)
+       def __init__(self, train_iter, optimizer, bprop_len):
+           super(BPTTUpdater, self).__init__(train_iter, optimizer)
            self.bprop_len = bprop_len
 
        # The core part of the update routine can be customized by overriding.
@@ -314,7 +313,7 @@ Backprop Through Time is implemented as follows.
                # Concatenate the word IDs to matrices and send them to the device
                # self.converter does this job
                # (it is chainer.dataset.concat_examples by default)
-               x, t = self.converter(batch, self.device)
+               x, t = self.converter(batch)
 
                # Compute the loss at this time step and accumulate it
                loss += optimizer.target(chainer.Variable(x), chainer.Variable(t))
@@ -324,6 +323,8 @@ Backprop Through Time is implemented as follows.
            loss.unchain_backward()  # Truncate the graph
            optimizer.update()  # Update the parameters
 
+   updater = BPTTUpdater(train_iter, optimizer, bprop_len)  # instantiation
+   
 In this case, we update the parameters on every ``bprop_len`` consecutive words.
 The call of ``unchain_backward`` cuts the history of computation accumulated to the LSTM links.
 The rest of the code for setting up Trainer is almost same as one given in the previous tutorial.
