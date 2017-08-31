@@ -2,7 +2,6 @@ import numpy
 
 import chainer
 from chainer import cuda
-from chainer import function_node
 from chainer.functions.pooling import pooling_2d
 from chainer.utils import conv
 
@@ -12,6 +11,7 @@ class MaxPooling2D(pooling_2d.Pooling2D):
     """Max pooling over a set of 2d planes."""
 
     def forward_cpu(self, x):
+        self.retain_inputs(())
         self._in_shape = x[0].shape
         self._in_dtype = x[0].dtype
 
@@ -31,6 +31,7 @@ class MaxPooling2D(pooling_2d.Pooling2D):
         if chainer.should_use_cudnn('>=auto'):
             return super(MaxPooling2D, self).forward_gpu(x)
 
+        self.retain_inputs(())
         self._in_shape = x[0].shape
         self._in_dtype = x[0].dtype
 
@@ -82,39 +83,8 @@ class MaxPooling2D(pooling_2d.Pooling2D):
                                  y, self.indexes)
         return y,
 
-    def backward(self, indexes, grad_outputs):
-        gy, = grad_outputs
-
-        ret = []
-        if 0 in indexes:
-            gx, = MaxPooling2DGrad(self).apply((gy,))
-            ret.append(gx)
-
-        return ret
-
-    def create_pool_desc(self):
-        return cuda.cudnn.create_pooling_descriptor(
-            (self.kh, self.kw), (self.sy, self.sx), (self.ph, self.pw),
-            cuda.cudnn.cudnn.CUDNN_POOLING_MAX)
-
-
-class MaxPooling2DGrad(function_node.FunctionNode):
-
-    def __init__(self, mpool2d):
-        self.kh = mpool2d.kh
-        self.kw = mpool2d.kw
-        self.sy = mpool2d.sy
-        self.sx = mpool2d.sx
-        self.ph = mpool2d.ph
-        self.pw = mpool2d.pw
-        self.indexes = mpool2d.indexes
-        self.cover_all = mpool2d.cover_all
-        self._in_shape = mpool2d._in_shape
-        self._in_dtype = mpool2d._in_dtype
-
-    def forward_cpu(self, inputs):
-        gy, = inputs
-        n, c, out_h, out_w = gy.shape
+    def backward_cpu(self, x, gy):
+        n, c, out_h, out_w = gy[0].shape
         h, w = self._in_shape[2:]
         kh, kw = self.kh, self.kw
 
@@ -124,7 +94,7 @@ class MaxPooling2DGrad(function_node.FunctionNode):
         indexes = self.indexes.flatten()
         indexes += numpy.arange(0, indexes.size * kh * kw, kh * kw)
 
-        gcol[indexes] = gy.ravel()
+        gcol[indexes] = gy[0].ravel()
         gcol = gcol.reshape(n, c, out_h, out_w, kh, kw)
         gcol = numpy.swapaxes(gcol, 2, 4)
         gcol = numpy.swapaxes(gcol, 3, 5)
@@ -132,7 +102,7 @@ class MaxPooling2DGrad(function_node.FunctionNode):
         gx = conv.col2im_cpu(gcol, self.sy, self.sx, self.ph, self.pw, h, w)
         return gx,
 
-    def forward_gpu(self, x, gy):
+    def backward_gpu(self, x, gy):
         if self._used_cudnn:
             return super(MaxPooling2D, self).backward_gpu(x, gy)
 
@@ -173,6 +143,11 @@ class MaxPooling2DGrad(function_node.FunctionNode):
                             gx)
         return gx,
 
+    def create_pool_desc(self):
+        return cuda.cudnn.create_pooling_descriptor(
+            (self.kh, self.kw), (self.sy, self.sx), (self.ph, self.pw),
+            cuda.cudnn.cudnn.CUDNN_POOLING_MAX)
+
 
 def max_pooling_2d(x, ksize, stride=None, pad=0, cover_all=True):
     """Spatial max pooling function.
@@ -197,4 +172,4 @@ def max_pooling_2d(x, ksize, stride=None, pad=0, cover_all=True):
         ~chainer.Variable: Output variable.
 
     """
-    return MaxPooling2D(ksize, stride, pad, cover_all).apply((x,))[0]
+    return MaxPooling2D(ksize, stride, pad, cover_all)(x)

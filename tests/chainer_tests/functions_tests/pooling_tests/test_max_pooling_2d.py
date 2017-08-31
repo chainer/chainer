@@ -128,13 +128,11 @@ class TestMaxPooling2D(unittest.TestCase):
                 functions.max_pooling_2d(x, 3, stride=2)
 
     def check_backward(self, x_data, y_grad, use_cudnn='always'):
-        def f(*args):
-            return functions.max_pooling_2d(
-                *args, ksize=3, stride=2, pad=1, cover_all=self.cover_all)
-
         with chainer.using_config('use_cudnn', use_cudnn):
             gradient_check.check_backward(
-                f, (x_data,), y_grad, dtype='d', atol=1e-4, rtol=1e-3)
+                functions.MaxPooling2D(
+                    3, stride=2, pad=1, cover_all=self.cover_all),
+                x_data, y_grad, dtype='d', atol=1e-4, rtol=1e-3)
 
     @condition.retry(3)
     def test_backward_cpu(self):
@@ -160,20 +158,9 @@ class TestMaxPooling2D(unittest.TestCase):
     def test_backward_cpu_more_than_once(self):
         func = functions.MaxPooling2D(
             3, stride=2, pad=1, cover_all=self.cover_all)
-        func.apply((self.x,))
-        func.backward((0,), (self.gy,))
-        func.backward((0,), (self.gy,))
-
-    def check_double_backward(self, x_data, y_grad, x_grad_grad):
-        args = (x_data,)
-        grad_grads = (x_grad_grad,)
-
-        def f(*args):
-            return functions.max_pooling_2d(
-                *args, ksize=3, stride=2, pad=1, cover_all=self.cover_all)
-
-        gradient_check.check_double_backward(
-            f, args, y_grad, grad_grads)
+        func(self.x)
+        func.backward_cpu((self.x,), (self.gy,))
+        func.backward_cpu((self.x,), (self.gy,))
 
 
 @testing.parameterize(*testing.product({
