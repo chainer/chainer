@@ -3,9 +3,7 @@ import numpy
 import chainer
 from chainer import cuda
 from chainer import function_node
-from chainer.functions.array import broadcast
-from chainer.functions.math import exponential
-from chainer.functions.math import sum as sum_
+import chainer.functions
 from chainer.utils import type_check
 
 if cuda.cudnn_enabled:
@@ -104,16 +102,16 @@ class LogSoftmaxGrad(function_node.FunctionNode):
     def backward(self, indexes, ggx):
         y, gy = self.get_retained_inputs()
         ret = []
-        exp_y = exponential.exp(y)
+        exp_y = chainer.functions.exp(y)
         if 0 in indexes:
-            gy_sum = sum_.sum(gy, 1, True)
-            gy_sum = broadcast.broadcast_to(gy_sum, gy.shape)
+            gy_sum = chainer.functions.sum(gy, 1, True)
+            gy_sum = chainer.functions.broadcast_to(gy_sum, gy.shape)
             g0 = -ggx[0] * exp_y * gy_sum
             ret.append(g0)
         if 1 in indexes:
-            # TODO(Kenta Oono): implement F.dot
-            a = sum_.sum(ggx[0] * exp_y, 1, True)
-            a = broadcast.broadcast_to(a, gy.shape)
+            # TODO(Kenta Oono): implement it with double-backpropable F.matmul
+            a = chainer.functions.sum(ggx[0] * exp_y, 1, True)
+            a = chainer.functions.broadcast_to(a, gy.shape)
             g1 = ggx[0] - a
             ret.append(g1)
         return ret
