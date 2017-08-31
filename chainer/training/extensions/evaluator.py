@@ -150,10 +150,10 @@ class Evaluator(extension.Extension):
 
         .. note::
 
-            This method enclose :meth:`eval_func` calls with
+            This method encloses :meth:`eval_func` calls with
             `with function.no_backprop_mode()` context. So, all calculations
             using :class:`~chainer.Function`\ s inside :meth:`eval_func` don't
-            make a computational graph. It is for reducing the memory
+            make computational graphs. It is for reducing the memory
             consumption.
 
         Returns:
