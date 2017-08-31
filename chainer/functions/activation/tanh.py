@@ -22,7 +22,6 @@ class Tanh(function_node.FunctionNode):
 
     def forward_cpu(self, x):
         y = utils.force_array(numpy.tanh(x[0]))
-        self.retain_inputs(())
         self.retain_outputs((0,))
         self._use_cudnn = False
         return y,
@@ -35,7 +34,6 @@ class Tanh(function_node.FunctionNode):
         else:
             y = cuda.cupy.empty_like(x[0])
             cuda.cupy.tanh(x[0], out=y)
-            self.retain_inputs(())
             self._use_cudnn = False
 
         self.retain_outputs((0,))
