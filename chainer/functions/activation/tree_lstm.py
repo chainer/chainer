@@ -198,7 +198,7 @@ def tree_lstm(*inputs):
     This function implements TreeLSTM units both for
     N-ary TreeLSTM and Child-Sum TreeLSTM.
     Let the children cell states
-    :math:`c_{\\text{1}}, c_{\\text{2}}, \dots, c_{\\text{N}}`,
+    :math:`c_{\\text{1}}, c_{\\text{2}}, \\dots, c_{\\text{N}}`,
     and the incoming signal :math:`x`.
 
     First, the incoming signal :math:`x` is split into (3 + N) arrays
