@@ -7,20 +7,19 @@ import numpy
 
 import chainer
 from chainer import configuration
-from chainer import function_node
 from chainer import links
 from chainer import testing
 from chainer import training
 from chainer.training.extensions import computational_graph as c
 
 
-class Function1(function_node.FunctionNode):
+class Function1(chainer.FunctionNode):
 
     def forward(self, inputs):
         return inputs[0],
 
 
-class Function2(function_node.FunctionNode):
+class Function2(chainer.FunctionNode):
 
     def forward(self, inputs):
         return inputs[0],
