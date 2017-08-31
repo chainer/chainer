@@ -408,11 +408,11 @@ class TestCheckDoubleBackward(unittest.TestCase):
 
         gradient_check.check_double_backward(f, x, gy, ggx, param, ggparam)
 
-    def test_double_backward_with_params(self):
+    def test_double_backward_with_params_cpu(self):
         self.check_double_backward_with_params(numpy)
 
     @attr.gpu
-    def test_double_backward_with_params(self):
+    def test_double_backward_with_params_gpu(self):
         self.check_double_backward_with_params(cuda.cupy)
 
 
