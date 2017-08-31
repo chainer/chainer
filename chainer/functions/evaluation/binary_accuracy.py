@@ -36,10 +36,19 @@ def binary_accuracy(y, t):
     """Computes binary classification accuracy of the minibatch.
 
     Args:
-        y (Variable): Variable holding a matrix whose i-th element
-            indicates the score of positive at the i-th example.
-        t (Variable): Variable holding an int32 vector of ground truth labels.
-            If ``t[i] == -1``, corresponding ``x[i]`` is ignored.
+        y (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`):
+            Array whose i-th element indicates the score of
+            positive at the i-th sample.
+            The prediction label :math:`\\hat t[i]` is ``1`` if
+            ``y[i] >= 0``, otherwise ``0``.
+
+        t (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`):
+            Array holding an int32 vector of ground truth labels.
+            If ``t[i] == 1``, it indicates that i-th sample is positive.
+            If ``t[i] == 0``, it indicates that i-th sample is negative.
+            If ``t[i] == -1``, corresponding ``y[i]`` is ignored.
             Accuracy is zero if all ground truth labels are ``-1``.
 
     Returns:
@@ -47,5 +56,26 @@ def binary_accuracy(y, t):
 
     .. note:: This function is non-differentiable.
 
+    .. admonition:: Example
+
+        We show the most common case, when ``y`` is the two dimensional array.
+
+        >>> y = np.array([[-2.0, 0.0], # prediction labels are [0, 1]
+        ...               [3.0, -5.0]]) # prediction labels are [1, 0]
+        >>> t = np.array([[0, 1],
+        ...              [1, 0]], 'i')
+        >>> F.binary_accuracy(y, t).data \
+# 100% accuracy because all samples are correct.
+        array(1.0)
+        >>> t = np.array([[0, 0],
+        ...              [1, 1]], 'i')
+        >>> F.binary_accuracy(y, t).data \
+# 50% accuracy because y[0][0] and y[1][0] are correct.
+        array(0.5)
+        >>> t = np.array([[0, -1],
+        ...              [1, -1]], 'i')
+        >>> F.binary_accuracy(y, t).data \
+# 100% accuracy because of ignoring y[0][1] and y[1][1].
+        array(1.0)
     """
     return BinaryAccuracy()(y, t)

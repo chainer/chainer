@@ -188,6 +188,11 @@ WIP PR is also useful to have discussions based on a concrete code.
 Coding Guidelines
 -----------------
 
+.. note::
+
+   Coding guidelines are updated at v3.0.
+   Those who have contributed to older versions should read the guidelines again.
+
 We use `PEP 8 <https://www.python.org/dev/peps/pep-0008/>`_ and a part of `OpenStack Style Guidelines <http://docs.openstack.org/developer/hacking/>`_ related to general coding style as our basic style guidelines.
 
 To check your code, use ``autopep8`` and ``flake8`` command installed by ``hacking`` package::
@@ -211,12 +216,46 @@ Here is a (not-complete) list of the rules that ``flake8`` cannot check.
 * Importing non-module symbols is prohibited.
 * Import statements must be organized into three parts: standard libraries, third-party libraries, and internal imports. [H306]
 
-In addition, we restrict the usage of *shortcut symbols* in our code base.
-They are symbols imported by packages and sub-packages of ``chainer``.
-For example, ``chainer.Variable`` is a shortcut of ``chainer.variable.Variable``.
-**It is not allowed to use such shortcuts in the Chainer library implementation.**
-Note that you can still use them in ``tests`` and ``examples`` directories.
-Also note that you should use shortcut names of CuPy APIs in Chainer implementation.
+In addition, we restrict the usage of *shortcut aliases* in any global-scope code.
+In particular, you cannot use shortcut aliases to designate a parent class in global-scope class definitions.
+When you want to make a class inheriting another class defined in another module, you have to spell out the full module name instead of importing a module that provides an alias.
+
+For example, the following code is not allowed.
+
+.. code-block:: py
+
+   import chainer
+
+   class MyLink(chainer.Link): ...
+
+Instead, import ``chainer.link`` and use that.
+
+.. code-block:: py
+
+   import chainer.link
+
+   class MyLink(chainer.link.Link): ...
+
+If you feel the code too verbose, you can also use ``from import`` or ``import as``.
+
+.. code-block:: py
+
+   from chainer import link
+
+   class MyLink(link.Link): ...
+
+.. note::
+
+   From v3.0, we allow shortcut aliases used inside of functions and methods that are not called from any global scope code.
+   For example, you can write ``chainer.Variable`` instead of ``chainer.variable.Variable`` inside of functions and methods.
+   Use of such aliases is prohibited in the past for avoiding confusing errors related to cyclic dependencies;
+   we relaxed the rule so that the library code looks similar to user code.
+
+   When you use such shortcut aliases, please be careful with cyclic imports.
+   One of the typical pitfalls is a way to import ``chainer.functions``.
+   An import like ``import chainer.functions as F`` within modules under ``chainer.functions`` does not work.
+   An import like ``from chainer import functions`` works well with Python 3, but does not with Python 2.
+   We recommend you to use ``import chainer.functions`` and spell out like ``chainer.functions.foo`` in your methods.
 
 Once you send a pull request, your coding style is automatically checked by `Travis-CI <https://travis-ci.org/chainer/chainer/>`_.
 The reviewing process starts after the check passes.

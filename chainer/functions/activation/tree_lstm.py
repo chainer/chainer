@@ -198,7 +198,7 @@ def tree_lstm(*inputs):
     This function implements TreeLSTM units both for
     N-ary TreeLSTM and Child-Sum TreeLSTM.
     Let the children cell states
-    :math:`c_{\\text{1}}, c_{\\text{2}}, \dots, c_{\\text{N}}`,
+    :math:`c_{\\text{1}}, c_{\\text{2}}, \\dots, c_{\\text{N}}`,
     and the incoming signal :math:`x`.
 
     First, the incoming signal :math:`x` is split into (3 + N) arrays
@@ -258,21 +258,23 @@ def tree_lstm(*inputs):
 
         Assuming ``y`` is the current input signal, ``c`` is the previous cell
         state, and ``h`` is the previous output signal from an
-        ``n_ary_tree_lstm`` function.
+        :meth:`~chainer.functions.tree_lstm` function.
         Each of ``y``, ``c`` and ``h`` has ``n_units`` channels.
         Using 2-ary (binary) TreeLSTM,
         most typical preparation of ``x`` is:
 
-        >>> model = chainer.Chain(w=F.Linear(10, 5 * 10),
-        ...                       v1=F.Linear(10, 5 * 10),
-        ...                       v2=F.Linear(10, 5 * 10),)
+        >>> model = chainer.Chain()
+        >>> with model.init_scope():
+        ...   model.w = L.Linear(10, 5 * 10)
+        ...   model.v1 = L.Linear(10, 5 * 10)
+        ...   model.v2 = L.Linear(10, 5 * 10)
         >>> y = np.random.uniform(-1, 1, (4, 10)).astype('f')
         >>> h1 = np.random.uniform(-1, 1, (4, 10)).astype('f')
         >>> h2 = np.random.uniform(-1, 1, (4, 10)).astype('f')
         >>> c1 = np.random.uniform(-1, 1, (4, 10)).astype('f')
         >>> c2 = np.random.uniform(-1, 1, (4, 10)).astype('f')
         >>> x = model.w(y) + model.v1(h1) + model.v2(h2)
-        >>> c, h = F.n_ary_tree_lstm(c1, c2, x)
+        >>> c, h = F.tree_lstm(c1, c2, x)
 
         It corresponds to calculate the input sources
         :math:`a, i, o, f_{\\text{1}}, f_{\\text{2}}`
