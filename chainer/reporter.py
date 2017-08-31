@@ -1,4 +1,5 @@
 import collections
+import contextlib
 import copy
 
 import numpy
@@ -6,7 +7,6 @@ import six
 
 from chainer import configuration
 from chainer import cuda
-from chainer import utils
 from chainer import variable
 
 
@@ -77,7 +77,7 @@ class Reporter(object):
         """Recovers the previous reporter object to the current."""
         _reporters.pop()
 
-    @utils.contextmanager
+    @contextlib.contextmanager
     def scope(self, observation):
         """Creates a scope to report observed values to ``observation``.
 
@@ -225,7 +225,7 @@ def report(values, observer=None):
         current.report(values, observer)
 
 
-@utils.contextmanager
+@contextlib.contextmanager
 def report_scope(observation):
     """Returns a report scope with the current reporter.
 

@@ -1,8 +1,7 @@
 from __future__ import print_function
+import contextlib
 import sys
 import threading
-
-from chainer import utils
 
 
 class GlobalConfig(object):
@@ -100,7 +99,7 @@ See :ref:`configuration` for details.
 '''
 
 
-@utils.contextmanager
+@contextlib.contextmanager
 def using_config(name, value, config=config):
     """using_config(name, value, config=chainer.config)
 

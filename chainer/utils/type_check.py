@@ -1,3 +1,4 @@
+import contextlib
 import operator
 import sys
 import threading
@@ -5,13 +6,12 @@ import threading
 import numpy
 
 from chainer import cuda
-from chainer import utils
 
 
 _thread_local = threading.local()
 
 
-@utils.contextmanager
+@contextlib.contextmanager
 def get_function_check_context(f):
     default = getattr(_thread_local, 'current_function', None)
     _thread_local.current_function = f

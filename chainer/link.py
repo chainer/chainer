@@ -1,4 +1,5 @@
 import collections
+import contextlib
 import copy
 import warnings
 
@@ -7,7 +8,6 @@ import six
 
 from chainer import cuda
 from chainer import initializers
-from chainer import utils
 from chainer import variable
 
 
@@ -159,7 +159,7 @@ class Link(object):
         """
         return getattr(self, '_within_init_scope', False)
 
-    @utils.contextmanager
+    @contextlib.contextmanager
     def init_scope(self):
         """Creates an initialization scope.
 

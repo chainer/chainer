@@ -1,9 +1,8 @@
+import contextlib
 import pkg_resources
 import sys
 import unittest
 import warnings
-
-from chainer import utils
 
 
 def with_requires(*requirements):
@@ -35,7 +34,7 @@ def with_requires(*requirements):
     return unittest.skipIf(skip, msg)
 
 
-@utils.contextmanager
+@contextlib.contextmanager
 def assert_warns(expected):
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')

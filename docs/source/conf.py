@@ -431,12 +431,11 @@ def _check_object_validity(obj):
 
 
 def _get_sourcefile_and_linenumber(obj):
-    # Check to see `obj` has attributes that are injected by
-    # chainer.utils.contextmanager.
-    if hasattr(obj, '__chainer_wrapped_sourcefile__'):
-        filename = obj.__chainer_wrapped_sourcefile__
-        linenum = obj.__chainer_wrapped_linenumber__
-        return filename, linenum
+    # Retrieve the original function wrapped by contextlib.contextmanager
+    if callable(obj):
+        closure = getattr(obj, '__closure__', None)
+        if closure is not None:
+            obj = closure[0].cell_contents
 
     # Get the source file name and line number at which obj is defined.
     try:
