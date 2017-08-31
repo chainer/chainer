@@ -55,6 +55,8 @@ class TanhGrad(function_node.FunctionNode):
         super(TanhGrad, self).__init__()
         # The original input `x` is only required for cuDNN.
         # If it is None, this class does not use cuDNN.
+        # Note that x must be c-contiguous and it is checked
+        # in Tanh.forward_gpu.
         self.x = x
 
     def forward_cpu(self, inputs):
@@ -67,8 +69,7 @@ class TanhGrad(function_node.FunctionNode):
         self.retain_inputs((0, 1))
         y, gy = inputs
         if (chainer.should_use_cudnn('==always') and
-                self.x is not None and self.x.flags.c_contiguous and
-                gy.flags.c_contiguous):
+                self.x is not None and gy.flags.c_contiguous):
             gx = cudnn.activation_backward(self.x, y, gy, _mode)
         else:
             gx = cuda.elementwise(
