@@ -106,7 +106,7 @@ class _SoftmaxGrad(function_node.FunctionNode):
         if 0 in indexes:
             s = chainer.functions.broadcast_to(chainer.functions.sum(
                 y * gy, axis=self.axis, keepdims=True), gy.shape)
-            gy2 = -ggx * s + ga * gy
+            gy2 = ga * gy - ggx * s
             ret.append(gy2)
         if 1 in indexes:
             ggy = ga * y
