@@ -550,7 +550,7 @@ class FunctionNode(object):
         if outputs_modified:
             self.outputs = tuple(new_outputs)
 
-        return ret
+        return tuple(ret)
 
     def unchain(self):
         """Purges in/out nodes and this function node itself from the graph."""

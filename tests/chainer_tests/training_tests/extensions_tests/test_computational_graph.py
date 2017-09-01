@@ -7,11 +7,22 @@ import numpy
 
 import chainer
 from chainer import configuration
-from chainer import functions
 from chainer import links
 from chainer import testing
 from chainer import training
 from chainer.training.extensions import computational_graph as c
+
+
+class Function1(chainer.FunctionNode):
+
+    def forward(self, inputs):
+        return inputs[0],
+
+
+class Function2(chainer.FunctionNode):
+
+    def forward(self, inputs):
+        return inputs[0],
 
 
 class Dataset(chainer.dataset.DatasetMixin):
@@ -39,9 +50,9 @@ class Model(chainer.Link):
 
         h = self.l1(x)
         if self.i == 0:
-            h, = functions.Sigmoid().apply((h,))
+            h, = Function1().apply((h,))
         else:
-            h = functions.Tanh()(h)
+            h, = Function2().apply((h,))
         h = self.l2(h)
 
         self.i += 1
@@ -83,8 +94,8 @@ class TestGraphBuilderKeepGraphOnReport(unittest.TestCase):
             graph_dot = f.read()
 
         # Check that only the first iteration is dumped
-        self.assertIn('Sigmoid', graph_dot)
-        self.assertNotIn('Tanh', graph_dot)
+        self.assertIn('Function1', graph_dot)
+        self.assertNotIn('Function2', graph_dot)
 
     def _check(self, initial_flag):
         tempdir = tempfile.mkdtemp()
