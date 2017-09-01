@@ -1,9 +1,10 @@
+import chainer
 from chainer import cuda
-from chainer import function
+from chainer import function_node
 from chainer.utils import type_check
 
 
-class ExpandDims(function.Function):
+class ExpandDims(function_node.FunctionNode):
 
     """Expands dimenstions of an input array without copy."""
 
@@ -18,14 +19,14 @@ class ExpandDims(function.Function):
         else:
             type_check.expect(x_type.ndim >= -self.axis - 1)
 
-    def forward(self, x):
-        self.retain_inputs(())
-        self._in_shape = x[0].shape
-        xp = cuda.get_array_module(*x)
-        return xp.expand_dims(x[0], self.axis),
+    def forward(self, inputs):
+        x, = inputs
+        xp = cuda.get_array_module(x)
+        return xp.expand_dims(x, self.axis),
 
-    def backward(self, x, gy):
-        return gy[0].reshape(self._in_shape),
+    def backward(self, indexes, grad_outputs):
+        gx, = grad_outputs
+        return chainer.functions.reshape(gx, self.inputs[0].shape),
 
 
 def expand_dims(x, axis):
@@ -69,4 +70,5 @@ def expand_dims(x, axis):
         array([[1, 2, 3]])
 
     """
-    return ExpandDims(axis)(x)
+    y, = ExpandDims(axis).apply((x,))
+    return y

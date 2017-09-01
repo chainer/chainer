@@ -31,6 +31,9 @@ Since the network is statically defined before any forward/backward computation,
 Consequently, defining a network architecture in such systems (e.g. Caffe) follows a declarative approach.
 Note that one can still produce such a static network definition using imperative languages (e.g. torch.nn, Theano-based frameworks, and TensorFlow).
 
+Define-by-Run
+"""""""""""""
+
 In contrast, Chainer adopts a **"Define-by-Run"** scheme, i.e., the network is defined on-the-fly via the actual forward computation.
 More precisely, Chainer stores the history of computation instead of programming logic.
 This strategy enables us to fully leverage the power of programming logic in Python.
@@ -41,6 +44,15 @@ We will show in this tutorial how to define networks dynamically.
 This strategy also makes it easy to write multi-GPU parallelization, since logic comes closer to network manipulation.
 We will review such amenities in later sections of this tutorial.
 
+Chainer represents a network as *an execution path on a computational graph*.
+A computational graph is a series of function applications, so that it can be described with multiple :class:`Function` objects.
+When such function is a layer of neural network, the parameters of the function will be updated through training.
+Therefore, the function needs to keep trainable parameters inside, so that Chainer has :class:`Link` class that can keep trainable parameters in the object of the class.
+The parameters of the function performed inside the :class:`Link` object are represented as :class:`Variable` objects.
+In short, the difference between these two objects, :class:`Link` and :class:`Function`, is whether it contains trainable parameters or not.
+A neural network model is typically described as a series of :class:`Function` and :class:`Link`.
+
+You can build a computational graph by dynamically 'chaining' various kinds of :class:`Link` s and :class:`Function` s to define a :class:`Chain`. In the framework, the network is defined by *running* the chained graph, hence the name is **Chainer**.
 
 .. note::
 
@@ -70,14 +82,14 @@ Here we start with a simple :class:`~numpy.ndarray` with only one element:
    >>> x_data = np.array([5], dtype=np.float32)
    >>> x = Variable(x_data)
 
-A Variable object has basic arithmetic operators.
+A :class:`Variable` object has basic arithmetic operators.
 In order to compute :math:`y = x^2 - 2x + 1`, just write:
 
 .. doctest::
 
    >>> y = x**2 - 2 * x + 1
 
-The resulting ``y`` is also a Variable object, whose value can be extracted by accessing the :attr:`~Variable.data` attribute:
+The resulting ``y`` is also a :class:`Variable` object, whose value can be extracted by accessing the :attr:`~Variable.data` attribute:
 
 .. doctest::
 
@@ -85,7 +97,7 @@ The resulting ``y`` is also a Variable object, whose value can be extracted by a
    array([ 16.], dtype=float32)
 
 What ``y`` holds is not only the result value.
-It also holds the history of computation (or computational graph), which enables us to compute its differentiation.
+It also holds the history of computation (i.e., computational graph), which enables to compute its differentiation.
 This is done by calling its :meth:`~Variable.backward` method:
 
 .. doctest::
@@ -112,9 +124,19 @@ In order to preserve gradient information, pass the ``retain_grad`` argument to 
    >>> z.grad
    array([-1.], dtype=float32)
 
-All these computations are easily generalized to a multi-element array input.
+Otherwise, ``z.grad`` will be ``None`` as follows:
+
+.. doctest::
+
+   >>> y.backward()  # The default value of retain_grad is False
+   >>> z.grad is None
+   True
+
+All these computations are easily generalized to multi-element array input.
 Note that if we want to start backward computation from a variable holding a multi-element array, we must set the *initial error* manually.
-This is done simply by setting the :attr:`~Variable.grad` attribute of the output variable:
+Because when the :attr:`~Variable.size` of a variable (it means the number of elements in the array) is ``1``, it's considered as a variable object that represents a loss value, so that the :attr:`~Variable.grad` attribute of the variable is automatically filled with ``1``.
+On the other hand, when the size of a variable is larger than ``1``, the :attr:`~Variable.grad` attribute remains ``None``, and it is necessary to set the *initial error* explicitly before running :meth:`~Variable.backward`.
+This is simply done by setting the :attr:`~Variable.grad` attribute of the output variable as follows:
 
 .. doctest::
 
@@ -137,7 +159,7 @@ Links
 
 In order to write neural networks, we have to combine functions with *parameters* and optimize the parameters.
 You can use **links** to do this.
-A link is an object that holds parameters (i.e. optimization targets).
+A :class:`~chainer.Link` is an object that holds parameters (i.e., optimization targets).
 
 The most fundamental ones are links that behave like regular functions while replacing some arguments by their parameters.
 We will introduce higher level links, but here think of links as simply functions with parameters.
@@ -225,7 +247,7 @@ Write a model as a chain
 
 Most neural network architectures contain multiple links.
 For example, a multi-layer perceptron consists of multiple linear layers.
-We can write complex procedures with parameters by combining multiple links like this:
+We can write complex procedures with trainable parameters by combining multiple links like this:
 
 .. doctest::
 

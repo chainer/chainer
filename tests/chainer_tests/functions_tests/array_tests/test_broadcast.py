@@ -144,7 +144,7 @@ class TestBroadcastTo(unittest.TestCase):
     @condition.retry(3)
     def check_backward(self, data, grads):
         gradient_check.check_backward(
-            functions.BroadcastTo(self.out_shape), data, grads,
+            lambda x: functions.broadcast_to(x, self.out_shape), data, grads,
             **self.check_backward_options)
 
     @condition.retry(3)
@@ -171,6 +171,23 @@ class TestBroadcastToTypeCheck(unittest.TestCase):
         x = chainer.Variable(self.data)
         with self.assertRaises(type_check.InvalidType):
             functions.broadcast_to(x, self.out_shape)
+
+
+class TestBroadcastToSkip(unittest.TestCase):
+
+    shape = (2, 3)
+
+    def setUp(self):
+        self.data = numpy.random.uniform(0, 1, self.shape)
+
+    def test_ndarray(self):
+        ret = functions.broadcast_to(self.data, self.shape)
+        self.assertIs(self.data, ret.data)
+
+    def test_variable(self):
+        x = chainer.Variable(self.data)
+        ret = functions.broadcast_to(x, self.shape)
+        self.assertIs(x, ret)
 
 
 testing.run_module(__name__, __file__)
