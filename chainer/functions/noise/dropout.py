@@ -1,5 +1,6 @@
 import numpy
 
+import chainer
 from chainer import configuration
 from chainer import cuda
 from chainer import function
@@ -59,7 +60,7 @@ def dropout(x, ratio=.5, **kwargs):
     .. warning::
 
        ``train`` argument is not supported anymore since v2.
-       Instead, use ``chainer.using_config('train', train)``.
+       Instead, use ``chainer.using_config('train', boolean)``.
        See :func:`chainer.using_config`.
 
     Args:
@@ -103,4 +104,4 @@ def dropout(x, ratio=.5, **kwargs):
 
     if configuration.config.train:
         return Dropout(ratio)(x)
-    return x
+    return chainer.as_variable(x)

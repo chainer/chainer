@@ -65,7 +65,7 @@ class TestSimplifiedDropconnect(unittest.TestCase):
                                          W, x[:, :, None]).reshape(4, -1) + b
 
         self.check_forward_options = {}
-        self.check_backward_options = {}
+        self.check_backward_options = {'atol': 1e-4, 'rtol': 1e-3}
         if self.x_dtype == numpy.float16:
             self.check_forward_options = {'atol': 1e-3, 'rtol': 1e-2}
             self.check_backward_options = {'atol': 1e-2, 'rtol': 5e-2}
@@ -95,8 +95,8 @@ class TestSimplifiedDropconnect(unittest.TestCase):
     def check_backward(self, x_data, y_grad, mask):
         gradient_check.check_backward(
             self.link_wrapper, (x_data, mask), y_grad,
-            (self.link.W, self.link.b), eps=2 ** -3,
-            no_grads=(False, True), **self.check_backward_options)
+            (self.link.W, self.link.b),
+            no_grads=(False, True), dtype='d', **self.check_backward_options)
 
     @condition.retry(3)
     def test_backward_cpu(self):
@@ -164,7 +164,8 @@ class TestSimplifiedDropconnectParameterShapePlaceholder(unittest.TestCase):
     def check_backward(self, x_data, y_grad, mask):
         gradient_check.check_backward(
             self.link_wrapper, (x_data, mask), y_grad,
-            (self.link.W, self.link.b), eps=1e-2, no_grads=(False, True))
+            (self.link.W, self.link.b), dtype='d', no_grads=(False, True),
+            atol=1e-4, rtol=1e-3)
 
     @condition.retry(3)
     def test_backward_cpu(self):

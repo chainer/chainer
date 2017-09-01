@@ -1,10 +1,10 @@
 import numpy
 
-from chainer import function
+from chainer import function_node
 from chainer.utils import type_check
 
 
-class Transpose(function.Function):
+class Transpose(function_node.FunctionNode):
     """Permute the dimensions of an array."""
 
     def __init__(self, axes=None):
@@ -18,19 +18,16 @@ class Transpose(function.Function):
         return 'Transpose'
 
     def forward(self, inputs):
-        self.retain_inputs(())
         x = inputs[0]
         y = x.transpose(self.axes)
         return y,
 
-    def backward(self, inputs, grad_outputs):
-        gy = grad_outputs[0]
+    def backward(self, indexes, grad_outputs):
         inv_axes = self.axes
-        if self.axes:
-            axes = tuple(ax % len(self.axes) for ax in self.axes)
-            inv_axes = tuple(numpy.argsort(axes))
-        gx = gy.transpose(inv_axes)
-        return gx,
+        if inv_axes:
+            axes_len = len(inv_axes)
+            inv_axes = tuple(numpy.argsort([ax % axes_len for ax in inv_axes]))
+        return Transpose(inv_axes).apply(grad_outputs)
 
 
 def transpose(x, axes=None):
@@ -45,4 +42,4 @@ def transpose(x, axes=None):
         ~chainer.Variable: Variable whose axes are permuted.
 
     """
-    return Transpose(axes)(x)
+    return Transpose(axes).apply((x,))[0]

@@ -240,6 +240,8 @@ from chainer.functions.math.trigonometric import arcsin  # NOQA
 from chainer.functions.math.trigonometric import Arcsin  # NOQA
 from chainer.functions.math.trigonometric import arctan  # NOQA
 from chainer.functions.math.trigonometric import Arctan  # NOQA
+from chainer.functions.math.trigonometric import arctan2  # NOQA
+from chainer.functions.math.trigonometric import Arctan2  # NOQA
 from chainer.functions.math.trigonometric import cos  # NOQA
 from chainer.functions.math.trigonometric import Cos  # NOQA
 from chainer.functions.math.trigonometric import sin  # NOQA

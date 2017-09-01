@@ -1,5 +1,4 @@
-from chainer.functions.array import concat
-from chainer.functions.array import expand_dims
+import chainer
 
 
 def stack(xs, axis=0):
@@ -87,5 +86,5 @@ def stack(xs, axis=0):
         (3, 4, 2)
 
     """
-    xs = [expand_dims.expand_dims(x, axis=axis) for x in xs]
-    return concat.concat(xs, axis=axis)
+    xs = [chainer.functions.expand_dims(x, axis) for x in xs]
+    return chainer.functions.concat(xs, axis)
