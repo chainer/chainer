@@ -100,8 +100,8 @@ class _SoftmaxGrad(function_node.FunctionNode):
     def backward(self, indexes, grad_outputs):
         y, gy = self.get_retained_inputs()
         ggx, = grad_outputs
-        gs = -chainer.functions.sum(ggx * y, axis=self.axis, keepdims=True)
-        ga = ggx + chainer.functions.broadcast_to(gs, gy.shape)
+        gs = chainer.functions.sum(ggx * y, axis=self.axis, keepdims=True)
+        ga = ggx - chainer.functions.broadcast_to(gs, gy.shape)
         ret = []
         if 0 in indexes:
             s = chainer.functions.broadcast_to(chainer.functions.sum(
