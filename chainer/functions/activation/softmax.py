@@ -59,7 +59,6 @@ class Softmax(function_node.FunctionNode):
             xp.exp(y, out=y)
             y /= y.sum(axis=self.axis, keepdims=True)
 
-        self._x_shape = x[0].shape
         self.retain_outputs((0,))
         return y,
 
