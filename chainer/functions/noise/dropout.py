@@ -87,13 +87,13 @@ def dropout(x, ratio=.5, **kwargs):
                [-0.,  2.]], dtype=float32)
         >>> with chainer.using_config('train', True):
         ...     y = F.dropout(x, ratio=0.0) \
-# returns original input
+# dropout returns original input if ratio=0.0
         >>> (x == y.data).all()
         True
         >>> with chainer.using_config('train', False):
         ...     y = F.dropout(x) \
-# Dropout in test mode returns original input
-        >>> (x == y).all()
+# dropout in test mode returns original input
+        >>> (x == y.data).all()
         True
 
     """
