@@ -809,7 +809,7 @@ Actual: {0}'''.format(type(data))
         """
         self._node.set_creator_node(fnode)
 
-    def backward(self, retain_grad=False):
+    def backward(self, retain_grad=False, enable_backprop=False):
         """Runs error backpropagation (a.k.a.\\  backprop) from this variable.
 
         On backprop, :meth:`FunctionNode.backward` is called on each
@@ -839,8 +839,19 @@ Actual: {0}'''.format(type(data))
                 In most cases of training some models, the purpose of backprop
                 is to compute gradients of parameters, not of all variables,
                 and therefore it is recommended to set this flag ``False``.
+            enable_backprop (bool): *(Added in v3.0)* If ``True``,
+                computational trace of the whole backpropagation procedure is
+                recorded to the computational graph so that one can further do
+                backpropagation from the resulting gradients. Note that
+                enabling it results in larger memory consumption needed to
+                store the gradients w.r.t intermediate variables that are
+                required for the second gradient computation.
 
         """
+        with chainer.using_config('enable_backprop', enable_backprop):
+            self._backward_main(retain_grad)
+
+    def _backward_main(self, retain_grad):
         self._node._check_old_style_gradient()
         if self.creator_node is None:
             return
