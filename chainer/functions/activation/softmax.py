@@ -3,8 +3,7 @@ import numpy
 import chainer
 from chainer import cuda
 from chainer import function_node
-from chainer.functions.array import broadcast
-from chainer.functions.math import sum as sum_
+import chainer.functions
 from chainer.utils import type_check
 
 if cuda.cudnn_enabled:
@@ -101,12 +100,12 @@ class _SoftmaxGrad(function_node.FunctionNode):
     def backward(self, indexes, grad_outputs):
         y, gy = self.get_retained_inputs()
         ggx, = grad_outputs
-        gs = sum_.sum(-ggx * y, axis=self.axis, keepdims=True)
-        ga = ggx + broadcast.broadcast_to(gs, gy.shape)
+        gs = chainer.functions.sum(-ggx * y, axis=self.axis, keepdims=True)
+        ga = ggx + chainer.functions.broadcast_to(gs, gy.shape)
         ret = []
         if 0 in indexes:
-            s = broadcast.broadcast_to(
-                sum_.sum(y * gy, axis=self.axis, keepdims=True), gy.shape)
+            s = chainer.functions.broadcast_to(chainer.functions.sum(
+                y * gy, axis=self.axis, keepdims=True), gy.shape)
             gy2 = -ggx * s + ga * gy
             ret.append(gy2)
         if 1 in indexes:
