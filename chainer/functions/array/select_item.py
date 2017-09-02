@@ -81,7 +81,7 @@ class Assign(function_node.FunctionNode):
         return gx,
 
     def backward(self, indexes, gy):
-        return SelectItem().apply((gy, self.t))
+        return SelectItem().apply((gy[0], self.t))
 
 
 def select_item(x, t):
