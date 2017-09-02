@@ -303,8 +303,8 @@ def _gather(link, target):
         i += 1
     info[0] = num
 
-    ptrs = cuda.to_gpu(ptrs, stream=cuda.Stream.null)
-    info = cuda.to_gpu(info, stream=cuda.Stream.null)
+    ptrs = cuda.to_gpu(ptrs)
+    info = cuda.to_gpu(info)
 
     return _batch_memcpy()(ptrs, info, size=size)
 
