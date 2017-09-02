@@ -3,8 +3,8 @@ import os
 import numpy
 
 from chainer.dataset import download
-from chainer.datasets.mnist import _preprocess_mnist
 from chainer.datasets.mnist import _make_npz
+from chainer.datasets.mnist import _preprocess_mnist
 
 
 def get_fashion_mnist(withlabel=True, ndim=1, scale=1., dtype=numpy.float32,
