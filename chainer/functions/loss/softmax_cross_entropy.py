@@ -221,15 +221,41 @@ class SoftmaxCrossEntropy(function.Function):
 
 
 def double_backward_available(normalize, cache_score, class_weight, ignore_label, reduce):
-    return False
+    return not cache_score 
 
 
-def _double_backward_softmax_cross_entropy(x, t):
-    log_p = chainer.functions.log_softmax(x)
-    return chainer.functions.get_item(log_p, t)
+def _double_backward_softmax_cross_entropy(x, t, normalize, class_weight, ignore_label, reduce):
+    loss = -chainer.functions.log_softmax(x)
+    if class_weight is not None:
+        shape = [1 if d != 1 else -1 for d in six.moves.range(x.ndim)]
+        class_weight = chainer.functions.broadcast_to(class_weight.reshape(shape), x.shape)
+        loss = loss * class_weight
+
+    # TODO(Kenta Oono): Double differentiable rollaxis
+    loss = chainer.functions.rollaxis(loss, 1, loss.ndim)
+    loss = chainer.functions.reshape(loss, (-1, loss.shape[-1]))
+    # TODO(Kenta Oono): Double differentiable select item
+    if isinstance(t, chainer.Variable):
+        t = t.data
+    loss = chainer.functions.select_item(loss, t.ravel())
+    loss = chainer.functions.reshape(loss, t.shape)
+
+    in_use = (t != ignore_label).astype(x.dtype)
+    loss = loss * in_use
+
+    if reduce == 'mean':
+        if normalize:
+            count = (t != ignore_label).astype(x.dtype).sum()
+        else:
+            count = len(x)
+        count = max(count, 1.)
+        loss = loss * (1. / count)
+        return chainer.functions.sum(loss)
+    else:
+        return loss
 
 
-def _softmax_cross_entropy(
+def _single_backward_softmax_cross_entropy(
         x, t, normalize=True, cache_score=True, class_weight=None,
         ignore_label=-1, reduce='mean'):
     return SoftmaxCrossEntropy(
@@ -287,9 +313,14 @@ def softmax_cross_entropy(
 
     """
 
+    if reduce not in ('mean', 'no'):
+        raise ValueError(
+            "only 'mean' and 'no' are valid for 'reduce', but '%s' is "
+            'given' % reduce)
+
     if double_backward_available(normalize, cache_score, class_weight,
                                  ignore_label, reduce):
-        _double_backward_softmax_cross_entropy(x, t)
+        return _double_backward_softmax_cross_entropy(x, t, normalize, class_weight, ignore_label, reduce)
     else:
-        _single_backward_softmax_cross_entropy(x, t, normalize, cache_score, class_weight
-                                               ignore_label, reduce)
+        return _single_backward_softmax_cross_entropy(x, t, normalize, cache_score, class_weight,
+                                                      ignore_label, reduce)
