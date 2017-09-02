@@ -12,7 +12,7 @@ to each word, the closer the meanings of the words, the greater similarity the
 vectors will indicate. As you know, **distributed representation** is assigning a
 real-valued vector for each object and representing the object by the vector. When
 representing a word by distributed representation, we call it **distributed representation of words**
-or **word embeddings**. In this tutorial we will use the term word emgeddings.
+or **word embeddings**. In this tutorial we will use the term word embeddings.
 
 Let's think about what the meaning of word is. Since you are a human, you can
 understand that the words "animal" and "dog" are similar. But what information
@@ -78,10 +78,6 @@ matrix for input :math:`W_H` becomes a word embedding of each word.
     p(v_{t+c}|v_t) &= \text{softmax}(L_O) \\
                    &= \frac{\exp(L_O)}{\sum_{v=1}^V \exp(L_O[v])}
 
-.. math::
-    \text{Loss}(v_t) &= \sum_{c=1}^C \log(p(v_{t+c}(v_{t+c} - \hat v_{t+c})^2 \\
-
-
 2.2 Continuous Bag of Words (CBoW)
 -----------------------------------
 
@@ -90,6 +86,13 @@ This model learns to predict Center Word :math:`v_t` when Context Words
 of each word.
 
 .. image:: ../../image/word2vec/cbow.png
+
+.. math::
+    L_H &= \sum_{c=1}^C W_H v_{t+c} \\
+    L_O &= W_O L_H \\
+        &= W_O W_H v_t \\
+    p(v_{t+c}|v_t) &= \text{softmax}(L_O) \\
+                   &= \frac{\exp(L_O)}{\sum_{v=1}^V \exp(L_O[v])}
 
 3. Details of Skip-gram
 ========================
