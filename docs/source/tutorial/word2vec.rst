@@ -27,13 +27,13 @@ from a sequence of words in sentences. The idea is that the meaning of the word 
 determined by the words around it. This idea is based on **distributional hypothesis**
 [2]. The word to be learned is called the **Center Word**, and the words around it
 are called
-**Context Words**. Depending on the window size ``c``, the number of Context Words
+**Context Words**. Depending on the window size ``C``, the number of Context Words
 will change.
 
 For example, I will explain with the sentence "**The cute cat jumps over the lazy dog.**".
 
 * All of the following figures consider "cat" as Center Word.
-* According to the window size ``c``, you can see that Context Words are changing.
+* According to the window size ``C``, you can see that Context Words are changing.
 
 .. image:: ../../image/word2vec/center_context_word.png
 
@@ -47,7 +47,7 @@ To explain the models with the figures below, we will use the following
 symbols.
 
 * :math:`N`: the size of vocabulary.
-* :math:`D`: the size of embeddings vector.
+* :math:`D`: the size of embedding vector.
 * :math:`v_t`: Center Word. The shape is ``[N,]``.
 * :math:`v_{t+c}`: Context Word. The shape is ``[N,]``.
 * :math:`L_H`: Embedding vector converted from input.
@@ -72,11 +72,20 @@ matrix for input :math:`W_H` becomes a word embedding of each word.
 .. image:: ../../image/word2vec/skipgram.png
 
 .. math::
-    L_H &= W_H v_t \\
-    L_O &= W_O L_H \\
-        &= W_O W_H v_t \\
-    p(v_{t+c}|v_t) &= \text{softmax}(L_O) \\
-                   &= \frac{\exp(L_O)}{\sum_{v=1}^V \exp(L_O[v])}
+    l_H &= v_t^T W_H \\
+    l_O &= l_H^T W_O \\
+    \hat v_{t+c} &= \text{softmax}(l_O) \\
+    &= \frac{\exp(l_O)}{\sum_{n=1}^N \exp(l_O[n])} \\
+    p(w_i|v_t) &= \hat v_{t+c}[i] \\
+    p(v_{t+c}|v_t) &= \hat v_{t+c}^T v_{t+c}
+
+.. math::
+    \text{loss}(W_H, W_O|v_{t-C}, ..., v_t, ..., v_{t+C}) &= \sum_{c=\{-C,...,C\}/\{0\}} \log(p(v_{t+c}|v_t)) \\
+    &= \sum_{c=\{-C,...,C\}/\{0\}} \log(\hat v_{t+c}^T v_{t+c})
+
+.. math::
+    \text{Loss}(W_H, W_O|\mathcal{D}) &= \sum_{\mathcal{D}} \text{loss}(W_H, W_O|v_{t-C}, ..., v_t, ..., v_{t+C}) \\
+    &= \sum_{\mathcal{D}} \sum_{c=\{-C,...,C\}/\{0\}} \log(\hat v_{t+c}^T v_{t+c})
 
 2.2 Continuous Bag of Words (CBoW)
 -----------------------------------
@@ -86,13 +95,6 @@ This model learns to predict Center Word :math:`v_t` when Context Words
 of each word.
 
 .. image:: ../../image/word2vec/cbow.png
-
-.. math::
-    L_H &= \sum_{c=1}^C W_H v_{t+c} \\
-    L_O &= W_O L_H \\
-        &= W_O W_H v_t \\
-    p(v_{t+c}|v_t) &= \text{softmax}(L_O) \\
-                   &= \frac{\exp(L_O)}{\sum_{v=1}^V \exp(L_O[v])}
 
 3. Details of Skip-gram
 ========================
