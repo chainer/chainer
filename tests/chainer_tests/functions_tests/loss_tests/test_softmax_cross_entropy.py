@@ -77,15 +77,10 @@ class TestSoftmaxCrossEntropy(unittest.TestCase):
                 continue
             log_z = numpy.ufunc.reduce(numpy.logaddexp, xi)
             if class_weight is None:
-                val = (xi - log_z)[ti]
-                loss_expect -= val
+                loss_expect -= (xi - log_z)[ti]
             else:
-                val = (xi - log_z)[ti] * class_weight[ti]
-                loss_expect -= val
-            print(val)
+                loss_expect -= (xi - log_z)[ti] * class_weight[ti]
             count += 1
-
-        print(loss_expect)
 
         if self.normalize:
             if count == 0:
@@ -94,24 +89,23 @@ class TestSoftmaxCrossEntropy(unittest.TestCase):
                 loss_expect /= count
         else:
             loss_expect /= len(t_data)
-        print(loss_expect)
 
         testing.assert_allclose(
             loss_expect, loss_value, **self.check_forward_options)
 
-    @condition.retry(1)
+    @condition.retry(3)
     def test_forward_cpu(self):
         self.check_forward(self.x, self.t, self.class_weight)
 
     @attr.gpu
-    @condition.retry(1)
+    @condition.retry(3)
     def test_forward_gpu(self):
         self.check_forward(
             cuda.to_gpu(self.x), cuda.to_gpu(self.t),
             None if not self.weight_apply else cuda.to_gpu(self.class_weight))
 
     @attr.gpu
-    @condition.retry(1)
+    @condition.retry(3)
     def test_forward_gpu_no_cudnn(self):
         self.check_forward(
             cuda.to_gpu(self.x), cuda.to_gpu(self.t),
@@ -126,19 +120,19 @@ class TestSoftmaxCrossEntropy(unittest.TestCase):
                 func, (x_data, t_data), None,
                 **self.check_backward_options)
 
-    @condition.retry(1)
+    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.x, self.t, self.class_weight)
 
     @attr.gpu
-    @condition.retry(1)
+    @condition.retry(3)
     def test_backward_gpu(self):
         self.check_backward(
             cuda.to_gpu(self.x), cuda.to_gpu(self.t),
             None if not self.weight_apply else cuda.to_gpu(self.class_weight))
 
     @attr.gpu
-    @condition.retry(1)
+    @condition.retry(3)
     def test_backward_gpu_no_cudnn(self):
         self.check_backward(
             cuda.to_gpu(self.x), cuda.to_gpu(self.t),
@@ -309,13 +303,13 @@ class TestElementwiseSoftmaxCrossEntropy(unittest.TestCase):
             testing.assert_allclose(
                 loss_expect, li, **self.check_forward_options)
 
-    @condition.retry(1)
+    @condition.retry(3)
     def test_forward_cpu(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             self.check_forward(self.x, self.t, self.class_weight)
 
     @attr.gpu
-    @condition.retry(1)
+    @condition.retry(3)
     def test_forward_gpu(self):
         if not self.weight_apply:
             weight = None
@@ -334,13 +328,13 @@ class TestElementwiseSoftmaxCrossEntropy(unittest.TestCase):
             func, (x_data, t_data), g_data,
             **self.check_backward_options)
 
-    @condition.retry(1)
+    @condition.retry(3)
     def test_backward_cpu(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             self.check_backward(self.x, self.t, self.g, self.class_weight)
 
     @attr.gpu
-    @condition.retry(1)
+    @condition.retry(3)
     def test_backward_gpu(self):
         if not self.weight_apply:
             weight = None
@@ -411,12 +405,12 @@ class TestNonDefaultIgnoreLabel(unittest.TestCase):
             expect = numpy.zeros((2,), dtype=numpy.float32)
         testing.assert_allclose(loss.data, expect)
 
-    @condition.retry(1)
+    @condition.retry(3)
     def test_forward_cpu(self):
         self.check_forward(numpy)
 
     @attr.gpu
-    @condition.retry(1)
+    @condition.retry(3)
     def test_forward_gpu(self):
         self.check_forward(cuda.cupy)
 
@@ -433,12 +427,12 @@ class TestNonDefaultIgnoreLabel(unittest.TestCase):
             ignore_label=self.ignore_label)
         gradient_check.check_backward(f, (x, t), gy)
 
-    @condition.retry(1)
+    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(numpy)
 
     @attr.gpu
-    @condition.retry(1)
+    @condition.retry(3)
     def test_backward_gpu(self):
         self.check_backward(cuda.cupy)
 
