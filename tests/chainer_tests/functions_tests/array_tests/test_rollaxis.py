@@ -44,9 +44,11 @@ class TestRollaxis(unittest.TestCase):
         self.check_forward(cuda.to_gpu(self.x))
 
     def check_backward(self, x_data, g_data):
+        def f(x):
+            return functions.rollaxis(x, self.axis, self.start)
+
         gradient_check.check_backward(
-            functions.Rollaxis(self.axis, self.start), x_data, g_data,
-            dtype='d')
+            f, x_data, g_data, dtype='d')
 
     def test_backward_cpu(self):
         self.check_backward(self.x, self.g)
