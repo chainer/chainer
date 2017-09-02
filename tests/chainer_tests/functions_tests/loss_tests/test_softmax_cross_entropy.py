@@ -20,6 +20,7 @@ from chainer.testing import condition
     'ignore_index': [None, (slice(None),), (0,), (0, 1), (0, 1, 0)],
     'dtype': [numpy.float32],
     'weight_apply': [False, True],
+    'enable_double_backprop': [False, True],
 }) + testing.product({
     'shape': [None, (2, 3), (2, 3, 2), (2, 3, 2, 2)],
     'cache_score': [False],
@@ -27,6 +28,7 @@ from chainer.testing import condition
     'ignore_index': [(0, 1)],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'weight_apply': [False, True],
+    'enable_double_backprop': [False, True],
 })))
 class TestSoftmaxCrossEntropy(unittest.TestCase):
 
@@ -60,10 +62,12 @@ class TestSoftmaxCrossEntropy(unittest.TestCase):
         with chainer.using_config('use_cudnn', use_cudnn):
             loss = functions.softmax_cross_entropy(
                 x, t, normalize=self.normalize,
-                cache_score=self.cache_score, class_weight=class_weight)
+                cache_score=self.cache_score, class_weight=class_weight,
+                enable_double_backprop=self.enable_double_backprop)
         self.assertEqual(loss.data.shape, ())
         self.assertEqual(loss.data.dtype, self.dtype)
-        self.assertEqual(hasattr(loss.creator, 'y'), self.cache_score)
+        if not self.enable_double_backprop:
+            self.assertEqual(hasattr(loss.creator, 'y'), self.cache_score)
         loss_value = float(cuda.to_cpu(loss.data))
 
         # Compute expected value
@@ -241,6 +245,7 @@ class TestClassWeightAssertion(unittest.TestCase):
     'dtype': [numpy.float32],
     'weight_apply': [False, True],
     'use_cudnn': ['always', 'auto', 'never'],
+    'enable_double_backprop': [False, True],
 }) + testing.product({
     'shape': [None, (2, 3), (2, 3, 2), (2, 3, 2, 2)],
     'cache_score': [False],
@@ -248,6 +253,7 @@ class TestClassWeightAssertion(unittest.TestCase):
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'weight_apply': [False, True],
     'use_cudnn': ['always', 'auto', 'never'],
+    'enable_double_backprop': [False, True],
 })))
 class TestElementwiseSoftmaxCrossEntropy(unittest.TestCase):
 
@@ -281,10 +287,11 @@ class TestElementwiseSoftmaxCrossEntropy(unittest.TestCase):
         t = chainer.Variable(t_data)
         loss = functions.softmax_cross_entropy(
             x, t, cache_score=self.cache_score, class_weight=class_weight,
-            reduce='no')
+            reduce='no', enable_double_backprop=self.enable_double_backprop)
         self.assertEqual(loss.shape, t_data.shape)
         self.assertEqual(loss.data.dtype, self.dtype)
-        self.assertEqual(hasattr(loss.creator, 'y'), self.cache_score)
+        if not self.enable_double_backprop:
+            self.assertEqual(hasattr(loss.creator, 'y'), self.cache_score)
         loss_value = cuda.to_cpu(loss.data)
 
         x = numpy.rollaxis(self.x, 1, self.x.ndim).reshape(
