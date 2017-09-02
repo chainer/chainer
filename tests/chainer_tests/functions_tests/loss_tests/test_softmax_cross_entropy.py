@@ -166,7 +166,7 @@ class TestSoftmaxCrossEntropy(unittest.TestCase):
     @condition.retry(3)
     def test_double_backward_gpu(self):
         self.check_double_backward(
-            cuda.to_gpu(self.x), cuda.to_gpu(self.t), cuda.to_gpu(self.ggx),
+            cuda.to_gpu(self.x), cuda.to_gpu(self.t), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx),
             None if not self.weight_apply else cuda.to_gpu(self.class_weight))
 
     @attr.gpu
