@@ -67,8 +67,9 @@ def squeeze(x, axis=None):
     """Remove demensions of size one from the shape of a ndarray.
 
     Args:
-        x (chainer.Variable or :class:``numpy.ndarray`` or cupy.ndarray): Input
-            data.
+        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`):
+            Input variable. A :math:`(s_1, s_2, ..., s_N)` -shaped float array.
         axis (None or int or tuple of ints): A subset of the single-dimensional
             entries in the shape to remove. If ``None`` is supplied, all of
             them are removed. The dimension index starts at zero. If an axis
@@ -76,6 +77,31 @@ def squeeze(x, axis=None):
 
     Returns:
         ~chainer.Variable: Variable whose dimensions of size 1 are removed.
+
+    .. admonition:: Example
+
+        >>> x = np.array([[[[0, 1, 2]]], [[[3, 4, 5]]]], 'f')
+        >>> x.shape
+        (2, 1, 1, 3)
+        >>> y = F.squeeze(x)
+        >>> y.shape
+        (2, 3)
+        >>> y.data
+        array([[ 0.,  1.,  2.],
+               [ 3.,  4.,  5.]], dtype=float32)
+        >>> y = F.squeeze(x, axis=1)
+        >>> y.shape
+        (2, 1, 3)
+        >>> y.data
+        array([[[ 0.,  1.,  2.]],
+        <BLANKLINE>
+               [[ 3.,  4.,  5.]]], dtype=float32)
+        >>> y = F.squeeze(x, axis=(1, 2))
+        >>> y.shape
+        (2, 3)
+        >>> y.data
+        array([[ 0.,  1.,  2.],
+               [ 3.,  4.,  5.]], dtype=float32)
 
     """
     y, = Squeeze(axis).apply((x,))

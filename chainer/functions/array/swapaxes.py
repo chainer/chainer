@@ -32,12 +32,27 @@ def swapaxes(x, axis1, axis2):
     """Swap two axes of a variable.
 
     Args:
-        x (~chainer.Variable): Input variable.
+        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Input variable.
+            A :math:`(s_1, s_2, ..., s_N)` -shaped float array.
         axis1 (int): The first axis to swap.
         axis2 (int): The second axis to swap.
 
     Returns:
         ~chainer.Variable: Variable whose axes are swapped.
+
+    .. admonition:: Example
+
+        >>> x = np.array([[[0, 1, 2], [3, 4, 5]]], 'f')
+        >>> x.shape
+        (1, 2, 3)
+        >>> y = F.swapaxes(x, axis1=0, axis2=1)
+        >>> y.shape
+        (2, 1, 3)
+        >>> y.data
+        array([[[ 0.,  1.,  2.]],
+        <BLANKLINE>
+               [[ 3.,  4.,  5.]]], dtype=float32)
 
     """
     return Swapaxes(axis1, axis2)(x)
