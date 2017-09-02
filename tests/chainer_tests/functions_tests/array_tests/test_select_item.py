@@ -56,7 +56,7 @@ class TestSelectItem(unittest.TestCase):
 
     def check_backward(self, x_data, t_data, gy_data):
         gradient_check.check_backward(
-            functions.SelectItem(),
+            functions.select_item,
             (x_data, t_data), gy_data, eps=0.01, dtype='d',
             **self.check_backward_options)
 
