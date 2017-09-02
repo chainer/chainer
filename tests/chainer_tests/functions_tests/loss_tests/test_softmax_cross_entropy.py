@@ -505,6 +505,7 @@ class TestNonDefaultIgnoreLabel(unittest.TestCase):
         def f(x_, t_):
             return functions.softmax_cross_entropy(
                 x_, t_, class_weight=class_weight, reduce=self.reduce,
+                ignore_label=self.ignore_label,
                 enable_double_backprop=self.enable_double_backprop)
 
         gradient_check.check_backward(f, (x, t), gy)
