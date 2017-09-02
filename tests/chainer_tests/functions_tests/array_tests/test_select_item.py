@@ -86,10 +86,10 @@ class TestSelectItem(unittest.TestCase):
 
     @attr.gpu
     def test_double_backward_gpu(self):
-        self.check_backward(cuda.to_gpu(self.x_data),
-                            cuda.to_gpu(self.t_data),
-                            cuda.to_gpu(self.gy_data),
-                            cuda.to_gpu(self.ggx_data))
+        self.check_double_backward(cuda.to_gpu(self.x_data),
+                                   cuda.to_gpu(self.t_data),
+                                   cuda.to_gpu(self.gy_data),
+                                   cuda.to_gpu(self.ggx_data))
 
 
 @testing.parameterize(
