@@ -111,7 +111,7 @@ class SoftmaxCrossEntropy(function.Function):
         cupy = cuda.cupy
         x, t = inputs
         if chainer.is_debug():
-            _check_input_values(x, t, ignore_label)
+            _check_input_values(x, t, self.ignore_label)
 
         log_y = log_softmax._log_softmax(x)
         if self.cache_score:
@@ -234,7 +234,8 @@ class SoftmaxCrossEntropy(function.Function):
         return gx, None
 
 
-def _double_backward_softmax_cross_entropy(x, t, normalize, class_weight, ignore_label, reduce):
+def _double_backward_softmax_cross_entropy(x, t, normalize, class_weight,
+                                           ignore_label, reduce):
     if isinstance(t, variable.Variable):
         t = t.data
 
@@ -247,7 +248,8 @@ def _double_backward_softmax_cross_entropy(x, t, normalize, class_weight, ignore
 
     if class_weight is not None:
         shape = [1 if d != 1 else -1 for d in six.moves.range(x.ndim)]
-        class_weight = chainer.functions.broadcast_to(class_weight.reshape(shape), x.shape)
+        class_weight = chainer.functions.broadcast_to(
+            class_weight.reshape(shape), x.shape)
         loss = loss * class_weight
 
     in_use = (t != ignore_label).astype(x.dtype)
@@ -273,7 +275,6 @@ def _double_backward_softmax_cross_entropy(x, t, normalize, class_weight, ignore
         return chainer.functions.sum(loss)
     else:
         return loss
-
 
 
 def softmax_cross_entropy(
