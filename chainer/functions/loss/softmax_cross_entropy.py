@@ -261,7 +261,6 @@ def _double_backward_softmax_cross_entropy(x, t, normalize, class_weight,
         # we substitute ignore_label with 0, which is valid.
         t = t.copy()
         t[t == ignore_label] = 0
-    # TODO(Kenta Oono): Double differentiable select_item
     loss = chainer.functions.select_item(loss, t.ravel())
     loss = chainer.functions.reshape(loss, t.shape)
 
