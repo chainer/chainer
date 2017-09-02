@@ -605,7 +605,7 @@ Actual: {0}'''.format(type(data))
     def grad(self):
         """Gradient array of this variable.
 
-        Not that this property returns the underlying array of the gradient
+        Note that this property returns the underlying array of the gradient
         variable instead of the gradient variable itself; to get/set
         gradient variable, use :attr:`grad_var` instead.
 
@@ -810,7 +810,7 @@ Actual: {0}'''.format(type(data))
         self._node.set_creator_node(fnode)
 
     def backward(self, retain_grad=False):
-        """Runs error backpropagation (a.k.a. backprop) from this variable.
+        """Runs error backpropagation (a.k.a.\\  backprop) from this variable.
 
         On backprop, :meth:`FunctionNode.backward` is called on each
         :class:`FunctionNode` object appearing in the backward graph starting
