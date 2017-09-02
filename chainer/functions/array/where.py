@@ -44,7 +44,7 @@ def where(condition, x, y):
         condition (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`):
             Input variable containing the condition.
-            A :math:`(s_1, s_2, ..., s_N)` -shaped float array.
+            A :math:`(s_1, s_2, ..., s_N)` -shaped boolean array.
             Only boolean array is permitted.
         x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`):
@@ -60,6 +60,9 @@ def where(condition, x, y):
 
     .. admonition:: Example
         >>> cond = np.array([[1, 0], [0, 1]], dtype=np.bool)
+        >>> cond
+        array([[ True, False],
+               [False,  True]], dtype=bool)
         >>> x = np.array([[1, 2], [3, 4]], 'f')
         >>> y = np.zeros((2, 2), 'f')
         >>> F.where(cond, x, y).data
