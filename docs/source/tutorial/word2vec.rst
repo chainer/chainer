@@ -10,10 +10,9 @@ Word2Vec: Obtain word embeddings
 which is proposed by Mikolov et al[1]. When the tool assigns a real-valued vector
 to each word, the closer the meanings of the words, the greater similarity the
 vectors will indicate. As you know, **distributed representation** is assigning a
-real number vector for each object and representing the object by the vector. When
+real-valued vector for each object and representing the object by the vector. When
 representing a word by distributed representation, we call it **distributed representation of words**
-or **word embeddings**. In this tutorial we will use the term distributed
-representation of words.
+or **word embeddings**. In this tutorial we will use the term word emgeddings.
 
 Let's think about what the meaning of word is. Since you are a human, you can
 understand that the words "animal" and "dog" are similar. But what information
@@ -41,7 +40,7 @@ For example, I will explain with the sentence "**The cute cat jumps over the laz
 2. Main Algorithm
 ==================
 
-Word2vec, the tool for creating the distributed representation of words, is actually
+Word2vec, the tool for creating the word embeddings, is actually
 built with two models, which are **Skip-gram** and **CBoW**.
 
 To explain the models with the figures below, we will use the following
@@ -68,7 +67,7 @@ symbols.
 
 This model learns to predict Context Words :math:`v_{t+c}` when Center Word
 :math:`v_t` is given. In the model, each row of the embedding
-matrix for input :math:`W_H` becomes a distributed representation of each word.
+matrix for input :math:`W_H` becomes a word embedding of each word.
 
 .. image:: ../../image/word2vec/skipgram.png
 
@@ -87,7 +86,7 @@ matrix for input :math:`W_H` becomes a distributed representation of each word.
 -----------------------------------
 
 This model learns to predict Center Word :math:`v_t` when Context Words
-:math:`v_{t+c}` is given. In the model, each column of the embedding matrix for output :math:`W_O` becomes a distributed representation
+:math:`v_{t+c}` is given. In the model, each column of the embedding matrix for output :math:`W_O` becomes a word embedding
 of each word.
 
 .. image:: ../../image/word2vec/cbow.png
@@ -116,7 +115,7 @@ Since there should be more than one Context Word, repeat the following process f
 1. The one-hot vector of "dog" is ``[0 0 1 0 0 0 0 0 0 0]`` and you input it as
    Center Word.
 2. After that, the third row of embedding matrix :math:`W_H`
-   for Center Word is the distributed representation of "dog" :math:`L_H`.
+   for Center Word is the word embedding of "dog" :math:`L_H`.
 3. The output layer :math:`L_O` is the result of multiplying the embedding matrix
    :math:`W_O` for Context Words by the embedding vector of "dog" :math:`L_H`.
 4. In order to limit the value of each element of the output layer, 
