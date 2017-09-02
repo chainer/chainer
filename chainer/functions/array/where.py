@@ -59,6 +59,7 @@ def where(condition, x, y):
         ~chainer.Variable: Variable containing chosen values.
 
     .. admonition:: Example
+
         >>> cond = np.array([[1, 0], [0, 1]], dtype=np.bool)
         >>> cond
         array([[ True, False],
