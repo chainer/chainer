@@ -27,8 +27,10 @@ class TestReLU(unittest.TestCase):
         self.gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         self.ggx = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         self.check_backward_options = {}
+        self.check_double_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
         if self.dtype == numpy.float16:
             self.check_backward_options = {'dtype': numpy.float64}
+            self.check_double_backward_options.update(dtype=numpy.float64)
 
     def check_forward(self, x_data, use_cudnn='always'):
         x = chainer.Variable(x_data)
@@ -93,7 +95,7 @@ class TestReLU(unittest.TestCase):
         with chainer.using_config('use_cudnn', use_cudnn):
             gradient_check.check_double_backward(
                 f, x_data, y_grad, x_grad_grad,
-                **self.check_backward_options)
+                **self.check_double_backward_options)
 
     @condition.retry(1)
     def test_double_backward_cpu(self):
