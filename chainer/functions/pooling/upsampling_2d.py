@@ -37,8 +37,13 @@ class Upsampling2D(pooling_2d.Pooling2D):
                 self.outw, self.kw, self.sx, self.pw, cover_all=self.cover_all)
             type_check.expect(x_type.shape[3] == expected_w)
 
-    def forward_cpu(self, x):
+    def forward(self, x):
         self.retain_inputs(())
+        xp = cuda.get_array_module(*x)
+        if isinstance(x[0], numpy.ndarray):
+            im2col, col2im = conv.im2col_cpu, conv.col2im_cpu
+        else:
+            im2col, col2im = conv.im2col_gpu, conv.col2im_gpu
         self._in_dtype = x[0].dtype
 
         n, c, h, w = x[0].shape
@@ -49,113 +54,33 @@ class Upsampling2D(pooling_2d.Pooling2D):
             self.outw = conv.get_deconv_outsize(
                 w, self.kw, self.sx, self.pw, cover_all=self.cover_all)
 
-        up_y = numpy.zeros((n, c, self.outh, self.outw), dtype=self._in_dtype)
-        up_y = conv.im2col_cpu(
-            up_y, self.kh, self.kw, self.sy, self.sx, self.ph, self.pw,
-            cover_all=self.cover_all)
-        for n in six.moves.range(up_y.shape[0]):
-            for c in six.moves.range(up_y.shape[1]):
-                for oy in six.moves.range(up_y.shape[4]):
-                    for ox in six.moves.range(up_y.shape[5]):
-                        ky = self.indexes[n, c, oy, ox] // up_y.shape[3]
-                        kx = self.indexes[n, c, oy, ox] % up_y.shape[3]
-                        up_y[n, c, ky, kx, oy, ox] = x[0][n, c, oy, ox]
-        up_y = conv.col2im_cpu(up_y, self.sy, self.sx, self.ph,
-                               self.pw, self.outh, self.outw)
-        return up_y,
-
-    def forward_gpu(self, x):
-        self.retain_inputs(())
-        self._in_dtype = x[0].dtype
-
-        xp = cuda.cupy
-        n, c, h, w = x[0].shape
-        if self.outh is None:
-            self.outh = conv.get_deconv_outsize(
-                h, self.kh, self.sy, self.ph, cover_all=self.cover_all)
-        if self.outw is None:
-            self.outw = conv.get_deconv_outsize(
-                w, self.kw, self.sx, self.pw, cover_all=self.cover_all)
         up_y = xp.zeros((n, c, self.outh, self.outw), dtype=self._in_dtype)
-        up_y = conv.im2col_gpu(
+        up_y = im2col(
             up_y, self.kh, self.kw, self.sy, self.sx, self.ph, self.pw,
-            cover_all=self.cover_all)
-        up_y = up_y.transpose(0, 1, 4, 5, 2, 3)
-        n, c, oy, ox, ky, kx = up_y.shape
-        indexes = xp.asarray(self.indexes, dtype=numpy.int32)
-        xp.ElementwiseKernel(
-            'int32 index, T x, int32 n, int32 c, int32 oy, int32 ox,'
-            'int32 ky, int32 kx', 'raw T up_y',
-            '''
-            int yn = i / c / oy / ox;
-            int yc = (i / oy / ox) % c;
-            int yoy = (i / ox) % oy;
-            int yox = i % ox;
-            up_y[yn * c * oy * ox * ky * kx +
-              yc * oy * ox * ky * kx +
-              yoy * ox * ky * kx +
-              yox * ky * kx +
-              index] = x;
-            ''',
-            'upsampling_2d_fwd')(indexes, x[0], n, c, oy, ox, ky, kx, up_y)
-        up_y = up_y.transpose(0, 1, 4, 5, 2, 3)
-        up_y = conv.col2im_gpu(up_y, self.sy, self.sx, self.ph, self.pw,
-                               self.outh, self.outw)
+            cover_all=self.cover_all).transpose(0, 1, 4, 5, 2, 3)
+        colh, colw = up_y.shape[2:4]
+        up_y = up_y.reshape(-1, self.kh * self.kw)
+        indexes = self.indexes.ravel()
+        up_y[xp.arange(len(indexes)), indexes] = x[0].ravel()
+        up_y = up_y.reshape(n, c, colh, colw, self.kh, self.kw)
+        up_y = col2im(
+            up_y.transpose(0, 1, 4, 5, 2, 3), self.sy, self.sx, self.ph,
+            self.pw, self.outh, self.outw)
         return up_y,
 
-    def backward_cpu(self, x, gy):
-        gcol = conv.im2col_cpu(
+    def backward(self, x, gy):
+        im2col = conv.im2col_cpu \
+            if isinstance(gy[0], numpy.ndarray) else conv.im2col_gpu
+        xp = cuda.get_array_module(*x)
+        gcol = im2col(
             gy[0], self.kh, self.kw, self.sy, self.sx, self.ph, self.pw,
             cover_all=self.cover_all)
 
-        gcol = gcol.transpose(0, 1, 4, 5, 2, 3)
-        n, c, oy, ox, ky, kx = gcol.shape
-        gcol = gcol.reshape((n, c, oy, ox, ky * kx))
-        gx = numpy.empty((n, c, oy, ox), dtype=self._in_dtype)
-        for n in six.moves.range(gcol.shape[0]):
-            for c in six.moves.range(gcol.shape[1]):
-                for oy in six.moves.range(gcol.shape[2]):
-                    for ox in six.moves.range(gcol.shape[3]):
-                        gx[n, c, oy, ox] = \
-                            gcol[n, c, oy, ox][self.indexes[n, c, oy, ox]]
-        return gx,
-
-    def backward_gpu(self, x, gy):
-        xp = cuda.cupy
-        gcol = conv.im2col_gpu(
-            gy[0], self.kh, self.kw, self.sy, self.sx, self.ph, self.pw,
-            cover_all=self.cover_all)
-
-        gcol = gcol.transpose(0, 1, 4, 5, 2, 3)
-        n, c, oy, ox, ky, kx = gcol.shape
-        gcol = gcol.reshape((n, c, oy, ox, ky * kx))
-        indexes = xp.asarray(self.indexes, dtype=numpy.int32)
-        gx = xp.empty((n, c, oy, ox), dtype=self._in_dtype)
-        xp.ElementwiseKernel(
-            'int32 indexes, raw T gcol, int32 n, int32 c, int32 oy,'
-            'int32 ox, int32 ky, int32 kx',
-            'raw T gx',
-            '''
-            int ind_n = i / c / oy / ox;
-            int ind_c = (i / oy / ox) % c;
-            int ind_oy = (i / ox) % oy;
-            int ind_ox = i % ox;
-            int gcol_ky = indexes / kx;
-            int gcol_kx = indexes % kx;
-            float top_gx = gcol[ind_n * c * oy * ox * ky * kx +
-                                ind_c * oy * ox * ky * kx +
-                                ind_oy * ox * ky * kx +
-                                ind_ox * ky * kx +
-                                gcol_ky * kx +
-                                gcol_kx];
-            gx[ind_n * c * oy * ox +
-               ind_c * oy * ox +
-               ind_oy * ox +
-               ind_ox] = top_gx;
-            ''',
-            'upsampling_2d_bwd')(indexes, gcol, n, c, oy, ox, ky, kx, gx)
-
-        return gx,
+        n, c, kh, kw, out_h, out_w = gcol.shape
+        gcol = gcol.transpose(0, 1, 4, 5, 2, 3).reshape(-1, kh * kw)
+        indexes = self.indexes.ravel()
+        gx = gcol[xp.arange(len(indexes)), indexes]
+        return gx.reshape(n, c, out_h, out_w),
 
 
 def upsampling_2d(
