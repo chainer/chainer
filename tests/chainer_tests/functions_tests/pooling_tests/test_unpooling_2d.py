@@ -51,6 +51,8 @@ class TestUnpooling2D(unittest.TestCase):
         if self.dtype == numpy.float16:
             self.check_backward_options = {
                 'dtype': numpy.float64, 'atol': 5e-4, 'rtol': 5e-3}
+        self.ggx = numpy.random.uniform(
+            -1, 1, self.x.shape).astype(self.dtype)
 
     def check_forward(self, x_data):
         x = chainer.Variable(x_data)
@@ -109,6 +111,42 @@ class TestUnpooling2D(unittest.TestCase):
     @condition.retry(3)
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
+
+    def check_double_backward(self, x_data, y_grad, x_grad_grad,
+                              use_cudnn='always'):
+        def f(x):
+            y = functions.unpooling_2d(x, self.ksize, outsize=self.outsize,
+                                       cover_all=self.cover_all)
+            return y * y
+        with chainer.using_config('use_cudnn', use_cudnn):
+            gradient_check.check_double_backward(
+                f, x_data, y_grad, x_grad_grad, dtype='d')
+
+    @condition.retry(3)
+    def test_double_backward_cpu(self):
+        self.check_double_backward(
+            self.x, self.gy, self.ggx, 'never')
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_double_backward_gpu(self):
+        self.check_double_backward(
+            cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx))
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_double_backward_gpu_non_contiguous(self):
+        self.check_double_backward(
+            cuda.cupy.asfortranarray(cuda.to_gpu(self.x)),
+            cuda.cupy.asfortranarray(cuda.to_gpu(self.gy)),
+            cuda.cupy.asfortranarray(cuda.to_gpu(self.ggx)))
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_double_backward_gpu_no_cudnn(self):
+        self.check_double_backward(
+            cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx),
+            'never')
 
 
 @testing.parameterize(*testing.product({

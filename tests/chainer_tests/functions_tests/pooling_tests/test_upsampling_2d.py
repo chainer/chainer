@@ -93,25 +93,26 @@ class TestUpsampling2D(unittest.TestCase):
         self.check_double_backward(
             self.pooled_y.data, self.gy, self.ggx, 'never')
 
-#     @attr.gpu
-#     @condition.retry(3)
-#     def test_double_backward_gpu(self):
-#         self.check_double_backward(
-#             cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx))
-#
-#     @attr.gpu
-#     @condition.retry(3)
-#     def test_double_backward_gpu_non_contiguous(self):
-#         self.check_double_backward(
-#             cuda.cupy.asfortranarray(cuda.to_gpu(self.x)),
-#             cuda.cupy.asfortranarray(cuda.to_gpu(self.gy)),
-#             cuda.cupy.asfortranarray(cuda.to_gpu(self.ggx)))
-#
-#     @attr.gpu
-#     @condition.retry(3)
-#     def test_double_backward_gpu_no_cudnn(self):
-#         self.check_double_backward(
-#             cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx),
-#             'never')
+    @attr.gpu
+    @condition.retry(3)
+    def test_double_backward_gpu(self):
+        self.check_double_backward(
+            cuda.to_gpu(self.pooled_y.data), cuda.to_gpu(self.gy),
+            cuda.to_gpu(self.ggx))
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_double_backward_gpu_non_contiguous(self):
+        self.check_double_backward(
+            cuda.cupy.asfortranarray(cuda.to_gpu(self.pooled_y.data)),
+            cuda.cupy.asfortranarray(cuda.to_gpu(self.gy)),
+            cuda.cupy.asfortranarray(cuda.to_gpu(self.ggx)))
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_double_backward_gpu_no_cudnn(self):
+        self.check_double_backward(
+            cuda.to_gpu(self.pooled_y.data), cuda.to_gpu(self.gy),
+            cuda.to_gpu(self.ggx), 'never')
 
 testing.run_module(__name__, __file__)

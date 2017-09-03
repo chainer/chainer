@@ -69,6 +69,8 @@ class Unpooling2DGrad(function_node.FunctionNode):
         self.sx = unpooling2d.sx
         self.ph = unpooling2d.ph
         self.pw = unpooling2d.pw
+        self.outh = unpooling2d.outh
+        self.outw = unpooling2d.outw
         self.cover_all = unpooling2d.cover_all
 
     def forward(self, gy):
@@ -82,6 +84,12 @@ class Unpooling2DGrad(function_node.FunctionNode):
                 cover_all=self.cover_all)
         gx = gcol.sum(axis=(2, 3))
         return gx,
+
+    def backward(self, indexes, grad_outputs):
+        ggx, = grad_outputs
+        return Unpooling2D(
+            (self.kh, self.kw), (self.sy, self.sx), (self.ph, self.pw),
+            (self.outh, self.outw), self.cover_all).apply((ggx,))
 
 
 def unpooling_2d(x, ksize, stride=None, pad=0, outsize=None, cover_all=True):
