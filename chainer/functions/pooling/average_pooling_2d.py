@@ -13,7 +13,6 @@ class AveragePooling2D(pooling_2d.Pooling2D):
     # TODO(beam2d): Support cover_all mode.
 
     def forward_cpu(self, x):
-        self.retain_inputs(())
         self._in_shape = x[0].shape
         self._in_dtype = x[0].dtype
 
@@ -24,7 +23,7 @@ class AveragePooling2D(pooling_2d.Pooling2D):
 
     def forward_gpu(self, x):
         if chainer.should_use_cudnn('>=auto'):
-            self.x, = x
+            self.retain_inputs((0,))
             return super(AveragePooling2D, self).forward_gpu(x)
 
         self.retain_inputs(())
@@ -64,7 +63,8 @@ class AveragePooling2D(pooling_2d.Pooling2D):
 
     def backward(self, indexes, gy):
         if self._used_cudnn:
-            return AveragePooling2DGrad(self).apply((self.x, gy[0]))
+            x, = self.get_retained_inputs()
+            return AveragePooling2DGrad(self).apply((x, gy[0]))
         else:
             return AveragePooling2DGrad(self).apply(gy)
 
@@ -99,8 +99,8 @@ class AveragePooling2DGrad(function_node.FunctionNode):
 
     def forward_gpu(self, inputs):
         if self._used_cudnn:
-            self.x, gy = inputs
-            return self.apool2d.backward_gpu((self.x,), (gy,))
+            x, gy = inputs
+            return self.apool2d.backward_gpu((x,), (gy,))
         gy, = inputs
         n, c, h, w = self._in_shape
         y_h, y_w = gy.shape[2:]

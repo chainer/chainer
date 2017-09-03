@@ -29,7 +29,7 @@ class MaxPooling2D(pooling_2d.Pooling2D):
 
     def forward_gpu(self, x):
         if chainer.should_use_cudnn('>=auto'):
-            self.x, = x
+            self.retain_inputs((0,))
             return super(MaxPooling2D, self).forward_gpu(x)
 
         self._in_shape = x[0].shape
@@ -84,10 +84,7 @@ class MaxPooling2D(pooling_2d.Pooling2D):
         return y,
 
     def backward(self, indexes, gy):
-        if self._used_cudnn:
-            return MaxPooling2DGrad(self).apply((self.x, gy[0]))
-        else:
-            return MaxPooling2DGrad(self).apply((gy[0],))
+        return MaxPooling2DGrad(self).apply((gy[0],))
 
     def create_pool_desc(self):
         return cuda.cudnn.create_pooling_descriptor(
@@ -132,13 +129,12 @@ class MaxPooling2DGrad(function_node.FunctionNode):
         gx = conv.col2im_cpu(gcol, self.sy, self.sx, self.ph, self.pw, h, w)
         return gx,
 
-    def forward_gpu(self, inputs):
+    def forward_gpu(self, gy):
         if self._used_cudnn:
-            self.x, gy = inputs
-            return self.mpool2d.backward_gpu((self.x,), (gy,))
-        gy, = inputs
+            x, = self.mpool2d.get_retained_inputs()
+            return self.mpool2d.backward_gpu((x.data,), gy)
         n, c, h, w = self._in_shape
-        y_h, y_w = gy.shape[2:]
+        y_h, y_w = gy[0].shape[2:]
         gx = cuda.cupy.empty(self._in_shape, self._in_dtype)
 
         cuda.elementwise(
@@ -168,7 +164,7 @@ class MaxPooling2DGrad(function_node.FunctionNode):
                }
                gx = val;
             ''',
-            'max_pool_bwd')(gy.reduced_view(), self.indexes.reduced_view(),
+            'max_pool_bwd')(gy[0].reduced_view(), self.indexes.reduced_view(),
                             h, w, y_h, y_w, self.kh, self.kw,
                             self.sy, self.sx, self.ph, self.pw,
                             gx)
@@ -177,7 +173,8 @@ class MaxPooling2DGrad(function_node.FunctionNode):
     def backward(self, indexes, grad_outputs):
         ggx, = grad_outputs
         if self._used_cudnn:
-            return MaxPooling2DWithIndexes(self.mpool2d).apply((self.x, ggx))
+            x, = self.mpool2d.get_retained_inputs()
+            return MaxPooling2DWithIndexes(self.mpool2d).apply((x, ggx))
         else:
             return MaxPooling2DWithIndexes(self.mpool2d).apply((ggx,))
 
