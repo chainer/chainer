@@ -67,9 +67,6 @@ class Evaluator(extension.Extension):
         eval_func: Evaluation function called at each iteration.
 
     """
-    trigger = 1, 'epoch'
-    default_name = 'validation'
-    priority = extension.PRIORITY_WRITER
 
     def __init__(self, iterator, target, converter=convert.concat_examples,
                  device=None, eval_hook=None, eval_func=None):
