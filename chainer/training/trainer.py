@@ -300,11 +300,10 @@ class Trainer(object):
 
         update = self.updater.update
         reporter = self.reporter
-        stop_trigger = self.stop_trigger
 
         # main training loop
         try:
-            while not stop_trigger(self):
+            while not self.stop_trigger(self):
                 self.observation = {}
                 with reporter.scope(self.observation):
                     update()
