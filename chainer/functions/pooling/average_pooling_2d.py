@@ -63,8 +63,7 @@ class AveragePooling2D(pooling_2d.Pooling2D):
 
     def backward(self, indexes, gy):
         if self._used_cudnn:
-            x, = self.get_retained_inputs()
-            return AveragePooling2DGrad(self).apply((x, gy[0]))
+            return AveragePooling2DGrad(self).apply(gy)
         else:
             return AveragePooling2DGrad(self).apply(gy)
 
@@ -97,13 +96,12 @@ class AveragePooling2DGrad(function_node.FunctionNode):
         gx /= self.kh * self.kw
         return gx,
 
-    def forward_gpu(self, inputs):
+    def forward_gpu(self, gy):
         if self._used_cudnn:
-            x, gy = inputs
-            return self.apool2d.backward_gpu((x,), (gy,))
-        gy, = inputs
+            x, = self.apool2d.get_retained_inputs()
+            return self.apool2d.backward_gpu((x.data,), gy)
         n, c, h, w = self._in_shape
-        y_h, y_w = gy.shape[2:]
+        y_h, y_w = gy[0].shape[2:]
         gx = cuda.cupy.empty(self._in_shape, self._in_dtype)
         coeff = 1. / (self.kh * self.kw)
         cuda.elementwise(
@@ -128,7 +126,7 @@ class AveragePooling2DGrad(function_node.FunctionNode):
                  }
                }
                gx = val * coeff;
-            ''', 'avg_pool_bwd')(gy.reduced_view(),
+            ''', 'avg_pool_bwd')(gy[0].reduced_view(),
                                  h, w, y_h, y_w, self.kh, self.kw,
                                  self.sy, self.sx, self.ph, self.pw, coeff,
                                  gx)
