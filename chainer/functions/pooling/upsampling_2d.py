@@ -4,7 +4,6 @@ from chainer.utils import conv
 from chainer.utils import type_check
 
 import numpy
-import six
 
 
 class Upsampling2D(pooling_2d.Pooling2D):
@@ -106,7 +105,6 @@ class Upsampling2D(pooling_2d.Pooling2D):
         gcol = conv.im2col_cpu(
             gy[0], self.kh, self.kw, self.sy, self.sx, self.ph, self.pw,
             cover_all=self.cover_all)
-
         n, c, kh, kw, out_h, out_w = gcol.shape
         gcol = gcol.transpose(0, 1, 4, 5, 2, 3).reshape(-1, kh * kw)
         indexes = self.indexes.ravel()
