@@ -128,13 +128,13 @@ class TestMatMul(unittest.TestCase):
 
 @testing.parameterize(*testing.product_dict(
     [
-        # matmul
+        # batched matmul 2d x 2d
         {'x1_shape': (2, 3), 'x2_shape': (2, 3), 'gy_shape': (2, 1, 1),
          'transa': True, 'transb': False},
         {'x1_shape': (2, 3), 'x2_shape': (2, 3), 'gy_shape': (2, 3, 3),
          'transa': False, 'transb': True},
 
-        # batched matmul
+        # batched matmul 3d x 3d
         {'x1_shape': (3, 2, 5), 'x2_shape': (3, 5, 4), 'gy_shape': (3, 2, 4),
          'transa': False, 'transb': False},
         {'x1_shape': (3, 5, 2), 'x2_shape': (3, 5, 4), 'gy_shape': (3, 2, 4),
@@ -188,17 +188,14 @@ class TestBatchMatMul(unittest.TestCase):
 
     def _get_forward_answer(self, x1, x2, transa, transb):
         x1 = x1.reshape(x1.shape[:2] + (-1,))
-        if transa and x1.ndim >= 2:
+        if transa:
             x1 = x1.swapaxes(-1, -2)
 
         x2 = x2.reshape(x2.shape[:2] + (-1,))
-        if transb and x2.ndim >= 2:
+        if transb:
             x2 = x2.swapaxes(-1, -2)
 
-        if x1.ndim <= 2:
-            return numpy.dot(x1, x2)
-        else:
-            return numpy.einsum('...ij,...jk->...ik', x1, x2)
+        return numpy.einsum('...ij,...jk->...ik', x1, x2)
 
     def check_forward(self, x1_data, x2_data, atol=1e-4, rtol=1e-5):
         x1 = chainer.Variable(x1_data)
