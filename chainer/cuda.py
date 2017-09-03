@@ -254,6 +254,10 @@ def to_gpu(array, device=None, stream=None):
             'Please remove it.', DeprecationWarning)
 
     check_cuda_available()
+    if not isinstance(array, (cupy.ndarray, numpy.ndarray)):
+        raise TypeError(
+            'The array sent to gpu must be numpy.ndarray or cupy.ndarray.'
+            '\nActual type: {0}.'.format(type(array)))
     with _get_device(device):
         array_dev = get_device_from_array(array)
         if array_dev.id == cupy.cuda.device.get_device_id():
