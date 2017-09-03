@@ -115,4 +115,5 @@ class TestUpsampling2D(unittest.TestCase):
             cuda.to_gpu(self.pooled_y.data), cuda.to_gpu(self.gy),
             cuda.to_gpu(self.ggx), 'never')
 
+
 testing.run_module(__name__, __file__)
