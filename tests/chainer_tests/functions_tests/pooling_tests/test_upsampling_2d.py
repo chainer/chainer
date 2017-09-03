@@ -24,6 +24,8 @@ class TestUpsampling2D(unittest.TestCase):
             self.pooled_y = self.p.apply((self.x,))[0]
         self.gy = numpy.random.uniform(
             -1, 1, self.in_shape).astype(self.dtype)
+        self.ggx = numpy.random.uniform(
+            -1, 1, self.pooled_y.shape).astype(self.dtype)
 
     def check_forward(self, y):
         y = F.upsampling_2d(
@@ -74,5 +76,42 @@ class TestUpsampling2D(unittest.TestCase):
         self.check_backward(cuda.to_gpu(
             self.pooled_y.data), cuda.to_gpu(self.gy))
 
+    def check_double_backward(self, x_data, y_grad, x_grad_grad,
+                              use_cudnn='always'):
+        def f(x):
+            y = F.upsampling_2d(
+                x, self.p.indexes, ksize=(self.p.kh, self.p.kw),
+                stride=(self.p.sy, self.p.sx), pad=(self.p.ph, self.p.pw),
+                outsize=self.in_shape[2:], cover_all=self.p.cover_all)
+            return y * y
+        with chainer.using_config('use_cudnn', use_cudnn):
+            gradient_check.check_double_backward(
+                f, x_data, y_grad, x_grad_grad, dtype='d')
+
+    @condition.retry(3)
+    def test_double_backward_cpu(self):
+        self.check_double_backward(
+            self.pooled_y.data, self.gy, self.ggx, 'never')
+
+#     @attr.gpu
+#     @condition.retry(3)
+#     def test_double_backward_gpu(self):
+#         self.check_double_backward(
+#             cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx))
+#
+#     @attr.gpu
+#     @condition.retry(3)
+#     def test_double_backward_gpu_non_contiguous(self):
+#         self.check_double_backward(
+#             cuda.cupy.asfortranarray(cuda.to_gpu(self.x)),
+#             cuda.cupy.asfortranarray(cuda.to_gpu(self.gy)),
+#             cuda.cupy.asfortranarray(cuda.to_gpu(self.ggx)))
+#
+#     @attr.gpu
+#     @condition.retry(3)
+#     def test_double_backward_gpu_no_cudnn(self):
+#         self.check_double_backward(
+#             cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx),
+#             'never')
 
 testing.run_module(__name__, __file__)
