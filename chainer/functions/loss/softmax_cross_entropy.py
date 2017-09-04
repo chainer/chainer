@@ -281,7 +281,7 @@ def _double_backward_softmax_cross_entropy(x, t, normalize, class_weight,
 
 def softmax_cross_entropy(
         x, t, normalize=True, cache_score=True, class_weight=None,
-        ignore_label=-1, reduce='mean', enable_double_backprop=True):
+        ignore_label=-1, reduce='mean', enable_double_backprop=False):
     """Computes cross entropy loss for pre-softmax activations.
 
     Args:
@@ -323,10 +323,10 @@ def softmax_cross_entropy(
             which has ``ignore_label`` as its target value, is set to ``0``.
         enable_double_backprop (bool): If ``True``, this function uses
             implementation that supports higher order differentiation.
-            Otherwise, it uses single-backprop implementation.
-            We expect the former is slower. So, if you need faster computation
-            and does not need second or higher derivatives, you can turn off
-            the option.
+            If ``False``, it uses single-backprop implementation.
+            This function use the single-backprop version because we expect
+            it is faster. So, if you need second or higher derivatives,
+            you need to turn it on explicitly.
 
     Returns:
         Variable: A variable holding a scalar array of the cross entropy loss.
