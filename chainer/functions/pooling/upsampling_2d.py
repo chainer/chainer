@@ -1,9 +1,9 @@
+import numpy
+
 from chainer import cuda
 from chainer.functions.pooling import pooling_2d
 from chainer.utils import conv
 from chainer.utils import type_check
-
-import numpy
 
 
 class Upsampling2D(pooling_2d.Pooling2D):
@@ -48,7 +48,7 @@ class Upsampling2D(pooling_2d.Pooling2D):
             self.outw = conv.get_deconv_outsize(
                 w, self.kw, self.sx, self.pw, cover_all=self.cover_all)
 
-        up_y = numpy.zeros((n, c, self.outh, self.outw), dtype=self._in_dtype)
+        up_y = numpy.zeros((n, c, self.outh, self.outw), dtype=numpy.float32)
         up_y = conv.im2col_cpu(
             up_y, self.kh, self.kw, self.sy, self.sx, self.ph, self.pw,
             cover_all=self.cover_all).transpose(0, 1, 4, 5, 2, 3)
@@ -74,7 +74,7 @@ class Upsampling2D(pooling_2d.Pooling2D):
         if self.outw is None:
             self.outw = conv.get_deconv_outsize(
                 w, self.kw, self.sx, self.pw, cover_all=self.cover_all)
-        up_y = xp.zeros((n, c, self.outh, self.outw), dtype=self._in_dtype)
+        up_y = xp.zeros((n, c, self.outh, self.outw), dtype=numpy.float32)
         up_y = conv.im2col_gpu(
             up_y, self.kh, self.kw, self.sy, self.sx, self.ph, self.pw,
             cover_all=self.cover_all)
@@ -82,8 +82,8 @@ class Upsampling2D(pooling_2d.Pooling2D):
         n, c, oy, ox, ky, kx = up_y.shape
         indexes = xp.asarray(self.indexes, dtype=numpy.int32)
         xp.ElementwiseKernel(
-            'int32 index, T x, int32 n, int32 c, int32 oy, int32 ox,'
-            'int32 ky, int32 kx', 'raw T up_y',
+            'int32 index, float32 x, int32 n, int32 c, int32 oy, int32 ox,'
+            'int32 ky, int32 kx', 'raw float32 up_y',
             '''
             int yn = i / c / oy / ox;
             int yc = (i / oy / ox) % c;
@@ -123,9 +123,9 @@ class Upsampling2D(pooling_2d.Pooling2D):
         indexes = xp.asarray(self.indexes, dtype=numpy.int32)
         gx = xp.empty((n, c, oy, ox), dtype=self._in_dtype)
         xp.ElementwiseKernel(
-            'int32 indexes, raw T gcol, int32 n, int32 c, int32 oy,'
+            'int32 indexes, raw float32 gcol, int32 n, int32 c, int32 oy,'
             'int32 ox, int32 ky, int32 kx',
-            'raw T gx',
+            'raw float32 gx',
             '''
             int ind_n = i / c / oy / ox;
             int ind_c = (i / oy / ox) % c;
