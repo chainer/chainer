@@ -387,7 +387,7 @@ def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
         y = identity.Identity().apply(y)
 
         _set_y_grad(y, gys)
-        y[0].backward()
+        y[0].backward(enable_double_backprop=True)
 
         return tuple([x.grad_var for x in xs] + [p.grad_var for p in params])
 
