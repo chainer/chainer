@@ -1,4 +1,5 @@
-import numpy
+import math
+
 import six
 
 import chainer
@@ -61,11 +62,11 @@ def spatial_pyramid_pooling_2d(x, pyramid_height, pooling_class):
     for pyramid_level in six.moves.range(pyramid_height):
         num_bins = int(2 ** pyramid_level)
 
-        ksize_h = int(numpy.ceil(bottom_h / (float(num_bins))))
+        ksize_h = int(math.ceil(bottom_h / (float(num_bins))))
         remainder_h = ksize_h * num_bins - bottom_h
         pad_h = remainder_h // 2
 
-        ksize_w = int(numpy.ceil(bottom_w / (float(num_bins))))
+        ksize_w = int(math.ceil(bottom_w / (float(num_bins))))
         remainder_w = ksize_w * num_bins - bottom_w
         pad_w = remainder_w // 2
 
