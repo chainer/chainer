@@ -1,8 +1,7 @@
 import numpy
 import six
 
-from chainer.functions.array import concat
-from chainer.functions.pooling import max_pooling_2d
+import chainer
 
 
 def spatial_pyramid_pooling_2d(x, pyramid_height, pooling_class):
@@ -73,7 +72,7 @@ def spatial_pyramid_pooling_2d(x, pyramid_height, pooling_class):
         ksize = (ksize_h, ksize_w)
         pad = (pad_h, pad_w)
 
-        if pooling_class is max_pooling_2d.MaxPooling2D:
+        if pooling_class is chainer.functions.MaxPooling2D:
             pooler = pooling_class(ksize=ksize, stride=None, pad=pad,
                                    cover_all=True)
         else:
@@ -83,4 +82,4 @@ def spatial_pyramid_pooling_2d(x, pyramid_height, pooling_class):
         n, c, h, w = y_var.shape
         ys.append(y_var.reshape((n, c * h * w, 1, 1)))
 
-    return concat.concat(ys)
+    return chainer.functions.concat(ys)
