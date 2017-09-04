@@ -285,9 +285,9 @@ def check_backward(func, x_data, y_grad, params=(),
 
     xp = cuda.get_array_module(*xs)
     xs_directions = [
-        xp.random.uniform(-1, 1, x.shape).astype(dtype) for x in casted_xs]
+        xp.random.normal(size=x.shape).astype(dtype) for x in casted_xs]
     param_directions = [
-        xp.random.uniform(-1, 1, x.shape).astype(dtype) for x in param_data]
+        xp.random.normal(size=x.shape).astype(dtype) for x in param_data]
     # Use unit vector
     norm = sum([xp.linalg.norm(x) ** 2 for x in xs_directions]) + \
         sum([xp.linalg.norm(x) ** 2 for x in param_directions])
