@@ -82,8 +82,9 @@ def check_cuda_available():
             not getattr(check_cuda_available, '_already_warned', False)):
         warnings.warn(
             'cuDNN is not enabled.\n'
-            'Please reinstall chainer after you install cudnn\n'
-            '(see https://github.com/chainer/chainer#installation).')
+            'Please reinstall CuPy after you install cudnn\n'
+            '(see https://docs-cupy.chainer.org/en/stable/install.html'
+            '#install-cupy-with-cudnn-and-nccl).')
         check_cuda_available._already_warned = True
 
 
