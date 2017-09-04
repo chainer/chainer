@@ -23,15 +23,15 @@ def _batch_normalization(expander, gamma, beta, x, mean, var):
     'size': [10, 20],
     'dtype': [numpy.float32],
 })))
-class TestBatchNormalization(unittest.TestCase):
+class TestLayerNormalization(unittest.TestCase):
 
     def setUp(self):
-        shape = (self.batchsize, self.size)
-        size = (numpy.prod(shape) // shape[0],)
+        shape = self.batchsize, self.size
+        size = numpy.prod(shape) // shape[0]
         x = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
         gamma = numpy.random.uniform(-1, 1, size).astype(self.dtype)
         beta = numpy.random.uniform(-1, 1, size).astype(self.dtype)
-        self.args = [x, gamma, beta]
+        self.args = (x, gamma, beta)
         self.gy = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
         self.ggx = [numpy.random.uniform(-1, 1, _.shape).astype(_.dtype)
                     for _ in self.args]
@@ -47,7 +47,7 @@ class TestBatchNormalization(unittest.TestCase):
 
         def func(x):
             args_ = x, args[1], args[2]
-            return functions.LayerNormalization().apply(args_)[0]
+            return functions.layer_normalization(*args_)
 
         y = func(x_data)
         self.assertEqual(y.data.dtype, self.dtype)
@@ -69,7 +69,7 @@ class TestBatchNormalization(unittest.TestCase):
 
     def check_backward(self, args, y_grad):
         def func(*args_):
-            return functions.LayerNormalization().apply(args_)
+            return functions.layer_normalization(*args_)
 
         gradient_check.check_backward(
             func, args, y_grad,
@@ -88,8 +88,7 @@ class TestBatchNormalization(unittest.TestCase):
 
     def check_double_backward(self, args, y_grad, x_grad_grad):
         def func(*args_):
-            y = functions.LayerNormalization().apply(args_)[0]
-            return y * y
+            return functions.layer_normalization(*args_)
 
         gradient_check.check_double_backward(
             func, args, y_grad, x_grad_grad,

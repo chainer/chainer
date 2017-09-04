@@ -37,6 +37,7 @@ class LayerNormalization(function_node.FunctionNode):
         )
 
     def _compute(self, xp, x):
+        # xp: numpy, cupy, or chainer.functions
         mu = xp.mean(x, axis=1, keepdims=True)
         x_mu = x - _broadcast_to(xp, mu, x.shape)
         squ_x_mu = xp.square(x_mu)
