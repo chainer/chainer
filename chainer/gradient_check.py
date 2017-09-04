@@ -134,8 +134,8 @@ def check_backward(func, x_data, y_grad, params=(),
     the types of gradients with :func:`chainer.testing.assert_allclose`.
 
     To reduce computational time, it uses directional derivative along a
-    rando vector. A function
-    :math:`g: \\mathbb{R} \\rightarrow \\mathbb{R}^n` defined as
+    random vector. A function
+    :math:`g: \\mathbb{R} \\rightarrow \\mathbb{R}^n` is defined as
     :math:`g(\\delta) = f(x + \\delta r)`, where
     :math:`\\delta \\in \\mathbb{R}`, :math:`r \\in \\mathbb{R}^n`
     is a random vector
@@ -145,15 +145,17 @@ def check_backward(func, x_data, y_grad, params=(),
     .. math::
        g'(\\delta) = f'(x + \\delta r) \\cdot r.
 
-    When :math:`\\delta = 0`, :math:`g'(0) = f'(x) \\cdot r`.
-    So :math:`g'(0)` is calculated with :func:`numerical_grad` and
-    compared with dot product of the gradient :math:`f` and
-    :math:`r`.
+    Therefore, :math:`g'(0) = f'(x) \\cdot r`.
+    So we can check the correctness of back propagation of :math:`f` indirectly
+    by comparing this equation with the gradient of :math:`g` numerically
+    calculated and that of :math:`f` computed by backprop.
+    If :math:`r` is chosen from uniform distribution, we can conclude with
+    high probability that the gradient of :math:`f` itself is correct.
 
     If input objects (``x1_data`` or/and ``x2_data`` in this example) represent
     integer variables, their gradients are ignored.
 
-    You can simplify a test when ``MyFunc`` gets only one argument::
+   You can simplify a test when ``MyFunc`` gets only one argument::
 
     >>   check_backward(func, x1_data, gy_data)
 
