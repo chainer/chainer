@@ -150,7 +150,11 @@ class TestSoftmaxCrossEntropy(unittest.TestCase):
                               class_weight, use_cudnn='always'):
         def f(x):
             return functions.softmax_cross_entropy(
-                x, t_data, self.normalize, self.cache_score, class_weight)
+                x, t_data, self.normalize, self.cache_score, class_weight,
+                enable_double_backprop=True)
+
+        if not self.enable_double_backprop:
+            return
 
         with chainer.using_config('use_cudnn', use_cudnn):
             gradient_check.check_double_backward(
@@ -398,7 +402,10 @@ class TestElementwiseSoftmaxCrossEntropy(unittest.TestCase):
         def f(x):
             return functions.softmax_cross_entropy(
                 x, t_data, self.normalize, self.cache_score, class_weight,
-                reduce='no')
+                reduce='no', enable_double_backprop=True)
+
+        if not self.enable_double_backprop:
+            return
 
         gradient_check.check_double_backward(
             f, x_data, g_data, ggx_data,
