@@ -397,5 +397,23 @@ class TestCheckDoubleBackward(unittest.TestCase):
     def test_multiple_input_output_gpu(self):
         self.check_multiple_input_output(cuda.cupy)
 
+    def check_double_backward_with_params(self, xp):
+        arrays = xp.ones((5, 1), dtype='f')
+        x, gy, ggx, param_a, ggparam = arrays
+
+        param = chainer.Variable(param_a)
+
+        def f(x):
+            return x * param
+
+        gradient_check.check_double_backward(f, x, gy, ggx, param, ggparam)
+
+    def test_double_backward_with_params_cpu(self):
+        self.check_double_backward_with_params(numpy)
+
+    @attr.gpu
+    def test_double_backward_with_params_gpu(self):
+        self.check_double_backward_with_params(cuda.cupy)
+
 
 testing.run_module(__name__, __file__)

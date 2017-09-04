@@ -1,3 +1,5 @@
+import warnings
+
 import numpy
 
 from chainer import cuda
@@ -154,3 +156,82 @@ def matmul(a, b, transa=False, transb=False):
 
     """
     return MatMul(transa=transa, transb=transb)(a, b)
+
+
+def _get_size(typ, index):
+    if index == 2 and type_check.eval(typ.ndim) == 2:
+        return 1
+    else:
+        return typ.shape[index]
+
+
+def _batch_matmul(a, b, transa, transb, transout):
+    a = a.reshape(a.shape[:2] + (-1,))
+    b = b.reshape(b.shape[:2] + (-1,))
+    return _matmul(a, b, transa, transb, transout)
+
+
+class BatchMatMul(function.Function):
+
+    def __init__(self, transa=False, transb=False):
+        self.transa = transa
+        self.transb = transb
+
+    def check_type_forward(self, in_types):
+        type_check.expect(in_types.size() == 2)
+        a_type, b_type = in_types
+
+        type_check.expect(
+            a_type.dtype == numpy.float32,
+            b_type.dtype == numpy.float32
+        )
+
+        _check_ndim(a_type, lower=2, upper=3)
+        _check_ndim(b_type, lower=2, upper=3)
+
+        a_idx = _get_check_index(self.transa, False, row_idx=1, col_idx=2)
+        b_idx = _get_check_index(self.transb, True, row_idx=1, col_idx=2)
+        a_size = _get_size(a_type, a_idx)
+        b_size = _get_size(b_type, b_idx)
+        type_check.expect(
+            a_size == b_size
+        )
+
+    def forward(self, x):
+        a, b = x
+        return _batch_matmul(a, b, self.transa, self.transb, False),
+
+    def backward(self, x, gy):
+        a, b = x
+        ga = _batch_matmul(gy[0], b, False, not self.transb,
+                           self.transa).reshape(a.shape)
+        gb = _batch_matmul(a, gy[0], not self.transa, False,
+                           self.transb).reshape(b.shape)
+        return ga, gb
+
+
+def batch_matmul(a, b, transa=False, transb=False):
+    """Computes the batch matrix multiplications of two sets of arrays.
+
+    Args:
+        a (Variable): The left operand of the batch matrix multiplications.
+            A 2-D array of shape ``(B, N)`` is considered as B
+            :math:`N \\times 1` matrices.
+            A 3-D array of shape ``(B, M, N)`` is considered as B
+            :math:`M \\times N` matrices.
+        b (Variable): The right operand of the batch matrix multiplications.
+            Its array is treated as matrices in the same way as ``a``'s array.
+        transa (bool): If ``True``, transpose each matrix in ``a``.
+        transb (bool): If ``True``, transpose each matrix in ``b``.
+
+    Returns:
+        ~chainer.Variable: The result of the batch matrix multiplications as a
+            3-D array.
+
+    .. deprecated:: v3.0.0
+       batch_matmul is deprecated. Use ``matmul`` instead.
+
+    """
+    warnings.warn('batch_matmul is deprecated. Use matmul instead.',
+                  DeprecationWarning)
+    return BatchMatMul(transa=transa, transb=transb)(a, b)

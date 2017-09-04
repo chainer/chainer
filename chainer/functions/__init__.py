@@ -47,7 +47,6 @@ from chainer.functions.array.dstack import dstack  # NOQA
 from chainer.functions.array.expand_dims import expand_dims  # NOQA
 from chainer.functions.array.expand_dims import ExpandDims  # NOQA
 from chainer.functions.array.flatten import flatten  # NOQA
-from chainer.functions.array.flatten import Flatten  # NOQA
 from chainer.functions.array.fliplr import fliplr  # NOQA
 from chainer.functions.array.fliplr import FlipLR  # NOQA
 from chainer.functions.array.flipud import flipud  # NOQA
@@ -206,8 +205,7 @@ from chainer.functions.math.logarithm_1p import Log1p  # NOQA
 from chainer.functions.math.logarithm_1p import log1p  # NOQA
 from chainer.functions.math.logsumexp import logsumexp  # NOQA
 from chainer.functions.math.logsumexp import LogSumExp  # NOQA
-from chainer.functions.math.matmul import matmul  # NOQA
-from chainer.functions.math.matmul import MatMul  # NOQA
+from chainer.functions.math.matmul import batch_matmul  # NOQA
 from chainer.functions.math.matmul import matmul  # NOQA
 from chainer.functions.math.matmul import MatMul  # NOQA
 from chainer.functions.math.maximum import maximum  # NOQA

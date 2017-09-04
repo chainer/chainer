@@ -233,13 +233,15 @@ class TestToGPU(unittest.TestCase):
 
     @attr.gpu
     def test_numpy_array_async(self):
-        y = cuda.to_gpu(self.x, stream=cuda.Stream.null)
+        with testing.assert_warns(DeprecationWarning):
+            y = cuda.to_gpu(self.x, stream=cuda.Stream.null)
         self.assertIsInstance(y, cuda.ndarray)
         cuda.cupy.testing.assert_array_equal(self.x, y)
 
     @attr.multi_gpu(2)
     def test_numpy_array_async2(self):
-        y = cuda.to_gpu(self.x, device=1, stream=cuda.Stream.null)
+        with testing.assert_warns(DeprecationWarning):
+            y = cuda.to_gpu(self.x, device=1, stream=cuda.Stream.null)
         self.assertIsInstance(y, cuda.ndarray)
         cuda.cupy.testing.assert_array_equal(self.x, y)
         self.assertEqual(int(y.device), 1)
@@ -247,7 +249,8 @@ class TestToGPU(unittest.TestCase):
     @attr.multi_gpu(2)
     def test_numpy_array_async3(self):
         with cuda.Device(1):
-            y = cuda.to_gpu(self.x, stream=cuda.Stream.null)
+            with testing.assert_warns(DeprecationWarning):
+                y = cuda.to_gpu(self.x, stream=cuda.Stream.null)
         self.assertIsInstance(y, cuda.ndarray)
         cuda.cupy.testing.assert_array_equal(self.x, y)
         self.assertEqual(int(y.device), 1)
@@ -285,10 +288,11 @@ class TestToGPU(unittest.TestCase):
         self.assertIsNot(x, y)  # Do copy
         cuda.cupy.testing.assert_array_equal(x, y)
 
-    def test_variable_cpu(self):
+    @attr.gpu
+    def test_variable_gpu(self):
         x = chainer.Variable(self.x)
         with self.assertRaises(TypeError):
-            cuda.to_cpu(x)
+            cuda.to_gpu(x)
 
 
 testing.run_module(__name__, __file__)
