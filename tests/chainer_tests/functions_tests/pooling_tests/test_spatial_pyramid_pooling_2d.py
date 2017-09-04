@@ -38,6 +38,7 @@ class TestSpatialPyramidPooling2D(unittest.TestCase):
             (self.n, self.c, self.h, self.w)).astype(self.dtype)
         self.gy = numpy.random.uniform(
             -1, 1, (self.n, self.output_dim, 1, 1)).astype(self.dtype)
+        self.ggx = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
         self.check_backward_options = {'dtype': numpy.float64}
         if self.dtype == numpy.float16:
             self.check_backward_options = {
@@ -102,6 +103,41 @@ class TestSpatialPyramidPooling2D(unittest.TestCase):
     @condition.retry(3)
     def test_backward_gpu_no_cudnn(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy), 'never')
+
+    def check_double_backward(self, x_data, y_grad, x_grad_grad,
+                              use_cudnn='always'):
+        def f(x):
+            y = functions.spatial_pyramid_pooling_2d(
+                x, self.pyramid_height, self.pooling_class)
+            return y * y
+        with chainer.using_config('use_cudnn', use_cudnn):
+            gradient_check.check_double_backward(
+                f, x_data, y_grad, x_grad_grad, **self.check_backward_options)
+
+    @condition.retry(3)
+    def test_double_backward_cpu(self):
+        self.check_double_backward(self.x, self.gy, self.ggx, 'never')
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_double_backward_gpu(self):
+        self.check_double_backward(
+            cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx))
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_double_backward_gpu_non_contiguous(self):
+        self.check_double_backward(
+            cuda.cupy.asfortranarray(cuda.to_gpu(self.x)),
+            cuda.cupy.asfortranarray(cuda.to_gpu(self.gy)),
+            cuda.cupy.asfortranarray(cuda.to_gpu(self.ggx)))
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_double_backward_gpu_no_cudnn(self):
+        self.check_double_backward(
+            cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx),
+            'never')
 
 
 class TestInvalidDtype(unittest.TestCase):

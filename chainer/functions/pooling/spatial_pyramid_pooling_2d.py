@@ -14,7 +14,9 @@ class SpatialPyramidPooling2D(pooling_2d.Pooling2D):
 
     def __init__(self, x_shape, pyramid_height, pooling_class):
         bottom_c, bottom_h, bottom_w = x_shape
+        self.x_shape = x_shape
         self.pyramid_height = pyramid_height
+        self.pooling_class = pooling_class
 
         # create pooling functions for different pyramid levels
         out_dim = 0
@@ -46,36 +48,46 @@ class SpatialPyramidPooling2D(pooling_2d.Pooling2D):
                 self.split_inds.append(out_dim)
 
     def forward(self, x):
-        self.retain_inputs((0,))
         self.ys = []
         for pooler in self.poolers:
             y_var = pooler.apply(x)[0]
             n, c, h, w = pooler.out_shape = y_var.shape
             self.ys.append(y_var.reshape((n, c * h * w, 1, 1)))
+        if pooler._used_cudnn:
+            self.retain_inputs((0,))
 
         return concat.Concat(axis=1).forward([y.data for y in self.ys])
 
     def backward(self, indexes, gy):
-        x, = self.get_retained_inputs()
-        return SpatialPyramidPooling2DGrad(self).apply((x, gy[0]))
+        return SpatialPyramidPooling2DGrad(self).apply(gy)
 
 
 class SpatialPyramidPooling2DGrad(function_node.FunctionNode):
 
     def __init__(self, spp2d):
+        self.x_shape = spp2d.x_shape
+        self.pyramid_height = spp2d.pyramid_height
+        self.pooling_class = spp2d.pooling_class
         self.split_inds = spp2d.split_inds
         self.poolers = spp2d.poolers
 
-    def forward(self, inputs):
-        x, gy = inputs
-        xp = cuda.get_array_module(x)
-        gx = xp.zeros_like(x)
-        gys = xp.split(gy, self.split_inds, axis=1)
+    def forward(self, gy):
+        xp = cuda.get_array_module(gy[0])
+        gx = xp.zeros((gy[0].shape[0],) + self.x_shape, dtype=gy[0].dtype)
+        gys = xp.split(gy[0], self.split_inds, axis=1)
         for pooler, gy in zip(self.poolers, gys):
             gy = gy.reshape(pooler.out_shape)
             gx += pooler.backward([0], (gy,))[0].data
-
         return gx,
+
+    def backward(self, indexes, ggx):
+        spp2d = SpatialPyramidPooling2D(
+            self.x_shape, self.pyramid_height, self.pooling_class)
+        if self.pooling_class is max_pooling_2d.MaxPooling2D:
+            for i, pooler in enumerate(self.poolers):
+                spp2d.poolers[i] = \
+                    max_pooling_2d.MaxPooling2DWithIndexes(pooler)
+        return spp2d.apply(ggx)
 
 
 def spatial_pyramid_pooling_2d(x, pyramid_height, pooling_class):

@@ -170,13 +170,8 @@ class MaxPooling2DGrad(function_node.FunctionNode):
                             gx)
         return gx,
 
-    def backward(self, indexes, grad_outputs):
-        ggx, = grad_outputs
-        if self._used_cudnn:
-            x, = self.mpool2d.get_retained_inputs()
-            return MaxPooling2DWithIndexes(self.mpool2d).apply((x, ggx))
-        else:
-            return MaxPooling2DWithIndexes(self.mpool2d).apply((ggx,))
+    def backward(self, indexes, ggx):
+        return MaxPooling2DWithIndexes(self.mpool2d).apply(ggx)
 
 
 class MaxPooling2DWithIndexes(function_node.FunctionNode):
@@ -192,6 +187,8 @@ class MaxPooling2DWithIndexes(function_node.FunctionNode):
         self._used_cudnn = mpool2d._used_cudnn
         if not self._used_cudnn:
             self.indexes = mpool2d.indexes
+        else:
+            self.mpool2d = mpool2d
 
     def forward_cpu(self, x):
         col = conv.im2col_cpu(
@@ -206,7 +203,8 @@ class MaxPooling2DWithIndexes(function_node.FunctionNode):
 
     def forward_gpu(self, inputs):
         if self._used_cudnn:
-            return self._forward_gpu_compute_indexes_again(inputs)
+            x, = self.mpool2d.get_retained_inputs()
+            return self._forward_gpu_compute_indexes_again((x.data, inputs[0]))
         else:
             x, = inputs
             n, c, h, w = x.shape
