@@ -265,7 +265,8 @@ class TestToGPU(unittest.TestCase):
         x = cuda.to_gpu(self.x)
         if not self.c_contiguous:
             x = cuda.cupy.asfortranarray(x)
-        y = cuda.to_gpu(x, stream=cuda.Stream())
+        with testing.assert_warns(DeprecationWarning):
+            y = cuda.to_gpu(x, stream=cuda.Stream())
         self.assertIsInstance(y, cuda.ndarray)
         self.assertIs(x, y)  # Do not copy
         cuda.cupy.testing.assert_array_equal(x, y)
@@ -276,7 +277,8 @@ class TestToGPU(unittest.TestCase):
         with x.device:
             if not self.c_contiguous:
                 x = cuda.cupy.asfortranarray(x)
-        y = cuda.to_gpu(x, device=1, stream=cuda.Stream.null)
+        with testing.assert_warns(DeprecationWarning):
+            y = cuda.to_gpu(x, device=1, stream=cuda.Stream.null)
         self.assertIsInstance(y, cuda.ndarray)
         self.assertIsNot(x, y)  # Do copy
         cuda.cupy.testing.assert_array_equal(x, y)
@@ -288,7 +290,8 @@ class TestToGPU(unittest.TestCase):
             if not self.c_contiguous:
                 x = cuda.cupy.asfortranarray(x)
         with cuda.Device(1):
-            y = cuda.to_gpu(x, stream=cuda.Stream.null)
+            with testing.assert_warns(DeprecationWarning):
+                y = cuda.to_gpu(x, stream=cuda.Stream.null)
         self.assertIsInstance(y, cuda.ndarray)
         self.assertIsNot(x, y)  # Do copy
         cuda.cupy.testing.assert_array_equal(x, y)
