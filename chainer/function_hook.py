@@ -57,11 +57,11 @@ class FunctionHook(object):
         >>> model2 = Model()
         >>> x = chainer.Variable(np.zeros((1, 10), 'f'))
         >>> with chainer.function_hooks.TimerHook() as m:
-        ...    _ = model1(x)
-        ...    y = model2(x)
-        ...    print("Total time : " + str(m.total_time()))
-        ...    model3 = Model()
-        ...    z = model3(y) # doctest:+ELLIPSIS
+        ...   _ = model1(x)
+        ...   y = model2(x)
+        ...   print("Total time : " + str(m.total_time()))
+        ...   model3 = Model()
+        ...   z = model3(y) # doctest:+ELLIPSIS
         Total time : ...
 
         In this example, we measure the elapsed times for each forward
