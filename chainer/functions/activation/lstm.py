@@ -83,14 +83,14 @@ class LSTM(function_node.FunctionNode):
         batch = len(x)
 
         if isinstance(x, numpy.ndarray):
-            self.a = numpy.tanh(a)
-            self.i = _sigmoid(i)
-            self.f = _sigmoid(f)
-            self.o = _sigmoid(o)
+            a = numpy.tanh(a)
+            i = _sigmoid(i)
+            f = _sigmoid(f)
+            o = _sigmoid(o)
 
             c_next = numpy.empty_like(c_prev)
-            c_next[:batch] = self.a * self.i + self.f * c_prev[:batch]
-            h = self.o * numpy.tanh(c_next[:batch])
+            c_next[:batch] = a * i + f * c_prev[:batch]
+            h = o * numpy.tanh(c_next[:batch])
         else:
             c_next = cuda.cupy.empty_like(c_prev)
             h = cuda.cupy.empty_like(c_next[:batch])
@@ -105,7 +105,7 @@ class LSTM(function_node.FunctionNode):
                     c_prev[:batch], a, i, f, o, c_next[:batch], h)
 
         c_next[batch:] = c_prev[batch:]
-        self.c = c_next[:batch]
+        c = c_next[:batch]
         self.retain_outputs((0,))
         return c_next, h
 
