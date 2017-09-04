@@ -105,7 +105,6 @@ class LSTM(function_node.FunctionNode):
                     c_prev[:batch], a, i, f, o, c_next[:batch], h)
 
         c_next[batch:] = c_prev[batch:]
-        c = c_next[:batch]
         self.retain_outputs((0,))
         return c_next, h
 
