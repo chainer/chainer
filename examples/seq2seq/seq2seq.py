@@ -157,7 +157,11 @@ def count_lines(path):
 
 def load_vocabulary(path):
     with open(path) as f:
-        return {line.strip(): i for i, line in enumerate(f)}
+        # +2 for UNK and EOS
+        word_ids = {line.strip(): i + 2 for i, line in enumerate(f)}
+    word_ids['<UNK>'] = 0
+    word_ids['<EOS>'] = 1
+    return word_ids
 
 
 def load_data(vocabulary, path):
