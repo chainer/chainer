@@ -117,7 +117,7 @@ For example, the following code checks if the first argument and the second argu
 
 .. testcode::
 
-   utils.type_check.expect(x_type.shape[1] == y_type.shape[1])
+   utils.type_check.expect(x_type.shape[1] == y_type.shape[1])  # doctest: +IGNORE_EXCEPTION_DETAIL
 
 
 Internal mechanism of type check
