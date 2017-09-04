@@ -175,12 +175,11 @@ class Upsampling2DGrad(function_node.FunctionNode):
 
         return gx,
 
-    def backward(self, indexes, grad_outputs):
-        ggx, = grad_outputs
+    def backward(self, indexes, ggx):
         return Upsampling2D(
             self.indexes, (self.kh, self.kw), (self.sy, self.sx),
             (self.ph, self.pw), (self.outh, self.outw),
-            self.cover_all).apply((ggx,))
+            self.cover_all).apply(ggx)
 
 
 def upsampling_2d(

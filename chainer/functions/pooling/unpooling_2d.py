@@ -36,8 +36,6 @@ class Unpooling2D(pooling_2d.Pooling2D):
             type_check.expect(x_type.shape[3] == expected_w)
 
     def forward(self, x):
-        self.retain_inputs(())
-
         h, w = x[0].shape[2:]
         if self.outh is None:
             self.outh = conv.get_deconv_outsize(
@@ -85,11 +83,10 @@ class Unpooling2DGrad(function_node.FunctionNode):
         gx = gcol.sum(axis=(2, 3))
         return gx,
 
-    def backward(self, indexes, grad_outputs):
-        ggx, = grad_outputs
+    def backward(self, indexes, ggx):
         return Unpooling2D(
             (self.kh, self.kw), (self.sy, self.sx), (self.ph, self.pw),
-            (self.outh, self.outw), self.cover_all).apply((ggx,))
+            (self.outh, self.outw), self.cover_all).apply(ggx)
 
 
 def unpooling_2d(x, ksize, stride=None, pad=0, outsize=None, cover_all=True):

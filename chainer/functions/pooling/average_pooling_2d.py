@@ -26,7 +26,6 @@ class AveragePooling2D(pooling_2d.Pooling2D):
             self.retain_inputs((0,))
             return super(AveragePooling2D, self).forward_gpu(x)
 
-        self.retain_inputs(())
         self._in_shape = x[0].shape
         self._in_dtype = x[0].dtype
 
@@ -62,10 +61,7 @@ class AveragePooling2D(pooling_2d.Pooling2D):
         return y,
 
     def backward(self, indexes, gy):
-        if self._used_cudnn:
-            return AveragePooling2DGrad(self).apply(gy)
-        else:
-            return AveragePooling2DGrad(self).apply(gy)
+        return AveragePooling2DGrad(self).apply(gy)
 
     def create_pool_desc(self):
         return cuda.cudnn.create_pooling_descriptor(
