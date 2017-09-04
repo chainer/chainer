@@ -46,13 +46,13 @@ built with two models, which are **Skip-gram** and **CBoW**.
 To explain the models with the figures below, we will use the following
 symbols.
 
-* :math:`N`: the size of vocabulary.
+* :math:`V`: the size of vocabulary.
 * :math:`D`: the size of embedding vector.
 * :math:`v_t`: Center Word. The shape is ``[N,]``.
 * :math:`v_{t+c}`: Context Word. The shape is ``[N,]``.
-* :math:`L_H`: Embedding vector converted from input.
+* :math:`l_H`: Embedding vector converted from input.
   The shape is ``[D,]``.
-* :math:`L_O`: Output layer. The shape is ``[N,]``.
+* :math:`l_O`: Output layer. The shape is ``[N,]``.
 * :math:`W_H`: Embedding matrix for the input.  The shape is ``[N, D]``.
 * :math:`W_O`: Embedding matrix for the output.  The shape is ``[D, N]``.
 
@@ -71,21 +71,38 @@ matrix for input :math:`W_H` becomes a word embedding of each word.
 
 .. image:: ../../image/word2vec/skipgram.png
 
+When you input the Center Word :math:`v_t` into the network,
+you can calculate :math:`v_{t+c}^*`.
+
 .. math::
-    l_H &= v_t^T W_H \\
-    l_O &= l_H^T W_O \\
-    \hat v_{t+c} &= \text{softmax}(l_O) \\
-    &= \frac{\exp(l_O)}{\sum_{n=1}^N \exp(l_O[n])} \\
-    p(w_i|v_t) &= \hat v_{t+c}[i] \\
-    p(v_{t+c}|v_t) &= \hat v_{t+c}^T v_{t+c}
+    l_H &= W_H v_t \\
+    l_O &= W_O l_H \\
+    v_{t+c}^* &= \text{softmax}(l_O) \\
+    &= \frac{\exp(l_O)}{\sum_{v=1}^V \exp(l_O[n])}
+
+Each element of :math:`v_{t+c}^*` is the probability that the :math:`i`-th word 
+:math:`w_i` in the vocabulary
+is considered as Context Words. So, the equation :math:`v_{t+c}^T v_{t+c}^*` calculates the
+probability :math:`p(v_{t+c}|v_t)`.
+
+.. math::
+    p(w_i|v_t) &= v_{t+c}^*[i] \\
+    p(v_{t+c}|v_t) &= v_{t+c}^T v_{t+c}^*
+
+The loss function for the center word and the context words
+:math:`\text{loss}(W_H, W_O|v_{t-C}, ..., v_t, ..., v_{t+C})` is,
 
 .. math::
     \text{loss}(W_H, W_O|v_{t-C}, ..., v_t, ..., v_{t+C}) &= \sum_{c=\{-C,...,C\}/\{0\}} \log(p(v_{t+c}|v_t)) \\
-    &= \sum_{c=\{-C,...,C\}/\{0\}} \log(\hat v_{t+c}^T v_{t+c})
+    &= \sum_{c=\{-C,...,C\}/\{0\}} \log(v_{t+c}^T v_{t+c}^*)
+
+Let the training dataset be
+:math:`\mathcal{D}=\{v_{t-C}^{(n)}, ..., v_t^{(n)}, ..., v_{t+C}^{(n)}\}_{n=1}^N`,
+the loss functions for dataset :math:`\text{Loss}(W_H, W_O|\mathcal{D})` is,
 
 .. math::
     \text{Loss}(W_H, W_O|\mathcal{D}) &= \sum_{\mathcal{D}} \text{loss}(W_H, W_O|v_{t-C}, ..., v_t, ..., v_{t+C}) \\
-    &= \sum_{\mathcal{D}} \sum_{c=\{-C,...,C\}/\{0\}} \log(\hat v_{t+c}^T v_{t+c})
+    &= \sum_{\mathcal{D}} \sum_{c=\{-C,...,C\}/\{0\}} \log(v_{t+c}^T v_{t+c}^*)
 
 2.2 Continuous Bag of Words (CBoW)
 -----------------------------------
@@ -95,6 +112,39 @@ This model learns to predict Center Word :math:`v_t` when Context Words
 of each word.
 
 .. image:: ../../image/word2vec/cbow.png
+
+When you input the Context Words :math:`v_{t+c}` into the network,
+you can calculate :math:`v_t^*`.
+
+.. math::
+    l_H &= \sum_{c=1}^C W_H v_{t+c} \\
+    l_O &= W_O l_H \\
+    v_t^* &= \text{softmax}(l_O) \\
+    &= \frac{\exp(l_O)}{\sum_{v=1}^V \exp(l_O[n])}
+
+Each element of :math:`v_t^*` is the probability that the :math:`i`-th word
+:math:`w_i` in the vocabulary
+is considered as Center Word. So, the equation :math:`v_t^T v_t^*` calculates the
+probability :math:`p(v_t|v_{t+c})`.
+
+.. math::
+    p(w_i|v_{t+c}) &= v_t^*[i] \\
+    p(v_t|v_{t+c}) &= v_t^T v_t^*
+
+The loss function for the center word and the context words
+:math:`\text{loss}(W_H, W_O|v_{t-C}, ..., v_t, ..., v_{t+C})` is,
+
+.. math::
+    \text{loss}(W_H, W_O|v_{t-C}, ..., v_t, ..., v_{t+C}) &= \sum_{c=\{-C,...,C\}/\{0\}} \log(p(v_t|v_{t+c})) \\
+    &= \sum_{c=\{-C,...,C\}/\{0\}} \log(v_t^T v_t^*)
+
+Let the training dataset be
+:math:`\mathcal{D}=\{v_{t-C}^{(n)}, ..., v_t^{(n)}, ..., v_{t+C}^{(n)}\}_{n=1}^N`,
+the loss functions for dataset :math:`\text{Loss}(W_H, W_O|\mathcal{D})` is,
+
+.. math::
+    \text{Loss}(W_H, W_O|\mathcal{D}) &= \sum_{\mathcal{D}} \text{loss}(W_H, W_O|v_{t-C}, ..., v_t, ..., v_{t+C}) \\
+    &= \sum_{\mathcal{D}} \sum_{c=\{-C,...,C\}/\{0\}} \log(v_t^T v_t^*)
 
 3. Details of Skip-gram
 ========================
