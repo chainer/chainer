@@ -184,11 +184,17 @@ class TestSoftmaxCrossEntropy(unittest.TestCase):
             'never')
 
 
-@testing.parameterize(
-    {'t_value': -2, 'valid': False},
-    {'t_value': 3, 'valid': False},
-    {'t_value': -1, 'valid': True},  # -1 is ignore_label
-)
+@testing.parameterize(*testing.product_dict(
+    [
+        {'t_value': -2, 'valid': False},
+        {'t_value': 3, 'valid': False},
+        {'t_value': -1, 'valid': True}  # -1 is ignore_label
+    ],
+    [
+        {'enable_double_backprop': True},
+        {'enable_double_backprop': False}
+    ]
+))
 class TestSoftmaxCrossEntropyValueCheck(unittest.TestCase):
 
     def setUp(self):
@@ -208,10 +214,13 @@ class TestSoftmaxCrossEntropyValueCheck(unittest.TestCase):
         with chainer.using_config('use_cudnn', use_cudnn):
             if self.valid:
                 # Check if it throws nothing
-                functions.softmax_cross_entropy(x, t)
+                functions.softmax_cross_entropy(
+                    x, t, enable_double_backprop=self.enable_double_backprop)
             else:
                 with self.assertRaises(ValueError):
-                    functions.softmax_cross_entropy(x, t)
+                    functions.softmax_cross_entropy(
+                        x, t,
+                        enable_double_backprop=self.enable_double_backprop)
 
     def test_value_check_cpu(self):
         self.check_value_check(self.x, self.t, 'never')
@@ -240,7 +249,8 @@ class TestSoftmaxCrossEntropyCudnnCall(unittest.TestCase):
     def forward(self):
         x = chainer.Variable(self.x)
         t = chainer.Variable(self.t)
-        return functions.softmax_cross_entropy(x, t)
+        return functions.softmax_cross_entropy(
+            x, t, enable_double_backprop=False)
 
     def test_call_cudnn_forward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
@@ -249,9 +259,12 @@ class TestSoftmaxCrossEntropyCudnnCall(unittest.TestCase):
                 self.assertEqual(func.called,
                                  chainer.should_use_cudnn('>=auto'))
 
-    # Note that SoftmaxCrossEntropy does not use cudnn on backward
 
-
+# Note that SoftmaxCrossEntropy does not use cudnn on backward
+@testing.parameterize(
+    {'enable_double_backprop': True},
+    {'enable_double_backprop': False},
+)
 class TestClassWeightAssertion(unittest.TestCase):
 
     def setUp(self):
@@ -262,20 +275,23 @@ class TestClassWeightAssertion(unittest.TestCase):
         wrong_ndim_class_weight = numpy.array([[0, 0]], dtype='f')
         with self.assertRaises(ValueError):
             functions.softmax_cross_entropy(
-                self.x, self.t, class_weight=wrong_ndim_class_weight)
+                self.x, self.t, class_weight=wrong_ndim_class_weight,
+                enable_double_backprop=self.enable_double_backprop)
 
     def test_dtype_assertion(self):
         wrong_dtype_class_weight = numpy.array([0, 0], dtype=numpy.int32)
         with self.assertRaises(ValueError):
             functions.softmax_cross_entropy(
-                self.x, self.t, class_weight=wrong_dtype_class_weight)
+                self.x, self.t, class_weight=wrong_dtype_class_weight,
+                enable_double_backprop=self.enable_double_backprop)
 
     def test_variable_assertion(self):
         wrong_inst_class_weight = chainer.Variable(
             numpy.array([0, 0], dtype='f'))
         with self.assertRaises(ValueError):
             functions.softmax_cross_entropy(
-                self.x, self.t, class_weight=wrong_inst_class_weight)
+                self.x, self.t, class_weight=wrong_inst_class_weight,
+                enable_double_backprop=self.enable_double_backprop)
 
 
 @testing.parameterize(*(testing.product({
@@ -434,6 +450,7 @@ class TestElementwiseSoftmaxCrossEntropy(unittest.TestCase):
     'use_cudnn': ['always', 'auto', 'never'],
     'normalize': [True, False],
     'cache_score': [True, False],
+    'enable_double_backprop': [True, False],
 }))
 class TestSoftmaxCrossEntropyInvalidReduce(unittest.TestCase):
 
@@ -446,7 +463,8 @@ class TestSoftmaxCrossEntropyInvalidReduce(unittest.TestCase):
             with self.assertRaises(ValueError):
                 functions.softmax_cross_entropy(
                     x, t, self.normalize, self.cache_score,
-                    reduce='unknown_reduce_type')
+                    reduce='unknown_reduce_type',
+                    enable_double_backprop=self.enable_double_backprop)
 
     def test_invalid_reduce_cpu(self):
         self.check_invalid_reduce(self.x, self.t)
