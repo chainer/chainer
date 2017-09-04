@@ -38,7 +38,7 @@ First you need to prepare parallel corpus. Download 10^9 French-English corpus f
 http://www.statmt.org/wmt15/translation-task.html
 
 ```
-$ http://www.statmt.org/wmt10/training-giga-fren.tar
+$ wget http://www.statmt.org/wmt10/training-giga-fren.tar
 $ tar -xf training-giga-fren.tar
 $ ls
 giga-fren.release2.fixed.en.gz  giga-fren.release2.fixed.fr.gz
