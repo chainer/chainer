@@ -289,9 +289,13 @@ def check_backward(func, x_data, y_grad, params=(),
     param_directions = [
         xp.random.normal(size=x.shape).astype(dtype) for x in param_data]
     # Use unit vector
-    norm = sum([xp.square(x).sum() for x in xs_directions]) + \
-        sum([xp.square(x).sum() for x in param_directions])
-    scale = 1. / math.sqrt(norm)
+    norm = math.sqrt(
+        sum([xp.square(x).sum() for x in xs_directions]) +
+        sum([xp.square(x).sum() for x in param_directions]))
+    if norm > 0:
+        scale = 1. / norm
+    else:
+        scale = 1.
     xs_directions = [x * scale for x in xs_directions]
     param_directions = [x * scale for x in param_directions]
 
