@@ -573,4 +573,81 @@ class TestNonDefaultIgnoreLabel(unittest.TestCase):
         self.check_double_backward(cuda.cupy)
 
 
+@testing.parameterize(*(testing.product({
+    'shape': [None, (2, 3), (2, 3, 2), (2, 3, 2, 2)],
+    'normalize': [True, False],
+    'ignore_index': [None, (slice(None),), (0,), (0, 1), (0, 1, 0)],
+    'dtype': [numpy.float32],
+    'weight_apply': [False, True],
+    'use_cudnn': ['always', 'auto', 'never'],
+}) + testing.product({
+    'shape': [None, (2, 3), (2, 3, 2), (2, 3, 2, 2)],
+    'normalize': [True, False],
+    'ignore_index': [(0, 1)],
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'weight_apply': [False, True],
+    'use_cudnn': ['always', 'auto', 'never'],
+})))
+class TestForwardConsistency(unittest.TestCase):
+
+    # This test case checks if forward propagation of
+    # double backpropable impl. and non-double backpropable impl.
+    # agree.
+
+    def setUp(self):
+        if self.shape is None:
+            if self.dtype == numpy.float16:
+                self.x = numpy.array([[-5, 1]], dtype=self.dtype)
+            else:
+                self.x = numpy.array([[-1000, 1]], dtype=self.dtype)
+            self.t = numpy.array([0], dtype=numpy.int32)
+        else:
+            self.x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+            out_shape = (self.shape[0],) + self.shape[2:]
+            self.t = numpy.random.randint(
+                0, self.shape[1], out_shape).astype(numpy.int32)
+            if (self.ignore_index is not None and
+                    len(self.ignore_index) <= self.t.ndim):
+                self.t[self.ignore_index] = -1
+        if self.weight_apply:
+            self.class_weight = numpy.random.uniform(
+                0, 10, (self.x.shape[1],)).astype(self.dtype)
+        else:
+            self.class_weight = None
+
+    def check_consistency(self, xp):
+
+        if self.class_weight is None:
+            class_weight = None
+        else:
+            xp.asarray(self.class_weight)
+
+        x = xp.asarray(self.x)
+        t = xp.asarray(self.t)
+
+        def f(enable_double_backprop):
+            kwargs = {
+                'normalize': self.normalize,
+                'class_weight': class_weight,
+                'enable_double_backprop': enable_double_backprop
+            }
+
+            return functions.softmax_cross_entropy(x, t, **kwargs).data
+
+        loss_single = f(False)
+        loss_double = f(True)
+
+        check_forward_options = {'atol': 5e-4, 'rtol': 5e-3}
+        testing.assert_allclose(
+            loss_single, loss_double, **check_forward_options)
+
+    @condition.retry(3)
+    def test_consistency_cpu(self):
+        self.check_consistency(numpy)
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_consistency_gpu(self):
+        self.check_consistency(cuda.cupy)
+
 testing.run_module(__name__, __file__)
