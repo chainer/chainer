@@ -64,7 +64,8 @@ def _preprocess_mnist(raw, withlabel, ndim, scale, image_dtype, label_dtype,
     elif ndim == 3:
         images = images.reshape(-1, 1, 28, 28)
         if rgb_format:
-            images = numpy.hstack((images, images, images))
+            images = numpy.broadcast_to(images,
+                                        (len(images), 3) + images.shape[2:])
     elif ndim != 1:
         raise ValueError('invalid ndim for MNIST dataset')
     images = images.astype(image_dtype)
