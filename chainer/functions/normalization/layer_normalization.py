@@ -82,7 +82,7 @@ class LayerNormalization(function_node.FunctionNode):
         g_x_1 = g_x_mu_1 + g_x_mu_2
         g_mu = F.sum(g_x_1, axis=1, keepdims=True) * (- 1.)
 
-        g_x_2 = F.broadcast_to(g_mu * 1. / n_units, x.shape)
+        g_x_2 = F.broadcast_to(g_mu * (1. / n_units), x.shape)
 
         g_x = g_x_1 + g_x_2
 
