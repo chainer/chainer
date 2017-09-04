@@ -226,10 +226,10 @@ def lstm_grad_grad(
     sig_f = _cupy_sigmoid(f)
     gsig_f = _grad_sigmoid(sig_f)
     ggsig_f = _grad_grad_sigmoid(sig_f)
-    tanh_a = cuda.cupy.tanh(a)
+    tanh_a = cuda.fusion.tanh(a)
     gtanh_a = _grad_tanh(tanh_a)
     ggtanh_a = _grad_grad_tanh(tanh_a, gtanh_a)
-    tanh_c = cuda.cupy.tanh(c)
+    tanh_c = cuda.fusion.tanh(c)
     gtanh_c = _grad_tanh(tanh_c)
     ggtanh_c = _grad_grad_tanh(tanh_c, gtanh_c)
 
