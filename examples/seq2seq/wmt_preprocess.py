@@ -44,7 +44,7 @@ def proc_dataset(
         path, outpath, vocab_path=None, vocab_size=None, use_lower=False):
     token_count = 0
     counts = collections.Counter()
-    with open(outpath, 'w') as f:
+    with io.open(outpath, 'w', encoding='utf-8') as f:
         for words in read_file(path, use_lower):
             line = ' '.join(words)
             f.write(line)
