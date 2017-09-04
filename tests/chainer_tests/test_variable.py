@@ -207,7 +207,7 @@ class TestVariable(unittest.TestCase):
 
         y = x * x * x
         y.grad = xp.ones_like(y.data)
-        y.backward(enable_backprop=True)
+        y.backward(enable_double_backprop=True)
         gx = x.grad_var
         x.grad_var = None  # clear grad
         gx.grad = xp.ones_like(x.data)
@@ -1404,7 +1404,7 @@ class TestVariableDoubleBackward(unittest.TestCase):
     def test_raise_double_backprop(self):
         x = chainer.Variable(np.empty(1, np.float32))
         y = IdentityFunction()(x)
-        y.backward(enable_backprop=True)
+        y.backward(enable_double_backprop=True)
         with self.assertRaises(RuntimeError):
             x.grad_var.backward()
 
@@ -1412,7 +1412,7 @@ class TestVariableDoubleBackward(unittest.TestCase):
         x = chainer.Variable(np.empty(1, np.float32))
         z = F.identity(x)  # new style
         y = IdentityFunction()(z)  # old style
-        y.backward(enable_backprop=True)
+        y.backward(enable_double_backprop=True)
         with self.assertRaises(RuntimeError):
             x.grad_var.backward()
 
