@@ -84,7 +84,7 @@ class MaxPooling2D(pooling_2d.Pooling2D):
         return y,
 
     def backward(self, indexes, gy):
-        return MaxPooling2DGrad(self).apply((gy[0],))
+        return MaxPooling2DGrad(self).apply(gy)
 
     def create_pool_desc(self):
         return cuda.cudnn.create_pooling_descriptor(
@@ -110,7 +110,6 @@ class MaxPooling2DGrad(function_node.FunctionNode):
         self.mpool2d = mpool2d
 
     def forward_cpu(self, gy):
-        self.retain_inputs((0,))
         n, c, out_h, out_w = gy[0].shape
         h, w = self._in_shape[2:]
         kh, kw = self.kh, self.kw
