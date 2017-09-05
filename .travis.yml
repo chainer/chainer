@@ -51,7 +51,7 @@ install:
   - pip install dist/*.tar.gz
   - pip install h5py pillow
   - travis_wait pip install theano
-  - pip install nose hacking mock
+  - pip install pytest hacking mock
   - pip install autopep8
 
 script:
@@ -59,7 +59,7 @@ script:
   - autopep8 -r . --global-config .pep8 --diff | tee check_autopep8
   - test ! -s check_autopep8
   - cd tests
-  - PYTHONWARNINGS='ignore::FutureWarning,module::DeprecationWarning' nosetests -a '!gpu,!slow' --with-doctest chainer_tests
+  - PYTHONWARNINGS='ignore::FutureWarning,module::DeprecationWarning' pytest -m "not gpu and  not slow" chainer_tests
   - if [[ $TRAVIS_OS_NAME == "linux" ]]; then
       cd ..;
       READTHEDOCS=True python setup.py develop;

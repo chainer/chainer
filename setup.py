@@ -23,7 +23,7 @@ setup_requires = []
 install_requires = [
     'filelock',
     'mock',
-    'nose',
+    'pytest',
     'numpy>=1.9.0',
     'protobuf>=2.6.0',
     'six>=1.9.0',
@@ -89,5 +89,6 @@ setup(
     setup_requires=setup_requires,
     install_requires=install_requires,
     tests_require=['mock',
-                   'nose'],
+                   'pytest',
+                   'pytest-xdist'],
 )
