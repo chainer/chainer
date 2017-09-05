@@ -41,7 +41,8 @@ class Classifier(link.Chain):
           >>> import chainer.links as L
           >>>
           >>> def lossfun(x, t):
-          >>>    return F.softmax_cross_entropy(x, t, enable_double_backprop=True)
+          >>>    return F.softmax_cross_entropy(
+          >>>        x, t, enable_double_backprop=True)
           >>>
           >>> predictor = L.Linear(10)
           >>> model = L.Classifier(predictor, lossfun=lossfun)
