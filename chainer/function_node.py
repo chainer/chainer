@@ -598,7 +598,7 @@ class FunctionNode(object):
 
 
 def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
-         retain_grad=False):
+         retain_grad=False, enable_double_backprop=False):
     """Computes the gradient of output variables w.r.t. the input variables.
 
     This function implements the backpropagation algorithm. While
@@ -636,6 +636,11 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
         retain_grad (bool): If it is ``True``, the gradients w.r.t. all the
             intermediate variables are stored in the :attr:`Variable.grad_var`
             attribute. In this case, the ``set_grad`` option is ignored.
+        enable_double_backprop (bool): If it is ``True``, the computed
+            gradients can be further backpropagated. Enabling it would increase
+            the memory consumption (and possibly the computational time) to
+            remember the intermediate gradient values for the second
+            backpropagation.
 
     Returns:
         A list of gradient variables w.r.t. the inputs.
@@ -688,16 +693,17 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
     grads = {}  # mapping from variable nodes to their gradients
 
     # Initialize the gradient mapping.
-    if grad_outputs is not None:
-        for y, gy in zip(outputs, grad_outputs):
-            if gy is None:
-                with cuda.get_device_from_array(y.data) as device:
-                    if device is cuda.DummyDevice:
-                        gy_data = numpy.ones_like(y.data)
-                    else:
-                        gy_data = cuda.cupy.ones_like(y.data)
-                    gy = variable.Variable(gy_data, requires_grad=False)
-            grads[y.node] = gy
+    if grad_outputs is None:
+        grad_outputs = (None,) * len(outputs)
+    for y, gy in zip(outputs, grad_outputs):
+        if gy is None:
+            with cuda.get_device_from_array(y.data) as device:
+                if device is cuda.DummyDevice:
+                    gy_data = numpy.ones_like(y.data)
+                else:
+                    gy_data = cuda.cupy.ones_like(y.data)
+                gy = variable.Variable(gy_data, requires_grad=False)
+        grads[y.node] = gy
 
     if grad_inputs is not None:
         for x, gx in zip(inputs, grad_inputs):
@@ -706,7 +712,8 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
 
     # Backprop implementation. It edits grads which will only contain the
     # gradients w.r.t. the inputs.
-    _backprop(outputs, inputs, grad_required, retain_grad, grads)
+    with chainer.using_config('enable_backprop', enable_double_backprop):
+        _backprop(outputs, inputs, grad_required, retain_grad, grads)
 
     # Extract the gradients w.r.t. the inputs and return them.
     ret = [grads.get(x.node, None) for x in inputs]

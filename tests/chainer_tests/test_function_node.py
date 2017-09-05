@@ -559,10 +559,12 @@ class GradTestBase(object):
         self.check_grad()
 
     def check_double_grad(self):
-        self.ys = self.forward()
-        gxs = chainer.grad(self.ys, self.xs, self.gys, self.gxs)
+        self.forward()
+        ys = [getattr(self, name) for name in self.y_names]
+        gxs = chainer.grad(ys, self.xs, self.gys, self.gxs,
+                           enable_double_backprop=True)
         y = sum(gxs)
-        ggxs = chainer.grad((y,), self.xs)
+        ggxs = chainer.grad([y], self.xs)
 
         expected = self.expected_double_grad()
         self.assertEqual(len(ggxs), len(expected))
@@ -575,6 +577,14 @@ class GradTestBase(object):
             self._print_variables('ggxs (actual)  ', ggxs)
             self._print_variables('ggxs (expected)', expected)
             raise
+
+    def test_double_grad_cpu(self):
+        self.check_double_grad()
+
+    @attr.gpu
+    def test_double_grad_gpu(self):
+        self.use_gpu()
+        self.check_double_grad()
 
 
 class TestGradSimple(GradTestBase, unittest.TestCase):
@@ -594,25 +604,23 @@ class TestGradSimple(GradTestBase, unittest.TestCase):
 
 class TestGradComplex(GradTestBase, unittest.TestCase):
 
-    x_names = 'x1', 'x2', 'x3'
+    x_names = 'x1', 'x2'
     y_names = 'y1', 'y2'
 
     def forward(self):
         self.z = self.x1 * self.x1
         self.y1 = self.z + self.x1 * self.x2 + self.x2
-        self.y2 = self.z * self.x3
+        self.y2 = self.z + self.y1
 
     def expected_grad(self):
         dz_dx = 2 * self.x1
-        return [self.gy1 * (dz_dx + self.x2) + self.gy2 * dz_dx * self.x3,
-                self.gy1 * (self.x1 + 1),
-                self.gy2 * self.z]
+        dy1_dx = self.gy1 + self.gy2
+        return [dy1_dx * (dz_dx + self.x2) + self.gy2 * dz_dx,
+                dy1_dx * (self.x1 + 1)]
 
     def expected_double_grad(self):
-        dz_dx = 2 * self.x1
-        return [2 * (self.gy1 + self.gy2) + self.gy1 + self.gy2 * dz_dx,
-                self.gy1,
-                self.gy2 * dz_dx]
+        dy1_dx = self.gy1 + self.gy2
+        return [3 * dy1_dx + 2 * self.gy2, dy1_dx]
 
 
 testing.run_module(__name__, __file__)
