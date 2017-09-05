@@ -238,7 +238,7 @@ class FunctionNode(object):
             # Topological ordering
             self.rank = max([x.rank for x in input_vars]) if input_vars else 0
             # Add backward edges
-            for y in ret:
+            for i, y in enumearte(ret):
                 y.creator_node = self
             self.inputs = tuple([x.node for x in input_vars])
             # Add forward edges (must be weak references)
