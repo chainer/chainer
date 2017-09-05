@@ -1,9 +1,10 @@
+import numpy
+
 from chainer import cuda
+from chainer import function_node
 from chainer.functions.pooling import pooling_2d
 from chainer.utils import conv
 from chainer.utils import type_check
-
-import numpy
 
 
 class Upsampling2D(pooling_2d.Pooling2D):
@@ -37,7 +38,6 @@ class Upsampling2D(pooling_2d.Pooling2D):
             type_check.expect(x_type.shape[3] == expected_w)
 
     def forward_cpu(self, x):
-        self.retain_inputs(())
         self._in_dtype = x[0].dtype
 
         n, c, h, w = x[0].shape
@@ -63,7 +63,6 @@ class Upsampling2D(pooling_2d.Pooling2D):
         return up_y,
 
     def forward_gpu(self, x):
-        self.retain_inputs(())
         self._in_dtype = x[0].dtype
 
         xp = cuda.cupy
@@ -101,7 +100,26 @@ class Upsampling2D(pooling_2d.Pooling2D):
                                self.outh, self.outw)
         return up_y,
 
-    def backward_cpu(self, x, gy):
+    def backward(self, indexes, grad_outputs):
+        return Upsampling2DGrad(self).apply(grad_outputs)
+
+
+class Upsampling2DGrad(function_node.FunctionNode):
+
+    def __init__(self, upsampling2d):
+        self.kh = upsampling2d.kh
+        self.kw = upsampling2d.kw
+        self.sy = upsampling2d.sy
+        self.sx = upsampling2d.sx
+        self.ph = upsampling2d.ph
+        self.pw = upsampling2d.pw
+        self.outh = upsampling2d.outh
+        self.outw = upsampling2d.outw
+        self.cover_all = upsampling2d.cover_all
+        self.indexes = upsampling2d.indexes
+        self._in_dtype = upsampling2d._in_dtype
+
+    def forward_cpu(self, gy):
         gcol = conv.im2col_cpu(
             gy[0], self.kh, self.kw, self.sy, self.sx, self.ph, self.pw,
             cover_all=self.cover_all)
@@ -111,7 +129,7 @@ class Upsampling2D(pooling_2d.Pooling2D):
         gx = gcol[numpy.arange(len(indexes)), indexes]
         return gx.reshape(n, c, out_h, out_w),
 
-    def backward_gpu(self, x, gy):
+    def forward_gpu(self, gy):
         xp = cuda.cupy
         gcol = conv.im2col_gpu(
             gy[0], self.kh, self.kw, self.sy, self.sx, self.ph, self.pw,
@@ -147,6 +165,12 @@ class Upsampling2D(pooling_2d.Pooling2D):
             'upsampling_2d_bwd')(indexes, gcol, n, c, oy, ox, ky, kx, gx)
 
         return gx,
+
+    def backward(self, indexes, ggx):
+        return Upsampling2D(
+            self.indexes, (self.kh, self.kw), (self.sy, self.sx),
+            (self.ph, self.pw), (self.outh, self.outw),
+            self.cover_all).apply(ggx)
 
 
 def upsampling_2d(
@@ -219,4 +243,5 @@ def upsampling_2d(
     Returns:
         ~chainer.Variable: Output variable.
     """
-    return Upsampling2D(indexes, ksize, stride, pad, outsize, cover_all)(x)
+    return Upsampling2D(
+        indexes, ksize, stride, pad, outsize, cover_all).apply((x,))[0]
