@@ -124,6 +124,9 @@ Here's the whole picture of the code:
    trainer.run()
    
    x, t = test[np.random.randint(len(test))]
+
+   # If using a GPU, we need to move the array to the GPU for inference
+   x = chainer.cuda.to_gpu(x, device=gpu_id) if gpu_id >= 0 else x
    predict = model.predictor(x[None]).data
    predict = predict[0][0] >= 0
    
@@ -334,6 +337,9 @@ Once the training is complete, only the model is necessary to make predictions. 
 .. code-block:: python
 
    x, t = test[np.random.randint(len(test))]
+
+   # If using a GPU, we need to move the array to the GPU for inference
+   x = chainer.cuda.to_gpu(x, device=gpu_id) if gpu_id >= 0 else x
    predict = model.predictor(x[None]).data
    predict = predict[0][0] >= 0
    
