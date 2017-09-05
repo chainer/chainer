@@ -127,10 +127,8 @@ DummyDevice = DummyDeviceType()
 # Global states
 # ------------------------------------------------------------------------------
 if available:
-    memory_pool = cuda.MemoryPool()
-    cuda.set_allocator(memory_pool.malloc)
-    pinned_memory_pool = cuda.PinnedMemoryPool()
-    cuda.set_pinned_memory_allocator(pinned_memory_pool.malloc)
+    memory_pool = cupy.default_memory_pool
+    pinned_memory_pool = cupy.default_pinned_memory_pool
 
 
 if six.PY2:
