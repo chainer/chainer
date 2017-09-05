@@ -117,7 +117,7 @@ When you input the Context Words :math:`v_{t+c}` into the network,
 you can calculate :math:`v_t^*`.
 
 .. math::
-    l_H &= \sum_{c=1}^C W_H v_{t+c} \\
+    l_H &= \frac{1}{2C} \sum_{c=\{-C,...,C\}/\{0\}} W_H v_{t+c} \\
     l_O &= W_O l_H \\
     v_t^* &= \text{softmax}(l_O) \\
     &= \frac{\exp(l_O)}{\sum_{v=1}^V \exp(l_O[n])}
@@ -129,14 +129,14 @@ probability :math:`p(v_t|v_{t+c})`.
 
 .. math::
     p(w_i|v_{t+c}) &= v_t^*[i] \\
-    p(v_t|v_{t+c}) &= v_t^T v_t^*
+    p(v_t|v_{t-C}, ..., v_{t-1}, v_{t+1}, ..., v_{t+C}) &= v_t^T v_t^*
 
 The loss function for the center word and the context words
 :math:`\text{loss}(W_H, W_O|v_{t-C}, ..., v_t, ..., v_{t+C})` is,
 
 .. math::
-    \text{loss}(W_H, W_O|v_{t-C}, ..., v_t, ..., v_{t+C}) &= \sum_{c=\{-C,...,C\}/\{0\}} \log(p(v_t|v_{t+c})) \\
-    &= \sum_{c=\{-C,...,C\}/\{0\}} \log(v_t^T v_t^*)
+    \text{loss}(W_H, W_O|v_{t-C}, ..., v_t, ..., v_{t+C}) &= \sum_{c=\{-C,...,C\}/\{0\}} \log(p(v_t|v_{t-C}, ..., v_{t-1}, v_{t+1}, ..., v_{t+C})) \\
+    &= \log(v_t^T v_t^*)
 
 Let the training dataset be
 :math:`\mathcal{D}=\{v_{t-C}^{(n)}, ..., v_t^{(n)}, ..., v_{t+C}^{(n)}\}_{n=1}^N`,
@@ -144,7 +144,7 @@ the loss functions for dataset :math:`\text{Loss}(W_H, W_O|\mathcal{D})` is,
 
 .. math::
     \text{Loss}(W_H, W_O|\mathcal{D}) &= \sum_{\mathcal{D}} \text{loss}(W_H, W_O|v_{t-C}, ..., v_t, ..., v_{t+C}) \\
-    &= \sum_{\mathcal{D}} \sum_{c=\{-C,...,C\}/\{0\}} \log(v_t^T v_t^*)
+    &= \sum_{\mathcal{D}} \log(v_t^T v_t^*)
 
 3. Details of Skip-gram
 ========================
