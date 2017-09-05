@@ -620,7 +620,7 @@ class TestForwardConsistency(unittest.TestCase):
         if self.class_weight is None:
             class_weight = None
         else:
-            xp.asarray(self.class_weight)
+            class_weight = xp.asarray(self.class_weight)
 
         x = xp.asarray(self.x)
         t = xp.asarray(self.t)
