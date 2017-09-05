@@ -32,20 +32,20 @@ class Classifier(link.Chain):
     .. note::
         This link uses :func:`chainer.softmax_cross_entropy` with
         default arguments as a loss function (specified by ``lossfun``),
-        if users do not explicit change it. In particular, the loss function
+        if users do not explicitly change it. In particular, the loss function
         does not support double backpropagation.
         If you need second or higher order differentiation, you need to turn
         it on with ``enable_double_backprop=True``:
 
-    .. admonition:: Example
-        >>> import chainer.functions as F
-        >>> import chainer.links as L
-        >>>
-        >>> def lossfun(x, t):
-        >>>     return F.softmax_cross_entropy(x, t, enable_double_backprop=True)
-        >>>
-        >>> predictor = L.Linear(10)
-        >>> model = L.Classifier(predictor, lossfun=lossfun)
+          >>> import chainer.functions as F
+          >>> import chainer.links as L
+          >>>
+          >>> def lossfun(x, t):
+          >>>    return F.softmax_cross_entropy(x, t, enable_double_backprop=True)
+          >>>
+          >>> predictor = L.Linear(10)
+          >>> model = L.Classifier(predictor, lossfun=lossfun)
+
     """
 
     compute_accuracy = True
