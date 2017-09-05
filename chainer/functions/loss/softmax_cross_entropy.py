@@ -259,9 +259,7 @@ def _double_backward_softmax_cross_entropy(x, t, normalize, class_weight,
 
     # As F.select_item does not allow the elements of t to be negative,
     # we substitute ignore_label with 0, which is valid.
-    t = t.copy()
-    xp = chainer.cuda.get_array_module((x, t))
-    t = xp.clip(t, 0, loss.shape[1] - 1)
+    t = t.clip(0, loss.shape[1] - 1)
 
     loss = chainer.functions.select_item(loss, t.ravel())
     loss = chainer.functions.reshape(loss, t.shape)
