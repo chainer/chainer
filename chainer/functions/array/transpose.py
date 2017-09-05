@@ -34,12 +34,39 @@ def transpose(x, axes=None):
     """Permute the dimensions of an input variable without copy.
 
     Args:
-        x (~chainer.Variable): Input variable.
+        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Input variable to be transposed.
+            A :math:`(s_1, s_2, ..., s_N)` -shaped float array.
         axes (tuple of ints): By default, reverse the dimensions,
             otherwise permute the axes according to the values given.
 
     Returns:
         ~chainer.Variable: Variable whose axes are permuted.
+
+    .. admonition:: Example
+
+        >>> x = np.array([[[0, 1, 2], [3, 4, 5]]], 'f')
+        >>> x.shape
+        (1, 2, 3)
+        >>> y = F.transpose(x).data  # reverse the dimensions
+        >>> y.shape
+        (3, 2, 1)
+        >>> y
+        array([[[ 0.],
+                [ 3.]],
+        <BLANKLINE>
+               [[ 1.],
+                [ 4.]],
+        <BLANKLINE>
+               [[ 2.],
+                [ 5.]]], dtype=float32)
+        >>> y = F.transpose(x, axes=(1, 0, 2)).data # swap 1st and 2nd axis
+        >>> y.shape
+        (2, 1, 3)
+        >>> y
+        array([[[ 0.,  1.,  2.]],
+        <BLANKLINE>
+               [[ 3.,  4.,  5.]]], dtype=float32)
 
     """
     return Transpose(axes).apply((x,))[0]

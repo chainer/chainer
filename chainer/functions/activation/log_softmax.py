@@ -2,7 +2,8 @@ import numpy
 
 import chainer
 from chainer import cuda
-from chainer import function
+from chainer import function_node
+import chainer.functions
 from chainer.utils import type_check
 
 if cuda.cudnn_enabled:
@@ -44,7 +45,7 @@ def _log_softmax(x):
     return y
 
 
-class LogSoftmax(function.Function):
+class LogSoftmax(function_node.FunctionNode):
 
     """Log-softmax activation function."""
 
@@ -62,12 +63,25 @@ class LogSoftmax(function.Function):
         self._x_xp = cuda.get_array_module(*xs)
         self._x_shape = xs[0].shape
         self._x_dtype = xs[0].dtype
-        self.retain_inputs(())
         self.retain_outputs((0,))
         return y,
 
-    def backward(self, x, gy):
-        y = self.output_data[0]
+    def backward(self, indexes, gy):
+        y = self.get_retained_outputs()[0]
+        return LogSoftmaxGrad(
+            self._x_xp, self._x_shape, self._x_dtype).apply((y, gy[0]))
+
+
+class LogSoftmaxGrad(function_node.FunctionNode):
+
+    def __init__(self, x_xp, x_shape, x_dtype):
+        self._x_xp = x_xp
+        self._x_shape = x_shape
+        self._x_dtype = x_dtype
+
+    def forward(self, inputs):
+        self.retain_inputs((0, 1))
+        y, gy = inputs
         xp = self._x_xp
         if xp is not numpy and chainer.should_use_cudnn('>=auto'):
             oz_dtype = 'd' if self._x_dtype == 'd' else 'f'
@@ -79,12 +93,28 @@ class LogSoftmax(function.Function):
             desc = cudnn.create_tensor_descriptor(gx_cube)
             libcudnn.softmaxBackward(
                 handle, _algorithm, _mode, one.data, desc.value,
-                y.data.ptr, desc.value, gy[0].data.ptr, zero.data,
+                y.data.ptr, desc.value, gy.data.ptr, zero.data,
                 desc.value, gx.data.ptr)
         else:
-            gx = gy[0] - xp.exp(y) * gy[0].sum(axis=1, keepdims=True)
-
+            gx = gy - xp.exp(y) * gy.sum(axis=1, keepdims=True)
         return gx,
+
+    def backward(self, indexes, ggx):
+        y, gy = self.get_retained_inputs()
+        ret = []
+        exp_y = chainer.functions.exp(y)
+        if 0 in indexes:
+            gy_sum = chainer.functions.sum(gy, 1, True)
+            gy_sum = chainer.functions.broadcast_to(gy_sum, gy.shape)
+            g0 = -ggx[0] * exp_y * gy_sum
+            ret.append(g0)
+        if 1 in indexes:
+            # TODO(Kenta Oono): implement it with double-backpropable F.matmul
+            a = chainer.functions.sum(ggx[0] * exp_y, 1, True)
+            a = chainer.functions.broadcast_to(a, gy.shape)
+            g1 = ggx[0] - a
+            ret.append(g1)
+        return ret
 
 
 def log_softmax(x):
@@ -132,4 +162,4 @@ def log_softmax(x):
         True
 
     """
-    return LogSoftmax()(x)
+    return LogSoftmax().apply((x,))[0]

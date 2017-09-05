@@ -26,6 +26,7 @@ class TestLogSoftmax(unittest.TestCase):
         else:
             self.x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         self.gy = numpy.random.uniform(-1, 1, self.x.shape).astype(self.dtype)
+        self.ggx = numpy.random.uniform(-1, 1, self.x.shape).astype(self.dtype)
 
         self.check_forward_options = {}
         self.check_backward_options = {'dtype': numpy.float64}
@@ -64,7 +65,7 @@ class TestLogSoftmax(unittest.TestCase):
     def check_backward(self, x_data, gy_data, use_cudnn='always'):
         with chainer.using_config('use_cudnn', use_cudnn):
             gradient_check.check_backward(
-                functions.LogSoftmax(), x_data, gy_data,
+                functions.log_softmax, x_data, gy_data,
                 **self.check_backward_options)
 
     @condition.retry(10)
@@ -80,6 +81,30 @@ class TestLogSoftmax(unittest.TestCase):
     @condition.retry(10)
     def test_backward_gpu_no_cudnn(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy), 'never')
+
+    def check_double_backward(self, x_data, gy_data, ggx_data,
+                              use_cudnn='always'):
+        with chainer.using_config('use_cudnn', use_cudnn):
+            gradient_check.check_double_backward(
+                functions.log_softmax, x_data, gy_data, ggx_data,
+                **self.check_backward_options)
+
+    @condition.retry(1)
+    def test_double_backward_cpu(self):
+        self.check_double_backward(self.x, self.gy, self.ggx)
+
+    @attr.gpu
+    @condition.retry(1)
+    def test_double_backward_gpu(self):
+        self.check_double_backward(
+            cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx))
+
+    @attr.gpu
+    @condition.retry(1)
+    def test_double_backward_gpu_no_cudnn(self):
+        self.check_double_backward(
+            cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx),
+            'never')
 
 
 @testing.parameterize(*testing.product({

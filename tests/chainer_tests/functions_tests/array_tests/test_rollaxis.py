@@ -28,6 +28,7 @@ class TestRollaxis(unittest.TestCase):
     def setUp(self):
         self.x = numpy.random.uniform(-1, 1, (2, 3, 4)).astype(self.dtype)
         self.g = numpy.random.uniform(-1, 1, self.out_shape).astype(self.dtype)
+        self.gg = numpy.random.uniform(-1, 1, (2, 3, 4)).astype(self.dtype)
 
     def check_forward(self, x_data):
         x = chainer.Variable(x_data)
@@ -44,9 +45,11 @@ class TestRollaxis(unittest.TestCase):
         self.check_forward(cuda.to_gpu(self.x))
 
     def check_backward(self, x_data, g_data):
+        def f(x):
+            return functions.rollaxis(x, self.axis, self.start)
+
         gradient_check.check_backward(
-            functions.Rollaxis(self.axis, self.start), x_data, g_data,
-            dtype='d')
+            f, x_data, g_data, dtype='d')
 
     def test_backward_cpu(self):
         self.check_backward(self.x, self.g)
@@ -54,6 +57,21 @@ class TestRollaxis(unittest.TestCase):
     @attr.gpu
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.g))
+
+    def check_double_backward(self, x_data, g_data, gg_data):
+        def f(x):
+            y = functions.rollaxis(x, self.axis, self.start)
+            return y * y
+
+        gradient_check.check_double_backward(f, x_data, g_data, gg_data)
+
+    def test_double_backward_cpu(self):
+        self.check_double_backward(self.x, self.g, self.gg)
+
+    @attr.gpu
+    def test_double_backward_gpu(self):
+        self.check_double_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.g),
+                                   cuda.to_gpu(self.gg))
 
 
 @testing.parameterize(
