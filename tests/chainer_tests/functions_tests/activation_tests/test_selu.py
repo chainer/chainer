@@ -28,22 +28,19 @@ class TestSELU(unittest.TestCase):
         self.alpha = random.random()
         self.scale = random.random()
         self.check_forward_options = {}
-        self.check_backward_options = {'dtype': numpy.float64}
+        self.check_backward_options = {}
         if self.dtype == numpy.float16:
             self.check_forward_options = {'atol': 5e-4, 'rtol': 5e-3}
-            self.check_backward_options = {
-                'dtype': numpy.float64, 'atol': 5e-4, 'rtol': 5e-3}
+            self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
 
     def check_forward(self, x_data):
         x = chainer.Variable(x_data)
         y = functions.selu(x, alpha=self.alpha, scale=self.scale)
         self.assertEqual(y.data.dtype, self.dtype)
 
-        expected = self.x.copy()
-        for i in numpy.ndindex(self.x.shape):
-            if self.x[i] < 0:
-                expected[i] = self.alpha * (numpy.exp(expected[i]) - 1)
-            expected[i] *= self.scale
+        expected = numpy.where(
+            self.x >= 0, self.x, self.alpha * (numpy.exp(self.x) - 1))
+        expected *= self.scale
 
         testing.assert_allclose(
             expected, y.data, **self.check_forward_options)
@@ -60,7 +57,7 @@ class TestSELU(unittest.TestCase):
     def check_backward(self, x_data, y_grad):
         gradient_check.check_backward(
             lambda x: functions.selu(x, alpha=self.alpha, scale=self.scale),
-            x_data, y_grad,
+            x_data, y_grad, dtype=numpy.float64,
             **self.check_backward_options)
 
     @condition.retry(10)

@@ -27,11 +27,10 @@ class TestELU(unittest.TestCase):
         self.gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         self.alpha = random.random()
         self.check_forward_options = {}
-        self.check_backward_options = {'dtype': numpy.float64}
+        self.check_backward_options = {}
         if self.dtype == numpy.float16:
             self.check_forward_options = {'atol': 5e-4, 'rtol': 5e-3}
-            self.check_backward_options = {
-                'dtype': numpy.float64, 'atol': 5e-4, 'rtol': 5e-3}
+            self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
 
     def check_forward(self, x_data):
         x = chainer.Variable(x_data)
@@ -57,7 +56,7 @@ class TestELU(unittest.TestCase):
 
     def check_backward(self, x_data, y_grad):
         gradient_check.check_backward(
-            functions.ELU(self.alpha), x_data, y_grad,
+            functions.ELU(self.alpha), x_data, y_grad, dtype=numpy.float64,
             **self.check_backward_options)
 
     @condition.retry(10)

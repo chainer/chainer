@@ -9,75 +9,64 @@ from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
+
+
+def _sigmoid(x):
+    half = x.dtype.type(0.5)
+    return numpy.tanh(x * half) * half + half
 
 
 @testing.parameterize(*testing.product({
     'shape': [(3, 2), ()],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
+@testing.fix_random()
 class TestSigmoid(unittest.TestCase):
 
     def setUp(self):
         self.x = numpy.random.uniform(-.5, .5, self.shape).astype(self.dtype)
         self.gy = numpy.random.uniform(-.1, .1, self.shape).astype(self.dtype)
         self.ggx = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        self.check_forward_options = {}
-        self.check_backward_options = {}
-        self.check_double_backward_options = {'dtype': numpy.float64}
-        if self.dtype == numpy.float16:
-            self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
-            self.check_backward_options = {'dtype': numpy.float64}
 
     def check_forward(self, x_data, use_cudnn='always'):
         x = chainer.Variable(x_data)
         with chainer.using_config('use_cudnn', use_cudnn):
             y = functions.sigmoid(x)
         self.assertEqual(y.data.dtype, self.dtype)
-        y_expect = functions.sigmoid(chainer.Variable(self.x))
-
-        testing.assert_allclose(
-            y_expect.data, y.data, **self.check_forward_options)
+        y_expect = _sigmoid(self.x)
+        testing.assert_allclose(y_expect, y.data)
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x), 'always')
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_gpu_non_contiguous(self):
         self.check_forward(cuda.cupy.asfortranarray(cuda.to_gpu(self.x)),
                            'always')
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_gpu_no_cudnn(self):
         self.check_forward(cuda.to_gpu(self.x), 'never')
 
     def check_backward(self, x_data, y_grad, use_cudnn='always'):
         with chainer.using_config('use_cudnn', use_cudnn):
             gradient_check.check_backward(
-                functions.sigmoid, x_data, y_grad,
-                **self.check_backward_options)
+                functions.sigmoid, x_data, y_grad, dtype=numpy.float64)
 
-    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy)
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu_non_contiguous(self):
         self.check_backward(cuda.cupy.asfortranarray(cuda.to_gpu(self.x)),
                             cuda.cupy.asfortranarray(cuda.to_gpu(self.gy)))
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu_no_cudnn(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy), 'never')
 
@@ -89,22 +78,18 @@ class TestSigmoid(unittest.TestCase):
 
         with chainer.using_config('use_cudnn', use_cudnn):
             gradient_check.check_double_backward(
-                f, x_data, y_grad, x_grad_grad,
-                **self.check_backward_options)
+                f, x_data, y_grad, x_grad_grad, dtype=numpy.float64)
 
-    @condition.retry(1)
     def test_double_backward_cpu(self):
         self.check_double_backward(self.x, self.gy, self.ggx)
 
     @attr.gpu
-    @condition.retry(1)
     def test_double_backward_gpu(self):
         self.check_double_backward(cuda.to_gpu(self.x),
                                    cuda.to_gpu(self.gy),
                                    cuda.to_gpu(self.ggx))
 
     @attr.gpu
-    @condition.retry(3)
     def test_double_backward_gpu_non_contiguous(self):
         self.check_double_backward(
             cuda.cupy.asfortranarray(cuda.to_gpu(self.x)),
