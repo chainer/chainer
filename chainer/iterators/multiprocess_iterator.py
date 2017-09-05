@@ -99,16 +99,29 @@ class MultiprocessIterator(iterator.Iterator):
     next = __next__
 
     def __del__(self):
-        d = self.__dict__
-        if '_finalized' in d and not self._finalized:
-            self._finalized = True
-            if '_comm' in d:
-                self._comm.terminate()
-                if '_thread' in d:
-                    t = self._thread
-                    if t is not None:
-                        while t.is_alive():
-                            t.join(_response_time)
+        try:
+            finalized = self._finalized
+        except AttributeError:
+            return
+        if finalized:
+            return
+        self._finalized = True
+
+        try:
+            comm = self._comm
+        except AttributeError:
+            return
+        comm.terminate()
+
+        try:
+            t = self._thread
+        except AttributeError:
+            return
+        if t is None:
+            return
+
+        while t.is_alive():
+            t.join(_response_time)
 
     finalize = __del__
 
