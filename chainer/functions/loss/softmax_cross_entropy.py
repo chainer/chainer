@@ -257,8 +257,7 @@ def _double_backward_softmax_cross_entropy(x, t, normalize, class_weight,
     loss = chainer.functions.rollaxis(loss, 1, loss.ndim)
     loss = chainer.functions.reshape(loss, (-1, loss.shape[-1]))
 
-    # As F.select_item does not allow the elements of t to be negative,
-    # we substitute ignore_label with 0, which is valid.
+    # Replace ignore_label value with one valid for F.select_item below.
     t = t.clip(0, loss.shape[1] - 1)
 
     loss = chainer.functions.select_item(loss, t.ravel())
