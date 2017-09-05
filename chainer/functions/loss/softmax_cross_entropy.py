@@ -223,7 +223,7 @@ class SoftmaxCrossEntropy(function.Function):
 def softmax_cross_entropy(
         x, t, normalize=True, cache_score=True, class_weight=None,
         ignore_label=-1, reduce='mean'):
-    """Computes cross entropy loss after softmax activations.
+    """Computes cross entropy loss for pre-softmax activations.
 
     Args:
         x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
@@ -289,7 +289,7 @@ def softmax_cross_entropy(
         >>> log_softmax = -F.log_softmax(x)
         >>> expected_loss = np.mean([log_softmax[row, column].data \
 for row, column in enumerate(t)])
-        >>> y.data == expected_loss
+        >>> y.array == expected_loss
         True
 
     """
