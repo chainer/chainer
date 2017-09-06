@@ -78,6 +78,7 @@ setup(
               'chainer.links.normalization',
               'chainer.links.theano',
               'chainer.optimizers',
+              'chainer.optimizer_hooks',
               'chainer.serializers',
               'chainer.testing',
               'chainer.training',
