@@ -4,7 +4,6 @@ from chainer.utils import conv
 from chainer.utils import type_check
 
 import numpy
-import six
 
 
 class Upsampling2D(pooling_2d.Pooling2D):
@@ -52,16 +51,15 @@ class Upsampling2D(pooling_2d.Pooling2D):
         up_y = numpy.zeros((n, c, self.outh, self.outw), dtype=numpy.float32)
         up_y = conv.im2col_cpu(
             up_y, self.kh, self.kw, self.sy, self.sx, self.ph, self.pw,
-            cover_all=self.cover_all)
-        for n in six.moves.range(up_y.shape[0]):
-            for c in six.moves.range(up_y.shape[1]):
-                for oy in six.moves.range(up_y.shape[4]):
-                    for ox in six.moves.range(up_y.shape[5]):
-                        ky = self.indexes[n, c, oy, ox] // up_y.shape[3]
-                        kx = self.indexes[n, c, oy, ox] % up_y.shape[3]
-                        up_y[n, c, ky, kx, oy, ox] = x[0][n, c, oy, ox]
-        up_y = conv.col2im_cpu(up_y, self.sy, self.sx, self.ph,
-                               self.pw, self.outh, self.outw)
+            cover_all=self.cover_all).transpose(0, 1, 4, 5, 2, 3)
+        colh, colw = up_y.shape[2:4]
+        up_y = up_y.reshape(-1, self.kh * self.kw)
+        indexes = self.indexes.ravel()
+        up_y[numpy.arange(len(indexes)), indexes] = x[0].ravel()
+        up_y = up_y.reshape(n, c, colh, colw, self.kh, self.kw)
+        up_y = conv.col2im_cpu(
+            up_y.transpose(0, 1, 4, 5, 2, 3), self.sy, self.sx, self.ph,
+            self.pw, self.outh, self.outw)
         return up_y,
 
     def forward_gpu(self, x):
@@ -107,18 +105,11 @@ class Upsampling2D(pooling_2d.Pooling2D):
         gcol = conv.im2col_cpu(
             gy[0], self.kh, self.kw, self.sy, self.sx, self.ph, self.pw,
             cover_all=self.cover_all)
-
-        gcol = gcol.transpose(0, 1, 4, 5, 2, 3)
-        n, c, oy, ox, ky, kx = gcol.shape
-        gcol = gcol.reshape((n, c, oy, ox, ky * kx))
-        gx = numpy.empty((n, c, oy, ox), dtype=self._in_dtype)
-        for n in six.moves.range(gcol.shape[0]):
-            for c in six.moves.range(gcol.shape[1]):
-                for oy in six.moves.range(gcol.shape[2]):
-                    for ox in six.moves.range(gcol.shape[3]):
-                        gx[n, c, oy, ox] = \
-                            gcol[n, c, oy, ox][self.indexes[n, c, oy, ox]]
-        return gx,
+        n, c, kh, kw, out_h, out_w = gcol.shape
+        gcol = gcol.transpose(0, 1, 4, 5, 2, 3).reshape(-1, kh * kw)
+        indexes = self.indexes.ravel()
+        gx = gcol[numpy.arange(len(indexes)), indexes]
+        return gx.reshape(n, c, out_h, out_w),
 
     def backward_gpu(self, x, gy):
         xp = cuda.cupy
