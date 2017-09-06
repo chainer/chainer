@@ -113,12 +113,12 @@ def fix_random():
             setUp_ = klass.setUp
             tearDown_ = klass.tearDown
 
-            @functools.wrap(setUp_)
+            @functools.wraps(setUp_)
             def setUp(self):
                 _setup_random()
                 setUp_(self)
 
-            @functools.wrap(tearDown_)
+            @functools.wraps(tearDown_)
             def tearDown(self):
                 try:
                     tearDown_(self)
