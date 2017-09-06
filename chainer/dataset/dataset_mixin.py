@@ -137,19 +137,14 @@ class DatasetMixinFeaturesIndexer(BaseFeaturesIndexer):
             dataset (DatasetMixin): DatasetMixin instance
         """
         super(DatasetMixinFeaturesIndexer, self).__init__(dataset)
+        self.feature_cache = None
 
     @property
     def features_length(self):
-        return len(self.dataset.features_length)
+        return self.dataset.features_length
 
     def extract_feature_by_slice(self, slice_index, j):
         return self.dataset.extract_feature_by_slice(slice_index, j)
 
     def extract_feature(self, i, j):
         return self.dataset.extract_feature(i, j)
-
-    def preprocess(self):
-        pass
-
-    def postprocess(self):
-        pass

@@ -30,3 +30,7 @@ class ConcatenatedDataset(dataset_mixin.DatasetMixin):
                 return dataset[i]
             i -= len(dataset)
         raise IndexError
+
+    @property
+    def features_length(self):
+        return self._datasets[0].features.features_length

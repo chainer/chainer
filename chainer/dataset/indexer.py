@@ -169,7 +169,7 @@ class BaseFeaturesIndexer(BaseIndexer):
             try:
                 return self.extract_feature_by_slice(data_index, j)
             except ExtractBySliceNotSupportedError:
-                print('[DEBUG] slice index access failed...')
+                #print('[DEBUG] slice index access failed...')
                 # Accessing by each index, copy occurs
                 current, stop, step = data_index.indices(self.dataset_length)
                 res = [self.extract_feature(i, j) for i in

@@ -70,7 +70,7 @@ class DictDatasetFeaturesIndexer(BaseFeaturesIndexer):
         """
 
         Args:
-            dataset (TupleDataset): TupleDataset instance
+            dataset (DictDataset): DictDataset instance
         """
         super(DictDatasetFeaturesIndexer, self).__init__(
             dataset, access_feature_by_key=True
