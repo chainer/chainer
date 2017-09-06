@@ -185,23 +185,20 @@ class StatefulGRU(GRUBase):
 class GRU(StatefulGRU):
     """Stateful Gated Recurrent Unit function (GRU)
 
-    This is an alias of "~chainer.links.StatefulGRU".
-    Its documented API is identical to the function.
+    This is an alias of :class:`~chainer.links.StatefulGRU`.
 
     .. warning::
 
-       In Chainer v1, :class:`~chainer.links.GRU` was *stateless*,
+       In Chainer v1, ``GRU`` was *stateless*,
        as opposed to the current implementation.
-       To align with the naming convension of LSTM links, we have changed
-       the naming convension from Chainer v2 so that the shorthand name
+       To align with LSTM links, we have changed
+       the naming convention from Chainer v2 so that the shorthand name
        points the stateful links.
        You can use :class:`~chainer.links.StatelessGRU` for stateless version,
-       whose implementation is identical to ``chainer.linksGRU`` in v1.
+       whose implementation is identical to ``GRU`` in v1.
 
-       See issue `#2537 <https://github.com/chainer/chainer/issues/2537>_`
-       for detail.
-
-    .. seealso:: :class:`~chainer.links.GRU`
+       See issue `#2537 <https://github.com/chainer/chainer/issues/2537>`_
+       for details.
 
     """
 
