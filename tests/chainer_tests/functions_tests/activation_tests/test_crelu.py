@@ -13,9 +13,7 @@ from chainer.testing import attr
 def _replace_near_zero_values(x):
     # Replace near zero values in an array in order to avoid unstability of
     # numerical grad
-    for i in numpy.ndindex(x.shape):
-        if -0.01 < x[i] < 0.01:
-            x[i] = 0.5
+    x[(-0.01 < x) & (x < 0.01)] = 0.5
 
 
 @testing.parameterize(*testing.product_dict(

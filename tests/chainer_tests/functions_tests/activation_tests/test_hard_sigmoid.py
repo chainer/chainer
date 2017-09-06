@@ -18,12 +18,11 @@ from chainer.testing import attr
 class TestHardSigmoid(unittest.TestCase):
 
     def setUp(self):
-        self.x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         self.g = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         # Avoid unstability of numerical grad
-        for i in numpy.ndindex(self.shape):
-            if -0.35 < self.x[i] < 0.15 or 0.15 < self.x[i] < 0.35:
-                self.x[i] = 0.0
+        x[((-0.35 < x) & (x < -0.15)) | ((0.15 < x) & (x < 0.35))] = 0.5
+        self.x = x
 
         self.check_forward_option = {}
         if self.dtype is numpy.float16:

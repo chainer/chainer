@@ -21,9 +21,7 @@ class TestELU(unittest.TestCase):
     def setUp(self):
         # Avoid unstability of numeraical grad
         self.x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        for i in numpy.ndindex(self.shape):
-            if -0.01 < self.x[i] < 0.01:
-                self.x[i] = 0.5
+        self.x[(-0.01 < self.x) & (self.x < 0.01)] = 0.5
         self.gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         self.alpha = random.random()
         self.check_forward_options = {}

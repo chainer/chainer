@@ -21,9 +21,7 @@ class TestReLU(unittest.TestCase):
     def setUp(self):
         # Avoid unstability of numerical grad
         self.x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        for i in numpy.ndindex(self.shape):
-            if -0.1 < self.x[i] < 0.1:
-                self.x[i] = 0.5
+        self.x[(-0.1 < self.x) & (self.x < 0.1)] = 0.5
         self.gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         self.ggx = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         self.check_backward_options = {}
