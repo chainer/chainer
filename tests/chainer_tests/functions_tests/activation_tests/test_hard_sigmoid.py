@@ -25,8 +25,10 @@ class TestHardSigmoid(unittest.TestCase):
         self.x = x
 
         self.check_forward_option = {}
+        self.check_backward_option = {}
         if self.dtype is numpy.float16:
             self.check_forward_option = {'atol': 1e-4, 'rtol': 1e-3}
+            self.check_backward_option = {'atol': 1e-3, 'rtol': 1e-2}
 
     def check_forward(self, x_data):
         x = chainer.Variable(x_data)
@@ -45,7 +47,8 @@ class TestHardSigmoid(unittest.TestCase):
 
     def check_backward(self, x_data, grad):
         gradient_check.check_backward(
-            functions.HardSigmoid(), x_data, grad, dtype=numpy.float64)
+            functions.HardSigmoid(), x_data, grad, dtype=numpy.float64,
+            **self.check_backward_option)
 
     def test_backward_cpu(self):
         self.check_backward(self.x, self.g)
