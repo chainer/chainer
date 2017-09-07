@@ -53,9 +53,10 @@ class StatelessGRU(GRUBase):
     where :math:`\\sigma` is the sigmoid function, and :math:`\\odot` is the
     element-wise product.
 
-    :class:`~chainer.links.GRU` does not hold the value of
-    hidden vector :math:`h`. So this is *stateless*.
-    Use :class:`~chainer.links.StatefulGRU` as a *stateful* GRU.
+    As the name indicates, :class:`~chainer.links.StatelessGRU` is *stateless*,
+    meaning that it does not hold the value of
+    hidden vector :math:`h`.
+    For a *stateful* GRU, use :class:`~chainer.links.StatefulGRU`.
 
     Args:
         in_size(int): Dimension of input vector :math:`x`.
@@ -108,7 +109,7 @@ class StatefulGRU(GRUBase):
 
     As the name indicates, :class:`~chainer.links.StatefulGRU` is *stateful*,
     meaning that it also holds the next hidden vector `h'` as a state.
-    Use :class:`~chainer.links.GRU` as a stateless version of GRU.
+    For a *stateless* GRU, use :class:`~chainer.links.StatelessGRU`.
 
     Args:
         in_size(int): Dimension of input vector :math:`x`.
@@ -131,7 +132,10 @@ class StatefulGRU(GRUBase):
         h(~chainer.Variable): Hidden vector that indicates the state of
             :class:`~chainer.links.StatefulGRU`.
 
-    .. seealso:: :class:`~chainer.functions.GRU`
+    .. seealso::
+        * :class:`~chainer.links.StatelessGRU`
+        * :class:`~chainer.links.GRU`: an alias of
+          :class:`~chainer.links.StatefulGRU`
 
     """
 
