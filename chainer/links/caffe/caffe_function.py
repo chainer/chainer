@@ -1,6 +1,4 @@
 import collections
-import pkg_resources
-import sys
 import warnings
 
 import numpy
@@ -9,6 +7,7 @@ import six
 from chainer import configuration
 from chainer import functions
 from chainer import link
+from chainer.links.caffe.protobuf3 import caffe_pb2 as caffe_pb
 from chainer.links.connection import convolution_2d
 from chainer.links.connection import linear
 from chainer.links.connection import scale
@@ -16,52 +15,27 @@ from chainer.links.normalization import batch_normalization
 from chainer.utils import argument
 
 
-def _protobuf3():
-    ws = pkg_resources.WorkingSet()
-    try:
-        ws.require('protobuf>=3.0.0a')
-        return True
-    except pkg_resources.VersionConflict:
-        return False
+try:
+    # This method is undocumented, but is required to read large size of
+    # model files when a user uses cpp-implementation.
+    from google.protobuf.pyext import _message
+    _message.SetAllowOversizeProtos(True)
+except ImportError:
+    pass
+
+_type_to_method = {}
+_oldname_to_method = {}
 
 
-if _protobuf3():
-    from chainer.links.caffe.protobuf3 import caffe_pb2 as caffe_pb
-    available = True
-
-    try:
-        # This method is undocumented, but is required to read large size of
-        # model files when a user uses cpp-implementation.
-        from google.protobuf.pyext import _message
-        _message.SetAllowOversizeProtos(True)
-    except ImportError:
-        pass
-
-elif sys.version_info < (3, 0, 0):
-    # caffe_pb2 does not support Py3
-    from chainer.links.caffe.protobuf2 import caffe_pb2 as caffe_pb
-    available = True
-else:
-    available = False
-
-if available:
-    _type_to_method = {}
-    _oldname_to_method = {}
-
-    def _layer(typ, oldname):
-        def decorator(meth):
-            global _type_to_method
-            _type_to_method[typ] = meth
-            if oldname is not None:
-                typevalue = getattr(caffe_pb.V1LayerParameter, oldname)
-                _oldname_to_method[typevalue] = meth
-            return meth
-        return decorator
-else:
-    def _layer(typ, oldname):  # fallback
-        def decorator(meth):
-            return meth
-        return decorator
+def _layer(typ, oldname):
+    def decorator(meth):
+        global _type_to_method
+        _type_to_method[typ] = meth
+        if oldname is not None:
+            typevalue = getattr(caffe_pb.V1LayerParameter, oldname)
+            _oldname_to_method[typevalue] = meth
+        return meth
+    return decorator
 
 
 class CaffeFunction(link.Chain):
@@ -71,11 +45,6 @@ class CaffeFunction(link.Chain):
     Given a protocol buffers file of a Caffe model, this class loads and
     emulates it on :class:`~chainer.Variable` objects. It supports the official
     reference models provided by BVLC.
-
-    .. note::
-
-       protobuf>=3.0.0 is required if you use Python 3 because protobuf 2 is
-       not supported on Python 3.
 
     .. note::
 
@@ -128,10 +97,6 @@ class CaffeFunction(link.Chain):
     """
 
     def __init__(self, model_path):
-        if not available:
-            msg = 'CaffeFunction is only supported on protobuf>=3 in Python3'
-            raise RuntimeError(msg)
-
         super(CaffeFunction, self).__init__()
 
         net = caffe_pb.NetParameter()
