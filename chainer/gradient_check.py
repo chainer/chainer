@@ -314,6 +314,12 @@ def check_backward(func, x_data, y_grad, params=(),
                      for x in xs_directions]
     param_directions = [x * scale for x in param_directions]
 
+    if dtype is None:
+        types = [x.dtype for skip, x in six.moves.zip(no_grads, xs)
+                 if not skip] + [p.dtype for p in params]
+        delta_dtype = numpy.find_common_type(types, [])
+    else:
+        delta_dtype = dtype
     delta = xp.array(0., dtype)
 
     def g():
