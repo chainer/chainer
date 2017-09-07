@@ -9,3 +9,4 @@ from chainer.training.triggers.manual_schedule_trigger import ManualScheduleTrig
 from chainer.training.triggers.minmax_value_trigger import BestValueTrigger  # NOQA
 from chainer.training.triggers.minmax_value_trigger import MaxValueTrigger  # NOQA
 from chainer.training.triggers.minmax_value_trigger import MinValueTrigger  # NOQA
+from chainer.training.triggers.early_stopping_trigger import EarlyStoppingTrigger  # NOQA
