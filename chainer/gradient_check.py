@@ -274,7 +274,9 @@ def check_backward(func, x_data, y_grad, params=(),
     casted_data = [x.data.copy() for x in casted_xs]
     for skip, x in six.moves.zip(no_grads, xs):
         if skip:
-            assert x.grad is None
+            if x.grad is not None:
+                raise RuntimeError(
+                    'gradient of int variable must be None')
         else:
             if x.grad is None:
                 raise RuntimeError(
