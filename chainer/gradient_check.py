@@ -108,11 +108,8 @@ def _as_tuple(x):
         return x,
 
 
-def _make_random_direction(x, dtype):
-    xp = cuda.get_array_module(x)
-    if dtype is None:
-        dtype = x.dtype
-    return xp.random.normal(size=x.shape).astype(dtype)
+def _filter_list(lst, ignore_list):
+    return [x for x, ignore in six.moves.zip(lst, ignore_list) if not ignore]
 
 
 def check_backward(func, x_data, y_grad, params=(),
@@ -278,7 +275,6 @@ def check_backward(func, x_data, y_grad, params=(),
         if len(no_grads) != len(xs):
             raise ValueError(
                 'Length of no_grads param and xs should be same.')
-    casted_data = [x.data.copy() for x in casted_xs]
     for skip, x in six.moves.zip(no_grads, xs):
         if skip:
             if x.grad is not None:
@@ -289,63 +285,41 @@ def check_backward(func, x_data, y_grad, params=(),
                 raise RuntimeError(
                     'gradients of some arguments are not calculated')
 
+    # Keep the gradient arrays of params which may be overwritten by func
+    variables = _filter_list(xs, no_grads) + list(params)
+    grads = [x.grad for x in variables]
+
     if len(xs) - len(no_grads) + len(params) == 0:
         # When there is no float variables, we need not to check gradient
         # values
         return
 
-    # Keep the gradient arrays of params which may be overwritten by func
-    params_grad = [param.grad for param in params]
-
     xp = cuda.get_array_module(*xs)
-    xs_directions = [
-        _make_random_direction(x, dtype) if not skip else None
-        for skip, x in six.moves.zip(no_grads, casted_xs)]
-    param_directions = [
-        _make_random_direction(x, dtype) for x in param_data]
+    variables = _filter_list(casted_xs, no_grads) + list(params)
 
+    casted_data = [x.data.copy() for x in variables]
+
+    directions = [xp.random.normal(size=x.shape).astype('d')
+                  for x in variables]
     # Use unit vector
-    norm = math.sqrt(
-        sum([xp.square(x).sum() if x is not None else 0
-             for x in xs_directions]) +
-        sum([xp.square(x).sum() for x in param_directions]))
+    norm = math.sqrt(sum([xp.square(d).sum() for d in directions]))
     scale = 1. / norm
-    xs_directions = [x * scale if x is not None else None
-                     for x in xs_directions]
-    param_directions = [x * scale for x in param_directions]
+    directions = [d * scale for d in directions]
 
-    if dtype is None:
-        types = [x.dtype for skip, x in six.moves.zip(no_grads, xs)
-                 if not skip] + [p.dtype for p in params]
-        delta_dtype = numpy.find_common_type(types, [])
-    else:
-        delta_dtype = dtype
-    delta = xp.array(0., delta_dtype)
+    delta = xp.array(0., 'd')
 
     def g():
         # This functions is called twice in `numerical_grad`.
         # `delta` is `epsilon` or `-epsilon` in these calls.
         # See the document of `numerical_grad`.
-        for skip, cx, data, direction in six.moves.zip(
-                no_grads, casted_xs, casted_data, xs_directions):
-            if skip:
-                continue
+        for x, data, direction in six.moves.zip(
+                variables, casted_data, directions):
             # astype is require to store data with the given type
-            data = (data + delta * direction).astype(data.dtype)
+            data = (data.astype('d') +
+                    delta * direction).astype(data.dtype)
             if numpy.isscalar(data):
                 data = xp.array(data)
-            cx.data = data
-        for param, data, direction in six.moves.zip(
-                params, param_data, param_directions):
-            if dtype is not None:
-                param_dtype = dtype
-            else:
-                param_dtype = param.dtype
-            # The inner astype is required to calculates __mul__ in
-            # `param_type` when data is low accuracy float.
-            # The outer one is require to store data with the given type.
-            param.data = (data.astype(param_dtype) + delta * direction).astype(
-                param_dtype)
+            x.data = data
 
         # Clear gradients to support func that calls backward inside of itself.
         _clear_grads(casted_xs)
@@ -354,28 +328,14 @@ def check_backward(func, x_data, y_grad, params=(),
         ys = func(*casted_xs)
         ys = _as_tuple(ys)
         ys_data = tuple(y.data for y in ys)
-        for skip, cx, data in six.moves.zip(no_grads, casted_xs, casted_data):
-            if skip:
-                continue
-            cx.data = data
-        for param, data in six.moves.zip(params, param_data):
-            param.data = data
+        for x, data in six.moves.zip(variables, casted_data):
+            x.data = data
         return ys_data
 
     gx, = numerical_grad(g, (delta,), y_grad, eps=eps)
     gx_accum = 0
-    for skip, x, direction in six.moves.zip(no_grads, xs, xs_directions):
-        if skip:
-            continue
-        gxi = x.grad
-        if dtype is not None:
-            gxi = gxi.astype(dtype, copy=False)
-        gx_accum += (gxi * direction).sum()
-
-    for gpi, direction in six.moves.zip(params_grad, param_directions):
-        if dtype is not None:
-            gpi = gpi.astype(dtype, copy=False)
-        gx_accum += (gpi * direction).sum()
+    for g, direction in six.moves.zip(grads, directions):
+        gx_accum += (g.astype('d') * direction).sum()
 
     testing.assert_allclose(gx, gx_accum, atol=atol, rtol=rtol)
 
