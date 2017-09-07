@@ -9,13 +9,13 @@ from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
 
 
 @testing.parameterize(*testing.product({
     'shape': [(3, 2), ()],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
+@testing.fix_random()
 class TestELU(unittest.TestCase):
 
     def setUp(self):
@@ -43,12 +43,10 @@ class TestELU(unittest.TestCase):
         testing.assert_allclose(
             expected, y.data, **self.check_forward_options)
 
-    @condition.retry(3)
     def test_forward_cpu(self):
         self.check_forward(self.x)
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x))
 
@@ -57,12 +55,10 @@ class TestELU(unittest.TestCase):
             functions.ELU(self.alpha), x_data, y_grad, dtype=numpy.float64,
             **self.check_backward_options)
 
-    @condition.retry(10)
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy)
 
     @attr.gpu
-    @condition.retry(10)
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
