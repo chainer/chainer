@@ -27,8 +27,8 @@ class TestTanh(unittest.TestCase):
         self.check_backward_options = {}
         self.check_double_backward_options = {}
         if self.dtype == numpy.float16:
-            self.check_backward_options = {'atol': 1e-4, 'rtol': 1e-3}
-        self.check_double_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
+            self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
+            self.check_double_backward_options = {'atol': 5e-3, 'rtol': 5e-2}
 
     def check_forward(self, x_data, use_cudnn='always'):
         x = chainer.Variable(x_data)
@@ -136,7 +136,7 @@ class TestTanhGrad(unittest.TestCase):
         self.ggx = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         self.check_backward_options = {}
         if self.dtype == numpy.float16:
-            self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
+            self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
 
     def check_backward(self, x_data, y_data, gy_data, ggx_data):
         def f(y, gy):
