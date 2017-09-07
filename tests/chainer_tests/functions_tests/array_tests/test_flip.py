@@ -47,8 +47,8 @@ class TestFlip(unittest.TestCase):
         self.check_forward(cuda.to_gpu(self.x), self.axis)
 
     def check_backward(self, x_data, axis, y_grad):
-        gradient_check.check_backward(
-            functions.Flip(axis), x_data, y_grad, dtype=numpy.float64)
+        gradient_check.check_backward(lambda x: functions.flip(x, axis),
+                                      x_data, y_grad, dtype=numpy.float64)
 
     def test_backward_cpu(self):
         self.check_backward(self.x, self.axis, self.g)

@@ -1,10 +1,10 @@
 from chainer import cuda
-from chainer import function
+from chainer import function_node
 from chainer.utils import type_check
 import six
 
 
-class Flip(function.Function):
+class Flip(function_node.FunctionNode):
     """Flip an input variable in reverse order along the given axis."""
 
     def __init__(self, axis):
@@ -23,13 +23,11 @@ class Flip(function.Function):
             type_check.expect(x_type.ndim >= -self.axis)
 
     def forward(self, inputs):
-        self.retain_inputs(())
         xp = cuda.get_array_module(*inputs)
         return xp.flip(inputs[0], self.axis),
 
-    def backward(self, inputs, grads):
-        xp = cuda.get_array_module(*grads)
-        return xp.flip(grads[0], self.axis),
+    def backward(self, indexes, grad_outputs):
+        return flip(grad_outputs[0], self.axis),
 
 
 def flip(x, axis):
@@ -45,4 +43,4 @@ def flip(x, axis):
         ~chainer.Variable: Output variable.
 
     """
-    return Flip(axis)(x)
+    return Flip(axis).apply((x,))[0]
