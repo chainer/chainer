@@ -108,6 +108,13 @@ def _as_tuple(x):
         return x,
 
 
+def _make_random_direction(x, dtype):
+    xp = cuda.get_array_module(x)
+    if dtype is None:
+        dtype = x.dtype
+    return xp.random.normal(size=x.shape).astype(dtype)
+
+
 def check_backward(func, x_data, y_grad, params=(),
                    eps=1e-3, atol=1e-5, rtol=1e-4, no_grads=None, dtype=None):
     """Test backward procedure of a given function.
@@ -292,9 +299,11 @@ def check_backward(func, x_data, y_grad, params=(),
 
     xp = cuda.get_array_module(*xs)
     xs_directions = [
-        xp.random.normal(size=x.shape).astype(dtype) for x in casted_xs]
+        _make_random_direction(x, dtype) if not skip else None
+        for skip, x in six.moves.zip(no_grads, casted_xs)]
     param_directions = [
-        xp.random.normal(size=x.shape).astype(dtype) for x in param_data]
+        _make_random_direction(x, dtype) for x in param_data]
+
     # Use unit vector
     norm = math.sqrt(
         sum([xp.square(x).sum() for x in xs_directions]) +
