@@ -320,7 +320,7 @@ def check_backward(func, x_data, y_grad, params=(),
         delta_dtype = numpy.find_common_type(types, [])
     else:
         delta_dtype = dtype
-    delta = xp.array(0., dtype)
+    delta = xp.array(0., delta_dtype)
 
     def g():
         # This functions is called twice in `numerical_grad`.
