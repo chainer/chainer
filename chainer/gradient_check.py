@@ -306,13 +306,12 @@ def check_backward(func, x_data, y_grad, params=(),
 
     # Use unit vector
     norm = math.sqrt(
-        sum([xp.square(x).sum() for x in xs_directions]) +
+        sum([xp.square(x).sum() if x is not None else 0
+             for x in xs_directions]) +
         sum([xp.square(x).sum() for x in param_directions]))
-    if norm > 0:
-        scale = 1. / norm
-    else:
-        scale = 1.
-    xs_directions = [x * scale for x in xs_directions]
+    scale = 1. / norm
+    xs_directions = [x * scale if x is not None else None
+                     for x in xs_directions]
     param_directions = [x * scale for x in param_directions]
 
     delta = xp.array(0., dtype)
