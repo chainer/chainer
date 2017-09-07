@@ -28,13 +28,19 @@ class TestSigmoid(unittest.TestCase):
         self.gy = numpy.random.uniform(-.1, .1, self.shape).astype(self.dtype)
         self.ggx = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
 
+        self.check_forward_options = {}
+        self.check_backward_options = {}
+        if self.dtype == numpy.float16:
+            self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
+            self.check_backward_options = {'atol': 5e-3, 'rtol': 5e-2}
+
     def check_forward(self, x_data, use_cudnn='always'):
         x = chainer.Variable(x_data)
         with chainer.using_config('use_cudnn', use_cudnn):
             y = functions.sigmoid(x)
         self.assertEqual(y.data.dtype, self.dtype)
         y_expect = _sigmoid(self.x)
-        testing.assert_allclose(y_expect, y.data)
+        testing.assert_allclose(y_expect, y.data, **self.check_forward_options)
 
     @attr.gpu
     def test_forward_gpu(self):
@@ -52,7 +58,8 @@ class TestSigmoid(unittest.TestCase):
     def check_backward(self, x_data, y_grad, use_cudnn='always'):
         with chainer.using_config('use_cudnn', use_cudnn):
             gradient_check.check_backward(
-                functions.sigmoid, x_data, y_grad, dtype=numpy.float64)
+                functions.sigmoid, x_data, y_grad, dtype=numpy.float64,
+                **self.check_backward_options)
 
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy)

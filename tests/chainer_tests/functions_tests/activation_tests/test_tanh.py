@@ -25,8 +25,10 @@ class TestTanh(unittest.TestCase):
         self.ggx = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
 
         self.check_backward_options = {}
+        self.check_double_backward_options = {}
         if self.dtype == numpy.float16:
             self.check_backward_options = {'atol': 1e-4, 'rtol': 1e-3}
+        self.check_double_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
 
     def check_forward(self, x_data, use_cudnn='always'):
         x = chainer.Variable(x_data)
@@ -74,7 +76,7 @@ class TestTanh(unittest.TestCase):
     def check_double_backward(self, x_data, gy_data, ggx_data):
         gradient_check.check_double_backward(
             chainer.functions.tanh,  x_data, gy_data, ggx_data,
-            dtype=numpy.float64)
+            dtype=numpy.float64, **self.check_double_backward_options)
 
     def test_double_backward_cpu(self):
         self.check_double_backward(self.x, self.gy, self.ggx)
@@ -134,7 +136,7 @@ class TestTanhGrad(unittest.TestCase):
         self.ggx = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         self.check_backward_options = {}
         if self.dtype == numpy.float16:
-            self.check_backward_options = {'atol': 1e-4, 'rtol': 1e-3}
+            self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
 
     def check_backward(self, x_data, y_data, gy_data, ggx_data):
         def f(y, gy):

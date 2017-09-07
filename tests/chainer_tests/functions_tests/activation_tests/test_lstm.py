@@ -45,8 +45,8 @@ class TestLSTM(unittest.TestCase):
         self.check_double_backward_options = {}
         if self.dtype == numpy.float16:
             self.check_forward_options = {'atol': 5e-4, 'rtol': 5e-3}
-            self.check_backward_options = {'atol': 1e-4, 'rtol': 1e-3}
-            self.check_double_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
+            self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
+            self.check_double_backward_options = {'atol': 5e-3, 'rtol': 5e-2}
 
     def flat(self):
         self.c_prev = self.c_prev[:, :, 0].copy()
@@ -203,7 +203,7 @@ class TestLSTMGrad(unittest.TestCase):
 
         self.check_backward_options = {}
         if self.dtype == numpy.float16:
-            self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
+            self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
 
     def check_backward(
             self, c_prev_data, x_data, c_next_data, gc_data, gh_data,
