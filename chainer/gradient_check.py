@@ -259,22 +259,13 @@ def check_backward(func, x_data, y_grad, params=(),
     # `Variable.backward` method calls `Function.backward` of its creator.
     y[0].backward()
 
-    param_data = [p.data for p in params]
-    if dtype is None:
-        casted_xs = [variable.Variable(x) for x in x_data]
-    else:
-        if numpy.dtype(dtype).kind != 'f':
-            raise ValueError('`dtype` is allowed only float type')
-        casted_xs = [variable.Variable(x.astype(dtype, copy=False)
-                                       if x.dtype.kind == 'f' else x)
-                     for x in x_data]
-
     if no_grads is None:
         no_grads = [x.dtype.kind != 'f' for x in xs]
     else:
         if len(no_grads) != len(xs):
             raise ValueError(
                 'Length of no_grads param and xs should be same.')
+
     for skip, x in six.moves.zip(no_grads, xs):
         if skip:
             if x.grad is not None:
@@ -285,22 +276,24 @@ def check_backward(func, x_data, y_grad, params=(),
                 raise RuntimeError(
                     'gradients of some arguments are not calculated')
 
-    # Keep the gradient arrays of params which may be overwritten by func
-    variables = _filter_list(xs, no_grads) + list(params)
-    grads = [x.grad for x in variables]
-
     if len(xs) - len(no_grads) + len(params) == 0:
         # When there is no float variables, we need not to check gradient
         # values
         return
 
+    variables = _filter_list(xs, no_grads) + list(params)
+    # Keep the gradient arrays of params which may be overwritten by func
+    grads = [x.grad for x in variables]
+
+    if dtype is None:
+        casted_data = [x.data for x in variables]
+    else:
+        if numpy.dtype(dtype).kind != 'f':
+            raise ValueError('`dtype` is allowed only float type')
+        casted_data = [x.data.astype(dtype, copy=False) for x in variables]
+
     xp = cuda.get_array_module(*xs)
-    variables = _filter_list(casted_xs, no_grads) + list(params)
-
-    casted_data = [x.data.copy() for x in variables]
-
-    directions = [xp.random.normal(size=x.shape).astype('d')
-                  for x in variables]
+    directions = [xp.random.normal(size=x.shape) for x in variables]
     # Use unit vector
     norm = math.sqrt(sum([xp.square(d).sum() for d in directions]))
     scale = 1. / norm
@@ -322,10 +315,10 @@ def check_backward(func, x_data, y_grad, params=(),
             x.data = data
 
         # Clear gradients to support func that calls backward inside of itself.
-        _clear_grads(casted_xs)
+        _clear_grads(xs)
         _clear_grads(params)
 
-        ys = func(*casted_xs)
+        ys = func(*xs)
         ys = _as_tuple(ys)
         ys_data = tuple(y.data for y in ys)
         for x, data in six.moves.zip(variables, casted_data):
