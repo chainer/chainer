@@ -109,7 +109,7 @@ class StatefulGRU(GRUBase):
 
     As the name indicates, :class:`~chainer.links.StatefulGRU` is *stateful*,
     meaning that it also holds the next hidden vector `h'` as a state.
-    Use :class:`~chainer.links.StatelessGRU` as a stateless version of GRU.
+    For a *stateless* GRU, use :class:`~chainer.links.StatelessGRU`.
 
     Args:
         in_size(int): Dimension of input vector :math:`x`.
