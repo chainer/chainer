@@ -37,9 +37,12 @@ class BaseFeaturesIndexer(BaseIndexer):
     def features_keys(self):
         """Returns all the keys of features
 
-        This method is necessary only when `access_feature_by_key` is `True`. 
+        This method must be override when `access_feature_by_key` is `True`. 
         """
-        raise NotImplementedError
+        if self.access_feature_by_key:
+            raise NotImplementedError
+        else:
+            return numpy.arange(self.features_length)
 
     @property
     def features_length(self):
@@ -54,8 +57,12 @@ class BaseFeaturesIndexer(BaseIndexer):
         return self.dataset_length, self.features_length
 
     def extract_feature_by_slice(self, slice_index, j):
-        """Extracts `i`-th data's `j`-th feature,
-        where `i` is in the range specified by `slice_index`
+        """Extracts `slice_index`-th data's `j`-th feature,
+        where `slice_index` is indices of slice object.
+
+        This method may be override to support efficient feature extraction.
+        If not override, `ExtractBySliceNotSupportedError` is raised by default, 
+        and in this case `extract_feature` is used instead.
 
         Args:
             slice_index (slice): slice of data index to be extracted
@@ -108,14 +115,14 @@ class BaseFeaturesIndexer(BaseIndexer):
             feature_index_list = [feature_index]
         return feature_index_list
 
-    def preprocess(self):
+    def preprocess(self, item):
         pass
 
-    def postprocess(self):
+    def postprocess(self, item):
         pass
 
     def __getitem__(self, item):
-        self.preprocess()
+        self.preprocess(item)
         if self.access_feature_by_key:
             create_feature_index_list_fn = self.create_feature_index_list_by_key
         else:
@@ -139,13 +146,14 @@ class BaseFeaturesIndexer(BaseIndexer):
         else:
             data_index = item
             feature_index_list = create_feature_index_list_fn(slice(None))
-            #feature_index_list = numpy.arange(self.features_length)
         if len(feature_index_list) == 1:
+            self._extract_single_feature = True
             ret = self._extract_feature(data_index, feature_index_list[0])
         else:
-            ret = (self._extract_feature(data_index, j) for j in
-                   feature_index_list)
-        self.postprocess()
+            self._extract_single_feature = False
+            ret = tuple([self._extract_feature(data_index, j) for j in
+                         feature_index_list])
+        self.postprocess(item)
         return ret
 
     def _extract_feature(self, data_index, j):
@@ -194,4 +202,9 @@ class BaseFeaturesIndexer(BaseIndexer):
                 #                     for data in features_list])
         else:
             return self.extract_feature(data_index, j)
-        return numpy.asarray(res)
+        try:
+            feature = numpy.asarray(res)
+        except ValueError as e:
+            feature = numpy.empty(len(res), dtype=object)
+            feature[:] = res[:]
+        return feature
