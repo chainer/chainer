@@ -1,3 +1,4 @@
+import collections
 import sys
 
 from chainer import cuda
@@ -110,7 +111,7 @@ class CupyMemoryProfileHook(function_hook.FunctionHook):
             ``used_bytes``, ``acquired_bytes``, and ``occurrrence``.
         """
         # TODO(sonots): PROBLEM: takes count of nested functions duplicately
-        summary = {}
+        summary = collections.OrderedDict()
         for func, used_bytes, acquired_bytes, depth in self.call_history:
             function_name = func._impl_name
             if function_name not in summary:
