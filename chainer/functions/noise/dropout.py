@@ -44,7 +44,7 @@ class Dropout(function_node.FunctionNode):
         return y,
 
     def backward(self, x, gy):
-        return DropoutGrad(self.mask).apply((gy[0],))
+        return DropoutGrad(self.mask).apply(gy)
 
 
 class DropoutGrad(function_node.FunctionNode):
@@ -58,7 +58,7 @@ class DropoutGrad(function_node.FunctionNode):
         return y,
 
     def backward(self, indexes, gy):
-        return DropoutGrad(self.mask).apply((gy[0],))
+        return DropoutGrad(self.mask).apply(gy)
 
 
 def dropout(x, ratio=.5, **kwargs):
@@ -94,6 +94,5 @@ def dropout(x, ratio=.5, **kwargs):
     argument.assert_kwargs_empty(kwargs)
 
     if configuration.config.train:
-        y, = Dropout(ratio).apply((x,))
-        return y
+        return Dropout(ratio).apply((x,))[0]
     return chainer.as_variable(x)

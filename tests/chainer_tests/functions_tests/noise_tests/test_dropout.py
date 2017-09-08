@@ -52,8 +52,7 @@ class TestDropout(unittest.TestCase):
         dropout = functions.Dropout(self.ratio)
 
         def f(x):
-            x, = dropout.apply((x,))
-            return x
+            return dropout.apply((x,))[0]
 
         gradient_check.check_backward(
             f, x_data, y_grad,
