@@ -175,6 +175,8 @@ from chainer.functions.math.ceil import ceil  # NOQA
 from chainer.functions.math.ceil import Ceil  # NOQA
 from chainer.functions.math.clip import clip  # NOQA
 from chainer.functions.math.clip import Clip  # NOQA
+from chainer.functions.math.cumsum import cumsum  # NOQA
+from chainer.functions.math.cumsum import Cumsum  # NOQA
 from chainer.functions.math.det import batch_det  # NOQA
 from chainer.functions.math.det import BatchDet  # NOQA
 from chainer.functions.math.det import det  # NOQA
