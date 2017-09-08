@@ -104,13 +104,13 @@ class TestBiasInvalidArgc(unittest.TestCase):
 
     def test_bias_invalid_argc1(self):
         func = links.Bias(self.axis, self.b.data.shape)
-        with chainer.DebugMode(True):
+        with chainer.using_config('debug', True):
             with self.assertRaises(AssertionError):
                 func(self.x, self.b)
 
     def test_bias_invalid_argc2(self):
         func = links.Bias(self.axis, None)
-        with chainer.DebugMode(True):
+        with chainer.using_config('debug', True):
             with self.assertRaises(AssertionError):
                 func(self.x)
 

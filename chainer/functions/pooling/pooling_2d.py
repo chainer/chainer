@@ -3,19 +3,13 @@ import collections
 import numpy
 
 from chainer import cuda
-from chainer import function
+from chainer import function_node
 from chainer.utils import conv
 from chainer.utils import type_check
-
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
     libcudnn = cudnn.cudnn
-    _cudnn_version = libcudnn.getVersion()
-
-
-def _check_cudnn_acceptable_type(x_dtype):
-    return _cudnn_version >= 3000 or x_dtype != numpy.float16
 
 
 def _pair(x):
@@ -24,7 +18,7 @@ def _pair(x):
     return x, x
 
 
-class Pooling2D(function.Function):
+class Pooling2D(function_node.FunctionNode):
 
     """Base class of pooling function over a set of 2d planes."""
 
@@ -47,6 +41,7 @@ class Pooling2D(function.Function):
         )
 
     def forward_gpu(self, x):
+        self.retain_inputs((0,))
         self._used_cudnn = True
 
         # Implementation using cudnn

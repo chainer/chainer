@@ -41,6 +41,7 @@ Activation functions
    chainer.functions.maxout
    chainer.functions.prelu
    chainer.functions.relu
+   chainer.functions.selu
    chainer.functions.sigmoid
    chainer.functions.slstm
    chainer.functions.softmax
@@ -149,6 +150,7 @@ Loss functions
    chainer.functions.negative_sampling
    chainer.functions.sigmoid_cross_entropy
    chainer.functions.softmax_cross_entropy
+   chainer.functions.squared_error
    chainer.functions.triplet
 
 Mathematical functions
@@ -161,11 +163,13 @@ Mathematical functions
    chainer.functions.arccos
    chainer.functions.arcsin
    chainer.functions.arctan
+   chainer.functions.arctan2
    chainer.functions.argmax
    chainer.functions.argmin
    chainer.functions.average
    chainer.functions.batch_inv
    chainer.functions.batch_l2_norm_squared
+   chainer.functions.batch_matmul
    chainer.functions.bias
    chainer.functions.ceil
    chainer.functions.clip
@@ -188,6 +192,7 @@ Mathematical functions
    chainer.functions.mean
    chainer.functions.min
    chainer.functions.minimum
+   chainer.functions.prod
    chainer.functions.rsqrt
    chainer.functions.scale
    chainer.functions.sin

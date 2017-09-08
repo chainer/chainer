@@ -6,6 +6,7 @@ import unittest
 import mock
 import numpy
 
+import chainer
 from chainer import cuda
 from chainer import link
 from chainer import links
@@ -220,8 +221,13 @@ class TestHDF5DeserializerNonStrictGroupHierachy(unittest.TestCase):
         os.close(fd)
         self.temp_file_path = path
 
-        child = link.Chain(linear=links.Linear(2, 3))
-        parent = link.Chain(linear=links.Linear(3, 2), child=child)
+        child = link.Chain()
+        with child.init_scope():
+            child.linear = links.Linear(2, 3)
+        parent = link.Chain()
+        with parent.init_scope():
+            parent.linear = links.Linear(3, 2)
+            parent.child = child
         hdf5.save_hdf5(self.temp_file_path, parent)
         self.source = parent
 
@@ -235,8 +241,13 @@ class TestHDF5DeserializerNonStrictGroupHierachy(unittest.TestCase):
             os.remove(self.temp_file_path)
 
     def test_deserialize_hierarchy(self):
-        child = link.Chain(linear2=links.Linear(2, 3))
-        target = link.Chain(linear=links.Linear(3, 2), child=child)
+        child = link.Chain()
+        with child.init_scope():
+            child.linear2 = links.Linear(2, 3)
+        target = link.Chain()
+        with target.init_scope():
+            target.linear = links.Linear(3, 2)
+            target.child = child
         target_child_W = numpy.copy(child.linear2.W.data)
         target_child_b = numpy.copy(child.linear2.b.data)
         self.deserializer.load(target)
@@ -304,15 +315,20 @@ class TestGroupHierachy(unittest.TestCase):
         os.close(fd)
         self.temp_file_path = path
 
-        child = link.Chain(linear=links.Linear(2, 3))
-        child.add_param('Wc', (2, 3))
-        self.parent = link.Chain(child=child)
-        self.parent.add_param('Wp', (2, 3))
+        child = link.Chain()
+        with child.init_scope():
+            child.linear = links.Linear(2, 3)
+            child.Wc = chainer.Parameter(shape=(2, 3))
+
+        self.parent = link.Chain()
+        with self.parent.init_scope():
+            self.parent.child = child
+            self.parent.Wp = chainer.Parameter(shape=(2, 3))
 
         self.optimizer = optimizers.AdaDelta()
         self.optimizer.setup(self.parent)
 
-        self.parent.zerograds()
+        self.parent.cleargrads()
         self.optimizer.update()  # init states
 
     def _save(self, h5, obj, name):

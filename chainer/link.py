@@ -122,7 +122,8 @@ class Link(object):
             is supplied, the default dtype will be used.
 
     Attributes:
-        name (str): Name of this link, given by the parent chain (if exists).
+        ~Link.name (str): Name of this link, given by the parent chain (if
+            exists).
 
     """
 
@@ -519,7 +520,7 @@ Assign a Parameter object directly to an attribute within a \
     def disable_update(self):
         """Disables update rules of all parameters under the link hierarchy.
 
-        This method sets the :attr:~chainer.UpdateRule.enabled` flag of the
+        This method sets the :attr:`~chainer.UpdateRule.enabled` flag of the
         update rule of each parameter variable to ``False``.
 
         """
@@ -627,7 +628,7 @@ class Chain(Link):
 
        Child links are registered via the assignment within a
        ``with self.init_scope():`` block. The forward propagation is often
-       implemented as The ``__call__`` operator as the above example, though
+       implemented as the ``__call__`` operator as the above example, though
        it is not mandatory.
 
     Args:
@@ -818,6 +819,13 @@ class ChainList(Link):
 
         for link in links:
             self.add_link(link)
+
+    def __setattr__(self, name, value):
+        if self.within_init_scope and isinstance(value, Link):
+            raise TypeError(
+                'cannot register a new link'
+                ' within a "with chainlist.init_scope():" block.')
+        super(ChainList, self).__setattr__(name, value)
 
     def __getitem__(self, index):
         """Returns the child at given index.

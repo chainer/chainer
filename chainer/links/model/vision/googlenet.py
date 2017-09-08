@@ -10,6 +10,7 @@ except ImportError as e:
     available = False
     _import_error = e
 
+import chainer
 from chainer.dataset.convert import concat_examples
 from chainer.dataset import download
 from chainer import function
@@ -83,8 +84,8 @@ class GoogLeNet(link.Chain):
             but not GlorotUniform.
 
     Attributes:
-        available_layers (list of str): The list of available layer names
-            used by ``__call__`` and ``extract`` methods.
+        ~GoogLeNet.available_layers (list of str): The list of available layer
+            names used by ``__call__`` and ``extract`` methods.
 
     """
 
@@ -95,7 +96,7 @@ class GoogLeNet(link.Chain):
             kwargs = {'initialW': constant.Zero()}
         else:
             # employ default initializers used in BVLC. For more detail, see
-            # https://github.com/pfnet/chainer/pull/2424#discussion_r109642209
+            # https://github.com/chainer/chainer/pull/2424#discussion_r109642209
             kwargs = {'initialW': uniform.LeCunUniform(scale=1.0)}
         super(GoogLeNet, self).__init__(
             conv1=Convolution2D(3, 64, 7, stride=2, pad=3, **kwargs),
@@ -301,7 +302,7 @@ class GoogLeNet(link.Chain):
         else:
             x = x[:, :, 16:240, 16:240]
         # Use no_backprop_mode to reduce memory consumption
-        with function.no_backprop_mode():
+        with function.no_backprop_mode(), chainer.using_config('train', False):
             x = Variable(self.xp.asarray(x))
             y = self(x, layers=['prob'])['prob']
             if oversample:

@@ -18,6 +18,7 @@ from chainer.functions.activation.maxout import maxout  # NOQA
 from chainer.functions.activation.prelu import prelu  # NOQA
 from chainer.functions.activation.relu import relu  # NOQA
 from chainer.functions.activation.relu import ReLU  # NOQA
+from chainer.functions.activation.selu import selu  # NOQA
 from chainer.functions.activation.sigmoid import sigmoid  # NOQA
 from chainer.functions.activation.sigmoid import Sigmoid  # NOQA
 from chainer.functions.activation.slstm import slstm  # NOQA
@@ -46,7 +47,6 @@ from chainer.functions.array.dstack import dstack  # NOQA
 from chainer.functions.array.expand_dims import expand_dims  # NOQA
 from chainer.functions.array.expand_dims import ExpandDims  # NOQA
 from chainer.functions.array.flatten import flatten  # NOQA
-from chainer.functions.array.flatten import Flatten  # NOQA
 from chainer.functions.array.fliplr import fliplr  # NOQA
 from chainer.functions.array.fliplr import FlipLR  # NOQA
 from chainer.functions.array.flipud import flipud  # NOQA
@@ -205,8 +205,7 @@ from chainer.functions.math.logarithm_1p import Log1p  # NOQA
 from chainer.functions.math.logarithm_1p import log1p  # NOQA
 from chainer.functions.math.logsumexp import logsumexp  # NOQA
 from chainer.functions.math.logsumexp import LogSumExp  # NOQA
-from chainer.functions.math.matmul import matmul  # NOQA
-from chainer.functions.math.matmul import MatMul  # NOQA
+from chainer.functions.math.matmul import batch_matmul  # NOQA
 from chainer.functions.math.matmul import matmul  # NOQA
 from chainer.functions.math.matmul import MatMul  # NOQA
 from chainer.functions.math.maximum import maximum  # NOQA
@@ -221,6 +220,8 @@ from chainer.functions.math.minmax import max  # NOQA
 from chainer.functions.math.minmax import Max  # NOQA
 from chainer.functions.math.minmax import min  # NOQA
 from chainer.functions.math.minmax import Min  # NOQA
+from chainer.functions.math.prod import prod  # NOQA
+from chainer.functions.math.prod import Prod  # NOQA
 from chainer.functions.math.scale import scale  # NOQA
 from chainer.functions.math.sqrt import rsqrt  # NOQA
 from chainer.functions.math.sqrt import sqrt  # NOQA
@@ -237,6 +238,8 @@ from chainer.functions.math.trigonometric import arcsin  # NOQA
 from chainer.functions.math.trigonometric import Arcsin  # NOQA
 from chainer.functions.math.trigonometric import arctan  # NOQA
 from chainer.functions.math.trigonometric import Arctan  # NOQA
+from chainer.functions.math.trigonometric import arctan2  # NOQA
+from chainer.functions.math.trigonometric import Arctan2  # NOQA
 from chainer.functions.math.trigonometric import cos  # NOQA
 from chainer.functions.math.trigonometric import Cos  # NOQA
 from chainer.functions.math.trigonometric import sin  # NOQA
@@ -255,6 +258,8 @@ from chainer.functions.noise.zoneout import Zoneout  # NOQA
 
 from chainer.functions.normalization.batch_normalization import batch_normalization  # NOQA
 from chainer.functions.normalization.batch_normalization import fixed_batch_normalization  # NOQA
+from chainer.functions.normalization.batch_renormalization import batch_renormalization  # NOQA
+from chainer.functions.normalization.batch_renormalization import fixed_batch_renormalization  # NOQA
 from chainer.functions.normalization.l2_normalization import normalize  # NOQA
 from chainer.functions.normalization.l2_normalization import NormalizeL2  # NOQA
 from chainer.functions.normalization.layer_normalization import layer_normalization  # NOQA
@@ -273,7 +278,6 @@ from chainer.functions.pooling.max_pooling_nd import MaxPoolingND  # NOQA
 from chainer.functions.pooling.roi_pooling_2d import roi_pooling_2d  # NOQA
 from chainer.functions.pooling.roi_pooling_2d import ROIPooling2D  # NOQA
 from chainer.functions.pooling.spatial_pyramid_pooling_2d import spatial_pyramid_pooling_2d  # NOQA
-from chainer.functions.pooling.spatial_pyramid_pooling_2d import SpatialPyramidPooling2D  # NOQA
 from chainer.functions.pooling.unpooling_2d import Unpooling2D  # NOQA
 from chainer.functions.pooling.unpooling_2d import unpooling_2d  # NOQA
 from chainer.functions.pooling.unpooling_nd import unpooling_nd  # NOQA

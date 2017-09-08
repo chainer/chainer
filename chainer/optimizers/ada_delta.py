@@ -17,8 +17,8 @@ class AdaDeltaRule(optimizer.UpdateRule):
     hyperparameters.
 
     Args:
-        parent_hyperparam (~chainer.Hyperparameter): Hyperparameter that
-            provides the default values.
+        parent_hyperparam (~chainer.optimizer.Hyperparameter): Hyperparameter
+            that provides the default values.
         rho (float): Exponential decay rate of the first and second order
             moments.
         eps (float): Small value for the numerical stability.

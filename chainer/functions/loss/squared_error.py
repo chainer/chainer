@@ -32,8 +32,25 @@ class SquaredError(function.Function):
 def squared_error(x0, x1):
     """Squared error function.
 
-    This function computes Squared error between two variables. Note that
-    the error is not scaled by 1/2.
+    This function computes the squared error between two variables:
+
+    .. math::
+
+        (x_0 - x_1)^2
+
+    where operation is done in elementwise manner.
+    Note that the error is not scaled by 1/2:
+
+    Args:
+        x0 (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Input variable.
+        x1 (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Input variable.
+
+    Returns:
+        ~chainer.Variable:
+            A variable holding an array representing the squared error of
+            two inputs.
 
     """
     return SquaredError()(x0, x1)

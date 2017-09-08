@@ -53,9 +53,10 @@ class StatelessGRU(GRUBase):
     where :math:`\\sigma` is the sigmoid function, and :math:`\\odot` is the
     element-wise product.
 
-    :class:`~chainer.links.GRU` does not hold the value of
-    hidden vector :math:`h`. So this is *stateless*.
-    Use :class:`~chainer.links.StatefulGRU` as a *stateful* GRU.
+    As the name indicates, :class:`~chainer.links.StatelessGRU` is *stateless*,
+    meaning that it does not hold the value of
+    hidden vector :math:`h`.
+    For a *stateful* GRU, use :class:`~chainer.links.StatefulGRU`.
 
     Args:
         in_size(int): Dimension of input vector :math:`x`.
@@ -108,7 +109,7 @@ class StatefulGRU(GRUBase):
 
     As the name indicates, :class:`~chainer.links.StatefulGRU` is *stateful*,
     meaning that it also holds the next hidden vector `h'` as a state.
-    Use :class:`~chainer.links.GRU` as a stateless version of GRU.
+    For a *stateless* GRU, use :class:`~chainer.links.StatelessGRU`.
 
     Args:
         in_size(int): Dimension of input vector :math:`x`.
@@ -131,7 +132,10 @@ class StatefulGRU(GRUBase):
         h(~chainer.Variable): Hidden vector that indicates the state of
             :class:`~chainer.links.StatefulGRU`.
 
-    .. seealso:: :class:`~chainer.functions.GRU`
+    .. seealso::
+        * :class:`~chainer.links.StatelessGRU`
+        * :class:`~chainer.links.GRU`: an alias of
+          :class:`~chainer.links.StatefulGRU`
 
     """
 
@@ -185,23 +189,20 @@ class StatefulGRU(GRUBase):
 class GRU(StatefulGRU):
     """Stateful Gated Recurrent Unit function (GRU)
 
-    This is an alias of "~chainer.links.StatefulGRU".
-    Its documented API is identical to the function.
+    This is an alias of :class:`~chainer.links.StatefulGRU`.
 
     .. warning::
 
-       In Chainer v1, :class:`~chainer.links.GRU` was *stateless*,
+       In Chainer v1, ``GRU`` was *stateless*,
        as opposed to the current implementation.
-       To align with the naming convension of LSTM links, we have changed
-       the naming convension from Chainer v2 so that the shorthand name
+       To align with LSTM links, we have changed
+       the naming convention from Chainer v2 so that the shorthand name
        points the stateful links.
        You can use :class:`~chainer.links.StatelessGRU` for stateless version,
-       whose implementation is identical to ``chainer.linksGRU`` in v1.
+       whose implementation is identical to ``GRU`` in v1.
 
-       See issue `#2537 <https://github.com/pfnet/chainer/issues/2537>_`
-       for detail.
-
-    .. seealso:: :class:`~chainer.links.GRU`
+       See issue `#2537 <https://github.com/chainer/chainer/issues/2537>`_
+       for details.
 
     """
 

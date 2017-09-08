@@ -3,11 +3,11 @@ import six
 
 import chainer
 from chainer import cuda
-from chainer import function
+from chainer import function_node
 from chainer.utils import type_check
 
 
-class SelectItem(function.Function):
+class SelectItem(function_node.FunctionNode):
 
     """Select elements stored in given indices."""
 
@@ -47,24 +47,41 @@ class SelectItem(function.Function):
             )(t, x)
             return y,
 
-    def backward_cpu(self, inputs, grad_outputs):
-        t = inputs[1]
-        gloss = grad_outputs[0]
-        gx = numpy.zeros(self._in_shape, self._in_dtype)
-        gx[six.moves.range(t.size), t] = gloss
-        return gx, None
+    def backward(self, indexes, gy):
+        t = self.get_retained_inputs()[0]
+        ret = []
+        if 0 in indexes:
+            ggx = Assign(self._in_shape, self._in_dtype, t).apply(gy)[0]
+            ret.append(ggx)
+        if 1 in indexes:
+            ret.append(None)
+        return ret
 
-    def backward_gpu(self, inputs, grad_outputs):
-        t = inputs[1]
-        gloss = grad_outputs[0]
-        gx = cuda.cupy.zeros(self._in_shape, self._in_dtype)
+
+class Assign(function_node.FunctionNode):
+
+    def __init__(self, shape, dtype, t):
+        self.shape = shape
+        self.dtype = dtype
+        self.t = t.data
+
+    def forward_cpu(self, inputs):
+        gx = numpy.zeros(self.shape, self.dtype)
+        gx[six.moves.range(self.t.size), self.t] = inputs[0]
+        return gx,
+
+    def forward_gpu(self, inputs):
+        gx = cuda.cupy.zeros(self.shape, self.dtype)
         gx = cuda.elementwise(
             'S t, T gloss',
             'raw T gx',
             'int ind[] = {i, t}; gx[ind] = gloss;',
             'getitem_bwd'
-        )(t, gloss, gx)
-        return gx, None
+        )(self.t, inputs[0], gx)
+        return gx,
+
+    def backward(self, indexes, gy):
+        return SelectItem().apply((gy[0], self.t))
 
 
 def select_item(x, t):
@@ -81,4 +98,4 @@ def select_item(x, t):
         ~chainer.Variable: Variable that holds ``t``-th element of ``x``.
 
     """
-    return SelectItem()(x, t)
+    return SelectItem().apply((x, t))[0]

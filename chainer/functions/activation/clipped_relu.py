@@ -54,7 +54,7 @@ def clipped_relu(x, z=20.0):
 
     For a clipping value :math:`z(>0)`, it computes
 
-     .. math::`ClippedReLU(x, z) = \\min(\\max(0, x), z)`.
+    .. math:: \\text{ClippedReLU}(x, z) = \\min(\\max(0, x), z).
 
     Args:
         x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \

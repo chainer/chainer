@@ -15,7 +15,6 @@ def sigmoid(x):
 
 
 @testing.parameterize(*testing.product({
-    'use_cudnn': ['always', 'auto', 'never'],
     'hidden_none': [True, False],
 }))
 class TestNStepGRU(unittest.TestCase):
@@ -46,7 +45,7 @@ class TestNStepGRU(unittest.TestCase):
         for layer in self.rnn:
             for p in layer.params():
                 p.data[...] = numpy.random.uniform(-1, 1, p.data.shape)
-        self.rnn.zerograds()
+        self.rnn.cleargrads()
 
     def check_forward(self, h_data, xs_data):
         if self.hidden_none:
@@ -89,14 +88,28 @@ class TestNStepGRU(unittest.TestCase):
             for y, ey in zip(ys[batch].data, seq):
                 testing.assert_allclose(y, ey)
 
-    def test_forward_cpu(self):
-        with chainer.using_config('use_cudnn', self.use_cudnn):
+    def test_forward_cpu_train(self):
+        with chainer.using_config('train', True):
             self.check_forward(self.h, self.xs)
 
     @attr.gpu
-    def test_forward_gpu(self):
+    def test_forward_gpu_train(self):
         self.rnn.to_gpu()
-        with chainer.using_config('use_cudnn', self.use_cudnn):
+        with chainer.using_config('use_cudnn', 'always'), \
+                chainer.using_config('train', True):
+            self.check_forward(
+                cuda.to_gpu(self.h),
+                [cuda.to_gpu(x) for x in self.xs])
+
+    def test_forward_cpu_test(self):
+        with chainer.using_config('train', False):
+            self.check_forward(self.h, self.xs)
+
+    @attr.gpu
+    def test_forward_gpu_test(self):
+        self.rnn.to_gpu()
+        with chainer.using_config('use_cudnn', 'always'), \
+                chainer.using_config('train', False):
             self.check_forward(
                 cuda.to_gpu(self.h),
                 [cuda.to_gpu(x) for x in self.xs])
@@ -129,14 +142,12 @@ class TestNStepGRU(unittest.TestCase):
             tuple(params), eps=1e-2, rtol=1e-3, atol=1e-3)
 
     def test_backward_cpu(self):
-        with chainer.using_config('use_cudnn', self.use_cudnn):
-            self.check_backward(
-                self.h, self.xs, self.gh, self.gys)
+        self.check_backward(self.h, self.xs, self.gh, self.gys)
 
     @attr.gpu
     def test_backward_gpu(self):
         self.rnn.to_gpu()
-        with chainer.using_config('use_cudnn', self.use_cudnn):
+        with chainer.using_config('use_cudnn', 'auto'):
             self.check_backward(
                 cuda.to_gpu(self.h),
                 [cuda.to_gpu(x) for x in self.xs],
@@ -145,7 +156,6 @@ class TestNStepGRU(unittest.TestCase):
 
 
 @testing.parameterize(*testing.product({
-    'use_cudnn': ['always', 'auto', 'never'],
     'hidden_none': [True, False],
 }))
 class TestNStepBiGRU(unittest.TestCase):
@@ -176,7 +186,7 @@ class TestNStepBiGRU(unittest.TestCase):
         for layer in self.rnn:
             for p in layer.params():
                 p.data[...] = numpy.random.uniform(-1, 1, p.data.shape)
-        self.rnn.zerograds()
+        self.rnn.cleargrads()
 
     def check_forward(self, h_data, xs_data):
         if self.hidden_none:
@@ -245,14 +255,28 @@ class TestNStepBiGRU(unittest.TestCase):
             for y, ey in zip(ys[batch].data, seq):
                 testing.assert_allclose(y, ey)
 
-    def test_forward_cpu(self):
-        with chainer.using_config('use_cudnn', self.use_cudnn):
+    def test_forward_cpu_train(self):
+        with chainer.using_config('train', True):
             self.check_forward(self.h, self.xs)
 
     @attr.gpu
-    def test_forward_gpu(self):
+    def test_forward_gpu_train(self):
         self.rnn.to_gpu()
-        with chainer.using_config('use_cudnn', self.use_cudnn):
+        with chainer.using_config('use_cudnn', 'always'), \
+                chainer.using_config('train', True):
+            self.check_forward(
+                cuda.to_gpu(self.h),
+                [cuda.to_gpu(x) for x in self.xs])
+
+    def test_forward_cpu_test(self):
+        with chainer.using_config('train', False):
+            self.check_forward(self.h, self.xs)
+
+    @attr.gpu
+    def test_forward_gpu_test(self):
+        self.rnn.to_gpu()
+        with chainer.using_config('use_cudnn', 'always'), \
+                chainer.using_config('train', False):
             self.check_forward(
                 cuda.to_gpu(self.h),
                 [cuda.to_gpu(x) for x in self.xs])
@@ -285,14 +309,13 @@ class TestNStepBiGRU(unittest.TestCase):
             tuple(params), eps=1e-2, rtol=1e-3, atol=1e-3)
 
     def test_backward_cpu(self):
-        with chainer.using_config('use_cudnn', self.use_cudnn):
-            self.check_backward(
-                self.h, self.xs, self.gh, self.gys)
+        self.check_backward(
+            self.h, self.xs, self.gh, self.gys)
 
     @attr.gpu
     def test_backward_gpu(self):
         self.rnn.to_gpu()
-        with chainer.using_config('use_cudnn', self.use_cudnn):
+        with chainer.using_config('use_cudnn', 'auto'):
             self.check_backward(
                 cuda.to_gpu(self.h),
                 [cuda.to_gpu(x) for x in self.xs],

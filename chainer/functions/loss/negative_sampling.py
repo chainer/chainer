@@ -49,16 +49,14 @@ class NegativeSamplingFunction(function.Function):
         self.ignore_mask = (t != self.ignore_label)
         self._make_samples(t)
 
-        loss = numpy.empty(len(x), numpy.float32)
-        for i, (it, ix, k) in enumerate(
-                six.moves.zip(t, x, self.samples)):
-            if it == self.ignore_label:
-                loss[i] = 0
-            else:
-                w = W[k]
-                f = w.dot(ix)
-                f[0] *= -1  # positive sample
-                loss[i] = numpy.sum(numpy.logaddexp(f, 0))
+        w = W[self.samples]
+        wx = numpy.einsum(
+            'ij,ikj->ik', x[self.ignore_mask], w[self.ignore_mask])
+        wx[:, 0] *= -1
+        y = numpy.sum(numpy.logaddexp(wx, 0), axis=1)
+
+        loss = numpy.zeros(len(x), numpy.float32)
+        loss[self.ignore_mask] = y
 
         if self.reduce == 'sum':
             loss = numpy.array(loss.sum(), 'f')

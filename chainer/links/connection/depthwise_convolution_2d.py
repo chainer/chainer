@@ -3,6 +3,7 @@ import numpy
 from chainer.functions.connection import depthwise_convolution_2d
 from chainer import initializers
 from chainer import link
+from chainer import variable
 
 
 class DepthwiseConvolution2D(link.Link):
@@ -54,16 +55,18 @@ class DepthwiseConvolution2D(link.Link):
 
         if initialW is None:
             initialW = initializers.HeNormal(1. / numpy.sqrt(2))
-        self.add_param('W', initializer=initializers._get_initializer(
-            initialW))
 
-        if nobias:
-            self.b = None
-        else:
-            if initial_bias is None:
-                initial_bias = initializers.Constant(0)
-            bias_initilizer = initializers._get_initializer(initial_bias)
-            self.add_param('b', initializer=bias_initilizer)
+        with self.init_scope():
+            W_initializer = initializers._get_initializer(initialW)
+            self.W = variable.Parameter(W_initializer)
+
+            if nobias:
+                self.b = None
+            else:
+                if initial_bias is None:
+                    initial_bias = initializers.Constant(0)
+                bias_initializer = initializers._get_initializer(initial_bias)
+                self.b = variable.Parameter(bias_initializer)
 
         if in_channels is not None:
             self._initialize_params(in_channels)

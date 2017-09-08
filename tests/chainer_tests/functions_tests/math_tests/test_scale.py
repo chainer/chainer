@@ -62,7 +62,7 @@ class TestScaleInvalidShape(unittest.TestCase):
         x1 = chainer.Variable(numpy.zeros((3, 2, 3), numpy.float32))
         x2 = chainer.Variable(numpy.zeros((2), numpy.float32))
         axis = 0
-        with chainer.DebugMode(True):
+        with chainer.using_config('debug', True):
             with self.assertRaises(AssertionError):
                 functions.scale(x1, x2, axis)
 
