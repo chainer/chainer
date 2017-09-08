@@ -10,7 +10,20 @@ class Updater(object):
 
     """Interface of updater objects for trainers.
 
-    TODO(beam2d): document it.
+    :class:`~chainer.training.Updater` implements a training iteration
+    as :meth:`update`. Typically, the updating iteration proceeds as follows.
+
+    - Fetch a minibatch from :mod:`~chainer.dataset`
+      via :class:`~chainer.dataset.Iterator`.
+    - Run forward and backward process of :class:`~chainer.Chain`.
+    - Update parameters according to their :class:`~chainer.UpdateRule`.
+
+    The first line is processed by
+    :meth:`Iterator.__next__ <chainer.dataset.Iterator.__next__>`.
+    The second and third are processed by
+    :meth:`Optimizer.update <chainer.Optimizer.update>`.
+    Users can also implement their original updating iteration by overriding
+    :meth:`Updater.update <chainer.training.Updater.update>`.
 
     """
 
@@ -93,10 +106,12 @@ class StandardUpdater(Updater):
 
     Args:
         iterator: Dataset iterator for the training dataset. It can also be a
-            dictionary of iterators. If this is just an iterator, then the
+            dictionary that maps strings to iterators.
+            If this is just an iterator, then the
             iterator is registered by the name ``'main'``.
         optimizer: Optimizer to update parameters. It can also be a dictionary
-            of optimizers. If this is just an optimizer, then the optimizer is
+            that maps strings to optimizers.
+            If this is just an optimizer, then the optimizer is
             registered by the name ``'main'``.
         converter: Converter function to build input arrays. Each batch
             extracted by the main iterator and the ``device`` option are passed
@@ -152,13 +167,35 @@ class StandardUpdater(Updater):
         return self._iterators['main'].is_new_epoch
 
     def finalize(self):
+        """Finalizes the updater object.
+
+        This method calls the `finalize` method of each iterator that
+        this updater has.
+        It is called at the end of training loops.
+
+        """
         for iterator in six.itervalues(self._iterators):
             iterator.finalize()
 
     def get_optimizer(self, name):
+        """Gets the optimizer of given name.
+
+        Args:
+            name (str): Name of the optimizer.
+
+        Returns:
+            ~chainer.Optimizer: Corresponding optimizer.
+
+        """
         return self._optimizers[name]
 
     def get_all_optimizers(self):
+        """Gets a dictionary of all optimizers for this updater.
+
+        Returns:
+            dict: Dictionary that maps names to optimizers.
+
+        """
         return dict(self._optimizers)
 
     def get_iterator(self, name):
@@ -174,6 +211,15 @@ class StandardUpdater(Updater):
         return self._iterators[name]
 
     def update(self):
+        """Updates the parameters of the target model.
+
+        This method implements an update formula for the training task,
+        including data loading, forward/backward computations, and actual
+        updates of parameters.
+
+        This method is called once at each iteration of the training loop.
+
+        """
         self.update_core()
         self.iteration += 1
 
@@ -192,6 +238,7 @@ class StandardUpdater(Updater):
             optimizer.update(loss_func, in_arrays)
 
     def serialize(self, serializer):
+        """Serializes the current state of the updater object."""
         for name, iterator in six.iteritems(self._iterators):
             iterator.serialize(serializer['iterator:' + name])
 
@@ -215,10 +262,12 @@ class ParallelUpdater(StandardUpdater):
 
     Args:
         iterator: Dataset iterator for the training dataset. It can also be a
-            dictionary of iterators. If this is just an iterator, then the
+            dictionary that maps strings to iterators.
+            If this is just an iterator, then the
             iterator is registered by the name ``'main'``.
         optimizer: Optimizer to update parameters. It can also be a dictionary
-            of optimizers. If this is just an optimizer, then the optimizer is
+            that maps strings to optimizers.
+            If this is just an optimizer, then the optimizer is
             registered by the name ``'main'``.
         converter: Converter function to build input arrays. Each batch
             extracted by the main iterator is split equally between the

@@ -66,7 +66,7 @@ class TestNonparameterizedMaxout(unittest.TestCase):
     def check_backward(self, x_data, y_grad):
         gradient_check.check_backward(
             lambda x: functions.maxout(x, self.pool_size, self.axis),
-            x_data, y_grad, eps=0.125)
+            x_data, y_grad, eps=0.125, dtype='d')
 
     @condition.retry(3)
     def test_backward_cpu(self):

@@ -216,10 +216,7 @@ class TestDeconvolutionNDCudnnCall(unittest.TestCase):
         gy_shape = (2, out_channels) + outs
         self.gy = cuda.cupy.random.uniform(-1, 1, gy_shape).astype(self.dtype)
         with chainer.using_config('use_cudnn', self.use_cudnn):
-            self.expected = (chainer.should_use_cudnn('>=auto') and
-                             ndim > 1 and (
-                                 cuda.cudnn.cudnn.getVersion() >= 3000 or
-                                 self.dtype != numpy.float16))
+            self.expected = chainer.should_use_cudnn('>=auto') and ndim > 1
 
     def forward(self):
         x = chainer.Variable(self.x)
@@ -227,10 +224,7 @@ class TestDeconvolutionNDCudnnCall(unittest.TestCase):
         return F.deconvolution_nd(x, W, None, stride=1, pad=1)
 
     def test_call_cudnn_forward(self):
-        if cuda.cudnn.cudnn.getVersion() >= 4000:
-            name = 'cupy.cudnn.cudnn.convolutionBackwardData_v3'
-        else:
-            name = 'cupy.cudnn.cudnn.convolutionBackwardData_v2'
+        name = 'cupy.cudnn.cudnn.convolutionBackwardData_v3'
         with chainer.using_config('use_cudnn', self.use_cudnn):
             with mock.patch(name) as func:
                 self.forward()

@@ -31,7 +31,8 @@ class TestMaxPooling2D(unittest.TestCase):
         else:
             self.gy = numpy.random.uniform(
                 -1, 1, (2, 3, 2, 2)).astype(self.dtype)
-        self.check_backward_options = {'eps': 2.0 ** -8}
+        self.ggx = numpy.random.uniform(
+            -1, 1, (2, 3, 4, 3)).astype(self.dtype)
 
     def check_forward(self, x_data, use_cudnn='always'):
         x = chainer.Variable(x_data)
@@ -66,13 +67,15 @@ class TestMaxPooling2D(unittest.TestCase):
         functions.max_pooling_2d(x, 6, stride=6, pad=0)
 
     def test_forward_output_size_zero_cpu(self):
-        with self.assertRaisesRegexp(
-                AssertionError, 'Height in the output should be positive.'):
+        with six.assertRaisesRegex(
+                self, AssertionError,
+                'Height in the output should be positive.'):
             x_data = numpy.random.rand(4, 4, 1, 4).astype(self.dtype)
             x = chainer.Variable(x_data)
             functions.max_pooling_2d(x, 3, stride=2)
-        with self.assertRaisesRegexp(
-                AssertionError, 'Width in the output should be positive.'):
+        with six.assertRaisesRegex(
+                self, AssertionError,
+                'Width in the output should be positive.'):
             x_data = numpy.random.rand(4, 4, 4, 1).astype(self.dtype)
             x = chainer.Variable(x_data)
             functions.max_pooling_2d(x, 3, stride=2)
@@ -94,14 +97,16 @@ class TestMaxPooling2D(unittest.TestCase):
 
     @attr.gpu
     def test_forward_output_size_zero_gpu(self):
-        with self.assertRaisesRegexp(
-                AssertionError, 'Height in the output should be positive.'):
+        with six.assertRaisesRegex(
+                self, AssertionError,
+                'Height in the output should be positive.'):
             x_data = cuda.cupy.random.rand(4, 4, 1, 4).astype(self.dtype)
             x = chainer.Variable(x_data)
             with chainer.using_config('use_cudnn', 'never'):
                 functions.max_pooling_2d(x, 3, stride=2)
-        with self.assertRaisesRegexp(
-                AssertionError, 'Width in the output should be positive.'):
+        with six.assertRaisesRegex(
+                self, AssertionError,
+                'Width in the output should be positive.'):
             x_data = cuda.cupy.random.rand(4, 4, 4, 1).astype(self.dtype)
             x = chainer.Variable(x_data)
             with chainer.using_config('use_cudnn', 'never'):
@@ -109,25 +114,28 @@ class TestMaxPooling2D(unittest.TestCase):
 
     @attr.cudnn
     def test_forward_output_size_zero_cudnn(self):
-        with self.assertRaisesRegexp(
-                AssertionError, 'Height in the output should be positive.'):
+        with six.assertRaisesRegex(
+                self, AssertionError,
+                'Height in the output should be positive.'):
             x_data = cuda.cupy.random.rand(4, 4, 1, 4).astype(self.dtype)
             x = chainer.Variable(x_data)
             with chainer.using_config('use_cudnn', 'always'):
                 functions.max_pooling_2d(x, 3, stride=2)
-        with self.assertRaisesRegexp(
-                AssertionError, 'Width in the output should be positive.'):
+        with six.assertRaisesRegex(
+                self, AssertionError,
+                'Width in the output should be positive.'):
             x_data = cuda.cupy.random.rand(4, 4, 4, 1).astype(self.dtype)
             x = chainer.Variable(x_data)
             with chainer.using_config('use_cudnn', 'always'):
                 functions.max_pooling_2d(x, 3, stride=2)
 
     def check_backward(self, x_data, y_grad, use_cudnn='always'):
+        def f(x):
+            return functions.max_pooling_2d(
+                x, 3, stride=2, pad=1, cover_all=self.cover_all)
         with chainer.using_config('use_cudnn', use_cudnn):
             gradient_check.check_backward(
-                functions.MaxPooling2D(
-                    3, stride=2, pad=1, cover_all=self.cover_all),
-                x_data, y_grad, **self.check_backward_options)
+                f, x_data, y_grad, dtype='d', atol=1e-4, rtol=1e-3)
 
     @condition.retry(3)
     def test_backward_cpu(self):
@@ -153,9 +161,45 @@ class TestMaxPooling2D(unittest.TestCase):
     def test_backward_cpu_more_than_once(self):
         func = functions.MaxPooling2D(
             3, stride=2, pad=1, cover_all=self.cover_all)
-        func(self.x)
-        func.backward_cpu((self.x,), (self.gy,))
-        func.backward_cpu((self.x,), (self.gy,))
+        func.apply((self.x,))
+        func.backward((0,), (self.gy,))
+        func.backward((0,), (self.gy,))
+
+    def check_double_backward(self, x_data, y_grad, x_grad_grad,
+                              use_cudnn='always'):
+        def f(x):
+            y = functions.max_pooling_2d(
+                x, 3, stride=2, pad=1, cover_all=self.cover_all)
+            return y * y
+        with chainer.using_config('use_cudnn', use_cudnn):
+            gradient_check.check_double_backward(
+                f, x_data, y_grad, x_grad_grad,
+                dtype='d', atol=1e-4, rtol=1e-3)
+
+    @condition.retry(3)
+    def test_double_backward_cpu(self):
+        self.check_double_backward(self.x, self.gy, self.ggx, 'never')
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_double_backward_gpu(self):
+        self.check_double_backward(
+            cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx))
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_double_backward_gpu_non_contiguous(self):
+        self.check_double_backward(
+            cuda.cupy.asfortranarray(cuda.to_gpu(self.x)),
+            cuda.cupy.asfortranarray(cuda.to_gpu(self.gy)),
+            cuda.cupy.asfortranarray(cuda.to_gpu(self.ggx)))
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_double_backward_gpu_no_cudnn(self):
+        self.check_double_backward(
+            cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx),
+            'never')
 
 
 @testing.parameterize(*testing.product({
@@ -176,9 +220,6 @@ class TestMaxPooling2DCudnnCall(unittest.TestCase):
         return functions.max_pooling_2d(
             x, 3, stride=2, pad=1, cover_all=False)
 
-    @unittest.skipIf(cuda.cudnn_enabled and
-                     cuda.cudnn.cudnn.getVersion() < 3000,
-                     'Only cudnn ver>=3 supports max-pooling2d')
     def test_call_cudnn_forward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             with mock.patch('cupy.cudnn.cudnn.poolingForward') as func:
@@ -186,9 +227,6 @@ class TestMaxPooling2DCudnnCall(unittest.TestCase):
                 self.assertEqual(func.called,
                                  chainer.should_use_cudnn('>=auto'))
 
-    @unittest.skipIf(cuda.cudnn_enabled and
-                     cuda.cudnn.cudnn.getVersion() < 3000,
-                     'Only cudnn ver>=3 supports max-pooling2d')
     def test_call_cudnn_backward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             expect = chainer.should_use_cudnn('>=auto')

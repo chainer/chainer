@@ -1,68 +1,8 @@
-import numpy
+import math
+
 import six
 
-from chainer import cuda
-from chainer.functions.array import concat
-from chainer.functions.pooling import max_pooling_2d
-from chainer.functions.pooling import pooling_2d
-
-
-class SpatialPyramidPooling2D(pooling_2d.Pooling2D):
-
-    """Spatial pyramid pooling over a set of 2d planes."""
-
-    def __init__(self, x_shape, pyramid_height, pooling_class):
-        bottom_c, bottom_h, bottom_w = x_shape
-        self.pyramid_height = pyramid_height
-
-        # create pooling functions for different pyramid levels
-        out_dim = 0
-        self.split_inds = []
-        self.poolers = []
-        for pyramid_level in six.moves.range(pyramid_height):
-            num_bins = int(2 ** pyramid_level)
-
-            ksize_h = int(numpy.ceil(bottom_h / (float(num_bins))))
-            remainder_h = ksize_h * num_bins - bottom_h
-            pad_h = remainder_h // 2
-
-            ksize_w = int(numpy.ceil(bottom_w / (float(num_bins))))
-            remainder_w = ksize_w * num_bins - bottom_w
-            pad_w = remainder_w // 2
-
-            ksize = (ksize_h, ksize_w)
-            pad = (pad_h, pad_w)
-
-            if pooling_class is max_pooling_2d.MaxPooling2D:
-                pooler = pooling_class(ksize=ksize, stride=None, pad=pad,
-                                       cover_all=True)
-                self.poolers.append(pooler)
-            else:
-                raise NotImplementedError()
-
-            out_dim += bottom_c * (num_bins ** 2)
-            if pyramid_level < pyramid_height - 1:
-                self.split_inds.append(out_dim)
-
-    def forward(self, x):
-        self.ys = []
-        for pooler in self.poolers:
-            y = pooler.forward(x)[0]
-            pooler.output_data = y  # work around
-            n, c, h, w = pooler.out_shape = y.shape
-            self.ys.append(y.reshape((n, c * h * w, 1, 1)))
-
-        return concat.Concat(axis=1).forward(self.ys)
-
-    def backward(self, x, gy):
-        xp = cuda.get_array_module(*x)
-        gx = xp.zeros_like(x[0])
-        gys = xp.split(gy[0], self.split_inds, axis=1)
-        for pooler, gy in zip(self.poolers, gys):
-            gy = gy.reshape(pooler.out_shape)
-            gx += pooler.backward(x, (gy,))[0]
-
-        return gx,
+import chainer
 
 
 def spatial_pyramid_pooling_2d(x, pyramid_height, pooling_class):
@@ -115,5 +55,32 @@ def spatial_pyramid_pooling_2d(x, pyramid_height, pooling_class):
 
     """
 
-    return SpatialPyramidPooling2D(x.shape[1:], pyramid_height,
-                                   pooling_class)(x)
+    bottom_c, bottom_h, bottom_w = x.shape[1:]
+    ys = []
+
+    # create pooling functions for different pyramid levels and apply it
+    for pyramid_level in six.moves.range(pyramid_height):
+        num_bins = int(2 ** pyramid_level)
+
+        ksize_h = int(math.ceil(bottom_h / (float(num_bins))))
+        remainder_h = ksize_h * num_bins - bottom_h
+        pad_h = remainder_h // 2
+
+        ksize_w = int(math.ceil(bottom_w / (float(num_bins))))
+        remainder_w = ksize_w * num_bins - bottom_w
+        pad_w = remainder_w // 2
+
+        ksize = (ksize_h, ksize_w)
+        pad = (pad_h, pad_w)
+
+        if pooling_class is chainer.functions.MaxPooling2D:
+            pooler = pooling_class(ksize=ksize, stride=None, pad=pad,
+                                   cover_all=True)
+        else:
+            raise NotImplementedError()
+
+        y_var = pooler.apply((x,))[0]
+        n, c, h, w = y_var.shape
+        ys.append(y_var.reshape((n, c * h * w, 1, 1)))
+
+    return chainer.functions.concat(ys)

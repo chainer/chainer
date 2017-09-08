@@ -26,6 +26,12 @@ class TestNonparameterizedLinear(unittest.TestCase):
 
         self.x = numpy.random.uniform(-1, 1, (4, 3)).astype(self.x_dtype)
         self.gy = numpy.random.uniform(-1, 1, (4, 2)).astype(self.x_dtype)
+        self.ggx = numpy.random.uniform(-1, 1, self.x.shape).astype(
+            self.x_dtype)
+        self.ggW = numpy.random.uniform(-1, 1, self.W.shape).astype(
+            self.W_dtype)
+        self.ggb = numpy.random.uniform(-1, 1, self.b.shape).astype(
+            self.x_dtype)
         self.y = self.x.dot(self.W.T) + self.b
         self.check_forward_options = {}
         self.check_backward_options = {}
@@ -78,7 +84,7 @@ class TestNonparameterizedLinear(unittest.TestCase):
             args = args + (b_data,)
 
         gradient_check.check_backward(
-            linear.LinearFunction(), args, y_grad,
+            linear.linear, args, y_grad,
             eps=1e-2, **self.check_backward_options)
 
     @condition.retry(3)
@@ -100,6 +106,49 @@ class TestNonparameterizedLinear(unittest.TestCase):
     def test_backward_gpu_nobias(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.W),
                             None, cuda.to_gpu(self.gy))
+
+    def check_double_backward(self, x_data, W_data, b_data, y_grad,
+                              x_grad_grad, W_grad_grad, b_grad_grad):
+        args = x_data, W_data
+        grad_grads = x_grad_grad, W_grad_grad
+        if b_data is not None:
+            args += b_data,
+            grad_grads += b_grad_grad,
+
+        # non-linear function for testing
+        def nonlinear(x, W, b=None):
+            y = linear.linear(x, W, b)
+            return y * y
+
+        gradient_check.check_double_backward(
+            nonlinear, args, (y_grad,), grad_grads,
+            **self.check_backward_options)
+
+    @condition.retry(3)
+    def test_double_backward_cpu(self):
+        self.check_double_backward(self.x, self.W, self.b, self.gy,
+                                   self.ggx, self.ggW, self.ggb)
+
+    @condition.retry(3)
+    def test_double_backward_cpu_nobias(self):
+        self.check_double_backward(self.x, self.W, None, self.gy,
+                                   self.ggx, self.ggW, None)
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_double_backward_gpu(self):
+        self.check_double_backward(
+            cuda.to_gpu(self.x), cuda.to_gpu(self.W), cuda.to_gpu(self.b),
+            cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx), cuda.to_gpu(self.ggW),
+            cuda.to_gpu(self.ggb))
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_double_backward_gpu_nobias(self):
+        self.check_double_backward(
+            cuda.to_gpu(self.x), cuda.to_gpu(self.W), None,
+            cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx), cuda.to_gpu(self.ggW),
+            None)
 
 
 testing.run_module(__name__, __file__)

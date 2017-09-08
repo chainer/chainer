@@ -1,5 +1,6 @@
 import numpy
 
+import chainer
 from chainer import configuration
 from chainer import cuda
 from chainer import function
@@ -12,6 +13,8 @@ class Dropout(function.Function):
     """Dropout regularization."""
 
     def __init__(self, dropout_ratio):
+        if not 0.0 <= dropout_ratio < 1.0:
+            raise ValueError('dropout_ratio must be in the range [0, 1)')
         self.dropout_ratio = dropout_ratio
 
     def check_type_forward(self, in_types):
@@ -57,12 +60,13 @@ def dropout(x, ratio=.5, **kwargs):
     .. warning::
 
        ``train`` argument is not supported anymore since v2.
-       Instead, use ``chainer.using_config('train', train)``.
+       Instead, use ``chainer.using_config('train', boolean)``.
        See :func:`chainer.using_config`.
 
     Args:
         x (~chainer.Variable): Input variable.
-        ratio (float): Dropout ratio.
+        ratio (float): Dropout ratio. The ``ratio`` must be
+        ``0.0 <= ratio < 1.0``.
 
     Returns:
         ~chainer.Variable: Output variable.
@@ -78,4 +82,4 @@ def dropout(x, ratio=.5, **kwargs):
 
     if configuration.config.train:
         return Dropout(ratio)(x)
-    return x
+    return chainer.as_variable(x)

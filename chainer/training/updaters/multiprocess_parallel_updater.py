@@ -7,7 +7,6 @@ from chainer import cuda
 from chainer.dataset import convert
 from chainer import reporter
 from chainer.training import updater
-from chainer import variable
 
 try:
     from cupy.cuda import nccl
@@ -117,7 +116,7 @@ class MultiprocessParallelUpdater(updater.StandardUpdater):
                 'NCCL is not enabled. MultiprocessParallelUpdater '
                 'requires NCCL.\n'
                 'Please reinstall chainer after you install NCCL.\n'
-                '(see https://github.com/pfnet/chainer#installation).')
+                '(see https://github.com/chainer/chainer#installation).')
 
         assert len(iterators) == len(devices)
         for iterator in iterators[1:]:
@@ -233,15 +232,11 @@ class MultiprocessParallelUpdater(updater.StandardUpdater):
 
 def _calc_loss(model, in_arrays):
     if isinstance(in_arrays, tuple):
-        in_vars = tuple(variable.Variable(x) for x in in_arrays)
-        return model(*in_vars)
+        return model(*in_arrays)
     elif isinstance(in_arrays, dict):
-        in_vars = {key: variable.Variable(x)
-                   for key, x in six.iteritems(in_arrays)}
-        return model(**in_vars)
+        return model(**in_arrays)
     else:
-        in_vars = variable.Variable(in_arrays)
-        return model(in_vars)
+        return model(in_arrays)
 
 
 def size_num_grads(link):
@@ -308,8 +303,8 @@ def _gather(link, target):
         i += 1
     info[0] = num
 
-    ptrs = cuda.to_gpu(ptrs, stream=cuda.Stream.null)
-    info = cuda.to_gpu(info, stream=cuda.Stream.null)
+    ptrs = cuda.to_gpu(ptrs)
+    info = cuda.to_gpu(info)
 
     return _batch_memcpy()(ptrs, info, size=size)
 

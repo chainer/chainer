@@ -127,7 +127,7 @@ class TestSigmoidCrossEntropy(unittest.TestCase):
 
         gradient_check.check_backward(
             functions.SigmoidCrossEntropy(),
-            (x_data, t_data), None, eps=1e-2)
+            (x_data, t_data), None, atol=1e-4, rtol=1e-3)
 
     def check_backward_no_reduction(
             self, x_data, t_data, y_grad):
@@ -137,7 +137,7 @@ class TestSigmoidCrossEntropy(unittest.TestCase):
 
         gradient_check.check_backward(
             functions.SigmoidCrossEntropy(reduce='no'),
-            (x_data, t_data), y_grad, eps=1e-2)
+            (x_data, t_data), y_grad, atol=1e-4, rtol=1e-3)
 
     @condition.retry(3)
     def test_backward_cpu(self):
@@ -202,10 +202,7 @@ class TestSigmoidCrossEntropyCudnnCall(unittest.TestCase):
     def test_call_cudnn_backward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             y = self.forward()
-            if cuda.cudnn.cudnn.getVersion() >= 4000:
-                patch = 'cupy.cudnn.cudnn.activationForward_v4'
-            else:
-                patch = 'cupy.cudnn.cudnn.activationForward_v3'
+            patch = 'cupy.cudnn.cudnn.activationForward_v4'
             with mock.patch(patch) as func:
                 y.backward()
                 self.assertEqual(func.called, self.expect)

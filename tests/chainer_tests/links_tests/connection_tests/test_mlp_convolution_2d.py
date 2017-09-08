@@ -80,10 +80,7 @@ class TestMLPConvolution2DCudnnCall(unittest.TestCase):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             y = self.forward()
             y.grad = self.gy
-            if cuda.cudnn.cudnn.getVersion() >= 3000:
-                patch = 'cupy.cudnn.cudnn.convolutionBackwardData_v3'
-            else:
-                patch = 'cupy.cudnn.cudnn.convolutionBackwardData_v2'
+            patch = 'cupy.cudnn.cudnn.convolutionBackwardData_v3'
             with mock.patch(patch) as func:
                 y.backward()
                 self.assertEqual(func.called,

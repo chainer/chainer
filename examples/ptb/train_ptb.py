@@ -66,6 +66,8 @@ class ParallelSequentialIterator(chainer.dataset.Iterator):
         # NOTE: this is not a count of parameter updates. It is just a count of
         # calls of ``__next__``.
         self.iteration = 0
+        # use -1 instead of None internally
+        self._previous_epoch_detail = -1.
 
     def __next__(self):
         # This iterator returns a list representing a mini-batch. Each item
@@ -80,6 +82,7 @@ class ParallelSequentialIterator(chainer.dataset.Iterator):
             # epoch (i.e., when all words are visited once).
             raise StopIteration
         cur_words = self.get_words()
+        self._previous_epoch_detail = self.epoch_detail
         self.iteration += 1
         next_words = self.get_words()
 
@@ -95,6 +98,12 @@ class ParallelSequentialIterator(chainer.dataset.Iterator):
         # Floating point version of epoch.
         return self.iteration * self.batch_size / len(self.dataset)
 
+    @property
+    def previous_epoch_detail(self):
+        if self._previous_epoch_detail < 0:
+            return None
+        return self._previous_epoch_detail
+
     def get_words(self):
         # It returns a list of current words.
         return [self.dataset[(offset + self.iteration) % len(self.dataset)]
@@ -104,6 +113,18 @@ class ParallelSequentialIterator(chainer.dataset.Iterator):
         # It is important to serialize the state to be recovered on resume.
         self.iteration = serializer('iteration', self.iteration)
         self.epoch = serializer('epoch', self.epoch)
+        try:
+            self._previous_epoch_detail = serializer(
+                'previous_epoch_detail', self._previous_epoch_detail)
+        except KeyError:
+            # guess previous_epoch_detail for older version
+            self._previous_epoch_detail = self.epoch + \
+                (self.current_position - self.batch_size) / len(self.dataset)
+            if self.epoch_detail > 0:
+                self._previous_epoch_detail = max(
+                    self._previous_epoch_detail, 0.)
+            else:
+                self._previous_epoch_detail = -1.
 
 
 # Custom updater for truncated BackProp Through Time (BPTT)

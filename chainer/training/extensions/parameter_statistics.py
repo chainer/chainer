@@ -2,16 +2,16 @@ import numpy
 import six
 
 from chainer import reporter
-from chainer import training
 from chainer.training import extension
+from chainer.training import trigger as trigger_module
 
 
 class ParameterStatistics(extension.Extension):
     """Trainer extension to report parameter statistics.
 
     Statistics are collected and reported for a given :class:`~chainer.Link`
-    or an iterable of :class:`~chainer.Link`s. If a link contains child links,
-    the statistics are reported separately for each child.
+    or an iterable of :class:`~chainer.Link`\\ s. If a link contains child
+    links, the statistics are reported separately for each child.
 
     Any function that takes a one-dimensional :class:`numpy.ndarray` or a
     :class:`cupy.ndarray` and outputs a single or multiple real numbers can be
@@ -75,7 +75,7 @@ class ParameterStatistics(extension.Extension):
         self._attrs = attrs
 
         self._prefix = prefix
-        self._trigger = training.trigger.get_trigger(trigger)
+        self._trigger = trigger_module.get_trigger(trigger)
         self._summary = reporter.DictSummary()
 
     def __call__(self, trainer):

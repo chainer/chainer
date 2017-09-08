@@ -174,7 +174,7 @@ If you are using the ``Variable.volatile`` flag, you have to stop setting this f
 
       # Chainer v2
       x_data = ...   # ndarray
-      x = chainer.Variable(x)
+      x = chainer.Variable(x_data)
       with chainer.no_backprop_mode():
           y = model(x)
 
