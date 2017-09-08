@@ -9,9 +9,6 @@ class ExtractBySliceNotSupportedError(Exception):
 class BaseIndexer(object):
     """Base class for Indexer"""
 
-    def __init__(self, *args, **kwargs):
-        pass
-
     def __getitem__(self, item):
         raise NotImplementedError
 
@@ -30,8 +27,8 @@ class BaseFeaturesIndexer(BaseIndexer):
 
     """
 
-    def __init__(self, dataset, *args, access_feature_by_key=False, **kwargs):
-        super(BaseFeaturesIndexer, self).__init__(*args, **kwargs)
+    def __init__(self, dataset, access_feature_by_key=False):
+        super(BaseFeaturesIndexer, self).__init__()
         self.dataset = dataset
         self.access_feature_by_key = access_feature_by_key
 
