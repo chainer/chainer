@@ -48,6 +48,7 @@ class Dropout(function_node.FunctionNode):
 
 
 class DropoutGrad(function_node.FunctionNode):
+    """Computes the gradient of the Dropout function."""
 
     def __init__(self, mask):
         self.mask = mask
