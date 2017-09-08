@@ -64,11 +64,6 @@ class TupleDatasetFeaturesIndexer(BaseFeaturesIndexer):
     """FeaturesIndexer for TupleDataset"""
 
     def __init__(self, dataset):
-        """
-        
-        Args:
-            dataset (TupleDataset): TupleDataset instance
-        """
         super(TupleDatasetFeaturesIndexer, self).__init__(dataset)
         self.datasets = dataset._datasets
 

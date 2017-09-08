@@ -123,10 +123,12 @@ class TestTupleDataset(unittest.TestCase):
         with self.assertRaises(IndexError):
             # 3 is out of range for dataset_length
             fx = td.features[3, 0]
+            del fx
 
         with self.assertRaises(IndexError):
             # 3 is out of range for feature_length
-            f_unkown = td.features[1, 3]
+            f_unknown = td.features[1, 3]
+            del f_unknown
 
         # Check string type extract, float32 type
         x0 = numpy.arange(5).astype(numpy.float32)
@@ -212,10 +214,12 @@ class TestTupleDataset(unittest.TestCase):
         with self.assertRaises(IndexError):
             # 3 is out of range for dataset_length
             fx = td.features[5, 0]
+            del fx
 
         with self.assertRaises(IndexError):
             # 3 is out of range for feature_length
             f_unknown = td.features[1, 3]
+            del f_unknown
 
         with self.assertRaises(ValueError):
             # boolean flag length is does not match with feature_length
