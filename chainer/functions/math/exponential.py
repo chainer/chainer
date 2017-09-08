@@ -1,3 +1,5 @@
+import math
+
 import numpy
 
 from chainer import cuda
@@ -77,10 +79,9 @@ class Log2(function.Function):
         return utils.force_array(xp.log2(x[0])),
 
     def backward(self, x, gy):
-        xp = cuda.get_array_module(*x)
-        gx = utils.force_array(xp.reciprocal(x[0]))
-        gx /= xp.log(2)
-        gx *= gy[0]
+        gx = gy[0].copy()
+        gx /= x[0]
+        gx /= math.log(2)
         return gx,
 
 
@@ -114,10 +115,9 @@ class Log10(function.Function):
         return utils.force_array(xp.log10(x[0])),
 
     def backward(self, x, gy):
-        xp = cuda.get_array_module(*x)
-        gx = utils.force_array(xp.reciprocal(x[0]))
-        gx /= xp.log(10)
-        gx *= gy[0]
+        gx = gy[0].copy()
+        gx /= x[0]
+        gx /= math.log(10)
         return gx,
 
 
