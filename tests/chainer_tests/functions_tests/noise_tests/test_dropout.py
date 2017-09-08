@@ -26,11 +26,13 @@ class TestDropout(unittest.TestCase):
     def setUp(self):
         self.x = numpy.random.uniform(-1, 1, (2, 3)).astype(self.dtype)
         self.gy = numpy.random.uniform(-1, 1, (2, 3)).astype(self.dtype)
+        self.ggx = numpy.random.uniform(-1, 1, (2, 3)).astype(self.dtype)
 
-        self.check_backward_options = {}
+        self.check_backward_options = {'dtype': 'd'}
+        self.check_double_backward_options = {'dtype': 'd'}
         if self.dtype == numpy.float16:
-            self.check_backward_options = {
-                'atol': 5e-4, 'rtol': 5e-3}
+            self.check_double_backward_options = {
+                'dtype': 'd', 'atol': 5e-4, 'rtol': 5e-3}
 
     def check_type_forward(self, x_data):
         x = chainer.Variable(x_data)
@@ -43,21 +45,19 @@ class TestDropout(unittest.TestCase):
         if self.ratio == 0.0:
             y_expect = x_data
         else:
-            y_expect = _dropout(x_data, y.creator)
+            y_expect = _dropout(x_data, y.creator_node)
         testing.assert_allclose(y_expect, y.data)
 
     def check_backward(self, x_data, y_grad):
-        x = chainer.Variable(x_data)
-        y = functions.dropout(x, self.ratio)
-        creator = y.creator
-        y.grad = y_grad
-        y.backward()
+        dropout = functions.Dropout(self.ratio)
 
-        def f():
-            y = _dropout(x_data, creator)
-            return y,
-        gx, = gradient_check.numerical_grad(f, (x_data, ), (y.grad, ), eps=0.1)
-        testing.assert_allclose(gx, x.grad, **self.check_backward_options)
+        def f(x):
+            x, = dropout.apply((x,))
+            return x
+
+        gradient_check.check_backward(
+            f, x_data, y_grad,
+            **self.check_double_backward_options)
 
     def test_type_forward_cpu(self):
         self.check_type_forward(self.x)
@@ -83,10 +83,32 @@ class TestDropout(unittest.TestCase):
         self.check_backward(cuda.to_gpu(self.x),
                             cuda.to_gpu(self.gy))
 
+    def check_double_backward(self, x_data, y_grad, x_grad_grad):
+        dropout = functions.Dropout(self.ratio)
+
+        def f(x):
+            x, = dropout.apply((x,))
+            return x * x
+
+        gradient_check.check_double_backward(
+            f, x_data, y_grad, x_grad_grad,
+            **self.check_double_backward_options)
+
+    @condition.retry(3)
+    def test_double_backward_cpu(self):
+        self.check_double_backward(self.x, self.gy, self.ggx)
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_double_backward_gpu(self):
+        self.check_double_backward(cuda.to_gpu(self.x),
+                                   cuda.to_gpu(self.gy),
+                                   cuda.to_gpu(self.ggx))
+
     def check_immutable(self, x_data):
         d = functions.Dropout(0.5)
-        y1 = d(chainer.Variable(x_data))
-        y2 = d(chainer.Variable(x_data))
+        y1, = d.apply((chainer.Variable(x_data),))
+        y2, = d.apply((chainer.Variable(x_data),))
         testing.assert_allclose(y1.data, y2.data)
 
     def test_immutable_cpu(self):
