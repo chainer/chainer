@@ -7,8 +7,8 @@ class ExtractBySliceNotSupportedError(Exception):
 
 
 class BaseIndexer(object):
-    """Base class for Indexer
-    """
+    """Base class for Indexer"""
+
     def __init__(self, *args, **kwargs):
         pass
 
@@ -17,17 +17,19 @@ class BaseIndexer(object):
 
 
 class BaseFeaturesIndexer(BaseIndexer):
+
     """Base class for FeaturesIndexer
-    
-    Let `features` be the instance of `BaseFeaturesIndexer`, then 
+
+    Let `features` be the instance of `BaseFeaturesIndexer`, then
     `features[i, j]` returns `i`-th dataset of `j`-th feature.
-    
+
     `features[ind]` works same with `features[ind, :]`
-    
-    Note that the returned value will be numpy array, even though the 
-    dataset is initilized with otherformat (e.g. list)
-    
+
+    Note that the returned value will be numpy array, even though the
+    dataset is initilized with other format (e.g. list).
+
     """
+
     def __init__(self, dataset, *args, access_feature_by_key=False, **kwargs):
         super(BaseFeaturesIndexer, self).__init__(*args, **kwargs)
         self.dataset = dataset
@@ -37,7 +39,8 @@ class BaseFeaturesIndexer(BaseIndexer):
     def features_keys(self):
         """Returns all the keys of features
 
-        This method must be override when `access_feature_by_key` is `True`. 
+        This method must be override when `access_feature_by_key` is `True`.
+
         """
         if self.access_feature_by_key:
             raise NotImplementedError
@@ -57,20 +60,20 @@ class BaseFeaturesIndexer(BaseIndexer):
         return self.dataset_length, self.features_length
 
     def extract_feature_by_slice(self, slice_index, j):
-        """Extracts `slice_index`-th data's `j`-th feature,
-        where `slice_index` is indices of slice object.
+        """Extracts `slice_index`-th data's `j`-th feature.
 
+        Here, `slice_index` is indices of slice object.
         This method may be override to support efficient feature extraction.
-        If not override, `ExtractBySliceNotSupportedError` is raised by default, 
-        and in this case `extract_feature` is used instead.
+        If not override, `ExtractBySliceNotSupportedError` is raised by
+        default, and in this case `extract_feature` is used instead.
 
         Args:
             slice_index (slice): slice of data index to be extracted
             j (int): `j`-th feature to be extracted
 
         Returns: feature
-
         """
+
         raise ExtractBySliceNotSupportedError
 
     def extract_feature(self, i, j):
@@ -94,9 +97,9 @@ class BaseFeaturesIndexer(BaseIndexer):
             if isinstance(feature_index[0],
                           (bool, numpy.bool, numpy.bool_)):
                 if len(feature_index) != self.features_length:
-                    raise ValueError('Feature index wrong length {} instead of '
-                                     '{}'.format(len(feature_index),
-                                                 self.features_length))
+                    raise ValueError('Feature index wrong length {} instead of'
+                                     ' {}'.format(len(feature_index),
+                                                  self.features_length))
                 feature_index_list = numpy.argwhere(feature_index
                                                     ).ravel()
             else:
@@ -106,7 +109,7 @@ class BaseFeaturesIndexer(BaseIndexer):
             feature_index_list = [feature_index]
         return feature_index_list
 
-    def create_feature_index_list_by_key(self, feature_index):
+    def create_feature_index_list_key(self, feature_index):
         if isinstance(feature_index, slice):
             raise TypeError('Accessing feature by slice is not supported')
         elif isinstance(feature_index, (list, numpy.ndarray)):
@@ -124,7 +127,7 @@ class BaseFeaturesIndexer(BaseIndexer):
     def __getitem__(self, item):
         self.preprocess(item)
         if self.access_feature_by_key:
-            create_feature_index_list_fn = self.create_feature_index_list_by_key
+            create_feature_index_list_fn = self.create_feature_index_list_key
         else:
             create_feature_index_list_fn = self.create_feature_index_list
         if isinstance(item, tuple):
@@ -156,7 +159,7 @@ class BaseFeaturesIndexer(BaseIndexer):
 
     def _extract_feature(self, data_index, j):
         """Format `data_index` and call proper method to extract feature.
-        
+
         Args:
             data_index (int, slice, list or numpy.ndarray):
             j (int or key):
@@ -182,9 +185,9 @@ class BaseFeaturesIndexer(BaseIndexer):
             if isinstance(data_index[0], (bool, numpy.bool, numpy.bool_)):
                 # Access by bool flag list
                 if len(data_index) != self.dataset_length:
-                    raise ValueError('Feature index wrong length {} instead of '
-                                     '{}'.format(len(data_index),
-                                                 self.dataset_length))
+                    raise ValueError('Feature index wrong length {} instead of'
+                                     ' {}'.format(len(data_index),
+                                                  self.dataset_length))
                 data_index = numpy.argwhere(data_index).ravel()
 
             if len(data_index) == 1:
@@ -195,7 +198,7 @@ class BaseFeaturesIndexer(BaseIndexer):
             return self.extract_feature(data_index, j)
         try:
             feature = numpy.asarray(res)
-        except ValueError as e:
+        except ValueError:
             feature = numpy.empty(len(res), dtype=object)
             feature[:] = res[:]
         return feature
