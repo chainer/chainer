@@ -43,7 +43,6 @@ from chainer.initializer import Initializer  # NOQA
 from chainer.link import Chain  # NOQA
 from chainer.link import ChainList  # NOQA
 from chainer.link import Link  # NOQA
-from chainer.link import Sequential  # NOQA
 from chainer.optimizer import GradientMethod  # NOQA
 from chainer.optimizer import Optimizer  # NOQA
 from chainer.optimizer import UpdateRule  # NOQA
@@ -53,6 +52,7 @@ from chainer.reporter import report  # NOQA
 from chainer.reporter import report_scope  # NOQA
 from chainer.reporter import Reporter  # NOQA
 from chainer.reporter import Summary  # NOQA
+from chainer.sequential import Sequential  # NOQA
 from chainer.serializer import AbstractSerializer  # NOQA
 from chainer.serializer import Deserializer  # NOQA
 from chainer.serializer import Serializer  # NOQA
