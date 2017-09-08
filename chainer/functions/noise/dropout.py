@@ -3,12 +3,12 @@ import numpy
 import chainer
 from chainer import configuration
 from chainer import cuda
-from chainer import function
+from chainer import function_node
 from chainer.utils import argument
 from chainer.utils import type_check
 
 
-class Dropout(function.Function):
+class Dropout(function_node.FunctionNode):
 
     """Dropout regularization."""
 
@@ -22,7 +22,6 @@ class Dropout(function.Function):
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward(self, x):
-        self.retain_inputs(())
         if hasattr(self, 'mask'):
             y = x[0] * self.mask
         else:
@@ -45,7 +44,20 @@ class Dropout(function.Function):
         return y,
 
     def backward(self, x, gy):
-        return gy[0] * self.mask,
+        return DropoutGrad(self.mask).apply((gy[0],))
+
+
+class DropoutGrad(function_node.FunctionNode):
+
+    def __init__(self, mask):
+        self.mask = mask
+
+    def forward(self, inputs):
+        y = inputs[0] * self.mask
+        return y,
+
+    def backward(self, indexes, gy):
+        return DropoutGrad(self.mask).apply((gy[0],))
 
 
 def dropout(x, ratio=.5, **kwargs):
@@ -81,5 +93,6 @@ def dropout(x, ratio=.5, **kwargs):
     argument.assert_kwargs_empty(kwargs)
 
     if configuration.config.train:
-        return Dropout(ratio)(x)
+        y, = Dropout(ratio).apply((x,))
+        return y
     return chainer.as_variable(x)
