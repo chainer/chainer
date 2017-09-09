@@ -161,10 +161,17 @@ if cuda.cudnn_enabled and _cudnn_version >= 5000:
         libcudnn.CUDNN_LSTM: True,
     }
 
+    _rnn_persistent_algo = {
+        'standard': libcudnn.CUDNN_RNN_ALGO_STANDARD,
+        'static': libcudnn.CUDNN_RNN_ALGO_PERSIST_STATIC,
+        'dynamic': libcudnn.CUDNN_RNN_ALGO_PERSIST_DYNAMIC,
+    }
+
 
 class BaseNStepRNN(function.Function):
 
-    def __init__(self, n_layers, states, rnn_dir, rnn_mode, **kwargs):
+    def __init__(self, n_layers, states, rnn_dir, rnn_mode,
+                 rnn_algo='standard', **kwargs):
         argument.check_unexpected_kwargs(
             kwargs, train='train argument is not supported anymore. '
             'Use chainer.using_config')
@@ -178,8 +185,14 @@ class BaseNStepRNN(function.Function):
             candidate_list = ','.join(_rnn_modes.keys())
             raise ValueError('Invalid rnn_mode: "%s". Please select from [%s]'
                              % (rnn_mode, candidate_list))
+        if rnn_algo not in _rnn_persistent_algo:
+            candidate_list = ','.join(_rnn_persistent_algo.keys())
+            raise ValueError('Invalid rnn_algo: "%s". Please select from [%s]'
+                             % (rnn_algo, candidate_list))
         self.rnn_dir = _rnn_dirs[rnn_dir]
         self.rnn_mode = _rnn_modes[rnn_mode]
+        # TODO: check `_rnn_persistent_algo` can be used in v5 (< v6)
+        self.rnn_algo = _rnn_persistent_algo[rnn_algo]
         self.rnn_direction = _rnn_params_direction[self.rnn_dir]
         self.n_layers = n_layers
         self.states = states
@@ -318,9 +331,15 @@ class BaseNStepRNN(function.Function):
         self.handle = handle
 
         rnn_desc = cudnn.create_rnn_descriptor(
-            n_units, self.n_layers, self.states.desc,
-            libcudnn.CUDNN_LINEAR_INPUT, self.rnn_dir,
-            self.rnn_mode, libcudnn.CUDNN_DATA_FLOAT)
+            handle, n_units, self.n_layers, self.states.desc,
+            libcudnn.CUDNN_LINEAR_INPUT, self.rnn_dir, self.rnn_mode,
+            self.rnn_algo, libcudnn.CUDNN_DATA_FLOAT)
+
+        if self.rnn_algo == libcudnn.CUDNN_RNN_ALGO_PERSIST_DYNAMIC:
+            # TODO: check `length` is equal to `mini-batch`
+            cudnn.create_rnn_persistent_rnn_plan(
+                rnn_desc, libcudnn.CUDNN_DATA_FLOAT, length)
+
         self.rnn_desc = rnn_desc
 
         c_x_descs = _make_tensor_descriptor_array(x_list)
