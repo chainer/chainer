@@ -57,8 +57,9 @@ def numerical_grad(f, inputs, grad_outputs, eps=1e-3):
 
     with configuration.using_config('type_check', False):
         for x, gx in six.moves.zip(inputs, grads):
+            orig_x = x.copy()  # hold original value
             for i in numpy.ndindex(x.shape):
-                orig = x[i].copy()  # hold original value
+                orig = orig_x[i]
                 x[i] = orig + eps
                 ys1 = _copy_arrays(f())
                 x[i] = orig - eps
@@ -325,16 +326,16 @@ def check_backward(func, x_data, y_grad, params=(),
         gxi = x.grad.ravel()
         cxi = cx.data.ravel()
         if dtype is not None:
-            gxi = gxi.astype(dtype)
-            cxi = cxi.astype(dtype)
+            gxi = gxi.astype(dtype, copy=False)
+            cxi = cxi.astype(dtype, copy=False)
         gx_accum += gxi.dot(cxi)
 
     for p, gpi in six.moves.zip(params, params_grad):
         gpi = gpi.ravel()
         pi = p.data.ravel()
         if dtype is not None:
-            gpi = gpi.astype(dtype)
-            pi = pi.astype(dtype)
+            gpi = gpi.astype(dtype, copy=False)
+            pi = pi.astype(dtype, copy=False)
         gx_accum += gpi.dot(pi)
 
     testing.assert_allclose(gx, gx_accum, atol=atol, rtol=rtol)
