@@ -254,6 +254,7 @@ from chainer.functions.noise.dropout import dropout  # NOQA
 from chainer.functions.noise.dropout import Dropout  # NOQA
 from chainer.functions.noise.gaussian import gaussian  # NOQA
 from chainer.functions.noise.gaussian import Gaussian  # NOQA
+from chainer.functions.noise.gumbel_softmax import gumbel_softmax  # NOQA
 from chainer.functions.noise.simplified_dropconnect import simplified_dropconnect  # NOQA
 from chainer.functions.noise.simplified_dropconnect import SimplifiedDropconnect  # NOQA
 from chainer.functions.noise.zoneout import zoneout  # NOQA
