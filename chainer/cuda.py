@@ -127,8 +127,9 @@ DummyDevice = DummyDeviceType()
 # Global states
 # ------------------------------------------------------------------------------
 if available:
-    memory_pool = cupy.default_memory_pool
-    pinned_memory_pool = cupy.default_pinned_memory_pool
+    # This is for backward compatibility
+    memory_pool = cupy.get_default_memory_pool()
+    pinned_memory_pool = cupy.get_default_pinned_memory_pool()
 
 
 if six.PY2:
