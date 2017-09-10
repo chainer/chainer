@@ -10,8 +10,6 @@ train_images = 'train-images-idx3-ubyte.gz'
 train_labels = 'train-labels-idx1-ubyte.gz'
 test_images = 't10k-images-idx3-ubyte.gz'
 test_labels = 't10k-labels-idx1-ubyte.gz'
-num_train = 60000
-num_test = 10000
 dim = 784
 
 
@@ -31,7 +29,14 @@ def load_mnist(images, labels, num):
     return data, target
 
 
-def download_mnist_data():
+def download_mnist_data(test=False):
+    if test:
+        num_train = 100
+        num_test = 100
+    else:
+        num_train = 60000
+        num_test = 10000
+
     print('Downloading {:s}...'.format(train_images))
     request.urlretrieve('{:s}/{:s}'.format(parent, train_images), train_images)
     print('Done')
@@ -61,9 +66,9 @@ def download_mnist_data():
     print('Convert completed')
 
 
-def load_mnist_data():
+def load_mnist_data(test=False):
     if not os.path.exists('mnist.pkl'):
-        download_mnist_data()
+        download_mnist_data(test)
     with open('mnist.pkl', 'rb') as mnist_pickle:
         mnist = six.moves.cPickle.load(mnist_pickle)
     return mnist
