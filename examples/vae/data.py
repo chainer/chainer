@@ -29,6 +29,13 @@ def load_mnist(images, labels, num):
     return data, target
 
 
+def get_pkl_file_name(test):
+    if test:
+        return 'mnist.test.pkl'
+    else:
+        return 'mnist.pkl'
+
+
 def download_mnist_data(test=False):
     if test:
         num_train = 100
@@ -60,15 +67,16 @@ def download_mnist_data(test=False):
              'target': np.append(target_train, target_test, axis=0)}
     print('Done')
     print('Save output...')
-    with open('mnist.pkl', 'wb') as output:
+    with open(get_pkl_file_name(test), 'wb') as output:
         six.moves.cPickle.dump(mnist, output, -1)
     print('Done')
     print('Convert completed')
 
 
 def load_mnist_data(test=False):
-    if not os.path.exists('mnist.pkl'):
+    pkl_file_name = get_pkl_file_name(test)
+    if not os.path.exists(pkl_file_name):
         download_mnist_data(test)
-    with open('mnist.pkl', 'rb') as mnist_pickle:
+    with open(pkl_file_name, 'rb') as mnist_pickle:
         mnist = six.moves.cPickle.load(mnist_pickle)
     return mnist
