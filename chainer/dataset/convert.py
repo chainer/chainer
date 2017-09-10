@@ -161,7 +161,6 @@ class ConcatWithAsyncTransfer(object):
         self.cp_arrays = [[], []]  # cupy arrays
 
     def __call__(self, batch, device=None, padding=None):
-
         """Concatenate data and transfer them to GPU asynchronously.
 
         (see concat_examples for detail about concatenation)
