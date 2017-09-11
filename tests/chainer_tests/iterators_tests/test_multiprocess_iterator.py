@@ -399,16 +399,19 @@ class TestMultiprocessIteratorConcurrency(unittest.TestCase):
         for _ in range(10):
             it.next()
 
-        timeout = 5.
         t = threading.Thread(target=lambda: it.finalize())
         t.daemon = True
         t.start()
-        t.join(timeout)
+        t.join(5)
         deadlock = t.is_alive()
 
         self.assertFalse(deadlock)
 
 
+@testing.parameterize(*testing.product({
+    'n_prefetch': [1, 2],
+    'shared_mem': [None, 1000000],
+}))
 class TestMultiprocessIteratorInterruption(unittest.TestCase):
 
     # unless you're debugging tests, this should be false
@@ -417,19 +420,18 @@ class TestMultiprocessIteratorInterruption(unittest.TestCase):
     def setUp(self):
         self.code_path = None
         self.sys_path_appended = False
-        if not self.__class__.show_interruption_msg:
+        if not self.show_interruption_msg:
             self.nullfd = os.open(os.devnull, os.O_WRONLY)
 
     def tearDown(self):
-        if not self.__class__.show_interruption_msg:
+        if not self.show_interruption_msg:
             os.close(self.nullfd)
         if self.code_path is not None:
             os.remove(self.code_path)
         if self.sys_path_appended:
             sys.path.pop()
 
-    def run_code(self, dataset, n_processes, n_prefetch, shared_mem,
-                 operation):
+    def run_code(self, dataset, n_processes, operation):
         code_template = """
 import random
 import time
@@ -460,8 +462,8 @@ if __name__ == '__main__':
         """
         code = code_template.format(dataset=dataset,
                                     n_processes=n_processes,
-                                    n_prefetch=n_prefetch,
-                                    shared_mem=shared_mem,
+                                    n_prefetch=self.n_prefetch,
+                                    shared_mem=self.shared_mem,
                                     operation=operation)
         fd, self.code_path = tempfile.mkstemp(suffix='.py')
         os.write(fd, six.b(code))
@@ -469,11 +471,11 @@ if __name__ == '__main__':
         sys.path.append(os.path.dirname(self.code_path))
         self.sys_path_appended = True
 
-        if shared_mem is not None and dataset is 'infinite_wait':
+        if self.shared_mem is not None and dataset is 'infinite_wait':
             stdout = subprocess.PIPE
         else:
             stdout = None
-        stderr = None if self.__class__.show_interruption_msg else self.nullfd
+        stderr = None if self.show_interruption_msg else self.nullfd
         self.p = subprocess.Popen([sys.executable, self.code_path],
                                   stdout=stdout, stderr=stderr)
         if stdout is None:
@@ -482,6 +484,13 @@ if __name__ == '__main__':
             self.child_pids = list(map(int, self.p.stdout.readline().split()))
 
     def send_sigint(self):
+        # `signal.CTRL_C_EVENT` is also sent to the test process itself.
+        # See https://docs.python.org/3.6/library/os.html#os.kill
+        # So we need to wait the signal and ignore it.
+        # We can NOT ignore the signal by modifying the signal handler here.
+        # If we temporary ignores the signal, the signal will sent again
+        # when the signal handler is restored.
+        # If we ignore the signal permanently, we couldn't interrupt the test.
         if os.name == 'nt':
             try:
                 os.kill(self.p.pid, signal.CTRL_C_EVENT)
@@ -494,11 +503,11 @@ if __name__ == '__main__':
 
     def killall(self):
         # try waiting the root process
-        for _ in range(10):
-            time.sleep(1)
-            if self.p.poll() is not None:
-                self.p.wait()
-                break
+        try:
+            self.p.wait(10)
+        except subprocess.TimeoutExpired:
+            # the remained process will be killed later
+            pass
 
         pids = [self.p.pid] + self.child_pids
 
@@ -526,27 +535,20 @@ if __name__ == '__main__':
         return was_alive
 
     def test_interrupt_infinite_wait_batch(self):
-        for shared_mem in (None, 1000000):
-            self.run_code(dataset='infinite_wait',
-                          n_processes=2,
-                          n_prefetch=1,
-                          shared_mem=shared_mem,
-                          operation='it.next()')
-            time.sleep(1.5)
-            self.send_sigint()
-            self.assertFalse(self.killall())
+        self.run_code(dataset='infinite_wait',
+                      n_processes=2,
+                      operation='it.next()')
+        time.sleep(1.5)
+        self.send_sigint()
+        self.assertFalse(self.killall())
 
     def test_interrupt_no_wait_batch(self):
-        for shared_mem in (None, 1000000):
-            for n_prefetch in (1, 2):
-                self.run_code(dataset='no_wait',
-                              n_processes=2,
-                              n_prefetch=n_prefetch,
-                              shared_mem=shared_mem,
-                              operation='time.sleep(1000)')
-                time.sleep(1.5)
-                self.send_sigint()
-                self.assertFalse(self.killall())
+        self.run_code(dataset='no_wait',
+                      n_processes=2,
+                      operation='time.sleep(1000)')
+        time.sleep(1.5)
+        self.send_sigint()
+        self.assertFalse(self.killall())
 
 
 testing.run_module(__name__, __file__)

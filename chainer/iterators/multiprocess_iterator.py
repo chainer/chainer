@@ -72,7 +72,7 @@ class MultiprocessIterator(iterator.Iterator):
         self._prefetch_loop = _PrefetchLoop(
             self.dataset, self.batch_size, self.repeat, self.shuffle,
             self.n_processes, self.n_prefetch, self.shared_mem, self._comm,
-            self.__class__._interruption_testing)
+            self._interruption_testing)
         # defer launching prefetch thread until creating the worker pool,
         # not to leave a background thread in forked processes.
         self._thread = None
@@ -99,29 +99,27 @@ class MultiprocessIterator(iterator.Iterator):
     next = __next__
 
     def __del__(self):
-        try:
-            finalized = self._finalized
-        except AttributeError:
+        # When `self.__del__()` is called, `self.__init__()` may not be
+        # finished. So some attributes may be undefined.
+        if not hasattr(self, '_finalized'):
+            # We don't know how to finalize this uninitialized object
             return
-        if finalized:
+        if not hasattr(self, '_comm'):
+            self._comm = None
+        if not hasattr(self, '_thread'):
+            self._thread = None
+
+        if self._finalized:
             return
         self._finalized = True
-
-        try:
-            comm = self._comm
-        except AttributeError:
+        if self._comm is None:
             return
-        comm.terminate()
+        self._comm.terminate()
 
-        try:
-            t = self._thread
-        except AttributeError:
+        if self._thread is None:
             return
-        if t is None:
-            return
-
-        while t.is_alive():
-            t.join(_response_time)
+        while self._thread.is_alive():
+            self._thread.join(_response_time)
 
     finalize = __del__
 
