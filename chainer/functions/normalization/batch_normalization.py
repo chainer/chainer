@@ -30,7 +30,6 @@ class BatchNormalization(function_node.FunctionNode):
             if eps < 1e-5:
                 msg = 'cuDNN does not allow an eps value less than 1e-5.'
                 raise RuntimeError(msg)
-        self.mean_cache = None
         self.decay = decay
 
     def check_type_forward(self, in_types):
@@ -54,7 +53,7 @@ class BatchNormalization(function_node.FunctionNode):
         if self.running_mean is None:
             self.running_mean = xp.zeros_like(gamma)
             self.running_var = xp.zeros_like(gamma)
-        self.mode = _BNMode(x.ndim, gamma.ndim)
+        self.mode = _BNMode(x, gamma)
 
         # expander inserts singleton dimensions to gamma and beta so that they
         # can be broadcasted with x.
@@ -62,11 +61,10 @@ class BatchNormalization(function_node.FunctionNode):
         expander = (None, Ellipsis) + (None,) * (x.ndim - head_ndim)
         self.expander = expander
         self.axis = (0,) + tuple(range(head_ndim, x.ndim))
-        self.use_cudnn = self.mode.can_use_cudnn(xp, x.ndim)
+        self.use_cudnn = self.mode.can_use_cudnn(xp)
 
         if self.use_cudnn:
             x = cuda.cupy.ascontiguousarray(x)
-            cudnn_mode = self.mode.get_cudnn_mode()
 
             gamma = cuda.cupy.ascontiguousarray(gamma)
             beta = cuda.cupy.ascontiguousarray(beta)
@@ -74,6 +72,7 @@ class BatchNormalization(function_node.FunctionNode):
             handle = cudnn.get_handle()
             x_desc = cudnn.create_tensor_descriptor(_as4darray(x))
             derivedBnDesc = cudnn.create_uninitialized_tensor_descriptor()
+            cudnn_mode = self.mode.get_cudnn_mode()
             libcudnn.deriveBNTensorDescriptor(derivedBnDesc.value,
                                               x_desc.value, cudnn_mode)
             one = numpy.array(1, dtype=dtype).ctypes
@@ -267,8 +266,8 @@ class FixedBatchNormalization(function_node.FunctionNode):
         self.expander = expander
         self.axis = (0,) + tuple(range(head_ndim, x.ndim))
 
-        mode = _BNMode(x.ndim, gamma.ndim)
-        if mode.can_use_cudnn(xp, x.ndim):
+        mode = _BNMode(x, gamma)
+        if mode.can_use_cudnn(xp):
             x = cuda.cupy.ascontiguousarray(x)
 
             gamma = cuda.cupy.ascontiguousarray(gamma)
@@ -277,14 +276,15 @@ class FixedBatchNormalization(function_node.FunctionNode):
             handle = cudnn.get_handle()
             x_desc = cudnn.create_tensor_descriptor(_as4darray(x))
             derivedBnDesc = cudnn.create_uninitialized_tensor_descriptor()
+            cudnn_mode = mode.get_cudnn_mode()
             libcudnn.deriveBNTensorDescriptor(derivedBnDesc.value,
-                                              x_desc.value, self.mode)
+                                              x_desc.value, cudnn_mode)
             one = numpy.array(1, dtype=dtype).ctypes
             zero = numpy.array(0, dtype=dtype).ctypes
             y = cuda.cupy.empty_like(x)
 
             libcudnn.batchNormalizationForwardInference(
-                handle, self.mode.get_cudnn_mode(), one.data, zero.data,
+                handle, cudnn_mode, one.data, zero.data,
                 x_desc.value, x.data.ptr, x_desc.value, y.data.ptr,
                 derivedBnDesc.value, gamma.data.ptr, beta.data.ptr,
                 mean.data.ptr, var.data.ptr, self.eps)
@@ -378,17 +378,18 @@ class FixedBatchNormalizationGrad(function.Function):
 
 class _BNMode(object):
 
-    def __init__(self, x_ndim, gamma_ndim):
-        is_gamma_1d = gamma_ndim == 1
+    def __init__(self, x, gamma):
+        is_gamma_1d = gamma.ndim == 1
         # cuDNN only supports these tensor dimensions because they are
         # the most commonly used. If there is a need to support other
         # dimensions with cuDNN, we could consider reshaping the input
         # into a 2-dim array with channels as second dim and m=<product
         # of all dimensions except the 2nd dimension> as the first
         # dimension.
-        self.is_for_conv2d = x_ndim == 4 and is_gamma_1d
-        self.is_for_linear = x_ndim == 2 and is_gamma_1d
+        self.is_for_conv2d = x.ndim == 4 and is_gamma_1d
+        self.is_for_linear = x.ndim == 2 and is_gamma_1d
         self.cudnn_dim_ok = self.is_for_conv2d or self.is_for_linear
+        self.cudnn_dtype_ok = x.dtype != numpy.float16
 
     def get_cudnn_mode(self):
         assert self.cudnn_dim_ok
@@ -396,13 +397,13 @@ class _BNMode(object):
             return libcudnn.CUDNN_BATCHNORM_SPATIAL
         return libcudnn.CUDNN_BATCHNORM_PER_ACTIVATION
 
-    def can_use_cudnn(self, xp, x_dtype):
+    def can_use_cudnn(self, xp):
         # TODO(bkvogel): Check for float16 support again in next cuDNN version.
         # cuDNN v5 batch normalization does not seem to support float16.
         return (xp is not numpy and
                 chainer.should_use_cudnn('>=auto', 5000) and
                 self.cudnn_dim_ok and
-                x_dtype != numpy.float16)
+                self.cudnn_dtype_ok)
 
 
 def _as4darray(arr):
