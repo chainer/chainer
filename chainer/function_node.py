@@ -579,6 +579,7 @@ class FunctionNode(object):
         if name in hooks:
             raise KeyError('Hook %s already exists' % name)
         hooks[name] = hook
+        hook.added(function=self)
 
     def delete_hook(self, name):
         """Unregisters the function hook.
@@ -587,4 +588,8 @@ class FunctionNode(object):
             name (str): The name of the function hook to be unregistered.
 
         """
-        del self.local_function_hooks[name]
+        if name in self.local_function_hooks:
+            self.local_function_hooks[name].deleted(function=self)
+            del self.local_function_hooks[name]
+        else:
+            raise KeyError('Hook %s does not exist' % name)
