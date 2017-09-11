@@ -396,7 +396,7 @@ class FunctionNode(object):
         self._output_indexes_to_retain = indexes
 
     def backward(self, target_input_indexes, grad_outputs):
-        """Computes gradients w.r.t. specified inputs given output gradients.
+        """Computes gradients w.r.t.\\ specified inputs given output gradients.
 
         This method is used to compute one step of the backpropagation
         corresponding to the forward computation of this function node.
@@ -441,7 +441,7 @@ class FunctionNode(object):
 
     def backward_accumulate(self, target_input_indexes, grad_outputs,
                             grad_inputs):
-        """Computes gradients w.r.t. specified inputs and accumulates them.
+        """Computes gradients w.r.t.\\ specified inputs and accumulates them.
 
         This method provides a way to fuse the backward computation and the
         gradient accumulations in the case that the multiple functions are
