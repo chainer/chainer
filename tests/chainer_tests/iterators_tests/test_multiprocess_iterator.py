@@ -415,11 +415,10 @@ class TestMultiprocessIteratorConcurrency(unittest.TestCase):
 class TestMultiprocessIteratorInterruption(unittest.TestCase):
 
     # unless you're debugging tests, this should be false
-    show_interruption_msg = False
+    show_interruption_msg = True
 
     def setUp(self):
         self.code_path = None
-        self.sys_path_appended = False
         if not self.show_interruption_msg:
             self.nullfd = os.open(os.devnull, os.O_WRONLY)
 
@@ -428,14 +427,19 @@ class TestMultiprocessIteratorInterruption(unittest.TestCase):
             os.close(self.nullfd)
         if self.code_path is not None:
             os.remove(self.code_path)
-        if self.sys_path_appended:
-            sys.path.pop()
 
     def run_code(self, dataset, n_processes, operation):
         code_template = """
+import os
 import random
+import sys
 import time
 from chainer import iterators
+
+# Using `multiprocessing` on Windows Python 2.7 requires
+# that the script can be found on `sys.path`.
+# See https://bugs.python.org/issue19946
+sys.path.append(os.path.dirname(__file__))
 
 class InfiniteWaitDataSet(object):
     def __len__(self):
@@ -468,8 +472,6 @@ if __name__ == '__main__':
         fd, self.code_path = tempfile.mkstemp(suffix='.py')
         os.write(fd, six.b(code))
         os.close(fd)
-        sys.path.append(os.path.dirname(self.code_path))
-        self.sys_path_appended = True
 
         if self.shared_mem is not None and dataset is 'infinite_wait':
             stdout = subprocess.PIPE
