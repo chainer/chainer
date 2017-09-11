@@ -224,8 +224,8 @@ class BatchNormalizationGrad(function.Function):
         gmean2 = -self.inv_std * gx_hat2.sum(axis=self.axis)
         gx2 = self.inv_std[expander] * gx_hat2 + inv_m * (
             gmean2[expander] + x_hat * gstd2[expander])
-        ggy2 = (gggamma2[expander] * x_hat + ggbeta2[expander] +
-                coeff[expander] * ggx1)
+        ggy2 = (gggamma2[expander] * x_hat + ggbeta2[expander]
+                + coeff[expander] * ggx1)
 
         return gx2, ggamma2, ggy2
 
@@ -364,14 +364,14 @@ class FixedBatchNormalizationGrad(function.Function):
 
         g_gamma_over_std = (ggx1 * gy).sum(axis=self.axis) - ggmean1 * gbeta1
         ggbeta2 = ggbeta1 - ggmean1 * self.gamma_over_std
-        ggy2 = (gggamma2[expander] * x_hat + ggbeta2[expander] +
-                self.gamma_over_std[expander] * ggx1)
+        ggy2 = (gggamma2[expander] * x_hat + ggbeta2[expander]
+                + self.gamma_over_std[expander] * ggx1)
 
-        ggamma2 = (self.inv_var * g_gamma_over_var +
-                   self.inv_std * g_gamma_over_std)
+        ggamma2 = (self.inv_var * g_gamma_over_var
+                   + self.inv_std * g_gamma_over_std)
         gvar2 = -(ggamma2 * gamma_over_var + 0.5 * self.inv_var * (
-            (x_hat * gx_hat).sum(axis=self.axis) -
-            self.gamma_over_std * g_gamma_over_std))
+            (x_hat * gx_hat).sum(axis=self.axis)
+            - self.gamma_over_std * g_gamma_over_std))
 
         return gx2, ggamma2, gmean2, gvar2, ggy2
 
