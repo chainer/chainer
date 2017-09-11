@@ -333,6 +333,7 @@ class TestNStepBiRNN(unittest.TestCase):
 
 @testing.parameterize(*testing.product({
     'use_cudnn': ['always', 'auto', 'never'],
+    'rnn_algo': ['standard', 'static', 'dynamic'],
 }))
 @attr.cudnn
 class TestNStepRNNCudnnCall(unittest.TestCase):
@@ -388,7 +389,8 @@ class TestNStepRNNCudnnCall(unittest.TestCase):
             bs = [[chainer.Variable(b) for b in bs]
                   for bs in self.bs]
             return functions.n_step_rnn(
-                self.n_layers, self.dropout, h, ws, bs, xs)
+                self.n_layers, self.dropout, h, ws, bs, xs,
+                activation='tanh', rnn_algo=self.rnn_algo)
 
     def test_call_cudnn_forward_training(self):
         with mock.patch('cupy.cuda.cudnn.RNNForwardTraining') as func:
@@ -410,6 +412,7 @@ class TestNStepRNNCudnnCall(unittest.TestCase):
 
 @testing.parameterize(*testing.product({
     'use_cudnn': ['always', 'auto', 'never'],
+    'rnn_algo': ['standard', 'static', 'dynamic'],
 }))
 @attr.cudnn
 class TestNStepBiRNNCudnnCall(unittest.TestCase):
@@ -468,7 +471,8 @@ class TestNStepBiRNNCudnnCall(unittest.TestCase):
             bs = [[chainer.Variable(b) for b in bs]
                   for bs in self.bs]
             return functions.n_step_birnn(
-                self.n_layers, self.dropout, h, ws, bs, xs)
+                self.n_layers, self.dropout, h, ws, bs, xs,
+                activation='tanh', rnn_algo=self.rnn_algo)
 
     def test_call_cudnn_forward_training(self):
         with mock.patch('cupy.cuda.cudnn.RNNForwardTraining') as func:
