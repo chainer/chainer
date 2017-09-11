@@ -61,7 +61,7 @@ class NStepRNNBase(link.ChainList):
     """  # NOQA
 
     def __init__(self, n_layers, in_size, out_size, dropout,
-                 use_bi_direction, activation, **kwargs):
+                 use_bi_direction, activation, rnn_algo, **kwargs):
         argument.check_unexpected_kwargs(
             kwargs, use_cudnn='use_cudnn argument is not supported anymore. '
             'Use chainer.using_config')
@@ -93,6 +93,7 @@ class NStepRNNBase(link.ChainList):
         self.n_layers = n_layers
         self.dropout = dropout
         self.activation = activation
+        self.rnn_algo = rnn_algo
         self.out_size = out_size
         self.direction = direction
         self.rnn = rnn.n_step_birnn if use_bi_direction else rnn.n_step_rnn
@@ -142,7 +143,7 @@ class NStepRNNBase(link.ChainList):
 
         hy, trans_y = self.rnn(
             self.n_layers, self.dropout, hx, ws, bs, trans_x,
-            activation=self.activation)
+            activation=self.activation, rnn_algo=self.rnn_algo)
 
         hy = permutate.permutate(hy, indices, axis=1, inv=True)
         ys = transpose_sequence.transpose_sequence(trans_y)
@@ -183,10 +184,12 @@ class NStepRNNTanh(NStepRNNBase):
 
     """
 
-    def __init__(self, n_layers, in_size, out_size, dropout, **kwargs):
+    def __init__(self, n_layers, in_size, out_size, dropout,
+                 rnn_algo='standard', **kwargs):
         NStepRNNBase.__init__(
             self, n_layers, in_size, out_size, dropout,
-            use_bi_direction=False,  activation='tanh', **kwargs)
+            use_bi_direction=False,  activation='tanh',
+            rnn_algo=rnn_algo, **kwargs)
 
 
 class NStepRNNReLU(NStepRNNBase):
@@ -221,10 +224,12 @@ class NStepRNNReLU(NStepRNNBase):
 
     """
 
-    def __init__(self, n_layers, in_size, out_size, dropout, **kwargs):
+    def __init__(self, n_layers, in_size, out_size, dropout,
+                 rnn_algo='standard', **kwargs):
         NStepRNNBase.__init__(
             self, n_layers, in_size, out_size, dropout,
-            use_bi_direction=False, activation='relu', **kwargs)
+            use_bi_direction=False, activation='relu',
+            rnn_algo=rnn_algo, **kwargs)
 
 
 class NStepBiRNNTanh(NStepRNNBase):
@@ -260,10 +265,12 @@ class NStepBiRNNTanh(NStepRNNBase):
 
     """
 
-    def __init__(self, n_layers, in_size, out_size, dropout, **kwargs):
+    def __init__(self, n_layers, in_size, out_size, dropout,
+                 rnn_algo='standard', **kwargs):
         NStepRNNBase.__init__(
             self, n_layers, in_size, out_size, dropout,
-            use_bi_direction=True, activation='tanh', **kwargs)
+            use_bi_direction=True, activation='tanh',
+            rnn_algo=rnn_algo, **kwargs)
 
 
 class NStepBiRNNReLU(NStepRNNBase):
@@ -298,7 +305,9 @@ class NStepBiRNNReLU(NStepRNNBase):
 
     """
 
-    def __init__(self, n_layers, in_size, out_size, dropout, **kwargs):
+    def __init__(self, n_layers, in_size, out_size, dropout,
+                 rnn_algo='standard', **kwargs):
         NStepRNNBase.__init__(
             self, n_layers, in_size, out_size, dropout,
-            use_bi_direction=True, activation='relu', **kwargs)
+            use_bi_direction=True, activation='relu',
+            rnn_algo=rnn_algo, **kwargs)
