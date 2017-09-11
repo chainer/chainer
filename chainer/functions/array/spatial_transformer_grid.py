@@ -3,8 +3,8 @@ import numpy
 import chainer
 from chainer import cuda
 from chainer import function
+from chainer.utils import argument
 from chainer.utils import type_check
-
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
@@ -112,7 +112,7 @@ class SpatialTransformerGrid(function.Function):
         return gtheta,
 
 
-def spatial_transformer_grid(theta, output_shape):
+def spatial_transformer_grid(theta, output_shape, **kwargs):
     """2D Spatial Transformer grid.
 
     This function generates coordinates of the points sampled from an image
@@ -160,4 +160,10 @@ def spatial_transformer_grid(theta, output_shape):
         the upper-left corner of the input image.
 
     """
+    argument.check_unexpected_kwargs(
+        kwargs, use_cudnn="The argument \"use_cudnn\" is not "
+        "supported anymore. "
+        "Use chainer.using_config('use_cudnn', value) "
+        "context where value can be `always`, `never`, or `auto`.")
+    argument.assert_kwargs_empty(kwargs)
     return SpatialTransformerGrid(output_shape)(theta)

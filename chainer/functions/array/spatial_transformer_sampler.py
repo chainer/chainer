@@ -3,6 +3,7 @@ import numpy
 import chainer
 from chainer import cuda
 from chainer import function
+from chainer.utils import argument
 from chainer.utils import type_check
 
 
@@ -248,7 +249,7 @@ class SpatialTransformerSampler(function.Function):
         return gx, ggrid
 
 
-def spatial_transformer_sampler(x, grid):
+def spatial_transformer_sampler(x, grid, **kwargs):
     """2D Spatial Transformer sampler.
 
     This is a differentiable image sampler. With a set of sampling points
@@ -299,4 +300,10 @@ def spatial_transformer_sampler(x, grid):
             :math:`(n, c_I, h_O, w_O)`.
 
     """
+    argument.check_unexpected_kwargs(
+        kwargs, use_cudnn="The argument \"use_cudnn\" is not "
+        "supported anymore. "
+        "Use chainer.using_config('use_cudnn', value) "
+        "context where value can be `always`, `never`, or `auto`.")
+    argument.assert_kwargs_empty(kwargs)
     return SpatialTransformerSampler()(x, grid)
