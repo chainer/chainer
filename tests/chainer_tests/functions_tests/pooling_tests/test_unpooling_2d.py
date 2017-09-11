@@ -9,7 +9,6 @@ from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
 
 
 @testing.parameterize(*testing.product_dict(
@@ -47,10 +46,10 @@ class TestUnpooling2D(unittest.TestCase):
         outh, outw = self.outsize or self.expected_outsize
         self.gy = numpy.random.uniform(
             -1, 1, (self.N, self.n_channels, outh, outw)).astype(self.dtype)
-        self.check_backward_options = {}
+        self.check_backward_options = {'atol': 1e-4, 'rtol': 1e-3}
+        self.check_double_backward_options = {}
         if self.dtype == numpy.float16:
-            self.check_backward_options = {
-                'dtype': numpy.float64, 'atol': 5e-4, 'rtol': 5e-3}
+            self.check_backward_options = {'atol': 2e-3, 'rtol': 2e-2}
 
     def check_forward(self, x_data):
         x = chainer.Variable(x_data)
@@ -85,12 +84,10 @@ class TestUnpooling2D(unittest.TestCase):
                     raise ValueError('Unsupported outsize: {}'.format(outsize))
                 testing.assert_allclose(expect, y_data[i, c])
 
-    @condition.retry(3)
     def test_forward_cpu(self):
         self.check_forward(self.x)
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x))
 
@@ -98,14 +95,13 @@ class TestUnpooling2D(unittest.TestCase):
         gradient_check.check_backward(
             functions.Unpooling2D(self.ksize, outsize=self.outsize,
                                   cover_all=self.cover_all),
-            x_data, y_grad, **self.check_backward_options)
+            x_data, y_grad, dtype=numpy.float64,
+            **self.check_backward_options)
 
-    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy)
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
