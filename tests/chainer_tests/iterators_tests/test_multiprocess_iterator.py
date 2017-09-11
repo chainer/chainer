@@ -503,11 +503,13 @@ if __name__ == '__main__':
 
     def killall(self):
         # try waiting the root process
-        try:
-            self.p.wait(10)
-        except subprocess.TimeoutExpired:
-            # the remained process will be killed later
-            pass
+        # Python 2.7 doesn't have `subprocess.TimeoutExpired`,
+        # so we couldn't use `p.wait(10)`.
+        for _ in range(10):
+            time.sleep(1)
+            if self.p.poll() is not None:
+                self.p.wait()
+                break
 
         pids = [self.p.pid] + self.child_pids
 
