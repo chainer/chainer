@@ -81,7 +81,7 @@ class Log2(function.Function):
     def backward(self, x, gy):
         gx = gy[0].copy()
         gx /= x[0]
-        gx /= math.log(2)
+        gx *= 1 / math.log(2)
         return gx,
 
 
@@ -117,7 +117,7 @@ class Log10(function.Function):
     def backward(self, x, gy):
         gx = gy[0].copy()
         gx /= x[0]
-        gx /= math.log(10)
+        gx *= 1 / math.log(10)
         return gx,
 
 
