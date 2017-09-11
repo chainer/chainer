@@ -599,7 +599,7 @@ class FunctionNode(object):
 
 def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
          retain_grad=False, enable_double_backprop=False):
-    """Computes the gradient of output variables w.r.t. the input variables.
+    """Computes the gradient of output variables w.r.t.\\ the input variables.
 
     This function implements the backpropagation algorithm. While
     :meth:`Variable.backward` also implements backprop, this function selects
