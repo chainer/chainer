@@ -186,7 +186,7 @@ class Sequential(chainer.ChainList):
         n_layers = len(self)
         for _ in range(n_repeat - 1):
             for i in range(n_layers):
-                if isinstance(self[i], Link):
+                if isinstance(self[i], chainer.Link):
                     layer = copy.deepcopy(self[i])
                     for param in layer.params(include_uninit=False):
                         param.initialize(param.shape)

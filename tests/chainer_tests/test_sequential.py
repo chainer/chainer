@@ -427,7 +427,6 @@ class TestSequential(unittest.TestCase):
         l3.assert_called_once()
         y = self.s1(x)
         self.assertIs(y.creator.inputs[1].data, self.l2.W.data)
-        self.assertIs(y.creator.inputs[2].data, self.l2.b.data)
 
     def test_call_with_multiple_inputs(self):
         model = chainer.Sequential(
