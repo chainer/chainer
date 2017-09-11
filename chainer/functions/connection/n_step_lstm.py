@@ -27,14 +27,16 @@ class NStepLSTM(n_step_rnn.BaseNStepRNN):
 
     def __init__(self, n_layers, states):
         n_step_rnn.BaseNStepRNN.__init__(self, n_layers, states,
-                                         rnn_dir='uni', rnn_mode='lstm')
+                                         rnn_dir='uni', rnn_mode='lstm',
+                                         rnn_algo='standard')
 
 
 class NStepBiLSTM(n_step_rnn.BaseNStepRNN):
 
     def __init__(self, n_layers, states):
         n_step_rnn.BaseNStepRNN.__init__(self, n_layers, states,
-                                         rnn_dir='bi', rnn_mode='lstm')
+                                         rnn_dir='bi', rnn_mode='lstm',
+                                         rnn_algo='standard')
 
 
 def n_step_lstm(

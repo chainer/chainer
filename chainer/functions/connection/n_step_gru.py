@@ -27,14 +27,16 @@ class NStepGRU(n_step_rnn.BaseNStepRNN):
 
     def __init__(self, n_layers, states, **kwargs):
         n_step_rnn.BaseNStepRNN.__init__(
-            self, n_layers, states, rnn_dir='uni', rnn_mode='gru', **kwargs)
+            self, n_layers, states, rnn_dir='uni', rnn_mode='gru',
+            rnn_algo='standard', **kwargs)
 
 
 class NStepBiGRU(n_step_rnn.BaseNStepRNN):
 
     def __init__(self, n_layers, states, **kwargs):
         n_step_rnn.BaseNStepRNN.__init__(
-            self, n_layers, states, rnn_dir='bi', rnn_mode='gru', **kwargs)
+            self, n_layers, states, rnn_dir='bi', rnn_mode='gru',
+            rnn_algo='standard', **kwargs)
 
 
 def n_step_gru(

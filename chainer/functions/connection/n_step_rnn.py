@@ -171,7 +171,7 @@ if cuda.cudnn_enabled and _cudnn_version >= 5000:
 class BaseNStepRNN(function.Function):
 
     def __init__(self, n_layers, states, rnn_dir, rnn_mode,
-                 rnn_algo='standard', **kwargs):
+                 rnn_algo, **kwargs):
         argument.check_unexpected_kwargs(
             kwargs, train='train argument is not supported anymore. '
             'Use chainer.using_config')
@@ -528,34 +528,35 @@ class BaseNStepRNN(function.Function):
 
 class NStepRNNTanh(BaseNStepRNN):
 
-    def __init__(self, n_layers, states, **kwargs):
+    def __init__(self, n_layers, states, rnn_algo='standard', **kwargs):
         BaseNStepRNN.__init__(self, n_layers, states, rnn_dir='uni',
-                              rnn_mode='rnn_tanh', **kwargs)
+                              rnn_mode='rnn_tanh', rnn_algo=rnn_algo, **kwargs)
 
 
 class NStepRNNReLU(BaseNStepRNN):
 
-    def __init__(self, n_layers, states, **kwargs):
+    def __init__(self, n_layers, states, rnn_algo='standard', **kwargs):
         BaseNStepRNN.__init__(self, n_layers, states, rnn_dir='uni',
-                              rnn_mode='rnn_relu', **kwargs)
+                              rnn_mode='rnn_relu', rnn_algo=rnn_algo, **kwargs)
 
 
 class NStepBiRNNTanh(BaseNStepRNN):
 
-    def __init__(self, n_layers, states, **kwargs):
+    def __init__(self, n_layers, states, rnn_algo='standard', **kwargs):
         BaseNStepRNN.__init__(self, n_layers, states, rnn_dir='bi',
-                              rnn_mode='rnn_tanh', **kwargs)
+                              rnn_mode='rnn_tanh', rnn_algo=rnn_algo, **kwargs)
 
 
 class NStepBiRNNReLU(BaseNStepRNN):
 
-    def __init__(self, n_layers, states, **kwargs):
+    def __init__(self, n_layers, states, rnn_algo='standard', **kwargs):
         BaseNStepRNN.__init__(self, n_layers, states, rnn_dir='bi',
-                              rnn_mode='rnn_relu', **kwargs)
+                              rnn_mode='rnn_relu', rnn_algo=rnn_algo, **kwargs)
 
 
 def n_step_rnn(
-        n_layers, dropout_ratio, hx, ws, bs, xs, activation='tanh', **kwargs):
+        n_layers, dropout_ratio, hx, ws, bs, xs, activation='tanh',
+        rnn_algo='standard', **kwargs):
     """n_step_rnn(n_layers, dropout_ratio, hx, ws, bs, xs, activation='tanh')
 
     Stacked Uni-directional RNN function for sequence inputs.
@@ -649,7 +650,8 @@ def n_step_rnn(
 
 
 def n_step_birnn(
-        n_layers, dropout_ratio, hx, ws, bs, xs, activation='tanh', **kwargs):
+        n_layers, dropout_ratio, hx, ws, bs, xs, activation='tanh',
+        rnn_algo='standard', **kwargs):
     """n_step_birnn(n_layers, dropout_ratio, hx, ws, bs, xs, activation='tanh')
 
     Stacked Bi-directional RNN function for sequence inputs.
@@ -754,11 +756,11 @@ def n_step_birnn(
 
     """
     return n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
-                           activation, use_bi_direction=True)
+                           activation, use_bi_direction=True, rnn_algo=rnn_algo)
 
 
 def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
-                    activation, use_bi_direction, **kwargs):
+                    activation, use_bi_direction, rnn_algo, **kwargs):
     """n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs, activation, use_bi_direction)
 
     Base function for Stack RNN/BiRNN functions.
@@ -855,15 +857,15 @@ def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
         if use_bi_direction:
             # Bi-directional RNN
             if activation == 'tanh':
-                rnn = NStepBiRNNTanh(n_layers, states)
+                rnn = NStepBiRNNTanh(n_layers, states, rnn_algo)
             elif activation == 'relu':
-                rnn = NStepBiRNNReLU(n_layers, states)
+                rnn = NStepBiRNNReLU(n_layers, states, rnn_algo)
         else:
             # Uni-directional RNN
             if activation == 'tanh':
-                rnn = NStepRNNTanh(n_layers, states)
+                rnn = NStepRNNTanh(n_layers, states, rnn_algo)
             elif activation == 'relu':
-                rnn = NStepRNNReLU(n_layers, states)
+                rnn = NStepRNNReLU(n_layers, states, rnn_algo)
 
         ret = rnn(*inputs)
         hy, = ret[:1]
