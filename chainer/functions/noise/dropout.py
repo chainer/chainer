@@ -47,9 +47,13 @@ class Dropout(function_node.FunctionNode):
                 x[0].flags.c_contiguous):
             self._use_cudnn = True
 
+            handle = cudnn.get_handle()
+
             if hasattr(self, 'states'):
-                raise RuntimeError('cannot perform forward twice '
-                                   'with the same instance when use_cudnn==always.')
+                # if we already have a dropout mask,
+                # the forward operation is equal to backward.
+                return cuda.get_cudnn_dropout_states().backward(
+                    handle, x[0], self.dropout_ratio, self.states),
 
             handle = cudnn.get_handle()
             self.states, y = cuda.get_cudnn_dropout_states().forward(
