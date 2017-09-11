@@ -10,3 +10,4 @@ Function
    chainer.FunctionNode
    chainer.force_backprop_mode
    chainer.no_backprop_mode
+   chainer.grad

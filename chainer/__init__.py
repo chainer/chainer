@@ -38,6 +38,7 @@ from chainer.function import FunctionAdapter  # NOQA
 from chainer.function import no_backprop_mode  # NOQA
 from chainer.function_hook import FunctionHook  # NOQA
 from chainer.function_node import FunctionNode  # NOQA
+from chainer.function_node import grad  # NOQA
 from chainer.functions import array  # NOQA
 from chainer.functions.math import basic_math  # NOQA
 from chainer.initializer import Initializer  # NOQA
