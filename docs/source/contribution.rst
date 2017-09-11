@@ -78,11 +78,6 @@ During the parallel development of ``Y.0.0`` and ``Z.0.0a1``, the version ``Y`` 
 
 If there is a critical bug found in ``X.x.x`` after stopping the development of version ``X``, we may release a hot-fix for this version at any time.
 
-.. note::
-
-   The release cycle of ``2.x.x`` and ``3.0.0x`` are slightly different from this table because we do not have ``3.0.0a1`` at the timing of the release of ``2.0.0``.
-   In this case, the releases of ``3.0.0x`` are shifted four weeks behind the usual timeline, that is, ``3.0.0a1`` will be released at the same time with ``2.0.1``.
-
 As you can see in the above table, we basically do not have any minor releases from v2.
 All changes that add and/or modify APIs should be made by the pre-release updates.
 
