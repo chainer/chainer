@@ -613,9 +613,9 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
     the original variable. It means users do not need to clear the gradient
     w.r.t. each variable before computing the gradient using this function.
     If ``set_grad`` option is set to ``True``, the computed gradient is also
-    stored in the :attr:`Variable.grad_var` attribute of each variable, whereas
-    the original value of :attr:`Variable.grad_var` is ignored even if it has
-    been set.
+    stored in the :attr:`Variable.grad_var` attribute of each variable, in
+    which case any original value of :attr:`Variable.grad_var` will be updated
+    even if it had already been set.
 
     Args:
         outputs: A sequence of output variables from which backprop starts.
@@ -632,12 +632,13 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
             If this argument itself is ``None``, it is treated as a sequence of
             ``None`` s.
         set_grad (bool): If it is ``True``, the :attr:`Variable.grad_var`
-            attribute of each input is set to the computed gradient arrays.
+            attribute of each input variable is set to the corresponding
+            computed gradient variable.
         retain_grad (bool): If it is ``True``, the gradients w.r.t. all the
             intermediate variables are stored in the :attr:`Variable.grad_var`
             attribute. In this case, the ``set_grad`` option is ignored.
         enable_double_backprop (bool): If it is ``True``, the computed
-            gradients can be further backpropagated. Enabling it would increase
+            gradients can be further backpropagated. Enabling it may increase
             the memory consumption (and possibly the computational time) to
             remember the intermediate gradient values for the second
             backpropagation.
