@@ -646,7 +646,8 @@ def n_step_rnn(
 
     """
     return n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
-                           activation, use_bi_direction=False, **kwargs)
+                           activation, use_bi_direction=False,
+                           rnn_algo=rnn_algo, **kwargs)
 
 
 def n_step_birnn(
@@ -756,7 +757,8 @@ def n_step_birnn(
 
     """
     return n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
-                           activation, use_bi_direction=True, rnn_algo=rnn_algo)
+                           activation, use_bi_direction=True,
+                           rnn_algo=rnn_algo, **kwargs)
 
 
 def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
