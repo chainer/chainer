@@ -205,8 +205,7 @@ from chainer.functions.math.logarithm_1p import Log1p  # NOQA
 from chainer.functions.math.logarithm_1p import log1p  # NOQA
 from chainer.functions.math.logsumexp import logsumexp  # NOQA
 from chainer.functions.math.logsumexp import LogSumExp  # NOQA
-from chainer.functions.math.matmul import matmul  # NOQA
-from chainer.functions.math.matmul import MatMul  # NOQA
+from chainer.functions.math.matmul import batch_matmul  # NOQA
 from chainer.functions.math.matmul import matmul  # NOQA
 from chainer.functions.math.matmul import MatMul  # NOQA
 from chainer.functions.math.maximum import maximum  # NOQA
@@ -259,6 +258,8 @@ from chainer.functions.noise.zoneout import Zoneout  # NOQA
 
 from chainer.functions.normalization.batch_normalization import batch_normalization  # NOQA
 from chainer.functions.normalization.batch_normalization import fixed_batch_normalization  # NOQA
+from chainer.functions.normalization.batch_renormalization import batch_renormalization  # NOQA
+from chainer.functions.normalization.batch_renormalization import fixed_batch_renormalization  # NOQA
 from chainer.functions.normalization.l2_normalization import normalize  # NOQA
 from chainer.functions.normalization.l2_normalization import NormalizeL2  # NOQA
 from chainer.functions.normalization.layer_normalization import layer_normalization  # NOQA
@@ -277,7 +278,6 @@ from chainer.functions.pooling.max_pooling_nd import MaxPoolingND  # NOQA
 from chainer.functions.pooling.roi_pooling_2d import roi_pooling_2d  # NOQA
 from chainer.functions.pooling.roi_pooling_2d import ROIPooling2D  # NOQA
 from chainer.functions.pooling.spatial_pyramid_pooling_2d import spatial_pyramid_pooling_2d  # NOQA
-from chainer.functions.pooling.spatial_pyramid_pooling_2d import SpatialPyramidPooling2D  # NOQA
 from chainer.functions.pooling.unpooling_2d import Unpooling2D  # NOQA
 from chainer.functions.pooling.unpooling_2d import unpooling_2d  # NOQA
 from chainer.functions.pooling.unpooling_nd import unpooling_nd  # NOQA
