@@ -28,8 +28,12 @@ forward/backward computations, and temporary arrays for consecutive elementwise
 operations.
 """
 
+import binascii
 import functools
+import itertools
 import os
+import time
+import threading
 import warnings
 
 import numpy
@@ -645,3 +649,36 @@ def should_use_cudnn_tensor_core(dtype):
     if use_tensor_core is None:
         use_tensor_core = cudnn.is_tensor_core_available(dtype)
     return use_tensor_core
+
+
+# ------------------------------------------------------------------------------
+# cupy.cudnn utility
+# ------------------------------------------------------------------------------
+
+def get_cudnn_dropout_states():
+    if not cudnn_enabled:
+        raise RuntimeError('cuDNN is not enabled.')
+
+    thread_id = threading.get_ident()
+    return get_cudnn_dropout_states_core(thread_id)
+
+
+_dropout_states_count = itertools.count()
+
+
+@memoize(for_each_device=True)
+def get_cudnn_dropout_states_core(thread_id):
+    dropout_id = next(_dropout_states_count)
+    seed = os.getenv('CHAINER_SEED')
+    if seed is None:
+        try:
+            seed_str = binascii.hexlify(os.urandom(8))
+            seed = numpy.uint64(int(seed_str, 16))
+        except NotImplementedError:
+            seed = numpy.uint64(time.clock() * 1000000)
+    else:
+        seed = numpy.uint64(seed)
+
+    seed = dropout_id + numpy.uint64(dropout_id)
+    handle = cudnn.get_handle()
+    return cudnn.DropoutStates(handle, seed)
