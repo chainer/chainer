@@ -16,15 +16,19 @@ from chainer.testing import condition
     'shape': [(3, 2), ()],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
+@testing.fix_random()
 class TestTanh(unittest.TestCase):
 
     def setUp(self):
         self.x = numpy.random.uniform(-.5, .5, self.shape).astype(self.dtype)
-        self.gy = numpy.random.uniform(-.1, .1, self.shape).astype(self.dtype)
+        self.gy = numpy.random.uniform(-.5, .5, self.shape).astype(self.dtype)
+        self.ggx = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+
         self.check_backward_options = {}
+        self.check_double_backward_options = {}
         if self.dtype == numpy.float16:
-            self.check_backward_options = {
-                'dtype': numpy.float64, 'atol': 1e-4, 'rtol': 1e-3}
+            self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
+            self.check_double_backward_options = {'atol': 5e-3, 'rtol': 5e-2}
 
     def check_forward(self, x_data, use_cudnn='always'):
         x = chainer.Variable(x_data)
@@ -53,7 +57,7 @@ class TestTanh(unittest.TestCase):
     def check_backward(self, x_data, gy_data, use_cudnn='always'):
         with chainer.using_config('use_cudnn', use_cudnn):
             gradient_check.check_backward(
-                functions.Tanh(), x_data, gy_data,
+                functions.tanh, x_data, gy_data, dtype=numpy.float64,
                 **self.check_backward_options)
 
     @condition.retry(3)
