@@ -78,9 +78,6 @@ During the parallel development of ``Y.0.0`` and ``Z.0.0a1``, the version ``Y`` 
 
 If there is a critical bug found in ``X.x.x`` after stopping the development of version ``X``, we may release a hot-fix for this version at any time.
 
-As you can see in the above table, we basically do not have any minor releases from v2.
-All changes that add and/or modify APIs should be made by the pre-release updates.
-
 We create a milestone for each upcoming release at GitHub.
 The GitHub milestone is basically used for collecting the issues and PRs resolved in the release.
 
