@@ -650,4 +650,5 @@ class TestForwardConsistency(unittest.TestCase):
     def test_consistency_gpu(self):
         self.check_consistency(cuda.cupy)
 
+
 testing.run_module(__name__, __file__)
