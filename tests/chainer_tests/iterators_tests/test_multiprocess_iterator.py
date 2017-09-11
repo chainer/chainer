@@ -415,7 +415,7 @@ class TestMultiprocessIteratorConcurrency(unittest.TestCase):
 class TestMultiprocessIteratorInterruption(unittest.TestCase):
 
     # unless you're debugging tests, this should be false
-    show_interruption_msg = True
+    show_interruption_msg = False
 
     def setUp(self):
         self.code_path = None
