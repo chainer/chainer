@@ -46,6 +46,7 @@ Learnable connections
    chainer.links.NStepRNNTanh
    chainer.links.Scale
    chainer.links.StatefulGRU
+   chainer.links.StatelessGRU
    chainer.links.StatefulPeepholeLSTM
    chainer.links.StatelessLSTM
 
