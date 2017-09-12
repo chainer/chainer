@@ -1,3 +1,6 @@
+import warnings
+
+
 class IntervalTrigger(object):
 
     """Trigger based on a fixed interval.
@@ -23,6 +26,11 @@ class IntervalTrigger(object):
         self.period = period
         assert unit == 'epoch' or unit == 'iteration'
         self.unit = unit
+
+        self._previous_iteration = 0
+        self._previous_epoch_detail = 0.
+
+        # count is kept for backward compatibility
         self.count = 0
 
     def __call__(self, trainer):
@@ -40,9 +48,60 @@ class IntervalTrigger(object):
         """
         updater = trainer.updater
         if self.unit == 'epoch':
-            prev = self.count
-            self.count = updater.epoch_detail // self.period
-            return prev != self.count
+            epoch_detail = updater.epoch_detail
+            previous_epoch_detail = self._previous_epoch_detail
+
+            # if pvevious_epoch_detail is invalid value,
+            # use the value of updater.
+            if previous_epoch_detail < 0:
+                previous_epoch_detail = updater.previous_epoch_detail
+
+            # count is kept for backward compatibility
+            self.count = epoch_detail // self.period
+
+            fire = previous_epoch_detail // self.period != \
+                epoch_detail // self.period
         else:
             iteration = updater.iteration
-            return iteration > 0 and iteration % self.period == 0
+            previous_iteration = self._previous_iteration
+
+            # if pvevious_iteration is invalid value,
+            # guess it from current iteration.
+            if previous_iteration < 0:
+                previous_iteration = iteration - 1
+
+            fire = previous_iteration // self.period != \
+                iteration // self.period
+
+        # save current values
+        self._previous_iteration = updater.iteration
+        if hasattr(updater, 'epoch_detail'):
+            self._previous_epoch_detail = updater.epoch_detail
+
+        return fire
+
+    def serialize(self, serializer):
+        try:
+            self._previous_iteration = serializer(
+                'previous_iteration', self._previous_iteration)
+        except KeyError:
+            warnings.warn(
+                'The previous value of iteration is not saved. '
+                'IntervalTrigger guesses it using current iteration. '
+                'If this trigger is not called at every iteration, '
+                'it may not work correctly.')
+            # set a negative value for invalid
+            self._previous_iteration = -1
+
+        try:
+            self._previous_epoch_detail = serializer(
+                'previous_epoch_detail', self._previous_epoch_detail)
+        except KeyError:
+            warnings.warn(
+                'The previous value of epoch_detail is not saved. '
+                'IntervalTrigger uses the value of '
+                'trainer.updater.previous_epoch_detail. '
+                'If this trigger is not called at every iteration, '
+                'it may not work correctly.')
+            # set a negative value for invalid
+            self._previous_epoch_detail = -1.

@@ -5,7 +5,8 @@ import mock
 from chainer import training
 
 
-def get_trainer_with_mock_updater(stop_trigger=(10, 'iteration')):
+def get_trainer_with_mock_updater(
+        stop_trigger=(10, 'iteration'), iter_per_epoch=10):
     """Returns a :class:`~chainer.training.Trainer` object with mock updater.
 
     The returned trainer can be used for testing the trainer itself and the
@@ -26,14 +27,17 @@ def get_trainer_with_mock_updater(stop_trigger=(10, 'iteration')):
     updater.epoch = 0
     updater.epoch_detail = 0
     updater.is_new_epoch = True
-    iter_per_epoch = 10
+    updater.previous_epoch_detail = None
 
     def update():
         updater.update_core()
         updater.iteration += 1
         updater.epoch = updater.iteration // iter_per_epoch
         updater.epoch_detail = updater.iteration / iter_per_epoch
-        updater.is_new_epoch = updater.epoch == updater.epoch_detail
+        updater.is_new_epoch = (updater.iteration - 1) // \
+            iter_per_epoch != updater.epoch
+        updater.previous_epoch_detail = (updater.iteration - 1) \
+            / iter_per_epoch
 
     updater.update = update
     trainer = training.Trainer(updater, stop_trigger)

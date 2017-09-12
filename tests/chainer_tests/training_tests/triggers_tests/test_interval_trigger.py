@@ -1,80 +1,118 @@
 from __future__ import division
 
+import numpy as np
+import random
+import tempfile
 import unittest
 
+from chainer import serializers
 from chainer import testing
 from chainer import training
 
 
-class DummyUpdater(training.Updater):
+@testing.parameterize(
+    # iteration
+    {
+        'iter_per_epoch': 5, 'interval': (2, 'iteration'), 'resume': 4,
+        'expected': [False, True, False, True, False, True, False]},
+    # basic epoch
+    {
+        'iter_per_epoch': 1, 'interval': (3, 'epoch'), 'resume': 4,
+        'expected': [False, False, True, False, False, True, False]},
+    # fractional epoch
+    {
+        'iter_per_epoch': 2, 'interval': (1.5, 'epoch'), 'resume': 4,
+        'expected': [False, False, True, False, False, True, False]},
+    # unaligned epoch
+    {
+        'iter_per_epoch': 2.5, 'interval': (1, 'epoch'), 'resume': 3,
+        'expected': [False, False, True, False, True, False, False]},
+    # tiny epoch
+    {
+        'iter_per_epoch': 0.5, 'interval': (1, 'epoch'), 'resume': 4,
+        'expected': [True, True, True, True, True, True, True]},
+)
+class TestIntervalTrigger(unittest.TestCase):
 
-    def __init__(self, iters_per_epoch):
-        self.iteration = 0
-        self.iters_per_epoch = iters_per_epoch
+    def test_trigger(self):
+        trainer = testing.get_trainer_with_mock_updater(
+            stop_trigger=None, iter_per_epoch=self.iter_per_epoch)
+        trigger = training.trigger.IntervalTrigger(*self.interval)
+        # before the first iteration, trigger should be False
+        for expected in [False] + self.expected:
+            self.assertEqual(trigger(trainer), expected)
+            trainer.updater.update()
 
-    def finalize(self):
-        pass
+    def test_resumed_trigger(self):
+        trainer = testing.get_trainer_with_mock_updater(
+            stop_trigger=None, iter_per_epoch=self.iter_per_epoch)
+        with tempfile.NamedTemporaryFile(delete=False) as f:
+            trigger = training.trigger.IntervalTrigger(*self.interval)
+            for expected in self.expected[:self.resume]:
+                trainer.updater.update()
+                self.assertEqual(trigger(trainer), expected)
+            serializers.save_npz(f.name, trigger)
 
-    def get_all_optimizers(self):
-        return {}
+            trigger = training.trigger.IntervalTrigger(*self.interval)
+            serializers.load_npz(f.name, trigger)
+            for expected in self.expected[self.resume:]:
+                trainer.updater.update()
+                self.assertEqual(trigger(trainer), expected)
 
-    def update(self):
-        self.iteration += 1
+    @testing.condition.repeat(10)
+    def test_trigger_sparse_call(self):
+        trainer = testing.get_trainer_with_mock_updater(
+            stop_trigger=None, iter_per_epoch=self.iter_per_epoch)
+        trigger = training.trigger.IntervalTrigger(*self.interval)
+        accumulated = False
+        # before the first iteration, trigger should be False
+        for expected in [False] + self.expected:
+            accumulated = accumulated or expected
+            if random.randrange(2):
+                self.assertEqual(trigger(trainer), accumulated)
+                accumulated = False
+            trainer.updater.update()
 
-    @property
-    def epoch(self):
-        return self.iteration // self.iters_per_epoch
+    @testing.condition.repeat(10)
+    def test_resumed_trigger_sparse_call(self):
+        trainer = testing.get_trainer_with_mock_updater(
+            stop_trigger=None, iter_per_epoch=self.iter_per_epoch)
+        accumulated = False
+        with tempfile.NamedTemporaryFile(delete=False) as f:
+            trigger = training.trigger.IntervalTrigger(*self.interval)
+            for expected in self.expected[:self.resume]:
+                trainer.updater.update()
+                accumulated = accumulated or expected
+                if random.randrange(2):
+                    self.assertEqual(trigger(trainer), accumulated)
+                    accumulated = False
+            serializers.save_npz(f.name, trigger)
 
-    @property
-    def epoch_detail(self):
-        return self.iteration / self.iters_per_epoch
+            trigger = training.trigger.IntervalTrigger(*self.interval)
+            serializers.load_npz(f.name, trigger)
+            for expected in self.expected[self.resume:]:
+                trainer.updater.update()
+                accumulated = accumulated or expected
+                if random.randrange(2):
+                    self.assertEqual(trigger(trainer), accumulated)
+                    accumulated = False
 
-    @property
-    def is_new_epoch(self):
-        return 0 <= self.iteration % self.iters_per_epoch < 1
+    def test_resumed_trigger_backward_compat(self):
+        trainer = testing.get_trainer_with_mock_updater(
+            stop_trigger=None, iter_per_epoch=self.iter_per_epoch)
+        with tempfile.NamedTemporaryFile(delete=False) as f:
+            trigger = training.trigger.IntervalTrigger(*self.interval)
+            for expected in self.expected[:self.resume]:
+                trainer.updater.update()
+                self.assertEqual(trigger(trainer), expected)
+            # old version does not save anything
+            np.savez(f, dummy=0)
 
-
-def _test_trigger(self, updater, trigger, expecteds):
-    trainer = training.Trainer(updater)
-    for expected in expecteds:
-        updater.update()
-        self.assertEqual(trigger(trainer), expected)
-
-
-class TestIterationIntervalTrigger(unittest.TestCase):
-
-    def test_iteration_interval_trigger(self):
-        updater = DummyUpdater(iters_per_epoch=5)
-        trigger = training.trigger.IntervalTrigger(2, 'iteration')
-        expected = [False, True, False, True, False, True, False]
-        _test_trigger(self, updater, trigger, expected)
-
-
-class TestEpochIntervalTrigger(unittest.TestCase):
-
-    def test_epoch_interval_trigger(self):
-        updater = DummyUpdater(iters_per_epoch=5)
-        trigger = training.trigger.IntervalTrigger(1, 'epoch')
-        expected = [False, False, False, False, True, False, False]
-        _test_trigger(self, updater, trigger, expected)
-
-
-class TestFractionalEpochIntervalTrigger(unittest.TestCase):
-
-    def test_epoch_interval_trigger(self):
-        updater = DummyUpdater(iters_per_epoch=2)
-        trigger = training.trigger.IntervalTrigger(1.5, 'epoch')
-        expected = [False, False, True, False, False, True, False]
-        _test_trigger(self, updater, trigger, expected)
-
-
-class TestUnalignedEpochIntervalTrigger(unittest.TestCase):
-
-    def test_unaligned_epoch_interval_trigger(self):
-        updater = DummyUpdater(iters_per_epoch=2.5)
-        trigger = training.trigger.IntervalTrigger(1, 'epoch')
-        expected = [False, False, True, False, True, False, False]
-        _test_trigger(self, updater, trigger, expected)
+            trigger = training.trigger.IntervalTrigger(*self.interval)
+            serializers.load_npz(f.name, trigger)
+            for expected in self.expected[self.resume:]:
+                trainer.updater.update()
+                self.assertEqual(trigger(trainer), expected)
 
 
 testing.run_module(__name__, __file__)
