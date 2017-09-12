@@ -4,6 +4,12 @@ from chainer.utils import type_check
 import six
 
 
+def _flip(array, axis):
+    indices = [slice(None)] * array.ndim
+    indices[axis] = slice(None, None, -1)
+    return array[indices]
+
+
 class Flip(function_node.FunctionNode):
     """Flip an input variable in reverse order along the given axis."""
 
@@ -24,7 +30,10 @@ class Flip(function_node.FunctionNode):
 
     def forward(self, inputs):
         xp = cuda.get_array_module(*inputs)
-        return xp.flip(inputs[0], self.axis),
+        if hasattr(xp, 'flip'):  # numpy.flip is supported from version 1.12.0
+            return xp.flip(inputs[0], self.axis),
+        else:
+            return _flip(inputs[0], self.axis),
 
     def backward(self, indexes, grad_outputs):
         return flip(grad_outputs[0], self.axis),

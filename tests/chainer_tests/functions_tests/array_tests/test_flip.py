@@ -42,7 +42,9 @@ class TestFlip(unittest.TestCase):
         x = chainer.Variable(x_data)
         y = functions.flip(x, axis)
 
-        testing.assert_allclose(y.data, numpy.flip(x_data, axis))
+        flip_func = getattr(numpy, 'flip', functions.array.flip._flip)
+        expected_y = flip_func(x_data, axis)
+        testing.assert_allclose(y.data, expected_y)
 
     def test_forward_cpu(self):
         self.check_forward(self.x, self.axis)
@@ -108,6 +110,32 @@ class TestFlipInvalidTypeError(unittest.TestCase):
     def test_invalid_axis(self):
         with self.assertRaises(TypeError):
             functions.Flip('a')
+
+
+@testing.parameterize(*testing.product_dict(
+    [
+        {'shape': (1,), 'axis': 0},
+        {'shape': (2, 3, 4), 'axis': 0},
+        {'shape': (2, 3, 4), 'axis': 1},
+        {'shape': (2, 3, 4), 'axis': 2},
+        {'shape': (2, 3, 4), 'axis': -3},
+        {'shape': (2, 3, 4), 'axis': -2},
+        {'shape': (2, 3, 4), 'axis': -1},
+    ],
+    [
+        {'dtype': numpy.float16},
+        {'dtype': numpy.float32},
+        {'dtype': numpy.float64},
+    ],
+))
+@testing.with_requires('numpy>=1.12.0')
+class TestFlipFunction(unittest.TestCase):
+
+    def test_equal_to_numpy_flip(self):
+        x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        numpy.testing.assert_array_equal(
+            functions.array.flip._flip(x, self.axis),
+            numpy.flip(x, self.axis))
 
 
 testing.run_module(__name__, __file__)
