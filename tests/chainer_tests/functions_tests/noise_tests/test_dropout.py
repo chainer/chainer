@@ -26,7 +26,10 @@ from chainer.testing import backend
         'use_ideep': ['never', 'always'],
     })
     # GPU tests
-    + [{'use_cuda': True}])
+    + testing.product({
+        'use_cuda': [True],
+        'use_cudnn': ['never', 'always'],
+    }))
 class TestDropout(unittest.TestCase):
 
     def setUp(self):
@@ -62,13 +65,20 @@ class TestDropout(unittest.TestCase):
         with backend_config:
             y = functions.dropout(*(inputs + [self.ratio]))
 
-        # In the calculation of expected results, the mask used in test forward
-        # computation is reused.
-        mask = y.creator.mask
-        y_expected, = self.forward_cpu(inputs, self.ratio, mask)
+        if backend_config.use_cudnn == 'always':
+            if self.ratio == 0.0:
+                y_expected, = inputs
+                testing.assert_allclose(y_expected, y.data)
+            else:
+                self.assertTrue(cuda.cupy.all(inputs[0] != y.data))
+        else:
+            # In the calculation of expected results, the mask used in test forward
+            # computation is reused.
+            mask = y.creator.mask
+            y_expected, = self.forward_cpu(inputs, self.ratio, mask)
 
-        assert y.data.dtype == self.dtype
-        testing.assert_allclose(y_expected, y.data)
+            assert y.data.dtype == self.dtype
+            testing.assert_allclose(y_expected, y.data)
 
     def test_forward(self, backend_config):
         self.check_forward(self.inputs, backend_config)
