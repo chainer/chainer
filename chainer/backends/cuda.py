@@ -679,6 +679,6 @@ def get_cudnn_dropout_states_core(thread_id):
     else:
         seed = numpy.uint64(seed)
 
-    seed = dropout_id + numpy.uint64(dropout_id)
+    seed = seed + numpy.uint64(dropout_id)
     handle = cudnn.get_handle()
     return cudnn.DropoutStates(handle, seed)
