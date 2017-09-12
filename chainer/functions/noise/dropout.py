@@ -60,7 +60,7 @@ class Dropout(function_node.FunctionNode):
                 handle, x[0], self.dropout_ratio)
             return y,
         else:
-            if hasattr(self, 'mask'):
+            if self.mask is not None:
                 y = x[0] * self.mask
             else:
                 rand = cuda.cupy.random.rand(*x[0].shape, dtype=numpy.float32)
