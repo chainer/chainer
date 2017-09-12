@@ -32,8 +32,8 @@ import binascii
 import functools
 import itertools
 import os
-import time
 import threading
+import time
 import warnings
 
 import numpy

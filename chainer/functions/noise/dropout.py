@@ -125,7 +125,7 @@ class DropoutGradCuDNN(function_node.FunctionNode):
             handle, inputs[0], self.dropout_ratio, self.states),
 
     def backward(self, indexes, gy):
-        return DropoutGradCuDNN(self.states).apply(gy)
+        return DropoutGradCuDNN(self.states, self.dropout_ratio).apply(gy)
 
 
 def dropout(x, ratio=.5, **kwargs):
