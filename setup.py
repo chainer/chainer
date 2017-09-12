@@ -42,7 +42,7 @@ if cupy_pkg is not None:
 
 setup(
     name='chainer',
-    version='2.0.2',
+    version='2.1.0',
     description='A flexible framework of neural networks',
     author='Seiya Tokui',
     author_email='tokui@preferred.jp',
