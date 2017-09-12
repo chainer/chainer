@@ -99,10 +99,30 @@ class FunctionHook(object):
             raise KeyError('hook %s already exists' % self.name)
 
         function_hooks[self.name] = self
+        self.added()
         return self
 
     def __exit__(self, *_):
+        chainer.get_function_hooks()[self.name].deleted()
         del chainer.get_function_hooks()[self.name]
+
+    def added(self, function=None):
+        """Callback function invoked when a function hook is added
+
+        Args:
+            function(~chainer.Function): Function object to which
+                the function hook is added.
+        """
+        pass
+
+    def deleted(self, function=None):
+        """Callback function invoked when a function hook is deleted
+
+        Args:
+            function(~chainer.Function): Function object to which
+                the function hook is deleted.
+        """
+        pass
 
     # forward
     def forward_preprocess(self, function, in_data):

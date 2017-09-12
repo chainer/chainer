@@ -16,6 +16,38 @@ def _broadcast_to(array, shape):
     return numpy.broadcast_arrays(array, dummy)[0]
 
 
+def _check_class_weight_option(class_weight):
+    if class_weight is not None:
+        if class_weight.ndim != 1:
+            raise ValueError('class_weight.ndim should be 1')
+        if class_weight.dtype.kind != 'f':
+            raise ValueError('The dtype of class_weight should be \'f\'')
+        if isinstance(class_weight, variable.Variable):
+            raise ValueError('class_weight should be a numpy.ndarray or '
+                             'cupy.ndarray, not a chainer.Variable')
+
+
+def _check_reduce_option(reduce):
+    if reduce not in ('mean', 'no'):
+        raise ValueError(
+            "only 'mean' and 'no' are valid for 'reduce', but '%s' is "
+            'given' % reduce)
+
+
+def _check_input_values(x, t, ignore_label):
+    # Extract the raw ndarray as Variable.__ge__ is not implemented.
+    # We assume that t is already an ndarray.
+    if isinstance(x, variable.Variable):
+        x = x.data
+
+    if not (((0 <= t) &
+             (t < x.shape[1])) |
+            (t == ignore_label)).all():
+        msg = ('Each label `t` need to satisfy '
+               '`0 <= t < x.shape[1] or t == %d`' % ignore_label)
+        raise ValueError(msg)
+
+
 class SoftmaxCrossEntropy(function.Function):
 
     """Softmax activation followed by a cross entropy loss."""
@@ -26,20 +58,10 @@ class SoftmaxCrossEntropy(function.Function):
                  ignore_label=-1, reduce='mean'):
         self.normalize = normalize
         self.cache_score = cache_score
+        _check_class_weight_option(class_weight)
         self.class_weight = class_weight
-        if class_weight is not None:
-            if self.class_weight.ndim != 1:
-                raise ValueError('class_weight.ndim should be 1')
-            if self.class_weight.dtype.kind != 'f':
-                raise ValueError('The dtype of class_weight should be \'f\'')
-            if isinstance(self.class_weight, variable.Variable):
-                raise ValueError('class_weight should be a numpy.ndarray or '
-                                 'cupy.ndarray, not a chainer.Variable')
         self.ignore_label = ignore_label
-        if reduce not in ('mean', 'no'):
-            raise ValueError(
-                "only 'mean' and 'no' are valid for 'reduce', but '%s' is "
-                'given' % reduce)
+        _check_reduce_option(reduce)
         self.reduce = reduce
 
     def check_type_forward(self, in_types):
@@ -55,18 +77,10 @@ class SoftmaxCrossEntropy(function.Function):
             x_type.shape[2:] == t_type.shape[1:],
         )
 
-    def _check_input_values(self, x, t):
-        if not (((0 <= t) &
-                 (t < x.shape[1])) |
-                (t == self.ignore_label)).all():
-            msg = ('Each label `t` need to satisfy '
-                   '`0 <= t < x.shape[1] or t == %d`' % self.ignore_label)
-            raise ValueError(msg)
-
     def forward_cpu(self, inputs):
         x, t = inputs
         if chainer.is_debug():
-            self._check_input_values(x, t)
+            _check_input_values(x, t, self.ignore_label)
 
         log_y = log_softmax._log_softmax(x)
         if self.cache_score:
@@ -97,7 +111,7 @@ class SoftmaxCrossEntropy(function.Function):
         cupy = cuda.cupy
         x, t = inputs
         if chainer.is_debug():
-            self._check_input_values(x, t)
+            _check_input_values(x, t, self.ignore_label)
 
         log_y = log_softmax._log_softmax(x)
         if self.cache_score:
@@ -220,9 +234,52 @@ class SoftmaxCrossEntropy(function.Function):
         return gx, None
 
 
+def _double_backward_softmax_cross_entropy(x, t, normalize, class_weight,
+                                           ignore_label, reduce):
+    if isinstance(t, variable.Variable):
+        t = t.data
+
+    _check_class_weight_option(class_weight)
+    _check_reduce_option(reduce)
+    if chainer.is_debug():
+        _check_input_values(x, t, ignore_label)
+
+    loss = -chainer.functions.log_softmax(x)
+
+    if class_weight is not None:
+        shape = [1 if d != 1 else -1 for d in six.moves.range(x.ndim)]
+        class_weight = chainer.functions.broadcast_to(
+            class_weight.reshape(shape), x.shape)
+        loss = loss * class_weight
+
+    in_use = (t != ignore_label).astype(x.dtype)
+
+    loss = chainer.functions.rollaxis(loss, 1, loss.ndim)
+    loss = chainer.functions.reshape(loss, (-1, loss.shape[-1]))
+
+    # Replace ignore_label value with one valid for F.select_item below.
+    t = t.clip(0, loss.shape[1] - 1)
+
+    loss = chainer.functions.select_item(loss, t.ravel())
+    loss = chainer.functions.reshape(loss, t.shape)
+
+    loss = loss * in_use
+
+    if reduce == 'mean':
+        if normalize:
+            count = in_use.sum()
+        else:
+            count = len(x)
+        count = max(count, 1.)
+        loss = loss / count
+        return chainer.functions.sum(loss)
+    else:
+        return loss
+
+
 def softmax_cross_entropy(
         x, t, normalize=True, cache_score=True, class_weight=None,
-        ignore_label=-1, reduce='mean'):
+        ignore_label=-1, reduce='mean', enable_double_backprop=False):
     """Computes cross entropy loss for pre-softmax activations.
 
     Args:
@@ -246,6 +303,9 @@ def softmax_cross_entropy(
         cache_score (bool): When it is ``True``, the function stores result
             of forward computation to use it on backward computation. It
             reduces computational cost though consumes more memory.
+            If ``enable_double_backprop`` option is ``True``, this option
+            is forcibly turned off and the function does not cache
+            the intermediate value.
         class_weight (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`):
             An array that contains constant weights that will be multiplied
@@ -264,6 +324,12 @@ def softmax_cross_entropy(
             instance and does not normalize it (``normalize`` option is
             ignored). In this case, the loss value of the ignored instance,
             which has ``ignore_label`` as its target value, is set to ``0``.
+        enable_double_backprop (bool): If ``True``, this function uses
+            implementation that supports higher order differentiation.
+            If ``False``, it uses single-backprop implementation.
+            This function use the single-backprop version because we expect
+            it is faster. So, if you need second or higher derivatives,
+            you need to turn it on explicitly.
 
     Returns:
         ~chainer.Variable: A variable holding a scalar array of the cross
@@ -294,5 +360,9 @@ for row, column in enumerate(t)])
 
     """
 
-    return SoftmaxCrossEntropy(
-        normalize, cache_score, class_weight, ignore_label, reduce)(x, t)
+    if enable_double_backprop:
+        return _double_backward_softmax_cross_entropy(
+            x, t, normalize, class_weight, ignore_label, reduce)
+    else:
+        return SoftmaxCrossEntropy(
+            normalize, cache_score, class_weight, ignore_label, reduce)(x, t)

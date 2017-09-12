@@ -77,15 +77,37 @@ def dropout(x, ratio=.5, **kwargs):
        See :func:`chainer.using_config`.
 
     Args:
-        x (~chainer.Variable): Input variable.
-        ratio (float): Dropout ratio. The ``ratio`` must be
-        ``0.0 <= ratio < 1.0``.
+        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`):
+            Input variable. A :math:`(s_1, s_2, ..., s_N)` -shaped float array.
+        ratio (float):
+            Dropout ratio. The ``ratio`` must be ``0.0 <= ratio < 1.0``.
 
     Returns:
         ~chainer.Variable: Output variable.
 
     See the paper by G. Hinton: `Improving neural networks by preventing \
     co-adaptation of feature detectors <https://arxiv.org/abs/1207.0580>`_.
+
+    .. admonition:: Example
+
+        >>> x = np.array([[-1, 0], [2, -3], [-2, 1]], 'f')
+        >>> with chainer.using_config('train', True):
+        ...     y = F.dropout(x)
+        >>> y.data
+        array([[-2.,  0.],
+               [ 4., -6.],
+               [-0.,  2.]], dtype=float32)
+        >>> with chainer.using_config('train', True):
+        ...     y = F.dropout(x, ratio=0.0) \
+# dropout returns original input if ratio=0.0
+        >>> (x == y.data).all()
+        True
+        >>> with chainer.using_config('train', False):
+        ...     y = F.dropout(x) \
+# dropout in test mode returns original input
+        >>> (x == y.data).all()
+        True
 
     """
     argument.check_unexpected_kwargs(
