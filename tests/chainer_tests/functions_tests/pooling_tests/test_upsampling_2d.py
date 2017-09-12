@@ -3,7 +3,6 @@ from chainer import cuda
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
 from chainer.utils import conv
 
 import chainer.functions as F
@@ -26,6 +25,12 @@ class TestUpsampling2D(unittest.TestCase):
             -1, 1, self.in_shape).astype(self.dtype)
         self.ggx = numpy.random.uniform(
             -1, 1, self.pooled_y.shape).astype(self.dtype)
+        if self.dtype == numpy.float16:
+            self.check_backward_options = {}
+            self.check_double_backward_options = {'atol': 3e-3, 'rtol': 3e-2}
+        else:
+            self.check_backward_options = {}
+            self.check_double_backward_options = {}
 
     def check_forward(self, y):
         y = F.upsampling_2d(
@@ -47,13 +52,11 @@ class TestUpsampling2D(unittest.TestCase):
             else:
                 testing.assert_allclose(up_y, 0)
 
-    @condition.retry(3)
     def test_forward_cpu(self):
         self.pooled_y.to_cpu()
         self.check_forward(self.pooled_y)
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_gpu(self):
         self.pooled_y.to_gpu()
         self.check_forward(self.pooled_y)
@@ -64,14 +67,13 @@ class TestUpsampling2D(unittest.TestCase):
                 x, self.p.indexes, ksize=(self.p.kh, self.p.kw),
                 stride=(self.p.sy, self.p.sx), pad=(self.p.ph, self.p.pw),
                 outsize=self.in_shape[2:], cover_all=self.p.cover_all)
-        gradient_check.check_backward(f, x_data, y_grad, dtype='d')
+        gradient_check.check_backward(
+            f, x_data, y_grad, dtype='d', **self.check_backward_options)
 
-    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.pooled_y.data, self.gy)
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(
             self.pooled_y.data), cuda.to_gpu(self.gy))
@@ -86,22 +88,20 @@ class TestUpsampling2D(unittest.TestCase):
             return y * y
         with chainer.using_config('use_cudnn', use_cudnn):
             gradient_check.check_double_backward(
-                f, x_data, y_grad, x_grad_grad, dtype='d')
+                f, x_data, y_grad, x_grad_grad, dtype='d',
+                **self.check_double_backward_options)
 
-    @condition.retry(3)
     def test_double_backward_cpu(self):
         self.check_double_backward(
             self.pooled_y.data, self.gy, self.ggx, 'never')
 
     @attr.gpu
-    @condition.retry(3)
     def test_double_backward_gpu(self):
         self.check_double_backward(
             cuda.to_gpu(self.pooled_y.data), cuda.to_gpu(self.gy),
             cuda.to_gpu(self.ggx))
 
     @attr.gpu
-    @condition.retry(3)
     def test_double_backward_gpu_non_contiguous(self):
         self.check_double_backward(
             cuda.cupy.asfortranarray(cuda.to_gpu(self.pooled_y.data)),
@@ -109,7 +109,6 @@ class TestUpsampling2D(unittest.TestCase):
             cuda.cupy.asfortranarray(cuda.to_gpu(self.ggx)))
 
     @attr.gpu
-    @condition.retry(3)
     def test_double_backward_gpu_no_cudnn(self):
         self.check_double_backward(
             cuda.to_gpu(self.pooled_y.data), cuda.to_gpu(self.gy),
