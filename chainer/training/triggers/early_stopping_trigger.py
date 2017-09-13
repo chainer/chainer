@@ -1,4 +1,3 @@
-from chainer import reporter
 from chainer.training import util
 
 
@@ -76,8 +75,8 @@ class EarlyStoppingTrigger(object):
         current_val = float(observation[self.monitor].data)
 
         if self.verbose:
-            print(f'current count: {self.count}')
-            print('best: {self.best}, current_val: {current_val}')
+            print('current count: {}'.format(self.count))
+            print('best: {}, current_val: {}'.format(self.best, current_val))
 
         if self._compare(current_val, self.best):
             self.best = current_val
@@ -93,5 +92,5 @@ class EarlyStoppingTrigger(object):
 
     def _stop_condition(self):
         if self.verbose:
-            print(f'{self.count} > {self.patients}')
+            print('{} > {}'.format(self.count, self.patients))
         return self.count > self.patients
