@@ -173,11 +173,10 @@ class TestNpzDeserializerNonStrict(unittest.TestCase):
         self.temp_file_path = path
         with open(path, 'wb') as f:
             numpy.savez(
-                f, **{'x': numpy.asarray(10), 'y': numpy.empty((2, 3))})
+                f, **{'x': numpy.asarray(10)})
 
         self.npzfile = numpy.load(path)
-        self.deserializer = npz.NpzDeserializer(
-            self.npzfile, ignore_names=['y'])
+        self.deserializer = npz.NpzDeserializer(self.npzfile, strict=False)
 
     def tearDown(self):
         if hasattr(self, 'npzfile'):
@@ -186,7 +185,7 @@ class TestNpzDeserializerNonStrict(unittest.TestCase):
             os.remove(self.temp_file_path)
 
     def test_deserialize_partial(self):
-        y = numpy.ones((2, 3), dtype=numpy.float32)
+        y = numpy.empty((2, 3), dtype=numpy.float32)
         ret = self.deserializer('y', y)
         self.assertIs(ret, y)
 
@@ -199,10 +198,11 @@ class TestNpzDeserializerIgnoreNames(unittest.TestCase):
         self.temp_file_path = path
         with open(path, 'wb') as f:
             numpy.savez(
-                f, **{'x': numpy.asarray(10)})
+                f, **{'x': numpy.asarray(10), 'y': numpy.empty((2, 3))})
 
         self.npzfile = numpy.load(path)
-        self.deserializer = npz.NpzDeserializer(self.npzfile, strict=False)
+        self.deserializer = npz.NpzDeserializer(
+            self.npzfile, ignore_names=['y'])
 
     def tearDown(self):
         if hasattr(self, 'npzfile'):
