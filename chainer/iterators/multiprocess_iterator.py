@@ -489,6 +489,12 @@ def _pack(data, mem, offset, limit):
                     offset += v.nbytes
             ret[k] = v
         data = ret
+    elif t is numpy.ndarray:
+        if data.nbytes + offset > limit:
+            over = True
+        else:
+            data = _PackedNdarray(data, mem, offset)
+            offset += data.nbytes
     if over:
         expect = _measure(data)
         warnings.warn(
@@ -518,4 +524,6 @@ def _unpack(data, mem):
                 v = v.unpack(mem)
             ret[k] = v
         data = ret
+    elif t is _PackedNdarray:
+        data = data.unpack(mem)
     return data
