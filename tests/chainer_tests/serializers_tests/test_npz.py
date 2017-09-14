@@ -190,6 +190,10 @@ class TestNpzDeserializerNonStrict(unittest.TestCase):
         self.assertIs(ret, y)
 
 
+@testing.parameterize(
+    {'ignore_names': ['y']},
+    {'ignore_names': lambda key: key == 'y'}
+)
 class TestNpzDeserializerIgnoreNames(unittest.TestCase):
 
     def setUp(self):
@@ -202,7 +206,7 @@ class TestNpzDeserializerIgnoreNames(unittest.TestCase):
 
         self.npzfile = numpy.load(path)
         self.deserializer = npz.NpzDeserializer(
-            self.npzfile, ignore_names=['y'])
+            self.npzfile, ignore_names=self.ignore_names)
 
     def tearDown(self):
         if hasattr(self, 'npzfile'):
@@ -211,7 +215,7 @@ class TestNpzDeserializerIgnoreNames(unittest.TestCase):
             os.remove(self.temp_file_path)
 
     def test_deserialize_ignore_names(self):
-        y = numpy.empty((2, 3), dtype=numpy.float32)
+        y = numpy.ones((2, 1), dtype=numpy.float32)
         ret = self.deserializer('y', y)
         self.assertIs(ret, y)
 
@@ -266,6 +270,10 @@ class TestNpzDeserializerNonStrictGroupHierachy(unittest.TestCase):
             target.child.linear2.b.data, target_child_b)
 
 
+@testing.parameterize(
+    {'ignore_names': ['linear/W', 'child/linear2/b']},
+    {'ignore_names': lambda key: key in ['linear/W', 'child/linear2/b']}
+)
 class TestNpzDeserializerIgnoreNamesGroupHierachy(unittest.TestCase):
 
     def setUp(self):
@@ -285,7 +293,7 @@ class TestNpzDeserializerIgnoreNamesGroupHierachy(unittest.TestCase):
 
         self.npzfile = numpy.load(path)
         self.deserializer = npz.NpzDeserializer(
-            self.npzfile, ignore_names=['linear/W', 'child/linear2/b'])
+            self.npzfile, ignore_names=self.ignore_names)
 
     def tearDown(self):
         if hasattr(self, 'npzfile'):
