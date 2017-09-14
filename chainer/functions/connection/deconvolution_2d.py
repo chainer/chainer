@@ -155,6 +155,10 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             if b is not None:
                 b = cuda.cupy.ascontiguousarray(b)
 
+            use_tensor_core = configuration.config.cudnn_use_tensor_core
+            if use_tensor_core is None:
+                use_tensor_core = cudnn.is_tensor_core_available(x.dtype)
+
             handle = cudnn.get_handle()
             x_desc = cudnn.create_tensor_descriptor(x)
             y = cuda.cupy.empty((n, c, self.outh, self.outw),
@@ -163,7 +167,8 @@ class Deconvolution2DFunction(function_node.FunctionNode):
 
             filter_desc = cudnn.create_filter_descriptor(W)
             conv_desc = cudnn.create_convolution_descriptor(
-                (self.ph, self.pw), (self.sy, self.sx), x.dtype)
+                (self.ph, self.pw), (self.sy, self.sx), x.dtype,
+                use_tensor_core=use_tensor_core)
             if b is not None:
                 bias_desc = cudnn.create_tensor_descriptor(
                     b[None, :, None, None])
@@ -181,6 +186,11 @@ class Deconvolution2DFunction(function_node.FunctionNode):
                     handle, filter_desc.value, x_desc.value,
                     conv_desc.value, y_desc.value, _bwd_data_pref,
                     workspace_size)
+
+            if use_tensor_core:
+                # Only CUDNN_CONVOLUTION_BWD_DATA_ALGO_1 supports
+                # Tensor-Core in cuDNN7
+                algo = libcudnn.CUDNN_CONVOLUTION_BWD_DATA_ALGO_1
 
             libcudnn.convolutionBackwardData_v3(
                 handle, one.data, filter_desc.value, W.data.ptr,

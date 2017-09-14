@@ -124,13 +124,18 @@ class Convolution2DFunction(function_node.FunctionNode):
             if b is not None:
                 b = cuda.cupy.ascontiguousarray(b)
 
+            use_tensor_core = configuration.config.cudnn_use_tensor_core
+            if use_tensor_core is None:
+                use_tensor_core = cudnn.is_tensor_core_available(x.dtype)
+
             handle = cudnn.get_handle()
             x_desc = cudnn.create_tensor_descriptor(x)
             y_desc = cudnn.create_tensor_descriptor(y)
 
             filter_desc = cudnn.create_filter_descriptor(W)
             conv_desc = cudnn.create_convolution_descriptor(
-                (self.ph, self.pw), (self.sy, self.sx), x.dtype)
+                (self.ph, self.pw), (self.sy, self.sx), x.dtype,
+                use_tensor_core=use_tensor_core)
             if b is not None:
                 bias_desc = cudnn.create_tensor_descriptor(
                     b[None, :, None, None])
@@ -140,6 +145,11 @@ class Convolution2DFunction(function_node.FunctionNode):
             algo = libcudnn.getConvolutionForwardAlgorithm(
                 handle, x_desc.value, filter_desc.value,
                 conv_desc.value, y_desc.value, _fwd_pref, workspace_size)
+
+            if use_tensor_core:
+                # Only CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM supports
+                # Tensor-Core in cuDNN7.
+                algo = libcudnn.CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM  # NOQA
 
             oz_dtype = 'd' if x.dtype == 'd' else 'f'
             one = numpy.array(1, dtype=oz_dtype).ctypes
@@ -232,13 +242,18 @@ class Convolution2DGradW(function_node.FunctionNode):
         x = cuda.cupy.ascontiguousarray(x)
         gy = cuda.cupy.ascontiguousarray(gy)
 
+        use_tensor_core = configuration.config.cudnn_use_tensor_core
+        if use_tensor_core is None:
+            use_tensor_core = cudnn.is_tensor_core_available(x.dtype)
+
         handle = cudnn.get_handle()
         x_desc = cudnn.create_tensor_descriptor(x)
         gy_desc = cudnn.create_tensor_descriptor(gy)
 
         filter_desc = cudnn.create_filter_descriptor(gW)
         conv_desc = cudnn.create_convolution_descriptor(
-            (self.ph, self.pw), (self.sy, self.sx), x.dtype)
+            (self.ph, self.pw), (self.sy, self.sx), x.dtype,
+            use_tensor_core=use_tensor_core)
 
         oz_dtype = 'd' if x.dtype == 'd' else 'f'
         one = numpy.array(1, dtype=oz_dtype).ctypes
@@ -253,6 +268,11 @@ class Convolution2DGradW(function_node.FunctionNode):
             algo = libcudnn.getConvolutionBackwardFilterAlgorithm(
                 handle, x_desc.value, gy_desc.value, conv_desc.value,
                 filter_desc.value, _bwd_filter_pref, workspace_size)
+
+        if use_tensor_core:
+            # Only CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1 supports
+            # Tensor-Core in cuDNN7.
+            algo = libcudnn.CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1
 
         libcudnn.convolutionBackwardFilter_v3(
             handle, one.data, x_desc.value, x.data.ptr, gy_desc.value,
