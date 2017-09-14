@@ -88,8 +88,8 @@ class NpzDeserializer(serializer.Deserializer):
         ignore_names (list of strings or callable): If this is a list,
             this is names of parameters and persistents that are going
             to be skipped.
-            If callable, it is a function that takes a name of parameters
-            and persistents and returns True when they need to be skipped.
+            If callable, it is a function that takes a name of a parameter
+            and a persistent and returns ``True`` when it need to be skipped.
 
     """
 
