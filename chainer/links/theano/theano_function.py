@@ -25,6 +25,10 @@ class TheanoFunction(link.Link):
 
     """Theano function wrapper.
 
+    .. warning::
+
+        This feature is experimental. The interface can change in the future.
+
     This function wraps Theano function as a :class:`chainer.Link`.
     A user needs to make input Theano variables and output Theano variables.
     This function automatically creates Theano function for forward calculation
