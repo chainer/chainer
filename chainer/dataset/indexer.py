@@ -13,11 +13,13 @@ class BaseIndexer(object):
         raise NotImplementedError
 
 
-class BaseFeaturesIndexer(BaseIndexer):
+class BaseFeatureIndexer(BaseIndexer):
 
-    """Base class for FeaturesIndexer
+    """Base class for FeatureIndexer
 
-    Let `features` be the instance of `BaseFeaturesIndexer`, then
+    FeatureIndexer can be accessed by 2-dimensional indices, axis=0 is used for
+    dataset index and axis=1 is used for feature index.
+    For example, let `features` be the instance of `BaseFeatureIndexer`, then
     `features[i, j]` returns `i`-th dataset of `j`-th feature.
 
     `features[ind]` works same with `features[ind, :]`
@@ -28,7 +30,7 @@ class BaseFeaturesIndexer(BaseIndexer):
     """
 
     def __init__(self, dataset, access_feature_by_key=False):
-        super(BaseFeaturesIndexer, self).__init__()
+        super(BaseFeatureIndexer, self).__init__()
         self.dataset = dataset
         self.access_feature_by_key = access_feature_by_key
 

@@ -1,6 +1,6 @@
 import six
 
-from chainer.dataset.indexer import BaseFeaturesIndexer
+from chainer.dataset.indexer import BaseFeatureIndexer
 
 
 class TupleDataset(object):
@@ -27,7 +27,7 @@ class TupleDataset(object):
                     'dataset of the index {} has a wrong length'.format(i))
         self._datasets = datasets
         self._length = length
-        self._features_indexer = TupleDatasetFeaturesIndexer(self)
+        self._features_indexer = TupleDatasetFeatureIndexer(self)
 
     def __getitem__(self, index):
         batches = [dataset[index] for dataset in self._datasets]
@@ -60,11 +60,11 @@ class TupleDataset(object):
         return self._features_indexer
 
 
-class TupleDatasetFeaturesIndexer(BaseFeaturesIndexer):
-    """FeaturesIndexer for TupleDataset"""
+class TupleDatasetFeatureIndexer(BaseFeatureIndexer):
+    """FeatureIndexer for TupleDataset"""
 
     def __init__(self, dataset):
-        super(TupleDatasetFeaturesIndexer, self).__init__(dataset)
+        super(TupleDatasetFeatureIndexer, self).__init__(dataset)
         self.datasets = dataset._datasets
 
     @property
