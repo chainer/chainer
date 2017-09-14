@@ -147,8 +147,8 @@ class Convolution2DFunction(function_node.FunctionNode):
                 conv_desc.value, y_desc.value, _fwd_pref, workspace_size)
 
             if use_tensor_core:
-                # Only CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM supports
-                # Tensor-Core in cuDNN7.
+                # Only CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM
+                # supports Tensor-Core in cuDNN7.
                 algo = libcudnn.CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM  # NOQA
 
             oz_dtype = 'd' if x.dtype == 'd' else 'f'
