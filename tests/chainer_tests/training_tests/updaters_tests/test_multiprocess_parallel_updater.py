@@ -4,8 +4,11 @@ import numpy
 
 import chainer
 from chainer import cuda
+import chainer.functions.math.minmax
+import chainer.reporter
 from chainer import testing
 from chainer.testing import attr
+from chainer.training.trainer import Trainer
 import chainer.training.updaters.multiprocess_parallel_updater as mpu
 
 import copy
@@ -167,6 +170,75 @@ class TestRawArray(unittest.TestCase):
             updater = mpu.MultiprocessParallelUpdater(
                 iters, optimizer, devices=devices)
             updater.update()
+
+            self.assertEqual(model.call_called, 1)
+
+
+class SimpleNetChild(chainer.Chain):
+
+    def __init__(self):
+        super(SimpleNetChild, self).__init__(
+            conv=chainer.links.Convolution2D(2, 2, 3),
+        )
+
+    def __call__(self, x):
+
+        h = chainer.functions.relu(self.conv(x))
+
+        chainer.reporter.report({
+            'h_max': chainer.functions.math.minmax.max(h)}, self)
+
+        return h
+
+
+class SimpleNetChildReporter(chainer.Chain):
+
+    def __init__(self):
+        super(SimpleNetChildReporter, self).__init__(
+            c1=SimpleNetChild(),
+            fc=chainer.links.Linear(18, 2),
+        )
+        self.call_called = 0
+
+    def clear(self):
+        self.loss = None
+
+    def __call__(self, x, t):
+
+        self.call_called += 1
+
+        h = chainer.functions.relu(self.c1(x))
+        y = self.fc(h)
+
+        self.loss = chainer.functions.softmax_cross_entropy(y, t)
+        chainer.reporter.report({'loss': self.loss}, self)
+
+        return self.loss
+
+
+class TestChildReporter(unittest.TestCase):
+
+    def setUp(self):
+        pass
+
+    @attr.gpu
+    def test_update_uses_raw_array(self):
+        if mpu.MultiprocessParallelUpdater.available():
+            model = SimpleNetChildReporter()
+            dataset = [((numpy.ones((2, 5, 5)) * i).astype(numpy.float32),
+                        numpy.int32(0)) for i in range(100)]
+
+            batch_size = 5
+            devices = (0, 1)
+            iters = [chainer.iterators.SerialIterator(i, batch_size) for i in
+                     chainer.datasets.split_dataset_n_random(
+                         dataset, len(devices))]
+            optimizer = chainer.optimizers.SGD(lr=1.0)
+            optimizer.setup(model)
+            updater = mpu.MultiprocessParallelUpdater(
+                iters, optimizer, devices=devices)
+            trainer = Trainer(updater, (1, 'iteration'), '/tmp')
+            trainer.run()
 
             self.assertEqual(model.call_called, 1)
 
