@@ -239,12 +239,20 @@ Spatial pooling
    chainer.functions.average_pooling_2d
    chainer.functions.average_pooling_nd
    chainer.functions.max_pooling_2d
-   chainer.functions.max_pooling_nd
+   chainer.functions.max_pooling
    chainer.functions.roi_pooling_2d
    chainer.functions.spatial_pyramid_pooling_2d
    chainer.functions.unpooling_2d
    chainer.functions.upsampling_2d
 
+Deprecated
+``````````
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.functions.max_pooling_nd
 
 Utility functions
 -----------------
