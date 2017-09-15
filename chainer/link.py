@@ -367,7 +367,7 @@ Assign a Parameter object directly to an attribute within a \
         d = self.__dict__
         with cuda._get_device(device):
             for name in self._params:
-                d[name].to_gpu()
+                d[name].to_gpu(device)
             for name in self._persistent:
                 value = d[name]
                 if isinstance(value, numpy.ndarray):
