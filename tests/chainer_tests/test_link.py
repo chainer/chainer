@@ -127,6 +127,17 @@ class TestLink(unittest.TestCase):
         self.assertTrue(hasattr(self.link, 'q'))
         self.assertEqual(self.link.q, 'abc')
 
+    def test_delete(self):
+        del self.link.x
+        self.assertFalse(hasattr(self.link, 'x'))
+        self.assertNotIn('x', self.link._params)
+        self.assertNotIn('x', self.link._persistent)
+
+        del self.link.p
+        self.assertFalse(hasattr(self.link, 'p'))
+        self.assertNotIn('p', self.link._params)
+        self.assertNotIn('p', self.link._persistent)
+
     def test_copy(self):
         link = self.link.copy()
         self.assertIsInstance(link._params, set)
@@ -488,6 +499,11 @@ class TestChain(unittest.TestCase):
         l = chainer.Link()
         self.l1.l = l
         self.assertTrue(all(l is not link for link in self.l1.links()))
+
+    def test_delete_link(self):
+        del self.c1.l1
+        self.assertFalse(hasattr(self.c1, 'l1'))
+        self.assertNotIn('l1', self.c1._children)
 
     def test_copy(self):
         c2 = self.c2.copy()
