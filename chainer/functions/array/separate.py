@@ -13,7 +13,9 @@ def separate(x, axis=0):
 
     Args:
         x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Variable to be separated.
+        :class:`cupy.ndarray`):
+            Variable to be separated.
+            A :math:`(s_1, s_2, ..., s_N)` -shaped float array.
         axis (int): Axis along which variables are separated.
 
     Returns:
