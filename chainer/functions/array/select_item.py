@@ -114,4 +114,3 @@ def select_item(x, t):
 
     """
     return SelectItem().apply((x, t))[0]
-
