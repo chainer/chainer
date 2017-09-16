@@ -97,8 +97,7 @@ def select_item(x, t):
         t (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`):
             Variable storing index numbers. A one-dimensional int array.
-            Length of the ``t`` should be equal to length of first dimension \
-            of the ``x``.
+            Length of the ``t`` should be equal to ``x.shape[0]``.
 
     Returns:
         ~chainer.Variable: Variable that holds ``t``-th element of ``x``.
@@ -106,7 +105,7 @@ def select_item(x, t):
     .. admonition:: Example
 
         >>> x = np.array([[0, 1, 2], [3, 4, 5]], 'f')
-        >>> t = np.array([0, 2])
+        >>> t = np.array([0, 2], 'i')
         >>> y = F.select_item(x, t)
         >>> y.shape
         (2,)
@@ -115,3 +114,4 @@ def select_item(x, t):
 
     """
     return SelectItem().apply((x, t))[0]
+

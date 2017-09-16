@@ -25,7 +25,10 @@ def separate(x, axis=0):
 
     .. admonition:: Example
 
-        >>> x = np.array([[0, 1, 2], [3, 4, 5]], 'f')
+        >>> x = np.arange(6).reshape((2, 3)).astype('f')
+        >>> x
+        array([[ 0.,  1.,  2.],
+               [ 3.,  4.,  5.]], dtype=float32)
         >>> x.shape
         (2, 3)
         >>> y = F.separate(x) # split along axis=0
