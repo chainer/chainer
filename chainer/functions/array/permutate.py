@@ -133,17 +133,3 @@ def permutate(x, indices, axis=0, inv=False):
 
     """
     return Permutate(axis=axis, inv=inv)(x, indices)
-
-if __name__ == "__main__":
-    import doctest
-    import numpy as np
-    # import cupy  # comment out if you don' have GPU
-    import chainer
-    from chainer import cuda, Function, gradient_check, training, utils, Variable
-    from chainer import datasets, iterators, optimizers, serializers
-    from chainer import Link, Chain, ChainList
-    import chainer.functions as F
-    import chainer.links as L
-    from chainer.training import extensions
-    np.random.seed(0)
-    doctest.testmod()
