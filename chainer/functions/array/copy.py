@@ -1,9 +1,9 @@
 from chainer import cuda
-from chainer import function
+from chainer import function_node
 from chainer.utils import type_check
 
 
-class Copy(function.Function):
+class Copy(function_node.FunctionNode):
 
     """Copies the input variable onto the specified device."""
 
@@ -15,41 +15,17 @@ class Copy(function.Function):
             in_types.size() == 1
         )
 
-    def forward_cpu(self, x):
-        self.retain_inputs(())
-        self._in_device = cuda.get_device_from_array(x[0])
+    def forward(self, inputs):
+        x, = inputs
+        self._in_device = cuda.get_device_from_array(x).id
+        print(type(x), self._in_device, self.out_device)
         if self.out_device == -1:
-            return x[0].copy(),
+            return cuda.to_cpu(x),
         else:
-            return cuda.to_gpu(x[0], device=self.out_device),
+            return cuda.to_gpu(x, self.out_device),
 
-    def forward_gpu(self, x):
-        self.retain_inputs(())
-        self._in_device = cuda.get_device_from_array(x[0])
-        if self.out_device == -1:
-            return cuda.to_cpu(x[0]),
-        else:
-            return cuda.copy(x[0], out_device=self.out_device),
-
-    def backward(self, inputs, grad_outputs):
-        # In this function, `grad_outputs` contains cuda arrays even when
-        # `inputs` only contains numpy arrays.
-        if self._in_device.id != -1:
-            return self.backward_gpu(inputs, grad_outputs)
-        else:
-            return self.backward_cpu(inputs, grad_outputs)
-
-    def backward_cpu(self, x, gy):
-        if self.out_device == -1:
-            return gy[0].copy(),
-        else:
-            return cuda.to_cpu(gy[0]),
-
-    def backward_gpu(self, x, gy):
-        if self.out_device == -1:
-            return cuda.to_gpu(gy[0], device=self._in_device),
-        else:
-            return cuda.copy(gy[0], out_device=self._in_device),
+    def backward(self, indexes, grad_outputs):
+        return Copy(self._in_device).apply(grad_outputs)
 
 
 def copy(x, dst):
@@ -83,4 +59,6 @@ def copy(x, dst):
         -1
 
     """
-    return Copy(dst)(x)
+    assert isinstance(dst, int)
+    y, = Copy(dst).apply((x,))
+    return y
