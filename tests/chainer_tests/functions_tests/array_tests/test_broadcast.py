@@ -40,10 +40,9 @@ class TestBroadcast(unittest.TestCase):
         self.grads = [uniform(0, 1, self.out_shape).astype(self.dtype)
                       for _ in range(len(self.in_shapes))]
 
-        self.check_backward_options = {'dtype': numpy.float64}
+        self.check_backward_options = {}
         if self.dtype == numpy.float16:
-            self.check_backward_options = {
-                'dtype': numpy.float64, 'atol': 5e-4, 'rtol': 5e-3}
+            self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
 
     def check_forward(self, data):
         xs = [chainer.Variable(x) for x in data]
@@ -65,9 +64,10 @@ class TestBroadcast(unittest.TestCase):
         self.check_forward([cuda.to_gpu(x) for x in self.data])
 
     def check_backward(self, data, grads):
+        def f(*xs):
+            return functions.broadcast(*xs)
         gradient_check.check_backward(
-            functions.Broadcast(), data, grads,
-            **self.check_backward_options)
+            f, data, grads, dtype=numpy.float64, **self.check_backward_options)
 
     @condition.retry(3)
     def test_backward_cpu(self):
