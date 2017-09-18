@@ -11,7 +11,7 @@ class AlexLike(chainer.Chain):
     insize = 227
 
     def __init__(self):
-        super(Alex, self).__init__()
+        super(AlexLike, self).__init__()
         with self.init_scope():
             self.conv1 = L.Convolution2D(None,  96, 11, stride=4)
             self.conv2 = L.Convolution2D(None, 256,  5, pad=2)
