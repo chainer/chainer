@@ -105,7 +105,7 @@ accum_loss = 0
 accum_accuracy = 0
 for path, label in dataset:
     print(np.asarray(Image.open(path)).shape)
-    image = np.asarray(Image.open(path)).transpose(2, 0, 1)[::-1]
+    image = np.asarray(Image.open(path).convert('RGB')).transpose(2, 0, 1)[::-1]
     image = image[:, start:stop, start:stop].astype(np.float32)
     image -= mean_image
 
