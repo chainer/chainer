@@ -28,7 +28,7 @@ if __name__ == "__main__":
     x_test, y_test = data_loader.load_with_subtraction_of_mean(
         TESTING_DATA_PATH,
         MEAN_IMAGE_PATH,
-        alexLike.AlexLike.insize
+        227
     )
 
     # reduce the data
