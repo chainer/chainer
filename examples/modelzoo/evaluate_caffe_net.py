@@ -19,6 +19,7 @@ from PIL import Image
 import chainer
 from chainer import cuda
 import chainer.functions as F
+import chainer.links as L
 from chainer.links import caffe
 
 # =========================================================
