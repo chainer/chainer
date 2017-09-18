@@ -34,9 +34,19 @@ class AlexLike(chainer.Chain):
         h = F.dropout(F.relu(self.fc7(h)))
         h = self.fc8(h)
 
-        loss = F.softmax_cross_entropy(h, t)
-        chainer.report({'loss': loss, 'accuracy': F.accuracy(h, t)}, self)
-        return loss
+        self.loss = F.softmax_cross_entropy(h, t)
+        self.accuracy = F.accuracy(h, t)
+
+        if self.train:
+            chainer.report({'loss': loss, 'accuracy': F.accuracy(h, t)}, self)
+            return self.loss
+        else:
+            self.pred = F.softmax(h)
+            return self.pred
+
+    def clear(self):
+        self.loss = None
+        self.accuracy = None
 
 
 class AlexLikeFp16(AlexLike):
@@ -68,6 +78,10 @@ class AlexLikeFp16(AlexLike):
 
     def __call__(self, x, t):
         return AlexLike.__call__(self, F.cast(x, self.dtype), t)
+
+    def clear(self):
+        self.loss = None
+        self.accuracy = None
 
 # class FromCaffeAlexnet(chainer.Chain):
 #     insize = 128
