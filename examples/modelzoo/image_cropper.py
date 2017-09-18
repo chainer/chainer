@@ -5,7 +5,7 @@
 import cv2
 import numpy as np
 import os
-
+from PIL import Image
 
 class ImageCropper(object):
     INITIAL_IMAGE_SIZE = 256
@@ -32,5 +32,6 @@ class ImageCropper(object):
     # test ok
     def crop_center(self, path, is_scaled=True):
         # Data loading routine
-        image = cv2.imread(path).convert('RGB').transpose(2, 0, 1)
+        # image = cv2.imread(path).transpose(2, 0, 1)
+        image = np.asarray(Image.open(path).convert('RGB')).transpose(2, 0, 1)[::-1]
         return self.crop_center_image(image, is_scaled)
