@@ -3,7 +3,7 @@
 
 import os
 import cPickle as pickle
-import alexLike
+from alexLike import *
 from copy_model import *
 from chainer import cuda, optimizers, Variable
 from data_loader import *
@@ -18,7 +18,7 @@ if __name__ == "__main__":
     model = pickle.load(open(FINE_TUNED_MODEL_PATH))
 
     # create a predictor
-    predictor = alexLike.AlexLike().to_gpu()
+    predictor = AlexLike().to_gpu()
 
     # copy parameters from the fine-tuned model to the predictor
     copy_model(model, predictor)
@@ -28,7 +28,7 @@ if __name__ == "__main__":
     x_test, y_test = data_loader.load_with_subtraction_of_mean(
         TESTING_DATA_PATH,
         MEAN_IMAGE_PATH,
-        227
+        AlexLike.insize
     )
 
     # reduce the data

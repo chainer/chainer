@@ -32,5 +32,5 @@ class ImageCropper(object):
     # test ok
     def crop_center(self, path, is_scaled=True):
         # Data loading routine
-        image = cv2.imread(path).transpose(2, 0, 1)
+        image = cv2.imread(path).convert('RGB').transpose(2, 0, 1)
         return self.crop_center_image(image, is_scaled)
