@@ -2,7 +2,7 @@
 Chainer -- A flexible framework of neural networks
 ==================================================
 
-This is the `Chainer <http://chainer.org>`_ documentation.
+This is the `Chainer <https://chainer.org>`_ documentation.
 
 .. toctree::
    :maxdepth: 1
@@ -10,11 +10,12 @@ This is the `Chainer <http://chainer.org>`_ documentation.
    install
    tutorial/index
    reference/index
-   cupy-reference/index
+   upgrade
    contribution
    compatibility
    tips
    comparison
+   license
 
 
 Indices and tables

@@ -1,4 +1,7 @@
+import numpy
+
 from chainer import cuda
+from chainer import function_node
 from chainer.functions.pooling import pooling_2d
 from chainer.utils import conv
 from chainer.utils import type_check
@@ -43,15 +46,32 @@ class Unpooling2D(pooling_2d.Pooling2D):
         xp = cuda.get_array_module(*x)
         col = xp.tile(x[0][:, :, None, None],
                       (1, 1, self.kh, self.kw, 1, 1))
-        if isinstance(x[0], cuda.ndarray):
-            y = conv.col2im_gpu(col, self.sy, self.sx, self.ph, self.pw,
+        if xp is numpy:
+            y = conv.col2im_cpu(col, self.sy, self.sx, self.ph, self.pw,
                                 self.outh, self.outw)
         else:
-            y = conv.col2im_cpu(col, self.sy, self.sx, self.ph, self.pw,
+            y = conv.col2im_gpu(col, self.sy, self.sx, self.ph, self.pw,
                                 self.outh, self.outw)
         return y,
 
-    def backward(self, x, gy):
+    def backward(self, indexes, grad_outputs):
+        return Unpooling2DGrad(self).apply(grad_outputs)
+
+
+class Unpooling2DGrad(function_node.FunctionNode):
+
+    def __init__(self, unpooling2d):
+        self.kh = unpooling2d.kh
+        self.kw = unpooling2d.kw
+        self.sy = unpooling2d.sy
+        self.sx = unpooling2d.sx
+        self.ph = unpooling2d.ph
+        self.pw = unpooling2d.pw
+        self.outh = unpooling2d.outh
+        self.outw = unpooling2d.outw
+        self.cover_all = unpooling2d.cover_all
+
+    def forward(self, gy):
         if isinstance(gy[0], cuda.ndarray):
             gcol = conv.im2col_gpu(
                 gy[0], self.kh, self.kw, self.sy, self.sx, self.ph, self.pw,
@@ -62,6 +82,11 @@ class Unpooling2D(pooling_2d.Pooling2D):
                 cover_all=self.cover_all)
         gx = gcol.sum(axis=(2, 3))
         return gx,
+
+    def backward(self, indexes, ggx):
+        return Unpooling2D(
+            (self.kh, self.kw), (self.sy, self.sx), (self.ph, self.pw),
+            (self.outh, self.outw), self.cover_all).apply(ggx)
 
 
 def unpooling_2d(x, ksize, stride=None, pad=0, outsize=None, cover_all=True):
@@ -99,4 +124,4 @@ def unpooling_2d(x, ksize, stride=None, pad=0, outsize=None, cover_all=True):
         ~chainer.Variable: Output variable.
 
     """
-    return Unpooling2D(ksize, stride, pad, outsize, cover_all)(x)
+    return Unpooling2D(ksize, stride, pad, outsize, cover_all).apply((x,))[0]

@@ -16,6 +16,8 @@ class SquaredDifference(function.Function):
         )
 
     def forward(self, inputs):
+        self.retain_inputs(())
+        self._in_dtype = inputs[0].dtype
         xp = cuda.get_array_module(*inputs)
         x1, x2 = inputs
         self.difference = x1 - x2
@@ -23,11 +25,10 @@ class SquaredDifference(function.Function):
         return utils.force_array(y, dtype=x1.dtype),
 
     def backward(self, inputs, grads):
-        x1, x2 = inputs
         gy, = grads
         gx = gy * 2 * self.difference
-        gx = utils.force_array(gx, dtype=x1.dtype)
-        gx_minus = utils.force_array(-gx, dtype=x1.dtype)
+        gx = utils.force_array(gx, dtype=self._in_dtype)
+        gx_minus = utils.force_array(-gx, dtype=self._in_dtype)
         return gx, gx_minus
 
 

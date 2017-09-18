@@ -1,6 +1,10 @@
+from __future__ import print_function
+
 import collections
 import os
+import sys
 import time
+import traceback
 
 import six
 
@@ -8,6 +12,16 @@ from chainer import reporter as reporter_module
 from chainer import serializer as serializer_module
 from chainer.training import extension as extension_module
 from chainer.training import trigger as trigger_module
+
+
+# Select the best-resolution timer function
+try:
+    _get_time = time.perf_counter
+except AttributeError:
+    if os.name == 'nt':
+        _get_time = time.clock
+    else:
+        _get_time = time.time
 
 
 class _ExtensionEntry(object):
@@ -39,10 +53,11 @@ class Trainer(object):
       should be called or not.
 
     Extensions are callable objects that take the trainer object as the
-    argument. There are two ways to define custom extensions: inheriting the
-    :class:`Extension` class, and decorating functions by
-    :func:`make_extension`. See :class:`Extension` for more details on custom
-    extensions.
+    argument. There are three ways to define custom extensions: inheriting the
+    :class:`Extension` class, decorating functions by :func:`make_extension`,
+    and defining any callable including lambda functions. See
+    :class:`Extension` for more details on custom extensions and how to
+    configure them.
 
     Users can register extensions to the trainer by calling the :meth:`extend`
     method, where some configurations can be added.
@@ -156,7 +171,7 @@ class Trainer(object):
             return self._final_elapsed_time
         if self._start_at is None:
             raise RuntimeError('training has not been started yet')
-        return time.time() - self._start_at + self._snapshot_elapsed_time
+        return _get_time() - self._start_at + self._snapshot_elapsed_time
 
     def extend(self, extension, name=None, trigger=None, priority=None,
                invoke_before_training=None):
@@ -183,8 +198,11 @@ class Trainer(object):
                 duplicated names as explained above.
             trigger (tuple or Trigger): Trigger object that determines when to
                 invoke the extension. If it is ``None``, ``extension.trigger``
-                is used instead. If the trigger is not callable, it is passed
-                to :class:`IntervalTrigger` to build an interval trigger.
+                is used instead. If it is ``None`` and the extension does not
+                have the trigger attribute, the extension is triggered at every
+                iteration by default. If the trigger is not callable, it is
+                passed to :class:`IntervalTrigger` to build an interval
+                trigger.
             priority (int): Invocation priority of the extension. Extensions
                 are invoked in the descending order of priorities in each
                 iteration. If this is ``None``, ``extension.priority`` is used
@@ -203,13 +221,15 @@ class Trainer(object):
             if name is None:
                 name = getattr(extension, 'default_name', None)
                 if name is None:
-                    raise TypeError('name is not given for the extension')
+                    name = getattr(extension, '__name__', None)
+                    if name is None:
+                        raise TypeError('name is not given for the extension')
         if name == 'training':
             raise ValueError(
                 'the name "training" is prohibited as an extension name')
 
         if trigger is None:
-            trigger = getattr(extension, 'trigger', None)
+            trigger = getattr(extension, 'trigger', (1, 'iteration'))
         trigger = trigger_module.get_trigger(trigger)
 
         if priority is None:
@@ -246,7 +266,7 @@ class Trainer(object):
         else:
             raise ValueError('extension %s not found' % name)
 
-    def run(self):
+    def run(self, show_loop_exception_msg=True):
         """Executes the training loop.
 
         This method is the core of ``Trainer``. It executes the whole loop of
@@ -270,12 +290,13 @@ class Trainer(object):
         extensions = [(name, self._extensions[name])
                       for name in extension_order]
 
-        self._start_at = time.time()
+        self._start_at = _get_time()
 
-        # invoke extensions before the loop
+        # invoke initializer of each extension
         for _, entry in extensions:
-            if entry.invoke_before_training:
-                entry.extension(self)
+            initializer = getattr(entry.extension, 'initialize', None)
+            if initializer:
+                initializer(self)
 
         update = self.updater.update
         reporter = self.reporter
@@ -290,9 +311,20 @@ class Trainer(object):
                     for name, entry in extensions:
                         if entry.trigger(self):
                             entry.extension(self)
+        except Exception as e:
+            if show_loop_exception_msg:
+                # Show the exception here, as it will appear as if chainer
+                # hanged in case any finalize method below deadlocks.
+                print('Exception in main training loop: {}'.format(e),
+                      file=sys.stderr)
+                print('Traceback (most recent call last):', file=sys.stderr)
+                traceback.print_tb(sys.exc_info()[2])
+                print('Will finalize trainer extensions and updater before '
+                      'reraising the exception.', file=sys.stderr)
+            six.reraise(*sys.exc_info())
         finally:
             for _, entry in extensions:
-                finalize = entry.extension.finalize
+                finalize = getattr(entry.extension, 'finalize', None)
                 if finalize:
                     finalize()
             self.updater.finalize()

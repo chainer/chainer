@@ -46,23 +46,36 @@ class HardSigmoid(function.Function):
 
 
 def hard_sigmoid(x):
-    """Elementwise hard-sigmoid function.
+    """Element-wise hard-sigmoid function.
 
     This function is defined as
 
     .. math::
 
         f(x) = \\left \\{ \\begin{array}{ll}
-        0 & {\\rm if}~ x < -0.25 \\\\
-        0.2 x + 0.5 & {\\rm if}~ -0.25 < x < 0.25 \\\\
-        1 & {\\rm if}~ 0.25 < x.
+        0 & {\\rm if}~ x < -2.5 \\\\
+        0.2 x + 0.5 & {\\rm if}~ -2.5 < x < 2.5 \\\\
+        1 & {\\rm if}~ 2.5 < x.
         \\end{array} \\right.
 
     Args:
-        x (~chainer.Variable): Input variable.
+        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`):
+            Input variable. A :math:`(s_1, s_2, ..., s_N)`-shaped float array.
 
     Returns:
-        ~chainer.Variable: Output variable.
+        ~chainer.Variable: Output variable. A
+        :math:`(s_1, s_2, ..., s_N)`-shaped float array.
+
+    .. admonition:: Example
+
+        It maps the input values into the range of :math:`[0, 1]`.
+
+        >>> x = np.array([-2.6, -1, 0, 1, 2.6])
+        >>> x
+        array([-2.6, -1. ,  0. ,  1. ,  2.6])
+        >>> F.hard_sigmoid(x).data
+        array([ 0. ,  0.3,  0.5,  0.7,  1. ])
 
     """
     return HardSigmoid()(x)

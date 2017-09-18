@@ -1,14 +1,16 @@
 Optimizers
 ==========
 
-.. currentmodule:: chainer.optimizers
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
 
-.. autoclass:: AdaDelta
-.. autoclass:: AdaGrad
-.. autoclass:: Adam
-.. autoclass:: MomentumSGD
-.. autoclass:: NesterovAG
-.. autoclass:: RMSprop
-.. autoclass:: RMSpropGraves
-.. autoclass:: SGD
-.. autoclass:: SMORMS3
+   chainer.optimizers.AdaDelta
+   chainer.optimizers.AdaGrad
+   chainer.optimizers.Adam
+   chainer.optimizers.MomentumSGD
+   chainer.optimizers.NesterovAG
+   chainer.optimizers.RMSprop
+   chainer.optimizers.RMSpropGraves
+   chainer.optimizers.SGD
+   chainer.optimizers.SMORMS3

@@ -1,9 +1,9 @@
 """Device, context and memory management on CuPy.
 
-Chainer uses CuPy (with very thin wrapper) to exploit the speed of GPU
-computation. Following modules and classes are imported to :mod:`cuda`
-module for convenience (refer to this table when reading chainer's source
-codes).
+Chainer uses `CuPy <https://cupy.chainer.org/>`_ (with very thin wrapper)
+to exploit the speed of GPU computation. Following modules and classes defined
+in CuPy are imported to :mod:`chainer.cuda` module for convenience (refer to
+this table when reading chainer's source codes).
 
 ============================ =================================
  imported name                original name
@@ -29,6 +29,8 @@ import warnings
 import numpy
 import six
 
+import chainer
+
 
 available = False
 cudnn_enabled = False
@@ -44,9 +46,12 @@ try:
     from cupy.cuda import Event  # NOQA
     from cupy.cuda import Stream  # NOQA
 
+    from . import cuda_fusion as fusion  # NOQA
+
     available = True
 except Exception as e:
     _resolution_error = e
+    fusion = numpy
 
     class ndarray(object):
         pass  # for type testing
@@ -61,15 +66,6 @@ if available:
         _resolution_error = e
 
 
-def init(arg=None):
-    warnings.warn(
-        'chainer.cuda.init is deprecated. You need to call nothing to '
-        'initialize your environment. Call chainer.cuda.check_cuda_available '
-        'to check availability of CUDA.',
-        DeprecationWarning)
-    check_cuda_available()
-
-
 def check_cuda_available():
     """Checks if CUDA is available.
 
@@ -78,7 +74,7 @@ def check_cuda_available():
     """
     if not available:
         msg = ('CUDA environment is not correctly set up\n'
-               '(see https://github.com/pfnet/chainer#installation).')
+               '(see https://github.com/chainer/chainer#installation).')
         msg += str(_resolution_error)
         raise RuntimeError(msg)
     if (not cudnn_enabled and
@@ -86,8 +82,9 @@ def check_cuda_available():
             not getattr(check_cuda_available, '_already_warned', False)):
         warnings.warn(
             'cuDNN is not enabled.\n'
-            'Please reinstall chainer after you install cudnn\n'
-            '(see https://github.com/pfnet/chainer#installation).')
+            'Please reinstall CuPy after you install cudnn\n'
+            '(see https://docs-cupy.chainer.org/en/stable/install.html'
+            '#install-cupy-with-cudnn-and-nccl).')
         check_cuda_available._already_warned = True
 
 
@@ -149,8 +146,45 @@ else:
 # ------------------------------------------------------------------------------
 # Global states
 # ------------------------------------------------------------------------------
+def get_device_from_id(device_id):
+    """Gets the device from an ID integer.
+
+    Args:
+        device_id (int or None): The ID of the device which this function
+            returns.
+    """
+    if device_id is not None:
+        check_cuda_available()
+        return Device(device_id)
+    else:
+        return DummyDevice
+
+
+def get_device_from_array(*arrays):
+    """Gets the device from a list of CuPy array or a single CuPy array.
+
+    The device on which the given CuPy array reside is returned.
+
+    Args:
+        array (cupy.ndarray or list of cupy.ndarray):
+            A CuPy array which this function returns the device corresponding
+            to. If a list of :class:`cupy.ndarray` s are given, it returns
+            the first device object of an array in the list.
+    """
+    for array in arrays:
+        if isinstance(array, ndarray) and array.device is not None:
+            return array.device
+    return DummyDevice
+
+
 def get_device(*args):
     """Gets the device from a device object, an ID integer or an array object.
+
+    .. note::
+
+        This API is deprecated. Please use
+        :func:`~chainer.cuda.get_device_from_id`
+        or :func:`~chainer.cuda.get_device_from_array` instead.
 
     This is a convenient utility to select a correct device if the type of
     ``arg`` is unknown (i.e., one can use this function on arrays that may be
@@ -173,6 +207,12 @@ def get_device(*args):
        See :class:`cupy.cuda.Device` for the device selection not by arrays.
 
     """
+    warnings.warn('get_device is deprecated. Please use get_device_from_id or'
+                  ' get_device_from_array instead.', DeprecationWarning)
+    return _get_device(*args)
+
+
+def _get_device(*args):
     for arg in args:
         if type(arg) in _integer_types:
             check_cuda_available()
@@ -208,15 +248,23 @@ def to_gpu(array, device=None, stream=None):
         copy :class:`cupy.ndarray` into specified device.
 
     """
+    if stream is not None:
+        warnings.warn(
+            'The stream option is deprecated in chainer.cuda.to_gpu. '
+            'Please remove it.', DeprecationWarning)
+
     check_cuda_available()
-    with get_device(device):
-        array_dev = get_device(array)
+    if not isinstance(array, (cupy.ndarray, numpy.ndarray)):
+        raise TypeError(
+            'The array sent to gpu must be numpy.ndarray or cupy.ndarray.'
+            '\nActual type: {0}.'.format(type(array)))
+    with _get_device(device):
+        array_dev = get_device_from_array(array)
         if array_dev.id == cupy.cuda.device.get_device_id():
             return array
 
-        if stream is not None:
+        if stream is not None and stream.ptr != 0:
             ret = cupy.empty_like(array)
-            mem = None
             if array_dev.id == -1:
                 # cpu to gpu
                 mem = cupy.cuda.alloc_pinned_memory(array.nbytes)
@@ -224,18 +272,20 @@ def to_gpu(array, device=None, stream=None):
                     mem, array.dtype, array.size).reshape(array.shape)
                 src[...] = array
                 ret.set(src, stream)
+                cupy.cuda.pinned_memory._add_to_watch_list(
+                    stream.record(), mem)
             else:
                 # gpu to gpu
                 with array_dev:
                     src = array.copy()
-                    event = cupy.cuda.Event()
-                    event.record()
+                    event = Stream.null.record()
                 stream.wait_event(event)
-                ret.data.copy_from_device_async(src.data, src.nbytes, stream)
+                ret.data.copy_from_device_async(
+                    src.data, src.nbytes, stream)
 
-            # to hold a reference until the end of the asynchronous memcpy
-            stream.add_callback(lambda *x: None, (src, mem, ret))
-
+                # to hold a reference until the end of the asynchronous
+                # memcpy
+                stream.add_callback(lambda *x: None, (src, ret))
             return ret
 
         if array_dev.id == -1:
@@ -261,7 +311,7 @@ def to_cpu(array, stream=None):
     """
     if isinstance(array, ndarray):
         check_cuda_available()
-        with get_device(array):
+        with get_device_from_array(array):
             return array.get(stream)
     elif isinstance(array, numpy.ndarray):
         return array
@@ -269,156 +319,6 @@ def to_cpu(array, stream=None):
         raise TypeError(
             'The array sent to cpu must be numpy.ndarray or cupy.ndarray.'
             '\nActual type: {0}.'.format(type(array)))
-
-
-def empty(shape, dtype=numpy.float32):
-    """Creates an uninitialized :class:`cupy.ndarray` object.
-
-    Args:
-        shape (tuple of ints): The shape of array.
-        dtype (numpy.dtype): Element type.
-
-    Returns:
-        cupy.ndarray: Uninitialized GPU array allocated by the memory pool.
-
-    """
-    warnings.warn(
-        'chainer.cuda.empty is deprecated. Use cupy.empty instead.',
-        DeprecationWarning)
-    check_cuda_available()
-    return cupy.empty(shape, dtype)
-
-
-def full(shape, fill_value, dtype=numpy.float32, stream=None):
-    """Creates a constant-filled :class:`cupy.ndarray` object.
-
-    Args:
-        shape (tuple of ints): The shape of array.
-        fill_value: Constant to fill the array by.
-        dtype (numpy.dtype): Element type.
-        stream (cupy.cuda.Stream): CUDA stream.
-
-    Returns:
-        cupy.ndarray: Constant-filled GPU array allocated by the memory pool.
-
-    """
-    warnings.warn(
-        'chainer.cuda.full is deprecated. Use cupy.full instead.',
-        DeprecationWarning)
-    check_cuda_available()
-    assert stream is None
-    return cupy.full(shape, fill_value, dtype=dtype)
-
-
-def zeros(shape, dtype=numpy.float32, stream=None):
-    """Creates a zero-filled :class:`cupy.ndarray` object.
-
-    This function is equivalent to ``full(shape, 0, dtype, stream)``.
-
-    """
-    warnings.warn(
-        'chainer.cuda.zeros is deprecated. Use cupy.zeros instead.',
-        DeprecationWarning)
-    check_cuda_available()
-    assert stream is None
-    return cupy.zeros(shape, dtype=dtype)
-
-
-def ones(shape, dtype=numpy.float32, stream=None):
-    """Creates a zero-filled :class:`cupy.ndarray` object.
-
-    This function is equivalent to ``full(shape, 1, dtype, stream)``.
-
-    """
-    warnings.warn(
-        'chainer.cuda.ones is deprecated. Use cupy.ones instead.',
-        DeprecationWarning)
-    check_cuda_available()
-    assert stream is None
-    return cupy.ones(shape, dtype=dtype)
-
-
-def empty_like(array):
-    """Creates an uninitialized GPU array like the given one.
-
-    Args:
-        array (cupy.ndarray or numpy.ndarray): Base array.
-
-    Returns:
-        cupy.ndarray: GPU array of the same shape and dtype as `array`.
-
-    """
-    warnings.warn(
-        'chainer.cuda.empty_like is deprecated. Use cupy.empty_like instead.',
-        DeprecationWarning)
-    check_cuda_available()
-    if isinstance(array, cupy.ndarray):
-        return cupy.empty_like(array)
-    return cupy.empty(array.shape, dtype=array.dtype)
-
-
-def full_like(array, fill_value, stream=None):
-    """Creates a constant-filled :class:`cupy.ndarray` object like the given array.
-
-    Args:
-        array (cupy.ndarray or numpy.ndarray): Base array.
-        fill_value: Constant value to fill the array by.
-        stream (cupy.cuda.Stream): CUDA stream.
-
-    Returns:
-        cupy.ndarray: Constant-filled array.
-
-    """
-    warnings.warn(
-        'chainer.cuda.full_like is deprecated. Use cupy.full_like instead.',
-        DeprecationWarning)
-    check_cuda_available()
-    assert stream is None
-    if isinstance(array, cupy.ndarray):
-        return cupy.full_like(array, fill_value)
-    return cupy.full(array.shape, fill_value, dtype=array.dtype)
-
-
-def zeros_like(array, stream=None):
-    """Creates a zero-filled :class:`cupy.ndarray` object like the given array.
-
-    Args:
-        array (cupy.ndarray or numpy.ndarray): Base array.
-        stream (cupy.cuda.Stream): CUDA stream.
-
-    Returns:
-        cupy.ndarray: Zero-filled array.
-
-    """
-    warnings.warn(
-        'chainer.cuda.zeros_like is deprecated. Use cupy.zeros_like instead.',
-        DeprecationWarning)
-    check_cuda_available()
-    assert stream is None
-    if isinstance(array, cupy.ndarray):
-        return cupy.zeros_like(array)
-    return cupy.zeros(array.shape, dtype=array.dtype)
-
-
-def ones_like(array, stream=None):
-    """Creates a one-filled :class:`cupy.ndarray` object like the given array.
-
-    Args:
-        array (cupy.ndarray or numpy.ndarray): Base array.
-        stream (cupy.cuda.Stream): CUDA stream.
-
-    Returns:
-        cupy.ndarray: One-filled array.
-
-    """
-    warnings.warn(
-        'chainer.cuda.ones_like is deprecated. Use cupy.ones_like instead.',
-        DeprecationWarning)
-    check_cuda_available()
-    assert stream is None
-    if isinstance(array, cupy.ndarray):
-        return cupy.ones_like(array)
-    return cupy.ones(array.shape, dtype=array.dtype)
 
 
 def copy(array, out=None, out_device=None, stream=None):
@@ -448,10 +348,10 @@ def copy(array, out=None, out_device=None, stream=None):
     if out is None:
         if out_device is None:
             out_device = array
-        with get_device(out_device):
+        with _get_device(out_device):
             out = cupy.empty_like(array)
 
-    with get_device(array):
+    with get_device_from_array(array):
         cupy.copyto(out, array)
 
     return out
@@ -543,8 +443,10 @@ def reduce(in_params, out_params, map_expr, reduce_expr, post_map_expr,
 def get_array_module(*args):
     """Gets an appropriate one from :mod:`numpy` or :mod:`cupy`.
 
-    This is almost equivalent to :func:`cupy.get_array_module`. The only
-    difference is that this function can be used even if CUDA is not available.
+    This is almost equivalent to :func:`cupy.get_array_module`. The differences
+    are that this function can be used even if CUDA is not available and that
+    it will return their data arrays' array module for
+    :class:`~chainer.Variable` arguments.
 
     Args:
         args: Values to determine whether NumPy or CuPy should be used.
@@ -555,6 +457,8 @@ def get_array_module(*args):
 
     """
     if available:
+        args = [arg.data if isinstance(arg, chainer.variable.Variable) else arg
+                for arg in args]
         return cupy.get_array_module(*args)
     else:
         return numpy

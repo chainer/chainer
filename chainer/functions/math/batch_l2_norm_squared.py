@@ -43,7 +43,7 @@ class BatchL2NormSquared(function.Function):
 
 
 def batch_l2_norm_squared(x):
-    """L2 norm (a.k.a. Euclidean norm) squared.
+    """L2 norm (a.k.a.\\  Euclidean norm) squared.
 
     This function implements the square of L2 norm on a vector. No reduction
     along batch axis is done.

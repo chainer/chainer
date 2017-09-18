@@ -19,14 +19,21 @@ from chainer.utils import type_check
 
 
 @parameterize(*testing.product({
-    'dims': [(5, 4, 3), (4, 3), (3,)],
+    'dims': [(4, 3, 2), (2,)],
+    'nobias': [False],
+    'test_outsize': [False],
+    'c_contiguous': [True],
+    'x_dtype': [numpy.float32],
+    'W_dtype': [numpy.float32],
+}) + testing.product({
+    'dims': [(3, 2)],
     'nobias': [False],
     'test_outsize': [False],
     'c_contiguous': [True],
     'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'W_dtype': [numpy.float16, numpy.float32, numpy.float64],
 }) + testing.product({
-    'dims': [(5, 4, 3)],
+    'dims': [(3, 2)],
     'nobias': [True, False],
     'test_outsize': [True, False],
     'c_contiguous': [True, False],
@@ -68,20 +75,21 @@ class TestDeconvolutionND(unittest.TestCase):
             self.check_backward_options = {
                 'eps': 2 ** -3, 'atol': 1e-3, 'rtol': 1e-2}
 
-    def check_forward_consistency(self, use_cudnn=True):
+    def check_forward_consistency(self, use_cudnn='always'):
         x_cpu = chainer.Variable(self.x)
         W_cpu = chainer.Variable(self.W)
         b_cpu = None if self.nobias else chainer.Variable(self.b)
         y_cpu = F.deconvolution_nd(
             x_cpu, W_cpu, b_cpu, stride=self.stride, pad=self.pad,
-            outsize=self.outsize, use_cudnn=use_cudnn)
+            outsize=self.outsize)
 
         x_gpu = chainer.Variable(cuda.to_gpu(self.x))
         W_gpu = chainer.Variable(cuda.to_gpu(self.W))
         b_gpu = None if self.nobias else chainer.Variable(cuda.to_gpu(self.b))
-        y_gpu = F.deconvolution_nd(
-            x_gpu, W_gpu, b_gpu, stride=self.stride, pad=self.pad,
-            outsize=self.outsize, use_cudnn=use_cudnn)
+        with chainer.using_config('use_cudnn', use_cudnn):
+            y_gpu = F.deconvolution_nd(
+                x_gpu, W_gpu, b_gpu, stride=self.stride, pad=self.pad,
+                outsize=self.outsize)
 
         self.assertEqual(y_cpu.data.dtype, self.x_dtype)
         self.assertEqual(y_gpu.data.dtype, self.x_dtype)
@@ -90,22 +98,23 @@ class TestDeconvolutionND(unittest.TestCase):
 
     @attr.cudnn
     def test_forward_consistency_cudnn(self):
-        self.check_forward_consistency(use_cudnn=True)
+        self.check_forward_consistency(use_cudnn='always')
 
     @attr.gpu
     def test_forward_consistency_im2col(self):
-        self.check_forward_consistency(use_cudnn=False)
+        self.check_forward_consistency(use_cudnn='never')
 
     def check_forward_consistency_regression(self, x_data, W_data, b_data,
-                                             use_cudnn=True):
+                                             use_cudnn='always'):
         x = chainer.Variable(x_data)
         W = chainer.Variable(W_data)
         b = None if self.nobias else chainer.Variable(b_data)
 
-        y_nd = F.deconvolution_nd(x, W, b, stride=self.stride, pad=self.pad,
-                                  outsize=self.outsize, use_cudnn=use_cudnn)
-        y_2d = F.deconvolution_2d(x, W, b, stride=self.stride, pad=self.pad,
-                                  outsize=self.outsize, use_cudnn=use_cudnn)
+        with chainer.using_config('use_cudnn', use_cudnn):
+            y_nd = F.deconvolution_nd(x, W, b, stride=self.stride,
+                                      pad=self.pad, outsize=self.outsize)
+            y_2d = F.deconvolution_2d(x, W, b, stride=self.stride,
+                                      pad=self.pad, outsize=self.outsize)
 
         testing.assert_allclose(
             y_nd.data, y_2d.data, **self.test_forward_options)
@@ -121,7 +130,7 @@ class TestDeconvolutionND(unittest.TestCase):
         if len(self.dims) == 2:
             self.check_forward_consistency_regression(
                 cuda.to_gpu(self.x), cuda.to_gpu(self.W), cuda.to_gpu(self.b),
-                use_cudnn=True)
+                use_cudnn='always')
 
     @attr.gpu
     def test_forward_consistency_regression_im2col(self):
@@ -129,9 +138,10 @@ class TestDeconvolutionND(unittest.TestCase):
         if len(self.dims) == 2:
             self.check_forward_consistency_regression(
                 cuda.to_gpu(self.x), cuda.to_gpu(self.W), cuda.to_gpu(self.b),
-                use_cudnn=False)
+                use_cudnn='never')
 
-    def check_backward(self, x_data, W_data, b_data, y_grad, use_cudnn=False):
+    def check_backward(self, x_data, W_data, b_data, y_grad,
+                       use_cudnn='never'):
         if not self.c_contiguous:
             xp = cuda.get_array_module(x_data)
             x_data = xp.asfortranarray(x_data)
@@ -151,10 +161,11 @@ class TestDeconvolutionND(unittest.TestCase):
             inputs = inputs + (b_data,)
 
         ndim = len(self.dims)
-        gradient_check.check_backward(
-            deconvolution_nd.DeconvolutionND(
-                ndim, self.stride, self.pad, self.outsize, use_cudnn),
-            inputs, y_grad, **self.check_backward_options)
+        with chainer.using_config('use_cudnn', use_cudnn):
+            gradient_check.check_backward(
+                deconvolution_nd.DeconvolutionND(
+                    ndim, self.stride, self.pad, self.outsize),
+                inputs, y_grad, **self.check_backward_options)
 
     @condition.retry(3)
     def test_backward_cpu(self):
@@ -166,7 +177,7 @@ class TestDeconvolutionND(unittest.TestCase):
         b = None if self.b is None else cuda.to_gpu(self.b)
         self.check_backward(
             cuda.to_gpu(self.x), cuda.to_gpu(self.W), b,
-            cuda.to_gpu(self.gy), use_cudnn=True)
+            cuda.to_gpu(self.gy), use_cudnn='always')
 
     @attr.gpu
     @condition.retry(3)
@@ -174,12 +185,12 @@ class TestDeconvolutionND(unittest.TestCase):
         b = None if self.b is None else cuda.to_gpu(self.b)
         self.check_backward(
             cuda.to_gpu(self.x), cuda.to_gpu(self.W), b,
-            cuda.to_gpu(self.gy), use_cudnn=False)
+            cuda.to_gpu(self.gy), use_cudnn='never')
 
 
 @testing.parameterize(*testing.product({
     'dims': [(5, 4, 3), (4, 3), (3,)],
-    'use_cudnn': [True, False],
+    'use_cudnn': ['always', 'auto', 'never'],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
 @attr.cudnn
@@ -204,31 +215,28 @@ class TestDeconvolutionNDCudnnCall(unittest.TestCase):
         self.x = cuda.cupy.random.uniform(-1, 1, x_shape).astype(self.dtype)
         gy_shape = (2, out_channels) + outs
         self.gy = cuda.cupy.random.uniform(-1, 1, gy_shape).astype(self.dtype)
-        self.expected = self.use_cudnn and ndim > 1 and (
-            cuda.cudnn.cudnn.getVersion() >= 3000 or
-            self.dtype != numpy.float16)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.expected = chainer.should_use_cudnn('>=auto') and ndim > 1
 
     def forward(self):
         x = chainer.Variable(self.x)
         W = chainer.Variable(self.W)
-        return F.deconvolution_nd(
-            x, W, None, stride=1, pad=1, use_cudnn=self.use_cudnn)
+        return F.deconvolution_nd(x, W, None, stride=1, pad=1)
 
     def test_call_cudnn_forward(self):
-        if cuda.cudnn.cudnn.getVersion() >= 4000:
-            name = 'cupy.cudnn.cudnn.convolutionBackwardData_v3'
-        else:
-            name = 'cupy.cudnn.cudnn.convolutionBackwardData_v2'
-        with mock.patch(name) as func:
-            self.forward()
-            self.assertEqual(func.called, self.expected)
+        name = 'cupy.cudnn.cudnn.convolutionBackwardData_v3'
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            with mock.patch(name) as func:
+                self.forward()
+                self.assertEqual(func.called, self.expected)
 
     def test_call_cudnn_backward(self):
-        y = self.forward()
-        y.grad = self.gy
-        with mock.patch('cupy.cudnn.cudnn.convolutionForward') as func:
-            y.backward()
-            self.assertEqual(func.called, self.expected)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            y = self.forward()
+            y.grad = self.gy
+            with mock.patch('cupy.cudnn.cudnn.convolutionForward') as func:
+                y.backward()
+                self.assertEqual(func.called, self.expected)
 
 
 class TestDeconvolutionNDarraySupplied(unittest.TestCase):

@@ -113,7 +113,7 @@ class BatchInvFunctionTest(unittest.TestCase):
     def test_identity_cpu(self):
         eye = _make_eye(self.x.shape)
         x = chainer.Variable(self.x)
-        y = functions.batch_matmul(x, functions.batch_inv(x))
+        y = functions.matmul(x, functions.batch_inv(x))
         testing.assert_allclose(
             y.data, eye, **self.check_forward_options)
 
@@ -122,7 +122,7 @@ class BatchInvFunctionTest(unittest.TestCase):
     def test_identity_gpu(self):
         eye = cuda.to_gpu(_make_eye(self.x.shape))
         x = chainer.Variable(cuda.to_gpu(self.x))
-        y = functions.batch_matmul(x, functions.batch_inv(x))
+        y = functions.matmul(x, functions.batch_inv(x))
         testing.assert_allclose(
             y.data, eye, **self.check_forward_options)
 

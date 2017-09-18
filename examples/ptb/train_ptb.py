@@ -21,16 +21,16 @@ from chainer.training import extensions
 # Definition of a recurrent net for language modeling
 class RNNForLM(chainer.Chain):
 
-    def __init__(self, n_vocab, n_units, train=True):
-        super(RNNForLM, self).__init__(
-            embed=L.EmbedID(n_vocab, n_units),
-            l1=L.LSTM(n_units, n_units),
-            l2=L.LSTM(n_units, n_units),
-            l3=L.Linear(n_units, n_vocab),
-        )
+    def __init__(self, n_vocab, n_units):
+        super(RNNForLM, self).__init__()
+        with self.init_scope():
+            self.embed = L.EmbedID(n_vocab, n_units)
+            self.l1 = L.LSTM(n_units, n_units)
+            self.l2 = L.LSTM(n_units, n_units)
+            self.l3 = L.Linear(n_units, n_vocab)
+
         for param in self.params():
             param.data[...] = np.random.uniform(-0.1, 0.1, param.data.shape)
-        self.train = train
 
     def reset_state(self):
         self.l1.reset_state()
@@ -38,9 +38,9 @@ class RNNForLM(chainer.Chain):
 
     def __call__(self, x):
         h0 = self.embed(x)
-        h1 = self.l1(F.dropout(h0, train=self.train))
-        h2 = self.l2(F.dropout(h1, train=self.train))
-        y = self.l3(F.dropout(h2, train=self.train))
+        h1 = self.l1(F.dropout(h0))
+        h2 = self.l2(F.dropout(h1))
+        y = self.l3(F.dropout(h2))
         return y
 
 
@@ -66,6 +66,8 @@ class ParallelSequentialIterator(chainer.dataset.Iterator):
         # NOTE: this is not a count of parameter updates. It is just a count of
         # calls of ``__next__``.
         self.iteration = 0
+        # use -1 instead of None internally
+        self._previous_epoch_detail = -1.
 
     def __next__(self):
         # This iterator returns a list representing a mini-batch. Each item
@@ -80,6 +82,7 @@ class ParallelSequentialIterator(chainer.dataset.Iterator):
             # epoch (i.e., when all words are visited once).
             raise StopIteration
         cur_words = self.get_words()
+        self._previous_epoch_detail = self.epoch_detail
         self.iteration += 1
         next_words = self.get_words()
 
@@ -95,6 +98,12 @@ class ParallelSequentialIterator(chainer.dataset.Iterator):
         # Floating point version of epoch.
         return self.iteration * self.batch_size / len(self.dataset)
 
+    @property
+    def previous_epoch_detail(self):
+        if self._previous_epoch_detail < 0:
+            return None
+        return self._previous_epoch_detail
+
     def get_words(self):
         # It returns a list of current words.
         return [self.dataset[(offset + self.iteration) % len(self.dataset)]
@@ -104,6 +113,18 @@ class ParallelSequentialIterator(chainer.dataset.Iterator):
         # It is important to serialize the state to be recovered on resume.
         self.iteration = serializer('iteration', self.iteration)
         self.epoch = serializer('epoch', self.epoch)
+        try:
+            self._previous_epoch_detail = serializer(
+                'previous_epoch_detail', self._previous_epoch_detail)
+        except KeyError:
+            # guess previous_epoch_detail for older version
+            self._previous_epoch_detail = self.epoch + \
+                (self.current_position - self.batch_size) / len(self.dataset)
+            if self.epoch_detail > 0:
+                self._previous_epoch_detail = max(
+                    self._previous_epoch_detail, 0.)
+            else:
+                self._previous_epoch_detail = -1.
 
 
 # Custom updater for truncated BackProp Through Time (BPTT)
@@ -171,6 +192,8 @@ def main():
     parser.set_defaults(test=False)
     parser.add_argument('--unit', '-u', type=int, default=650,
                         help='Number of LSTM units in each layer')
+    parser.add_argument('--model', '-m', default='model.npz',
+                        help='Model file name to serialize')
     args = parser.parse_args()
 
     # Load the Penn Tree Bank long word sequence dataset
@@ -192,7 +215,8 @@ def main():
     model = L.Classifier(rnn)
     model.compute_accuracy = False  # we only want the perplexity
     if args.gpu >= 0:
-        chainer.cuda.get_device(args.gpu).use()  # make the GPU current
+        # Make a specified GPU current
+        chainer.cuda.get_device_from_id(args.gpu).use()
         model.to_gpu()
 
     # Set up an optimizer
@@ -206,7 +230,6 @@ def main():
 
     eval_model = model.copy()  # Model with shared params and distinct states
     eval_rnn = eval_model.predictor
-    eval_rnn.train = False
     trainer.extend(extensions.Evaluator(
         val_iter, eval_model, device=args.gpu,
         # Reset the RNN state at the beginning of each evaluation
@@ -234,6 +257,9 @@ def main():
     evaluator = extensions.Evaluator(test_iter, eval_model, device=args.gpu)
     result = evaluator()
     print('test perplexity:', np.exp(float(result['main/loss'])))
+
+    # Serialize the final model
+    chainer.serializers.save_npz(args.model, model)
 
 
 if __name__ == '__main__':

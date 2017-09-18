@@ -13,8 +13,11 @@ def _transpose(xs, length):
     lengths = numpy.empty(length, dtype='i')
     end = length
     for i, x in enumerate(xs):
-        lengths[len(x):end] = i
-        end = len(x)
+        len_x = len(x)
+        if len_x == end:
+            continue
+        lengths[len_x:end] = i
+        end = len_x
     lengths[0:end] = len(xs)
 
     if xp is numpy:
@@ -71,12 +74,14 @@ class TransposeSequence(function.Function):
             )
 
     def forward(self, xs):
+        self.retain_inputs(())
+        self._in_length = len(xs)
         if len(xs) == 0:
             return ()
         return _transpose(xs, len(xs[0]))
 
     def backward(self, xs, gs):
-        return _transpose(gs, len(xs))
+        return _transpose(gs, self._in_length)
 
 
 def transpose_sequence(xs):

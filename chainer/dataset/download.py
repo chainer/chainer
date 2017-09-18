@@ -60,7 +60,8 @@ def get_dataset_directory(dataset_name, create_directory=True):
         try:
             os.makedirs(path)
         except OSError:
-            pass
+            if not os.path.isdir(path):
+                raise
     return path
 
 
@@ -73,6 +74,10 @@ def cached_download(url):
     for the given URL, it just returns the path to the cache without
     downloading the same file.
 
+    .. note::
+        This function raises :class:`OSError` when it fails to create
+        the cache directory. In older version, it raised :class:`RuntimeError`.
+
     Args:
         url (str): URL to download from.
 
@@ -84,8 +89,8 @@ def cached_download(url):
     try:
         os.makedirs(cache_root)
     except OSError:
-        if not os.path.exists(cache_root):
-            raise RuntimeError('cannot create download cache directory')
+        if not os.path.isdir(cache_root):
+            raise
 
     lock_path = os.path.join(cache_root, '_dl_lock')
     urlhash = hashlib.md5(url.encode('utf-8')).hexdigest()
@@ -138,6 +143,12 @@ def cache_or_load_file(path, creator, loader):
     file_name = os.path.basename(path)
     temp_dir = tempfile.mkdtemp()
     temp_path = os.path.join(temp_dir, file_name)
+
+    try:
+        os.makedirs(_dataset_root)
+    except OSError:
+        if not os.path.isdir(_dataset_root):
+            raise RuntimeError('cannot create dataset directory')
 
     lock_path = os.path.join(_dataset_root, '_create_lock')
 

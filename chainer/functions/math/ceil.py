@@ -17,12 +17,15 @@ class Ceil(function.Function):
         )
 
     def forward(self, x):
+        self.retain_inputs(())
+        self._in_shape = x[0].shape
+        self._in_dtype = x[0].dtype
         xp = cuda.get_array_module(*x)
         return utils.force_array(xp.ceil(x[0]), x[0].dtype),
 
     def backward(self, x, grad_outputs):
-        xp = cuda.get_array_module(*x)
-        return xp.zeros_like(x[0]),
+        xp = cuda.get_array_module(*grad_outputs)
+        return xp.zeros(self._in_shape, self._in_dtype),
 
 
 def ceil(x):

@@ -1,6 +1,11 @@
-Variable
---------
+Variable and Parameter
+----------------------
 
-.. currentmodule:: chainer
-.. autoclass:: Variable
-   :members:
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.Variable
+   chainer.as_variable
+   chainer.Parameter
+   chainer.variable.VariableNode

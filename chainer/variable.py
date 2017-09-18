@@ -1,126 +1,479 @@
 import collections
+import copy
 import heapq
 import traceback
 import warnings
+import weakref
 
 import numpy
-import six
 
 import chainer
 from chainer import cuda
-from chainer import flag
+from chainer import initializers
+from chainer.initializers import constant
+from chainer.utils import argument
 
 
 def _check_grad_type(func, x, gx):
-    def make_message(message):
-        if func:
-            detail = 'Function `{0}` ({1}) has a bug.\n'.format(
-                type(func).__name__, func.label)
-
-            stack = func.stack
-            if stack:
-                detail += 'Stacktrace of the function is below:\n'
-                for line in traceback.format_list(func._stack):
-                    detail += line
-
-            detail += '''
-Please report this error to the issue tracker with the stack trace,
-the information of your environment, and your script:
-https://github.com/pfnet/chainer/issues/new.
-'''.format(type(func).__name__, func.label)
-
-        else:
-            detail = ''
-
-        detail += message
-        return detail
-
+    if x.data is None or gx is None:
+        # ``x.data is None`` implies that the data array is not retained
+        return
     if not isinstance(gx, type(x.data)):
         msg = ('Type of data and grad mismatch\n%s != %s' %
                (type(x.data), type(gx)))
-        raise TypeError(make_message(msg))
-    if gx.dtype != x.data.dtype:
+        typ = TypeError
+    elif gx.dtype != x.data.dtype:
         msg = ('Dtype of data and grad mismatch\n%s != %s' %
                (x.data.dtype, gx.dtype))
-        raise TypeError(make_message(msg))
-    if gx.shape != x.data.shape:
+        typ = TypeError
+    elif gx.shape != x.data.shape:
         msg = ('Shape of data and grad mismatch\n%s != %s' %
                (x.data.shape, gx.shape))
-        raise ValueError(make_message(msg))
+        typ = ValueError
+    else:
+        return
+
+    detail = ''
+    if func:
+        detail = 'Function `{0}` ({1}) has a bug.\n'.format(
+            type(func)._impl_name, func.label)
+        stack = func.stack
+        if stack:
+            detail += 'Stacktrace of the function is below:\n'
+            for line in traceback.format_list(func.stack):
+                detail += line
+        detail += '''
+Please report this error to the issue tracker with the stack trace,
+the information of your environment, and your script:
+https://github.com/chainer/chainer/issues/new.
+'''.format(type(func).__name__, func.label)
+
+    raise typ(detail + msg)
+
+
+def variable_repr(var):
+    """Return the string representation of a variable.
+
+    Args:
+        var (~chainer.Variable): Input Variable.
+    .. seealso:: numpy.array_repr
+    """
+    xp = cuda.get_array_module(var)
+    if xp is numpy:
+        arr = var.data
+    else:
+        arr = var.data.get()
+
+    if var.name:
+        prefix = 'variable ' + var.name
+    else:
+        prefix = 'variable'
+
+    if arr is None:
+        lst = 'None'
+    elif arr.size > 0 or arr.shape == (0,):
+        lst = numpy.array2string(arr, None, None, None, ', ', prefix + '(')
+    else:  # show zero-length shape unless it is (0,)
+        lst = '[], shape=%s' % (repr(arr.shape),)
+
+    return '%s(%s)' % (prefix, lst)
+
+
+def variable_str(var):
+    """Return the string representation of a variable.
+
+    Args:
+        var (~chainer.Variable): Input Variable.
+    .. seealso:: numpy.array_str
+    """
+    xp = cuda.get_array_module(var)
+    if xp is numpy:
+        arr = var.data
+    else:
+        arr = var.data.get()
+
+    if var.name:
+        prefix = 'variable ' + var.name
+    else:
+        prefix = 'variable'
+
+    if arr is None:
+        lst = 'None'
+    else:
+        lst = numpy.array2string(arr, None, None, None, ' ', prefix + '(')
+
+    return '%s(%s)' % (prefix, lst)
+
+
+class VariableNode(object):
+
+    """Node in the backward computational graph representing a variable.
+
+    This object represents a variable node in a computational graph. The node
+    is used in error backpropagation (a.k.a. backprop) to determine which
+    gradient to be passed to each function.
+
+    A variable node is held by the corresponding :class:`Variable` object,
+    which is managed by users. :class:`Function` objects that take the variable
+    as an input also hold references to the variable node.
+
+    Note that the node does not hold a reference to the corresponding data
+    array in general. The data array is actually accessible by the node in the
+    following cases.
+
+    1. If there exists a :class:`Variable` object that holds a reference to the
+       variable node, the variable node holds a weak reference to the variable
+       object, and thus the data array is accessible via the weak reference.
+    2. If :meth:`retain_data` is called, the node holds a reference to the data
+       array. It is mainly called by a function that needs the input or output
+       data array in its backprop procedure. See :meth:`Function.retain_inputs`
+       and :meth:`Function.retain_outputs` for more details.
+
+    Users usually do not need to touch this variable node object. The
+    computational graph is automatically managed by Chainer, and any interface
+    that is beneficial for users is also provided by :class:`Variable`.
+
+    Args:
+        variable (Variable): The corresponding variable object.
+        name (str): Name of the variable node.
+
+    Attributes:
+        ~VariableNode.dtype: Data type of the data array.
+        ~VariableNode.shape: Shape of the data array.
+        ~VariableNode.name (str): Name of the variable node.
+
+    """
+
+    _creator_node = None
+    _data = None
+    _rank = 0
+    # Name of the Function is assigned if this variable is a gradient generated
+    # by an old-style Function
+    _old_style_grad_generator = None
+
+    def __init__(self, variable, name, **kwargs):
+        argument.check_unexpected_kwargs(
+            kwargs,
+            grad='unexpected keyword argument "grad": '
+                 'pass the gradient to Variable instead'
+        )
+        self._variable = weakref.ref(variable)
+        self.name = name
+        self._requires_grad = variable.requires_grad
+
+        vdata = variable.data
+        self._set_data_type(vdata)
+
+    @property
+    def creator(self):
+        """Function object that created this variable node.
+
+        When the function is implemented with the old-style API (i.e., it uses
+        :class:`Function` class), this property returns the :class:`Function`
+        object. The object is extracted from the :class:`FunctionAdapter`
+        object, so the returned object is not the function node, but instead
+        the actual implementation of forward and backward procedures.
+
+        When the function is implemented with the new-style API (i.e., it uses
+        :class:`FunctionNode` class), this property returns the function node
+        object. In this case, the returned object is same as
+        :attr:`creator_node`.
+
+        .. warning::
+
+           As of v3.0.0, when the creator is an old-style function, the
+           following code is invalid:
+
+           .. code-block:: python
+
+              creator = v.creator
+              v.creator = None
+              ...
+              v.creator = creator
+
+           The point is that :class:`FunctionNode` objects are used as nodes
+           in the computational graph instead of :class:`Function`, and each
+           :class:`Function` object only holds a *weak reference* to the
+           corresponding :class:`FunctionNode`. Since ``creator`` returns the
+           :class:`Function` object, the :class:`FunctionNode` object is not
+           kept by preserving ``creator``.
+
+           The above code should be fixed as follows.
+
+           .. code-block:: python
+
+              creator_node = v.creator_node
+              v.creator_node = None
+              ...
+              v.creator_node = creator_node
+
+        """
+        node = self._creator_node
+        if node is None:
+            return None
+
+        if isinstance(node, chainer.function.FunctionAdapter):
+            return node.function
+        return node
+
+    @creator.setter
+    def creator(self, func):
+        self.creator_node = func
+
+    @property
+    def creator_node(self):
+        """Function node that has this variable as an output.
+
+        See :class:`FunctionNode` for the definition of a function node.
+
+        """
+        return self._creator_node
+
+    @creator_node.setter
+    def creator_node(self, func):
+        if isinstance(func, chainer.Function):
+            func = func.node
+        self._creator_node = func
+        if func is not None:
+            self._rank = func.rank + 1
+
+    @property
+    def data(self):
+        """Data array of the corresponding variable.
+
+        If the data is not available, it returns ``None``.
+
+        """
+        return self._data
+
+    @data.setter
+    def data(self, d):
+        self._data = d
+        self._set_data_type(d)
+
+    @property
+    def grad(self):
+        """Gradient array of the corresponding variable.
+
+        If the variable is not available, it returns ``None``.
+
+        """
+        var = self.get_variable()
+        return None if var is None else var.grad
+
+    @property
+    def grad_var(self):
+        """Gradient variable of the corresponding variable.
+
+        If the corresponding variable is not available, it return ``None``.
+
+        """
+        var = self.get_variable()
+        return None if var is None else var._grad_var
+
+    @property
+    def label(self):
+        """Short text that represents the variable node."""
+        if self.shape == ():
+            return str(self.dtype)
+        return '(%s), %s' % (', '.join(map(str, self.shape)),
+                             str(self.dtype))
+
+    @property
+    def rank(self):
+        return self._rank
+
+    @property
+    def requires_grad(self):
+        """It indicates that ``grad`` will be set in backward calculation."""
+        return self._requires_grad
+
+    def get_variable(self):
+        """Returns the corresponding :class:`Variable` object.
+
+        VariableNode object holds a weak reference of the variable object. If
+        the reference is alive, it is returned by this property. Otherwise,
+        this property creates a new :class:`Variable` object from this node
+        object and returns it.
+
+        Returns:
+            Variable: The variable object that refers this node.
+
+        """
+        var = self._variable()
+        if var is not None:
+            return var
+
+        var = Variable(self.data, name=self.name,
+                       requires_grad=self._requires_grad)
+        var._node = self
+        return var
+
+    def set_creator(self, creator):
+        """Sets a :class:`Function` object that created this node.
+
+        This method is equivalent to ``self.creator = creator``. A
+        :class:`FunctionNode` object can also be passed.
+
+        Args:
+            creator (Function or FunctionNode): Function that has created this
+                variable.
+
+        """
+        self.creator = creator
+
+    def set_creator_node(self, creator_node):
+        """Sets a :class:`FunctionNode` object that created this node.
+
+        This method is equivalent to ``self.creator_node = creator_node``. A
+        :class:`Function` object can also be passed, in which case the
+        :attr:`~Function.node` object is extracted.
+
+        Args:
+            creator_node (FunctionNode or Function): Function node that has
+                this variable as an output.
+
+        """
+        self.creator_node = creator_node
+
+    def unchain(self):
+        """Deletes the reference to the creator of this variable node.
+
+        This method is equivalent to ``self.creator_node = None``.
+
+        """
+        self.creator_node = None
+
+    def retain_data(self):
+        """Lets the node hold a reference to the underlying data array.
+
+        This method gets the data array of the corresponding variable and keeps
+        it. If the weak reference to the corresponding variable is dead, it
+        raises an error.
+
+        """
+        variable = self._variable()
+        if variable is not None:
+            self.data = variable.data
+        else:
+            raise RuntimeError('cannot retain variable data: the variable has '
+                               'been already released')
+
+    def _set_data_type(self, d):
+        if d is None:
+            self.dtype = None
+            self.shape = None
+        else:
+            self.dtype = d.dtype
+            self.shape = d.shape
+
+    def _check_old_style_gradient(self):
+        if self._old_style_grad_generator is not None:
+            raise RuntimeError(
+                'cannot twice-differentiate an old style Function "%s"' %
+                self._old_style_grad_generator)
+
+
+def _create_variable(data, name, grad, requires_grad):
+    return Variable(
+        data, name=name, grad=grad, requires_grad=requires_grad)
 
 
 class Variable(object):
 
-    """Array with a structure to keep track of computation.
+    """__init__(data=None, *, name=None, grad=None, requires_grad=True)
+
+    Array with a structure to keep track of computation.
 
     Every variable holds a data array of type either :class:`numpy.ndarray` or
     :class:`cupy.ndarray`.
 
-    A Variable object may be constructed in two ways: by the user or by some
-    function. When a variable is created by some function as one of its
-    outputs, the variable holds a reference to that function. This reference is
-    used in error backpropagation (a.k.a. backprop). It is also used in
-    *backward unchaining*. A variable that does not hold a reference to its
-    creator is called a *root* variable. A variable is root if it is created by
-    the user, or if the reference is deleted by :meth:`unchain_backward`.
+    A variable object holds a data array and a :class:`VariableNode` object of
+    a computational graph. If the variable is constructed by the user, the node
+    is *root* and does not hold any parent. If the variable is constructed by a
+    :class:`FunctionNode` object, the node holds a reference to its parent
+    called :attr:`creator_node`. This reference is used in backpropagation to
+    backtrack the graph.
 
-    Users can disable this chaining behavior by setting the volatile flag for
-    the initial variables. When a function gets volatile variables as its
-    inputs, the output variables do not hold references to the function. This
-    acts like unchaining on every function application.
+    Users can disable (resp. enable) this chaining behavior by calling
+    :func:`~chainer.no_backprop_mode` (resp.
+    :func:`~chainer.force_backprop_mode`).
+    In the former context, a variable never creates a computational graph,
+    whereas in the latter context, it is forced to create.
+
+    .. warning::
+
+       ``volatile`` argument is not supported anymore since v2.
+       Instead, use :func:`chainer.no_backprop_mode`.
 
     Args:
-        data (array): Initial data array.
-        volatile (~chainer.Flag): Volatility flag. String ('on', 'off', or
-            'auto') or boolean values can be used, too.
+        data (numpy.ndarray or cupy.ndarray): Initial data array.
         name (str): Name of the variable.
-        grad (array): Initial gradient array.
+        grad (numpy.ndarray or cupy.ndarray): Initial gradient array.
+        requires_grad (bool): Boolean indicating whether ``grad`` will be set
+            in backward calculation.
 
-    Attributes:
-        data: Data array of type either :class:`numpy.ndarray` or
-            :class:`cupy.ndarray`.
-        grad: Gradient array.
-        creator: The function who creates this variable. It is ``None`` if the
-            variable is not created by any function.
-        volatile: Ternary :class:`~chainer.Flag` object. If ``'ON'``, the
-            variable does not keep track of any function applications. See
-            :class:`~chainer.Flag` for the detail of ternary flags.
+    """  # NOQA
 
-    """
+    def __init__(self, data=None, **kwargs):
+        argument.check_unexpected_kwargs(
+            kwargs, volatile='volatile argument is not supported anymore. '
+            'Use chainer.using_config')
+        name, grad, requires_grad \
+            = argument.parse_kwargs(
+                kwargs, ('name', None), ('grad', None),
+                ('requires_grad', True))
 
-    def __init__(self, data, volatile=flag.OFF, name=None, grad=None):
-        if not isinstance(data, (numpy.ndarray, cuda.ndarray)):
+        if (data is not None and
+                not isinstance(data, (numpy.ndarray, cuda.ndarray))):
             msg = '''numpy.ndarray or cuda.ndarray are expected.
 Actual: {0}'''.format(type(data))
             raise TypeError(msg)
 
-        self.data = data
-        self.rank = 0
-        self._volatile = flag.Flag(volatile)
+        # Use a list as a data structure to hold the data array indirectly to
+        # abstract its initialized/uninitialized state.
+        self._data = [data]
+        self._requires_grad = requires_grad
+        self._node = VariableNode(self, name)
+        self._grad_var = None if grad is None else Variable(grad)
 
-        self._grad = grad
-        self.creator = None
+    def __copy__(self):
+        return self._copy_to(Variable())
 
-        self.name = name
+    def _copy_to(self, target):
+        target.__dict__ = copy.copy(self.__dict__)
+        target._node = VariableNode(target, self.name)
+        return target
 
     def __reduce__(self):
-        return Variable, (self.data, self.volatile, self.name, self._grad)
+        return _create_variable, (self.data, self.name, self.grad,
+                                  self._requires_grad)
 
     def __repr__(self):
+        return variable_repr(self)
+
+    def __str__(self):
+        return variable_str(self)
+
+    @property
+    def name(self):
+        return self._node.name
+
+    @name.setter
+    def name(self, n):
+        self._node.name = n
+
+    def summary(self):
         if self.name:
             return '<variable %s>' % self.name
         else:
             return '<variable at 0x%x>' % id(self)
-
-    def __str__(self):
-        return self.name or ('<var@%x>' % id(self))
 
     def debug_print(self):
         """Display a summary of the stored data and location of the Variable"""
 
         msg = """{summary}
 - device: {device}
-- volatile: {volatile}
 - backend: {background}
 - shape: {shape}
 - dtype: {dtype}
@@ -134,7 +487,7 @@ Actual: {0}'''.format(type(data))
         except AttributeError:
             device = 'CPU'
 
-        with cuda.get_device(self.data) as dev:
+        with cuda.get_device_from_array(self.data) as dev:
             xp = numpy if int(dev) == -1 else cuda.cupy
 
             if self.grad is None:
@@ -148,7 +501,7 @@ Actual: {0}'''.format(type(data))
             stats = stats_msg.format(float(xp.mean(self.data)),
                                      float(xp.std(self.data)))
 
-        return msg.format(summary=repr(self), volatile=self.volatile,
+        return msg.format(summary=self.summary(),
                           grad=grad, shape=self.data.shape,
                           background=type(self.data),
                           dtype=self.data.dtype, device=device,
@@ -158,39 +511,122 @@ Actual: {0}'''.format(type(data))
         return self
 
     def __len__(self):
-        """Returns the number of elements of the data array.
+        """Returns the first dimension of the data array.
 
         Returns:
-            int: Number of elements of the data array.
+            int: Number of the first dimension of the data array.
 
         """
-        return self.data.size
-
-    @property
-    def volatile(self):
-        return self._volatile
-
-    @volatile.setter
-    def volatile(self, v):
-        self._volatile = flag.Flag(v)
+        return len(self.data)
 
     @property
     def label(self):
         """Short text that represents the variable."""
-        if self.data.shape == ():
-            return str(self.data.dtype)
-        return '(%s), %s' % (', '.join(map(str, self.data.shape)),
-                             str(self.data.dtype))
+        return self._node.label
+
+    @property
+    def creator(self):
+        """Function implementation that created this variable.
+
+        When this variable has been created by an old-style function (i.e., it
+        is implemented as a subclass of :class:`Function`), this property
+        returns that :class:`Function` object.
+
+        When this variable has been created by a new-style function (i.e., it
+        is implemented as a subclass of :class:`FunctionNode` class), this
+        property returns that node object.
+
+        """
+        return self._node.creator
+
+    @creator.setter
+    def creator(self, func):
+        self._node.creator = func
+
+    @property
+    def creator_node(self):
+        """:class:`FunctionNode` object that created this variable.
+
+        This property has a setter to which ``None`` can be set. Setting
+        ``None`` to this property is equivalent to call :meth:`unchain`;
+        it purges the variable from the function that created this variable.
+
+        The setter also accepts the original :class:`FunctionNode` object that
+        created this variable. For example, you can once set ``None`` to this
+        property and then set the original value again.
+
+        .. note::
+           Setting an irrelevant :meth:`FunctionNode` object does not emit any
+           error immediately, whereas the behavior is undefined. Do not set
+           a :meth:`FunctionNode` object that did not create this variable
+           object.
+
+        """
+        return self._node._creator_node
+
+    @creator_node.setter
+    def creator_node(self, func):
+        self._node.creator_node = func
+
+    @property
+    def array(self):
+        """The underlying data array.
+
+        It is either :class:`numpy.ndarray` or :class:`cupy.ndarray` object,
+        or ``None`` if the variable in in an uninitialized state.
+
+        """
+        return self._data[0]
+
+    @array.setter
+    def array(self, d):
+        self._data[0] = d
+        self._node._set_data_type(d)
+
+    @property
+    def data(self):
+        """The underlying data array (equivalent to :attr:`array`).
+
+        Note that using this attribute directly is discouraged; use
+        :attr:`array` instead. Using :attr:`array`, you can find an error
+        earlier when your code mixes up Variable and ndarray because
+        ndarray does not have an attribute ``.array`` while it has
+        ``.data``.
+
+        """
+        return self._data[0]
+
+    @data.setter
+    def data(self, d):
+        self._data[0] = d
+        self._node._set_data_type(d)
 
     @property
     def grad(self):
-        return self._grad
+        """Gradient array of this variable.
+
+        Note that this property returns the underlying array of the gradient
+        variable instead of the gradient variable itself; to get/set
+        gradient variable, use :attr:`grad_var` instead.
+
+        """
+        gv = self._grad_var
+        return None if gv is None else gv.data
 
     @grad.setter
     def grad(self, g):
+        self.grad_var = None if g is None else Variable(g)
+
+    @property
+    def grad_var(self):
+        """Gradient variable."""
+        return self._grad_var
+
+    @grad_var.setter
+    def grad_var(self, g):
         if g is not None:
-            _check_grad_type(None, self, g)
-        self._grad = g
+            _check_grad_type(None, self, g.data)
+        self._grad_var = g
 
     @property
     def shape(self):
@@ -208,11 +644,36 @@ Actual: {0}'''.format(type(data))
     def dtype(self):
         return self.data.dtype
 
+    @property
+    def rank(self):
+        return self._node.rank
+
+    @property
+    def node(self):
+        return self._node
+
+    @property
+    def requires_grad(self):
+        """It indicates that ``grad`` will be set in backward calculation."""
+        return self._requires_grad
+
+    @property
+    def T(self):
+        """Transposition of this variable."""
+        return chainer.functions.transpose(self)
+
     def to_cpu(self):
         """Copies the data and gradient arrays to CPU."""
-        self.data = cuda.to_cpu(self.data)
-        if self._grad is not None:
-            self._grad = cuda.to_cpu(self._grad)
+        if self.data is None:
+            return
+
+        self._data = [cuda.to_cpu(self.data)]
+        if self._grad_var is not None:
+            self._grad_var.to_cpu()
+        # ensure that the node tracks the device migration
+        node = self._node
+        if node._data is not None:
+            node.retain_data()
 
     def to_gpu(self, device=None):
         """Copies the data and gradient arrays to specified GPU.
@@ -222,38 +683,60 @@ Actual: {0}'''.format(type(data))
                 used.
 
         """
-        with cuda.get_device(device):
-            self.data = cuda.to_gpu(self.data)
-            if self._grad is not None:
-                self._grad = cuda.to_gpu(self._grad)
+        if self.data is None:
+            self._initial_device = (cuda.Device().id
+                                    if device is None else device)
+        else:
+            self._data = [cuda.to_gpu(self.data, device)]
+            if self._grad_var is not None:
+                self._grad_var.to_gpu(device)
+            # ensure that the node tracks the device migration
+            node = self._node
+            if node._data is not None:
+                node.retain_data()
 
     def cleargrad(self):
         """Clears the gradient array."""
-        self._grad = None
+        self._grad_var = None
 
     def zerograd(self):
         """Initializes the gradient array by zeros.
+
+        Note that the gradient variable is unchained from the computational
+        graph by this method because this operation breaks the backprop
+        validity.
 
         .. deprecated:: v1.15
            Use :meth:`cleargrad` instead.
 
         """
         warnings.warn(
-            'Variable.zerograd is deprecated. Use Variable.cleargard instead.',
+            'Variable.zerograd is deprecated. Use Variable.cleargrad instead.',
             DeprecationWarning)
-        with cuda.get_device(self.data) as dev:
-            if self._grad is None:
-                xp = numpy if int(dev) == -1 else cuda.cupy
-                self._grad = xp.zeros_like(self.data)
+
+        if self.data is None:
+            return
+
+        with cuda.get_device_from_array(self.data) as dev:
+            gv = self._grad_var
+            if gv is None:
+                xp = numpy if dev.id == -1 else cuda.cupy
+                self.grad = xp.zeros_like(self.data)
             else:
-                self._grad.fill(0)
+                gv.unchain()
+                gv.data.fill(0)
 
     def copydata(self, var):
         """Copies the data array from given source variable.
 
-        This method just copies the data attribute from given variable to this
-        variable, except that the copy is even done across the host and
-        different devices.
+        This method copies the data array from given variable to this variable.
+        The copy is done even if the arrays reside on different devices,
+        including across the host and a GPU device. If this variable has an
+        uninitialized data array, this method initializes it by the data array
+        of the given variable. Similarly, if the given variable has an
+        uninitialized data array, this method initializes it by the data array
+        of this variable (``self``). If both are uninitialized, this method
+        does nothing.
 
         Args:
             var (Variable): Source variable.
@@ -261,6 +744,14 @@ Actual: {0}'''.format(type(data))
         """
         src = var.data
         dst = self.data
+        if src is None:
+            if dst is None:
+                return
+            var.initialize(self.shape)
+            src = var.data
+        elif dst is None:
+            self.initialize(src.shape)
+            dst = self.data
         src_xp = cuda.get_array_module(src)
         dst_xp = cuda.get_array_module(dst)
         if dst_xp is src_xp:
@@ -273,40 +764,30 @@ Actual: {0}'''.format(type(data))
     def addgrad(self, var):
         """Accumulates the gradient array from given source variable.
 
-        This method just runs ``self.grad += var.grad``, except that the
-        accumulation is even done across the host and different devices.
+        This method adds the gradient of a given variable to the gradient of
+        this variable. The accumulation is even done across the host and
+        different devices. If this variable has uninitialized data/grad arrays,
+        this method initializes it with the shape of the given variable and
+        then accumulates the gradient.
 
         Args:
             var (Variable): Source variable.
 
         """
-        src = var._grad
-        dst = self._grad
+        src = var._grad_var
         if src is None:
             return
 
-        src_dev = cuda.get_device(src)
-        dst_dev = cuda.get_device(self.data)
+        if self.data is None:
+            self.initialize(var.shape)
+        dst = self._grad_var
 
-        if src_dev.id == dst_dev.id:
-            with dst_dev:
-                if dst is None:
-                    xp = cuda.get_array_module(src)
-                    self._grad = xp.copy(src)
-                else:
-                    self._grad += src
-            return
+        src_dev = cuda.get_device_from_array(src.data)
+        dst_dev = cuda.get_device_from_array(self.data)
 
-        if dst_dev.id < 0:
-            src_grad = cuda.to_cpu(src)
-        else:
-            src_grad = cuda.to_gpu(src, device=dst_dev)
-
-        if dst is None:
-            self._grad = src_grad
-        else:
-            with dst_dev:
-                self._grad += src_grad
+        if src_dev.id != dst_dev.id:
+            src = chainer.functions.copy(src, dst_dev.id)
+        self._grad_var = src if dst is None else src + dst
 
     def set_creator(self, gen_func):
         """Notifies the variable that the given function is its creator.
@@ -316,19 +797,28 @@ Actual: {0}'''.format(type(data))
                 one of its outputs.
 
         """
-        self.creator = gen_func
-        self.rank = gen_func.rank + 1
+        self._node.set_creator(gen_func)
 
-    def backward(self, retain_grad=False):
-        """Runs error backpropagation (a.k.a. backprop) from this variable.
+    def set_creator_node(self, fnode):
+        """Notifies the variable that the given node is its creator.
 
-        On backprop, :meth:`Function.backward` is called on each
-        :class:`Function` object appearing in the backward graph starting from
-        this variable. The backward graph is represented by backward references
-        from variables to their creators, and from functions to their inputs.
-        The backprop stops at all root variables. Some functions set ``None``
-        as gradients of some inputs, where further backprop does not take place
-        at such input variables.
+        Args:
+            fnode (FunctionNode): Function node that has this variable as an
+                output.
+
+        """
+        self._node.set_creator_node(fnode)
+
+    def backward(self, retain_grad=False, enable_double_backprop=False):
+        """Runs error backpropagation (a.k.a.\\  backprop) from this variable.
+
+        On backprop, :meth:`FunctionNode.backward` is called on each
+        :class:`FunctionNode` object appearing in the backward graph starting
+        from this variable. The backward graph is represented by backward
+        references from variable nodes to their creators, and from function
+        nodes to their input variable nodes. The backprop stops at all root
+        nodes. Some function nodes set ``None`` as gradients of some inputs,
+        where further backprop does not take place at such inputs.
 
         This method uses :data:`grad` as the initial error array. User can
         manually set a gradient array before calling this method. If
@@ -337,6 +827,9 @@ Actual: {0}'''.format(type(data))
         1.0 as the initial error. This is useful on starting backprop from
         some scalar loss value.
 
+        Note that this method does not support *differentiable backprop*. Use
+        :func:`grad` to compute the gradient of gradients.
+
         Args:
             retain_grad (bool): If ``True``, the gradient arrays of all
                 intermediate variables are kept. Otherwise, :data:`grad` of the
@@ -344,25 +837,46 @@ Actual: {0}'''.format(type(data))
                 timing, which may reduce the maximum memory consumption.
 
                 In most cases of training some models, the purpose of backprop
-                is to compute gradients of parameters, not of variables, so it
-                is recommended to set this flag ``False``.
+                is to compute gradients of parameters, not of all variables,
+                and therefore it is recommended to set this flag ``False``.
+            enable_double_backprop (bool): *(Added in v3.0)* If ``True``,
+                computational trace of the whole backpropagation procedure is
+                recorded to the computational graph so that one can further do
+                backpropagation from the resulting gradients. Note that
+                enabling it results in larger memory consumption needed to
+                store the gradients w.r.t intermediate variables that are
+                required for the second gradient computation.
 
         """
-        if self.creator is None:
+        with chainer.using_config('enable_backprop', enable_double_backprop):
+            self._backward_main(retain_grad)
+
+    def _backward_main(self, retain_grad):
+        self._node._check_old_style_gradient()
+        if self.creator_node is None:
             return
+        initial_device = None
+        if cuda.available and isinstance(self.data, cuda.cupy.ndarray):
+            try:
+                initial_device = cuda.Device()
+            except cuda.cupy.cuda.runtime.CUDARuntimeError as e:
+                if e.status != 38:  # cudaErrorNoDevice
+                    raise
+
+        is_debug = chainer.is_debug()
 
         cand_funcs = []
         seen_set = set()
-        seen_vars = set()
-        need_copy = set()
+        grads = {}
 
         # Initialize error by 1, if this is a loss variable
-        if self.data.size == 1 and self.grad is None:
-            with cuda.get_device(self.data) as device:
+        if self.data.size == 1 and self._grad_var is None:
+            with cuda.get_device_from_array(self.data) as device:
                 if device is cuda.DummyDevice:
                     self.grad = numpy.ones_like(self.data)
                 else:
                     self.grad = cuda.cupy.ones_like(self.data)
+        grads[self._node] = self._grad_var
 
         def add_cand(cand):
             if cand not in seen_set:
@@ -370,78 +884,173 @@ Actual: {0}'''.format(type(data))
                 heapq.heappush(cand_funcs, (-cand.rank, len(seen_set), cand))
                 seen_set.add(cand)
 
-        add_cand(self.creator)
+        add_cand(self.creator_node)
+
+        def get_grad(node):
+            if node is None:
+                return None
+            if node in grads:
+                return grads[node]
+            return node.grad_var
 
         while cand_funcs:
             _, _, func = heapq.heappop(cand_funcs)
-            outputs = tuple(y() for y in func.outputs)  # access via weak ref
+            inputs = func.inputs
+            target_input_indexes = [
+                i for i, x in enumerate(inputs) if x.requires_grad
+            ]
+            if not target_input_indexes:
+                continue
+            outputs = [y() for y in func.outputs]  # access via weak ref
 
-            in_data = tuple(x.data for x in func.inputs)
-            out_grad = tuple(None if y is None else y.grad for y in outputs)
+            in_data = tuple([x.data for x in inputs])
+            out_grad = tuple([get_grad(y) for y in outputs])
+            out_grad_data = tuple(
+                [None if g is None else g.data for g in out_grad])
             hooks = chainer.get_function_hooks()
             if func._n_local_function_hooks != 0:
                 hooks = collections.OrderedDict(hooks)
                 hooks.update(func.local_function_hooks)
-            for hook in six.itervalues(hooks):
-                hook.backward_preprocess(func, in_data, out_grad)
-            with cuda.get_device(*(in_data + out_grad)):
-                gxs = func.backward(in_data, out_grad)
-            assert len(gxs) == len(in_data)
-            for hook in six.itervalues(hooks):
-                hook.backward_postprocess(func, in_data, out_grad)
+            hooks = hooks.values()  # avoid six for performance
 
-            if chainer.is_debug():
-                if any(gx is not None and
-                       cuda.get_array_module(gx).isnan(gx).any()
-                       for gx in gxs):
-                    msg = 'NaN is detected on backward computation'
-                    raise RuntimeError(msg)
+            cuda.get_device_from_array(*in_data).use()
+            for hook in hooks:
+                hook.backward_preprocess(func, in_data, out_grad_data)
+
+            # Collect the current input gradients.
+            #
+            # Note (Tokui): When the same variable is passed to multiple input
+            # slots (e.g. an expression like ``f(x, x)``), it makes the
+            # gradient accumulation complicated since the back-propagated
+            # gradients w.r.t. the first and second argument should be
+            # accumulated to the current gradient w.r.t. the same variable.
+            # In this case, the current implementation passes the current
+            # gradient only to the first occurrence of the variable in the
+            # input tuple and passes ``None`` to the rest of the occurrences.
+            # For example, when the input variables are ``(x, x)``, the
+            # input gradient passed to the ``backward_accumulate`` method is
+            # ``(gx, None)`` where ``gx`` is the current gradient of ``x``.
+            # See also the docstring of ``FunctionNode.backward_accumulate``.
+            target_inputs = [inputs[i] for i in target_input_indexes]
+            in_grad = []
+            for i, index_i in enumerate(target_input_indexes):
+                x = inputs[index_i]
+                if x in target_inputs[:i]:
+                    # Pass ``None`` for duplicated input variables except for
+                    # the first occurrence (see the comment above).
+                    gx = None
+                elif x in grads:
+                    gx = grads[x]
+                elif x.creator_node is None:
+                    x._check_old_style_gradient()
+                    # accumulate the gradient only if the node is a leaf
+                    gx = x.grad_var
+                else:
+                    gx = None
+                in_grad.append(gx)
+
+            gxs = func.backward_accumulate(
+                target_input_indexes, out_grad, in_grad)
+
+            assert len(gxs) == len(in_grad)
+            for hook in hooks:
+                hook.backward_postprocess(func, in_data, out_grad_data)
+
+            if is_debug:
+                for gx in gxs:
+                    if gx is None:
+                        continue
+                    gx_data = gx.data
+                    if gx_data.dtype.kind == 'f':
+                        cuda.get_device_from_array(gx_data).use()
+                        if cuda.get_array_module(gx_data).isnan(gx_data).any():
+                            raise RuntimeError(
+                                'NaN is detected on backward computation of '
+                                '{}'.format(func.label))
 
             if not retain_grad:
                 for y in outputs:
-                    if y is not None and y is not self:
-                        y.grad = None
-            for x, gx in zip(func.inputs, gxs):
+                    if y is not None and y is not self.node:
+                        grads[y] = None
+                        y_var = y.get_variable()
+                        if y_var is not None:
+                            y_var._grad_var = None
+
+            for i, gx in enumerate(gxs):
                 if gx is None:
                     continue
 
-                _check_grad_type(func, x, gx)
+                x = target_inputs[i]
+                if not x.requires_grad:
+                    continue
 
-                # Accumulate the gradient to x. It is a bit tricky to handle
-                # branches and parameter gradient accumulation correctly.
-                with cuda.get_device(gx):
-                    id_x = id(x)
-                    if x.creator is None:  # leaf
-                        if x._grad is None:
-                            x.grad = gx
-                            need_copy.add(id_x)
-                        elif id_x in need_copy:
-                            x.grad = x.grad + gx  # copy
-                            need_copy.remove(id_x)
-                        else:
-                            x._grad += gx
-                    else:  # not a leaf
-                        add_cand(x.creator)
-                        if id_x not in seen_vars:  # 1st visit
-                            x.grad = gx
-                            seen_vars.add(id_x)
-                            need_copy.add(id_x)
-                        elif id_x in need_copy:  # 2nd visit
-                            x._grad = gx + x._grad  # copied
-                            need_copy.remove(id_x)
-                        else:  # 3rd or later visit
-                            x._grad += gx
+                _check_grad_type(func, x, gx.data)
+
+                if x in target_inputs[:i]:
+                    # Accumulate the duplicated gradients here. See the comment
+                    # above the code that builds ``in_grad``.
+                    cur_gx = grads[x]
+                    grads[x] = gx if cur_gx is None else gx + cur_gx
+                else:
+                    grads[x] = gx
+
+                x_var = x.get_variable()
+                if x_var is not None:
+                    x_var._grad_var = grads[x]
+
+                if x.creator_node is not None:
+                    add_cand(x.creator_node)
+
             del gxs  # to reduce memory usage
+            if initial_device is not None:
+                initial_device.use()
+
+    def reshape(self, *shape):
+        """Returns a variable of a different shape and the same content.
+
+        .. seealso::
+           :func:`chainer.functions.reshape` for full documentation,
+
+        """
+        if len(shape) == 1 and isinstance(shape[0], (tuple, list)):
+            shape = shape[0]
+        return chainer.functions.reshape(self, shape)
+
+    def transpose(self, *axes):
+        """Permute the dimensions of an input variable without copy.
+
+        .. seealso::
+           :func:`chainer.functions.transpose` for full documentation.
+
+        """
+        if len(axes) == 0:
+            axes = None
+        elif len(axes) == 1 and (isinstance(axes[0], (tuple, list)) or
+                                 axes[0] is None):
+            axes = axes[0]
+        return chainer.functions.transpose(self, axes)
+
+    def unchain(self):
+        """Deletes the reference to the creator of this variable.
+
+        This method deletes the reference to the creator from the corresponding
+        variable node. Unlike :meth:`unchain_backward`, it does not backtrack
+        the graph.
+
+        This method is equivalent to ``self.creator_node = None``.
+
+        """
+        self.creator_node = None
 
     def unchain_backward(self):
-        """Deletes references between variables and functions backward.
+        """Deletes references between variable nodes and functions backward.
 
-        After this method completes, intermediate variables and functions that
-        are not referenced from anywhere are deallocated by reference
+        After this method completes, intermediate variable nodes and functions
+        that are not referenced from anywhere are deallocated by reference
         count GC. Also this variable itself deletes the reference to its
-        creator function, i.e. this variable becomes root in the computation
-        graph. It indicates that backprop after unchaining stops at this
-        variable. This behavior is useful to implement truncated BPTT.
+        creator function from the node, i.e. the node becomes root in the
+        computation graph. It indicates that backprop after unchaining stops at
+        this variable. This behavior is useful to implement truncated BPTT.
 
         """
         cand_funcs = []
@@ -452,13 +1061,17 @@ Actual: {0}'''.format(type(data))
                 cand_funcs.append(cand)
                 seen_set.add(cand)
 
-        add_cand(self.creator)
+        add_cand(self.creator_node)
 
         while cand_funcs:
             func = cand_funcs.pop()
             for var in func.inputs:
-                add_cand(var.creator)
+                add_cand(var.creator_node)
             func.unchain()
+
+    def retain_data(self):
+        """Lets the corresponding variable node keep the underlying array."""
+        self._node.data = self._data[0]
 
     def __lt__(self, other):
         raise NotImplementedError()
@@ -484,7 +1097,180 @@ Actual: {0}'''.format(type(data))
     def __bool__(self):
         raise NotImplementedError()
 
-    def __hash__(self):
-        return super(Variable, self).__hash__()
-
     __array_priority__ = 200
+    __hash__ = None
+
+
+class Parameter(Variable):
+
+    """Parameter variable that can be registered to a link.
+
+    Parameter is a subclass of :class:`Variable`. It almost behaves as same
+    as a usual variable except that a parameter can be registered to a
+    :class:`~chainer.Link` object just by assigning it to an attribute of
+    the link within an :meth:`~chainer.Link.init_scope` context.
+
+    Parameter also supports an initialization by an initializer. It can have
+    two initializers: one for the data array, and the other for the gradient
+    array. The initializer only specifies the way of filling the elements of
+    these arrays, and the shape information is specified at the initialization
+    point.
+
+    When a link that the parameter has been registered to is passed to an
+    :class:`~chainer.GradientMethod`, an update rule is set to the parameter.
+    This update rule specifies how to update the data array of the parameter
+    using its gradient array.
+
+    Args:
+        initializer (~chainer.Initializer or numpy.ndarray or cupy.ndarray):
+            Initializer of the data array. If ``shape`` is given, this
+            initializer is immediately used to initialize the data array.
+            Otherwise, if it is an array, it is immediately used as the data
+            array, and otherwise the data array is left uninitialized and will
+            be initialized by this initializer in :meth:`initialize`. It can
+            also be a scalar, in which case the data array will be filled by
+            this scalar. Note that float32 is used in this case.
+        shape (int or tuple of int or None): Shape of the parameter. If it is
+            ``None``, the initialization is deferred to the call of
+            :meth:`initialize`.
+        name (str): Name of the parameter.
+
+    Attributes:
+        initializer: Initializer of the data array. It is used for
+            initializing the data array of an uninitialized variable.
+        update_rule: :class:`~chainer.optimizer.UpdateRule` instance that
+            updates this variable as a parameter. This argument is set to
+            :attr:`update_rule`.
+
+    """
+
+    initializer = None
+    _grad_initializer = None
+    _initial_device = None
+
+    def __init__(self, initializer=None, shape=None, name=None):
+        if initializer is None:
+            initializer = constant.NaN()
+        elif numpy.isscalar(initializer):
+            initializer = constant.Constant(initializer)
+        if shape is None:
+            if isinstance(initializer, (numpy.ndarray, cuda.ndarray)):
+                # parameter initialized by the initial array
+                super(Parameter, self).__init__(initializer, name=name)
+            else:
+                # uninitialized parameter
+                super(Parameter, self).__init__(name=name)
+                self.initializer = initializer
+                dtype = getattr(initializer, 'dtype', numpy.float32)
+                self._grad_initializer = constant.NaN(dtype)
+        else:
+            # parameter initialized with a given shape
+            if isinstance(initializer, (numpy.ndarray, cuda.ndarray)):
+                xp = cuda.get_array_module(initializer)
+                initializer = constant.Constant(initializer)
+            else:
+                xp = numpy
+            data = initializers.generate_array(initializer, shape, xp)
+            grad = xp.full_like(data, numpy.nan)
+            super(Parameter, self).__init__(data, name=name, grad=grad)
+
+        self.update_rule = None
+
+    def __copy__(self):
+        return self._copy_to(Parameter())
+
+    def __reduce__(self):
+        return _recover_parameter, (self.data, self.name, self.grad,
+                                    self.initializer, self.update_rule)
+
+    def to_cpu(self):
+        super(Parameter, self).to_cpu()
+        if self.data is None:
+            self._initial_device = None
+
+    def to_gpu(self, device=None):
+        super(Parameter, self).to_gpu(device)
+        if self.data is None:
+            if device is None:
+                device = cuda.Device().id
+            self._initial_device = device
+
+    def cleargrad(self):
+        super(Parameter, self).cleargrad()
+        if self.data is None:
+            self._grad_initializer = None
+
+    def zerograd(self):
+        super(Parameter, self).zerograd()
+        if self.data is None:
+            dtype = getattr(self.initializer, 'dtype', None)
+            self._grad_initializer = initializers.Zero(dtype)
+
+    def initialize(self, shape):
+        """Initializes the uninitialized variable.
+
+        Uninitialized variable is a variable created with the data array set to
+        None. This method creates and initializes the data array. The shape of
+        the variable can be left unknown until this method is called.
+
+        Args:
+            shape (tuple of int): Shape of the data array.
+
+        """
+        xp = numpy if self._initial_device is None else cuda.cupy
+        with cuda.get_device_from_id(self._initial_device):
+            data = initializers.generate_array(self.initializer, shape, xp)
+
+            ginit = self._grad_initializer
+            grad = None if ginit is None else initializers.generate_array(
+                ginit, shape, xp)
+
+        self.data = data
+        self.grad = grad
+
+    def update(self):
+        """Updates the data array using the gradient and the update rule.
+
+        This method updates the parameter using the attached update rule.
+
+        """
+        if self.update_rule is not None:
+            self.update_rule.update(self)
+
+
+def as_variable(obj):
+    """Converts an array or a variable into :class:`~chainer.Variable`.
+
+    This is a convenient function to get a :class:`~chainer.Variable` object
+    transparently from a raw array or a variable.
+
+    Note that this function should only be used for type consistency (i.e., to
+    enforce the return value of an API having type :class:`~chainer.Varialbe`).
+    The :class:`~chainer.Variable.requires_grad` flag is kept as is; if ``obj``
+    is a raw array, the newly created variable has ``requires_grad = False``.
+    In order to make a variable w.r.t. which you want to compute the gradient,
+    you should use :class:`~chainer.Variable` directly.
+
+    Args:
+        obj (numpy.ndarray or cupy.ndarray or ~chainer.Variable): An array or
+            a variable that you want to convert to :class:`~chainer.Variable`.
+
+    Returns:
+        ~chainer.Variable:
+        A variable converted from ``obj``. If ``obj`` is a raw array, this is a
+        new :class:`~chainer.Variable` object that wraps the array. If ``obj``
+        is already a :class:`~chainer.Variable` object, this function returns
+        ``obj`` as is.
+
+    """
+    if isinstance(obj, Variable):
+        return obj
+    return Variable(obj, requires_grad=False)
+
+
+def _recover_parameter(data, name, grad, initializer, update_rule):
+    p = Parameter(initializer=initializer, name=name)
+    p.data = data
+    p.grad = grad
+    p.update_rule = update_rule
+    return p

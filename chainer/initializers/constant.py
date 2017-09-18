@@ -1,3 +1,5 @@
+import numpy
+
 from chainer import cuda
 from chainer import initializer
 
@@ -11,7 +13,8 @@ class Identity(initializer.Initializer):
     Note that arrays to be passed must be 2D squared matrices.
 
     Attributes:
-        scale (scalar): A constant to be multiplied to identity matrices.
+        ~Identity.scale (scalar): A constant to be multiplied to identity
+        matrices.
 
     """
 
@@ -39,7 +42,7 @@ class Constant(initializer.Initializer):
         fill_value (scalar or numpy.ndarray or cupy.ndarray):
             A constant to be assigned to the initialized array.
             Broadcast is allowed on this assignment.
-        dtype: Data type specifier.
+        ~Constant.dtype: Data type specifier.
 
     """
 
@@ -78,3 +81,16 @@ def One(dtype=None):
 
     """
     return Constant(1.0, dtype=dtype)
+
+
+def NaN(dtype=None):
+    """Returns initializer that initializes array with the all-NaN array.
+
+    Args:
+        dtype: Data type specifier.
+
+    Returns:
+        An initializer that initializes an array by NaN.
+
+    """
+    return Constant(numpy.nan, dtype=dtype)

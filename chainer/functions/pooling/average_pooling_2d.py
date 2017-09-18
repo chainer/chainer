@@ -1,12 +1,10 @@
 import numpy
 
+import chainer
 from chainer import cuda
+from chainer import function_node
 from chainer.functions.pooling import pooling_2d
 from chainer.utils import conv
-
-if cuda.cudnn_enabled:
-    cudnn = cuda.cudnn
-    libcudnn = cudnn.cudnn
 
 
 class AveragePooling2D(pooling_2d.Pooling2D):
@@ -15,15 +13,21 @@ class AveragePooling2D(pooling_2d.Pooling2D):
     # TODO(beam2d): Support cover_all mode.
 
     def forward_cpu(self, x):
+        self._in_shape = x[0].shape
+        self._in_dtype = x[0].dtype
+
         col = conv.im2col_cpu(x[0], self.kh, self.kw, self.sy, self.sx,
                               self.ph, self.pw)
         y = col.mean(axis=(2, 3))
         return y,
 
     def forward_gpu(self, x):
-        if (cuda.cudnn_enabled and self.use_cudnn and
-                pooling_2d._check_cudnn_acceptable_type(x[0].dtype)):
+        if chainer.should_use_cudnn('>=auto'):
+            self.retain_inputs((0,))
             return super(AveragePooling2D, self).forward_gpu(x)
+
+        self._in_shape = x[0].shape
+        self._in_dtype = x[0].dtype
 
         n, c, h, w = x[0].shape
         y_h = conv.get_conv_outsize(h, self.kh, self.sy, self.ph)
@@ -56,22 +60,45 @@ class AveragePooling2D(pooling_2d.Pooling2D):
              self.sy, self.sx, self.ph, self.pw, coeff, y)
         return y,
 
-    def backward_cpu(self, x, gy):
-        h, w = x[0].shape[2:]
+    def backward(self, indexes, gy):
+        return AveragePooling2DGrad(self).apply(gy)
+
+    def create_pool_desc(self):
+        return cuda.cudnn.create_pooling_descriptor(
+            (self.kh, self.kw), (self.sy, self.sx), (self.ph, self.pw),
+            cuda.cudnn.cudnn.CUDNN_POOLING_AVERAGE_COUNT_INCLUDE_PADDING)
+
+
+class AveragePooling2DGrad(function_node.FunctionNode):
+
+    def __init__(self, apool2d):
+        self.kh = apool2d.kh
+        self.kw = apool2d.kw
+        self.sy = apool2d.sy
+        self.sx = apool2d.sx
+        self.ph = apool2d.ph
+        self.pw = apool2d.pw
+        self._used_cudnn = apool2d._used_cudnn
+        if not self._used_cudnn:
+            self._in_shape = apool2d._in_shape
+            self._in_dtype = apool2d._in_dtype
+        self.apool2d = apool2d
+
+    def forward_cpu(self, gy):
+        h, w = self._in_shape[2:]
         gcol = numpy.tile(gy[0][:, :, None, None],
                           (1, 1, self.kh, self.kw, 1, 1))
         gx = conv.col2im_cpu(gcol, self.sy, self.sx, self.ph, self.pw, h, w)
         gx /= self.kh * self.kw
         return gx,
 
-    def backward_gpu(self, x, gy):
-        if (cuda.cudnn_enabled and self.use_cudnn and
-                pooling_2d._check_cudnn_acceptable_type(x[0].dtype)):
-            return super(AveragePooling2D, self).backward_gpu(x, gy)
-
-        n, c, h, w = x[0].shape
+    def forward_gpu(self, gy):
+        if self._used_cudnn:
+            x, = self.apool2d.get_retained_inputs()
+            return self.apool2d.backward_gpu((x.data,), gy)
+        n, c, h, w = self._in_shape
         y_h, y_w = gy[0].shape[2:]
-        gx = cuda.cupy.empty_like(x[0])
+        gx = cuda.cupy.empty(self._in_shape, self._in_dtype)
         coeff = 1. / (self.kh * self.kw)
         cuda.elementwise(
             'raw T gy, int32 h, int32 w,'
@@ -101,13 +128,13 @@ class AveragePooling2D(pooling_2d.Pooling2D):
                                  gx)
         return gx,
 
-    def create_pool_desc(self):
-        return cudnn.create_pooling_descriptor(
+    def backward(self, indexes, grad_outputs):
+        return AveragePooling2D(
             (self.kh, self.kw), (self.sy, self.sx), (self.ph, self.pw),
-            libcudnn.CUDNN_POOLING_AVERAGE_COUNT_INCLUDE_PADDING)
+            False).apply(grad_outputs)
 
 
-def average_pooling_2d(x, ksize, stride=None, pad=0, use_cudnn=True):
+def average_pooling_2d(x, ksize, stride=None, pad=0):
     """Spatial average pooling function.
 
     This function acts similarly to :class:`~functions.Convolution2D`, but
@@ -123,8 +150,6 @@ def average_pooling_2d(x, ksize, stride=None, pad=0, use_cudnn=True):
             specified, then it uses same stride as the pooling window size.
         pad (int or pair of ints): Spatial padding width for the input array.
             ``pad=p`` and ``pad=(p, p)`` are equivalent.
-        use_cudnn (bool): If ``True`` and cuDNN is enabled, then this function
-            uses cuDNN as the core implementation.
 
     Returns:
         ~chainer.Variable: Output variable.
@@ -135,4 +160,4 @@ def average_pooling_2d(x, ksize, stride=None, pad=0, use_cudnn=True):
        :func:`max_pooling_2d`. Average pooling runs in non-cover-all mode.
 
     """
-    return AveragePooling2D(ksize, stride, pad, False, use_cudnn)(x)
+    return AveragePooling2D(ksize, stride, pad, False).apply((x,))[0]

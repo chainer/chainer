@@ -1,5 +1,4 @@
 import os
-import pkg_resources
 import tempfile
 import unittest
 
@@ -10,9 +9,8 @@ import six
 import chainer
 from chainer import links
 from chainer.links import caffe
+from chainer.links.caffe.caffe_function import caffe_pb
 from chainer import testing
-if links.caffe.caffe_function.available:
-    from chainer.links.caffe.caffe_function import caffe_pb
 
 
 def _iter_init(param, data):
@@ -44,8 +42,6 @@ def _make_param(data):
     return param
 
 
-@unittest.skipUnless(links.caffe.caffe_function.available,
-                     'protobuf>=3.0.0 is required for py3')
 class TestCaffeFunctionBase(unittest.TestCase):
 
     def setUp(self):
@@ -90,8 +86,9 @@ class TestCaffeFunctionBaseMock(TestCaffeFunctionBase):
             invars.append(chainer.Variable(data))
         self.inputs = invars
 
-        out = self.func(inputs=dict(zip(inputs, invars)),
-                        outputs=outputs, train=False)
+        with chainer.using_config('train', False):
+            out = self.func(inputs=dict(zip(inputs, invars)),
+                            outputs=outputs)
         self.assertEqual(len(out), len(self.outputs))
         for actual, expect in zip(out, self.outputs):
             self.assertIs(actual, expect)
@@ -219,7 +216,7 @@ class TestDropout(TestCaffeFunctionBaseMock):
         self.assertEqual(len(self.func.layers), 1)
         self.call(['x'], ['y'])
         self.mock.assert_called_once_with(
-            self.inputs[0], ratio=0.25, train=False)
+            self.inputs[0], ratio=0.25)
 
 
 class TestInnerProduct(TestCaffeFunctionBaseMock):
@@ -587,8 +584,7 @@ class TestBatchNorm(TestCaffeFunctionBaseMock):
         self.init_func()
         self.assertEqual(len(self.func.layers), 1)
         self.call(['x'], ['y'])
-        self.mock.assert_called_once_with(self.inputs[0],
-                                          test=False, finetune=False)
+        self.mock.assert_called_once_with(self.inputs[0], finetune=False)
 
 
 class TestBatchNormUsingGlobalStats(TestCaffeFunctionBaseMock):
@@ -631,8 +627,7 @@ class TestBatchNormUsingGlobalStats(TestCaffeFunctionBaseMock):
         self.init_func()
         self.assertEqual(len(self.func.layers), 1)
         self.call(['x'], ['y'])
-        self.mock.assert_called_once_with(self.inputs[0],
-                                          test=True, finetune=False)
+        self.mock.assert_called_once_with(self.inputs[0], finetune=False)
 
 
 class TestEltwiseProd(TestCaffeFunctionBaseMock):
@@ -1087,9 +1082,11 @@ class TestSoftmaxCaffeEngine(TestCaffeFunctionBaseMock):
     }
 
     def test_softmax_caffe_engine(self):
+        # TODO(beam2d): Check if the mock is called with
+        # chainer.config.use_cudnn == False
         self.init_func()
         self.call(['x'], ['y'])
-        self.mock.assert_called_once_with(self.inputs[0], use_cudnn=False)
+        self.mock.assert_called_once_with(self.inputs[0])
 
 
 class TestSoftmaxcuDnnEngine(TestCaffeFunctionBaseMock):
@@ -1113,9 +1110,11 @@ class TestSoftmaxcuDnnEngine(TestCaffeFunctionBaseMock):
     }
 
     def test_softmax_cuDNN_engine(self):
+        # TODO(beam2d): Check if the mock is called with
+        # chainer.config.use_cudnn == True
         self.init_func()
         self.call(['x'], ['y'])
-        self.mock.assert_called_once_with(self.inputs[0], use_cudnn=True)
+        self.mock.assert_called_once_with(self.inputs[0])
 
 
 class TestSoftmaxInvalidAxis(TestCaffeFunctionBase):
@@ -1196,30 +1195,6 @@ class TestSplit(TestCaffeFunctionBase):
     def test_split(self):
         self.init_func()
         self.assertEqual(self.func.split_map, {'y': 'x', 'z': 'x'})
-
-
-class TestCaffeFunctionAvailable(unittest.TestCase):
-
-    @unittest.skipUnless(six.PY2, 'Only for Py2')
-    def test_py2_available(self):
-        self.assertTrue(links.caffe.caffe_function.available)
-
-    @unittest.skipUnless(six.PY3, 'Only for Py3')
-    def test_py3_available(self):
-        ws = pkg_resources.WorkingSet()
-        try:
-            ws.require('protobuf<3.0.0')
-            ver = 2
-        except pkg_resources.VersionConflict:
-            ver = 3
-
-        if ver >= 3:
-            self.assertTrue(links.caffe.caffe_function.available)
-        else:
-            self.assertFalse(links.caffe.caffe_function.available)
-
-            with self.assertRaises(RuntimeError):
-                caffe.CaffeFunction('')
 
 
 testing.run_module(__name__, __file__)

@@ -5,7 +5,7 @@ from chainer.utils import type_check
 
 class Copy(function.Function):
 
-    """Copy an input :class:`cupy.ndarray` onto another device."""
+    """Copies the input variable onto the specified device."""
 
     def __init__(self, out_device):
         self.out_device = out_device
@@ -16,12 +16,16 @@ class Copy(function.Function):
         )
 
     def forward_cpu(self, x):
+        self.retain_inputs(())
+        self._in_device = cuda.get_device_from_array(x[0])
         if self.out_device == -1:
             return x[0].copy(),
         else:
             return cuda.to_gpu(x[0], device=self.out_device),
 
     def forward_gpu(self, x):
+        self.retain_inputs(())
+        self._in_device = cuda.get_device_from_array(x[0])
         if self.out_device == -1:
             return cuda.to_cpu(x[0]),
         else:
@@ -30,7 +34,7 @@ class Copy(function.Function):
     def backward(self, inputs, grad_outputs):
         # In this function, `grad_outputs` contains cuda arrays even when
         # `inputs` only contains numpy arrays.
-        if isinstance(inputs[0], cuda.ndarray):
+        if self._in_device.id != -1:
             return self.backward_gpu(inputs, grad_outputs)
         else:
             return self.backward_cpu(inputs, grad_outputs)
@@ -43,9 +47,9 @@ class Copy(function.Function):
 
     def backward_gpu(self, x, gy):
         if self.out_device == -1:
-            return cuda.to_gpu(gy[0], device=cuda.get_device(x[0])),
+            return cuda.to_gpu(gy[0], device=self._in_device),
         else:
-            return cuda.copy(gy[0], out_device=cuda.get_device(x[0])),
+            return cuda.copy(gy[0], out_device=self._in_device),
 
 
 def copy(x, dst):
@@ -53,15 +57,30 @@ def copy(x, dst):
 
     This function copies the array of input variable onto the device specified
     by ``dst``. When ``dst == -1``, it copies the array onto the host memory.
-    This function supports copies from host to device, from device to device
-    and from device to host.
+    This function supports copies from host to host, from host to device,
+    from device to device and from device to host.
 
     Args:
-        x (~chainer.Variable): Variable to be copied.
-        dst: Target device specifier.
+        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`):
+            Variable to be copied.
+        dst (int): Target device specifier.
 
     Returns:
         ~chainer.Variable: Output variable.
+
+    .. admonition:: Example
+
+        >>> import chainer.cuda as cuda
+        >>> x = np.random.uniform(-1, 1, (5, 10))
+        >>> cuda.get_device_from_array(x).id
+        -1
+        >>> y = F.copy(x, 0) # from host to device0
+        >>> cuda.get_device_from_array(y.data).id
+        0
+        >>> z = F.copy(y, -1) # from device0 to host
+        >>> cuda.get_device_from_array(z.data).id
+        -1
 
     """
     return Copy(dst)(x)

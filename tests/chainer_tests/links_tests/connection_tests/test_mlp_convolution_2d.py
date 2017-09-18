@@ -12,16 +12,14 @@ from chainer.testing import attr
 
 
 @testing.parameterize(
-    {'use_cudnn': True},
-    {'use_cudnn': False},
+    {'use_cudnn': 'always'},
+    {'use_cudnn': 'never'},
 )
 class TestMLPConvolution2D(unittest.TestCase):
 
     def setUp(self):
         self.mlp = links.MLPConvolution2D(
-            3, (96, 96, 96), 11,
-            activation=functions.sigmoid,
-            use_cudnn=self.use_cudnn)
+            3, (96, 96, 96), 11, activation=functions.sigmoid)
         self.x = numpy.zeros((10, 3, 20, 20), dtype=numpy.float32)
 
     def test_init(self):
@@ -30,17 +28,17 @@ class TestMLPConvolution2D(unittest.TestCase):
         self.assertEqual(len(self.mlp), 3)
         for i, conv in enumerate(self.mlp):
             self.assertIsInstance(conv, links.Convolution2D)
-            self.assertEqual(conv.use_cudnn, self.use_cudnn)
             if i == 0:
                 self.assertEqual(conv.W.data.shape, (96, 3, 11, 11))
             else:
                 self.assertEqual(conv.W.data.shape, (96, 96, 1, 1))
 
     def check_call(self, x_data):
-        x = chainer.Variable(x_data)
-        actual = self.mlp(x)
-        act = functions.sigmoid
-        expect = self.mlp[2](act(self.mlp[1](act(self.mlp[0](x)))))
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            x = chainer.Variable(x_data)
+            actual = self.mlp(x)
+            act = functions.sigmoid
+            expect = self.mlp[2](act(self.mlp[1](act(self.mlp[0](x)))))
         numpy.testing.assert_array_equal(
             cuda.to_cpu(expect.data), cuda.to_cpu(actual.data))
 
@@ -54,17 +52,15 @@ class TestMLPConvolution2D(unittest.TestCase):
 
 
 @testing.parameterize(
-    {'use_cudnn': True},
-    {'use_cudnn': False},
+    {'use_cudnn': 'always'},
+    {'use_cudnn': 'never'},
 )
 @attr.cudnn
 class TestMLPConvolution2DCudnnCall(unittest.TestCase):
 
     def setUp(self):
         self.mlp = links.MLPConvolution2D(
-            3, (96, 96, 96), 11,
-            activation=functions.sigmoid,
-            use_cudnn=self.use_cudnn)
+            3, (96, 96, 96), 11, activation=functions.sigmoid)
         self.mlp.to_gpu()
         self.x = cuda.cupy.zeros((10, 3, 20, 20), dtype=numpy.float32)
         self.gy = cuda.cupy.zeros((10, 96, 10, 10), dtype=numpy.float32)
@@ -74,32 +70,35 @@ class TestMLPConvolution2DCudnnCall(unittest.TestCase):
         return self.mlp(x)
 
     def test_call_cudnn_forward(self):
-        with mock.patch('cupy.cudnn.cudnn.convolutionForward') as func:
-            self.forward()
-            self.assertEqual(func.called, self.use_cudnn)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            with mock.patch('cupy.cudnn.cudnn.convolutionForward') as func:
+                self.forward()
+                self.assertEqual(func.called,
+                                 chainer.should_use_cudnn('>=auto'))
 
     def test_call_cudnn_backrward(self):
-        y = self.forward()
-        print(y.data.shape)
-        y.grad = self.gy
-        v2 = 'cupy.cudnn.cudnn.convolutionBackwardData_v2'
-        v3 = 'cupy.cudnn.cudnn.convolutionBackwardData_v3'
-        with mock.patch(v2) as func_v2,  mock.patch(v3) as func_v3:
-            y.backward()
-            self.assertEqual(func_v2.called or func_v3.called, self.use_cudnn)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            y = self.forward()
+            y.grad = self.gy
+            patch = 'cupy.cudnn.cudnn.convolutionBackwardData_v3'
+            with mock.patch(patch) as func:
+                y.backward()
+                self.assertEqual(func.called,
+                                 chainer.should_use_cudnn('>=auto'))
 
 
-@testing.parameterize(
-    {'use_cudnn': True},
-    {'use_cudnn': False},
-)
+@testing.parameterize(*testing.product({
+    'use_cudnn': ['always', 'never'],
+    'mlpconv_args': [
+        ((None, (96, 96, 96), 11), {'activation': functions.sigmoid}),
+        (((96, 96, 96), 11), {'activation': functions.sigmoid})
+    ]
+}))
 class TestMLPConvolution2DShapePlaceholder(unittest.TestCase):
 
     def setUp(self):
-        self.mlp = links.MLPConvolution2D(
-            None, (96, 96, 96), 11,
-            activation=functions.sigmoid,
-            use_cudnn=self.use_cudnn)
+        args, kwargs = self.mlpconv_args
+        self.mlp = links.MLPConvolution2D(*args, **kwargs)
         self.x = numpy.zeros((10, 3, 20, 20), dtype=numpy.float32)
 
     def test_init(self):
@@ -107,15 +106,15 @@ class TestMLPConvolution2DShapePlaceholder(unittest.TestCase):
         self.assertEqual(len(self.mlp), 3)
 
     def check_call(self, x_data):
-        x = chainer.Variable(x_data)
-        actual = self.mlp(x)
-        act = functions.sigmoid
-        expect = self.mlp[2](act(self.mlp[1](act(self.mlp[0](x)))))
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            x = chainer.Variable(x_data)
+            actual = self.mlp(x)
+            act = functions.sigmoid
+            expect = self.mlp[2](act(self.mlp[1](act(self.mlp[0](x)))))
         numpy.testing.assert_array_equal(
             cuda.to_cpu(expect.data), cuda.to_cpu(actual.data))
         for i, conv in enumerate(self.mlp):
             self.assertIsInstance(conv, links.Convolution2D)
-            self.assertEqual(conv.use_cudnn, self.use_cudnn)
             if i == 0:
                 self.assertEqual(conv.W.data.shape, (96, 3, 11, 11))
             else:
@@ -128,6 +127,67 @@ class TestMLPConvolution2DShapePlaceholder(unittest.TestCase):
     def test_call_gpu(self):
         self.mlp.to_gpu()
         self.check_call(cuda.to_gpu(self.x))
+
+
+class TestInitArgumentForv2(unittest.TestCase):
+
+    in_channels = 10
+    out_channels = (15, 20)
+    ksize = 3
+    stride = 1
+    pad = 0
+
+    def test_valid_instantiation_ksize_is_not_none(self):
+        l = links.MLPConvolution2D(
+            self.in_channels, self.out_channels, self.ksize, self.stride,
+            self.pad, functions.relu, conv_init=None, bias_init=None)
+        self.assertEqual(len(l), 2)
+        self.assertEqual(l[0].W.shape,
+                         (self.out_channels[0], self.in_channels,
+                          self.ksize, self.ksize))
+        self.assertEqual(l[1].W.shape,
+                         (self.out_channels[1], self.out_channels[0], 1, 1))
+
+    def test_valid_instantiation_ksize_is_none(self):
+        l = links.MLPConvolution2D(self.out_channels, self.ksize, None,
+                                   self.stride, self.pad, functions.relu,
+                                   conv_init=None, bias_init=None)
+        x = numpy.random.uniform(
+            -1, 1, (10, self.in_channels, 10, 10)).astype(numpy.float32)
+        l(x)  # create weight tensors of convolutions by initialization
+
+        self.assertEqual(len(l), 2)
+        self.assertEqual(l[0].W.shape,
+                         (self.out_channels[0], self.in_channels,
+                          self.ksize, self.ksize))
+        self.assertEqual(l[1].W.shape,
+                         (self.out_channels[1], self.out_channels[0], 1, 1))
+
+    def test_valid_instantiation_in_channels_is_omitted(self):
+        l = links.MLPConvolution2D(
+            self.out_channels, self.ksize, stride=self.stride, pad=self.pad,
+            activation=functions.relu, conv_init=None, bias_init=None)
+        x = numpy.random.uniform(
+            -1, 1, (10, self.in_channels, 10, 10)).astype(numpy.float32)
+        l(x)  # create weight tensors of convolutions by initialization
+
+        self.assertEqual(len(l), 2)
+        self.assertEqual(l[0].W.shape,
+                         (self.out_channels[0], self.in_channels,
+                          self.ksize, self.ksize))
+        self.assertEqual(l[1].W.shape,
+                         (self.out_channels[1], self.out_channels[0], 1, 1))
+
+    def test_forbid_wscale_as_a_positional_argument(self):
+        with self.assertRaises(TypeError):
+            # 7th positional argument was wscale in v1
+            links.MLPConvolution2D(self.in_channels, self.out_channels, None,
+                                   self.stride, self.pad, functions.relu, 1)
+
+    def test_forbid_wscale_as_a_keyword_argument(self):
+        with self.assertRaises(ValueError):
+            links.MLPConvolution2D(
+                self.in_channels, self.out_channels, wscale=1)
 
 
 testing.run_module(__name__, __file__)
