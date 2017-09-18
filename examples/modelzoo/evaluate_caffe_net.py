@@ -15,7 +15,7 @@ import sys
 
 # =========================================================
 import alexLike
-import _pickle as pickle
+import cPickle as pickle
 # =========================================================
 
 import numpy as np
