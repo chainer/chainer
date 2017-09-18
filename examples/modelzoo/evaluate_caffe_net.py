@@ -12,7 +12,11 @@ from __future__ import print_function
 import argparse
 import os
 import sys
+
+# =========================================================
 import alexLike
+import _pickle as pickle
+# =========================================================
 
 import numpy as np
 from PIL import Image
