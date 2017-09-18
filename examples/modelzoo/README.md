@@ -14,6 +14,6 @@ Model files can be downloaded by `download_model.py`. AlexNet and reference Caff
 
 ## How to Run `evaluate_caffe_net.py`
 
-```py
+```bash
 python evaluate_caffe_net.py /mnt/nas101/hiroki11x/val.txt --basepath /mnt/nas101/hiroki11x/ILSVRC2012_img_val_256x256 --batchsize 1 --mean ilsvrc_2012_mean.npy --gpu 0 alexnet bvlc_alexnet.caffemodel
 ```
