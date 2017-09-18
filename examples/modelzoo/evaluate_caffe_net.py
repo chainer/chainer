@@ -91,7 +91,8 @@ copy_model(original_model, model)
 
 
 print('Loading Caffe model file %s...' % args.model, file=sys.stderr)
-func = caffe.CaffeFunction(args.model)
+# func = caffe.CaffeFunction(args.model)
+func = caffe.CaffeFunction(model)
 print('Loaded', file=sys.stderr)
 if args.gpu >= 0:
     cuda.get_device_from_id(args.gpu).use()
