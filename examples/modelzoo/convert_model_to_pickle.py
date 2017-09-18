@@ -1,9 +1,8 @@
-#読み込むcaffeモデルとpklファイルを保存するパス
 loadpath = "bvlc_alexnet.caffemodel"
-savepath = "./chainermodels/alexnet.pkl"
+savepath = "alexnet.pkl"
 
 from chainer.links.caffe import CaffeFunction
 alexnet = CaffeFunction(loadpath)
 
-import _pickle as pickle
+import cPickle as pickle
 pickle.dump(alexnet, open(savepath, 'wb'))
