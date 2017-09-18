@@ -35,5 +35,5 @@ class ImageCropper(object):
         # image = cv2.imread(path).transpose(2, 0, 1)
         pre_path = "Image.open(/mnt/nas101/hiroki11x/ILSVRC2012_img_val_256x256"
         path = pre_path + path
-        image = np.asarray(path).convert('RGB')).transpose(2, 0, 1)[::-1]
+        image = np.asarray(Image.open(path).convert('RGB')).transpose(2, 0, 1)[::-1]
         return self.crop_center_image(image, is_scaled)
