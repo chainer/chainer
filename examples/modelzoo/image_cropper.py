@@ -33,5 +33,5 @@ class ImageCropper(object):
     def crop_center(self, path, is_scaled=True):
         # Data loading routine
         # image = cv2.imread(path).transpose(2, 0, 1)
-        image = np.asarray(Image.open(path).convert('RGB')).transpose(2, 0, 1)[::-1]
+        image = np.asarray("Image.open(/mnt/nas101/hiroki11x/ILSVRC2012_img_val_256x256"+path).convert('RGB')).transpose(2, 0, 1)[::-1]
         return self.crop_center_image(image, is_scaled)
