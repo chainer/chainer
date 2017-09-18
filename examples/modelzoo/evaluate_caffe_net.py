@@ -13,13 +13,46 @@ import argparse
 import os
 import sys
 
+# =========================================================
+import alexLike
+import cPickle as pickle
+# =========================================================
+
 import numpy as np
 from PIL import Image
 
 import chainer
 from chainer import cuda
 import chainer.functions as F
+import chainer.links as L
 from chainer.links import caffe
+
+# =========================================================
+def copy_model(src, dst):
+    assert isinstance(src, chainer.Chain)
+    assert isinstance(dst, chainer.Chain)
+    for child in src.children():
+        if child.name not in dst.__dict__: continue
+        dst_child = dst[child.name]
+        if type(child) != type(dst_child): continue
+        if isinstance(child, chainer.Chain):
+            copy_model(child, dst_child)
+            if isinstance(child, chainer.Link):
+                match = True
+                for a, b in zip(child.namedparams(), dst_child.namedparams()):
+                    if a[0] != b[0]:
+                        match = False
+                        break
+                    if a[1].data.shape != b[1].data.shape:
+                        match = False
+                        break
+                    if not match:
+                        print('Ignore %s because of parameter mismatch' % child.name)
+                        continue
+                    for a, b in zip(child.namedparams(), dst_child.namedparams()):
+                        b[1].data = a[1].data
+                        print('Copy %s' % child.name)
+# =========================================================
 
 
 parser = argparse.ArgumentParser(
@@ -56,8 +89,17 @@ with open(args.dataset) as list_file:
 assert len(dataset) % args.batchsize == 0
 
 
+# =========================================================
+model = L.Classifier(alexLike.AlexLike())
+original_model = pickle.load(open("alexnet.pkl", "rb"))
+copy_model(original_model, model)
+# =========================================================
+
+
 print('Loading Caffe model file %s...' % args.model, file=sys.stderr)
+#caffemodelを読み込むところ
 func = caffe.CaffeFunction(args.model)
+
 print('Loaded', file=sys.stderr)
 if args.gpu >= 0:
     cuda.get_device_from_id(args.gpu).use()
@@ -104,7 +146,8 @@ count = 0
 accum_loss = 0
 accum_accuracy = 0
 for path, label in dataset:
-    image = np.asarray(Image.open(path)).transpose(2, 0, 1)[::-1]
+    print(np.asarray(Image.open(path)).shape)
+    image = np.asarray(Image.open(path).convert('RGB')).transpose(2, 0, 1)[::-1]
     image = image[:, start:stop, start:stop].astype(np.float32)
     image -= mean_image
 

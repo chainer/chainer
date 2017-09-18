@@ -4,6 +4,8 @@
 *.pyo
 *.cpp
 *.so
+*.pkl
+*.caffemodel
 build
 \#*\#
 .\#*
