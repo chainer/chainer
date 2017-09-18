@@ -46,7 +46,7 @@ def copy_model(src, dst):
                     for a, b in zip(child.namedparams(), dst_child.namedparams()):
                         b[1].data = a[1].data
                         print('Copy %s' % child.name)
-# =========================================================                        
+# =========================================================
 
 
 parser = argparse.ArgumentParser(
@@ -81,6 +81,13 @@ with open(args.dataset) as list_file:
         dataset.append((path, np.int32(pair[1])))
 
 assert len(dataset) % args.batchsize == 0
+
+
+# =========================================================
+model = L.Classifier(alexLike.AlexLike())
+original_model = pickle.load(open("alexnet.pkl", "rb"))
+copy_model(original_model, model)
+# =========================================================
 
 
 print('Loading Caffe model file %s...' % args.model, file=sys.stderr)
