@@ -110,7 +110,7 @@ def cached_download(url):
         temp_path = os.path.join(temp_root, 'dl')
         print('Downloading from {}...'.format(url))
         proxies = {}
-        if 'http_proxy' in os.envirnon:
+        if 'http_proxy' in os.environ:
             proxies['http'] = os.environ['http_proxy']
         if 'https_proxy' in os.environ:
             proxies['https'] = os.environ['https_proxy']
