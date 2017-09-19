@@ -2,10 +2,11 @@ import os
 import tempfile
 import unittest
 
-import chainer
 import mock
 import numpy
 import six
+
+import chainer
 from chainer import cuda
 from chainer import testing
 from chainer.testing import attr
