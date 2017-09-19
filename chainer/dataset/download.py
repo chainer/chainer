@@ -78,6 +78,11 @@ def cached_download(url):
         This function raises :class:`OSError` when it fails to create
         the cache directory. In older version, it raised :class:`RuntimeError`.
 
+    .. note::
+        A user can set ``http_proxy`` environment variable to specify a proxy
+        server for HTTP URIs, and ``https_proxy`` environment variable for
+        that of HTTPS URIs.
+
     Args:
         url (str): URL to download from.
 
@@ -104,7 +109,13 @@ def cached_download(url):
     try:
         temp_path = os.path.join(temp_root, 'dl')
         print('Downloading from {}...'.format(url))
-        request.urlretrieve(url, temp_path)
+        proxies = {}
+        if 'http_proxy' in os.environ:
+            proxies['http'] = os.environ['http_proxy']
+        if 'https_proxy' in os.environ:
+            proxies['https'] = os.environ['https_proxy']
+        opener = request.URLopener(proxies)
+        opener.retrieve(url, temp_path)
         with filelock.FileLock(lock_path):
             shutil.move(temp_path, cache_path)
     finally:
