@@ -34,7 +34,6 @@ class BaseFeatureIndexer(BaseIndexer):
         self.dataset = dataset
         self.access_feature_by_key = access_feature_by_key
 
-    @property
     def features_keys(self):
         """Returns all the keys of features
 
@@ -44,10 +43,14 @@ class BaseFeatureIndexer(BaseIndexer):
         if self.access_feature_by_key:
             raise NotImplementedError
         else:
-            return numpy.arange(self.features_length)
+            return numpy.arange(self.features_length())
 
-    @property
     def features_length(self):
+        """Returns length of features
+
+        Returns (int): feature length
+
+        """
         raise NotImplementedError
 
     @property
@@ -56,7 +59,7 @@ class BaseFeatureIndexer(BaseIndexer):
 
     @property
     def shape(self):
-        return self.dataset_length, self.features_length
+        return self.dataset_length, self.features_length()
 
     def extract_feature_by_slice(self, slice_index, j):
         """Extracts `slice_index`-th data's `j`-th feature.
@@ -90,15 +93,15 @@ class BaseFeatureIndexer(BaseIndexer):
     def create_feature_index_list(self, feature_index):
         if isinstance(feature_index, slice):
             feature_index_list = numpy.arange(
-                *feature_index.indices(self.features_length)
+                *feature_index.indices(self.features_length())
             )
         elif isinstance(feature_index, (list, numpy.ndarray)):
             if isinstance(feature_index[0],
                           (bool, numpy.bool, numpy.bool_)):
-                if len(feature_index) != self.features_length:
+                if len(feature_index) != self.features_length():
                     raise ValueError('Feature index wrong length {} instead of'
                                      ' {}'.format(len(feature_index),
-                                                  self.features_length))
+                                                  self.features_length()))
                 feature_index_list = numpy.argwhere(feature_index
                                                     ).ravel()
             else:
@@ -156,6 +159,16 @@ class BaseFeatureIndexer(BaseIndexer):
         self.postprocess(item)
         return ret
 
+    def check_type_key(self, j):
+        if self.access_feature_by_key:
+            if j not in self.features_keys:
+                raise IndexError('index {} is not found in feature_keys '
+                                 .format(j))
+        else:
+            if j >= self.features_length():
+                raise IndexError('index {} is out of bounds for axis 1 with '
+                                 'size {}'.format(j, self.features_length()))
+
     def _extract_feature(self, data_index, j):
         """Format `data_index` and call proper method to extract feature.
 
@@ -164,14 +177,7 @@ class BaseFeatureIndexer(BaseIndexer):
             j (int or key):
 
         """
-        if self.access_feature_by_key:
-            if j not in self.features_keys:
-                raise IndexError('index {} is not found in feature_keys '
-                                 .format(j))
-        else:
-            if j >= self.features_length:
-                raise IndexError('index {} is out of bounds for axis 1 with '
-                                 'size {}'.format(j, self.features_length))
+        self.check_type_key(j)
         if isinstance(data_index, slice):
             try:
                 return self.extract_feature_by_slice(data_index, j)
