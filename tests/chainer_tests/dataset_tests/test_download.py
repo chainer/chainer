@@ -132,7 +132,7 @@ class TestCachedDownload(unittest.TestCase):
             dataset.cached_download('http://example.com')
 
     def test_cached_download(self):
-        with mock.patch('six.moves.urllib.request.urlretrieve') as f:
+        with mock.patch('six.moves.urllib.request.URLopener.retrieve') as f:
             def download(url, path):
                 with open(path, 'w') as f:
                     f.write('test')
