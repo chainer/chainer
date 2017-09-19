@@ -137,11 +137,17 @@ class TestSerialIterator(unittest.TestCase):
         self.assertRaises(StopIteration, it.next)
 
 
+@testing.parameterize(
+    {'order_sampler': None, 'shuffle': True},
+    {'order_sampler': lambda order, _: numpy.random.permutation(len(order)),
+     'shuffle': False}
+)
 class TestSerialIteratorShuffled(unittest.TestCase):
 
     def test_iterator_repeat(self):
         dataset = [1, 2, 3, 4, 5, 6]
-        it = iterators.SerialIterator(dataset, 2)
+        it = iterators.SerialIterator(dataset, 2, shuffle=self.shuffle,
+                                      order_sampler=self.order_sampler)
         for i in range(3):
             self.assertEqual(it.epoch, i)
             self.assertAlmostEqual(it.epoch_detail, i + 0 / 6)
@@ -168,7 +174,8 @@ class TestSerialIteratorShuffled(unittest.TestCase):
 
     def test_iterator_repeat_not_even(self):
         dataset = [1, 2, 3, 4, 5]
-        it = iterators.SerialIterator(dataset, 2)
+        it = iterators.SerialIterator(dataset, 2, shuffle=self.shuffle,
+                                      order_sampler=self.order_sampler)
 
         batches = sum([it.next() for _ in range(5)], [])
         self.assertEqual(sorted(batches[:5]), dataset)
@@ -176,7 +183,9 @@ class TestSerialIteratorShuffled(unittest.TestCase):
 
     def test_iterator_not_repeat(self):
         dataset = [1, 2, 3, 4, 5, 6]
-        it = iterators.SerialIterator(dataset, 2, repeat=False)
+        it = iterators.SerialIterator(dataset, 2, repeat=False,
+                                      shuffle=self.shuffle,
+                                      order_sampler=self.order_sampler)
 
         batches = sum([it.next() for _ in range(3)], [])
         self.assertEqual(sorted(batches), dataset)
@@ -185,7 +194,9 @@ class TestSerialIteratorShuffled(unittest.TestCase):
 
     def test_iterator_not_repeat_not_even(self):
         dataset = [1, 2, 3, 4, 5]
-        it = iterators.SerialIterator(dataset, 2, repeat=False)
+        it = iterators.SerialIterator(dataset, 2, repeat=False,
+                                      shuffle=self.shuffle,
+                                      order_sampler=self.order_sampler)
 
         self.assertAlmostEqual(it.epoch_detail, 0 / 5)
         self.assertIsNone(it.previous_epoch_detail)
@@ -205,7 +216,8 @@ class TestSerialIteratorShuffled(unittest.TestCase):
 
     def test_iterator_shuffle_divisible(self):
         dataset = list(range(10))
-        it = iterators.SerialIterator(dataset, 10)
+        it = iterators.SerialIterator(dataset, 2, shuffle=self.shuffle,
+                                      order_sampler=self.order_sampler)
         self.assertNotEqual(it.next(), it.next())
 
     def test_iterator_shuffle_nondivisible(self):
@@ -216,7 +228,9 @@ class TestSerialIteratorShuffled(unittest.TestCase):
 
     def test_reset(self):
         dataset = [1, 2, 3, 4, 5]
-        it = iterators.SerialIterator(dataset, 2, repeat=False)
+        it = iterators.SerialIterator(dataset, 2, repeat=False,
+                                      shuffle=self.shuffle,
+                                      order_sampler=self.order_sampler)
 
         for trial in range(4):
             batches = sum([it.next() for _ in range(3)], [])
@@ -226,11 +240,17 @@ class TestSerialIteratorShuffled(unittest.TestCase):
             it.reset()
 
 
+@testing.parameterize(
+    {'order_sampler': None, 'shuffle': True},
+    {'order_sampler': lambda order, _: numpy.random.permutation(len(order)),
+     'shuffle': False}
+)
 class TestSerialIteratorSerialize(unittest.TestCase):
 
     def test_iterator_serialize(self):
         dataset = [1, 2, 3, 4, 5, 6]
-        it = iterators.SerialIterator(dataset, 2)
+        it = iterators.SerialIterator(dataset, 2, shuffle=self.shuffle,
+                                      order_sampler=self.order_sampler)
 
         self.assertEqual(it.epoch, 0)
         self.assertAlmostEqual(it.epoch_detail, 0 / 6)
@@ -267,7 +287,8 @@ class TestSerialIteratorSerialize(unittest.TestCase):
 
     def test_iterator_serialize_backward_compat(self):
         dataset = [1, 2, 3, 4, 5, 6]
-        it = iterators.SerialIterator(dataset, 2)
+        it = iterators.SerialIterator(dataset, 2, shuffle=self.shuffle,
+                                      order_sampler=self.order_sampler)
 
         self.assertEqual(it.epoch, 0)
         self.assertAlmostEqual(it.epoch_detail, 0 / 6)
@@ -306,6 +327,16 @@ class TestSerialIteratorSerialize(unittest.TestCase):
         self.assertEqual(sorted(batch1 + batch2 + batch3), dataset)
         self.assertAlmostEqual(it.epoch_detail, 6 / 6)
         self.assertAlmostEqual(it.previous_epoch_detail, 4 / 6)
+
+
+class TestSerialIteratorInvalidOrderSampler(unittest.TestCase):
+
+    def test_invalid_order_sampler(self):
+        dataset = [1, 2, 3, 4, 5, 6]
+        order_sampler = lambda order, _: numpy.arange(len(dataset) - 1)
+        with self.assertRaises(ValueError):
+            iterators.SerialIterator(dataset, 2, shuffle=False,
+                                     order_sampler=order_sampler)
 
 
 testing.run_module(__name__, __file__)
