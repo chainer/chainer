@@ -54,6 +54,8 @@ class DummyDeserializer(serializer.Deserializer):
 @testing.parameterize(*testing.product({
     'n_prefetch': [1, 2],
     'shared_mem': [None, 1000000],
+    'order_sampler': [
+        None, lambda order, _: numpy.random.permutation(len(order))],
 }))
 class TestMultiprocessIterator(unittest.TestCase):
 
@@ -62,6 +64,9 @@ class TestMultiprocessIterator(unittest.TestCase):
         self.options = {'n_processes': self.n_processes,
                         'n_prefetch': self.n_prefetch,
                         'shared_mem': self.shared_mem}
+        if self.order_sampler is not None:
+            self.options.update(
+                {'shuffle': False, 'order_sampler': self.order_sampler})
 
     def test_iterator_repeat(self):
         dataset = [1, 2, 3, 4, 5, 6]
@@ -305,6 +310,8 @@ class TestMultiprocessIterator(unittest.TestCase):
 @testing.parameterize(*testing.product({
     'n_prefetch': [1, 2],
     'shared_mem': [None, 1000000],
+    'order_sampler': [
+        None, lambda order, _: numpy.random.permutation(len(order))],
 }))
 class TestMultiprocessIteratorSerialize(unittest.TestCase):
 
@@ -313,6 +320,9 @@ class TestMultiprocessIteratorSerialize(unittest.TestCase):
         self.options = {'n_processes': self.n_processes,
                         'n_prefetch': self.n_prefetch,
                         'shared_mem': self.shared_mem}
+        if self.order_sampler is not None:
+            self.options.update(
+                {'shuffle': False, 'order_sampler': self.order_sampler})
 
     def test_iterator_serialize(self):
         dataset = [1, 2, 3, 4, 5, 6]
@@ -391,6 +401,16 @@ class TestMultiprocessIteratorSerialize(unittest.TestCase):
         self.assertAlmostEqual(it.previous_epoch_detail, 4 / 6)
 
 
+class TestMultiprocessIteratorInvalidOrderSampler(unittest.TestCase):
+
+    def test_invalid_order_sampler(self):
+        dataset = [1, 2, 3, 4, 5, 6]
+        order_sampler = lambda order, _: numpy.arange(len(dataset) - 1)
+        with self.assertRaises(ValueError):
+            iterators.MultiprocessIterator(dataset, 2, shuffle=False,
+                                           order_sampler=order_sampler)
+
+
 class TestMultiprocessIteratorConcurrency(unittest.TestCase):
 
     def test_finalize_not_deadlock(self):
@@ -411,6 +431,8 @@ class TestMultiprocessIteratorConcurrency(unittest.TestCase):
 @testing.parameterize(*testing.product({
     'n_prefetch': [1, 2],
     'shared_mem': [None, 1000000],
+    'order_sampler': [
+        None, lambda order, _: numpy.random.permutation(len(order))],
 }))
 class TestMultiprocessIteratorInterruption(unittest.TestCase):
 
@@ -429,6 +451,10 @@ class TestMultiprocessIteratorInterruption(unittest.TestCase):
             os.remove(self.code_path)
 
     def run_code(self, dataset, n_processes, operation):
+        if self.order_sampler is None:
+            shuffle = True
+        else:
+            shuffle = False
         code_template = """
 import os
 import random
@@ -459,15 +485,19 @@ if __name__ == '__main__':
     if {shared_mem} is not None and {dataset} is infinite_wait:
         iterators.MultiprocessIterator._interruption_testing = True
     it = iterators.MultiprocessIterator({dataset}, 100,
+                                        shuffle={shuffle},
                                         n_processes={n_processes},
                                         n_prefetch={n_prefetch},
-                                        shared_mem={shared_mem})
+                                        shared_mem={shared_mem},
+                                        order_sampler={order_sampler})
     {operation}
         """
         code = code_template.format(dataset=dataset,
+                                    shuffle=shuffle,
                                     n_processes=n_processes,
                                     n_prefetch=self.n_prefetch,
                                     shared_mem=self.shared_mem,
+                                    order_sampler=self.order_sampler,
                                     operation=operation)
         fd, self.code_path = tempfile.mkstemp(suffix='.py')
         os.write(fd, six.b(code))

@@ -3,6 +3,8 @@ from __future__ import division
 import numpy
 
 from chainer.dataset import iterator
+from chainer.iterators.order_samplers import no_shuffle_order_sampler
+from chainer.iterators.order_samplers import shuffle_order_sampler
 
 
 class SerialIterator(iterator.Iterator):
@@ -30,14 +32,32 @@ class SerialIterator(iterator.Iterator):
         shuffle (bool): If ``True``, the order of examples is shuffled at the
             beginning of each epoch. Otherwise, examples are extracted in the
             order of indexes.
+        order_sampler (callable): A callable that generates the order
+            of the indices to sample in the next epoch when a epoch finishes.
+            This function should take two arguements: the current order
+            and the current position of the iterator.
+            This should return the next order, which should have the
+            same length as the dataset.
+            This option can not be used when ``shuffle`` is ``True``.
 
     """
 
-    def __init__(self, dataset, batch_size, repeat=True, shuffle=True):
+    def __init__(self, dataset, batch_size,
+                 repeat=True, shuffle=True, order_sampler=None):
         self.dataset = dataset
         self.batch_size = batch_size
         self._repeat = repeat
         self._shuffle = shuffle
+
+        if self._shuffle and order_sampler is not None:
+            raise ValueError(
+                'shuffle should be False when custom order_sampler is used')
+        if order_sampler is None:
+            if self._shuffle:
+                order_sampler = shuffle_order_sampler
+            else:
+                order_sampler = no_shuffle_order_sampler
+        self.order_sampler = order_sampler
 
         self.reset()
 
@@ -60,7 +80,10 @@ class SerialIterator(iterator.Iterator):
             if self._repeat:
                 rest = i_end - N
                 if self._order is not None:
-                    numpy.random.shuffle(self._order)
+                    self._order = self.order_sampler(self._order, i)
+                    if len(self._order) != N:
+                        raise ValueError('The size of order does not match '
+                                         'with the size of the dataset')
                 if rest > 0:
                     if self._order is None:
                         batch.extend(self.dataset[:rest])
@@ -115,14 +138,13 @@ class SerialIterator(iterator.Iterator):
                 self._previous_epoch_detail = -1.
 
     def reset(self):
-        if self._shuffle:
-            self._order = numpy.random.permutation(len(self.dataset))
-        else:
-            self._order = None
-
         self.current_position = 0
         self.epoch = 0
         self.is_new_epoch = False
 
         # use -1 instead of None internally.
         self._previous_epoch_detail = -1.
+        self._order = self.order_sampler(numpy.arange(len(self.dataset)), 0)
+        if self._order is not None and len(self._order) != len(self.dataset):
+            raise ValueError('The size of order does not match '
+                             'with the size of the dataset')

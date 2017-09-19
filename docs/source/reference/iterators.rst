@@ -16,3 +16,18 @@ Chainer provides some iterators that implement typical strategies to create mini
 
    chainer.iterators.SerialIterator
    chainer.iterators.MultiprocessIterator
+
+
+Order sampler examples
+======================
+
+An Iterator iterate over a dataset according to ``order``, which is 1-D array of the indices of a dataset.
+Order samplers are functions that are called inside of an iterator to generate an order.
+
+
+.. autosummary::
+    :toctree generated/
+    :nosignatures
+
+    chainer.iterators.no_shuffle_order_sampler
+    chainer.iterators.shuffle_order_sampler
