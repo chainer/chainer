@@ -1,9 +1,11 @@
 from chainer import cuda
-from chainer import function
+from chainer import function_node
+import chainer.functions
 from chainer.utils import type_check
 
 
 def _broadcast_to(xp, x, shape):
+    # xp: numpy, cupy, or chainer.functions
     if hasattr(xp, 'broadcast_to'):
         return xp.broadcast_to(x, shape)
     else:
@@ -13,7 +15,7 @@ def _broadcast_to(xp, x, shape):
         return bx
 
 
-class LayerNormalization(function.Function):
+class LayerNormalization(function_node.FunctionNode):
 
     """Layer normalization"""
 
@@ -34,45 +36,53 @@ class LayerNormalization(function.Function):
             gamma_type.shape == beta_type.shape,
         )
 
+    def _compute(self, xp, x):
+        # xp: numpy, cupy, or chainer.functions
+        mu = xp.mean(x, axis=1, keepdims=True)
+        x_mu = x - _broadcast_to(xp, mu, x.shape)
+        squ_x_mu = xp.square(x_mu)
+        var = xp.mean(squ_x_mu, axis=1, keepdims=True)
+        std = xp.sqrt(var + self.eps)
+        inv_std = 1. / std
+        x_hat = x_mu * _broadcast_to(xp, inv_std, x_mu.shape)
+        return x_mu, var, inv_std, x_hat
+
     def forward(self, inputs):
+        self.retain_inputs((0, 1))
         xp = cuda.get_array_module(*inputs)
         x, gamma, beta = inputs
-        mu = xp.mean(x, axis=1, keepdims=True)
-        self.x_mu = x - mu
-        self.squ_x_mu = xp.square(self.x_mu)
-        self.var = xp.mean(self.squ_x_mu, axis=1, keepdims=True)
-        std = xp.sqrt(self.var + self.eps)
-        self.inv_std = 1. / std
-        self.x_hat = self.x_mu * self.inv_std
-        scaled_x = self.x_hat * gamma[None, ]
+        x_mu, var, inv_std, x_hat = self._compute(xp, x)
+        scaled_x = x_hat * gamma[None, ]
         shifted_x = scaled_x + beta[None, ]
         return shifted_x,
 
-    def backward(self, inputs, gy):
-        xp = cuda.get_array_module(*inputs)
-        x, gamma, beta = inputs
-        gy = gy[0]
+    def backward(self, indexes, grad_outputs):
+        F = chainer.functions
+        x, gamma = self.get_retained_inputs()
+        gy, = grad_outputs
 
-        g_beta = gy.sum(axis=0)
+        x_mu, var, inv_std, x_hat = self._compute(F, x)
+
+        g_beta = F.sum(gy, axis=0)
         g_scaled_x = gy
 
-        g_gamma = xp.sum(g_scaled_x * self.x_hat, axis=0)
-        g_x_hat = g_scaled_x * gamma[None, ]
+        g_gamma = F.sum(g_scaled_x * x_hat, axis=0)
+        g_x_hat = g_scaled_x * F.broadcast_to(gamma, g_scaled_x.shape)
 
-        g_inv_std = xp.sum(g_x_hat * self.x_mu, axis=1, keepdims=True)
-        g_x_mu_1 = g_x_hat * self.inv_std
+        g_inv_std = F.sum(g_x_hat * x_mu, axis=1, keepdims=True)
+        g_x_mu_1 = g_x_hat * F.broadcast_to(inv_std, g_x_hat.shape)
 
-        g_std = g_inv_std * (- 1. / self.var)
-        g_var = g_std * 0.5 * self.inv_std
+        g_std = g_inv_std * (- 1. / var)
+        g_var = g_std * 0.5 * inv_std
 
         n_units = x.shape[1]
-        g_squ_x_mu = _broadcast_to(xp, g_var * 1. / n_units, x.shape)
-        g_x_mu_2 = g_squ_x_mu * 2 * self.x_mu
+        g_squ_x_mu = F.broadcast_to(g_var * (1. / n_units), x.shape)
+        g_x_mu_2 = g_squ_x_mu * 2 * x_mu
 
         g_x_1 = g_x_mu_1 + g_x_mu_2
-        g_mu = xp.sum(g_x_1, axis=1, keepdims=True) * (- 1.)
+        g_mu = F.sum(g_x_1, axis=1, keepdims=True) * (- 1.)
 
-        g_x_2 = _broadcast_to(xp, g_mu * 1. / n_units, x.shape)
+        g_x_2 = F.broadcast_to(g_mu * (1. / n_units), x.shape)
 
         g_x = g_x_1 + g_x_2
 
@@ -102,4 +112,4 @@ def layer_normalization(x, gamma, beta, eps=1e-5):
 
     See: `Layer Normalization <https://arxiv.org/abs/1607.06450>`_
     """
-    return LayerNormalization(eps)(x, gamma, beta)
+    return LayerNormalization(eps).apply((x, gamma, beta))[0]

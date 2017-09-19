@@ -8,15 +8,12 @@ from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
 
 
 def _replace_near_zero_values(x):
     # Replace near zero values in an array in order to avoid unstability of
     # numerical grad
-    for i in range(x.size):
-        if -0.01 < x.flat[i] < 0.01:
-            x.flat[i] = 0.5
+    x[(-0.01 < x) & (x < 0.01)] = 0.5
 
 
 @testing.parameterize(*testing.product_dict(
@@ -39,6 +36,7 @@ def _replace_near_zero_values(x):
         {'dtype': numpy.float64},
     ]
 ))
+@testing.fix_random()
 class TestCReLU(unittest.TestCase):
 
     def setUp(self):
@@ -53,22 +51,16 @@ class TestCReLU(unittest.TestCase):
         self.assertEqual(y.data.dtype, self.dtype)
         self.assertEqual(y.data.shape, self.y_shape)
 
-        expected_former = self.x.copy()
-        expected_latter = self.x.copy()
-        for i in numpy.ndindex(self.x.shape):
-            expected_former[i] = max(0, self.x[i])
-            expected_latter[i] = max(0, -self.x[i])
+        expected_former = numpy.maximum(self.x, 0)
+        expected_latter = numpy.maximum(-self.x, 0)
         expected = numpy.concatenate(
             (expected_former, expected_latter), axis=self.axis)
-
         testing.assert_allclose(expected, y.data)
 
-    @condition.retry(3)
     def test_forward_cpu(self):
         self.check_forward(self.x)
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x))
 
@@ -76,12 +68,10 @@ class TestCReLU(unittest.TestCase):
         gradient_check.check_backward(
             functions.CReLU(self.axis), x_data, y_grad, dtype=numpy.float64)
 
-    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy)
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
