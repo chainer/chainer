@@ -1,12 +1,12 @@
 import functools
 import itertools
-import sys
 import types
 import unittest
 
 import six
 
 from chainer.testing import _bundle
+from chainer import utils
 
 
 def _parameterize_test_case_generator(base, params):
@@ -51,14 +51,7 @@ def _parameterize_test_case_generator(base, params):
                     s.write('Test parameters:\n')
                     for k, v in six.iteritems(param):
                         s.write('  {}: {}\n'.format(k, v))
-                    s.write('\n')
-                    s.write('{}: {}\n'.format(type(e).__name__, e))
-                    e_new = AssertionError(s.getvalue())
-                    if sys.version_info < (3,):
-                        six.reraise(AssertionError, e_new, sys.exc_info()[2])
-                    else:
-                        six.raise_from(
-                            e_new.with_traceback(e.__traceback__), None)
+                    utils._raise_from(e.__class__, s.getvalue(), e)
             return new_method
 
         yield (cls_name, mb, method_generator)

@@ -14,6 +14,7 @@ else:
 
 if _available:
     from numpy import dtype, bool_, int8, int16, int32, int64, uint8, float32, float64  # NOQA
+    all_dtypes = (bool_, int8, int16, int32, int64, uint8, float32, float64)
 
     from chainerx._core import *  # NOQA
 
