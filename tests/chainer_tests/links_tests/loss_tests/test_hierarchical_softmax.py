@@ -44,6 +44,19 @@ class TestBinaryHierarchicalSoftmax(unittest.TestCase):
 
         self.W = self.link.W.data.copy()
 
+        # Compute max value in `tree`
+        self.max_value_tree = 0
+        self.compute_max_value_in_tree(tree)
+
+    def compute_max_value_in_tree(self, node):
+        if isinstance(node, tuple):
+            left, right = node
+            self.compute_max_value_in_tree(left)
+            self.compute_max_value_in_tree(right)
+        else:
+            if self.max_value_tree < node:
+                self.max_value_tree = node
+
     def check_sum(self, x, gpu=False):
         total = 0
         for i in range(5):
@@ -106,6 +119,27 @@ class TestBinaryHierarchicalSoftmax(unittest.TestCase):
         self.assertTrue((f.begins == g.begins).all())
         self.assertTrue((f.paths == g.paths).all())
         self.assertTrue((f.codes == g.codes).all())
+
+    def check_sample(self, x):
+        x = chainer.Variable(x)
+        result = self.link.sample(x)
+        self.assertIsInstance(result, self.link.xp.ndarray)
+        self.assertEqual(len(result), x.shape[0])
+        for word_id in result:
+            self.assertEqual(word_id.dtype, self.link.xp.int32)
+            # Check if the result is in the valid range
+            self.assertLessEqual(0, word_id)
+            self.assertLessEqual(word_id, self.max_value_tree)
+
+    def test_sample_cpu(self):
+        x = numpy.array([[1.0, 2.0, 3.0], [1.5, 2.5, 3.5]], numpy.float32)
+        self.check_sample(x)
+
+    @attr.gpu
+    def test_sample_gpu(self):
+        x = numpy.array([[1.0, 2.0, 3.0]], numpy.float32)
+        self.link.to_gpu()
+        self.check_sample(cuda.to_gpu(x))
 
 
 testing.run_module(__name__, __file__)

@@ -1,5 +1,6 @@
 import copy
 
+import collections
 import numpy
 import six
 
@@ -9,6 +10,11 @@ from chainer.initializers import uniform
 from chainer import link
 from chainer.utils import type_check
 from chainer import variable
+
+
+LEAF = -1
+NOT_LEAF = -1
+FINISH_SAMPLING = -2
 
 
 class TreeParser(object):
@@ -25,12 +31,20 @@ class TreeParser(object):
     def get_codes(self):
         return self.codes
 
+    def get_parent2child(self):
+        return self.parent2child
+
+    def get_node2word(self):
+        return self.node2word
+
     def parse(self, tree):
         self.next_id = 0
         self.path = []
         self.code = []
         self.paths = {}
         self.codes = {}
+        self.parent2child = collections.defaultdict(list)
+        self.node2word = collections.defaultdict(list)
         self._parse(tree)
 
         assert(len(self.path) == 0)
@@ -44,7 +58,24 @@ class TreeParser(object):
                 raise ValueError(
                     'All internal nodes must have two child nodes')
             left, right = node
+
+            left_node_is_leaf = not isinstance(left, tuple)
+            right_node_is_leaf = not isinstance(right, tuple)
+            if left_node_is_leaf:
+                self.parent2child[self.next_id].append(LEAF)
+                self.node2word[self.next_id].append(left)
+            else:
+                self.node2word[self.next_id].append(NOT_LEAF)
+
+            if right_node_is_leaf:
+                self.node2word[self.next_id].append(right)
+
             self.path.append(self.next_id)
+
+            if len(self.path) >= 2:
+                parent_node_id, child_node_id = self.path[-2:]
+                self.parent2child[parent_node_id].append(child_node_id)
+
             self.next_id += 1
             self.code.append(1.0)
             self._parse(left)
@@ -82,15 +113,28 @@ class BinaryHierarchicalSoftmaxFunction(function.Function):
         parser.parse(tree)
         paths = parser.get_paths()
         codes = parser.get_codes()
+        parent2child = parser.get_parent2child()
+        node2word = parser.get_node2word()
         n_vocab = max(paths.keys()) + 1
-
+        n_parent = max(parent2child.keys()) + 1
+        n_node = max(node2word.keys()) + 1
+        self.n_vocab = n_vocab
         self.paths = numpy.concatenate(
-            [paths[i] for i in range(n_vocab) if i in paths])
+            [paths[i] for i in six.moves.range(n_vocab) if i in paths])
         self.codes = numpy.concatenate(
-            [codes[i] for i in range(n_vocab) if i in codes])
+            [codes[i] for i in six.moves.range(n_vocab) if i in codes])
+
+        self.parent2child = numpy.full((n_parent, 2), LEAF, dtype=numpy.int32)
+        for i, x in six.iteritems(parent2child):
+            self.parent2child[i, 0:len(x)] = x
+
+        self.node2word = numpy.full((n_node, 2), NOT_LEAF, dtype=numpy.int32)
+        for i, x in six.iteritems(node2word):
+            self.node2word[i, 0:len(x)] = x
+
         begins = numpy.empty((n_vocab + 1,), dtype=numpy.int32)
         begins[0] = 0
-        for i in range(0, n_vocab):
+        for i in six.moves.range(0, n_vocab):
             length = len(paths[i]) if i in paths else 0
             begins[i + 1] = begins[i] + length
         self.begins = begins
@@ -118,11 +162,15 @@ class BinaryHierarchicalSoftmaxFunction(function.Function):
             self.paths = cuda.to_gpu(self.paths)
             self.codes = cuda.to_gpu(self.codes)
             self.begins = cuda.to_gpu(self.begins)
+            self.parent2child = cuda.to_gpu(self.parent2child)
+            self.node2word = cuda.to_gpu(self.node2word)
 
     def to_cpu(self):
         self.paths = cuda.to_cpu(self.paths)
         self.codes = cuda.to_cpu(self.codes)
         self.begins = cuda.to_cpu(self.begins)
+        self.parent2child = cuda.to_cpu(self.parent2child)
+        self.node2word = cuda.to_cpu(self.node2word)
 
     def forward_cpu(self, inputs):
         x, t, W = inputs
@@ -293,13 +341,21 @@ class BinaryHierarchicalSoftmax(link.Link):
     See: Hierarchical Probabilistic Neural Network Language Model [Morin+,
     AISTAT2005].
 
+    .. admonition:: Example
+
+        Let an a dictionary containing word counts ``word_counts`` be:
+
+        >>> word_counts = {0: 8, 1: 5, 2: 6, 3: 4, 4: 10, 5: 1, 6: 32, 7: 21}
+        >>> tree = BinaryHierarchicalSoftmax.create_huffman_tree(word_counts)
+        >>> hsm = BinaryHierarchicalSoftmax(3, tree)
+
     """
 
     def __init__(self, in_size, tree):
         # This function object is copied on every forward computation.
         super(BinaryHierarchicalSoftmax, self).__init__()
         self._func = BinaryHierarchicalSoftmaxFunction(tree)
-
+        self.tree = tree
         with self.init_scope():
             self.W = variable.Parameter(uniform.Uniform(1),
                                         (self._func.parser_size, in_size))
@@ -348,6 +404,79 @@ class BinaryHierarchicalSoftmax(link.Link):
             q.put((count, min(id1, id2), tree))
 
         return q.get()[2]
+
+    def sample(self, x):
+        """Sample an example for a given input from the tree.
+
+        Args:
+            x (~chainer.Variable): Input variable for sample word ids.
+
+        Returns:
+            array: Array of word indexes in a binary tree ``self.tree``.
+
+        .. admonition:: Example
+
+            Let an input vector ``x`` be:
+
+            >>> word_cnts = {0: 8, 1: 5, 2: 6, 3: 4, 4: 10, 5: 1, 6: 32}
+            >>> tree = BinaryHierarchicalSoftmax.create_huffman_tree(word_cnts)
+            >>> hsm = BinaryHierarchicalSoftmax(3, tree)
+            >>> x = np.array([[0.2, 0.2, 0.3], [0.1, 0.3, 0.1]], dtype='f')
+            >>> hsm.sample(Variable(x))
+            [0, 3]
+
+
+        """
+        if len(self.tree) == 0:
+            raise ValueError('Empty tree')
+
+        xp = cuda.get_array_module(*x)
+        parent2child = self._func.parent2child
+        node2word = self._func.node2word
+        batchsize = x.shape[0]
+        start_ids = xp.zeros(batchsize, 'i')
+        list_next_ids = []
+        list_sampled_ids = []
+
+        def _sigmoid(x):
+            half = x.dtype.type(0.5)
+            return self.xp.tanh(x * half) * half + half
+
+        rows = xp.arange(batchsize, dtype=xp.int32)
+        while True:
+            w = self.W.data[start_ids]
+            x_t = xp.transpose(x.data)
+            score = xp.sum(xp.dot(w, x_t), axis=1)
+            prob_left = _sigmoid(score)[:, None]
+            prob_right = xp.ones_like(prob_left) - prob_left
+            prob = xp.concatenate([prob_left, prob_right], axis=1)
+
+            choosed_idx = xp.argmax(xp.random.gumbel(size=prob.shape) + prob,
+                                    axis=1)
+            columns = choosed_idx
+            list_sampled_ids.append(node2word[start_ids, columns])
+            list_next_ids.append(start_ids)
+            next_ids = parent2child[start_ids][rows, columns]
+            next_ids = xp.where(next_ids != LEAF, next_ids, FINISH_SAMPLING)
+
+            # check whether all nodes are LEAF.
+            if xp.all(next_ids == FINISH_SAMPLING):
+                # if all nodes will reach leaf, then finish sampling.
+                break
+            start_ids = next_ids
+
+        def xp_stack_func(x):
+            return xp.reshape(xp.concatenate(x), (-1, batchsize)).T
+
+        next_ids = xp_stack_func(list_next_ids)
+        sampled_word_ids = xp_stack_func(list_sampled_ids)
+        lengths = xp.argmax(next_ids == FINISH_SAMPLING, axis=1)
+        max_length = next_ids.shape[1]
+        lengths = xp.where(lengths == 0, max_length, lengths)
+
+        output = sampled_word_ids[xp.arange(batchsize), lengths - 1]
+
+        return output
 
     def __call__(self, x, t):
         """Computes the loss value for given input and ground truth labels.
