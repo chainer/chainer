@@ -113,7 +113,9 @@ class BaseFeatureIndexer(BaseIndexer):
             if index_dim == 1:
                 # This is not unexpected case...
                 data_index = item[0]
-                feature_index_list = self.create_feature_index_list(slice(None))
+                feature_index_list = self.create_feature_index_list(
+                    slice(None)
+                )
             elif index_dim == 2:
                 data_index, feature_index = item
                 feature_index_list = self.create_feature_index_list(
