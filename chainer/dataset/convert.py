@@ -153,12 +153,17 @@ class ConcatWithAsyncTransfer(object):
 
     It enables to transfer next batch of input data to GPU while GPU is
     running kernels for training using current batch of input data.
+
+    Args:
+        stream (cupy.cuda.Stream): CUDA stream. If ``None``, a stream is
+            automatically created on the first call. Data transfer operation
+            is launched acynchrnously using the stream.
     """
 
     def __init__(self, stream=None):
         self.stream = stream
-        self.pin_arrays = [[], []]  # numpy arrays with pinned memory
-        self.cp_arrays = [[], []]  # cupy arrays
+        self._pin_arrays = [[], []]  # numpy arrays with pinned memory
+        self._cp_arrays = [[], []]  # cupy arrays
 
     def __call__(self, batch, device=None, padding=None):
         """Concatenate data and transfer them to GPU asynchronously.
@@ -180,22 +185,20 @@ class ConcatWithAsyncTransfer(object):
         first_elem = batch[0]
         if (device is None or
                 not isinstance(first_elem, tuple)):
-            # Default concat method is used when device is not set
-            # of input data is not tuple.
             return concat_examples(batch, device, padding)
 
         if not isinstance(padding, tuple):
             padding = [padding] * len(first_elem)
 
-        pin_arrays = self.pin_arrays.pop(0)
-        cp_arrays = self.cp_arrays.pop(0)
+        pin_arrays = self._pin_arrays.pop(0)
+        cp_arrays = self._cp_arrays.pop(0)
 
         with cuda.get_device_from_id(device):
             if self.stream is None:
                 self.stream = cuda.Stream(non_blocking=True)
             stream = self.stream
 
-            # Concatenates examples in batch into an array and check if
+            # Concatenate examples in batch into an array and check if
             # the size of the array matches the size of previously created
             # and retained array.
             _same_size = True
@@ -212,13 +215,19 @@ class ConcatWithAsyncTransfer(object):
                 cp_arrays = []
 
             if len(cp_arrays) == 0:
-                # Allocates memory for numpy arrays with pinned memory
+                # Allocate memory for numpy arrays with pinned memory
                 # and cupy arrays. These arrays are retaind at
-                # self.pin_arrays andself.cp_arrays respectively and
+                # self._pin_arrays and self._cp_arrays respectively and
                 # will be reused for subsequent batches as long as
                 # the size are the same.
 
-                # cuda.Stream.null.synchronize()
+                # The global synchronization below is necceary to ensure ALL
+                # operations including compute and data transfer submitted
+                # to GPU so far have been completed, in order to avoid possible
+                # memory corruption due to race condition among operations that
+                # use different CUDA streams.
+                # You can also solve this sort of race condition by preparing a
+                # memory pool for each CUDA stream and using it carefully.
                 runtime.deviceSynchronize()
                 for i in six.moves.range(len(first_elem)):
                     np_array = np_arrays[i]
@@ -231,8 +240,6 @@ class ConcatWithAsyncTransfer(object):
 
                     pin_arrays.append(pin_array)
                     cp_arrays.append(cp_array)
-                # cuda.Stream.null.synchronize()
-                runtime.deviceSynchronize()
 
             results = []
             for i in six.moves.range(len(first_elem)):
@@ -240,11 +247,13 @@ class ConcatWithAsyncTransfer(object):
                 cp_arrays[i].set(pin_arrays[i], stream)  # copy: CPU to GPU
                 results.append(cp_arrays[i])
 
-            # stream.synchronize()
-            # cuda.Stream.null.synchronize()
+            # Wait for completion of the data transfer submitted above.
+            # Global synchronizaton is used here for safer reason.
+            # If a callee function is correctly handling the synchronization,
+            # local synchronization (stream.synchronize()) may be enough.
             runtime.deviceSynchronize()
 
-            self.pin_arrays.append(pin_arrays)
-            self.cp_arrays.append(cp_arrays)
+            self._pin_arrays.append(pin_arrays)
+            self._cp_arrays.append(cp_arrays)
 
             return tuple(results)
