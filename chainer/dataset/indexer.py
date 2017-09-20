@@ -29,21 +29,9 @@ class BaseFeatureIndexer(BaseIndexer):
 
     """
 
-    def __init__(self, dataset, access_feature_by_key=False):
+    def __init__(self, dataset):
         super(BaseFeatureIndexer, self).__init__()
         self.dataset = dataset
-        self.access_feature_by_key = access_feature_by_key
-
-    def features_keys(self):
-        """Returns all the keys of features
-
-        This method must be override when `access_feature_by_key` is `True`.
-
-        """
-        if self.access_feature_by_key:
-            raise NotImplementedError
-        else:
-            return numpy.arange(self.features_length())
 
     def features_length(self):
         """Returns length of features
@@ -111,15 +99,6 @@ class BaseFeatureIndexer(BaseIndexer):
             feature_index_list = [feature_index]
         return feature_index_list
 
-    def create_feature_index_list_key(self, feature_index):
-        if isinstance(feature_index, slice):
-            raise TypeError('Accessing feature by slice is not supported')
-        elif isinstance(feature_index, (list, numpy.ndarray)):
-            feature_index_list = feature_index
-        else:
-            feature_index_list = [feature_index]
-        return feature_index_list
-
     def preprocess(self, item):
         pass
 
@@ -128,27 +107,23 @@ class BaseFeatureIndexer(BaseIndexer):
 
     def __getitem__(self, item):
         self.preprocess(item)
-        if self.access_feature_by_key:
-            create_feature_index_list_fn = self.create_feature_index_list_key
-        else:
-            create_feature_index_list_fn = self.create_feature_index_list
         if isinstance(item, tuple):
             index_dim = len(item)
             # multi dimensional access
             if index_dim == 1:
                 # This is not unexpected case...
                 data_index = item[0]
-                feature_index_list = create_feature_index_list_fn(slice(None))
+                feature_index_list = self.create_feature_index_list(slice(None))
             elif index_dim == 2:
                 data_index, feature_index = item
-                feature_index_list = create_feature_index_list_fn(
+                feature_index_list = self.create_feature_index_list(
                     feature_index
                 )
             else:
                 raise IndexError('too many indices for features')
         else:
             data_index = item
-            feature_index_list = create_feature_index_list_fn(slice(None))
+            feature_index_list = self.create_feature_index_list(slice(None))
         if len(feature_index_list) == 1:
             self._extract_single_feature = True
             ret = self._extract_feature(data_index, feature_index_list[0])
@@ -159,15 +134,10 @@ class BaseFeatureIndexer(BaseIndexer):
         self.postprocess(item)
         return ret
 
-    def check_type_key(self, j):
-        if self.access_feature_by_key:
-            if j not in self.features_keys:
-                raise IndexError('index {} is not found in feature_keys '
-                                 .format(j))
-        else:
-            if j >= self.features_length():
-                raise IndexError('index {} is out of bounds for axis 1 with '
-                                 'size {}'.format(j, self.features_length()))
+    def check_type_feature_index(self, j):
+        if j >= self.features_length():
+            raise IndexError('index {} is out of bounds for axis 1 with '
+                             'size {}'.format(j, self.features_length()))
 
     def _extract_feature(self, data_index, j):
         """Format `data_index` and call proper method to extract feature.
@@ -177,7 +147,7 @@ class BaseFeatureIndexer(BaseIndexer):
             j (int or key):
 
         """
-        self.check_type_key(j)
+        self.check_type_feature_index(j)
         if isinstance(data_index, slice):
             try:
                 return self.extract_feature_by_slice(data_index, j)
