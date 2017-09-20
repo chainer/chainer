@@ -126,3 +126,7 @@ class SerialIterator(iterator.Iterator):
 
         # use -1 instead of None internally.
         self._previous_epoch_detail = -1.
+
+    @property
+    def repeat(self):
+        return self._repeat

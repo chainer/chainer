@@ -1,7 +1,9 @@
 import copy
+import warnings
 
 import six
 
+import chainer
 from chainer import configuration
 from chainer.dataset import convert
 from chainer.dataset import iterator as iterator_module
@@ -86,6 +88,19 @@ class Evaluator(extension.Extension):
         self.eval_hook = eval_hook
         self.eval_func = eval_func
 
+        if chainer.debug():
+            for key, iterator in six.itervalues():
+                if hasattr(iterator, 'repeat', False):
+                    msg = 'The repeat property of the iterator {} '
+                    'is set to True. Typically, evaluator sweeps '
+                    'over iterators until it raises StopIteration '
+                    'is raised. But this iterator might not raise '
+                    'the exception, which means the evaluation could'
+                    'go into an infinite loop in evaluation. '
+                    'We recommend to check the configuration '
+                    'of iterators'.format(key)
+                    warnings.warn(msg)
+
     def get_iterator(self, name):
         """Returns the iterator of the given name."""
         return self._iterators[name]
@@ -145,6 +160,12 @@ class Evaluator(extension.Extension):
         This method runs the evaluation loop over the validation dataset. It
         accumulates the reported values to :class:`~chainer.DictSummary` and
         returns a dictionary whose values are means computed by the summary.
+
+        Note that this function assumes that the main iterator raises
+        ``StopIteration`` or some error is raised during the evaluation loop.
+        So, if the iterator does not raise ``StopIteratiron`` and
+        the loop does not raise no exceptions. It could be caught in the
+        an infinite loop.
 
         Users can override this method to customize the evaluation routine.
 
