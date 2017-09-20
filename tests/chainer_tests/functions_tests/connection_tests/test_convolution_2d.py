@@ -37,11 +37,12 @@ from chainer.testing import condition
 class TestConvolution2DFunction(unittest.TestCase):
 
     def setUp(self):
+        batches = 2
         in_channels = 3
         out_channels = 2
         kh, kw = (3, 3)
         self.stride = 2
-        self.pad = self.dilate
+        self.pad = (int(kh/2)*self.dilate, int(kw/2)*self.dilate)
         self.use_cudnn = 'always'
         self.W = numpy.random.normal(
             0, numpy.sqrt(1. / (kh * kw * in_channels)),
@@ -50,13 +51,14 @@ class TestConvolution2DFunction(unittest.TestCase):
             -1, 1, out_channels).astype(self.x_dtype)
 
         self.x = numpy.random.uniform(
-            -1, 1, (2, 3, 4, 3)).astype(self.x_dtype)
+            -1, 1, (batches, in_channels, 4, 3)).astype(self.x_dtype)
         if self.cover_all:
             self.gy = numpy.random.uniform(-1, 1,
-                                           (2, 2, 3, 2)).astype(self.x_dtype)
+                                           (batches, out_channels, 3, 2)
+                                           ).astype(self.x_dtype)
         else:
             self.gy = numpy.random.uniform(
-                -1, 1, (2, 2, 2, 2)).astype(self.x_dtype)
+                -1, 1, (batches, out_channels, 2, 2)).astype(self.x_dtype)
         self.ggx = numpy.random.uniform(-1, 1, self.x.shape).astype(
             self.x_dtype)
         self.ggW = numpy.random.uniform(-1, 1, self.W.shape).astype(
@@ -127,7 +129,8 @@ class TestConvolution2DFunction(unittest.TestCase):
 
         def f(*args):
             return F.convolution_2d(*args, stride=self.stride, pad=self.pad,
-                                    cover_all=self.cover_all, dilate=self.dilate)
+                                    cover_all=self.cover_all,
+                                    dilate=self.dilate)
 
         with chainer.using_config('use_cudnn', self.use_cudnn):
             with chainer.using_config('cudnn_deterministic',
@@ -203,7 +206,7 @@ class TestConvolution2DFunction(unittest.TestCase):
 
         def f(*args):
             y = F.convolution_2d(*args, stride=self.stride, pad=self.pad,
-                                 cover_all=self.cover_all)
+                                 cover_all=self.cover_all, dilate=self.dilate)
             return y * y  # make the function nonlinear
 
         with chainer.using_config('use_cudnn', self.use_cudnn):
@@ -268,18 +271,19 @@ class TestConvolution2DFunction(unittest.TestCase):
 class TestConvolution2DCudnnCall(unittest.TestCase):
 
     def setUp(self):
+        batches = 2
         in_channels = 3
         out_channels = 2
         kh, kw = (3, 3)
         self.stride = 2
-        self.pad = self.dilate
+        self.pad = (int(kh/2)*self.dilate, int(kw/2)*self.dilate)
         self.x = cuda.cupy.random.uniform(
-            -1, 1, (2, 3, 4, 3)).astype(self.dtype)
+            -1, 1, (batches, in_channels, 4, 3)).astype(self.dtype)
         self.W = cuda.cupy.random.normal(
             0, numpy.sqrt(1. / (kh * kw * in_channels)),
             (out_channels, in_channels, kh, kw)).astype(self.dtype)
         self.gy = cuda.cupy.random.uniform(
-            -1, 1, (2, 2, 2, 2)).astype(self.dtype)
+            -1, 1, (batches, out_channels, 2, 2)).astype(self.dtype)
         with chainer.using_config('use_cudnn', self.use_cudnn):
             self.should_call_cudnn = chainer.should_use_cudnn('>=auto')
             if self.dilate > 1 and cuda.cudnn.cudnn.getVersion() < 6000:
@@ -308,7 +312,7 @@ class TestConvolution2DCudnnCall(unittest.TestCase):
                 name = 'cupy.cudnn.cudnn.convolutionBackwardData_v3'
                 with mock.patch(name) as func:
                     y.backward()
-                self.assertEqual(func.called, self.should_call_cudnn)
+                    self.assertEqual(func.called, self.should_call_cudnn)
 
 
 @testing.parameterize(*testing.product({
