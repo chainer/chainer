@@ -20,7 +20,7 @@ def _to_gpu(x, device_id):
 @testing.parameterize(*testing.product({
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
-class Copy(unittest.TestCase):
+class TestCopy(unittest.TestCase):
 
     def setUp(self):
         self.x_data = numpy.random.uniform(
@@ -93,6 +93,15 @@ class Copy(unittest.TestCase):
     @attr.multi_gpu(2)
     def test_backward_multigpu(self):
         self.check_backward(0, 1)
+
+
+class TestCopyArgument(unittest.TestCase):
+
+    def setUp(self):
+        self.x_data = numpy.zeros((2, 3))
+
+    def test_call_forward_with_device(self):
+        functions.copy(self.x_data, cuda.DummyDevice)
 
 
 testing.run_module(__name__, __file__)

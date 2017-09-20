@@ -58,6 +58,5 @@ def copy(x, dst):
         -1
 
     """
-    assert isinstance(dst, int)
     y, = Copy(dst).apply((x,))
     return y
