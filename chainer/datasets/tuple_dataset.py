@@ -16,8 +16,8 @@ class TupleDataset(object):
     As an example, consider creating a ``TupleDataset`` from two argument
     datasets ``d1 = [8, 0, 5, 1]`` and ``d2 = [3, 1, 7, 4]`` as
     ``tuple_dataset = TupleDataset(d1, d2)``. The ``tuple_dataset`` will
-    then contain the examples ``(8,3), (0, 1), (5,7), (1,4)``. Note that this
-    behavior is similar to that of the built-in :func:`zip` function.
+    then contain the examples ``(8, 3), (0, 1), (5, 7), (1, 4)``. Note that
+    this behavior is similar to that of the built-in :func:`zip` function.
 
     Args:
         datasets: Underlying datasets that will be aggregated. Each dataset
