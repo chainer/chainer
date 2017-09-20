@@ -1,6 +1,5 @@
 import copy
 
-import collections
 import numpy
 import six
 
@@ -43,8 +42,8 @@ class TreeParser(object):
         self.code = []
         self.paths = {}
         self.codes = {}
-        self.parent2child = collections.defaultdict(list)
-        self.node2word = collections.defaultdict(list)
+        self.parent2child = {}
+        self.node2word = {}
         self._parse(tree)
 
         assert(len(self.path) == 0)
@@ -58,38 +57,28 @@ class TreeParser(object):
                 raise ValueError(
                     'All internal nodes must have two child nodes')
             left, right = node
-
-            left_node_is_leaf = not isinstance(left, tuple)
-            right_node_is_leaf = not isinstance(right, tuple)
-            if left_node_is_leaf:
-                self.parent2child[self.next_id].append(LEAF)
-                self.node2word[self.next_id].append(left)
-            else:
-                self.node2word[self.next_id].append(NOT_LEAF)
-
-            if right_node_is_leaf:
-                self.node2word[self.next_id].append(right)
-
-            self.path.append(self.next_id)
-
-            if len(self.path) >= 2:
-                parent_node_id, child_node_id = self.path[-2:]
-                self.parent2child[parent_node_id].append(child_node_id)
+            node_id = self.next_id
+            self.path.append(node_id)
 
             self.next_id += 1
             self.code.append(1.0)
-            self._parse(left)
+            left_id, left_word = self._parse(left)
 
             self.code[-1] = -1.0
-            self._parse(right)
+            right_id, right_word = self._parse(right)
+
+            self.node2word[node_id] = (left_word, right_word)
+            self.parent2child[node_id] = (left_id, right_id)
 
             self.path.pop()
             self.code.pop()
+            return node_id, NOT_LEAF
 
         else:
             # leaf node
             self.paths[node] = numpy.array(self.path, dtype=numpy.int32)
             self.codes[node] = numpy.array(self.code, dtype=numpy.float32)
+            return LEAF, node
 
 
 class BinaryHierarchicalSoftmaxFunction(function.Function):
