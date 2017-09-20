@@ -67,7 +67,6 @@ class TupleDatasetFeatureIndexer(BaseFeatureIndexer):
         super(TupleDatasetFeatureIndexer, self).__init__(dataset)
         self.datasets = dataset._datasets
 
-    @property
     def features_length(self):
         return len(self.datasets)
 
