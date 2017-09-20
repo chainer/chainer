@@ -12,6 +12,7 @@ from chainer.utils import type_check
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
     libcudnn = cuda.cudnn.cudnn
+    _cudnn_version = libcudnn.getVersion()
     _fwd_pref = libcudnn.CUDNN_CONVOLUTION_FWD_SPECIFY_WORKSPACE_LIMIT
     _bwd_filter_pref = \
         libcudnn.CUDNN_CONVOLUTION_BWD_FILTER_SPECIFY_WORKSPACE_LIMIT
@@ -216,7 +217,7 @@ class Convolution2DGradW(function_node.FunctionNode):
         x, gy = inputs
         col = conv.im2col_cpu(
             x, self.kh, self.kw, self.sy, self.sx, self.ph, self.pw,
-            cover_all=self.cover_all)
+            cover_all=self.cover_all, dy=self.dy, dx=self.dx)
         gW = numpy.tensordot(
             gy, col, ((0, 2, 3), (0, 4, 5))).astype(self.W_dtype, copy=False)
         return gW,
@@ -231,7 +232,7 @@ class Convolution2DGradW(function_node.FunctionNode):
                 x.dtype != self.W_dtype):
             col = conv.im2col_gpu(
                 x, self.kh, self.kw, self.sy, self.sx, self.ph, self.pw,
-                cover_all=self.cover_all)
+                cover_all=self.cover_all, dy=self.dy, dx=self.dx)
             gW = cuda.cupy.tensordot(
                 gy, col, ((0, 2, 3), (0, 4, 5))).astype(self.W_dtype,
                                                         copy=False)

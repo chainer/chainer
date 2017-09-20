@@ -63,17 +63,21 @@ class Deconvolution2DFunction(function_node.FunctionNode):
 
         if self.outh is not None:
             lower_bound = conv.get_conv_outsize(
-                self.outh, w_type.shape[2], self.sy, self.ph)
+                self.outh, w_type.shape[2], self.sy, self.ph,
+                d=self.dy)
             upper_bound = conv.get_conv_outsize(
-                self.outh, w_type.shape[2], self.sy, self.ph, cover_all=True)
+                self.outh, w_type.shape[2], self.sy, self.ph, cover_all=True,
+                d=self.dy)
             type_check.expect(
                 lower_bound <= x_type.shape[2],
                 x_type.shape[2] <= upper_bound)
         if self.outw is not None:
             lower_bound = conv.get_conv_outsize(
-                self.outw, w_type.shape[3], self.sx, self.pw)
+                self.outw, w_type.shape[3], self.sx, self.pw,
+                d=self.dx)
             upper_bound = conv.get_conv_outsize(
-                self.outw, w_type.shape[3], self.sx, self.pw, cover_all=True)
+                self.outw, w_type.shape[3], self.sx, self.pw, cover_all=True,
+                d=self.dx)
             type_check.expect(
                 lower_bound <= x_type.shape[3],
                 x_type.shape[3] <= upper_bound)
@@ -110,13 +114,16 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         # k, m, n, b, h, w -> b, k, m, n, h, w
         gcol = numpy.rollaxis(gcol, 3)
         if self.outh is None:
-            self.outh = conv.get_deconv_outsize(h, kh, self.sy, self.ph)
+            self.outh = conv.get_deconv_outsize(h, kh, self.sy, self.ph,
+                                                d=self.dy)
             assert self.outh > 0, 'Height in the output should be positive.'
         if self.outw is None:
-            self.outw = conv.get_deconv_outsize(w, kw, self.sx, self.pw)
+            self.outw = conv.get_deconv_outsize(w, kw, self.sx, self.pw,
+                                                d=self.dx)
             assert self.outw > 0, 'Width in the output should be positive.'
         y = conv.col2im_cpu(
-            gcol, self.sy, self.sx, self.ph, self.pw, self.outh, self.outw)
+            gcol, self.sy, self.sx, self.ph, self.pw, self.outh, self.outw,
+            dy=self.dy, dx=self.dx)
         # b, k, h, w
         if b is not None:
             y += b.reshape(1, b.size, 1, 1)
@@ -167,7 +174,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             filter_desc = cudnn.create_filter_descriptor(W)
             conv_desc = cudnn.create_convolution_descriptor(
                 (self.ph, self.pw), (self.sy, self.sx), x.dtype,
-                (self.dy, self.dx))
+                dilation=(self.dy, self.dx))
             if b is not None:
                 bias_desc = cudnn.create_tensor_descriptor(
                     b[None, :, None, None])
@@ -205,7 +212,8 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             # k, m, n, b, h, w -> b, k, m, n, h, w
             gcol = cuda.cupy.rollaxis(gcol, 3)
             y = conv.col2im_gpu(
-                gcol, self.sy, self.sx, self.ph, self.pw, self.outh, self.outw)
+                gcol, self.sy, self.sx, self.ph, self.pw, self.outh, self.outw,
+                dy=self.dy, dx=self.dx)
             if b is not None:
                 y += b.reshape(1, b.size, 1, 1)
         return y,
@@ -237,11 +245,14 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         in_h, in_w = x.shape[2:]
         kh, kw = W.shape[2:]
         self.cover_all = (
-            in_h != conv.get_conv_outsize(self.outh, kh, self.sy, self.ph) or
-            in_w != conv.get_conv_outsize(self.outw, kw, self.sx, self.pw))
+            in_h != conv.get_conv_outsize(self.outh, kh, self.sy,
+                                          self.ph, d=self.dy) or
+            in_w != conv.get_conv_outsize(self.outw, kw, self.sx,
+                                          self.pw, d=self.dx))
 
 
-def deconvolution_2d(x, W, b=None, stride=1, pad=0, outsize=None, **kwargs):
+def deconvolution_2d(x, W, b=None, stride=1, pad=0, outsize=None, dilate=1,
+                     **kwargs):
     """deconvolution_2d(x, W, b=None, stride=1, pad=0, outsize=None)
 
     Two dimensional deconvolution function.
@@ -348,7 +359,7 @@ http://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf
         "context where value is either `True` or `False`.")
     argument.assert_kwargs_empty(kwargs)
 
-    func = Deconvolution2DFunction(stride, pad, outsize)
+    func = Deconvolution2DFunction(stride, pad, outsize, dilate)
     if b is None:
         args = x, W
     else:
