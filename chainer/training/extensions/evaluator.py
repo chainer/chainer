@@ -93,9 +93,9 @@ class Evaluator(extension.Extension):
                 if hasattr(iterator, 'repeat', False):
                     msg = 'The repeat property of the iterator {} '
                     'is set to True. Typically, evaluator sweeps '
-                    'over iterators until it raises StopIteration '
-                    'is raised. But this iterator might not raise '
-                    'the exception, which means the evaluation could'
+                    'over iterators until it raises StopIteration. '
+                    'But this iterator might not raise the exception, '
+                    'which means the evaluation could'
                     'go into an infinite loop in evaluation. '
                     'We recommend to check the configuration '
                     'of iterators'.format(key)
