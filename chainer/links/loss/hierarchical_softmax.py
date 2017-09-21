@@ -396,13 +396,14 @@ class BinaryHierarchicalSoftmax(link.Link):
         return q.get()[2]
 
     def sample(self, x):
-        """Sample an example for a given input from the tree.
+        """Samples an example for a given input from the tree.
 
         Args:
             x (~chainer.Variable): Input variable for sample word ids.
 
         Returns:
-            array: Array of word indexes in a binary tree ``self.tree``.
+            numpy.ndarray or cupy.ndarray:
+                Array of word indexes in a binary tree ``self.tree``.
 
         .. admonition:: Example
 
