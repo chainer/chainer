@@ -167,7 +167,8 @@ class ThreadQueueWriter(QueueWriter):
         self._task = task
         self._queue = queue.Queue()
         self._consumer = threading.Thread(target=self.consume,
-                                          args=(self._queue,))
+                                          args=(self._queue,),
+                                          daemon=True)
         self._consumer.start()
 
 
