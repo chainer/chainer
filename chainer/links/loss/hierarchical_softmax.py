@@ -105,21 +105,12 @@ class BinaryHierarchicalSoftmaxFunction(function.Function):
         parent2child = parser.get_parent2child()
         node2word = parser.get_node2word()
         n_vocab = max(paths.keys()) + 1
-        n_parent = max(parent2child.keys()) + 1
-        n_node = max(node2word.keys()) + 1
+        n_node = len(node2word)
         self.n_vocab = n_vocab
         self.paths = numpy.concatenate(
             [paths[i] for i in six.moves.range(n_vocab) if i in paths])
         self.codes = numpy.concatenate(
             [codes[i] for i in six.moves.range(n_vocab) if i in codes])
-
-        self.parent2child = numpy.full((n_parent, 2), LEAF, dtype=numpy.int32)
-        for i, x in six.iteritems(parent2child):
-            self.parent2child[i, 0:len(x)] = x
-
-        self.node2word = numpy.full((n_node, 2), NOT_LEAF, dtype=numpy.int32)
-        for i, x in six.iteritems(node2word):
-            self.node2word[i, 0:len(x)] = x
 
         begins = numpy.empty((n_vocab + 1,), dtype=numpy.int32)
         begins[0] = 0
@@ -127,6 +118,11 @@ class BinaryHierarchicalSoftmaxFunction(function.Function):
             length = len(paths[i]) if i in paths else 0
             begins[i + 1] = begins[i] + length
         self.begins = begins
+
+        self.parent2child = numpy.array(
+            [parent2child[i] for i in six.moves.range(n_node)], 'i')
+        self.node2word = numpy.array(
+            [node2word[i] for i in six.moves.range(n_node)], 'i')
 
         self.parser_size = parser.size()
 
