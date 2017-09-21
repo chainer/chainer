@@ -418,7 +418,7 @@ class BinaryHierarchicalSoftmax(link.Link):
         xp = cuda.get_array_module(x)
         parent2child = self._func.parent2child
         node2word = self._func.node2word
-        batchsize = x.shape[0]
+        batchsize = len(x)
         start_ids = xp.zeros(batchsize, 'i')
         list_next_ids = []
         list_sampled_ids = []
