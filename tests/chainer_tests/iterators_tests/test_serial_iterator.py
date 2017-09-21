@@ -333,10 +333,13 @@ class TestSerialIteratorInvalidOrderSampler(unittest.TestCase):
 
     def test_invalid_order_sampler(self):
         dataset = [1, 2, 3, 4, 5, 6]
-        def order_sampler(order, _): numpy.arange(len(dataset) - 1)
+
+        def _invalid_order_sampler(order, _):
+            numpy.arange(len(dataset) - 1)
         with self.assertRaises(ValueError):
-            iterators.SerialIterator(dataset, 2, shuffle=False,
-                                     order_sampler=order_sampler)
+            iterators.SerialIterator(
+                dataset, 2, shuffle=False,
+                order_sampler=_invalid_order_sampler)
 
 
 testing.run_module(__name__, __file__)
