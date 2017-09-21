@@ -7,6 +7,7 @@ import chainer
 from chainer import cuda
 from chainer import gradient_check
 from chainer import links
+from chainer.links.loss import hierarchical_softmax
 from chainer import testing
 from chainer.testing import attr
 from chainer.testing import condition
@@ -30,6 +31,40 @@ class TestHuffmanTree(unittest.TestCase):
         # Order of the same items are not defined.
         self.assertTrue((('x', 'y'), 'z') == tree or
                         ('z', ('x', 'y')) == tree)
+
+
+class TestTreeParser(unittest.TestCase):
+
+    def setUp(self):
+        self.parser = hierarchical_softmax.TreeParser()
+
+    def test_parse(self):
+        # Internal nodes are numbered in pre-order.
+        # ((0 (1 2)) (3 4))
+        # -->
+        # (#0 (#1 0 (#2 1 2) (#3 3 4))
+        tree = ((0, (1, 2)), (3, 4))
+        self.parser.parse(tree)
+        self.assertEqual(self.parser.size(), 4)
+        paths = self.parser.get_paths()
+        codes = self.parser.get_codes()
+        numpy.testing.assert_array_equal(paths[0], [0, 1])
+        numpy.testing.assert_array_equal(codes[0], [1, 1])
+        numpy.testing.assert_array_equal(paths[1], [0, 1, 2])
+        numpy.testing.assert_array_equal(codes[1], [1, -1, 1])
+        numpy.testing.assert_array_equal(paths[2], [0, 1, 2])
+        numpy.testing.assert_array_equal(codes[2], [1, -1, -1])
+        numpy.testing.assert_array_equal(paths[3], [0, 3])
+        numpy.testing.assert_array_equal(codes[3], [-1, 1])
+        numpy.testing.assert_array_equal(paths[4], [0, 3])
+        numpy.testing.assert_array_equal(codes[4], [-1, -1])
+
+        self.assertEqual(
+            self.parser.get_parent2child(),
+            {0: (1, 3), 1: (-1, 2), 2: (-1, -1), 3: (-1, -1)})
+        self.assertEqual(
+            self.parser.get_node2word(),
+            {0: (-1, -1), 1: (0, -1), 2: (1, 2), 3: (3, 4)})
 
 
 class TestBinaryHierarchicalSoftmax(unittest.TestCase):
