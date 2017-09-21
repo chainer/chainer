@@ -15,6 +15,12 @@ LEAF = -1
 NOT_LEAF = -1
 
 
+def _sigmoid(x):
+    xp = cuda.get_array_module(x)
+    half = x.dtype.type(0.5)
+    return xp.tanh(x * half) * half + half
+
+
 class TreeParser(object):
 
     def __init__(self):
@@ -419,10 +425,6 @@ class BinaryHierarchicalSoftmax(link.Link):
         node2word = self._func.node2word
         batchsize = len(x)
         start_ids = xp.zeros(batchsize, 'i')
-
-        def _sigmoid(x):
-            half = x.dtype.type(0.5)
-            return self.xp.tanh(x * half) * half + half
 
         rows = xp.arange(batchsize, dtype=xp.int32)
         sampled_word_ids = xp.empty(batchsize, 'i')
