@@ -415,7 +415,7 @@ class BinaryHierarchicalSoftmax(link.Link):
         if len(self.tree) == 0:
             raise ValueError('Empty tree')
 
-        xp = cuda.get_array_module(*x)
+        xp = cuda.get_array_module(x)
         parent2child = self._func.parent2child
         node2word = self._func.node2word
         batchsize = x.shape[0]
