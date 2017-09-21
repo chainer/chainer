@@ -433,7 +433,7 @@ class BinaryHierarchicalSoftmax(link.Link):
             x_t = xp.transpose(x.data)
             score = xp.sum(xp.dot(w, x_t), axis=1)
             prob_left = _sigmoid(score)[:, None]
-            prob_right = xp.ones_like(prob_left) - prob_left
+            prob_right = 1 - prob_left
             prob = xp.concatenate([prob_left, prob_right], axis=1)
 
             # It uses Gumbel-max trick to draw samples from a discrete
