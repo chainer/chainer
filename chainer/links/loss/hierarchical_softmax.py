@@ -13,7 +13,6 @@ from chainer import variable
 
 LEAF = -1
 NOT_LEAF = -1
-FINISH_SAMPLING = -2
 
 
 class TreeParser(object):
@@ -420,49 +419,35 @@ class BinaryHierarchicalSoftmax(link.Link):
         node2word = self._func.node2word
         batchsize = len(x)
         start_ids = xp.zeros(batchsize, 'i')
-        list_next_ids = []
-        list_sampled_ids = []
 
         def _sigmoid(x):
             half = x.dtype.type(0.5)
             return self.xp.tanh(x * half) * half + half
 
         rows = xp.arange(batchsize, dtype=xp.int32)
-        while True:
+        sampled_word_ids = xp.empty(batchsize, 'i')
+        done = xp.zeros(batchsize, '?')
+        while not done.all():
             w = self.W.data[start_ids]
             score = xp.einsum('ij,ij->i', w, x.data)
             prob_left = _sigmoid(score)[:, None]
             prob_right = 1 - prob_left
             prob = xp.concatenate([prob_left, prob_right], axis=1)
 
-            # It uses Gumbel-max trick to draw samples from a discrete
-            # distribution
-            choosed_idx = xp.argmax(xp.random.gumbel(size=prob.shape) + prob,
+            # Gumbel-max trick to draw samples from a discrete distribution
+            sampled_idx = xp.argmax(xp.random.gumbel(size=prob.shape) + prob,
                                     axis=1)
-            columns = choosed_idx
-            list_sampled_ids.append(node2word[start_ids, columns])
-            list_next_ids.append(start_ids)
-            next_ids = parent2child[start_ids][rows, columns]
-            next_ids = xp.where(next_ids != LEAF, next_ids, FINISH_SAMPLING)
+            next_ids = parent2child[start_ids][rows, sampled_idx]
+            is_leaf = (next_ids == LEAF) & ~done
+            if is_leaf.any():
+                word_ids = node2word[start_ids, sampled_idx]
+                sampled_word_ids = xp.where(
+                    is_leaf, word_ids, sampled_word_ids)
+                done |= is_leaf
 
-            # check whether all nodes are LEAF.
-            if xp.all(next_ids == FINISH_SAMPLING):
-                # if all nodes will reach leaf, then finish sampling.
-                break
             start_ids = next_ids
 
-        def xp_stack_func(x):
-            return xp.reshape(xp.concatenate(x), (-1, batchsize)).T
-
-        next_ids = xp_stack_func(list_next_ids)
-        sampled_word_ids = xp_stack_func(list_sampled_ids)
-        lengths = xp.argmax(next_ids == FINISH_SAMPLING, axis=1)
-        max_length = next_ids.shape[1]
-        lengths = xp.where(lengths == 0, max_length, lengths)
-
-        output = sampled_word_ids[xp.arange(batchsize), lengths - 1]
-
-        return output
+        return sampled_word_ids
 
     def __call__(self, x, t):
         """Computes the loss value for given input and ground truth labels.
