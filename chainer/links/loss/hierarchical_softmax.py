@@ -436,6 +436,8 @@ class BinaryHierarchicalSoftmax(link.Link):
             prob_right = xp.ones_like(prob_left) - prob_left
             prob = xp.concatenate([prob_left, prob_right], axis=1)
 
+            # It uses Gumbel-max trick to draw samples from a discrete
+            # distribution
             choosed_idx = xp.argmax(xp.random.gumbel(size=prob.shape) + prob,
                                     axis=1)
             columns = choosed_idx
