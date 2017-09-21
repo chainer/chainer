@@ -192,7 +192,7 @@ class BinaryHierarchicalSoftmaxFunction(function.Function):
         wxy = w.dot(x) * self.codes[begin:end]
         g = -gloss * self.codes[begin:end] / (1.0 + numpy.exp(wxy))
         gx = g.dot(w)
-        gw = g.reshape((g.shape[0], 1)).dot(x.reshape(1, x.shape[0]))
+        gw = g.reshape((g.shape[0], 1)).dot(x.reshape(1, len(x)))
         gW[path] += gw
         return gx
 
