@@ -425,13 +425,13 @@ class BinaryHierarchicalSoftmax(link.Link):
         parent2child = self._func.parent2child
         node2word = self._func.node2word
         batchsize = len(x)
-        start_ids = xp.zeros(batchsize, 'i')
+        ids = xp.zeros(batchsize, 'i')
 
         rows = xp.arange(batchsize, dtype=xp.int32)
         sampled_word_ids = xp.empty(batchsize, 'i')
         done = xp.zeros(batchsize, '?')
         while not done.all():
-            w = self.W.data[start_ids]
+            w = self.W.data[ids]
             score = xp.einsum('ij,ij->i', w, x.data)
             prob_left = _sigmoid(score)[:, None]
             prob_right = 1 - prob_left
@@ -440,15 +440,15 @@ class BinaryHierarchicalSoftmax(link.Link):
             # Gumbel-max trick to draw samples from a discrete distribution
             sampled_idx = xp.argmax(xp.random.gumbel(size=prob.shape) + prob,
                                     axis=1)
-            next_ids = parent2child[start_ids][rows, sampled_idx]
+            next_ids = parent2child[ids][rows, sampled_idx]
             is_leaf = (next_ids == LEAF) & ~done
             if is_leaf.any():
-                word_ids = node2word[start_ids, sampled_idx]
+                word_ids = node2word[ids, sampled_idx]
                 sampled_word_ids = xp.where(
                     is_leaf, word_ids, sampled_word_ids)
                 done |= is_leaf
 
-            start_ids = next_ids
+            ids = next_ids
 
         return sampled_word_ids
 
