@@ -430,8 +430,7 @@ class BinaryHierarchicalSoftmax(link.Link):
         rows = xp.arange(batchsize, dtype=xp.int32)
         while True:
             w = self.W.data[start_ids]
-            x_t = xp.transpose(x.data)
-            score = xp.sum(xp.dot(w, x_t), axis=1)
+            score = xp.einsum('ij,ij->i', w, x.data)
             prob_left = _sigmoid(score)[:, None]
             prob_right = 1 - prob_left
             prob = xp.concatenate([prob_left, prob_right], axis=1)
