@@ -336,9 +336,9 @@ class BaseNStepRNN(function.Function):
             self.rnn_algo, libcudnn.CUDNN_DATA_FLOAT)
 
         if self.rnn_algo == libcudnn.CUDNN_RNN_ALGO_PERSIST_DYNAMIC:
-            # TODO: check `length` is equal to `mini-batch`
+            batchsize = len(x_list[0])
             cudnn.create_rnn_persistent_rnn_plan(
-                rnn_desc, libcudnn.CUDNN_DATA_FLOAT, length)
+                rnn_desc, libcudnn.CUDNN_DATA_FLOAT, batchsize)
 
         self.rnn_desc = rnn_desc
 
