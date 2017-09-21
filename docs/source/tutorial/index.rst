@@ -2,10 +2,11 @@ Chainer Tutorial
 ================
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
    basic
-   recurrentnet
+   writenet
+   train
    gpu
    function
    type_check

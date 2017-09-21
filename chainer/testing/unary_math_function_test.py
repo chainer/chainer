@@ -1,10 +1,10 @@
 import numpy
 import unittest
 
-import chainer
 from chainer import cuda
 from chainer.testing import attr
 from chainer.testing import condition
+from chainer import variable
 
 
 def _make_data_default(shape, dtype):
@@ -147,7 +147,7 @@ def unary_math_function_unittest(func, func_expected=None, label_expected=None,
         setattr(klass, "setUp", setUp)
 
         def check_forward(self, x_data):
-            x = chainer.Variable(x_data)
+            x = variable.Variable(x_data)
             y = func(x)
             self.assertEqual(y.data.dtype, x_data.dtype)
             y_expected = func_expected(cuda.to_cpu(x_data), dtype=x_data.dtype)

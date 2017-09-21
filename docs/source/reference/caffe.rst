@@ -10,5 +10,8 @@ The BVLC team provides trained reference models in their `Model Zoo <http://caff
 Chainer can import the reference models and emulate the network by :class:`~chainer.Link` implementations.
 This functionality is provided by the :class:`chainer.links.caffe.CaffeFunction` class.
 
-.. autoclass:: CaffeFunction
-   :members:
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.links.caffe.CaffeFunction

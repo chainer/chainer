@@ -1,12 +1,17 @@
+import numpy
+
+import chainer
 from chainer import cuda
-from chainer import function
+from chainer import function_node
 from chainer.utils import type_check
 
 
-class Sum(function.Function):
+class Sum(function_node.FunctionNode):
     """Sum of array elements over a given axis."""
 
-    def __init__(self, axis=None):
+    keepdims = False
+
+    def __init__(self, axis=None, keepdims=False):
         if axis is None:
             self.axis = None
         elif isinstance(axis, int):
@@ -18,6 +23,8 @@ class Sum(function.Function):
             self.axis = axis
         else:
             raise TypeError('None, int or tuple of int are required')
+
+        self.keepdims = keepdims
 
     def check_type_forward(self, in_types):
         type_check.expect(
@@ -36,33 +43,28 @@ class Sum(function.Function):
                         -axis - 1 < in_types[0].ndim,
                     )
 
-    def forward(self, x):
-        xp = cuda.get_array_module(*x)
-        return xp.asarray(x[0].sum(axis=self.axis)),
+    def forward(self, inputs):
+        x, = inputs
+        ret = x.sum(axis=self.axis, keepdims=self.keepdims)
+        if cuda.get_array_module(x) is numpy:
+            ret = numpy.asarray(ret)
+        return ret,
 
-    def backward(self, x, gy):
-        xp = cuda.get_array_module(*x)
-
-        gx = xp.empty_like(x[0])
-        if gx.ndim == 0:
-            gx = gy[0]
-        elif self.axis is None:
-            gx[:] = gy[0]
-        else:
-            gy = gy[0]
-            actual_axis = []
-            for axis in self.axis:
-                if axis < 0:
-                    axis += len(gx.shape)
-                actual_axis.append(axis)
+    def backward(self, indexes, grad_outputs):
+        gy, = grad_outputs
+        ndim = len(self.inputs[0].shape)
+        if not (ndim == 0 or self.axis is None or self.keepdims):
+            actual_axis = [
+                axis if axis >= 0 else axis + ndim
+                for axis in self.axis]
+            shape = list(gy.shape)
             for axis in sorted(actual_axis):
-                gy = xp.expand_dims(gy, axis=axis)
-            gx[:] = gy
+                shape.insert(axis, 1)
+            gy = chainer.functions.reshape(gy, shape)
+        return chainer.functions.broadcast_to(gy, self.inputs[0].shape),
 
-        return gx,
 
-
-def sum(x, axis=None):
+def sum(x, axis=None, keepdims=False):
     """Sum of array elements over a given axis.
 
     Args:
@@ -70,9 +72,12 @@ def sum(x, axis=None):
         axis (None, int, or tuple of int): Axis which a sum is performed.
             The default (axis = None) is perform a sum over all the dimensions
             of the input array.
+        keepdims (bool): If ``True``, the specified axes are remained as axes
+            of length one.
 
     Returns:
         ~chainer.Variable: Output variable.
 
     """
-    return Sum(axis)(x)
+    y, = Sum(axis, keepdims).apply((x,))
+    return y

@@ -252,9 +252,6 @@ class NormalInitialParameter(InitByInitialParameter):
     def test_normal_cpu_bias(self):
         self.check_normal(self.W, (self.V1, self.V2, self.b), False)
 
-    def test_normal_cpu_nobias(self):
-        self.check_normal(self.W, None, False)
-
 
 class InvalidInitialParameter(InitByInitialParameter):
 

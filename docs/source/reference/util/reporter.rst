@@ -7,16 +7,22 @@ Reporter
 
 Reporter
 ~~~~~~~~
-.. autoclass:: Reporter
-   :members:
 
-.. autofunction:: get_current_reporter
-.. autofunction:: report
-.. autofunction:: report_scope
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.Reporter
+   chainer.get_current_reporter
+   chainer.report
+   chainer.report_scope
 
 Summary and DictSummary
 ~~~~~~~~~~~~~~~~~~~~~~~
-.. autoclass:: Summary
-   :members:
-.. autoclass:: DictSummary
-   :members:
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.Summary
+   chainer.DictSummary

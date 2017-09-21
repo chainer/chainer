@@ -4,11 +4,11 @@ import six
 
 import chainer
 from chainer import cuda
-from chainer import function
+from chainer import function_node
 from chainer.utils import type_check
 
 
-class SplitAxis(function.Function):
+class SplitAxis(function_node.FunctionNode):
 
     """Function that splits multiple arrays along the specified axis."""
 
@@ -17,6 +17,12 @@ class SplitAxis(function.Function):
                 indices_or_sections,
                 six.integer_types + (collections.Iterable,)):
             raise TypeError('indices_or_sections must be integer or 1-D array')
+        if (chainer.is_debug() and
+                isinstance(indices_or_sections, collections.Iterable)):
+            for p, n in six.moves.zip(
+                    indices_or_sections, indices_or_sections[1:]):
+                if p > n:
+                    raise ValueError('indices_or_sections must be sorted')
         self.indices_or_sections = indices_or_sections
         self.axis = axis
 
@@ -26,43 +32,34 @@ class SplitAxis(function.Function):
 
         if isinstance(self.indices_or_sections, collections.Iterable):
             if len(self.indices_or_sections) > 0:
-                max_index = type_check.Variable(
+                max_index = type_check.make_variable(
                     self.indices_or_sections[-1], 'max_index')
                 type_check.expect(in_types[0].shape[self.axis] > max_index)
         else:
-            sections = type_check.Variable(
+            sections = type_check.make_variable(
                 self.indices_or_sections, 'sections')
             type_check.expect(in_types[0].shape[self.axis] % sections == 0)
 
-    def forward(self, x):
+    def forward(self, inputs):
+        x, = inputs
         if isinstance(self.indices_or_sections, collections.Iterable):
-            cdimx = x[0].shape[self.axis]
+            cdimx = x.shape[self.axis]
             ind = list(self.indices_or_sections)
             ind.append(cdimx)
-            prev_i = 0
-            for i in ind:
-                cdimy = max(0, min(i, cdimx) - prev_i)
-                if cdimy == 0:
-                    raise ValueError('Not support if shape contains 0')
-                prev_i = i
-        xp = cuda.get_array_module(*x)
-        return tuple(xp.split(x[0], self.indices_or_sections, self.axis))
+        self._xp = cuda.get_array_module(x)
+        ret = tuple(self._xp.split(x, self.indices_or_sections, self.axis))
+        self._shapes = [r.shape for r in ret]
+        return ret
 
-    def backward(self, x, gys):
-        xp = cuda.get_array_module(*x)
-        if any(gy is None for gy in gys):
-            gx = xp.zeros_like(x[0])
-            gxs = xp.split(gx, self.indices_or_sections, self.axis)
-            for gxi, gy in six.moves.zip(gxs, gys):
-                if gy is None:
-                    continue
-                gxi[:] = gy
-            return gx,
-        else:
-            return xp.concatenate(gys, axis=self.axis),
+    def backward(self, indexes, grad_outputs):
+        dtype = self.inputs[0].dtype
+        grads = [
+            self._xp.zeros(shape, dtype=dtype) if gy is None else gy
+            for gy, shape in six.moves.zip(grad_outputs, self._shapes)]
+        return chainer.functions.concat(grads, self.axis),
 
 
-def split_axis(x, indices_or_sections, axis, force_tuple=False):
+def split_axis(x, indices_or_sections, axis, force_tuple=True):
     """Splits given variables along an axis.
 
     Args:
@@ -72,8 +69,10 @@ def split_axis(x, indices_or_sections, axis, force_tuple=False):
             If it is a 1-D array of sorted integers, it
             indicates the positions where the array is split.
         axis (int): Axis that the input array is split along.
-        force_tuple (bool): If ``True``, this method returns a tuple even when
-            the number of outputs is one.
+        force_tuple (bool): If ``True`` (the default) this method returns a
+            tuple even when the number of outputs is one. Otherwise, if
+            ``False`` a Variable will be returned when the number of outputs
+            is one.
 
     Returns:
         tuple or Variable: Tuple of :class:`~chainer.Variable` objects
@@ -88,7 +87,7 @@ def split_axis(x, indices_or_sections, axis, force_tuple=False):
         (i.e. ``axis``-th value of its shape is zero).
 
     """
-    res = SplitAxis(indices_or_sections, axis)(x)
-    if force_tuple and isinstance(res, chainer.Variable):
-        res = (res,)
-    return res
+    res = SplitAxis(indices_or_sections, axis).apply((x,))
+    if force_tuple or len(res) != 1:
+        return res
+    return res[0]

@@ -16,6 +16,8 @@ from chainer.testing import attr
         {'shape': (3, 4), 'axis': 1, 'y_shape': (3, 2, 4)},
         {'shape': (3, 4), 'axis': 2, 'y_shape': (3, 4, 2)},
         {'shape': (3, 4), 'axis': -1, 'y_shape': (3, 4, 2)},
+        {'shape': (3, 4), 'axis': -2, 'y_shape': (3, 2, 4)},
+        {'shape': (3, 4), 'axis': -3, 'y_shape': (2, 3, 4)},
         {'shape': (), 'axis': 0, 'y_shape': (2,)},
         {'shape': (), 'axis': -1, 'y_shape': (2,)},
     ],
@@ -62,7 +64,7 @@ class TestStack(unittest.TestCase):
             return functions.stack(xs, self.axis)
 
         gradient_check.check_backward(
-            func, xs_data, g_data, eps=2.0 ** -2, atol=1e-3, rtol=1e-3)
+            func, xs_data, g_data, eps=2.0 ** -2, dtype='d')
 
     def test_backward_cpu(self):
         self.check_backward(self.xs, self.g)

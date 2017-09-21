@@ -15,6 +15,9 @@ class Classifier(link.Chain):
         predictor (~chainer.Link): Predictor network.
         lossfun (function): Loss function.
         accfun (function): Function that computes accuracy.
+        label_key (int or str): Key to specify label variable from arguments.
+            When it is ``int``, a variable in positional arguments is used.
+            And when it is ``str``, a variable in keyword arguments is used.
 
     Attributes:
         predictor (~chainer.Link): Predictor network.
@@ -26,30 +29,61 @@ class Classifier(link.Chain):
         compute_accuracy (bool): If ``True``, compute accuracy on the forward
             computation. The default value is ``True``.
 
+    .. note::
+        This link uses :func:`chainer.softmax_cross_entropy` with
+        default arguments as a loss function (specified by ``lossfun``),
+        if users do not explicitly change it. In particular, the loss function
+        does not support double backpropagation.
+        If you need second or higher order differentiation, you need to turn
+        it on with ``enable_double_backprop=True``:
+
+          >>> import chainer.functions as F
+          >>> import chainer.links as L
+          >>>
+          >>> def lossfun(x, t):
+          >>>    return F.softmax_cross_entropy(
+          >>>        x, t, enable_double_backprop=True)
+          >>>
+          >>> predictor = L.Linear(10)
+          >>> model = L.Classifier(predictor, lossfun=lossfun)
+
     """
 
     compute_accuracy = True
 
     def __init__(self, predictor,
                  lossfun=softmax_cross_entropy.softmax_cross_entropy,
-                 accfun=accuracy.accuracy):
-        super(Classifier, self).__init__(predictor=predictor)
+                 accfun=accuracy.accuracy,
+                 label_key=-1):
+        if not (isinstance(label_key, (int, str))):
+            raise TypeError('label_key must be int or str, but is %s' %
+                            type(label_key))
+
+        super(Classifier, self).__init__()
         self.lossfun = lossfun
         self.accfun = accfun
         self.y = None
         self.loss = None
         self.accuracy = None
+        self.label_key = label_key
 
-    def __call__(self, *args):
+        with self.init_scope():
+            self.predictor = predictor
+
+    def __call__(self, *args, **kwargs):
         """Computes the loss value for an input and label pair.
 
         It also computes accuracy and stores it to the attribute.
 
         Args:
             args (list of ~chainer.Variable): Input minibatch.
+            kwargs (dict of ~chainer.Variable): Input minibatch.
 
-        The all elements of ``args`` but last one are features and
-        the last element corresponds to ground truth labels.
+        When ``label_key`` is ``int``, the correpoding element in ``args``
+        is treated as ground truth labels. And when it is ``str``, the
+        element in ``kwargs`` is used.
+        The all elements of ``args`` and ``kwargs`` except the ground trush
+        labels are features.
         It feeds features to the predictor and compare the result
         with ground truth labels.
 
@@ -58,13 +92,26 @@ class Classifier(link.Chain):
 
         """
 
-        assert len(args) >= 2
-        x = args[:-1]
-        t = args[-1]
+        if isinstance(self.label_key, int):
+            if not (-len(args) <= self.label_key < len(args)):
+                msg = 'Label key %d is out of bounds' % self.label_key
+                raise ValueError(msg)
+            t = args[self.label_key]
+            if self.label_key == -1:
+                args = args[:-1]
+            else:
+                args = args[:self.label_key] + args[self.label_key + 1:]
+        elif isinstance(self.label_key, str):
+            if self.label_key not in kwargs:
+                msg = 'Label key "%s" is not found' % self.label_key
+                raise ValueError(msg)
+            t = kwargs[self.label_key]
+            del kwargs[self.label_key]
+
         self.y = None
         self.loss = None
         self.accuracy = None
-        self.y = self.predictor(*x)
+        self.y = self.predictor(*args, **kwargs)
         self.loss = self.lossfun(self.y, t)
         reporter.report({'loss': self.loss}, self)
         if self.compute_accuracy:

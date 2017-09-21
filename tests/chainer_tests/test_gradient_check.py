@@ -54,7 +54,6 @@ class NumericalGradientTest(unittest.TestCase):
             return f(xs)
         dx_actual = gradient_check.numerical_grad(func, xs, gys, eps)
 
-        print('eps: {}'.format(eps))
         self.assertEqual(len(dx_expect), len(dx_actual))
         for e, a in zip(dx_expect, dx_actual):
             testing.assert_allclose(e, a, atol=1e-3, rtol=1e-3)
@@ -324,7 +323,7 @@ class Ident(chainer.Function):
         return grads
 
 
-# numpy.float16 is not tested because it is low precision.
+# numpy.float16 is not tested because of the low precision.
 @testing.parameterize(*testing.product({
     'dtype': [None, numpy.float32, numpy.float64],
 }))
@@ -363,9 +362,58 @@ class TestCheckBackward(unittest.TestCase):
             s = Ident()(x)
             return s,
 
-        self.assertRaises(TypeError, gradient_check.check_backward,
+        self.assertRaises(RuntimeError, gradient_check.check_backward,
                           f, (x1, x2), g1, no_grads=[False, False])
         gradient_check.check_backward(f, (x1, x2), g1, no_grads=[False, True])
+
+
+class NewIdent(chainer.FunctionNode):
+
+    def forward(self, inputs):
+        return inputs
+
+    def backward(self, indexes, grad_outputs):
+        return NewIdent().apply(grad_outputs)
+
+
+class TestCheckDoubleBackward(unittest.TestCase):
+
+    def check_multiple_input_output(self, xp):
+        arrays = xp.ones((6, 1), dtype='f')
+        x1, x2, gy1, gy2, ggx1, ggx2 = arrays
+
+        def f(x, y):
+            w1 = x + y
+            w2 = w1 + y
+            return w1 * w1, w2 * w2
+
+        gradient_check.check_double_backward(f, (x1, x2), (gy1, gy2),
+                                             (ggx1, ggx2))
+
+    def test_multiple_input_output_cpu(self):
+        self.check_multiple_input_output(numpy)
+
+    @attr.gpu
+    def test_multiple_input_output_gpu(self):
+        self.check_multiple_input_output(cuda.cupy)
+
+    def check_double_backward_with_params(self, xp):
+        arrays = xp.ones((5, 1), dtype='f')
+        x, gy, ggx, param_a, ggparam = arrays
+
+        param = chainer.Variable(param_a)
+
+        def f(x):
+            return x * param
+
+        gradient_check.check_double_backward(f, x, gy, ggx, param, ggparam)
+
+    def test_double_backward_with_params_cpu(self):
+        self.check_double_backward_with_params(numpy)
+
+    @attr.gpu
+    def test_double_backward_with_params_gpu(self):
+        self.check_double_backward_with_params(cuda.cupy)
 
 
 testing.run_module(__name__, __file__)

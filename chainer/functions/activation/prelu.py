@@ -23,7 +23,7 @@ class PReLUFunction(function.Function):
             x_type.dtype.kind == 'f',
             W_type.dtype == x_type.dtype,
             x_type.ndim >= W_type.ndim + 1,
-            x_type.shape[1:1 + W_type.ndim.eval()] == W_type.shape
+            x_type.shape[1:1 + type_check.eval(W_type.ndim)] == W_type.shape
         )
 
     def forward_cpu(self, inputs):

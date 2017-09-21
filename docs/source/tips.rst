@@ -17,7 +17,7 @@ The compiled binaries are cached to the ``$(HOME)/.cupy/kernel_cache`` directory
 If you see that compilations run every time you run the same script, then the caching is failed.
 Please check that the directory is kept as is between multiple executions of the script.
 If your home directory is not suited to caching the kernels (e.g. in case that it uses NFS), change the kernel caching directory by setting the ``CUPY_CACHE_DIR`` environment variable to an appropriate path.
-See :ref:`cupy-overview` for more details.
+See `CuPy Overview <https://docs-cupy.chainer.org/en/stable/overview.html>` for more details.
 
 
 mnist example does not converge in CPU mode on Mac OS X
@@ -34,7 +34,7 @@ We are suspecting it is caused by vecLib, that is a default BLAS library install
 We recommend to use other BLAS libraries such as `OpenBLAS <http://www.openblas.net/>`_.
 We empirically found that it fixes this problem.
 It is necessary to reinstall NumPy to use replaced BLAS library.
-Here is an instruction to install NumPy with OpneBLAS using `Homebrew <http://brew.sh/>`_.
+Here is an instruction to install NumPy with OpenBLAS using `Homebrew <http://brew.sh/>`_.
 
 ::
 
@@ -74,4 +74,4 @@ Check if `blas_opt_info` refers to `openblas`.
    blas_mkl_info:
        NOT AVAILABLE
 
-See detail about this problem in `issue #704 <https://github.com/pfnet/chainer/issues/704>`_.
+See detail about this problem in `issue #704 <https://github.com/chainer/chainer/issues/704>`_.

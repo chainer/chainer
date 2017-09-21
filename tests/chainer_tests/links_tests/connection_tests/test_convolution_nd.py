@@ -7,7 +7,7 @@ import chainer
 from chainer import cuda
 from chainer import gradient_check
 from chainer import initializers
-from chainer.links import convolution_nd
+from chainer.links.connection import convolution_nd
 from chainer import testing
 from chainer.testing import attr
 from chainer.testing import condition
@@ -15,10 +15,13 @@ from chainer.utils import conv
 from chainer.utils import conv_nd
 
 
-@testing.parameterize(*testing.product({
-    'dims': [(5,), (5, 4), (4, 3, 3)],
+@testing.parameterize(*(testing.product({
+    'dims': [(3, 4), (3, 4, 3)],
+    'dtype': [numpy.float32]
+}) + testing.product({
+    'dims': [(5,)],
     'dtype': [numpy.float16, numpy.float32, numpy.float64]
-}))
+})))
 class TestConvolutionND(unittest.TestCase):
 
     def setUp(self):
@@ -80,8 +83,8 @@ class TestConvolutionND(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_forward_consistency_im2col(self):
-        self.link.use_cudnn = False
-        self.check_forward_consistency()
+        with chainer.using_config('use_cudnn', 'never'):
+            self.check_forward_consistency()
 
     def check_backward(self, x_data, y_grad):
         gradient_check.check_backward(
@@ -101,9 +104,9 @@ class TestConvolutionND(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_backward_gpu_im2col(self):
-        self.link.use_cudnn = False
         self.link.to_gpu()
-        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
+        with chainer.using_config('use_cudnn', 'never'):
+            self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
     def check_pickling(self, x_data):
         x = chainer.Variable(x_data)
@@ -137,7 +140,7 @@ class TestConvolutionNDNoInitialBias(unittest.TestCase):
         ndim = 3
         ksize = 3
         link = convolution_nd.ConvolutionND(
-            ndim, 3, 2, ksize, initial_bias=None)
+            ndim, 3, 2, ksize, nobias=True)
         self.assertIsNone(link.b)
 
 

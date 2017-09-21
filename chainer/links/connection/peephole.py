@@ -1,3 +1,4 @@
+from chainer import cuda
 from chainer.functions.activation import sigmoid
 from chainer.functions.activation import tanh
 from chainer.functions.array import reshape
@@ -51,15 +52,16 @@ class StatefulPeepholeLSTM(link.Chain):
     """
 
     def __init__(self, in_size, out_size):
-        super(StatefulPeepholeLSTM, self).__init__(
-            upward=linear.Linear(in_size, 4 * out_size),
-            lateral=linear.Linear(out_size, 4 * out_size, nobias=True),
-            peep_i=linear.Linear(out_size, out_size, nobias=True),
-            peep_f=linear.Linear(out_size, out_size, nobias=True),
-            peep_o=linear.Linear(out_size, out_size, nobias=True),
-        )
+        super(StatefulPeepholeLSTM, self).__init__()
         self.state_size = out_size
         self.reset_state()
+
+        with self.init_scope():
+            self.upward = linear.Linear(in_size, 4 * out_size)
+            self.lateral = linear.Linear(out_size, 4 * out_size, nobias=True)
+            self.peep_i = linear.Linear(out_size, out_size, nobias=True)
+            self.peep_f = linear.Linear(out_size, out_size, nobias=True)
+            self.peep_o = linear.Linear(out_size, out_size, nobias=True)
 
     def to_cpu(self):
         super(StatefulPeepholeLSTM, self).to_cpu()
@@ -98,9 +100,9 @@ class StatefulPeepholeLSTM(link.Chain):
             lstm_in += self.lateral(self.h)
         if self.c is None:
             xp = self.xp
-            self.c = variable.Variable(
-                xp.zeros((x.shape[0], self.state_size), dtype=x.dtype),
-                volatile='auto')
+            with cuda.get_device_from_id(self._device_id):
+                self.c = variable.Variable(
+                    xp.zeros((x.shape[0], self.state_size), dtype=x.dtype))
         lstm_in = reshape.reshape(lstm_in, (len(lstm_in.data),
                                             lstm_in.shape[1] // 4,
                                             4))

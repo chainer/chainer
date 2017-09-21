@@ -10,12 +10,9 @@ Chainer provides some iterators that implement typical strategies to create mini
 :class:`MultiprocessIterator` is a parallelized version of :class:`SerialIterator`. It maintains worker subprocesses to load the next mini-batch in parallel.
 
 
-SerialIterator
---------------
-.. autoclass:: SerialIterator
-   :members:
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
 
-MultiprocessIterator
---------------------
-.. autoclass:: MultiprocessIterator
-   :members:
+   chainer.iterators.SerialIterator
+   chainer.iterators.MultiprocessIterator
