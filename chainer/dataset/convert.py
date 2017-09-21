@@ -249,7 +249,7 @@ class ConcatWithAsyncTransfer(object):
 
             # Wait for completion of the data transfer submitted above.
             # Global synchronizaton is used here for safer reason.
-            # If a callee function is correctly handling the synchronization,
+            # If a caller function is correctly handling the synchronization,
             # local synchronization (stream.synchronize()) may be enough.
             runtime.deviceSynchronize()
 
