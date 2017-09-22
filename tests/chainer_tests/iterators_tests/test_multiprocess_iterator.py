@@ -541,10 +541,7 @@ if __name__ == '__main__':
     def test_interrupt_infinite_wait_batch(self):
         # TODO(niboshi): See: https://github.com/chainer/chainer/issues/3383
         if os.name == 'nt':
-            if six.PY2:
-                import thread as _thread
-            else:
-                import _thread
+            from six.moves import _thread
             import win32api
 
             def handler(dwCtrlType, hook_sigint=_thread.interrupt_main):
@@ -564,10 +561,7 @@ if __name__ == '__main__':
     def test_interrupt_no_wait_batch(self):
         # TODO(niboshi): See: https://github.com/chainer/chainer/issues/3383
         if os.name == 'nt':
-            if six.PY2:
-                import thread as _thread
-            else:
-                import _thread
+            from six.moves import _thread
             import win32api
 
             def handler(dwCtrlType, hook_sigint=_thread.interrupt_main):
