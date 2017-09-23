@@ -407,7 +407,7 @@ class TestMultiprocessIteratorInvalidOrderSampler(unittest.TestCase):
         dataset = [1, 2, 3, 4, 5, 6]
 
         def _invalid_order_sampler(order, _):
-            numpy.arange(len(dataset) - 1)
+            return numpy.arange(len(dataset) - 1)
         with self.assertRaises(ValueError):
             iterators.MultiprocessIterator(
                 dataset, 2, shuffle=False,
