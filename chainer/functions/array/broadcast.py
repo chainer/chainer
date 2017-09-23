@@ -11,7 +11,7 @@ def _backward_one(g, shape):
         return g
     ndim = len(shape)
     lead = g.ndim - ndim
-    lead_axis = tuple(range(lead))
+    lead_axis = tuple(six.moves.range(lead))
     axis = [i + lead for i, sx in enumerate(shape) if sx == 1]
     g = chainer.functions.sum(g, lead_axis + tuple(axis), True)
     if lead > 0:
@@ -43,9 +43,9 @@ class Broadcast(function_node.FunctionNode):
         return tuple(self._xp.broadcast_arrays(*inputs))
 
     def backward(self, indexes, grad_outputs):
-        return tuple([
-            _backward_one(grad_outputs[i], self.inputs[i].shape)
-            for i in indexes])
+        return tuple([None if grad_outputs[i] is None else
+                      _backward_one(grad_outputs[i], self.inputs[i].shape)
+                      for i in indexes])
 
 
 def broadcast(*args):

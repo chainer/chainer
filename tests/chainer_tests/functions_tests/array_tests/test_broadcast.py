@@ -39,8 +39,11 @@ class TestBroadcast(unittest.TestCase):
                      for shape in self.in_shapes]
         self.grads = [uniform(0, 1, self.out_shape).astype(self.dtype)
                       for _ in range(len(self.in_shapes))]
+        self.gg = [uniform(0, 1, shape).astype(self.dtype)
+                   for shape in self.in_shapes]
 
         self.check_backward_options = {}
+        self.check_double_backward_options = {}
         if self.dtype == numpy.float16:
             self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
 
@@ -69,15 +72,31 @@ class TestBroadcast(unittest.TestCase):
         gradient_check.check_backward(
             f, data, grads, dtype=numpy.float64, **self.check_backward_options)
 
-    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.data, self.grads)
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu(self):
         self.check_backward([cuda.to_gpu(x) for x in self.data],
                             [cuda.to_gpu(x) for x in self.grads])
+
+    def check_double_backward(self, data, grads, gg):
+        def f(*xs):
+            ys = functions.broadcast(*xs)
+            return [y * y for y in ys]
+
+        gradient_check.check_double_backward(
+            f, data, grads, gg, dtype=numpy.float64,
+            **self.check_double_backward_options)
+
+    def test_double_backward_cpu(self):
+        self.check_double_backward(self.data, self.grads, self.gg)
+
+    @attr.gpu
+    def test_double_backward_gpu(self):
+        self.check_double_backward([cuda.to_gpu(x) for x in self.data],
+                                   [cuda.to_gpu(x) for x in self.grads],
+                                   [cuda.to_gpu(x) for x in self.gg])
 
 
 class TestBroadcastTypeError(unittest.TestCase):
