@@ -800,7 +800,7 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads):
             grads[node] = g
 
             if retain_grad:
-                v = node.get_variable()
+                v = node.get_raw_variable()
                 if v is not None:
                     v.grad_var = g
 
