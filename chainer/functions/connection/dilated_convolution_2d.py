@@ -63,4 +63,4 @@ def dilated_convolution_2d(x, W, b=None, stride=1, pad=0, dilate=1,
 
     """
     return convolution_2d.convolution_2d(x, W, b,
-                                         stride, pad, cover_all, dilate)
+                                         stride, pad, cover_all, dilate=dilate)
