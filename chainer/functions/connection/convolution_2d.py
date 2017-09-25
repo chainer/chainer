@@ -208,6 +208,13 @@ class Convolution2DGradW(function_node.FunctionNode):
         col = conv.im2col_cpu(
             x, self.kh, self.kw, self.sy, self.sx, self.ph, self.pw,
             cover_all=self.cover_all)
+
+        # NumPy raises an error when the array is not contiguous.
+        # See: https://github.com/chainer/chainer/issues/2744
+        # TODO(niboshi): Remove this code when NumPy is fixed.
+        if not (gy.flags.c_contiguous or gy.flags.f_contiguous):
+            gy = numpy.ascontiguousarray(gy)
+
         gW = numpy.tensordot(
             gy, col, ((0, 2, 3), (0, 4, 5))).astype(self.W_dtype, copy=False)
         return gW,
