@@ -309,8 +309,8 @@ class VariableNode(object):
         var._node = self
         return var
 
-    def get_raw_variable(self):
-        """Returns the holding :class:`Variable` object
+    def get_variable_or_none(self):
+        """Returns the holding :class:`Variable` object or ``None``.
 
         VariableNode object holds a weak reference of the variable object.If
         the reference is alive, it is returned by this property. Otherwise,
@@ -985,7 +985,7 @@ Actual: {0}'''.format(type(data))
                 for y in outputs:
                     if y is not None and y is not self.node:
                         grads[y] = None
-                        y_var = y.get_raw_variable()
+                        y_var = y.get_variable_or_none()
                         if y_var is not None:
                             y_var._grad_var = None
 
@@ -1007,7 +1007,7 @@ Actual: {0}'''.format(type(data))
                 else:
                     grads[x] = gx
 
-                x_var = x.get_raw_variable()
+                x_var = x.get_variable_or_none()
                 if x_var is not None:
                     x_var._grad_var = grads[x]
 
