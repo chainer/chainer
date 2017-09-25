@@ -76,10 +76,10 @@ def split_axis(x, indices_or_sections, axis, force_tuple=True):
 
     Returns:
         tuple or Variable: Tuple of :class:`~chainer.Variable` objects
-             if the number of outputs is more than 1 or
-             :class:`~chainer.Variable` otherwise.
-             When ``force_tuple`` is ``True``, returned value is always a tuple
-             regardless of the number of outputs.
+        if the number of outputs is more than 1 or
+        :class:`~chainer.Variable` otherwise.
+        When ``force_tuple`` is ``True``, returned value is always a tuple
+        regardless of the number of outputs.
 
     .. note::
         This function raises :class:`ValueError` if at least
