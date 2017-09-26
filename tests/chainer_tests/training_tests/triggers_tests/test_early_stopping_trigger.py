@@ -13,6 +13,7 @@ class DummyUpdater(training.Updater):
 
     def __init__(self):
         self.iteration = 0
+        self.epoch = 0
 
     def finalize(self):
         pass
@@ -22,14 +23,18 @@ class DummyUpdater(training.Updater):
 
     def update(self):
         self.iteration += 1
+        self.epoch += 1
 
-    @property
     def epoch(self):
-        return 1
+        return self.epoch
 
     @property
     def is_new_epoch(self):
         return False
+
+    @property
+    def epoch_detail(self):
+        return self.epoch
 
 
 def _test_trigger(self, trigger, key, accuracies, expected):
@@ -71,6 +76,21 @@ class TestEarlyStoppingTrigger(unittest.TestCase):
             for acc in accuracies])
 
         expected = [False, False, False, False, False, False, False, True]
+        _test_trigger(self, trigger, key, accuracies, expected)
+
+    def test_early_stopping_trigger_with_max_epoch(self):
+        key = 'main/loss'
+        trigger = triggers.EarlyStoppingTrigger(monitor=key, patients=3,
+                                                trigger=(1, 'epoch'),
+                                                verbose=True, max_epoch=3)
+        trigger = util.get_trigger(trigger)
+
+        accuracies = [100, 80, 30, 10]
+        accuracies = numpy.asarray([
+            chainer.Variable(numpy.asarray(acc, dtype=numpy.float32))
+            for acc in accuracies])
+
+        expected = [False, False, True, True]
         _test_trigger(self, trigger, key, accuracies, expected)
 
 
