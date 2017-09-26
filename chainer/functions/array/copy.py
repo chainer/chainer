@@ -18,7 +18,7 @@ class Copy(function_node.FunctionNode):
     def forward(self, inputs):
         x, = inputs
         self._in_device = cuda.get_device_from_array(x).id
-        if self.out_device == -1:
+        if int(self.out_device) == -1:
             return cuda.to_cpu(x),
         else:
             return cuda.to_gpu(x, self.out_device),
