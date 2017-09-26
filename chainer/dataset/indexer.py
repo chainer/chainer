@@ -41,13 +41,12 @@ class BaseFeatureIndexer(BaseIndexer):
         """
         raise NotImplementedError
 
-    @property
     def dataset_length(self):
         return len(self.dataset)
 
     @property
     def shape(self):
-        return self.dataset_length, self.features_length()
+        return self.dataset_length(), self.features_length()
 
     def extract_feature_by_slice(self, slice_index, j):
         """Extracts `slice_index`-th data's `j`-th feature.
@@ -97,6 +96,9 @@ class BaseFeatureIndexer(BaseIndexer):
         else:
             # assuming int type
             feature_index_list = [feature_index]
+        # feature_index_list may contain negative value index, so convert them.
+        feature_index_list = [self.features_length() + i if i < 0 else i
+                              for i in feature_index_list]
         return feature_index_list
 
     def preprocess(self, item):
@@ -155,23 +157,31 @@ class BaseFeatureIndexer(BaseIndexer):
                 return self.extract_feature_by_slice(data_index, j)
             except ExtractBySliceNotSupportedError:
                 # Accessing by each index, copy occurs
-                current, stop, step = data_index.indices(self.dataset_length)
+                current, stop, step = data_index.indices(self.dataset_length())
                 res = [self.extract_feature(i, j) for i in
                        six.moves.range(current, stop, step)]
         elif isinstance(data_index, (list, numpy.ndarray)):
             if isinstance(data_index[0], (bool, numpy.bool, numpy.bool_)):
                 # Access by bool flag list
-                if len(data_index) != self.dataset_length:
+                if len(data_index) != self.dataset_length():
                     raise ValueError('Feature index wrong length {} instead of'
                                      ' {}'.format(len(data_index),
-                                                  self.dataset_length))
+                                                  self.dataset_length()))
                 data_index = numpy.argwhere(data_index).ravel()
 
+            # assuming data_index is list.
+            # it may contain negative value index, so convert them.
+            data_index = [self.dataset_length() + i if i < 0 else i
+                          for i in data_index]
             if len(data_index) == 1:
                 return self.extract_feature(data_index[0], j)
             else:
                 res = [self.extract_feature(i, j) for i in data_index]
         else:
+            # assuming data_index is int.
+            # it may contain negative value index, so convert them.
+            if data_index < 0:
+                data_index += self.dataset_length()
             return self.extract_feature(data_index, j)
         try:
             feature = numpy.asarray(res)

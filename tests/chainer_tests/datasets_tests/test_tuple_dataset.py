@@ -196,6 +196,15 @@ class TestTupleDataset(unittest.TestCase):
         self.assertTrue(x1[0] == f1)
         del f1
 
+        # Negative index accessing
+        f1 = td.features[:, -1]
+        self.assertTrue((x1 == f1).all())
+        del f1
+
+        f0 = td.features[:, -2]
+        self.assertTrue((x0 == f0).all())
+        del f0
+
         # slice
         f1 = td.features[:, -1:]
         self.assertTrue((x1[:] == f1).all())
@@ -205,6 +214,14 @@ class TestTupleDataset(unittest.TestCase):
         f0 = td.features[0:5, [0, ]]
         self.assertTrue((x0[0:5] == f0).all())
         del f0
+
+        f1 = td.features[::-1, [-1, ]]
+        self.assertTrue((x1[::-1] == f1).all())
+        del f1
+
+        f1 = td.features[-1, [-1, ]]
+        self.assertTrue(x1[-1] == f1)
+        del f1
 
         # boolean list
         f1 = td.features[0:5, [False, True]]
