@@ -13,6 +13,7 @@ from chainer import function_hook
 from chainer.utils import type_check
 from chainer import variable
 
+import time
 
 class FunctionNode(object):
 
@@ -214,6 +215,10 @@ class FunctionNode(object):
         for hook in hooks:
             hook.forward_preprocess(self, in_data)
 
+        ooc_enabled, _, _, streams, events, ooc_debug = getattr(
+            configuration.config, 'out_of_core_params',
+            [False, True, False, [None, None], [], False])
+
         # Forward propagation
         with cuda.get_device_from_array(*in_data):
             self._input_indexes_to_retain = None
@@ -223,6 +228,12 @@ class FunctionNode(object):
 
         for hook in hooks:
             hook.forward_postprocess(self, in_data)
+
+        if ooc_debug:
+            for y in outputs:
+                size = y.data.mem.size
+                ptr = y.data.mem.ptr
+                print('# function.py:261, {} ({})'.format(size, ptr))
 
         # NaN check of output values
         if chainer.is_debug():
@@ -256,6 +267,28 @@ class FunctionNode(object):
                     ret[index].retain_data()
                     retained_data.append(outputs[index])
                 self._retained_output_data = tuple(retained_data)
+
+            if ooc_enabled:
+                streams[0].wait_event(cuda.Stream.null.record())
+                for y in ret:
+                    if ooc_debug:
+                        print('# function.py:292, *_swapout, {} {}'
+                              .format(y.node, y.creator))
+                        stime = time.time()
+
+                    y.node.ancestors_swapout(stream=streams[0],
+                                             early_stop=True,
+                                             events=events, debug=ooc_debug)
+                    if ooc_debug:
+                        print('# function.py:301, len(events): {}'
+                              .format(len(events)))
+                        elapsed = time.time() - stime
+                        print('# function.py:305, elapsed: {}'
+                              .format(elapsed))
+
+                    if len(events) > 4:
+                        event = events.pop(0)
+                        event.synchronize()
 
         return ret
 
