@@ -193,6 +193,15 @@ class VariableNode(object):
         vdata = variable.data
         self._set_data_type(vdata)
 
+        # [OOC/LWR]
+        self._creator_node_g = None  # original creator node
+        self._break_point = None  # True if this node is a break point
+        # Store the gradient variable of break-point nodes that have
+        # no corresponding variable object.
+        # It is used to do backpropagation again from this node
+        self._grad_var = None
+        self._is_data_swapout = False
+
     @property
     def creator(self):
         """Function object that created this variable node.
@@ -263,6 +272,8 @@ class VariableNode(object):
         if isinstance(func, chainer.Function):
             func = func.node
         self._creator_node = func
+        # [OOC/LWR]
+        self._creator_node_g = func
         if func is not None:
             self._rank = func.rank + 1
 
@@ -372,6 +383,8 @@ class VariableNode(object):
 
         """
         self.creator_node = None
+        # [OOC/LWR]
+        self._creator_node_g = None
 
     def retain_data(self):
         """Lets the node hold a reference to the underlying data array.
@@ -1116,6 +1129,93 @@ Actual: {0}'''.format(type(data))
         self._node.resume_backward()
 
     def backward(self, retain_grad=False, enable_double_backprop=False):
+        """ Wrapper backward function for OOC/LWR
+        Original backward function is renamed as _backward
+
+        Originally from anaruse's repository
+        Source: https://github.ibm.com/IMAIHAL/chainer_v2_ooc/blob/OOC_chainer_v202/chainer/cuda.py
+        """
+        root_node = self.node
+
+        ooc_enabled, ooc_async, fine_granularity, streams, events, ooc_debug = getattr(
+            configuration.config, 'out_of_core_params',
+            [False, True, False, [None, None], [], False])
+
+        if ooc_enabled:
+            while events:
+                events.pop(0).synchronize()
+
+        events_swapin = []
+
+        # [OOC/LWR]
+        break_points = self.node.get_break_points(fine_granularity=True)
+        if ooc_debug:
+            print('# break_points: {}'.format(break_points))
+
+        bp = None
+        vnode_count = 0
+        _, _, bp_next = heapq.heappop(break_points)
+        while bp is not None or bp_next is not None:
+            if bp_next is not None:
+                if ooc_debug:
+                    print('# variable.py:510, prepare_, {} {}'
+                          .format(bp_next, bp_next._creator_node_g))
+                    """
+                    print('#    total_bytes: {}'.format(memory_pool.total_bytes()))
+                    print('#     free_bytes: {}'.format(memory_pool.free_bytes()))
+                    print('#     used_bytes: {}'.format(memory_pool.used_bytes()))
+                    root_node._show_memory_usage()
+                    """
+
+                if ooc_enabled:
+                    bp_next.ancestors_swapin(stream=streams[0], inclusive=True,
+                                             debug=ooc_debug)
+                    events_swapin.append(streams[0].record())
+
+            if ooc_async is False:
+                cuda.Stream.null.synchronize()
+                bp = bp_next
+
+            if bp is not None:
+                if ooc_debug:
+                    print('# variable.py:519, backward, {} {}'
+                          .format(bp, bp._creator_node_g))
+                    """
+                    print('#    total_bytes: {}'.format(memory_pool.total_bytes()))
+                    print('#     free_bytes: {}'.format(memory_pool.free_bytes()))
+                    print('#     used_bytes: {}'.format(memory_pool.used_bytes()))
+                    root_node._show_memory_usage()
+                    """
+
+                if ooc_enabled:
+                    # events_swapin.pop(0).synchronize()
+                    cuda.Stream.null.wait_event(events_swapin.pop(0))
+
+                bp.resume_backward()
+                bp_var = bp.get_variable()
+                if bp_var._grad_var is None:
+                    bp_var._grad_var = bp._grad_var
+                bp_var._backward(retain_grad, enable_double_backprop, root_node)
+
+                if ooc_enabled and len(break_points) > 0:
+                    cuda.Stream.null.synchronize()
+                    # streams[1].wait_event(cuda.Stream.null.record())
+                    bp.ancestors_swapout(stream=streams[1], inclusive=True,
+                                         debug=ooc_debug)
+
+            if ooc_async is False:
+                cuda.Stream.null.synchronize()
+
+            bp = bp_next
+            bp_next = None
+            if break_points:
+                _, _, bp_next = heapq.heappop(break_points)
+
+        if ooc_enabled:
+            streams[0].synchronize()
+            streams[1].synchronize()
+
+    def _backward(self, retain_grad, enable_double_backprop, root_node):
         """Runs error backpropagation (a.k.a.\\  backprop) from this variable.
 
         On backprop, :meth:`FunctionNode.backward` is called on each
@@ -1155,9 +1255,9 @@ Actual: {0}'''.format(type(data))
 
         """
         with chainer.using_config('enable_backprop', enable_double_backprop):
-            self._backward_main(retain_grad)
+            self._backward_main(retain_grad, root_node)
 
-    def _backward_main(self, retain_grad):
+    def _backward_main(self, retain_grad, root_node):
         self._node._check_old_style_gradient()
         if self.creator_node is None:
             return
@@ -1276,7 +1376,7 @@ Actual: {0}'''.format(type(data))
 
             if not retain_grad:
                 for y in outputs:
-                    if y is not None and y is not self.node:
+                    if y is not None and y is not root_node:
                         grads[y] = None
                         y_var = y.get_variable()
                         if y_var is not None:
@@ -1302,6 +1402,9 @@ Actual: {0}'''.format(type(data))
 
                 x_var = x.get_variable()
                 if x_var is not None:
+                    if x._break_point:
+                        # [OOC/LWR] to reconstruct its variable
+                        x._grad_var = grads[x]
                     x_var._grad_var = grads[x]
 
                 if x.creator_node is not None:
