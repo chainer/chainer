@@ -21,15 +21,17 @@ class EarlyStoppingTrigger(object):
         patients (int) : the value to patient
         mode (str) : max, min, or auto. using them to determine the _compare
         verbose (bool) : flag for debug mode
+        max_epoch (int) : upper bound of the number of training loops
     """
 
     def __init__(self, trigger=(1, 'epoch'), monitor='main/loss',
-                 patients=3, mode='auto', verbose=False):
+                 patients=3, mode='auto', verbose=False, max_epoch=100):
 
         self.count = 0
         self.patients = patients
         self.monitor = monitor
         self.verbose = verbose
+        self.max_epoch = max_epoch
         self._interval_trigger = util.get_trigger(trigger)
 
         if mode == 'max':
@@ -46,11 +48,13 @@ class EarlyStoppingTrigger(object):
                 self._compare = less
 
         if self._compare == greater:
-            print('operator is greater')
+            if verbose:
+                print('early stopping: operator is greater')
             self.best = -1 * (1 << 50)
 
         else:
-            print('operator is less')
+            if verbose:
+                print('early stopping: operator is less')
             self.best = 1 << 50
 
     def __call__(self, trainer):
@@ -66,6 +70,10 @@ class EarlyStoppingTrigger(object):
         """
 
         observation = trainer.observation
+
+        if trainer.updater.epoch >= self.max_epoch:
+            return True
+
         if self.monitor not in observation.keys():
             return False
 

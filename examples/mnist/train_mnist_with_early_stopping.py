@@ -79,7 +79,7 @@ def main():
     test_iter = chainer.iterators.SerialIterator(test, args.batchsize,
                                                  repeat=False, shuffle=False)
 
-    early_stopping_trigger = EarlyStoppingTrigger(verbose=False)
+    early_stopping_trigger = EarlyStoppingTrigger(verbose=False, max_epoch=100)
 
     # Set up a trainer
     updater = training.StandardUpdater(train_iter, optimizer, device=args.gpu)
