@@ -23,7 +23,8 @@ def is_cpu(device):
     elif isinstance(device, cuda.Device):
         return False
     else:
-        raise TypeError('Invalid device specifier type: {}'.format(type(device)))
+        raise TypeError(
+            'Invalid device specifier type: {}'.format(type(device)))
 
 
 def is_cuda(device):
