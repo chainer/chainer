@@ -198,6 +198,8 @@ class BaseNStepRNN(function.Function):
         self.states = states
         self.use_cell = _rnn_params_use_cell[self.rnn_mode]
         self.n_W = _rnn_n_params[self.rnn_mode]
+        self.plan = None
+        self.prev_batchsize = -1
 
     @property
     def _n_cell(self):
@@ -337,8 +339,11 @@ class BaseNStepRNN(function.Function):
 
         if self.rnn_algo == libcudnn.CUDNN_RNN_ALGO_PERSIST_DYNAMIC:
             batchsize = len(x_list[0])
-            cudnn.create_rnn_persistent_rnn_plan(
-                rnn_desc, libcudnn.CUDNN_DATA_FLOAT, batchsize)
+            if self.prev_batchsize != batchsize or self.plan is None:
+                self.plan = cudnn.create_rnn_persistent_rnn_plan(
+                    rnn_desc, batchsize, libcudnn.CUDNN_DATA_FLOAT)
+                self.prev_batchsize = batchsize
+            cudnn.set_rnn_persistent_rnn_plan(rnn_desc, self.plan)
 
         self.rnn_desc = rnn_desc
 
