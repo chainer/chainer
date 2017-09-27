@@ -490,7 +490,8 @@ def _zero_if_none(xp, x, shape, dtype):
 
 
 def _get_dtype_of_tensor_descriptor(desc):
-    cudnn_dtype, *_ = libcudnn.getTensor4dDescriptor(desc.value)
+    cudnn_dtype, _, _, _, _, _, _, _, _ = libcudnn.getTensor4dDescriptor(
+        desc.value)
     dtype = None
     if cudnn_dtype == libcudnn.CUDNN_DATA_DOUBLE:
         dtype = numpy.dtype(numpy.float64)
