@@ -70,7 +70,7 @@ class SoftmaxCrossEntropy(function.Function):
 
         type_check.expect(
             x_type.dtype.kind == 'f',
-            t_type.dtype == numpy.int32,
+            t_type.dtype.kind == 'i',
             t_type.ndim == x_type.ndim - 1,
 
             x_type.shape[0] == t_type.shape[0],
@@ -306,7 +306,7 @@ def softmax_cross_entropy(
             dimensions is greater than 2.
         t (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`):
-            Variable holding an :class:`numpy.int32` vector of ground truth
+            Variable holding an signed integer vector of ground truth
             labels. If ``t[i] == ignore_label``, corresponding ``x[i]`` is
             ignored.
         normalize (bool): If ``True``, this function normalizes the cross

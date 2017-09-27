@@ -8,7 +8,6 @@ from chainer import cuda
 from chainer import functions as F
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
 
 
 def recall(preds, ts, dtype, label_num, ignore_label):
@@ -55,7 +54,7 @@ def support(ts, dtype, label_num, ignore_label):
 # has_ignore_label \ ignore_label | -1             | 0              |
 #       yes                       | 0,1,-1,2,-1... | 0,1,2,2,0,1... |
 #       no                        | 0,1,2,2,0,1... | 1,2,1,1,2,1... |
-def make_ground_truth(label_num, shape, ignore_label, has_ignore_label):
+def make_ground_truth(label_num, shape, ignore_label, has_ignore_label, dtype):
     if (ignore_label == -1) != (has_ignore_label):  # xor
         lower = 0
     elif ignore_label == 0 and not has_ignore_label:
@@ -64,16 +63,14 @@ def make_ground_truth(label_num, shape, ignore_label, has_ignore_label):
         lower = -1
 
     t = numpy.random.randint(lower, label_num, shape)
-    return t.astype(numpy.int32)
+    return t.astype(dtype)
 
 
-@testing.parameterize(
-    *testing.product_dict(
+@testing.parameterize(*(
+    testing.product_dict(
         [{'y_shape': (100, 3), 't_shape': (100,)},
          {'y_shape': (100, 3, 5), 't_shape': (100, 5)}],
-        [{'dtype': numpy.float16},
-         {'dtype': numpy.float32},
-         {'dtype': numpy.float64}],
+        [{'dtype': numpy.float32}],
         [{'beta': 1.0},
          {'beta': 2.0}],
         [{'label_num': 3},
@@ -81,16 +78,29 @@ def make_ground_truth(label_num, shape, ignore_label, has_ignore_label):
         [{'ignore_label': -1},
          {'ignore_label': 0}],
         [{'has_ignore_label': True},
-         {'has_ignore_label': False}]
+         {'has_ignore_label': False}],
+        [{'label_dtype': numpy.int32}]
+    ) + testing.product_dict(
+        [{'y_shape': (100, 3), 't_shape': (100,)}],
+        [{'dtype': numpy.float16},
+         {'dtype': numpy.float32},
+         {'dtype': numpy.float64}],
+        [{'beta': 1.0}],
+        [{'label_num': 3}],
+        [{'ignore_label': 0}],
+        [{'has_ignore_label': True}],
+        [{'label_dtype': numpy.int},
+         {'label_dtype': numpy.int32}]
     )
-)
+))
 class TestClassificationSummary(unittest.TestCase):
 
     def setUp(self):
         t_upper = 3 if self.label_num is None else self.label_num
         self.y = numpy.random.uniform(-1, 1, self.y_shape).astype(self.dtype)
         self.t = make_ground_truth(t_upper, self.t_shape,
-                                   self.ignore_label, self.has_ignore_label)
+                                   self.ignore_label, self.has_ignore_label,
+                                   self.label_dtype)
         self.check_forward_options = {}
         if self.dtype == numpy.float16:
             self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
@@ -121,11 +131,9 @@ class TestClassificationSummary(unittest.TestCase):
         chainer.testing.assert_allclose(s_actual.data, s_expect,
                                         **self.check_forward_options)
 
-    @condition.retry(3)
     def test_forward_cpu(self):
         self.check_forward(numpy)
 
-    @condition.retry(3)
     @attr.gpu
     def test_forward_gpu(self):
         self.check_forward(cuda.cupy)

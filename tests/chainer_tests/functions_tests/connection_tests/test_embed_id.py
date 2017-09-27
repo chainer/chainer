@@ -11,16 +11,18 @@ from chainer.testing import attr
 from chainer.testing import condition
 
 
-@testing.parameterize(
-    {'x_data': [0, 1, 0], 'ignore_label': None},
-    {'x_data': [[0, 1, 0], [1, 0, 1]], 'ignore_label': None},
-    {'x_data': [0, 1, -1], 'ignore_label': -1},
-    {'x_data': [[0, 1, -1], [-1, 0, 1]], 'ignore_label': -1},
-)
+@testing.parameterize(*testing.product_dict(
+    [{'x_data': [0, 1, 0], 'ignore_label': None},
+     {'x_data': [[0, 1, 0], [1, 0, 1]], 'ignore_label': None},
+     {'x_data': [0, 1, -1], 'ignore_label': -1},
+     {'x_data': [[0, 1, -1], [-1, 0, 1]], 'ignore_label': -1}],
+    [{'label_dtype': numpy.int},
+     {'label_dtype': numpy.int32}]
+))
 class TestEmbedID(unittest.TestCase):
 
     def setUp(self):
-        self.x = numpy.array(self.x_data, dtype=numpy.int32)
+        self.x = numpy.array(self.x_data, dtype=self.label_dtype)
         self.W = numpy.random.uniform(-1, 1, (3, 2)).astype('f')
         y_shape = self.x.shape + (2,)
         self.gy = numpy.random.uniform(-1, 1, y_shape).astype(numpy.float32)

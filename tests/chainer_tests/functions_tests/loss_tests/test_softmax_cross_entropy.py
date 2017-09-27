@@ -21,6 +21,7 @@ from chainer.testing import condition
     'dtype': [numpy.float32],
     'weight_apply': [False, True],
     'enable_double_backprop': [False, True],
+    'label_dtype': [numpy.int32],
 }) + testing.product({
     'shape': [None, (2, 3), (2, 3, 2), (2, 3, 2, 2)],
     'cache_score': [False],
@@ -29,6 +30,7 @@ from chainer.testing import condition
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'weight_apply': [False, True],
     'enable_double_backprop': [False, True],
+    'label_dtype': [numpy.int],
 }) + testing.product({
     'shape': [(0, 3), (0, 3, 2), (0, 3, 2, 2)],
     'cache_score': [True, False],
@@ -37,6 +39,7 @@ from chainer.testing import condition
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'weight_apply': [False, True],
     'enable_double_backprop': [False],
+    'label_dtype': [numpy.int32],
 })))
 class TestSoftmaxCrossEntropy(unittest.TestCase):
 
@@ -46,12 +49,12 @@ class TestSoftmaxCrossEntropy(unittest.TestCase):
                 self.x = numpy.array([[-5, 1]], dtype=self.dtype)
             else:
                 self.x = numpy.array([[-1000, 1]], dtype=self.dtype)
-            self.t = numpy.array([0], dtype=numpy.int32)
+            self.t = numpy.array([0], dtype=self.label_dtype)
         else:
             self.x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
             out_shape = (self.shape[0],) + self.shape[2:]
             self.t = numpy.random.randint(
-                0, self.shape[1], out_shape).astype(numpy.int32)
+                0, self.shape[1], out_shape).astype(self.label_dtype)
             if (self.ignore_index is not None and
                     len(self.ignore_index) <= self.t.ndim):
                 self.t[self.ignore_index] = -1

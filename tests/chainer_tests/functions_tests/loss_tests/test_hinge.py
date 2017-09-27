@@ -12,19 +12,18 @@ from chainer.testing import attr
 from chainer.testing import condition
 
 
-@testing.parameterize(
-    *testing.product(
-        {'reduce': ['no', 'mean'],
-         'norm': ['L1', 'L2']}
-    )
-)
+@testing.parameterize(*testing.product({
+    'reduce': ['no', 'mean'],
+    'norm': ['L1', 'L2'],
+    'label_dtype': [numpy.int, numpy.int32],
+}))
 class TestHinge(unittest.TestCase):
 
     def setUp(self):
         self.x = numpy.random.uniform(-1, 1, (10, 5)).astype(numpy.float32)
         # Avoid values around -1.0 for stability
         self.x[numpy.logical_and(-1.01 < self.x, self.x < -0.99)] = 0.5
-        self.t = numpy.random.randint(0, 5, (10,)).astype(numpy.int32)
+        self.t = numpy.random.randint(0, 5, (10,)).astype(self.label_dtype)
         if self.reduce == 'no':
             self.gy = numpy.random.uniform(
                 -1, 1, self.x.shape).astype(numpy.float32)
