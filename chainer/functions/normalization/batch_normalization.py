@@ -79,11 +79,11 @@ class BatchNormalization(function_node.FunctionNode):
             if dtype_param is not dtype:
                 gamma = gamma.astype(dtype_param)
                 beta = beta.astype(dtype_param)
-                _running_mean = self.running_mean.astype(dtype_param)
-                _running_var = self.running_var.astype(dtype_param)
+                running_mean = self.running_mean.astype(dtype_param)
+                running_var = self.running_var.astype(dtype_param)
             else:
-                _running_mean = self.running_mean
-                _running_var = self.running_var
+                running_mean = self.running_mean
+                running_var = self.running_var
 
             oz_dtype = 'd' if x.dtype == 'd' else 'f'
             one = numpy.array(1, dtype=oz_dtype).ctypes
@@ -108,8 +108,8 @@ class BatchNormalization(function_node.FunctionNode):
                 handle, cudnn_mode, one.data, zero.data,
                 x_desc.value, x.data.ptr, x_desc.value,
                 y.data.ptr, derivedBnDesc.value, gamma.data.ptr,
-                beta.data.ptr, factor, _running_mean.data.ptr,
-                _running_var.data.ptr, self.eps,
+                beta.data.ptr, factor, running_mean.data.ptr,
+                running_var.data.ptr, self.eps,
                 self.mean.data.ptr, self.inv_std.data.ptr)
 
             if dtype_param is not dtype:
@@ -118,12 +118,12 @@ class BatchNormalization(function_node.FunctionNode):
                 # running_var updated by batchNormalizationForwardTraining
                 # must be explicitly written back to their original fp16
                 # arrays.
-                _running_mean = _running_mean.astype(dtype)
-                _running_var = _running_var.astype(dtype)
-                self.running_mean.data.copy_from(_running_mean.data,
-                                                 _running_mean.nbytes)
-                self.running_var.data.copy_from(_running_var.data,
-                                                _running_var.nbytes)
+                running_mean = running_mean.astype(dtype)
+                running_var = running_var.astype(dtype)
+                self.running_mean.data.copy_from(running_mean.data,
+                                                 running_mean.nbytes)
+                self.running_var.data.copy_from(running_var.data,
+                                                running_var.nbytes)
         else:
             gamma = gamma[expander]
             beta = beta[expander]
