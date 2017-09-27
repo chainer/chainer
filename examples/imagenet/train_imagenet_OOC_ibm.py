@@ -22,7 +22,6 @@ import alex
 import googlenet
 import googlenetbn
 import nin
-import resnet
 import resnet50
 
 
@@ -75,9 +74,7 @@ def main():
         'googlenetbn': googlenetbn.GoogLeNetBN,
         'googlenetbn_fp16': googlenetbn.GoogLeNetBNFp16,
         'nin': nin.NIN,
-        'resnet50': resnet50.ResNet50,
-        'resnet_50': resnet.ResNet50,
-        'resnet_152': resnet.ResNet152
+        'resnet50': resnet50.ResNet50
     }
 
     parser = argparse.ArgumentParser(
