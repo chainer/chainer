@@ -212,7 +212,8 @@ class Convolution2DGradW(function_node.FunctionNode):
         # NumPy raises an error when the array is not contiguous.
         # See: https://github.com/chainer/chainer/issues/2744
         # TODO(niboshi): Remove this code when NumPy is fixed.
-        if not (gy.flags.c_contiguous or gy.flags.f_contiguous):
+        if (not (gy.flags.c_contiguous or gy.flags.f_contiguous) and
+                1 in gy.shape):
             gy = numpy.ascontiguousarray(gy)
 
         gW = numpy.tensordot(

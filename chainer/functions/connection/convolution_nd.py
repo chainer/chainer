@@ -181,7 +181,8 @@ class ConvolutionND(function.Function):
         # See: https://github.com/chainer/chainer/issues/2744
         # TODO(niboshi): Remove this code when NumPy is fixed.
         if (xp is numpy and
-                not (gy.flags.c_contiguous or gy.flags.f_contiguous)):
+                not (gy.flags.c_contiguous or gy.flags.f_contiguous) and
+                1 in gy.shape):
             gy = numpy.ascontiguousarray(gy)
 
         gW = xp.tensordot(gy, self.col, (out_axes, col_axes)).astype(

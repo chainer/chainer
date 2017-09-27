@@ -40,7 +40,8 @@ class LinearFunction(function_node.FunctionNode):
         # See: https://github.com/chainer/chainer/issues/2744
         # TODO(niboshi): Remove this code when NumPy is fixed.
         if (isinstance(x, numpy.ndarray) and
-                not (x.flags.c_contiguous or x.flags.f_contiguous)):
+                not (x.flags.c_contiguous or x.flags.f_contiguous) and
+                1 in x.shape):
             x = numpy.ascontiguousarray(x)
 
         y = x.dot(W.T).astype(x.dtype, copy=False)
