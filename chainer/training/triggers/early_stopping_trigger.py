@@ -76,12 +76,6 @@ class EarlyStoppingTrigger(object):
 
         observation = trainer.observation
 
-        if self.monitor not in observation.keys():
-            if not self.already_warning:
-                print('Warning: {} is not in observation'.format(self.monitor))
-                self.already_warning = True
-            return False
-
         summary = self._summary
 
         if self.monitor in observation:
@@ -91,6 +85,12 @@ class EarlyStoppingTrigger(object):
             return True
 
         if not self._interval_trigger(trainer):
+            return False
+
+        if self.monitor not in observation.keys():
+            if not self.already_warning:
+                print('Warning: {} is not in observation'.format(self.monitor))
+                self.already_warning = True
             return False
 
         stat = self._summary.compute_mean()
