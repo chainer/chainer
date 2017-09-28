@@ -119,8 +119,8 @@ class EarlyStoppingTrigger(object):
 
     def _stop_condition(self):
         if self.debug:
-            print('{} > {}'.format(self.count, self.patients))
-        return self.count > self.patients
+            print('{} >= {}'.format(self.count, self.patients))
+        return self.count >= self.patients
 
     def _init_summary(self):
         self._summary = reporter.DictSummary()

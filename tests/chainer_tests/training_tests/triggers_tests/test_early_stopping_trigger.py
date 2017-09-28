@@ -51,7 +51,7 @@ class TestEarlyStoppingTrigger(unittest.TestCase):
     def test_early_stopping_trigger_with_accuracy(self):
         key = 'main/accuracy'
         trigger = triggers.EarlyStoppingTrigger(monitor=key, patients=3,
-                                                trigger=(1, 'iteration'),
+                                                trigger=(1, 'epoch'),
                                                 verbose=False)
         trigger = util.get_trigger(trigger)
 
@@ -60,14 +60,13 @@ class TestEarlyStoppingTrigger(unittest.TestCase):
             chainer.Variable(numpy.asarray(acc, dtype=numpy.float32))
             for acc in accuracies])
 
-        expected = [False, False, False, False, False, False, False, True]
+        expected = [False, False, False, False, False, False, True, True]
         _test_trigger(self, trigger, key, accuracies, expected)
 
     def test_early_stopping_trigger_with_loss(self):
         key = 'main/loss'
         trigger = triggers.EarlyStoppingTrigger(monitor=key, patients=3,
-                                                trigger=(1, 'iteration'),
-                                                verbose=True)
+                                                trigger=(1, 'epoch'))
         trigger = util.get_trigger(trigger)
 
         accuracies = [100, 80, 30, 10, 20, 24, 30, 35]
@@ -75,14 +74,14 @@ class TestEarlyStoppingTrigger(unittest.TestCase):
             chainer.Variable(numpy.asarray(acc, dtype=numpy.float32))
             for acc in accuracies])
 
-        expected = [False, False, False, False, False, False, False, True]
+        expected = [False, False, False, False, False, False, True, True]
         _test_trigger(self, trigger, key, accuracies, expected)
 
     def test_early_stopping_trigger_with_max_epoch(self):
         key = 'main/loss'
         trigger = triggers.EarlyStoppingTrigger(monitor=key, patients=3,
                                                 trigger=(1, 'epoch'),
-                                                verbose=True, max_epoch=3)
+                                                max_epoch=3)
         trigger = util.get_trigger(trigger)
 
         accuracies = [100, 80, 30, 10]
