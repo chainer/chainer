@@ -1,7 +1,7 @@
 import multiprocessing
 import os
-import queue
 import shutil
+from six.moves import queue
 import tempfile
 import threading
 
@@ -149,7 +149,7 @@ class QueueWriter(Writer):
             `Writer.__call__`. This object is put into the queue.
     """
 
-    def __init__(self, task=SimpleWriter()):
+    def __init__(self, savefun=util.save_npz, task=None):
         raise NotImplementedError
 
     def __call__(self, filename, outdir, target):
@@ -183,8 +183,11 @@ class ThreadQueueWriter(QueueWriter):
             `Writer.__call__`. This object is put into the queue.
     """
 
-    def __init__(self, task=SimpleWriter()):
-        self._task = task
+    def __init__(self, savefun=util.save_npz, task=None):
+        if task is None:
+            self._task = SimpleWriter(savefun)
+        else:
+            self._task = task
         self._queue = queue.Queue()
         self._consumer = threading.Thread(target=self.consume,
                                           args=(self._queue,))
@@ -208,10 +211,13 @@ class ProcessQueueWriter(QueueWriter):
             `Writer.__call__`. This object is put into the queue.
     """
 
-    def __init__(self, task=SimpleWriter()):
-        self._task = task
+    def __init__(self, savefun=util.save_npz, task=None):
+        if task is None:
+            self._task = SimpleWriter(savefun)
+        else:
+            self._task = task
         self._queue = multiprocessing.JoinableQueue()
         self._consumer = multiprocessing.Process(target=self.consume,
-                                                 args=(self._queue,),
-                                                 daemon=True)
+                                                 args=(self._queue,))
+        self._consumer.daemon = True
         self._consumer.start()
