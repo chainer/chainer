@@ -1,3 +1,4 @@
+from chainer import reporter
 from chainer.training import util
 
 
@@ -24,15 +25,19 @@ class EarlyStoppingTrigger(object):
         max_epoch (int) : upper bound of the number of training loops
     """
 
-    def __init__(self, trigger=(1, 'epoch'), monitor='main/loss',
-                 patients=3, mode='auto', verbose=False, max_epoch=100):
+    def __init__(self, trigger=(1, 'epoch'), monitor='main/loss', patients=3,
+                 mode='auto', verbose=False, max_epoch=100, debug=False):
 
         self.count = 0
         self.patients = patients
         self.monitor = monitor
         self.verbose = verbose
+        self.debug = debug
         self.max_epoch = max_epoch
+        self.already_warning = False
         self._interval_trigger = util.get_trigger(trigger)
+
+        self._init_summary()
 
         if mode == 'max':
             self._compare = greater
@@ -71,18 +76,28 @@ class EarlyStoppingTrigger(object):
 
         observation = trainer.observation
 
+        if self.monitor not in observation.keys():
+            if not self.already_warning:
+                print('Warning: {} is not in observation'.format(self.monitor))
+                self.already_warning = True
+            return False
+
+        summary = self._summary
+
+        if self.monitor in observation:
+            summary.add({self.monitor: observation[self.monitor]})
+
         if trainer.updater.epoch >= self.max_epoch:
             return True
-
-        if self.monitor not in observation.keys():
-            return False
 
         if not self._interval_trigger(trainer):
             return False
 
-        current_val = float(observation[self.monitor].data)
+        stat = self._summary.compute_mean()
+        current_val = stat[self.monitor]
+        self._init_summary()
 
-        if self.verbose:
+        if self.debug:
             print('current count: {}'.format(self.count))
             print('best: {}, current_val: {}'.format(self.best, current_val))
 
@@ -94,11 +109,18 @@ class EarlyStoppingTrigger(object):
             self.count += 1
 
         if self._stop_condition():
+            if self.verbose:
+                if self.max_epoch != trainer.updater.epoch:
+                    print('Epoch {}: early stopping'.format(
+                        trainer.updater.epoch))
             return True
 
         return False
 
     def _stop_condition(self):
-        if self.verbose:
+        if self.debug:
             print('{} > {}'.format(self.count, self.patients))
         return self.count > self.patients
+
+    def _init_summary(self):
+        self._summary = reporter.DictSummary()
