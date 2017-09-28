@@ -36,6 +36,11 @@ def numerical_grad(f, inputs, grad_outputs, eps=1e-3):
 
     """
     assert eps > 0
+    for x in inputs:
+        if x.dtype.kind != 'f':
+            raise RuntimeError(
+                'The dtype of input arrays must be kind of float')
+
     inputs = tuple(inputs)
     grad_outputs = tuple(grad_outputs)
     gpu = any(isinstance(x, cuda.ndarray) for x in inputs + grad_outputs)
@@ -53,7 +58,7 @@ def numerical_grad(f, inputs, grad_outputs, eps=1e-3):
         )
     else:
         xp = numpy
-    grads = [xp.zeros_like(x) for x in inputs]
+    grads = [xp.zeros(x.shape, numpy.float64) for x in inputs]
 
     with configuration.using_config('type_check', False):
         for x, gx in six.moves.zip(inputs, grads):
@@ -75,7 +80,8 @@ def numerical_grad(f, inputs, grad_outputs, eps=1e-3):
                             dot = ((y1 - y2) * gy).sum()
                             gx[i] += dot / (2 * eps)
 
-    return grads
+    return [g.astype(x.dtype, copy=False)
+            for g, x in six.moves.zip(grads, inputs)]
 
 
 def assert_allclose(x, y, atol=1e-5, rtol=1e-4, verbose=True):
