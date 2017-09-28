@@ -105,11 +105,9 @@ def n_step_lstm(
             for time ``t``. Its shape is ``(B_t, I)``, where ``B_t`` is the
             mini-batch size for time ``t``. The sequences must be transposed.
             :func:`~chainer.functions.transpose_sequence` can be used to
-            transpose a list of :func:`~chainer.Variable`\ s each representing
+            transpose a list of :class:`~chainer.Variable`\ s each representing
             a sequence. When sequences has different lengths, they must be
             sorted in descending order of their lengths before transposing.
-            :func:`~chainer.functions.transpose_sequence`
-            transpose a list of :func:`~chainer.Variable` holding sequence.
             So ``xs`` needs to satisfy
             ``xs[t].shape[0] >= xs[t + 1].shape[0]``.
 
@@ -117,8 +115,10 @@ def n_step_lstm(
         tuple: This functions returns a tuple concaining three elements,
         ``hy``, ``cy`` and ``ys``.
 
-            - ``hy`` is an updated hidden states whose shape is same as ``hx``.
-            - ``cy`` is an updated cell states whose shape is same as ``cx``.
+            - ``hy`` is an updated hidden states whose shape is the same as
+              ``hx``.
+            - ``cy`` is an updated cell states whose shape is the same as
+              ``cx``.
             - ``ys`` is a list of :class:`~chainer.Variable` . Each element
               ``ys[t]`` holds hidden states of the last layer corresponding
               to an input ``xs[t]``. Its shape is ``(B_t, N)`` where ``B_t`` is
@@ -271,11 +271,9 @@ def n_step_bilstm(
             for time ``t``. Its shape is ``(B_t, I)``, where ``B_t`` is the
             mini-batch size for time ``t``. The sequences must be transposed.
             :func:`~chainer.functions.transpose_sequence` can be used to
-            transpose a list of :func:`~chainer.Variable`\ s each representing
+            transpose a list of :class:`~chainer.Variable`\ s each representing
             a sequence. When sequences has different lengths, they must be
             sorted in descending order of their lengths before transposing.
-            :func:`~chainer.functions.transpose_sequence`
-            transpose a list of :func:`~chainer.Variable` holding sequence.
             So ``xs`` needs to satisfy
             ``xs[t].shape[0] >= xs[t + 1].shape[0]``.
 
@@ -283,8 +281,10 @@ def n_step_bilstm(
         tuple: This functions returns a tuple concaining three elements,
         ``hy``, ``cy`` and ``ys``.
 
-            - ``hy`` is an updated hidden states whose shape is same as ``hx``.
-            - ``cy`` is an updated cell states whose shape is same as ``cx``.
+            - ``hy`` is an updated hidden states whose shape is the same as
+              ``hx``.
+            - ``cy`` is an updated cell states whose shape is the same as
+              ``cx``.
             - ``ys`` is a list of :class:`~chainer.Variable` . Each element
               ``ys[t]`` holds hidden states of the last layer corresponding
               to an input ``xs[t]``. Its shape is ``(B_t, 2N)`` where ``B_t``
@@ -380,11 +380,9 @@ def n_step_lstm_base(
             for time ``t``. Its shape is ``(B_t, I)``, where ``B_t`` is the
             mini-batch size for time ``t``. The sequences must be transposed.
             :func:`~chainer.functions.transpose_sequence` can be used to
-            transpose a list of :func:`~chainer.Variable`\ s each representing
+            transpose a list of :class:`~chainer.Variable`\ s each representing
             a sequence. When sequences has different lengths, they must be
             sorted in descending order of their lengths before transposing.
-            :func:`~chainer.functions.transpose_sequence`
-            transpose a list of :func:`~chainer.Variable` holding sequence.
             So ``xs`` needs to satisfy
             ``xs[t].shape[0] >= xs[t + 1].shape[0]``.
         use_bi_direction (bool): If ``True``, this function uses Bi-directional
@@ -394,8 +392,10 @@ def n_step_lstm_base(
         tuple: This functions returns a tuple concaining three elements,
         ``hy``, ``cy`` and ``ys``.
 
-            - ``hy`` is an updated hidden states whose shape is same as ``hx``.
-            - ``cy`` is an updated cell states whose shape is same as ``cx``.
+            - ``hy`` is an updated hidden states whose shape is the same as
+              ``hx``.
+            - ``cy`` is an updated cell states whose shape is the same as
+              ``cx``.
             - ``ys`` is a list of :class:`~chainer.Variable` . Each element
               ``ys[t]`` holds hidden states of the last layer corresponding
               to an input ``xs[t]``. Its shape is ``(B_t, N)`` where ``B_t`` is
