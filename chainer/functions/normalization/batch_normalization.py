@@ -301,6 +301,12 @@ class FixedBatchNormalization(function_node.FunctionNode):
 
     def backward(self, indexes, grad_outputs):
         x, gamma, mean, var = self.get_retained_inputs()
+
+        if not hasattr(self, 'inv_std'):
+            xp = cuda.get_array_module(x)
+            self.inv_var = xp.reciprocal(var.data + self.eps)
+            self.inv_std = xp.sqrt(self.inv_var, dtype=self.inv_var.dtype)
+
         gy, = grad_outputs
         f = FixedBatchNormalizationGrad(
             self.eps, self.expander, self.axis, self.inv_std, self.inv_var)
