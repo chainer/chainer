@@ -214,8 +214,8 @@ def n_step_bilstm(
         h^{b}_t &=& o^{b}_t \\cdot \\tanh(c^{b}_t), \\\\
         h_t &=& [h^{f}_t; h^{b}_t]
 
-    where :math:`W^{f}` is the weight matrices for forward-LSTM, :math:`W^{b}` is
-    weight matrices for backward-LSTM.
+    where :math:`W^{f}` is the weight matrices for forward-LSTM, :math:`W^{b}`
+    is weight matrices for backward-LSTM.
 
     As the function accepts a sequence, it calculates :math:`h_t` for all
     :math:`t` with one call. Eight weight matrices and eight bias vectors are
@@ -377,7 +377,7 @@ def n_step_lstm_base(
         xs (list of :class:`~chainer.Variable`):
             A list of :class:`~chainer.Variable`
             holding input values. Each element ``xs[t]`` holds input value
-            for time ``t``. Its shape is ``(B_t, I)``, where ``B_t`` is the 
+            for time ``t``. Its shape is ``(B_t, I)``, where ``B_t`` is the
             mini-batch size for time ``t``. The sequences must be transposed.
             :func:`~chainer.functions.transpose_sequence` can be used to
             transpose a list of :func:`~chainer.Variable`\ s each representing
