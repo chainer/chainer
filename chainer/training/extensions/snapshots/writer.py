@@ -1,5 +1,8 @@
 import multiprocessing
+import os
 import queue
+import shutil
+import tempfile
 import threading
 
 from chainer.training.extensions.snapshots import util
@@ -17,7 +20,7 @@ class Writer(object):
     def __init__(self):
         pass
 
-    def __call__(self, filename, outdir, handler):
+    def __call__(self, filename, outdir, target):
         """Invokes the actual snapshot function.
 
         This method is invoked every time when this process is in charge to
@@ -28,8 +31,7 @@ class Writer(object):
             filename (str): Name of the file into which the serialized target
                 is saved. It is already formated string.
             outdir (str): Output directory. Passed by `trainer.out`.
-            handler: Serializer handler object. It already invoke `serialize`
-                method.
+            target (dict): Serialized object which will be saved.
         """
         pass
 
@@ -40,6 +42,18 @@ class Writer(object):
         end of training.
         """
         pass
+
+    def save(self, filename, outdir, target, savefun, **kwds):
+        prefix = 'tmp' + filename
+        fd, tmppath = tempfile.mkstemp(prefix=prefix, dir=outdir)
+        try:
+            savefun(tmppath, target, **kwds)
+        except Exception:
+            os.close(fd)
+            os.remove(tmppath)
+            raise
+        os.close(fd)
+        shutil.move(tmppath, os.path.join(outdir, filename))
 
 
 class SimpleWriter(Writer):
@@ -52,11 +66,12 @@ class SimpleWriter(Writer):
             method.
     """
 
-    def __init__(self, savefun=util.save):
+    def __init__(self, savefun=util.save_npz, **kwds):
         self._savefun = savefun
+        self._kwds = kwds
 
-    def __call__(self, filename, outdir, handler):
-        self._savefun(filename, outdir, handler)
+    def __call__(self, filename, outdir, target):
+        self.save(filename, outdir, target, self._savefun, **self._kwds)
 
 
 class ThreadWriter(Writer):
@@ -70,13 +85,16 @@ class ThreadWriter(Writer):
             method. Also must need to be able to passed to a thread.
     """
 
-    def __init__(self, savefun=util.save):
+    def __init__(self, savefun=util.save_npz, **kwds):
         self._savefun = savefun
+        self._kwds = kwds
         self._flag = False
 
-    def __call__(self, filename, outdir, handler):
-        self._thread = threading.Thread(target=self._savefun,
-                                        args=(filename, outdir, handler))
+    def __call__(self, filename, outdir, target):
+        self._thread = threading.Thread(
+            target=self.save,
+            args=(filename, outdir, target, self._savefun),
+            kwargs=self._kwds)
         self._thread.start()
         self._flag = True
 
@@ -101,14 +119,16 @@ class ProcessWriter(Writer):
             method. Also must need to be able to passed to a thread.
     """
 
-    def __init__(self, savefun=util.save):
+    def __init__(self, savefun=util.save_npz, **kwds):
         self._savefun = savefun
+        self._kwds = kwds
         self._flag = False
 
-    def __call__(self, filename, outdir, handler):
+    def __call__(self, filename, outdir, target):
         self._process = multiprocessing.Process(
-            target=self._savefun,
-            args=(filename, outdir, handler))
+            target=self.save,
+            args=(filename, outdir, target, self._savefun),
+            kwargs=self._kwds)
         self._process.start()
         self._flag = True
 
@@ -132,8 +152,8 @@ class QueueWriter(Writer):
     def __init__(self, task=SimpleWriter()):
         raise NotImplementedError
 
-    def __call__(self, filename, outdir, handler):
-        self._queue.put([self._task, filename, outdir, handler])
+    def __call__(self, filename, outdir, target):
+        self._queue.put([self._task, filename, outdir, target])
 
     def consume(self, queue):
         while True:
@@ -167,8 +187,7 @@ class ThreadQueueWriter(QueueWriter):
         self._task = task
         self._queue = queue.Queue()
         self._consumer = threading.Thread(target=self.consume,
-                                          args=(self._queue,),
-                                          daemon=True)
+                                          args=(self._queue,))
         self._consumer.start()
 
 

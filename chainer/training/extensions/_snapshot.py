@@ -5,7 +5,7 @@ import tempfile
 from chainer.serializers import npz
 from chainer.training import extension
 from chainer.training.extensions.snapshots import condition as condition_module
-from chainer.training.extensions.snapshots import handler as handler_module
+from chainer.training.extensions.snapshots import util
 from chainer.training.extensions.snapshots import writer as writer_module
 
 
@@ -105,12 +105,13 @@ class Snapshot(extension.Extension):
             returns boolean in its call. If it returns True the snapshot will
             be done. If not it will be skipped.
         writer: Writer object. It need to be a callable object.
-        handler: Serializer handler object.
         filename (str): Name of the file into which the object is serialized.
             It can be a format string, where the trainer object is passed to
             the :meth:`str.format` method. For example,
             ``'snapshot_{.updater.iteration}'`` is converted to
             ``'snapshot_10000'`` at the 10,000th iteration.
+            Also it can be a callable object, where the trainer is passed to
+            that method.
 
     """
 
@@ -118,24 +119,23 @@ class Snapshot(extension.Extension):
                  target=None,
                  condition=condition_module.Always(),
                  writer=writer_module.SimpleWriter(),
-                 handler=handler_module.SerializerHandler(),
                  filename='snapshot_iter_{.updater.iteration}'):
         self._target = target
-        self._filename = filename
+        self.filename = filename
         self.condition = condition
         self.writer = writer
-        self.handler = handler
 
     def __call__(self, trainer):
         if self.condition(trainer, self):
             target = trainer if self._target is None else self._target
-            self.handler.serialize(target)
-            filename = self._filename
+            serialized_target = util.serialize(target)
+            filename = self.filename
             if callable(filename):
                 filename = filename(trainer)
-            filename = filename.format(trainer)
+            else:
+                filename = filename.format(trainer)
             outdir = trainer.out
-            self.writer(filename, outdir, self.handler)
+            self.writer(filename, outdir, serialized_target)
 
     def finalize(self):
         if hasattr(self.writer, 'finalize'):

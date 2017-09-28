@@ -81,6 +81,7 @@ setup(
               'chainer.testing',
               'chainer.training',
               'chainer.training.extensions',
+              'chainer.training.extensions.snapshots',
               'chainer.training.triggers',
               'chainer.training.updaters',
               'chainer.utils'],
