@@ -40,7 +40,7 @@ class ScatterAdd(function.Function):
             raise ValueError(
                 'Chainer does not support automatic broadcasting '
                 'of variables.')
-        if xp == numpy:
+        if xp is numpy:
             numpy.add.at(y, self.slices, b),
         else:
             xp.scatter_add(y, self.slices, b),
@@ -83,7 +83,9 @@ def scatter_add(a, slices, b):
 
         It does not support ``slices`` that contains multiple boolean arrays.
 
-    .. seealso:: :func:`numpy.add.at`.
+    .. seealso::
+        :func:`numpy.add.at` and
+        :func:`cupy.scatter_add`.
 
     """
     return ScatterAdd(slices)(a, b)
