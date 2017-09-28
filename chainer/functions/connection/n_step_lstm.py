@@ -214,7 +214,7 @@ def n_step_bilstm(
         h^{b}_t &=& o^{b}_t \\cdot \\tanh(c^{b}_t), \\\\
         h_t &=& [h^{f}_t; h^{b}_t]
 
-    where :math:`W^{f}` is weight matrices for forward-LSTM, :math:`W^{b}` is
+    where :math:`W^{f}` is the weight matrices for forward-LSTM, :math:`W^{b}` is
     weight matrices for backward-LSTM.
 
     As the function accepts a sequence, it calculates :math:`h_t` for all
