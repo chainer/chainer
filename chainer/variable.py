@@ -1148,12 +1148,11 @@ Actual: {0}'''.format(type(data))
         events_swapin = []
 
         # [OOC/LWR]
-        break_points = self.node.get_break_points(fine_granularity=True)
+        break_points = self.node.get_break_points(fine_granularity)
         if ooc_debug:
             print('# break_points: {}'.format(break_points))
 
         bp = None
-        vnode_count = 0
         _, _, bp_next = heapq.heappop(break_points)
         while bp is not None or bp_next is not None:
             if bp_next is not None:
@@ -1202,7 +1201,6 @@ Actual: {0}'''.format(type(data))
                     # streams[1].wait_event(cuda.Stream.null.record())
                     bp.ancestors_swapout(stream=streams[1], inclusive=True,
                                          debug=ooc_debug)
-
             if ooc_async is False:
                 cuda.Stream.null.synchronize()
 
@@ -1381,6 +1379,9 @@ Actual: {0}'''.format(type(data))
                         y_var = y.get_variable()
                         if y_var is not None:
                             y_var._grad_var = None
+                        if y._break_point:
+                            # [OOC/LWR] delete grad
+                            y._grad_var = None
 
             for i, gx in enumerate(gxs):
                 if gx is None:
