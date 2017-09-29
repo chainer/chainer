@@ -116,20 +116,23 @@ def _add_instance(instances, seen_set, instance):
         seen_set.add(instance)
 
 
-def out_of_core_mode(async=True, fine_granularity=False, debug=False):
+def out_of_core_mode(async=True, fine_granularity=False, debug=False, devices=None):
     """Enable out of core training mode
 
-    Copied from anaruse's repository
+    Originally from anaruse's repository
     Source: https://github.com/anaruse/chainer/blob/OOC_chainer_v202/chainer/variable.py
     """
     events = []
     streams = []
-    if async:
-        streams.append(cuda.Stream(non_blocking=True))
-        streams.append(cuda.Stream(non_blocking=True))
-    else:
-        streams.append(cuda.Stream.null)
-        streams.append(cuda.Stream.null)
+    if len(devices) == 1:
+        with cuda.Device(devices[0]):
+            if async:
+                streams.append(cuda.Stream(non_blocking=True))
+                streams.append(cuda.Stream(non_blocking=True))
+            else:
+                streams.append(cuda.Stream.null)
+                streams.append(cuda.Stream.null)
+
     return configuration.using_config('out_of_core_params',
                                       [True, async, fine_granularity, streams, events, debug])
 
