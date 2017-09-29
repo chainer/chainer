@@ -191,7 +191,7 @@ class BaseNStepRNN(function.Function):
                              % (rnn_algo, candidate_list))
         self.rnn_dir = _rnn_dirs[rnn_dir]
         self.rnn_mode = _rnn_modes[rnn_mode]
-        # TODO: check `_rnn_persistent_algo` can be used in v5 (< v6)
+        # TODO(aonotas) check `_rnn_persistent_algo` can be used in v5 (< v6)
         self.rnn_algo = _rnn_persistent_algo[rnn_algo]
         self.rnn_direction = _rnn_params_direction[self.rnn_dir]
         self.n_layers = n_layers
