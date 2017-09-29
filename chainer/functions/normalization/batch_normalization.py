@@ -324,7 +324,7 @@ class FixedBatchNormalizationGrad(function.Function):
         xp = cuda.get_array_module(x)
 
         if self.inv_std is None or self.inv_var is None:
-            self.inv_var = xp.reciprocal(var.data + self.eps)
+            self.inv_var = xp.reciprocal(var + self.eps)
             self.inv_std = xp.sqrt(self.inv_var, dtype=self.inv_var.dtype)
 
         self.gamma_over_std = gamma * self.inv_std
