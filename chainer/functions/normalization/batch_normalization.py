@@ -231,6 +231,7 @@ class BatchNormalizationGrad(function.Function):
 
 class FixedBatchNormalization(function_node.FunctionNode):
 
+    inv_std = None
     inv_var = None
 
     def __init__(self, eps=2e-5):
@@ -301,12 +302,6 @@ class FixedBatchNormalization(function_node.FunctionNode):
 
     def backward(self, indexes, grad_outputs):
         x, gamma, mean, var = self.get_retained_inputs()
-
-        if not hasattr(self, 'inv_std'):
-            xp = cuda.get_array_module(x)
-            self.inv_var = xp.reciprocal(var.data + self.eps)
-            self.inv_std = xp.sqrt(self.inv_var, dtype=self.inv_var.dtype)
-
         gy, = grad_outputs
         f = FixedBatchNormalizationGrad(
             self.eps, self.expander, self.axis, self.inv_std, self.inv_var)
@@ -319,7 +314,7 @@ class FixedBatchNormalizationGrad(function.Function):
         self.eps = eps
         self.expander = expander
         self.axis = axis
-        self.inv_std = inv_std
+        self.inv_std = inv_std  # may be None
         self.inv_var = inv_var  # may be None
 
     def forward(self, inputs):
@@ -328,8 +323,10 @@ class FixedBatchNormalizationGrad(function.Function):
         expander = self.expander
         xp = cuda.get_array_module(x)
 
-        if self.inv_var is None:
-            self.inv_var = xp.square(self.inv_std)
+        if self.inv_std is None or self.inv_var is None:
+            self.inv_var = xp.reciprocal(var.data + self.eps)
+            self.inv_std = xp.sqrt(self.inv_var, dtype=self.inv_var.dtype)
+
         self.gamma_over_std = gamma * self.inv_std
         x_hat = _x_hat(x, mean[expander], self.inv_std[expander])
 
