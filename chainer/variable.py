@@ -124,6 +124,8 @@ def out_of_core_mode(async=True, fine_granularity=False, debug=False, devices=No
     """
     events = []
     streams = []
+    if devices is None:
+        devices = [cuda.Device().id]
     if len(devices) == 1:
         with cuda.Device(devices[0]):
             if async:
