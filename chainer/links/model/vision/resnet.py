@@ -602,7 +602,6 @@ class BottleneckB(link.Chain):
 def _global_average_pooling_2d(x):
     n, channel, rows, cols = x.data.shape
     h = average_pooling_2d(x, (rows, cols), stride=1)
-    h = reshape(h, (n, channel))
     return h
 
 
