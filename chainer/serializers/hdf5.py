@@ -1,8 +1,10 @@
+from __future__ import print_function
 import numpy
+import six
+import sys
 
 from chainer import cuda
 from chainer import serializer
-
 
 try:
     import h5py
@@ -72,13 +74,30 @@ def save_hdf5(filename, obj, compression=4):
     Args:
         filename (str): Target file name.
         obj: Object to be serialized. It must support serialization protocol.
+            If it is a dictionary object, the serialization will be skipped.
         compression (int): Gzip compression level.
 
     """
     _check_available()
     with h5py.File(filename, 'w') as f:
-        s = HDF5Serializer(f, compression=compression)
-        s.save(obj)
+        if isinstance(obj, dict):
+            for key, value in obj.items():
+                key = '/' + key.lstrip('/')
+                arr = numpy.asarray(value)
+                compression = None if arr.size <= 1 else compression
+                try:
+                    f.create_dataset(key, data=arr, compression=compression)
+                except TypeError:
+                    print('A key named "{}" is unable to save in HDF5 format.',
+                          file=sys.stderr)
+                    # In Chainer, LogReport extension and PlotReport extension
+                    # are # unable to save in HDF5 format. These extensions
+                    # have a data type `numpy.dtype('O')` which is not
+                    # supported by h5py.
+                    six.reraise(*sys.exec_info())
+        else:
+            s = HDF5Serializer(f, compression=compression)
+            s.save(obj)
 
 
 class HDF5Deserializer(serializer.Deserializer):
