@@ -69,7 +69,6 @@ from chainer.functions.array.resize_images import ResizeImages  # NOQA
 from chainer.functions.array.rollaxis import rollaxis  # NOQA
 from chainer.functions.array.rollaxis import Rollaxis  # NOQA
 from chainer.functions.array.scatter_add import scatter_add  # NOQA
-from chainer.functions.array.scatter_add import ScatterAdd  # NOQA
 from chainer.functions.array.select_item import select_item  # NOQA
 from chainer.functions.array.select_item import SelectItem  # NOQA
 from chainer.functions.array.separate import separate  # NOQA
