@@ -19,7 +19,7 @@ This table compares Chainer with other actively developed deep learning framewor
    ,"RNNs","full","full","full","full","partial","full","full","full","full","full","full","partial","partial","partial","partial"
    ,"Reverse-mode autograd","Y","Y","Y","Y",,"`torch-autograd <https://github.com/twitter/torch-autograd>`_","Y","Y","Y",,"Y","`ngraph <https://github.com/NervanaSystems/ngraph>`_","Y",,"with closures"
    ,"Forward-mode autograd",,,"`tensorflow-forward-ad <https://github.com/renmengye/tensorflow-forward-ad>`_","Y",,,,,,,,,,,
-   ,"Higher-order grads",,"Y","Y","Y",,,,,,,,,"Y",,
+   ,"Higher-order grads","partial","Y","Y","Y",,,,,,,,,"Y",,
    ,"Variable-length loops","native","native","while_loop","scan","RNNs only","native","2017","native","RNNs only","none","dynamic axis","none","native","none","native"
    ,"Different architectures per batch","native","native","`fold <https://github.com/tensorflow/fold>`_",,,"torch-autograd","`MinPy <https://github.com/dmlc/MinPy>`_","native",,,,,"native",,"native"
    "Performance","cuDNN support","full","full","partial","partial","full","full","full","partial","full","partial","full","N/A [4]_",,"partial",
