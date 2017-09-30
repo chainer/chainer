@@ -11,7 +11,6 @@ from chainer import cuda
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
 
 
 @testing.parameterize(*testing.product({
@@ -29,48 +28,41 @@ class TestBinaryOp(unittest.TestCase):
         x1 = chainer.Variable(x1_data)
         x2 = chainer.Variable(x2_data)
         y = op(x1, x2)
-        testing.assert_allclose(op(self.x1, self.x2), y.data)
+        options = {}
+        if self.dtype == numpy.float16:
+            options = {'atol': 1e-4, 'rtol': 1e-3}
+        testing.assert_allclose(op(self.x1, self.x2), y.data, **options)
 
     def forward_cpu(self, op):
         self.check_forward(op, self.x1, self.x2)
 
-    @condition.retry(3)
     def test_add_forward_cpu(self):
         self.forward_cpu(lambda x, y: x + y)
 
-    @condition.retry(3)
     def test_sub_forward_cpu(self):
         self.forward_cpu(lambda x, y: x - y)
 
-    @condition.retry(3)
     def test_mul_forward_cpu(self):
         self.forward_cpu(lambda x, y: x * y)
 
-    @condition.retry(3)
     def test_div_forward_cpu(self):
         self.forward_cpu(lambda x, y: x / y)
 
-    @condition.retry(3)
     def test_pow_forward_cpu(self):
         self.forward_cpu(lambda x, y: x ** y)
 
-    @condition.retry(3)
     def test_radd_forward_cpu(self):
         self.forward_cpu(lambda x, y: y.__radd__(x))
 
-    @condition.retry(3)
     def test_rsub_forward_cpu(self):
         self.forward_cpu(lambda x, y: y.__rsub__(x))
 
-    @condition.retry(3)
     def test_rmul_forward_cpu(self):
         self.forward_cpu(lambda x, y: y.__rmul__(x))
 
-    @condition.retry(3)
     def test_rdiv_forward_cpu(self):
         self.forward_cpu(lambda x, y: y.__rtruediv__(x))
 
-    @condition.retry(3)
     def test_rpow_forward_cpu(self):
         self.forward_cpu(lambda x, y: y.__rpow__(x))
 
@@ -78,52 +70,42 @@ class TestBinaryOp(unittest.TestCase):
         self.check_forward(op, cuda.to_gpu(self.x1), cuda.to_gpu(self.x2))
 
     @attr.gpu
-    @condition.retry(3)
     def test_add_forward_gpu(self):
         self.forward_gpu(lambda x, y: x + y)
 
     @attr.gpu
-    @condition.retry(3)
     def test_sub_forward_gpu(self):
         self.forward_gpu(lambda x, y: x - y)
 
     @attr.gpu
-    @condition.retry(3)
     def test_mul_forward_gpu(self):
         self.forward_gpu(lambda x, y: x * y)
 
     @attr.gpu
-    @condition.retry(3)
     def test_div_forward_gpu(self):
         self.forward_gpu(lambda x, y: x / y)
 
     @attr.gpu
-    @condition.retry(3)
     def test_pow_forward_gpu(self):
         self.forward_gpu(lambda x, y: x ** y)
 
     @attr.gpu
-    @condition.retry(3)
     def test_radd_forward_gpu(self):
         self.forward_gpu(lambda x, y: y.__radd__(x))
 
     @attr.gpu
-    @condition.retry(3)
     def test_rsub_forward_gpu(self):
         self.forward_gpu(lambda x, y: y.__rsub__(x))
 
     @attr.gpu
-    @condition.retry(3)
     def test_rmul_forward_gpu(self):
         self.forward_gpu(lambda x, y: y.__rmul__(x))
 
     @attr.gpu
-    @condition.retry(3)
     def test_rdiv_forward_gpu(self):
         self.forward_gpu(lambda x, y: y.__rtruediv__(x))
 
     @attr.gpu
-    @condition.retry(3)
     def test_rpow_forward_gpu(self):
         self.forward_gpu(lambda x, y: y.__rpow__(x))
 
@@ -137,30 +119,25 @@ class TestBinaryOp(unittest.TestCase):
     def check_backward(self, op, x1_data, x2_data, y_grad):
         options = {}
         if self.dtype == numpy.float16:
-            options = {'atol': 5e-4, 'rtol': 5e-3}
+            options = {'atol': 5e-3, 'rtol': 5e-2}
         gradient_check.check_backward(op, (x1_data, x2_data), y_grad,
                                       dtype=numpy.float64, **options)
 
     def backward_cpu(self, op):
         self.check_backward(op, self.x1, self.x2, self.gy)
 
-    @condition.retry(3)
     def test_add_backward_cpu(self):
         self.backward_cpu(lambda x, y: x + y)
 
-    @condition.retry(3)
     def test_sub_backward_cpu(self):
         self.backward_cpu(lambda x, y: x - y)
 
-    @condition.retry(3)
     def test_mul_backward_cpu(self):
         self.backward_cpu(lambda x, y: x * y)
 
-    @condition.retry(10)
     def test_div_backward_cpu(self):
         self.backward_cpu(lambda x, y: x / y)
 
-    @condition.retry(10)
     def test_pow_backward_cpu(self):
         self.backward_cpu(lambda x, y: x ** y)
 
@@ -170,27 +147,22 @@ class TestBinaryOp(unittest.TestCase):
             cuda.to_gpu(self.gy))
 
     @attr.gpu
-    @condition.retry(3)
     def test_add_backward_gpu(self):
         self.backward_gpu(lambda x, y: x + y)
 
     @attr.gpu
-    @condition.retry(3)
     def test_sub_backward_gpu(self):
         self.backward_gpu(lambda x, y: x - y)
 
     @attr.gpu
-    @condition.retry(3)
     def test_mul_backward_gpu(self):
         self.backward_gpu(lambda x, y: x * y)
 
     @attr.gpu
-    @condition.retry(10)
     def test_div_backward_gpu(self):
         self.backward_gpu(lambda x, y: x / y)
 
     @attr.gpu
-    @condition.retry(10)
     def test_pow_backward_gpu(self):
         self.backward_gpu(lambda x, y: x ** y)
 
@@ -461,43 +433,33 @@ class TestVariableConstantOp(unittest.TestCase):
     def forward_cpu(self, op):
         self.check_forward(op, self.x)
 
-    @condition.retry(3)
     def test_add_forward_cpu(self):
         self.forward_cpu(lambda x, y: x + y)
 
-    @condition.retry(3)
     def test_radd_forward_cpu(self):
         self.forward_cpu(lambda x, y: y + x)
 
-    @condition.retry(3)
     def test_sub_forward_cpu(self):
         self.forward_cpu(lambda x, y: x - y)
 
-    @condition.retry(3)
     def test_rsub_forward_cpu(self):
         self.forward_cpu(lambda x, y: y - x)
 
-    @condition.retry(3)
     def test_mul_forward_cpu(self):
         self.forward_cpu(lambda x, y: x * y)
 
-    @condition.retry(3)
     def test_rmul_forward_cpu(self):
         self.forward_cpu(lambda x, y: y * x)
 
-    @condition.retry(3)
     def test_div_forward_cpu(self):
         self.forward_cpu(lambda x, y: x / y)
 
-    @condition.retry(3)
     def test_rdiv_forward_cpu(self):
         self.forward_cpu(lambda x, y: y / x)
 
-    @condition.retry(3)
     def test_pow_forward_cpu(self):
         self.forward_cpu(lambda x, y: x ** y)
 
-    @condition.retry(3)
     def test_rpow_forward_cpu(self):
         self.forward_cpu(lambda x, y: y ** x)
 
@@ -505,59 +467,49 @@ class TestVariableConstantOp(unittest.TestCase):
         self.check_forward(op, cuda.to_gpu(self.x))
 
     @attr.gpu
-    @condition.retry(3)
     def test_add_forward_gpu(self):
         self.forward_gpu(lambda x, y: x + y)
 
     @attr.gpu
-    @condition.retry(3)
     def test_radd_forward_gpu(self):
         self.forward_gpu(lambda x, y: y + x)
 
     @attr.gpu
-    @condition.retry(3)
     def test_sub_forward_gpu(self):
         self.forward_gpu(lambda x, y: x - y)
 
     @attr.gpu
-    @condition.retry(3)
     def test_rsub_forward_gpu(self):
         self.forward_gpu(lambda x, y: y - x)
 
     @attr.gpu
-    @condition.retry(3)
     def test_mul_forward_gpu(self):
         self.forward_gpu(lambda x, y: x * y)
 
     @attr.gpu
-    @condition.retry(3)
     def test_rmul_forward_gpu(self):
         self.forward_gpu(lambda x, y: y * x)
 
     @attr.gpu
-    @condition.retry(3)
     def test_div_forward_gpu(self):
         self.forward_gpu(lambda x, y: x / y)
 
     @attr.gpu
-    @condition.retry(3)
     def test_rdiv_forward_gpu(self):
         self.forward_gpu(lambda x, y: y / x)
 
     @attr.gpu
-    @condition.retry(3)
     def test_pow_forward_gpu(self):
         self.forward_gpu(lambda x, y: x ** y)
 
     @attr.gpu
-    @condition.retry(3)
     def test_rpow_forward_gpu(self):
         self.forward_gpu(lambda x, y: y ** x)
 
     def check_backward(self, op, x_data, y_grad):
         options = {}
         if self.dtype == numpy.float16:
-            options = {'atol': 5e-4, 'rtol': 5e-3}
+            options = {'atol': 5e-3, 'rtol': 5e-2}
         gradient_check.check_backward(lambda x: op(x, self.value),
                                       x_data, y_grad,
                                       dtype=numpy.float64, **options)
@@ -565,43 +517,33 @@ class TestVariableConstantOp(unittest.TestCase):
     def backward_cpu(self, op):
         self.check_backward(op, self.x, self.gy)
 
-    @condition.retry(3)
     def test_add_backward_cpu(self):
         self.backward_cpu(lambda x, y: x + y)
 
-    @condition.retry(3)
     def test_radd_backward_cpu(self):
         self.backward_cpu(lambda x, y: y + x)
 
-    @condition.retry(3)
     def test_sub_backward_cpu(self):
         self.backward_cpu(lambda x, y: x - y)
 
-    @condition.retry(3)
     def test_rsub_backward_cpu(self):
         self.backward_cpu(lambda x, y: y - x)
 
-    @condition.retry(3)
     def test_mul_backward_cpu(self):
         self.backward_cpu(lambda x, y: x * y)
 
-    @condition.retry(3)
     def test_rmul_backward_cpu(self):
         self.backward_cpu(lambda x, y: y * x)
 
-    @condition.retry(3)
     def test_div_backward_cpu(self):
         self.backward_cpu(lambda x, y: x / y)
 
-    @condition.retry(3)
     def test_rdiv_backward_cpu(self):
         self.backward_cpu(lambda x, y: y / x)
 
-    @condition.retry(10)
     def test_pow_backward_cpu(self):
         self.backward_cpu(lambda x, y: x ** y)
 
-    @condition.retry(10)
     def test_rpow_backward_cpu(self):
         self.backward_cpu(lambda x, y: y ** x)
 
@@ -609,52 +551,42 @@ class TestVariableConstantOp(unittest.TestCase):
         self.check_backward(op, cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
     @attr.gpu
-    @condition.retry(3)
     def test_add_backward_gpu(self):
         self.backward_gpu(lambda x, y: x + y)
 
     @attr.gpu
-    @condition.retry(3)
     def test_radd_backward_gpu(self):
         self.backward_gpu(lambda x, y: y + x)
 
     @attr.gpu
-    @condition.retry(3)
     def test_sub_backward_gpu(self):
         self.backward_gpu(lambda x, y: x - y)
 
     @attr.gpu
-    @condition.retry(3)
     def test_rsub_backward_gpu(self):
         self.backward_gpu(lambda x, y: y - x)
 
     @attr.gpu
-    @condition.retry(3)
     def test_mul_backward_gpu(self):
         self.backward_gpu(lambda x, y: x * y)
 
     @attr.gpu
-    @condition.retry(3)
     def test_rmul_backward_gpu(self):
         self.backward_gpu(lambda x, y: y * x)
 
     @attr.gpu
-    @condition.retry(3)
     def test_div_backward_gpu(self):
         self.backward_gpu(lambda x, y: x / y)
 
     @attr.gpu
-    @condition.retry(3)
     def test_rdiv_backward_gpu(self):
         self.backward_gpu(lambda x, y: y / x)
 
     @attr.gpu
-    @condition.retry(10)
     def test_pow_backward_gpu(self):
         self.backward_gpu(lambda x, y: x ** y)
 
     @attr.gpu
-    @condition.retry(10)
     def test_rpow_backward_gpu(self):
         self.backward_gpu(lambda x, y: y ** x)
 
@@ -689,43 +621,33 @@ class TestVariableConstantArrayOp(unittest.TestCase):
     def forward_cpu(self, op, positive=False):
         self.check_forward(op, self.x, False, positive)
 
-    @condition.retry(3)
     def test_add_forward_cpu(self):
         self.forward_cpu(lambda x, y: x + y)
 
-    @condition.retry(3)
     def test_radd_forward_cpu(self):
         self.forward_cpu(lambda x, y: y + x)
 
-    @condition.retry(3)
     def test_sub_forward_cpu(self):
         self.forward_cpu(lambda x, y: x - y)
 
-    @condition.retry(3)
     def test_rsub_forward_cpu(self):
         self.forward_cpu(lambda x, y: y - x)
 
-    @condition.retry(3)
     def test_mul_forward_cpu(self):
         self.forward_cpu(lambda x, y: x * y)
 
-    @condition.retry(3)
     def test_rmul_forward_cpu(self):
         self.forward_cpu(lambda x, y: y * x)
 
-    @condition.retry(3)
     def test_div_forward_cpu(self):
         self.forward_cpu(lambda x, y: x / y)
 
-    @condition.retry(3)
     def test_rdiv_forward_cpu(self):
         self.forward_cpu(lambda x, y: y / x)
 
-    @condition.retry(3)
     def test_pow_forward_cpu(self):
         self.forward_cpu(lambda x, y: x ** y)
 
-    @condition.retry(3)
     def test_rpow_forward_cpu(self):
         self.forward_cpu(lambda x, y: y ** x, positive=True)
 
@@ -733,52 +655,42 @@ class TestVariableConstantArrayOp(unittest.TestCase):
         self.check_forward(op, cuda.to_gpu(self.x), True, positive)
 
     @attr.gpu
-    @condition.retry(3)
     def test_add_forward_gpu(self):
         self.forward_gpu(lambda x, y: x + y)
 
     @attr.gpu
-    @condition.retry(3)
     def test_radd_forward_gpu(self):
         self.forward_gpu(lambda x, y: y + x)
 
     @attr.gpu
-    @condition.retry(3)
     def test_sub_forward_gpu(self):
         self.forward_gpu(lambda x, y: x - y)
 
     @attr.gpu
-    @condition.retry(3)
     def test_rsub_forward_gpu(self):
         self.forward_gpu(lambda x, y: y - x)
 
     @attr.gpu
-    @condition.retry(3)
     def test_mul_forward_gpu(self):
         self.forward_gpu(lambda x, y: x * y)
 
     @attr.gpu
-    @condition.retry(3)
     def test_rmul_forward_gpu(self):
         self.forward_gpu(lambda x, y: y * x)
 
     @attr.gpu
-    @condition.retry(3)
     def test_div_forward_gpu(self):
         self.forward_gpu(lambda x, y: x / y)
 
     @attr.gpu
-    @condition.retry(3)
     def test_rdiv_forward_gpu(self):
         self.forward_gpu(lambda x, y: y / x)
 
     @attr.gpu
-    @condition.retry(3)
     def test_pow_forward_gpu(self):
         self.forward_gpu(lambda x, y: x ** y)
 
     @attr.gpu
-    @condition.retry(3)
     def test_rpow_forward_gpu(self):
         self.forward_gpu(lambda x, y: y ** x, positive=True)
 
@@ -790,50 +702,40 @@ class TestVariableConstantArrayOp(unittest.TestCase):
             value = cuda.to_gpu(value)
         options = {}
         if self.dtype == numpy.float16:
-            options = {'atol': 5e-4, 'rtol': 5e-3}
+            options = {'atol': 5e-3, 'rtol': 5e-2}
         gradient_check.check_backward(lambda x: op(x, value), x_data, y_grad,
                                       dtype=numpy.float64, **options)
 
     def backward_cpu(self, op, positive=False):
         self.check_backward(op, self.x, self.gy, False, positive)
 
-    @condition.retry(3)
     def test_add_backward_cpu(self):
         self.backward_cpu(lambda x, y: x + y)
 
-    @condition.retry(3)
     def test_radd_backward_cpu(self):
         self.backward_cpu(lambda x, y: y + x)
 
-    @condition.retry(3)
     def test_sub_backward_cpu(self):
         self.backward_cpu(lambda x, y: x - y)
 
-    @condition.retry(3)
     def test_rsub_backward_cpu(self):
         self.backward_cpu(lambda x, y: y - x)
 
-    @condition.retry(3)
     def test_mul_backward_cpu(self):
         self.backward_cpu(lambda x, y: x * y)
 
-    @condition.retry(3)
     def test_rmul_backward_cpu(self):
         self.backward_cpu(lambda x, y: y * x)
 
-    @condition.retry(10)
     def test_div_backward_cpu(self):
         self.backward_cpu(lambda x, y: x / y)
 
-    @condition.retry(3)
     def test_rdiv_backward_cpu(self):
         self.backward_cpu(lambda x, y: y / x)
 
-    @condition.retry(10)
     def test_pow_backward_cpu(self):
         self.backward_cpu(lambda x, y: x ** y)
 
-    @condition.retry(10)
     def test_rpow_backward_cpu(self):
         self.backward_cpu(lambda x, y: y ** x, positive=True)
 
@@ -842,47 +744,38 @@ class TestVariableConstantArrayOp(unittest.TestCase):
             op, cuda.to_gpu(self.x), cuda.to_gpu(self.gy), True, positive)
 
     @attr.gpu
-    @condition.retry(3)
     def test_add_backward_gpu(self):
         self.backward_gpu(lambda x, y: x + y)
 
     @attr.gpu
-    @condition.retry(3)
     def test_radd_backward_gpu(self):
         self.backward_gpu(lambda x, y: y + x)
 
     @attr.gpu
-    @condition.retry(3)
     def test_sub_backward_gpu(self):
         self.backward_gpu(lambda x, y: x - y)
 
     @attr.gpu
-    @condition.retry(3)
     def test_mul_backward_gpu(self):
         self.backward_gpu(lambda x, y: x * y)
 
     @attr.gpu
-    @condition.retry(3)
     def test_rmul_backward_gpu(self):
         self.backward_gpu(lambda x, y: y * x)
 
     @attr.gpu
-    @condition.retry(10)
     def test_div_backward_gpu(self):
         self.backward_gpu(lambda x, y: x / y)
 
     @attr.gpu
-    @condition.retry(10)
     def test_rdiv_backward_gpu(self):
         self.backward_gpu(lambda x, y: y / x)
 
     @attr.gpu
-    @condition.retry(10)
     def test_pow_backward_gpu(self):
         self.backward_gpu(lambda x, y: x ** y)
 
     @attr.gpu
-    @condition.retry(10)
     def test_rpow_backward_gpu(self):
         self.backward_gpu(lambda x, y: y ** x, positive=True)
 
@@ -909,11 +802,9 @@ class TestUnaryFunctions(unittest.TestCase):
     def forward_cpu(self, op, op_np):
         self.check_forward(op, op_np, self.x)
 
-    @condition.retry(3)
     def test_neg_forward_cpu(self):
         self.forward_cpu(lambda x: -x, lambda x: -x)
 
-    @condition.retry(3)
     def test_abs_forward_cpu(self):
         self.forward_cpu(lambda x: abs(x), lambda x: abs(x))
 
@@ -921,30 +812,26 @@ class TestUnaryFunctions(unittest.TestCase):
         self.check_forward(op, op_np, cuda.to_gpu(self.x))
 
     @attr.gpu
-    @condition.retry(3)
     def test_neg_forward_gpu(self):
         self.forward_gpu(lambda x: -x, lambda x: -x)
 
     @attr.gpu
-    @condition.retry(3)
     def test_abs_forward_gpu(self):
         self.forward_gpu(lambda x: abs(x), lambda x: abs(x))
 
     def check_backward(self, op, x_data, y_grad):
         options = {}
         if self.dtype == numpy.float16:
-            options = {'atol': 5e-4, 'rtol': 5e-3}
+            options = {'atol': 5e-3, 'rtol': 5e-2}
         gradient_check.check_backward(
             op, x_data, y_grad, dtype=numpy.float64, **options)
 
     def backward_cpu(self, op):
         self.check_backward(op, self.x, self.gy)
 
-    @condition.retry(3)
     def test_neg_backward_cpu(self):
         self.backward_cpu(lambda x: -x)
 
-    @condition.retry(3)
     def test_abs_backward_cpu(self):
         self.backward_cpu(lambda x: abs(x))
 
@@ -952,12 +839,10 @@ class TestUnaryFunctions(unittest.TestCase):
         self.check_backward(op, cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
     @attr.gpu
-    @condition.retry(3)
     def test_neg_backward_gpu(self):
         self.backward_gpu(lambda x: -x)
 
     @attr.gpu
-    @condition.retry(3)
     def test_abs_backward_gpu(self):
         self.backward_gpu(lambda x: abs(x))
 
@@ -974,16 +859,14 @@ class TestNegativePow(unittest.TestCase):
     def check_backward(self, x_data, y_grad):
         options = {}
         if self.dtype == numpy.float16:
-            options = {'atol': 5e-4, 'rtol': 5e-3}
+            options = {'atol': 5e-3, 'rtol': 5e-2}
         gradient_check.check_backward(
             lambda x: x ** 2, x_data, y_grad, dtype=numpy.float64, **options)
 
-    @condition.retry(10)
     def test_cpu(self):
         self.check_backward(self.x, self.gy)
 
     @attr.gpu
-    @condition.retry(10)
     def test_gpu(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
@@ -1035,14 +918,12 @@ class TestMatMulVarVar(unittest.TestCase):
 
     @unittest.skipUnless(sys.version_info >= (3, 5),
                          'Only for Python3.5 or higher')
-    @condition.retry(3)
     def test_forward_cpu(self):
         self.check_forward(self.x, self.y)
 
     @unittest.skipUnless(sys.version_info >= (3, 5),
                          'Only for Python3.5 or higher')
     @attr.gpu
-    @condition.retry(3)
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.y))
 
@@ -1060,7 +941,7 @@ class TestMatMulVarVar(unittest.TestCase):
             data = x_data, y_data
 
         if self.dtype == numpy.float16:
-            options = {'atol': 1e-3, 'rtol': 1e-3}
+            options = {'atol': 1e-3, 'rtol': 1e-2}
         else:
             options = {'atol': 1e-4, 'rtol': 1e-4}
         gradient_check.check_backward(

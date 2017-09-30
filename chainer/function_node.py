@@ -39,15 +39,16 @@ class FunctionNode(object):
     .. admonition:: Example
 
        Let ``x`` be an instance of :class:`Variable` and ``f`` be an instance
-       of :class:`FunctionNode` taking only one argument. Then a line
+       of :class:`FunctionNode` taking only one argument. Then the following
+       code
 
        >>> import numpy, chainer, chainer.functions as F
        >>> x = chainer.Variable(numpy.zeros(10))
        >>> f = F.Identity()
        >>> y = f.apply((x,))[0]
 
-       computes a new variable ``y`` and creates backward references. Actually,
-       backward references are set as per the following diagram::
+       computes a new variable ``y`` and creates backward references. The
+       backward references are actually set as per the following diagram::
 
            x.node <--- f <--- y.node
 
@@ -93,7 +94,7 @@ class FunctionNode(object):
          backpropagations so that the automatic higher-order differentiation is
          available.
        - The backpropagation of the new-style differentiable function can be
-         more computationally saving because the interface allows an
+         more computationally efficient because the interface allows an
          implementation to omit the computation of unneeded input gradients.
 
        Note that the new-style differentiable function is the standard way of
@@ -352,19 +353,19 @@ class FunctionNode(object):
 
         By calling this method from :meth:`forward`, the function node can
         specify which inputs are required for backprop. The input variables
-        with retained arrays can be obtained by :meth:`get_retained_inputs`
-        from :meth:`backward`.
+        with retained arrays can then be obtained by calling
+        :meth:`get_retained_inputs` from inside :meth:`backward`.
 
         Unlike :class:`Function`, the function node **DOES NOT** keep input
         arrays by default. If you want to keep some or all input arrays, do not
         forget to call this method.
 
         Note that **this method must not be called from the outside of
-        forward method.**
+        :meth:`forward`.**
 
         Args:
             indexes (iterable of int): Indexes of input variables that the
-                function does not require for backprop.
+                function will require for backprop.
 
         """
         self._input_indexes_to_retain = indexes
@@ -374,25 +375,25 @@ class FunctionNode(object):
 
         By calling this method from :meth:`forward`, the function node can
         specify which outputs are required for backprop. If this method is not
-        called, any output variables are not marked to keep the data array at
+        called, no output variables will be marked to keep their data array at
         the point of returning from :meth:`apply`. The output variables with
-        retained arrays can be obtained by :meth:`get_retained_outputs` from
-        :meth:`backward`.
+        retained arrays can then be obtained by calling
+        :meth:`get_retained_outputs` from inside :meth:`backward`.
 
         .. note::
 
            It is recommended to use this method if the function requires some
            or all output arrays in backprop. The function can also use output
-           arrays just by keeping references to them directly, whereas it might
-           influence on the performance of later function applications to the
+           arrays just by keeping references to them directly, although it
+           might affect the performance of later function applications on the
            output variables.
 
         Note that **this method must not be called from the outside of
-        forward method.**
+        :meth:`forward`.**
 
         Args:
-            indexes (iterable of int): Indexes of input variables that the
-                function does not require for backprop.
+            indexes (iterable of int): Indexes of output variables that the
+                function will require for backprop.
 
         """
         self._output_indexes_to_retain = indexes
@@ -799,7 +800,7 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads):
             grads[node] = g
 
             if retain_grad:
-                v = node.get_variable()
+                v = node.get_variable_or_none()
                 if v is not None:
                     v.grad_var = g
 
