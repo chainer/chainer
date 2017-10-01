@@ -1,3 +1,5 @@
+import numpy
+
 from chainer import function_node
 import chainer.functions
 from chainer.utils import type_check
@@ -33,6 +35,14 @@ class LinearFunction(function_node.FunctionNode):
             raise ValueError('numpy and cupy must not be used together\n'
                              'type(W): {0}, type(x): {1}'
                              .format(type(W), type(x)))
+
+        # NumPy raises an error when the array is not contiguous.
+        # See: https://github.com/chainer/chainer/issues/2744
+        # TODO(niboshi): Remove this code when NumPy is fixed.
+        if (isinstance(x, numpy.ndarray) and
+                not (x.flags.c_contiguous or x.flags.f_contiguous) and
+                1 in x.shape):
+            x = numpy.ascontiguousarray(x)
 
         y = x.dot(W.T).astype(x.dtype, copy=False)
         if len(inputs) == 3:

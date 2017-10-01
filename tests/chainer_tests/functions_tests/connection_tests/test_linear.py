@@ -151,4 +151,25 @@ class TestNonparameterizedLinear(unittest.TestCase):
             None)
 
 
+class TestLinearBackwardNoncontiguousGradOutputs(unittest.TestCase):
+    # NumPy raises an error when the inputs of dot operation are not
+    # contiguous. This test ensures this issue is correctly handled.
+    # (https://github.com/chainer/chainer/issues/2744)
+
+    # This test depdends on that backward() of F.sum generates
+    # a non-contiguous array.
+
+    def test_1(self):
+        n_batches = 1  # important
+        in_dims = (2, 2)
+        out_dim = 3
+        x_shape = (n_batches,) + in_dims
+        w_shape = (out_dim, numpy.prod(in_dims),)
+        x = numpy.ones(x_shape, numpy.float32)
+        w = numpy.ones(w_shape, numpy.float32)
+        y = functions.linear(chainer.Variable(x), w)
+        z = functions.sum(y)
+        z.backward()
+
+
 testing.run_module(__name__, __file__)
