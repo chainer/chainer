@@ -89,8 +89,10 @@ def make_ground_truth(label_num, shape, ignore_label, has_ignore_label, dtype):
         [{'label_num': 3}],
         [{'ignore_label': 0}],
         [{'has_ignore_label': True}],
-        [{'label_dtype': numpy.int},
-         {'label_dtype': numpy.int32}]
+        [{'label_dtype': numpy.int8},
+         {'label_dtype': numpy.int16},
+         {'label_dtype': numpy.int32},
+         {'label_dtype': numpy.int64}]
     )
 ))
 class TestClassificationSummary(unittest.TestCase):

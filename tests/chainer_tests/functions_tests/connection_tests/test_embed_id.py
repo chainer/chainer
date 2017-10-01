@@ -16,8 +16,10 @@ from chainer.testing import condition
      {'x_data': [[0, 1, 0], [1, 0, 1]], 'ignore_label': None},
      {'x_data': [0, 1, -1], 'ignore_label': -1},
      {'x_data': [[0, 1, -1], [-1, 0, 1]], 'ignore_label': -1}],
-    [{'label_dtype': numpy.int},
-     {'label_dtype': numpy.int32}]
+    [{'label_dtype': numpy.int8},
+     {'label_dtype': numpy.int16},
+     {'label_dtype': numpy.int32},
+     {'label_dtype': numpy.int64}]
 ))
 class TestEmbedID(unittest.TestCase):
 

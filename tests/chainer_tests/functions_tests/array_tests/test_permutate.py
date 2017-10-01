@@ -15,7 +15,10 @@ from chainer.testing import attr
      {'shape': (3,), 'dtype': 'f', 'axis': -1, 'inv': True},
      {'shape': (3, 4), 'dtype': 'd', 'axis': 1, 'inv': True},
      {'shape': (3, 4, 5), 'dtype': 'f', 'axis': 2, 'inv': False}],
-    [{'label_dtype': numpy.int}, {'label_dtype': numpy.int32}]
+    [{'label_dtype': numpy.int8},
+     {'label_dtype': numpy.int16},
+     {'label_dtype': numpy.int32},
+     {'label_dtype': numpy.int64}]
 ))
 class TestPermutate(unittest.TestCase):
 

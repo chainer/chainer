@@ -15,7 +15,7 @@ from chainer.testing import condition
 @testing.parameterize(*testing.product({
     'reduce': ['no', 'mean'],
     'norm': ['L1', 'L2'],
-    'label_dtype': [numpy.int, numpy.int32],
+    'label_dtype': [numpy.int8, numpy.int16, numpy.int32, numpy.int64],
 }))
 class TestHinge(unittest.TestCase):
 

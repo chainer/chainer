@@ -13,7 +13,7 @@ from chainer.utils import type_check
 @testing.parameterize(*testing.product({
     'shape': [(9, 11), (99,)],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
-    'label_dtype': [numpy.int, numpy.int32],
+    'label_dtype': [numpy.int8, numpy.int16, numpy.int32, numpy.int64],
 }))
 class TestBinaryAccuracy(unittest.TestCase):
 

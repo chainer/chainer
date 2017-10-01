@@ -306,7 +306,7 @@ def softmax_cross_entropy(
             dimensions is greater than 2.
         t (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`):
-            Variable holding an signed integer vector of ground truth
+            Variable holding a signed integer vector of ground truth
             labels. If ``t[i] == ignore_label``, corresponding ``x[i]`` is
             ignored.
         normalize (bool): If ``True``, this function normalizes the cross

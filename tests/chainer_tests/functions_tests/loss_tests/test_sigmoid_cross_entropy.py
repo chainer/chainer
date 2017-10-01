@@ -21,7 +21,9 @@ from chainer.testing import condition
      'label_dtype': numpy.int32},
     # too large shape causes int32 -> float64 issue
     {'shape': (65536, 1), 'normalize': False, 'label_dtype': numpy.int32},
-    {'shape': (8, 7), 'normalize': True, 'label_dtype': numpy.int}
+    {'shape': (8, 7), 'normalize': True, 'label_dtype': numpy.int8},
+    {'shape': (8, 7), 'normalize': True, 'label_dtype': numpy.int16},
+    {'shape': (8, 7), 'normalize': True, 'label_dtype': numpy.int64},
 )
 class TestSigmoidCrossEntropy(unittest.TestCase):
 

@@ -43,7 +43,7 @@ def binary_accuracy(y, t):
 
         t (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`):
-            Array holding an signed integer vector of ground truth labels.
+            Array holding a signed integer vector of ground truth labels.
             If ``t[i] == 1``, it indicates that i-th sample is positive.
             If ``t[i] == 0``, it indicates that i-th sample is negative.
             If ``t[i] == -1``, corresponding ``y[i]`` is ignored.

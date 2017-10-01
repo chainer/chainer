@@ -30,7 +30,7 @@ from chainer.testing import condition
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'weight_apply': [False, True],
     'enable_double_backprop': [False, True],
-    'label_dtype': [numpy.int],
+    'label_dtype': [numpy.int8, numpy.int16, numpy.int32, numpy.int64],
 }) + testing.product({
     'shape': [(0, 3), (0, 3, 2), (0, 3, 2, 2)],
     'cache_score': [True, False],

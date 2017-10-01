@@ -50,8 +50,10 @@ def accuracy(x, t, ignore_label):
         [{'dtype': numpy.float16},
          {'dtype': numpy.float32},
          {'dtype': numpy.float64}],
-        [{'label_dtype': numpy.int},
-         {'label_dtype': numpy.int32}]
+        [{'label_dtype': numpy.int8},
+         {'label_dtype': numpy.int16},
+         {'label_dtype': numpy.int32},
+         {'label_dtype': numpy.int64}]
     )
 )
 class TestAccuracy(unittest.TestCase):
