@@ -84,7 +84,7 @@ class SoftplusGrad(function_node.FunctionNode):
         e = chainer.functions.exp(self.beta * x)
         ggx = g * gy * self.beta * e / (1 + e) ** 2
         ggy = SoftplusGrad((self.beta,)).apply((x, g))[0]
-        return (ggx, ggy)
+        return ggx, ggy
 
 
 def softplus(x, beta=1.0):
