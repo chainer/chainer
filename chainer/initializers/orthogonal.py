@@ -27,8 +27,8 @@ class Orthogonal(initializer.Initializer):
     the array).
 
     Attributes:
-        scale (float): A constant to be multiplied by.
-        dtype: Data type specifier.
+        ~Orthogonal.scale (float): A constant to be multiplied by.
+        ~Orthogonal.dtype: Data type specifier.
 
     Reference: Saxe et al., https://arxiv.org/abs/1312.6120
 

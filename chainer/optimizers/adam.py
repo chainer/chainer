@@ -21,8 +21,8 @@ class AdamRule(optimizer.UpdateRule):
     hyperparameters.
 
     Args:
-        parent_hyperparam (~chainer.Hyperparameter): Hyperparameter that
-            provides the default values.
+        parent_hyperparam (~chainer.optimizer.Hyperparameter): Hyperparameter
+            that provides the default values.
         alpha (float): Step size.
         beta1 (float): Exponential decay rate of the first order moment.
         beta2 (float): Exponential decay rate of the second order moment.

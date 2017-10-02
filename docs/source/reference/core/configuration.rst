@@ -29,7 +29,7 @@ Note that the default values are set in the global config.
    Flag to configure deterministic computations in cuDNN APIs.
    If it is ``True``, convolution functions that use cuDNN use the deterministic mode (i.e, the computation is reproducible).
    Otherwise, the results of convolution functions using cuDNN may be non-deterministic in exchange for the performance.
-   The defualt value is ``False``.
+   The default value is ``False``.
 ``chainer.config.debug``
    Debug mode flag.
    If it is ``True``, Chainer runs in the debug mode.
@@ -37,7 +37,7 @@ Note that the default values are set in the global config.
    The default value is given by ``CHAINER_DEBUG`` environment variable (set to 0 or 1) if available, otherwise uses ``False``.
 ``chainer.config.enable_backprop``
    Flag to enable backpropagation support.
-   If it is ``True``, :class:`Function` makes a computaitonal graph of :class:`Variable` for back-propagation.
+   If it is ``True``, :class:`Function` makes a computational graph of :class:`Variable` for back-propagation.
    Otherwise, it does not make a computational graph.
    So a user cannot call :func:`~chainer.Variable.backward` method to results of the function.
    The default value is ``True``.

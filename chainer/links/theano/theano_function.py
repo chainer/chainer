@@ -25,7 +25,7 @@ class TheanoFunction(link.Link):
 
     """Theano function wrapper.
 
-    This function wrapps Theano function as a :class:`chainer.Link`.
+    This function wraps Theano function as a :class:`chainer.Link`.
     A user needs to make input Theano variables and output Theano variables.
     This function automatically creates Theano function for forward calculation
     and backward calculation from inputs and ouptuts. And then, it sends data
@@ -52,12 +52,13 @@ class TheanoFunction(link.Link):
        The current implementation always copys :class:`cupy.ndarray` to CPU.
 
     Args:
-        inputs (tuple of ~theano.tensor.TensorVariable): Input variables of
+        inputs (tuple of ``theano.tensor.TensorVariable``): Input variables of
             Theano. This function accepts the same number of
-            :class:`~chainer.Variable`s in forward computation.
-        outputs (tuple of ~theano.tensor.TensorVariable): Output variables of
-            Theano. The function returns the same number
-            :class:`~chainder.Variable`s as ``outputs``.
+            :class:`~chainer.Variable`\\ s in forward computation.
+        outputs (tuple of ``theano.tensor.TensorVariable``):
+            Output variables of Theano.
+            The function returns the same number of
+            :class:`~chainer.Variable`\\ s as ``outputs``.
 
     """
 

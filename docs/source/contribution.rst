@@ -62,26 +62,21 @@ Then, the timeline of the updates is depicted by the following table.
 ========== =========== =========== ============
   0 weeks    X.0.0rc1    --         --
   4 weeks    X.0.0       Y.0.0a1    --
-  8 weeks    X.0.1       Y.0.0b1    --
- 12 weeks    X.0.2       Y.0.0rc1   --
+  8 weeks    X.1.0*      Y.0.0b1    --
+ 12 weeks    X.2.0*      Y.0.0rc1   --
  16 weeks    --          Y.0.0      Z.0.0a1
 ========== =========== =========== ============
 
-The dates shown in the left-most column are relative to the release of ``X.0.0rc1``.
-In particular, each revision release is made four weeks after the previous one of the same major version, and the pre-release of the upcoming major version is made at the same time.
+(* These might be revision releases)
 
-Note that the development of ``X.0.x`` stops at ``X.0.2``.
+The dates shown in the left-most column are relative to the release of ``X.0.0rc1``.
+In particular, each revision/minor release is made four weeks after the previous one of the same major version, and the pre-release of the upcoming major version is made at the same time.
+Whether these releases are revision or minor is determined based on the contents of each update.
+
+Note that there are only three stable releases for the versions ``X.x.x``.
 During the parallel development of ``Y.0.0`` and ``Z.0.0a1``, the version ``Y`` is treated as an **almost-stable version** and ``Z`` is treated as a development version.
 
-If there is a critical bug found in ``X.0.2`` after stopping the development of version ``X``, we may release a hot-fix for this version at any time.
-
-.. note::
-
-   The release cycle of ``2.0.x`` and ``3.0.0x`` are slightly different from this table because we do not have ``3.0.0a1`` at the timing of the release of ``2.0.0``.
-   In this case, the releases of ``3.0.0x`` are shifted four weeks behind the usual timeline, that is, ``3.0.0a1`` will be released at the same time with ``2.0.1``.
-
-As you can see in the above table, we basically do not have any minor releases from v2.
-All changes that add and/or modify APIs should be made by the pre-release updates.
+If there is a critical bug found in ``X.x.x`` after stopping the development of version ``X``, we may release a hot-fix for this version at any time.
 
 We create a milestone for each upcoming release at GitHub.
 The GitHub milestone is basically used for collecting the issues and PRs resolved in the release.
@@ -105,8 +100,30 @@ If the change can also be applied to the stable version, a core team member will
 If the change is only applicable to the stable version and not to the ``master`` branch, please send it to the versioned branch.
 We basically only accept changes to the latest versioned branch (where the stable version is developed) unless the fix is critical.
 
+If you want to make a new feature of the ``master`` branch available in the current stable version, please send a *backport PR* to the stable version (the latest ``vN`` branch).
+See the next section for details.
+
 *Note: a change that can be applied to both branches should be sent to the* ``master`` *branch.*
 *Each release of the stable version is also merged to the development version so that the change is also reflected to the next major version.*
+
+Feature Backport PRs
+~~~~~~~~~~~~~~~~~~~~
+
+We basically do not backport any new features of the development version to the stable versions.
+If you desire to include the feature to the current stable version and you can work on the backport work, we welcome such a contribution.
+In such a case, you have to send a backport PR to the latest ``vN`` branch.
+**Note that we do not accept any feature backport PRs to older versions because we are not running quality assurance workflows (e.g. CI) for older versions so that we cannot ensure that the PR is correctly ported.**
+
+There are some rules on sending a backport PR.
+
+- Start the PR title from the prefix **[backport]**.
+- Clarify the original PR number in the PR description (something like "This is a backport of #XXXX").
+- (optional) Write to the PR description the motivation of backporting the feature to the stable version.
+
+Please follow these rules when you create a feature backport PR.
+
+Note: PRs that do not include any changes/additions to APIs (e.g. bug fixes, documentation improvements) are usually backported by core dev members.
+It is also appreciated to make such a backport PR by any contributors, though, so that the overall development proceeds more smoothly!
 
 Issues and Pull Requests
 ------------------------
@@ -188,6 +205,11 @@ WIP PR is also useful to have discussions based on a concrete code.
 Coding Guidelines
 -----------------
 
+.. note::
+
+   Coding guidelines are updated at v3.0.
+   Those who have contributed to older versions should read the guidelines again.
+
 We use `PEP 8 <https://www.python.org/dev/peps/pep-0008/>`_ and a part of `OpenStack Style Guidelines <http://docs.openstack.org/developer/hacking/>`_ related to general coding style as our basic style guidelines.
 
 To check your code, use ``autopep8`` and ``flake8`` command installed by ``hacking`` package::
@@ -211,12 +233,46 @@ Here is a (not-complete) list of the rules that ``flake8`` cannot check.
 * Importing non-module symbols is prohibited.
 * Import statements must be organized into three parts: standard libraries, third-party libraries, and internal imports. [H306]
 
-In addition, we restrict the usage of *shortcut symbols* in our code base.
-They are symbols imported by packages and sub-packages of ``chainer``.
-For example, ``chainer.Variable`` is a shortcut of ``chainer.variable.Variable``.
-**It is not allowed to use such shortcuts in the Chainer library implementation.**
-Note that you can still use them in ``tests`` and ``examples`` directories.
-Also note that you should use shortcut names of CuPy APIs in Chainer implementation.
+In addition, we restrict the usage of *shortcut aliases* in any global-scope code.
+In particular, you cannot use shortcut aliases to designate a parent class in global-scope class definitions.
+When you want to make a class inheriting another class defined in another module, you have to spell out the full module name instead of importing a module that provides an alias.
+
+For example, the following code is not allowed.
+
+.. code-block:: py
+
+   import chainer
+
+   class MyLink(chainer.Link): ...
+
+Instead, import ``chainer.link`` and use that.
+
+.. code-block:: py
+
+   import chainer.link
+
+   class MyLink(chainer.link.Link): ...
+
+If you feel the code too verbose, you can also use ``from import`` or ``import as``.
+
+.. code-block:: py
+
+   from chainer import link
+
+   class MyLink(link.Link): ...
+
+.. note::
+
+   From v3.0, we allow shortcut aliases used inside of functions and methods that are not called from any global scope code.
+   For example, you can write ``chainer.Variable`` instead of ``chainer.variable.Variable`` inside of functions and methods.
+   Use of such aliases is prohibited in the past for avoiding confusing errors related to cyclic dependencies;
+   we relaxed the rule so that the library code looks similar to user code.
+
+   When you use such shortcut aliases, please be careful with cyclic imports.
+   One of the typical pitfalls is a way to import ``chainer.functions``.
+   An import like ``import chainer.functions as F`` within modules under ``chainer.functions`` does not work.
+   An import like ``from chainer import functions`` works well with Python 3, but does not with Python 2.
+   We recommend you to use ``import chainer.functions`` and spell out like ``chainer.functions.foo`` in your methods.
 
 Once you send a pull request, your coding style is automatically checked by `Travis-CI <https://travis-ci.org/chainer/chainer/>`_.
 The reviewing process starts after the check passes.

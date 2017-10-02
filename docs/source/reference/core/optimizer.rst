@@ -5,7 +5,7 @@ Optimizer
    :toctree: generated/
    :nosignatures:
 
-   chainer.Hyperparameter
+   chainer.optimizer.Hyperparameter
    chainer.UpdateRule
    chainer.Optimizer
    chainer.GradientMethod

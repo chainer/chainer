@@ -46,9 +46,10 @@ class TestPermutate(unittest.TestCase):
         self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.indices))
 
     def check_backward(self, x_data, ind_data, g_data):
-        fun = functions.Permutate(axis=self.axis, inv=self.inv)
+        def fun(x, ind):
+            return functions.permutate(x, ind, self.axis, self.inv)
         gradient_check.check_backward(
-            fun, (x_data, ind_data), g_data)
+            fun, (x_data, ind_data), g_data, dtype='d', atol=0.001, rtol=0.001)
 
     def test_backward_cpu(self):
         self.check_backward(self.x, self.indices, self.g)
