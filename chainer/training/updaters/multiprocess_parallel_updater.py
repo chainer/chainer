@@ -63,7 +63,7 @@ class _Worker(multiprocessing.Process):
                 del loss
 
                 gg = gather_grads(self.model)
-                nccl_data_type = get_nccl_data_type(gg.dtype)
+                nccl_data_type = _get_nccl_data_type(gg.dtype)
                 null_stream = cuda.Stream.null
                 self.comm.reduce(gg.data.ptr, gg.data.ptr, gg.size,
                                  nccl_data_type, nccl.NCCL_SUM, 0,
@@ -71,7 +71,7 @@ class _Worker(multiprocessing.Process):
                 del gg
                 self.model.cleargrads()
                 gp = gather_params(self.model)
-                nccl_data_type = get_nccl_data_type(gp.dtype)
+                nccl_data_type = _get_nccl_data_type(gp.dtype)
                 self.comm.bcast(gp.data.ptr, gp.size, nccl_data_type, 0,
                                 null_stream.ptr)
                 scatter_params(self.model, gp)
@@ -214,7 +214,7 @@ class MultiprocessParallelUpdater(updater.StandardUpdater):
             null_stream = cuda.Stream.null
             if self.comm is not None:
                 gg = gather_grads(self._master)
-                nccl_data_type = get_nccl_data_type(gg.dtype)
+                nccl_data_type = _get_nccl_data_type(gg.dtype)
                 self.comm.reduce(gg.data.ptr, gg.data.ptr, gg.size,
                                  nccl_data_type, nccl.NCCL_SUM,
                                  0, null_stream.ptr)
@@ -223,7 +223,7 @@ class MultiprocessParallelUpdater(updater.StandardUpdater):
             optimizer.update()
             if self.comm is not None:
                 gp = gather_params(self._master)
-                nccl_data_type = get_nccl_data_type(gp.dtype)
+                nccl_data_type = _get_nccl_data_type(gp.dtype)
                 self.comm.bcast(gp.data.ptr, gp.size, nccl_data_type,
                                 0, null_stream.ptr)
 
@@ -261,7 +261,7 @@ def size_num_grads(link):
 
 def _memcpy_gather():
     return cuda.cupy.ElementwiseKernel(
-        'raw T ptrs, raw X dtypes, raw X info',
+        'raw T ptrs, raw X dtypes, raw Y info',
         'raw float32 dst',
         '''
             int id_min = id_pre;
@@ -278,15 +278,13 @@ def _memcpy_gather():
             if (id > 0) i_src -= info[id];
 
             dst[i_dst] = 0;
-            if (dtypes[id] == 0) { // fp32
-                float *src = (float *)(ptrs[id]);
-                if (src != NULL) {
+            if (ptrs[id] != NULL) {
+                if (dtypes[id] == 0) { // fp32
+                    float *src = reinterpret_cast<float *>(ptrs[id]);
                     dst[i_dst] = src[i_src];
                 }
-            }
-            else { // fp16
-                float16 *src = (float16 *)(ptrs[id]);
-                if (src != NULL) {
+                else { // fp16
+                    float16 *src = reinterpret_cast<float16 *>(ptrs[id]);
                     dst[i_dst] = (float) (src[i_src]);
                 }
             }
@@ -303,7 +301,7 @@ def _gather(link, target):
     size, num = size_num_grads(link)
 
     ptrs = numpy.empty(num, dtype=numpy.uint64)
-    dtypes = numpy.empty(num, dtype=numpy.int32)
+    dtypes = numpy.empty(num, dtype=numpy.int8)
     info = numpy.empty(num + 1, dtype=numpy.int32)
     info[0] = 0
     i = 0
@@ -321,9 +319,9 @@ def _gather(link, target):
         i += 1
     info[0] = num
 
-    ptrs = cuda.to_gpu(ptrs, stream=cuda.Stream.null)
-    dtypes = cuda.to_gpu(dtypes, stream=cuda.Stream.null)
-    info = cuda.to_gpu(info, stream=cuda.Stream.null)
+    ptrs = cuda.to_gpu(ptrs)
+    dtypes = cuda.to_gpu(dtypes)
+    info = cuda.to_gpu(info)
 
     return _memcpy_gather()(ptrs, dtypes, info, size=size)
 
@@ -356,7 +354,7 @@ def gather_params(link):
 
 def _memcpy_scatter():
     return cuda.cupy.ElementwiseKernel(
-        'raw T ptrs, raw X dtypes, raw X info, raw float32 array',
+        'raw T ptrs, raw X dtypes, raw Y info, raw float32 array',
         '',
         '''
             int id_min = id_pre;
@@ -372,15 +370,13 @@ def _memcpy_scatter():
             int i_dst = i;
             if (id > 0) i_dst -= info[id];
 
-            if (dtypes[id] == 0) { // fp32
-                float *dst = (float *)(ptrs[id]);
-                if (dst != NULL) {
+            if (ptrs[id] != NULL) {
+                if (dtypes[id] == 0) { // fp32
+                    float *dst = reinterpret_cast<float *>(ptrs[id]);
                     dst[i_dst] = array[i_src];
                 }
-            }
-            else { // fp16
-                float16 *dst = (float16 *)(ptrs[id]);
-                if (dst != NULL) {
+                else { // fp16
+                    float16 *dst = reinterpret_cast<float16 *>(ptrs[id]);
                     dst[i_dst] = (float) array[i_src];
                 }
             }
@@ -397,7 +393,7 @@ def _scatter(link, array, target):
     size, num = size_num_grads(link)
 
     ptrs = numpy.zeros(num, dtype=numpy.uint64)
-    dtypes = numpy.zeros(num, dtype=numpy.int32)
+    dtypes = numpy.zeros(num, dtype=numpy.int8)
     info = numpy.zeros(num + 1, dtype=numpy.int32)
     info[0] = 0
     i = 0
@@ -419,9 +415,9 @@ def _scatter(link, array, target):
         raise()
     info[0] = num
 
-    ptrs = cuda.to_gpu(ptrs, stream=cuda.Stream.null)
-    dtypes = cuda.to_gpu(dtypes, stream=cuda.Stream.null)
-    info = cuda.to_gpu(info, stream=cuda.Stream.null)
+    ptrs = cuda.to_gpu(ptrs)
+    dtypes = cuda.to_gpu(dtypes)
+    info = cuda.to_gpu(info)
 
     return _memcpy_scatter()(ptrs, dtypes, info, array, size=size)
 
@@ -446,7 +442,7 @@ def scatter_params(link, array):
     return _scatter(link, array, "data")
 
 
-def get_nccl_data_type(dtype):
+def _get_nccl_data_type(dtype):
     """Get data type for NCCL"""
 
     if dtype == numpy.float32:
