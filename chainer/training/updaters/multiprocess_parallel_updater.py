@@ -285,7 +285,7 @@ def _memcpy_gather():
                 }
                 else { // fp16
                     float16 *src = reinterpret_cast<float16 *>(ptrs[id]);
-                    dst[i_dst] = (float) (src[i_src]);
+                    dst[i_dst] = static_cast<float>(src[i_src]);
                 }
             }
             id_pre = id;
@@ -377,7 +377,7 @@ def _memcpy_scatter():
                 }
                 else { // fp16
                     float16 *dst = reinterpret_cast<float16 *>(ptrs[id]);
-                    dst[i_dst] = (float) array[i_src];
+                    dst[i_dst] = static_cast<float16>(array[i_src]);
                 }
             }
             id_pre = id;
