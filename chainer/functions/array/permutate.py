@@ -3,7 +3,7 @@ import six
 
 import chainer
 from chainer import cuda
-from chainer import function
+from chainer import function_node
 from chainer.utils import type_check
 
 
@@ -37,7 +37,7 @@ def _inverse_indices(indices):
     return r
 
 
-class Permutate(function.Function):
+class Permutate(function_node.FunctionNode):
 
     """Permutate function."""
 
@@ -75,10 +75,11 @@ class Permutate(function.Function):
 
         return self._permutate(x, inds, self.inv),
 
-    def backward(self, inputs, grads):
-        inds = inputs[1]
-        g = grads[0]
-        return self._permutate(g, inds, not self.inv), None
+    def backward(self, indexes, grad_outputs):
+        inds = self.inputs[1]
+        g, = grad_outputs
+        gx, = Permutate(self.axis, not self.inv).apply((g, inds.data))
+        return gx, None
 
 
 def permutate(x, indices, axis=0, inv=False):
@@ -132,4 +133,5 @@ def permutate(x, indices, axis=0, inv=False):
                [ 5.,  4.]], dtype=float32)
 
     """
-    return Permutate(axis=axis, inv=inv)(x, indices)
+    y, = Permutate(axis, inv).apply((x, indices))
+    return y
