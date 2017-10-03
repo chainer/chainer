@@ -33,6 +33,23 @@ def get_conv_outsize(size, k, s, p, cover_all=False, d=1):
         return (size + p * 2 - dk) // s + 1
 
 
+def get_conv_slices(
+        size, k, s, p, cover_all=False, d=1, include_pad=True, dtype='l'):
+    """Returns the patch slices.
+
+    Returns:
+        A tuple of two 1-D :class:`numpy.ndarrays`\\ s.
+        Each represents starting and ending indices of the patches.
+    """
+    n = get_conv_outsize(size, k, s, p, cover_all, d)
+    starts = -p + numpy.arange(n, dtype=dtype) * s
+    ends = starts + k
+    if not include_pad:
+        starts = numpy.maximum(starts, 0)
+        ends = numpy.minimum(ends, size)
+    return starts, ends
+
+
 def get_deconv_outsize(size, k, s, p, cover_all=False, d=1):
     """Calculates output size of deconvolution.
 
