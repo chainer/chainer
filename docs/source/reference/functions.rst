@@ -76,6 +76,7 @@ Array manipulations
    chainer.functions.reshape
    chainer.functions.resize_images
    chainer.functions.rollaxis
+   chainer.functions.scatter_add
    chainer.functions.select_item
    chainer.functions.separate
    chainer.functions.space2depth
