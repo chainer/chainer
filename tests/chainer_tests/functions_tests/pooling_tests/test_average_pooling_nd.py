@@ -19,6 +19,7 @@ from chainer_tests.functions_tests.pooling_tests import pooling_nd_helper
 @testing.parameterize(*testing.product({
     'dims': [(4,), (4, 3), (4, 3, 2), (1, 1, 1, 1)],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'pad_value': [None, 0],
 }))
 class TestAveragePoolingND(unittest.TestCase):
 
@@ -52,9 +53,19 @@ class TestAveragePoolingND(unittest.TestCase):
         pad = self.pad
         x = chainer.Variable(x_data)
         with chainer.using_config('use_cudnn', use_cudnn):
-            y = functions.average_pooling_nd(x, ksize, stride, pad)
+            y = functions.average_pooling_nd(
+                x, ksize, stride, pad, self.pad_value)
         self.assertEqual(y.data.dtype, self.dtype)
         y_data = cuda.to_cpu(y.data)
+
+        def idx_size(idx):
+            if self.pad_value is None:
+                s = 1
+                for slic in idx:
+                    s *= slic.stop - slic.start
+                return s
+            else:
+                return functools.reduce(operator.mul, ksize)
 
         self.assertEqual(self.gy.shape, y_data.shape)
         patches = pooling_nd_helper.pooling_patches(
@@ -62,9 +73,9 @@ class TestAveragePoolingND(unittest.TestCase):
         for k in six.moves.range(2):
             for c in six.moves.range(3):
                 x = self.x[k, c]
-                size = functools.reduce(operator.mul, ksize)
-                expect = numpy.array([x[idx].sum() for idx in patches])
-                expect = expect.reshape(y_data.shape[2:]) / size
+                expect = numpy.array(
+                    [x[idx].sum() / idx_size(idx) for idx in patches])
+                expect = expect.reshape(y_data.shape[2:])
                 testing.assert_allclose(
                     expect, y_data[k, c], **self.check_forward_options)
 
@@ -89,15 +100,20 @@ class TestAveragePoolingND(unittest.TestCase):
         if len(self.dims) != 2:
             return
 
+        if self.pad_value != 0:
+            # Not supported in average_pooling_2d
+            return
+
         ksize = self.ksize
         stride = self.stride
         pad = self.pad
 
         with chainer.using_config('use_cudnn', use_cudnn):
-            y_nd = functions.average_pooling_nd(x_data, ksize, stride=stride,
-                                                pad=pad)
-            y_2d = functions.average_pooling_2d(x_data, ksize, stride=stride,
-                                                pad=pad)
+            y_nd = functions.average_pooling_nd(
+                x_data, ksize, stride=stride, pad=pad,
+                pad_value=self.pad_value)
+            y_2d = functions.average_pooling_2d(
+                x_data, ksize, stride=stride, pad=pad)
         testing.assert_allclose(y_nd.data, y_2d.data)
 
     def test_forward_consistency_regression_cpu(self):
