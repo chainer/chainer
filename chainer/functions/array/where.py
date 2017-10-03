@@ -1,11 +1,11 @@
 import numpy
 
 from chainer import cuda
-from chainer import function
+from chainer import function_node
 from chainer.utils import type_check
 
 
-class Where(function.Function):
+class Where(function_node.FunctionNode):
 
     """Choose elements depending on condition."""
 
@@ -26,11 +26,13 @@ class Where(function.Function):
         condition, x, y = inputs
         return xp.where(condition, x, y),
 
-    def backward(self, inputs, grads):
-        xp = cuda.get_array_module(inputs[0])
-        condition = inputs[0]
-        gx = xp.where(condition, grads[0], 0)
-        gy = xp.where(condition, 0, grads[0])
+    def backward(self, indexes, grad_outputs):
+        condition = self.inputs[0]
+        xp = cuda.get_array_module(condition.data)
+        g, = grad_outputs
+        zeros = xp.zeros(g.shape, dtype=g.dtype)
+        gx, = Where().apply((condition.data, g, zeros))
+        gy, = Where().apply((condition.data, zeros, g))
         return None, gx, gy
 
 
@@ -72,4 +74,5 @@ def where(condition, x, y):
 
     """
 
-    return Where()(condition, x, y)
+    y, = Where().apply((condition, x, y))
+    return y
