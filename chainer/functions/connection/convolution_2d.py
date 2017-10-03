@@ -38,11 +38,12 @@ class Convolution2DFunction(function_node.FunctionNode):
             "the gradient w.r.t. x is automatically decided during "
             "backpropagation."
         )
-        argument.assert_kwargs_empty(kwargs)
+        group, = argument.parse_kwargs(kwargs, ('group', 1))
 
         self.sy, self.sx = _pair(stride)
         self.ph, self.pw = _pair(pad)
         self.cover_all = cover_all
+        self.group = group
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -55,7 +56,8 @@ class Convolution2DFunction(function_node.FunctionNode):
             w_type.dtype.kind == 'f',
             x_type.ndim == 4,
             w_type.ndim == 4,
-            x_type.shape[1] == w_type.shape[1],
+            # Need to consider the case that group count > 1.
+            # x_type.shape[1] == w_type.shape[1],
         )
 
         if type_check.eval(n_in) == 3:
@@ -81,15 +83,56 @@ class Convolution2DFunction(function_node.FunctionNode):
                                  'type(W): {0}, type(x): {1}'
                                  .format(type(W), type(x)))
 
-        kh, kw = W.shape[2:]
-        col = conv.im2col_cpu(
-            x, kh, kw, self.sy, self.sx, self.ph, self.pw,
-            cover_all=self.cover_all)
-        y = numpy.tensordot(
-            col, W, ((1, 2, 3), (1, 2, 3))).astype(x.dtype, copy=False)
-        if b is not None:
-            y += b
-        return numpy.rollaxis(y, 3, 1),
+        if self.group == 1:
+            kh, kw = W.shape[2:]
+            col = conv.im2col_cpu(
+                x, kh, kw, self.sy, self.sx, self.ph, self.pw,
+                cover_all=self.cover_all)
+            y = numpy.tensordot(
+                col, W, ((1, 2, 3), (1, 2, 3))).astype(x.dtype, copy=False)
+            if b is not None:
+                y += b
+            return numpy.rollaxis(y, 3, 1),
+        else:
+            # G: group count
+            # N: batch size
+            # kH, kW: kernel height, kernel width
+            # iC, iH, iW: input channels, input height, input width
+            # oC, oH, oW: output channels, output height, output width
+            G = self.group
+            N, iC, iH, iW = x.shape
+            oC, _, kH, kW = W.shape
+            iCg = int(iC/G)
+            oCg = int(oC/G)
+
+            _col = conv.im2col_cpu(
+                x, kH, kW, self.sy, self.sx, self.ph, self.pw,
+                cover_all=self.cover_all)
+            # _col: (N, iC, kH, kW, oH, oW)
+            _, _, _, _, oH, oW = _col.shape
+            _col = _col.reshape((N, G, iCg, kH, kW, oH, oW))
+            _col = numpy.rollaxis(_col, 1)
+            # _col: (G, N, iCg, kH, kW, oH, oW)
+            _W = W.reshape(G, oCg, iCg, kH, kW)
+            if b is not None:
+                _b = b.reshape(G, oCg)
+
+            _ys = []
+            for g in range(G):
+                _y = numpy.tensordot(_col[g, ], _W[g, ],
+                                     ((1, 2, 3), (1, 2, 3))
+                                     ).astype(x.dtype, copy=False)
+                # _y: (N, oH, oW, oCg)
+                if b is not None:
+                    _y += _b[g, ]
+                _y = numpy.rollaxis(_y, 3, 1)
+                # _y: (N, oCg, oH, oW)
+                _ys.append(_y)
+
+            y = numpy.stack(_ys, axis=1)
+            # y: (N, G, oCg, oH, oW)
+            y = y.reshape((N, oC, oH, oW))
+            return y,
 
     def forward_gpu(self, inputs):
         self.retain_inputs((0, 1))  # retain only x and W
@@ -130,7 +173,8 @@ class Convolution2DFunction(function_node.FunctionNode):
 
             filter_desc = cudnn.create_filter_descriptor(W)
             conv_desc = cudnn.create_convolution_descriptor(
-                (self.ph, self.pw), (self.sy, self.sx), x.dtype)
+                (self.ph, self.pw), (self.sy, self.sx), x.dtype,
+                group=self.group)
             if b is not None:
                 bias_desc = cudnn.create_tensor_descriptor(
                     b[None, :, None, None])
@@ -178,7 +222,7 @@ class Convolution2DFunction(function_node.FunctionNode):
             xh, xw = x.shape[2:]
             gx = chainer.functions.deconvolution_2d(
                 gy, W, stride=(self.sy, self.sx), pad=(self.ph, self.pw),
-                outsize=(xh, xw))
+                outsize=(xh, xw), group=self.group)
             ret.append(gx)
         if 1 in indexes:
             gW, = Convolution2DGradW(self).apply((x, gy))
@@ -201,13 +245,11 @@ class Convolution2DGradW(function_node.FunctionNode):
         self.pw = conv2d.pw
         self.cover_all = conv2d.cover_all
         self.W_dtype = W_node.dtype
+        self.group = conv2d.group
 
     def forward_cpu(self, inputs):
         self.retain_inputs((0, 1))
         x, gy = inputs
-        col = conv.im2col_cpu(
-            x, self.kh, self.kw, self.sy, self.sx, self.ph, self.pw,
-            cover_all=self.cover_all)
 
         # NumPy raises an error when the array is not contiguous.
         # See: https://github.com/chainer/chainer/issues/2744
@@ -216,9 +258,56 @@ class Convolution2DGradW(function_node.FunctionNode):
                 1 in gy.shape):
             gy = numpy.ascontiguousarray(gy)
 
-        gW = numpy.tensordot(
-            gy, col, ((0, 2, 3), (0, 4, 5))).astype(self.W_dtype, copy=False)
-        return gW,
+        if self.group == 1:
+            col = conv.im2col_cpu(
+                x, self.kh, self.kw, self.sy, self.sx, self.ph, self.pw,
+                cover_all=self.cover_all)
+            print('# gy.shape: {}'.format(gy.shape))
+            print('# col.shape: {}'.format(col.shape))
+            gW = numpy.tensordot(gy, col, ((0, 2, 3), (0, 4, 5))
+                                 ).astype(self.W_dtype, copy=False)
+            return gW,
+        else:
+            # G: group count
+            # N: batch size
+            # kH, kW: kernel height, kernel width
+            # iC, iH, iW: input channels, input height, input width
+            # oC, oH, oW: output channels, output height, output width
+            G = self.group
+            kH = self.kh
+            kW = self.kw
+            N, oC, oH, oW = gy.shape
+            _, iC, _, _ = x.shape
+            iCg = int(iC/G)
+            oCg = int(oC/G)
+
+            _gy = gy.reshape(N, G, oCg, oH, oW)
+            _gy = numpy.rollaxis(_gy, 1)
+            # _gy: (G, N, oCg, oH, oW)
+
+            _col = conv.im2col_cpu(
+                x, kH, kW, self.sy, self.sx, self.ph, self.pw,
+                cover_all=self.cover_all)
+            _col = _col.reshape((N, G, iCg, kH, kW, oH, oW))
+            _col = numpy.rollaxis(_col, 1)
+            # _col: (G, N, iCg, kH, kW, oH, oW)
+
+            # Work-around of NumPy's bug?
+            _gy = numpy.ascontiguousarray(_gy)
+            _col = numpy.ascontiguousarray(_col)
+
+            _gWs = []
+            for g in range(G):
+                _gW = numpy.tensordot(_gy[g, ], _col[g, ],
+                                      ((0, 2, 3), (0, 4, 5))
+                                      ).astype(self.W_dtype)
+                # _gW: (oCg, iCg, kH, kW)
+                _gWs.append(_gW)
+
+            gW = numpy.stack(_gWs)
+            # gW: (G, oCg, iCg, kH, kW)
+            gW = gW.reshape(oC, iCg, kH, kW)
+            return gW,
 
     def forward_gpu(self, inputs):
         self.retain_inputs((0, 1))
@@ -236,7 +325,10 @@ class Convolution2DGradW(function_node.FunctionNode):
                                                         copy=False)
             return gW,
 
-        gW = cuda.cupy.empty((out_c, c, self.kh, self.kw), dtype=self.W_dtype)
+        iC = c
+        iCg = int(iC/self.group)
+        gW = cuda.cupy.empty((out_c, iCg, self.kh, self.kw),
+                             dtype=self.W_dtype)
         x = cuda.cupy.ascontiguousarray(x)
         gy = cuda.cupy.ascontiguousarray(gy)
 
@@ -246,7 +338,8 @@ class Convolution2DGradW(function_node.FunctionNode):
 
         filter_desc = cudnn.create_filter_descriptor(gW)
         conv_desc = cudnn.create_convolution_descriptor(
-            (self.ph, self.pw), (self.sy, self.sx), x.dtype)
+            (self.ph, self.pw), (self.sy, self.sx), x.dtype,
+            group=self.group)
 
         oz_dtype = 'd' if x.dtype == 'd' else 'f'
         one = numpy.array(1, dtype=oz_dtype).ctypes
@@ -278,12 +371,12 @@ class Convolution2DGradW(function_node.FunctionNode):
             xh, xw = x.shape[2:]
             gx = chainer.functions.deconvolution_2d(
                 gy, ggW, stride=(self.sy, self.sx), pad=(self.ph, self.pw),
-                outsize=(xh, xw))
+                outsize=(xh, xw), group=self.group)
             ret.append(gx)
         if 1 in indexes:
             ggy = convolution_2d(
                 x, ggW, stride=(self.sy, self.sx), pad=(self.ph, self.pw),
-                cover_all=self.cover_all)
+                cover_all=self.cover_all, group=self.group)
             ret.append(ggy)
 
         return ret
@@ -411,9 +504,9 @@ cover_all=True)
         "supported anymore. "
         "Use chainer.using_config('cudnn_deterministic', value) "
         "context where value is either `True` or `False`.")
-    argument.assert_kwargs_empty(kwargs)
+    group, = argument.parse_kwargs(kwargs, ('group', 1))
 
-    fnode = Convolution2DFunction(stride, pad, cover_all)
+    fnode = Convolution2DFunction(stride, pad, cover_all, group=group)
     if b is None:
         args = x, W
     else:

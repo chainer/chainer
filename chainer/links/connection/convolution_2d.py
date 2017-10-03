@@ -108,7 +108,7 @@ class Convolution2D(link.Link):
             "supported anymore. "
             "Use chainer.using_config('cudnn_deterministic', value) "
             "context where value is either `True` or `False`.")
-        argument.assert_kwargs_empty(kwargs)
+        group, = argument.parse_kwargs(kwargs, ('group', 1))
 
         if ksize is None:
             out_channels, ksize, in_channels = in_channels, out_channels, None
@@ -117,6 +117,7 @@ class Convolution2D(link.Link):
         self.stride = _pair(stride)
         self.pad = _pair(pad)
         self.out_channels = out_channels
+        self.group = int(group)
 
         with self.init_scope():
             W_initializer = initializers._get_initializer(initialW)
@@ -134,7 +135,11 @@ class Convolution2D(link.Link):
 
     def _initialize_params(self, in_channels):
         kh, kw = _pair(self.ksize)
-        W_shape = (self.out_channels, in_channels, kh, kw)
+        if (self.out_channels % self.group != 0 or
+                in_channels % self.group != 0):
+            raise ValueError('number of input and output channels must be'
+                             'divisable by group count')
+        W_shape = (self.out_channels, int(in_channels/self.group), kh, kw)
         self.W.initialize(W_shape)
 
     def __call__(self, x):
@@ -150,7 +155,7 @@ class Convolution2D(link.Link):
         if self.W.data is None:
             self._initialize_params(x.shape[1])
         return convolution_2d.convolution_2d(
-            x, self.W, self.b, self.stride, self.pad)
+            x, self.W, self.b, self.stride, self.pad, group=self.group)
 
 
 def _pair(x):

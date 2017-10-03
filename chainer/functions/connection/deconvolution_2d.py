@@ -41,11 +41,12 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             "the gradient w.r.t. x is automatically decided during "
             "backpropagation."
         )
-        argument.assert_kwargs_empty(kwargs)
+        group, = argument.parse_kwargs(kwargs, ('group', 1))
 
         self.sy, self.sx = _pair(stride)
         self.ph, self.pw = _pair(pad)
         self.outh, self.outw = (None, None) if outsize is None else outsize
+        self.group = group
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -100,26 +101,67 @@ class Deconvolution2DFunction(function_node.FunctionNode):
                                  'type(W): {0}, type(x): {1}'
                                  .format(type(W), type(x)))
 
-        kh, kw = W.shape[2:]
         _, _, h, w = x.shape
-        gcol = numpy.tensordot(W, x, (0, 1)).astype(x.dtype, copy=False)
-        # - k, m, n: shape of out_channel
-        # - b: number of inputs
-        # - h, w: height and width of kernels
-        # k, m, n, b, h, w -> b, k, m, n, h, w
-        gcol = numpy.rollaxis(gcol, 3)
+        kh, kw = W.shape[2:]
         if self.outh is None:
             self.outh = conv.get_deconv_outsize(h, kh, self.sy, self.ph)
             assert self.outh > 0, 'Height in the output should be positive.'
         if self.outw is None:
             self.outw = conv.get_deconv_outsize(w, kw, self.sx, self.pw)
             assert self.outw > 0, 'Width in the output should be positive.'
-        y = conv.col2im_cpu(
-            gcol, self.sy, self.sx, self.ph, self.pw, self.outh, self.outw)
-        # b, k, h, w
-        if b is not None:
-            y += b.reshape(1, b.size, 1, 1)
-        return y,
+
+        if self.group == 1:
+            gcol = numpy.tensordot(W, x, (0, 1)).astype(x.dtype, copy=False)
+            # - k, m, n: shape of out_channel
+            # - b: number of inputs
+            # - h, w: height and width of kernels
+            # k, m, n, b, h, w -> b, k, m, n, h, w
+            gcol = numpy.rollaxis(gcol, 3)
+            y = conv.col2im_cpu(
+                gcol, self.sy, self.sx, self.ph, self.pw, self.outh, self.outw)
+            # b, k, h, w
+            if b is not None:
+                y += b.reshape(1, b.size, 1, 1)
+            return y,
+        else:
+            # G: group count
+            # N: batch size
+            # kH, kW: kernel height, kernel width
+            # xC, xH, xW: x channels, x height, x width
+            # yC, yH, yW: y channels, y height, y width
+            G = self.group
+            N, xC, xH, xW = x.shape
+            xCg = int(xC/G)
+            _, yCg, kH, kW = W.shape
+            yC = yCg * G
+            yH = self.outh
+            yW = self.outw
+
+            # W: (Cg, yCg, kH, kW)
+            _W = W.reshape(G, xCg, yCg, kH, kW)
+            # x: (N, xC, xH, xW)
+            _x = x.reshape(N, G, xCg, xH, xW)
+            _x = numpy.rollaxis(_x, 1)
+            # _x: (G, N, xCg, xH, xW)
+
+            _ys = []
+            for g in range(G):
+                _gcol = numpy.tensordot(_W[g, ], _x[g, ], (0, 1)
+                                        ).astype(x.dtype, copy=False)
+                # _gcol: (yCg, kH, kW, N, xH, xW)
+                _gcol = numpy.rollaxis(_gcol, 3)
+                # _gcol: (N, yCg, kH, kW, xH, xW)
+                _y = conv.col2im_cpu(
+                    _gcol, self.sy, self.sx, self.ph, self.pw, yH, yW)
+                # _y: (N, yCg, yH, yW)
+                _ys.append(_y)
+
+            y = numpy.stack(_ys, axis=1)
+            # y: (N, G, yCg, yH, yW)
+            y = y.reshape(N, yC, yH, yW)
+            if b is not None:
+                y += b.reshape(1, b.size, 1, 1)
+            return y,
 
     def forward_gpu(self, inputs):
         self.retain_inputs((0, 1))  # only retain x and W
@@ -138,7 +180,8 @@ class Deconvolution2DFunction(function_node.FunctionNode):
 
         kh, kw = W.shape[2:]
         n, in_c, in_h, in_w = x.shape
-        c = W.shape[1]  # out_c
+        yCg = W.shape[1]  # out_c
+        yC = yCg * self.group
         if self.outh is None:
             self.outh = conv.get_deconv_outsize(in_h, kh, self.sy, self.ph)
             assert self.outh > 0, 'Height in the output should be positive.'
@@ -157,13 +200,14 @@ class Deconvolution2DFunction(function_node.FunctionNode):
 
             handle = cudnn.get_handle()
             x_desc = cudnn.create_tensor_descriptor(x)
-            y = cuda.cupy.empty((n, c, self.outh, self.outw),
+            y = cuda.cupy.empty((n, yC, self.outh, self.outw),
                                 dtype=x.dtype)
             y_desc = cudnn.create_tensor_descriptor(y)
 
             filter_desc = cudnn.create_filter_descriptor(W)
             conv_desc = cudnn.create_convolution_descriptor(
-                (self.ph, self.pw), (self.sy, self.sx), x.dtype)
+                (self.ph, self.pw), (self.sy, self.sx), x.dtype,
+                group=self.group)
             if b is not None:
                 bias_desc = cudnn.create_tensor_descriptor(
                     b[None, :, None, None])
@@ -216,7 +260,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
                 self._set_cover_all(x, W)
             gx = chainer.functions.convolution_2d(
                 gy, W, stride=(self.sy, self.sx), pad=(self.ph, self.pw),
-                cover_all=self.cover_all)
+                cover_all=self.cover_all, group=self.group)
             ret.append(gx)
         if 1 in indexes:
             if self.cover_all is None:
@@ -342,9 +386,9 @@ http://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf
         "supported anymore. "
         "Use chainer.using_config('cudnn_deterministic', value) "
         "context where value is either `True` or `False`.")
-    argument.assert_kwargs_empty(kwargs)
+    group, = argument.parse_kwargs(kwargs, ('group', 1))
 
-    func = Deconvolution2DFunction(stride, pad, outsize)
+    func = Deconvolution2DFunction(stride, pad, outsize, group=group)
     if b is None:
         args = x, W
     else:
