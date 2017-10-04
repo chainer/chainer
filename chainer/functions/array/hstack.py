@@ -1,12 +1,13 @@
 import numpy
 import six
 
+import chainer
 from chainer import cuda
-from chainer import function
+from chainer import function_node
 from chainer.utils import type_check
 
 
-class Hstack(function.Function):
+class Hstack(function_node.FunctionNode):
 
     """Concatenate multiple tensors horizontally (column wise)."""
 
@@ -27,29 +28,23 @@ class Hstack(function.Function):
                 type_check.expect(in_types[0].shape[d] == in_types[i].shape[d])
 
     def forward(self, xs):
-        self.retain_inputs(())
-        self._in_shapes = [x.shape for x in xs]
         xp = cuda.get_array_module(*xs)
         return xp.hstack(xs),
 
-    def backward(self, xs, gy):
-        if len(self._in_shapes) == 1:
-            if len(self._in_shapes[0]) == 0:
-                return (gy[0].reshape(()),)
-            return gy
+    def backward(self, indexes, grad_outputs):
+        gy, = grad_outputs
+        if len(self.inputs) == 1:
+            if len(self.inputs[0].shape) == 0:
+                return gy.reshape(()),
+            return gy,
 
-        xp = cuda.get_array_module(*gy)
-        if len(self._in_shapes[0]) == 0:
-            ys = xp.hsplit(gy[0], len(self._in_shapes))
-            return [y.reshape(()) for y in ys]
+        if len(self.inputs[0].shape) == 0:
+            gx = chainer.functions.split_axis(gy, len(self.inputs), 0)
+            return [g.reshape(()) for g in gx]
 
-        if len(self._in_shapes[0]) == 1:
-            sizes = numpy.array(
-                [shape[0] for shape in self._in_shapes[:-1]]).cumsum()
-        else:
-            sizes = numpy.array(
-                [shape[1] for shape in self._in_shapes[:-1]]).cumsum()
-        return xp.hsplit(gy[0], sizes)
+        axis = 0 if len(self.inputs[0].shape) == 1 else 1
+        sizes = numpy.array([x.shape[axis] for x in self.inputs[:-1]]).cumsum()
+        return chainer.functions.split_axis(gy, sizes, axis)
 
 
 def hstack(xs):
@@ -112,4 +107,5 @@ def hstack(xs):
 
     """
 
-    return Hstack()(*xs)
+    y, = Hstack().apply(xs)
+    return y

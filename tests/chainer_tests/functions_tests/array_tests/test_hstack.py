@@ -36,6 +36,10 @@ class TestHstack(unittest.TestCase):
             for i in six.moves.range(self.xs_length)
         ]
         self.g = numpy.random.uniform(-1, 1, self.y_shape).astype(self.dtype)
+        self.gg = [
+            numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+            for i in six.moves.range(self.xs_length)
+        ]
 
     def check_forward(self, xs_data):
         xs = [chainer.Variable(x) for x in xs_data]
@@ -65,6 +69,23 @@ class TestHstack(unittest.TestCase):
     def test_backward_gpu(self):
         self.check_backward(
             [cuda.to_gpu(x) for x in self.xs], cuda.to_gpu(self.g))
+
+    def check_double_backward(self, xs_data, g_data, gg_data):
+        def func(*xs):
+            y = functions.hstack(xs)
+            return y * y
+
+        gradient_check.check_double_backward(
+            func, xs_data, g_data, gg_data, dtype='d', atol=1e-3, rtol=1e-3)
+
+    def test_double_backward_cpu(self):
+        self.check_double_backward(self.xs, self.g, self.gg)
+
+    @attr.gpu
+    def test_double_backward_gpu(self):
+        self.check_double_backward([cuda.to_gpu(x) for x in self.xs],
+                                   cuda.to_gpu(self.g),
+                                   [cuda.to_gpu(gg) for gg in self.gg])
 
 
 @testing.parameterize(
