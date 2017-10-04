@@ -13,11 +13,24 @@ from chainer.utils import type_check
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
     libcudnn = cuda.cudnn.cudnn
-    _fwd_pref = libcudnn.CUDNN_CONVOLUTION_FWD_SPECIFY_WORKSPACE_LIMIT
-    _bwd_filter_pref = \
-        libcudnn.CUDNN_CONVOLUTION_BWD_FILTER_SPECIFY_WORKSPACE_LIMIT
     _bwd_data_pref = \
         libcudnn.CUDNN_CONVOLUTION_BWD_DATA_SPECIFY_WORKSPACE_LIMIT
+    _algorithm = {}
+    autotune = True
+
+
+def get_algorithm(W, dy, dx, conv_param, handle, filter_desc, dy_desc,
+                  conv_desc, dx_desc, workspace):
+    key = (dx.shape, W.shape, dy.shape, conv_param)
+    if key in _algorithm:
+        return _algorithm[key]
+    ret = libcudnn.findConvolutionBackwardDataAlgorithmEx(
+        handle, filter_desc.value, W.data.ptr, dy_desc.value, dy.data.ptr,
+        conv_desc.value, dx_desc.value, dx.data.ptr, 10, workspace.data.ptr,
+        workspace.size)
+    algo = ret[0]['algo']
+    _algorithm[key] = algo
+    return algo
 
 
 def _pair(x):
@@ -177,13 +190,16 @@ class Deconvolution2DFunction(function_node.FunctionNode):
 
             workspace_size = cuda.get_max_workspace_size()
             workspace = cuda.cupy.empty((workspace_size,), dtype='b')
+
             if configuration.config.cudnn_deterministic:
                 algo = libcudnn.CUDNN_CONVOLUTION_BWD_DATA_ALGO_1
+            elif autotune:
+                algo = get_algorithm(W, x, y, conv_param, handle, filter_desc,
+                                     x_desc, conv_desc, y_desc, workspace)
             else:
                 algo = libcudnn.getConvolutionBackwardDataAlgorithm(
-                    handle, filter_desc.value, x_desc.value,
-                    conv_desc.value, y_desc.value, _bwd_data_pref,
-                    workspace_size)
+                    handle, filter_desc.value, x_desc.value, conv_desc.value,
+                    y_desc.value, _bwd_data_pref, workspace_size)
 
             if use_tensor_core:
                 # Only CUDNN_CONVOLUTION_BWD_DATA_ALGO_1 supports
