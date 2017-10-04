@@ -90,9 +90,9 @@ class RMSprop(optimizer.GradientMethod):
 
     """
 
-    def __init__(self, lr=_default_hyperparam.lr,
+    def __init__(self, *args, lr=_default_hyperparam.lr,
                  alpha=_default_hyperparam.alpha, eps=_default_hyperparam.eps):
-        super(RMSprop, self).__init__()
+        super(RMSprop, self).__init__(*args)
         self.hyperparam.lr = lr
         self.hyperparam.alpha = alpha
         self.hyperparam.eps = eps

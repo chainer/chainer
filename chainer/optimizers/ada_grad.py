@@ -74,8 +74,8 @@ class AdaGrad(optimizer.GradientMethod):
 
     """
 
-    def __init__(self, lr=_default_hyperparam.lr, eps=_default_hyperparam.eps):
-        super(AdaGrad, self).__init__()
+    def __init__(self, *args, lr=_default_hyperparam.lr, eps=_default_hyperparam.eps):
+        super(AdaGrad, self).__init__(*args)
         self.hyperparam.lr = lr
         self.hyperparam.eps = eps
 

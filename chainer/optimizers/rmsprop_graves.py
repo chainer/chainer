@@ -99,11 +99,11 @@ class RMSpropGraves(optimizer.GradientMethod):
 
     """
 
-    def __init__(self, lr=_default_hyperparam.lr,
+    def __init__(self, *args, lr=_default_hyperparam.lr,
                  alpha=_default_hyperparam.alpha,
                  momentum=_default_hyperparam.momentum,
                  eps=_default_hyperparam.eps):
-        super(RMSpropGraves, self).__init__()
+        super(RMSpropGraves, self).__init__(*args)
         self.hyperparam.lr = lr
         self.hyperparam.alpha = alpha
         self.hyperparam.momentum = momentum
