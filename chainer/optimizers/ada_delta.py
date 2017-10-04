@@ -83,9 +83,9 @@ class AdaDelta(optimizer.GradientMethod):
 
     """
 
-    def __init__(self, rho=_default_hyperparam.rho,
+    def __init__(self, *args, rho=_default_hyperparam.rho,
                  eps=_default_hyperparam.eps):
-        super(AdaDelta, self).__init__()
+        super(AdaDelta, self).__init__(*args)
         self.hyperparam.rho = rho
         self.hyperparam.eps = eps
 

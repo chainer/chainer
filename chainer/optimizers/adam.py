@@ -95,12 +95,12 @@ class Adam(optimizer.GradientMethod):
 
     """
 
-    def __init__(self,
+    def __init__(self, *args,
                  alpha=_default_hyperparam.alpha,
                  beta1=_default_hyperparam.beta1,
                  beta2=_default_hyperparam.beta2,
                  eps=_default_hyperparam.eps):
-        super(Adam, self).__init__()
+        super(Adam, self).__init__(*args)
         self.hyperparam.alpha = alpha
         self.hyperparam.beta1 = beta1
         self.hyperparam.beta2 = beta2
