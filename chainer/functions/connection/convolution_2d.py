@@ -202,8 +202,8 @@ class Convolution2DFunction(function_node.FunctionNode):
         G = self.group
         N, iC, iH, iW = x.shape
         oC, _, kH, kW = W.shape
-        iCg = int(iC/G)
-        oCg = int(oC/G)
+        iCg = int(iC / G)
+        oCg = int(oC / G)
 
         xp = cuda.get_array_module(x)
 
@@ -305,7 +305,7 @@ class Convolution2DGradW(function_node.FunctionNode):
             return gW,
 
         iC = c
-        iCg = int(iC/self.group)
+        iCg = int(iC / self.group)
         gW = cuda.cupy.empty((out_c, iCg, self.kh, self.kw),
                              dtype=self.W_dtype)
         x = cuda.cupy.ascontiguousarray(x)
@@ -360,8 +360,8 @@ class Convolution2DGradW(function_node.FunctionNode):
         kW = self.kw
         N, iC, iH, iW = x.shape
         _, oC, oH, oW = gy.shape
-        iCg = int(iC/G)
-        oCg = int(oC/G)
+        iCg = int(iC / G)
+        oCg = int(oC / G)
 
         xp = cuda.get_array_module(x)
 
