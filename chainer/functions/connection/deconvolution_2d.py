@@ -13,6 +13,7 @@ from chainer.utils import type_check
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
     libcudnn = cuda.cudnn.cudnn
+    _cudnn_version = libcudnn.getVersion()
     _fwd_pref = libcudnn.CUDNN_CONVOLUTION_FWD_SPECIFY_WORKSPACE_LIMIT
     _bwd_filter_pref = \
         libcudnn.CUDNN_CONVOLUTION_BWD_FILTER_SPECIFY_WORKSPACE_LIMIT
@@ -86,20 +87,6 @@ class Deconvolution2DFunction(function_node.FunctionNode):
                 b_type.shape[0] == w_type.shape[1]
             )
 
-    def _forward_cpu_core(self, x, W, b):
-        gcol = numpy.tensordot(W, x, (0, 1)).astype(x.dtype, copy=False)
-        # - k, m, n: shape of out_channel
-        # - b: number of inputs
-        # - h, w: height and width of kernels
-        # k, m, n, b, h, w -> b, k, m, n, h, w
-        gcol = numpy.rollaxis(gcol, 3)
-        y = conv.col2im_cpu(
-            gcol, self.sy, self.sx, self.ph, self.pw, self.outh, self.outw)
-        # b, k, h, w
-        if b is not None:
-            y += b.reshape(1, b.size, 1, 1)
-        return y
-
     def forward_cpu(self, inputs):
         self.retain_inputs((0, 1))  # only retain x and W
         x, W = inputs[:2]
@@ -124,38 +111,25 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             self.outw = conv.get_deconv_outsize(w, kw, self.sx, self.pw)
             assert self.outw > 0, 'Width in the output should be positive.'
 
-        if self.group == 1:
-            y = self._forward_cpu_core(x, W, b)
-            return y,
+        if self.group > 1:
+            y = self._forward_grouped_convolution(x, W, b)
         else:
-            # G: group count
-            # N: batch size
-            # kH, kW: kernel height, kernel width
-            # xC, xH, xW: x channels, x height, x width
-            # yC, yH, yW: y channels, y height, y width
-            G = self.group
-            N, xC, xH, xW = x.shape
-            xCg = int(xC/G)
-            _, yCg, kH, kW = W.shape
-            yC = yCg * G
-            yH = self.outh
-            yW = self.outw
+            y = self._forward_cpu_core(x, W, b)
+        return y,
 
-            _x = x.reshape(N, G, xCg, xH, xW)
-            _x = numpy.rollaxis(_x, 1)  # (G, N, xCg, xH, xW)
-            _W = W.reshape(G, xCg, yCg, kH, kW)
-            if b is not None:
-                _b = _b.reshape(G, xCg)
-
-            _ys = []
-            for g in range(G):
-                _bg = None if b is None else _b[g, ]
-                _y = self._forward_cpu_core(_x[g, ], _W[g, ], _bg)
-                _ys.append(_y)
-
-            y = numpy.stack(_ys, axis=1)  # (N, G, yCg, yH, yW)
-            y = y.reshape(N, yC, yH, yW)
-            return y,
+    def _forward_cpu_core(self, x, W, b):
+        gcol = numpy.tensordot(W, x, (0, 1)).astype(x.dtype, copy=False)
+        # - k, m, n: shape of out_channel
+        # - b: number of inputs
+        # - h, w: height and width of kernels
+        # k, m, n, b, h, w -> b, k, m, n, h, w
+        gcol = numpy.rollaxis(gcol, 3)
+        y = conv.col2im_cpu(
+            gcol, self.sy, self.sx, self.ph, self.pw, self.outh, self.outw)
+        # b, k, h, w
+        if b is not None:
+            y += b.reshape(1, b.size, 1, 1)
+        return y
 
     def forward_gpu(self, inputs):
         self.retain_inputs((0, 1))  # only retain x and W
@@ -185,8 +159,12 @@ class Deconvolution2DFunction(function_node.FunctionNode):
 
         self._set_cover_all(x, W)
 
+        _gc_use_cudnn = True
+        if self.group > 1 and _cudnn_version < 7000:
+            _gc_use_cudnn = False
+
         if (not self.cover_all and chainer.should_use_cudnn('>=auto') and
-                x.dtype == W.dtype):
+                x.dtype == W.dtype and _gc_use_cudnn):
             x = cuda.cupy.ascontiguousarray(x)
             W = cuda.cupy.ascontiguousarray(W)
             if b is not None:
@@ -231,18 +209,60 @@ class Deconvolution2DFunction(function_node.FunctionNode):
                     handle, one.data, bias_desc.value, b.data.ptr,
                     one.data, y_desc.value, y.data.ptr)
         else:
-            gcol = cuda.cupy.tensordot(W, x, (0, 1)).astype(x.dtype,
-                                                            copy=False)
-            # - k, m, n: shape of out_channel
-            # - b: number of inputs
-            # - h, w: height and width of kernels
-            # k, m, n, b, h, w -> b, k, m, n, h, w
-            gcol = cuda.cupy.rollaxis(gcol, 3)
-            y = conv.col2im_gpu(
-                gcol, self.sy, self.sx, self.ph, self.pw, self.outh, self.outw)
-            if b is not None:
-                y += b.reshape(1, b.size, 1, 1)
+            if self.group > 1:
+                y = self._forward_grouped_convolution(x, W, b)
+            else:
+                y = self._forward_gpu_core(x, W, b)
         return y,
+
+    def _forward_gpu_core(self, x, W, b):
+        gcol = cuda.cupy.tensordot(W, x, (0, 1)).astype(x.dtype,
+                                                        copy=False)
+        # - k, m, n: shape of out_channel
+        # - b: number of inputs
+        # - h, w: height and width of kernels
+        # k, m, n, b, h, w -> b, k, m, n, h, w
+        gcol = cuda.cupy.rollaxis(gcol, 3)
+        y = conv.col2im_gpu(
+            gcol, self.sy, self.sx, self.ph, self.pw, self.outh, self.outw)
+        if b is not None:
+            y += b.reshape(1, b.size, 1, 1)
+        return y
+
+    def _forward_grouped_convolution(self, x, W, b):
+        # G: group count
+        # N: batch size
+        # kH, kW: kernel height, kernel width
+        # xC, xH, xW: x channels, x height, x width
+        # yC, yH, yW: y channels, y height, y width
+        G = self.group
+        N, xC, xH, xW = x.shape
+        xCg = int(xC/G)
+        _, yCg, kH, kW = W.shape
+        yC = yCg * G
+        yH = self.outh
+        yW = self.outw
+
+        xp = cuda.get_array_module(x)
+
+        _x = x.reshape(N, G, xCg, xH, xW)
+        _x = xp.rollaxis(_x, 1)  # (G, N, xCg, xH, xW)
+        _W = W.reshape(G, xCg, yCg, kH, kW)
+        if b is not None:
+            _b = _b.reshape(G, xCg)
+
+        _ys = []
+        for g in range(G):
+            _bg = None if b is None else _b[g, ]
+            if xp is numpy:
+                _y = self._forward_cpu_core(_x[g, ], _W[g, ], _bg)
+            else:
+                _y = self._forward_gpu_core(_x[g, ], _W[g, ], _bg)
+            _ys.append(_y)
+
+        y = xp.stack(_ys, axis=1)  # (N, G, yCg, yH, yW)
+        y = y.reshape(N, yC, yH, yW)
+        return y
 
     def backward(self, indexes, grad_outputs):
         x, W = self.get_retained_inputs()
