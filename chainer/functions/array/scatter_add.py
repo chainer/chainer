@@ -1,11 +1,11 @@
 import numpy
 
 import chainer
-from chainer import function
+from chainer import function_node
 from chainer.utils import type_check
 
 
-class ScatterAdd(function.Function):
+class ScatterAdd(function_node.FunctionNode):
 
     def __init__(self, slices):
         if isinstance(slices, list):
@@ -46,8 +46,9 @@ class ScatterAdd(function.Function):
             xp.scatter_add(y, self.slices, b),
         return y,
 
-    def backward(self, inputs, gy):
-        return gy[0], gy[0][self.slices]
+    def backward(self, indexes, grad_outputs):
+        gy, = grad_outputs
+        return gy, gy[self.slices]
 
 
 def scatter_add(a, slices, b):
@@ -88,4 +89,5 @@ def scatter_add(a, slices, b):
         :func:`cupy.scatter_add`.
 
     """
-    return ScatterAdd(slices)(a, b)
+    y, = ScatterAdd(slices).apply((a, b))
+    return y
