@@ -249,7 +249,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         _x = xp.rollaxis(_x, 1)  # (G, N, xCg, xH, xW)
         _W = W.reshape(G, xCg, yCg, kH, kW)
         if b is not None:
-            _b = _b.reshape(G, xCg)
+            _b = b.reshape(G, xCg)
 
         _ys = []
         for g in range(G):

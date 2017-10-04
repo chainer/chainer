@@ -138,7 +138,7 @@ class Convolution2D(link.Link):
         if (self.out_channels % self.group != 0 or
                 in_channels % self.group != 0):
             raise ValueError('number of input and output channels must be'
-                             'divisable by group count')
+                             'divisible by group count')
         W_shape = (self.out_channels, int(in_channels/self.group), kh, kw)
         self.W.initialize(W_shape)
 
