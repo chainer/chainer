@@ -33,16 +33,17 @@ class Hstack(function_node.FunctionNode):
 
     def backward(self, indexes, grad_outputs):
         gy, = grad_outputs
+        ndim = len(self.inputs[0].shape)
         if len(self.inputs) == 1:
-            if len(self.inputs[0].shape) == 0:
+            if ndim == 0:
                 return gy.reshape(()),
             return gy,
 
-        if len(self.inputs[0].shape) == 0:
+        if ndim == 0:
             gx = chainer.functions.split_axis(gy, len(self.inputs), 0)
             return [g.reshape(()) for g in gx]
 
-        axis = 0 if len(self.inputs[0].shape) == 1 else 1
+        axis = 0 if ndim == 1 else 1
         sizes = numpy.array([x.shape[axis] for x in self.inputs[:-1]]).cumsum()
         return chainer.functions.split_axis(gy, sizes, axis)
 
