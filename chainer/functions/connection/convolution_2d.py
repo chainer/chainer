@@ -68,6 +68,18 @@ class Convolution2DFunction(function_node.FunctionNode):
                 b_type.shape[0] == w_type.shape[0],
             )
 
+    def _forward_cpu_core(self, x, W, b):
+        kh, kw = W.shape[2:]
+        col = conv.im2col_cpu(
+            x, kh, kw, self.sy, self.sx, self.ph, self.pw,
+            cover_all=self.cover_all)
+        y = numpy.tensordot(
+            col, W, ((1, 2, 3), (1, 2, 3))).astype(x.dtype, copy=False)
+        if b is not None:
+            y += b
+        y = numpy.rollaxis(y, 3, 1)
+        return y
+
     def forward_cpu(self, inputs):
         self.retain_inputs((0, 1))  # retain only x and W
         x, W = inputs[:2]
@@ -84,15 +96,8 @@ class Convolution2DFunction(function_node.FunctionNode):
                                  .format(type(W), type(x)))
 
         if self.group == 1:
-            kh, kw = W.shape[2:]
-            col = conv.im2col_cpu(
-                x, kh, kw, self.sy, self.sx, self.ph, self.pw,
-                cover_all=self.cover_all)
-            y = numpy.tensordot(
-                col, W, ((1, 2, 3), (1, 2, 3))).astype(x.dtype, copy=False)
-            if b is not None:
-                y += b
-            return numpy.rollaxis(y, 3, 1),
+            y = self._forward_cpu_core(x, W, b)
+            return y,
         else:
             # G: group count
             # N: batch size
@@ -105,32 +110,20 @@ class Convolution2DFunction(function_node.FunctionNode):
             iCg = int(iC/G)
             oCg = int(oC/G)
 
-            _col = conv.im2col_cpu(
-                x, kH, kW, self.sy, self.sx, self.ph, self.pw,
-                cover_all=self.cover_all)
-            # _col: (N, iC, kH, kW, oH, oW)
-            _, _, _, _, oH, oW = _col.shape
-            _col = _col.reshape((N, G, iCg, kH, kW, oH, oW))
-            _col = numpy.rollaxis(_col, 1)
-            # _col: (G, N, iCg, kH, kW, oH, oW)
+            _x = x.reshape(N, G, iCg, iH, iW)
+            _x = numpy.rollaxis(_x, 1)  # (G, N, iCg, iH, iW)
             _W = W.reshape(G, oCg, iCg, kH, kW)
             if b is not None:
                 _b = b.reshape(G, oCg)
 
             _ys = []
             for g in range(G):
-                _y = numpy.tensordot(_col[g, ], _W[g, ],
-                                     ((1, 2, 3), (1, 2, 3))
-                                     ).astype(x.dtype, copy=False)
-                # _y: (N, oH, oW, oCg)
-                if b is not None:
-                    _y += _b[g, ]
-                _y = numpy.rollaxis(_y, 3, 1)
-                # _y: (N, oCg, oH, oW)
+                _bg = None if b is None else _b[g, ]
+                _y = self._forward_cpu_core(_x[g, ], _W[g, ], _bg)
                 _ys.append(_y)
 
-            y = numpy.stack(_ys, axis=1)
-            # y: (N, G, oCg, oH, oW)
+            y = numpy.stack(_ys, axis=1)  # (N, G, oCg, oH, oW)
+            _, _, _, oH, oW = y.shape
             y = y.reshape((N, oC, oH, oW))
             return y,
 
@@ -247,6 +240,14 @@ class Convolution2DGradW(function_node.FunctionNode):
         self.W_dtype = W_node.dtype
         self.group = conv2d.group
 
+    def _forward_cpu_core(self, x, gy):
+        col = conv.im2col_cpu(
+            x, self.kh, self.kw, self.sy, self.sx, self.ph, self.pw,
+            cover_all=self.cover_all)
+        gW = numpy.tensordot(gy, col, ((0, 2, 3), (0, 4, 5))
+                             ).astype(self.W_dtype, copy=False)
+        return gW
+
     def forward_cpu(self, inputs):
         self.retain_inputs((0, 1))
         x, gy = inputs
@@ -259,13 +260,7 @@ class Convolution2DGradW(function_node.FunctionNode):
             gy = numpy.ascontiguousarray(gy)
 
         if self.group == 1:
-            col = conv.im2col_cpu(
-                x, self.kh, self.kw, self.sy, self.sx, self.ph, self.pw,
-                cover_all=self.cover_all)
-            print('# gy.shape: {}'.format(gy.shape))
-            print('# col.shape: {}'.format(col.shape))
-            gW = numpy.tensordot(gy, col, ((0, 2, 3), (0, 4, 5))
-                                 ).astype(self.W_dtype, copy=False)
+            gW = self._forward_cpu_core(x, gy)
             return gW,
         else:
             # G: group count
@@ -276,36 +271,24 @@ class Convolution2DGradW(function_node.FunctionNode):
             G = self.group
             kH = self.kh
             kW = self.kw
-            N, oC, oH, oW = gy.shape
-            _, iC, _, _ = x.shape
+            N, iC, iH, iW = x.shape
+            _, oC, oH, oW = gy.shape
             iCg = int(iC/G)
             oCg = int(oC/G)
 
+            _x = x.reshape(N, G, iCg, iH, iW)
+            _x = numpy.rollaxis(_x, 1)  # (G, N, iCg, iH, iW)
             _gy = gy.reshape(N, G, oCg, oH, oW)
-            _gy = numpy.rollaxis(_gy, 1)
-            # _gy: (G, N, oCg, oH, oW)
-
-            _col = conv.im2col_cpu(
-                x, kH, kW, self.sy, self.sx, self.ph, self.pw,
-                cover_all=self.cover_all)
-            _col = _col.reshape((N, G, iCg, kH, kW, oH, oW))
-            _col = numpy.rollaxis(_col, 1)
-            # _col: (G, N, iCg, kH, kW, oH, oW)
-
-            # Work-around of NumPy's bug?
+            _gy = numpy.rollaxis(_gy, 1)  # (G, N, oCg, oH, oW)
+            # Work-around for NumPy's bug?
             _gy = numpy.ascontiguousarray(_gy)
-            _col = numpy.ascontiguousarray(_col)
 
             _gWs = []
             for g in range(G):
-                _gW = numpy.tensordot(_gy[g, ], _col[g, ],
-                                      ((0, 2, 3), (0, 4, 5))
-                                      ).astype(self.W_dtype)
-                # _gW: (oCg, iCg, kH, kW)
+                _gW = self._forward_cpu_core(_x[g, ], _gy[g, ])
                 _gWs.append(_gW)
 
-            gW = numpy.stack(_gWs)
-            # gW: (G, oCg, iCg, kH, kW)
+            gW = numpy.stack(_gWs)  # (G, oCg, iCg, kH, kW)
             gW = gW.reshape(oC, iCg, kH, kW)
             return gW,
 

@@ -86,6 +86,20 @@ class Deconvolution2DFunction(function_node.FunctionNode):
                 b_type.shape[0] == w_type.shape[1]
             )
 
+    def _forward_cpu_core(self, x, W, b):
+        gcol = numpy.tensordot(W, x, (0, 1)).astype(x.dtype, copy=False)
+        # - k, m, n: shape of out_channel
+        # - b: number of inputs
+        # - h, w: height and width of kernels
+        # k, m, n, b, h, w -> b, k, m, n, h, w
+        gcol = numpy.rollaxis(gcol, 3)
+        y = conv.col2im_cpu(
+            gcol, self.sy, self.sx, self.ph, self.pw, self.outh, self.outw)
+        # b, k, h, w
+        if b is not None:
+            y += b.reshape(1, b.size, 1, 1)
+        return y
+
     def forward_cpu(self, inputs):
         self.retain_inputs((0, 1))  # only retain x and W
         x, W = inputs[:2]
@@ -111,17 +125,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             assert self.outw > 0, 'Width in the output should be positive.'
 
         if self.group == 1:
-            gcol = numpy.tensordot(W, x, (0, 1)).astype(x.dtype, copy=False)
-            # - k, m, n: shape of out_channel
-            # - b: number of inputs
-            # - h, w: height and width of kernels
-            # k, m, n, b, h, w -> b, k, m, n, h, w
-            gcol = numpy.rollaxis(gcol, 3)
-            y = conv.col2im_cpu(
-                gcol, self.sy, self.sx, self.ph, self.pw, self.outh, self.outw)
-            # b, k, h, w
-            if b is not None:
-                y += b.reshape(1, b.size, 1, 1)
+            y = self._forward_cpu_core(x, W, b)
             return y,
         else:
             # G: group count
@@ -137,30 +141,20 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             yH = self.outh
             yW = self.outw
 
-            # W: (Cg, yCg, kH, kW)
-            _W = W.reshape(G, xCg, yCg, kH, kW)
-            # x: (N, xC, xH, xW)
             _x = x.reshape(N, G, xCg, xH, xW)
-            _x = numpy.rollaxis(_x, 1)
-            # _x: (G, N, xCg, xH, xW)
+            _x = numpy.rollaxis(_x, 1)  # (G, N, xCg, xH, xW)
+            _W = W.reshape(G, xCg, yCg, kH, kW)
+            if b is not None:
+                _b = _b.reshape(G, xCg)
 
             _ys = []
             for g in range(G):
-                _gcol = numpy.tensordot(_W[g, ], _x[g, ], (0, 1)
-                                        ).astype(x.dtype, copy=False)
-                # _gcol: (yCg, kH, kW, N, xH, xW)
-                _gcol = numpy.rollaxis(_gcol, 3)
-                # _gcol: (N, yCg, kH, kW, xH, xW)
-                _y = conv.col2im_cpu(
-                    _gcol, self.sy, self.sx, self.ph, self.pw, yH, yW)
-                # _y: (N, yCg, yH, yW)
+                _bg = None if b is None else _b[g, ]
+                _y = self._forward_cpu_core(_x[g, ], _W[g, ], _bg)
                 _ys.append(_y)
 
-            y = numpy.stack(_ys, axis=1)
-            # y: (N, G, yCg, yH, yW)
+            y = numpy.stack(_ys, axis=1)  # (N, G, yCg, yH, yW)
             y = y.reshape(N, yC, yH, yW)
-            if b is not None:
-                y += b.reshape(1, b.size, 1, 1)
             return y,
 
     def forward_gpu(self, inputs):
