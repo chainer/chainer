@@ -9,7 +9,6 @@ from chainer import gradient_check
 from chainer import links
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
 from chainer.utils import conv
 
 
@@ -56,32 +55,28 @@ class TestDilatedConvolution2D(unittest.TestCase):
         testing.assert_allclose(y_cpu.data, y_gpu.data.get())
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_consistency(self):
         self.check_forward_consistency()
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_consistency_im2col(self):
         with chainer.using_config('use_cudnn', 'never'):
             self.check_forward_consistency()
 
     def check_backward(self, x_data, y_grad):
         gradient_check.check_backward(
-            self.link, x_data, y_grad, (self.link.W, self.link.b), eps=1e-2)
+            self.link, x_data, y_grad, (self.link.W, self.link.b), eps=1e-2,
+            atol=5e-5, rtol=5e-4)
 
-    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy)
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu(self):
         self.link.to_gpu()
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu_im2col(self):
         self.link.to_gpu()
         with chainer.using_config('use_cudnn', 'never'):
@@ -158,32 +153,28 @@ class TestDilatedConvolution2DParameterShapePlaceholder(unittest.TestCase):
         testing.assert_allclose(y_cpu.data, y_gpu.data.get())
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_consistency(self):
         self.check_forward_consistency()
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_consistency_im2col(self):
         with chainer.using_config('use_cudnn', 'never'):
             self.check_forward_consistency()
 
     def check_backward(self, x_data, y_grad):
         gradient_check.check_backward(
-            self.link, x_data, y_grad, (self.link.W, self.link.b), eps=1e-2)
+            self.link, x_data, y_grad, (self.link.W, self.link.b), eps=1e-2,
+            atol=5e-5, rtol=5e-4)
 
-    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy)
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu(self):
         self.link.to_gpu()
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu_im2col(self):
         self.link.to_gpu()
         with chainer.using_config('use_cudnn', 'never'):

@@ -538,7 +538,9 @@ if __name__ == '__main__':
                 was_alive = True
         return was_alive
 
+    @unittest.skip
     def test_interrupt_infinite_wait_batch(self):
+        # TODO(niboshi): See: https://github.com/chainer/chainer/issues/3383
         self.run_code(dataset='infinite_wait',
                       n_processes=2,
                       operation='it.next()')
@@ -546,7 +548,9 @@ if __name__ == '__main__':
         self.send_sigint()
         self.assertFalse(self.killall())
 
+    @unittest.skip
     def test_interrupt_no_wait_batch(self):
+        # TODO(niboshi): See: https://github.com/chainer/chainer/issues/3383
         self.run_code(dataset='no_wait',
                       n_processes=2,
                       operation='time.sleep(1000)')
