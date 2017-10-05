@@ -75,9 +75,9 @@ class NesterovAG(optimizer.GradientMethod):
 
     """
 
-    def __init__(self, *args, lr=_default_hyperparam.lr,
-                 momentum=_default_hyperparam.momentum):
-        super(NesterovAG, self).__init__(*args)
+    def __init__(self, lr=_default_hyperparam.lr,
+                 momentum=_default_hyperparam.momentum, model=None):
+        super(NesterovAG, self).__init__(model)
         self.hyperparam.lr = lr
         self.hyperparam.momentum = momentum
 
