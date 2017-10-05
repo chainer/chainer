@@ -36,7 +36,8 @@ def get_deconv_outsize(size, k, s, p, cover_all=False):
     """Calculates output size of deconvolution.
 
     This function takes the size of input feature map, kernel, stride, and
-    pooling, then calculates the output feature map size.
+    pooling of one particular dimension, then calculates the output feature
+    map size of that dimension.
 
     .. seealso:: :func:`~chainer.utils.get_conv_outsize`
 
