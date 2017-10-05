@@ -4,24 +4,27 @@ from chainer import optimizer
 from chainer.functions.math import identity
 
 
+def params_dot(xs, ys):
+    return sum([(x * y).sum() for x, y in zip(xs, ys)])
+
 def conjugate_gradient(hessian_vector_product, bs, xs):
     hxs = hessian_vector_product(xs)
     rs = [b - hx for b, hx in zip(bs, hxs)]
 
     ps = [r.copy() for r in rs]
     for _ in range(3):
-        rr = sum([(r * r).sum() for r in rs])
+        rr = params_dot(rs, rs)
         if rr < 0.00001:
             break
         hps = hessian_vector_product(ps)
-        hpp = sum([(hp * p).sum() for p, hp in zip(ps, hps)])
+        hpp = params_dot(ps, hps)
         if hpp < 0.0001:
             break
         alpha = rr / hpp
         for x, p, r, hp in zip(xs, ps, rs, hps):
             x += alpha * p
             r -= alpha * hp
-        beta = sum([(r * r).sum() for r in rs]) / rr
+        beta = params_dot(rs, rs) / rr
         for p, r in zip(ps, rs):
             p *= beta
             p += r
