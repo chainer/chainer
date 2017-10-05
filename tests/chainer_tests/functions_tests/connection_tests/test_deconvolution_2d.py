@@ -143,7 +143,7 @@ class TestDeconvolution2DFunction(unittest.TestCase):
         def f(*args):
             return F.deconvolution_2d(
                 *args, stride=self.stride, pad=self.pad, outsize=self.outsize,
-                 group=self.group)
+                group=self.group)
 
         with chainer.using_config('use_cudnn', self.use_cudnn):
             with chainer.using_config('cudnn_deterministic',
@@ -197,7 +197,7 @@ class TestDeconvolution2DFunction(unittest.TestCase):
         def f(*args):
             y = F.deconvolution_2d(
                 *args, stride=self.stride, pad=self.pad, outsize=self.outsize,
-                 group=self.group)
+                group=self.group)
             return y * y  # make the function nonlinear
 
         with chainer.using_config('use_cudnn', self.use_cudnn):
