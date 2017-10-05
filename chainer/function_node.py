@@ -1,7 +1,9 @@
 import collections
+import heapq
 import traceback
 import weakref
 
+import numpy
 import six
 
 import chainer
@@ -37,15 +39,16 @@ class FunctionNode(object):
     .. admonition:: Example
 
        Let ``x`` be an instance of :class:`Variable` and ``f`` be an instance
-       of :class:`FunctionNode` taking only one argument. Then a line
+       of :class:`FunctionNode` taking only one argument. Then the following
+       code
 
        >>> import numpy, chainer, chainer.functions as F
        >>> x = chainer.Variable(numpy.zeros(10))
        >>> f = F.Identity()
        >>> y = f.apply((x,))[0]
 
-       computes a new variable ``y`` and creates backward references. Actually,
-       backward references are set as per the following diagram::
+       computes a new variable ``y`` and creates backward references. The
+       backward references are actually set as per the following diagram::
 
            x.node <--- f <--- y.node
 
@@ -91,7 +94,7 @@ class FunctionNode(object):
          backpropagations so that the automatic higher-order differentiation is
          available.
        - The backpropagation of the new-style differentiable function can be
-         more computationally saving because the interface allows an
+         more computationally efficient because the interface allows an
          implementation to omit the computation of unneeded input gradients.
 
        Note that the new-style differentiable function is the standard way of
@@ -100,13 +103,14 @@ class FunctionNode(object):
        style differentiable functions.
 
     Attributes:
-        inputs: A tuple of the input :class:`VariableNode` objects.
-        outputs: A tuple of weak references to the output
+        ~FunctionNode.inputs: A tuple of the input :class:`VariableNode`
+            objects.
+        ~FunctionNode.outputs: A tuple of weak references to the output
             :class:`VariableNode` objects.
-        rank (int): An ordinal following the topological order of the
-            computational graph.
-        stack: Stack trace retrieved at the forward computation. The stack
-            trace is available only in the debug mode.
+        ~FunctionNode.rank (int): An ordinal following the topological order
+            of the computational graph.
+        ~FunctionNode.stack: Stack trace retrieved at the forward computation.
+            The stack trace is available only in the debug mode.
 
     .. versionadded:: 3.0.0
 
@@ -193,9 +197,7 @@ class FunctionNode(object):
             A tuple of output :class:`Variable` objects.
 
         """
-        input_vars = [x if isinstance(x, variable.Variable)
-                      else variable.Variable(x, requires_grad=False)
-                      for x in inputs]
+        input_vars = [chainer.as_variable(x) for x in inputs]
         in_data = tuple([x.data for x in input_vars])
         requires_grad = any([x.requires_grad for x in input_vars])
 
@@ -229,7 +231,8 @@ class FunctionNode(object):
             if any(out.dtype.kind == 'f' and
                    cuda.get_array_module(out).isnan(out).any()
                    for out in outputs):
-                msg = 'NaN is detected on forward computation'
+                msg = ('NaN is detected on forward computation of '
+                       '{}'.format(self.label))
                 raise RuntimeError(msg)
 
         ret = tuple([variable.Variable(y, requires_grad=requires_grad)
@@ -239,7 +242,7 @@ class FunctionNode(object):
             # Topological ordering
             self.rank = max([x.rank for x in input_vars]) if input_vars else 0
             # Add backward edges
-            for i, y in enumerate(ret):
+            for y in ret:
                 y.creator_node = self
             self.inputs = tuple([x.node for x in input_vars])
             # Add forward edges (must be weak references)
@@ -351,19 +354,19 @@ class FunctionNode(object):
 
         By calling this method from :meth:`forward`, the function node can
         specify which inputs are required for backprop. The input variables
-        with retained arrays can be obtained by :meth:`get_retained_inputs`
-        from :meth:`backward`.
+        with retained arrays can then be obtained by calling
+        :meth:`get_retained_inputs` from inside :meth:`backward`.
 
         Unlike :class:`Function`, the function node **DOES NOT** keep input
         arrays by default. If you want to keep some or all input arrays, do not
         forget to call this method.
 
         Note that **this method must not be called from the outside of
-        forward method.**
+        :meth:`forward`.**
 
         Args:
             indexes (iterable of int): Indexes of input variables that the
-                function does not require for backprop.
+                function will require for backprop.
 
         """
         self._input_indexes_to_retain = indexes
@@ -373,31 +376,31 @@ class FunctionNode(object):
 
         By calling this method from :meth:`forward`, the function node can
         specify which outputs are required for backprop. If this method is not
-        called, any output variables are not marked to keep the data array at
+        called, no output variables will be marked to keep their data array at
         the point of returning from :meth:`apply`. The output variables with
-        retained arrays can be obtained by :meth:`get_retained_outputs` from
-        :meth:`backward`.
+        retained arrays can then be obtained by calling
+        :meth:`get_retained_outputs` from inside :meth:`backward`.
 
         .. note::
 
            It is recommended to use this method if the function requires some
            or all output arrays in backprop. The function can also use output
-           arrays just by keeping references to them directly, whereas it might
-           influence on the performance of later function applications to the
+           arrays just by keeping references to them directly, although it
+           might affect the performance of later function applications on the
            output variables.
 
         Note that **this method must not be called from the outside of
-        forward method.**
+        :meth:`forward`.**
 
         Args:
-            indexes (iterable of int): Indexes of input variables that the
-                function does not require for backprop.
+            indexes (iterable of int): Indexes of output variables that the
+                function will require for backprop.
 
         """
         self._output_indexes_to_retain = indexes
 
     def backward(self, target_input_indexes, grad_outputs):
-        """Computes gradients w.r.t. specified inputs given output gradients.
+        """Computes gradients w.r.t.\\ specified inputs given output gradients.
 
         This method is used to compute one step of the backpropagation
         corresponding to the forward computation of this function node.
@@ -442,7 +445,7 @@ class FunctionNode(object):
 
     def backward_accumulate(self, target_input_indexes, grad_outputs,
                             grad_inputs):
-        """Computes gradients w.r.t. specified inputs and accumulates them.
+        """Computes gradients w.r.t.\\ specified inputs and accumulates them.
 
         This method provides a way to fuse the backward computation and the
         gradient accumulations in the case that the multiple functions are
@@ -551,7 +554,7 @@ class FunctionNode(object):
         if outputs_modified:
             self.outputs = tuple(new_outputs)
 
-        return ret
+        return tuple(ret)
 
     def unchain(self):
         """Purges in/out nodes and this function node itself from the graph."""
@@ -565,7 +568,7 @@ class FunctionNode(object):
         """Registers a function hook.
 
         Args:
-            hook (~chainer.function.FunctionHook): Function hook to be
+            hook (~chainer.FunctionHook): Function hook to be
                 registered.
             name (str): Name of the function hook. The name must be unique
                 among function hooks registered to this function. If ``None``,
@@ -580,6 +583,7 @@ class FunctionNode(object):
         if name in hooks:
             raise KeyError('Hook %s already exists' % name)
         hooks[name] = hook
+        hook.added(function=self)
 
     def delete_hook(self, name):
         """Unregisters the function hook.
@@ -588,4 +592,238 @@ class FunctionNode(object):
             name (str): The name of the function hook to be unregistered.
 
         """
-        del self.local_function_hooks[name]
+        if name in self.local_function_hooks:
+            self.local_function_hooks[name].deleted(function=self)
+            del self.local_function_hooks[name]
+        else:
+            raise KeyError('Hook %s does not exist' % name)
+
+
+def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
+         retain_grad=False, enable_double_backprop=False):
+    """Computes the gradient of output variables w.r.t.\\ the input variables.
+
+    This function implements the backpropagation algorithm. While
+    :meth:`Variable.backward` also implements backprop, this function selects
+    the smallest paths in the computational graph needed to compute the
+    gradients w.r.t. inputs. The error is backpropagated only through these
+    selected paths, which may reduce the overall computational cost.
+
+    This function also differs from :meth:`Variable.backward` in the way to
+    return the gradients; it directly returns the gradient variables as a list
+    instead of setting gradients to the :attr:`Variable.grad_var` attribute of
+    the original variable. It means users do not need to clear the gradient
+    w.r.t. each variable before computing the gradient using this function.
+    If ``set_grad`` option is set to ``True``, the computed gradient is also
+    stored in the :attr:`Variable.grad_var` attribute of each variable, in
+    which case any original value of :attr:`Variable.grad_var` will be updated
+    even if it had already been set.
+
+    Args:
+        outputs: A sequence of output variables from which backprop starts.
+        inputs: A sequence of input variables each of which this function
+            computes the gradient w.r.t.
+        grad_outputs: A sequence of variables that gives the initial value of
+            each output gradient. If an element is set to ``None``, an array
+            filled with 1 is used. If this argument itself is ``None``, it is
+            treated as a sequence of ``None`` s.
+        grad_inputs: A sequence of variables that gives the initial value of
+            each input gradient. The gradients computed by the backprop
+            algorithm are accumulated to them (not in-place). If an element
+            is set to ``None``, the gradient is not accumulated to this value.
+            If this argument itself is ``None``, it is treated as a sequence of
+            ``None`` s.
+        set_grad (bool): If it is ``True``, the :attr:`Variable.grad_var`
+            attribute of each input variable is set to the corresponding
+            computed gradient variable.
+        retain_grad (bool): If it is ``True``, the gradients w.r.t. all the
+            intermediate variables are stored in the :attr:`Variable.grad_var`
+            attribute. In this case, the ``set_grad`` option is ignored.
+        enable_double_backprop (bool): If it is ``True``, the computed
+            gradients can be further backpropagated. Enabling it may increase
+            the memory consumption (and possibly the computational time) to
+            remember the intermediate gradient values for the second
+            backpropagation.
+
+    Returns:
+        A list of gradient variables w.r.t. the inputs.
+
+    """
+    # The implementation consists of three steps.
+
+    # 1. Backward enumeration: all the nodes reachable backward from the output
+    #    nodes are enumerated. The forward direction links are collected in
+    #    this step. Note that the variable nodes whose requires_grad is false
+    #    are ignored and their creators are not searched.
+    candidate_funcs = [v.creator_node for v in outputs
+                       if v.creator_node is not None]
+    visited_funcs = set()
+    forward_graph = collections.defaultdict(list)
+    while candidate_funcs:
+        func = candidate_funcs.pop()
+        if func in visited_funcs:
+            continue
+        visited_funcs.add(func)
+        for x in func.inputs:
+            if not x.requires_grad:
+                continue
+            forward_graph[x].append(func)
+            creator = x.creator_node
+            if creator is not None and creator not in visited_funcs:
+                candidate_funcs.append(creator)
+
+    # 2. Forward enumeration: all the nodes in the subgraph reachable from the
+    #    input nodes are enumerated. The extracted (sub-)subgraph is the union
+    #    of all paths that backpropagation will visit.
+    candidate_vars = [x.node for x in inputs]
+    visited_funcs = set()
+    grad_required = set()
+    while candidate_vars:
+        x = candidate_vars.pop()
+        grad_required.add(x)
+        for func in forward_graph[x]:
+            if func in visited_funcs:
+                continue
+            visited_funcs.add(func)
+            for y_ref in func.outputs:
+                y = y_ref()
+                if y is not None and y in forward_graph:
+                    candidate_vars.append(y)
+
+    # 3. Backpropagation: the backpropagation is executed along the
+    #    (sub-)subgraph. It uses the topological order of the subgraph which is
+    #    induced by the reversed order of function applications ("rank").
+    grads = {}  # mapping from variable nodes to their gradients
+
+    # Initialize the gradient mapping.
+    if grad_outputs is None:
+        grad_outputs = (None,) * len(outputs)
+    for y, gy in zip(outputs, grad_outputs):
+        if gy is None:
+            with cuda.get_device_from_array(y.data) as device:
+                if device is cuda.DummyDevice:
+                    gy_data = numpy.ones_like(y.data)
+                else:
+                    gy_data = cuda.cupy.ones_like(y.data)
+                gy = variable.Variable(gy_data, requires_grad=False)
+        grads[y.node] = gy
+
+    if grad_inputs is not None:
+        for x, gx in zip(inputs, grad_inputs):
+            if gx is not None:
+                grads[x.node] = gx
+
+    # Backprop implementation. It edits grads which will only contain the
+    # gradients w.r.t. the inputs.
+    with chainer.using_config('enable_backprop', enable_double_backprop):
+        _backprop(outputs, inputs, grad_required, retain_grad, grads)
+
+    # Extract the gradients w.r.t. the inputs and return them.
+    ret = [grads.get(x.node, None) for x in inputs]
+    if set_grad:
+        for x, gx in zip(inputs, ret):
+            x.grad_var = gx
+
+    return ret
+
+
+def _backprop(outputs, inputs, grad_required, retain_grad, grads):
+    candidate_funcs, push_candidate, pop_candidate = _get_ordered_func_heap()
+
+    for y in outputs:
+        creator = y.creator_node
+        if creator is not None:
+            push_candidate(creator)
+
+    input_nodes = set(x.node for x in inputs)
+
+    while candidate_funcs:
+        func = pop_candidate()
+
+        # Collect the gradients w.r.t. the outputs
+        gys = []
+        for y_ref in func.outputs:
+            y = y_ref()
+            if y is None:
+                # output is not a part of the selected subgraph and has already
+                # been released.
+                gys.append(None)
+                continue
+            gys.append(grads.get(y, None))
+
+        # Collect the gradients w.r.t. the inputs
+        #
+        # Note (Tokui): when the same variable is passed multiple times as
+        # inputs in the same function (e.g. an expression like f(x, x)), the
+        # current implementation passes None as the current gradient w.r.t.
+        # such an input except for the first one (i.e., it builds gxs like
+        # (gx, None) where gx is the current gradient w.r.t. x).
+        gxs = []
+        input_indexes = []
+        selected_inputs = set()
+        for i, x in enumerate(func.inputs):
+            if x not in grad_required:
+                continue
+            input_indexes.append(i)
+            if x in selected_inputs:
+                gxs.append(None)
+            else:
+                gxs.append(grads.get(x, None))
+                selected_inputs.add(x)
+
+        if not input_indexes:
+            continue
+
+        # Do backward
+        new_gxs = func.backward_accumulate(input_indexes, gys, gxs)
+
+        # Delete output gradients that are not required to return
+        for y_ref in func.outputs:
+            y = y_ref()
+            if y is not None and y in grads and y not in input_nodes:
+                del grads[y]
+
+        # Update grads
+        selected_inputs = set()
+        for i, g in zip(input_indexes, new_gxs):
+            if g is None:
+                continue
+
+            node = func.inputs[i]
+            if node in selected_inputs:
+                # Accumulate the duplicated gradients here
+                cur_gx = grads.get(node, None)
+                if cur_gx is not None:
+                    g = g + cur_gx
+            else:
+                selected_inputs.add(node)
+
+            grads[node] = g
+
+            if retain_grad:
+                v = node.get_variable_or_none()
+                if v is not None:
+                    v.grad_var = g
+
+            creator = node.creator_node
+            if creator is not None:
+                push_candidate(creator)
+
+
+def _get_ordered_func_heap():
+    heap = []
+    visited_funcs = set()
+
+    def push_heap(func):
+        if func not in visited_funcs:
+            # Negate since heapq is min-heap
+            # The second element is used to make each item unique
+            ordered_func = -func.rank, len(visited_funcs), func
+            visited_funcs.add(func)
+            heapq.heappush(heap, ordered_func)
+
+    def pop_heap():
+        _, _, func = heapq.heappop(heap)
+        return func
+
+    return heap, push_heap, pop_heap

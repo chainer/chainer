@@ -2,7 +2,7 @@ import numpy
 
 from chainer import configuration
 from chainer import cuda
-from chainer.functions.normalization import batch_normalization
+from chainer import functions
 from chainer import initializers
 from chainer import link
 from chainer.utils import argument
@@ -57,8 +57,8 @@ class BatchNormalization(link.Link):
         avg_var (numpy.ndarray or cupy.ndarray): Population variance.
         N (int): Count of batches given for fine-tuning.
         decay (float): Decay rate of moving average. It is used on training.
-        eps (float): Epsilon value for numerical stability. This value is added
-            to the batch variances.
+        ~BatchNormalization.eps (float): Epsilon value for numerical stability.
+            This value is added to the batch variances.
 
     """
 
@@ -95,13 +95,13 @@ class BatchNormalization(link.Link):
         Invokes the forward propagation of BatchNormalization.
 
         In training mode, the BatchNormalization computes moving averages of
-        mean and variance for evaluatino during training, and normalizes the
+        mean and variance for evaluation during training, and normalizes the
         input using batch statistics.
 
         .. warning::
 
            ``test`` argument is not supported anymore since v2.
-           Instead, use ``chainer.using_config('train', train)``.
+           Instead, use ``chainer.using_config('train', False)``.
            See :func:`chainer.using_config`.
 
         Args:
@@ -138,17 +138,14 @@ class BatchNormalization(link.Link):
             else:
                 decay = self.decay
 
-            func = batch_normalization.BatchNormalizationFunction(
-                self.eps, self.avg_mean, self.avg_var, decay)
-            ret = func(x, gamma, beta)
-
-            self.avg_mean[:] = func.running_mean
-            self.avg_var[:] = func.running_var
+            ret = functions.batch_normalization(
+                x, gamma, beta, eps=self.eps, running_mean=self.avg_mean,
+                running_var=self.avg_var, decay=decay)
         else:
             # Use running average statistics or fine-tuned statistics.
             mean = variable.Variable(self.avg_mean)
             var = variable.Variable(self.avg_var)
-            ret = batch_normalization.fixed_batch_normalization(
+            ret = functions.fixed_batch_normalization(
                 x, gamma, beta, mean, var, self.eps)
         return ret
 

@@ -1,11 +1,10 @@
-import numpy
 import six
 
 from chainer import cuda
 from chainer.functions.array import permutate
 from chainer.functions.array import transpose_sequence
 from chainer.functions.connection import n_step_lstm as rnn
-from chainer.initializers import normal
+from chainer import initializers
 from chainer import link
 from chainer.links.connection import n_step_rnn
 from chainer.utils import argument
@@ -25,6 +24,14 @@ class NStepLSTMBase(link.ChainList):
         in_size (int): Dimensionality of input vectors.
         out_size (int): Dimensionality of hidden states and output vectors.
         dropout (float): Dropout ratio.
+        initialW (2-D array): Initial weight value. If ``None``, then the
+            default initializer is used.
+            May also be a callable that takes ``numpy.ndarray`` or
+            ``cupy.ndarray`` and edits its value.
+        initial_bias (1-D array): Initial bias value. If ``None``, the bias
+            vector is initialized to zero.
+            May also be a callable that takes ``numpy.ndarray`` or
+            ``cupy.ndarray`` and edits its value.
         use_bi_direction (bool): if ``True``, use Bi-directional LSTM.
 
     .. seealso::
@@ -33,12 +40,17 @@ class NStepLSTMBase(link.ChainList):
 
     """
 
-    def __init__(self, n_layers, in_size, out_size, dropout, use_bi_direction,
+    def __init__(self, n_layers, in_size, out_size, dropout,
+                 initialW, initial_bias, use_bi_direction,
                  **kwargs):
         argument.check_unexpected_kwargs(
             kwargs, use_cudnn='use_cudnn argument is not supported anymore. '
             'Use chainer.using_config')
         argument.assert_kwargs_empty(kwargs)
+
+        if initial_bias is None:
+            initial_bias = initializers.constant.Zero()
+        initialW = initializers._get_initializer(initialW)
 
         weights = []
         direction = 2 if use_bi_direction else 1
@@ -53,12 +65,12 @@ class NStepLSTMBase(link.ChainList):
                             w_in = out_size * direction
                         else:
                             w_in = out_size
-                        w = variable.Parameter(
-                            normal.Normal(numpy.sqrt(1. / w_in)),
-                            (out_size, w_in))
-                        b = variable.Parameter(0, (out_size,))
-                        setattr(weight, 'w%d' % j, w)
-                        setattr(weight, 'b%d' % j, b)
+                        name_w = 'w{}'.format(j)
+                        name_b = 'b{}'.format(j)
+                        w = variable.Parameter(initialW, (out_size, w_in))
+                        b = variable.Parameter(initial_bias, (out_size,))
+                        setattr(weight, name_w, w)
+                        setattr(weight, name_b, b)
                 weights.append(weight)
 
         super(NStepLSTMBase, self).__init__(*weights)
@@ -155,15 +167,25 @@ class NStepLSTM(NStepLSTMBase):
         in_size (int): Dimensionality of input vectors.
         out_size (int): Dimensionality of hidden states and output vectors.
         dropout (float): Dropout ratio.
+        initialW (2-D array): Initial weight value. If ``None``, then the
+            default initializer is used.
+            May also be a callable that takes ``numpy.ndarray`` or
+            ``cupy.ndarray`` and edits its value.
+        initial_bias (1-D array): Initial bias value. If ``None``, the bias
+            vector is initialized to zero.
+            May also be a callable that takes ``numpy.ndarray`` or
+            ``cupy.ndarray`` and edits its value.
 
     .. seealso::
         :func:`chainer.functions.n_step_lstm`
 
     """
 
-    def __init__(self, n_layers, in_size, out_size, dropout, **kwargs):
+    def __init__(self, n_layers, in_size, out_size, dropout,
+                 initialW=None, initial_bias=None, **kwargs):
         NStepLSTMBase.__init__(
             self, n_layers, in_size, out_size, dropout,
+            initialW, initial_bias,
             use_bi_direction=False, **kwargs)
 
 
@@ -192,13 +214,23 @@ class NStepBiLSTM(NStepLSTMBase):
         in_size (int): Dimensionality of input vectors.
         out_size (int): Dimensionality of hidden states and output vectors.
         dropout (float): Dropout ratio.
+        initialW (2-D array): Initial weight value. If ``None``, then the
+            default initializer is used.
+            May also be a callable that takes ``numpy.ndarray`` or
+            ``cupy.ndarray`` and edits its value.
+        initial_bias (1-D array): Initial bias value. If ``None``, the bias
+            vector is initialized to zero.
+            May also be a callable that takes ``numpy.ndarray`` or
+            ``cupy.ndarray`` and edits its value.
 
     .. seealso::
         :func:`chainer.functions.n_step_bilstm`
 
     """
 
-    def __init__(self, n_layers, in_size, out_size, dropout, **kwargs):
+    def __init__(self, n_layers, in_size, out_size, dropout,
+                 initialW=None, initial_bias=None, **kwargs):
         NStepLSTMBase.__init__(
             self, n_layers, in_size, out_size, dropout,
+            initialW, initial_bias,
             use_bi_direction=True, **kwargs)

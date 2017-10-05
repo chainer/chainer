@@ -69,7 +69,7 @@ class Hyperparameter(object):
 
     @property
     def parent(self):
-        """Parent hyperparmaeter object."""
+        """Parent hyperparameter object."""
         return self._parent
 
     def get_dict(self):
@@ -185,7 +185,8 @@ class UpdateRule(object):
             return
 
         self.t += 1
-        self._prepare(param)
+        if param.data is not None:
+            self._prepare(param)
         for hook in six.itervalues(self._hooks):
             hook(self, param)
         self.update_core(param)
@@ -313,8 +314,8 @@ class Optimizer(object):
         target: Target link object. It is set by the :meth:`setup` method.
         t: Number of update steps. It must be incremented by the
             :meth:`update` method.
-        epoch: Current epoch. It is incremented by the :meth:`new_epoch`
-            method.
+        ~Optimizer.epoch: Current epoch. It is incremented by the
+            :meth:`new_epoch` method.
 
     """
 
@@ -625,6 +626,8 @@ class WeightDecay(object):
 
     def __call__(self, rule, param):
         p, g = param.data, param.grad
+        if p is None or g is None:
+            return
         with cuda.get_device_from_array(p) as dev:
             if int(dev) == -1:
                 g += self.rate * p
@@ -655,6 +658,8 @@ class Lasso(object):
 
     def __call__(self, rule, param):
         p, g = param.data, param.grad
+        if p is None or g is None:
+            return
         xp = cuda.get_array_module(p)
         with cuda.get_device_from_array(p) as dev:
             sign = xp.sign(p)
@@ -732,6 +737,8 @@ class GradientNoise(object):
 
     def __call__(self, rule, param):
         g = param.grad
+        if g is None:
+            return
         xp = cuda.get_array_module(g)
         with cuda.get_device_from_array(g) as dev:
             noise = self.noise_func(xp, g.shape, g.dtype, self, rule)
@@ -768,6 +775,8 @@ class GradientHardClipping(object):
 
     def __call__(self, rule, param):
         grad = param.grad
+        if grad is None:
+            return
         xp = cuda.get_array_module(grad)
         with cuda.get_device_from_array(grad):
             xp.clip(grad, self.lower_bound, self.upper_bound, out=grad)
