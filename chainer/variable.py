@@ -1352,8 +1352,11 @@ Actual: {0}'''.format(type(data))
                     gx = grads[x]
                 elif x.creator_node is None:
                     x._check_old_style_gradient()
-                    # accumulate the gradient only if the node is a leaf
+                    # accumulate the gradient if the node is a leaf
                     gx = x.grad_var
+                    # or the node is a break point [OOC/LWR]
+                    if gx is None and x._break_point:
+                        gx = x._grad_var
                 else:
                     gx = None
                 in_grad.append(gx)
