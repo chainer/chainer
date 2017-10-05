@@ -479,7 +479,8 @@ class Function(object):
         If this method is not called, the function keeps all input arrays. If
         you want to release all input arrays, call this method by passing an
         empty sequence. *Note that this behavior is different from that of*
-        :meth:`FunctionNode.retain_inputs() <chainer.FunctionNode.retain_inputs>`.
+        :meth:`FunctionNode.retain_inputs() \
+        <chainer.FunctionNode.retain_inputs>`.
 
         Note that **this method must not be called from the outside of**
         :meth:`forward`.
