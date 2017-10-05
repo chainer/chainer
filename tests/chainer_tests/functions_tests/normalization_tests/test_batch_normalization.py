@@ -165,7 +165,7 @@ class TestBatchNormalization(unittest.TestCase):
 
 
 @testing.parameterize(*(testing.product({
-    'param_shape': [(3, 4), (3, 2, 3)],
+    'param_shape': [(3,), (3, 4), (3, 2, 3)],
     'ndim': [0, 1, 2],
     'dtype': [numpy.float32],
 }) + testing.product({
