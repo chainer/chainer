@@ -5,10 +5,10 @@ from chainer import cuda
 
 
 def get_conv_outsize(size, k, s, p, cover_all=False, d=1):
-    """Calculate output size of convolution.
+    """Calculates output size of convolution.
 
-    This functions takes the size of input feature map, kernel, stride, and
-    pooling, then calculate the output feature map size.
+    This function takes the size of input feature map, kernel, stride, and
+    pooling, then calculates the output feature map size.
 
     Args:
         size (int): The size of input feature map. It usually is the length of
@@ -16,7 +16,7 @@ def get_conv_outsize(size, k, s, p, cover_all=False, d=1):
         k (int): The size of convolution kernel.
         s (int): The size of stride.
         p (int): The size of padding.
-        cover_all (bool): Use cover_all option or not.
+        ``cover_all`` (bool): Use cover_all option or not.
         d (int): The size of dilation.
 
     Returns:
@@ -31,10 +31,10 @@ def get_conv_outsize(size, k, s, p, cover_all=False, d=1):
 
 
 def get_deconv_outsize(size, k, s, p, cover_all=False):
-    """Calculate output size of deconvolution.
+    """Calculates output size of deconvolution.
 
-    This functions takes the size of input feature map, kernel, stride, and
-    pooling, then calculate the output feature map size.
+    This function takes the size of input feature map, kernel, stride, and
+    pooling, then calculates the output feature map size.
 
     Args:
         size (int): The size of input feature map. It usually is the length of
@@ -42,7 +42,7 @@ def get_deconv_outsize(size, k, s, p, cover_all=False):
         k (int): The size of deconvolution kernel.
         s (int): The size of stride.
         p (int): The size of padding.
-        cover_all (bool): Use cover_all option or not.
+        ``cover_all`` (bool): Use cover_all option or not.
 
     Returns:
         int: The expected output size of the deconvolution operation.
