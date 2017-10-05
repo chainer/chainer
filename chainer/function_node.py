@@ -102,13 +102,14 @@ class FunctionNode(object):
        style differentiable functions.
 
     Attributes:
-        inputs: A tuple of the input :class:`VariableNode` objects.
-        outputs: A tuple of weak references to the output
+        ~FunctionNode.inputs: A tuple of the input :class:`VariableNode`
+            objects.
+        ~FunctionNode.outputs: A tuple of weak references to the output
             :class:`VariableNode` objects.
-        rank (int): An ordinal following the topological order of the
-            computational graph.
-        stack: Stack trace retrieved at the forward computation. The stack
-            trace is available only in the debug mode.
+        ~FunctionNode.rank (int): An ordinal following the topological order
+            of the computational graph.
+        ~FunctionNode.stack: Stack trace retrieved at the forward computation.
+            The stack trace is available only in the debug mode.
 
     .. versionadded:: 3.0.0
 

@@ -46,14 +46,12 @@ print('')
 
 # Prepare dataset
 print('load MNIST dataset')
-mnist = data.load_mnist_data()
+mnist = data.load_mnist_data(args.test)
 mnist['data'] = mnist['data'].astype(np.float32)
 mnist['data'] /= 255
 mnist['target'] = mnist['target'].astype(np.int32)
 
 if args.test:
-    mnist['data'] = mnist['data'][0:100]
-    mnist['target'] = mnist['target'][0:100]
     N = 30
 else:
     N = 60000
