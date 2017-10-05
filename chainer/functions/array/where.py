@@ -27,7 +27,7 @@ class Where(function_node.FunctionNode):
         return xp.where(condition, x, y),
 
     def backward(self, indexes, grad_outputs):
-        condition = self.inputs[0]
+        condition = self.get_retained_inputs()[0]
         xp = cuda.get_array_module(condition.data)
         g, = grad_outputs
         zeros = xp.zeros(g.shape, dtype=g.dtype)
