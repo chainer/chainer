@@ -133,3 +133,13 @@ Residual Networks
    chainer.links.ResNet101Layers
    chainer.links.ResNet152Layers
    chainer.links.model.vision.resnet.prepare
+
+Compatibility with other frameworks
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.links.TheanoFunction
+   chainer.links.caffe.CaffeFunction

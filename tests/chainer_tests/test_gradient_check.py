@@ -32,6 +32,8 @@ def _dot(x, y):
 class NumericalGradientTest(unittest.TestCase):
 
     eps = None
+    atol = 1e-3
+    rtol = 1e-3
 
     def f(self, xs):
         return xs[0] ** 2,
@@ -56,7 +58,7 @@ class NumericalGradientTest(unittest.TestCase):
 
         self.assertEqual(len(dx_expect), len(dx_actual))
         for e, a in zip(dx_expect, dx_actual):
-            testing.assert_allclose(e, a, atol=1e-3, rtol=1e-3)
+            testing.assert_allclose(e, a, atol=self.atol, rtol=self.rtol)
 
     def check_numerical_grad(self, f, df, xs, gys, eps=None):
         if eps is None:
@@ -67,12 +69,10 @@ class NumericalGradientTest(unittest.TestCase):
         for e in eps:
             self.check_numerical_grad_one(f, df, xs, gys, e)
 
-    @condition.retry(3)
     def test_numerical_grad_cpu(self):
         self.check_numerical_grad(self.f, self.df, self.xs, self.gys,
                                   eps=self.eps)
 
-    @condition.retry(3)
     @attr.gpu
     def test_numerical_grad_gpu(self):
         gys = tuple(None if gy is None else cuda.to_gpu(gy)
@@ -111,6 +111,9 @@ class NumericalGradientTest3(NumericalGradientTest):
 
 
 class NumericalGradientTest4(NumericalGradientTest):
+
+    atol = 1e-2
+    rtol = 1e-2
 
     def f(self, xs):
         assert len(xs) == 2
