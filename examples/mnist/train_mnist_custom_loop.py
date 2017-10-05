@@ -51,6 +51,10 @@ def main():
     optimizer = chainer.optimizers.Adam()
     optimizer.setup(model)
 
+    if args.resume:
+        # Resume from a snapshot
+        serializers.load_npz(args.resume, model)
+
     # Load the MNIST dataset
     train, test = chainer.datasets.get_mnist()
 
