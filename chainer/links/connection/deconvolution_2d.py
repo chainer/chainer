@@ -132,7 +132,7 @@ class Deconvolution2D(link.Link):
             "supported anymore. "
             "Use chainer.using_config('cudnn_deterministic', value) "
             "context where value is either `True` or `False`.")
-        argument.assert_kwargs_empty(kwargs)
+        group, = argument.parse_kwargs(kwargs, ('group', 1))
 
         if ksize is None:
             out_channels, ksize, in_channels = in_channels, out_channels, None
@@ -142,6 +142,7 @@ class Deconvolution2D(link.Link):
         self.pad = _pair(pad)
         self.outsize = (None, None) if outsize is None else outsize
         self.out_channels = out_channels
+        self.group = int(group)
 
         with self.init_scope():
             W_initializer = initializers._get_initializer(initialW)
@@ -161,14 +162,19 @@ class Deconvolution2D(link.Link):
 
     def _initialize_params(self, in_channels):
         kh, kw = _pair(self.ksize)
-        W_shape = (in_channels, self.out_channels, kh, kw)
+        if (self.out_channels % self.group != 0 or
+                in_channels % self.group != 0):
+            raise ValueError('number of input and output channels must be'
+                             'divisible by group count')
+        W_shape = (in_channels, int(self.out_channels / self.group), kh, kw)
         self.W.initialize(W_shape)
 
     def __call__(self, x):
         if self.W.data is None:
             self._initialize_params(x.shape[1])
         return deconvolution_2d.deconvolution_2d(
-            x, self.W, self.b, self.stride, self.pad, self.outsize)
+            x, self.W, self.b, self.stride, self.pad, self.outsize,
+            group=self.group)
 
 
 def _pair(x):
