@@ -31,9 +31,16 @@ class Where(function_node.FunctionNode):
         xp = cuda.get_array_module(condition.data)
         g, = grad_outputs
         zeros = xp.zeros(g.shape, dtype=g.dtype)
-        gx, = Where().apply((condition.data, g, zeros))
-        gy, = Where().apply((condition.data, zeros, g))
-        return None, gx, gy
+        ret = []
+        if 0 in indexes:
+            ret.append(None)
+        if 1 in indexes:
+            gx, = Where().apply((condition.data, g, zeros))
+            ret.append(gx)
+        if 2 in indexes:
+            gy, = Where().apply((condition.data, zeros, g))
+            ret.append(gy)
+        return ret
 
 
 def where(condition, x, y):
