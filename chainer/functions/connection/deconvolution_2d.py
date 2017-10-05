@@ -84,7 +84,8 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             type_check.expect(
                 b_type.dtype == x_type.dtype,
                 b_type.ndim == 1,
-                b_type.shape[0] == w_type.shape[1]
+                # Need to consider the case that group count > 1.
+                # b_type.shape[0] == w_type.shape[1],
             )
 
     def forward_cpu(self, inputs):
@@ -249,7 +250,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         _x = xp.rollaxis(_x, 1)  # (G, N, xCg, xH, xW)
         _W = W.reshape(G, xCg, yCg, kH, kW)
         if b is not None:
-            _b = b.reshape(G, xCg)
+            _b = b.reshape(G, yCg)
 
         _ys = []
         for g in range(G):

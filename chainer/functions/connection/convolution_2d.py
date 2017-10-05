@@ -297,7 +297,7 @@ class Convolution2DGradW(function_node.FunctionNode):
             _gc_use_cudnn = False
 
         if (self.cover_all or not chainer.should_use_cudnn('>=auto') or
-                x.dtype != self.W_dtype or _gc_use_cudnn):
+                x.dtype != self.W_dtype or not _gc_use_cudnn):
             if self.group > 1:
                 gW = self._forward_grouped_convolution(x, gy)
             else:
