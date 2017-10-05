@@ -53,8 +53,24 @@ class HessianFree(optimizer.Optimizer):
         xs0 = [cuda.get_array_module(x).zeros_like(x.data)
                for x in self.target.params()]
         dxs = conjugate_gradient(hessian_vector_product, gs, xs0)
+        def func():
+            return lossfun(*args, **kwargs).data
+        grads = [x.grad for x in self.target.params()]
+        self.line_search(loss.data, func, grads, dxs)
+
+    def line_search(self, y, func, grads, dxs, beta=0.5, c=0.01):
+        alpha = 1
         for param, dx in zip(self.target.params(), dxs):
             param.data += dx
+        while True:
+            y_new = func()
+            if y_new <= y + c * alpha * params_dot(grads, dxs):
+                return
+            for param, dx in zip(self.target.params(), dxs):
+                param.data -= (1 - beta) * alpha * dx
+            alpha *= beta
+
+
 
 
 if __name__ == '__main__':
