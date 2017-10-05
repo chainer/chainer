@@ -21,7 +21,7 @@ class DocstringCheckContext(object):
 
     def nextline(self):
         if self.iline >= len(self.lines):
-            raise StopIteration()
+            raise StopIteration
         line = self.lines[self.iline]
         self.iline += 1
         return line
@@ -72,7 +72,7 @@ def _docstring_check_returns_indent(ctx):
         while len(line) == 0:
             line = ctx.nextline()
     except StopIteration:
-        raise ctx.error('`Returns` sections has no content')
+        ctx.error('`Returns` section has no content')
 
     # Find the indentation of the first line
     # (note: line should have at least one non-space character)
