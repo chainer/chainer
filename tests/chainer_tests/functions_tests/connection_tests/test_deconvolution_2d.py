@@ -29,6 +29,7 @@ def _pair(x):
     'cudnn_deterministic': [True, False],
     'x_dtype': [numpy.float32],
     'W_dtype': [numpy.float32],
+    'group': [1, 2],
 }) + testing.product({
     'c_contiguous': [False],
     'test_outsize': [True],
@@ -38,21 +39,23 @@ def _pair(x):
     'cudnn_deterministic': [False],
     'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'W_dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'group': [1, 2],
 })))
 class TestDeconvolution2DFunction(unittest.TestCase):
 
-    in_channels = 3
-    out_channels = 2
-    ksize = 3
-    pad = 1
-
     def setUp(self):
+        in_channels_a_group = 3
+        out_channels_a_group = 2
+        self.in_channels = in_channels_a_group * self.group
+        self.out_channels = out_channels_a_group * self.group
+        self.ksize = 3
+        self.pad = 1
         kh, kw = _pair(self.ksize)
         sh, sw = _pair(self.stride)
         ph, pw = _pair(self.pad)
         self.W = numpy.random.normal(
-            0, numpy.sqrt(1. / (kh * kw * self.in_channels)),
-            (self.in_channels, self.out_channels, kh, kw)
+            0, numpy.sqrt(1. / (kh * kw * out_channels_a_group)),
+            (self.in_channels, out_channels_a_group, kh, kw)
         ).astype(self.W_dtype)
         self.b = None if self.nobias else numpy.random.uniform(
             -1, 1, self.out_channels).astype(self.x_dtype)
@@ -94,7 +97,7 @@ class TestDeconvolution2DFunction(unittest.TestCase):
                                   self.cudnn_deterministic):
             y_cpu = F.deconvolution_2d(
                 x_cpu, W_cpu, b_cpu, stride=self.stride, pad=self.pad,
-                outsize=self.outsize)
+                outsize=self.outsize, group=self.group)
 
         x_gpu = chainer.Variable(cuda.to_gpu(self.x))
         W_gpu = chainer.Variable(cuda.to_gpu(self.W))
@@ -105,7 +108,7 @@ class TestDeconvolution2DFunction(unittest.TestCase):
                                       self.cudnn_deterministic):
                 y_gpu = F.deconvolution_2d(
                     x_gpu, W_gpu, b_gpu, stride=self.stride, pad=self.pad,
-                    outsize=self.outsize)
+                    outsize=self.outsize, group=self.group)
 
         self.assertEqual(y_cpu.data.dtype, self.x_dtype)
         self.assertEqual(y_gpu.data.dtype, self.x_dtype)
@@ -139,7 +142,8 @@ class TestDeconvolution2DFunction(unittest.TestCase):
 
         def f(*args):
             return F.deconvolution_2d(
-                *args, stride=self.stride, pad=self.pad, outsize=self.outsize)
+                *args, stride=self.stride, pad=self.pad, outsize=self.outsize,
+                 group=self.group)
 
         with chainer.using_config('use_cudnn', self.use_cudnn):
             with chainer.using_config('cudnn_deterministic',
@@ -192,7 +196,8 @@ class TestDeconvolution2DFunction(unittest.TestCase):
 
         def f(*args):
             y = F.deconvolution_2d(
-                *args, stride=self.stride, pad=self.pad, outsize=self.outsize)
+                *args, stride=self.stride, pad=self.pad, outsize=self.outsize,
+                 group=self.group)
             return y * y  # make the function nonlinear
 
         with chainer.using_config('use_cudnn', self.use_cudnn):
@@ -221,19 +226,22 @@ class TestDeconvolution2DFunction(unittest.TestCase):
     'use_cudnn': ['always', 'auto', 'never'],
     'cudnn_deterministic': [True, False],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'group': [1, 2],
 }))
 @attr.cudnn
 class TestDeconvolution2DCudnnCall(unittest.TestCase):
 
     def setUp(self):
-        self.in_channels = 3
-        self.out_channels = 2
+        in_channels_a_group = 3
+        out_channels_a_group = 2
+        self.in_channels = in_channels_a_group * self.group
+        self.out_channels = out_channels_a_group * self.group
         kh, kw = _pair(3)
         sh, sw = _pair(1)
         ph, pw = _pair(1)
         self.W = cuda.cupy.random.normal(
-            0, numpy.sqrt(1. / (kh * kw * self.in_channels)),
-            (self.in_channels, self.out_channels, kh, kw)
+            0, numpy.sqrt(1. / (kh * kw * out_channels_a_group)),
+            (self.in_channels, out_channels_a_group, kh, kw)
         ).astype(self.dtype)
         N = 2
         inh, inw = 4, 3
@@ -249,7 +257,8 @@ class TestDeconvolution2DCudnnCall(unittest.TestCase):
     def forward(self):
         x = chainer.Variable(self.x)
         W = chainer.Variable(self.W)
-        return F.deconvolution_2d(x, W, None, stride=1, pad=1)
+        return F.deconvolution_2d(x, W, None, stride=1, pad=1,
+                                  group=self.group)
 
     def test_call_cudnn_forward(self):
         name = 'cupy.cudnn.cudnn.convolutionBackwardData_v3'
@@ -294,6 +303,7 @@ class TestDeconvolution2DCudnnCall(unittest.TestCase):
     'c_contiguous': [True, False],
     'cudnn_deterministic': [True, False],
     'nobias': [True, False],
+    'group': [1, 2],
 }))
 @attr.gpu
 @attr.cudnn
@@ -303,8 +313,10 @@ class TestDeconvolution2DFunctionCudnnDeterministic(unittest.TestCase):
         self.stride = 2
         self.pad = 1
         batch_sz = 2
-        in_channels = 64
-        out_channels = 64
+        in_channels_a_group = 64
+        out_channels_a_group = 64
+        in_channels = in_channels_a_group * self.group
+        out_channels = out_channels_a_group * self.group
         kh, kw = (3, 3)
         in_h, in_w = (32, 128)
         out_h, out_w = (63, 255)
@@ -312,8 +324,8 @@ class TestDeconvolution2DFunctionCudnnDeterministic(unittest.TestCase):
         x_dtype = numpy.float32
         W_dtype = numpy.float32
         self.W = numpy.random.normal(
-            0, numpy.sqrt(1. / (kh * kw * in_channels)),
-            (out_channels, in_channels, kh, kw)).astype(W_dtype)
+            0, numpy.sqrt(1. / (kh * kw * in_channels_a_group)),
+            (out_channels, in_channels_a_group, kh, kw)).astype(W_dtype)
         self.b = numpy.random.uniform(-1, 1, out_channels).astype(x_dtype)
         self.x = numpy.random.uniform(
             -1, 1, (batch_sz, in_channels, in_h, in_w)).astype(x_dtype)
@@ -374,7 +386,8 @@ class TestDeconvolution2DFunctionCudnnDeterministic(unittest.TestCase):
         W = chainer.Variable(W_data)
         b = None if self.nobias else chainer.Variable(b_data)
         with chainer.using_config('use_cudnn', 'always'):
-            y = F.deconvolution_2d(x, W, b, stride=self.stride, pad=self.pad)
+            y = F.deconvolution_2d(x, W, b, stride=self.stride, pad=self.pad,
+                                   group=self.group)
         return x, W, b, y
 
 

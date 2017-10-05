@@ -18,36 +18,42 @@ from chainer.testing import condition
     'x_dtype': [numpy.float32],
     'W_dtype': [numpy.float32],
     'cudnn_deterministic': [True, False],
+    'group': [1, 2],
 }) + testing.product({
     'c_contiguous': [False],
     'cover_all': [False],
     'cudnn_deterministic': [False],
     'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'W_dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'group': [1, 2],
 })))
 class TestConvolution2DFunction(unittest.TestCase):
 
     def setUp(self):
-        in_channels = 3
-        out_channels = 2
+        batches = 2
+        in_channels_a_group = 3
+        out_channels_a_group = 2
+        in_channels = in_channels_a_group * self.group
+        out_channels = out_channels_a_group * self.group
         kh, kw = (3, 3)
         self.stride = 2
         self.pad = 1
         self.use_cudnn = 'always'
         self.W = numpy.random.normal(
-            0, numpy.sqrt(1. / (kh * kw * in_channels)),
-            (out_channels, in_channels, kh, kw)).astype(self.W_dtype)
+            0, numpy.sqrt(1. / (kh * kw * in_channels_a_group)),
+            (out_channels, in_channels_a_group, kh, kw)).astype(self.W_dtype)
         self.b = numpy.random.uniform(
             -1, 1, out_channels).astype(self.x_dtype)
 
         self.x = numpy.random.uniform(
-            -1, 1, (2, 3, 4, 3)).astype(self.x_dtype)
+            -1, 1, (batches, in_channels, 4, 3)).astype(self.x_dtype)
         if self.cover_all:
             self.gy = numpy.random.uniform(-1, 1,
-                                           (2, 2, 3, 2)).astype(self.x_dtype)
+                                           (batches, out_channels, 3, 2)
+                                           ).astype(self.x_dtype)
         else:
             self.gy = numpy.random.uniform(
-                -1, 1, (2, 2, 2, 2)).astype(self.x_dtype)
+                -1, 1, (batches, out_channels, 2, 2)).astype(self.x_dtype)
         self.ggx = numpy.random.uniform(-1, 1, self.x.shape).astype(
             self.x_dtype)
         self.ggW = numpy.random.uniform(-1, 1, self.W.shape).astype(
@@ -71,7 +77,7 @@ class TestConvolution2DFunction(unittest.TestCase):
                                   self.cudnn_deterministic):
             y_cpu = F.convolution_2d(
                 x_cpu, W_cpu, b_cpu, stride=self.stride, pad=self.pad,
-                cover_all=self.cover_all)
+                cover_all=self.cover_all, group=self.group)
 
         x_gpu = chainer.Variable(cuda.to_gpu(self.x))
         W_gpu = chainer.Variable(cuda.to_gpu(self.W))
@@ -81,7 +87,7 @@ class TestConvolution2DFunction(unittest.TestCase):
                                       self.cudnn_deterministic):
                 y_gpu = F.convolution_2d(
                     x_gpu, W_gpu, b_gpu, stride=self.stride, pad=self.pad,
-                    cover_all=self.cover_all)
+                    cover_all=self.cover_all, group=self.group)
 
         testing.assert_allclose(
             y_cpu.data, y_gpu.data.get(), **self.check_forward_options)
@@ -118,7 +124,7 @@ class TestConvolution2DFunction(unittest.TestCase):
 
         def f(*args):
             return F.convolution_2d(*args, stride=self.stride, pad=self.pad,
-                                    cover_all=self.cover_all)
+                                    cover_all=self.cover_all, group=self.group)
 
         with chainer.using_config('use_cudnn', self.use_cudnn):
             with chainer.using_config('cudnn_deterministic',
@@ -194,7 +200,7 @@ class TestConvolution2DFunction(unittest.TestCase):
 
         def f(*args):
             y = F.convolution_2d(*args, stride=self.stride, pad=self.pad,
-                                 cover_all=self.cover_all)
+                                 cover_all=self.cover_all, group=self.group)
             return y * y  # make the function nonlinear
 
         with chainer.using_config('use_cudnn', self.use_cudnn):
@@ -248,30 +254,35 @@ class TestConvolution2DFunction(unittest.TestCase):
     'use_cudnn': ['always', 'auto', 'never'],
     'cudnn_deterministic': [False, True],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'group': [1, 2],
 }))
 @attr.cudnn
 class TestConvolution2DCudnnCall(unittest.TestCase):
 
     def setUp(self):
-        in_channels = 3
-        out_channels = 2
+        batches = 2
+        in_channels_a_group = 3
+        out_channels_a_group = 2
+        in_channels = in_channels_a_group * self.group
+        out_channels = out_channels_a_group * self.group
         kh, kw = (3, 3)
         self.stride = 2
         self.pad = 1
         self.x = cuda.cupy.random.uniform(
-            -1, 1, (2, 3, 4, 3)).astype(self.dtype)
+            -1, 1, (batches, in_channels, 4, 3)).astype(self.dtype)
         self.W = cuda.cupy.random.normal(
-            0, numpy.sqrt(1. / (kh * kw * in_channels)),
-            (out_channels, in_channels, kh, kw)).astype(self.dtype)
+            0, numpy.sqrt(1. / (kh * kw * in_channels_a_group)),
+            (out_channels, in_channels_a_group, kh, kw)).astype(self.dtype)
         self.gy = cuda.cupy.random.uniform(
-            -1, 1, (2, 2, 2, 2)).astype(self.dtype)
+            -1, 1, (batches, out_channels, 2, 2)).astype(self.dtype)
         with chainer.using_config('use_cudnn', self.use_cudnn):
             self.should_call_cudnn = chainer.should_use_cudnn('>=auto')
 
     def forward(self):
         x = chainer.Variable(self.x)
         W = chainer.Variable(self.W)
-        return F.convolution_2d(x, W, None, stride=self.stride, pad=self.pad)
+        return F.convolution_2d(x, W, None, stride=self.stride, pad=self.pad,
+                                group=self.group)
 
     def test_call_cudnn_forward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
@@ -296,6 +307,7 @@ class TestConvolution2DCudnnCall(unittest.TestCase):
 @testing.parameterize(*testing.product({
     'c_contiguous': [True, False],
     'nobias': [True, False],
+    'group': [1, 2],
 }))
 @attr.gpu
 @attr.cudnn
@@ -305,8 +317,10 @@ class TestConvolution2DFunctionCudnnDeterministic(unittest.TestCase):
         self.stride = 2
         self.pad = 1
         batch_sz = 2
-        in_channels = 64
-        out_channels = 64
+        in_channels_a_group = 64
+        out_channels_a_group = 64
+        in_channels = in_channels_a_group * self.group
+        out_channels = out_channels_a_group * self.group
         kh, kw = (3, 3)
         in_h, in_w = (32, 128)
         out_h, out_w = (16, 64)
@@ -314,8 +328,8 @@ class TestConvolution2DFunctionCudnnDeterministic(unittest.TestCase):
         x_dtype = numpy.float32
         W_dtype = numpy.float32
         self.W = numpy.random.normal(
-            0, numpy.sqrt(1. / (kh * kw * in_channels)),
-            (out_channels, in_channels, kh, kw)).astype(W_dtype)
+            0, numpy.sqrt(1. / (kh * kw * in_channels_a_group)),
+            (out_channels, in_channels_a_group, kh, kw)).astype(W_dtype)
         self.b = numpy.random.uniform(-1, 1, out_channels).astype(x_dtype)
         self.x = numpy.random.uniform(
             -1, 1, (batch_sz, in_channels, in_h, in_w)).astype(x_dtype)
@@ -384,7 +398,7 @@ class TestConvolution2DFunctionCudnnDeterministic(unittest.TestCase):
         W = chainer.Variable(W_data)
         b = None if self.nobias else chainer.Variable(b_data)
         y = F.convolution_2d(x, W, b, stride=self.stride, pad=self.pad,
-                             cover_all=False)
+                             cover_all=False, group=self.group)
         return x, W, b, y
 
 
