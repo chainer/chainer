@@ -50,8 +50,8 @@ class SGD(optimizer.GradientMethod):
 
     """
 
-    def __init__(self, *args, lr=_default_hyperparam.lr):
-        super(SGD, self).__init__(*args)
+    def __init__(self, lr=_default_hyperparam.lr, model=None):
+        super(SGD, self).__init__(model)
         self.hyperparam.lr = lr
 
     lr = optimizer.HyperparameterProxy('lr')
