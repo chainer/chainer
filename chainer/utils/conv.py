@@ -10,6 +10,8 @@ def get_conv_outsize(size, k, s, p, cover_all=False, d=1):
     This function takes the size of input feature map, kernel, stride, and
     pooling, then calculates the output feature map size.
 
+    .. seealso:: :func:`~chainer.utils.get_deconv_outsize`
+
     Args:
         size (int): The size of input feature map. It usually is the length of
             a side of feature map.
@@ -35,6 +37,8 @@ def get_deconv_outsize(size, k, s, p, cover_all=False):
 
     This function takes the size of input feature map, kernel, stride, and
     pooling, then calculates the output feature map size.
+
+    .. seealso:: :func:`~chainer.utils.get_conv_outsize`
 
     Args:
         size (int): The size of input feature map. It usually is the length of
