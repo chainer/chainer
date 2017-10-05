@@ -7,7 +7,7 @@ This example will show how to use the :class:`~chainer.training.Trainer` to trai
 
 .. note::
 
-    If you would like to know how to write a training loop without using this functionality, please check :doc:`tutorial/train_loop.rst` instead of this tutorial.
+    If you would like to know how to write a training loop without using this functionality, please check :doc:`train_loop` instead of this tutorial.
 
 1. Prepare the dataset
 ''''''''''''''''''''''
@@ -22,16 +22,17 @@ Load the MNIST dataset, which contains a training set of images and class labels
 
 .. note::
 
-    **You can use a Python list as a dataset.** Because all types of objects whose element can be accessed via ``[]`` accessor and lengh can be obtained with ``len()`` function, can be used as a dataset given to the :class:`~chainer.dataset.Iterator`. For example,
+    **You can use a Python list as a dataset.** That's because :class:`~chainer.dataset.Iterator` can take any object as a dataset whose elements can be accessed via ``[]`` accessor and whose lengh can be obtained with ``len()`` function. For example,
 
     .. code-block:: python
 
         train = [(x1, t1), (x2, t2), ...]
 
-    a list of tuples like this can also be used equally to a :class:`~chainer.dataset.DatasetMixin` object.
+    a list of tuples like this can be used as a dataset.
 
-    But many useful abstracted :mod:`~chainer.datasets` enable to avoid storing all data on the memory at a time, so it's better to use them for large datasets. For example, :class:`~chainer.datasets.ImageDataset` takes paths to image files as its argument, and just keep the list in the dataset object. It means the actual image data will be loaded from disks using given paths when :meth:`~chainer.datasets.ImageDataset.__getitem__` is called. Until then, no images are loaded to the memory, so it can save the memory consumption.
+    There are many utility dataset classes defined in :mod:`~chainer.datasets`. It's recommended to utilize them in the actual applications.
 
+    For example, if your dataset consists of a number of image files, it would take a large amount of memory to load those data into a list like above. In that case, you can use :class:`~chainer.datasets.ImageDataset`, which just keeps the paths to image files. The actual image data will be loaded from the disk when the corresponding element is requested via ``[]`` accessor. Until then, no images are loaded to the memory, so it can save the memory consumption.
 
 2. Prepare the dataset iterations
 '''''''''''''''''''''''''''''''''
@@ -52,7 +53,7 @@ Load the MNIST dataset, which contains a training set of images and class labels
 3. Prepare the model
 ''''''''''''''''''''
 
-Here, we are going to use the same model as defined in :doc:`tutorial/train_loop.rst`.
+Here, we are going to use the same model as the one defined in :doc:`train_loop`.
 
 .. testcode::
 
@@ -78,7 +79,7 @@ Here, we are going to use the same model as defined in :doc:`tutorial/train_loop
 4. Prepare the Updater
 ''''''''''''''''''''''
 
-:class:`~chainer.tarining.Trainer` is a class that holds all of the necessary components needed for training. The main components are shown below.
+:class:`~chainer.training.Trainer` is a class that holds all of the necessary components needed for training. The main components are shown below.
 
 .. image:: ../../image/trainer/trainer.png
 
@@ -137,13 +138,13 @@ Now let's create the :class:`~chainer.training.Updater` object !
 
 .. note::
 
-    Here, the model defined above is passed to :class:`~chainer.links.Classifier` and changed to a new :class:`~chainer.Chain`. :class:`~chainer.links.Classifier`, which in fact inherits from the :class:`~chainer.Chain` class, keeps the given :class:`~chainer.Chain` model in its :attr:`~chainer.links.Classifier.predictor` attribute. Once you give the input data and the corresponding class labels to the model by the ``()`` accessor,
+    Here, the model defined above is passed to :class:`~chainer.links.Classifier` and changed to a new :class:`~chainer.Chain`. :class:`~chainer.links.Classifier`, which in fact inherits from the :class:`~chainer.Chain` class, keeps the given :class:`~chainer.Chain` model in its :attr:`~chainer.links.Classifier.predictor` attribute. Once you give the input data and the corresponding class labels to the model by the ``()`` operator,
 
     1. :meth:`~chainer.links.Classifier.__call__` of the model is invoked. The data is then given to :attr:`~chainer.links.Classifier.predictor` to obtain the output ``y``.
     2. Next, together with the given labels, the output ``y`` is passed to the loss function which is determined by :attr:`~chainer.links.Classifier.lossfun` argument in the constructor of :class:`~chainer.links.Classifier`.
     3. The loss is returned as a :class:`~chainer.Variable`.
 
-    In :class:`~chainer.links.Classifiler`, the :attr:`~chainer.links.Classifier.lossfun` is set to
+    In :class:`~chainer.links.Classifier`, the :attr:`~chainer.links.Classifier.lossfun` is set to
     :meth:`~chainer.functions.softmax_cross_entropy` as default.
 
     :class:`~chainer.training.StandardUpdater` is the simplest class among several updaters. There are also the :class:`~chainer.training.ParallelUpdater` and the :class:`~chainer.training.updaters.MultiprocessParallelUpdater` to utilize multiple GPUs.
@@ -180,7 +181,7 @@ The :class:`~chainer.training.Trainer` extensions provide the following capabili
 * Display a progress bar to the terminal to show the progress of training (:class:`~chainer.training.extensions.ProgressBar`)
 * Save the model architechture as a Graphviz's dot file (:meth:`~chainer.training.extensions.dump_graph`)
 
-To use these wide variety of tools for your tarining task, pass :class:`~chainer.training.Extension` objects to the :meth:`~chainer.training.Trainer.extend` method of your :class:`~chainer.training.Trainer` object.
+To use these wide variety of tools for your training task, pass :class:`~chainer.training.Extension` objects to the :meth:`~chainer.training.Trainer.extend` method of your :class:`~chainer.training.Trainer` object.
 
 .. testcode::
 
@@ -273,12 +274,12 @@ Furthermore, let's visualize the computaional graph saved with :meth:`~chainer.t
 
 .. image:: ../../image/trainer/mnist_graph.png
 
-From the top to the bottom, you can see the data flow in the computational graph. It basically shows how data and parameters are passed to the :class:`~chainer.Function` s.
+From the top to the bottom, you can see the data flow in the computational graph. It basically shows how data and parameters are passed to the :class:`~chainer.Function`\ s.
 
 8. Evaluate a pre-trained model
 '''''''''''''''''''''''''''''''
 
-Evaluation using the snapshot of a model is as easy as what explained in the :doc:`tutorial/train_loop.rst`.
+Evaluation using the snapshot of a model is as easy as what explained in the :doc:`train_loop`.
 
 .. code-block:: python
 
