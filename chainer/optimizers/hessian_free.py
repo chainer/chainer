@@ -45,7 +45,9 @@ class HessianFree(optimizer.Optimizer):
                 gx.grad = g
             self.target.cleargrads()
             gxs[0].backward()
-            return [x.grad + 0.01 * g for x, g in zip(self.target.params(), gs)]
+            dumping_strength = 0.01
+            return [x.grad + dumping_strengsh * g
+                    for x, g in zip(self.target.params(), gs)]
 
         gs = [-x.grad for x in self.target.params()]
         xs0 = [cuda.get_array_module(x).zeros_like(x.data)
