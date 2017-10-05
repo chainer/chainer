@@ -101,15 +101,15 @@ class TestQueueWriter(unittest.TestCase):
                  'chainer.training.writer.QueueWriter.create_consumer']
         with mock.patch(names[0]):
             with mock.patch(names[1]):
-              task = mock.MagicMock()
-              q = mock.MagicMock()
-              q.get = mock.MagicMock(side_effect=[task, task, None])
-              w = writer.QueueWriter()
-              w.consume(q)
+                task = mock.MagicMock()
+                q = mock.MagicMock()
+                q.get = mock.MagicMock(side_effect=[task, task, None])
+                w = writer.QueueWriter()
+                w.consume(q)
 
-              self.assertEqual(q.get.call_count, 3)
-              self.assertEqual(task[0].call_count, 2)
-              self.assertEqual(q.task_done.call_count, 3)
+                self.assertEqual(q.get.call_count, 3)
+                self.assertEqual(task[0].call_count, 2)
+                self.assertEqual(q.task_done.call_count, 3)
 
 
 class TestThreadQueueWriter(unittest.TestCase):
