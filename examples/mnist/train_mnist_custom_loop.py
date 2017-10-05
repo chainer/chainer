@@ -96,9 +96,9 @@ def main():
 
     # Save the model and the optimizer
     print('save the model')
-    serializers.save_npz('mlp.model', model)
+    serializers.save_npz('{}/mlp.model'.format(args.out), model)
     print('save the optimizer')
-    serializers.save_npz('mlp.state', optimizer)
+    serializers.save_npz('{}/mlp.state'.format(args.out), optimizer)
 
 
 if __name__ == '__main__':
