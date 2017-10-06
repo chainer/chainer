@@ -8,7 +8,8 @@ def get_conv_outsize(size, k, s, p, cover_all=False, d=1):
     """Calculates output size of convolution.
 
     This function takes the size of input feature map, kernel, stride, and
-    pooling, then calculates the output feature map size.
+    pooling of one particular dimension, then calculates the output feature
+    map size of that dimension.
 
     .. seealso:: :func:`~chainer.utils.get_deconv_outsize`
 
@@ -18,7 +19,7 @@ def get_conv_outsize(size, k, s, p, cover_all=False, d=1):
         k (int): The size of convolution kernel.
         s (int): The size of stride.
         p (int): The size of padding.
-        ``cover_all`` (bool): Use cover_all option or not.
+        cover_all (bool): Use ``cover_all`` option or not.
         d (int): The size of dilation.
 
     Returns:
@@ -47,7 +48,7 @@ def get_deconv_outsize(size, k, s, p, cover_all=False):
         k (int): The size of deconvolution kernel.
         s (int): The size of stride.
         p (int): The size of padding.
-        ``cover_all`` (bool): Use cover_all option or not.
+        cover_all (bool): Use ``cover_all`` option or not.
 
     Returns:
         int: The expected output size of the deconvolution operation.
