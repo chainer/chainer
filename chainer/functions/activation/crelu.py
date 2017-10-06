@@ -1,9 +1,10 @@
+import chainer
 from chainer import cuda
-from chainer import function
+from chainer import function_node
 from chainer.utils import type_check
 
 
-class CReLU(function.Function):
+class CReLU(function_node.FunctionNode):
 
     """Concatenated Rectified Linear Unit."""
 
@@ -25,22 +26,23 @@ class CReLU(function.Function):
         output_shape[self.axis] *= 2
         return tuple(output_shape)
 
-    def forward(self, x):
-        x, = x
+    def forward(self, inputs):
+        x, = inputs
         xp = cuda.get_array_module(x)
         y = xp.empty(self.get_output_shape(x.shape), dtype=x.dtype)
         y_former, y_latter = xp.split(y, 2, axis=self.axis)
         zero = x.dtype.type(0)
         xp.maximum(zero, x, out=y_former)
         xp.maximum(zero, -x, out=y_latter)
+        self.retain_inputs((0,))
         return y,
 
-    def backward(self, x, gy):
-        x, = x
-        xp = cuda.get_array_module(x)
-        gy, = gy
-        gy_former, gy_latter = xp.split(gy, 2, axis=self.axis)
-        return gy_former * (x > 0) - gy_latter * (-x > 0),
+    def backward(self, indexes, grad_outputs):
+        x, = self.get_retained_inputs()
+        gy, = grad_outputs
+        gy_former, gy_latter = chainer.functions.split_axis(
+            gy, 2, axis=self.axis)
+        return gy_former * (x.data > 0) - gy_latter * (-x.data > 0),
 
 
 def crelu(x, axis=1):
@@ -78,4 +80,4 @@ def crelu(x, axis=1):
                [ 2.,  0.,  0.,  3.]], dtype=float32)
 
     """
-    return CReLU(axis=axis)(x)
+    return CReLU(axis=axis).apply((x,))[0]
