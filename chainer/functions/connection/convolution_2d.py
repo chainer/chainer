@@ -124,9 +124,7 @@ class Convolution2DFunction(function_node.FunctionNode):
             if b is not None:
                 b = cuda.cupy.ascontiguousarray(b)
 
-            use_tensor_core = configuration.config.cudnn_use_tensor_core
-            if use_tensor_core is None:
-                use_tensor_core = cudnn.is_tensor_core_available(x.dtype)
+            use_tensor_core = chainer.should_use_cudnn_tensor_core(x.dtype)
 
             handle = cudnn.get_handle()
             x_desc = cudnn.create_tensor_descriptor(x)
@@ -242,9 +240,7 @@ class Convolution2DGradW(function_node.FunctionNode):
         x = cuda.cupy.ascontiguousarray(x)
         gy = cuda.cupy.ascontiguousarray(gy)
 
-        use_tensor_core = configuration.config.cudnn_use_tensor_core
-        if use_tensor_core is None:
-            use_tensor_core = cudnn.is_tensor_core_available(x.dtype)
+        use_tensor_core = chainer.should_use_cudnn_tensor_core(x.dtype)
 
         handle = cudnn.get_handle()
         x_desc = cudnn.create_tensor_descriptor(x)

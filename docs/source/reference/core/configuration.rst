@@ -70,11 +70,11 @@ Note that the default values are set in the global config.
 ``chainer.config.cudnn_use_tensor_core``
    Flag to configure whether or not to enable Tensor Core operatons in cuDNN.
 
-       - If it is ``True``, Chainer uses cuDNN's Tensor Core operations.
-       - If it is ``False``, Chainer does not use cuDNN's Tensor Core operations.
-       - If it is ``None``, Chainer checks cuDNN version, the data type of input, the compute capability of the GPU used, and configures whether or not to use cuDNN's Tensor Core operations.
+       - If it is ``always``, Chainer uses cuDNN's Tensor Core operations.
+       - If it is ``never``, Chainer does not use cuDNN's Tensor Core operations.
+       - If it is ``auto``, Chainer checks cuDNN version, the data type of input, the compute capability of the GPU used, and configures whether or not to use cuDNN's Tensor Core operations.
 
-   The default value is ``None``.
+   The default value is ``auto``.
 
 Users can also define their own configurations.
 There are two ways:
