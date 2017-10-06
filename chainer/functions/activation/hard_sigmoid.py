@@ -33,8 +33,7 @@ class HardSigmoid(function_node.FunctionNode):
 
     def backward(self, indexes, grad_outputs):
         x, = self.get_retained_inputs()
-        gy, = grad_outputs
-        return HardSigmoidGrad(x.data).apply((gy,))
+        return HardSigmoidGrad(x.data).apply(grad_outputs)
 
 
 class HardSigmoidGrad(function_node.FunctionNode):
