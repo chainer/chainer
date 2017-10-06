@@ -21,9 +21,9 @@ from chainer.training.trigger import IntervalTrigger  # NOQA
 from chainer.training.updater import ParallelUpdater  # NOQA
 from chainer.training.updater import StandardUpdater  # NOQA
 from chainer.training.updater import Updater  # NOQA
-from chainer.training.writer import Writer  # NOQA
-from chainer.training.writer import SimpleWriter  # NOQA
-from chainer.training.writer import ThreadWriter  # NOQA
-from chainer.training.writer import ProcessWriter  # NOQA
-from chainer.training.writer import ThreadQueueWriter  # NOQA
 from chainer.training.writer import ProcessQueueWriter  # NOQA
+from chainer.training.writer import ProcessWriter  # NOQA
+from chainer.training.writer import SimpleWriter  # NOQA
+from chainer.training.writer import ThreadQueueWriter  # NOQA
+from chainer.training.writer import ThreadWriter  # NOQA
+from chainer.training.writer import Writer  # NOQA
