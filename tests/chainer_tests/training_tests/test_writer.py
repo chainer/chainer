@@ -2,7 +2,6 @@ import unittest
 
 import mock
 import multiprocessing
-from six.moves import queue
 import threading
 
 from chainer import testing
@@ -110,46 +109,6 @@ class TestQueueWriter(unittest.TestCase):
                 self.assertEqual(q.get.call_count, 3)
                 self.assertEqual(task[0].call_count, 2)
                 self.assertEqual(q.task_done.call_count, 3)
-
-
-class TestThreadQueueWriter(unittest.TestCase):
-
-    def setUp(self):
-        self.w = writer.ThreadQueueWriter()
-
-    def tearDown(self):
-        self.w.finalize()
-
-    def test_create_queue(self):
-        q = self.w.create_queue()
-
-        self.assertIsInstance(q, queue.Queue)
-
-    def test_ceate_consumer(self):
-        q = mock.MagicMock()
-        consumer = self.w.create_consumer(q)
-
-        self.assertIsInstance(consumer, threading.Thread)
-
-
-class TestProcessQueueWriter(unittest.TestCase):
-
-    def setUp(self):
-        self.w = writer.ProcessQueueWriter()
-
-    def tearDown(self):
-        self.w.finalize()
-
-    def test_create_queue(self):
-        q = self.w.create_queue()
-
-        self.assertIsInstance(q, multiprocessing.queues.Queue)
-
-    def test_create_consumer(self):
-        q = mock.MagicMock()
-        consumer = self.w.create_consumer(q)
-
-        self.assertIsInstance(consumer, multiprocessing.Process)
 
 
 testing.run_module(__name__, __file__)

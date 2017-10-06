@@ -36,10 +36,11 @@ class Writer(object):
         self.finalize()
 
     def finalize(self):
-        """Finalize the writer.
+        """Finalize the wirter.
 
         Like an extension in :class:`~chainer.training.Trainer`, this method
         is invoked at the end of the training.
+
         """
         pass
 
@@ -92,16 +93,18 @@ class StandardWriter(Writer):
     def __init__(self, savefun=npz.save_npz, **kwds):
         self._savefun = savefun
         self._kwds = kwds
-        self._flag = False
+        self._started = False
+        self._finalized = False
 
     def __call__(self, filename, outdir, target):
-        if self._flag:
+        if self._started:
             self._worker.join()
+            self._started = False
         self._filename = filename
         self._worker = self.create_worker(filename, outdir, target,
                                           **self._kwds)
         self._worker.start()
-        self._flag = True
+        self._started = True
 
     def create_worker(self, filename, outdir, target, **kwds):
         """Create a worker for the snapshot.
@@ -120,9 +123,18 @@ class StandardWriter(Writer):
         raise NotImplementedError
 
     def finalize(self):
-        if self._flag:
-            self._worker.join()
-        self._flag = False
+        if not hasattr(self, '_started'):
+            return
+        if not hasattr(self, '_finalized'):
+            return
+        if not hasattr(self, '_worker'):
+            return
+
+        if self._started:
+            if not self._finalized:
+                self._worker.join()
+            self._started = False
+        self._finalized = True
 
 
 class ThreadWriter(StandardWriter):
@@ -180,7 +192,8 @@ class QueueWriter(Writer):
         self._queue = self.create_queue()
         self._consumer = self.create_consumer(self._queue)
         self._consumer.start()
-        self._flag = True
+        self._started = True
+        self._finalized = False
 
     def __call__(self, filename, outdir, target):
         self._queue.put([self._task, filename, outdir, target])
@@ -205,11 +218,22 @@ class QueueWriter(Writer):
                 q.task_done()
 
     def finalize(self):
-        if self._flag:
-            self._queue.put(None)
-            self._queue.join()
-            self._consumer.join()
-        self._flag = False
+        if not hasattr(self, '_started'):
+            return
+        if not hasattr(self, '_finalized'):
+            return
+        if not hasattr(self, '_queue'):
+            return
+        if not hasattr(self, '_consumer'):
+            return
+
+        if self._started:
+            if not self._finalized:
+                self._queue.put(None)
+                self._queue.join()
+                self._consumer.join()
+            self._started = False
+        self._finalized = True
 
 
 class ThreadQueueWriter(QueueWriter):
