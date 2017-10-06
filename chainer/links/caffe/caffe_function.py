@@ -153,7 +153,7 @@ class CaffeFunction(link.Chain):
 
         Returns:
             tuple: A tuple of output :class:`~chainer.Variable` objects
-                corresponding to elements of the  `outputs` argument.
+            corresponding to elements of the  `outputs` argument.
 
         """
         argument.check_unexpected_kwargs(
