@@ -1,10 +1,10 @@
 from chainer import cuda
-from chainer import function
+from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
 
 
-class Floor(function.Function):
+class Floor(function_node.FunctionNode):
 
     @property
     def label(self):
@@ -16,16 +16,13 @@ class Floor(function.Function):
             in_types[0].dtype.kind == 'f',
         )
 
-    def forward(self, x):
-        self.retain_inputs(())
-        self._in_shape = x[0].shape
-        self._in_dtype = x[0].dtype
-        xp = cuda.get_array_module(*x)
-        return utils.force_array(xp.floor(x[0]), x[0].dtype),
+    def forward(self, inputs):
+        x = inputs[0]
+        xp = cuda.get_array_module(x)
+        return utils.force_array(xp.floor(x), x.dtype),
 
-    def backward(self, x, grad_outputs):
-        xp = cuda.get_array_module(*grad_outputs)
-        return xp.zeros(self._in_shape, self._in_dtype),
+    def backward(self, indexes, grad_outputs):
+        return grad_outputs[0] * 0,
 
 
 def floor(x):
@@ -40,4 +37,4 @@ def floor(x):
     Returns:
         ~chainer.Variable: Output variable.
     """
-    return Floor()(x)
+    return Floor().apply((x,))[0]
