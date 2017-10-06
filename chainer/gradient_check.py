@@ -221,7 +221,7 @@ def check_backward(func, x_data, y_grad, params=(),
             to this dtype when calculating numerical gradients. Only float
             types and ``None`` are allowed.
 
-    See:
+    .. seealso::
        :func:`numerical_grad`
     """
     x_data = _as_tuple(x_data)

@@ -118,7 +118,7 @@ class Evaluator(extension.Extension):
 
         Returns:
             dict: Result dictionary that contains mean statistics of values
-                reported by the evaluation function.
+            reported by the evaluation function.
 
         """
         # set up a reporter
@@ -150,7 +150,7 @@ class Evaluator(extension.Extension):
 
         Returns:
             dict: Result dictionary. This dictionary is further reported via
-                :func:`~chainer.report` without specifying any observer.
+            :func:`~chainer.report` without specifying any observer.
 
         """
         iterator = self._iterators['main']

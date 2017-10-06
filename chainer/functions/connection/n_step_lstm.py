@@ -112,15 +112,17 @@ def n_step_lstm(
 
     Returns:
         tuple: This functions returns a tuple concaining three elements,
-            ``hy``, ``cy`` and ``ys``.
+        ``hy``, ``cy`` and ``ys``.
 
-            - ``hy`` is an updated hidden states whose shape is same as ``hx``.
-            - ``cy`` is an updated cell states whose shape is same as ``cx``.
-            - ``ys`` is a list of :class:`~chainer.Variable` . Each element
-              ``ys[t]`` holds hidden states of the last layer corresponding
-              to an input ``xs[t]``. Its shape is ``(B_t, N)`` where ``B_t`` is
-              mini-batch size for time ``t``, and ``N`` is size of hidden
-              units. Note that ``B_t`` is the same value as ``xs[t]``.
+        - ``hy`` is an updated hidden states whose shape is the same as
+          ``hx``.
+        - ``cy`` is an updated cell states whose shape is the same as
+          ``cx``.
+        - ``ys`` is a list of :class:`~chainer.Variable` . Each element
+          ``ys[t]`` holds hidden states of the last layer corresponding
+          to an input ``xs[t]``. Its shape is ``(B_t, N)`` where ``B_t`` is
+          the mini-batch size for time ``t``, and ``N`` is size of hidden
+          units. Note that ``B_t`` is the same value as ``xs[t]``.
 
     .. seealso::
 
@@ -227,15 +229,17 @@ def n_step_bilstm(
 
     Returns:
         tuple: This functions returns a tuple concaining three elements,
-            ``hy``, ``cy`` and ``ys``.
+        ``hy``, ``cy`` and ``ys``.
 
-            - ``hy`` is an updated hidden states whose shape is same as ``hx``.
-            - ``cy`` is an updated cell states whose shape is same as ``cx``.
-            - ``ys`` is a list of :class:`~chainer.Variable` . Each element
-              ``ys[t]`` holds hidden states of the last layer corresponding
-              to an input ``xs[t]``. Its shape is ``(B_t, N)`` where ``B_t`` is
-              mini-batch size for time ``t``, and ``N`` is size of hidden
-              units. Note that ``B_t`` is the same value as ``xs[t]``.
+        - ``hy`` is an updated hidden states whose shape is the same as
+          ``hx``.
+        - ``cy`` is an updated cell states whose shape is the same as
+          ``cx``.
+        - ``ys`` is a list of :class:`~chainer.Variable` . Each element
+          ``ys[t]`` holds hidden states of the last layer corresponding
+          to an input ``xs[t]``. Its shape is ``(B_t, 2N)`` where ``B_t``
+          is the mini-batch size for time ``t``, and ``N`` is size of
+          hidden units. Note that ``B_t`` is the same value as ``xs[t]``.
 
     """
     return n_step_lstm_base(n_layers, dropout_ratio, hx, cx, ws, bs, xs,

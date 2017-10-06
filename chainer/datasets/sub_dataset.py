@@ -91,8 +91,8 @@ def split_dataset(dataset, split_at, order=None):
 
     Returns:
         tuple: Two :class:`SubDataset` objects. The first subset represents the
-            examples of indexes ``order[:split_at]`` while the second subset
-            represents the examples of indexes ``order[split_at:]``.
+        examples of indexes ``order[:split_at]`` while the second subset
+        represents the examples of indexes ``order[split_at:]``.
 
     """
     n_examples = len(dataset)
@@ -123,9 +123,9 @@ def split_dataset_random(dataset, first_size, seed=None):
 
     Returns:
         tuple: Two :class:`SubDataset` objects. The first subset contains
-            ``first_size`` examples randomly chosen from the dataset without
-            replacement, and the second subset contains the rest of the
-            dataset.
+        ``first_size`` examples randomly chosen from the dataset without
+        replacement, and the second subset contains the rest of the
+        dataset.
 
     """
     order = numpy.random.RandomState(seed).permutation(len(dataset))
@@ -143,9 +143,9 @@ def split_dataset_n(dataset, n, order=None):
 
     Returns:
         list: List of ``n`` :class:`SubDataset` objects.
-            Each subset contains the examples of indexes
-            ``order[i * (len(dataset) // n):(i + 1) * (len(dataset) // n)]``
-            .
+        Each subset contains the examples of indexes
+        ``order[i * (len(dataset) // n):(i + 1) * (len(dataset) // n)]``
+        .
 
     """
     n_examples = len(dataset)

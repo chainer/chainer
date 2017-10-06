@@ -20,6 +20,10 @@ import six
 import sys
 
 
+sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
+import _docstring_check
+
+
 __version__ = pkg_resources.get_distribution('chainer').version
 
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
@@ -342,6 +346,14 @@ np.random.seed(0)
 
 spelling_lang = 'en_US'
 spelling_word_list_filename = 'spelling_wordlist.txt'
+
+
+def setup(app):
+    app.connect('autodoc-process-docstring', _autodoc_process_docstring)
+
+
+def _autodoc_process_docstring(app, what, name, obj, options, lines):
+    _docstring_check.check(app, what, name, obj, options, lines)
 
 
 def _import_object_from_name(module_name, fullname):
