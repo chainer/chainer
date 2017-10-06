@@ -12,7 +12,7 @@ from chainer import variable
 
 def _copy_arrays(xs):
     xp = cuda.get_array_module(*xs)
-    return [xp.copy(x, order='C') for x in xs]
+    return [xp.array(x, order='C', dtype=numpy.float64, copy=True) for x in xs]
 
 
 def numerical_grad(f, inputs, grad_outputs, eps=1e-3):
@@ -36,6 +36,11 @@ def numerical_grad(f, inputs, grad_outputs, eps=1e-3):
 
     """
     assert eps > 0
+    for x in inputs:
+        if x.dtype.kind != 'f':
+            raise RuntimeError(
+                'The dtype of input arrays must be kind of float')
+
     inputs = tuple(inputs)
     grad_outputs = tuple(grad_outputs)
     gpu = any(isinstance(x, cuda.ndarray) for x in inputs + grad_outputs)
@@ -53,12 +58,13 @@ def numerical_grad(f, inputs, grad_outputs, eps=1e-3):
         )
     else:
         xp = numpy
-    grads = [xp.zeros_like(x) for x in inputs]
+    grads = [xp.zeros(x.shape, numpy.float64) for x in inputs]
 
     with configuration.using_config('type_check', False):
         for x, gx in six.moves.zip(inputs, grads):
+            orig_x = x.copy()  # hold original value
             for i in numpy.ndindex(x.shape):
-                orig = x[i].copy()  # hold original value
+                orig = orig_x[i]
                 x[i] = orig + eps
                 ys1 = _copy_arrays(f())
                 x[i] = orig - eps
@@ -74,7 +80,8 @@ def numerical_grad(f, inputs, grad_outputs, eps=1e-3):
                             dot = ((y1 - y2) * gy).sum()
                             gx[i] += dot / (2 * eps)
 
-    return grads
+    return [g.astype(x.dtype, copy=False)
+            for g, x in six.moves.zip(grads, inputs)]
 
 
 def assert_allclose(x, y, atol=1e-5, rtol=1e-4, verbose=True):
@@ -220,7 +227,7 @@ def check_backward(func, x_data, y_grad, params=(),
             to this dtype when calculating numerical gradients. Only float
             types and ``None`` are allowed.
 
-    See:
+    .. seealso::
        :func:`numerical_grad`
     """
     x_data = _as_tuple(x_data)
@@ -325,16 +332,16 @@ def check_backward(func, x_data, y_grad, params=(),
         gxi = x.grad.ravel()
         cxi = cx.data.ravel()
         if dtype is not None:
-            gxi = gxi.astype(dtype)
-            cxi = cxi.astype(dtype)
+            gxi = gxi.astype(dtype, copy=False)
+            cxi = cxi.astype(dtype, copy=False)
         gx_accum += gxi.dot(cxi)
 
     for p, gpi in six.moves.zip(params, params_grad):
         gpi = gpi.ravel()
         pi = p.data.ravel()
         if dtype is not None:
-            gpi = gpi.astype(dtype)
-            pi = pi.astype(dtype)
+            gpi = gpi.astype(dtype, copy=False)
+            pi = pi.astype(dtype, copy=False)
         gx_accum += gpi.dot(pi)
 
     testing.assert_allclose(gx, gx_accum, atol=atol, rtol=rtol)

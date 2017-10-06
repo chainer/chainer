@@ -11,7 +11,7 @@ matrix:
     - os: linux
       python: "3.4"
     - os: linux
-      python: "3.5.1"
+      python: "3.5"
 
     - os: osx
       language: generic
@@ -60,7 +60,7 @@ script:
   - autopep8 -r . --global-config .pep8 --diff | tee check_autopep8
   - test ! -s check_autopep8
   - cd tests
-  - PYTHONWARNINGS='ignore::FutureWarning,module::DeprecationWarning' pytest -m "not gpu and not multi_gpu and not slow" chainer_tests
+  - PYTHONWARNINGS='ignore::FutureWarning,error::DeprecationWarning,ignore::DeprecationWarning:nose.importer,ignore::DeprecationWarning:site,ignore::DeprecationWarning:nose.plugins.manager' pytest -m "not gpu and not multi_gpu and not slow" chainer_tests
   - if [[ $TRAVIS_OS_NAME == "linux" ]]; then
       cd ..;
       READTHEDOCS=True python setup.py develop;
