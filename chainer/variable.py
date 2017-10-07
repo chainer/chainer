@@ -345,8 +345,7 @@ class VariableNode(object):
         self.creator = creator
 
     def set_creator_node(self, creator_node):
-        """Sets a :class:`~chainer.FunctionNode` object that \
-        created this node.
+        """Sets a :class:`~chainer.FunctionNode` object that created this node.
 
         This method is equivalent to ``self.creator_node = creator_node``. A
         :class:`~chainer.Function` object can also be passed, in which case the
