@@ -400,7 +400,7 @@ The training loop abstraction mainly consists of two components:
 
 - **Dataset abstraction**.
   It implements 1 and 2 in the above list.
-  The core components are defined in the :mod:`dataset` module.
+  The core components are defined in the :mod:`~chainer.dataset` module.
   There are also many implementations of datasets and iterators in :mod:`~chainer.datasets` and :mod:`~chainer.iterators` modules, respectively.
 - **Trainer**.
   It implements 3, 4, 5, and 6 in the above list.
@@ -419,7 +419,7 @@ Before proceeding to the first example, we introduce Serializer, which is the la
 Serializer is a simple interface to serialize or deserialize an object.
 :class:`Link`, :class:`Optimizer`, and :class:`~training.Trainer` supports serialization.
 
-Concrete serializers are defined in the :mod:`serializers` module.
+Concrete serializers are defined in the :mod:`~chainer.serializers` module.
 It supports NumPy NPZ and HDF5 formats.
 
 For example, we can serialize a link object into NPZ file by the :func:`serializers.save_npz` function:

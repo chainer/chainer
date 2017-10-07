@@ -223,7 +223,6 @@ useful. First, let's see how to write a VGG16 [Simonyan14]_ model.
 
     class VGG16(chainer.ChainList):
         def __init__(self):
-            w = chainer.initializers.HeNormal()
             super(VGG16, self).__init__(
                 VGGBlock(64),
                 VGGBlock(128),
