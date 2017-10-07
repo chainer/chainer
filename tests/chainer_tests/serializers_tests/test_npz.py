@@ -253,7 +253,6 @@ class TestNpzDeserializerNonStrictGroupHierachy(unittest.TestCase):
         self.npzfile = numpy.load(self.file)
         self.deserializer = npz.NpzDeserializer(self.npzfile, strict=False)
 
-
     def tearDown(self):
         if hasattr(self, 'npzfile'):
             self.npzfile.close()
@@ -547,7 +546,8 @@ class TestGroupHierachy(unittest.TestCase):
     def test_save_optimizer2(self):
         self._save_npz(self.file, self.optimizer, self.compress)
         with numpy.load(self.file) as npzfile:
-            self._check_optimizer_group(npzfile, ('Wp/msg', 'Wp/msdx', 'epoch', 't'))
+            self._check_optimizer_group(
+                npzfile, ('Wp/msg', 'Wp/msdx', 'epoch', 't'))
 
     def test_load_optimizer_with_strict(self):
         for param in self.parent.params():
