@@ -24,6 +24,7 @@ class TestClippedReLU(unittest.TestCase):
         self.x = x
 
         self.gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        self.ggx = numpy.random.uniform(-1, 1, x.shape).astype(self.dtype)
         self.z = 0.75
 
     def check_forward(self, x_data):
@@ -43,8 +44,11 @@ class TestClippedReLU(unittest.TestCase):
         self.check_forward(cuda.to_gpu(self.x))
 
     def check_backward(self, x_data, y_grad):
+        def f(x):
+            return functions.clipped_relu(x, self.z)
+
         gradient_check.check_backward(
-            functions.ClippedReLU(self.z), x_data, y_grad, dtype=numpy.float64)
+            f, x_data, y_grad, dtype=numpy.float64)
 
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy)
@@ -52,6 +56,22 @@ class TestClippedReLU(unittest.TestCase):
     @attr.gpu
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
+
+    def check_double_backward(self, x_data, y_grad, x_grad_grad):
+        def f(x):
+            y = functions.clipped_relu(x, self.z)
+            return y * y
+
+        gradient_check.check_double_backward(
+            f, x_data, y_grad, x_grad_grad, dtype=numpy.float64)
+
+    def test_double_backward_cpu(self):
+        self.check_double_backward(self.x, self.gy, self.ggx)
+
+    @attr.gpu
+    def test_double_backward_gpu(self):
+        self.check_double_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy),
+                                   cuda.to_gpu(self.ggx))
 
 
 testing.run_module(__name__, __file__)
