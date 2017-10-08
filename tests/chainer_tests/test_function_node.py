@@ -478,6 +478,27 @@ def _get_value(x):
     return x
 
 
+class TestGradTypeCheck(unittest.TestCase):
+
+    def test_type_check(self):
+        x = chainer.Variable(numpy.random.uniform(-1, 1, (2, 3)).astype('f'))
+        y = x * x
+        gx = chainer.Variable(numpy.random.uniform(-1, 1, (2, 3)).astype('f'))
+        gy = chainer.Variable(numpy.random.uniform(-1, 1, (2, 3)).astype('f'))
+
+        chainer.grad([y], [x], [gx], [gy])
+        chainer.grad((y,), (x,), (gx,), (gy,))
+
+        with self.assertRaises(TypeError):
+            chainer.grad(y, [x], [gx], [gy])
+        with self.assertRaises(TypeError):
+            chainer.grad([y], x, [gx], [gy])
+        with self.assertRaises(TypeError):
+            chainer.grad([y], [x], gx, [gy])
+        with self.assertRaises(TypeError):
+            chainer.grad([y], [x], [gx], gy)
+
+
 class GradTestBase(object):
 
     shape = 3,
