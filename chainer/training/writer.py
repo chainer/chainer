@@ -17,6 +17,7 @@ class Writer(object):
     This class determine how to invoke the actual saving function. The most
     simple way is just passing the arguments to the saving function.
     """
+
     def __call__(self, filename, outdir, target):
         """Invokes the actual snapshot function.
 
@@ -69,6 +70,7 @@ class SimpleWriter(Writer):
         kwds: Keyword arguments for the ``savefun``.
 
     """
+
     def __init__(self, savefun=npz.save_npz, **kwds):
         self._savefun = savefun
         self._kwds = kwds
@@ -90,6 +92,7 @@ class StandardWriter(Writer):
         kwds: Keyword arguments for the ``savefun``.
 
     """
+
     def __init__(self, savefun=npz.save_npz, **kwds):
         self._savefun = savefun
         self._kwds = kwds
@@ -143,6 +146,7 @@ class ThreadWriter(StandardWriter):
     This class creates a new thread that invokes the actual saving function.
 
     """
+
     def create_worker(self, filename, outdir, target, **kwds):
         return threading.Thread(
             target=self.save,
@@ -161,6 +165,7 @@ class ProcessWriter(StandardWriter):
         MPI.
 
     """
+
     def create_worker(self, filename, outdir, target, **kwds):
         return multiprocessing.Process(
             target=self.save,
@@ -184,6 +189,7 @@ class QueueWriter(Writer):
             ``Writer.__call__``. This object is directly put into the queue.
 
     """
+
     def __init__(self, savefun=npz.save_npz, task=None):
         if task is None:
             self._task = self.create_task(savefun)
@@ -243,6 +249,7 @@ class ThreadQueueWriter(QueueWriter):
     respectively. The thread will be a consumer of the queue, and the main
     thread will be a producer of the queue.
     """
+
     def create_queue(self):
         return queue.Queue()
 
@@ -263,6 +270,7 @@ class ProcessQueueWriter(QueueWriter):
         using MPI.
 
     """
+
     def create_queue(self):
         return multiprocessing.JoinableQueue()
 
