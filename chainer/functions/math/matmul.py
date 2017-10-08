@@ -226,7 +226,7 @@ def batch_matmul(a, b, transa=False, transb=False):
 
     Returns:
         ~chainer.Variable: The result of the batch matrix multiplications as a
-            3-D array.
+        3-D array.
 
     .. deprecated:: v3.0.0
        batch_matmul is deprecated. Use ``matmul`` instead.

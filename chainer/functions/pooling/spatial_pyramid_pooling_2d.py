@@ -43,9 +43,9 @@ def spatial_pyramid_pooling_2d(x, pyramid_height, pooling_class):
 
     Returns:
         ~chainer.Variable: Output variable. The shape of the output variable
-            will be :math:`(batchsize, c \\sum_{h=0}^{H-1} 2^{2h}, 1, 1)`,
-            where :math:`c` is the number of channels of input variable ``x``
-            and :math:`H` is the number of pyramid levels.
+        will be :math:`(batchsize, c \\sum_{h=0}^{H-1} 2^{2h}, 1, 1)`,
+        where :math:`c` is the number of channels of input variable ``x``
+        and :math:`H` is the number of pyramid levels.
 
     .. note::
 
