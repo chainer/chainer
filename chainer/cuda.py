@@ -237,8 +237,8 @@ def to_gpu(array, device=None, stream=None):
     Args:
         array: Array to be sent to GPU.
         device: Device specifier.
-        stream (cupy.cuda.Stream): CUDA stream. If not ``None``, the copy runs
-            asynchronously.
+        stream (~cupy.cuda.Stream): *(deprecated since v3.0.0)*
+            CUDA stream. If not ``None``, the copy runs asynchronously.
 
     Returns:
         cupy.ndarray: Array on GPU.
