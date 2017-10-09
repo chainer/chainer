@@ -74,7 +74,7 @@ class Zero(_Constant):
     """Initializes array to all-zero.
 
     Attributes:
-        dtype: Data type specifier.
+        ~Zero.dtype: Data type specifier.
     """
 
     fill_value = 0.0
@@ -84,7 +84,7 @@ class One(_Constant):
     """Initializes array to all-one.
 
     Attributes:
-        dtype: Data type specifier.
+        ~One.dtype: Data type specifier.
     """
 
     fill_value = 1.0
@@ -94,7 +94,7 @@ class NaN(_Constant):
     """Initializes array to all-NaN.
 
     Attributes:
-        dtype: Data type specifier.
+        ~NaN.dtype: Data type specifier.
     """
 
     fill_value = numpy.nan
