@@ -258,9 +258,9 @@ class CaffeFunction(link.Chain):
         n_out = num
 
         func = convolution_2d.Convolution2D(
-                n_in, n_out, ksize, stride, pad, nobias=not bias_term,
-                initialW=_ConvolutionBlob(blobs[0], param.group),
-                initial_bias=_Blob(blobs[1]) if bias_term else None)
+            n_in, n_out, ksize, stride, pad, nobias=not bias_term,
+            initialW=_ConvolutionBlob(blobs[0], param.group),
+            initial_bias=_Blob(blobs[1]) if bias_term else None)
 
         with self.init_scope():
             setattr(self, layer.name, func)
