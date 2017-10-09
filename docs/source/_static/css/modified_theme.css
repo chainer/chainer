@@ -36,6 +36,12 @@
 }
 
 
+/* Avoid horizontal scroll of tables */
+.rst-content table.docutils td {
+    white-space: normal;
+}
+
+
 /* code style */
 .rst-content table.longtable.docutils code {
     font-size: 100% !important;
