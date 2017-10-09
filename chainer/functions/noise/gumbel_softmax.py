@@ -9,9 +9,9 @@ def gumbel_softmax(log_pi, tau=0.1, axis=1):
     """Gumbel-Softmax sampling function.
 
     This function draws samples :math:`y_i` from Gumbel-Softmax distribution,
-        :math:`y_i = {\\exp((g_i + \\log\\pi_i)/\\tau) \
+        :math:`y_i = {\\exp((g_i + \\log\\pi_i)/\\tau)
                     \\over \\sum_{j}\\exp((g_j + \\log\\pi_j)/\\tau)}`,
-        where :math:`\\tau` is a temperature parameter and \
+        where :math:`\\tau` is a temperature parameter and
             :math:`g_i` s are samples drawn from \
             Gumbel distribution :math:`Gumbel(0, 1)`
 
