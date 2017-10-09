@@ -45,10 +45,9 @@ class EmbedIDFunction(function_node.FunctionNode):
 
         if self.ignore_label is not None:
             mask = (x == self.ignore_label)
-            return xp.where(
-                mask[..., None], 0, W.take(xp.where(mask, 0, x), axis=0)),
+            return xp.where(mask[..., None], 0, W[xp.where(mask, 0, x)]),
 
-        return W.take(x, axis=0),
+        return W[x],
 
     def backward(self, indexes, grad_outputs):
         inputs = self.get_retained_inputs()

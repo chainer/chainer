@@ -59,11 +59,10 @@ class Permutate(function_node.FunctionNode):
         )
 
     def _permutate(self, x, indices, inv):
-        xp = cuda.get_array_module(x)
         if inv:
             indices = _inverse_indices(indices)
 
-        return xp.take(x, indices, axis=self.axis)
+        return x[((slice(None),) * self.axis) + (indices,)]
 
     def forward(self, inputs):
         self.retain_inputs((1,))
