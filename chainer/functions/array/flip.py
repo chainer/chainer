@@ -11,7 +11,7 @@ def _flip(array, axis):
 
 
 class Flip(function_node.FunctionNode):
-    """Flip an input variable in reverse order along the given axis."""
+    """Flips an input variable in reverse order along the given axis."""
 
     def __init__(self, axis):
         if not isinstance(axis, six.integer_types):
@@ -40,7 +40,7 @@ class Flip(function_node.FunctionNode):
 
 
 def flip(x, axis):
-    """Flip an input variable in reverse order along the given axis.
+    """Flips an input variable in reverse order along the given axis.
 
     Args:
         x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
