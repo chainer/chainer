@@ -6,15 +6,21 @@ import unittest
 from chainer import testing
 
 
+def _dummy_extension(trainer):
+    pass
+
+
 @testing.parameterize(*testing.product({
     'stop_trigger': [(5, 'iteration'), (5, 'epoch')],
     'iter_per_epoch': [0.5, 1, 1.5, 5],
+    'extend': [[], [_dummy_extension]]
 }))
 class TestGetTrainerWithMockUpdater(unittest.TestCase):
 
     def setUp(self):
         self.trainer = testing.get_trainer_with_mock_updater(
-            self.stop_trigger, self.iter_per_epoch)
+            self.stop_trigger, self.iter_per_epoch,
+            extend=self.extend)
 
     def test_run(self):
         iteration = [0]
@@ -45,6 +51,8 @@ class TestGetTrainerWithMockUpdater(unittest.TestCase):
             self.assertEqual(
                 iteration[0],
                 math.ceil(self.stop_trigger[0] * self.iter_per_epoch))
+
+        self.assertEqual(len(self.extend) + 1, len(self.trainer._extensions))
 
 
 testing.run_module(__name__, __file__)
