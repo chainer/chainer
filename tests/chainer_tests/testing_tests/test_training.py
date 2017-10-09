@@ -42,6 +42,8 @@ class TestGetTrainerWithMockUpdater(unittest.TestCase):
                 trainer.updater.previous_epoch_detail,
                 (iteration[0] - 1) / self.iter_per_epoch)
 
+        self.assertEqual(len(self.extend), len(self.trainer._extensions))
+
         self.trainer.extend(check)
         self.trainer.run()
 
@@ -51,8 +53,6 @@ class TestGetTrainerWithMockUpdater(unittest.TestCase):
             self.assertEqual(
                 iteration[0],
                 math.ceil(self.stop_trigger[0] * self.iter_per_epoch))
-
-        self.assertEqual(len(self.extend) + 1, len(self.trainer._extensions))
 
 
 testing.run_module(__name__, __file__)
