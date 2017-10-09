@@ -10,7 +10,8 @@ from chainer.testing import attr
 
 
 @testing.parameterize(*testing.product({
-    'shape': [(3, 2), ],
+    'shape': [(3, 2), ()],
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
 class TestGumbelSoftmax(unittest.TestCase):
 
