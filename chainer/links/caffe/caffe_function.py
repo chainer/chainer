@@ -6,6 +6,7 @@ import six
 
 from chainer import configuration
 from chainer import functions
+from chainer import initializer
 from chainer import link
 from chainer.links.caffe.protobuf3 import caffe_pb2 as caffe_pb
 from chainer.links.connection import convolution_2d
@@ -36,6 +37,52 @@ def _layer(typ, oldname):
             _oldname_to_method[typevalue] = meth
         return meth
     return decorator
+
+
+class _Blob(initializer.Initializer):
+
+    chunk_size = 1024 * 1024
+
+    def __init__(self, blob):
+        super(_Blob, self).__init__()
+        self.data = blob.data
+
+    def __call__(self, array):
+        array = array.ravel()
+        size = len(array)
+        indices = list(range(0, size, self.chunk_size))
+
+        # Rather than accessing Protobuf's RepeatedScalar fields directly,
+        # creating a intermediate list by indexing is more efficifent due to
+        # the implementation of the Python extension of Protobuf.
+        # To avoid allocating excessively large lists, we limit the length
+        # of lists by `chunk_size`.
+        for start, end in zip(indices, indices[1:] + [size]):
+            array[start:end] = self.data[start:end]
+
+
+class _ConvolutionBlob(_Blob):
+
+    def __init__(self, blob, group):
+        super(_ConvolutionBlob, self).__init__(blob)
+        self.group = group
+
+    def __call__(self, array):
+        n_out, n_in = array.shape[:2]
+
+        part_out = n_out // self.group
+        part_in = n_in // self.group
+
+        array[...] = 0
+
+        part_size = len(self.data) // self.group
+        for i in six.moves.range(self.group):
+            out_slice = slice(i * part_out, (i + 1) * part_out)
+            in_slice = slice(i * part_in, (i + 1) * part_in)
+            w = array[out_slice, in_slice]
+
+            data = numpy.array(self.data[i * part_size:(i + 1) * part_size])
+            w[:] = data.reshape(w.shape)
 
 
 class CaffeFunction(link.Chain):
@@ -205,27 +252,15 @@ class CaffeFunction(link.Chain):
         pad = _get_pad(param)
         num = _get_num(blobs[0])
         channels = _get_channels(blobs[0])
+        bias_term = param.bias_term
 
         n_in = channels * param.group
         n_out = num
-        func = convolution_2d.Convolution2D(n_in, n_out, ksize, stride, pad,
-                                            nobias=not param.bias_term)
-        func.W.data[...] = 0
 
-        part_size = len(blobs[0].data) // param.group
-        for i in six.moves.range(param.group):
-            in_slice = slice(i * n_in // param.group,
-                             (i + 1) * n_in // param.group)
-            out_slice = slice(i * n_out // param.group,
-                              (i + 1) * n_out // param.group)
-            w = func.W.data[out_slice, in_slice]
-
-            data = numpy.array(
-                blobs[0].data[i * part_size:(i + 1) * part_size])
-            w[:] = data.reshape(w.shape)
-
-        if param.bias_term:
-            func.b.data[:] = blobs[1].data
+        func = convolution_2d.Convolution2D(
+                n_in, n_out, ksize, stride, pad, nobias=not bias_term,
+                initialW=_ConvolutionBlob(blobs[0], param.group),
+                initial_bias=_Blob(blobs[1]) if bias_term else None)
 
         with self.init_scope():
             setattr(self, layer.name, func)
@@ -255,10 +290,11 @@ class CaffeFunction(link.Chain):
 
         blobs = layer.blobs
         width, height = _get_width(blobs[0]), _get_height(blobs[0])
-        func = linear.Linear(width, height, nobias=not bias_term)
-        func.W.data.ravel()[:] = blobs[0].data
-        if bias_term:
-            func.b.data[:] = blobs[1].data
+
+        func = linear.Linear(
+            width, height, nobias=not bias_term,
+            initialW=_Blob(blobs[0]),
+            initial_bias=_Blob(blobs[1]) if bias_term else None)
 
         with self.init_scope():
             setattr(self, layer.name, func)
@@ -322,8 +358,8 @@ class CaffeFunction(link.Chain):
         func = batch_normalization.BatchNormalization(
             size, decay=decay, eps=eps, use_gamma=False, use_beta=False)
 
-        func.avg_mean.ravel()[:] = blobs[0].data
-        func.avg_var.ravel()[:] = blobs[1].data
+        _Blob(blobs[0])(func.avg_mean)
+        _Blob(blobs[1])(func.avg_var)
 
         # Scale the means and variances if a scaling factor is appended to the
         # blobs to correctly mimic to the behavior of Caffe. See
@@ -371,16 +407,16 @@ class CaffeFunction(link.Chain):
         if len(bottom) == 1:
             W_shape = blobs[0].shape.dim
             func = scale.Scale(axis, W_shape, bias_term)
-            func.W.data.ravel()[:] = blobs[0].data
+            _Blob(blobs[0])(func.W.data)
             if bias_term:
-                func.bias.b.data.ravel()[:] = blobs[1].data
+                _Blob(blobs[1])(func.bias.b.data)
         # Case of two bottoms where W is given as a bottom.
         else:
             shape = blobs[0].shape.dim if bias_term else None
             func = scale.Scale(
                 axis, bias_term=bias_term, bias_shape=shape)
             if bias_term:
-                func.bias.b.data.ravel()[:] = blobs[0].data
+                _Blob(blobs[0])(func.bias.b.data)
 
         # Add layer.
         with self.init_scope():
