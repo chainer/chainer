@@ -85,11 +85,13 @@ class NpzDeserializer(serializer.Deserializer):
         strict (bool): If ``True``, the deserializer raises an error when an
             expected value is not found in the given NPZ file. Otherwise,
             it ignores the value and skip deserialization.
-        ignore_names (list of strings or callable): If this is a list,
-            this is names of parameters and persistents that are going
-            to be skipped.
+        ignore_names (callable or list of strings and callables):
             If callable, it is a function that takes a name of a parameter
             and a persistent and returns ``True`` when it need to be skipped.
+            If this is a list,
+            this is callables or names of parameters and persistents that are
+            going to be skipped.
+            The callables return :obj:`True` when skipping.
 
     """
 
@@ -114,6 +116,18 @@ class NpzDeserializer(serializer.Deserializer):
                 return value
         else:
             # self.ignore_names is expected to be a list.
+            for ignore_name in self.ignore_names:
+                if isinstance(ignore_name, str):
+                    if key == ignore_name:
+                        return value
+                elif callable(ignore_name):
+                    if ignore_name(key):
+                        return value
+                else:
+                    raise ValueError(
+                        'ignore_names needs to be a callable or '
+                        'list of strings and callables.')
+
             if key in self.ignore_names:
                 return value
 
