@@ -276,8 +276,10 @@ class TestNpzDeserializerNonStrictGroupHierachy(unittest.TestCase):
     {'ignore_names': lambda key: key in ['linear/W', 'child/linear2/b']},
     {'ignore_names': [
         lambda key: key in ['linear/W'],
-        lambda key: key in ['child/linear2/b']]
-     },
+        lambda key: key in ['child/linear2/b']]},
+    {'ignore_names': [
+        lambda key: key in ['linear/W'],
+        'child/linear2/b']},
 )
 class TestNpzDeserializerIgnoreNamesGroupHierachy(unittest.TestCase):
 
