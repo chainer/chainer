@@ -65,7 +65,7 @@ def log(x):
     return Log().apply((x,))[0]
 
 
-class Log2(function.Function):
+class Log2(function_node.FunctionNode):
 
     @property
     def label(self):
@@ -75,15 +75,15 @@ class Log2(function.Function):
         type_check.expect(in_types.size() == 1)
         type_check.expect(in_types[0].dtype.kind == 'f')
 
-    def forward(self, x):
-        xp = cuda.get_array_module(*x)
-        return utils.force_array(xp.log2(x[0])),
+    def forward(self, inputs):
+        self.retain_inputs((0,))
+        x = inputs[0]
+        xp = cuda.get_array_module(x)
+        return utils.force_array(xp.log2(x)),
 
-    def backward(self, x, gy):
-        gx = gy[0].copy()
-        gx /= x[0]
-        gx *= 1 / math.log(2)
-        return gx,
+    def backward(self, indexes, gy):
+        x = self.get_retained_inputs()[0]
+        return gy[0] / x * (1 / math.log(2)),
 
 
 def log2(x):
@@ -98,7 +98,7 @@ def log2(x):
     Returns:
         ~chainer.Variable: Output variable.
     """
-    return Log2()(x)
+    return Log2().apply((x,))[0]
 
 
 class Log10(function.Function):
