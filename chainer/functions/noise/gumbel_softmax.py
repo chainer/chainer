@@ -1,8 +1,6 @@
-import numpy
-
-from chainer import variable
 from chainer import cuda
-from chainer.functions.activation.softmax import softmax
+from chainer.functions.activation import softmax
+from chainer import variable
 
 
 def gumbel_softmax(log_pi, tau=0.1, axis=1):
@@ -11,7 +9,7 @@ def gumbel_softmax(log_pi, tau=0.1, axis=1):
     This function draws samples :math:`y_i` from Gumbel-Softmax distribution,
 
     .. math::
-        y_i = {\\exp((g_i + \\log\\pi_i)/\\tau) 
+        y_i = {\\exp((g_i + \\log\\pi_i)/\\tau)
         \\over \\sum_{j}\\exp((g_j + \\log\\pi_j)/\\tau)},
 
     where :math:`\\tau` is a temperature parameter and
@@ -37,6 +35,6 @@ def gumbel_softmax(log_pi, tau=0.1, axis=1):
         return variable.Variable(xp.ones((), log_pi.dtype))
     dtype = log_pi.dtype
     g = xp.random.gumbel(size=log_pi.shape).astype(dtype)
-    y = softmax((log_pi + g) / tau, axis=axis)
+    y = softmax.softmax((log_pi + g) / tau, axis=axis)
 
     return y
