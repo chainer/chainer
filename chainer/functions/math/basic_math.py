@@ -73,7 +73,7 @@ def neg(self):  # -x
     return Neg().apply((self,))[0]
 
 
-class Absolute(function.Function):
+class Absolute(function_node.FunctionNode):
 
     @property
     def label(self):
@@ -84,17 +84,36 @@ class Absolute(function.Function):
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward(self, x):
+        self.retain_inputs((0,))
         return utils.force_array(abs(x[0])),
 
-    def backward_cpu(self, x, gy):
-        return utils.force_array(numpy.sign(x[0]) * gy[0]),
+    def backward(self, indexes, grad_outputs):
+        x = self.get_retained_inputs()[0]
+        return AbsoluteGrad(x.data).apply(grad_outputs)
 
-    def backward_gpu(self, x, gy):
+
+class AbsoluteGrad(function_node.FunctionNode):
+
+    def __init__(self, x):
+        super(AbsoluteGrad, self).__init__()
+        self.x = x
+
+    def check_type_forward(self, in_types):
+        type_check.expect(in_types.size() == 1)
+        type_check.expect(in_types[0].dtype.kind == 'f')
+
+    def forward_cpu(self, inputs):
+        return utils.force_array(numpy.sign(self.x) * inputs[0]),
+
+    def forward_gpu(self, inputs):
         gx0 = cuda.elementwise(
             'T x0, T gy', 'T gx0',
             'gx0 = ((x0 > 0) - (x0 < 0)) * gy',
-            'abs_bwd')(x[0], gy[0])
+            'abs_bwd')(self.x, inputs[0])
         return gx0,
+
+    def backward(self, indexes, grad_outputs):
+        return AbsoluteGrad(self.x).apply(grad_outputs)
 
 
 def absolute(self):
@@ -103,7 +122,7 @@ def absolute(self):
     Returns:
         ~chainer.Variable: Output variable.
     """
-    return Absolute()(self)
+    return Absolute().apply((self,))[0]
 
 
 class Add(function_node.FunctionNode):
