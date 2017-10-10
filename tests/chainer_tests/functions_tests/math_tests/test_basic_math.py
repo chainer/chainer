@@ -1245,7 +1245,7 @@ class TestLabel(unittest.TestCase):
         self.assertEqual(basic_math.Div().label, '_ / _')
 
     def test_div_from_constant(self):
-        self.assertEqual(basic_math.DivFromConstant(2.0).label, '_ / 2.0')
+        self.assertEqual(basic_math.DivFromConstant(2.0).label, '2.0 / _')
 
     def test_pow_var_var(self):
         self.assertEqual(basic_math.PowVarVar().label, '_ ** _')

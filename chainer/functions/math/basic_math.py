@@ -381,7 +381,7 @@ class DivFromConstant(function.Function):
 
     @property
     def label(self):
-        return '_ / %s' % _convert_value_to_string(self.value)
+        return '%s / _' % _convert_value_to_string(self.value)
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)
