@@ -65,6 +65,7 @@ Array manipulations
    chainer.functions.dstack
    chainer.functions.expand_dims
    chainer.functions.flatten
+   chainer.functions.flip
    chainer.functions.fliplr
    chainer.functions.flipud
    chainer.functions.get_item
