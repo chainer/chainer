@@ -9,31 +9,36 @@ Word2Vec: Obtain word embeddings
 **Word2vec** is the tool for generating the distributed representation of words,
 which is proposed by Mikolov et al[1]. When the tool assigns a real-valued vector
 to each word, the closer the meanings of the words, the greater similarity the
-vectors will indicate. As you know, **distributed representation** is assigning a
-real-valued vector for each object and representing the object by the vector. When
-representing a word by distributed representation, we call it **distributed representation of words**
-or **word embeddings**. In this tutorial we will use the term word embeddings.
+vectors will indicate.
 
-Let's think about what the meaning of word is. Since you are a human, you can
-understand that the words "animal" and "dog" are similar. But what information
-will Word2vec use in order to learn the vectors of meanings? The words
-"animal" and "dog" are similar, but the words "food" and "dog" are not similar.
+**Distributed representation** means assigning a real-valued vector for each
+word and representing the word by the vector. When representing a word by
+distributed representation, we call the **word embeddings**.
+In this tutorial, we aim at explaining how to get the word embeddings from
+Penn Tree Bank dataset.
+
+Let's think about what the meaning of word is. Since we are human, we can
+understand that the words "animal" and "dog" are deeply related eaach other.
+But what information will Word2vec use to learn the vectors for words? The words
+"animal" and "dog" should have similar vectors, but the words "food" and "dog"
+should be far from each other. How to know the features of those words automatically?
 
 1. Basic Idea
 ==============
 
 Word2vec learns the similarity of word meanings from simple information. It learns
-from a sequence of words in sentences. The idea is that the meaning of the word is
-determined by the words around it. This idea is based on **distributional hypothesis**
-[2]. The word to be learned is called the **Center Word**, and the words around it
-are called
-**Context Words**. Depending on the window size ``C``, the number of Context Words
-will change.
+the representation of words from sentences. The core idea is based on the assumption
+that the meaning of a word is affected by the words around it. This idea follows
+**distributional hypothesis**\ [2].
 
-For example, I will explain with the sentence "**The cute cat jumps over the lazy dog.**".
+The word we focus on to learn its representation is called **center word**,
+and the words around it are called **context words**. The window
+size :math:`C` determines the number of context words which is considered.
 
-* All of the following figures consider "cat" as Center Word.
-* According to the window size ``C``, you can see that Context Words are changing.
+Here, let's see the algorithm by using an example sentence: "**The cute cat jumps over the lazy dog.**".
+
+* All of the following figures consider "cat" as the center word.
+* According to the window size :math:`C`, you can see that the number of context words is changed.
 
 .. image:: ../../image/word2vec/center_context_word.png
 
