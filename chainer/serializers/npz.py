@@ -115,7 +115,6 @@ class NpzDeserializer(serializer.Deserializer):
             if self.ignore_names(key):
                 return value
         else:
-            # self.ignore_names is expected to be a list.
             for ignore_name in self.ignore_names:
                 if isinstance(ignore_name, str):
                     if key == ignore_name:
