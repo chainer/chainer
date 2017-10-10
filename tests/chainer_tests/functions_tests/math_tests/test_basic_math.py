@@ -664,6 +664,9 @@ class TestVariableConstantOp(unittest.TestCase):
     def test_rpow_double_backward_cpu(self):
         self.double_backward_cpu(lambda x, y: y ** x)
 
+    def test_rdiv_double_backward_cpu(self):
+        self.double_backward_cpu(lambda x, y: y / x)
+
     def double_backward_gpu(self, op):
         self.check_double_backward(
             op, cuda.to_gpu(self.x), cuda.to_gpu(self.gy),
@@ -676,6 +679,10 @@ class TestVariableConstantOp(unittest.TestCase):
     @attr.gpu
     def test_rpow_double_backward_gpu(self):
         self.double_backward_gpu(lambda x, y: y ** x)
+
+    @attr.gpu
+    def test_rdiv_double_backward_gpu(self):
+        self.double_backward_gpu(lambda x, y: y / x)
 
 
 @testing.parameterize(*testing.product({
