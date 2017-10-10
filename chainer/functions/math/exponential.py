@@ -20,12 +20,10 @@ class Exp(function_node.FunctionNode):
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward_cpu(self, x):
-        self.retain_inputs(())
         self.retain_outputs((0,))
         return utils.force_array(numpy.exp(x[0])),
 
     def forward_gpu(self, x):
-        self.retain_inputs(())
         self.retain_outputs((0,))
         return cuda.cupy.exp(x[0]),
 
@@ -39,7 +37,7 @@ def exp(x):
     return Exp().apply((x,))[0]
 
 
-class Log(function.Function):
+class Log(function_node.FunctionNode):
 
     @property
     def label(self):
@@ -50,18 +48,21 @@ class Log(function.Function):
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward_cpu(self, x):
+        self.retain_inputs((0,))
         return utils.force_array(numpy.log(x[0])),
 
     def forward_gpu(self, x):
+        self.retain_inputs((0,))
         return cuda.cupy.log(x[0]),
 
-    def backward(self, x, gy):
-        return utils.force_array(gy[0] / x[0]),
+    def backward(self, indexes, gy):
+        x = self.get_retained_inputs()[0]
+        return utils.force_array(gy[0] / x),
 
 
 def log(x):
     """Elementwise natural logarithm function."""
-    return Log()(x)
+    return Log().apply((x,))[0]
 
 
 class Log2(function.Function):

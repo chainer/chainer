@@ -111,6 +111,7 @@ class TestLog(UnaryFunctionsTestBase):
     def make_data(self):
         x = numpy.random.uniform(.5, 1, self.shape).astype(self.dtype)
         gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        self.ggy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         return x, gy
 
     def test_forward_cpu(self):
@@ -129,6 +130,13 @@ class TestLog(UnaryFunctionsTestBase):
 
     def test_label(self):
         self.check_label(F.Log, 'log')
+
+    def test_double_backward_cpu(self):
+        self.check_double_backward_cpu(F.log)
+
+    @attr.gpu
+    def test_double_backward_gpu(self):
+        self.check_double_backward_gpu(F.log)
 
 
 @testing.parameterize(*testing.product({
