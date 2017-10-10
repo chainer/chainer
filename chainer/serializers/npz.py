@@ -127,9 +127,6 @@ class NpzDeserializer(serializer.Deserializer):
                         'ignore_names needs to be a callable or '
                         'list of strings and callables.')
 
-            if key in self.ignore_names:
-                return value
-
         dataset = self.npz[key]
         if dataset[()] is None:
             return None
