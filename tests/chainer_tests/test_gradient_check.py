@@ -354,7 +354,7 @@ class TestCheckBackward(unittest.TestCase):
             s = Ident()(x)
             return s,
 
-        gradient_check.check_backward(f, (x1, x2), g1)
+        gradient_check.check_backward(f, (x1, x2), g1, dtype=self.dtype)
 
     def test_no_grads_option(self):
         x1 = numpy.array([1], dtype='f')
