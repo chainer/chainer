@@ -480,8 +480,9 @@ class TestCheckDoubleBackward(unittest.TestCase):
             w2 = w1 + y
             return w1 * w1, w2 * w2
 
-        gradient_check.check_double_backward(f, (x1, x2), (gy1, gy2),
-                                             (ggx1, ggx2))
+        gradient_check.check_double_backward(
+            f, (x1, x2), (gy1, gy2),
+            (ggx1, ggx2), dtype='d', atol=1e-3, rtol=1e-3)
 
     def test_multiple_input_output_cpu(self):
         self.check_multiple_input_output(numpy)
