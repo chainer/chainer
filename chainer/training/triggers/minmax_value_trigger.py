@@ -35,7 +35,7 @@ class BestValueTrigger(object):
 
         Returns:
             bool: ``True`` if the corresponding extension should be invoked in
-                this iteration.
+            this iteration.
 
         """
 

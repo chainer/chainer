@@ -8,7 +8,6 @@ from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
 from chainer.utils import type_check
 
 
@@ -37,6 +36,7 @@ def _maxout(x, pool_size, axis):
         {'dtype': numpy.float64},
     ]
 ))
+@testing.fix_random()
 class TestNonparameterizedMaxout(unittest.TestCase):
 
     def setUp(self):
@@ -54,26 +54,22 @@ class TestNonparameterizedMaxout(unittest.TestCase):
         self.assertEqual(y.data.dtype, self.dtype)
         testing.assert_allclose(self.y, y.data)
 
-    @condition.retry(3)
     def test_forward_cpu(self):
         self.check_forward(self.x)
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x))
 
     def check_backward(self, x_data, y_grad):
         gradient_check.check_backward(
             lambda x: functions.maxout(x, self.pool_size, self.axis),
-            x_data, y_grad, eps=0.125)
+            x_data, y_grad, dtype=numpy.float64)
 
-    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy)
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 

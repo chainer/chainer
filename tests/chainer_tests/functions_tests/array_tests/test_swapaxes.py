@@ -5,6 +5,7 @@ import numpy
 import chainer
 from chainer import cuda
 from chainer import functions
+from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
 
@@ -18,7 +19,13 @@ from chainer.testing import attr
 class TestSwapaxes(unittest.TestCase):
 
     def setUp(self):
-        self.x = numpy.random.uniform(-1, 1, self.in_shape).astype(self.dtype)
+        self.x = numpy.random.uniform(
+            0.5, 1, self.in_shape).astype(self.dtype)
+        self.g = numpy.random.uniform(
+            0.5, 1, self.in_shape).astype(self.dtype)
+        self.g = self.g.swapaxes(self.axis1, self.axis2)
+        self.gg = numpy.random.uniform(
+            0.5, 1, self.in_shape).astype(self.dtype)
 
     def check_forward(self, x_data):
         axis1, axis2 = self.axis1, self.axis2
@@ -48,6 +55,22 @@ class TestSwapaxes(unittest.TestCase):
     @attr.gpu
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x))
+
+    def check_double_backward(self, x_data, g_data, gg_data):
+        def f(x):
+            y = functions.swapaxes(x, self.axis1, self.axis2)
+            return y * y
+
+        gradient_check.check_double_backward(
+            f, x_data, g_data, gg_data, dtype=numpy.float64)
+
+    def test_double_backward_cpu(self):
+        self.check_double_backward(self.x, self.g, self.gg)
+
+    @attr.gpu
+    def test_double_backward_gpu(self):
+        self.check_double_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.g),
+                                   cuda.to_gpu(self.gg))
 
 
 testing.run_module(__name__, __file__)

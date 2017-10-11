@@ -33,7 +33,7 @@ class TestPadDefault(unittest.TestCase):
         self.check_backward_options = {'dtype': numpy.float64}
         if self.dtype == numpy.float16:
             self.check_backward_options.update({
-                'atol': 2 ** -6, 'rtol': 2 ** -6})
+                'atol': 2 ** -5, 'rtol': 2 ** -5})
 
     def check_forward(self, x_data):
         y = functions.pad(x_data, self.pad_width, self.mode)
@@ -91,8 +91,8 @@ class TestPad(unittest.TestCase):
         self.g = numpy.random.uniform(-1, 1, out_shape).astype(self.dtype)
         self.check_backward_options = {'dtype': numpy.float64}
         if self.dtype == numpy.float16:
-            self.check_backward_options = {
-                'atol': 2 ** -6, 'rtol': 2 ** -6}
+            self.check_backward_options.update({
+                'atol': 2 ** -5, 'rtol': 2 ** -5})
 
     def check_forward(self, x_data):
         y = functions.pad(x_data, self.pad_width, mode=self.mode,

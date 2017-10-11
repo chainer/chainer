@@ -87,7 +87,7 @@ class TestBlackOut(unittest.TestCase):
 
         gradient_check.check_backward(
             _black_out, (x_data, t_data, w_data, samples_data),
-            gy_data, atol=1.e-3)
+            gy_data, dtype='d', atol=1e-2)
 
     @condition.retry(3)
     def test_backward_cpu(self):

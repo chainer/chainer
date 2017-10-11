@@ -14,5 +14,5 @@ Here are the environment variables Chainer uses.
 +------------------------+--------------------------------------------------------------------------+
 | ``CHAINER_TYPE_CHECK`` | Set ``0`` to disable type checking.                                      |
 |                        | Otherwise type checking is enabled automatically.                        |
-|                        | See :class:`~chainer.Function` for details.                              |
+|                        | See :ref:`type-check-utils` for details.                                 |
 +------------------------+--------------------------------------------------------------------------+

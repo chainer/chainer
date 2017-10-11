@@ -25,10 +25,10 @@ install_requires = [
     'mock',
     'nose',
     'numpy>=1.9.0',
-    'protobuf>=2.6.0',
+    'protobuf>=3.0.0',
     'six>=1.9.0',
 ]
-cupy_require = 'cupy==2.0.0b1'
+cupy_require = 'cupy==2.0.0rc1'
 
 cupy_pkg = None
 try:
@@ -42,7 +42,7 @@ if cupy_pkg is not None:
 
 setup(
     name='chainer',
-    version='3.0.0b1',
+    version='3.0.0rc1',
     description='A flexible framework of neural networks',
     author='Seiya Tokui',
     author_email='tokui@preferred.jp',
@@ -69,7 +69,6 @@ setup(
               'chainer.links',
               'chainer.links.activation',
               'chainer.links.caffe',
-              'chainer.links.caffe.protobuf2',
               'chainer.links.caffe.protobuf3',
               'chainer.links.connection',
               'chainer.links.loss',
