@@ -29,7 +29,6 @@ class Dstack(function_node.FunctionNode):
                 type_check.expect(in_types[0].shape[d] == in_types[i].shape[d])
 
     def forward(self, xs):
-        self.retain_inputs(())
         self._in_shapes = [x.shape for x in xs]
         xp = cuda.get_array_module(*xs)
         return xp.dstack(xs),
