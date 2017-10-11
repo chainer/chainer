@@ -46,20 +46,21 @@ Here, let's see the algorithm by using an example sentence: "**The cute cat jump
 ==================
 
 Word2vec, the tool for creating the word embeddings, is actually
-built with two models, which are **Skip-gram** and **CBoW**.
+built with two models, which are called **Skip-gram** and **CBoW**.
 
 To explain the models with the figures below, we will use the following
 symbols.
 
-* :math:`V`: the size of vocabulary.
-* :math:`D`: the size of embedding vector.
-* :math:`v_t`: Center Word. The shape is ``[N,]``.
-* :math:`v_{t+c}`: Context Word. The shape is ``[N,]``.
-* :math:`l_H`: Embedding vector converted from input.
-  The shape is ``[D,]``.
-* :math:`l_O`: Output layer. The shape is ``[N,]``.
-* :math:`W_H`: Embedding matrix for the input.  The shape is ``[N, D]``.
-* :math:`W_O`: Embedding matrix for the output.  The shape is ``[D, N]``.
+| Symbol           | Definition                                               |
+| ---------------: | :------------------------------------------------------- |
+| $V$              | The size of vocabulary                                   |
+| $D$              | The size of embedding vector                             |
+| ${\bf v}_t$      | A one-hot center word vector                             |
+| $V_{\pm C}$      | A set of $C$ context vectors around ${\bf v}_t$, namely, $\{{\bf v}_{t+c}\}_{c=-C}^C \backslash {\bf v}_t$        |
+| ${\bf l}_H$     | An embedding vector of an input word vector              |
+| ${\bf l}_O$     | An output vector of the network                          |
+| ${\bf W}_H$     | The embedding matrix for inputs                          |
+| ${\bf W}_O$     | The embedding matrix for outputs                         |
 
 .. note::
 
