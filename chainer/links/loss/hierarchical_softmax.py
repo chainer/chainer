@@ -313,6 +313,9 @@ class BinaryHierarchicalSoftmax(link.Link):
         self.tree = tree
         self.init_padding_params()
 
+        if len(tree) == 0:
+            raise ValueError('Empty tree')
+
         with self.init_scope():
             self.W = variable.Parameter(uniform.Uniform(1),
                                         (self._func.parser_size, in_size))
@@ -392,27 +395,28 @@ class BinaryHierarchicalSoftmax(link.Link):
         return q.get()[2]
 
     def argmax(self, x):
-        """Argmax an example for a given input from the tree.
+        """Calculates indices that get maximum scores for each batch.
 
         Args:
             x (~chainer.Variable): Input variable for sample word ids.
 
         Returns:
-            array: Array of word indexes in a binary tree ``self.tree``.
+            numpy.ndarray or cupy.ndarray: Array of word indexes in a binary
+            tree ``self.tree``.
 
         .. admonition:: Example
 
             Let an input vector ``x`` be:
 
-            >>> word_cnts = {0: 8, 1: 5, 2: 6, 3: 4, 4: 10, 5: 1, 6: 32}
-            >>> tree = BinaryHierarchicalSoftmax.create_huffman_tree(word_cnts)
-            >>> hsm = BinaryHierarchicalSoftmax(3, tree)
+            >>> word_counts = {0: 8, 1: 5, 2: 6, 3: 4, 4: 10, 5: 1, 6: 32}
+            >>> import chainer.links as L
+            >>> hsm_link = L.BinaryHierarchicalSoftmax
+            >>> tree = hsm_link.create_huffman_tree(word_counts)
+            >>> hsm = hsm_link(3, tree)
             >>> x = np.array([[0.2, 0.2, 0.3], [0.1, 0.3, 0.1]], dtype='f')
             >>> hsm.argmax(Variable(x))
             [0, 3]
         """
-        if len(self.tree) == 0:
-            raise ValueError('Empty tree')
 
         xp = cuda.get_array_module(*x)
         batchsize = x.shape[0]
@@ -436,8 +440,7 @@ class BinaryHierarchicalSoftmax(link.Link):
         # replace zero scores
         pad_zero_flag = xp.reshape(pad_zero_flag, (1, n_vocab, -1))
         pad_zero_flag = _broadcast_to(xp, pad_zero_flag, scores.shape)
-        zero_scores = xp.zeros_like(scores)
-        scores = xp.where(pad_zero_flag, zero_scores, scores)
+        scores = xp.where(pad_zero_flag, 0.0, scores)
 
         scores = xp.sum(scores, axis=2)
         result = xp.argmax(scores, axis=1).astype('i')
