@@ -1,4 +1,6 @@
+import math
 import unittest
+import warnings
 
 import numpy
 import six
@@ -255,6 +257,329 @@ class NumericalGradientEpsTest(unittest.TestCase):
     @attr.gpu
     def test_differenct_eps_gpu(self):
         self.check_different_eps(cuda.to_gpu(self.x), cuda.to_gpu(self.y))
+
+
+class NumericalGradientDetectNondifferentiableTest(unittest.TestCase):
+
+    eps = 1e-3
+
+    def _func_zero(self, x):
+        xp = cuda.get_array_module(x)
+        return xp.zeros_like(x),
+
+    def _func_linear(self, x):
+        return 2 * x,
+
+    def _func_quadratic(self, x):
+        return x * x + 2.,
+
+    def _func_cubic(self, x):
+        return -3 * x ** 3 + 2 * x ** 2 + 1
+
+    def _func_abs(self, x):
+        return abs(x),
+
+    def _func_step(self, x):
+        xp = cuda.get_array_module(x)
+        y = xp.zeros_like(x)
+        y[x > 0] = 1
+        return y,
+
+    def _func_clip(self, x):
+        y = x.clip(0, 1)
+        return y,
+
+    def _func_floor(self, x):
+        xp = cuda.get_array_module(x)
+        return xp.floor(x),
+
+    def _func_exp(self, x):
+        xp = cuda.get_array_module(x)
+        return xp.exp(x),
+
+    def _func_log(self, x):
+        xp = cuda.get_array_module(x)
+        return xp.log(x),
+
+    def _func_tan(self, x):
+        xp = cuda.get_array_module(x)
+        return xp.tan(x),
+
+    def _func_nan_segment(self, x):
+        xp = cuda.get_array_module(x)
+        y = xp.ones_like(x)
+        y[-1 < x < 1] = numpy.nan
+        return y,
+
+    def check_positive(self, xp, func_name, inputs, eps=None):
+        # Should be non-differentiable
+        func = getattr(self, '_func_{}'.format(func_name))
+        if eps is None:
+            eps = self.eps
+        grad_outputs = [
+            xp.random.uniform(-1, 1, _.shape).astype(_.dtype) for _ in inputs]
+
+        def f():
+            return func(*inputs)
+
+        try:
+            gradient_check.numerical_grad(
+                f, inputs, grad_outputs, eps=eps,
+                detect_nondifferentiable=True)
+        except gradient_check.NondifferentiableError:
+            pass
+        else:
+            raise AssertionError(
+                'Function `{}` is expected to be non-differentiable, '
+                'but determined to be differentiable.\n\n'
+                'eps: {}\n'
+                'inputs: {}\n'
+                'xp: {}\n'
+                ''.format(
+                    func_name, eps, inputs, xp.__name__))
+
+    def check_negative(self, xp, func_name, inputs, eps=None):
+        # Should be differentiable
+        func = getattr(self, '_func_{}'.format(func_name))
+        if eps is None:
+            eps = self.eps
+        grad_outputs = [
+            xp.random.uniform(-1, 1, _.shape).astype(_.dtype) for _ in inputs]
+
+        def f():
+            return func(*inputs)
+
+        try:
+            gradient_check.numerical_grad(
+                f, inputs, grad_outputs, eps=eps,
+                detect_nondifferentiable=True)
+        except gradient_check.NondifferentiableError as e:
+            raise AssertionError(
+                'Function `{}` is expected to be differentiable, '
+                'but determined to be non-differentiable.\n\n'
+                'eps: {}\n'
+                'inputs: {}\n'
+                'xp: {}\n\n'
+                '{}: {}'
+                ''.format(
+                    func_name, eps, inputs, xp.__name__,
+                    e.__class__.__name__, e))
+
+    def check(self, xp):
+        dtype = xp.float32
+
+        # zero
+        x = xp.array([-100.], dtype)
+        self.check_negative(xp, 'zero', (x,))
+
+        x = xp.array([100.], dtype)
+        self.check_negative(xp, 'zero', (x,))
+
+        x = xp.array([0.], dtype)
+        self.check_negative(xp, 'zero', (x,))
+
+        x = xp.array([1e-4], dtype)
+        self.check_negative(xp, 'zero', (x,))
+
+        x = xp.random.normal(size=(3, 2)).astype(dtype)
+        self.check_negative(xp, 'zero', (x,))
+
+        x = xp.random.normal(size=()).astype(dtype)
+        self.check_negative(xp, 'zero', (x,))
+
+        # linear
+        x = xp.array([-100.], dtype)
+        self.check_negative(xp, 'linear', (x,))
+
+        x = xp.array([100.], dtype)
+        self.check_negative(xp, 'linear', (x,))
+
+        x = xp.array([0.], dtype)
+        self.check_negative(xp, 'linear', (x,))
+
+        x = xp.random.normal(size=(3, 2)).astype(dtype)
+        self.check_negative(xp, 'linear', (x,))
+
+        x = xp.random.normal(size=()).astype(dtype)
+        self.check_negative(xp, 'linear', (x,))
+
+        # (Invalid input domain)
+        x = xp.array([numpy.inf], dtype)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', RuntimeWarning)
+            self.check_negative(xp, 'linear', (x,))
+
+        # quadratic
+        x = xp.array([-100.], dtype)
+        self.check_negative(xp, 'quadratic', (x,))
+
+        x = xp.array([100.], dtype)
+        self.check_negative(xp, 'quadratic', (x,))
+
+        x = xp.array([0.], dtype)
+        self.check_negative(xp, 'quadratic', (x,))
+
+        # cubic
+        x = xp.array([-100.], dtype)
+        self.check_negative(xp, 'cubic', (x,))
+
+        x = xp.array([100.], dtype)
+        self.check_negative(xp, 'cubic', (x,))
+
+        x = xp.array([0.], dtype)
+        self.check_negative(xp, 'cubic', (x,))
+
+        x = xp.array([0], dtype)  # Too large epsilon
+        self.check_positive(xp, 'cubic', (x,), eps=1e-1)
+
+        # abs
+        x = xp.array([0.], dtype)
+        self.check_positive(xp, 'abs', (x,))
+
+        x = xp.array([[3, 1], [0, 2]], dtype)
+        self.check_positive(xp, 'abs', (x,))
+
+        x = xp.array([self.eps * 0.8], dtype)
+        self.check_positive(xp, 'abs', (x,))
+
+        x = xp.array([-self.eps * 0.8], dtype)
+        self.check_positive(xp, 'abs', (x,))
+
+        x = xp.array([self.eps * 1.2], dtype)
+        self.check_negative(xp, 'abs', (x,))
+
+        x = xp.array([-self.eps * 1.2], dtype)
+        self.check_negative(xp, 'abs', (x,))
+
+        x = xp.array([100.], dtype)
+        self.check_negative(xp, 'abs', (x,))
+
+        x = xp.array([-100.], dtype)
+        self.check_negative(xp, 'abs', (x,))
+
+        # step
+        x = xp.array([0.], dtype)
+        self.check_positive(xp, 'step', (x,))
+
+        x = xp.array([self.eps * 0.8], dtype)
+        self.check_positive(xp, 'step', (x,))
+
+        x = xp.array([-self.eps * 0.8], dtype)
+        self.check_positive(xp, 'step', (x,))
+
+        x = xp.array([self.eps * 1.2], dtype)
+        self.check_negative(xp, 'step', (x,))
+
+        x = xp.array([-self.eps * 1.2], dtype)
+        self.check_negative(xp, 'step', (x,))
+
+        x = xp.array([100.], dtype)
+        self.check_negative(xp, 'step', (x,))
+
+        x = xp.array([-100.], dtype)
+        self.check_negative(xp, 'step', (x,))
+
+        # clip
+        x = xp.array([0.], dtype)
+        self.check_positive(xp, 'clip', (x,))
+
+        x = xp.array([1.], dtype)
+        self.check_positive(xp, 'clip', (x,))
+
+        x = xp.array([0.5], dtype)
+        self.check_negative(xp, 'clip', (x,))
+
+        # floor
+        x = xp.array([0.], dtype)
+        self.check_positive(xp, 'floor', (x,))
+
+        x = xp.array([100 + self.eps * 0.8], dtype)
+        self.check_positive(xp, 'floor', (x,))
+
+        x = xp.array([100 - self.eps * 0.8], dtype)
+        self.check_positive(xp, 'floor', (x,))
+
+        x = xp.array([100 + self.eps * 1.2], dtype)
+        self.check_negative(xp, 'floor', (x,))
+
+        x = xp.array([100 - self.eps * 1.2], dtype)
+        self.check_negative(xp, 'floor', (x,))
+
+        # exp
+        x = xp.array([-100.], dtype)
+        self.check_negative(xp, 'exp', (x,))
+
+        x = xp.array([0.], dtype)
+        self.check_negative(xp, 'exp', (x,))
+
+        x = xp.array([13.], dtype)
+        self.check_negative(xp, 'exp', (x,))
+
+        # log
+        x = xp.array([100.], dtype)
+        self.check_negative(xp, 'log', (x,))
+
+        # (Smaller epsilon is required because slope is steep)
+        x = xp.array([1e-3], dtype)
+        self.check_negative(xp, 'log', (x,), eps=1e-6)
+
+        x = xp.array([0], dtype)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', RuntimeWarning)
+            self.check_positive(xp, 'log', (x,))
+
+        # (Invalid input domain)
+        x = xp.array([-10], dtype)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', RuntimeWarning)
+            self.check_negative(xp, 'log', (x,))
+
+        # tan
+        x = xp.array([self.eps * 1.2], dtype)
+        self.check_negative(xp, 'tan', (x,))
+
+        x = xp.array([self.eps * 0.8], dtype)
+        self.check_negative(xp, 'tan', (x,))
+
+        x = xp.array([math.pi / 2], dtype)
+        self.check_positive(xp, 'tan', (x,))
+
+        x = xp.array([-math.pi / 2], dtype)
+        self.check_positive(xp, 'tan', (x,))
+
+        x = xp.array([3 * math.pi / 2], dtype)
+        self.check_positive(xp, 'tan', (x,))
+
+        x = xp.array([3 * math.pi / 2 + self.eps * 0.8], dtype)
+        self.check_positive(xp, 'tan', (x,))
+
+        x = xp.array([3 * math.pi / 2 - self.eps * 0.8], dtype)
+        self.check_positive(xp, 'tan', (x,))
+
+        # (Smaller epsilon is required because slope is steep)
+        x = xp.array([3 * math.pi / 2 + 1e-3], dtype)
+        self.check_negative(xp, 'tan', (x,), eps=1e-6)
+
+        # (Smaller epsilon is required because slope is steep)
+        x = xp.array([3 * math.pi / 2 - 1e-3], dtype)
+        self.check_negative(xp, 'tan', (x,), eps=1e-6)
+
+        # nan-segment
+        x = xp.array([0], dtype)
+        self.check_negative(xp, 'nan_segment', (x,))
+
+        x = xp.array([-1], dtype)
+        self.check_positive(xp, 'nan_segment', (x,))
+
+        x = xp.array([+1], dtype)
+        self.check_positive(xp, 'nan_segment', (x,))
+
+    def test_cpu(self):
+        self.check(numpy)
+
+    @attr.gpu
+    def test_gpu(self):
+        self.check(cuda.cupy)
 
 
 class AssertAllCloseTest(unittest.TestCase):
