@@ -302,8 +302,10 @@ def check_backward(func, x_data, y_grad, params=(),
     directions = [xp.random.normal(size=x.shape) for x in variables]
     # Use unit vector
     norm = math.sqrt(sum([xp.square(d).sum() for d in directions]))
-    scale = 1. / norm
-    directions = [d * scale for d in directions]
+    if norm != 0:
+        # norm could be zero if input arrays are 0-sized.
+        scale = 1. / norm
+        directions = [d * scale for d in directions]
 
     delta = xp.array(0., 'd')
 
