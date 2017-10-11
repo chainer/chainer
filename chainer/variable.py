@@ -1153,7 +1153,11 @@ Actual: {0}'''.format(type(data))
         events_swapin = []
 
         # [OOC/LWR]
-        break_points = self.node.get_break_points(fine_granularity)
+        if ooc_enabled:
+            break_points = self.node.get_break_points(fine_granularity)
+        else:
+            root_node.interrupt_backward()
+            break_points = [(~root_node.rank, 0, root_node)]
         if ooc_debug:
             print('# break_points: {}'.format(break_points))
 
