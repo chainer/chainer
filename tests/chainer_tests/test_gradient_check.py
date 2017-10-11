@@ -389,10 +389,11 @@ class TestCheckBackwardFailure(unittest.TestCase):
         class Broken(chainer.FunctionNode):
             def forward(self, inputs):
                 x, = inputs
+                self.retain_inputs((0,))
                 return (x * x),
 
-            def backward(self, inputs, grad_outputs):
-                x, = inputs
+            def backward(self, indexes, grad_outputs):
+                x, = self.get_retained_inputs()
                 gy, = grad_outputs
                 return 3 * x * gy,
 
@@ -402,10 +403,11 @@ class TestCheckBackwardFailure(unittest.TestCase):
         class Broken(chainer.FunctionNode):
             def forward(self, inputs):
                 x, = inputs
+                self.retain_inputs((0,))
                 return (x * x),
 
-            def backward(self, inputs, grad_outputs):
-                x, = inputs
+            def backward(self, indexes, grad_outputs):
+                x, = self.get_retained_inputs()
                 gy, = grad_outputs
                 gx1 = 2 * x * gy
                 gx2 = 3 * x * gy
