@@ -7,7 +7,8 @@ class GoogLeNet(chainer.Chain):
 
     insize = 224
 
-    def __init__(self):
+    def __init__(self, insize=224):
+        GoogLeNet.insize = insize
         super(GoogLeNet, self).__init__()
         with self.init_scope():
             self.conv1 = L.Convolution2D(None,  64, 7, stride=2, pad=3)
@@ -46,7 +47,9 @@ class GoogLeNet(chainer.Chain):
         h = F.max_pooling_2d(h, 3, stride=2)
         h = self.inc4a(h)
 
-        l = F.average_pooling_2d(h, 5, stride=3)
+        #l = F.average_pooling_2d(h, 5, stride=3)
+        l = F.average_pooling_2d(h, 5 * (GoogLeNet.insize//224),
+                                 stride=3 * (GoogLeNet.insize//224))
         l = F.relu(self.loss1_conv(l))
         l = F.relu(self.loss1_fc1(l))
         l = self.loss1_fc2(l)
@@ -56,7 +59,9 @@ class GoogLeNet(chainer.Chain):
         h = self.inc4c(h)
         h = self.inc4d(h)
 
-        l = F.average_pooling_2d(h, 5, stride=3)
+        #l = F.average_pooling_2d(h, 5, stride=3)
+        l = F.average_pooling_2d(h, 5 * (GoogLeNet.insize//224),
+                                 stride=3 * (GoogLeNet.insize//224))
         l = F.relu(self.loss2_conv(l))
         l = F.relu(self.loss2_fc1(l))
         l = self.loss2_fc2(l)
@@ -67,7 +72,9 @@ class GoogLeNet(chainer.Chain):
         h = self.inc5a(h)
         h = self.inc5b(h)
 
-        h = F.average_pooling_2d(h, 7, stride=1)
+        #h = F.average_pooling_2d(h, 7, stride=1)
+        h = F.average_pooling_2d(h, 7 * (GoogLeNet.insize//224),
+                                 stride=1 * (GoogLeNet.insize//224))
         h = self.loss3_fc(F.dropout(h, 0.4))
         loss3 = F.softmax_cross_entropy(h, t)
 
