@@ -370,6 +370,55 @@ class TestCheckBackward(unittest.TestCase):
         gradient_check.check_backward(f, (x1, x2), g1, no_grads=[False, True])
 
 
+class TestCheckBackwardFailure(unittest.TestCase):
+
+    def _broken_func_1(self):
+        class Broken(chainer.Function):
+            def forward(self, inputs):
+                x, = inputs
+                return (x * x),
+
+            def backward(self, inputs, grad_outputs):
+                x, = inputs
+                gy, = grad_outputs
+                return 3 * x * gy,
+
+        return Broken()
+
+    def _broken_func_2(self):
+        class Broken(chainer.FunctionNode):
+            def forward(self, inputs):
+                x, = inputs
+                return (x * x),
+
+            def backward(self, inputs, grad_outputs):
+                x, = inputs
+                gy, = grad_outputs
+                return 3 * x * gy,
+
+        return Broken()
+
+    def test_fail_1(self):
+        x = numpy.random.uniform(-1, 1, (2, 3)).astype(numpy.float32)
+        gy = numpy.random.uniform(-1, 1, (2, 3)).astype(numpy.float32)
+
+        def f(x):
+            return self._broken_func_1()(x)
+
+        with self.assertRaises(AssertionError):
+            gradient_check.check_backward(f, x, gy)
+
+    def test_fail_2(self):
+        x = numpy.random.uniform(-1, 1, (2, 3)).astype(numpy.float32)
+        gy = numpy.random.uniform(-1, 1, (2, 3)).astype(numpy.float32)
+
+        def f(x):
+            return self._broken_func_2().apply((x,))
+
+        with self.assertRaises(AssertionError):
+            gradient_check.check_backward(f, x, gy)
+
+
 class NewIdent(chainer.FunctionNode):
 
     def forward(self, inputs):

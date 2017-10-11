@@ -282,7 +282,7 @@ def check_backward(func, x_data, y_grad, params=(),
                 raise RuntimeError(
                     'gradients of some arguments are not calculated')
 
-    if len(xs) - len(no_grads) + len(params) == 0:
+    if len(xs) - sum(1 for _ in no_grads if _) + len(params) == 0:
         # When there is no float variables, we need not to check gradient
         # values
         return
