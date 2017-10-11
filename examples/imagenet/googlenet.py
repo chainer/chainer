@@ -34,13 +34,22 @@ class GoogLeNet(chainer.Chain):
             self.loss2_fc2 = L.Linear(None, 1000)
 
     def __call__(self, x, t):
-        h = F.relu(self.conv1(x))
-        h = F.local_response_normalization(
-            F.max_pooling_2d(h, 3, stride=2), n=5)
+        h = self.conv1(x)
+        h = F.relu(h)
+#        h = F.relu(self.conv1(x))
+
+        h = F.max_pooling_2d(h, 3, stride=2)
+        h = F.local_response_normalization(h, n=5)
+#        h = F.local_response_normalization(
+#            F.max_pooling_2d(h, 3, stride=2), n=5)
+
         h = F.relu(self.conv2_reduce(h))
         h = F.relu(self.conv2(h))
-        h = F.max_pooling_2d(
-            F.local_response_normalization(h, n=5), 3, stride=2)
+
+        h = F.local_response_normalization(h, n=5)
+        h =F.max_pooling_2d(h, 3, stride=2)
+#        h = F.max_pooling_2d(
+#            F.local_response_normalization(h, n=5), 3, stride=2)
 
         h = self.inc3a(h)
         h = self.inc3b(h)
