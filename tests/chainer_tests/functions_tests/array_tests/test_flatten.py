@@ -40,7 +40,7 @@ class TestFlatten(unittest.TestCase):
 
     def check_backward(self, x_data, g_data):
         gradient_check.check_backward(
-            functions.Flatten(), x_data, g_data, dtype=numpy.float64)
+            functions.flatten, x_data, g_data, dtype=numpy.float64)
 
     def test_backward_cpu(self):
         self.check_backward(self.x, self.g)

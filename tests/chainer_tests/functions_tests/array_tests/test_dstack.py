@@ -55,8 +55,7 @@ class TestDstack(unittest.TestCase):
         def func(*xs):
             return functions.dstack(xs)
 
-        gradient_check.check_backward(
-            func, xs_data, g_data, eps=2.0 ** -2, atol=1e-3, rtol=1e-3)
+        gradient_check.check_backward(func, xs_data, g_data, dtype='d')
 
     def test_backward_cpu(self):
         self.check_backward(self.xs, self.g)

@@ -1,7 +1,9 @@
 import six
 
+import chainer
 from chainer import cuda
 from chainer import function
+from chainer import function_node
 from chainer.utils import type_check
 
 
@@ -84,7 +86,7 @@ def broadcast(*args):
     return Broadcast()(*args)
 
 
-class BroadcastTo(function.Function):
+class BroadcastTo(function_node.FunctionNode):
 
     """Function that broadcasts an array to a new shape."""
 
@@ -108,13 +110,9 @@ class BroadcastTo(function.Function):
             actual = 'in_type[0].shape: %s' % str(shape)
             raise type_check.InvalidType(expect, actual)
 
-    def forward(self, xs):
-        self.retain_inputs(())
-        xp = cuda.get_array_module(*xs)
-        x = xs[0]
-        self._xp = xp
-        self._in_shape = x.shape
-        self._in_dtype = x.dtype
+    def forward(self, inputs):
+        x, = inputs
+        xp = cuda.get_array_module(x)
         if hasattr(xp, 'broadcast_to'):
             return xp.broadcast_to(x, self._shape),
         else:
@@ -123,9 +121,17 @@ class BroadcastTo(function.Function):
             bx, _ = xp.broadcast_arrays(x, dummy)
             return bx,
 
-    def backward(self, xs, grads):
-        return _backward_one(
-            self._xp, self._in_shape, self._in_dtype, grads[0]),
+    def backward(self, indexes, grad_outputs):
+        gx, = grad_outputs
+        shape = self.inputs[0].shape
+        ndim = len(shape)
+        lead = gx.ndim - ndim
+        lead_axis = tuple(range(lead))
+        axis = [i + lead for i, sx in enumerate(shape) if sx == 1]
+        gx = chainer.functions.sum(gx, lead_axis + tuple(axis), True)
+        if lead > 0:
+            return chainer.functions.squeeze(gx, lead_axis),
+        return gx,
 
 
 def broadcast_to(x, shape):
@@ -154,4 +160,7 @@ def broadcast_to(x, shape):
                [0, 1, 2]])
 
     """
-    return BroadcastTo(shape)(x)
+    if x.shape == shape:
+        return chainer.as_variable(x)
+    y, = BroadcastTo(shape).apply((x,))
+    return y

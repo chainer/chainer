@@ -38,7 +38,7 @@ class ManualScheduleTrigger(object):
 
         Returns:
             bool: True if the corresponding extension should be invoked in this
-                iteration.
+            iteration.
 
         """
         updater = trainer.updater

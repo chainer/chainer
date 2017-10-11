@@ -110,7 +110,7 @@ class TestResizeImagesBackward(unittest.TestCase):
     def check_backward(self, x, output_shape, grads):
         gradient_check.check_backward(
             functions.ResizeImages(output_shape),
-            (x,), (grads,), atol=1e-2, rtol=1e-3, eps=1e-5)
+            (x,), (grads,), dtype='d', atol=1e-2, rtol=1e-3, eps=1e-5)
 
     @condition.retry(3)
     def test_backward_cpu(self):
