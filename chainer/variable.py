@@ -11,6 +11,7 @@ import chainer
 from chainer import cuda
 from chainer import initializers
 from chainer.initializers import constant
+from chainer import training
 from chainer.utils import argument
 
 
@@ -1188,6 +1189,8 @@ class Parameter(Variable):
             super(Parameter, self).__init__(data, name=name, grad=grad)
 
         self.update_rule = None
+        self._fp32_param = None
+        self._make_fp32_copy()
 
     def __copy__(self):
         return self._copy_to(Parameter())
@@ -1200,6 +1203,8 @@ class Parameter(Variable):
         super(Parameter, self).to_cpu()
         if self.data is None:
             self._initial_device = None
+        if self._fp32_param is not None:
+            self._fp32_param.to_cpu()
 
     def to_gpu(self, device=None):
         super(Parameter, self).to_gpu(device)
@@ -1207,11 +1212,15 @@ class Parameter(Variable):
             if device is None:
                 device = cuda.Device().id
             self._initial_device = device
+        if self._fp32_param is not None:
+            self._fp32_param.to_gpu()
 
     def cleargrad(self):
         super(Parameter, self).cleargrad()
         if self.data is None:
             self._grad_initializer = None
+        if self._fp32_param is not None:
+            self._fp32_param.cleargrad()
 
     def zerograd(self):
         super(Parameter, self).zerograd()
@@ -1240,6 +1249,7 @@ class Parameter(Variable):
 
         self.data = data
         self.grad = grad
+        self._make_fp32_copy()
 
     def update(self):
         """Updates the data array using the gradient and the update rule.
@@ -1247,8 +1257,33 @@ class Parameter(Variable):
         This method updates the parameter using the attached update rule.
 
         """
-        if self.update_rule is not None:
+        if self.update_rule is None:
+            return
+
+        if training.should_update_parameter_in_fp32(self.data.dtype):
+            if self._fp32_param is None:
+                self._make_fp32_copy()
+            self._fp32_param.grad = self.grad.astype(numpy.float32)
+            loss_scaling_factor = training.get_loss_scaling_factor()
+            if loss_scaling_factor is not None:
+                self._fp32_param.grad /= loss_scaling_factor
+            self.update_rule.update(self._fp32_param)
+            self.data = self._fp32_param.data.astype(self.data.dtype)
+            self._fp32_param.grad = None
+        else:
             self.update_rule.update(self)
+
+    def _make_fp32_copy(self):
+        """Makes a fp32 copy of the parameter.
+
+        The fp32 copy is created when
+            - the parameter is already initialized and
+            - the parameter should be updated in fp32
+        """
+        if (self.data is not None and
+                training.should_update_parameter_in_fp32(self.data.dtype)):
+            fp32_data = self.data.astype(numpy.float32)
+            self._fp32_param = chainer.Variable(fp32_data, name=self.name)
 
 
 def as_variable(obj):

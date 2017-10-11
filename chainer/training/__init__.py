@@ -20,3 +20,38 @@ from chainer.training.trigger import IntervalTrigger  # NOQA
 from chainer.training.updater import ParallelUpdater  # NOQA
 from chainer.training.updater import StandardUpdater  # NOQA
 from chainer.training.updater import Updater  # NOQA
+
+
+from chainer.configuration import config  # NOQA
+from chainer.configuration import global_config  # NOQA
+
+import numpy
+
+
+global_config.update_parameter_in_fp32 = False
+global_config.loss_scaling_factor = None
+
+
+def set_loss_scaling_factor(val):
+    """Sets loss scaling factor."""
+    config.loss_scaling_factor = val
+    config.update_parameter_in_fp32 = True
+
+
+def get_loss_scaling_factor():
+    """Gets loss scaling factor."""
+    return config.loss_scaling_factor
+
+
+def should_update_parameter_in_fp32(dtype):
+    """Determins if the parameter should be updated in fp32.
+
+    Args:
+        dtype (numpy.dtype): data type of the parameter.
+
+    Returns:
+        bool: ``True`` if the parameter should be updated in fp32.
+    """
+    if config.update_parameter_in_fp32 and dtype == numpy.float16:
+        return True
+    return False
