@@ -85,13 +85,13 @@ class NpzDeserializer(serializer.Deserializer):
         strict (bool): If ``True``, the deserializer raises an error when an
             expected value is not found in the given NPZ file. Otherwise,
             it ignores the value and skip deserialization.
-        ignore_names (callable or list of strings and callables):
+        ignore_names (string, callable or list of them):
             If callable, it is a function that takes a name of a parameter
             and a persistent and returns ``True`` when it needs to be skipped.
-            If this is a list,
-            this is callables or names of parameters and persistents that are
+            If string, this is a name of a parameter or persistent that are
             going to be skipped.
-            The callables return :obj:`True` when skipping.
+            This can also be a list of callables and strings that behave as
+            described above.
 
     """
 
@@ -111,21 +111,22 @@ class NpzDeserializer(serializer.Deserializer):
         key = self.path + key.lstrip('/')
         if not self.strict and key not in self.npz:
             return value
-        if callable(self.ignore_names):
-            if self.ignore_names(key):
-                return value
+
+        if isinstance(self.ignore_names, (tuple, list)):
+            ignore_names = self.ignore_names
         else:
-            for ignore_name in self.ignore_names:
-                if isinstance(ignore_name, str):
-                    if key == ignore_name:
-                        return value
-                elif callable(ignore_name):
-                    if ignore_name(key):
-                        return value
-                else:
-                    raise ValueError(
-                        'ignore_names needs to be a callable or '
-                        'list of strings and callables.')
+            ignore_names = (self.ignore_names,)
+        for ignore_name in ignore_names:
+            if isinstance(ignore_name, str):
+                if key == ignore_name:
+                    return value
+            elif callable(ignore_name):
+                if ignore_name(key):
+                    return value
+            else:
+                raise ValueError(
+                    'ignore_names needs to be a callable, string or '
+                    'list of them.')
 
         dataset = self.npz[key]
         if dataset[()] is None:

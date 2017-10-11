@@ -191,9 +191,10 @@ class TestNpzDeserializerNonStrict(unittest.TestCase):
 
 
 @testing.parameterize(
-    {'ignore_names': ['y']},
-    {'ignore_names': lambda key: key == 'y'},
-    {'ignore_names': [lambda key: key == 'y']},
+    {'ignore_names': 'yy'},
+    {'ignore_names': ['yy']},
+    {'ignore_names': lambda key: key == 'yy'},
+    {'ignore_names': [lambda key: key == 'yy']},
 )
 class TestNpzDeserializerIgnoreNames(unittest.TestCase):
 
@@ -203,7 +204,7 @@ class TestNpzDeserializerIgnoreNames(unittest.TestCase):
         self.temp_file_path = path
         with open(path, 'wb') as f:
             numpy.savez(
-                f, **{'x': numpy.asarray(10), 'y': numpy.empty((2, 3))})
+                f, **{'x': numpy.asarray(10), 'yy': numpy.empty((2, 3))})
 
         self.npzfile = numpy.load(path)
         self.deserializer = npz.NpzDeserializer(
@@ -216,9 +217,9 @@ class TestNpzDeserializerIgnoreNames(unittest.TestCase):
             os.remove(self.temp_file_path)
 
     def test_deserialize_ignore_names(self):
-        y = numpy.ones((2, 1), dtype=numpy.float32)
-        ret = self.deserializer('y', y)
-        self.assertIs(ret, y)
+        yy = numpy.ones((2, 1), dtype=numpy.float32)
+        ret = self.deserializer('yy', yy)
+        self.assertIs(ret, yy)
 
 
 class TestNpzDeserializerNonStrictGroupHierachy(unittest.TestCase):
