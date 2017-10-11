@@ -18,6 +18,7 @@ from chainer.utils import type_check
         {'shape': (3, 4), 'y_shape': (3, 8), 'xs_length': 2},
         {'shape': (3), 'y_shape': (6,), 'xs_length': 2},
         {'shape': (), 'y_shape': (2,), 'xs_length': 2},
+        {'shape': (2, 3, 4), 'y_shape': (2, 3, 4), 'xs_length': 1},
         {'shape': (3, 4), 'y_shape': (3, 4), 'xs_length': 1},
         {'shape': (3), 'y_shape': (3,), 'xs_length': 1},
         {'shape': (), 'y_shape': (1,), 'xs_length': 1},
