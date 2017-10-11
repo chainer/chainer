@@ -125,29 +125,39 @@ class TestBinaryHierarchicalSoftmax(unittest.TestCase):
         self.assertTrue((f.paths == g.paths).all())
         self.assertTrue((f.codes == g.codes).all())
 
+    
     def compute_argmax(self, x, gpu):
         if gpu:
             x = cuda.to_cpu(x)
         batchsize = x.shape[0]
         expercted_result = []
         for i in six.moves.range(batchsize):
-            scores = []
-            for t in six.moves.range(self.max_value_tree + 1):
-                begin = self.begins[t]
-                end = self.begins[t + 1]
-                w = self.W[self.paths[begin:end]]
-                wxy = w.dot(x[i]) * self.codes[begin:end]
-                score = -numpy.logaddexp(0.0, -wxy)
-                score = numpy.sum(score)
-                scores.append(score)
+            scores = self.compute_score_manually(x[i], gpu)
             expect = numpy.argmax(scores).astype('i')
+            expect = numpy.array([expect], dtype='i')
             if gpu:
                 expect = cuda.to_gpu(expect)
             expercted_result.append(expect)
         return expercted_result
+    
+
+    def node_score(self, node_index, x, code):
+        return 1 / (numpy.exp( - self.W[node_index].dot(x) * code) + 1)
+   
+    def compute_score_manually(self, x, gpu):
+        # tree = ((0, 1), ((2, 3), 4))
+        scores = numpy.zeros((5, ), dtype='f')
+        scores[0] = self.node_score(0, x, 1) * self.node_score(1, x, 1)
+        scores[1] = self.node_score(0, x, 1) * self.node_score(1, x, -1)
+        scores[2] = self.node_score(0, x, -1) * self.node_score(2, x, 1) * self.node_score(3, x, 1)
+        scores[3] = self.node_score(0, x, -1) * self.node_score(2, x, 1) * self.node_score(3, x, -1)
+        scores[4] = self.node_score(0, x, -1) * self.node_score(2, x, -1)
+        return scores
+        
 
     def check_argmax(self, x, gpu=False):
         # Compute correct argmax word index.
+       
         expercted_result = self.compute_argmax(x, gpu)
 
         x = chainer.Variable(x)
