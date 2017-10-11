@@ -1,5 +1,6 @@
 import contextlib
 import pkg_resources
+import sys
 import unittest
 import warnings
 
@@ -39,12 +40,13 @@ def assert_warns(expected):
         warnings.simplefilter('always')
         yield
 
-    if any(isinstance(m.message, expected) for m in w):
-        return
+    # Python 2 does not raise warnings multiple times from the same stack
+    # frame.
+    if sys.version_info >= (3, 0):
+        if not any(isinstance(m.message, expected) for m in w):
+            try:
+                exc_name = expected.__name__
+            except AttributeError:
+                exc_name = str(expected)
 
-    try:
-        exc_name = expected.__name__
-    except AttributeError:
-        exc_name = str(expected)
-
-    raise AssertionError('%s not triggerred' % exc_name)
+            raise AssertionError('%s not triggerred' % exc_name)

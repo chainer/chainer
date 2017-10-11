@@ -207,7 +207,7 @@ class TestVariable(unittest.TestCase):
 
         y = x * x * x
         y.grad = xp.ones_like(y.data)
-        y.backward()
+        y.backward(enable_double_backprop=True)
         gx = x.grad_var
         x.grad_var = None  # clear grad
         gx.grad = xp.ones_like(x.data)
@@ -222,6 +222,18 @@ class TestVariable(unittest.TestCase):
     @attr.gpu
     def test_double_backprop_gpu(self):
         self.check_double_backprop(True)
+
+    def test_backward_no_grad_required(self):
+        class DummyId(F.Identity):
+
+            def backward(self, a, b):
+                raise Exception('backward should not be called on inputs that '
+                                'do not require grads')
+
+        x = chainer.Variable(self.x)
+        y1, y2 = DummyId().apply((x, x))
+        x.node._requires_grad = False
+        y1.backward()
 
     def test_unchain(self):
         ret = self.create_linear_chain(3, False)
@@ -668,6 +680,46 @@ class TestVariable(unittest.TestCase):
         d = six.moves.cPickle.loads(binary)
         cp.testing.assert_array_equal(x.data, d.data)
         cp.testing.assert_array_equal(x.grad, d.grad)
+
+
+class TestVariableBasic(unittest.TestCase):
+    def test_unhashable(self):
+        a = chainer.Variable(np.ones((2,)))
+        with six.assertRaisesRegex(self, TypeError, '^unhashable type: '):
+            hash(a)
+
+    def test_unequatable(self):
+        a = chainer.Variable(np.ones((2,)))
+        b = chainer.Variable(np.ones((2,)))
+        with self.assertRaises(NotImplementedError):
+            a == b
+        with self.assertRaises(NotImplementedError):
+            a == a
+        with self.assertRaises(NotImplementedError):
+            a != b
+        with self.assertRaises(NotImplementedError):
+            a != a
+
+    def test_uncomparable(self):
+        a = chainer.Variable(np.ones((2,)))
+        b = chainer.Variable(np.ones((2,)))
+        with self.assertRaises(NotImplementedError):
+            a < b
+        with self.assertRaises(NotImplementedError):
+            a <= b
+        with self.assertRaises(NotImplementedError):
+            a > b
+        with self.assertRaises(NotImplementedError):
+            a >= b
+
+    def test_bool_inconvertible(self):
+        a = chainer.Variable(np.ones((2,)))
+        with self.assertRaises(NotImplementedError):
+            if a:
+                pass
+        with self.assertRaises(NotImplementedError):
+            if not a:
+                pass
 
 
 class TestParameter(unittest.TestCase):
@@ -1393,10 +1445,18 @@ class IdentityFunction(chainer.Function):
 
 class TestVariableDoubleBackward(unittest.TestCase):
 
+    def test_default_backward(self):
+        x = chainer.Variable(np.empty(1, np.float32))
+        y = F.identity(x)
+        y.backward()
+        self.assertIsNone(x.grad_var.creator)
+        x.grad_var.backward()
+        self.assertIsNone(y.grad_var.grad_var)
+
     def test_raise_double_backprop(self):
         x = chainer.Variable(np.empty(1, np.float32))
         y = IdentityFunction()(x)
-        y.backward()
+        y.backward(enable_double_backprop=True)
         with self.assertRaises(RuntimeError):
             x.grad_var.backward()
 
@@ -1404,7 +1464,7 @@ class TestVariableDoubleBackward(unittest.TestCase):
         x = chainer.Variable(np.empty(1, np.float32))
         z = F.identity(x)  # new style
         y = IdentityFunction()(z)  # old style
-        y.backward()
+        y.backward(enable_double_backprop=True)
         with self.assertRaises(RuntimeError):
             x.grad_var.backward()
 

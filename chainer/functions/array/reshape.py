@@ -74,7 +74,7 @@ def reshape(x, shape):
         (8,)
         >>> y.data
         array([1, 2, 3, 4, 5, 6, 7, 8])
-        >>> y = F.reshape(x, (4, -1)) # the shape of output is inferred
+        >>> y = F.reshape(x, (4, -1))  # the shape of output is inferred
         >>> y.shape
         (4, 2)
         >>> y.data
@@ -82,11 +82,10 @@ def reshape(x, shape):
                [3, 4],
                [5, 6],
                [7, 8]])
-        >>> y = F.reshape(x, (4, 3)) \
+        >>> y = F.reshape(x, (4, 3))  \
 # the shape of input and output are not consistent
         Traceback (most recent call last):
-         ...
-        chainer.utils.type_check.InvalidType:
+        ...
         Invalid operation is performed in: Reshape (Forward)
         Expect: prod(in_types[0].shape) == prod((4, 3))
         Actual: 8 != 12

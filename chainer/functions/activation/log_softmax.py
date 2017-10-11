@@ -32,7 +32,8 @@ def _log_softmax(x):
             one = numpy.array(1, dtype=oz_dtype).ctypes
             zero = numpy.array(0, dtype=oz_dtype).ctypes
             handle = cudnn.get_handle()
-            x_cube = x.reshape(x.shape[:2] + (-1, 1))
+            x_cube = cuda.cupy.ascontiguousarray(
+                x.reshape(x.shape[:2] + (-1, 1)))
             desc = cudnn.create_tensor_descriptor(x_cube)
             y = xp.empty_like(x)
             libcudnn.softmaxForward(
@@ -89,7 +90,9 @@ class LogSoftmaxGrad(function_node.FunctionNode):
             zero = numpy.array(0, dtype=oz_dtype).ctypes
             handle = cudnn.get_handle()
             gx = xp.empty(self._x_shape, dtype=self._x_dtype)
-            gx_cube = gx.reshape(gx.shape[:2] + (-1, 1))
+            gx_cube = cuda.cupy.ascontiguousarray(
+                gx.reshape(gx.shape[:2] + (-1, 1)))
+            gy = cuda.cupy.ascontiguousarray(gy)
             desc = cudnn.create_tensor_descriptor(gx_cube)
             libcudnn.softmaxBackward(
                 handle, _algorithm, _mode, one.data, desc.value,
