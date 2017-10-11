@@ -51,22 +51,25 @@ built with two models, which are called **Skip-gram** and **CBoW**.
 To explain the models with the figures below, we will use the following
 symbols.
 
-| Symbol           | Definition                                               |
-| ---------------: | :------------------------------------------------------- |
-| $V$              | The size of vocabulary                                   |
-| $D$              | The size of embedding vector                             |
-| ${\bf v}_t$      | A one-hot center word vector                             |
-| $V_{\pm C}$      | A set of $C$ context vectors around ${\bf v}_t$, namely, $\{{\bf v}_{t+c}\}_{c=-C}^C \backslash {\bf v}_t$        |
-| ${\bf l}_H$     | An embedding vector of an input word vector              |
-| ${\bf l}_O$     | An output vector of the network                          |
-| ${\bf W}_H$     | The embedding matrix for inputs                          |
-| ${\bf W}_O$     | The embedding matrix for outputs                         |
+=================   ===============================================================================================================================
+Symbol              Definition                                               
+=================   ===============================================================================================================================
+:math:`V`           The size of vocabulary                                   
+:math:`D`           The size of embedding vector                             
+:math:`\bf v_t`     A one-hot center word vector                             
+:math:`V_{\pm C}`   A set of :math:`C` context vectors around :math:`\bf v_t`, namely, :math:`\bf \{v_{t+c}\}_{c=-C}^C \backslash {\bf v}_t`
+:math:`\bf l_H`     An embedding vector of an input word vector              
+:math:`\bf l_O`     An output vector of the network                          
+:math:`\bf W_H`     The embedding matrix for inputs                          
+:math:`\bf W_O`     The embedding matrix for outputs                         
+=================   ===============================================================================================================================
 
 .. note::
 
-    It is common to use negative sampling or hierarchical softmax for the loss
-    function. But, in this tutorial, we will use the softmax over all words and
-    skip the other variants because of simplifying the explanation.
+    Using **negative sampling** or **hierarchical softmax** for the loss
+    function the loss function is very common, however, in this tutorial,
+    we will use the **softmax over all words** and
+    skip the other variants for the sake of simplicity.
 
 2.1 Skip-gram
 --------------
