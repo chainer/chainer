@@ -47,6 +47,8 @@ def main():
     parser.add_argument('val', help='Path to validation image-label list file')
     parser.add_argument('--arch', '-a', choices=archs.keys(),
                         default='nin', help='Convnet architecture')
+    parser.add_argument('--insize', '-is', default=224, type=int,
+                        help='The size of input images')
     parser.add_argument('--batchsize', '-B', type=int, default=32,
                         help='Learning minibatch size')
     parser.add_argument('--epoch', '-E', type=int, default=10,
@@ -89,7 +91,8 @@ def main():
         print('cuDNN Version:', cudnn_v)
 
     # Initialize the model to train
-    model = archs[args.arch]()
+    model = archs[args.arch](insize=args.insize)
+    #model = archs[args.arch]()
     if args.initmodel:
         print('Load model from', args.initmodel)
         chainer.serializers.load_npz(args.initmodel, model)
@@ -114,11 +117,10 @@ def main():
         val, args.val_batchsize, repeat=False, n_processes=args.loaderjob)
 
     # Set up an optimizer
-#    optimizer = chainer.optimizers.MomentumSGD(lr=0.01, momentum=0.9)
-    optimizer = chainer.optimizers.MomentumSGD(lr=0.16, momentum=0.9)
-#    optimizer = chainer.optimizers.MomentumSGD(lr=0.32, momentum=0.9)
+    optimizer = chainer.optimizers.MomentumSGD(lr=0.01, momentum=0.9)
+    #optimizer = chainer.optimizers.MomentumSGD(lr=0.16, momentum=0.9)
     optimizer.setup(model)
-    optimizer.add_hook(chainer.optimizer.WeightDecay(0.0001))
+    #optimizer.add_hook(chainer.optimizer.WeightDecay(0.0001))
 
     # Set up a trainer
     updater = updaters.MultiprocessParallelUpdater(train_iters, optimizer,
@@ -140,12 +142,12 @@ def main():
     lr_interval = (1 if args.test else 30), 'epoch'
     snapshot_interval = (1 if args.test else 1), 'epoch'
 
-    trainer.extend(extensions.ExponentialShift("lr", 0.1), trigger=lr_interval)
+    #trainer.extend(extensions.ExponentialShift("lr", 0.1), trigger=lr_interval)
     trainer.extend(extensions.Evaluator(val_iter, model, device=args.gpus[0]),
                    trigger=val_interval)
     trainer.extend(extensions.dump_graph('main/loss'))
     trainer.extend(extensions.snapshot(), trigger=snapshot_interval)
-#    trainer.extend(extensions.snapshot(), trigger=val_interval)
+    #trainer.extend(extensions.snapshot(), trigger=val_interval)
     trainer.extend(extensions.snapshot_object(
         model, 'model_iter_{.updater.iteration}'), trigger=val_interval)
     # Be careful to pass the interval directly to LogReport
