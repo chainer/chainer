@@ -21,6 +21,10 @@ class _PoolingND(function.Function):
         if stride is None:
             stride = ksize
 
+        if ndim <= 0:
+            raise ValueError(
+                'pooling operation requires at least one spatial dimension.')
+
         self.ndim = ndim
         self.ksize = conv_nd.as_tuple(ksize, ndim)
         self.stride = conv_nd.as_tuple(stride, ndim)
@@ -33,7 +37,8 @@ class _PoolingND(function.Function):
         type_check.expect(
             in_types.size() == 1,
             in_types[0].dtype.kind == 'f',
-            in_types[0].ndim == 2 + self.ndim
+            in_types[0].ndim == 2 + self.ndim,
+            in_types[0].size > 0,
         )
 
     def forward_gpu(self, x):
