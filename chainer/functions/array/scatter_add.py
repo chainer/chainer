@@ -48,7 +48,14 @@ class ScatterAdd(function_node.FunctionNode):
 
     def backward(self, indexes, grad_outputs):
         gy, = grad_outputs
-        return gy, gy[self.slices]
+
+        ret = []
+        if 0 in indexes:
+            ret.append(gy)
+        if 1 in indexes:
+            ret.append(gy[self.slices])
+
+        return ret
 
 
 def scatter_add(a, slices, b):
