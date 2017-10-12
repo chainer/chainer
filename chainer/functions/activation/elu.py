@@ -76,8 +76,15 @@ class ELUGrad(function_node.FunctionNode):
         x, gy = self.get_retained_inputs()
         gx, = self.get_retained_outputs()
         ggx, = grad_outputs
-        mask = (x.data < 0).astype(x.dtype)
-        return ggx * gx * mask, ggx * gx / gy
+        ggxgx = ggx * gx
+
+        ret = []
+        if 0 in indexes:
+            ret.append(ggxgx * (x.data < 0))
+        if 1 in indexes:
+            ret.append(ggxgx / gy)
+
+        return ret
 
 
 def elu(x, alpha=1.0):
