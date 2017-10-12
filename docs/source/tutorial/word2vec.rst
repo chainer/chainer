@@ -51,18 +51,18 @@ built with two models, which are called **Skip-gram** and **CBoW**.
 To explain the models with the figures below, we will use the following
 symbols.
 
-=================   ===============================================================================================================================
-Symbol              Definition                                               
-=================   ===============================================================================================================================
-:math:`V`           The size of vocabulary                                   
-:math:`D`           The size of embedding vector                             
-:math:`\bf v_t`     A one-hot center word vector                             
-:math:`V_{\pm C}`   A set of :math:`C` context vectors around :math:`\bf v_t`, namely, :math:`\bf \{v_{t+c}\}_{c=-C}^C \backslash {\bf v}_t`
-:math:`\bf l_H`     An embedding vector of an input word vector              
-:math:`\bf l_O`     An output vector of the network                          
-:math:`\bf W_H`     The embedding matrix for inputs                          
-:math:`\bf W_O`     The embedding matrix for outputs                         
-=================   ===============================================================================================================================
+=====================   ===============================================================================================================================
+Symbol                  Definition                                               
+=====================   ===============================================================================================================================
+:math:`|\mathcal{V}|`   The size of vocabulary                                   
+:math:`D`               The size of embedding vector                             
+:math:`\bf v_t`         A one-hot center word vector                             
+:math:`V_{t \pm C}`     A set of :math:`C` context vectors around :math:`\bf v_t`, namely, :math:`\bf \{v_{t+c}\}_{c=-C}^C \backslash {\bf v}_t`
+:math:`\bf l_H`         An embedding vector of an input word vector              
+:math:`\bf l_O`         An output vector of the network                          
+:math:`\bf W_H`         The embedding matrix for inputs                          
+:math:`\bf W_O`         The embedding matrix for outputs                         
+=====================   ===============================================================================================================================
 
 .. note::
 
@@ -74,55 +74,45 @@ Symbol              Definition
 2.1 Skip-gram
 --------------
 
-This model learns to predict Context Words :math:`v_{t+c}` when Center Word
-:math:`v_t` is given. In the model, each row of the embedding
-matrix for input :math:`W_H` becomes a word embedding of each word.
+This model learns to predict context words :math:`V_{t \pm C}` when a center word
+:math:`\bf v_t` is given. In the model, each row of the embedding
+matrix for input :math:`\bf W_H` becomes a word embedding of each word.
 
 .. image:: ../../image/word2vec/skipgram.png
 
-When you input the Center Word :math:`v_t` into the network,
-you can calculate :math:`v_{t+c}^*`.
+When you input a center word :math:`\bf v_t` into the network,
+you can predict one of context words :math:`\hat \bf v_{t+i} \in V_{t \pm C}` as follows.
+
+1. Calculate an embedding vector of the input center word vector: :math:`\bf l_H = \bf W_H \bf v_t`
+2. Calculate an output vector of the embedding vector: :math:`\bf l_O = \bf W_O \bf l_H`
+3. Calculate a probability vector of a context word: :math:`\bf v_{t+i} = \text{softmax}(\bf l_O)`
+
+Each element of the :math:`|\mathcal{V}|`-dimensional vector :math:`\hat \bf v_{t+i}` is a probability
+that a word in the vocabulary turns out to be a context word at position :math:`i`.
+So, the probability :math:`p(\bf v_{t+i}|\bf v_t)` can be estimated by a dot product of the one-hot vector
+:math:`\bf v_{t+i}` which represents the actual word at the position :math:`i` and the output vector
+:math:`\hat \bf v_{t+i}`.
 
 .. math::
-    l_H &= W_H v_t \\
-    l_O &= W_O l_H \\
-    v_{t+c}^* &= \text{softmax}(l_O) \\
-    &= \frac{\exp(l_O)}{\sum_{v=1}^V \exp(l_O[n])}
+    p(\bf v_{t+i}|\bf v_t) = \bf v_{t+i}^T \hat \bf v_{t+i}
 
-Each element of :math:`v_{t+c}^*` is the probability that the :math:`i`-th word 
-:math:`w_i` in the vocabulary
-is considered as Context Words. So, the equation :math:`v_{t+c}^T v_{t+c}^*` calculates the
-probability :math:`p(v_{t+c}|v_t)`.
+The loss function for all the context words :math:`V_{t \pm C}`
+given a center word :math:`\bf v_t` is defined as following:
 
 .. math::
-    p(w_i|v_t) &= v_{t+c}^*[i] \\
-    p(v_{t+c}|v_t) &= v_{t+c}^T v_{t+c}^*
-
-The loss function for the center word and the context words
-:math:`\text{loss}(W_H, W_O|v_{t-C}, ..., v_t, ..., v_{t+C})` is,
-
-.. math::
-    \text{loss}(W_H, W_O|v_{t-C}, ..., v_t, ..., v_{t+C}) &= \sum_{c=\{-C,...,C\}/\{0\}} \log(p(v_{t+c}|v_t)) \\
-    &= \sum_{c=\{-C,...,C\}/\{0\}} \log(v_{t+c}^T v_{t+c}^*)
-
-Let the training dataset be
-:math:`\mathcal{D}=\{v_{t-C}^{(n)}, ..., v_t^{(n)}, ..., v_{t+C}^{(n)}\}_{n=1}^N`,
-the loss functions for dataset :math:`\text{Loss}(W_H, W_O|\mathcal{D})` is,
-
-.. math::
-    \text{Loss}(W_H, W_O|\mathcal{D}) &= \sum_{\mathcal{D}} \text{loss}(W_H, W_O|v_{t-C}, ..., v_t, ..., v_{t+C}) \\
-    &= \sum_{\mathcal{D}} \sum_{c=\{-C,...,C\}/\{0\}} \log(v_{t+c}^T v_{t+c}^*)
+    L(V_{t \pm C} | {\bf v}_t; {\bf W}_H, {\bf W}_O) &= \sum_{V_{t \pm C}} -\log\left(p({\bf v}_{t+i} \mid {\bf v}_t)\right) \\
+    &= \sum_{V_{t \pm C}} -\log({\bf v}_{t+i}^T \hat{\bf v}_{t+i})
 
 2.2 Continuous Bag of Words (CBoW)
 -----------------------------------
 
-This model learns to predict Center Word :math:`v_t` when Context Words
+This model learns to predict center word :math:`v_t` when context words
 :math:`v_{t+c}` is given. In the model, each column of the embedding matrix for output :math:`W_O` becomes a word embedding
 of each word.
 
 .. image:: ../../image/word2vec/cbow.png
 
-When you input the Context Words :math:`v_{t+c}` into the network,
+When you input the context words :math:`v_{t+c}` into the network,
 you can calculate :math:`v_t^*`.
 
 .. math::
@@ -133,7 +123,7 @@ you can calculate :math:`v_t^*`.
 
 Each element of :math:`v_t^*` is the probability that the :math:`i`-th word
 :math:`w_i` in the vocabulary
-is considered as Center Word. So, the equation :math:`v_t^T v_t^*` calculates the
+is considered as center word. So, the equation :math:`v_t^T v_t^*` calculates the
 probability :math:`p(v_t|v_{t+c})`.
 
 .. math::
@@ -174,14 +164,14 @@ In this example, we use the following setups.
 * Center word is "dog".
 * Context word is "animal".
 
-Since there should be more than one Context Word, repeat the following process for each Context Word.
+Since there should be more than one context word, repeat the following process for each context word.
 
 1. The one-hot vector of "dog" is ``[0 0 1 0 0 0 0 0 0 0]`` and you input it as
-   Center Word.
+   center word.
 2. After that, the third row of embedding matrix :math:`W_H`
-   for Center Word is the word embedding of "dog" :math:`L_H`.
+   for center word is the word embedding of "dog" :math:`L_H`.
 3. The output layer :math:`L_O` is the result of multiplying the embedding matrix
-   :math:`W_O` for Context Words by the embedding vector of "dog" :math:`L_H`.
+   :math:`W_O` for context words by the embedding vector of "dog" :math:`L_H`.
 4. In order to limit the value of each element of the output layer, 
    softmax function is applied to the output layer :math:`L_O` to calculate
    :math:`\text{softmax}(L_O)`. Softmax function normalizes scores in the output layer
@@ -237,21 +227,21 @@ Define Network Structures
 
         * The weight matrix ``self.embed.W`` is the embbeding matrix for input :math:`W_H`.
 
-* The function call ``__call__`` takes Center Word's ID ``x`` and Context Word's ID
+* The function call ``__call__`` takes center word's ID ``x`` and context word's ID
   ``contexts``  as arguments, and returns the error calculated by the loss function
   ``self.loss_func``.
 
         * When the function ``__call__`` is called, the shape of ``x`` is
           ``[batch_size,]`` and the shape of ``contexts`` is
           ``[batch_size, n_context]``. The ``batch_size`` means the size
-          of mini-batch, and ``n_context`` means the size of Context Words.
+          of mini-batch, and ``n_context`` means the size of context words.
         * First, we obtain the embedding vectors of ``contexts`` by
-          ``e = self.embed(contexts)``. In the Skip-gram, since each Center Word
-          has only one Context Word, there is no problem to switch Context Word and
-          Center Word. So, in the code, Context Word is used as input for the
+          ``e = self.embed(contexts)``. In the Skip-gram, since each center word
+          has only one context word, there is no problem to switch context word and
+          center word. So, in the code, context word is used as input for the
           network. (This is because it is easy to match the CBoW code.)
-        * By ``F.broadcast_to(x[:, None], (shape[0], shape[1]))``, the Center Word's
-          ID ``x`` is broadcasted to each Context Word.
+        * By ``F.broadcast_to(x[:, None], (shape[0], shape[1]))``, the center word's
+          ID ``x`` is broadcasted to each context word.
         * At the end, the shape of ``x`` is ``[batch_size * n_context,]`` and the
           shape of ``e`` is ``[batch_size * n_context, n_units]``. By
           ``self.loss_func(e, x)``, the error is calculated.
@@ -294,19 +284,19 @@ Define Iterator for Data
           ``window`` is 5, ``self.order`` becomes :class:`numpy.ndarray` where
           numbers from 5 to 94 are shuffled.
 
-* The iterator definition ``__next__`` returns mini batch sized Center Word
-  ``center`` and Context Word ``contexts`` according to the parameters of the
+* The iterator definition ``__next__`` returns mini batch sized center word
+  ``center`` and context word ``contexts`` according to the parameters of the
   constructor.
 
         * The code ``self.order[i:i_end]`` generates the indices ``position``
-          of Center Words, which size is ``batch_size``, from the random-ordered
+          of center words, which size is ``batch_size``, from the random-ordered
           array ``self.order``. The indices ``position`` will be converted to
-          Center Words ``center`` by ``self.dataset.take``.
+          center words ``center`` by ``self.dataset.take``.
         * The code ``np.concatenate([np.arange (-w, 0), np.arange(1, w + 1)])``
           creates the window offset ``offset``.
         * The code ``position[:, None] + offset[None,:]`` generates the indices
-          of Context Words ``pos`` for each Center Word. The indices ``pos`` will
-          be converted to Context Words ``contexts`` by ``self.dataset.take``.
+          of context words ``pos`` for each center word. The indices ``pos`` will
+          be converted to context words ``contexts`` by ``self.dataset.take``.
 
 Main Function
 ^^^^^^^^^^^^^^
