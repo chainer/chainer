@@ -47,6 +47,8 @@ from chainer.functions.array.dstack import dstack  # NOQA
 from chainer.functions.array.expand_dims import expand_dims  # NOQA
 from chainer.functions.array.expand_dims import ExpandDims  # NOQA
 from chainer.functions.array.flatten import flatten  # NOQA
+from chainer.functions.array.flip import flip  # NOQA
+from chainer.functions.array.flip import Flip  # NOQA
 from chainer.functions.array.fliplr import fliplr  # NOQA
 from chainer.functions.array.fliplr import FlipLR  # NOQA
 from chainer.functions.array.flipud import flipud  # NOQA
