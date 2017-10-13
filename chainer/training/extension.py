@@ -27,9 +27,9 @@ class Extension(object):
     specifies them in :meth:`Trainer.extend` method.
 
     Attributes:
-        trigger: Default value of trigger for this extension. It is set to
-            ``(1, 'iteration')`` by default.
-        priority: Default priority of the extension. It is set to
+        ~Extension.trigger: Default value of trigger for this extension. It
+            is set to ``(1, 'iteration')`` by default.
+        ~Extension.priority: Default priority of the extension. It is set to
             ``PRIORITY_READER`` by default.
 
     """

@@ -257,10 +257,14 @@ def slstm(c_prev1, c_prev2, x1, x2):
         >>> h2 = chainer.Variable(np.zeros((1, n_units), 'f'))
         >>> c1 = chainer.Variable(np.zeros((1, n_units), 'f'))
         >>> c2 = chainer.Variable(np.zeros((1, n_units), 'f'))
-        >>> model1 = chainer.Chain(w=L.Linear(n_units, 4 * n_units),
-        ...                        v=L.Linear(n_units, 4 * n_units))
-        >>> model2 = chainer.Chain(w=L.Linear(n_units, 4 * n_units),
-        ...                        v=L.Linear(n_units, 4 * n_units))
+        >>> model1 = chainer.Chain()
+        >>> with model1.init_scope():
+        ...   model1.w = L.Linear(n_units, 4 * n_units)
+        ...   model1.v = L.Linear(n_units, 4 * n_units)
+        >>> model2 = chainer.Chain()
+        >>> with model2.init_scope():
+        ...   model2.w = L.Linear(n_units, 4 * n_units)
+        ...   model2.v = L.Linear(n_units, 4 * n_units)
         >>> x1 = model1.w(c1) + model1.v(h1)
         >>> x2 = model2.w(c2) + model2.v(h2)
         >>> c, h = F.slstm(c1, c2, x1, x2)
