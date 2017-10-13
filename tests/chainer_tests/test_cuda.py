@@ -110,18 +110,30 @@ class TestCuda(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 cuda.to_gpu(x)
 
-    def test_get_array_module_for_numpy(self):
-        self.assertIs(cuda.get_array_module(numpy.array([])), numpy)
-        self.assertIs(
-            cuda.get_array_module(chainer.Variable(numpy.array([]))),
-            numpy)
+    def test_get_array_module_for_numpy_array(self):
+        xp = cuda.get_array_module(numpy.array([]))
+        self.assertIs(xp, numpy)
+        self.assertIsNot(xp, cuda.cupy)
+
+    def test_get_array_module_for_numpy_variable(self):
+        xp = cuda.get_array_module(chainer.Variable(numpy.array([])))
+        self.assertIs(xp, numpy)
+        self.assertIsNot(xp, cuda.cupy)
 
     @attr.gpu
-    def test_get_array_module_for_cupy(self):
-        self.assertIs(cuda.get_array_module(cuda.cupy.array([])), cuda.cupy)
-        self.assertIs(
-            cuda.get_array_module(chainer.Variable(cuda.cupy.array([]))),
-            cuda.cupy)
+    def test_get_array_module_for_cupy_array(self):
+        xp = cuda.get_array_module(cuda.cupy.array([]))
+        self.assertIs(xp, cuda.cupy)
+        self.assertIsNot(xp, numpy)
+
+    @attr.gpu
+    def test_get_array_module_for_cupy_variable(self):
+        xp = cuda.get_array_module(chainer.Variable(cuda.cupy.array([])))
+        self.assertIs(xp, cuda.cupy)
+        self.assertIsNot(xp, numpy)
+
+    def test_cupy_is_not_none(self):
+        self.assertIsNotNone(cuda.cupy)
 
 
 @testing.parameterize(
