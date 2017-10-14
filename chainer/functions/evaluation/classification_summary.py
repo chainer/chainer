@@ -42,6 +42,7 @@ class ClassificationSummary(function.Function):
     def forward(self, inputs):
         xp = cuda.get_array_module(*inputs)
         y, t = inputs
+        t = t.astype('i', copy=False)
 
         if self.label_num is None:
             label_num = xp.amax(t) + 1
