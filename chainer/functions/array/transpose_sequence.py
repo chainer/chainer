@@ -1,7 +1,7 @@
 import numpy
 
 from chainer import cuda
-from chainer import function
+from chainer import function_node
 from chainer.utils import type_check
 
 
@@ -62,9 +62,12 @@ def _transpose(xs, length):
     return outs
 
 
-class TransposeSequence(function.Function):
+class TransposeSequence(function_node.FunctionNode):
 
     """Function that transposes a list of Variables."""
+
+    def __init__(self, length):
+        self._length = length
 
     def check_type_forward(self, xs_type):
         for p, n in zip(xs_type, xs_type[1:]):
@@ -74,14 +77,12 @@ class TransposeSequence(function.Function):
             )
 
     def forward(self, xs):
-        self.retain_inputs(())
-        self._in_length = len(xs)
         if len(xs) == 0:
             return ()
-        return _transpose(xs, len(xs[0]))
+        return _transpose(xs, self._length)
 
-    def backward(self, xs, gs):
-        return _transpose(gs, self._in_length)
+    def backward(self, indexes, grad_outputs):
+        return TransposeSequence(len(self.inputs)).apply(grad_outputs)
 
 
 def transpose_sequence(xs):
@@ -100,7 +101,6 @@ def transpose_sequence(xs):
     Returns:
         tuple or Variable: Transposed list.
     """
-    ys = TransposeSequence()(*xs)
-    if not isinstance(ys, tuple):
-        ys = (ys,)
-    return ys
+    if len(xs) == 0:
+        return ()
+    return TransposeSequence(len(xs[0])).apply(xs)
