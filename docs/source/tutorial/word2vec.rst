@@ -56,12 +56,12 @@ Symbol                  Definition
 =====================   ===============================================================================================================================
 :math:`|\mathcal{V}|`   The size of vocabulary                                   
 :math:`D`               The size of embedding vector                             
-:math:`\bf v_t`         A one-hot center word vector                             
-:math:`V_{t \pm C}`     A set of :math:`C` context vectors around :math:`\bf v_t`, namely, :math:`\bf \{v_{t+c}\}_{c=-C}^C \backslash {\bf v}_t`
-:math:`\bf l_H`         An embedding vector of an input word vector              
-:math:`\bf l_O`         An output vector of the network                          
-:math:`\bf W_H`         The embedding matrix for inputs                          
-:math:`\bf W_O`         The embedding matrix for outputs                         
+:math:`{\bf v}_t`       A one-hot center word vector                             
+:math:`V_{t \pm C}`     A set of :math:`C` context vectors around :math:`{\bf v}_t`, namely, :math:`\{{\bf v}_{t+c}\}_{c=-C}^C \backslash {\bf v}_t`
+:math:`{\bf l}_H`       An embedding vector of an input word vector              
+:math:`{\bf l}_O`       An output vector of the network                          
+:math:`{\bf W}_H`       The embedding matrix for inputs                          
+:math:`{\bf W}_O`       The embedding matrix for outputs                         
 =====================   ===============================================================================================================================
 
 .. note::
@@ -75,112 +75,89 @@ Symbol                  Definition
 --------------
 
 This model learns to predict context words :math:`V_{t \pm C}` when a center word
-:math:`\bf v_t` is given. In the model, each row of the embedding
-matrix for input :math:`\bf W_H` becomes a word embedding of each word.
+:math:`{\bf v}_t` is given. In the model, each row of the embedding
+matrix for input :math:`{\bf W}_H` becomes a word embedding of each word.
 
-.. image:: ../../image/word2vec/skipgram.png
+When you input a center word :math:`{\bf v}_t` into the network,
+you can predict one of context words :math:`\hat {\bf v}_{t+c} \in V_{t \pm C}` as follows.
 
-When you input a center word :math:`\bf v_t` into the network,
-you can predict one of context words :math:`\hat \bf v_{t+i} \in V_{t \pm C}` as follows.
+1. Calculate an embedding vector of the input center word vector: :math:`{\bf l}_H = {\bf W}_H {\bf v}_t`
+2. Calculate an output vector of the embedding vector: :math:`{\bf l}_O = {\bf W}_O {\bf l}_H`
+3. Calculate a probability vector of a context word: :math:`\hat {\bf v}_{t+c} = \text{softmax}({\bf l}_O)`
 
-1. Calculate an embedding vector of the input center word vector: :math:`\bf l_H = \bf W_H \bf v_t`
-2. Calculate an output vector of the embedding vector: :math:`\bf l_O = \bf W_O \bf l_H`
-3. Calculate a probability vector of a context word: :math:`\bf v_{t+i} = \text{softmax}(\bf l_O)`
-
-Each element of the :math:`|\mathcal{V}|`-dimensional vector :math:`\hat \bf v_{t+i}` is a probability
-that a word in the vocabulary turns out to be a context word at position :math:`i`.
-So, the probability :math:`p(\bf v_{t+i}|\bf v_t)` can be estimated by a dot product of the one-hot vector
-:math:`\bf v_{t+i}` which represents the actual word at the position :math:`i` and the output vector
-:math:`\hat \bf v_{t+i}`.
+Each element of the :math:`|\mathcal{V}|`-dimensional vector :math:`\hat {\bf v}_{t+c}` is a probability
+that a word in the vocabulary turns out to be a context word at position :math:`c`.
+So, the probability :math:`p({\bf v}_{t+c}|{\bf v}_t)` can be estimated by a dot product of the one-hot vector
+:math:`{\bf v}_{t+c}` which represents the actual word at the position :math:`c` and the output vector
+:math:`\hat {\bf v}_{t+c}`.
 
 .. math::
-    p(\bf v_{t+i}|\bf v_t) = \bf v_{t+i}^T \hat \bf v_{t+i}
+    p({\bf v}_{t+c}|{\bf v}_t) = {\bf v}_{t+c}^T \hat {\bf v}_{t+c}
 
-The loss function for all the context words :math:`V_{t \pm C}`
-given a center word :math:`\bf v_t` is defined as following:
+The loss function to predict all the context words :math:`V_{t \pm C}`
+given a center word :math:`{\bf v}_t` is defined as following:
 
 .. math::
-    L(V_{t \pm C} | {\bf v}_t; {\bf W}_H, {\bf W}_O) &= \sum_{V_{t \pm C}} -\log\left(p({\bf v}_{t+i} \mid {\bf v}_t)\right) \\
-    &= \sum_{V_{t \pm C}} -\log({\bf v}_{t+i}^T \hat{\bf v}_{t+i})
+    L(V_{t \pm C} | {\bf v}_t; {\bf W}_H, {\bf W}_O) &= \sum_{V_{t \pm C}} -\log\left(p({\bf v}_{t+c} \mid {\bf v}_t)\right) \\
+    &= \sum_{V_{t \pm C}} -\log({\bf v}_{t+c}^T \hat{\bf v}_{t+c})
 
 2.2 Continuous Bag of Words (CBoW)
 -----------------------------------
 
-This model learns to predict center word :math:`v_t` when context words
-:math:`v_{t+c}` is given. In the model, each column of the embedding matrix for output :math:`W_O` becomes a word embedding
-of each word.
+This model learns to predict center word :math:`{\bf v}_t` when context words
+:math:`V_{t \pm C}` is given. When you give a set of context words
+:math:`V_{t \pm C}` to the network, you can estimate the probability of the 
+center word :math:`\hat {\bf v}_t` as follows:
 
-.. image:: ../../image/word2vec/cbow.png
+1. Calculate a mean embedding vector over all context words: :math:`{\bf l}_H = \frac{1}{2C} \sum_{V_{t \pm C}} {\bf W}_H {\bf v}_{t+c}`
+2. Calculate an output vector of the embedding vector: :math:`{\bf l}_O = {\bf W}_O {\bf l}_H`
+3. Calculate a probability vector of a center word: :math:`\hat {\bf v}_t = \text{softmax}({\bf l}_O)`
 
-When you input the context words :math:`v_{t+c}` into the network,
-you can calculate :math:`v_t^*`.
-
-.. math::
-    l_H &= \frac{1}{2C} \sum_{c=\{-C,...,C\}/\{0\}} W_H v_{t+c} \\
-    l_O &= W_O l_H \\
-    v_t^* &= \text{softmax}(l_O) \\
-    &= \frac{\exp(l_O)}{\sum_{v=1}^V \exp(l_O[n])}
-
-Each element of :math:`v_t^*` is the probability that the :math:`i`-th word
-:math:`w_i` in the vocabulary
-is considered as center word. So, the equation :math:`v_t^T v_t^*` calculates the
-probability :math:`p(v_t|v_{t+c})`.
+Each element of the :math:`|\mathcal{V}|`-dimensional vector :math:`\hat {\bf v}_t` is a probability
+that a word in the vocabulary turns out to be a center word.
+So, the probability :math:`p({\bf v}_t|V_{t \pm C})` can be estimated by a dot product of the one-hot vector
+:math:`{\bf v}_t` which represents the actual center word and the output vector
+:math:`\hat {\bf v}_t`.
 
 .. math::
-    p(w_i|v_{t+c}) &= v_t^*[i] \\
-    p(v_t|v_{t-C}, ..., v_{t-1}, v_{t+1}, ..., v_{t+C}) &= v_t^T v_t^*
+    p({\bf v}_t|V_{t \pm C}) = {\bf v}_t^T \hat {\bf v}_t
 
-The loss function for the center word and the context words
-:math:`\text{loss}(W_H, W_O|v_{t-C}, ..., v_t, ..., v_{t+C})` is,
-
-.. math::
-    \text{loss}(W_H, W_O|v_{t-C}, ..., v_t, ..., v_{t+C}) &= \sum_{c=\{-C,...,C\}/\{0\}} \log(p(v_t|v_{t-C}, ..., v_{t-1}, v_{t+1}, ..., v_{t+C})) \\
-    &= \log(v_t^T v_t^*)
-
-Let the training dataset be
-:math:`\mathcal{D}=\{v_{t-C}^{(n)}, ..., v_t^{(n)}, ..., v_{t+C}^{(n)}\}_{n=1}^N`,
-the loss functions for dataset :math:`\text{Loss}(W_H, W_O|\mathcal{D})` is,
+The loss function to predict the center word :math:`{\bf v}_t`
+given context words :math:`V_{t \pm C}` is defined as following:
 
 .. math::
-    \text{Loss}(W_H, W_O|\mathcal{D}) &= \sum_{\mathcal{D}} \text{loss}(W_H, W_O|v_{t-C}, ..., v_t, ..., v_{t+C}) \\
-    &= \sum_{\mathcal{D}} \log(v_t^T v_t^*)
+    L({\bf v}_t | V_{t \pm C}; {\bf W}_H, {\bf W}_O) &= -\log\left(p({\bf v}_t \mid V_{t \pm C})\right) \\
+    &= -\log({\bf v}_t^T \hat {\bf v}_t)
 
 3. Details of Skip-gram
 ========================
 
-In this tutorial, we mainly explain Skip-gram from the following viewpoints.
+In this tutorial, we mainly explain Skip-gram model because
 
 1. It is easier to understand the algorithm than CBoW.
 2. Even if the number of words increases, the accuracy is largely maintained.
    So, it is more scalable.
 
-3.1 Example
-------------
+So, let's think about a concreate example of calculating Skip-gram under this setup:
 
-In this example, we use the following setups.
-
-* The size of vocabulary :math:`N` is 10.
+* The size of vocabulary :math:`|\mathcal{V}|` is 10.
 * The size of embedding vector :math:`D` is 2.
 * Center word is "dog".
 * Context word is "animal".
 
 Since there should be more than one context word, repeat the following process for each context word.
 
-1. The one-hot vector of "dog" is ``[0 0 1 0 0 0 0 0 0 0]`` and you input it as
+1. The one-hot vector of "dog" is ``[0 0 1 0 0 0 0 0 0 0]`` and you input it as the
    center word.
-2. After that, the third row of embedding matrix :math:`W_H`
-   for center word is the word embedding of "dog" :math:`L_H`.
-3. The output layer :math:`L_O` is the result of multiplying the embedding matrix
-   :math:`W_O` for context words by the embedding vector of "dog" :math:`L_H`.
-4. In order to limit the value of each element of the output layer, 
-   softmax function is applied to the output layer :math:`L_O` to calculate
-   :math:`\text{softmax}(L_O)`. Softmax function normalizes scores in the output layer
-   :math:`L_O` into sum 1 to see the scores as probability distribution over all
-   words.
-
-5. Calculate the error between :math:`W_O` and "animal"'s one-hot vector
-   ``[1 0 0 0 0 0 0 0 0 0 0]``, and propagate the error back to the network
-   to update the parameters.
+2. The third row of embedding matrix :math:`{\bf W}_H`
+   is used for the word embedding of "dog" :math:`{\bf l}_H`.
+3. Then, multiply :math:`{\bf W}_O` with :math:`{\bf l}_H` to obtain the output
+   vector :math:`{\bf l}_O`.
+4. Give :math:`{\bf l}_O` to the softmax function to make it a predicted probability
+   vector :math:`\hat {\bf v}_{t+c}` for a context word at the position :math:`c`.
+5. Calculate the error between :math:`\hat {\bf v}_{t+c}` and the one-hot vector
+   of "animal"; ``[1 0 0 0 0 0 0 0 0 0 0]``.
+6. Propagate the error back to the network to update the parameters.
 
 .. image:: ../../image/word2vec/skipgram_detail.png
 
