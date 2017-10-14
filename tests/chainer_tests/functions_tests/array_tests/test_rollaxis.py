@@ -63,8 +63,7 @@ class TestRollaxis(unittest.TestCase):
             y = functions.rollaxis(x, self.axis, self.start)
             return y * y
 
-        gradient_check.check_double_backward(
-            f, x_data, g_data, gg_data, dtype='d')
+        gradient_check.check_double_backward(f, x_data, g_data, gg_data)
 
     def test_double_backward_cpu(self):
         self.check_double_backward(self.x, self.g, self.gg)
