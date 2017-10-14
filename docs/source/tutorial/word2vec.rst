@@ -161,141 +161,101 @@ Since there should be more than one context word, repeat the following process f
 
 .. image:: ../../image/word2vec/skipgram_detail.png
 
-4. Implementation of Skip-gram by Chainer
+4. Implementation of Skip-gram in Chainer
 ==========================================
 
-* There is an example related to Word2vec on the GitHub repository, so we will explain based on that.
+There is an example of Word2vec in the official repository of Chainer,
+so we will explain how to implement Skip-gram based on this:
+`chainer/examples/word2vec <https://github.com/chainer/chainer/tree/master/examples/word2vec>`_
 
-        * `chainer/examples/word2vec <https://github.com/chainer/chainer/tree/master/examples/word2vec>`_
-
-4.1 Implementation Method
+4.1 Preparation
 --------------------------
 
-Import Package
-^^^^^^^^^^^^^^^
+First, let's import necessary packages:
 
 .. literalinclude:: ../../../examples/word2vec/train_word2vec.py
    :language: python
-   :lines: 12-20
+   :lines: 6-20
    :caption: train_word2vec.py
 
-* Basically, if you use chainer, you import in this way.
-* Importing functions as ``F`` and links as ``L`` makes it easy to use.
+4.2 Define a Skip-gram model
+-----------------------------
 
-Define Network Structures
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+Next, let's define a network for skip-gram.
 
 .. literalinclude:: ../../../examples/word2vec/train_word2vec.py
    :language: python
    :pyobject: SkipGram
    :caption: train_word2vec.py
 
-* Next, we define the network structures of skip-gram.
-* When we call the constructor ``__init__``, we pass the vocabulary size
-  ``n_vocab``, the size of the embedding vector ``n_units``, and the loss function
-  ``loss_func`` as arguments.
+.. note::
 
-        * The :class:`~chainer.Parameter` s are initialized in ``self.init_scope()``.
+    * The weight matrix ``self.embed.W`` is the embbeding matrix for input vector
+      ``x``.
+    * The function call ``__call__`` takes the word ID of a center word ``x`` and
+      word IDs of context words contexts as inputs, and outputs the error calculated
+      by the loss function ``F.softmax_cross_entropy``.
+    * Note that the initial shape of ``x`` and contexts are ``(batch_size,)``
+      and ``(batch_size, n_context)``, respectively.
+    * The ``batch_size`` means the size of mini-batch, and ``n_context`` means the
+      number of context words.
+      
+First, we obtain the embedding vectors of contexts by ``e = self.embed(contexts)``.
+Then ``F.broadcast_to(x[:, None], (shape[0], shape[1]))`` performs broadcasting of
+``x`` (its shape is ``(batch_size,)``) to ``(batch_size, n_context)`` by copying the
+same value ``n_context`` time to fill the second axis, and then the broadcasted ``x``
+is reshaped into 1-D vector ``(batchsize * n_context,)`` while ``e`` is reshaped to
+``(batch_size * n_context, n_units)``.
+In Skip-gram model, predicting a context word from the center word is the same as
+predicting the center word from a context word because the center word is always
+a context word when considering the context word as a center word. So, we create
+``batch_size * n_context`` center word predictions by applying ``self.out`` linear
+layer to the embedding vectors of context words. Then, calculate softmax cross
+entropy between the broadcasted center word ID x and the predictions.
 
-                * It is recommended to initialize :class:`~chaier.Parameter` here.
-                * Since we set :class:`~chaier.Parameter` as the attribute of Link,
-                  there are effects such as making IDE easier to follow code.
-                * For details, see :ref:`upgrade-new-param-register`.
+4.3 Prepare dataset and iterator
+---------------------------------
 
-        * The weight matrix ``self.embed.W`` is the embbeding matrix for input :math:`W_H`.
-
-* The function call ``__call__`` takes center word's ID ``x`` and context word's ID
-  ``contexts``  as arguments, and returns the error calculated by the loss function
-  ``self.loss_func``.
-
-        * When the function ``__call__`` is called, the shape of ``x`` is
-          ``[batch_size,]`` and the shape of ``contexts`` is
-          ``[batch_size, n_context]``. The ``batch_size`` means the size
-          of mini-batch, and ``n_context`` means the size of context words.
-        * First, we obtain the embedding vectors of ``contexts`` by
-          ``e = self.embed(contexts)``. In the Skip-gram, since each center word
-          has only one context word, there is no problem to switch context word and
-          center word. So, in the code, context word is used as input for the
-          network. (This is because it is easy to match the CBoW code.)
-        * By ``F.broadcast_to(x[:, None], (shape[0], shape[1]))``, the center word's
-          ID ``x`` is broadcasted to each context word.
-        * At the end, the shape of ``x`` is ``[batch_size * n_context,]`` and the
-          shape of ``e`` is ``[batch_size * n_context, n_units]``. By
-          ``self.loss_func(e, x)``, the error is calculated.
-
-Define Loss Function
-^^^^^^^^^^^^^^^^^^^^^
+Let's retrieve the Penn Tree Bank (PTB) dataset by using Chainer's dataset utility
+``get_ptb_words()`` method.
 
 .. literalinclude:: ../../../examples/word2vec/train_word2vec.py
    :language: python
-   :pyobject: SoftmaxCrossEntropyLoss
-   :caption: train_word2vec.py
+   :start-after: Load the dataset
+   :end-before: counts.update
 
-* Next, we define the loss function. Actually, this code also includes the part of
-  the network structures.
+Then define an iterator to make mini-batches that contain a set of center words with their context words.
+``train`` and ``val`` means training data and validation data. Each data contains
+the list of Document IDs
 
-        * After computing the linear transformation ``self.out(x)``, which is
-          defined by ``L.Linear(n_in, n_out, initialW=0)``, we calculate
-          the error function of cross entropy followed by softmax function with
-          :class:`~chainer.functions.softmax_cross_entropy`.
-        * Here, the linear transformation matrix ``self.out.W`` corresponds to the
-          embedding matrix for output :math:`W_O`, and
-          :class:`~chainer.functions.softmax_cross_entropy` corresponds to the
-          softmax function and the loss function.
-
-Define Iterator for Data
-^^^^^^^^^^^^^^^^^^^^^^^^^
+    .. code-block:: console
+    
+        >>> train
+        array([ 0,  1,  2, ..., 39, 26, 24], dtype=int32)
+        >>> val
+        array([2211,  396, 1129, ...,  108,   27,   24], dtype=int32)
 
 .. literalinclude:: ../../../examples/word2vec/train_word2vec.py
    :language: python
    :pyobject: WindowIterator
    :caption: train_word2vec.py
 
-* The constructor ``__init__`` receives the document dataset ``dataset`` as a list of word IDs,
-  the window size ``window`` and the mini batch size ``batch_size``.
+* In the constructor, we create an array ``self.order`` which denotes shuffled
+  indices of ``[window, window + 1, ..., len(dataset) - window - 1]`` in order to
+  choose a center word randomly from dataset in a mini-batch.
+* The iterator definition ``__next__`` returns ``batch_size`` sets of center word
+  and context words.
+* The code ``self.order[i:i_end]`` returns the indices for a set of center words
+  from the random-ordered array ``self.order``. The center word IDs center at the
+  random indices are retrieved by ``self.dataset.take``.
+* ``np.concatenate([np.arange(-w, 0), np.arange(1, w + 1)])`` creates a set of
+  offsets to retrieve context words from the dataset.
+* The code ``position[:, None] + offset[None, :]`` generates the indices of context
+  words for each center word index in position. The context word IDs context are
+  retrieved by ``self.dataset.take``.
 
-        * In the constructor, we create a array ``self.order`` which is shuffled
-          ``[window, window + 1, ..., len(dataset) - window - 1]`` in order to
-          iterate randomly ordered ``dataset``.
-        * e.g. If the number of words in ``dataset`` is 100 and the window size
-          ``window`` is 5, ``self.order`` becomes :class:`numpy.ndarray` where
-          numbers from 5 to 94 are shuffled.
-
-* The iterator definition ``__next__`` returns mini batch sized center word
-  ``center`` and context word ``contexts`` according to the parameters of the
-  constructor.
-
-        * The code ``self.order[i:i_end]`` generates the indices ``position``
-          of center words, which size is ``batch_size``, from the random-ordered
-          array ``self.order``. The indices ``position`` will be converted to
-          center words ``center`` by ``self.dataset.take``.
-        * The code ``np.concatenate([np.arange (-w, 0), np.arange(1, w + 1)])``
-          creates the window offset ``offset``.
-        * The code ``position[:, None] + offset[None,:]`` generates the indices
-          of context words ``pos`` for each center word. The indices ``pos`` will
-          be converted to context words ``contexts`` by ``self.dataset.take``.
-
-Main Function
-^^^^^^^^^^^^^^
-
-.. literalinclude:: ../../../examples/word2vec/train_word2vec.py
-   :language: python
-   :start-after: Load the dataset
-   :end-before: args.test
-   :caption: train_word2vec.py
-
-* ``train`` and ``val`` means training data and validation data. Each data contains
-  the list of Document IDs
-
-        .. code-block:: console
-        
-            >>> train
-            array([ 0,  1,  2, ..., 39, 26, 24], dtype=int32)
-            >>> val
-            array([2211,  396, 1129, ...,  108,   27,   24], dtype=int32)
-
-* The maximum id in ``train`` will be the vocabulary size ``n_vocab - 1``.
-
+4.4 Prepare model, optimizer, and updater
+------------------------------------------
 
 .. literalinclude:: ../../../examples/word2vec/train_word2vec.py
    :language: python
@@ -303,23 +263,11 @@ Main Function
    :end-before: elif args.model
    :caption: train_word2vec.py
 
-* We create the ``model`` as Skip-gram.
-
-.. literalinclude:: ../../../examples/word2vec/train_word2vec.py
-   :language: python
-   :start-after: args.out_type == 'original'
-   :end-before: else
-   :caption: train_word2vec.py
-
-* We create the loss function ``loss_func`` as ``SoftmaxCrossEntropyLoss``.
-
 .. literalinclude:: ../../../examples/word2vec/train_word2vec.py
    :language: python
    :start-after: Set up an optimizer
    :end-before: Set up an iterator
    :caption: train_word2vec.py
-
-* We create the ``optimizer`` as Adam (Adaptive moment estimation).
 
 .. literalinclude:: ../../../examples/word2vec/train_word2vec.py
    :language: python
@@ -327,21 +275,14 @@ Main Function
    :end-before: Set up a trainer
    :caption: train_word2vec.py
 
-* We create the iterators and updater.
-
 .. literalinclude:: ../../../examples/word2vec/train_word2vec.py
    :language: python
    :start-after: Set up a trainer
    :end-before: Save the word2vec model
    :caption: train_word2vec.py
 
-* We create the trainer and run it.
-
-4.2 Run Example
-----------------
-
-Training the model
-^^^^^^^^^^^^^^^^^^^
+4.5 Start training
+-------------------
 
 .. code-block:: console
 
@@ -380,8 +321,8 @@ Training the model
     19          1397.79     2494.95               
     20          2794.1      3742.66
 
-Search the similar words
-^^^^^^^^^^^^^^^^^^^^^^^^^
+4.5 Search the similar words
+-----------------------------
 
 .. code-block:: console
 
