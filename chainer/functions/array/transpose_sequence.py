@@ -88,8 +88,8 @@ class TransposeSequence(function_node.FunctionNode):
 def transpose_sequence(xs):
     """Transpose a list of Variables.
 
-    This function transposes a list of :class:`~chainer.Variable` s and returns
-    a list of :class:`Variable` s.
+    This function transposes a list of :class:`~chainer.Variable`\\ s and
+    returns a list of :class:`Variable`\\ s.
     For example a user gives ``[(0, 1, 2, 3), (4, 5), (6)]``, the function
     returns ``[(0, 4, 6), (1, 5), (2), (3)]``.
     Note that a given list needs to be sorted by each length of
