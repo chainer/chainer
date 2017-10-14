@@ -1,9 +1,9 @@
 from chainer import cuda
-from chainer import function
+from chainer import function_node
 from chainer.utils import type_check
 
 
-class FlipUD(function.Function):
+class FlipUD(function_node.FunctionNode):
     """Flip array in the up/down direction."""
 
     def check_type_forward(self, in_types):
@@ -19,9 +19,8 @@ class FlipUD(function.Function):
         xp = cuda.get_array_module(*inputs)
         return xp.flipud(inputs[0]),
 
-    def backward(self, inputs, grads):
-        xp = cuda.get_array_module(*grads)
-        return xp.flipud(grads[0]),
+    def backward(self, indexes, grad_outputs):
+        return flipud(grad_outputs[0]),
 
 
 def flipud(a):
@@ -34,4 +33,4 @@ def flipud(a):
         ~chainer.Variable: Output variable.
 
     """
-    return FlipUD()(a)
+    return FlipUD().apply((a,))[0]
