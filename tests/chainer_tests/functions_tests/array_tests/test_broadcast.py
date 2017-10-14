@@ -84,6 +84,7 @@ class TestBroadcast(unittest.TestCase):
     def check_double_backward(self, data, grads, gg):
         if len(data) == 1:
             return
+
         def f(*xs):
             ys = functions.broadcast(*xs)
             return [y * y for y in ys]
