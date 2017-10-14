@@ -72,11 +72,13 @@ def sigmoid_cross_entropy(
     """Computes cross entropy loss for pre-sigmoid activations.
 
     Args:
-        x (Variable): A variable object holding a matrix whose (i, j)-th
-            element indicates the unnormalized log probability of the j-th unit
-            at the i-th example.
-        t (Variable): Variable holding an int32 vector of ground truth labels.
-            If ``t[i] == -1``, corresponding ``x[i]`` is ignored.
+        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): A variable object holding a matrix whose
+            (i, j)-th element indicates the unnormalized log probability of
+            the j-th unit at the i-th example.
+        t (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Variable holding an int32 vector of ground
+            truth labels. If ``t[i] == -1``, corresponding ``x[i]`` is ignored.
             Loss is zero if all ground truth labels are ``-1``.
         normalize (bool): Variable holding a boolean value which
             determines the normalization constant. If true, this function
@@ -99,6 +101,27 @@ def sigmoid_cross_entropy(
     .. note::
 
        This function is differentiable only by ``x``.
+
+    .. admonition:: Example
+
+        >>> x = np.array([[-2.0, 3.0, 0.5], [5.0, 2.0, -0.5]]).astype('f')
+        >>> x
+        array([[-2. ,  3. ,  0.5],
+               [ 5. ,  2. , -0.5]], dtype=float32)
+        >>> t = np.array([[0, -1, 0], [1, 1, -1]]).astype('i')
+        >>> t
+        array([[ 0, -1,  0],
+               [ 1,  1, -1]], dtype=int32)
+        >>> F.sigmoid_cross_entropy(x, t)
+        variable(0.308662086725235)
+        >>> F.sigmoid_cross_entropy(x, t, normalize=False)
+        variable(0.61732417345047)
+        >>> y = F.sigmoid_cross_entropy(x, t, reduce='no')
+        >>> y.shape
+        (2, 3)
+        >>> y.data
+        array([[ 0.126928  ,  0.        ,  0.97407699],
+               [ 0.00671535,  0.126928  , -0.        ]], dtype=float32)
 
     """
     return SigmoidCrossEntropy(normalize, reduce)(x, t)
