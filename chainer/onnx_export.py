@@ -62,11 +62,10 @@ def convert_convolution_2d_function(link, input_names, param_names):
             input_names[i] = str(input_name)
 
     layer_name = _layers[link.__class__.__name__]
-    link_name = os.path.dirname(W.name)
-    out_name = os.path.join(link_name, 'out')
+    out_names = [str(id(out())) for out in link.outputs]
 
     return helper.make_node(
-        layer_name, input_names, [out_name],
+        layer_name, input_names, out_names,
         kernel_shape=link.W.shape,
         strides=(link.sy, link.sx),
         pads=(link.ph, link.pw)
@@ -74,7 +73,6 @@ def convert_convolution_2d_function(link, input_names, param_names):
 
 
 def convert_linear_function(link, input_names, param_names):
-    print('liner input:', input_names)
     W = convert_parameter(link.W, param_names)
     input_names[input_names.index(id(link.W))] = W.name
     if hasattr(link, 'b'):
@@ -86,7 +84,6 @@ def convert_linear_function(link, input_names, param_names):
 
     layer_name = _layers[link.__class__.__name__]
     out_names = [str(id(out())) for out in link.outputs]
-    print('linear output:', out_names)
 
     return helper.make_node(
         layer_name, input_names, out_names,
@@ -104,11 +101,10 @@ def convert_reshape(func, input_names, param_names):
             input_names[i] = str(input_name)
 
     layer_name = _layers[func.__class__.__name__]
-    layer_name_with_id = '{}({})'.format(layer_name, id(func))
-    out_name = os.path.join(layer_name_with_id, 'out')
+    out_names = [str(id(out())) for out in func.outputs]
 
     return helper.make_node(
-        layer_name, input_names, [out_name],
+        layer_name, input_names, out_names,
         shape=func.shape
     )
 
@@ -119,11 +115,10 @@ def convert_average_pooling_2d(func, input_names, param_names):
             input_names[i] = str(input_name)
 
     layer_name = _layers[func.__class__.__name__]
-    layer_name_with_id = '{}({})'.format(layer_name, id(func))
-    out_name = os.path.join(layer_name_with_id, 'out')
+    out_names = [str(id(out())) for out in func.outputs]
 
     return helper.make_node(
-        layer_name, input_names, [out_name],
+        layer_name, input_names, out_names,
         kernel_shape=(func.kh, func.kw),
         pads=(func.ph, func.pw),
         strides=(func.sy, func.sx)
@@ -136,11 +131,10 @@ def convert_max_pooling_2d(func, input_names, param_names):
             input_names[i] = str(input_name)
 
     layer_name = _layers[func.__class__.__name__]
-    layer_name_with_id = '{}({})'.format(layer_name, id(func))
-    out_name = os.path.join(layer_name_with_id, 'out')
+    out_names = [str(id(out())) for out in func.outputs]
 
     return helper.make_node(
-        layer_name, input_names, [out_name],
+        layer_name, input_names, out_names,
         kernel_shape=(func.kh, func.kw),
         pads=(func.ph, func.pw),
         strides=(func.sy, func.sx)
@@ -160,8 +154,8 @@ def convert_batch_normalization(link, input_names, param_names):
 
     layer_name = _layers[link.__class__.__name__]
     layer_name = '{}({})'.format(layer_name, id(link))
-    out_names = [
-        os.path.join(layer_name, 'out'),
+    out_names = [str(id(out())) for out in link.outputs]
+    out_names += [
         os.path.join(layer_name, 'mean'),
         os.path.join(layer_name, 'var'),
         os.path.join(layer_name, 'saved_mean'),
@@ -180,10 +174,8 @@ def convert_relu(func, input_names, param_names):
         if type(input_name) is not str:
             input_names[i] = str(input_name)
 
-    print('relu input:', input_names)
     layer_name = _layers[func.__class__.__name__]
     out_names = [str(id(out())) for out in func.outputs]
-    print('relu out:', out_names)
     return helper.make_node(layer_name, input_names, out_names)
 
 
@@ -193,7 +185,7 @@ def convert_softmax(func, input_names, param_names):
             input_names[i] = str(input_name)
 
     layer_name = _layers[func.__class__.__name__]
-    out_names = [str(id(out().get_variable)) for out in func.outputs]
+    out_names = [str(id(out())) for out in func.outputs]
 
     return helper.make_node(
         layer_name, input_names, out_names,
@@ -207,13 +199,13 @@ def convert_add(func, input_names, param_names):
             input_names[i] = str(input_name)
 
     layer_name = _layers[func.__class__.__name__]
-    layer_name_with_id = '{}({})'.format(layer_name, id(func))
-    out_name = os.path.join(layer_name_with_id, 'out')
+    out_names = [str(id(out())) for out in func.outputs]
 
-    return helper.make_node(layer_name, input_names, [out_name])
+    return helper.make_node(layer_name, input_names, out_names)
 
 
-def export(model, args, filename, name='Graph', producer='Chainer'):
+def export(model, args, filename, export_params=True, name='Graph',
+           producer='Chainer'):
     _check_available()
 
     model.to_cpu()
@@ -312,11 +304,11 @@ def export(model, args, filename, name='Graph', producer='Chainer'):
                         layer_name, 'running_mean')
                     param_names[id(cand.running_var)] = os.path.join(
                         layer_name, 'running_var')
-                    graph.append(
+                    parameters.append(
                         numpy_helper.from_array(
                             cand.running_mean,
                             param_names[id(cand.running_mean)]))
-                    graph.append(
+                    parameters.append(
                         numpy_helper.from_array(
                             cand.running_var,
                             param_names[id(cand.running_var)]))
@@ -349,37 +341,40 @@ def export(model, args, filename, name='Graph', producer='Chainer'):
         output_tensors.append(helper.make_tensor_value_info(
             name, _dtype[output.dtype.name], output.shape))
 
+    if not export_params:
+        parameters = []
     onnx_graph = helper.make_graph(
-        reversed(graph), name, input_tensors, output_tensors, parameters)
+        reversed(graph), name, input_tensors, output_tensors,
+        initializer=parameters)
     model = helper.make_model(
         onnx_graph,
         producer_name='Chainer',
         producer_version=chainer.__version__)
     with open(filename, 'wb') as fp:
         fp.write(model.SerializeToString())
-    # print(model)
 
 
 if __name__ == '__main__':
     import chainer.links as L
     import chainer.functions as F
 
-    # Network definition
-    class MLP(chainer.Chain):
-
-        def __init__(self, n_units, n_out):
-            super(MLP, self).__init__()
-            with self.init_scope():
-                # the size of the inputs to each layer will be inferred
-                self.l1 = L.Linear(None, n_units)  # n_in -> n_units
-                self.l2 = L.Linear(None, n_units)  # n_units -> n_units
-                self.l3 = L.Linear(None, n_out)  # n_units -> n_out
-
-        def __call__(self, x):
-            h1 = F.relu(self.l1(x))
-            h2 = F.relu(self.l2(h1))
-            return self.l3(h2)
-
-    model = MLP(1, 10)
-    args = numpy.random.rand(1, 3, 1, 1).astype(numpy.float32)
+    # # Network definition
+    # class MLP(chainer.Chain):
+    #
+    #     def __init__(self, n_units, n_out):
+    #         super(MLP, self).__init__()
+    #         with self.init_scope():
+    #             # the size of the inputs to each layer will be inferred
+    #             self.l1 = L.Linear(None, n_units)  # n_in -> n_units
+    #             self.l2 = L.Linear(None, n_units)  # n_units -> n_units
+    #             self.l3 = L.Linear(None, n_out)  # n_units -> n_out
+    #
+    #     def __call__(self, x):
+    #         h1 = F.relu(self.l1(x))
+    #         h2 = F.relu(self.l2(h1))
+    #         return self.l3(h2)
+    #
+    # model = MLP(1, 10)
+    model = L.ResNet50Layers()
+    args = numpy.random.rand(1, 3, 224, 224).astype(numpy.float32)
     export(model, args, 'resnet50.onnx')
