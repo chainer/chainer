@@ -108,19 +108,19 @@ def sigmoid_cross_entropy(
         >>> x
         array([[-2. ,  3. ,  0.5],
                [ 5. ,  2. , -0.5]], dtype=float32)
-        >>> t = np.array([[0, -1, 0], [1, 1, -1]]).astype('i')
+        >>> t = np.array([[0, 1, 0], [1, 1, -1]]).astype('i')
         >>> t
-        array([[ 0, -1,  0],
+        array([[ 0,  1,  0],
                [ 1,  1, -1]], dtype=int32)
         >>> F.sigmoid_cross_entropy(x, t)
-        variable(0.308662086725235)
+        variable(0.25664713978767395)
         >>> F.sigmoid_cross_entropy(x, t, normalize=False)
-        variable(0.61732417345047)
+        variable(0.6416178345680237)
         >>> y = F.sigmoid_cross_entropy(x, t, reduce='no')
         >>> y.shape
         (2, 3)
         >>> y.data
-        array([[ 0.126928  ,  0.        ,  0.97407699],
+        array([[ 0.126928  ,  0.04858735,  0.97407699],
                [ 0.00671535,  0.126928  , -0.        ]], dtype=float32)
 
     """
