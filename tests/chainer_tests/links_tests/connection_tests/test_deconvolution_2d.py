@@ -76,7 +76,8 @@ class TestDeconvolution2D(unittest.TestCase):
             params.append(self.link.b)
 
         gradient_check.check_backward(
-            self.link, x_data, y_grad, params, dtype=numpy.float64, eps=1e-2)
+            self.link, x_data, y_grad, params, dtype=numpy.float64,
+            atol=1e-4, rtol=1e-3)
 
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy)
@@ -145,7 +146,8 @@ class TestDeconvolution2DParameterShapePlaceholder(unittest.TestCase):
             params.append(self.link.b)
 
         gradient_check.check_backward(
-            self.link, x_data, y_grad, params, dtype=numpy.float64)
+            self.link, x_data, y_grad, params, dtype=numpy.float64,
+            atol=1e-4, rtol=1e-3)
 
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy)
