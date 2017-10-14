@@ -4,7 +4,6 @@ import os
 import numpy
 
 import chainer
-from chainer import cuda
 from chainer import function_node
 from chainer import variable
 
