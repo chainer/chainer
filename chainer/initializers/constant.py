@@ -39,7 +39,7 @@ class Constant(initializer.Initializer):
     """Initializes array with constant value.
 
     Attributes:
-        fill_value (scalar or numpy.ndarray or cupy.ndarray):
+        ~Constant.fill_value (scalar or numpy.ndarray or cupy.ndarray):
             A constant to be assigned to the initialized array.
             Broadcast is allowed on this assignment.
         ~Constant.dtype: Data type specifier.
@@ -61,7 +61,7 @@ def Zero(dtype=None):
     """Returns initializer that initializes array with the all-zero array.
 
     Args:
-        dtype: Data type specifier.
+        ~Zero.dtype: Data type specifier.
 
     Returns:
         numpy.ndarray or cupy.ndarray: An initialized array.
@@ -74,7 +74,7 @@ def One(dtype=None):
     """Returns initializer that initializes array with the all-one array.
 
     Args:
-        dtype: Data type specifier.
+        ~One.dtype: Data type specifier.
 
     Returns:
         numpy.ndarray or cupy.ndarray: An initialized array.
@@ -87,7 +87,7 @@ def NaN(dtype=None):
     """Returns initializer that initializes array with the all-NaN array.
 
     Args:
-        dtype: Data type specifier.
+        ~NaN.dtype: Data type specifier.
 
     Returns:
         An initializer that initializes an array by NaN.
