@@ -74,6 +74,8 @@ def broadcast(*args):
         True
 
     """
+    if len(args) == 1:
+        return chainer.as_variable(args[0])
     return Broadcast().apply(args)
 
 
