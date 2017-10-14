@@ -282,7 +282,7 @@ def check_backward(func, x_data, y_grad, params=(),
                 raise RuntimeError(
                     'gradients of some arguments are not calculated')
 
-    if len(xs) - no_grads.count(True) + len(params) == 0:
+    if len(xs) - len(no_grads) + len(params) == 0:
         # When there is no float variables, we need not to check gradient
         # values
         return
@@ -302,10 +302,8 @@ def check_backward(func, x_data, y_grad, params=(),
     directions = [xp.random.normal(size=x.shape) for x in variables]
     # Use unit vector
     norm = math.sqrt(sum([xp.square(d).sum() for d in directions]))
-    if norm != 0:
-        # norm could be zero if input arrays are 0-sized.
-        scale = 1. / norm
-        directions = [d * scale for d in directions]
+    scale = 1. / norm
+    directions = [d * scale for d in directions]
 
     delta = xp.array(0., 'd')
 
