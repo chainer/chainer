@@ -18,7 +18,7 @@ In this tutorial, we aim at explaining how to get the word embeddings from
 Penn Tree Bank dataset.
 
 Let's think about what the meaning of word is. Since we are human, we can
-understand that the words "animal" and "dog" are deeply related eaach other.
+understand that the words "animal" and "dog" are deeply related each other.
 But what information will Word2vec use to learn the vectors for words? The words
 "animal" and "dog" should have similar vectors, but the words "food" and "dog"
 should be far from each other. How to know the features of those words automatically?
@@ -57,7 +57,7 @@ Symbol                  Definition
 :math:`|\mathcal{V}|`   The size of vocabulary                                   
 :math:`D`               The size of embedding vector                             
 :math:`{\bf v}_t`       A one-hot center word vector                             
-:math:`V_{t \pm C}`     A set of :math:`C` context vectors around :math:`{\bf v}_t`, namely, :math:`\{{\bf v}_{t+c}\}_{c=-C}^C \backslash {\bf v}_t`
+:math:`V_{t \pm C}`     A set of :math:`2C` context vectors around :math:`{\bf v}_t`, namely, :math:`\{{\bf v}_{t+c}\}_{c=-C}^C \backslash {\bf v}_t`
 :math:`{\bf l}_H`       An embedding vector of an input word vector              
 :math:`{\bf l}_O`       An output vector of the network                          
 :math:`{\bf W}_H`       The embedding matrix for inputs                          
@@ -67,9 +67,9 @@ Symbol                  Definition
 .. note::
 
     Using **negative sampling** or **hierarchical softmax** for the loss
-    function the loss function is very common, however, in this tutorial,
-    we will use the **softmax over all words** and
-    skip the other variants for the sake of simplicity.
+    function is very common, however, in this tutorial, we will use the
+    **softmax over all words** and skip the other variants for the sake
+    of simplicity.
 
 2.1 Skip-gram
 --------------
@@ -79,7 +79,7 @@ This model learns to predict context words :math:`V_{t \pm C}` when a center wor
 matrix for input :math:`{\bf W}_H` becomes a word embedding of each word.
 
 When you input a center word :math:`{\bf v}_t` into the network,
-you can predict one of context words :math:`\hat {\bf v}_{t+c} \in V_{t \pm C}` as follows.
+you can predict one of context words :math:`\hat {\bf v}_{t+c} \in V_{t \pm C}` as follows:
 
 1. Calculate an embedding vector of the input center word vector: :math:`{\bf l}_H = {\bf W}_H {\bf v}_t`
 2. Calculate an output vector of the embedding vector: :math:`{\bf l}_O = {\bf W}_O {\bf l}_H`
@@ -95,7 +95,7 @@ So, the probability :math:`p({\bf v}_{t+c}|{\bf v}_t)` can be estimated by a dot
     p({\bf v}_{t+c}|{\bf v}_t) = {\bf v}_{t+c}^T \hat {\bf v}_{t+c}
 
 The loss function to predict all the context words :math:`V_{t \pm C}`
-given a center word :math:`{\bf v}_t` is defined as following:
+given a center word :math:`{\bf v}_t` is defined as follows:
 
 .. math::
     L(V_{t \pm C} | {\bf v}_t; {\bf W}_H, {\bf W}_O) &= \sum_{V_{t \pm C}} -\log\left(p({\bf v}_{t+c} \mid {\bf v}_t)\right) \\
@@ -123,7 +123,7 @@ So, the probability :math:`p({\bf v}_t|V_{t \pm C})` can be estimated by a dot p
     p({\bf v}_t|V_{t \pm C}) = {\bf v}_t^T \hat {\bf v}_t
 
 The loss function to predict the center word :math:`{\bf v}_t`
-given context words :math:`V_{t \pm C}` is defined as following:
+given context words :math:`V_{t \pm C}` is defined as follows:
 
 .. math::
     L({\bf v}_t | V_{t \pm C}; {\bf W}_H, {\bf W}_O) &= -\log\left(p({\bf v}_t \mid V_{t \pm C})\right) \\
@@ -181,11 +181,16 @@ First, let's import necessary packages:
 4.2 Define a Skip-gram model
 -----------------------------
 
-Next, let's define a network for skip-gram.
+Next, let's define a network for Skip-gram.
 
 .. literalinclude:: ../../../examples/word2vec/train_word2vec.py
    :language: python
    :pyobject: SkipGram
+   :caption: train_word2vec.py
+
+.. literalinclude:: ../../../examples/word2vec/train_word2vec.py
+   :language: python
+   :pyobject: SoftmaxCrossEntropyLoss
    :caption: train_word2vec.py
 
 .. note::
@@ -194,7 +199,7 @@ Next, let's define a network for skip-gram.
       ``x``.
     * The function call ``__call__`` takes the word ID of a center word ``x`` and
       word IDs of context words contexts as inputs, and outputs the error calculated
-      by the loss function ``F.softmax_cross_entropy``.
+      by the loss function ``loss_func`` s.t. ``SoftmaxCrossEntropyLoss``.
     * Note that the initial shape of ``x`` and contexts are ``(batch_size,)``
       and ``(batch_size, n_context)``, respectively.
     * The ``batch_size`` means the size of mini-batch, and ``n_context`` means the
@@ -223,10 +228,11 @@ Let's retrieve the Penn Tree Bank (PTB) dataset by using Chainer's dataset utili
    :language: python
    :start-after: Load the dataset
    :end-before: counts.update
+   :dedent: 4
 
 Then define an iterator to make mini-batches that contain a set of center words with their context words.
 ``train`` and ``val`` means training data and validation data. Each data contains
-the list of Document IDs
+the list of Document IDs:
 
     .. code-block:: console
     
@@ -262,24 +268,28 @@ the list of Document IDs
    :start-after: if args.model
    :end-before: elif args.model
    :caption: train_word2vec.py
+   :dedent: 4
 
 .. literalinclude:: ../../../examples/word2vec/train_word2vec.py
    :language: python
    :start-after: Set up an optimizer
    :end-before: Set up an iterator
    :caption: train_word2vec.py
+   :dedent: 4
 
 .. literalinclude:: ../../../examples/word2vec/train_word2vec.py
    :language: python
    :start-after: Set up an iterator
    :end-before: Set up a trainer
    :caption: train_word2vec.py
+   :dedent: 4
 
 .. literalinclude:: ../../../examples/word2vec/train_word2vec.py
    :language: python
    :start-after: Set up a trainer
    :end-before: Save the word2vec model
    :caption: train_word2vec.py
+   :dedent: 4
 
 4.5 Start training
 -------------------
