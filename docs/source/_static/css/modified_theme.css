@@ -18,6 +18,30 @@
 }
 
 
+/* deprecation box */
+.rst-content .deprecated {
+    background-color: #ffedcc !important;
+    padding: 0 1em 0.1em 1em !important;
+}
+
+.rst-content .deprecated .versionmodified {
+    /* title text */
+    display: block !important;
+    background-color: #f0b37e !important;
+    color: #ffffff !important;
+    font-weight: bold !important;
+
+    padding: 0.1em 1em 0.1em 1em !important;
+    margin: 0 -1em 0.5em -1em !important;
+}
+
+
+/* Avoid horizontal scroll of tables */
+.rst-content table.docutils td {
+    white-space: normal;
+}
+
+
 /* code style */
 .rst-content table.longtable.docutils code {
     font-size: 100% !important;

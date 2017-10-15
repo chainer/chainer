@@ -9,7 +9,6 @@ import chainer.functions as F
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
 
 
 @testing.parameterize(*(testing.product({
@@ -48,11 +47,10 @@ class TestDilatedConvolution2DFunction(unittest.TestCase):
             self.gy = numpy.random.uniform(
                 -1, 1, (2, 2, 2, 2)).astype(self.x_dtype)
         self.check_forward_options = {}
-        self.check_backward_options = {'dtype': numpy.float64}
+        self.check_backward_options = {'atol': 1e-4, 'rtol': 1e-3}
         if self.x_dtype == numpy.float16 or self.W_dtype == numpy.float16:
             self.check_forward_options = {'atol': 5e-4, 'rtol': 5e-3}
-            self.check_backward_options = {
-                'dtype': numpy.float64, 'atol': 5e-4, 'rtol': 5e-3}
+            self.check_backward_options = {'atol': 5e-3, 'rtol': 5e-2}
 
     @attr.gpu
     def test_forward_consistency(self, nobias=False):
@@ -110,37 +108,32 @@ class TestDilatedConvolution2DFunction(unittest.TestCase):
 
         with chainer.using_config('use_cudnn', self.use_cudnn):
             gradient_check.check_backward(
-                f, args, y_grad, **self.check_backward_options)
+                f, args, y_grad, dtype=numpy.float64, 
+                **self.check_backward_options)
 
-    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.x, self.W, self.b, self.gy)
 
-    @condition.retry(3)
     def test_backward_cpu_nobias(self):
         self.check_backward(self.x, self.W, None, self.gy)
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.W),
                             cuda.to_gpu(self.b), cuda.to_gpu(self.gy))
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu_nobias(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.W),
                             None, cuda.to_gpu(self.gy))
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu_im2col(self):
         self.use_cudnn = 'never'
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.W),
                             cuda.to_gpu(self.b), cuda.to_gpu(self.gy))
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu_im2col_nobias(self):
         self.use_cudnn = 'never'
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.W),
