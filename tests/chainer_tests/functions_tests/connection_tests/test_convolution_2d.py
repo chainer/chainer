@@ -42,7 +42,7 @@ class TestConvolution2DFunction(unittest.TestCase):
         out_channels = 2
         kh, kw = (3, 3)
         self.stride = 2
-        self.pad = (int(kh/2)*self.dilate, int(kw/2)*self.dilate)
+        self.pad = (int(kh / 2) * self.dilate, int(kw / 2) * self.dilate)
         self.use_cudnn = 'always'
         self.W = numpy.random.normal(
             0, numpy.sqrt(1. / (kh * kw * in_channels)),
@@ -276,7 +276,7 @@ class TestConvolution2DCudnnCall(unittest.TestCase):
         out_channels = 2
         kh, kw = (3, 3)
         self.stride = 2
-        self.pad = (int(kh/2)*self.dilate, int(kw/2)*self.dilate)
+        self.pad = (int(kh / 2) * self.dilate, int(kw / 2) * self.dilate)
         self.x = cuda.cupy.random.uniform(
             -1, 1, (batches, in_channels, 4, 3)).astype(self.dtype)
         self.W = cuda.cupy.random.normal(
