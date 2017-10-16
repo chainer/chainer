@@ -119,13 +119,9 @@ class Convolution2DFunction(function_node.FunctionNode):
         assert out_w > 0, 'Width in the output should be positive.'
 
         y = cuda.cupy.empty((n, out_c, out_h, out_w), dtype=x.dtype)
-        self._use_cudnn = False
         if (not self.cover_all and chainer.should_use_cudnn('>=auto') and
-                x.dtype == W.dtype):
-            self._use_cudnn = True
-        if (self.dy > 1 or self.dx > 1) and _cudnn_version < 6000:
-            self._use_cudnn = False
-        if self._use_cudnn:
+                x.dtype == W.dtype and
+                ((self.dy == 1 and self.dx == 1) or _cudnn_version >= 6000)):
             x = cuda.cupy.ascontiguousarray(x)
             W = cuda.cupy.ascontiguousarray(W)
             if b is not None:

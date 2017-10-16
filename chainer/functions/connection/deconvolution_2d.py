@@ -13,6 +13,7 @@ from chainer.utils import type_check
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
     libcudnn = cuda.cudnn.cudnn
+    _cudnn_version = libcudnn.getVersion()
     _fwd_pref = libcudnn.CUDNN_CONVOLUTION_FWD_SPECIFY_WORKSPACE_LIMIT
     _bwd_filter_pref = \
         libcudnn.CUDNN_CONVOLUTION_BWD_FILTER_SPECIFY_WORKSPACE_LIMIT
@@ -159,7 +160,8 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         self._set_cover_all(x, W)
 
         if (not self.cover_all and chainer.should_use_cudnn('>=auto') and
-                x.dtype == W.dtype):
+                x.dtype == W.dtype and
+                ((self.dy == 1 and self.dx == 1) or _cudnn_version >= 6000)):
             x = cuda.cupy.ascontiguousarray(x)
             W = cuda.cupy.ascontiguousarray(W)
             if b is not None:

@@ -108,7 +108,7 @@ class TestDilatedConvolution2DFunction(unittest.TestCase):
 
         with chainer.using_config('use_cudnn', self.use_cudnn):
             gradient_check.check_backward(
-                f, args, y_grad, dtype=numpy.float64, 
+                f, args, y_grad, dtype=numpy.float64,
                 **self.check_backward_options)
 
     def test_backward_cpu(self):
