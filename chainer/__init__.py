@@ -88,6 +88,7 @@ def get_function_hooks():
 
 global_config.debug = bool(int(os.environ.get('CHAINER_DEBUG', '0')))
 global_config.cudnn_deterministic = False
+global_config.autotuner = False
 global_config.enable_backprop = True
 global_config.keep_graph_on_report = bool(int(
     os.environ.get('CHAINER_KEEP_GRAPH_ON_REPORT', '0')))

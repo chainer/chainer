@@ -140,10 +140,11 @@ class Convolution2DFunction(function_node.FunctionNode):
 
             workspace_size = cuda.get_max_workspace_size()
             workspace = cuda.cupy.empty((workspace_size,), dtype='b')
-            if chainer.global_config.autotuner:
-                algo = libcudnn.findConvolutionForwardAlgorithm(
+            if chainer.configuration.global_config.autotuner:
+                nAlgo = 10
+                algo, _ = libcudnn.findConvolutionForwardAlgorithm(
                     handle, x_desc.value, filter_desc.value,
-                    conv_desc.value, y_desc.value, _fwd_pref, workspace_size)
+                    conv_desc.value, y_desc.value, nAlgo)
             else:
                 algo = libcudnn.getConvolutionForwardAlgorithm(
                     handle, x_desc.value, filter_desc.value,
