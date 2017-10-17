@@ -1,12 +1,13 @@
 import numpy
 
 from chainer import cuda
-from chainer import function
+from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
+import chainer.functions
 
 
-class Sin(function.Function):
+class Sin(function_node.FunctionNode):
 
     @property
     def label(self):
@@ -17,27 +18,48 @@ class Sin(function.Function):
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward(self, x):
+        self.retain_inputs((0,))
         xp = cuda.get_array_module(*x)
         return utils.force_array(xp.sin(x[0])),
 
-    def backward_cpu(self, x, gy):
-        gx = utils.force_array(numpy.cos(x[0]))
-        gx *= gy[0]
+    def backward(self, indexes, grad_outputs):
+        x, = self.get_retained_inputs()
+        return SinGrad().apply((x, grad_outputs[0]))
+
+
+class SinGrad(function_node.FunctionNode):
+
+    def forward_cpu(self, inputs):
+        self.retain_inputs((0, 1))
+        x, gy = inputs
+        gx = utils.force_array(numpy.cos(x))
+        gx *= gy
         return gx,
 
-    def backward_gpu(self, x, gy):
+    def forward_gpu(self, inputs):
+        self.retain_inputs((0, 1))
+        x, gy = inputs
         gx = cuda.elementwise(
             'T x, T gy', 'T gx', 'gx = cos(x) * gy', 'sin_bwd'
-        )(x[0], gy[0])
+        )(x, gy)
         return gx,
+
+    def backward(self, indexes, grad_outputs):
+        x, gy = self.get_retained_inputs()
+        ret = []
+        if 0 in indexes:
+            ret.append(- sin(x) * gy * grad_outputs[0])
+        if 1 in indexes:
+            ret.append(cos(x) * grad_outputs[0])
+        return ret
 
 
 def sin(x):
     """Elementwise sin function."""
-    return Sin()(x)
+    return Sin().apply((x,))[0]
 
 
-class Cos(function.Function):
+class Cos(function_node.FunctionNode):
 
     @property
     def label(self):
@@ -48,28 +70,49 @@ class Cos(function.Function):
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward(self, x):
+        self.retain_inputs((0,))
         xp = cuda.get_array_module(*x)
         return utils.force_array(xp.cos(x[0])),
 
-    def backward_cpu(self, x, gy):
-        gx = utils.force_array(numpy.sin(x[0]))
+    def backward(self, indexes, grad_outputs):
+        x, = self.get_retained_inputs()
+        return CosGrad().apply((x, grad_outputs[0]))
+
+
+class CosGrad(function_node.FunctionNode):
+
+    def forward_cpu(self, inputs):
+        self.retain_inputs((0, 1))
+        x, gy = inputs
+        gx = utils.force_array(numpy.sin(x))
         numpy.negative(gx, out=gx)
-        gx *= gy[0]
+        gx *= gy
         return gx,
 
-    def backward_gpu(self, x, gy):
+    def forward_gpu(self, inputs):
+        self.retain_inputs((0, 1))
+        x, gy = inputs
         gx = cuda.elementwise(
             'T x, T gy', 'T gx', 'gx = -sin(x) * gy', 'cos_bwd'
-        )(x[0], gy[0])
+        )(x, gy)
         return gx,
+
+    def backward(self, indexes, grad_outputs):
+        x, gy = self.get_retained_inputs()
+        ret = []
+        if 0 in indexes:
+            ret.append(- cos(x) * gy * grad_outputs[0])
+        if 1 in indexes:
+            ret.append(- sin(x) * grad_outputs[0])
+        return ret
 
 
 def cos(x):
     """Elementwise cos function."""
-    return Cos()(x)
+    return Cos().apply((x,))[0]
 
 
-class Tan(function.Function):
+class Tan(function_node.FunctionNode):
 
     @property
     def label(self):
@@ -80,24 +123,21 @@ class Tan(function.Function):
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward(self, x):
+        self.retain_inputs((0,))
         xp = cuda.get_array_module(*x)
         return utils.force_array(xp.tan(x[0])),
 
-    def backward(self, x, gy):
-        xp = cuda.get_array_module(*x)
-        gx = utils.force_array(xp.cos(x[0]))
-        xp.square(gx, out=gx)
-        xp.reciprocal(gx, out=gx)
-        gx *= gy[0]
-        return gx,
+    def backward(self, indexes, grad_outputs):
+        x, = self.get_retained_inputs()
+        return grad_outputs[0] / chainer.functions.square(cos(x)),
 
 
 def tan(x):
     """Elementwise tan function."""
-    return Tan()(x)
+    return Tan().apply((x,))[0]
 
 
-class Arcsin(function.Function):
+class Arcsin(function_node.FunctionNode):
 
     @property
     def label(self):
@@ -108,25 +148,46 @@ class Arcsin(function.Function):
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward(self, x):
+        self.retain_inputs((0,))
         xp = cuda.get_array_module(*x)
         return utils.force_array(xp.arcsin(x[0])),
 
-    def backward_cpu(self, x, gy):
-        gx = utils.force_array(numpy.square(x[0]))
+    def backward(self, indexes, grad_outputs):
+        x = self.get_retained_inputs()
+        return ArcsinGrad().apply((x[0], grad_outputs[0]))
+
+
+class ArcsinGrad(function_node.FunctionNode):
+
+    def forward_cpu(self, inputs):
+        self.retain_inputs((0, 1))
+        x, gy = inputs
+        gx = utils.force_array(numpy.square(x))
         numpy.negative(gx, out=gx)
         gx += 1
         numpy.sqrt(gx, out=gx)
         numpy.reciprocal(gx, out=gx)
-        gx *= gy[0]
+        gx *= gy
         return gx,
 
-    def backward_gpu(self, x, gy):
+    def forward_gpu(self, inputs):
+        self.retain_inputs((0, 1))
+        x, gy = inputs
         gx = cuda.elementwise(
             'T x, T gy', 'T gx',
             'gx = rsqrt((T)1.0 - x * x) * gy',
             'arcsin_bwd'
-        )(x[0], gy[0])
+        )(x, gy)
         return gx,
+
+    def backward(self, indexes, grad_outputs):
+        x, gy = self.get_retained_inputs()
+        ret = []
+        if 0 in indexes:
+            ret.append(grad_outputs[0] * gy * x / ((1 - x ** 2) ** 1.5))
+        if 1 in indexes:
+            ret.append(ArcsinGrad().apply((x, grad_outputs[0]))[0])
+        return ret
 
 
 def arcsin(x):
@@ -141,10 +202,10 @@ def arcsin(x):
     Returns:
         ~chainer.Variable: Output variable.
     """
-    return Arcsin()(x)
+    return Arcsin().apply((x,))[0]
 
 
-class Arccos(function.Function):
+class Arccos(function_node.FunctionNode):
 
     @property
     def label(self):
@@ -155,26 +216,47 @@ class Arccos(function.Function):
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward(self, x):
+        self.retain_inputs((0,))
         xp = cuda.get_array_module(*x)
         return utils.force_array(xp.arccos(x[0])),
 
-    def backward_cpu(self, x, gy):
-        gx = utils.force_array(numpy.square(x[0]))
+    def backward(self, indexes, grad_outputs):
+        x = self.get_retained_inputs()
+        return ArccosGrad().apply((x[0], grad_outputs[0]))
+
+
+class ArccosGrad(function_node.FunctionNode):
+
+    def forward_cpu(self, inputs):
+        self.retain_inputs((0, 1))
+        x, gy = inputs
+        gx = utils.force_array(numpy.square(x))
         numpy.negative(gx, out=gx)
         gx += 1
         numpy.sqrt(gx, out=gx)
         numpy.reciprocal(gx, out=gx)
         numpy.negative(gx, out=gx)
-        gx *= gy[0]
+        gx *= gy
         return gx,
 
-    def backward_gpu(self, x, gy):
+    def forward_gpu(self, inputs):
+        self.retain_inputs((0, 1))
+        x, gy = inputs
         gx = cuda.elementwise(
             'T x, T gy', 'T gx',
             'gx = -rsqrt((T)1.0 - x * x) * gy',
             'arccos_bwd'
-        )(x[0], gy[0])
+        )(x, gy)
         return gx,
+
+    def backward(self, indexes, grad_outputs):
+        x, gy = self.get_retained_inputs()
+        ret = []
+        if 0 in indexes:
+            ret.append(- grad_outputs[0] * (gy * x) / ((1 - x ** 2) ** 1.5))
+        if 1 in indexes:
+            ret.append(ArccosGrad().apply((x, grad_outputs[0]))[0])
+        return ret
 
 
 def arccos(x):
@@ -189,10 +271,10 @@ def arccos(x):
     Returns:
         ~chainer.Variable: Output variable.
     """
-    return Arccos()(x)
+    return Arccos().apply((x,))[0]
 
 
-class Arctan(function.Function):
+class Arctan(function_node.FunctionNode):
 
     @property
     def label(self):
@@ -203,23 +285,47 @@ class Arctan(function.Function):
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward(self, x):
+        self.retain_inputs((0,))
         xp = cuda.get_array_module(*x)
         return utils.force_array(xp.arctan(x[0])),
 
-    def backward_cpu(self, x, gy):
-        gx = utils.force_array(numpy.square(x[0]))
+    def backward(self, indexes, grad_outputs):
+        x = self.get_retained_inputs()
+        return ArctanGrad().apply((x[0], grad_outputs[0]))
+
+
+class ArctanGrad(function_node.FunctionNode):
+
+    def forward_cpu(self, inputs):
+        self.retain_inputs((0, 1))
+        x, gy = inputs
+        gx = utils.force_array(numpy.square(x))
         gx += 1
         numpy.reciprocal(gx, out=gx)
-        gx *= gy[0]
+        gx *= gy
         return gx,
 
-    def backward_gpu(self, x, gy):
+    def forward_gpu(self, inputs):
+        self.retain_inputs((0, 1))
+        x, gy = inputs
         gx = cuda.elementwise(
             'T x, T gy', 'T gx',
             'gx = (T)1.0 / ((T)1.0 + x * x) * gy',
             'arctan_bwd'
-        )(x[0], gy[0])
+        )(x, gy)
         return gx,
+
+    def backward(self, indexes, grad_outputs):
+        x, gy = self.get_retained_inputs()
+        ret = []
+        x_sq = chainer.functions.square(x)
+        if 0 in indexes:
+            ret.append(
+                -2 * gy * x * grad_outputs[0] /
+                (chainer.functions.square(x_sq) + 2 * x_sq + 1))
+        if 1 in indexes:
+            ret.append(grad_outputs[0] / (x_sq + 1))
+        return ret
 
 
 def arctan(x):
@@ -234,10 +340,10 @@ def arctan(x):
     Returns:
         ~chainer.Variable: Output variable.
     """
-    return Arctan()(x)
+    return Arctan().apply((x,))[0]
 
 
-class Arctan2(function.Function):
+class Arctan2(function_node.FunctionNode):
 
     @property
     def label(self):
@@ -248,18 +354,30 @@ class Arctan2(function.Function):
         type_check.expect(in_types[0].dtype.kind == 'f')
         type_check.expect(in_types[1].dtype.kind == 'f')
 
-    def forward(self, x):
-        xp = cuda.get_array_module(*x)
-        return utils.force_array(xp.arctan2(x[0], x[1])),
+    def forward(self, inputs):
+        self.retain_inputs((0, 1))
+        xp = cuda.get_array_module(*inputs)
+        x1, x2 = inputs
+        return utils.force_array(xp.arctan2(x1, x2)),
 
-    def backward_cpu(self, x, gy):
-        x1, x2 = x
+    def backward(self, indexes, grad_outputs):
+        x1, x2 = self.get_retained_inputs()
+        return Arctan2Grad().apply((x1, x2, grad_outputs[0]))
+
+
+class Arctan2Grad(function_node.FunctionNode):
+
+    def forward_cpu(self, inputs):
+        self.retain_inputs((0, 1, 2))
+        x1, x2, gy = inputs
         sqnorm = x1 ** 2 + x2 ** 2
-        gx1 = utils.force_array(x2 / sqnorm * gy[0])
-        gx2 = utils.force_array(-x1 / sqnorm * gy[0])
+        gx1 = utils.force_array(x2 / sqnorm * gy)
+        gx2 = utils.force_array(-x1 / sqnorm * gy)
         return gx1, gx2
 
-    def backward_gpu(self, x, gy):
+    def forward_gpu(self, inputs):
+        self.retain_inputs((0, 1, 2))
+        x1, x2, gy = inputs
         gx1, gx2 = cuda.elementwise(
             'T x1, T x2, T gy',
             'T gx1, T gx2',
@@ -267,8 +385,26 @@ class Arctan2(function.Function):
              'gx1 = x2 / sqnorm * gy;'
              'gx2 = -x1 / sqnorm * gy;'),
             'arctan2_bwd'
-        )(x[0], x[1], gy[0])
+        )(x1, x2, gy)
         return gx1, gx2
+
+    def backward(self, indexes, grad_outputs):
+        x1, x2, gy = self.get_retained_inputs()
+        g1, g2 = grad_outputs
+        x1_sq = x1 ** 2
+        x2_sq = x2 ** 2
+        sqnorm = x1_sq + x2_sq
+
+        ret = []
+        if 0 in indexes:
+            ret.append(
+                (- g1 * 2 * x1 * x2 + g2 * (x1_sq - x2_sq)) * gy / sqnorm ** 2)
+        if 1 in indexes:
+            ret.append(
+                (g1 * (x1_sq - x2_sq) + g2 * (2 * x1 * x2)) * gy / sqnorm ** 2)
+        if 2 in indexes:
+            ret.append((g1 * x2 - g2 * x1) / sqnorm)
+        return ret
 
 
 def arctan2(x1, x2):
@@ -285,4 +421,4 @@ def arctan2(x1, x2):
     Returns:
         ~chainer.Variable: Angles in radians, in the range [-pi, pi].
     """
-    return Arctan2()(x1, x2)
+    return Arctan2().apply((x1, x2))[0]
