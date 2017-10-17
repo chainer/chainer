@@ -14,7 +14,7 @@ from chainer import testing
 from chainer.testing import attr
 from chainer.testing import condition
 from chainer.utils import conv
-import pooling_nd_helper
+from chainer_tests.functions_tests.pooling_tests import pooling_nd_helper
 
 
 @testing.parameterize(*testing.product({
@@ -172,7 +172,7 @@ class TestAveragePoolingND(unittest.TestCase):
         with chainer.using_config('use_cudnn', use_cudnn):
             func_2d = functions.AveragePooling2D(ksize, stride=stride, pad=pad,
                                                  cover_all=False)
-        y_2d = func_2d(x_2d)
+        y_2d = func_2d.apply((x_2d,))[0]
         y_2d.grad = gy_data
         y_2d.backward()
 

@@ -176,6 +176,15 @@ class ConvolutionND(function.Function):
         out_axes = (0,) + tuple(moves.range(2, ndim + 2))
         # (n, _, _, ..., _, out_1, out_2, ..., out_N)
         col_axes = (0,) + tuple(moves.range(ndim + 2, ndim * 2 + 2))
+
+        # NumPy raises an error when the array is not contiguous.
+        # See: https://github.com/chainer/chainer/issues/2744
+        # TODO(niboshi): Remove this code when NumPy is fixed.
+        if (xp is numpy and
+                not (gy.flags.c_contiguous or gy.flags.f_contiguous) and
+                1 in gy.shape):
+            gy = numpy.ascontiguousarray(gy)
+
         gW = xp.tensordot(gy, self.col, (out_axes, col_axes)).astype(
             W.dtype, copy=False)
 
@@ -302,7 +311,7 @@ def convolution_nd(x, W, b=None, stride=1, pad=0, cover_all=False):
 
     .. math::
 
-       l_n = (d_n + 2p_n - k_n) / s_n + 1 \ \ (n = 1, ..., N)
+       l_n = (d_n + 2p_n - k_n) / s_n + 1 \\ \\ (n = 1, ..., N)
 
     If ``cover_all`` option is ``True``, the filter will cover the all
     spatial locations. So, if the last stride of filter does not cover the
@@ -312,7 +321,7 @@ def convolution_nd(x, W, b=None, stride=1, pad=0, cover_all=False):
 
     .. math::
 
-       l_n = (d_n + 2p_n - k_n + s_n - 1) / s_n + 1 \ \ (n = 1, ..., N)
+       l_n = (d_n + 2p_n - k_n + s_n - 1) / s_n + 1 \\ \\ (n = 1, ..., N)
 
     The N-dimensional convolution function is defined as follows.
 

@@ -15,8 +15,13 @@
 import inspect
 import os
 import pkg_resources
+import re
 import six
 import sys
+
+
+sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
+import _docstring_check
 
 
 __version__ = pkg_resources.get_distribution('chainer').version
@@ -204,7 +209,7 @@ if on_rtd:
 #html_split_index = False
 
 # If true, links to the reST sources are added to the pages.
-#html_show_sourcelink = True
+html_show_sourcelink = False
 
 # If true, "Created using Sphinx" is shown in the HTML footer. Default is True.
 #html_show_sphinx = True
@@ -343,6 +348,14 @@ spelling_lang = 'en_US'
 spelling_word_list_filename = 'spelling_wordlist.txt'
 
 
+def setup(app):
+    app.connect('autodoc-process-docstring', _autodoc_process_docstring)
+
+
+def _autodoc_process_docstring(app, what, name, obj, options, lines):
+    _docstring_check.check(app, what, name, obj, options, lines)
+
+
 def _import_object_from_name(module_name, fullname):
     obj = sys.modules.get(module_name)
     if obj is None:
@@ -388,6 +401,71 @@ def _get_source_relative_path(source_abs_path):
     return os.path.relpath(source_abs_path, _find_source_root(source_abs_path))
 
 
+def _is_docstring_autosummary_compliant(docstring):
+    doc = docstring.split('\n')
+
+    # Extract until the first blank line if any.
+    try:
+        doc = doc[:doc.index('')]
+    except ValueError:
+        pass
+
+    # Taken from https://github.com/sphinx-doc/sphinx/blob/1.6.3/sphinx/ext/autosummary/__init__.py#L341
+    m = re.search(r'^([A-Z].*?\.)(?:\s|$)', ' '.join(doc).strip())
+    if m:
+        summary = m.group(1).strip()
+    else:
+        summary = doc[0].strip()
+
+    return summary == ' '.join(doc)
+
+
+def _check_object_validity(obj):
+    # Check whether the docstring is compliant with autosummary's restriction.
+    # Autosummary extracts the "first sentence", which ends at the first period
+    # followed by a whitespace or an EOL. This scheme incorrectly treats
+    # abbreviation such as "a.k.a. SOMETHING" as the end of sentence, which
+    # leads to a truncated summary line. We detect such non-compliant docstring
+    # here.
+    # TODO(niboshi):
+    #   It's definitely a wrong place to check it. It should be checked at
+    #   autosummary template, for example.
+    try:
+        doc = obj.__doc__
+    except AttributeError:
+        doc = None
+
+    if doc is not None:
+        if not _is_docstring_autosummary_compliant(doc):
+            raise RuntimeError(
+                'docstring of {} is not autosummary-compliant: {}\n'
+                ''.format(obj, repr(doc)))
+
+
+def _get_sourcefile_and_linenumber(obj):
+    # Retrieve the original function wrapped by contextlib.contextmanager
+    if callable(obj):
+        closure = getattr(obj, '__closure__', None)
+        if closure is not None:
+            obj = closure[0].cell_contents
+
+    # Get the source file name and line number at which obj is defined.
+    try:
+        filename = inspect.getsourcefile(obj)
+    except TypeError:
+        # obj is not a module, class, function, ..etc.
+        return None, None
+
+    # inspect can return None for cython objects
+    if filename is None:
+        return None, None
+
+    # Get the source line number
+    _, linenum = inspect.getsourcelines(obj)
+
+    return filename, linenum
+
+
 def linkcode_resolve(domain, info):
     if domain != 'py' or not info['module']:
         return None
@@ -408,23 +486,15 @@ def linkcode_resolve(domain, info):
     if not (mod.__name__ == 'chainer' or mod.__name__.startswith('chainer.')):
         return None
 
-    # Get the source file name and line number at which obj is defined.
-    try:
-        filename = inspect.getsourcefile(obj)
-    except TypeError:
-        # obj is not a module, class, function, ..etc.
+    # Retrieve source file name and line number
+    filename, linenum = _get_sourcefile_and_linenumber(obj)
+    if filename is None or linenum is None:
         return None
-
-    # inspect can return None for cython objects
-    if filename is None:
-        return None
-
-    # Get the source line number
-    _, linenum = inspect.getsourcelines(obj)
-    assert isinstance(linenum, six.integer_types)
 
     filename = os.path.realpath(filename)
     relpath = _get_source_relative_path(filename)
+
+    _check_object_validity(obj)
 
     return 'https://github.com/chainer/chainer/blob/{}/{}#L{}'.format(
         tag, relpath, linenum)

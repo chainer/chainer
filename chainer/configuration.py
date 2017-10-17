@@ -111,6 +111,9 @@ def using_config(name, value, config=config):
         config (~chainer.configuration.LocalConfig): Configuration object.
             Chainer's thread-local configuration is used by default.
 
+    .. seealso::
+        :ref:`configuration`
+
     """
     if hasattr(config._local, name):
         old_value = getattr(config, name)

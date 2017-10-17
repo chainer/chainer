@@ -80,7 +80,8 @@ class TestContrastive(unittest.TestCase):
     def check_backward(self, x0_data, x1_data, t_data, gy_data):
         gradient_check.check_backward(
             functions.Contrastive(self.margin, self.reduce),
-            (x0_data, x1_data, t_data), gy_data, rtol=1e-4, atol=1e-4)
+            (x0_data, x1_data, t_data), gy_data, dtype='d',
+            rtol=1e-3, atol=1e-4)
 
     @condition.retry(3)
     def test_backward_cpu(self):

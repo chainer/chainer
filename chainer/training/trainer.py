@@ -12,6 +12,7 @@ from chainer import reporter as reporter_module
 from chainer import serializer as serializer_module
 from chainer.training import extension as extension_module
 from chainer.training import trigger as trigger_module
+from chainer.utils import argument
 
 
 # Select the best-resolution timer function
@@ -26,10 +27,9 @@ except AttributeError:
 
 class _ExtensionEntry(object):
 
-    def __init__(self, extension, priority, trigger, invoke_before_training):
+    def __init__(self, extension, priority, trigger):
         self.extension = extension
         self.trigger = trigger
-        self.invoke_before_training = invoke_before_training
         self.priority = priority
 
 
@@ -81,12 +81,6 @@ class Trainer(object):
         records from the :attr:`observation` dictionary. This is also suitable
         for extensions that do not use the :attr:`observation` dictionary at
         all.
-
-    - Extensions with ``invoke_before_training`` flag on are also invoked at
-      the beginning of the training loop. Extensions that update the training
-      status (e.g., changing learning rates) should have this flag to be
-      ``True`` to ensure that resume of the training loop correctly recovers
-      the training status.
 
     The current state of the trainer object and objects handled by the trainer
     can be serialized through the standard serialization protocol of Chainer.
@@ -174,7 +168,7 @@ class Trainer(object):
         return _get_time() - self._start_at + self._snapshot_elapsed_time
 
     def extend(self, extension, name=None, trigger=None, priority=None,
-               invoke_before_training=None):
+               **kwargs):
         """Registers an extension to the trainer.
 
         :class:`Extension` is a callable object which is called after each
@@ -207,15 +201,14 @@ class Trainer(object):
                 are invoked in the descending order of priorities in each
                 iteration. If this is ``None``, ``extension.priority`` is used
                 instead.
-            invoke_before_training (bool or None): If ``True``, the extension
-                is also invoked just before entering the training loop. If this
-                is ``None``, ``extension.invoke_before_training`` is used
-                instead. This option is mainly used for extensions that alter
-                the training configuration (e.g., learning rates); in such a
-                case, resuming from snapshots require the call of extension to
-                recover the configuration before any updates.
 
         """
+        argument.check_unexpected_kwargs(
+            kwargs,
+            invoke_before_training='invoke_before_training has been removed '
+            'since Chainer v2.0.0. Use initializer= instead.')
+        argument.assert_kwargs_empty(kwargs)
+
         if name is None:
             name = getattr(extension, 'name', None)
             if name is None:
@@ -236,10 +229,6 @@ class Trainer(object):
             priority = getattr(
                 extension, 'priority', extension_module.PRIORITY_READER)
 
-        if invoke_before_training is None:
-            invoke_before_training = getattr(
-                extension, 'invoke_before_training', False)
-
         modified_name = name
         ordinal = 0
         while modified_name in self._extensions:
@@ -248,7 +237,7 @@ class Trainer(object):
 
         extension.name = modified_name
         self._extensions[modified_name] = _ExtensionEntry(
-            extension, priority, trigger, invoke_before_training)
+            extension, priority, trigger)
 
     def get_extension(self, name):
         """Returns the extension of a given name.
