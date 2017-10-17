@@ -53,7 +53,6 @@ install:
   - travis_wait pip install theano
   - pip install nose pytest hacking mock
   - pip install autopep8
-  - pip install pytest-xdist
 
 script:
   - flake8
