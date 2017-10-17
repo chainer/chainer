@@ -241,7 +241,8 @@ class Convolution2DGradW(function_node.FunctionNode):
         n, c, h, w = x.shape
 
         if (self.cover_all or not chainer.should_use_cudnn('>=auto') or
-                x.dtype != self.W_dtype):
+                x.dtype != self.W_dtype or
+                ((self.dy > 1 or self.dx > 1) and _cudnn_version < 6000)):
             col = conv.im2col_gpu(
                 x, self.kh, self.kw, self.sy, self.sx, self.ph, self.pw,
                 cover_all=self.cover_all, dy=self.dy, dx=self.dx)
