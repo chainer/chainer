@@ -121,8 +121,8 @@ class StatelessLSTM(LSTMBase):
 
         Returns:
             tuple of ~chainer.Variable: Returns ``(c_new, h_new)``, where
-                ``c_new`` represents new cell state, and ``h_new`` is updated
-                output of LSTM units.
+            ``c_new`` represents new cell state, and ``h_new`` is updated
+            output of LSTM units.
 
         """
         if self.upward.W.data is None:

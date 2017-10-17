@@ -6,7 +6,7 @@ from chainer import variable
 
 class Linear(link.Link):
 
-    """Linear layer (a.k.a. fully-connected layer).
+    """Linear layer (a.k.a.\\  fully-connected layer).
 
     This is a link that wraps the :func:`~chainer.functions.linear` function,
     and holds a weight matrix ``W`` and optionally a bias vector ``b`` as

@@ -29,7 +29,7 @@ Note that the default values are set in the global config.
    Flag to configure deterministic computations in cuDNN APIs.
    If it is ``True``, convolution functions that use cuDNN use the deterministic mode (i.e, the computation is reproducible).
    Otherwise, the results of convolution functions using cuDNN may be non-deterministic in exchange for the performance.
-   The defualt value is ``False``.
+   The default value is ``False``.
 ``chainer.config.debug``
    Debug mode flag.
    If it is ``True``, Chainer runs in the debug mode.
@@ -67,6 +67,14 @@ Note that the default values are set in the global config.
        - If it is ``'never'``, Chainer will never use cuDNN anywhere.
 
    The default value is ``'auto'``.
+``chainer.config.cudnn_use_tensor_core``
+   Flag to configure whether or not to enable Tensor Core operatons in cuDNN.
+
+       - If it is ``always``, Chainer uses cuDNN's Tensor Core operations.
+       - If it is ``never``, Chainer does not use cuDNN's Tensor Core operations.
+       - If it is ``auto``, Chainer checks cuDNN version, the data type of input, the compute capability of the GPU used, and configures whether or not to use cuDNN's Tensor Core operations.
+
+   The default value is ``auto``.
 
 Users can also define their own configurations.
 There are two ways:
