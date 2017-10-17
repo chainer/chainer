@@ -9,6 +9,7 @@ from chainer import variable
 
 try:
     from onnx.onnx_pb2 import TensorProto  # NOQA
+    from onnx import checker
     from onnx import helper
     from onnx import numpy_helper
 
@@ -150,22 +151,28 @@ def convert_batch_normalization(link, input_names, param_names):
             input_names[i] = str(input_name)
     input_names.append(param_names[id(link.running_mean)])
     input_names.append(param_names[id(link.running_var)])
+    print(input_names)
 
     layer_name = _layers[link.__class__.__name__]
-    layer_name = '{}({})'.format(layer_name, id(link))
+    unique_layer_name = os.path.dirname(input_names[1])
     out_names = [str(id(out())) for out in link.outputs]
     out_names += [
-        os.path.join(layer_name, 'mean'),
-        os.path.join(layer_name, 'var'),
-        os.path.join(layer_name, 'saved_mean'),
-        os.path.join(layer_name, 'saved_var')
+        os.path.join(unique_layer_name, 'mean'),
+        os.path.join(unique_layer_name, 'var'),
+        os.path.join(unique_layer_name, 'saved_mean'),
+        os.path.join(unique_layer_name, 'saved_var')
     ]
+    print(out_names)
 
-    return helper.make_node(
+    node = helper.make_node(
         layer_name, input_names, out_names,
         epsilon=link.eps,
+        is_test=chainer.config.train,
         momentum=link.decay,
+        spatial=True,
     )
+    checker.check_node(node)
+    return node
 
 
 def convert_relu(func, input_names, param_names):
@@ -349,9 +356,9 @@ def export(model, args, filename, export_params=True, name='Graph',
         onnx_graph,
         producer_name='Chainer',
         producer_version=chainer.__version__)
+    checker.check_model(model)
     with open(filename, 'wb') as fp:
         fp.write(model.SerializeToString())
-
 
 if __name__ == '__main__':
     import chainer.links as L
