@@ -6,28 +6,28 @@ Write an RNN Language Model
 0. Introduction
 ================
 
-The **language model** is modeling the probability of generating natural languages,
-such that sentences or documents. You can use the language model to estimate how
-natural a sentence or a document is. Also, with the language model, you can
-generate new sentences or documents.
+The **language model** is modeling the probability of generating natural language
+sentences or documents. You can use the language model to estimate how natural a
+sentence or a document is. Also, with the language model, you can generate new
+sentences or documents.
 
 Let's start with modeling the probability of generating sentences. We represent
-a sentence be :math:`X = (x_0, x_1, ..., x_T)`, in which :math:`x_t` is a
-one-hot vector.
-Generally, :math:`x_0` is the one-hot vector of **BOS** (beginning of sentence),
-and :math:`x_T` is that  of **EOS** (end of sentence).
+a sentence as :math:`{\bf X} = ({\bf x}_0, {\bf x}_1, ..., {\bf x}_T)`, in which
+:math:`{\bf x}_t` is a one-hot vector. Generally, :math:`{\bf x}_0` is the one-hot
+vector of **BOS** (beginning of sentence), and :math:`{\bf x}_T` is that of
+**EOS** (end of sentence).
 
-In the case of language model, we usually model the probability of generating
-the next word under the condition of the previous words. Let :math:`X[i, j]` be
-:math:`(x_i, x_{i+1}, ..., x_j)`, the occurrence probabilitx of sentence :math:`X`
-can be
+A language model models the probability of a word occurance under the condition of
+its previous words in a sentence. Let :math:`{\bf X}_{[i, j]}` be
+:math:`({\bf x}_i, {\bf x}_{i+1}, ..., {\bf x}_j)`, the occurrence probability
+of sentence :math:`\bf X` can be represented as follows:
 
-.. math:: P(X) = P(x_0) \prod_{t=1}^T P(x_t|X[0, t-1])
+.. math:: P({\bf X}) = P({\bf x}_0) \prod_{t=1}^T P({\bf x}_t|{\bf X}_{[0, t-1]})
 
-As you see above, the occurrence probability :math:`P(X)` can be decomposed into
-the conditional probability by the previous words :math:`P(x_t|X[0, t-1])`.
-So, in the language model, we model :math:`P(x_t|X[0, t-1])`.
-
+So, the language model :math:`P({\bf X})` can be decomposed into word probablities
+conditioned with its previous words. In this tutorial, we model
+:math:`P({\bf x}_t|{\bf X}_{[0, t-1]})` with a recurrent neural network to obtain
+a language model :math:`P({\bf X})`.
 
 1. Basic Idea of Recurrent Neural Net Language Model
 =====================================================
