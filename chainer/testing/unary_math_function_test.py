@@ -2,6 +2,8 @@ import numpy
 import unittest
 
 from chainer import cuda
+from chainer import function
+import chainer.functions as F
 from chainer.testing import condition
 from chainer import variable
 
@@ -24,10 +26,26 @@ def check_available():
 Reason: {}: {}'''.format(__name__, type(_error).__name__, _error))
 
 
+def _func_name(func):
+    if isinstance(func, function.Function):
+        return func.__class__.__name__.lower()
+    else:
+        return func.__name__
+
+
+def _func_class(func):
+    if isinstance(func, function.Function):
+        return func.__class__
+    else:
+        name = func.__name__.capitalize()
+        return getattr(F, name, None)
+
+
 def _make_data_default(shape, dtype):
     x = numpy.random.uniform(-1, 1, shape).astype(dtype)
     gy = numpy.random.uniform(-1, 1, shape).astype(dtype)
-    return x, gy
+    ggx = numpy.random.uniform(-1, 1, shape).astype(dtype)
+    return x, gy, ggx
 
 
 def unary_math_function_unittest(func, func_expected=None, label_expected=None,
@@ -137,31 +155,51 @@ def unary_math_function_unittest(func, func_expected=None, label_expected=None,
     from chainer import gradient_check
     from chainer import testing
 
+    is_new_style = not isinstance(func, function.Function)
+
+    func_name = _func_name(func)
+    func_class = _func_class(func)
+
     if func_expected is None:
-        name = func.__class__.__name__.lower()
         try:
-            func_expected = getattr(numpy, name)
+            func_expected = getattr(numpy, func_name)
         except AttributeError:
             raise ValueError("NumPy has no functions corresponding "
-                             "to Chainer function '{}'.".format(name))
+                             "to Chainer function '{}'.".format(func_name))
 
     if label_expected is None:
-        label_expected = func.__class__.__name__.lower()
+        label_expected = func_name
+    elif func_class is None:
+        raise ValueError('Expected label is given even though Chainer '
+                         'function does not have its label.')
 
     if make_data is None:
-        make_data = _make_data_default
+        if is_new_style:
+            make_data = _make_data_default
+        else:
+            def aux(shape, dtype):
+                return _make_data_default(shape, dtype)[0:2]
+            make_data = aux
 
     def f(klass):
         assert issubclass(klass, unittest.TestCase)
 
         def setUp(self):
-            self.x, self.gy = make_data(self.shape, self.dtype)
+            if is_new_style:
+                self.x, self.gy, self.ggx = make_data(self.shape, self.dtype)
+            else:
+                self.x, self.gy = make_data(self.shape, self.dtype)
+
             if self.dtype == numpy.float16:
                 self.backward_options = {
                     'eps': 2 ** -4, 'atol': 2 ** -4, 'rtol': 2 ** -4,
                     'dtype': numpy.float64}
+                self.double_backward_options = {
+                    'eps': 2 ** -4, 'atol': 2 ** -4, 'rtol': 2 ** -4,
+                    'dtype': numpy.float64}
             else:
                 self.backward_options = {'atol': 1e-4, 'rtol': 1e-4}
+                self.double_backward_options = {'atol': 1e-4, 'rtol': 1e-4}
         setattr(klass, "setUp", setUp)
 
         def check_forward(self, x_data):
@@ -199,9 +237,32 @@ def unary_math_function_unittest(func, func_expected=None, label_expected=None,
             self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
         setattr(klass, "test_backward_gpu", test_backward_gpu)
 
-        def test_label(self):
-            self.assertEqual(func.label, label_expected)
-        setattr(klass, "test_label", test_label)
+        if is_new_style:
+            def check_double_backward(self, x_data, y_grad, x_grad_grad):
+                gradient_check.check_double_backward(
+                    func, x_data, y_grad,
+                    x_grad_grad, **self.double_backward_options)
+            setattr(klass, "check_double_backward", check_double_backward)
+
+            @condition.retry(3)
+            def test_double_backward_cpu(self):
+                self.check_double_backward(self.x, self.gy, self.ggx)
+            setattr(klass, "test_double_backward_cpu",
+                    test_double_backward_cpu)
+
+            @attr.gpu
+            @condition.retry(3)
+            def test_double_backward_gpu(self):
+                self.check_double_backward(
+                    cuda.to_gpu(self.x), cuda.to_gpu(self.gy),
+                    cuda.to_gpu(self.ggx))
+            setattr(klass, "test_double_backward_gpu",
+                    test_double_backward_gpu)
+
+        if func_class is not None:
+            def test_label(self):
+                self.assertEqual(func_class().label, label_expected)
+            setattr(klass, "test_label", test_label)
 
         # Return parameterized class.
         return testing.parameterize(*testing.product({
