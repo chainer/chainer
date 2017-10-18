@@ -48,6 +48,7 @@ class FunctionHook(object):
         >>> from chainer import function_hooks
         >>> class Model(chainer.Chain):
         ...   def __init__(self):
+        ...     super(Model, self).__init__()
         ...     with self.init_scope():
         ...       self.l = L.Linear(10, 10)
         ...   def __call__(self, x1):
@@ -56,11 +57,11 @@ class FunctionHook(object):
         >>> model2 = Model()
         >>> x = chainer.Variable(np.zeros((1, 10), 'f'))
         >>> with chainer.function_hooks.TimerHook() as m:
-        ...    _ = model1(x)
-        ...    y = model2(x)
-        ...    print("Total time : " + str(m.total_time()))
-        ...    model3 = Model()
-        ...    z = model3(y) # doctest:+ELLIPSIS
+        ...   _ = model1(x)
+        ...   y = model2(x)
+        ...   print("Total time : " + str(m.total_time()))
+        ...   model3 = Model()
+        ...   z = model3(y) # doctest:+ELLIPSIS
         Total time : ...
 
         In this example, we measure the elapsed times for each forward
@@ -98,10 +99,30 @@ class FunctionHook(object):
             raise KeyError('hook %s already exists' % self.name)
 
         function_hooks[self.name] = self
+        self.added()
         return self
 
     def __exit__(self, *_):
+        chainer.get_function_hooks()[self.name].deleted()
         del chainer.get_function_hooks()[self.name]
+
+    def added(self, function=None):
+        """Callback function invoked when a function hook is added
+
+        Args:
+            function(~chainer.Function): Function object to which
+                the function hook is added.
+        """
+        pass
+
+    def deleted(self, function=None):
+        """Callback function invoked when a function hook is deleted
+
+        Args:
+            function(~chainer.Function): Function object to which
+                the function hook is deleted.
+        """
+        pass
 
     # forward
     def forward_preprocess(self, function, in_data):

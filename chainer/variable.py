@@ -113,25 +113,29 @@ class VariableNode(object):
     is used in error backpropagation (a.k.a. backprop) to determine which
     gradient to be passed to each function.
 
-    A variable node is held by the corresponding :class:`Variable` object,
-    which is managed by users. :class:`Function` objects that take the variable
-    as an input also hold references to the variable node.
+    A variable node is held by the corresponding :class:`~chainer.Variable`
+    object, which is managed by users. :class:`~chainer.Function` objects that
+    take the variable as an input also hold references to the variable node.
 
     Note that the node does not hold a reference to the corresponding data
     array in general. The data array is actually accessible by the node in the
     following cases.
 
-    1. If there exists a :class:`Variable` object that holds a reference to the
-       variable node, the variable node holds a weak reference to the variable
-       object, and thus the data array is accessible via the weak reference.
+    1. If there exists a :class:`~chainer.Variable` object that holds a
+       reference to the variable node, the variable node holds a weak reference
+       to the variable object, and thus the data array is accessible via the
+       weak reference.
     2. If :meth:`retain_data` is called, the node holds a reference to the data
        array. It is mainly called by a function that needs the input or output
-       data array in its backprop procedure. See :meth:`Function.retain_inputs`
-       and :meth:`Function.retain_outputs` for more details.
+       data array in its backprop procedure.
+       See :meth:`Function.retain_inputs() <chainer.Function.retain_inputs>`
+       and :meth:`Function.retain_outputs() <chainer.Function.retain_outputs>`
+       for more details.
 
     Users usually do not need to touch this variable node object. The
     computational graph is automatically managed by Chainer, and any interface
-    that is beneficial for users is also provided by :class:`Variable`.
+    that is beneficial for users is also provided by
+    :class:`~chainer.Variable`.
 
     Args:
         variable (Variable): The corresponding variable object.
@@ -169,13 +173,15 @@ class VariableNode(object):
         """Function object that created this variable node.
 
         When the function is implemented with the old-style API (i.e., it uses
-        :class:`Function` class), this property returns the :class:`Function`
-        object. The object is extracted from the :class:`FunctionAdapter`
+        :class:`~chainer.Function` class),
+        this property returns the :class:`~chainer.Function` object.
+        The object is extracted from the :class:`~chainer.FunctionAdapter`
         object, so the returned object is not the function node, but instead
         the actual implementation of forward and backward procedures.
 
         When the function is implemented with the new-style API (i.e., it uses
-        :class:`FunctionNode` class), this property returns the function node
+        :class:`~chainer.FunctionNode` class),
+        this property returns the function node
         object. In this case, the returned object is same as
         :attr:`creator_node`.
 
@@ -191,12 +197,14 @@ class VariableNode(object):
               ...
               v.creator = creator
 
-           The point is that :class:`FunctionNode` objects are used as nodes
-           in the computational graph instead of :class:`Function`, and each
-           :class:`Function` object only holds a *weak reference* to the
-           corresponding :class:`FunctionNode`. Since ``creator`` returns the
-           :class:`Function` object, the :class:`FunctionNode` object is not
-           kept by preserving ``creator``.
+           The point is that :class:`~chainer.FunctionNode` objects are used
+           as nodes in the computational graph instead of
+           :class:`~chainer.Function`, and each :class:`~chainer.Function`
+           object only holds a *weak reference* to the corresponding
+           :class:`~chainer.FunctionNode`.
+           Since ``creator`` returns the :class:`~chainer.Function` object,
+           the :class:`~chainer.FunctionNode` object is not kept by preserving
+           ``creator``.
 
            The above code should be fixed as follows.
 
@@ -224,7 +232,8 @@ class VariableNode(object):
     def creator_node(self):
         """Function node that has this variable as an output.
 
-        See :class:`FunctionNode` for the definition of a function node.
+        See :class:`~chainer.FunctionNode` for the definition of a function
+        node.
 
         """
         return self._creator_node
@@ -258,7 +267,7 @@ class VariableNode(object):
         If the variable is not available, it returns ``None``.
 
         """
-        var = self.get_variable()
+        var = self._variable()
         return None if var is None else var.grad
 
     @property
@@ -268,7 +277,7 @@ class VariableNode(object):
         If the corresponding variable is not available, it return ``None``.
 
         """
-        var = self.get_variable()
+        var = self._variable()
         return None if var is None else var._grad_var
 
     @property
@@ -289,12 +298,12 @@ class VariableNode(object):
         return self._requires_grad
 
     def get_variable(self):
-        """Returns the corresponding :class:`Variable` object.
+        """Returns the corresponding :class:`~chainer.Variable` object.
 
         VariableNode object holds a weak reference of the variable object. If
         the reference is alive, it is returned by this property. Otherwise,
-        this property creates a new :class:`Variable` object from this node
-        object and returns it.
+        this property creates a new :class:`~chainer.Variable` object from
+        this node object and returns it.
 
         Returns:
             Variable: The variable object that refers this node.
@@ -309,11 +318,24 @@ class VariableNode(object):
         var._node = self
         return var
 
+    def get_variable_or_none(self):
+        """Returns the holding :class:`~chainer.Variable` object or ``None``.
+
+        VariableNode object holds a weak reference of the variable object.If
+        the reference is alive, it is returned by this property. Otherwise,
+        returns ``None``.
+
+        Returns:
+            Variable: The variable object that refers this node.
+
+        """
+        return self._variable()
+
     def set_creator(self, creator):
-        """Sets a :class:`Function` object that created this node.
+        """Sets a :class:`~chainer.Function` object that created this node.
 
         This method is equivalent to ``self.creator = creator``. A
-        :class:`FunctionNode` object can also be passed.
+        :class:`~chainer.FunctionNode` object can also be passed.
 
         Args:
             creator (Function or FunctionNode): Function that has created this
@@ -323,11 +345,11 @@ class VariableNode(object):
         self.creator = creator
 
     def set_creator_node(self, creator_node):
-        """Sets a :class:`FunctionNode` object that created this node.
+        """Sets a :class:`~chainer.FunctionNode` object that created this node.
 
         This method is equivalent to ``self.creator_node = creator_node``. A
-        :class:`Function` object can also be passed, in which case the
-        :attr:`~Function.node` object is extracted.
+        :class:`~chainer.Function` object can also be passed, in which case the
+        :attr:`Function.node <chainer.Function.node>` attribute is used.
 
         Args:
             creator_node (FunctionNode or Function): Function node that has
@@ -388,12 +410,13 @@ class Variable(object):
     Every variable holds a data array of type either :class:`numpy.ndarray` or
     :class:`cupy.ndarray`.
 
-    A variable object holds a data array and a :class:`VariableNode` object of
+    A variable object holds a data array and a
+    :class:`~chainer.variable.VariableNode` object of
     a computational graph. If the variable is constructed by the user, the node
     is *root* and does not hold any parent. If the variable is constructed by a
-    :class:`FunctionNode` object, the node holds a reference to its parent
-    called :attr:`creator_node`. This reference is used in backpropagation to
-    backtrack the graph.
+    :class:`~chainer.FunctionNode` object, the node holds a reference to its
+    parent called :attr:`creator_node`.
+    This reference is used in backpropagation to backtrack the graph.
 
     Users can disable (resp. enable) this chaining behavior by calling
     :func:`~chainer.no_backprop_mode` (resp.
@@ -412,12 +435,6 @@ class Variable(object):
         grad (numpy.ndarray or cupy.ndarray): Initial gradient array.
         requires_grad (bool): Boolean indicating whether ``grad`` will be set
             in backward calculation.
-
-    Attributes:
-        ~Variable.data: Data array of type either :class:`numpy.ndarray` or
-            :class:`cupy.ndarray`. If it is None, the variable is left in an
-            uninitialized state.
-        ~Variable.grad_var (Variable): Gradient variable.
 
     """  # NOQA
 
@@ -575,7 +592,31 @@ Actual: {0}'''.format(type(data))
         self._node.creator_node = func
 
     @property
+    def array(self):
+        """The underlying data array.
+
+        It is either :class:`numpy.ndarray` or :class:`cupy.ndarray` object,
+        or ``None`` if the variable in in an uninitialized state.
+
+        """
+        return self._data[0]
+
+    @array.setter
+    def array(self, d):
+        self._data[0] = d
+        self._node._set_data_type(d)
+
+    @property
     def data(self):
+        """The underlying data array (equivalent to :attr:`array`).
+
+        Note that using this attribute directly is discouraged; use
+        :attr:`array` instead. Using :attr:`array`, you can find an error
+        earlier when your code mixes up Variable and ndarray because
+        ndarray does not have an attribute ``.array`` while it has
+        ``.data``.
+
+        """
         return self._data[0]
 
     @data.setter
@@ -587,7 +628,7 @@ Actual: {0}'''.format(type(data))
     def grad(self):
         """Gradient array of this variable.
 
-        Not that this property returns the underlying array of the gradient
+        Note that this property returns the underlying array of the gradient
         variable instead of the gradient variable itself; to get/set
         gradient variable, use :attr:`grad_var` instead.
 
@@ -601,6 +642,7 @@ Actual: {0}'''.format(type(data))
 
     @property
     def grad_var(self):
+        """Gradient variable."""
         return self._grad_var
 
     @grad_var.setter
@@ -637,6 +679,11 @@ Actual: {0}'''.format(type(data))
     def requires_grad(self):
         """It indicates that ``grad`` will be set in backward calculation."""
         return self._requires_grad
+
+    @property
+    def T(self):
+        """Transposition of this variable."""
+        return chainer.functions.transpose(self)
 
     def to_cpu(self):
         """Copies the data and gradient arrays to CPU."""
@@ -785,12 +832,14 @@ Actual: {0}'''.format(type(data))
         """
         self._node.set_creator_node(fnode)
 
-    def backward(self, retain_grad=False):
-        """Runs error backpropagation (a.k.a. backprop) from this variable.
+    def backward(self, retain_grad=False, enable_double_backprop=False):
+        """Runs error backpropagation (a.k.a.\\  backprop) from this variable.
 
-        On backprop, :meth:`FunctionNode.backward` is called on each
-        :class:`FunctionNode` object appearing in the backward graph starting
-        from this variable. The backward graph is represented by backward
+        On backprop,
+        :meth:`FunctionNode.backward() <chainer.FunctionNode.backward>`
+        is called on each :class:`~chainer.FunctionNode` object appearing in
+        the backward graph starting from this variable.
+        The backward graph is represented by backward
         references from variable nodes to their creators, and from function
         nodes to their input variable nodes. The backprop stops at all root
         nodes. Some function nodes set ``None`` as gradients of some inputs,
@@ -804,19 +853,31 @@ Actual: {0}'''.format(type(data))
         some scalar loss value.
 
         Note that this method does not support *differentiable backprop*. Use
-        :func:`grad` to compute the gradient of gradients.
+        :func:`chainer.grad` to compute the gradient of gradients.
 
         Args:
             retain_grad (bool): If ``True``, the gradient arrays of all
-                intermediate variables are kept. Otherwise, :data:`grad` of the
+                intermediate variables are kept.
+                Otherwise, :data:`~chainer.Variable.grad` of the
                 intermediate variables are set to ``None`` on appropriate
                 timing, which may reduce the maximum memory consumption.
 
                 In most cases of training some models, the purpose of backprop
                 is to compute gradients of parameters, not of all variables,
                 and therefore it is recommended to set this flag ``False``.
+            enable_double_backprop (bool): *(Added in v3.0)* If ``True``,
+                computational trace of the whole backpropagation procedure is
+                recorded to the computational graph so that one can further do
+                backpropagation from the resulting gradients. Note that
+                enabling it results in larger memory consumption needed to
+                store the gradients w.r.t intermediate variables that are
+                required for the second gradient computation.
 
         """
+        with chainer.using_config('enable_backprop', enable_double_backprop):
+            self._backward_main(retain_grad)
+
+    def _backward_main(self, retain_grad):
         self._node._check_old_style_gradient()
         if self.creator_node is None:
             return
@@ -861,6 +922,11 @@ Actual: {0}'''.format(type(data))
         while cand_funcs:
             _, _, func = heapq.heappop(cand_funcs)
             inputs = func.inputs
+            target_input_indexes = [
+                i for i, x in enumerate(inputs) if x.requires_grad
+            ]
+            if not target_input_indexes:
+                continue
             outputs = [y() for y in func.outputs]  # access via weak ref
 
             in_data = tuple([x.data for x in inputs])
@@ -891,9 +957,6 @@ Actual: {0}'''.format(type(data))
             # input gradient passed to the ``backward_accumulate`` method is
             # ``(gx, None)`` where ``gx`` is the current gradient of ``x``.
             # See also the docstring of ``FunctionNode.backward_accumulate``.
-            target_input_indexes = [
-                i for i, x in enumerate(inputs) if x.requires_grad
-            ]
             target_inputs = [inputs[i] for i in target_input_indexes]
             in_grad = []
             for i, index_i in enumerate(target_input_indexes):
@@ -924,17 +987,18 @@ Actual: {0}'''.format(type(data))
                     if gx is None:
                         continue
                     gx_data = gx.data
-                    cuda.get_device_from_array(gx_data).use()
-                    if cuda.get_array_module(gx_data).isnan(gx_data).any():
-                        msg = ('NaN is detected on backward computation of '
-                               '{}'.format(func.label))
-                        raise RuntimeError(msg)
+                    if gx_data.dtype.kind == 'f':
+                        cuda.get_device_from_array(gx_data).use()
+                        if cuda.get_array_module(gx_data).isnan(gx_data).any():
+                            raise RuntimeError(
+                                'NaN is detected on backward computation of '
+                                '{}'.format(func.label))
 
             if not retain_grad:
                 for y in outputs:
                     if y is not None and y is not self.node:
                         grads[y] = None
-                        y_var = y.get_variable()
+                        y_var = y.get_variable_or_none()
                         if y_var is not None:
                             y_var._grad_var = None
 
@@ -956,7 +1020,7 @@ Actual: {0}'''.format(type(data))
                 else:
                     grads[x] = gx
 
-                x_var = x.get_variable()
+                x_var = x.get_variable_or_none()
                 if x_var is not None:
                     x_var._grad_var = grads[x]
 
@@ -1059,10 +1123,8 @@ Actual: {0}'''.format(type(data))
     def __bool__(self):
         raise NotImplementedError()
 
-    def __hash__(self):
-        return super(Variable, self).__hash__()
-
     __array_priority__ = 200
+    __hash__ = None
 
 
 class Parameter(Variable):
@@ -1189,7 +1251,7 @@ class Parameter(Variable):
             grad = None if ginit is None else initializers.generate_array(
                 ginit, shape, xp)
 
-        self._data[0] = data
+        self.data = data
         self.grad = grad
 
     def update(self):
@@ -1200,6 +1262,36 @@ class Parameter(Variable):
         """
         if self.update_rule is not None:
             self.update_rule.update(self)
+
+
+def as_variable(obj):
+    """Converts an array or a variable into :class:`~chainer.Variable`.
+
+    This is a convenient function to get a :class:`~chainer.Variable` object
+    transparently from a raw array or a variable.
+
+    Note that this function should only be used for type consistency (i.e., to
+    enforce the return value of an API having type :class:`~chainer.Varialbe`).
+    The :class:`~chainer.Variable.requires_grad` flag is kept as is; if ``obj``
+    is a raw array, the newly created variable has ``requires_grad = False``.
+    In order to make a variable w.r.t. which you want to compute the gradient,
+    you should use :class:`~chainer.Variable` directly.
+
+    Args:
+        obj (numpy.ndarray or cupy.ndarray or ~chainer.Variable): An array or
+            a variable that you want to convert to :class:`~chainer.Variable`.
+
+    Returns:
+        ~chainer.Variable:
+        A variable converted from ``obj``. If ``obj`` is a raw array, this is a
+        new :class:`~chainer.Variable` object that wraps the array. If ``obj``
+        is already a :class:`~chainer.Variable` object, this function returns
+        ``obj`` as is.
+
+    """
+    if isinstance(obj, Variable):
+        return obj
+    return Variable(obj, requires_grad=False)
 
 
 def _recover_parameter(data, name, grad, initializer, update_rule):
