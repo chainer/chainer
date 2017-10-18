@@ -1,10 +1,10 @@
 from chainer import cuda
-from chainer import function
+from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
 
 
-class Ceil(function.Function):
+class Ceil(function_node.FunctionNode):
 
     @property
     def label(self):
@@ -17,15 +17,13 @@ class Ceil(function.Function):
         )
 
     def forward(self, x):
-        self.retain_inputs(())
         self._in_shape = x[0].shape
         self._in_dtype = x[0].dtype
-        xp = cuda.get_array_module(*x)
-        return utils.force_array(xp.ceil(x[0]), x[0].dtype),
+        self._xp = cuda.get_array_module(*x)
+        return utils.force_array(self._xp.ceil(x[0]), x[0].dtype),
 
-    def backward(self, x, grad_outputs):
-        xp = cuda.get_array_module(*grad_outputs)
-        return xp.zeros(self._in_shape, self._in_dtype),
+    def backward(self, indexes, grad_outputs):
+        return grad_outputs[0] * 0,
 
 
 def ceil(x):
@@ -41,4 +39,4 @@ def ceil(x):
         ~chainer.Variable: Output variable.
     """
 
-    return Ceil()(x)
+    return Ceil().apply((x,))[0]
