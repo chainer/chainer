@@ -115,14 +115,19 @@ def convert_average_pooling_2d(func, input_names, param_names):
             input_names[i] = str(input_name)
 
     layer_name = _layers[func.__class__.__name__]
+    gpool = func.inputs[0].shape[2:] == (func.kh, func.kw)
     out_names = [str(id(out())) for out in func.outputs]
 
-    return helper.make_node(
-        layer_name, input_names, out_names,
-        kernel_shape=(func.kh, func.kw),
-        pads=(func.ph, func.pw),
-        strides=(func.sy, func.sx)
-    )
+    if not gpool:
+        return helper.make_node(
+            layer_name, input_names, out_names,
+            kernel_shape=(func.kh, func.kw),
+            pads=(func.ph, func.pw),
+            strides=(func.sy, func.sx)
+        )
+    else:
+        return helper.make_node(
+            'Global' + layer_name, input_names, out_names)
 
 
 def convert_max_pooling_2d(func, input_names, param_names):
@@ -131,14 +136,19 @@ def convert_max_pooling_2d(func, input_names, param_names):
             input_names[i] = str(input_name)
 
     layer_name = _layers[func.__class__.__name__]
+    gpool = func.inputs[0].shape[2:] == (func.kh, func.kw)
     out_names = [str(id(out())) for out in func.outputs]
 
-    return helper.make_node(
-        layer_name, input_names, out_names,
-        kernel_shape=(func.kh, func.kw),
-        pads=(func.ph, func.pw),
-        strides=(func.sy, func.sx)
-    )
+    if not gpool:
+        return helper.make_node(
+            layer_name, input_names, out_names,
+            kernel_shape=(func.kh, func.kw),
+            pads=(func.ph, func.pw),
+            strides=(func.sy, func.sx)
+        )
+    else:
+        return helper.make_node(
+            'Global' + layer_name, input_names, out_names)
 
 
 def convert_batch_normalization(link, input_names, param_names):
@@ -424,8 +434,8 @@ if __name__ == '__main__':
             h = self.b1(F.relu(self.l1(x)))
             return self.l2(h)
 
-    model = MLP(1, 10)
-    args = numpy.random.rand(1, 1, 5, 5).astype(numpy.float32)
-    # model = L.ResNet50Layers()
-    # args = numpy.random.rand(1, 3, 224, 224).astype(numpy.float32)
+    # model = MLP(1, 10)
+    # args = numpy.random.rand(1, 1, 5, 5).astype(numpy.float32)
+    model = L.ResNet50Layers()
+    args = numpy.random.rand(1, 3, 224, 224).astype(numpy.float32)
     onnx_export(model, args, 'resnet50.onnx')
