@@ -208,7 +208,7 @@ def convert_add(func, input_names, param_names):
     return helper.make_node(layer_name, input_names, out_names)
 
 
-def export(model, args, filename, export_params=True, name='Graph',
+def export(model, args, filename, export_params=True, graph_name='Graph',
            producer='Chainer'):
     _check_available()
 
@@ -236,6 +236,7 @@ def export(model, args, filename, export_params=True, name='Graph',
         outputs = list(outputs.values())
     if not isinstance(outputs, (list, tuple)):
         outputs = (outputs,)
+    output_tensor_ids = [id(output) for output in outputs]
 
     cands = []
     seen_edges = set()
@@ -282,6 +283,16 @@ def export(model, args, filename, export_params=True, name='Graph',
                     else:
                         input_id = id(input_)
                     input_names.append(input_id)
+
+            for out_ in cand.outputs:
+                out_ = out_()
+                if out_.get_variable() is not None:
+                    out_var = out_.get_variable()
+                    if id(out_var) in output_tensor_ids:
+                        idx = output_tensor_ids.index(id(out_var))
+                        output_tensor_ids[idx] = (
+                            str(id(out_)), _dtype[out_var.array.dtype.name],
+                            out_var.shape)
 
             if func_name in _layers.keys():
                 if func_name == 'Convolution2DFunction':
@@ -352,18 +363,14 @@ def export(model, args, filename, export_params=True, name='Graph',
             name, _dtype[arg.array.dtype.name], arg.shape))
 
     output_tensors = []
-    for i, output in enumerate(outputs):
-        name = 'output{}'.format(i)
-        if isinstance(output, chainer.Variable):
-            output = output.array
-        output_tensors.append(helper.make_tensor_value_info(
-            name, _dtype[output.dtype.name], output.shape))
+    for out_ in output_tensor_ids:
+        output_tensors.append(helper.make_tensor_value_info(*out_))
 
     if not export_params:
         parameters = []
 
     onnx_graph = helper.make_graph(
-        reversed(graph), name, input_tensors, output_tensors,
+        reversed(graph), graph_name, input_tensors, output_tensors,
         initializer=parameters)
 
     model = helper.make_model(
@@ -375,6 +382,8 @@ def export(model, args, filename, export_params=True, name='Graph',
 
     with open(filename, 'wb') as fp:
         fp.write(model.SerializeToString())
+
+    print(model)
 
 
 if __name__ == '__main__':
@@ -397,6 +406,7 @@ if __name__ == '__main__':
             return self.l2(h)
 
     model = MLP(1, 10)
-    # model = L.ResNet50Layers()
     args = numpy.random.rand(1, 1, 5, 5).astype(numpy.float32)
+    # model = L.ResNet50Layers()
+    # args = numpy.random.rand(1, 3, 224, 224).astype(numpy.float32)
     export(model, args, 'resnet50.onnx')
