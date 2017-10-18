@@ -28,6 +28,7 @@ class TestBatchL2NormSquared(unittest.TestCase):
     def setUp(self):
         self.x = np.random.uniform(-1, 1, self.shape).astype(np.float32)
         self.gy = np.random.uniform(-1, 1, self.shape[0]).astype(np.float32)
+        self.ggx = np.random.uniform(-1, 1, self.shape).astype(np.float32)
 
     def check_forward(self, x_data):
         x = chainer.Variable(x_data)
@@ -54,7 +55,7 @@ class TestBatchL2NormSquared(unittest.TestCase):
 
     def check_backward(self, x_data, y_grad):
         gradient_check.check_backward(
-            functions.BatchL2NormSquared(), x_data, y_grad, eps=1)
+            functions.batch_l2_norm_squared, x_data, y_grad, eps=1)
 
     @condition.retry(3)
     def test_backward_cpu(self):
@@ -64,6 +65,23 @@ class TestBatchL2NormSquared(unittest.TestCase):
     @condition.retry(3)
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
+
+    def check_double_backward(self, x_data, y_grad, x_grad_grad):
+        gradient_check.check_double_backward(
+            functions.batch_l2_norm_squared,
+            x_data, y_grad, x_grad_grad, dtype=np.float64)
+
+    @condition.retry(3)
+    def test_double_backward_cpu(self):
+        self.check_double_backward(self.x, self.gy, self.ggx)
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_double_backward_gpu(self):
+        self.check_double_backward(
+            cuda.to_gpu(self.x),
+            cuda.to_gpu(self.gy),
+            cuda.to_gpu(self.ggx))
 
 
 class TestBatchL2NormSquaredTypeError(unittest.TestCase):
