@@ -45,6 +45,7 @@ from chainer.initializer import Initializer  # NOQA
 from chainer.link import Chain  # NOQA
 from chainer.link import ChainList  # NOQA
 from chainer.link import Link  # NOQA
+from chainer.onnx_export import onnx_export  # NOQA
 from chainer.optimizer import GradientMethod  # NOQA
 from chainer.optimizer import Optimizer  # NOQA
 from chainer.optimizer import UpdateRule  # NOQA

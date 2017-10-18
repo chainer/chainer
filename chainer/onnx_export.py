@@ -262,8 +262,29 @@ def create_node(func_name, cand, input_names, param_names, parameters,
     return node
 
 
-def export(model, args, filename, export_params=True, graph_name='Graph',
-           producer='Chainer'):
+def onnx_export(model, args, filename=None, export_params=True,
+                graph_name='Graph'):
+    """Export function for chainer.Chain in ONNX format.
+
+    Args:
+        model (~chainer.Chain): The model object you want to export in ONNX
+            format. It should have :meth:`__call__` method because the second
+            argment ``args`` is directly given to the model by the ``[]``
+            accessor.
+        args: The argments which are given to the model directly.
+        filename (str): The filename used for saving the resulting ONNX model.
+            If None, nothing is saved to the disk.
+        export_params (bool): If True, this function exports all the parameters
+            included in the given model at the same time. If False, the
+            exported ONNX model doesn't include any parameter values.
+        graph_name (str): A string to be used for the ``name`` field of the
+            graph in the exported ONNX model.
+
+    Returns:
+        A ONNX model object.
+
+    """
+
     _check_available()
 
     model.to_cpu()
@@ -377,8 +398,9 @@ def export(model, args, filename, export_params=True, graph_name='Graph',
 
     checker.check_model(model)
 
-    with open(filename, 'wb') as fp:
-        fp.write(model.SerializeToString())
+    if filename is not None:
+        with open(filename, 'wb') as fp:
+            fp.write(model.SerializeToString())
 
     return model
 
@@ -406,4 +428,4 @@ if __name__ == '__main__':
     args = numpy.random.rand(1, 1, 5, 5).astype(numpy.float32)
     # model = L.ResNet50Layers()
     # args = numpy.random.rand(1, 3, 224, 224).astype(numpy.float32)
-    export(model, args, 'resnet50.onnx')
+    onnx_export(model, args, 'resnet50.onnx')
