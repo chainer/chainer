@@ -1,13 +1,13 @@
 Let's try using the Trainer feature
 ```````````````````````````````````
 
-By using :class:`~chainer.training.Trainer`, you don't need to write the tedious training loop explicitly any more. Furthermore, Chainer provides many useful extensions that can be used with :class:`~chainer.training.Trainer` to visualize your results, evaluate your model, store and manage log files more easily.
+By using :class:`~chainer.training.Trainer`, you don't need to write the training loop explicitly any more. Furthermore, Chainer provides many useful extensions that can be used with :class:`~chainer.training.Trainer` to visualize your results, evaluate your model, store and manage log files more easily.
 
 This example will show how to use the :class:`~chainer.training.Trainer` to train a fully-connected feed-forward neural network on the MNIST dataset.
 
 .. note::
 
-    If you would like to know how to write a training loop without using this functionality, please check :doc:`train_loop` instead of this tutorial.
+    If you would like to know how to write a training loop without using the :class:`~chainer.training.Trainer`, please check :doc:`train_loop` instead of this tutorial.
 
 1. Prepare the dataset
 ''''''''''''''''''''''
@@ -32,7 +32,7 @@ Load the MNIST dataset, which contains a training set of images and class labels
 
     There are many utility dataset classes defined in :mod:`~chainer.datasets`. It's recommended to utilize them in the actual applications.
 
-    For example, if your dataset consists of a number of image files, it would take a large amount of memory to load those data into a list like above. In that case, you can use :class:`~chainer.datasets.ImageDataset`, which just keeps the paths to image files. The actual image data will be loaded from the disk when the corresponding element is requested via ``[]`` accessor. Until then, no images are loaded to the memory, so it can save the memory consumption.
+    For example, if your dataset consists of a number of image files, it would take a large amount of memory to load those data into a list like above. In that case, you can use :class:`~chainer.datasets.ImageDataset`, which just keeps the paths to image files. The actual image data will be loaded from the disk when the corresponding element is requested via ``[]`` accessor. Until then, no images are loaded to the memory to reduce memory use.
 
 2. Prepare the dataset iterations
 '''''''''''''''''''''''''''''''''
@@ -74,7 +74,7 @@ Here, we are going to use the same model as the one defined in :doc:`train_loop`
     gpu_id = 0  # Set to -1 if you use CPU
 
     model = MLP()
-    model.to_gpu(gpu_id)  # If you use CPU, comment out this line
+    model.to_gpu(gpu_id)
 
 4. Prepare the Updater
 ''''''''''''''''''''''
@@ -147,7 +147,7 @@ Now let's create the :class:`~chainer.training.Updater` object !
     In :class:`~chainer.links.Classifier`, the :attr:`~chainer.links.Classifier.lossfun` is set to
     :meth:`~chainer.functions.softmax_cross_entropy` as default.
 
-    :class:`~chainer.training.StandardUpdater` is the simplest class among several updaters. There are also the :class:`~chainer.training.ParallelUpdater` and the :class:`~chainer.training.updaters.MultiprocessParallelUpdater` to utilize multiple GPUs.
+    :class:`~chainer.training.StandardUpdater` is the simplest class among several updaters. There are also the :class:`~chainer.training.ParallelUpdater` and the :class:`~chainer.training.updaters.MultiprocessParallelUpdater` to utilize multiple GPUs. The :class:`~chainer.training.updaters.MultiprocessParallelUpdater` uses the NVIDIA NCCL library, so you need to install NCCL and re-install CuPy before using it.
 
 5. Setup Trainer
 ''''''''''''''''
@@ -212,7 +212,7 @@ However, when you keep the whole :class:`~chainer.training.Trainer` object, in s
 :meth:`~chainer.training.extensions.dump_graph`
 ...............................................
 
-This method save the structure of the computational graph of the model. The graph is saved in the
+This method saves the structure of the computational graph of the model. The graph is saved in the
 `Graphviz <http://www.graphviz.org/>_`s dot format. The output location (directory) to save the graph is set by the :attr:`~chainer.training.Trainer.out` argument of :class:`~chainer.training.Trainer`.
 
 :class:`~chainer.training.extensions.Evaluator`
@@ -305,4 +305,4 @@ Evaluation using the snapshot of a model is as easy as what explained in the :do
     label: 7
     predicted_label: 7
 
-The prediction looks correct. Yatta!
+The prediction looks correct.
