@@ -58,7 +58,7 @@ class ReLUGrad2(function_node.FunctionNode):
 
     This function takes 2 variables b and c, and
     computes f(b, c) = sign(b) * c with backpropagation
-    where operations are dones in elementwise manner
+    where operations are done in elementwise manner
     and sign(x) = 1 when x > 0 is positive and 0 otherwise.
 
     As the gradient of f with respect to b is 0,
