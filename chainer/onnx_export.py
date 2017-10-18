@@ -383,7 +383,7 @@ def export(model, args, filename, export_params=True, graph_name='Graph',
     with open(filename, 'wb') as fp:
         fp.write(model.SerializeToString())
 
-    print(model)
+    return model
 
 
 if __name__ == '__main__':
