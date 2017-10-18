@@ -135,7 +135,7 @@ class FunctionAdapter(function_node.FunctionNode):
             if gxs[i] is None:
                 g = None
             else:
-                # Intentionallly not passing requires_grad=False so that
+                # Intentionally not passing requires_grad=False so that
                 # backprop routines can raise an error when a further backprop
                 # is attempted against this gradient variable.
                 g = variable.Variable(gxs[i])
