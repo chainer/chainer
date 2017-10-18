@@ -208,6 +208,60 @@ def convert_add(func, input_names, param_names):
     return helper.make_node(layer_name, input_names, out_names)
 
 
+def create_node(func_name, cand, input_names, param_names, parameters,
+                input_tensors):
+    if func_name == 'Convolution2DFunction':
+        node = convert_convolution_2d_function(cand, input_names, param_names)
+    elif func_name == 'LinearFunction':
+        node = convert_linear_function(cand, input_names, param_names)
+    elif func_name == 'Reshape':
+        node = convert_reshape(cand, input_names, param_names)
+    elif func_name == 'AveragePooling2D':
+        node = convert_average_pooling_2d(cand, input_names, param_names)
+    elif func_name == 'MaxPooling2D':
+        node = convert_max_pooling_2d(cand, input_names, param_names)
+    elif func_name == 'BatchNormalization':
+        layer_name = os.path.dirname(param_names[id(cand.gamma)])
+
+        # Add running_mean and running_var to graph
+        param_names[id(cand.running_mean)] = os.path.join(
+            layer_name, 'running_mean')
+        parameters.append(
+            numpy_helper.from_array(
+                cand.running_mean,
+                param_names[id(cand.running_mean)]))
+        input_tensors.append(
+            helper.make_tensor_value_info(
+                param_names[id(cand.running_mean)],
+                _dtype[cand.running_mean.dtype.name],
+                cand.running_mean.shape)
+        )
+
+        param_names[id(cand.running_var)] = os.path.join(
+            layer_name, 'running_var')
+        parameters.append(
+            numpy_helper.from_array(
+                cand.running_var,
+                param_names[id(cand.running_var)]))
+        input_tensors.append(
+            helper.make_tensor_value_info(
+                param_names[id(cand.running_var)],
+                _dtype[cand.running_var.dtype.name],
+                cand.running_var.shape)
+        )
+
+        node = convert_batch_normalization(cand, input_names, param_names)
+    elif func_name == 'ReLU':
+        node = convert_relu(cand, input_names, param_names)
+    elif func_name == 'Softmax':
+        node = convert_softmax(cand, input_names, param_names)
+    elif func_name == 'Add':
+        node = convert_add(cand, input_names, param_names)
+
+    checker.check_node(node)
+    return node
+
+
 def export(model, args, filename, export_params=True, graph_name='Graph',
            producer='Chainer'):
     _check_available()
@@ -295,68 +349,11 @@ def export(model, args, filename, export_params=True, graph_name='Graph',
                             out_var.shape)
 
             if func_name in _layers.keys():
-                if func_name == 'Convolution2DFunction':
-                    graph.append(
-                        convert_convolution_2d_function(
-                            cand, input_names, param_names))
-                elif func_name == 'LinearFunction':
-                    graph.append(
-                        convert_linear_function(
-                            cand, input_names, param_names))
-                elif func_name == 'Reshape':
-                    graph.append(
-                        convert_reshape(cand, input_names, param_names))
-                elif func_name == 'AveragePooling2D':
-                    graph.append(
-                        convert_average_pooling_2d(
-                            cand, input_names, param_names))
-                elif func_name == 'MaxPooling2D':
-                    graph.append(
-                        convert_max_pooling_2d(
-                            cand, input_names, param_names))
-                elif func_name == 'BatchNormalization':
-                    layer_name = os.path.dirname(param_names[id(cand.gamma)])
+                node = create_node(func_name, cand, input_names, param_names,
+                                   parameters, input_tensors)
+                graph.append(node)
 
-                    # Add running_mean and running_var to graph
-                    param_names[id(cand.running_mean)] = os.path.join(
-                        layer_name, 'running_mean')
-                    parameters.append(
-                        numpy_helper.from_array(
-                            cand.running_mean,
-                            param_names[id(cand.running_mean)]))
-                    input_tensors.append(
-                        helper.make_tensor_value_info(
-                            param_names[id(cand.running_mean)],
-                            _dtype[cand.running_mean.dtype.name],
-                            cand.running_mean.shape)
-                    )
-
-                    param_names[id(cand.running_var)] = os.path.join(
-                        layer_name, 'running_var')
-                    parameters.append(
-                        numpy_helper.from_array(
-                            cand.running_var,
-                            param_names[id(cand.running_var)]))
-                    input_tensors.append(
-                        helper.make_tensor_value_info(
-                            param_names[id(cand.running_var)],
-                            _dtype[cand.running_var.dtype.name],
-                            cand.running_var.shape)
-                    )
-
-                    graph.append(
-                        convert_batch_normalization(
-                            cand, input_names, param_names))
-                elif func_name == 'ReLU':
-                    graph.append(convert_relu(cand, input_names, param_names))
-                elif func_name == 'Softmax':
-                    graph.append(
-                        convert_softmax(cand, input_names, param_names))
-                elif func_name == 'Add':
-                    graph.append(
-                        convert_add(cand, input_names, param_names))
-
-    # Add all the input values for the network to input_tensors
+                # Add all the input values for the network to input_tensors
     for i, arg in enumerate(args):
         name = str(id(arg))
         input_tensors.append(helper.make_tensor_value_info(
