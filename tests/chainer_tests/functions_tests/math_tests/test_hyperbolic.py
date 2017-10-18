@@ -46,6 +46,19 @@ class UnaryFunctionsTestBase(unittest.TestCase):
     def check_backward_gpu(self, op):
         self.check_backward(op, cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
+    def check_double_backward(self, op, x_data, y_grad, x_grad_grad):
+        gradient_check.check_double_backward(
+            op, x_data, y_grad, x_grad_grad,
+            atol=1e-4, rtol=1e-3, dtype=numpy.float64)
+
+    def check_double_backward_cpu(self, op):
+        self.check_double_backward(op, self.x, self.gy, self.ggx)
+
+    def check_double_backward_gpu(self, op):
+        self.check_double_backward(
+            op, cuda.to_gpu(self.x), cuda.to_gpu(self.gy),
+            cuda.to_gpu(self.ggx))
+
     def check_label(self, op, expected):
         self.assertEqual(op().label, expected)
 
@@ -59,6 +72,7 @@ class TestCosh(UnaryFunctionsTestBase):
     def make_data(self):
         x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        self.ggx = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         return x, gy
 
     def test_forward_cpu(self):
@@ -75,6 +89,15 @@ class TestCosh(UnaryFunctionsTestBase):
     def test_backward_gpu(self):
         self.check_backward_gpu(F.cosh)
 
+    @condition.retry(3)
+    def test_double_backward_cpu(self):
+        self.check_double_backward_cpu(F.cosh)
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_double_backward_gpu(self):
+        self.check_double_backward_gpu(F.cosh)
+
     def test_label(self):
         self.check_label(F.Cosh, 'cosh')
 
@@ -88,6 +111,7 @@ class TestSinh(UnaryFunctionsTestBase):
     def make_data(self):
         x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        self.ggx = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         return x, gy
 
     def test_forward_cpu(self):
@@ -103,6 +127,15 @@ class TestSinh(UnaryFunctionsTestBase):
     @attr.gpu
     def test_backward_gpu(self):
         self.check_backward_gpu(F.sinh)
+
+    @condition.retry(3)
+    def test_double_backward_cpu(self):
+        self.check_double_backward_cpu(F.cosh)
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_double_backward_gpu(self):
+        self.check_double_backward_gpu(F.cosh)
 
     def test_label(self):
         self.check_label(F.Sinh, 'sinh')
