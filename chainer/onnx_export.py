@@ -151,28 +151,26 @@ def convert_batch_normalization(link, input_names, param_names):
             input_names[i] = str(input_name)
     input_names.append(param_names[id(link.running_mean)])
     input_names.append(param_names[id(link.running_var)])
-    print(input_names)
 
     layer_name = _layers[link.__class__.__name__]
     unique_layer_name = os.path.dirname(input_names[1])
     out_names = [str(id(out())) for out in link.outputs]
-    out_names += [
-        os.path.join(unique_layer_name, 'mean'),
-        os.path.join(unique_layer_name, 'var'),
-        os.path.join(unique_layer_name, 'saved_mean'),
-        os.path.join(unique_layer_name, 'saved_var')
-    ]
-    print(out_names)
+    if chainer.config.train:
+        out_names += [
+            os.path.join(unique_layer_name, 'mean'),
+            os.path.join(unique_layer_name, 'var'),
+            os.path.join(unique_layer_name, 'saved_mean'),
+            os.path.join(unique_layer_name, 'saved_var')
+        ]
 
-    node = helper.make_node(
+    return helper.make_node(
         layer_name, input_names, out_names,
         epsilon=link.eps,
-        is_test=chainer.config.train,
+        is_test=not chainer.config.train,
         momentum=link.decay,
         spatial=True,
+        consumed_inputs=[False, False, False, True, True],
     )
-    checker.check_node(node)
-    return node
 
 
 def convert_relu(func, input_names, param_names):
@@ -215,16 +213,24 @@ def export(model, args, filename, export_params=True, name='Graph',
     _check_available()
 
     model.to_cpu()
-    args = args if isinstance(args, (list, tuple)) else (args,)
+    args = list(args) if isinstance(args, (list, tuple)) else [args]
+    for i, arg in enumerate(args):
+        if not isinstance(arg, chainer.Variable):
+            args[i] = chainer.Variable(arg)
     outputs = model(*args)
+
+    input_tensor_ids = [id(arg) for arg in args]
 
     graph = []
     parameters = []
     param_names = {}
+    input_tensors = []
     for name, param in model.namedparams():
         param_names[id(param)] = name
         parameters.append(
             convert_parameter(param, param_names))
+        input_tensors.append(helper.make_tensor_value_info(
+            name, _dtype[param.array.dtype.name], param.shape))
 
     if isinstance(outputs, dict):
         outputs = list(outputs.values())
@@ -271,16 +277,11 @@ def export(model, args, filename, export_params=True, name='Graph',
                     input_names.append(id(input_.get_variable()))
                     setattr(cand, input_.name, input_.get_variable())
                 else:
-                    input_names.append(id(input_))
-                    # layer_unique_name = os.path.join(
-                    #     func_name, '{}'.format(cand.rank))
-                    # print('-' * 20)
-                    # print(layer_unique_name)
-                    # if input_.creator_node is not None:
-                    #     print('input_:', input_)
-                    #     print('input_.creater_note.outputs[0]():',
-                    #           input_.creator_node.outputs[0]())
-                    #     print('cand.outputs:', cand.outputs[0]())
+                    if id(input_.get_variable()) in input_tensor_ids:
+                        input_id = id(input_.get_variable())
+                    else:
+                        input_id = id(input_)
+                    input_names.append(input_id)
 
             if func_name in _layers.keys():
                 if func_name == 'Convolution2DFunction':
@@ -308,16 +309,29 @@ def export(model, args, filename, export_params=True, name='Graph',
                     # Add running_mean and running_var to graph
                     param_names[id(cand.running_mean)] = os.path.join(
                         layer_name, 'running_mean')
-                    param_names[id(cand.running_var)] = os.path.join(
-                        layer_name, 'running_var')
                     parameters.append(
                         numpy_helper.from_array(
                             cand.running_mean,
                             param_names[id(cand.running_mean)]))
+                    input_tensors.append(
+                        helper.make_tensor_value_info(
+                            param_names[id(cand.running_mean)],
+                            _dtype[cand.running_mean.dtype.name],
+                            cand.running_mean.shape)
+                    )
+
+                    param_names[id(cand.running_var)] = os.path.join(
+                        layer_name, 'running_var')
                     parameters.append(
                         numpy_helper.from_array(
                             cand.running_var,
                             param_names[id(cand.running_var)]))
+                    input_tensors.append(
+                        helper.make_tensor_value_info(
+                            param_names[id(cand.running_var)],
+                            _dtype[cand.running_var.dtype.name],
+                            cand.running_var.shape)
+                    )
 
                     graph.append(
                         convert_batch_normalization(
@@ -331,13 +345,11 @@ def export(model, args, filename, export_params=True, name='Graph',
                     graph.append(
                         convert_add(cand, input_names, param_names))
 
-    input_tensors = []
+    # Add all the input values for the network to input_tensors
     for i, arg in enumerate(args):
-        name = 'data{}'.format(i)
-        if isinstance(arg, chainer.Variable):
-            arg = arg.array
+        name = str(id(arg))
         input_tensors.append(helper.make_tensor_value_info(
-            name, _dtype[arg.dtype.name], arg.shape))
+            name, _dtype[arg.array.dtype.name], arg.shape))
 
     output_tensors = []
     for i, output in enumerate(outputs):
@@ -349,38 +361,42 @@ def export(model, args, filename, export_params=True, name='Graph',
 
     if not export_params:
         parameters = []
+
     onnx_graph = helper.make_graph(
         reversed(graph), name, input_tensors, output_tensors,
         initializer=parameters)
+
     model = helper.make_model(
         onnx_graph,
         producer_name='Chainer',
         producer_version=chainer.__version__)
+
     checker.check_model(model)
+
     with open(filename, 'wb') as fp:
         fp.write(model.SerializeToString())
+
 
 if __name__ == '__main__':
     import chainer.links as L
     import chainer.functions as F
 
-    # # Network definition
-    # class MLP(chainer.Chain):
-    #
-    #     def __init__(self, n_units, n_out):
-    #         super(MLP, self).__init__()
-    #         with self.init_scope():
-    #             # the size of the inputs to each layer will be inferred
-    #             self.l1 = L.Linear(None, n_units)  # n_in -> n_units
-    #             self.l2 = L.Linear(None, n_units)  # n_units -> n_units
-    #             self.l3 = L.Linear(None, n_out)  # n_units -> n_out
-    #
-    #     def __call__(self, x):
-    #         h1 = F.relu(self.l1(x))
-    #         h2 = F.relu(self.l2(h1))
-    #         return self.l3(h2)
-    #
-    # model = MLP(1, 10)
-    model = L.ResNet50Layers()
-    args = numpy.random.rand(1, 3, 224, 224).astype(numpy.float32)
+    # Network definition
+    class MLP(chainer.Chain):
+
+        def __init__(self, n_units, n_out):
+            super(MLP, self).__init__()
+            with self.init_scope():
+                # the size of the inputs to each layer will be inferred
+                self.l1 = L.Convolution2D(None, n_units, 3, 1, 1)  # n_in -> n_units
+                self.b1 = L.BatchNormalization(n_units)
+                self.l2 = L.Linear(None, n_units)  # n_units -> n_units
+
+        def __call__(self, x):
+            h = self.b1(F.relu(self.l1(x)))
+            return self.l2(h)
+
+    model = MLP(1, 10)
+    # model = L.ResNet50Layers()
+    args = numpy.random.rand(1, 1, 5, 5).astype(numpy.float32)
     export(model, args, 'resnet50.onnx')
