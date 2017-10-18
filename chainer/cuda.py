@@ -489,3 +489,19 @@ def set_max_workspace_size(size):
     """
     global _max_workspace_size
     _max_workspace_size = size
+
+
+def fuse(*args, **kwargs):
+    """Function fusing decorator.
+
+    It calls :func:`cupy.fuse` when CuPy is available to make fused function
+    and does nothing otherwise.
+
+    .. seealso::
+       :func:`cupy.fuse`
+
+    """
+    if available:
+        return cupy.fuse(*args, **kwargs)
+    else:
+        return lambda f: f

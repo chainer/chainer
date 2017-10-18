@@ -15,7 +15,7 @@ from chainer import testing
 from chainer.testing import attr
 from chainer.testing import condition
 from chainer.utils import conv
-import pooling_nd_helper
+from chainer_tests.functions_tests.pooling_tests import pooling_nd_helper
 
 
 @testing.parameterize(*testing.product({
