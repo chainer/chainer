@@ -53,26 +53,27 @@ def unary_math_function_unittest(func, func_expected=None, label_expected=None,
     """Decorator for testing unary mathematical Chainer functions.
 
     This decorator makes test classes test unary mathematical Chainer
-    functions. Tested are forward and backward computations on CPU and GPU
-    across parameterized ``shape`` and ``dtype``.
+    functions. Tested are forward and backward, including double backward,
+    computations on CPU and GPU across parameterized ``shape`` and ``dtype``.
 
     Args:
-        func(~chainer.Function): Chainer function to be tested by the decorated
-            test class.
+        func(function or ~chainer.Function): Chainer function to be tested by
+            the decorated test class. Taking :class:`~chainer.Function` is for
+            backward compatibility.
         func_expected: Function used to provide expected values for
             testing forward computation. If not given, a corresponsing numpy
-            function for ``func`` is implicitly picked up by its class name.
+            function for ``func`` is implicitly picked up by its name.
         label_expected(string): String used to test labels of Chainer
-            functions. If not given, the class name of ``func`` lowered is
-            implicitly used.
+            functions. If not given, the name of ``func`` is implicitly used.
         make_data: Function to customize input and gradient data used
             in the tests. It takes ``shape`` and ``dtype`` as its arguments,
-            and returns a tuple of input and gradient data. By default, uniform
-            destribution ranged ``[-1, 1]`` is used for both.
+            and returns a tuple of input, gradient and double gradient data. By
+            default, uniform destribution ranged ``[-1, 1]`` is used for all of
+            them.
 
-    The decorated test class tests forward and backward computations on CPU and
-    GPU across the following :func:`~chainer.testing.parameterize` ed
-    parameters:
+    The decorated test class tests forward, backward and double backward
+    computations on CPU and GPU across the following
+    :func:`~chainer.testing.parameterize` ed parameters:
 
     - shape: rank of zero, and rank of more than zero
     - dtype: ``numpy.float16``, ``numpy.float32`` and ``numpy.float64``
@@ -98,7 +99,7 @@ def unary_math_function_unittest(func, func_expected=None, label_expected=None,
           >>> from chainer import testing
           >>> from chainer import functions as F
           >>>
-          >>> @testing.unary_math_function_unittest(F.Sin())
+          >>> @testing.unary_math_function_unittest(F.sin)
           ... class TestSin(unittest.TestCase):
           ...     pass
 
@@ -125,9 +126,10 @@ def unary_math_function_unittest(func, func_expected=None, label_expected=None,
           >>> def make_data(shape, dtype):
           ...     x = numpy.random.uniform(0.1, 1, shape).astype(dtype)
           ...     gy = numpy.random.uniform(-1, 1, shape).astype(dtype)
-          ...     return x, gy
+          ...     ggx = numpy.random.uniform(-1, 1, shape).astype(dtype)
+          ...     return x, gy, ggx
           ...
-          >>> @testing.unary_math_function_unittest(F.Sqrt(),
+          >>> @testing.unary_math_function_unittest(F.sqrt,
           ...                                       make_data=make_data)
           ... class TestSqrt(unittest.TestCase):
           ...     pass
@@ -136,9 +138,10 @@ def unary_math_function_unittest(func, func_expected=None, label_expected=None,
           ...     defaultTest=__name__, argv=['', '-a', '!gpu'], exit=False)
           True
 
-       ``make_data`` function which returns input and gradient data generated
-       in proper value domains with given ``shape`` and ``dtype`` parameters is
-       defined, then passed to the decorator's ``make_data`` parameter.
+       ``make_data`` function which returns input, gradient and double gradient
+       data generated in proper value domains with given ``shape`` and
+       ``dtype`` parameters is defined, then passed to the decorator's
+       ``make_data`` parameter.
 
     """
     check_available()
