@@ -51,12 +51,9 @@ def convert_parameter(parameter, param_names):
 
 
 def convert_convolution_2d_function(link, input_names, param_names):
-    W = convert_parameter(link.W, param_names)
-    input_names[input_names.index(id(link.W))] = W.name
-    if hasattr(link, 'b'):
-        b = convert_parameter(link.b, param_names)
-        input_names[input_names.index(id(link.b))] = b.name
+    nodes = []
 
+    input_names[input_names.index(id(link.W))] = param_names[id(link.W)]
     for i, input_name in enumerate(input_names):
         if type(input_name) is not str:
             input_names[i] = str(input_name)
@@ -64,12 +61,21 @@ def convert_convolution_2d_function(link, input_names, param_names):
     layer_name = _layers[link.__class__.__name__]
     out_names = [str(id(out())) for out in link.outputs]
 
-    return helper.make_node(
+    nodes.append(helper.make_node(
         layer_name, input_names, out_names,
         kernel_shape=link.W.shape,
         strides=(link.sy, link.sx),
         pads=(link.ph, link.pw)
-    )
+    ))
+
+    # Bias
+    if hasattr(link, 'b'):
+        out_names.append(param_names[id(link.b)])
+        input_names = out_names
+        out_names = [str(id(out())) for out in link.outputs]
+        nodes.append(helper.make_node('Add', input_names, out_names))
+
+    return nodes
 
 
 def convert_linear_function(link, input_names, param_names):
@@ -92,7 +98,7 @@ def convert_linear_function(link, input_names, param_names):
         broadcast=True,
         transA=False,
         transB=False,
-    )
+    ),
 
 
 def convert_reshape(func, input_names, param_names):
@@ -106,7 +112,7 @@ def convert_reshape(func, input_names, param_names):
     return helper.make_node(
         layer_name, input_names, out_names,
         shape=func.shape
-    )
+    ),
 
 
 def convert_average_pooling_2d(func, input_names, param_names):
@@ -124,10 +130,10 @@ def convert_average_pooling_2d(func, input_names, param_names):
             kernel_shape=(func.kh, func.kw),
             pads=(func.ph, func.pw),
             strides=(func.sy, func.sx)
-        )
+        ),
     else:
         return helper.make_node(
-            'Global' + layer_name, input_names, out_names)
+            'Global' + layer_name, input_names, out_names),
 
 
 def convert_max_pooling_2d(func, input_names, param_names):
@@ -145,10 +151,10 @@ def convert_max_pooling_2d(func, input_names, param_names):
             kernel_shape=(func.kh, func.kw),
             pads=(func.ph, func.pw),
             strides=(func.sy, func.sx)
-        )
+        ),
     else:
         return helper.make_node(
-            'Global' + layer_name, input_names, out_names)
+            'Global' + layer_name, input_names, out_names),
 
 
 def convert_batch_normalization(link, input_names, param_names):
@@ -180,7 +186,7 @@ def convert_batch_normalization(link, input_names, param_names):
         momentum=link.decay,
         spatial=True,
         consumed_inputs=[False, False, False, True, True],
-    )
+    ),
 
 
 def convert_relu(func, input_names, param_names):
@@ -190,7 +196,7 @@ def convert_relu(func, input_names, param_names):
 
     layer_name = _layers[func.__class__.__name__]
     out_names = [str(id(out())) for out in func.outputs]
-    return helper.make_node(layer_name, input_names, out_names)
+    return helper.make_node(layer_name, input_names, out_names),
 
 
 def convert_softmax(func, input_names, param_names):
@@ -204,7 +210,7 @@ def convert_softmax(func, input_names, param_names):
     return helper.make_node(
         layer_name, input_names, out_names,
         axis=func.axis
-    )
+    ),
 
 
 def convert_add(func, input_names, param_names):
@@ -215,21 +221,21 @@ def convert_add(func, input_names, param_names):
     layer_name = _layers[func.__class__.__name__]
     out_names = [str(id(out())) for out in func.outputs]
 
-    return helper.make_node(layer_name, input_names, out_names)
+    return helper.make_node(layer_name, input_names, out_names),
 
 
 def create_node(func_name, cand, input_names, param_names, parameters,
                 input_tensors):
     if func_name == 'Convolution2DFunction':
-        node = convert_convolution_2d_function(cand, input_names, param_names)
+        nodes = convert_convolution_2d_function(cand, input_names, param_names)
     elif func_name == 'LinearFunction':
-        node = convert_linear_function(cand, input_names, param_names)
+        nodes = convert_linear_function(cand, input_names, param_names)
     elif func_name == 'Reshape':
-        node = convert_reshape(cand, input_names, param_names)
+        nodes = convert_reshape(cand, input_names, param_names)
     elif func_name == 'AveragePooling2D':
-        node = convert_average_pooling_2d(cand, input_names, param_names)
+        nodes = convert_average_pooling_2d(cand, input_names, param_names)
     elif func_name == 'MaxPooling2D':
-        node = convert_max_pooling_2d(cand, input_names, param_names)
+        nodes = convert_max_pooling_2d(cand, input_names, param_names)
     elif func_name == 'BatchNormalization':
         layer_name = os.path.dirname(param_names[id(cand.gamma)])
 
@@ -260,16 +266,19 @@ def create_node(func_name, cand, input_names, param_names, parameters,
                 cand.running_var.shape)
         )
 
-        node = convert_batch_normalization(cand, input_names, param_names)
+        nodes = convert_batch_normalization(cand, input_names, param_names)
     elif func_name == 'ReLU':
-        node = convert_relu(cand, input_names, param_names)
+        nodes = convert_relu(cand, input_names, param_names)
     elif func_name == 'Softmax':
-        node = convert_softmax(cand, input_names, param_names)
+        nodes = convert_softmax(cand, input_names, param_names)
     elif func_name == 'Add':
-        node = convert_add(cand, input_names, param_names)
+        nodes = convert_add(cand, input_names, param_names)
 
-    checker.check_node(node)
-    return node
+    # A single Chainer layer could be multiple onnx layers
+    # e.g., Convolution2D -> Conv + Add (for bias)
+    for node in nodes:
+        checker.check_node(node)
+    return nodes
 
 
 def onnx_export(model, args, filename=None, export_params=True,
@@ -380,9 +389,10 @@ def onnx_export(model, args, filename=None, export_params=True,
                             out_var.shape)
 
             if func_name in _layers.keys():
-                node = create_node(func_name, cand, input_names, param_names,
-                                   parameters, input_tensors)
-                graph.append(node)
+                onnx_nodes = create_node(
+                    func_name, cand, input_names, param_names, parameters,
+                    input_tensors)
+                graph.extend(onnx_nodes)
 
                 # Add all the input values for the network to input_tensors
     for i, arg in enumerate(args):
