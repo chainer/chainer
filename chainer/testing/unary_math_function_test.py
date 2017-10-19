@@ -3,7 +3,7 @@ import unittest
 
 from chainer import cuda
 from chainer import function
-import chainer.functions as F
+from chainer import functions
 from chainer.testing import condition
 from chainer import variable
 
@@ -38,7 +38,7 @@ def _func_class(func):
         return func.__class__
     else:
         name = func.__name__.capitalize()
-        return getattr(F, name, None)
+        return getattr(functions, name, None)
 
 
 def _make_data_default(shape, dtype):
