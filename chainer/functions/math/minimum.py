@@ -1,12 +1,13 @@
 import numpy
 
 from chainer import cuda
-from chainer import function
+from chainer import function_node
+import chainer.functions
 from chainer import utils
 from chainer.utils import type_check
 
 
-class Minimum(function.Function):
+class Minimum(function_node.FunctionNode):
     """Element-wise minimum of input variables."""
 
     def check_type_forward(self, in_types):
@@ -18,24 +19,33 @@ class Minimum(function.Function):
         )
 
     def forward_cpu(self, inputs):
+        self.retain_inputs((0, 1))
         x1, x2 = inputs
         y = numpy.minimum(x1, x2)
         return utils.force_array(y),
 
-    def backward_cpu(self, inputs, grads):
+    def forward_gpu(self, inputs):
+        self.retain_inputs((0, 1))
         x1, x2 = inputs
-        gy, = grads
+        return cuda.cupy.minimum(x1, x2),
+
+    def backward(self, indexes, grad_outputs):
+        x1, x2 = self.get_retained_inputs()
+        return MinimumGrad().apply((x1, x2, grad_outputs[0]))
+
+
+class MinimumGrad(function_node.FunctionNode):
+
+    def forward_cpu(self, inputs):
+        self.retain_inputs((0, 1))
+        x1, x2, gy = inputs
         gx1 = gy * (x1 <= x2)
         gx2 = gy * (x1 > x2)
         return utils.force_array(gx1), utils.force_array(gx2)
 
     def forward_gpu(self, inputs):
-        x1, x2 = inputs
-        return cuda.cupy.minimum(x1, x2),
-
-    def backward_gpu(self, inputs, grads):
-        x1, x2 = inputs
-        gy, = grads
+        self.retain_inputs((0, 1))
+        x1, x2, gy = inputs
         gx1 = cuda.elementwise(
             'T x1, T x2, T gy', 'T gx1',
             'gx1 = (x1 <= x2) ? gy : (T)0.0',
@@ -45,6 +55,13 @@ class Minimum(function.Function):
             'gx1 = (x1 > x2) ? gy : (T)0.0',
             'minimum_bwd2')(x1, x2, gy)
         return gx1, gx2
+
+    def backward(self, indexes, grad_outputs):
+        x1, x2 = self.get_retained_inputs()
+        ggx = grad_outputs[0] * 0 + grad_outputs[1] * 0
+        cond = utils.force_array(x1.data <= x2.data)
+        gggy = chainer.functions.where(cond, grad_outputs[0], grad_outputs[1])
+        return ggx, ggx, gggy
 
 
 def minimum(x1, x2):
@@ -57,4 +74,4 @@ def minimum(x1, x2):
     Returns:
         ~chainer.Variable: Output variable.
     """
-    return Minimum()(x1, x2)
+    return Minimum().apply((x1, x2))[0]
