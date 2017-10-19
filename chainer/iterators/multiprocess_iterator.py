@@ -54,8 +54,8 @@ class MultiprocessIterator(iterator.Iterator):
             of the indices to sample in the next epoch when a epoch finishes.
             This function should take two arguements: the current order
             and the current position of the iterator.
-            This should return the next order, which should have the
-            same length as the dataset.
+            This should return the next order. The size of the order
+            should remain constant.
             This option can not be used when ``shuffle`` is ``True``.
 
     """
@@ -155,13 +155,14 @@ class MultiprocessIterator(iterator.Iterator):
         other.is_new_epoch = self.is_new_epoch
         other._previous_epoch_detail = self._previous_epoch_detail
         other._order = self._order
+        other._epoch_size = self._epoch_size
 
         other._set_prefetch_state()
         return other
 
     @property
     def epoch_detail(self):
-        return self.epoch + self.current_position / len(self.dataset)
+        return self.epoch + self.current_position / self._epoch_size
 
     @property
     def previous_epoch_detail(self):
@@ -184,12 +185,13 @@ class MultiprocessIterator(iterator.Iterator):
         except KeyError:
             # guess previous_epoch_detail for older version
             self._previous_epoch_detail = self.epoch + \
-                (self.current_position - self.batch_size) / len(self.dataset)
+                (self.current_position - self.batch_size) / self._epoch_size
             if self.epoch_detail > 0:
                 self._previous_epoch_detail = max(
                     self._previous_epoch_detail, 0.)
             else:
                 self._previous_epoch_detail = -1.
+        self._epoch_size = self._get_epoch_size()
         self._set_prefetch_state()
 
     def reset(self):
@@ -203,11 +205,15 @@ class MultiprocessIterator(iterator.Iterator):
         # use -1 instead of None internally.
         self._previous_epoch_detail = -1.
         self._order = self.order_sampler(numpy.arange(len(self.dataset)), 0)
-        if self._order is not None and len(self._order) != len(self.dataset):
-            raise ValueError('The size of order does not match '
-                             'with the size of the dataset')
-
+        self._epoch_size = self._get_epoch_size()
         self._set_prefetch_state()
+
+    def _get_epoch_size(self):
+        if self._order is None:
+            epoch_size = len(self.dataset)
+        else:
+            epoch_size = len(self._order)
+        return epoch_size
 
     def _set_prefetch_state(self):
         prefetch_state = _PrefetchState(
@@ -381,9 +387,9 @@ class _PrefetchLoop(object):
         return True
 
     def _proceed(self):
-        n = len(self.dataset)
         (pos, epoch, is_new_epoch,
             previous_epoch_detail, order) = self.prefetch_state
+        n = len(order) if order is not None else len(self.dataset)
 
         if pos < self.batch_size and epoch > 0 and not self.repeat:
             return None  # stop iteration
@@ -408,10 +414,11 @@ class _PrefetchLoop(object):
             else:
                 indices = order[pos:n]
                 if self.repeat:
-                    order = self.order_sampler(order, pos)
-                    if len(order) != n:
+                    new_order = self.order_sampler(order, pos)
+                    if len(new_order) != n:
                         raise ValueError('The size of order does not match '
-                                         'with the size of the dataset')
+                                         'the size of the previous order.')
+                    order = new_order
                     indices = \
                         numpy.concatenate((indices, order[:new_pos]))
             epoch += 1
