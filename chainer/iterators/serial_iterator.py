@@ -36,8 +36,8 @@ class SerialIterator(iterator.Iterator):
             of the indices to sample in the next epoch when a epoch finishes.
             This function should take two arguements: the current order
             and the current position of the iterator.
-            This should return the next order, which should have the
-            same length as the dataset.
+            This should return the next order. The size of the order
+            should remain constant.
             This option can not be used when ``shuffle`` is ``True``.
 
     """
@@ -69,7 +69,7 @@ class SerialIterator(iterator.Iterator):
 
         i = self.current_position
         i_end = i + self.batch_size
-        N = len(self.dataset)
+        N = self._epoch_size
 
         if self._order is None:
             batch = self.dataset[i:i_end]
@@ -80,10 +80,11 @@ class SerialIterator(iterator.Iterator):
             if self._repeat:
                 rest = i_end - N
                 if self._order is not None:
-                    self._order = self.order_sampler(self._order, i)
-                    if len(self._order) != N:
+                    new_order = self.order_sampler(self._order, i)
+                    if len(self._order) != len(new_order):
                         raise ValueError('The size of order does not match '
-                                         'with the size of the dataset')
+                                         'the size of the previous order.')
+                    self._order = new_order
                 if rest > 0:
                     if self._order is None:
                         batch.extend(self.dataset[:rest])
@@ -106,7 +107,7 @@ class SerialIterator(iterator.Iterator):
 
     @property
     def epoch_detail(self):
-        return self.epoch + self.current_position / len(self.dataset)
+        return self.epoch + self.current_position / self._epoch_size
 
     @property
     def previous_epoch_detail(self):
@@ -130,12 +131,13 @@ class SerialIterator(iterator.Iterator):
         except KeyError:
             # guess previous_epoch_detail for older version
             self._previous_epoch_detail = self.epoch + \
-                (self.current_position - self.batch_size) / len(self.dataset)
+                (self.current_position - self.batch_size) / self._epoch_size
             if self.epoch_detail > 0:
                 self._previous_epoch_detail = max(
                     self._previous_epoch_detail, 0.)
             else:
                 self._previous_epoch_detail = -1.
+        self._epoch_size = self._get_epoch_size()
 
     def reset(self):
         self.current_position = 0
@@ -145,6 +147,11 @@ class SerialIterator(iterator.Iterator):
         # use -1 instead of None internally.
         self._previous_epoch_detail = -1.
         self._order = self.order_sampler(numpy.arange(len(self.dataset)), 0)
-        if self._order is not None and len(self._order) != len(self.dataset):
-            raise ValueError('The size of order does not match '
-                             'with the size of the dataset')
+        self._epoch_size = self._get_epoch_size()
+
+    def _get_epoch_size(self):
+        if self._order is None:
+            epoch_size = len(self.dataset)
+        else:
+            epoch_size = len(self._order)
+        return epoch_size
