@@ -147,6 +147,15 @@ def _concat_arrays_with_padding(arrays, padding):
     return result
 
 
+class Conveyer(object):
+
+    def __init__(self, device=None):
+        self.device = device
+
+    def __call__(self, a)
+        return to_device(self.device, a)
+
+
 class ConcatWithAsyncTransfer(object):
 
     """Interface to concatenate data and transfer them to GPU asynchronously.
@@ -162,8 +171,7 @@ class ConcatWithAsyncTransfer(object):
 
     def __init__(self, stream=None):
         self.stream = stream
-        self._pin_arrays = [[], []]  # numpy arrays with pinned memory
-        self._cp_arrays = [[], []]  # cupy arrays
+        self.conveyer = {}
 
     def __call__(self, batch, device=None, padding=None):
         """Concatenate data and transfer them to GPU asynchronously.
@@ -183,77 +191,113 @@ class ConcatWithAsyncTransfer(object):
             raise ValueError('batch is empty')
 
         first_elem = batch[0]
-        if (device is None or
-                not isinstance(first_elem, tuple)):
-            return concat_examples(batch, device, padding)
 
-        if not isinstance(padding, tuple):
-            padding = [padding] * len(first_elem)
-
-        pin_arrays = self._pin_arrays.pop(0)
-        cp_arrays = self._cp_arrays.pop(0)
-
-        with cuda.get_device_from_id(device):
-            if self.stream is None:
-                self.stream = cuda.Stream(non_blocking=True)
-            stream = self.stream
-
-            # Concatenate examples in batch into an array and check if
-            # the size of the array matches the size of previously created
-            # and retained array.
-            _same_size = True
-            np_arrays = []
+        if isinstance(first_elem, tuple):
+            result = []
+            if not isinstance(padding, tuple):
+                padding = [padding] * len(first_elem)
+    
             for i in six.moves.range(len(first_elem)):
-                np_arrays.append(_concat_arrays(
-                    [example[i] for example in batch], padding[i]))
-                if (len(cp_arrays) <= i or
-                        np_arrays[i].nbytes != cp_arrays[i].nbytes):
-                    _same_size = False
+                if i not in self.conveyer:
+                    self.conveyer{i} = Conveyer(device)
+                a = _concat_arrays(
+                    [example[i] for example in batch], padding[i])))
+                a = self.conveyer(a)
+                result.append(a)
 
-            if not _same_size:
-                pin_arrays = []
-                cp_arrays = []
+            return tuple(result)
 
-            if len(cp_arrays) == 0:
-                # Allocate memory for numpy arrays with pinned memory
-                # and cupy arrays. These arrays are retaind at
-                # self._pin_arrays and self._cp_arrays respectively and
-                # will be reused for subsequent batches as long as
-                # the size are the same.
+        elif isinstance(first_elem, dict):
+            result = {}
+            if not isinstance(padding, dict):
+                padding = {key: padding for key in first_elem}
+    
+            for key in first_elem:
+                a = _concat_arrays(
+                    [example[i] for example in batch], padding[i])))
+                a = to_device(device, a)
+                result[key] = a
 
-                # The global synchronization below is necceary to ensure ALL
-                # operations including compute and data transfer submitted
-                # to GPU so far have been completed, in order to avoid possible
-                # memory corruption due to race condition among operations that
-                # use different CUDA streams.
-                # You can also solve this sort of race condition by preparing a
-                # memory pool for each CUDA stream and using it carefully.
-                runtime.deviceSynchronize()
-                for i in six.moves.range(len(first_elem)):
-                    np_array = np_arrays[i]
-                    pin_mem = cupy.cuda.alloc_pinned_memory(np_array.nbytes)
-                    pin_array = numpy.frombuffer(pin_mem,
-                                                 np_array.dtype,
-                                                 np_array.size
-                                                 ).reshape(np_array.shape)
-                    cp_array = cupy.empty_like(np_array)
+            return result
 
-                    pin_arrays.append(pin_array)
-                    cp_arrays.append(cp_array)
+        else:
+            return to_device(device, _concat_arrays(batch, padding))
 
-            results = []
-            for i in six.moves.range(len(first_elem)):
-                pin_arrays[i][...] = np_arrays[i]  # copy(CPU): paged -> pinned
-                cp_arrays[i].set(pin_arrays[i], stream)  # copy: CPU to GPU
-                results.append(cp_arrays[i])
-
-            # Wait for completion of the data transfer submitted above.
-            # Global synchronizaton is used here for safer reason.
-            # If a caller function is correctly handling the synchronization,
-            # local synchronization (stream.synchronize()) may be enough.
-            runtime.deviceSynchronize()
-
-            self._pin_arrays.append(pin_arrays)
-            self._cp_arrays.append(cp_arrays)
-
-            return tuple(results)
+#        if len(batch) == 0:
+#            raise ValueError('batch is empty')
+#
+#        first_elem = batch[0]
+#        if (device is None or
+#                not isinstance(first_elem, tuple)):
+#            return concat_examples(batch, device, padding)
+#
+#        if not isinstance(padding, tuple):
+#            padding = [padding] * len(first_elem)
+#
+#        pin_arrays = self._pin_arrays.pop(0)
+#        cp_arrays = self._cp_arrays.pop(0)
+#
+#        with cuda.get_device_from_id(device):
+#            if self.stream is None:
+#                self.stream = cuda.Stream(non_blocking=True)
+#            stream = self.stream
+#
+#            # Concatenate examples in batch into an array and check if
+#            # the size of the array matches the size of previously created
+#            # and retained array.
+#            _same_size = True
+#            np_arrays = []
+#            for i in six.moves.range(len(first_elem)):
+#                np_arrays.append(_concat_arrays(
+#                    [example[i] for example in batch], padding[i]))
+#                if (len(cp_arrays) <= i or
+#                        np_arrays[i].nbytes != cp_arrays[i].nbytes):
+#                    _same_size = False
+#
+#            if not _same_size:
+#                pin_arrays = []
+#                cp_arrays = []
+#
+#            if len(cp_arrays) == 0:
+#                # Allocate memory for numpy arrays with pinned memory
+#                # and cupy arrays. These arrays are retaind at
+#                # self._pin_arrays and self._cp_arrays respectively and
+#                # will be reused for subsequent batches as long as
+#                # the size are the same.
+#
+#                # The global synchronization below is necceary to ensure ALL
+#                # operations including compute and data transfer submitted
+#                # to GPU so far have been completed, in order to avoid possible
+#                # memory corruption due to race condition among operations that
+#                # use different CUDA streams.
+#                # You can also solve this sort of race condition by preparing a
+#                # memory pool for each CUDA stream and using it carefully.
+#                runtime.deviceSynchronize()
+#                for i in six.moves.range(len(first_elem)):
+#                    np_array = np_arrays[i]
+#                    pin_mem = cupy.cuda.alloc_pinned_memory(np_array.nbytes)
+#                    pin_array = numpy.frombuffer(pin_mem,
+#                                                 np_array.dtype,
+#                                                 np_array.size
+#                                                 ).reshape(np_array.shape)
+#                    cp_array = cupy.empty_like(np_array)
+#
+#                    pin_arrays.append(pin_array)
+#                    cp_arrays.append(cp_array)
+#
+#            results = []
+#            for i in six.moves.range(len(first_elem)):
+#                pin_arrays[i][...] = np_arrays[i]  # copy(CPU): paged -> pinned
+#                cp_arrays[i].set(pin_arrays[i], stream)  # copy: CPU to GPU
+#                results.append(cp_arrays[i])
+#
+#            # Wait for completion of the data transfer submitted above.
+#            # Global synchronizaton is used here for safer reason.
+#            # If a caller function is correctly handling the synchronization,
+#            # local synchronization (stream.synchronize()) may be enough.
+#            runtime.deviceSynchronize()
+#
+#            self._pin_arrays.append(pin_arrays)
+#            self._cp_arrays.append(cp_arrays)
+#
+#            return tuple(results)
