@@ -162,7 +162,8 @@ class ConcatWithAsyncTransfer(object):
 
     def __init__(self, stream=None):
         self.stream = stream
-        self.conveyer = {}
+        self.device = None
+        self._conveyor = {}
 
     def __call__(self, batch, device=None, padding=None):
         """Concatenate data and transfer them to GPU asynchronously.
@@ -186,6 +187,7 @@ class ConcatWithAsyncTransfer(object):
         if device is not None and device >= 0 and self.stream is None:
             with cuda.get_device_from_id(device):
                 self.stream = cuda.Stream(non_blocking=True)
+        self.device = device
 
         if isinstance(first_elem, tuple):
             result = []
@@ -193,15 +195,11 @@ class ConcatWithAsyncTransfer(object):
                 padding = [padding] * len(first_elem)
 
             for i in six.moves.range(len(first_elem)):
-                if i not in self.conveyer:
-                    self.conveyer[i] = Conveyer(device, self.stream)
-                a = _concat_arrays(
-                    [example[i] for example in batch], padding[i])
-                a = self.conveyer[i](a)
-                result.append(a)
+                result.append(self.conveyor(i)(_concat_arrays(
+                    [example[i] for example in batch], padding[i])))
 
             for i in six.moves.range(len(first_elem)):
-                self.conveyer[i].synchronize()
+                self.conveyor(i).synchronize()
 
             return tuple(result)
 
@@ -211,23 +209,24 @@ class ConcatWithAsyncTransfer(object):
                 padding = {key: padding for key in first_elem}
 
             for key in first_elem:
-                if key not in self.conveyer:
-                    self.conveyer[key] = Conveyer(device, self.stream)
-                a = _concat_arrays(
-                    [example[key] for example in batch], padding[key])
-                a = self.conveyer[key](a)
-                result[key] = a
+                result[key] = self.conveyor(key)(_concat_arrays(
+                    [example[key] for example in batch], padding[key]))
 
             for key in first_elem:
-                self.conveyer[key].synchronize()
+                self.conveyor(key).synchronize()
 
             return result
 
         else:
             return to_device(device, _concat_arrays(batch, padding))
 
+    def conveyor(self, key):
+        if key not in self._conveyor:
+            self._conveyor[key] = Conveyor(self.device, self.stream)
+        return self._conveyor[key]
 
-class Conveyer(object):
+
+class Conveyor(object):
 
     """Interface to handle asynchronous data transfer using double buffering.
 
@@ -290,5 +289,6 @@ class Conveyer(object):
         # Global synchronizaton is used here for safer reason.
         # If a caller function is correctly handling the synchronization,
         # local synchronization (self.stream.synchronize()) may be enough.
-        if self.stream is not None:
+        if (self.device is not None and self.device >= 0 and
+                self.stream is not None):
             runtime.deviceSynchronize()
