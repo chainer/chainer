@@ -31,7 +31,7 @@ Since the number of source and target sentences is the same, note that both file
 In vocabulary files each line represents a word. Words which are not in the vocabulary files are treated as special words `<UNKNOWN>`.
 
 
-## Tarin with WMT dataset
+## Training with WMT dataset
 
 First you need to prepare parallel corpus. Download 10^9 French-English corpus from WMT15 website.
 

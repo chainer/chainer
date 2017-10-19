@@ -232,20 +232,19 @@ def _get_device(*args):
 # ------------------------------------------------------------------------------
 
 def to_gpu(array, device=None, stream=None):
-    """Copies the given CPU array to specified device.
+    """Copies the given CPU array to the specified device.
 
     Args:
         array: Array to be sent to GPU.
         device: Device specifier.
-        stream (cupy.cuda.Stream): CUDA stream. If not ``None``, the copy runs
-            asynchronously.
+        stream (~cupy.cuda.Stream): *(deprecated since v3.0.0)*
+            CUDA stream. If not ``None``, the copy runs asynchronously.
 
     Returns:
         cupy.ndarray: Array on GPU.
 
-        If ``array`` is already on GPU, then this function just returns
-        ``array`` without performing any copy. Note that this function does not
-        copy :class:`cupy.ndarray` into specified device.
+        If ``array`` is already on the GPU device specified by ``device``,
+        this function just returns ``array`` without performing any copy.
 
     """
     if stream is not None:

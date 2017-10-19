@@ -39,15 +39,16 @@ class FunctionNode(object):
     .. admonition:: Example
 
        Let ``x`` be an instance of :class:`Variable` and ``f`` be an instance
-       of :class:`FunctionNode` taking only one argument. Then a line
+       of :class:`FunctionNode` taking only one argument. Then the following
+       code
 
        >>> import numpy, chainer, chainer.functions as F
        >>> x = chainer.Variable(numpy.zeros(10))
        >>> f = F.Identity()
        >>> y = f.apply((x,))[0]
 
-       computes a new variable ``y`` and creates backward references. Actually,
-       backward references are set as per the following diagram::
+       computes a new variable ``y`` and creates backward references. The
+       backward references are actually set as per the following diagram::
 
            x.node <--- f <--- y.node
 
@@ -93,7 +94,7 @@ class FunctionNode(object):
          backpropagations so that the automatic higher-order differentiation is
          available.
        - The backpropagation of the new-style differentiable function can be
-         more computationally saving because the interface allows an
+         more computationally efficient because the interface allows an
          implementation to omit the computation of unneeded input gradients.
 
        Note that the new-style differentiable function is the standard way of
@@ -102,13 +103,14 @@ class FunctionNode(object):
        style differentiable functions.
 
     Attributes:
-        inputs: A tuple of the input :class:`VariableNode` objects.
-        outputs: A tuple of weak references to the output
+        ~FunctionNode.inputs: A tuple of the input :class:`VariableNode`
+            objects.
+        ~FunctionNode.outputs: A tuple of weak references to the output
             :class:`VariableNode` objects.
-        rank (int): An ordinal following the topological order of the
-            computational graph.
-        stack: Stack trace retrieved at the forward computation. The stack
-            trace is available only in the debug mode.
+        ~FunctionNode.rank (int): An ordinal following the topological order
+            of the computational graph.
+        ~FunctionNode.stack: Stack trace retrieved at the forward computation.
+            The stack trace is available only in the debug mode.
 
     .. versionadded:: 3.0.0
 
@@ -352,19 +354,19 @@ class FunctionNode(object):
 
         By calling this method from :meth:`forward`, the function node can
         specify which inputs are required for backprop. The input variables
-        with retained arrays can be obtained by :meth:`get_retained_inputs`
-        from :meth:`backward`.
+        with retained arrays can then be obtained by calling
+        :meth:`get_retained_inputs` from inside :meth:`backward`.
 
         Unlike :class:`Function`, the function node **DOES NOT** keep input
         arrays by default. If you want to keep some or all input arrays, do not
         forget to call this method.
 
         Note that **this method must not be called from the outside of
-        forward method.**
+        :meth:`forward`.**
 
         Args:
             indexes (iterable of int): Indexes of input variables that the
-                function does not require for backprop.
+                function will require for backprop.
 
         """
         self._input_indexes_to_retain = indexes
@@ -374,25 +376,25 @@ class FunctionNode(object):
 
         By calling this method from :meth:`forward`, the function node can
         specify which outputs are required for backprop. If this method is not
-        called, any output variables are not marked to keep the data array at
+        called, no output variables will be marked to keep their data array at
         the point of returning from :meth:`apply`. The output variables with
-        retained arrays can be obtained by :meth:`get_retained_outputs` from
-        :meth:`backward`.
+        retained arrays can then be obtained by calling
+        :meth:`get_retained_outputs` from inside :meth:`backward`.
 
         .. note::
 
            It is recommended to use this method if the function requires some
            or all output arrays in backprop. The function can also use output
-           arrays just by keeping references to them directly, whereas it might
-           influence on the performance of later function applications to the
+           arrays just by keeping references to them directly, although it
+           might affect the performance of later function applications on the
            output variables.
 
         Note that **this method must not be called from the outside of
-        forward method.**
+        :meth:`forward`.**
 
         Args:
-            indexes (iterable of int): Indexes of input variables that the
-                function does not require for backprop.
+            indexes (iterable of int): Indexes of output variables that the
+                function will require for backprop.
 
         """
         self._output_indexes_to_retain = indexes
@@ -599,7 +601,7 @@ class FunctionNode(object):
 
 def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
          retain_grad=False, enable_double_backprop=False):
-    """Computes the gradient of output variables w.r.t.\\ the input variables.
+    """Computes the gradient of output variables w.r.t.\\  the input variables.
 
     This function implements the backpropagation algorithm. While
     :meth:`Variable.backward` also implements backprop, this function selects
@@ -618,19 +620,24 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
     even if it had already been set.
 
     Args:
-        outputs: A sequence of output variables from which backprop starts.
-        inputs: A sequence of input variables each of which this function
-            computes the gradient w.r.t.
-        grad_outputs: A sequence of variables that gives the initial value of
-            each output gradient. If an element is set to ``None``, an array
-            filled with 1 is used. If this argument itself is ``None``, it is
-            treated as a sequence of ``None`` s.
-        grad_inputs: A sequence of variables that gives the initial value of
-            each input gradient. The gradients computed by the backprop
+        outputs (tuple or list of :class:`~chainer.Variable`):
+            A sequence of output variables from which backprop starts.
+        inputs (tuple or list of :class:`~chainer.Variable`):
+            A sequence of input variables each of which this function computes
+            the gradient w.r.t.
+        grad_outputs (tuple or list of :class:`~chainer.Variable` or None):
+            A sequence of variables that gives the initial value of each output
+            gradient.
+            If an element is set to ``None``, an array filled with 1 is used.
+            If this argument itself is ``None``, it is treated as a sequence of
+            ``None``\\ s.
+        grad_inputs (tuple or list of :class:`~chainer.Variable` or None):
+            A sequence of variables that gives the initial value of each input
+            gradient. The gradients computed by the backprop
             algorithm are accumulated to them (not in-place). If an element
             is set to ``None``, the gradient is not accumulated to this value.
             If this argument itself is ``None``, it is treated as a sequence of
-            ``None`` s.
+            ``None``\\ s.
         set_grad (bool): If it is ``True``, the :attr:`Variable.grad_var`
             attribute of each input variable is set to the corresponding
             computed gradient variable.
@@ -647,6 +654,20 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
         A list of gradient variables w.r.t. the inputs.
 
     """
+    if not isinstance(outputs, (tuple, list)):
+        raise TypeError(
+            'outputs must be a tuple or a list, not {}.'.format(type(outputs)))
+    if not isinstance(inputs, (tuple, list)):
+        raise TypeError(
+            'inputs must be a tuple or a list, not {}.'.format(type(inputs)))
+    if not (grad_outputs is None or isinstance(grad_outputs, (tuple, list))):
+        raise TypeError(
+            'grad_outputs must be a tuple or a list or None, not {}.'.format(
+                type(grad_outputs)))
+    if not (grad_inputs is None or isinstance(grad_inputs, (tuple, list))):
+        raise TypeError(
+            'grad_inputs must be a tuple or a list or None, not {}.'.format(
+                type(grad_inputs)))
     # The implementation consists of three steps.
 
     # 1. Backward enumeration: all the nodes reachable backward from the output
@@ -799,7 +820,7 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads):
             grads[node] = g
 
             if retain_grad:
-                v = node.get_variable()
+                v = node.get_variable_or_none()
                 if v is not None:
                     v.grad_var = g
 

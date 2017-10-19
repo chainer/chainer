@@ -97,43 +97,34 @@ class TestGetItem(unittest.TestCase):
                                    cuda.to_gpu(self.ggx_data))
 
 
-@testing.parameterize(*testing.product_dict(
-    [
-        {'slices': [], 'sliced_shape': (0, 3, 2)},
-        {'slices': [[]], 'sliced_shape': (0, 3, 2)},
-        {'slices': [[[]]], 'sliced_shape': (1, 0, 3, 2)},
-        {'slices': ([[]],), 'sliced_shape': (1, 0, 3, 2)},
-        {'slices': numpy.array([], dtype=numpy.bool),
-         'sliced_shape': (0, 3, 2)},
-        {'slices': [1, [1]], 'sliced_shape': (1, 2)},
-        {'slices': [[1], slice(1, 2)], 'sliced_shape': (1, 1, 2)},
-        {'slices': [1, 0], 'sliced_shape': (2, 3, 2)},
-        {'slices': ([1, 0],), 'sliced_shape': (2, 3, 2)},
-        {'slices': numpy.array([[1, 0], [2, 3]]),
-         'sliced_shape': (2, 2, 3, 2)},
-        {'slices': ([1, 0], [1, 1]), 'sliced_shape': (2, 2)},
-        {'slices': ([1, 0], slice(None), [[1, 1], [1, 1]]),
-         'sliced_shape': (2, 2, 3)},
-        {'slices': ([1, 0], slice(1, 2), [0, 0]), 'sliced_shape': (2, 1)},
-        {'slices': ([[1, 1], [1, 0]], slice(1, 2), 1),
-         'sliced_shape': (2, 2, 1)},
-        {'slices': numpy.array([True] * 18 + [False] * 6).reshape(4, 3, 2),
-         'sliced_shape': (18,)},
-        {'slices': numpy.array([True, False, False, True]),
-         'sliced_shape': (2, 3, 2)},
-        {'slices': (slice(None), numpy.array([True, False, True])),
-         'sliced_shape': (4, 2, 2)},
-        {'slices': numpy.array([False, False, False, False]),
-         'sliced_shape': (0, 3, 2)},
-    ],
-    [
-        {'dtype': numpy.float32},
-        {'dtype': numpy.int32},
-        {'dtype': numpy.uint32},
-        {'dtype': numpy.uint64},
-        {'dtype': numpy.ulonglong},
-    ]
-))
+@testing.parameterize(
+    {'slices': [], 'sliced_shape': (0, 3, 2)},
+    {'slices': [[]], 'sliced_shape': (0, 3, 2)},
+    {'slices': [[[]]], 'sliced_shape': (1, 0, 3, 2)},
+    {'slices': ([[]],), 'sliced_shape': (1, 0, 3, 2)},
+    {'slices': numpy.array([], dtype=numpy.bool),
+        'sliced_shape': (0, 3, 2)},
+    {'slices': [1, [1]], 'sliced_shape': (1, 2)},
+    {'slices': [[1], slice(1, 2)], 'sliced_shape': (1, 1, 2)},
+    {'slices': [1, 0], 'sliced_shape': (2, 3, 2)},
+    {'slices': ([1, 0],), 'sliced_shape': (2, 3, 2)},
+    {'slices': numpy.array([[1, 0], [2, 3]]),
+        'sliced_shape': (2, 2, 3, 2)},
+    {'slices': ([1, 0], [1, 1]), 'sliced_shape': (2, 2)},
+    {'slices': ([1, 0], slice(None), [[1, 1], [1, 1]]),
+        'sliced_shape': (2, 2, 3)},
+    {'slices': ([1, 0], slice(1, 2), [0, 0]), 'sliced_shape': (2, 1)},
+    {'slices': ([[1, 1], [1, 0]], slice(1, 2), 1),
+        'sliced_shape': (2, 2, 1)},
+    {'slices': numpy.array([True] * 18 + [False] * 6).reshape(4, 3, 2),
+        'sliced_shape': (18,)},
+    {'slices': numpy.array([True, False, False, True]),
+        'sliced_shape': (2, 3, 2)},
+    {'slices': (slice(None), numpy.array([True, False, True])),
+        'sliced_shape': (4, 2, 2)},
+    {'slices': numpy.array([False, False, False, False]),
+        'sliced_shape': (0, 3, 2)},
+)
 class TestGetItemAdvanced(unittest.TestCase):
 
     def setUp(self):
