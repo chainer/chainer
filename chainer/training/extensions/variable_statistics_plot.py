@@ -183,16 +183,16 @@ class VariableStatisticsPlot(extension.Extension):
         xp = cuda.get_array_module(self._vars[0].data)
 
         stats = None
-        for var in self._vars:
-            xs = list(getattr(var, k)[None, :] for k in self._keys)
+        for k in self._keys:
+            xs = tuple(getattr(v, k).ravel() for v in self._vars)
             xs = xp.concatenate(xs, axis=0)
-            stat = self._statistician(
-                xs, axis=tuple(range(1, xs.ndim)), xp=xp)
+            stat = self._statistician(xs, axis=0, xp=xp)
             if stats is None:
-                stats = stat
+                stats = stat[None, :]
             else:
-                stats += stat
-        stats = cuda.to_cpu(stats) / len(self._vars)
+                stats = xp.vstack((stats, stat[None, :]))
+        if xp != numpy:
+            stats = cuda.to_cpu(stats)
         self._samples.add(stats, idx=trainer.updater.iteration)
 
         if self._trigger(trainer):
