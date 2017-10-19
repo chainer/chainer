@@ -4,9 +4,26 @@ import unittest
 from chainer import cuda
 from chainer import function
 from chainer import functions
-from chainer.testing import attr
 from chainer.testing import condition
 from chainer import variable
+
+try:
+    from chainer.testing import attr
+    _error = attr.get_error()
+except ImportError as e:
+    _error = e
+
+
+def is_available():
+    return _error is None
+
+
+def check_available():
+    if _error is not None:
+        raise RuntimeError('''\
+{} is not available.
+
+Reason: {}: {}'''.format(__name__, type(_error).__name__, _error))
 
 
 def _func_name(func):
@@ -127,6 +144,7 @@ def unary_math_function_unittest(func, func_expected=None, label_expected=None,
        ``make_data`` parameter.
 
     """
+    check_available()
 
     # TODO(takagi) In the future, the Chainer functions that could be tested
     #     with the decorator would be extended as:
