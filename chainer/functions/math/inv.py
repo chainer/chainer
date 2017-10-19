@@ -1,7 +1,8 @@
 import numpy.linalg
 
 from chainer import cuda
-from chainer import function
+from chainer import function_node
+from chainer.functions.array import transpose
 from chainer.functions.math import matmul
 from chainer import utils
 from chainer.utils import type_check
@@ -34,7 +35,7 @@ def _inv_gpu(b):
     return c, info
 
 
-class Inv(function.Function):
+class Inv(function_node.FunctionNode):
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)
@@ -46,24 +47,25 @@ class Inv(function.Function):
         type_check.expect(a_type.shape[0] == a_type.shape[1])
 
     def forward_cpu(self, x):
-        self.retain_inputs(())
-        self.invx = utils.force_array(numpy.linalg.inv(x[0]))
-        return self.invx,
+        self.retain_outputs((0,))
+        invx = utils.force_array(numpy.linalg.inv(x[0]))
+        return invx,
 
     def forward_gpu(self, x):
-        self.retain_inputs(())
+        self.retain_outputs((0,))
         shape = x[0].shape
-        self.invx = _inv_gpu(x[0].reshape(1, *shape))[0].reshape(shape)
-        return self.invx,
+        invx = _inv_gpu(x[0].reshape(1, *shape))[0].reshape(shape)
+        return invx,
 
     def backward(self, x, gy):
+        invx, = self.get_retained_outputs()
         # Gradient is - x^-T (dx) x^-T
-        xp = cuda.get_array_module(*gy)
-        gx = xp.dot(xp.dot(-self.invx.T, gy[0]), self.invx.T)
+        invxT = transpose.transpose(invx)
+        gx = matmul.matmul(matmul.matmul(- invxT, gy[0]), invxT)
         return gx,
 
 
-class BatchInv(function.Function):
+class BatchInv(function_node.FunctionNode):
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)
@@ -76,21 +78,22 @@ class BatchInv(function.Function):
         type_check.expect(a_type.shape[-1] == a_type.shape[-2])
 
     def forward_cpu(self, x):
-        self.retain_inputs(())
-        self.invx = utils.force_array(numpy.linalg.inv(x[0]))
-        return self.invx,
+        self.retain_outputs((0,))
+        invx = utils.force_array(numpy.linalg.inv(x[0]))
+        return invx,
 
     def forward_gpu(self, x):
-        self.retain_inputs(())
-        self.invx, _ = _inv_gpu(x[0])
-        return self.invx,
+        self.retain_outputs((0,))
+        invx, _ = _inv_gpu(x[0])
+        return invx,
 
     def backward(self, x, gy):
+        invx, = self.get_retained_outputs()
         # Unpack 1-length tuples
         gy, = gy
         # Gradient is - x^-T (dx) x^-T
-        ret = matmul._matmul(-self.invx, gy, transa=True)
-        ret2 = matmul._matmul(ret, self.invx, transb=True)
+        ret = matmul.matmul(-invx, gy, transa=True)
+        ret2 = matmul.matmul(ret, invx, transb=True)
         return ret2,
 
 
@@ -105,7 +108,7 @@ def inv(a):
     Returns:
         ~chainer.Variable: Matrix inverse of ``a``.
     """
-    return Inv()(a)
+    return Inv().apply((a,))[0]
 
 
 def batch_inv(a):
@@ -120,4 +123,4 @@ def batch_inv(a):
     Returns:
         ~chainer.Variable: Inverse of every matrix in the batch of matrices.
     """
-    return BatchInv()(a)
+    return BatchInv().apply((a,))[0]
