@@ -104,23 +104,43 @@ class TestResizeImagesBackward(unittest.TestCase):
         self.x = numpy.random.uniform(
             size=self.in_shape).astype(numpy.float32)
         output_shape_4d = self.in_shape[:2] + self.output_shape
-        self.grads = numpy.random.uniform(
+        self.gy = numpy.random.uniform(
             size=output_shape_4d).astype(numpy.float32)
+        self.ggx = numpy.random.uniform(
+            size=self.in_shape).astype(numpy.float32)
 
-    def check_backward(self, x, output_shape, grads):
+    def check_backward(self, x, output_shape, gy):
+        def f(x):
+            return functions.resize_images(x, output_shape)
+
         gradient_check.check_backward(
-            functions.ResizeImages(output_shape),
-            (x,), (grads,), dtype='d', atol=1e-2, rtol=1e-3, eps=1e-5)
+            f, (x,), (gy,), dtype='d', atol=1e-2, rtol=1e-3, eps=1e-5)
 
     @condition.retry(3)
     def test_backward_cpu(self):
-        self.check_backward(self.x, self.output_shape, self.grads)
+        self.check_backward(self.x, self.output_shape, self.gy)
 
     @attr.gpu
     @condition.retry(3)
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x), self.output_shape,
-                            cuda.to_gpu(self.grads))
+                            cuda.to_gpu(self.gy))
+
+    def check_double_backward(self, x, output_shape, gy, ggx):
+        def f(x):
+            y = functions.resize_images(x, output_shape)
+            return y * y
+
+        gradient_check.check_double_backward(f, (x,), (gy,), (ggx,), dtype='f')
+
+    def test_doube_backward_cpu(self):
+        self.check_double_backward(
+            self.x, self.output_shape, self.gy, self.ggx)
+
+    @attr.gpu
+    def test_double_backward_gpu(self):
+        self.check_double_backward(cuda.to_gpu(self.x), self.output_shape,
+                                   cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx))
 
 
 testing.run_module(__name__, __file__)
