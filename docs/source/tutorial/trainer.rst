@@ -74,7 +74,8 @@ Here, we are going to use the same model as the one defined in :doc:`train_loop`
     gpu_id = 0  # Set to -1 if you use CPU
 
     model = MLP()
-    model.to_gpu(gpu_id)
+    if gpu_id >= 0:
+        model.to_gpu(gpu_id)
 
 4. Prepare the Updater
 ''''''''''''''''''''''
@@ -305,4 +306,4 @@ Evaluation using the snapshot of a model is as easy as what explained in the :do
     label: 7
     predicted_label: 7
 
-The prediction looks correct.
+The prediction looks correct. Success!
