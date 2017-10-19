@@ -211,15 +211,15 @@ class ConcatWithAsyncTransfer(object):
                 padding = {key: padding for key in first_elem}
 
             for key in first_elem:
-                if i not in self.conveyer:
-                    self.conveyer[i] = Conveyer(device, self.stream)
+                if key not in self.conveyer:
+                    self.conveyer[key] = Conveyer(device, self.stream)
                 a = _concat_arrays(
-                    [example[i] for example in batch], padding[i])
-                a = self.conveyer[i](a)
+                    [example[key] for example in batch], padding[key])
+                a = self.conveyer[key](a)
                 result[key] = a
 
             for key in first_elem:
-                self.conveyer[i].synchronize()
+                self.conveyer[key].synchronize()
 
             return result
 
