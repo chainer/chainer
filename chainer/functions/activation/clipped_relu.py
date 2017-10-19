@@ -1,11 +1,11 @@
 from chainer import cuda
-from chainer import function
+from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
 import numpy
 
 
-class ClippedReLU(function.Function):
+class ClippedReLU(function_node.FunctionNode):
 
     """Clipped Rectifier Unit function.
 
@@ -27,26 +27,51 @@ class ClippedReLU(function.Function):
         x_type, = in_types
         type_check.expect(x_type.dtype.kind == 'f')
 
-    def forward_cpu(self, x):
-        x = x[0]
+    def forward_cpu(self, inputs):
+        self.retain_inputs((0,))
+        x, = inputs
         return utils.force_array(numpy.minimum(numpy.maximum(0, x), self.cap),
                                  x.dtype),
 
-    def backward_cpu(self, x, gy):
-        x = x[0]
-        return utils.force_array(gy[0] * (0 < x) * (x < self.cap), x.dtype),
-
-    def forward_gpu(self, x):
+    def forward_gpu(self, inputs):
+        self.retain_inputs((0,))
+        x, = inputs
         return cuda.elementwise(
             'T x, T cap', 'T y', 'y = min(max(x, (T)0), cap)',
-            'clipped_relu_fwd')(x[0], self.cap),
+            'clipped_relu_fwd')(x, self.cap),
 
-    def backward_gpu(self, x, gy):
+    def backward(self, indexes, grad_outputs):
+        x, = self.get_retained_inputs()
+        return ClippedReLUGrad(x.data, self.cap).apply(grad_outputs)
+
+
+class ClippedReLUGrad(function_node.FunctionNode):
+
+    """Clipped Rectifier Unit gradient function."""
+
+    def __init__(self, x, z):
+        self.x = x
+        self.cap = z
+
+    def check_type_forward(self, in_types):
+        type_check.expect(in_types.size() == 1)
+        type_check.expect(in_types[0].dtype.kind == 'f')
+
+    def forward_cpu(self, inputs):
+        gy, = inputs
+        return utils.force_array(
+            gy * (0 < self.x) * (self.x < self.cap), self.x.dtype),
+
+    def forward_gpu(self, inputs):
+        gy, = inputs
         gx = cuda.elementwise(
             'T x, T gy, T z', 'T gx',
-            'gx = ((x > 0) & (x < z))? gy : (T)0',
-            'clipped_relu_bwd')(x[0], gy[0], self.cap)
+            'gx = ((x > 0) & (x < z)) ? gy : (T)0',
+            'clipped_relu_bwd')(self.x, gy, self.cap)
         return gx,
+
+    def backward(self, indexes, grad_outputs):
+        return ClippedReLUGrad(self.x, self.cap).apply(grad_outputs)
 
 
 def clipped_relu(x, z=20.0):
@@ -81,4 +106,5 @@ def clipped_relu(x, z=20.0):
         False
 
     """
-    return ClippedReLU(z)(x)
+    y, = ClippedReLU(z).apply((x,))
+    return y

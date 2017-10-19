@@ -34,9 +34,11 @@ from chainer.configuration import global_config  # NOQA
 from chainer.configuration import using_config  # NOQA
 from chainer.function import force_backprop_mode  # NOQA
 from chainer.function import Function  # NOQA
+from chainer.function import FunctionAdapter  # NOQA
 from chainer.function import no_backprop_mode  # NOQA
 from chainer.function_hook import FunctionHook  # NOQA
 from chainer.function_node import FunctionNode  # NOQA
+from chainer.function_node import grad  # NOQA
 from chainer.functions import array  # NOQA
 from chainer.functions.math import basic_math  # NOQA
 from chainer.initializer import Initializer  # NOQA
@@ -92,6 +94,7 @@ global_config.keep_graph_on_report = bool(int(
 global_config.train = True
 global_config.type_check = bool(int(os.environ.get('CHAINER_TYPE_CHECK', '1')))
 global_config.use_cudnn = os.environ.get('CHAINER_USE_CUDNN', 'auto')
+global_config.use_cudnn_tensor_core = 'auto'
 
 
 _SHOULD_USE_CUDNN = {
@@ -135,6 +138,28 @@ def should_use_cudnn(level, lowest_version=0):
                          '(must be either of "always", "auto", or "never")' %
                          repr(config.use_cudnn))
     return flags[config.use_cudnn]
+
+
+def should_use_cudnn_tensor_core(dtype):
+    """Determines if Tensor Core should be used.
+
+    Args:
+        dtype (numpy.dtype): data type of input tensor.
+
+    Returns:
+        bool: ``True`` if Tensor Core should be used.
+    """
+
+    flags = {'always': True, 'auto': None, 'never': False}
+    if config.use_cudnn_tensor_core not in flags:
+        raise ValueError('invalid use_cudnn_tensor_core configuration: %s '
+                         '(must be either of "always", "auto", or "never")' %
+                         repr(config.use_cudnn))
+    use_tensor_core = flags[config.use_cudnn_tensor_core]
+    if use_tensor_core is None:
+        use_tensor_core = cuda.cudnn.is_tensor_core_available(dtype)
+
+    return use_tensor_core
 
 
 def is_debug():

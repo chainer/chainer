@@ -65,6 +65,7 @@ Array manipulations
    chainer.functions.dstack
    chainer.functions.expand_dims
    chainer.functions.flatten
+   chainer.functions.flip
    chainer.functions.fliplr
    chainer.functions.flipud
    chainer.functions.get_item
@@ -76,6 +77,7 @@ Array manipulations
    chainer.functions.reshape
    chainer.functions.resize_images
    chainer.functions.rollaxis
+   chainer.functions.scatter_add
    chainer.functions.select_item
    chainer.functions.separate
    chainer.functions.space2depth

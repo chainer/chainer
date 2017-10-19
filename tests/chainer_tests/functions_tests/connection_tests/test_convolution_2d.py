@@ -388,4 +388,25 @@ class TestConvolution2DFunctionCudnnDeterministic(unittest.TestCase):
         return x, W, b, y
 
 
+class TestConvolution2DBackwardNoncontiguousGradOutputs(unittest.TestCase):
+    # NumPy raises an error when the inputs of dot operation are not
+    # contiguous. This test ensures this issue is correctly handled.
+    # (https://github.com/chainer/chainer/issues/2744)
+
+    # This test depdends on that backward() of F.sum generates
+    # a non-contiguous array.
+
+    def test_1(self):
+        n_batches = 2
+        in_channels = 3
+        out_channels = 1  # important
+        x_shape = (n_batches, in_channels, 10, 10)
+        w_shape = (out_channels, in_channels, 3, 3)
+        x = numpy.ones(x_shape, numpy.float32)
+        w = numpy.ones(w_shape, numpy.float32)
+        y = F.convolution_2d(x, chainer.Variable(w))
+        z = F.sum(y)
+        z.backward()
+
+
 testing.run_module(__name__, __file__)
