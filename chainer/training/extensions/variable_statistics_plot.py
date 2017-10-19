@@ -43,7 +43,7 @@ class Reservoir(object):
 
     def __init__(self, size, data_shape, dtype='f'):
         self.size = size
-        self.data = numpy.zeros((size, *data_shape), dtype=dtype)
+        self.data = numpy.zeros((size,) + data_shape, dtype=dtype)
         self.idxs = numpy.zeros((size,), dtype='i')
         self.counter = 0
 
