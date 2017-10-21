@@ -38,9 +38,14 @@ if cupy_pkg is not None:
     install_requires.append(cupy_require)
     print('Use %s' % cupy_require)
 
+__version__ = None
+here = os.path.abspath(os.path.dirname(__file__))
+with open(os.path.join(here, 'chainer/_version.py')) as f:
+    exec(f.read())
+
 setup(
     name='chainer',
-    version='4.0.0a1',
+    version=__version__,
     description='A flexible framework of neural networks',
     author='Seiya Tokui',
     author_email='tokui@preferred.jp',
