@@ -22,7 +22,7 @@ matrix:
     - os: osx
       language: generic
       env:
-      - PYTHON_VERSION=3.4.3
+      - PYTHON_VERSION=3.4.4
       - PYENV_ROOT=~/.pyenv
       - PATH=$PYENV_ROOT/shims:$PATH:$PYENV_ROOT/bin
     - os: osx
