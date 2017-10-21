@@ -240,6 +240,18 @@ class TestNpzDeserializerNonStrictGroupHierachy(unittest.TestCase):
             target.child.linear2.b.data, target_child_b)
 
 
+class TestSerialize(unittest.TestCase):
+
+    def test_serialize(self):
+        obj = mock.MagicMock()
+        target = npz.serialize(obj)
+
+        self.assertEqual(obj.serialize.call_count, 1)
+        (serializer,), _ = obj.serialize.call_args
+        self.assertIsInstance(serializer, npz.DictionarySerializer)
+        self.assertIsInstance(target, dict)
+
+
 @testing.parameterize(*testing.product({'compress': [False, True]}))
 class TestSaveNpz(unittest.TestCase):
 

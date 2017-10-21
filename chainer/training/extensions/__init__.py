@@ -13,6 +13,7 @@ from chainer.training.extensions import value_observation  # NOQA
 
 # import class and function
 from chainer.training.extensions._snapshot import snapshot  # NOQA
+from chainer.training.extensions._snapshot import Snapshot  # NOQA
 from chainer.training.extensions._snapshot import snapshot_object  # NOQA
 from chainer.training.extensions.computational_graph import dump_graph  # NOQA
 from chainer.training.extensions.evaluator import Evaluator  # NOQA

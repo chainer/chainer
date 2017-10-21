@@ -6,19 +6,19 @@ from chainer import testing
 from chainer.training import extensions
 
 
-class TestSnapshotObject(unittest.TestCase):
-
-    def test_trigger(self):
-        target = mock.MagicMock()
-        snapshot_object = extensions.snapshot_object(target, 'myfile.dat')
-        self.assertEqual(snapshot_object.trigger, (1, 'epoch',))
-
-
 class TestSnapshot(unittest.TestCase):
 
-    def test_trigger(self):
-        snapshot = extensions.snapshot()
-        self.assertEqual(snapshot.trigger, (1, 'epoch'))
+    def test_call(self):
+        t = mock.MagicMock()
+        c = mock.MagicMock(side_effect=[True, False])
+        w = mock.MagicMock()
+        snapshot = extensions.Snapshot(target=t, condition=c, writer=w)
+        trainer = mock.MagicMock()
+        snapshot(trainer)
+        snapshot(trainer)
+
+        self.assertEqual(c.call_count, 2)
+        self.assertEqual(w.call_count, 1)
 
 
 testing.run_module(__name__, __file__)
