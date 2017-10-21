@@ -15,3 +15,17 @@ This functionality is provided by the :class:`chainer.links.caffe.CaffeFunction`
    :nosignatures:
 
    chainer.links.caffe.CaffeFunction
+
+
+Caffe Model Export Support
+==========================
+
+.. module:: chainer.exporters
+
+Chainer can export a model from :class:`~chainer.Link`.
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.exporters.caffe.export
