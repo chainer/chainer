@@ -57,7 +57,7 @@ Write a function decorated with @make_extension
 
 The difference between the above one and this is whether it has a default ``trigger`` or not. In this latter case, :meth:`lr_drop` has its default ``trigger`` so that unless another ``trigger`` is specified via :meth:`~chainer.training.Trainer.extend` method, the ``trigger`` specified in :meth:`~chainer.training.make_extension` is used as default. So the code below acts the same as the former example, i.e., it reduces the learning rate every 10 epochs.
 
-.. code_block:: python
+.. code-block:: python
 
     trainer.extend(lr_drop)
 
