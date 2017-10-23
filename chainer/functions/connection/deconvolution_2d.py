@@ -16,7 +16,6 @@ if cuda.cudnn_enabled:
     _bwd_data_pref = \
         libcudnn.CUDNN_CONVOLUTION_BWD_DATA_SPECIFY_WORKSPACE_LIMIT
     _algorithm = {}
-    autotune = True
 
 
 def get_algorithm(W, dy, dx, conv_param, handle, filter_desc, dy_desc,
@@ -193,7 +192,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
 
             if configuration.config.cudnn_deterministic:
                 algo = libcudnn.CUDNN_CONVOLUTION_BWD_DATA_ALGO_1
-            elif autotune:
+            elif chainer.global_config.autotune:
                 algo = get_algorithm(W, x, y, conv_param, handle, filter_desc,
                                      x_desc, conv_desc, y_desc, workspace)
             else:

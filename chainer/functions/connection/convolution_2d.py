@@ -17,7 +17,6 @@ if cuda.cudnn_enabled:
         libcudnn.CUDNN_CONVOLUTION_BWD_FILTER_SPECIFY_WORKSPACE_LIMIT
     _algorithm_fwd = {}
     _algorithm_bwd_filter = {}
-    autotune = True
 
 
 def _pair(x):
@@ -170,7 +169,7 @@ class Convolution2DFunction(function_node.FunctionNode):
                     b[None, :, None, None])
             workspace_size = cuda.get_max_workspace_size()
             workspace = cuda.cupy.empty((workspace_size,), dtype='b')
-            if autotune:
+            if chainer.global_config.autotune:
                 algo = get_algorithm_fwd(
                     x, W, y, conv_param, handle, x_desc, filter_desc,
                     conv_desc, y_desc, workspace)
@@ -303,7 +302,7 @@ class Convolution2DGradW(function_node.FunctionNode):
 
         if configuration.config.cudnn_deterministic:
             algo = libcudnn.CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1
-        elif autotune:
+        elif chainer.global_config.autotune:
             algo = get_algorithm_bwd_filter(
                 x, gy, gW, conv_param, handle, x_desc, gy_desc, conv_desc,
                 filter_desc, workspace)
