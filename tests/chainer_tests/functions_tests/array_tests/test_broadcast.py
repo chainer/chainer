@@ -126,7 +126,7 @@ class TestBroadcastTo(unittest.TestCase):
         self.check_backward_options = {}
         if self.dtype == numpy.float16:
             self.check_backward_options = {
-                'eps': 2 ** -5, 'atol': 1e-3, 'rtol': 1e-2}
+                'dtype': 'd', 'eps': 2 ** -5, 'atol': 1e-3, 'rtol': 1e-2}
 
     def check_forward(self, data):
         x = chainer.Variable(data)

@@ -54,13 +54,6 @@ class TestConvolution2DFunction(unittest.TestCase):
             self.W_dtype)
         self.ggb = numpy.random.uniform(-1, 1, self.b.shape).astype(
             self.x_dtype)
-        self.check_forward_options = {}
-        self.check_backward_options = {'dtype': numpy.float64}
-        self.check_double_backward_options = {'dtype': numpy.float64}
-        if self.x_dtype == numpy.float16 or self.W_dtype == numpy.float16:
-            self.check_forward_options.update(atol=5e-4, rtol=5e-3)
-            self.check_backward_options.update(atol=5e-4, rtol=5e-3)
-            self.check_double_backward_options.update(atol=5e-3, rtol=5e-2)
 
     @attr.gpu
     def test_forward_consistency(self, nobias=False):
@@ -84,7 +77,7 @@ class TestConvolution2DFunction(unittest.TestCase):
                     cover_all=self.cover_all)
 
         testing.assert_allclose(
-            y_cpu.data, y_gpu.data.get(), **self.check_forward_options)
+            y_cpu.data, y_gpu.data.get(), atol=5e-4, rtol=5e-3)
 
     @attr.gpu
     def test_forward_consistency_im2col(self):
@@ -124,7 +117,7 @@ class TestConvolution2DFunction(unittest.TestCase):
             with chainer.using_config('cudnn_deterministic',
                                       self.cudnn_deterministic):
                 gradient_check.check_backward(
-                    f, args, y_grad, **self.check_backward_options)
+                    f, args, y_grad, dtype='d', atol=5e-4, rtol=5e-3)
 
     @condition.retry(3)
     def test_backward_cpu(self):
@@ -202,7 +195,7 @@ class TestConvolution2DFunction(unittest.TestCase):
                                       self.cudnn_deterministic):
                 gradient_check.check_double_backward(
                     f, args, y_grad, grad_grads,
-                    **self.check_double_backward_options)
+                    dtype='d', atol=5e-3, rtol=5e-2)
 
     @condition.retry(3)
     def test_double_backward_cpu(self):
