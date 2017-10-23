@@ -2,11 +2,12 @@ import numpy
 import six
 
 from chainer.backends import cuda
-from chainer import function
+from chainer import function_node
+import chainer.functions
 from chainer.utils import type_check
 
 
-class Prod(function.Function):
+class Prod(function_node.FunctionNode):
     """Product of array elements over a given axis."""
 
     keepdims = False
@@ -44,11 +45,13 @@ class Prod(function.Function):
                     )
 
     def forward(self, x):
+        self.retain_inputs((0,))
         xp = cuda.get_array_module(*x)
         return xp.asarray(x[0].prod(axis=self.axis, keepdims=self.keepdims)),
 
-    def backward(self, x, gy):
-        xp = cuda.get_array_module(*x)
+    def backward(self, indexes, gy):
+        x = self.get_retained_inputs()
+        xp = cuda.get_array_module(x[0].data)
 
         x = x[0]
         gy = gy[0]
@@ -64,7 +67,7 @@ class Prod(function.Function):
 
         if not self.keepdims:
             for axis in sorted(axes):
-                gy = xp.expand_dims(gy, axis=axis)
+                gy = chainer.functions.expand_dims(gy, axis=axis)
 
         axes = tuple(axes)
         # indices of axes that are not reduced
@@ -79,13 +82,16 @@ class Prod(function.Function):
         x = x.transpose(transpose_axes)
         transposed_shape = x.shape
         x = x.reshape(-1, n_reduced_elements)
-        extended_x = xp.repeat(x, n_reduced_elements, 0)
-        mask = xp.tile(xp.arange(n_reduced_elements), n_output_elements)
-        extended_x[xp.arange(x.size), mask] = 1
+        extended_x = chainer.functions.repeat(x, n_reduced_elements, 0)
+        mask = chainer.functions.tile(xp.arange(n_reduced_elements), n_output_elements)
+        cond = xp.zeros_like(extended_x.data, dtype=xp.bool_)
+        cond[xp.arange(x.size), mask.data] = 1
+        extended_x = chainer.functions.where(cond, cond.astype(extended_x.dtype), extended_x)
 
-        gx = extended_x.prod(1)
+        gx = prod(extended_x, 1)
         gx = gx.reshape(transposed_shape)
-        gx = gx.transpose(numpy.argsort(transpose_axes))
+        gx = gx.transpose(list(numpy.argsort(transpose_axes)))
+        gy = chainer.functions.broadcast_to(gy, gx.shape)
         gx = gx * gy
         return gx,
 
@@ -106,4 +112,4 @@ def prod(x, axis=None, keepdims=False):
         ~chainer.Variable: Output variable.
 
     """
-    return Prod(axis, keepdims)(x)
+    return Prod(axis, keepdims).apply((x,))[0]

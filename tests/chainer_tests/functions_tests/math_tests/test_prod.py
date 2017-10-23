@@ -26,6 +26,7 @@ class TestProd(unittest.TestCase):
             self.x.ravel()[index] = 0
         g_shape = self.x.prod(axis=self.axis, keepdims=self.keepdims).shape
         self.gy = numpy.random.uniform(-1, 1, g_shape).astype(self.dtype)
+        self.ggx = numpy.random.uniform(-1, 1, (3, 2, 4)).astype(self.dtype)
 
     def check_forward(self, x_data):
         x = chainer.Variable(x_data)
@@ -50,9 +51,11 @@ class TestProd(unittest.TestCase):
         self.check_forward(cuda.to_gpu(self.x))
 
     def check_backward(self, x_data, y_grad):
+        def f(x):
+            return functions.prod(x, self.axis, self.keepdims)
+
         gradient_check.check_backward(
-            functions.Prod(self.axis, self.keepdims), x_data, y_grad,
-            atol=1e-3, dtype=numpy.float64)
+            f, x_data, y_grad, atol=1e-3, dtype=numpy.float64)
 
     @condition.retry(3)
     def test_backward_cpu(self):
@@ -60,8 +63,26 @@ class TestProd(unittest.TestCase):
 
     @attr.gpu
     @condition.retry(3)
-    def test_backward_axis_gpu(self):
+    def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
+
+    def check_double_backward(self, x_data, y_grad, x_grad_grad):
+        def f(x):
+            x = functions.prod(x, self.axis, self.keepdims)
+            return x * x
+
+        gradient_check.check_double_backward(
+            f, x_data, y_grad, x_grad_grad, atol=1e-3, dtype=numpy.float64)
+
+    @condition.retry(3)
+    def test_double_backward_cpu(self):
+        self.check_double_backward(self.x, self.gy, self.ggx)
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_double_backward_gpu(self):
+        self.check_double_backward(
+            cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx))
 
 
 @testing.parameterize(*testing.product({
