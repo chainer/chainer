@@ -1,10 +1,11 @@
 from chainer import cuda
-from chainer import function
+from chainer import function_node
+import chainer.functions
 from chainer import utils
 from chainer.utils import type_check
 
 
-class Fmod(function.Function):
+class Fmod(function_node.FunctionNode):
 
     @property
     def label(self):
@@ -20,16 +21,16 @@ class Fmod(function.Function):
         )
 
     def forward(self, inputs):
+        self.retain_inputs((0, 1))
         xp = cuda.get_array_module(*inputs)
         x, divisor = inputs
         m = xp.fmod(x, divisor)
         return utils.force_array(m, x.dtype),
 
-    def backward(self, inputs, grad_outputs):
-        xp = cuda.get_array_module(*inputs)
+    def backward(self, indexes, grad_outputs):
+        x, divisor = self.get_retained_inputs()
         gw, = grad_outputs
-        x, divisor = inputs
-        return gw, utils.force_array(xp.fix(x / divisor) * -1 * gw, x.dtype)
+        return gw, chainer.functions.fix(x / divisor) * -1 * gw
 
 
 def fmod(x, divisor):
@@ -44,4 +45,4 @@ def fmod(x, divisor):
     Returns:
         ~chainer.Variable: Output variable.
     """
-    return Fmod()(x, divisor)
+    return Fmod().apply((x, divisor))[0]
