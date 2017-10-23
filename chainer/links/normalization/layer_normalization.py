@@ -8,6 +8,10 @@ class LayerNormalization(link.Link):
 
     """Layer normalization layer on outputs of linear functions.
 
+    .. warning::
+
+        This feature is experimental. The interface can change in the future.
+
     This link implements a "layer normalization" layer
     which normalizes the input units by statistics
     that are computed along the second axis,
