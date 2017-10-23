@@ -190,6 +190,8 @@ from chainer.functions.math.exponential import log2  # NOQA
 from chainer.functions.math.exponential import Log2  # NOQA
 from chainer.functions.math.exponential_m1 import expm1  # NOQA
 from chainer.functions.math.exponential_m1 import Expm1  # NOQA
+from chainer.functions.math.fix import fix  # NOQA
+from chainer.functions.math.fix import Fix  # NOQA
 from chainer.functions.math.floor import floor  # NOQA
 from chainer.functions.math.floor import Floor  # NOQA
 from chainer.functions.math.fmod import fmod  # NOQA
