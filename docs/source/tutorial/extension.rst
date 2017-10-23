@@ -51,7 +51,7 @@ Write a function decorated with @make_extension
 
 .. testcode::
 
-    @make_extension(trigger=(10, 'epoch'))
+    @training.make_extension(trigger=(10, 'epoch'))
     def lr_drop(trainer):
         trainer.updater.get_optimizer('main').lr *= 0.1
 
@@ -123,7 +123,7 @@ The learning rate will be dropped like the curve below with :math:`{\rm power} =
 
 .. testcode::
 
-    class PolynomialShift(extension.Extension):
+    class PolynomialShift(training.Extension):
 
         def __init__(self, attr, power, stop_trigger, batchsize=None,
                      len_dataset=None):
