@@ -18,6 +18,8 @@ class Expm1FunctionTest(unittest.TestCase):
     def setUp(self):
         self.x = numpy.random.uniform(.5, 1, self.shape).astype(numpy.float32)
         self.gy = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
+        self.ggx = \
+            numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
 
         self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
 
@@ -45,6 +47,20 @@ class Expm1FunctionTest(unittest.TestCase):
     @attr.gpu
     def test_expm1_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
+
+    def check_double_backward(self, x_data, y_grad, x_grad_grad):
+        gradient_check.check_double_backward(
+            F.expm1, x_data, y_grad, x_grad_grad)
+
+    @condition.retry(3)
+    def test_expm1_double_backward_cpu(self):
+        self.check_double_backward(self.x, self.gy, self.ggx)
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_expm1_double_backward_gpu(self):
+        self.check_double_backward(
+            cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx))
 
     def test_expm1(self):
         self.assertEqual(F.Expm1().label, 'expm1')
