@@ -40,7 +40,7 @@ if cupy_pkg is not None:
 
 __version__ = None
 here = os.path.abspath(os.path.dirname(__file__))
-with open(os.path.join(here, 'chainer/_version.py')) as f:
+with open(os.path.join(here, 'chainer', '_version.py')) as f:
     exec(f.read())
 
 setup(
