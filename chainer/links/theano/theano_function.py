@@ -39,8 +39,8 @@ class TheanoFunction(link.Link):
        >>> z = x + y
        >>> w = x - y
        >>> f = L.TheanoFunction(inputs=[x, y], outputs=[z, w])
-       >>> a = chainer.Variable(numpy.array([1, 2], dtype='f'))
-       >>> b = chainer.Variable(numpy.array([2, 3], dtype='f'))
+       >>> a = chainer.Variable(np.array([1, 2], dtype='f'))
+       >>> b = chainer.Variable(np.array([2, 3], dtype='f'))
        >>> c, d = f(a, b)
        >>> c.data
        array([ 3.,  5.], dtype=float32)
