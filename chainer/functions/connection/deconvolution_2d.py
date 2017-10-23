@@ -177,9 +177,9 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             y_desc = cudnn.create_tensor_descriptor(y)
 
             filter_desc = cudnn.create_filter_descriptor(W)
+            conv_param = (self.ph, self.pw), (self.sy, self.sx), x.dtype
             conv_desc = cudnn.create_convolution_descriptor(
-                (self.ph, self.pw), (self.sy, self.sx), x.dtype,
-                use_tensor_core=use_tensor_core)
+                *conv_param, use_tensor_core=use_tensor_core)
             if b is not None:
                 bias_desc = cudnn.create_tensor_descriptor(
                     b[None, :, None, None])
