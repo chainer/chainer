@@ -153,12 +153,8 @@ def set_debug(debug):
 
     .. note::
 
-        This method changes global state. When you use this method on
-        multi-threading environment, it may affects other threads.
-
-    .. deprecated:: v2.0.0
-
-        Use :func:`chainer.using_config` instead. See :ref:`debug` for details.
+        This method changes the global state. When you use this method on
+        multi-threading environment, it may affect other threads.
 
     Args:
         debug (bool): New debug mode.
