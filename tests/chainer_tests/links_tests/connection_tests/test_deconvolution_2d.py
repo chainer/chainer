@@ -8,7 +8,6 @@ from chainer import gradient_check
 from chainer import links as L
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
 from chainer.testing import parameterize
 from chainer.utils import conv
 
@@ -67,7 +66,6 @@ class TestDeconvolution2D(unittest.TestCase):
         testing.assert_allclose(y_cpu.data, y_gpu.data.get())
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_consistency(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             self.check_forward_consistency()
@@ -78,14 +76,13 @@ class TestDeconvolution2D(unittest.TestCase):
             params.append(self.link.b)
 
         gradient_check.check_backward(
-            self.link, x_data, y_grad, params, eps=1e-2)
+            self.link, x_data, y_grad, params, dtype=numpy.float64,
+            atol=1e-4, rtol=1e-3)
 
-    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy)
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu(self):
         self.link.to_gpu()
         with chainer.using_config('use_cudnn', self.use_cudnn):
@@ -139,7 +136,6 @@ class TestDeconvolution2DParameterShapePlaceholder(unittest.TestCase):
         testing.assert_allclose(y_cpu.data, y_gpu.data.get())
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_consistency(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             self.check_forward_consistency()
@@ -150,14 +146,13 @@ class TestDeconvolution2DParameterShapePlaceholder(unittest.TestCase):
             params.append(self.link.b)
 
         gradient_check.check_backward(
-            self.link, x_data, y_grad, params, eps=1e-2)
+            self.link, x_data, y_grad, params, dtype=numpy.float64,
+            atol=1e-4, rtol=1e-3)
 
-    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy)
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu(self):
         self.link.to_gpu()
         with chainer.using_config('use_cudnn', self.use_cudnn):
