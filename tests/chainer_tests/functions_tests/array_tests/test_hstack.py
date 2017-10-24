@@ -41,6 +41,9 @@ class TestHstack(unittest.TestCase):
             numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
             for i in six.moves.range(self.xs_length)
         ]
+        self.check_backward_options = {}
+        if self.dtype == numpy.float16:
+            self.check_backward_options = {'atol': 3e-3, 'rtol': 5e-3}
 
     def check_forward(self, xs_data):
         xs = [chainer.Variable(x) for x in xs_data]
@@ -61,7 +64,7 @@ class TestHstack(unittest.TestCase):
             return functions.hstack(xs)
 
         gradient_check.check_backward(
-            func, xs_data, g_data, dtype='d', atol=1e-3, rtol=1e-3)
+            func, xs_data, g_data, dtype='d', **self.check_backward_options)
 
     def test_backward_cpu(self):
         self.check_backward(self.xs, self.g)
@@ -77,7 +80,8 @@ class TestHstack(unittest.TestCase):
             return y * y
 
         gradient_check.check_double_backward(
-            func, xs_data, g_data, gg_data, dtype='d', atol=1e-3, rtol=1e-3)
+            func, xs_data, g_data, gg_data, dtype='d',
+            **self.check_backward_options)
 
     def test_double_backward_cpu(self):
         self.check_double_backward(self.xs, self.g, self.gg)
