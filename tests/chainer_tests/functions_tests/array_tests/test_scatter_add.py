@@ -36,7 +36,8 @@ class TestScatterAdd(unittest.TestCase):
             -1, 1, self.a_data.shape).astype(numpy.float32)
         self.ggb_data = numpy.random.uniform(
             -1, 1, self.b_data.shape).astype(numpy.float32)
-        self.check_backward_options = {'atol': 5e-4, 'rtol': 1e-4, 'dtype': 'f'}
+        self.check_backward_options = {
+            'atol': 5e-4, 'rtol': 1e-4, 'dtype': 'f'}
 
     def check_forward(self, a_data, b_data):
         a = chainer.Variable(a_data)
