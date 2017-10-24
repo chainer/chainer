@@ -1,7 +1,7 @@
 from chainer.dataset import convert  # NOQA
 from chainer.dataset import dataset_mixin  # NOQA
 from chainer.dataset import download  # NOQA
-from chainer.dataset import indexer  # NOQA
+from chainer.dataset import indexers  # NOQA
 from chainer.dataset import iterator  # NOQA
 
 
@@ -14,6 +14,6 @@ from chainer.dataset.download import cached_download  # NOQA
 from chainer.dataset.download import get_dataset_directory  # NOQA
 from chainer.dataset.download import get_dataset_root  # NOQA
 from chainer.dataset.download import set_dataset_root  # NOQA
-from chainer.dataset.indexer import BaseFeatureIndexer  # NOQA
-from chainer.dataset.indexer import BaseIndexer  # NOQA
+from chainer.dataset.indexers import BaseFeatureIndexer  # NOQA
+from chainer.dataset.indexers import BaseIndexer  # NOQA
 from chainer.dataset.iterator import Iterator  # NOQA

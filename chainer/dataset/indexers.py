@@ -52,8 +52,8 @@ class BaseFeatureIndexer(BaseIndexer):
         """Extracts `slice_index`-th data's `j`-th feature.
 
         Here, `slice_index` is indices of slice object.
-        This method may be override to support efficient feature extraction.
-        If not override, `ExtractBySliceNotSupportedError` is raised by
+        This method may be overriden to support efficient feature extraction.
+        If not overriden, `ExtractBySliceNotSupportedError` is raised by
         default, and in this case `extract_feature` is used instead.
 
         Args:

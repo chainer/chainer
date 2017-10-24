@@ -5,8 +5,10 @@ import numpy
 from chainer import cuda
 from chainer import datasets
 from chainer import testing
-from chainer.testing import attr
+from chainer.testing import attr, assert_allclose
 
+
+def array_equiv()
 
 class TestTupleDataset(unittest.TestCase):
 
@@ -44,166 +46,73 @@ class TestTupleDataset(unittest.TestCase):
         with self.assertRaises(IndexError):
             td[3]
 
-    def test_tuple_dataset_features(self):
-        td = datasets.TupleDataset(self.x0, self.x1)
+    def _test_tuple_dataset_features_1d_access(self, x0, x1):
+        # Test for features indexer for one dimension accessing.
+        # It extracts all features of specified indices
+        td = datasets.TupleDataset(x0, x1)
 
-        # Test 1. one dimension accessing.
-        # extracts all features of specified indices
         # slice
         f0, f1 = td.features[:]
+        import IPython;
+        IPython.embed()
 
-        self.assertTrue((self.x0 == f0).all())
-        self.assertTrue((self.x1 == f1).all())
+        self.assertTrue(numpy.array_equiv(x0, f0))
+        self.assertTrue(numpy.array_equiv(x1, f1))
+        # self.assertTrue((x0 == f0).all())
+        # self.assertTrue((x1 == f1).all())
         del f0, f1
 
         # int
         i = 0
         f0, f1 = td.features[i]
-        self.assertTrue((self.x0[i] == f0).all())
-        self.assertTrue((self.x1[i] == f1).all())
+        assert_allclose(x0[i], f0)
+        self.assertTrue((x0[i] == f0).all())
+        self.assertTrue((x1[i] == f1).all())
         del f0, f1
 
         # integer list
         l = [1, 2]
         f0, f1 = td.features[l]
-        self.assertTrue((self.x0[l, :] == f0).all())
-        self.assertTrue((self.x1[l, :] == f1).all())
+        self.assertTrue((x0[l, :] == f0).all())
+        self.assertTrue((x1[l, :] == f1).all())
         del f0, f1
 
         # boolean list
         bl = [True, False, True]
         f0, f1 = td.features[bl]
-        self.assertTrue((self.x0[[0, 2], :] == f0).all())
-        self.assertTrue((self.x1[[0, 2], :] == f1).all())
+        self.assertTrue((x0[[0, 2], :] == f0).all())
+        self.assertTrue((x1[[0, 2], :] == f1).all())
         del f0, f1
 
-        # Equivalence test
+        # Equivalence test (these expression works same with above)
         f0, f1 = td.features[:, :]
-        self.assertTrue((self.x0 == f0).all())
-        self.assertTrue((self.x1 == f1).all())
+        self.assertTrue((x0 == f0).all())
+        self.assertTrue((x1 == f1).all())
         del f0, f1
         f0, f1 = td.features[i, :]
-        self.assertTrue((self.x0[i] == f0).all())
-        self.assertTrue((self.x1[i] == f1).all())
+        self.assertTrue((x0[i] == f0).all())
+        self.assertTrue((x1[i] == f1).all())
         del f0, f1
         f0, f1 = td.features[l, :]
-        self.assertTrue((self.x0[l] == f0).all())
-        self.assertTrue((self.x1[l, :] == f1).all())
+        self.assertTrue((x0[l] == f0).all())
+        self.assertTrue((x1[l, :] == f1).all())
         del f0, f1
         f0, f1 = td.features[bl, :]
-        self.assertTrue((self.x0[[0, 2], :] == f0).all())
-        self.assertTrue((self.x1[[0, 2], :] == f1).all())
+        self.assertTrue((x0[[0, 2], :] == f0).all())
+        self.assertTrue((x1[[0, 2], :] == f1).all())
         del f0, f1
 
+    def _test_tuple_dataset_features_2d_access(self, x0, x1):
         # Test 2. second dimension accessing
-        # int
-        f0 = td.features[:, 0]
-        self.assertTrue((self.x0 == f0).all())
-        del f0
-
-        f1 = td.features[0, 1]
-        self.assertTrue((self.x1[0] == f1).all())
-        del f1
-
-        # slice
-        f1 = td.features[:, -1:]
-        self.assertTrue((self.x1[:] == f1).all())
-        del f1
-
-        # integer list
-        f0 = td.features[0:5, [0, ]]
-        self.assertTrue((self.x0[0:5] == f0).all())
-        del f0
-
-        # boolean list
-        f1 = td.features[0:5, [False, True]]
-        self.assertTrue((self.x1[0:5] == f1).all())
-        del f1
-
-        with self.assertRaises(IndexError):
-            # 3 is out of range for dataset_length
-            fx = td.features[3, 0]
-            del fx
-
-        with self.assertRaises(IndexError):
-            # 3 is out of range for feature_length
-            f_unknown = td.features[1, 3]
-            del f_unknown
-
-        # Check string type extract, float32 type
-        x0 = numpy.arange(5).astype(numpy.float32)
-        x1 = numpy.array(['a', 'b', 'c', '1', '2'])
         td = datasets.TupleDataset(x0, x1)
-
-        # Test 1. one dimension accessing.
-        # extracts all features of specified indices
-        # slice
-        f0, f1 = td.features[:]
-
-        self.assertTrue((x0 == f0).all())
-        self.assertTrue((x1 == f1).all())
-        del f0, f1
-
-        # int
-        i = 0
-        f0, f1 = td.features[i]
-
-        self.assertTrue((x0[i] == f0).all())
-        self.assertTrue(x1[i] == f1)
-        del f0, f1
-
-        # integer list
-        l = [1, 2]
-        f0, f1 = td.features[l]
-
-        self.assertTrue((x0[l] == f0).all())
-        self.assertTrue((x1[l] == f1).all())
-        del f0, f1
-
-        # boolean list
-        bl = [True, False, True, True, False]
-        f0, f1 = td.features[bl]
-        self.assertTrue((x0[[0, 2, 3]] == f0).all())
-        self.assertTrue((x1[[0, 2, 3]] == f1).all())
-        del f0, f1
-
-        # Equivalence test
-        f0, f1 = td.features[:, :]
-        self.assertTrue((x0 == f0).all())
-        self.assertTrue((x1 == f1).all())
-        del f0, f1
-        f0, f1 = td.features[i, :]
-        self.assertTrue((x0[i] == f0).all())
-        self.assertTrue(x1[i] == f1)
-        del f0, f1
-        f0, f1 = td.features[l, :]
-        self.assertTrue((x0[l] == f0).all())
-        self.assertTrue((x1[l] == f1).all())
-        del f0, f1
-
-        f0, f1 = td.features[bl, :]
-        self.assertTrue((x0[[0, 2, 3]] == f0).all())
-        self.assertTrue((x1[[0, 2, 3]] == f1).all())
-        del f0, f1
-
-        # Test 2. second dimension accessing
         # int
         f0 = td.features[:, 0]
         self.assertTrue((x0 == f0).all())
         del f0
 
         f1 = td.features[0, 1]
-        self.assertTrue(x1[0] == f1)
+        self.assertTrue((x1[0] == f1).all())
         del f1
-
-        # Negative index accessing
-        f1 = td.features[:, -1]
-        self.assertTrue((x1 == f1).all())
-        del f1
-
-        f0 = td.features[:, -2]
-        self.assertTrue((x0 == f0).all())
-        del f0
 
         # slice
         f1 = td.features[:, -1:]
@@ -215,22 +124,19 @@ class TestTupleDataset(unittest.TestCase):
         self.assertTrue((x0[0:5] == f0).all())
         del f0
 
-        f1 = td.features[::-1, [-1, ]]
-        self.assertTrue((x1[::-1] == f1).all())
-        del f1
-
-        f1 = td.features[-1, [-1, ]]
-        self.assertTrue(x1[-1] == f1)
-        del f1
-
         # boolean list
         f1 = td.features[0:5, [False, True]]
         self.assertTrue((x1[0:5] == f1).all())
         del f1
 
+    def _test_tuple_dataset_features_raise_error(self, x0, x1):
+        # feature length is 2 for this dataset
+        td = datasets.TupleDataset(x0, x1)
+
         with self.assertRaises(IndexError):
-            # 3 is out of range for dataset_length
-            fx = td.features[5, 0]
+            error_index = len(x0)
+            # `error_index` is out of range for dataset_length
+            fx = td.features[error_index, 0]
             del fx
 
         with self.assertRaises(IndexError):
@@ -239,12 +145,33 @@ class TestTupleDataset(unittest.TestCase):
             del f_unknown
 
         with self.assertRaises(ValueError):
-            # boolean flag length is does not match with feature_length
-            bl = [True, False, True]
-            f0, f1 = td.features[bl]
-            self.assertTrue((x0[[0, 2]] == f0).all())
-            self.assertTrue((x1[[0, 2]] == f1).all())
-            del f0, f1
+            # boolean flag length does not match with dataset_length
+            bl = [True] * len(x0) + [True, ]
+            f0, f1 = td.features[:, bl]
+            del bl, f0, f1
+
+        with self.assertRaises(ValueError):
+            # boolean flag length does not match with feature_length
+            bl = [True, True, True]
+            f0, f1 = td.features[:, bl]
+            del bl, f0, f1
+
+    def test_tuple_dataset_features(self):
+        # 1. Test for numpy array dataset
+        self._test_tuple_dataset_features_1d_access(self.x0, self.x1)
+        self._test_tuple_dataset_features_2d_access(self.x0, self.x1)
+        self._test_tuple_dataset_features_raise_error(self.x0, self.x1)
+
+        # 2. Test for object type dataset,
+        # where the dataset may contain different shape
+        x0 = numpy.array([numpy.array([0]),
+                          numpy.array([1, 2]),
+                          numpy.array([[10, 11], [20, 21]])])
+        # x1 = numpy.array(['a', 'bb', 'ccc'])
+        x1 = numpy.arange(3)
+        self._test_tuple_dataset_features_1d_access(x0, x1)
+        self._test_tuple_dataset_features_2d_access(x0, x1)
+        self._test_tuple_dataset_features_raise_error(x0, x1)
 
 
 testing.run_module(__name__, __file__)

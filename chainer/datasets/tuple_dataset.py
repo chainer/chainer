@@ -1,6 +1,6 @@
 import six
 
-from chainer.dataset.indexer import BaseFeatureIndexer
+from chainer.dataset.indexers import BaseFeatureIndexer
 
 
 class TupleDataset(object):
