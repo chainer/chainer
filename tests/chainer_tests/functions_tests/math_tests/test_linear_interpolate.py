@@ -22,12 +22,18 @@ class TestLinearInterpolate(unittest.TestCase):
         self.x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         self.y = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         self.g = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        self.gp = numpy.random.uniform(0, 1, self.shape).astype(self.dtype)
+        self.gx = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        self.gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
 
         self.check_forward_options = {}
         self.check_backward_options = {'dtype': numpy.float64}
+        self.check_double_backward_options = {'dtype': numpy.float64}
         if self.dtype == numpy.float16:
             self.check_forward_options = {'atol': 1e-3, 'rtol': 1e-3}
             self.check_backward_options = {
+                'dtype': numpy.float64, 'atol': 5e-4, 'rtol': 5e-3}
+            self.check_double_backward_options = {
                 'dtype': numpy.float64, 'atol': 5e-4, 'rtol': 5e-3}
 
     def check_forward(self, p_data, x_data, y_data):
@@ -54,7 +60,7 @@ class TestLinearInterpolate(unittest.TestCase):
 
     def check_backward(self, p_data, x_data, y_data, grad):
         gradient_check.check_backward(
-            functions.LinearInterpolate(), (p_data, x_data, y_data), grad,
+            functions.linear_interpolate, (p_data, x_data, y_data), grad,
             **self.check_backward_options)
 
     @condition.retry(3)
@@ -68,6 +74,28 @@ class TestLinearInterpolate(unittest.TestCase):
                             cuda.to_gpu(self.x),
                             cuda.to_gpu(self.y),
                             cuda.to_gpu(self.g))
+
+    def check_double_backward(self, p, x, y, grad, gp, gx, gy):
+        gradient_check.check_double_backward(
+            functions.linear_interpolate, (p, x, y), grad,
+            (gp, gx, gy), **self.check_double_backward_options)
+
+    @condition.retry(3)
+    def test_double_backward_cpu(self):
+        self.check_double_backward(
+            self.p, self.x, self.y, self.g, self.gp, self.gx, self.gy)
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_double_backward_gpu(self):
+        self.check_double_backward(
+            cuda.to_gpu(self.p),
+            cuda.to_gpu(self.x),
+            cuda.to_gpu(self.y),
+            cuda.to_gpu(self.g),
+            cuda.to_gpu(self.gp),
+            cuda.to_gpu(self.gx),
+            cuda.to_gpu(self.gy))
 
 
 testing.run_module(__name__, __file__)
