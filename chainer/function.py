@@ -476,7 +476,7 @@ class Function(object):
 
         Args:
             indexes (iterable of int): Indexes of input variables that the
-                function does not require for backprop.
+                function will require for backprop.
 
         """
         self.node.retain_inputs(indexes)
@@ -502,7 +502,7 @@ class Function(object):
 
         Args:
             indexes (iterable of int): Indexes of input variables that the
-                function does not require for backprop.
+                function will require for backprop.
 
             retain_after_backward (bool): This option has no effect. It is
                 left only for the backward compatibility.
