@@ -301,6 +301,11 @@ http://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf
     If ``chainer.configuration.config.deterministic`` is ``True`` and
     cuDNN version is >= v3, it forces cuDNN to use a deterministic algorithm.
 
+    Convolution links can use a feature of cuDNN called autotuning, which
+    selects the most efficient CNN algorithm for images of fixed-size, 
+    can provide a significant performance boost for fixed neural nets.
+    To enable, set `chainer.global_config.autotune = True`
+
     .. warning::
 
         ``deterministic`` argument is not supported anymore since v2.
