@@ -113,6 +113,14 @@ class SoftmaxCrossEntropy(function.Function):
         if chainer.is_debug():
             _check_input_values(x, t, self.ignore_label)
 
+        if x.size == 0:
+            y = cupy.zeros(t.shape, dtype=x.dtype)
+            if self.cache_score:
+                self.y = y
+            if self.reduce == 'mean':
+                return y.sum(),
+            else:
+                return y,
         log_y = log_softmax._log_softmax(x)
         if self.cache_score:
             self.y = cupy.exp(log_y)
@@ -154,6 +162,8 @@ class SoftmaxCrossEntropy(function.Function):
     def backward_cpu(self, inputs, grad_outputs):
         x, t = inputs
         gloss = grad_outputs[0]
+        if x.size == 0:
+            return numpy.zeros(x.shape, dtype=x.dtype), None
         if hasattr(self, 'y'):
             y = self.y.copy()
         else:
@@ -195,6 +205,8 @@ class SoftmaxCrossEntropy(function.Function):
     def backward_gpu(self, inputs, grad_outputs):
         cupy = cuda.cupy
         x, t = inputs
+        if x.size == 0:
+            return cupy.zeros(x.shape, dtype=x.dtype), None
         if hasattr(self, 'y'):
             y = self.y
         else:
