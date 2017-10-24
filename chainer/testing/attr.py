@@ -26,7 +26,7 @@ def get_error():
 
 
 if _error is None:
-    _gpu_limit = int(os.getenv('CHAINER_TESTING_GPU_LIMIT', '-1'))
+    _gpu_limit = int(os.getenv('CHAINER_TEST_GPU_LIMIT', '-1'))
 
     cudnn = pytest.mark.cudnn
     slow = pytest.mark.slow
@@ -45,7 +45,7 @@ def multi_gpu(gpu_num):
 
     Tests can be annotated with this decorator (e.g., ``@multi_gpu(2)``) to
     declare number of GPUs required to run. When running tests, if
-    ``CHAINER_TESTING_GPU_LIMIT`` environment variable is set to value greater
+    ``CHAINER_TEST_GPU_LIMIT`` environment variable is set to value greater
     than or equals to 0, test cases that require GPUs more than the limit will
     be skipped.
     """
