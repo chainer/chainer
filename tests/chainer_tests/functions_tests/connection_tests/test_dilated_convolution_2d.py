@@ -163,6 +163,8 @@ class TestDilatedConvolution2DCudnnCall(unittest.TestCase):
             -1, 1, (2, 2, 2, 2)).astype(self.dtype)
         with chainer.using_config('use_cudnn', self.use_cudnn):
             self.expect = chainer.should_use_cudnn('>=auto')
+            if cuda.cudnn.cudnn.getVersion() < 6000:
+                self.expect = False
 
     def forward(self):
         x = chainer.Variable(self.x)
@@ -176,7 +178,7 @@ class TestDilatedConvolution2DCudnnCall(unittest.TestCase):
                 self.forward()
                 self.assertEqual(func.called, self.expect)
 
-    def test_call_cudnn_backrward(self):
+    def test_call_cudnn_backward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             y = self.forward()
             y.grad = self.gy
