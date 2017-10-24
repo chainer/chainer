@@ -7,6 +7,7 @@ from chainer import function
 from chainer.utils import conv
 from chainer.utils import conv_nd
 from chainer.utils import type_check
+from chainer.functions.connection import convolution_2d
 
 
 if cuda.cudnn_enabled:
@@ -120,8 +121,8 @@ class DeconvolutionND(function.Function):
         x_desc = cudnn.create_tensor_descriptor(x)
         y_desc = cudnn.create_tensor_descriptor(y)
         self.filter_desc = cudnn.create_filter_descriptor(W)
-        self.conv_desc = cudnn.create_convolution_descriptor(
-            self.pad, self.stride, x.dtype)
+        conv_param = self.pad, self.stride, x.dtype
+        self.conv_desc = cudnn.create_convolution_descriptor(*conv_param)
         if b is not None:
             b_index = (None, colon) + (None,) * ndim
             self.bias_desc = cudnn.create_tensor_descriptor(b[b_index])
@@ -132,10 +133,15 @@ class DeconvolutionND(function.Function):
         zero = numpy.array(0, dtype=oz_dtype).ctypes
         workspace_size = cuda.get_max_workspace_size()
         workspace = cuda.cupy.empty((workspace_size,), dtype='b')
-        algo = libcudnn.getConvolutionBackwardDataAlgorithm(
-            handle, self.filter_desc.value, x_desc.value,
-            self.conv_desc.value, y_desc.value, _bwd_data_pref,
-            workspace_size)
+        if chainer.global_config.autotune:
+            algo = convolution_2d.get_algorithm(W, x, y, conv_param, handle, self.filter_desc,
+                                 x_desc, self.conv_desc, y_desc, workspace)
+        else:
+            algo = libcudnn.getConvolutionBackwardDataAlgorithm(
+                handle, self.filter_desc.value, x_desc.value, 
+                self.conv_desc.value, y_desc.value, _bwd_data_pref,
+                workspace_size)
+
         libcudnn.convolutionBackwardData_v3(
             handle, one.data, self.filter_desc.value, W.data.ptr,
             x_desc.value, x.data.ptr, self.conv_desc.value,
