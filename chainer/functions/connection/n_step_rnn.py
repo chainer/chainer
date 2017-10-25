@@ -170,8 +170,8 @@ if cuda.cudnn_enabled and _cudnn_version >= 5000:
 
 class BaseNStepRNN(function.Function):
 
-    def __init__(self, n_layers, states, rnn_dir, rnn_mode,
-                 rnn_algo, **kwargs):
+    def __init__(self, n_layers, states, rnn_dir, rnn_mode, rnn_algo,
+                 **kwargs):
         argument.check_unexpected_kwargs(
             kwargs, train='train argument is not supported anymore. '
             'Use chainer.using_config')
