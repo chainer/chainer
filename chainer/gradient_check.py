@@ -230,6 +230,9 @@ def check_backward(func, x_data, y_grad, params=(),
     .. seealso::
        :func:`numerical_grad`
     """
+    if dtype is not None and numpy.dtype(dtype).kind != 'f':
+        raise ValueError('`dtype` is allowed only float type')
+
     x_data = _as_tuple(x_data)
     if y_grad is not None:
         y_grad = _as_tuple(y_grad)
@@ -256,23 +259,32 @@ def check_backward(func, x_data, y_grad, params=(),
     # `Variable.backward` method calls `Function.backward` of its creator.
     y[0].backward()
 
-    param_data = [p.data for p in params]
     if dtype is None:
         casted_xs = [variable.Variable(x) for x in x_data]
     else:
+        # Cast data to the specified dtype before computing the numerical
+        # gradients e.g. when we explicitly want to increase the floating point
+        # precision from the initial dtype.
         if numpy.dtype(dtype).kind != 'f':
             raise ValueError('`dtype` is allowed only float type')
         casted_xs = [variable.Variable(x.astype(dtype, copy=False)
                                        if x.dtype.kind == 'f' else x)
                      for x in x_data]
+        for param in params:
+            if param.data.dtype.kind == 'f':
+                param.data = param.data.astype(dtype, copy=False)
+        y_grad = [g.astype(dtype, copy=False) if g is not None and
+                  isinstance(g, (numpy.ndarray, cuda.ndarray)) and
+                  g.dtype.kind == 'f' else g for g in y_grad]
 
     if no_grads is None:
         no_grads = [x.dtype.kind != 'f' for x in xs]
     else:
         if len(no_grads) != len(xs):
             raise ValueError(
-                'Length of no_grads param and xs should be same.')
-    casted_data = [x.data.copy() for x in casted_xs]
+                'Length of no_grads param and xs should be same.\n'
+                'Actual: {0} != {1}'.format(len(no_grads), len(xs)))
+
     for skip, x in six.moves.zip(no_grads, xs):
         if skip:
             assert x.grad is None
@@ -283,6 +295,8 @@ def check_backward(func, x_data, y_grad, params=(),
 
     # Keep the gradient arrays of params which may be overwritten by func
     params_grad = [param.grad for param in params]
+    param_data = [p.data for p in params]
+    casted_data = [x.data.copy() for x in casted_xs]
 
     xp = cuda.get_array_module(*xs)
     one = xp.array(1., dtype)
