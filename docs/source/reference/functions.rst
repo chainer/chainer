@@ -200,6 +200,7 @@ Mathematical functions
    chainer.functions.scale
    chainer.functions.sin
    chainer.functions.sinh
+   chainer.functions.sign
    chainer.functions.sqrt
    chainer.functions.square
    chainer.functions.squared_difference

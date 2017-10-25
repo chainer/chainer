@@ -227,6 +227,8 @@ from chainer.functions.math.minmax import Min  # NOQA
 from chainer.functions.math.prod import prod  # NOQA
 from chainer.functions.math.prod import Prod  # NOQA
 from chainer.functions.math.scale import scale  # NOQA
+from chainer.functions.math.sign import sign  # NOQA
+from chainer.functions.math.sign import Sign  # NOQA
 from chainer.functions.math.sqrt import rsqrt  # NOQA
 from chainer.functions.math.sqrt import sqrt  # NOQA
 from chainer.functions.math.sqrt import Sqrt  # NOQA
