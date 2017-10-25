@@ -90,8 +90,8 @@ def pad_sequence(xs, length=None, padding=0):
         padding (int or float): Value to fill.
 
     Returns:
-        ~chainer.Variable: It returns a padded matrix. Its shape is
-            ``(n, length, ...)``, where ``n == len(xs)``.
+        ~chainer.Variable: A padded matrix. Its shape is
+        ``(n, length, ...)``, where ``n == len(xs)``.
 
     """
     return PadSequence(length, padding)(*xs)
