@@ -170,6 +170,7 @@ if cuda.cudnn_enabled and _cudnn_version >= 5000:
 _prev_batchsize = -1
 _rnn_plan = None
 
+
 class BaseNStepRNN(function.Function):
 
     def __init__(self, n_layers, states, rnn_dir, rnn_mode, rnn_algo,
