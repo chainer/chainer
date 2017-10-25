@@ -146,7 +146,7 @@ class NStepLSTMBase(link.ChainList):
 class NStepLSTM(NStepLSTMBase):
     """__init__(self, n_layers, in_size, out_size, dropout)
 
-    Stacked Uni-directional LSTM for sequnces.
+    Stacked Uni-directional LSTM for sequences.
 
     This link is stacked version of Uni-directional LSTM for sequences.
     It calculates hidden and cell states of all layer at end-of-string,
@@ -192,7 +192,7 @@ class NStepLSTM(NStepLSTMBase):
 class NStepBiLSTM(NStepLSTMBase):
     """__init__(self, n_layers, in_size, out_size, dropout)
 
-    Stacked Bi-directional LSTM for sequnces.
+    Stacked Bi-directional LSTM for sequences.
 
     This link is stacked version of Bi-directional LSTM for sequences.
     It calculates hidden and cell states of all layer at end-of-string,

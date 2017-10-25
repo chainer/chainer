@@ -85,23 +85,48 @@ class NpzDeserializer(serializer.Deserializer):
         strict (bool): If ``True``, the deserializer raises an error when an
             expected value is not found in the given NPZ file. Otherwise,
             it ignores the value and skip deserialization.
+        ignore_names (string, callable or list of them):
+            If callable, it is a function that takes a name of a parameter
+            and a persistent and returns ``True`` when it needs to be skipped.
+            If string, this is a name of a parameter or persistent that are
+            going to be skipped.
+            This can also be a list of callables and strings that behave as
+            described above.
 
     """
 
-    def __init__(self, npz, path='', strict=True):
+    def __init__(self, npz, path='', strict=True, ignore_names=[]):
         self.npz = npz
         self.path = path
         self.strict = strict
+        self.ignore_names = ignore_names
 
     def __getitem__(self, key):
         key = key.strip('/')
         return NpzDeserializer(
-            self.npz, self.path + key + '/', strict=self.strict)
+            self.npz, self.path + key + '/', strict=self.strict,
+            ignore_names=self.ignore_names)
 
     def __call__(self, key, value):
         key = self.path + key.lstrip('/')
         if not self.strict and key not in self.npz:
             return value
+
+        if isinstance(self.ignore_names, (tuple, list)):
+            ignore_names = self.ignore_names
+        else:
+            ignore_names = (self.ignore_names,)
+        for ignore_name in ignore_names:
+            if isinstance(ignore_name, str):
+                if key == ignore_name:
+                    return value
+            elif callable(ignore_name):
+                if ignore_name(key):
+                    return value
+            else:
+                raise ValueError(
+                    'ignore_names needs to be a callable, string or '
+                    'list of them.')
 
         dataset = self.npz[key]
         if dataset[()] is None:

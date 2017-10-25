@@ -12,7 +12,7 @@ from chainer import variable
 
 def _copy_arrays(xs):
     xp = cuda.get_array_module(*xs)
-    return [xp.copy(x, order='C') for x in xs]
+    return [xp.array(x, order='C', dtype=numpy.float64, copy=True) for x in xs]
 
 
 def numerical_grad(f, inputs, grad_outputs, eps=1e-3):
@@ -36,6 +36,11 @@ def numerical_grad(f, inputs, grad_outputs, eps=1e-3):
 
     """
     assert eps > 0
+    for x in inputs:
+        if x.dtype.kind != 'f':
+            raise RuntimeError(
+                'The dtype of input arrays must be kind of float')
+
     inputs = tuple(inputs)
     grad_outputs = tuple(grad_outputs)
     gpu = any(isinstance(x, cuda.ndarray) for x in inputs + grad_outputs)
@@ -53,7 +58,7 @@ def numerical_grad(f, inputs, grad_outputs, eps=1e-3):
         )
     else:
         xp = numpy
-    grads = [xp.zeros_like(x) for x in inputs]
+    grads = [xp.zeros(x.shape, numpy.float64) for x in inputs]
 
     with configuration.using_config('type_check', False):
         for x, gx in six.moves.zip(inputs, grads):
@@ -75,7 +80,8 @@ def numerical_grad(f, inputs, grad_outputs, eps=1e-3):
                             dot = ((y1 - y2) * gy).sum()
                             gx[i] += dot / (2 * eps)
 
-    return grads
+    return [g.astype(x.dtype, copy=False)
+            for g, x in six.moves.zip(grads, inputs)]
 
 
 def assert_allclose(x, y, atol=1e-5, rtol=1e-4, verbose=True):
@@ -124,8 +130,8 @@ def check_backward(func, x_data, y_grad, params=(),
     >>   check_backward(func, (x1_data, x2_data), gy_data)
 
     This method creates :class:`~chainer.Variable` objects with ``x_data``
-    and calls ``func`` with the :class:`~chainer.Variable` s to get its result
-    as :class:`~chainer.Variable`.
+    and calls ``func`` with the :class:`~chainer.Variable`\\ s to get its
+    result as :class:`~chainer.Variable`.
     Then, it sets ``y_grad`` array to ``grad`` attribute of the result and
     calls ``backward`` method to get gradients of the inputs.
     To check correctness of the gradients, the function calls
@@ -174,8 +180,8 @@ def check_backward(func, x_data, y_grad, params=(),
     >>   check_backward(my_link, (x1_data, x2_data), gy_data,
     >>                  (my_link.W, my_link.b))
 
-    Note that ``params`` are not ``ndarray`` s,
-    but :class:`~chainer.Variables` s.
+    Note that ``params`` are not ``ndarray``\\ s,
+    but :class:`~chainer.Variables`\\ s.
 
     Function objects are acceptable as ``func`` argument::
 
@@ -190,23 +196,23 @@ def check_backward(func, x_data, y_grad, params=(),
 
 
     Args:
-        func (callable): A function which gets :class:`~chainer.Variable` s
-            and returns :class:`~chainer.Variable` s. ``func`` must returns
-            a tuple of :class:`~chainer.Variable` s or one
+        func (callable): A function which gets :class:`~chainer.Variable`\\ s
+            and returns :class:`~chainer.Variable`\\ s. ``func`` must returns
+            a tuple of :class:`~chainer.Variable`\\ s or one
             :class:`~chainer.Variable`. You can use :class:`~chainer.Function`
             object, :class:`~chainer.Link` object or a function satisfying the
             condition.
-        x_data (ndarray or tuple of ndarrays): A set of ``ndarray`` s to be
+        x_data (ndarray or tuple of ndarrays): A set of ``ndarray``\\ s to be
             passed to ``func``. If ``x_data`` is one ``ndarray`` object, it is
             treated as ``(x_data,)``.
         y_grad (ndarray or tuple of ndarrays or None):
-            A set of ``ndarray`` s representing gradients of return-values of
+            A set of ``ndarray``\\ s representing gradients of return-values of
             ``func``. If ``y_grad`` is one ``ndarray`` object, it is
             treated as ``(y_grad,)``. If ``func`` is a loss-function,
             ``y_grad`` should be set to ``None``.
         params (~chainer.Variable or tuple of ~chainder.Variable):
-            A set of :class:`~chainer.Variable` s whose gradients are checked.
-            When ``func`` is a :class:`~chainer.Link` object,
+            A set of :class:`~chainer.Variable`\\ s whose gradients are
+            checked. When ``func`` is a :class:`~chainer.Link` object,
             set its parameters as ``params``.
             If ``params`` is one :class:`~chainer.Variable` object,
             it is treated as ``(params,)``.
@@ -221,7 +227,7 @@ def check_backward(func, x_data, y_grad, params=(),
             to this dtype when calculating numerical gradients. Only float
             types and ``None`` are allowed.
 
-    See:
+    .. seealso::
        :func:`numerical_grad`
     """
     x_data = _as_tuple(x_data)

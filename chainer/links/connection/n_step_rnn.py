@@ -155,7 +155,7 @@ class NStepRNNBase(link.ChainList):
 class NStepRNNTanh(NStepRNNBase):
     """__init__(self, n_layers, in_size, out_size, dropout)
 
-    Stacked Uni-directional RNN for sequnces.
+    Stacked Uni-directional RNN for sequences.
 
     This link is stacked version of Uni-directional RNN for sequences.
     Note that the activation function is ``tanh``.
@@ -195,7 +195,7 @@ class NStepRNNTanh(NStepRNNBase):
 class NStepRNNReLU(NStepRNNBase):
     """__init__(self, n_layers, in_size, out_size, dropout)
 
-    Stacked Uni-directional RNN for sequnces.
+    Stacked Uni-directional RNN for sequences.
 
     This link is stacked version of Uni-directional RNN for sequences.
     Note that the activation function is ``relu``.
@@ -235,7 +235,7 @@ class NStepRNNReLU(NStepRNNBase):
 class NStepBiRNNTanh(NStepRNNBase):
     """__init__(self, n_layers, in_size, out_size, dropout)
 
-    Stacked Bi-directional RNN for sequnces.
+    Stacked Bi-directional RNN for sequences.
 
     This link is stacked version of Bi-directional RNN for sequences.
     Note that the activation function is ``tanh``.
@@ -276,7 +276,7 @@ class NStepBiRNNTanh(NStepRNNBase):
 class NStepBiRNNReLU(NStepRNNBase):
     """__init__(self, n_layers, in_size, out_size, dropout)
 
-    Stacked Bi-directional RNN for sequnces.
+    Stacked Bi-directional RNN for sequences.
 
     This link is stacked version of Bi-directional RNN for sequences.
     Note that the activation function is ``relu``.

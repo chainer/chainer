@@ -20,6 +20,10 @@ import six
 import sys
 
 
+sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
+import _docstring_check
+
+
 __version__ = pkg_resources.get_distribution('chainer').version
 
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
@@ -344,6 +348,14 @@ spelling_lang = 'en_US'
 spelling_word_list_filename = 'spelling_wordlist.txt'
 
 
+def setup(app):
+    app.connect('autodoc-process-docstring', _autodoc_process_docstring)
+
+
+def _autodoc_process_docstring(app, what, name, obj, options, lines):
+    _docstring_check.check(app, what, name, obj, options, lines)
+
+
 def _import_object_from_name(module_name, fullname):
     obj = sys.modules.get(module_name)
     if obj is None:
@@ -430,6 +442,30 @@ def _check_object_validity(obj):
                 ''.format(obj, repr(doc)))
 
 
+def _get_sourcefile_and_linenumber(obj):
+    # Retrieve the original function wrapped by contextlib.contextmanager
+    if callable(obj):
+        closure = getattr(obj, '__closure__', None)
+        if closure is not None:
+            obj = closure[0].cell_contents
+
+    # Get the source file name and line number at which obj is defined.
+    try:
+        filename = inspect.getsourcefile(obj)
+    except TypeError:
+        # obj is not a module, class, function, ..etc.
+        return None, None
+
+    # inspect can return None for cython objects
+    if filename is None:
+        return None, None
+
+    # Get the source line number
+    _, linenum = inspect.getsourcelines(obj)
+
+    return filename, linenum
+
+
 def linkcode_resolve(domain, info):
     if domain != 'py' or not info['module']:
         return None
@@ -450,20 +486,10 @@ def linkcode_resolve(domain, info):
     if not (mod.__name__ == 'chainer' or mod.__name__.startswith('chainer.')):
         return None
 
-    # Get the source file name and line number at which obj is defined.
-    try:
-        filename = inspect.getsourcefile(obj)
-    except TypeError:
-        # obj is not a module, class, function, ..etc.
+    # Retrieve source file name and line number
+    filename, linenum = _get_sourcefile_and_linenumber(obj)
+    if filename is None or linenum is None:
         return None
-
-    # inspect can return None for cython objects
-    if filename is None:
-        return None
-
-    # Get the source line number
-    _, linenum = inspect.getsourcelines(obj)
-    assert isinstance(linenum, six.integer_types)
 
     filename = os.path.realpath(filename)
     relpath = _get_source_relative_path(filename)

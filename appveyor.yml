@@ -64,7 +64,9 @@ build_script:
 
 test_script:
   # Run the project tests
-  - "%CMD_IN_ENV% pip install nose mock hacking"
+  - "%CMD_IN_ENV% pip install mock hacking"
+  - "%CMD_IN_ENV% pip install nose pytest pytest-timeout pytest-cov"
   - "flake8"
-  - "cd tests\\chainer_tests"
-  - "nosetests -a \"!gpu,!slow\""
+  # Avoid interuption confirmation of cmd.exe
+  - "echo python -m pytest --timeout=60 -m \"not gpu and not multi_gpu and not cudnn and not slow\" tests > tmp.bat"
+  - "call tmp.bat < nul"
