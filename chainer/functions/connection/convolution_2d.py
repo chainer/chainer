@@ -48,8 +48,8 @@ def get_algorithm_bwd_filter(
         return _algorithm_bwd_filter[key]
     ret = libcudnn.findConvolutionBackwardFilterAlgorithmEx(
         handle, x_desc.value, x.data.ptr, dy_desc.value, dy.data.ptr,
-        conv_desc.value, filter_desc.value, dW.data.ptr, 10, workspace.data.ptr,
-        workspace.size)
+        conv_desc.value, filter_desc.value, dW.data.ptr, 10,
+        workspace.data.ptr, workspace.size)
     algo = ret[0]['algo']
     _algorithm_bwd_filter[key] = algo
     return algo
@@ -400,7 +400,7 @@ def convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False, **kwargs):
     cuDNN version is >= v3, it forces cuDNN to use a deterministic algorithm.
 
     Convolution links can use a feature of cuDNN called autotuning, which
-    selects the most efficient CNN algorithm for images of fixed-size, 
+    selects the most efficient CNN algorithm for images of fixed-size,
     can provide a significant performance boost for fixed neural nets.
     To enable, set `chainer.global_config.autotune = True`
 

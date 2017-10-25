@@ -5,10 +5,10 @@ from six import moves
 import chainer
 from chainer import cuda
 from chainer import function
+from chainer.functions.connection import convolution_2d
 from chainer.utils import conv
 from chainer.utils import conv_nd
 from chainer.utils import type_check
-from chainer.functions.connection import convolution_2d
 
 
 if cuda.cudnn_enabled:
@@ -121,14 +121,14 @@ class ConvolutionND(function.Function):
         workspace_size = cuda.get_max_workspace_size()
         workspace = cuda.cupy.empty((workspace_size,), dtype='b')
         if chainer.global_config.autotune:
-           algo = convolution_2d.get_algorithm_fwd(
+            algo = convolution_2d.get_algorithm_fwd(
                 x, W, y, self.conv_param, handle, x_desc, self.filter_desc,
                 self.conv_desc, y_desc, workspace)
         else:
             algo = libcudnn.getConvolutionForwardAlgorithm(
                 handle, x_desc.value, self.filter_desc.value,
                 self.conv_desc.value, y_desc.value, _fwd_pref,
-                 workspace_size)
+                workspace_size)
 
         # cuDNN forward computation.
         oz_dtype = 'd' if x.dtype == 'd' else 'f'
@@ -238,7 +238,7 @@ class ConvolutionND(function.Function):
         # Compute filter weight gradient.
         if chainer.global_config.autotune:
             algo = convolution_2d.get_algorithm_bwd_filter(
-                x, gy, gW, self.conv_param, handle, x_desc, gy_desc, 
+                x, gy, gW, self.conv_param, handle, x_desc, gy_desc,
                 self.conv_desc, self.filter_desc, workspace)
         else:
             algo = libcudnn.getConvolutionBackwardFilterAlgorithm(
@@ -375,7 +375,7 @@ def convolution_nd(x, W, b=None, stride=1, pad=0, cover_all=False):
           cuDNN version :math:`\\geq` v3.)
 
     Convolution links can use a feature of cuDNN called autotuning, which
-    selects the most efficient CNN algorithm for images of fixed-size, 
+    selects the most efficient CNN algorithm for images of fixed-size,
     can provide a significant performance boost for fixed neural nets.
     To enable, set `chainer.global_config.autotune = True`
 
