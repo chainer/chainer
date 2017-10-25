@@ -379,7 +379,7 @@ class TestCheckBackward(unittest.TestCase):
             if self.dtype is not None:
                 # Check for correct dtypes if f is called to compute the
                 # numerical gradient
-                if numpy.linalg.norm(x.data - x1) >= eps / 2:
+                if x.data != x1:
                     self.assertEqual(x.dtype, self.dtype)
                     self.assertEqual(x.dtype, y.dtype)
             s = Ident()(x)
