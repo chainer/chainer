@@ -81,7 +81,8 @@ class ResNet50(chainer.Chain):
 
     insize = 224
 
-    def __init__(self):
+    def __init__(self, insize=224):
+        ResNet50.insize = insize
         super(ResNet50, self).__init__()
         with self.init_scope():
             self.conv1 = L.Convolution2D(
@@ -100,7 +101,8 @@ class ResNet50(chainer.Chain):
         h = self.res3(h)
         h = self.res4(h)
         h = self.res5(h)
-        h = F.average_pooling_2d(h, 7, stride=1)
+        h = F.average_pooling_2d(h, h.shape[2:], stride=1)
+        #h = F.average_pooling_2d(h, 7, stride=1)
         h = self.fc(h)
 
         loss = F.softmax_cross_entropy(h, t)
