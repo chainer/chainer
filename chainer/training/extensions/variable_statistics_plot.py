@@ -1,5 +1,6 @@
 import numpy
 import os
+import warnings
 
 import chainer
 from chainer import cuda
@@ -10,11 +11,8 @@ from chainer.training import trigger as trigger_module
 try:
     import matplotlib  # NOQA
     import matplotlib.pyplot as plt  # NOQA
-    matplotlib_color_c0 = matplotlib.colors.to_rgba('#1f77b4')
-    # matplotlib_color_c1 = matplotlib.colors.to_rgba('#ff7f0e')
-    # chainer_color = matplotlib.colors.to_rgba('#e60312')
-    plot_color = matplotlib_color_c0
-    plot_color_trans = matplotlib_color_c0[:3] + (0.2,)
+    plot_color = matplotlib.colors.to_rgba('#1f77b4')  # C0 color
+    plot_color_trans = plot_color[:3] + (0.2,)
     plot_common_kwargs = {
         'alpha': 0.2, 'linewidth': 0, 'color': plot_color_trans}
     _available = True
@@ -24,7 +22,15 @@ except (ImportError, TypeError):
     _available = False
 
 
-def _get_variables(x, memo=None):
+def _check_available():
+    if not _available:
+        warnings.warn('matplotlib is not installed on your environment, '
+                      'so nothing will be plotted at this time. '
+                      'Please install matplotlib to plot figures.\n\n'
+                      '  $ pip install matplotlib\n')
+
+
+def _unpack_variables(x, memo=None):
     if memo is None:
         memo = ()
     if isinstance(x, chainer.Variable):
@@ -33,13 +39,13 @@ def _get_variables(x, memo=None):
         memo += tuple(x.params(include_uninit=True))
     elif isinstance(x, (list, tuple)):
         for xi in x:
-            memo += _get_variables(xi)
+            memo += _unpack_variables(xi)
     return memo
 
 
 class Reservoir(object):
 
-    """Reservoir sample set with a fixed sized buffer."""
+    """Reservoir sample with a fixed sized buffer."""
 
     def __init__(self, size, data_shape, dtype='f'):
         self.size = size
@@ -68,10 +74,15 @@ class Statistician(object):
 
     """Helper to compute basic NumPy-like statistics."""
 
-    percentiles = (0.13, 2.28, 15.87, 50, 84.13, 97.72, 99.87)
+    def __init__(
+            self,
+            percentiles=(0, 0.13, 2.28, 15.87, 50, 84.13, 97.72, 99.87, 100)):
+        self.percentiles = percentiles
 
-    def __call__(self, x, axis=0, xp=None):
-        if not isinstance(axis, (tuple, list)):
+    def __call__(self, x, axis=0, dtype=None, xp=None):
+        if axis is None:
+            axis = tuple(range(x.ndim))
+        elif not isinstance(axis, (tuple, list)):
             axis = axis,
         shape = (self.data_size,)
         for i, dim in enumerate(x.shape):
@@ -79,24 +90,22 @@ class Statistician(object):
                 shape += dim,
 
         xp = xp or cuda.get_array_module(x)
-        ret = xp.empty(shape, dtype=xp.float32)
+        ret = xp.empty(shape, dtype=x.dtype if dtype is None else dtype)
         ret[0] = x.mean(axis=axis)
         ret[1] = x.std(axis=axis)
-        ret[2] = x.min(axis=axis)
-        ret[3] = x.max(axis=axis)
         if xp == numpy:
-            ret[4:] = numpy.percentile(x, self.percentiles, axis=axis)
+            ret[2:] = numpy.percentile(x, self.percentiles, axis=axis)
         else:
             # Copy to host since percentile() is not yet implemented in CuPy
-            ret[4:] = cuda.to_gpu(
+            ret[2:] = cuda.to_gpu(
                 numpy.percentile(cuda.to_cpu(x), self.percentiles, axis=axis))
 
         return xp.rollaxis(ret, 0, ret.ndim)
 
     @property
     def data_size(self):
-        # mean, std, min, max and percentiles
-        return 4 + len(self.percentiles)
+        # mean, std and percentiles
+        return 2 + len(self.percentiles)
 
 
 class VariableStatisticsPlot(extension.Extension):
@@ -146,14 +155,13 @@ class VariableStatisticsPlot(extension.Extension):
                  figsize=None, marker=None, grid=True):
 
         if file_name is None:
-            msg = 'Missing output file name of statstics plot'
-            raise ValueError(msg)
+            raise ValueError('Missing output file name of statstics plot')
 
-        self._vars = _get_variables(targets)
+        self._vars = _unpack_variables(targets)
         if len(self._vars) == 0:
-            msg = 'Need > 0 variables for which to collect statistics.\n' \
-                  'Actual: 0'
-            raise ValueError(msg)
+            raise ValueError(
+                'Need at least one variables for which to collect statistics.'
+                '\nActual: 0 <= 0')
 
         self._report_data = report_data
         self._report_grad = report_grad
@@ -171,9 +179,13 @@ class VariableStatisticsPlot(extension.Extension):
             self._keys.append('grad')
 
         self._statistician = Statistician()
-        self._data_size = self._statistician.data_size
-        self._samples = Reservoir(
-            max_sample_size, data_shape=(len(self._keys), self._data_size))
+        self._data_shape = (len(self._keys), self._statistician.data_size)
+        self._samples = Reservoir(max_sample_size, data_shape=self._data_shape)
+
+    @staticmethod
+    def available():
+        _check_available()
+        return _available
 
     def __call__(self, trainer):
         if not _available:
@@ -181,16 +193,16 @@ class VariableStatisticsPlot(extension.Extension):
             return
 
         xp = cuda.get_array_module(self._vars[0].data)
-
-        stats = None
-        for k in self._keys:
-            xs = tuple(getattr(v, k).ravel() for v in self._vars)
-            xs = xp.concatenate(xs, axis=0)
-            stat = self._statistician(xs, axis=0, xp=xp)
-            if stats is None:
-                stats = stat[None, :]
-            else:
-                stats = xp.vstack((stats, stat[None, :]))
+        stats = xp.zeros(self._data_shape, dtype=xp.float32)
+        for i, k in enumerate(self._keys):
+            xs = []
+            for var in self._vars:
+                x = getattr(var, k, None)
+                if x is not None:
+                    xs.append(x.ravel())
+            if len(xs) > 0:
+                stats[i] = self._statistician(
+                    xp.concatenate(xs, axis=0), axis=0, xp=xp)
         if xp != numpy:
             stats = cuda.to_cpu(stats)
         self._samples.add(stats, idx=trainer.updater.iteration)
@@ -219,15 +231,15 @@ class VariableStatisticsPlot(extension.Extension):
 
             ax = axes[1, i]
             ax.fill_between(
-                idxs, data[:, i, 2], data[:, i, 3], **plot_common_kwargs)
+                idxs, data[:, i, 2], data[:, i, -1], **plot_common_kwargs)
             ax.fill_between(
-                idxs, data[:, i, 4], data[:, i, -1], **plot_common_kwargs)
+                idxs, data[:, i, 3], data[:, i, -2], **plot_common_kwargs)
             ax.fill_between(
-                idxs, data[:, i, 5], data[:, i, -2], **plot_common_kwargs)
+                idxs, data[:, i, 4], data[:, i, -3], **plot_common_kwargs)
             ax.fill_between(
-                idxs, data[:, i, 6], data[:, i, -3], **plot_common_kwargs)
+                idxs, data[:, i, 5], data[:, i, -4], **plot_common_kwargs)
             ax.plot(
-                idxs, data[:, i, 7], color=plot_color,
+                idxs, data[:, i, 6], color=plot_color,
                 label='percentiles', marker=self._marker)
             ax.set_xlabel('iteration')
 
