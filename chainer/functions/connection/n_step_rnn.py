@@ -167,6 +167,8 @@ if cuda.cudnn_enabled and _cudnn_version >= 5000:
         'dynamic': libcudnn.CUDNN_RNN_ALGO_PERSIST_DYNAMIC,
     }
 
+_prev_batchsize = -1
+_rnn_plan = None
 
 class BaseNStepRNN(function.Function):
 
@@ -198,8 +200,6 @@ class BaseNStepRNN(function.Function):
         self.states = states
         self.use_cell = _rnn_params_use_cell[self.rnn_mode]
         self.n_W = _rnn_n_params[self.rnn_mode]
-        self.plan = None
-        self.prev_batchsize = -1
 
     @property
     def _n_cell(self):
@@ -339,11 +339,14 @@ class BaseNStepRNN(function.Function):
 
         if self.rnn_algo == libcudnn.CUDNN_RNN_ALGO_PERSIST_DYNAMIC:
             batchsize = len(x_list[0])
-            if self.prev_batchsize != batchsize or self.plan is None:
-                self.plan = cudnn.create_rnn_persistent_rnn_plan(
+            global _prev_batchsize
+            global _rnn_plan
+            if _prev_batchsize != batchsize or _rnn_plan is None:
+                _rnn_plan = cudnn.create_rnn_persistent_rnn_plan(
                     rnn_desc, batchsize, libcudnn.CUDNN_DATA_FLOAT)
-                self.prev_batchsize = batchsize
-            cudnn.set_rnn_persistent_rnn_plan(rnn_desc, self.plan)
+                _prev_batchsize = batchsize
+
+            cudnn.set_rnn_persistent_rnn_plan(rnn_desc, _rnn_plan)
 
         self.rnn_desc = rnn_desc
 
