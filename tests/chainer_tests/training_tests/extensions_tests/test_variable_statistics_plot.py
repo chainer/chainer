@@ -1,8 +1,8 @@
 import os
 import unittest
 
-
 import numpy
+
 import chainer
 from chainer import testing
 from chainer.training import extensions
