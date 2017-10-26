@@ -75,6 +75,10 @@ Note that the default values are set in the global config.
        - If it is ``auto``, Chainer checks cuDNN version, the data type of input, the compute capability of the GPU used, and configures whether or not to use cuDNN's Tensor Core operations.
 
    The default value is ``auto``.
+``chainer.config.autotune``
+   Autotune for convolutional networks flag.
+   If it is ``True``, Chainer uses the cuDNN autotune feature to find the fastest calculation process for Convolution2D, ConvolutionND, Deconvolution2D, or DeconvolutionND links.
+   The default value is ``False``.
 
 Users can also define their own configurations.
 There are two ways:
