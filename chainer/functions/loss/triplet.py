@@ -68,11 +68,16 @@ class Triplet(function_node.FunctionNode):
             g = gy[:, None]
 
         tmp = 2 * chainer.functions.broadcast_to(g, mask.shape) * mask
-        gx0 = tmp * (negative - positive)
-        gx1 = tmp * (positive - anchor)
-        gx2 = tmp * (anchor - negative)
 
-        return gx0, gx1, gx2
+        ret = []
+        if 0 in indexes:
+            ret.append(tmp * (negative - positive))
+        if 1 in indexes:
+            ret.append(tmp * (positive - anchor))
+        if 2 in indexes:
+            ret.append(tmp * (anchor - negative))
+
+        return ret
 
 
 def triplet(anchor, positive, negative, margin=0.2, reduce='mean'):
