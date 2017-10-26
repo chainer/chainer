@@ -1,5 +1,3 @@
-import pytest
-
 from chainer.testing import array  # NOQA
 from chainer.testing import helper  # NOQA
 from chainer.testing import parameterized  # NOQA
@@ -31,5 +29,5 @@ def run_module(name, file):
     """
 
     if name == '__main__':
-
+        import pytest
         pytest.main([file, '-vvs', '-x', '--pdb'])
