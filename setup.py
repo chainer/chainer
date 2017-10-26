@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import imp
 import os
 import pkg_resources
 import sys
@@ -38,10 +39,9 @@ if cupy_pkg is not None:
     install_requires.append(cupy_require)
     print('Use %s' % cupy_require)
 
-__version__ = None
 here = os.path.abspath(os.path.dirname(__file__))
-with open(os.path.join(here, 'chainer', '_version.py')) as f:
-    exec(f.read())
+__version__ = imp.load_source(
+    '_version', os.path.join(here, 'chainer', '_version.py')).__version__
 
 setup(
     name='chainer',
