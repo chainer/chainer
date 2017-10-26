@@ -69,9 +69,11 @@ def huber_loss(x, t, delta, reduce='sum_along_second_axis'):
         summed up along the second axis (i.e. ``axis=1``).
 
     Args:
-        x (~chainer.Variable): Input variable.
+        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Input variable.
             The shape of ``x`` should be (:math:`N`, :math:`K`).
-        t (~chainer.Variable): Target variable for regression.
+        t (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Target variable for regression.
             The shape of ``t`` should be (:math:`N`, :math:`K`).
         delta (float): Constant variable for huber loss function
             as used in definition.
@@ -90,6 +92,28 @@ def huber_loss(x, t, delta, reduce='sum_along_second_axis'):
 
     See:
         `Huber loss - Wikipedia <https://en.wikipedia.org/wiki/Huber_loss>`_.
+
+    .. admonition:: Example
+
+        >>> x = np.array([[-2.0, 3.0, 0.5], [5.0, 2.0, -0.5]]).astype('f')
+        >>> x
+        array([[-2. ,  3. ,  0.5],
+               [ 5. ,  2. , -0.5]], dtype=float32)
+        >>> t = np.array([[-2.0, 3.0, 0.0], [10.0, 2.0, -0.5]]).astype('f')
+        >>> t
+        array([[ -2. ,   3. ,   0. ],
+               [ 10. ,   2. ,  -0.5]], dtype=float32)
+        >>> y = F.huber_loss(x, t, 1.0)
+        >>> y.shape
+        (2,)
+        >>> y.data
+        array([ 0.125,  4.5  ], dtype=float32)
+        >>> y = F.huber_loss(x, t, 1.0, reduce='no')
+        >>> y.shape
+        (2, 3)
+        >>> y.data
+        array([[ 0.   ,  0.   ,  0.125],
+               [ 4.5  ,  0.   ,  0.   ]], dtype=float32)
 
     """
     return HuberLoss(delta=delta, reduce=reduce)(x, t)

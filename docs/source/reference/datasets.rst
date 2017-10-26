@@ -110,3 +110,4 @@ Concrete datasets
    chainer.datasets.get_cifar100
    chainer.datasets.get_ptb_words
    chainer.datasets.get_ptb_words_vocabulary
+   chainer.datasets.get_svhn
