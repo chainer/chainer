@@ -10,3 +10,4 @@ Chainer Tutorial
    gpu
    function
    type_check
+   report
