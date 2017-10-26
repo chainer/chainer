@@ -77,7 +77,7 @@ Note that the default values are set in the global config.
    The default value is ``auto``.
 ``chainer.config.autotune``
    Autotune for convolutional networks flag.
-   If it is ``True``, Chainer uses the cuDNN autotune feature to find the fastest calculation process for Convolution2D, ConvolutionND, Deconvolution2D, or DeconvolutionND links.
+   If it is ``True``, Chainer uses the cuDNN autotune feature to find the fastest calculation process for :class:`chainer.links.Convolution2D`, :class:`ConvolutionND`, :class:`Deconvolution2D`, or :class:`DeconvolutionND` links.
    The default value is ``False``.
 
 Users can also define their own configurations.
