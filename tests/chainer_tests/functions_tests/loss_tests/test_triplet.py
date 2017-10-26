@@ -9,6 +9,7 @@ from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
+from chainer.testing import condition
 
 
 @testing.parameterize(
@@ -44,6 +45,9 @@ class TestTriplet(unittest.TestCase):
         else:
             gy_shape = (self.batchsize,)
         self.gy = numpy.random.uniform(-1, 1, gy_shape).astype(numpy.float32)
+        self.gga = numpy.random.uniform(-1, 1, x_shape).astype(numpy.float32)
+        self.ggp = numpy.random.uniform(-1, 1, x_shape).astype(numpy.float32)
+        self.ggn = numpy.random.uniform(-1, 1, x_shape).astype(numpy.float32)
 
         self.check_backward_options = {'eps': eps, 'rtol': 1e-2, 'atol': 1e-2}
 
@@ -89,9 +93,12 @@ class TestTriplet(unittest.TestCase):
                            cuda.to_gpu(self.n))
 
     def check_backward(self, a_data, p_data, n_data, gy_data):
+        def f(a, p, n):
+            return functions.triplet(
+                a, p, n, margin=self.margin, reduce=self.reduce)
+
         gradient_check.check_backward(
-            functions.Triplet(self.margin, self.reduce),
-            (a_data, p_data, n_data), gy_data, dtype=numpy.float64,
+            f, (a_data, p_data, n_data), gy_data, dtype=numpy.float64,
             **self.check_backward_options)
 
     def test_backward_cpu(self):
@@ -101,6 +108,30 @@ class TestTriplet(unittest.TestCase):
     def test_backward_gpu_no_cudnn(self):
         self.check_backward(cuda.to_gpu(self.a), cuda.to_gpu(self.p),
                             cuda.to_gpu(self.n), cuda.to_gpu(self.gy))
+
+    def check_double_backward(self, a_data, p_data, n_data, gy_data, gga_data,
+                              ggp_data, ggn_data):
+        def f(a, p, n):
+            y = functions.triplet(
+                a, p, n, margin=self.margin, reduce=self.reduce)
+            return y * y
+
+        gradient_check.check_double_backward(
+            f, (a_data, p_data, n_data), gy_data,
+            (gga_data, ggp_data, ggn_data), rtol=1e-4, atol=1e-4)
+
+    @condition.retry(10)
+    def test_double_backward_cpu(self):
+        self.check_double_backward(
+            self.a, self.p, self.n, self.gy, self.gga, self.ggp, self.ggn)
+
+    @attr.gpu
+    @condition.retry(10)
+    def test_double_backward_gpu_no_cudnn(self):
+        self.check_double_backward(
+            cuda.to_gpu(self.a), cuda.to_gpu(self.p), cuda.to_gpu(self.n),
+            cuda.to_gpu(self.gy), cuda.to_gpu(self.gga), cuda.to_gpu(self.ggp),
+            cuda.to_gpu(self.ggn))
 
 
 class TestContrastiveInvalidReductionOption(unittest.TestCase):

@@ -1,11 +1,12 @@
 import numpy
 
+import chainer
 from chainer import cuda
-from chainer import function
+from chainer import function_node
 from chainer.utils import type_check
 
 
-class Triplet(function.Function):
+class Triplet(function_node.FunctionNode):
 
     """Triplet loss function."""
 
@@ -46,27 +47,30 @@ class Triplet(function.Function):
             loss = xp.sum(self.dist_hinge) / N
         else:
             loss = self.dist_hinge
+
+        self.retain_inputs((0, 1, 2))
         return xp.array(loss, dtype=numpy.float32),
 
-    def backward(self, inputs, gy):
-        xp = cuda.get_array_module(*inputs)
+    def backward(self, indexes, grad_outputs):
+        anchor, positive, negative = self.get_retained_inputs()
 
-        anchor, positive, negative = inputs
         N = anchor.shape[0]
-
         x_dim = anchor.shape[1]
+
+        xp = cuda.get_array_module(anchor)
         tmp = xp.repeat(self.dist_hinge[:, None], x_dim, axis=1)
         mask = xp.array(tmp > 0, dtype=numpy.float32)
 
+        gy, = grad_outputs
         if self.reduce == 'mean':
-            g = gy[0] / N
+            g = gy / N
         else:
-            g = gy[0][:, None]
+            g = gy[:, None]
 
-        tmp = 2 * g * mask
-        gx0 = (tmp * (negative - positive)).astype(numpy.float32)
-        gx1 = (tmp * (positive - anchor)).astype(numpy.float32)
-        gx2 = (tmp * (anchor - negative)).astype(numpy.float32)
+        tmp = 2 * chainer.functions.broadcast_to(g, mask.shape) * mask
+        gx0 = tmp * (negative - positive)
+        gx1 = tmp * (positive - anchor)
+        gx2 = tmp * (anchor - negative)
 
         return gx0, gx1, gx2
 
@@ -137,4 +141,4 @@ def triplet(anchor, positive, negative, margin=0.2, reduce='mean'):
         variable(0.4400000274181366)
 
     """
-    return Triplet(margin, reduce)(anchor, positive, negative)
+    return Triplet(margin, reduce).apply((anchor, positive, negative))[0]
