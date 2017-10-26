@@ -3,11 +3,8 @@ import six
 
 from chainer import cuda
 
-try:
-    import cupy
-    from cupy.cuda import runtime
-except Exception:
-    pass
+import cuda.cupy
+from cuda.cupy.cuda import runtime
 
 
 def to_device(device, x):
