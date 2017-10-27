@@ -306,16 +306,16 @@ You can also run all unit tests under a specified directory::
   $ python -m pytest tests/chainer_tests/<directory name>
 
 It requires CUDA and cuDNN by default.
-In order to run unit tests that do not require CUDA and cuDNN, use ``CHAINER_TESTING_GPU_LIMIT=0`` environment variable and ``-m='not cudnn'`` option::
+In order to run unit tests that do not require CUDA and cuDNN, use ``CHAINER_TEST_GPU_LIMIT=0`` environment variable and ``-m='not cudnn'`` option::
 
   $ export CHAINER_TESITNG_GPU_LIMIT=0
   $ python -m pytest path/to/your/test.py -m='not cudnn'
 
 Some GPU tests involve multiple GPUs.
-If you want to run GPU tests with insufficient number of GPUs, specify the number of available GPUs to ``CHAINER_TESTING_GPU_LIMIT``.
+If you want to run GPU tests with insufficient number of GPUs, specify the number of available GPUs to ``CHAINER_TEST_GPU_LIMIT``.
 For example, if you have only one GPU, launch ``pytest`` by the following command to skip multi-GPU tests::
 
-  $ export CHAINER_TESTING_GPU_LIMIT=1
+  $ export CHAINER_TEST_GPU_LIMIT=1
   $ python -m pytest path/to/gpu/test.py
 
 Some tests spend too much time.
