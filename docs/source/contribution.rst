@@ -356,8 +356,9 @@ Test functions that require CUDA must be tagged by ``chainer.testing.attr.gpu`` 
       def test_my_gpu_func(self):
           ...
 
-The functions tagged by the ``gpu`` decorator are skipped if ``--attr='!gpu'`` is given.
-We also have the ``chainer.testing.attr.cudnn`` decorator to let ``nosetests`` know that the test depends on cuDNN.
+The functions tagged by the ``gpu`` decorator are skipped if ``CHAINER_TEST_GPU_LIMIT=0`` environment variable is set.
+We also have the ``chainer.testing.attr.cudnn`` decorator to let ``pytest`` know that the test depends on cuDNN.
+The test functions decorated by ``cudnn`` are skipped if ``-m='not cudnn'`` is given.
 
 The test functions decorated by ``gpu`` must not depend on multiple GPUs.
 In order to write tests for multiple GPUs, use ``chainer.testing.attr.multi_gpu()`` decorator instead::
@@ -373,7 +374,7 @@ In order to write tests for multiple GPUs, use ``chainer.testing.attr.multi_gpu(
           ...
 
 If your test requires too much time, add ``chainer.testing.attr.slow`` decorator.
-The test functions decorated by ``slow`` are skipped if ``--attr='!slow'`` is given::
+The test functions decorated by ``slow`` are skipped if ``-m='not slow'`` is given::
 
   import unittest
   from chainer.testing import attr
@@ -386,8 +387,8 @@ The test functions decorated by ``slow`` are skipped if ``--attr='!slow'`` is gi
           ...
 
 .. note::
-   If you want to specify more than two attributes, separate them with a comma such as ``--attr='!gpu,!slow'``.
-   See detail in `the document of nose <https://nose.readthedocs.io/en/latest/plugins/attrib.html#simple-syntax>`_.
+   If you want to specify more than two attributes, use ``and`` operator like ``-m='not cudnn and not slow'``.
+   See detail in `the document of pytest <https://docs.pytest.org/en/latest/example/markers.html>`_.
 
 Once you send a pull request, your code is automatically tested by `Travis-CI <https://travis-ci.org/chainer/chainer/>`_ **with --attr='!gpu,!slow' option**.
 Since Travis-CI does not support CUDA, we cannot check your CUDA-related code automatically.
