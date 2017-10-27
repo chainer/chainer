@@ -390,7 +390,7 @@ The test functions decorated by ``slow`` are skipped if ``-m='not slow'`` is giv
    If you want to specify more than two attributes, use ``and`` operator like ``-m='not cudnn and not slow'``.
    See detail in `the document of pytest <https://docs.pytest.org/en/latest/example/markers.html>`_.
 
-Once you send a pull request, your code is automatically tested by `Travis-CI <https://travis-ci.org/chainer/chainer/>`_ **with --attr='!gpu,!slow' option**.
+Once you send a pull request, your code is automatically tested by `Travis-CI <https://travis-ci.org/chainer/chainer/>`_ **except for tests annotated with ``gpu``, ``multi_gpu`` and ``slow``**.
 Since Travis-CI does not support CUDA, we cannot check your CUDA-related code automatically.
 The reviewing process starts after the test passes.
 Note that reviewers will test your code without the option to check CUDA-related code.
