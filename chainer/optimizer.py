@@ -185,11 +185,31 @@ class UpdateRule(object):
             return
 
         self.t += 1
-        if param.data is not None:
-            self._prepare(param)
-        for hook in six.itervalues(self._hooks):
-            hook(self, param)
-        self.update_core(param)
+
+        use_fp32_update = getattr(self, "_use_fp32_update", False)
+        if param.data.dtype == numpy.float16 and use_fp32_update:
+            fp32_param = getattr(self, "_fp32_param", None)
+            if fp32_param is None:
+                self._fp32_param = variable.Variable(
+                    param.data.astype(numpy.float32),
+                    name=param.name)
+                fp32_param = self._fp32_param
+            fp32_param.grad = param.grad.astype(numpy.float32)
+
+            if fp32_param.data is not None:
+                self._prepare(fp32_param)
+            for hook in six.itervalues(self._hooks):
+                hook(self, fp32_param)
+            self.update_core(fp32_param)
+
+            param.data = fp32_param.data.astype(param.data.dtype)
+            fp32_param.grad = None
+        else:
+            if param.data is not None:
+                self._prepare(param)
+            for hook in six.itervalues(self._hooks):
+                hook(self, param)
+            self.update_core(param)
 
     def update_core(self, param):
         """Updates the parameter.
@@ -284,6 +304,25 @@ class UpdateRule(object):
                         state[name] = cuda.to_gpu(value)
                     else:
                         state[name] = cuda.to_cpu(value)
+
+    def use_fp32_update(self, flag=True):
+        """Enables use of parameter update in fp32.
+
+        This method enables use of parameter update in fp32.
+        When it is enabled and data type of original parameter variable is
+        fp16, fp32 copy of parameter variable is automatically created and
+        retained at self.fp32_param. And the parameter is update in fp32 in
+        the following way.
+
+          1. copys the grad of original parameter variable to the grad of fp32
+             parameter variable, converting its data type from fp16 to fp32.
+          2. updates the parameter in fp32.
+          3. copys the data of fp32 parameter variable to the data of original
+             parameter variable, converting its data type from fp32 to fp16.
+
+        See meth:`update` for details.
+        """
+        self._use_fp32_update = flag
 
 
 class Optimizer(object):
@@ -486,6 +525,8 @@ class GradientMethod(Optimizer):
         super(GradientMethod, self).setup(link)
         for param in link.params():
             param.update_rule = self.create_update_rule()
+            if getattr(self, "_use_fp32_update", False):
+                param.update_rule.use_fp32_update()
 
     def reallocate_cleared_grads(self):
         """Reallocate gradients cleared by :meth:`~chainer.Variable.cleargrad`.
@@ -576,6 +617,14 @@ class GradientMethod(Optimizer):
 
         """
         raise NotImplementedError
+
+    def use_fp32_update(self, flag=True):
+        """Enables use of parameter update in fp32."""
+        self._use_fp32_update = flag
+        link = getattr(self, "target", None)
+        if link is not None:
+            for param in link.params():
+                param.update_rule.use_fp32_update()
 
 
 class HyperparameterProxy(object):
