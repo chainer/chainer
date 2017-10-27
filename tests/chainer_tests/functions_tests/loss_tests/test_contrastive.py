@@ -16,7 +16,7 @@ from chainer.testing import condition
 @testing.parameterize(
     *testing.product({
         'batchsize': [5, 10], 'input_dim': [2, 3], 'margin': [1, 2],
-        'reduce': ['mean', 'no']
+        'reduce': ['mean', 'no'], 'label_dtype': [numpy.int32, numpy.int32]
     })
 )
 class TestContrastive(unittest.TestCase):
@@ -26,7 +26,7 @@ class TestContrastive(unittest.TestCase):
         self.x0 = numpy.random.uniform(-1, 1, x_shape).astype(numpy.float32)
         self.x1 = numpy.random.uniform(-1, 1, x_shape).astype(numpy.float32)
         self.t = numpy.random.randint(
-            0, 2, (self.batchsize,)).astype(numpy.int32)
+            0, 2, (self.batchsize,)).astype(self.label_dtype)
         if self.reduce == 'mean':
             self.gy = numpy.random.uniform(-1, 1, ()).astype(numpy.float32)
         else:

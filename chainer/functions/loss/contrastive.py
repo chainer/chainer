@@ -27,7 +27,7 @@ class Contrastive(function.Function):
         type_check.expect(
             x0_type.dtype == numpy.float32,
             x1_type.dtype == numpy.float32,
-            y_type.dtype == numpy.int32,
+            y_type.dtype.kind == 'i',
             x0_type.shape == x1_type.shape,
             x1_type.shape[0] == y_type.shape[0],
             x1_type.shape[0] > 0,
@@ -66,9 +66,8 @@ class Contrastive(function.Function):
         # similar pair
         gx0 = alpha * y * self.diff
         # dissimilar pair
-        mdist = xp.repeat(self.mdist[:, None], x_dim, axis=1)
-        mdist_p = xp.array(mdist > 0, dtype=xp.int32)
-        gx0 += alpha * (1 - y) * mdist_p * mdist * -(self.diff / dist)
+        mdist = xp.maximum(xp.repeat(self.mdist[:, None], x_dim, axis=1), 0)
+        gx0 += alpha * (1 - y) * mdist * -(self.diff / dist)
         gx0 = gx0.astype(xp.float32)
 
         return gx0, -gx0, None
