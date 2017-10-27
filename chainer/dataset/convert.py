@@ -271,7 +271,7 @@ class Conveyor(object):
         device.
         """
         if self._device is None or self._device < 0 or self._stream is None:
-            self._ret_array = to_device(self._device, array)
+            self._ret_array.append(to_device(self._device, array))
             return
 
         pin_array, cp_array = self._array_set.pop(0)
