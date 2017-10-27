@@ -1,12 +1,12 @@
 import numpy
 
 from chainer import cuda
-from chainer import function
+from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
 
 
-class AbsoluteError(function.Function):
+class AbsoluteError(function_node.FunctionNode):
 
     """Absolute error function."""
 
@@ -23,12 +23,10 @@ class AbsoluteError(function.Function):
         self.diff = x0 - x1
         return utils.force_array(abs(self.diff), dtype=x0.dtype),
 
-    def backward(self, inputs, gy):
-        xp = cuda.get_array_module(*inputs)
-        g = gy[0] * xp.sign(self.diff)
-        return (
-            utils.force_array(g, dtype=gy[0].dtype),
-            utils.force_array(-g, dtype=gy[0].dtype))
+    def backward(self, indexes, grad_outputs):
+        gy, = grad_outputs
+        gx = gy * cuda.get_array_module(gy).sign(self.diff)
+        return gx, -gx
 
 
 def absolute_error(x0, x1):
@@ -37,4 +35,4 @@ def absolute_error(x0, x1):
     This function computes absolute error between two variables.
 
     """
-    return AbsoluteError()(x0, x1)
+    return AbsoluteError().apply((x0, x1))[0]

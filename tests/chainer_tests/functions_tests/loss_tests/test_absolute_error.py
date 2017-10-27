@@ -8,6 +8,7 @@ from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
+from chainer.testing import condition
 
 
 @testing.parameterize(
@@ -27,6 +28,10 @@ class TestAbsoluteError(unittest.TestCase):
         diff[abs(diff) < 0.01] = 0.5
         self.x1 = numpy.asarray(self.x0 + diff)
         self.gy = numpy.random.random(self.shape).astype(numpy.float32)
+        self.ggx0 = numpy.random.uniform(
+            -1, 1, self.shape).astype(numpy.float32)
+        self.ggx1 = numpy.random.uniform(
+            -1, 1, self.shape).astype(numpy.float32)
 
     def check_forward(self, x0_data, x1_data):
         x0 = chainer.Variable(x0_data)
@@ -50,7 +55,7 @@ class TestAbsoluteError(unittest.TestCase):
 
     def check_backward(self, x0_data, x1_data, y_grad):
         gradient_check.check_backward(
-            functions.AbsoluteError(),
+            functions.absolute_error,
             (x0_data, x1_data), y_grad, dtype='d')
 
     def test_backward_cpu(self):
@@ -60,6 +65,28 @@ class TestAbsoluteError(unittest.TestCase):
     def test_backward_gpu(self):
         self.check_backward(
             cuda.to_gpu(self.x0), cuda.to_gpu(self.x1), cuda.to_gpu(self.gy))
+
+    def check_double_backward(self, x0_data, x1_data, y_grad,
+                              gx0_grad, gx1_grad):
+
+        def f(x0, x1):
+            y = functions.absolute_error(x0, x1)
+            return y * y
+
+        gradient_check.check_double_backward(
+            f, (x0_data, x1_data), y_grad, (gx0_grad, gx1_grad), eps=1e-2)
+
+    @condition.retry(3)
+    def test_double_backward_cpu(self):
+        self.check_double_backward(
+            self.x0, self.x1, self.gy, self.ggx0, self.ggx1)
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_double_backward_gpu(self):
+        self.check_double_backward(
+            cuda.to_gpu(self.x0), cuda.to_gpu(self.x1), cuda.to_gpu(self.gy),
+            cuda.to_gpu(self.ggx0), cuda.to_gpu(self.ggx1))
 
 
 testing.run_module(__name__, __file__)
