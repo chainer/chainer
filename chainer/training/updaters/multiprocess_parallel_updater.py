@@ -16,6 +16,7 @@ except ImportError:
 
 import numpy
 
+from chainer import configuration
 
 class _Worker(multiprocessing.Process):
 
@@ -37,6 +38,21 @@ class _Worker(multiprocessing.Process):
         self.model.to_gpu(self.device)
         self.reporter = reporter.Reporter()
         self.reporter.add_observer('main', self.model)
+
+        ooc_enabled, ooc_async, fine_granularity, streams, events, ooc_debug = getattr(
+            configuration.config, 'out_of_core_params',
+            [False, True, False, [None, None], [], False])
+        if ooc_enabled:
+            if ooc_async:
+                streams.append(cuda.Stream(non_blocking=True))
+                streams.append(cuda.Stream(non_blocking=True))
+            else:
+                streams.append(cuda.Stream.null)
+                streams.append(cuda.Stream.null)
+            if ooc_debug:
+                print("setup(): dev_id=" + str(cuda.Device(self.device).id))
+            configuration.using_config('out_of_core_params',
+                                       [ooc_enabled, ooc_async, fine_granularity, streams, events, ooc_debug])
 
     def run(self):
         dev = cuda.Device(self.device)
@@ -184,6 +200,21 @@ class MultiprocessParallelUpdater(updater.StandardUpdater):
             self._pipes.append(pipe)
 
         with cuda.Device(self._devices[0]):
+            ooc_enabled, ooc_async, fine_granularity, streams, events, ooc_debug = getattr(
+                configuration.config, 'out_of_core_params',
+                [False, True, False, [None, None], [], False])
+            if ooc_enabled:
+                if ooc_async:
+                    streams.append(cuda.Stream(non_blocking=True))
+                    streams.append(cuda.Stream(non_blocking=True))
+                else:
+                    streams.append(cuda.Stream.null)
+                    streams.append(cuda.Stream.null)
+                if ooc_debug:
+                    print("setup_workers(): dev_id=" + str(cuda.Device(self.device).id))
+                configuration.using_config('out_of_core_params',
+                                           [ooc_enabled, ooc_async, fine_granularity, streams, events, ooc_debug])
+
             self._master.to_gpu(self._devices[0])
             if len(self._devices) > 1:
                 comm_id = nccl.get_unique_id()

@@ -60,7 +60,7 @@ from chainer.serializer import Serializer  # NOQA
 from chainer.variable import as_variable  # NOQA
 from chainer.variable import Parameter  # NOQA
 from chainer.variable import Variable  # NOQA
-
+from chainer.variable import out_of_core_mode  # NOQA
 
 if sys.version_info[:3] == (3, 5, 0):
     if not int(os.getenv('CHAINER_PYTHON_350_FORCE', '0')):
