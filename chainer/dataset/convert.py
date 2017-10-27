@@ -1,3 +1,4 @@
+import collections
 import numpy
 import six
 
@@ -148,6 +149,15 @@ class ConcatWithAsyncTransfer(object):
     It enables to transfer next batch of input data to GPU while GPU is
     running kernels for training using current batch of input data.
 
+    An instance of this class is mainly intended to be used as a converter
+    function of an updater like below.
+
+        >>> from chainer.dataset import convert
+        >>> ...
+        >>> updater = chainer.training.StandardUpdater(...,
+        >>>               converter=convert.ConcatWithAsyncTransfer(),
+        >>>               ...)
+
     Args:
         stream (cupy.cuda.Stream): CUDA stream. If ``None``, a stream is
             automatically created on the first call. Data transfer operation
@@ -155,9 +165,10 @@ class ConcatWithAsyncTransfer(object):
     """
 
     def __init__(self, stream=None):
-        self.stream = stream
-        self.device = None
-        self._conveyor = {}
+        self._stream = stream
+        self._device = None
+        self._conveyor = collections.defaultdict(
+            lambda: Conveyor(self._device, self._stream))
 
     def __call__(self, batch, device=None, padding=None):
         """Concatenate data and transfer them to GPU asynchronously.
@@ -175,54 +186,56 @@ class ConcatWithAsyncTransfer(object):
         """
         if len(batch) == 0:
             raise ValueError('batch is empty')
-
         first_elem = batch[0]
 
-        if device is not None and device >= 0 and self.stream is None:
-            with cuda.get_device_from_id(device):
-                self.stream = cuda.Stream(non_blocking=True)
-        self.device = device
+        if len(self._conveyor) == 0:
+            self._device = device  # device is set at first call
+            if device is not None and device >= 0 and self._stream is None:
+                with cuda.get_device_from_id(device):
+                    self._stream = cuda.Stream(non_blocking=True)
+        if device is not self._device:
+            raise ValueError('device is different')
 
-        if isinstance(first_elem, tuple):
-            result = []
-            if not isinstance(padding, tuple):
-                padding = [padding] * len(first_elem)
+        with cuda.get_device_from_id(device):
+            if isinstance(first_elem, tuple):
+                result = []
+                if not isinstance(padding, tuple):
+                    padding = [padding] * len(first_elem)
 
-            for i in six.moves.range(len(first_elem)):
-                result.append(self.conveyor(i)(_concat_arrays(
-                    [example[i] for example in batch], padding[i])))
+                for i in six.moves.range(len(first_elem)):
+                    self._conveyor[i].put(_concat_arrays(
+                        [example[i] for example in batch], padding[i]))
 
-            for i in six.moves.range(len(first_elem)):
-                self.conveyor(i).synchronize()
+                for i in six.moves.range(len(first_elem)):
+                    result.append(self._conveyor[i].get())
 
-            return tuple(result)
+                return tuple(result)
 
-        elif isinstance(first_elem, dict):
-            result = {}
-            if not isinstance(padding, dict):
-                padding = {key: padding for key in first_elem}
+            elif isinstance(first_elem, dict):
+                result = {}
+                if not isinstance(padding, dict):
+                    padding = {key: padding for key in first_elem}
 
-            for key in first_elem:
-                result[key] = self.conveyor(key)(_concat_arrays(
-                    [example[key] for example in batch], padding[key]))
+                for key in first_elem:
+                    self._conveyor[key].put(_concat_arrays(
+                        [example[key] for example in batch], padding[key]))
 
-            for key in first_elem:
-                self.conveyor(key).synchronize()
+                for key in first_elem:
+                    result[key] = self._conveyor[key].get()
 
-            return result
+                return result
 
-        else:
-            return to_device(device, _concat_arrays(batch, padding))
-
-    def conveyor(self, key):
-        if key not in self._conveyor:
-            self._conveyor[key] = Conveyor(self.device, self.stream)
-        return self._conveyor[key]
+            else:
+                return to_device(device, _concat_arrays(batch, padding))
 
 
 class Conveyor(object):
 
     """Interface to handle asynchronous data transfer using double buffering.
+
+    An asynchrous data transfer is initiated by :meth:`put`, and the result,
+    the array transferd to a target device, is obtained by :meth:`get`.
+    You should call :meth:`put` followed by :meth:`get`.
 
     Args:
         device (int): Device ID to which an array is sent. Negative value
@@ -235,28 +248,39 @@ class Conveyor(object):
     """
 
     def __init__(self, device=None, stream=None):
-        self.device = device
-        self.stream = stream
-        self.array_set = [[None, None], [None, None]]
+        self._device = device
+        self._stream = stream
+        self._array_set = [[None, None], [None, None]]
+        self._ret_array = []
 
-    def __call__(self, array):
-        if self.device is None or self.device < 0 or self.stream is None:
-            return to_device(self.device, array)
+    def put(self, array):
+        """Initiates asynchrous transfer of an array to a target device.
 
-        pin_array, cp_array = self.array_set.pop(0)
+        This method assumes that the input array is a numpy array and
+        on host memory without page-locked. So, it first copys the data
+        to page-locked host memory (so called pinned memory), then initiates
+        asynchronous data transfer to a target device.
+
+        The intermediate arrays on pinned memory and cupy arrays on the
+        target device are retained at self._array_set in order to reduce number
+        of memory allocation/release, and they are to be reused for subsequent
+        data transfer as long as the size are the same.
+
+        Double buffering scheme is used here, so you can initiate next data
+        transfer safely even when current data is still used on the target
+        device.
+        """
+        if self._device is None or self._device < 0 or self._stream is None:
+            self._ret_array = to_device(self._device, array)
+            return
+
+        pin_array, cp_array = self._array_set.pop(0)
         if pin_array is not None:
-            # Check if the size of the array matches the size of previously
-            # created and retained array.
             if pin_array.nbytes != array.nbytes:
                 pin_array = None
 
-        with cuda.get_device_from_id(self.device):
+        with cuda.get_device_from_id(self._device):
             if pin_array is None:
-                # Allocate memory for numpy arrays with pinned memory
-                # and cupy arrays. These arrays are retaind at self.array_set
-                # and will be reused for subsequent batches as long as
-                # the size are the same.
-
                 # The global synchronization below is necceary to ensure ALL
                 # operations including compute and data transfer submitted
                 # to GPU so far have been completed, in order to avoid possible
@@ -273,16 +297,24 @@ class Conveyor(object):
                 cp_array = cuda.cupy.empty_like(array)
 
             pin_array[...] = array  # copy(CPU): paged -> pinned
-            cp_array.set(pin_array, self.stream)  # copy: CPU to GPU
+            cp_array.set(pin_array, self._stream)  # copy: CPU to GPU
 
-        self.array_set.append([pin_array, cp_array])
-        return cp_array
+        self._array_set.append([pin_array, cp_array])
+        self._ret_array.append(cp_array)
 
-    def synchronize(self):
-        # Wait for completion of the data transfer submitted above.
-        # Global synchronizaton is used here for safer reason.
-        # If a caller function is correctly handling the synchronization,
-        # local synchronization (self.stream.synchronize()) may be enough.
-        if (self.device is not None and self.device >= 0 and
-                self.stream is not None):
+    def get(self):
+        """Returns the array of data transfered to a target device asynchronously.
+
+        This method first waits for completion of asynchrnous data trasfer
+        initiated by :meth:`put`, then returns the array on the target
+        device.
+
+        Global synchronizaton (deviceSynchronize()) is used to ensure
+        completion of asynchronous data transfer for safer reason.
+        If a caller function is correctly handling the synchronization,
+        local synchronization (self._stream.synchronize()) may be enough.
+        """
+        if (self._device is not None and self._device >= 0 and
+                self._stream is not None):
             cuda.cupy.cuda.runtime.deviceSynchronize()
+        return self._ret_array.pop(0)
