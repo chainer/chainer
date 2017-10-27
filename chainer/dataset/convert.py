@@ -3,9 +3,6 @@ import six
 
 from chainer import cuda
 
-import cuda.cupy
-from cuda.cupy.cuda import runtime
-
 
 def to_device(device, x):
     """Send an array to a given device.
@@ -267,13 +264,13 @@ class Conveyor(object):
                 # use different CUDA streams.
                 # You can also solve this sort of race condition by preparing a
                 # memory pool for each CUDA stream and using it carefully.
-                runtime.deviceSynchronize()
-                pin_mem = cupy.cuda.alloc_pinned_memory(array.nbytes)
+                cuda.cupy.cuda.runtime.deviceSynchronize()
+                pin_mem = cuda.cupy.cuda.alloc_pinned_memory(array.nbytes)
                 pin_array = numpy.frombuffer(pin_mem,
                                              array.dtype,
                                              array.size
                                              ).reshape(array.shape)
-                cp_array = cupy.empty_like(array)
+                cp_array = cuda.cupy.empty_like(array)
 
             pin_array[...] = array  # copy(CPU): paged -> pinned
             cp_array.set(pin_array, self.stream)  # copy: CPU to GPU
@@ -288,4 +285,4 @@ class Conveyor(object):
         # local synchronization (self.stream.synchronize()) may be enough.
         if (self.device is not None and self.device >= 0 and
                 self.stream is not None):
-            runtime.deviceSynchronize()
+            cuda.cupy.cuda.runtime.deviceSynchronize()
