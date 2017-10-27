@@ -106,15 +106,6 @@ def unary_math_function_unittest(func, func_expected=None, label_expected=None,
        Because the test methods are implicitly injected to ``TestSin`` class by
        the decorator, it is enough to place ``pass`` in the class definition.
 
-       Now the test is run with ``nose`` module.
-
-       .. doctest::
-
-          >>> import nose
-          >>> nose.run(
-          ...     defaultTest=__name__, argv=['', '-a', '!gpu'], exit=False)
-          True
-
        To customize test data, ``make_data`` optional parameter can be used.
        The following is an example of testing ``sqrt`` Chainer function, which
        is tested in positive value domain here instead of the default input.
@@ -133,10 +124,6 @@ def unary_math_function_unittest(func, func_expected=None, label_expected=None,
           ...                                       make_data=make_data)
           ... class TestSqrt(unittest.TestCase):
           ...     pass
-          ...
-          >>> nose.run(
-          ...     defaultTest=__name__, argv=['', '-a', '!gpu'], exit=False)
-          True
 
        ``make_data`` function which returns input, gradient and double gradient
        data generated in proper value domains with given ``shape`` and
