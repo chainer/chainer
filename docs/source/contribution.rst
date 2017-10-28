@@ -286,40 +286,42 @@ Unit Testing
 Testing is one of the most important part of your code.
 You must write test cases and verify your implementation by following our testing guide.
 
-Note that we are using nose and mock package for testing, so install them before writing your code::
+Note that we are using pytest and mock package for testing, so install them before writing your code::
 
-  $ pip install nose mock
+  $ pip install pytest mock
 
 How to Run Tests
 ~~~~~~~~~~~~~~~~
 
-You can run unit tests simply by running ``nosetests`` command at the repository root::
+You can run unit tests simply by running ``python -m pytest`` command at the repository root::
 
-  $ nosetests
+  $ python -m pytest
 
 or specify the test script that you want to run::
 
-  $ nosetests path/to/your/test.py
+  $ python -m pytest path/to/your/test.py
 
 You can also run all unit tests under a specified directory::
 
-  $ nosetests tests/chainer_tests/<directory name>
+  $ python -m pytest tests/chainer_tests/<directory name>
 
-It requires CUDA by default.
-In order to run unit tests that do not require CUDA, pass ``--attr='!gpu'`` option to the ``nosetests`` command::
+It requires CUDA and cuDNN by default.
+In order to run unit tests that do not require CUDA and cuDNN, use ``CHAINER_TEST_GPU_LIMIT=0`` environment variable and ``-m='not cudnn'`` option::
 
-  $ nosetests path/to/your/test.py --attr='!gpu'
+  $ export CHAINER_TESITNG_GPU_LIMIT=0
+  $ python -m pytest path/to/your/test.py -m='not cudnn'
 
 Some GPU tests involve multiple GPUs.
-If you want to run GPU tests with insufficient number of GPUs, specify the number of available GPUs by ``--eval-attr='gpu<N'`` where ``N`` is a concrete integer.
-For example, if you have only one GPU, launch ``nosetests`` by the following command to skip multi-GPU tests::
+If you want to run GPU tests with insufficient number of GPUs, specify the number of available GPUs to ``CHAINER_TEST_GPU_LIMIT``.
+For example, if you have only one GPU, launch ``pytest`` by the following command to skip multi-GPU tests::
 
-  $ nosetests path/to/gpu/test.py --eval-attr='gpu<2'
+  $ export CHAINER_TEST_GPU_LIMIT=1
+  $ python -m pytest path/to/gpu/test.py
 
 Some tests spend too much time.
-If you want to skip such tests, pass ``--attr='!slow'`` option to the ``nosetests`` command::
+If you want to skip such tests, pass ``-m='not slow'`` option to the command::
 
-  $ nosetests path/to/your/test.py --attr='!slow'
+  $ python -m pytest path/to/your/test.py -m='not slow'
 
 If you modify the code related to existing unit tests, you must run appropriate commands and confirm that the tests pass.
 
@@ -354,8 +356,9 @@ Test functions that require CUDA must be tagged by ``chainer.testing.attr.gpu`` 
       def test_my_gpu_func(self):
           ...
 
-The functions tagged by the ``gpu`` decorator are skipped if ``--attr='!gpu'`` is given.
-We also have the ``chainer.testing.attr.cudnn`` decorator to let ``nosetests`` know that the test depends on cuDNN.
+The functions tagged by the ``gpu`` decorator are skipped if ``CHAINER_TEST_GPU_LIMIT=0`` environment variable is set.
+We also have the ``chainer.testing.attr.cudnn`` decorator to let ``pytest`` know that the test depends on cuDNN.
+The test functions decorated by ``cudnn`` are skipped if ``-m='not cudnn'`` is given.
 
 The test functions decorated by ``gpu`` must not depend on multiple GPUs.
 In order to write tests for multiple GPUs, use ``chainer.testing.attr.multi_gpu()`` decorator instead::
@@ -371,7 +374,7 @@ In order to write tests for multiple GPUs, use ``chainer.testing.attr.multi_gpu(
           ...
 
 If your test requires too much time, add ``chainer.testing.attr.slow`` decorator.
-The test functions decorated by ``slow`` are skipped if ``--attr='!slow'`` is given::
+The test functions decorated by ``slow`` are skipped if ``-m='not slow'`` is given::
 
   import unittest
   from chainer.testing import attr
@@ -384,10 +387,10 @@ The test functions decorated by ``slow`` are skipped if ``--attr='!slow'`` is gi
           ...
 
 .. note::
-   If you want to specify more than two attributes, separate them with a comma such as ``--attr='!gpu,!slow'``.
-   See detail in `the document of nose <https://nose.readthedocs.io/en/latest/plugins/attrib.html#simple-syntax>`_.
+   If you want to specify more than two attributes, use ``and`` operator like ``-m='not cudnn and not slow'``.
+   See detail in `the document of pytest <https://docs.pytest.org/en/latest/example/markers.html>`_.
 
-Once you send a pull request, your code is automatically tested by `Travis-CI <https://travis-ci.org/chainer/chainer/>`_ **with --attr='!gpu,!slow' option**.
+Once you send a pull request, your code is automatically tested by `Travis-CI <https://travis-ci.org/chainer/chainer/>`_ **except for tests annotated with ``gpu``, ``multi_gpu`` and ``slow``**.
 Since Travis-CI does not support CUDA, we cannot check your CUDA-related code automatically.
 The reviewing process starts after the test passes.
 Note that reviewers will test your code without the option to check CUDA-related code.
