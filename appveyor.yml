@@ -65,7 +65,7 @@ build_script:
 test_script:
   # Run the project tests
   - "%CMD_IN_ENV% pip install mock hacking"
-  - "%CMD_IN_ENV% pip install nose pytest pytest-timeout pytest-cov"
+  - "%CMD_IN_ENV% pip install pytest pytest-timeout pytest-cov"
   - "flake8"
   # Avoid interuption confirmation of cmd.exe
   - "echo SET CHAINER_TEST_GPU_LIMIT=0 > tmp.bat"
