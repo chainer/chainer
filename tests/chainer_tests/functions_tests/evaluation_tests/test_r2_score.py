@@ -18,12 +18,11 @@ def r2_score(pred, true, sample_weight=None, multioutput="uniform_average"):
         if numpy.any(SS_tot == 0):
             return 0.0
         else:
-            return (1 - SS_res / SS_tot).mean()
+            with testing.NumpyError(divide='ignore'):
+                return (1 - SS_res / SS_tot).mean()
     elif multioutput == 'raw_values':
-        if numpy.any(SS_tot == 0):
+        with testing.NumpyError(divide='ignore'):
             return numpy.where(SS_tot != 0, 1 - SS_res / SS_tot, 0.0)
-        else:
-            return 1 - SS_res / SS_tot
 
 
 @testing.parameterize(
@@ -59,8 +58,9 @@ class TestAccuracy(unittest.TestCase):
     def check_forward(self, x_data, t_data):
         x = chainer.Variable(x_data)
         t = chainer.Variable(t_data)
-        y = chainer.functions.r2_score(x, t, self.sample_weight,
-                                       self.multioutput)
+        with testing.NumpyError(divide='ignore'):
+            y = chainer.functions.r2_score(x, t, self.sample_weight,
+                                           self.multioutput)
         self.assertEqual(y.data.dtype, self.dtype)
         if self.multioutput == 'uniform_average':
             self.assertEqual((), y.data.shape)

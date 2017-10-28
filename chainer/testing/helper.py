@@ -4,6 +4,8 @@ import sys
 import unittest
 import warnings
 
+import numpy
+
 
 def with_requires(*requirements):
     """Run a test case only when given requirements are satisfied.
@@ -50,3 +52,16 @@ def assert_warns(expected):
                 exc_name = str(expected)
 
             raise AssertionError('%s not triggerred' % exc_name)
+
+
+class NumpyError(object):
+
+    def __init__(self, **kw):
+        self.kw = kw
+
+    def __enter__(self):
+        self.err = numpy.geterr()
+        numpy.seterr(**self.kw)
+
+    def __exit__(self, *_):
+        numpy.seterr(**self.err)
