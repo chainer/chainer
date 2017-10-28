@@ -11,7 +11,7 @@ matrix:
     - os: linux
       python: "3.4"
     - os: linux
-      python: "3.5.1"
+      python: "3.5"
 
     - os: osx
       language: generic
@@ -54,7 +54,7 @@ install:
   - pip install dist/*.tar.gz
   - pip install h5py pillow
   - travis_wait pip install theano
-  - pip install nose pytest hacking mock
+  - pip install pytest hacking mock
   - pip install autopep8
 
 script:
@@ -62,7 +62,7 @@ script:
   - autopep8 -r . --global-config .pep8 --diff | tee check_autopep8
   - test ! -s check_autopep8
   - cd tests
-  - CHAINER_TEST_GPU_LIMIT=0 PYTHONWARNINGS='ignore::FutureWarning,module::DeprecationWarning' pytest -m "not gpu and not multi_gpu and not slow and not cudnn" chainer_tests
+  - CHAINER_TEST_GPU_LIMIT=0 PYTHONWARNINGS='ignore::FutureWarning,error::DeprecationWarning,ignore::DeprecationWarning:site' pytest -m "not gpu and not multi_gpu and not slow and not cudnn" chainer_tests
   - if [[ $TRAVIS_OS_NAME == "linux" ]]; then
       cd ..;
       READTHEDOCS=True python setup.py develop;
