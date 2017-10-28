@@ -26,11 +26,10 @@ def _inverse_indices(indices):
     xp = cuda.get_array_module(indices)
     r = xp.empty_like(indices)
     if xp is numpy:
-        for i, ind in enumerate(indices):
-            r[ind] = i
+        r[indices] = numpy.arange(len(indices))
     else:
         cuda.elementwise(
-            'int32 ind', 'raw int32 r',
+            'S ind', 'raw S r',
             'r[ind] = i',
             'inverse_indices'
         )(indices, r)
@@ -54,17 +53,16 @@ class Permutate(function_node.FunctionNode):
             type_check.expect(x_type.ndim > self.axis)
 
         type_check.expect(
-            ind_type.dtype == numpy.int32,
+            ind_type.dtype.kind == 'i',
             ind_type.ndim == 1,
             x_type.shape[self.axis] == ind_type.shape[0],
         )
 
     def _permutate(self, x, indices, inv):
-        xp = cuda.get_array_module(x)
         if inv:
             indices = _inverse_indices(indices)
 
-        return xp.take(x, indices, axis=self.axis)
+        return x[((slice(None),) * self.axis) + (indices,)]
 
     def forward(self, inputs):
         self.retain_inputs((1,))
