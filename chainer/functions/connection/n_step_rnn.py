@@ -68,23 +68,6 @@ def _make_ptr_array(xs):
     return PointerArray([x.data.ptr for x in xs], xs)
 
 
-class DropoutStates(object):
-
-    def __init__(self, states, desc):
-        self.states = states
-        self.desc = desc
-
-    def set_dropout_ratio(self, handle, dropout):
-        cudnn.set_dropout_descriptor(self.desc, handle, dropout)
-
-    @staticmethod
-    def create(handle, dropout, seed):
-        states = cudnn.create_dropout_states(handle)
-        desc = cudnn.create_dropout_descriptor(
-            handle, dropout, states.data.ptr, states.size, seed)
-        return DropoutStates(states, desc)
-
-
 class DropoutRandomStates(object):
 
     def __init__(self, seed):
@@ -104,9 +87,9 @@ class DropoutRandomStates(object):
     def create_dropout_states(self, dropout):
         handle = cudnn.get_handle()
         if self._states is None:
-            self._states = DropoutStates.create(handle, dropout, self._seed)
-        else:
-            self._states.set_dropout_ratio(handle, dropout)
+            self._states = cudnn.DropoutStates(handle, self._seed)
+        # TODO(unno): Make a method to set dropout instead of calling API
+        cudnn.set_dropout_descriptor(self._states._desc, handle, dropout)
 
         return self._states
 
@@ -317,8 +300,9 @@ class BaseNStepRNN(function.Function):
         handle = cudnn.get_handle()
         self.handle = handle
 
+        # TODO(unno): Make a wrapper method to avoid access _desc directly
         rnn_desc = cudnn.create_rnn_descriptor(
-            n_units, self.n_layers, self.states.desc,
+            n_units, self.n_layers, self.states._desc,
             libcudnn.CUDNN_LINEAR_INPUT, self.rnn_dir,
             self.rnn_mode, libcudnn.CUDNN_DATA_FLOAT)
         self.rnn_desc = rnn_desc
