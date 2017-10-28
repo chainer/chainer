@@ -302,6 +302,11 @@ def check_backward(func, x_data, y_grad, params=(),
             raise ValueError('`dtype` is allowed only float type')
         casted_data = [x.data.astype(dtype, copy=False) for x in variables]
 
+        # Even skipped variable must have the same dtype.
+        for x, skip in six.moves.zip(xs, no_grads):
+            if skip and x.data.dtype.kind == 'f':
+                x.data = x.data.astype(dtype, copy=False)
+
     xp = cuda.get_array_module(*xs)
     directions = [xp.random.normal(size=x.shape) for x in variables]
     # Use unit vector

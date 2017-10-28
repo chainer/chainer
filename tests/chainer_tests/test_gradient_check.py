@@ -351,6 +351,8 @@ class TestCheckBackward(unittest.TestCase):
         g1 = numpy.array([1], dtype='f')
 
         def f(x, y):
+            # Integer data is not casted even when dtype is given
+            self.assertEqual(y.dtype, 'i')
             s = Ident()(x)
             return s,
 
