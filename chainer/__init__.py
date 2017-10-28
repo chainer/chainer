@@ -1,7 +1,5 @@
 import collections
 import os
-import pkg_resources
-import sys
 import threading
 import warnings
 
