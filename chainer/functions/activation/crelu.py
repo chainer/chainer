@@ -42,7 +42,7 @@ class CReLU(function_node.FunctionNode):
         gy, = grad_outputs
         gy_former, gy_latter = chainer.functions.split_axis(
             gy, 2, axis=self.axis)
-        return gy_former * (x.data > 0) - gy_latter * (-x.data > 0),
+        return gy_former * (x.data > 0) - gy_latter * (x.data < 0),
 
 
 def crelu(x, axis=1):
