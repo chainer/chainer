@@ -358,7 +358,23 @@ def check_backward(func, x_data, y_grad, params=(),
             pi = pi.astype(dtype, copy=False)
         gx_accum += gpi.dot(pi)
 
-    testing.assert_allclose(gx, gx_accum, atol=atol, rtol=rtol)
+    try:
+        testing.assert_allclose(gx, gx_accum, atol=atol, rtol=rtol)
+    except AssertionError as e:
+        f = six.StringIO()
+        f.write('check_backward failed (eps={} atol={} rtol={})\n'.format(
+            eps, atol, rtol))
+        for i, x_ in enumerate(xs):
+            f.write('inputs[{}]:\n'.format(i))
+            f.write('{}\n'.format(x_))
+        for i, gy_ in enumerate(y_grad):
+            f.write('grad_outputs[{}]:\n'.format(i))
+            f.write('{}\n'.format(gy_))
+        f.write('gradients (numeric):  {}\n'.format(gx))
+        f.write('gradients (backward): {}\n'.format(gx_accum))
+        f.write('\n')
+        f.write(str(e))
+        raise AssertionError(f.getvalue())
 
 
 def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
@@ -396,6 +412,9 @@ def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
     """
     x_data = _as_tuple(x_data)
     params = _as_tuple(params)
+    y_grad = _as_tuple(y_grad)
+    x_grad_grad = _as_tuple(x_grad_grad)
+    params_grad_grad = _as_tuple(params_grad_grad)
     n_x = len(x_data)
 
     def first_order_grad(*inputs):
@@ -412,11 +431,31 @@ def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
 
         return tuple([x.grad_var for x in xs] + [p.grad_var for p in params])
 
-    inputs = x_data + _as_tuple(y_grad)
-    grad_grad = _as_tuple(x_grad_grad) + _as_tuple(params_grad_grad)
-    check_backward(first_order_grad, inputs, grad_grad, params=params,
-                   eps=eps, atol=atol, rtol=rtol, no_grads=no_grads,
-                   dtype=dtype)
+    inputs = x_data + y_grad
+    grad_grad = x_grad_grad + params_grad_grad
+    try:
+        check_backward(first_order_grad, inputs, grad_grad, params=params,
+                       eps=eps, atol=atol, rtol=rtol, no_grads=no_grads,
+                       dtype=dtype)
+    except AssertionError as e:
+        f = six.StringIO()
+        f.write('check_double_backward failed '
+                '(eps={} atol={} rtol={})\n'.format(eps, atol, rtol))
+        for i, x_ in enumerate(x_data):
+            f.write('input[{}]:\n'.format(i))
+            f.write('{}\n'.format(x_))
+        for i, gy_ in enumerate(y_grad):
+            f.write('grad_output[{}]:\n'.format(i))
+            f.write('{}\n'.format(gy_))
+        for i, ggx_ in enumerate(x_grad_grad):
+            f.write('grad_grad_input[{}]:\n'.format(i))
+            f.write('{}\n'.format(ggx_))
+        for i, ggp_ in enumerate(params_grad_grad):
+            f.write('grad_grad_param[{}]:\n'.format(i))
+            f.write('{}\n'.format(ggp_))
+        f.write('\n')
+        f.write(str(e))
+        raise AssertionError(f.getvalue())
 
 
 def _set_y_grad(y, y_grad):
