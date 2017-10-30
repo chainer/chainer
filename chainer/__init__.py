@@ -1,9 +1,9 @@
 import collections
 import os
-import pkg_resources
 import threading
 import warnings
 
+from chainer import _version
 from chainer import configuration  # NOQA
 from chainer import cuda  # NOQA
 from chainer import dataset  # NOQA
@@ -68,8 +68,7 @@ from chainer import _environment_check
 _environment_check.check()
 
 
-__version__ = pkg_resources.get_distribution('chainer').version
-
+__version__ = _version.__version__
 
 thread_local = threading.local()
 
