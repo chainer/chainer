@@ -8,7 +8,6 @@ import six
 from chainer import cuda
 from chainer import link as link_module
 from chainer import serializer as serializer_module
-from chainer import training
 from chainer import variable
 
 
@@ -527,14 +526,11 @@ class GradientMethod(Optimizer):
         if lossfun is not None:
             use_cleargrads = getattr(self, '_use_cleargrads', True)
             loss = lossfun(*args, **kwds)
-            loss_scaling_factor = training.get_loss_scaling_factor()
-            if loss_scaling_factor is not None:
-                loss *= loss_scaling_factor
             if use_cleargrads:
                 self.target.cleargrads()
             else:
                 self.target.zerograds()
-            loss.backward()
+            loss.backward(loss_scale=self.loss_scale)
             del loss
 
         self.reallocate_cleared_grads()
@@ -580,6 +576,9 @@ class GradientMethod(Optimizer):
 
         """
         raise NotImplementedError
+
+    def set_loss_scale(self, loss_scale):
+        self.loss_scale = loss_scale
 
 
 class HyperparameterProxy(object):

@@ -132,7 +132,7 @@ class StandardUpdater(Updater):
     """
 
     def __init__(self, iterator, optimizer, converter=convert.concat_examples,
-                 device=None, loss_func=None):
+                 device=None, loss_func=None, loss_scale=None):
         if isinstance(iterator, iterator_module.Iterator):
             iterator = {'main': iterator}
         self._iterators = iterator
@@ -149,6 +149,10 @@ class StandardUpdater(Updater):
         self.loss_func = loss_func
         self.device = device
         self.iteration = 0
+
+        self.loss_scale = loss_scale
+        for optimizer in six.itervalues(self._optimizers):
+            optimizer.set_loss_scale(loss_scale)
 
     @property
     def epoch(self):
@@ -364,7 +368,7 @@ class ParallelUpdater(StandardUpdater):
             model.cleargrads()
 
         for loss in losses:
-            loss.backward()
+            loss.backward(loss_scale=self.loss_scale)
 
         for model in six.itervalues(models_others):
             model_main.addgrads(model)
