@@ -245,6 +245,12 @@ Use apply() method instead.\
             outputs = self.forward(in_data)
             assert type(outputs) is tuple
 
+        # Convert NumPy scalars to numpy.ndarray
+        outputs = tuple([
+            (numpy.asarray(y)
+             if isinstance(y, (numpy.number, numpy.bool_)) else y)
+            for y in outputs])
+
         for hook in hooks:
             hook.forward_postprocess(self, in_data)
 

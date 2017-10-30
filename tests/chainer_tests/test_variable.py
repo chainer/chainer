@@ -48,13 +48,19 @@ class TestVariableNode(unittest.TestCase):
 
 
 @testing.parameterize(
-    {'x_shape': (10,), 'c_shape': (2, 5), 'label': '(2, 5), float32'},
-    {'x_shape': (), 'c_shape': (1,), 'label': '(1), float32'},
+    {'x_shape_': (10,), 'c_shape': (2, 5), 'label': '(2, 5), float32'},
+    {'x_shape_': (), 'c_shape': (1,), 'label': '(1), float32'},
+    {'x_shape_': 'scalar', 'c_shape': (1,), 'label': '(1), float32'},
 )
 class TestVariable(unittest.TestCase):
 
     def setUp(self):
-        self.x = np.random.uniform(-1, 1, self.x_shape).astype(np.float32)
+        if self.x_shape_ == 'scalar':
+            self.x_shape = ()
+            self.x = np.float32(3.25)
+        else:
+            self.x_shape = self.x_shape_
+            self.x = np.random.uniform(-1, 1, self.x_shape).astype(np.float32)
         self.a = np.random.uniform(0.1, 10, self.x_shape).astype(np.float32)
         self.size = int(np.prod(self.x_shape))
         self.c = np.arange(self.size).reshape(self.c_shape).astype(np.float32)
@@ -63,9 +69,16 @@ class TestVariable(unittest.TestCase):
         a = self.x
         if gpu:
             a = cuda.to_gpu(a)
+            xp = cuda.cupy
+        else:
+            xp = np
         x = chainer.Variable(a)
-        self.assertIs(x.data, a)
-        self.assertIs(x.array, a)
+        if isinstance(self.x, np.ndarray):
+            self.assertIs(x.data, a)
+            self.assertIs(x.array, a)
+        self.assertIsInstance(x.data, xp.ndarray)
+        self.assertIsInstance(x.array, xp.ndarray)
+        self.assertIs(x.data, x.array)
         self.assertEqual(x.shape, self.x.shape)
         self.assertEqual(x.ndim, self.x.ndim)
         self.assertEqual(x.size, self.x.size)
@@ -321,10 +334,9 @@ class TestVariable(unittest.TestCase):
         a = chainer.Variable(np.empty((3,), dtype=np.float32))
         a.grad = np.ndarray((3,), dtype=np.float32)
 
-    def test_grad_type_check_type(self):
+    def test_grad_type_check_pass_scalar(self):
         a = chainer.Variable(np.empty((), dtype=np.float32))
-        with self.assertRaises(TypeError):
-            a.grad = np.float32()
+        a.grad = np.float32()
 
     @attr.gpu
     def test_grad_type_check_type_cpu_gpu_mixture(self):

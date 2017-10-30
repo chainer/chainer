@@ -13,6 +13,21 @@ from chainer.testing import attr
 from chainer.utils import type_check
 
 
+def make_array(start, shape, dtype):
+    if shape == 'scalar':
+        return dtype(start)
+    else:
+        size = numpy.product(shape, dtype='i')
+        a = numpy.arange(start, start + size)
+        a = a.reshape(shape)
+        a = a.astype(dtype, copy=False)
+        return a
+
+
+@testing.parameterize(*testing.product({
+    'y_shape': [(4,), (0,), (2, 3), (), 'scalar'],
+    'x_shape': [(3,), (0,), (4, 1), (), 'scalar'],
+}))
 class TestFunctionNode(unittest.TestCase):
 
     def _get_method(self, prefix, gpu):
@@ -20,12 +35,15 @@ class TestFunctionNode(unittest.TestCase):
         return getattr(self.f, prefix + '_' + suffix)
 
     def setUp(self):
-        y1 = numpy.arange(4).astype(numpy.float32)
-        y2 = numpy.arange(4).astype(numpy.float32) + 1
-        gx1 = chainer.Variable(numpy.arange(3).astype(numpy.float32))
+        y_shape = self.y_shape
+        x_shape = self.x_shape
+        y1 = make_array(1, y_shape, numpy.float32)
+        y2 = make_array(2, y_shape, numpy.float32)
+        gx1 = chainer.Variable(
+            make_array(1, x_shape, numpy.float32))
         gx2 = None
-        gy1 = numpy.arange(4).astype(numpy.float32)
-        gy2 = numpy.arange(4).astype(numpy.float32)
+        gy1 = make_array(1, y_shape, numpy.float32)
+        gy2 = make_array(1, y_shape, numpy.float32)
 
         f = chainer.FunctionNode()
         f.check_type_forward = mock.MagicMock()
@@ -34,16 +52,16 @@ class TestFunctionNode(unittest.TestCase):
         f.backward = mock.MagicMock(return_value=(gx1, gx2))
         self.f = f
 
-        self.x1 = numpy.arange(3).astype(numpy.float32)
-        self.x2 = numpy.arange(3).astype(numpy.int32)
+        self.x1 = make_array(0, x_shape, numpy.float32)
+        self.x2 = make_array(0, x_shape, numpy.int32)
         self.y1 = y1
         self.y2 = y2
         self.gx1 = gx1
         self.gx2 = gx2
         self.gx1_orig = chainer.Variable(
-            numpy.arange(3, 6).astype(numpy.float32))
+            make_array(3, x_shape, numpy.float32))
         self.gx2_orig = chainer.Variable(
-            numpy.arange(2, 5).astype(numpy.float32))
+            make_array(2, x_shape, numpy.float32))
         self.gx1_accum = gx1 + self.gx1_orig
         self.gy1 = gy1
         self.gy2 = gy2
@@ -125,11 +143,15 @@ class TestFunctionNode(unittest.TestCase):
         self.assertEqual(len(ts), 2)
 
         t1 = ts[0]
-        self.assertEqual(t1.shape, (3,))
+        self.assertEqual(
+            t1.shape,
+            () if self.x_shape == 'scalar' else self.x_shape)
         self.assertEqual(t1.dtype, numpy.float32)
 
         t2 = ts[1]
-        self.assertEqual(t2.shape, (3,))
+        self.assertEqual(
+            t2.shape,
+            () if self.x_shape == 'scalar' else self.x_shape)
         self.assertEqual(t2.dtype, numpy.int32)
 
     def check_apply(self):
@@ -167,9 +189,11 @@ class TestFunctionNode(unittest.TestCase):
         self.assertEqual(len(ys), 2)
         self.check_check_type_forward()
 
+        xp = cuda.get_array_module(x1)
+
         for y in ys:
             self.assertIsInstance(y, chainer.Variable)
-            self.assertIsInstance(y.data, type(x1))
+            self.assertIsInstance(y.data, xp.ndarray)
             self.assertFalse(y.requires_grad)
 
     def test_apply_all_ndarray_cpu(self):
