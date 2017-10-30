@@ -113,7 +113,7 @@ class Convolution2D(link.Link):
             "supported anymore. "
             "Use chainer.using_config('cudnn_deterministic', value) "
             "context where value is either `True` or `False`.")
-        argument.assert_kwargs_empty(kwargs)
+        dilate, = argument.parse_kwargs(kwargs, ('dilate', 1))
 
         if ksize is None:
             out_channels, ksize, in_channels = in_channels, out_channels, None
@@ -121,6 +121,7 @@ class Convolution2D(link.Link):
         self.ksize = ksize
         self.stride = _pair(stride)
         self.pad = _pair(pad)
+        self.dilate = _pair(dilate)
         self.out_channels = out_channels
 
         with self.init_scope():
@@ -155,7 +156,7 @@ class Convolution2D(link.Link):
         if self.W.data is None:
             self._initialize_params(x.shape[1])
         return convolution_2d.convolution_2d(
-            x, self.W, self.b, self.stride, self.pad)
+            x, self.W, self.b, self.stride, self.pad, dilate=self.dilate)
 
 
 def _pair(x):

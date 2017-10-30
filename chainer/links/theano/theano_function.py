@@ -25,6 +25,10 @@ class TheanoFunction(link.Link):
 
     """Theano function wrapper.
 
+    .. warning::
+
+        This feature is experimental. The interface can change in the future.
+
     This function wraps Theano function as a :class:`chainer.Link`.
     A user needs to make input Theano variables and output Theano variables.
     This function automatically creates Theano function for forward calculation
@@ -39,8 +43,8 @@ class TheanoFunction(link.Link):
        >>> z = x + y
        >>> w = x - y
        >>> f = L.TheanoFunction(inputs=[x, y], outputs=[z, w])
-       >>> a = chainer.Variable(numpy.array([1, 2], dtype='f'))
-       >>> b = chainer.Variable(numpy.array([2, 3], dtype='f'))
+       >>> a = chainer.Variable(np.array([1, 2], dtype='f'))
+       >>> b = chainer.Variable(np.array([2, 3], dtype='f'))
        >>> c, d = f(a, b)
        >>> c.data
        array([ 3.,  5.], dtype=float32)

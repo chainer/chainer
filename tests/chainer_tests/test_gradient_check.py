@@ -354,7 +354,7 @@ class TestCheckBackward(unittest.TestCase):
             s = Ident()(x)
             return s,
 
-        gradient_check.check_backward(f, (x1, x2), g1, dtype=self.dtype)
+        gradient_check.check_backward(f, (x1, x2), g1)
 
     def test_no_grads_option(self):
         x1 = numpy.array([1], dtype='f')
@@ -368,6 +368,25 @@ class TestCheckBackward(unittest.TestCase):
         self.assertRaises(RuntimeError, gradient_check.check_backward,
                           f, (x1, x2), g1, no_grads=[False, False])
         gradient_check.check_backward(f, (x1, x2), g1, no_grads=[False, True])
+
+    def test_no_grads_option_with_dtype(self):
+        x1 = numpy.array([1], dtype='f')
+        x2 = numpy.array([1], dtype='f')
+        g1 = numpy.array([1], dtype='f')
+        eps = 1e-3
+
+        def f(x, y):
+            if self.dtype is not None:
+                # Check for correct dtypes if f is called to compute the
+                # numerical gradient
+                if x.data != x1:
+                    self.assertEqual(x.dtype, self.dtype)
+                    self.assertEqual(x.dtype, y.dtype)
+            s = Ident()(x)
+            return s,
+
+        gradient_check.check_backward(f, (x1, x2), g1, eps=eps,
+                                      no_grads=[False, True], dtype=self.dtype)
 
 
 class NewIdent(chainer.FunctionNode):

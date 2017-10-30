@@ -12,6 +12,7 @@ from chainer.utils import type_check
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
     libcudnn = cuda.cudnn.cudnn
+    _cudnn_version = libcudnn.getVersion()
     _fwd_pref = libcudnn.CUDNN_CONVOLUTION_FWD_SPECIFY_WORKSPACE_LIMIT
     _bwd_filter_pref = \
         libcudnn.CUDNN_CONVOLUTION_BWD_FILTER_SPECIFY_WORKSPACE_LIMIT
@@ -68,11 +69,12 @@ class Convolution2DFunction(function_node.FunctionNode):
             "the gradient w.r.t. x is automatically decided during "
             "backpropagation."
         )
-        argument.assert_kwargs_empty(kwargs)
+        dilate, = argument.parse_kwargs(kwargs, ('dilate', 1))
 
         self.sy, self.sx = _pair(stride)
         self.ph, self.pw = _pair(pad)
         self.cover_all = cover_all
+        self.dy, self.dx = _pair(dilate)
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -114,7 +116,7 @@ class Convolution2DFunction(function_node.FunctionNode):
         kh, kw = W.shape[2:]
         col = conv.im2col_cpu(
             x, kh, kw, self.sy, self.sx, self.ph, self.pw,
-            cover_all=self.cover_all)
+            cover_all=self.cover_all, dy=self.dy, dx=self.dx)
         y = numpy.tensordot(
             col, W, ((1, 2, 3), (1, 2, 3))).astype(x.dtype, copy=False)
         if b is not None:
@@ -140,15 +142,16 @@ class Convolution2DFunction(function_node.FunctionNode):
         n, c, h, w = x.shape
 
         out_h = conv.get_conv_outsize(h, kh, self.sy, self.ph,
-                                      cover_all=self.cover_all)
+                                      cover_all=self.cover_all, d=self.dy)
         assert out_h > 0, 'Height in the output should be positive.'
         out_w = conv.get_conv_outsize(w, kw, self.sx, self.pw,
-                                      cover_all=self.cover_all)
+                                      cover_all=self.cover_all, d=self.dx)
         assert out_w > 0, 'Width in the output should be positive.'
 
         y = cuda.cupy.empty((n, out_c, out_h, out_w), dtype=x.dtype)
         if (not self.cover_all and chainer.should_use_cudnn('>=auto') and
-                x.dtype == W.dtype):
+                x.dtype == W.dtype and
+                ((self.dy == 1 and self.dx == 1) or _cudnn_version >= 6000)):
             x = cuda.cupy.ascontiguousarray(x)
             W = cuda.cupy.ascontiguousarray(W)
             if b is not None:
@@ -163,7 +166,8 @@ class Convolution2DFunction(function_node.FunctionNode):
             filter_desc = cudnn.create_filter_descriptor(W)
             conv_param = ((self.ph, self.pw), (self.sy, self.sx), x.dtype)
             conv_desc = cudnn.create_convolution_descriptor(
-                *conv_param, use_tensor_core=use_tensor_core)
+                *conv_param, dilation=(self.dy, self.dx),
+                use_tensor_core=use_tensor_core)
             if b is not None:
                 bias_desc = cudnn.create_tensor_descriptor(
                     b[None, :, None, None])
@@ -201,7 +205,7 @@ class Convolution2DFunction(function_node.FunctionNode):
             # Implementation using im2col
             col = conv.im2col_gpu(
                 x, kh, kw, self.sy, self.sx, self.ph, self.pw,
-                cover_all=self.cover_all)
+                cover_all=self.cover_all, dy=self.dy, dx=self.dx)
             y = cuda.cupy.tensordot(
                 col, W, ((1, 2, 3), (1, 2, 3))).astype(x.dtype, copy=False)
             # TODO(beam2d): Support unshared bias
@@ -220,7 +224,7 @@ class Convolution2DFunction(function_node.FunctionNode):
             xh, xw = x.shape[2:]
             gx = chainer.functions.deconvolution_2d(
                 gy, W, stride=(self.sy, self.sx), pad=(self.ph, self.pw),
-                outsize=(xh, xw))
+                outsize=(xh, xw), dilate=(self.dy, self.dx))
             ret.append(gx)
         if 1 in indexes:
             gW, = Convolution2DGradW(self).apply((x, gy))
@@ -241,6 +245,8 @@ class Convolution2DGradW(function_node.FunctionNode):
         self.sx = conv2d.sx
         self.ph = conv2d.ph
         self.pw = conv2d.pw
+        self.dy = conv2d.dy
+        self.dx = conv2d.dx
         self.cover_all = conv2d.cover_all
         self.W_dtype = W_node.dtype
 
@@ -249,7 +255,7 @@ class Convolution2DGradW(function_node.FunctionNode):
         x, gy = inputs
         col = conv.im2col_cpu(
             x, self.kh, self.kw, self.sy, self.sx, self.ph, self.pw,
-            cover_all=self.cover_all)
+            cover_all=self.cover_all, dy=self.dy, dx=self.dx)
 
         # NumPy raises an error when the array is not contiguous.
         # See: https://github.com/chainer/chainer/issues/2744
@@ -269,10 +275,11 @@ class Convolution2DGradW(function_node.FunctionNode):
         n, c, h, w = x.shape
 
         if (self.cover_all or not chainer.should_use_cudnn('>=auto') or
-                x.dtype != self.W_dtype):
+                x.dtype != self.W_dtype or
+                ((self.dy > 1 or self.dx > 1) and _cudnn_version < 6000)):
             col = conv.im2col_gpu(
                 x, self.kh, self.kw, self.sy, self.sx, self.ph, self.pw,
-                cover_all=self.cover_all)
+                cover_all=self.cover_all, dy=self.dy, dx=self.dx)
             gW = cuda.cupy.tensordot(
                 gy, col, ((0, 2, 3), (0, 4, 5))).astype(self.W_dtype,
                                                         copy=False)
@@ -291,7 +298,8 @@ class Convolution2DGradW(function_node.FunctionNode):
         filter_desc = cudnn.create_filter_descriptor(gW)
         conv_param = (self.ph, self.pw), (self.sy, self.sx), x.dtype
         conv_desc = cudnn.create_convolution_descriptor(
-            *conv_param, use_tensor_core=use_tensor_core)
+            *conv_param, dilation=(self.dy, self.dx),
+            use_tensor_core=use_tensor_core)
 
         oz_dtype = 'd' if x.dtype == 'd' else 'f'
         one = numpy.array(1, dtype=oz_dtype).ctypes
@@ -332,12 +340,12 @@ class Convolution2DGradW(function_node.FunctionNode):
             xh, xw = x.shape[2:]
             gx = chainer.functions.deconvolution_2d(
                 gy, ggW, stride=(self.sy, self.sx), pad=(self.ph, self.pw),
-                outsize=(xh, xw))
+                outsize=(xh, xw), dilate=(self.dy, self.dx))
             ret.append(gx)
         if 1 in indexes:
             ggy = convolution_2d(
                 x, ggW, stride=(self.sy, self.sx), pad=(self.ph, self.pw),
-                cover_all=self.cover_all)
+                cover_all=self.cover_all, dilate=(self.dy, self.dx))
             ret.append(ggy)
 
         return ret
@@ -404,6 +412,9 @@ def convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False, **kwargs):
     can provide a significant performance boost for fixed neural nets.
     To enable, set `chainer.global_config.autotune = True`
 
+    When the dilation factor is greater than one, cuDNN is not used unless
+    the version is 6.0 or higher.
+
     .. warning::
 
         ``deterministic`` argument is not supported anymore since v2.
@@ -428,6 +439,8 @@ def convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False, **kwargs):
             ``pad=p`` and ``pad=(p, p)`` are equivalent.
         cover_all (bool): If ``True``, all spatial locations are convoluted
             into some output pixels.
+        dilate (int or pair of ints): Dilation factor of filter applications.
+            ``dilate=d`` and ``dilate=(d, d)`` are equivalent.
 
     Returns:
         ~chainer.Variable:
@@ -470,9 +483,9 @@ cover_all=True)
         "supported anymore. "
         "Use chainer.using_config('cudnn_deterministic', value) "
         "context where value is either `True` or `False`.")
-    argument.assert_kwargs_empty(kwargs)
+    dilate, = argument.parse_kwargs(kwargs, ('dilate', 1))
 
-    fnode = Convolution2DFunction(stride, pad, cover_all)
+    fnode = Convolution2DFunction(stride, pad, cover_all, dilate=dilate)
     if b is None:
         args = x, W
     else:
