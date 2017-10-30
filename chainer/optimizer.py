@@ -452,6 +452,9 @@ class Optimizer(object):
             if rule is not None:
                 rule.serialize(serializer[name])
 
+    def set_loss_scale(self, loss_scale):
+        self.loss_scale = loss_scale
+
 
 class GradientMethod(Optimizer):
     """Base class of all single gradient-based optimizers.
@@ -578,9 +581,6 @@ class GradientMethod(Optimizer):
 
         """
         raise NotImplementedError
-
-    def set_loss_scale(self, loss_scale):
-        self.loss_scale = loss_scale
 
 
 class HyperparameterProxy(object):
