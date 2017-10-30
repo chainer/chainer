@@ -37,9 +37,9 @@ Note that the default values are set in the global config.
    The default value is given by ``CHAINER_DEBUG`` environment variable (set to 0 or 1) if available, otherwise uses ``False``.
 ``chainer.config.enable_backprop``
    Flag to enable backpropagation support.
-   If it is ``True``, :class:`Function` makes a computational graph of :class:`Variable` for back-propagation.
-   Otherwise, it does not make a computational graph.
-   So a user cannot call :func:`~chainer.Variable.backward` method to results of the function.
+   If it is ``True``, computational graphs are created during forward passes by :class:`FunctionNode`\\ s, allowing backpropagation to start from any :class:`Variable` in the graph.
+   Otherwise, computational graphs are not created but memory consumptions are reduced.
+   So calling :func:`~chainer.Variable.backward` on the results of a function will not compute any gradients of any input.
    The default value is ``True``.
 ``chainer.config.keep_graph_on_report``
    Flag to configure whether or not to let :func:`report` keep the computational graph.
@@ -49,8 +49,10 @@ Note that the default values are set in the global config.
    The default value is ``False``.
 ``chainer.config.train``
    Training mode flag.
-   If it is ``True``, Chainer runs in the training mode.
+   If it is ``True``, Chainer runs in training mode.
    Otherwise, it runs in the testing (evaluation) mode.
+   This configuration alters the behavior of e.g. :func:`chainer.functions.dropout` and :func:`chainer.functions.batch_normalization`.
+   It does not reduce memory consumption or affect the creation of computational graphs required in order to compute gradients.
    The default value is ``True``.
 ``chainer.config.type_check``
    Type checking mode flag.

@@ -1,10 +1,10 @@
 from chainer import cuda
-from chainer import function
+from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
 
 
-class Square(function.Function):
+class Square(function_node.FunctionNode):
 
     @property
     def label(self):
@@ -17,12 +17,14 @@ class Square(function.Function):
         )
 
     def forward(self, x):
+        self.retain_inputs((0,))
         xp = cuda.get_array_module(*x)
         return utils.force_array(xp.square(x[0], dtype=x[0].dtype)),
 
-    def backward(self, x, gy):
-        gx = gy[0] * 2.0 * x[0]
-        return utils.force_array(gx, dtype=x[0].dtype),
+    def backward(self, indexes, gy):
+        x = self.get_retained_inputs()[0]
+        gx = gy[0] * 2.0 * x
+        return gx,
 
 
 def square(x):
@@ -38,4 +40,4 @@ def square(x):
     Returns:
         ~chainer.Variable: Output variable.
     """
-    return Square()(x)
+    return Square().apply((x,))[0]

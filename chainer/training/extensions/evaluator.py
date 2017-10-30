@@ -148,6 +148,14 @@ class Evaluator(extension.Extension):
 
         Users can override this method to customize the evaluation routine.
 
+        .. note::
+
+            This method encloses :attr:`eval_func` calls with
+            :func:`function.no_backprop_mode` context, so all calculations
+            using :class:`~chainer.Function`\ s inside :attr:`eval_func` don't
+            make computational graphs. It is for reducing the memory
+            consumption.
+
         Returns:
             dict: Result dictionary. This dictionary is further reported via
             :func:`~chainer.report` without specifying any observer.

@@ -44,7 +44,12 @@ class TestAverage(unittest.TestCase):
 
         g_shape = self.x.sum(axis=self.axis, keepdims=self.keepdims).shape
         self.gy = numpy.random.uniform(-1, 1, g_shape).astype(self.dtype)
-        self.w = numpy.random.uniform(-1, 1, w_shape).astype(self.dtype)
+
+        # Sample weights. Weights should not sum to 0.
+        while True:
+            self.w = numpy.random.uniform(-1, 1, w_shape).astype(self.dtype)
+            if self.w.sum() > 1e-4:
+                break
 
     def check_forward(self, x_data, axis, weights):
         if self.use_weights and isinstance(self.axis, tuple):

@@ -15,11 +15,11 @@ from chainer import testing
 from chainer.testing import attr
 from chainer.testing import condition
 from chainer.utils import conv
-import pooling_nd_helper
+from chainer_tests.functions_tests.pooling_tests import pooling_nd_helper
 
 
 @testing.parameterize(*testing.product({
-    'dims': [(4,), (4, 3), (4, 3, 2)],
+    'dims': [(4,), (4, 3), (4, 3, 2), (1, 1, 1, 1)],
     'cover_all': [True, False],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))

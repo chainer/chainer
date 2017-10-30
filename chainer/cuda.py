@@ -168,7 +168,7 @@ def get_device_from_array(*arrays):
     Args:
         array (cupy.ndarray or list of cupy.ndarray):
             A CuPy array which this function returns the device corresponding
-            to. If a list of :class:`cupy.ndarray` s are given, it returns
+            to. If a list of :class:`cupy.ndarray`\\ s are given, it returns
             the first device object of an array in the list.
     """
     for array in arrays:
@@ -489,3 +489,19 @@ def set_max_workspace_size(size):
     """
     global _max_workspace_size
     _max_workspace_size = size
+
+
+def fuse(*args, **kwargs):
+    """Function fusing decorator.
+
+    It calls :func:`cupy.fuse` when CuPy is available to make fused function
+    and does nothing otherwise.
+
+    .. seealso::
+       :func:`cupy.fuse`
+
+    """
+    if available:
+        return cupy.fuse(*args, **kwargs)
+    else:
+        return lambda f: f

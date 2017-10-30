@@ -93,12 +93,15 @@ def triplet(anchor, positive, negative, margin=0.2, reduce='mean'):
     loss values.
 
     Args:
-        anchor (~chainer.Variable): The anchor example variable. The shape
+        anchor (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): The anchor example variable. The shape
             should be :math:`(N, K)`, where :math:`N` denotes the minibatch
             size, and :math:`K` denotes the dimension of the anchor.
-        positive (~chainer.Variable): The positive example variable. The shape
+        positive (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): The positive example variable. The shape
             should be the same as anchor.
-        negative (~chainer.Variable): The negative example variable. The shape
+        negative (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): The negative example variable. The shape
             should be the same as anchor.
         margin (float): A parameter for triplet loss. It should be a positive
             value.
@@ -117,5 +120,21 @@ def triplet(anchor, positive, negative, margin=0.2, reduce='mean'):
         This cost can be used to train triplet networks. See `Learning \
         Fine-grained Image Similarity with Deep Ranking \
         <https://arxiv.org/abs/1404.4661>`_ for details.
+
+    .. admonition:: Example
+
+        >>> anchor = np.array([[-2.0, 3.0, 0.5], [5.0, 2.0, -0.5]]).astype('f')
+        >>> pos = np.array([[-2.1, 2.8, 0.5], [4.9, 2.0, -0.4]]).astype('f')
+        >>> neg = np.array([[-2.1, 2.7, 0.7], [4.9, 2.0, -0.7]]).astype('f')
+        >>> F.triplet(anchor, pos, neg)
+        variable(0.14000003039836884)
+        >>> y = F.triplet(anchor, pos, neg, reduce='no')
+        >>> y.shape
+        (2,)
+        >>> y.data
+        array([ 0.11000005,  0.17      ], dtype=float32)
+        >>> F.triplet(anchor, pos, neg, margin=0.5)  # harder penalty
+        variable(0.4400000274181366)
+
     """
     return Triplet(margin, reduce)(anchor, positive, negative)

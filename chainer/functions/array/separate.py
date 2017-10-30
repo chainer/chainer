@@ -32,8 +32,8 @@ def separate(x, axis=0):
         >>> x.shape
         (2, 3)
         >>> y = F.separate(x) # split along axis=0
-        >>> type(y)
-        <class 'tuple'>
+        >>> isinstance(y, tuple)
+        True
         >>> len(y)
         2
         >>> y[0].shape
