@@ -54,11 +54,12 @@ def _gen_case(base, module, i, param):
                 raise AssertionError(s.getvalue())
         return wrap
 
-    for member in dir(cls):
-        if member.startswith('test_'):
-            method = getattr(cls, member)
-            if inspect.isfunction(method):
-                setattr(cls, member, wrap_test_method(method))
+    # ismethod for Python 2 and isfunction for Python 3
+    members = inspect.getmembers(
+        cls, predicate=lambda _: inspect.ismethod(_) or inspect.isfunction(_))
+    for name, method in members:
+        if name.startswith('test_'):
+            setattr(cls, name, wrap_test_method(method))
 
     # Add new test class to module
     setattr(module, cls_name, cls)
