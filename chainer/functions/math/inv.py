@@ -2,7 +2,7 @@ import numpy.linalg
 
 from chainer import cuda
 from chainer import function_node
-from chainer.functions.array import transpose
+import chainer.functions
 from chainer.functions.math import matmul
 from chainer import utils
 from chainer.utils import type_check
@@ -60,8 +60,9 @@ class Inv(function_node.FunctionNode):
     def backward(self, x, gy):
         invx, = self.get_retained_outputs()
         # Gradient is - x^-T (dx) x^-T
-        invxT = transpose.transpose(invx)
-        gx = matmul.matmul(matmul.matmul(- invxT, gy[0]), invxT)
+        invxT = chainer.functions.transpose(invx)
+        gx = chainer.functions.matmul(
+            chainer.functions.matmul(- invxT, gy[0]), invxT)
         return gx,
 
 
@@ -92,8 +93,8 @@ class BatchInv(function_node.FunctionNode):
         # Unpack 1-length tuples
         gy, = gy
         # Gradient is - x^-T (dx) x^-T
-        ret = matmul.matmul(-invx, gy, transa=True)
-        ret2 = matmul.matmul(ret, invx, transb=True)
+        ret = chainer.functions.matmul(-invx, gy, transa=True)
+        ret2 = chainer.functions.matmul(ret, invx, transb=True)
         return ret2,
 
 
