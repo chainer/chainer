@@ -46,7 +46,7 @@ class TestBroadcast(unittest.TestCase):
         self.check_double_backward_options = {}
         if self.dtype == numpy.float16:
             self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
-            self.check_double_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
+            self.check_double_backward_options = {'atol': 1e-3, 'rtol': 1e-3}
 
     def check_forward(self, data):
         xs = [chainer.Variable(x) for x in data]

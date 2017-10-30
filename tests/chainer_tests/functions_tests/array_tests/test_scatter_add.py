@@ -57,7 +57,7 @@ class TestScatterAdd(unittest.TestCase):
             return functions.scatter_add(a, self.slices, b)
 
         gradient_check.check_backward(
-            f, (a_data, b_data), y_grad, dtype='f', atol=1e-4)
+            f, (a_data, b_data), y_grad, dtype='f', atol=1e-3, rtol=1e-3)
 
     def test_backward_cpu(self):
         self.check_backward(self.a_data, self.b_data, self.gy_data)
