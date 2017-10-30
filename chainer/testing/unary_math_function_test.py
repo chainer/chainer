@@ -56,7 +56,9 @@ def _nonlinear(func):
 
 
 def unary_math_function_unittest(func, func_expected=None, label_expected=None,
-                                 make_data=None, is_linear=False):
+                                 make_data=None, is_linear=False,
+                                 backward_options=None,
+                                 double_backward_options=None):
     """Decorator for testing unary mathematical Chainer functions.
 
     This decorator makes test classes test unary mathematical Chainer
@@ -80,6 +82,14 @@ def unary_math_function_unittest(func, func_expected=None, label_expected=None,
         is_linear(bool): Tells the decorator that ``func`` is a linear function
             so that it wraps ``func`` as a non-linear function to perform
             double backward test. The default value is ``False``.
+        backward_options(dict): Options to be specified as an argument of
+            :func:`chainer.gradient_check.check_backward` function.
+            If not given, preset tolerance values are automatically selected
+            depending on ``dtype``.
+        double_backward_options(dict): Options to be specified as an argument
+            of :func:`chainer.gradient_check.check_double_backward` function.
+            If not given, preset tolerance values are automatically selected
+            depending on ``dtype``.
 
     The decorated test class tests forward, backward and double backward
     computations on CPU and GPU across the following
@@ -200,6 +210,10 @@ def unary_math_function_unittest(func, func_expected=None, label_expected=None,
             else:
                 self.backward_options = {'atol': 1e-4, 'rtol': 1e-4}
                 self.double_backward_options = {'atol': 1e-4, 'rtol': 1e-4}
+            if backward_options is not None:
+                self.backward_options.update(backward_options)
+            if double_backward_options is not None:
+                self.double_backward_options.update(double_backward_options)
         setattr(klass, "setUp", setUp)
 
         def check_forward(self, x_data):
