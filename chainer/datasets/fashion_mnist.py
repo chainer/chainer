@@ -8,7 +8,7 @@ from chainer.datasets.mnist import _preprocess_mnist
 
 
 def get_fashion_mnist(withlabel=True, ndim=1, scale=1., dtype=numpy.float32,
-                      label_dtype=numpy.int32):
+                      label_dtype=numpy.int32, rgb_format=False):
     """Gets the Fashion-MNIST dataset.
 
     `Fashion-MNIST <https://github.com/zalandoresearch/fashion-mnist/>`_ is a
@@ -36,6 +36,9 @@ def get_fashion_mnist(withlabel=True, ndim=1, scale=1., dtype=numpy.float32,
             scaled to the interval ``[0, 1]``.
         dtype: Data type of resulting image arrays.
         label_dtype: Data type of the labels.
+        rgb_format (bool): if ``ndim == 3`` and ``rgb_format`` is ``True``, the
+            image will be converted to rgb format by duplicating the channels
+            so the image shape is (3, 28, 28). Default is ``False``.
 
     Returns:
         A tuple of two datasets. If ``withlabel`` is ``True``, both datasets
@@ -45,10 +48,10 @@ def get_fashion_mnist(withlabel=True, ndim=1, scale=1., dtype=numpy.float32,
     """
     train_raw = _retrieve_fashion_mnist_training()
     train = _preprocess_mnist(train_raw, withlabel, ndim, scale, dtype,
-                              label_dtype)
+                              label_dtype, rgb_format)
     test_raw = _retrieve_fashion_mnist_test()
     test = _preprocess_mnist(test_raw, withlabel, ndim, scale, dtype,
-                             label_dtype)
+                             label_dtype, rgb_format)
     return train, test
 
 
