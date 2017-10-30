@@ -5,8 +5,8 @@ import mock
 import numpy
 
 from chainer.dataset import download
-from chainer.datasets import get_mnist
 from chainer.datasets import get_fashion_mnist
+from chainer.datasets import get_mnist
 from chainer.datasets import tuple_dataset
 from chainer import testing
 from chainer.testing import attr
