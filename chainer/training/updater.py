@@ -289,12 +289,13 @@ class ParallelUpdater(StandardUpdater):
     """
 
     def __init__(self, iterator, optimizer, converter=convert.concat_examples,
-                 models=None, devices=None, loss_func=None):
+                 models=None, devices=None, loss_func=None, loss_scale=None):
         super(ParallelUpdater, self).__init__(
             iterator=iterator,
             optimizer=optimizer,
             converter=converter,
             loss_func=loss_func,
+            loss_scale=loss_scale,
         )
 
         if models is None:

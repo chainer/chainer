@@ -904,7 +904,6 @@ Actual: {0}'''.format(type(data))
                 else:
                     self.grad = cuda.cupy.ones_like(self.data)
             if loss_scale is not None:
-                self.loss_scale = loss_scale
                 self.grad *= loss_scale
         grads[self._node] = self._grad_var
 
@@ -1027,6 +1026,7 @@ Actual: {0}'''.format(type(data))
                 x_var = x.get_variable_or_none()
                 if x_var is not None:
                     x_var._grad_var = grads[x]
+                    x_var.loss_scale = loss_scale
 
                 if x.creator_node is not None:
                     add_cand(x.creator_node)

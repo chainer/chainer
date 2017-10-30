@@ -187,6 +187,8 @@ class UpdateRule(object):
         self.t += 1
         if param.data is not None:
             self._prepare(param)
+        if getattr(param, 'loss_scale', None) is not None:
+            param.grad /= param.loss_scale
         for hook in six.itervalues(self._hooks):
             hook(self, param)
         self.update_core(param)
