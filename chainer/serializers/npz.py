@@ -1,5 +1,7 @@
 import numpy
 
+import six
+
 from chainer import cuda
 from chainer import serializer
 
@@ -68,7 +70,7 @@ def save_npz(file, obj, compression=True):
     """
     s = DictionarySerializer()
     s.save(obj)
-    if isinstance(file, str):
+    if isinstance(file, six.string_types):
         file = open(file, 'wb')
     if compression:
         numpy.savez_compressed(file, **s.target)
