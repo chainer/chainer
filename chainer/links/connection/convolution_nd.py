@@ -22,12 +22,12 @@ class ConvolutionND(link.Link):
         pad (int or tuple of ints): Spatial padding width for input arrays.
             ``pad=p`` and ``pad=(p, p, ..., p)`` are equivalent.
         nobias (bool): If ``True``, then this function does not use the bias.
-        initialW (array): Initial weight array. If ``None``, the default
-            initializer is used.
+        initialW (numpy.ndarray or cupy.ndarray): Initial weight array.
+            If ``None``, the default initializer is used.
             May be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
-        initial_bias (array): Initial bias vector. If ``None``, the bias is
-            set to zero.
+        initial_bias (numpy.ndarray or cupy.ndarray): Initial bias vector.
+            If ``None``, the bias is set to zero.
             May be a callable that takes ``numpy.ndarray`` or ``cupy.ndarray``
             and edits its value.
         cover_all (bool): If ``True``, all spatial locations are convoluted

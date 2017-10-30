@@ -4,6 +4,7 @@ import numpy
 
 import chainer
 from chainer import cuda
+from chainer import initializers
 from chainer import testing
 from chainer.testing import attr
 import chainer.training.updaters.multiprocess_parallel_updater as mpu
@@ -14,11 +15,16 @@ import copy
 class SimpleNet(chainer.Chain):
     insize = 5
 
-    def __init__(self):
+    def __init__(self, dtype=numpy.float32):
         super(SimpleNet, self).__init__()
+        self.dtype = dtype
+        W = initializers.HeNormal(1 / numpy.sqrt(2), self.dtype)
+        bias = initializers.Zero(self.dtype)
         with self.init_scope():
-            self.conv = chainer.links.Convolution2D(2, 2, 3)
-            self.fc = chainer.links.Linear(18, 2)
+            self.conv = chainer.links.Convolution2D(2, 2, 3, initialW=W,
+                                                    initial_bias=bias)
+            self.fc = chainer.links.Linear(18, 2, initialW=W,
+                                           initial_bias=bias)
         self.train = True
 
     def clear(self):
@@ -35,6 +41,9 @@ class SimpleNet(chainer.Chain):
         return self.loss
 
 
+@testing.parameterize(*testing.product({
+    'dtype': [numpy.float32, numpy.float16],
+}))
 class TestGatherScatter(unittest.TestCase):
 
     def setUp(self):
@@ -43,7 +52,7 @@ class TestGatherScatter(unittest.TestCase):
     @attr.gpu
     def test_gather_scatter_grads(self):
         cupy = cuda.cupy
-        model0 = SimpleNet()
+        model0 = SimpleNet(dtype=self.dtype)
         model1 = copy.deepcopy(model0)
 
         model0.to_gpu()
@@ -57,7 +66,7 @@ class TestGatherScatter(unittest.TestCase):
 
         bsize = 8
 
-        x = numpy.random.uniform(0, 1, (bsize, 2, 5, 5)).astype(numpy.float32)
+        x = numpy.random.uniform(0, 1, (bsize, 2, 5, 5)).astype(self.dtype)
         t = numpy.empty(bsize, dtype=numpy.int32)
         for i in range(bsize):
             t[i] = i % 2
@@ -88,15 +97,15 @@ class TestGatherScatter(unittest.TestCase):
         cupy.testing.assert_array_equal(model0.fc.b.data, model1.fc.b.data)
 
     def test_gather_grads_raise_on_cpu(self):
-        model = SimpleNet()
+        model = SimpleNet(dtype=self.dtype)
         with self.assertRaises(RuntimeError):
             mpu.gather_grads(model)
 
     @attr.gpu
     def test_gather_scatter_params(self):
         cupy = cuda.cupy
-        model0 = SimpleNet()
-        model1 = SimpleNet()
+        model0 = SimpleNet(dtype=self.dtype)
+        model1 = SimpleNet(dtype=self.dtype)
 
         model0.to_gpu()
         model1.to_gpu()
@@ -110,7 +119,7 @@ class TestGatherScatter(unittest.TestCase):
         cupy.testing.assert_array_equal(model0.fc.b.data, model1.fc.b.data)
 
     def test_gather_params_raise_on_cpu(self):
-        model = SimpleNet()
+        model = SimpleNet(dtype=self.dtype)
         with self.assertRaises(RuntimeError):
             mpu.gather_params(model)
 

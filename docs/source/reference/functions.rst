@@ -65,6 +65,7 @@ Array manipulations
    chainer.functions.dstack
    chainer.functions.expand_dims
    chainer.functions.flatten
+   chainer.functions.flip
    chainer.functions.fliplr
    chainer.functions.flipud
    chainer.functions.get_item
@@ -214,6 +215,7 @@ Noise injections
 
    chainer.functions.dropout
    chainer.functions.gaussian
+   chainer.functions.gumbel_softmax
    chainer.functions.simplified_dropconnect
 
 Normalization functions

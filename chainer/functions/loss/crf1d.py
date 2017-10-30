@@ -76,7 +76,7 @@ def crf1d(cost, xs, ys, reduce='mean'):
             and each :class:`~chainer.Variable` holds a :math:`B \\times K`
             matrix, where :math:`B` is mini-batch size, :math:`K` is the number
             of labels.
-            Note that :math:`B` s in all the variables are not necessary
+            Note that :math:`B`\\ s in all the variables are not necessary
             the same, i.e., it accepts the input sequences with different
             lengths.
         ys (list of Variable): Expected output labels. It needs to have the
@@ -90,7 +90,7 @@ def crf1d(cost, xs, ys, reduce='mean'):
 
     Returns:
         ~chainer.Variable: A variable holding the average negative
-            log-likelihood of the input sequences.
+        log-likelihood of the input sequences.
 
     .. note::
 
@@ -159,22 +159,22 @@ def argmax_crf1d(cost, xs):
             and each :class:`~chainer.Variable` holds a :math:`B \\times K`
             matrix, where :math:`B` is mini-batch size, :math:`K` is the number
             of labels.
-            Note that :math:`B` s in all the variables are not necessary
+            Note that :math:`B`\\ s in all the variables are not necessary
             the same, i.e., it accepts the input sequences with different
             lengths.
 
     Returns:
         tuple: A tuple of :class:`~chainer.Variable` object ``s`` and a
-            :class:`list` ``ps``.
-            The shape of ``s`` is ``(B,)``, where ``B`` is the mini-batch size.
-            i-th element of ``s``, ``s[i]``, represents log-likelihood of i-th
-            data.
-            ``ps`` is a list of :class:`numpy.ndarray` or
-            :class:`cupy.ndarray`, and denotes the state that maximizes the
-            point probability.
-            ``len(ps)`` is equal to ``len(xs)``, and shape of each ``ps[i]`` is
-            the mini-batch size of the corresponding ``xs[i]``. That means,
-            ``ps[i].shape == xs[i].shape[0:1]``.
+        :class:`list` ``ps``.
+        The shape of ``s`` is ``(B,)``, where ``B`` is the mini-batch size.
+        i-th element of ``s``, ``s[i]``, represents log-likelihood of i-th
+        data.
+        ``ps`` is a list of :class:`numpy.ndarray` or
+        :class:`cupy.ndarray`, and denotes the state that maximizes the
+        point probability.
+        ``len(ps)`` is equal to ``len(xs)``, and shape of each ``ps[i]`` is
+        the mini-batch size of the corresponding ``xs[i]``. That means,
+        ``ps[i].shape == xs[i].shape[0:1]``.
     """
     alpha = xs[0]
     alphas = []

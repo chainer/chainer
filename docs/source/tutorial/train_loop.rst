@@ -94,7 +94,7 @@ The code below shows how to create a :class:`~chainer.iterators.SerialIterator` 
 
 .. note::
 
-    :class:`~chainer.dataset.iterator` s can take a built-in Python list as a given dataset. It means that the example code below is able to work,
+    :class:`~chainer.dataset.iterator`\ s can take a built-in Python list as a given dataset. It means that the example code below is able to work,
 
     .. code-block:: python
 

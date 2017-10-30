@@ -168,7 +168,7 @@ def get_device_from_array(*arrays):
     Args:
         array (cupy.ndarray or list of cupy.ndarray):
             A CuPy array which this function returns the device corresponding
-            to. If a list of :class:`cupy.ndarray` s are given, it returns
+            to. If a list of :class:`cupy.ndarray`\\ s are given, it returns
             the first device object of an array in the list.
     """
     for array in arrays:
@@ -232,20 +232,19 @@ def _get_device(*args):
 # ------------------------------------------------------------------------------
 
 def to_gpu(array, device=None, stream=None):
-    """Copies the given CPU array to specified device.
+    """Copies the given CPU array to the specified device.
 
     Args:
         array: Array to be sent to GPU.
         device: Device specifier.
-        stream (cupy.cuda.Stream): CUDA stream. If not ``None``, the copy runs
-            asynchronously.
+        stream (~cupy.cuda.Stream): *(deprecated since v3.0.0)*
+            CUDA stream. If not ``None``, the copy runs asynchronously.
 
     Returns:
         cupy.ndarray: Array on GPU.
 
-        If ``array`` is already on GPU, then this function just returns
-        ``array`` without performing any copy. Note that this function does not
-        copy :class:`cupy.ndarray` into specified device.
+        If ``array`` is already on the GPU device specified by ``device``,
+        this function just returns ``array`` without performing any copy.
 
     """
     if stream is not None:
@@ -490,3 +489,19 @@ def set_max_workspace_size(size):
     """
     global _max_workspace_size
     _max_workspace_size = size
+
+
+def fuse(*args, **kwargs):
+    """Function fusing decorator.
+
+    It calls :func:`cupy.fuse` when CuPy is available to make fused function
+    and does nothing otherwise.
+
+    .. seealso::
+       :func:`cupy.fuse`
+
+    """
+    if available:
+        return cupy.fuse(*args, **kwargs)
+    else:
+        return lambda f: f

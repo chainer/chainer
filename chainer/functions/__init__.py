@@ -47,6 +47,8 @@ from chainer.functions.array.dstack import dstack  # NOQA
 from chainer.functions.array.expand_dims import expand_dims  # NOQA
 from chainer.functions.array.expand_dims import ExpandDims  # NOQA
 from chainer.functions.array.flatten import flatten  # NOQA
+from chainer.functions.array.flip import flip  # NOQA
+from chainer.functions.array.flip import Flip  # NOQA
 from chainer.functions.array.fliplr import fliplr  # NOQA
 from chainer.functions.array.fliplr import FlipLR  # NOQA
 from chainer.functions.array.flipud import flipud  # NOQA
@@ -252,6 +254,7 @@ from chainer.functions.noise.dropout import dropout  # NOQA
 from chainer.functions.noise.dropout import Dropout  # NOQA
 from chainer.functions.noise.gaussian import gaussian  # NOQA
 from chainer.functions.noise.gaussian import Gaussian  # NOQA
+from chainer.functions.noise.gumbel_softmax import gumbel_softmax  # NOQA
 from chainer.functions.noise.simplified_dropconnect import simplified_dropconnect  # NOQA
 from chainer.functions.noise.simplified_dropconnect import SimplifiedDropconnect  # NOQA
 from chainer.functions.noise.zoneout import zoneout  # NOQA
