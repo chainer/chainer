@@ -253,7 +253,7 @@ def to_gpu(array, device=None, stream=None):
             'Please remove it.', DeprecationWarning)
 
     check_cuda_available()
-    if isinstance(array, (numpy.number, numpy.bool_, numpy.complex)):
+    if isinstance(array, (numpy.number, numpy.bool_)):
         array = numpy.asarray(array)
     if not isinstance(array, (cupy.ndarray, numpy.ndarray)):
         raise TypeError(
@@ -315,7 +315,7 @@ def to_cpu(array, stream=None):
         check_cuda_available()
         with get_device_from_array(array):
             return array.get(stream)
-    elif isinstance(array, (numpy.number, numpy.bool_, numpy.complex)):
+    elif isinstance(array, (numpy.number, numpy.bool_)):
         return numpy.asarray(array)
     elif isinstance(array, numpy.ndarray):
         return array

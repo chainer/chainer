@@ -193,7 +193,7 @@ class TestToCPU(unittest.TestCase):
         numpy.bool_, numpy.uint8, numpy.int8, numpy.uint16,
         numpy.int16, numpy.uint32, numpy.int32, numpy.uint64,
         numpy.int64, numpy.float16, numpy.float32, numpy.float64,
-        numpy.complex],
+        numpy.complex_],
 }))
 class TestToCPUScalar(unittest.TestCase):
 
@@ -201,7 +201,7 @@ class TestToCPUScalar(unittest.TestCase):
         dtype = self.dtype
         if dtype is numpy.bool_:
             x = dtype(True)
-        elif issubclass(dtype, numpy.complex):
+        elif issubclass(dtype, numpy.complex_):
             x = dtype(3.2 - 2.4j)
         elif issubclass(dtype, numpy.integer):
             x = dtype(3)
@@ -337,7 +337,7 @@ class TestToGPU(unittest.TestCase):
         numpy.bool_, numpy.uint8, numpy.int8, numpy.uint16,
         numpy.int16, numpy.uint32, numpy.int32, numpy.uint64,
         numpy.int64, numpy.float16, numpy.float32, numpy.float64,
-        numpy.complex],
+        numpy.complex_],
 }))
 class TestToGPUScalar(unittest.TestCase):
 
@@ -346,7 +346,7 @@ class TestToGPUScalar(unittest.TestCase):
         dtype = self.dtype
         if dtype is numpy.bool_:
             x = dtype(True)
-        elif issubclass(dtype, numpy.complex):
+        elif issubclass(dtype, numpy.complex_):
             x = dtype(3.2 - 2.4j)
         elif issubclass(dtype, numpy.integer):
             x = dtype(3)
