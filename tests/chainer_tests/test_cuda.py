@@ -188,6 +188,35 @@ class TestToCPU(unittest.TestCase):
             cuda.to_cpu(x)
 
 
+@testing.parameterize(*testing.product({
+    'dtype': [
+        numpy.bool_, numpy.uint8, numpy.int8, numpy.uint16,
+        numpy.int16, numpy.uint32, numpy.int32, numpy.uint64,
+        numpy.int64, numpy.float16, numpy.float32, numpy.float64,
+        numpy.complex],
+}))
+class TestToCPUScalar(unittest.TestCase):
+
+    def test_numpy_scalar(self):
+        dtype = self.dtype
+        if dtype is numpy.bool_:
+            x = dtype(True)
+        elif issubclass(dtype, numpy.complex):
+            x = dtype(3.2 - 2.4j)
+        elif issubclass(dtype, numpy.integer):
+            x = dtype(3)
+        elif issubclass(dtype, numpy.floating):
+            x = dtype(3.2)
+        else:
+            assert False
+
+        y = cuda.to_cpu(x)
+        assert isinstance(y, numpy.ndarray)
+        assert y.shape == ()
+        assert y.dtype == dtype
+        assert y == x
+
+
 class TestWorkspace(unittest.TestCase):
 
     def setUp(self):
@@ -301,6 +330,35 @@ class TestToGPU(unittest.TestCase):
         x = chainer.Variable(self.x)
         with self.assertRaises(TypeError):
             cuda.to_gpu(x)
+
+
+@testing.parameterize(*testing.product({
+    'dtype': [
+        numpy.bool_, numpy.uint8, numpy.int8, numpy.uint16,
+        numpy.int16, numpy.uint32, numpy.int32, numpy.uint64,
+        numpy.int64, numpy.float16, numpy.float32, numpy.float64,
+        numpy.complex],
+}))
+class TestToGPUScalar(unittest.TestCase):
+
+    def test_numpy_scalar(self):
+        dtype = self.dtype
+        if dtype is numpy.bool_:
+            x = dtype(True)
+        elif issubclass(dtype, numpy.complex):
+            x = dtype(3.2 - 2.4j)
+        elif issubclass(dtype, numpy.integer):
+            x = dtype(3)
+        elif issubclass(dtype, numpy.floating):
+            x = dtype(3.2)
+        else:
+            assert False
+
+        y = cuda.to_gpu(x)
+        assert isinstance(y, cuda.ndarray)
+        assert y.shape == ()
+        assert y.dtype == dtype
+        assert y == x
 
 
 testing.run_module(__name__, __file__)
