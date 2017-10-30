@@ -27,9 +27,11 @@ class TestMnist(unittest.TestCase):
             os.path.join('pfnet', 'chainer', 'fashion-mnist'))
 
     def tearDown(self):
-        if hasattr(self, 'cached_train_file') and os.path.exists(self.cached_train_file):
+        if (hasattr(self, 'cached_train_file') and
+                os.path.exists(self.cached_train_file)):
             os.remove(self.cached_train_file)
-        if hasattr(self, 'cached_test_file') and os.path.exists(self.cached_test_file):
+        if (hasattr(self, 'cached_test_file') and
+                os.path.exists(self.cached_test_file)):
             os.remove(self.cached_test_file)
 
     @attr.slow
@@ -43,7 +45,8 @@ class TestMnist(unittest.TestCase):
                                   self.fashion_mnist_root,
                                   get_fashion_mnist)
 
-    def check_retrieval_once(self, train_name, test_name, root, retrieval_func):
+    def check_retrieval_once(self, train_name, test_name, root,
+                             retrieval_func):
         self.cached_train_file = os.path.join(root, train_name)
         self.cached_test_file = os.path.join(root, test_name)
 
@@ -83,7 +86,8 @@ class TestMnist(unittest.TestCase):
                                    get_fashion_mnist,
                                    'chainer.datasets.fashion_mnist.numpy')
 
-    def check_retrieval_twice(self, train_name, test_name, root, retrieval_func, target):
+    def check_retrieval_twice(self, train_name, test_name, root,
+                              retrieval_func, target):
         self.cached_train_file = os.path.join(root, train_name)
         self.cached_test_file = os.path.join(root, test_name)
         train, test = retrieval_func(withlabel=self.withlabel,
@@ -97,7 +101,7 @@ class TestMnist(unittest.TestCase):
                                          scale=self.scale,
                                          rgb_format=self.rgb_format)
         mnumpy.savez_compressed.assert_not_called()  # creator() not called
-        self.assertEqual(mnumpy.load.call_count, 2) # for loading training and test
+        self.assertEqual(mnumpy.load.call_count, 2)  # for training and test
 
 
 testing.run_module(__name__, __file__)
