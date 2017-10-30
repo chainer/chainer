@@ -341,6 +341,7 @@ class TestToGPU(unittest.TestCase):
 }))
 class TestToGPUScalar(unittest.TestCase):
 
+    @attr.gpu
     def test_numpy_scalar(self):
         dtype = self.dtype
         if dtype is numpy.bool_:
