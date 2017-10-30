@@ -280,6 +280,14 @@ class _PrefetchLoop(object):
         self._allocate_shared_memory()
         self._pool = None
 
+        # Use a distinct RandomState in the thread
+        # for deterministic random number generation.
+        # To support 32-bit platform and numpy < 1.11,
+        # the seed is taken in a verbose manner.
+        seed = numpy.asscalar(
+            numpy.random.randint(-(1 << 31), 1 << 31, 1).astype('uint32'))
+        self._random = numpy.random.RandomState(seed)
+
         self._interruption_testing = _interruption_testing
 
     def measure_required(self):
@@ -385,7 +393,7 @@ class _PrefetchLoop(object):
             else:
                 indices = order[pos:n]
                 if self.repeat:
-                    order = numpy.random.permutation(n)
+                    order = self._random.permutation(n)
                     indices = \
                         numpy.concatenate((indices, order[:new_pos]))
             epoch += 1
