@@ -54,7 +54,7 @@ class TestAbsoluteError(unittest.TestCase):
     def check_backward(self, x0_data, x1_data, y_grad):
         gradient_check.check_backward(
             functions.AbsoluteError(),
-            (x0_data, x1_data), y_grad, eps=1e-2)
+            (x0_data, x1_data), y_grad, dtype='d', eps=1e-2)
 
     @condition.retry(3)
     def test_backward_cpu(self):
