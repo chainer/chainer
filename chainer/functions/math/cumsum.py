@@ -51,7 +51,7 @@ def cumsum(x, axis=None):
         x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
            :class:`cupy.ndarray`):
             Elements to calculate the cumulative sum.
-        axis (int, optional):
+        axis (int or None):
             Axis along which the cumulative sum is taken.
             If it is not specified, the input is flattened.
 
