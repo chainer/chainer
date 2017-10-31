@@ -20,7 +20,7 @@ If your home directory is not suited to caching the kernels (e.g. in case that i
 See `CuPy Overview <https://docs-cupy.chainer.org/en/stable/overview.html>`_ for more details.
 
 
-mnist example does not converge in CPU mode on Mac OS X
+MNIST example does not converge in CPU mode on Mac OS X
 -------------------------------------------------------
 
 .. note::
