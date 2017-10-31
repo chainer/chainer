@@ -1,36 +1,13 @@
-import numpy
-
+import chainer
 from chainer import cuda
-from chainer import function_node
 from chainer import utils
-from chainer.utils import type_check
-
-
-class Sign(function_node.FunctionNode):
-
-    """Element-wise sign function."""
-
-    @property
-    def label(self):
-        return 'sign'
-
-    def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 1)
-
-    def forward_cpu(self, x):
-        return utils.force_array(numpy.sign(x[0])),
-
-    def forward_gpu(self, x):
-        return cuda.cupy.sign(x[0]),
-
-    def backward(self, indexes, grad_outputs):
-        return grad_outputs[0] * 0,
 
 
 def sign(x):
     """Elementwise sign function.
 
-    For a given input :math:`x`, it computed the following.
+    For a given input :math:`x`, this function returns :math:`sgn(x)`
+    defined as
 
     .. math::
 
@@ -42,7 +19,8 @@ def sign(x):
 
     .. note::
 
-        The gradient of this function is 0 everywhere.
+        The gradient of this function is ``None`` everywhere and therefore
+        unchains the computational graph.
 
     Args:
         x (~chainer.Variable): Input variable for which the sign is computed.
@@ -51,4 +29,7 @@ def sign(x):
         ~chainer.Variable: Output variable.
 
     """
-    return Sign().apply((x,))[0]
+    if isinstance(x, chainer.variable.Variable):
+        x = x.data
+    xp = cuda.get_array_module(x)
+    return chainer.as_variable(utils.force_array(xp.sign(x)))
