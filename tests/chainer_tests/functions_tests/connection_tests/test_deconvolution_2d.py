@@ -29,6 +29,7 @@ def _pair(x):
     'cudnn_deterministic': [True, False],
     'x_dtype': [numpy.float32],
     'W_dtype': [numpy.float32],
+    'autotune': [True, False],
 }) + testing.product({
     'c_contiguous': [False],
     'test_outsize': [True],
@@ -38,6 +39,7 @@ def _pair(x):
     'cudnn_deterministic': [False],
     'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'W_dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'autotune': [False],
 })))
 class TestDeconvolution2DFunction(unittest.TestCase):
 
@@ -103,9 +105,10 @@ class TestDeconvolution2DFunction(unittest.TestCase):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             with chainer.using_config('cudnn_deterministic',
                                       self.cudnn_deterministic):
-                y_gpu = F.deconvolution_2d(
-                    x_gpu, W_gpu, b_gpu, stride=self.stride, pad=self.pad,
-                    outsize=self.outsize)
+                with chainer.using_config('autotune', self.autotune):
+                    y_gpu = F.deconvolution_2d(
+                        x_gpu, W_gpu, b_gpu, stride=self.stride, pad=self.pad,
+                        outsize=self.outsize)
 
         self.assertEqual(y_cpu.data.dtype, self.x_dtype)
         self.assertEqual(y_gpu.data.dtype, self.x_dtype)
@@ -144,8 +147,9 @@ class TestDeconvolution2DFunction(unittest.TestCase):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             with chainer.using_config('cudnn_deterministic',
                                       self.cudnn_deterministic):
-                gradient_check.check_backward(
-                    f, args, y_grad, **self.check_backward_options)
+                with chainer.using_config('autotune', self.autotune):
+                    gradient_check.check_backward(
+                        f, args, y_grad, **self.check_backward_options)
 
     @condition.retry(10)
     def test_backward_cpu(self):
