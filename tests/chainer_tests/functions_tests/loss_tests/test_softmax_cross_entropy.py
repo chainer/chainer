@@ -31,6 +31,15 @@ from chainer.testing import condition
     'weight_apply': [False, True],
     'enable_double_backprop': [False, True],
     'label_dtype': [numpy.int8, numpy.int16, numpy.int32, numpy.int64],
+}) + testing.product({
+    'shape': [(0, 3), (0, 3, 2), (0, 3, 2, 2)],
+    'cache_score': [True, False],
+    'normalize': [True, False],
+    'ignore_index': [None],
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'weight_apply': [False, True],
+    'enable_double_backprop': [False],
+    'label_dtype': [numpy.int32],
 })))
 class TestSoftmaxCrossEntropy(unittest.TestCase):
 
@@ -97,7 +106,10 @@ class TestSoftmaxCrossEntropy(unittest.TestCase):
             else:
                 loss_expect /= count
         else:
-            loss_expect /= len(t_data)
+            if len(t_data) == 0:
+                loss_expect = 0.0
+            else:
+                loss_expect /= len(t_data)
 
         testing.assert_allclose(
             loss_expect, loss_value, **self.check_forward_options)
