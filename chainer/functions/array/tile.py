@@ -91,21 +91,21 @@ def tile(x, reps):
         >>> x = np.array([0, 1, 2])
         >>> x.shape
         (3,)
-        >>> y = np.tile(x, 2)
+        >>> y = F.tile(x, 2)
         >>> y.shape
         (6,)
-        >>> y
+        >>> y.data
         array([0, 1, 2, 0, 1, 2])
-        >>> y = np.tile(x, (2, 2))
+        >>> y = F.tile(x, (2, 2))
         >>> y.shape
         (2, 6)
-        >>> y
+        >>> y.data
         array([[0, 1, 2, 0, 1, 2],
                [0, 1, 2, 0, 1, 2]])
-        >>> y = np.tile(x, (2, 1, 2))
+        >>> y = F.tile(x, (2, 1, 2))
         >>> y.shape
         (2, 1, 6)
-        >>> y
+        >>> y.data
         array([[[0, 1, 2, 0, 1, 2]],
         <BLANKLINE>
                [[0, 1, 2, 0, 1, 2]]])
@@ -113,24 +113,24 @@ def tile(x, reps):
         >>> x = np.array([[1, 2], [3, 4]])
         >>> x.shape
         (2, 2)
-        >>> y = np.tile(x, 2)
+        >>> y = F.tile(x, 2)
         >>> y.shape
         (2, 4)
-        >>> y
+        >>> y.data
         array([[1, 2, 1, 2],
                [3, 4, 3, 4]])
-        >>> y = np.tile(x, (2, 2))
+        >>> y = F.tile(x, (2, 2))
         >>> y.shape
         (4, 4)
-        >>> y
+        >>> y.data
         array([[1, 2, 1, 2],
                [3, 4, 3, 4],
                [1, 2, 1, 2],
                [3, 4, 3, 4]])
-        >>> y = np.tile(x, (2, 1, 2))
+        >>> y = F.tile(x, (2, 1, 2))
         >>> y.shape
         (2, 2, 4)
-        >>> y
+        >>> y.data
         array([[[1, 2, 1, 2],
                 [3, 4, 3, 4]],
         <BLANKLINE>
