@@ -28,7 +28,7 @@ class Repeat(function_node.FunctionNode):
 
     def forward(self, inputs):
         self.retain_inputs((0,))
-        x = inputs[0]
+        x, = inputs
         xp = cuda.get_array_module(x)
         repeats = self.repeats
         if self.axis is None or len(self.repeats) == 1:
@@ -36,7 +36,7 @@ class Repeat(function_node.FunctionNode):
         return xp.repeat(x, repeats, self.axis),
 
     def backward(self, indexes, grad_outputs):
-        x = self.get_retained_inputs()[0]
+        x, = self.get_retained_inputs()
         return RepeatGrad(self.repeats, self.axis, x.shape, x.dtype).apply(
             grad_outputs)
 
@@ -50,7 +50,7 @@ class RepeatGrad(function_node.FunctionNode):
         self.in_dtype = in_dtype
 
     def forward(self, inputs):
-        gy = inputs[0]
+        gy, = inputs
         xp = cuda.get_array_module(gy)
         repeats = self.repeats
         axis = self.axis
