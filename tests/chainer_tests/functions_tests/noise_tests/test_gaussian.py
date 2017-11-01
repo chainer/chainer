@@ -20,7 +20,7 @@ class TestGaussian(unittest.TestCase):
         self.v = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
         self.gy = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
 
-        self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-2 }
+        self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
 
     def check_forward(self, m_data, v_data):
         m = chainer.Variable(m_data)

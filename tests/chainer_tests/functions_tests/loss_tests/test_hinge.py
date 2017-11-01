@@ -23,7 +23,8 @@ class TestHinge(unittest.TestCase):
         self.x = numpy.random.uniform(-1, 1, shape).astype(numpy.float32)
         # Avoid values around -1.0 for stability
         self.x[numpy.logical_and(-1.01 < self.x, self.x < -0.99)] = 0.5
-        self.t = numpy.random.randint(0, shape[1], shape[:1]).astype(self.label_dtype)
+        self.t = numpy.random.randint(
+            0, shape[1], shape[:1]).astype(self.label_dtype)
         if self.reduce == 'no':
             self.gy = numpy.random.uniform(
                 -1, 1, self.x.shape).astype(numpy.float32)

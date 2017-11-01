@@ -32,7 +32,7 @@ class TestContrastive(unittest.TestCase):
             self.gy = numpy.random.uniform(
                 -1, 1, (self.batchsize,)).astype(numpy.float32)
 
-        self.check_backward_options = {'rtol': 1e-2, 'atol': 1e-3 }
+        self.check_backward_options = {'rtol': 1e-2, 'atol': 1e-3}
 
     def check_forward(self, x0_data, x1_data, t_data):
         x0_val = chainer.Variable(x0_data)

@@ -19,9 +19,9 @@ class UnaryFunctionsTestBase(unittest.TestCase):
         self.x, self.gy = self.make_data()
 
         if self.dtype == numpy.float16:
-            self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-2 }
+            self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
         else:
-            self.check_backward_options = {'atol': 1e-4, 'rtol': 1e-3 }
+            self.check_backward_options = {'atol': 1e-4, 'rtol': 1e-3}
 
     def check_forward(self, op, op_xp, x_data):
         x = chainer.Variable(x_data)

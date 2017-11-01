@@ -15,7 +15,8 @@ class TestMax(unittest.TestCase):
     def setUp(self):
         # Sample x with single maximum value
         while True:
-            self.x = numpy.random.uniform(-1, 1, (3, 2, 4)).astype(numpy.float32)
+            self.x = numpy.random.uniform(
+                -1, 1, (3, 2, 4)).astype(numpy.float32)
             if (self.x > (numpy.max(self.x) - 1e-2)).sum() == 1:
                 break
 
@@ -190,13 +191,13 @@ class TestMin(unittest.TestCase):
     def setUp(self):
         # Sample x with single minimum value
         while True:
-            self.x = numpy.random.uniform(-1, 1, (3, 2, 4)).astype(numpy.float32)
+            self.x = numpy.random.uniform(
+                -1, 1, (3, 2, 4)).astype(numpy.float32)
             if (self.x < (numpy.min(self.x) + 1e-2)).sum() == 1:
                 break
 
         self.gy = numpy.array(2, dtype=numpy.float32)
         self.ggx = numpy.random.uniform(-1, 1, (3, 2, 4)).astype(numpy.float32)
-
 
     def check_forward(self, x_data, axis=None, keepdims=False):
         x = chainer.Variable(x_data)

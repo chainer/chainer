@@ -121,7 +121,8 @@ class TestArctan2(unittest.TestCase):
 
     def check_backward(self, x1_data, x2_data, y_grad):
         gradient_check.check_backward(
-            F.arctan2, (x1_data, x2_data), y_grad, dtype='d', **self.backward_options)
+            F.arctan2, (x1_data, x2_data), y_grad, dtype='d',
+            **self.backward_options)
 
     def test_backward_cpu(self):
         self.check_backward(self.x1, self.x2, self.gy)
