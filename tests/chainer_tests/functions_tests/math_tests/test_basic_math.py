@@ -11,6 +11,7 @@ from chainer import cuda
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
+from chainer.testing import condition
 
 
 @testing.parameterize(*testing.product({
@@ -23,6 +24,8 @@ class TestBinaryOp(unittest.TestCase):
         self.x1 = numpy.random.uniform(.5, 1, self.shape).astype(self.dtype)
         self.x2 = numpy.random.uniform(.5, 1, self.shape).astype(self.dtype)
         self.gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        self.ggx1 = numpy.random.uniform(.5, 1, self.shape).astype(self.dtype)
+        self.ggx2 = numpy.random.uniform(.5, 1, self.shape).astype(self.dtype)
 
     def check_forward(self, op, x1_data, x2_data):
         x1 = chainer.Variable(x1_data)
@@ -165,6 +168,42 @@ class TestBinaryOp(unittest.TestCase):
     @attr.gpu
     def test_pow_backward_gpu(self):
         self.backward_gpu(lambda x, y: x ** y)
+
+    def check_double_backward(
+            self, op, x1_data, x2_data, y_grad, ggx1_data, ggx2_data,
+            **args):
+        options = {}
+        if self.dtype == numpy.float16:
+            options = {'atol': 5e-3, 'rtol': 5e-2}
+        options.update(args)
+
+        def f(x1, x2):
+            x = op(x1, x2)
+            return x * x
+        gradient_check.check_double_backward(
+            f, (x1_data, x2_data), y_grad, (ggx1_data, ggx2_data),
+            dtype=numpy.float64, **options)
+
+    def double_backward_cpu(self, op, **options):
+        self.check_double_backward(
+            op, self.x1, self.x2, self.gy, self.ggx1, self.ggx2,
+            **options)
+
+    @condition.repeat(3)
+    def test_div_double_backward_cpu(self):
+        self.double_backward_cpu(lambda x, y: x / y, atol=5e-2, rtol=5e-2)
+
+    def double_backward_gpu(self, op, **options):
+        self.check_double_backward(
+            op, cuda.to_gpu(self.x1), cuda.to_gpu(self.x2),
+            cuda.to_gpu(self.gy),
+            cuda.to_gpu(self.ggx1), cuda.to_gpu(self.ggx2),
+            **options)
+
+    @attr.gpu
+    @condition.repeat(3)
+    def test_div_double_backward_gpu(self):
+        self.double_backward_gpu(lambda x, y: x / y, atol=5e-2, rtol=5e-2)
 
 
 @testing.parameterize(*testing.product({
