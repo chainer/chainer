@@ -47,7 +47,7 @@ class InvFunctionTest(unittest.TestCase):
 
     def check_backward(self, x_data, y_grad, ):
         gradient_check.check_backward(
-            functions.Inv(), x_data, y_grad, **self.check_backward_options)
+            functions.inv, x_data, y_grad, **self.check_backward_options)
 
     @condition.retry(3)
     def test_identity_cpu(self):
@@ -106,7 +106,7 @@ class BatchInvFunctionTest(unittest.TestCase):
 
     def check_backward(self, x_data, y_grad, **kwargs):
         gradient_check.check_backward(
-            functions.BatchInv(), x_data, y_grad,
+            functions.batch_inv, x_data, y_grad,
             **self.check_backward_options)
 
     @condition.retry(3)

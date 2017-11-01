@@ -73,7 +73,7 @@ def neg(self):  # -x
     return Neg().apply((self,))[0]
 
 
-class Absolute(function.Function):
+class Absolute(function_node.FunctionNode):
 
     @property
     def label(self):
@@ -84,17 +84,36 @@ class Absolute(function.Function):
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward(self, x):
+        self.retain_inputs((0,))
         return utils.force_array(abs(x[0])),
 
-    def backward_cpu(self, x, gy):
-        return utils.force_array(numpy.sign(x[0]) * gy[0]),
+    def backward(self, indexes, grad_outputs):
+        x = self.get_retained_inputs()[0]
+        return AbsoluteGrad(x.data).apply(grad_outputs)
 
-    def backward_gpu(self, x, gy):
+
+class AbsoluteGrad(function_node.FunctionNode):
+
+    def __init__(self, x):
+        super(AbsoluteGrad, self).__init__()
+        self.x = x
+
+    def check_type_forward(self, in_types):
+        type_check.expect(in_types.size() == 1)
+        type_check.expect(in_types[0].dtype.kind == 'f')
+
+    def forward_cpu(self, inputs):
+        return utils.force_array(numpy.sign(self.x) * inputs[0]),
+
+    def forward_gpu(self, inputs):
         gx0 = cuda.elementwise(
             'T x0, T gy', 'T gx0',
             'gx0 = ((x0 > 0) - (x0 < 0)) * gy',
-            'abs_bwd')(x[0], gy[0])
+            'abs_bwd')(self.x, inputs[0])
         return gx0,
+
+    def backward(self, indexes, grad_outputs):
+        return AbsoluteGrad(self.x).apply(grad_outputs)
 
 
 def absolute(self):
@@ -103,7 +122,7 @@ def absolute(self):
     Returns:
         ~chainer.Variable: Output variable.
     """
-    return Absolute()(self)
+    return Absolute().apply((self,))[0]
 
 
 class Add(function_node.FunctionNode):
@@ -281,7 +300,7 @@ def mul(self, rhs):  # lhs * rhs
     return MulConstant(rhs).apply((self,))[0]
 
 
-class Div(function.Function):
+class Div(function_node.FunctionNode):
 
     @property
     def label(self):
@@ -296,20 +315,49 @@ class Div(function.Function):
         )
 
     def forward(self, x):
+        self.retain_inputs((0, 1))
         return utils.force_array(x[0] / x[1]),
 
-    def backward_cpu(self, x, gy):
-        gx0 = utils.force_array(gy[0] / x[1])
-        return gx0, utils.force_array(-gx0 * x[0] / x[1])
+    def backward(self, indexes, grad_outputs):
+        x = self.get_retained_inputs()
+        return DivGrad().apply((x[0], x[1], grad_outputs[0]))
 
-    def backward_gpu(self, x, gy):
+
+class DivGrad(function_node.FunctionNode):
+
+    def forward_cpu(self, inputs):
+        self.retain_inputs((0, 1, 2))
+        x0, x1, gy = inputs
+        gx0 = utils.force_array(gy / x1)
+        return gx0, utils.force_array(-gx0 * x0 / x1)
+
+    def forward_gpu(self, inputs):
+        self.retain_inputs((0, 1, 2))
+        x0, x1, gy = inputs
         return cuda.elementwise(
             'T x0, T x1, T gy',
             'T gx0, T gx1',
             '''
                gx0 = gy / x1;
                gx1 = -gx0 * x0 / x1;
-            ''', 'div_bwd')(x[0], x[1], gy[0])
+            ''', 'div_bwd')(x0, x1, gy)
+
+    def backward(self, indexes, grad_outputs):
+        x0, x1, gy = self.get_retained_inputs()
+        ret = []
+        x1_square = x1 * x1
+        if 0 in indexes:
+            ggx0 = - grad_outputs[1] * gy / x1_square
+            ret.append(ggx0)
+        if 1 in indexes:
+            ggx1 = \
+                - grad_outputs[0] * gy / x1_square + \
+                grad_outputs[1] * 2 * gy * x0 / (x1_square * x1)
+            ret.append(ggx1)
+        if 2 in indexes:
+            ggy = grad_outputs[0] / x1 - grad_outputs[1] * x0 / x1_square
+            ret.append(ggy)
+        return ret
 
 
 def div(self, rhs):  # lhs / rhs
@@ -320,7 +368,7 @@ def div(self, rhs):  # lhs / rhs
     """
 
     if isinstance(rhs, variable.Variable):
-        return Div()(self, rhs)
+        return Div().apply((self, rhs))[0]
     _check_constant_type(rhs)
     return MulConstant(1. / rhs).apply((self,))[0]
 
@@ -363,7 +411,7 @@ def rdiv(self, rhs):  # rhs / lhs
     """
 
     if isinstance(rhs, variable.Variable):
-        return Div()(rhs, self)
+        return Div().apply((rhs, self))[0]
     _check_constant_type(rhs)
     return DivFromConstant(rhs)(self)
 

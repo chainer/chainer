@@ -10,6 +10,10 @@ from chainer import utils
 class ChildSumTreeLSTM(link.Chain):
     """Child-Sum TreeLSTM unit.
 
+    .. warning::
+
+        This feature is experimental. The interface can change in the future.
+
     This is a Child-Sum TreeLSTM unit as a chain.
     This link is a variable arguments function, which compounds
     the states of all children nodes into the new states of
@@ -120,6 +124,10 @@ class ChildSumTreeLSTM(link.Chain):
 
 class NaryTreeLSTM(link.Chain):
     """N-ary TreeLSTM unit.
+
+    .. warning::
+
+        This feature is experimental. The interface can change in the future.
 
     This is a N-ary TreeLSTM unit as a chain.
     This link is a fixed-length arguments function, which compounds

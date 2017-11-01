@@ -230,6 +230,9 @@ def check_backward(func, x_data, y_grad, params=(),
     .. seealso::
        :func:`numerical_grad`
     """
+    if dtype is not None and numpy.dtype(dtype).kind != 'f':
+        raise ValueError('`dtype` is allowed only float type')
+
     x_data = _as_tuple(x_data)
     if y_grad is not None:
         y_grad = _as_tuple(y_grad)
@@ -256,23 +259,32 @@ def check_backward(func, x_data, y_grad, params=(),
     # `Variable.backward` method calls `Function.backward` of its creator.
     y[0].backward()
 
-    param_data = [p.data for p in params]
     if dtype is None:
         casted_xs = [variable.Variable(x) for x in x_data]
     else:
+        # Cast data to the specified dtype before computing the numerical
+        # gradients e.g. when we explicitly want to increase the floating point
+        # precision from the initial dtype.
         if numpy.dtype(dtype).kind != 'f':
             raise ValueError('`dtype` is allowed only float type')
         casted_xs = [variable.Variable(x.astype(dtype, copy=False)
                                        if x.dtype.kind == 'f' else x)
                      for x in x_data]
+        for param in params:
+            if param.data.dtype.kind == 'f':
+                param.data = param.data.astype(dtype, copy=False)
+        y_grad = [g.astype(dtype, copy=False) if g is not None and
+                  isinstance(g, (numpy.ndarray, cuda.ndarray)) and
+                  g.dtype.kind == 'f' else g for g in y_grad]
 
     if no_grads is None:
         no_grads = [x.dtype.kind != 'f' for x in xs]
     else:
         if len(no_grads) != len(xs):
             raise ValueError(
-                'Length of no_grads param and xs should be same.')
-    casted_data = [x.data.copy() for x in casted_xs]
+                'Length of no_grads param and xs should be same.\n'
+                'Actual: {0} != {1}'.format(len(no_grads), len(xs)))
+
     for skip, x in six.moves.zip(no_grads, xs):
         if skip:
             assert x.grad is None
@@ -283,6 +295,8 @@ def check_backward(func, x_data, y_grad, params=(),
 
     # Keep the gradient arrays of params which may be overwritten by func
     params_grad = [param.grad for param in params]
+    param_data = [p.data for p in params]
+    casted_data = [x.data.copy() for x in casted_xs]
 
     xp = cuda.get_array_module(*xs)
     one = xp.array(1., dtype)
@@ -344,7 +358,23 @@ def check_backward(func, x_data, y_grad, params=(),
             pi = pi.astype(dtype, copy=False)
         gx_accum += gpi.dot(pi)
 
-    testing.assert_allclose(gx, gx_accum, atol=atol, rtol=rtol)
+    try:
+        testing.assert_allclose(gx, gx_accum, atol=atol, rtol=rtol)
+    except AssertionError as e:
+        f = six.StringIO()
+        f.write('check_backward failed (eps={} atol={} rtol={})\n'.format(
+            eps, atol, rtol))
+        for i, x_ in enumerate(xs):
+            f.write('inputs[{}]:\n'.format(i))
+            f.write('{}\n'.format(x_))
+        for i, gy_ in enumerate(y_grad):
+            f.write('grad_outputs[{}]:\n'.format(i))
+            f.write('{}\n'.format(gy_))
+        f.write('gradients (numeric):  {}\n'.format(gx))
+        f.write('gradients (backward): {}\n'.format(gx_accum))
+        f.write('\n')
+        f.write(str(e))
+        raise AssertionError(f.getvalue())
 
 
 def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
@@ -382,6 +412,9 @@ def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
     """
     x_data = _as_tuple(x_data)
     params = _as_tuple(params)
+    y_grad = _as_tuple(y_grad)
+    x_grad_grad = _as_tuple(x_grad_grad)
+    params_grad_grad = _as_tuple(params_grad_grad)
     n_x = len(x_data)
 
     def first_order_grad(*inputs):
@@ -398,11 +431,31 @@ def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
 
         return tuple([x.grad_var for x in xs] + [p.grad_var for p in params])
 
-    inputs = x_data + _as_tuple(y_grad)
-    grad_grad = _as_tuple(x_grad_grad) + _as_tuple(params_grad_grad)
-    check_backward(first_order_grad, inputs, grad_grad, params=params,
-                   eps=eps, atol=atol, rtol=rtol, no_grads=no_grads,
-                   dtype=dtype)
+    inputs = x_data + y_grad
+    grad_grad = x_grad_grad + params_grad_grad
+    try:
+        check_backward(first_order_grad, inputs, grad_grad, params=params,
+                       eps=eps, atol=atol, rtol=rtol, no_grads=no_grads,
+                       dtype=dtype)
+    except AssertionError as e:
+        f = six.StringIO()
+        f.write('check_double_backward failed '
+                '(eps={} atol={} rtol={})\n'.format(eps, atol, rtol))
+        for i, x_ in enumerate(x_data):
+            f.write('input[{}]:\n'.format(i))
+            f.write('{}\n'.format(x_))
+        for i, gy_ in enumerate(y_grad):
+            f.write('grad_output[{}]:\n'.format(i))
+            f.write('{}\n'.format(gy_))
+        for i, ggx_ in enumerate(x_grad_grad):
+            f.write('grad_grad_input[{}]:\n'.format(i))
+            f.write('{}\n'.format(ggx_))
+        for i, ggp_ in enumerate(params_grad_grad):
+            f.write('grad_grad_param[{}]:\n'.format(i))
+            f.write('{}\n'.format(ggp_))
+        f.write('\n')
+        f.write(str(e))
+        raise AssertionError(f.getvalue())
 
 
 def _set_y_grad(y, y_grad):

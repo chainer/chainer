@@ -1,10 +1,9 @@
 import collections
 import os
-import pkg_resources
-import sys
 import threading
 import warnings
 
+from chainer import _version
 from chainer import configuration  # NOQA
 from chainer import cuda  # NOQA
 from chainer import dataset  # NOQA
@@ -62,20 +61,14 @@ from chainer.variable import Parameter  # NOQA
 from chainer.variable import Variable  # NOQA
 
 
-if sys.version_info[:3] == (3, 5, 0):
-    if not int(os.getenv('CHAINER_PYTHON_350_FORCE', '0')):
-        msg = """
-Chainer does not work with Python 3.5.0.
-
-We strongly recommend to use another version of Python.
-If you want to use Chainer with Python 3.5.0 at your own risk,
-set 1 to CHAINER_PYTHON_350_FORCE environment variable."""
-
-        raise Exception(msg)
+from chainer import _environment_check
 
 
-__version__ = pkg_resources.get_distribution('chainer').version
+# Check environment conditions
+_environment_check.check()
 
+
+__version__ = _version.__version__
 
 thread_local = threading.local()
 
