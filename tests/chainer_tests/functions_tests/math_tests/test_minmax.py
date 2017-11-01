@@ -16,6 +16,7 @@ class TestMax(unittest.TestCase):
     def setUp(self):
         self.x = numpy.random.uniform(-1, 1, (3, 2, 4)).astype(numpy.float32)
         self.gy = numpy.array(2, dtype=numpy.float32)
+        self.ggx = numpy.random.uniform(-1, 1, (3, 2, 4)).astype(numpy.float32)
 
     def check_forward(self, x_data, axis=None, keepdims=False):
         x = chainer.Variable(x_data)
@@ -78,7 +79,7 @@ class TestMax(unittest.TestCase):
 
     def check_backward(self, x_data, y_grad, axis=None, keepdims=False):
         gradient_check.check_backward(
-            functions.Max(axis, keepdims),
+            lambda x: functions.max(x, axis, keepdims),
             x_data, y_grad, dtype='d', eps=1e-5, rtol=1e-3, atol=1e-3)
 
     @condition.retry(3)
@@ -159,6 +160,26 @@ class TestMax(unittest.TestCase):
         gy = numpy.ones_like(self.x.sum(axis=(-2, 0))) * self.gy
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(gy), axis=(-2, 0))
 
+    def check_double_backward(
+            self, x_data, y_grad, x_grad_grad, axis=None, keepdims=False):
+        def f(x):
+            x = functions.max(x, axis, keepdims)
+            return x * x
+
+        gradient_check.check_double_backward(
+            f, x_data, y_grad, x_grad_grad,
+            dtype='d', eps=1e-5, rtol=1e-3, atol=1e-3)
+
+    @condition.retry(3)
+    def test_double_backward_cpu(self):
+        self.check_double_backward(self.x, self.gy, self.ggx)
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_double_backward_gpu(self):
+        self.check_double_backward(
+            cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx))
+
     def test_invalid_axis_type(self):
         with self.assertRaises(TypeError):
             functions.Max([0])
@@ -181,6 +202,7 @@ class TestMin(unittest.TestCase):
     def setUp(self):
         self.x = numpy.random.uniform(-1, 1, (3, 2, 4)).astype(numpy.float32)
         self.gy = numpy.array(2, dtype=numpy.float32)
+        self.ggx = numpy.random.uniform(-1, 1, (3, 2, 4)).astype(numpy.float32)
 
     def check_forward(self, x_data, axis=None, keepdims=False):
         x = chainer.Variable(x_data)
@@ -243,7 +265,7 @@ class TestMin(unittest.TestCase):
 
     def check_backward(self, x_data, y_grad, axis=None, keepdims=False):
         gradient_check.check_backward(
-            functions.Min(axis=axis, keepdims=keepdims),
+            lambda x: functions.min(x, axis=axis, keepdims=keepdims),
             x_data, y_grad, eps=1e-4, rtol=1e-3, atol=1e-3)
 
     @condition.retry(3)
@@ -323,6 +345,26 @@ class TestMin(unittest.TestCase):
     def test_backward_negative_multi_axis_invert_gpu(self):
         gy = numpy.ones_like(self.x.sum(axis=(-2, 0))) * self.gy
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(gy), axis=(-2, 0))
+
+    def check_double_backward(
+            self, x_data, y_grad, x_grad_grad, axis=None, keepdims=False):
+        def f(x):
+            x = functions.max(x, axis, keepdims)
+            return x * x
+
+        gradient_check.check_double_backward(
+            f, x_data, y_grad, x_grad_grad,
+            dtype='d', eps=1e-5, rtol=1e-3, atol=1e-3)
+
+    @condition.retry(3)
+    def test_double_backward_cpu(self):
+        self.check_double_backward(self.x, self.gy, self.ggx)
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_double_backward_gpu(self):
+        self.check_double_backward(
+            cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx))
 
     def test_invalid_axis_type(self):
         with self.assertRaises(TypeError):

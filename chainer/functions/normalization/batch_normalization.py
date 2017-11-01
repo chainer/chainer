@@ -263,6 +263,7 @@ class BatchNormalizationGrad(function.Function):
 
 class FixedBatchNormalization(function_node.FunctionNode):
 
+    inv_std = None
     inv_var = None
 
     def __init__(self, eps=2e-5):
@@ -352,7 +353,7 @@ class FixedBatchNormalizationGrad(function.Function):
         self.eps = eps
         self.expander = expander
         self.axis = axis
-        self.inv_std = inv_std
+        self.inv_std = inv_std  # may be None
         self.inv_var = inv_var  # may be None
 
     def forward(self, inputs):
@@ -361,8 +362,10 @@ class FixedBatchNormalizationGrad(function.Function):
         expander = self.expander
         xp = cuda.get_array_module(x)
 
-        if self.inv_var is None:
-            self.inv_var = xp.square(self.inv_std)
+        if self.inv_std is None or self.inv_var is None:
+            self.inv_var = xp.reciprocal(var + self.eps)
+            self.inv_std = xp.sqrt(self.inv_var, dtype=self.inv_var.dtype)
+
         self.gamma_over_std = gamma * self.inv_std
         x_hat = _x_hat(x, mean[expander], self.inv_std[expander])
 
@@ -550,12 +553,14 @@ def batch_normalization(x, gamma, beta, **kwargs):
         gamma (Variable): Scaling parameter of normalized data.
         beta (Variable): Shifting parameter of scaled normalized data.
         eps (float): Epsilon value for numerical stability.
-        running_mean (array): Running average of the mean. This is a
+        running_mean (numpy.ndarray or cupy.ndarray):
+            Running average of the mean. This is a
             running average of the mean over several mini-batches using
             the decay parameter. If ``None``, the running average is not
             computed. If this is ``None``, then ``runnng_var`` must also
             be ``None``.
-        running_var (array): Running average of the variance. This is a
+        running_var (numpy.ndarray or cupy.ndarray):
+            Running average of the variance. This is a
             running average of the variance over several mini-batches using
             the decay parameter. If ``None``, the running average is not
             computed. If this is ``None``, then ``running_mean`` must also

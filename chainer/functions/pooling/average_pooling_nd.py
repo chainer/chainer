@@ -14,7 +14,13 @@ from chainer.utils import conv_nd
 
 class AveragePoolingND(pooling_nd._PoolingND):
 
-    """Average pooling over a set of N-dimensional planes."""
+    """Average pooling over a set of N-dimensional planes.
+
+    .. warning::
+
+        This feature is experimental. The interface can change in the future.
+
+    """
 
     def __init__(self, ndim, ksize, stride=None, pad=0, cover_all=False):
         utils.experimental('chainer.functions.pooling.AveragePoolingND')
@@ -40,7 +46,7 @@ class AveragePoolingND(pooling_nd._PoolingND):
         return y,
 
     def forward_gpu(self, x):
-        if chainer.should_use_cudnn('>=auto') and self.ndim >= 2:
+        if chainer.should_use_cudnn('>=auto') and 2 <= self.ndim <= 3:
             # With cuDNN v3 or greater, use cuDNN implementation for inputs
             # with spatial dimensions of two or more.
             return super(AveragePoolingND, self).forward_gpu(x)
@@ -107,6 +113,10 @@ class AveragePoolingND(pooling_nd._PoolingND):
 
 def average_pooling_nd(x, ksize, stride=None, pad=0):
     """N-dimensionally spatial average pooling function.
+
+    .. warning::
+
+        This feature is experimental. The interface can change in the future.
 
     This function provides a N-dimensionally generalized version of
     :func:`~functions.average_pooling_2d`. This acts similarly to

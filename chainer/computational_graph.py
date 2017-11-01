@@ -68,9 +68,9 @@ class ComputationalGraph(object):
         rankdir (str): Direction of the graph that must be
             TB (top to bottom), BT (bottom to top), LR (left to right)
             or RL (right to left).
-        remove_variable (bool): If ``True``, :class:`~chainer.Variable` s are
+        remove_variable (bool): If ``True``, :class:`~chainer.Variable`\\ s are
             removed from the resulting computational graph. Only
-            :class:`~chainer.Function` s are shown in the output.
+            :class:`~chainer.Function`\\ s are shown in the output.
         show_name (bool): If ``True``, the ``name`` attribute of each node is
             added to the label of the node. Default is ``True``.
 
@@ -198,8 +198,9 @@ def build_computational_graph(
 
     Args:
         outputs(list): nodes from which the graph is constructed.
-            Each element of outputs must be either :class:`Variable`
-            object, :class:`VariableNode object, or :class:`Function` object.
+            Each element of outputs must be either :class:`~chainer.Variable`
+            object, :class:`~chainer.variable.VariableNode` object, or
+            :class:`~chainer.Function` object.
         remove_split(bool): It must be ``True``. This argument is left for
             backward compatibility.
         variable_style(dict): Dot node style for variable.
@@ -208,9 +209,9 @@ def build_computational_graph(
         rankdir (str): Direction of the graph that must be
             TB (top to bottom), BT (bottom to top), LR (left to right)
             or RL (right to left).
-        remove_variable (bool): If ``True``, :class:`~chainer.Variable` s are
+        remove_variable (bool): If ``True``, :class:`~chainer.Variable`\\ s are
             removed from the resulting computational graph. Only
-            :class:`~chainer.Function` s are shown in the output.
+            :class:`~chainer.Function`\\ s are shown in the output.
         show_name (bool): If ``True``, the ``name`` attribute of each node is
             added to the label of the node. Default is ``True``.
 

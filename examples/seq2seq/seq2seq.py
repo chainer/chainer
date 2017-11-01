@@ -214,6 +214,11 @@ def main():
                         help='minimium length of target sentence')
     parser.add_argument('--max-target-sentence', type=int, default=50,
                         help='maximum length of target sentence')
+    parser.add_argument('--log-interval', type=int, default=200,
+                        help='number of iteration to show log')
+    parser.add_argument('--validation-interval', type=int, default=4000,
+                        help='number of iteration to evlauate the model '
+                        'with validation dataset')
     parser.add_argument('--out', '-o', default='result',
                         help='directory to output the result')
     args = parser.parse_args()
@@ -255,12 +260,13 @@ def main():
     updater = training.StandardUpdater(
         train_iter, optimizer, converter=convert, device=args.gpu)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'))
-    trainer.extend(extensions.LogReport(trigger=(200, 'iteration')))
+    trainer.extend(extensions.LogReport(
+        trigger=(args.log_interval, 'iteration')))
     trainer.extend(extensions.PrintReport(
         ['epoch', 'iteration', 'main/loss', 'validation/main/loss',
          'main/perp', 'validation/main/perp', 'validation/main/bleu',
          'elapsed_time']),
-        trigger=(200, 'iteration'))
+        trigger=(args.log_interval, 'iteration'))
 
     if args.validation_source and args.validation_target:
         test_source = load_data(source_ids, args.validation_source)
@@ -279,7 +285,7 @@ def main():
         print('Validation target unknown ratio: %.2f%%' %
               (test_target_unknown * 100))
 
-        @chainer.training.make_extension(trigger=(200, 'iteration'))
+        @chainer.training.make_extension()
         def translate(trainer):
             source, target = test_data[numpy.random.choice(len(test_data))]
             result = model.translate([model.xp.array(source)])[0]
@@ -291,11 +297,12 @@ def main():
             print('#  result : ' + result_sentence)
             print('#  expect : ' + target_sentence)
 
-        trainer.extend(translate, trigger=(4000, 'iteration'))
+        trainer.extend(
+            translate, trigger=(args.validation_interval, 'iteration'))
         trainer.extend(
             CalculateBleu(
                 model, test_data, 'validation/main/bleu', device=args.gpu),
-            trigger=(4000, 'iteration'))
+            trigger=(args.validation_interval, 'iteration'))
 
     print('start training')
     trainer.run()

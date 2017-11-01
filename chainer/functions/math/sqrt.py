@@ -1,10 +1,10 @@
 from chainer import cuda
-from chainer import function
+from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
 
 
-class Sqrt(function.Function):
+class Sqrt(function_node.FunctionNode):
 
     @property
     def label(self):
@@ -17,18 +17,14 @@ class Sqrt(function.Function):
         )
 
     def forward(self, x):
-        self.retain_inputs(())
         self.retain_outputs((0,))
         xp = cuda.get_array_module(*x)
         return utils.force_array(xp.sqrt(x[0], dtype=x[0].dtype)),
 
-    def backward(self, x, gy):
-        xp = cuda.get_array_module(*gy)
-        gx = self.output_data[0].copy()
-        gx *= 2.0
-        xp.reciprocal(gx, out=gx)
-        gx *= gy[0]
-        return gx,
+    def backward(self, indexes, grad_outputs):
+        gx = self.get_retained_outputs()[0]
+        gy = grad_outputs[0]
+        return gy / (gx * 2.0),
 
 
 def sqrt(x):
@@ -46,7 +42,7 @@ def sqrt(x):
     Returns:
         ~chainer.Variable: Output variable.
     """
-    return Sqrt()(x)
+    return Sqrt().apply((x,))[0]
 
 
 def rsqrt(x):
