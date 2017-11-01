@@ -8,13 +8,18 @@ from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
 
 
 class TestMax(unittest.TestCase):
 
     def setUp(self):
-        self.x = numpy.random.uniform(-1, 1, (3, 2, 4)).astype(numpy.float32)
+        # Sample x with single maximum value
+        while True:
+            self.x = numpy.random.uniform(
+                -1, 1, (3, 2, 4)).astype(numpy.float32)
+            if (self.x > (numpy.max(self.x) - 1e-2)).sum() == 1:
+                break
+
         self.gy = numpy.array(2, dtype=numpy.float32)
         self.ggx = numpy.random.uniform(-1, 1, (3, 2, 4)).astype(numpy.float32)
 
@@ -82,80 +87,66 @@ class TestMax(unittest.TestCase):
             lambda x: functions.max(x, axis, keepdims),
             x_data, y_grad, dtype='d', eps=1e-5, rtol=1e-3, atol=1e-3)
 
-    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy)
 
-    @condition.retry(3)
     def test_backward_axis_cpu(self):
         for i in range(self.x.ndim):
             gy = numpy.ones_like(self.x.max(axis=i)) * self.gy
             self.check_backward(self.x, gy, axis=i)
 
-    @condition.retry(3)
     def test_backward_negative_axis_cpu(self):
         gy = numpy.ones_like(self.x.max(axis=-1)) * self.gy
         self.check_backward(self.x, gy, axis=-1)
 
-    @condition.retry(3)
     def test_backward_multi_axis_cpu(self):
         gy = numpy.ones_like(self.x.max(axis=(0, 1))) * self.gy
         self.check_backward(self.x, gy, axis=(0, 1))
 
-    @condition.retry(3)
     def test_backward_multi_axis_invert_cpu(self):
         gy = numpy.ones_like(self.x.max(axis=(1, 0))) * self.gy
         self.check_backward(self.x, gy, axis=(1, 0))
 
-    @condition.retry(3)
     def test_backward_negative_multi_axis_cpu(self):
         gy = numpy.ones_like(self.x.max(axis=(0, -1))) * self.gy
         self.check_backward(self.x, gy, axis=(0, -1))
 
-    @condition.retry(3)
     def test_backward_negative_multi_axis_invert_cpu(self):
         gy = numpy.ones_like(self.x.max(axis=(-2, 0))) * self.gy
         self.check_backward(self.x, gy, axis=(-2, 0))
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_axis_gpu(self):
         for i in range(self.x.ndim):
             gy = numpy.ones_like(self.x.sum(axis=i)) * self.gy
             self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(gy), axis=i)
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_negative_axis_gpu(self):
         for i in range(self.x.ndim):
             gy = numpy.ones_like(self.x.sum(axis=-1)) * self.gy
             self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(gy), axis=-1)
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_multi_axis_gpu(self):
         gy = numpy.ones_like(self.x.sum(axis=(0, 1))) * self.gy
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(gy), axis=(0, 1))
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_multi_axis_invert_gpu(self):
         gy = numpy.ones_like(self.x.sum(axis=(1, 0))) * self.gy
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(gy), axis=(1, 0))
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_negative_multi_axis_gpu(self):
         gy = numpy.ones_like(self.x.sum(axis=(0, -1))) * self.gy
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(gy), axis=(0, -1))
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_negative_multi_axis_invert_gpu(self):
         gy = numpy.ones_like(self.x.sum(axis=(-2, 0))) * self.gy
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(gy), axis=(-2, 0))
@@ -170,12 +161,10 @@ class TestMax(unittest.TestCase):
             f, x_data, y_grad, x_grad_grad,
             dtype='d', eps=1e-5, rtol=1e-3, atol=1e-3)
 
-    @condition.retry(3)
     def test_double_backward_cpu(self):
         self.check_double_backward(self.x, self.gy, self.ggx)
 
     @attr.gpu
-    @condition.retry(3)
     def test_double_backward_gpu(self):
         self.check_double_backward(
             cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx))
@@ -200,7 +189,13 @@ class TestMax(unittest.TestCase):
 class TestMin(unittest.TestCase):
 
     def setUp(self):
-        self.x = numpy.random.uniform(-1, 1, (3, 2, 4)).astype(numpy.float32)
+        # Sample x with single minimum value
+        while True:
+            self.x = numpy.random.uniform(
+                -1, 1, (3, 2, 4)).astype(numpy.float32)
+            if (self.x < (numpy.min(self.x) + 1e-2)).sum() == 1:
+                break
+
         self.gy = numpy.array(2, dtype=numpy.float32)
         self.ggx = numpy.random.uniform(-1, 1, (3, 2, 4)).astype(numpy.float32)
 
@@ -266,82 +261,68 @@ class TestMin(unittest.TestCase):
     def check_backward(self, x_data, y_grad, axis=None, keepdims=False):
         gradient_check.check_backward(
             lambda x: functions.min(x, axis=axis, keepdims=keepdims),
-            x_data, y_grad, eps=1e-4, rtol=1e-3, atol=1e-3)
+            x_data, y_grad, dtype='d', eps=1e-4, rtol=1e-3, atol=1e-3)
 
-    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy)
 
-    @condition.retry(3)
     def test_backward_axis_cpu(self):
         for i in range(self.x.ndim):
             gy = numpy.ones_like(self.x.min(axis=i)) * self.gy
             self.check_backward(self.x, gy, axis=i)
 
-    @condition.retry(3)
     def test_backward_negative_axis_cpu(self):
         gy = numpy.ones_like(self.x.min(axis=-1)) * self.gy
         self.check_backward(self.x, gy, axis=-1)
 
-    @condition.retry(3)
     def test_backward_multi_axis_cpu(self):
         gy = numpy.ones_like(self.x.min(axis=(0, 1))) * self.gy
         self.check_backward(self.x, gy, axis=(0, 1))
 
-    @condition.retry(3)
     def test_backward_multi_axis_invert_cpu(self):
         gy = numpy.ones_like(self.x.min(axis=(1, 0))) * self.gy
         self.check_backward(self.x, gy, axis=(1, 0))
 
-    @condition.retry(3)
     def test_backward_negative_multi_axis_cpu(self):
         gy = numpy.ones_like(self.x.min(axis=(0, -1))) * self.gy
         self.check_backward(self.x, gy, axis=(0, -1))
 
-    @condition.retry(3)
     def test_backward_negative_multi_axis_invert_cpu(self):
         gy = numpy.ones_like(self.x.min(axis=(-2, 0))) * self.gy
         self.check_backward(self.x, gy, axis=(-2, 0))
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_axis_gpu(self):
         for i in range(self.x.ndim):
             gy = numpy.ones_like(self.x.sum(axis=i)) * self.gy
             self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(gy), axis=i)
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_negative_axis_gpu(self):
         for i in range(self.x.ndim):
             gy = numpy.ones_like(self.x.sum(axis=-1)) * self.gy
             self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(gy), axis=-1)
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_multi_axis_gpu(self):
         gy = numpy.ones_like(self.x.sum(axis=(0, 1))) * self.gy
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(gy), axis=(0, 1))
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_multi_axis_invert_gpu(self):
         gy = numpy.ones_like(self.x.sum(axis=(1, 0))) * self.gy
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(gy), axis=(1, 0))
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_negative_multi_axis_gpu(self):
         gy = numpy.ones_like(self.x.sum(axis=(0, -1))) * self.gy
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(gy), axis=(0, -1))
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_negative_multi_axis_invert_gpu(self):
         gy = numpy.ones_like(self.x.sum(axis=(-2, 0))) * self.gy
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(gy), axis=(-2, 0))
@@ -356,12 +337,10 @@ class TestMin(unittest.TestCase):
             f, x_data, y_grad, x_grad_grad,
             dtype='d', eps=1e-5, rtol=1e-3, atol=1e-3)
 
-    @condition.retry(3)
     def test_double_backward_cpu(self):
         self.check_double_backward(self.x, self.gy, self.ggx)
 
     @attr.gpu
-    @condition.retry(3)
     def test_double_backward_gpu(self):
         self.check_double_backward(
             cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx))
@@ -432,12 +411,10 @@ class TestArgMinMax(unittest.TestCase):
         y.backward()
         self.assertIsNone(x.grad)
 
-    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.x)
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x))
 
