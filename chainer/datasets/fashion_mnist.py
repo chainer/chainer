@@ -3,8 +3,8 @@ import os
 import numpy
 
 from chainer.dataset import download
-from chainer.datasets.mnist import _make_npz
-from chainer.datasets.mnist import _preprocess_mnist
+from chainer.datasets._mnist_helper import make_npz
+from chainer.datasets._mnist_helper import preprocess_mnist
 
 
 def get_fashion_mnist(withlabel=True, ndim=1, scale=1., dtype=numpy.float32,
@@ -47,10 +47,10 @@ def get_fashion_mnist(withlabel=True, ndim=1, scale=1., dtype=numpy.float32,
 
     """
     train_raw = _retrieve_fashion_mnist_training()
-    train = _preprocess_mnist(train_raw, withlabel, ndim, scale, dtype,
+    train = preprocess_mnist(train_raw, withlabel, ndim, scale, dtype,
                               label_dtype, rgb_format)
     test_raw = _retrieve_fashion_mnist_test()
-    test = _preprocess_mnist(test_raw, withlabel, ndim, scale, dtype,
+    test = preprocess_mnist(test_raw, withlabel, ndim, scale, dtype,
                              label_dtype, rgb_format)
     return train, test
 
@@ -73,4 +73,4 @@ def _retrieve_fashion_mnist(name, urls):
     root = download.get_dataset_directory('pfnet/chainer/fashion-mnist')
     path = os.path.join(root, name)
     return download.cache_or_load_file(
-        path, lambda path: _make_npz(path, urls), numpy.load)
+        path, lambda path: make_npz(path, urls), numpy.load)

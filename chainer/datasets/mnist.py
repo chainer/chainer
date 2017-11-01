@@ -1,12 +1,10 @@
-import gzip
 import os
-import struct
 
 import numpy
-import six
 
 from chainer.dataset import download
-from chainer.datasets import tuple_dataset
+from chainer.datasets._mnist_helper import make_npz
+from chainer.datasets._mnist_helper import  preprocess_mnist
 
 
 def get_mnist(withlabel=True, ndim=1, scale=1., dtype=numpy.float32,
@@ -48,34 +46,12 @@ def get_mnist(withlabel=True, ndim=1, scale=1., dtype=numpy.float32,
 
     """
     train_raw = _retrieve_mnist_training()
-    train = _preprocess_mnist(train_raw, withlabel, ndim, scale, dtype,
-                              label_dtype, rgb_format)
-    test_raw = _retrieve_mnist_test()
-    test = _preprocess_mnist(test_raw, withlabel, ndim, scale, dtype,
+    train = preprocess_mnist(train_raw, withlabel, ndim, scale, dtype,
                              label_dtype, rgb_format)
+    test_raw = _retrieve_mnist_test()
+    test = preprocess_mnist(test_raw, withlabel, ndim, scale, dtype,
+                            label_dtype, rgb_format)
     return train, test
-
-
-def _preprocess_mnist(raw, withlabel, ndim, scale, image_dtype, label_dtype,
-                      rgb_format):
-    images = raw['x']
-    if ndim == 2:
-        images = images.reshape(-1, 28, 28)
-    elif ndim == 3:
-        images = images.reshape(-1, 1, 28, 28)
-        if rgb_format:
-            images = numpy.broadcast_to(images,
-                                        (len(images), 3) + images.shape[2:])
-    elif ndim != 1:
-        raise ValueError('invalid ndim for MNIST dataset')
-    images = images.astype(image_dtype)
-    images *= scale / 255.
-
-    if withlabel:
-        labels = raw['y'].astype(label_dtype)
-        return tuple_dataset.TupleDataset(images, labels)
-    else:
-        return images
 
 
 def _retrieve_mnist_training():
@@ -94,29 +70,4 @@ def _retrieve_mnist(name, urls):
     root = download.get_dataset_directory('pfnet/chainer/mnist')
     path = os.path.join(root, name)
     return download.cache_or_load_file(
-        path, lambda path: _make_npz(path, urls), numpy.load)
-
-
-def _make_npz(path, urls):
-    x_url, y_url = urls
-    x_path = download.cached_download(x_url)
-    y_path = download.cached_download(y_url)
-
-    with gzip.open(x_path, 'rb') as fx, gzip.open(y_path, 'rb') as fy:
-        fx.read(4)
-        fy.read(4)
-        N, = struct.unpack('>i', fx.read(4))
-        if N != struct.unpack('>i', fy.read(4))[0]:
-            raise RuntimeError('wrong pair of MNIST images and labels')
-        fx.read(8)
-
-        x = numpy.empty((N, 784), dtype=numpy.uint8)
-        y = numpy.empty(N, dtype=numpy.uint8)
-
-        for i in six.moves.range(N):
-            y[i] = ord(fy.read(1))
-            for j in six.moves.range(784):
-                x[i, j] = ord(fx.read(1))
-
-    numpy.savez_compressed(path, x=x, y=y)
-    return {'x': x, 'y': y}
+        path, lambda path: make_npz(path, urls), numpy.load)
