@@ -108,8 +108,8 @@ def main():
     parser.add_argument('--val_batchsize', '-b', type=int, default=250,
                         help='Validation minibatch size')
     parser.add_argument('--ooc',
-                    action='store_true', default=False,
-                    help='Functions of out-of-core')
+                        action='store_true', default=False,
+                        help='Functions of out-of-core')
     parser.add_argument('--test', action='store_true')
     parser.set_defaults(test=False)
     parser.add_argument('--debug', '-d', dest='debug', action='store_true')
@@ -154,25 +154,26 @@ def main():
     # Set up a trainer
     updater = training.StandardUpdater(train_iter, optimizer, device=args.gpu)
     if args.iteration > 0:
-        trainer = training.Trainer(updater, (args.iteration, 'iteration'), args.out)
+        trainer = training.Trainer(updater, (args.iteration, 'iteration'),
+                                   args.out)
     else:
         trainer = training.Trainer(updater, (args.epoch, 'epoch'), args.out)
 
     val_interval = (10 if args.test else 1), 'epoch'
-    #val_interval = (10 if args.test else 100000), 'iteration'
+    # val_interval = (10 if args.test else 100000), 'iteration'
     log_interval = (10 if args.test else 1000), 'iteration'
-    #log_interval = (10 if args.test else 10), 'iteration'
+    # log_interval = (10 if args.test else 10), 'iteration'
 
     lr_interval = (1 if args.test else 30), 'epoch'
     snapshot_interval = (1 if args.test else 1), 'epoch'
-    #snapshot_interval = (1 if args.test else 40000), 'iteration'
+    # snapshot_interval = (1 if args.test else 40000), 'iteration'
 
     trainer.extend(extensions.ExponentialShift("lr", 0.1), trigger=lr_interval)
     trainer.extend(extensions.Evaluator(val_iter, model, device=args.gpu),
                    trigger=val_interval)
     trainer.extend(extensions.dump_graph('main/loss'))
     trainer.extend(extensions.snapshot(), trigger=snapshot_interval)
-    #trainer.extend(extensions.snapshot(), trigger=val_interval)
+    # trainer.extend(extensions.snapshot(), trigger=val_interval)
     trainer.extend(extensions.snapshot_object(
         model, 'model_iter_{.updater.iteration}'), trigger=val_interval)
     # Be careful to pass the interval directly to LogReport

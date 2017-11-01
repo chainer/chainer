@@ -78,9 +78,9 @@ class LocalResponseNormalization(function.Function):
         self.y = cuda.cupy.square(x[0])  # temporary
         scale = cuda.cupy.empty_like(self.y)
         _cu_conv_sum(scale, self.y, self.n)
-        # TODO: Add policy to reduce memory
-        #self.scale = cuda.cupy.empty_like(self.y)
-        #_cu_conv_sum(self.scale, self.y, self.n)
+        # TODO(imaihal): Add policy to reduce memory
+        # self.scale = cuda.cupy.empty_like(self.y)
+        # _cu_conv_sum(self.scale, self.y, self.n)
         cuda.elementwise(
             'T x, T k, T alpha, T beta',
             'T y, T scale',
@@ -92,7 +92,7 @@ class LocalResponseNormalization(function.Function):
         return self.y,
 
     def backward_gpu(self, x, gy):
-        # TODO: Add policy to reduce memory
+        # TODO(imaihal): Add policy to reduce memory
         gx = cuda.cupy.square(x[0])  # temporary
         scale = cuda.cupy.empty_like(gx)
         _cu_conv_sum(scale, gx, self.n)

@@ -102,7 +102,7 @@ class ResNet50(chainer.Chain):
         h = self.res4(h)
         h = self.res5(h)
         h = F.average_pooling_2d(h, h.shape[2:], stride=1)
-        #h = F.average_pooling_2d(h, 7, stride=1)
+        # h = F.average_pooling_2d(h, 7, stride=1)
         h = self.fc(h)
 
         loss = F.softmax_cross_entropy(h, t)

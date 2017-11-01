@@ -15,6 +15,7 @@ from chainer.utils import argument
 
 from chainer import configuration
 
+
 def _check_grad_type(func, x, gx):
     if x.data is None or gx is None:
         # ``x.data is None`` implies that the data array is not retained
@@ -107,20 +108,24 @@ def variable_str(var):
 
 
 def _add_instance(instances, seen_set, instance):
-    """
+    """Add instance
+
     Copied from anaruse's repository
-    Source: https://github.com/anaruse/chainer/blob/OOC_chainer_v202/chainer/variable.py
+    Source: https://github.com/anaruse/
+            chainer/blob/OOC_chainer_v202/chainer/variable.py
     """
     if instance is not None and instance not in seen_set:
         instances.append(instance)
         seen_set.add(instance)
 
 
-def out_of_core_mode(async=True, fine_granularity=False, debug=False, devices=None):
+def out_of_core_mode(async=True, fine_granularity=False, debug=False,
+                     devices=None):
     """Enable out of core training mode
 
     Originally from anaruse's repository
-    Source: https://github.com/anaruse/chainer/blob/OOC_chainer_v202/chainer/variable.py
+    Source: https://github.com/anaruse/
+            chainer/blob/OOC_chainer_v202/chainer/variable.py
     """
     events = []
     streams = []
@@ -136,7 +141,9 @@ def out_of_core_mode(async=True, fine_granularity=False, debug=False, devices=No
                 streams.append(cuda.Stream.null)
 
     return configuration.using_config('out_of_core_params',
-                                      [True, async, fine_granularity, streams, events, debug])
+                                      [True, async,
+                                       fine_granularity, streams,
+                                       events, debug])
 
 
 class VariableNode(object):
@@ -425,7 +432,8 @@ class VariableNode(object):
         """...
 
         Copied from anaruse's repository
-        Source: https://github.com/anaruse/chainer/blob/OOC_chainer_v202/chainer/variable.py
+        Source: https://github.com/anaruse/
+                chainer/blob/OOC_chainer_v202/chainer/variable.py
         """
         if early_stop:
             ancestor_vnodes = self.ancestors_whose_data_on_gpu()
@@ -434,8 +442,8 @@ class VariableNode(object):
         if inclusive:
             ancestor_vnodes.append(self)
         if debug:
-            print('# variablep.py:319, *_swapout(), ancestors: {}'.format(
-                    ancestor_vnodes))
+            print('# variablep.py:319, *_swapout(), ancestors: {}'
+                  .format(ancestor_vnodes))
 
         for vnode in ancestor_vnodes:
             if vnode.creator is None:
@@ -448,14 +456,15 @@ class VariableNode(object):
         """...
 
         Copied from anaruse's repository
-        Source: https://github.com/anaruse/chainer/blob/OOC_chainer_v202/chainer/variable.py
+        Source: https://github.com/anaruse/
+                chainer/blob/OOC_chainer_v202/chainer/variable.py
         """
         ancestor_vnodes = self.ancestors()
         if inclusive:
             ancestor_vnodes.append(self)
         if debug:
-            print('# variablep.py:333, *_swapin(), ancestors: {}'.format(
-                    ancestor_vnodes))
+            print('# variablep.py:333, *_swapin(), ancestors: {}'
+                  .format(ancestor_vnodes))
 
         for vnode in ancestor_vnodes:
             vnode.to_gpu(stream=stream, debug=debug)
@@ -464,7 +473,8 @@ class VariableNode(object):
         """Gets a list of my ancestor variable nodes.
 
         Originally from anaruse's repository
-        Source: https://github.com/anaruse/chainer/blob/OOC_chainer_v202/chainer/variable.py
+        Source: https://github.com/anaruse/
+                chainer/blob/OOC_chainer_v202/chainer/variable.py
         """
         ancestor_funcs = []
         ancestor_vnodes = []
@@ -484,7 +494,8 @@ class VariableNode(object):
         """Gets a list of my ancestor variable nodes.
 
         Originally from anaruse's repository
-        Source: https://github.com/anaruse/chainer/blob/OOC_chainer_v202/chainer/variable.py
+        Source: https://github.com/anaruse/
+                chainer/blob/OOC_chainer_v202/chainer/variable.py
 
         """
         ancestor_funcs = []
@@ -507,19 +518,22 @@ class VariableNode(object):
         """Copies the data and gradient arrays to pinned memory.
 
         Originally from anaruse's repository
-        Source: https://github.com/anaruse/chainer/blob/OOC_chainer_v202/chainer/variable.py
+        Source: https://github.com/anaruse/
+                chainer/blob/OOC_chainer_v202/chainer/variable.py
 
         """
         variable = self._variable()
         if force is False:
             if variable is not None:
-                # Does not swap-out the array when it is linked from the variable.
+                # Does not swap-out the array
+                # when it is linked from the variable.
                 return
 
         if self.data is not None:
             if self._is_data_swapout is False:
                 if debug:
-                    print('# variable.py:377, to_swap(), {} {}'.format(self, self._creator_node))
+                    print('# variable.py:377, to_swap(), {} {}'.format(
+                        self, self._creator_node))
                 self._data = cuda.to_swap(self.data, stream=stream)
                 if stream is not None and events is not None:
                     events.append(stream.record())
@@ -533,7 +547,8 @@ class VariableNode(object):
         """Copies the data and gradient arrays to GPU memory.
 
         Copied from anaruse's repository
-        Source: https://github.com/anaruse/chainer/blob/OOC_chainer_v202/chainer/variable.py
+        Source: https://github.com/anaruse/
+                chainer/blob/OOC_chainer_v202/chainer/variable.py
 
         """
         if self.data is not None:
@@ -552,7 +567,8 @@ class VariableNode(object):
         """Cuts a link to my creator function temporarily.
 
         Originally from anaruse's repository
-        Source: https://github.com/anaruse/chainer/blob/OOC_chainer_v202/chainer/variable.py
+        Source: https://github.com/anaruse/
+                chainer/blob/OOC_chainer_v202/chainer/variable.py
 
         """
         self._creator_node_g = self._creator_node
@@ -562,17 +578,18 @@ class VariableNode(object):
         """Recovers a link to my creator function.
 
         Copied from anaruse's repository
-        Source: https://github.com/anaruse/chainer/blob/OOC_chainer_v202/chainer/variable.py
+        Source: https://github.com/anaruse/
+                chainer/blob/OOC_chainer_v202/chainer/variable.py
 
         """
         self._creator_node = self._creator_node_g
-
 
     def _show_memory_usage(self):
         """Show memory usage.
 
         Copied from anaruse's repository
-        Source: https://github.com/anaruse/chainer/blob/OOC_chainer_v202/chainer/variable.py
+        Source: https://github.com/anaruse/
+                chainer/blob/OOC_chainer_v202/chainer/variable.py
 
         """
         tmp = []
@@ -604,12 +621,14 @@ class VariableNode(object):
                     if y._is_data_swapout is False:
                         size = y.data.data.mem.size
                         ptr = y.data.data.mem.ptr
-                        print('#     {} data {} {} ({})'.format(rank, func, size, ptr))
+                        print('#     {} data {} {} ({})'
+                              .format(rank, func, size, ptr))
                         total_data_size += size
                 if y.grad is not None:
                     size = y.grad.data.mem.size
                     ptr = y.grad.data.mem.ptr
-                    print('#     {} grad {} {} ({})'.format(rank, func, size, ptr))
+                    print('#     {} grad {} {} ({})'
+                          .format(rank, func, size, ptr))
                     total_grad_size += size
 
             for varn in func.inputs:
@@ -617,14 +636,16 @@ class VariableNode(object):
                 if var is not None and var.__class__.__name__ == 'Parameter':
                     size = var.data.data.mem.size
                     ptr = var.data.data.mem.ptr
-                    # print('#     {} param {} {} ({})'.format(rank, func, size, ptr))
+                    # print('#     {} param {} {} ({})'
+                    #        .format(rank, func, size, ptr))
                     total_param_size += size
                 # else:
                 #     if varn._creator_g is not None:
                 #         continue
                 #     size = varn.data.data.mem.size
                 #     ptr = varn.data.data.mem.ptr
-                #     print('#     {} unkn {} {} ({})'.format(rank, func, size, ptr))
+                #     print('#     {} unkn {} {} ({})'
+                #           .format(rank, func, size, ptr))
                 #     total_unkn_size += size
 
         print('#     total_data_size: {}'.format(total_data_size))
@@ -636,7 +657,8 @@ class VariableNode(object):
         """Set break point
 
         Originally from anaruse's repository
-        Source: https://github.ibm.com/IMAIHAL/chainer_v2_ooc/blob/OOC_chainer_v202/chainer/cuda.py
+        Source: https://github.ibm.com/IMAIHAL/
+                chainer_v2_ooc/blob/OOC_chainer_v202/chainer/cuda.py
         """
         self._break_point = True
 
@@ -644,7 +666,8 @@ class VariableNode(object):
         """Get break points
 
         Originally from anaruse's repository
-        Source: https://github.com/anaruse/chainer/blob/OOC_chainer_v202/chainer/variable.py
+        Source: https://github.com/anaruse/
+                chainer/blob/OOC_chainer_v202/chainer/variable.py
         """
         funcs = []
         seen_funcs = set()
@@ -670,7 +693,8 @@ class VariableNode(object):
                 if getattr(vnode, '_break_point', False):
                     add_break_point(vnode)
                     # debug
-                    # print('# variable.py:445, user set break point: {}'.format(vnode))
+                    # print('# variable.py:445, user set break point: {}'
+                    #       .format(vnode))
 
                 if fine_granularity and vnode.data is not None:
                     add_break_point(vnode)
@@ -681,6 +705,7 @@ class VariableNode(object):
                 _add_instance(funcs, seen_funcs, vnode._creator_node_g)
 
         return break_points
+
 
 def _create_variable(data, name, grad, requires_grad):
     return Variable(
@@ -1121,30 +1146,34 @@ Actual: {0}'''.format(type(data))
         """Cuts a link to my creator function temporarily.
 
         Originally from anaruse's repository
-        Source: https://github.ibm.com/IMAIHAL/chainer_v2_ooc/blob/OOC_chainer_v202/chainer/cuda.py
+        Source: https://github.com/anaruse/
+                chainer/blob/OOC_chainer_v202/chainer/variable.py
         """
         self._node.interrupt_backward()
-        
+
     def resume_backward(self):
         """Recovers a link to my creator function.
 
         Originally from anaruse's repository
-        Source: https://github.ibm.com/IMAIHAL/chainer_v2_ooc/blob/OOC_chainer_v202/chainer/cuda.py
+        Source: https://github.com/anaruse/
+                chainer/blob/OOC_chainer_v202/chainer/variable.py
         """
         self._node.resume_backward()
 
     def backward(self, retain_grad=False, enable_double_backprop=False):
-        """ Wrapper backward function for OOC/LWR
+        """Wrapper backward function for OOC/LWR
+
         Original backward function is renamed as _backward
 
         Originally from anaruse's repository
-        Source: https://github.ibm.com/IMAIHAL/chainer_v2_ooc/blob/OOC_chainer_v202/chainer/cuda.py
+        Source: https://github.com/anaruse/
+                chainer/blob/OOC_chainer_v202/chainer/variable.py
         """
         root_node = self.node
 
-        ooc_enabled, ooc_async, fine_granularity, streams, events, ooc_debug = getattr(
-            configuration.config, 'out_of_core_params',
-            [False, True, False, [None, None], [], False])
+        ooc_enabled, ooc_async, fine_granularity, streams, events, ooc_debug \
+            = getattr(configuration.config, 'out_of_core_params',
+                      [False, True, False, [None, None], [], False])
 
         if ooc_enabled:
             while events:
@@ -1169,9 +1198,12 @@ Actual: {0}'''.format(type(data))
                     print('# variable.py:510, prepare_, {} {}'
                           .format(bp_next, bp_next._creator_node_g))
                     """
-                    print('#    total_bytes: {}'.format(memory_pool.total_bytes()))
-                    print('#     free_bytes: {}'.format(memory_pool.free_bytes()))
-                    print('#     used_bytes: {}'.format(memory_pool.used_bytes()))
+                    print('#    total_bytes: {}'
+                          .format(memory_pool.total_bytes()))
+                    print('#     free_bytes: {}'
+                          .format(memory_pool.free_bytes()))
+                    print('#     used_bytes: {}'
+                          .format(memory_pool.used_bytes()))
                     root_node._show_memory_usage()
                     """
 
@@ -1189,9 +1221,12 @@ Actual: {0}'''.format(type(data))
                     print('# variable.py:519, backward, {} {}'
                           .format(bp, bp._creator_node_g))
                     """
-                    print('#    total_bytes: {}'.format(memory_pool.total_bytes()))
-                    print('#     free_bytes: {}'.format(memory_pool.free_bytes()))
-                    print('#     used_bytes: {}'.format(memory_pool.used_bytes()))
+                    print('#    total_bytes: {}'
+                          .format(memory_pool.total_bytes()))
+                    print('#     free_bytes: {}'
+                          .format(memory_pool.free_bytes()))
+                    print('#     used_bytes: {}'
+                          .format(memory_pool.used_bytes()))
                     root_node._show_memory_usage()
                     """
 
@@ -1203,7 +1238,8 @@ Actual: {0}'''.format(type(data))
                 bp_var = bp.get_variable()
                 if bp_var._grad_var is None:
                     bp_var._grad_var = bp._grad_var
-                bp_var._backward(retain_grad, enable_double_backprop, root_node)
+                bp_var._backward(retain_grad, enable_double_backprop,
+                                 root_node)
 
                 if ooc_enabled and len(break_points) > 0:
                     cuda.Stream.null.synchronize()

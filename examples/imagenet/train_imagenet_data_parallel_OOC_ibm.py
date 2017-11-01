@@ -72,8 +72,8 @@ def main():
     parser.add_argument('--val_batchsize', '-b', type=int, default=250,
                         help='Validation minibatch size')
     parser.add_argument('--ooc',
-                    action='store_true', default=False,
-                    help='Functions of out-of-core')
+                        action='store_true', default=False,
+                        help='Functions of out-of-core')
     parser.add_argument('--test', action='store_true')
     parser.set_defaults(test=False)
     parser.add_argument('--debug', '-d', dest='debug', action='store_true')
@@ -92,7 +92,6 @@ def main():
 
     # Initialize the model to train
     model = archs[args.arch](insize=args.insize)
-    #model = archs[args.arch]()
     if args.initmodel:
         print('Load model from', args.initmodel)
         chainer.serializers.load_npz(args.initmodel, model)
@@ -118,15 +117,16 @@ def main():
 
     # Set up an optimizer
     optimizer = chainer.optimizers.MomentumSGD(lr=0.01, momentum=0.9)
-    #optimizer = chainer.optimizers.MomentumSGD(lr=0.16, momentum=0.9)
+    # optimizer = chainer.optimizers.MomentumSGD(lr=0.16, momentum=0.9)
     optimizer.setup(model)
-    #optimizer.add_hook(chainer.optimizer.WeightDecay(0.0001))
+    optimizer.add_hook(chainer.optimizer.WeightDecay(0.0001))
 
     # Set up a trainer
     updater = updaters.MultiprocessParallelUpdater(train_iters, optimizer,
                                                    devices=devices)
     if args.iteration > 0:
-        trainer = training.Trainer(updater, (args.iteration, 'iteration'), args.out)
+        trainer = training.Trainer(updater, (args.iteration, 'iteration'),
+                                   args.out)
     else:
         trainer = training.Trainer(updater, (args.epoch, 'epoch'), args.out)
 
@@ -135,19 +135,19 @@ def main():
         log_interval = 1, 'epoch'
     else:
         val_interval = 1, 'epoch'
-        log_interval = 1000, 'iteration'
-#        val_interval = 100000, 'iteration'
-#        log_interval = 1000, 'iteration'
+        log_interval = 10, 'iteration'
+        # val_interval = 100000, 'iteration'
+        # log_interval = 1000, 'iteration'
 
     lr_interval = (1 if args.test else 30), 'epoch'
     snapshot_interval = (1 if args.test else 1), 'epoch'
 
-    #trainer.extend(extensions.ExponentialShift("lr", 0.1), trigger=lr_interval)
+    trainer.extend(extensions.ExponentialShift("lr", 0.1), trigger=lr_interval)
     trainer.extend(extensions.Evaluator(val_iter, model, device=args.gpus[0]),
                    trigger=val_interval)
     trainer.extend(extensions.dump_graph('main/loss'))
     trainer.extend(extensions.snapshot(), trigger=snapshot_interval)
-    #trainer.extend(extensions.snapshot(), trigger=val_interval)
+    # trainer.extend(extensions.snapshot(), trigger=val_interval)
     trainer.extend(extensions.snapshot_object(
         model, 'model_iter_{.updater.iteration}'), trigger=val_interval)
     # Be careful to pass the interval directly to LogReport
@@ -158,7 +158,7 @@ def main():
         'epoch', 'iteration', 'main/loss', 'validation/main/loss',
         'main/accuracy', 'validation/main/accuracy', 'lr'
     ]), trigger=log_interval)
-    trainer.extend(extensions.ProgressBar(update_interval=2))
+    trainer.extend(extensions.ProgressBar(update_interval=10))
 
     if args.resume:
         chainer.serializers.load_npz(args.resume, trainer)

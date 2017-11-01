@@ -122,6 +122,7 @@ class DummyDeviceType(object):
 
 DummyDevice = DummyDeviceType()
 
+
 class PinnedMemoryDeviceType(DummyDeviceType):
 
     """Pinned memory device class.

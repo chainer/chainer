@@ -18,6 +18,7 @@ import numpy
 
 from chainer import configuration
 
+
 class _Worker(multiprocessing.Process):
 
     def __init__(self, proc_id, pipe, master):
@@ -39,9 +40,9 @@ class _Worker(multiprocessing.Process):
         self.reporter = reporter.Reporter()
         self.reporter.add_observer('main', self.model)
 
-        ooc_enabled, ooc_async, fine_granularity, streams, events, ooc_debug = getattr(
-            configuration.config, 'out_of_core_params',
-            [False, True, False, [None, None], [], False])
+        ooc_enabled, ooc_async, fine_granularity, streams, events, ooc_debug \
+            = getattr(configuration.config, 'out_of_core_params',
+                      [False, True, False, [None, None], [], False])
         if ooc_enabled:
             if ooc_async:
                 streams.append(cuda.Stream(non_blocking=True))
@@ -52,7 +53,9 @@ class _Worker(multiprocessing.Process):
             if ooc_debug:
                 print("setup(): dev_id=" + str(cuda.Device(self.device).id))
             configuration.using_config('out_of_core_params',
-                                       [ooc_enabled, ooc_async, fine_granularity, streams, events, ooc_debug])
+                                       [ooc_enabled, ooc_async,
+                                        fine_granularity, streams,
+                                        events, ooc_debug])
 
     def run(self):
         dev = cuda.Device(self.device)
@@ -200,9 +203,10 @@ class MultiprocessParallelUpdater(updater.StandardUpdater):
             self._pipes.append(pipe)
 
         with cuda.Device(self._devices[0]):
-            ooc_enabled, ooc_async, fine_granularity, streams, events, ooc_debug = getattr(
-                configuration.config, 'out_of_core_params',
-                [False, True, False, [None, None], [], False])
+            ooc_enabled, ooc_async, fine_granularity, streams, events, ooc_debug \
+                = getattr(
+                    configuration.config, 'out_of_core_params',
+                    [False, True, False, [None, None], [], False])
             if ooc_enabled:
                 if ooc_async:
                     streams.append(cuda.Stream(non_blocking=True))
@@ -211,9 +215,12 @@ class MultiprocessParallelUpdater(updater.StandardUpdater):
                     streams.append(cuda.Stream.null)
                     streams.append(cuda.Stream.null)
                 if ooc_debug:
-                    print("setup_workers(): dev_id=" + str(cuda.Device(self.device).id))
+                    print("setup_workers(): dev_id="
+                          + str(cuda.Device(self.device).id))
                 configuration.using_config('out_of_core_params',
-                                           [ooc_enabled, ooc_async, fine_granularity, streams, events, ooc_debug])
+                                           [ooc_enabled, ooc_async,
+                                            fine_granularity, streams,
+                                            events, ooc_debug])
 
             self._master.to_gpu(self._devices[0])
             if len(self._devices) > 1:

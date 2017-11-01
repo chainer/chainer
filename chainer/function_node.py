@@ -15,6 +15,7 @@ from chainer import variable
 
 import time
 
+
 class FunctionNode(object):
 
     """Function node of the computational graph.
