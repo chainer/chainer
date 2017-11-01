@@ -1,20 +1,24 @@
 import numpy
 
+import chainer
 from chainer.backends import cuda
-from chainer import function
+from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
 
 
-class Gaussian(function.Function):
+class Gaussian(function_node.FunctionNode):
 
     """Gaussian sampling function.
 
-    In forward calculation, this function takes mean and logarithm of variance
-    as inputs, and draw a sample from a gaussian distribution.
+    In forward calculation, this function takes a mean and the logarithm of
+    a variance as inputs, and draws a sample from a Gaussian distribution
+    accordingly.
     """
 
     def __init__(self):
+        # Per-instance noise that is generated once during its first forward
+        # pass and then reused in subsequent calls, unless explicitly reset
         self.eps = None
 
     def check_type_forward(self, in_types):
@@ -28,7 +32,7 @@ class Gaussian(function.Function):
         )
 
     def forward_cpu(self, inputs):
-        self.retain_inputs(())
+        self.retain_inputs((1,))
 
         mean, ln_var = inputs
         if self.eps is None:
@@ -39,7 +43,7 @@ class Gaussian(function.Function):
         return utils.force_array(mean + self.noise),
 
     def forward_gpu(self, inputs):
-        self.retain_inputs(())
+        self.retain_inputs((1,))
 
         cupy = cuda.cupy
         mean, ln_var = inputs
@@ -55,9 +59,17 @@ class Gaussian(function.Function):
         )(ln_var, self.eps)
         return mean + self.noise,
 
-    def backward(self, inputs, grad_output):
-        g, = grad_output
-        return g, utils.force_array(g * self.noise * g.dtype.type(0.5))
+    def backward(self, indexes, grad_outputs):
+        ln_var, = self.get_retained_inputs()
+        gy, = grad_outputs
+
+        ret = []
+        if 0 in indexes:
+            ret.append(gy)
+        if 1 in indexes:
+            noise = chainer.functions.exp(ln_var * 0.5) * self.eps
+            ret.append(gy * noise * 0.5)
+        return ret
 
 
 def gaussian(mean, ln_var):
@@ -77,4 +89,4 @@ def gaussian(mean, ln_var):
         ~chainer.Variable: Output variable.
 
     """
-    return Gaussian()(mean, ln_var)
+    return Gaussian().apply((mean, ln_var))[0]
