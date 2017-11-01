@@ -13,15 +13,22 @@ from chainer.testing import attr
 class TestMax(unittest.TestCase):
 
     def setUp(self):
+        eps = 1e-5
+
         # Sample x with single maximum value
         while True:
             self.x = numpy.random.uniform(
                 -1, 1, (3, 2, 4)).astype(numpy.float32)
-            if (self.x > (numpy.max(self.x) - 1e-2)).sum() == 1:
+            if (self.x > (numpy.max(self.x) - 2 * eps)).sum() == 1:
                 break
 
         self.gy = numpy.array(2, dtype=numpy.float32)
         self.ggx = numpy.random.uniform(-1, 1, (3, 2, 4)).astype(numpy.float32)
+
+        self.check_backward_options = {
+            'eps': eps, 'atol': 1e-3, 'rtol': 1e-2}
+        self.check_double_backward_options = {
+            'eps': eps, 'atol': 1e-3, 'rtol': 1e-2}
 
     def check_forward(self, x_data, axis=None, keepdims=False):
         x = chainer.Variable(x_data)
@@ -85,7 +92,8 @@ class TestMax(unittest.TestCase):
     def check_backward(self, x_data, y_grad, axis=None, keepdims=False):
         gradient_check.check_backward(
             lambda x: functions.max(x, axis, keepdims),
-            x_data, y_grad, dtype='d', eps=1e-5, rtol=1e-3, atol=1e-3)
+            x_data, y_grad, dtype='d',
+            **self.check_backward_options)
 
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy)
@@ -158,8 +166,8 @@ class TestMax(unittest.TestCase):
             return x * x
 
         gradient_check.check_double_backward(
-            f, x_data, y_grad, x_grad_grad,
-            dtype='d', eps=1e-5, rtol=1e-3, atol=1e-3)
+            f, x_data, y_grad, x_grad_grad, dtype='d',
+            **self.check_double_backward_options)
 
     def test_double_backward_cpu(self):
         self.check_double_backward(self.x, self.gy, self.ggx)
@@ -189,15 +197,22 @@ class TestMax(unittest.TestCase):
 class TestMin(unittest.TestCase):
 
     def setUp(self):
+        eps = 1e-5
+
         # Sample x with single minimum value
         while True:
             self.x = numpy.random.uniform(
                 -1, 1, (3, 2, 4)).astype(numpy.float32)
-            if (self.x < (numpy.min(self.x) + 1e-2)).sum() == 1:
+            if (self.x < (numpy.min(self.x) + 2 * eps)).sum() == 1:
                 break
 
         self.gy = numpy.array(2, dtype=numpy.float32)
         self.ggx = numpy.random.uniform(-1, 1, (3, 2, 4)).astype(numpy.float32)
+
+        self.check_backward_options = {
+            'eps': eps, 'atol': 1e-3, 'rtol': 1e-2}
+        self.check_double_backward_options = {
+            'eps': eps, 'atol': 1e-3, 'rtol': 1e-2}
 
     def check_forward(self, x_data, axis=None, keepdims=False):
         x = chainer.Variable(x_data)
@@ -261,7 +276,8 @@ class TestMin(unittest.TestCase):
     def check_backward(self, x_data, y_grad, axis=None, keepdims=False):
         gradient_check.check_backward(
             lambda x: functions.min(x, axis=axis, keepdims=keepdims),
-            x_data, y_grad, dtype='d', eps=1e-4, rtol=1e-3, atol=1e-3)
+            x_data, y_grad, dtype='d',
+            **self.check_backward_options)
 
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy)
@@ -334,8 +350,8 @@ class TestMin(unittest.TestCase):
             return x * x
 
         gradient_check.check_double_backward(
-            f, x_data, y_grad, x_grad_grad,
-            dtype='d', eps=1e-5, rtol=1e-3, atol=1e-3)
+            f, x_data, y_grad, x_grad_grad, dtype='d',
+            **self.check_double_backward_options)
 
     def test_double_backward_cpu(self):
         self.check_double_backward(self.x, self.gy, self.ggx)
