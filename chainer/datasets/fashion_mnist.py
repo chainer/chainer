@@ -48,10 +48,10 @@ def get_fashion_mnist(withlabel=True, ndim=1, scale=1., dtype=numpy.float32,
     """
     train_raw = _retrieve_fashion_mnist_training()
     train = preprocess_mnist(train_raw, withlabel, ndim, scale, dtype,
-                              label_dtype, rgb_format)
+                             label_dtype, rgb_format)
     test_raw = _retrieve_fashion_mnist_test()
     test = preprocess_mnist(test_raw, withlabel, ndim, scale, dtype,
-                             label_dtype, rgb_format)
+                            label_dtype, rgb_format)
     return train, test
 
 

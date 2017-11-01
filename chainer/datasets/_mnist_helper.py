@@ -34,7 +34,7 @@ def make_npz(path, urls):
 
 
 def preprocess_mnist(raw, withlabel, ndim, scale, image_dtype, label_dtype,
-                      rgb_format):
+                     rgb_format):
     images = raw['x']
     if ndim == 2:
         images = images.reshape(-1, 28, 28)

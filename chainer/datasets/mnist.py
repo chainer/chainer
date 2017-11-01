@@ -4,7 +4,7 @@ import numpy
 
 from chainer.dataset import download
 from chainer.datasets._mnist_helper import make_npz
-from chainer.datasets._mnist_helper import  preprocess_mnist
+from chainer.datasets._mnist_helper import preprocess_mnist
 
 
 def get_mnist(withlabel=True, ndim=1, scale=1., dtype=numpy.float32,
