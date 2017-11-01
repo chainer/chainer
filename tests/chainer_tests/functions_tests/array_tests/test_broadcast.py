@@ -8,7 +8,6 @@ from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
 from chainer.utils import type_check
 
 
@@ -45,8 +44,8 @@ class TestBroadcast(unittest.TestCase):
         self.check_backward_options = {}
         self.check_double_backward_options = {}
         if self.dtype == numpy.float16:
-            self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
-            self.check_double_backward_options = {'atol': 1e-3, 'rtol': 1e-3}
+            self.check_backward_options = {'atol': 1e-2, 'rtol': 1e-1}
+            self.check_double_backward_options = {'atol': 1e-2, 'rtol': 1e-1}
 
     def check_forward(self, data):
         xs = [chainer.Variable(x) for x in data]
@@ -149,7 +148,7 @@ class TestBroadcastTo(unittest.TestCase):
         self.check_backward_options = {}
         if self.dtype == numpy.float16:
             self.check_backward_options = {
-                'eps': 2 ** -5, 'atol': 1e-3, 'rtol': 1e-2}
+                'eps': 2 ** -5, 'atol': 1e-2, 'rtol': 1e-1}
 
     def check_forward(self, data):
         x = chainer.Variable(data)
@@ -164,13 +163,11 @@ class TestBroadcastTo(unittest.TestCase):
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.data))
 
-    @condition.retry(3)
     def check_backward(self, data, grads):
         gradient_check.check_backward(
             lambda x: functions.broadcast_to(x, self.out_shape), data, grads,
             dtype=numpy.float64, **self.check_backward_options)
 
-    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.data, self.grad)
 
