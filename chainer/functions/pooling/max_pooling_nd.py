@@ -50,7 +50,7 @@ class MaxPoolingND(pooling_nd._PoolingND):
         return y,
 
     def forward_gpu(self, x):
-        if chainer.should_use_cudnn('>=auto') and self.ndim >= 2:
+        if chainer.should_use_cudnn('>=auto') and 2 <= self.ndim <= 3:
             # With cuDNN v3 or greater, use cuDNN implementation for inputs
             # with spatial dimensions of two or more.
             return super(MaxPoolingND, self).forward_gpu(x)

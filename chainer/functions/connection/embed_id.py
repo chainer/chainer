@@ -16,7 +16,7 @@ class EmbedIDFunction(function_node.FunctionNode):
         type_check.expect(in_types.size() == 2)
         x_type, w_type = in_types
         type_check.expect(
-            x_type.dtype == numpy.int32,
+            x_type.dtype.kind == 'i',
             x_type.ndim >= 1,
         )
         type_check.expect(
@@ -45,10 +45,9 @@ class EmbedIDFunction(function_node.FunctionNode):
 
         if self.ignore_label is not None:
             mask = (x == self.ignore_label)
-            return xp.where(
-                mask[..., None], 0, W.take(xp.where(mask, 0, x), axis=0)),
+            return xp.where(mask[..., None], 0, W[xp.where(mask, 0, x)]),
 
-        return W.take(x, axis=0),
+        return W[x],
 
     def backward(self, indexes, grad_outputs):
         inputs = self.get_retained_inputs()
@@ -81,16 +80,17 @@ class EmbedIDGrad(function_node.FunctionNode):
         else:
             if self.ignore_label is None:
                 cuda.elementwise(
-                    'T gy, int32 x, int32 n_out', 'raw T gW',
-                    'int w_ind[] = {x, i % n_out}; atomicAdd(&gW[w_ind], gy)',
+                    'T gy, S x, S n_out', 'raw T gW',
+                    'ptrdiff_t w_ind[] = {x, i % n_out};'
+                    'atomicAdd(&gW[w_ind], gy)',
                     'embed_id_bwd')(
                         gy, xp.expand_dims(x, -1), gW.shape[1], gW)
             else:
                 cuda.elementwise(
-                    'T gy, int32 x, int32 n_out, int32 ignore', 'raw T gW',
+                    'T gy, S x, S n_out, S ignore', 'raw T gW',
                     '''
                     if (x != ignore) {
-                      int w_ind[] = {x, i % n_out};
+                      ptrdiff_t w_ind[] = {x, i % n_out};
                       atomicAdd(&gW[w_ind], gy);
                     }
                     ''',
@@ -134,7 +134,7 @@ def embed_id(x, W, ignore_label=None):
     Args:
         x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`):
-            Batch vectors of IDs. Each element must be :class:`numpy.int32`.
+            Batch vectors of IDs. Each element must be signed integer.
         W (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`):
             Distributed representation of each ID (a.k.a. word embeddings).
