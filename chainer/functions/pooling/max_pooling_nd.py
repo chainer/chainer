@@ -121,7 +121,7 @@ class MaxPoolingND(pooling_nd._PoolingND):
     def create_pool_desc(self):
         return cuda.cudnn.create_pooling_descriptor(
             self.ksize, self.stride, self.pad,
-            cuda.cudnn.cudnn.CUDNN_POOLING_MAX)
+            cuda.cuda.cudnn.CUDNN_POOLING_MAX)
 
 
 def max_pooling_nd(x, ksize, stride=None, pad=0, cover_all=True):
