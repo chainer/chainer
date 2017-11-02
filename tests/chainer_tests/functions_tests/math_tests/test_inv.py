@@ -9,6 +9,7 @@ from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
 from chainer.testing import condition
+from chainer.utils import type_check
 
 
 def _inv(x):
@@ -148,23 +149,27 @@ class BatchInvFunctionTest(unittest.TestCase):
 class InvFunctionRaiseTest(unittest.TestCase):
 
     def test_invalid_ndim(self):
-        with self.assertRaises(TypeError):
-            functions.inv(chainer.Variable(numpy.zeros(1, 2, 2)))
+        x = chainer.Variable(numpy.zeros((1, 2, 2), dtype=numpy.float32))
+        with self.assertRaises(type_check.InvalidType):
+            functions.inv(x)
 
     def test_invalid_shape(self):
-        with self.assertRaises(TypeError):
-            functions.inv(chainer.Variable(numpy.zeros(1, 2)))
+        x = chainer.Variable(numpy.zeros((1, 2), dtype=numpy.float32))
+        with self.assertRaises(type_check.InvalidType):
+            functions.inv(x)
 
 
 class BatchInvFunctionRaiseTest(unittest.TestCase):
 
     def test_invalid_ndim(self):
-        with self.assertRaises(TypeError):
-            functions.batch_inv(chainer.Variable(numpy.zeros(2, 2)))
+        x = chainer.Variable(numpy.zeros((2, 2), dtype=numpy.float32))
+        with self.assertRaises(type_check.InvalidType):
+            functions.batch_inv(x)
 
     def test_invalid_shape(self):
-        with self.assertRaises(TypeError):
-            functions.batch_inv(chainer.Variable(numpy.zeros(1, 2, 1)))
+        x = chainer.Variable(numpy.zeros((1, 2, 1), dtype=numpy.float32))
+        with self.assertRaises(type_check.InvalidType):
+            functions.batch_inv(x)
 
 
 testing.run_module(__name__, __file__)
