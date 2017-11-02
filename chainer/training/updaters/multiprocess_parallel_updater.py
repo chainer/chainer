@@ -8,6 +8,8 @@ from chainer.dataset import convert
 from chainer import reporter
 from chainer.training import updater
 
+from py3nvml import py3nvml
+
 try:
     from cupy.cuda import nccl
     _available = True
@@ -57,6 +59,11 @@ class _Worker(multiprocessing.Process):
                                         fine_granularity, streams,
                                         events, ooc_debug])
 
+        # Set affinity
+        py3nvml.nvmlInit()
+        handle = py3nvml.nvmlDeviceGetHandleByIndex(cuda.Device(self.device).id)
+        py3nvml.nvmlDeviceSetCpuAffinity(handle)
+
     def run(self):
         dev = cuda.Device(self.device)
         dev.use()
@@ -66,6 +73,7 @@ class _Worker(multiprocessing.Process):
             job, data = self.pipe.recv()
             if job == 'finalize':
                 dev.synchronize()
+                py3nvml.nvmlShutdown()
                 break
             if job == 'update':
                 # For reducing memory
@@ -181,6 +189,8 @@ class MultiprocessParallelUpdater(updater.StandardUpdater):
         self._workers = []
         self.comm = None
 
+        py3nvml.nvmlInit()
+
     @staticmethod
     def available():
         return _available
@@ -222,6 +232,9 @@ class MultiprocessParallelUpdater(updater.StandardUpdater):
                                             fine_granularity, streams,
                                             events, ooc_debug])
 
+            # Set affinity
+            handle = py3nvml.nvmlDeviceGetHandleByIndex(cuda.Device(self.device).id)
+            py3nvml.nvmlDeviceSetCpuAffinity(handle)
             self._master.to_gpu(self._devices[0])
             if len(self._devices) > 1:
                 comm_id = nccl.get_unique_id()
@@ -266,6 +279,8 @@ class MultiprocessParallelUpdater(updater.StandardUpdater):
 
         for worker in self._workers:
             worker.join()
+
+        py3nvml.nvmlShutdown()
 
 
 def _calc_loss(model, in_arrays):
