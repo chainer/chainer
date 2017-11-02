@@ -77,7 +77,7 @@ class TestEmbedID(unittest.TestCase):
             return y * y
 
         gradient_check.check_double_backward(
-            f,  W_data, gy_data, ggW_data, dtype=numpy.float64,
+            f,  W_data, gy_data, ggW_data,
             **self.check_double_backward_options)
 
     def test_double_backward_cpu(self):
