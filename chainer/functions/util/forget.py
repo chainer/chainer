@@ -61,21 +61,22 @@ class Forget(function.Function):
 
 
 def forget(func, *xs):
-    """Call a function without storing internal results.
+    """Calls a function without storing intermediate results.
 
-    On a forward propagation Chainer stores all internal results of
-    :class:`~chainer.Function` on a computational graph as they are required on
-    backward-propagation. These results consume too much memory when the
-    internal results are too large. This method **forgets** such internal
-    results on forward propagation, and still supports back-propagation with
-    recalculation.
+    On a forward propagation, Chainer normally stores all intermediate results
+    of :class:`~chainer.variable.VariableNode`\ s on a computational graph as
+    they are required on backward propagation.
+    Sometimes these results consume too much memory.
+    ``F.forget`` *forgets* such intermediate results on forward propagation,
+    and still supports backpropagation with recalculation.
 
-    In a forward propagation, this method calls a given function with given
-    variables without creating a computational graph. That means, no internal
-    results are stored. In a backward propagation this method calls the given
-    function again to create a computational graph to execute back-propagation.
+    On a forward propagation, ``F.forget`` calls a given function with given
+    variables without creating a computational graph. That means, no
+    intermediate results are stored.
+    On a backward propagation, ``F.forget`` calls the given function again to
+    create a computational graph for backpropagation.
 
-    This method reduces internal memory usage. Instead it requires more
+    ``F.forget`` reduces internal memory usage, whereas it requires more
     calculation time as it calls the function twice.
 
     .. admonition:: Example
@@ -85,25 +86,25 @@ def forget(func, *xs):
        >>> def f(a, b):
        ...   return a + b + a
 
-       and, ``x`` and ``y`` be :class:`~chainer.Variable`:
+       and, ``x`` and ``y`` be :class:`~chainer.Variable`\ s:
 
        >>> x = chainer.Variable(np.random.uniform(-1, 1, 5).astype('f'))
        >>> y = chainer.Variable(np.random.uniform(-1, 1, 5).astype('f'))
 
-       When ``z`` is calculated as ``z = f(x, y)``, its internal result
-       ``x + y`` is stored in memory. Instead if you call ``f`` with
-       :meth:`forget`:
+       When ``z`` is calculated as ``z = f(x, y)``, its intermediate result
+       ``x + y`` is stored in memory. Instead, if you call ``f`` with
+       ``F.forget``:
 
        >>> z = F.forget(f, x, y)
 
-       internal ``x + y`` is forgotten.
+       intermediate ``x + y`` is forgotten.
 
     .. note::
 
-      The method does not support functions behaving randomly, such as
-      :meth:`~chainer.functions.dropout` and
-      :meth:`~chainer.functions.negative_sampling`. It is because first results
-      of these function differ from the second one.
+      ``F.forget`` does not support functions which behave differently in
+      multiple calls with the same inputs, such as
+      :meth:`F.dropout() <chainer.functions.dropout>` and
+      :meth:`F.negative_sampling() <chainer.functions.negative_sampling>`.
 
     Args:
         func (callable): A function to call. It needs to be called with
