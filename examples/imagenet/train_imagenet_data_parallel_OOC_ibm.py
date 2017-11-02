@@ -167,7 +167,8 @@ def main():
         with chainer.out_of_core_mode(fine_granularity=True, devices=devices):
             trainer.run()
     else:
-            trainer.run()
+        trainer.run()
+
 
 if __name__ == '__main__':
     main()
