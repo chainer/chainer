@@ -178,8 +178,7 @@ class TestBinaryOp(unittest.TestCase):
         options.update(args)
 
         def f(x1, x2):
-            y = op(x1, x2)
-            return y * y
+            return op(x1, x2)
 
         gradient_check.check_double_backward(
             f, (x1_data, x2_data), y_grad, (ggx1_data, ggx2_data),
@@ -644,8 +643,7 @@ class TestVariableConstantOp(unittest.TestCase):
             options = {'atol': 5e-3, 'rtol': 5e-2}
 
         def f(x):
-            y = op(x, self.value)
-            return y * y
+            return op(x, self.value)
 
         gradient_check.check_double_backward(
             f, x_data, y_grad, x_grad_grad, dtype=numpy.float64, **options)
@@ -874,8 +872,7 @@ class TestVariableConstantArrayOp(unittest.TestCase):
             options = {'atol': 5e-3, 'rtol': 5e-2}
 
         def f(x):
-            y = op(x, value)
-            return y * y
+            return op(x, value)
 
         gradient_check.check_double_backward(
             f, x_data, y_grad, x_grad_grad, dtype=numpy.float64, **options)

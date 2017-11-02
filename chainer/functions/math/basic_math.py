@@ -434,10 +434,7 @@ class PowVarVar(function_node.FunctionNode):
     def forward(self, x):
         self.retain_inputs((0, 1))
         self.y = x[0] ** x[1]
-
-        if isinstance(x[0], numpy.ndarray):
-            return utils.force_array(self.y),
-        return self.y,
+        return utils.force_array(self.y),
 
     def backward(self, indexes, gy):
         inputs = self.get_retained_inputs()
@@ -446,7 +443,7 @@ class PowVarVar(function_node.FunctionNode):
 
 class PowVarVarGrad(function_node.FunctionNode):
 
-    def __init__(self, y=None):
+    def __init__(self, y):
         self.y = y
 
     def check_type_forward(self, in_types):
@@ -488,7 +485,7 @@ class PowVarVarGrad(function_node.FunctionNode):
         ret = []
         if 0 in indexes:
             gx0 = (ggx0 * x1 * (x1 - 1) * pow_x0_x1_2 +
-                   ggx1 * (pow_x0_x1_1 * (log_x0 * x1 + 1))) * gy
+                   ggx1 * pow_x0_x1_1 * (log_x0 * x1 + 1)) * gy
             ret.append(gx0)
         if 1 in indexes:
             gx1 = (ggx0 * pow_x0_x1_1 * (log_x0 * x1 + 1) +
