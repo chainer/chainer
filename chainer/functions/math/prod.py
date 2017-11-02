@@ -83,10 +83,12 @@ class Prod(function_node.FunctionNode):
         transposed_shape = x.shape
         x = x.reshape(-1, n_reduced_elements)
         extended_x = chainer.functions.repeat(x, n_reduced_elements, 0)
-        mask = chainer.functions.tile(xp.arange(n_reduced_elements), n_output_elements)
+        mask = chainer.functions.tile(
+            xp.arange(n_reduced_elements), n_output_elements)
         cond = xp.zeros_like(extended_x.data, dtype=xp.bool_)
         cond[xp.arange(x.size), mask.data] = 1
-        extended_x = chainer.functions.where(cond, cond.astype(extended_x.dtype), extended_x)
+        extended_x = chainer.functions.where(
+            cond, cond.astype(extended_x.dtype), extended_x)
 
         gx = prod(extended_x, 1)
         gx = gx.reshape(transposed_shape)
