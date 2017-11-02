@@ -165,7 +165,7 @@ def check_backward(func, x_data, y_grad, params=(),
     If input objects (``x1_data`` or/and ``x2_data`` in this example) represent
     integer variables, their gradients are ignored.
 
-   You can simplify a test when ``MyFunc`` gets only one argument::
+    You can simplify a test when ``MyFunc`` gets only one argument::
 
     >>   check_backward(func, x1_data, gy_data)
 
