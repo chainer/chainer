@@ -43,13 +43,11 @@ class TestTriplet(unittest.TestCase):
         if self.reduce == 'mean':
             gy_shape = ()
         else:
-            gy_shape = (self.batchsize,)
+            gy_shape = self.batchsize,
         self.gy = numpy.random.uniform(-1, 1, gy_shape).astype(numpy.float32)
         self.gga = numpy.random.uniform(-1, 1, x_shape).astype(numpy.float32)
         self.ggp = numpy.random.uniform(-1, 1, x_shape).astype(numpy.float32)
         self.ggn = numpy.random.uniform(-1, 1, x_shape).astype(numpy.float32)
-
-        self.check_backward_options = {'eps': eps, 'rtol': 1e-2, 'atol': 1e-2}
 
     def check_forward(self, a_data, p_data, n_data):
         a_val = chainer.Variable(a_data)
@@ -99,7 +97,7 @@ class TestTriplet(unittest.TestCase):
 
         gradient_check.check_backward(
             f, (a_data, p_data, n_data), gy_data, dtype=numpy.float64,
-            **self.check_backward_options)
+            rtol=5e-4, atol=5e-4)
 
     def test_backward_cpu(self):
         self.check_backward(self.a, self.p, self.n, self.gy)
@@ -112,21 +110,18 @@ class TestTriplet(unittest.TestCase):
     def check_double_backward(self, a_data, p_data, n_data, gy_data, gga_data,
                               ggp_data, ggn_data):
         def f(a, p, n):
-            y = functions.triplet(
+            return functions.triplet(
                 a, p, n, margin=self.margin, reduce=self.reduce)
-            return y * y
 
         gradient_check.check_double_backward(
             f, (a_data, p_data, n_data), gy_data,
-            (gga_data, ggp_data, ggn_data), rtol=1e-4, atol=1e-4)
+            (gga_data, ggp_data, ggn_data), rtol=5e-4, atol=5e-4)
 
-    @condition.retry(10)
     def test_double_backward_cpu(self):
         self.check_double_backward(
             self.a, self.p, self.n, self.gy, self.gga, self.ggp, self.ggn)
 
     @attr.gpu
-    @condition.retry(10)
     def test_double_backward_gpu_no_cudnn(self):
         self.check_double_backward(
             cuda.to_gpu(self.a), cuda.to_gpu(self.p), cuda.to_gpu(self.n),
