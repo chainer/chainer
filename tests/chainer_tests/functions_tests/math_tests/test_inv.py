@@ -158,6 +158,11 @@ class InvFunctionRaiseTest(unittest.TestCase):
         with self.assertRaises(type_check.InvalidType):
             functions.inv(x)
 
+    def test_singular(self):
+        x = chainer.Variable(numpy.zeros((2, 2), dtype=numpy.float32))
+        with self.assertRaises(ValueError):
+            functions.inv(x)
+
 
 class BatchInvFunctionRaiseTest(unittest.TestCase):
 
@@ -170,6 +175,11 @@ class BatchInvFunctionRaiseTest(unittest.TestCase):
         x = chainer.Variable(numpy.zeros((1, 2, 1), dtype=numpy.float32))
         with self.assertRaises(type_check.InvalidType):
             functions.batch_inv(x)
+
+    def test_singular(self):
+        x = chainer.Variable(numpy.zeros((2, 2), dtype=numpy.float32))
+        with self.assertRaises(ValueError):
+            functions.inv(x)
 
 
 testing.run_module(__name__, __file__)
