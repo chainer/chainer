@@ -149,7 +149,7 @@ def check_backward(func, x_data, y_grad, params=(),
     :math:`g(\\delta) = f(x + \\delta r)`, where
     :math:`\\delta \\in \\mathbb{R}`, :math:`r \\in \\mathbb{R}^n`
     is a random vector
-    and :math:`f` is a function which actually you want to test.
+    and :math:`f` is a function which you want to test.
     Its gradient is
 
     .. math::
