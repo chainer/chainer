@@ -438,7 +438,7 @@ class PowVarVar(function_node.FunctionNode):
 
     def backward(self, indexes, gy):
         inputs = self.get_retained_inputs()
-        return PowVarVarGrad(self.y).apply(inputs + gy)
+        return PowVarVarGrad(self.y).apply((inputs[0], inputs[1], gy[0]))
 
 
 class PowVarVarGrad(function_node.FunctionNode):
@@ -520,8 +520,8 @@ class PowVarConst(function_node.FunctionNode):
         return y,
 
     def backward(self, indexes, gy):
-        inputs = self.get_retained_inputs()
-        return PowVarConstGrad(self.value).apply(inputs + gy)
+        inputs, = self.get_retained_inputs()
+        return PowVarConstGrad(self.value).apply((inputs[0], gy[0]))
 
 
 class PowVarConstGrad(function_node.FunctionNode):
@@ -609,7 +609,7 @@ class PowConstVar(function_node.FunctionNode):
 
     def backward(self, indexes, gy):
         outputs = self.get_retained_outputs()
-        return PowConstVarGrad(self.value).apply(outputs + gy)
+        return PowConstVarGrad(self.value).apply((outputs[0] + gy[0]))
 
 
 class PowConstVarGrad(function_node.FunctionNode):
