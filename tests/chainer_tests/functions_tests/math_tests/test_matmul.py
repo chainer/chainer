@@ -68,6 +68,10 @@ class TestMatMul(unittest.TestCase):
         self.x2 = self.x2.astype(self.x2_dtype)
         ret_dtype = numpy.result_type(self.x1_dtype, self.x2_dtype)
         self.gy = numpy.random.uniform(-1, 1, self.gy_shape).astype(ret_dtype)
+        self.ggx1 = numpy.random.uniform(
+            .5, 1, self.x1_shape).astype(self.x1_dtype)
+        self.ggx2 = numpy.random.uniform(
+            .5, 1, self.x2_shape).astype(self.x2_dtype)
 
         self.op = lambda x, y: F.matmul(x, y, transa=self.transa,
                                         transb=self.transb)
@@ -125,6 +129,27 @@ class TestMatMul(unittest.TestCase):
             cuda.to_gpu(self.x1), cuda.to_gpu(self.x2),
             cuda.to_gpu(self.gy), atol=1e-2, rtol=1e-2)
 
+    def check_double_backward(
+            self, x1_data, x2_data, y_grad, x1_grad_grad, x2_grad_grad,
+            atol, rtol):
+        gradient_check.check_double_backward(
+            self.op, (x1_data, x2_data), y_grad, (x1_grad_grad, x2_grad_grad),
+            atol=atol, rtol=rtol, dtype=numpy.float32)
+
+    @condition.retry(3)
+    def test_matmul_double_backward_cpu(self):
+        self.check_double_backward(
+            self.x1, self.x2, self.gy, self.ggx1, self.ggx2,
+            atol=1e-2, rtol=5e-2)
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_matmul_double_backward_gpu(self):
+        self.check_double_backward(
+            cuda.to_gpu(self.x1), cuda.to_gpu(self.x2),
+            cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx1),
+            cuda.to_gpu(self.ggx2), atol=1e-2, rtol=1e-2)
+
 
 @testing.parameterize(*testing.product_dict(
     [
@@ -180,6 +205,10 @@ class TestBatchMatMul(unittest.TestCase):
         self.x2 = self.x2.astype(self.x2_dtype)
         ret_dtype = numpy.result_type(self.x1_dtype, self.x2_dtype)
         self.gy = numpy.random.uniform(-1, 1, self.gy_shape).astype(ret_dtype)
+        self.ggx1 = numpy.random.uniform(.5, 1, self.x1_shape).astype(
+            self.x1_dtype)
+        self.ggx2 = numpy.random.uniform(.5, 1, self.x2_shape).astype(
+            self.x2_dtype)
 
         self.op = lambda x, y: F.batch_matmul(
             x, y, transa=self.transa, transb=self.transb)
@@ -236,6 +265,29 @@ class TestBatchMatMul(unittest.TestCase):
         self.check_backward(
             cuda.to_gpu(self.x1), cuda.to_gpu(self.x2),
             cuda.to_gpu(self.gy), atol=1e-2, rtol=1e-2)
+
+    def check_double_backward(
+            self, x1_data, x2_data, y_grad, x1_grad_grad, x2_grad_grad,
+            atol, rtol):
+        with testing.assert_warns(DeprecationWarning):
+            gradient_check.check_double_backward(
+                self.op, (x1_data, x2_data), y_grad,
+                (x1_grad_grad, x2_grad_grad),
+                atol=atol, rtol=rtol, dtype=numpy.float32)
+
+    @condition.retry(3)
+    def test_matmul_double_backward_cpu(self):
+        self.check_double_backward(
+            self.x1, self.x2, self.gy, self.ggx1, self.ggx2,
+            atol=1e-2, rtol=5e-2)
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_matmul_double_backward_gpu(self):
+        self.check_double_backward(
+            cuda.to_gpu(self.x1), cuda.to_gpu(self.x2),
+            cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx1),
+            cuda.to_gpu(self.ggx2), atol=1e-2, rtol=1e-2)
 
 
 class TestMatMulInvalid(unittest.TestCase):
