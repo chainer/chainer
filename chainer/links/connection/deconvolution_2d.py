@@ -17,6 +17,11 @@ class Deconvolution2D(link.Link):
     This link wraps the :func:`~chainer.functions.deconvolution_2d` function
     and holds the filter weight and bias vector as parameters.
 
+    Deconvolution links can use a feature of cuDNN called autotuning, which
+    selects the most efficient CNN algorithm for images of fixed-size, 
+    can provide a significant performance boost for fixed neural nets.
+    To enable, set `chainer.using_config('autotune', True)`
+
     .. warning::
 
         ``deterministic`` argument is not supported anymore since v2.

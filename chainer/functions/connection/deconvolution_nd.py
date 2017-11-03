@@ -133,7 +133,7 @@ class DeconvolutionND(function.Function):
         zero = numpy.array(0, dtype=oz_dtype).ctypes
         workspace_size = cuda.get_max_workspace_size()
         workspace = cuda.cupy.empty((workspace_size,), dtype='b')
-        if chainer.global_config.autotune:
+        if configuration.config.autotune:
             algo = convolution_2d.get_algorithm(W, x, y, conv_param, handle,
                                                 self.filter_desc, x_desc,
                                                 self.conv_desc, y_desc,

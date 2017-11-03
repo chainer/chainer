@@ -29,7 +29,7 @@ def get_algorithm(W, dy, dx, conv_param, handle, filter_desc, dy_desc,
         return _algorithm[key]
     ret = libcudnn.findConvolutionBackwardDataAlgorithmEx(
         handle, filter_desc.value, W.data.ptr, dy_desc.value, dy.data.ptr,
-        conv_desc.value, dx_desc.value, dx.data.ptr, 10, workspace.data.ptr,
+        conv_desc.value, dx_desc.value, dx.data.ptr, 1, workspace.data.ptr,
         workspace.size)
     algo = ret[0]['algo']
     _algorithm[key] = algo
@@ -208,7 +208,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
 
             if configuration.config.cudnn_deterministic:
                 algo = libcudnn.CUDNN_CONVOLUTION_BWD_DATA_ALGO_1
-            elif chainer.global_config.autotune:
+            elif configuration.config.autotune:
                 algo = get_algorithm(W, x, y, conv_param, handle, filter_desc,
                                      x_desc, conv_desc, y_desc, workspace)
             else:
@@ -323,7 +323,7 @@ http://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf
     Convolution links can use a feature of cuDNN called autotuning, which
     selects the most efficient CNN algorithm for images of fixed-size,
     can provide a significant performance boost for fixed neural nets.
-    To enable, set `chainer.global_config.autotune = True`
+    To enable, set `chainer.using_config('autotune', True)`
 
     .. warning::
 

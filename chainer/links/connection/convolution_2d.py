@@ -21,7 +21,7 @@ class Convolution2D(link.Link):
     Convolution links can use a feature of cuDNN called autotuning, which
     selects the most efficient CNN algorithm for images of fixed-size, 
     can provide a significant performance boost for fixed neural nets.
-    To enable, set `chainer.global_config.autotune = True`
+    To enable, set `chainer.using_config('autotune', True)`
 
     .. warning::
 

@@ -49,7 +49,7 @@ def get_algorithm_bwd_filter(
         return _algorithm_bwd_filter[key]
     ret = libcudnn.findConvolutionBackwardFilterAlgorithmEx(
         handle, x_desc.value, x.data.ptr, dy_desc.value, dy.data.ptr,
-        conv_desc.value, filter_desc.value, dW.data.ptr, 10,
+        conv_desc.value, filter_desc.value, dW.data.ptr, 1,
         workspace.data.ptr, workspace.size)
     algo = ret[0]['algo']
     _algorithm_bwd_filter[key] = algo
@@ -173,7 +173,7 @@ class Convolution2DFunction(function_node.FunctionNode):
                     b[None, :, None, None])
             workspace_size = cuda.get_max_workspace_size()
             workspace = cuda.cupy.empty((workspace_size,), dtype='b')
-            if chainer.global_config.autotune:
+            if configuration.config.autotune:
                 algo = get_algorithm_fwd(
                     x, W, y, conv_param, handle, x_desc, filter_desc,
                     conv_desc, y_desc, workspace)
@@ -310,7 +310,7 @@ class Convolution2DGradW(function_node.FunctionNode):
 
         if configuration.config.cudnn_deterministic:
             algo = libcudnn.CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1
-        elif chainer.global_config.autotune:
+        elif configuration.config.autotune:
             algo = get_algorithm_bwd_filter(
                 x, gy, gW, conv_param, handle, x_desc, gy_desc, conv_desc,
                 filter_desc, workspace)
@@ -410,7 +410,7 @@ def convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False, **kwargs):
     Convolution links can use a feature of cuDNN called autotuning, which
     selects the most efficient CNN algorithm for images of fixed-size,
     can provide a significant performance boost for fixed neural nets.
-    To enable, set `chainer.global_config.autotune = True`
+    To enable, set `chainer.using_config('autotune', True)`
 
     When the dilation factor is greater than one, cuDNN is not used unless
     the version is 6.0 or higher.

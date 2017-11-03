@@ -120,7 +120,7 @@ class ConvolutionND(function.Function):
         # Find cuDNN algorithm to be used.
         workspace_size = cuda.get_max_workspace_size()
         workspace = cuda.cupy.empty((workspace_size,), dtype='b')
-        if chainer.global_config.autotune:
+        if configuration.config.autotune:
             algo = convolution_2d.get_algorithm_fwd(
                 x, W, y, self.conv_param, handle, x_desc, self.filter_desc,
                 self.conv_desc, y_desc, workspace)
@@ -236,7 +236,7 @@ class ConvolutionND(function.Function):
         workspace = cuda.cupy.empty((workspace_size,), dtype='b')
 
         # Compute filter weight gradient.
-        if chainer.global_config.autotune:
+        if configuration.config.autotune:
             algo = convolution_2d.get_algorithm_bwd_filter(
                 x, gy, gW, self.conv_param, handle, x_desc, gy_desc,
                 self.conv_desc, self.filter_desc, workspace)
@@ -377,7 +377,7 @@ def convolution_nd(x, W, b=None, stride=1, pad=0, cover_all=False):
     Convolution links can use a feature of cuDNN called autotuning, which
     selects the most efficient CNN algorithm for images of fixed-size,
     can provide a significant performance boost for fixed neural nets.
-    To enable, set `chainer.global_config.autotune = True`
+    To enable, set `chainer.using_config('autotune', True)`
 
     .. seealso:: :class:`~chainer.links.ConvolutionND`, :func:`convolution_2d`
 
