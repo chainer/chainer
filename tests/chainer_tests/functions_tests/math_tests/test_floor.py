@@ -18,7 +18,7 @@ class UnaryFunctionsTestBase(unittest.TestCase):
     def setUp(self):
         self.eps = 1e-3
         while True:
-            self.x, self.gy = self.make_data()
+            self.x, self.gy, self.ggy = self.make_data()
             if (numpy.abs(self.x - numpy.round(self.x)) > self.eps * 10).all():
                 break
 
@@ -75,8 +75,8 @@ class TestFloor(UnaryFunctionsTestBase):
     def make_data(self):
         x = numpy.random.uniform(-10.0, 10.0, self.shape).astype(self.dtype)
         gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        self.ggy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        return x, gy
+        ggy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        return x, gy, ggy
 
     def test_forward_cpu(self):
         self.check_forward_cpu(F.floor, numpy.floor)
