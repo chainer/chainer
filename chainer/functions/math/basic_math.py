@@ -512,15 +512,11 @@ class PowVarConst(function_node.FunctionNode):
 
     def forward(self, x):
         self.retain_inputs((0,))
-
         y = x[0] ** _preprocess_const(x[0], self.value)
-
-        if isinstance(x[0], numpy.ndarray):
-            y = utils.force_array(y, x[0].dtype)
-        return y,
+        return utils.force_array(y, x[0].dtype),
 
     def backward(self, indexes, gy):
-        inputs, = self.get_retained_inputs()
+        inputs = self.get_retained_inputs()
         return PowVarConstGrad(self.value).apply((inputs[0], gy[0]))
 
 
@@ -609,7 +605,7 @@ class PowConstVar(function_node.FunctionNode):
 
     def backward(self, indexes, gy):
         outputs = self.get_retained_outputs()
-        return PowConstVarGrad(self.value).apply((outputs[0] + gy[0]))
+        return PowConstVarGrad(self.value).apply((outputs[0], gy[0]))
 
 
 class PowConstVarGrad(function_node.FunctionNode):
