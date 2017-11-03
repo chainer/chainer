@@ -48,11 +48,8 @@ class Inv(function_node.FunctionNode):
 
     def forward_cpu(self, x):
         self.retain_outputs((0,))
-        try:
-            invx = numpy.linalg.inv(x[0])
-        except numpy.linalg.LinAlgError:
-            raise ValueError('Input has singular matrices.')
-        return utils.force_array(invx),
+        invx = utils.force_array(numpy.linalg.inv(x[0]))
+        return invx,
 
     def forward_gpu(self, x):
         self.retain_outputs((0,))
@@ -86,10 +83,7 @@ class BatchInv(function_node.FunctionNode):
 
     def forward_cpu(self, x):
         self.retain_outputs((0,))
-        try:
-            invx = numpy.linalg.inv(x[0])
-        except numpy.linalg.LinAlgError:
-            raise ValueError('Input has singular matrices.')
+        invx = utils.force_array(numpy.linalg.inv(x[0]))
         return invx,
 
     def forward_gpu(self, x):
