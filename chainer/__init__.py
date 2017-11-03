@@ -95,7 +95,7 @@ _SHOULD_USE_CUDNN = {
 }
 
 
-_cudnn_version = cuda.cudnn.cudnn.getVersion() if cuda.cudnn_enabled else -1
+_cudnn_version = cuda.cuda.cudnn.getVersion() if cuda.cudnn_enabled else -1
 
 
 def should_use_cudnn(level, lowest_version=0):
