@@ -56,6 +56,9 @@ except Exception as e:
     class ndarray(object):
         pass  # for type testing
 
+    # for `xp is cuda.cupy` to always work
+    cupy = object()
+
 if available:
     _cudnn_disabled_by_user = int(os.environ.get('CHAINER_CUDNN', '1')) == 0
     try:
