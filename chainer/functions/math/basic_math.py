@@ -596,12 +596,8 @@ class PowConstVar(function_node.FunctionNode):
     def forward(self, x):
         self.retain_outputs((0,))
         value = _preprocess_const(x[0], self.value)
-
         y = value ** x[0]
-
-        if isinstance(x[0], numpy.ndarray):
-            y = utils.force_array(y)
-        return y,
+        return utils.force_array(y),
 
     def backward(self, indexes, gy):
         outputs = self.get_retained_outputs()
