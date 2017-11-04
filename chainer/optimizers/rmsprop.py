@@ -47,7 +47,7 @@ class RMSpropRule(optimizer.UpdateRule):
             return
         hp = self.hyperparam
         eps = grad.dtype.type(hp.eps)
-        if eps == 0:
+        if hp.eps != 0 and eps == 0:
             raise ValueError(
                 'eps of RMSprop optimizer is too small for {} ({})'.format(
                     grad.dtype.name, hp.eps))

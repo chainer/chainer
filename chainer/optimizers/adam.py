@@ -55,7 +55,7 @@ class AdamRule(optimizer.UpdateRule):
             return
         hp = self.hyperparam
         eps = grad.dtype.type(hp.eps)
-        if eps == 0:
+        if hp.eps != 0 and eps == 0:
             raise ValueError(
                 'eps of Adam optimizer is too small for {} ({})'.format(
                     grad.dtype.name, hp.eps))
@@ -71,7 +71,7 @@ class AdamRule(optimizer.UpdateRule):
             return
         hp = self.hyperparam
         eps = grad.dtype.type(hp.eps)
-        if eps == 0:
+        if hp.eps != 0 and eps == 0:
             raise ValueError(
                 'eps of Adam optimizer is too small for {} ({})'.format(
                     grad.dtype.name, hp.eps))
