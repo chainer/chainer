@@ -84,7 +84,7 @@ class TestAverage(unittest.TestCase):
             y_expect = y_expect.reshape(shape)
 
         if self.dtype == numpy.float16:
-            options = {'atol': 1e-3, 'rtol': 1e-3}
+            options = {'atol': 5e-3, 'rtol': 5e-3}
         else:
             options = {}
 
