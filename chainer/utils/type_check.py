@@ -13,10 +13,16 @@ _thread_local = threading.local()
 
 @contextlib.contextmanager
 def get_function_check_context(f):
-    default = getattr(_thread_local, 'current_function', None)
+    try:
+        default = _thread_local.current_function
+    except AttributeError:
+        default = None
     _thread_local.current_function = f
-    yield
-    _thread_local.current_function = default
+    try:
+        yield
+    finally:
+        _thread_local.current_function = default
+
 
 
 class TypeInfo(object):
@@ -556,13 +562,16 @@ def _prod_impl(xs):
     return result
 
 
-_thread_local = threading.local()
 _prod = Variable(_prod_impl, 'prod')
 light_mode = LightMode()
 
 
 def in_light_mode():
-    return getattr(_thread_local, 'light_mode', False)
+    try:
+        return _thread_local.light_mode
+    except AttributeError:
+        _thread_local.light_mode = False
+    return False
 
 
 def prod(xs):
