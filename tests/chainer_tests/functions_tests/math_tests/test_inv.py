@@ -37,8 +37,12 @@ class InvFunctionTest(unittest.TestCase):
                   numpy.random.uniform(-0.01, 0.01, self.shape)).astype(
             numpy.float32)
         self.gy = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
+        self.ggx = (numpy.eye(self.shape[-1]) +
+                  numpy.random.uniform(-0.01, 0.01, self.shape)).astype(
+            numpy.float32)
         self.check_forward_options = {'atol': 1e-3, 'rtol': 1e-4}
         self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-4}
+        self.check_double_backward_options = {'atol': 1e-3, 'rtol': 1e-4}
 
     def check_forward(self, x_data):
         x = chainer.Variable(x_data)
@@ -46,9 +50,14 @@ class InvFunctionTest(unittest.TestCase):
         testing.assert_allclose(
             _inv(self.x), y.data, **self.check_forward_options)
 
-    def check_backward(self, x_data, y_grad, ):
+    def check_backward(self, x_data, y_grad):
         gradient_check.check_backward(
             functions.inv, x_data, y_grad, **self.check_backward_options)
+
+    def check_double_backward(self, x_data, y_grad, x_grad_grad):
+        gradient_check.check_double_backward(
+            functions.inv, x_data, y_grad, x_grad_grad,
+            **self.check_double_backward_options)
 
     @condition.retry(3)
     def test_identity_cpu(self):
@@ -84,6 +93,18 @@ class InvFunctionTest(unittest.TestCase):
     @condition.retry(3)
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
+
+    @condition.retry(3)
+    def test_double_backward_cpu(self):
+        self.check_double_backward(self.x, self.gy, self.ggx)
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_double_backward_gpu(self):
+        self.check_double_backward(
+            cuda.to_gpu(self.x),
+            cuda.to_gpu(self.gy),
+            cuda.to_gpu(self.ggx))
 
 
 @testing.parameterize(*testing.product({
@@ -96,8 +117,12 @@ class BatchInvFunctionTest(unittest.TestCase):
                   numpy.random.uniform(-0.01, 0.01, self.shape)).astype(
             numpy.float32)
         self.gy = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
+        self.ggx = (numpy.eye(self.shape[-1]) +
+                  numpy.random.uniform(-0.01, 0.01, self.shape)).astype(
+            numpy.float32)
         self.check_forward_options = {'atol': 1e-3, 'rtol': 1e-4}
         self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-4}
+        self.check_double_backward_options = {'atol': 1e-3, 'rtol': 1e-4}
 
     def check_forward(self, x_data, atol=1e-7, rtol=1e-7):
         x = chainer.Variable(x_data)
@@ -109,6 +134,11 @@ class BatchInvFunctionTest(unittest.TestCase):
         gradient_check.check_backward(
             functions.batch_inv, x_data, y_grad,
             **self.check_backward_options)
+
+    def check_double_backward(self, x_data, y_grad, x_grad_grad):
+        gradient_check.check_double_backward(
+            functions.batch_inv, x_data, y_grad, x_grad_grad,
+            **self.check_double_backward_options)
 
     @condition.retry(3)
     def test_identity_cpu(self):
@@ -144,6 +174,18 @@ class BatchInvFunctionTest(unittest.TestCase):
     @condition.retry(3)
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
+
+    @condition.retry(3)
+    def test_double_backward_cpu(self):
+        self.check_double_backward(self.x, self.gy, self.ggx)
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_double_backward_gpu(self):
+        self.check_double_backward(
+            cuda.to_gpu(self.x),
+            cuda.to_gpu(self.gy),
+            cuda.to_gpu(self.ggx))
 
 
 class InvFunctionRaiseTest(unittest.TestCase):
