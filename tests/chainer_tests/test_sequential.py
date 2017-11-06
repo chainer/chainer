@@ -236,12 +236,13 @@ class TestSequential(unittest.TestCase):
         numpy.testing.assert_array_equal(self.l3.b.data, l3.b.data)
 
     def test_zerograds(self):
-        self.s2.zerograds()
-        numpy.testing.assert_array_equal(self.l1.b.grad, numpy.zeros((3,)))
-        numpy.testing.assert_array_equal(self.l2.W.grad, numpy.zeros((2, 3)))
-        numpy.testing.assert_array_equal(self.l3.W.grad, numpy.zeros((3, 2)))
-        self.l1.W.initialize((3, 2))
-        numpy.testing.assert_array_equal(self.l1.W.grad, numpy.zeros((3, 2)))
+        with testing.assert_warns(DeprecationWarning):
+            self.s2.zerograds()
+            numpy.testing.assert_array_equal(self.l1.b.grad, numpy.zeros((3,)))
+            numpy.testing.assert_array_equal(self.l2.W.grad, numpy.zeros((2, 3)))
+            numpy.testing.assert_array_equal(self.l3.W.grad, numpy.zeros((3, 2)))
+            self.l1.W.initialize((3, 2))
+            numpy.testing.assert_array_equal(self.l1.W.grad, numpy.zeros((3, 2)))
 
     def test_cleargrads(self):
         self.s2.cleargrads()
