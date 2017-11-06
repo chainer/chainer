@@ -252,7 +252,7 @@ class TestDeconvolution2DCudnnCall(unittest.TestCase):
         return F.deconvolution_2d(x, W, None, stride=1, pad=1)
 
     def test_call_cudnn_forward(self):
-        name = 'cupy.cudnn.cudnn.convolutionBackwardData_v3'
+        name = 'cupy.cuda.cudnn.convolutionBackwardData_v3'
         with chainer.using_config('use_cudnn', self.use_cudnn):
             with chainer.using_config('cudnn_deterministic',
                                       self.cudnn_deterministic):
@@ -275,8 +275,8 @@ class TestDeconvolution2DCudnnCall(unittest.TestCase):
                 y = self.forward()
         y.grad = self.gy
 
-        data_func_name = 'cupy.cudnn.cudnn.convolutionForward'
-        filter_func_name = 'cupy.cudnn.cudnn.convolutionBackwardFilter_v3'
+        data_func_name = 'cupy.cuda.cudnn.convolutionForward'
+        filter_func_name = 'cupy.cuda.cudnn.convolutionBackwardFilter_v3'
 
         with chainer.using_config('use_cudnn', self.use_cudnn):
             with chainer.using_config('cudnn_deterministic',

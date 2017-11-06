@@ -107,7 +107,7 @@ class TestIm2Col(unittest.TestCase):
     def check_backward(self, x, ksize, stride, pad, cover_all, dilate, gy):
         gradient_check.check_backward(
             functions.Im2Col(ksize, stride, pad, cover_all, dilate),
-            (x,), (gy,))
+            (x,), (gy,), dtype='d')
 
     def test_backward_cpu(self):
         self.check_backward(
