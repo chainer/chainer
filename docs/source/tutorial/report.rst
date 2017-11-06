@@ -133,11 +133,11 @@ See the following example:
     ...
     >>> model = Classifier(MLP(100, 10))
     >>> for name, observer in model.namedlinks(skipself=True):
-    ...     print(name)
+    ...     print(name)  # doctest: +SKIP
     /predictor
-    /predictor/l3
-    /predictor/l2
     /predictor/l1
+    /predictor/l2
+    /predictor/l3
 
 You can get the parameters of the link hierarchy by :func:`~chainer.Link.namedlinks`.
 In this example, we report ``'loss'`` and ``'accuracy'`` in the root of links, and
@@ -160,6 +160,6 @@ See what we explained is correct:
     >>> trainer.extend(extensions.LogReport())
     >>> trainer.extend(extensions.PrintReport(
     ...     ['epoch', 'main/accuracy', 'main/loss', 'main/predictor/sum_y', 'validation/main/accuracy']))
-    >>> trainer.run()
+    >>> trainer.run()  # doctest: +SKIP
     epoch       main/accuracy  main/loss   main/predictor/sum_y  validation/main/accuracy
     1           0.662317       1.38345     47.9927               0.8498    
