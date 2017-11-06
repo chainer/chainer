@@ -22,25 +22,26 @@ class FunctionNode(object):
     node corresponds to an application of a differentiable function to input
     variables.
 
-    When a differentiable function is applied to :class:`Variable` objects,
+    When a differentiable function is applied to :class:`~chainer.Variable`
+    objects,
     it creates an instance of FunctionNode implementation and calls its
     :meth:`apply` method. The :meth:`apply` method basically does the following
     three things.
 
     1. Adding an edge from the function node to the variable node corresponding
        to each input. The node of each input is extracted by
-       :attr:`Variable.node`.
+       :attr:`Variable.node <chainer.Variable.node>`.
     2. Computing the output arrays of the function.
-    3. Creating a :class:`Variable` object for each output array and adding an
-       edge from the node of the variable to the function node.
+    3. Creating a :class:`~chainer.Variable` object for each output array and
+       adding an edge from the node of the variable to the function node.
 
     The output variables are then returned.
 
     .. admonition:: Example
 
-       Let ``x`` be an instance of :class:`Variable` and ``f`` be an instance
-       of :class:`FunctionNode` taking only one argument. Then the following
-       code
+       Let ``x`` be an instance of :class:`~chainer.Variable` and ``f`` be an
+       instance of :class:`FunctionNode` taking only one argument.
+       Then the following code
 
        >>> import numpy, chainer, chainer.functions as F
        >>> x = chainer.Variable(numpy.zeros(10))
@@ -82,7 +83,8 @@ class FunctionNode(object):
     .. note::
 
        There are two types of differentiable functions in Chainer (since v3).
-       The first type is of a function using a subclass of :class:`Function`,
+       The first type is of a function using a subclass of
+       :class:`~chainer.Function`,
        which is called *old-style differentiable function*. The second type is
        of a function using a subclass of :class:`FunctionNode`, which is called
        **new-style differentiable function**. There are several advantages on
@@ -103,10 +105,10 @@ class FunctionNode(object):
        style differentiable functions.
 
     Attributes:
-        ~FunctionNode.inputs: A tuple of the input :class:`VariableNode`
-            objects.
+        ~FunctionNode.inputs: A tuple of the input
+            :class:`~chainer.variable.VariableNode` objects.
         ~FunctionNode.outputs: A tuple of weak references to the output
-            :class:`VariableNode` objects.
+            :class:`~chainer.variable.VariableNode` objects.
         ~FunctionNode.rank (int): An ordinal following the topological order
             of the computational graph.
         ~FunctionNode.stack: Stack trace retrieved at the forward computation.
@@ -174,6 +176,25 @@ class FunctionNode(object):
     def _impl_name(self):
         return self.__class__.__name__
 
+    def __call__(self, *args, **kwargs):
+        if self.__class__.__module__.startswith('chainer.'):
+            msg = '''\
+Chainer's built-in function class object ({}) which is derived from \
+chainer.FunctionNode has been called as if it were a callable. \
+Use FunctionNode.apply() method instead.
+Furthermore, it's not recommended to use built-in function classes directly; \
+use corresponding function aliases (those with snake_case name, such as \
+F.convolution_nd) instead.\
+'''.format(self.__class__.__name__)
+        else:
+            msg = '''\
+A function class object ({}) which is derived from \
+chainer.FunctionNode has been called as if it were a callable. \
+Use apply() method instead.\
+'''.format(self.__class__.__name__)
+
+        raise RuntimeError(msg)
+
     def apply(self, inputs):
         """Computes output variables and grows the computational graph.
 
@@ -189,19 +210,20 @@ class FunctionNode(object):
 
         Args:
             inputs: Tuple of input variables. Each element can be either
-                :class:`Variable`, :class:`numpy.ndarray`,
+                :class:`~chainer.Variable`, :class:`numpy.ndarray`,
                 or :class:`cupy.ndarray`. If the element is an ndarray, it is
-                automatically wrapped with :class:`Variable`.
+                automatically wrapped with :class:`~chainer.Variable`.
 
         Returns:
-            A tuple of output :class:`Variable` objects.
+            A tuple of output :class:`~chainer.Variable` objects.
 
         """
         input_vars = [chainer.as_variable(x) for x in inputs]
         in_data = tuple([x.data for x in input_vars])
         requires_grad = any([x.requires_grad for x in input_vars])
 
-        if chainer.is_debug():
+        is_debug = chainer.is_debug()
+        if is_debug:
             self.stack = traceback.extract_stack()
 
         if configuration.config.type_check:
@@ -227,7 +249,7 @@ class FunctionNode(object):
             hook.forward_postprocess(self, in_data)
 
         # NaN check of output values
-        if chainer.is_debug():
+        if is_debug:
             if any(out.dtype.kind == 'f' and
                    cuda.get_array_module(out).isnan(out).any()
                    for out in outputs):
@@ -357,12 +379,13 @@ class FunctionNode(object):
         with retained arrays can then be obtained by calling
         :meth:`get_retained_inputs` from inside :meth:`backward`.
 
-        Unlike :class:`Function`, the function node **DOES NOT** keep input
+        Unlike :class:`~chainer.Function`, the function node **DOES NOT** keep
+        input
         arrays by default. If you want to keep some or all input arrays, do not
         forget to call this method.
 
-        Note that **this method must not be called from the outside of
-        :meth:`forward`.**
+        Note that **this method must not be called from the outside of**
+        :meth:`forward`.
 
         Args:
             indexes (iterable of int): Indexes of input variables that the
@@ -389,8 +412,8 @@ class FunctionNode(object):
            might affect the performance of later function applications on the
            output variables.
 
-        Note that **this method must not be called from the outside of
-        :meth:`forward`.**
+        Note that **this method must not be called from the outside of**
+        :meth:`forward`.
 
         Args:
             indexes (iterable of int): Indexes of output variables that the
@@ -400,7 +423,7 @@ class FunctionNode(object):
         self._output_indexes_to_retain = indexes
 
     def backward(self, target_input_indexes, grad_outputs):
-        """Computes gradients w.r.t.\\ specified inputs given output gradients.
+        """Computes gradients w.r.t.\\  specified inputs given output gradients.
 
         This method is used to compute one step of the backpropagation
         corresponding to the forward computation of this function node.
@@ -409,9 +432,10 @@ class FunctionNode(object):
         not need to compute any input gradients not specified by
         ``target_input_indices``.
 
-        Unlike :meth:`Function.backward`, gradients are given as
-        :class:`Variable` objects and this method itself has to return input
-        gradients as :class:`Variable` objects. It enables the function node to
+        Unlike :meth:`Function.backward() <chainer.Function.backward>`,
+        gradients are given as  :class:`~chainer.Variable` objects and this
+        method itself has to return input gradients as
+        :class:`~chainer.Variable` objects. It enables the function node to
         return the input gradients with the full computational history, in
         which case it supports *differentiable backpropagation* or
         *higher-order differentiation*.
@@ -423,8 +447,9 @@ class FunctionNode(object):
             target_input_indexes (tuple of int): Indices of the input variables
                 w.r.t. which the gradients are required. It is guaranteed that
                 this tuple contains at least one element.
-            grad_outputs (tuple of Variable): Gradients w.r.t. the output
-                variables. If the gradient w.r.t. an output variable is not
+            grad_outputs (tuple of :class:`~chainer.Variable`\ s): Gradients
+                w.r.t. the output variables.
+                If the gradient w.r.t. an output variable is not
                 given, the corresponding element is ``None``.
 
         Returns:
@@ -445,7 +470,7 @@ class FunctionNode(object):
 
     def backward_accumulate(self, target_input_indexes, grad_outputs,
                             grad_inputs):
-        """Computes gradients w.r.t.\\ specified inputs and accumulates them.
+        """Computes gradients w.r.t.\\  specified inputs and accumulates them.
 
         This method provides a way to fuse the backward computation and the
         gradient accumulations in the case that the multiple functions are

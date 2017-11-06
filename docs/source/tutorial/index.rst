@@ -8,5 +8,5 @@ Tutorial
    writenet
    train
    gpu
-   function
+   customize
    type_check

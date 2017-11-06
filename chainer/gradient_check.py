@@ -135,8 +135,8 @@ def check_backward(func, x_data, y_grad, params=(),
     >>   check_backward(func, (x1_data, x2_data), gy_data)
 
     This method creates :class:`~chainer.Variable` objects with ``x_data``
-    and calls ``func`` with the :class:`~chainer.Variable` s to get its result
-    as :class:`~chainer.Variable`.
+    and calls ``func`` with the :class:`~chainer.Variable`\\ s to get its
+    result as :class:`~chainer.Variable`.
     Then, it sets ``y_grad`` array to ``grad`` attribute of the result and
     calls ``backward`` method to get gradients of the inputs.
     To check correctness of the gradients, the function calls
@@ -149,7 +149,7 @@ def check_backward(func, x_data, y_grad, params=(),
     :math:`g(\\delta) = f(x + \\delta r)`, where
     :math:`\\delta \\in \\mathbb{R}`, :math:`r \\in \\mathbb{R}^n`
     is a random vector
-    and :math:`f` is a function which actually you want to test.
+    and :math:`f` is a function which you want to test.
     Its gradient is
 
     .. math::
@@ -165,7 +165,7 @@ def check_backward(func, x_data, y_grad, params=(),
     If input objects (``x1_data`` or/and ``x2_data`` in this example) represent
     integer variables, their gradients are ignored.
 
-   You can simplify a test when ``MyFunc`` gets only one argument::
+    You can simplify a test when ``MyFunc`` gets only one argument::
 
     >>   check_backward(func, x1_data, gy_data)
 
@@ -189,8 +189,8 @@ def check_backward(func, x_data, y_grad, params=(),
     >>   check_backward(my_link, (x1_data, x2_data), gy_data,
     >>                  (my_link.W, my_link.b))
 
-    Note that ``params`` are not ``ndarray`` s,
-    but :class:`~chainer.Variables` s.
+    Note that ``params`` are not ``ndarray``\\ s,
+    but :class:`~chainer.Variables`\\ s.
 
     Function objects are acceptable as ``func`` argument::
 
@@ -205,23 +205,23 @@ def check_backward(func, x_data, y_grad, params=(),
 
 
     Args:
-        func (callable): A function which gets :class:`~chainer.Variable` s
-            and returns :class:`~chainer.Variable` s. ``func`` must returns
-            a tuple of :class:`~chainer.Variable` s or one
+        func (callable): A function which gets :class:`~chainer.Variable`\\ s
+            and returns :class:`~chainer.Variable`\\ s. ``func`` must returns
+            a tuple of :class:`~chainer.Variable`\\ s or one
             :class:`~chainer.Variable`. You can use :class:`~chainer.Function`
             object, :class:`~chainer.Link` object or a function satisfying the
             condition.
-        x_data (ndarray or tuple of ndarrays): A set of ``ndarray`` s to be
+        x_data (ndarray or tuple of ndarrays): A set of ``ndarray``\\ s to be
             passed to ``func``. If ``x_data`` is one ``ndarray`` object, it is
             treated as ``(x_data,)``.
         y_grad (ndarray or tuple of ndarrays or None):
-            A set of ``ndarray`` s representing gradients of return-values of
+            A set of ``ndarray``\\ s representing gradients of return-values of
             ``func``. If ``y_grad`` is one ``ndarray`` object, it is
             treated as ``(y_grad,)``. If ``func`` is a loss-function,
             ``y_grad`` should be set to ``None``.
         params (~chainer.Variable or tuple of ~chainder.Variable):
-            A set of :class:`~chainer.Variable` s whose gradients are checked.
-            When ``func`` is a :class:`~chainer.Link` object,
+            A set of :class:`~chainer.Variable`\\ s whose gradients are
+            checked. When ``func`` is a :class:`~chainer.Link` object,
             set its parameters as ``params``.
             If ``params`` is one :class:`~chainer.Variable` object,
             it is treated as ``(params,)``.
@@ -239,6 +239,9 @@ def check_backward(func, x_data, y_grad, params=(),
     .. seealso::
        :func:`numerical_grad`
     """
+    if dtype is not None and numpy.dtype(dtype).kind != 'f':
+        raise ValueError('`dtype` is allowed only float type')
+
     x_data = _as_tuple(x_data)
     if y_grad is not None:
         y_grad = _as_tuple(y_grad)
@@ -270,7 +273,8 @@ def check_backward(func, x_data, y_grad, params=(),
     else:
         if len(no_grads) != len(xs):
             raise ValueError(
-                'Length of no_grads param and xs should be same.')
+                'Length of no_grads param and xs should be same.\n'
+                'Actual: {0} != {1}'.format(len(no_grads), len(xs)))
 
     for skip, x in six.moves.zip(no_grads, xs):
         if skip:
@@ -297,6 +301,11 @@ def check_backward(func, x_data, y_grad, params=(),
         if numpy.dtype(dtype).kind != 'f':
             raise ValueError('`dtype` is allowed only float type')
         casted_data = [x.data.astype(dtype, copy=False) for x in variables]
+
+        # Even skipped variable must have the same dtype.
+        for x, skip in six.moves.zip(xs, no_grads):
+            if skip and x.data.dtype.kind == 'f':
+                x.data = x.data.astype(dtype, copy=False)
 
     xp = cuda.get_array_module(*xs)
     directions = [xp.random.normal(size=x.shape) for x in variables]
@@ -338,7 +347,23 @@ def check_backward(func, x_data, y_grad, params=(),
     for g, direction in six.moves.zip(grads, directions):
         gx_accum += (g.astype('d') * direction).sum()
 
-    testing.assert_allclose(gx, gx_accum, atol=atol, rtol=rtol)
+    try:
+        testing.assert_allclose(gx, gx_accum, atol=atol, rtol=rtol)
+    except AssertionError as e:
+        f = six.StringIO()
+        f.write('check_backward failed (eps={} atol={} rtol={})\n'.format(
+            eps, atol, rtol))
+        for i, x_ in enumerate(xs):
+            f.write('inputs[{}]:\n'.format(i))
+            f.write('{}\n'.format(x_))
+        for i, gy_ in enumerate(y_grad):
+            f.write('grad_outputs[{}]:\n'.format(i))
+            f.write('{}\n'.format(gy_))
+        f.write('gradients (numeric):  {}\n'.format(gx))
+        f.write('gradients (backward): {}\n'.format(gx_accum))
+        f.write('\n')
+        f.write(str(e))
+        raise AssertionError(f.getvalue())
 
 
 def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
@@ -376,6 +401,9 @@ def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
     """
     x_data = _as_tuple(x_data)
     params = _as_tuple(params)
+    y_grad = _as_tuple(y_grad)
+    x_grad_grad = _as_tuple(x_grad_grad)
+    params_grad_grad = _as_tuple(params_grad_grad)
     n_x = len(x_data)
 
     def first_order_grad(*inputs):
@@ -392,11 +420,31 @@ def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
 
         return tuple([x.grad_var for x in xs] + [p.grad_var for p in params])
 
-    inputs = x_data + _as_tuple(y_grad)
-    grad_grad = _as_tuple(x_grad_grad) + _as_tuple(params_grad_grad)
-    check_backward(first_order_grad, inputs, grad_grad, params=params,
-                   eps=eps, atol=atol, rtol=rtol, no_grads=no_grads,
-                   dtype=dtype)
+    inputs = x_data + y_grad
+    grad_grad = x_grad_grad + params_grad_grad
+    try:
+        check_backward(first_order_grad, inputs, grad_grad, params=params,
+                       eps=eps, atol=atol, rtol=rtol, no_grads=no_grads,
+                       dtype=dtype)
+    except AssertionError as e:
+        f = six.StringIO()
+        f.write('check_double_backward failed '
+                '(eps={} atol={} rtol={})\n'.format(eps, atol, rtol))
+        for i, x_ in enumerate(x_data):
+            f.write('input[{}]:\n'.format(i))
+            f.write('{}\n'.format(x_))
+        for i, gy_ in enumerate(y_grad):
+            f.write('grad_output[{}]:\n'.format(i))
+            f.write('{}\n'.format(gy_))
+        for i, ggx_ in enumerate(x_grad_grad):
+            f.write('grad_grad_input[{}]:\n'.format(i))
+            f.write('{}\n'.format(ggx_))
+        for i, ggp_ in enumerate(params_grad_grad):
+            f.write('grad_grad_param[{}]:\n'.format(i))
+            f.write('{}\n'.format(ggp_))
+        f.write('\n')
+        f.write(str(e))
+        raise AssertionError(f.getvalue())
 
 
 def _set_y_grad(y, y_grad):

@@ -1,10 +1,9 @@
 import collections
 import os
-import pkg_resources
-import sys
 import threading
 import warnings
 
+from chainer import _version
 from chainer import configuration  # NOQA
 from chainer import cuda  # NOQA
 from chainer import dataset  # NOQA
@@ -62,28 +61,25 @@ from chainer.variable import Parameter  # NOQA
 from chainer.variable import Variable  # NOQA
 
 
-if sys.version_info[:3] == (3, 5, 0):
-    if not int(os.getenv('CHAINER_PYTHON_350_FORCE', '0')):
-        msg = """
-Chainer does not work with Python 3.5.0.
-
-We strongly recommend to use another version of Python.
-If you want to use Chainer with Python 3.5.0 at your own risk,
-set 1 to CHAINER_PYTHON_350_FORCE environment variable."""
-
-        raise Exception(msg)
+from chainer import _environment_check
 
 
-__version__ = pkg_resources.get_distribution('chainer').version
+# Check environment conditions
+_environment_check.check()
 
 
-thread_local = threading.local()
+__version__ = _version.__version__
+
+_thread_local = threading.local()
 
 
 def get_function_hooks():
-    if not hasattr(thread_local, 'function_hooks'):
-        thread_local.function_hooks = collections.OrderedDict()
-    return thread_local.function_hooks
+    try:
+        ret = _thread_local.function_hooks
+    except AttributeError:
+        ret = collections.OrderedDict()
+        _thread_local.function_hooks = ret
+    return ret
 
 
 global_config.debug = bool(int(os.environ.get('CHAINER_DEBUG', '0')))
@@ -103,7 +99,7 @@ _SHOULD_USE_CUDNN = {
 }
 
 
-_cudnn_version = cuda.cudnn.cudnn.getVersion() if cuda.cudnn_enabled else -1
+_cudnn_version = cuda.cuda.cudnn.getVersion() if cuda.cudnn_enabled else -1
 
 
 def should_use_cudnn(level, lowest_version=0):
@@ -133,11 +129,15 @@ def should_use_cudnn(level, lowest_version=0):
                          repr(level))
     flags = _SHOULD_USE_CUDNN[level]
 
-    if config.use_cudnn not in flags:
+    use_cudnn = config.use_cudnn
+    if use_cudnn not in flags:
         raise ValueError('invalid use_cudnn configuration: %s '
                          '(must be either of "always", "auto", or "never")' %
-                         repr(config.use_cudnn))
-    return flags[config.use_cudnn]
+                         repr(use_cudnn))
+    return flags[use_cudnn]
+
+
+_tensor_core_flag = {'always': True, 'auto': None, 'never': False}
 
 
 def should_use_cudnn_tensor_core(dtype):
@@ -150,15 +150,14 @@ def should_use_cudnn_tensor_core(dtype):
         bool: ``True`` if Tensor Core should be used.
     """
 
-    flags = {'always': True, 'auto': None, 'never': False}
-    if config.use_cudnn_tensor_core not in flags:
+    use_cudnn_tensor_core = config.use_cudnn_tensor_core
+    if use_cudnn_tensor_core not in _tensor_core_flag:
         raise ValueError('invalid use_cudnn_tensor_core configuration: %s '
                          '(must be either of "always", "auto", or "never")' %
-                         repr(config.use_cudnn))
-    use_tensor_core = flags[config.use_cudnn_tensor_core]
+                         repr(use_cudnn_tensor_core))
+    use_tensor_core = _tensor_core_flag[use_cudnn_tensor_core]
     if use_tensor_core is None:
         use_tensor_core = cuda.cudnn.is_tensor_core_available(dtype)
-
     return use_tensor_core
 
 

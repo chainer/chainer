@@ -8,7 +8,7 @@ from chainer.utils import type_check
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
-    libcudnn = cudnn.cudnn
+    libcudnn = cuda.cuda.cudnn
     _sampler_type = libcudnn.CUDNN_SAMPLER_BILINEAR
 
 

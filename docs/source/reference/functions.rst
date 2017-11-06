@@ -177,6 +177,7 @@ Mathematical functions
    chainer.functions.clip
    chainer.functions.cos
    chainer.functions.cosh
+   chainer.functions.cumsum
    chainer.functions.exp
    chainer.functions.fmod
    chainer.functions.floor
@@ -215,6 +216,7 @@ Noise injections
 
    chainer.functions.dropout
    chainer.functions.gaussian
+   chainer.functions.gumbel_softmax
    chainer.functions.simplified_dropconnect
 
 Normalization functions

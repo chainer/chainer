@@ -343,7 +343,8 @@ class TestCheckBackward(unittest.TestCase):
             u = Ident()(t)
             return s, u
 
-        gradient_check.check_backward(f, (x1, x2), (g1, g2), dtype=self.dtype)
+        gradient_check.check_backward(
+            f, (x1, x2), (g1, g2), dtype=self.dtype, atol=1e-4, rtol=1e-3)
 
     def test_no_grads_for_not_float(self):
         x1 = numpy.array([1], dtype='f')
@@ -351,6 +352,8 @@ class TestCheckBackward(unittest.TestCase):
         g1 = numpy.array([1], dtype='f')
 
         def f(x, y):
+            # Integer data is not casted even when dtype is given
+            self.assertEqual(y.dtype, 'i')
             s = Ident()(x)
             return s,
 
@@ -368,6 +371,25 @@ class TestCheckBackward(unittest.TestCase):
         self.assertRaises(RuntimeError, gradient_check.check_backward,
                           f, (x1, x2), g1, no_grads=[False, False])
         gradient_check.check_backward(f, (x1, x2), g1, no_grads=[False, True])
+
+    def test_no_grads_option_with_dtype(self):
+        x1 = numpy.array([1], dtype='f')
+        x2 = numpy.array([1], dtype='f')
+        g1 = numpy.array([1], dtype='f')
+        eps = 1e-3
+
+        def f(x, y):
+            if self.dtype is not None:
+                # Check for correct dtypes if f is called to compute the
+                # numerical gradient
+                if x.data != x1:
+                    self.assertEqual(x.dtype, self.dtype)
+                    self.assertEqual(x.dtype, y.dtype)
+            s = Ident()(x)
+            return s,
+
+        gradient_check.check_backward(f, (x1, x2), g1, eps=eps,
+                                      no_grads=[False, True], dtype=self.dtype)
 
 
 class TestCheckBackwardFailure(unittest.TestCase):
@@ -480,8 +502,9 @@ class TestCheckDoubleBackward(unittest.TestCase):
             w2 = w1 + y
             return w1 * w1, w2 * w2
 
-        gradient_check.check_double_backward(f, (x1, x2), (gy1, gy2),
-                                             (ggx1, ggx2))
+        gradient_check.check_double_backward(
+            f, (x1, x2), (gy1, gy2),
+            (ggx1, ggx2), dtype='d', atol=1e-3, rtol=1e-3)
 
     def test_multiple_input_output_cpu(self):
         self.check_multiple_input_output(numpy)
