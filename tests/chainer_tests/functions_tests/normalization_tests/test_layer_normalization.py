@@ -8,6 +8,7 @@ from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
+from chainer.testing import condition
 
 
 def _batch_normalization(expander, gamma, beta, x, mean, var):
@@ -36,12 +37,10 @@ class TestLayerNormalization(unittest.TestCase):
                     for _ in self.args]
 
         self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
-        self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
-        self.check_double_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
+        self.check_backward_options = {'atol': 1e-4, 'rtol': 1e-3}
         if self.dtype == numpy.float16:
             self.check_forward_options = {'atol': 1e-3, 'rtol': 1e-2}
-            self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
-            self.check_double_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
+            self.check_backward_options = {'atol': 5e-1, 'rtol': 1e-1}
 
     def check_forward(self, args):
         x_data = args[0]
@@ -59,10 +58,12 @@ class TestLayerNormalization(unittest.TestCase):
         testing.assert_allclose(
             y.data, unbatched_concat_y.data, **self.check_forward_options)
 
+    @condition.retry(3)
     def test_forward_cpu(self):
         self.check_forward(self.args)
 
     @attr.gpu
+    @condition.retry(3)
     def test_forward_gpu(self):
         self.check_forward([cuda.to_gpu(_) for _ in self.args])
 
@@ -74,10 +75,12 @@ class TestLayerNormalization(unittest.TestCase):
             func, args, y_grad,
             eps=1e-2, **self.check_backward_options)
 
+    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.args, self.gy)
 
     @attr.gpu
+    @condition.retry(3)
     def test_backward_gpu(self):
         self.check_backward(
             [cuda.to_gpu(_) for _ in self.args],
@@ -90,12 +93,14 @@ class TestLayerNormalization(unittest.TestCase):
 
         gradient_check.check_double_backward(
             func, args, y_grad, x_grad_grad,
-            eps=1e-2, **self.check_double_backward_options)
+            eps=1e-2, **self.check_backward_options)
 
+    @condition.retry(3)
     def test_double_backward_cpu(self):
         self.check_double_backward(self.args, self.gy, self.ggx)
 
     @attr.gpu
+    @condition.retry(3)
     def test_double_backward_gpu(self):
         self.check_double_backward(
             [cuda.to_gpu(_) for _ in self.args],

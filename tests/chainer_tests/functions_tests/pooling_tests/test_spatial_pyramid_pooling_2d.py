@@ -39,6 +39,10 @@ class TestSpatialPyramidPooling2D(unittest.TestCase):
         self.gy = numpy.random.uniform(
             -1, 1, (self.n, self.output_dim, 1, 1)).astype(self.dtype)
         self.ggx = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
+        self.check_backward_options = {'dtype': numpy.float64}
+        if self.dtype == numpy.float16:
+            self.check_backward_options = {
+                'dtype': numpy.float64, 'atol': 5e-4, 'rtol': 5e-3}
 
     def check_forward(self, x_data, use_cudnn='always'):
         x = chainer.Variable(x_data)
@@ -84,7 +88,7 @@ class TestSpatialPyramidPooling2D(unittest.TestCase):
                 x_data, self.pyramid_height, self.pooling_class)
         with chainer.using_config('use_cudnn', use_cudnn):
             gradient_check.check_backward(
-                f, x_data, y_grad, dtype=numpy.float64, atol=5e-4, rtol=5e-3)
+                f, x_data, y_grad, **self.check_backward_options)
 
     @condition.retry(3)
     def test_backward_cpu(self):
@@ -108,8 +112,7 @@ class TestSpatialPyramidPooling2D(unittest.TestCase):
             return y * y
         with chainer.using_config('use_cudnn', use_cudnn):
             gradient_check.check_double_backward(
-                f, x_data, y_grad, x_grad_grad,
-                dtype=numpy.float64, atol=5e-3, rtol=5e-3)
+                f, x_data, y_grad, x_grad_grad, **self.check_backward_options)
 
     @condition.retry(3)
     def test_double_backward_cpu(self):

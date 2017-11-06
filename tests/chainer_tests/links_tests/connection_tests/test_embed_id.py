@@ -71,7 +71,7 @@ be used together.*"):
 
     def check_backward(self, x_data, y_grad):
         gradient_check.check_backward(
-            self.link, x_data, y_grad, self.link.W, atol=1e-4, rtol=1e-3)
+            self.link, x_data, y_grad, self.link.W)
 
     @condition.retry(3)
     def test_backward_cpu(self):

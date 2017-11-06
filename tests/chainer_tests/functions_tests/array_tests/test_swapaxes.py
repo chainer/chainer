@@ -8,7 +8,6 @@ from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
 
 
 @testing.parameterize(*testing.product({
@@ -57,15 +56,13 @@ class TestSwapaxes(unittest.TestCase):
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x))
 
-    @condition.retry(3)
     def check_double_backward(self, x_data, g_data, gg_data):
         def f(x):
             y = functions.swapaxes(x, self.axis1, self.axis2)
             return y * y
 
         gradient_check.check_double_backward(
-            f, x_data, g_data, gg_data, dtype=numpy.float64,
-            atol=5e-2, rtol=5e-3)
+            f, x_data, g_data, gg_data, dtype=numpy.float64)
 
     def test_double_backward_cpu(self):
         self.check_double_backward(self.x, self.g, self.gg)

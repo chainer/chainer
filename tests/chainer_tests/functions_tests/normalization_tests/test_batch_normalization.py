@@ -10,6 +10,7 @@ from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
+from chainer.testing import condition
 
 
 def _batch_normalization(expander, gamma, beta, x, mean, var):
@@ -63,8 +64,6 @@ class TestBatchNormalization(unittest.TestCase):
             self.check_forward_options = {'atol': 1e-2, 'rtol': 1e-2}
             self.check_backward_options = {
                 'dtype': numpy.float64, 'atol': 1e-2, 'rtol': 1e-2}
-            self.check_double_backward_options = {
-                'dtype': numpy.float64, 'atol': 1e-2, 'rtol': 1e-2}
 
     def batch_normalization(self, *args):
         return functions.batch_normalization(
@@ -83,18 +82,22 @@ class TestBatchNormalization(unittest.TestCase):
         testing.assert_allclose(
             y_expect, y.data, **self.check_forward_options)
 
+    @condition.retry(3)
     def test_forward_cpu(self):
         self.check_forward(self.args)
 
     @attr.gpu
+    @condition.retry(3)
     def test_forward_gpu(self):
         self.check_forward([cuda.to_gpu(i) for i in self.args])
 
     @attr.gpu
+    @condition.retry(3)
     def test_forward_gpu_no_cudnn(self):
         self.check_forward([cuda.to_gpu(i) for i in self.args], 'never')
 
     @attr.cudnn
+    @condition.retry(3)
     def test_forward_gpu_non_contiguous(self):
         self.check_forward([cuda.cupy.asfortranarray(cuda.to_gpu(i))
                             for i in self.args])
@@ -106,20 +109,24 @@ class TestBatchNormalization(unittest.TestCase):
                 self.batch_normalization, args, y_grad,
                 **self.check_backward_options)
 
+    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.args, self.gy)
 
     @attr.gpu
+    @condition.retry(3)
     def test_backward_gpu(self):
         self.check_backward(
             [cuda.to_gpu(i) for i in self.args], cuda.to_gpu(self.gy))
 
     @attr.gpu
+    @condition.retry(3)
     def test_backward_gpu_no_cudnn(self):
         self.check_backward(
             [cuda.to_gpu(i) for i in self.args], cuda.to_gpu(self.gy), 'never')
 
     @attr.cudnn
+    @condition.retry(3)
     def test_backward_gpu_non_contiguous(self):
         self.check_backward(
             [cuda.cupy.asfortranarray(cuda.to_gpu(i)) for i in self.args],
@@ -136,16 +143,19 @@ class TestBatchNormalization(unittest.TestCase):
                 f, args, y_grad, x_grad_grad,
                 **self.check_double_backward_options)
 
+    @condition.retry(3)
     def test_double_backward_cpu(self):
         self.check_double_backward(self.args, self.gy, self.ggargs)
 
     @attr.gpu
+    @condition.retry(3)
     def test_double_backward_gpu(self):
         self.check_double_backward(
             [cuda.to_gpu(x) for x in self.args], cuda.to_gpu(self.gy),
             [cuda.to_gpu(ggx) for ggx in self.ggargs])
 
     @attr.cudnn
+    @condition.retry(3)
     def test_double_backward_gpu_non_contiguous(self):
         self.check_double_backward(
             [cuda.cupy.asfortranarray(cuda.to_gpu(x)) for x in self.args],
@@ -218,18 +228,22 @@ class TestFixedBatchNormalization(unittest.TestCase):
         testing.assert_allclose(
             y_expect, y.data, **self.check_forward_options)
 
+    @condition.retry(3)
     def test_forward_cpu(self):
         self.check_forward(self.args)
 
     @attr.gpu
+    @condition.retry(3)
     def test_forward_gpu(self):
         self.check_forward([cuda.to_gpu(i) for i in self.args])
 
     @attr.gpu
+    @condition.retry(3)
     def test_forward_gpu_no_cudnn(self):
         self.check_forward([cuda.to_gpu(i) for i in self.args], 'never')
 
     @attr.cudnn
+    @condition.retry(3)
     def test_forward_gpu_non_contiguous(self):
         self.check_forward([cuda.cupy.asfortranarray(cuda.to_gpu(i))
                             for i in self.args])
@@ -241,20 +255,24 @@ class TestFixedBatchNormalization(unittest.TestCase):
                 self.batch_normalization, args, y_grad,
                 **self.check_backward_options)
 
+    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.args, self.gy)
 
     @attr.gpu
+    @condition.retry(3)
     def test_backward_gpu(self):
         self.check_backward(
             [cuda.to_gpu(i) for i in self.args], cuda.to_gpu(self.gy))
 
     @attr.gpu
+    @condition.retry(3)
     def test_backward_gpu_no_cudnn(self):
         self.check_backward(
             [cuda.to_gpu(i) for i in self.args], cuda.to_gpu(self.gy), 'never')
 
     @attr.cudnn
+    @condition.retry(3)
     def test_backward_gpu_no_contiguous(self):
         self.check_backward(
             [cuda.cupy.asfortranarray(cuda.to_gpu(i)) for i in self.args],
@@ -270,6 +288,7 @@ class TestFixedBatchNormalization(unittest.TestCase):
                 f, args, y_grad, x_grad_grad,
                 **self.check_backward_options)
 
+    @condition.retry(3)
     def test_double_backward_cpu(self):
         self.check_double_backward(self.args, self.gy, self.ggargs)
 

@@ -4,6 +4,7 @@ import unittest
 from chainer import cuda
 from chainer import function
 from chainer import functions
+from chainer.testing import condition
 from chainer import variable
 
 try:
@@ -207,10 +208,8 @@ def unary_math_function_unittest(func, func_expected=None, label_expected=None,
                     'eps': 2 ** -4, 'atol': 2 ** -4, 'rtol': 2 ** -4,
                     'dtype': numpy.float64}
             else:
-                self.backward_options = {
-                    'dtype': numpy.float64, 'atol': 1e-4, 'rtol': 1e-4}
-                self.double_backward_options = {
-                    'dtype': numpy.float64, 'atol': 1e-4, 'rtol': 1e-4}
+                self.backward_options = {'atol': 1e-4, 'rtol': 1e-4}
+                self.double_backward_options = {'atol': 1e-4, 'rtol': 1e-4}
             if backward_options is not None:
                 self.backward_options.update(backward_options)
             if double_backward_options is not None:
@@ -225,11 +224,13 @@ def unary_math_function_unittest(func, func_expected=None, label_expected=None,
             testing.assert_allclose(y_expected, y.data, atol=1e-4, rtol=1e-4)
         setattr(klass, "check_forward", check_forward)
 
+        @condition.retry(3)
         def test_forward_cpu(self):
             self.check_forward(self.x)
         setattr(klass, "test_forward_cpu", test_forward_cpu)
 
         @attr.gpu
+        @condition.retry(3)
         def test_forward_gpu(self):
             self.check_forward(cuda.to_gpu(self.x))
         setattr(klass, "test_forward_gpu", test_forward_gpu)
@@ -239,11 +240,13 @@ def unary_math_function_unittest(func, func_expected=None, label_expected=None,
                 func, x_data, y_grad, **self.backward_options)
         setattr(klass, "check_backward", check_backward)
 
+        @condition.retry(3)
         def test_backward_cpu(self):
             self.check_backward(self.x, self.gy)
         setattr(klass, "test_backward_cpu", test_backward_cpu)
 
         @attr.gpu
+        @condition.retry(3)
         def test_backward_gpu(self):
             self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
         setattr(klass, "test_backward_gpu", test_backward_gpu)
@@ -256,12 +259,14 @@ def unary_math_function_unittest(func, func_expected=None, label_expected=None,
                     x_grad_grad, **self.double_backward_options)
             setattr(klass, "check_double_backward", check_double_backward)
 
+            @condition.retry(3)
             def test_double_backward_cpu(self):
                 self.check_double_backward(self.x, self.gy, self.ggx)
             setattr(klass, "test_double_backward_cpu",
                     test_double_backward_cpu)
 
             @attr.gpu
+            @condition.retry(3)
             def test_double_backward_gpu(self):
                 self.check_double_backward(
                     cuda.to_gpu(self.x), cuda.to_gpu(self.gy),

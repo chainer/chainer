@@ -8,6 +8,7 @@ from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
+from chainer.testing import condition
 
 
 class TestScale(unittest.TestCase):
@@ -20,8 +21,6 @@ class TestScale(unittest.TestCase):
         for i, j, k in numpy.ndindex(self.y_expected.shape):
             self.y_expected[i, j, k] *= self.x2[j]
         self.gy = numpy.random.uniform(-1, 1, (3, 2, 3)).astype(numpy.float32)
-
-        self.check_backward_options = {'atol': 1e-2, 'rtol': 1e-2}
 
     def check_forward(self, x1_data, x2_data, axis, y_expected):
         x1 = chainer.Variable(x1_data)
@@ -42,13 +41,14 @@ class TestScale(unittest.TestCase):
         x = (x1_data, x2_data)
         gradient_check.check_backward(
             lambda x, y: functions.scale(x, y, axis),
-            x, y_grad,
-            **self.check_backward_options)
+            x, y_grad)
 
+    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.x1, self.x2, self.axis, self.gy)
 
     @attr.gpu
+    @condition.retry(3)
     def test_backward_gpu(self):
         x1 = cuda.to_gpu(self.x1)
         x2 = cuda.to_gpu(self.x2)

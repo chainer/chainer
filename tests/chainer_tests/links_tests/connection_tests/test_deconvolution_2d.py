@@ -77,7 +77,7 @@ class TestDeconvolution2D(unittest.TestCase):
 
         gradient_check.check_backward(
             self.link, x_data, y_grad, params, dtype=numpy.float64,
-            atol=1e-3, rtol=1e-2)
+            atol=1e-4, rtol=1e-3)
 
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy)

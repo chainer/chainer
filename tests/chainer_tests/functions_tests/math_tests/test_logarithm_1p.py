@@ -36,7 +36,7 @@ class Log1pFunctionTest(unittest.TestCase):
         self.check_forward(cuda.to_gpu(self.x))
 
     def check_backward(self, x_data, y_grad):
-        gradient_check.check_backward(F.log1p, x_data, y_grad, dtype='d')
+        gradient_check.check_backward(F.log1p, x_data, y_grad)
 
     @condition.retry(3)
     def test_log1p_backward_cpu(self):

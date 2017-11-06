@@ -8,6 +8,7 @@ from chainer.functions.connection import embed_id
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
+from chainer.testing import condition
 
 
 @testing.parameterize(*testing.product_dict(
@@ -29,9 +30,6 @@ class TestEmbedID(unittest.TestCase):
         self.gy = numpy.random.uniform(-1, 1, y_shape).astype(numpy.float32)
         self.ggW = numpy.random.uniform(-1, 1, (3, 2)).astype('f')
 
-        self.check_backward_options = {'atol': 1e-2, 'rtol': 1e-2}
-        self.check_double_backward_options = {'atol': 1e-2, 'rtol': 1e-2}
-
     def check_forward(self, x_data, W_data):
         x = chainer.Variable(x_data)
         W = chainer.Variable(W_data)
@@ -47,10 +45,12 @@ class TestEmbedID(unittest.TestCase):
 
         testing.assert_allclose(y_expect, y.data, atol=0, rtol=0)
 
+    @condition.retry(3)
     def test_forward_cpu(self):
         self.check_forward(self.x, self.W)
 
     @attr.gpu
+    @condition.retry(3)
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.W))
 
@@ -58,14 +58,14 @@ class TestEmbedID(unittest.TestCase):
         def f(x, W):
             return chainer.functions.embed_id(x, W, self.ignore_label)
 
-        gradient_check.check_backward(
-            f, (x_data, W_data), y_grad, dtype=numpy.float64,
-            **self.check_backward_options)
+        gradient_check.check_backward(f, (x_data, W_data), y_grad)
 
+    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.x, self.W, self.gy)
 
     @attr.gpu
+    @condition.retry(3)
     def test_backward_gpu(self):
         self.check_backward(
             cuda.to_gpu(self.x), cuda.to_gpu(self.W), cuda.to_gpu(self.gy))
@@ -77,13 +77,14 @@ class TestEmbedID(unittest.TestCase):
             return y * y
 
         gradient_check.check_double_backward(
-            f,  W_data, gy_data, ggW_data,
-            **self.check_double_backward_options)
+            f,  W_data, gy_data, ggW_data)
 
+    @condition.retry(3)
     def test_double_backward_cpu(self):
         self.check_double_backward(self.x, self.W, self.gy, self.ggW)
 
     @attr.gpu
+    @condition.retry(3)
     def test_double_backward_gpu(self):
         self.check_double_backward(
             cuda.to_gpu(self.x), cuda.to_gpu(self.W), cuda.to_gpu(self.gy),
@@ -119,10 +120,12 @@ class TestEmbedIdGrad(unittest.TestCase):
 
         gradient_check.check_backward(f, (x, gy), (ggW,))
 
+    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy, self.ggW)
 
     @attr.gpu
+    @condition.retry(3)
     def test_backward_gpu(self):
         self.check_backward(
             cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggW))

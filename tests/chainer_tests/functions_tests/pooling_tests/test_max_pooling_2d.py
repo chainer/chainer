@@ -10,6 +10,7 @@ from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
+from chainer.testing import condition
 
 
 @testing.parameterize(*testing.product({
@@ -32,17 +33,6 @@ class TestMaxPooling2D(unittest.TestCase):
                 -1, 1, (2, 3, 2, 2)).astype(self.dtype)
         self.ggx = numpy.random.uniform(
             -1, 1, (2, 3, 4, 3)).astype(self.dtype)
-
-        if self.dtype == numpy.float16:
-            self.check_backward_options = {
-                'atol': 1e-3, 'rtol': 1e-2}
-            self.check_double_backward_options = {
-                'atol': 1e-3, 'rtol': 1e-2}
-        else:
-            self.check_backward_options = {
-                'atol': 1e-4, 'rtol': 1e-3}
-            self.check_double_backward_options = {
-                'atol': 1e-4, 'rtol': 1e-3}
 
     def check_forward(self, x_data, use_cudnn='always'):
         x = chainer.Variable(x_data)
@@ -67,6 +57,7 @@ class TestMaxPooling2D(unittest.TestCase):
                         [x[1:4, 0:2].max(), x[1:4, 1:3].max()]])
                 testing.assert_allclose(expect, y_data[k, c])
 
+    @condition.retry(3)
     def test_forward_cpu(self):
         self.check_forward(self.x)
 
@@ -90,14 +81,17 @@ class TestMaxPooling2D(unittest.TestCase):
             functions.max_pooling_2d(x, 3, stride=2)
 
     @attr.gpu
+    @condition.retry(3)
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x))
 
     @attr.gpu
+    @condition.retry(3)
     def test_forward_gpu_non_contiguous(self):
         self.check_forward(cuda.cupy.asfortranarray(cuda.to_gpu(self.x)))
 
     @attr.gpu
+    @condition.retry(3)
     def test_forward_gpu_no_cudnn(self):
         self.check_forward(cuda.to_gpu(self.x), 'never')
 
@@ -141,23 +135,26 @@ class TestMaxPooling2D(unittest.TestCase):
                 x, 3, stride=2, pad=1, cover_all=self.cover_all)
         with chainer.using_config('use_cudnn', use_cudnn):
             gradient_check.check_backward(
-                f, x_data, y_grad, dtype='d',
-                **self.check_backward_options)
+                f, x_data, y_grad, dtype='d', atol=1e-4, rtol=1e-3)
 
+    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy)
 
     @attr.gpu
+    @condition.retry(3)
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
     @attr.gpu
+    @condition.retry(3)
     def test_backward_gpu_non_contiguous(self):
         self.check_backward(
             cuda.cupy.asfortranarray(cuda.to_gpu(self.x)),
             cuda.cupy.asfortranarray(cuda.to_gpu(self.gy)))
 
     @attr.gpu
+    @condition.retry(3)
     def test_backward_gpu_no_cudnn(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy), 'never')
 
@@ -177,18 +174,20 @@ class TestMaxPooling2D(unittest.TestCase):
         with chainer.using_config('use_cudnn', use_cudnn):
             gradient_check.check_double_backward(
                 f, x_data, y_grad, x_grad_grad,
-                dtype='d',
-                **self.check_double_backward_options)
+                dtype='d', atol=1e-4, rtol=1e-3)
 
+    @condition.retry(3)
     def test_double_backward_cpu(self):
         self.check_double_backward(self.x, self.gy, self.ggx, 'never')
 
     @attr.gpu
+    @condition.retry(3)
     def test_double_backward_gpu(self):
         self.check_double_backward(
             cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx))
 
     @attr.gpu
+    @condition.retry(3)
     def test_double_backward_gpu_non_contiguous(self):
         self.check_double_backward(
             cuda.cupy.asfortranarray(cuda.to_gpu(self.x)),
@@ -196,6 +195,7 @@ class TestMaxPooling2D(unittest.TestCase):
             cuda.cupy.asfortranarray(cuda.to_gpu(self.ggx)))
 
     @attr.gpu
+    @condition.retry(3)
     def test_double_backward_gpu_no_cudnn(self):
         self.check_double_backward(
             cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx),
