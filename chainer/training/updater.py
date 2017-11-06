@@ -1,4 +1,4 @@
-import _updater
+from chainer.training._updater import Updater  # NOQA
 
 # For backward compatibility
 from chainer.training.updaters.parallel_updater import ParallelUpdater  # NOQA
