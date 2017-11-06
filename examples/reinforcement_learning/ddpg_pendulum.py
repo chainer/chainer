@@ -182,7 +182,7 @@ def main():
                     env.action_space.low, env.action_space.high,
                     n_units=args.unit)
     if args.gpu >= 0:
-        chainer.cuda.get_device(args.gpu).use()
+        chainer.cuda.get_device_from_id(args.gpu).use()
         Q.to_gpu(args.gpu)
         policy.to_gpu(args.gpu)
     target_Q = copy.deepcopy(Q)

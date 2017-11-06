@@ -33,9 +33,11 @@ class TestSelectItem(unittest.TestCase):
             0, 2, self.out_shape).astype(numpy.int32)
         self.gy_data = numpy.random.uniform(
             -1, 1, self.out_shape).astype(self.dtype)
-        self.check_backward_options = {}
+        self.ggx_data = numpy.random.uniform(
+            -1, 1, self.in_shape).astype(self.dtype)
+        self.check_backward_options = {'atol': 0.01, 'rtol': 0.01}
         if self.dtype == numpy.float16:
-            self.check_backward_options = {'atol': 0.05, 'rtol': 0.05}
+            self.check_backward_options = {'atol': 0.1, 'rtol': 0.1}
 
     def check_forward(self, x_data, t_data):
         x = chainer.Variable(x_data)
@@ -56,8 +58,9 @@ class TestSelectItem(unittest.TestCase):
 
     def check_backward(self, x_data, t_data, gy_data):
         gradient_check.check_backward(
-            functions.SelectItem(),
-            (x_data, t_data), gy_data, eps=0.01, **self.check_backward_options)
+            functions.select_item,
+            (x_data, t_data), gy_data, eps=0.01, dtype='d',
+            **self.check_backward_options)
 
     def test_backward_cpu(self):
         self.check_backward(self.x_data, self.t_data, self.gy_data)
@@ -67,6 +70,26 @@ class TestSelectItem(unittest.TestCase):
         self.check_backward(cuda.to_gpu(self.x_data),
                             cuda.to_gpu(self.t_data),
                             cuda.to_gpu(self.gy_data))
+
+    def check_double_backward(self, x_data, t_data, gy_data, ggx_data):
+        def f(x):
+            y = functions.select_item(x, t_data)
+            return y * y
+
+        gradient_check.check_double_backward(
+            f, x_data, gy_data, ggx_data, eps=0.01, dtype='d',
+            **self.check_backward_options)
+
+    def test_double_backward_cpu(self):
+        self.check_double_backward(self.x_data, self.t_data,
+                                   self.gy_data, self.ggx_data)
+
+    @attr.gpu
+    def test_double_backward_gpu(self):
+        self.check_double_backward(cuda.to_gpu(self.x_data),
+                                   cuda.to_gpu(self.t_data),
+                                   cuda.to_gpu(self.gy_data),
+                                   cuda.to_gpu(self.ggx_data))
 
 
 @testing.parameterize(

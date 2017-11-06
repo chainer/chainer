@@ -14,7 +14,13 @@ from chainer.utils import conv_nd
 
 class MaxPoolingND(pooling_nd._PoolingND):
 
-    """Max pooling over a set of N-dimensional planes."""
+    """Max pooling over a set of N-dimensional planes.
+
+    .. warning::
+
+        This feature is experimental. The interface can change in the future.
+
+    """
 
     def __init__(self, ndim, ksize, stride=None, pad=0, cover_all=True):
         utils.experimental('chainer.functions.pooling.MaxPoolingND')
@@ -44,7 +50,7 @@ class MaxPoolingND(pooling_nd._PoolingND):
         return y,
 
     def forward_gpu(self, x):
-        if chainer.should_use_cudnn('>=auto') and self.ndim >= 2:
+        if chainer.should_use_cudnn('>=auto') and 2 <= self.ndim <= 3:
             # With cuDNN v3 or greater, use cuDNN implementation for inputs
             # with spatial dimensions of two or more.
             return super(MaxPoolingND, self).forward_gpu(x)
@@ -115,11 +121,15 @@ class MaxPoolingND(pooling_nd._PoolingND):
     def create_pool_desc(self):
         return cuda.cudnn.create_pooling_descriptor(
             self.ksize, self.stride, self.pad,
-            cuda.cudnn.cudnn.CUDNN_POOLING_MAX)
+            cuda.cuda.cudnn.CUDNN_POOLING_MAX)
 
 
 def max_pooling_nd(x, ksize, stride=None, pad=0, cover_all=True):
     """N-dimensionally spatial max pooling function.
+
+    .. warning::
+
+        This feature is experimental. The interface can change in the future.
 
     This function provides a N-dimensionally generalized version of
     :func:`~functions.max_pooling_2d`. This acts similarly to

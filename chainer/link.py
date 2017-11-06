@@ -122,7 +122,8 @@ class Link(object):
             is supplied, the default dtype will be used.
 
     Attributes:
-        name (str): Name of this link, given by the parent chain (if exists).
+        ~Link.name (str): Name of this link, given by the parent chain (if
+            exists).
 
     """
 
@@ -212,8 +213,8 @@ class Link(object):
         .. deprecated:: v2.0.0
 
            Assign a :class:`~chainer.Parameter` object directly to an
-           attribute within :meth:`an initialization scope <init_scope>`
-           instead. For example, the following code
+           attribute within :meth:`~chainer.Link.init_scope` instead.
+           For example, the following code
 
            .. code-block:: python
 
@@ -223,10 +224,10 @@ class Link(object):
 
            .. code-block:: python
 
-               with self.init_scope():
+               with link.init_scope():
                    link.W = chainer.Parameter(None, (5, 3))
 
-           The latter one is easier for IDEs to keep track of the attribute's
+           The latter is easier for IDEs to keep track of the attribute's
            type.
 
         Args:
@@ -519,7 +520,7 @@ Assign a Parameter object directly to an attribute within a \
     def disable_update(self):
         """Disables update rules of all parameters under the link hierarchy.
 
-        This method sets the :attr:~chainer.UpdateRule.enabled` flag of the
+        This method sets the :attr:`~chainer.UpdateRule.enabled` flag of the
         update rule of each parameter variable to ``False``.
 
         """
@@ -584,7 +585,7 @@ class Chain(Link):
     by slashes ``/``.
 
     A child link can be added just by assigning it to an attribute of the
-    chain within :meth:`an initialization scope <chainer.Link.init_scope>`.
+    chain within :meth:`~chainer.Chain.init_scope`.
 
     The registered child link is saved and loaded on serialization and
     deserialization, and involved in the optimization. The registered link
@@ -636,7 +637,7 @@ class Chain(Link):
 
             .. deprecated:: v2.0.0
 
-               Assign child links directly to attributes, instead.
+               Assign child links directly to attributes instead.
 
     """
 
@@ -670,7 +671,7 @@ class Chain(Link):
         .. deprecated:: v2.0.0
 
            Assign the child link directly to an attribute within
-           :meth:`an initialization scope <chainer.Link.init_scope>`, instead.
+           :meth:`~chainer.Chain.init_scope` instead.
            For example, the following code
 
            .. code-block:: python
@@ -681,10 +682,10 @@ class Chain(Link):
 
            .. code-block:: python
 
-              with self.init_scope():
+              with chain.init_scope():
                   chain.l1 = L.Linear(3, 5)
 
-           The latter one is easier for IDEs to keep track of the attribute's
+           The latter is easier for IDEs to keep track of the attribute's
            type.
 
         Args:
@@ -818,6 +819,13 @@ class ChainList(Link):
 
         for link in links:
             self.add_link(link)
+
+    def __setattr__(self, name, value):
+        if self.within_init_scope and isinstance(value, Link):
+            raise TypeError(
+                'cannot register a new link'
+                ' within a "with chainlist.init_scope():" block.')
+        super(ChainList, self).__setattr__(name, value)
 
     def __getitem__(self, index):
         """Returns the child at given index.

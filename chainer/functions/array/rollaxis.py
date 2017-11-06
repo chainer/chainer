@@ -1,11 +1,11 @@
 import six
 
 from chainer import cuda
-from chainer import function
+from chainer import function_node
 from chainer.utils import type_check
 
 
-class Rollaxis(function.Function):
+class Rollaxis(function_node.FunctionNode):
 
     """Roll axis of an array."""
 
@@ -38,8 +38,7 @@ class Rollaxis(function.Function):
         xp = cuda.get_array_module(*inputs)
         return xp.rollaxis(inputs[0], self.axis, self.start),
 
-    def backward(self, inputs, grads):
-        xp = cuda.get_array_module(*grads)
+    def backward(self, indexes, gy):
         axis = self.axis
         if axis < 0:
             axis += self._in_ndim
@@ -52,7 +51,7 @@ class Rollaxis(function.Function):
         else:
             start -= 1
 
-        return xp.rollaxis(grads[0], start, axis),
+        return Rollaxis(start, axis).apply(gy)
 
 
 def rollaxis(x, axis, start=0):
@@ -66,4 +65,4 @@ def rollaxis(x, axis, start=0):
     Returns:
         ~chainer.Variable: Variable whose axis is rolled.
     """
-    return Rollaxis(axis, start)(x)
+    return Rollaxis(axis, start).apply((x,))[0]

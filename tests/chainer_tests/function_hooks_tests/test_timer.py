@@ -8,22 +8,35 @@ import chainer
 from chainer import cuda
 from chainer import function_hooks
 from chainer import functions
-from chainer.functions.connection import linear
-from chainer import links
+from chainer.functions.math import basic_math
 from chainer import testing
 from chainer.testing import attr
 
 
 def check_history(self, t, function_type, return_type):
-    self.assertIsInstance(t[0], function_type)
+    func = getattr(t[0], 'function', t[0])
+    self.assertIsInstance(func, function_type)
     self.assertIsInstance(t[1], return_type)
+
+
+class SimpleLink(chainer.Link):
+
+    def __init__(self):
+        super(SimpleLink, self).__init__()
+        with self.init_scope():
+            init_w = numpy.random.uniform(-1, 1, (3, 5)).astype(
+                numpy.float32)
+            self.w = chainer.Parameter(init_w)
+
+    def __call__(self, x):
+        return self.w * x
 
 
 class TestTimerHookToLink(unittest.TestCase):
 
     def setUp(self):
         self.h = function_hooks.TimerHook()
-        self.l = links.Linear(5, 5)
+        self.l = SimpleLink()
         self.x = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
         self.gy = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
 
@@ -34,8 +47,7 @@ class TestTimerHookToLink(unittest.TestCase):
         with self.h:
             self.l(chainer.Variable(x))
         self.assertEqual(1, len(self.h.call_history))
-        check_history(self, self.h.call_history[0],
-                      linear.LinearFunction, float)
+        check_history(self, self.h.call_history[0], basic_math.Mul, float)
 
     def test_forward_cpu(self):
         self.check_forward(self.x)
@@ -51,9 +63,12 @@ class TestTimerHookToLink(unittest.TestCase):
         y.grad = gy
         with self.h:
             y.backward()
-        self.assertEqual(1, len(self.h.call_history))
-        check_history(self, self.h.call_history[0],
-                      linear.LinearFunction, float)
+        # It includes forward of + that accumulates gradients to W and b
+        self.assertEqual(3, len(self.h.call_history), self.h.call_history)
+        for entry in self.h.call_history:
+            if entry[0].label == '_ + _':
+                continue
+            check_history(self, entry, basic_math.Mul, float)
 
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy)
@@ -74,7 +89,7 @@ class TestTimerHookToFunction(unittest.TestCase):
         self.gy = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
 
     def check_forward(self, x):
-        self.f(chainer.Variable(x))
+        self.f.apply((chainer.Variable(x),))
         self.assertEqual(1, len(self.h.call_history))
         check_history(self, self.h.call_history[0], functions.Exp, float)
 
@@ -82,12 +97,12 @@ class TestTimerHookToFunction(unittest.TestCase):
         self.check_forward(self.x)
 
     @attr.gpu
-    def test_fowward_gpu(self):
+    def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x))
 
     def check_backward(self, x, gy):
         x = chainer.Variable(x)
-        y = self.f(x)
+        y = self.f.apply((x,))[0]
         y.grad = gy
         y.backward()
         self.assertEqual(2, len(self.h.call_history))
@@ -149,15 +164,15 @@ class TestTimerPrintReport(unittest.TestCase):
 
     def test_summary(self):
         x = self.x
-        self.f(chainer.Variable(x))
-        self.f(chainer.Variable(x))
+        self.f.apply((chainer.Variable(x),))
+        self.f.apply((chainer.Variable(x),))
         self.assertEqual(2, len(self.h.call_history))
         self.assertEqual(1, len(self.h.summary()))
 
     def test_print_report(self):
         x = self.x
-        self.f(chainer.Variable(x))
-        self.f(chainer.Variable(x))
+        self.f.apply((chainer.Variable(x),))
+        self.f.apply((chainer.Variable(x),))
         io = six.StringIO()
         self.h.print_report(file=io)
         expect = r'''\AFunctionName  ElapsedTime  Occurrence

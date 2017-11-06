@@ -7,7 +7,6 @@ import chainer
 from chainer import cuda
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
 from chainer.utils import type_check
 
 
@@ -50,7 +49,11 @@ def accuracy(x, t, ignore_label):
          {'ignore_label': 0, 't_data': 'zero'}],
         [{'dtype': numpy.float16},
          {'dtype': numpy.float32},
-         {'dtype': numpy.float64}]
+         {'dtype': numpy.float64}],
+        [{'label_dtype': numpy.int8},
+         {'label_dtype': numpy.int16},
+         {'label_dtype': numpy.int32},
+         {'label_dtype': numpy.int64}]
     )
 )
 class TestAccuracy(unittest.TestCase):
@@ -59,9 +62,9 @@ class TestAccuracy(unittest.TestCase):
         self.x = numpy.random.uniform(-1, 1, self.x_shape).astype(self.dtype)
         if self.t_data == 'randint':
             self.t = numpy.random.randint(
-                3, size=self.t_shape).astype(numpy.int32)
+                3, size=self.t_shape).astype(self.label_dtype)
         elif self.t_data == 'zero':
-            self.t = numpy.zeros(self.t_shape).astype(numpy.int32)
+            self.t = numpy.zeros(self.t_shape).astype(self.label_dtype)
         self.check_forward_options = {}
         if self.dtype == numpy.float16:
             self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
@@ -77,12 +80,10 @@ class TestAccuracy(unittest.TestCase):
         testing.assert_allclose(
             expected, cuda.to_cpu(y.data), **self.check_forward_options)
 
-    @condition.retry(3)
     def test_forward_cpu(self):
         self.check_forward(self.x, self.t)
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.t))
 

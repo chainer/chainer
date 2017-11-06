@@ -1,13 +1,13 @@
 import unittest
 
-from chainer import function
+import chainer
 from chainer import testing
 
 
 class TestFunctionHook(unittest.TestCase):
 
     def setUp(self):
-        self.h = function.FunctionHook()
+        self.h = chainer.FunctionHook()
 
     def test_name(self):
         self.assertEqual(self.h.name, 'FunctionHook')

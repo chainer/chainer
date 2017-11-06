@@ -6,7 +6,7 @@ from chainer import variable
 
 class Linear(link.Link):
 
-    """Linear layer (a.k.a. fully-connected layer).
+    """Linear layer (a.k.a.\\  fully-connected layer).
 
     This is a link that wraps the :func:`~chainer.functions.linear` function,
     and holds a weight matrix ``W`` and optionally a bias vector ``b`` as
@@ -15,8 +15,8 @@ class Linear(link.Link):
     The weight matrix ``W`` is initialized with i.i.d. Gaussian samples, each
     of which has zero mean and deviation :math:`\\sqrt{1/\\text{in_size}}`. The
     bias vector ``b`` is of size ``out_size``. Each element is initialized with
-    the ``bias`` value. If ``nobias`` argument is set to True, then this link
-    does not hold a bias vector.
+    the ``bias`` value. If ``nobias`` argument is set to ``True``, then this
+    link does not hold a bias vector.
 
     Args:
         in_size (int or None): Dimension of input vectors. If ``None``,
@@ -24,14 +24,11 @@ class Linear(link.Link):
             data pass at which time the size will be determined.
         out_size (int): Dimension of output vectors.
         nobias (bool): If ``True``, then this function does not use the bias.
-        initialW (2-D array): Initial weight value. If ``None``, then the
-            default initializer is used.
-            May also be a callable that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value.
-        initial_bias (1-D array): Initial bias value. If ``None``, the bias
-            vector is initialized to zero.
-            May also be a callable that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value.
+        initialW (:ref:`initializer <initializer>`): Initializer to initialize
+            the weight.
+        initial_bias (:ref:`initializer <initializer>`): Initializer to
+            initialize the bias. If ``None``, the bias will be initialized to
+            zero.
     .. seealso:: :func:`~chainer.functions.linear`
 
     Attributes:
@@ -56,7 +53,7 @@ class Linear(link.Link):
             (1, 10)
 
         2. Omit ``in_size`` (give the output size only as the first argument)
-                or fill it with ``None``:
+           or fill it with ``None``:
 
             In this case, the size of second axis of ``x`` is used as the
             input size. So the below two cases are the same.

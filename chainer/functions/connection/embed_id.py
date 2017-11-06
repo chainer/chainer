@@ -3,11 +3,11 @@ import six
 
 import chainer
 from chainer import cuda
-from chainer import function
+from chainer import function_node
 from chainer.utils import type_check
 
 
-class EmbedIDFunction(function.Function):
+class EmbedIDFunction(function_node.FunctionNode):
 
     def __init__(self, ignore_label=None):
         self.ignore_label = ignore_label
@@ -16,7 +16,7 @@ class EmbedIDFunction(function.Function):
         type_check.expect(in_types.size() == 2)
         x_type, w_type = in_types
         type_check.expect(
-            x_type.dtype == numpy.int32,
+            x_type.dtype.kind == 'i',
             x_type.ndim >= 1,
         )
         type_check.expect(
@@ -25,7 +25,9 @@ class EmbedIDFunction(function.Function):
         )
 
     def forward(self, inputs):
+        self.retain_inputs((0,))
         x, W = inputs
+        self._w_shape = W.shape
 
         if not type_check.same_types(*inputs):
             raise ValueError('numpy and cupy must not be used together\n'
@@ -43,16 +45,29 @@ class EmbedIDFunction(function.Function):
 
         if self.ignore_label is not None:
             mask = (x == self.ignore_label)
-            return xp.where(
-                mask[..., None], 0, W.take(xp.where(mask, 0, x), axis=0)),
+            return xp.where(mask[..., None], 0, W[xp.where(mask, 0, x)]),
 
-        return W.take(x, axis=0),
+        return W[x],
 
-    def backward(self, inputs, grad_outputs):
+    def backward(self, indexes, grad_outputs):
+        inputs = self.get_retained_inputs()
+        gW = EmbedIDGrad(
+            self._w_shape, self.ignore_label).apply(inputs + grad_outputs)[0]
+        return None, gW
+
+
+class EmbedIDGrad(function_node.FunctionNode):
+
+    def __init__(self, w_shape, ignore_label=None):
+        self.w_shape = w_shape
+        self.ignore_label = ignore_label
+
+    def forward(self, inputs):
+        self.retain_inputs((0,))
         xp = cuda.get_array_module(*inputs)
-        x, W = inputs
-        gy = grad_outputs[0]
-        gW = xp.zeros_like(W)
+        x, gy = inputs
+        self._gy_shape = gy.shape
+        gW = xp.zeros(self.w_shape, dtype=gy.dtype)
 
         if xp is numpy:
             # It is equivalent to `numpy.add.at(gW, x, gy)` but ufunc.at is
@@ -65,29 +80,50 @@ class EmbedIDFunction(function.Function):
         else:
             if self.ignore_label is None:
                 cuda.elementwise(
-                    'T gy, int32 x, int32 n_out', 'raw T gW',
-                    'int w_ind[] = {x, i % n_out}; atomicAdd(&gW[w_ind], gy)',
+                    'T gy, S x, S n_out', 'raw T gW',
+                    'ptrdiff_t w_ind[] = {x, i % n_out};'
+                    'atomicAdd(&gW[w_ind], gy)',
                     'embed_id_bwd')(
                         gy, xp.expand_dims(x, -1), gW.shape[1], gW)
             else:
                 cuda.elementwise(
-                    'T gy, int32 x, int32 n_out, int32 ignore', 'raw T gW',
+                    'T gy, S x, S n_out, S ignore', 'raw T gW',
                     '''
                     if (x != ignore) {
-                      int w_ind[] = {x, i % n_out};
+                      ptrdiff_t w_ind[] = {x, i % n_out};
                       atomicAdd(&gW[w_ind], gy);
                     }
                     ''',
                     'embed_id_bwd_ignore_label')(
                         gy, xp.expand_dims(x, -1), gW.shape[1],
                         self.ignore_label, gW)
-        return None, gW
+        return gW,
+
+    def backward(self, indexes, grads):
+        xp = cuda.get_array_module(*grads)
+        x = self.get_retained_inputs()[0].data
+        ggW = grads[0]
+
+        if self.ignore_label is not None:
+            mask = x == self.ignore_label
+            # To prevent index out of bounds, we need to check if ignore_label
+            # is inside of W.
+            if not (0 <= self.ignore_label < self.w_shape[1]):
+                x = xp.where(mask, 0, x)
+
+        ggy = ggW[x]
+
+        if self.ignore_label is not None:
+            mask, zero, _ = xp.broadcast_arrays(
+                mask[..., None], xp.zeros((), 'f'), ggy.data)
+            ggy = chainer.functions.where(mask, zero, ggy)
+        return None, ggy
 
 
 def embed_id(x, W, ignore_label=None):
     """Efficient linear function for one-hot input.
 
-    This function implements so called *word embedding*. It takes two
+    This function implements so called *word embeddings*. It takes two
     arguments: a set of IDs (words) ``x`` in :math:`B` dimensional integer
     vector, and a set of all ID (word) embeddings ``W`` in :math:`V \\times d`
     float32 matrix. It outputs :math:`B \\times d` matrix whose ``i``-th
@@ -96,16 +132,39 @@ def embed_id(x, W, ignore_label=None):
     This function is only differentiable on the input ``W``.
 
     Args:
-        x (~chainer.Variable): Batch vectors of IDs.
-        W (~chainer.Variable): Representation of each ID (a.k.a.
-            word embeddings).
-        ignore_label (int or None): If ``ignore_label`` is an int value,
-            ``i``-th column of return value is filled with ``0``.
+        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`):
+            Batch vectors of IDs. Each element must be signed integer.
+        W (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`):
+            Distributed representation of each ID (a.k.a. word embeddings).
+        ignore_label (:class:`int` or :class:`None`):
+            If ``ignore_label`` is an int value, ``i``-th column of return
+            value is filled with ``0``.
 
     Returns:
         ~chainer.Variable: Output variable.
 
     .. seealso:: :class:`~chainer.links.EmbedID`
 
+    .. admonition:: Example
+
+        >>> x = np.array([2, 1]).astype('i')
+        >>> x
+        array([2, 1], dtype=int32)
+        >>> W = np.array([[0, 0, 0],
+        ...               [1, 1, 1],
+        ...               [2, 2, 2]]).astype('f')
+        >>> W
+        array([[ 0.,  0.,  0.],
+               [ 1.,  1.,  1.],
+               [ 2.,  2.,  2.]], dtype=float32)
+        >>> F.embed_id(x, W).data
+        array([[ 2.,  2.,  2.],
+               [ 1.,  1.,  1.]], dtype=float32)
+        >>> F.embed_id(x, W, ignore_label=1).data
+        array([[ 2.,  2.,  2.],
+               [ 0.,  0.,  0.]], dtype=float32)
+
     """
-    return EmbedIDFunction(ignore_label=ignore_label)(x, W)
+    return EmbedIDFunction(ignore_label=ignore_label).apply((x, W))[0]

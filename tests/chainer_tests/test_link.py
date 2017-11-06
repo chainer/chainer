@@ -1,3 +1,4 @@
+import copy
 import unittest
 
 import mock
@@ -15,8 +16,9 @@ class TestLink(unittest.TestCase):
     def setUp(self):
         x_shape_0 = 2
         x_shape_1 = numpy.int64(3)
-        self.link = chainer.Link(x=((x_shape_0, x_shape_1), 'd'),
-                                 u=(None, 'd'))
+        with testing.assert_warns(DeprecationWarning):
+            self.link = chainer.Link(x=((x_shape_0, x_shape_1), 'd'),
+                                     u=(None, 'd'))
         with self.link.init_scope():
             self.link.y = chainer.Parameter(shape=(2,))
             self.link.v = chainer.Parameter()
@@ -77,38 +79,45 @@ class TestLink(unittest.TestCase):
         self.assertTrue(all(p is not param for param in self.link.params()))
 
     def test_add_param(self):
-        self.link.add_param('z', (2, 3))
+        with testing.assert_warns(DeprecationWarning):
+            self.link.add_param('z', (2, 3))
         self.check_param_init('z', (2, 3), 'f')
 
-        self.link.add_param('w', (2, 3), dtype='d')
+        with testing.assert_warns(DeprecationWarning):
+            self.link.add_param('w', (2, 3), dtype='d')
         self.check_param_init('w', (2, 3), 'd')
 
-        self.link.add_param('r')
+        with testing.assert_warns(DeprecationWarning):
+            self.link.add_param('r')
         self.check_param_uninit('r')
         self.link.r.initialize((2, 3))
         self.check_param_init('r', (2, 3), 'f')
 
-        self.link.add_param('s', dtype='d')
+        with testing.assert_warns(DeprecationWarning):
+            self.link.add_param('s', dtype='d')
         self.check_param_uninit('s')
         self.link.s.initialize((2, 3))
         self.check_param_init('s', (2, 3), 'd')
 
         initializer = initializers.Zero('d')
-        self.link.add_param('t', initializer=initializer)
+        with testing.assert_warns(DeprecationWarning):
+            self.link.add_param('t', initializer=initializer)
         self.check_param_uninit('t', initializer)
         self.link.t.initialize((2, 3))
         self.check_param_init('t', (2, 3), 'd', 0)
 
     def test_add_param_direct_initialization(self):
         z = numpy.random.rand(2, 3).astype('f')
-        self.link.add_param('z', initializer=z)
+        with testing.assert_warns(DeprecationWarning):
+            self.link.add_param('z', initializer=z)
         self.assertIsInstance(self.link.z.data, numpy.ndarray)
         numpy.testing.assert_array_equal(self.link.z.data, z)
 
     def test_add_param_duplicated_with_persistent(self):
         self.link.add_persistent('z', 'abc')
         with self.assertRaises(AttributeError):
-            self.link.add_param('z', (2, 3))
+            with testing.assert_warns(DeprecationWarning):
+                self.link.add_param('z', (2, 3))
 
     def test_add_persistent(self):
         self.assertTrue(hasattr(self.link, 'p'))
@@ -117,6 +126,17 @@ class TestLink(unittest.TestCase):
         self.link.add_persistent('q', 'abc')
         self.assertTrue(hasattr(self.link, 'q'))
         self.assertEqual(self.link.q, 'abc')
+
+    def test_delete(self):
+        del self.link.x
+        self.assertFalse(hasattr(self.link, 'x'))
+        self.assertNotIn('x', self.link._params)
+        self.assertNotIn('x', self.link._persistent)
+
+        del self.link.p
+        self.assertFalse(hasattr(self.link, 'p'))
+        self.assertNotIn('p', self.link._params)
+        self.assertNotIn('p', self.link._persistent)
 
     def test_copy(self):
         link = self.link.copy()
@@ -133,6 +153,40 @@ class TestLink(unittest.TestCase):
         self.assertIsNone(link.u.data)
         self.assertIs(link.p, self.link.p)
         self.assertIs(link.name, None)
+
+    def _check_deepcopy(self, link):
+        self.assertIsInstance(link._params, set)
+        self.assertIsInstance(link._persistent, set)
+        self.assertTrue(hasattr(link, 'x'))
+        self.assertTrue(hasattr(link, 'y'))
+        self.assertTrue(hasattr(link, 'u'))
+        self.assertTrue(hasattr(link, 'p'))
+        self.assertIsNot(link.x, self.link.x)
+        self.assertIsNot(link.x.data, self.link.x.data)
+        numpy.testing.assert_array_equal(cuda.to_cpu(link.x.data),
+                                         cuda.to_cpu(self.link.x.data))
+        self.assertIsNot(link.y, self.link.y)
+        self.assertIsNot(link.y.data, self.link.y.data)
+        numpy.testing.assert_array_equal(cuda.to_cpu(link.y.data),
+                                         cuda.to_cpu(self.link.y.data))
+        self.assertIsNone(link.u.data)
+        self.assertIsNot(link.p, self.link.p)
+        self.assertEqual(link.name, self.link.name)
+
+    def test_deepcopy(self):
+        link = copy.deepcopy(self.link)
+        self._check_deepcopy(link)
+        self.assertIsNone(link._device_id)
+
+    @attr.multi_gpu(2)
+    def test_deepcopy_multi_device(self):
+        device_id = 1
+        self.link.to_gpu(device_id)
+        link = copy.deepcopy(self.link)
+        self._check_deepcopy(link)
+        self.assertEqual(link._device_id, device_id)
+        self.assertEqual(link.x.data.device.id, device_id)
+        self.assertEqual(link.y.data.device.id, device_id)
 
     def test_to_cpu_on_cpu(self):
         x = self.link.x.data
@@ -277,7 +331,8 @@ class TestLink(unittest.TestCase):
     def test_zerograds(self):
         gx_expect = numpy.zeros_like(self.link.x.data)
         gy_expect = numpy.zeros_like(self.link.y.data)
-        self.link.zerograds()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.zerograds()
         numpy.testing.assert_array_equal(self.link.x.grad, gx_expect)
         numpy.testing.assert_array_equal(self.link.y.grad, gy_expect)
         self.link.u.initialize((2, 3))
@@ -290,7 +345,8 @@ class TestLink(unittest.TestCase):
     def test_addgrads(self):
         l = chainer.Link()
         with l.init_scope():
-            l.x = chainer.Parameter(shape=(2, 3))
+            l.x = chainer.Parameter(shape=(2, 3),
+                                    initializer=initializers.NaN('d'))
             l.y = chainer.Parameter(shape=2)
             l.u = chainer.Parameter(shape=(2, 3))
             l.v = chainer.Parameter()
@@ -397,14 +453,24 @@ class CountParameter(chainer.Parameter):
 class TestChain(unittest.TestCase):
 
     def setUp(self):
-        self.l1 = chainer.Link(x=(2, 3))
-        self.l2 = chainer.Link(x=2)
-        self.l3 = chainer.Link(x=None)
+        self.l1 = chainer.Link()
+        with self.l1.init_scope():
+            self.l1.x = chainer.Parameter(shape=(2, 3))
+        self.l2 = chainer.Link()
+        with self.l2.init_scope():
+            self.l2.x = chainer.Parameter(shape=2)
+        self.l3 = chainer.Link()
+        with self.l3.init_scope():
+            self.l3.x = chainer.Parameter()
 
-        self.c1 = chainer.Chain(l1=self.l1)
-        self.c1.add_link('l2', self.l2)
-        self.c2 = chainer.Chain(c1=self.c1)
+        self.c1 = chainer.Chain()
+        with self.c1.init_scope():
+            self.c1.l1 = self.l1
+        with testing.assert_warns(DeprecationWarning):
+            self.c1.add_link('l2', self.l2)
+        self.c2 = chainer.Chain()
         with self.c2.init_scope():
+            self.c2.c1 = self.c1
             self.c2.l3 = self.l3
 
     def test_init(self):
@@ -433,6 +499,11 @@ class TestChain(unittest.TestCase):
         l = chainer.Link()
         self.l1.l = l
         self.assertTrue(all(l is not link for link in self.l1.links()))
+
+    def test_delete_link(self):
+        del self.c1.l1
+        self.assertFalse(hasattr(self.c1, 'l1'))
+        self.assertNotIn('l1', self.c1._children)
 
     def test_copy(self):
         c2 = self.c2.copy()
@@ -620,7 +691,8 @@ class TestChain(unittest.TestCase):
 
     def test_zerograds(self):
         self.set_count_parameters()
-        self.c2.zerograds()
+        with testing.assert_warns(DeprecationWarning):
+            self.c2.zerograds()
         numpy.testing.assert_array_equal(self.l1.x.grad, numpy.zeros((2, 3)))
         numpy.testing.assert_array_equal(self.l2.x.grad, numpy.zeros(2))
         self.assertEqual(self.l1.x.count_zerograd, 1)
@@ -707,6 +779,18 @@ class TestChainList(unittest.TestCase):
     def test_append(self):
         self.assertIs(self.c2[1], self.l3)
         self.assertEqual(self.l3.name, '1')
+
+    def test_assign_param_in_init_scope(self):
+        p = chainer.Parameter()
+        with self.c1.init_scope():
+            self.c1.p = p
+        self.assertIn(p, self.c1.params())
+
+    def test_assign_link_in_init_scope(self):
+        l = chainer.Link()
+        with self.c1.init_scope():
+            with self.assertRaises(TypeError):
+                self.c1.l = l
 
     def test_iter(self):
         links = list(self.c2)
@@ -906,7 +990,8 @@ class TestChainList(unittest.TestCase):
         numpy.testing.assert_array_equal(self.l3.x.data, l3.x.data)
 
     def test_zerograds(self):
-        self.c2.zerograds()
+        with testing.assert_warns(DeprecationWarning):
+            self.c2.zerograds()
         numpy.testing.assert_array_equal(self.l1.x.grad, numpy.zeros((2, 3)))
         numpy.testing.assert_array_equal(self.l2.x.grad, numpy.zeros(2))
         numpy.testing.assert_array_equal(self.l3.x.grad, numpy.zeros(3))
@@ -923,7 +1008,7 @@ class TestChainList(unittest.TestCase):
 
     def test_addgrads(self):
         l1 = chainer.Link()
-        with self.l1.init_scope():
+        with l1.init_scope():
             l1.x = chainer.Parameter(shape=(2, 3))
             l1.y = chainer.Parameter(shape=(2, 3))
         l2 = chainer.Link()

@@ -9,25 +9,27 @@ from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
 
 
-@testing.parameterize(
-    *testing.product(
-        {'reduce': ['no', 'mean'],
-         'norm': ['L1', 'L2']}
-    )
-)
+@testing.parameterize(*testing.product({
+    'reduce': ['no', 'mean'],
+    'norm': ['L1', 'L2'],
+    'label_dtype': [numpy.int8, numpy.int16, numpy.int32, numpy.int64],
+}))
 class TestHinge(unittest.TestCase):
 
     def setUp(self):
-        self.x = numpy.random.uniform(-1, 1, (10, 5)).astype(numpy.float32)
+        shape = (10, 5)
+        self.x = numpy.random.uniform(-1, 1, shape).astype(numpy.float32)
         # Avoid values around -1.0 for stability
         self.x[numpy.logical_and(-1.01 < self.x, self.x < -0.99)] = 0.5
-        self.t = numpy.random.randint(0, 5, (10,)).astype(numpy.int32)
+        self.t = numpy.random.randint(
+            0, shape[1], shape[:1]).astype(self.label_dtype)
         if self.reduce == 'no':
             self.gy = numpy.random.uniform(
                 -1, 1, self.x.shape).astype(numpy.float32)
+
+        self.check_backward_options = {'atol': 1e-1, 'rtol': 1e-1}
 
     def check_forward(self, x_data, t_data):
         x_val = chainer.Variable(x_data)
@@ -55,26 +57,23 @@ class TestHinge(unittest.TestCase):
 
         testing.assert_allclose(loss_expect, loss_value)
 
-    @condition.retry(3)
     def test_forward_cpu(self):
         self.check_forward(self.x, self.t)
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.t))
 
     def check_backward(self, x_data, t_data):
         gradient_check.check_backward(
             functions.Hinge(self.norm), (x_data, t_data), None,
-            eps=0.01, atol=1e-4)
+            dtype='d',
+            **self.check_backward_options)
 
-    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.x, self.t)
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.t))
 

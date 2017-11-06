@@ -11,7 +11,7 @@ Base class
    :toctree: generated/
    :nosignatures:
 
-   chainer.function.FunctionHook
+   chainer.FunctionHook
 
 .. module:: chainer.function_hooks
 
@@ -22,5 +22,7 @@ Concrete function hooks
    :toctree: generated/
    :nosignatures:
 
+   chainer.function_hooks.CUDAProfileHook
+   chainer.function_hooks.CupyMemoryProfileHook
    chainer.function_hooks.PrintHook
    chainer.function_hooks.TimerHook

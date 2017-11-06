@@ -136,7 +136,7 @@ class NStepGRU(NStepGRUBase):
 
     """__init__(self, n_layers, in_size, out_size, dropout)
 
-    Stacked Uni-directional GRU for sequnces.
+    Stacked Uni-directional GRU for sequences.
 
     This link is stacked version of Uni-directional GRU for sequences.
     It calculates hidden and cell states of all layer at end-of-string,
@@ -174,7 +174,7 @@ class NStepBiGRU(NStepGRUBase):
 
     """__init__(self, n_layers, in_size, out_size, dropout)
 
-    Stacked Bi-directional GRU for sequnces.
+    Stacked Bi-directional GRU for sequences.
 
     This link is stacked version of Bi-directional GRU for sequences.
     It calculates hidden and cell states of all layer at end-of-string,
