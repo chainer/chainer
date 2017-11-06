@@ -184,7 +184,7 @@ class ROIPooling2D(function.Function):
             }
             top_data = maxval;
             argmax_data = maxidx;
-            ''', 'roi_poolig_2d_fwd'
+            ''', 'roi_pooling_2d_fwd'
         )(bottom_data, self.spatial_scale, channels, height, width,
           self.outh, self.outw, bottom_rois, top_data,
           self.argmax_data)

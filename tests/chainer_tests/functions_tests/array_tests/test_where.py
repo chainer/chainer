@@ -53,7 +53,7 @@ class TestWhere(unittest.TestCase):
 
     def check_backward(self, c_data, x_data, y_data, g_data):
         gradient_check.check_backward(
-            functions.Where(), (c_data, x_data, y_data), g_data,
+            functions.where, (c_data, x_data, y_data), g_data,
             **self.check_backward_options)
 
     @condition.retry(3)

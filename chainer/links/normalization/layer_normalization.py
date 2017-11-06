@@ -8,6 +8,10 @@ class LayerNormalization(link.Link):
 
     """Layer normalization layer on outputs of linear functions.
 
+    .. warning::
+
+        This feature is experimental. The interface can change in the future.
+
     This link implements a "layer normalization" layer
     which normalizes the input units by statistics
     that are computed along the second axis,
@@ -33,7 +37,7 @@ class LayerNormalization(link.Link):
     Attributes:
         gamma (~chainer.Parameter): Scaling parameter.
         beta (~chainer.Parameter): Shifting parameter.
-        eps (float): Epsilon value for numerical stability.
+        ~LayerNormalization.eps (float): Epsilon value for numerical stability.
 
     See: `Layer Normalization <https://arxiv.org/abs/1607.06450>`_
     """

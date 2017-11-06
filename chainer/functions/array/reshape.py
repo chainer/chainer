@@ -1,4 +1,5 @@
-from chainer import function
+import chainer
+from chainer import function_node
 from chainer.utils import type_check
 
 
@@ -9,15 +10,14 @@ def _count_unknown_dims(shape):
     return cnt
 
 
-class Reshape(function.Function):
+class Reshape(function_node.FunctionNode):
 
     """Reshapes an input array without copy."""
 
     def __init__(self, shape):
-        cnt = _count_unknown_dims(shape)
-        assert cnt == 0 or cnt == 1
-
         self.shape = shape
+        self._cnt = _count_unknown_dims(shape)
+        assert self._cnt <= 1
 
     def check_type_forward(self, in_types):
         type_check.expect(
@@ -26,8 +26,7 @@ class Reshape(function.Function):
 
         x_type, = in_types
 
-        cnt = _count_unknown_dims(self.shape)
-        if cnt == 0:
+        if self._cnt == 0:
             type_check.expect(
                 type_check.prod(x_type.shape) == type_check.prod(self.shape))
         else:
@@ -40,13 +39,13 @@ class Reshape(function.Function):
             type_check.expect(
                 type_check.prod(x_type.shape) % size_var == 0)
 
-    def forward(self, x):
-        self.retain_inputs(())
-        self._in_shape = x[0].shape
-        return x[0].reshape(self.shape),
+    def forward(self, inputs):
+        x, = inputs
+        return x.reshape(self.shape),
 
-    def backward(self, x, gy):
-        return gy[0].reshape(self._in_shape),
+    def backward(self, indexes, grad_outputs):
+        gx, = grad_outputs
+        return reshape(gx, self.inputs[0].shape),
 
 
 def reshape(x, shape):
@@ -75,7 +74,7 @@ def reshape(x, shape):
         (8,)
         >>> y.data
         array([1, 2, 3, 4, 5, 6, 7, 8])
-        >>> y = F.reshape(x, (4, -1)) # the shape of output is inferred
+        >>> y = F.reshape(x, (4, -1))  # the shape of output is inferred
         >>> y.shape
         (4, 2)
         >>> y.data
@@ -83,14 +82,18 @@ def reshape(x, shape):
                [3, 4],
                [5, 6],
                [7, 8]])
-        >>> y = F.reshape(x, (4, 3)) \
+        >>> y = F.reshape(x, (4, 3))  \
 # the shape of input and output are not consistent
         Traceback (most recent call last):
-         ...
+        ...
         chainer.utils.type_check.InvalidType:
         Invalid operation is performed in: Reshape (Forward)
+
         Expect: prod(in_types[0].shape) == prod((4, 3))
         Actual: 8 != 12
 
     """
-    return Reshape(shape)(x)
+    if x.shape == shape:
+        return chainer.as_variable(x)
+    y, = Reshape(shape).apply((x,))
+    return y

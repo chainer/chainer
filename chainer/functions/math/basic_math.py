@@ -2,6 +2,7 @@ import numpy
 
 from chainer import cuda
 from chainer import function
+from chainer import function_node
 from chainer.functions.math import matmul as _matmul
 from chainer import utils
 from chainer.utils import type_check
@@ -46,7 +47,7 @@ def _preprocess_const(x, value):
     return utils.force_type(x.dtype, value)
 
 
-class Neg(function.Function):
+class Neg(function_node.FunctionNode):
 
     @property
     def label(self):
@@ -59,8 +60,8 @@ class Neg(function.Function):
         self.retain_inputs(())
         return utils.force_array(-x[0]),
 
-    def backward(self, x, gy):
-        return utils.force_array(-gy[0]),
+    def backward(self, indexes, gy):
+        return -gy[0],
 
 
 def neg(self):  # -x
@@ -69,10 +70,10 @@ def neg(self):  # -x
     Returns:
         ~chainer.Variable: Output variable.
     """
-    return Neg()(self)
+    return Neg().apply((self,))[0]
 
 
-class Absolute(function.Function):
+class Absolute(function_node.FunctionNode):
 
     @property
     def label(self):
@@ -83,17 +84,36 @@ class Absolute(function.Function):
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward(self, x):
+        self.retain_inputs((0,))
         return utils.force_array(abs(x[0])),
 
-    def backward_cpu(self, x, gy):
-        return utils.force_array(numpy.sign(x[0]) * gy[0]),
+    def backward(self, indexes, grad_outputs):
+        x = self.get_retained_inputs()[0]
+        return AbsoluteGrad(x.data).apply(grad_outputs)
 
-    def backward_gpu(self, x, gy):
+
+class AbsoluteGrad(function_node.FunctionNode):
+
+    def __init__(self, x):
+        super(AbsoluteGrad, self).__init__()
+        self.x = x
+
+    def check_type_forward(self, in_types):
+        type_check.expect(in_types.size() == 1)
+        type_check.expect(in_types[0].dtype.kind == 'f')
+
+    def forward_cpu(self, inputs):
+        return utils.force_array(numpy.sign(self.x) * inputs[0]),
+
+    def forward_gpu(self, inputs):
         gx0 = cuda.elementwise(
             'T x0, T gy', 'T gx0',
             'gx0 = ((x0 > 0) - (x0 < 0)) * gy',
-            'abs_bwd')(x[0], gy[0])
+            'abs_bwd')(self.x, inputs[0])
         return gx0,
+
+    def backward(self, indexes, grad_outputs):
+        return AbsoluteGrad(self.x).apply(grad_outputs)
 
 
 def absolute(self):
@@ -102,10 +122,10 @@ def absolute(self):
     Returns:
         ~chainer.Variable: Output variable.
     """
-    return Absolute()(self)
+    return Absolute().apply((self,))[0]
 
 
-class Add(function.Function):
+class Add(function_node.FunctionNode):
 
     @property
     def label(self):
@@ -119,15 +139,14 @@ class Add(function.Function):
         )
 
     def forward(self, x):
-        self.retain_inputs(())
         y = utils.force_array(x[0] + x[1])
         return y,
 
-    def backward(self, x, gy):
+    def backward(self, indexes, gy):
         return gy[0], gy[0]
 
 
-class AddConstant(function.Function):
+class AddConstant(function_node.FunctionNode):
 
     def __init__(self, value):
         self.value = value
@@ -140,11 +159,10 @@ class AddConstant(function.Function):
         type_check.expect(in_types.size() == 1)
 
     def forward(self, x):
-        self.retain_inputs(())
         value = _preprocess_const(x[0], self.value)
         return utils.force_array(x[0] + value),
 
-    def backward(self, x, gy):
+    def backward(self, indexes, gy):
         return gy[0],
 
 
@@ -155,12 +173,12 @@ def add(self, rhs):  # lhs + rhs
         ~chainer.Variable: Output variable.
     """
     if isinstance(rhs, variable.Variable):
-        return Add()(self, rhs)
+        return Add().apply((self, rhs))[0]
     _check_constant_type(rhs)
-    return AddConstant(rhs)(self)
+    return AddConstant(rhs).apply((self,))[0]
 
 
-class Sub(function.Function):
+class Sub(function_node.FunctionNode):
 
     @property
     def label(self):
@@ -174,11 +192,10 @@ class Sub(function.Function):
         )
 
     def forward(self, x):
-        self.retain_inputs(())
         return utils.force_array(x[0] - x[1]),
 
-    def backward(self, x, gy):
-        return gy[0], utils.force_array(-gy[0])
+    def backward(self, indexes, gy):
+        return gy[0], -gy[0]
 
 
 def sub(self, rhs):  # lhs - rhs
@@ -189,12 +206,12 @@ def sub(self, rhs):  # lhs - rhs
     """
 
     if isinstance(rhs, variable.Variable):
-        return Sub()(self, rhs)
+        return Sub().apply((self, rhs))[0]
     _check_constant_type(rhs)
-    return AddConstant(-rhs)(self)
+    return AddConstant(-rhs).apply((self,))[0]
 
 
-class SubFromConstant(function.Function):
+class SubFromConstant(function_node.FunctionNode):
 
     def __init__(self, value):
         self.value = value
@@ -211,8 +228,8 @@ class SubFromConstant(function.Function):
         value = _preprocess_const(x[0], self.value)
         return utils.force_array(value - x[0]),
 
-    def backward(self, x, gy):
-        return utils.force_array(-gy[0]),
+    def backward(self, indexes, gy):
+        return -gy[0],
 
 
 def rsub(self, rhs):  # rhs - lhs
@@ -222,12 +239,12 @@ def rsub(self, rhs):  # rhs - lhs
         ~chainer.Variable: Output variable.
     """
     if isinstance(rhs, variable.Variable):
-        return Sub()(rhs, self)
+        return Sub().apply((rhs, self))[0]
     _check_constant_type(rhs)
-    return SubFromConstant(rhs)(self)
+    return SubFromConstant(rhs).apply((self,))[0]
 
 
-class Mul(function.Function):
+class Mul(function_node.FunctionNode):
 
     @property
     def label(self):
@@ -242,13 +259,15 @@ class Mul(function.Function):
         )
 
     def forward(self, x):
+        self.retain_inputs((0, 1))
         return utils.force_array(x[0] * x[1]),
 
-    def backward(self, x, gy):
-        return utils.force_array(gy[0] * x[1]), utils.force_array(gy[0] * x[0])
+    def backward(self, indexes, gy):
+        xs = self.get_retained_inputs()
+        return tuple(gy[0] * xs[1 - i] for i in indexes)
 
 
-class MulConstant(function.Function):
+class MulConstant(function_node.FunctionNode):
 
     def __init__(self, value):
         self.value = value
@@ -264,10 +283,8 @@ class MulConstant(function.Function):
         value = _preprocess_const(x[0], self.value)
         return utils.force_array(value * x[0]),
 
-    def backward(self, x, gy):
-        # TODO(beam2d): Make it not use the input
-        value = _preprocess_const(x[0], self.value)
-        return utils.force_array(value * gy[0]),
+    def backward(self, indexes, gy):
+        return self.value * gy[0],
 
 
 def mul(self, rhs):  # lhs * rhs
@@ -278,12 +295,12 @@ def mul(self, rhs):  # lhs * rhs
     """
 
     if isinstance(rhs, variable.Variable):
-        return Mul()(self, rhs)
+        return Mul().apply((self, rhs))[0]
     _check_constant_type(rhs)
-    return MulConstant(rhs)(self)
+    return MulConstant(rhs).apply((self,))[0]
 
 
-class Div(function.Function):
+class Div(function_node.FunctionNode):
 
     @property
     def label(self):
@@ -298,20 +315,49 @@ class Div(function.Function):
         )
 
     def forward(self, x):
+        self.retain_inputs((0, 1))
         return utils.force_array(x[0] / x[1]),
 
-    def backward_cpu(self, x, gy):
-        gx0 = utils.force_array(gy[0] / x[1])
-        return gx0, utils.force_array(-gx0 * x[0] / x[1])
+    def backward(self, indexes, grad_outputs):
+        x = self.get_retained_inputs()
+        return DivGrad().apply((x[0], x[1], grad_outputs[0]))
 
-    def backward_gpu(self, x, gy):
+
+class DivGrad(function_node.FunctionNode):
+
+    def forward_cpu(self, inputs):
+        self.retain_inputs((0, 1, 2))
+        x0, x1, gy = inputs
+        gx0 = utils.force_array(gy / x1)
+        return gx0, utils.force_array(-gx0 * x0 / x1)
+
+    def forward_gpu(self, inputs):
+        self.retain_inputs((0, 1, 2))
+        x0, x1, gy = inputs
         return cuda.elementwise(
             'T x0, T x1, T gy',
             'T gx0, T gx1',
             '''
                gx0 = gy / x1;
                gx1 = -gx0 * x0 / x1;
-            ''', 'div_bwd')(x[0], x[1], gy[0])
+            ''', 'div_bwd')(x0, x1, gy)
+
+    def backward(self, indexes, grad_outputs):
+        x0, x1, gy = self.get_retained_inputs()
+        ret = []
+        x1_square = x1 * x1
+        if 0 in indexes:
+            ggx0 = - grad_outputs[1] * gy / x1_square
+            ret.append(ggx0)
+        if 1 in indexes:
+            ggx1 = \
+                - grad_outputs[0] * gy / x1_square + \
+                grad_outputs[1] * 2 * gy * x0 / (x1_square * x1)
+            ret.append(ggx1)
+        if 2 in indexes:
+            ggy = grad_outputs[0] / x1 - grad_outputs[1] * x0 / x1_square
+            ret.append(ggy)
+        return ret
 
 
 def div(self, rhs):  # lhs / rhs
@@ -322,9 +368,9 @@ def div(self, rhs):  # lhs / rhs
     """
 
     if isinstance(rhs, variable.Variable):
-        return Div()(self, rhs)
+        return Div().apply((self, rhs))[0]
     _check_constant_type(rhs)
-    return MulConstant(1. / rhs)(self)
+    return MulConstant(1. / rhs).apply((self,))[0]
 
 
 class DivFromConstant(function.Function):
@@ -365,7 +411,7 @@ def rdiv(self, rhs):  # rhs / lhs
     """
 
     if isinstance(rhs, variable.Variable):
-        return Div()(rhs, self)
+        return Div().apply((rhs, self))[0]
     _check_constant_type(rhs)
     return DivFromConstant(rhs)(self)
 

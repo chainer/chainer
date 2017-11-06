@@ -219,7 +219,7 @@ class TestConvolutionNDCudnnCall(unittest.TestCase):
 
     def test_call_cudnn_forward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
-            with mock.patch('cupy.cudnn.cudnn.convolutionForward') as func:
+            with mock.patch('cupy.cuda.cudnn.convolutionForward') as func:
                 self.forward()
                 self.assertEqual(func.called, self.expect)
 
@@ -227,7 +227,7 @@ class TestConvolutionNDCudnnCall(unittest.TestCase):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             y = self.forward()
             y.grad = self.gy
-            name = 'cupy.cudnn.cudnn.convolutionBackwardData_v3'
+            name = 'cupy.cuda.cudnn.convolutionBackwardData_v3'
             with mock.patch(name) as func:
                 y.backward()
                 self.assertEqual(func.called, self.expect)
@@ -265,6 +265,39 @@ class TestConvolutionNDarraySupplied(unittest.TestCase):
         self.check_array_supplied(cuda.to_gpu(self.x_data),
                                   cuda.to_gpu(self.W_data),
                                   cuda.to_gpu(self.b_data))
+
+
+class TestConvolutionNDBackwardNoncontiguousGradOutputs(unittest.TestCase):
+    # NumPy raises an error when the inputs of dot operation are not
+    # contiguous. This test ensures this issue is correctly handled.
+    # (https://github.com/chainer/chainer/issues/2744)
+
+    # This test depdends on that backward() of F.sum generates
+    # a non-contiguous array.
+
+    def test_1(self):
+        n_batches = 2
+        in_channels = 3
+        out_channels = 1  # important
+        x_shape = (n_batches, in_channels, 4)
+        w_shape = (out_channels, in_channels, 3)
+        x = numpy.ones(x_shape, numpy.float32)
+        w = numpy.ones(w_shape, numpy.float32)
+        y = functions.convolution_nd(chainer.Variable(x), w)
+        z = functions.sum(y)
+        z.backward()
+
+    def test_2(self):
+        n_batches = 2
+        in_channels = 3
+        out_channels = 1  # important
+        x_shape = (n_batches, in_channels, 4)
+        w_shape = (out_channels, in_channels, 3)
+        x = numpy.ones(x_shape, numpy.float32)
+        w = numpy.ones(w_shape, numpy.float32)
+        y = functions.convolution_nd(x, chainer.Variable(w))
+        z = functions.sum(y)
+        z.backward()
 
 
 testing.run_module(__name__, __file__)
