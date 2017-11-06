@@ -2,10 +2,10 @@ import six
 
 from chainer.dataset import convert
 from chainer.dataset import iterator as iterator_module
-from chainer.training import updater
+from chainer.training import _updater
 
 
-class StandardUpdater(updater.Updater):
+class StandardUpdater(_updater.Updater):
 
     """Standard implementation of Updater.
 
