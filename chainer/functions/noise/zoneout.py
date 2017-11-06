@@ -2,12 +2,12 @@ import numpy
 
 from chainer.backends import cuda
 from chainer import configuration
-from chainer import function
+from chainer import function_node
 from chainer.utils import argument
 from chainer.utils import type_check
 
 
-class Zoneout(function.Function):
+class Zoneout(function_node.FunctionNode):
 
     """Zoneout regularization."""
 
@@ -31,8 +31,14 @@ class Zoneout(function.Function):
         self.flag_x = flag_x
         return h * self.flag_h + x * self.flag_x,
 
-    def backward(self, inputs, gy):
-        return gy[0] * self.flag_h, gy[0] * self.flag_x,
+    def backward(self, indexes, grad_outputs):
+        gy, = grad_outputs
+        ret = []
+        if 0 in indexes:
+            ret.append(gy * self.flag_h)
+        if 1 in indexes:
+            ret.append(gy * self.flag_x)
+        return ret
 
 
 def zoneout(h, x, ratio=.5, **kwargs):
@@ -68,5 +74,5 @@ def zoneout(h, x, ratio=.5, **kwargs):
     argument.assert_kwargs_empty(kwargs)
 
     if configuration.config.train:
-        return Zoneout(ratio)(h, x)
+        return Zoneout(ratio).apply((h, x))[0]
     return x
