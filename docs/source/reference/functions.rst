@@ -74,6 +74,7 @@ Array manipulations
    chainer.functions.pad
    chainer.functions.pad_sequence
    chainer.functions.permutate
+   chainer.functions.repeat
    chainer.functions.reshape
    chainer.functions.resize_images
    chainer.functions.rollaxis
