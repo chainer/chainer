@@ -41,6 +41,8 @@ Load the MNIST dataset, which contains a training set of images and class labels
 
 .. testsetup:: *
 
+    from chainer.datasets import mnist
+
     train, test = mnist.get_mnist()
 
 .. testcode::
