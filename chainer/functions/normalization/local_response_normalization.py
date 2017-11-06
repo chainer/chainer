@@ -6,6 +6,12 @@ from chainer import function
 from chainer.utils import type_check
 
 
+if cuda.cudnn_enabled:
+    cudnn = cuda.cudnn
+    libcudnn = cudnn.cudnn
+    _mode = libcudnn.CUDNN_LRN_CROSS_CHANNEL_DIM1
+
+
 def _cu_conv_sum(y, x, n):
     # Convolutional sum
     # TODO(beam2d): Use scan computation
@@ -41,6 +47,8 @@ class LocalResponseNormalization(function.Function):
         self.k = k
         self.alpha = alpha
         self.beta = beta
+        
+        self._use_cudnn = False
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)
@@ -75,42 +83,104 @@ class LocalResponseNormalization(function.Function):
         return gx,
 
     def forward_gpu(self, x):
-        self.y = cuda.cupy.square(x[0])  # temporary
-        # scale = cuda.cupy.empty_like(self.y)
-        # _cu_conv_sum(scale, self.y, self.n)
-        # TODO(imaihal): Add policy to reduce memory
-        self.scale = cuda.cupy.empty_like(self.y)
-        _cu_conv_sum(self.scale, self.y, self.n)
-        cuda.elementwise(
-            'T x, T k, T alpha, T beta',
-            'T y, T scale',
-            '''scale = k + alpha * scale;
-               y = x * pow(scale, -beta);''',
-            'lrn_fwd')(x[0], self.k, self.alpha, self.beta,
-                       self.y, self.scale)
-        #               self.y, scale)
+        if cuda.cudnn_enabled:
+            self.retain_inputs((0,))
+            self._use_cudnn = True
+            
+            self.y = cuda.cupy.square(x[0])
+            
+            handle = cudnn.get_handle()
+            norm_desc = cudnn.create_lrn_descriptor(self.n, self.alpha, self.beta, self.k)
+            x_desc = cudnn.create_tensor_descriptor(x[0])
+            y_desc = cudnn.create_tensor_descriptor(self.y)
+            
+            oz_dtype = 'd' if x[0].dtype == 'd' else 'f'
+            one = numpy.array(1, dtype=oz_dtype).ctypes
+            zero = numpy.array(0, dtype=oz_dtype).ctypes
+            
+            libcudnn.LRNCrossChannelForward(
+                handle, norm_desc.value, _mode, 
+                one.data, x_desc.value, x[0].data.ptr, 
+                zero.data, y_desc.value, self.y.data.ptr)
+            
+            self.retain_outputs((0,))        
+            
+        else:
+            self.y = cuda.cupy.square(x[0])  # temporary
+            self.scale = cuda.cupy.empty_like(self.y)
+            _cu_conv_sum(self.scale, self.y, self.n)
+            # TODO(imaihal): Add policy about memory reduction
+            # scale = cuda.cupy.empty_like(self.y)
+            # _cu_conv_sum(scale, self.y, self.n)
+            cuda.elementwise(
+                'T x, T k, T alpha, T beta',
+                'T y, T scale',
+                '''scale = k + alpha * scale;
+                   y = x * pow(scale, -beta);''',
+                'lrn_fwd')(x[0], self.k, self.alpha, self.beta,
+                           self.y, self.scale)
+            #               self.y, scale)
+            
         return self.y,
 
     def backward_gpu(self, x, gy):
-        # TODO(imaihal): Add policy to reduce memory
-        # gx = cuda.cupy.square(x[0])  # temporary
-        # scale = cuda.cupy.empty_like(gx)
-        # _cu_conv_sum(scale, gx, self.n)
-        #
-        summand = cuda.elementwise(
-            'T scale, T y, T gy', 'T summand',
-            'summand = y * gy / scale',
-            'lrn_bwd_summand')(self.scale, self.y, gy[0])
-        #    'lrn_bwd_summand')(scale, self.y, gy[0])
-        gx = cuda.cupy.empty_like(x[0])
-        _cu_conv_sum(gx, summand, self.n)
-        cuda.elementwise(
-            ' T x, T gy, T scale, T beta, T coeff', 'T gx',
-            'gx = pow(scale, -beta) * gy - coeff * x * gx',
-            'lrn_bwd')(x[0], gy[0], self.scale,
-                       self.beta, 2 * self.alpha * self.beta, gx)
-        #    'lrn_bwd')(x[0], gy[0], scale,
-        #               self.beta, 2 * self.alpha * self.beta, gx)
+        if cuda.cudnn_enabled:
+            gx = cuda.cupy.square(x[0])
+            
+            handle = cudnn.get_handle()
+            norm_desc = cudnn.create_lrn_descriptor(self.n, self.alpha, self.beta, self.k)
+            x_desc = cudnn.create_tensor_descriptor(x[0])
+            y_desc = cudnn.create_tensor_descriptor(self.y)
+            
+            oz_dtype = 'd' if x[0].dtype == 'd' else 'f'
+            one = numpy.array(1, dtype=oz_dtype).ctypes
+            zero = numpy.array(0, dtype=oz_dtype).ctypes
+            
+            libcudnn.LRNCrossChannelBackward(
+                handle, norm_desc.value, _mode, 
+                one.data, y_desc.value, self.y.data.ptr, 
+                y_desc.value, gy[0].data.ptr, x_desc.value, x[0].data.ptr, 
+                zero.data, x_desc.value, gx.data.ptr)
+            
+        else:
+            # TODO(imaihal): Add policy about memory reduction
+            # gx = cuda.cupy.square(x[0])  # temporary
+            # scale = cuda.cupy.empty_like(gx)
+            # _cu_conv_sum(scale, gx, self.n)
+            #
+            summand = cuda.elementwise(
+                'T scale, T y, T gy', 'T summand',
+                'summand = y * gy / scale',
+                'lrn_bwd_summand')(self.scale, self.y, gy[0])
+            #    'lrn_bwd_summand')(scale, self.y, gy[0])
+            gx = cuda.cupy.empty_like(x[0])
+            _cu_conv_sum(gx, summand, self.n)
+            cuda.elementwise(
+                ' T x, T gy, T scale, T beta, T coeff', 'T gx',
+                'gx = pow(scale, -beta) * gy - coeff * x * gx',
+                'lrn_bwd')(x[0], gy[0], self.scale,
+                           self.beta, 2 * self.alpha * self.beta, gx)
+            #    'lrn_bwd')(x[0], gy[0], scale,
+            #               self.beta, 2 * self.alpha * self.beta, gx)
+            """
+            gx = cuda.cupy.square(x[0])  # temporary
+            scale = cuda.cupy.empty_like(gx)
+            _cu_conv_sum(scale, gx, self.n)
+            summand = cuda.cupy.empty_like(gx)
+            cuda.elementwise(
+                'T k, T alpha, T y, T gy', 
+                'T scale, T summand',
+                '''scale = k + alpha * scale;
+                   summand = y * gy / scale;''',
+                'lrn_bwd_summand')(self.k, self.alpha, self.y, gy[0], scale, summand)
+            _cu_conv_sum(gx, summand, self.n)
+            cuda.elementwise(
+                ' T x, T gy, T scale, T beta, T coeff', 'T gx',
+                'gx = pow(scale, -beta) * gy - coeff * x * gx',
+                'lrn_bwd')(x[0], gy[0], scale,
+                           self.beta, 2 * self.alpha * self.beta, gx)
+            
+            """
         return gx,
 
 
