@@ -222,7 +222,8 @@ Use apply() method instead.\
         in_data = tuple([x.data for x in input_vars])
         requires_grad = any([x.requires_grad for x in input_vars])
 
-        if chainer.is_debug():
+        is_debug = chainer.is_debug()
+        if is_debug:
             self.stack = traceback.extract_stack()
 
         if configuration.config.type_check:
@@ -248,7 +249,7 @@ Use apply() method instead.\
             hook.forward_postprocess(self, in_data)
 
         # NaN check of output values
-        if chainer.is_debug():
+        if is_debug:
             if any(out.dtype.kind == 'f' and
                    cuda.get_array_module(out).isnan(out).any()
                    for out in outputs):
