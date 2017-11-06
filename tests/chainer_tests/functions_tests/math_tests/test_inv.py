@@ -38,7 +38,7 @@ class InvFunctionTest(unittest.TestCase):
             numpy.float32)
         self.gy = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
         self.ggx = (numpy.eye(self.shape[-1]) +
-                  numpy.random.uniform(-0.01, 0.01, self.shape)).astype(
+                    numpy.random.uniform(-0.01, 0.01, self.shape)).astype(
             numpy.float32)
         self.check_forward_options = {'atol': 1e-3, 'rtol': 1e-4}
         self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-4}
@@ -118,7 +118,7 @@ class BatchInvFunctionTest(unittest.TestCase):
             numpy.float32)
         self.gy = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
         self.ggx = (numpy.eye(self.shape[-1]) +
-                  numpy.random.uniform(-0.01, 0.01, self.shape)).astype(
+                    numpy.random.uniform(-0.01, 0.01, self.shape)).astype(
             numpy.float32)
         self.check_forward_options = {'atol': 1e-3, 'rtol': 1e-4}
         self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-4}
