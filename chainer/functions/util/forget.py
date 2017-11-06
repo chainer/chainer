@@ -118,4 +118,8 @@ def forget(func, *xs):
         the method returns a tuple too.
 
     """
+    # Guarantee that backward is called by wrapping bare ndarrays as
+    # ``Variable`` s with ``requires_grad`` set to ``True``.
+    xs = tuple(x if isinstance(x, variable.Variable) else
+               variable.Variable(x, requires_grad=True) for x in xs)
     return Forget(func)(*xs)
