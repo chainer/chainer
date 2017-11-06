@@ -70,13 +70,16 @@ _environment_check.check()
 
 __version__ = _version.__version__
 
-thread_local = threading.local()
+_thread_local = threading.local()
 
 
 def get_function_hooks():
-    if not hasattr(thread_local, 'function_hooks'):
-        thread_local.function_hooks = collections.OrderedDict()
-    return thread_local.function_hooks
+    try:
+        ret = _thread_local.function_hooks
+    except AttributeError:
+        ret = collections.OrderedDict()
+        _thread_local.function_hooks = ret
+    return ret
 
 
 global_config.debug = bool(int(os.environ.get('CHAINER_DEBUG', '0')))
@@ -125,11 +128,12 @@ def should_use_cudnn(level, lowest_version=0):
                          repr(level))
     flags = _SHOULD_USE_CUDNN[level]
 
-    if config.use_cudnn not in flags:
+    use_cudnn = config.use_cudnn
+    if use_cudnn not in flags:
         raise ValueError('invalid use_cudnn configuration: %s '
                          '(must be either of "always", "auto", or "never")' %
-                         repr(config.use_cudnn))
-    return flags[config.use_cudnn]
+                         repr(use_cudnn))
+    return flags[use_cudnn]
 
 
 def is_debug():
