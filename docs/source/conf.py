@@ -12,6 +12,7 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
+import datetime
 import inspect
 import os
 import pkg_resources
@@ -72,8 +73,9 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'Chainer'
-copyright = u'2015, Preferred Networks, inc. and Preferred Infrastructure, inc.'
-author = u'Preferred Networks, inc. and Preferred Infrastructure, inc.'
+copyright = u'2015-{}, Preferred Networks, Inc. and Preferred Infrastructure, Inc.'.format(
+    datetime.datetime.now().year)
+author = u'Preferred Networks, Inc. and Preferred Infrastructure, Inc.'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
