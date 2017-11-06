@@ -318,7 +318,7 @@ default_eps = 1e-3
     {'func': 'log', 'x': [0.], 'result': True,
      'ignore_warning': RuntimeWarning},
     # (Invalid input domain)
-    {'func': 'exp', 'x': [-10.], 'result': False,
+    {'func': 'log', 'x': [-10.], 'result': False,
      'ignore_warning': RuntimeWarning},
     {'func': 'tan', 'x': [default_eps * 1.2], 'result': False},
     {'func': 'tan', 'x': [default_eps * 0.8], 'result': False},
