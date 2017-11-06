@@ -10,6 +10,7 @@ from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
+from chainer.testing import condition
 
 
 @testing.parameterize(
@@ -31,8 +32,6 @@ class TestContrastive(unittest.TestCase):
         else:
             self.gy = numpy.random.uniform(
                 -1, 1, (self.batchsize,)).astype(numpy.float32)
-
-        self.check_backward_options = {'rtol': 1e-2, 'atol': 1e-3}
 
     def check_forward(self, x0_data, x1_data, t_data):
         x0_val = chainer.Variable(x0_data)
@@ -59,7 +58,7 @@ class TestContrastive(unittest.TestCase):
             loss_expect[i] /= 2.
         if self.reduce == 'mean':
             loss_expect = numpy.sum(loss_expect) / self.t.shape[0]
-        numpy.testing.assert_allclose(loss_expect, loss_value, rtol=1e-2)
+        numpy.testing.assert_allclose(loss_expect, loss_value, rtol=1e-5)
 
     def test_negative_margin(self):
         self.margin = -1
@@ -68,10 +67,12 @@ class TestContrastive(unittest.TestCase):
         self.assertRaises(ValueError, self.check_backward,
                           self.x0, self.x1, self.t, self.gy)
 
+    @condition.retry(3)
     def test_forward_cpu(self):
         self.check_forward(self.x0, self.x1, self.t)
 
     @attr.gpu
+    @condition.retry(3)
     def test_forward_gpu_no_cudnn(self):
         self.check_forward(cuda.to_gpu(self.x0), cuda.to_gpu(self.x1),
                            cuda.to_gpu(self.t))
@@ -80,20 +81,24 @@ class TestContrastive(unittest.TestCase):
         gradient_check.check_backward(
             functions.Contrastive(self.margin, self.reduce),
             (x0_data, x1_data, t_data), gy_data, dtype='d',
-            **self.check_backward_options)
+            rtol=1e-3, atol=1e-4)
 
+    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.x0, self.x1, self.t, self.gy)
 
     @attr.gpu
+    @condition.retry(3)
     def test_backward_gpu_no_cudnn(self):
         self.check_backward(cuda.to_gpu(self.x0), cuda.to_gpu(self.x1),
                             cuda.to_gpu(self.t), cuda.to_gpu(self.gy))
 
+    @condition.retry(3)
     def test_backward_zero_dist_cpu(self):
         self.check_backward(self.x0, self.x0, self.t, self.gy)
 
     @attr.gpu
+    @condition.retry(3)
     def test_backward_zero_dist_gpu_no_cudnn(self):
         self.check_backward(cuda.to_gpu(self.x0), cuda.to_gpu(self.x0),
                             cuda.to_gpu(self.t), cuda.to_gpu(self.gy))

@@ -31,14 +31,14 @@ class TestSimplifiedDropconnect(unittest.TestCase):
         self.gy = numpy.random.uniform(-1, 1, (4, 2)).astype(self.x_dtype)
         self.y = self.x.dot(self.W.T) + self.b
         self.check_forward_options = {}
-        self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-3}
+        self.check_backward_options = {}
         if self.x_dtype == numpy.float16:
             self.check_forward_options = {'atol': 1e-3, 'rtol': 1e-2}
             self.check_backward_options = {
-                'dtype': numpy.float64, 'atol': 1e-2, 'rtol': 1e-2}
+                'dtype': numpy.float64, 'atol': 5e-4, 'rtol': 5e-3}
         elif self.W_dtype == numpy.float16:
             self.check_backward_options = {
-                'dtype': numpy.float64, 'atol': 1e-2, 'rtol': 1e-2}
+                'dtype': numpy.float64, 'atol': 5e-4, 'rtol': 5e-3}
 
     def check_forward(self, x_data, W_data, b_data):
         # Check only data type, y is tested by SimplifiedDropconnect link test.

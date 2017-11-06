@@ -8,6 +8,7 @@ from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
+from chainer.testing import condition
 from chainer.utils import type_check
 
 
@@ -19,26 +20,21 @@ class TestMinimum(unittest.TestCase):
 
     def setUp(self):
         shape = self.shape
-        self.gy = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
-        self.check_forward_options = {}
-        self.check_backward_options = {'dtype': numpy.float64}
-        if self.dtype == numpy.float16:
-            eps = 2 ** -3
-            self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
-            self.check_backward_options = {'atol': 1e-2, 'rtol': 1e-1}
-        else:
-            eps = 1e-2
-        self.check_backward_options['eps'] = eps
-
         self.x1 = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
         self.x2 = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
-
         # Avoid close values for stability in numerical gradient.
-        idx = abs(self.x1 - self.x2) < 2 * eps
-        self.x1[idx] = -0.5
-        self.x2[idx] = 0.5
-
+        for i in numpy.ndindex(shape):
+            if -0.125 < self.x1[i] - self.x2[i] < 0.125:
+                self.x1[i] = -0.5
+                self.x2[i] = 0.5
         self.y_expected = numpy.minimum(self.x1, self.x2)
+        self.gy = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
+        self.check_forward_options = {}
+        self.check_backward_options = {'eps': 1e-2}
+        if self.dtype == numpy.float16:
+            self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
+            self.check_backward_options = {
+                'eps': 2 ** -3, 'atol': 1e-2, 'rtol': 1e-1}
 
     def check_forward(self, x1_data, x2_data, y_expected):
         x1 = chainer.Variable(x1_data)
@@ -48,10 +44,12 @@ class TestMinimum(unittest.TestCase):
         testing.assert_allclose(
             y_expected, y.data, **self.check_forward_options)
 
+    @condition.retry(3)
     def test_forward_cpu(self):
         self.check_forward(self.x1, self.x2, self.y_expected)
 
     @attr.gpu
+    @condition.retry(3)
     def test_forward_gpu(self):
         x1 = cuda.to_gpu(self.x1)
         x2 = cuda.to_gpu(self.x2)
@@ -63,10 +61,12 @@ class TestMinimum(unittest.TestCase):
         gradient_check.check_backward(
             func, x, y_grad, **self.check_backward_options)
 
+    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.x1, self.x2, self.gy)
 
     @attr.gpu
+    @condition.retry(3)
     def test_backward_gpu(self):
         x1 = cuda.to_gpu(self.x1)
         x2 = cuda.to_gpu(self.x2)

@@ -9,6 +9,7 @@ from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
+from chainer.testing import condition
 
 
 @testing.parameterize(
@@ -20,32 +21,15 @@ from chainer.testing import attr
 class TestTriplet(unittest.TestCase):
 
     def setUp(self):
-        eps = 1e-3
         x_shape = (self.batchsize, self.input_dim)
-
-        # Sample differentiable inputs
-        while True:
-            self.a = numpy.random.uniform(-1, 1, x_shape).astype(numpy.float32)
-            self.p = numpy.random.uniform(-1, 1, x_shape).astype(numpy.float32)
-            self.n = numpy.random.uniform(-1, 1, x_shape).astype(numpy.float32)
-            if (abs(self.a - self.p) < 2 * eps).any():
-                continue
-            if (abs(self.a - self.n) < 2 * eps).any():
-                continue
-            dist = numpy.sum(
-                (self.a - self.p) ** 2 - (self.a - self.n) ** 2,
-                axis=1) + self.margin
-            if (abs(dist) < 2 * eps).any():
-                continue
-            break
-
+        self.a = numpy.random.uniform(-1, 1, x_shape).astype(numpy.float32)
+        self.p = numpy.random.uniform(-1, 1, x_shape).astype(numpy.float32)
+        self.n = numpy.random.uniform(-1, 1, x_shape).astype(numpy.float32)
         if self.reduce == 'mean':
             gy_shape = ()
         else:
             gy_shape = (self.batchsize,)
         self.gy = numpy.random.uniform(-1, 1, gy_shape).astype(numpy.float32)
-
-        self.check_backward_options = {'eps': eps, 'rtol': 1e-2, 'atol': 1e-2}
 
     def check_forward(self, a_data, p_data, n_data):
         a_val = chainer.Variable(a_data)
@@ -80,10 +64,12 @@ class TestTriplet(unittest.TestCase):
         self.assertRaises(ValueError, self.check_backward,
                           self.a, self.p, self.n, self.gy)
 
+    @condition.retry(3)
     def test_forward_cpu(self):
         self.check_forward(self.a, self.p, self.n)
 
     @attr.gpu
+    @condition.retry(3)
     def test_forward_gpu_no_cudnn(self):
         self.check_forward(cuda.to_gpu(self.a), cuda.to_gpu(self.p),
                            cuda.to_gpu(self.n))
@@ -91,13 +77,14 @@ class TestTriplet(unittest.TestCase):
     def check_backward(self, a_data, p_data, n_data, gy_data):
         gradient_check.check_backward(
             functions.Triplet(self.margin, self.reduce),
-            (a_data, p_data, n_data), gy_data, dtype=numpy.float64,
-            **self.check_backward_options)
+            (a_data, p_data, n_data), gy_data, rtol=1e-4, atol=1e-4)
 
+    @condition.retry(10)
     def test_backward_cpu(self):
         self.check_backward(self.a, self.p, self.n, self.gy)
 
     @attr.gpu
+    @condition.retry(10)
     def test_backward_gpu_no_cudnn(self):
         self.check_backward(cuda.to_gpu(self.a), cuda.to_gpu(self.p),
                             cuda.to_gpu(self.n), cuda.to_gpu(self.gy))
