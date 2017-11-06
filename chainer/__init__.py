@@ -136,7 +136,9 @@ def should_use_cudnn(level, lowest_version=0):
                          repr(use_cudnn))
     return flags[use_cudnn]
 
+
 _tensor_core_flag = {'always': True, 'auto': None, 'never': False}
+
 
 def should_use_cudnn_tensor_core(dtype):
     """Determines if Tensor Core should be used.
@@ -156,7 +158,6 @@ def should_use_cudnn_tensor_core(dtype):
     use_tensor_core = _tensor_core_flag[use_cudnn_tensor_core]
     if use_tensor_core is None:
         use_tensor_core = cuda.cudnn.is_tensor_core_available(dtype)
-
     return use_tensor_core
 
 

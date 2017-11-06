@@ -24,7 +24,6 @@ def get_function_check_context(f):
         _thread_local.current_function = default
 
 
-
 class TypeInfo(object):
 
     """Type information of an input/gradient array.
