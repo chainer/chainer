@@ -170,15 +170,18 @@ class TestBinaryOp(unittest.TestCase):
         self.backward_gpu(lambda x, y: x ** y)
 
     def check_double_backward(
-            self, op, x1_data, x2_data, y_grad, ggx1_data, ggx2_data,
-            **args):
+            self, op, x1_data, x2_data, y_grad, ggx1_data, ggx2_data, **args):
         options = {}
         if self.dtype == numpy.float16:
             options = {'atol': 5e-3, 'rtol': 5e-2}
         options.update(args)
 
+        def _op(*xs):
+            y = op(*xs)
+            return y * y
+
         gradient_check.check_double_backward(
-            op, (x1_data, x2_data), y_grad, (ggx1_data, ggx2_data),
+            _op, (x1_data, x2_data), y_grad, (ggx1_data, ggx2_data),
             dtype=numpy.float64, **options)
 
     def double_backward_cpu(self, op, **options):
@@ -193,12 +196,14 @@ class TestBinaryOp(unittest.TestCase):
     def test_pow_double_backward_cpu(self):
         self.double_backward_cpu(lambda x, y: x ** y)
 
+    def test_rpow_double_backward_cpu(self):
+        self.double_backward_cpu(lambda x, y: y.__rpow__(x))
+
     def double_backward_gpu(self, op, **options):
         self.check_double_backward(
             op, cuda.to_gpu(self.x1), cuda.to_gpu(self.x2),
             cuda.to_gpu(self.gy),
-            cuda.to_gpu(self.ggx1), cuda.to_gpu(self.ggx2),
-            **options)
+            cuda.to_gpu(self.ggx1), cuda.to_gpu(self.ggx2), **options)
 
     @attr.gpu
     @condition.repeat(3)
@@ -208,6 +213,10 @@ class TestBinaryOp(unittest.TestCase):
     @attr.gpu
     def test_pow_double_backward_gpu(self):
         self.double_backward_gpu(lambda x, y: x ** y)
+
+    @attr.gpu
+    def test_rpow_double_backward_gpu(self):
+        self.double_backward_gpu(lambda x, y: y.__rpow__(x))
 
 
 @testing.parameterize(*testing.product({
@@ -639,12 +648,12 @@ class TestVariableConstantOp(unittest.TestCase):
         if self.dtype == numpy.float16:
             options = {'atol': 5e-3, 'rtol': 5e-2}
 
-        def f(x):
+        def _op(x):
             y = op(x, self.value)
             return y * y
 
         gradient_check.check_double_backward(
-            f, x_data, y_grad, x_grad_grad, dtype=numpy.float64, **options)
+            _op, x_data, y_grad, x_grad_grad, dtype=numpy.float64, **options)
 
     def double_backward_cpu(self, op):
         self.check_double_backward(op, self.x, self.gy, self.ggx)
@@ -869,12 +878,12 @@ class TestVariableConstantArrayOp(unittest.TestCase):
         if self.dtype == numpy.float16:
             options = {'atol': 5e-3, 'rtol': 5e-2}
 
-        def f(x):
+        def _op(x):
             y = op(x, value)
             return y * y
 
         gradient_check.check_double_backward(
-            f, x_data, y_grad, x_grad_grad, dtype=numpy.float64, **options)
+            _op, x_data, y_grad, x_grad_grad, dtype=numpy.float64, **options)
 
     def double_backward_cpu(self, op, positive=False):
         self.check_double_backward(
@@ -1033,7 +1042,7 @@ class TestNegativePow(unittest.TestCase):
             lambda x: x ** 2, x_data, y_grad, x_grad_grad, dtype=numpy.float64,
             **options)
 
-    def test_double_cpu(self):
+    def test_double_backward_cpu(self):
         self.check_double_backward(self.x, self.gy, self.ggx)
 
     @attr.gpu

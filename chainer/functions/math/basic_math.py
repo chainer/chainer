@@ -456,21 +456,25 @@ class PowVarVarGrad(function_node.FunctionNode):
             in_types[0].shape == in_types[2].shape,
         )
 
-    def forward(self, inputs):
+    def forward_cpu(self, inputs):
         self.retain_inputs((0, 1, 2))
         x0, x1, gy = inputs
 
-        if isinstance(x0, numpy.ndarray):
-            one = x1.dtype.type(1)
-            gx0 = utils.force_array(x1 * (x0 ** (x1 - one)) * gy)
-            gx1 = utils.force_array(numpy.log(x0) * self.y * gy)
-        else:
-            gx0, gx1 = cuda.elementwise(
-                'T x0, T x1, T gy, T y', 'T gx0, T gx1',
-                '''
-                gx0 = x1 * pow(x0, x1 - 1) * gy;
-                gx1 = log(x0) * y * gy;
-                ''', 'pow_var_var_bwd')(x0, x1, gy, self.y)
+        one = x1.dtype.type(1)
+        gx0 = utils.force_array(x1 * (x0 ** (x1 - one)) * gy)
+        gx1 = utils.force_array(numpy.log(x0) * self.y * gy)
+        return gx0, gx1
+
+    def forward_gpu(self, inputs):
+        self.retain_inputs((0, 1, 2))
+        x0, x1, gy = inputs
+
+        gx0, gx1 = cuda.elementwise(
+            'T x0, T x1, T gy, T y', 'T gx0, T gx1',
+            '''
+            gx0 = x1 * pow(x0, x1 - 1) * gy;
+            gx1 = log(x0) * y * gy;
+            ''', 'pow_var_var_bwd')(x0, x1, gy, self.y)
         return gx0, gx1
 
     def backward(self, indexes, ggx):
@@ -534,20 +538,24 @@ class PowVarConstGrad(function_node.FunctionNode):
             in_types[0].shape == in_types[1].shape
         )
 
-    def forward(self, inputs):
+    def forward_cpu(self, inputs):
         self.retain_inputs((0, 1))
         x, gy = inputs
 
-        if isinstance(x, numpy.ndarray):
-            self.val_1 = _preprocess_const(x, self.value - 1)
-            gx = utils.force_type(x.dtype, self.value) * (x ** self.val_1) * gy
-            gx = utils.force_array(gx)
-        else:
-            self.val = _preprocess_const(x, self.value)
-            gx = cuda.elementwise(
-                'T x, T gy, T value', 'T gx',
-                'gx = value * pow(x, value - 1) * gy',
-                'pow_var_const_bwd')(x, gy, self.val)
+        self.val_1 = _preprocess_const(x, self.value - 1)
+        gx = utils.force_type(x.dtype, self.value) * (x ** self.val_1) * gy
+        gx = utils.force_array(gx)
+        return gx,
+
+    def forward_gpu(self, inputs):
+        self.retain_inputs((0, 1))
+        x, gy = inputs
+
+        self.val = _preprocess_const(x, self.value)
+        gx = cuda.elementwise(
+            'T x, T gy, T value', 'T gx',
+            'gx = value * pow(x, value - 1) * gy',
+            'pow_var_const_bwd')(x, gy, self.val)
         return gx,
 
     def backward(self, indexes, ggx):
@@ -617,20 +625,24 @@ class PowConstVarGrad(function_node.FunctionNode):
             in_types[0].shape == in_types[1].shape
         )
 
-    def forward(self, inputs):
+    def forward_cpu(self, inputs):
         self.retain_inputs((0, 1))
         y, gy = inputs
 
         self.value = _preprocess_const(y, self.value)
+        gx = utils.force_array(
+            numpy.log(self.value, dtype=y.dtype) * y * gy)
+        return gx,
 
-        if isinstance(y, numpy.ndarray):
-            gx = utils.force_array(
-                numpy.log(self.value, dtype=y.dtype) * y * gy)
-        else:
-            gx = cuda.elementwise(
-                'T y, T gy, T value', 'T gx',
-                'gx = log(value) * y * gy',
-                'pow_const_var_bwd')(y, gy, self.value)
+    def forward_gpu(self, inputs):
+        self.retain_inputs((0, 1))
+        y, gy = inputs
+
+        self.value = _preprocess_const(y, self.value)
+        gx = cuda.elementwise(
+            'T y, T gy, T value', 'T gx',
+            'gx = log(value) * y * gy',
+            'pow_const_var_bwd')(y, gy, self.value)
         return gx,
 
     def backward(self, indexes, ggx):
