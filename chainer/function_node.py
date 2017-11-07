@@ -255,7 +255,8 @@ Use apply() method instead.\
                 raise RuntimeError(
                     'FunctionNode.forward() must return a tuple of ndarrays '
                     '(numpy.ndarray or cuda.ndarray).\n'
-                    'Actual: tuple of {}'.format([type(out) for out in outputs]))
+                    'Actual: tuple of {}'.format(
+                        [type(out) for out in outputs]))
 
             # NaN check of output values
             if any(out.dtype.kind == 'f' and
