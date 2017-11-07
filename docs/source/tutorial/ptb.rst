@@ -74,30 +74,33 @@ The process to get a next word prediction from :math:`i`-th input word :math:`{\
 - Note that :math:`{\rm softmax}` in the above equation converts an arbitrary
   real vector to a probability vector which the summation over all elements is :math:`1`.
 
-1.1 Perplexity (Evaluation the language model)
------------------------------------------------
+1.2 Perplexity (Evaluation of the language model)
+--------------------------------------------------
 
-In order to evaluate the language model, we use the **perplexity**.
-Generally, the perplexity is the measure how well the proposed proposed probability
-model :math:`P_{\rm model}` predicts a separate test sample
-:math:`x_1, x_2, ..., x_N` drawn from the unknown probability distribution
-:math:`P`.
-Let the evaluation dataset be :math:`D = \{X^{(n)}\}_{n=1}^{|D|}`, the :math:`n`-th
-sentence size be :math:`T^{(n)}`, and the vacablary size be :math:`V`.
-The perplexity is :math:`b^z`, s.t.
+**Perplexity** is the common evaluation metric for a language model.
+Generally, it measures how well the proposed probability
+model :math:`P_{\rm model}({\bf X})` represents the target data
+:math:`P^*({\bf X})`.
+Let a validation dataset be :math:`D = \{{\bf X}^{(n)}\}_{n=1}^{|D|}`,
+which is a set of sentences, where the :math:`n`-th sentence length is
+:math:`T^{(n)}`, and the vocabulary size of this dataset is :math:`|\mathcal{V}|`,
+the perplexity is represented as follows:
 
-    .. math:: z = -\frac{1}{V} \sum_{n=1}^{|D|} \sum_{t=1}^{T^{(n)}} \log_b P_{\rm model}(x_t^{(n)}, X_{[a, t-1]}^{(n)})
+.. math::
+    b^z \ \ s.t. \ \ z = - \frac{1}{|\mathcal{V}|} \sum_{n=1}^{|D|} \sum_{t=1}^{T^{(n)}} \log_b P_{\rm model}({\bf x}_t^{(n)}, {\bf X}_{[a, t-1]}^{(n)})
 
-Usually, :math:`b` is :math:`2` or :math:`e`.
+We usually use :math:`b = 2` or :math:`b = e`. The perplexity shows how much
+varied the predicted distribution for the next word is. When a language model well
+represents the dataset, it should show a high probability only for the correct next
+word, so that the entropy should be high. In the above equation, the sign is
+reversed, so that smaller perplexity means better model.
 
-The exponent above :math:`z` of perplexity can be regarded as entropy function,
+During training, we minimize the below cross entropy:
 
-    .. math:: H(\hat P, P_{\rm model}) = -\sum_x \hat P(x) \log_2 P_{\rm model}(x)
+.. math::
+    \mathcal{H}(\hat{P}, P_{\rm model}) = - \hat{P}({\bf X}) \log P_{\rm model}({\bf X})
 
-where :math:`\hat P` is the empirical distribution of the test sample. When
-:math:`x` appeared :math:`n` times in the test sample of size :math:`N`,
-:math:`\hat P(x) = n/N`. So, in the implementation of this tutorial, we use the
-cross-entoropy function as the loss function.
+where :math:`\hat P` is the empirical distribution of a sequence in the training dataset.
 
 2. Implementation of Recurrent Neural Net Language Model
 =========================================================
