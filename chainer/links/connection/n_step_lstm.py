@@ -73,12 +73,14 @@ class NStepLSTMBase(link.ChainList):
                             w_in = out_size
                         name_w = 'w{}'.format(j)
                         name_b = 'b{}'.format(j)
-                        if getattr(initial_weight, name_w, None) is None:
+                        if getattr(getattr(initial_weight, name_w, None),
+                                   'data', None) is None:
                             initialW_ = initialW
                         else:
                             initialW_ = initializers._get_initializer(
                                 getattr(initial_weight, name_w).data)
-                        if getattr(initial_weight, name_b, None) is None:
+                        if getattr(getattr(initial_weight, name_b, None),
+                                   'data', None) is None:
                             initial_bias_ = initial_bias
                         else:
                             initial_bias_ = getattr(initial_weight,
