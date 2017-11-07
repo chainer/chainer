@@ -79,7 +79,7 @@ class TestScatterAdd(unittest.TestCase):
 
         gradient_check.check_double_backward(
             f, (a_data, b_data), y_grad, (a_grad_grad, b_grad_grad),
-            atol=5e-4, rtol=1e-4)
+            atol=1e-3, rtol=1e-3)
 
     def test_double_backward_cpu(self):
         self.check_double_backward(self.a_data, self.b_data, self.gy_data,
