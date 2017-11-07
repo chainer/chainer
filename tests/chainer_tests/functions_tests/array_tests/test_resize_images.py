@@ -128,9 +128,10 @@ class TestResizeImagesBackward(unittest.TestCase):
             y = functions.resize_images(x, output_shape)
             return y * y
 
-        gradient_check.check_double_backward(f, x, gy, ggx)
+        gradient_check.check_double_backward(
+            f, x, gy, ggx, atol=1e-2, rtol=1e-3)
 
-    def test_doube_backward_cpu(self):
+    def test_double_backward_cpu(self):
         self.check_double_backward(
             self.x, self.output_shape, self.gy, self.ggx)
 
