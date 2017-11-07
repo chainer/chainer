@@ -38,7 +38,10 @@ class TypeInfo(object):
         self.shape = shape
         self.dtype = dtype
         self.ndim = len(shape)
-        self.size = functools.reduce(operator.mul, shape, 1)
+
+    @property
+    def size(self):
+        return functools.reduce(operator.mul, self.shape, 1)
 
 
 class TypeInfoTuple(tuple):
