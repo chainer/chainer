@@ -35,43 +35,44 @@ a language model :math:`P({\bf X})`.
 1.1 Recurrent Neural Net Language Model
 ---------------------------------------
 
-**Recurrent Neurral Net Language Model** (RNN language model) is the neural net
-language model which contains the RNN in the network. Since the RNN can deal with
+**Recurrent Neurral Net Language Model** (RNNLM) is a type of neural net
+language models which contains the RNNs in the network. Since an RNN can deal with
 the variable length inputs, it is suitable for modeling the sequential data such
-that natural languages. 
+as sentences in natural language. 
 
-The probablity of generating the sentence :math:`X` is denoted as
-:math:`P_{\rm model}(X)`,
+We show one layer of an RNNLM with these parameters.
 
-.. math:: P_{\rm model}(X) = P(x_0) \prod_{t=1}^T P(x_t|X[0, t-1])
-
-We show the one layer of the RNN language model with these parameters.
-
-* :math:`x_t` : the one-hot vector of :math:`t`-th word.
-* :math:`y_t` : the :math:`t`-th output.
-* :math:`h_t^i` : the :math:`t`-th hidden layer of `i`-th layer.
-* :math:`p_t` : the next word's probability of :math:`t`-th word.
-* :math:`E` : Embedding matrix
-* :math:`W_h` : Hidden layer matrix
-* :math:`W_o` : Output layer matrix
+=======================  =============================================
+Symbol                   Definition 
+=======================  =============================================
+:math:`{\bf x}_t`        the one-hot vector of :math:`t`-th word 
+:math:`{\bf y}_t`        the :math:`t`-th output
+:math:`{\bf h}_t^{(i)}`  the :math:`t`-th hidden layer of :math:`i`-th layer 
+:math:`{\bf p}_t`        the next word's probability of :math:`t`-th word 
+:math:`{\bf E}`          Embedding matrix
+:math:`{\bf W}_h`        Hidden layer matrix
+:math:`{\bf W}_o`        Output layer matrix
+=======================  =============================================
 
 .. image:: ../../image/ptb/rnnlm.png
 
-#. Get the embedding vector
+The process to get a next word prediction from :math:`i`-th input word :math:`{\bf x}_t`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-    .. math:: h_t^0 = Ex_t
+#. Get the embedding vector: :math:`{\bf h}_t^{(0)} = {\bf E} {\bf x}_t`
 
-#. Calculate the hidden layer
+#. Calculate the hidden layer: :math:`{\bf h}_t^{(1)} = {\rm tanh} \left( {\bf W}_h \left[ \begin{array}{cc} {\bf h}_t^{(0)} \\ {\bf h}_{t-1}^{(1)} \end{array} \right] \right)`
 
-    .. math:: h_t^1 = {\rm tanh}(W_h [h_t^0; h_{t-1}^1])
+#. Calculate the output layer: :math:`{\bf y}_t = {\bf W}_o {\bf h}_t^{(1)}`
 
-#. Calculate the output layer
+#. Transform to probability: :math:`{\bf p}_t = {\rm softmax}({\bf y}_t)`
 
-    .. math:: y_t = W_o h_t^1
-
-#. Transform to probability
-
-    .. math:: p_t = {\rm softmax}(y_t)
+- Note that :math:`\rm tanh` in the above equation is applied to the input
+  vector in element-wise manner.
+- Note that :math:`\left[ \begin{array}{cc} {\bf a} \\ {\bf b} \end{array} \right]`
+  denotes a concatenated vector of :math:`{\bf a}` and :math:`{\bf b}`.
+- Note that :math:`{\rm softmax}` in the above equation converts an arbitrary
+  real vector to a probability vector which the summation over all elements is :math:`1`.
 
 1.1 Perplexity (Evaluation the language model)
 -----------------------------------------------
