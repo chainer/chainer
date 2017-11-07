@@ -89,12 +89,10 @@ class TestCosh(UnaryFunctionsTestBase):
     def test_backward_gpu(self):
         self.check_backward_gpu(F.cosh)
 
-    @condition.retry(3)
     def test_double_backward_cpu(self):
         self.check_double_backward_cpu(F.cosh)
 
     @attr.gpu
-    @condition.retry(3)
     def test_double_backward_gpu(self):
         self.check_double_backward_gpu(F.cosh)
 
@@ -128,12 +126,10 @@ class TestSinh(UnaryFunctionsTestBase):
     def test_backward_gpu(self):
         self.check_backward_gpu(F.sinh)
 
-    @condition.retry(3)
     def test_double_backward_cpu(self):
         self.check_double_backward_cpu(F.cosh)
 
     @attr.gpu
-    @condition.retry(3)
     def test_double_backward_gpu(self):
         self.check_double_backward_gpu(F.cosh)
 
