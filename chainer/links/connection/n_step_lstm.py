@@ -77,11 +77,12 @@ class NStepLSTMBase(link.ChainList):
                             initialW_ = initialW
                         else:
                             initialW_ = initializers._get_initializer(
-                                getattr(initial_weight, name_w))
+                                getattr(initial_weight, name_w).data)
                         if getattr(initial_weight, name_b, None) is None:
                             initial_bias_ = initial_bias
                         else:
-                            initial_bias_ = getattr(initial_weight, name_b)
+                            initial_bias_ = getattr(initial_weight,
+                                                    name_b).data
                         w = variable.Parameter(initialW_, (out_size, w_in))
                         b = variable.Parameter(initial_bias_, (out_size,))
                         setattr(weight, name_w, w)
