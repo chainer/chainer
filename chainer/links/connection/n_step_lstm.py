@@ -32,8 +32,10 @@ class NStepLSTMBase(link.ChainList):
             vector is initialized to zero.
             May also be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
-        initial_model (NStepLSTMBase): Model with initial values of weights and biases.
-             If ``None``, initialization is done using ``initialW`` and ``initial_bias``.
+        initial_model (NStepLSTMBase): Model with initial values of weights
+            and biases.
+            If ``None``, initialization is done using ``initialW``
+            and ``initial_bias``.
         use_bi_direction (bool): if ``True``, use Bi-directional LSTM.
 
     .. seealso::
@@ -59,7 +61,8 @@ class NStepLSTMBase(link.ChainList):
         for i in six.moves.range(n_layers):
             for di in six.moves.range(direction):
                 weight = link.Link()
-                initial_weight = getattr(initial_model, str(direction * i + di), None)
+                initial_weight = getattr(initial_model,
+                                         str(direction * i + di), None)
                 with weight.init_scope():
                     for j in six.moves.range(8):
                         if i == 0 and j < 4:
@@ -73,7 +76,8 @@ class NStepLSTMBase(link.ChainList):
                         if getattr(initial_weight, name_w, None) is None:
                             initialW_ = initialW
                         else:
-                            initialW_ = initializers._get_initializer(getattr(initial_weight, name_w))
+                            initialW_ = initializers._get_initializer(
+                                getattr(initial_weight, name_w))
                         if getattr(initial_weight, name_b, None) is None:
                             initial_bias_ = initial_bias
                         else:
@@ -186,8 +190,10 @@ class NStepLSTM(NStepLSTMBase):
             vector is initialized to zero.
             May also be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
-        initial_model (NStepLSTM): Model with initial values of weights and biases.
-             If ``None``, initialization is done using ``initialW`` and ``initial_bias``.
+        initial_model (NStepLSTM): Model with initial values of weights
+            and biases.
+            If ``None``, initialization is done using ``initialW``
+            and ``initial_bias``.
 
     .. seealso::
         :func:`chainer.functions.n_step_lstm`
@@ -195,7 +201,8 @@ class NStepLSTM(NStepLSTMBase):
     """
 
     def __init__(self, n_layers, in_size, out_size, dropout,
-                 initialW=None, initial_bias=None, initial_model=None, **kwargs):
+                 initialW=None, initial_bias=None,
+                 initial_model=None, **kwargs):
         NStepLSTMBase.__init__(
             self, n_layers, in_size, out_size, dropout,
             initialW, initial_bias, initial_model,
@@ -235,8 +242,10 @@ class NStepBiLSTM(NStepLSTMBase):
             vector is initialized to zero.
             May also be a callable that takes ``numpy.ndarray`` or
             ``cupy.ndarray`` and edits its value.
-        initial_model (NStepBiLSTM): Model with initial values of weights and biases.
-             If ``None``, initialization is done using ``initialW`` and ``initial_bias``.
+        initial_model (NStepBiLSTM): Model with initial values of weights
+            and biases.
+            If ``None``, initialization is done using ``initialW``
+            and ``initial_bias``.
 
     .. seealso::
         :func:`chainer.functions.n_step_bilstm`
@@ -244,7 +253,8 @@ class NStepBiLSTM(NStepLSTMBase):
     """
 
     def __init__(self, n_layers, in_size, out_size, dropout,
-                 initialW=None, initial_bias=None, initial_model=None, **kwargs):
+                 initialW=None, initial_bias=None,
+                 initial_model=None, **kwargs):
         NStepLSTMBase.__init__(
             self, n_layers, in_size, out_size, dropout,
             initialW, initial_bias, initial_model,
