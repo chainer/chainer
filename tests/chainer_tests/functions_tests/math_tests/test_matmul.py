@@ -8,7 +8,6 @@ import chainer.functions as F
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
 from chainer.utils import type_check
 
 
@@ -97,7 +96,6 @@ class TestMatMul(unittest.TestCase):
         y = self.op(x1, x2)
         testing.assert_allclose(self.forward_answer, y.data, atol, rtol)
 
-    @condition.retry(3)
     def test_matmul_forward_cpu(self):
         if self.x1.dtype == numpy.float16 or self.x2.dtype == numpy.float16:
             self.check_forward(self.x1, self.x2, atol=1e-3, rtol=1e-3)
@@ -105,7 +103,6 @@ class TestMatMul(unittest.TestCase):
             self.check_forward(self.x1, self.x2)
 
     @attr.gpu
-    @condition.retry(3)
     def test_matmul_forward_gpu(self):
         if self.x1.dtype == numpy.float16 or self.x2.dtype == numpy.float16:
             self.check_forward(cuda.to_gpu(self.x1), cuda.to_gpu(self.x2),
@@ -118,12 +115,10 @@ class TestMatMul(unittest.TestCase):
             self.op, (x1_data, x2_data), y_grad, atol=atol, rtol=rtol,
             dtype=numpy.float32)
 
-    @condition.retry(3)
     def test_matmul_backward_cpu(self):
         self.check_backward(self.x1, self.x2, self.gy, atol=1e-2, rtol=5e-2)
 
     @attr.gpu
-    @condition.retry(3)
     def test_matmul_backward_gpu(self):
         self.check_backward(
             cuda.to_gpu(self.x1), cuda.to_gpu(self.x2),
@@ -136,14 +131,12 @@ class TestMatMul(unittest.TestCase):
             self.op, (x1_data, x2_data), y_grad, (x1_grad_grad, x2_grad_grad),
             atol=atol, rtol=rtol, dtype=numpy.float32)
 
-    @condition.retry(3)
     def test_matmul_double_backward_cpu(self):
         self.check_double_backward(
             self.x1, self.x2, self.gy, self.ggx1, self.ggx2,
             atol=1e-2, rtol=5e-2)
 
     @attr.gpu
-    @condition.retry(3)
     def test_matmul_double_backward_gpu(self):
         self.check_double_backward(
             cuda.to_gpu(self.x1), cuda.to_gpu(self.x2),
@@ -233,7 +226,6 @@ class TestBatchMatMul(unittest.TestCase):
             y = self.op(x1, x2)
         testing.assert_allclose(self.forward_answer, y.data, atol, rtol)
 
-    @condition.retry(3)
     def test_matmul_forward_cpu(self):
         if self.x1.dtype == numpy.float16 or self.x2.dtype == numpy.float16:
             self.check_forward(self.x1, self.x2, atol=1e-3, rtol=1e-3)
@@ -241,7 +233,6 @@ class TestBatchMatMul(unittest.TestCase):
             self.check_forward(self.x1, self.x2)
 
     @attr.gpu
-    @condition.retry(3)
     def test_matmul_forward_gpu(self):
         if self.x1.dtype == numpy.float16 or self.x2.dtype == numpy.float16:
             self.check_forward(cuda.to_gpu(self.x1), cuda.to_gpu(self.x2),
@@ -255,12 +246,10 @@ class TestBatchMatMul(unittest.TestCase):
                 self.op, (x1_data, x2_data), y_grad, atol=atol, rtol=rtol,
                 dtype=numpy.float32)
 
-    @condition.retry(3)
     def test_matmul_backward_cpu(self):
         self.check_backward(self.x1, self.x2, self.gy, atol=1e-2, rtol=5e-2)
 
     @attr.gpu
-    @condition.retry(3)
     def test_matmul_backward_gpu(self):
         self.check_backward(
             cuda.to_gpu(self.x1), cuda.to_gpu(self.x2),
@@ -275,14 +264,12 @@ class TestBatchMatMul(unittest.TestCase):
                 (x1_grad_grad, x2_grad_grad),
                 atol=atol, rtol=rtol, dtype=numpy.float32)
 
-    @condition.retry(3)
     def test_matmul_double_backward_cpu(self):
         self.check_double_backward(
             self.x1, self.x2, self.gy, self.ggx1, self.ggx2,
             atol=1e-2, rtol=5e-2)
 
     @attr.gpu
-    @condition.retry(3)
     def test_matmul_double_backward_gpu(self):
         self.check_double_backward(
             cuda.to_gpu(self.x1), cuda.to_gpu(self.x2),
