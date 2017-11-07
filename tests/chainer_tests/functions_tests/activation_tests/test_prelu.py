@@ -28,9 +28,16 @@ class TestPReLU(unittest.TestCase):
         self.ggx = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         self.ggW = numpy.random.uniform(
             -1, 1, self.W.shape).astype(self.dtype)
-        self.check_backward_options = {}
+
+        self.check_backward_options = {'dtype': numpy.float64}
         if self.dtype == numpy.float16:
-            self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
+            self.check_backward_options.update({'atol': 5e-4, 'rtol': 5e-3})
+
+        self.check_double_backward_options = {
+            'dtype': numpy.float64, 'atol': 5e-4, 'rtol': 5e-3}
+        if self.dtype == numpy.float16:
+            self.check_double_backward_options.update(
+                {'atol': 5e-3, 'rtol': 5e-2})
 
     def check_forward(self, x_data, W_data):
         x = chainer.Variable(x_data)
@@ -54,7 +61,7 @@ class TestPReLU(unittest.TestCase):
     def check_backward(self, x_data, W_data, y_grad):
         gradient_check.check_backward(
             functions.prelu, (x_data, W_data), y_grad,
-            dtype=numpy.float64, **self.check_backward_options)
+            **self.check_backward_options)
 
     def test_backward_cpu(self):
         self.check_backward(self.x, self.W, self.gy)
@@ -71,9 +78,8 @@ class TestPReLU(unittest.TestCase):
             return y * y
 
         gradient_check.check_double_backward(
-            f, (x_data, W_data), y_grad,
-            (x_grad_grad, W_grad_grad), dtype=numpy.float64,
-            **self.check_backward_options)
+            f, (x_data, W_data), y_grad, (x_grad_grad, W_grad_grad),
+            **self.check_double_backward_options)
 
     def test_double_backward_cpu(self):
         self.check_double_backward(self.x, self.W, self.gy, self.ggx, self.ggW)
