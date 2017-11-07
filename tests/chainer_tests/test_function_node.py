@@ -14,19 +14,16 @@ from chainer.utils import type_check
 
 
 def make_array(start, shape, dtype):
-    if shape == 'scalar':
-        return dtype(start)
-    else:
-        size = numpy.product(shape, dtype='i')
-        a = numpy.arange(start, start + size)
-        a = a.reshape(shape)
-        a = a.astype(dtype, copy=False)
-        return a
+    size = numpy.product(shape, dtype='i')
+    a = numpy.arange(start, start + size)
+    a = a.reshape(shape)
+    a = a.astype(dtype, copy=False)
+    return a
 
 
 @testing.parameterize(*testing.product({
-    'y_shape': [(4,), (0,), (2, 3), (), 'scalar'],
-    'x_shape': [(3,), (0,), (4, 1), (), 'scalar'],
+    'y_shape': [(4,), (0,), (2, 3), ()],
+    'x_shape': [(3,), (0,), (4, 1), ()],
 }))
 class TestFunctionNode(unittest.TestCase):
 
@@ -143,16 +140,12 @@ class TestFunctionNode(unittest.TestCase):
         self.assertEqual(len(ts), 2)
 
         t1 = ts[0]
-        self.assertEqual(
-            t1.shape,
-            () if self.x_shape == 'scalar' else self.x_shape)
-        self.assertEqual(t1.dtype, numpy.float32)
+        assert t1.shape == self.x_shape
+        assert t1.dtype == numpy.float32
 
         t2 = ts[1]
-        self.assertEqual(
-            t2.shape,
-            () if self.x_shape == 'scalar' else self.x_shape)
-        self.assertEqual(t2.dtype, numpy.int32)
+        assert t2.shape == self.x_shape
+        assert t2.dtype == numpy.int32
 
     def check_apply(self):
         x1 = chainer.Variable(self.x1)

@@ -447,8 +447,6 @@ class Variable(object):
                 kwargs, ('name', None), ('grad', None),
                 ('requires_grad', True))
 
-        if isinstance(data, (numpy.number, numpy.bool_)):
-            data = numpy.asarray(data)
         if (data is not None and
                 not isinstance(data, (numpy.ndarray, cuda.ndarray))):
             msg = '''numpy.ndarray or cuda.ndarray are expected.

@@ -48,19 +48,13 @@ class TestVariableNode(unittest.TestCase):
 
 
 @testing.parameterize(
-    {'x_shape_': (10,), 'c_shape': (2, 5), 'label': '(2, 5), float32'},
-    {'x_shape_': (), 'c_shape': (1,), 'label': '(1), float32'},
-    {'x_shape_': 'scalar', 'c_shape': (1,), 'label': '(1), float32'},
+    {'x_shape': (10,), 'c_shape': (2, 5), 'label': '(2, 5), float32'},
+    {'x_shape': (), 'c_shape': (1,), 'label': '(1), float32'},
 )
 class TestVariable(unittest.TestCase):
 
     def setUp(self):
-        if self.x_shape_ == 'scalar':
-            self.x_shape = ()
-            self.x = np.float32(3.25)
-        else:
-            self.x_shape = self.x_shape_
-            self.x = np.random.uniform(-1, 1, self.x_shape).astype(np.float32)
+        self.x = np.random.uniform(-1, 1, self.x_shape).astype(np.float32)
         self.a = np.random.uniform(0.1, 10, self.x_shape).astype(np.float32)
         self.size = int(np.prod(self.x_shape))
         self.c = np.arange(self.size).reshape(self.c_shape).astype(np.float32)
@@ -334,9 +328,10 @@ class TestVariable(unittest.TestCase):
         a = chainer.Variable(np.empty((3,), dtype=np.float32))
         a.grad = np.ndarray((3,), dtype=np.float32)
 
-    def test_grad_type_check_pass_scalar(self):
+    def test_grad_type_check_pass_type(self):
         a = chainer.Variable(np.empty((), dtype=np.float32))
-        a.grad = np.float32()
+        with self.assertRaises(TypeError):
+            a.grad = np.float32()
 
     @attr.gpu
     def test_grad_type_check_type_cpu_gpu_mixture(self):
