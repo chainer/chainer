@@ -8,6 +8,7 @@ from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
+from chainer.testing import condition
 
 
 @testing.parameterize(*testing.product({
@@ -74,10 +75,12 @@ class TestClip(unittest.TestCase):
         gradient_check.check_double_backward(
             f, x_data, y_grad, gx_grad, dtype=numpy.float64)
 
+    @condition.retry(5)
     def test_double_backward_cpu(self):
         self.check_double_backward(self.x, self.gy, self.ggx)
 
     @attr.gpu
+    @condition.retry(5)
     def test_double_backward_gpu(self):
         self.check_double_backward(
             cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx))
