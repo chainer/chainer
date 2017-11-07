@@ -36,8 +36,6 @@ class TestScatterAdd(unittest.TestCase):
             -1, 1, self.a_data.shape).astype(numpy.float32)
         self.ggb_data = numpy.random.uniform(
             -1, 1, self.b_data.shape).astype(numpy.float32)
-        self.check_backward_options = {
-            'atol': 5e-4, 'rtol': 1e-4, 'dtype': 'f'}
 
     def check_forward(self, a_data, b_data):
         a = chainer.Variable(a_data)
@@ -63,7 +61,7 @@ class TestScatterAdd(unittest.TestCase):
             return functions.scatter_add(a, self.slices, b)
 
         gradient_check.check_backward(
-            f, (a_data, b_data), y_grad, dtype='f', atol=1e-3, rtol=1e-3)
+            f, (a_data, b_data), y_grad, atol=1e-3, rtol=1e-3)
 
     def test_backward_cpu(self):
         self.check_backward(self.a_data, self.b_data, self.gy_data)
@@ -81,7 +79,7 @@ class TestScatterAdd(unittest.TestCase):
 
         gradient_check.check_double_backward(
             f, (a_data, b_data), y_grad, (a_grad_grad, b_grad_grad),
-            **self.check_backward_options)
+            atol=5e-4, rtol=1e-4)
 
     def test_double_backward_cpu(self):
         self.check_double_backward(self.a_data, self.b_data, self.gy_data,
