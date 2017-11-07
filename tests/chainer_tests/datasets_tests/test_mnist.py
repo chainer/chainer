@@ -1,6 +1,7 @@
 import os
 import unittest
 
+import importlib
 import mock
 import numpy
 
@@ -77,17 +78,17 @@ class TestMnist(unittest.TestCase):
         self.check_retrieval_twice('train.npz', 'test.npz',
                                    self.mnist_root,
                                    get_mnist,
-                                   'chainer.datasets.mnist.numpy')
+                                   'chainer.datasets.mnist')
 
     @attr.slow
     def test_get_fashion_mnist_cached(self):
         self.check_retrieval_twice('train.npz', 'test.npz',
                                    self.fashion_mnist_root,
                                    get_fashion_mnist,
-                                   'chainer.datasets.fashion_mnist.numpy')
+                                   'chainer.datasets.fashion_mnist')
 
     def check_retrieval_twice(self, train_name, test_name, root,
-                              retrieval_func, target):
+                              retrieval_func, package):
         self.cached_train_file = os.path.join(root, train_name)
         self.cached_test_file = os.path.join(root, test_name)
         train, test = retrieval_func(withlabel=self.withlabel,
@@ -95,13 +96,15 @@ class TestMnist(unittest.TestCase):
                                      scale=self.scale,
                                      rgb_format=self.rgb_format)
 
-        with mock.patch(target, autospec=True) as mnumpy:
-            train, test = retrieval_func(withlabel=self.withlabel,
-                                         ndim=self.ndim,
-                                         scale=self.scale,
-                                         rgb_format=self.rgb_format)
-        mnumpy.savez_compressed.assert_not_called()  # creator() not called
-        self.assertEqual(mnumpy.load.call_count, 2)  # for training and test
+        numpy = importlib.import_module('numpy', package=package)
+        with mock.patch.object(numpy, 'savez_compressed') as savez_compressed:
+            with mock.patch.object(numpy, 'load', wraps=numpy.load) as load:
+                train, test = retrieval_func(withlabel=self.withlabel,
+                                             ndim=self.ndim,
+                                             scale=self.scale,
+                                             rgb_format=self.rgb_format)
+        savez_compressed.assert_not_called()  # creator() not called
+        self.assertEqual(load.call_count, 2)  # for training and test
 
 
 testing.run_module(__name__, __file__)
