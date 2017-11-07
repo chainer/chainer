@@ -7,7 +7,6 @@ from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
 
 
 @testing.parameterize(*testing.product({
@@ -114,14 +113,12 @@ class TestResizeImagesBackward(unittest.TestCase):
             return functions.resize_images(x, output_shape)
 
         gradient_check.check_backward(
-            f, (x,), (gy,), dtype='d', atol=1e-2, rtol=1e-3, eps=1e-5)
+            f, x, gy, dtype='d', atol=1e-2, rtol=1e-3, eps=1e-5)
 
-    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.x, self.output_shape, self.gy)
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x), self.output_shape,
                             cuda.to_gpu(self.gy))
@@ -131,7 +128,7 @@ class TestResizeImagesBackward(unittest.TestCase):
             y = functions.resize_images(x, output_shape)
             return y * y
 
-        gradient_check.check_double_backward(f, (x,), (gy,), (ggx,), dtype='f')
+        gradient_check.check_double_backward(f, x, gy, ggx)
 
     def test_doube_backward_cpu(self):
         self.check_double_backward(
