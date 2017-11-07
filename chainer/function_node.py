@@ -243,19 +243,27 @@ Use apply() method instead.\
             self._input_indexes_to_retain = None
             self._output_indexes_to_retain = None
             outputs = self.forward(in_data)
-            assert type(outputs) is tuple
+            assert isinstance(outputs, tuple)
 
         for hook in hooks:
             hook.forward_postprocess(self, in_data)
 
-        # NaN check of output values
         if is_debug:
+            # outputs must be a tuple of ndarrays
+            if any(not isinstance(out, (numpy.ndarray, cuda.ndarray))
+                   for out in outputs):
+                raise RuntimeError(
+                    'FunctionNode.forward() must return a tuple of ndarrays '
+                    '(numpy.ndarray or cuda.ndarray).\n'
+                    'Actual: tuple of {}'.format([type(out) for out in outputs]))
+
+            # NaN check of output values
             if any(out.dtype.kind == 'f' and
                    cuda.get_array_module(out).isnan(out).any()
                    for out in outputs):
-                msg = ('NaN is detected on forward computation of '
-                       '{}'.format(self.label))
-                raise RuntimeError(msg)
+                raise RuntimeError(
+                    'NaN is detected on forward computation of '
+                    '{}'.format(self.label))
 
         ret = tuple([variable.Variable(y, requires_grad=requires_grad)
                      for y in outputs])
