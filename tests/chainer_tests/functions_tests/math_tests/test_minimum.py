@@ -81,6 +81,7 @@ class TestMinimum(unittest.TestCase):
     def check_double_backward(self, x1, x2, gy, ggx1, ggx2):
         gradient_check.check_double_backward(
             functions.minimum, (x1, x2), gy, (ggx1, ggx2),
+            no_grads=[True, True, False],
             **self.check_double_backward_options)
 
     def test_double_backward_cpu(self):
