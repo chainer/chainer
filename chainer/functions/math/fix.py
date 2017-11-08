@@ -1,27 +1,6 @@
+import chainer
 from chainer import cuda
-from chainer import function_node
 from chainer import utils
-from chainer.utils import type_check
-
-
-class Fix(function_node.FunctionNode):
-
-    @property
-    def label(self):
-        return 'fix'
-
-    def check_type_forward(self, in_types):
-        type_check.expect(
-            in_types.size() == 1,
-            in_types[0].dtype.kind == 'f',
-        )
-
-    def forward(self, x):
-        xp = cuda.get_array_module(*x)
-        return utils.force_array(xp.fix(x[0]), x[0].dtype),
-
-    def backward(self, indexes, grad_outputs):
-        return grad_outputs[0] * 0,
 
 
 def fix(x):
@@ -37,4 +16,7 @@ def fix(x):
         ~chainer.Variable: Output variable.
     """
 
-    return Fix().apply((x,))[0]
+    if isinstance(x, chainer.variable.Variable):
+        x = x.data
+    xp = cuda.get_array_module(x)
+    return chainer.as_variable(utils.force_array(xp.fix(x), x.dtype))
