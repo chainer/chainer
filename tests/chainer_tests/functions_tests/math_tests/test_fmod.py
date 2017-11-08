@@ -48,8 +48,12 @@ class UnaryFunctionsTestBase(unittest.TestCase):
             self.divisor), cuda.to_gpu(self.gy))
 
     def check_double_backward(self, op, x_data, divisor, y_grad, ggx, ggd):
+        def f(*args):
+            y = op(*args)
+            return y * y
+
         gradient_check.check_double_backward(
-            op, (x_data, divisor), y_grad, (ggx, ggd), dtype=numpy.float64)
+            f, (x_data, divisor), y_grad, (ggx, ggd), dtype=numpy.float64)
 
     def check_double_backward_cpu(self, op):
         self.check_double_backward(
