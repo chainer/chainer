@@ -135,8 +135,8 @@ class DeconvolutionND(function.Function):
         workspace_size = cuda.get_max_workspace_size()
         workspace = cuda.cupy.empty((workspace_size,), dtype='b')
         if configuration.config.autotune:
-            algo = convolution_2d.get_algorithm(W, x, y, conv_param, handle,
-                                                self.filter_desc, x_desc,
+            algo = convolution_2d.get_algorithm(x, W, y, conv_param, handle,
+                                                x_desc, self.filter_desc,
                                                 self.conv_desc, y_desc,
                                                 workspace)
         else:
