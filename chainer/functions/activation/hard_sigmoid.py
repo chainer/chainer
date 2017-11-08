@@ -45,7 +45,10 @@ class HardSigmoidGrad(function_node.FunctionNode):
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)
-        type_check.expect(in_types[0].dtype.kind == 'f')
+        type_check.expect(
+            in_types[0].dtype.kind == 'f',
+            in_types[0].dtype == self.x.dtype
+        )
 
     def forward_cpu(self, inputs):
         gy, = inputs
