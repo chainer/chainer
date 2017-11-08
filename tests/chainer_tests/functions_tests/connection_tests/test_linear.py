@@ -9,7 +9,6 @@ from chainer.functions.connection import linear
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
 
 
 @testing.parameterize(*testing.product({
@@ -33,15 +32,24 @@ class TestNonparameterizedLinear(unittest.TestCase):
         self.ggb = numpy.random.uniform(-1, 1, self.b.shape).astype(
             self.x_dtype)
         self.y = self.x.dot(self.W.T) + self.b
-        self.check_forward_options = {}
-        self.check_backward_options = {}
         if self.x_dtype == numpy.float16:
             self.check_forward_options = {'atol': 1e-3, 'rtol': 1e-2}
             self.check_backward_options = {
-                'dtype': numpy.float64, 'atol': 5e-4, 'rtol': 5e-3}
+                'dtype': numpy.float64, 'atol': 1e-2, 'rtol': 1e-2}
+            self.check_double_backward_options = {
+                'dtype': numpy.float64, 'atol': 1e-2, 'rtol': 1e-2}
         elif self.W_dtype == numpy.float16:
+            self.check_forward_options = {}
             self.check_backward_options = {
-                'dtype': numpy.float64, 'atol': 5e-4, 'rtol': 5e-3}
+                'dtype': numpy.float64, 'atol': 1e-2, 'rtol': 1e-2}
+            self.check_double_backward_options = {
+                'dtype': numpy.float64, 'atol': 1e-2, 'rtol': 1e-2}
+        else:
+            self.check_forward_options = {}
+            self.check_backward_options = {
+                'atol': 1e-3, 'rtol': 1e-3}
+            self.check_double_backward_options = {
+                'atol': 1e-3, 'rtol': 1e-3}
 
     def check_forward(self, x_data, W_data, b_data, y_expect):
         x = chainer.Variable(x_data)
@@ -55,24 +63,20 @@ class TestNonparameterizedLinear(unittest.TestCase):
         testing.assert_allclose(
             y_expect, y.data, **self.check_forward_options)
 
-    @condition.retry(3)
     def test_forward_cpu(self):
         self.check_forward(self.x, self.W, self.b,
                            self.x.dot(self.W.T) + self.b)
 
-    @condition.retry(3)
     def test_forward_cpu_nobias(self):
         self.check_forward(self.x, self.W, None, self.x.dot(self.W.T))
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_gpu(self):
         self.check_forward(
             cuda.to_gpu(self.x), cuda.to_gpu(self.W), cuda.to_gpu(self.b),
             cuda.to_gpu(self.x.dot(self.W.T) + self.b))
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_gpu_nobias(self):
         self.check_forward(
             cuda.to_gpu(self.x), cuda.to_gpu(self.W), None,
@@ -85,24 +89,20 @@ class TestNonparameterizedLinear(unittest.TestCase):
 
         gradient_check.check_backward(
             linear.linear, args, y_grad,
-            eps=1e-2, **self.check_backward_options)
+            **self.check_backward_options)
 
-    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.x, self.W, self.b, self.gy)
 
-    @condition.retry(3)
     def test_backward_cpu_nobias(self):
         self.check_backward(self.x, self.W, None, self.gy)
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.W),
                             cuda.to_gpu(self.b), cuda.to_gpu(self.gy))
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu_nobias(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.W),
                             None, cuda.to_gpu(self.gy))
@@ -122,20 +122,17 @@ class TestNonparameterizedLinear(unittest.TestCase):
 
         gradient_check.check_double_backward(
             nonlinear, args, (y_grad,), grad_grads,
-            **self.check_backward_options)
+            **self.check_double_backward_options)
 
-    @condition.retry(3)
     def test_double_backward_cpu(self):
         self.check_double_backward(self.x, self.W, self.b, self.gy,
                                    self.ggx, self.ggW, self.ggb)
 
-    @condition.retry(3)
     def test_double_backward_cpu_nobias(self):
         self.check_double_backward(self.x, self.W, None, self.gy,
                                    self.ggx, self.ggW, None)
 
     @attr.gpu
-    @condition.retry(3)
     def test_double_backward_gpu(self):
         self.check_double_backward(
             cuda.to_gpu(self.x), cuda.to_gpu(self.W), cuda.to_gpu(self.b),
@@ -143,7 +140,6 @@ class TestNonparameterizedLinear(unittest.TestCase):
             cuda.to_gpu(self.ggb))
 
     @attr.gpu
-    @condition.retry(3)
     def test_double_backward_gpu_nobias(self):
         self.check_double_backward(
             cuda.to_gpu(self.x), cuda.to_gpu(self.W), None,

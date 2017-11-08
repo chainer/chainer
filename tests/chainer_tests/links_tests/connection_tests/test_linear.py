@@ -65,8 +65,8 @@ class TestLinear(unittest.TestCase):
 
     def check_backward(self, x_data, y_grad):
         gradient_check.check_backward(
-            self.link, x_data, y_grad, (self.link.W, self.link.b), eps=2 ** -3,
-            **self.check_backward_options)
+            self.link, x_data, y_grad, (self.link.W, self.link.b),
+            dtype='d', **self.check_backward_options)
 
     @condition.retry(3)
     def test_backward_cpu(self):

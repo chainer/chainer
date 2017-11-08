@@ -18,7 +18,8 @@ def make_data(shape, dtype):
 @testing.unary_math_function_unittest(
     F.sqrt,
     make_data=make_data,
-    backward_options={'atol': 1e-3, 'rtol': 1e-3},
+    backward_options={'eps': 1e-3},
+    double_backward_options={'eps': 1e-3},
 )
 class TestSqrt(unittest.TestCase):
     pass

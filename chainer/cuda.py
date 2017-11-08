@@ -56,6 +56,9 @@ except Exception as e:
     class ndarray(object):
         pass  # for type testing
 
+    # for `xp is cuda.cupy` to always work
+    cupy = object()
+
 if available:
     _cudnn_disabled_by_user = int(os.environ.get('CHAINER_CUDNN', '1')) == 0
     try:
@@ -127,10 +130,9 @@ DummyDevice = DummyDeviceType()
 # Global states
 # ------------------------------------------------------------------------------
 if available:
-    memory_pool = cuda.MemoryPool()
-    cuda.set_allocator(memory_pool.malloc)
-    pinned_memory_pool = cuda.PinnedMemoryPool()
-    cuda.set_pinned_memory_allocator(pinned_memory_pool.malloc)
+    # This is for backward compatibility
+    memory_pool = cupy.get_default_memory_pool()
+    pinned_memory_pool = cupy.get_default_pinned_memory_pool()
 
 
 if six.PY2:
@@ -253,9 +255,12 @@ def to_gpu(array, device=None, stream=None):
             'Please remove it.', DeprecationWarning)
 
     check_cuda_available()
+    if isinstance(array, (numpy.number, numpy.bool_)):
+        array = numpy.asarray(array)
     if not isinstance(array, (cupy.ndarray, numpy.ndarray)):
         raise TypeError(
-            'The array sent to gpu must be numpy.ndarray or cupy.ndarray.'
+            'The array sent to gpu must be numpy.ndarray or cupy.ndarray, '
+            'or a NumPy scalar.'
             '\nActual type: {0}.'.format(type(array)))
     with _get_device(device):
         array_dev = get_device_from_array(array)
@@ -312,11 +317,14 @@ def to_cpu(array, stream=None):
         check_cuda_available()
         with get_device_from_array(array):
             return array.get(stream)
+    elif isinstance(array, (numpy.number, numpy.bool_)):
+        return numpy.asarray(array)
     elif isinstance(array, numpy.ndarray):
         return array
     else:
         raise TypeError(
-            'The array sent to cpu must be numpy.ndarray or cupy.ndarray.'
+            'The array sent to cpu must be numpy.ndarray or cupy.ndarray, '
+            'or a NumPy scalar.'
             '\nActual type: {0}.'.format(type(array)))
 
 
