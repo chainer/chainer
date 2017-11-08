@@ -85,22 +85,5 @@ class TestFloor(UnaryFunctionsTestBase):
     def test_forward_gpu(self):
         self.check_forward_gpu(F.floor, cuda.cupy.floor)
 
-    def test_backward_cpu(self):
-        self.check_backward_cpu(F.floor)
-
-    @attr.gpu
-    def test_backward_gpu(self):
-        self.check_backward_gpu(F.floor)
-
-    def test_double_backward_cpu(self):
-        self.check_double_backward_cpu(F.floor)
-
-    @attr.gpu
-    def test_double_backward_gpu(self):
-        self.check_double_backward_gpu(F.floor)
-
-    def test_label(self):
-        self.check_label(F.Floor, 'floor')
-
 
 testing.run_module(__name__, __file__)
