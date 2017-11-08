@@ -27,7 +27,6 @@ class Vstack(function_node.FunctionNode):
                 type_check.expect(in_types[0].shape[d] == in_types[i].shape[d])
 
     def forward(self, xs):
-        self._in_shapes = [x.shape for x in xs]
         xp = cuda.get_array_module(*xs)
         return xp.vstack(xs),
 
@@ -40,8 +39,8 @@ class Vstack(function_node.FunctionNode):
             return gy,
 
         if ndim <= 1:
-            gx = chainer.functions.split_axis(gy, len(self.inputs), 0)
-            return [g.reshape(self.inputs[0].shape) for g in gx]
+            gxs = chainer.functions.split_axis(gy, len(self.inputs), 0)
+            return [gx.reshape(self.inputs[0].shape) for gx in gxs]
 
         sizes = numpy.array([x.shape[0] for x in self.inputs[:-1]]).cumsum()
         return chainer.functions.split_axis(gy, sizes, 0)
