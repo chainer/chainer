@@ -137,9 +137,9 @@ class DeconvolutionND(function.Function):
         workspace = cuda.cupy.empty((workspace_size,), dtype='b')
         if configuration.config.autotune and _cudnn_version_ >= 5000:
             algo = deconvolution_2d.get_algorithm(W, x, y, conv_param, handle,
-                                                self.filter_desc, x_desc, 
-                                                self.conv_desc, y_desc,
-                                                workspace)
+                                                  self.filter_desc, x_desc,
+                                                  self.conv_desc, y_desc,
+                                                  workspace)
         else:
             algo = libcudnn.getConvolutionBackwardDataAlgorithm(
                 handle, self.filter_desc.value, x_desc.value,
