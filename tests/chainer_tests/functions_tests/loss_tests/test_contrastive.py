@@ -31,6 +31,8 @@ class TestContrastive(unittest.TestCase):
         else:
             self.gy = numpy.random.uniform(
                 -1, 1, (self.batchsize,)).astype(numpy.float32)
+        self.gx0 = numpy.random.uniform(-1, 1, x_shape).astype(numpy.float32)
+        self.gx1 = numpy.random.uniform(-1, 1, x_shape).astype(numpy.float32)
 
         self.check_backward_options = {'rtol': 1e-2, 'atol': 1e-3}
 
@@ -77,9 +79,11 @@ class TestContrastive(unittest.TestCase):
                            cuda.to_gpu(self.t))
 
     def check_backward(self, x0_data, x1_data, t_data, gy_data):
+        def f(x0, x1, t):
+            return functions.contrastive(x0, x1, t, self.margin, self.reduce)
+
         gradient_check.check_backward(
-            functions.Contrastive(self.margin, self.reduce),
-            (x0_data, x1_data, t_data), gy_data, dtype='d',
+            f, (x0_data, x1_data, t_data), gy_data, dtype='d',
             **self.check_backward_options)
 
     def test_backward_cpu(self):
@@ -97,6 +101,28 @@ class TestContrastive(unittest.TestCase):
     def test_backward_zero_dist_gpu_no_cudnn(self):
         self.check_backward(cuda.to_gpu(self.x0), cuda.to_gpu(self.x0),
                             cuda.to_gpu(self.t), cuda.to_gpu(self.gy))
+
+    def check_double_backward(
+            self, x0_data, x1_data, t_data, gy_data, gx0_data, gx1_data):
+        def f(x0, x1):
+            y = functions.contrastive(x0, x1, t_data, self.margin, self.reduce)
+            return y * y
+
+        gradient_check.check_double_backward(
+            f, (x0_data, x1_data), gy_data,
+            (gx0_data, gx1_data),
+            dtype='f', rtol=1e-2, atol=1e-3)
+
+    def test_double_backward_cpu(self):
+        self.check_double_backward(
+            self.x0, self.x1, self.t, self.gy, self.gx0, self.gx1)
+
+    @attr.gpu
+    def test_double_backward_gpu(self):
+        self.check_double_backward(
+            cuda.to_gpu(self.x0), cuda.to_gpu(self.x1),
+            cuda.to_gpu(self.t), cuda.to_gpu(self.gy),
+            cuda.to_gpu(self.gx0), cuda.to_gpu(self.gx1))
 
 
 class TestContrastiveInvalidReductionOption(unittest.TestCase):
