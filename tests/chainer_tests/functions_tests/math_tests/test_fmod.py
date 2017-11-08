@@ -8,7 +8,6 @@ import chainer.functions as F
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
 import math
 
 
@@ -94,30 +93,24 @@ class TestFmod(UnaryFunctionsTestBase):
         ggd = numpy.random.uniform(-1.0, 1.0, self.shape).astype(self.dtype)
         return x, divisor, gy, ggx, ggd
 
-    @condition.retry(3)
     def test_forward_cpu(self):
         self.check_forward_cpu(F.fmod, numpy.fmod)
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_gpu(self):
         self.check_forward_gpu(F.fmod, cuda.cupy.fmod)
 
-    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward_cpu(F.fmod)
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu(self):
         self.check_backward_gpu(F.fmod)
 
-    @condition.retry(3)
     def test_double_backward_cpu(self):
         self.check_double_backward_cpu(F.fmod)
 
     @attr.gpu
-    @condition.retry(3)
     def test_double_backward_gpu(self):
         self.check_double_backward_gpu(F.fmod)
 
