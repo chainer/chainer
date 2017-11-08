@@ -1,5 +1,4 @@
 import numpy
-import six
 
 import chainer
 from chainer import cuda
@@ -11,6 +10,14 @@ def _fwd_kern():
     return cuda.elementwise(
         'T x, T cond, T W', 'T y',
         'y = cond >= 0 ? x : (T)(x * W)', 'prelu')
+
+
+def _get_extended_shape(W, x):
+    return (1,) + W.shape + (1,) * (x.ndim - W.ndim - 1)
+
+
+def _get_reduce_axes(W, x):
+    return (0,) + tuple(range(1 + W.ndim, x.ndim))
 
 
 class PReLUFunction(function_node.FunctionNode):
@@ -77,8 +84,15 @@ class PReLUFunctionGrad(function_node.FunctionNode):
         mask = self.cond >= 0
         masked = numpy.where(mask, 0, x * gy)
 
-        gW = masked if self.reduce_axes is None else \
-            masked.sum(axis=self.reduce_axes)
+        if self.reduce_axes is None:
+            # Reached from backward() of PReLUFunctionGrad i.e. this class, to
+            # compute higher order derivatives
+            gW = masked
+        else:
+            # Reached from backward() of PReLUFunction, to compute first
+            # derivatives
+            gW = masked.sum(axis=self.reduce_axes)
+
         if numpy.isscalar(gW):
             gW = numpy.array(gW)
 
@@ -95,8 +109,10 @@ class PReLUFunctionGrad(function_node.FunctionNode):
             'masked = cond >= 0 ? (T)0 : (T)(x * gy)',
             'prelu_masked')(x, self.cond, gy)
 
-        gW = masked.copy() if self.reduce_axes is None else \
-            masked.sum(axis=self.reduce_axes)
+        if self.reduce_axes is None:
+            gW = masked.copy()
+        else:
+            gW = masked.sum(axis=self.reduce_axes)
 
         gx = masked  # reuse buffer
         _fwd_kern()(gy, self.cond, W.reshape(self.extended_shape), gx)
@@ -111,11 +127,19 @@ class PReLUFunctionGrad(function_node.FunctionNode):
             chainer.functions.reshape(ggW, self.extended_shape), x.shape)
         ggW *= self.cond < 0
 
-        gxgy, gxW = PReLUFunctionGrad(self.cond, None, self.extended_shape) \
+        gxgy, gxW = (
+            PReLUFunctionGrad(self.cond, None, self.extended_shape)
             .apply((gy, W, ggx))
+        )
 
-        return gy * ggW, chainer.functions.sum(gxW, axis=self.reduce_axes), \
-            x * ggW + gxgy
+        ret = []
+        if 0 in indexes:
+            ret.append(gy * ggW)
+        if 1 in indexes:
+            ret.append(chainer.functions.sum(gxW, axis=self.reduce_axes))
+        if 2 in indexes:
+            ret.append(x * ggW + gxgy)
+        return ret
 
 
 def prelu(x, W):
@@ -149,11 +173,3 @@ def prelu(x, W):
 
     """
     return PReLUFunction().apply((x, W))[0]
-
-
-def _get_extended_shape(W, x):
-    return (1,) + W.shape + (1,) * (x.ndim - W.ndim - 1)
-
-
-def _get_reduce_axes(W, x):
-    return (0,) + tuple(six.moves.range(1 + W.ndim, x.ndim))
