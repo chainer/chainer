@@ -9,7 +9,6 @@ from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
 from chainer.utils import type_check
 
 
@@ -44,12 +43,10 @@ class TestBatchL2NormSquared(unittest.TestCase):
 
         testing.assert_allclose(y_expect, y_data)
 
-    @condition.retry(3)
     def test_forward_cpu(self):
         self.check_forward(self.x)
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x))
 
@@ -57,12 +54,10 @@ class TestBatchL2NormSquared(unittest.TestCase):
         gradient_check.check_backward(
             functions.batch_l2_norm_squared, x_data, y_grad, eps=1)
 
-    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy)
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
@@ -71,12 +66,10 @@ class TestBatchL2NormSquared(unittest.TestCase):
             functions.batch_l2_norm_squared,
             x_data, y_grad, x_grad_grad, dtype=np.float64)
 
-    @condition.retry(3)
     def test_double_backward_cpu(self):
         self.check_double_backward(self.x, self.gy, self.ggx)
 
     @attr.gpu
-    @condition.retry(3)
     def test_double_backward_gpu(self):
         self.check_double_backward(
             cuda.to_gpu(self.x),
