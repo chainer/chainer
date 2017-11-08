@@ -30,7 +30,7 @@ class Fmod(function_node.FunctionNode):
     def backward(self, indexes, grad_outputs):
         x, divisor = self.get_retained_inputs()
         gw, = grad_outputs
-        return gw, chainer.functions.fix(x / divisor) * -1 * gw
+        return gw, - chainer.functions.fix(x / divisor) * gw
 
 
 def fmod(x, divisor):
