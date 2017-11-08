@@ -19,6 +19,7 @@ from chainer.testing import condition
     'W_dtype': [numpy.float32],
     'cudnn_deterministic': [True, False],
     'dilate': [1],
+    'autotune': [True, False],
 }) + testing.product({
     'c_contiguous': [False],
     'cover_all': [False],
@@ -26,6 +27,7 @@ from chainer.testing import condition
     'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'W_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'dilate': [1],
+    'autotune': [False],
 }) + testing.product({
     'c_contiguous': [False],
     'cover_all': [False],
@@ -33,6 +35,7 @@ from chainer.testing import condition
     'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'W_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'dilate': [2],
+    'autotune': [False],
 })))
 class TestConvolution2DFunction(unittest.TestCase):
 
@@ -83,9 +86,10 @@ class TestConvolution2DFunction(unittest.TestCase):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             with chainer.using_config('cudnn_deterministic',
                                       self.cudnn_deterministic):
-                y_gpu = F.convolution_2d(
-                    x_gpu, W_gpu, b_gpu, stride=self.stride, pad=self.pad,
-                    cover_all=self.cover_all, dilate=self.dilate)
+                with chainer.using_config('autotune', self.autotune):
+                    y_gpu = F.convolution_2d(
+                        x_gpu, W_gpu, b_gpu, stride=self.stride, pad=self.pad,
+                        cover_all=self.cover_all, dilate=self.dilate)
 
         testing.assert_allclose(
             y_cpu.data, y_gpu.data.get(), atol=5e-4, rtol=5e-3)
@@ -128,8 +132,9 @@ class TestConvolution2DFunction(unittest.TestCase):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             with chainer.using_config('cudnn_deterministic',
                                       self.cudnn_deterministic):
-                gradient_check.check_backward(
-                    f, args, y_grad, dtype='d', atol=5e-4, rtol=5e-3)
+                with chainer.using_config('autotune', self.autotune):
+                    gradient_check.check_backward(
+                        f, args, y_grad, dtype='d', atol=5e-4, rtol=5e-3)
 
     @condition.retry(3)
     def test_backward_cpu(self):
@@ -385,8 +390,8 @@ class TestConvolution2DFunctionCudnnDeterministic(unittest.TestCase):
         with chainer.using_config('use_cudnn', 'always'):
             with chainer.using_config('cudnn_deterministic', True):
                 # verify data continuity and move to gpu
-                x_data, W_data, b_data, gy_data = \
-                    tuple(cuda.to_gpu(data) for data in self._contiguous(
+                x_data, W_data, b_data, gy_data = tuple(
+                    cuda.to_gpu(data) for data in self._contiguous(
                         self.x, self.W, self.b, self.gy))
                 x, W, b, y = self._run_forward(x_data, W_data, b_data)
 

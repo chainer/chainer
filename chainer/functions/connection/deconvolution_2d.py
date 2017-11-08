@@ -13,12 +13,27 @@ from chainer.utils import type_check
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
     libcudnn = cuda.cuda.cudnn
-    _cudnn_version = libcudnn.getVersion()
+    _cudnn_version_ = libcudnn.getVersion()
     _fwd_pref = libcudnn.CUDNN_CONVOLUTION_FWD_SPECIFY_WORKSPACE_LIMIT
     _bwd_filter_pref = \
         libcudnn.CUDNN_CONVOLUTION_BWD_FILTER_SPECIFY_WORKSPACE_LIMIT
     _bwd_data_pref = \
         libcudnn.CUDNN_CONVOLUTION_BWD_DATA_SPECIFY_WORKSPACE_LIMIT
+    _algorithm = {}
+
+
+def get_algorithm(W, dy, dx, conv_param, handle, filter_desc, dy_desc,
+                  conv_desc, dx_desc, workspace):
+    key = (dx.shape, W.shape, dy.shape, conv_param)
+    if key in _algorithm:
+        return _algorithm[key]
+    ret = libcudnn.findConvolutionBackwardDataAlgorithmEx(
+        handle, filter_desc.value, W.data.ptr, dy_desc.value, dy.data.ptr,
+        conv_desc.value, dx_desc.value, dx.data.ptr, 1, workspace.data.ptr,
+        workspace.size)
+    algo = ret[0]['algo']
+    _algorithm[key] = algo
+    return algo
 
 
 def _pair(x):
@@ -161,7 +176,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
 
         if (not self.cover_all and chainer.should_use_cudnn('>=auto') and
                 x.dtype == W.dtype and
-                ((self.dy == 1 and self.dx == 1) or _cudnn_version >= 6000)):
+                ((self.dy == 1 and self.dx == 1) or _cudnn_version_ >= 6000)):
             x = cuda.cupy.ascontiguousarray(x)
             W = cuda.cupy.ascontiguousarray(W)
             if b is not None:
@@ -176,9 +191,9 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             y_desc = cudnn.create_tensor_descriptor(y)
 
             filter_desc = cudnn.create_filter_descriptor(W)
+            conv_param = (self.ph, self.pw), (self.sy, self.sx), x.dtype
             conv_desc = cudnn.create_convolution_descriptor(
-                (self.ph, self.pw), (self.sy, self.sx), x.dtype,
-                dilation=(self.dy, self.dx),
+                *conv_param, dilation=(self.dy, self.dx),
                 use_tensor_core=use_tensor_core)
             if b is not None:
                 bias_desc = cudnn.create_tensor_descriptor(
@@ -190,13 +205,16 @@ class Deconvolution2DFunction(function_node.FunctionNode):
 
             workspace_size = cuda.get_max_workspace_size()
             workspace = cuda.cupy.empty((workspace_size,), dtype='b')
+
             if configuration.config.cudnn_deterministic:
                 algo = libcudnn.CUDNN_CONVOLUTION_BWD_DATA_ALGO_1
+            elif configuration.config.autotune and _cudnn_version_ >= 5000:
+                algo = get_algorithm(W, x, y, conv_param, handle, filter_desc,
+                                     x_desc, conv_desc, y_desc, workspace)
             else:
                 algo = libcudnn.getConvolutionBackwardDataAlgorithm(
-                    handle, filter_desc.value, x_desc.value,
-                    conv_desc.value, y_desc.value, _bwd_data_pref,
-                    workspace_size)
+                    handle, filter_desc.value, x_desc.value, conv_desc.value,
+                    y_desc.value, _bwd_data_pref, workspace_size)
 
             if use_tensor_core:
                 # Only CUDNN_CONVOLUTION_BWD_DATA_ALGO_1 supports
@@ -301,6 +319,11 @@ http://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf
     The output of this function can be non-deterministic when it uses cuDNN.
     If ``chainer.configuration.config.deterministic`` is ``True`` and
     cuDNN version is >= v3, it forces cuDNN to use a deterministic algorithm.
+
+    Deconvolution links can use a feature of cuDNN called autotuning, which
+    selects the most efficient CNN algorithm for images of fixed-size,
+    can provide a significant performance boost for fixed neural nets.
+    To enable, set `chainer.using_config('autotune', True)`
 
     .. warning::
 
