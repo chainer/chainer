@@ -5,7 +5,7 @@ import chainer
 from chainer import configuration
 from chainer import cuda
 from chainer import function
-from chainer.functions.connection import convolution_2d
+from chainer.functions.connection import deconvolution_2d
 from chainer.utils import conv
 from chainer.utils import conv_nd
 from chainer.utils import type_check
@@ -136,8 +136,8 @@ class DeconvolutionND(function.Function):
         workspace_size = cuda.get_max_workspace_size()
         workspace = cuda.cupy.empty((workspace_size,), dtype='b')
         if configuration.config.autotune and _cudnn_version_ >= 5000:
-            algo = convolution_2d.get_algorithm(x, W, y, conv_param, handle,
-                                                x_desc, self.filter_desc,
+            algo = deconvolution_2d.get_algorithm(W, x, y, conv_param, handle,
+                                                self.filter_desc, x_desc, 
                                                 self.conv_desc, y_desc,
                                                 workspace)
         else:
