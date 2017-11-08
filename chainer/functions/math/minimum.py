@@ -22,10 +22,7 @@ class Minimum(function_node.FunctionNode):
         self.retain_inputs((0, 1))
         x1, x2 = inputs
         xp = cuda.get_array_module(x1, x2)
-        if xp is numpy:
-            return utils.force_array(numpy.minimum(x1, x2)),
-        else:
-            return xp.minimum(x1, x2),
+        return utils.force_array(xp.minimum(x1, x2)),
 
     def backward(self, indexes, grad_outputs):
         x1, x2 = self.get_retained_inputs()
