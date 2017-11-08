@@ -1,5 +1,5 @@
 Chainer at a Glance
-================
+===================
 
 .. currentmodule:: chainer
 
@@ -14,7 +14,7 @@ Chainer is a rapidly growing neural network platform. The strengths of Chainer a
 
 
 Mushrooms -- tasty or deathly?
-~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Let's take a look at a basic program of Chainer to see how it works. For a dataset, we'll work with `Kaggle's edible vs. poisonous mushroom dataset <https://www.kaggle.com/uciml/mushroom-classification>`_, which has over 8,000 examples of mushrooms, labelled by 22 categories including odor, cap color, habitat, etc.
 
@@ -139,7 +139,7 @@ Code Breakdown
 --------------
 
 Initialization
-~~~~~~~~~~~~
+~~~~~~~~~~~~~~
 
 Let's start our python program. Matplotlib is used for the graphs to show training progress.
 
@@ -275,7 +275,7 @@ Set up the :class:`~chainer.updater` to be called after the training batches and
    trainer = training.Trainer(updater, (50, 'epoch'), out='result')
    
 Extensions
-~~~~~~~~~
+~~~~~~~~~~
 .. image:: ../../image/glance/trainer-extensions.png
 
 Use the testing :class:`~chainer.iterator` defined above for an :class:`~chainer.training.extensions.Evaluator` extension to the trainer to provide test scores.
