@@ -18,16 +18,14 @@ class Minimum(function_node.FunctionNode):
             in_types[0].shape == in_types[1].shape
         )
 
-    def forward_cpu(self, inputs):
+    def forward(self, inputs):
         self.retain_inputs((0, 1))
         x1, x2 = inputs
-        y = numpy.minimum(x1, x2)
-        return utils.force_array(y),
-
-    def forward_gpu(self, inputs):
-        self.retain_inputs((0, 1))
-        x1, x2 = inputs
-        return cuda.cupy.minimum(x1, x2),
+        xp = cuda.get_array_module(x1, x2)
+        if xp is numpy:
+            return utils.force_array(numpy.minimum(x1, x2)),
+        else:
+            return xp.minimum(x1, x2),
 
     def backward(self, indexes, grad_outputs):
         x1, x2 = self.get_retained_inputs()
