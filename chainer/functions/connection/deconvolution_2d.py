@@ -176,7 +176,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
 
         if (not self.cover_all and chainer.should_use_cudnn('>=auto') and
                 x.dtype == W.dtype and
-                ((self.dy == 1 and self.dx == 1) or _cudnn_version >= 6000)):
+                ((self.dy == 1 and self.dx == 1) or _cudnn_version_ >= 6000)):
             x = cuda.cupy.ascontiguousarray(x)
             W = cuda.cupy.ascontiguousarray(W)
             if b is not None:
