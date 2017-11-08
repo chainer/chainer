@@ -20,8 +20,10 @@ class UnaryFunctionsTestBase(unittest.TestCase):
 
         if self.dtype == numpy.float16:
             self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
+            self.check_double_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
         else:
             self.check_backward_options = {'atol': 1e-4, 'rtol': 1e-3}
+            self.check_double_backward_options = {'atol': 1e-4, 'rtol': 1e-3}
 
     def check_forward(self, op, op_xp, x_data):
         x = chainer.Variable(x_data)
@@ -49,7 +51,7 @@ class UnaryFunctionsTestBase(unittest.TestCase):
     def check_double_backward(self, op, x_data, y_grad, x_grad_grad):
         gradient_check.check_double_backward(
             op, x_data, y_grad, x_grad_grad,
-            atol=1e-4, rtol=1e-3, dtype=numpy.float64)
+            dtype=numpy.float64, **self.check_double_backward_options)
 
     def check_double_backward_cpu(self, op):
         self.check_double_backward(op, self.x, self.gy, self.ggx)
