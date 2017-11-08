@@ -67,12 +67,13 @@ The process to get a next word prediction from :math:`i`-th input word :math:`{\
 
 #. Transform to probability: :math:`{\bf p}_t = {\rm softmax}({\bf y}_t)`
 
-- Note that :math:`\rm tanh` in the above equation is applied to the input
-  vector in element-wise manner.
-- Note that :math:`\left[ \begin{array}{cc} {\bf a} \\ {\bf b} \end{array} \right]`
-  denotes a concatenated vector of :math:`{\bf a}` and :math:`{\bf b}`.
-- Note that :math:`{\rm softmax}` in the above equation converts an arbitrary
-  real vector to a probability vector which the summation over all elements is :math:`1`.
+.. note::
+    * Note that :math:`\rm tanh` in the above equation is applied to the input
+      vector in element-wise manner.
+    * Note that :math:`\left[ \begin{array}{cc} {\bf a} \\ {\bf b} \end{array} \right]`
+      denotes a concatenated vector of :math:`{\bf a}` and :math:`{\bf b}`.
+    * Note that :math:`{\rm softmax}` in the above equation converts an arbitrary
+      real vector to a probability vector which the summation over all elements is :math:`1`.
 
 1.2 Perplexity (Evaluation of the language model)
 --------------------------------------------------
@@ -90,9 +91,9 @@ the perplexity is represented as follows:
     b^z \ \ s.t. \ \ z = - \frac{1}{|\mathcal{V}|} \sum_{n=1}^{|D|} \sum_{t=1}^{T^{(n)}} \log_b P_{\rm model}({\bf x}_t^{(n)}, {\bf X}_{[a, t-1]}^{(n)})
 
 We usually use :math:`b = 2` or :math:`b = e`. The perplexity shows how much
-varied the predicted distribution for the next word is. When a language model well
-represents the dataset, it should show a high probability only for the correct next
-word, so that the entropy should be high. In the above equation, the sign is
+varied the predicted distribution for the next word is. When a language model
+represents the dataset well, it should show a high probability only for the correct 
+next word, so that the entropy should be high. In the above equation, the sign is
 reversed, so that smaller perplexity means better model.
 
 During training, we minimize the below cross entropy:
@@ -105,78 +106,104 @@ where :math:`\hat P` is the empirical distribution of a sequence in the training
 2. Implementation of Recurrent Neural Net Language Model
 =========================================================
 
-* There is an example related to the RNN language model on the GitHub repository,
-  so we will explain based on that.
+**There is an example of RNN language model in the official repository, so we will
+explain how to implement a RNNLM in Chainer based on that:** `chainer/examples/ptb <https://github.com/chainer/chainer/tree/master/examples/ptb>`_
 
-    * `chainer/examples/ptb <https://github.com/chainer/chainer/tree/master/examples/ptb>`_
-
-2.1 Overview of the Example
-----------------------------
+2.1 Model Overview
+-------------------
 
 .. image:: ../../image/ptb/rnnlm_example.png
 
-* In this example, we use the recurrent neural model above.
+The RNNLM used in this notebook is depicted in the above figure. The symbols
+appeared in the figure are defined as follows:
 
-    * :math:`x_t` : the one-hot vector of :math:`t`-th input.
-    * :math:`y_t` : the :math:`t`-th output.
-    * :math:`h_t^i` : the :math:`t`-th hidden layer of `i`-th layer.
-    * :math:`E` : Embedding matrix
-    * :math:`W_o` : Output layer matrix
+=======================  =============================================
+Symbol                   Definition 
+=======================  =============================================
+:math:`{\bf x}_t`        the one-hot vector of :math:`t`-th word 
+:math:`{\bf y}_t`        the :math:`t`-th output
+:math:`{\bf h}_t^{(i)}`  the :math:`t`-th hidden layer of :math:`i`-th layer 
+:math:`{\bf p}_t`        the next word's probability of :math:`t`-th word 
+:math:`{\bf E}`          Embedding matrix
+:math:`{\bf W}_h`        Hidden layer matrix
+:math:`{\bf W}_o`        Output layer matrix
+=======================  =============================================
 
-* We use the **LSTM** (long short-term memory) for the connection of hidden layers.
-  The LSTM is the one of major recurrent neural net unit. It is desined for
-  remembering the long-term memory, which means the the relation of the separated
-  words, such that the word at beginning of sentence and that at end. 
-* We also use the **dropout** before the LSTM and linear transformation. Dropout is
-  the one of the refularization techniques for reducing overfitting on training
-  data.
+**LSTMs** (long short-term memory) are used for the connection of hidden layers.
+A LSTM is one of major recurrent neural net modules. It is desined for remembering
+the long-term memory, so that it should be able to consider relationships of
+distant words, such that a word at beginning of sentence and it at the end.
+We also use **Dropout** before both LSTMs and linear transformations. Dropout is
+one of regularization techniques for preventing overfitting on training dataset.
 
-2.2 Implementation Method
---------------------------
+2.2 Step-by-step Implementation
+--------------------------------
 
-Import Package
-^^^^^^^^^^^^^^^
+2.2.1 Import Package
+^^^^^^^^^^^^^^^^^^^^^
+
+First, let's import necessary packages.
 
 .. literalinclude:: ../../../examples/ptb/train_ptb.py
    :language: python
-   :lines: 14-18
+   :lines: 12-18
    :caption: train_ptb.py
 
-* Basically, if you use chainer, you import in this way.
-* Importing functions as ``F`` and links as ``L`` makes it easy to use.
+2.2.2 Define Training Settings
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Define Network Structure
-^^^^^^^^^^^^^^^^^^^^^^^^^
+Define all training settings here for ease of reference.
+
+.. literalinclude:: ../../../examples/ptb/train_ptb.py
+   :language: python
+   :start-after: argparse.ArgumentParser()
+   :end-before: parser.parse_args
+   :caption: train_ptb.py
+   :dedent: 4
+
+2.2.3 Define Network Structure
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+An RNNLM written in Chainer is shown below. It implements the model depicted in
+the above figure.
 
 .. literalinclude:: ../../../examples/ptb/train_ptb.py
    :language: python
    :pyobject: RNNForLM
    :caption: train_ptb.py
 
-* Next, we define the network structure of the RNN language model.
-* When we call the constructor ``__init__``, we pass the vocavulary size
-  ``n_vocab`` and the size of the hidden vectors ``n_units``.
+* When we insatantiate this class for making a model, we give the vocavulary size
+  to ``n_vocab`` and the size of hidden vectors to ``n_units``.
+* This network uses :class:`chainer.links.LSTM`, :class:`chainer.links.Linear`,
+  and :class:`chainer.functions.dropout` as its building blocks. All the layers
+  are registered and initialized in the context with ``self.init_scope()``.
+* You can access all the parameters in those layers by calling ``self.params()``.
+* In the constructor, it initializes all parameters with values sampled from a
+  uniform distribution :math:`U(-1, 1)`.
+* The ``__call__`` method takes an word ID ``x``, and calculates the word
+  probability vector for the next word by forwarding it through the nerwork,
+  and returns the output.
+* Note that the word ID ``x`` is automatically converted to a
+  :math:`|\mathcal{V}|`-dimensional one-hot vector and then multiplied with the
+  input embedding matrix in ``self.embed(x)`` to obtain an embed vector ``h0``
+  at the first line of ``__call__``.
 
-    * As the connection of layers, :class:`~chainer.links.LSTM`,
-      :class:`~chainer.links.Linear`, and :class:`~chainer.functions.dropout` are
-      used.
-    * The :class:`~chainer.Parameter` s are initialized in ``self.init_scope()``.
+2.2.4 Load the Penn Tree Bank Long Word Sequence Dataset
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-        * It is recommended to initialize :class:`~chainer.Parameter` here.
-        * Since we set :class:`~chainer.Parameter` as the attribute of Link,
-          there are effects such as making IDE easier to follow code.
-        * For details, see :ref:`upgrade-new-param-register`.
+In this notebook, we use Penn Tree Bank dataset that contains number of sentences.
+Chainer provides an utility function to obtain this dataset from server and convert
+it to a long single sequence of word IDs. ``chainer.datasets.get_ptb_words()``
+actually returns three separated datasets which are for train, validation, and test.
 
-    * You can access all the parameters by ``self.params()`` and initialze by
-      ``np.random.uniform(-0.1, 0.1, param.data.shape)``.
+Let's download and make dataset objects using it:
 
-* The function call ``__call__`` takes the input word's ID ``x``. In this function,
-  the nerwork structure of RNN language model is defined.
-
-    * The input word' ID ``x`` is converted to the embedding vector  ``h0``
-      by ``self.embed(x)``.
-    * After tha embedding vector ``h0`` passes through the network, the output ``y``
-      is returned.
+.. literalinclude:: ../../../examples/ptb/train_ptb.py
+   :language: python
+   :start-after: parser.parse_args
+   :end-before: n_vocab
+   :caption: train_ptb.py
+   :dedent: 4
 
 Define Iterator for Data
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -205,11 +232,6 @@ Define Evaluation Function (Perplexity)
 Main Function
 ^^^^^^^^^^^^^^
 
-.. literalinclude:: ../../../examples/ptb/train_ptb.py
-   :language: python
-   :start-after: parser.parse_args
-   :end-before: n_vocab
-   :caption: train_ptb.py
 
 * We download the Penn Treebank dataset by :class:`~chainer.datasets.get_ptb_words`.
   Each data contains the list of Document IDs
