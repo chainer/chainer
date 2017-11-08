@@ -15,14 +15,44 @@ if cuda.cudnn_enabled:
     _fwd_pref = libcudnn.CUDNN_CONVOLUTION_FWD_SPECIFY_WORKSPACE_LIMIT
     _bwd_filter_pref = \
         libcudnn.CUDNN_CONVOLUTION_BWD_FILTER_SPECIFY_WORKSPACE_LIMIT
-    _bwd_data_pref = \
-        libcudnn.CUDNN_CONVOLUTION_BWD_DATA_SPECIFY_WORKSPACE_LIMIT
+    _algorithm_fwd = {}
+    _algorithm_bwd_filter = {}
 
 
 def _pair(x):
     if hasattr(x, '__getitem__'):
         return x
     return x, x
+
+
+def get_algorithm_fwd(
+        x, W, y, conv_param, handle, x_desc, filter_desc, conv_desc, y_desc,
+        workspace):
+    key = (x.shape, W.shape, y.shape, conv_param)
+    if key in _algorithm_fwd:
+        return _algorithm_fwd[key]
+    ret = libcudnn.findConvolutionForwardAlgorithmEx(
+        handle, x_desc.value, x.data.ptr, filter_desc.value, W.data.ptr,
+        conv_desc.value, y_desc.value, y.data.ptr, 1, workspace.data.ptr,
+        workspace.size)
+    algo = ret[0]['algo']
+    _algorithm_fwd[key] = algo
+    return algo
+
+
+def get_algorithm_bwd_filter(
+        x, dy, dW, conv_param, handle, x_desc, dy_desc, conv_desc, filter_desc,
+        workspace):
+    key = (x.shape, dW.shape, dy.shape, conv_param)
+    if key in _algorithm_bwd_filter:
+        return _algorithm_bwd_filter[key]
+    ret = libcudnn.findConvolutionBackwardFilterAlgorithmEx(
+        handle, x_desc.value, x.data.ptr, dy_desc.value, dy.data.ptr,
+        conv_desc.value, filter_desc.value, dW.data.ptr, 1,
+        workspace.data.ptr, workspace.size)
+    algo = ret[0]['algo']
+    _algorithm_bwd_filter[key] = algo
+    return algo
 
 
 class Convolution2DFunction(function_node.FunctionNode):
@@ -129,17 +159,22 @@ class Convolution2DFunction(function_node.FunctionNode):
             y_desc = cudnn.create_tensor_descriptor(y)
 
             filter_desc = cudnn.create_filter_descriptor(W)
+            conv_param = ((self.ph, self.pw), (self.sy, self.sx), x.dtype)
             conv_desc = cudnn.create_convolution_descriptor(
-                (self.ph, self.pw), (self.sy, self.sx), x.dtype)
+                *conv_param)
             if b is not None:
                 bias_desc = cudnn.create_tensor_descriptor(
                     b[None, :, None, None])
-
             workspace_size = cuda.get_max_workspace_size()
             workspace = cuda.cupy.empty((workspace_size,), dtype='b')
-            algo = libcudnn.getConvolutionForwardAlgorithm(
-                handle, x_desc.value, filter_desc.value,
-                conv_desc.value, y_desc.value, _fwd_pref, workspace_size)
+            if configuration.config.autotune and _cudnn_version >= 5000:
+                algo = get_algorithm_fwd(
+                    x, W, y, conv_param, handle, x_desc, filter_desc,
+                    conv_desc, y_desc, workspace)
+            else:
+                algo = libcudnn.getConvolutionForwardAlgorithm(
+                    handle, x_desc.value, filter_desc.value,
+                    conv_desc.value, y_desc.value, _fwd_pref, workspace_size)
 
             oz_dtype = 'd' if x.dtype == 'd' else 'f'
             one = numpy.array(1, dtype=oz_dtype).ctypes
@@ -245,8 +280,9 @@ class Convolution2DGradW(function_node.FunctionNode):
         gy_desc = cudnn.create_tensor_descriptor(gy)
 
         filter_desc = cudnn.create_filter_descriptor(gW)
+        conv_param = (self.ph, self.pw), (self.sy, self.sx), x.dtype
         conv_desc = cudnn.create_convolution_descriptor(
-            (self.ph, self.pw), (self.sy, self.sx), x.dtype)
+            *conv_param)
 
         oz_dtype = 'd' if x.dtype == 'd' else 'f'
         one = numpy.array(1, dtype=oz_dtype).ctypes
@@ -257,6 +293,10 @@ class Convolution2DGradW(function_node.FunctionNode):
 
         if configuration.config.cudnn_deterministic:
             algo = libcudnn.CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1
+        elif configuration.config.autotune and _cudnn_version >= 5000:
+            algo = get_algorithm_bwd_filter(
+                x, gy, gW, conv_param, handle, x_desc, gy_desc, conv_desc,
+                filter_desc, workspace)
         else:
             algo = libcudnn.getConvolutionBackwardFilterAlgorithm(
                 handle, x_desc.value, gy_desc.value, conv_desc.value,
@@ -344,6 +384,11 @@ def convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False, **kwargs):
     The output of this function can be non-deterministic when it uses cuDNN.
     If ``chainer.configuration.config.cudnn_deterministic`` is ``True`` and
     cuDNN version is >= v3, it forces cuDNN to use a deterministic algorithm.
+
+    Convolution links can use a feature of cuDNN called autotuning, which
+    selects the most efficient CNN algorithm for images of fixed-size,
+    can provide a significant performance boost for fixed neural nets.
+    To enable, set `chainer.using_config('autotune', True)`
 
     .. warning::
 
