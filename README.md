@@ -1,6 +1,6 @@
 <div align="center"><img src="docs/image/chainer_red_h.png" width="400"/></div>
 
-# Chainer: a deep learning framework
+# Chainer: A deep learning framework
 
 [![pypi](https://img.shields.io/pypi/v/chainer.svg)](https://pypi.python.org/pypi/chainer)
 [![GitHub license](https://img.shields.io/github/license/chainer/chainer.svg)](https://github.com/chainer/chainer)
