@@ -14,6 +14,7 @@ from chainer.utils import type_check
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
     libcudnn = cuda.cuda.cudnn
+    _cudnn_version = libcudnn.getVersion()
     _fwd_pref = libcudnn.CUDNN_CONVOLUTION_FWD_SPECIFY_WORKSPACE_LIMIT
     _bwd_filter_pref = \
         libcudnn.CUDNN_CONVOLUTION_BWD_FILTER_SPECIFY_WORKSPACE_LIMIT
@@ -134,7 +135,7 @@ class DeconvolutionND(function.Function):
         zero = numpy.array(0, dtype=oz_dtype).ctypes
         workspace_size = cuda.get_max_workspace_size()
         workspace = cuda.cupy.empty((workspace_size,), dtype='b')
-        if configuration.config.autotune:
+        if configuration.config.autotune and _cudnn_version_ >= 5000:
             algo = convolution_2d.get_algorithm(x, W, y, conv_param, handle,
                                                 x_desc, self.filter_desc,
                                                 self.conv_desc, y_desc,
@@ -332,6 +333,11 @@ http://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf
 
        d_n = \\lfloor (l_n + 2p_n - k_n) / s_n \\rfloor + 1 \\ \\ \
        (n = 1, ..., N)
+
+    Deconvolution links can use a feature of cuDNN called autotuning, which
+    selects the most efficient CNN algorithm for images of fixed-size,
+    can provide a significant performance boost for fixed neural nets.
+    To enable, set `chainer.using_config('autotune', True)`
 
     Args:
         x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \

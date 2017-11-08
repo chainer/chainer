@@ -208,7 +208,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
 
             if configuration.config.cudnn_deterministic:
                 algo = libcudnn.CUDNN_CONVOLUTION_BWD_DATA_ALGO_1
-            elif configuration.config.autotune:
+            elif configuration.config.autotune and _cudnn_version_ >= 5000:
                 algo = get_algorithm(W, x, y, conv_param, handle, filter_desc,
                                      x_desc, conv_desc, y_desc, workspace)
             else:
@@ -320,7 +320,7 @@ http://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf
     If ``chainer.configuration.config.deterministic`` is ``True`` and
     cuDNN version is >= v3, it forces cuDNN to use a deterministic algorithm.
 
-    Convolution links can use a feature of cuDNN called autotuning, which
+    Deconvolution links can use a feature of cuDNN called autotuning, which
     selects the most efficient CNN algorithm for images of fixed-size,
     can provide a significant performance boost for fixed neural nets.
     To enable, set `chainer.using_config('autotune', True)`

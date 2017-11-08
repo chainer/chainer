@@ -15,6 +15,7 @@ from chainer.utils import type_check
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
     libcudnn = cuda.cuda.cudnn
+    _cudnn_version = libcudnn.getVersion()
     _fwd_pref = libcudnn.CUDNN_CONVOLUTION_FWD_SPECIFY_WORKSPACE_LIMIT
     _bwd_filter_pref = \
         libcudnn.CUDNN_CONVOLUTION_BWD_FILTER_SPECIFY_WORKSPACE_LIMIT
@@ -121,7 +122,7 @@ class ConvolutionND(function.Function):
         # Find cuDNN algorithm to be used.
         workspace_size = cuda.get_max_workspace_size()
         workspace = cuda.cupy.empty((workspace_size,), dtype='b')
-        if configuration.config.autotune:
+        if configuration.config.autotune and _cudnn_version_ >= 5000:
             algo = convolution_2d.get_algorithm_fwd(
                 x, W, y, self.conv_param, handle, x_desc, self.filter_desc,
                 self.conv_desc, y_desc, workspace)
@@ -237,7 +238,7 @@ class ConvolutionND(function.Function):
         workspace = cuda.cupy.empty((workspace_size,), dtype='b')
 
         # Compute filter weight gradient.
-        if configuration.config.autotune:
+        if configuration.config.autotune and _cudnn_version_ >= 5000:
             algo = convolution_2d.get_algorithm_bwd_filter(
                 x, gy, gW, self.conv_param, handle, x_desc, gy_desc,
                 self.conv_desc, self.filter_desc, workspace)
