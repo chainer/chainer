@@ -28,24 +28,20 @@ class Log1pFunctionTest(unittest.TestCase):
         testing.assert_allclose(
             numpy.log1p(self.x), y.data, atol=1e-7, rtol=1e-7)
 
-    @condition.retry(3)
     def test_log1p_forward_cpu(self):
         self.check_forward(self.x)
 
     @attr.gpu
-    @condition.retry(3)
     def test_log1p_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x))
 
     def check_backward(self, x_data, y_grad):
         gradient_check.check_backward(F.log1p, x_data, y_grad, dtype='d')
 
-    @condition.retry(3)
     def test_log1p_backward_cpu(self):
         self.check_backward(self.x, self.gy)
 
     @attr.gpu
-    @condition.retry(3)
     def test_log1p_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
@@ -53,12 +49,10 @@ class Log1pFunctionTest(unittest.TestCase):
         gradient_check.check_double_backward(
             F.log1p, x_data, y_grad, x_grad_grad, dtype=numpy.float64)
 
-    @condition.retry(3)
     def test_log1p_double_backward_cpu(self):
         self.check_double_backward(self.x, self.gy, self.ggx)
 
     @attr.gpu
-    @condition.retry(3)
     def test_log1p_double_backward_gpu(self):
         self.check_double_backward(
             cuda.to_gpu(self.x), cuda.to_gpu(self.gy),
