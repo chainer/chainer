@@ -1,8 +1,8 @@
 import numpy
-import six
 
+import chainer
 from chainer import cuda
-from chainer import function
+from chainer import function_node
 from chainer.utils import type_check
 
 
@@ -12,13 +12,21 @@ def _fwd_kern():
         'y = cond >= 0 ? x : (T)(x * W)', 'prelu')
 
 
-class PReLUFunction(function.Function):
+def _get_extended_shape(W, x):
+    return (1,) + W.shape + (1,) * (x.ndim - W.ndim - 1)
+
+
+def _get_reduce_axes(W, x):
+    return (0,) + tuple(range(1 + W.ndim, x.ndim))
+
+
+class PReLUFunction(function_node.FunctionNode):
+
+    """Parametric Rectified Linear Unit function."""
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 2)
-
         x_type, W_type = in_types
-
         type_check.expect(
             x_type.dtype.kind == 'f',
             W_type.dtype == x_type.dtype,
@@ -32,44 +40,106 @@ class PReLUFunction(function.Function):
         masked = numpy.ma.masked_greater_equal(y, 0, copy=False)
         shape = _get_extended_shape(W, y)
         masked *= W.reshape(shape)
+        self.retain_inputs((0, 1))
         return y,
 
     def forward_gpu(self, inputs):
         x, W = inputs
         shape = _get_extended_shape(W, x)
         y = _fwd_kern()(x, x, W.reshape(shape))
+        self.retain_inputs((0, 1))
         return y,
 
-    def backward_cpu(self, inputs, grad_outputs):
-        x, W = inputs
-        gy = grad_outputs[0]
-        mask = x >= 0
-        axes = (0,) + tuple(six.moves.range(1 + W.ndim, gy.ndim))
-        gW = numpy.where(mask, 0, x * gy).sum(axis=axes)
+    def backward(self, indexes, grad_outputs):
+        x, W = self.get_retained_inputs()
+        gy, = grad_outputs
+        return PReLUFunctionGrad(
+            x.data, _get_reduce_axes(W, x),
+            _get_extended_shape(W, x)).apply((x, W, gy))
+
+
+class PReLUFunctionGrad(function_node.FunctionNode):
+
+    """Parametric Rectified Linear Unit gradient function."""
+
+    def __init__(self, cond, reduce_axes, extended_shape):
+        self.cond = cond
+        self.reduce_axes = reduce_axes
+        self.extended_shape = extended_shape
+
+    def check_type_forward(self, in_types):
+        type_check.expect(in_types.size() == 3)
+        x_type, W_type, gy_type = in_types
+        type_check.expect(
+            x_type.dtype.kind == 'f',
+            W_type.dtype == x_type.dtype,
+            gy_type.dtype == x_type.dtype,
+            x_type.ndim >= W_type.ndim + 1,
+            x_type.shape[1:1 + type_check.eval(W_type.ndim)] == W_type.shape,
+            gy_type.shape == x_type.shape
+        )
+
+    def forward_cpu(self, inputs):
+        x, W, gy = inputs
+        mask = self.cond >= 0
+        masked = numpy.where(mask, 0, x * gy)
+
+        if self.reduce_axes is None:
+            # Reached from backward() of PReLUFunctionGrad i.e. this class, to
+            # compute higher order derivatives
+            gW = masked
+        else:
+            # Reached from backward() of PReLUFunction, to compute first
+            # derivatives
+            gW = masked.sum(axis=self.reduce_axes)
+
         if numpy.isscalar(gW):
             gW = numpy.array(gW)
 
         gx = gy.copy()
         masked = numpy.ma.array(gx, mask=mask)
-        shape = _get_extended_shape(W, gx)
-        masked *= W.reshape(shape)
-
+        masked *= W.reshape(self.extended_shape)
+        self.retain_inputs((0, 1, 2))
         return gx, gW
 
-    def backward_gpu(self, inputs, grad_outputs):
-        x, W = inputs
-        gy = grad_outputs[0]
+    def forward_gpu(self, inputs):
+        x, W, gy = inputs
         masked = cuda.elementwise(
-            'T x, T gy', 'T masked',
-            'masked = x >= 0 ? (T)0 : (T)(x * gy)',
-            'prelu_masked')(x, gy)
-        axes = (0,) + tuple(six.moves.range(1 + W.ndim, gy.ndim))
-        gW = masked.sum(axis=axes)
+            'T x, T cond, T gy', 'T masked',
+            'masked = cond >= 0 ? (T)0 : (T)(x * gy)',
+            'prelu_masked')(x, self.cond, gy)
+
+        if self.reduce_axes is None:
+            gW = masked.copy()
+        else:
+            gW = masked.sum(axis=self.reduce_axes)
 
         gx = masked  # reuse buffer
-        shape = _get_extended_shape(W, gx)
-        _fwd_kern()(gy, x, W.reshape(shape), gx)
+        _fwd_kern()(gy, self.cond, W.reshape(self.extended_shape), gx)
+        self.retain_inputs((0, 1, 2))
         return gx, gW
+
+    def backward(self, indexes, grad_outputs):
+        x, W, gy = self.get_retained_inputs()
+        ggx, ggW = grad_outputs
+
+        ggW = chainer.functions.broadcast_to(
+            chainer.functions.reshape(ggW, self.extended_shape), x.shape)
+        ggW *= self.cond < 0
+
+        gxgy, gxW = (
+            PReLUFunctionGrad(self.cond, None, self.extended_shape)
+            .apply((gy, W, ggx))
+        )
+
+        ret = []
+        if 0 in indexes:
+            ret.append(gy * ggW)
+        if 1 in indexes:
+            ret.append(chainer.functions.sum(gxW, axis=self.reduce_axes))
+        if 2 in indexes:
+            ret.append(x * ggW + gxgy)
+        return ret
 
 
 def prelu(x, W):
@@ -81,15 +151,15 @@ def prelu(x, W):
     batch.
 
     When the PReLU function is combined with two-dimensional convolution, the
-    elements of parameter :math:`a` are typically shared across the same filter
+    elements of parameter :math:`W` are typically shared across the same filter
     of different pixels. In order to support such usage, this function supports
     the shape of parameter array that indicates leading dimensions of input
     arrays except the batch dimension.
 
-    For example :math:`W` has the shape of :math:`(2, 3, 4)`,
-    :math:`x` must have the shape of :math:`(B, 2, 3, 4, S1, ..., SN)`
-    where B is batch size and the number of trailing S's
-    is arbitrary non-negative integer.
+    For example, if :math:`W` has the shape of :math:`(2, 3, 4)`,
+    :math:`x` must have the shape of :math:`(B, 2, 3, 4, S_1, ..., S_N)`
+    where :math:`B` is the batch size and the number of trailing :math:`S`'s
+    :math:`N` is an arbitrary non-negative integer.
 
     Args:
         x (~chainer.Variable): Input variable.
@@ -102,8 +172,4 @@ def prelu(x, W):
     .. seealso:: :class:`~chainer.links.PReLU`
 
     """
-    return PReLUFunction()(x, W)
-
-
-def _get_extended_shape(W, x):
-    return (1,) + W.shape + (1,) * (x.ndim - W.ndim - 1)
+    return PReLUFunction().apply((x, W))[0]
