@@ -16,9 +16,6 @@ from chainer.testing import attr
 }))
 class TestFlipUD(unittest.TestCase):
 
-    shape = (3, 4)
-    dtype = numpy.float32
-
     def setUp(self):
         self.x = numpy.random.uniform(0, 1, self.shape).astype(self.dtype)
         self.gy = numpy.random.uniform(0, 1, self.shape).astype(self.dtype)
