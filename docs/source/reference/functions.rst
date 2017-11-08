@@ -179,6 +179,7 @@ Mathematical functions
    chainer.functions.cosh
    chainer.functions.cumsum
    chainer.functions.exp
+   chainer.functions.fix
    chainer.functions.fmod
    chainer.functions.floor
    chainer.functions.identity
