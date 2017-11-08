@@ -52,12 +52,10 @@ class Expm1FunctionTest(unittest.TestCase):
         gradient_check.check_double_backward(
             F.expm1, x_data, y_grad, x_grad_grad)
 
-    @condition.retry(3)
     def test_expm1_double_backward_cpu(self):
         self.check_double_backward(self.x, self.gy, self.ggx)
 
     @attr.gpu
-    @condition.retry(3)
     def test_expm1_double_backward_gpu(self):
         self.check_double_backward(
             cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx))
