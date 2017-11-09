@@ -26,8 +26,8 @@ class SquaredError(function_node.FunctionNode):
     def backward(self, indexes, grad_outputs):
         x0, x1 = self.get_retained_inputs()
         gy, = grad_outputs
-        g = gy * 2 * (x0 - x1)
-        return g, -g
+        gx = gy * 2 * (x0 - x1)
+        return gx, -gx
 
 
 def squared_error(x0, x1):
