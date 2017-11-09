@@ -192,8 +192,9 @@ class Deconvolution2DFunction(function_node.FunctionNode):
 
             filter_desc = cudnn.create_filter_descriptor(W)
             conv_param = (self.ph, self.pw), (self.sy, self.sx), x.dtype
+            dilation = (self.dy, self.dx)
             conv_desc = cudnn.create_convolution_descriptor(
-                *conv_param, dilation=(self.dy, self.dx),
+                *conv_param, dilation=dilation,
                 use_tensor_core=use_tensor_core)
             if b is not None:
                 bias_desc = cudnn.create_tensor_descriptor(
@@ -209,8 +210,9 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             if configuration.config.cudnn_deterministic:
                 algo = libcudnn.CUDNN_CONVOLUTION_BWD_DATA_ALGO_1
             elif configuration.config.autotune and _cudnn_version_ >= 5000:
-                algo = get_algorithm(W, x, y, conv_param, handle, filter_desc,
-                                     x_desc, conv_desc, y_desc, workspace)
+                algo = get_algorithm(
+                    W, x, y, conv_param + (dilation,), handle, filter_desc,
+                    x_desc, conv_desc, y_desc, workspace)
             else:
                 algo = libcudnn.getConvolutionBackwardDataAlgorithm(
                     handle, filter_desc.value, x_desc.value, conv_desc.value,
