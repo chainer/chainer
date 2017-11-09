@@ -17,14 +17,14 @@ a sentence as :math:`{\bf X} = ({\bf x}_0, {\bf x}_1, ..., {\bf x}_T)`, in which
 vector of **BOS** (beginning of sentence), and :math:`{\bf x}_T` is that of
 **EOS** (end of sentence).
 
-A language model models the probability of a word occurance under the condition of
+A language model models the probability of a word occurrence under the condition of
 its previous words in a sentence. Let :math:`{\bf X}_{[i, j]}` be
 :math:`({\bf x}_i, {\bf x}_{i+1}, ..., {\bf x}_j)`, the occurrence probability
 of sentence :math:`\bf X` can be represented as follows:
 
 .. math:: P({\bf X}) = P({\bf x}_0) \prod_{t=1}^T P({\bf x}_t|{\bf X}_{[0, t-1]})
 
-So, the language model :math:`P({\bf X})` can be decomposed into word probablities
+So, the language model :math:`P({\bf X})` can be decomposed into word probabilities
 conditioned with its previous words. In this tutorial, we model
 :math:`P({\bf x}_t|{\bf X}_{[0, t-1]})` with a recurrent neural network to obtain
 a language model :math:`P({\bf X})`.
@@ -35,7 +35,7 @@ a language model :math:`P({\bf X})`.
 1.1 Recurrent Neural Net Language Model
 ---------------------------------------
 
-**Recurrent Neurral Net Language Model** (RNNLM) is a type of neural net
+**Recurrent Neural Net Language Model** (RNNLM) is a type of neural net
 language models which contains the RNNs in the network. Since an RNN can deal with
 the variable length inputs, it is suitable for modeling the sequential data such
 as sentences in natural language. 
@@ -131,7 +131,7 @@ Symbol                   Definition
 =======================  =============================================
 
 **LSTMs** (long short-term memory) are used for the connection of hidden layers.
-A LSTM is one of major recurrent neural net modules. It is desined for remembering
+A LSTM is one of major recurrent neural net modules. It is designed for remembering
 the long-term memory, so that it should be able to consider relationships of
 distant words, such that a word at beginning of sentence and it at the end.
 We also use **Dropout** before both LSTMs and linear transformations. Dropout is
@@ -153,7 +153,7 @@ First, let's import necessary packages.
 2.2.2 Define Training Settings
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Define all training settings here for ease of reference.
+Define all training settings here.
 
 .. literalinclude:: ../../../examples/ptb/train_ptb.py
    :language: python
@@ -173,7 +173,7 @@ the above figure.
    :pyobject: RNNForLM
    :caption: train_ptb.py
 
-* When we insatantiate this class for making a model, we give the vocavulary size
+* When we instantiate this class for making a model, we give the vocabulary size
   to ``n_vocab`` and the size of hidden vectors to ``n_units``.
 * This network uses :class:`chainer.links.LSTM`, :class:`chainer.links.Linear`,
   and :class:`chainer.functions.dropout` as its building blocks. All the layers
@@ -182,7 +182,7 @@ the above figure.
 * In the constructor, it initializes all parameters with values sampled from a
   uniform distribution :math:`U(-1, 1)`.
 * The ``__call__`` method takes an word ID ``x``, and calculates the word
-  probability vector for the next word by forwarding it through the nerwork,
+  probability vector for the next word by forwarding it through the network,
   and returns the output.
 * Note that the word ID ``x`` is automatically converted to a
   :math:`|\mathcal{V}|`-dimensional one-hot vector and then multiplied with the
@@ -206,7 +206,7 @@ Let's download and make dataset objects using it:
    :caption: train_ptb.py
    :dedent: 4
 
-2.2.5 Define Iterator for Making a Mini-batch form the Dataset
+2.2.5 Define Iterator for Making a Mini-batch from the Dataset
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Dataset iterator creates a mini-batch of couple of words at different positions, namely,
@@ -255,7 +255,7 @@ to give the loss value to the power of :math:`e`:
 2.2.8 Create Iterator
 ^^^^^^^^^^^^^^^^^^^^^^
 
-Here, the code below just create iterator objects from dataset splits (train/val/test).
+Here, the code below just creates iterator objects from dataset splits (train/val/test).
 
 .. literalinclude:: ../../../examples/ptb/train_ptb.py
    :language: python
@@ -267,7 +267,8 @@ Here, the code below just create iterator objects from dataset splits (train/val
 2.2.9 Create RNN and Classification Model
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Instantiate RNNLM model and wrap it with L.Classifier because it calculates softmax cross entropy as the loss.
+Instantiate RNNLM model and wrap it with :class:`chainer.links.Classifier`
+because it calculates softmax cross entropy as the loss.
 
 .. literalinclude:: ../../../examples/ptb/train_ptb.py
    :language: python
@@ -276,7 +277,7 @@ Instantiate RNNLM model and wrap it with L.Classifier because it calculates soft
    :caption: train_ptb.py
    :dedent: 4
 
-Note that :class:`chainer.links.Classifier` computes not only the loss but also accuracy based on a given
+Note that :class:`~chainer.links.Classifier` computes not only the loss but also accuracy based on a given
 input/label pair. To learn the RNN language model, we only need the loss (cross entropy) in the
 :class:`Classifier` because we calculate the perplexity instead of classification accuracy to check
 the performance of the model. So, we turn off computing the accuracy by giving False to
@@ -285,8 +286,10 @@ the performance of the model. So, we turn off computing the accuracy by giving F
 2.2.10 Setup Optimizer
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-Prepare an optimizer. Here, we use GradientClipping to prevent gradient explosion. It automatically clip
-the gradient to be used to update the parameters in the model with given constant gradclip.
+Prepare an optimizer. Here, we use :class:`~chainer.optimizer.GradientClipping`
+to prevent gradient explosion. It automatically clips
+the gradient to be used to update the parameters in the model with given constant
+``gradclip``.
   
 .. literalinclude:: ../../../examples/ptb/train_ptb.py
    :language: python
@@ -298,7 +301,8 @@ the gradient to be used to update the parameters in the model with given constan
 2.2.11 Setup and Run Trainer
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Let's make an trainer object and start the training! Note that we add an eval_hook to the Evaluator
+Let's make a trainer object and start the training! Note that we add an
+``eval_hook`` to the :class:`~chainer.training.extensions.Evaluator`
 extension to reset the internal states before starting evaluation process. It can prevent to use
 training data during evaluating the model.
 
@@ -312,8 +316,8 @@ training data during evaluating the model.
 2.2.12 Evaluate the trained model on test dataset
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Let's see the perplexity on the test split. Trainer's extension can be used as just a normal function
-outside of Trainer.
+Let's see the perplexity on the test split. :class:`~chainer.training.Trainer`'s extension can be used as just a normal function
+outside of :class:`~chainer.training.Trainer`.
 
 .. literalinclude:: ../../../examples/ptb/train_ptb.py
    :language: python
