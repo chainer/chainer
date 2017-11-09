@@ -185,9 +185,7 @@ class TestSigmoidCrossEntropy(unittest.TestCase):
 
 
 @testing.parameterize(
-    # TODO(okuta) : fix
-    # TypeError: Unsupported type <class 'mock.mock.MagicMock'>
-    # {'use_cudnn': 'always'},
+    {'use_cudnn': 'always'},
     {'use_cudnn': 'auto'},
     {'use_cudnn': 'never'},
 )
@@ -208,8 +206,9 @@ class TestSigmoidCrossEntropyCudnnCall(unittest.TestCase):
     def test_call_cudnn_backward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             y = self.forward()
-            patch = 'cupy.cudnn.activation_forward'
-            with mock.patch(patch) as func:
+            with mock.patch.object(
+                    cuda.cupy.cudnn, 'activation_forward',
+                    wraps=cuda.cupy.cudnn.activation_forward) as func:
                 y.backward()
                 self.assertEqual(func.called, self.expect)
 
