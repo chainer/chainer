@@ -11,7 +11,6 @@ from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
 from chainer import utils
 
 
@@ -38,6 +37,9 @@ class TestSigmoidCrossEntropy(unittest.TestCase):
         self.gy = numpy.random.random(self.shape).astype(numpy.float32)
         self.ggx = numpy.random.uniform(
             -1, 1, self.shape).astype(numpy.float32)
+
+        self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
+        self.check_double_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
 
     def check_forward(self, x_data, t_data, use_cudnn='always'):
         x_val = chainer.Variable(x_data)
@@ -91,37 +93,31 @@ class TestSigmoidCrossEntropy(unittest.TestCase):
                     self.assertAlmostEqual(
                         loss_expect, loss_value[i, j], places=5)
 
-    @condition.retry(3)
     def test_forward_cpu(self):
         with chainer.using_config('use_cudnn', 'always'):
             self.check_forward(self.x, self.t)
 
-    @condition.retry(3)
     def test_forward_no_reduction_cpu(self):
         with chainer.using_config('use_cudnn', 'always'):
             self.check_forward_no_reduction(self.x, self.t)
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_gpu(self):
         with chainer.using_config('use_cudnn', 'always'):
             self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.t))
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_no_reduction_gpu(self):
         with chainer.using_config('use_cudnn', 'always'):
             self.check_forward_no_reduction(
                 cuda.to_gpu(self.x), cuda.to_gpu(self.t))
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_gpu_no_cudnn(self):
         with chainer.using_config('use_cudnn', 'never'):
             self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.t))
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_no_reduction_gpu_no_cudnn(self):
         with chainer.using_config('use_cudnn', 'never'):
             self.check_forward_no_reduction(
@@ -134,7 +130,7 @@ class TestSigmoidCrossEntropy(unittest.TestCase):
 
         gradient_check.check_backward(
             functions.sigmoid_cross_entropy,
-            (x_data, t_data), None, atol=1e-4, rtol=1e-3)
+            (x_data, t_data), None, **self.check_backward_options)
 
     def check_backward_no_reduction(
             self, x_data, t_data, y_grad):
@@ -146,41 +142,35 @@ class TestSigmoidCrossEntropy(unittest.TestCase):
             return chainer.functions.sigmoid_cross_entropy(x, t, reduce='no')
 
         gradient_check.check_backward(
-            f, (x_data, t_data), y_grad, atol=1e-4, rtol=1e-3)
+            f, (x_data, t_data), y_grad, **self.check_backward_options)
 
-    @condition.retry(3)
     def test_backward_cpu(self):
         with chainer.using_config('use_cudnn', 'never'):
             self.check_backward(self.x, self.t)
 
-    @condition.retry(3)
     def test_backward_no_reduction_cpu(self):
         with chainer.using_config('use_cudnn', 'never'):
             self.check_backward_no_reduction(self.x, self.t, self.gy)
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu(self):
         with chainer.using_config('use_cudnn', 'always'):
             self.check_backward(
                 cuda.to_gpu(self.x), cuda.to_gpu(self.t))
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_no_reduction_gpu(self):
         with chainer.using_config('use_cudnn', 'always'):
             self.check_backward_no_reduction(
                 cuda.to_gpu(self.x), cuda.to_gpu(self.t), cuda.to_gpu(self.gy))
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu_no_cudnn(self):
         with chainer.using_config('use_cudnn', 'never'):
             self.check_backward(
                 cuda.to_gpu(self.x), cuda.to_gpu(self.t))
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_no_reduction_gpu_no_cudnn(self):
         with chainer.using_config('use_cudnn', 'never'):
             self.check_backward_no_reduction(
@@ -201,16 +191,15 @@ class TestSigmoidCrossEntropy(unittest.TestCase):
                 x, t, normalize=normalize, reduce=reduce)
 
         gradient_check.check_double_backward(
-            f, (x_data, t_data), y_grad, (gx_grad, None), atol=1e-4, rtol=1e-3)
+            f, (x_data, t_data), y_grad, (gx_grad, None),
+            **self.check_double_backward_options)
 
-    @condition.retry(3)
     def test_double_backward_cpu(self):
         with chainer.using_config('use_cudnn', 'never'):
             self.check_double_backward(self.x, self.t, self.gy, self.ggx,
                                        normalize=self.normalize, reduce='mean')
 
     @attr.gpu
-    @condition.retry(3)
     def test_double_backward_gpu(self):
         with chainer.using_config('use_cudnn', 'always'):
             self.check_double_backward(cuda.to_gpu(self.x),
@@ -226,7 +215,6 @@ class TestSigmoidCrossEntropy(unittest.TestCase):
                                        normalize=self.normalize, reduce='no')
 
     @attr.gpu
-    @condition.retry(3)
     def test_double_backward_no_reduction_gpu(self):
         with chainer.using_config('use_cudnn', 'always'):
             self.check_double_backward(cuda.to_gpu(self.x),

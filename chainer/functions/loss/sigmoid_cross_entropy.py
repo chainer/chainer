@@ -34,11 +34,10 @@ class SigmoidCrossEntropy(function_node.FunctionNode):
         )
 
     def forward(self, inputs):
-        xp = cuda.get_array_module(*inputs)
-        x, t = inputs
-
         self.retain_inputs((0, 1))
 
+        xp = cuda.get_array_module(*inputs)
+        x, t = inputs
         self.ignore_mask = (t != self.ignore_label)
 
         # stable computation of the cross entropy.
@@ -67,6 +66,8 @@ class SigmoidCrossEntropy(function_node.FunctionNode):
 
 class SigmoidCrossEntropyGrad(function_node.FunctionNode):
 
+    """Sigmoid cross entropy gradient function."""
+
     def __init__(self, reduce, count, ignore_mask, t):
         self.reduce = reduce
         self.count = count
@@ -74,6 +75,8 @@ class SigmoidCrossEntropyGrad(function_node.FunctionNode):
         self.t = t
 
     def forward(self, inputs):
+        self.retain_inputs((0, 1))
+
         xp = cuda.get_array_module(*inputs)
         x, gy = inputs
 
@@ -85,7 +88,6 @@ class SigmoidCrossEntropyGrad(function_node.FunctionNode):
         else:
             gx = (gy * self.ignore_mask * (y - self.t)).astype(y.dtype)
 
-        self.retain_inputs((0, 1))
         return gx, None
 
     def backward(self, indexes, grad_outputs):
@@ -105,8 +107,7 @@ class SigmoidCrossEntropyGrad(function_node.FunctionNode):
         return gx, ggy
 
 
-def sigmoid_cross_entropy(
-        x, t, normalize=True, reduce='mean'):
+def sigmoid_cross_entropy(x, t, normalize=True, reduce='mean'):
     """Computes cross entropy loss for pre-sigmoid activations.
 
     Args:
