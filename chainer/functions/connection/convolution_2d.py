@@ -25,7 +25,7 @@ def _pair(x):
     return x, x
 
 
-def get_algorithm_fwd(
+def _get_algorithm_fwd(
         x, W, y, conv_param, handle, x_desc, filter_desc, conv_desc, y_desc,
         workspace):
     key = (x.shape, W.shape, y.shape, conv_param)
@@ -40,7 +40,7 @@ def get_algorithm_fwd(
     return algo
 
 
-def get_algorithm_bwd_filter(
+def _get_algorithm_bwd_filter(
         x, dy, dW, conv_param, handle, x_desc, dy_desc, conv_desc, filter_desc,
         workspace):
     key = (x.shape, dW.shape, dy.shape, conv_param)
@@ -168,9 +168,9 @@ class Convolution2DFunction(function_node.FunctionNode):
             workspace_size = cuda.get_max_workspace_size()
             workspace = cuda.cupy.empty((workspace_size,), dtype='b')
             if configuration.config.autotune and _cudnn_version >= 5000:
-                algo = get_algorithm_fwd(
-                    x, W, y, conv_param, handle, x_desc, filter_desc,
-                    conv_desc, y_desc, workspace)
+                algo = _get_algorithm_fwd(
+                    x, W, y, conv_param, handle, x_desc,
+                    filter_desc, conv_desc, y_desc, workspace)
             else:
                 algo = libcudnn.getConvolutionForwardAlgorithm(
                     handle, x_desc.value, filter_desc.value,
@@ -294,9 +294,9 @@ class Convolution2DGradW(function_node.FunctionNode):
         if configuration.config.cudnn_deterministic:
             algo = libcudnn.CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1
         elif configuration.config.autotune and _cudnn_version >= 5000:
-            algo = get_algorithm_bwd_filter(
-                x, gy, gW, conv_param, handle, x_desc, gy_desc, conv_desc,
-                filter_desc, workspace)
+            algo = _get_algorithm_bwd_filter(
+                x, gy, gW, conv_param, handle, x_desc, gy_desc,
+                conv_desc, filter_desc, workspace)
         else:
             algo = libcudnn.getConvolutionBackwardFilterAlgorithm(
                 handle, x_desc.value, gy_desc.value, conv_desc.value,

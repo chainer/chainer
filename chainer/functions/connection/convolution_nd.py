@@ -123,7 +123,7 @@ class ConvolutionND(function.Function):
         workspace_size = cuda.get_max_workspace_size()
         workspace = cuda.cupy.empty((workspace_size,), dtype='b')
         if configuration.config.autotune and _cudnn_version_ >= 5000:
-            algo = convolution_2d.get_algorithm_fwd(
+            algo = convolution_2d._get_algorithm_fwd(
                 x, W, y, self.conv_param, handle, x_desc, self.filter_desc,
                 self.conv_desc, y_desc, workspace)
         else:
@@ -239,7 +239,7 @@ class ConvolutionND(function.Function):
 
         # Compute filter weight gradient.
         if configuration.config.autotune and _cudnn_version_ >= 5000:
-            algo = convolution_2d.get_algorithm_bwd_filter(
+            algo = convolution_2d._get_algorithm_bwd_filter(
                 x, gy, gW, self.conv_param, handle, x_desc, gy_desc,
                 self.conv_desc, self.filter_desc, workspace)
         else:

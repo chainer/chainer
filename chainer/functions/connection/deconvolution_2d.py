@@ -195,8 +195,9 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             if configuration.config.cudnn_deterministic:
                 algo = libcudnn.CUDNN_CONVOLUTION_BWD_DATA_ALGO_1
             elif configuration.config.autotune and _cudnn_version_ >= 5000:
-                algo = get_algorithm(W, x, y, conv_param, handle, filter_desc,
-                                     x_desc, conv_desc, y_desc, workspace)
+                algo = get_algorithm(
+                    W, x, y, conv_param, handle, filter_desc,
+                    x_desc, conv_desc, y_desc, workspace)
             else:
                 algo = libcudnn.getConvolutionBackwardDataAlgorithm(
                     handle, filter_desc.value, x_desc.value, conv_desc.value,
