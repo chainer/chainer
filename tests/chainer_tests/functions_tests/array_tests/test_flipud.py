@@ -51,7 +51,8 @@ class TestFlipUD(unittest.TestCase):
             return y * y
 
         gradient_check.check_double_backward(
-            f, x_data, y_grad, x_grad_grad, dtype=numpy.float64)
+            f, x_data, y_grad, x_grad_grad, dtype=numpy.float64,
+            atol=5e-4, rtol=5e-3)
 
     def test_double_backward_cpu(self):
         self.check_double_backward(self.x, self.gy, self.ggx)
