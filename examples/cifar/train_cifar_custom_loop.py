@@ -32,12 +32,8 @@ def main():
                         help='Number of sweeps over the dataset to train')
     parser.add_argument('--gpu', '-g', type=int, default=0,
                         help='GPU ID (negative value indicates CPU)')
-    parser.add_argument('--out', '-o', default='result',
-                        help='Directory to output the result')
     parser.add_argument('--test', action='store_true',
                         help='Use tiny datasets for quick tests')
-    parser.add_argument('--resume', '-r', default='',
-                        help='Resume the training from snapshot')
     args = parser.parse_args()
 
     print('GPU: {}'.format(args.gpu))
@@ -90,12 +86,10 @@ def main():
             optimizer.lr *= 0.5
             print('Reducing learning rate to: ', optimizer.lr)
 
-        x_array, t_array = convert.concat_examples(batch, args.gpu)
-        x = chainer.Variable(x_array)
-        t = chainer.Variable(t_array)
+        x, t = convert.concat_examples(batch, args.gpu)
         optimizer.update(model, x, t)
-        sum_loss += float(model.loss.data) * len(t.data)
-        sum_accuracy += float(model.accuracy.data) * len(t.data)
+        sum_loss += float(model.loss.data) * len(t)
+        sum_accuracy += float(model.accuracy.data) * len(t)
 
         if train_iter.is_new_epoch:
             print('epoch: ', train_iter.epoch)
@@ -106,12 +100,10 @@ def main():
             sum_loss = 0
             model.predictor.train = False
             for batch in test_iter:
-                x_array, t_array = convert.concat_examples(batch, args.gpu)
-                x = chainer.Variable(x_array)
-                t = chainer.Variable(t_array)
+                x, t = convert.concat_examples(batch, args.gpu)
                 loss = model(x, t)
-                sum_loss += float(loss.data) * len(t.data)
-                sum_accuracy += float(model.accuracy.data) * len(t.data)
+                sum_loss += float(loss.data) * len(t)
+                sum_accuracy += float(model.accuracy.data) * len(t)
 
             test_iter.reset()
             model.predictor.train = True
