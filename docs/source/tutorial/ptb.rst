@@ -107,7 +107,8 @@ where :math:`\hat P` is the empirical distribution of a sequence in the training
 =========================================================
 
 **There is an example of RNN language model in the official repository, so we will
-explain how to implement a RNNLM in Chainer based on that:** `chainer/examples/ptb <https://github.com/chainer/chainer/tree/master/examples/ptb>`_
+explain how to implement a RNNLM in Chainer based on that:**
+`chainer/examples/ptb <https://github.com/chainer/chainer/tree/master/examples/ptb>`_
 
 2.1 Model Overview
 -------------------
@@ -205,92 +206,131 @@ Let's download and make dataset objects using it:
    :caption: train_ptb.py
    :dedent: 4
 
-Define Iterator for Data
-^^^^^^^^^^^^^^^^^^^^^^^^^
+2.2.5 Define Iterator for Making a Mini-batch form the Dataset
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Dataset iterator creates a mini-batch of couple of words at different positions, namely,
+pairs of current word and its next word. Each example is a part of sentences starting
+from different offsets equally spaced within the whole sequence.
 
 .. literalinclude:: ../../../examples/ptb/train_ptb.py
    :language: python
    :pyobject: ParallelSequentialIterator
    :caption: train_ptb.py
 
-Define Updater
-^^^^^^^^^^^^^^^
+2.2.6 Define Updater
+^^^^^^^^^^^^^^^^^^^^^
+
+We use Backpropagation through time (BPTT) for optimize the RNNLM. BPTT can be implemented by
+overriding ``update_core()`` method of :class:`~chainer.training.StandardUpdater`. First,
+in the constructor of the ``BPTTUpdater``, it takes ``bprop_len`` as an argument in addiotion
+to other arguments :class:`~chainer.training.StandardUpdater` needs. ``bprop_len`` defines the
+length of sequence :math:`T` to calculate the loss:
+
+.. math::
+    \mathcal{L} = - \sum_{t=0}^T \sum_{n=1}^{|\mathcal{V}|}
+    \hat{P}({\bf x}_{t+1}^{(n)})
+    \log P_{\rm model}({\bf x}_{t+1}^{(n)} \mid {\bf x}_t^{(n)})
+
+where :math`\hat{P}({\bf x}_t^n)` is a probability for :math:`n`-th word in the vocabulary at
+the position :math:`t` in the training data sequence.
 
 .. literalinclude:: ../../../examples/ptb/train_ptb.py
    :language: python
    :pyobject: BPTTUpdater
    :caption: train_ptb.py
 
-Define Evaluation Function (Perplexity)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2.2.7 Define Evaluation Function (Perplexity)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Define a function to calculate the perplexity from the loss value. If we take :math:`e`
+as :math:`b` in the above definition of perplexity, calculating the perplexity is just
+to give the loss value to the power of :math:`e`:
 
 .. literalinclude:: ../../../examples/ptb/train_ptb.py
    :language: python
    :pyobject: compute_perplexity
    :caption: train_ptb.py
 
-Main Function
-^^^^^^^^^^^^^^
+2.2.8 Create Iterator
+^^^^^^^^^^^^^^^^^^^^^^
 
-
-* We download the Penn Treebank dataset by :class:`~chainer.datasets.get_ptb_words`.
-  Each data contains the list of Document IDs
-  
-    * ``train`` is the training data.
-    * ``val`` is the validation data. 
-    * ``test`` is the test data. 
+Here, the code below just create iterator objects from dataset splits (train/val/test).
 
 .. literalinclude:: ../../../examples/ptb/train_ptb.py
    :language: python
    :start-after: test[:100]
    :end-before: Prepare an RNNLM model
    :caption: train_ptb.py
+   :dedent: 4
 
-* From the datasets ``train``, ``val`` and ``test``, we create the iterators for
-  the datasets.
-  
+2.2.9 Create RNN and Classification Model
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Instantiate RNNLM model and wrap it with L.Classifier because it calculates softmax cross entropy as the loss.
+
 .. literalinclude:: ../../../examples/ptb/train_ptb.py
    :language: python
    :start-after: Prepare an RNNLM model
    :end-before: args.gpu
    :caption: train_ptb.py
+   :dedent: 4
 
-* We create the recurrent neural net ``rnn`` and the classification model ``model``
-  by :class:`~chainer.links.Classifier`.
-* :class:`~chainer.links.Classifier` computes the loss and accuracy based on a given
-  input/label pair. To learn the RNN language model, we only need the loss 
-  (perplexity). So, we turn off computing the accuracy. In this setting, the loss is
-  calculated by :class:`~chainer.functions.softmax_cross_entropy`.
+Note that :class:`chainer.links.Classifier` computes not only the loss but also accuracy based on a given
+input/label pair. To learn the RNN language model, we only need the loss (cross entropy) in the
+:class:`Classifier` because we calculate the perplexity instead of classification accuracy to check
+the performance of the model. So, we turn off computing the accuracy by giving False to
+``model.compute_accuracy`` attribute.
+
+2.2.10 Setup Optimizer
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Prepare an optimizer. Here, we use GradientClipping to prevent gradient explosion. It automatically clip
+the gradient to be used to update the parameters in the model with given constant gradclip.
   
 .. literalinclude:: ../../../examples/ptb/train_ptb.py
    :language: python
    :start-after: Set up an optimizer
    :end-before: Set up a trainer
    :caption: train_ptb.py
+   :dedent: 4
 
-* We setup the optimizer by :class:`~chainer.optimizers.SGD`.
+2.2.11 Setup and Run Trainer
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Let's make an trainer object and start the training! Note that we add an eval_hook to the Evaluator
+extension to reset the internal states before starting evaluation process. It can prevent to use
+training data during evaluating the model.
 
 .. literalinclude:: ../../../examples/ptb/train_ptb.py
    :language: python
    :start-after: Set up a trainer
    :end-before: Evaluate the final model
    :caption: train_ptb.py
+   :dedent: 4
 
-* We setup and run the trainer.
+2.2.12 Evaluate the trained model on test dataset
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Let's see the perplexity on the test split. Trainer's extension can be used as just a normal function
+outside of Trainer.
 
 .. literalinclude:: ../../../examples/ptb/train_ptb.py
    :language: python
    :start-after: Evaluate the final model
    :end-before: Serialize the final model
    :caption: train_ptb.py
+   :dedent: 4
 
-* We evaluate the final model.
 
 2.3 Run Example
 ----------------
 
-Training the model
-^^^^^^^^^^^^^^^^^^^
+2.3.1 Training the model
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+You can train the model with the script:
+`chainer/examples/ptb/train_ptb.py <https://github.com/chainer/chainer/tree/master/examples/ptb/train_ptb.py>`_
 
 .. code-block:: console
 
@@ -304,12 +344,13 @@ Training the model
     test
     test perplexity: 29889.9857364
 
-Generating sentences
-^^^^^^^^^^^^^^^^^^^^^
+2.3.2 Generating sentences
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-* You can generate the sentence which starts with the word in the vocabulary.
-
-    * In this example, we generate the sentence which starts with the word **apple**. 
+You can generate the sentence which starts with a word in the vocabulary. In this example,
+we generate a sentence which starts with the word apple.
+We use the script in the PTB example of the official repository:
+`chainer/examples/ptb/gentxt.py <https://github.com/chainer/chainer/tree/master/examples/ptb/gentxt.py>`_
 
 .. code-block:: console
 
