@@ -74,7 +74,7 @@ class UnaryFunctionsTestBase(unittest.TestCase):
 class TestSign(UnaryFunctionsTestBase):
 
     def make_data(self):
-        x = numpy.random.uniform(-10.0, 10.0, self.shape).astype(self.dtype)
+        x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         ggx = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         return x, gy, ggx
