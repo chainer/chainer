@@ -475,15 +475,20 @@ def check_backward(
                 'Length of no_grads param and xs should be same.\n'
                 'Actual: {0} != {1}'.format(len(no_grads), len(xs)))
 
-    for skip, x in six.moves.zip(no_grads, xs):
+    for i, (skip, x) in enumerate(six.moves.zip(no_grads, xs)):
         if skip:
             if x.grad is not None:
                 raise RuntimeError(
-                    'gradient of int variable must be None')
+                    'An argument is set to be omitted from differentiation, '
+                    'but its gradient is calculated. '
+                    'i={} shape={} dtype={}'.format(
+                        i, x.shape, x.dtype))
         else:
             if x.grad is None:
                 raise RuntimeError(
-                    'gradients of some arguments are not calculated')
+                    'Gradients of some arguments are not calculated. '
+                    'i={} shape={} dtype={}'.format(
+                        i, x.shape, x.dtype))
 
     if len(xs) - no_grads.count(True) + len(params) == 0:
         # When there is no float variables, we need not to check gradient

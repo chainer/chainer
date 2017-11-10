@@ -368,7 +368,7 @@ def _array_to_cpu(array, stream):
             return array.get(stream)
     elif isinstance(array, (numpy.number, numpy.bool_)):
         return numpy.asarray(array)
-    elif isinstance(array, numpy.ndarray):
+    elif isinstance(array, chainer.get_cpu_array_types()):
         return array
     else:
         raise TypeError(

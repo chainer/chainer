@@ -3,6 +3,7 @@ import six
 
 import chainer
 from chainer.backends import cuda
+from chainer.backends import ideep
 from chainer import configuration
 from chainer import function_node
 import chainer.functions
@@ -46,6 +47,7 @@ def _pair(x):
 class Deconvolution2DFunction(function_node.FunctionNode):
 
     cover_all = None
+    ideep_hint = None
 
     def __init__(self, stride=1, pad=0, outsize=None, group=1, **kwargs):
         argument.check_unexpected_kwargs(
@@ -139,10 +141,18 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         self._calc_out_size(x, W)
 
         if self.group > 1:
-            y = self._forward_grouped_convolution(x, W, b)
+            # Grouped convolution implementaion
+            return self._forward_grouped_convolution(x, W, b)
+
+        elif (ideep.should_use('>=auto')
+                and all(_.dtype == numpy.float32 for _ in inputs)
+                and (self.dy == 1 and self.dx == 1)):
+
+            # iDeep implementation
+            return self._forward_ideep(x, W, b)
+
         else:
-            y = self._forward_cpu_core(x, W, b)
-        return y,
+            return self._forward_cpu_core(x, W, b)
 
     def _forward_cpu_core(self, x, W, b):
         gcol = numpy.tensordot(W, x, (0, 1)).astype(x.dtype, copy=False)
@@ -153,7 +163,22 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         # b, k, h, w
         if b is not None:
             y += b.reshape(1, b.size, 1, 1)
-        return y
+        return y,
+
+    def _forward_ideep(self, x, W, b):
+        # bias is not supported yet
+        cc = ideep.ideep.xnn.ConvolutionBackwardData(
+            (x, W), stride=(self.sy, self.sx),
+            pad=(self.ph, self.pw), outsize=(self.outh, self.outw),
+            cover_all=self.cover_all)
+
+        self.ideep_hint = cc.hint
+        y, = cc.execute_on()
+
+        if b is not None:
+            y += b.reshape(1, b.size, 1, 1)
+
+        return y,
 
     def forward_gpu(self, inputs):
         self.retain_inputs((0, 1))  # only retain x and W
@@ -179,12 +204,11 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             # cuDNN implementation
             return self._forward_cudnn(x, W, b)
 
+        elif self.group > 1:
+            return self._forward_grouped_convolution(x, W, b)
+
         else:
-            if self.group > 1:
-                y = self._forward_grouped_convolution(x, W, b)
-            else:
-                y = self._forward_gpu_core(x, W, b)
-            return y,
+            return self._forward_gpu_core(x, W, b)
 
     def _forward_gpu_core(self, x, W, b):
         # Implementation using col2im
@@ -200,7 +224,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             dy=self.dy, dx=self.dx)
         if b is not None:
             y += b.reshape(1, b.size, 1, 1)
-        return y
+        return y,
 
     def _forward_grouped_convolution(self, x, W, b):
         # G: group count
@@ -228,14 +252,14 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         for g in six.moves.range(G):
             _bg = None if b is None else _b[g, ]
             if xp is numpy:
-                _y = self._forward_cpu_core(_x[g, ], _W[g, ], _bg)
+                _y, = self._forward_cpu_core(_x[g, ], _W[g, ], _bg)
             else:
-                _y = self._forward_gpu_core(_x[g, ], _W[g, ], _bg)
+                _y, = self._forward_gpu_core(_x[g, ], _W[g, ], _bg)
             _ys.append(_y)
 
         y = xp.stack(_ys, axis=1)  # (N, G, yCg, yH, yW)
         y = y.reshape(N, yC, yH, yW)
-        return y
+        return y,
 
     def _forward_cudnn(self, x, W, b):
         x = cuda.cupy.ascontiguousarray(x)

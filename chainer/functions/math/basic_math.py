@@ -142,7 +142,8 @@ class Add(function_node.FunctionNode):
         )
 
     def forward(self, x):
-        y = utils.force_array(x[0] + x[1])
+        xp = cuda.get_array_module(*x)
+        y = utils.force_array(xp.add(x[0], x[1]))
         return y,
 
     def backward(self, indexes, gy):
