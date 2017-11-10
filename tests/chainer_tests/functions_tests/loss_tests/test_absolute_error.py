@@ -8,7 +8,6 @@ from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
 
 
 @testing.parameterize(
@@ -38,13 +37,13 @@ class TestAbsoluteError(unittest.TestCase):
         x1 = chainer.Variable(x1_data)
         loss = functions.absolute_error(x0, x1)
         loss_value = cuda.to_cpu(loss.data)
-        self.assertEqual(loss_value.dtype, numpy.float32)
-        self.assertEqual(loss_value.shape, x0_data.shape)
+        assert loss_value.dtype == numpy.float32
+        assert loss_value.shape == x0_data.shape
 
         for i in numpy.ndindex(self.x0.shape):
             # Compute expected value
             loss_expect = abs(self.x0[i] - self.x1[i])
-            self.assertAlmostEqual(loss_value[i], loss_expect, places=5)
+            assert round(loss_value[i] - loss_expect, 5) == 0
 
     def test_forward_cpu(self):
         self.check_forward(self.x0, self.x1)
@@ -76,13 +75,11 @@ class TestAbsoluteError(unittest.TestCase):
         gradient_check.check_double_backward(
             f, (x0_data, x1_data), y_grad, (gx0_grad, gx1_grad), eps=1e-2)
 
-    @condition.retry(3)
     def test_double_backward_cpu(self):
         self.check_double_backward(
             self.x0, self.x1, self.gy, self.ggx0, self.ggx1)
 
     @attr.gpu
-    @condition.retry(3)
     def test_double_backward_gpu(self):
         self.check_double_backward(
             cuda.to_gpu(self.x0), cuda.to_gpu(self.x1), cuda.to_gpu(self.gy),
