@@ -67,7 +67,6 @@ class TestAbsoluteError(unittest.TestCase):
 
     def check_double_backward(self, x0_data, x1_data, y_grad,
                               gx0_grad, gx1_grad):
-
         def f(x0, x1):
             y = functions.absolute_error(x0, x1)
             return y * y
