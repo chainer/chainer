@@ -10,7 +10,7 @@ However, it requires some additional overhead time.
 
 You can enable debug mode with :func:`chainer.using_config`:
 
-.. code-block:: python
+.. testcode::
 
     with chainer.using_config('debug', True):
        ...
