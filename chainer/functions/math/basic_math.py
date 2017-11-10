@@ -33,7 +33,8 @@ def _check_constant_type(value):
         return
     else:
         raise ValueError(
-            'value must be scalar, ndarray, or Variable')
+            'Value must be a NumPy scalar, `numpy.ndarray`, `cupy.ndarray`'
+            'or a `Variable`.\nActual: {}'.format(type(value)))
 
 
 def _preprocess_const(x, value):
