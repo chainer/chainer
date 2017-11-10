@@ -2,9 +2,9 @@ import numpy
 
 from chainer import cuda
 from chainer import function_node
+import chainer.functions
 from chainer import utils
 from chainer.utils import type_check
-import chainer.functions
 
 
 class Sin(function_node.FunctionNode):
