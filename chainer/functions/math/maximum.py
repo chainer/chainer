@@ -41,7 +41,6 @@ class MaximumGrad(function_node.FunctionNode):
         self.cond = cond
 
     def forward_cpu(self, inputs):
-        xp = cuda.get_array_module(*inputs)
         gy, = inputs
         gx1 = numpy.where(self.cond, gy, gy.dtype.type(0))
         gx2 = numpy.where(self.cond, gy.dtype.type(0), gy)
