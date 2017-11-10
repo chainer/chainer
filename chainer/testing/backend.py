@@ -15,6 +15,7 @@ class BackendConfig(object):
         ('use_cudnn', 'never'),
         ('cudnn_deterministic', False),
         ('autotune', False),
+        ('use_ideep', 'never'),
     ]
 
     def __init__(self, params):
@@ -46,6 +47,8 @@ class BackendConfig(object):
                 'cudnn_deterministic', self.cudnn_deterministic),
             chainer.using_config(
                 'autotune', self.autotune),
+            chainer.using_config(
+                'use_ideep', self.use_ideep),
         ]
         for c in self._contexts:
             c.__enter__()
@@ -81,6 +84,9 @@ class BackendConfig(object):
             marks.append(attr.gpu)
             if self.use_cudnn != 'never':
                 marks.append(attr.cudnn)
+        else:
+            if self.use_ideep != 'never':
+                marks.append(attr.ideep)
 
         assert all(callable(_) for _ in marks)
         return marks

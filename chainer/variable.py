@@ -18,16 +18,16 @@ def _check_grad_type(func, x, gx):
     if x.data is None or gx is None:
         # ``x.data is None`` implies that the data array is not retained
         return
-    if not isinstance(gx, type(x.data)):
-        msg = ('Type of data and grad mismatch\n%s != %s' %
+    if not chainer.is_arrays_compatible((gx, x.data)):
+        msg = ('Type of data and grad mismatch\ngrad:%s != data:%s' %
                (type(x.data), type(gx)))
         typ = TypeError
     elif gx.dtype != x.data.dtype:
-        msg = ('Dtype of data and grad mismatch\n%s != %s' %
+        msg = ('Dtype of data and grad mismatch\ngrad:%s != data:%s' %
                (x.data.dtype, gx.dtype))
         typ = TypeError
     elif gx.shape != x.data.shape:
-        msg = ('Shape of data and grad mismatch\n%s != %s' %
+        msg = ('Shape of data and grad mismatch\ngrad:%s != data:%s' %
                (x.data.shape, gx.shape))
         typ = ValueError
     else:
@@ -454,7 +454,7 @@ class Variable(object):
                 ('requires_grad', True))
 
         if (data is not None and
-                not isinstance(data, (numpy.ndarray, cuda.ndarray))):
+                not isinstance(data, chainer.get_array_types())):
             msg = '''numpy.ndarray or cuda.ndarray are expected.
 Actual: {0}'''.format(type(data))
             raise TypeError(msg)

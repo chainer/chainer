@@ -223,9 +223,7 @@ Use apply() method instead.\
         requires_grad = any([x.requires_grad for x in input_vars])
 
         # Check for input array types
-        xp = cuda.get_array_module(*in_data)
-        if not all([x is None or isinstance(x, xp.ndarray)
-                    for x in in_data]):
+        if not chainer.is_arrays_compatible(in_data):
             raise ValueError(
                 'numpy and cupy arrays are mixed in the forward input '
                 '({}).\n'
@@ -262,9 +260,7 @@ Use apply() method instead.\
                 'forward output must be a tuple ({})\n'
                 'Actual: {}'.format(self.label, type(outputs)))
 
-        xp = cuda.get_array_module(*outputs)
-        if not all([x is None or isinstance(x, xp.ndarray)
-                    for x in outputs]):
+        if not chainer.is_arrays_compatible(outputs):
             raise ValueError(
                 'numpy and cupy arrays are mixed in the forward output '
                 '({}).\n'
