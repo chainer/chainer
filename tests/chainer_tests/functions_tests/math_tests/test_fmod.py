@@ -52,7 +52,8 @@ class UnaryFunctionsTestBase(unittest.TestCase):
             return y * y
 
         gradient_check.check_double_backward(
-            f, (x_data, divisor), y_grad, (ggx, ggd), dtype=numpy.float64)
+            f, (x_data, divisor), y_grad, (ggx, ggd), dtype=numpy.float64,
+            atol=1e-3, rtol=1e-2)
 
     def check_double_backward_cpu(self, op):
         self.check_double_backward(
