@@ -36,34 +36,6 @@ class UnaryFunctionsTestBase(unittest.TestCase):
     def check_forward_gpu(self, op, op_xp):
         self.check_forward(op, op_xp, cuda.to_gpu(self.x))
 
-    def check_backward(self, op, x_data, y_grad):
-        gradient_check.check_backward(op, x_data, y_grad, atol=5e-4,
-                                      rtol=5e-3, dtype=numpy.float64,
-                                      eps=self.eps)
-
-    def check_backward_cpu(self, op):
-        self.check_backward(op, self.x, self.gy)
-
-    def check_backward_gpu(self, op):
-        self.check_backward(op, cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
-
-    def check_double_backward(self, op, x_data, y_grad, y_grad_grad):
-        def f(x):
-            x = op(x)
-            return x * x
-        gradient_check.check_double_backward(
-            f, x_data, y_grad, y_grad_grad, dtype=numpy.float64)
-
-    def check_double_backward_cpu(self, op):
-        self.check_double_backward(op, self.x, self.gy, self.ggy)
-
-    def check_double_backward_gpu(self, op):
-        self.check_double_backward(op, cuda.to_gpu(
-            self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggy))
-
-    def check_label(self, op, expected):
-        self.assertEqual(op().label, expected)
-
 
 @testing.parameterize(*testing.product({
     'shape': [(3, 2), ()],
@@ -83,23 +55,6 @@ class TestCeil(UnaryFunctionsTestBase):
     @attr.gpu
     def test_forward_gpu(self):
         self.check_forward_gpu(F.ceil, cuda.cupy.ceil)
-
-    def test_backward_cpu(self):
-        self.check_backward_cpu(F.ceil)
-
-    @attr.gpu
-    def test_backward_gpu(self):
-        self.check_backward_gpu(F.ceil)
-
-    def test_double_backward_cpu(self):
-        self.check_double_backward_cpu(F.ceil)
-
-    @attr.gpu
-    def test_double_backward_gpu(self):
-        self.check_double_backward_gpu(F.ceil)
-
-    def test_label(self):
-        self.check_label(F.Ceil, 'ceil')
 
 
 testing.run_module(__name__, __file__)
