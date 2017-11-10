@@ -11,9 +11,12 @@ class Gaussian(function_node.FunctionNode):
 
     """Gaussian sampling function.
 
-    In forward calculation, this function takes a mean and the logarithm of
-    a variance as inputs, and draws a sample from a Gaussian distribution
-    accordingly.
+    .. note::
+
+        In forward calculation, this function takes a mean and the logarithm of
+        a variance as inputs, and draws a sample from a Gaussian distribution
+        accordingly.
+
     """
 
     def __init__(self):
@@ -36,8 +39,10 @@ class Gaussian(function_node.FunctionNode):
 
         mean, ln_var = inputs
         if self.eps is None:
-            self.eps = numpy.random.standard_normal(ln_var.shape) \
-                                   .astype(numpy.float32)
+            self.eps = (
+                numpy.random.standard_normal(ln_var.shape)
+                .astype(numpy.float32)
+            )
 
         self.noise = numpy.exp(ln_var * mean.dtype.type(0.5)) * self.eps
         return utils.force_array(mean + self.noise),
@@ -45,10 +50,9 @@ class Gaussian(function_node.FunctionNode):
     def forward_gpu(self, inputs):
         self.retain_inputs((1,))
 
-        cupy = cuda.cupy
         mean, ln_var = inputs
         if self.eps is None:
-            self.eps = cupy.random.standard_normal(
+            self.eps = cuda.cupy.random.standard_normal(
                 ln_var.shape, dtype=mean.dtype)
 
         self.noise = cuda.cupy.empty_like(mean)
@@ -75,18 +79,22 @@ class Gaussian(function_node.FunctionNode):
 def gaussian(mean, ln_var):
     """Gaussian sampling function.
 
-    It takes mean :math:`\\mu` and logarithm of variance
-    :math:`\\log(\\sigma^2)` as input and output a sample drawn from gaussian
-    :math:`N(\\mu, \\sigma)`.
+    This function takes a mean :math:`\\mu` and the logarithm of a variance
+    :math:`\\log(\\sigma^2)` as inputs and outputs a sample drawn from a
+    Gaussian distribution :math:`N(\\mu, \\sigma)`.
+
+    The inputs must have the same shape.
 
     Args:
-        mean (~chainer.Variable): Input variable representing mean
-            :math:`\\mu`.
-        ln_var (~chainer.Variable): Input variable representing logarithm of
-            variance :math:`\\log(\\sigma^2)`.
+        mean (~chainer.Variable):
+            Input variable representing the mean :math:`\\mu`.
+        ln_var (~chainer.Variable):
+            Input variable representing the logarithm of a variance
+            :math:`\\log(\\sigma^2)`.
 
     Returns:
-        ~chainer.Variable: Output variable.
+        ~chainer.Variable:
+            Output variable with the shape of ``mean`` and/or ``ln_var``.
 
     """
     return Gaussian().apply((mean, ln_var))[0]
