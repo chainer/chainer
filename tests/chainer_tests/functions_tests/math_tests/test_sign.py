@@ -43,7 +43,6 @@ class TestSign(unittest.TestCase):
         self.check_forward(op, op_xp, self.x)
         self.check_forward_ndarray(op, op_xp, self.x)
 
-    @attr.gpu
     def check_forward_gpu(self, op, op_xp):
         self.check_forward(op, op_xp, cuda.to_gpu(self.x))
         self.check_forward_ndarray(op, op_xp, cuda.to_gpu(self.x))
@@ -66,7 +65,6 @@ class TestSign(unittest.TestCase):
     def check_backward_cpu(self, op):
         self.check_backward(op, self.x, self.gy, self.no_grads)
 
-    @attr.gpu
     def check_backward_gpu(self, op):
         self.check_backward(
             op, cuda.to_gpu(self.x), cuda.to_gpu(self.gy), self.no_grads)
