@@ -234,7 +234,7 @@ class Conveyor(object):
     """Interface to handle asynchronous data transfer using double buffering.
 
     An asynchrous data transfer is initiated by :meth:`put`, and the result,
-    the array transferd to a target device, is obtained by :meth:`get`.
+    the array transferred to a target device, is obtained by :meth:`get`.
     You should call :meth:`put` followed by :meth:`get`.
 
     Args:
@@ -303,7 +303,7 @@ class Conveyor(object):
         self._ret_array.append(cp_array)
 
     def get(self):
-        """Returns the array of data transfered to a target device asynchronously.
+        """Returns the array of data transferred to a target device asynchronously.
 
         This method first waits for completion of asynchrnous data trasfer
         initiated by :meth:`put`, then returns the array on the target
