@@ -23,7 +23,8 @@ def _convert_value_to_string(value):
         return 'constant array'
     else:
         raise ValueError(
-            'value must be scalar, ndarray, or Variable')
+            'Value must be a scalar, `numpy.ndarray`, `cupy.ndarray` '
+            'or a `Variable`.\nActual: {}'.format(type(value)))
 
 
 def _check_constant_type(value):
@@ -33,7 +34,7 @@ def _check_constant_type(value):
         return
     else:
         raise ValueError(
-            'Value must be a scalar, `numpy.ndarray`, `cupy.ndarray`'
+            'Value must be a scalar, `numpy.ndarray`, `cupy.ndarray` '
             'or a `Variable`.\nActual: {}'.format(type(value)))
 
 
