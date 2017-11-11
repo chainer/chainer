@@ -12,6 +12,7 @@ from chainer.utils import type_check
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
     libcudnn = cuda.cuda.cudnn
+    _cudnn_version = libcudnn.getVersion()
     _fwd_pref = libcudnn.CUDNN_CONVOLUTION_FWD_SPECIFY_WORKSPACE_LIMIT
     _bwd_filter_pref = \
         libcudnn.CUDNN_CONVOLUTION_BWD_FILTER_SPECIFY_WORKSPACE_LIMIT
@@ -35,7 +36,7 @@ def _get_algorithm_fwd(
         handle, x_desc.value, x.data.ptr, filter_desc.value, W.data.ptr,
         conv_desc.value, y_desc.value, y.data.ptr, 1, workspace.data.ptr,
         workspace.size)
-    algo = ret[0]['algo']
+    algo = ret[1][0]['algo']
     _algorithm_fwd[key] = algo
     return algo
 
@@ -50,7 +51,7 @@ def _get_algorithm_bwd_filter(
         handle, x_desc.value, x.data.ptr, dy_desc.value, dy.data.ptr,
         conv_desc.value, filter_desc.value, dW.data.ptr, 1,
         workspace.data.ptr, workspace.size)
-    algo = ret[0]['algo']
+    algo = ret[1][0]['algo']
     _algorithm_bwd_filter[key] = algo
     return algo
 

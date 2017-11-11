@@ -31,7 +31,7 @@ def get_algorithm(W, dy, dx, conv_param, handle, filter_desc, dy_desc,
         handle, filter_desc.value, W.data.ptr, dy_desc.value, dy.data.ptr,
         conv_desc.value, dx_desc.value, dx.data.ptr, 1, workspace.data.ptr,
         workspace.size)
-    algo = ret[0]['algo']
+    algo = ret[1][0]['algo']
     _algorithm[key] = algo
     return algo
 
