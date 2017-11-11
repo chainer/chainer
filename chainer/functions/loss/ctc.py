@@ -323,18 +323,15 @@ def connectionist_temporal_classification(
         raise TypeError('x must be a list of Variables')
     if not isinstance(blank_symbol, int):
         raise TypeError('blank_symbol must be non-negative integer.')
-    assert blank_symbol >= 0
-    assert blank_symbol < x[0].shape[1]
+    assert 0 <= blank_symbol < x[0].shape[1]
     # This implementation only supports 1-dimensional data.
     # TODO(jnishi): Support d(>1)-dimentinal inputs.
-    assert(len(x[0].shape) == 2)
+    assert(x[0].ndim == 2)
 
     if input_length is None:
-        xp = cuda.get_array_module(x[0].data)
-        input_length = variable.Variable(
-            xp.full((len(x[0].data),), len(x), dtype=numpy.int32))
-        label_length = variable.Variable(
-            xp.full((len(t.data),), len(t.data[0]), dtype=numpy.int32))
+        xp = cuda.get_array_module(x[0])
+        input_length = xp.full(len(x[0]), len(x), dtype=numpy.int32)
+        label_length = xp.full(len(t), t.shape[1], dtype=numpy.int32)
 
     return ConnectionistTemporalClassification(blank_symbol, reduce)(
         input_length, label_length, t, *x)
