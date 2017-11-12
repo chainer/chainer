@@ -178,6 +178,7 @@ Mathematical functions
    chainer.functions.cos
    chainer.functions.cosh
    chainer.functions.cumsum
+   chainer.functions.erf
    chainer.functions.exp
    chainer.functions.fix
    chainer.functions.fmod

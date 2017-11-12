@@ -180,6 +180,8 @@ from chainer.functions.math.cumsum import Cumsum  # NOQA
 from chainer.functions.math.det import batch_det  # NOQA
 from chainer.functions.math.det import BatchDet  # NOQA
 from chainer.functions.math.det import det  # NOQA
+from chainer.functions.math.erf import erf  # NOQA
+from chainer.functions.math.erf import Erf  # NOQA
 from chainer.functions.math.exponential import exp  # NOQA
 from chainer.functions.math.exponential import Exp  # NOQA
 from chainer.functions.math.exponential import log  # NOQA
