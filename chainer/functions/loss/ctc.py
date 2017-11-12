@@ -7,7 +7,6 @@ from chainer import cuda
 from chainer import function
 from chainer import utils
 from chainer.utils import type_check
-from chainer import variable
 
 
 def _logsumexp(a, xp, axis=None):
@@ -271,17 +270,24 @@ def connectionist_temporal_classification(
 
 
     Args:
-        x (sequence of Variable): RNN output at each time. ``x`` must be a list
+        x (sequence of :class:`~chainer.Variable`):
+            RNN output at each time. ``x`` must be a list
             of :class:`~chainer.Variable` s. Each element of ``x``, ``x[i]``
             is a :class:`~chainer.Variable` representing output of RNN at time
             ``i``.
-        t (Variable): Expected label sequence.
+        t (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`):
+            Expected label sequence.
         blank_symbol (int): Index of blank_symbol.
             This value must be non-negative.
-        input_length (Variable): Length of valid sequence for each of mini
+        input_length (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`):
+            Length of valid sequence for each of mini
             batch ``x`` (optional). If input_length is skipped, It regards that
             all of ``x`` is valid input.
-        label_length (Variable): Length of valid sequence for each of mini
+        label_length (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`):
+            Length of valid sequence for each of mini
             batch ``t`` (optional). If label_length is skipped, It regards that
             all of ``t`` is valid input.
         reduce (str): Reduction option. Its value must be either
