@@ -65,8 +65,8 @@ class CTCTestBase(object):
                          chainer.Variable(l_length))
             else:
                 args += (x_length, l_length)
-            loss = functions.connectionist_temporal_classification(
-                *args, reduce=self.reduce).data
+        loss = functions.connectionist_temporal_classification(
+            *args, reduce=self.reduce).data
 
         # compute expected value by recursive computation.
         xp = cuda.get_array_module(self.x)
