@@ -53,6 +53,10 @@ class Erf(function_node.FunctionNode):
 def erf(x):
     """Elementwise error function.
 
+    .. note::
+       Forward computation in CPU can be slow if
+       `SciPy <https://www.scipy.org/>`_ is not available.
+
     Args:
         x (~chainer.Variable): Input variable.
 
