@@ -11,6 +11,11 @@ class DeconvolutionND(link.Link):
     This link wraps :func:`~chainer.functions.deconvolution_nd` function and
     holds the filter weight and bias vector as its parameters.
 
+    Deconvolution links can use a feature of cuDNN called autotuning, which
+    selects the most efficient CNN algorithm for images of fixed-size,
+    can provide a significant performance boost for fixed neural nets.
+    To enable, set `chainer.using_config('autotune', True)`
+
     Args:
         ndim (int): Number of spatial dimensions.
         in_channels (int): Number of channels of input arrays.

@@ -12,12 +12,28 @@ from chainer.utils import type_check
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
-    libcudnn = cuda.cudnn.cudnn
+    libcudnn = cuda.cuda.cudnn
+    _cudnn_version_ = libcudnn.getVersion()
     _fwd_pref = libcudnn.CUDNN_CONVOLUTION_FWD_SPECIFY_WORKSPACE_LIMIT
     _bwd_filter_pref = \
         libcudnn.CUDNN_CONVOLUTION_BWD_FILTER_SPECIFY_WORKSPACE_LIMIT
     _bwd_data_pref = \
         libcudnn.CUDNN_CONVOLUTION_BWD_DATA_SPECIFY_WORKSPACE_LIMIT
+    _algorithm = {}
+
+
+def get_algorithm(W, dy, dx, conv_param, handle, filter_desc, dy_desc,
+                  conv_desc, dx_desc, workspace):
+    key = (dx.shape, W.shape, dy.shape, conv_param)
+    if key in _algorithm:
+        return _algorithm[key]
+    ret = libcudnn.findConvolutionBackwardDataAlgorithmEx(
+        handle, filter_desc.value, W.data.ptr, dy_desc.value, dy.data.ptr,
+        conv_desc.value, dx_desc.value, dx.data.ptr, 1, workspace.data.ptr,
+        workspace.size)
+    algo = ret[0]['algo']
+    _algorithm[key] = algo
+    return algo
 
 
 def _pair(x):
@@ -41,11 +57,12 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             "the gradient w.r.t. x is automatically decided during "
             "backpropagation."
         )
-        argument.assert_kwargs_empty(kwargs)
+        dilate, = argument.parse_kwargs(kwargs, ('dilate', 1))
 
         self.sy, self.sx = _pair(stride)
         self.ph, self.pw = _pair(pad)
         self.outh, self.outw = (None, None) if outsize is None else outsize
+        self.dy, self.dx = _pair(dilate)
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -62,17 +79,21 @@ class Deconvolution2DFunction(function_node.FunctionNode):
 
         if self.outh is not None:
             lower_bound = conv.get_conv_outsize(
-                self.outh, w_type.shape[2], self.sy, self.ph)
+                self.outh, w_type.shape[2], self.sy, self.ph,
+                d=self.dy)
             upper_bound = conv.get_conv_outsize(
-                self.outh, w_type.shape[2], self.sy, self.ph, cover_all=True)
+                self.outh, w_type.shape[2], self.sy, self.ph, cover_all=True,
+                d=self.dy)
             type_check.expect(
                 lower_bound <= x_type.shape[2],
                 x_type.shape[2] <= upper_bound)
         if self.outw is not None:
             lower_bound = conv.get_conv_outsize(
-                self.outw, w_type.shape[3], self.sx, self.pw)
+                self.outw, w_type.shape[3], self.sx, self.pw,
+                d=self.dx)
             upper_bound = conv.get_conv_outsize(
-                self.outw, w_type.shape[3], self.sx, self.pw, cover_all=True)
+                self.outw, w_type.shape[3], self.sx, self.pw, cover_all=True,
+                d=self.dx)
             type_check.expect(
                 lower_bound <= x_type.shape[3],
                 x_type.shape[3] <= upper_bound)
@@ -109,13 +130,16 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         # k, m, n, b, h, w -> b, k, m, n, h, w
         gcol = numpy.rollaxis(gcol, 3)
         if self.outh is None:
-            self.outh = conv.get_deconv_outsize(h, kh, self.sy, self.ph)
+            self.outh = conv.get_deconv_outsize(h, kh, self.sy, self.ph,
+                                                d=self.dy)
             assert self.outh > 0, 'Height in the output should be positive.'
         if self.outw is None:
-            self.outw = conv.get_deconv_outsize(w, kw, self.sx, self.pw)
+            self.outw = conv.get_deconv_outsize(w, kw, self.sx, self.pw,
+                                                d=self.dx)
             assert self.outw > 0, 'Width in the output should be positive.'
         y = conv.col2im_cpu(
-            gcol, self.sy, self.sx, self.ph, self.pw, self.outh, self.outw)
+            gcol, self.sy, self.sx, self.ph, self.pw, self.outh, self.outw,
+            dy=self.dy, dx=self.dx)
         # b, k, h, w
         if b is not None:
             y += b.reshape(1, b.size, 1, 1)
@@ -140,20 +164,25 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         n, in_c, in_h, in_w = x.shape
         c = W.shape[1]  # out_c
         if self.outh is None:
-            self.outh = conv.get_deconv_outsize(in_h, kh, self.sy, self.ph)
+            self.outh = conv.get_deconv_outsize(in_h, kh, self.sy, self.ph,
+                                                d=self.dy)
             assert self.outh > 0, 'Height in the output should be positive.'
         if self.outw is None:
-            self.outw = conv.get_deconv_outsize(in_w, kw, self.sx, self.pw)
+            self.outw = conv.get_deconv_outsize(in_w, kw, self.sx, self.pw,
+                                                d=self.dx)
             assert self.outw > 0, 'Width in the output should be positive.'
 
         self._set_cover_all(x, W)
 
         if (not self.cover_all and chainer.should_use_cudnn('>=auto') and
-                x.dtype == W.dtype):
+                x.dtype == W.dtype and
+                ((self.dy == 1 and self.dx == 1) or _cudnn_version_ >= 6000)):
             x = cuda.cupy.ascontiguousarray(x)
             W = cuda.cupy.ascontiguousarray(W)
             if b is not None:
                 b = cuda.cupy.ascontiguousarray(b)
+
+            use_tensor_core = chainer.should_use_cudnn_tensor_core(x.dtype)
 
             handle = cudnn.get_handle()
             x_desc = cudnn.create_tensor_descriptor(x)
@@ -162,8 +191,10 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             y_desc = cudnn.create_tensor_descriptor(y)
 
             filter_desc = cudnn.create_filter_descriptor(W)
+            conv_param = (self.ph, self.pw), (self.sy, self.sx), x.dtype
             conv_desc = cudnn.create_convolution_descriptor(
-                (self.ph, self.pw), (self.sy, self.sx), x.dtype)
+                *conv_param, dilation=(self.dy, self.dx),
+                use_tensor_core=use_tensor_core)
             if b is not None:
                 bias_desc = cudnn.create_tensor_descriptor(
                     b[None, :, None, None])
@@ -174,13 +205,21 @@ class Deconvolution2DFunction(function_node.FunctionNode):
 
             workspace_size = cuda.get_max_workspace_size()
             workspace = cuda.cupy.empty((workspace_size,), dtype='b')
+
             if configuration.config.cudnn_deterministic:
                 algo = libcudnn.CUDNN_CONVOLUTION_BWD_DATA_ALGO_1
+            elif configuration.config.autotune and _cudnn_version_ >= 5000:
+                algo = get_algorithm(W, x, y, conv_param, handle, filter_desc,
+                                     x_desc, conv_desc, y_desc, workspace)
             else:
                 algo = libcudnn.getConvolutionBackwardDataAlgorithm(
-                    handle, filter_desc.value, x_desc.value,
-                    conv_desc.value, y_desc.value, _bwd_data_pref,
-                    workspace_size)
+                    handle, filter_desc.value, x_desc.value, conv_desc.value,
+                    y_desc.value, _bwd_data_pref, workspace_size)
+
+            if use_tensor_core:
+                # Only CUDNN_CONVOLUTION_BWD_DATA_ALGO_1 supports
+                # Tensor-Core in cuDNN7
+                algo = libcudnn.CUDNN_CONVOLUTION_BWD_DATA_ALGO_1
 
             libcudnn.convolutionBackwardData_v3(
                 handle, one.data, filter_desc.value, W.data.ptr,
@@ -201,7 +240,8 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             # k, m, n, b, h, w -> b, k, m, n, h, w
             gcol = cuda.cupy.rollaxis(gcol, 3)
             y = conv.col2im_gpu(
-                gcol, self.sy, self.sx, self.ph, self.pw, self.outh, self.outw)
+                gcol, self.sy, self.sx, self.ph, self.pw, self.outh, self.outw,
+                dy=self.dy, dx=self.dx)
             if b is not None:
                 y += b.reshape(1, b.size, 1, 1)
         return y,
@@ -216,7 +256,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
                 self._set_cover_all(x, W)
             gx = chainer.functions.convolution_2d(
                 gy, W, stride=(self.sy, self.sx), pad=(self.ph, self.pw),
-                cover_all=self.cover_all)
+                cover_all=self.cover_all, dilate=(self.dy, self.dx))
             ret.append(gx)
         if 1 in indexes:
             if self.cover_all is None:
@@ -233,8 +273,10 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         in_h, in_w = x.shape[2:]
         kh, kw = W.shape[2:]
         self.cover_all = (
-            in_h != conv.get_conv_outsize(self.outh, kh, self.sy, self.ph) or
-            in_w != conv.get_conv_outsize(self.outw, kw, self.sx, self.pw))
+            in_h != conv.get_conv_outsize(self.outh, kh, self.sy,
+                                          self.ph, d=self.dy) or
+            in_w != conv.get_conv_outsize(self.outw, kw, self.sx,
+                                          self.pw, d=self.dx))
 
 
 def deconvolution_2d(x, W, b=None, stride=1, pad=0, outsize=None, **kwargs):
@@ -277,6 +319,11 @@ http://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf
     The output of this function can be non-deterministic when it uses cuDNN.
     If ``chainer.configuration.config.deterministic`` is ``True`` and
     cuDNN version is >= v3, it forces cuDNN to use a deterministic algorithm.
+
+    Deconvolution links can use a feature of cuDNN called autotuning, which
+    selects the most efficient CNN algorithm for images of fixed-size,
+    can provide a significant performance boost for fixed neural nets.
+    To enable, set `chainer.using_config('autotune', True)`
 
     .. warning::
 
@@ -342,9 +389,9 @@ http://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf
         "supported anymore. "
         "Use chainer.using_config('cudnn_deterministic', value) "
         "context where value is either `True` or `False`.")
-    argument.assert_kwargs_empty(kwargs)
+    dilate, = argument.parse_kwargs(kwargs, ('dilate', 1))
 
-    func = Deconvolution2DFunction(stride, pad, outsize)
+    func = Deconvolution2DFunction(stride, pad, outsize, dilate=dilate)
     if b is None:
         args = x, W
     else:

@@ -239,6 +239,15 @@ class TestLSTMInvalidSize(unittest.TestCase):
                                         cuda.to_gpu(self.x2))
 
 
+class TestLSTMInitialize(unittest.TestCase):
+
+    def test_initialize_bias_default(self):
+        link = links.LSTM(2, 3)
+        numpy.testing.assert_array_equal(
+            link.upward.b.data,
+            numpy.array([0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0]))
+
+
 @testing.parameterize(*testing.product_dict(
     [
         {'in_size': 10, 'out_size': 10},

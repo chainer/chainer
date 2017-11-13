@@ -10,7 +10,6 @@ from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
 
 
 @testing.parameterize(
@@ -48,26 +47,22 @@ class TestL2Normalization(unittest.TestCase):
             y_expect[index] = self.x[index] / numerator
         testing.assert_allclose(y_expect, y_data)
 
-    @condition.retry(3)
     def test_forward_cpu(self):
         self.check_forward(self.x, self.axis)
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x), self.axis)
 
     def check_backward(self, x_data, axis, y_grad):
         gradient_check.check_backward(
             functions.NormalizeL2(eps=1e-6, axis=axis), x_data, y_grad,
-            dtype='d', rtol=1e-3, atol=1e-4)
+            dtype='d', atol=1e-2, rtol=3e-2)
 
-    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.x, self.axis, self.gy)
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu(self):
         self.check_backward(
             cuda.to_gpu(self.x), self.axis, cuda.to_gpu(self.gy))

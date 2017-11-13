@@ -3,8 +3,10 @@ import numpy
 from six import moves
 
 import chainer
+from chainer import configuration
 from chainer import cuda
 from chainer import function
+from chainer.functions.connection import convolution_2d
 from chainer.utils import conv
 from chainer.utils import conv_nd
 from chainer.utils import type_check
@@ -12,7 +14,8 @@ from chainer.utils import type_check
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
-    libcudnn = cuda.cudnn.cudnn
+    libcudnn = cuda.cuda.cudnn
+    _cudnn_version_ = libcudnn.getVersion()
     _fwd_pref = libcudnn.CUDNN_CONVOLUTION_FWD_SPECIFY_WORKSPACE_LIMIT
     _bwd_filter_pref = \
         libcudnn.CUDNN_CONVOLUTION_BWD_FILTER_SPECIFY_WORKSPACE_LIMIT
@@ -110,8 +113,8 @@ class ConvolutionND(function.Function):
         y_desc = cudnn.create_tensor_descriptor(y)
 
         self.filter_desc = cudnn.create_filter_descriptor(W)
-        self.conv_desc = cudnn.create_convolution_descriptor(
-            pad, stride, x.dtype)
+        self.conv_param = (pad, stride, x.dtype)
+        self.conv_desc = cudnn.create_convolution_descriptor(*self.conv_param)
         if b is not None:
             b_index = (None, colon) + (None,) * ndim
             self.bias_desc = cudnn.create_tensor_descriptor(b[b_index])
@@ -119,10 +122,15 @@ class ConvolutionND(function.Function):
         # Find cuDNN algorithm to be used.
         workspace_size = cuda.get_max_workspace_size()
         workspace = cuda.cupy.empty((workspace_size,), dtype='b')
-        algo = libcudnn.getConvolutionForwardAlgorithm(
-            handle, x_desc.value, self.filter_desc.value,
-            self.conv_desc.value, y_desc.value, _fwd_pref,
-            workspace_size)
+        if configuration.config.autotune and _cudnn_version_ >= 5000:
+            algo = convolution_2d.get_algorithm_fwd(
+                x, W, y, self.conv_param, handle, x_desc, self.filter_desc,
+                self.conv_desc, y_desc, workspace)
+        else:
+            algo = libcudnn.getConvolutionForwardAlgorithm(
+                handle, x_desc.value, self.filter_desc.value,
+                self.conv_desc.value, y_desc.value, _fwd_pref,
+                workspace_size)
 
         # cuDNN forward computation.
         oz_dtype = 'd' if x.dtype == 'd' else 'f'
@@ -176,6 +184,15 @@ class ConvolutionND(function.Function):
         out_axes = (0,) + tuple(moves.range(2, ndim + 2))
         # (n, _, _, ..., _, out_1, out_2, ..., out_N)
         col_axes = (0,) + tuple(moves.range(ndim + 2, ndim * 2 + 2))
+
+        # NumPy raises an error when the array is not contiguous.
+        # See: https://github.com/chainer/chainer/issues/2744
+        # TODO(niboshi): Remove this code when NumPy is fixed.
+        if (xp is numpy and
+                not (gy.flags.c_contiguous or gy.flags.f_contiguous) and
+                1 in gy.shape):
+            gy = numpy.ascontiguousarray(gy)
+
         gW = xp.tensordot(gy, self.col, (out_axes, col_axes)).astype(
             W.dtype, copy=False)
 
@@ -221,10 +238,15 @@ class ConvolutionND(function.Function):
         workspace = cuda.cupy.empty((workspace_size,), dtype='b')
 
         # Compute filter weight gradient.
-        algo = libcudnn.getConvolutionBackwardFilterAlgorithm(
-            handle, x_desc.value, gy_desc.value,
-            self.conv_desc.value, self.filter_desc.value,
-            _bwd_filter_pref, workspace_size)
+        if configuration.config.autotune and _cudnn_version_ >= 5000:
+            algo = convolution_2d.get_algorithm_bwd_filter(
+                x, gy, gW, self.conv_param, handle, x_desc, gy_desc,
+                self.conv_desc, self.filter_desc, workspace)
+        else:
+            algo = libcudnn.getConvolutionBackwardFilterAlgorithm(
+                handle, x_desc.value, gy_desc.value, self.conv_desc.value,
+                self.filter_desc.value, _bwd_filter_pref, workspace_size)
+
         libcudnn.convolutionBackwardFilter_v3(
             handle, one.data, x_desc.value, x.data.ptr,
             gy_desc.value, gy.data.ptr, self.conv_desc.value,
@@ -302,7 +324,7 @@ def convolution_nd(x, W, b=None, stride=1, pad=0, cover_all=False):
 
     .. math::
 
-       l_n = (d_n + 2p_n - k_n) / s_n + 1 \ \ (n = 1, ..., N)
+       l_n = (d_n + 2p_n - k_n) / s_n + 1 \\ \\ (n = 1, ..., N)
 
     If ``cover_all`` option is ``True``, the filter will cover the all
     spatial locations. So, if the last stride of filter does not cover the
@@ -312,7 +334,7 @@ def convolution_nd(x, W, b=None, stride=1, pad=0, cover_all=False):
 
     .. math::
 
-       l_n = (d_n + 2p_n - k_n + s_n - 1) / s_n + 1 \ \ (n = 1, ..., N)
+       l_n = (d_n + 2p_n - k_n + s_n - 1) / s_n + 1 \\ \\ (n = 1, ..., N)
 
     The N-dimensional convolution function is defined as follows.
 
@@ -353,6 +375,11 @@ def convolution_nd(x, W, b=None, stride=1, pad=0, cover_all=False):
         - The input's ``dtype`` is equal to the filter weight's.
         - The ``dtype`` is FP16, FP32 or FP64. (FP16 is only available when
           cuDNN version :math:`\\geq` v3.)
+
+    Convolution links can use a feature of cuDNN called autotuning, which
+    selects the most efficient CNN algorithm for images of fixed-size,
+    can provide a significant performance boost for fixed neural nets.
+    To enable, set `chainer.using_config('autotune', True)`
 
     .. seealso:: :class:`~chainer.links.ConvolutionND`, :func:`convolution_2d`
 

@@ -156,7 +156,11 @@ class TestAdaGrad(OptimizerTestBase, unittest.TestCase):
 class TestAdam(OptimizerTestBase, unittest.TestCase):
 
     def create(self):
-        return optimizers.Adam(0.05)
+        if self.dtype == numpy.float16:
+            kwargs = {'eps': 1e-6}
+        else:
+            kwargs = {}
+        return optimizers.Adam(0.05, **kwargs)
 
 
 @testing.parameterize(*testing.product({
@@ -186,7 +190,11 @@ class NesterovAG(OptimizerTestBase, unittest.TestCase):
 class TestRMSprop(OptimizerTestBase, unittest.TestCase):
 
     def create(self):
-        return optimizers.RMSprop(0.1)
+        if self.dtype == numpy.float16:
+            kwargs = {'eps': 1e-6}
+        else:
+            kwargs = {}
+        return optimizers.RMSprop(0.1, **kwargs)
 
 
 @testing.parameterize(*testing.product({
