@@ -68,10 +68,13 @@ def save_npz(file, obj, compression=True):
         :func:`chainer.serializers.load_npz`
 
     """
+    if isinstance(file, six.string_types):
+        with open(file, 'wb') as f:
+            save_npz(f, obj, compression)
+        return
+
     s = DictionarySerializer()
     s.save(obj)
-    if isinstance(file, six.string_types):
-        file = open(file, 'wb')
     if compression:
         numpy.savez_compressed(file, **s.target)
     else:
