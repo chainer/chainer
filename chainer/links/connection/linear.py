@@ -25,10 +25,11 @@ class Linear(link.Link):
         out_size (int): Dimension of output vectors.
         nobias (bool): If ``True``, then this function does not use the bias.
         initialW (:ref:`initializer <initializer>`): Initializer to initialize
-            the weight.
+            the weight. When it is :class:`numpy.ndarray`,
+            its ``ndim`` should be 2.
         initial_bias (:ref:`initializer <initializer>`): Initializer to
             initialize the bias. If ``None``, the bias will be initialized to
-            zero.
+            zero. When it is :class:`numpy.ndarray`, its ``ndim`` should be 1.
     .. seealso:: :func:`~chainer.functions.linear`
 
     Attributes:

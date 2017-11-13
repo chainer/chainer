@@ -24,14 +24,12 @@ class SimplifiedDropconnect(link.Link):
             at which time the size will be determined.
         out_size (int): Dimension of output vectors.
         nobias (bool): If ``True``, then this link does not use the bias term.
-        initialW (3-D array or None): Initial weight value.
-            If ``None``, the default initializer is used.
-            May also be a callable that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value.
-        initial_bias (2-D array, float or None): Initial bias value.
-            If ``None``, the bias is set to 0.
-            May also be a callable that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value.
+        initialW (:ref:`initializer <initializer>`): Initializer to
+            initialize the weight. When it is :class:`numpy.ndarray` or,
+            its ``ndim`` should be 3.
+        initial_bias (:ref:`initializer <initializer>`): Initializer to
+            initialize the bias. If ``None``, the bias will be initialized to
+            zero. When it is :class:`numpy.ndarray`, its ``ndim`` should be 2.
 
     Attributes:
         W (~chainer.Variable): Weight parameter.
