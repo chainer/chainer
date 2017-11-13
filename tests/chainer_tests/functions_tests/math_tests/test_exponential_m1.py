@@ -22,6 +22,7 @@ class Expm1FunctionTest(unittest.TestCase):
             numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
 
         self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
+        self.check_double_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
 
     def check_forward(self, x_data):
         x = chainer.Variable(x_data)
@@ -50,7 +51,8 @@ class Expm1FunctionTest(unittest.TestCase):
 
     def check_double_backward(self, x_data, y_grad, x_grad_grad):
         gradient_check.check_double_backward(
-            F.expm1, x_data, y_grad, x_grad_grad)
+            F.expm1, x_data, y_grad, x_grad_grad,
+            **self.check_double_backward_options)
 
     def test_expm1_double_backward_cpu(self):
         self.check_double_backward(self.x, self.gy, self.ggx)
