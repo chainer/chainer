@@ -98,20 +98,27 @@ class Convolution2DFunction(function_node.FunctionNode):
                 b_type.shape[0] == w_type.shape[0],
             )
 
+    def _get_out_size(self, inputs):
+        x, W = inputs[:2]
+        _, _, kh, kw = W.shape
+        _, _, h, w = x.shape
+        out_h = conv.get_conv_outsize(
+            h, kh, self.sy, self.ph, cover_all=self.cover_all, d=self.dy)
+        if out_h <= 0:
+            raise RuntimeError('Height in the output should be positive.')
+        out_w = conv.get_conv_outsize(
+            w, kw, self.sx, self.pw, cover_all=self.cover_all, d=self.dx)
+        if out_w <= 0:
+            raise RuntimeError('Width in the output should be positive.')
+        return out_h, out_w
+
     def forward_cpu(self, inputs):
         self.retain_inputs((0, 1))  # retain only x and W
-        x, W = inputs[:2]
-        b = inputs[2] if len(inputs) == 3 else None
 
-        if not all([isinstance(i, numpy.ndarray) for i in inputs]):
-            if b is not None:
-                raise ValueError('numpy and cupy must not be used together\n'
-                                 'type(W): {0}, type(x): {1}, type(b): {2}'
-                                 .format(type(W), type(x), type(b)))
-            else:
-                raise ValueError('numpy and cupy must not be used together\n'
-                                 'type(W): {0}, type(x): {1}'
-                                 .format(type(W), type(x)))
+        if len(inputs) == 2:
+            (x, W), b = inputs, None
+        else:
+            x, W, b = inputs
 
         kh, kw = W.shape[2:]
         col = conv.im2col_cpu(
@@ -125,83 +132,24 @@ class Convolution2DFunction(function_node.FunctionNode):
 
     def forward_gpu(self, inputs):
         self.retain_inputs((0, 1))  # retain only x and W
-        x, W = inputs[:2]
-        b = inputs[2] if len(inputs) == 3 else None
-
-        if not all([isinstance(i, cuda.ndarray) for i in inputs]):
-            if b is not None:
-                raise ValueError('numpy and cupy must not be used together\n'
-                                 'type(W): {0}, type(x): {1}, type(b): {2}'
-                                 .format(type(W), type(x), type(b)))
-            else:
-                raise ValueError('numpy and cupy must not be used together\n'
-                                 'type(W): {0}, type(x): {1}'
-                                 .format(type(W), type(x)))
+        if len(inputs) == 2:
+            (x, W), b = inputs, None
+        else:
+            x, W, b = inputs
 
         out_c, _, kh, kw = W.shape
-        n, c, h, w = x.shape
+        n, _, h, w = x.shape
 
-        out_h = conv.get_conv_outsize(h, kh, self.sy, self.ph,
-                                      cover_all=self.cover_all, d=self.dy)
-        assert out_h > 0, 'Height in the output should be positive.'
-        out_w = conv.get_conv_outsize(w, kw, self.sx, self.pw,
-                                      cover_all=self.cover_all, d=self.dx)
-        assert out_w > 0, 'Width in the output should be positive.'
-
+        out_h, out_w = self._get_out_size(inputs)
         y = cuda.cupy.empty((n, out_c, out_h, out_w), dtype=x.dtype)
+
         if (not self.cover_all and chainer.should_use_cudnn('>=auto') and
                 x.dtype == W.dtype and
                 ((self.dy == 1 and self.dx == 1) or _cudnn_version >= 6000)):
-            x = cuda.cupy.ascontiguousarray(x)
-            W = cuda.cupy.ascontiguousarray(W)
-            if b is not None:
-                b = cuda.cupy.ascontiguousarray(b)
 
-            use_tensor_core = chainer.should_use_cudnn_tensor_core(x.dtype)
+            # cuDNN implementation
+            return self._forward_cudnn(x, W, b, y)
 
-            handle = cudnn.get_handle()
-            x_desc = cudnn.create_tensor_descriptor(x)
-            y_desc = cudnn.create_tensor_descriptor(y)
-
-            filter_desc = cudnn.create_filter_descriptor(W)
-            conv_param = ((self.ph, self.pw), (self.sy, self.sx), x.dtype)
-            dilation = (self.dy, self.dx)
-            conv_desc = cudnn.create_convolution_descriptor(
-                *conv_param, dilation=dilation,
-                use_tensor_core=use_tensor_core)
-            if b is not None:
-                bias_desc = cudnn.create_tensor_descriptor(
-                    b[None, :, None, None])
-            workspace_size = cuda.get_max_workspace_size()
-            workspace = cuda.cupy.empty((workspace_size,), dtype='b')
-            if configuration.config.autotune and _cudnn_version >= 5000:
-                algo = _get_algorithm_fwd(
-                    x, W, y, conv_param + (dilation,), handle, x_desc,
-                    filter_desc, conv_desc, y_desc, workspace)
-            else:
-                algo = libcudnn.getConvolutionForwardAlgorithm(
-                    handle, x_desc.value, filter_desc.value,
-                    conv_desc.value, y_desc.value, _fwd_pref, workspace_size)
-
-            if use_tensor_core:
-                # Only CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM
-                # supports Tensor-Core in cuDNN7.
-                algo = libcudnn.CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM  # NOQA
-
-            oz_dtype = 'd' if x.dtype == 'd' else 'f'
-            one = numpy.array(1, dtype=oz_dtype).ctypes
-            zero = numpy.array(0, dtype=oz_dtype).ctypes
-            libcudnn.convolutionForward(
-                handle, one.data, x_desc.value, x.data.ptr,
-                filter_desc.value, W.data.ptr, conv_desc.value,
-                algo, workspace.data.ptr, workspace_size, zero.data,
-                y_desc.value, y.data.ptr)
-
-            # TODO(beam2d): Support unshared bias
-            if b is not None:
-                cudnn.add_tensor(
-                    handle, one.data, bias_desc.value, b.data.ptr,
-                    one.data, y_desc.value, y.data.ptr)
         else:
             # Implementation using im2col
             col = conv.im2col_gpu(
@@ -213,6 +161,110 @@ class Convolution2DFunction(function_node.FunctionNode):
             if b is not None:
                 y += b
             y = cuda.cupy.rollaxis(y, 3, 1)
+
+        return y,
+
+    def _forward_cudnn(self, x, W, b, y):
+        x = cuda.cupy.ascontiguousarray(x)
+        W = cuda.cupy.ascontiguousarray(W)
+        if b is not None:
+            b = cuda.cupy.ascontiguousarray(b)
+
+        use_tensor_core = chainer.should_use_cudnn_tensor_core(x.dtype)
+
+        handle = cudnn.get_handle()
+        x_desc = cudnn.create_tensor_descriptor(x)
+        y_desc = cudnn.create_tensor_descriptor(y)
+
+        filter_desc = cudnn.create_filter_descriptor(W)
+        conv_param = ((self.ph, self.pw), (self.sy, self.sx), x.dtype)
+        dilation = (self.dy, self.dx)
+        conv_desc = cudnn.create_convolution_descriptor(
+            *conv_param, dilation=dilation,
+            use_tensor_core=use_tensor_core)
+        if b is not None:
+            bias_desc = cudnn.create_tensor_descriptor(
+                b[None, :, None, None])
+        workspace_size = cuda.get_max_workspace_size()
+        workspace = cuda.cupy.empty((workspace_size,), dtype='b')
+        if configuration.config.autotune and _cudnn_version >= 5000:
+            algo = _get_algorithm_fwd(
+                x, W, y, conv_param + (dilation,), handle, x_desc,
+                filter_desc, conv_desc, y_desc, workspace)
+        else:
+            algo = libcudnn.getConvolutionForwardAlgorithm(
+                handle, x_desc.value, filter_desc.value,
+                conv_desc.value, y_desc.value, _fwd_pref, workspace_size)
+
+        if use_tensor_core:
+            # Only CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM
+            # supports Tensor-Core in cuDNN7.
+            algo = libcudnn.CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM  # NOQA
+
+        oz_dtype = 'd' if x.dtype == 'd' else 'f'
+        one = numpy.array(1, dtype=oz_dtype).ctypes
+        zero = numpy.array(0, dtype=oz_dtype).ctypes
+        libcudnn.convolutionForward(
+            handle, one.data, x_desc.value, x.data.ptr,
+            filter_desc.value, W.data.ptr, conv_desc.value,
+            algo, workspace.data.ptr, workspace_size, zero.data,
+            y_desc.value, y.data.ptr)
+
+        # TODO(beam2d): Support unshared bias
+        if b is not None:
+            cudnn.add_tensor(
+                handle, one.data, bias_desc.value, b.data.ptr,
+                one.data, y_desc.value, y.data.ptr)
+
+        x = cuda.cupy.ascontiguousarray(x)
+        W = cuda.cupy.ascontiguousarray(W)
+        if b is not None:
+            b = cuda.cupy.ascontiguousarray(b)
+
+        use_tensor_core = chainer.should_use_cudnn_tensor_core(x.dtype)
+
+        handle = cudnn.get_handle()
+        x_desc = cudnn.create_tensor_descriptor(x)
+        y_desc = cudnn.create_tensor_descriptor(y)
+
+        filter_desc = cudnn.create_filter_descriptor(W)
+        conv_param = ((self.ph, self.pw), (self.sy, self.sx), x.dtype)
+        conv_desc = cudnn.create_convolution_descriptor(
+            *conv_param, dilation=(self.dy, self.dx),
+            use_tensor_core=use_tensor_core)
+        if b is not None:
+            bias_desc = cudnn.create_tensor_descriptor(
+                b[None, :, None, None])
+        workspace_size = cuda.get_max_workspace_size()
+        workspace = cuda.cupy.empty((workspace_size,), dtype='b')
+        if configuration.config.autotune and _cudnn_version >= 5000:
+            algo = _get_algorithm_fwd(
+                x, W, y, conv_param, handle, x_desc, filter_desc,
+                conv_desc, y_desc, workspace)
+        else:
+            algo = libcudnn.getConvolutionForwardAlgorithm(
+                handle, x_desc.value, filter_desc.value,
+                conv_desc.value, y_desc.value, _fwd_pref, workspace_size)
+
+        if use_tensor_core:
+            # Only CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM
+            # supports Tensor-Core in cuDNN7.
+            algo = libcudnn.CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM  # NOQA
+
+        oz_dtype = 'd' if x.dtype == 'd' else 'f'
+        one = numpy.array(1, dtype=oz_dtype).ctypes
+        zero = numpy.array(0, dtype=oz_dtype).ctypes
+        libcudnn.convolutionForward(
+            handle, one.data, x_desc.value, x.data.ptr,
+            filter_desc.value, W.data.ptr, conv_desc.value,
+            algo, workspace.data.ptr, workspace_size, zero.data,
+            y_desc.value, y.data.ptr)
+
+        # TODO(beam2d): Support unshared bias
+        if b is not None:
+            cudnn.add_tensor(
+                handle, one.data, bias_desc.value, b.data.ptr,
+                one.data, y_desc.value, y.data.ptr)
 
         return y,
 
@@ -272,19 +324,30 @@ class Convolution2DGradW(function_node.FunctionNode):
     def forward_gpu(self, inputs):
         self.retain_inputs((0, 1))
         x, gy = inputs
-        _, out_c, out_h, out_w = gy.shape
-        n, c, h, w = x.shape
 
-        if (self.cover_all or not chainer.should_use_cudnn('>=auto') or
-                x.dtype != self.W_dtype or
-                ((self.dy > 1 or self.dx > 1) and _cudnn_version < 6000)):
+        if (not self.cover_all and chainer.should_use_cudnn('>=auto') and
+                x.dtype == self.W_dtype and
+                ((self.dy == 1 and self.dx == 1) or _cudnn_version >= 6000)):
+
+            # cuDNN implementation
+            return self._forward_cudnn(x, gy)
+
+        else:
+            # Implementation using im2col
+            _, out_c, out_h, out_w = gy.shape
+            n, c, h, w = x.shape
+
             col = conv.im2col_gpu(
                 x, self.kh, self.kw, self.sy, self.sx, self.ph, self.pw,
                 cover_all=self.cover_all, dy=self.dy, dx=self.dx)
             gW = cuda.cupy.tensordot(
                 gy, col, ((0, 2, 3), (0, 4, 5))).astype(self.W_dtype,
                                                         copy=False)
-            return gW,
+        return gW,
+
+    def _forward_cudnn(self, x, gy):
+        _, out_c, out_h, out_w = gy.shape
+        n, c, h, w = x.shape
 
         gW = cuda.cupy.empty((out_c, c, self.kh, self.kw), dtype=self.W_dtype)
         x = cuda.cupy.ascontiguousarray(x)
