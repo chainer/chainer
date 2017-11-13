@@ -178,7 +178,7 @@ def n_step_bigru(
         n_layers(int): Number of layers.
         dropout_ratio(float): Dropout ratio.
         hx (chainer.Variable): Variable holding stacked hidden states.
-            Its shape is ``(S, B, N)`` where ``S`` is number of layers and is
+            Its shape is ``(2S, B, N)`` where ``S`` is number of layers and is
             equal to ``n_layers``, ``B`` is mini-batch size, and ``N`` is
             dimention of hidden units.
         ws (list of list of chainer.Variable): Weight matrices. ``ws[i]``
@@ -249,7 +249,8 @@ def n_step_gru_base(n_layers, dropout_ratio, hx, ws, bs, xs,
         hx (chainer.Variable): Variable holding stacked hidden states.
             Its shape is ``(S, B, N)`` where ``S`` is number of layers and is
             equal to ``n_layers``, ``B`` is mini-batch size, and ``N`` is
-            dimention of hidden units.
+            dimention of hidden units. Because of bi-diraction, the
+            first dimension length is ``2S``.
         ws (list of list of chainer.Variable): Weight matrices. ``ws[i]``
             represents weights for i-th layer.
             Each ``ws[i]`` is a list containing six matrices.

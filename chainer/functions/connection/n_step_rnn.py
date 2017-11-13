@@ -670,9 +670,10 @@ def n_step_birnn(
         n_layers(int): Number of layers.
         dropout_ratio(float): Dropout ratio.
         hx (chainer.Variable): Variable holding stacked hidden states.
-            Its shape is ``(S, B, N)`` where ``S`` is number of layers and is
+            Its shape is ``(2S, B, N)`` where ``S`` is number of layers and is
             equal to ``n_layers``, ``B`` is mini-batch size, and ``N`` is
-            dimention of hidden units.
+            dimention of hidden units. Because of bi-diraction, the
+            first dimension length is ``2S``.
         ws (list of list of chainer.Variable): Weight matrices. ``ws[i + di]``
             represents weights for i-th layer.
             Note that ``di = 0`` for forward-RNN and ``di = 1`` for
