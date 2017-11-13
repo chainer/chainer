@@ -68,11 +68,12 @@ class RepeatGrad(function_node.FunctionNode):
             return gx,
 
         gx = xp.zeros(self.in_shape, self.in_dtype)
-        slices = [slice(None) for _ in six.moves.range(self.axis)]
         pos = 0
+        src = [slice(None)] * self.axis + [None]
+        dst = [slice(None)] * self.axis + [None]
         for (i, r) in enumerate(repeats):
-            src = slices + [slice(pos, pos + r)]
-            dst = slices + [slice(i, i + 1)]
+            src[-1] = slice(pos, pos + r)
+            dst[-1] = slice(i, i + 1)
             gx[dst] = gy[src].sum(axis=self.axis, keepdims=True)
             pos += r
         return gx,
