@@ -46,7 +46,6 @@ class TestCeil(UnaryFunctionsTestBase):
     def make_data(self):
         x = numpy.random.uniform(-10.0, 10.0, self.shape).astype(self.dtype)
         gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        self.ggy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         return x, gy
 
     def test_forward_cpu(self):
