@@ -374,34 +374,60 @@ def div(self, rhs):  # lhs / rhs
     return MulConstant(1. / rhs).apply((self,))[0]
 
 
-class DivFromConstant(function.Function):
+class DivFromConstant(function_node.FunctionNode):
 
     def __init__(self, value):
         self.value = value
 
     @property
     def label(self):
-        return '_ / %s' % _convert_value_to_string(self.value)
+        return '%s / _' % _convert_value_to_string(self.value)
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward(self, x):
+        self.retain_inputs((0,))
         value = _preprocess_const(x[0], self.value)
         return utils.force_array(value / x[0]),
 
-    def backward_cpu(self, x, gy):
-        value = _preprocess_const(x[0], self.value)
-        return utils.force_array(-value * gy[0] / (x[0] ** 2)),
+    def backward(self, indexes, grad_outputs):
+        x = self.get_retained_inputs()
+        return DivFromConstantGrad(self.value).apply((x[0], grad_outputs[0]))
 
-    def backward_gpu(self, x, gy):
+
+class DivFromConstantGrad(function_node.FunctionNode):
+
+    def __init__(self, value):
+        super(DivFromConstantGrad, self).__init__()
+        self.value = value
+
+    def forward_cpu(self, inputs):
+        self.retain_inputs((0, 1))
+        x, gy = inputs
+        value = _preprocess_const(x, self.value)
+        return utils.force_array(-value * gy / (x ** 2)),
+
+    def forward_gpu(self, inputs):
+        self.retain_inputs((0, 1))
+        x, gy = inputs
         # TODO(beam2d): Make it not use the input
-        value = _preprocess_const(x[0], self.value)
+        value = _preprocess_const(x, self.value)
         gx = cuda.elementwise('T x, T gy, T value', 'T gx',
                               'gx = -value * gy / (x * x)',
-                              'div_from_const_bwd')(x[0], gy[0], value)
+                              'div_from_const_bwd')(x, gy, value)
         return gx,
+
+    def backward(self, indexes, grad_outputs):
+        x, gy = self.get_retained_inputs()
+        value = _preprocess_const(x.data, self.value)
+        ret = []
+        if 0 in indexes:
+            ret.append(grad_outputs[0] * 2 * value * gy / (x ** 3))
+        if 1 in indexes:
+            ret.append(grad_outputs[0] * -value / (x ** 2))
+        return ret
 
 
 def rdiv(self, rhs):  # rhs / lhs
@@ -414,7 +440,7 @@ def rdiv(self, rhs):  # rhs / lhs
     if isinstance(rhs, variable.Variable):
         return Div().apply((rhs, self))[0]
     _check_constant_type(rhs)
-    return DivFromConstant(rhs)(self)
+    return DivFromConstant(rhs).apply((self,))[0]
 
 
 class PowVarVar(function_node.FunctionNode):
