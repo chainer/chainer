@@ -8,6 +8,7 @@ from chainer.dataset import convert
 from chainer import reporter
 from chainer.training import updater
 
+from cupy.cuda import profiler
 from py3nvml import py3nvml
 
 try:
@@ -33,7 +34,13 @@ class _Worker(multiprocessing.Process):
         self.iterator = master._mpu_iterators[proc_id]
         self.n_devices = len(master._devices)
 
+
     def setup(self):
+        # Set affinity
+        py3nvml.nvmlInit()
+        handle = py3nvml.nvmlDeviceGetHandleByIndex(cuda.Device(self.device).id)
+        py3nvml.nvmlDeviceSetCpuAffinity(handle)
+
         _, comm_id = self.pipe.recv()
         self.comm = nccl.NcclCommunicator(self.n_devices, comm_id,
                                           self.proc_id)
@@ -59,10 +66,6 @@ class _Worker(multiprocessing.Process):
                                         fine_granularity, streams,
                                         events, ooc_debug])
 
-        # Set affinity
-        py3nvml.nvmlInit()
-        handle = py3nvml.nvmlDeviceGetHandleByIndex(cuda.Device(self.device).id)
-        py3nvml.nvmlDeviceSetCpuAffinity(handle)
 
     def run(self):
         dev = cuda.Device(self.device)
@@ -73,7 +76,6 @@ class _Worker(multiprocessing.Process):
             job, data = self.pipe.recv()
             if job == 'finalize':
                 dev.synchronize()
-                py3nvml.nvmlShutdown()
                 break
             if job == 'update':
                 # For reducing memory
@@ -102,6 +104,8 @@ class _Worker(multiprocessing.Process):
                 scatter_params(self.model, gp)
                 gp = None
 
+        profiler.stop()
+        py3nvml.nvmlShutdown()
 
 class MultiprocessParallelUpdater(updater.StandardUpdater):
 
@@ -189,7 +193,6 @@ class MultiprocessParallelUpdater(updater.StandardUpdater):
         self._workers = []
         self.comm = None
 
-        py3nvml.nvmlInit()
 
     @staticmethod
     def available():
@@ -213,6 +216,11 @@ class MultiprocessParallelUpdater(updater.StandardUpdater):
             self._pipes.append(pipe)
 
         with cuda.Device(self._devices[0]):
+            # Set affinity
+            py3nvml.nvmlInit()
+            handle = py3nvml.nvmlDeviceGetHandleByIndex(cuda.Device(self.device).id)
+            py3nvml.nvmlDeviceSetCpuAffinity(handle)
+            
             ooc_enabled, ooc_async, fine_granularity, streams, events, ooc_debug \
                 = getattr(
                     configuration.config, 'out_of_core_params',
@@ -232,9 +240,6 @@ class MultiprocessParallelUpdater(updater.StandardUpdater):
                                             fine_granularity, streams,
                                             events, ooc_debug])
 
-            # Set affinity
-            handle = py3nvml.nvmlDeviceGetHandleByIndex(cuda.Device(self.device).id)
-            py3nvml.nvmlDeviceSetCpuAffinity(handle)
             self._master.to_gpu(self._devices[0])
             if len(self._devices) > 1:
                 comm_id = nccl.get_unique_id()
@@ -280,8 +285,8 @@ class MultiprocessParallelUpdater(updater.StandardUpdater):
         for worker in self._workers:
             worker.join()
 
+        profiler.stop()
         py3nvml.nvmlShutdown()
-
 
 def _calc_loss(model, in_arrays):
     if isinstance(in_arrays, tuple):
