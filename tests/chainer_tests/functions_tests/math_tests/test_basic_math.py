@@ -11,7 +11,6 @@ from chainer import cuda
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
 
 
 @testing.parameterize(*testing.product({
@@ -189,7 +188,6 @@ class TestBinaryOp(unittest.TestCase):
             op, self.x1, self.x2, self.gy, self.ggx1, self.ggx2,
             **options)
 
-    @condition.repeat(3)
     def test_div_double_backward_cpu(self):
         self.double_backward_cpu(lambda x, y: x / y, atol=5e-2, rtol=5e-2)
 
@@ -206,7 +204,6 @@ class TestBinaryOp(unittest.TestCase):
             cuda.to_gpu(self.ggx1), cuda.to_gpu(self.ggx2), **options)
 
     @attr.gpu
-    @condition.repeat(3)
     def test_div_double_backward_gpu(self):
         self.double_backward_gpu(lambda x, y: x / y, atol=5e-2, rtol=5e-2)
 
