@@ -1,7 +1,7 @@
+import math
 import unittest
 
 import numpy
-import scipy
 
 import chainer
 from chainer import cuda
@@ -9,6 +9,14 @@ import chainer.functions as F
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
+
+
+def _erf_cpu(x):
+    return numpy.vectorize(math.erf)(x)
+
+
+def _erf_gpu(x):
+    return cuda.to_gpu(_erf_cpu(cuda.to_cpu(x)))
 
 
 class UnaryFunctionsTestBase(unittest.TestCase):
@@ -79,13 +87,11 @@ class TestErf(UnaryFunctionsTestBase):
         return x, gy
 
     def test_forward_cpu(self):
-        self.check_forward_cpu(F.erf, scipy.special.erf)
+        self.check_forward_cpu(F.erf, _erf_cpu)
 
     @attr.gpu
     def test_forward_gpu(self):
-        def erf_gpu(x):
-            return cuda.to_gpu(scipy.special.erf(cuda.to_cpu(x)))
-        self.check_forward_gpu(F.erf, erf_gpu)
+        self.check_forward_gpu(F.erf, _erf_gpu)
 
     def test_backward_cpu(self):
         self.check_backward_cpu(F.erf)
