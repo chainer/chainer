@@ -371,6 +371,7 @@ class TestToGPU(unittest.TestCase):
         self.assertIsNot(x, y)  # Do copy
         cuda.cupy.testing.assert_array_equal(x, y)
 
+    @attr.gpu
     def test_single_none(self):
         assert cuda.to_gpu(None) is None
 
