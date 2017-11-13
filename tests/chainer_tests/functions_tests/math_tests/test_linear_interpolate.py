@@ -8,7 +8,6 @@ from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
 
 
 @testing.parameterize(*testing.product({
@@ -47,12 +46,10 @@ class TestLinearInterpolate(unittest.TestCase):
         testing.assert_allclose(
             z.data, expect, **self.check_forward_options)
 
-    @condition.retry(3)
     def test_forward_cpu(self):
         self.check_forward(self.p, self.x, self.y)
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.p),
                            cuda.to_gpu(self.x),
@@ -63,12 +60,10 @@ class TestLinearInterpolate(unittest.TestCase):
             functions.linear_interpolate, (p_data, x_data, y_data), grad,
             **self.check_backward_options)
 
-    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.p, self.x, self.y, self.g)
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.p),
                             cuda.to_gpu(self.x),
@@ -80,13 +75,11 @@ class TestLinearInterpolate(unittest.TestCase):
             functions.linear_interpolate, (p, x, y), grad,
             (gp, gx, gy), **self.check_double_backward_options)
 
-    @condition.retry(3)
     def test_double_backward_cpu(self):
         self.check_double_backward(
             self.p, self.x, self.y, self.g, self.gp, self.gx, self.gy)
 
     @attr.gpu
-    @condition.retry(3)
     def test_double_backward_gpu(self):
         self.check_double_backward(
             cuda.to_gpu(self.p),
