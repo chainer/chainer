@@ -1,19 +1,21 @@
 import numpy
 
+import chainer
 from chainer.backends import cuda
-from chainer import function
+from chainer import function_node
 from chainer.utils import type_check
 
 
-class HuberLoss(function.Function):
+class HuberLoss(function_node.FunctionNode):
 
     def __init__(self, delta, reduce='sum_along_second_axis'):
         self.delta = delta
 
         if reduce not in ('sum_along_second_axis', 'no'):
             raise ValueError(
-                "only 'sum_along_second_axis' and 'no' are valid "
+                "Only 'sum_along_second_axis' and 'no' are valid "
                 "for 'reduce', but '%s' is given" % reduce)
+
         self.reduce = reduce
 
     def check_type_forward(self, in_types):
@@ -25,6 +27,7 @@ class HuberLoss(function.Function):
         )
 
     def forward(self, inputs):
+        self.retain_inputs((0, 1))
         xp = cuda.get_array_module(*inputs)
         x0, x1 = inputs
         self.diff = x0 - x1
@@ -37,15 +40,20 @@ class HuberLoss(function.Function):
         else:
             return y,
 
-    def backward(self, inputs, gy):
-        xp = cuda.get_array_module(*inputs)
+    def backward(self, indexes, grad_outputs):
+        x0, x1 = self.get_retained_inputs()
+        diff = x0 - x1
+        gy, = grad_outputs
+
+        xp = cuda.get_array_module(self.diff)
         mask = xp.abs(self.diff) <= self.delta
 
-        gx = xp.where(mask, self.diff, self.delta * xp.sign(self.diff))
-        gy_ = gy[0]
+        gx = chainer.functions.where(
+            mask, diff, self.delta * xp.sign(self.diff))
+
         if self.reduce == 'sum_along_second_axis':
-            gy_ = gy_.reshape(gy[0].shape + (1,) * (self.diff.ndim - 1))
-        gx = gy_ * gx
+            gy = gy.reshape(gy.shape + (1,) * (self.diff.ndim - 1))
+        gx = chainer.functions.broadcast_to(gy, gx.shape) * gx
         return gx, -gx
 
 
@@ -116,4 +124,4 @@ def huber_loss(x, t, delta, reduce='sum_along_second_axis'):
                [ 4.5  ,  0.   ,  0.   ]], dtype=float32)
 
     """
-    return HuberLoss(delta=delta, reduce=reduce)(x, t)
+    return HuberLoss(delta=delta, reduce=reduce).apply((x, t))[0]
