@@ -9,7 +9,9 @@ from chainer import reporter
 from chainer.training import updater
 
 from cupy.cuda import profiler
-from py3nvml import py3nvml
+from pynvml import *
+# TODO(imaihal) Python3 support
+# from py3nvml import py3nvml
 
 try:
     from cupy.cuda import nccl
@@ -37,9 +39,13 @@ class _Worker(multiprocessing.Process):
 
     def setup(self):
         # Set affinity
-        py3nvml.nvmlInit()
-        handle = py3nvml.nvmlDeviceGetHandleByIndex(cuda.Device(self.device).id)
-        py3nvml.nvmlDeviceSetCpuAffinity(handle)
+        nvmlInit()
+        handle = nvmlDeviceGetHandleByIndex(cuda.Device(self.device).id)
+        nvmlDeviceSetCpuAffinity(handle)
+        # TODO(imaihal) Python3 support
+        # py3nvml.nvmlInit()
+        # handle = py3nvml.nvmlDeviceGetHandleByIndex(cuda.Device(self.device).id)
+        # py3nvml.nvmlDeviceSetCpuAffinity(handle)
 
         _, comm_id = self.pipe.recv()
         self.comm = nccl.NcclCommunicator(self.n_devices, comm_id,
@@ -105,7 +111,9 @@ class _Worker(multiprocessing.Process):
                 gp = None
 
         profiler.stop()
-        py3nvml.nvmlShutdown()
+        nvmlShutdown()
+        # TODO(imaihal) Python3 support
+        # py3nvml.nvmlShutdown()
 
 class MultiprocessParallelUpdater(updater.StandardUpdater):
 
@@ -217,9 +225,13 @@ class MultiprocessParallelUpdater(updater.StandardUpdater):
 
         with cuda.Device(self._devices[0]):
             # Set affinity
-            py3nvml.nvmlInit()
-            handle = py3nvml.nvmlDeviceGetHandleByIndex(cuda.Device(self.device).id)
-            py3nvml.nvmlDeviceSetCpuAffinity(handle)
+            nvmlInit()
+            handle = nvmlDeviceGetHandleByIndex(cuda.Device(self.device).id)
+            nvmlDeviceSetCpuAffinity(handle)
+            # TODO(imaihal) Python3 support
+            # py3nvml.nvmlInit()
+            # handle = py3nvml.nvmlDeviceGetHandleByIndex(cuda.Device(self.device).id)
+            # py3nvml.nvmlDeviceSetCpuAffinity(handle)
             
             ooc_enabled, ooc_async, fine_granularity, streams, events, ooc_debug \
                 = getattr(
@@ -286,7 +298,9 @@ class MultiprocessParallelUpdater(updater.StandardUpdater):
             worker.join()
 
         profiler.stop()
-        py3nvml.nvmlShutdown()
+        nvmlShutdown()
+        # TODO(imaihal) Python3 support
+        # py3nvml.nvmlShutdown()
 
 def _calc_loss(model, in_arrays):
     if isinstance(in_arrays, tuple):
