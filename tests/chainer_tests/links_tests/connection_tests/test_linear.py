@@ -161,7 +161,8 @@ class TestEmptyBatchInitLinear(unittest.TestCase):
         self.x = numpy.random.uniform(-1, 1, (0, 3)).astype(numpy.float32)
 
     def test_empty_batch_dim(self):
-        self.link(chainer.Variable(self.x))
+        y = self.link(chainer.Variable(self.x))
+        assert y.shape == (0, 4)
 
 
 class TestInvalidLinear(unittest.TestCase):
