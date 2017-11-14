@@ -9,7 +9,7 @@ from chainer import reporter
 from chainer.training import updater
 
 from cupy.cuda import profiler
-from pynvml import *
+from pynvml import pynvml
 # TODO(imaihal) Python3 support
 # from py3nvml import py3nvml
 
@@ -36,15 +36,15 @@ class _Worker(multiprocessing.Process):
         self.iterator = master._mpu_iterators[proc_id]
         self.n_devices = len(master._devices)
 
-
     def setup(self):
         # Set affinity
-        nvmlInit()
-        handle = nvmlDeviceGetHandleByIndex(cuda.Device(self.device).id)
-        nvmlDeviceSetCpuAffinity(handle)
+        pynvml.nvmlInit()
+        handle = pynvml.nvmlDeviceGetHandleByIndex(cuda.Device(self.device).id)
+        pynvml.nvmlDeviceSetCpuAffinity(handle)
         # TODO(imaihal) Python3 support
         # py3nvml.nvmlInit()
-        # handle = py3nvml.nvmlDeviceGetHandleByIndex(cuda.Device(self.device).id)
+        # handle = py3nvml.nvmlDeviceGetHandleByIndex(
+        #    cuda.Device(self.device).id)
         # py3nvml.nvmlDeviceSetCpuAffinity(handle)
 
         _, comm_id = self.pipe.recv()
@@ -71,7 +71,6 @@ class _Worker(multiprocessing.Process):
                                        [ooc_enabled, ooc_async,
                                         fine_granularity, streams,
                                         events, ooc_debug])
-
 
     def run(self):
         dev = cuda.Device(self.device)
@@ -111,9 +110,10 @@ class _Worker(multiprocessing.Process):
                 gp = None
 
         profiler.stop()
-        nvmlShutdown()
+        pynvml.nvmlShutdown()
         # TODO(imaihal) Python3 support
         # py3nvml.nvmlShutdown()
+
 
 class MultiprocessParallelUpdater(updater.StandardUpdater):
 
@@ -201,7 +201,6 @@ class MultiprocessParallelUpdater(updater.StandardUpdater):
         self._workers = []
         self.comm = None
 
-
     @staticmethod
     def available():
         return _available
@@ -225,14 +224,15 @@ class MultiprocessParallelUpdater(updater.StandardUpdater):
 
         with cuda.Device(self._devices[0]):
             # Set affinity
-            nvmlInit()
-            handle = nvmlDeviceGetHandleByIndex(cuda.Device(self.device).id)
-            nvmlDeviceSetCpuAffinity(handle)
+            pynvml.nvmlInit()
+            handle = pynvml.nvmlDeviceGetHandleByIndex(cuda.Device(self.device).id)
+            pynvml.nvmlDeviceSetCpuAffinity(handle)
             # TODO(imaihal) Python3 support
             # py3nvml.nvmlInit()
-            # handle = py3nvml.nvmlDeviceGetHandleByIndex(cuda.Device(self.device).id)
+            # handle = py3nvml.nvmlDeviceGetHandleByIndex(
+            #    cuda.Device(self.device).id)
             # py3nvml.nvmlDeviceSetCpuAffinity(handle)
-            
+
             ooc_enabled, ooc_async, fine_granularity, streams, events, ooc_debug \
                 = getattr(
                     configuration.config, 'out_of_core_params',
@@ -298,9 +298,10 @@ class MultiprocessParallelUpdater(updater.StandardUpdater):
             worker.join()
 
         profiler.stop()
-        nvmlShutdown()
+        pynvml.nvmlShutdown()
         # TODO(imaihal) Python3 support
         # py3nvml.nvmlShutdown()
+
 
 def _calc_loss(model, in_arrays):
     if isinstance(in_arrays, tuple):
