@@ -120,5 +120,8 @@ class Linear(link.Link):
 
         """
         if self.W.data is None:
-            self._initialize_params(x.size // x.shape[0])
+            in_size = 1
+            for dim in x.shape[1:]:
+                in_size *= dim
+            self._initialize_params(in_size)
         return linear.linear(x, self.W, self.b)
