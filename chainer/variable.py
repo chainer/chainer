@@ -389,6 +389,9 @@ class VariableNode(object):
             self.dtype = d.dtype
             self.shape = d.shape
 
+        if self._data is not None:
+            self._data = d
+
     def _check_old_style_gradient(self):
         if self._old_style_grad_generator is not None:
             raise RuntimeError(
