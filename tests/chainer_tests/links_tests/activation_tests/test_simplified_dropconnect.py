@@ -98,12 +98,10 @@ class TestSimplifiedDropconnect(unittest.TestCase):
             (self.link.W, self.link.b),
             no_grads=(False, True), dtype='d', **self.check_backward_options)
 
-    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy, self.mask)
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu(self):
         self.link.to_gpu()
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy),
@@ -167,12 +165,10 @@ class TestSimplifiedDropconnectParameterShapePlaceholder(unittest.TestCase):
             (self.link.W, self.link.b), dtype='d', no_grads=(False, True),
             atol=1e-4, rtol=1e-3)
 
-    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy, self.mask)
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu(self):
         self.link.to_gpu()
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy),
