@@ -225,7 +225,8 @@ class MultiprocessParallelUpdater(updater.StandardUpdater):
         with cuda.Device(self._devices[0]):
             # Set affinity
             pynvml.nvmlInit()
-            handle = pynvml.nvmlDeviceGetHandleByIndex(cuda.Device(self.device).id)
+            handle = pynvml.nvmlDeviceGetHandleByIndex(
+                cuda.Device(self.device).id)
             pynvml.nvmlDeviceSetCpuAffinity(handle)
             # TODO(imaihal) Python3 support
             # py3nvml.nvmlInit()
