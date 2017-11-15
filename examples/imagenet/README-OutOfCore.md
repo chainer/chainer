@@ -3,7 +3,7 @@
 ## Installation
 
 Followings are instructions to install chainer out-of-core training code.
-Basically you can install it by following [official chainer instructions from source code](https://docs.chainer.org/en/stable/install.html#install-chainer-from-source) and [original README](/README.md). These instructions are additional instructions of the official instructions.
+Basically you can install it by following [official chainer instructions from source code](https://docs.chainer.org/en/stable/install.html#install-chainer-from-source) and [original README](../README.md). These instructions are additional instructions of the official instructions.
 
 Chainer out-of-core training code depends on a branch of cupy. So, please use following branch.
 ```sh
