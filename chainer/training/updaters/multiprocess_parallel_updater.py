@@ -8,13 +8,13 @@ from chainer.dataset import convert
 from chainer import reporter
 from chainer.training import updater
 
-from cupy.cuda import profiler
 import pynvml
 # TODO(imaihal) Python3 support
 # from py3nvml import py3nvml
 
 try:
     from cupy.cuda import nccl
+    from cupy.cuda import profiler
     _available = True
 except ImportError:
     _available = False
