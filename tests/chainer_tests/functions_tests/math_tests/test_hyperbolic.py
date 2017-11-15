@@ -16,7 +16,7 @@ class UnaryFunctionsTestBase(unittest.TestCase):
         raise NotImplementedError
 
     def setUp(self):
-        self.x, self.gy = self.make_data()
+        self.x, self.gy, self.ggx = self.make_data()
 
         if self.dtype == numpy.float16:
             self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
@@ -74,8 +74,8 @@ class TestCosh(UnaryFunctionsTestBase):
     def make_data(self):
         x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        self.ggx = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        return x, gy
+        ggx = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        return x, gy, ggx
 
     def test_forward_cpu(self):
         self.check_forward_cpu(F.cosh, numpy.cosh)
@@ -111,8 +111,8 @@ class TestSinh(UnaryFunctionsTestBase):
     def make_data(self):
         x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        self.ggx = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        return x, gy
+        ggx = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        return x, gy, ggx
 
     def test_forward_cpu(self):
         self.check_forward_cpu(F.sinh, numpy.sinh)
