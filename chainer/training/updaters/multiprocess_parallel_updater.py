@@ -2,15 +2,17 @@ import multiprocessing
 import warnings
 
 import six
+import sys
 
 from chainer import cuda
 from chainer.dataset import convert
 from chainer import reporter
 from chainer.training import updater
 
-import pynvml
-# TODO(imaihal) Python3 support
-# from py3nvml import py3nvml
+if sys.version_info < (3, 0, 0):
+    import pynvml as pynvml
+else:
+    import py3nvml as pynvml
 
 try:
     from cupy.cuda import nccl
@@ -41,11 +43,6 @@ class _Worker(multiprocessing.Process):
         pynvml.nvmlInit()
         handle = pynvml.nvmlDeviceGetHandleByIndex(cuda.Device(self.device).id)
         pynvml.nvmlDeviceSetCpuAffinity(handle)
-        # TODO(imaihal) Python3 support
-        # py3nvml.nvmlInit()
-        # handle = py3nvml.nvmlDeviceGetHandleByIndex(
-        #    cuda.Device(self.device).id)
-        # py3nvml.nvmlDeviceSetCpuAffinity(handle)
 
         _, comm_id = self.pipe.recv()
         self.comm = nccl.NcclCommunicator(self.n_devices, comm_id,
@@ -111,8 +108,6 @@ class _Worker(multiprocessing.Process):
 
         profiler.stop()
         pynvml.nvmlShutdown()
-        # TODO(imaihal) Python3 support
-        # py3nvml.nvmlShutdown()
 
 
 class MultiprocessParallelUpdater(updater.StandardUpdater):
@@ -228,11 +223,6 @@ class MultiprocessParallelUpdater(updater.StandardUpdater):
             handle = pynvml.nvmlDeviceGetHandleByIndex(
                 cuda.Device(self.device).id)
             pynvml.nvmlDeviceSetCpuAffinity(handle)
-            # TODO(imaihal) Python3 support
-            # py3nvml.nvmlInit()
-            # handle = py3nvml.nvmlDeviceGetHandleByIndex(
-            #    cuda.Device(self.device).id)
-            # py3nvml.nvmlDeviceSetCpuAffinity(handle)
 
             ooc_enabled, ooc_async, fine_granularity, streams, events, ooc_debug \
                 = getattr(
@@ -300,8 +290,6 @@ class MultiprocessParallelUpdater(updater.StandardUpdater):
 
         profiler.stop()
         pynvml.nvmlShutdown()
-        # TODO(imaihal) Python3 support
-        # py3nvml.nvmlShutdown()
 
 
 def _calc_loss(model, in_arrays):

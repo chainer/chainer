@@ -27,6 +27,7 @@ install_requires = [
     'protobuf>=3.0.0',
     'six>=1.9.0',
     'nvidia-ml-py',
+    'py3nvml',
 ]
 cupy_require = 'cupy<2.1'
 
