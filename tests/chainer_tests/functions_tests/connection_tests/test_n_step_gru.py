@@ -1,6 +1,5 @@
 import unittest
 
-import mock
 import numpy
 
 import chainer
@@ -379,19 +378,19 @@ class TestNStepGRUCudnnCall(unittest.TestCase):
                 self.n_layers, self.dropout, h, ws, bs, xs)
 
     def test_call_cudnn_forward_training(self):
-        with mock.patch('cupy.cuda.cudnn.RNNForwardTraining') as func:
+        with testing.patch('cupy.cuda.cudnn.RNNForwardTraining') as func:
             self.forward(True)
             self.assertEqual(func.called, self.expect)
 
     def test_call_cudnn_forward_inference(self):
-        with mock.patch('cupy.cuda.cudnn.RNNForwardInference') as func:
+        with testing.patch('cupy.cuda.cudnn.RNNForwardInference') as func:
             self.forward(False)
             self.assertEqual(func.called, self.expect)
 
     def test_call_cudnn_backward(self):
         hy, ys = self.forward(True)
         hy.grad = self.dhy
-        with mock.patch('cupy.cuda.cudnn.RNNBackwardWeights') as func:
+        with testing.patch('cupy.cuda.cudnn.RNNBackwardWeights') as func:
             hy.backward()
             self.assertEqual(func.called, self.expect)
 
@@ -459,19 +458,19 @@ class TestNStepBiGRUCudnnCall(unittest.TestCase):
                 self.n_layers, self.dropout, h, ws, bs, xs)
 
     def test_call_cudnn_forward_training(self):
-        with mock.patch('cupy.cuda.cudnn.RNNForwardTraining') as func:
+        with testing.patch('cupy.cuda.cudnn.RNNForwardTraining') as func:
             self.forward(True)
             self.assertEqual(func.called, self.expect)
 
     def test_call_cudnn_forward_inference(self):
-        with mock.patch('cupy.cuda.cudnn.RNNForwardInference') as func:
+        with testing.patch('cupy.cuda.cudnn.RNNForwardInference') as func:
             self.forward(False)
             self.assertEqual(func.called, self.expect)
 
     def test_call_cudnn_backward(self):
         hy, ys = self.forward(True)
         hy.grad = self.dhy
-        with mock.patch('cupy.cuda.cudnn.RNNBackwardWeights') as func:
+        with testing.patch('cupy.cuda.cudnn.RNNBackwardWeights') as func:
             hy.backward()
             self.assertEqual(func.called, self.expect)
 

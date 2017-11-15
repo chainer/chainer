@@ -1,4 +1,3 @@
-import mock
 import unittest
 
 import numpy
@@ -294,12 +293,12 @@ class TestConvolution2DCudnnCall(unittest.TestCase):
                                 dilate=self.dilate)
 
     def test_call_cudnn_forward(self):
-        with chainer.using_config('use_cudnn', self.use_cudnn):
-            with chainer.using_config('cudnn_deterministic',
-                                      self.cudnn_deterministic):
-                with mock.patch('cupy.cuda.cudnn.convolutionForward') as func:
-                    self.forward()
-                    self.assertEqual(func.called, self.should_call_cudnn)
+        with chainer.using_config('use_cudnn', self.use_cudnn), \
+            chainer.using_config('cudnn_deterministic',
+                                 self.cudnn_deterministic):
+            with testing.patch('cupy.cuda.cudnn.convolutionForward') as func:
+                self.forward()
+                self.assertEqual(func.called, self.should_call_cudnn)
 
     def test_call_cudnn_backward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
@@ -308,7 +307,7 @@ class TestConvolution2DCudnnCall(unittest.TestCase):
                 y = self.forward()
                 y.grad = self.gy
                 name = 'cupy.cuda.cudnn.convolutionBackwardData_v3'
-                with mock.patch(name) as func:
+                with testing.patch(name) as func:
                     y.backward()
                     self.assertEqual(func.called, self.should_call_cudnn)
 
@@ -343,10 +342,10 @@ class TestConvolution2DFunctionCudnnDeterministic(unittest.TestCase):
             -1, 1, (batch_sz, out_channels, out_h, out_w)).astype(x_dtype)
 
     def test_called(self):
-        with mock.patch(
+        with testing.patch(
             'chainer.functions.connection.convolution_2d.libcudnn',
             autospec=True
-        ) as mlibcudnn_conv, mock.patch(
+        ) as mlibcudnn_conv, testing.patch(
             'chainer.functions.connection.deconvolution_2d.libcudnn',
             autospec=True
         ) as mlibcudnn_deconv:

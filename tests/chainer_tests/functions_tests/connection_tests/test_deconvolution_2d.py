@@ -1,4 +1,3 @@
-import mock
 import unittest
 
 import numpy
@@ -260,7 +259,7 @@ class TestDeconvolution2DCudnnCall(unittest.TestCase):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             with chainer.using_config('cudnn_deterministic',
                                       self.cudnn_deterministic):
-                with mock.patch(name) as func:
+                with testing.patch(name) as func:
                     self.forward()
                 self.assertEqual(func.called, self.should_call_cudnn)
 
@@ -285,8 +284,8 @@ class TestDeconvolution2DCudnnCall(unittest.TestCase):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             with chainer.using_config('cudnn_deterministic',
                                       self.cudnn_deterministic):
-                with mock.patch(data_func_name) as data_func,\
-                        mock.patch(filter_func_name) as filter_func:
+                with testing.patch(data_func_name) as data_func,\
+                        testing.patch(filter_func_name) as filter_func:
                     y.backward()
                     self.assertEqual(
                         data_func.called, self.should_call_cudnn)
@@ -325,7 +324,7 @@ class TestDeconvolution2DFunctionCudnnDeterministic(unittest.TestCase):
             -1, 1, (batch_sz, out_channels, out_h, out_w)).astype(x_dtype)
 
     def test_called(self):
-        with mock.patch(
+        with testing.patch(
                 'chainer.functions.connection.deconvolution_2d.libcudnn'
         ) as mlibcudnn:
             # cuDNN version >= v3 supports `cudnn_deterministic` option

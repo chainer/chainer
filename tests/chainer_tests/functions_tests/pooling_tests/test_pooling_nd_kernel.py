@@ -1,7 +1,5 @@
 import unittest
 
-import mock
-
 import chainer
 from chainer.functions.pooling import pooling_nd_kernel
 from chainer import testing
@@ -19,8 +17,9 @@ class TestPoolingNDKernelMemo(unittest.TestCase):
 
     def test_pooling_nd_kernel_forward_memo(self):
         ndim = self.ndim
-        with mock.patch('chainer.functions.pooling.pooling_nd_kernel.'
-                        'PoolingNDKernelForward._generate') as m:
+        with testing.patch(
+                'chainer.functions.pooling.pooling_nd_kernel.'
+                'PoolingNDKernelForward._generate', wraps=None) as m:
             pooling_nd_kernel.PoolingNDKernelForward.generate(ndim)
             m.assert_called_once_with(ndim)
             pooling_nd_kernel.PoolingNDKernelForward.generate(ndim)
@@ -30,8 +29,9 @@ class TestPoolingNDKernelMemo(unittest.TestCase):
 
     def test_pooling_nd_kernel_backward_memo(self):
         ndim = self.ndim
-        with mock.patch('chainer.functions.pooling.pooling_nd_kernel.'
-                        'PoolingNDKernelBackward._generate') as m:
+        with testing.patch(
+                'chainer.functions.pooling.pooling_nd_kernel.'
+                'PoolingNDKernelBackward._generate', wraps=None) as m:
             pooling_nd_kernel.PoolingNDKernelBackward.generate(ndim)
             m.assert_called_once_with(ndim)
             pooling_nd_kernel.PoolingNDKernelBackward.generate(ndim)

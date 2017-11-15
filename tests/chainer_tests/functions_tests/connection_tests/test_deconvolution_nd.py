@@ -1,7 +1,6 @@
 import unittest
 
 import functools
-import mock
 import numpy
 from operator import mul
 
@@ -231,7 +230,7 @@ class TestDeconvolutionNDCudnnCall(unittest.TestCase):
     def test_call_cudnn_forward(self):
         name = 'cupy.cuda.cudnn.convolutionBackwardData_v3'
         with chainer.using_config('use_cudnn', self.use_cudnn):
-            with mock.patch(name) as func:
+            with testing.patch(name) as func:
                 self.forward()
                 self.assertEqual(func.called, self.expected)
 
@@ -239,7 +238,7 @@ class TestDeconvolutionNDCudnnCall(unittest.TestCase):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             y = self.forward()
             y.grad = self.gy
-            with mock.patch('cupy.cuda.cudnn.convolutionForward') as func:
+            with testing.patch('cupy.cuda.cudnn.convolutionForward') as func:
                 y.backward()
                 self.assertEqual(func.called, self.expected)
 
