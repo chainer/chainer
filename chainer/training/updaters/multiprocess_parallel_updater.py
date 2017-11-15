@@ -12,7 +12,7 @@ from chainer.training import updater
 if sys.version_info < (3, 0, 0):
     import pynvml as pynvml
 else:
-    import py3nvml as pynvml
+    import py3nvml.py3nvml as pynvml
 
 try:
     from cupy.cuda import nccl
