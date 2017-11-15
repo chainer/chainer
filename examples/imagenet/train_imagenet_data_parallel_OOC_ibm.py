@@ -164,8 +164,10 @@ def main():
         chainer.serializers.load_npz(args.resume, trainer)
 
     if args.ooc:
-        # with chainer.out_of_core_mode(fine_granularity=True, devices=devices):
-        with chainer.out_of_core_mode(fine_granularity=True, async=False, devices=devices):
+        # with chainer.out_of_core_mode(
+        #        fine_granularity=True, devices=devices):
+        with chainer.out_of_core_mode(
+                fine_granularity=True, async=False, devices=devices):
             trainer.run()
     else:
         trainer.run()
