@@ -11,7 +11,6 @@ from chainer import cuda
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
 
 
 @testing.parameterize(*testing.product({
@@ -189,7 +188,6 @@ class TestBinaryOp(unittest.TestCase):
             op, self.x1, self.x2, self.gy, self.ggx1, self.ggx2,
             **options)
 
-    @condition.repeat(3)
     def test_div_double_backward_cpu(self):
         self.double_backward_cpu(lambda x, y: x / y, atol=5e-2, rtol=5e-2)
 
@@ -206,7 +204,6 @@ class TestBinaryOp(unittest.TestCase):
             cuda.to_gpu(self.ggx1), cuda.to_gpu(self.ggx2), **options)
 
     @attr.gpu
-    @condition.repeat(3)
     def test_div_double_backward_gpu(self):
         self.double_backward_gpu(lambda x, y: x / y, atol=5e-2, rtol=5e-2)
 
@@ -664,6 +661,9 @@ class TestVariableConstantOp(unittest.TestCase):
     def test_rpow_double_backward_cpu(self):
         self.double_backward_cpu(lambda x, y: y ** x)
 
+    def test_rdiv_double_backward_cpu(self):
+        self.double_backward_cpu(lambda x, y: y / x)
+
     def double_backward_gpu(self, op):
         self.check_double_backward(
             op, cuda.to_gpu(self.x), cuda.to_gpu(self.gy),
@@ -676,6 +676,10 @@ class TestVariableConstantOp(unittest.TestCase):
     @attr.gpu
     def test_rpow_double_backward_gpu(self):
         self.double_backward_gpu(lambda x, y: y ** x)
+
+    @attr.gpu
+    def test_rdiv_double_backward_gpu(self):
+        self.double_backward_gpu(lambda x, y: y / x)
 
 
 @testing.parameterize(*testing.product({
@@ -1245,7 +1249,7 @@ class TestLabel(unittest.TestCase):
         self.assertEqual(basic_math.Div().label, '_ / _')
 
     def test_div_from_constant(self):
-        self.assertEqual(basic_math.DivFromConstant(2.0).label, '_ / 2.0')
+        self.assertEqual(basic_math.DivFromConstant(2.0).label, '2.0 / _')
 
     def test_pow_var_var(self):
         self.assertEqual(basic_math.PowVarVar().label, '_ ** _')
