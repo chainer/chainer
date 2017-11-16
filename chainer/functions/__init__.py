@@ -171,7 +171,6 @@ from chainer.functions.math.batch_l2_norm_squared import batch_l2_norm_squared  
 from chainer.functions.math.batch_l2_norm_squared import BatchL2NormSquared  # NOQA
 from chainer.functions.math.bias import bias  # NOQA
 from chainer.functions.math.ceil import ceil  # NOQA
-from chainer.functions.math.ceil import Ceil  # NOQA
 from chainer.functions.math.clip import clip  # NOQA
 from chainer.functions.math.clip import Clip  # NOQA
 from chainer.functions.math.det import batch_det  # NOQA
