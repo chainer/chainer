@@ -569,7 +569,7 @@ def n_step_rnn(
         hx (chainer.Variable): Variable holding stacked hidden states.
             Its shape is ``(S, B, N)`` where ``S`` is number of layers and is
             equal to ``n_layers``, ``B`` is mini-batch size, and ``N`` is
-            dimention of hidden units.
+            dimension of hidden units.
         ws (list of list of chainer.Variable): Weight matrices. ``ws[i]``
             represents weights for i-th layer.
             Each ``ws[i]`` is a list containing two matrices.
@@ -581,7 +581,7 @@ def n_step_rnn(
             represnents biases for i-th layer.
             Each ``bs[i]`` is a list containing two vectors.
             ``bs[i][j]`` is corresponding with ``b_j`` in the equation.
-            Shape of each matrix is ``(N,)`` where ``N`` is dimention of
+            Shape of each matrix is ``(N,)`` where ``N`` is dimension of
             hidden units.
         xs (list of chainer.Variable): A list of :class:`~chainer.Variable`
             holding input values. Each element ``xs[t]`` holds input value
@@ -672,7 +672,7 @@ def n_step_birnn(
         hx (chainer.Variable): Variable holding stacked hidden states.
             Its shape is ``(2S, B, N)`` where ``S`` is number of layers and is
             equal to ``n_layers``, ``B`` is mini-batch size, and ``N`` is
-            dimention of hidden units. Because of bi-diraction, the
+            dimension of hidden units. Because of bi-direction, the
             first dimension length is ``2S``.
         ws (list of list of chainer.Variable): Weight matrices. ``ws[i + di]``
             represents weights for i-th layer.
@@ -691,7 +691,7 @@ def n_step_birnn(
             Each ``bs[i + di]`` is a list containing two vectors.
             ``bs[i + di][j]`` is corresponding with ``b^{f}_j`` if ``di = 0``
             and corresponding with ``b^{b}_j`` if ``di = 1`` in the equation.
-            Shape of each matrix is ``(N,)`` where ``N`` is dimention of
+            Shape of each matrix is ``(N,)`` where ``N`` is dimension of
             hidden units.
         xs (list of chainer.Variable): A list of :class:`~chainer.Variable`
             holding input values. Each element ``xs[t]`` holds input value
@@ -748,7 +748,7 @@ def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
         hx (chainer.Variable): Variable holding stacked hidden states.
             Its shape is ``(S, B, N)`` where ``S`` is number of layers and is
             equal to ``n_layers``, ``B`` is mini-batch size, and ``N`` is
-            dimention of hidden units.
+            dimension of hidden units.
         ws (list of list of chainer.Variable): Weight matrices. ``ws[i]``
             represents weights for i-th layer.
             Each ``ws[i]`` is a list containing two matrices.
@@ -760,7 +760,7 @@ def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
             represnents biases for i-th layer.
             Each ``bs[i]`` is a list containing two vectors.
             ``bs[i][j]`` is corresponding with ``b_j`` in the equation.
-            Shape of each matrix is ``(N,)`` where ``N`` is dimention of
+            Shape of each matrix is ``(N,)`` where ``N`` is dimension of
             hidden units.
         xs (list of chainer.Variable): A list of :class:`~chainer.Variable`
             holding input values. Each element ``xs[t]`` holds input value
