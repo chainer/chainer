@@ -154,6 +154,17 @@ class TestLinearParameterShapePlaceholder(unittest.TestCase):
         self.assertEqual((w1 == w2).all(), True)
 
 
+class TestEmptyBatchInitialize(unittest.TestCase):
+
+    def setUp(self):
+        self.link = links.Linear(4)
+        self.x = numpy.random.uniform(-1, 1, (0, 3)).astype(numpy.float32)
+
+    def test_empty_batch_dim(self):
+        y = self.link(chainer.Variable(self.x))
+        assert y.shape == (0, 4)
+
+
 class TestInvalidLinear(unittest.TestCase):
 
     def setUp(self):
