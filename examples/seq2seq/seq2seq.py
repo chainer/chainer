@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import argparse
+import codecs
 
 from nltk.translate import bleu_score
 import numpy
@@ -152,12 +153,12 @@ class CalculateBleu(chainer.training.Extension):
 
 
 def count_lines(path):
-    with open(path) as f:
+    with codecs.open(path, 'r', 'utf-8') as f:
         return sum([1 for _ in f])
 
 
 def load_vocabulary(path):
-    with open(path) as f:
+    with codecs.open(path, 'r', 'utf-8') as f:
         # +2 for UNK and EOS
         word_ids = {line.strip(): i + 2 for i, line in enumerate(f)}
     word_ids['<UNK>'] = 0
@@ -170,7 +171,7 @@ def load_data(vocabulary, path):
     bar = progressbar.ProgressBar()
     data = []
     print('loading...: %s' % path)
-    with open(path) as f:
+    with codecs.open(path, 'r', 'utf-8') as f:
         for line in bar(f, max_value=n_lines):
             words = line.strip().split()
             array = numpy.array([vocabulary.get(w, UNK) for w in words], 'i')
@@ -223,6 +224,7 @@ def main():
                         help='directory to output the result')
     args = parser.parse_args()
 
+    # Load pre-processed dataset
     source_ids = load_vocabulary(args.SOURCE_VOCAB)
     target_ids = load_vocabulary(args.TARGET_VOCAB)
     train_source = load_data(source_ids, args.SOURCE)
@@ -248,15 +250,20 @@ def main():
     target_words = {i: w for w, i in target_ids.items()}
     source_words = {i: w for w, i in source_ids.items()}
 
+    # Setup model
     model = Seq2seq(args.layer, len(source_ids), len(target_ids), args.unit)
     if args.gpu >= 0:
         chainer.cuda.get_device(args.gpu).use()
         model.to_gpu(args.gpu)
 
+    # Setup optimizer
     optimizer = chainer.optimizers.Adam()
     optimizer.setup(model)
 
+    # Setup iterator
     train_iter = chainer.iterators.SerialIterator(train_data, args.batchsize)
+
+    # Setup updater and trainer
     updater = training.StandardUpdater(
         train_iter, optimizer, converter=convert, device=args.gpu)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'))
@@ -294,8 +301,8 @@ def main():
             target_sentence = ' '.join([target_words[y] for y in target])
             result_sentence = ' '.join([target_words[y] for y in result])
             print('# source : ' + source_sentence)
-            print('#  result : ' + result_sentence)
-            print('#  expect : ' + target_sentence)
+            print('# result : ' + result_sentence)
+            print('# expect : ' + target_sentence)
 
         trainer.extend(
             translate, trigger=(args.validation_interval, 'iteration'))

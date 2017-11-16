@@ -5,3 +5,4 @@ Use Chainer for various tasks
    :maxdepth: 2
 
    word2vec
+   seq2seq
