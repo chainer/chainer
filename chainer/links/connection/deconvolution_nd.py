@@ -34,7 +34,7 @@ class DeconvolutionND(link.Link):
         initialW (:ref:`initializer <initializer>`): Initializer to
             initialize the weight. When it is :class:`numpy.ndarray`,
             its ``ndim`` should be :math:`n+2` where :math:`n` is
-            a number of spatial dimensions.
+            the number of spatial dimensions.
         initial_bias (:ref:`initializer <initializer>`): Initializer to
             initialize the bias. If ``None``, the bias will be initialized to
             zero. When it is :class:`numpy.ndarray`, its ``ndim`` should 1.

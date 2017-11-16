@@ -25,7 +25,7 @@ class NStepLSTMBase(link.ChainList):
         out_size (int): Dimensionality of hidden states and output vectors.
         dropout (float): Dropout ratio.
         initialW (:ref:`initializer <initializer>`): Initializer to
-            initialize the weight. When it is :class:`numpy.ndarray` or,
+            initialize the weight. When it is :class:`numpy.ndarray`,
             its ``ndim`` should be 2.
         initial_bias (:ref:`initializer <initializer>`): Initializer to
             initialize the bias. If ``None``, the bias will be initialized to
@@ -166,7 +166,7 @@ class NStepLSTM(NStepLSTMBase):
         out_size (int): Dimensionality of hidden states and output vectors.
         dropout (float): Dropout ratio.
         initialW (:ref:`initializer <initializer>`): Initializer to
-            initialize the weight. When it is :class:`numpy.ndarray` or,
+            initialize the weight. When it is :class:`numpy.ndarray`,
             its ``ndim`` should be 2.
         initial_bias (:ref:`initializer <initializer>`): Initializer to
             initialize the bias. If ``None``, the bias will be initialized to
@@ -211,7 +211,7 @@ class NStepBiLSTM(NStepLSTMBase):
         out_size (int): Dimensionality of hidden states and output vectors.
         dropout (float): Dropout ratio.
         initialW (:ref:`initializer <initializer>`): Initializer to
-            initialize the weight. When it is :class:`numpy.ndarray` or,
+            initialize the weight. When it is :class:`numpy.ndarray`,
             its ``ndim`` should be 2.
         initial_bias (:ref:`initializer <initializer>`): Initializer to
             initialize the bias. If ``None``, the bias will be initialized to

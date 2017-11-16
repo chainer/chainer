@@ -23,7 +23,7 @@ class Bilinear(link.Link):
         nobias (bool): If ``True``, parameters ``V1``, ``V2``, and ``b`` are
             omitted.
         initialW (:ref:`initializer <initializer>`): Initializer to
-            initialize the weight. When it is :class:`numpy.ndarray` or,
+            initialize the weight. When it is :class:`numpy.ndarray`,
             its ``ndim`` should be 3.
         initial_bias (tuple of :ref:`initializer <initializer>`):
             Initial values of :math:`V^1`, :math:`V^2` and

@@ -29,13 +29,13 @@ class Highway(link.Chain):
         activate: Activation function of plain array. :math:`tanh` is also
             available.
         init_Wh (:ref:`initializer <initializer>`): Initializer to
-            initialize the weight. When it is :class:`numpy.ndarray` or,
+            initialize the weight. When it is :class:`numpy.ndarray`,
             its ``ndim`` should be 2.
         init_bh (:ref:`initializer <initializer>`): Initializer to
             initialize the bias. If ``None``, the bias will be initialized to
             zero. When it is :class:`numpy.ndarray`, its ``ndim`` should be 1.
         init_Wt (:ref:`initializer <initializer>`): Initializer to
-            initialize the weight. When it is :class:`numpy.ndarray` or,
+            initialize the weight. When it is :class:`numpy.ndarray`,
             its ``ndim`` should be 2.
         init_bt (:ref:`initializer <initializer>`): Initializer to
             initialize the bias. If ``None``, the bias will be initialized to

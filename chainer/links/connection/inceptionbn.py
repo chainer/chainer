@@ -34,7 +34,7 @@ class InceptionBN(link.Chain):
         stride (int): Stride parameter of the last convolution of each path.
         conv_init (:ref:`initializer <initializer>`): Initializer to
             initialize the convolution matrix weights.
-            When it is :class:`numpy.ndarray` or, its ``ndim`` should be 4.
+            When it is :class:`numpy.ndarray`, its ``ndim`` should be 4.
         dtype (numpy.dtype): Type to use in
             ``~batch_normalization.BatchNormalization``.
 
