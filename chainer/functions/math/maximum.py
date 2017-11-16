@@ -48,14 +48,13 @@ class MaximumGrad(function_node.FunctionNode):
 
     def forward_gpu(self, inputs):
         gy, = inputs
-        gx1 = cuda.elementwise(
-            'S cond, T gy', 'T gx1',
-            'gx1 = cond ? gy : (T)0.0',
+        gx1, gx2 = cuda.elementwise(
+            'S cond, T gy', 'T gx1, T gx2',
+            '''
+            gx1 = cond ? gy : (T)0.0;
+            gx2 = cond ? (T)0.0 : gy;
+            ''',
             'maximum_bwd1')(self.cond, gy)
-        gx2 = cuda.elementwise(
-            'S cond, T gy', 'T gx1',
-            'gx1 = cond ? (T)0.0 : gy',
-            'maximum_bwd2')(self.cond, gy)
         return gx1, gx2
 
     def backward(self, indexes, grad_outputs):
