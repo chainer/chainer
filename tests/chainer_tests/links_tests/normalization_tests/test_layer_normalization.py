@@ -153,6 +153,18 @@ class TestDefaultInitializer(unittest.TestCase):
             numpy.zeros(self.size), self.link.beta.data)
 
 
+class TestEmptyBatchInitialize(unittest.TestCase):
+
+    def setUp(self):
+        self.link = _create_ln()
+        self.shape = (0, 3)
+        self.x = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
+
+    def test_empty_batch_dim(self):
+        y = self.link(chainer.Variable(self.x))
+        assert y.shape == self.shape
+
+
 @testing.parameterize(*testing.product({
     'shape': [(2, 4, 3), (2, 5, 3, 4)],
 }))
