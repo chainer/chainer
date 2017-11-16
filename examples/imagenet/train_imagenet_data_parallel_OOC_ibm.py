@@ -104,7 +104,6 @@ def main():
         args.val, args.root, mean, model.insize, False)
     # These iterators load the images with subprocesses running in parallel to
     # the training/validation.
-
     devices = tuple(args.gpus)
 
     train_iters = [
@@ -117,9 +116,7 @@ def main():
 
     # Set up an optimizer
     optimizer = chainer.optimizers.MomentumSGD(lr=0.01, momentum=0.9)
-    # optimizer = chainer.optimizers.MomentumSGD(lr=0.16, momentum=0.9)
     optimizer.setup(model)
-    optimizer.add_hook(chainer.optimizer.WeightDecay(0.0001))
 
     # Set up a trainer
     updater = updaters.MultiprocessParallelUpdater(train_iters, optimizer,
@@ -134,20 +131,15 @@ def main():
         val_interval = 5, 'epoch'
         log_interval = 1, 'epoch'
     else:
-        val_interval = 1, 'epoch'
+        val_interval = 100000, 'iteration'
         log_interval = 10, 'iteration'
-        # val_interval = 100000, 'iteration'
+        # val_interval = 1, 'epoch'
         # log_interval = 1000, 'iteration'
 
-    lr_interval = (1 if args.test else 30), 'epoch'
-    snapshot_interval = (1 if args.test else 1), 'epoch'
-
-    trainer.extend(extensions.ExponentialShift("lr", 0.1), trigger=lr_interval)
     trainer.extend(extensions.Evaluator(val_iter, model, device=args.gpus[0]),
                    trigger=val_interval)
     trainer.extend(extensions.dump_graph('main/loss'))
-    trainer.extend(extensions.snapshot(), trigger=snapshot_interval)
-    # trainer.extend(extensions.snapshot(), trigger=val_interval)
+    trainer.extend(extensions.snapshot(), trigger=val_interval)
     trainer.extend(extensions.snapshot_object(
         model, 'model_iter_{.updater.iteration}'), trigger=val_interval)
     # Be careful to pass the interval directly to LogReport
@@ -159,6 +151,7 @@ def main():
         'main/accuracy', 'validation/main/accuracy', 'lr'
     ]), trigger=log_interval)
     trainer.extend(extensions.ProgressBar(update_interval=10))
+    # trainer.extend(extensions.ProgressBar(update_interval=2))
 
     if args.resume:
         chainer.serializers.load_npz(args.resume, trainer)
