@@ -105,7 +105,9 @@ Concrete datasets
    :nosignatures:
 
    chainer.datasets.get_mnist
+   chainer.datasets.get_fashion_mnist
    chainer.datasets.get_cifar10
    chainer.datasets.get_cifar100
    chainer.datasets.get_ptb_words
    chainer.datasets.get_ptb_words_vocabulary
+   chainer.datasets.get_svhn

@@ -25,6 +25,7 @@ from chainer.utils import type_check
     'c_contiguous': [True],
     'x_dtype': [numpy.float32],
     'W_dtype': [numpy.float32],
+    'autotune': [True, False],
 }) + testing.product({
     'dims': [(3, 2)],
     'nobias': [False],
@@ -32,6 +33,7 @@ from chainer.utils import type_check
     'c_contiguous': [True],
     'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'W_dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'autotune': [False],
 }) + testing.product({
     'dims': [(3, 2)],
     'nobias': [True, False],
@@ -39,6 +41,7 @@ from chainer.utils import type_check
     'c_contiguous': [True, False],
     'x_dtype': [numpy.float32],
     'W_dtype': [numpy.float32],
+    'autotune': [False],
 }))
 class TestDeconvolutionND(unittest.TestCase):
 
@@ -87,9 +90,10 @@ class TestDeconvolutionND(unittest.TestCase):
         W_gpu = chainer.Variable(cuda.to_gpu(self.W))
         b_gpu = None if self.nobias else chainer.Variable(cuda.to_gpu(self.b))
         with chainer.using_config('use_cudnn', use_cudnn):
-            y_gpu = F.deconvolution_nd(
-                x_gpu, W_gpu, b_gpu, stride=self.stride, pad=self.pad,
-                outsize=self.outsize)
+            with chainer.using_config('autotune', self.autotune):
+                y_gpu = F.deconvolution_nd(
+                    x_gpu, W_gpu, b_gpu, stride=self.stride, pad=self.pad,
+                    outsize=self.outsize)
 
         self.assertEqual(y_cpu.data.dtype, self.x_dtype)
         self.assertEqual(y_gpu.data.dtype, self.x_dtype)
@@ -162,10 +166,11 @@ class TestDeconvolutionND(unittest.TestCase):
 
         ndim = len(self.dims)
         with chainer.using_config('use_cudnn', use_cudnn):
-            gradient_check.check_backward(
-                deconvolution_nd.DeconvolutionND(
-                    ndim, self.stride, self.pad, self.outsize),
-                inputs, y_grad, **self.check_backward_options)
+            with chainer.using_config('autotune', self.autotune):
+                gradient_check.check_backward(
+                    deconvolution_nd.DeconvolutionND(
+                        ndim, self.stride, self.pad, self.outsize),
+                    inputs, y_grad, **self.check_backward_options)
 
     @condition.retry(3)
     def test_backward_cpu(self):
@@ -224,7 +229,7 @@ class TestDeconvolutionNDCudnnCall(unittest.TestCase):
         return F.deconvolution_nd(x, W, None, stride=1, pad=1)
 
     def test_call_cudnn_forward(self):
-        name = 'cupy.cudnn.cudnn.convolutionBackwardData_v3'
+        name = 'cupy.cuda.cudnn.convolutionBackwardData_v3'
         with chainer.using_config('use_cudnn', self.use_cudnn):
             with mock.patch(name) as func:
                 self.forward()
@@ -234,7 +239,7 @@ class TestDeconvolutionNDCudnnCall(unittest.TestCase):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             y = self.forward()
             y.grad = self.gy
-            with mock.patch('cupy.cudnn.cudnn.convolutionForward') as func:
+            with mock.patch('cupy.cuda.cudnn.convolutionForward') as func:
                 y.backward()
                 self.assertEqual(func.called, self.expected)
 

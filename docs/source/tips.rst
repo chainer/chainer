@@ -17,23 +17,24 @@ The compiled binaries are cached to the ``$(HOME)/.cupy/kernel_cache`` directory
 If you see that compilations run every time you run the same script, then the caching is failed.
 Please check that the directory is kept as is between multiple executions of the script.
 If your home directory is not suited to caching the kernels (e.g. in case that it uses NFS), change the kernel caching directory by setting the ``CUPY_CACHE_DIR`` environment variable to an appropriate path.
-See `CuPy Overview <https://docs-cupy.chainer.org/en/stable/overview.html>` for more details.
+See `CuPy Overview <https://docs-cupy.chainer.org/en/stable/overview.html>`_ for more details.
 
 
-mnist example does not converge in CPU mode on Mac OS X
+MNIST example does not converge in CPU mode on Mac OS X
 -------------------------------------------------------
-
-Many users reported that mnist example does not work correctly on Mac OS X.
-We are suspecting it is caused by vecLib, that is a default BLAS library installed on Mac OS X.
 
 .. note::
 
    Mac OS X is not officially supported.
-   I mean it is not tested continuously on our test server.
+   Please use it at your own risk.
 
-We recommend to use other BLAS libraries such as `OpenBLAS <http://www.openblas.net/>`_.
-We empirically found that it fixes this problem.
-It is necessary to reinstall NumPy to use replaced BLAS library.
+Many users have reported that MNIST example does not work correctly
+when using vecLib as NumPy backend on Mac OS X.
+vecLib is the default BLAS library installed on Mac OS X.
+
+We recommend using other BLAS libraries such as `OpenBLAS <http://www.openblas.net/>`_.
+
+To use an alternative BLAS library, it is necessary to reinstall NumPy.
 Here is an instruction to install NumPy with OpenBLAS using `Homebrew <http://brew.sh/>`_.
 
 ::
@@ -44,34 +45,4 @@ Here is an instruction to install NumPy with OpenBLAS using `Homebrew <http://br
 
 If you want to install NumPy with pip, use `site.cfg <https://github.com/numpy/numpy/blob/master/site.cfg.example>`_ file.
 
-You can check if NumPy uses OpenBLAS with ``numpy.show_config`` method.
-Check if `blas_opt_info` refers to `openblas`.
-
-::
-
-   >>> import numpy
-   >>> numpy.show_config()
-   lapack_opt_info:
-       libraries = ['openblas', 'openblas']
-       library_dirs = ['/usr/local/opt/openblas/lib']
-       define_macros = [('HAVE_CBLAS', None)]
-       language = c
-   blas_opt_info:
-       libraries = ['openblas', 'openblas']
-       library_dirs = ['/usr/local/opt/openblas/lib']
-       define_macros = [('HAVE_CBLAS', None)]
-       language = c
-   openblas_info:
-       libraries = ['openblas', 'openblas']
-       library_dirs = ['/usr/local/opt/openblas/lib']
-       define_macros = [('HAVE_CBLAS', None)]
-       language = c
-   openblas_lapack_info:
-       libraries = ['openblas', 'openblas']
-       library_dirs = ['/usr/local/opt/openblas/lib']
-       define_macros = [('HAVE_CBLAS', None)]
-       language = c
-   blas_mkl_info:
-       NOT AVAILABLE
-
-See detail about this problem in `issue #704 <https://github.com/chainer/chainer/issues/704>`_.
+For details of this problem, see `issue #704 <https://github.com/chainer/chainer/issues/704>`_.

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import imp
 import os
 import pkg_resources
 import sys
@@ -22,13 +23,11 @@ set CHAINER_PYTHON_350_FORCE environment variable to 1."""
 setup_requires = []
 install_requires = [
     'filelock',
-    'mock',
-    'pytest',
     'numpy>=1.9.0',
     'protobuf>=3.0.0',
     'six>=1.9.0',
 ]
-cupy_require = 'cupy==3.0.0a1'
+cupy_require = 'cupy==4.0.0b1'
 
 cupy_pkg = None
 try:
@@ -40,9 +39,13 @@ if cupy_pkg is not None:
     install_requires.append(cupy_require)
     print('Use %s' % cupy_require)
 
+here = os.path.abspath(os.path.dirname(__file__))
+__version__ = imp.load_source(
+    '_version', os.path.join(here, 'chainer', '_version.py')).__version__
+
 setup(
     name='chainer',
-    version='4.0.0a1',
+    version=__version__,
     description='A flexible framework of neural networks',
     author='Seiya Tokui',
     author_email='tokui@preferred.jp',
