@@ -343,7 +343,8 @@ class TestCheckBackward(unittest.TestCase):
             u = Ident()(t)
             return s, u
 
-        gradient_check.check_backward(f, (x1, x2), (g1, g2), dtype=self.dtype)
+        gradient_check.check_backward(
+            f, (x1, x2), (g1, g2), dtype=self.dtype, atol=1e-4, rtol=1e-3)
 
     def test_no_grads_for_not_float(self):
         x1 = numpy.array([1], dtype='f')
@@ -351,10 +352,12 @@ class TestCheckBackward(unittest.TestCase):
         g1 = numpy.array([1], dtype='f')
 
         def f(x, y):
+            # Integer data is not casted even when dtype is given
+            self.assertEqual(y.dtype, 'i')
             s = Ident()(x)
             return s,
 
-        gradient_check.check_backward(f, (x1, x2), g1)
+        gradient_check.check_backward(f, (x1, x2), g1, dtype=self.dtype)
 
     def test_no_grads_option(self):
         x1 = numpy.array([1], dtype='f')
@@ -368,6 +371,115 @@ class TestCheckBackward(unittest.TestCase):
         self.assertRaises(RuntimeError, gradient_check.check_backward,
                           f, (x1, x2), g1, no_grads=[False, False])
         gradient_check.check_backward(f, (x1, x2), g1, no_grads=[False, True])
+
+    def test_no_grads_option_with_dtype(self):
+        x1 = numpy.array([1], dtype='f')
+        x2 = numpy.array([1], dtype='f')
+        g1 = numpy.array([1], dtype='f')
+        eps = 1e-3
+
+        def f(x, y):
+            if self.dtype is not None:
+                # Check for correct dtypes if f is called to compute the
+                # numerical gradient
+                if x.data != x1:
+                    self.assertEqual(x.dtype, self.dtype)
+                    self.assertEqual(x.dtype, y.dtype)
+            s = Ident()(x)
+            return s,
+
+        gradient_check.check_backward(f, (x1, x2), g1, eps=eps,
+                                      no_grads=[False, True], dtype=self.dtype)
+
+
+class TestCheckBackwardFailure(unittest.TestCase):
+
+    def _broken_func_1(self):
+        class Broken(chainer.Function):
+            def forward(self, inputs):
+                x, = inputs
+                return (x * x),
+
+            def backward(self, inputs, grad_outputs):
+                x, = inputs
+                gy, = grad_outputs
+                return 3 * x * gy,
+
+        return Broken()
+
+    def _broken_func_2(self):
+        class Broken(chainer.FunctionNode):
+            def forward(self, inputs):
+                x, = inputs
+                self.retain_inputs((0,))
+                return (x * x),
+
+            def backward(self, indexes, grad_outputs):
+                x, = self.get_retained_inputs()
+                gy, = grad_outputs
+                return 3 * x * gy,
+
+        return Broken()
+
+    def _broken_func_3(self):
+        class Broken(chainer.FunctionNode):
+            def forward(self, inputs):
+                x, = inputs
+                self.retain_inputs((0,))
+                return (x * x),
+
+            def backward(self, indexes, grad_outputs):
+                x, = self.get_retained_inputs()
+                gy, = grad_outputs
+                gx1 = 2 * x * gy
+                gx2 = 3 * x * gy
+                return (gx1, gx2)
+
+        return Broken()
+
+    def test_fail_function(self):
+        # Invalid backward (chainer.Function)
+        x = numpy.random.uniform(-1, 1, (2, 3)).astype(numpy.float32)
+        gy = numpy.random.uniform(-1, 1, (2, 3)).astype(numpy.float32)
+
+        def f(x):
+            return self._broken_func_1()(x)
+
+        with self.assertRaises(AssertionError):
+            gradient_check.check_backward(f, x, gy)
+
+    def test_fail_function_node(self):
+        # Invalid backward (chainer.FunctionNode)
+        x = numpy.random.uniform(-1, 1, (2, 3)).astype(numpy.float32)
+        gy = numpy.random.uniform(-1, 1, (2, 3)).astype(numpy.float32)
+
+        def f(x):
+            return self._broken_func_2().apply((x,))
+
+        with self.assertRaises(AssertionError):
+            gradient_check.check_backward(f, x, gy)
+
+    def test_fail_invalid_number_of_gradients(self):
+        # Invalid number of gradients
+        x = numpy.random.uniform(-1, 1, (2, 3)).astype(numpy.float32)
+        gy = numpy.random.uniform(-1, 1, (2, 3)).astype(numpy.float32)
+
+        def f(x):
+            return self._broken_func_3().apply((x,))
+
+        with self.assertRaises(ValueError):
+            gradient_check.check_backward(f, x, gy)
+
+    def test_fail_invalid_number_of_gradients_0_size(self):
+        # Invalid number of gradients (0-sized input)
+        x = numpy.random.uniform(-1, 1, (2, 0)).astype(numpy.float32)
+        gy = numpy.random.uniform(-1, 1, (2, 0)).astype(numpy.float32)
+
+        def f(x):
+            return self._broken_func_3().apply((x,))
+
+        with self.assertRaises(ValueError):
+            gradient_check.check_backward(f, x, gy)
 
 
 class NewIdent(chainer.FunctionNode):
@@ -390,8 +502,9 @@ class TestCheckDoubleBackward(unittest.TestCase):
             w2 = w1 + y
             return w1 * w1, w2 * w2
 
-        gradient_check.check_double_backward(f, (x1, x2), (gy1, gy2),
-                                             (ggx1, ggx2))
+        gradient_check.check_double_backward(
+            f, (x1, x2), (gy1, gy2),
+            (ggx1, ggx2), dtype='d', atol=1e-3, rtol=1e-3)
 
     def test_multiple_input_output_cpu(self):
         self.check_multiple_input_output(numpy)

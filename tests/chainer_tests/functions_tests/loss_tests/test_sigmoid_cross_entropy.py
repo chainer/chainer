@@ -15,21 +15,25 @@ from chainer.testing import condition
 
 
 @testing.parameterize(
-    {'shape': (8, 7), 'normalize': True},
-    {'shape': (8, 7), 'normalize': False},
-    {'shape': (8, 7), 'normalize': True, 'ignore_all': True},
+    {'shape': (8, 7), 'normalize': True, 'label_dtype': numpy.int32},
+    {'shape': (8, 7), 'normalize': False, 'label_dtype': numpy.int32},
+    {'shape': (8, 7), 'normalize': True, 'ignore_all': True,
+     'label_dtype': numpy.int32},
     # too large shape causes int32 -> float64 issue
-    {'shape': (65536, 1), 'normalize': False},
+    {'shape': (65536, 1), 'normalize': False, 'label_dtype': numpy.int32},
+    {'shape': (8, 7), 'normalize': True, 'label_dtype': numpy.int8},
+    {'shape': (8, 7), 'normalize': True, 'label_dtype': numpy.int16},
+    {'shape': (8, 7), 'normalize': True, 'label_dtype': numpy.int64},
 )
 class TestSigmoidCrossEntropy(unittest.TestCase):
 
     def setUp(self):
         self.x = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
         if getattr(self, 'ignore_all', False):
-            self.t = -numpy.ones(self.shape).astype(numpy.int32)
+            self.t = -numpy.ones(self.shape).astype(self.label_dtype)
         else:
             self.t = numpy.random.randint(-1, 2,
-                                          self.shape).astype(numpy.int32)
+                                          self.shape).astype(self.label_dtype)
         self.gy = numpy.random.random(self.shape).astype(numpy.float32)
 
     def check_forward(self, x_data, t_data, use_cudnn='always'):
@@ -202,8 +206,9 @@ class TestSigmoidCrossEntropyCudnnCall(unittest.TestCase):
     def test_call_cudnn_backward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             y = self.forward()
-            patch = 'cupy.cudnn.cudnn.activationForward_v4'
-            with mock.patch(patch) as func:
+            with mock.patch.object(
+                    cuda.cupy.cudnn, 'activation_forward',
+                    wraps=cuda.cupy.cudnn.activation_forward) as func:
                 y.backward()
                 self.assertEqual(func.called, self.expect)
 

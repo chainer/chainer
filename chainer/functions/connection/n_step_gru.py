@@ -20,7 +20,7 @@ from chainer.utils import argument
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
-    libcudnn = cuda.cudnn.cudnn
+    libcudnn = cuda.cuda.cudnn
 
 
 class NStepGRU(n_step_rnn.BaseNStepRNN):

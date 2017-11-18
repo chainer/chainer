@@ -9,7 +9,6 @@ from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
 
 
 @testing.parameterize(
@@ -21,15 +20,33 @@ from chainer.testing import condition
 class TestTriplet(unittest.TestCase):
 
     def setUp(self):
+        eps = 1e-3
         x_shape = (self.batchsize, self.input_dim)
-        self.a = numpy.random.uniform(-1, 1, x_shape).astype(numpy.float32)
-        self.p = numpy.random.uniform(-1, 1, x_shape).astype(numpy.float32)
-        self.n = numpy.random.uniform(-1, 1, x_shape).astype(numpy.float32)
+
+        # Sample differentiable inputs
+        while True:
+            self.a = numpy.random.uniform(-1, 1, x_shape).astype(numpy.float32)
+            self.p = numpy.random.uniform(-1, 1, x_shape).astype(numpy.float32)
+            self.n = numpy.random.uniform(-1, 1, x_shape).astype(numpy.float32)
+            if (abs(self.a - self.p) < 2 * eps).any():
+                continue
+            if (abs(self.a - self.n) < 2 * eps).any():
+                continue
+            dist = numpy.sum(
+                (self.a - self.p) ** 2 - (self.a - self.n) ** 2,
+                axis=1) + self.margin
+            if (abs(dist) < 2 * eps).any():
+                continue
+            break
+
         if self.reduce == 'mean':
             gy_shape = ()
         else:
-            gy_shape = (self.batchsize,)
+            gy_shape = self.batchsize,
         self.gy = numpy.random.uniform(-1, 1, gy_shape).astype(numpy.float32)
+        self.gga = numpy.random.uniform(-1, 1, x_shape).astype(numpy.float32)
+        self.ggp = numpy.random.uniform(-1, 1, x_shape).astype(numpy.float32)
+        self.ggn = numpy.random.uniform(-1, 1, x_shape).astype(numpy.float32)
 
     def check_forward(self, a_data, p_data, n_data):
         a_val = chainer.Variable(a_data)
@@ -64,30 +81,51 @@ class TestTriplet(unittest.TestCase):
         self.assertRaises(ValueError, self.check_backward,
                           self.a, self.p, self.n, self.gy)
 
-    @condition.retry(3)
     def test_forward_cpu(self):
         self.check_forward(self.a, self.p, self.n)
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_gpu_no_cudnn(self):
         self.check_forward(cuda.to_gpu(self.a), cuda.to_gpu(self.p),
                            cuda.to_gpu(self.n))
 
     def check_backward(self, a_data, p_data, n_data, gy_data):
-        gradient_check.check_backward(
-            functions.Triplet(self.margin, self.reduce),
-            (a_data, p_data, n_data), gy_data, rtol=1e-4, atol=1e-4)
+        def f(a, p, n):
+            return functions.triplet(
+                a, p, n, margin=self.margin, reduce=self.reduce)
 
-    @condition.retry(10)
+        gradient_check.check_backward(
+            f, (a_data, p_data, n_data), gy_data, dtype=numpy.float64,
+            rtol=5e-4, atol=5e-4)
+
     def test_backward_cpu(self):
         self.check_backward(self.a, self.p, self.n, self.gy)
 
     @attr.gpu
-    @condition.retry(10)
     def test_backward_gpu_no_cudnn(self):
         self.check_backward(cuda.to_gpu(self.a), cuda.to_gpu(self.p),
                             cuda.to_gpu(self.n), cuda.to_gpu(self.gy))
+
+    def check_double_backward(self, a_data, p_data, n_data, gy_data, gga_data,
+                              ggp_data, ggn_data):
+        def f(a, p, n):
+            return functions.triplet(
+                a, p, n, margin=self.margin, reduce=self.reduce)
+
+        gradient_check.check_double_backward(
+            f, (a_data, p_data, n_data), gy_data,
+            (gga_data, ggp_data, ggn_data), rtol=5e-4, atol=5e-4)
+
+    def test_double_backward_cpu(self):
+        self.check_double_backward(
+            self.a, self.p, self.n, self.gy, self.gga, self.ggp, self.ggn)
+
+    @attr.gpu
+    def test_double_backward_gpu_no_cudnn(self):
+        self.check_double_backward(
+            cuda.to_gpu(self.a), cuda.to_gpu(self.p), cuda.to_gpu(self.n),
+            cuda.to_gpu(self.gy), cuda.to_gpu(self.gga), cuda.to_gpu(self.ggp),
+            cuda.to_gpu(self.ggn))
 
 
 class TestContrastiveInvalidReductionOption(unittest.TestCase):

@@ -27,7 +27,7 @@ class SigmoidCrossEntropy(function.Function):
         x_type, t_type = in_types
         type_check.expect(
             x_type.dtype == numpy.float32,
-            t_type.dtype == numpy.int32,
+            t_type.dtype.kind == 'i',
             x_type.shape == t_type.shape
         )
 
@@ -77,8 +77,10 @@ def sigmoid_cross_entropy(
             (i, j)-th element indicates the unnormalized log probability of
             the j-th unit at the i-th example.
         t (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Variable holding an int32 vector of ground
-            truth labels. If ``t[i] == -1``, corresponding ``x[i]`` is ignored.
+        :class:`cupy.ndarray`): A variable object holding a matrix whose
+            (i, j)-th element indicates a signed integer vector of
+            ground truth labels 0 or 1.
+            If ``t[i, j] == -1``, corresponding ``x[i, j]`` is ignored.
             Loss is zero if all ground truth labels are ``-1``.
         normalize (bool): Variable holding a boolean value which
             determines the normalization constant. If true, this function

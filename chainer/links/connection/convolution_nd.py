@@ -11,6 +11,11 @@ class ConvolutionND(link.Link):
     This link wraps the :func:`~chainer.functions.convolution_nd` function and
     holds the filter weight and bias vector as parameters.
 
+    Convolution links can use a feature of cuDNN called autotuning, which
+    selects the most efficient CNN algorithm for images of fixed-size,
+    can provide a significant performance boost for fixed neural nets.
+    To enable, set `chainer.using_config('autotune', True)`
+
     Args:
         ndim (int): Number of spatial dimensions.
         in_channels (int): Number of channels of input arrays.

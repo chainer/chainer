@@ -4,7 +4,6 @@ import unittest
 from chainer import cuda
 from chainer import function
 from chainer import functions
-from chainer.testing import condition
 from chainer import variable
 
 try:
@@ -48,8 +47,18 @@ def _make_data_default(shape, dtype):
     return x, gy, ggx
 
 
+def _nonlinear(func):
+    def aux(x):
+        y = func(x)
+        return y * y
+    return aux
+
+
 def unary_math_function_unittest(func, func_expected=None, label_expected=None,
-                                 make_data=None):
+                                 make_data=None, is_linear=False,
+                                 forward_options=None,
+                                 backward_options=None,
+                                 double_backward_options=None):
     """Decorator for testing unary mathematical Chainer functions.
 
     This decorator makes test classes test unary mathematical Chainer
@@ -70,6 +79,20 @@ def unary_math_function_unittest(func, func_expected=None, label_expected=None,
             and returns a tuple of input, gradient and double gradient data. By
             default, uniform destribution ranged ``[-1, 1]`` is used for all of
             them.
+        is_linear(bool): Tells the decorator that ``func`` is a linear function
+            so that it wraps ``func`` as a non-linear function to perform
+            double backward test. The default value is ``False``.
+        forward_options(dict): Options to be specified as an argument of
+            :func:`chainer.testing.assert_allclose` function.
+            If not given, preset tolerance values are automatically selected.
+        backward_options(dict): Options to be specified as an argument of
+            :func:`chainer.gradient_check.check_backward` function.
+            If not given, preset tolerance values are automatically selected
+            depending on ``dtype``.
+        double_backward_options(dict): Options to be specified as an argument
+            of :func:`chainer.gradient_check.check_double_backward` function.
+            If not given, preset tolerance values are automatically selected
+            depending on ``dtype``.
 
     The decorated test class tests forward, backward and double backward
     computations on CPU and GPU across the following
@@ -106,15 +129,6 @@ def unary_math_function_unittest(func, func_expected=None, label_expected=None,
        Because the test methods are implicitly injected to ``TestSin`` class by
        the decorator, it is enough to place ``pass`` in the class definition.
 
-       Now the test is run with ``nose`` module.
-
-       .. doctest::
-
-          >>> import nose
-          >>> nose.run(
-          ...     defaultTest=__name__, argv=['', '-a', '!gpu'], exit=False)
-          True
-
        To customize test data, ``make_data`` optional parameter can be used.
        The following is an example of testing ``sqrt`` Chainer function, which
        is tested in positive value domain here instead of the default input.
@@ -133,10 +147,6 @@ def unary_math_function_unittest(func, func_expected=None, label_expected=None,
           ...                                       make_data=make_data)
           ... class TestSqrt(unittest.TestCase):
           ...     pass
-          ...
-          >>> nose.run(
-          ...     defaultTest=__name__, argv=['', '-a', '!gpu'], exit=False)
-          True
 
        ``make_data`` function which returns input, gradient and double gradient
        data generated in proper value domains with given ``shape`` and
@@ -193,6 +203,7 @@ def unary_math_function_unittest(func, func_expected=None, label_expected=None,
             else:
                 self.x, self.gy = make_data(self.shape, self.dtype)
 
+            self.forward_options = {'atol': 1e-4, 'rtol': 1e-4}
             if self.dtype == numpy.float16:
                 self.backward_options = {
                     'eps': 2 ** -4, 'atol': 2 ** -4, 'rtol': 2 ** -4,
@@ -201,8 +212,16 @@ def unary_math_function_unittest(func, func_expected=None, label_expected=None,
                     'eps': 2 ** -4, 'atol': 2 ** -4, 'rtol': 2 ** -4,
                     'dtype': numpy.float64}
             else:
-                self.backward_options = {'atol': 1e-4, 'rtol': 1e-4}
-                self.double_backward_options = {'atol': 1e-4, 'rtol': 1e-4}
+                self.backward_options = {
+                    'dtype': numpy.float64, 'atol': 1e-4, 'rtol': 1e-4}
+                self.double_backward_options = {
+                    'dtype': numpy.float64, 'atol': 1e-4, 'rtol': 1e-4}
+            if forward_options is not None:
+                self.forward_options.update(forward_options)
+            if backward_options is not None:
+                self.backward_options.update(backward_options)
+            if double_backward_options is not None:
+                self.double_backward_options.update(double_backward_options)
         setattr(klass, "setUp", setUp)
 
         def check_forward(self, x_data):
@@ -210,16 +229,14 @@ def unary_math_function_unittest(func, func_expected=None, label_expected=None,
             y = func(x)
             self.assertEqual(y.data.dtype, x_data.dtype)
             y_expected = func_expected(cuda.to_cpu(x_data), dtype=x_data.dtype)
-            testing.assert_allclose(y_expected, y.data, atol=1e-4, rtol=1e-4)
+            testing.assert_allclose(y_expected, y.data, **self.forward_options)
         setattr(klass, "check_forward", check_forward)
 
-        @condition.retry(3)
         def test_forward_cpu(self):
             self.check_forward(self.x)
         setattr(klass, "test_forward_cpu", test_forward_cpu)
 
         @attr.gpu
-        @condition.retry(3)
         def test_forward_gpu(self):
             self.check_forward(cuda.to_gpu(self.x))
         setattr(klass, "test_forward_gpu", test_forward_gpu)
@@ -229,32 +246,29 @@ def unary_math_function_unittest(func, func_expected=None, label_expected=None,
                 func, x_data, y_grad, **self.backward_options)
         setattr(klass, "check_backward", check_backward)
 
-        @condition.retry(3)
         def test_backward_cpu(self):
             self.check_backward(self.x, self.gy)
         setattr(klass, "test_backward_cpu", test_backward_cpu)
 
         @attr.gpu
-        @condition.retry(3)
         def test_backward_gpu(self):
             self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
         setattr(klass, "test_backward_gpu", test_backward_gpu)
 
         if is_new_style:
             def check_double_backward(self, x_data, y_grad, x_grad_grad):
+                func1 = _nonlinear(func) if is_linear else func
                 gradient_check.check_double_backward(
-                    func, x_data, y_grad,
+                    func1, x_data, y_grad,
                     x_grad_grad, **self.double_backward_options)
             setattr(klass, "check_double_backward", check_double_backward)
 
-            @condition.retry(3)
             def test_double_backward_cpu(self):
                 self.check_double_backward(self.x, self.gy, self.ggx)
             setattr(klass, "test_double_backward_cpu",
                     test_double_backward_cpu)
 
             @attr.gpu
-            @condition.retry(3)
             def test_double_backward_gpu(self):
                 self.check_double_backward(
                     cuda.to_gpu(self.x), cuda.to_gpu(self.gy),

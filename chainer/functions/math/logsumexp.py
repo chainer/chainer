@@ -1,9 +1,10 @@
+import chainer
 from chainer import cuda
-from chainer import function
+from chainer import function_node
 from chainer.utils import type_check
 
 
-class LogSumExp(function.Function):
+class LogSumExp(function_node.FunctionNode):
 
     def __init__(self, axis=None):
         if axis is None:
@@ -36,6 +37,8 @@ class LogSumExp(function.Function):
                     )
 
     def forward(self, inputs):
+        self.retain_inputs((0,))
+        self.retain_outputs((0,))
         xp = cuda.get_array_module(*inputs)
 
         x, = inputs
@@ -43,15 +46,14 @@ class LogSumExp(function.Function):
         y = x - m
         xp.exp(y, out=y)
         y_sum = y.sum(axis=self.axis)
-        self.y = xp.asarray(xp.log(y_sum) + m.reshape(y_sum.shape))
-        return self.y,
+        y = xp.asarray(xp.log(y_sum) + m.reshape(y_sum.shape))
+        return y,
 
-    def backward(self, inputs, grads):
-        xp = cuda.get_array_module(*inputs)
-        x, = inputs
+    def backward(self, indexes, grads):
+        x, = self.get_retained_inputs()
+        y, = self.get_retained_outputs()
         gy, = grads
 
-        y = self.y
         if self.axis is not None:
             actual_axis = []
             for axis in self.axis:
@@ -59,9 +61,11 @@ class LogSumExp(function.Function):
                     axis = len(x.shape) + axis
                 actual_axis.append(axis)
             for axis in sorted(actual_axis):
-                gy = xp.expand_dims(gy, axis=axis)
-                y = xp.expand_dims(y, axis=axis)
-        gx = gy * xp.exp(x - y)
+                gy = chainer.functions.expand_dims(gy, axis=axis)
+                y = chainer.functions.expand_dims(y, axis=axis)
+        gy = chainer.functions.broadcast_to(gy, x.shape)
+        y = chainer.functions.broadcast_to(y, x.shape)
+        gx = gy * chainer.functions.exp(x - y)
         return gx,
 
 
@@ -84,4 +88,4 @@ def logsumexp(x, axis=None):
         ~chainer.Variable: Output variable.
 
     """
-    return LogSumExp(axis)(x)
+    return LogSumExp(axis).apply((x,))[0]

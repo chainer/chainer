@@ -24,7 +24,7 @@ from chainer.utils import type_check
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
-    libcudnn = cuda.cudnn.cudnn
+    libcudnn = cuda.cuda.cudnn
     _cudnn_version = libcudnn.getVersion()
 
 
@@ -68,23 +68,6 @@ def _make_ptr_array(xs):
     return PointerArray([x.data.ptr for x in xs], xs)
 
 
-class DropoutStates(object):
-
-    def __init__(self, states, desc):
-        self.states = states
-        self.desc = desc
-
-    def set_dropout_ratio(self, handle, dropout):
-        cudnn.set_dropout_descriptor(self.desc, handle, dropout)
-
-    @staticmethod
-    def create(handle, dropout, seed):
-        states = cudnn.create_dropout_states(handle)
-        desc = cudnn.create_dropout_descriptor(
-            handle, dropout, states.data.ptr, states.size, seed)
-        return DropoutStates(states, desc)
-
-
 class DropoutRandomStates(object):
 
     def __init__(self, seed):
@@ -104,9 +87,9 @@ class DropoutRandomStates(object):
     def create_dropout_states(self, dropout):
         handle = cudnn.get_handle()
         if self._states is None:
-            self._states = DropoutStates.create(handle, dropout, self._seed)
-        else:
-            self._states.set_dropout_ratio(handle, dropout)
+            self._states = cudnn.DropoutStates(handle, self._seed)
+        # TODO(unno): Make a method to set dropout instead of calling API
+        cudnn.set_dropout_descriptor(self._states._desc, handle, dropout)
 
         return self._states
 
@@ -161,6 +144,8 @@ if cuda.cudnn_enabled and _cudnn_version >= 5000:
         libcudnn.CUDNN_LSTM: True,
     }
 
+_rnn_persistent_algo = None
+if cuda.cudnn_enabled and _cudnn_version >= 6000:
     _rnn_persistent_algo = {
         'standard': libcudnn.CUDNN_RNN_ALGO_STANDARD,
         'static': libcudnn.CUDNN_RNN_ALGO_PERSIST_STATIC,
@@ -188,14 +173,20 @@ class BaseNStepRNN(function.Function):
             candidate_list = ','.join(_rnn_modes.keys())
             raise ValueError('Invalid rnn_mode: "%s". Please select from [%s]'
                              % (rnn_mode, candidate_list))
-        if rnn_algo not in _rnn_persistent_algo:
+
+        is_enable_cudnn_v6 = isinstance(_rnn_persistent_algo, dict)
+        if is_enable_cudnn_v6 and rnn_algo not in _rnn_persistent_algo:
             candidate_list = ','.join(_rnn_persistent_algo.keys())
             raise ValueError('Invalid rnn_algo: "%s". Please select from [%s]'
                              % (rnn_algo, candidate_list))
+            _rnn_algo = _rnn_persistent_algo[rnn_algo]
+        else:
+            _rnn_algo = None
+
         self.rnn_dir = _rnn_dirs[rnn_dir]
         self.rnn_mode = _rnn_modes[rnn_mode]
         # TODO(aonotas) check `_rnn_persistent_algo` can be used in v5 (< v6)
-        self.rnn_algo = _rnn_persistent_algo[rnn_algo]
+        self.rnn_algo = _rnn_algo
         self.rnn_direction = _rnn_params_direction[self.rnn_dir]
         self.n_layers = n_layers
         self.states = states
@@ -333,10 +324,11 @@ class BaseNStepRNN(function.Function):
         handle = cudnn.get_handle()
         self.handle = handle
 
+        # TODO(unno): Make a wrapper method to avoid access _desc directly
         rnn_desc = cudnn.create_rnn_descriptor(
-            handle, n_units, self.n_layers, self.states.desc,
+            n_units, self.n_layers, self.states._desc,
             libcudnn.CUDNN_LINEAR_INPUT, self.rnn_dir, self.rnn_mode,
-            self.rnn_algo, libcudnn.CUDNN_DATA_FLOAT)
+            libcudnn.CUDNN_DATA_FLOAT, algo=self.rnn_algo)
 
         if self.rnn_algo == libcudnn.CUDNN_RNN_ALGO_PERSIST_DYNAMIC:
             batchsize = len(x_list[0])
@@ -348,7 +340,6 @@ class BaseNStepRNN(function.Function):
                 _prev_batchsize = batchsize
 
             cudnn.set_rnn_persistent_rnn_plan(rnn_desc, _rnn_plan)
-
         self.rnn_desc = rnn_desc
 
         c_x_descs = _make_tensor_descriptor_array(x_list)
