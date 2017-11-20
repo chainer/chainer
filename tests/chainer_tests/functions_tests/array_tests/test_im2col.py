@@ -18,23 +18,28 @@ def _pair(x):
     return x, x
 
 
-@testing.parameterize(*testing.product({
-    'params': [
-        (1, 1, 1, 1, 1, 1, 1, 1),
-        (2, 2, 2, 2, 2, 2, 2, 2),
-        (1, 2, 2, 1, 1, 2, 1, 1),
-        (1, 2, 3, 4, 1, 2, 1, 1),
-        (1, 2, 3, 4, 4, 5, 2, 3),
-        (3, 3, 2, 2, 1, 1, 1, 1),
+@testing.parameterize(*testing.product_dict(
+    [
+        {'params': (1, 1, 1, 1, 1, 1, 1, 1)},
+        {'params': (2, 2, 2, 2, 2, 2, 2, 2)},
+        {'params': (1, 2, 2, 1, 1, 2, 1, 1)},
+        {'params': (1, 2, 3, 4, 1, 2, 1, 1)},
+        {'params': (1, 2, 3, 4, 4, 5, 2, 3)},
+        {'params': (3, 3, 2, 2, 1, 1, 1, 1)}
     ],
-}))
+    [
+        {'dtype': numpy.float16},
+        {'dtype': numpy.float32},
+        {'dtype': numpy.float64}
+    ]
+))
 class TestIm2ColForward(unittest.TestCase):
 
     in_shape = (2, 3, 8, 6)
 
     def setUp(self):
         self.x = numpy.random.uniform(
-            size=self.in_shape).astype(numpy.float32)
+            size=self.in_shape).astype(self.dtype)
 
     def check_forward(self, x, kh, kw, sy, sx, ph, pw, dy, dx, gpu):
         x = x.copy()
@@ -61,7 +66,7 @@ class TestIm2ColForward(unittest.TestCase):
                         else:
                             testing.assert_allclose(
                                 col[:, :, ky, kx, y, x],
-                                numpy.zeros((2, 3), numpy.float32))
+                                numpy.zeros((2, 3), self.dtype))
 
     def test_forward_cpu(self):
         self.check_forward(self.x, *self.params, gpu=False)
@@ -81,6 +86,11 @@ class TestIm2ColForward(unittest.TestCase):
     [
         {'cover_all': False},
         {'cover_all': True},
+    ],
+    [
+        {'dtype': numpy.float16},
+        {'dtype': numpy.float32},
+        {'dtype': numpy.float64},
     ]
 ))
 class TestIm2Col(unittest.TestCase):
@@ -89,7 +99,7 @@ class TestIm2Col(unittest.TestCase):
 
     def setUp(self):
         self.x = numpy.random.uniform(
-            size=self.in_shape).astype(numpy.float32)
+            size=self.in_shape).astype(self.dtype)
 
         kh, kw = _pair(self.ksize)
         sy, sx = _pair(self.stride)
@@ -102,24 +112,62 @@ class TestIm2Col(unittest.TestCase):
         o_W = get_conv_outsize(W, kw, sx, pw, cover_all=self.cover_all, d=dx)
 
         self.gy = numpy.random.uniform(
-            size=(N, C * kh * kw, o_H, o_W)).astype(numpy.float32)
+            size=(N, C * kh * kw, o_H, o_W)).astype(self.dtype)
+        self.ggx = numpy.random.uniform(
+            size=self.in_shape).astype(self.dtype)
+
+        self.check_backward_options = {}
+        if self.dtype is numpy.float16:
+            self.check_backward_options.update({'atol': 5e-4, 'rtol': 5e-3})
+
+        self.check_double_backward_options = {}
+        if self.dtype is numpy.float16:
+            self.check_double_backward_options.update(
+                {'atol': 5e-4, 'rtol': 5e-3})
 
     def check_backward(self, x, ksize, stride, pad, cover_all, dilate, gy):
+        def f(x):
+            return functions.im2col(
+                x, ksize, stride=stride, pad=pad, cover_all=cover_all,
+                dilate=dilate)
+
         gradient_check.check_backward(
-            functions.Im2Col(ksize, stride, pad, cover_all, dilate),
-            (x,), (gy,), dtype='d')
+            f, x, gy, dtype=numpy.float64, **self.check_backward_options)
 
     def test_backward_cpu(self):
         self.check_backward(
-            self.x, self.ksize, self.stride, self.pad,
-            self.cover_all, self.dilate, self.gy)
+            self.x, self.ksize, self.stride, self.pad, self.cover_all,
+            self.dilate, self.gy)
 
     @attr.gpu
     def test_backward_gpu(self):
         self.check_backward(
+            cuda.to_gpu(self.x), self.ksize, self.stride, self.pad,
+            self.cover_all, self.dilate, cuda.to_gpu(self.gy))
+
+    def check_double_backward(self, x, ksize, stride, pad, cover_all, dilate,
+                              gy, ggx):
+        def f(x):
+            y = functions.im2col(
+                x, ksize, stride=stride, pad=pad, cover_all=cover_all,
+                dilate=dilate)
+            return y * y
+
+        gradient_check.check_double_backward(
+            f, x, gy, ggx, dtype=numpy.float64,
+            **self.check_double_backward_options)
+
+    def test_double_backward_cpu(self):
+        self.check_double_backward(
+            self.x, self.ksize, self.stride, self.pad, self.cover_all,
+            self.dilate, self.gy, self.ggx)
+
+    @attr.gpu
+    def test_double_backward_gpu(self):
+        self.check_double_backward(
             cuda.to_gpu(self.x),
             self.ksize, self.stride, self.pad, self.cover_all, self.dilate,
-            cuda.to_gpu(self.gy))
+            cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx))
 
 
 testing.run_module(__name__, __file__)
