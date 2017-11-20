@@ -1,12 +1,13 @@
 import numpy
 
+import chainer
 from chainer import cuda
-from chainer import function
+from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
 
 
-class Maximum(function.Function):
+class Maximum(function_node.FunctionNode):
     """Element-wise maximum of input variables."""
 
     def check_type_forward(self, in_types):
@@ -18,33 +19,47 @@ class Maximum(function.Function):
         )
 
     def forward_cpu(self, inputs):
+        self.retain_inputs((0, 1))
         x1, x2 = inputs
         y = numpy.maximum(x1, x2)
         return utils.force_array(y),
 
-    def backward_cpu(self, inputs, grads):
-        x1, x2 = inputs
-        gy, = grads
-        gx1 = gy * (x1 >= x2)
-        gx2 = gy * (x1 < x2)
-        return utils.force_array(gx1), utils.force_array(gx2)
-
     def forward_gpu(self, inputs):
+        self.retain_inputs((0, 1))
         x1, x2 = inputs
         return cuda.cupy.maximum(x1, x2),
 
-    def backward_gpu(self, inputs, grads):
-        x1, x2 = inputs
-        gy, = grads
-        gx1 = cuda.elementwise(
-            'T x1, T x2, T gy', 'T gx1',
-            'gx1 = (x1 >= x2) ? gy : (T)0.0',
-            'maximum_bwd1')(x1, x2, gy)
-        gx2 = cuda.elementwise(
-            'T x1, T x2, T gy', 'T gx1',
-            'gx1 = (x1 < x2) ? gy : (T)0.0',
-            'maximum_bwd2')(x1, x2, gy)
+    def backward(self, indexes, grad_outputs):
+        x1, x2 = self.get_retained_inputs()
+        return MaximumGrad(
+            utils.force_array(x1.data >= x2.data)).apply((grad_outputs[0],))
+
+
+class MaximumGrad(function_node.FunctionNode):
+
+    def __init__(self, cond):
+        self.cond = cond
+
+    def forward_cpu(self, inputs):
+        gy, = inputs
+        gx1 = numpy.where(self.cond, gy, gy.dtype.type(0))
+        gx2 = numpy.where(self.cond, gy.dtype.type(0), gy)
+        return utils.force_array(gx1), utils.force_array(gx2)
+
+    def forward_gpu(self, inputs):
+        gy, = inputs
+        gx1, gx2 = cuda.elementwise(
+            'S cond, T gy', 'T gx1, T gx2',
+            '''
+            gx1 = cond ? gy : (T)0.0;
+            gx2 = cond ? (T)0.0 : gy;
+            ''',
+            'maximum_bwd1')(self.cond, gy)
         return gx1, gx2
+
+    def backward(self, indexes, grad_outputs):
+        return chainer.functions.where(
+            self.cond, grad_outputs[0], grad_outputs[1]),
 
 
 def maximum(x1, x2):
@@ -57,4 +72,4 @@ def maximum(x1, x2):
     Returns:
         ~chainer.Variable: Output variable.
     """
-    return Maximum()(x1, x2)
+    return Maximum().apply((x1, x2))[0]
