@@ -1,5 +1,4 @@
 import unittest
-import warnings
 
 import numpy
 
@@ -107,21 +106,19 @@ class TestClassificationSummary(unittest.TestCase):
         if self.dtype == numpy.float16:
             self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
 
-        # Suppress warning that arises from zero division.
-        warnings.filterwarnings('ignore', category=RuntimeWarning)
-
     def check_forward(self, xp):
         y = chainer.Variable(xp.asarray(self.y))
         t = chainer.Variable(xp.asarray(self.t))
 
         pred = self.y.argmax(axis=1).reshape(self.t.shape)
-        p_expect = precision(pred, self.t, self.dtype,
-                             3, self.ignore_label)
-        r_expect = recall(pred, self.t, self.dtype,
-                          3, self.ignore_label)
-        fbeta_expect = fbeta_score(p_expect, r_expect, self.beta)
-        s_expect = support(self.t, self.dtype,
-                           3, self.ignore_label)
+        with numpy.errstate(invalid='ignore'):
+            p_expect = precision(pred, self.t, self.dtype,
+                                 3, self.ignore_label)
+            r_expect = recall(pred, self.t, self.dtype,
+                              3, self.ignore_label)
+            fbeta_expect = fbeta_score(p_expect, r_expect, self.beta)
+            s_expect = support(self.t, self.dtype,
+                               3, self.ignore_label)
 
         # The resultants can include NaN values depending of the inputs.
         # In such case, temporarily disable debug mode to avoid NaN error.
@@ -136,7 +133,8 @@ class TestClassificationSummary(unittest.TestCase):
                 y, t, self.label_num, self.beta, self.ignore_label)
 
         if include_nan:
-            with chainer.using_config('debug', False):
+            with chainer.using_config('debug', False), \
+                    numpy.errstate(invalid='ignore'):
                 outputs = forward()
         else:
             outputs = forward()
