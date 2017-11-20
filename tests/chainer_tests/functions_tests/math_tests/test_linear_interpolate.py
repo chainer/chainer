@@ -21,9 +21,9 @@ class TestLinearInterpolate(unittest.TestCase):
         self.x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         self.y = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         self.g = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        self.gp = numpy.random.uniform(0, 1, self.shape).astype(self.dtype)
-        self.gx = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        self.gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        self.ggp = numpy.random.uniform(0, 1, self.shape).astype(self.dtype)
+        self.ggx = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        self.ggy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
 
         self.check_forward_options = {}
         self.check_backward_options = {'dtype': numpy.float64}
@@ -70,14 +70,14 @@ class TestLinearInterpolate(unittest.TestCase):
                             cuda.to_gpu(self.y),
                             cuda.to_gpu(self.g))
 
-    def check_double_backward(self, p, x, y, grad, gp, gx, gy):
+    def check_double_backward(self, p, x, y, grad, ggp, ggx, ggy):
         gradient_check.check_double_backward(
             functions.linear_interpolate, (p, x, y), grad,
-            (gp, gx, gy), **self.check_double_backward_options)
+            (ggp, ggx, ggy), **self.check_double_backward_options)
 
     def test_double_backward_cpu(self):
         self.check_double_backward(
-            self.p, self.x, self.y, self.g, self.gp, self.gx, self.gy)
+            self.p, self.x, self.y, self.g, self.ggp, self.ggx, self.ggy)
 
     @attr.gpu
     def test_double_backward_gpu(self):
@@ -86,9 +86,9 @@ class TestLinearInterpolate(unittest.TestCase):
             cuda.to_gpu(self.x),
             cuda.to_gpu(self.y),
             cuda.to_gpu(self.g),
-            cuda.to_gpu(self.gp),
-            cuda.to_gpu(self.gx),
-            cuda.to_gpu(self.gy))
+            cuda.to_gpu(self.ggp),
+            cuda.to_gpu(self.ggx),
+            cuda.to_gpu(self.ggy))
 
 
 testing.run_module(__name__, __file__)
