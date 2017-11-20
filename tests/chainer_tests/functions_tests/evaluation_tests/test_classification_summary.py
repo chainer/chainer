@@ -113,8 +113,6 @@ class TestClassificationSummary(unittest.TestCase):
     def check_forward(self, xp):
         y = chainer.Variable(xp.asarray(self.y))
         t = chainer.Variable(xp.asarray(self.t))
-        p_actual, r_actual, fbeta_actual, s_actual = F.classification_summary(
-            y, t, self.label_num, self.beta, self.ignore_label)
 
         pred = self.y.argmax(axis=1).reshape(self.t.shape)
         p_expect = precision(pred, self.t, self.dtype,
@@ -124,6 +122,27 @@ class TestClassificationSummary(unittest.TestCase):
         fbeta_expect = fbeta_score(p_expect, r_expect, self.beta)
         s_expect = support(self.t, self.dtype,
                            3, self.ignore_label)
+
+        # The resultants can include NaN values depending of the inputs.
+        # In such case, temporarily disable debug mode to avoid NaN error.
+        # TODO(niboshi): separate test cases which can cause NaN and remove
+        #   this trick.
+        include_nan = (numpy.isnan(p_expect).any()
+                       or numpy.isnan(r_expect).any()
+                       or numpy.isnan(fbeta_expect).any())
+
+        def forward():
+            return F.classification_summary(
+                y, t, self.label_num, self.beta, self.ignore_label)
+
+        if include_nan:
+            with chainer.using_config('debug', False):
+                outputs = forward()
+        else:
+            outputs = forward()
+
+        p_actual, r_actual, fbeta_actual, s_actual = outputs
+
         chainer.testing.assert_allclose(p_actual.data, p_expect,
                                         **self.check_forward_options)
         chainer.testing.assert_allclose(r_actual.data, r_expect,
