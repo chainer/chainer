@@ -411,6 +411,8 @@ def onnx_export(model, args, filename=None, export_params=True,
         reversed(graph), graph_name, input_tensors, output_tensors,
         initializer=parameters)
 
+    checker.check_graph(onnx_graph)
+
     model = helper.make_model(
         onnx_graph,
         producer_name='Chainer',
@@ -436,7 +438,8 @@ if __name__ == '__main__':
             super(MLP, self).__init__()
             with self.init_scope():
                 # the size of the inputs to each layer will be inferred
-                self.l1 = L.Convolution2D(None, n_units, 3, 1, 1)  # n_in -> n_units
+                self.l1 = L.Convolution2D(
+                    None, n_units, 3, 1, 1)  # n_in -> n_units
                 self.b1 = L.BatchNormalization(n_units)
                 self.l2 = L.Linear(None, n_units)  # n_units -> n_units
 
@@ -444,8 +447,9 @@ if __name__ == '__main__':
             h = self.b1(F.relu(self.l1(x)))
             return self.l2(h)
 
-    # model = MLP(1, 10)
-    # args = numpy.random.rand(1, 1, 5, 5).astype(numpy.float32)
-    model = L.ResNet50Layers()
-    args = numpy.random.rand(1, 3, 224, 224).astype(numpy.float32)
-    onnx_export(model, args, 'resnet50.onnx')
+    model = MLP(1, 10)
+    args = numpy.random.rand(1, 1, 5, 5).astype(numpy.float32)
+    onnx_export(model, args, 'MLP.onnx')
+    # model = L.ResNet50Layers()
+    # args = numpy.random.rand(1, 3, 224, 224).astype(numpy.float32)
+    # onnx_export(model, args, 'resnet50.onnx')
