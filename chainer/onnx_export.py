@@ -12,14 +12,11 @@ try:
     from onnx import checker
     from onnx import helper
     from onnx import numpy_helper
+    from onnx.mapping import TENSOR_TYPE_TO_NP_TYPE
 
     _available = True
 
-    _dtype = {
-        numpy.float16.__name__: TensorProto.FLOAT16,
-        numpy.float32.__name__: TensorProto.FLOAT,
-        numpy.bool.__name__: TensorProto.BOOL,
-    }
+    _dtype = {v: k for k, v in TENSOR_TYPE_TO_NP_TYPE.items()}
 
     _layers = {
         'LinearFunction': 'Gemm',
@@ -47,13 +44,26 @@ def _check_available():
 
 
 def convert_parameter(parameter, param_names):
-    return numpy_helper.from_array(parameter.array, param_names[id(parameter)])
+    if isinstance(parameter, chainer.Parameter):
+        array = parameter.array
+    elif isinstance(parameter, chainer.Variable):
+        array = parameter.array
+    elif isinstance(parameter, numpy.ndarray):
+        array = parameter
+    return numpy_helper.from_array(array, param_names[id(parameter)])
+
+
+def create_tensor_value_info(tensor):
+    return helper.make_tensor_value_info(
+        tensor.name, tensor.data_type, tensor.dims)
 
 
 def convert_convolution_2d_function(link, input_names, param_names):
     nodes = []
 
     input_names[input_names.index(id(link.W))] = param_names[id(link.W)]
+    if hasattr(link, 'b'):
+        input_names[input_names.index(id(link.b))] = param_names[id(link.b)]
     for i, input_name in enumerate(input_names):
         if type(input_name) is not str:
             input_names[i] = str(input_name)
@@ -61,19 +71,13 @@ def convert_convolution_2d_function(link, input_names, param_names):
     layer_name = _layers[link.__class__.__name__]
     out_names = [str(id(out())) for out in link.outputs]
 
-    nodes.append(helper.make_node(
+    conv = helper.make_node(
         layer_name, input_names, out_names,
-        kernel_shape=link.W.shape,
+        kernel_shape=link.W.shape[2:],
         strides=(link.sy, link.sx),
         pads=(link.ph, link.pw)
-    ))
-
-    # Bias
-    if hasattr(link, 'b'):
-        out_names.append(param_names[id(link.b)])
-        input_names = out_names
-        out_names = [str(id(out())) for out in link.outputs]
-        nodes.append(helper.make_node('Add', input_names, out_names))
+    )
+    nodes.append(conv)
 
     return nodes
 
@@ -171,13 +175,13 @@ def convert_batch_normalization(link, input_names, param_names):
     layer_name = _layers[link.__class__.__name__]
     unique_layer_name = os.path.dirname(input_names[1])
     out_names = [str(id(out())) for out in link.outputs]
-    if chainer.config.train:
-        out_names += [
-            os.path.join(unique_layer_name, 'mean'),
-            os.path.join(unique_layer_name, 'var'),
-            os.path.join(unique_layer_name, 'saved_mean'),
-            os.path.join(unique_layer_name, 'saved_var')
-        ]
+    # if chainer.config.train:
+    #     out_names += [
+    #         os.path.join(unique_layer_name, 'mean'),
+    #         os.path.join(unique_layer_name, 'var'),
+    #         os.path.join(unique_layer_name, 'saved_mean'),
+    #         os.path.join(unique_layer_name, 'saved_var')
+    #     ]
 
     return helper.make_node(
         layer_name, input_names, out_names,
@@ -242,29 +246,15 @@ def create_node(func_name, cand, input_names, param_names, parameters,
         # Add running_mean and running_var to graph
         param_names[id(cand.running_mean)] = os.path.join(
             layer_name, 'running_mean')
-        parameters.append(
-            numpy_helper.from_array(
-                cand.running_mean,
-                param_names[id(cand.running_mean)]))
-        input_tensors.append(
-            helper.make_tensor_value_info(
-                param_names[id(cand.running_mean)],
-                _dtype[cand.running_mean.dtype.name],
-                cand.running_mean.shape)
-        )
+        running_mean = convert_parameter(cand.running_mean, param_names)
+        parameters.append(running_mean)
+        input_tensors.append(create_tensor_value_info(running_mean))
 
         param_names[id(cand.running_var)] = os.path.join(
             layer_name, 'running_var')
-        parameters.append(
-            numpy_helper.from_array(
-                cand.running_var,
-                param_names[id(cand.running_var)]))
-        input_tensors.append(
-            helper.make_tensor_value_info(
-                param_names[id(cand.running_var)],
-                _dtype[cand.running_var.dtype.name],
-                cand.running_var.shape)
-        )
+        running_var = convert_parameter(cand.running_var, param_names)
+        parameters.append(running_var)
+        input_tensors.append(create_tensor_value_info(running_var))
 
         nodes = convert_batch_normalization(cand, input_names, param_names)
     elif func_name == 'ReLU':
@@ -282,7 +272,7 @@ def create_node(func_name, cand, input_names, param_names, parameters,
 
 
 def onnx_export(model, args, filename=None, export_params=True,
-                graph_name='Graph'):
+                graph_name='Graph', save_text=False):
     """Export function for chainer.Chain in ONNX format.
 
     Args:
@@ -298,6 +288,8 @@ def onnx_export(model, args, filename=None, export_params=True,
             exported ONNX model doesn't include any parameter values.
         graph_name (str): A string to be used for the ``name`` field of the
             graph in the exported ONNX model.
+        save_text (bool): If True, the text format of the output ONNX model is
+            also saved with ``.txt`` extention.
 
     Returns:
         A ONNX model object.
@@ -324,7 +316,7 @@ def onnx_export(model, args, filename=None, export_params=True,
         parameters.append(
             convert_parameter(param, param_names))
         input_tensors.append(helper.make_tensor_value_info(
-            name, _dtype[param.array.dtype.name], param.shape))
+            name, _dtype[param.array.dtype], param.shape))
 
     if isinstance(outputs, dict):
         outputs = list(outputs.values())
@@ -385,7 +377,7 @@ def onnx_export(model, args, filename=None, export_params=True,
                     if id(out_var) in output_tensor_ids:
                         idx = output_tensor_ids.index(id(out_var))
                         output_tensor_ids[idx] = (
-                            str(id(out_)), _dtype[out_var.array.dtype.name],
+                            str(id(out_)), _dtype[out_var.array.dtype],
                             out_var.shape)
 
             if func_name in _layers.keys():
@@ -398,7 +390,7 @@ def onnx_export(model, args, filename=None, export_params=True,
     for i, arg in enumerate(args):
         name = str(id(arg))
         input_tensors.append(helper.make_tensor_value_info(
-            name, _dtype[arg.array.dtype.name], arg.shape))
+            name, _dtype[arg.array.dtype], arg.shape))
 
     output_tensors = []
     for out_ in output_tensor_ids:
@@ -423,6 +415,9 @@ def onnx_export(model, args, filename=None, export_params=True,
     if filename is not None:
         with open(filename, 'wb') as fp:
             fp.write(model.SerializeToString())
+        if save_text:
+            with open(filename + '.txt', 'w') as fp:
+                print(model, file=fp)
 
     return model
 
@@ -447,9 +442,9 @@ if __name__ == '__main__':
             h = self.b1(F.relu(self.l1(x)))
             return self.l2(h)
 
-    model = MLP(1, 10)
-    args = numpy.random.rand(1, 1, 5, 5).astype(numpy.float32)
-    onnx_export(model, args, 'MLP.onnx')
-    # model = L.ResNet50Layers()
-    # args = numpy.random.rand(1, 3, 224, 224).astype(numpy.float32)
-    # onnx_export(model, args, 'resnet50.onnx')
+    # model = MLP(1, 10)
+    # args = numpy.random.rand(1, 1, 5, 5).astype(numpy.float32)
+    # model = onnx_export(model, args, 'MLP.onnx', save_text=True)
+    model = L.ResNet50Layers()
+    args = numpy.random.rand(1, 3, 224, 224).astype(numpy.float32)
+    onnx_export(model, args, 'resnet50.onnx')
