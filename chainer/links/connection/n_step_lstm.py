@@ -101,7 +101,7 @@ class NStepLSTMBase(link.ChainList):
                 is specified zero-vector is used.
             cx (~chainer.Variable or None): Initial cell states. If ``None``
                 is specified zero-vector is used.
-            xs (list of ~chianer.Variable): List of input sequences.
+            xs (list of ~chainer.Variable): List of input sequences.
                 Each element ``xs[i]`` is a :class:`chainer.Variable` holding
                 a sequence.
         """
