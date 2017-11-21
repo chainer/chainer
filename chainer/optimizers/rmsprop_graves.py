@@ -2,7 +2,8 @@ import numpy
 
 from chainer import cuda
 from chainer import optimizer
-
+from chainer.numexpr_config import numexpr_enabled
+from chainer.numexpr_config import numexpr
 
 _default_hyperparam = optimizer.Hyperparameter()
 _default_hyperparam.lr = 1e-4
@@ -56,14 +57,24 @@ class RMSpropGravesRule(optimizer.UpdateRule):
             return
         n, g, delta = self.state['n'], self.state['g'], self.state['delta']
         hp = self.hyperparam
-
-        n *= hp.alpha
-        n += (1 - hp.alpha) * grad * grad
-        g *= hp.alpha
-        g += (1 - hp.alpha) * grad
-        delta *= hp.momentum
-        delta -= hp.lr * grad / numpy.sqrt(n - g * g + hp.eps)
-        param.data += delta
+        if numexpr_enabled:
+            data, lr, eps, alpha = param.data, hp.lr, hp.eps, hp.alpha
+            momentum = hp.momentum
+            numexpr.evaluate('n*alpha + (1 - alpha)*grad**2',
+                            out=n, casting='same_kind')
+            numexpr.evaluate('g*alpha + (1 - alpha)*grad',
+                            out=g, casting='same_kind')
+            numexpr.evaluate('delta*momentum - lr*grad/sqrt(n - g*g + eps)',
+                            out=delta, casting='same_kind')
+            numexpr.evaluate('data + delta', out=data, casting='same_kind')
+        else:
+            n *= hp.alpha
+            n += (1 - hp.alpha) * grad * grad
+            g *= hp.alpha
+            g += (1 - hp.alpha) * grad
+            delta *= hp.momentum
+            delta -= hp.lr * grad / numpy.sqrt(n - g * g + hp.eps)
+            param.data += delta
 
     def update_core_gpu(self, param):
         grad = param.grad

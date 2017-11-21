@@ -3,6 +3,8 @@ import numpy
 import chainer
 from chainer import cuda
 from chainer import function_node
+from chainer.numexpr_config import numexpr_enabled
+from chainer.numexpr_config import numexpr
 from chainer import utils
 from chainer.utils import type_check
 
@@ -23,10 +25,13 @@ class Sigmoid(function_node.FunctionNode):
     def forward_cpu(self, inputs):
         x = inputs[0]
         half = x.dtype.type(0.5)
-        y = utils.force_array(numpy.tanh(x * half) * half + half)
+        if numexpr_enabled:
+            y = numexpr.evaluate('tanh(x * half) * half + half')
+        else:
+            y = utils.force_array(numpy.tanh(x * half) * half + half)
         self.retain_outputs((0,))
         self._use_cudnn = False
-        return y,
+        return utils.force_array(y, x.dtype),
 
     def forward_gpu(self, inputs):
         x = inputs[0]
@@ -70,7 +75,10 @@ class SigmoidGrad(function_node.FunctionNode):
         self.retain_inputs((0, 1))
         y, gy = inputs
         one = y.dtype.type(1)
-        return utils.force_array(gy * y * (one - y)),
+        if numexpr_enabled:
+            return utils.force_array(numexpr.evaluate('gy * y * (one - y)'), y.dtype),
+        else:
+            return utils.force_array(gy * y * (one - y), y.dtype),
 
     def forward_gpu(self, inputs):
         self.retain_inputs((0, 1))

@@ -2,6 +2,8 @@ import numpy
 
 from chainer import cuda
 from chainer import optimizer
+from chainer.numexpr_config import numexpr_enabled
+from chainer.numexpr_config import numexpr
 
 
 _default_hyperparam = optimizer.Hyperparameter()
@@ -45,9 +47,14 @@ class AdaGradRule(optimizer.UpdateRule):
         lr = self.hyperparam.lr
         eps = self.hyperparam.eps
         h = self.state['h']
-
-        h += grad * grad
-        param.data -= lr * grad / (numpy.sqrt(h) + eps)
+        if numexpr_enabled:
+            data = param.data
+            numexpr.evaluate('h + grad*grad', out=h, casting='same_kind')
+            numexpr.evaluate('data - lr*grad/(sqrt(h) + eps)',
+                            out=data, casting='same_kind')
+        else:
+            h += grad * grad
+            param.data -= lr * grad / (numpy.sqrt(h) + eps)
 
     def update_core_gpu(self, param):
         grad = param.grad

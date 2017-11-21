@@ -1,5 +1,7 @@
 from chainer import cuda
 from chainer import function_node
+from chainer.numexpr_config import numexpr_enabled
+from chainer.numexpr_config import numexpr
 from chainer import utils
 from chainer.utils import type_check
 import numpy
@@ -30,8 +32,16 @@ class ClippedReLU(function_node.FunctionNode):
     def forward_cpu(self, inputs):
         self.retain_inputs((0,))
         x, = inputs
-        return utils.force_array(numpy.minimum(numpy.maximum(0, x), self.cap),
-                                 x.dtype),
+        cap = self.cap
+        if numexpr_enabled:
+            return utils.force_array(
+                numexpr.evaluate('where( where(x > 0, x, 0) > cap,'
+                                'cap, where(x > 0, x, 0))'), x.dtype),
+        else:
+            return utils.force_array(
+                # Requires fewer temps, is clearer, and NaN propagation doesn't
+                # matter anyway since a NN is done for if any NaNs appear
+                numpy.clip(x, 0, self.cap), x.dtype),
 
     def forward_gpu(self, inputs):
         self.retain_inputs((0,))
@@ -59,8 +69,15 @@ class ClippedReLUGrad(function_node.FunctionNode):
 
     def forward_cpu(self, inputs):
         gy, = inputs
-        return utils.force_array(
-            gy * (0 < self.x) * (self.x < self.cap), self.x.dtype),
+        cap = self.cap
+        x = self.x
+        if numexpr_enabled:
+            return utils.force_array(
+                numexpr.evaluate('where( (x < cap)&(0 < x), '
+                                'gy, 0)'), self.x.dtype),
+        else:
+            return utils.force_array(
+                gy * (0 < self.x) * (self.x < self.cap), self.x.dtype),
 
     def forward_gpu(self, inputs):
         gy, = inputs

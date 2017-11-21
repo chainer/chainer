@@ -38,6 +38,14 @@ class TestTanh(unittest.TestCase):
         y_expect = functions.tanh(chainer.Variable(self.x))
         testing.assert_allclose(y_expect.data, y.data)
 
+    @attr.no_numexpr
+    def test_forward_cpu(self):
+        self.check_forward(self.x)
+
+    @attr.with_numexpr
+    def test_forward_numexpr(self):
+        self.check_forward(self.x)
+
     @attr.gpu
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x), 'always')

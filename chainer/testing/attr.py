@@ -1,5 +1,9 @@
 import os
 import unittest
+from functools import wraps
+
+from chainer import numexpr_config
+from chainer import testing
 
 
 try:
@@ -65,3 +69,30 @@ def gpu(f):
 
     check_available()
     return multi_gpu(1)(pytest.mark.gpu(f))
+
+def no_numexpr(f):
+    """Decorator to indicate that the test is for non-numxepr code
+
+    Tests can be annotated with this decorator to declare that numexpr is not
+    used to run
+    """
+    @wraps(f)
+    def wrapper(arg):
+        ne_enabled = numexpr_config.numexpr_enabled
+        numexpr_config.numexpr_enabled = False
+        f(arg)
+        numexpr_config.numexpr_enabled = ne_enabled
+    return wrapper
+
+def with_numexpr(f):
+    """Decorator to indicate that the test is for numexpr code
+
+    Tests should be annotated with this decorator to declare that numexpr
+    is required to run them
+    """
+    @wraps(f)
+    @testing.with_requires('numexpr')
+    def wrapper(arg):
+        ne_enabled = True
+        f(arg)
+    return wrapper

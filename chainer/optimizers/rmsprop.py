@@ -2,7 +2,8 @@ import numpy
 
 from chainer import cuda
 from chainer import optimizer
-
+from chainer.numexpr_config import numexpr_enabled
+from chainer.numexpr_config import numexpr
 
 _default_hyperparam = optimizer.Hyperparameter()
 _default_hyperparam.lr = 0.01
@@ -52,10 +53,18 @@ class RMSpropRule(optimizer.UpdateRule):
                 'eps of RMSprop optimizer is too small for {} ({})'.format(
                     grad.dtype.name, hp.eps))
         ms = self.state['ms']
-
-        ms *= hp.alpha
-        ms += (1 - hp.alpha) * grad * grad
-        param.data -= hp.lr * grad / (numpy.sqrt(ms) + eps)
+        if numexpr_enabled:
+            alpha = hp.alpha
+            data = param.data
+            lr = hp.lr
+            numexpr.evaluate('ms*alpha + (1 - alpha)*grad**2',
+                            out=ms, casting='same_kind')
+            numexpr.evaluate('data - lr*grad/(sqrt(ms) + eps)', out=data,
+                            casting='same_kind')
+        else:
+            ms *= hp.alpha
+            ms += (1 - hp.alpha) * grad * grad
+            param.data -= hp.lr * grad / (numpy.sqrt(ms) + eps)
 
     def update_core_gpu(self, param):
         grad = param.grad

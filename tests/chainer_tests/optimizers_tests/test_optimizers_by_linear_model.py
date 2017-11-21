@@ -88,8 +88,14 @@ class OptimizerTestBase(object):
         self.model = LinearModel(self.create(), self.dtype,
                                  self.use_placeholder)
 
+    @attr.no_numexpr
     @condition.retry(10)
     def test_linear_model_cpu(self):
+        self.assertGreater(self.model.accuracy_cpu().data, 0.9)
+
+    @attr.with_numexpr
+    @condition.retry(10)
+    def test_linear_model_numexpr(self):
         self.assertGreater(self.model.accuracy_cpu().data, 0.9)
 
     @attr.gpu

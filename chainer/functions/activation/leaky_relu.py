@@ -1,5 +1,8 @@
 from chainer import cuda
 from chainer import function_node
+from chainer import utils
+from chainer.numexpr_config import numexpr_enabled
+from chainer.numexpr_config import numexpr
 from chainer.utils import type_check
 
 
@@ -29,13 +32,17 @@ class LeakyReLU(function_node.FunctionNode):
 
     def forward_cpu(self, inputs):
         x, = inputs
-        y = x.copy()
-        y[x < 0] *= self.slope
+        if numexpr_enabled:
+            slope = self.slope
+            y = numexpr.evaluate('where(x < 0, x * slope, x)')
+        else:
+            y = x.copy()
+            y[x < 0] *= self.slope
         if self.slope >= 0:
             self.retain_outputs((0,))
         else:
             self.retain_inputs((0,))
-        return y,
+        return utils.force_array(y, x.dtype),
 
     def forward_gpu(self, inputs):
         x, = inputs

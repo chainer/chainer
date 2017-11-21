@@ -1,6 +1,7 @@
 from chainer import cuda
 from chainer import optimizer
-
+from chainer.numexpr_config import numexpr_enabled
+from chainer.numexpr_config import numexpr
 
 _default_hyperparam = optimizer.Hyperparameter()
 _default_hyperparam.lr = 0.01
@@ -40,9 +41,15 @@ class MomentumSGDRule(optimizer.UpdateRule):
         if grad is None:
             return
         v = self.state['v']
-        v *= self.hyperparam.momentum
-        v -= self.hyperparam.lr * grad
-        param.data += v
+        if numexpr_enabled:
+            momentum, lr = self.hyperparam.momentum, self.hyperparam.lr
+            data = param.data
+            numexpr.evaluate('v*momentum - lr*grad', out=v, casting='same_kind')
+            numexpr.evaluate('data + v', out=data, casting='same_kind')
+        else:
+            v *= self.hyperparam.momentum
+            v -= self.hyperparam.lr * grad
+            param.data += v
 
     def update_core_gpu(self, param):
         grad = param.grad
