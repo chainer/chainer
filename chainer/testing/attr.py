@@ -70,6 +70,7 @@ def gpu(f):
     check_available()
     return multi_gpu(1)(pytest.mark.gpu(f))
 
+
 def no_numexpr(f):
     """Decorator to indicate that the test is for non-numxepr code
 
@@ -83,6 +84,7 @@ def no_numexpr(f):
         f(arg)
         numexpr_config.numexpr_enabled = ne_enabled
     return wrapper
+
 
 def with_numexpr(f):
     """Decorator to indicate that the test is for numexpr code

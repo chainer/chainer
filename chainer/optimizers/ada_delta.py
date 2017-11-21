@@ -51,11 +51,11 @@ class AdaDeltaRule(optimizer.UpdateRule):
         if numexpr_enabled:
             data = param.data
             numexpr.evaluate('msg*rho + (1-rho)*grad**2',
-                            out=msg,casting='same_kind')
+                             out=msg, casting='same_kind')
             dx = numexpr.evaluate('sqrt((msdx + eps) / (msg + eps)) * grad',
-                            casting='same_kind')
+                                  casting='same_kind')
             numexpr.evaluate('msdx*rho + (1-rho)*dx**2',
-                            out=msdx, casting='same_kind')
+                             out=msdx, casting='same_kind')
             numexpr.evaluate('data - dx', out=data, casting='same_kind')
         else:
             msg *= rho

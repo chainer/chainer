@@ -44,7 +44,8 @@ class MomentumSGDRule(optimizer.UpdateRule):
         if numexpr_enabled:
             momentum, lr = self.hyperparam.momentum, self.hyperparam.lr
             data = param.data
-            numexpr.evaluate('v*momentum - lr*grad', out=v, casting='same_kind')
+            numexpr.evaluate('v*momentum - lr*grad',
+                             out=v, casting='same_kind')
             numexpr.evaluate('data + v', out=data, casting='same_kind')
         else:
             v *= self.hyperparam.momentum

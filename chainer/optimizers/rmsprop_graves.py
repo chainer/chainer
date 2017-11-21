@@ -61,11 +61,11 @@ class RMSpropGravesRule(optimizer.UpdateRule):
             data, lr, eps, alpha = param.data, hp.lr, hp.eps, hp.alpha
             momentum = hp.momentum
             numexpr.evaluate('n*alpha + (1 - alpha)*grad**2',
-                            out=n, casting='same_kind')
+                             out=n, casting='same_kind')
             numexpr.evaluate('g*alpha + (1 - alpha)*grad',
-                            out=g, casting='same_kind')
+                             out=g, casting='same_kind')
             numexpr.evaluate('delta*momentum - lr*grad/sqrt(n - g*g + eps)',
-                            out=delta, casting='same_kind')
+                             out=delta, casting='same_kind')
             numexpr.evaluate('data + delta', out=data, casting='same_kind')
         else:
             n *= hp.alpha

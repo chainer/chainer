@@ -44,9 +44,10 @@ class NesterovAGRule(optimizer.UpdateRule):
         lr, momentum = self.hyperparam.lr, self.hyperparam.momentum
         if numexpr_enabled:
             data = param.data
-            numexpr.evaluate('v*momentum - lr*grad', out=v, casting='same_kind')
+            numexpr.evaluate('v*momentum - lr*grad',
+                             out=v, casting='same_kind')
             numexpr.evaluate('data + momentum**2*v - (1+momentum)*lr*grad',
-                            out=data, casting='same_kind')
+                             out=data, casting='same_kind')
         else:
             v *= momentum
             v -= lr * grad

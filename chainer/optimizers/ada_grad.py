@@ -51,7 +51,7 @@ class AdaGradRule(optimizer.UpdateRule):
             data = param.data
             numexpr.evaluate('h + grad*grad', out=h, casting='same_kind')
             numexpr.evaluate('data - lr*grad/(sqrt(h) + eps)',
-                            out=data, casting='same_kind')
+                             out=data, casting='same_kind')
         else:
             h += grad * grad
             param.data -= lr * grad / (numpy.sqrt(h) + eps)

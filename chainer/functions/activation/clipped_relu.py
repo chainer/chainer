@@ -36,7 +36,7 @@ class ClippedReLU(function_node.FunctionNode):
         if numexpr_enabled:
             return utils.force_array(
                 numexpr.evaluate('where( where(x > 0, x, 0) > cap,'
-                                'cap, where(x > 0, x, 0))'), x.dtype),
+                                 'cap, where(x > 0, x, 0))'), x.dtype),
         else:
             return utils.force_array(
                 # Requires fewer temps, is clearer, and NaN propagation doesn't
@@ -74,7 +74,7 @@ class ClippedReLUGrad(function_node.FunctionNode):
         if numexpr_enabled:
             return utils.force_array(
                 numexpr.evaluate('where( (x < cap)&(0 < x), '
-                                'gy, 0)'), self.x.dtype),
+                                 'gy, 0)'), self.x.dtype),
         else:
             return utils.force_array(
                 gy * (0 < self.x) * (self.x < self.cap), self.x.dtype),

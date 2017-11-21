@@ -64,11 +64,11 @@ class AdamRule(optimizer.UpdateRule):
         if numexpr_enabled:
             beta1, beta2, lr, data = hp.beta1, hp.beta2, self.lr, param.data
             numexpr.evaluate('m + (1-beta1) * (grad-m)',
-                            out=m, casting='same_kind')
+                             out=m, casting='same_kind')
             numexpr.evaluate('v + (1-beta2)*(grad**2-v)',
-                            out=v, casting='same_kind')
+                             out=v, casting='same_kind')
             numexpr.evaluate('data - lr*m/(sqrt(v) + eps)', out=data,
-                            casting='same_kind')
+                             casting='same_kind')
         else:
             m += (1 - hp.beta1) * (grad - m)
             v += (1 - hp.beta2) * (grad * grad - v)

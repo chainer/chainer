@@ -33,7 +33,8 @@ class SGDRule(optimizer.UpdateRule):
             return
         if numexpr_enabled:
             data, lr = param.data, self.hyperparam.lr
-            numexpr.evaluate('data - lr * grad', out=param.data, casting='same_kind')
+            numexpr.evaluate('data - lr * grad',
+                             out=param.data, casting='same_kind')
         else:
             param.data -= self.hyperparam.lr * grad
 

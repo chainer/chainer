@@ -58,9 +58,9 @@ class RMSpropRule(optimizer.UpdateRule):
             data = param.data
             lr = hp.lr
             numexpr.evaluate('ms*alpha + (1 - alpha)*grad**2',
-                            out=ms, casting='same_kind')
+                             out=ms, casting='same_kind')
             numexpr.evaluate('data - lr*grad/(sqrt(ms) + eps)', out=data,
-                            casting='same_kind')
+                             casting='same_kind')
         else:
             ms *= hp.alpha
             ms += (1 - hp.alpha) * grad * grad

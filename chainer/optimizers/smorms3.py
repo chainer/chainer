@@ -49,15 +49,15 @@ class SMORMS3Rule(optimizer.UpdateRule):
         if numexpr_enabled:
             eps, lr, data = self.hyperparam.eps, self.hyperparam.lr, param.data
             r = '(1 / (mem + 1))'
-            numexpr.evaluate('(1 - %s)*g + %s*grad' % (r,r),
-                            out=g, casting='same_kind')
-            numexpr.evaluate('(1 - %s)*g2 + %s*grad**2' % (r,r),
-                            out=g2, casting='same_kind')
+            numexpr.evaluate('(1 - %s)*g + %s*grad' % (r, r),
+                             out=g, casting='same_kind')
+            numexpr.evaluate('(1 - %s)*g2 + %s*grad**2' % (r, r),
+                             out=g2, casting='same_kind')
             x = '(g * g / (g2 + eps))'
             numexpr.evaluate('data - grad*where(%s < lr, %s, lr)/(sqrt(g2) + eps)'
-                            % (x,x), out=data, casting='same_kind')
+                             % (x, x), out=data, casting='same_kind')
             numexpr.evaluate('1 + mem * (1 - %s)' % x,
-                            out=mem, casting='same_kind')
+                             out=mem, casting='same_kind')
         else:
             r = 1 / (mem + 1)
             g = (1 - r) * g + r * grad

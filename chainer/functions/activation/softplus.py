@@ -31,11 +31,11 @@ class Softplus(function_node.FunctionNode):
             beta = self.beta
             beta_inv = self.beta_inv
             y = numexpr.evaluate('(where(beta*x > 0, beta*x, 0) + '
-                                'log1p(exp(-abs(beta*x)))) * beta_inv')
+                                 'log1p(exp(-abs(beta*x)))) * beta_inv')
         else:
             bx = self.beta * x
             y = (numpy.fmax(bx, 0) +
-                numpy.log1p(numpy.exp(-numpy.fabs(bx)))) * self.beta_inv
+                 numpy.log1p(numpy.exp(-numpy.fabs(bx)))) * self.beta_inv
         return utils.force_array(y, x.dtype),
 
     def forward_gpu(self, inputs):
