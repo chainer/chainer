@@ -5,7 +5,6 @@ import numpy
 import chainer
 from chainer import cuda
 from chainer import functions
-from chainer.functions.noise import simplified_dropconnect
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
@@ -98,6 +97,7 @@ class TestSimplifiedDropconnect(unittest.TestCase):
 
         xp = cuda.get_array_module(x_data)
         mask = xp.random.rand(*mask_shape) >= self.ratio
+
         def f(x, W, b=None):
             return functions.simplified_dropconnect(
                 x, W, b, self.ratio, self.train, mask,
@@ -138,6 +138,7 @@ class TestSimplifiedDropconnect(unittest.TestCase):
 
         xp = cuda.get_array_module(x_data)
         mask = xp.random.rand(*mask_shape) >= self.ratio
+
         def f(x, W, b=None):
             y = functions.simplified_dropconnect(
                 x, W, b, self.ratio, self.train, mask,

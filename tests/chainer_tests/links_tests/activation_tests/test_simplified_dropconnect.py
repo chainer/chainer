@@ -11,7 +11,6 @@ from chainer import links
 from chainer.serializers import npz
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
 from chainer.utils import type_check
 
 
