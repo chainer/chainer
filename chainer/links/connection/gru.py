@@ -81,8 +81,8 @@ class StatelessGRU(GRUBase):
 
     .. admonition:: Example
 
-        There are several ways to make a StatefulGRU link.
-        Let a two-dimensional input array :math:`x`:
+        There are several ways to make a ``StatelessGRU`` link.
+        Let ``x`` be a two-dimensional input array:
 
         >>> in_size = 10
         >>> out_size = 20
@@ -167,8 +167,8 @@ class StatefulGRU(GRUBase):
 
     .. admonition:: Example
 
-        There are several ways to make a StatefulGRU link.
-        Let a two-dimensional input array :math:`x`:
+        There are several ways to make a ``StatefulGRU`` link.
+        Let ``x`` be a two-dimensional input array:
 
         >>> in_size = 10
         >>> out_size = 20
