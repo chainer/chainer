@@ -325,6 +325,10 @@ class Optimizer(object):
 
     """
 
+    target = None
+    t = 0
+    epoch = 0
+
     def setup(self, link):
         """Sets a target link and initializes the optimizer states.
 
