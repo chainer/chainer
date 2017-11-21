@@ -1,9 +1,10 @@
 from chainer import cuda
-from chainer import function
+from chainer import function_node
 from chainer.utils import type_check
 
 
-class FlipLR(function.Function):
+class FlipLR(function_node.FunctionNode):
+
     """Flip array in the left/right direction."""
 
     def check_type_forward(self, in_types):
@@ -12,16 +13,15 @@ class FlipLR(function.Function):
 
         type_check.expect(
             x_type.dtype.kind == 'f',
-            x_type.ndim >= 2)
+            x_type.ndim >= 2
+        )
 
     def forward(self, inputs):
-        self.retain_inputs(())
         xp = cuda.get_array_module(*inputs)
         return xp.fliplr(inputs[0]),
 
-    def backward(self, inputs, grads):
-        xp = cuda.get_array_module(*grads)
-        return xp.fliplr(grads[0]),
+    def backward(self, indexes, grad_outputs):
+        return FlipLR().apply(grad_outputs)
 
 
 def fliplr(a):
@@ -34,4 +34,4 @@ def fliplr(a):
         ~chainer.Variable: Output variable.
 
     """
-    return FlipLR()(a)
+    return FlipLR().apply((a,))[0]

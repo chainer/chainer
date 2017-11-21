@@ -1,12 +1,13 @@
 import numpy
 import six
 
+import chainer
 from chainer import cuda
-from chainer import function
+from chainer import function_node
 from chainer.utils import type_check
 
 
-class Vstack(function.Function):
+class Vstack(function_node.FunctionNode):
 
     """Concatenate multiple tensors vertically (row wise)."""
 
@@ -26,26 +27,23 @@ class Vstack(function.Function):
                 type_check.expect(in_types[0].shape[d] == in_types[i].shape[d])
 
     def forward(self, xs):
-        self.retain_inputs(())
-        self._in_shapes = [x.shape for x in xs]
         xp = cuda.get_array_module(*xs)
         return xp.vstack(xs),
 
-    def backward(self, xs, gy):
-        if len(self._in_shapes) == 1:
-            if len(self._in_shapes[0]) <= 1:
-                return gy[0].reshape(self._in_shapes[0]),
-            return gy
+    def backward(self, indexes, grad_outputs):
+        gy, = grad_outputs
+        ndim = len(self.inputs[0].shape)
+        if len(self.inputs) == 1:
+            if ndim <= 1:
+                return gy.reshape(self.inputs[0].shape),
+            return gy,
 
-        xp = cuda.get_array_module(*gy)
+        if ndim <= 1:
+            gxs = chainer.functions.split_axis(gy, len(self.inputs), 0)
+            return [gx.reshape(self.inputs[0].shape) for gx in gxs]
 
-        if len(self._in_shapes[0]) <= 1:
-            ys = xp.vsplit(gy[0], len(xs))
-            return [y.reshape(self._in_shapes[0]) for y in ys]
-        else:
-            sizes = numpy.array(
-                [shape[0] for shape in self._in_shapes[:-1]]).cumsum()
-            return xp.vsplit(gy[0], sizes)
+        sizes = numpy.array([x.shape[0] for x in self.inputs[:-1]]).cumsum()
+        return chainer.functions.split_axis(gy, sizes, 0)
 
 
 def vstack(xs):
@@ -110,4 +108,4 @@ def vstack(xs):
 
     """
 
-    return Vstack()(*xs)
+    return Vstack().apply((xs))[0]

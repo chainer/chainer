@@ -1,3 +1,6 @@
+import functools
+import operator
+
 import numpy
 import six
 
@@ -298,7 +301,7 @@ class LSTM(LSTMBase):
         """
         if self.upward.W.data is None:
             with cuda.get_device_from_id(self._device_id):
-                in_size = x.size // x.shape[0]
+                in_size = functools.reduce(operator.mul, x.shape[1:], 1)
                 self.upward._initialize_params(in_size)
                 self._initialize_params()
 
