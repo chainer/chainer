@@ -82,10 +82,20 @@ class TestSimplifiedDropconnect(unittest.TestCase):
         if b_data is not None:
             args += b_data,
 
+        if self.use_batchwise_mask:
+            mask_shape = (x_data.shape[0],) + W_data.shape
+        else:
+            mask_shape = W_data.shape
+
+        xp = cuda.get_array_module(x_data)
+        mask = xp.random.rand(*mask_shape) >= self.ratio
+        def f(x, W, b=None):
+            return functions.simplified_dropconnect(
+                x, W, b, self.ratio, self.train, mask,
+                self.use_batchwise_mask)
+
         gradient_check.check_backward(
-            simplified_dropconnect.SimplifiedDropconnect(self.ratio, None,
-                                                         True),
-            args, y_grad, eps=1e-2, **self.check_backward_options)
+            f, args, y_grad, eps=1e-2, **self.check_backward_options)
 
     @condition.retry(3)
     def test_backward_cpu(self):
