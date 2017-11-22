@@ -105,7 +105,7 @@ def n_step_lstm(
             for time ``t``. Its shape is ``(B_t, I)``, where ``B_t`` is the
             mini-batch size for time ``t``. The sequences must be transposed.
             :func:`~chainer.functions.transpose_sequence` can be used to
-            transpose a list of :class:`~chainer.Variable`\ s each representing
+            transpose a list of :class:`~chainer.Variable`\\ s each representing
             a sequence. When sequences has different lengths, they must be
             sorted in descending order of their lengths before transposing.
             So ``xs`` needs to satisfy
@@ -271,7 +271,7 @@ def n_step_bilstm(
             for time ``t``. Its shape is ``(B_t, I)``, where ``B_t`` is the
             mini-batch size for time ``t``. The sequences must be transposed.
             :func:`~chainer.functions.transpose_sequence` can be used to
-            transpose a list of :class:`~chainer.Variable`\ s each representing
+            transpose a list of :class:`~chainer.Variable`\\ s each representing
             a sequence. When sequences has different lengths, they must be
             sorted in descending order of their lengths before transposing.
             So ``xs`` needs to satisfy
@@ -379,7 +379,7 @@ def n_step_lstm_base(
             for time ``t``. Its shape is ``(B_t, I)``, where ``B_t`` is the
             mini-batch size for time ``t``. The sequences must be transposed.
             :func:`~chainer.functions.transpose_sequence` can be used to
-            transpose a list of :class:`~chainer.Variable`\ s each representing
+            transpose a list of :class:`~chainer.Variable`\\ s each representing
             a sequence. When sequences has different lengths, they must be
             sorted in descending order of their lengths before transposing.
             So ``xs`` needs to satisfy
