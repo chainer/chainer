@@ -1,3 +1,5 @@
+import copy
+
 import six
 
 from chainer import cuda
@@ -30,6 +32,10 @@ class NStepLSTMBase(link.ChainList):
         initial_bias (:ref:`initializer <initializer>`): Initializer to
             initialize the bias. If ``None``, the bias will be initialized to
             zero. When it is :class:`numpy.ndarray`, its ``ndim`` should be 1.
+        initial_model (NStepLSTMBase): Model with initial values of weights
+            and biases.
+            If ``None``, initialization is done using ``initialW``
+            and ``initial_bias``.
         use_bi_direction (bool): if ``True``, use Bi-directional LSTM.
 
     .. seealso::
@@ -39,7 +45,7 @@ class NStepLSTMBase(link.ChainList):
     """
 
     def __init__(self, n_layers, in_size, out_size, dropout,
-                 initialW, initial_bias, use_bi_direction,
+                 initialW, initial_bias, initial_model, use_bi_direction,
                  **kwargs):
         argument.check_unexpected_kwargs(
             kwargs, use_cudnn='use_cudnn argument is not supported anymore. '
@@ -55,6 +61,8 @@ class NStepLSTMBase(link.ChainList):
         for i in six.moves.range(n_layers):
             for di in six.moves.range(direction):
                 weight = link.Link()
+                initial_weight = getattr(initial_model,
+                                         str(direction * i + di), None)
                 with weight.init_scope():
                     for j in six.moves.range(8):
                         if i == 0 and j < 4:
@@ -65,8 +73,21 @@ class NStepLSTMBase(link.ChainList):
                             w_in = out_size
                         name_w = 'w{}'.format(j)
                         name_b = 'b{}'.format(j)
-                        w = variable.Parameter(initialW, (out_size, w_in))
-                        b = variable.Parameter(initial_bias, (out_size,))
+                        if getattr(getattr(initial_weight, name_w, None),
+                                   'data', None) is None:
+                            initialW_ = copy.deepcopy(initialW)
+                        else:
+                            initialW_ = initializers._get_initializer(
+                                copy.deepcopy(getattr(initial_weight,
+                                                      name_w).data))
+                        if getattr(getattr(initial_weight, name_b, None),
+                                   'data', None) is None:
+                            initial_bias_ = copy.deepcopy(initial_bias)
+                        else:
+                            initial_bias_ = copy.deepcopy(
+                                getattr(initial_weight, name_b).data)
+                        w = variable.Parameter(initialW_, (out_size, w_in))
+                        b = variable.Parameter(initial_bias_, (out_size,))
                         setattr(weight, name_w, w)
                         setattr(weight, name_b, b)
                 weights.append(weight)
@@ -171,6 +192,10 @@ class NStepLSTM(NStepLSTMBase):
         initial_bias (:ref:`initializer <initializer>`): Initializer to
             initialize the bias. If ``None``, the bias will be initialized to
             zero. When it is :class:`numpy.ndarray`, its ``ndim`` should be 1.
+        initial_model (NStepLSTM): Model with initial values of weights
+            and biases.
+            If ``None``, initialization is done using ``initialW``
+            and ``initial_bias``.
 
     .. seealso::
         :func:`chainer.functions.n_step_lstm`
@@ -178,10 +203,11 @@ class NStepLSTM(NStepLSTMBase):
     """
 
     def __init__(self, n_layers, in_size, out_size, dropout,
-                 initialW=None, initial_bias=None, **kwargs):
+                 initialW=None, initial_bias=None,
+                 initial_model=None, **kwargs):
         NStepLSTMBase.__init__(
             self, n_layers, in_size, out_size, dropout,
-            initialW, initial_bias,
+            initialW, initial_bias, initial_model,
             use_bi_direction=False, **kwargs)
 
 
@@ -216,6 +242,10 @@ class NStepBiLSTM(NStepLSTMBase):
         initial_bias (:ref:`initializer <initializer>`): Initializer to
             initialize the bias. If ``None``, the bias will be initialized to
             zero. When it is :class:`numpy.ndarray`, its ``ndim`` should be 1.
+        initial_model (NStepBiLSTM): Model with initial values of weights
+            and biases.
+            If ``None``, initialization is done using ``initialW``
+            and ``initial_bias``.
 
     .. seealso::
         :func:`chainer.functions.n_step_bilstm`
@@ -223,8 +253,9 @@ class NStepBiLSTM(NStepLSTMBase):
     """
 
     def __init__(self, n_layers, in_size, out_size, dropout,
-                 initialW=None, initial_bias=None, **kwargs):
+                 initialW=None, initial_bias=None,
+                 initial_model=None, **kwargs):
         NStepLSTMBase.__init__(
             self, n_layers, in_size, out_size, dropout,
-            initialW, initial_bias,
+            initialW, initial_bias, initial_model,
             use_bi_direction=True, **kwargs)
