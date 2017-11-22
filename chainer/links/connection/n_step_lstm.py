@@ -78,13 +78,14 @@ class NStepLSTMBase(link.ChainList):
                             initialW_ = copy.deepcopy(initialW)
                         else:
                             initialW_ = initializers._get_initializer(
-                                copy.deepcopy(getattr(initial_weight, name_w).data))
+                                copy.deepcopy(getattr(initial_weight,
+                                                      name_w).data))
                         if getattr(getattr(initial_weight, name_b, None),
                                    'data', None) is None:
                             initial_bias_ = copy.deepcopy(initial_bias)
                         else:
-                            initial_bias_ = copy.deepcopy(getattr(initial_weight,
-                                                                  name_b).data)
+                            initial_bias_ = copy.deepcopy(
+                                getattr(initial_weight, name_b).data)
                         w = variable.Parameter(initialW_, (out_size, w_in))
                         b = variable.Parameter(initial_bias_, (out_size,))
                         setattr(weight, name_w, w)
