@@ -325,6 +325,8 @@ class Optimizer(object):
 
     """
 
+    _hooks = None
+
     def setup(self, link):
         """Sets a target link and initializes the optimizer states.
 
@@ -403,7 +405,7 @@ class Optimizer(object):
         """
         if not callable(hook):
             raise TypeError('hook function is not callable')
-        if not hasattr(self, '_hooks'):
+        if self._hooks is None:
             raise RuntimeError('call `setup` method before `add_hook` method')
 
         if name is None:
