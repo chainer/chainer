@@ -53,6 +53,48 @@ class TestHyperparameter(unittest.TestCase):
         self.assertIs(child_copy.parent, parent_copy)
 
 
+@testing.parameterize(*testing.product(
+    {'value': [
+        1,
+        True,
+        2.1,
+        2.1j,
+        np.inf,
+        np.nan,
+        np.ones((1, 2), dtype=np.float32),
+        np.ones((1,), dtype=np.float32),
+        np.ones((0,), dtype=np.float32),
+        np.ones((), dtype=np.float32),
+    ]},
+))
+class TestHyperparameterValidType(unittest.TestCase):
+
+    def test_valid_value_type(self):
+        # Must not raise error
+        hp = optimizer.Hyperparameter()
+        hp.newparam = self.value
+
+
+@testing.parameterize(*testing.product(
+    {'value': [
+        None,
+        'str',
+        '1',
+        b'1',
+        object(),
+        chainer.Link(),
+        chainer.Variable(np.ones((), dtype=np.float32)),
+    ]},
+))
+class TestHyperparameterInvalidType(unittest.TestCase):
+
+    def test_invalid_value_type(self):
+        # Must raise error
+        hp = optimizer.Hyperparameter()
+        with self.assertRaises(TypeError):
+            hp.newparam = self.value
+
+
 class TestUpdateRule(unittest.TestCase):
 
     def setUp(self):

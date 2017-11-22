@@ -1,5 +1,6 @@
 from chainer import cuda
 from chainer import optimizer
+from chainer.utils import argument
 
 
 _default_hyperparam = optimizer.Hyperparameter()
@@ -69,8 +70,9 @@ class MomentumSGD(optimizer.GradientMethod):
     """
 
     def __init__(self, lr=_default_hyperparam.lr,
-                 momentum=_default_hyperparam.momentum, model=None):
-        super(MomentumSGD, self).__init__(model)
+                 momentum=_default_hyperparam.momentum, **kwargs):
+        link, = argument.parse_kwargs(kwargs, ('link', None))
+        super(MomentumSGD, self).__init__(link=link)
         self.hyperparam.lr = lr
         self.hyperparam.momentum = momentum
 

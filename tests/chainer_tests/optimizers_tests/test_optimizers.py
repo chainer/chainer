@@ -20,29 +20,61 @@ from chainer import testing
         optimizers.SMORMS3,
     ]
 }))
-class TestOptimizerHyperparameter(unittest.TestCase):
+class TestGradientMethodHyperparameter(unittest.TestCase):
 
-    def setUp(self):
-        self.target = chainer.Link()
-        with self.target.init_scope():
-            self.target.w = chainer.Parameter()
+    def create_target(self):
+        target = chainer.Link()
+        with target.init_scope():
+            target.w = chainer.Parameter()
+        return target
 
-    def create(self, *args, **kwargs):
-        self.optimizer = self.impl(*args, **kwargs)
-        self.optimizer.setup(self.target)
+    def get_hyperparam(self, target, name):
+        return getattr(target.w.update_rule.hyperparam, name)
 
-    def get_hyperparam(self, name):
-        return getattr(self.target.w.update_rule.hyperparam, name)
+    def check_hyperparams(self, create):
+        # Retrieve the default hyperparameters of the optimizer.
+        target = self.create_target()
+        optimizer = create(target)
+        default = optimizer.hyperparam.get_dict()
 
-    def test_hyperparams(self):
-        self.create()
-        default = self.optimizer.hyperparam.get_dict()
         for name, default_value in six.iteritems(default):
-            self.create()
-            self.assertEqual(self.get_hyperparam(name), default_value)
+            # Without explicit values, hyperparam of the target link must be
+            # initialized with the default value.
+            target = self.create_target()
+            optimizer = create(target)
+            assert self.get_hyperparam(target, name) == default_value
+
+            # With explicit values, hyperparam of the target link must be
+            # initialized with that value.
+            target = self.create_target()
             new_value = default_value + 0.1
-            self.create(**{name: new_value})
-            self.assertEqual(self.get_hyperparam(name), new_value)
+            optimizer = create(target, **{name: new_value})
+            assert self.get_hyperparam(target, name) == new_value
+
+    def test_hyperparams_setup_with_init(self):
+        # Test hyperparameters, using an optimizer whose model is set up by
+        # __init__ argument.
+        def create(target, *args, **kwargs):
+            optimizer = self.impl(*args, link=target, **kwargs)
+            return optimizer
+        self.check_hyperparams(create)
+
+    def test_hyperparams_separate_setup(self):
+        # Test hyperparameters, using an optimizer whose model is set up by
+        # setup() method.
+        def create(target, *args, **kwargs):
+            optimizer = self.impl(*args, **kwargs)
+            optimizer.setup(target)
+            return optimizer
+        self.check_hyperparams(create)
+
+    def test_link_keyword_only_argument(self):
+        # Link argument must be specified with keyword (link=).
+        # This test assumes all the optimizers have the first argument as
+        # a hyperparameter, thus the link argument is rejected.
+        target = self.create_target()
+        with self.assertRaises(TypeError):
+            self.impl(target)
 
 
 testing.run_module(__name__, __file__)

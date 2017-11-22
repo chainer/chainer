@@ -2,6 +2,7 @@ import numpy
 
 from chainer import cuda
 from chainer import optimizer
+from chainer.utils import argument
 
 
 _default_hyperparam = optimizer.Hyperparameter()
@@ -92,8 +93,9 @@ class RMSprop(optimizer.GradientMethod):
 
     def __init__(self, lr=_default_hyperparam.lr,
                  alpha=_default_hyperparam.alpha, eps=_default_hyperparam.eps,
-                 model=None):
-        super(RMSprop, self).__init__(model)
+                 **kwargs):
+        link, = argument.parse_kwargs(kwargs, ('link', None))
+        super(RMSprop, self).__init__(link=link)
         self.hyperparam.lr = lr
         self.hyperparam.alpha = alpha
         self.hyperparam.eps = eps

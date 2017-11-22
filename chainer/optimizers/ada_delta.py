@@ -2,6 +2,7 @@ import numpy
 
 from chainer import cuda
 from chainer import optimizer
+from chainer.utils import argument
 
 
 _default_hyperparam = optimizer.Hyperparameter()
@@ -84,8 +85,9 @@ class AdaDelta(optimizer.GradientMethod):
     """
 
     def __init__(self, rho=_default_hyperparam.rho,
-                 eps=_default_hyperparam.eps, model=None):
-        super(AdaDelta, self).__init__(model)
+                 eps=_default_hyperparam.eps, **kwargs):
+        link, = argument.parse_kwargs(kwargs, ('link', None))
+        super(AdaDelta, self).__init__(link=link)
         self.hyperparam.rho = rho
         self.hyperparam.eps = eps
 

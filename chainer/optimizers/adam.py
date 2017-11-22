@@ -4,6 +4,7 @@ import numpy
 
 from chainer import cuda
 from chainer import optimizer
+from chainer.utils import argument
 
 
 _default_hyperparam = optimizer.Hyperparameter()
@@ -111,8 +112,9 @@ class Adam(optimizer.GradientMethod):
                  beta1=_default_hyperparam.beta1,
                  beta2=_default_hyperparam.beta2,
                  eps=_default_hyperparam.eps,
-                 model=None):
-        super(Adam, self).__init__(model)
+                 **kwargs):
+        link, = argument.parse_kwargs(kwargs, ('link', None))
+        super(Adam, self).__init__(link=link)
         self.hyperparam.alpha = alpha
         self.hyperparam.beta1 = beta1
         self.hyperparam.beta2 = beta2
