@@ -73,6 +73,11 @@ MIT License (see `LICENSE` file).
 - [Research projects using Chainer](https://github.com/chainer/chainer/wiki/Research-projects-using-Chainer)
 
 
+## Run from AWS Marketplace
+
+Bitfusion provides an EC2 AMI pre-installed with CUDA, cuDNN, Chainer, Jupyter, and more. [Launch](https://aws.amazon.com/marketplace/pp/B01KKDQD84/ref=_ptnr_referral_docs_chainer) an instance from the AWS Marketplace.
+
+
 ## Reference
 
 Tokui, S., Oono, K., Hido, S. and Clayton, J.,
