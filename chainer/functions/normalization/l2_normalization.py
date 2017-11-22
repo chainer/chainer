@@ -33,15 +33,14 @@ class NormalizeL2(function_node.FunctionNode):
     def backward(self, indexes, grad_outputs):
         x, = self.get_retained_inputs()
         gy, = grad_outputs
+        F = chainer.functions
 
-        norm = chainer.functions.sqrt(chainer.functions.sum(
-            chainer.functions.square(x), axis=self.axis)) + self.eps
-        norm = chainer.functions.broadcast_to(
-            chainer.functions.expand_dims(norm, self.axis), gy.shape)
+        norm = F.sqrt(F.sum(F.square(x), axis=self.axis)) + self.eps
+        norm = F.broadcast_to(F.expand_dims(norm, self.axis), gy.shape)
 
-        x_gy_reduced = chainer.functions.sum((x * gy), axis=self.axis)
-        x_gy_reduced = chainer.functions.broadcast_to(
-            chainer.functions.expand_dims(x_gy_reduced, self.axis), gy.shape)
+        x_gy_reduced = F.sum((x * gy), axis=self.axis)
+        x_gy_reduced = F.broadcast_to(
+            F.expand_dims(x_gy_reduced, self.axis), gy.shape)
         gx = gy * norm - x_gy_reduced * x / norm
         gx = gx / norm ** 2
 
