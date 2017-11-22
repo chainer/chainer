@@ -19,14 +19,13 @@ set CHAINER_PYTHON_350_FORCE environment variable to 1."""
         print(msg)
         sys.exit(1)
 
+here = os.path.abspath(os.path.dirname(__file__))
+
 
 setup_requires = []
-install_requires = [
-    'filelock',
-    'numpy>=1.9.0',
-    'protobuf>=3.0.0',
-    'six>=1.9.0',
-]
+with open(os.path.join(here, 'requirements', 'install')) as f:
+    install_requires = [l.rstrip() for l in f.readlines()]
+
 cupy_require = 'cupy==4.0.0b1'
 
 cupy_pkg = None
@@ -39,7 +38,6 @@ if cupy_pkg is not None:
     install_requires.append(cupy_require)
     print('Use %s' % cupy_require)
 
-here = os.path.abspath(os.path.dirname(__file__))
 __version__ = imp.load_source(
     '_version', os.path.join(here, 'chainer', '_version.py')).__version__
 
@@ -90,6 +88,4 @@ setup(
     zip_safe=False,
     setup_requires=setup_requires,
     install_requires=install_requires,
-    tests_require=['mock',
-                   'pytest'],
 )

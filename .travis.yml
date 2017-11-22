@@ -52,10 +52,7 @@ install:
   - pip install -U pip wheel
   - python setup.py sdist
   - pip install dist/*.tar.gz
-  - pip install h5py pillow
-  - travis_wait pip install theano
-  - pip install pytest hacking mock
-  - pip install autopep8
+  - travis_wait pip install -U -r requirements/travis
 
 script:
   - flake8

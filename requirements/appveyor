@@ -1,0 +1,4 @@
+-rstylecheck
+-rtest
+pytest-timeout
+pytest-cov

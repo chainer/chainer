@@ -1,0 +1,7 @@
+-rstylecheck
+-rtest
+pytest-timeout
+pytest-cov
+theano
+h5py
+pillow
