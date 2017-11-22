@@ -356,7 +356,7 @@ class NumericalGradientDetectNondifferentiableTest(unittest.TestCase):
         return x * x + 2.,
 
     def _func_cubic(self, x):
-        return -3 * x ** 3 + 2 * x ** 2 + 1
+        return -3 * x ** 3 + 2 * x ** 2 + 1,
 
     def _func_abs(self, x):
         return abs(x),
