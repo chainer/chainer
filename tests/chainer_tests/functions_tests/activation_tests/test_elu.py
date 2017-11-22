@@ -7,7 +7,6 @@ import chainer
 from chainer import cuda
 from chainer import functions
 from chainer import gradient_check
-from chainer import numexpr_config
 from chainer import testing
 from chainer.testing import attr
 

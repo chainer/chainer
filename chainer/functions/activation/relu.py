@@ -78,8 +78,13 @@ class ReLUGrad2(function_node.FunctionNode):
         self.b = b.data
 
     def forward_cpu(self, inputs):
-        y = (self.b > 0) * inputs[0]
-        return utils.force_array(y, dtype=y.dtype),
+        if numexpr_enabled:
+            b = self.b  # NOQA
+            input0 = inputs[0]  # NOQA
+            y = numexpr.evaluate('where(b > 0, input0, 0)')
+        else:
+            y = numpy.where(self.b > 0, inputs[0], 0)
+        return utils.force_array(y, dtype=inputs[0].dtype),
 
     def forward_gpu(self, inputs):
         gx = cuda.elementwise(
@@ -111,11 +116,12 @@ class ReLUGrad3(function_node.FunctionNode):
 
     def forward_cpu(self, inputs):
         if numexpr_enabled:
-            b = self.b
-            input0 = inputs[0]
-            return numexpr.evaluate('where(b > 0, input0, 0)')
+            b = self.b  # NOQA
+            input0 = inputs[0]  # NOQA
+            y = numexpr.evaluate('where(b > 0, input0, 0)')
         else:
-            return np.where(self.b > 0, inputs[0], 0),
+            y = numpy.where(self.b > 0, inputs[0], 0)
+        return utils.force_array(y, dtype=inputs[0].dtype),
 
     def forward_gpu(self, inputs):
         assert chainer.should_use_cudnn('==always')

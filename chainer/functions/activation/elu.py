@@ -23,8 +23,8 @@ class ELU(function_node.FunctionNode):
 
     def forward_cpu(self, x):
         self.retain_inputs((0,))
-        x0 = x[0]
-        alpha = self.alpha
+        x0 = x[0]  # NOQA
+        alpha = self.alpha  # NOQA
         if numexpr_enabled:
             y = numexpr.evaluate('where(x0 < 0, alpha * (exp(x0) - 1), x0)')
         else:
@@ -63,7 +63,7 @@ class ELUGrad(function_node.FunctionNode):
     def forward_cpu(self, inputs):
         x, gy = inputs
         if numexpr_enabled:
-            alpha = self.alpha
+            alpha = self.alpha  # NOQA
             gx = numexpr.evaluate('where(x < 0, gy*alpha*exp(x), gy)')
         else:
             gx = gy.copy()

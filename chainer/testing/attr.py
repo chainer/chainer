@@ -95,6 +95,6 @@ def with_numexpr(f):
     @wraps(f)
     @testing.with_requires('numexpr')
     def wrapper(arg):
-        ne_enabled = True
+        ne_enabled = True  # NOQA
         f(arg)
     return wrapper

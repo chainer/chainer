@@ -32,7 +32,7 @@ class ClippedReLU(function_node.FunctionNode):
     def forward_cpu(self, inputs):
         self.retain_inputs((0,))
         x, = inputs
-        cap = self.cap
+        cap = self.cap  # NOQA
         if numexpr_enabled:
             return utils.force_array(
                 numexpr.evaluate('where( where(x > 0, x, 0) > cap,'
@@ -69,8 +69,8 @@ class ClippedReLUGrad(function_node.FunctionNode):
 
     def forward_cpu(self, inputs):
         gy, = inputs
-        cap = self.cap
-        x = self.x
+        cap = self.cap  # NOQA
+        x = self.x  # NOQA
         if numexpr_enabled:
             return utils.force_array(
                 numexpr.evaluate('where( (x < cap)&(0 < x), '

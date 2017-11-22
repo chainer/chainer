@@ -54,9 +54,9 @@ class RMSpropRule(optimizer.UpdateRule):
                     grad.dtype.name, hp.eps))
         ms = self.state['ms']
         if numexpr_enabled:
-            alpha = hp.alpha
+            alpha = hp.alpha # NOQA
             data = param.data
-            lr = hp.lr
+            lr = hp.lr  # NOQA
             numexpr.evaluate('ms*alpha + (1 - alpha)*grad**2',
                              out=ms, casting='same_kind')
             numexpr.evaluate('data - lr*grad/(sqrt(ms) + eps)', out=data,

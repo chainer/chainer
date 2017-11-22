@@ -28,8 +28,8 @@ class Softplus(function_node.FunctionNode):
         x = inputs[0]
         # y = log(1 + exp(beta * x)) / beta
         if numexpr_enabled:
-            beta = self.beta
-            beta_inv = self.beta_inv
+            beta = self.beta  # NOQA
+            beta_inv = self.beta_inv  # NOQA
             y = numexpr.evaluate('(where(beta*x > 0, beta*x, 0) + '
                                  'log1p(exp(-abs(beta*x)))) * beta_inv')
         else:
@@ -75,7 +75,7 @@ class SoftplusGrad(function_node.FunctionNode):
         self.retain_inputs((0, 1))
         x, gy = inputs
         if numexpr_enabled:
-            beta = self.beta
+            beta = self.beta  # NOQA
             gx = numexpr.evaluate('(1 - 1 / (1 + exp(beta * x))) * gy')
         else:
             gx = (1 - 1 / (1 + numpy.exp(self.beta * x))) * gy

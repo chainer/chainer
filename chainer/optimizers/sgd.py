@@ -32,7 +32,7 @@ class SGDRule(optimizer.UpdateRule):
         if grad is None:
             return
         if numexpr_enabled:
-            data, lr = param.data, self.hyperparam.lr
+            data, lr = param.data, self.hyperparam.lr  # NOQA
             numexpr.evaluate('data - lr * grad',
                              out=param.data, casting='same_kind')
         else:

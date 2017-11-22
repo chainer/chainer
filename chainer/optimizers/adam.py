@@ -62,7 +62,7 @@ class AdamRule(optimizer.UpdateRule):
                     grad.dtype.name, hp.eps))
         m, v = self.state['m'], self.state['v']
         if numexpr_enabled:
-            beta1, beta2, lr, data = hp.beta1, hp.beta2, self.lr, param.data
+            beta1, beta2, lr, data = hp.beta1, hp.beta2, self.lr, param.data  # NOQA
             numexpr.evaluate('m + (1-beta1) * (grad-m)',
                              out=m, casting='same_kind')
             numexpr.evaluate('v + (1-beta2)*(grad**2-v)',

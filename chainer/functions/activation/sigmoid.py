@@ -76,7 +76,9 @@ class SigmoidGrad(function_node.FunctionNode):
         y, gy = inputs
         one = y.dtype.type(1)
         if numexpr_enabled:
-            return utils.force_array(numexpr.evaluate('gy * y * (one - y)'), y.dtype),
+            return utils.force_array(
+                numexpr.evaluate('gy * y * (one - y)'), y.dtype
+            ),
         else:
             return utils.force_array(gy * y * (one - y), y.dtype),
 

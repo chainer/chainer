@@ -58,8 +58,8 @@ class RMSpropGravesRule(optimizer.UpdateRule):
         n, g, delta = self.state['n'], self.state['g'], self.state['delta']
         hp = self.hyperparam
         if numexpr_enabled:
-            data, lr, eps, alpha = param.data, hp.lr, hp.eps, hp.alpha
-            momentum = hp.momentum
+            data, lr, eps, alpha = param.data, hp.lr, hp.eps, hp.alpha  # NOQA
+            momentum = hp.momentum  # NOQA
             numexpr.evaluate('n*alpha + (1 - alpha)*grad**2',
                              out=n, casting='same_kind')
             numexpr.evaluate('g*alpha + (1 - alpha)*grad',

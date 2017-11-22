@@ -33,7 +33,7 @@ class LeakyReLU(function_node.FunctionNode):
     def forward_cpu(self, inputs):
         x, = inputs
         if numexpr_enabled:
-            slope = self.slope
+            slope = self.slope  # NOQA
             y = numexpr.evaluate('where(x < 0, x * slope, x)')
         else:
             y = x.copy()
