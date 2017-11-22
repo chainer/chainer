@@ -393,14 +393,14 @@ class NumericalGradientDetectNondifferentiableTest(unittest.TestCase):
         y[-1 < x < 1] = numpy.nan
         return y,
 
-    def check_positive(self, xp, func_name, inputs, eps):
+    def check_positive(self, xp, func_name, inputs, eps, nout):
         # Should be non-differentiable
         func = getattr(self, '_func_{}'.format(func_name))
         grad_outputs = [
             xp.random.uniform(-1, 1, _.shape).astype(_.dtype) for _ in inputs]
 
         def f():
-            return func(*inputs)
+            return func(*inputs) * nout
 
         try:
             gradient_check.numerical_grad(
@@ -418,14 +418,14 @@ class NumericalGradientDetectNondifferentiableTest(unittest.TestCase):
                 ''.format(
                     func_name, eps, inputs, xp.__name__))
 
-    def check_negative(self, xp, func_name, inputs, eps):
+    def check_negative(self, xp, func_name, inputs, eps, nout):
         # Should be differentiable
         func = getattr(self, '_func_{}'.format(func_name))
         grad_outputs = [
             xp.random.uniform(-1, 1, _.shape).astype(_.dtype) for _ in inputs]
 
         def f():
-            return func(*inputs)
+            return func(*inputs) * nout
 
         try:
             gradient_check.numerical_grad(
@@ -443,23 +443,30 @@ class NumericalGradientDetectNondifferentiableTest(unittest.TestCase):
                     func_name, eps, inputs, xp.__name__,
                     e.__class__.__name__, e))
 
-    def check(self, xp):
+    def check(self, xp, nout):
         inputs = [xp.asarray(self.x).astype(numpy.float32)]
         with warnings.catch_warnings():
             if self.ignore_warning:
                 warnings.simplefilter('ignore', self.ignore_warning)
 
             if self.result:
-                self.check_positive(xp, self.func, inputs, self.eps)
+                self.check_positive(xp, self.func, inputs, self.eps, nout)
             else:
-                self.check_negative(xp, self.func, inputs, self.eps)
+                self.check_negative(xp, self.func, inputs, self.eps, nout)
 
     def test_cpu(self):
-        self.check(numpy)
+        self.check(numpy, 1)
 
     @attr.gpu
     def test_gpu(self):
-        self.check(cuda.cupy)
+        self.check(cuda.cupy, 1)
+
+    def test_2_outputs_cpu(self):
+        self.check(numpy, 2)
+
+    @attr.gpu
+    def test_2_outputs_gpu(self):
+        self.check(cuda.cupy, 2)
 
 
 class AssertAllCloseTest(unittest.TestCase):
