@@ -114,7 +114,7 @@ class TestTriplet(unittest.TestCase):
 
         gradient_check.check_double_backward(
             f, (a_data, p_data, n_data), gy_data,
-            (gga_data, ggp_data, ggn_data), rtol=5e-4, atol=5e-4)
+            (gga_data, ggp_data, ggn_data), rtol=1e-3, atol=1e-3)
 
     def test_double_backward_cpu(self):
         self.check_double_backward(
