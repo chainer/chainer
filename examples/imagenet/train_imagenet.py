@@ -104,6 +104,8 @@ def main():
     parser.add_argument('--val_batchsize', '-b', type=int, default=250,
                         help='Validation minibatch size')
     parser.add_argument('--test', action='store_true')
+    parser.add_argument('--workspacesize', type=int, default=None,
+                        help='The workspace size for cuDNN')
     parser.set_defaults(test=False)
     args = parser.parse_args()
 
@@ -115,6 +117,8 @@ def main():
     if args.gpu >= 0:
         chainer.cuda.get_device_from_id(args.gpu).use()  # Make the GPU current
         model.to_gpu()
+        if args.workspacesize is not None:
+            chainer.cuda.set_max_workspace_size(args.workspacesize)
 
     # Load the datasets and mean file
     mean = np.load(args.mean)
