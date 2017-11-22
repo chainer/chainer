@@ -322,9 +322,9 @@ Evaluation using the snapshot of a model is as easy as what explained in the :do
     plt.show()
     print('label:', t)
 
-    y = model(x)
+    y = model(x[None, ...])
 
-    print('predicted_label:', y.argmax(axis=1)[0])
+    print('predicted_label:', y.data.argmax(axis=1)[0])
 
 .. image:: ../../image/trainer/mnist_output.png
 
