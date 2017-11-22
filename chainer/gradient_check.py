@@ -120,6 +120,8 @@ def numerical_grad(
     # An iteration on a single input displacement
     def iterate_single_input(i_in, x, orig_x, i):
         orig = orig_x[i]
+        # `yss` holds a list of output arrays for each of 2 or 5 sampling
+        # points.
         if detect_nondifferentiable:
             yss = [
                 eval_func(x, i, -eps * 1., orig),
@@ -147,11 +149,9 @@ def numerical_grad(
             # (Example: x<0 region for the logarithm function)
             any_nonfinite = False
             for i_out in range(nout):
-                isfinites = [
-                    xp.isfinite(yss[_][i_out])
-                    for _ in range(len(yss))]
-                if any((isfinites[0] != isfinites[_]).any()
-                       for _ in range(1, len(yss))):
+                isfinites = [xp.isfinite(ys[i_out]) for ys in yss]
+                if any((isfinites[0] != isfinites[i]).any()
+                       for i in range(1, len(yss))):
                     s = six.StringIO()
                     s.write(
                         'Tried to compute the numeric gradient on a '
