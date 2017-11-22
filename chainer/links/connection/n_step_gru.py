@@ -98,7 +98,7 @@ class NStepGRUBase(link.ChainList):
         Args:
             hx (~chainer.Variable or None): Initial hidden states. If ``None``
                 is specified zero-vector is used.
-            xs (list of ~chianer.Variable): List of input sequences.
+            xs (list of ~chainer.Variable): List of input sequences.
                 Each element ``xs[i]`` is a :class:`chainer.Variable` holding
                 a sequence.
 

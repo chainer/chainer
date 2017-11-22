@@ -41,7 +41,7 @@ def _gen_case(base, module, i, param):
         def wrap(*args, **kwargs):
             try:
                 return method(*args, **kwargs)
-            except AssertionError as e:
+            except Exception as e:
                 s = six.StringIO()
                 s.write('Parameterized test failed.\n\n')
                 s.write('Base test method: {}.{}\n'.format(

@@ -1,11 +1,11 @@
 import numpy
 
 from chainer import cuda
-from chainer import function
+from chainer import function_node
 from chainer.utils import type_check
 
 
-class ResizeImages(function.Function):
+class ResizeImages(function_node.FunctionNode):
 
     def __init__(self, output_shape):
         self.out_H = output_shape[0]
@@ -59,12 +59,33 @@ class ResizeImages(function.Function):
         y = y.reshape(B, C, self.out_H, self.out_W)
         return y,
 
-    def backward(self, inputs, grad_outputs):
-        x, = inputs
-        xp = cuda.get_array_module(x)
-        gy, = grad_outputs
+    def backward(self, indexes, grad_outputs):
+        return ResizeImagesGrad(
+            self.inputs[0].shape, (self.out_H, self.out_W)).apply(grad_outputs)
 
-        B, C, H, W = x.shape
+
+class ResizeImagesGrad(function_node.FunctionNode):
+
+    def __init__(self, input_shape, output_shape):
+        self.out_H = output_shape[0]
+        self.out_W = output_shape[1]
+        self.input_shape = input_shape
+
+    def check_type_forward(self, in_types):
+        n_in = in_types.size()
+        type_check.expect(n_in == 1)
+
+        x_type = in_types[0]
+        type_check.expect(
+            x_type.dtype.char == 'f',
+            x_type.ndim == 4
+        )
+
+    def forward(self, inputs):
+        xp = cuda.get_array_module(*inputs)
+        gy, = inputs
+
+        B, C, H, W = self.input_shape
 
         u_1d = xp.linspace(0, W - 1, num=self.out_W)
         v_1d = xp.linspace(0, H - 1, num=self.out_H)
@@ -97,13 +118,16 @@ class ResizeImages(function.Function):
         else:
             scatter_add = xp.scatter_add
 
-        gx = xp.zeros_like(x)
+        gx = xp.zeros(self.input_shape, dtype=gy.dtype)
         gy = gy.reshape(B, C, -1)
         scatter_add(gx, (slice(None), slice(None), v0, u0), gy * wu1 * wv1)
         scatter_add(gx, (slice(None), slice(None), v0, u1), gy * wu0 * wv1)
         scatter_add(gx, (slice(None), slice(None), v1, u0), gy * wu1 * wv0)
         scatter_add(gx, (slice(None), slice(None), v1, u1), gy * wu0 * wv0)
         return gx,
+
+    def backward(self, indexes, grad_outputs):
+        return ResizeImages((self.out_H, self.out_W)).apply(grad_outputs)
 
 
 def resize_images(x, output_shape):
@@ -132,4 +156,4 @@ def resize_images(x, output_shape):
             :math:`(n, c_I, h_O, w_O)`.
 
     """
-    return ResizeImages(output_shape)(x)
+    return ResizeImages(output_shape).apply((x,))[0]

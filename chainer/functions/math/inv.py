@@ -1,5 +1,6 @@
 import numpy.linalg
 
+import chainer
 from chainer import cuda
 from chainer import function_node
 import chainer.functions
@@ -54,7 +55,11 @@ class Inv(function_node.FunctionNode):
     def forward_gpu(self, x):
         self.retain_outputs((0,))
         shape = x[0].shape
-        invx = _inv_gpu(x[0].reshape(1, *shape))[0].reshape(shape)
+        invx, info = _inv_gpu(x[0].reshape(1, *shape))
+        if chainer.is_debug():
+            if cuda.cupy.any(info != 0):
+                raise ValueError('Input has singular matrices.')
+        invx = invx.reshape(shape)
         return invx,
 
     def backward(self, x, gy):
@@ -85,7 +90,10 @@ class BatchInv(function_node.FunctionNode):
 
     def forward_gpu(self, x):
         self.retain_outputs((0,))
-        invx, _ = _inv_gpu(x[0])
+        invx, info = _inv_gpu(x[0])
+        if chainer.is_debug():
+            if cuda.cupy.any(info != 0):
+                raise ValueError('Input has singular matrices.')
         return invx,
 
     def backward(self, x, gy):

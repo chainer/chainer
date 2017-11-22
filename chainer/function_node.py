@@ -176,6 +176,25 @@ class FunctionNode(object):
     def _impl_name(self):
         return self.__class__.__name__
 
+    def __call__(self, *args, **kwargs):
+        if self.__class__.__module__.startswith('chainer.'):
+            msg = '''\
+Chainer's built-in function class object ({}) which is derived from \
+chainer.FunctionNode has been called as if it were a callable. \
+Use FunctionNode.apply() method instead.
+Furthermore, it's not recommended to use built-in function classes directly; \
+use corresponding function aliases (those with snake_case name, such as \
+F.convolution_nd) instead.\
+'''.format(self.__class__.__name__)
+        else:
+            msg = '''\
+A function class object ({}) which is derived from \
+chainer.FunctionNode has been called as if it were a callable. \
+Use apply() method instead.\
+'''.format(self.__class__.__name__)
+
+        raise RuntimeError(msg)
+
     def apply(self, inputs):
         """Computes output variables and grows the computational graph.
 
@@ -203,7 +222,8 @@ class FunctionNode(object):
         in_data = tuple([x.data for x in input_vars])
         requires_grad = any([x.requires_grad for x in input_vars])
 
-        if chainer.is_debug():
+        is_debug = chainer.is_debug()
+        if is_debug:
             self.stack = traceback.extract_stack()
 
         if configuration.config.type_check:
@@ -229,7 +249,7 @@ class FunctionNode(object):
             hook.forward_postprocess(self, in_data)
 
         # NaN check of output values
-        if chainer.is_debug():
+        if is_debug:
             if any(out.dtype.kind == 'f' and
                    cuda.get_array_module(out).isnan(out).any()
                    for out in outputs):
