@@ -27,13 +27,14 @@ class TestLinearInterpolate(unittest.TestCase):
 
         self.check_forward_options = {}
         self.check_backward_options = {'dtype': numpy.float64}
-        self.check_double_backward_options = {'dtype': numpy.float64}
+        self.check_double_backward_options = {
+            'dtype': numpy.float64, 'atol': 5e-3, 'rtol': 5e-2}
         if self.dtype == numpy.float16:
             self.check_forward_options = {'atol': 1e-3, 'rtol': 1e-3}
             self.check_backward_options = {
                 'dtype': numpy.float64, 'atol': 5e-4, 'rtol': 5e-3}
             self.check_double_backward_options = {
-                'dtype': numpy.float64, 'atol': 5e-4, 'rtol': 5e-3}
+                'dtype': numpy.float64, 'atol': 5e-3, 'rtol': 5e-2}
 
     def check_forward(self, p_data, x_data, y_data):
         p = chainer.Variable(p_data)
