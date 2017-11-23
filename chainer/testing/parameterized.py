@@ -51,7 +51,10 @@ def _gen_case(base, module, i, param):
                     s.write('  {}: {}\n'.format(k, v))
                 s.write('\n')
                 s.write('{}: {}\n'.format(type(e).__name__, e))
-                raise AssertionError(s.getvalue())
+                six.raise_from(
+                    AssertionError(
+                        s.getvalue()).with_traceback(e.__traceback__),
+                    None)
         return wrap
 
     # ismethod for Python 2 and isfunction for Python 3
