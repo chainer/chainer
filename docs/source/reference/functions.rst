@@ -222,6 +222,7 @@ Noise injections
    chainer.functions.gaussian
    chainer.functions.gumbel_softmax
    chainer.functions.simplified_dropconnect
+   chainer.functions.zoneout
 
 Normalization functions
 -----------------------
