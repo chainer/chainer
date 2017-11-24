@@ -331,7 +331,7 @@ def connectionist_temporal_classification(
     assert 0 <= blank_symbol < x[0].shape[1]
     # This implementation only supports 1-dimensional data.
     # TODO(jnishi): Support d(>1)-dimentinal inputs.
-    assert(x[0].ndim == 2)
+    assert x[0].ndim == 2
 
     if input_length is None:
         xp = cuda.get_array_module(x[0])
