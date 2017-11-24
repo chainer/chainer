@@ -24,6 +24,8 @@ class TestL2Normalization(unittest.TestCase):
     def setUp(self):
         self.x = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
         self.gy = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
+        self.ggx = numpy.random.uniform(
+            -1, 1, self.shape).astype(numpy.float32)
 
     def check_forward(self, x_data, axis):
         eps = 1e-5
@@ -55,9 +57,11 @@ class TestL2Normalization(unittest.TestCase):
         self.check_forward(cuda.to_gpu(self.x), self.axis)
 
     def check_backward(self, x_data, axis, y_grad):
+        def f(x):
+            return functions.normalize(x, eps=1e-6, axis=axis)
+
         gradient_check.check_backward(
-            functions.NormalizeL2(eps=1e-6, axis=axis), x_data, y_grad,
-            dtype='d', atol=1e-2, rtol=3e-2)
+            f, x_data, y_grad, dtype='d', atol=1e-2, rtol=3e-2)
 
     def test_backward_cpu(self):
         self.check_backward(self.x, self.axis, self.gy)
@@ -66,6 +70,22 @@ class TestL2Normalization(unittest.TestCase):
     def test_backward_gpu(self):
         self.check_backward(
             cuda.to_gpu(self.x), self.axis, cuda.to_gpu(self.gy))
+
+    def check_double_backward(self, x_data, axis, y_grad, x_grad_grad):
+        def f(x):
+            return functions.normalize(x, eps=1e-6, axis=axis)
+
+        gradient_check.check_double_backward(
+            f, x_data, y_grad, x_grad_grad, dtype='d', atol=1e-2, rtol=3e-2)
+
+    def test_double_backward_cpu(self):
+        self.check_double_backward(self.x, self.axis, self.gy, self.ggx)
+
+    @attr.gpu
+    def test_double_backward_gpu(self):
+        self.check_double_backward(
+            cuda.to_gpu(self.x), self.axis, cuda.to_gpu(self.gy),
+            cuda.to_gpu(self.ggx))
 
     def check_eps(self, x_data):
         x = chainer.Variable(x_data)
