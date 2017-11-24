@@ -50,6 +50,7 @@ Learnable connections
    chainer.links.StatefulGRU
    chainer.links.StatelessGRU
    chainer.links.StatefulPeepholeLSTM
+   chainer.links.StatefulZoneoutLSTM
    chainer.links.StatelessLSTM
 
 Activation/loss/normalization functions with parameters
