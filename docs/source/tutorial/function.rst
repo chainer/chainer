@@ -599,7 +599,7 @@ offers a utility function :func:`chainer.gradient_check.check_backward` that fol
            x = np.random.randn(3, 2).astype(np.float32)
            y_grad = np.random.randn(3, 2).astype(np.float32)
 
-           gradient_check.check_backward(f, x, y_grad)
+           gradient_check.check_backward(f, x, y_grad, atol=1e-4, rtol=1e-4)
 
 .. testcode::
    :hide:

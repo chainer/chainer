@@ -15,6 +15,28 @@ This example will show how to use the :class:`~chainer.training.Trainer` to trai
 Load the MNIST dataset, which contains a training set of images and class labels as well as a corresponding test set.
 
 .. testcode::
+    :hide:
+
+    # Depending on whether dataset is cached or not, get_mnist() may print
+    # to stdout, which cause doctest to fail.  This hidden testcode snippet
+    # is to make sure that the dataset is cached before running any other
+    # test codes in this file, so nothing is printed in the following
+    # get_mnist() call.
+
+    from chainer.datasets import mnist
+    train, test = mnist.get_mnist()
+
+    # This line is needed in case the dataset is already cached so above code
+    # prints nothing, as ELLIPSIS ("...") does not match with empty string.
+
+    print("Dataset is ready.")
+
+.. testoutput::
+    :hide:
+
+    ...
+
+.. testcode::
 
     from chainer.datasets import mnist
 
@@ -39,7 +61,8 @@ Load the MNIST dataset, which contains a training set of images and class labels
 
 :class:`~chainer.dataset.Iterator` creates a mini-batch from the given dataset.
 
-.. testsetup:: *
+.. testcode::
+    :hide:
 
     from chainer.datasets import mnist
 
@@ -96,7 +119,8 @@ So, :class:`~chainer.training.Updater` can perform the training procedure as sho
 
 Now let's create the :class:`~chainer.training.Updater` object !
 
-.. testsetup:: *
+.. testcode::
+    :hide:
 
     from chainer.datasets import mnist
 
@@ -157,7 +181,8 @@ Now let's create the :class:`~chainer.training.Updater` object !
 
 Lastly, we will setup :class:`~chainer.training.Trainer`. The only requirement for creating a :class:`~chainer.training.Trainer` is to pass the :class:`~chainer.training.Updater` object that we previously created above. You can also pass a :attr:`~chainer.training.Trainer.stop_trigger` to the second trainer argument as a tuple like ``(length, unit)`` to tell the trainer when to stop the training. The ``length`` is given as an integer and the ``unit`` is given as a string which should be either ``epoch`` or ``iteration``. Without setting :attr:`~chainer.training.Trainer.stop_trigger`, the training will never be stopped.
 
-.. testsetup:: *
+.. testcode::
+    :hide:
 
     model = L.Classifier(model)
     optimizer = optimizers.MomentumSGD()
@@ -297,9 +322,9 @@ Evaluation using the snapshot of a model is as easy as what explained in the :do
     plt.show()
     print('label:', t)
 
-    y = model(x)
+    y = model(x[None, ...])
 
-    print('predicted_label:', y.argmax(axis=1)[0])
+    print('predicted_label:', y.data.argmax(axis=1)[0])
 
 .. image:: ../../image/trainer/mnist_output.png
 

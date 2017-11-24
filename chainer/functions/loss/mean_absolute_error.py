@@ -1,11 +1,12 @@
 import numpy
 
+import chainer
 from chainer import cuda
-from chainer import function
+from chainer import function_node
 from chainer.utils import type_check
 
 
-class MeanAbsoluteError(function.Function):
+class MeanAbsoluteError(function_node.FunctionNode):
 
     """Mean absolute error function."""
 
@@ -29,10 +30,11 @@ class MeanAbsoluteError(function.Function):
         diff = self.diff.ravel()
         return abs(diff).sum() / diff.dtype.type(diff.size),
 
-    def backward(self, inputs, gy):
-        xp = cuda.get_array_module(*inputs)
-        coeff = gy[0] * gy[0].dtype.type(1. / self.diff.size)
-        gx0 = coeff * xp.sign(self.diff)
+    def backward(self, indexes, grad_outputs):
+        gy, = grad_outputs
+        coeff = gy * gy.data.dtype.type(1. / self.diff.size)
+        coeff = chainer.functions.broadcast_to(coeff, self.diff.shape)
+        gx0 = coeff * cuda.get_array_module(gy.data).sign(self.diff)
         return gx0, -gx0
 
 
@@ -43,4 +45,4 @@ def mean_absolute_error(x0, x1):
     is taken over the minibatch.
 
     """
-    return MeanAbsoluteError()(x0, x1)
+    return MeanAbsoluteError().apply((x0, x1))[0]
