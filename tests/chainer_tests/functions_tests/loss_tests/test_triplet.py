@@ -85,7 +85,7 @@ class TestTriplet(unittest.TestCase):
         self.check_forward(self.a, self.p, self.n)
 
     @attr.gpu
-    def test_forward_gpu_no_cudnn(self):
+    def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.a), cuda.to_gpu(self.p),
                            cuda.to_gpu(self.n))
 
@@ -102,7 +102,7 @@ class TestTriplet(unittest.TestCase):
         self.check_backward(self.a, self.p, self.n, self.gy)
 
     @attr.gpu
-    def test_backward_gpu_no_cudnn(self):
+    def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.a), cuda.to_gpu(self.p),
                             cuda.to_gpu(self.n), cuda.to_gpu(self.gy))
 
@@ -114,14 +114,14 @@ class TestTriplet(unittest.TestCase):
 
         gradient_check.check_double_backward(
             f, (a_data, p_data, n_data), gy_data,
-            (gga_data, ggp_data, ggn_data), rtol=5e-4, atol=5e-4)
+            (gga_data, ggp_data, ggn_data), rtol=1e-3, atol=1e-3)
 
     def test_double_backward_cpu(self):
         self.check_double_backward(
             self.a, self.p, self.n, self.gy, self.gga, self.ggp, self.ggn)
 
     @attr.gpu
-    def test_double_backward_gpu_no_cudnn(self):
+    def test_double_backward_gpu(self):
         self.check_double_backward(
             cuda.to_gpu(self.a), cuda.to_gpu(self.p), cuda.to_gpu(self.n),
             cuda.to_gpu(self.gy), cuda.to_gpu(self.gga), cuda.to_gpu(self.ggp),
