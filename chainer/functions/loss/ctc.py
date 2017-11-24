@@ -270,9 +270,8 @@ def connectionist_temporal_classification(
 
 
     Args:
-        x (sequence of :class:`~chainer.Variable`):
-            RNN output at each time. ``x`` must be a list
-            of :class:`~chainer.Variable` s. Each element of ``x``, ``x[i]``
+        x (list or tuple of :class:`~chainer.Variable`):
+            RNN output at each time. Each element of ``x``, ``x[i]``
             is a :class:`~chainer.Variable` representing output of RNN at time
             ``i``.
         t (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
