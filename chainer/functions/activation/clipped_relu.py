@@ -1,7 +1,7 @@
 from chainer import cuda
 from chainer import function_node
-from chainer.numexpr_config import numexpr_enabled
 from chainer.numexpr_config import numexpr
+from chainer.numexpr_config import numexpr_enabled
 from chainer import utils
 from chainer.utils import type_check
 import numpy

@@ -3,9 +3,9 @@ import math
 import numpy
 
 from chainer import cuda
-from chainer import optimizer
 from chainer.numexpr_config import numexpr
 from chainer.numexpr_config import numexpr_enabled
+from chainer import optimizer
 
 _default_hyperparam = optimizer.Hyperparameter()
 _default_hyperparam.alpha = 0.001
