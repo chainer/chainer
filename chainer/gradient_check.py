@@ -451,7 +451,9 @@ def _set_y_grad(y, y_grad):
     if y_grad is not None:
         if len(y) != len(y_grad):
             raise ValueError(
-                '`y_grad` must have the same length of output values')
+                'Upstream gradients must contain equally many elements as '
+                'number of output elements.\n'
+                'Actual: {} != {}'.format(len(y), len(y_grad)))
         for iy, igy in six.moves.zip(y, y_grad):
             if isinstance(igy, variable.Variable):
                 iy.grad_var = igy
@@ -460,8 +462,9 @@ def _set_y_grad(y, y_grad):
     else:
         if len(y) != 1:
             raise ValueError(
-                'When `y_grad` is `None`, the function must return a'
-                'zero-dimentional array')
+                'Function must return a zero-dimensional array of length 1 '
+                'if the upstream gradient is `None`.\n'
+                'Actual: {} != 1'.format(len(y)))
         y_grad = (1,)
     return y_grad
 

@@ -77,8 +77,8 @@ class MomentumSGD(optimizer.GradientMethod):
     """
 
     def __init__(self, lr=_default_hyperparam.lr,
-                 momentum=_default_hyperparam.momentum):
-        super(MomentumSGD, self).__init__()
+                 momentum=_default_hyperparam.momentum, model=None):
+        super(MomentumSGD, self).__init__(model)
         self.hyperparam.lr = lr
         self.hyperparam.momentum = momentum
 

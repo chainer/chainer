@@ -100,8 +100,9 @@ class RMSprop(optimizer.GradientMethod):
     """
 
     def __init__(self, lr=_default_hyperparam.lr,
-                 alpha=_default_hyperparam.alpha, eps=_default_hyperparam.eps):
-        super(RMSprop, self).__init__()
+                 alpha=_default_hyperparam.alpha, eps=_default_hyperparam.eps,
+                 model=None):
+        super(RMSprop, self).__init__(model)
         self.hyperparam.lr = lr
         self.hyperparam.alpha = alpha
         self.hyperparam.eps = eps

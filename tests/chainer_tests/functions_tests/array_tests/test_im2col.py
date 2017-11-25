@@ -116,14 +116,14 @@ class TestIm2Col(unittest.TestCase):
         self.ggx = numpy.random.uniform(
             size=self.in_shape).astype(self.dtype)
 
-        self.check_backward_options = {}
+        self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
         if self.dtype is numpy.float16:
-            self.check_backward_options.update({'atol': 5e-4, 'rtol': 5e-3})
+            self.check_backward_options.update({'atol': 1e-3, 'rtol': 1e-2})
 
-        self.check_double_backward_options = {}
+        self.check_double_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
         if self.dtype is numpy.float16:
             self.check_double_backward_options.update(
-                {'atol': 5e-4, 'rtol': 5e-3})
+                {'atol': 1e-3, 'rtol': 1e-2})
 
     def check_backward(self, x, ksize, stride, pad, cover_all, dilate, gy):
         def f(x):
