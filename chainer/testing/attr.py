@@ -1,6 +1,6 @@
+from functools import wraps
 import os
 import unittest
-from functools import wraps
 
 from chainer import numexpr_config
 from chainer import testing
