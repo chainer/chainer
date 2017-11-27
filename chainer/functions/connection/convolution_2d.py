@@ -1,4 +1,5 @@
 import numpy
+import six
 
 import chainer
 from chainer import configuration
@@ -262,7 +263,7 @@ class Convolution2DFunction(function_node.FunctionNode):
             _b = b.reshape(G, oCg)
 
         _ys = []
-        for g in range(G):
+        for g in six.moves.range(G):
             _bg = None if b is None else _b[g, ]
             if xp is numpy:
                 _y = self._forward_cpu_core(_x[g, ], _W[g, ], _bg)
@@ -272,7 +273,7 @@ class Convolution2DFunction(function_node.FunctionNode):
 
         y = xp.stack(_ys, axis=1)  # (N, G, oCg, oH, oW)
         _, _, _, oH, oW = y.shape
-        y = y.reshape((N, oC, oH, oW))
+        y = y.reshape(N, oC, oH, oW)
         return y
 
     def backward(self, indexes, grad_outputs):
@@ -440,7 +441,7 @@ class Convolution2DGradW(function_node.FunctionNode):
             _gy = xp.ascontiguousarray(_gy)
 
         _gWs = []
-        for g in range(G):
+        for g in six.moves.range(G):
             if xp is numpy:
                 _gW = self._forward_cpu_core(_x[g, ], _gy[g, ])
             else:

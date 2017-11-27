@@ -1,4 +1,5 @@
 import numpy
+import six
 
 import chainer
 from chainer import configuration
@@ -296,7 +297,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             _b = b.reshape(G, yCg)
 
         _ys = []
-        for g in range(G):
+        for g in six.moves.range(G):
             _bg = None if b is None else _b[g, ]
             if xp is numpy:
                 _y = self._forward_cpu_core(_x[g, ], _W[g, ], _bg)
