@@ -1,7 +1,7 @@
 from __future__ import print_function
 import sys
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function_hook
 from chainer import variable
 
