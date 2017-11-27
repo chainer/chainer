@@ -4,8 +4,10 @@ import threading
 import warnings
 
 from chainer import _version
+from chainer import backends  # NOQA
+# Alias for backward compatibility
+from chainer.backends import cuda  # NOQA
 from chainer import configuration  # NOQA
-from chainer import cuda  # NOQA
 from chainer import dataset  # NOQA
 from chainer import datasets  # NOQA
 from chainer import function  # NOQA
