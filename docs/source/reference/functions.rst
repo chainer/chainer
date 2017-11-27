@@ -177,7 +177,10 @@ Mathematical functions
    chainer.functions.clip
    chainer.functions.cos
    chainer.functions.cosh
+   chainer.functions.cumsum
    chainer.functions.exp
+   chainer.functions.expm1
+   chainer.functions.fix
    chainer.functions.fmod
    chainer.functions.floor
    chainer.functions.identity
@@ -199,6 +202,7 @@ Mathematical functions
    chainer.functions.scale
    chainer.functions.sin
    chainer.functions.sinh
+   chainer.functions.sign
    chainer.functions.sqrt
    chainer.functions.square
    chainer.functions.squared_difference

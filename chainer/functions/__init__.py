@@ -172,9 +172,10 @@ from chainer.functions.math.batch_l2_norm_squared import batch_l2_norm_squared  
 from chainer.functions.math.batch_l2_norm_squared import BatchL2NormSquared  # NOQA
 from chainer.functions.math.bias import bias  # NOQA
 from chainer.functions.math.ceil import ceil  # NOQA
-from chainer.functions.math.ceil import Ceil  # NOQA
 from chainer.functions.math.clip import clip  # NOQA
 from chainer.functions.math.clip import Clip  # NOQA
+from chainer.functions.math.cumsum import cumsum  # NOQA
+from chainer.functions.math.cumsum import Cumsum  # NOQA
 from chainer.functions.math.det import batch_det  # NOQA
 from chainer.functions.math.det import BatchDet  # NOQA
 from chainer.functions.math.det import det  # NOQA
@@ -188,8 +189,8 @@ from chainer.functions.math.exponential import log2  # NOQA
 from chainer.functions.math.exponential import Log2  # NOQA
 from chainer.functions.math.exponential_m1 import expm1  # NOQA
 from chainer.functions.math.exponential_m1 import Expm1  # NOQA
+from chainer.functions.math.fix import fix  # NOQA
 from chainer.functions.math.floor import floor  # NOQA
-from chainer.functions.math.floor import Floor  # NOQA
 from chainer.functions.math.fmod import fmod  # NOQA
 from chainer.functions.math.fmod import Fmod  # NOQA
 from chainer.functions.math.hyperbolic import cosh  # NOQA
@@ -226,6 +227,7 @@ from chainer.functions.math.minmax import Min  # NOQA
 from chainer.functions.math.prod import prod  # NOQA
 from chainer.functions.math.prod import Prod  # NOQA
 from chainer.functions.math.scale import scale  # NOQA
+from chainer.functions.math.sign import sign  # NOQA
 from chainer.functions.math.sqrt import rsqrt  # NOQA
 from chainer.functions.math.sqrt import sqrt  # NOQA
 from chainer.functions.math.sqrt import Sqrt  # NOQA

@@ -54,24 +54,35 @@ class AdamRule(optimizer.UpdateRule):
         if grad is None:
             return
         hp = self.hyperparam
+        eps = grad.dtype.type(hp.eps)
+        if hp.eps != 0 and eps == 0:
+            raise ValueError(
+                'eps of Adam optimizer is too small for {} ({})'.format(
+                    grad.dtype.name, hp.eps))
         m, v = self.state['m'], self.state['v']
 
         m += (1 - hp.beta1) * (grad - m)
         v += (1 - hp.beta2) * (grad * grad - v)
-        param.data -= self.lr * m / (numpy.sqrt(v) + hp.eps)
+        param.data -= self.lr * m / (numpy.sqrt(v) + eps)
 
     def update_core_gpu(self, param):
         grad = param.grad
         if grad is None:
             return
+        hp = self.hyperparam
+        eps = grad.dtype.type(hp.eps)
+        if hp.eps != 0 and eps == 0:
+            raise ValueError(
+                'eps of Adam optimizer is too small for {} ({})'.format(
+                    grad.dtype.name, hp.eps))
         cuda.elementwise(
             'T grad, T lr, T one_minus_beta1, T one_minus_beta2, T eps',
             'T param, T m, T v',
             '''m += one_minus_beta1 * (grad - m);
                v += one_minus_beta2 * (grad * grad - v);
                param -= lr * m / (sqrt(v) + eps);''',
-            'adam')(grad, self.lr, 1 - self.hyperparam.beta1,
-                    1 - self.hyperparam.beta2, self.hyperparam.eps, param.data,
+            'adam')(grad, self.lr, 1 - hp.beta1,
+                    1 - hp.beta2, eps, param.data,
                     self.state['m'], self.state['v'])
 
     @property
@@ -99,8 +110,9 @@ class Adam(optimizer.GradientMethod):
                  alpha=_default_hyperparam.alpha,
                  beta1=_default_hyperparam.beta1,
                  beta2=_default_hyperparam.beta2,
-                 eps=_default_hyperparam.eps):
-        super(Adam, self).__init__()
+                 eps=_default_hyperparam.eps,
+                 model=None):
+        super(Adam, self).__init__(model)
         self.hyperparam.alpha = alpha
         self.hyperparam.beta1 = beta1
         self.hyperparam.beta2 = beta2

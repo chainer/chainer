@@ -1,10 +1,10 @@
 from chainer import cuda
-from chainer import function
+from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
 
 
-class SquaredDifference(function.Function):
+class SquaredDifference(function_node.FunctionNode):
     """Squared difference of input variables."""
 
     def check_type_forward(self, in_types):
@@ -16,20 +16,19 @@ class SquaredDifference(function.Function):
         )
 
     def forward(self, inputs):
-        self.retain_inputs(())
-        self._in_dtype = inputs[0].dtype
+        self.retain_inputs((0, 1))
         xp = cuda.get_array_module(*inputs)
         x1, x2 = inputs
-        self.difference = x1 - x2
-        y = xp.square(self.difference)
+        difference = x1 - x2
+        y = xp.square(difference)
         return utils.force_array(y, dtype=x1.dtype),
 
-    def backward(self, inputs, grads):
+    def backward(self, indexes, grads):
         gy, = grads
-        gx = gy * 2 * self.difference
-        gx = utils.force_array(gx, dtype=self._in_dtype)
-        gx_minus = utils.force_array(-gx, dtype=self._in_dtype)
-        return gx, gx_minus
+        x1, x2 = self.get_retained_inputs()
+        difference = x1 - x2
+        gx = gy * 2 * difference
+        return gx, -gx
 
 
 def squared_difference(x1, x2):
@@ -42,4 +41,4 @@ def squared_difference(x1, x2):
     Returns:
         ~chainer.Variable: ``(x1 - x2) ** 2`` element-wise.
     """
-    return SquaredDifference()(x1, x2)
+    return SquaredDifference().apply((x1, x2))[0]

@@ -1,11 +1,11 @@
 import numpy
 
-from chainer import function
+from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
 
 
-class SquaredError(function.Function):
+class SquaredError(function_node.FunctionNode):
 
     """Squared error function."""
 
@@ -19,14 +19,15 @@ class SquaredError(function.Function):
 
     def forward(self, inputs):
         x0, x1 = inputs
-        self.diff = x0 - x1
-        return utils.force_array(self.diff * self.diff, dtype=x0.dtype),
+        diff = x0 - x1
+        self.retain_inputs((0, 1))
+        return utils.force_array(diff * diff, dtype=x0.dtype),
 
-    def backward(self, inputs, gy):
-        g = gy[0] * 2 * self.diff
-        return (
-            utils.force_array(g, dtype=gy[0].dtype),
-            utils.force_array(-g, dtype=gy[0].dtype))
+    def backward(self, indexes, grad_outputs):
+        x0, x1 = self.get_retained_inputs()
+        gy, = grad_outputs
+        gx = gy * 2 * (x0 - x1)
+        return gx, -gx
 
 
 def squared_error(x0, x1):
@@ -53,4 +54,4 @@ def squared_error(x0, x1):
             two inputs.
 
     """
-    return SquaredError()(x0, x1)
+    return SquaredError().apply((x0, x1))[0]

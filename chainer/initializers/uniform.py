@@ -69,7 +69,7 @@ class GlorotUniform(initializer.Initializer):
     Each element of the array is initialized by the value drawn
     independently from uniform distribution :math:`[-s, s]`
     where :math:`s = scale \\times \\sqrt{\\frac{6}{fan_{in} + fan_{out}}}`.
-    Here, :math:`fan_{in}` and `fan_{out}` are the number of
+    Here, :math:`fan_{in}` and :math:`fan_{out}` are the number of
     input and output units, respectively.
 
     Attributes:
