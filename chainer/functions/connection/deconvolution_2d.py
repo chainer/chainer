@@ -47,7 +47,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
 
     cover_all = None
 
-    def __init__(self, stride=1, pad=0, outsize=None, **kwargs):
+    def __init__(self, stride=1, pad=0, outsize=None, group=1, **kwargs):
         argument.check_unexpected_kwargs(
             kwargs,
             deterministic="deterministic argument is not supported anymore. "
@@ -58,8 +58,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             "the gradient w.r.t. x is automatically decided during "
             "backpropagation."
         )
-        dilate, group = argument.parse_kwargs(kwargs,
-                                              ('dilate', 1), ('group', 1))
+        dilate, = argument.parse_kwargs(kwargs, ('dilate', 1))
 
         self.sy, self.sx = _pair(stride)
         self.ph, self.pw = _pair(pad)
@@ -193,7 +192,8 @@ class Deconvolution2DFunction(function_node.FunctionNode):
 
         if (not self.cover_all and chainer.should_use_cudnn('>=auto') and
                 x.dtype == W.dtype and
-                ((self.dy == 1 and self.dx == 1) or _cudnn_version_ >= 6000) and
+                ((self.dy == 1 and self.dx == 1) or
+                 _cudnn_version_ >= 6000) and
                 _gc_use_cudnn):
             x = cuda.cupy.ascontiguousarray(x)
             W = cuda.cupy.ascontiguousarray(W)
@@ -343,7 +343,8 @@ class Deconvolution2DFunction(function_node.FunctionNode):
                                           self.pw, d=self.dx))
 
 
-def deconvolution_2d(x, W, b=None, stride=1, pad=0, outsize=None, **kwargs):
+def deconvolution_2d(x, W, b=None, stride=1, pad=0, outsize=None, group=1,
+                     **kwargs):
     """deconvolution_2d(x, W, b=None, stride=1, pad=0, outsize=None)
 
     Two dimensional deconvolution function.
@@ -453,7 +454,7 @@ http://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf
         "supported anymore. "
         "Use chainer.using_config('cudnn_deterministic', value) "
         "context where value is either `True` or `False`.")
-    dilate, group = argument.parse_kwargs(kwargs, ('dilate', 1), ('group', 1))
+    dilate, = argument.parse_kwargs(kwargs, ('dilate', 1))
 
     func = Deconvolution2DFunction(stride, pad, outsize, dilate=dilate,
                                    group=group)

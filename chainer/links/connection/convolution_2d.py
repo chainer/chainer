@@ -103,7 +103,8 @@ class Convolution2D(link.Link):
     """  # NOQA
 
     def __init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0,
-                 nobias=False, initialW=None, initial_bias=None, **kwargs):
+                 nobias=False, initialW=None, initial_bias=None, group=1,
+                 **kwargs):
         super(Convolution2D, self).__init__()
 
         argument.check_unexpected_kwargs(
@@ -111,8 +112,7 @@ class Convolution2D(link.Link):
             "supported anymore. "
             "Use chainer.using_config('cudnn_deterministic', value) "
             "context where value is either `True` or `False`.")
-        dilate, group = argument.parse_kwargs(kwargs,
-                                              ('dilate', 1), ('group', 1))
+        dilate, = argument.parse_kwargs(kwargs, ('dilate', 1))
 
         if ksize is None:
             out_channels, ksize, in_channels = in_channels, out_channels, None

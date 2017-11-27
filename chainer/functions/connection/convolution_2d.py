@@ -59,7 +59,7 @@ def _get_algorithm_bwd_filter(
 
 class Convolution2DFunction(function_node.FunctionNode):
 
-    def __init__(self, stride=1, pad=0, cover_all=False, **kwargs):
+    def __init__(self, stride=1, pad=0, cover_all=False, group=1, **kwargs):
         argument.check_unexpected_kwargs(
             kwargs,
             deterministic="deterministic argument is not supported anymore. "
@@ -70,8 +70,7 @@ class Convolution2DFunction(function_node.FunctionNode):
             "the gradient w.r.t. x is automatically decided during "
             "backpropagation."
         )
-        dilate, group = argument.parse_kwargs(kwargs,
-                                              ('dilate', 1), ('group', 1))
+        dilate, = argument.parse_kwargs(kwargs, ('dilate', 1))
 
         self.sy, self.sx = _pair(stride)
         self.ph, self.pw = _pair(pad)
@@ -473,7 +472,8 @@ class Convolution2DGradW(function_node.FunctionNode):
         return ret
 
 
-def convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False, **kwargs):
+def convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False, group=1,
+                   **kwargs):
     """convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False)
 
     Two-dimensional convolution function.
@@ -605,7 +605,7 @@ cover_all=True)
         "supported anymore. "
         "Use chainer.using_config('cudnn_deterministic', value) "
         "context where value is either `True` or `False`.")
-    dilate, group = argument.parse_kwargs(kwargs, ('dilate', 1), ('group', 1))
+    dilate, = argument.parse_kwargs(kwargs, ('dilate', 1))
 
     fnode = Convolution2DFunction(stride, pad, cover_all, dilate=dilate,
                                   group=group)
