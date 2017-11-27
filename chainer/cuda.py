@@ -237,8 +237,8 @@ def to_gpu(array, device=None, stream=None):
     """Copies the given CPU array to the specified device.
 
     Args:
-        array (numpy.ndarray, cupy.ndarray, list or tuple): Array or arrays to
-            be sent to GPU.
+        array (numpy.ndarray, cupy.ndarray, None, list or tuple):
+            Array or arrays to be sent to GPU.
         device: Device specifier.
         stream (~cupy.cuda.Stream): *(deprecated since v3.0.0)*
             CUDA stream. If not ``None``, the copy runs asynchronously.
@@ -248,6 +248,8 @@ def to_gpu(array, device=None, stream=None):
 
         If some of the arrays are already on GPU, then this function just
         returns those arrays without performing any copy.
+
+        If input arrays include `None`, it is returned as `None` as is.
 
     """
     if stream is not None:
@@ -325,8 +327,8 @@ def to_cpu(array, stream=None):
     """Copies the given GPU array to host CPU.
 
     Args:
-        array (numpy.ndarray, cupy.ndarray, list or tuple): Array or arrays to
-            be sent to CPU.
+        array (numpy.ndarray, cupy.ndarray, None, list or tuple):
+            Array or arrays to be sent to CPU.
         stream (cupy.cuda.Stream): CUDA stream.
 
     Returns:
@@ -334,6 +336,8 @@ def to_cpu(array, stream=None):
 
         If some of the arrays are already on CPU, then this function just
         returns those arrays without performing any copy.
+
+        If input arrays include `None`, it is returned as `None` as is.
 
     """
     if isinstance(array, (list, tuple)):
