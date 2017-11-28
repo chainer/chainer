@@ -722,6 +722,22 @@ class TestVariableBasic(unittest.TestCase):
                 pass
 
 
+class TestVariableDataAssign(unittest.TestCase):
+
+    def test_variable_data_assign(self):
+        x = chainer.Variable(np.ones((3, 2), np.float32))
+        chainer.functions.sin(x)
+        x.data = np.ones((2, 4), np.float64)
+        assert x.data.shape == (2, 4)
+        assert x.data.dtype == np.float64
+        assert x.shape == (2, 4)
+        assert x.dtype == np.float64
+        assert x.node.shape == (2, 4)
+        assert x.node.dtype == np.float64
+        assert x.node.data.shape == (2, 4)
+        assert x.node.data.dtype == np.float64
+
+
 class TestParameter(unittest.TestCase):
 
     def setUp(self):
