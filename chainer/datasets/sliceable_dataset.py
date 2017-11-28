@@ -20,23 +20,23 @@ class SliceableBaseDataset(chainer.dataset.DatasetMixin):
         return self._get_example(i, self.keys)
 
     def slice(self, index=None, keys=None):
+        if index is None:
+            index = slice(None)
+        if keys is None:
+            keys = self.keys
         return SlicedDataset(self, index, keys)
 
 
 class SlicedDataset(SliceableBaseDataset):
 
     def __init__(self, base, index, keys):
-        if index is None:
-            index = slice(None)
-        elif not isinstance(index, slice):
-            index = slice(index, index + 1)
         self._base = base
         self._index = index
         self.keys = keys
 
     def __len__(self):
         start, end, step = self._index.indices(len(self._base))
-        return (end - start) // step
+        return len(range(start, end, step))
 
     def _get_example(self, i, keys):
         start, _, step = self._index.indices(len(self._base))
