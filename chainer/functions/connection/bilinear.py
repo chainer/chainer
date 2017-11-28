@@ -7,16 +7,22 @@ from chainer.utils import array
 from chainer.utils import type_check
 
 
+def _as_mat(x):
+    if x.ndim == 2:
+        return x
+    return x.reshape(len(x), -1)
+
+
 def _ij_ik_il_to_jkl(a, b, c):
     ab = chainer.functions.matmul(a[:, :, None], b[:, None, :])  # ijk
-    return chainer.functions.matmul(array.as_mat(ab).T, c).reshape(
+    return chainer.functions.matmul(_as_mat(ab).T, c).reshape(
         a.shape[1], b.shape[1], c.shape[1])
 
 
 def _ij_ik_jkl_to_il(a, b, c):
     ab = chainer.functions.matmul(a[:, :, None], b[:, None, :])  # ijk
     c = c.reshape(-1, c.shape[-1])  # [jk]l
-    return chainer.functions.matmul(array.as_mat(ab), c)
+    return chainer.functions.matmul(_as_mat(ab), c)
 
 
 def _ij_il_jkl_to_ik(a, b, c):
@@ -28,7 +34,6 @@ def _ik_il_jkl_to_ij(a, b, c):
 
 
 class BilinearFunction(function_node.FunctionNode):
-
     def check_type_forward(self, in_types):
         n_in = type_check.eval(in_types.size())
         if n_in != 3 and n_in != 6:
@@ -71,8 +76,8 @@ class BilinearFunction(function_node.FunctionNode):
     def forward(self, inputs):
         self.retain_inputs(tuple(range(len(inputs))))
 
-        e1 = array.as_mat(inputs[0])
-        e2 = array.as_mat(inputs[1])
+        e1 = _as_mat(inputs[0])
+        e2 = _as_mat(inputs[1])
         W = inputs[2]
 
         if not type_check.same_types(*inputs):
@@ -106,8 +111,8 @@ class BilinearFunctionGrad(function_node.FunctionNode):
     def forward(self, inputs):
         self.retain_inputs(tuple(range(len(inputs))))
 
-        e1 = array.as_mat(inputs[0])
-        e2 = array.as_mat(inputs[1])
+        e1 = _as_mat(inputs[0])
+        e2 = _as_mat(inputs[1])
         W, gy = inputs[2], inputs[-1]
 
         xp = cuda.get_array_module(*inputs)
@@ -131,12 +136,12 @@ class BilinearFunctionGrad(function_node.FunctionNode):
     def backward(self, indexes, grad_outputs):
         inputs = self.get_retained_inputs()
 
-        e1 = array.as_mat(inputs[0])
-        e2 = array.as_mat(inputs[1])
+        e1 = _as_mat(inputs[0])
+        e2 = _as_mat(inputs[1])
         W, gy = inputs[2], inputs[-1]
 
-        gge1 = array.as_mat(grad_outputs[0])
-        gge2 = array.as_mat(grad_outputs[1])
+        gge1 = _as_mat(grad_outputs[0])
+        gge2 = _as_mat(grad_outputs[1])
         ggW = grad_outputs[2]
 
         dge1_de2 = _ij_il_jkl_to_ik(gge1, gy, W)
