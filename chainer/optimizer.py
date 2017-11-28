@@ -133,6 +133,8 @@ class UpdateRule(object):
         self.enabled = True
         self.hyperparam = Hyperparameter(parent_hyperparam)
         self.t = 0
+        self._use_fp32_update = False
+        self._fp32_param = None
 
     @property
     def state(self):
@@ -186,14 +188,12 @@ class UpdateRule(object):
 
         self.t += 1
 
-        use_fp32_update = getattr(self, "_use_fp32_update", False)
-        if param.data.dtype == numpy.float16 and use_fp32_update:
-            fp32_param = getattr(self, "_fp32_param", None)
-            if fp32_param is None:
+        if self._use_fp32_update and param.dtype == numpy.float16:
+            if self._fp32_param is None:
                 self._fp32_param = variable.Variable(
-                    param.data.astype(numpy.float32),
+                    param.array.astype(numpy.float32),
                     name=param.name)
-                fp32_param = self._fp32_param
+            fp32_param = self._fp32_param
             fp32_param.grad = param.grad.astype(numpy.float32)
 
             if fp32_param.data is not None:
@@ -202,7 +202,7 @@ class UpdateRule(object):
                 hook(self, fp32_param)
             self.update_core(fp32_param)
 
-            param.data = fp32_param.data.astype(param.data.dtype)
+            param.data = fp32_param.data.astype(param.dtype)
             fp32_param.grad = None
         else:
             if param.data is not None:
@@ -528,12 +528,13 @@ class GradientMethod(Optimizer):
         self.hyperparam = Hyperparameter()
         if isinstance(link, link_module.Link):
             self.setup(link)
+        self._use_fp32_update = False
 
     def setup(self, link):
         super(GradientMethod, self).setup(link)
         for param in link.params():
             param.update_rule = self.create_update_rule()
-            if getattr(self, "_use_fp32_update", False):
+            if self._use_fp32_update:
                 param.update_rule.use_fp32_update()
 
     def reallocate_cleared_grads(self):
