@@ -110,18 +110,30 @@ class TestCuda(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 cuda.to_gpu(x)
 
-    def test_get_array_module_for_numpy(self):
-        self.assertIs(cuda.get_array_module(numpy.array([])), numpy)
-        self.assertIs(
-            cuda.get_array_module(chainer.Variable(numpy.array([]))),
-            numpy)
+    def test_get_array_module_for_numpy_array(self):
+        xp = cuda.get_array_module(numpy.array([]))
+        self.assertIs(xp, numpy)
+        self.assertIsNot(xp, cuda.cupy)
+
+    def test_get_array_module_for_numpy_variable(self):
+        xp = cuda.get_array_module(chainer.Variable(numpy.array([])))
+        self.assertIs(xp, numpy)
+        self.assertIsNot(xp, cuda.cupy)
 
     @attr.gpu
-    def test_get_array_module_for_cupy(self):
-        self.assertIs(cuda.get_array_module(cuda.cupy.array([])), cuda.cupy)
-        self.assertIs(
-            cuda.get_array_module(chainer.Variable(cuda.cupy.array([]))),
-            cuda.cupy)
+    def test_get_array_module_for_cupy_array(self):
+        xp = cuda.get_array_module(cuda.cupy.array([]))
+        self.assertIs(xp, cuda.cupy)
+        self.assertIsNot(xp, numpy)
+
+    @attr.gpu
+    def test_get_array_module_for_cupy_variable(self):
+        xp = cuda.get_array_module(chainer.Variable(cuda.cupy.array([])))
+        self.assertIs(xp, cuda.cupy)
+        self.assertIsNot(xp, numpy)
+
+    def test_cupy_is_not_none(self):
+        self.assertIsNotNone(cuda.cupy)
 
 
 @testing.parameterize(
@@ -186,6 +198,35 @@ class TestToCPU(unittest.TestCase):
         x = chainer.Variable(self.x)
         with self.assertRaises(TypeError):
             cuda.to_cpu(x)
+
+
+@testing.parameterize(*testing.product({
+    'dtype': [
+        numpy.bool_, numpy.uint8, numpy.int8, numpy.uint16,
+        numpy.int16, numpy.uint32, numpy.int32, numpy.uint64,
+        numpy.int64, numpy.float16, numpy.float32, numpy.float64,
+        numpy.complex_],
+}))
+class TestToCPUScalar(unittest.TestCase):
+
+    def test_numpy_scalar(self):
+        dtype = self.dtype
+        if dtype is numpy.bool_:
+            x = dtype(True)
+        elif issubclass(dtype, numpy.complex_):
+            x = dtype(3.2 - 2.4j)
+        elif issubclass(dtype, numpy.integer):
+            x = dtype(3)
+        elif issubclass(dtype, numpy.floating):
+            x = dtype(3.2)
+        else:
+            assert False
+
+        y = cuda.to_cpu(x)
+        assert isinstance(y, numpy.ndarray)
+        assert y.shape == ()
+        assert y.dtype == dtype
+        assert y == x
 
 
 class TestWorkspace(unittest.TestCase):
@@ -301,6 +342,36 @@ class TestToGPU(unittest.TestCase):
         x = chainer.Variable(self.x)
         with self.assertRaises(TypeError):
             cuda.to_gpu(x)
+
+
+@testing.parameterize(*testing.product({
+    'dtype': [
+        numpy.bool_, numpy.uint8, numpy.int8, numpy.uint16,
+        numpy.int16, numpy.uint32, numpy.int32, numpy.uint64,
+        numpy.int64, numpy.float16, numpy.float32, numpy.float64,
+        numpy.complex_],
+}))
+class TestToGPUScalar(unittest.TestCase):
+
+    @attr.gpu
+    def test_numpy_scalar(self):
+        dtype = self.dtype
+        if dtype is numpy.bool_:
+            x = dtype(True)
+        elif issubclass(dtype, numpy.complex_):
+            x = dtype(3.2 - 2.4j)
+        elif issubclass(dtype, numpy.integer):
+            x = dtype(3)
+        elif issubclass(dtype, numpy.floating):
+            x = dtype(3.2)
+        else:
+            assert False
+
+        y = cuda.to_gpu(x)
+        assert isinstance(y, cuda.ndarray)
+        assert y.shape == ()
+        assert y.dtype == dtype
+        assert y == x
 
 
 testing.run_module(__name__, __file__)

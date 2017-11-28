@@ -401,47 +401,6 @@ def _get_source_relative_path(source_abs_path):
     return os.path.relpath(source_abs_path, _find_source_root(source_abs_path))
 
 
-def _is_docstring_autosummary_compliant(docstring):
-    doc = docstring.split('\n')
-
-    # Extract until the first blank line if any.
-    try:
-        doc = doc[:doc.index('')]
-    except ValueError:
-        pass
-
-    # Taken from https://github.com/sphinx-doc/sphinx/blob/1.6.3/sphinx/ext/autosummary/__init__.py#L341
-    m = re.search(r'^([A-Z].*?\.)(?:\s|$)', ' '.join(doc).strip())
-    if m:
-        summary = m.group(1).strip()
-    else:
-        summary = doc[0].strip()
-
-    return summary == ' '.join(doc)
-
-
-def _check_object_validity(obj):
-    # Check whether the docstring is compliant with autosummary's restriction.
-    # Autosummary extracts the "first sentence", which ends at the first period
-    # followed by a whitespace or an EOL. This scheme incorrectly treats
-    # abbreviation such as "a.k.a. SOMETHING" as the end of sentence, which
-    # leads to a truncated summary line. We detect such non-compliant docstring
-    # here.
-    # TODO(niboshi):
-    #   It's definitely a wrong place to check it. It should be checked at
-    #   autosummary template, for example.
-    try:
-        doc = obj.__doc__
-    except AttributeError:
-        doc = None
-
-    if doc is not None:
-        if not _is_docstring_autosummary_compliant(doc):
-            raise RuntimeError(
-                'docstring of {} is not autosummary-compliant: {}\n'
-                ''.format(obj, repr(doc)))
-
-
 def _get_sourcefile_and_linenumber(obj):
     # Retrieve the original function wrapped by contextlib.contextmanager
     if callable(obj):
@@ -493,8 +452,6 @@ def linkcode_resolve(domain, info):
 
     filename = os.path.realpath(filename)
     relpath = _get_source_relative_path(filename)
-
-    _check_object_validity(obj)
 
     return 'https://github.com/chainer/chainer/blob/{}/{}#L{}'.format(
         tag, relpath, linenum)

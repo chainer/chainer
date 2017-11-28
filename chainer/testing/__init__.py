@@ -1,5 +1,3 @@
-import nose
-
 from chainer.testing import array  # NOQA
 from chainer.testing import helper  # NOQA
 from chainer.testing import parameterized  # NOQA
@@ -31,6 +29,5 @@ def run_module(name, file):
     """
 
     if name == '__main__':
-
-        nose.runmodule(argv=[file, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                       exit=False)
+        import pytest
+        pytest.main([file, '-vvs', '-x', '--pdb'])

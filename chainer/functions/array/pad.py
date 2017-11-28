@@ -1,13 +1,13 @@
 import numpy
 
 from chainer import cuda
-from chainer import function
+from chainer import function_node
 from chainer.utils import type_check
 
 
-class Pad(function.Function):
+class Pad(function_node.FunctionNode):
 
-    """Padding of an array"""
+    """Padding of an array."""
 
     def __init__(self, pad_width, mode, **keywords):
         self.mode = mode
@@ -26,25 +26,18 @@ class Pad(function.Function):
         type_check.expect(x_type.dtype.kind == 'f')
 
     def forward(self, inputs):
-        self.retain_inputs(())
-        self._in_shape = inputs[0].shape
         xp = cuda.get_array_module(*inputs)
         return xp.pad(inputs[0], self.pad_width, mode=self.mode,
                       **self.keywords),
 
-    def backward(self, inputs, grads):
-        xp = cuda.get_array_module(*grads)
-        gy = grads[0]
-        ndims = len(self._in_shape)
+    def backward(self, inputs, grad_outputs):
+        gy, = grad_outputs
+        in_shape = self.inputs[0].shape
         if self.pad_bw.ndim == 1:
-            self.pad_bw = numpy.tile(self.pad_bw, (ndims, 1))
-        for i in range(ndims):
-            gy = xp.take(gy,
-                         indices=numpy.arange(self.pad_bw[i][0],
-                                              self.pad_bw[i][0]
-                                              + self._in_shape[i]),
-                         axis=i)
-        return gy,
+            self.pad_bw = numpy.tile(self.pad_bw, (len(in_shape), 1))
+        input_idxs = tuple(
+            slice(p[0], p[0] + dim) for dim, p in zip(in_shape, self.pad_bw))
+        return gy[input_idxs],
 
 
 def pad(x, pad_width, mode, **keywords):
@@ -67,4 +60,4 @@ def pad(x, pad_width, mode, **keywords):
         ~chainer.Variable: Output variable.
 
     """
-    return Pad(pad_width, mode, **keywords)(x)
+    return Pad(pad_width, mode, **keywords).apply((x,))[0]

@@ -118,7 +118,7 @@ class PlotReport(extension.Extension):
         if _available:
             # Dynamically import pyplot to call matplotlib.use()
             # after importing chainer.training.extensions
-            import matplotlib.pyplot as plot
+            import matplotlib.pyplot as plt
         else:
             return
 
@@ -147,7 +147,7 @@ class PlotReport(extension.Extension):
                 if k in stats_cpu:
                     data[k].append((x, stats_cpu[k]))
 
-            f = plot.figure()
+            f = plt.figure()
             a = f.add_subplot(111)
             a.set_xlabel(self._x_key)
             if self._grid:
@@ -168,7 +168,7 @@ class PlotReport(extension.Extension):
                 f.savefig(path.join(trainer.out, self._file_name),
                           bbox_extra_artists=(l,), bbox_inches='tight')
 
-            plot.close()
+            plt.close()
             self._init_summary()
 
     def serialize(self, serializer):

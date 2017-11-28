@@ -1,9 +1,9 @@
 import collections
 import os
-import pkg_resources
 import threading
 import warnings
 
+from chainer import _version
 from chainer import configuration  # NOQA
 from chainer import cuda  # NOQA
 from chainer import dataset  # NOQA
@@ -68,16 +68,18 @@ from chainer import _environment_check
 _environment_check.check()
 
 
-__version__ = pkg_resources.get_distribution('chainer').version
+__version__ = _version.__version__
 
-
-thread_local = threading.local()
+_thread_local = threading.local()
 
 
 def get_function_hooks():
-    if not hasattr(thread_local, 'function_hooks'):
-        thread_local.function_hooks = collections.OrderedDict()
-    return thread_local.function_hooks
+    try:
+        ret = _thread_local.function_hooks
+    except AttributeError:
+        ret = collections.OrderedDict()
+        _thread_local.function_hooks = ret
+    return ret
 
 
 global_config.debug = bool(int(os.environ.get('CHAINER_DEBUG', '0')))
@@ -89,6 +91,7 @@ global_config.train = True
 global_config.type_check = bool(int(os.environ.get('CHAINER_TYPE_CHECK', '1')))
 global_config.use_cudnn = os.environ.get('CHAINER_USE_CUDNN', 'auto')
 global_config.use_cudnn_tensor_core = 'auto'
+global_config.autotune = False
 
 
 _SHOULD_USE_CUDNN = {
@@ -97,7 +100,7 @@ _SHOULD_USE_CUDNN = {
 }
 
 
-_cudnn_version = cuda.cudnn.cudnn.getVersion() if cuda.cudnn_enabled else -1
+_cudnn_version = cuda.cuda.cudnn.getVersion() if cuda.cudnn_enabled else -1
 
 
 def should_use_cudnn(level, lowest_version=0):
@@ -127,11 +130,15 @@ def should_use_cudnn(level, lowest_version=0):
                          repr(level))
     flags = _SHOULD_USE_CUDNN[level]
 
-    if config.use_cudnn not in flags:
+    use_cudnn = config.use_cudnn
+    if use_cudnn not in flags:
         raise ValueError('invalid use_cudnn configuration: %s '
                          '(must be either of "always", "auto", or "never")' %
-                         repr(config.use_cudnn))
-    return flags[config.use_cudnn]
+                         repr(use_cudnn))
+    return flags[use_cudnn]
+
+
+_tensor_core_flag = {'always': True, 'auto': None, 'never': False}
 
 
 def should_use_cudnn_tensor_core(dtype):
@@ -144,15 +151,14 @@ def should_use_cudnn_tensor_core(dtype):
         bool: ``True`` if Tensor Core should be used.
     """
 
-    flags = {'always': True, 'auto': None, 'never': False}
-    if config.use_cudnn_tensor_core not in flags:
+    use_cudnn_tensor_core = config.use_cudnn_tensor_core
+    if use_cudnn_tensor_core not in _tensor_core_flag:
         raise ValueError('invalid use_cudnn_tensor_core configuration: %s '
                          '(must be either of "always", "auto", or "never")' %
-                         repr(config.use_cudnn))
-    use_tensor_core = flags[config.use_cudnn_tensor_core]
+                         repr(use_cudnn_tensor_core))
+    use_tensor_core = _tensor_core_flag[use_cudnn_tensor_core]
     if use_tensor_core is None:
         use_tensor_core = cuda.cudnn.is_tensor_core_available(dtype)
-
     return use_tensor_core
 
 
@@ -170,8 +176,8 @@ def set_debug(debug):
 
     .. note::
 
-        This method changes global state. When you use this method on
-        multi-threading environment, it may affects other threads.
+        This method changes the global state. When you use this method on
+        multi-threading environment, it may affect other threads.
 
     Args:
         debug (bool): New debug mode.
@@ -188,7 +194,8 @@ class DebugMode(object):
     mode back to the original value.
 
     .. deprecated:: v2.0.0
-       DebugMode is deprecated. Use ``using_config('debug', debug)`` instead.
+
+        Use :func:`chainer.using_config` instead. See :ref:`debug` for details.
 
     Args:
         debug (bool): Debug mode used in the context.
