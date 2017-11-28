@@ -513,18 +513,82 @@ Use apply() method instead.\
         # method without using backward().
         gxs = self.backward(target_input_indexes, grad_outputs)
 
+        is_debug = chainer.is_debug()
+
+        if is_debug:
+            for gx in gxs:
+                if not (gx is None or isinstance(gx, variable.Variable)):
+                    self._raise_error(
+                        'type of gradients returned from backward is '
+                        'incorrect: '
+                        '{} != expected {}'.format(
+                            type(gx), variable.Variable))
+
         len_gxs = len(gxs)
         if len_gxs == len(self.inputs):
             gxs = tuple([gxs[i] for i in target_input_indexes])
         elif len_gxs != len(target_input_indexes):
-            raise ValueError(
-                'number of gradients returned by %s (%s) is incorrect.'
-                % (self._impl_name, self.label))
+            msg = 'number of gradients returned from backward is incorrect: '
+            if len(self.inputs) == len(target_input_indexes):
+                msg += (
+                    '%s != expected %s' % (len_gxs, len(self.inputs)))
+            else:
+                msg += (
+                    '%s != expected %s or %s'
+                    % (len_gxs, len(self.inputs), len(target_input_indexes)))
+            self._raise_error(msg)
+
+        if is_debug:
+            for gx, i in six.moves.zip(gxs, target_input_indexes):
+                if gx is None:
+                    continue
+                if gx.shape != self.inputs[i].shape:
+                    self._raise_error(
+                        'shape of gradients returned from backward is '
+                        'incorrect: '
+                        'input-index={}, actual {} != expected {}'.format(
+                            i, gx.shape, self.inputs[i].shape))
+                if gx is not None and grad_inputs[i] is not None:
+                    if gx.shape != grad_inputs[i].shape:
+                        self._raise_error(
+                            'shape of gradients returned from backward is '
+                            'incorrect: '
+                            'input-index={}, actual {} != expected {}'.format(
+                                i, gx.shape, grad_inputs[i].shape))
+                    if gx.dtype != grad_inputs[i].dtype:
+                        self._raise_error(
+                            'dtype of gradients returned from backward is '
+                            'incorrect: '
+                            'input-index={}, actual {} != expected {}'.format(
+                                i, gx.dtype, grad_inputs[i].dtype))
 
         return tuple([gx if g_input is None else
                       g_input if gx is None else
                       gx + g_input
                       for gx, g_input in six.moves.zip(gxs, grad_inputs)])
+
+    def _raise_error(self, message, error_type=ValueError):
+        lines = [
+            message,
+            '  function={} ({})'.format(self._impl_name, self.label)
+        ]
+        if self.inputs:
+            for i, input in enumerate(self.inputs):
+                lines.append(
+                    '    input {}: shape={} dtype={}'.format(
+                        i, input.shape, input.dtype))
+        if self.outputs:
+            for i, output_ref in enumerate(self.outputs):
+                output = output_ref()
+                if output is None:
+                    lines.append(
+                        '    output {}: not available')
+                else:
+                    lines.append(
+                        '    output {}: shape={} dtype={}'.format(
+                            i, output.shape, output.dtype))
+        exc = error_type('\n'.join(lines))
+        raise exc
 
     def get_retained_inputs(self):
         """Returns a tuple of retained input variables.
@@ -537,6 +601,9 @@ Use apply() method instead.\
 
         """
         inputs = self.inputs
+        if self._input_indexes_to_retain is None:
+            raise self._raise_error(
+                'retain_inputs is not called in forward.')
         return tuple([inputs[index].get_variable()
                       for index in self._input_indexes_to_retain])
 
@@ -557,6 +624,9 @@ Use apply() method instead.\
            node of the function node.
 
         """
+        if self._retained_output_data is None:
+            raise self._raise_error(
+                'retain_outputs is not called in forward.')
         ret = []
         outputs = self.outputs
 
