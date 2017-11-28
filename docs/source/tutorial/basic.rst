@@ -60,7 +60,8 @@ You can build a computational graph by dynamically 'chaining' various kinds of :
 
      import numpy as np
      import chainer
-     from chainer import cuda, Function, gradient_check, report, training, utils, Variable
+     from chainer.backends import cuda
+     from chainer import Function, gradient_check, report, training, utils, Variable
      from chainer import datasets, iterators, optimizers, serializers
      from chainer import Link, Chain, ChainList
      import chainer.functions as F

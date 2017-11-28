@@ -222,7 +222,7 @@ The training loop code is as follows:
 
     import numpy as np
     from chainer.dataset import concat_examples
-    from chainer.cuda import to_cpu
+    from chainer.backends.cuda import to_cpu
 
     max_epoch = 10
 

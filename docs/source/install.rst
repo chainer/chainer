@@ -110,9 +110,9 @@ Once CuPy is correctly set up, Chainer will automatically enable CUDA support.
 
 You can refer to the following flags to confirm if CUDA/cuDNN support is actually available.
 
-``chainer.cuda.available``
+``chainer.backends.cuda.available``
    ``True`` if Chainer successfully imports :mod:`cupy`.
-``chainer.cuda.cudnn_enabled``
+``chainer.backends.cuda.cudnn_enabled``
    ``True`` if cuDNN support is available.
 
 

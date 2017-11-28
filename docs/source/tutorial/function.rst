@@ -244,7 +244,7 @@ It can be written straight-forward as follows
    Here we used ``cuda.cupy`` instead of directly accessing :mod:`cupy`.
    This is because the ``cupy`` module cannot be imported if the CUDA is not installed.
    In order to keep the implementation valid in non-CUDA environment, we have to defer the access to the ``cupy`` module.
-   Note that the :mod:`chainer.cuda` module can be imported even if the CUDA is not installed.
+   Note that the :mod:`chainer.backends.cuda` module can be imported even if the CUDA is not installed.
    Of course, the module in such environment is almost useless, but if the interpreter does not run through the code accessing CUDA-dedicated functions, the code is still valid.
 
 The CPU and GPU implementations are almost same, except that :mod:`numpy` is replaced by :mod:`cupy` in GPU methods.
