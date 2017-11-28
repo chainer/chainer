@@ -152,11 +152,14 @@ class ConcatWithAsyncTransfer(object):
     An instance of this class is mainly intended to be used as a converter
     function of an updater like below.
 
-        >>> from chainer.dataset import convert
-        >>> ...
-        >>> updater = chainer.training.StandardUpdater(...,
-        >>>               converter=convert.ConcatWithAsyncTransfer(),
-        >>>               ...)
+    .. doctest::
+
+        from chainer.dataset import convert
+        ...
+        updater = chainer.training.StandardUpdater(
+                       ...,
+                       converter=convert.ConcatWithAsyncTransfer(),
+                       ...)
 
     Args:
         stream (cupy.cuda.Stream): CUDA stream. If ``None``, a stream is
