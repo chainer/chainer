@@ -346,7 +346,7 @@ Some parameter/gradient manipulations, e.g. weight decay and gradient clipping, 
 Hook functions are called after the gradient computation and right before the actual update of parameters.
 For example, we can set weight decay regularization by running the next line beforehand:
 
-   >>> optimizer.add_hook(chainer.optimizer.WeightDecay(0.0005))
+   >>> optimizer.add_hook(chainer.optimizer_hooks.WeightDecay(0.0005))
 
 Of course, you can write your own hook functions.
 It should be a function or a callable object, taking the optimizer as the argument.

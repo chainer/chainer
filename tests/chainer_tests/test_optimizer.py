@@ -1,13 +1,12 @@
 import copy
 import unittest
+import warnings
 
 import mock
 import numpy as np
 
 import chainer
 from chainer import cuda
-from chainer import functions
-from chainer import links
 from chainer import optimizer
 from chainer import optimizers
 from chainer import testing
@@ -288,206 +287,6 @@ class SimpleLink(chainer.Link):
             self.param.grad = g
 
 
-class UninitializedChain(chainer.Chain):
-
-    def __init__(self):
-        super(UninitializedChain, self).__init__()
-        w = 10
-        with self.init_scope():
-            self.f0 = links.Linear(w)
-            self.f1 = links.Linear(w)
-            self.f2 = links.Linear(w)
-        self.count = 0
-
-    def __call__(self, h):
-        h = self.f0(h)
-        if self.count % 2 == 1:
-            h = self.f1(h)
-        h = self.f2(h)
-        self.count += 1
-        return functions.sum(h)
-
-
-class TestOptimizerWeightDecay(unittest.TestCase):
-
-    def setUp(self):
-        self.target = SimpleLink(
-            np.arange(6, dtype=np.float32).reshape(2, 3),
-            np.arange(3, -3, -1, dtype=np.float32).reshape(2, 3))
-
-    def check_weight_decay(self):
-        w = self.target.param.data
-        g = self.target.param.grad
-
-        decay = 0.2
-        expect = w - g - decay * w
-
-        opt = optimizers.SGD(lr=1)
-        opt.setup(self.target)
-        opt.add_hook(optimizer.WeightDecay(decay))
-        opt.update()
-
-        testing.assert_allclose(expect, w)
-
-    def test_weight_decay_cpu(self):
-        self.check_weight_decay()
-
-    @attr.gpu
-    def test_weight_decay_gpu(self):
-        self.target.to_gpu()
-        self.check_weight_decay()
-
-    def test_call_hooks_uninitialized_param(self):
-        target = UninitializedChain()
-        opt = optimizers.MomentumSGD()
-        opt.setup(target)
-        opt.add_hook(optimizer.WeightDecay(rate=0.0005))
-        target(np.ones((4, 10), dtype=np.float32))
-        opt.call_hooks()
-
-        # This test is for asserting that calling the hook on a chain
-        # with uninitialized parameters does not crash, so if we reach
-        # here, the test has passed.
-
-
-class TestOptimizerLasso(unittest.TestCase):
-
-    def setUp(self):
-        self.target = SimpleLink(
-            np.arange(6, dtype=np.float32).reshape(2, 3),
-            np.arange(3, -3, -1, dtype=np.float32).reshape(2, 3))
-
-    def check_lasso(self):
-        w = self.target.param.data
-        g = self.target.param.grad
-        xp = cuda.get_array_module(w)
-        decay = 0.2
-        expect = w - g - decay * xp.sign(w)
-
-        opt = optimizers.SGD(lr=1)
-        opt.setup(self.target)
-        opt.add_hook(optimizer.Lasso(decay))
-        opt.update()
-
-        testing.assert_allclose(expect, w)
-
-    def test_lasso_cpu(self):
-        self.check_lasso()
-
-    @attr.gpu
-    def test_lasso_gpu(self):
-        self.target.to_gpu()
-        self.check_lasso()
-
-    def test_call_hooks_uninitialized_param(self):
-        target = UninitializedChain()
-        opt = optimizers.MomentumSGD()
-        opt.setup(target)
-        opt.add_hook(optimizer.Lasso(rate=0.0005))
-        target(np.ones((4, 10), dtype=np.float32))
-        opt.call_hooks()
-
-        # This test is for asserting that calling the hook on a chain
-        # with uninitialized parameters does not crash, so if we reach
-        # here, the test has passed.
-
-
-class TestOptimizerGradientNoise(unittest.TestCase):
-
-    eta = 0.01
-
-    def setUp(self):
-        self.target = SimpleLink(
-            np.arange(6, dtype=np.float32).reshape(2, 3),
-            np.arange(3, -3, -1, dtype=np.float32).reshape(2, 3))
-
-        self.noise_value = np.random.normal(
-            loc=0, scale=np.sqrt(self.eta / np.power(1, 0.55)),
-            size=(2, 3)).astype(np.float32)
-
-    def check_gradient_noise(self):
-        w = self.target.param.data
-        g = self.target.param.grad
-        xp = cuda.get_array_module(w)
-        noise_value = xp.asarray(self.noise_value)
-
-        expect = w - g - noise_value
-
-        noise = mock.Mock(return_value=noise_value)
-        opt = optimizers.SGD(lr=1)
-        opt.setup(self.target)
-        hook = optimizer.GradientNoise(self.eta, noise_func=noise)
-        opt.add_hook(hook)
-        opt.update()
-
-        testing.assert_allclose(expect, w, rtol=0.4)
-        rule = self.target.param.update_rule
-        noise.assert_called_once_with(xp, (2, 3), np.float32, hook, rule)
-
-    def test_gradient_noise_cpu(self):
-        self.check_gradient_noise()
-
-    @attr.gpu
-    def test_gradient_noise_gpu(self):
-        self.target.to_gpu()
-        self.check_gradient_noise()
-
-    def test_call_hooks_uninitialized_param(self):
-        target = UninitializedChain()
-        opt = optimizers.MomentumSGD()
-        opt.setup(target)
-        opt.add_hook(optimizer.GradientNoise(eta=1))
-        target(np.ones((4, 10), dtype=np.float32))
-        opt.call_hooks()
-
-        # This test is for asserting that calling the hook on a chain
-        # with uninitialized parameters does not crash, so if we reach
-        # here, the test has passed.
-
-
-class TestGradientHardClipping(unittest.TestCase):
-
-    def setUp(self):
-        self.target = SimpleLink(
-            np.arange(6, dtype=np.float32).reshape(2, 3),
-            np.arange(3, -3, -1, dtype=np.float32).reshape(2, 3))
-
-    def check_hardclipping(self):
-        w = self.target.param.data
-        g = self.target.param.grad
-        xp = cuda.get_array_module(w)
-        lower_bound = -0.9
-        upper_bound = 1.1
-        expect = w - xp.clip(g, lower_bound, upper_bound)
-
-        opt = optimizers.SGD(lr=1)
-        opt.setup(self.target)
-        opt.add_hook(optimizer.GradientHardClipping(lower_bound, upper_bound))
-        opt.update()
-
-        testing.assert_allclose(expect, w)
-
-    def test_hardclipping_cpu(self):
-        self.check_hardclipping()
-
-    @attr.gpu
-    def test_hardclipping_gpu(self):
-        self.target.to_gpu()
-        self.check_hardclipping()
-
-    def test_call_hooks_uninitialized_param(self):
-        target = UninitializedChain()
-        opt = optimizers.MomentumSGD()
-        opt.setup(target)
-        opt.add_hook(optimizer.GradientClipping(threshold=1))
-        target(np.ones((4, 10), dtype=np.float32))
-        opt.call_hooks()
-
-        # This test is for asserting that calling the hook on a chain
-        # with uninitialized parameters does not crash, so if we reach
-        # here, the test has passed.
-
-
 class TestGradientMethod(unittest.TestCase):
 
     def setUp(self):
@@ -609,6 +408,36 @@ class TestGradientMethodClearGrads(unittest.TestCase):
     def test_update(self):
         self.target.cleargrads()
         self.optimizer.update()
+
+
+@testing.parameterize(
+    *testing.product(
+        {'attribute': ['GradientClipping',
+                       'GradientHardClipping',
+                       'GradientNoise',
+                       'Lasso',
+                       'WeightDecay']}))
+class TestDeprecatedOptimizerHook(unittest.TestCase):
+
+    def setUp(self):
+        self.context = warnings.catch_warnings(record=True)
+        self.warnings = self.context.__enter__()
+        warnings.filterwarnings(action='always', category=DeprecationWarning)
+
+    def tearDown(self):
+        self.context.__exit__()
+
+    def test_getattr_deprecated(self):
+        getattr(chainer.optimizer, 'GradientClipping')
+
+        self.assertEqual(len(self.warnings), 1)
+        self.assertIs(self.warnings[-1].category, DeprecationWarning)
+
+    def test_setattr_deprecated(self):
+        setattr(chainer.optimizer, 'GradientClipping', None)
+
+        self.assertEqual(len(self.warnings), 1)
+        self.assertIs(self.warnings[-1].category, DeprecationWarning)
 
 
 testing.run_module(__name__, __file__)
