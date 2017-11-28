@@ -19,8 +19,9 @@ class SimpleLink(chainer.Link):
         super(SimpleLink, self).__init__()
         with self.init_scope():
             self.param = chainer.Parameter(I.Zero, w.shape)
-        self.param.data = w
-        self.param.grad = g
+            self.param2 = chainer.Parameter(I.Zero, w.shape)
+        self.param.data[:] = self.param2.data[:] = w
+        self.param.grad[:] = self.param2.grad[:] = g
 
 
 class TestGradientNoise(unittest.TestCase):
@@ -41,7 +42,6 @@ class TestGradientNoise(unittest.TestCase):
         g = self.target.param.grad
         xp = cuda.get_array_module(w)
         noise_value = xp.asarray(self.noise_value)
-
         expect = w - g - noise_value
 
         noise = mock.Mock(return_value=noise_value)
@@ -51,8 +51,14 @@ class TestGradientNoise(unittest.TestCase):
         opt.add_hook(hook)
         opt.update()
 
-        testing.assert_allclose(expect, w, rtol=0.4)
-        noise.assert_called_once_with(xp, (2, 3), np.float32, hook, opt)
+        testing.assert_allclose(expect, self.target.param.data, rtol=0.4)
+        testing.assert_allclose(expect, self.target.param2.data, rtol=0.4)
+        self.assertEqual(noise.call_count, 2)
+        call1 = mock.call(xp, (2, 3), np.dtype('float32'), hook,
+                          self.target.param.update_rule)
+        call2 = mock.call(xp, (2, 3), np.dtype('float32'), hook,
+                          self.target.param2.update_rule)
+        assert noise.mock_calls == [call1, call2]
 
     def test_gradient_noise_cpu(self):
         self.check_gradient_noise()

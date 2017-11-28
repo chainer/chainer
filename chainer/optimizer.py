@@ -12,7 +12,6 @@ from chainer import serializer as serializer_module
 from chainer import variable
 
 
-
 class Hyperparameter(object):
 
     """Set of hyperparameter entries of an optimizer.
@@ -592,3 +591,49 @@ class HyperparameterProxy(object):
 
     def __set__(self, obj, value):
         setattr(obj.hyperparam, self._attr_name, value)
+
+
+def make_deprecation_message(module_name):
+    return ('chainer.optimizer.{0} is deprecated from v4. '
+            'Use chainer.optimizer_hooks.{0} instead.'
+            ''.format(module_name))
+
+
+class WeightDecay(optimizer_hooks.WeightDecay):
+
+    def __init__(self, *args, **kwargs):
+        warnings.warn(make_deprecation_message('WeightDecay'),
+                      DeprecationWarning)
+        return super(WeightDecay, self).__init__(*args, **kwargs)
+
+
+class Lasso(optimizer_hooks.Lasso):
+
+    def __init__(self, *args, **kwargs):
+        warnings.warn(make_deprecation_message('Lasso'),
+                      DeprecationWarning)
+        return super(Lasso, self).__init__(*args, **kwargs)
+
+
+class GradientClipping(optimizer_hooks.GradientClipping):
+
+    def __init__(self, *args, **kwargs):
+        warnings.warn(make_deprecation_message('GradientClipping'),
+                      DeprecationWarning)
+        return super(GradientClipping, self).__init__(*args, **kwargs)
+
+
+class GradientNoise(optimizer_hooks.GradientNoise):
+
+    def __init__(self, *args, **kwargs):
+        warnings.warn(make_deprecation_message('GradientNoise'),
+                      DeprecationWarning)
+        return super(GradientNoise, self).__init__(*args, **kwargs)
+
+
+class GradientHardClipping(optimizer_hooks.GradientHardClipping):
+
+    def __init__(self, *args, **kwargs):
+        warnings.warn(make_deprecation_message('GradientHardClipping'),
+                      DeprecationWarning)
+        return super(GradientHardClipping, self).__init__(*args, **kwargs)
