@@ -16,21 +16,23 @@ class SliceableBaseDataset(chainer.dataset.DatasetMixin):
     def _get_example(self, i, keys):
         raise NotImplementedError
 
-    def get_example(self, i, keys):
+    def get_example(self, i):
         return self._get_example(i, self.keys)
 
-    def slice(self, index, keys=None):
+    def slice(self, index=None, keys=None):
         return SlicedDataset(self, index, keys)
 
 
 class SlicedDataset(SliceableBaseDataset):
 
     def __init__(self, base, index, keys):
-        if not isinstance(index, slice):
+        if index is None:
+            index = slice(None)
+        elif not isinstance(index, slice):
             index = slice(index, index + 1)
         self._base = base
         self._index = index
-        self._keys = keys
+        self.keys = keys
 
     def __len__(self):
         start, end, step = self._index.indices(len(self._base))
@@ -38,7 +40,7 @@ class SlicedDataset(SliceableBaseDataset):
 
     def _get_example(self, i, keys):
         start, _, step = self._index.indices(len(self._base))
-        return self.base._get_example(start + i * step, keys)
+        return self._base._get_example(start + i * step, keys)
 
 
 class SliceableDataset(SliceableBaseDataset):
