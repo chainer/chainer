@@ -1,7 +1,7 @@
 import unittest
 
-from chainer import testing
 from chainer.datasets import SliceableDataset
+from chainer import testing
 
 
 class SampleDataset(SliceableDataset):
