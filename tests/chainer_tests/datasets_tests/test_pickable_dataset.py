@@ -62,6 +62,10 @@ class TestPickableDataset(unittest.TestCase):
         self.assertEqual(dataset[3], ('anno0(3)', 'anno2(3)'))
         self.assertEqual(self.dataset.count, 1)
 
+    def test_pick_invalid(self):
+        with self.assertRaises(KeyError):
+            self.dataset.pick('invalid')
+
     def test_sub(self):
         dataset = self.dataset.sub(3, 8, 2)
         self.assertEqual(len(dataset), 3)

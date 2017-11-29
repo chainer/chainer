@@ -20,6 +20,9 @@ class BaseDataset(chainer.dataset.DatasetMixin):
         return self.get_example_by_keys(i, self.keys)
 
     def pick(self, keys):
+        for key in _as_tuple(keys):
+            if key not in _as_tuple(self.keys):
+                raise KeyError('{} does not exists'.format(key))
         return PickedDataset(self, keys)
 
     def sub(self, start, stop=None, step=None):
