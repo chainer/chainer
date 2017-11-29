@@ -136,6 +136,7 @@ Loss functions
    :toctree: generated/
    :nosignatures:
 
+   chainer.functions.absolute_error
    chainer.functions.bernoulli_nll
    chainer.functions.black_out
    chainer.functions.connectionist_temporal_classification
