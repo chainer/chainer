@@ -28,6 +28,12 @@ class BaseDataset(chainer.dataset.DatasetMixin):
     def sub(self, start, stop=None, step=None):
         return SubDataset(self, slice(start, stop, step))
 
+    def concatenate(self, *datasets):
+        for dataset in datasets:
+            if not dataset.keys == self.keys:
+                raise ValueError('mismatched keys')
+        return ConcatenatedDataset((self,) + datasets)
+
 
 class PickedDataset(BaseDataset):
 
@@ -56,6 +62,25 @@ class SubDataset(BaseDataset):
     def get_example_by_keys(self, i, keys):
         start, _, step = self._index.indices(len(self._base))
         return self._base.get_example_by_keys(start + i * step, keys)
+
+
+class ConcatenatedDataset(BaseDataset):
+
+    def __init__(self, datasets):
+        self._datasets = datasets
+        self.keys = datasets[0].keys
+
+    def __len__(self):
+        return sum(len(dataset) for dataset in self._datasets)
+
+    def get_example_by_keys(self, i, keys):
+        if i < 0:
+            raise IndexError
+        for dataset in self._datasets:
+            if i < len(dataset):
+                return dataset.get_example_by_keys(i, keys)
+            i -= len(dataset)
+        raise IndexError
 
 
 class PickableDataset(BaseDataset):

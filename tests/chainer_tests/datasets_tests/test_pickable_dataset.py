@@ -73,6 +73,21 @@ class TestPickableDataset(unittest.TestCase):
             dataset[1], ('img(5)', 'anno0(5)', 'anno1(5)', 'anno2(5)'))
         self.assertEqual(self.dataset.count, 3)
 
+    def test_concatenate(self):
+        dataset = self.dataset.concatenate(self.dataset)
+        self.assertEqual(len(dataset), 20)
+        self.assertEqual(
+            dataset[1], ('img(1)', 'anno0(1)', 'anno1(1)', 'anno2(1)'))
+        self.assertEqual(
+            dataset[11], ('img(1)', 'anno0(1)', 'anno1(1)', 'anno2(1)'))
+        self.assertEqual(self.dataset.count, 6)
+
+    def test_concatenate_invalid(self):
+        dataset0 = self.dataset.pick(('img', 'anno0'))
+        dataset1 = self.dataset.pick(('img', 'anno1'))
+        with self.assertRaises(ValueError):
+            dataset0.concatenate(dataset1)
+
     def test_all(self):
         dataset = self.dataset.sub(3, 8, 2).pick(('anno0', 'anno1'))
         self.assertEqual(len(dataset), 3)
