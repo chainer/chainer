@@ -8,7 +8,7 @@ def _as_tuple(t):
         return (t,), False
 
 
-class SliceableBaseDataset(chainer.dataset.DatasetMixin):
+class BaseDataset(chainer.dataset.DatasetMixin):
 
     def __len__(self):
         raise NotImplementedError
@@ -27,7 +27,7 @@ class SliceableBaseDataset(chainer.dataset.DatasetMixin):
         return SlicedDataset(self, index, keys)
 
 
-class SlicedDataset(SliceableBaseDataset):
+class SlicedDataset(BaseDataset):
 
     def __init__(self, base, index, keys):
         self._base = base
@@ -43,7 +43,7 @@ class SlicedDataset(SliceableBaseDataset):
         return self._base._get_example(start + i * step, keys)
 
 
-class SliceableDataset(SliceableBaseDataset):
+class SliceableDataset(BaseDataset):
 
     def __init__(self):
         self._getters = dict()
