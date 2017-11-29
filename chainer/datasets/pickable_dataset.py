@@ -91,7 +91,7 @@ class PickableDataset(BaseDataset):
     def __len__(self):
         raise NotImplementedError
 
-    def add_getter(self, keys, getter):
+    def add_getter(self, getter, keys):
         keys = _as_tuple(keys)
         for i, key in enumerate(keys):
             self._getters[key] = (getter, i)
