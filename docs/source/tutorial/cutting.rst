@@ -1,4 +1,0 @@
-Cutting Edge Chainer
---------------------
-
-TBD
