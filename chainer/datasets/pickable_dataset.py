@@ -3,9 +3,9 @@ import chainer
 
 def _as_tuple(t):
     if isinstance(t, tuple):
-        return tuple(t), True
+        return t
     else:
-        return (t,), False
+        return t,
 
 
 class BaseDataset(chainer.dataset.DatasetMixin):
@@ -64,19 +64,23 @@ class PickableDataset(BaseDataset):
         raise NotImplementedError
 
     def add_getter(self, keys, getter):
-        keys, _ = _as_tuple(keys)
+        keys = _as_tuple(keys)
         for i, key in enumerate(keys):
             self._getters[key] = (getter, i)
 
     def get_example_by_keys(self, i, keys):
-        keys, is_tuple = _as_tuple(keys)
+        if isinstance(keys, tuple):
+            is_tuple = True
+        else:
+            keys = keys,
+            is_tuple = False
 
         example = list()
         cache = dict()
         for key in keys:
             getter, index = self._getters[key]
             if getter not in cache:
-                cache[getter], _ = _as_tuple(getter(i))
+                cache[getter] = _as_tuple(getter(i))
             example.append(cache[getter][index])
 
         if is_tuple:
