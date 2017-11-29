@@ -92,9 +92,11 @@ class PickableDataset(BaseDataset):
         raise NotImplementedError
 
     def add_getter(self, getter, keys):
-        keys = _as_tuple(keys)
-        for i, key in enumerate(keys):
-            self._getters[key] = (getter, i)
+        if isinstance(keys, tuple):
+            for j, key in enumerate(keys):
+                self._getters[key] = (getter, j)
+        else:
+            self._getters[keys] = (getter, None)
 
     def get_example_by_keys(self, i, keys):
         if isinstance(keys, tuple):
@@ -106,10 +108,13 @@ class PickableDataset(BaseDataset):
         example = list()
         cache = dict()
         for key in keys:
-            getter, index = self._getters[key]
+            getter, j = self._getters[key]
             if getter not in cache:
-                cache[getter] = _as_tuple(getter(i))
-            example.append(cache[getter][index])
+                cache[getter] = getter(i)
+            if j is None:
+                example.append(cache[getter])
+            else:
+                example.append(cache[getter][j])
 
         if is_tuple:
             return tuple(example)
