@@ -12,13 +12,41 @@ def separate(x, axis=0):
     This function is an inverse of :func:`chainer.functions.stack`.
 
     Args:
-        x (chainer.Variable): Variable to be separated.
+        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`):
+            Variable to be separated.
+            A :math:`(s_1, s_2, ..., s_N)` -shaped float array.
         axis (int): Axis along which variables are separated.
 
     Returns:
         tuple of chainer.Variable: Output variables.
 
     .. seealso:: :func:`chainer.functions.stack`
+
+    .. admonition:: Example
+
+        >>> x = np.arange(6).reshape((2, 3)).astype('f')
+        >>> x
+        array([[ 0.,  1.,  2.],
+               [ 3.,  4.,  5.]], dtype=float32)
+        >>> x.shape
+        (2, 3)
+        >>> y = F.separate(x) # split along axis=0
+        >>> isinstance(y, tuple)
+        True
+        >>> len(y)
+        2
+        >>> y[0].shape
+        (3,)
+        >>> y[0].data
+        array([ 0.,  1.,  2.], dtype=float32)
+        >>> y = F.separate(x, axis=1)
+        >>> len(y)
+        3
+        >>> y[0].shape
+        (2,)
+        >>> y[0].data
+        array([ 0.,  3.], dtype=float32)
 
     """
     shape = list(x.shape)

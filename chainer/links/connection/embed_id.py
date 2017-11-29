@@ -15,10 +15,9 @@ class EmbedID(link.Link):
         in_size (int): Number of different identifiers (a.k.a. vocabulary
             size).
         out_size (int): Size of embedding vector.
-        initialW (2-D array): Initial weight value. If ``None``, then the
-            matrix is initialized from the standard normal distribution.
-            May also be a callable that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value.
+        initialW (:ref:`initializer <initializer>`): Initializer to
+            initialize the weight. When it is :class:`numpy.ndarray`,
+            its ``ndim`` should be 2.
         ignore_label (int or None): If ``ignore_label`` is an int value,
             ``i``-th column of return value is filled with ``0``.
 

@@ -1,10 +1,11 @@
 import numpy
 
-from chainer import function
+from chainer import function_node
+import chainer.functions
 from chainer.utils import type_check
 
 
-class MeanSquaredError(function.Function):
+class MeanSquaredError(function_node.FunctionNode):
 
     """Mean squared error (a.k.a. Euclidean loss) function."""
 
@@ -17,21 +18,26 @@ class MeanSquaredError(function.Function):
         )
 
     def forward_cpu(self, inputs):
-        x0, x1 = inputs
-        self.diff = x0 - x1
-        diff = self.diff.ravel()
+        self.retain_inputs((0, 1))
+        diff = (inputs[0] - inputs[1]).ravel()
         return numpy.array(diff.dot(diff) / diff.size, dtype=diff.dtype),
 
     def forward_gpu(self, inputs):
-        x0, x1 = inputs
-        self.diff = x0 - x1
-        diff = self.diff.ravel()
+        self.retain_inputs((0, 1))
+        diff = (inputs[0] - inputs[1]).ravel()
         return diff.dot(diff) / diff.dtype.type(diff.size),
 
-    def backward(self, inputs, gy):
-        coeff = gy[0] * gy[0].dtype.type(2. / self.diff.size)
-        gx0 = coeff * self.diff
-        return gx0, -gx0
+    def backward(self, indexes, gy):
+        x0, x1 = self.get_retained_inputs()
+        ret = []
+        diff = x0 - x1
+        gy0 = chainer.functions.broadcast_to(gy[0], diff.shape)
+        gx0 = gy0 * diff * (2. / diff.size)
+        if 0 in indexes:
+            ret.append(gx0)
+        if 1 in indexes:
+            ret.append(-gx0)
+        return ret
 
 
 def mean_squared_error(x0, x1):
@@ -51,6 +57,5 @@ def mean_squared_error(x0, x1):
             A variable holding an array representing the mean squared
             error of two inputs.
 
-
     """
-    return MeanSquaredError()(x0, x1)
+    return MeanSquaredError().apply((x0, x1))[0]

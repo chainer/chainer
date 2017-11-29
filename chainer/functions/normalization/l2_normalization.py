@@ -1,11 +1,12 @@
 import numpy
 
 from chainer import cuda
-from chainer import function
+from chainer import function_node
+import chainer.functions
 from chainer.utils import type_check
 
 
-class NormalizeL2(function.Function):
+class NormalizeL2(function_node.FunctionNode):
 
     """L2 normalization"""
 
@@ -22,22 +23,24 @@ class NormalizeL2(function.Function):
         )
 
     def forward(self, inputs):
+        self.retain_inputs((0,))
         x, = inputs
         xp = cuda.get_array_module(x)
         norm = xp.linalg.norm(x, axis=self.axis) + self.eps
         norm = xp.expand_dims(norm, self.axis)
         return x / norm,
 
-    def backward(self, inputs, gy):
-        x = inputs[0]
-        gy = gy[0]
-        xp = cuda.get_array_module(x)
+    def backward(self, indexes, grad_outputs):
+        x, = self.get_retained_inputs()
+        gy, = grad_outputs
+        F = chainer.functions
 
-        norm = xp.linalg.norm(x, axis=self.axis) + self.eps
-        norm = xp.expand_dims(norm, self.axis)
+        norm = F.sqrt(F.sum(F.square(x), axis=self.axis)) + self.eps
+        norm = F.broadcast_to(F.expand_dims(norm, self.axis), gy.shape)
 
-        x_gy_reduced = (x * gy).sum(axis=self.axis)
-        x_gy_reduced = xp.expand_dims(x_gy_reduced, self.axis)
+        x_gy_reduced = F.sum((x * gy), axis=self.axis)
+        x_gy_reduced = F.broadcast_to(
+            F.expand_dims(x_gy_reduced, self.axis), gy.shape)
         gx = gy * norm - x_gy_reduced * x / norm
         gx = gx / norm ** 2
 
@@ -45,7 +48,7 @@ class NormalizeL2(function.Function):
 
 
 def normalize(x, eps=1e-5, axis=1):
-    """L2 norm squared (a.k.a. Euclidean norm).
+    """L2 norm squared (a.k.a.\\  Euclidean norm).
 
     This function implements L2 normalization on a vector along the given axis.
     No reduction is done along the normalization axis.
@@ -74,4 +77,4 @@ def normalize(x, eps=1e-5, axis=1):
         as :math:`x`.
 
     """
-    return NormalizeL2(eps, axis)(x)
+    return NormalizeL2(eps, axis).apply((x,))[0]

@@ -36,9 +36,11 @@ class StatelessGRU(GRUBase):
     """Stateless Gated Recurrent Unit function (GRU).
 
     GRU function has six parameters :math:`W_r`, :math:`W_z`, :math:`W`,
-    :math:`U_r`, :math:`U_z`, and :math:`U`. All these parameters are
-    :math:`n \\times n` matrices, where :math:`n` is the dimension of
-    hidden vectors.
+    :math:`U_r`, :math:`U_z`, and :math:`U`.
+    The three parameters :math:`W_r`, :math:`W_z`, and :math:`W` are
+    :math:`n \\times m` matrices, and the others :math:`U_r`, :math:`U_z`,
+    and :math:`U` are :math:`n \\times n` matrices, where :math:`m` is the
+    length of input vectors and :math:`n` is the length of hidden vectors.
 
     Given two inputs a previous hidden vector :math:`h` and an input vector
     :math:`x`, GRU returns the next hidden vector :math:`h'` defined as
@@ -53,9 +55,10 @@ class StatelessGRU(GRUBase):
     where :math:`\\sigma` is the sigmoid function, and :math:`\\odot` is the
     element-wise product.
 
-    :class:`~chainer.links.GRU` does not hold the value of
-    hidden vector :math:`h`. So this is *stateless*.
-    Use :class:`~chainer.links.StatefulGRU` as a *stateful* GRU.
+    As the name indicates, :class:`~chainer.links.StatelessGRU` is *stateless*,
+    meaning that it does not hold the value of
+    hidden vector :math:`h`.
+    For a *stateful* GRU, use :class:`~chainer.links.StatefulGRU`.
 
     Args:
         in_size(int): Dimension of input vector :math:`x`.
@@ -76,6 +79,30 @@ class StatelessGRU(GRUBase):
 
     .. seealso:: :class:`~chainer.links.StatefulGRU`
 
+    .. admonition:: Example
+
+        There are several ways to make a ``StatelessGRU`` link.
+        Let ``x`` be a two-dimensional input array:
+
+        >>> in_size = 10
+        >>> out_size = 20
+        >>> x = np.zeros((1, in_size), dtype='f')
+        >>> h = np.zeros((1, out_size), dtype='f')
+
+        1. Give both  ``in_size`` and ``out_size`` arguments:
+
+            >>> l = L.StatelessGRU(in_size, out_size)
+            >>> h_new = l(h, x)
+            >>> h_new.shape
+            (1, 20)
+
+        2. Omit ``in_size`` argument or fill it with ``None``:
+
+            >>> l = L.StatelessGRU(None, out_size)
+            >>> h_new = l(h, x)
+            >>> h_new.shape
+            (1, 20)
+
     """
 
     def __call__(self, h, x):
@@ -91,8 +118,10 @@ class StatefulGRU(GRUBase):
 
     Stateful GRU function has six parameters :math:`W_r`, :math:`W_z`,
     :math:`W`, :math:`U_r`, :math:`U_z`, and :math:`U`.
-    All these parameters are :math:`n \\times n` matrices,
-    where :math:`n` is the dimension of hidden vectors.
+    The three parameters :math:`W_r`, :math:`W_z`, and :math:`W` are
+    :math:`n \\times m` matrices, and the others :math:`U_r`, :math:`U_z`,
+    and :math:`U` are :math:`n \\times n` matrices, where :math:`m` is the
+    length of input vectors and :math:`n` is the length of hidden vectors.
 
     Given input vector :math:`x`, Stateful GRU returns the next
     hidden vector :math:`h'` defined as
@@ -108,7 +137,7 @@ class StatefulGRU(GRUBase):
 
     As the name indicates, :class:`~chainer.links.StatefulGRU` is *stateful*,
     meaning that it also holds the next hidden vector `h'` as a state.
-    Use :class:`~chainer.links.GRU` as a stateless version of GRU.
+    For a *stateless* GRU, use :class:`~chainer.links.StatelessGRU`.
 
     Args:
         in_size(int): Dimension of input vector :math:`x`.
@@ -131,7 +160,37 @@ class StatefulGRU(GRUBase):
         h(~chainer.Variable): Hidden vector that indicates the state of
             :class:`~chainer.links.StatefulGRU`.
 
-    .. seealso:: :class:`~chainer.functions.GRU`
+    .. seealso::
+        * :class:`~chainer.links.StatelessGRU`
+        * :class:`~chainer.links.GRU`: an alias of
+          :class:`~chainer.links.StatefulGRU`
+
+    .. admonition:: Example
+
+        There are several ways to make a ``StatefulGRU`` link.
+        Let ``x`` be a two-dimensional input array:
+
+        >>> in_size = 10
+        >>> out_size = 20
+        >>> x = np.zeros((1, in_size), dtype='f')
+
+        1. Give only ``in_size`` and ``out_size`` arguments:
+
+            >>> l = L.StatefulGRU(in_size, out_size)
+            >>> h_new = l(x)
+            >>> h_new.shape
+            (1, 20)
+
+        2. Give all optional arguments:
+
+            >>> init = np.zeros((out_size, in_size), dtype='f')
+            >>> inner_init = np.zeros((out_size, out_size), dtype='f')
+            >>> bias = np.zeros((1, out_size), dtype='f')
+            >>> l = L.StatefulGRU(in_size, out_size, init=init,
+            ...     inner_init=inner_init, bias_init=bias)
+            >>> h_new = l(x)
+            >>> h_new.shape
+            (1, 20)
 
     """
 
@@ -185,23 +244,20 @@ class StatefulGRU(GRUBase):
 class GRU(StatefulGRU):
     """Stateful Gated Recurrent Unit function (GRU)
 
-    This is an alias of "~chainer.links.StatefulGRU".
-    Its documented API is identical to the function.
+    This is an alias of :class:`~chainer.links.StatefulGRU`.
 
     .. warning::
 
-       In Chainer v1, :class:`~chainer.links.GRU` was *stateless*,
+       In Chainer v1, ``GRU`` was *stateless*,
        as opposed to the current implementation.
-       To align with the naming convension of LSTM links, we have changed
-       the naming convension from Chainer v2 so that the shorthand name
+       To align with LSTM links, we have changed
+       the naming convention from Chainer v2 so that the shorthand name
        points the stateful links.
        You can use :class:`~chainer.links.StatelessGRU` for stateless version,
-       whose implementation is identical to ``chainer.linksGRU`` in v1.
+       whose implementation is identical to ``GRU`` in v1.
 
-       See issue `#2537 <https://github.com/chainer/chainer/issues/2537>_`
-       for detail.
-
-    .. seealso:: :class:`~chainer.links.GRU`
+       See issue `#2537 <https://github.com/chainer/chainer/issues/2537>`_
+       for details.
 
     """
 

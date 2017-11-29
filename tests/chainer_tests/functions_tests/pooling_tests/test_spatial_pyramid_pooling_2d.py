@@ -38,10 +38,7 @@ class TestSpatialPyramidPooling2D(unittest.TestCase):
             (self.n, self.c, self.h, self.w)).astype(self.dtype)
         self.gy = numpy.random.uniform(
             -1, 1, (self.n, self.output_dim, 1, 1)).astype(self.dtype)
-        self.check_backward_options = {'dtype': numpy.float64}
-        if self.dtype == numpy.float16:
-            self.check_backward_options = {
-                'dtype': numpy.float64, 'atol': 5e-4, 'rtol': 5e-3}
+        self.ggx = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
 
     def check_forward(self, x_data, use_cudnn='always'):
         x = chainer.Variable(x_data)
@@ -82,11 +79,12 @@ class TestSpatialPyramidPooling2D(unittest.TestCase):
         self.check_forward_ones(cuda.to_gpu(self.one), 'never')
 
     def check_backward(self, x_data, y_grad, use_cudnn='always'):
+        def f(x_data):
+            return functions.spatial_pyramid_pooling_2d(
+                x_data, self.pyramid_height, self.pooling_class)
         with chainer.using_config('use_cudnn', use_cudnn):
             gradient_check.check_backward(
-                functions.SpatialPyramidPooling2D(
-                    x_data.shape[1:], self.pyramid_height, self.pooling_class),
-                x_data, y_grad, **self.check_backward_options)
+                f, x_data, y_grad, dtype=numpy.float64, atol=5e-4, rtol=5e-3)
 
     @condition.retry(3)
     def test_backward_cpu(self):
@@ -101,6 +99,42 @@ class TestSpatialPyramidPooling2D(unittest.TestCase):
     @condition.retry(3)
     def test_backward_gpu_no_cudnn(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy), 'never')
+
+    def check_double_backward(self, x_data, y_grad, x_grad_grad,
+                              use_cudnn='always'):
+        def f(x):
+            y = functions.spatial_pyramid_pooling_2d(
+                x, self.pyramid_height, self.pooling_class)
+            return y * y
+        with chainer.using_config('use_cudnn', use_cudnn):
+            gradient_check.check_double_backward(
+                f, x_data, y_grad, x_grad_grad,
+                dtype=numpy.float64, atol=5e-3, rtol=5e-3)
+
+    @condition.retry(3)
+    def test_double_backward_cpu(self):
+        self.check_double_backward(self.x, self.gy, self.ggx, 'never')
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_double_backward_gpu(self):
+        self.check_double_backward(
+            cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx))
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_double_backward_gpu_non_contiguous(self):
+        self.check_double_backward(
+            cuda.cupy.asfortranarray(cuda.to_gpu(self.x)),
+            cuda.cupy.asfortranarray(cuda.to_gpu(self.gy)),
+            cuda.cupy.asfortranarray(cuda.to_gpu(self.ggx)))
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_double_backward_gpu_no_cudnn(self):
+        self.check_double_backward(
+            cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx),
+            'never')
 
 
 class TestInvalidDtype(unittest.TestCase):
@@ -145,7 +179,7 @@ class TestMaxPooling2DCudnnCall(unittest.TestCase):
 
     def test_call_cudnn_forward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
-            with mock.patch('cupy.cudnn.cudnn.poolingForward') as func:
+            with mock.patch('cupy.cuda.cudnn.poolingForward') as func:
                 self.forward()
                 self.assertEqual(func.called,
                                  chainer.should_use_cudnn('>=auto'))
@@ -156,7 +190,7 @@ class TestMaxPooling2DCudnnCall(unittest.TestCase):
             y = self.forward()
         y.grad = self.gy
         # should be consistent to forward regardless of use_cudnn config
-        with mock.patch('cupy.cudnn.cudnn.poolingBackward') as func:
+        with mock.patch('cupy.cuda.cudnn.poolingBackward') as func:
             y.backward()
             self.assertEqual(func.called, expect)
 

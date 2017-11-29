@@ -1,11 +1,13 @@
-Chainer Tutorial
-================
+Tutorial
+========
 
 .. toctree::
    :maxdepth: 2
 
-   glance
-   tour
-   components
-   master
-   cutting
+   basic
+   writenet
+   train
+   gpu
+   customize
+   type_check
+   various_tasks

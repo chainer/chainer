@@ -32,12 +32,12 @@ class Maxout(link.Chain):
         in_size (int): Dimension of input vectors.
         out_size (int): Dimension of output vectors.
         pool_size (int): Number of channels.
-        initialW (3-D array or None): Initial weight value.
-            If ``None``, the default initializer is used
-            to initialize the weight matrix.
-        initial_bias (2-D array, float or None): Initial bias value.
-            If it is float, initial bias is filled with this value.
-            If ``None``, bias is omitted.
+        initialW (:ref:`initializer <initializer>`): Initializer to
+            initialize the weight. When it is :class:`numpy.ndarray`,
+            its ``ndim`` should be 3.
+        initial_bias (:ref:`initializer <initializer>`): Initializer to
+            initialize the bias. If ``None``, the bias is omitted.
+            When it is :class:`numpy.ndarray`, its ``ndim`` should be 2.
 
     Attributes:
         linear (~chainer.Link): The Linear link that performs

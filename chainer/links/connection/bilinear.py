@@ -22,21 +22,17 @@ class Bilinear(link.Link):
         out_size (int): Dimension of output vector :math:`y` (:math:`L`)
         nobias (bool): If ``True``, parameters ``V1``, ``V2``, and ``b`` are
             omitted.
-        initialW (3-D array): Initial value of :math:`W`.
-            Shape of this argument must be
-            ``(left_size, right_size, out_size)``. If ``None``, the default
-            initializer is used.
-            May also be a callable that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value.
-        initial_bias (tuple): Initial values of :math:`V^1`, :math:`V^2` and
+        initialW (:ref:`initializer <initializer>`): Initializer to
+            initialize the weight. When it is :class:`numpy.ndarray`,
+            its ``ndim`` should be 3.
+        initial_bias (tuple of :ref:`initializer <initializer>`):
+            Initial values of :math:`V^1`, :math:`V^2` and
             :math:`b`. The length of this argument must be 3.
             Each element of this tuple must have the shapes of
             ``(left_size, out_size)``, ``(right_size, out_size)``, and
-            ``(out_size,)``, respectively. If ``None``, :math:`V^1` and
-            :math:`V^2` are initialized by the default initializer and
-            :math:`b` is set to :math:`0`.
-            May also be a tuple of callables that take ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edit its value.
+            ``(out_size,)``, respectively if they are :class:`numpy.ndarray`.
+            If ``None``, :math:`V^1` and :math:`V^2` are initialized
+            by the default initializer and :math:`b` is set to :math:`0`.
 
     .. seealso:: See :func:`chainer.functions.bilinear` for details.
 

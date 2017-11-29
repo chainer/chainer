@@ -65,6 +65,7 @@ Array manipulations
    chainer.functions.dstack
    chainer.functions.expand_dims
    chainer.functions.flatten
+   chainer.functions.flip
    chainer.functions.fliplr
    chainer.functions.flipud
    chainer.functions.get_item
@@ -76,6 +77,7 @@ Array manipulations
    chainer.functions.reshape
    chainer.functions.resize_images
    chainer.functions.rollaxis
+   chainer.functions.scatter_add
    chainer.functions.select_item
    chainer.functions.separate
    chainer.functions.space2depth
@@ -169,12 +171,16 @@ Mathematical functions
    chainer.functions.average
    chainer.functions.batch_inv
    chainer.functions.batch_l2_norm_squared
+   chainer.functions.batch_matmul
    chainer.functions.bias
    chainer.functions.ceil
    chainer.functions.clip
    chainer.functions.cos
    chainer.functions.cosh
+   chainer.functions.cumsum
    chainer.functions.exp
+   chainer.functions.expm1
+   chainer.functions.fix
    chainer.functions.fmod
    chainer.functions.floor
    chainer.functions.identity
@@ -196,6 +202,7 @@ Mathematical functions
    chainer.functions.scale
    chainer.functions.sin
    chainer.functions.sinh
+   chainer.functions.sign
    chainer.functions.sqrt
    chainer.functions.square
    chainer.functions.squared_difference
@@ -212,6 +219,7 @@ Noise injections
 
    chainer.functions.dropout
    chainer.functions.gaussian
+   chainer.functions.gumbel_softmax
    chainer.functions.simplified_dropconnect
 
 Normalization functions

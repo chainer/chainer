@@ -8,7 +8,6 @@ from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
 
 
 class TestROIPooling2D(unittest.TestCase):
@@ -33,6 +32,7 @@ class TestROIPooling2D(unittest.TestCase):
         self.gy = numpy.random.uniform(
             -1, 1, (n_rois, n_channels,
                     self.outh, self.outw)).astype(numpy.float32)
+        self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
 
     def check_forward(self, x_data, roi_data):
         x = chainer.Variable(x_data)
@@ -45,17 +45,14 @@ class TestROIPooling2D(unittest.TestCase):
 
         self.assertEqual(self.gy.shape, y_data.shape)
 
-    @condition.retry(3)
     def test_forward_cpu(self):
         self.check_forward(self.x, self.rois)
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.rois))
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_cpu_gpu_equal(self):
         # cpu
         x_cpu = chainer.Variable(self.x)
@@ -77,14 +74,13 @@ class TestROIPooling2D(unittest.TestCase):
             functions.ROIPooling2D(outh=self.outh,
                                    outw=self.outw,
                                    spatial_scale=self.spatial_scale),
-            (x_data, roi_data), y_grad, no_grads=[False, True])
+            (x_data, roi_data), y_grad, no_grads=[False, True],
+            **self.check_backward_options)
 
-    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.x, self.rois, self.gy)
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.rois),
                             cuda.to_gpu(self.gy))
