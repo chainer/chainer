@@ -39,8 +39,8 @@ The input sequence :math:`\bf X` and the output sequence :math:`\bf Y` are repre
 the following equations:
 
 .. math::
-    {\bf X} &= ({\bf x}_1, ..., {\bf x}_i, ..., {\bf x}_I) = ({\bf x}_i)_{i=1}^I \\
-    {\bf Y} &= ({\bf y}_1, ..., {\bf y}_j, ..., {\bf x}_J) = ({\bf y}_j)_{j=1}^J
+    {\bf X} &= ({\bf x}_1, ..., {\bf x}_I) = ({\bf x}_i)_{i=1}^I \\
+    {\bf Y} &= ({\bf y}_1, ..., {\bf y}_J) = ({\bf y}_j)_{j=1}^J
 
 :math:`I` and :math:`J` are the length of the input sequence and the output sequence.
 As the convention of NLP, :math:`{\bf y}_0` is the one-hot vector of `BOS`, which is the
@@ -503,7 +503,7 @@ You can train the model with the script:
     ...
 
 .. note::
-    Before running the script, be careful the locale. Please setup the locale to use utf-8 encoding.
+    Before running the script, be careful the locale and the python's encoding. Please setup them to use utf-8 encoding.
 
 2.3.1 Validate the model
 ^^^^^^^^^^^^^^^^^^^^^^^^^
