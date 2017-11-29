@@ -258,7 +258,7 @@ def to_gpu(array, device=None, stream=None):
             'Please remove it.', DeprecationWarning)
 
     check_cuda_available()
-    with Device(device) as device_:
+    with _get_device(device) as device_:
         if isinstance(array, (list, tuple)):
             d = {}
             ret = []
@@ -277,6 +277,7 @@ def to_gpu(array, device=None, stream=None):
 
 
 def _array_to_gpu(array, device, stream):
+    assert device is DummyDevice or isinstance(device, Device)
     if array is None:
         return None
     if isinstance(array, (numpy.number, numpy.bool_)):
@@ -286,41 +287,41 @@ def _array_to_gpu(array, device, stream):
             'The array sent to gpu must be numpy.ndarray or cupy.ndarray, '
             'or a NumPy scalar.'
             '\nActual type: {0}.'.format(type(array)))
-    with _get_device(device):
-        array_dev = get_device_from_array(array)
-        if array_dev.id == cupy.cuda.device.get_device_id():
-            return array
 
-        if stream is not None and stream.ptr != 0:
-            ret = cupy.empty_like(array)
-            if array_dev.id == -1:
-                # cpu to gpu
-                mem = cupy.cuda.alloc_pinned_memory(array.nbytes)
-                src = numpy.frombuffer(
-                    mem, array.dtype, array.size).reshape(array.shape)
-                src[...] = array
-                ret.set(src, stream)
-                cupy.cuda.pinned_memory._add_to_watch_list(
-                    stream.record(), mem)
-            else:
-                # gpu to gpu
-                with array_dev:
-                    src = array.copy()
-                    event = Stream.null.record()
-                stream.wait_event(event)
-                ret.data.copy_from_device_async(
-                    src.data, src.nbytes, stream)
+    array_dev = get_device_from_array(array)
+    if array_dev.id == cupy.cuda.device.get_device_id():
+        return array
 
-                # to hold a reference until the end of the asynchronous
-                # memcpy
-                stream.add_callback(lambda *x: None, (src, ret))
-            return ret
-
+    if stream is not None and stream.ptr != 0:
+        ret = cupy.empty_like(array)
         if array_dev.id == -1:
-            return cupy.asarray(array)
+            # cpu to gpu
+            mem = cupy.cuda.alloc_pinned_memory(array.nbytes)
+            src = numpy.frombuffer(
+                mem, array.dtype, array.size).reshape(array.shape)
+            src[...] = array
+            ret.set(src, stream)
+            cupy.cuda.pinned_memory._add_to_watch_list(
+                stream.record(), mem)
+        else:
+            # gpu to gpu
+            with array_dev:
+                src = array.copy()
+                event = Stream.null.record()
+            stream.wait_event(event)
+            ret.data.copy_from_device_async(
+                src.data, src.nbytes, stream)
 
-        # Need to make a copy when an array is copied to another device
-        return cupy.array(array, copy=True)
+            # to hold a reference until the end of the asynchronous
+            # memcpy
+            stream.add_callback(lambda *x: None, (src, ret))
+        return ret
+
+    if array_dev.id == -1:
+        return cupy.asarray(array)
+
+    # Need to make a copy when an array is copied to another device
+    return cupy.array(array, copy=True)
 
 
 def to_cpu(array, stream=None):
