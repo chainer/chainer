@@ -44,20 +44,20 @@ class TestPickableDataset(unittest.TestCase):
             self.dataset[0], ('img(0)', 'anno0(0)', 'anno1(0)', 'anno2(0)'))
         self.assertEqual(self.dataset.count, 3)
 
-    def test_slice_single(self):
-        dataset = self.dataset.slice('anno0')
+    def test_pick_single(self):
+        dataset = self.dataset.pick('anno0')
         self.assertEqual(len(dataset), self.len)
         self.assertEqual(dataset[1], 'anno0(1)')
         self.assertEqual(self.dataset.count, 1)
 
-    def test_slice_single_tuple(self):
-        dataset = self.dataset.slice(('anno1',))
+    def test_pick_single_tuple(self):
+        dataset = self.dataset.pick(('anno1',))
         self.assertEqual(len(dataset), self.len)
         self.assertEqual(dataset[2], ('anno1(2)',))
         self.assertEqual(self.dataset.count, 1)
 
-    def test_slice_multiple(self):
-        dataset = self.dataset.slice(('anno0', 'anno2'))
+    def test_pick_multiple(self):
+        dataset = self.dataset.pick(('anno0', 'anno2'))
         self.assertEqual(len(dataset), self.len)
         self.assertEqual(dataset[3], ('anno0(3)', 'anno2(3)'))
         self.assertEqual(self.dataset.count, 1)
@@ -70,7 +70,7 @@ class TestPickableDataset(unittest.TestCase):
         self.assertEqual(self.dataset.count, 3)
 
     def test_all(self):
-        dataset = self.dataset.sub(3, 8, 2).slice(('anno0', 'anno1'))
+        dataset = self.dataset.sub(3, 8, 2).pick(('anno0', 'anno1'))
         self.assertEqual(len(dataset), 3)
         self.assertEqual(dataset[1], ('anno0(5)', 'anno1(5)'))
         self.assertEqual(self.dataset.count, 2)
