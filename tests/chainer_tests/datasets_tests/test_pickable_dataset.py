@@ -88,11 +88,16 @@ class TestPickableDataset(unittest.TestCase):
         with self.assertRaises(ValueError):
             dataset0.concatenate(dataset1)
 
-    def test_all(self):
-        dataset = self.dataset.sub(3, 8, 2).pick(('anno0', 'anno1'))
-        self.assertEqual(len(dataset), 3)
-        self.assertEqual(dataset[1], ('anno0(5)', 'anno1(5)'))
-        self.assertEqual(self.dataset.count, 2)
+    def test_transform(self):
+        def transform(in_data):
+            img, anno0, anno1, anno2 = in_data
+            return 'transformed_' + img, 'transformed_' + anno1
+
+        dataset = self.dataset.transform(transform, ('img', 'anno1'))
+        self.assertEqual(len(dataset), self.len)
+        self.assertEqual(
+            dataset[3], ('transformed_img(3)', 'transformed_anno1(3)'))
+        self.assertEqual(self.dataset.count, 3)
 
 
 testing.run_module(__name__, __file__)

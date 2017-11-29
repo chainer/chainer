@@ -34,6 +34,9 @@ class BaseDataset(chainer.dataset.DatasetMixin):
                 raise ValueError('mismatched keys')
         return ConcatenatedDataset((self,) + datasets)
 
+    def transform(self, func, keys):
+        return TransformedDataset(self, func, keys)
+
 
 class PickedDataset(BaseDataset):
 
@@ -120,3 +123,15 @@ class PickableDataset(BaseDataset):
             return tuple(example)
         else:
             return example[0]
+
+
+class TransformedDataset(PickableDataset):
+
+    def __init__(self, base, func, keys):
+        super(TransformedDataset, self).__init__()
+        self._base = base
+        self.keys = keys
+        self.add_getter(lambda i: func(base.get_example(i)), keys)
+
+    def __len__(self):
+        return len(self._base)
