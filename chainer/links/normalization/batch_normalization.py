@@ -1,3 +1,5 @@
+import warnings
+
 import numpy
 
 from chainer import configuration
@@ -141,6 +143,14 @@ class BatchNormalization(link.Link):
             ret = functions.batch_normalization(
                 x, gamma, beta, eps=self.eps, running_mean=self.avg_mean,
                 running_var=self.avg_var, decay=decay)
+
+            if x.shape[0] == 1:
+                warnings.warn('chainer.config.train is True and '
+                              'minibatch size is 1.\n'
+                              'batch_normalization works madly.\n'
+                              'Please check code and modify '
+                              'either the configuration or minibatch size.',
+                              UserWarning)
         else:
             # Use running average statistics or fine-tuned statistics.
             mean = variable.Variable(self.avg_mean)
