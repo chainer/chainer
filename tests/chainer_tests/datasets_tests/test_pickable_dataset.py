@@ -8,10 +8,10 @@ class SampleDataset(PickableDataset):
     def __init__(self, len):
         super(SampleDataset, self).__init__()
 
-        self.keys = ('img', 'anno0', 'anno1', 'anno2')
         self.add_getter(self.get_image, 'img')
         self.add_getter(self.get_anno0_anno2, ('anno0', 'anno2'))
-        self.add_getter(self.get_anno1, 'anno1', )
+        self.add_getter(self.get_anno1, 'anno1')
+        self.keys = ('img', 'anno0', 'anno1', 'anno2')
 
         self.len = len
         self.count = 0
