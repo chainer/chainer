@@ -19,14 +19,14 @@ class BaseDataset(chainer.dataset.DatasetMixin):
     def get_example(self, i):
         return self.get_example_by_keys(i, self.keys)
 
-    def slice(self, keys):
-        return SlicedDataset(self, keys)
+    def pick(self, keys):
+        return PickedDataset(self, keys)
 
     def sub(self, start, stop=None, step=None):
         return SubDataset(self, slice(start, stop, step))
 
 
-class SlicedDataset(BaseDataset):
+class PickedDataset(BaseDataset):
 
     def __init__(self, base, keys):
         self._base = base
@@ -55,7 +55,7 @@ class SubDataset(BaseDataset):
         return self._base.get_example_by_keys(start + i * step, keys)
 
 
-class SliceableDataset(BaseDataset):
+class PickableDataset(BaseDataset):
 
     def __init__(self):
         self._getters = dict()

@@ -1,10 +1,10 @@
 import unittest
 
-from chainer.datasets import SliceableDataset
+from chainer.datasets import PickableDataset
 from chainer import testing
 
 
-class SampleDataset(SliceableDataset):
+class SampleDataset(PickableDataset):
     def __init__(self, len):
         super(SampleDataset, self).__init__()
 
@@ -32,7 +32,7 @@ class SampleDataset(SliceableDataset):
         return 'anno1({:d})'.format(i)
 
 
-class TestSliceableDataset(unittest.TestCase):
+class TestPickableDataset(unittest.TestCase):
 
     def setUp(self):
         self.len = 10
