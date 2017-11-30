@@ -25,7 +25,7 @@ class BaseDataset(chainer.dataset.DatasetMixin):
 
     @property
     def slice(self):
-        return SlicedDatasetHelper(self)
+        return SliceHelper(self)
 
     def concatenate(self, *datasets):
         for dataset in datasets:
@@ -37,7 +37,7 @@ class BaseDataset(chainer.dataset.DatasetMixin):
         return TransformedDataset(self, func, keys)
 
 
-class SlicedDatasetHelper(object):
+class SliceHelper(object):
     def __init__(self, base):
         self._base = base
 
