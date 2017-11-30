@@ -1,13 +1,6 @@
 from chainer.datasets.sliceable import SliceableDataset
 
 
-def _as_tuple(t):
-    if isinstance(t, tuple):
-        return t
-    else:
-        return t,
-
-
 class GetterDataset(SliceableDataset):
 
     def __init__(self):
@@ -23,8 +16,8 @@ class GetterDataset(SliceableDataset):
 
     @keys.setter
     def keys(self, keys):
-        for key in _as_tuple(keys):
-            if key not in _as_tuple(self._keys):
+        for key in keys:
+            if key not in self._keys:
                 raise KeyError('{} does not exists'.format(key))
         self._keys = keys
 
