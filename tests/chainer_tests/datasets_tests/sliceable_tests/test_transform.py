@@ -1,7 +1,7 @@
 import unittest
 
-from chainer.datasets.sliceable import transform
 from chainer.datasets.sliceable import SliceableDataset
+from chainer.datasets.sliceable import transform
 from chainer import testing
 
 
