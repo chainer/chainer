@@ -15,12 +15,14 @@ class TupleDataset(SliceableDataset):
     def __init__(self, *datasets):
         if len(datasets) == 0:
             raise ValueError('At least one dataset is required')
-        self._len = len(datasets[0])
+        self._len = None
         self._keys = []
         self._sliceable_datasets = []
         self._regular_datasets = []
         for dataset in datasets:
             if isinstance(dataset, SliceableDataset):
+                if self._len is None:
+                    self._len = len(dataset)
                 if not len(dataset) == self._len:
                     raise ValueError(
                         'All datasets should have the same length')
@@ -28,6 +30,8 @@ class TupleDataset(SliceableDataset):
                 self._sliceable_datasets.append((set(dataset.keys), dataset))
             else:
                 key, dataset = dataset
+                if self._len is None:
+                    self._len = len(dataset)
                 if not len(dataset) == self._len:
                     raise ValueError(
                         'All datasets should have the same length')
