@@ -147,7 +147,14 @@ class BatchNormalization(link.Link):
             if x.shape[0] == 1:
                 warnings.warn('chainer.config.train is True and '
                               'minibatch size is 1.\n'
-                              'batch_normalization works madly.\n'
+                              'batch_normalization shifts and normalize '
+                              'input vectors in a minibatch with mean and '
+                              'variance in the minibatch, so that '
+                              'the values on each dimension of outputs have '
+                              'zero mean and unit variance. Thus, in this '
+                              'case, batch_normalization always outputs '
+                              'a zero vector, because mean vector equals to '
+                              'the vector solely in the minibatch.\n'
                               'Please check code and modify '
                               'either the configuration or minibatch size.',
                               UserWarning)
