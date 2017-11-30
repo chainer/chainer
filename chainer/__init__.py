@@ -28,11 +28,12 @@ from chainer import variable  # NOQA
 
 
 # import class and function
+# These functions from backends.cuda are kept for backward compatibility
+from chainer.backends.cuda import should_use_cudnn  # NOQA
+from chainer.backends.cuda import should_use_cudnn_tensor_core  # NOQA
 from chainer.configuration import config  # NOQA
 from chainer.configuration import global_config  # NOQA
 from chainer.configuration import using_config  # NOQA
-from chainer.cuda import should_use_cudnn  # NOQA
-from chainer.cuda import should_use_cudnn_tensor_core  # NOQA
 from chainer.function import force_backprop_mode  # NOQA
 from chainer.function import Function  # NOQA
 from chainer.function import FunctionAdapter  # NOQA
