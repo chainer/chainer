@@ -230,6 +230,12 @@ are the following:
     p_j &= P_{\theta}({\bf y}_j|{\bf Y}_{<j}) = {\rm softmax}({\bf o}_j) \cdot {\bf y}_j \\
         &= {\rm softmax}({\bf W}^{(o)}{\bf h}_j^{(t)} + {\bf b}^{(o)}) \cdot {\bf y}_j
 
+.. note::
+    There are a lot of varieties of seq2seq models. We can use the different RNN
+    models in terms of: (1) directionality (unidirectional or bidirectional),
+    (2) depth (single-layer or multi-layer), (3) type (a vanilla RNN,
+    a Long Short-term Memory (LSTM), or a gated recurrent unit (GRU)), and
+    (4) aditional functionality (s.t. Attention Mechanism).
 
 2. Implementation of Seq2seq Model
 ===================================
