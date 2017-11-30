@@ -8,9 +8,9 @@ class SampleDataset(GetterDataset):
     def __init__(self):
         super(SampleDataset, self).__init__()
 
-        self.add_getter(self.get_item0, 'item0')
-        self.add_getter(self.get_item1_item2, ('item1', 'item2'))
-        self.add_getter(self.get_item3, 'item3')
+        self.add_getter('item0', self.get_item0)
+        self.add_getter(('item1', 'item2'), self.get_item1_item2)
+        self.add_getter('item3', self.get_item3)
 
         self.count = 0
 

@@ -28,7 +28,7 @@ class GetterDataset(SliceableDataset):
                 raise KeyError('{} does not exists'.format(key))
         self._keys = keys
 
-    def add_getter(self, getter, keys):
+    def add_getter(self, keys, getter):
         if isinstance(keys, tuple):
             self._keys += keys
             for j, key in enumerate(keys):

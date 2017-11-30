@@ -28,7 +28,7 @@ class TestTransformDataset(unittest.TestCase):
             item0, item1, item2 = in_data
             return 'transformed_' + item0, 'transformed_' + item2
 
-        dataset = TransformDataset(self.dataset, func, ('item0', 'item2'))
+        dataset = TransformDataset(self.dataset, ('item0', 'item2'), func)
         self.assertIsInstance(dataset, SliceableDataset)
         self.assertEqual(len(dataset), len(self.dataset))
         self.assertEqual(dataset.keys, ('item0', 'item2'))
