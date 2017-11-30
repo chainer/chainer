@@ -69,7 +69,7 @@ class TextClassifier(chainer.Chain):
      This chain encodes a sentence and classifies it into classes.
 
      Args:
-         encoder (callable): A callable encoder, which extracts a feature.
+         encoder (Link): A callable encoder, which extracts a feature.
              Input is a list of variables whose shapes are
              "(sentence_length, )".
              Output is a variable whose shape is "(batchsize, n_units)".
