@@ -30,6 +30,7 @@ import numpy
 import six
 
 import chainer
+from chainer.configuration import config
 
 
 available = False
@@ -495,3 +496,50 @@ def set_max_workspace_size(size):
     """
     global _max_workspace_size
     _max_workspace_size = size
+
+
+# ------------------------------------------------------------------------------
+# cuDNN
+# ------------------------------------------------------------------------------
+_SHOULD_USE_CUDNN = {
+    '==always': {'always': True, 'auto': False, 'never': False},
+    '>=auto':   {'always': True, 'auto': True,  'never': False},
+}
+
+
+_cudnn_version = cuda.cudnn.getVersion() if cudnn_enabled else -1
+
+
+def should_use_cudnn(level, lowest_version=0):
+    """Determines if we should use cuDNN.
+
+    This function checks ``chainer.config.use_cudnn``,
+    ``chainer.cuda.cudnn_enabled``, and the cuDNN version. Note that
+    ``cudnn_enabled`` flag is fixed at loading of :mod:`chainer` module.
+
+    Args:
+        level (str): cuDNN use level. It must be either ``'==always'`` or
+            ``'>=auto'``. ``'==always'`` indicates that the ``use_cudnn``
+            config must be ``'always'`` to use cuDNN.
+        lowest_version (int): Required lowest cuDNN version. It must be
+            non-negative.
+
+    Returns:
+        bool: ``True`` if the caller should use cuDNN.
+
+    """
+    if _cudnn_version < lowest_version:
+        return False
+
+    if level not in _SHOULD_USE_CUDNN:
+        raise ValueError('invalid cuDNN use level: %s '
+                         '(must be either of "==always" or ">=auto")' %
+                         repr(level))
+    flags = _SHOULD_USE_CUDNN[level]
+
+    use_cudnn = config.use_cudnn
+    if use_cudnn not in flags:
+        raise ValueError('invalid use_cudnn configuration: %s '
+                         '(must be either of "always", "auto", or "never")' %
+                         repr(use_cudnn))
+    return flags[use_cudnn]
