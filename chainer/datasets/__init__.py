@@ -3,8 +3,8 @@ from chainer.datasets import dict_dataset  # NOQA
 from chainer.datasets import fashion_mnist  # NOQA
 from chainer.datasets import image_dataset  # NOQA
 from chainer.datasets import mnist  # NOQA
-from chainer.datasets import pickable_dataset  # NOQA
 from chainer.datasets import ptb  # NOQA
+from chainer.datasets import sliceable  # NOQA
 from chainer.datasets import sub_dataset  # NOQA
 from chainer.datasets import svhn  # NOQA
 from chainer.datasets import transform_dataset  # NOQA
@@ -20,7 +20,6 @@ from chainer.datasets.fashion_mnist import get_fashion_mnist  # NOQA
 from chainer.datasets.image_dataset import ImageDataset  # NOQA
 from chainer.datasets.image_dataset import LabeledImageDataset  # NOQA
 from chainer.datasets.mnist import get_mnist  # NOQA
-from chainer.datasets.pickable_dataset import PickableDataset  # NOQA
 from chainer.datasets.ptb import get_ptb_words  # NOQA
 from chainer.datasets.ptb import get_ptb_words_vocabulary  # NOQA
 from chainer.datasets.sub_dataset import get_cross_validation_datasets  # NOQA

@@ -54,6 +54,7 @@ setup(
     packages=['chainer',
               'chainer.dataset',
               'chainer.datasets',
+              'chainer.datasets.sliceable',
               'chainer.functions',
               'chainer.functions.activation',
               'chainer.functions.array',
