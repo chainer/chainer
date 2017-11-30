@@ -1,10 +1,10 @@
 import unittest
 
-from chainer.datasets.sliceable import SliceableGetterDataset
+from chainer.datasets.sliceable import GetterDataset
 from chainer import testing
 
 
-class SampleDataset(SliceableGetterDataset):
+class SampleDataset(GetterDataset):
     def __init__(self):
         super(SampleDataset, self).__init__()
 
@@ -30,7 +30,7 @@ class SampleDataset(SliceableGetterDataset):
         return 'item3({:d})'.format(i)
 
 
-class TestSliceableGetterDataset(unittest.TestCase):
+class TestGetterDataset(unittest.TestCase):
 
     def setUp(self):
         self.dataset = SampleDataset()

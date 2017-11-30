@@ -1,5 +1,5 @@
 from chainer.datasets.sliceable.sliceable_dataset import SliceableDataset  # NOQA
-from chainer.datasets.sliceable.sliceable_getter_dataset import SliceableGetterDataset  # NOQA
 
-from chainer.datasets.sliceable.concatenate import concatenate  # NOQA
-from chainer.datasets.sliceable.transform import transform  # NOQA
+from chainer.datasets.sliceable.concatenated_dataset import ConcatenatedDataset  # NOQA
+from chainer.datasets.sliceable.getter_dataset import GetterDataset  # NOQA
+from chainer.datasets.sliceable.transform_dataset import TransformDataset  # NOQA

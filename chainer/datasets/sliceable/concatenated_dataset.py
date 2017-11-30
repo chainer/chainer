@@ -3,7 +3,12 @@ from chainer.datasets.sliceable import SliceableDataset
 
 class ConcatenatedDataset(SliceableDataset):
 
-    def __init__(self, datasets):
+    def __init__(self, *datasets):
+        if len(datasets) == 0:
+            raise ValueError('At least one dataset is required')
+        for dataset in datasets[1:]:
+            if not dataset.keys == datasets[0].keys:
+                raise ValueError('All datasets should have the same keys')
         self._datasets = datasets
         self._keys = datasets[0].keys
 
@@ -22,12 +27,3 @@ class ConcatenatedDataset(SliceableDataset):
                 return dataset.get_example_by_keys(i, keys)
             i -= len(dataset)
         raise IndexError
-
-
-def concatenate(*datasets):
-    if len(datasets) == 0:
-        raise ValueError('At least one dataset is required')
-    for dataset in datasets[1:]:
-        if not dataset.keys == datasets[0].keys:
-            raise ValueError('All datasets should have the same keys')
-    return ConcatenatedDataset(datasets)

@@ -32,31 +32,31 @@ class SliceableDataset(chainer.dataset.DatasetMixin):
 
 
 class SliceHelper(object):
-    def __init__(self, base):
-        self._base = base
+    def __init__(self, dataset):
+        self._dataset = dataset
 
     def __getitem__(self, args):
         if isinstance(args, tuple):
             index, keys = args
         else:
             index = args
-            keys = self._base.keys
+            keys = self._dataset.keys
         for key in _as_tuple(keys):
-            if key not in _as_tuple(self._base.keys):
+            if key not in _as_tuple(self._dataset.keys):
                 raise KeyError('{} does not exists'.format(key))
-        return SlicedDataset(self._base, index, keys)
+        return SlicedDataset(self._dataset, index, keys)
 
 
 class SlicedDataset(SliceableDataset):
 
-    def __init__(self, base, index, keys):
-        self._base = base
+    def __init__(self, dataset, index, keys):
+        self._dataset = dataset
         self._index = index
         self._keys = keys
 
     def __len__(self):
         if isinstance(self._index, slice):
-            start, end, step = self._index.indices(len(self._base))
+            start, end, step = self._index.indices(len(self._dataset))
             return len(range(start, end, step))
         else:
             return len(self._index)
@@ -67,7 +67,7 @@ class SlicedDataset(SliceableDataset):
 
     def get_example_by_keys(self, i, keys):
         if isinstance(self._index, slice):
-            start, _, step = self._index.indices(len(self._base))
-            return self._base.get_example_by_keys(start + i * step, keys)
+            start, _, step = self._index.indices(len(self._dataset))
+            return self._dataset.get_example_by_keys(start + i * step, keys)
         else:
-            return self._base.get_example_by_keys(self._index[i], keys)
+            return self._dataset.get_example_by_keys(self._index[i], keys)

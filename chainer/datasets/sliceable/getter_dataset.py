@@ -8,7 +8,7 @@ def _as_tuple(t):
         return t,
 
 
-class SliceableGetterDataset(SliceableDataset):
+class GetterDataset(SliceableDataset):
 
     def __init__(self):
         self._keys = ()
