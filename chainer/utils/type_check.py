@@ -1,4 +1,5 @@
 import contextlib
+import functools
 import operator
 import sys
 import threading
@@ -37,6 +38,10 @@ class TypeInfo(object):
         self.shape = shape
         self.dtype = dtype
         self.ndim = len(shape)
+
+    @property
+    def size(self):
+        return functools.reduce(operator.mul, self.shape, 1)
 
 
 class TypeInfoTuple(tuple):
