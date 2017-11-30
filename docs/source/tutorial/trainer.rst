@@ -15,28 +15,6 @@ This example will show how to use the :class:`~chainer.training.Trainer` to trai
 Load the MNIST dataset, which contains a training set of images and class labels as well as a corresponding test set.
 
 .. testcode::
-    :hide:
-
-    # Depending on whether dataset is cached or not, get_mnist() may print
-    # to stdout, which cause doctest to fail.  This hidden testcode snippet
-    # is to make sure that the dataset is cached before running any other
-    # test codes in this file, so nothing is printed in the following
-    # get_mnist() call.
-
-    from chainer.datasets import mnist
-    train, test = mnist.get_mnist()
-
-    # This line is needed in case the dataset is already cached so above code
-    # prints nothing, as ELLIPSIS ("...") does not match with empty string.
-
-    print("Dataset is ready.")
-
-.. testoutput::
-    :hide:
-
-    ...
-
-.. testcode::
 
     from chainer.datasets import mnist
 
@@ -60,13 +38,6 @@ Load the MNIST dataset, which contains a training set of images and class labels
 '''''''''''''''''''''''''''''''''
 
 :class:`~chainer.dataset.Iterator` creates a mini-batch from the given dataset.
-
-.. testcode::
-    :hide:
-
-    from chainer.datasets import mnist
-
-    train, test = mnist.get_mnist()
 
 .. testcode::
 
@@ -120,33 +91,6 @@ So, :class:`~chainer.training.Updater` can perform the training procedure as sho
 Now let's create the :class:`~chainer.training.Updater` object !
 
 .. testcode::
-    :hide:
-
-    from chainer.datasets import mnist
-
-    class MLP(Chain):
-
-        def __init__(self, n_mid_units=100, n_out=10):
-            super(MLP, self).__init__()
-            with self.init_scope():
-                self.l1 = L.Linear(None, n_mid_units)
-                self.l2 = L.Linear(None, n_mid_units)
-                self.l3 = L.Linear(None, n_out)
-
-        def __call__(self, x):
-            h1 = F.relu(self.l1(x))
-            h2 = F.relu(self.l2(h1))
-            return self.l3(h2)
-
-    model = MLP()
-
-    batchsize = 128
-
-    train, test = mnist.get_mnist()
-    train_iter = iterators.SerialIterator(train, batchsize)
-    test_iter = iterators.SerialIterator(test, batchsize, False, False)
-
-.. testcode::
 
     max_epoch = 10
 
@@ -161,7 +105,7 @@ Now let's create the :class:`~chainer.training.Updater` object !
     optimizer.setup(model)
 
     # Get an updater that uses the Iterator and Optimizer
-    updater = training.StandardUpdater(train_iter, optimizer)
+    updater = training.StandardUpdater(train_iter, optimizer, device=gpu_id)
 
 .. note::
 
@@ -180,14 +124,6 @@ Now let's create the :class:`~chainer.training.Updater` object !
 ''''''''''''''''
 
 Lastly, we will setup :class:`~chainer.training.Trainer`. The only requirement for creating a :class:`~chainer.training.Trainer` is to pass the :class:`~chainer.training.Updater` object that we previously created above. You can also pass a :attr:`~chainer.training.Trainer.stop_trigger` to the second trainer argument as a tuple like ``(length, unit)`` to tell the trainer when to stop the training. The ``length`` is given as an integer and the ``unit`` is given as a string which should be either ``epoch`` or ``iteration``. Without setting :attr:`~chainer.training.Trainer.stop_trigger`, the training will never be stopped.
-
-.. testcode::
-    :hide:
-
-    model = L.Classifier(model)
-    optimizer = optimizers.MomentumSGD()
-    optimizer.setup(model)
-    updater = training.StandardUpdater(train_iter, optimizer)
 
 .. testcode::
 
@@ -210,6 +146,18 @@ The :class:`~chainer.training.Trainer` extensions provide the following capabili
 * Save the model architechture as a Graphviz's dot file (:meth:`~chainer.training.extensions.dump_graph`)
 
 To use these wide variety of tools for your training task, pass :class:`~chainer.training.Extension` objects to the :meth:`~chainer.training.Trainer.extend` method of your :class:`~chainer.training.Trainer` object.
+
+.. testcode::
+    :hide:
+
+    # Shortcut for doctests.
+    max_epoch = 1
+    trainer = training.Trainer(updater, (max_epoch, 'epoch'), out='mnist_result')
+    trainer.extend(extensions.snapshot_object(model.predictor, filename='model_epoch-10'))
+
+    # Allow doctest to run in headless environment.
+    import matplotlib
+    matplotlib.use('Agg')
 
 .. testcode::
 
@@ -268,7 +216,7 @@ Each :class:`~chainer.training.Extension` class has different options and some e
 Just call :meth:`~chainer.training.Trainer.run` method from
 :class:`~chainer.training.Trainer` object to start training.
 
-.. code-block:: python
+.. testcode::
 
     trainer.run()
 
@@ -309,7 +257,7 @@ From the top to the bottom, you can see the data flow in the computational graph
 
 Evaluation using the snapshot of a model is as easy as what explained in the :doc:`train_loop`.
 
-.. code-block:: python
+.. testcode::
 
     import matplotlib.pyplot as plt
 
@@ -328,7 +276,7 @@ Evaluation using the snapshot of a model is as easy as what explained in the :do
 
 .. image:: ../../image/trainer/mnist_output.png
 
-::
+.. testoutput::
 
     label: 7
     predicted_label: 7
