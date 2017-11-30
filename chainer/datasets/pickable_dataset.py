@@ -23,15 +23,9 @@ class BaseDataset(chainer.dataset.DatasetMixin):
     def get_example(self, i):
         return self.get_example_by_keys(i, self.keys)
 
-    def pick(self, keys):
-        for key in _as_tuple(keys):
-            if key not in _as_tuple(self.keys):
-                raise KeyError('{} does not exists'.format(key))
-        return PickedDataset(self, keys)
-
     @property
-    def sub(self):
-        return SubDatasetHelper(self)
+    def slice(self):
+        return SlicedDatasetHelper(self)
 
     def concatenate(self, *datasets):
         for dataset in datasets:
@@ -43,37 +37,28 @@ class BaseDataset(chainer.dataset.DatasetMixin):
         return TransformedDataset(self, func, keys)
 
 
-class PickedDataset(BaseDataset):
-
-    def __init__(self, base, keys):
-        self._base = base
-        self._keys = keys
-
-    def __len__(self):
-        return len(self._base)
-
-    @property
-    def keys(self):
-        return self._keys
-
-    def get_example_by_keys(self, i, keys):
-        return self._base.get_example_by_keys(i, keys)
-
-
-class SubDatasetHelper(object):
+class SlicedDatasetHelper(object):
     def __init__(self, base):
         self._base = base
 
-    def __getitem__(self, index):
-        return SubDataset(self._base, index)
+    def __getitem__(self, args):
+        if isinstance(args, tuple):
+            index, keys = args
+        else:
+            index = args
+            keys = self._base.keys
+        for key in _as_tuple(keys):
+            if key not in _as_tuple(self._base.keys):
+                raise KeyError('{} does not exists'.format(key))
+        return SlicedDataset(self._base, index, keys)
 
 
-class SubDataset(BaseDataset):
+class SlicedDataset(BaseDataset):
 
-    def __init__(self, base, index):
+    def __init__(self, base, index, keys):
         self._base = base
         self._index = index
-        self._keys = base.keys
+        self._keys = keys
 
     def __len__(self):
         start, end, step = self._index.indices(len(self._base))
