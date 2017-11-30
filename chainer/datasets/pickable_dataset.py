@@ -105,8 +105,8 @@ class ConcatenatedDataset(BaseDataset):
 class PickableDataset(BaseDataset):
 
     def __init__(self):
-        self._keys = tuple()
-        self._getters = dict()
+        self._keys = ()
+        self._getters = {}
 
     def __len__(self):
         raise NotImplementedError
@@ -138,8 +138,8 @@ class PickableDataset(BaseDataset):
             keys = keys,
             is_tuple = False
 
-        example = list()
-        cache = dict()
+        example = []
+        cache = {}
         for key in keys:
             getter, j = self._getters[key]
             if getter not in cache:
