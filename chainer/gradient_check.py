@@ -11,16 +11,26 @@ from chainer import testing
 from chainer import variable
 
 
+class NondifferentiableError(Exception):
+    pass
+
+
 def _copy_arrays(xs):
     xp = cuda.get_array_module(*xs)
     return [xp.array(x, order='C', dtype=numpy.float64, copy=True) for x in xs]
 
 
-def numerical_grad(f, inputs, grad_outputs, eps=1e-3):
+def numerical_grad(
+        f, inputs, grad_outputs, eps=1e-3,
+        detect_nondifferentiable=False, diff_atol=0, diff_rtol=1e-2,
+        center_outputs=None):
     """Computes numerical gradient by finite differences.
 
     This function is used to implement gradient check. For usage example, see
     unit tests of :mod:`chainer.functions`.
+
+    By default, ``numerical_grad`` computes the gradient to the first order of
+    ``eps``.
 
     Args:
         f (function): Python function with no arguments that runs forward
@@ -31,6 +41,29 @@ def numerical_grad(f, inputs, grad_outputs, eps=1e-3):
         grad_outputs (tuple of arrays): Tuple of arrays that are treated as
             output gradients.
         eps (float): Epsilon value of finite differences.
+        detect_nondifferentiable (bool):
+            ``False`` by default.
+            If ``True``, ``numerical_grad`` checks whether ``f`` is
+            differentiable at ``inputs``.
+            It requires evaluation of ``f`` at 5 points instead of 2.
+            As a side effect, the accuracy of numerical gradient will be
+            increased to the third order of ``eps``.
+            If it turns out that ``f`` is non-differentiable at ``input``,
+            ``numerical_grad`` raises
+            :class:`~chainer.gradient_check.NondifferentiableError`.
+        diff_atol (float):
+            Absolute tolerance of fitting error of non-differentiable point
+            detection.
+        diff_rtol (float):
+            Tolerance of fitting error of non-differentiable point detection
+            relative to the output values of ``f``.
+        center_outputs (tuple of arrays or None):
+            Only used if ``detect_nondifferentiable`` is ``True``.
+            If specified, these arrays are used as the outputs of ``f`` at
+            ``inputs``.
+            Otherwise, it is calculated.
+            It can be used to reduce the computation if these arrays are
+            already calculated before calling ``numerical_grad``.
 
     Returns:
         tuple: Numerical gradient arrays corresponding to ``inputs``.
@@ -52,34 +85,182 @@ def numerical_grad(f, inputs, grad_outputs, eps=1e-3):
 
     if gpu:
         xp = cuda.cupy
-        numerical_grad_kernel = cuda.reduce(
+        numerical_grad_kernel_1 = cuda.reduce(
             'T y1, T y2, U gy, T eps', 'V gxi',
             '(y1 - y2) * gy', 'a + b', 'gxi += a / (eps * 2)', '0',
-            'numerical_grad_kernel'
+            'numerical_grad_kernel_1'
+        )
+        numerical_grad_kernel_3 = cuda.reduce(
+            'T y1, T y2, T y3, T y4, U gy, T eps', 'V gxi',
+            '(-y1 + 8 * y2 - 8 * y3 + y4) * gy',
+            'a + b', 'gxi += a / (eps * 6)', '0',
+            'numerical_grad_kernel_3'
         )
     else:
         xp = numpy
     grads = [xp.zeros(x.shape, numpy.float64) for x in inputs]
 
+    if detect_nondifferentiable:
+        if center_outputs is None:
+            ys0 = _copy_arrays(f())
+        else:
+            ys0 = center_outputs
+        nout = len(ys0)
+        shapes = [_.shape for _ in ys0]
+        sizes = numpy.array([_.size for _ in ys0])
+        cumsizes = numpy.cumsum(sizes)
+
+    # Evaluate func at a single input
+    def eval_func(x, i, delta, orig):
+        x[i] = orig + delta
+        y = _copy_arrays(f())
+        x[i] = orig
+        return y
+
+    # An iteration on a single input displacement
+    def iterate_single_input(i_in, x, orig_x, i):
+        orig = orig_x[i]
+        # `yss` holds a list of output arrays for each of 2 or 5 sampling
+        # points.
+        if detect_nondifferentiable:
+            yss = [
+                eval_func(x, i, -eps * 1., orig),
+                eval_func(x, i, -eps * .5, orig),
+                ys0,
+                eval_func(x, i, +eps * .5, orig),
+                eval_func(x, i, +eps * 1., orig),
+            ]
+        else:
+            yss = [
+                eval_func(x, i, -eps * 1, orig),
+                eval_func(x, i, +eps * 1, orig),
+            ]
+
+        if detect_nondifferentiable:
+            # Detect non-differentiable point by quadratic fitting
+
+            # Check for non-finite output.
+            # If any single element in the output arrays has different
+            # finiteness among sampled points, that means this is a
+            # non-differentiable point.
+            # If the function consistently generates non-finite values
+            # around the point, we do not treat the point as
+            # non-differentiable.
+            # (Example: x<0 region for the logarithm function)
+            any_nonfinite = False
+            for i_out in range(nout):
+                isfinites = [xp.isfinite(ys[i_out]) for ys in yss]
+                if any((isfinites[0] != isfinites[i]).any()
+                       for i in range(1, len(yss))):
+                    s = six.StringIO()
+                    s.write(
+                        'Tried to compute the numeric gradient on a '
+                        'non-differentiable point.\n\n')
+                    s.write('i_in: {}\n'.format(i_in))
+                    s.write('i_out: {}\n'.format(i_out))
+                    s.write('x: {}\n'.format(inputs[i_in]))
+                    s.write('index on x: {}\n'.format(i))
+                    s.write('eps: {}\n'.format(eps))
+                    s.write('y[x-eps  ]: {}\n'.format(yss[0][i_out]))
+                    s.write('y[x-eps/2]: {}\n'.format(yss[1][i_out]))
+                    s.write('y[x      ]: {}\n'.format(yss[2][i_out]))
+                    s.write('y[x+eps/2]: {}\n'.format(yss[3][i_out]))
+                    s.write('y[x+eps  ]: {}\n'.format(yss[4][i_out]))
+                    raise NondifferentiableError(s.getvalue())
+
+                any_nonfinite |= not all(_.all() for _ in isfinites)
+
+            if not any_nonfinite:
+                # Stack flattenend outputs to make (5, *)-shaped 2D array
+                ystack = xp.vstack(
+                    [xp.hstack([y.ravel() for y in ys]) for ys in yss])
+                assert ystack.ndim == 2 and ystack.shape[0] == len(yss)
+                # Fit to quadratic
+                if gpu:
+                    ystack = ystack.get()
+                polyfit = numpy.polynomial.polynomial.polyfit
+                _, (residuals, _, _, _) = polyfit(
+                    range(len(yss)), ystack, deg=2, full=True)
+                if gpu:
+                    residuals = xp.array(residuals)
+                residuals = xp.sqrt(residuals / len(yss))
+
+                # Check for error for each output array
+                for i_out in range(nout):
+                    size = sizes[i_out]
+                    cumsize = cumsizes[i_out]
+                    shape = shapes[i_out]
+                    ymax = xp.stack([ys[i_out] for ys in yss]).max(axis=0)
+                    ymin = xp.stack([ys[i_out] for ys in yss]).min(axis=0)
+                    # Restore the shape of flattened residual
+                    res = residuals[cumsize - size:cumsize]
+                    res = res.reshape(shape)
+                    det = xp.asarray(
+                        diff_atol + diff_rtol * (ymax - ymin) < res)
+                    # Constant output = not nondifferentiable
+                    det[ymax == ymin] = False
+                    if det.any():
+                        s = six.StringIO()
+                        s.write(
+                            'Tried to compute the numeric gradient on a '
+                            'non-differentiable point.\n\n')
+                        s.write('i_in: {}\n'.format(i_in))
+                        s.write('i_out: {}\n'.format(i_out))
+                        s.write('x: {}\n'.format(inputs[i_in]))
+                        s.write('index on x: {}\n'.format(i))
+                        s.write('eps: {}\n'.format(eps))
+                        s.write('diff_rtol: {}\n'.format(diff_rtol))
+                        s.write('diff_atol: {}\n'.format(diff_atol))
+                        s.write('ymax: {}\n'.format(ymax))
+                        s.write('ymin: {}\n'.format(ymin))
+                        s.write(
+                            'diff_atol + diff_rtol * (ymax-ymin): {}\n'.format(
+                                diff_atol + diff_rtol * (ymax - ymin)))
+                        s.write('fitting errors: {}\n'.format(res))
+                        s.write('y[x-eps  ]: {}\n'.format(yss[0][i_out]))
+                        s.write('y[x-eps/2]: {}\n'.format(yss[1][i_out]))
+                        s.write('y[x      ]: {}\n'.format(yss[2][i_out]))
+                        s.write('y[x+eps/2]: {}\n'.format(yss[3][i_out]))
+                        s.write('y[x+eps  ]: {}\n'.format(yss[4][i_out]))
+                        raise NondifferentiableError(s.getvalue())
+
+        # Calculate numerical gradient
+        for i_out, gy in enumerate(grad_outputs):
+            if gy is None:
+                continue
+            gpu_ = (gpu and
+                    all(isinstance(ys[i_out], cuda.ndarray)
+                        for ys in yss))
+            if len(yss) == 2:  # 1st order
+                y0 = yss[0][i_out]
+                y1 = yss[1][i_out]
+                if gpu_:
+                    numerical_grad_kernel_1(
+                        y1, y0, xp.asarray(gy), eps, gx[i])
+                else:
+                    dot = ((y1 - y0) * gy).sum()
+                    gx[i] += dot / (2 * eps)
+            elif len(yss) == 5:  # 3rd order
+                y0 = yss[0][i_out]
+                y1 = yss[1][i_out]
+                y2 = yss[3][i_out]
+                y3 = yss[4][i_out]
+                if gpu_:
+                    numerical_grad_kernel_3(
+                        y3, y2, y1, y0, gy, eps, gx[i])
+                else:
+                    num = -y3 + 8 * y2 - 8 * y1 + y0
+                    dot = (num * gy).sum()
+                    gx[i] += dot / (6 * eps)
+            else:
+                assert False
+
+    # Calculate numeric gradient
     with configuration.using_config('type_check', False):
-        for x, gx in six.moves.zip(inputs, grads):
+        for i_in, (x, gx) in enumerate(six.moves.zip(inputs, grads)):
             orig_x = x.copy()  # hold original value
             for i in numpy.ndindex(x.shape):
-                orig = orig_x[i]
-                x[i] = orig + eps
-                ys1 = _copy_arrays(f())
-                x[i] = orig - eps
-                ys2 = _copy_arrays(f())
-                x[i] = orig
-                for y1, y2, gy in six.moves.zip(ys1, ys2, grad_outputs):
-                    if gy is not None:
-                        if (gpu and isinstance(y1, cuda.ndarray) and
-                                isinstance(y2, cuda.ndarray) and
-                                isinstance(gy, cuda.ndarray)):
-                            numerical_grad_kernel(y1, y2, gy, eps, gx[i])
-                        else:
-                            dot = ((y1 - y2) * gy).sum()
-                            gx[i] += dot / (2 * eps)
+                iterate_single_input(i_in, x, orig_x, i)
 
     return [g.astype(x.dtype, copy=False)
             for g, x in six.moves.zip(grads, inputs)]
@@ -118,8 +299,10 @@ def _filter_list(lst, ignore_list):
     return [x for x, ignore in six.moves.zip(lst, ignore_list) if not ignore]
 
 
-def check_backward(func, x_data, y_grad, params=(),
-                   eps=1e-3, atol=1e-5, rtol=1e-4, no_grads=None, dtype=None):
+def check_backward(
+        func, x_data, y_grad, params=(),
+        eps=1e-3, atol=1e-5, rtol=1e-4, no_grads=None, dtype=None,
+        detect_nondifferentiable=False):
     """Test backward procedure of a given function.
 
     This function automatically checks backward-process of a given function.
@@ -235,6 +418,10 @@ def check_backward(func, x_data, y_grad, params=(),
         dtype (~numpy.dtype): ``x_data``, ``y_grad`` and ``params`` are casted
             to this dtype when calculating numerical gradients. Only float
             types and ``None`` are allowed.
+        detect_nondifferentiable (bool):
+            If ``True``, check for non-differentiable inputs is enabled.
+            If ``func`` is non-differentiable at ``x_data``, ``check_backward``
+            raises :class:`~chainer.gradient_check.NondifferentiableError`.
 
     .. seealso::
        :func:`numerical_grad`
@@ -250,6 +437,7 @@ def check_backward(func, x_data, y_grad, params=(),
     xs = [variable.Variable(x) for x in x_data]
     y = func(*xs)
     y = _as_tuple(y)
+    y0_data = [_.data for _ in y]
 
     # All creators of `y` need to be the same because we only call
     # `y[0].backward` to call `backward` method of the creator.
@@ -342,7 +530,10 @@ def check_backward(func, x_data, y_grad, params=(),
             x.data = data
         return ys_data
 
-    gx, = numerical_grad(g, (delta,), y_grad, eps=eps)
+    gx, = numerical_grad(
+        g, (delta,), y_grad, eps=eps,
+        detect_nondifferentiable=detect_nondifferentiable,
+        center_outputs=y0_data)
     gx_accum = 0
     for g, direction in six.moves.zip(grads, directions):
         gx_accum += (g.astype('d') * direction).sum()
@@ -368,7 +559,8 @@ def check_backward(func, x_data, y_grad, params=(),
 
 def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
                           params_grad_grad=(), eps=1e-3, atol=1e-4, rtol=1e-3,
-                          no_grads=None, dtype=None):
+                          no_grads=None, dtype=None,
+                          detect_nondifferentiable=False):
     """Test twice differentiation of a given procedure.
 
     This function automatically checks if the backward procedure of ``func``
@@ -425,7 +617,8 @@ def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
     try:
         check_backward(first_order_grad, inputs, grad_grad, params=params,
                        eps=eps, atol=atol, rtol=rtol, no_grads=no_grads,
-                       dtype=dtype)
+                       dtype=dtype,
+                       detect_nondifferentiable=detect_nondifferentiable)
     except AssertionError as e:
         f = six.StringIO()
         f.write('check_double_backward failed '
