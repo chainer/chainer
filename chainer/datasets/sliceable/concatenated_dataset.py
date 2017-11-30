@@ -6,11 +6,11 @@ class ConcatenatedDataset(SliceableDataset):
     def __init__(self, *datasets):
         if len(datasets) == 0:
             raise ValueError('At least one dataset is required')
-        for dataset in datasets[1:]:
-            if not dataset.keys == datasets[0].keys:
-                raise ValueError('All datasets should have the same keys')
         self._datasets = datasets
         self._keys = datasets[0].keys
+        for dataset in datasets[1:]:
+            if not dataset.keys == self._keys:
+                raise ValueError('All datasets should have the same keys')
 
     def __len__(self):
         return sum(len(dataset) for dataset in self._datasets)
