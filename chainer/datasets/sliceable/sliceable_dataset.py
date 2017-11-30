@@ -32,6 +32,7 @@ class SliceableDataset(chainer.dataset.DatasetMixin):
 
 
 class SliceHelper(object):
+
     def __init__(self, dataset):
         self._dataset = dataset
 
