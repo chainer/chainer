@@ -80,8 +80,8 @@ class TestPickableDataset(unittest.TestCase):
             dataset[0], ('img(2)', 'anno0(2)', 'anno1(2)', 'anno2(2)'))
         self.assertEqual(self.dataset.count, 3)
 
-    def test_concatenate(self):
-        dataset = self.dataset.concatenate(self.dataset)
+    def test_concat(self):
+        dataset = self.dataset.concat(self.dataset)
         self.assertEqual(len(dataset), 20)
         self.assertEqual(
             dataset[1], ('img(1)', 'anno0(1)', 'anno1(1)', 'anno2(1)'))
@@ -89,11 +89,11 @@ class TestPickableDataset(unittest.TestCase):
             dataset[11], ('img(1)', 'anno0(1)', 'anno1(1)', 'anno2(1)'))
         self.assertEqual(self.dataset.count, 6)
 
-    def test_concatenate_invalid(self):
+    def test_concat_invalid(self):
         dataset0 = self.dataset.slice[:, ('img', 'anno0')]
         dataset1 = self.dataset.slice[:, ('img', 'anno1')]
         with self.assertRaises(ValueError):
-            dataset0.concatenate(dataset1)
+            dataset0.concat(dataset1)
 
     def test_transform(self):
         def transform(in_data):

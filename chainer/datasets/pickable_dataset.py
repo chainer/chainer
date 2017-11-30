@@ -27,7 +27,7 @@ class BaseDataset(chainer.dataset.DatasetMixin):
     def slice(self):
         return SliceHelper(self)
 
-    def concatenate(self, *datasets):
+    def concat(self, *datasets):
         for dataset in datasets:
             if not dataset.keys == self.keys:
                 raise ValueError('mismatched keys')
