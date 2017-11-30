@@ -559,7 +559,9 @@ def fuse(*args, **kwargs):
 
     """
     if available:
-        return cupy.fuse(*args, **kwargs)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', FutureWarning)
+            return cupy.fuse(*args, **kwargs)
     else:
         return lambda f: f
 
