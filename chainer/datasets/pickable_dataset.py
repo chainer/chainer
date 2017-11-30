@@ -29,8 +29,9 @@ class BaseDataset(chainer.dataset.DatasetMixin):
                 raise KeyError('{} does not exists'.format(key))
         return PickedDataset(self, keys)
 
-    def sub(self, start, stop=None, step=None):
-        return SubDataset(self, slice(start, stop, step))
+    @property
+    def sub(self):
+        return SubDatasetHelper(self)
 
     def concatenate(self, *datasets):
         for dataset in datasets:
@@ -57,6 +58,14 @@ class PickedDataset(BaseDataset):
 
     def get_example_by_keys(self, i, keys):
         return self._base.get_example_by_keys(i, keys)
+
+
+class SubDatasetHelper(object):
+    def __init__(self, base):
+        self._base = base
+
+    def __getitem__(self, index):
+        return SubDataset(self._base, index)
 
 
 class SubDataset(BaseDataset):

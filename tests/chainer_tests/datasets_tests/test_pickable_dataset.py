@@ -67,7 +67,7 @@ class TestPickableDataset(unittest.TestCase):
             self.dataset.pick('invalid')
 
     def test_sub(self):
-        dataset = self.dataset.sub(3, 8, 2)
+        dataset = self.dataset.sub[3:8:2]
         self.assertEqual(len(dataset), 3)
         self.assertEqual(
             dataset[1], ('img(5)', 'anno0(5)', 'anno1(5)', 'anno2(5)'))
