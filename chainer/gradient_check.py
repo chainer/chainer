@@ -190,8 +190,13 @@ def numerical_grad(
                     size = sizes[i_out]
                     cumsize = cumsizes[i_out]
                     shape = shapes[i_out]
-                    ymax = xp.stack([ys[i_out] for ys in yss]).max(axis=0)
-                    ymin = xp.stack([ys[i_out] for ys in yss]).min(axis=0)
+                    # TODO(niboshi): The following two lines could be
+                    # rewritten using xp.stack, which is supported in
+                    # NumPy>=1.10
+                    ymax = xp.concatenate(
+                        [ys[i_out][None] for ys in yss]).max(axis=0)
+                    ymin = xp.concatenate(
+                        [ys[i_out][None] for ys in yss]).min(axis=0)
                     # Restore the shape of flattened residual
                     res = residuals[cumsize - size:cumsize]
                     res = res.reshape(shape)
