@@ -30,7 +30,7 @@ class BaseDataset(chainer.dataset.DatasetMixin):
     def concat(self, *datasets):
         for dataset in datasets:
             if not dataset.keys == self.keys:
-                raise ValueError('mismatched keys')
+                raise ValueError('All datasets should have the same keys')
         return ConcatenatedDataset((self,) + datasets)
 
     def transform(self, func, keys):
