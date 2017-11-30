@@ -61,16 +61,22 @@ class SlicedDataset(BaseDataset):
         self._keys = keys
 
     def __len__(self):
-        start, end, step = self._index.indices(len(self._base))
-        return len(range(start, end, step))
+        if isinstance(self._index, slice):
+            start, end, step = self._index.indices(len(self._base))
+            return len(range(start, end, step))
+        else:
+            return len(self._index)
 
     @property
     def keys(self):
         return self._keys
 
     def get_example_by_keys(self, i, keys):
-        start, _, step = self._index.indices(len(self._base))
-        return self._base.get_example_by_keys(start + i * step, keys)
+        if isinstance(self._index, slice):
+            start, _, step = self._index.indices(len(self._base))
+            return self._base.get_example_by_keys(start + i * step, keys)
+        else:
+            return self._base.get_example_by_keys(self._index[i], keys)
 
 
 class ConcatenatedDataset(BaseDataset):

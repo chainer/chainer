@@ -66,11 +66,18 @@ class TestPickableDataset(unittest.TestCase):
         with self.assertRaises(KeyError):
             self.dataset.slice[:, 'invalid']
 
-    def test_slice_index(self):
+    def test_slice_index_slice(self):
         dataset = self.dataset.slice[3:8:2]
         self.assertEqual(len(dataset), 3)
         self.assertEqual(
             dataset[1], ('img(5)', 'anno0(5)', 'anno1(5)', 'anno2(5)'))
+        self.assertEqual(self.dataset.count, 3)
+
+    def test_slice_index_list(self):
+        dataset = self.dataset.slice[[2, 1, 5]]
+        self.assertEqual(len(dataset), 3)
+        self.assertEqual(
+            dataset[0], ('img(2)', 'anno0(2)', 'anno1(2)', 'anno2(2)'))
         self.assertEqual(self.dataset.count, 3)
 
     def test_concatenate(self):
