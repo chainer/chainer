@@ -46,17 +46,16 @@ class TupleDataset(SliceableDataset):
         return tuple(self._keys)
 
     def get_example_by_keys(self, i, keys):
-        required_keys = set(keys)
         values = {}
 
         for available_keys, dataset in self._sliceable_datasets:
-            call_keys = tuple(required_keys.intersection(available_keys))
+            call_keys = tuple(available_keys.intersection(keys))
             if len(call_keys) > 0:
                 values.update(six.moves.zip(
                     call_keys, dataset.get_example_by_keys(i, call_keys)))
 
         for key, dataset in self._regular_datasets:
-            if key in required_keys:
+            if key in keys:
                 values[key] = dataset[i]
 
         return tuple(values[key] for key in keys)
