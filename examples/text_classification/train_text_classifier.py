@@ -79,7 +79,7 @@ def main():
         Encoder = nets.BOWMLPEncoder
     encoder = Encoder(n_layers=args.layer, n_vocab=len(vocab),
                       n_units=args.unit, dropout=args.dropout)
-    model = nets.Classifier(encoder, n_class)
+    model = nets.TextClassifier(encoder, n_class)
     if args.gpu >= 0:
         # Make a specified GPU current
         chainer.cuda.get_device_from_id(args.gpu).use()

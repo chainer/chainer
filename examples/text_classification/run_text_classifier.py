@@ -29,7 +29,7 @@ def setup_model(args):
         Encoder = nets.BOWMLPEncoder
     encoder = Encoder(n_layers=setup['layer'], n_vocab=len(vocab),
                       n_units=setup['unit'], dropout=setup['dropout'])
-    model = nets.Classifier(encoder, n_class)
+    model = nets.TextClassifier(encoder, n_class)
     chainer.serializers.load_npz(setup['model_path'], model)
     if args.gpu >= 0:
         # Make a specified GPU current

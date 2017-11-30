@@ -62,7 +62,7 @@ def block_embed(embed, x, dropout=0.):
     return e
 
 
-class Classifier(chainer.Chain):
+class TextClassifier(chainer.Chain):
 
     """A classifier using a given encoder.
 
@@ -78,7 +78,7 @@ class Classifier(chainer.Chain):
      """
 
     def __init__(self, encoder, n_class, dropout=0.1):
-        super(Classifier, self).__init__()
+        super(TextClassifier, self).__init__()
         with self.init_scope():
             self.encoder = encoder
             self.output = L.Linear(encoder.out_units, n_class)
