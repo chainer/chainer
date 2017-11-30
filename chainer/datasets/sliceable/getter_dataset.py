@@ -4,7 +4,7 @@ from chainer.datasets.sliceable import SliceableDataset
 class GetterDataset(SliceableDataset):
 
     def __init__(self):
-        self._keys = ()
+        self._keys = []
         self._getters = {}
 
     def __len__(self):
@@ -12,7 +12,7 @@ class GetterDataset(SliceableDataset):
 
     @property
     def keys(self):
-        return self._keys
+        return tuple(self._keys)
 
     @keys.setter
     def keys(self, keys):
@@ -27,7 +27,7 @@ class GetterDataset(SliceableDataset):
             for j, key in enumerate(keys):
                 self._getters[key] = (getter, j)
         else:
-            self._keys += (keys,)
+            self._keys.append(keys)
             self._getters[keys] = (getter, None)
 
     def get_example_by_keys(self, i, keys):
