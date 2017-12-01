@@ -216,56 +216,6 @@ class Convolution2DFunction(function_node.FunctionNode):
                 handle, one.data, bias_desc.value, b.data.ptr,
                 one.data, y_desc.value, y.data.ptr)
 
-        x = cuda.cupy.ascontiguousarray(x)
-        W = cuda.cupy.ascontiguousarray(W)
-        if b is not None:
-            b = cuda.cupy.ascontiguousarray(b)
-
-        use_tensor_core = chainer.should_use_cudnn_tensor_core(x.dtype)
-
-        handle = cudnn.get_handle()
-        x_desc = cudnn.create_tensor_descriptor(x)
-        y_desc = cudnn.create_tensor_descriptor(y)
-
-        filter_desc = cudnn.create_filter_descriptor(W)
-        conv_param = ((self.ph, self.pw), (self.sy, self.sx), x.dtype)
-        conv_desc = cudnn.create_convolution_descriptor(
-            *conv_param, dilation=(self.dy, self.dx),
-            use_tensor_core=use_tensor_core)
-        if b is not None:
-            bias_desc = cudnn.create_tensor_descriptor(
-                b[None, :, None, None])
-        workspace_size = cuda.get_max_workspace_size()
-        workspace = cuda.cupy.empty((workspace_size,), dtype='b')
-        if configuration.config.autotune and _cudnn_version >= 5000:
-            algo = _get_algorithm_fwd(
-                x, W, y, conv_param, handle, x_desc, filter_desc,
-                conv_desc, y_desc, workspace)
-        else:
-            algo = libcudnn.getConvolutionForwardAlgorithm(
-                handle, x_desc.value, filter_desc.value,
-                conv_desc.value, y_desc.value, _fwd_pref, workspace_size)
-
-        if use_tensor_core:
-            # Only CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM
-            # supports Tensor-Core in cuDNN7.
-            algo = libcudnn.CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM  # NOQA
-
-        oz_dtype = 'd' if x.dtype == 'd' else 'f'
-        one = numpy.array(1, dtype=oz_dtype).ctypes
-        zero = numpy.array(0, dtype=oz_dtype).ctypes
-        libcudnn.convolutionForward(
-            handle, one.data, x_desc.value, x.data.ptr,
-            filter_desc.value, W.data.ptr, conv_desc.value,
-            algo, workspace.data.ptr, workspace_size, zero.data,
-            y_desc.value, y.data.ptr)
-
-        # TODO(beam2d): Support unshared bias
-        if b is not None:
-            cudnn.add_tensor(
-                handle, one.data, bias_desc.value, b.data.ptr,
-                one.data, y_desc.value, y.data.ptr)
-
         return y,
 
     def backward(self, indexes, grad_outputs):
