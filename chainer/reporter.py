@@ -374,4 +374,5 @@ class DictSummary(object):
             names = json.loads(serializer('_names', ''))
             for name in names:
                 if hasattr(self._summaries[name], 'serialize'):
-                    self._summaries[name].serialize(serializer['_summaries'])
+                    self._summaries[name].serialize(
+                        serializer['_summaries'][name])
