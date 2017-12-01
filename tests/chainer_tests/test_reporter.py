@@ -216,5 +216,20 @@ class TestSummary(unittest.TestCase):
         testing.assert_allclose(mean, 2.)
         testing.assert_allclose(std, numpy.sqrt(2. / 3.))
 
+    def test_serialize(self):
+        self.summary.add(1.)
+        self.summary.add(2.)
+
+        resumed_summary = chainer.reporter.Summary()
+        testing.save_and_load_npz(self.summary, resumed_summary)
+        resumed_summary.add(3.)
+
+        mean = resumed_summary.compute_mean()
+        testing.assert_allclose(mean, 2.)
+
+        mean, std = resumed_summary.make_statistics()
+        testing.assert_allclose(mean, 2.)
+        testing.assert_allclose(std, numpy.sqrt(2. / 3.))
+
 
 testing.run_module(__name__, __file__)
