@@ -114,6 +114,9 @@ class LogReport(extension.Extension):
         if hasattr(self._trigger, 'serialize'):
             self._trigger.serialize(serializer['_trigger'])
 
+        if hasattr(self._summary, 'serialize'):
+            self._summary.serialize(serializer['_summary'])
+
         # Note that this serialization may lose some information of small
         # numerical differences.
         if isinstance(serializer, serializer_module.Serializer):
