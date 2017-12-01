@@ -4,6 +4,8 @@ import chainer.functions
 
 from chainer import cuda
 from chainer import function_node
+from chainer.numexpr_config import numexpr
+from chainer.numexpr_config import numexpr_enabled
 from chainer import utils
 from chainer.utils import type_check
 
@@ -25,9 +27,15 @@ class Softplus(function_node.FunctionNode):
         self.retain_inputs((0,))
         x = inputs[0]
         # y = log(1 + exp(beta * x)) / beta
-        bx = self.beta * x
-        y = (numpy.fmax(bx, 0) +
-             numpy.log1p(numpy.exp(-numpy.fabs(bx)))) * self.beta_inv
+        if numexpr_enabled:
+            beta = self.beta  # NOQA
+            beta_inv = self.beta_inv  # NOQA
+            y = numexpr.evaluate('(where(beta*x > 0, beta*x, 0) + '
+                                 'log1p(exp(-abs(beta*x)))) * beta_inv')
+        else:
+            bx = self.beta * x
+            y = (numpy.fmax(bx, 0) +
+                 numpy.log1p(numpy.exp(-numpy.fabs(bx)))) * self.beta_inv
         return utils.force_array(y, x.dtype),
 
     def forward_gpu(self, inputs):
@@ -66,7 +74,11 @@ class SoftplusGrad(function_node.FunctionNode):
     def forward_cpu(self, inputs):
         self.retain_inputs((0, 1))
         x, gy = inputs
-        gx = (1 - 1 / (1 + numpy.exp(self.beta * x))) * gy
+        if numexpr_enabled:
+            beta = self.beta  # NOQA
+            gx = numexpr.evaluate('(1 - 1 / (1 + exp(beta * x))) * gy')
+        else:
+            gx = (1 - 1 / (1 + numpy.exp(self.beta * x))) * gy
         return utils.force_array(gx, x.dtype),
 
     def forward_gpu(self, inputs):

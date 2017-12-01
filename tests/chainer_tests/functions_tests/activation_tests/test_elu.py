@@ -44,7 +44,12 @@ class TestELU(unittest.TestCase):
         testing.assert_allclose(
             expected, y.data, **self.check_forward_options)
 
+    @attr.no_numexpr
     def test_forward_cpu(self):
+        self.check_forward(self.x)
+
+    @attr.with_numexpr
+    def test_forward_numexpr(self):
         self.check_forward(self.x)
 
     @attr.gpu
@@ -59,7 +64,12 @@ class TestELU(unittest.TestCase):
             f, x_data, y_grad, dtype=numpy.float64,
             **self.check_backward_options)
 
+    @attr.no_numexpr
     def test_backward_cpu(self):
+        self.check_backward(self.x, self.gy)
+
+    @attr.with_numexpr
+    def test_backward_numexpr(self):
         self.check_backward(self.x, self.gy)
 
     @attr.gpu
@@ -75,7 +85,12 @@ class TestELU(unittest.TestCase):
             f, x_data, y_grad, x_grad_grad, dtype=numpy.float64,
             **self.check_backward_options)
 
+    @attr.no_numexpr
     def test_double_backward_cpu(self):
+        self.check_double_backward(self.x, self.gy, self.ggx)
+
+    @attr.with_numexpr
+    def test_double_backward_numexpr(self):
         self.check_double_backward(self.x, self.gy, self.ggx)
 
     @attr.gpu

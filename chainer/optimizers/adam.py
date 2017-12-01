@@ -3,8 +3,9 @@ import math
 import numpy
 
 from chainer import cuda
+from chainer.numexpr_config import numexpr
+from chainer.numexpr_config import numexpr_enabled
 from chainer import optimizer
-
 
 _default_hyperparam = optimizer.Hyperparameter()
 _default_hyperparam.alpha = 0.001
@@ -60,10 +61,18 @@ class AdamRule(optimizer.UpdateRule):
                 'eps of Adam optimizer is too small for {} ({})'.format(
                     grad.dtype.name, hp.eps))
         m, v = self.state['m'], self.state['v']
-
-        m += (1 - hp.beta1) * (grad - m)
-        v += (1 - hp.beta2) * (grad * grad - v)
-        param.data -= self.lr * m / (numpy.sqrt(v) + eps)
+        if numexpr_enabled:
+            beta1, beta2, lr, data = hp.beta1, hp.beta2, self.lr, param.data  # NOQA
+            numexpr.evaluate('m + (1-beta1) * (grad-m)',
+                             out=m, casting='same_kind')
+            numexpr.evaluate('v + (1-beta2)*(grad**2-v)',
+                             out=v, casting='same_kind')
+            numexpr.evaluate('data - lr*m/(sqrt(v) + eps)', out=data,
+                             casting='same_kind')
+        else:
+            m += (1 - hp.beta1) * (grad - m)
+            v += (1 - hp.beta2) * (grad * grad - v)
+            param.data -= self.lr * m / (numpy.sqrt(v) + eps)
 
     def update_core_gpu(self, param):
         grad = param.grad

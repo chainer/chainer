@@ -44,6 +44,14 @@ class TestSigmoid(unittest.TestCase):
         y_expect = _sigmoid(self.x)
         testing.assert_allclose(y_expect, y.data, **self.check_forward_options)
 
+    @attr.no_numexpr
+    def test_forward_cpu(self):
+        self.check_forward(self.x)
+
+    @attr.with_numexpr
+    def test_forward_numexpr(self):
+        self.check_forward(self.x)
+
     @attr.gpu
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x), 'always')
@@ -63,7 +71,12 @@ class TestSigmoid(unittest.TestCase):
                 functions.sigmoid, x_data, y_grad, dtype=numpy.float64,
                 **self.check_backward_options)
 
+    @attr.no_numexpr
     def test_backward_cpu(self):
+        self.check_backward(self.x, self.gy)
+
+    @attr.with_numexpr
+    def test_backward_numexpr(self):
         self.check_backward(self.x, self.gy)
 
     @attr.gpu
@@ -90,7 +103,12 @@ class TestSigmoid(unittest.TestCase):
                 f, x_data, y_grad, x_grad_grad, dtype=numpy.float64,
                 **self.check_double_backward_options)
 
+    @attr.no_numexpr
     def test_double_backward_cpu(self):
+        self.check_double_backward(self.x, self.gy, self.ggx)
+
+    @attr.with_numexpr
+    def test_double_backward_numexpr(self):
         self.check_double_backward(self.x, self.gy, self.ggx)
 
     @attr.gpu

@@ -1,6 +1,7 @@
 from chainer import cuda
+from chainer.numexpr_config import numexpr
+from chainer.numexpr_config import numexpr_enabled
 from chainer import optimizer
-
 
 _default_hyperparam = optimizer.Hyperparameter()
 _default_hyperparam.lr = 0.01
@@ -30,7 +31,12 @@ class SGDRule(optimizer.UpdateRule):
         grad = param.grad
         if grad is None:
             return
-        param.data -= self.hyperparam.lr * grad
+        if numexpr_enabled:
+            data, lr = param.data, self.hyperparam.lr  # NOQA
+            numexpr.evaluate('data - lr * grad',
+                             out=param.data, casting='same_kind')
+        else:
+            param.data -= self.hyperparam.lr * grad
 
     def update_core_gpu(self, param):
         grad = param.grad

@@ -1,6 +1,7 @@
 from chainer import cuda
+from chainer.numexpr_config import numexpr
+from chainer.numexpr_config import numexpr_enabled
 from chainer import optimizer
-
 
 _default_hyperparam = optimizer.Hyperparameter()
 _default_hyperparam.lr = 0.01
@@ -41,11 +42,17 @@ class NesterovAGRule(optimizer.UpdateRule):
             return
         v = self.state['v']
         lr, momentum = self.hyperparam.lr, self.hyperparam.momentum
-
-        v *= momentum
-        v -= lr * grad
-        param.data += momentum * momentum * v
-        param.data -= (1 + momentum) * lr * grad
+        if numexpr_enabled:
+            data = param.data
+            numexpr.evaluate('v*momentum - lr*grad',
+                             out=v, casting='same_kind')
+            numexpr.evaluate('data + momentum**2*v - (1+momentum)*lr*grad',
+                             out=data, casting='same_kind')
+        else:
+            v *= momentum
+            v -= lr * grad
+            param.data += momentum * momentum * v
+            param.data -= (1 + momentum) * lr * grad
 
     def update_core_gpu(self, param):
         grad = param.grad

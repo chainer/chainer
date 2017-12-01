@@ -52,6 +52,10 @@ Chainer can be installed without them, in which case the corresponding features 
 
   * `h5py <http://www.h5py.org/>`__ 2.5+
 
+* Numexpr support
+
+  * `numexpr <https://numexpr.readthedocs.io/>`__ 2.0+
+
 
 Install Chainer
 ---------------
@@ -146,6 +150,20 @@ The way to install it depends on your environment::
 
 Note that this feature is optional.
 
+Enable Numexpr support
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Numexpr provides speed-ups to CPU training and inference by reducing temporary array allocations and enabling multi-threading.
+In order to enable Numexpr support, you have to install `Numexpr <https://numexpr.readthedocs.io/>`_ manually.
+In most cases, this should be as easy as `pip install numexpr`
+Once numexpr is correctly set up, Chainer will automatically enable Numexpr support.
+
+You can refer to the following flags to confirm if numexpr support is actually available.
+
+``chainer.numexpr_config.numexpr_enabled``
+   ``True`` if numexpr support is available.
+
+Note that this feature is optional.
 
 Uninstall Chainer
 -----------------

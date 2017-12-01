@@ -2,6 +2,9 @@ import numpy
 
 from chainer import cuda
 from chainer import function_node
+from chainer.numexpr_config import numexpr
+from chainer.numexpr_config import numexpr_enabled
+from chainer import utils
 from chainer.utils import type_check
 
 
@@ -20,10 +23,15 @@ class ELU(function_node.FunctionNode):
 
     def forward_cpu(self, x):
         self.retain_inputs((0,))
-        y = x[0].copy()
-        neg_indices = x[0] < 0
-        y[neg_indices] = self.alpha * (numpy.exp(y[neg_indices]) - 1)
-        return y,
+        x0 = x[0]  # NOQA
+        alpha = self.alpha  # NOQA
+        if numexpr_enabled:
+            y = numexpr.evaluate('where(x0 < 0, alpha * (exp(x0) - 1), x0)')
+        else:
+            y = x[0].copy()
+            neg_indices = x[0] < 0
+            y[neg_indices] = self.alpha * (numpy.exp(y[neg_indices]) - 1)
+        return utils.force_array(y, x[0].dtype),
 
     def forward_gpu(self, x):
         self.retain_inputs((0,))
@@ -54,12 +62,16 @@ class ELUGrad(function_node.FunctionNode):
 
     def forward_cpu(self, inputs):
         x, gy = inputs
-        gx = gy.copy()
-        neg_indices = x < 0
-        gx[neg_indices] *= self.alpha * numpy.exp(x[neg_indices])
+        if numexpr_enabled:
+            alpha = self.alpha  # NOQA
+            gx = numexpr.evaluate('where(x < 0, gy*alpha*exp(x), gy)')
+        else:
+            gx = gy.copy()
+            neg_indices = x < 0
+            gx[neg_indices] *= self.alpha * numpy.exp(x[neg_indices])
         self.retain_inputs((0, 1))
         self.retain_outputs((0,))
-        return gx,
+        return utils.force_array(gx, x.dtype),
 
     def forward_gpu(self, inputs):
         x, gy = inputs
