@@ -153,7 +153,7 @@ class Evaluator(extension.Extension):
             This method encloses :attr:`eval_func` calls with
             :func:`function.no_backprop_mode` context, so all calculations
             using :class:`~chainer.FunctionNode`\s inside
-            :attr:`eval_func` don't make computational graphs. It is for
+            :attr:`eval_func` do not make computational graphs. It is for
             reducing the memory consumption.
 
         Returns:
