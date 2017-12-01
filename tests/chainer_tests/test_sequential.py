@@ -239,10 +239,13 @@ class TestSequential(unittest.TestCase):
         with testing.assert_warns(DeprecationWarning):
             self.s2.zerograds()
             numpy.testing.assert_array_equal(self.l1.b.grad, numpy.zeros((3,)))
-            numpy.testing.assert_array_equal(self.l2.W.grad, numpy.zeros((2, 3)))
-            numpy.testing.assert_array_equal(self.l3.W.grad, numpy.zeros((3, 2)))
+            numpy.testing.assert_array_equal(
+                self.l2.W.grad, numpy.zeros((2, 3)))
+            numpy.testing.assert_array_equal(
+                self.l3.W.grad, numpy.zeros((3, 2)))
             self.l1.W.initialize((3, 2))
-            numpy.testing.assert_array_equal(self.l1.W.grad, numpy.zeros((3, 2)))
+            numpy.testing.assert_array_equal(
+                self.l1.W.grad, numpy.zeros((3, 2)))
 
     def test_cleargrads(self):
         self.s2.cleargrads()
@@ -514,16 +517,6 @@ class TestSequential(unittest.TestCase):
         for l1, l2 in zip(s2, self.s2):
             self.assertIsNot(l1, l2)
         os.remove(path)
-
-    def test_n_lambda(self):
-        self.s2.append(lambda x: x)
-        self.assertEqual(self.s2._n_lambda, 1)
-        self.s2.pop()
-        self.assertEqual(self.s2._n_lambda, 0)
-        self.s2.insert(1, lambda x: x)
-        self.assertEqual(self.s2._n_lambda, 1)
-        del self.s2[1]
-        self.assertEqual(self.s2._n_lambda, 0)
 
     def test_pickle_with_lambda(self):
         self.s2.append(lambda x: x)
