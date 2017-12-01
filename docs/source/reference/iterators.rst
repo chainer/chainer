@@ -2,8 +2,8 @@
 
 .. _iterators:
 
-Iterator examples
-=================
+Iterator
+========
 
 Chainer provides some iterators that implement typical strategies to create mini-batches by iterating over datasets.
 :class:`SerialIterator` is the simplest one, which extract mini batches in the main thread.

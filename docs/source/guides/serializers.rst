@@ -1,7 +1,6 @@
 Serializer
 ~~~~~~~~~~
 
-Before proceeding to the first example, we introduce Serializer, which is the last core feature described in this page.
 Serializer is a simple interface to serialize or deserialize an object.
 :class:`Link`, :class:`Optimizer`, and :class:`~training.Trainer` supports serialization.
 

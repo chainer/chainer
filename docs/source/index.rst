@@ -2,26 +2,28 @@
 Chainer -- A flexible framework of neural networks
 ==================================================
 
-This is the `Chainer <https://chainer.org>`_ documentation.
+Welcome to the `Chainer <https://chainer.org>`_ documentation.
+
+* Certified 99% Python code!
+* Define-by-run approach for flexibility and understandable errors
+* Numpy format tensors
+* NVIDIA GPU acceleration, thanks to `CuPy <https://cupy.chainer.org>`_
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
+   :caption: Getting started
 
-   tutorial/index
+   install
+   examples/index
+   guides/index
    reference/index
 
 .. toctree::
    :maxdepth: 1
-   :caption: Development
+   :caption: Other Stuff
 
    compatibility
    contribution
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Misc
-
-   install
    tips
    upgrade
    comparison
@@ -33,4 +35,3 @@ Indices and tables
 
 * :ref:`genindex`
 * :ref:`modindex`
-* :ref:`search`

@@ -42,16 +42,34 @@ Extension
 
    chainer.training.Extension
    chainer.training.make_extension
+   chainer.training.extensions.dump_graph
+   chainer.training.extensions.Evaluator
+   chainer.training.extensions.ExponentialShift
+   chainer.training.extensions.LinearShift
+   chainer.training.extensions.LogReport
+   chainer.training.extensions.observe_lr
+   chainer.training.extensions.observe_value
+   chainer.training.extensions.snapshot
+   chainer.training.extensions.snapshot_object
+   chainer.training.extensions.ParameterStatistics
+   chainer.training.extensions.PlotReport
+   chainer.training.extensions.PrintReport
+   chainer.training.extensions.ProgressBar
 
 Trigger
 -------
-Trigger is a callable object to decide when to process some specific event within the training loop. It takes a Trainer object as the argument, and returns True if some event should be fired.
+A trigger is a callable object to decide when to process some specific event within the training loop. It takes a Trainer object as the argument, and returns True if some event should be fired.
 
 It is mainly used to determine when to call an extension. It is also used to determine when to quit the training loop.
-
 
 .. autosummary::
    :toctree: generated/
    :nosignatures:
 
    chainer.training.get_trigger
+   chainer.training.triggers.BestValueTrigger
+   chainer.training.triggers.IntervalTrigger
+   chainer.training.triggers.ManualScheduleTrigger
+   chainer.training.triggers.MaxValueTrigger
+   chainer.training.triggers.MinValueTrigger
+

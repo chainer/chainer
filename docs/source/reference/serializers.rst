@@ -30,3 +30,14 @@ Serialization in HDF5 format
    chainer.serializers.HDF5Deserializer
    chainer.serializers.save_hdf5
    chainer.serializers.load_hdf5
+
+Serializers base classes
+----------
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.Serializer
+   chainer.AbstractSerializer
+   chainer.Deserializer
