@@ -3,7 +3,7 @@ Standard Function implementations
 
 .. module:: chainer.functions
 
-Chainer provides basic :class:`~chainer.Function` implementations in the
+Chainer provides basic :class:`~chainer.FunctionNode` implementations in the
 :mod:`chainer.functions` package. Most of them are wrapped by plain Python
 functions, which users should use.
 
