@@ -64,6 +64,10 @@ from chainer.variable import Parameter  # NOQA
 from chainer.variable import Variable  # NOQA
 
 
+# Alias for backward compatibility
+from chainer import cuda  # NOQA
+
+
 from chainer import _environment_check
 
 
