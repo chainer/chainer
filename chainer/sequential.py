@@ -82,7 +82,6 @@ class Sequential(chainer.ChainList):
     def __init__(self, *layers):
         super(Sequential, self).__init__()
         self._layers = []
-        self._n_lambda = 0
         for layer in layers:
             self.append(layer)
 
@@ -112,9 +111,6 @@ class Sequential(chainer.ChainList):
                 if link is layer:
                     del self._children[i]
                     break
-        elif callable(layer) and hasattr(layer, '__name__') \
-                and layer.__name__ == '<lambda>':
-            self._n_lambda -= 1
 
     def __iter__(self):
         return iter(self._layers)
@@ -223,7 +219,13 @@ class Sequential(chainer.ChainList):
         return x
 
     def __reduce__(self):
-        if self._n_lambda > 0:
+        n_lambda = 0
+        for layer in self._layers:
+            if callable(layer) and hasattr(layer, '__name__') \
+                    and layer.__name__ == '<lambda>':
+                n_lambda += 1
+
+        if n_lambda > 0:
             raise ValueError(
                 'This Sequential object has at least one lambda function as '
                 'its component. Lambda function can\'t be pickled, so please '
@@ -285,9 +287,6 @@ class Sequential(chainer.ChainList):
         self._layers.insert(i, layer)
         if isinstance(layer, chainer.Link):
             self.add_link(layer)
-        elif callable(layer) and hasattr(layer, '__name__') \
-                and layer.__name__ == '<lambda>':
-            self._n_lambda += 1
 
     def remove(self, layer):
         if layer in self:
@@ -374,7 +373,6 @@ class Sequential(chainer.ChainList):
 
     def copy(self):
         ret = Sequential()
-        ret._n_lambda = self._n_lambda
         for layer in self:
             if isinstance(layer, chainer.Link):
                 ret.append(layer.copy())
