@@ -1,13 +1,14 @@
 import numpy
 
+import chainer
 from chainer import cuda
-from chainer import function
+from chainer import function_node
 from chainer.functions.activation import sigmoid
 from chainer import utils
 from chainer.utils import type_check
 
 
-class SigmoidCrossEntropy(function.Function):
+class SigmoidCrossEntropy(function_node.FunctionNode):
 
     """Sigmoid activation followed by a sigmoid cross entropy loss."""
 
@@ -20,6 +21,7 @@ class SigmoidCrossEntropy(function.Function):
                 "only 'mean' and 'no' are valid for 'reduce', but '%s' is "
                 'given' % reduce)
         self.reduce = reduce
+        self.count = None
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 2)
@@ -32,6 +34,8 @@ class SigmoidCrossEntropy(function.Function):
         )
 
     def forward(self, inputs):
+        self.retain_inputs((0, 1))
+
         xp = cuda.get_array_module(*inputs)
         x, t = inputs
         self.ignore_mask = (t != self.ignore_label)
@@ -54,21 +58,56 @@ class SigmoidCrossEntropy(function.Function):
             xp.divide(xp.sum(loss), self.count, dtype=x.dtype)),
 
     def backward(self, inputs, grad_outputs):
+        x, t = self.get_retained_inputs()
+        gy, = grad_outputs
+        return SigmoidCrossEntropyGrad(
+            self.reduce, self.count, self.ignore_mask, t.data).apply((x, gy))
+
+
+class SigmoidCrossEntropyGrad(function_node.FunctionNode):
+
+    """Sigmoid cross entropy gradient function."""
+
+    def __init__(self, reduce, count, ignore_mask, t):
+        self.reduce = reduce
+        self.count = count
+        self.ignore_mask = ignore_mask
+        self.t = t
+
+    def forward(self, inputs):
+        self.retain_inputs((0, 1))
+
         xp = cuda.get_array_module(*inputs)
-        x, t = inputs
-        gloss = grad_outputs[0]
+        x, gy = inputs
+
         y, = sigmoid.Sigmoid().forward((x,))
         if self.reduce == 'mean':
             gx = xp.divide(
-                gloss * self.ignore_mask * (y - t), self.count,
+                gy * self.ignore_mask * (y - self.t), self.count,
                 dtype=y.dtype)
         else:
-            gx = (gloss * self.ignore_mask * (y - t)).astype(y.dtype)
+            gx = (gy * self.ignore_mask * (y - self.t)).astype(y.dtype)
+
         return gx, None
 
+    def backward(self, indexes, grad_outputs):
+        ggx, _ = grad_outputs
+        x, gy = self.get_retained_inputs()
+        y = chainer.functions.sigmoid(x)
+        yp = y * (1 - y)
+        gx = yp * chainer.functions.broadcast_to(gy, yp.shape)
+        ggy = y - self.t.astype(y.dtype)
+        gx *= self.ignore_mask * ggx
+        ggy *= self.ignore_mask * ggx
 
-def sigmoid_cross_entropy(
-        x, t, normalize=True, reduce='mean'):
+        if self.reduce == 'mean':
+            gx /= self.count
+            ggy = chainer.functions.sum(ggy) / self.count
+
+        return gx, ggy
+
+
+def sigmoid_cross_entropy(x, t, normalize=True, reduce='mean'):
     """Computes cross entropy loss for pre-sigmoid activations.
 
     Args:
@@ -126,4 +165,4 @@ def sigmoid_cross_entropy(
                [ 0.00671535,  0.126928  , -0.        ]], dtype=float32)
 
     """
-    return SigmoidCrossEntropy(normalize, reduce)(x, t)
+    return SigmoidCrossEntropy(normalize, reduce).apply((x, t))[0]
