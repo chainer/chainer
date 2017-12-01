@@ -1,12 +1,14 @@
 import collections
 import contextlib
 import copy
+import json
 
 import numpy
 import six
 
 from chainer import configuration
 from chainer import cuda
+from chainer import serializer as serializer_module
 from chainer import variable
 
 
@@ -294,6 +296,11 @@ class Summary(object):
             std = xp.sqrt(var)
             return mean, std
 
+    def serialize(self, serializer):
+        self._x = serializer('_x', self._x)
+        self._x2 = serializer('_x2', self._x2)
+        self._n = serializer('_n', self._n)
+
 
 class DictSummary(object):
 
@@ -356,3 +363,15 @@ class DictSummary(object):
             stats[name + '.std'] = std
 
         return stats
+
+    def serialize(self, serializer):
+        if isinstance(serializer, serializer_module.Serializer):
+            serializer('_names', json.dumps(list(self._summaries.keys())))
+            for name, summary in six.iteritems(self._summaries):
+                if hasattr(summary, 'serialize'):
+                    summary.serialize(serializer['_summaries'][name])
+        else:
+            names = json.loads(serializer('_names', ''))
+            for name in names:
+                if hasattr(self._summaries[name], 'serialize'):
+                    self._summaries[name].serialize(serializer['_summaries'])
