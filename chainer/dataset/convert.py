@@ -152,11 +152,14 @@ class ConcatWithAsyncTransfer(object):
     An instance of this class is mainly intended to be used as a converter
     function of an updater like below.
 
-        >>> from chainer.dataset import convert
-        >>> ...
-        >>> updater = chainer.training.StandardUpdater(...,
-        >>>               converter=convert.ConcatWithAsyncTransfer(),
-        >>>               ...)
+    .. doctest::
+
+        from chainer.dataset import convert
+        ...
+        updater = chainer.training.StandardUpdater(
+                       ...,
+                       converter=convert.ConcatWithAsyncTransfer(),
+                       ...)
 
     Args:
         stream (cupy.cuda.Stream): CUDA stream. If ``None``, a stream is
@@ -173,7 +176,7 @@ class ConcatWithAsyncTransfer(object):
     def __call__(self, batch, device=None, padding=None):
         """Concatenate data and transfer them to GPU asynchronously.
 
-        (see concat_examples for detail about concatenation)
+        See also :func:`chainer.dataset.concat_examples`.
 
         Args:
             batch (list): A list of examples.

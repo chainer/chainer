@@ -204,27 +204,27 @@ def negative_sampling(x, t, W, sampler, sample_size, reduce='sum'):
     By using the negative sampling trick you only need to calculate the
     gradient for a few sampled negative examples.
 
-    The objective function is below:
+    The loss is defined as follows.
 
     .. math::
 
-       f(x, p) = \\log \\sigma(x^\\top w_p) +  \\
-       k E_{i \\sim P(i)}[\\log \\sigma(- x^\\top w_i)],
+       f(x, p) = - \\log \\sigma(x^\\top w_p) - \\
+       k E_{i \\sim P(i)}[\\log \\sigma(- x^\\top w_i)]
 
     where :math:`\\sigma(\\cdot)` is a sigmoid function, :math:`w_i` is the
     weight vector for the word :math:`i`, and :math:`p` is a positive example.
     It is approximated with :math:`k` examples :math:`N` sampled from
-    probability :math:`P(i)`, like this:
+    probability :math:`P(i)`.
 
     .. math::
 
-       f(x, p) \\approx \\log \\sigma(x^\\top w_p) +  \\
-       \\sum_{n \\in N} \\log \\sigma(-x^\\top w_n).
+       f(x, p) \\approx - \\log \\sigma(x^\\top w_p) - \\
+       \\sum_{n \\in N} \\log \\sigma(-x^\\top w_n)
 
-    Each sample of :math:`N` is drawn from the word distribution :math:`P(w)`.
-    This is calculated as :math:`P(w) = \\frac{1}{Z} c(w)^\\alpha`, where
-    :math:`c(w)` is the unigram count of the word :math:`w`, :math:`\\alpha` is
-    a hyper-parameter, and :math:`Z` is the normalization constant.
+    Each sample of :math:`N` is drawn from the word distribution
+    :math:`P(w) = \\frac{1}{Z} c(w)^\\alpha`, where :math:`c(w)` is the
+    unigram count of the word :math:`w`, :math:`\\alpha` is a hyper-parameter,
+    and :math:`Z` is the normalization constant.
 
     Args:
         x (~chainer.Variable): Batch of input vectors.

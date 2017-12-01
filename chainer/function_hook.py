@@ -4,8 +4,8 @@ import chainer
 class FunctionHook(object):
     """Base class of hooks for Functions.
 
-    :class:`~chainer.FunctionHook` is an callback object
-    that is registered to :class:`~chainer.Function`.
+    :class:`~chainer.FunctionHook` is a callback object
+    that is registered to :class:`~chainer.FunctionNode`.
     Registered function hooks are invoked before and after
     forward and backward operations of each function.
 
@@ -17,7 +17,7 @@ class FunctionHook(object):
     :meth:`~chainer.FunctionHook.backward_postprocess`.
     By default, these methods do nothing.
 
-    Specifically, when :meth:`~chainer.Function.__call__`
+    Specifically, when :meth:`~chainer.FunctionNode.__call__`
     method of some function is invoked,
     :meth:`~chainer.FunctionHook.forward_preprocess`
     (resp. :meth:`~chainer.FunctionHook.forward_postprocess`)
@@ -32,7 +32,7 @@ class FunctionHook(object):
     as a gradient are called before (resp. after) backward propagation.
 
     There are two ways to register :class:`~chainer.FunctionHook`
-    objects to :class:`~chainer.Function` objects.
+    objects to :class:`~chainer.FunctionNode` objects.
 
     First one is to use ``with`` statement. Function hooks hooked
     in this way are registered to all functions within ``with`` statement
@@ -79,12 +79,12 @@ class FunctionHook(object):
        are different depending on threads.
 
     The other one is to register directly to
-    :class:`~chainer.Function` object with
+    :class:`~chainer.FunctionNode` object with
     :meth:`~chainer.Function.add_hook` method.
     Function hooks registered in this way can be removed by
     :meth:`~chainer.Function.delete_hook` method.
     Contrary to former registration method, function hooks are registered
-    only to the function which :meth:`~chainer.Function.add_hook`
+    only to the function which :meth:`~chainer.FunctionNode.add_hook`
     is called.
 
     Args:
@@ -110,7 +110,7 @@ class FunctionHook(object):
         """Callback function invoked when a function hook is added
 
         Args:
-            function(~chainer.Function): Function object to which
+            function(~chainer.FunctionNode): Function object to which
                 the function hook is added.
         """
         pass
@@ -119,7 +119,7 @@ class FunctionHook(object):
         """Callback function invoked when a function hook is deleted
 
         Args:
-            function(~chainer.Function): Function object to which
+            function(~chainer.FunctionNode): Function object to which
                 the function hook is deleted.
         """
         pass
@@ -129,7 +129,7 @@ class FunctionHook(object):
         """Callback function invoked before forward propagation.
 
         Args:
-            function(~chainer.Function): Function object to which
+            function(~chainer.FunctionNode): Function object to which
                 the function hook is registered.
             in_data(tuple of numpy.ndarray or tuple of cupy.ndarray):
                Input data of forward propagation.
@@ -140,7 +140,7 @@ class FunctionHook(object):
         """Callback function invoked after forward propagation.
 
         Args:
-            function(~chainer.Function): Function object to which
+            function(~chainer.FunctionNode): Function object to which
                 the function hook is registered.
             in_data(tuple of numpy.ndarray or tuple of cupy.ndarray):
                 Input data of forward propagation.
@@ -152,7 +152,7 @@ class FunctionHook(object):
         """Callback function invoked before backward propagation.
 
         Args:
-            function(~chainer.Function): Function object to which
+            function(~chainer.FunctionNode): Function object to which
                 the function hook is registered.
             in_data(tuple of numpy.ndarray or tuple of cupy.ndarray):
                 Input data of forward propagation.
@@ -165,7 +165,7 @@ class FunctionHook(object):
         """Callback function invoked after backward propagation.
 
         Args:
-            function(~chainer.Function): Function object to which
+            function(~chainer.FunctionNode): Function object to which
                 the function hook is registered.
             in_data(tuple of numpy.ndarray or tuple of cupy.ndarray):
                 Input of forward propagation.

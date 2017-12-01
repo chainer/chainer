@@ -242,7 +242,7 @@ def n_step_bilstm(
         hx (~chainer.Variable): Variable holding stacked hidden states.
             Its shape is ``(2S, B, N)`` where ``S`` is the number of layers and
             is equal to ``n_layers``, ``B`` is the mini-batch size, and ``N``
-            is the dimension of the hidden units. Because of bi-diraction, the
+            is the dimension of the hidden units. Because of bi-direction, the
             first dimension length is ``2S``.
         cx (~chainer.Variable): Variable holding stacked cell states.
             It has the same shape as ``hx``.

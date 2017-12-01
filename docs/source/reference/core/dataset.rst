@@ -44,6 +44,7 @@ Batch conversion function
    :nosignatures:
 
    chainer.dataset.concat_examples
+   chainer.dataset.ConcatWithAsyncTransfer
    chainer.dataset.to_device
 
 Dataset management

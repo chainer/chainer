@@ -30,6 +30,7 @@ import numpy
 import six
 
 import chainer
+from chainer.configuration import config
 
 
 available = False
@@ -237,16 +238,19 @@ def to_gpu(array, device=None, stream=None):
     """Copies the given CPU array to the specified device.
 
     Args:
-        array: Array to be sent to GPU.
+        array (numpy.ndarray, cupy.ndarray, None, list or tuple):
+            Array or arrays to be sent to GPU.
         device: Device specifier.
         stream (~cupy.cuda.Stream): *(deprecated since v3.0.0)*
             CUDA stream. If not ``None``, the copy runs asynchronously.
 
     Returns:
-        cupy.ndarray: Array on GPU.
+        cupy.ndarray, list or tuple: Array or arrays on GPU.
 
-        If ``array`` is already on the GPU device specified by ``device``,
-        this function just returns ``array`` without performing any copy.
+        If some of the arrays are already on GPU, then this function just
+        returns those arrays without performing any copy.
+
+        If input arrays include `None`, it is returned as `None` as is.
 
     """
     if stream is not None:
@@ -255,6 +259,28 @@ def to_gpu(array, device=None, stream=None):
             'Please remove it.', DeprecationWarning)
 
     check_cuda_available()
+    with _get_device(device) as device_:
+        if isinstance(array, (list, tuple)):
+            d = {}
+            ret = []
+            for arr in array:
+                if arr is None:
+                    ret.append(None)
+                else:
+                    arr2 = d.get(id(arr))
+                    if arr2 is None:
+                        arr2 = _array_to_gpu(arr, device_, stream)
+                        d[id(arr)] = arr2
+                    ret.append(arr2)
+            return type(array)(ret)
+        else:
+            return _array_to_gpu(array, device_, stream)
+
+
+def _array_to_gpu(array, device, stream):
+    assert device is DummyDevice or isinstance(device, Device)
+    if array is None:
+        return None
     if isinstance(array, (numpy.number, numpy.bool_)):
         array = numpy.asarray(array)
     if not isinstance(array, (cupy.ndarray, numpy.ndarray)):
@@ -262,57 +288,80 @@ def to_gpu(array, device=None, stream=None):
             'The array sent to gpu must be numpy.ndarray or cupy.ndarray, '
             'or a NumPy scalar.'
             '\nActual type: {0}.'.format(type(array)))
-    with _get_device(device):
-        array_dev = get_device_from_array(array)
-        if array_dev.id == cupy.cuda.device.get_device_id():
-            return array
 
-        if stream is not None and stream.ptr != 0:
-            ret = cupy.empty_like(array)
-            if array_dev.id == -1:
-                # cpu to gpu
-                mem = cupy.cuda.alloc_pinned_memory(array.nbytes)
-                src = numpy.frombuffer(
-                    mem, array.dtype, array.size).reshape(array.shape)
-                src[...] = array
-                ret.set(src, stream)
-                cupy.cuda.pinned_memory._add_to_watch_list(
-                    stream.record(), mem)
-            else:
-                # gpu to gpu
-                with array_dev:
-                    src = array.copy()
-                    event = Stream.null.record()
-                stream.wait_event(event)
-                ret.data.copy_from_device_async(
-                    src.data, src.nbytes, stream)
+    array_dev = get_device_from_array(array)
+    if array_dev.id == cupy.cuda.device.get_device_id():
+        return array
 
-                # to hold a reference until the end of the asynchronous
-                # memcpy
-                stream.add_callback(lambda *x: None, (src, ret))
-            return ret
-
+    if stream is not None and stream.ptr != 0:
+        ret = cupy.empty_like(array)
         if array_dev.id == -1:
-            return cupy.asarray(array)
+            # cpu to gpu
+            mem = cupy.cuda.alloc_pinned_memory(array.nbytes)
+            src = numpy.frombuffer(
+                mem, array.dtype, array.size).reshape(array.shape)
+            src[...] = array
+            ret.set(src, stream)
+            cupy.cuda.pinned_memory._add_to_watch_list(
+                stream.record(), mem)
+        else:
+            # gpu to gpu
+            with array_dev:
+                src = array.copy()
+                event = Stream.null.record()
+            stream.wait_event(event)
+            ret.data.copy_from_device_async(
+                src.data, src.nbytes, stream)
 
-        # Need to make a copy when an array is copied to another device
-        return cupy.array(array, copy=True)
+            # to hold a reference until the end of the asynchronous
+            # memcpy
+            stream.add_callback(lambda *x: None, (src, ret))
+        return ret
+
+    if array_dev.id == -1:
+        return cupy.asarray(array)
+
+    # Need to make a copy when an array is copied to another device
+    return cupy.array(array, copy=True)
 
 
 def to_cpu(array, stream=None):
     """Copies the given GPU array to host CPU.
 
     Args:
-        array: Array to be sent to CPU.
+        array (numpy.ndarray, cupy.ndarray, None, list or tuple):
+            Array or arrays to be sent to CPU.
         stream (cupy.cuda.Stream): CUDA stream.
 
     Returns:
-        numpy.ndarray: Array on CPU.
+        numpy.ndarray, list or tuple: Array on CPU.
 
-        If given ``array`` is already on CPU, then this function just returns
-        ``array`` without performing any copy.
+        If some of the arrays are already on CPU, then this function just
+        returns those arrays without performing any copy.
+
+        If input arrays include `None`, it is returned as `None` as is.
 
     """
+    if isinstance(array, (list, tuple)):
+        d = {}
+        ret = []
+        for arr in array:
+            if arr is None:
+                ret.append(None)
+            else:
+                arr2 = d.get(id(arr))
+                if arr2 is None:
+                    arr2 = _array_to_cpu(arr, stream)
+                    d[id(arr)] = arr2
+                ret.append(arr2)
+        return type(array)(ret)
+    else:
+        return _array_to_cpu(array, stream)
+
+
+def _array_to_cpu(array, stream):
+    if array is None:
+        return None
     if isinstance(array, ndarray):
         check_cuda_available()
         with get_device_from_array(array):
@@ -513,3 +562,74 @@ def fuse(*args, **kwargs):
         return cupy.fuse(*args, **kwargs)
     else:
         return lambda f: f
+
+
+# ------------------------------------------------------------------------------
+# cuDNN
+# ------------------------------------------------------------------------------
+_SHOULD_USE_CUDNN = {
+    '==always': {'always': True, 'auto': False, 'never': False},
+    '>=auto':   {'always': True, 'auto': True,  'never': False},
+}
+
+
+_cudnn_version = cuda.cudnn.getVersion() if cudnn_enabled else -1
+
+
+def should_use_cudnn(level, lowest_version=0):
+    """Determines if we should use cuDNN.
+
+    This function checks ``chainer.config.use_cudnn``,
+    ``chainer.cuda.cudnn_enabled``, and the cuDNN version. Note that
+    ``cudnn_enabled`` flag is fixed at loading of :mod:`chainer` module.
+
+    Args:
+        level (str): cuDNN use level. It must be either ``'==always'`` or
+            ``'>=auto'``. ``'==always'`` indicates that the ``use_cudnn``
+            config must be ``'always'`` to use cuDNN.
+        lowest_version (int): Required lowest cuDNN version. It must be
+            non-negative.
+
+    Returns:
+        bool: ``True`` if the caller should use cuDNN.
+
+    """
+    if _cudnn_version < lowest_version:
+        return False
+
+    if level not in _SHOULD_USE_CUDNN:
+        raise ValueError('invalid cuDNN use level: %s '
+                         '(must be either of "==always" or ">=auto")' %
+                         repr(level))
+    flags = _SHOULD_USE_CUDNN[level]
+
+    use_cudnn = config.use_cudnn
+    if use_cudnn not in flags:
+        raise ValueError('invalid use_cudnn configuration: %s '
+                         '(must be either of "always", "auto", or "never")' %
+                         repr(use_cudnn))
+    return flags[use_cudnn]
+
+
+_tensor_core_flag = {'always': True, 'auto': None, 'never': False}
+
+
+def should_use_cudnn_tensor_core(dtype):
+    """Determines if Tensor Core should be used.
+
+    Args:
+        dtype (numpy.dtype): data type of input tensor.
+
+    Returns:
+        bool: ``True`` if Tensor Core should be used.
+    """
+
+    use_cudnn_tensor_core = config.use_cudnn_tensor_core
+    if use_cudnn_tensor_core not in _tensor_core_flag:
+        raise ValueError('invalid use_cudnn_tensor_core configuration: %s '
+                         '(must be either of "always", "auto", or "never")' %
+                         repr(use_cudnn_tensor_core))
+    use_tensor_core = _tensor_core_flag[use_cudnn_tensor_core]
+    if use_tensor_core is None:
+        use_tensor_core = cudnn.is_tensor_core_available(dtype)
+    return use_tensor_core

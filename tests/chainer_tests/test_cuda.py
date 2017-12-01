@@ -194,6 +194,40 @@ class TestToCPU(unittest.TestCase):
         self.assertIsInstance(y, numpy.ndarray)
         cuda.cupy.testing.assert_array_equal(self.x, y)
 
+    def test_single_none(self):
+        assert cuda.to_cpu(None) is None
+
+    def _check_list_tuple(self, typ):
+        assert typ in (list, tuple)
+        a = numpy.random.uniform(-1, 1, (0,))
+        b = numpy.random.uniform(-1, 1, (2, 3))
+        c = cuda.cupy.random.uniform(-1, 1, (0,))
+        d = cuda.cupy.random.uniform(-1, 1, (2, 2))
+        xs = typ([a, b, c, d, None, a, b, None, c, d])
+        xs_cpu = cuda.to_cpu(xs)
+
+        assert isinstance(xs_cpu, typ)
+        assert len(xs) == len(xs_cpu)
+        for i in (0, 1, 2, 3, 5, 6, 8, 9):
+            assert isinstance(xs_cpu[i], numpy.ndarray)
+            cuda.cupy.testing.assert_array_equal(xs[i], xs_cpu[i])
+        assert xs_cpu[0] is a
+        assert xs_cpu[1] is b
+        assert xs_cpu[2] is xs_cpu[8]
+        assert xs_cpu[3] is xs_cpu[9]
+        assert xs_cpu[4] is None
+        assert xs_cpu[5] is a
+        assert xs_cpu[6] is b
+        assert xs_cpu[7] is None
+
+    @attr.gpu
+    def test_list(self):
+        self._check_list_tuple(list)
+
+    @attr.gpu
+    def test_tuple(self):
+        self._check_list_tuple(tuple)
+
     def test_variable(self):
         x = chainer.Variable(self.x)
         with self.assertRaises(TypeError):
@@ -336,6 +370,41 @@ class TestToGPU(unittest.TestCase):
         self.assertIsInstance(y, cuda.ndarray)
         self.assertIsNot(x, y)  # Do copy
         cuda.cupy.testing.assert_array_equal(x, y)
+
+    @attr.gpu
+    def test_single_none(self):
+        assert cuda.to_gpu(None) is None
+
+    def _check_list_tuple(self, typ):
+        assert typ in (list, tuple)
+        a = numpy.random.uniform(-1, 1, (0,))
+        b = numpy.random.uniform(-1, 1, (2, 3))
+        c = cuda.cupy.random.uniform(-1, 1, (0,))
+        d = cuda.cupy.random.uniform(-1, 1, (2, 2))
+        xs = typ([a, b, c, d, None, a, b, None, c, d])
+        xs_gpu = cuda.to_gpu(xs)
+
+        assert isinstance(xs_gpu, typ)
+        assert len(xs) == len(xs_gpu)
+        for i in (0, 1, 2, 3, 5, 6, 8, 9):
+            assert isinstance(xs_gpu[i], cuda.cupy.ndarray)
+            cuda.cupy.testing.assert_array_equal(xs[i], xs_gpu[i])
+        assert xs_gpu[0] is xs_gpu[5]
+        assert xs_gpu[1] is xs_gpu[6]
+        assert xs_gpu[2] is c
+        assert xs_gpu[3] is d
+        assert xs_gpu[4] is None
+        assert xs_gpu[7] is None
+        assert xs_gpu[8] is c
+        assert xs_gpu[9] is d
+
+    @attr.gpu
+    def test_list(self):
+        self._check_list_tuple(list)
+
+    @attr.gpu
+    def test_tuple(self):
+        self._check_list_tuple(tuple)
 
     @attr.gpu
     def test_variable_gpu(self):

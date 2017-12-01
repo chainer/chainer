@@ -4,10 +4,14 @@ from chainer import cuda
 
 
 def as_vec(x):
+    if x.ndim == 1:
+        return x
     return x.ravel()
 
 
 def as_mat(x):
+    if x.ndim == 2:
+        return x
     return x.reshape(len(x), -1)
 
 
