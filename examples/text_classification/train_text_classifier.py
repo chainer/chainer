@@ -20,7 +20,7 @@ def main():
     current_datetime = '{}'.format(datetime.datetime.today())
     parser = argparse.ArgumentParser(
         description='Chainer example: Text Classification')
-    parser.add_argument('--batchsize', '-b', type=int, default=32,
+    parser.add_argument('--batchsize', '-b', type=int, default=64,
                         help='Number of images in each mini-batch')
     parser.add_argument('--epoch', '-e', type=int, default=30,
                         help='Number of sweeps over the dataset to train')
@@ -28,19 +28,19 @@ def main():
                         help='GPU ID (negative value indicates CPU)')
     parser.add_argument('--out', '-o', default='result',
                         help='Directory to output the result')
-    parser.add_argument('--unit', '-u', type=int, default=256,
+    parser.add_argument('--unit', '-u', type=int, default=300,
                         help='Number of units')
-    parser.add_argument('--layer', '-l', type=int, default=2,
-                        help='Number of layers')
-    parser.add_argument('--dropout', '-d', type=float, default=0.3,
+    parser.add_argument('--layer', '-l', type=int, default=1,
+                        help='Number of layers of RNN or MLP following CNN')
+    parser.add_argument('--dropout', '-d', type=float, default=0.4,
                         help='Dropout rate')
     parser.add_argument('--dataset', '-data', default='imdb.binary',
                         choices=['dbpedia', 'imdb.binary', 'imdb.fine',
                                  'TREC', 'stsa.binary', 'stsa.fine',
                                  'custrev', 'mpqa', 'rt-polarity', 'subj'],
                         help='Name of dataset.')
-    parser.add_argument('--model', '-model', default='rnn',
-                        choices=['rnn', 'cnn', 'bow'],
+    parser.add_argument('--model', '-model', default='cnn',
+                        choices=['cnn', 'rnn', 'bow'],
                         help='Name of encoder model type.')
     parser.add_argument('--char-based', action='store_true')
 
