@@ -17,8 +17,8 @@ class AdaDeltaRule(optimizer.UpdateRule):
     hyperparameters.
 
     Args:
-        parent_hyperparam (~chainer.Hyperparameter): Hyperparameter that
-            provides the default values.
+        parent_hyperparam (~chainer.optimizer.Hyperparameter): Hyperparameter
+            that provides the default values.
         rho (float): Exponential decay rate of the first and second order
             moments.
         eps (float): Small value for the numerical stability.
@@ -84,8 +84,8 @@ class AdaDelta(optimizer.GradientMethod):
     """
 
     def __init__(self, rho=_default_hyperparam.rho,
-                 eps=_default_hyperparam.eps):
-        super(AdaDelta, self).__init__()
+                 eps=_default_hyperparam.eps, model=None):
+        super(AdaDelta, self).__init__(model)
         self.hyperparam.rho = rho
         self.hyperparam.eps = eps
 

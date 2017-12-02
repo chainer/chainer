@@ -1,8 +1,8 @@
 from chainer import cuda
-from chainer import function
+from chainer import function_hook
 
 
-class CUDAProfileHook(function.FunctionHook):
+class CUDAProfileHook(function_hook.FunctionHook):
 
     name = 'CUDAProfileHook'
 

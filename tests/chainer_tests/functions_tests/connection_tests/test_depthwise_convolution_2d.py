@@ -55,7 +55,7 @@ class TestDepthwiseConvolution2DFunction(unittest.TestCase):
         y1 = sum(arys)
 
         f2 = convolution_2d.Convolution2DFunction(self.stride, self.pad)
-        y2 = f2(*args2).data
+        y2 = f2.apply(args2)[0].data
         testing.assert_allclose(y1, y2, **self.check_forward_options)
 
     def test_forward_cpu(self):

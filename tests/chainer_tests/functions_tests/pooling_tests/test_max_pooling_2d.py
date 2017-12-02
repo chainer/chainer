@@ -10,7 +10,6 @@ from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
 
 
 @testing.parameterize(*testing.product({
@@ -31,7 +30,19 @@ class TestMaxPooling2D(unittest.TestCase):
         else:
             self.gy = numpy.random.uniform(
                 -1, 1, (2, 3, 2, 2)).astype(self.dtype)
-        self.check_backward_options = {'eps': 2.0 ** -8}
+        self.ggx = numpy.random.uniform(
+            -1, 1, (2, 3, 4, 3)).astype(self.dtype)
+
+        if self.dtype == numpy.float16:
+            self.check_backward_options = {
+                'atol': 1e-3, 'rtol': 1e-2}
+            self.check_double_backward_options = {
+                'atol': 1e-3, 'rtol': 1e-2}
+        else:
+            self.check_backward_options = {
+                'atol': 1e-4, 'rtol': 1e-3}
+            self.check_double_backward_options = {
+                'atol': 1e-4, 'rtol': 1e-3}
 
     def check_forward(self, x_data, use_cudnn='always'):
         x = chainer.Variable(x_data)
@@ -56,7 +67,6 @@ class TestMaxPooling2D(unittest.TestCase):
                         [x[1:4, 0:2].max(), x[1:4, 1:3].max()]])
                 testing.assert_allclose(expect, y_data[k, c])
 
-    @condition.retry(3)
     def test_forward_cpu(self):
         self.check_forward(self.x)
 
@@ -80,17 +90,14 @@ class TestMaxPooling2D(unittest.TestCase):
             functions.max_pooling_2d(x, 3, stride=2)
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x))
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_gpu_non_contiguous(self):
         self.check_forward(cuda.cupy.asfortranarray(cuda.to_gpu(self.x)))
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_gpu_no_cudnn(self):
         self.check_forward(cuda.to_gpu(self.x), 'never')
 
@@ -129,39 +136,70 @@ class TestMaxPooling2D(unittest.TestCase):
                 functions.max_pooling_2d(x, 3, stride=2)
 
     def check_backward(self, x_data, y_grad, use_cudnn='always'):
+        def f(x):
+            return functions.max_pooling_2d(
+                x, 3, stride=2, pad=1, cover_all=self.cover_all)
         with chainer.using_config('use_cudnn', use_cudnn):
             gradient_check.check_backward(
-                functions.MaxPooling2D(
-                    3, stride=2, pad=1, cover_all=self.cover_all),
-                x_data, y_grad, **self.check_backward_options)
+                f, x_data, y_grad, dtype='d',
+                **self.check_backward_options)
 
-    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy)
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu_non_contiguous(self):
         self.check_backward(
             cuda.cupy.asfortranarray(cuda.to_gpu(self.x)),
             cuda.cupy.asfortranarray(cuda.to_gpu(self.gy)))
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu_no_cudnn(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy), 'never')
 
     def test_backward_cpu_more_than_once(self):
         func = functions.MaxPooling2D(
             3, stride=2, pad=1, cover_all=self.cover_all)
-        func(self.x)
-        func.backward_cpu((self.x,), (self.gy,))
-        func.backward_cpu((self.x,), (self.gy,))
+        func.apply((self.x,))
+        func.backward((0,), (self.gy,))
+        func.backward((0,), (self.gy,))
+
+    def check_double_backward(self, x_data, y_grad, x_grad_grad,
+                              use_cudnn='always'):
+        def f(x):
+            y = functions.max_pooling_2d(
+                x, 3, stride=2, pad=1, cover_all=self.cover_all)
+            return y * y
+        with chainer.using_config('use_cudnn', use_cudnn):
+            gradient_check.check_double_backward(
+                f, x_data, y_grad, x_grad_grad,
+                dtype='d',
+                **self.check_double_backward_options)
+
+    def test_double_backward_cpu(self):
+        self.check_double_backward(self.x, self.gy, self.ggx, 'never')
+
+    @attr.gpu
+    def test_double_backward_gpu(self):
+        self.check_double_backward(
+            cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx))
+
+    @attr.gpu
+    def test_double_backward_gpu_non_contiguous(self):
+        self.check_double_backward(
+            cuda.cupy.asfortranarray(cuda.to_gpu(self.x)),
+            cuda.cupy.asfortranarray(cuda.to_gpu(self.gy)),
+            cuda.cupy.asfortranarray(cuda.to_gpu(self.ggx)))
+
+    @attr.gpu
+    def test_double_backward_gpu_no_cudnn(self):
+        self.check_double_backward(
+            cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx),
+            'never')
 
 
 @testing.parameterize(*testing.product({
@@ -184,7 +222,7 @@ class TestMaxPooling2DCudnnCall(unittest.TestCase):
 
     def test_call_cudnn_forward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
-            with mock.patch('cupy.cudnn.cudnn.poolingForward') as func:
+            with mock.patch('cupy.cuda.cudnn.poolingForward') as func:
                 self.forward()
                 self.assertEqual(func.called,
                                  chainer.should_use_cudnn('>=auto'))
@@ -195,7 +233,7 @@ class TestMaxPooling2DCudnnCall(unittest.TestCase):
             y = self.forward()
         # should be consistent to forward regardless of use_cudnn config
         y.grad = self.gy
-        with mock.patch('cupy.cudnn.cudnn.poolingBackward') as func:
+        with mock.patch('cupy.cuda.cudnn.poolingBackward') as func:
             y.backward()
             self.assertEqual(func.called, expect)
 

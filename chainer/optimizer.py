@@ -69,7 +69,7 @@ class Hyperparameter(object):
 
     @property
     def parent(self):
-        """Parent hyperparmaeter object."""
+        """Parent hyperparameter object."""
         return self._parent
 
     def get_dict(self):
@@ -133,6 +133,8 @@ class UpdateRule(object):
         self.enabled = True
         self.hyperparam = Hyperparameter(parent_hyperparam)
         self.t = 0
+        self._use_fp32_update = False
+        self._fp32_param = None
 
     @property
     def state(self):
@@ -185,10 +187,29 @@ class UpdateRule(object):
             return
 
         self.t += 1
-        self._prepare(param)
-        for hook in six.itervalues(self._hooks):
-            hook(self, param)
-        self.update_core(param)
+
+        if self._use_fp32_update and param.dtype == numpy.float16:
+            if self._fp32_param is None:
+                self._fp32_param = variable.Variable(
+                    param.array.astype(numpy.float32),
+                    name=param.name)
+            fp32_param = self._fp32_param
+            fp32_param.grad = param.grad.astype(numpy.float32)
+
+            if fp32_param.data is not None:
+                self._prepare(fp32_param)
+            for hook in six.itervalues(self._hooks):
+                hook(self, fp32_param)
+            self.update_core(fp32_param)
+
+            param.data = fp32_param.data.astype(param.dtype)
+            fp32_param.grad = None
+        else:
+            if param.data is not None:
+                self._prepare(param)
+            for hook in six.itervalues(self._hooks):
+                hook(self, param)
+            self.update_core(param)
 
     def update_core(self, param):
         """Updates the parameter.
@@ -263,6 +284,12 @@ class UpdateRule(object):
 
                 for key in self._state:
                     self._state[key] = serializer(key, None)
+                    # leave the update rule state as `None` if the keys are not
+                    # contained in the snapshot, so that these states can be
+                    # automatically initialized with the `_prepare` method
+                    if self._state[key] is None:
+                        self._state = None
+                        break
         else:
             for key in self._state:
                 self._state[key] = serializer(key, self._state[key])
@@ -283,6 +310,25 @@ class UpdateRule(object):
                         state[name] = cuda.to_gpu(value)
                     else:
                         state[name] = cuda.to_cpu(value)
+
+    def use_fp32_update(self, flag=True):
+        """Enables use of parameter update in fp32.
+
+        This method enables use of parameter update in fp32.
+        When it is enabled and data type of original parameter variable is
+        fp16, fp32 copy of parameter variable is automatically created and
+        retained at self.fp32_param. And the parameter is update in fp32 in
+        the following way.
+
+          1. copys the grad of original parameter variable to the grad of fp32
+             parameter variable, converting its data type from fp16 to fp32.
+          2. updates the parameter in fp32.
+          3. copys the data of fp32 parameter variable to the data of original
+             parameter variable, converting its data type from fp32 to fp16.
+
+        See meth:`update` for details.
+        """
+        self._use_fp32_update = flag
 
 
 class Optimizer(object):
@@ -313,8 +359,8 @@ class Optimizer(object):
         target: Target link object. It is set by the :meth:`setup` method.
         t: Number of update steps. It must be incremented by the
             :meth:`update` method.
-        epoch: Current epoch. It is incremented by the :meth:`new_epoch`
-            method.
+        ~Optimizer.epoch: Current epoch. It is incremented by the
+            :meth:`new_epoch` method.
 
     """
 
@@ -477,14 +523,19 @@ class GradientMethod(Optimizer):
 
     """
 
-    def __init__(self):
+    def __init__(self, link=None):
         super(GradientMethod, self).__init__()
         self.hyperparam = Hyperparameter()
+        if isinstance(link, link_module.Link):
+            self.setup(link)
+        self._use_fp32_update = False
 
     def setup(self, link):
         super(GradientMethod, self).setup(link)
         for param in link.params():
             param.update_rule = self.create_update_rule()
+            if self._use_fp32_update:
+                param.update_rule.use_fp32_update()
 
     def reallocate_cleared_grads(self):
         """Reallocate gradients cleared by :meth:`~chainer.Variable.cleargrad`.
@@ -576,6 +627,14 @@ class GradientMethod(Optimizer):
         """
         raise NotImplementedError
 
+    def use_fp32_update(self, flag=True):
+        """Enables use of parameter update in fp32."""
+        self._use_fp32_update = flag
+        link = getattr(self, "target", None)
+        if link is not None:
+            for param in link.params():
+                param.update_rule.use_fp32_update()
+
 
 class HyperparameterProxy(object):
 
@@ -625,6 +684,8 @@ class WeightDecay(object):
 
     def __call__(self, rule, param):
         p, g = param.data, param.grad
+        if p is None or g is None:
+            return
         with cuda.get_device_from_array(p) as dev:
             if int(dev) == -1:
                 g += self.rate * p
@@ -655,6 +716,8 @@ class Lasso(object):
 
     def __call__(self, rule, param):
         p, g = param.data, param.grad
+        if p is None or g is None:
+            return
         xp = cuda.get_array_module(p)
         with cuda.get_device_from_array(p) as dev:
             sign = xp.sign(p)
@@ -732,6 +795,8 @@ class GradientNoise(object):
 
     def __call__(self, rule, param):
         g = param.grad
+        if g is None:
+            return
         xp = cuda.get_array_module(g)
         with cuda.get_device_from_array(g) as dev:
             noise = self.noise_func(xp, g.shape, g.dtype, self, rule)
@@ -768,6 +833,8 @@ class GradientHardClipping(object):
 
     def __call__(self, rule, param):
         grad = param.grad
+        if grad is None:
+            return
         xp = cuda.get_array_module(grad)
         with cuda.get_device_from_array(grad):
             xp.clip(grad, self.lower_bound, self.upper_bound, out=grad)

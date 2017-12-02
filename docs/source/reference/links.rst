@@ -22,6 +22,7 @@ Learnable connections
 
    chainer.links.Bias
    chainer.links.Bilinear
+   chainer.links.ChildSumTreeLSTM
    chainer.links.Convolution2D
    chainer.links.ConvolutionND
    chainer.links.Deconvolution2D
@@ -36,6 +37,7 @@ Learnable connections
    chainer.links.Linear
    chainer.links.LSTM
    chainer.links.MLPConvolution2D
+   chainer.links.NaryTreeLSTM
    chainer.links.NStepBiGRU
    chainer.links.NStepBiLSTM
    chainer.links.NStepBiRNNReLU
@@ -46,18 +48,10 @@ Learnable connections
    chainer.links.NStepRNNTanh
    chainer.links.Scale
    chainer.links.StatefulGRU
+   chainer.links.StatelessGRU
    chainer.links.StatefulPeepholeLSTM
+   chainer.links.StatefulZoneoutLSTM
    chainer.links.StatelessLSTM
-
-ChildSumTreeLSTM
-~~~~~~~~~~~~~~~~
-.. autoclass:: ChildSumTreeLSTM
-   :members:
-
-NaryTreeLSTM
-~~~~~~~~~~~~
-.. autoclass:: NaryTreeLSTM
-   :members:
 
 Activation/loss/normalization functions with parameters
 -------------------------------------------------------
@@ -140,3 +134,13 @@ Residual Networks
    chainer.links.ResNet101Layers
    chainer.links.ResNet152Layers
    chainer.links.model.vision.resnet.prepare
+
+Compatibility with other frameworks
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.links.TheanoFunction
+   chainer.links.caffe.CaffeFunction

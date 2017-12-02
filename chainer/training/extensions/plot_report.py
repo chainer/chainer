@@ -12,7 +12,7 @@ from chainer.training import trigger as trigger_module
 
 
 try:
-    from matplotlib import pyplot as plot
+    import matplotlib  # NOQA
 
     _available = True
 
@@ -51,17 +51,20 @@ class PlotReport(extension.Extension):
     .. warning::
 
         If your environment needs to specify a backend of matplotlib
-        explicitly, please call ``matplotlib.use`` before importing Chainer.
-        For example:
+        explicitly, please call ``matplotlib.use`` before calling
+        ``trainer.run``. For example:
 
         .. code-block:: python
 
             import matplotlib
             matplotlib.use('Agg')
 
-            import chainer
+            trainer.extend(
+                extensions.PlotReport(['main/loss', 'validation/main/loss'],
+                                      'epoch', file_name='loss.png'))
+            trainer.run()
 
-        Then, once ``chainer.training.extensions`` is imported,
+        Then, once one of instances of this extension is called,
         ``matplotlib.use`` will have no effect.
 
     For the details, please see here:
@@ -112,7 +115,11 @@ class PlotReport(extension.Extension):
         return _available
 
     def __call__(self, trainer):
-        if not _available:
+        if _available:
+            # Dynamically import pyplot to call matplotlib.use()
+            # after importing chainer.training.extensions
+            import matplotlib.pyplot as plt
+        else:
             return
 
         keys = self._y_keys
@@ -140,7 +147,7 @@ class PlotReport(extension.Extension):
                 if k in stats_cpu:
                     data[k].append((x, stats_cpu[k]))
 
-            f = plot.figure()
+            f = plt.figure()
             a = f.add_subplot(111)
             a.set_xlabel(self._x_key)
             if self._grid:
@@ -161,7 +168,7 @@ class PlotReport(extension.Extension):
                 f.savefig(path.join(trainer.out, self._file_name),
                           bbox_extra_artists=(l,), bbox_inches='tight')
 
-            plot.close()
+            plt.close()
             self._init_summary()
 
     def serialize(self, serializer):

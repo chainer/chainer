@@ -1,3 +1,6 @@
+import functools
+import operator
+
 import numpy
 import six
 
@@ -11,18 +14,18 @@ from chainer.links.connection import linear
 from chainer import variable
 
 
-def _init_weight(weights, initializer):
-    initializers._get_initializer(initializer)(weights)
-
-
 class LSTMBase(link.Chain):
 
     def __init__(self, in_size, out_size=None, lateral_init=None,
-                 upward_init=None, bias_init=0, forget_bias_init=1):
+                 upward_init=None, bias_init=None, forget_bias_init=None):
         if out_size is None:
             out_size, in_size = in_size, None
 
         super(LSTMBase, self).__init__()
+        if bias_init is None:
+            bias_init = 0
+        if forget_bias_init is None:
+            forget_bias_init = 1
         self.state_size = out_size
         self.lateral_init = lateral_init
         self.upward_init = upward_init
@@ -39,6 +42,8 @@ class LSTMBase(link.Chain):
     def _initialize_params(self):
         lateral_init = initializers._get_initializer(self.lateral_init)
         upward_init = initializers._get_initializer(self.upward_init)
+        bias_init = initializers._get_initializer(self.bias_init)
+        forget_bias_init = initializers._get_initializer(self.forget_bias_init)
 
         for i in six.moves.range(0, 4 * self.state_size, self.state_size):
             lateral_init(self.lateral.W.data[i:i + self.state_size, :])
@@ -46,10 +51,11 @@ class LSTMBase(link.Chain):
 
         a, i, f, o = lstm._extract_gates(
             self.upward.b.data.reshape(1, 4 * self.state_size, 1))
-        _init_weight(a, self.bias_init)
-        _init_weight(i, self.bias_init)
-        _init_weight(f, self.forget_bias_init)
-        _init_weight(o, self.bias_init)
+
+        bias_init(a)
+        bias_init(i)
+        forget_bias_init(f)
+        bias_init(o)
 
 
 class StatelessLSTM(LSTMBase):
@@ -121,8 +127,8 @@ class StatelessLSTM(LSTMBase):
 
         Returns:
             tuple of ~chainer.Variable: Returns ``(c_new, h_new)``, where
-                ``c_new`` represents new cell state, and ``h_new`` is updated
-                output of LSTM units.
+            ``c_new`` represents new cell state, and ``h_new`` is updated
+            output of LSTM units.
 
         """
         if self.upward.W.data is None:
@@ -199,12 +205,43 @@ class LSTM(LSTMBase):
         c (~chainer.Variable): Cell states of LSTM units.
         h (~chainer.Variable): Output at the previous time step.
 
+    .. admonition:: Example
+
+        There are several ways to make a LSTM link.
+
+        Let a two-dimensional input array :math:`x` be:
+
+        >>> x = np.zeros((1, 10), dtype='f')
+
+        1. Give both ``in_size`` and ``out_size`` arguments:
+
+            >>> l = L.LSTM(10, 20)
+            >>> h_new = l(x)
+            >>> h_new.shape
+            (1, 20)
+
+        2. Omit ``in_size`` argument or fill it with ``None``:
+
+            The below two cases are the same.
+
+            >>> l = L.LSTM(20)
+            >>> h_new = l(x)
+            >>> h_new.shape
+            (1, 20)
+
+            >>> l = L.LSTM(None, 20)
+            >>> h_new = l(x)
+            >>> h_new.shape
+            (1, 20)
     """
 
-    def __init__(self, in_size, out_size=None, **kwargs):
+    def __init__(self, in_size, out_size=None, lateral_init=None,
+                 upward_init=None, bias_init=None, forget_bias_init=None):
         if out_size is None:
             in_size, out_size = None, in_size
-        super(LSTM, self).__init__(in_size, out_size, **kwargs)
+        super(LSTM, self).__init__(
+            in_size, out_size, lateral_init, upward_init, bias_init,
+            forget_bias_init)
         self.reset_state()
 
     def to_cpu(self):
@@ -264,7 +301,7 @@ class LSTM(LSTMBase):
         """
         if self.upward.W.data is None:
             with cuda.get_device_from_id(self._device_id):
-                in_size = x.size // x.shape[0]
+                in_size = functools.reduce(operator.mul, x.shape[1:], 1)
                 self.upward._initialize_params(in_size)
                 self._initialize_params()
 

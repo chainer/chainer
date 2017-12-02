@@ -17,8 +17,8 @@ class SMORMS3Rule(optimizer.UpdateRule):
     hyperparameters.
 
     Args:
-        parent_hyperparam (~chainer.Hyperparameter): Hyperparameter that
-            provides the default values.
+        parent_hyperparam (~chainer.optimizer.Hyperparameter): Hyperparameter
+            that provides the default values.
         lr (float): Learning rate.
         eps (float): Small value for the numerical stability.
 
@@ -87,8 +87,9 @@ class SMORMS3(optimizer.GradientMethod):
 
     """
 
-    def __init__(self, lr=_default_hyperparam.lr, eps=_default_hyperparam.eps):
-        super(SMORMS3, self).__init__()
+    def __init__(self, lr=_default_hyperparam.lr,
+                 eps=_default_hyperparam.eps, model=None):
+        super(SMORMS3, self).__init__(model)
         self.hyperparam.lr = lr
         self.hyperparam.eps = eps
 

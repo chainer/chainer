@@ -11,26 +11,35 @@ from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
+from chainer import utils
 
 
 @testing.parameterize(
-    {'shape': (8, 7), 'normalize': True},
-    {'shape': (8, 7), 'normalize': False},
-    {'shape': (8, 7), 'normalize': True, 'ignore_all': True},
+    {'shape': (8, 7), 'normalize': True, 'label_dtype': numpy.int32},
+    {'shape': (8, 7), 'normalize': False, 'label_dtype': numpy.int32},
+    {'shape': (8, 7), 'normalize': True, 'ignore_all': True,
+     'label_dtype': numpy.int32},
     # too large shape causes int32 -> float64 issue
-    {'shape': (65536, 1), 'normalize': False},
+    {'shape': (65536, 1), 'normalize': False, 'label_dtype': numpy.int32},
+    {'shape': (8, 7), 'normalize': True, 'label_dtype': numpy.int8},
+    {'shape': (8, 7), 'normalize': True, 'label_dtype': numpy.int16},
+    {'shape': (8, 7), 'normalize': True, 'label_dtype': numpy.int64},
 )
 class TestSigmoidCrossEntropy(unittest.TestCase):
 
     def setUp(self):
         self.x = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
         if getattr(self, 'ignore_all', False):
-            self.t = -numpy.ones(self.shape).astype(numpy.int32)
+            self.t = -numpy.ones(self.shape).astype(self.label_dtype)
         else:
             self.t = numpy.random.randint(-1, 2,
-                                          self.shape).astype(numpy.int32)
+                                          self.shape).astype(self.label_dtype)
         self.gy = numpy.random.random(self.shape).astype(numpy.float32)
+        self.ggx = numpy.random.uniform(
+            -1, 1, self.shape).astype(numpy.float32)
+
+        self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
+        self.check_double_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
 
     def check_forward(self, x_data, t_data, use_cudnn='always'):
         x_val = chainer.Variable(x_data)
@@ -84,50 +93,44 @@ class TestSigmoidCrossEntropy(unittest.TestCase):
                     self.assertAlmostEqual(
                         loss_expect, loss_value[i, j], places=5)
 
-    @condition.retry(3)
     def test_forward_cpu(self):
         with chainer.using_config('use_cudnn', 'always'):
             self.check_forward(self.x, self.t)
 
-    @condition.retry(3)
     def test_forward_no_reduction_cpu(self):
         with chainer.using_config('use_cudnn', 'always'):
             self.check_forward_no_reduction(self.x, self.t)
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_gpu(self):
         with chainer.using_config('use_cudnn', 'always'):
             self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.t))
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_no_reduction_gpu(self):
         with chainer.using_config('use_cudnn', 'always'):
             self.check_forward_no_reduction(
                 cuda.to_gpu(self.x), cuda.to_gpu(self.t))
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_gpu_no_cudnn(self):
         with chainer.using_config('use_cudnn', 'never'):
             self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.t))
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_no_reduction_gpu_no_cudnn(self):
         with chainer.using_config('use_cudnn', 'never'):
             self.check_forward_no_reduction(
                 cuda.to_gpu(self.x), cuda.to_gpu(self.t))
 
-    def check_backward(self, x_data, t_data, y_grad):
+    def check_backward(self, x_data, t_data):
         # Skip too large case. That requires a long time.
         if self.shape[0] == 65536:
             return
 
         gradient_check.check_backward(
-            functions.SigmoidCrossEntropy(),
-            (x_data, t_data), None, eps=1e-2)
+            functions.sigmoid_cross_entropy,
+            (x_data, t_data), None, **self.check_backward_options)
 
     def check_backward_no_reduction(
             self, x_data, t_data, y_grad):
@@ -135,49 +138,91 @@ class TestSigmoidCrossEntropy(unittest.TestCase):
         if self.shape[0] == 65536:
             return
 
-        gradient_check.check_backward(
-            functions.SigmoidCrossEntropy(reduce='no'),
-            (x_data, t_data), y_grad, eps=1e-2)
+        def f(x, t):
+            return chainer.functions.sigmoid_cross_entropy(x, t, reduce='no')
 
-    @condition.retry(3)
+        gradient_check.check_backward(
+            f, (x_data, t_data), y_grad, **self.check_backward_options)
+
     def test_backward_cpu(self):
         with chainer.using_config('use_cudnn', 'never'):
-            self.check_backward(self.x, self.t, self.gy)
+            self.check_backward(self.x, self.t)
 
-    @condition.retry(3)
     def test_backward_no_reduction_cpu(self):
         with chainer.using_config('use_cudnn', 'never'):
             self.check_backward_no_reduction(self.x, self.t, self.gy)
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu(self):
         with chainer.using_config('use_cudnn', 'always'):
             self.check_backward(
-                cuda.to_gpu(self.x), cuda.to_gpu(self.t), cuda.to_gpu(self.gy))
+                cuda.to_gpu(self.x), cuda.to_gpu(self.t))
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_no_reduction_gpu(self):
         with chainer.using_config('use_cudnn', 'always'):
             self.check_backward_no_reduction(
                 cuda.to_gpu(self.x), cuda.to_gpu(self.t), cuda.to_gpu(self.gy))
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu_no_cudnn(self):
         with chainer.using_config('use_cudnn', 'never'):
             self.check_backward(
-                cuda.to_gpu(self.x), cuda.to_gpu(self.t),
-                cuda.to_gpu(self.gy))
+                cuda.to_gpu(self.x), cuda.to_gpu(self.t))
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_no_reduction_gpu_no_cudnn(self):
         with chainer.using_config('use_cudnn', 'never'):
             self.check_backward_no_reduction(
                 cuda.to_gpu(self.x), cuda.to_gpu(self.t),
                 cuda.to_gpu(self.gy))
+
+    def check_double_backward(self, x_data, t_data, y_grad, gx_grad,
+                              normalize=True, reduce='mean'):
+        # Skip too large case. That requires a long time.
+        if self.shape[0] == 65536:
+            return
+
+        if reduce == 'mean':
+            y_grad = utils.force_array(y_grad.sum())
+
+        def f(x, t):
+            return chainer.functions.sigmoid_cross_entropy(
+                x, t, normalize=normalize, reduce=reduce)
+
+        gradient_check.check_double_backward(
+            f, (x_data, t_data), y_grad, (gx_grad, None),
+            **self.check_double_backward_options)
+
+    def test_double_backward_cpu(self):
+        with chainer.using_config('use_cudnn', 'never'):
+            self.check_double_backward(self.x, self.t, self.gy, self.ggx,
+                                       normalize=self.normalize, reduce='mean')
+
+    @attr.gpu
+    def test_double_backward_gpu(self):
+        with chainer.using_config('use_cudnn', 'always'):
+            self.check_double_backward(cuda.to_gpu(self.x),
+                                       cuda.to_gpu(self.t),
+                                       cuda.to_gpu(self.gy),
+                                       cuda.to_gpu(self.ggx),
+                                       normalize=self.normalize,
+                                       reduce='mean')
+
+    def test_double_backward_no_reduction_cpu(self):
+        with chainer.using_config('use_cudnn', 'never'):
+            self.check_double_backward(self.x, self.t, self.gy, self.ggx,
+                                       normalize=self.normalize, reduce='no')
+
+    @attr.gpu
+    def test_double_backward_no_reduction_gpu(self):
+        with chainer.using_config('use_cudnn', 'always'):
+            self.check_double_backward(cuda.to_gpu(self.x),
+                                       cuda.to_gpu(self.t),
+                                       cuda.to_gpu(self.gy),
+                                       cuda.to_gpu(self.ggx),
+                                       normalize=self.normalize,
+                                       reduce='no')
 
 
 @testing.parameterize(
@@ -202,8 +247,9 @@ class TestSigmoidCrossEntropyCudnnCall(unittest.TestCase):
     def test_call_cudnn_backward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             y = self.forward()
-            patch = 'cupy.cudnn.cudnn.activationForward_v4'
-            with mock.patch(patch) as func:
+            with mock.patch.object(
+                    cuda.cupy.cudnn, 'activation_forward',
+                    wraps=cuda.cupy.cudnn.activation_forward) as func:
                 y.backward()
                 self.assertEqual(func.called, self.expect)
 

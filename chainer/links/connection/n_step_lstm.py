@@ -1,11 +1,10 @@
-import numpy
 import six
 
 from chainer import cuda
 from chainer.functions.array import permutate
 from chainer.functions.array import transpose_sequence
 from chainer.functions.connection import n_step_lstm as rnn
-from chainer.initializers import normal
+from chainer import initializers
 from chainer import link
 from chainer.links.connection import n_step_rnn
 from chainer.utils import argument
@@ -25,6 +24,12 @@ class NStepLSTMBase(link.ChainList):
         in_size (int): Dimensionality of input vectors.
         out_size (int): Dimensionality of hidden states and output vectors.
         dropout (float): Dropout ratio.
+        initialW (:ref:`initializer <initializer>`): Initializer to
+            initialize the weight. When it is :class:`numpy.ndarray`,
+            its ``ndim`` should be 2.
+        initial_bias (:ref:`initializer <initializer>`): Initializer to
+            initialize the bias. If ``None``, the bias will be initialized to
+            zero. When it is :class:`numpy.ndarray`, its ``ndim`` should be 1.
         use_bi_direction (bool): if ``True``, use Bi-directional LSTM.
 
     .. seealso::
@@ -33,12 +38,17 @@ class NStepLSTMBase(link.ChainList):
 
     """
 
-    def __init__(self, n_layers, in_size, out_size, dropout, use_bi_direction,
+    def __init__(self, n_layers, in_size, out_size, dropout,
+                 initialW, initial_bias, use_bi_direction,
                  **kwargs):
         argument.check_unexpected_kwargs(
             kwargs, use_cudnn='use_cudnn argument is not supported anymore. '
             'Use chainer.using_config')
         argument.assert_kwargs_empty(kwargs)
+
+        if initial_bias is None:
+            initial_bias = initializers.constant.Zero()
+        initialW = initializers._get_initializer(initialW)
 
         weights = []
         direction = 2 if use_bi_direction else 1
@@ -53,12 +63,12 @@ class NStepLSTMBase(link.ChainList):
                             w_in = out_size * direction
                         else:
                             w_in = out_size
-                        w = variable.Parameter(
-                            normal.Normal(numpy.sqrt(1. / w_in)),
-                            (out_size, w_in))
-                        b = variable.Parameter(0, (out_size,))
-                        setattr(weight, 'w%d' % j, w)
-                        setattr(weight, 'b%d' % j, b)
+                        name_w = 'w{}'.format(j)
+                        name_b = 'b{}'.format(j)
+                        w = variable.Parameter(initialW, (out_size, w_in))
+                        b = variable.Parameter(initial_bias, (out_size,))
+                        setattr(weight, name_w, w)
+                        setattr(weight, name_b, b)
                 weights.append(weight)
 
         super(NStepLSTMBase, self).__init__(*weights)
@@ -91,7 +101,7 @@ class NStepLSTMBase(link.ChainList):
                 is specified zero-vector is used.
             cx (~chainer.Variable or None): Initial cell states. If ``None``
                 is specified zero-vector is used.
-            xs (list of ~chianer.Variable): List of input sequences.
+            xs (list of ~chainer.Variable): List of input sequences.
                 Each element ``xs[i]`` is a :class:`chainer.Variable` holding
                 a sequence.
         """
@@ -133,7 +143,7 @@ class NStepLSTMBase(link.ChainList):
 class NStepLSTM(NStepLSTMBase):
     """__init__(self, n_layers, in_size, out_size, dropout)
 
-    Stacked Uni-directional LSTM for sequnces.
+    Stacked Uni-directional LSTM for sequences.
 
     This link is stacked version of Uni-directional LSTM for sequences.
     It calculates hidden and cell states of all layer at end-of-string,
@@ -155,22 +165,30 @@ class NStepLSTM(NStepLSTMBase):
         in_size (int): Dimensionality of input vectors.
         out_size (int): Dimensionality of hidden states and output vectors.
         dropout (float): Dropout ratio.
+        initialW (:ref:`initializer <initializer>`): Initializer to
+            initialize the weight. When it is :class:`numpy.ndarray`,
+            its ``ndim`` should be 2.
+        initial_bias (:ref:`initializer <initializer>`): Initializer to
+            initialize the bias. If ``None``, the bias will be initialized to
+            zero. When it is :class:`numpy.ndarray`, its ``ndim`` should be 1.
 
     .. seealso::
         :func:`chainer.functions.n_step_lstm`
 
     """
 
-    def __init__(self, n_layers, in_size, out_size, dropout, **kwargs):
+    def __init__(self, n_layers, in_size, out_size, dropout,
+                 initialW=None, initial_bias=None, **kwargs):
         NStepLSTMBase.__init__(
             self, n_layers, in_size, out_size, dropout,
+            initialW, initial_bias,
             use_bi_direction=False, **kwargs)
 
 
 class NStepBiLSTM(NStepLSTMBase):
     """__init__(self, n_layers, in_size, out_size, dropout)
 
-    Stacked Bi-directional LSTM for sequnces.
+    Stacked Bi-directional LSTM for sequences.
 
     This link is stacked version of Bi-directional LSTM for sequences.
     It calculates hidden and cell states of all layer at end-of-string,
@@ -192,13 +210,21 @@ class NStepBiLSTM(NStepLSTMBase):
         in_size (int): Dimensionality of input vectors.
         out_size (int): Dimensionality of hidden states and output vectors.
         dropout (float): Dropout ratio.
+        initialW (:ref:`initializer <initializer>`): Initializer to
+            initialize the weight. When it is :class:`numpy.ndarray`,
+            its ``ndim`` should be 2.
+        initial_bias (:ref:`initializer <initializer>`): Initializer to
+            initialize the bias. If ``None``, the bias will be initialized to
+            zero. When it is :class:`numpy.ndarray`, its ``ndim`` should be 1.
 
     .. seealso::
         :func:`chainer.functions.n_step_bilstm`
 
     """
 
-    def __init__(self, n_layers, in_size, out_size, dropout, **kwargs):
+    def __init__(self, n_layers, in_size, out_size, dropout,
+                 initialW=None, initial_bias=None, **kwargs):
         NStepLSTMBase.__init__(
             self, n_layers, in_size, out_size, dropout,
+            initialW, initial_bias,
             use_bi_direction=True, **kwargs)

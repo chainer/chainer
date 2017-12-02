@@ -593,13 +593,13 @@ offers a utility function :func:`chainer.gradient_check.check_backward` that fol
    class TestReLU(unittest.TestCase):
        def test_backward_cpu(self):
 
-           def f():
-               return F.relu(x).data,
+           def f(x):
+               return F.relu(x)
 
-           x = Variable(np.random.randn(3, 2).astype(np.float32))
+           x = np.random.randn(3, 2).astype(np.float32)
            y_grad = np.random.randn(3, 2).astype(np.float32)
 
-           gradient_check.check_backward(f, x, y_grad)
+           gradient_check.check_backward(f, x, y_grad, atol=1e-4, rtol=1e-4)
 
 .. testcode::
    :hide:

@@ -1,8 +1,8 @@
 import numpy
 
+import chainer
 from chainer import cuda
 from chainer import function
-from chainer.functions.array import reshape
 from chainer.functions.math import inv
 from chainer.functions.math import matmul
 from chainer import utils
@@ -108,6 +108,6 @@ def det(a):
 
     """
     shape = (1, a.shape[0], a.shape[1])
-    batched_a = reshape.Reshape(shape)(a)
+    batched_a = chainer.functions.reshape(a, shape)
     batched_det = BatchDet()(batched_a)
-    return reshape.Reshape(())(batched_det)
+    return chainer.functions.reshape(batched_det, ())

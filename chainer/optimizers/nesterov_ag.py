@@ -15,8 +15,8 @@ class NesterovAGRule(optimizer.UpdateRule):
     hyperparameters.
 
     Args:
-        parent_hyperparam (~chainer.Hyperparameter): Hyperparameter that
-            provides the default values.
+        parent_hyperparam (~chainer.optimizer.Hyperparameter): Hyperparameter
+            that provides the default values.
         lr (float): Learning rate.
         momentum (float): Exponential decay rate of the first order moment.
 
@@ -76,8 +76,8 @@ class NesterovAG(optimizer.GradientMethod):
     """
 
     def __init__(self, lr=_default_hyperparam.lr,
-                 momentum=_default_hyperparam.momentum):
-        super(NesterovAG, self).__init__()
+                 momentum=_default_hyperparam.momentum, model=None):
+        super(NesterovAG, self).__init__(model)
         self.hyperparam.lr = lr
         self.hyperparam.momentum = momentum
 

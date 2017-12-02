@@ -134,7 +134,7 @@ def main():
     # Initialize a model and its optimizer
     Q = QFunction(obs_size, n_actions, n_units=args.unit)
     if args.gpu >= 0:
-        chainer.cuda.get_device(args.gpu).use()
+        chainer.cuda.get_device_from_id(args.gpu).use()
         Q.to_gpu(args.gpu)
     target_Q = copy.deepcopy(Q)
     opt = optimizers.Adam(eps=1e-2)

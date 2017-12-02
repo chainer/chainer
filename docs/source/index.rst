@@ -7,13 +7,23 @@ This is the `Chainer <https://chainer.org>`_ documentation.
 .. toctree::
    :maxdepth: 1
 
-   install
    tutorial/index
    reference/index
-   upgrade
-   contribution
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Development
+
    compatibility
+   contribution
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Misc
+
+   install
    tips
+   upgrade
    comparison
    license
 
