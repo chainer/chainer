@@ -23,7 +23,7 @@ Some of datasets are downloaded from @harvardnlp's [repository](https://github.c
 
 To train a model:  
 ```
-python train_text_classifier.py -g 0 --dataset imdb.binary --model cnn --layer 2 --dropout 0.3 --unit 300 --out result
+python train_text_classifier.py -g 0 --dataset stsa.binary --model cnn
 ```
 The output directory `result` contains:  
 - `best_model.npz`: a model snapshot, which won the best accuracy for validation data during training
