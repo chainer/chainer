@@ -6,7 +6,7 @@ import six
 
 from chainer.backends import cuda
 from chainer import configuration
-from chainer.functions.math import identity
+from chainer import FunctionNode
 from chainer import testing
 from chainer import variable
 
@@ -447,12 +447,11 @@ def check_backward(
 
     # All creators of `y` need to be the same because we only call
     # `y[0].backward` to call `backward` method of the creator.
-    # To do so we need to insert a dummy function `Ident` to the
+    # To do so we need to insert a dummy function `_GradientSetter` to the
     # computational graph.
     # Note that `func` may not be a `Function` object.
-    y = identity.Identity().apply(y)
 
-    y_grad = _set_y_grad(y, y_grad)
+    y, y_grad = _set_y_grad(y, y_grad)
 
     # Clear gradients which may exist if func calls backward inside of itself.
     _clear_grads(xs)
@@ -460,7 +459,7 @@ def check_backward(
 
     # We only need to call `backward` for one result `Variable`.
     # `Variable.backward` method calls `Function.backward` of its creator.
-    y[0].backward()
+    y.backward()
 
     if no_grads is None:
         no_grads = [x.dtype.kind != 'f' for x in xs]
@@ -609,12 +608,12 @@ def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
         gys = inputs[n_x:]
 
         y = _as_tuple(func(*xs))
+
         # Let all elements of y share the same creator.
         # See the comment in check_backward.
-        y = identity.Identity().apply(y)
+        y, _ = _set_y_grad(y, gys)
 
-        _set_y_grad(y, gys)
-        y[0].backward(enable_double_backprop=True)
+        y.backward(enable_double_backprop=True)
 
         return tuple([x.grad_var for x in xs] + [p.grad_var for p in params])
 
@@ -646,6 +645,30 @@ def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
         raise AssertionError(f.getvalue())
 
 
+class _GradientSetter(FunctionNode):
+    def __init__(self, grad):
+        self.grad = grad
+
+    def forward(self, inputs):
+        if self.grad is None:
+            y0, = inputs
+            xp = cuda.get_array_module(y0)
+            gy0 = xp.ones_like(inputs[0])
+            assert gy0.size == 1
+
+            self.grad = (gy0,)
+
+        # output a 0-sized 1-dim array like inputs
+        return inputs[0].flatten()[:0],
+
+    def backward(self, inputs, grad_outputs):
+        grad = self.grad
+
+        return tuple(
+            None if g is None else variable.as_variable(g)
+            for g in grad)
+
+
 def _set_y_grad(y, y_grad):
     if y_grad is not None:
         if len(y) != len(y_grad):
@@ -653,19 +676,16 @@ def _set_y_grad(y, y_grad):
                 'Upstream gradients must contain equally many elements as '
                 'number of output elements.\n'
                 'Actual: {} != {}'.format(len(y), len(y_grad)))
-        for iy, igy in six.moves.zip(y, y_grad):
-            if isinstance(igy, variable.Variable):
-                iy.grad_var = igy
-            else:
-                iy.grad = igy
+        y, = _GradientSetter(y_grad).apply(y)
     else:
         if len(y) != 1:
             raise ValueError(
                 'Function must return a zero-dimensional array of length 1 '
                 'if the upstream gradient is `None`.\n'
                 'Actual: {} != 1'.format(len(y)))
+        y, = _GradientSetter(None).apply(y)
         y_grad = (1,)
-    return y_grad
+    return y, y_grad
 
 
 def _clear_grads(xs):
