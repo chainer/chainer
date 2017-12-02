@@ -5,6 +5,8 @@ import chainer.functions as F
 import chainer.links as L
 from chainer import reporter
 
+embed_init = chainer.initializers.Uniform(.25)
+
 
 def sequence_embed(embed, xs, dropout=0.):
     """Efficient embedding function for variable-length sequences
@@ -121,7 +123,8 @@ class RNNEncoder(chainer.Chain):
 
     def __init__(self, n_layers, n_vocab, n_units, dropout=0.1):
         super(RNNEncoder, self).__init__(
-            embed=L.EmbedID(n_vocab, n_units),
+            embed=L.EmbedID(n_vocab, n_units,
+                            initialW=embed_init),
             encoder=L.NStepLSTM(n_layers, n_units, n_units, dropout),
         )
         self.n_layers = n_layers
@@ -156,15 +159,16 @@ class CNNEncoder(chainer.Chain):
     def __init__(self, n_layers, n_vocab, n_units, dropout=0.1):
         out_units = n_units // 3
         super(CNNEncoder, self).__init__(
-            embed=L.EmbedID(n_vocab, n_units, ignore_label=-1),
-            encoder_w2=L.Convolution2D(
-                n_units, out_units, ksize=(2, 1), stride=1, pad=(1, 0),
-                nobias=True),
-            encoder_w3=L.Convolution2D(
+            embed=L.EmbedID(n_vocab, n_units, ignore_label=-1,
+                            initialW=embed_init),
+            cnn_w3=L.Convolution2D(
                 n_units, out_units, ksize=(3, 1), stride=1, pad=(2, 0),
                 nobias=True),
-            encoder_w4=L.Convolution2D(
+            cnn_w4=L.Convolution2D(
                 n_units, out_units, ksize=(4, 1), stride=1, pad=(3, 0),
+                nobias=True),
+            cnn_w5=L.Convolution2D(
+                n_units, out_units, ksize=(5, 1), stride=1, pad=(4, 0),
                 nobias=True),
             mlp=MLP(n_layers, out_units * 3, dropout)
         )
@@ -174,10 +178,10 @@ class CNNEncoder(chainer.Chain):
     def __call__(self, xs):
         x_block = chainer.dataset.convert.concat_examples(xs, padding=-1)
         ex_block = block_embed(self.embed, x_block, self.dropout)
-        h_w2 = F.max(self.encoder_w2(ex_block), axis=2)
-        h_w3 = F.max(self.encoder_w3(ex_block), axis=2)
-        h_w4 = F.max(self.encoder_w4(ex_block), axis=2)
-        h = F.concat([h_w2, h_w3, h_w4], axis=1)
+        h_w3 = F.max(self.cnn_w3(ex_block), axis=2)
+        h_w4 = F.max(self.cnn_w4(ex_block), axis=2)
+        h_w5 = F.max(self.cnn_w5(ex_block), axis=2)
+        h = F.concat([h_w3, h_w4, h_w5], axis=1)
         h = F.relu(h)
         h = F.dropout(h, ratio=self.dropout)
         h = self.mlp(h)
@@ -224,7 +228,8 @@ class BOWEncoder(chainer.Chain):
 
     def __init__(self, n_vocab, n_units, dropout=0.1):
         super(BOWEncoder, self).__init__(
-            embed=L.EmbedID(n_vocab, n_units, ignore_label=-1),
+            embed=L.EmbedID(n_vocab, n_units, ignore_label=-1,
+                            initialW=embed_init),
         )
         self.out_units = n_units
         self.dropout = dropout
