@@ -29,7 +29,7 @@ class RReLU(function_node.FunctionNode):
 
     def forward_cpu(self, x):
         if hasattr(self, 'r'):
-            y = np.where(x[0] >= 0, x[0], x[0]*self.r)
+            y = np.where(x[0] >= 0, x[0], x[0] * self.r)
         else:
             if chainer.config.train:
                 self.r = np.random.uniform(
@@ -37,7 +37,7 @@ class RReLU(function_node.FunctionNode):
             else:
                 self.r = np.empty(x[0].shape).astype(x[0].dtype)
                 self.r.fill((self.lower + self.upper) / 2)
-            y = np.where(x[0] >= 0, x[0], x[0]*self.r)
+            y = np.where(x[0] >= 0, x[0], x[0] * self.r)
         self.retain_outputs((0,))
         return y,
 
@@ -72,7 +72,7 @@ class _RReLUGrad(function_node.FunctionNode):
     def forward_cpu(self, inputs):
         gy, = inputs
         gy = gy.copy()
-        gy = np.where(self.y >= 0, gy, gy*self.r)
+        gy = np.where(self.y >= 0, gy, gy * self.r)
         return gy,
 
     def forward_gpu(self, inputs):
