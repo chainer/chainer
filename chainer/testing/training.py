@@ -6,7 +6,7 @@ from chainer import training
 
 
 def get_trainer_with_mock_updater(
-        stop_trigger=(10, 'iteration'), iter_per_epoch=10, extend=[]):
+        stop_trigger=(10, 'iteration'), iter_per_epoch=10, extensions=[]):
     """Returns a :class:`~chainer.training.Trainer` object with mock updater.
 
     The returned trainer can be used for testing the trainer itself and the
@@ -17,7 +17,7 @@ def get_trainer_with_mock_updater(
     Args:
         stop_trigger: Stop trigger of the trainer.
         iter_per_epoch: The number of iterations per epoch.
-        extend: Extensions registered to the trainer.
+        extensions: Extensions registered to the trainer.
 
     Returns:
         Trainer object with a mock updater.
@@ -42,5 +42,5 @@ def get_trainer_with_mock_updater(
             / iter_per_epoch
 
     updater.update = update
-    trainer = training.Trainer(updater, stop_trigger, extend=extend)
+    trainer = training.Trainer(updater, stop_trigger, extensions=extensions)
     return trainer

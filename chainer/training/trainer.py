@@ -118,7 +118,7 @@ class Trainer(object):
         stop_trigger: Trigger that determines when to stop the training loop.
             If it is not callable, it is passed to :class:`IntervalTrigger`.
         out: Output directory.
-        extend: Extensions registered to the trainer.
+        extensions: Extensions registered to the trainer.
 
     Attributes:
         updater: The updater object for this trainer.
@@ -132,7 +132,8 @@ class Trainer(object):
 
     """
 
-    def __init__(self, updater, stop_trigger=None, out='result', extend=[]):
+    def __init__(self, updater, stop_trigger=None, out='result',
+                 extensions=[]):
         self.updater = updater
         self.stop_trigger = trigger_module.get_trigger(stop_trigger)
         self.observation = {}
@@ -153,7 +154,7 @@ class Trainer(object):
         self._final_elapsed_time = None
 
         updater.connect_trainer(self)
-        for ext in extend:
+        for ext in extensions:
             self.extend(ext)
 
     @property

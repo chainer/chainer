@@ -13,14 +13,14 @@ def _dummy_extension(trainer):
 @testing.parameterize(*testing.product({
     'stop_trigger': [(5, 'iteration'), (5, 'epoch')],
     'iter_per_epoch': [0.5, 1, 1.5, 5],
-    'extend': [[], [_dummy_extension]]
+    'extensions': [[], [_dummy_extension]]
 }))
 class TestGetTrainerWithMockUpdater(unittest.TestCase):
 
     def setUp(self):
         self.trainer = testing.get_trainer_with_mock_updater(
             self.stop_trigger, self.iter_per_epoch,
-            extend=self.extend)
+            extensions=self.extensions)
 
     def test_run(self):
         iteration = [0]
@@ -42,7 +42,7 @@ class TestGetTrainerWithMockUpdater(unittest.TestCase):
                 trainer.updater.previous_epoch_detail,
                 (iteration[0] - 1) / self.iter_per_epoch)
 
-        self.assertEqual(len(self.extend), len(self.trainer._extensions))
+        self.assertEqual(len(self.extensions), len(self.trainer._extensions))
 
         self.trainer.extend(check)
         self.trainer.run()
