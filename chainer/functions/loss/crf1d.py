@@ -76,7 +76,7 @@ def crf1d(cost, xs, ys, reduce='mean'):
             and each :class:`~chainer.Variable` holds a :math:`B \\times K`
             matrix, where :math:`B` is mini-batch size, :math:`K` is the number
             of labels.
-            Note that :math:`B` s in all the variables are not necessary
+            Note that :math:`B`\\ s in all the variables are not necessary
             the same, i.e., it accepts the input sequences with different
             lengths.
         ys (list of Variable): Expected output labels. It needs to have the
@@ -159,7 +159,7 @@ def argmax_crf1d(cost, xs):
             and each :class:`~chainer.Variable` holds a :math:`B \\times K`
             matrix, where :math:`B` is mini-batch size, :math:`K` is the number
             of labels.
-            Note that :math:`B` s in all the variables are not necessary
+            Note that :math:`B`\\ s in all the variables are not necessary
             the same, i.e., it accepts the input sequences with different
             lengths.
 
