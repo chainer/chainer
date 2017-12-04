@@ -1,16 +1,23 @@
 from chainer import reporter
 from chainer.training import util
 
-
-import chainer
 import operator
 import warnings
 
 
 class EarlyStoppingTrigger(object):
-    """Trigger for Early Stopping.
-    This trigger works only when it could monitor
-    the value whose mean is checked at every iteration
+    """Trigger for Early Stopping
+
+    It can be used as a stop trigger of :class:`~chainer.training.Trainer`
+    to realize *early stopping* technique.
+
+    This trigger works as follows.
+    Within each *check interval* defined by the ``check_trigger`` argument,
+    it monitors and accumulates the reported value at each iteration.
+    At the end of each interval, it computes the mean of the accumulated
+    values and compares it to the previous ones to maintain the *best* value.
+    When it finds that the best value is not updated
+    for some periods (defined by `patients`), this trigger fires.
 
     Args:
         monitor (str) : The metric you want to monitor
