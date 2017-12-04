@@ -98,9 +98,8 @@ def product(parameter):
         if not all(isinstance(_, dict) for l in parameter for _ in l):
             raise TypeError('parameter must be list of lists of dicts')
 
-        product = list(itertools.product(*parameter))
         lst = []
-        for dict_lst in product:
+        for dict_lst in itertools.product(*parameter):
             a = {}
             for d in dict_lst:
                 a.update(d)

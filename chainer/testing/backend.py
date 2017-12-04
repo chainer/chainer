@@ -18,7 +18,8 @@ class BackendConfig(object):
     ]
 
     def __init__(self, params):
-        assert isinstance(params, dict)
+        if not isinstance(params, dict):
+            raise TypeError('params must be a dict.')
         self._contexts = []
 
         # Default values
@@ -105,9 +106,12 @@ def _wrap_backend_test_method(impl, param, method_name):
 
 
 def inject_backend_tests(method_names, params):
-    assert isinstance(method_names, list)
-    assert isinstance(params, list)
-    assert all(isinstance(_, dict) for _ in params)
+    if not isinstance(method_names, list):
+        raise TypeError('method_names must be a list.')
+    if not isinstance(params, list):
+        raise TypeError('params must be a list of dicts.')
+    if not all(isinstance(d, dict) for d in params):
+        raise TypeError('params must be a list of dicts.')
 
     def wrap(case):
         assert issubclass(case, unittest.TestCase)
