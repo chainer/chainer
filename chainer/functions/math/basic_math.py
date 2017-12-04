@@ -2,7 +2,6 @@ import numpy
 
 import chainer
 from chainer.backends import cuda
-from chainer import function
 from chainer import function_node
 import chainer.functions
 from chainer.functions.math import matmul as _matmul
