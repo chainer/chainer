@@ -51,7 +51,7 @@ class TestEarlyStoppingTrigger(unittest.TestCase):
     def test_early_stopping_trigger_with_accuracy(self):
         key = 'main/accuracy'
         trigger = triggers.EarlyStoppingTrigger(monitor=key, patients=3,
-                                                trigger=(1, 'epoch'),
+                                                check_trigger=(1, 'epoch'),
                                                 verbose=False)
         trigger = util.get_trigger(trigger)
 
@@ -66,7 +66,7 @@ class TestEarlyStoppingTrigger(unittest.TestCase):
     def test_early_stopping_trigger_with_loss(self):
         key = 'main/loss'
         trigger = triggers.EarlyStoppingTrigger(monitor=key, patients=3,
-                                                trigger=(1, 'epoch'))
+                                                check_trigger=(1, 'epoch'))
         trigger = util.get_trigger(trigger)
 
         accuracies = [100, 80, 30, 10, 20, 24, 30, 35]
@@ -80,7 +80,7 @@ class TestEarlyStoppingTrigger(unittest.TestCase):
     def test_early_stopping_trigger_with_max_epoch(self):
         key = 'main/loss'
         trigger = triggers.EarlyStoppingTrigger(monitor=key, patients=3,
-                                                trigger=(1, 'epoch'),
+                                                check_trigger=(1, 'epoch'),
                                                 max_trigger=(3, 'epoch'))
         trigger = util.get_trigger(trigger)
 
@@ -92,11 +92,10 @@ class TestEarlyStoppingTrigger(unittest.TestCase):
         expected = [False, False, True]
         _test_trigger(self, trigger, key, accuracies, expected)
 
-
     def test_early_stopping_trigger_with_max_iteration(self):
         key = 'main/loss'
         trigger = triggers.EarlyStoppingTrigger(monitor=key, patients=3,
-                                                trigger=(1, 'epoch'),
+                                                check_trigger=(1, 'epoch'),
                                                 max_trigger=(3, 'iteration'))
         trigger = util.get_trigger(trigger)
 

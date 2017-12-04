@@ -12,9 +12,10 @@ class EarlyStoppingTrigger(object):
 
     Args:
         monitor (str) : The metric you want to monitor
-        trigger: Trigger that decides the comparison interval between current
-            best value and new value. This must be a tuple in the form of
-            ``<int>, 'epoch'`` or ``<int>, 'iteration'`` which is passed to
+        check_trigger: Trigger that decides the comparison
+            interval between current best value and new value.
+            This must be a tuple in the form of ``<int>,
+            'epoch'`` or ``<int>, 'iteration'`` which is passed to
             :class:`~chainer.training.triggers.IntervalTrigger`.
         patients (int) : Counts to let the trigger be patient.
             The trigger will not fire until the condition is met
@@ -26,8 +27,9 @@ class EarlyStoppingTrigger(object):
         max_trigger (int) : Upper bound of the number of training loops
     """
 
-    def __init__(self, trigger=(1, 'epoch'), monitor='main/loss', patients=3,
-                 mode='auto', verbose=False, max_trigger=(100, 'epoch')):
+    def __init__(self, check_trigger=(1, 'epoch'), monitor='main/loss',
+                 patients=3, mode='auto', verbose=False,
+                 max_trigger=(100, 'epoch')):
 
         self.count = 0
         self.patients = patients
@@ -35,7 +37,7 @@ class EarlyStoppingTrigger(object):
         self.verbose = verbose
         self.already_warning = False
         self._max_trigger = util.get_trigger(max_trigger)
-        self._interval_trigger = util.get_trigger(trigger)
+        self._interval_trigger = util.get_trigger(check_trigger)
 
         self._init_summary()
 
