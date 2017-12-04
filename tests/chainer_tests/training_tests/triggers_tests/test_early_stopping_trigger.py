@@ -4,44 +4,16 @@ import chainer
 import numpy
 
 from chainer import testing
-from chainer import training
 from chainer.training import triggers
 from chainer.training import util
 
 
-class DummyUpdater(training.Updater):
-
-    def __init__(self):
-        self.iteration = 0
-        self.epoch = 0
-
-    def finalize(self):
-        pass
-
-    def get_all_optimizers(self):
-        return {}
-
-    def update(self):
-        self.iteration += 1
-        self.epoch += 1
-
-    def epoch(self):
-        return self.epoch
-
-    @property
-    def is_new_epoch(self):
-        return False
-
-    @property
-    def epoch_detail(self):
-        return self.epoch
-
-
 def _test_trigger(self, trigger, key, accuracies, expected):
-    updater = DummyUpdater()
-    trainer = training.Trainer(updater)
+    trainer = testing.training.get_trainer_with_mock_updater(
+        stop_trigger=None, iter_per_epoch=1)
+
     for accuracy, expected in zip(accuracies, expected):
-        updater.update()
+        trainer.updater.update()
         trainer.observation = {key: accuracy}
         self.assertEqual(trigger(trainer), expected)
 
