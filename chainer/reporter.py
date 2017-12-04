@@ -326,7 +326,7 @@ class DictSummary(object):
             if isinstance(v, variable.Variable):
                 v = v.data
             if numpy.isscalar(v) or getattr(v, 'ndim', -1) == 0:
-                summaries[k].add(v,weight=w)
+                summaries[k].add(v, weight=w)
 
     def compute_mean(self):
         """Creates a dictionary of mean values.
