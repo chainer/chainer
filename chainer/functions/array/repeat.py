@@ -21,6 +21,10 @@ class Repeat(function_node.FunctionNode):
         if not all(x >= 0 for x in self.repeats):
             raise ValueError('all elements in repeats must be zero or larger')
 
+        if axis is not None and (
+                not isinstance(axis, six.integer_types) or
+                isinstance(axis, bool)):
+            raise TypeError('axis must be int or None')
         self.axis = axis
 
     def check_type_forward(self, in_types):

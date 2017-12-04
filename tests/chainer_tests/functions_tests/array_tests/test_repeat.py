@@ -104,10 +104,20 @@ class TestRepeatValueError(unittest.TestCase):
 
 class TestRepeatTypeError(unittest.TestCase):
 
-    def test_type_error(self):
+    def test_type_error_repeats_str(self):
         x = numpy.random.uniform(-1, 1, (2,)).astype(numpy.float32)
         with self.assertRaises(TypeError):
             functions.repeat(x, 'a')
+
+    def test_type_error_axis_str(self):
+        x = numpy.random.uniform(-1, 1, (2,)).astype(numpy.float32)
+        with self.assertRaises(TypeError):
+            functions.repeat(x, 1, 'a')
+
+    def test_type_error_axis_bool(self):
+        x = numpy.random.uniform(-1, 1, (2,)).astype(numpy.float32)
+        with self.assertRaises(TypeError):
+            functions.repeat(x, 1, True)
 
 
 testing.run_module(__name__, __file__)
