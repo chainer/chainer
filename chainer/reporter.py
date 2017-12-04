@@ -260,7 +260,7 @@ class Summary(object):
         self._x2 = 0
         self._n = 0
 
-    def add(self, value):
+    def add(self, value, weight=1.0):
         """Adds a scalar value.
 
         Args:
@@ -269,9 +269,9 @@ class Summary(object):
 
         """
         with _get_device(value):
-            self._x += value
-            self._x2 += value * value
-            self._n += 1
+            self._x += weight * value
+            self._x2 += weight * value * value
+            self._n += weight
 
     def compute_mean(self):
         """Computes the mean."""
@@ -319,10 +319,14 @@ class DictSummary(object):
         """
         summaries = self._summaries
         for k, v in six.iteritems(d):
+            w = 1.0
+            if isinstance(v, tuple):
+                w=v[1]
+                v=v[0]
             if isinstance(v, variable.Variable):
                 v = v.data
             if numpy.isscalar(v) or getattr(v, 'ndim', -1) == 0:
-                summaries[k].add(v)
+                summaries[k].add(v,weight=w)
 
     def compute_mean(self):
         """Creates a dictionary of mean values.
