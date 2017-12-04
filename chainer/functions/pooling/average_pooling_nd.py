@@ -5,7 +5,7 @@ import operator
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer.functions.pooling import average_pooling_nd_kernel
 from chainer.functions.pooling import pooling_nd
 from chainer import utils

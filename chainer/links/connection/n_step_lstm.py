@@ -1,6 +1,6 @@
 import six
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer.functions.array import permutate
 from chainer.functions.array import transpose_sequence
 from chainer.functions.connection import n_step_lstm as rnn

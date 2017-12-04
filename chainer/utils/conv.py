@@ -1,7 +1,7 @@
 import numpy
 import six
 
-from chainer import cuda
+from chainer.backends import cuda
 
 
 def get_conv_outsize(size, k, s, p, cover_all=False, d=1):
