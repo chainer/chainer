@@ -47,8 +47,6 @@ def main():
                         help='Number of units')
     parser.add_argument('--noplot', dest='plot', action='store_false',
                         help='Disable PlotReport extension')
-    parser.add_argument('--early-stopping', type=str,
-                        help='Metric to watch for early stopping')
     args = parser.parse_args()
 
     print('GPU: {}'.format(args.gpu))
@@ -79,15 +77,7 @@ def main():
 
     # Set up a trainer
     updater = training.StandardUpdater(train_iter, optimizer, device=args.gpu)
-
-    stop_trigger = (args.epoch, 'epoch')
-    if args.early_stopping:
-        stop_trigger = triggers.EarlyStoppingTrigger(
-            monitor=args.early_stopping, verbose=True, max_epoch=args.epoch)
-
-    trainer = training.Trainer(updater,
-                               stop_trigger=stop_trigger,
-                               out=args.out)
+    trainer = training.Trainer(updater, out=args.out)
 
     # Evaluate the model with the test dataset for each epoch
     trainer.extend(extensions.Evaluator(test_iter, model, device=args.gpu))
@@ -123,11 +113,7 @@ def main():
          'main/accuracy', 'validation/main/accuracy', 'elapsed_time']))
 
     # Print a progress bar to stdout
-    # NOTE: If you use the EarlyStoppingTrigger,
-    #       training_length is needed to set
-    #       because trainer.stop_trigger is not normal interval trigger.
-    trainer.extend(extensions.ProgressBar(
-        training_length=(args.epoch, 'epoch')))
+    trainer.extend(extensions.ProgressBar())
 
     if args.resume:
         # Resume from a snapshot
