@@ -260,12 +260,14 @@ class Summary(object):
         self._x2 = 0
         self._n = 0
 
-    def add(self, value, weight=1.0):
+    def add(self, value, weight=1):
         """Adds a scalar value.
 
         Args:
             value: Scalar value to accumulate. It is either a NumPy scalar or
                 a zero-dimensional array (on CPU or GPU).
+            weight: An optional weight for the value. It is a NumPy scalar or
+                a zero-dimensional array (on CPU or GPU). Default is 1 (integer).
 
         """
         with _get_device(value):
@@ -315,14 +317,19 @@ class DictSummary(object):
             d (dict): Dictionary of scalars to accumulate. Only elements of
                scalars, zero-dimensional arrays, and variables of
                zero-dimensional arrays are accumulated.
+               When the value is a tuple, the second is interpreted as a weight.
 
         """
         summaries = self._summaries
         for k, v in six.iteritems(d):
-            w = 1.0
+            w = 1
             if isinstance(v, tuple):
                 w = v[1]
                 v = v[0]
+                if isinstance(w, variable.Variable):
+                    w = w.data
+                if not numpy.isscalar(w) and not getattr(w, 'ndim', -1) == 0:
+                    w = 1
             if isinstance(v, variable.Variable):
                 v = v.data
             if numpy.isscalar(v) or getattr(v, 'ndim', -1) == 0:
