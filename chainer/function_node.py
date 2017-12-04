@@ -284,12 +284,6 @@ Use apply() method instead.\
         return ret
 
     def _check_data_type_forward(self, in_data):
-        xp = cuda.get_array_module(*in_data)
-        if not all([_ is None or isinstance(_, xp.ndarray) for _ in in_data]):
-            raise ValueError('numpy and cupy must not be used together\n'
-                             '{}'
-                             .format(', '.join(str(type(_)) for _ in in_data)))
-
         in_type = type_check.get_light_types(in_data)
         try:
             with type_check.light_mode:
