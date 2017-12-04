@@ -50,12 +50,12 @@ class EarlyStoppingTrigger(object):
         if self._compare == operator.gt:
             if verbose:
                 print('early stopping: operator is greater')
-            self.best = -1 * (1 << 50)
+            self.best = float('-inf')
 
         else:
             if verbose:
                 print('early stopping: operator is less')
-            self.best = 1 << 50
+            self.best = float('inf')
 
     def __call__(self, trainer):
         """Decides whether the training loop should be stopped.
