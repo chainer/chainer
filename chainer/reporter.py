@@ -321,8 +321,8 @@ class DictSummary(object):
         for k, v in six.iteritems(d):
             w = 1.0
             if isinstance(v, tuple):
-                w=v[1]
-                v=v[0]
+                w = v[1]
+                v = v[0]
             if isinstance(v, variable.Variable):
                 v = v.data
             if numpy.isscalar(v) or getattr(v, 'ndim', -1) == 0:
