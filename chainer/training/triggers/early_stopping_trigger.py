@@ -2,6 +2,7 @@ from chainer import reporter
 from chainer.training import util
 
 
+import chainer
 import operator
 import warnings
 
@@ -22,13 +23,12 @@ class EarlyStoppingTrigger(object):
     """
 
     def __init__(self, trigger=(1, 'epoch'), monitor='main/loss', patients=3,
-                 mode='auto', verbose=False, max_epoch=100, debug=False):
+                 mode='auto', verbose=False, max_epoch=100):
 
         self.count = 0
         self.patients = patients
         self.monitor = monitor
         self.verbose = verbose
-        self.debug = debug
         self.max_epoch = max_epoch
         self.already_warning = False
         self._interval_trigger = util.get_trigger(trigger)
@@ -91,7 +91,7 @@ class EarlyStoppingTrigger(object):
         current_val = stat[self.monitor]
         self._init_summary()
 
-        if self.debug:
+        if chainer.is_debug():
             print('current count: {}'.format(self.count))
             print('best: {}, current_val: {}'.format(self.best, current_val))
 
@@ -112,7 +112,7 @@ class EarlyStoppingTrigger(object):
         return False
 
     def _stop_condition(self):
-        if self.debug:
+        if chainer.is_debug():
             print('{} >= {}'.format(self.count, self.patients))
         return self.count >= self.patients
 
