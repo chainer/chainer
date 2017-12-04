@@ -16,9 +16,13 @@ class EarlyStoppingTrigger(object):
             best value and new value. This must be a tuple in the form of
             ``<int>, 'epoch'`` or ``<int>, 'iteration'`` which is passed to
             :class:`~chainer.training.triggers.IntervalTrigger`.
-        patients (int) : the value to patient
-        mode (str) : max, min, or auto. using them to determine the _compare
-        verbose (bool) : flag for debug mode
+        patients (int) : Counts to let the trigger be patient.
+            The trigger will not fire until the condition is met
+            for successive ``patient`` checks.
+        mode (str) : ``'max'``, ``'min'``, or ``'auto'``.
+            It is used to determine how to compare the monitored values.
+        verbose (bool) : Enable verbose output.
+            If verbose is true, you can get more information
         max_epoch (int) : upper bound of the number of training loops
     """
 
