@@ -2,12 +2,7 @@ from chainer import reporter
 from chainer.training import util
 
 
-def greater(current_val, best_val):
-    return current_val > best_val
-
-
-def less(current_val, best_val):
-    return current_val < best_val
+import operator
 
 
 class EarlyStoppingTrigger(object):
@@ -40,19 +35,19 @@ class EarlyStoppingTrigger(object):
         self._init_summary()
 
         if mode == 'max':
-            self._compare = greater
+            self._compare = operator.gt
 
         elif mode == 'min':
-            self._compare = less
+            self._compare = operator.lt
 
         else:
             if 'accuracy' in monitor:
-                self._compare = greater
+                self._compare = operator.gt
 
             else:
-                self._compare = less
+                self._compare = operator.lt
 
-        if self._compare == greater:
+        if self._compare == operator.gt:
             if verbose:
                 print('early stopping: operator is greater')
             self.best = -1 * (1 << 50)
