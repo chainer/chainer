@@ -99,10 +99,6 @@ class EarlyStoppingTrigger(object):
         current_val = stat[self.monitor]
         self._init_summary()
 
-        if chainer.is_debug():
-            print('current count: {}'.format(self.count))
-            print('best: {}, current_val: {}'.format(self.best, current_val))
-
         if self._compare(current_val, self.best):
             self.best = current_val
             self.count = 0
@@ -118,8 +114,6 @@ class EarlyStoppingTrigger(object):
         return False
 
     def _stop_condition(self):
-        if chainer.is_debug():
-            print('{} >= {}'.format(self.count, self.patients))
         return self.count >= self.patients
 
     def _init_summary(self):
