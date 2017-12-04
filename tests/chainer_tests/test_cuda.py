@@ -1,3 +1,8 @@
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
 import unittest
 import warnings
 
@@ -28,6 +33,39 @@ try:
     _builtins_available = True
 except ImportError:
     pass
+
+
+class TestCudaModuleAliasForBackwardCompatibility(unittest.TestCase):
+
+    def _check(self, code):
+        temp_dir = tempfile.mkdtemp()
+        try:
+            script_path = os.path.join(temp_dir, 'script.py')
+            with open(script_path, 'w') as f:
+                f.write(code)
+            proc = subprocess.Popen(
+                [sys.executable, script_path],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE)
+            stdoutdata, stderrdata = proc.communicate()
+        finally:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+        ret = proc.returncode
+        assert ret == 0, (
+            'Import test failed.\n'
+            '[code]:\n{}\n'
+            '[stdout]:{!r}\n'
+            '[stderr]:{!r}'.format(
+                code, stdoutdata, stderrdata))
+
+    def test_import1(self):
+        self._check('from chainer import cuda; cuda.get_device_from_id')
+
+    def test_import2(self):
+        self._check('import chainer.cuda; chainer.cuda.get_device_from_id')
+
+    def test_import3(self):
+        self._check('import chainer; chainer.cuda.get_device_from_id')
 
 
 class TestCuda(unittest.TestCase):
