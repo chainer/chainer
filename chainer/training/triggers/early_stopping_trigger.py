@@ -23,18 +23,18 @@ class EarlyStoppingTrigger(object):
             It is used to determine how to compare the monitored values.
         verbose (bool) : Enable verbose output.
             If verbose is true, you can get more information
-        max_epoch (int) : upper bound of the number of training loops
+        max_trigger (int) : upper bound of the number of training loops
     """
 
     def __init__(self, trigger=(1, 'epoch'), monitor='main/loss', patients=3,
-                 mode='auto', verbose=False, max_epoch=100):
+                 mode='auto', verbose=False, max_trigger=(100, 'epoch')):
 
         self.count = 0
         self.patients = patients
         self.monitor = monitor
         self.verbose = verbose
-        self.max_epoch = max_epoch
         self.already_warning = False
+        self._max_trigger = util.get_trigger(max_trigger)
         self._interval_trigger = util.get_trigger(trigger)
 
         self._init_summary()
@@ -81,7 +81,7 @@ class EarlyStoppingTrigger(object):
         if self.monitor in observation:
             summary.add({self.monitor: observation[self.monitor]})
 
-        if trainer.updater.epoch >= self.max_epoch:
+        if self._max_trigger(trainer):
             return True
 
         if not self._interval_trigger(trainer):
@@ -108,9 +108,7 @@ class EarlyStoppingTrigger(object):
 
         if self._stop_condition():
             if self.verbose:
-                if self.max_epoch != trainer.updater.epoch:
-                    print('Epoch {}: early stopping'.format(
-                        trainer.updater.epoch))
+                print('Epoch {}: early stopping'.format(trainer.updater.epoch))
             return True
 
         return False

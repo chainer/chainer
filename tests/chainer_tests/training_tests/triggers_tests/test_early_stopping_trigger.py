@@ -81,15 +81,31 @@ class TestEarlyStoppingTrigger(unittest.TestCase):
         key = 'main/loss'
         trigger = triggers.EarlyStoppingTrigger(monitor=key, patients=3,
                                                 trigger=(1, 'epoch'),
-                                                max_epoch=3)
+                                                max_trigger=(3, 'epoch'))
         trigger = util.get_trigger(trigger)
 
-        accuracies = [100, 80, 30, 10]
+        accuracies = [100, 80, 30]
         accuracies = numpy.asarray([
             chainer.Variable(numpy.asarray(acc, dtype=numpy.float32))
             for acc in accuracies])
 
-        expected = [False, False, True, True]
+        expected = [False, False, True]
+        _test_trigger(self, trigger, key, accuracies, expected)
+
+
+    def test_early_stopping_trigger_with_max_iteration(self):
+        key = 'main/loss'
+        trigger = triggers.EarlyStoppingTrigger(monitor=key, patients=3,
+                                                trigger=(1, 'epoch'),
+                                                max_trigger=(3, 'iteration'))
+        trigger = util.get_trigger(trigger)
+
+        accuracies = [100, 80, 30]
+        accuracies = numpy.asarray([
+            chainer.Variable(numpy.asarray(acc, dtype=numpy.float32))
+            for acc in accuracies])
+
+        expected = [False, False, True]
         _test_trigger(self, trigger, key, accuracies, expected)
 
 
