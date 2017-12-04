@@ -9,7 +9,6 @@ from chainer.utils import type_check
 class NegativeSamplingFunction(function.Function):
 
     ignore_label = -1
-    samples = None
 
     def __init__(self, sampler, sample_size, reduce='sum'):
         if reduce not in ('sum', 'no'):
@@ -22,7 +21,7 @@ class NegativeSamplingFunction(function.Function):
         self.reduce = reduce
 
     def _make_samples(self, t):
-        if self.samples is not None:
+        if hasattr(self, 'samples'):
             return self.samples  # for testing
 
         size = int(t.shape[0])
