@@ -267,7 +267,8 @@ class Summary(object):
             value: Scalar value to accumulate. It is either a NumPy scalar or
                 a zero-dimensional array (on CPU or GPU).
             weight: An optional weight for the value. It is a NumPy scalar or
-                a zero-dimensional array (on CPU or GPU). Default is 1 (integer).
+                a zero-dimensional array (on CPU or GPU).
+                Default is 1 (integer).
 
         """
         with _get_device(value):
@@ -316,8 +317,8 @@ class DictSummary(object):
         Args:
             d (dict): Dictionary of scalars to accumulate. Only elements of
                scalars, zero-dimensional arrays, and variables of
-               zero-dimensional arrays are accumulated.
-               When the value is a tuple, the second is interpreted as a weight.
+               zero-dimensional arrays are accumulated. When the value
+               is a tuple, the second is interpreted as a weight.
 
         """
         summaries = self._summaries
