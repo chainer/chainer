@@ -11,7 +11,7 @@ class EarlyStoppingTrigger(object):
     """Trigger invoked when specific value continue to be worse.
 
     Args:
-        monitor (str) : the metric you want to monitor
+        monitor (str) : The metric you want to monitor
         trigger: Trigger that decides the comparison interval between current
             best value and new value. This must be a tuple in the form of
             ``<int>, 'epoch'`` or ``<int>, 'iteration'`` which is passed to
@@ -23,7 +23,7 @@ class EarlyStoppingTrigger(object):
             It is used to determine how to compare the monitored values.
         verbose (bool) : Enable verbose output.
             If verbose is true, you can get more information
-        max_trigger (int) : upper bound of the number of training loops
+        max_trigger (int) : Upper bound of the number of training loops
     """
 
     def __init__(self, trigger=(1, 'epoch'), monitor='main/loss', patients=3,
