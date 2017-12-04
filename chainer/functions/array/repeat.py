@@ -1,3 +1,4 @@
+import numpy
 import six
 
 from chainer import cuda
@@ -34,10 +35,7 @@ class Repeat(function_node.FunctionNode):
         self.retain_inputs((0,))
         x, = inputs
         xp = cuda.get_array_module(x)
-        repeats = self.repeats
-        if self.axis is None or len(self.repeats) == 1:
-            repeats = self.repeats[0]
-        return xp.repeat(x, repeats, self.axis),
+        return xp.repeat(x, self.repeats, self.axis),
 
     def backward(self, indexes, grad_outputs):
         x, = self.get_retained_inputs()
@@ -58,28 +56,39 @@ class RepeatGrad(function_node.FunctionNode):
         xp = cuda.get_array_module(gy)
         repeats = self.repeats
         axis = self.axis
+        shape = list(self.in_shape)
+        dtype = self.in_dtype
 
         if len(gy) == 0:
-            gx = xp.zeros(self.in_shape, self.in_dtype)
-            return gx,
-        elif axis is None:
-            gx = gy.reshape(-1, repeats[0]).sum(axis=1).reshape(self.in_shape)
-            return gx,
-        elif len(repeats) == 1:
-            shape = list(self.in_shape)
-            shape[axis:axis + 1] = [-1, repeats[0]]
-            gx = gy.reshape(shape).sum(axis=axis + 1)
+            gx = xp.zeros(shape, dtype)
             return gx,
 
-        gx = xp.zeros(self.in_shape, self.in_dtype)
-        pos = 0
-        src = [slice(None)] * self.axis + [None]
-        dst = [slice(None)] * self.axis + [None]
-        for (i, r) in enumerate(repeats):
-            src[-1] = slice(pos, pos + r)
-            dst[-1] = slice(i, i + 1)
-            gx[dst] = gy[src].sum(axis=self.axis, keepdims=True)
-            pos += r
+        if len(repeats) == 1:
+            repeats = int(repeats[0])
+            if axis is None:
+                gx = gy.reshape(-1, repeats).sum(axis=1).reshape(shape)
+            else:
+                shape[axis:axis + 1] = [-1, repeats]
+                gx = gy.reshape(shape).sum(axis=axis + 1)
+            return gx,
+
+        if axis == None:
+            pos = 0
+            gx = xp.zeros(int(numpy.prod(shape)), dtype)
+            for (i, r) in enumerate(repeats):
+                gx[i] = xp.sum(gy[pos:pos + r])
+                pos += r
+            gx = gx.reshape(shape)
+        else:
+            gx = xp.zeros(shape, dtype)
+            pos = 0
+            src = [slice(None)] * axis + [None]
+            dst = [slice(None)] * axis + [None]
+            for (i, r) in enumerate(repeats):
+                src[-1] = slice(pos, pos + r)
+                dst[-1] = slice(i, i + 1)
+                gx[dst] = gy[src].sum(axis=axis, keepdims=True)
+                pos += r
         return gx,
 
     def backward(self, indexes, grad_outputs):

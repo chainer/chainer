@@ -10,21 +10,29 @@ from chainer.testing import attr
 
 
 @testing.parameterize(*testing.product({
+    # repeats is any of (int, bool or tuple) and
+    # axis is any of (int or None).
     'shape_repeats_axis': [
+        # 1-D
         (2, 0, None),
         (2, 1, None),
-        (2, 2, None),
         (2, 2, 0),
-        ((3, 2), (2,), 0),
+        (2, True, None),
+        (2, (2,), None),
+        (2, (True,), 0),
+        (2, (1, 2), None),
+        (2, (True, 2), 0),
+        # 2-D
         ((3, 2), 2, 0),
+        ((3, 2), (2,), None),
         ((3, 2), 2, 1),
         ((3, 2), (3, 4, 3), 0),
-        ((3, 2), (3, 2), 1),
-        ((3, 2, 3), (3, 2, 1), 0),
+        ((3, 2), (3, True), 1),
+        ((3, 2), (True,) * 6, None),
+        # 3-D
+        ((3, 2, 3), (3, 2, True), 0),
         ((3, 2, 3), (3, 4), 1),
         ((3, 2, 3), (3, 2, 1), 2),
-        ((3, 4, 3, 2), 3, 1),
-        ((3, 4, 3, 2), (2, 2, 3, 3), 1),
     ],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
