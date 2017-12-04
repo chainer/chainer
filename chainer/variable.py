@@ -267,7 +267,7 @@ class VariableNode(object):
         If the variable is not available, it returns ``None``.
 
         """
-        var = self.get_variable()
+        var = self._variable()
         return None if var is None else var.grad
 
     @property
@@ -277,7 +277,7 @@ class VariableNode(object):
         If the corresponding variable is not available, it return ``None``.
 
         """
-        var = self.get_variable()
+        var = self._variable()
         return None if var is None else var._grad_var
 
     @property
@@ -317,6 +317,19 @@ class VariableNode(object):
                        requires_grad=self._requires_grad)
         var._node = self
         return var
+
+    def get_variable_or_none(self):
+        """Returns the holding :class:`Variable` object or ``None``.
+
+        VariableNode object holds a weak reference of the variable object.If
+        the reference is alive, it is returned by this property. Otherwise,
+        returns ``None``.
+
+        Returns:
+            Variable: The variable object that refers this node.
+
+        """
+        return self._variable()
 
     def set_creator(self, creator):
         """Sets a :class:`~chainer.Function` object that created this node.
@@ -985,7 +998,7 @@ Actual: {0}'''.format(type(data))
                 for y in outputs:
                     if y is not None and y is not self.node:
                         grads[y] = None
-                        y_var = y.get_variable()
+                        y_var = y.get_variable_or_none()
                         if y_var is not None:
                             y_var._grad_var = None
 
@@ -1007,7 +1020,7 @@ Actual: {0}'''.format(type(data))
                 else:
                     grads[x] = gx
 
-                x_var = x.get_variable()
+                x_var = x.get_variable_or_none()
                 if x_var is not None:
                     x_var._grad_var = grads[x]
 
