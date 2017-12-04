@@ -1,13 +1,24 @@
+import contextlib
 import unittest
 
 import numpy
 import six
 
+import chainer
 from chainer import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
+
+
+@contextlib.contextmanager
+def disable_debug_mode_if(disable):
+    if disable:
+        with chainer.using_config('debug', False):
+            yield
+    else:
+        yield
 
 
 @testing.parameterize(*testing.product({
@@ -43,13 +54,17 @@ class TestPadSequence(unittest.TestCase):
         if self.dtype == numpy.float16:
             self.check_double_backward_options.update({'atol': 5e-3})
 
+        self.can_include_nan = numpy.isnan(self.pad)
+
     def check_forward(self, xs):
         # Non-finite values does not work for integer values.
         if not numpy.isfinite(self.pad) and \
            numpy.dtype(self.dtype).kind != 'f':
             return
 
-        y = functions.pad_sequence(xs, length=self.length, padding=self.pad)
+        with disable_debug_mode_if(self.can_include_nan):
+            y = functions.pad_sequence(
+                xs, length=self.length, padding=self.pad)
 
         self.assertEqual(y.shape, self.y_shape)
         for i, (length, x) in enumerate(six.moves.zip(self.lengths, self.xs)):

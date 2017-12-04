@@ -6,8 +6,8 @@ import json
 import numpy
 import six
 
+from chainer.backends import cuda
 from chainer import configuration
-from chainer import cuda
 from chainer import serializer as serializer_module
 from chainer import variable
 
