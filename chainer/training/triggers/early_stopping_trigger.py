@@ -3,6 +3,7 @@ from chainer.training import util
 
 
 import operator
+import warnings
 
 
 class EarlyStoppingTrigger(object):
@@ -83,9 +84,7 @@ class EarlyStoppingTrigger(object):
             return False
 
         if self.monitor not in observation.keys():
-            if not self.already_warning:
-                print('Warning: {} is not in observation'.format(self.monitor))
-                self.already_warning = True
+            warnings.warn('{} is not in observation'.format(self.monitor))
             return False
 
         stat = self._summary.compute_mean()
