@@ -1024,6 +1024,15 @@ class TestDebugPrint(unittest.TestCase):
         msg = 'grad: mean={mean:.8f}, std={std:.8f}'.format(mean=mean, std=std)
         self.assertIn(msg, result)
 
+    def check_debug_print_empty(self, v):
+        result = v.debug_print()
+        self.assertIn('device: None', result)
+        self.assertIn('backend: None', result)
+        self.assertIn('shape: None', result)
+        self.assertIn('dtype: None', result)
+        self.assertIn('statistics: None', result)
+        self.assertIn('grad: None', result)
+
     def test_debug_print_cpu(self):
         v = chainer.Variable(self.arr)
         result = v.debug_print()
@@ -1044,6 +1053,10 @@ class TestDebugPrint(unittest.TestCase):
 
         self.check_debug_print(v, mean=float(cuda.cupy.mean(v.data)),
                                std=float(cuda.cupy.std(v.data)))
+
+    def test_debug_print_empty(self):
+        v = chainer.Variable()
+        self.check_debug_print_empty(v)
 
 
 class TestVariableSetCreator(unittest.TestCase):
