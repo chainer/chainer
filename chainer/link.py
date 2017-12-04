@@ -6,7 +6,7 @@ import warnings
 import numpy
 import six
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import initializers
 from chainer import variable
 
