@@ -289,6 +289,22 @@ class ConvolutionND(function.Function):
             return self._backward_cudnn(x, W, b, gy)
 
 
+def convolution_1d(x, W, b=None, stride=1, pad=0, cover_all=False):
+    func = ConvolutionND(1, stride, pad, cover_all)
+    if b is None:
+        return func(x, W)
+    else:
+        return func(x, W, b)
+
+
+def convolution_3d(x, W, b=None, stride=1, pad=0, cover_all=False):
+    func = ConvolutionND(3, stride, pad, cover_all)
+    if b is None:
+        return func(x, W)
+    else:
+        return func(x, W, b)
+
+
 def convolution_nd(x, W, b=None, stride=1, pad=0, cover_all=False):
     """N-dimensional convolution function.
 
