@@ -8,7 +8,9 @@ import warnings
 
 
 class EarlyStoppingTrigger(object):
-    """Trigger invoked when specific value continue to be worse.
+    """Trigger for Early Stopping.
+    This trigger works only when it could monitor
+    the value whose mean is checked at every iteration
 
     Args:
         monitor (str) : The metric you want to monitor
