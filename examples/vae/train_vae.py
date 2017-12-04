@@ -17,7 +17,7 @@ matplotlib.use('Agg')
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Chainer example: MNIST')
+    parser = argparse.ArgumentParser(description='Chainer example: VAE')
     parser.add_argument('--initmodel', '-m', default='',
                         help='Initialize the model from given file')
     parser.add_argument('--resume', '-r', default='',
