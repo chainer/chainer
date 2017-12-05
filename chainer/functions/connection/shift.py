@@ -1,6 +1,5 @@
-import cupy
-
 import chainer
+from chainer.backends import cuda
 from chainer import function_node
 import chainer.functions
 from chainer.utils import type_check
@@ -13,6 +12,7 @@ def _pair(x):
 
 
 if chainer.cuda.available:
+    cupy = cuda.cupy
     shift_gpu = cupy.ElementwiseKernel(
         'raw T x, int32 c, int32 h, int32 w,'
         'int32 kh, int32 kw,'
