@@ -1,7 +1,7 @@
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function
 from chainer import function_node
 from chainer.utils import argument
@@ -9,7 +9,7 @@ from chainer.utils import type_check
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
-    libcudnn = cudnn.cudnn
+    libcudnn = cuda.cuda.cudnn
 
 
 class BatchNormalization(function_node.FunctionNode):
@@ -75,8 +75,19 @@ class BatchNormalization(function_node.FunctionNode):
             cudnn_mode = self.mode.get_cudnn_mode()
             libcudnn.deriveBNTensorDescriptor(derivedBnDesc.value,
                                               x_desc.value, cudnn_mode)
-            one = numpy.array(1, dtype=dtype).ctypes
-            zero = numpy.array(0, dtype=dtype).ctypes
+            dtype_param = _get_dtype_of_tensor_descriptor(derivedBnDesc)
+            if dtype_param is not dtype:
+                gamma = gamma.astype(dtype_param)
+                beta = beta.astype(dtype_param)
+                running_mean = self.running_mean.astype(dtype_param)
+                running_var = self.running_var.astype(dtype_param)
+            else:
+                running_mean = self.running_mean
+                running_var = self.running_var
+
+            oz_dtype = 'd' if x.dtype == 'd' else 'f'
+            one = numpy.array(1, dtype=oz_dtype).ctypes
+            zero = numpy.array(0, dtype=oz_dtype).ctypes
             y = cuda.cupy.empty_like(x)
             # Factor used in the moving average
             factor = 1 - self.decay
@@ -97,9 +108,22 @@ class BatchNormalization(function_node.FunctionNode):
                 handle, cudnn_mode, one.data, zero.data,
                 x_desc.value, x.data.ptr, x_desc.value,
                 y.data.ptr, derivedBnDesc.value, gamma.data.ptr,
-                beta.data.ptr, factor, self.running_mean.data.ptr,
-                self.running_var.data.ptr, self.eps,
+                beta.data.ptr, factor, running_mean.data.ptr,
+                running_var.data.ptr, self.eps,
                 self.mean.data.ptr, self.inv_std.data.ptr)
+
+            if dtype_param is not dtype:
+                # When data type of prameters is converted, say, from fp16
+                # to fp32, the values of fp32 arrays of running_mean and
+                # running_var updated by batchNormalizationForwardTraining
+                # must be explicitly written back to their original fp16
+                # arrays.
+                running_mean = running_mean.astype(dtype)
+                running_var = running_var.astype(dtype)
+                self.running_mean.data.copy_from(running_mean.data,
+                                                 running_mean.nbytes)
+                self.running_var.data.copy_from(running_var.data,
+                                                running_var.nbytes)
         else:
             gamma = gamma[expander]
             beta = beta[expander]
@@ -157,8 +181,12 @@ class BatchNormalizationGrad(function.Function):
             derivedBnDesc = cudnn.create_uninitialized_tensor_descriptor()
             libcudnn.deriveBNTensorDescriptor(derivedBnDesc.value,
                                               x_desc.value, cudnn_mode)
-            one = numpy.array(1, dtype=dtype).ctypes
-            zero = numpy.array(0, dtype=dtype).ctypes
+            dtype_param = _get_dtype_of_tensor_descriptor(derivedBnDesc)
+            if dtype_param is not dtype:
+                gamma = gamma.astype(dtype_param)
+            oz_dtype = 'd' if x.dtype == 'd' else 'f'
+            one = numpy.array(1, dtype=oz_dtype).ctypes
+            zero = numpy.array(0, dtype=oz_dtype).ctypes
             gx = cuda.cupy.empty_like(x)
             ggamma = cuda.cupy.empty_like(gamma)
             gbeta = cuda.cupy.empty_like(gamma)
@@ -169,6 +197,10 @@ class BatchNormalizationGrad(function.Function):
                 derivedBnDesc.value, gamma.data.ptr,
                 ggamma.data.ptr, gbeta.data.ptr,
                 self.eps, self.mean.data.ptr, self.inv_std.data.ptr)
+
+            if dtype_param is not dtype:
+                ggamma = ggamma.astype(dtype)
+                gbeta = gbeta.astype(dtype)
         else:
             gbeta = gy.sum(axis=self.axis)
             x_hat = _x_hat(x, self.mean[expander], self.inv_std[expander])
@@ -231,6 +263,7 @@ class BatchNormalizationGrad(function.Function):
 
 class FixedBatchNormalization(function_node.FunctionNode):
 
+    inv_std = None
     inv_var = None
 
     def __init__(self, eps=2e-5):
@@ -279,8 +312,15 @@ class FixedBatchNormalization(function_node.FunctionNode):
             cudnn_mode = mode.get_cudnn_mode()
             libcudnn.deriveBNTensorDescriptor(derivedBnDesc.value,
                                               x_desc.value, cudnn_mode)
-            one = numpy.array(1, dtype=dtype).ctypes
-            zero = numpy.array(0, dtype=dtype).ctypes
+            dtype_param = _get_dtype_of_tensor_descriptor(derivedBnDesc)
+            if dtype_param is not dtype:
+                gamma = gamma.astype(dtype_param)
+                beta = beta.astype(dtype_param)
+                mean = mean.astype(dtype_param)
+                var = var.astype(dtype_param)
+            oz_dtype = 'd' if x.dtype == 'd' else 'f'
+            one = numpy.array(1, dtype=oz_dtype).ctypes
+            zero = numpy.array(0, dtype=oz_dtype).ctypes
             y = cuda.cupy.empty_like(x)
 
             libcudnn.batchNormalizationForwardInference(
@@ -313,7 +353,7 @@ class FixedBatchNormalizationGrad(function.Function):
         self.eps = eps
         self.expander = expander
         self.axis = axis
-        self.inv_std = inv_std
+        self.inv_std = inv_std  # may be None
         self.inv_var = inv_var  # may be None
 
     def forward(self, inputs):
@@ -322,8 +362,10 @@ class FixedBatchNormalizationGrad(function.Function):
         expander = self.expander
         xp = cuda.get_array_module(x)
 
-        if self.inv_var is None:
-            self.inv_var = xp.square(self.inv_std)
+        if self.inv_std is None or self.inv_var is None:
+            self.inv_var = xp.reciprocal(var + self.eps)
+            self.inv_std = xp.sqrt(self.inv_var, dtype=self.inv_var.dtype)
+
         self.gamma_over_std = gamma * self.inv_std
         x_hat = _x_hat(x, mean[expander], self.inv_std[expander])
 
@@ -389,7 +431,8 @@ class _BNMode(object):
         self.is_for_conv2d = x.ndim == 4 and is_gamma_1d
         self.is_for_linear = x.ndim == 2 and is_gamma_1d
         self.cudnn_dim_ok = self.is_for_conv2d or self.is_for_linear
-        self.cudnn_dtype_ok = x.dtype != numpy.float16
+        # self.cudnn_dtype_ok = x.dtype != numpy.float16
+        self.cudnn_dtype_ok = self.is_for_conv2d or (x.dtype != numpy.float16)
 
     def get_cudnn_mode(self):
         assert self.cudnn_dim_ok
@@ -449,6 +492,22 @@ def _zero_if_none(xp, x, shape, dtype):
     return x
 
 
+def _get_dtype_of_tensor_descriptor(desc):
+    cudnn_dtype, _, _, _, _, _, _, _, _ = libcudnn.getTensor4dDescriptor(
+        desc.value)
+    dtype = None
+    if cudnn_dtype == libcudnn.CUDNN_DATA_DOUBLE:
+        dtype = numpy.dtype(numpy.float64)
+    elif cudnn_dtype == libcudnn.CUDNN_DATA_FLOAT:
+        dtype = numpy.dtype(numpy.float32)
+    elif cudnn_dtype == libcudnn.CUDNN_DATA_HALF:
+        dtype = numpy.dtype(numpy.float16)
+    else:
+        msg = 'Unknow cudnn data type {} '.format(cudnn_dtype)
+        raise RuntimeError(msg)
+    return dtype
+
+
 def batch_normalization(x, gamma, beta, **kwargs):
     """batch_normalization(x, gamma, beta, eps=2e-5, running_mean=None, running_var=None, decay=0.9)
 
@@ -494,12 +553,14 @@ def batch_normalization(x, gamma, beta, **kwargs):
         gamma (Variable): Scaling parameter of normalized data.
         beta (Variable): Shifting parameter of scaled normalized data.
         eps (float): Epsilon value for numerical stability.
-        running_mean (array): Running average of the mean. This is a
+        running_mean (numpy.ndarray or cupy.ndarray):
+            Running average of the mean. This is a
             running average of the mean over several mini-batches using
             the decay parameter. If ``None``, the running average is not
             computed. If this is ``None``, then ``runnng_var`` must also
             be ``None``.
-        running_var (array): Running average of the variance. This is a
+        running_var (numpy.ndarray or cupy.ndarray):
+            Running average of the variance. This is a
             running average of the variance over several mini-batches using
             the decay parameter. If ``None``, the running average is not
             computed. If this is ``None``, then ``running_mean`` must also

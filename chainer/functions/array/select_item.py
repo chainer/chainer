@@ -2,7 +2,7 @@ import numpy
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function_node
 from chainer.utils import type_check
 
@@ -91,11 +91,26 @@ def select_item(x, t):
     ``y[i] == x[i, t[i]]`` for all ``i``.
 
     Args:
-        x (Variable): Variable storing arrays.
-        t (Variable): Variable storing index numbers.
+        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`):
+            Variable storing arrays. A two-dimensional float array.
+        t (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`):
+            Variable storing index numbers. A one-dimensional int array.
+            Length of the ``t`` should be equal to ``x.shape[0]``.
 
     Returns:
         ~chainer.Variable: Variable that holds ``t``-th element of ``x``.
+
+    .. admonition:: Example
+
+        >>> x = np.array([[0, 1, 2], [3, 4, 5]], 'f')
+        >>> t = np.array([0, 2], 'i')
+        >>> y = F.select_item(x, t)
+        >>> y.shape
+        (2,)
+        >>> y.data
+        array([ 0.,  5.], dtype=float32)
 
     """
     return SelectItem().apply((x, t))[0]

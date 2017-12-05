@@ -1,7 +1,7 @@
 import numpy
 import six
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function
 from chainer import utils
 from chainer.utils import conv
@@ -10,7 +10,13 @@ from chainer.utils import type_check
 
 
 class UnpoolingND(function.Function):
-    """Unpooling over a set of N-dimensional planes."""
+    """Unpooling over a set of N-dimensional planes.
+
+    .. warning::
+
+        This feature is experimental. The interface can change in the future.
+
+    """
 
     def __init__(self, ndim, ksize, stride=None, pad=0, outsize=None,
                  cover_all=True):
@@ -86,6 +92,10 @@ class UnpoolingND(function.Function):
 
 def unpooling_nd(x, ksize, stride=None, pad=0, outsize=None, cover_all=True):
     """Inverse operation of N-dimensional spatial pooling.
+
+    .. warning::
+
+        This feature is experimental. The interface can change in the future.
 
     This function acts similary to :class:`~functions.DeconvolutionND`, but
     it spreads input N-dimensional array's value without any parameter instead

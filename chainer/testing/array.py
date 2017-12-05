@@ -1,7 +1,7 @@
 import numpy
-import sys
+import six
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import utils
 
 
@@ -23,8 +23,9 @@ def assert_allclose(x, y, atol=1e-5, rtol=1e-4, verbose=True):
     try:
         numpy.testing.assert_allclose(
             x, y, atol=atol, rtol=rtol, verbose=verbose)
-    except AssertionError:
-        f = sys.stdout
+    except AssertionError as e:
+        f = six.StringIO()
+        f.write(str(e) + '\n\n')
         f.write(
             'assert_allclose failed: \n' +
             '  shape: {} {}\n'.format(x.shape, y.shape) +
@@ -39,13 +40,11 @@ def assert_allclose(x, y, atol=1e-5, rtol=1e-4, verbose=True):
                 '  x[i]: {}\n'.format(xx[i]) +
                 '  y[i]: {}\n'.format(yy[i]) +
                 '  err[i]: {}\n'.format(err[i]))
-        f.flush()
         opts = numpy.get_printoptions()
         try:
             numpy.set_printoptions(threshold=10000)
             f.write('x: ' + numpy.array2string(x, prefix='x: ') + '\n')
             f.write('y: ' + numpy.array2string(y, prefix='y: ') + '\n')
-            f.flush()
         finally:
             numpy.set_printoptions(**opts)
-        raise
+        raise AssertionError(f.getvalue())

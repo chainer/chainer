@@ -1,7 +1,6 @@
-import numpy
 import six
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function
 from chainer.utils import type_check
 
@@ -17,7 +16,7 @@ class Accuracy(function.Function):
 
         type_check.expect(
             x_type.dtype.kind == 'f',
-            t_type.dtype == numpy.int32
+            t_type.dtype.kind == 'i'
         )
 
         t_ndim = type_check.eval(t_type.ndim)
@@ -67,7 +66,7 @@ def accuracy(y, t, ignore_label=None):
             :math:`\\hat t(i, k, ...) = \operatorname{\mathrm{argmax}}_j \
 y(i, j, k, ...)`.
         t (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray` of :class:`numpy.int32`):
+        :class:`cupy.ndarray` of signed integer):
             Array of ground truth labels.
         ignore_label (int or None): Skip calculating accuracy
             if the true label is ``ignore_label``.

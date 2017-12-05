@@ -1,12 +1,12 @@
 import numpy
 
-from chainer import cuda
-from chainer import function
+from chainer.backends import cuda
+from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
 
 
-class HardSigmoid(function.Function):
+class HardSigmoid(function_node.FunctionNode):
 
     """Hard-sigmoid function."""
 
@@ -19,30 +19,52 @@ class HardSigmoid(function.Function):
     def forward_cpu(self, inputs):
         x = inputs[0]
         y = numpy.clip(x * 0.2 + 0.5, 0.0, 1.0)
+        self.retain_inputs((0,))
         return utils.force_array(y, x.dtype),
 
     def forward_gpu(self, inputs):
         x = inputs[0]
+        self.retain_inputs((0,))
         return cuda.elementwise(
             'T x', 'T y',
             'y = min(1.0, max(0.0, x * 0.2 + 0.5))',
             'hard_sigmoid_fwd'
         )(x),
 
-    def backward_cpu(self, inputs, grads):
-        x = inputs[0]
-        g = grads[0]
-        gx = ((-2.5 < x) & (x < 2.5)) * g * 0.2
-        return utils.force_array(gx, x.dtype),
+    def backward(self, indexes, grad_outputs):
+        x, = self.get_retained_inputs()
+        return HardSigmoidGrad(x.data).apply(grad_outputs)
 
-    def backward_gpu(self, inputs, grads):
-        x = inputs[0]
-        g = grads[0]
+
+class HardSigmoidGrad(function_node.FunctionNode):
+
+    """Hard-sigmoid gradient function."""
+
+    def __init__(self, x):
+        self.x = x
+
+    def check_type_forward(self, in_types):
+        type_check.expect(in_types.size() == 1)
+        type_check.expect(
+            in_types[0].dtype.kind == 'f',
+            in_types[0].dtype == self.x.dtype
+        )
+
+    def forward_cpu(self, inputs):
+        gy, = inputs
+        gx = ((-2.5 < self.x) & (self.x < 2.5)) * gy * 0.2
+        return utils.force_array(gx, self.x.dtype),
+
+    def forward_gpu(self, inputs):
+        gy, = inputs
         return cuda.elementwise(
             'T x, T g', 'T gx',
             'gx = fabs(x) < 2.5 ? 0.2 * g : 0',
             'hard_sigmoid_bwd'
-        )(x, g),
+        )(self.x, gy),
+
+    def backward(self, indexes, grad_outputs):
+        return HardSigmoidGrad(self.x).apply(grad_outputs)
 
 
 def hard_sigmoid(x):
@@ -78,4 +100,4 @@ def hard_sigmoid(x):
         array([ 0. ,  0.3,  0.5,  0.7,  1. ])
 
     """
-    return HardSigmoid()(x)
+    return HardSigmoid().apply((x,))[0]

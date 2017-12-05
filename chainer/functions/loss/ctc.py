@@ -3,7 +3,7 @@ import numpy
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function
 from chainer import utils
 from chainer.utils import type_check

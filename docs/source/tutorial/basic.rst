@@ -165,7 +165,7 @@ The most fundamental ones are links that behave like regular functions while rep
 We will introduce higher level links, but here think of links as simply functions with parameters.
 
 One of the most frequently used links is the :class:`~functions.Linear` link (a.k.a. *fully-connected layer* or *affine transformation*).
-It represents a mathematical function :math:`f(x) = Wx + b`, where the matrix :math:`W` and the vector :math:`b` are parameters.
+It represents a mathematical function :math:`f(x) = xW^\top + b`, where the matrix :math:`W` and the vector :math:`b` are parameters.
 This link corresponds to its pure counterpart :func:`~functions.linear`, which accepts :math:`x, W, b` as arguments.
 A linear link from three-dimensional space to two-dimensional space is defined by the following line:
 
@@ -400,7 +400,7 @@ The training loop abstraction mainly consists of two components:
 
 - **Dataset abstraction**.
   It implements 1 and 2 in the above list.
-  The core components are defined in the :mod:`dataset` module.
+  The core components are defined in the :mod:`~chainer.dataset` module.
   There are also many implementations of datasets and iterators in :mod:`~chainer.datasets` and :mod:`~chainer.iterators` modules, respectively.
 - **Trainer**.
   It implements 3, 4, 5, and 6 in the above list.
@@ -419,7 +419,7 @@ Before proceeding to the first example, we introduce Serializer, which is the la
 Serializer is a simple interface to serialize or deserialize an object.
 :class:`Link`, :class:`Optimizer`, and :class:`~training.Trainer` supports serialization.
 
-Concrete serializers are defined in the :mod:`serializers` module.
+Concrete serializers are defined in the :mod:`~chainer.serializers` module.
 It supports NumPy NPZ and HDF5 formats.
 
 For example, we can serialize a link object into NPZ file by the :func:`serializers.save_npz` function:

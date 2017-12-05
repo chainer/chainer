@@ -1,10 +1,31 @@
 import numpy
 import six
 
-from chainer import cuda
+from chainer.backends import cuda
 
 
 def get_conv_outsize(size, k, s, p, cover_all=False, d=1):
+    """Calculates output size of convolution.
+
+    This function takes the size of input feature map, kernel, stride, and
+    pooling of one particular dimension, then calculates the output feature
+    map size of that dimension.
+
+    .. seealso:: :func:`~chainer.utils.get_deconv_outsize`
+
+    Args:
+        size (int): The size of input feature map. It usually is the length of
+            a side of feature map.
+        k (int): The size of convolution kernel.
+        s (int): The size of stride.
+        p (int): The size of padding.
+        cover_all (bool): Use ``cover_all`` option or not.
+        d (int): The size of dilation.
+
+    Returns:
+        int: The expected output size of the convolution operation.
+
+    """
     dk = k + (k - 1) * (d - 1)
     if cover_all:
         return (size + p * 2 - dk + s - 1) // s + 1
@@ -12,11 +33,33 @@ def get_conv_outsize(size, k, s, p, cover_all=False, d=1):
         return (size + p * 2 - dk) // s + 1
 
 
-def get_deconv_outsize(size, k, s, p, cover_all=False):
+def get_deconv_outsize(size, k, s, p, cover_all=False, d=1):
+    """Calculates output size of deconvolution.
+
+    This function takes the size of input feature map, kernel, stride, and
+    pooling of one particular dimension, then calculates the output feature
+    map size of that dimension.
+
+    .. seealso:: :func:`~chainer.utils.get_conv_outsize`
+
+    Args:
+        size (int): The size of input feature map. It usually is the length of
+            a side of feature map.
+        k (int): The size of deconvolution kernel.
+        s (int): The size of stride.
+        p (int): The size of padding.
+        cover_all (bool): Use ``cover_all`` option or not.
+        d (int): The size of dilation.
+
+    Returns:
+        int: The expected output size of the deconvolution operation.
+
+    """
+    dk = (k - 1) * d + 1
     if cover_all:
-        return s * (size - 1) + k - s + 1 - 2 * p
+        return s * (size - 1) + dk - s + 1 - 2 * p
     else:
-        return s * (size - 1) + k - 2 * p
+        return s * (size - 1) + dk - 2 * p
 
 
 def im2col_cpu(

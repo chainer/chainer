@@ -408,6 +408,25 @@ class TestMultiprocessIteratorConcurrency(unittest.TestCase):
         self.assertFalse(deadlock)
 
 
+class TestMultiprocessIteratorDeterminancy(unittest.TestCase):
+
+    def setUp(self):
+        self._seed = 3141592653
+        self._random_bak = numpy.random.get_state()
+
+    def tearDown(self):
+        numpy.random.set_state(self._random_bak)
+
+    def test_reproduce_same_permutation(self):
+        dataset = [1, 2, 3, 4, 5, 6]
+        numpy.random.seed(self._seed)
+        it1 = iterators.MultiprocessIterator(dataset, 6)
+        numpy.random.seed(self._seed)
+        it2 = iterators.MultiprocessIterator(dataset, 6)
+        for _ in range(5):
+            self.assertEqual(it1.next(), it2.next())
+
+
 @testing.parameterize(*testing.product({
     'n_prefetch': [1, 2],
     'shared_mem': [None, 1000000],
@@ -538,7 +557,9 @@ if __name__ == '__main__':
                 was_alive = True
         return was_alive
 
+    @unittest.skip
     def test_interrupt_infinite_wait_batch(self):
+        # TODO(niboshi): See: https://github.com/chainer/chainer/issues/3383
         self.run_code(dataset='infinite_wait',
                       n_processes=2,
                       operation='it.next()')
@@ -546,7 +567,9 @@ if __name__ == '__main__':
         self.send_sigint()
         self.assertFalse(self.killall())
 
+    @unittest.skip
     def test_interrupt_no_wait_batch(self):
+        # TODO(niboshi): See: https://github.com/chainer/chainer/issues/3383
         self.run_code(dataset='no_wait',
                       n_processes=2,
                       operation='time.sleep(1000)')

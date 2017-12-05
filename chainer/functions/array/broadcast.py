@@ -1,32 +1,25 @@
 import six
 
 import chainer
-from chainer import cuda
-from chainer import function
+from chainer.backends import cuda
 from chainer import function_node
 from chainer.utils import type_check
 
 
-def _backward_one(xp, shape, dtype, g):
-    if g is None:
-        return xp.zeros(shape, dtype)
-
-    ndim = len(shape)
-    if g.ndim != ndim:
-        g = g.sum(axis=tuple(range(g.ndim - ndim)))
-        # An input variable is always an array, not a scalar.
-        # We need to convert a scalar value to a zero-dim array.
-        if xp.isscalar(g):
-            g = xp.array(g)
-
-    axis = tuple(i for i, sx in enumerate(shape) if sx == 1)
-    if len(axis) > 0:
-        return g.sum(keepdims=True, axis=axis)
-    else:
+def _backward_one(g, shape):
+    if g.shape == shape:
         return g
+    ndim = len(shape)
+    lead = g.ndim - ndim
+    lead_axis = tuple(six.moves.range(lead))
+    axis = [i + lead for i, sx in enumerate(shape) if sx == 1]
+    g = chainer.functions.sum(g, lead_axis + tuple(axis), True)
+    if lead > 0:
+        return chainer.functions.squeeze(g, lead_axis)
+    return g
 
 
-class Broadcast(function.Function):
+class Broadcast(function_node.FunctionNode):
 
     """Function that broadcasts given arrays."""
 
@@ -43,18 +36,16 @@ class Broadcast(function.Function):
                 actual = 'shapes: ' + ', '.join(map(str, shapes))
                 raise type_check.InvalidType(expect, actual)
 
-    def forward(self, xs):
-        self.retain_inputs(())
-        self._xp = cuda.get_array_module(*xs)
-        self._in_shapes = [x.shape for x in xs]
-        self._in_dtypes = [x.dtype for x in xs]
-        return tuple(self._xp.broadcast_arrays(*xs))
+    def forward(self, inputs):
+        self._xp = cuda.get_array_module(*inputs)
+        self._in_shapes = [x.shape for x in inputs]
+        self._in_dtypes = [x.dtype for x in inputs]
+        return tuple(self._xp.broadcast_arrays(*inputs))
 
-    def backward(self, xs, grads):
-        return tuple(
-            _backward_one(self._xp, shape, dtype, g)
-            for shape, dtype, g in six.moves.zip(
-                self._in_shapes, self._in_dtypes, grads))
+    def backward(self, indexes, grad_outputs):
+        return tuple([None if grad_outputs[i] is None else
+                      _backward_one(grad_outputs[i], self.inputs[i].shape)
+                      for i in indexes])
 
 
 def broadcast(*args):
@@ -83,7 +74,9 @@ def broadcast(*args):
         True
 
     """
-    return Broadcast()(*args)
+    if len(args) == 1:
+        return chainer.as_variable(args[0])
+    return Broadcast().apply(args)
 
 
 class BroadcastTo(function_node.FunctionNode):
@@ -123,15 +116,7 @@ class BroadcastTo(function_node.FunctionNode):
 
     def backward(self, indexes, grad_outputs):
         gx, = grad_outputs
-        shape = self.inputs[0].shape
-        ndim = len(shape)
-        lead = gx.ndim - ndim
-        lead_axis = tuple(range(lead))
-        axis = [i + lead for i, sx in enumerate(shape) if sx == 1]
-        gx = chainer.functions.sum(gx, lead_axis + tuple(axis), True)
-        if lead > 0:
-            return chainer.functions.squeeze(gx, lead_axis),
-        return gx,
+        return _backward_one(gx, self.inputs[0].shape),
 
 
 def broadcast_to(x, shape):

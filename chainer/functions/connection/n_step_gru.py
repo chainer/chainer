@@ -4,7 +4,7 @@ import numpy
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer.functions.activation import sigmoid
 from chainer.functions.activation import tanh
 from chainer.functions.array import concat
@@ -20,7 +20,7 @@ from chainer.utils import argument
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
-    libcudnn = cuda.cudnn.cudnn
+    libcudnn = cuda.cuda.cudnn
 
 
 class NStepGRU(n_step_rnn.BaseNStepRNN):
@@ -79,7 +79,7 @@ def n_step_gru(
         hx (chainer.Variable): Variable holding stacked hidden states.
             Its shape is ``(S, B, N)`` where ``S`` is number of layers and is
             equal to ``n_layers``, ``B`` is mini-batch size, and ``N`` is
-            dimention of hidden units.
+            dimension of hidden units.
         ws (list of list of chainer.Variable): Weight matrices. ``ws[i]``
             represents weights for i-th layer.
             Each ``ws[i]`` is a list containing six matrices.
@@ -91,7 +91,7 @@ def n_step_gru(
             represnents biases for i-th layer.
             Each ``bs[i]`` is a list containing six vectors.
             ``bs[i][j]`` is corresponding with ``b_j`` in the equation.
-            Shape of each matrix is ``(N,)`` where ``N`` is dimention of
+            Shape of each matrix is ``(N,)`` where ``N`` is dimension of
             hidden units.
         xs (list of chainer.Variable): A list of :class:`~chainer.Variable`
             holding input values. Each element ``xs[t]`` holds input value
@@ -107,14 +107,14 @@ def n_step_gru(
 
     Returns:
         tuple: This functions returns a tuple concaining three elements,
-            ``hy`` and ``ys``.
+        ``hy`` and ``ys``.
 
-            - ``hy`` is an updated hidden states whose shape is same as ``hx``.
-            - ``ys`` is a list of :class:`~chainer.Variable` . Each element
-              ``ys[t]`` holds hidden states of the last layer corresponding
-              to an input ``xs[t]``. Its shape is ``(B_t, N)`` where ``B_t`` is
-              mini-batch size for time ``t``, and ``N`` is size of hidden
-              units. Note that ``B_t`` is the same value as ``xs[t]``.
+        - ``hy`` is an updated hidden states whose shape is same as ``hx``.
+        - ``ys`` is a list of :class:`~chainer.Variable` . Each element
+          ``ys[t]`` holds hidden states of the last layer corresponding
+          to an input ``xs[t]``. Its shape is ``(B_t, N)`` where ``B_t`` is
+          mini-batch size for time ``t``, and ``N`` is size of hidden
+          units. Note that ``B_t`` is the same value as ``xs[t]``.
 
     """
 
@@ -178,9 +178,9 @@ def n_step_bigru(
         n_layers(int): Number of layers.
         dropout_ratio(float): Dropout ratio.
         hx (chainer.Variable): Variable holding stacked hidden states.
-            Its shape is ``(S, B, N)`` where ``S`` is number of layers and is
+            Its shape is ``(2S, B, N)`` where ``S`` is number of layers and is
             equal to ``n_layers``, ``B`` is mini-batch size, and ``N`` is
-            dimention of hidden units.
+            dimension of hidden units.
         ws (list of list of chainer.Variable): Weight matrices. ``ws[i]``
             represents weights for i-th layer.
             Each ``ws[i]`` is a list containing six matrices.
@@ -192,7 +192,7 @@ def n_step_bigru(
             represnents biases for i-th layer.
             Each ``bs[i]`` is a list containing six vectors.
             ``bs[i][j]`` is corresponding with ``b_j`` in the equation.
-            Shape of each matrix is ``(N,)`` where ``N`` is dimention of
+            Shape of each matrix is ``(N,)`` where ``N`` is dimension of
             hidden units.
         xs (list of chainer.Variable): A list of :class:`~chainer.Variable`
             holding input values. Each element ``xs[t]`` holds input value
@@ -210,14 +210,14 @@ def n_step_bigru(
 
     Returns:
         tuple: This functions returns a tuple concaining three elements,
-            ``hy`` and ``ys``.
+        ``hy`` and ``ys``.
 
-            - ``hy`` is an updated hidden states whose shape is same as ``hx``.
-            - ``ys`` is a list of :class:`~chainer.Variable` . Each element
-              ``ys[t]`` holds hidden states of the last layer corresponding
-              to an input ``xs[t]``. Its shape is ``(B_t, N)`` where ``B_t`` is
-              mini-batch size for time ``t``, and ``N`` is size of hidden
-              units. Note that ``B_t`` is the same value as ``xs[t]``.
+        - ``hy`` is an updated hidden states whose shape is same as ``hx``.
+        - ``ys`` is a list of :class:`~chainer.Variable` . Each element
+          ``ys[t]`` holds hidden states of the last layer corresponding
+          to an input ``xs[t]``. Its shape is ``(B_t, N)`` where ``B_t`` is
+          mini-batch size for time ``t``, and ``N`` is size of hidden
+          units. Note that ``B_t`` is the same value as ``xs[t]``.
 
     """
 
@@ -249,7 +249,8 @@ def n_step_gru_base(n_layers, dropout_ratio, hx, ws, bs, xs,
         hx (chainer.Variable): Variable holding stacked hidden states.
             Its shape is ``(S, B, N)`` where ``S`` is number of layers and is
             equal to ``n_layers``, ``B`` is mini-batch size, and ``N`` is
-            dimention of hidden units.
+            dimension of hidden units. Because of bi-direction, the
+            first dimension length is ``2S``.
         ws (list of list of chainer.Variable): Weight matrices. ``ws[i]``
             represents weights for i-th layer.
             Each ``ws[i]`` is a list containing six matrices.
@@ -261,7 +262,7 @@ def n_step_gru_base(n_layers, dropout_ratio, hx, ws, bs, xs,
             represnents biases for i-th layer.
             Each ``bs[i]`` is a list containing six vectors.
             ``bs[i][j]`` is corresponding with ``b_j`` in the equation.
-            Shape of each matrix is ``(N,)`` where ``N`` is dimention of
+            Shape of each matrix is ``(N,)`` where ``N`` is dimension of
             hidden units.
         xs (list of chainer.Variable): A list of :class:`~chainer.Variable`
             holding input values. Each element ``xs[t]`` holds input value

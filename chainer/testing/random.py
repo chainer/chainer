@@ -1,19 +1,24 @@
+from __future__ import absolute_import
 import atexit
 import functools
 import numpy
 import os
+import random
 import types
 import unittest
 
 
-from chainer import cuda
+from chainer.backends import cuda
 
 
+_old_python_random_state = None
 _old_numpy_random_state = None
 
 
 def _numpy_do_setup(deterministic=True):
+    global _old_python_random_state
     global _old_numpy_random_state
+    _old_python_random_state = random.getstate()
     _old_numpy_random_state = numpy.random.get_state()
     if not deterministic:
         numpy.random.seed()
@@ -22,8 +27,11 @@ def _numpy_do_setup(deterministic=True):
 
 
 def _numpy_do_teardown():
+    global _old_python_random_state
     global _old_numpy_random_state
+    random.setstate(_old_python_random_state)
     numpy.random.set_state(_old_numpy_random_state)
+    _old_python_random_state = None
     _old_numpy_random_state = None
 
 

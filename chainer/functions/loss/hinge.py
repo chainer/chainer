@@ -1,6 +1,6 @@
 import numpy
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function
 from chainer.utils import type_check
 
@@ -35,7 +35,7 @@ class Hinge(function.Function):
         x_type, t_type = in_types
         type_check.expect(
             x_type.dtype == numpy.float32,
-            t_type.dtype == numpy.int32,
+            t_type.dtype.kind == 'i',
             x_type.ndim == 2,
             t_type.ndim == 1,
             x_type.shape[0] == t_type.shape[0],
@@ -153,7 +153,7 @@ def hinge(x, t, norm='L1', reduce='mean'):
             Input variable. The shape of ``x`` should be (:math:`N`, :math:`K`)
             .
         t (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray` of :class:`numpy.int32`):
+        :class:`cupy.ndarray` of signed integer):
             The :math:`N`-dimensional label vector with values
             :math:`t_n \in \{0, 1, 2, \dots, K-1\}`.
             The shape of ``t`` should be (:math:`N`,).

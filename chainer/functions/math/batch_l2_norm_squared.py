@@ -1,12 +1,15 @@
 import numpy
+import six
 
-from chainer import cuda
-from chainer import function
+import chainer
+from chainer.backends import cuda
+from chainer import function_node
+from chainer.functions.math import sum as _sum
 from chainer.utils import array
 from chainer.utils import type_check
 
 
-class BatchL2NormSquared(function.Function):
+class BatchL2NormSquared(function_node.FunctionNode):
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)
@@ -18,28 +21,50 @@ class BatchL2NormSquared(function.Function):
         )
 
     def forward_cpu(self, inputs):
+        self.retain_inputs((0,))
         x = array.as_mat(inputs[0])
         return (x * x).sum(axis=1),
 
     def forward_gpu(self, inputs):
+        self.retain_inputs((0,))
         x = array.as_mat(inputs[0])
         l2normsquared_kernel = cuda.cupy.ReductionKernel(
             'T x', 'T y', 'x * x', 'a + b', 'y = a', '0', 'l2normsquared'
         )
         return l2normsquared_kernel(x, axis=1),
 
-    def backward(self, inputs, gy):
-        x = inputs[0]
-        xp = cuda.get_array_module(x)
-        gy0 = gy[0].reshape(-1, *((1,) * (x.ndim - 1)))
-        if xp is numpy:
-            gx = 2 * x * gy0
-        else:
-            kernel = cuda.elementwise(
-                'T x, T gy', 'T gx', 'gx = 2 * x * gy',
-                'l2normsquared_bwd')
-            gx = kernel(x, gy0)
+    def backward(self, indexes, gy):
+        x = self.get_retained_inputs()
+        return BatchL2NormSquaredGrad().apply((x[0], gy[0]))
+
+
+class BatchL2NormSquaredGrad(function_node.FunctionNode):
+
+    def forward_cpu(self, inputs):
+        self.retain_inputs((0, 1))
+        x, gy0 = inputs
+        gy0 = gy0.reshape(-1, *((1,) * (x.ndim - 1)))
+        gx = 2 * x * gy0
         return gx,
+
+    def forward_gpu(self, inputs):
+        self.retain_inputs((0, 1))
+        x, gy0 = inputs
+        gy0 = gy0.reshape(-1, *((1,) * (x.ndim - 1)))
+        kernel = cuda.elementwise(
+            'T x, T gy', 'T gx', 'gx = 2 * x * gy',
+            'l2normsquared_bwd')
+        gx = kernel(x, gy0)
+        return gx,
+
+    def backward(self, indexes, grad_outputs):
+        x, gy0 = self.get_retained_inputs()
+        gy0 = gy0.reshape(-1, *((1,) * (x.ndim - 1)))
+        gy0 = chainer.functions.broadcast_to(gy0, x.shape)
+        gg2 = 2 * grad_outputs[0]
+        gx = gg2 * gy0
+        ggy0 = gg2 * x
+        return gx, _sum.sum(ggy0, axis=tuple(six.moves.range(1, ggy0.ndim)))
 
 
 def batch_l2_norm_squared(x):
@@ -58,4 +83,4 @@ def batch_l2_norm_squared(x):
         ~chainer.Variable: Two dimensional output variable.
 
     """
-    return BatchL2NormSquared()(x)
+    return BatchL2NormSquared().apply((x,))[0]
