@@ -1,5 +1,10 @@
 """Device, context and memory management on CuPy.
 
+.. note::
+   The package ``chainer.cuda`` has been renamed to
+   :mod:`chainer.backends.cuda` as of v4.0.0, but the previous module path
+   ``chainer.cuda`` is also available.
+
 Chainer uses `CuPy <https://cupy.chainer.org/>`_ (with very thin wrapper)
 to exploit the speed of GPU computation. Following modules and classes defined
 in CuPy are imported to :mod:`chainer.backends.cuda` module for convenience
