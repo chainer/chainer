@@ -122,13 +122,18 @@ def check_backward(func, x_data, y_grad, params=(),
                    eps=1e-3, atol=1e-5, rtol=1e-4, no_grads=None, dtype=None):
     """Test backward procedure of a given function.
 
-    This function automatically checks backward-process of a given function.
-    For example, when you have a :class:`~chainer.Function` class ``MyFunc``,
-    that gets two arguments and returns one value, you can make its test like
-    this::
+    This function automatically checks the backward-process of a given function
+    to ensure that the computed gradients are approximately correct.
+    For example, assuming you've defined a :class:`~chainer.FunctionNode` class
+    ``MyFunc``, that takes two arguments and returns one value, you can wrap
+    it in a ordinary function and check its gradient computations as follows::
 
     >> def test_my_func(self):
-    >>   func = MyFunc()
+    >>
+    >>     def func(xs):
+    >>         y, = MyFunc().apply(xs)
+    >>         return y
+    >>
     >>   x1_data = xp.array(...)
     >>   x2_data = xp.array(...)
     >>   gy_data = xp.array(...)
@@ -208,8 +213,9 @@ def check_backward(func, x_data, y_grad, params=(),
         func (callable): A function which gets :class:`~chainer.Variable`\\ s
             and returns :class:`~chainer.Variable`\\ s. ``func`` must returns
             a tuple of :class:`~chainer.Variable`\\ s or one
-            :class:`~chainer.Variable`. You can use :class:`~chainer.Function`
-            object, :class:`~chainer.Link` object or a function satisfying the
+            :class:`~chainer.Variable`. You can use a
+            :class:`~chainer.Function`, :class:`~chainer.FunctionNode` or a
+            :class:`~chainer.Link` object or any other function satisfying the
             condition.
         x_data (ndarray or tuple of ndarrays): A set of ``ndarray``\\ s to be
             passed to ``func``. If ``x_data`` is one ``ndarray`` object, it is

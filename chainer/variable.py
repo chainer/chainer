@@ -114,8 +114,9 @@ class VariableNode(object):
     gradient to be passed to each function.
 
     A variable node is held by the corresponding :class:`~chainer.Variable`
-    object, which is managed by users. :class:`~chainer.Function` objects that
-    take the variable as an input also hold references to the variable node.
+    object, which is managed by users. :class:`~chainer.FunctionNode` objects
+    that take the variable as an input also hold references to the variable
+    node.
 
     Note that the node does not hold a reference to the corresponding data
     array in general. The data array is actually accessible by the node in the
@@ -128,9 +129,10 @@ class VariableNode(object):
     2. If :meth:`retain_data` is called, the node holds a reference to the data
        array. It is mainly called by a function that needs the input or output
        data array in its backprop procedure.
-       See :meth:`Function.retain_inputs() <chainer.Function.retain_inputs>`
-       and :meth:`Function.retain_outputs() <chainer.Function.retain_outputs>`
-       for more details.
+       See :meth:`FunctionNode.retain_inputs()
+       <chainer.FunctionNode.retain_inputs>`
+       and :meth:`FunctionNode.retain_outputs()
+       <chainer.FunctionNode.retain_outputs>` for more details.
 
     Users usually do not need to touch this variable node object. The
     computational graph is automatically managed by Chainer, and any interface
