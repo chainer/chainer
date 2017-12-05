@@ -297,6 +297,8 @@ class TestConvolution2DCudnnCall(unittest.TestCase):
             self.should_call_cudnn = chainer.should_use_cudnn('>=auto')
             if self.dilate > 1 and cuda.cuda.cudnn.getVersion() < 6000:
                 self.should_call_cudnn = False
+            if self.group > 1 and cuda.cuda.cudnn.getVersion() < 7000:
+                self.should_call_cudnn = False
 
     def forward(self):
         x = chainer.Variable(self.x)
@@ -355,6 +357,9 @@ class TestConvolution2DFunctionCudnnDeterministic(unittest.TestCase):
             -1, 1, (batch_sz, in_channels, in_h, in_w)).astype(x_dtype)
         self.gy = numpy.random.uniform(
             -1, 1, (batch_sz, out_channels, out_h, out_w)).astype(x_dtype)
+        self.should_call_cudnn = True
+        if self.group > 1 and cuda.cuda.cudnn.getVersion() < 7000:
+            self.should_call_cudnn = False
 
     def test_called(self):
         with mock.patch(
@@ -372,11 +377,13 @@ class TestConvolution2DFunctionCudnnDeterministic(unittest.TestCase):
             self.assertFalse(
                 mlibcudnn_conv.getConvolutionBackwardFilterAlgorithm.called)
             self.assertEqual(
-                mlibcudnn_conv.convolutionBackwardFilter_v3.call_count, 1)
+                mlibcudnn_conv.convolutionBackwardFilter_v3.call_count,
+                self.should_call_cudnn)
             self.assertFalse(
                 mlibcudnn_deconv.getConvolutionBackwardDataAlgorithm.called)
             self.assertEqual(
-                mlibcudnn_deconv.convolutionBackwardData_v3.call_count, 1)
+                mlibcudnn_deconv.convolutionBackwardData_v3.call_count,
+                self.should_call_cudnn)
 
     def test_cudnn_deterministic(self):
         x1, W1, b1, y1 = self._run()

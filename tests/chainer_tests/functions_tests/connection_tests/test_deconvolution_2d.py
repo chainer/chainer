@@ -282,6 +282,8 @@ class TestDeconvolution2DCudnnCall(unittest.TestCase):
             -1, 1, (N, self.out_channels, outh, outw)).astype(self.dtype)
         with chainer.using_config('use_cudnn', self.use_cudnn):
             self.should_call_cudnn = chainer.should_use_cudnn('>=auto')
+            if self.group > 1 and cuda.cuda.cudnn.getVersion() < 7000:
+                self.should_call_cudnn = False
 
     def forward(self):
         x = chainer.Variable(self.x)
