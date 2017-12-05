@@ -197,6 +197,8 @@ It can be written straight-forward as follows
 
 .. testcode::
 
+   from chainer.backends import cuda
+
    class ExpAdd(Function):
        def forward_cpu(self, inputs):
            x, y = inputs
@@ -248,7 +250,7 @@ It can be written straight-forward as follows
    Of course, the module in such environment is almost useless, but if the interpreter does not run through the code accessing CUDA-dedicated functions, the code is still valid.
 
 The CPU and GPU implementations are almost same, except that :mod:`numpy` is replaced by :mod:`cupy` in GPU methods.
-We can unify these functions using the :func:`cuda.get_array_module` function.
+We can unify these functions using the :func:`chainer.backends.cuda.get_array_module` function.
 This function accepts arbitrary number of arrays, and returns an appropriate module for them.
 See the following code
 
@@ -337,7 +339,7 @@ Our MulAdd implementation can be improved as follows::
           gz = gw
           return gx, gy, gz
 
-:func:`cuda.elementwise` function accepts the essential implementation of the kernel function, and returns a kernel invocation function (actually, it returns :class:`~cupy.elementwise.ElementwiseKernel` object, which is callable).
+:func:`chainer.backends.cuda.elementwise` function accepts the essential implementation of the kernel function, and returns a kernel invocation function (actually, it returns :class:`~cupy.elementwise.ElementwiseKernel` object, which is callable).
 In typical usage, we pass four arguments to this function as follows:
 
 1. Input argument list. This is a comma-separated string each entry of which consists of a type specification and an argument name.
@@ -348,12 +350,12 @@ In typical usage, we pass four arguments to this function as follows:
 Above code is not compiled on every forward/backward computation thanks to two caching mechanisms provided by :func:`cuda.elementwise`.
 
 The first one is *binary caching*:
-:func:`cuda.elementwise` function caches the compiled binary in the ``$(HOME)/.cupy/kernel_cache`` directory with a hash value of the CUDA code, and reuses it if the given code matches the hash value.
+:func:`chainer.backends.cuda.elementwise` function caches the compiled binary in the ``$(HOME)/.cupy/kernel_cache`` directory with a hash value of the CUDA code, and reuses it if the given code matches the hash value.
 This caching mechanism is actually implemented in CuPy.
 
 The second one is *upload caching*:
 Given a compiled binary code, we have to upload it to the current GPU in order to execute it.
-:func:`cuda.elementwise` function memoizes the arguments and the current device, and if it is called with the same arguments for the same device, it reuses the previously uploaded kernel code.
+:func:`chainer.backends.cuda.elementwise` function memoizes the arguments and the current device, and if it is called with the same arguments for the same device, it reuses the previously uploaded kernel code.
 
 The above MulAdd code only works for float32 arrays.
 The :class:`~cupy.elementwise.ElementwiseKernel` also supports the type-variadic kernel definition.
