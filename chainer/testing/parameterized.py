@@ -85,10 +85,31 @@ def parameterize(*params):
 
 
 def product(parameter):
-    keys = sorted(parameter)
-    values = [parameter[key] for key in keys]
-    values_product = itertools.product(*values)
-    return [dict(zip(keys, vals)) for vals in values_product]
+    if isinstance(parameter, dict):
+        keys = sorted(parameter)
+        values = [parameter[key] for key in keys]
+        values_product = itertools.product(*values)
+        return [dict(zip(keys, vals)) for vals in values_product]
+
+    elif isinstance(parameter, list):
+        # list of lists of dicts
+        if not all(isinstance(_, list) for _ in parameter):
+            raise TypeError('parameter must be list of lists of dicts')
+        if not all(isinstance(_, dict) for l in parameter for _ in l):
+            raise TypeError('parameter must be list of lists of dicts')
+
+        lst = []
+        for dict_lst in itertools.product(*parameter):
+            a = {}
+            for d in dict_lst:
+                a.update(d)
+            lst.append(a)
+        return lst
+
+    else:
+        raise TypeError(
+            'parameter must be either dict or list. Actual: {}'.format(
+                type(parameter)))
 
 
 def product_dict(*parameters):
