@@ -11,6 +11,7 @@ def _pair(x):
         return x
     return x, x
 
+
 if chainer.cuda.available:
     shift_gpu = cupy.ElementwiseKernel(
         'raw T x, int32 c, int32 h, int32 w,'
