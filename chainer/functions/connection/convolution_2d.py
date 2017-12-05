@@ -354,7 +354,7 @@ class Convolution2DGradW(function_node.FunctionNode):
 
 
 def convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False, **kwargs):
-    """convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False)
+    """convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False, *, dilate=1)
 
     Two-dimensional convolution function.
 
