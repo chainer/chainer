@@ -1,6 +1,9 @@
-import numpy
+from __future__ import division
 import os
+import six
 import warnings
+
+import numpy
 
 import chainer
 from chainer import cuda
@@ -9,16 +12,15 @@ from chainer.training import trigger as trigger_module
 
 
 try:
-    import matplotlib  # NOQA
-    import matplotlib.pyplot as plt  # NOQA
+    import matplotlib
+    import matplotlib.pyplot as plt
     plot_color = matplotlib.colors.to_rgba('#1f77b4')  # C0 color
     plot_color_trans = plot_color[:3] + (0.2,)
     plot_common_kwargs = {
         'alpha': 0.2, 'linewidth': 0, 'color': plot_color_trans}
     _available = True
 
-
-except (ImportError, TypeError):
+except ImportError:
     _available = False
 
 
@@ -74,10 +76,11 @@ class Statistician(object):
 
     """Helper to compute basic NumPy-like statistics."""
 
-    def __init__(
-            self,
-            percentiles=(0, 0.13, 2.28, 15.87, 50, 84.13, 97.72, 99.87, 100)):
-        self.percentiles = percentiles
+    def __init__(self, percentile):
+        # `percentile` is a float or a tuple of floats in the range [0, 100]
+        if not isinstance(percentile, (tuple, list)):
+            percentile = percentile,
+        self.percentile = percentile
 
     def __call__(self, x, axis=0, dtype=None, xp=None):
         if axis is None:
@@ -90,22 +93,23 @@ class Statistician(object):
                 shape += dim,
 
         xp = xp or cuda.get_array_module(x)
-        ret = xp.empty(shape, dtype=x.dtype if dtype is None else dtype)
-        ret[0] = x.mean(axis=axis)
-        ret[1] = x.std(axis=axis)
         if xp == numpy:
-            ret[2:] = numpy.percentile(x, self.percentiles, axis=axis)
+            percentile = numpy.percentile(x, self.percentile, axis=axis)
         else:
             # Copy to host since percentile() is not yet implemented in CuPy
-            ret[2:] = cuda.to_gpu(
-                numpy.percentile(cuda.to_cpu(x), self.percentiles, axis=axis))
-
-        return xp.rollaxis(ret, 0, ret.ndim)
+            # TODO(hvy): Use percentile from CuPy once it is supported
+            percentile = cuda.to_gpu(
+                numpy.percentile(cuda.to_cpu(x), self.percentile, axis=axis))
+        return {
+            'mean': x.mean(axis=axis),
+            'std': x.std(axis=axis),
+            'percentile': percentile
+        }
 
     @property
     def data_size(self):
         # mean, std and percentiles
-        return 2 + len(self.percentiles)
+        return 2 + len(self.percentile)
 
 
 class VariableStatisticsPlot(extension.Extension):
@@ -119,8 +123,7 @@ class VariableStatisticsPlot(extension.Extension):
     statistics are plotted and saved as an image in the directory specified by
     the :class:`Trainer`.
 
-    Statistics include mean, standard deviation, minimum, maximum and
-    percentiles.
+    Statistics include mean, standard deviation and percentiles.
 
     This extension uses reservoir sampling to preserve memory, using a
     fixed size sample. This means that collected items in the sample are
@@ -131,27 +134,38 @@ class VariableStatisticsPlot(extension.Extension):
     Args:
         targets (:class:`Variable`, :class:`Link` or list of either):
             Parameters for which statistics are collected.
-        max_sample_size (int): Maximum number of samples.
-        report_data (bool):  If ``True``, data statistics are plotted.
-            If ``False``, they are neither computed or plotted.
-        report_grad (bool):  If ``True``, gradient statistics are plotted.
-            If ``False``, they are neither computed or plotted.
-        trigger: Trigger that decides when to save the plots as an image.
-            This is distinct from the trigger of this extension
-            itself. If it is a tuple in the form ``<int>, 'epoch'`` or
-            ``<int>, 'iteration'``, it is passed to :class:`IntervalTrigger`.
-        file_name (str): Name of the plot file under the output directory.
-        figsize (tuple of int): Matlotlib ``figsize`` argument that specifies
-            the size of the output image.
-        marker (str): Matplotlib ``marker`` argument that specified the marker
-            style of the plots.
-        grid (bool): Matplotlib ``grid`` argument that specifies whether grids
-            are rendered in in the plots or not.
+        max_sample_size (int):
+            Maximum number of samples.
+        report_data (bool):
+            If ``True``, data statistics are plotted.  If ``False``, they are
+            neither computed or plotted.  report_grad (bool):  If ``True``,
+            gradient statistics are plotted.  If ``False``, they are neither
+            computed or plotted.
+        trigger:
+            Trigger that decides when to save the plots as an image.  This is
+            distinct from the trigger of this extension itself. If it is a
+            tuple in the form ``<int>, 'epoch'`` or ``<int>, 'iteration'``, it
+            is passed to :class:`IntervalTrigger`.
+        percentile (float or tuple of floats):
+            Percentiles to plot in the range :math:`[0, 100]`.
+        file_name (str):
+            Name of the plot file under the output directory.
+        figsize (tuple of int):
+            Matlotlib ``figsize`` argument that specifies the size of the
+            output image.
+        marker (str):
+            Matplotlib ``marker`` argument that specified the marker style of
+            the plots.
+        grid (bool):
+            Matplotlib ``grid`` argument that specifies whether grids are
+            rendered in in the plots or not.
     """
 
     def __init__(self, targets, max_sample_size=1000,
                  report_data=True, report_grad=True,
                  trigger=(1, 'epoch'), file_name='statistics.png',
+                 percentile=(
+                     0, 0.13, 2.28, 15.87, 50, 84.13, 97.72, 99.87, 100),
                  figsize=None, marker=None, grid=True):
 
         if file_name is None:
@@ -178,7 +192,7 @@ class VariableStatisticsPlot(extension.Extension):
         if report_grad:
             self._keys.append('grad')
 
-        self._statistician = Statistician()
+        self._statistician = Statistician(percentile)
         self._data_shape = (len(self._keys), self._statistician.data_size)
         self._samples = Reservoir(max_sample_size, data_shape=self._data_shape)
 
@@ -201,8 +215,14 @@ class VariableStatisticsPlot(extension.Extension):
                 if x is not None:
                     xs.append(x.ravel())
             if len(xs) > 0:
-                stats[i] = self._statistician(
+                si = self._statistician(
                     xp.concatenate(xs, axis=0), axis=0, xp=xp)
+                si = xp.concatenate((
+                    xp.atleast_1d(si['mean']),
+                    xp.atleast_1d(si['std']),
+                    xp.atleast_1d(si['percentile'])
+                ), axis=0)
+                stats[i] = si
         if xp != numpy:
             stats = cuda.to_cpu(stats)
         self._samples.add(stats, idx=trainer.updater.iteration)
@@ -221,7 +241,7 @@ class VariableStatisticsPlot(extension.Extension):
 
         idxs, data = self._samples.get_data()
 
-        for i in range(ncols):
+        for i in six.moves.range(ncols):  # e.g. `data` and `grad`
             ax = axes[0, i]
             ax.errorbar(
                 idxs, data[:, i, 0], data[:, i, 1],
@@ -230,18 +250,29 @@ class VariableStatisticsPlot(extension.Extension):
             ax.set_title(self._keys[i])
 
             ax = axes[1, i]
-            ax.fill_between(
-                idxs, data[:, i, 2], data[:, i, -1], **plot_common_kwargs)
-            ax.fill_between(
-                idxs, data[:, i, 3], data[:, i, -2], **plot_common_kwargs)
-            ax.fill_between(
-                idxs, data[:, i, 4], data[:, i, -3], **plot_common_kwargs)
-            ax.fill_between(
-                idxs, data[:, i, 5], data[:, i, -4], **plot_common_kwargs)
-            ax.plot(
-                idxs, data[:, i, 6], color=plot_color,
-                label='percentiles', marker=self._marker)
-            ax.set_xlabel('iteration')
+            offset = 2
+            n_percentile = data.shape[-1] - offset
+            n_percentile_mid_floor = n_percentile // 2
+            n_percentile_odd = n_percentile % 2 == 1
+            for j in six.moves.range(n_percentile_mid_floor + 1):
+                if n_percentile_odd and j == n_percentile_mid_floor:
+                    # Enters at most once per sub-plot, in case there is only
+                    # a single percentile to plot or when this percentile is
+                    # the mid percentile and the numner of percentiles are odd
+                    ax.plot(
+                        idxs, data[:, i, offset + j], color=plot_color,
+                        label='percentile', marker=self._marker)
+                else:
+                    if j == n_percentile_mid_floor:
+                        # Last percentiles and the number of all percentiles
+                        # are even
+                        label = 'percentile'
+                    else:
+                        label = '_nolegend_'
+                    ax.fill_between(
+                        idxs, data[:, i, offset + j], data[:, i, -j - 1],
+                        **plot_common_kwargs, label=label)
+                ax.set_xlabel('iteration')
 
         for ax in axes.ravel():
             ax.legend()
