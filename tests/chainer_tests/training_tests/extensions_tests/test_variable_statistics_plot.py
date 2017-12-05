@@ -1,4 +1,5 @@
 import os
+import six
 import unittest
 
 import numpy
@@ -71,18 +72,26 @@ class TestStatistician(unittest.TestCase):
     def setUp(self):
         self.x = numpy.random.uniform(-1, 1, self.shape)
 
-    def test_statistician_percentiles(self):
-        self.percentiles = (0., 50., 100.)  # min, median, max
+    def test_statistician_percentile(self):
+        self.percentile = (0., 50., 100.)  # min, median, max
         self.statistician = extensions.variable_statistics_plot.Statistician(
-            percentiles=self.percentiles)
+            percentile=self.percentile)
         stat = self.statistician(self.x, axis=None, dtype=self.x.dtype)
-        self.assertEqual(stat.size, self.statistician.data_size)
-        self.assertEqual(stat.dtype, self.x.dtype)
-        self.assertAlmostEqual(stat[0], numpy.mean(self.x))
-        self.assertAlmostEqual(stat[1], numpy.std(self.x))
-        self.assertAlmostEqual(stat[2], numpy.min(self.x))
-        self.assertAlmostEqual(stat[3], numpy.median(self.x))
-        self.assertAlmostEqual(stat[4], numpy.max(self.x))
+
+        for s in six.itervalues(stat):
+            self.assertEqual(s.dtype, self.x.dtype)
+
+        size = sum(
+            1 if numpy.isscalar(s) else s.size for s in six.itervalues(stat))
+        self.assertEqual(size, self.statistician.data_size)
+
+        self.assertAlmostEqual(stat['mean'], numpy.mean(self.x))
+        self.assertAlmostEqual(stat['std'], numpy.std(self.x))
+
+        percentile = stat['percentile']
+        self.assertAlmostEqual(percentile[0], numpy.min(self.x))
+        self.assertAlmostEqual(percentile[1], numpy.median(self.x))
+        self.assertAlmostEqual(percentile[2], numpy.max(self.x))
 
 
 testing.run_module(__name__, __file__)
