@@ -2,8 +2,8 @@ import numpy
 import six
 
 import chainer
+from chainer.backends import cuda
 from chainer import configuration
-from chainer import cuda
 from chainer import function_node
 import chainer.functions
 from chainer.functions.connection import convolution_2d
