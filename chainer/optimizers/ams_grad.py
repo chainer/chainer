@@ -84,8 +84,8 @@ class AMSGradRule(optimizer.UpdateRule):
                vhat = max(vhat, v);
                param -= lr * m / (sqrt(vhat) + eps);''',
             'amsgrad')(grad, self.lr, 1 - hp.beta1,
-                    1 - hp.beta2, eps, param.data,
-                    self.state['m'], self.state['v'], self.state['vhat'])
+                       1 - hp.beta2, eps, param.data,
+                       self.state['m'], self.state['v'], self.state['vhat'])
 
     @property
     def lr(self):
