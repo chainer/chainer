@@ -484,9 +484,11 @@ class GradientMethod(Optimizer):
 
     """
 
-    def __init__(self):
+    def __init__(self, link=None):
         super(GradientMethod, self).__init__()
         self.hyperparam = Hyperparameter()
+        if isinstance(link, link_module.Link):
+            self.setup(link)
 
     def setup(self, link):
         super(GradientMethod, self).setup(link)
