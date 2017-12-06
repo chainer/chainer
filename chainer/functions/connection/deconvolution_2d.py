@@ -155,9 +155,12 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         self._calc_out_size(x, W)
         self._set_cover_all(x, W)
 
-        if (not self.cover_all and chainer.should_use_cudnn('>=auto') and
-                x.dtype == W.dtype and
-                ((self.dy == 1 and self.dx == 1) or _cudnn_version_ >= 6000)):
+        if (not self.cover_all
+                and chainer.should_use_cudnn('>=auto')
+                and x.dtype == W.dtype
+                and ((self.dy == 1 and self.dx == 1)
+                     or (_cudnn_version_ >= 6000
+                         and not configuration.config.cudnn_deterministic))):
 
             # cuDNN implementation
             return self._forward_cudnn(x, W, b)
