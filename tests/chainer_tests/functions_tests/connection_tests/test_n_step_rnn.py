@@ -161,6 +161,13 @@ class TestNStepRNN(unittest.TestCase):
         self.check_backward(self.hx, self.xs, self.ws, self.bs,
                             self.dhy, self.dys)
 
+    @condition.retry(3)
+    def test_backward_partially_none_cpu(self):
+        dys = self.dys.copy()
+        dys[1] = None
+        self.check_backward(self.hx, self.xs, self.ws, self.bs,
+                            None, dys)
+
     @attr.gpu
     @condition.retry(3)
     def test_backward_gpu(self):
@@ -172,6 +179,20 @@ class TestNStepRNN(unittest.TestCase):
                 _to_gpu(self.bs),
                 _to_gpu(self.dhy),
                 _to_gpu(self.dys))
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_backward_partially_none_gpu(self):
+        dys = self.dys.copy()
+        dys[1] = None
+        with chainer.using_config('use_cudnn', 'always'):
+            self.check_backward(
+                _to_gpu(self.hx),
+                _to_gpu(self.xs),
+                _to_gpu(self.ws),
+                _to_gpu(self.bs),
+                None,
+                _to_gpu(dys))
 
     def call_forward(self, train):
         hx = _wrap_variable(_to_gpu(self.hx))
@@ -370,6 +391,13 @@ class TestNStepBiRNN(unittest.TestCase):
         self.check_backward(self.hx, self.xs, self.ws, self.bs,
                             self.dhy, self.dys)
 
+    @condition.retry(3)
+    def test_backward_partially_none_cpu(self):
+        dys = self.dys.copy()
+        dys[1] = None
+        self.check_backward(self.hx, self.xs, self.ws, self.bs,
+                            None, dys)
+
     @attr.gpu
     @condition.retry(3)
     def test_backward_gpu(self):
@@ -381,6 +409,20 @@ class TestNStepBiRNN(unittest.TestCase):
                 _to_gpu(self.bs),
                 _to_gpu(self.dhy),
                 _to_gpu(self.dys))
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_backward_partially_none_gpu(self):
+        dys = self.dys.copy()
+        dys[1] = None
+        with chainer.using_config('use_cudnn', 'always'):
+            self.check_backward(
+                _to_gpu(self.hx),
+                _to_gpu(self.xs),
+                _to_gpu(self.ws),
+                _to_gpu(self.bs),
+                None,
+                _to_gpu(dys))
 
     def call_forward(self, train):
         hx = _wrap_variable(_to_gpu(self.hx))
