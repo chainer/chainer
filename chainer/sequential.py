@@ -212,7 +212,7 @@ class Sequential(chainer.ChainList):
                             param.initialize(param.shape)
                 else:
                     layer = copy.copy(layer)
-                ret.append(layer)            
+                ret.append(layer)
         return ret
 
     def __call__(self, *x):
