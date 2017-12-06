@@ -32,7 +32,8 @@ class AdamWeightDecayRule(optimizer.UpdateRule):
         beta1 (float): Exponential decay rate of the first order moment.
         beta2 (float): Exponential decay rate of the second order moment.
         eps (float): Small value for the numerical stability.
-        eta (float): Schedule multiplier.
+        eta (float): Decoupled learning rate.
+        weight_decay_rate (float): Weight decay rate.
 
     """
 
