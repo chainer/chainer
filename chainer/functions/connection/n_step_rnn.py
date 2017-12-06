@@ -61,13 +61,6 @@ def _make_tensor_descriptor_array(xs):
     return PointerArray([d.value for d in descs], descs)
 
 
-def _make_ptr_array(xs):
-    """Make an array of pointers denoting pointers of ndarrays.
-
-    """
-    return PointerArray([x.data.ptr for x in xs], xs)
-
-
 class DropoutStates(object):
 
     def __init__(self, states, desc):
