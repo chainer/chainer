@@ -1,0 +1,148 @@
+from __future__ import division
+import math
+
+import numpy as np
+
+from chainer import cuda
+from chainer import optimizer
+
+
+_default_hyperparam = optimizer.Hyperparameter()
+_default_hyperparam.alpha = 0.001
+_default_hyperparam.beta1 = 0.9
+_default_hyperparam.beta2 = 0.999
+_default_hyperparam.eps = 1e-8
+_default_hyperparam.eta = 1.0
+_default_hyperparam.weight_decay_rate = 1e-4
+
+
+class AdamWeightDecayRule(optimizer.UpdateRule):
+
+    """Update rule of Adam optimization algorithm with proper weight decay.
+
+    See: https://openreview.net/forum?id=rk6qdGgCZ
+
+    See :class:`~chainer.optimizers.AdamWeightDecay` for the default values
+    of the hyperparameters.
+
+    Args:
+        parent_hyperparam (~chainer.optimizer.Hyperparameter): Hyperparameter
+            that provides the default values.
+        alpha (float): Step size.
+        beta1 (float): Exponential decay rate of the first order moment.
+        beta2 (float): Exponential decay rate of the second order moment.
+        eps (float): Small value for the numerical stability.
+        eta (float): Schedule multiplier.
+
+    """
+
+    def __init__(self, parent_hyperparam=None,
+                 alpha=None, beta1=None, beta2=None, eps=None,
+                 eta=None, weight_decay_rate=None):
+        super(AdamWeightDecayRule, self).__init__(
+            parent_hyperparam or _default_hyperparam)
+        if alpha is not None:
+            self.hyperparam.alpha = alpha
+        if beta1 is not None:
+            self.hyperparam.beta1 = beta1
+        if beta2 is not None:
+            self.hyperparam.beta2 = beta2
+        if eps is not None:
+            self.hyperparam.eps = eps
+        if eta is not None:
+            self.hyperparam.eta = eta
+        if weight_decay_rate is not None:
+            self.hyperparam.weight_decay_rate = weight_decay_rate
+
+    def init_state(self, param):
+        xp = cuda.get_array_module(param.data)
+        with cuda.get_device_from_array(param.data):
+            self.state['m'] = xp.zeros_like(param.data)
+            self.state['v'] = xp.zeros_like(param.data)
+
+    def update_core_cpu(self, param):
+        grad = param.grad
+        if grad is None:
+            return
+        hp = self.hyperparam
+        m, v = self.state['m'], self.state['v']
+
+        m += (1 - hp.beta1) * (grad - m)
+        v += (1 - hp.beta2) * (grad * grad - v)
+        param.data -= hp.eta * (self.lr * m / (np.sqrt(v) + hp.eps) +
+                                hp.weight_decay_rate * param.data)
+
+    def update_core_gpu(self, param):
+        grad = param.grad
+        if grad is None:
+            return
+        cuda.elementwise(
+            'T grad, T lr, T one_minus_beta1, T one_minus_beta2, T eps, T eta, \
+             T weight_decay_rate',
+            'T param, T m, T v',
+            '''m += one_minus_beta1 * (grad - m);
+               v += one_minus_beta2 * (grad * grad - v);
+               param -= eta * (lr * m / (sqrt(v) + eps) +
+                               weight_decay_rate * param);''',
+            'adam')(grad, self.lr, 1 - self.hyperparam.beta1,
+                    1 - self.hyperparam.beta2, self.hyperparam.eps,
+                    self.hyperparam.eta, self.hyperparam.weight_decay_rate,
+                    param.data, self.state['m'], self.state['v'])
+
+    @property
+    def lr(self):
+        fix1 = 1. - math.pow(self.hyperparam.beta1, self.t)
+        fix2 = 1. - math.pow(self.hyperparam.beta2, self.t)
+        return self.hyperparam.alpha * math.sqrt(fix2) / fix1
+
+
+class AdamWeightDecay(optimizer.GradientMethod):
+
+    """Adam optimizer with proper weight decay.
+
+    Modified for proper weight decay.
+
+    See: https://openreview.net/forum?id=rk6qdGgCZ
+
+    Args:
+        alpha (float): Step size.
+        beta1 (float): Exponential decay rate of the first order moment.
+        beta2 (float): Exponential decay rate of the second order moment.
+        eps (float): Small value for the numerical stability.
+        eta (float): Decoupled learning rate.
+        weight_decay_rate (float): Weight decay rate.
+
+    """
+
+    def __init__(self,
+                 alpha=_default_hyperparam.alpha,
+                 beta1=_default_hyperparam.beta1,
+                 beta2=_default_hyperparam.beta2,
+                 eps=_default_hyperparam.eps,
+                 eta=_default_hyperparam.eta,
+                 weight_decay_rate=_default_hyperparam.weight_decay_rate
+                 ):
+        super(AdamWeightDecay, self).__init__()
+
+        self.hyperparam.alpha = alpha
+        self.hyperparam.beta1 = beta1
+        self.hyperparam.beta2 = beta2
+        self.hyperparam.eps = eps
+        self.hyperparam.eta = eta
+        self.hyperparam.weight_decay_rate = weight_decay_rate
+
+    alpha = optimizer.HyperparameterProxy('alpha')
+    beta1 = optimizer.HyperparameterProxy('beta1')
+    beta2 = optimizer.HyperparameterProxy('beta2')
+    eps = optimizer.HyperparameterProxy('eps')
+    eta = optimizer.HyperparameterProxy('eta')
+    weight_decay_rate = optimizer.HyperparameterProxy('weight_decay_rate')
+
+    def create_update_rule(self):
+        return AdamWeightDecayRule(self.hyperparam)
+
+    @property
+    def lr(self):
+        fix1 = 1. - math.pow(self.hyperparam.beta1, self.t)
+        fix2 = 1. - math.pow(self.hyperparam.beta2, self.t)
+        return self.hyperparam.alpha * math.sqrt(fix2) / fix1

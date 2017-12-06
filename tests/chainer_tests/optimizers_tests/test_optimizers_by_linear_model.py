@@ -167,6 +167,20 @@ class TestAdam(OptimizerTestBase, unittest.TestCase):
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'use_placeholder': [False, True],
 }))
+class TestAdamWeightDecay(OptimizerTestBase, unittest.TestCase):
+
+    def create(self):
+        if self.dtype == numpy.float16:
+            kwargs = {'eps': 1e-6}
+        else:
+            kwargs = {}
+        return optimizers.AdamWeightDecay(0.05, **kwargs)
+
+
+@testing.parameterize(*testing.product({
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'use_placeholder': [False, True],
+}))
 class TestMomentumSGD(OptimizerTestBase, unittest.TestCase):
 
     def create(self):

@@ -12,6 +12,7 @@ from chainer import testing
         optimizers.AdaDelta,
         optimizers.AdaGrad,
         optimizers.Adam,
+        optimizers.AdamWeightDecay,
         optimizers.MomentumSGD,
         optimizers.NesterovAG,
         optimizers.RMSprop,
