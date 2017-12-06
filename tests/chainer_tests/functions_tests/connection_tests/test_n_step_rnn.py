@@ -38,7 +38,7 @@ def _wrap_variable(x):
         return [_wrap_variable(xi) for xi in x]
     else:
         return chainer.Variable(x)
-    
+
 
 @testing.parameterize(*testing.product({
     'activation': ['tanh', 'relu']
