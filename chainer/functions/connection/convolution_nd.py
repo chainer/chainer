@@ -289,22 +289,6 @@ class ConvolutionND(function.Function):
             return self._backward_cudnn(x, W, b, gy)
 
 
-def convolution_1d(x, W, b=None, stride=1, pad=0, cover_all=False):
-    func = ConvolutionND(1, stride, pad, cover_all)
-    if b is None:
-        return func(x, W)
-    else:
-        return func(x, W, b)
-
-
-def convolution_3d(x, W, b=None, stride=1, pad=0, cover_all=False):
-    func = ConvolutionND(3, stride, pad, cover_all)
-    if b is None:
-        return func(x, W)
-    else:
-        return func(x, W, b)
-
-
 def convolution_nd(x, W, b=None, stride=1, pad=0, cover_all=False):
     """N-dimensional convolution function.
 
@@ -437,3 +421,255 @@ def convolution_nd(x, W, b=None, stride=1, pad=0, cover_all=False):
         return func(x, W)
     else:
         return func(x, W, b)
+
+
+def convolution_1d(x, W, b=None, stride=1, pad=0, cover_all=False):
+    """1-dimensional convolution function.
+
+    This function calls :func:`~chainer.functions.convolution_nd` internally.
+    It takes three variables: the input ``x``, the filter weight ``W`` and the
+    bias vector ``b``.
+
+    Notation: here is a notation for dimensionalities.
+
+    - :math:`n` is the batch size.
+    - :math:`c_I` and :math:`c_O` are the number of the input and output
+      channels, respectively.
+    - :math:`d` is the size of the axis of the input.
+    - :math:`k` is the size of the axis of the filters.
+    - :math:`l` is the size of the axis of the output.
+    - :math:`p` is the padding size.
+
+    Then the ``convolution_1d`` function computes correlations between filters
+    and patches of size :math:`k` in ``x``.
+    Note that correlation here is equivalent to the inner product between
+    expanded tensors.
+    Patches are extracted at positions shifted by multiples of ``stride`` from
+    the first position :math:`-p`.
+
+    Let :math:`s` be the stride of filter application.
+    Then, the output size :math:`l` is determined by the
+    following equations:
+
+    .. math::
+
+       l = (d + 2p - k) / s + 1
+
+    If ``cover_all`` option is ``True``, the filter will cover the all
+    spatial locations. So, if the last stride of filter does not cover the
+    end of spatial locations, an addtional stride will be applied to the end
+    part of spatial locations. In this case, the output size is determined by
+    the following equations:
+
+    .. math::
+
+       l = (d + 2p - k + s - 1) / s + 1
+
+    Args:
+        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`):
+            Input variable of shape :math:`(n, c_I, d)`.
+        W (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`):
+            Weight variable of shape :math:`(c_O, c_I, k)`.
+        b (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`):
+            One-dimensional bias variable with length :math:`c_O` (optional).
+        stride (:class:`int`):
+            Stride of filter applications :math:`s`.
+        pad (:class:`int`):
+            Spatial padding width for input arrays :math:`p`.
+        cover_all (bool): If ``True``, all spatial locations are convoluted
+            into some output pixels. It may make the output size larger.
+            `cover_all` needs to be ``False`` if you want to use cuDNN.
+
+    Returns:
+        ~chainer.Variable:
+            Output variable of shape :math:`(n, l)`.
+
+    .. note::
+
+        This function uses cuDNN implementation for its forward and backward
+        computation if ALL of the following conditions are satisfied:
+
+        - ``cuda.cudnn_enabled`` is ``True``
+        - ``chainer.config.use_cudnn`` is ``'always'`` or ``'auto'``
+        - The number of spatial dimensions is more than one.
+        - ``cover_all`` is ``False``
+        - The input's ``dtype`` is equal to the filter weight's.
+        - The ``dtype`` is FP16, FP32 or FP64. (FP16 is only available when
+          cuDNN version :math:`\\geq` v3.)
+
+    Convolution links can use a feature of cuDNN called autotuning, which
+    selects the most efficient CNN algorithm for images of fixed-size,
+    can provide a significant performance boost for fixed neural nets.
+    To enable, set `chainer.using_config('autotune', True)`
+
+    .. seealso:: :class:`~chainer.links.ConvolutionND`
+
+    .. admonition:: Example
+
+        >>> n = 10
+        >>> c_i, c_o = 3, 1
+        >>> d = 50
+        >>> k = 10
+        >>> p = 5
+        >>> s = 6
+        >>> x = np.random.uniform(0, 1, (n, c_i, d)).astype('f')
+        >>> x.shape
+        (10, 3, 50)
+        >>> W = np.random.uniform(0, 1, (c_o, c_i, k)).astype('f')
+        >>> W.shape
+        (1, 3, 10)
+        >>> b = np.random.uniform(0, 1, (c_o,)).astype('f')
+        >>> b.shape
+        (1,)
+        >>> y = F.convolution_1d(x, W, b, stride=s, pad=p)
+        >>> y.shape
+        (10, 1, 9)
+        >>> l = int((d + 2 * p - k) / s + 1)
+        >>> y.shape == (n, c_o, l)
+        True
+        >>> y = F.convolution_1d(x, W, b, stride=s, pad=p, cover_all=True)
+        >>> y.shape == (n, c_o, l + 1)
+        True
+
+    """
+    func = ConvolutionND(1, stride, pad, cover_all)
+    if b is None:
+        return func(x, W)
+    else:
+        return func(x, W, b)
+
+
+def convolution_3d(x, W, b=None, stride=1, pad=0, cover_all=False):
+    """3-dimensional convolution function.
+
+    This function calls :func:`~chainer.functions.convolution_nd` internally.
+    It takes three variables: the input ``x``, the filter weight ``W`` and the
+    bias vector ``b``.
+
+    Notation: here is a notation for dimensionalities.
+
+    - :math:`n` is the batch size.
+    - :math:`c_I` and :math:`c_O` are the number of the input and output
+      channels, respectively.
+    - :math:`d_1, d_2, d_3` are the size of each axis of the input's
+      spatial dimensions, respectively.
+    - :math:`k_1, k_2, k_3` are the size of each axis of the filters,
+      respectively.
+    - :math:`l_1, l_2, l_3` are the size of each axis of the output's
+      spatial dimensions, respectively.
+    - :math:`p_1, p_2, p_3` are the size of each axis of the spatial
+      padding size, respectively.
+
+    Then the ``convolution_nd`` function computes correlations between filters
+    and patches of size :math:`(k_1, k_2, k_3)` in ``x``.
+    Note that correlation here is equivalent to the inner product between
+    expanded tensors.
+    Patches are extracted at positions shifted by multiples of ``stride`` from
+    the first position ``(-p_1, -p_2, -p_3)`` for each spatial axis.
+
+    Let :math:`(s_1, s_2, s_3)` be the stride of filter application.
+    Then, the output size :math:`(l_1, l_2, l_3)` is determined by the
+    following equations:
+
+    .. math::
+
+       l_n = (d_n + 2p_n - k_n) / s_n + 1 \\ \\ (n = 1, ..., 3)
+
+    If ``cover_all`` option is ``True``, the filter will cover the all
+    spatial locations. So, if the last stride of filter does not cover the
+    end of spatial locations, an addtional stride will be applied to the end
+    part of spatial locations. In this case, the output size is determined by
+    the following equations:
+
+    .. math::
+
+       l_n = (d_n + 2p_n - k_n + s_n - 1) / s_n + 1 \\ \\ (n = 1, ..., 3)
+
+    The N-dimensional convolution function is defined as follows.
+
+    Args:
+        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`):
+            Input variable of shape :math:`(n, c_I, d_1, d_2, d_3)`.
+        W (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`):
+            Weight variable of shape :math:`(c_O, c_I, k_1, k_2, k_3)`.
+        b (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`):
+            One-dimensional bias variable with length :math:`c_O` (optional).
+        stride (:class:`int` or :class:`tuple` of :class:`int` s):
+            Stride of filter applications :math:`(s_1, s_2, s_3)`.
+            ``stride=s`` is equivalent to ``(s, s, s)``.
+        pad (:class:`int` or :class:`tuple` of :class:`int` s):
+            Spatial padding width for input arrays
+            :math:`(p_1, p_2, p_3)`. ``pad=p`` is equivalent to
+            ``(p, p, p)``.
+        cover_all (bool): If ``True``, all spatial locations are convoluted
+            into some output pixels. It may make the output size larger.
+            `cover_all` needs to be ``False`` if you want to use cuDNN.
+
+    Returns:
+        ~chainer.Variable:
+            Output variable of shape :math:`(n, c_O, l_1, l_2, l_3)`.
+
+    .. note::
+
+        This function uses cuDNN implementation for its forward and backward
+        computation if ALL of the following conditions are satisfied:
+
+        - ``cuda.cudnn_enabled`` is ``True``
+        - ``chainer.config.use_cudnn`` is ``'always'`` or ``'auto'``
+        - The number of spatial dimensions is more than one.
+        - ``cover_all`` is ``False``
+        - The input's ``dtype`` is equal to the filter weight's.
+        - The ``dtype`` is FP16, FP32 or FP64. (FP16 is only available when
+          cuDNN version :math:`\\geq` v3.)
+
+    Convolution links can use a feature of cuDNN called autotuning, which
+    selects the most efficient CNN algorithm for images of fixed-size,
+    can provide a significant performance boost for fixed neural nets.
+    To enable, set `chainer.using_config('autotune', True)`
+
+    .. seealso:: :class:`~chainer.links.ConvolutionND`, :func:`convolution_2d`
+
+    .. admonition:: Example
+
+        >>> n = 10
+        >>> c_i, c_o = 3, 1
+        >>> d1, d2, d3 = 30, 40, 50
+        >>> k1, k2, k3 = 10, 10, 10
+        >>> p1, p2, p3 = 5, 5, 5
+        >>> x = np.random.uniform(0, 1, (n, c_i, d1, d2, d3)).astype('f')
+        >>> x.shape
+        (10, 3, 30, 40, 50)
+        >>> W = np.random.uniform(0, 1, (c_o, c_i, k1, k2, k3)).astype('f')
+        >>> W.shape
+        (1, 3, 10, 10, 10)
+        >>> b = np.random.uniform(0, 1, (c_o)).astype('f')
+        >>> b.shape
+        (1,)
+        >>> s1, s2, s3 = 2, 4, 6
+        >>> y = F.convolution_3d(x, W, b, stride=(s1, s2, s3),\
+ pad=(p1, p2, p3))
+        >>> y.shape
+        (10, 1, 16, 11, 9)
+        >>> l1 = int((d1 + 2 * p1 - k1) / s1 + 1)
+        >>> l2 = int((d2 + 2 * p2 - k2) / s2 + 1)
+        >>> l3 = int((d3 + 2 * p3 - k3) / s3 + 1)
+        >>> y.shape == (n, c_o, l1, l2, l3)
+        True
+        >>> y = F.convolution_3d(x, W, b, stride=(s1, s2, s3),\
+ pad=(p1, p2, p3), cover_all=True)
+        >>> y.shape == (n, c_o, l1, l2, l3 + 1)
+        True
+
+    """
+    func = ConvolutionND(3, stride, pad, cover_all)
+    if b is None:
+        return func(x, W)
+    else:
+        return func(x, W, b)
+
