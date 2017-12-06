@@ -404,7 +404,8 @@ class Optimizer(object):
         parameters.
 
         Args:
-            lossfun (:doc:`Chainer function </reference/functions>`): Loss function. It accepts arbitrary arguments
+            lossfun (:doc:`Chainer function </reference/functions>`):\
+            Loss function. It accepts arbitrary arguments
                 and returns one :class:`~chainer.Variable` object that
                 represents the loss (or objective) value. This argument can be
                 omitted for single gradient-based methods. In this case, this
@@ -431,14 +432,16 @@ class Optimizer(object):
         though the timing depends on the optimization method.
 
         Args:
-            hook (`Python function`_): Hook function. If ``hook.call_for_each_param`` is
+            hook (`Python function`_):\
+            Hook function. If ``hook.call_for_each_param`` is
                 true, this hook function is called for each parameter by
                 passing the update rule and the parameter. Otherwise, this hook
                 function is called only once each iteration by passing the
                 optimizer.
             name (str): Name of the registration. If omitted, ``hook.name`` is
                 used by default.
-        .. _Python function: https://docs.python.org/3/reference/compound_stmts.html#function-definitions
+        .. _Python function:\
+        https://docs.python.org/3/reference/compound_stmts.html#function-definitions
 
         """
         if not callable(hook):
@@ -783,11 +786,13 @@ class GradientNoise(object):
         eta (float): Parameter that defines the scale of the noise, which for
             the default noise function is recommended to be either 0.01, 0.3
             or 1.0.
-        noise_func (`Python function`_): Noise generating function which by default
+        noise_func (`Python function`_):\
+        Noise generating function which by default
             is given by `Adding Gradient Noise Improves Learning for Very Deep\
             Networks <https://arxiv.org/pdf/1511.06807>`_.
 
-    .. _Python function: https://docs.python.org/3/reference/compound_stmts.html#function-definitions
+    .. _Python function:\
+    https://docs.python.org/3/reference/compound_stmts.html#function-definitions
     """
     name = 'GradientNoise'
     call_for_each_param = True

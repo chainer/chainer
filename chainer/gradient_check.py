@@ -33,8 +33,8 @@ def numerical_grad(
     ``eps``.
 
     Args:
-        f (`Python function`_): Python function with no arguments that runs forward
-            computation and returns the result.
+        f (`Python function`_): Python function with no arguments\
+        that runs forward computation and returns the result.
         inputs (tuple of arrays): Tuple of arrays that should be treated as
             inputs. Each element of them is slightly modified to realize
             numerical gradient by finite differences.
@@ -68,7 +68,8 @@ def numerical_grad(
     Returns:
         tuple: Numerical gradient arrays corresponding to ``inputs``.
 
-    .. _Python function: https://docs.python.org/3/reference/compound_stmts.html#function-definitions
+    .. _Python function:\
+    https://docs.python.org/3/reference/compound_stmts.html#function-definitions
 
     """
     assert eps > 0
