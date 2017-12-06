@@ -13,16 +13,16 @@ class Classifier(link.Chain):
 
     Args:
         predictor (~chainer.Link): Predictor network.
-        lossfun (function): Loss function.
-        accfun (function): Function that computes accuracy.
+        lossfun (FunctionNode): Loss function.
+        accfun (FunctionNode): Function that computes accuracy.
         label_key (int or str): Key to specify label variable from arguments.
             When it is ``int``, a variable in positional arguments is used.
             And when it is ``str``, a variable in keyword arguments is used.
 
     Attributes:
         predictor (~chainer.Link): Predictor network.
-        lossfun (function): Loss function.
-        accfun (function): Function that computes accuracy.
+        lossfun (FunctionNode): Loss function.
+        accfun (FunctionNode): Function that computes accuracy.
         y (~chainer.Variable): Prediction for the last minibatch.
         loss (~chainer.Variable): Loss value for the last minibatch.
         accuracy (~chainer.Variable): Accuracy for the last minibatch.
