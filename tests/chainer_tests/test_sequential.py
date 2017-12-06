@@ -363,8 +363,8 @@ class TestSequential(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.s2 += 0
 
-    def test_mul(self):
-        ret = self.s2 * 2
+    def test_repeat_with_init(self):
+        ret = self.s2.repeat(2, mode='init')
         self.assertIsNot(ret[0], self.s1)
         self.assertIs(type(ret[0]), type(self.s1))
         self.assertIsNot(ret[1], self.l3)
@@ -383,16 +383,16 @@ class TestSequential(unittest.TestCase):
 
         self.assertEqual(len(ret), 4)
 
-        ret = self.s2 * 0
+        ret = self.s2.repeat(0, mode='init')
         self.assertEqual(len(ret), 0)
 
-    def test_rmul(self):
-        ret = 2 * self.s2
+    def test_repeat_with_deepcopy(self):
+        # Deepcopied elements should have different object ID but same values
+        ret = self.s2.repeat(2, mode='deepcopy')
         self.assertIsNot(ret[0], self.s1)
         self.assertIs(type(ret[0]), type(self.s1))
         self.assertIsNot(ret[1], self.l3)
         self.assertIs(type(ret[1]), type(self.l3))
-
         self.assertIsNot(ret[2], self.s1)
         self.assertIs(type(ret[2]), type(self.s1))
         # b is filled with 0, so they should have the same values
@@ -400,25 +400,37 @@ class TestSequential(unittest.TestCase):
 
         self.assertIsNot(ret[3], self.l3)
         self.assertIs(type(ret[3]), type(self.l3))
-        # W is initialized with LeCunNormal, so they should be different
-        self.assertFalse(
-            numpy.array_equal(ret[1].W.data, ret[3].W.data))
+        self.assertTrue(
+            numpy.array_equal(ret[3].W.data, self.l3.W.data))
 
         self.assertEqual(len(ret), 4)
 
-        ret = 0 * self.s2
+        ret = self.s2.repeat(0, mode='deepcopy')
         self.assertEqual(len(ret), 0)
 
-    def test_imul(self):
-        s2 = self.s2.copy()
-        ids = [id(layer) for layer in s2]
-        s2 *= 2
-        self.assertEqual(id(s2[0]), ids[0])
-        self.assertEqual(id(s2[1]), ids[1])
-        numpy.testing.assert_array_equal(s2[0][0].b.data, s2[2][0].b.data)
-        self.assertFalse(
-            numpy.array_equal(s2[1].W.data, s2[3].W.data))
-        self.assertEqual(len(s2), 4)
+    def test_repeat_with_copy(self):
+        ret = self.s2.repeat(2, mode='copy')
+        # Copied elements should have same object ID and values
+        self.assertIs(ret[0], self.s1)
+        self.assertIs(type(ret[0]), type(self.s1))
+        self.assertIs(ret[1], self.l3)
+        self.assertIs(type(ret[1]), type(self.l3))
+        self.assertIs(ret[2], ret[0])
+        self.assertIs(type(ret[2]), type(ret[0]))
+        self.assertIs(ret[3], ret[1])
+        self.assertIs(type(ret[3]), type(ret[1]))
+        # b is filled with 0, so they should have the same values
+        numpy.testing.assert_array_equal(ret[0][0].b.data, ret[2][0].b.data)
+
+        self.assertIs(ret[3], self.l3)
+        self.assertIs(type(ret[3]), type(self.l3))
+        self.assertTrue(
+            numpy.array_equal(ret[3].W.data, self.l3.W.data))
+
+        self.assertEqual(len(ret), 4)
+
+        ret = self.s2.repeat(0, mode='copy')
+        self.assertEqual(len(ret), 0)
 
     def test_call(self):
         l1 = mock.MagicMock()
