@@ -672,4 +672,3 @@ def convolution_3d(x, W, b=None, stride=1, pad=0, cover_all=False):
         return func(x, W)
     else:
         return func(x, W, b)
-
