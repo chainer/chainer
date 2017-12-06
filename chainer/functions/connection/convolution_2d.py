@@ -8,6 +8,7 @@ import chainer.functions
 from chainer.utils import argument
 from chainer.utils import conv
 from chainer.utils import type_check
+import warnings
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
@@ -183,10 +184,26 @@ class Convolution2DFunction(function_node.FunctionNode):
                     handle, x_desc.value, filter_desc.value,
                     conv_desc.value, y_desc.value, _fwd_pref, workspace_size)
 
-            if use_tensor_core:
-                # Only CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM
-                # supports Tensor-Core in cuDNN7.
-                algo = libcudnn.CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM  # NOQA
+            _algos = [
+                libcudnn.CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM,
+                libcudnn.CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD_NONFUSED, ]
+            if use_tensor_core and algo not in _algos:
+                _algo = libcudnn.CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM  # NOQA
+                _size = libcudnn.getConvolutionForwardWorkspaceSize(
+                    handle, x_desc.value, filter_desc.value,
+                    conv_desc.value, y_desc.value, _algo)
+                if _size <= workspace_size:
+                    algo = _algo
+                else:
+                    _msg = 'An algorithm({}) w/o Tensor Core support is '\
+                           'selected. Tensor Core is not used for convolution'\
+                           ' with following configs: (n, c, h, w, kh, kw) = '\
+                           '({}, {}, {}, {}, {}, {}). It might be because '\
+                           'cuDNN workspace size is not large enough for '\
+                           'Tensor Core (current size:{}, required size:{}).'\
+                           ''.format(algo, n, c, h, w, kh, kw, workspace_size,
+                                     _size)
+                    warnings.warn(_msg, RuntimeWarning)
 
             oz_dtype = 'd' if x.dtype == 'd' else 'f'
             one = numpy.array(1, dtype=oz_dtype).ctypes
@@ -321,10 +338,26 @@ class Convolution2DGradW(function_node.FunctionNode):
                 handle, x_desc.value, gy_desc.value, conv_desc.value,
                 filter_desc.value, _bwd_filter_pref, workspace_size)
 
-        if use_tensor_core:
-            # Only CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1 supports
-            # Tensor-Core in cuDNN7.
-            algo = libcudnn.CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1
+        _algos = [
+            libcudnn.CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1,
+            libcudnn.CUDNN_CONVOLUTION_BWD_FILTER_ALGO_WINOGRAD_NONFUSED, ]
+        if use_tensor_core and algo not in _algos:
+            _algo = libcudnn.CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1
+            _size = libcudnn.getConvolutionBackwardFilterWorkspaceSize(
+                handle, x_desc.value, gy_desc.value, conv_desc.value,
+                filter_desc.value, _algo)
+            if _size <= workspace_size:
+                algo = _algo
+            else:
+                _msg = 'An algorithm({}) w/o Tensor Core support is '\
+                       'selected. Tensor Core is not used for convolution '\
+                       'with following configs: (n, c, h, w, kh, kw) = '\
+                       '({}, {}, {}, {}, {}, {}). It might be because '\
+                       'cuDNN workspace size is not large enough for '\
+                       'Tensor Core (current size:{}, required size:{}).'\
+                       ''.format(algo, n, c, h, w, self.kh, self.kw,
+                                 workspace_size, _size)
+                warnings.warn(_msg, RuntimeWarning)
 
         libcudnn.convolutionBackwardFilter_v3(
             handle, one.data, x_desc.value, x.data.ptr, gy_desc.value,

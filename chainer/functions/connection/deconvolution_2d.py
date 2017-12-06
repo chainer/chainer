@@ -9,6 +9,7 @@ from chainer.functions.connection import convolution_2d
 from chainer.utils import argument
 from chainer.utils import conv
 from chainer.utils import type_check
+import warnings
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
@@ -218,10 +219,26 @@ class Deconvolution2DFunction(function_node.FunctionNode):
                     handle, filter_desc.value, x_desc.value, conv_desc.value,
                     y_desc.value, _bwd_data_pref, workspace_size)
 
-            if use_tensor_core:
-                # Only CUDNN_CONVOLUTION_BWD_DATA_ALGO_1 supports
-                # Tensor-Core in cuDNN7
-                algo = libcudnn.CUDNN_CONVOLUTION_BWD_DATA_ALGO_1
+            _algos = [
+                libcudnn.CUDNN_CONVOLUTION_BWD_DATA_ALGO_1,
+                libcudnn.CUDNN_CONVOLUTION_BWD_DATA_ALGO_WINOGRAD_NONFUSED, ]
+            if use_tensor_core and algo not in _algos:
+                _algo = libcudnn.CUDNN_CONVOLUTION_BWD_DATA_ALGO_1
+                _size = libcudnn.getConvolutionBackwardDataWorkspaceSize(
+                    handle, filter_desc.value, x_desc.value,
+                    conv_desc.value, y_desc.value, _algo)
+                if _size <= workspace_size:
+                    algo = _algo
+                else:
+                    _msg = 'An algorithm({}) w/o Tensor Core support is '\
+                           'selected. Tensor Core not is used for convolution'\
+                           ' with following configs: (n, c, h, w, kh, kw) = '\
+                           '({}, {}, {}, {}, {}, {}). It might be because '\
+                           'cuDNN workspace size is not large enough for '\
+                           'Tensor Core (current size:{}, required size:{}).'\
+                           ''.format(algo, n, c, in_h, in_w, kh, kw,
+                                     workspace_size, _size)
+                    warnings.warn(_msg, RuntimeWarning)
 
             libcudnn.convolutionBackwardData_v3(
                 handle, one.data, filter_desc.value, W.data.ptr,
