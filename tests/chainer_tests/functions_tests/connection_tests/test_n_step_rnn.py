@@ -33,6 +33,13 @@ def _to_gpu(x):
         return cuda.to_gpu(x)
 
 
+def _wrap_variable(x):
+    if isinstance(x, list):
+        return [_wrap_variable(xi) for xi in x]
+    else:
+        return chainer.Variable(x)
+    
+
 @testing.parameterize(*testing.product({
     'activation': ['tanh', 'relu']
 }))
@@ -75,12 +82,10 @@ class TestNStepRNN(unittest.TestCase):
 
     def check_forward(
             self, h_data, xs_data, ws_data, bs_data):
-        h = chainer.Variable(h_data)
-        xs = [chainer.Variable(x) for x in xs_data]
-        ws = [[chainer.Variable(w) for w in ws]
-              for ws in ws_data]
-        bs = [[chainer.Variable(b) for b in bs]
-              for bs in bs_data]
+        h = _wrap_variable(h_data)
+        xs = _wrap_variable(xs_data)
+        ws = _wrap_variable(ws_data)
+        bs = _wrap_variable(bs_data)
         hy, ys = functions.n_step_rnn(
             self.n_layers, self.dropout, h, ws, bs, xs,
             activation=self.activation)
@@ -217,12 +222,10 @@ class TestNStepBiRNN(unittest.TestCase):
 
     def check_forward(
             self, h_data, xs_data, ws_data, bs_data):
-        h = chainer.Variable(h_data)
-        xs = [chainer.Variable(x) for x in xs_data]
-        ws = [[chainer.Variable(w) for w in ws]
-              for ws in ws_data]
-        bs = [[chainer.Variable(b) for b in bs]
-              for bs in bs_data]
+        h = _wrap_variable(h_data)
+        xs = _wrap_variable(xs_data)
+        ws = _wrap_variable(ws_data)
+        bs = _wrap_variable(bs_data)
         hy, ys = functions.n_step_birnn(
             self.n_layers, self.dropout, h, ws, bs, xs,
             activation=self.activation)
