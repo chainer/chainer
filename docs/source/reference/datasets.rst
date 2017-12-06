@@ -78,7 +78,7 @@ The other one is a group of concrete, popular datasets.
 These concrete examples use the downloading utilities in the :mod:`chainer.dataset` module to cache downloaded and converted datasets.
 
 General datasets
-----------------
+================
 
 General datasets are further divided into four types.
 
@@ -158,7 +158,7 @@ LabeledImageDataset
    chainer.datasets.LabeledImageDataset
 
 Concrete datasets
------------------
+~~~~~~~~~~~~~~~~~
 
 .. autosummary::
    :toctree: generated/

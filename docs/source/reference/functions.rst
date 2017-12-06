@@ -265,6 +265,8 @@ Utility functions
 Function base
 -------------
 
+.. module:: chainer
+
 .. autosummary::
    :toctree: generated/
    :nosignatures:

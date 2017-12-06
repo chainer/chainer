@@ -148,6 +148,8 @@ Compatibility with other frameworks
 Link and Chain base classes
 ---------------------------
 
+.. module:: chainer
+
 .. autosummary::
    :toctree: generated/
    :nosignatures:

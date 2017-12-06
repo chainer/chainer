@@ -32,7 +32,9 @@ Serialization in HDF5 format
    chainer.serializers.load_hdf5
 
 Serializers base classes
-----------
+------------------------
+
+.. module:: chainer
 
 .. autosummary::
    :toctree: generated/

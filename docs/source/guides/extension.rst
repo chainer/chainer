@@ -12,8 +12,6 @@ In this section, you will learn about the following things:
     * :ref:`by defining a function decorated with @make_extension <decorator>`
     * :ref:`by defining a class inherited from Extension class <class>`
 
-.. _basic:
-
 What is trainer Extension?
 --------------------------
 
@@ -21,8 +19,6 @@ What is trainer Extension?
 
 A :class:`~chainer.training.Trainer` object has all information used in a training loop, e.g., models, optimizers, updaters, iterators, and datasets, etc. So you can change the settings of optimizers
 
-
-.. _function:
 
 Write a simple function
 -----------------------
@@ -42,8 +38,6 @@ Then you can add this function to a :class:`~chainer.training.Trainer` object vi
 
 It lowers the learning rate every 10 epochs by multiplying 0.1 with the current learning rate.
 
-.. _decorator:
-
 Write a function decorated with @make_extension
 -----------------------------------------------
 
@@ -62,8 +56,6 @@ The difference between the above one and this is whether it has a default ``trig
     trainer.extend(lr_drop)
 
 There are several attributes you can add using the :meth:`~chainer.training.make_extension` decorator.
-
-.. _trigger:
 
 1. trigger
 ^^^^^^^^^^
@@ -103,8 +95,6 @@ You can specify a function which takes :class:`~chainer.training.Trainer` object
 ^^^^^^^^^^^^^^
 
 You can specify a function which takes :class:`~chainer.training.Trainer` object to initialize the extension. It is called once at the beginning of the training loop, namely, before starting the actual loop.
-
-.. _class:
 
 Write a class inherited from Extension class
 --------------------------------------------
