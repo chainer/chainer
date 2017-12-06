@@ -9,22 +9,43 @@ def _as_tuple(t):
 
 
 class SliceableDataset(chainer.dataset.DatasetMixin):
+    """An abstract dataset class that supports slicing.
+
+    This ia a dataset class that supports slicing.
+    A dataset class inheriting this class should implement
+    three methods: :meth:`__len__`, :meth:`keys`, and
+    :meth:`get_example_by_keys`.
+    """
 
     def __len__(self):
         raise NotImplementedError
 
     @property
     def keys(self):
+        """Return all keys
+
+        Returns:
+            string or tuple of strings
+        """
         raise NotImplementedError
 
-    def get_example_by_keys(self, i, keys):
+    def get_example_by_keys(self, index, keys):
+        """Return data of an example by keys
+
+        Args:
+            index (int): An index of an example.
+            keys (tuple of strings): A tuple of requested keys.
+
+        Returns:
+            tuple of data
+        """
         raise NotImplementedError
 
-    def get_example(self, i):
+    def get_example(self, index):
         if isinstance(self.keys, tuple):
-            return self.get_example_by_keys(i, self.keys)
+            return self.get_example_by_keys(index, self.keys)
         else:
-            return self.get_example_by_keys(i, (self.keys,))[0]
+            return self.get_example_by_keys(index, (self.keys,))[0]
 
     @property
     def slice(self):
@@ -32,6 +53,7 @@ class SliceableDataset(chainer.dataset.DatasetMixin):
 
 
 class SliceHelper(object):
+    """A helper class for :class:`SliceableDataset`."""
 
     def __init__(self, dataset):
         self._dataset = dataset
@@ -49,6 +71,7 @@ class SliceHelper(object):
 
 
 class SlicedDataset(SliceableDataset):
+    """A sliced view for :class:`SliceableDataset`."""
 
     def __init__(self, dataset, index, keys):
         self._dataset = dataset
@@ -66,9 +89,10 @@ class SlicedDataset(SliceableDataset):
     def keys(self):
         return self._keys
 
-    def get_example_by_keys(self, i, keys):
+    def get_example_by_keys(self, index, keys):
         if isinstance(self._index, slice):
             start, _, step = self._index.indices(len(self._dataset))
-            return self._dataset.get_example_by_keys(start + i * step, keys)
+            return self._dataset.get_example_by_keys(
+                start + index * step, keys)
         else:
-            return self._dataset.get_example_by_keys(self._index[i], keys)
+            return self._dataset.get_example_by_keys(self._index[index], keys)

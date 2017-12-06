@@ -2,6 +2,14 @@ from chainer.datasets.sliceable import SliceableDataset
 
 
 class ConcatenatedDataset(SliceableDataset):
+    """A sliceable version of :class:`chainer.datasets.ConcatenatedDataset`.
+
+    Args:
+        datasets: The underlying datasets.
+            Each dataset should inherit
+            :class:~chainer.datasets.sliceable.Sliceabledataset`.
+            and should have the same keys.
+    """
 
     def __init__(self, *datasets):
         if len(datasets) == 0:
@@ -19,11 +27,11 @@ class ConcatenatedDataset(SliceableDataset):
     def keys(self):
         return self._keys
 
-    def get_example_by_keys(self, i, keys):
-        if i < 0:
+    def get_example_by_keys(self, index, keys):
+        if index < 0:
             raise IndexError
         for dataset in self._datasets:
-            if i < len(dataset):
-                return dataset.get_example_by_keys(i, keys)
-            i -= len(dataset)
+            if index < len(dataset):
+                return dataset.get_example_by_keys(index, keys)
+            index -= len(dataset)
         raise IndexError

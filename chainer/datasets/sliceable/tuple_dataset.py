@@ -11,6 +11,15 @@ def _as_tuple(t):
 
 
 class TupleDataset(SliceableDataset):
+    """A sliceable version of :class:`chainer.datasets.TupleDataset`.
+
+    Args:
+        datasets: The underlying datasets.
+            Each dataset should be an inheritance of
+            :class:~chainer.datasets.sliceable.Sliceabledataset`.
+            or a tuple of the name of datum and a data array
+            (list/tuple/:class:`numpy.ndarray`).
+    """
 
     def __init__(self, *datasets):
         if len(datasets) == 0:
@@ -45,17 +54,17 @@ class TupleDataset(SliceableDataset):
     def keys(self):
         return tuple(self._keys)
 
-    def get_example_by_keys(self, i, keys):
+    def get_example_by_keys(self, index, keys):
         values = {}
 
         for available_keys, dataset in self._sliceable_datasets:
             call_keys = tuple(available_keys.intersection(keys))
             if len(call_keys) > 0:
                 values.update(six.moves.zip(
-                    call_keys, dataset.get_example_by_keys(i, call_keys)))
+                    call_keys, dataset.get_example_by_keys(index, call_keys)))
 
         for key, dataset in self._regular_datasets:
             if key in keys:
-                values[key] = dataset[i]
+                values[key] = dataset[index]
 
         return tuple(values[key] for key in keys)
