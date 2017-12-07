@@ -157,64 +157,6 @@ class Sequential(chainer.ChainList):
                                  str(type(other))))
         return self
 
-    def repeat(self, n_repeat, mode='init'):
-        """Repeat myself multiple times to make longer Sequential block.
-
-        This method returns a Sequential object which repeats a same
-        Sequential block multiple times. The ``mode`` argument means how to
-        copy myself to repeat.
-
-        .. admonition:: Example
-
-            You can repeat a same Sequential part multiple times to create
-            longer Sequential block like this:
-
-                net = Sequential([
-                        L.Convolutional2D(None, 64, 3, 1, 1, nobias=True),
-                        L.BatchNormalization(64),
-                        F.relu
-                    ]).repeat(16, mode='init')
-
-            The ``net`` object contains 16 blocks, each of which is
-            Conv-BN-ReLU block. And the ``mode`` was ``init``, so each block
-            is re-initialized with different parameters. If you give
-            ``deepcopy`` to this argument, each block has same values for its
-            paramters but its object ID is different from others. If it is
-            ``copy``, each block is same to others in terms of not only
-            paramters but also the object IDs because they are shallow-copied.
-
-        Args:
-            n_repeat (int): Number of times to repeat.
-            mode (str): It should be either ``init``, ``deepcopy``, or
-                ``copy``. ``init`` means all the parameters in Sequential
-                blocks will be  re-initialized when repeating. ``deepcopy``
-                means that the parameters will not be re-initialized, but
-                object itself will be deepcopied. ``copy`` means all the
-                Sequential objects which construct the resulting longer
-                Sequential object are same object because they are
-                shallow-copied.
-
-        """
-        if n_repeat <= 0:
-            return Sequential()
-        if mode not in ['init', 'deepcopy', 'copy']:
-            raise ValueError(
-                'The \'mode\' argument should be either \'init\','
-                '\'deepcopy\', or \'copy\'. But {} was given.'.format(mode))
-        ret = Sequential()
-        for _ in range(n_repeat):
-            for layer in self:
-                if isinstance(layer, chainer.Link):
-                    if mode in ['init', 'deepcopy']:
-                        layer = copy.deepcopy(layer)
-                    if mode == 'init':
-                        for param in layer.params(include_uninit=False):
-                            param.initialize(param.shape)
-                else:
-                    layer = copy.copy(layer)
-                ret.append(layer)
-        return ret
-
     def __call__(self, *x):
         """Forward pass computation.
 
@@ -388,12 +330,6 @@ class Sequential(chainer.ChainList):
                 if layer.__name__ == type_name:
                     num += 1
         return num
-
-    def sort(self, key=None, reverse=None):
-        raise NotImplementedError
-
-    def reverse(self):
-        raise NotImplementedError
 
     def copy(self):
         ret = Sequential()
