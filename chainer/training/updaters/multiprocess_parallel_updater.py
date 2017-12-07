@@ -126,7 +126,7 @@ class MultiprocessParallelUpdater(updater.StandardUpdater):
 
         # Correct optimizer parameters for new minibatch size
         optim = optimizer.__class__.__name__
-        if optim in ('Adam', 'AdaGrad', 'RMSprop'):
+        if optim in ('Adam', 'AdamWeightDecay', 'AdaGrad', 'RMSprop'):
             optimizer.eps *= len(devices)
             warnings.warn('optimizer.eps is changed to {} '
                           'by MultiprocessParallelUpdater for new batch size.'.
