@@ -94,8 +94,7 @@ class FunctionAdapter(function_node.FunctionNode):
        object changes the reference to a weak one.
 
     Args:
-        function (~chainer.Function):\
-        The function object to wrap.
+        function (~chainer.Function): The function object to wrap.
 
     .. versionadded:: 3.0.0
 
