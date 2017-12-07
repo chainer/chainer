@@ -8,14 +8,13 @@ class BestValueTrigger(object):
 
     Args:
         key (str): Key of value.
-        compare (callable):\
-            Compare function which takes current best value and new value
-            and returns whether new value is better than current best.
+        compare (callable): Compare function which takes current best value and
+            new value and returns whether new value is better than current
+            best.
         trigger: Trigger that decides the comparison interval between current
             best value and new value. This must be a tuple in the form of
             ``<int>, 'epoch'`` or ``<int>, 'iteration'`` which is passed to
             :class:`~chainer.training.triggers.IntervalTrigger`.
-
 
     """
 
