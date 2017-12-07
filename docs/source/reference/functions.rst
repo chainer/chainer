@@ -1,5 +1,22 @@
-Functions
-=========
+Function Wrappers
+=================
+
+These functions take an array or a Chainer :class:`Variable` as an argument and return a Chainer :class:`Variable`.
+
+Args:
+    inputs: Tuple of input :class:`Variable`, :class:`numpy.ndarray` or
+        :class:`cupy.ndarray` objects.
+        If the input is an :class:`numpy.ndarray` or a
+        :class:`cupy.ndarray`, it is automatically wrapped with
+        :class:`Variable`.
+
+Returns:
+    One :class:`Variable` object or a tuple of multiple
+    :class:`Variable` objects.
+
+
+Standard Function Wrapper implementations
+=========================================
 
 .. module:: chainer.functions
 
@@ -10,7 +27,9 @@ functions, which users should use.
 .. note::
    As of v1.5, the concept of parameterized functions are gone, and they are
    replaced by corresponding :class:`~chainer.Link` implementations. They are
-   found in the :mod:`~chainer.links` namespace.
+   still put in the :mod:`~chainer.functions` namespace for backward
+   compatibility, though it is strongly recommended to use them via the
+   :mod:`chainer.links` package.
 
 ..
    For contributors that want to update these lists:
@@ -21,15 +40,6 @@ functions, which users should use.
 
    KEEP EACH LIST IN LEXICOGRAPHICAL ORDER.
 
-
-Arithmetic functions
---------------------
-
-.. autosummary::
-   :toctree: generated/
-   :nosignatures:
-
-   chainer.functions.add
 
 Activation functions
 --------------------
@@ -53,7 +63,6 @@ Activation functions
    chainer.functions.slstm
    chainer.functions.softmax
    chainer.functions.softplus
-   chainer.functions.swish
    chainer.functions.tanh
    chainer.functions.tree_lstm
 
@@ -82,7 +91,6 @@ Array manipulations
    chainer.functions.pad
    chainer.functions.pad_sequence
    chainer.functions.permutate
-   chainer.functions.repeat
    chainer.functions.reshape
    chainer.functions.resize_images
    chainer.functions.rollaxis
@@ -118,14 +126,12 @@ Neural network connections
    chainer.functions.dilated_convolution_2d
    chainer.functions.embed_id
    chainer.functions.linear
-   chainer.functions.local_convolution_2d
    chainer.functions.n_step_bigru
    chainer.functions.n_step_bilstm
    chainer.functions.n_step_birnn
    chainer.functions.n_step_gru
    chainer.functions.n_step_lstm
    chainer.functions.n_step_rnn
-   chainer.functions.shift
 
 
 Evaluation functions
@@ -138,11 +144,7 @@ Evaluation functions
    chainer.functions.accuracy
    chainer.functions.binary_accuracy
    chainer.functions.classification_summary
-   chainer.functions.f1_score
-   chainer.functions.precision
    chainer.functions.r2_score
-   chainer.functions.recall
-
 
 Loss functions
 --------------
@@ -159,7 +161,6 @@ Loss functions
    chainer.functions.crf1d
    chainer.functions.argmax_crf1d
    chainer.functions.cross_covariance
-   chainer.functions.decov
    chainer.functions.gaussian_kl_divergence
    chainer.functions.gaussian_nll
    chainer.functions.hinge
@@ -179,7 +180,6 @@ Mathematical functions
    :toctree: generated/
    :nosignatures:
 
-   chainer.functions.absolute
    chainer.functions.arccos
    chainer.functions.arcsin
    chainer.functions.arctan
@@ -196,18 +196,12 @@ Mathematical functions
    chainer.functions.cos
    chainer.functions.cosh
    chainer.functions.cumsum
-   chainer.functions.det
-   chainer.functions.batch_det
-   chainer.functions.erf
-   chainer.functions.erfc
    chainer.functions.exp
    chainer.functions.expm1
-   chainer.functions.fft
    chainer.functions.fix
    chainer.functions.fmod
    chainer.functions.floor
    chainer.functions.identity
-   chainer.functions.ifft
    chainer.functions.inv
    chainer.functions.linear_interpolate
    chainer.functions.log
@@ -233,7 +227,6 @@ Mathematical functions
    chainer.functions.sum
    chainer.functions.tanh
    chainer.functions.tan
-   chainer.functions.tensordot
 
 Noise injections
 ----------------
@@ -246,7 +239,6 @@ Noise injections
    chainer.functions.gaussian
    chainer.functions.gumbel_softmax
    chainer.functions.simplified_dropconnect
-   chainer.functions.zoneout
 
 Normalization functions
 -----------------------
@@ -256,9 +248,7 @@ Normalization functions
    :nosignatures:
 
    chainer.functions.batch_normalization
-   chainer.functions.batch_renormalization
    chainer.functions.fixed_batch_normalization
-   chainer.functions.fixed_batch_renormalization
    chainer.functions.layer_normalization
    chainer.functions.local_response_normalization
    chainer.functions.normalize
@@ -278,7 +268,6 @@ Spatial pooling
    chainer.functions.roi_pooling_2d
    chainer.functions.spatial_pyramid_pooling_2d
    chainer.functions.unpooling_2d
-   chainer.functions.unpooling_nd
    chainer.functions.upsampling_2d
 
 
@@ -290,48 +279,3 @@ Utility functions
    :nosignatures:
 
    chainer.functions.forget
-
-Function base
--------------
-
-.. module:: chainer
-
-.. autosummary::
-   :toctree: generated/
-   :nosignatures:
-
-   chainer.Function
-   chainer.FunctionAdapter
-   chainer.FunctionNode
-   chainer.force_backprop_mode
-   chainer.no_backprop_mode
-   chainer.grad
-
-Function hooks
---------------
-
-Chainer provides a function-hook mechanism that enriches
-the behavior of forward and backward propagation of :class:`~chainer.Function`.
-
-Base class
-----------
-
-.. autosummary::
-   :toctree: generated/
-   :nosignatures:
-
-   chainer.FunctionHook
-
-.. module:: chainer.function_hooks
-
-Concrete function hooks
------------------------
-
-.. autosummary::
-   :toctree: generated/
-   :nosignatures:
-
-   chainer.function_hooks.CUDAProfileHook
-   chainer.function_hooks.CupyMemoryProfileHook
-   chainer.function_hooks.PrintHook
-   chainer.function_hooks.TimerHook
