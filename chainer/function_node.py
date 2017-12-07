@@ -222,8 +222,20 @@ Use apply() method instead.\
         in_data = tuple([x.data for x in input_vars])
         requires_grad = any([x.requires_grad for x in input_vars])
 
+        # Check for input array types
+        xp = cuda.get_array_module(*in_data)
+        if not all([x is None or isinstance(x, xp.ndarray)
+                    for x in in_data]):
+            raise ValueError(
+                'numpy and cupy arrays are mixed in the forward input '
+                '({}).\n'
+                '{}'.format(
+                    self.label,
+                    ', '.join(str(type(x)) for x in in_data)))
+
         is_debug = chainer.is_debug()
         if is_debug:
+            # Keep stack trace for debug
             self.stack = traceback.extract_stack()
 
         if configuration.config.type_check:
@@ -243,7 +255,22 @@ Use apply() method instead.\
             self._input_indexes_to_retain = None
             self._output_indexes_to_retain = None
             outputs = self.forward(in_data)
-            assert type(outputs) is tuple
+
+        # Check for output array types
+        if not isinstance(outputs, tuple):
+            raise TypeError(
+                'forward output must be a tuple ({})\n'
+                'Actual: {}'.format(self.label, type(outputs)))
+
+        xp = cuda.get_array_module(*outputs)
+        if not all([x is None or isinstance(x, xp.ndarray)
+                    for x in outputs]):
+            raise ValueError(
+                'numpy and cupy arrays are mixed in the forward output '
+                '({}).\n'
+                '{}'.format(
+                    self.label,
+                    ', '.join(str(type(x)) for x in outputs)))
 
         for hook in hooks:
             hook.forward_postprocess(self, in_data)
