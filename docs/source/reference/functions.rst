@@ -1,5 +1,22 @@
-Standard Function implementations
-=================================
+Function Wrappers
+=================
+
+These functions take an array or a Chainer :class:`Variable` as an argument and return a Chainer :class:`Variable`.
+
+Args:
+    inputs: Tuple of input :class:`Variable`, :class:`numpy.ndarray` or
+        :class:`cupy.ndarray` objects.
+        If the input is an :class:`numpy.ndarray` or a
+        :class:`cupy.ndarray`, it is automatically wrapped with
+        :class:`Variable`.
+
+Returns:
+    One :class:`Variable` object or a tuple of multiple
+    :class:`Variable` objects.
+
+
+Standard Function Wrapper implementations
+=========================================
 
 .. module:: chainer.functions
 
