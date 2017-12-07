@@ -109,31 +109,34 @@ class Deconvolution2DFunction(function_node.FunctionNode):
                 # b_type.shape[0] == w_type.shape[1],
             )
 
+    def _calc_out_size(self, x, W):
+        """Calculates and stores `outh` and `outw`."""
+        kh, kw = W.shape[2:]
+        _, _, in_h, in_w = x.shape
+        # - k, m, n: shape of out_channel
+        # - b: number of inputs
+        # - h, w: height and width of kernels
+        # k, m, n, b, h, w -> b, k, m, n, h, w
+        if self.outh is None:
+            self.outh = conv.get_deconv_outsize(
+                in_h, kh, self.sy, self.ph, d=self.dy)
+            if self.outh <= 0:
+                raise RuntimeError('Height in the output must be positive.')
+
+        if self.outw is None:
+            self.outw = conv.get_deconv_outsize(
+                in_w, kw, self.sx, self.pw, d=self.dx)
+            if self.outw <= 0:
+                raise RuntimeError('Width in the output must be positive.')
+
     def forward_cpu(self, inputs):
         self.retain_inputs((0, 1))  # only retain x and W
-        x, W = inputs[:2]
-        b = inputs[2] if len(inputs) == 3 else None
+        if len(inputs) == 2:
+            (x, W), b = inputs, None
+        else:
+            x, W, b = inputs
 
-        if not all([isinstance(i, numpy.ndarray) for i in inputs]):
-            if b is not None:
-                raise ValueError('numpy and cupy must not be used together\n'
-                                 'type(W): {0}, type(x): {1}, type(b): {2}'
-                                 .format(type(W), type(x), type(b)))
-            else:
-                raise ValueError('numpy and cupy must not be used together\n'
-                                 'type(W): {0}, type(x): {1}'
-                                 .format(type(W), type(x)))
-
-        _, _, h, w = x.shape
-        kh, kw = W.shape[2:]
-        if self.outh is None:
-            self.outh = conv.get_deconv_outsize(h, kh, self.sy, self.ph,
-                                                d=self.dy)
-            assert self.outh > 0, 'Height in the output should be positive.'
-        if self.outw is None:
-            self.outw = conv.get_deconv_outsize(w, kw, self.sx, self.pw,
-                                                d=self.dx)
-            assert self.outw > 0, 'Width in the output should be positive.'
+        self._calc_out_size(x, W)
 
         if self.group > 1:
             y = self._forward_grouped_convolution(x, W, b)
@@ -143,10 +146,6 @@ class Deconvolution2DFunction(function_node.FunctionNode):
 
     def _forward_cpu_core(self, x, W, b):
         gcol = numpy.tensordot(W, x, (0, 1)).astype(x.dtype, copy=False)
-        # - k, m, n: shape of out_channel
-        # - b: number of inputs
-        # - h, w: height and width of kernels
-        # k, m, n, b, h, w -> b, k, m, n, h, w
         gcol = numpy.rollaxis(gcol, 3)
         y = conv.col2im_cpu(
             gcol, self.sy, self.sx, self.ph, self.pw, self.outh, self.outw,
@@ -158,108 +157,38 @@ class Deconvolution2DFunction(function_node.FunctionNode):
 
     def forward_gpu(self, inputs):
         self.retain_inputs((0, 1))  # only retain x and W
-        x, W = inputs[:2]
-        b = inputs[2] if len(inputs) == 3 else None
+        if len(inputs) == 2:
+            (x, W), b = inputs, None
+        else:
+            x, W, b = inputs
 
-        if not all([isinstance(i, cuda.ndarray) for i in inputs]):
-            if b is not None:
-                raise ValueError('numpy and cupy must not be used together\n'
-                                 'type(W): {0}, type(x): {1}, type(b): {2}'
-                                 .format(type(W), type(x), type(b)))
-            else:
-                raise ValueError('numpy and cupy must not be used together\n'
-                                 'type(W): {0}, type(x): {1}'
-                                 .format(type(W), type(x)))
-
-        kh, kw = W.shape[2:]
-        n, in_c, in_h, in_w = x.shape
-        yCg = W.shape[1]  # out_c
-        yC = yCg * self.group
-        if self.outh is None:
-            self.outh = conv.get_deconv_outsize(in_h, kh, self.sy, self.ph,
-                                                d=self.dy)
-            assert self.outh > 0, 'Height in the output should be positive.'
-        if self.outw is None:
-            self.outw = conv.get_deconv_outsize(in_w, kw, self.sx, self.pw,
-                                                d=self.dx)
-            assert self.outw > 0, 'Width in the output should be positive.'
-
+        self._calc_out_size(x, W)
         self._set_cover_all(x, W)
 
         _gc_use_cudnn = True
         if self.group > 1 and _cudnn_version_ < 7000:
             _gc_use_cudnn = False
 
-        if (not self.cover_all and chainer.should_use_cudnn('>=auto') and
-                x.dtype == W.dtype and
-                ((self.dy == 1 and self.dx == 1) or
-                 _cudnn_version_ >= 6000) and
-                _gc_use_cudnn):
-            x = cuda.cupy.ascontiguousarray(x)
-            W = cuda.cupy.ascontiguousarray(W)
-            if b is not None:
-                b = cuda.cupy.ascontiguousarray(b)
+        if (not self.cover_all
+                and chainer.should_use_cudnn('>=auto')
+                and x.dtype == W.dtype
+                and ((self.dy == 1 and self.dx == 1)
+                     or (_cudnn_version_ >= 6000
+                         and not configuration.config.cudnn_deterministic))
+                and _gc_use_cudnn):
 
-            use_tensor_core = chainer.should_use_cudnn_tensor_core(x.dtype)
+            # cuDNN implementation
+            return self._forward_cudnn(x, W, b)
 
-            handle = cudnn.get_handle()
-            x_desc = cudnn.create_tensor_descriptor(x)
-            y = cuda.cupy.empty((n, yC, self.outh, self.outw),
-                                dtype=x.dtype)
-            y_desc = cudnn.create_tensor_descriptor(y)
-
-            filter_desc = cudnn.create_filter_descriptor(W)
-            conv_param = (self.ph, self.pw), (self.sy, self.sx), x.dtype
-            dilation = (self.dy, self.dx)
-            conv_desc = cudnn.create_convolution_descriptor(
-                *conv_param, dilation=dilation,
-                use_tensor_core=use_tensor_core,
-                group=self.group)
-            if b is not None:
-                bias_desc = cudnn.create_tensor_descriptor(
-                    b[None, :, None, None])
-
-            oz_dtype = 'd' if x.dtype == 'd' else 'f'
-            one = numpy.array(1, dtype=oz_dtype).ctypes
-            zero = numpy.array(0, dtype=oz_dtype).ctypes
-
-            workspace_size = cuda.get_max_workspace_size()
-            workspace = cuda.cupy.empty((workspace_size,), dtype='b')
-
-            if configuration.config.cudnn_deterministic:
-                algo = libcudnn.CUDNN_CONVOLUTION_BWD_DATA_ALGO_1
-            elif configuration.config.autotune and _cudnn_version_ >= 5000:
-                algo = get_algorithm(
-                    W, x, y, conv_param + (dilation,), handle, filter_desc,
-                    x_desc, conv_desc, y_desc, workspace)
-            else:
-                algo = libcudnn.getConvolutionBackwardDataAlgorithm(
-                    handle, filter_desc.value, x_desc.value, conv_desc.value,
-                    y_desc.value, _bwd_data_pref, workspace_size)
-
-            if use_tensor_core:
-                # Only CUDNN_CONVOLUTION_BWD_DATA_ALGO_1 supports
-                # Tensor-Core in cuDNN7
-                algo = libcudnn.CUDNN_CONVOLUTION_BWD_DATA_ALGO_1
-
-            libcudnn.convolutionBackwardData_v3(
-                handle, one.data, filter_desc.value, W.data.ptr,
-                x_desc.value, x.data.ptr, conv_desc.value,
-                algo, workspace.data.ptr, workspace_size,
-                zero.data, y_desc.value, y.data.ptr)
-
-            if b is not None:
-                cudnn.add_tensor(
-                    handle, one.data, bias_desc.value, b.data.ptr,
-                    one.data, y_desc.value, y.data.ptr)
         else:
             if self.group > 1:
                 y = self._forward_grouped_convolution(x, W, b)
             else:
                 y = self._forward_gpu_core(x, W, b)
-        return y,
+            return y,
 
     def _forward_gpu_core(self, x, W, b):
+        # Implementation using col2im
         gcol = cuda.cupy.tensordot(W, x, (0, 1)).astype(x.dtype,
                                                         copy=False)
         # - k, m, n: shape of out_channel
@@ -308,6 +237,72 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         y = xp.stack(_ys, axis=1)  # (N, G, yCg, yH, yW)
         y = y.reshape(N, yC, yH, yW)
         return y
+
+    def _forward_cudnn(self, x, W, b):
+        x = cuda.cupy.ascontiguousarray(x)
+        W = cuda.cupy.ascontiguousarray(W)
+        if b is not None:
+            b = cuda.cupy.ascontiguousarray(b)
+
+        n = x.shape[0]
+        # out_c = W.shape[1]
+        yCg = W.shape[1]
+        yC = yCg * self.group
+
+        use_tensor_core = chainer.should_use_cudnn_tensor_core(x.dtype)
+
+        handle = cudnn.get_handle()
+        x_desc = cudnn.create_tensor_descriptor(x)
+        y = cuda.cupy.empty((n, yC, self.outh, self.outw),
+                            dtype=x.dtype)
+        y_desc = cudnn.create_tensor_descriptor(y)
+
+        filter_desc = cudnn.create_filter_descriptor(W)
+        conv_param = (self.ph, self.pw), (self.sy, self.sx), x.dtype
+        dilation = (self.dy, self.dx)
+        conv_desc = cudnn.create_convolution_descriptor(
+            *conv_param, dilation=dilation,
+            use_tensor_core=use_tensor_core,
+            group=self.group)
+        if b is not None:
+            bias_desc = cudnn.create_tensor_descriptor(
+                b[None, :, None, None])
+
+        oz_dtype = 'd' if x.dtype == 'd' else 'f'
+        one = numpy.array(1, dtype=oz_dtype).ctypes
+        zero = numpy.array(0, dtype=oz_dtype).ctypes
+
+        workspace_size = cuda.get_max_workspace_size()
+        workspace = cuda.cupy.empty((workspace_size,), dtype='b')
+
+        if configuration.config.cudnn_deterministic:
+            algo = libcudnn.CUDNN_CONVOLUTION_BWD_DATA_ALGO_1
+        elif configuration.config.autotune and _cudnn_version_ >= 5000:
+            algo = get_algorithm(
+                W, x, y, conv_param + (dilation,), handle, filter_desc,
+                x_desc, conv_desc, y_desc, workspace)
+        else:
+            algo = libcudnn.getConvolutionBackwardDataAlgorithm(
+                handle, filter_desc.value, x_desc.value, conv_desc.value,
+                y_desc.value, _bwd_data_pref, workspace_size)
+
+        if use_tensor_core:
+            # Only CUDNN_CONVOLUTION_BWD_DATA_ALGO_1 supports
+            # Tensor-Core in cuDNN7
+            algo = libcudnn.CUDNN_CONVOLUTION_BWD_DATA_ALGO_1
+
+        libcudnn.convolutionBackwardData_v3(
+            handle, one.data, filter_desc.value, W.data.ptr,
+            x_desc.value, x.data.ptr, conv_desc.value,
+            algo, workspace.data.ptr, workspace_size,
+            zero.data, y_desc.value, y.data.ptr)
+
+        if b is not None:
+            cudnn.add_tensor(
+                handle, one.data, bias_desc.value, b.data.ptr,
+                one.data, y_desc.value, y.data.ptr)
+
+        return y,
 
     def backward(self, indexes, grad_outputs):
         x, W = self.get_retained_inputs()

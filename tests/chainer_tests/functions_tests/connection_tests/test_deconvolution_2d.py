@@ -27,6 +27,7 @@ def _pair(x):
         'test_outsize': [True, False],
         'nobias': [True],
         'stride': [1, 2],
+        'dilate': [1],
         'x_dtype': [numpy.float32],
         'W_dtype': [numpy.float32],
         'group': [1, 2],
@@ -36,6 +37,7 @@ def _pair(x):
         'test_outsize': [True],
         'nobias': [False],
         'stride': [1, 2],
+        'dilate': [1, 2],
         'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
         'W_dtype': [numpy.float16, numpy.float32, numpy.float64],
         'group': [1, 2],
@@ -83,8 +85,8 @@ class TestDeconvolution2DFunction(unittest.TestCase):
 
         N = 2
         inh, inw = 4, 3
-        outh = conv.get_deconv_outsize(inh, kh, sh, ph)
-        outw = conv.get_deconv_outsize(inw, kw, sw, pw)
+        outh = conv.get_deconv_outsize(inh, kh, sh, ph, d=self.dilate)
+        outw = conv.get_deconv_outsize(inw, kw, sw, pw, d=self.dilate)
         self.outsize = (outh, outw) if self.test_outsize else None
         x = numpy.random.uniform(
             -1, 1, (N, self.in_channels, inh, inw)).astype(self.x_dtype)
@@ -120,7 +122,7 @@ class TestDeconvolution2DFunction(unittest.TestCase):
         b_cpu = None if b is None else chainer.Variable(b)
         y_cpu = F.deconvolution_2d(
             x_cpu, W_cpu, b_cpu, stride=self.stride, pad=self.pad,
-            outsize=self.outsize, group=self.group)
+            outsize=self.outsize, dilate=self.dilate, group=self.group)
         return y_cpu,
 
     def check_forward(self, inputs, backend_config):
@@ -137,7 +139,7 @@ class TestDeconvolution2DFunction(unittest.TestCase):
         with backend_config:
             y_actual = F.deconvolution_2d(
                 x, W, b, stride=self.stride, pad=self.pad,
-                outsize=self.outsize, group=self.group)
+                outsize=self.outsize, dilate=self.dilate, group=self.group)
 
         assert y_expected.data.dtype == self.x_dtype
         assert y_actual.data.dtype == self.x_dtype
@@ -182,7 +184,7 @@ class TestDeconvolution2DFunction(unittest.TestCase):
         def f(*args):
             return F.deconvolution_2d(
                 *args, stride=self.stride, pad=self.pad, outsize=self.outsize,
-                group=self.group)
+                dilate=self.dilate, group=self.group)
 
         with backend_config:
             gradient_check.check_backward(
@@ -236,7 +238,7 @@ class TestDeconvolution2DFunction(unittest.TestCase):
         def f(*args):
             y = F.deconvolution_2d(
                 *args, stride=self.stride, pad=self.pad, outsize=self.outsize,
-                group=self.group)
+                dilate=self.dilate, group=self.group)
             return y * y  # make the function nonlinear
 
         with backend_config:
