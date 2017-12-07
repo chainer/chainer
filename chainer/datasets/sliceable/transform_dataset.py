@@ -16,7 +16,7 @@ class TransformDataset(GetterDataset):
     def __init__(self, dataset, keys, transform):
         super(TransformDataset, self).__init__()
         self._dataset = dataset
-        self.add_getter(transform, lambda index: transform(dataset[index]))
+        self.add_getter(keys, lambda index: transform(dataset[index]))
 
     def __len__(self):
         return len(self._dataset)
