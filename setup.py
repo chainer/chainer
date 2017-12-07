@@ -149,5 +149,6 @@ setup(
     zip_safe=False,
     setup_requires=setup_requires,
     install_requires=install_requires,
+    tests_require=requirements['test'],
     extras_require=extras_require,
 )
