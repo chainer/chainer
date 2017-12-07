@@ -23,8 +23,8 @@ class HuberLoss(function_node.FunctionNode):
         type_check.expect(
             in_types[0].dtype == numpy.float32,
             in_types[1].dtype == numpy.float32,
-            in_types[0].ndim == 2,
-            in_types[1].ndim == 2,
+            in_types[0].ndim >= 2,
+            in_types[1].ndim >= 2,
             in_types[0].shape == in_types[1].shape
         )
 
