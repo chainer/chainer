@@ -8,7 +8,7 @@ import types
 import unittest
 
 
-from chainer import cuda
+from chainer.backends import cuda
 
 
 _old_python_random_state = None

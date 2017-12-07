@@ -1,13 +1,24 @@
+import contextlib
 import unittest
 
 import numpy
 import six
 
+import chainer
 from chainer import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
+
+
+@contextlib.contextmanager
+def disable_debug_mode_if(disable):
+    if disable:
+        with chainer.using_config('debug', False):
+            yield
+    else:
+        yield
 
 
 @testing.parameterize(*testing.product({
@@ -25,6 +36,9 @@ class TestPadSequence(unittest.TestCase):
         self.xs = [
             numpy.random.uniform(-1, 1, (l,) + self.shape).astype(self.dtype)
             for l in self.lengths]
+        self.ggxs = [
+            numpy.random.uniform(-1, 1, (l,) + self.shape).astype(self.dtype)
+            for l in self.lengths]
 
         if self.length == 'max':
             self.length = max(self.lengths)
@@ -34,7 +48,13 @@ class TestPadSequence(unittest.TestCase):
         else:
             max_length = max(self.lengths)
         self.y_shape = (len(self.lengths), max_length,) + self.shape
-        self.g = numpy.random.uniform(-1, 1, self.y_shape).astype(self.dtype)
+        self.gy = numpy.random.uniform(-1, 1, self.y_shape).astype(self.dtype)
+
+        self.check_double_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
+        if self.dtype == numpy.float16:
+            self.check_double_backward_options.update({'atol': 5e-3})
+
+        self.can_include_nan = numpy.isnan(self.pad)
 
     def check_forward(self, xs):
         # Non-finite values does not work for integer values.
@@ -42,7 +62,9 @@ class TestPadSequence(unittest.TestCase):
            numpy.dtype(self.dtype).kind != 'f':
             return
 
-        y = functions.pad_sequence(xs, length=self.length, padding=self.pad)
+        with disable_debug_mode_if(self.can_include_nan):
+            y = functions.pad_sequence(
+                xs, length=self.length, padding=self.pad)
 
         self.assertEqual(y.shape, self.y_shape)
         for i, (length, x) in enumerate(six.moves.zip(self.lengths, self.xs)):
@@ -57,23 +79,47 @@ class TestPadSequence(unittest.TestCase):
     def test_forward_gpu(self):
         self.check_forward([cuda.to_gpu(x) for x in self.xs])
 
-    def check_backward(self, xs, g):
+    def check_backward(self, xs, gy):
         # Numerical gradient dos not work with non-finite values.
         # Gradients for integer values are not defined.
         if not numpy.isfinite(self.pad) or numpy.dtype(self.dtype).kind != 'f':
             return
 
-        gradient_check.check_backward(
-            functions.PadSequence(self.length, self.pad), xs, g,
-            dtype=numpy.float64)
+        def f(*xs):
+            return functions.pad_sequence(
+                xs, length=self.length, padding=self.pad)
+
+        gradient_check.check_backward(f, xs, gy, dtype=numpy.float64)
 
     def test_backward_cpu(self):
-        self.check_backward(self.xs, self.g)
+        self.check_backward(self.xs, self.gy)
 
     @attr.gpu
     def test_backward_gpu(self):
         self.check_backward(
-            [cuda.to_gpu(x) for x in self.xs], cuda.to_gpu(self.g))
+            [cuda.to_gpu(x) for x in self.xs], cuda.to_gpu(self.gy))
+
+    def check_double_backward(self, xs, gy, ggxs):
+        if not numpy.isfinite(self.pad) or numpy.dtype(self.dtype).kind != 'f':
+            return
+
+        def f(*xs):
+            y = functions.pad_sequence(
+                xs, length=self.length, padding=self.pad)
+            return y * y
+
+        gradient_check.check_double_backward(
+            f, xs, gy, ggxs, dtype=numpy.float64,
+            **self.check_double_backward_options)
+
+    def test_double_backward_cpu(self):
+        self.check_double_backward(self.xs, self.gy, self.ggxs)
+
+    @attr.gpu
+    def test_double_backward_gpu(self):
+        self.check_double_backward(
+            [cuda.to_gpu(x) for x in self.xs], cuda.to_gpu(self.gy),
+            [cuda.to_gpu(ggx) for ggx in self.ggxs])
 
 
 testing.run_module(__name__, __file__)

@@ -3,7 +3,7 @@ import warnings
 
 import six
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer.dataset import convert
 from chainer import reporter
 from chainer.training.updaters import standard_updater

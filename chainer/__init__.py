@@ -4,8 +4,8 @@ import threading
 import warnings
 
 from chainer import _version
+from chainer import backends  # NOQA
 from chainer import configuration  # NOQA
-from chainer import cuda  # NOQA
 from chainer import dataset  # NOQA
 from chainer import datasets  # NOQA
 from chainer import function  # NOQA
@@ -28,6 +28,9 @@ from chainer import variable  # NOQA
 
 
 # import class and function
+# These functions from backends.cuda are kept for backward compatibility
+from chainer.backends.cuda import should_use_cudnn  # NOQA
+from chainer.backends.cuda import should_use_cudnn_tensor_core  # NOQA
 from chainer.configuration import config  # NOQA
 from chainer.configuration import global_config  # NOQA
 from chainer.configuration import using_config  # NOQA
@@ -61,6 +64,10 @@ from chainer.variable import Parameter  # NOQA
 from chainer.variable import Variable  # NOQA
 
 
+# Alias for backward compatibility
+from chainer import cuda  # NOQA
+
+
 from chainer import _environment_check
 
 
@@ -70,13 +77,16 @@ _environment_check.check()
 
 __version__ = _version.__version__
 
-thread_local = threading.local()
+_thread_local = threading.local()
 
 
 def get_function_hooks():
-    if not hasattr(thread_local, 'function_hooks'):
-        thread_local.function_hooks = collections.OrderedDict()
-    return thread_local.function_hooks
+    try:
+        ret = _thread_local.function_hooks
+    except AttributeError:
+        ret = collections.OrderedDict()
+        _thread_local.function_hooks = ret
+    return ret
 
 
 global_config.debug = bool(int(os.environ.get('CHAINER_DEBUG', '0')))
@@ -88,71 +98,7 @@ global_config.train = True
 global_config.type_check = bool(int(os.environ.get('CHAINER_TYPE_CHECK', '1')))
 global_config.use_cudnn = os.environ.get('CHAINER_USE_CUDNN', 'auto')
 global_config.use_cudnn_tensor_core = 'auto'
-
-
-_SHOULD_USE_CUDNN = {
-    '==always': {'always': True, 'auto': False, 'never': False},
-    '>=auto':   {'always': True, 'auto': True,  'never': False},
-}
-
-
-_cudnn_version = cuda.cuda.cudnn.getVersion() if cuda.cudnn_enabled else -1
-
-
-def should_use_cudnn(level, lowest_version=0):
-    """Determines if we should use cuDNN.
-
-    This function checks ``chainer.config.use_cudnn``,
-    ``chainer.cuda.cudnn_enabled``, and the cuDNN version. Note that
-    ``cudnn_enabled`` flag is fixed at loading of :mod:`chainer` module.
-
-    Args:
-        level (str): cuDNN use level. It must be either ``'==always'`` or
-            ``'>=auto'``. ``'==always'`` indicates that the ``use_cudnn``
-            config must be ``'always'`` to use cuDNN.
-        lowest_version (int): Required lowest cuDNN version. It must be
-            non-negative.
-
-    Returns:
-        bool: ``True`` if the caller should use cuDNN.
-
-    """
-    if _cudnn_version < lowest_version:
-        return False
-
-    if level not in _SHOULD_USE_CUDNN:
-        raise ValueError('invalid cuDNN use level: %s '
-                         '(must be either of "==always" or ">=auto")' %
-                         repr(level))
-    flags = _SHOULD_USE_CUDNN[level]
-
-    if config.use_cudnn not in flags:
-        raise ValueError('invalid use_cudnn configuration: %s '
-                         '(must be either of "always", "auto", or "never")' %
-                         repr(config.use_cudnn))
-    return flags[config.use_cudnn]
-
-
-def should_use_cudnn_tensor_core(dtype):
-    """Determines if Tensor Core should be used.
-
-    Args:
-        dtype (numpy.dtype): data type of input tensor.
-
-    Returns:
-        bool: ``True`` if Tensor Core should be used.
-    """
-
-    flags = {'always': True, 'auto': None, 'never': False}
-    if config.use_cudnn_tensor_core not in flags:
-        raise ValueError('invalid use_cudnn_tensor_core configuration: %s '
-                         '(must be either of "always", "auto", or "never")' %
-                         repr(config.use_cudnn))
-    use_tensor_core = flags[config.use_cudnn_tensor_core]
-    if use_tensor_core is None:
-        use_tensor_core = cuda.cudnn.is_tensor_core_available(dtype)
-
-    return use_tensor_core
+global_config.autotune = False
 
 
 def is_debug():
@@ -169,8 +115,8 @@ def set_debug(debug):
 
     .. note::
 
-        This method changes global state. When you use this method on
-        multi-threading environment, it may affects other threads.
+        This method changes the global state. When you use this method on
+        multi-threading environment, it may affect other threads.
 
     Args:
         debug (bool): New debug mode.
@@ -187,7 +133,8 @@ class DebugMode(object):
     mode back to the original value.
 
     .. deprecated:: v2.0.0
-       DebugMode is deprecated. Use ``using_config('debug', debug)`` instead.
+
+        Use :func:`chainer.using_config` instead. See :ref:`debug` for details.
 
     Args:
         debug (bool): Debug mode used in the context.

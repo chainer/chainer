@@ -44,6 +44,8 @@ def main():
                         help='Resume the training from snapshot')
     parser.add_argument('--unit', '-u', type=int, default=1000,
                         help='Number of units')
+    parser.add_argument('--noplot', dest='plot', action='store_false',
+                        help='Disable PlotReport extension')
     args = parser.parse_args()
 
     print('GPU: {}'.format(args.gpu))
@@ -92,7 +94,7 @@ def main():
     trainer.extend(extensions.LogReport())
 
     # Save two plot images to the result dir
-    if extensions.PlotReport.available():
+    if args.plot and extensions.PlotReport.available():
         trainer.extend(
             extensions.PlotReport(['main/loss', 'validation/main/loss'],
                                   'epoch', file_name='loss.png'))

@@ -3,7 +3,7 @@ Standard Function implementations
 
 .. module:: chainer.functions
 
-Chainer provides basic :class:`~chainer.Function` implementations in the
+Chainer provides basic :class:`~chainer.FunctionNode` implementations in the
 :mod:`chainer.functions` package. Most of them are wrapped by plain Python
 functions, which users should use.
 
@@ -136,6 +136,7 @@ Loss functions
    :toctree: generated/
    :nosignatures:
 
+   chainer.functions.absolute_error
    chainer.functions.bernoulli_nll
    chainer.functions.black_out
    chainer.functions.connectionist_temporal_classification
@@ -179,6 +180,8 @@ Mathematical functions
    chainer.functions.cosh
    chainer.functions.cumsum
    chainer.functions.exp
+   chainer.functions.expm1
+   chainer.functions.fix
    chainer.functions.fmod
    chainer.functions.floor
    chainer.functions.identity
@@ -200,6 +203,7 @@ Mathematical functions
    chainer.functions.scale
    chainer.functions.sin
    chainer.functions.sinh
+   chainer.functions.sign
    chainer.functions.sqrt
    chainer.functions.square
    chainer.functions.squared_difference

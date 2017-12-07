@@ -1,10 +1,10 @@
-from chainer import cuda
-from chainer import function
+import chainer
+from chainer.backends import cuda
+from chainer import function_node
 from chainer.utils import type_check
-import numpy
 
 
-class Space2Depth(function.Function):
+class Space2Depth(function_node.FunctionNode):
 
     """Space to depth transformation."""
 
@@ -13,36 +13,33 @@ class Space2Depth(function.Function):
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)
-        type_check.expect(in_types[0].dtype == numpy.float32,
-                          in_types[0].ndim == 4
-                          )
+        type_check.expect(
+            in_types[0].dtype.kind == 'f',
+            in_types[0].ndim == 4
+        )
 
     def forward(self, inputs):
-        self.retain_inputs(())
         X, = inputs
         xp = cuda.get_array_module(X)
         bsize, c, a, b = X.shape
         X = xp.transpose(X, (0, 2, 3, 1))
-        X = xp.reshape(X,
-                       (bsize, a // self.r, self.r, b // self.r, self.r, c)
-                       )
+        X = xp.reshape(
+            X, (bsize, a // self.r, self.r, b // self.r, self.r, c))
         X = xp.transpose(X, (0, 1, 3, 2, 4, 5))
-        X = xp.reshape(X,
-                       (bsize, a // self.r, b // self.r, self.r ** 2 * c)
-                       )
+        X = xp.reshape(
+            X, (bsize, a // self.r, b // self.r, self.r ** 2 * c))
         X = xp.transpose(X, (0, 3, 1, 2))
         return X,
 
-    def backward(self, inputs, grad_outputs):
+    def backward(self, indexes, grad_outputs):
         gy, = grad_outputs
-        xp = cuda.get_array_module(gy)
         bsize, c, a, b = gy.shape
         c //= self.r ** 2
-        gy = xp.transpose(gy, (0, 2, 3, 1))
-        gy = xp.reshape(gy, (bsize, a, b, self.r, self.r, c))
-        gy = xp.transpose(gy, (0, 1, 3, 2, 4, 5))
-        gy = xp.reshape(gy, (bsize, a * self.r, b * self.r, c))
-        gy = xp.transpose(gy, (0, 3, 1, 2))
+        gy = chainer.functions.transpose(gy, (0, 2, 3, 1))
+        gy = chainer.functions.reshape(gy, (bsize, a, b, self.r, self.r, c))
+        gy = chainer.functions.transpose(gy, (0, 1, 3, 2, 4, 5))
+        gy = chainer.functions.reshape(gy, (bsize, a * self.r, b * self.r, c))
+        gy = chainer.functions.transpose(gy, (0, 3, 1, 2))
         return gy,
 
 
@@ -94,4 +91,4 @@ def space2depth(X, r):
                  [ 19.,  21.,  23.]]]], dtype=float32)
 
     """
-    return Space2Depth(r)(X)
+    return Space2Depth(r).apply((X,))[0]

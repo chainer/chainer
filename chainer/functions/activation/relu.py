@@ -1,7 +1,7 @@
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
@@ -74,11 +74,10 @@ class ReLUGrad2(function_node.FunctionNode):
         return utils.force_array(y, dtype=y.dtype),
 
     def forward_gpu(self, inputs):
-        b = cuda.to_gpu(self.b)
         gx = cuda.elementwise(
             'T y, T gy', 'T gx',
             'gx = y > 0 ? gy : (T)0',
-            'relu_bwd')(b, inputs[0])
+            'relu_bwd')(self.b, inputs[0])
         return gx,
 
     def backward(self, indexes, gy):
@@ -106,10 +105,8 @@ class ReLUGrad3(function_node.FunctionNode):
         return (self.b > 0) * inputs[0],
 
     def forward_gpu(self, inputs):
-        a = cuda.to_gpu(self.a)
-        b = cuda.to_gpu(self.b)
         assert chainer.should_use_cudnn('==always')
-        return cudnn.activation_backward(a, b, inputs[0], _mode),
+        return cudnn.activation_backward(self.a, self.b, inputs[0], _mode),
 
     def backward(self, indexes, gy):
         return gy[0] * _heaviside(self.b),

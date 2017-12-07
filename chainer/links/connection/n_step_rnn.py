@@ -1,7 +1,7 @@
 import numpy
 import six
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer.functions.array import permutate
 from chainer.functions.array import transpose_sequence
 from chainer.functions.connection import n_step_rnn as rnn
@@ -117,7 +117,7 @@ class NStepRNNBase(link.ChainList):
         Args:
             hx (~chainer.Variable or None): Initial hidden states. If ``None``
                 is specified zero-vector is used.
-            xs (list of ~chianer.Variable): List of input sequences.
+            xs (list of ~chainer.Variable): List of input sequences.
                 Each element ``xs[i]`` is a :class:`chainer.Variable` holding
                 a sequence.
         """
@@ -127,13 +127,15 @@ class NStepRNNBase(link.ChainList):
         argument.assert_kwargs_empty(kwargs)
 
         assert isinstance(xs, (list, tuple))
+        xp = cuda.get_array_module(hx, *xs)
         indices = argsort_list_descent(xs)
+        indices_array = xp.array(indices)
 
         xs = permutate_list(xs, indices, inv=False)
         if hx is None:
             hx = self.init_hx(xs)
         else:
-            hx = permutate.permutate(hx, indices, axis=1, inv=False)
+            hx = permutate.permutate(hx, indices_array, axis=1, inv=False)
 
         trans_x = transpose_sequence.transpose_sequence(xs)
 
@@ -144,7 +146,7 @@ class NStepRNNBase(link.ChainList):
             self.n_layers, self.dropout, hx, ws, bs, trans_x,
             activation=self.activation)
 
-        hy = permutate.permutate(hy, indices, axis=1, inv=True)
+        hy = permutate.permutate(hy, indices_array, axis=1, inv=True)
         ys = transpose_sequence.transpose_sequence(trans_y)
         ys = permutate_list(ys, indices, inv=True)
 

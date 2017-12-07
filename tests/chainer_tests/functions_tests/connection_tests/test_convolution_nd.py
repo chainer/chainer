@@ -22,12 +22,14 @@ from chainer.utils import conv
     'c_contiguous': [True],
     'x_dtype': [numpy.float32],
     'W_dtype': [numpy.float32],
+    'autotune': [True, False],
 }) + testing.product({
     'dims': [(4,)],
     'cover_all': [False],
     'c_contiguous': [False],
     'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'W_dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'autotune': [False],
 })))
 class TestConvolutionND(unittest.TestCase):
 
@@ -52,7 +54,8 @@ class TestConvolutionND(unittest.TestCase):
         self.gy = numpy.random.uniform(-1, 1, gy_shape).astype(self.x_dtype)
 
         self.check_forward_options = {}
-        self.check_backward_options = {'dtype': numpy.float64}
+        self.check_backward_options = {
+            'dtype': numpy.float64, 'atol': 3e-5, 'rtol': 3e-4}
         if self.x_dtype == numpy.float16 or self.W_dtype == numpy.float16:
             self.check_forward_options = {'atol': 5e-4, 'rtol': 5e-3}
             self.check_backward_options = {
@@ -70,9 +73,10 @@ class TestConvolutionND(unittest.TestCase):
         W_gpu = chainer.Variable(cuda.to_gpu(self.W))
         b_gpu = None if nobias else chainer.Variable(cuda.to_gpu(self.b))
         with chainer.using_config('use_cudnn', use_cudnn):
-            y_gpu = functions.convolution_nd(
-                x_gpu, W_gpu, b_gpu, stride=self.stride, pad=self.pad,
-                cover_all=self.cover_all)
+            with chainer.using_config('autotune', self.autotune):
+                y_gpu = functions.convolution_nd(
+                    x_gpu, W_gpu, b_gpu, stride=self.stride, pad=self.pad,
+                    cover_all=self.cover_all)
 
         testing.assert_allclose(
             y_cpu.data, y_gpu.data, **self.check_forward_options)
@@ -141,10 +145,11 @@ class TestConvolutionND(unittest.TestCase):
 
         ndim = len(self.dims)
         with chainer.using_config('use_cudnn', use_cudnn):
-            gradient_check.check_backward(
-                convolution_nd.ConvolutionND(
-                    ndim, self.stride, self.pad, self.cover_all),
-                args, y_grad, **self.check_backward_options)
+            with chainer.using_config('autotune', self.autotune):
+                gradient_check.check_backward(
+                    convolution_nd.ConvolutionND(
+                        ndim, self.stride, self.pad, self.cover_all),
+                    args, y_grad, **self.check_backward_options)
 
     @condition.retry(3)
     def test_backward_cpu(self):
