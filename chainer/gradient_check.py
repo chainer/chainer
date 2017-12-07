@@ -33,8 +33,8 @@ def numerical_grad(
     ``eps``.
 
     Args:
-        f (callable): Python function with no arguments\
-        that runs forward computation and returns the result.
+        f (callable): Python function with no arguments that runs forward
+            computation and returns the result.
         inputs (tuple of arrays): Tuple of arrays that should be treated as
             inputs. Each element of them is slightly modified to realize
             numerical gradient by finite differences.
@@ -67,7 +67,6 @@ def numerical_grad(
 
     Returns:
         tuple: Numerical gradient arrays corresponding to ``inputs``.
-
 
     """
     assert eps > 0
