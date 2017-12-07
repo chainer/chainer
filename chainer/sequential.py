@@ -2,11 +2,11 @@ import copy
 import functools
 import inspect
 
-import chainer
 from chainer import function
+from chainer import link
 
 
-class Sequential(chainer.ChainList):
+class Sequential(link.ChainList):
 
     """Sequential model which has a single-stream forward pass.
 
@@ -26,7 +26,7 @@ class Sequential(chainer.ChainList):
 
           import chainer
           import chainer.functions as F
-          import chainer.links as L
+          import link.Links as L
           from chainer import Sequential
 
           # Model definition without writing __call__ function
@@ -56,7 +56,7 @@ class Sequential(chainer.ChainList):
         You can also add your own functions or any callable objects to a
         :class:`~Sequential` object::
 
-          from chainer.links.model.vision.vgg import VGG16Layers()
+          from link.Links.model.vision.vgg import VGG16Layers()
 
           model = Sequential()
           model.append(L.Linear(n_out, n_hidden))
@@ -106,9 +106,9 @@ class Sequential(chainer.ChainList):
 
     def __delitem__(self, i):
         layer = self._layers.pop(i)
-        if isinstance(layer, chainer.Link):
-            for i, link in enumerate(self._children):
-                if link is layer:
+        if isinstance(layer, link.Link):
+            for i, _link in enumerate(self._children):
+                if _link is layer:
                     del self._children[i]
                     break
 
@@ -207,15 +207,15 @@ class Sequential(chainer.ChainList):
             if isinstance(layer, Sequential):
                 name = layer.__class__.__name__
                 name += '\twhich has {} layers'.format(len(layer))
-            elif isinstance(layer, chainer.Chain):
+            elif isinstance(layer, link.Chain):
                 name = layer.__class__.__name__
                 name += '\tThe structure behind a Chain is determined at '
                 name += 'runtime.'
-            elif isinstance(layer, chainer.ChainList):
+            elif isinstance(layer, link.ChainList):
                 name = layer.__class__.__name__
                 name += '\tThe structure behind a ChainList is determined at '
                 name += 'runtime.'
-            elif isinstance(layer, chainer.Link):
+            elif isinstance(layer, link.Link):
                 name = layer.__class__.__name__
                 param_info = '\t'
                 for param in sorted(layer.params(), key=lambda p: p.name):
@@ -251,7 +251,7 @@ class Sequential(chainer.ChainList):
                 'given {} is not callable.'.format(layer))
 
         self._layers.insert(i, layer)
-        if isinstance(layer, chainer.Link):
+        if isinstance(layer, link.Link):
             self.add_link(layer)
 
     def remove(self, layer):
@@ -279,7 +279,7 @@ class Sequential(chainer.ChainList):
 
         names = []
         for layer in self:
-            if isinstance(layer, chainer.Link):
+            if isinstance(layer, link.Link):
                 name = layer.__class__.__name__
             else:
                 name = layer.__name__
@@ -294,7 +294,7 @@ class Sequential(chainer.ChainList):
         return layer
 
     def clear(self):
-        for i, link in enumerate(self._children):
+        for i, _ in enumerate(self._children):
             del self._children[i]
         self._layers = []
 
@@ -323,7 +323,7 @@ class Sequential(chainer.ChainList):
 
         num = 0
         for layer in self._layers:
-            if isinstance(layer, chainer.Link):
+            if isinstance(layer, link.Link):
                 if layer.__class__.__name__ == type_name:
                     num += 1
             else:
@@ -334,7 +334,7 @@ class Sequential(chainer.ChainList):
     def copy(self):
         ret = Sequential()
         for layer in self:
-            if isinstance(layer, chainer.Link):
+            if isinstance(layer, link.Link):
                 ret.append(layer.copy())
             else:
                 ret.append(copy.copy(layer))

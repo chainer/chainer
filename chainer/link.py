@@ -6,6 +6,7 @@ import warnings
 import numpy
 import six
 
+import chainer
 from chainer import cuda
 from chainer import initializers
 from chainer import variable
@@ -560,16 +561,16 @@ Assign a Parameter object directly to an attribute within a \
             d[name] = serializer(name, d[name])
 
     def repeat(self, n_repeat, mode='init'):
-        """Repeat myself multiple times to make a :class:`~chainer.ChainList`.
+        """Repeat myself multiple times to make a :class:`~chainer.Sequential`.
 
-        This method returns a :class:`~chainer.ChainList` object which has
+        This method returns a :class:`~chainer.Sequential` object which has
         a same :class:`~chainer.Link` multiple times repeatedly. The ``mode``
         argument means how to copy myself to repeat.
 
         .. admonition:: Example
 
             You can repeat a same link multiple times to create longer
-            :class:`~chainer.ChainList` block like this:
+            :class:`~chainer.Sequential` block like this:
 
                 class ConvBNReLU(chainer.Chain):
 
@@ -579,10 +580,10 @@ Assign a Parameter object directly to an attribute within a \
                             self.conv = L.Convolution2D(
                                 None, 64, 3, 1, 1, nobias=True)
                             self.bn = L.BatchNormalization(64)
-                    
+
                     def __call__(self, x):
                         return F.relu(self.bn(self.conv(x)))
-                
+
                 net = ConvBNReLU().repeat(16, mode='init')
 
             The ``net`` object contains 16 blocks, each of which is
@@ -599,24 +600,24 @@ Assign a Parameter object directly to an attribute within a \
             n_repeat (int): Number of times to repeat.
             mode (str): It should be either ``init``, ``copy``, or ``share``.
                 ``init`` means paramters of each repeated element in the
-                returned :class:`~chainer.ChainList` will be re-initialized,
+                returned :class:`~chainer.Sequential` will be re-initialized,
                 so that all elements have different initial parameters.
                 ``copy`` means that the parameters will not be re-initialized
                 but object itself will be deep-copied, so that all elements
                 have same initial parameters but can be changed independently.
                 ``share`` means all the elements which construct the resulting
-                :class:`~chainer.ChainList` object are same object because they
-                are shallow-copied, so that all parameters of elements change
-                synchronously.
+                :class:`~chainer.Sequential` object are same object because
+                they are shallow-copied, so that all parameters of elements
+                share each other.
 
         """
+        ret = chainer.Sequential()
         if n_repeat <= 0:
-            return ChainList()
+            return ret
         if mode not in ['init', 'copy', 'share']:
             raise ValueError(
                 'The \'mode\' argument should be either \'init\','
                 '\'copy\', or \'share\'. But {} was given.'.format(mode))
-        ret = ChainList()
         link = self
         for _ in range(n_repeat):
             if mode in ['init', 'copy']:
@@ -624,7 +625,7 @@ Assign a Parameter object directly to an attribute within a \
             if mode == 'init':
                 for param in link.params(include_uninit=False):
                     param.initialize(param.shape)
-            ret.add_link(link)
+            ret.append(link)
         return ret
 
 
