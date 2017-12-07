@@ -559,6 +559,75 @@ Assign a Parameter object directly to an attribute within a \
         for name in self._persistent:
             d[name] = serializer(name, d[name])
 
+    def repeat(self, n_repeat, mode='init'):
+        """Repeat myself multiple times to make a :class:`~chainer.ChainList`.
+
+        This method returns a :class:`~chainer.ChainList` object which has
+        a same :class:`~chainer.Link` multiple times repeatedly. The ``mode``
+        argument means how to copy myself to repeat.
+
+        .. admonition:: Example
+
+            You can repeat a same link multiple times to create longer
+            :class:`~chainer.ChainList` block like this:
+
+                class ConvBNReLU(chainer.Chain):
+
+                    def __init__(self):
+                        super(ConvBNReLU, self).__init__()
+                        with self.init_scope():
+                            self.conv = L.Convolution2D(
+                                None, 64, 3, 1, 1, nobias=True)
+                            self.bn = L.BatchNormalization(64)
+                    
+                    def __call__(self, x):
+                        return F.relu(self.bn(self.conv(x)))
+                
+                net = ConvBNReLU().repeat(16, mode='init')
+
+            The ``net`` object contains 16 blocks, each of which is
+            ``ConvBNReLU``. And the ``mode`` was ``init``, so each block
+            is re-initialized with different parameters. If you give
+            ``copy`` to this argument, each block has same values for its
+            paramters but its object ID is different from others. If it is
+            ``share``, each block is same to others in terms of not only
+            paramters but also the object IDs because they are shallow-copied,
+            so that when the parameter of one block is changed, all the
+            parameters in the others also change.
+
+        Args:
+            n_repeat (int): Number of times to repeat.
+            mode (str): It should be either ``init``, ``copy``, or ``share``.
+                ``init`` means paramters of each repeated element in the
+                returned :class:`~chainer.ChainList` will be re-initialized,
+                so that all elements have different initial parameters.
+                ``copy`` means that the parameters will not be re-initialized
+                but object itself will be deep-copied, so that all elements
+                have same initial parameters but can be changed independently.
+                ``share`` means all the elements which construct the resulting
+                :class:`~chainer.ChainList` object are same object because they
+                are shallow-copied, so that all parameters of elements change
+                synchronously.
+
+        """
+        if n_repeat <= 0:
+            return ChainList()
+        if mode not in ['init', 'copy', 'share']:
+            raise ValueError(
+                'The \'mode\' argument should be either \'init\','
+                '\'copy\', or \'share\'. But {} was given.'.format(mode))
+        ret = ChainList()
+        for _ in range(n_repeat):
+            if mode in ['init', 'copy']:
+                layer = copy.deepcopy(self)
+            if mode == 'init':
+                for param in self.params(include_uninit=False):
+                    param.initialize(param.shape)
+            else:
+                layer = copy.copy(self)
+            ret.add_link(layer)
+        return ret
+
 
 class Chain(Link):
 
