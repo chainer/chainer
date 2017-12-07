@@ -1,7 +1,6 @@
 from chainer.optimizers import ada_delta  # NOQA
 from chainer.optimizers import ada_grad  # NOQA
 from chainer.optimizers import adam  # NOQA
-from chainer.optimizers import adam_weight_decay  # NOQA
 from chainer.optimizers import momentum_sgd  # NOQA
 from chainer.optimizers import nesterov_ag  # NOQA
 from chainer.optimizers import rmsprop  # NOQA
@@ -14,7 +13,6 @@ from chainer.optimizers import smorms3  # NOQA
 from chainer.optimizers.ada_delta import AdaDelta  # NOQA
 from chainer.optimizers.ada_grad import AdaGrad  # NOQA
 from chainer.optimizers.adam import Adam  # NOQA
-from chainer.optimizers.adam_weight_decay import AdamWeightDecay  # NOQA
 from chainer.optimizers.momentum_sgd import MomentumSGD  # NOQA
 from chainer.optimizers.nesterov_ag import NesterovAG  # NOQA
 from chainer.optimizers.rmsprop import RMSprop  # NOQA
