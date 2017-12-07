@@ -3,7 +3,7 @@ import math
 
 import numpy as np
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import optimizer
 
 
