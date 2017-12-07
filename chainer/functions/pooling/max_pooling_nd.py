@@ -124,7 +124,7 @@ class MaxPoolingND(pooling_nd._PoolingND):
             cuda.cuda.cudnn.CUDNN_POOLING_MAX)
 
 
-def max_pooling_nd(x, ksize, stride=None, pad=0, cover_all=True):
+def max_pooling(x, ksize, stride=None, pad=0, cover_all=True):
     """N-dimensionally spatial max pooling function.
 
     .. warning::
@@ -132,8 +132,10 @@ def max_pooling_nd(x, ksize, stride=None, pad=0, cover_all=True):
         This feature is experimental. The interface can change in the future.
 
     This function provides a N-dimensionally generalized version of
-    :func:`~functions.max_pooling_2d`. This acts similarly to
-    :class:`~functions.ConvolutionND`, but it computes the maximum of input
+    :func:`F.max_pooling_2d() <chainer.functions.max_pooling_2d>`.
+    This acts similarly to
+    :class:`F.convolution_nd() <chainer.functions.convolution_nd>`,
+    but it computes the maximum of input
     spatial patch for each channel without any parameter instead of computing
     the inner products.
 
@@ -156,3 +158,15 @@ def max_pooling_nd(x, ksize, stride=None, pad=0, cover_all=True):
     """
     ndim = len(x.shape[2:])
     return MaxPoolingND(ndim, ksize, stride, pad, cover_all)(x)
+
+
+def max_pooling_nd(x, ksize, stride=None, pad=0, cover_all=True):
+    """N-dimensionally spatial max pooling function.
+
+    .. deprecated:: v3.0.0
+
+        Thie feature is deprecated.
+        Use :func:`F.max_pooling() <chainer.functions.max_pooling>` instead.
+    """
+
+    return max_pooling(x, ksize, stride, pad, cover_all)

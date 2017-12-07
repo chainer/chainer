@@ -283,6 +283,7 @@ from chainer.functions.pooling.average_pooling_nd import average_pooling_nd  # N
 from chainer.functions.pooling.average_pooling_nd import AveragePoolingND  # NOQA
 from chainer.functions.pooling.max_pooling_2d import max_pooling_2d  # NOQA
 from chainer.functions.pooling.max_pooling_2d import MaxPooling2D  # NOQA
+from chainer.functions.pooling.max_pooling_nd import max_pooling  # NOQA
 from chainer.functions.pooling.max_pooling_nd import max_pooling_nd  # NOQA
 from chainer.functions.pooling.max_pooling_nd import MaxPoolingND  # NOQA
 from chainer.functions.pooling.roi_pooling_2d import roi_pooling_2d  # NOQA
