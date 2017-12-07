@@ -617,15 +617,14 @@ Assign a Parameter object directly to an attribute within a \
                 'The \'mode\' argument should be either \'init\','
                 '\'copy\', or \'share\'. But {} was given.'.format(mode))
         ret = ChainList()
+        link = self
         for _ in range(n_repeat):
             if mode in ['init', 'copy']:
-                layer = copy.deepcopy(self)
+                link = copy.deepcopy(link)
             if mode == 'init':
-                for param in self.params(include_uninit=False):
+                for param in link.params(include_uninit=False):
                     param.initialize(param.shape)
-            else:
-                layer = copy.copy(self)
-            ret.add_link(layer)
+            ret.add_link(link)
         return ret
 
 

@@ -426,6 +426,86 @@ class TestLink(unittest.TestCase):
         self.link.enable_update()
         self.assertTrue(self.link.update_enabled)
 
+    def test_no_repeat(self):
+        ret = self.link.repeat(0)
+        self.assertEqual(len(ret), 0)
+
+    def test_repeat_with_init(self):
+        self.link.x.initializer = chainer.initializers.Normal()
+        self.link.x.initialize(self.link.x.shape)
+        ret = self.link.repeat(2, mode='init')
+        self.assertEqual(len(ret), 2)
+        # Both should be different objects from the original link
+        self.assertIsNot(ret[0], self.link)
+        self.assertIsNot(ret[1], self.link)
+        # Object IDs of elements should be different
+        self.assertIsNot(ret[0], ret[1])
+        self.assertIsNot(ret[0].x, ret[1].x)
+        self.assertIsNot(ret[0].u, ret[1].u)
+        self.assertIsNot(ret[0].y, ret[1].y)
+        self.assertIsNot(ret[0].v, ret[1].v)
+        # But shape and type of paratmeres shuld be same
+        self.assertEqual(ret[0].x.shape, self.link.x.shape)
+        self.assertEqual(ret[0].x.dtype, self.link.x.dtype)
+        self.assertEqual(ret[0].y.shape, self.link.y.shape)
+        self.assertEqual(ret[0].y.dtype, self.link.y.dtype)
+        self.assertEqual(ret[0].x.shape, ret[1].x.shape)
+        self.assertEqual(ret[0].x.dtype, ret[1].x.dtype)
+        self.assertEqual(ret[0].y.shape, ret[1].y.shape)
+        self.assertEqual(ret[0].y.dtype, ret[1].y.dtype)
+        # Parameters are re-initialized, so the values should be different
+        self.assertFalse(numpy.all(ret[0].x.array == ret[1].x.array))
+
+    def test_repeat_with_copy(self):
+        self.link.x.initializer = chainer.initializers.Normal()
+        self.link.x.initialize(self.link.x.shape)
+        ret = self.link.repeat(2, mode='copy')
+        self.assertEqual(len(ret), 2)
+        # Both should be different objects from the original link
+        self.assertIsNot(ret[0], self.link)
+        self.assertIsNot(ret[1], self.link)
+        # Object IDs of elements should be different
+        self.assertIsNot(ret[0], ret[1])
+        self.assertIsNot(ret[0].x, ret[1].x)
+        self.assertIsNot(ret[0].u, ret[1].u)
+        self.assertIsNot(ret[0].y, ret[1].y)
+        self.assertIsNot(ret[0].v, ret[1].v)
+        # But shape, type, and value of paratmeres shuld be same
+        self.assertEqual(ret[0].x.shape, self.link.x.shape)
+        self.assertEqual(ret[0].x.dtype, self.link.x.dtype)
+        self.assertEqual(ret[0].y.shape, self.link.y.shape)
+        self.assertEqual(ret[0].y.dtype, self.link.y.dtype)
+        self.assertEqual(ret[0].x.shape, ret[1].x.shape)
+        self.assertEqual(ret[0].x.dtype, ret[1].x.dtype)
+        self.assertEqual(ret[0].y.shape, ret[1].y.shape)
+        self.assertEqual(ret[0].y.dtype, ret[1].y.dtype)
+        numpy.testing.assert_array_equal(ret[0].x.array, ret[1].x.array)
+
+    def test_repeat_with_share(self):
+        self.link.x.initializer = chainer.initializers.Normal()
+        self.link.x.initialize(self.link.x.shape)
+        ret = self.link.repeat(2, mode='share')
+        self.assertEqual(len(ret), 2)
+        # Both should be different objects from the original link
+        self.assertIs(ret[0], self.link)
+        self.assertIs(ret[1], self.link)
+        # Object IDs of elements should be same
+        self.assertIs(ret[0], ret[1])
+        self.assertIs(ret[0].x, ret[1].x)
+        self.assertIs(ret[0].u, ret[1].u)
+        self.assertIs(ret[0].y, ret[1].y)
+        self.assertIs(ret[0].v, ret[1].v)
+        # But shape, type, and value of paratmeres shuld be same
+        self.assertEqual(ret[0].x.shape, self.link.x.shape)
+        self.assertEqual(ret[0].x.dtype, self.link.x.dtype)
+        self.assertEqual(ret[0].y.shape, self.link.y.shape)
+        self.assertEqual(ret[0].y.dtype, self.link.y.dtype)
+        self.assertEqual(ret[0].x.shape, ret[1].x.shape)
+        self.assertEqual(ret[0].x.dtype, ret[1].x.dtype)
+        self.assertEqual(ret[0].y.shape, ret[1].y.shape)
+        self.assertEqual(ret[0].y.dtype, ret[1].y.dtype)
+        numpy.testing.assert_array_equal(ret[0].x.array, ret[1].x.array)
+
 
 class CountParameter(chainer.Parameter):
 
