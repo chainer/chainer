@@ -432,14 +432,43 @@ class Optimizer(object):
         though the timing depends on the optimization method.
 
         Args:
-            hook (callable):\
-            Hook function. If ``hook.call_for_each_param`` is
+            hook (callable): Hook function. If ``hook.call_for_each_param`` is
                 true, this hook function is called for each parameter by
                 passing the update rule and the parameter. Otherwise, this hook
                 function is called only once each iteration by passing the
                 optimizer.
             name (str): Name of the registration. If omitted, ``hook.name`` is
                 used by default.
+
+        """
+        if not callable(hook):
+            raise TypeError('hook function is not callable')
+        if not hasattr(self, '_hooks'):
+            raise RuntimeError('call `setup` method before `add_hook` method')
+
+        if name is None:
+            name = hook.name
+        if name in self._hooks:
+            raise KeyError('hook %s already exists' % name)
+        self._hooks[name] = hook
+
+    def remove_hook(self, name):
+        """Removes a hook function.
+
+        Args:
+            name (str): Registered name of the hook function to remove.
+
+        """
+        del self._hooks[name]
+
+    def call_hooks(self):
+        """Invokes hook functions in registration order."""
+        for hook in six.itervalues(self._hooks):
+            self._call_hook(hook)
+
+    def _call_hook(self, hook):
+        if getattr(hook, 'call_for_each_param', False):
+            for param in self.target.params():
                 hook(param.update_rule, param)
         else:
             hook(self)
@@ -754,8 +783,7 @@ class GradientNoise(object):
         eta (float): Parameter that defines the scale of the noise, which for
             the default noise function is recommended to be either 0.01, 0.3
             or 1.0.
-        noise_func (callable):\
-        Noise generating function which by default
+        noise_func (callable): Noise generating function which by default
             is given by `Adding Gradient Noise Improves Learning for Very Deep\
             Networks <https://arxiv.org/pdf/1511.06807>`_.
 
