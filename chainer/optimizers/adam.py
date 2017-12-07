@@ -70,6 +70,11 @@ class AdamRule(optimizer.UpdateRule):
         if grad is None:
             return
         hp = self.hyperparam
+        eps = grad.dtype.type(hp.eps)
+        if hp.eps != 0 and eps == 0:
+            raise ValueError(
+                'eps of Adam optimizer is too small for {} ({})'.format(
+                    grad.dtype.name, hp.eps))
         m, v = self.state['m'], self.state['v']
 
         m += (1 - hp.beta1) * (grad - m)
@@ -81,6 +86,13 @@ class AdamRule(optimizer.UpdateRule):
         grad = param.grad
         if grad is None:
             return
+
+        hp = self.hyperparam
+        eps = grad.dtype.type(hp.eps)
+        if hp.eps != 0 and eps == 0:
+            raise ValueError(
+                'eps of Adam optimizer is too small for {} ({})'.format(
+                    grad.dtype.name, hp.eps))
         cuda.elementwise(
             'T grad, T lr, T one_minus_beta1, T one_minus_beta2, T eps, T eta, \
              T weight_decay_rate',
@@ -89,9 +101,9 @@ class AdamRule(optimizer.UpdateRule):
                v += one_minus_beta2 * (grad * grad - v);
                param -= eta * (lr * m / (sqrt(v) + eps) +
                                weight_decay_rate * param);''',
-            'adam')(grad, self.lr, 1 - self.hyperparam.beta1,
-                    1 - self.hyperparam.beta2, self.hyperparam.eps,
-                    self.hyperparam.eta, self.hyperparam.weight_decay_rate,
+            'adam')(grad, self.lr, 1 - hp.beta1,
+                    1 - hp.beta2, hp.eps,
+                    hp.eta, hp.weight_decay_rate,
                     param.data, self.state['m'], self.state['v'])
 
     @property
@@ -127,9 +139,9 @@ class Adam(optimizer.GradientMethod):
                  beta2=_default_hyperparam.beta2,
                  eps=_default_hyperparam.eps,
                  eta=_default_hyperparam.eta,
-                 weight_decay_rate=_default_hyperparam.weight_decay_rate
-                 ):
-        super(Adam, self).__init__()
+                 weight_decay_rate=_default_hyperparam.weight_decay_rate,
+                 model=None):
+        super(Adam, self).__init__(model)
 
         self.hyperparam.alpha = alpha
         self.hyperparam.beta1 = beta1
