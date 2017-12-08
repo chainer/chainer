@@ -1,12 +1,11 @@
 from __future__ import print_function
-
 import argparse
 import json
-import numpy as np
 
 import chainer
 from chainer.dataset.convert import concat_examples
 from chainer import serializers
+import numpy as np
 
 import nets
 
@@ -68,7 +67,7 @@ def main():
                 with chainer.using_config('train', False):
                     for batch in test_iter:
                         x, t = concat_examples(batch, args.gpu)
-                        loss = model(x, t)
+                        model(x, t)
                     result = model.pop_results()
                     report(train_iter.epoch, result)
             if result['accuracy'] > best:

@@ -1,5 +1,3 @@
-import numpy as np
-
 import chainer
 from chainer import cuda
 import chainer.functions as F
@@ -127,9 +125,9 @@ class CapsNet(chainer.Chain):
     def reconstruct(self, vs, t):
         xp = self.xp
         batchsize = t.shape[0]
-        I = xp.arange(batchsize)
+        ar = xp.arange(batchsize)
         mask = xp.zeros(vs.shape, dtype='f')
-        mask[I, :, t] = 1.
+        mask[ar, :, t] = 1.
         masked_vs = mask * vs
 
         x_recon = F.sigmoid(
@@ -151,11 +149,11 @@ class CapsNet(chainer.Chain):
     def calculate_classification_loss(self, vs_norm, t):
         xp = self.xp
         batchsize = t.shape[0]
-        I = xp.arange(batchsize)
+        ar = xp.arange(batchsize)
         T = xp.zeros(vs_norm.shape, dtype='f')
-        T[I, t] = 1.
+        T[ar, t] = 1.
         m = xp.full(vs_norm.shape, 0.1, dtype='f')
-        m[I, t] = 0.9
+        m[ar, t] = 0.9
 
         loss = T * F.relu(m - vs_norm) ** 2 + \
             0.5 * (1. - T) * F.relu(vs_norm - m) ** 2
