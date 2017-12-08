@@ -137,10 +137,22 @@ if cuda.cudnn_enabled and _cudnn_version >= 5000:
         libcudnn.CUDNN_LSTM: True,
     }
 
+_rnn_persistent_algo = None
+if cuda.cudnn_enabled and _cudnn_version >= 6000:
+    _rnn_persistent_algo = {
+        'standard': libcudnn.CUDNN_RNN_ALGO_STANDARD,
+        'static': libcudnn.CUDNN_RNN_ALGO_PERSIST_STATIC,
+        'dynamic': libcudnn.CUDNN_RNN_ALGO_PERSIST_DYNAMIC,
+    }
+
+_prev_batchsize = -1
+_rnn_plan = None
+
 
 class BaseNStepRNN(function.Function):
 
-    def __init__(self, n_layers, states, rnn_dir, rnn_mode, **kwargs):
+    def __init__(self, n_layers, states, rnn_dir, rnn_mode, rnn_algo,
+                 **kwargs):
         argument.check_unexpected_kwargs(
             kwargs, train='train argument is not supported anymore. '
             'Use chainer.using_config')
@@ -154,8 +166,20 @@ class BaseNStepRNN(function.Function):
             candidate_list = ','.join(_rnn_modes.keys())
             raise ValueError('Invalid rnn_mode: "%s". Please select from [%s]'
                              % (rnn_mode, candidate_list))
+
+        is_enable_cudnn_v6 = isinstance(_rnn_persistent_algo, dict)
+        if is_enable_cudnn_v6 and rnn_algo not in _rnn_persistent_algo:
+            candidate_list = ','.join(_rnn_persistent_algo.keys())
+            raise ValueError('Invalid rnn_algo: "%s". Please select from [%s]'
+                             % (rnn_algo, candidate_list))
+            _rnn_algo = _rnn_persistent_algo[rnn_algo]
+        else:
+            _rnn_algo = None
+
         self.rnn_dir = _rnn_dirs[rnn_dir]
         self.rnn_mode = _rnn_modes[rnn_mode]
+        # TODO(aonotas) check `_rnn_persistent_algo` can be used in v5 (< v6)
+        self.rnn_algo = _rnn_algo
         self.rnn_direction = _rnn_params_direction[self.rnn_dir]
         self.n_layers = n_layers
         self.states = states
@@ -296,8 +320,19 @@ class BaseNStepRNN(function.Function):
         # TODO(unno): Make a wrapper method to avoid access _desc directly
         rnn_desc = cudnn.create_rnn_descriptor(
             n_units, self.n_layers, self.states._desc,
-            libcudnn.CUDNN_LINEAR_INPUT, self.rnn_dir,
-            self.rnn_mode, libcudnn.CUDNN_DATA_FLOAT)
+            libcudnn.CUDNN_LINEAR_INPUT, self.rnn_dir, self.rnn_mode,
+            libcudnn.CUDNN_DATA_FLOAT, algo=self.rnn_algo)
+
+        if self.rnn_algo == libcudnn.CUDNN_RNN_ALGO_PERSIST_DYNAMIC:
+            batchsize = len(x_list[0])
+            global _prev_batchsize
+            global _rnn_plan
+            if _prev_batchsize != batchsize or _rnn_plan is None:
+                _rnn_plan = cudnn.create_rnn_persistent_rnn_plan(
+                    rnn_desc, batchsize, libcudnn.CUDNN_DATA_FLOAT)
+                _prev_batchsize = batchsize
+
+            cudnn.set_rnn_persistent_rnn_plan(rnn_desc, _rnn_plan)
         self.rnn_desc = rnn_desc
 
         c_x_descs = _make_tensor_descriptor_array(x_list)
@@ -487,34 +522,35 @@ class BaseNStepRNN(function.Function):
 
 class NStepRNNTanh(BaseNStepRNN):
 
-    def __init__(self, n_layers, states, **kwargs):
+    def __init__(self, n_layers, states, rnn_algo='standard', **kwargs):
         BaseNStepRNN.__init__(self, n_layers, states, rnn_dir='uni',
-                              rnn_mode='rnn_tanh', **kwargs)
+                              rnn_mode='rnn_tanh', rnn_algo=rnn_algo, **kwargs)
 
 
 class NStepRNNReLU(BaseNStepRNN):
 
-    def __init__(self, n_layers, states, **kwargs):
+    def __init__(self, n_layers, states, rnn_algo='standard', **kwargs):
         BaseNStepRNN.__init__(self, n_layers, states, rnn_dir='uni',
-                              rnn_mode='rnn_relu', **kwargs)
+                              rnn_mode='rnn_relu', rnn_algo=rnn_algo, **kwargs)
 
 
 class NStepBiRNNTanh(BaseNStepRNN):
 
-    def __init__(self, n_layers, states, **kwargs):
+    def __init__(self, n_layers, states, rnn_algo='standard', **kwargs):
         BaseNStepRNN.__init__(self, n_layers, states, rnn_dir='bi',
-                              rnn_mode='rnn_tanh', **kwargs)
+                              rnn_mode='rnn_tanh', rnn_algo=rnn_algo, **kwargs)
 
 
 class NStepBiRNNReLU(BaseNStepRNN):
 
-    def __init__(self, n_layers, states, **kwargs):
+    def __init__(self, n_layers, states, rnn_algo='standard', **kwargs):
         BaseNStepRNN.__init__(self, n_layers, states, rnn_dir='bi',
-                              rnn_mode='rnn_relu', **kwargs)
+                              rnn_mode='rnn_relu', rnn_algo=rnn_algo, **kwargs)
 
 
 def n_step_rnn(
-        n_layers, dropout_ratio, hx, ws, bs, xs, activation='tanh', **kwargs):
+        n_layers, dropout_ratio, hx, ws, bs, xs, activation='tanh',
+        rnn_algo='standard', **kwargs):
     """n_step_rnn(n_layers, dropout_ratio, hx, ws, bs, xs, activation='tanh')
 
     Stacked Uni-directional RNN function for sequence inputs.
@@ -604,11 +640,13 @@ def n_step_rnn(
 
     """
     return n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
-                           activation, use_bi_direction=False, **kwargs)
+                           activation, use_bi_direction=False,
+                           rnn_algo=rnn_algo, **kwargs)
 
 
 def n_step_birnn(
-        n_layers, dropout_ratio, hx, ws, bs, xs, activation='tanh', **kwargs):
+        n_layers, dropout_ratio, hx, ws, bs, xs, activation='tanh',
+        rnn_algo='standard', **kwargs):
     """n_step_birnn(n_layers, dropout_ratio, hx, ws, bs, xs, activation='tanh')
 
     Stacked Bi-directional RNN function for sequence inputs.
@@ -714,11 +752,12 @@ def n_step_birnn(
 
     """
     return n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
-                           activation, use_bi_direction=True)
+                           activation, use_bi_direction=True,
+                           rnn_algo=rnn_algo, **kwargs)
 
 
 def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
-                    activation, use_bi_direction, **kwargs):
+                    activation, use_bi_direction, rnn_algo, **kwargs):
     """n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs, activation, use_bi_direction)
 
     Base function for Stack RNN/BiRNN functions.
@@ -815,15 +854,15 @@ def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
         if use_bi_direction:
             # Bi-directional RNN
             if activation == 'tanh':
-                rnn = NStepBiRNNTanh(n_layers, states)
+                rnn = NStepBiRNNTanh(n_layers, states, rnn_algo)
             elif activation == 'relu':
-                rnn = NStepBiRNNReLU(n_layers, states)
+                rnn = NStepBiRNNReLU(n_layers, states, rnn_algo)
         else:
             # Uni-directional RNN
             if activation == 'tanh':
-                rnn = NStepRNNTanh(n_layers, states)
+                rnn = NStepRNNTanh(n_layers, states, rnn_algo)
             elif activation == 'relu':
-                rnn = NStepRNNReLU(n_layers, states)
+                rnn = NStepRNNReLU(n_layers, states, rnn_algo)
 
         ret = rnn(*inputs)
         hy, = ret[:1]

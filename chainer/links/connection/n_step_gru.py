@@ -43,7 +43,7 @@ class NStepGRUBase(link.ChainList):
     """
 
     def __init__(self, n_layers, in_size, out_size, dropout, use_bi_direction,
-                 **kwargs):
+                 rnn_algo='standard', **kwargs):
         argument.check_unexpected_kwargs(
             kwargs, use_cudnn='use_cudnn argument is not supported anymore. '
             'Use chainer.using_config')
@@ -77,6 +77,7 @@ class NStepGRUBase(link.ChainList):
         self.out_size = out_size
         self.direction = direction
         self.rnn = rnn.n_step_bigru if use_bi_direction else rnn.n_step_gru
+        self.rnn_algo = rnn_algo
 
     def init_hx(self, xs):
         shape = (self.n_layers * self.direction, len(xs), self.out_size)
@@ -124,8 +125,8 @@ class NStepGRUBase(link.ChainList):
         ws = [[w.w0, w.w1, w.w2, w.w3, w.w4, w.w5] for w in self]
         bs = [[w.b0, w.b1, w.b2, w.b3, w.b4, w.b5] for w in self]
 
-        hy, trans_y = self.rnn(
-            self.n_layers, self.dropout, hx, ws, bs, trans_x)
+        hy, trans_y = self.rnn(self.n_layers, self.dropout, hx, ws, bs,
+                               trans_x, self.rnn_algo)
 
         hy = permutate.permutate(hy, indices_array, axis=1, inv=True)
         ys = transpose_sequence.transpose_sequence(trans_y)
@@ -166,10 +167,11 @@ class NStepGRU(NStepGRUBase):
 
     """
 
-    def __init__(self, n_layers, in_size, out_size, dropout, **kwargs):
+    def __init__(self, n_layers, in_size, out_size, dropout,
+                 rnn_algo='standard', **kwargs):
         NStepGRUBase.__init__(
             self, n_layers, in_size, out_size, dropout,
-            use_bi_direction=False, **kwargs)
+            use_bi_direction=False, rnn_algo=rnn_algo, **kwargs)
 
 
 class NStepBiGRU(NStepGRUBase):
@@ -204,7 +206,8 @@ class NStepBiGRU(NStepGRUBase):
 
     """
 
-    def __init__(self, n_layers, in_size, out_size, dropout, **kwargs):
+    def __init__(self, n_layers, in_size, out_size, dropout,
+                 rnn_algo='standard', **kwargs):
         NStepGRUBase.__init__(
             self, n_layers, in_size, out_size, dropout,
-            use_bi_direction=True, **kwargs)
+            use_bi_direction=True, rnn_algo=rnn_algo, **kwargs)

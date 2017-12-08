@@ -25,20 +25,23 @@ if cuda.cudnn_enabled:
 
 class NStepGRU(n_step_rnn.BaseNStepRNN):
 
-    def __init__(self, n_layers, states, **kwargs):
+    def __init__(self, n_layers, states, rnn_algo, **kwargs):
         n_step_rnn.BaseNStepRNN.__init__(
-            self, n_layers, states, rnn_dir='uni', rnn_mode='gru', **kwargs)
+            self, n_layers, states, rnn_dir='uni', rnn_mode='gru',
+            rnn_algo=rnn_algo, **kwargs)
 
 
 class NStepBiGRU(n_step_rnn.BaseNStepRNN):
 
-    def __init__(self, n_layers, states, **kwargs):
+    def __init__(self, n_layers, states, rnn_algo, **kwargs):
         n_step_rnn.BaseNStepRNN.__init__(
-            self, n_layers, states, rnn_dir='bi', rnn_mode='gru', **kwargs)
+            self, n_layers, states, rnn_dir='bi', rnn_mode='gru',
+            rnn_algo=rnn_algo, **kwargs)
 
 
 def n_step_gru(
-        n_layers, dropout_ratio, hx, ws, bs, xs, **kwargs):
+        n_layers, dropout_ratio, hx, ws, bs, xs, rnn_algo='standard',
+        **kwargs):
     """n_step_gru(n_layers, dropout_ratio, hx, ws, bs, xs)
 
     Stacked Uni-directional Gated Recurrent Unit function.
@@ -119,11 +122,13 @@ def n_step_gru(
     """
 
     return n_step_gru_base(n_layers, dropout_ratio, hx, ws, bs, xs,
-                           use_bi_direction=False, **kwargs)
+                           use_bi_direction=False,
+                           rnn_algo=rnn_algo, **kwargs)
 
 
 def n_step_bigru(
-        n_layers, dropout_ratio, hx, ws, bs, xs, **kwargs):
+        n_layers, dropout_ratio, hx, ws, bs, xs, rnn_algo='standard',
+        **kwargs):
     """n_step_bigru(n_layers, dropout_ratio, hx, ws, bs, xs)
 
     Stacked Bi-directional Gated Recurrent Unit function.
@@ -222,11 +227,12 @@ def n_step_bigru(
     """
 
     return n_step_gru_base(n_layers, dropout_ratio, hx, ws, bs, xs,
-                           use_bi_direction=True, **kwargs)
+                           use_bi_direction=True,
+                           rnn_algo=rnn_algo, **kwargs)
 
 
 def n_step_gru_base(n_layers, dropout_ratio, hx, ws, bs, xs,
-                    use_bi_direction, **kwargs):
+                    use_bi_direction, rnn_algo, **kwargs):
     """n_step_gru_base(n_layers, dropout_ratio, hx, ws, bs, xs, use_bi_direction)
 
     Base function for Stack GRU/BiGRU functions.
@@ -303,9 +309,9 @@ def n_step_gru_base(n_layers, dropout_ratio, hx, ws, bs, xs,
             itertools.chain.from_iterable(bs),
             xs))
         if use_bi_direction:
-            rnn = NStepBiGRU(n_layers, states)
+            rnn = NStepBiGRU(n_layers, states, rnn_algo)
         else:
-            rnn = NStepGRU(n_layers, states)
+            rnn = NStepGRU(n_layers, states, rnn_algo)
 
         ret = rnn(*inputs)
         hy, = ret[:1]
