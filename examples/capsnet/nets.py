@@ -20,20 +20,6 @@ def _augmentation(x):
     return a.astype(x.dtype)
 
 
-def _count_params(m, n_grids=6):
-    print('# of params', sum(param.size for param in m.params()))
-    # The number of parameters in the paper (11.36M) might be
-    # of the model with unshared matrices over primary capsules in a same grid
-    # when input data are 36x36 images of MultiMNIST (n_grids = 10).
-    # Our model with n_grids=10 has 11.349008M parameters.
-    # (In the Sec. 4, the paper says "each capsule in the [6, 6] grid
-    # is sharing their weights with each other.")
-    print('# of params if unshared',
-          sum(param.size for param in m.params()) +
-          sum(param.size for param in m.Ws.params()) *
-          (n_grids * n_grids - 1))
-
-
 def squash(ss):
     ss_norm2 = F.sum(ss ** 2, axis=1, keepdims=True)
     """
@@ -75,7 +61,6 @@ class CapsNet(chainer.Chain):
             self.fc2 = L.Linear(512, 1024, initialW=init)
             self.fc3 = L.Linear(1024, 784, initialW=init)
 
-        _count_params(self, n_grids=self.n_grids)
         self.results = {'N': 0, 'loss': [], 'correct': [],
                         'cls_loss': [], 'rcn_loss': []}
 
