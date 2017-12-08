@@ -20,11 +20,13 @@ class AdamRule(optimizer.UpdateRule):
 
     """Update rule of Adam optimization algorithm.
 
-    See: http://arxiv.org/abs/1412.6980v8
+    See: `Adam: A Method for Stochastic Optimization \
+          <http://arxiv.org/abs/1412.6980v8>`_
 
     Modified for proper weight decay.
 
-    See: https://openreview.net/forum?id=rk6qdGgCZ
+    See: `Fixing Weight Decay Regularization in Adam \
+          <https://openreview.net/forum?id=rk6qdGgCZ>`_
 
     See :class:`~chainer.optimizers.Adam` for the default values
     of the hyperparameters.
@@ -117,11 +119,21 @@ class Adam(optimizer.GradientMethod):
 
     """Adam optimizer.
 
-    See: http://arxiv.org/abs/1412.6980v8
+    See: `Adam: A Method for Stochastic Optimization \
+          <http://arxiv.org/abs/1412.6980v8>`_
 
-    Modified for proper weight decay.
+    Modified for proper weight decay (also called AdamW).
+    AdamW introduces the additional parameters ``eta``
+    and ``weight_decay_rate``, which can be used to properly scale the
+    learning rate, and decouple the weight decay rate from ``alpha``,
+    as shown in the below paper.
 
-    See: https://openreview.net/forum?id=rk6qdGgCZ
+    Note that with the default values ``eta = 1`` and
+    ``weight_decay_rate = 0``, this implementation is identical to
+    the standard Adam method.
+
+    See: `Fixing Weight Decay Regularization in Adam \
+          <https://openreview.net/forum?id=rk6qdGgCZ>`_
 
     Args:
         alpha (float): Step size.
