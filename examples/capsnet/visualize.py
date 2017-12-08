@@ -1,10 +1,10 @@
 from __future__ import print_function
+
 import matplotlib
-matplotlib.use('Agg')
+matplotlib.use('Agg')  # NOQA
 import matplotlib.pyplot as plt
 
 import argparse
-import itertools
 import json
 import numpy as np
 
