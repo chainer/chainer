@@ -176,14 +176,14 @@ class TestNStepRNN(unittest.TestCase):
                 _to_gpu(self.dys))
 
     def call_forward(self, train):
-        h = _wrap_variable(_to_gpu(self.hx))
+        hx = _wrap_variable(_to_gpu(self.hx))
         xs = _wrap_variable(_to_gpu(self.xs))
         ws = _wrap_variable(_to_gpu(self.ws))
         bs = _wrap_variable(_to_gpu(self.bs))
         with chainer.using_config('enable_backprop', train), \
                 chainer.using_config('train', train):
             return functions.n_step_rnn(
-                self.n_layers, self.dropout, h, ws, bs, xs)
+                self.n_layers, self.dropout, hx, ws, bs, xs)
 
     def check_call_cudnn_forward_training(self, use_cudnn):
         with chainer.using_config('use_cudnn', use_cudnn):
@@ -394,14 +394,14 @@ class TestNStepBiRNN(unittest.TestCase):
                 _to_gpu(self.dys))
 
     def call_forward(self, train):
-        h = _wrap_variable(_to_gpu(self.hx))
+        hx = _wrap_variable(_to_gpu(self.hx))
         xs = _wrap_variable(_to_gpu(self.xs))
         ws = _wrap_variable(_to_gpu(self.ws))
         bs = _wrap_variable(_to_gpu(self.bs))
         with chainer.using_config('enable_backprop', train), \
                 chainer.using_config('train', train):
             return functions.n_step_birnn(
-                self.n_layers, self.dropout, h, ws, bs, xs)
+                self.n_layers, self.dropout, hx, ws, bs, xs)
 
     def check_call_cudnn_forward_training(self, use_cudnn):
         with chainer.using_config('use_cudnn', use_cudnn):
