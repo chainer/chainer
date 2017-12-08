@@ -45,7 +45,7 @@ def _matmul(a, b, transa=False, transb=False, transout=False):
         b = b.swapaxes(-1, -2)
     xp = cuda.get_array_module(a)
 
-    if hasattr(xp, 'matmul'):
+    if hasattr(xp, 'matmul'):  # numpy.matmul is supported from version 1.10.0
         return xp.matmul(a, b)
     if a.ndim <= 2:
         return numpy.dot(a, b)
