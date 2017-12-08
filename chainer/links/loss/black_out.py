@@ -23,6 +23,8 @@ class BlackOut(link.Link):
 
     """
 
+    sample_data = None
+
     def __init__(self, in_size, counts, sample_size):
         super(BlackOut, self).__init__()
         vocab_size = len(counts)
@@ -55,7 +57,7 @@ class BlackOut(link.Link):
         """
 
         batch_size = x.shape[0]
-        if hasattr(self, 'sample_data'):
+        if self.sample_data is not None:
             # for test
             sample_data = self.sample_data
         else:
