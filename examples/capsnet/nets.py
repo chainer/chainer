@@ -20,13 +20,8 @@ def _augmentation(x):
 
 def squash(ss):
     ss_norm2 = F.sum(ss ** 2, axis=1, keepdims=True)
-    """
-    # ss_norm2 = F.broadcast_to(ss_norm2, ss.shape)
-    # vs = ss_norm2 / (1. + ss_norm2) * ss / F.sqrt(ss_norm2): naive
-    """
-    norm_div_1pnorm2 = F.sqrt(ss_norm2) / (1. + ss_norm2)
-    norm_div_1pnorm2 = F.broadcast_to(norm_div_1pnorm2, ss.shape)
-    vs = norm_div_1pnorm2 * ss  # :efficient
+    ss_norm2 = F.broadcast_to(ss_norm2, ss.shape)
+    vs = ss_norm2 / (1. + ss_norm2) * ss / F.sqrt(ss_norm2)
     # (batchsize, 16, 10)
     return vs
 
