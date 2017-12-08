@@ -6,13 +6,6 @@ from chainer.backends import cuda
 from chainer import optimizer
 
 
-_default_hyperparam = optimizer.Hyperparameter()
-_default_hyperparam.alpha = 0.001
-_default_hyperparam.beta1 = 0.9
-_default_hyperparam.beta2 = 0.999
-_default_hyperparam.eps = 1e-8
-
-
 class AdamRule(optimizer.UpdateRule):
 
     """Update rule of Adam optimization algorithm.
@@ -23,25 +16,10 @@ class AdamRule(optimizer.UpdateRule):
     Args:
         parent_hyperparam (~chainer.optimizer.Hyperparameter): Hyperparameter
             that provides the default values.
-        alpha (float): Step size.
-        beta1 (float): Exponential decay rate of the first order moment.
-        beta2 (float): Exponential decay rate of the second order moment.
-        eps (float): Small value for the numerical stability.
-
     """
 
-    def __init__(self, parent_hyperparam=None,
-                 alpha=None, beta1=None, beta2=None, eps=None):
-        super(AdamRule, self).__init__(
-            parent_hyperparam or _default_hyperparam)
-        if alpha is not None:
-            self.hyperparam.alpha = alpha
-        if beta1 is not None:
-            self.hyperparam.beta1 = beta1
-        if beta2 is not None:
-            self.hyperparam.beta2 = beta2
-        if eps is not None:
-            self.hyperparam.eps = eps
+    def __init__(self, parent_hyperparam=None):
+        super(AdamRule, self).__init__(parent_hyperparam)
 
     def init_state(self, param):
         xp = cuda.get_array_module(param.data)
@@ -107,10 +85,10 @@ class Adam(optimizer.GradientMethod):
     """
 
     def __init__(self,
-                 alpha=_default_hyperparam.alpha,
-                 beta1=_default_hyperparam.beta1,
-                 beta2=_default_hyperparam.beta2,
-                 eps=_default_hyperparam.eps,
+                 alpha=0.001,
+                 beta1=0.9,
+                 beta2=0.999,
+                 eps=1e-8,
                  model=None):
         super(Adam, self).__init__(model)
         self.hyperparam.alpha = alpha
