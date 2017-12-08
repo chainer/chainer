@@ -10,7 +10,7 @@ from chainer import variable
 
 class Deconvolution2D(link.Link):
 
-    """__init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0, nobias=False, outsize=None, initialW=None, initial_bias=None)
+    """__init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0, nobias=False, outsize=None, initialW=None, initial_bias=None, *, group=1)
 
     Two dimensional deconvolution function.
 
@@ -52,6 +52,8 @@ class Deconvolution2D(link.Link):
         initial_bias (:ref:`initializer <initializer>`): Initializer to
             initialize the bias. If ``None``, the bias will be initialized to
             zero. When it is :class:`numpy.ndarray`, its ``ndim`` should be 1.
+        group (int): The number of groups to use grouped deconvolution. The
+            default is one, where grouped deconvolution is not used.
 
     The filter weight has four dimensions :math:`(c_I, c_O, k_H, k_W)`
     which indicate the number of input channels, output channels,
@@ -127,7 +129,7 @@ class Deconvolution2D(link.Link):
 
     def __init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0,
                  nobias=False, outsize=None, initialW=None, initial_bias=None,
-                 group=1, **kwargs):
+                 **kwargs):
         super(Deconvolution2D, self).__init__()
 
         argument.check_unexpected_kwargs(
@@ -135,7 +137,7 @@ class Deconvolution2D(link.Link):
             "supported anymore. "
             "Use chainer.using_config('cudnn_deterministic', value) "
             "context where value is either `True` or `False`.")
-        argument.assert_kwargs_empty(kwargs)
+        group, = argument.parse_kwargs(kwargs, ('group', 1))
 
         if ksize is None:
             out_channels, ksize, in_channels = in_channels, out_channels, None
