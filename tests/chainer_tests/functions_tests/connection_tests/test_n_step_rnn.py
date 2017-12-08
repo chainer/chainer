@@ -393,7 +393,6 @@ class TestNStepBiRNN(unittest.TestCase):
                 _to_gpu(self.dhy),
                 _to_gpu(self.dys))
 
-
     def call_forward(self, train):
         h = _wrap_variable(_to_gpu(self.hx))
         xs = _wrap_variable(_to_gpu(self.xs))
