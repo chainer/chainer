@@ -14,32 +14,32 @@ from chainer.functions.connection import shift
 
 @testing.parameterize(*(testing.product({
     'shape': [(4, 3)],
-    'c_contiguous': [True],
-    'x_dtype': [numpy.float32],
+    'c_contiguous': [True, False],
+    'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'batches': [1, 2],
     'ksize': [(3, 3), (3, 1), (1, 3), (1, 5), (5, 1)],
     'n_channels': [9, 16, 25],
     'dilate': [1],
 }) + testing.product({
     'shape': [(10, 8)],
-    'c_contiguous': [True],
-    'x_dtype': [numpy.float32],
+    'c_contiguous': [True, False],
+    'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'batches': [1, 2],
     'ksize': [(5, 5)],
     'n_channels': [25],
     'dilate': [1],
 }) + testing.product({
     'shape': [(10, 8)],
-    'c_contiguous': [True],
-    'x_dtype': [numpy.float32],
+    'c_contiguous': [True, False],
+    'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'batches': [1, 2],
     'ksize': [(7, 7), (7, 1), (1, 7)],
     'n_channels': [100],
     'dilate': [1],
 }) + testing.product({
     'shape': [(4, 3)],
-    'c_contiguous': [True],
-    'x_dtype': [numpy.float32],
+    'c_contiguous': [True, False],
+    'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'batches': [1, 2],
     'ksize': [(3, 3), (3, 1), (1, 3), (1, 5), (5, 1)],
     'n_channels': [16],
@@ -56,11 +56,18 @@ class TestShiftFunction(unittest.TestCase):
 
     @attr.gpu
     def test_forward_consistency(self):
-        x_cpu = chainer.Variable(self.x)
+        x_data = self.x
+        xp = cuda.get_array_module(x_data)
+
+        if not self.c_contiguous:
+            x_data = xp.asfortranarray(x_data)
+            self.assertFalse(x_data.flags.c_contiguous)
+
+        x_cpu = chainer.Variable(x_data)
         y_cpu = shift.shift(
             x_cpu, ksize=self.ksize, dilate=self.dilate)
 
-        x_gpu = chainer.Variable(cuda.to_gpu(self.x))
+        x_gpu = chainer.Variable(cuda.to_gpu(x_data))
         y_gpu = shift.shift(
             x_gpu, ksize=self.ksize, dilate=self.dilate)
 
