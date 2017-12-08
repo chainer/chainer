@@ -22,7 +22,7 @@ def squash(ss):
     ss_norm2 = F.sum(ss ** 2, axis=1, keepdims=True)
     ss_norm2 = F.broadcast_to(ss_norm2, ss.shape)
     vs = ss_norm2 / (1. + ss_norm2) * ss / F.sqrt(ss_norm2)
-    # (batchsize, 16, 10)
+    assert(vs.shape == (ss.shape[0], 16, 10))
     return vs
 
 
@@ -42,10 +42,10 @@ class CapsNet(chainer.Chain):
         self.n_raw_grids = self.n_grids
         self.use_reconstruction = use_reconstruction
         with self.init_scope():
-            self.conv1 = L.Convolution2D(1, 256, ksize=9, stride=1,
-                                         initialW=init)
-            self.conv2 = L.Convolution2D(256, 32 * 8, ksize=9, stride=2,
-                                         initialW=init)
+            self.conv1 = L.Convolution2D(
+                1, 256, ksize=9, stride=1, initialW=init)
+            self.conv2 = L.Convolution2D(
+                256, 32 * 8, ksize=9, stride=2, initialW=init)
             self.Ws = chainer.ChainList(
                 *[L.Convolution2D(8, 16 * 10, ksize=1, stride=1, initialW=init)
                   for i in range(32)])
@@ -83,13 +83,8 @@ class CapsNet(chainer.Chain):
         n_iters = self.n_iterations
         gg = self.n_grids * self.n_grids
 
-        # h1 = F.relu(self.conv1(x))
         h1 = F.leaky_relu(self.conv1(x), 0.05)
         pr_caps = F.split_axis(self.conv2(h1), 32, axis=1)
-        # shapes if MNIST. -> if MultiMNIST
-        # x (batchsize, 1, 28, 28) -> (:, :, 36, 36)
-        # h1 (batchsize, 256, 20, 20) -> (:, :, 28, 28)
-        # pr_cap (batchsize, 8, 6, 6) -> (:, :, 10, 10)
 
         Preds = []
         for i in range(32):

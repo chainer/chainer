@@ -22,11 +22,9 @@ def main():
     args = parser.parse_args()
     print(json.dumps(args.__dict__, indent=2))
 
-    # Set up a neural network to train
     np.random.seed(args.seed)
     model = nets.CapsNet(use_reconstruction=args.reconstruct)
     if args.gpu >= 0:
-        # Make a speciied GPU current
         chainer.cuda.get_device_from_id(args.gpu).use()
         model.to_gpu()  # Copy the model to the GPU
     np.random.seed(args.seed)
