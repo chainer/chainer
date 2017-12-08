@@ -7,14 +7,15 @@ from chainer import variable
 
 class Convolution2D(link.Link):
 
-    """__init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0, nobias=False, initialW=None, initial_bias=None, groups=1)
+    """__init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0, nobias=False, initialW=None, initial_bias=None, *, groups=1)
 
     Two-dimensional convolutional layer.
 
     This link wraps the :func:`~chainer.functions.convolution_2d` function and
     holds the filter weight and bias vector as parameters.
 
-    The output of this function can be non-deterministic when it uses cuDNN.
+    The output of this functio
+    n can be non-deterministic when it uses cuDNN.
     If ``chainer.configuration.config.deterministic`` is ``True`` and
     cuDNN version is >= v3, it forces cuDNN to use a deterministic algorithm.
 
@@ -48,12 +49,8 @@ class Convolution2D(link.Link):
         initial_bias (:ref:`initializer <initializer>`): Initializer to
             initialize the bias. If ``None``, the bias will be initialized to
             zero. When it is :class:`numpy.ndarray`, its ``ndim`` should be 1.
-        groups (:class:`int`): Number of groups of channels. If the number
-            is greater than 1, input tensor :math:`W` is divided into some
-            blocks by this value channel-wise. For each tensor blocks,
-            convolution operation will be executed independently. Input channel
-            size ``in_channels`` and output channel size ``out_channels`` must
-            be exactly divisible by this value.
+        groups (int): The number of groups to use grouped convolution. The
+            default is one, where grouped convolution is not used.
 
     .. seealso::
        See :func:`chainer.functions.convolution_2d` for the definition of
@@ -109,8 +106,7 @@ class Convolution2D(link.Link):
     """  # NOQA
 
     def __init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0,
-                 nobias=False, initialW=None, initial_bias=None, groups=1,
-                 **kwargs):
+                 nobias=False, initialW=None, initial_bias=None, **kwargs):
         super(Convolution2D, self).__init__()
 
         argument.check_unexpected_kwargs(
@@ -118,7 +114,8 @@ class Convolution2D(link.Link):
             "supported anymore. "
             "Use chainer.using_config('cudnn_deterministic', value) "
             "context where value is either `True` or `False`.")
-        dilate, = argument.parse_kwargs(kwargs, ('dilate', 1))
+        dilate, groups = argument.parse_kwargs(kwargs,
+                                               ('dilate', 1), ('groups', 1))
 
         if ksize is None:
             out_channels, ksize, in_channels = in_channels, out_channels, None
