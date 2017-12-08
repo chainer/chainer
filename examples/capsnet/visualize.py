@@ -9,8 +9,8 @@ import json
 import numpy as np
 
 import chainer
-from chainer.dataset.convert import concat_examples
 from chainer import cuda
+from chainer.dataset.convert import concat_examples
 from chainer import serializers
 
 import nets
