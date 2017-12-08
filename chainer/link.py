@@ -571,6 +571,8 @@ Assign a Parameter object directly to an attribute within a \
             You can repeat a same link multiple times to create longer
             :class:`~chainer.Sequential` block like this:
 
+            .. code-block:: python
+
                 class ConvBNReLU(chainer.Chain):
 
                     def __init__(self):
@@ -584,7 +586,7 @@ Assign a Parameter object directly to an attribute within a \
                         return F.relu(self.bn(self.conv(x)))
 
                 net = ConvBNReLU().repeat(16, mode='init')
-
+            
             The ``net`` object contains 16 blocks, each of which is
             ``ConvBNReLU``. And the ``mode`` was ``init``, so each block
             is re-initialized with different parameters. If you give
