@@ -1,18 +1,19 @@
-import numpy
-
 from chainer.functions.connection import local_convolution_2d
 from chainer import initializers
 from chainer import link
 from chainer import variable
+
 
 def _pair(x):
     if hasattr(x, '__getitem__'):
         return x
     return x, x
 
+
 def _conv_output_length(input_length, filter_size, stride):
     output_length = input_length - filter_size + 1
     return output_length
+
 
 class LocalConvolution2D(link.Link):
 
@@ -29,8 +30,8 @@ class LocalConvolution2D(link.Link):
         out_channels (int): Number of channels of output arrays
         in_size (int or pair of ints): Size of each image channel
             ``in_size=k`` and ``in_size=(k,k)`` are equivalent. If either
-            in_channels or in_size is ``None``, parameter initialization will be
-            deferred until the first forward data pass when the size will be
+            in_channels or in_size is ``None``, parameter initialization will
+            be deferred until the first forward data pass when the size will be
             determined.
         ksize (int or pair of ints): Size of filters (a.k.a. kernels).
             ``ksize=k`` and ``ksize=(k, k)`` are equivalent.
@@ -52,8 +53,9 @@ class LocalConvolution2D(link.Link):
         b (~chainer.Variable): Bias parameter.
     """
 
-    def __init__(self, in_channels, out_channels, in_size=None, ksize=None, stride=1,
-                     nobias=False, initialW=None, initial_bias=None, **kwargs):
+    def __init__(self, in_channels, out_channels, in_size=None, ksize=None,
+                 stride=1, nobias=False, initialW=None, initial_bias=None,
+                 **kwargs):
         super(LocalConvolution2D, self).__init__()
         self.ksize = ksize
         self.stride = _pair(stride)

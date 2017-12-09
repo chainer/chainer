@@ -1,16 +1,16 @@
-import numpy
-
 from six import moves
 
+import chainer
 from chainer.backends import cuda
 from chainer import function_node
-from chainer.utils import conv
 from chainer.utils import type_check
+
 
 def _pair(x):
     if hasattr(x, '__getitem__'):
         return x
     return x, x
+
 
 class LocalConvolution2D(function_node.FunctionNode):
 
@@ -39,17 +39,16 @@ class LocalConvolution2D(function_node.FunctionNode):
 
     def forward(self, inputs):
 
-        #Channels-first is Chainer's tensor format
-        #W is 6-dimensional
+        # Channels-first is Chainer's tensor format
+        # W is 6-dimensional
         x, W = inputs[:2]
         b = inputs[2] if len(inputs) == 3 else None
         stride_row, stride_col = self.sy, self.sx
         output_row, output_col = W.shape[0], W.shape[1]
-        feature_dim = W.shape[3]*W.shape[4]*W.shape[5]
-        filters = W.shape[2]
+        feature_dim = W.shape[3] * W.shape[4] * W.shape[5]
         xp = cuda.get_array_module(*inputs)
         output = xp.empty((x.shape[0], W.shape[2], output_row, output_col,),
-                        dtype=x.dtype)
+                          dtype=x.dtype)
         for i in moves.range(output_row):
             for j in moves.range(output_col):
                 slice_row = slice(i * stride_row,
@@ -57,10 +56,10 @@ class LocalConvolution2D(function_node.FunctionNode):
                 slice_col = slice(j * stride_col,
                                   j * stride_col + W.shape[5])
                 x_flatten = xp.reshape(x[..., slice_row, slice_col],
-                                    (-1, feature_dim))
+                                       (-1, feature_dim))
                 W_flatten = xp.reshape(W[i, j, ...],
-                                    (-1, feature_dim))
-                output[...,i,j] = xp.dot(x_flatten, W_flatten.T)
+                                       (-1, feature_dim))
+                output[..., i, j] = xp.dot(x_flatten, W_flatten.T)
 
         if b is not None:
             output += b[None, :, :, :]
@@ -71,11 +70,9 @@ class LocalConvolution2D(function_node.FunctionNode):
     def backward(self, indices, grad_outputs):
         x, W = self.get_retained_inputs()
         gy, = grad_outputs
-        xp = cuda.get_array_module(*inputs)
+        xp = cuda.get_array_module(x, W)
         stride_row, stride_col = self.sy, self.sx
         output_row, output_col = W.shape[0], W.shape[1]
-        feature_dim = W.shape[3]*W.shape[4]*W.shape[5]
-        filters = W.shape[2]
         ret = []
         if 0 in indices:
             gx = xp.empty_like(x)
@@ -86,28 +83,28 @@ class LocalConvolution2D(function_node.FunctionNode):
                     slice_col = slice(j * stride_col,
                                       j * stride_col + W.shape[5])
                     # ochans * ichans * krows * kcols
-                    W_slice = [i,j,...]
+                    W_slice = [i, j, ...]
                     # nsamps * ochans
-                    gy_slice = [...,i,j]
+                    gy_slice = [..., i, j]
                     # -> nsamps * ichans * krows * kcols
-                    gx[:,:,slice_row, slice_col] = xp.tensordot(
-                        gy_slice, w_slice, axes=((1,), (0,))
+                    gx[:, :, slice_row, slice_col] = xp.tensordot(
+                        gy_slice, W_slice, axes=((1,), (0,))
                     )
             ret.append(chainer.functions.cast(gx, x.dtype))
         if 1 in indices:
             gW = xp.empty_like(W)
             for i in moves.range(output_row):
-                for j in moves.range(output_col)
+                for j in moves.range(output_col):
                     slice_row = slice(i * stride_row,
                                       i * stride_row + W.shape[4])
                     slice_col = slice(j * stride_col,
                                       j * stride_col + W.shape[5])
                     # nsamps * inchans * krows * kcols
-                    x_slice = x[:,:,slice_row,slice_col]
+                    x_slice = x[:, :, slice_row, slice_col]
                     # nsamps * outchans * 1 * 1
-                    gy_slice = gy[:,:,i,j]
-                    gW[i,j,:,:,:,:] = xp.tensordot(
-                        gy_slice, x_slice, axes=((0,),(0,))
+                    gy_slice = gy[:, :, i, j]
+                    gW[i, j, :, :, :, :] = xp.tensordot(
+                        gy_slice, x_slice, axes=((0,), (0,))
                     )
             ret.append(chainer.functions.cast(gW, W.dtype))
         if 2 in indices:
@@ -116,12 +113,13 @@ class LocalConvolution2D(function_node.FunctionNode):
 
         return ret
 
+
 def local_convolution_2d(x, W, b=None, stride=1):
     """Two-dimensional local convolution function.
 
-    Locally-connected function for 2D inputs. Works similarly to convolution_2d,
-    except that weights are unshared, that is, a different set of filters is
-    applied at each different patch of the input.
+    Locally-connected function for 2D inputs. Works similarly to
+    convolution_2d, except that weights are unshared, that is, a different set
+    of filters is applied at each different patch of the input.
     It takes two or three variables: the input image ``x``, the filter weight
     ``W``, and optionally, the bias vector ``b``.
 
