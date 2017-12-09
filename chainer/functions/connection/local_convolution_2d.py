@@ -12,7 +12,7 @@ def _pair(x):
     return x, x
 
 
-class LocalConvolution2D(function_node.FunctionNode):
+class LocalConvolution2DFunction(function_node.FunctionNode):
 
     def __init__(self, stride=1):
         self.sy, self.sx = _pair(stride)
@@ -174,8 +174,10 @@ def local_convolution_2d(x, W, b=None, stride=1):
         (2, 2, 5, 5)
 
     """
-    func = LocalConvolution2D(stride)
+    fnode = LocalConvolution2DFunction(stride)
     if b is None:
-        return func(x, W)
+        args = (x, W)
     else:
-        return func(x, W, b)
+        args = (x, W, b)
+    y, = fnode.apply(args)
+    return y
