@@ -3,6 +3,7 @@ from six import moves
 import chainer
 from chainer.backends import cuda
 from chainer import function_node
+from chainer import variable
 from chainer.utils import type_check
 
 
@@ -70,8 +71,11 @@ class LocalConvolution2DFunction(function_node.FunctionNode):
         return output,
 
     def backward(self, indices, grad_outputs):
-        x, W = self.get_retained_inputs()
-        gy, = grad_outputs
+        xvar, Wvar = self.get_retained_inputs()
+        x = xvar.data
+        W = Wvar.data
+        gyvar, = grad_outputs
+        gy = gyvar.data
         xp = cuda.get_array_module(x, W)
         stride_row, stride_col = self.sy, self.sx
         output_row, output_col = W.shape[0], W.shape[1]
@@ -85,14 +89,15 @@ class LocalConvolution2DFunction(function_node.FunctionNode):
                     slice_col = slice(j * stride_col,
                                       j * stride_col + W.shape[5])
                     # ochans * ichans * krows * kcols
-                    W_slice = [i, j, ...]
+                    W_slice = W[i, j, ...]
                     # nsamps * ochans
-                    gy_slice = [..., i, j]
+                    gy_slice = gy[..., i, j]
                     # -> nsamps * ichans * krows * kcols
                     gx[:, :, slice_row, slice_col] = xp.tensordot(
-                        gy_slice, W_slice, axes=((1,), (0,))
+                        gy_slice, W_slice, axes=[(1,), (0,)]
                     )
-            ret.append(chainer.functions.cast(gx, x.dtype))
+            ret.append(chainer.functions.cast(variable.as_variable(gx),
+                        x.dtype))
         if 1 in indices:
             gW = xp.empty_like(W)
             for i in moves.range(output_row):
@@ -106,11 +111,12 @@ class LocalConvolution2DFunction(function_node.FunctionNode):
                     # nsamps * outchans * 1 * 1
                     gy_slice = gy[:, :, i, j]
                     gW[i, j, :, :, :, :] = xp.tensordot(
-                        gy_slice, x_slice, axes=((0,), (0,))
+                        gy_slice, x_slice, axes=[(0,), (0,)]
                     )
-            ret.append(chainer.functions.cast(gW, W.dtype))
+            ret.append(chainer.functions.cast(variable.as_variable(gW),
+                        W.dtype))
         if 2 in indices:
-            gb = chainer.functions.sum(gy, axis=0)
+            gb = chainer.functions.sum(gyvar, axis=0)
             ret.append(gb)
 
         return ret

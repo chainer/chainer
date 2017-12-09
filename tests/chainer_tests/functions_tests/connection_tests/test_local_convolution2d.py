@@ -69,3 +69,44 @@ class TestLocalConvolution2DFunction(unittest.TestCase):
 
     def test_forward_cpu_nobias(self):
         self.check_forward(self.x, self.W, None)
+
+    @attr.gpu
+    def test_forward_gpu(self):
+        self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.W),
+                           cuda.to_gpu(self.b))
+
+    @attr.gpu
+    def test_forward_gpu_nobias(self):
+        self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.W), None)
+
+    def check_backward(self, x_data, W_data, b_data, y_grad):
+        args = (x_data, W_data)
+        if b_data is not None:
+            args = args + (b_data,)
+
+        gradient_check.check_backward(
+            local_convolution_2d.local_convolution_2d,
+            args, y_grad, **self.check_backward_options)
+
+    @condition.retry(3)
+    def test_backward_cpu(self):
+        self.check_backward(self.x, self.W, self.b, self.gy)
+
+    @condition.retry(3)
+    def test_backward_cpu_nobias(self):
+        self.check_backward(self.x, self.W, None, self.gy)
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_backward_gpu(self):
+        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.W),
+                            cuda.to_gpu(self.b), cuda.to_gpu(self.gy))
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_backward_gpu_nobias(self):
+        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.W),
+                            None, cuda.to_gpu(self.gy))
+
+
+testing.run_module(__name__, __file__)
