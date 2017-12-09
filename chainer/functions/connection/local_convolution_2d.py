@@ -34,7 +34,9 @@ class LocalConvolution2DFunction(function_node.FunctionNode):
             type_check.expect(
                 b_type.dtype == x_type.dtype,
                 b_type.ndim == 3,
-                b_type.shape == w_type.shape[:3],
+                b_type.shape == (w_type.shape[2],
+                                w_type.shape[0],
+                                w_type.shape[1])
             )
 
     def forward(self, inputs):
