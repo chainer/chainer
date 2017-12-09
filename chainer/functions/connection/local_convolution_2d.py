@@ -81,7 +81,7 @@ class LocalConvolution2DFunction(function_node.FunctionNode):
         output_row, output_col = W.shape[0], W.shape[1]
         ret = []
         if 0 in indices:
-            gx = xp.empty_like(x)
+            gx = xp.zeros_like(x)
             for i in moves.range(output_row):
                 for j in moves.range(output_col):
                     slice_row = slice(i * stride_row,
@@ -93,7 +93,7 @@ class LocalConvolution2DFunction(function_node.FunctionNode):
                     # nsamps * ochans
                     gy_slice = gy[..., i, j]
                     # -> nsamps * ichans * krows * kcols
-                    gx[:, :, slice_row, slice_col] = xp.tensordot(
+                    gx[:, :, slice_row, slice_col] += xp.tensordot(
                         gy_slice, W_slice, axes=[(1,), (0,)]
                     )
             ret.append(chainer.functions.cast(variable.as_variable(gx),
