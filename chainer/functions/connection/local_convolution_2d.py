@@ -3,8 +3,8 @@ from six import moves
 import chainer
 from chainer.backends import cuda
 from chainer import function_node
-from chainer import variable
 from chainer.utils import type_check
+from chainer import variable
 
 
 def _pair(x):
@@ -36,8 +36,8 @@ class LocalConvolution2DFunction(function_node.FunctionNode):
                 b_type.dtype == x_type.dtype,
                 b_type.ndim == 3,
                 b_type.shape == (w_type.shape[2],
-                                w_type.shape[0],
-                                w_type.shape[1])
+                                 w_type.shape[0],
+                                 w_type.shape[1])
             )
 
     def forward(self, inputs):
@@ -97,7 +97,7 @@ class LocalConvolution2DFunction(function_node.FunctionNode):
                         gy_slice, W_slice, axes=[(1,), (0,)]
                     )
             ret.append(chainer.functions.cast(variable.as_variable(gx),
-                        x.dtype))
+                                              x.dtype))
         if 1 in indices:
             gW = xp.empty_like(W)
             for i in moves.range(output_row):
@@ -114,7 +114,7 @@ class LocalConvolution2DFunction(function_node.FunctionNode):
                         gy_slice, x_slice, axes=[(0,), (0,)]
                     )
             ret.append(chainer.functions.cast(variable.as_variable(gW),
-                        W.dtype))
+                                              W.dtype))
         if 2 in indices:
             gb = chainer.functions.sum(gyvar, axis=0)
             ret.append(gb)

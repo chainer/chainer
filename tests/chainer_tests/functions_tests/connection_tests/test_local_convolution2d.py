@@ -52,9 +52,9 @@ class TestLocalConvolution2DFunction(unittest.TestCase):
         if b_data is not None:
             for i in moves.range(b_data.shape[1]):
                 for j in moves.range(b_data.shape[2]):
-                    b_data[:, i, j,] = b_data[:, 0, 0,]
+                    b_data[:, i, j, ] = b_data[:, 0, 0, ]
             args1 = args1 + (b_data,)
-            b_data2 = b_data[:, 0, 0,]
+            b_data2 = b_data[:, 0, 0, ]
             args2 = args2 + (b_data2,)
 
         f1 = local_convolution_2d.LocalConvolution2DFunction(self.stride)
