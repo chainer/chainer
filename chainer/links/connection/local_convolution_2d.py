@@ -60,6 +60,7 @@ class LocalConvolution2D(link.Link):
         self.ksize = ksize
         self.stride = _pair(stride)
         self.nobias = nobias
+        self.out_channels = out_channels
         with self.init_scope():
             W_initializer = initializers._get_initializer(initialW)
             self.W = variable.Parameter(W_initializer)
@@ -81,7 +82,7 @@ class LocalConvolution2D(link.Link):
         oh = _conv_output_length(ih, kh, self.stride[0])
         ow = _conv_output_length(iw, kw, self.stride[1])
         W_shape = (oh, ow, self.out_channels, in_channels, kh, kw)
-        bias_shape = (oh, ow, self.out_channels)
+        bias_shape = (self.out_channels, oh, ow,)
         self.W.initialize(W_shape)
         if not self.nobias:
             self.b.initialize(bias_shape)

@@ -19,6 +19,7 @@ from chainer.links.connection.highway import Highway  # NOQA
 from chainer.links.connection.inception import Inception  # NOQA
 from chainer.links.connection.inceptionbn import InceptionBN  # NOQA
 from chainer.links.connection.linear import Linear  # NOQA
+from chainer.links.connection.local_convolution_2d import LocalConvolution2D  # NOQA
 from chainer.links.connection.lstm import LSTM  # NOQA
 from chainer.links.connection.lstm import StatelessLSTM  # NOQA
 from chainer.links.connection.mgu import StatefulMGU  # NOQA
