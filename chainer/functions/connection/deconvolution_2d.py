@@ -1,4 +1,5 @@
 import numpy
+import six
 
 import chainer
 from chainer.backends import cuda
@@ -46,7 +47,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
 
     cover_all = None
 
-    def __init__(self, stride=1, pad=0, outsize=None, **kwargs):
+    def __init__(self, stride=1, pad=0, outsize=None, group=1, **kwargs):
         argument.check_unexpected_kwargs(
             kwargs,
             deterministic="deterministic argument is not supported anymore. "
@@ -63,6 +64,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         self.ph, self.pw = _pair(pad)
         self.outh, self.outw = (None, None) if outsize is None else outsize
         self.dy, self.dx = _pair(dilate)
+        self.group = group
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -103,7 +105,8 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             type_check.expect(
                 b_type.dtype == x_type.dtype,
                 b_type.ndim == 1,
-                b_type.shape[0] == w_type.shape[1]
+                # Need to consider the case that group count > 1.
+                # b_type.shape[0] == w_type.shape[1],
             )
 
     def _calc_out_size(self, x, W):
@@ -135,6 +138,13 @@ class Deconvolution2DFunction(function_node.FunctionNode):
 
         self._calc_out_size(x, W)
 
+        if self.group > 1:
+            y = self._forward_grouped_convolution(x, W, b)
+        else:
+            y = self._forward_cpu_core(x, W, b)
+        return y,
+
+    def _forward_cpu_core(self, x, W, b):
         gcol = numpy.tensordot(W, x, (0, 1)).astype(x.dtype, copy=False)
         gcol = numpy.rollaxis(gcol, 3)
         y = conv.col2im_cpu(
@@ -143,7 +153,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         # b, k, h, w
         if b is not None:
             y += b.reshape(1, b.size, 1, 1)
-        return y,
+        return y
 
     def forward_gpu(self, inputs):
         self.retain_inputs((0, 1))  # only retain x and W
@@ -155,31 +165,78 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         self._calc_out_size(x, W)
         self._set_cover_all(x, W)
 
+        _gc_use_cudnn = True
+        if self.group > 1 and _cudnn_version_ < 7000:
+            _gc_use_cudnn = False
+
         if (not self.cover_all
                 and chainer.should_use_cudnn('>=auto')
                 and x.dtype == W.dtype
                 and ((self.dy == 1 and self.dx == 1)
                      or (_cudnn_version_ >= 6000
-                         and not configuration.config.cudnn_deterministic))):
+                         and not configuration.config.cudnn_deterministic))
+                and _gc_use_cudnn):
 
             # cuDNN implementation
             return self._forward_cudnn(x, W, b)
 
         else:
-            # Implementation using col2im
-            gcol = cuda.cupy.tensordot(W, x, (0, 1)).astype(x.dtype,
-                                                            copy=False)
-            # - k, m, n: shape of out_channel
-            # - b: number of inputs
-            # - h, w: height and width of kernels
-            # k, m, n, b, h, w -> b, k, m, n, h, w
-            gcol = cuda.cupy.rollaxis(gcol, 3)
-            y = conv.col2im_gpu(
-                gcol, self.sy, self.sx, self.ph, self.pw, self.outh, self.outw,
-                dy=self.dy, dx=self.dx)
-            if b is not None:
-                y += b.reshape(1, b.size, 1, 1)
+            if self.group > 1:
+                y = self._forward_grouped_convolution(x, W, b)
+            else:
+                y = self._forward_gpu_core(x, W, b)
             return y,
+
+    def _forward_gpu_core(self, x, W, b):
+        # Implementation using col2im
+        gcol = cuda.cupy.tensordot(W, x, (0, 1)).astype(x.dtype,
+                                                        copy=False)
+        # - k, m, n: shape of out_channel
+        # - b: number of inputs
+        # - h, w: height and width of kernels
+        # k, m, n, b, h, w -> b, k, m, n, h, w
+        gcol = cuda.cupy.rollaxis(gcol, 3)
+        y = conv.col2im_gpu(
+            gcol, self.sy, self.sx, self.ph, self.pw, self.outh, self.outw,
+            dy=self.dy, dx=self.dx)
+        if b is not None:
+            y += b.reshape(1, b.size, 1, 1)
+        return y
+
+    def _forward_grouped_convolution(self, x, W, b):
+        # G: group count
+        # N: batch size
+        # kH, kW: kernel height, kernel width
+        # xC, xH, xW: x channels, x height, x width
+        # yC, yH, yW: y channels, y height, y width
+        G = self.group
+        N, xC, xH, xW = x.shape
+        xCg = int(xC / G)
+        _, yCg, kH, kW = W.shape
+        yC = yCg * G
+        yH = self.outh
+        yW = self.outw
+
+        xp = cuda.get_array_module(x)
+
+        _x = x.reshape(N, G, xCg, xH, xW)
+        _x = xp.rollaxis(_x, 1)  # (G, N, xCg, xH, xW)
+        _W = W.reshape(G, xCg, yCg, kH, kW)
+        if b is not None:
+            _b = b.reshape(G, yCg)
+
+        _ys = []
+        for g in six.moves.range(G):
+            _bg = None if b is None else _b[g, ]
+            if xp is numpy:
+                _y = self._forward_cpu_core(_x[g, ], _W[g, ], _bg)
+            else:
+                _y = self._forward_gpu_core(_x[g, ], _W[g, ], _bg)
+            _ys.append(_y)
+
+        y = xp.stack(_ys, axis=1)  # (N, G, yCg, yH, yW)
+        y = y.reshape(N, yC, yH, yW)
+        return y
 
     def _forward_cudnn(self, x, W, b):
         x = cuda.cupy.ascontiguousarray(x)
@@ -188,13 +245,15 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             b = cuda.cupy.ascontiguousarray(b)
 
         n = x.shape[0]
-        out_c = W.shape[1]
+        # out_c = W.shape[1]
+        yCg = W.shape[1]
+        yC = yCg * self.group
 
         use_tensor_core = chainer.should_use_cudnn_tensor_core(x.dtype)
 
         handle = cudnn.get_handle()
         x_desc = cudnn.create_tensor_descriptor(x)
-        y = cuda.cupy.empty((n, out_c, self.outh, self.outw),
+        y = cuda.cupy.empty((n, yC, self.outh, self.outw),
                             dtype=x.dtype)
         y_desc = cudnn.create_tensor_descriptor(y)
 
@@ -203,7 +262,8 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         dilation = (self.dy, self.dx)
         conv_desc = cudnn.create_convolution_descriptor(
             *conv_param, dilation=dilation,
-            use_tensor_core=use_tensor_core)
+            use_tensor_core=use_tensor_core,
+            group=self.group)
         if b is not None:
             bias_desc = cudnn.create_tensor_descriptor(
                 b[None, :, None, None])
@@ -254,7 +314,8 @@ class Deconvolution2DFunction(function_node.FunctionNode):
                 self._set_cover_all(x, W)
             gx = chainer.functions.convolution_2d(
                 gy, W, stride=(self.sy, self.sx), pad=(self.ph, self.pw),
-                cover_all=self.cover_all, dilate=(self.dy, self.dx))
+                cover_all=self.cover_all, dilate=(self.dy, self.dx),
+                group=self.group)
             ret.append(gx)
         if 1 in indexes:
             if self.cover_all is None:
@@ -277,7 +338,8 @@ class Deconvolution2DFunction(function_node.FunctionNode):
                                           self.pw, d=self.dx))
 
 
-def deconvolution_2d(x, W, b=None, stride=1, pad=0, outsize=None, **kwargs):
+def deconvolution_2d(x, W, b=None, stride=1, pad=0, outsize=None, group=1,
+                     **kwargs):
     """deconvolution_2d(x, W, b=None, stride=1, pad=0, outsize=None)
 
     Two dimensional deconvolution function.
@@ -389,7 +451,8 @@ http://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf
         "context where value is either `True` or `False`.")
     dilate, = argument.parse_kwargs(kwargs, ('dilate', 1))
 
-    func = Deconvolution2DFunction(stride, pad, outsize, dilate=dilate)
+    func = Deconvolution2DFunction(stride, pad, outsize, dilate=dilate,
+                                   group=group)
     if b is None:
         args = x, W
     else:
