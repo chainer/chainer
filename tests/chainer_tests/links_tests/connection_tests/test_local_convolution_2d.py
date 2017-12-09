@@ -10,6 +10,7 @@ from chainer import testing
 from chainer.testing import attr
 from chainer.testing import condition
 
+
 @testing.parameterize(*testing.product({
     'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'W_dtype': [numpy.float16, numpy.float32, numpy.float64],
@@ -47,12 +48,13 @@ class TestLocalConvolution2D(unittest.TestCase):
         self.link.to_gpu()
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
+
 class TestLocalConvolution2DParameterShapePlaceholder(unittest.TestCase):
 
     def setUp(self):
         in_channels = None
         self.link = links.LocalConvolution2D(in_channels, 2, ksize=3,
-                                                 stride=1)
+                                             stride=1)
         self.x = numpy.random.uniform(-1, 1,
                                       (2, 3, 4, 4)).astype(numpy.float32)
         self.link(chainer.Variable(self.x))
