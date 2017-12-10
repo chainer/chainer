@@ -709,6 +709,7 @@ Actual: {0}'''.format(type(data))
         if self.data is None:
             self._initial_device = (cuda.Device().id
                                     if device is None else device)
+            self._data = [None]
         else:
             self._data = [cuda.to_gpu(self.data, device)]
             if self._grad_var is not None:
