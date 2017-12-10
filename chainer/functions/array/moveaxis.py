@@ -53,7 +53,7 @@ class Moveaxis(function_node.FunctionNode):
                     ', '.join(map(str, source))))
             if len(set(destination)) != len(destination):
                 raise ValueError('duplicate value in destination axis: ({})'
-                    .format(', '.join(map(str, destination))))
+                                 .format(', '.join(map(str, destination))))
             self.source = source
             self.destination = destination
         else:
