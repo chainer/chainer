@@ -1,11 +1,11 @@
 import argparse
 
 import chainer
-from chainer import optimizers
+from chainer.datasets import TransformDataset
 from chainer import iterators
+from chainer import optimizers
 from chainer import training
 from chainer.training import extensions
-from chainer.datasets import TransformDataset
 
 import datasets
 from model import ImageCaptionModel

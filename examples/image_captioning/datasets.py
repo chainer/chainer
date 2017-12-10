@@ -43,7 +43,7 @@ class MsCocoDataset(dataset.DatasetMixin):
     def get_example(self, i):
         """Called by the iterator to fetch a data sample.
 
-        A data sample from MSCOCO consists of an image its corresponding
+        A data sample from MSCOCO consists of an image and its corresponding
         caption.
         """
         ann = self.anns[i]
@@ -80,7 +80,7 @@ def get_mscoco(
 
     The datasets can be used by the iterator during training.
 
-    A vocabulary is dynamically created based on all caption and and is
+    A vocabulary is dynamically created based on all captions and is
     returned as members of the training and validation dataset objects.
     """
     train = MsCocoDataset(root_dir, train_dir, train_anno)
@@ -91,6 +91,7 @@ def get_mscoco(
     anns = train.anns + val.anns
     captions = [ann['caption'] for ann in anns]
 
+    # Filter out rare words as UNK
     word_counts = defaultdict(int)
     for c in captions:
         for w in split(c):

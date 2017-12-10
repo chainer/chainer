@@ -243,6 +243,7 @@ class NStepLSTMLanguageModel(chainer.Chain):
 
     def reset(self, img_feats):
         """Batch of image features to LSTM states and hidden representations.
+
         """
         h = self.embed_img(img_feats)
         h = F.split_axis(h, h.shape[0], axis=0)
