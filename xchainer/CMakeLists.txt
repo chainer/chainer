@@ -9,7 +9,7 @@ add_library(xchainer SHARED
 
 install(TARGETS xchainer DESTINATION lib)
 
-if(${ENABLE_TEST})
+if(ENABLE_TEST)
     add_executable(xchainer_test
         xchainer_test.cc)
     target_link_libraries(xchainer_test

@@ -10,6 +10,9 @@ endif()
 include(cmake/clang-tidy.cmake)
 include(cmake/third-party.cmake)
 
+# Configure options
+option(ENABLE_TEST "Enable building test" ON)
+
 # C++ setup
 set(CMAKE_CXX_STANDARD 14)
 if("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU|Clang|Intel")
@@ -19,12 +22,7 @@ endif()
 include_directories("${PROJECT_SOURCE_DIR}")
 
 # Test
-if($ENV{DISABLE_TEST})
-    set(ENABLE_TEST OFF)
-else()
-    set(ENABLE_TEST ON)
-endif()
-if(${ENABLE_TEST})
+if(ENABLE_TEST)
     get_third_party(gtest)
     enable_testing()
     add_subdirectory(${CMAKE_BINARY_DIR}/googletest-src
