@@ -1,4 +1,4 @@
 Checks:          '-*,boost-*,bugprone-*,cert-*,cppcoreguidelines-*,clang-analyzer-*,google-*,misc-*,modernize-*,performance-*,readability-*'
-WarningsAsErrors: '*'
+# WarningsAsErrors: '*'  # This option is supported in clang-tidy 3.9.0
 HeaderFilterRegex: '.*'
 AnalyzeTemporaryDtors: false
