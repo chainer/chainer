@@ -5,7 +5,10 @@ project(xchainer CXX C)
 if(POLICY ${CMP0054})
     cmake_policy(SET ${CMP0054} NEW)
 endif()
-include(util.cmake)
+
+# includes
+include(cmake/clang-tidy.cmake)
+include(cmake/third-party.cmake)
 
 # Configure options
 option(BUILD_PYTHON "Build Python binding" OFF)
@@ -24,8 +27,5 @@ if(${BUILD_PYTHON})
     include_directories(${CMAKE_BINARY_DIR}/pybind11/include)
     add_subdirectory(${CMAKE_BINARY_DIR}/pybind11)
 endif()
-
-# includes
-include(cmake/clang-tidy.cmake)
 
 add_subdirectory(xchainer)
