@@ -124,11 +124,9 @@ class NegativeSamplingFunction(function_node.FunctionNode):
     def backward(self, indexes, grad_outputs):
         x, t, W = self.get_retained_inputs()
         gy, = grad_outputs
-        grad = NegativeSamplingFunctionGrad(
+        return NegativeSamplingFunctionGrad(
             self.reduce, self.ignore_mask, self.sample_size, self.samples,
-            self.wx)
-        grad.ignore_label = self.ignore_label
-        return grad.apply((x, W, gy))
+            self.wx).apply((x, W, gy))
 
 
 class NegativeSamplingFunctionGrad(function_node.FunctionNode):
