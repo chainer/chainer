@@ -348,7 +348,9 @@ class Convolution2DGradW(function_node.FunctionNode):
 
         if (not self.cover_all and chainer.should_use_cudnn('>=auto') and
                 x.dtype == self.W_dtype and
-                ((self.dy == 1 and self.dx == 1) or _cudnn_version >= 6000) and
+                ((self.dy == 1 and self.dx == 1) or
+                    (_cudnn_version >= 6000
+                     and not configuration.config.cudnn_deterministic)) and
                 _gc_use_cudnn):
 
             # cuDNN implementation
