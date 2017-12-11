@@ -6,6 +6,10 @@ if(POLICY ${CMP0054})
     cmake_policy(SET ${CMP0054} NEW)
 endif()
 
+# includes
+include(cmake/clang-tidy.cmake)
+include(cmake/third-party.cmake)
+
 # C++ setup
 set(CMAKE_CXX_STANDARD 14)
 if("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU|Clang|Intel")
@@ -14,9 +18,6 @@ if("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU|Clang|Intel")
 endif()
 include_directories("${PROJECT_SOURCE_DIR}")
 
-# includes
-include(cmake/clang-tidy.cmake)
-
 # Test
 if($ENV{DISABLE_TEST})
     set(ENABLE_TEST OFF)
@@ -24,8 +25,11 @@ else()
     set(ENABLE_TEST ON)
 endif()
 if(${ENABLE_TEST})
-    include(third_party/gtest.cmake)
+    get_third_party(gtest)
     enable_testing()
+    add_subdirectory(${CMAKE_BINARY_DIR}/googletest-src
+        ${CMAKE_BINARY_DIR}/googletest-build
+        EXCLUDE_FROM_ALL)
 endif()
 
 add_subdirectory(xchainer)

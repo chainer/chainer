@@ -1,24 +1,15 @@
-# Download and unpack googletest at configure time
-configure_file(third_party/gtest-download.cmake ${CMAKE_BINARY_DIR}/third_party/googletest-download/CMakeLists.txt)
-execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
-    RESULT_VARIABLE result
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/third_party/googletest-download )
-if(result)
-    message(FATAL_ERROR "CMake step for googletest failed: ${result}")
-endif()
-execute_process(COMMAND ${CMAKE_COMMAND} --build .
-    RESULT_VARIABLE result
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/third_party/googletest-download )
-if(result)
-    message(FATAL_ERROR "Build step for googletest failed: ${result}")
-endif()
+cmake_minimum_required(VERSION 3.1)
 
-# Prevent overriding the parent project's compiler/linker
-# settings on Windows
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+project(googletest-download NONE)
 
-# Add googletest directly to our build. This defines
-# the gtest and gtest_main targets.
-add_subdirectory(${CMAKE_BINARY_DIR}/third_party/googletest-src
-    ${CMAKE_BINARY_DIR}/third_party/googletest-build
-    EXCLUDE_FROM_ALL)
+include(ExternalProject)
+ExternalProject_Add(googletest
+    GIT_REPOSITORY    https://github.com/google/googletest.git
+    GIT_TAG           release-1.8.0
+    SOURCE_DIR        "${CMAKE_BINARY_DIR}/googletest-src"
+    BINARY_DIR        "${CMAKE_BINARY_DIR}/googletest-build"
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND     ""
+    INSTALL_COMMAND   ""
+    TEST_COMMAND      ""
+    )
