@@ -5,7 +5,8 @@ Create your own trainer extension
 
 In this section, you will learn about the following things:
 
-- :ref:`basic`
+.. include:: ../basic.rst
+
 - How to create your own trainer extension
 
     * :ref:`by defining a simple function<function>`

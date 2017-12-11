@@ -71,6 +71,8 @@ class Evaluator(extension.Extension):
     default_name = 'validation'
     priority = extension.PRIORITY_WRITER
 
+    name = None
+
     def __init__(self, iterator, target, converter=convert.concat_examples,
                  device=None, eval_hook=None, eval_func=None):
         if isinstance(iterator, iterator_module.Iterator):
@@ -123,7 +125,7 @@ class Evaluator(extension.Extension):
         """
         # set up a reporter
         reporter = reporter_module.Reporter()
-        if hasattr(self, 'name'):
+        if self.name is not None:
             prefix = self.name + '/'
         else:
             prefix = ''
@@ -152,9 +154,9 @@ class Evaluator(extension.Extension):
 
             This method encloses :attr:`eval_func` calls with
             :func:`function.no_backprop_mode` context, so all calculations
-            using :class:`~chainer.Function`\ s inside :attr:`eval_func` don't
-            make computational graphs. It is for reducing the memory
-            consumption.
+            using :class:`~chainer.FunctionNode`\s inside
+            :attr:`eval_func` do not make computational graphs. It is for
+            reducing the memory consumption.
 
         Returns:
             dict: Result dictionary. This dictionary is further reported via

@@ -13,6 +13,7 @@ Welcome to the `Chainer <https://chainer.org>`_ documentation.
    :maxdepth: 2
    :caption: Getting started
 
+   basic	
    install
    examples/index
    guides/index

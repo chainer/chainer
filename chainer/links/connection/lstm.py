@@ -4,7 +4,7 @@ import operator
 import numpy
 import six
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer.functions.activation import lstm
 from chainer.functions.array import concat
 from chainer.functions.array import split_axis

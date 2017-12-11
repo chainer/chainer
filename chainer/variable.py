@@ -8,7 +8,7 @@ import weakref
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import initializers
 from chainer.initializers import constant
 from chainer.utils import argument
@@ -114,8 +114,9 @@ class VariableNode(object):
     gradient to be passed to each function.
 
     A variable node is held by the corresponding :class:`~chainer.Variable`
-    object, which is managed by users. :class:`~chainer.Function` objects that
-    take the variable as an input also hold references to the variable node.
+    object, which is managed by users. :class:`~chainer.FunctionNode` objects
+    that take the variable as an input also hold references to the variable
+    node.
 
     Note that the node does not hold a reference to the corresponding data
     array in general. The data array is actually accessible by the node in the
@@ -128,9 +129,10 @@ class VariableNode(object):
     2. If :meth:`retain_data` is called, the node holds a reference to the data
        array. It is mainly called by a function that needs the input or output
        data array in its backprop procedure.
-       See :meth:`Function.retain_inputs() <chainer.Function.retain_inputs>`
-       and :meth:`Function.retain_outputs() <chainer.Function.retain_outputs>`
-       for more details.
+       See :meth:`FunctionNode.retain_inputs()
+       <chainer.FunctionNode.retain_inputs>`
+       and :meth:`FunctionNode.retain_outputs()
+       <chainer.FunctionNode.retain_outputs>` for more details.
 
     Users usually do not need to touch this variable node object. The
     computational graph is automatically managed by Chainer, and any interface
@@ -497,7 +499,7 @@ Actual: {0}'''.format(type(data))
 
         msg = """{summary}
 - device: {device}
-- backend: {background}
+- backend: {backend}
 - shape: {shape}
 - dtype: {dtype}
 - statistics: {stats}
@@ -505,13 +507,22 @@ Actual: {0}'''.format(type(data))
 
         stats_msg = 'mean={0:.8f}, std={1:.8f}'
 
-        try:
-            device = self.data.device
-        except AttributeError:
-            device = 'CPU'
-
-        with cuda.get_device_from_array(self.data) as dev:
+        data = self.data
+        with cuda.get_device_from_array(data) as dev:
             xp = numpy if int(dev) == -1 else cuda.cupy
+
+            if data is None:
+                # `data` can be `None` if constructed without any arguments
+                device = None
+                backend = None
+                stats = None
+            else:
+                device = getattr(data, 'device', 'CPU')
+                backend = type(data)
+                stats = stats_msg.format(float(xp.mean(data)),
+                                         float(xp.std(data)))
+            shape = getattr(data, 'shape', None)
+            dtype = getattr(data, 'dtype', None)
 
             if self.grad is None:
                 grad = None
@@ -521,14 +532,9 @@ Actual: {0}'''.format(type(data))
                 grad = stats_msg.format(float(xp.mean(self.grad)),
                                         float(xp.std(self.grad)))
 
-            stats = stats_msg.format(float(xp.mean(self.data)),
-                                     float(xp.std(self.data)))
-
-        return msg.format(summary=self.summary(),
-                          grad=grad, shape=self.data.shape,
-                          background=type(self.data),
-                          dtype=self.data.dtype, device=device,
-                          stats=stats)
+        return msg.format(summary=self.summary(), device=device,
+                          backend=backend, shape=shape, dtype=dtype,
+                          stats=stats, grad=grad)
 
     def __pos__(self):
         return self
