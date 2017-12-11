@@ -27,11 +27,19 @@ jobs:
       - image: circleci/python:3.5
     steps:
       - checkout
+      - restore_cache:
+          key: dependency-cache-pip-{{ .Branch }}
+
       - run: |
           python3 -m venv venv
           . venv/bin/activate
           pip install autopep8
           pip install flake8
+
+      - save_cache:
+          key: dependency-cache-pip-{{ .Branch }}
+          paths:
+            - "venv"
 
       - run: |
           . venv/bin/activate
