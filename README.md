@@ -9,7 +9,7 @@ Build `build/xchainer/libxchainer.so` with the following commands.
 ```shell-session
 $ mkdir build
 $ cd build
-$ cmake -DCMAKE_BUILD_TYPE=Debug ..
+$ cmake ..
 $ make
 ```
 
@@ -38,3 +38,13 @@ bash:
 ```shell-session
 find . \( -name '*.cc' -o -name '*.h' \) -type f -print0 | xargs -0 clang-format -i
 ```
+
+### C++ Coverage
+
+Build and run tests, then:
+
+```shell-session
+find build -name '*.gcda' -type f -print0 | xargs -0 gcov
+```
+
+See generated .gcov files.
