@@ -24,7 +24,7 @@ jobs:
             - build
   python-lint:
     docker:
-      - image: circleci/python:3.5
+      - image: circleci/python:3.6
     steps:
       - checkout
       - restore_cache:
