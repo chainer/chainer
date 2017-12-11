@@ -46,6 +46,7 @@ class EarlyStoppingTrigger(object):
         self.verbose = verbose
         self.already_warning = False
         self._max_trigger = util.get_trigger(max_trigger)
+        self.period, self.unit = max_trigger
         self._interval_trigger = util.get_trigger(check_trigger)
 
         self._init_summary()
