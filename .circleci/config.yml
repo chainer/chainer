@@ -7,7 +7,7 @@ jobs:
       - checkout
       - run: |
           apt-get update
-          apt-get install -y g++ cmake
+          apt-get install -y g++ cmake clang-format
 
       - run: |
           g++ --version
@@ -16,7 +16,9 @@ jobs:
       - restore_cache:
           key: dependency-cache-{{ .Branch }}-{{ checksum "CMakeLists.txt" }}
 
-      - run: mkdir -p build && cd build && cmake .. && make
+      - run: |
+          find . -name '*.cc' -o -name '*.h' -type f -print0 | xargs -0 -P4 -I{} bash -c 'diff -u {} <(clang-format {})'
+          mkdir -p build && cd build && cmake .. && make
 
       - save_cache:
           key: dependency-cache-{{ .Branch }}-{{ checksum "CMakeLists.txt" }}
