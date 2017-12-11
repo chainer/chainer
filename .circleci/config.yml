@@ -28,7 +28,7 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key: dependency-cache-pip-{{ .Branch }}
+          key: dependency-cache-pip-{{ .Branch }}-{{ .Revision }}
 
       - run: |
           python3 -m venv venv
@@ -37,7 +37,7 @@ jobs:
           pip install autopep8
 
       - save_cache:
-          key: dependency-cache-pip-{{ .Branch }}
+          key: dependency-cache-pip-{{ .Branch }}-{{ .Revision }}
           paths:
             - "venv"
 
