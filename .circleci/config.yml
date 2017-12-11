@@ -7,7 +7,7 @@ jobs:
       - checkout
       - run: |
           apt-get update
-          apt-get install -y g++ cmake clang-format clang-tidy
+          apt-get install -y g++ cmake clang-format clang-tidy git
 
       - run: |
           g++ --version
