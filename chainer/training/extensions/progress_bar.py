@@ -44,7 +44,7 @@ class ProgressBar(extension.Extension):
         # initialize some attributes at the first call
         if training_length is None:
             t = trainer.stop_trigger
-            if not isinstance(t, triggers.IntervalTrigger):
+            if not (hasattr(t, 'period') and hasattr(t, 'unit')):
                 raise TypeError(
                     'cannot retrieve the training length from %s' % type(t))
             training_length = self._training_length = t.period, t.unit
