@@ -18,7 +18,7 @@ jobs:
 
       - run: |
           find . \( -name '*.cc' -o -name '*.h' \) -type f -print0 | xargs -0 -P4 -I{} bash -c 'diff -u {} <(clang-format {})'
-          mkdir -p build && cd build && cmake .. && make clang-tidy && make
+          mkdir -p build && cd build && cmake .. && make clang-tidy && make && ctest
 
       - save_cache:
           key: dependency-cache-{{ .Branch }}-{{ checksum "CMakeLists.txt" }}

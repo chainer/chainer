@@ -17,4 +17,15 @@ include_directories("${PROJECT_SOURCE_DIR}")
 # includes
 include(cmake/clang-tidy.cmake)
 
+# Test
+if($ENV{DISABLE_TEST})
+    set(ENABLE_TEST OFF)
+else()
+    set(ENABLE_TEST ON)
+endif()
+if(${ENABLE_TEST})
+    include(third_party/gtest.cmake)
+    enable_testing()
+endif()
+
 add_subdirectory(xchainer)
