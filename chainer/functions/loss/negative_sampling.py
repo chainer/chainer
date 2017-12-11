@@ -133,8 +133,6 @@ class NegativeSamplingFunction(function_node.FunctionNode):
 
 class NegativeSamplingFunctionGrad(function_node.FunctionNode):
 
-    ignore_label = -1
-
     def __init__(self, reduce, ignore_mask, sample_size, samples, wx):
         self.reduce = reduce
         self.ignore_mask = ignore_mask
