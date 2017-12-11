@@ -154,6 +154,7 @@ class TestLink(unittest.TestCase):
         self.assertIs(link.p, self.link.p)
         self.assertIs(link.name, None)
 
+    @attr.gpu
     def test_copy_and_to_gpu_init(self):
         cupy = cuda.cupy
         l0 = self.link
@@ -164,6 +165,7 @@ class TestLink(unittest.TestCase):
         self.assertIsInstance(l0.x.data, numpy.ndarray)
         self.assertIsInstance(l1.x.data, cupy.ndarray)
 
+    @attr.gpu
     def test_copy_and_to_gpu_uninit(self):
         cupy = cuda.cupy
         l0 = self.link
