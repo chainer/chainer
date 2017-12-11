@@ -41,7 +41,13 @@ find . \( -name '*.cc' -o -name '*.h' \) -type f -print0 | xargs -0 clang-format
 
 ### C++ Coverage
 
-Build and run tests, then:
+Build as:
+
+```
+cmake -DENABLE_COVERAGE=ON ..
+```
+
+and run tests, then:
 
 ```shell-session
 find build -name '*.gcda' -type f -print0 | xargs -0 gcov
