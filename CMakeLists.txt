@@ -19,7 +19,9 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_OUTPUT_EXTENSION_REPLACE 1)  # ref. https://texus.me/2015/09/06/cmake-and-gcov/
 
 if("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU|Clang|Intel")
-    set(CMAKE_CXX_FLAGS "-g -Wall -Wextra -fPIC -pthread --coverage")
+    set(CMAKE_CXX_FLAGS "-g -Wall -Wextra -fPIC -pthread")
+    set(CMAKE_CXX_FLAGS_DEBUG "--coverage")  # cmake -DCMAKE_BUILD_TYPE=Debug
+    # set(CMAKE_CXX_FLAGS_RELEASE "")  # cmake -DCMAKE_BULD_TYPE=Release
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
 endif()
 include_directories("${PROJECT_SOURCE_DIR}")

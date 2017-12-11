@@ -9,7 +9,7 @@ Build `build/xchainer/libxchainer.so` with the following commands.
 ```shell-session
 $ mkdir build
 $ cd build
-$ cmake ..
+$ cmake -DCMAKE_BUILD_TYPE=Debug ..
 $ make
 ```
 
