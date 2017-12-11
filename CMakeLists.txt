@@ -14,4 +14,7 @@ if("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU|Clang|Intel")
 endif()
 include_directories("${PROJECT_SOURCE_DIR}")
 
+# includes
+include(cmake/clang-tidy.cmake)
+
 add_subdirectory(xchainer)
