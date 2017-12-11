@@ -1,0 +1,24 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: ubuntu:xenial
+    steps:
+      - checkout
+      - run: |
+          apt-get update
+          apt-get install -y g++ cmake
+
+      - run: |
+          g++ --version
+          cmake --version
+
+      - restore_cache:
+          key: dependency-cache-{{ .Branch }}-{{ checksum "CMakeLists.txt" }}
+
+      - run: mkdir -p build && cd build && cmake .. && make
+
+      - save_cache:
+          key: dependency-cache-{{ .Branch }}-{{ checksum "CMakeLists.txt" }}
+          paths:
+            - build
