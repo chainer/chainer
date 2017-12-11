@@ -25,4 +25,7 @@ if(${BUILD_PYTHON})
     add_subdirectory(${CMAKE_BINARY_DIR}/pybind11)
 endif()
 
+# includes
+include(cmake/clang-tidy.cmake)
+
 add_subdirectory(xchainer)
