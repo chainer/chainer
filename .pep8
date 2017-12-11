@@ -1,3 +1,2 @@
 [pep8]
-exclude=caffe_pb*,.eggs,*.egg,build,venv
 max-line-length=140
