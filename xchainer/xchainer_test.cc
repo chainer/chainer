@@ -3,9 +3,7 @@
 namespace xchainer {
 namespace {
 
-TEST(XchainerTest, AlwaysTrue) {
-  EXPECT_TRUE(true);
-}
+TEST(XchainerTest, AlwaysTrue) { EXPECT_TRUE(true); }
 
 }  // namespace
 }  // namespace xchainer
