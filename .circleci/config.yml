@@ -22,7 +22,7 @@ jobs:
           key: dependency-cache-{{ .Branch }}-{{ checksum "CMakeLists.txt" }}
           paths:
             - build
-  python-3.5:
+  python-lint:
     docker:
       - image: circleci/python:3.5
     steps:
@@ -54,4 +54,4 @@ workflows:
   build_and_test:
     jobs:
       - build
-      - python-3.5
+      - python-lint
