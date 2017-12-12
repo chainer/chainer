@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 2.8.2)
-
-project(gsl-download NONE)
+project(gsl-lite-download NONE)
 
 include(ExternalProject)
 ExternalProject_Add(gsl-lite
