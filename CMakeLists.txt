@@ -32,7 +32,8 @@ endif()
 # gsl-lite
 get_third_party(gsl-lite)
 include_directories(${CMAKE_BINARY_DIR}/gsl-lite/include)
-add_subdirectory(${CMAKE_BINARY_DIR}/gsl-lite)
+add_subdirectory(${CMAKE_BINARY_DIR}/gsl-lite
+    EXCLUDE_FROM_ALL)
 
 # Test
 if(ENABLE_TEST)
