@@ -7,7 +7,7 @@ jobs:
       - checkout
       - run: |
           apt-get update
-          apt-get install -y g++ cmake clang clang-format clang-tidy git python3-dev lcov
+          apt-get install -y g++ cmake clang clang-tidy git python3-dev lcov
 
       - run: |
           g++ --version
@@ -17,7 +17,6 @@ jobs:
           key: dependency-cache-{{ .Branch }}-{{ checksum "CMakeLists.txt" }}
 
       - run: |
-          find xchainer \( -name '*.cc' -o -name '*.h' \) -type f -print0 | xargs -0 -P4 -I{} bash -c 'diff -u {} <(clang-format {})'
           ( mkdir -p build && cd build && cmake -DBUILD_PYTHON=1 -DENABLE_COVERAGE=ON .. && make clang-tidy && make && ctest -V )
           lcov -c -b xchainer -d build/xchainer/ --no-external -o build/coverage.info
           genhtml build/coverage.info -o build/coverage
@@ -29,6 +28,21 @@ jobs:
 
       - store_artifacts:
           path: build/coverage
+
+  clang-format:
+    docker:
+      - image: ubuntu:xenial
+    steps:
+      - checkout
+      - run: |
+          apt-get update
+          apt-get install -y clang-format
+
+      - run: |
+          clang-format --version
+
+      - run: |
+          find xchainer \( -name '*.cc' -o -name '*.h' \) -type f -print0 | xargs -0 -P4 -I{} bash -c 'diff -u {} <(clang-format {})'
 
   python-lint:
     docker:
@@ -64,5 +78,6 @@ workflows:
   version: 2
   build_and_test:
     jobs:
-      - build
+      - clang-format
       - python-lint
+      - build
