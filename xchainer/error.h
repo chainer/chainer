@@ -1,5 +1,4 @@
-#ifndef XCHAINER_ERROR_H_
-#define XCHAINER_ERROR_H_
+#pragma once
 
 #include <stdexcept>
 
@@ -18,5 +17,3 @@ public:
 };
 
 }  // namespace xchainer
-
-#endif  // XCHAINER_ERROR_H_

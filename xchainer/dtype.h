@@ -1,5 +1,4 @@
-#ifndef XCHAINER_DTYPE_H_
-#define XCHAINER_DTYPE_H_
+#pragma once
 
 #include <complex>
 #include <cstddef>
@@ -249,5 +248,3 @@ constexpr DtypeKind GetKind(Dtype dtype) {
 }
 
 }  // namespace xchainer
-
-#endif  // XCHAINER_DTYPE_H_
