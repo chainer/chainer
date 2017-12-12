@@ -376,8 +376,6 @@ class Convolution2DGradW(function_node.FunctionNode):
         # iC, iH, iW: input channels, input height, input width
         # oC, oH, oW: output channels, output height, output width
         G = self.group
-        kH = self.kh
-        kW = self.kw
         N, iC, iH, iW = x.shape
         _, oC, oH, oW = gy.shape
         iCg = int(iC / G)

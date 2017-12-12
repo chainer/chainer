@@ -212,9 +212,6 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         N, xC, xH, xW = x.shape
         xCg = int(xC / G)
         _, yCg, kH, kW = W.shape
-        yC = yCg * G
-        yH = self.outh
-        yW = self.outw
 
         xp = cuda.get_array_module(x)
 
