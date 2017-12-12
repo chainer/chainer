@@ -25,6 +25,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 if("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU|Clang|Intel")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
     set(CMAKE_CXX_FLAGS "-g -Wall -Wextra -fPIC -pthread")
     set(CMAKE_CXX_FLAGS_RELEASE "-O2")  # cmake -DCMAKE_BULD_TYPE=Release
     set(CMAKE_CXX_FLAGS_DEBUG "-O0")  # cmake -DCMAKE_BUILD_TYPE=Debug
@@ -32,7 +33,7 @@ if("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU|Clang|Intel")
     # cmake -DENABLE_COVERAGE=ON|OFF
     if(ENABLE_COVERAGE)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage")
-        set(CMAKE_EXE_LINKER "${CMAKE_EXE_LINKER} --coverage")
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage")
     endif()
 endif()
 include_directories("${PROJECT_SOURCE_DIR}")
