@@ -29,6 +29,11 @@ if(${BUILD_PYTHON})
     add_subdirectory(${CMAKE_BINARY_DIR}/pybind11)
 endif()
 
+# gsl-lite
+get_third_party(gsl-lite)
+include_directories(${CMAKE_BINARY_DIR}/gsl-lite/include)
+# add_subdirectory(${CMAKE_BINARY_DIR}/gsl-lite)
+
 # Test
 if(ENABLE_TEST)
     get_third_party(gtest)
