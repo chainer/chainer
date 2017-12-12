@@ -30,36 +30,42 @@ then `make` will automatically build the Python binding.
 zsh:
 
 ```shell-session
-clang-format -i **/*.{cc,h}
+clang-format -i xchainer/**/*.{cc,h}
 ```
 
 bash:
 
 ```shell-session
-find . \( -name '*.cc' -o -name '*.h' \) -type f -print0 | xargs -0 clang-format -i
+find xchainer \( -name '*.cc' -o -name '*.h' \) -type f -print0 | xargs -0 clang-format -i
 ```
 
 ### C++ Coverage
 
-Build as:
+Build and run tests as:
 
 ```
-cmake -DENABLE_COVERAGE=ON ..
+( mkdir -p build && cd build && cmake -DENABLE_COVERAGE=ON .. && make && ctest )
 ```
 
-and run tests, then:
+then find .gcda files:
 
 ```shell-session
-find build -name '*.gcda' -type f -print0 | xargs -0 gcov
+find build -name '*.gcda'
+```
+
+Use `gcov` command to get coverage:
+
+```shell-session
+gcov ./build/xchainer/CMakeFiles/xchainer.dir/xchainer.gcda
 ```
 
 See generated .gcov files.
 
-You can also see visual HTML results with `lcov`. After running tests:
+You can also genearte HTML coverage reports with `lcov`. After running tests:
 
 ```shell-session
 lcov -c -b xchainer -d build/xchainer/ --no-external -o build/coverage.info
 genhtml build/coverage.info -o build/coverage
 ```
 
-See `build/coverage/index.html` with `w3m` or any browsers.
+See `build/coverage/index.html` with any browsers.
