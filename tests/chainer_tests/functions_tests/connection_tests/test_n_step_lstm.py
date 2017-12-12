@@ -29,6 +29,13 @@ def _to_gpu(x):
         return cuda.to_gpu(x)
 
 
+def _wrap_variable(x):
+    if isinstance(x, list):
+        return [_wrap_variable(xi) for xi in x]
+    else:
+        return chainer.Variable(x)
+
+
 class TestNStepLSTM(unittest.TestCase):
 
     batches = [3, 2, 1]
@@ -70,13 +77,11 @@ class TestNStepLSTM(unittest.TestCase):
 
     def check_forward(
             self, h_data, c_data, xs_data, ws_data, bs_data):
-        h = chainer.Variable(h_data)
-        c = chainer.Variable(c_data)
-        xs = [chainer.Variable(x) for x in xs_data]
-        ws = [[chainer.Variable(w) for w in ws]
-              for ws in ws_data]
-        bs = [[chainer.Variable(b) for b in bs]
-              for bs in bs_data]
+        h = _wrap_variable(h_data)
+        c = _wrap_variable(c_data)
+        xs = _wrap_variable(xs_data)
+        ws = _wrap_variable(ws_data)
+        bs = _wrap_variable(bs_data)
         hy, cy, ys = functions.n_step_lstm(
             self.n_layers, self.dropout, h, c, ws, bs, xs)
 
@@ -173,6 +178,58 @@ class TestNStepLSTM(unittest.TestCase):
                 _to_gpu(self.dcy),
                 _to_gpu(self.dys))
 
+    def call_forward(self, train):
+        hx = _wrap_variable(_to_gpu(self.hx))
+        cx = _wrap_variable(_to_gpu(self.cx))
+        xs = _wrap_variable(_to_gpu(self.xs))
+        ws = _wrap_variable(_to_gpu(self.ws))
+        bs = _wrap_variable(_to_gpu(self.bs))
+        with chainer.using_config('enable_backprop', train), \
+                chainer.using_config('train', train):
+            return functions.n_step_lstm(
+                self.n_layers, self.dropout, hx, cx, ws, bs, xs)
+
+    def check_call_cudnn_forward_training(self, use_cudnn):
+        with chainer.using_config('use_cudnn', use_cudnn):
+            expect = chainer.should_use_cudnn('>=auto', 5000)
+            with mock.patch('cupy.cuda.cudnn.RNNForwardTraining') as func:
+                self.call_forward(True)
+            assert func.called == expect
+
+    @attr.cudnn
+    def test_call_cudnn_forward_training(self):
+        self.check_call_cudnn_forward_training('always')
+        self.check_call_cudnn_forward_training('never')
+        self.check_call_cudnn_forward_training('auto')
+
+    def check_call_cudnn_forward_inference(self, use_cudnn):
+        with chainer.using_config('use_cudnn', use_cudnn):
+            expect = chainer.should_use_cudnn('>=auto', 5000)
+            with mock.patch('cupy.cuda.cudnn.RNNForwardInference') as func:
+                self.call_forward(False)
+            assert func.called == expect
+
+    @attr.cudnn
+    def test_call_cudnn_forward_inference(self):
+        self.check_call_cudnn_forward_inference('always')
+        self.check_call_cudnn_forward_inference('never')
+        self.check_call_cudnn_forward_inference('auto')
+
+    def check_call_cudnn_backward(self, use_cudnn):
+        with chainer.using_config('use_cudnn', use_cudnn):
+            expect = chainer.should_use_cudnn('>=auto', 5000)
+            hy, cy, ys = self.call_forward(True)
+            hy.grad = _to_gpu(self.dhy)
+            with mock.patch('cupy.cuda.cudnn.RNNBackwardWeights') as func:
+                hy.backward()
+            assert func.called == expect
+
+    @attr.cudnn
+    def test_call_cudnn_backward(self):
+        self.check_call_cudnn_backward('always')
+        self.check_call_cudnn_backward('never')
+        self.check_call_cudnn_backward('auto')
+
 
 class TestNStepBiLSTM(unittest.TestCase):
 
@@ -218,13 +275,11 @@ class TestNStepBiLSTM(unittest.TestCase):
 
     def check_forward(
             self, h_data, c_data, xs_data, ws_data, bs_data):
-        h = chainer.Variable(h_data)
-        c = chainer.Variable(c_data)
-        xs = [chainer.Variable(x) for x in xs_data]
-        ws = [[chainer.Variable(w) for w in ws]
-              for ws in ws_data]
-        bs = [[chainer.Variable(b) for b in bs]
-              for bs in bs_data]
+        h = _wrap_variable(h_data)
+        c = _wrap_variable(c_data)
+        xs = _wrap_variable(xs_data)
+        ws = _wrap_variable(ws_data)
+        bs = _wrap_variable(bs_data)
         hy, cy, ys = functions.n_step_bilstm(
             self.n_layers, self.dropout, h, c, ws, bs, xs)
 
@@ -353,169 +408,57 @@ class TestNStepBiLSTM(unittest.TestCase):
                 _to_gpu(self.dcy),
                 _to_gpu(self.dys))
 
+    def call_forward(self, train):
+        hx = _wrap_variable(_to_gpu(self.hx))
+        cx = _wrap_variable(_to_gpu(self.cx))
+        xs = _wrap_variable(_to_gpu(self.xs))
+        ws = _wrap_variable(_to_gpu(self.ws))
+        bs = _wrap_variable(_to_gpu(self.bs))
+        with chainer.using_config('enable_backprop', train), \
+                chainer.using_config('train', train):
+            return functions.n_step_bilstm(
+                self.n_layers, self.dropout, hx, cx, ws, bs, xs)
 
-@testing.parameterize(*testing.product({
-    'use_cudnn': ['always', 'auto', 'never'],
-}))
-@attr.cudnn
-class TestNStepLSTMCudnnCall(unittest.TestCase):
-
-    batches = [4, 3, 2, 1]
-    length = len(batches)
-    in_size = 3
-    out_size = 4
-    n_layers = 2
-    dropout = 0.0
-
-    def setUp(self):
-        self.xs = [cuda.cupy.random.uniform(
-            -1, 1, (b, self.in_size)).astype('f')
-            for b in self.batches]
-        h_shape = (self.n_layers, self.batches[0], self.out_size)
-        self.cx = cuda.cupy.random.uniform(-1, 1, h_shape).astype('f')
-        self.hx = cuda.cupy.random.uniform(-1, 1, h_shape).astype('f')
-
-        self.ws = []
-        self.bs = []
-        for i in range(self.n_layers):
-            weights = []
-            biases = []
-            for j in range(8):
-                if i == 0 and j < 4:
-                    w_in = self.in_size
-                else:
-                    w_in = self.out_size
-
-                weights.append(cuda.cupy.random.uniform(
-                    -1, 1, (self.out_size, w_in)).astype('f'))
-                biases.append(cuda.cupy.random.uniform(
-                    -1, 1, (self.out_size,)).astype('f'))
-
-            self.ws.append(weights)
-            self.bs.append(biases)
-
-        self.dys = [cuda.cupy.random.uniform(
-            -1, 1, (b, self.out_size)).astype('f')
-            for b in self.batches]
-        self.dcy = cuda.cupy.random.uniform(-1, 1, h_shape).astype('f')
-        self.dhy = cuda.cupy.random.uniform(-1, 1, h_shape).astype('f')
-        with chainer.using_config('use_cudnn', self.use_cudnn):
-            self.expect = chainer.should_use_cudnn('>=auto', 5000)
-
-    def forward(self, train):
-        h = chainer.Variable(self.hx)
-        c = chainer.Variable(self.cx)
-        xs = [chainer.Variable(x) for x in self.xs]
-        ws = [[chainer.Variable(w) for w in ws]
-              for ws in self.ws]
-        bs = [[chainer.Variable(b) for b in bs]
-              for bs in self.bs]
-        with chainer.using_config('train', train):
-            return functions.n_step_lstm(
-                self.n_layers, self.dropout, h, c, ws, bs, xs)
-
-    def test_call_cudnn_forward_training(self):
-        with chainer.using_config('use_cudnn', self.use_cudnn):
+    def check_call_cudnn_forward_training(self, use_cudnn):
+        with chainer.using_config('use_cudnn', use_cudnn):
+            expect = chainer.should_use_cudnn('>=auto', 5000)
             with mock.patch('cupy.cuda.cudnn.RNNForwardTraining') as func:
-                self.forward(True)
-                self.assertEqual(func.called, self.expect)
+                self.call_forward(True)
+            assert func.called == expect
 
-    def test_call_cudnn_forward_inference(self):
-        with chainer.using_config('use_cudnn', self.use_cudnn):
+    @attr.cudnn
+    def test_call_cudnn_forward_training(self):
+        self.check_call_cudnn_forward_training('always')
+        self.check_call_cudnn_forward_training('never')
+        self.check_call_cudnn_forward_training('auto')
+
+    def check_call_cudnn_forward_inference(self, use_cudnn):
+        with chainer.using_config('use_cudnn', use_cudnn):
+            expect = chainer.should_use_cudnn('>=auto', 5000)
             with mock.patch('cupy.cuda.cudnn.RNNForwardInference') as func:
-                self.forward(False)
-                self.assertEqual(func.called, self.expect)
+                self.call_forward(False)
+            assert func.called == expect
 
-    def test_call_cudnn_backward(self):
-        with chainer.using_config('use_cudnn', self.use_cudnn):
-            hy, cy, ys = self.forward(True)
-            hy.grad = self.dhy
+    @attr.cudnn
+    def test_call_cudnn_forward_inference(self):
+        self.check_call_cudnn_forward_inference('always')
+        self.check_call_cudnn_forward_inference('never')
+        self.check_call_cudnn_forward_inference('auto')
+
+    def check_call_cudnn_backward(self, use_cudnn):
+        with chainer.using_config('use_cudnn', use_cudnn):
+            expect = chainer.should_use_cudnn('>=auto', 5000)
+            hy, cy, ys = self.call_forward(True)
+            hy.grad = _to_gpu(self.dhy)
             with mock.patch('cupy.cuda.cudnn.RNNBackwardWeights') as func:
                 hy.backward()
-                self.assertEqual(func.called, self.expect)
+            assert func.called == expect
 
-
-@testing.parameterize(*testing.product({
-    'use_cudnn': ['always', 'auto', 'never'],
-}))
-@attr.cudnn
-class TestNStepBiLSTMCudnnCall(unittest.TestCase):
-
-    batches = [4, 3, 2, 1]
-    length = len(batches)
-    in_size = 3
-    out_size = 4
-    n_layers = 2
-    dropout = 0.0
-
-    def setUp(self):
-        self.xs = [cuda.cupy.random.uniform(
-            -1, 1, (b, self.in_size)).astype('f')
-            for b in self.batches]
-        h_shape = (self.n_layers * 2, self.batches[0], self.out_size)
-        self.cx = cuda.cupy.random.uniform(-1, 1, h_shape).astype('f')
-        self.hx = cuda.cupy.random.uniform(-1, 1, h_shape).astype('f')
-
-        self.ws = []
-        self.bs = []
-        for i in range(self.n_layers):
-            for di in [0, 1]:
-                weights = []
-                biases = []
-                for j in range(8):
-                    if i == 0 and j < 4:
-                        w_in = self.in_size
-                    elif i > 0 and j < 4:
-                        w_in = self.out_size * 2
-                    else:
-                        w_in = self.out_size
-
-                    weights.append(cuda.cupy.random.uniform(
-                        -1, 1, (self.out_size, w_in)).astype('f'))
-                    biases.append(cuda.cupy.random.uniform(
-                        -1, 1, (self.out_size,)).astype('f'))
-
-                self.ws.append(weights)
-                self.bs.append(biases)
-
-        self.dys = [cuda.cupy.random.uniform(
-            -1, 1, (b, self.out_size * 2)).astype('f')
-            for b in self.batches]
-        self.dcy = cuda.cupy.random.uniform(-1, 1, h_shape).astype('f')
-        self.dhy = cuda.cupy.random.uniform(-1, 1, h_shape).astype('f')
-        with chainer.using_config('use_cudnn', self.use_cudnn):
-            self.expect = chainer.should_use_cudnn('>=auto', 5000)
-
-    def forward(self, train):
-        with chainer.using_config('use_cudnn', self.use_cudnn), \
-                chainer.using_config('enable_backprop', train), \
-                chainer.using_config('train', train):
-            h = chainer.Variable(self.hx)
-            c = chainer.Variable(self.cx)
-            xs = [chainer.Variable(x) for x in self.xs]
-            ws = [[chainer.Variable(w) for w in ws]
-                  for ws in self.ws]
-            bs = [[chainer.Variable(b) for b in bs]
-                  for bs in self.bs]
-            return functions.n_step_bilstm(
-                self.n_layers, self.dropout, h, c, ws, bs, xs)
-
-    def test_call_cudnn_forward_training(self):
-        with mock.patch('cupy.cuda.cudnn.RNNForwardTraining') as func:
-            self.forward(True)
-            self.assertEqual(func.called, self.expect)
-
-    def test_call_cudnn_forward_inference(self):
-        with mock.patch('cupy.cuda.cudnn.RNNForwardInference') as func:
-            self.forward(False)
-            self.assertEqual(func.called, self.expect)
-
+    @attr.cudnn
     def test_call_cudnn_backward(self):
-        hy, cy, ys = self.forward(True)
-        hy.grad = self.dhy
-        with mock.patch('cupy.cuda.cudnn.RNNBackwardWeights') as func:
-            hy.backward()
-            self.assertEqual(func.called, self.expect)
+        self.check_call_cudnn_backward('always')
+        self.check_call_cudnn_backward('never')
+        self.check_call_cudnn_backward('auto')
 
 
 def _stack_weight(ws):
