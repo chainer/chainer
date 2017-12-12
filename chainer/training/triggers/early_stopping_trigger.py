@@ -45,8 +45,8 @@ class EarlyStoppingTrigger(object):
         self.monitor = monitor
         self.verbose = verbose
         self.already_warning = False
+        self.max_trigger = max_trigger  # TODO: This is confusing
         self._max_trigger = util.get_trigger(max_trigger)
-        self.period, self.unit = max_trigger
         self._interval_trigger = util.get_trigger(check_trigger)
 
         self._init_summary()
@@ -126,3 +126,6 @@ class EarlyStoppingTrigger(object):
 
     def _init_summary(self):
         self._summary = reporter.DictSummary()
+
+    def _get_training_length(self):
+        return self.max_trigger
