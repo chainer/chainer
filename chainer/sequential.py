@@ -331,11 +331,11 @@ class Sequential(link.ChainList):
                     num += 1
         return num
 
-    def copy(self):
+    def copy(self, mode='share'):
         ret = Sequential()
         for layer in self:
             if isinstance(layer, link.Link):
-                ret.append(layer.copy())
+                ret.append(layer.copy(mode))
             else:
                 ret.append(copy.copy(layer))
         return ret
