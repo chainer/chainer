@@ -71,6 +71,8 @@ class Evaluator(extension.Extension):
     default_name = 'validation'
     priority = extension.PRIORITY_WRITER
 
+    name = None
+
     def __init__(self, iterator, target, converter=convert.concat_examples,
                  device=None, eval_hook=None, eval_func=None):
         if isinstance(iterator, iterator_module.Iterator):
@@ -123,7 +125,7 @@ class Evaluator(extension.Extension):
         """
         # set up a reporter
         reporter = reporter_module.Reporter()
-        if hasattr(self, 'name'):
+        if self.name is not None:
             prefix = self.name + '/'
         else:
             prefix = ''
