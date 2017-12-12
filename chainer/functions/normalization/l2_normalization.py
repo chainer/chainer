@@ -59,7 +59,7 @@ def normalize(x, eps=1e-5, axis=1):
     vector :math:`y` by the following equation:
 
     .. math::
-       y_i = {x_i \\over \\| x_i \\|_2 + \epsilon}
+       y_i = {x_i \\over \\| x_i \\|_2 + \\epsilon}
 
     :obj:`eps` is used to avoid division by zero when norm of :math:`x` along
     the given axis is zero.

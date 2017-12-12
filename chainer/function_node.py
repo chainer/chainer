@@ -447,7 +447,7 @@ Use apply() method instead.\
             target_input_indexes (tuple of int): Indices of the input variables
                 w.r.t. which the gradients are required. It is guaranteed that
                 this tuple contains at least one element.
-            grad_outputs (tuple of :class:`~chainer.Variable`\ s): Gradients
+            grad_outputs (tuple of :class:`~chainer.Variable`\\ s): Gradients
                 w.r.t. the output variables.
                 If the gradient w.r.t. an output variable is not
                 given, the corresponding element is ``None``.
