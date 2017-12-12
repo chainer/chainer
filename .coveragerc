@@ -1,0 +1,6 @@
+[run]
+include = xchainer/python/*
+
+[report]
+exclude_lines =
+    if __name__ == .__main__.:
