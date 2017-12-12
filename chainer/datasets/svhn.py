@@ -4,7 +4,9 @@ import numpy
 try:
     from scipy import io
     _scipy_available = True
-except Exception:
+except ImportError:
+    _scipy_available = False
+except AttributeError:
     _scipy_available = False
 
 from chainer.dataset import download
