@@ -13,12 +13,11 @@ include(cmake/third-party.cmake)
 # Configure options
 option(BUILD_PYTHON "Build Python binding" OFF)
 option(ENABLE_TEST "Enable building test" ON)
+option(ENABLE_COVERAGE "Enable test coverage with gcov" OFF)
 
 # C++ setup
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_OUTPUT_EXTENSION_REPLACE 1)  # ref. https://texus.me/2015/09/06/cmake-and-gcov/
-
-option(ENABLE_COVERAGE "Enable test coverage with gcov" OFF)
 
 # defaults to cmake -DCMAKE_BUILD_TYPE=Debug
 if(NOT CMAKE_BUILD_TYPE)
