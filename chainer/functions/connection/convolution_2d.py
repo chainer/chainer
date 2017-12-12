@@ -217,9 +217,7 @@ class Convolution2DFunction(function_node.FunctionNode):
                 _y = self._forward_gpu_core(_x[g, ], _W[g, ], _bg)
             _ys.append(_y)
 
-        y = xp.stack(_ys, axis=1)  # (N, G, oCg, oH, oW)
-        _, _, _, oH, oW = y.shape
-        y = y.reshape(N, oC, oH, oW)
+        y = xp.concatenate(_ys, axis=1)  # (N, oC, oH, oW)
         return y
 
     def _forward_cudnn(self, x, W, b, y):
@@ -403,8 +401,7 @@ class Convolution2DGradW(function_node.FunctionNode):
                 _gW = self._forward_gpu_core(_x[g, ], _gy[g, ])
             _gWs.append(_gW)
 
-        gW = xp.stack(_gWs)  # (G, oCg, iCg, kH, kW)
-        gW = gW.reshape(oC, iCg, kH, kW)
+        gW = xp.concatenate(_gWs)  # (oC, iCg, kH, kW)
         return gW
 
     def _forward_cudnn(self, x, gy):
