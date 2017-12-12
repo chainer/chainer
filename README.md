@@ -14,7 +14,15 @@ $ make
 ```
 
 Install headers and the library with `make install`.
-To specify the installation path, pass `-DCMAKE_INSTALL_PREFIX=<...>` to `cmake`. To build without test, pass `-DENABLE_TEST=OFF` to `cmake`.
+To specify the installation path, pass `-DCMAKE_INSTALL_PREFIX=<...>` to `cmake`.
+
+### Build the test suite
+
+The test suite is built by default unless `-DENABLE_TEST=OFF` is passed to `cmake`. Run the tests with the following command from within `build`.
+
+```shell-session
+$ ctest -V
+```
 
 ### Build the Python binding
 
