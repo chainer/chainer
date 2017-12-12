@@ -1,3 +1,7 @@
 #pragma once
 
-namespace xchainer {}  // namespace xchainer
+namespace xchainer {
+
+bool foo();
+
+}  // namespace xchainer

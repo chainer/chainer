@@ -13,12 +13,28 @@ include(cmake/third-party.cmake)
 # Configure options
 option(BUILD_PYTHON "Build Python binding" OFF)
 option(ENABLE_TEST "Enable building test" ON)
+option(ENABLE_COVERAGE "Enable test coverage with gcov" OFF)
 
 # C++ setup
 set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_OUTPUT_EXTENSION_REPLACE 1)  # ref. https://texus.me/2015/09/06/cmake-and-gcov/
+
+# defaults to cmake -DCMAKE_BUILD_TYPE=Debug
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Debug)
+endif()
+
 if("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU|Clang|Intel")
-    add_definitions(-g -Wall -Wextra -fPIC -pthread)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
+    set(CMAKE_CXX_FLAGS "-g -Wall -Wextra -fPIC -pthread")
+    set(CMAKE_CXX_FLAGS_RELEASE "-O2")  # cmake -DCMAKE_BULD_TYPE=Release
+    set(CMAKE_CXX_FLAGS_DEBUG "-O0")  # cmake -DCMAKE_BUILD_TYPE=Debug
+
+    # cmake -DENABLE_COVERAGE=ON|OFF
+    if(ENABLE_COVERAGE)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage")
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage")
+    endif()
 endif()
 include_directories("${PROJECT_SOURCE_DIR}")
 
