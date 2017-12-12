@@ -468,5 +468,90 @@ class TestSequential(unittest.TestCase):
             '0\tLinear\tW(None)\tb(3,)\t\n'
             '1\tLinear\tW(2, 3)\tb(2,)\t\n')
 
+    def test_repeat_with_init(self):
+        ret = self.s2.repeat(2)
+        self.assertIsNot(ret[0], self.s1)
+        self.assertIs(type(ret[0]), type(self.s1))
+        self.assertIsNot(ret[1], self.l3)
+        self.assertIsNot(type(ret[1]), type(self.l3))
+        self.assertIsNot(ret[2], self.s1)
+        self.assertIs(type(ret[2]), type(self.s1))
+        self.assertIsNot(ret[3], self.l3)
+        self.assertIsNot(type(ret[3]), type(self.l3))
+
+        # b is filled with 0, so they should have the same values
+        numpy.testing.assert_array_equal(ret[0][0].b.array, ret[2][0].b.array)
+        # W is initialized with LeCunNormal, so they should be different
+        self.assertFalse(
+            numpy.array_equal(ret[3].W.array, self.l3.W.array))
+        # And the object should also be different
+        self.assertIsNot(ret[3].W.array, self.l3.W.array)
+        # Repeated elements should be different objects
+        self.assertIsNot(ret[1], ret[3])
+        # Also for the arrays
+        self.assertIsNot(ret[1].W.array, ret[3].W.array)
+        # And values should be different
+        self.assertFalse(numpy.array_equal(ret[1].W.array, ret[3].W.array))
+
+        self.assertEqual(len(ret), 4)
+        ret = self.s2.repeat(0)
+        self.assertEqual(len(ret), 0)
+
+    def test_repeat_with_copy(self):
+        ret = self.s2.repeat(2, mode='copy')
+        self.assertIsNot(ret[0], self.s1)
+        self.assertIs(type(ret[0]), type(self.s1))
+        self.assertIsNot(ret[1], self.l3)
+        self.assertIsNot(type(ret[1]), type(self.l3))
+        self.assertIsNot(ret[2], self.s1)
+        self.assertIs(type(ret[2]), type(self.s1))
+        self.assertIsNot(ret[3], self.l3)
+        self.assertIsNot(type(ret[3]), type(self.l3))
+
+        # b is filled with 0, so they should have the same values
+        numpy.testing.assert_array_equal(ret[0][0].b.array, ret[2][0].b.array)
+        # W is shallowy copied, so the values should be same
+        numpy.testing.assert_array_equal(ret[3].W.array, self.l3.W.array)
+        # But the object should be different
+        self.assertIsNot(ret[3].W.array, self.l3.W.array)
+        # Repeated elements should be different objects
+        self.assertIsNot(ret[1], ret[3])
+        # Also for the arrays
+        self.assertIsNot(ret[1].W.array, ret[3].W.array)
+        # But the values should be same
+        numpy.testing.assert_array_equal(ret[1].W.array, ret[3].W.array)
+
+        self.assertEqual(len(ret), 4)
+        ret = self.s2.repeat(0, mode='deepcopy')
+        self.assertEqual(len(ret), 0)
+
+    def test_repeat_with_share(self):
+        ret = self.s2.repeat(2, mode='share')
+        self.assertIsNot(ret[0], self.s1)
+        self.assertIs(type(ret[0]), type(self.s1))
+        self.assertIsNot(ret[1], self.l3)
+        self.assertIsNot(type(ret[1]), type(self.l3))
+        self.assertIsNot(ret[2], self.s1)
+        self.assertIs(type(ret[2]), type(self.s1))
+        self.assertIsNot(ret[3], self.l3)
+        self.assertIsNot(type(ret[3]), type(self.l3))
+        self.assertIs(ret[0], ret[2])
+        self.assertIs(ret[1], ret[3])
+
+        # b is filled with 0, so they should have the same values
+        numpy.testing.assert_array_equal(ret[0][0].b.data, ret[2][0].b.data)
+        # W is deeply copied, so the values should be same
+        numpy.testing.assert_array_equal(ret[3].W.array, self.l3.W.array)
+        # And the object should also be same
+        self.assertIs(ret[3].W.array, self.l3.W.array)
+        # Repeated elements should be different objects
+        self.assertIsNot(ret[1], ret[3])
+        # But should have same arrays
+        self.assertIs(ret[1].W.array, ret[3].W.array)
+
+        self.assertEqual(len(ret), 4)
+        ret = self.s2.repeat(0, mode='share')
+        self.assertEqual(len(ret), 0)
+
 
 testing.run_module(__name__, __file__)
