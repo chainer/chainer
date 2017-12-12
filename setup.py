@@ -27,7 +27,7 @@ install_requires = [
     'protobuf>=3.0.0',
     'six>=1.9.0',
 ]
-cupy_require = 'cupy==4.0.0b1'
+cupy_require = 'cupy==4.0.0b2'
 
 cupy_pkg = None
 try:
