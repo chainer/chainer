@@ -123,7 +123,8 @@ class Link(object):
             is supplied, the default dtype will be used.
 
     Attributes:
-        name (str): Name of this link, given by the parent chain (if exists).
+        ~Link.name (str): Name of this link, given by the parent chain (if
+            exists).
 
     """
 
@@ -213,8 +214,8 @@ class Link(object):
         .. deprecated:: v2.0.0
 
            Assign a :class:`~chainer.Parameter` object directly to an
-           attribute within :meth:`an initialization scope <init_scope>`
-           instead. For example, the following code
+           attribute within :meth:`~chainer.Link.init_scope` instead.
+           For example, the following code
 
            .. code-block:: python
 
@@ -224,10 +225,10 @@ class Link(object):
 
            .. code-block:: python
 
-               with self.init_scope():
+               with link.init_scope():
                    link.W = chainer.Parameter(None, (5, 3))
 
-           The latter one is easier for IDEs to keep track of the attribute's
+           The latter is easier for IDEs to keep track of the attribute's
            type.
 
         Args:
@@ -298,31 +299,59 @@ Assign a Parameter object directly to an attribute within a \
         self._persistent.add(name)
         self._params.discard(name)
 
-    def copy(self):
+    def copy(self, mode='share'):
         """Copies the link hierarchy to new one.
 
-        The whole hierarchy rooted by this link is copied. The copy is
-        basically shallow, except that the parameter variables are also
+        The whole hierarchy rooted by this link is copied. There are three
+        modes to perform copy. If the ``mode`` argument is ``'share'``, The
+        copy is basically shallow, except that the parameter variables are also
         shallowly copied. It means that the parameter variables of copied one
         are different from ones of original link, while they share the data and
-        gradient arrays.
+        gradient arrays. If the ``mode`` argument is ``'
 
         The name of the link is reset on the copy, since the copied instance
         does not belong to the original parent chain (even if exists).
+
+        Args:
+            mode (str): It should be either ``init``, ``copy``, or ``share``.
+                ``init`` means parameter variables under the returned link
+                object is re-initialized by calling their
+                :meth:`~chainer.Parameter.initialize` method, so that all the
+                parameters may have different initial values from the original
+                link.
+                ``copy`` means that the link object is deeply copied, so that
+                its parameters are not re-initialized but are also deeply
+                copied. Thus, all parameters have same initial values but can
+                be changed independently.
+                ``share`` means that the link is shallowy copied, so that its
+                parameters' arrays are shared with the original one. Thus,
+                their values are changed synchronously. The default ``mode``
+                is ``share``.
 
         Returns:
             Link: Copied link object.
 
         """
-        ret = copy.copy(self)
-        ret._params = set(self._params)
-        ret._persistent = set(self._persistent)
-        ret.name = None
-        d = ret.__dict__
-        for name in ret._params:
-            d[name] = copy.copy(d[name])
-            d[name].grad = None
-        return ret
+        if mode not in ['init', 'copy', 'share']:
+            raise ValueError(
+                'The \'mode\' argument should be either \'init\','
+                '\'copy\', or \'share\'. But {} was given.'.format(mode))
+        if mode == 'share':
+            ret = copy.copy(self)
+            ret._params = set(self._params)
+            ret._persistent = set(self._persistent)
+            ret.name = None
+            d = ret.__dict__
+            for name in ret._params:
+                d[name] = copy.copy(d[name])
+                d[name].grad = None
+            return ret
+        elif mode == 'copy' or mode == 'init':
+            ret = copy.deepcopy(self)
+            if mode == 'init':
+                for param in ret.params(include_uninit=False):
+                    param.initialize(param.shape)
+            return ret
 
     def to_cpu(self):
         """Copies parameter variables and persistent values to CPU.
@@ -520,7 +549,7 @@ Assign a Parameter object directly to an attribute within a \
     def disable_update(self):
         """Disables update rules of all parameters under the link hierarchy.
 
-        This method sets the :attr:~chainer.UpdateRule.enabled` flag of the
+        This method sets the :attr:`~chainer.UpdateRule.enabled` flag of the
         update rule of each parameter variable to ``False``.
 
         """
@@ -621,12 +650,7 @@ Assign a Parameter object directly to an attribute within a \
                 '\'copy\', or \'share\'. But {} was given.'.format(mode))
         link = self
         for _ in range(n_repeat):
-            if mode in ['init', 'copy']:
-                link = copy.deepcopy(link)
-            if mode == 'init':
-                for param in link.params(include_uninit=False):
-                    param.initialize(param.shape)
-            ret.append(link)
+            ret.append(link.copy(mode))
         return ret
 
 
@@ -655,7 +679,7 @@ class Chain(Link):
     by slashes ``/``.
 
     A child link can be added just by assigning it to an attribute of the
-    chain within :meth:`an initialization scope <chainer.Link.init_scope>`.
+    chain within :meth:`~chainer.Chain.init_scope`.
 
     The registered child link is saved and loaded on serialization and
     deserialization, and involved in the optimization. The registered link
@@ -698,7 +722,7 @@ class Chain(Link):
 
        Child links are registered via the assignment within a
        ``with self.init_scope():`` block. The forward propagation is often
-       implemented as The ``__call__`` operator as the above example, though
+       implemented as the ``__call__`` operator as the above example, though
        it is not mandatory.
 
     Args:
@@ -707,7 +731,7 @@ class Chain(Link):
 
             .. deprecated:: v2.0.0
 
-               Assign child links directly to attributes, instead.
+               Assign child links directly to attributes instead.
 
     """
 
@@ -741,7 +765,7 @@ class Chain(Link):
         .. deprecated:: v2.0.0
 
            Assign the child link directly to an attribute within
-           :meth:`an initialization scope <chainer.Link.init_scope>`, instead.
+           :meth:`~chainer.Chain.init_scope` instead.
            For example, the following code
 
            .. code-block:: python
@@ -752,10 +776,10 @@ class Chain(Link):
 
            .. code-block:: python
 
-              with self.init_scope():
+              with chain.init_scope():
                   chain.l1 = L.Linear(3, 5)
 
-           The latter one is easier for IDEs to keep track of the attribute's
+           The latter is easier for IDEs to keep track of the attribute's
            type.
 
         Args:
@@ -889,6 +913,13 @@ class ChainList(Link):
 
         for link in links:
             self.add_link(link)
+
+    def __setattr__(self, name, value):
+        if self.within_init_scope and isinstance(value, Link):
+            raise TypeError(
+                'cannot register a new link'
+                ' within a "with chainlist.init_scope():" block.')
+        super(ChainList, self).__setattr__(name, value)
 
     def __getitem__(self, index):
         """Returns the child at given index.
