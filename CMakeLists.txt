@@ -12,6 +12,7 @@ include(cmake/third-party.cmake)
 
 # Configure options
 option(BUILD_PYTHON "Build Python binding" OFF)
+option(ENABLE_TEST "Enable building test" ON)
 
 # C++ setup
 set(CMAKE_CXX_STANDARD 14)
@@ -26,6 +27,15 @@ if(${BUILD_PYTHON})
     get_third_party(pybind11)
     include_directories(${CMAKE_BINARY_DIR}/pybind11/include)
     add_subdirectory(${CMAKE_BINARY_DIR}/pybind11)
+endif()
+
+# Test
+if(ENABLE_TEST)
+    get_third_party(gtest)
+    enable_testing()
+    add_subdirectory(${CMAKE_BINARY_DIR}/googletest-src
+        ${CMAKE_BINARY_DIR}/googletest-build
+        EXCLUDE_FROM_ALL)
 endif()
 
 add_subdirectory(xchainer)
