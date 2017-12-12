@@ -48,7 +48,6 @@ Dtype GetDtype(const std::string& name) {
         {"i", Dtype::kInt32},
         {"q", Dtype::kInt64},
         {"B", Dtype::kUInt8},
-        //{"u", Dtype::kUInt32},
         {"f", Dtype::kFloat32},
         {"d", Dtype::kFloat64},
     };

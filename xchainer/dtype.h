@@ -153,14 +153,15 @@ struct DtypeToType<Dtype::kFloat64> {
 
 }  // namespace dtype_detail
 
-// DtypeToType<type> == dtype
+// TypeToDtype<type> == dtype
 template <typename T>
 constexpr Dtype TypeToDtype = dtype_detail::TypeToDtype<T>::value;
 
+// CharToDtype<c> == dtype
 template <char c>
 constexpr Dtype CharToDtype = dtype_detail::CharToDtype<c>::value;
 
-// TypeToDtype<dtype> == type
+// DtypeToType<dtype> == type
 template <Dtype dtype>
 using DtypeToType = typename dtype_detail::DtypeToType<dtype>::type;
 
