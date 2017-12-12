@@ -54,3 +54,12 @@ find build -name '*.gcda' -type f -print0 | xargs -0 gcov
 ```
 
 See generated .gcov files.
+
+You can also see visual HTML results with `lcov`. After running tests:
+
+```shell-session
+lcov -c -b xchainer -d build/xchainer/ --no-external -o build/coverage.info
+genhtml build/coverage.info -o build/coverage
+```
+
+See `build/coverage/index.html` with `w3m` or any browsers.
