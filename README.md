@@ -14,7 +14,7 @@ $ make
 ```
 
 Install headers and the library with `make install`.
-To specify the installation path, pass `-DCMAKE_INSTALL_PREFIX=<...>` to `cmake`.
+To specify the installation path, pass `-DCMAKE_INSTALL_PREFIX=<...>` to `cmake`. To build without test, pass `-DENABLE_TEST=OFF` to `cmake`.
 
 ### Build the Python binding
 
