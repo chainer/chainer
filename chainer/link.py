@@ -650,7 +650,16 @@ Assign a Parameter object directly to an attribute within a \
                 '\'copy\', or \'share\'. But {} was given.'.format(mode))
         link = self
         for _ in range(n_repeat):
+<<<<<<< HEAD
             ret.append(link.copy(mode))
+=======
+            if mode in ['init', 'copy']:
+                link = copy.deepcopy(link)
+            if mode == 'init':
+                for param in link.params(include_uninit=False):
+                    param.initialize(param.shape)
+            ret.append(link)
+>>>>>>> 91df61eaf25a3c1c4d7b8fd205612f11391a178c
         return ret
 
 

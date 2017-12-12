@@ -519,6 +519,7 @@ class TestLinkRepeat(unittest.TestCase):
         ret = self.link.repeat(2, mode='share')
         self.assertEqual(len(ret), 2)
         # Both should be different objects from the original link
+<<<<<<< HEAD
         self.assertIsNot(ret[0], self.link)
         self.assertIsNot(ret[1], self.link)
         # Object IDs of elements should be different
@@ -526,6 +527,13 @@ class TestLinkRepeat(unittest.TestCase):
         self.assertIsNot(ret[0].x, ret[1].x)
         # But the array objects should be the same
         self.assertIs(ret[0].x.array, ret[1].x.array)
+=======
+        self.assertIs(ret[0], self.link)
+        self.assertIs(ret[1], self.link)
+        # Object IDs of elements should be same
+        self.assertIs(ret[0], ret[1])
+        self.assertIs(ret[0].x, ret[1].x)
+>>>>>>> 91df61eaf25a3c1c4d7b8fd205612f11391a178c
         # But shape, type, and value of paratmeres shuld be same
         self.assertEqual(ret[0].x.shape, self.link.x.shape)
         self.assertEqual(ret[0].x.dtype, self.link.x.dtype)

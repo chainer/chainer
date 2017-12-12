@@ -4,8 +4,8 @@ import warnings
 import numpy
 import six
 
+from chainer.backends import cuda
 from chainer import configuration
-from chainer import cuda
 from chainer.functions.math import identity
 from chainer import testing
 from chainer import variable

@@ -3,8 +3,8 @@ import weakref
 
 import six
 
+from chainer.backends import cuda
 from chainer import configuration
-from chainer import cuda
 # for backward compatibility
 from chainer.function_hook import FunctionHook  # NOQA
 from chainer import function_node

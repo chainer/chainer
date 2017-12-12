@@ -1,6 +1,6 @@
 import numpy
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function_node
 from chainer.utils import type_check
 
@@ -44,7 +44,7 @@ def pad(x, pad_width, mode, **keywords):
     """Pad an input variable.
 
     Args:
-        x (chainer.Variable or :class:``numpy.ndarray`` or cupy.ndarray):
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
             Input data.
         pad_width (int or array-like):
             Number of values padded to the edges of each axis.
