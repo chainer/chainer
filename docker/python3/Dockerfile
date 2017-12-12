@@ -6,4 +6,6 @@ RUN apt-get update -y && \
     python3-pip && \
     rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
+RUN pip install --upgrade pip setuptools
+
 RUN pip3 install cupy==4.0.0b1 chainer==4.0.0b1
