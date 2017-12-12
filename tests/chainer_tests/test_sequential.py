@@ -6,21 +6,24 @@ import mock
 import numpy
 import six
 
-import chainer
 from chainer import cuda
+from chainer import functions
+from chainer import links
+from chainer import sequential
 from chainer import testing
 from chainer.testing import attr
+from chainer import variable
 
 
 class TestSequential(unittest.TestCase):
 
     def setUp(self):
-        self.l1 = chainer.links.Linear(None, 3)
-        self.l2 = chainer.links.Linear(3, 2)
-        self.l3 = chainer.links.Linear(2, 3)
-        self.s1 = chainer.Sequential(self.l1)
+        self.l1 = links.Linear(None, 3)
+        self.l2 = links.Linear(3, 2)
+        self.l3 = links.Linear(2, 3)
+        self.s1 = sequential.Sequential(self.l1)
         self.s1.append(self.l2)
-        self.s2 = chainer.Sequential(self.s1)
+        self.s2 = sequential.Sequential(self.s1)
         self.s2.append(self.l3)
 
     def test_init(self):
@@ -29,7 +32,7 @@ class TestSequential(unittest.TestCase):
         self.assertIs(self.s2[0], self.s1)
         self.assertEqual(self.s1.name, '0')
         with self.assertRaises(ValueError):
-            chainer.Sequential(0)
+            sequential.Sequential(0)
 
     def test_append(self):
         self.assertIs(self.s2[1], self.l3)
@@ -216,11 +219,11 @@ class TestSequential(unittest.TestCase):
                          (id(self.l1), id(self.l2)))
 
     def test_copyparams(self):
-        l1 = chainer.links.Linear(None, 3)
-        l2 = chainer.links.Linear(3, 2)
-        l3 = chainer.links.Linear(2, 3)
-        s1 = chainer.Sequential(l1, l2)
-        s2 = chainer.Sequential(s1, l3)
+        l1 = links.Linear(None, 3)
+        l2 = links.Linear(3, 2)
+        l3 = links.Linear(2, 3)
+        s1 = sequential.Sequential(l1, l2)
+        s2 = sequential.Sequential(s1, l3)
         l1.b.data.fill(0)
         l2.W.data.fill(1)
         l2.b.data.fill(2)
@@ -258,11 +261,11 @@ class TestSequential(unittest.TestCase):
         self.assertIsNone(self.l1.W.grad)
 
     def test_addgrads(self):
-        l1 = chainer.links.Linear(2, 3)
-        l2 = chainer.links.Linear(3, 2)
-        l3 = chainer.links.Linear(2, 3)
-        s1 = chainer.Sequential(l1, l2)
-        s2 = chainer.Sequential(s1, l3)
+        l1 = links.Linear(2, 3)
+        l2 = links.Linear(3, 2)
+        l3 = links.Linear(2, 3)
+        s1 = sequential.Sequential(l1, l2)
+        s2 = sequential.Sequential(s1, l3)
         l1.b.grad.fill(1)
         l2.W.grad.fill(2)
         l2.b.grad.fill(3)
@@ -286,11 +289,11 @@ class TestSequential(unittest.TestCase):
         numpy.testing.assert_array_equal(self.l3.b.grad, numpy.zeros((3,)))
 
     def test_serialize(self):
-        l1 = chainer.links.Linear(None, 1)
-        l2 = chainer.links.Linear(None, 3)
+        l1 = links.Linear(None, 1)
+        l2 = links.Linear(None, 3)
         with l2.init_scope():
-            l2.x = chainer.Parameter(0, 2)
-        s1 = chainer.Sequential(l1, l2)
+            l2.x = variable.Parameter(0, 2)
+        s1 = sequential.Sequential(l1, l2)
         mocks = {'0': mock.MagicMock(), '1': mock.MagicMock()}
         serializer = mock.MagicMock()
         serializer.__getitem__.side_effect = lambda k: mocks[k]
@@ -332,9 +335,9 @@ class TestSequential(unittest.TestCase):
         self.assertFalse(self.l2 in self.s2)
 
     def test_add(self):
-        l1 = chainer.links.Linear(3, 2)
-        l2 = chainer.functions.relu
-        other = chainer.Sequential(l1, l2)
+        l1 = links.Linear(3, 2)
+        l2 = functions.relu
+        other = sequential.Sequential(l1, l2)
         added = self.s2 + other
         self.assertEqual(len(added), 4)
         self.assertIs(added[0], self.s1)
@@ -345,7 +348,7 @@ class TestSequential(unittest.TestCase):
             self.s2 + 0
 
     def test_radd(self):
-        l0 = chainer.links.Linear(3, 2)
+        l0 = links.Linear(3, 2)
         added = l0 + self.s2
         self.assertEqual(len(added), 3)
         self.assertIs(added[0], l0)
@@ -355,7 +358,7 @@ class TestSequential(unittest.TestCase):
             0 + self.s2
 
     def test_iadd(self):
-        l4 = chainer.links.Linear(3, 1)
+        l4 = links.Linear(3, 1)
         self.s2 += l4
         self.assertIs(self.s2[0], self.s1)
         self.assertIs(self.s2[1], self.l3)
@@ -363,68 +366,11 @@ class TestSequential(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.s2 += 0
 
-    def test_mul(self):
-        ret = self.s2 * 2
-        self.assertIsNot(ret[0], self.s1)
-        self.assertIs(type(ret[0]), type(self.s1))
-        self.assertIsNot(ret[1], self.l3)
-        self.assertIs(type(ret[1]), type(self.l3))
-
-        self.assertIsNot(ret[2], self.s1)
-        self.assertIs(type(ret[2]), type(self.s1))
-        # b is filled with 0, so they should have the same values
-        numpy.testing.assert_array_equal(ret[0][0].b.data, ret[2][0].b.data)
-
-        self.assertIsNot(ret[3], self.l3)
-        self.assertIs(type(ret[3]), type(self.l3))
-        # W is initialized with LeCunNormal, so they should be different
-        self.assertFalse(
-            numpy.array_equal(ret[3].W.data, self.l3.W.data))
-
-        self.assertEqual(len(ret), 4)
-
-        ret = self.s2 * 0
-        self.assertEqual(len(ret), 0)
-
-    def test_rmul(self):
-        ret = 2 * self.s2
-        self.assertIsNot(ret[0], self.s1)
-        self.assertIs(type(ret[0]), type(self.s1))
-        self.assertIsNot(ret[1], self.l3)
-        self.assertIs(type(ret[1]), type(self.l3))
-
-        self.assertIsNot(ret[2], self.s1)
-        self.assertIs(type(ret[2]), type(self.s1))
-        # b is filled with 0, so they should have the same values
-        numpy.testing.assert_array_equal(ret[0][0].b.data, ret[2][0].b.data)
-
-        self.assertIsNot(ret[3], self.l3)
-        self.assertIs(type(ret[3]), type(self.l3))
-        # W is initialized with LeCunNormal, so they should be different
-        self.assertFalse(
-            numpy.array_equal(ret[1].W.data, ret[3].W.data))
-
-        self.assertEqual(len(ret), 4)
-
-        ret = 0 * self.s2
-        self.assertEqual(len(ret), 0)
-
-    def test_imul(self):
-        s2 = self.s2.copy()
-        ids = [id(layer) for layer in s2]
-        s2 *= 2
-        self.assertEqual(id(s2[0]), ids[0])
-        self.assertEqual(id(s2[1]), ids[1])
-        numpy.testing.assert_array_equal(s2[0][0].b.data, s2[2][0].b.data)
-        self.assertFalse(
-            numpy.array_equal(s2[1].W.data, s2[3].W.data))
-        self.assertEqual(len(s2), 4)
-
     def test_call(self):
         l1 = mock.MagicMock()
         l2 = mock.MagicMock()
         l3 = mock.MagicMock()
-        model = chainer.Sequential(l1, l2, l3)
+        model = sequential.Sequential(l1, l2, l3)
         x = numpy.arange(2).reshape(1, 2).astype('f')
         y = model(x)
         l1.assert_called_once()
@@ -434,7 +380,7 @@ class TestSequential(unittest.TestCase):
         self.assertIs(y.creator.inputs[1].data, self.l2.W.data)
 
     def test_call_with_multiple_inputs(self):
-        model = chainer.Sequential(
+        model = sequential.Sequential(
             lambda x, y: (x * 2, y * 3, x + y),
             lambda x, y, z: x + y + z
         )
@@ -442,16 +388,16 @@ class TestSequential(unittest.TestCase):
         self.assertEqual(y, 18)
 
     def test_extend(self):
-        l1 = chainer.links.Linear(3, 2)
-        l2 = chainer.links.Linear(2, 3)
-        s3 = chainer.Sequential(l1, l2)
+        l1 = links.Linear(3, 2)
+        l2 = links.Linear(2, 3)
+        s3 = sequential.Sequential(l1, l2)
         self.s2.extend(s3)
         self.assertEqual(len(self.s2), 4)
         self.assertIs(self.s2[2], s3[0])
         self.assertIs(self.s2[3], s3[1])
 
     def test_insert(self):
-        l1 = chainer.links.Linear(3, 3)
+        l1 = links.Linear(3, 3)
         self.s1.insert(1, l1)
         self.assertEqual(len(self.s1), 3)
         self.assertIs(self.s1[1], l1)
@@ -462,11 +408,11 @@ class TestSequential(unittest.TestCase):
         self.assertIs(self.s2[0], self.l3)
 
     def test_remove_by_layer_type(self):
-        self.s2.insert(2, chainer.functions.relu)
+        self.s2.insert(2, functions.relu)
         self.s2.remove_by_layer_type('Linear')
         self.assertEqual(len(self.s2), 2)
         self.assertIs(self.s2[0], self.s1)
-        self.assertIs(self.s2[1], chainer.functions.relu)
+        self.assertIs(self.s2[1], functions.relu)
 
     def test_pop(self):
         l3 = self.s2.pop(1)
@@ -482,9 +428,9 @@ class TestSequential(unittest.TestCase):
         self.assertEqual(self.s2.index(self.l3), 1)
 
     def test_count(self):
-        self.s2.insert(1, chainer.functions.relu)
-        self.s2.insert(3, chainer.functions.relu)
-        self.assertEqual(self.s2.count(chainer.functions.relu), 2)
+        self.s2.insert(1, functions.relu)
+        self.s2.insert(3, functions.relu)
+        self.assertEqual(self.s2.count(functions.relu), 2)
         self.assertEqual(self.s2.count(self.s1), 1)
         self.assertEqual(self.s2.count(self.l3), 1)
         self.s2.append(self.l3)
@@ -492,17 +438,9 @@ class TestSequential(unittest.TestCase):
 
     def test_count_by_layer_type(self):
         self.assertEqual(self.s2.count_by_layer_type('Linear'), 1)
-        self.s2.insert(1, chainer.functions.relu)
-        self.s2.insert(3, chainer.functions.relu)
+        self.s2.insert(1, functions.relu)
+        self.s2.insert(3, functions.relu)
         self.assertEqual(self.s2.count_by_layer_type('relu'), 2)
-
-    def test_sort(self):
-        with self.assertRaises(NotImplementedError):
-            self.s2.sort()
-
-    def test_reverse(self):
-        with self.assertRaises(NotImplementedError):
-            self.s2.reverse()
 
     def test_pickle_without_lambda(self):
         fd, path = tempfile.mkstemp()
