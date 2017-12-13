@@ -6,7 +6,6 @@ import time
 
 from chainer.training import extension
 from chainer.training.extensions import util
-from chainer.training import triggers
 
 
 class ProgressBar(extension.Extension):
