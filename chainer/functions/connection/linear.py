@@ -57,15 +57,90 @@ class LinearFunction(function_node.FunctionNode):
 
         ret = []
         if 0 in indexes:
-            gx = linear(gy, W.T)
+            gx, = LinearGradData(self).apply((gy, W))
             ret.append(chainer.functions.cast(gx, x.dtype))
         if 1 in indexes:
-            gW = linear(gy.T, x.T)
+            gW, = LinearGradWeight(self).apply((x, gy))
             ret.append(chainer.functions.cast(gW, W.dtype))
         if 2 in indexes:
             gb = chainer.functions.sum(gy, axis=0)
             ret.append(gb)
 
+        return ret
+
+
+class LinearGradData(function_node.FunctionNode):
+
+    def __init__(self, linear):
+        return
+
+    def forward(self, inputs):
+        self.retain_inputs((0, 1))
+        gy, W = inputs
+
+        if not type_check.same_types(*inputs):
+            raise ValueError('numpy and cupy must not be used together\n'
+                             'type(gy): {0}, type(W): {1}'
+                             .format(type(gy), type(W)))
+        if (isinstance(gy, numpy.ndarray) and
+                not (gy.flags.c_contiguous or gy.flags.f_contiguous) and
+                1 in gy.shape):
+            gy = numpy.ascontiguousarray(gy)
+
+        gx = gy.dot(W).astype(gy.dtype, copy=False)
+        self.retain_inputs((0, 1))
+        return gx,
+
+    def backward(self, indexes, grad_outputs):
+        gy, W = self.get_retained_inputs()
+        ggx, = grad_outputs
+
+        ret = []
+        if 0 in indexes:
+            ggy = linear(ggx, W)
+            ret.append(chainer.functions.cast(ggy, gy.dtype))
+        if 1 in indexes:
+            gw, = LinearGradWeight(self).apply((ggx, gy))
+            ret.append(chainer.functions.cast(gw, W.dtype))
+        if 2 in indexes:
+            ggb = chainer.functions.sum(ggx, axis=0)
+            ret.append(ggb)
+        return ret
+
+
+class LinearGradWeight(function_node.FunctionNode):
+
+    def __init__(self, linear):
+        return
+
+    def forward(self, inputs):
+        self.retain_inputs((0, 1))
+        x, gy = inputs
+        if not type_check.same_types(*inputs):
+            raise ValueError('numpy and cupy must not be used together\n'
+                             'type(x): {0}, type(gy): {1}'
+                             .format(type(x), type(gy)))
+
+        if (isinstance(gy, numpy.ndarray) and
+                not (gy.flags.c_contiguous or gy.flags.f_contiguous) and
+                1 in gy.shape):
+            gy = numpy.ascontiguousarray(gy)
+
+        gW = gy.T.dot(x).astype(gy.dtype, copy=False)
+        self.retain_inputs((0, 1))
+        return gW,
+
+    def backward(self, indexes, grad_outputs):
+        x, gy = self.get_retained_inputs()
+        ggW, = grad_outputs
+
+        ret = []
+        if 0 in indexes:
+            gx, = LinearGradData(self).apply((gy, ggW))
+            ret.append(chainer.functions.cast(gx, x.dtype))
+        if 1 in indexes:
+            ggy = linear(x, ggW)
+            ret.append(chainer.functions.cast(ggy, gy.dtype))
         return ret
 
 
