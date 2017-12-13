@@ -368,11 +368,9 @@ class DictSummary(object):
         if isinstance(serializer, serializer_module.Serializer):
             serializer('_names', json.dumps(list(self._summaries.keys())))
             for name, summary in six.iteritems(self._summaries):
-                if hasattr(summary, 'serialize'):
-                    summary.serialize(serializer['_summaries'][name])
+                summary.serialize(serializer['_summaries'][name])
         else:
             names = json.loads(serializer('_names', ''))
             for name in names:
-                if hasattr(self._summaries[name], 'serialize'):
-                    self._summaries[name].serialize(
-                        serializer['_summaries'][name])
+                self._summaries[name].serialize(
+                    serializer['_summaries'][name])
