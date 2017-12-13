@@ -273,9 +273,9 @@ class TestDictSummary(unittest.TestCase):
         testing.assert_allclose(stats['numpy'], 9. / 4.)
         testing.assert_allclose(stats['int'], 17 / 4)
         testing.assert_allclose(stats['float'], 13. / 2.)
-        testing.assert_allclose(stats['numpy.std'], numpy.sqrt(11.) / 4.)
-        testing.assert_allclose(stats['int.std'], numpy.sqrt(59) / 4)
-        testing.assert_allclose(stats['float.std'], numpy.sqrt(17.) / 2.)
+        testing.assert_allclose(stats['numpy.std'], numpy.sqrt(11. / 16.))
+        testing.assert_allclose(stats['int.std'], numpy.sqrt(59 / 16))
+        testing.assert_allclose(stats['float.std'], numpy.sqrt(17. / 4.))
 
     @attr.gpu
     def test_cupy(self):
@@ -321,8 +321,8 @@ class TestDictSummary(unittest.TestCase):
         testing.assert_allclose(stats['numpy'], 7. / 3.)
         testing.assert_allclose(stats['int'], 17 / 4)
         testing.assert_allclose(stats['float'], 17. / 2.)
-        testing.assert_allclose(stats['numpy.std'], numpy.sqrt(8.) / 3.)
-        testing.assert_allclose(stats['int.std'], numpy.sqrt(59) / 4)
+        testing.assert_allclose(stats['numpy.std'], numpy.sqrt(8. / 9.))
+        testing.assert_allclose(stats['int.std'], numpy.sqrt(59 / 16))
         testing.assert_allclose(stats['float.std'], 1. / 2.)
 
     def test_serialize(self):
@@ -347,9 +347,9 @@ class TestDictSummary(unittest.TestCase):
         testing.assert_allclose(stats['numpy'], 9. / 4.)
         testing.assert_allclose(stats['int'], 17 / 4)
         testing.assert_allclose(stats['float'], 13. / 2.)
-        testing.assert_allclose(stats['numpy.std'], numpy.sqrt(11.) / 4.)
-        testing.assert_allclose(stats['int.std'], numpy.sqrt(59) / 4)
-        testing.assert_allclose(stats['float.std'], numpy.sqrt(17.) / 2.)
+        testing.assert_allclose(stats['numpy.std'], numpy.sqrt(11. / 16.))
+        testing.assert_allclose(stats['int.std'], numpy.sqrt(59 / 16))
+        testing.assert_allclose(stats['float.std'], numpy.sqrt(17. / 4.))
 
     def test_serialize_names_with_slash(self):
         self.summary.add({'a/b': 3., '/a/b': 1., 'a/b/': 4.})
@@ -373,9 +373,9 @@ class TestDictSummary(unittest.TestCase):
         testing.assert_allclose(stats['a/b'], 9. / 4.)
         testing.assert_allclose(stats['/a/b'], 17 / 4)
         testing.assert_allclose(stats['a/b/'], 13. / 2.)
-        testing.assert_allclose(stats['a/b.std'], numpy.sqrt(11.) / 4.)
-        testing.assert_allclose(stats['/a/b.std'], numpy.sqrt(59) / 4)
-        testing.assert_allclose(stats['a/b/.std'], numpy.sqrt(17.) / 2.)
+        testing.assert_allclose(stats['a/b.std'], numpy.sqrt(11. / 16.))
+        testing.assert_allclose(stats['/a/b.std'], numpy.sqrt(59 / 16))
+        testing.assert_allclose(stats['a/b/.std'], numpy.sqrt(17. / 4.))
 
     def test_serialize_backward_compat(self):
         with tempfile.NamedTemporaryFile(delete=False) as f:
@@ -401,9 +401,9 @@ class TestDictSummary(unittest.TestCase):
         testing.assert_allclose(stats['numpy'], 9. / 4.)
         testing.assert_allclose(stats['int'], 17 / 4)
         testing.assert_allclose(stats['float'], 13. / 2.)
-        testing.assert_allclose(stats['numpy.std'], numpy.sqrt(11.) / 4.)
-        testing.assert_allclose(stats['int.std'], numpy.sqrt(59) / 4)
-        testing.assert_allclose(stats['float.std'], numpy.sqrt(17.) / 2.)
+        testing.assert_allclose(stats['numpy.std'], numpy.sqrt(11. / 16.))
+        testing.assert_allclose(stats['int.std'], numpy.sqrt(59 / 16))
+        testing.assert_allclose(stats['float.std'], numpy.sqrt(17. / 4.))
 
 
 testing.run_module(__name__, __file__)
