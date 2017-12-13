@@ -1,4 +1,5 @@
 #include "xchainer/shape.h"
+
 #include <gtest/gtest.h>
 
 namespace xchainer {

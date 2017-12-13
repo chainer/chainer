@@ -1,4 +1,5 @@
 #include "xchainer/shape.h"
+
 #include <functional>
 #include <numeric>
 
