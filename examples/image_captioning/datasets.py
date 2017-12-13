@@ -97,6 +97,9 @@ def get_mscoco(
         for w in split(c):
             word_counts[w] += 1
 
+    # This vocabulary is needed in order to convert the words in the captions
+    # to integer tokens. When generating captions during testing, these tokens
+    # are mapped back to their corresponding words.
     vocab = {'<bos>': _bos, '<eos>': _eos, '<unk>': _unk}
     for w, count in six.iteritems(word_counts):
         if w not in vocab and count >= unk_threshold:

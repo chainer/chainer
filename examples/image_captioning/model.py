@@ -214,10 +214,12 @@ class NStepLSTMLanguageModel(chainer.Chain):
         """
         hx, cx, _ = self.reset(img_feats)
 
+        # Extract all inputs and targets for all captions in the batch
         xs = [c[:-1] for c in captions]
         ts = [c[1:] for c in captions]
 
-        # Concatenate all input captions and pass them through the model
+        # Concatenate all input captions and pass them through the model in a
+        # single pass
         caption_lens = [len(x) for x in xs]
         caption_sections = np.cumsum(caption_lens[:-1])
         xs = F.concat(xs, axis=0)
