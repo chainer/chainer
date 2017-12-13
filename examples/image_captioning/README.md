@@ -1,23 +1,33 @@
 # Image Captioning with Convolutional Neural Networks
 
-This is an example of a generative image captioning model using a neural networks with convolutional and recurrent layers. Given an image, this model generates a sentence that describe it.
+This is an example of a generative image captioning model using a neural network with convolutional and recurrent layers. Given an image, this model generates a sentence that describe it.
 
 
 ## Requirements
 
-This example requires:
+This example requires
 
 - [pycocotools](https://github.com/cocodataset/cocoapi/tree/master/PythonAPI)
 
-To install pycocotools, clone the repository and run `pip install -e .` from the directory where `setup.py` is located.
+to work with the dataset. To install pycocotools, clone the repository and run `pip install -e .` from the directory where `setup.py` is located.
 
 ## Model Overview
 
-The model takes an image as input which is fed through a pretrained VGG16 model in order to extract features. These features are then passed to a language model, a recurrent neural network that generates a caption word-by-word until the `EOS` (end-of-sentence) token is encountered or the caption reaches a predetermined maximum caption length. The internals of the language models is a neural network with [LSTM](http://docs.chainer.org/en/stable/reference/generated/chainer.links.LSTM.html) layers. However, Chainer also has a [NStepLSTM](http://docs.chainer.org/en/stable/reference/generated/chainer.links.NStepLSTM.html) layer which does not require sequential passes (for-loops in the code) through the language model which runs faster. Using the latter, you do not have to align the caption lengths in the training data neither, which you do if using the former. During training, the loss is the softmax cross entropy of correctly predicting the next word in the caption given the current word averaged over the minibatch. This example includes both LSTM and NStepLSTM implementations.
+### 1. Extract features from an image
+
+The model takes an image as input which is fed through a pretrained VGG16 model in order to extract features.
+
+### 2. Generating a caption from extracted features
+
+These features are then passed to a language model, a recurrent neural network that generates a caption word-by-word until the `EOS` (end-of-sentence) token is encountered or the caption reaches a predetermined maximum caption length. The internals of the language models is a neural network with [LSTM](http://docs.chainer.org/en/stable/reference/generated/chainer.links.LSTM.html) layers. However, Chainer also has a [NStepLSTM](http://docs.chainer.org/en/stable/reference/generated/chainer.links.NStepLSTM.html) layer which does not require sequential passes (for-loops in the code) which is faster. Using the latter, you do not have to align the caption lengths in the training data neither, which you usually do if using the former. This example includes both LSTM and NStepLSTM implementations and preprocessing of the captions.
+
+### 3. Objective function
+
+During training, the loss is the softmax cross entropy of correctly predicting the next word in the caption given the current word averaged over the minibatch.
 
 ## Dataset
 
-You need to download the MSCOCO captioning dataset in order to train the model. Run it wthe following command to download and extract the necessary files.
+You need to download the MSCOCO captioning dataset in order to train the model. Run the following command to download and extract the necessary files.
 
 
 ```bash
@@ -31,19 +41,19 @@ This downloads and extracts the training and validation images, as well as neces
 Once `download.py` finishes, you can start training the model.
 
 ```bash
-$ python train.py --rnn nsteplstm --max-caption-length 30 --snapshot-iter 1000 --max-iters 50000 --gpu 0
+$ python train.py --rnn nsteplstm --max-caption-length 30 --snapshot-iter 1000 --max-iters 50000 --batch-size 128 --gpu 0
 ```
 
-The above example command start the training with the NStepLSTM layers in the language model and saves a snapshot of the trained model each 1000 iteration. By default, the first model snapshot is saved under `result/model_1000`.
+The above example start the training with the NStepLSTM layers in the language model and saves a snapshot of the trained model each every 1000 iteration. By default, the first model snapshot is saved as `result/model_1000`.
 
-If you have specified a download directory for the MSCOCO dataset when preparing the dataset, add the `--mscoco-root` option followed by the path to that directory.
+If you have specified a download directory for MSCOCO when preparing the dataset, add the `--mscoco-root` option followed by the path to that directory.
 
 ## Testing
 
-To generate captions for new images, you need to have trained a snapshot of a trained model. Assuming we are using the model snapshots from the training example after 20000 iterations, we can generate new captions as follows.
+To generate captions for new images, you need to have a snapshot of a trained model. Assuming we are using the model snapshots from the training example after 20000 iterations, we can generate new captions as follows.
 
 ```bash
 $ python predict.py --img cat.jpg --model result/model_20000 --rnn nsteplstm --max-caption-length 30 --gpu 0
 ```
 
-This will print out the generated captions to std out. If you want to generate captions to all images in a directory, replace `--img` with `--img-dir` followed by the directory.
+It will print out the generated captions to std out. If you want to generate captions to all images in a directory, replace `--img` with `--img-dir` followed by the directory.
