@@ -34,6 +34,7 @@ jobs:
             mkdir -p downloads
             apt-get update
             apt-get install -y g++ cmake clang clang-format clang-tidy git python3-dev lcov wget
+            apt-get install -y ca-certificates  # To avoid errors on save_cache/restore_cache
             apt-get install -y bzip2  # To install miniconda
 
             # conda
