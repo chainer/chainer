@@ -1,34 +1,5 @@
 version: 2
 jobs:
-  build:
-    docker:
-      - image: ubuntu:xenial
-    steps:
-      - checkout
-      - run: |
-          apt-get update
-          apt-get install -y g++ cmake clang clang-tidy git python3-dev lcov
-
-      - run: |
-          g++ --version
-          cmake --version
-
-      - restore_cache:
-          key: dependency-cache-{{ .Branch }}-{{ checksum "CMakeLists.txt" }}
-
-      - run: |
-          ( mkdir -p build && cd build && cmake -DBUILD_PYTHON=1 -DENABLE_COVERAGE=ON .. && make clang-tidy && make && ctest -V )
-          lcov -c -b xchainer -d build/xchainer/ --no-external -o build/coverage.info
-          genhtml build/coverage.info -o build/coverage
-
-      - save_cache:
-          key: dependency-cache-{{ .Branch }}-{{ checksum "CMakeLists.txt" }}
-          paths:
-            - build
-
-      - store_artifacts:
-          path: build/coverage
-
   clang-format:
     docker:
       - image: ubuntu:xenial
@@ -44,40 +15,132 @@ jobs:
       - run: |
           find xchainer \( -name '*.cc' -o -name '*.h' \) -type f -print0 | xargs -0 -P4 -I{} bash -c 'diff -u {} <(clang-format {})'
 
-  python-lint:
+  build:
     docker:
-      - image: circleci/python:3.6
+      - image: ubuntu:xenial
     steps:
+
+      # Setup
+      - run:
+          name: Setup
+          command: |
+            apt-get update
+            apt-get install -y g++ cmake clang clang-format clang-tidy git python3-dev lcov wget
+            apt-get install openssh-client  # To avoid warning on checkout
+            apt-get install -y ca-certificates  # To avoid errors on save_cache/restore_cache
+            apt-get install -y bzip2  # To install miniconda
+
+            # To avoid configuring PATH environment variable in every steps
+            echo 'export PATH="$HOME"/miniconda/bin:"$PATH"' >> $BASH_ENV
+
+      # Checkout
       - checkout
+
+      # Setup conda
+      - restore_cache:
+          keys:
+            - downloads-cache
+
+      - run:
+          name: Setup conda
+          command: |
+            mkdir -p downloads
+
+            # conda
+            if [ ! -f downloads/miniconda.sh ]; then
+              wget 'https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh' -O downloads/miniconda.sh
+            fi
+            bash downloads/miniconda.sh -b -p "$HOME"/miniconda
+            conda config --set changeps1 no
+            conda update -y -q conda
+            conda create -y -q --name testenv python=3.6 pip
+
+      - save_cache:
+          key: downloads-cache
+          paths:
+            - downloads
+
+      # Environment info
+      - run:
+          name: Environment info
+          command: |
+            source activate testenv
+
+            echo "PWD: $PWD"
+
+            g++ --version
+            cmake --version
+            python --version
+
+            echo
+            echo "----- conda -----"
+            conda info -a
+
+      # C++ test 
+      - restore_cache:
+          key: dependency-cache-{{ .Branch }}-{{ checksum "CMakeLists.txt" }}
+
+      - run:
+          name: C++ test
+          command: |
+            source activate testenv
+
+            ( mkdir -p build && cd build && cmake -DBUILD_PYTHON=1 -DENABLE_COVERAGE=ON .. && make clang-tidy && make && ctest -V )
+            lcov -c -b xchainer -d build/xchainer/ --no-external -o build/coverage.info
+            genhtml build/coverage.info -o build/coverage
+
+      - save_cache:
+          key: dependency-cache-{{ .Branch }}-{{ checksum "CMakeLists.txt" }}
+          paths:
+            - build
+
+      - store_artifacts:
+          path: build/coverage
+
+      # Setup conda environment
+      - run:
+          name: Setup conda environment
+          command: |
+            source activate testenv
+
+            pip install -U hacking autopep8
+            pip install -U pytest pytest-cov coveralls
+
+      # Python PEP-8 check
       - restore_cache:
           key: dependency-cache-pip-{{ .Branch }}-{{ .Revision }}
-
-      - run: |
-          python3 -m venv venv
-          . venv/bin/activate
-          pip install hacking
-          pip install autopep8
 
       - save_cache:
           key: dependency-cache-pip-{{ .Branch }}-{{ .Revision }}
           paths:
             - "venv"
 
-      - run: |
-          . venv/bin/activate
-          flake8 --version
-          flake8 xchainer
+      - run:
+          name: Python PEP-8 check
+          command: |
+            source activate testenv
 
-      - run: |
-          . venv/bin/activate
-          autopep8 --version
-          autopep8 -r xchainer --global-config .pep8 --diff | tee check_autopep8
-          test ! -s check_autopep8
+            flake8 --version
+            flake8 xchainer tests
+
+            autopep8 --version
+            autopep8 xchainer tests -r --global-config .pep8 --diff | tee check_autopep8
+            test ! -s check_autopep8
+
+      # Python test
+      - run:
+          name: Python test
+          command: |
+            source activate testenv
+
+            python setup.py install
+            # TODO(niboshi): coverage does not work
+            #pytest --cov --no-cov-on-fail --cov-fail-under=80
+            pytest
 
 workflows:
   version: 2
   build_and_test:
     jobs:
       - clang-format
-      - python-lint
       - build

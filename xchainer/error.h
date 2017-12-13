@@ -16,4 +16,10 @@ public:
     using XchainerError::XchainerError;
 };
 
+// Error on dtype mismatch.
+class DtypeError : public XchainerError {
+public:
+    using XchainerError::XchainerError;
+};
+
 }  // namespace xchainer

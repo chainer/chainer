@@ -4,6 +4,7 @@ endif()
 
 install(FILES
     constant.h
+    dtype.h
     error.h
     shape.h
     xchainer.h
@@ -11,16 +12,16 @@ install(FILES
     )
 
 add_library(xchainer SHARED
+    dtype.cc
     shape.cc
-    xchainer.cc
     )
 
 install(TARGETS xchainer DESTINATION lib)
 
 if(ENABLE_TEST)
     add_executable(xchainer_test
-        shape_test.cc
-        xchainer_test.cc)
+        dtype_test.cc
+        shape_test.cc)
     target_link_libraries(xchainer_test
         xchainer
         gtest_main)
