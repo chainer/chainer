@@ -28,19 +28,5 @@ TEST(ShapeTest, Ctor) {
     }
 }
 
-TEST(ShapeTest, Copy) {
-    const Shape shape = {2, 3, 4};
-    const Shape shape2 = shape;
-    EXPECT_EQ(shape.ndim(), shape2.ndim());
-    CheckSpanEqual({2, 3, 4}, shape.span());
-}
-
-TEST(ShapeTest, Move) {
-    Shape shape = {2, 3, 4};
-    Shape shape2 = std::move(shape);
-    EXPECT_EQ(shape.ndim(), shape2.ndim());
-    CheckSpanEqual({2, 3, 4}, shape.span());
-}
-
 }  // namespace
 }  // namespace xchainer
