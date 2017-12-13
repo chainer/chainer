@@ -1,5 +1,8 @@
-build/
-dist/
+/build/
+/dist/
+/.cache/
+/.coverage
 *~
 *.egg-info
 *.gcov
+*.so
