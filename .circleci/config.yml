@@ -64,7 +64,6 @@ jobs:
       - run:
           name: Environment info
           command: |
-            export PATH="$HOME"/miniconda/bin:"$PATH"
             source activate testenv
 
             echo "PWD: $PWD"
@@ -84,7 +83,6 @@ jobs:
       - run:
           name: C++ test
           command: |
-            export PATH="$HOME"/miniconda/bin:"$PATH"
             source activate testenv
 
             ( mkdir -p build && cd build && cmake -DBUILD_PYTHON=1 -DENABLE_COVERAGE=ON .. && make clang-tidy && make && ctest -V )
@@ -103,7 +101,6 @@ jobs:
       - run:
           name: Setup conda environment
           command: |
-            export PATH="$HOME"/miniconda/bin:"$PATH"
             source activate testenv
 
             pip install -U hacking autopep8
@@ -121,7 +118,6 @@ jobs:
       - run:
           name: Python PEP-8 check
           command: |
-            export PATH="$HOME"/miniconda/bin:"$PATH"
             source activate testenv
 
             flake8 --version
@@ -135,7 +131,6 @@ jobs:
       - run:
           name: Python test
           command: |
-            export PATH="$HOME"/miniconda/bin:"$PATH"
             source activate testenv
 
             python setup.py install
