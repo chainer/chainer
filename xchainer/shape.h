@@ -56,13 +56,9 @@ private:
     int8_t ndim_;
 };
 
-inline bool operator==(const Shape& lhs, const Shape& rhs) {
-    return lhs.span() == rhs.span();
-}
+inline bool operator==(const Shape& lhs, const Shape& rhs) { return lhs.span() == rhs.span(); }
 
-inline bool operator!=(const Shape& lhs, const Shape& rhs) {
-    return lhs.span() != rhs.span();
-}
+inline bool operator!=(const Shape& lhs, const Shape& rhs) { return lhs.span() != rhs.span(); }
 
 void CheckEqual(const Shape& lhs, const Shape& rhs);
 
