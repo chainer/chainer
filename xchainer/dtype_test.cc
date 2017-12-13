@@ -55,6 +55,7 @@ TEST(DtypeTest, GetDtype_GetDtypeName) {
     ASSERT_EQ(Dtype::kUInt8, GetDtype(GetDtypeName(Dtype::kUInt8)));
     ASSERT_EQ(Dtype::kFloat32, GetDtype(GetDtypeName(Dtype::kFloat32)));
     ASSERT_EQ(Dtype::kFloat64, GetDtype(GetDtypeName(Dtype::kFloat64)));
+    ASSERT_THROW(GetDtype("wrong"), DtypeError);
 }
 
 // Check if char GetCharCode and GetDtype(std::string) are inverses of each other.
@@ -67,6 +68,11 @@ TEST(DtypeTest, GetDtype_GetCharCode) {
     ASSERT_EQ(Dtype::kUInt8, GetDtype({GetCharCode(Dtype::kUInt8)}));
     ASSERT_EQ(Dtype::kFloat32, GetDtype({GetCharCode(Dtype::kFloat32)}));
     ASSERT_EQ(Dtype::kFloat64, GetDtype({GetCharCode(Dtype::kFloat64)}));
+}
+
+TEST(DtypeTest, CheckEqual) {
+    ASSERT_NO_THROW(CheckEqual(Dtype::kInt8, Dtype::kInt8));
+    ASSERT_THROW(CheckEqual(Dtype::kInt8, Dtype::kUInt8), DtypeError);
 }
 
 }  // namespace
