@@ -1,11 +1,13 @@
-#include <pybind11/numpy.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
 #include <algorithm>
-#include <gsl/gsl>
 #include <iterator>
 #include <sstream>
 #include <string>
+
+#include <pybind11/numpy.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
+#include <gsl/gsl>
+
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
 
