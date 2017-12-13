@@ -277,6 +277,31 @@ class TestDictSummary(unittest.TestCase):
         testing.assert_allclose(stats['int.std'], numpy.sqrt(59) / 4)
         testing.assert_allclose(stats['float.std'], numpy.sqrt(17.) / 2.)
 
+    @attr.gpu
+    def test_cupy(self):
+        xp = cuda.cupy
+        self.summary.add({'cupy': xp.array(3, 'f'), 'int': 1, 'float': 4.})
+        self.summary.add({'cupy': xp.array(1, 'f'), 'int': 5, 'float': 9.})
+        self.summary.add({'cupy': xp.array(2, 'f'), 'int': 6, 'float': 5.})
+        self.summary.add({'cupy': xp.array(3, 'f'), 'int': 5, 'float': 8.})
+
+        mean = self.summary.compute_mean()
+        self.assertEqual(set(mean.keys()), {'cupy', 'int', 'float'})
+        testing.assert_allclose(mean['cupy'], 9. / 4.)
+        testing.assert_allclose(mean['int'], 17 / 4)
+        testing.assert_allclose(mean['float'], 13. / 2.)
+
+        stats = self.summary.make_statistics()
+        self.assertEqual(
+            set(stats.keys()),
+            {'cupy',  'int',  'float', 'cupy.std', 'int.std', 'float.std'})
+        testing.assert_allclose(stats['cupy'], 9. / 4.)
+        testing.assert_allclose(stats['int'], 17 / 4)
+        testing.assert_allclose(stats['float'], 13. / 2.)
+        testing.assert_allclose(stats['cupy.std'], numpy.sqrt(11.) / 4.)
+        testing.assert_allclose(stats['int.std'], numpy.sqrt(59) / 4)
+        testing.assert_allclose(stats['float.std'], numpy.sqrt(17.) / 2.)
+
     def test_sparse(self):
         self.summary.add({'numpy': numpy.array(3, 'f'), 'int': 1})
         self.summary.add({'numpy': numpy.array(1, 'f'), 'int': 5, 'float': 9.})
