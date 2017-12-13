@@ -37,5 +37,23 @@ TEST(ShapeTest, Subscript) {
     ASSERT_THROW(shape[3], DimensionError);
 }
 
+TEST(ShapeTest, Compare) {
+    {
+        const Shape shape = {2, 3, 4};
+        const Shape shape2 = {2, 3, 4};
+        ASSERT_TRUE(shape == shape2);
+    }
+    {
+        const Shape shape = {2, 3, 4};
+        const Shape shape2 = {2, 3};
+        ASSERT_TRUE(shape != shape2);
+    }
+    {
+        const Shape shape = {2, 3, 4};
+        const Shape shape2 = {1, 2, 3};
+        ASSERT_TRUE(shape != shape2);
+    }
+}
+
 }  // namespace
 }  // namespace xchainer
