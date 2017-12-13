@@ -254,6 +254,52 @@ class TestDictSummary(unittest.TestCase):
     def setUp(self):
         self.summary = chainer.reporter.DictSummary()
 
+    def test(self):
+        self.summary.add({'numpy': numpy.array(3, 'f'), 'int': 1, 'float': 4.})
+        self.summary.add({'numpy': numpy.array(1, 'f'), 'int': 5, 'float': 9.})
+        self.summary.add({'numpy': numpy.array(2, 'f'), 'int': 6, 'float': 5.})
+        self.summary.add({'numpy': numpy.array(3, 'f'), 'int': 5, 'float': 8.})
+
+        mean = self.summary.compute_mean()
+        self.assertEqual(set(mean.keys()), {'numpy', 'int', 'float'})
+        testing.assert_allclose(mean['numpy'], 9. / 4.)
+        testing.assert_allclose(mean['int'], 17 / 4)
+        testing.assert_allclose(mean['float'], 13. / 2.)
+
+        stats = self.summary.make_statistics()
+        self.assertEqual(
+            set(stats.keys()),
+            {'numpy',  'int',  'float', 'numpy.std', 'int.std', 'float.std'})
+        testing.assert_allclose(stats['numpy'], 9. / 4.)
+        testing.assert_allclose(stats['int'], 17 / 4)
+        testing.assert_allclose(stats['float'], 13. / 2.)
+        testing.assert_allclose(stats['numpy.std'], numpy.sqrt(11.) / 4.)
+        testing.assert_allclose(stats['int.std'], numpy.sqrt(59) / 4)
+        testing.assert_allclose(stats['float.std'], numpy.sqrt(17.) / 2.)
+
+    def test_sparse(self):
+        self.summary.add({'numpy': numpy.array(3, 'f'), 'int': 1})
+        self.summary.add({'numpy': numpy.array(1, 'f'), 'int': 5, 'float': 9.})
+        self.summary.add({'int': 6})
+        self.summary.add({'numpy': numpy.array(3, 'f'), 'int': 5, 'float': 8.})
+
+        mean = self.summary.compute_mean()
+        self.assertEqual(set(mean.keys()), {'numpy', 'int', 'float'})
+        testing.assert_allclose(mean['numpy'], 7. / 3.)
+        testing.assert_allclose(mean['int'], 17 / 4)
+        testing.assert_allclose(mean['float'], 17. / 2.)
+
+        stats = self.summary.make_statistics()
+        self.assertEqual(
+            set(stats.keys()),
+            {'numpy',  'int',  'float', 'numpy.std', 'int.std', 'float.std'})
+        testing.assert_allclose(stats['numpy'], 7. / 3.)
+        testing.assert_allclose(stats['int'], 17 / 4)
+        testing.assert_allclose(stats['float'], 17. / 2.)
+        testing.assert_allclose(stats['numpy.std'], numpy.sqrt(8.) / 3.)
+        testing.assert_allclose(stats['int.std'], numpy.sqrt(59) / 4)
+        testing.assert_allclose(stats['float.std'], 1. / 2.)
+
     def test_serialize(self):
         self.summary.add({'numpy': numpy.array(3, 'f'), 'int': 1, 'float': 4.})
         self.summary.add({'numpy': numpy.array(1, 'f'), 'int': 5, 'float': 9.})
