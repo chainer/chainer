@@ -16,52 +16,6 @@ namespace {
 
 namespace py = pybind11;  // standard convention
 
-Dtype ConvertDtype(py::dtype npdtype) {
-    switch (npdtype.kind()) {
-        case 'b':
-            return Dtype::kBool;
-
-        case 'i':
-            switch (npdtype.itemsize()) {
-                case 1:
-                    return Dtype::kInt8;
-                case 2:
-                    return Dtype::kInt16;
-                case 4:
-                    return Dtype::kInt32;
-                case 8:
-                    return Dtype::kInt64;
-                default:
-                    break;
-            }
-            break;
-
-        case 'u':
-            switch (npdtype.itemsize()) {
-                case 1:
-                    return Dtype::kUInt8;
-                default:
-                    break;
-            }
-            break;
-
-        case 'f':
-            switch (npdtype.itemsize()) {
-                case 4:
-                    return Dtype::kFloat32;
-                case 8:
-                    return Dtype::kFloat64;
-                default:
-                    break;
-            }
-            break;
-
-        default:
-            break;
-    }
-    throw DtypeError("unsupported numpy dtype");
-}
-
 void InitXchainerModule(pybind11::module& m) {
     m.doc() = "Xchainer";
     m.attr("__name__") = "xchainer";  // Show each member as "xchainer.*" instead of "xchainer.core.*"
@@ -83,8 +37,6 @@ void InitXchainerModule(pybind11::module& m) {
         dtype_type.def_property_readonly("char", [](Dtype dtype) { return std::string(1, GetCharCode(dtype)); });
         dtype_type.def_property_readonly("itemsize", &GetElementSize);
     }
-
-    m.def("array", []() {});
 }
 
 }  // namespace
