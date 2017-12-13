@@ -1,6 +1,7 @@
 import collections
 import contextlib
 import copy
+import hashlib
 import json
 
 import numpy
@@ -368,9 +369,13 @@ class DictSummary(object):
         if isinstance(serializer, serializer_module.Serializer):
             serializer('_names', json.dumps(list(self._summaries.keys())))
             for name, summary in six.iteritems(self._summaries):
-                summary.serialize(serializer['_summaries'][name])
+                summary.serialize(serializer['_summaries'][_hash_name(name)])
         else:
             names = json.loads(serializer('_names', ''))
             for name in names:
                 self._summaries[name].serialize(
-                    serializer['_summaries'][name])
+                    serializer['_summaries'][_hash_name(name)])
+
+
+def _hash_name(name):
+    return hashlib.md5(name.encode('utf-8')).hexdigest()
