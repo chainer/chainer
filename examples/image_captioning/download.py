@@ -21,8 +21,8 @@ if __name__ == '__main__':
 
     try:
         os.makedirs(args.out)
-    except FileExistsError:
-        raise FileExistsError(
+    except OSError:
+        raise OSError(
             "'{}' already exists, delete it and try again".format(args.out))
 
     for url in urls:
