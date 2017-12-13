@@ -31,7 +31,7 @@ const char* GetDtypeName(Dtype dtype) {
 }
 
 Dtype GetDtype(const std::string& name) {
-    static const std::unordered_map<std::string, Dtype> mapping = {
+    static const std::unordered_map<std::string, Dtype> kMapping = {
         // full name
         {"bool", Dtype::kBool},
         {"int8", Dtype::kInt8},
@@ -52,8 +52,8 @@ Dtype GetDtype(const std::string& name) {
         {"d", Dtype::kFloat64},
     };
 
-    auto it = mapping.find(name);
-    if (it == mapping.end()) {
+    auto it = kMapping.find(name);
+    if (it == kMapping.end()) {
         throw DtypeError("unknown dtype name: \"" + name + '"');
     }
     return it->second;
