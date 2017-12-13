@@ -3,6 +3,7 @@ import contextlib
 import copy
 import hashlib
 import json
+import warnings
 
 import numpy
 import six
@@ -298,9 +299,12 @@ class Summary(object):
             return mean, std
 
     def serialize(self, serializer):
-        self._x = serializer('_x', self._x)
-        self._x2 = serializer('_x2', self._x2)
-        self._n = serializer('_n', self._n)
+        try:
+            self._x = serializer('_x', self._x)
+            self._x2 = serializer('_x2', self._x2)
+            self._n = serializer('_n', self._n)
+        except KeyError:
+            warnings.warn('The previous statistics are not saved.')
 
 
 class DictSummary(object):
@@ -371,7 +375,11 @@ class DictSummary(object):
             for name, summary in six.iteritems(self._summaries):
                 summary.serialize(serializer['_summaries'][_hash_name(name)])
         else:
-            names = json.loads(serializer('_names', ''))
+            try:
+                names = json.loads(serializer('_names', ''))
+            except KeyError:
+                warnings.warn('The names of statistics are not saved.')
+                return
             for name in names:
                 self._summaries[name].serialize(
                     serializer['_summaries'][_hash_name(name)])
