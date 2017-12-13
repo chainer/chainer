@@ -44,7 +44,7 @@ Once `download.py` finishes, you can start training the model.
 $ python train.py --rnn nsteplstm --max-caption-length 30 --snapshot-iter 1000 --max-iters 50000 --batch-size 128 --gpu 0
 ```
 
-The above example start the training with the NStepLSTM layers in the language model and saves a snapshot of the trained model each every 1000 iteration. By default, the first model snapshot is saved as `result/model_1000`.
+The above example start the training with the NStepLSTM layers in the language model and saves a snapshot of the trained model every 1000 iteration. By default, the first model snapshot is saved as `result/model_1000`.
 
 If you have specified a download directory for MSCOCO when preparing the dataset, add the `--mscoco-root` option followed by the path to that directory.
 
