@@ -1,7 +1,6 @@
 import collections
 import contextlib
 import copy
-import hashlib
 import json
 import warnings
 
@@ -371,19 +370,17 @@ class DictSummary(object):
 
     def serialize(self, serializer):
         if isinstance(serializer, serializer_module.Serializer):
-            serializer('_names', json.dumps(list(self._summaries.keys())))
-            for name, summary in six.iteritems(self._summaries):
-                summary.serialize(serializer['_summaries'][_hash_name(name)])
+            names = list(self._summaries.keys())
+            serializer('_names', json.dumps(names))
+            for index, name in enumerate(names):
+                self._summaries[name].serialize(
+                    serializer['_summaries'][str(index)])
         else:
             try:
                 names = json.loads(serializer('_names', ''))
             except KeyError:
                 warnings.warn('The names of statistics are not saved.')
                 return
-            for name in names:
+            for index, name in enumerate(names):
                 self._summaries[name].serialize(
-                    serializer['_summaries'][_hash_name(name)])
-
-
-def _hash_name(name):
-    return hashlib.md5(name.encode('utf-8')).hexdigest()
+                    serializer['_summaries'][str(index)])
