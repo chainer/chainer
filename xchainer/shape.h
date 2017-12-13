@@ -3,7 +3,9 @@
 #include <array>
 #include <cstdint>
 #include <initializer_list>
+
 #include <gsl/gsl>
+
 #include "xchainer/constant.h"
 #include "xchainer/error.h"
 
