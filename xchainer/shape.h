@@ -36,6 +36,11 @@ public:
 
     int64_t total_size() const;
 
+    int64_t operator[](int8_t index) const noexcept {
+        Expects(0 <= index && index < ndim_);
+        return dims_[index];
+    }
+
     gsl::span<const int64_t> span() const { return {&dims_[0], static_cast<size_t>(ndim_)}; }
 
 private:
