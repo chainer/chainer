@@ -3,6 +3,8 @@ if(${BUILD_PYTHON})
 endif()
 
 install(FILES
+    constant.h
+    error.h
     shape.h
     xchainer.h
     DESTINATION include/xchainer
