@@ -7,8 +7,8 @@ import numpy
 import six
 
 import chainer
+from chainer.backends import cuda
 from chainer import configuration
-from chainer import cuda
 from chainer import function
 from chainer.functions.activation import relu
 from chainer.functions.activation import tanh

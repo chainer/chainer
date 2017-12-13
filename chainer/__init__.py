@@ -4,8 +4,8 @@ import threading
 import warnings
 
 from chainer import _version
+from chainer import backends  # NOQA
 from chainer import configuration  # NOQA
-from chainer import cuda  # NOQA
 from chainer import dataset  # NOQA
 from chainer import datasets  # NOQA
 from chainer import function  # NOQA
@@ -28,10 +28,11 @@ from chainer import variable  # NOQA
 
 
 # import class and function
+# These functions from backends.cuda are kept for backward compatibility
+from chainer.backends.cuda import should_use_cudnn  # NOQA
 from chainer.configuration import config  # NOQA
 from chainer.configuration import global_config  # NOQA
 from chainer.configuration import using_config  # NOQA
-from chainer.cuda import should_use_cudnn  # NOQA
 from chainer.function import force_backprop_mode  # NOQA
 from chainer.function import Function  # NOQA
 from chainer.function import FunctionAdapter  # NOQA
@@ -60,6 +61,10 @@ from chainer.serializer import Serializer  # NOQA
 from chainer.variable import as_variable  # NOQA
 from chainer.variable import Parameter  # NOQA
 from chainer.variable import Variable  # NOQA
+
+
+# Alias for backward compatibility
+from chainer import cuda  # NOQA
 
 
 from chainer import _environment_check

@@ -6,7 +6,7 @@ import threading
 
 import numpy
 
-from chainer import cuda
+from chainer.backends import cuda
 
 
 _thread_local = threading.local()

@@ -5,7 +5,7 @@ import warnings
 import numpy
 import six
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import link as link_module
 from chainer import serializer as serializer_module
 from chainer import variable

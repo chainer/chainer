@@ -1,7 +1,7 @@
 import numpy
 
+from chainer.backends import cuda
 from chainer import configuration
-from chainer import cuda
 from chainer.functions.normalization import batch_renormalization
 from chainer.links.normalization.batch_normalization import BatchNormalization
 from chainer import variable

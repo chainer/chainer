@@ -5,8 +5,8 @@ import copy
 import numpy
 import six
 
+from chainer.backends import cuda
 from chainer import configuration
-from chainer import cuda
 from chainer import variable
 
 

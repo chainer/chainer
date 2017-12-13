@@ -52,6 +52,7 @@ setup(
     url='https://chainer.org/',
     license='MIT License',
     packages=['chainer',
+              'chainer.backends',
               'chainer.dataset',
               'chainer.datasets',
               'chainer.functions',
