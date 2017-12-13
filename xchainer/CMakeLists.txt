@@ -3,19 +3,19 @@ if(${BUILD_PYTHON})
 endif()
 
 install(FILES
-    xchainer.h
+    dtype.h
     DESTINATION include/xchainer
     )
 
 add_library(xchainer SHARED
-    xchainer.cc
+    dtype.cc
     )
 
 install(TARGETS xchainer DESTINATION lib)
 
 if(ENABLE_TEST)
     add_executable(xchainer_test
-        xchainer_test.cc)
+        dtype_test.cc)
     target_link_libraries(xchainer_test
         xchainer
         gtest_main)
