@@ -298,9 +298,9 @@ class TestDictSummary(unittest.TestCase):
         testing.assert_allclose(stats['cupy'], 9. / 4.)
         testing.assert_allclose(stats['int'], 17 / 4)
         testing.assert_allclose(stats['float'], 13. / 2.)
-        testing.assert_allclose(stats['cupy.std'], numpy.sqrt(11.) / 4.)
-        testing.assert_allclose(stats['int.std'], numpy.sqrt(59) / 4)
-        testing.assert_allclose(stats['float.std'], numpy.sqrt(17.) / 2.)
+        testing.assert_allclose(stats['cupy.std'], numpy.sqrt(11. / 16.))
+        testing.assert_allclose(stats['int.std'], numpy.sqrt(59 / 16))
+        testing.assert_allclose(stats['float.std'], numpy.sqrt(17. / 4.))
 
     def test_sparse(self):
         self.summary.add({'numpy': numpy.array(3, 'f'), 'int': 1})
