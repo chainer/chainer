@@ -210,8 +210,8 @@ constexpr int64_t GetElementSize(Dtype dtype) {
     return 0;  // never happen
 }
 
-// czstring representation of dtype compatible to NumPy's dtype name.
-gsl::czstring GetDtypeName(Dtype dtype);
+// const char* representation of dtype compatible to NumPy's dtype name.
+const char* GetDtypeName(Dtype dtype);
 
 // Gets the dtype of given name.
 Dtype GetDtype(const std::string& name);

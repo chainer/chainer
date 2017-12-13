@@ -8,7 +8,7 @@ namespace xchainer {
 
 std::ostream& operator<<(std::ostream& os, Dtype dtype) { return os << GetDtypeName(dtype); }
 
-gsl::czstring GetDtypeName(Dtype dtype) {
+const char* GetDtypeName(Dtype dtype) {
     switch (dtype) {
         case Dtype::kBool:
             return "bool";
