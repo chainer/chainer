@@ -36,7 +36,7 @@ public:
 
     int64_t total_size() const;
 
-    int64_t operator[](int8_t index) const noexcept {
+    int64_t operator[](int8_t index) const {
         if (!(0 <= index && index < ndim_)) {
             throw DimensionError("index out of bounds");
         }

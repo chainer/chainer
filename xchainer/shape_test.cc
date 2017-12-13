@@ -28,5 +28,14 @@ TEST(ShapeTest, Ctor) {
     }
 }
 
+TEST(ShapeTest, Subscript) {
+    const Shape shape = {2, 3, 4};
+    ASSERT_EQ(2, shape[0]);
+    ASSERT_EQ(3, shape[1]);
+    ASSERT_EQ(4, shape[2]);
+    ASSERT_THROW(shape[-1], DimensionError);
+    ASSERT_THROW(shape[3], DimensionError);
+}
+
 }  // namespace
 }  // namespace xchainer
