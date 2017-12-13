@@ -1,6 +1,6 @@
 # Image Captioning with Convolutional Neural Networks
 
-This is an example of a generative image captioning model using a neural network with convolutional and recurrent layers. Given an image, this model generates a sentence that describe it.
+This is an example implementation of Show and Tell: A Neural Image Caption Generator (https://arxiv.org/abs/1411.4555) a generative image captioning model using a neural network with convolutional and recurrent layers. Given an image, this model generates a sentence that describe it.
 
 
 ## Requirements
@@ -13,17 +13,7 @@ to work with the dataset. To install pycocotools, clone the repository and run `
 
 ## Model Overview
 
-### 1. Extract features from an image
-
-The model takes an image as input which is fed through a pretrained VGG16 model in order to extract features.
-
-### 2. Generating a caption from extracted features
-
-These features are then passed to a language model, a recurrent neural network that generates a caption word-by-word until the `EOS` (end-of-sentence) token is encountered or the caption reaches a predetermined maximum caption length. The internals of the language models is a neural network with [LSTM](http://docs.chainer.org/en/stable/reference/generated/chainer.links.LSTM.html) layers. However, Chainer also has a [NStepLSTM](http://docs.chainer.org/en/stable/reference/generated/chainer.links.NStepLSTM.html) layer which does not require sequential passes (for-loops in the code) which is faster. Using the latter, you do not have to align the caption lengths in the training data neither, which you usually do if using the former. This example includes both LSTM and NStepLSTM implementations and preprocessing of the captions.
-
-### 3. Objective function
-
-During training, the loss is the softmax cross entropy of correctly predicting the next word in the caption given the current word averaged over the minibatch.
+The model takes an image as input which is fed through a pretrained VGG16 model in order to extract features. These features are then passed to a language model, a recurrent neural network that generates a caption word-by-word until the `EOS` (end-of-sentence) token is encountered or the caption reaches a predetermined maximum caption length. The internals of the language models is a neural network with [LSTM](http://docs.chainer.org/en/stable/reference/generated/chainer.links.LSTM.html) layers. However, Chainer also has a [NStepLSTM](http://docs.chainer.org/en/stable/reference/generated/chainer.links.NStepLSTM.html) layer which does not require sequential passes (for-loops in the code) which is faster. Using the latter, you do not have to align the caption lengths in the training data neither, which you usually do if using the former. This example includes both LSTM and NStepLSTM implementations and preprocessing of the captions. During training, the loss is the softmax cross entropy of correctly predicting the next word in the caption given the current word averaged over the minibatch.
 
 ## Dataset
 
