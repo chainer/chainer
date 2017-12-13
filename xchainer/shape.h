@@ -37,7 +37,9 @@ public:
     int64_t total_size() const;
 
     int64_t operator[](int8_t index) const noexcept {
-        Expects(0 <= index && index < ndim_);
+        if (!(0 <= index && index < ndim_)) {
+            throw DimensionError("index out of bounds");
+        }
         return dims_[index];
     }
 
