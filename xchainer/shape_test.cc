@@ -55,5 +55,18 @@ TEST(ShapeTest, Compare) {
     }
 }
 
+TEST(ShapeTest, CheckEqual) {
+    {
+        const Shape shape = {2, 3, 4};
+        const Shape shape2 = {2, 3, 4};
+        ASSERT_NO_THROW(CheckEqual(shape, shape2));
+    }
+    {
+        const Shape shape = {2, 3, 4};
+        const Shape shape2 = {};
+        ASSERT_THROW(CheckEqual(shape, shape2), DimensionError);
+    }
+}
+
 }  // namespace
 }  // namespace xchainer

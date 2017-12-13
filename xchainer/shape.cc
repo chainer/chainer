@@ -11,4 +11,10 @@ int64_t Shape::total_size() const {
     return total_size;
 }
 
+void CheckEqual(const Shape& lhs, const Shape& rhs) {
+    if (lhs != rhs) {
+        throw DimensionError("shape mismatched");
+    }
+}
+
 }  // namespace xchainer
