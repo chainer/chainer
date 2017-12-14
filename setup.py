@@ -46,8 +46,8 @@ requirements = {
         'sphinx_rtd_theme',
     ],
     'travis': [
-        '-rstylecheck',
-        '-rtest',
+        '-r stylecheck',
+        '-r test',
         'pytest-timeout',
         'pytest-cov',
         'theano',
@@ -55,8 +55,8 @@ requirements = {
         'pillow',
     ],
     'appveyor': [
-        '-rstylecheck',
-        '-rtest',
+        '-r stylecheck',
+        '-r test',
         'pytest-timeout',
         'pytest-cov',
     ],
@@ -69,7 +69,7 @@ def reduce_requirements(key):
     resolved_reqs = []
     for req in reqs:
         if req.startswith('-r'):
-            depend_key = req[2:]
+            depend_key = req[2:].lstrip()
             reduce_requirements(depend_key)
             resolved_reqs += requirements[depend_key]
         else:
