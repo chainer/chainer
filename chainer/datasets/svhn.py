@@ -4,9 +4,8 @@ import numpy
 try:
     from scipy import io
     _scipy_available = True
-except ImportError:
-    _scipy_available = False
-except AttributeError:
+except Exception as e:
+    _error = e
     _scipy_available = False
 
 from chainer.dataset import download
@@ -43,7 +42,7 @@ def get_svhn(withlabel=True, scale=1., dtype=numpy.float32,
 
     """  # NOQA
     if not _scipy_available:
-        raise RuntimeError('scipy is not available')
+        raise RuntimeError('SciPy is not available: %s' % _error)
 
     train_raw = _retrieve_svhn_training()
     train = _preprocess_svhn(train_raw, withlabel, scale, dtype,
