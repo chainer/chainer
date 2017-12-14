@@ -124,14 +124,14 @@ def main():
     model.to_cpu()
     train_ind = [1, 3, 5, 10, 2, 0, 13, 15, 17]
     x = chainer.Variable(np.asarray(train[train_ind]))
-    with chainer.using_config('train' False), chainer.no_backprop_mode():
+    with chainer.using_config('train', False), chainer.no_backprop_mode():
         x1 = model(x)
     save_images(x.data, os.path.join(args.out, 'train'))
     save_images(x1.data, os.path.join(args.out, 'train_reconstructed'))
 
     test_ind = [3, 2, 1, 18, 4, 8, 11, 17, 61]
     x = chainer.Variable(np.asarray(test[test_ind]))
-    with chainer.using_config('train' False), chainer.no_backprop_mode():
+    with chainer.using_config('train', False), chainer.no_backprop_mode():
         x1 = model(x)
     save_images(x.data, os.path.join(args.out, 'test'))
     save_images(x1.data, os.path.join(args.out, 'test_reconstructed'))
