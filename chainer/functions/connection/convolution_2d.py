@@ -1,4 +1,5 @@
 import numpy
+import six
 
 import chainer
 from chainer.backends import cuda
@@ -58,7 +59,7 @@ def _get_algorithm_bwd_filter(
 
 class Convolution2DFunction(function_node.FunctionNode):
 
-    def __init__(self, stride=1, pad=0, cover_all=False, **kwargs):
+    def __init__(self, stride=1, pad=0, cover_all=False, group=1, **kwargs):
         argument.check_unexpected_kwargs(
             kwargs,
             deterministic="deterministic argument is not supported anymore. "
@@ -75,6 +76,7 @@ class Convolution2DFunction(function_node.FunctionNode):
         self.ph, self.pw = _pair(pad)
         self.cover_all = cover_all
         self.dy, self.dx = _pair(dilate)
+        self.group = group
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -87,7 +89,8 @@ class Convolution2DFunction(function_node.FunctionNode):
             w_type.dtype.kind == 'f',
             x_type.ndim == 4,
             w_type.ndim == 4,
-            x_type.shape[1] == w_type.shape[1],
+            # Need to consider the case that group count > 1.
+            # x_type.shape[1] == w_type.shape[1],
         )
 
         if type_check.eval(n_in) == 3:
@@ -98,21 +101,35 @@ class Convolution2DFunction(function_node.FunctionNode):
                 b_type.shape[0] == w_type.shape[0],
             )
 
+    def _get_out_size(self, inputs):
+        x, W = inputs[:2]
+        _, _, kh, kw = W.shape
+        _, _, h, w = x.shape
+        out_h = conv.get_conv_outsize(
+            h, kh, self.sy, self.ph, cover_all=self.cover_all, d=self.dy)
+        if out_h <= 0:
+            raise RuntimeError('Height in the output should be positive.')
+        out_w = conv.get_conv_outsize(
+            w, kw, self.sx, self.pw, cover_all=self.cover_all, d=self.dx)
+        if out_w <= 0:
+            raise RuntimeError('Width in the output should be positive.')
+        return out_h, out_w
+
     def forward_cpu(self, inputs):
         self.retain_inputs((0, 1))  # retain only x and W
-        x, W = inputs[:2]
-        b = inputs[2] if len(inputs) == 3 else None
 
-        if not all([isinstance(i, numpy.ndarray) for i in inputs]):
-            if b is not None:
-                raise ValueError('numpy and cupy must not be used together\n'
-                                 'type(W): {0}, type(x): {1}, type(b): {2}'
-                                 .format(type(W), type(x), type(b)))
-            else:
-                raise ValueError('numpy and cupy must not be used together\n'
-                                 'type(W): {0}, type(x): {1}'
-                                 .format(type(W), type(x)))
+        if len(inputs) == 2:
+            (x, W), b = inputs, None
+        else:
+            x, W, b = inputs
 
+        if self.group > 1:
+            y = self._forward_grouped_convolution(x, W, b)
+        else:
+            y = self._forward_cpu_core(x, W, b)
+        return y,
+
+    def _forward_cpu_core(self, x, W, b):
         kh, kw = W.shape[2:]
         col = conv.im2col_cpu(
             x, kh, kw, self.sy, self.sx, self.ph, self.pw,
@@ -121,98 +138,142 @@ class Convolution2DFunction(function_node.FunctionNode):
             col, W, ((1, 2, 3), (1, 2, 3))).astype(x.dtype, copy=False)
         if b is not None:
             y += b
-        return numpy.rollaxis(y, 3, 1),
+        y = numpy.rollaxis(y, 3, 1)
+        return y
 
     def forward_gpu(self, inputs):
         self.retain_inputs((0, 1))  # retain only x and W
-        x, W = inputs[:2]
-        b = inputs[2] if len(inputs) == 3 else None
-
-        if not all([isinstance(i, cuda.ndarray) for i in inputs]):
-            if b is not None:
-                raise ValueError('numpy and cupy must not be used together\n'
-                                 'type(W): {0}, type(x): {1}, type(b): {2}'
-                                 .format(type(W), type(x), type(b)))
-            else:
-                raise ValueError('numpy and cupy must not be used together\n'
-                                 'type(W): {0}, type(x): {1}'
-                                 .format(type(W), type(x)))
+        if len(inputs) == 2:
+            (x, W), b = inputs, None
+        else:
+            x, W, b = inputs
 
         out_c, _, kh, kw = W.shape
-        n, c, h, w = x.shape
+        n, _, h, w = x.shape
 
-        out_h = conv.get_conv_outsize(h, kh, self.sy, self.ph,
-                                      cover_all=self.cover_all, d=self.dy)
-        assert out_h > 0, 'Height in the output should be positive.'
-        out_w = conv.get_conv_outsize(w, kw, self.sx, self.pw,
-                                      cover_all=self.cover_all, d=self.dx)
-        assert out_w > 0, 'Width in the output should be positive.'
-
+        out_h, out_w = self._get_out_size(inputs)
         y = cuda.cupy.empty((n, out_c, out_h, out_w), dtype=x.dtype)
-        if (not self.cover_all and chainer.should_use_cudnn('>=auto') and
-                x.dtype == W.dtype and
-                ((self.dy == 1 and self.dx == 1) or _cudnn_version >= 6000)):
-            x = cuda.cupy.ascontiguousarray(x)
-            W = cuda.cupy.ascontiguousarray(W)
-            if b is not None:
-                b = cuda.cupy.ascontiguousarray(b)
 
-            use_tensor_core = chainer.should_use_cudnn_tensor_core(x.dtype)
+        use_cudnn = (
+            chainer.should_use_cudnn('>=auto')
+            and not self.cover_all
+            and x.dtype == W.dtype
+            and ((self.dy == 1 and self.dx == 1) or _cudnn_version >= 6000)
+            and (self.group <= 1 or _cudnn_version >= 7000)
+        )
 
-            handle = cudnn.get_handle()
-            x_desc = cudnn.create_tensor_descriptor(x)
-            y_desc = cudnn.create_tensor_descriptor(y)
+        if use_cudnn:
+            # cuDNN implementation
+            return self._forward_cudnn(x, W, b, y)
 
-            filter_desc = cudnn.create_filter_descriptor(W)
-            conv_param = ((self.ph, self.pw), (self.sy, self.sx), x.dtype)
-            dilation = (self.dy, self.dx)
-            conv_desc = cudnn.create_convolution_descriptor(
-                *conv_param, dilation=dilation,
-                use_tensor_core=use_tensor_core)
-            if b is not None:
-                bias_desc = cudnn.create_tensor_descriptor(
-                    b[None, :, None, None])
-            workspace_size = cuda.get_max_workspace_size()
-            workspace = cuda.cupy.empty((workspace_size,), dtype='b')
-            if configuration.config.autotune and _cudnn_version >= 5000:
-                algo = _get_algorithm_fwd(
-                    x, W, y, conv_param + (dilation,), handle, x_desc,
-                    filter_desc, conv_desc, y_desc, workspace)
-            else:
-                algo = libcudnn.getConvolutionForwardAlgorithm(
-                    handle, x_desc.value, filter_desc.value,
-                    conv_desc.value, y_desc.value, _fwd_pref, workspace_size)
-
-            if use_tensor_core:
-                # Only CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM
-                # supports Tensor-Core in cuDNN7.
-                algo = libcudnn.CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM  # NOQA
-
-            oz_dtype = 'd' if x.dtype == 'd' else 'f'
-            one = numpy.array(1, dtype=oz_dtype).ctypes
-            zero = numpy.array(0, dtype=oz_dtype).ctypes
-            libcudnn.convolutionForward(
-                handle, one.data, x_desc.value, x.data.ptr,
-                filter_desc.value, W.data.ptr, conv_desc.value,
-                algo, workspace.data.ptr, workspace_size, zero.data,
-                y_desc.value, y.data.ptr)
-
-            # TODO(beam2d): Support unshared bias
-            if b is not None:
-                cudnn.add_tensor(
-                    handle, one.data, bias_desc.value, b.data.ptr,
-                    one.data, y_desc.value, y.data.ptr)
         else:
-            # Implementation using im2col
-            col = conv.im2col_gpu(
-                x, kh, kw, self.sy, self.sx, self.ph, self.pw,
-                cover_all=self.cover_all, dy=self.dy, dx=self.dx)
-            y = cuda.cupy.tensordot(
-                col, W, ((1, 2, 3), (1, 2, 3))).astype(x.dtype, copy=False)
-            # TODO(beam2d): Support unshared bias
-            if b is not None:
-                y += b
-            y = cuda.cupy.rollaxis(y, 3, 1)
+            if self.group > 1:
+                y = self._forward_grouped_convolution(x, W, b)
+            else:
+                y = self._forward_gpu_core(x, W, b)
+
+        return y,
+
+    def _forward_gpu_core(self, x, W, b):
+        kh, kw = W.shape[2:]
+        # Implementation using im2col
+        col = conv.im2col_gpu(
+            x, kh, kw, self.sy, self.sx, self.ph, self.pw,
+            cover_all=self.cover_all, dy=self.dy, dx=self.dx)
+        y = cuda.cupy.tensordot(
+            col, W, ((1, 2, 3), (1, 2, 3))).astype(x.dtype, copy=False)
+        # TODO(beam2d): Support unshared bias
+        if b is not None:
+            y += b
+        y = cuda.cupy.rollaxis(y, 3, 1)
+        return y
+
+    def _forward_grouped_convolution(self, x, W, b):
+        # G: group count
+        # N: batch size
+        # kH, kW: kernel height, kernel width
+        # iC, iH, iW: input channels, input height, input width
+        # oC, oH, oW: output channels, output height, output width
+        G = self.group
+        N, iC, iH, iW = x.shape
+        oC, _, kH, kW = W.shape
+        iCg = int(iC / G)
+        oCg = int(oC / G)
+
+        xp = cuda.get_array_module(x)
+
+        _x = x.reshape(N, G, iCg, iH, iW)
+        _x = xp.rollaxis(_x, 1)  # (G, N, iCg, iH, iW)
+        _W = W.reshape(G, oCg, iCg, kH, kW)
+        if b is not None:
+            _b = b.reshape(G, oCg)
+
+        _ys = []
+        for g in six.moves.range(G):
+            _bg = None if b is None else _b[g, ]
+            if xp is numpy:
+                _y = self._forward_cpu_core(_x[g, ], _W[g, ], _bg)
+            else:
+                _y = self._forward_gpu_core(_x[g, ], _W[g, ], _bg)
+            _ys.append(_y)
+
+        y = xp.stack(_ys, axis=1)  # (N, G, oCg, oH, oW)
+        _, _, _, oH, oW = y.shape
+        y = y.reshape(N, oC, oH, oW)
+        return y
+
+    def _forward_cudnn(self, x, W, b, y):
+        x = cuda.cupy.ascontiguousarray(x)
+        W = cuda.cupy.ascontiguousarray(W)
+        if b is not None:
+            b = cuda.cupy.ascontiguousarray(b)
+
+        use_tensor_core = chainer.should_use_cudnn_tensor_core(x.dtype)
+
+        handle = cudnn.get_handle()
+        x_desc = cudnn.create_tensor_descriptor(x)
+        y_desc = cudnn.create_tensor_descriptor(y)
+
+        filter_desc = cudnn.create_filter_descriptor(W)
+        conv_param = ((self.ph, self.pw), (self.sy, self.sx), x.dtype)
+        dilation = (self.dy, self.dx)
+        conv_desc = cudnn.create_convolution_descriptor(
+            *conv_param, dilation=dilation,
+            use_tensor_core=use_tensor_core,
+            group=self.group)
+        if b is not None:
+            bias_desc = cudnn.create_tensor_descriptor(
+                b[None, :, None, None])
+        workspace_size = cuda.get_max_workspace_size()
+        workspace = cuda.cupy.empty((workspace_size,), dtype='b')
+        if configuration.config.autotune and _cudnn_version >= 5000:
+            algo = _get_algorithm_fwd(
+                x, W, y, conv_param + (dilation,), handle, x_desc,
+                filter_desc, conv_desc, y_desc, workspace)
+        else:
+            algo = libcudnn.getConvolutionForwardAlgorithm(
+                handle, x_desc.value, filter_desc.value,
+                conv_desc.value, y_desc.value, _fwd_pref, workspace_size)
+
+        if use_tensor_core:
+            # Only CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM
+            # supports Tensor-Core in cuDNN7.
+            algo = libcudnn.CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM  # NOQA
+
+        oz_dtype = 'd' if x.dtype == 'd' else 'f'
+        one = numpy.array(1, dtype=oz_dtype).ctypes
+        zero = numpy.array(0, dtype=oz_dtype).ctypes
+        libcudnn.convolutionForward(
+            handle, one.data, x_desc.value, x.data.ptr,
+            filter_desc.value, W.data.ptr, conv_desc.value,
+            algo, workspace.data.ptr, workspace_size, zero.data,
+            y_desc.value, y.data.ptr)
+
+        # TODO(beam2d): Support unshared bias
+        if b is not None:
+            cudnn.add_tensor(
+                handle, one.data, bias_desc.value, b.data.ptr,
+                one.data, y_desc.value, y.data.ptr)
 
         return y,
 
@@ -225,7 +286,7 @@ class Convolution2DFunction(function_node.FunctionNode):
             xh, xw = x.shape[2:]
             gx = chainer.functions.deconvolution_2d(
                 gy, W, stride=(self.sy, self.sx), pad=(self.ph, self.pw),
-                outsize=(xh, xw), dilate=(self.dy, self.dx))
+                outsize=(xh, xw), dilate=(self.dy, self.dx), group=self.group)
             ret.append(gx)
         if 1 in indexes:
             gW, = Convolution2DGradW(self).apply((x, gy))
@@ -250,13 +311,11 @@ class Convolution2DGradW(function_node.FunctionNode):
         self.dx = conv2d.dx
         self.cover_all = conv2d.cover_all
         self.W_dtype = W_node.dtype
+        self.group = conv2d.group
 
     def forward_cpu(self, inputs):
         self.retain_inputs((0, 1))
         x, gy = inputs
-        col = conv.im2col_cpu(
-            x, self.kh, self.kw, self.sy, self.sx, self.ph, self.pw,
-            cover_all=self.cover_all, dy=self.dy, dx=self.dx)
 
         # NumPy raises an error when the array is not contiguous.
         # See: https://github.com/chainer/chainer/issues/2744
@@ -265,28 +324,97 @@ class Convolution2DGradW(function_node.FunctionNode):
                 1 in gy.shape):
             gy = numpy.ascontiguousarray(gy)
 
-        gW = numpy.tensordot(
-            gy, col, ((0, 2, 3), (0, 4, 5))).astype(self.W_dtype, copy=False)
+        if self.group > 1:
+            gW = self._forward_grouped_convolution(x, gy)
+        else:
+            gW = self._forward_cpu_core(x, gy)
         return gW,
+
+    def _forward_cpu_core(self, x, gy):
+        col = conv.im2col_cpu(
+            x, self.kh, self.kw, self.sy, self.sx, self.ph, self.pw,
+            cover_all=self.cover_all, dy=self.dy, dx=self.dx)
+        gW = numpy.tensordot(gy, col, ((0, 2, 3), (0, 4, 5))
+                             ).astype(self.W_dtype, copy=False)
+        return gW
 
     def forward_gpu(self, inputs):
         self.retain_inputs((0, 1))
         x, gy = inputs
+
+        use_cudnn = (
+            chainer.should_use_cudnn('>=auto')
+            and not self.cover_all
+            and x.dtype == self.W_dtype
+            and ((self.dy == 1 and self.dx == 1)
+                 or (_cudnn_version >= 6000
+                     and not configuration.config.cudnn_deterministic))
+            and (self.group <= 1 or _cudnn_version >= 7000)
+        )
+
+        if use_cudnn:
+            # cuDNN implementation
+            return self._forward_cudnn(x, gy)
+
+        else:
+            if self.group > 1:
+                gW = self._forward_grouped_convolution(x, gy)
+            else:
+                gW = self._forward_gpu_core(x, gy)
+            return gW,
+
+    def _forward_gpu_core(self, x, gy):
+        col = conv.im2col_gpu(
+            x, self.kh, self.kw, self.sy, self.sx, self.ph, self.pw,
+            cover_all=self.cover_all, dy=self.dy, dx=self.dx)
+        gW = cuda.cupy.tensordot(gy, col, ((0, 2, 3), (0, 4, 5))
+                                 ).astype(self.W_dtype, copy=False)
+        return gW
+
+    def _forward_grouped_convolution(self, x, gy):
+        # G: group count
+        # N: batch size
+        # kH, kW: kernel height, kernel width
+        # iC, iH, iW: input channels, input height, input width
+        # oC, oH, oW: output channels, output height, output width
+        G = self.group
+        kH = self.kh
+        kW = self.kw
+        N, iC, iH, iW = x.shape
+        _, oC, oH, oW = gy.shape
+        iCg = int(iC / G)
+        oCg = int(oC / G)
+
+        xp = cuda.get_array_module(x)
+
+        _x = x.reshape(N, G, iCg, iH, iW)
+        _x = xp.rollaxis(_x, 1)  # (G, N, iCg, iH, iW)
+        _gy = gy.reshape(N, G, oCg, oH, oW)
+        _gy = xp.rollaxis(_gy, 1)  # (G, N, oCg, oH, oW)
+        # Work-around for NumPy's bug?
+        if xp is numpy:
+            _gy = xp.ascontiguousarray(_gy)
+
+        _gWs = []
+        for g in six.moves.range(G):
+            if xp is numpy:
+                _gW = self._forward_cpu_core(_x[g, ], _gy[g, ])
+            else:
+                _gW = self._forward_gpu_core(_x[g, ], _gy[g, ])
+            _gWs.append(_gW)
+
+        gW = xp.stack(_gWs)  # (G, oCg, iCg, kH, kW)
+        gW = gW.reshape(oC, iCg, kH, kW)
+        return gW
+
+    def _forward_cudnn(self, x, gy):
         _, out_c, out_h, out_w = gy.shape
         n, c, h, w = x.shape
 
-        if (self.cover_all or not chainer.should_use_cudnn('>=auto') or
-                x.dtype != self.W_dtype or
-                ((self.dy > 1 or self.dx > 1) and _cudnn_version < 6000)):
-            col = conv.im2col_gpu(
-                x, self.kh, self.kw, self.sy, self.sx, self.ph, self.pw,
-                cover_all=self.cover_all, dy=self.dy, dx=self.dx)
-            gW = cuda.cupy.tensordot(
-                gy, col, ((0, 2, 3), (0, 4, 5))).astype(self.W_dtype,
-                                                        copy=False)
-            return gW,
-
-        gW = cuda.cupy.empty((out_c, c, self.kh, self.kw), dtype=self.W_dtype)
+        iC = c
+        iCg = int(iC / self.group)
+        gW = cuda.cupy.empty((out_c, iCg, self.kh, self.kw),
+                             dtype=self.W_dtype)
         x = cuda.cupy.ascontiguousarray(x)
         gy = cuda.cupy.ascontiguousarray(gy)
 
@@ -301,7 +429,8 @@ class Convolution2DGradW(function_node.FunctionNode):
         dilation = (self.dy, self.dx)
         conv_desc = cudnn.create_convolution_descriptor(
             *conv_param, dilation=dilation,
-            use_tensor_core=use_tensor_core)
+            use_tensor_core=use_tensor_core,
+            group=self.group)
 
         oz_dtype = 'd' if x.dtype == 'd' else 'f'
         one = numpy.array(1, dtype=oz_dtype).ctypes
@@ -342,19 +471,21 @@ class Convolution2DGradW(function_node.FunctionNode):
             xh, xw = x.shape[2:]
             gx = chainer.functions.deconvolution_2d(
                 gy, ggW, stride=(self.sy, self.sx), pad=(self.ph, self.pw),
-                outsize=(xh, xw), dilate=(self.dy, self.dx))
+                outsize=(xh, xw), dilate=(self.dy, self.dx), group=self.group)
             ret.append(gx)
         if 1 in indexes:
             ggy = convolution_2d(
                 x, ggW, stride=(self.sy, self.sx), pad=(self.ph, self.pw),
-                cover_all=self.cover_all, dilate=(self.dy, self.dx))
+                cover_all=self.cover_all, dilate=(self.dy, self.dx),
+                group=self.group)
             ret.append(ggy)
 
         return ret
 
 
-def convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False, **kwargs):
-    """convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False)
+def convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False, group=1,
+                   **kwargs):
+    """convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False, *, dilate=1)
 
     Two-dimensional convolution function.
 
@@ -487,7 +618,8 @@ cover_all=True)
         "context where value is either `True` or `False`.")
     dilate, = argument.parse_kwargs(kwargs, ('dilate', 1))
 
-    fnode = Convolution2DFunction(stride, pad, cover_all, dilate=dilate)
+    fnode = Convolution2DFunction(stride, pad, cover_all, dilate=dilate,
+                                  group=group)
     if b is None:
         args = x, W
     else:

@@ -1,7 +1,7 @@
 """Collection of function implementations.
 
-Functions are either implemented as :class:`~chainer.Function`\s or
-:class:`~chainer.FunctionNode`\s.
+Functions are either implemented as :class:`~chainer.Function`\\ s or
+:class:`~chainer.FunctionNode`\\ s.
 """
 
 from chainer.functions.activation.clipped_relu import clipped_relu  # NOQA
