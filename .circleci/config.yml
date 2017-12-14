@@ -27,7 +27,6 @@ jobs:
             apt-get update
             apt-get install -y g++ cmake clang clang-format clang-tidy git python3-dev lcov wget
             apt-get install openssh-client  # To avoid warning on checkout
-            apt-get install -y ca-certificates  # To avoid errors on save_cache/restore_cache
             apt-get install -y bzip2  # To install miniconda
 
             # To avoid configuring PATH environment variable in every steps
@@ -37,28 +36,17 @@ jobs:
       - checkout
 
       # Setup conda
-      - restore_cache:
-          keys:
-            - downloads-cache
-
       - run:
           name: Setup conda
           command: |
             mkdir -p downloads
 
             # conda
-            if [ ! -f downloads/miniconda.sh ]; then
-              wget 'https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh' -O downloads/miniconda.sh
-            fi
+            wget 'https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh' -O downloads/miniconda.sh
             bash downloads/miniconda.sh -b -p "$HOME"/miniconda
             conda config --set changeps1 no
             conda update -y -q conda
             conda create -y -q --name testenv python=3.6 pip
-
-      - save_cache:
-          key: downloads-cache
-          paths:
-            - downloads
 
       # Environment info
       - run:
@@ -76,10 +64,7 @@ jobs:
             echo "----- conda -----"
             conda info -a
 
-      # C++ test 
-      - restore_cache:
-          key: dependency-cache-{{ .Branch }}-{{ checksum "CMakeLists.txt" }}
-
+      # C++ test
       - run:
           name: C++ test
           command: |
@@ -88,11 +73,6 @@ jobs:
             ( mkdir -p build && cd build && cmake -DBUILD_PYTHON=1 -DENABLE_COVERAGE=ON .. && make clang-tidy && make && ctest -V )
             lcov -c -b xchainer -d build/xchainer/ --no-external -o build/coverage.info
             genhtml build/coverage.info -o build/coverage
-
-      - save_cache:
-          key: dependency-cache-{{ .Branch }}-{{ checksum "CMakeLists.txt" }}
-          paths:
-            - build
 
       - store_artifacts:
           path: build/coverage
@@ -107,14 +87,6 @@ jobs:
             pip install -U pytest pytest-cov coveralls
 
       # Python PEP-8 check
-      - restore_cache:
-          key: dependency-cache-pip-{{ .Branch }}-{{ .Revision }}
-
-      - save_cache:
-          key: dependency-cache-pip-{{ .Branch }}-{{ .Revision }}
-          paths:
-            - "venv"
-
       - run:
           name: Python PEP-8 check
           command: |
