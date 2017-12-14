@@ -65,7 +65,7 @@ class TestNStepRNN(unittest.TestCase):
         self.hx = _shaped_random(h_shape)
 
         o = self.out_size
-        i = self.in_size 
+        i = self.in_size
         self.ws = []
         self.bs = []
         # The first layer has the different shape
