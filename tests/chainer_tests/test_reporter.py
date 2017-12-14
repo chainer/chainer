@@ -319,7 +319,7 @@ class TestDictSummary(unittest.TestCase):
 
         self.check(self.summary, {
             'a': (3., 1., 3.),
-            'b': (1, 5, 6, 5),
+            'b': (1., 5., 6., 5.),
             'c': (9., 8.),
         })
 
