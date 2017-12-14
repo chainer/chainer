@@ -17,7 +17,6 @@ Scalar operator-(Scalar value) {
     switch (value.dtype()) {
         case Dtype::kBool:
             throw DtypeError("bool scalar cannot be negated");
-
         case Dtype::kInt8:
             return -value.Cast<int8_t>();
         case Dtype::kInt16:
@@ -27,6 +26,7 @@ Scalar operator-(Scalar value) {
         case Dtype::kInt64:
             return -value.Cast<int64_t>();
         case Dtype::kUInt8:
+            // Negating unsigned
             return -value.Cast<uint8_t>();
         case Dtype::kFloat32:
             return -value.Cast<float>();
@@ -47,10 +47,8 @@ std::ostream& operator<<(std::ostream& os, Scalar value) {
         case Dtype::kInt16:
         case Dtype::kInt32:
         case Dtype::kInt64:
-            os << value.Cast<int64_t>();
-            break;
         case Dtype::kUInt8:
-            os << value.Cast<uint8_t>();
+            os << value.Cast<int64_t>();
             break;
         case Dtype::kFloat32:
         case Dtype::kFloat64:
