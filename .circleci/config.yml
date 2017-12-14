@@ -76,10 +76,7 @@ jobs:
             echo "----- conda -----"
             conda info -a
 
-      # C++ test 
-      - restore_cache:
-          key: dependency-cache-{{ .Branch }}-{{ checksum "CMakeLists.txt" }}
-
+      # C++ test
       - run:
           name: C++ test
           command: |
@@ -88,11 +85,6 @@ jobs:
             ( mkdir -p build && cd build && cmake -DBUILD_PYTHON=1 -DENABLE_COVERAGE=ON .. && make clang-tidy && make && ctest -V )
             lcov -c -b xchainer -d build/xchainer/ --no-external -o build/coverage.info
             genhtml build/coverage.info -o build/coverage
-
-      - save_cache:
-          key: dependency-cache-{{ .Branch }}-{{ checksum "CMakeLists.txt" }}
-          paths:
-            - build
 
       - store_artifacts:
           path: build/coverage
@@ -107,14 +99,6 @@ jobs:
             pip install -U pytest pytest-cov coveralls
 
       # Python PEP-8 check
-      - restore_cache:
-          key: dependency-cache-pip-{{ .Branch }}-{{ .Revision }}
-
-      - save_cache:
-          key: dependency-cache-pip-{{ .Branch }}-{{ .Revision }}
-          paths:
-            - "venv"
-
       - run:
           name: Python PEP-8 check
           command: |
