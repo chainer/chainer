@@ -6,3 +6,4 @@
 *.egg-info
 *.gcov
 *.so
+*.pyc

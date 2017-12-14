@@ -1,2 +1,1 @@
-def hello():
-    return 'world'
+from ._core import *  # NOQA
