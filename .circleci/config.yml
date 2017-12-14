@@ -42,9 +42,7 @@ jobs:
             mkdir -p downloads
 
             # conda
-            if [ ! -f downloads/miniconda.sh ]; then
-              wget 'https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh' -O downloads/miniconda.sh
-            fi
+            wget 'https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh' -O downloads/miniconda.sh
             bash downloads/miniconda.sh -b -p "$HOME"/miniconda
             conda config --set changeps1 no
             conda update -y -q conda
