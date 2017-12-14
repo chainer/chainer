@@ -28,7 +28,7 @@ requirements = {
         'six>=1.9.0',
     ],
     'cuda': [
-        'cupy==4.0.0b1',
+        'cupy==4.0.0b2',
     ],
     'stylecheck': [
         'hacking',
@@ -111,6 +111,7 @@ setup(
     url='https://chainer.org/',
     license='MIT License',
     packages=['chainer',
+              'chainer.backends',
               'chainer.dataset',
               'chainer.datasets',
               'chainer.functions',

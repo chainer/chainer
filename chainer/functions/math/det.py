@@ -1,9 +1,9 @@
 import numpy
 
 import chainer
-from chainer import cuda
-from chainer import function
-from chainer.functions.math import inv
+from chainer.backends import cuda
+from chainer import function_node
+import chainer.functions
 from chainer.functions.math import matmul
 from chainer import utils
 from chainer.utils import type_check
@@ -37,7 +37,7 @@ def _det_gpu(b):
     return det * sign, info
 
 
-class BatchDet(function.Function):
+class BatchDet(function_node.FunctionNode):
 
     @property
     def label(self):
@@ -54,31 +54,27 @@ class BatchDet(function.Function):
         type_check.expect(a_type.shape[-1] == a_type.shape[-2])
 
     def forward_cpu(self, x):
-        self.detx = utils.force_array(numpy.linalg.det(x[0]))
-        return self.detx,
+        self.retain_inputs((0,))
+        self.retain_outputs((0,))
+        detx = utils.force_array(numpy.linalg.det(x[0]))
+        return detx,
 
     def forward_gpu(self, x):
-        self.detx, _ = _det_gpu(x[0])
-        return self.detx,
+        self.retain_inputs((0,))
+        self.retain_outputs((0,))
+        detx, _ = _det_gpu(x[0])
+        return detx,
 
-    def backward_cpu(self, x, gy):
-        x, = x
+    def backward(self, indexes, gy):
+        x, = self.get_retained_inputs()
+        detx, = self.get_retained_outputs()
         gy, = gy
-        try:
-            inv_x = numpy.linalg.inv(x.transpose((0, 2, 1)))
-        except numpy.linalg.LinAlgError:
-            raise ValueError('Input has singular matrices.')
-        grad = gy[:, None, None] * self.detx[:, None, None] * inv_x
-        return utils.force_array(grad),
-
-    def backward_gpu(self, x, gy):
-        x, = x
-        gy, = gy
-        inv_x, info = inv._inv_gpu(x.transpose((0, 2, 1)))
-        if cuda.cupy.any(info != 0):
-            raise ValueError('Input has singular matrices.')
-        grad = gy[:, None, None] * self.detx[:, None, None] * inv_x
-        return utils.force_array(grad),
+        inv_x = chainer.functions.batch_inv(
+            chainer.functions.transpose(x, (0, 2, 1)))
+        gy = chainer.functions.broadcast_to(gy[:, None, None], inv_x.shape)
+        detx = chainer.functions.broadcast_to(detx[:, None, None], inv_x.shape)
+        grad = gy * detx * inv_x
+        return grad,
 
 
 def batch_det(a):
@@ -94,7 +90,7 @@ def batch_det(a):
         in the batch.
 
     """
-    return BatchDet()(a)
+    return BatchDet().apply((a,))[0]
 
 
 def det(a):
@@ -109,5 +105,5 @@ def det(a):
     """
     shape = (1, a.shape[0], a.shape[1])
     batched_a = chainer.functions.reshape(a, shape)
-    batched_det = BatchDet()(batched_a)
+    batched_det = BatchDet().apply((batched_a,))[0]
     return chainer.functions.reshape(batched_det, ())

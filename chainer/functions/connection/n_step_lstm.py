@@ -4,7 +4,7 @@ import numpy
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer.functions.activation import lstm
 from chainer.functions.array import concat
 from chainer.functions.array import reshape
@@ -105,8 +105,9 @@ def n_step_lstm(
             for time ``t``. Its shape is ``(B_t, I)``, where ``B_t`` is the
             mini-batch size for time ``t``. The sequences must be transposed.
             :func:`~chainer.functions.transpose_sequence` can be used to
-            transpose a list of :class:`~chainer.Variable`\ s each representing
-            a sequence. When sequences has different lengths, they must be
+            transpose a list of :class:`~chainer.Variable`\\ s each
+            representing a sequence.
+            When sequences has different lengths, they must be
             sorted in descending order of their lengths before transposing.
             So ``xs`` needs to satisfy
             ``xs[t].shape[0] >= xs[t + 1].shape[0]``.
@@ -242,7 +243,7 @@ def n_step_bilstm(
         hx (~chainer.Variable): Variable holding stacked hidden states.
             Its shape is ``(2S, B, N)`` where ``S`` is the number of layers and
             is equal to ``n_layers``, ``B`` is the mini-batch size, and ``N``
-            is the dimension of the hidden units. Because of bi-diraction, the
+            is the dimension of the hidden units. Because of bi-direction, the
             first dimension length is ``2S``.
         cx (~chainer.Variable): Variable holding stacked cell states.
             It has the same shape as ``hx``.
@@ -271,8 +272,9 @@ def n_step_bilstm(
             for time ``t``. Its shape is ``(B_t, I)``, where ``B_t`` is the
             mini-batch size for time ``t``. The sequences must be transposed.
             :func:`~chainer.functions.transpose_sequence` can be used to
-            transpose a list of :class:`~chainer.Variable`\ s each representing
-            a sequence. When sequences has different lengths, they must be
+            transpose a list of :class:`~chainer.Variable`\\ s each
+            representing a sequence.
+            When sequences has different lengths, they must be
             sorted in descending order of their lengths before transposing.
             So ``xs`` needs to satisfy
             ``xs[t].shape[0] >= xs[t + 1].shape[0]``.
@@ -379,8 +381,9 @@ def n_step_lstm_base(
             for time ``t``. Its shape is ``(B_t, I)``, where ``B_t`` is the
             mini-batch size for time ``t``. The sequences must be transposed.
             :func:`~chainer.functions.transpose_sequence` can be used to
-            transpose a list of :class:`~chainer.Variable`\ s each representing
-            a sequence. When sequences has different lengths, they must be
+            transpose a list of :class:`~chainer.Variable`\\ s each
+            representing a sequence.
+            When sequences has different lengths, they must be
             sorted in descending order of their lengths before transposing.
             So ``xs`` needs to satisfy
             ``xs[t].shape[0] >= xs[t + 1].shape[0]``.
