@@ -15,9 +15,7 @@ class Shape {
     using DimsType = std::array<int64_t, kMaxNdim>;
 
 public:
-    using iterator = DimsType::iterator;
     using const_iterator = DimsType::const_iterator;
-    using reverse_iterator = DimsType::reverse_iterator;
     using const_reverse_iterator = DimsType::const_reverse_iterator;
 
     // by gsl:span
