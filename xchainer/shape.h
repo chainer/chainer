@@ -19,9 +19,9 @@ public:
     using const_reverse_iterator = DimsType::const_reverse_iterator;
 
     // by gsl:span
-    Shape(gsl::span<const int64_t> dims) : ndim_(gsl::narrow_cast<int8_t>(dims.size())) {
+    Shape(gsl::span<const int64_t> dims) : dims_(), ndim_(gsl::narrow_cast<int8_t>(dims.size())) {
         CheckNdim();
-        std::copy(dims.begin(), dims.end(), dims_.begin());
+        std::copy(dims.begin(), dims.end(), const_cast<DimsType&>(dims_).begin());
     }
 
     // by initializer list
@@ -70,8 +70,8 @@ private:
         }
     }
 
-    DimsType dims_;
-    int8_t ndim_;
+    const DimsType dims_;
+    const int8_t ndim_;
 };
 
 inline bool operator==(const Shape& lhs, const Shape& rhs) { return lhs.span() == rhs.span(); }
