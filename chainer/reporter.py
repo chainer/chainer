@@ -376,6 +376,7 @@ class DictSummary(object):
                 self._summaries[name].serialize(
                     serializer['_summaries'][str(index)])
         else:
+            self._summaries.clear()
             try:
                 names = json.loads(serializer('_names', ''))
             except KeyError:
