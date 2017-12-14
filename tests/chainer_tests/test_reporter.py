@@ -260,10 +260,10 @@ class TestDictSummary(unittest.TestCase):
         for name in data.keys():
             testing.assert_allclose(mean[name], numpy.mean(data[name]))
 
-        stats = self.summary.make_statistics()
+        stats = summary.make_statistics()
         self.assertEqual(
             set(stats.keys()),
-            set(data.keys()) + set(name + '.std' for name in data.keys()))
+            set(data.keys()).union(name + '.std' for name in data.keys()))
         for name in data.keys():
             testing.assert_allclose(stats[name], numpy.mean(data[name]))
             testing.assert_allclose(
@@ -312,7 +312,7 @@ class TestDictSummary(unittest.TestCase):
         testing.save_and_load_npz(self.summary, summary)
         summary.add({'numpy': numpy.array(3, 'f'), 'int': 5, 'float': 8.})
 
-        self.check(self.summary, {
+        self.check(summary, {
             'numpy': (3., 1., 2., 3.),
             'int': (1, 5, 6, 5),
             'float': (4., 9., 5., 8.),
@@ -327,9 +327,9 @@ class TestDictSummary(unittest.TestCase):
         testing.save_and_load_npz(self.summary, summary)
         summary.add({'a/b': 3., '/a/b': 5., 'a/b/': 8.})
 
-        self.check(self.summary, {
+        self.check(summary, {
             'a/b': (3., 1., 2., 3.),
-            '/a/b': (1, 5, 6, 5),
+            '/a/b': (1., 5., 6., 5.),
             'a/b/': (4., 9., 5., 8.),
         })
 
@@ -341,7 +341,7 @@ class TestDictSummary(unittest.TestCase):
         summary.add({'c': 5.})
         testing.save_and_load_npz(self.summary, summary)
 
-        self.check(self.summary, {
+        self.check(summary, {
             'a': (3., 1.),
             'b': (1., 5.),
         })
