@@ -11,9 +11,6 @@ import numpy as np
 
 import net
 
-import matplotlib
-matplotlib.use('Agg')
-
 
 def main():
     parser = argparse.ArgumentParser(description='Chainer example: VAE')
