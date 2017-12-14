@@ -1,5 +1,3 @@
-import warnings
-
 import numpy
 
 from chainer import configuration
@@ -143,18 +141,6 @@ class BatchNormalization(link.Link):
             ret = functions.batch_normalization(
                 x, gamma, beta, eps=self.eps, running_mean=self.avg_mean,
                 running_var=self.avg_var, decay=decay)
-
-            if x.shape[0] == 1:
-                warnings.warn(
-                    'A batch with no more than one sample has been given'
-                    ' to F.batch_normalization. F.batch_normalization'
-                    ' will always output a zero tensor for such batches.'
-                    ' This could be caused by incorrect configuration in'
-                    ' your code (such as running evaluation while'
-                    ' chainer.config.train=True),'
-                    ' but could also happen in the last batch of training'
-                    ' if non-repeating iterator is used.',
-                    UserWarning)
         else:
             # Use running average statistics or fine-tuned statistics.
             mean = variable.Variable(self.avg_mean)

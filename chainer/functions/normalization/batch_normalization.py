@@ -1,3 +1,5 @@
+import warnings
+
 import numpy
 
 import chainer
@@ -62,6 +64,18 @@ class BatchNormalization(function_node.FunctionNode):
         self.expander = expander
         self.axis = (0,) + tuple(range(head_ndim, x.ndim))
         self.use_cudnn = self.mode.can_use_cudnn(xp)
+
+        if x.shape[0] == 1:
+            warnings.warn(
+                'A batch with no more than one sample has been given'
+                ' to F.batch_normalization. F.batch_normalization'
+                ' will always output a zero tensor for such batches.'
+                ' This could be caused by incorrect configuration in'
+                ' your code (such as running evaluation while'
+                ' chainer.config.train=True),'
+                ' but could also happen in the last batch of training'
+                ' if non-repeating iterator is used.',
+                UserWarning)
 
         if self.use_cudnn:
             x = cuda.cupy.ascontiguousarray(x)
