@@ -33,23 +33,23 @@ class PadSequence(function_node.FunctionNode):
         xp = cuda.get_array_module(*xs)
 
         if self.length is None:
-            length = max(len(x) for x in xs)
+            maxlen = max(len(x) for x in xs)
         else:
-            length = self.length
+            maxlen = self.length
 
-        shape = (len(xs), length) + xs[0].shape[1:]
+        shape = (len(xs), maxlen) + xs[0].shape[1:]
         y = xp.empty(shape, xs[0].dtype)
-        if length == 0:
+        if maxlen == 0:
             return y,  # y is an empty array
 
         if xp is numpy or any(not x._c_contiguous for x in xs):
             for i, x in enumerate(xs):
-                l = len(x)
-                if l == length:
+                length = len(x)
+                if maxlen == length:
                     y[i] = x
                 else:
-                    y[i, 0:l] = x
-                    y[i, l:] = self.padding
+                    y[i, 0:length] = x
+                    y[i, length:] = self.padding
         else:
             # This code assumes that all arrays are c_contiguous
             ptr_shape = (Ellipsis,) + (None,) * xs[0].ndim

@@ -12,9 +12,9 @@ import six
 import chainer
 from chainer import cuda
 import chainer.functions as F
-import chainer.initializers as I
+from chainer import initializers
 import chainer.links as L
-import chainer.optimizers as O
+from chainer import optimizers
 from chainer import reporter
 from chainer import training
 from chainer.training import extensions
@@ -28,7 +28,7 @@ class ContinuousBoW(chainer.Chain):
 
         with self.init_scope():
             self.embed = L.EmbedID(
-                n_vocab, n_units, initialW=I.Uniform(1. / n_units))
+                n_vocab, n_units, initialW=initializers.Uniform(1. / n_units))
             self.loss_func = loss_func
 
     def __call__(self, x, contexts):
@@ -47,7 +47,7 @@ class SkipGram(chainer.Chain):
 
         with self.init_scope():
             self.embed = L.EmbedID(
-                n_vocab, n_units, initialW=I.Uniform(1. / n_units))
+                n_vocab, n_units, initialW=initializers.Uniform(1. / n_units))
             self.loss_func = loss_func
 
     def __call__(self, x, contexts):
@@ -234,7 +234,7 @@ def main():
         model.to_gpu()
 
     # Set up an optimizer
-    optimizer = O.Adam()
+    optimizer = optimizers.Adam()
     optimizer.setup(model)
 
     # Set up an iterator

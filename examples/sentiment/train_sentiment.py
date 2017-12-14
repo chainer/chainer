@@ -110,14 +110,14 @@ class RecursiveNet(chainer.Chain):
         super(RecursiveNet, self).__init__()
         with self.init_scope():
             self.embed = L.EmbedID(n_vocab, n_units)
-            self.l = L.Linear(n_units * 2, n_units)
+            self.links = L.Linear(n_units * 2, n_units)
             self.w = L.Linear(n_units, n_label)
 
     def leaf(self, x):
         return self.embed(x)
 
     def node(self, left, right):
-        return F.tanh(self.l(F.concat((left, right))))
+        return F.tanh(self.links(F.concat((left, right))))
 
     def label(self, v):
         return self.w(v)

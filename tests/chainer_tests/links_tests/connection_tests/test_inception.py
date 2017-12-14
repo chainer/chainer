@@ -21,13 +21,13 @@ class TestInception(unittest.TestCase):
         out = self.out1 + self.out3 + self.out5 + self.proj_pool
         self.gy = numpy.random.uniform(
             -1, 1, (10, out, 5, 5)).astype(numpy.float32)
-        self.l = links.Inception(
+        self.link = links.Inception(
             self.in_channels, self.out1, self.proj3, self.out3,
             self.proj5, self.out5, self.proj_pool)
 
     def check_backward(self, x_data, y_grad):
         x = chainer.Variable(x_data)
-        y = self.l(x)
+        y = self.link(x)
         y.grad = y_grad
         y.backward()
 
@@ -36,7 +36,7 @@ class TestInception(unittest.TestCase):
 
     @attr.gpu
     def test_backward_gpu(self):
-        self.l.to_gpu()
+        self.link.to_gpu()
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
 

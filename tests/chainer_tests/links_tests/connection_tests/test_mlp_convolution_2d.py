@@ -138,44 +138,44 @@ class TestInitArgumentForv2(unittest.TestCase):
     pad = 0
 
     def test_valid_instantiation_ksize_is_not_none(self):
-        l = links.MLPConvolution2D(
+        link = links.MLPConvolution2D(
             self.in_channels, self.out_channels, self.ksize, self.stride,
             self.pad, functions.relu, conv_init=None, bias_init=None)
-        self.assertEqual(len(l), 2)
-        self.assertEqual(l[0].W.shape,
+        self.assertEqual(len(link), 2)
+        self.assertEqual(link[0].W.shape,
                          (self.out_channels[0], self.in_channels,
                           self.ksize, self.ksize))
-        self.assertEqual(l[1].W.shape,
+        self.assertEqual(link[1].W.shape,
                          (self.out_channels[1], self.out_channels[0], 1, 1))
 
     def test_valid_instantiation_ksize_is_none(self):
-        l = links.MLPConvolution2D(self.out_channels, self.ksize, None,
-                                   self.stride, self.pad, functions.relu,
-                                   conv_init=None, bias_init=None)
+        link = links.MLPConvolution2D(self.out_channels, self.ksize, None,
+                                      self.stride, self.pad, functions.relu,
+                                      conv_init=None, bias_init=None)
         x = numpy.random.uniform(
             -1, 1, (10, self.in_channels, 10, 10)).astype(numpy.float32)
-        l(x)  # create weight tensors of convolutions by initialization
+        link(x)  # create weight tensors of convolutions by initialization
 
-        self.assertEqual(len(l), 2)
-        self.assertEqual(l[0].W.shape,
+        self.assertEqual(len(link), 2)
+        self.assertEqual(link[0].W.shape,
                          (self.out_channels[0], self.in_channels,
                           self.ksize, self.ksize))
-        self.assertEqual(l[1].W.shape,
+        self.assertEqual(link[1].W.shape,
                          (self.out_channels[1], self.out_channels[0], 1, 1))
 
     def test_valid_instantiation_in_channels_is_omitted(self):
-        l = links.MLPConvolution2D(
+        link = links.MLPConvolution2D(
             self.out_channels, self.ksize, stride=self.stride, pad=self.pad,
             activation=functions.relu, conv_init=None, bias_init=None)
         x = numpy.random.uniform(
             -1, 1, (10, self.in_channels, 10, 10)).astype(numpy.float32)
-        l(x)  # create weight tensors of convolutions by initialization
+        link(x)  # create weight tensors of convolutions by initialization
 
-        self.assertEqual(len(l), 2)
-        self.assertEqual(l[0].W.shape,
+        self.assertEqual(len(link), 2)
+        self.assertEqual(link[0].W.shape,
                          (self.out_channels[0], self.in_channels,
                           self.ksize, self.ksize))
-        self.assertEqual(l[1].W.shape,
+        self.assertEqual(link[1].W.shape,
                          (self.out_channels[1], self.out_channels[0], 1, 1))
 
     def test_forbid_wscale_as_a_positional_argument(self):

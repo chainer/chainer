@@ -294,29 +294,29 @@ class TestLink(unittest.TestCase):
         gy = self.link.y.grad.copy()
         gu = self.link.u.grad.copy()
 
-        l = chainer.Link()
-        with l.init_scope():
-            l.x = chainer.Parameter(shape=(2, 3))
-            l.y = chainer.Parameter(shape=2)
-            l.u = chainer.Parameter(shape=(2, 3))
-            l.v = chainer.Parameter(shape=(3, 2))
-        l.x.data.fill(2)
-        l.x.grad.fill(3)
-        l.y.data.fill(4)
-        l.y.grad.fill(5)
-        l.u.data.fill(6)
-        l.u.grad.fill(7)
-        l.v.data.fill(8)
-        l.v.grad.fill(9)
+        link = chainer.Link()
+        with link.init_scope():
+            link.x = chainer.Parameter(shape=(2, 3))
+            link.y = chainer.Parameter(shape=2)
+            link.u = chainer.Parameter(shape=(2, 3))
+            link.v = chainer.Parameter(shape=(3, 2))
+        link.x.data.fill(2)
+        link.x.grad.fill(3)
+        link.y.data.fill(4)
+        link.y.grad.fill(5)
+        link.u.data.fill(6)
+        link.u.grad.fill(7)
+        link.v.data.fill(8)
+        link.v.grad.fill(9)
 
-        self.link.copyparams(l)
-        numpy.testing.assert_array_equal(self.link.x.data, l.x.data)
+        self.link.copyparams(link)
+        numpy.testing.assert_array_equal(self.link.x.data, link.x.data)
         numpy.testing.assert_array_equal(self.link.x.grad, gx)
-        numpy.testing.assert_array_equal(self.link.y.data, l.y.data)
+        numpy.testing.assert_array_equal(self.link.y.data, link.y.data)
         numpy.testing.assert_array_equal(self.link.y.grad, gy)
-        numpy.testing.assert_array_equal(self.link.u.data, l.u.data)
+        numpy.testing.assert_array_equal(self.link.u.data, link.u.data)
         numpy.testing.assert_array_equal(self.link.u.grad, gu)
-        numpy.testing.assert_array_equal(self.link.v.data, l.v.data)
+        numpy.testing.assert_array_equal(self.link.v.data, link.v.data)
         numpy.testing.assert_array_equal(self.link.v.grad, None)
 
     def test_cleargrads(self):
@@ -343,26 +343,26 @@ class TestLink(unittest.TestCase):
         numpy.testing.assert_array_equal(self.link.v.grad, gv_expect)
 
     def test_addgrads(self):
-        l = chainer.Link()
-        with l.init_scope():
-            l.x = chainer.Parameter(shape=(2, 3),
-                                    initializer=initializers.NaN('d'))
-            l.y = chainer.Parameter(shape=2)
-            l.u = chainer.Parameter(shape=(2, 3))
-            l.v = chainer.Parameter()
-        l.x.grad.fill(1)
-        l.y.grad.fill(2)
-        l.u.grad.fill(3)
+        link = chainer.Link()
+        with link.init_scope():
+            link.x = chainer.Parameter(shape=(2, 3),
+                                       initializer=initializers.NaN('d'))
+            link.y = chainer.Parameter(shape=2)
+            link.u = chainer.Parameter(shape=(2, 3))
+            link.v = chainer.Parameter()
+        link.x.grad.fill(1)
+        link.y.grad.fill(2)
+        link.u.grad.fill(3)
 
         self.link.x.grad.fill(-1)
         self.link.y.grad.fill(-2)
         self.link.u.cleargrad()
 
-        self.link.addgrads(l)
+        self.link.addgrads(link)
 
-        gx_expect = numpy.zeros_like(l.x.grad)
-        gy_expect = numpy.zeros_like(l.y.grad)
-        gu_expect = l.u.grad
+        gx_expect = numpy.zeros_like(link.x.grad)
+        gy_expect = numpy.zeros_like(link.y.grad)
+        gu_expect = link.u.grad
         numpy.testing.assert_array_equal(self.link.x.grad, gx_expect)
         numpy.testing.assert_array_equal(self.link.y.grad, gy_expect)
         numpy.testing.assert_array_equal(self.link.u.grad, gu_expect)
@@ -370,44 +370,44 @@ class TestLink(unittest.TestCase):
 
     def test_serialize(self):
         serializer = mock.MagicMock(return_value=3)
-        l = chainer.Link()
-        with l.init_scope():
-            l.x = chainer.Parameter(shape=(2, 3))
-            l.y = chainer.Parameter(shape=2)
-        l.add_persistent('z', 1)
-        l.serialize(serializer)
+        link = chainer.Link()
+        with link.init_scope():
+            link.x = chainer.Parameter(shape=(2, 3))
+            link.y = chainer.Parameter(shape=2)
+        link.add_persistent('z', 1)
+        link.serialize(serializer)
         self.assertEqual(serializer.call_count, 3)
-        serializer.assert_any_call('x', l.x.data)
-        serializer.assert_any_call('y', l.y.data)
+        serializer.assert_any_call('x', link.x.data)
+        serializer.assert_any_call('y', link.y.data)
         serializer.assert_any_call('z', 1)
-        self.assertEqual(l.z, 3)
+        self.assertEqual(link.z, 3)
 
     def test_serialize_param_shape_placeholder(self):
         serializer = mock.MagicMock(return_value=3)
-        l = chainer.Link()
-        with l.init_scope():
-            l.y = chainer.Parameter(shape=2)
-            l.x = chainer.Parameter()
-        l.x.initialize((2, 3))
-        l.add_persistent('z', 1)
-        l.serialize(serializer)
+        link = chainer.Link()
+        with link.init_scope():
+            link.y = chainer.Parameter(shape=2)
+            link.x = chainer.Parameter()
+        link.x.initialize((2, 3))
+        link.add_persistent('z', 1)
+        link.serialize(serializer)
         self.assertEqual(serializer.call_count, 3)
-        serializer.assert_any_call('x', l.x.data)
-        serializer.assert_any_call('y', l.y.data)
+        serializer.assert_any_call('x', link.x.data)
+        serializer.assert_any_call('y', link.y.data)
         serializer.assert_any_call('z', 1)
-        self.assertEqual(l.z, 3)
+        self.assertEqual(link.z, 3)
 
     def test_serialize_deserialize_to_uninitialized_param(self):
         ret = numpy.random.rand(2, 3).astype('f')
         serializer = mock.MagicMock(return_value=ret)
-        l = chainer.Link()
-        with l.init_scope():
-            l.x = chainer.Parameter()
-        l.serialize(serializer)
+        link = chainer.Link()
+        with link.init_scope():
+            link.x = chainer.Parameter()
+        link.serialize(serializer)
         self.assertEqual(serializer.call_count, 1)
         serializer.assert_any_call('x', None)
-        self.assertIsInstance(l.x.data, numpy.ndarray)
-        numpy.testing.assert_array_equal(l.x.data, ret)
+        self.assertIsInstance(link.x.data, numpy.ndarray)
+        numpy.testing.assert_array_equal(link.x.data, ret)
 
     def test_enable_update(self):
         self.link.enable_update()
@@ -496,9 +496,9 @@ class TestChain(unittest.TestCase):
             self.l1.add_link('z', chainer.Link())
 
     def test_assign_link_outside_of_init_scope(self):
-        l = chainer.Link()
-        self.l1.l = l
-        self.assertTrue(all(l is not link for link in self.l1.links()))
+        link0 = chainer.Link()
+        self.l1.outside_link = link0
+        self.assertTrue(all(link0 is not link for link in self.l1.links()))
 
     def test_delete_link(self):
         del self.c1.l1
@@ -787,10 +787,10 @@ class TestChainList(unittest.TestCase):
         self.assertIn(p, self.c1.params())
 
     def test_assign_link_in_init_scope(self):
-        l = chainer.Link()
+        link = chainer.Link()
         with self.c1.init_scope():
             with self.assertRaises(TypeError):
-                self.c1.l = l
+                self.c1.l0 = link
 
     def test_iter(self):
         links = list(self.c2)

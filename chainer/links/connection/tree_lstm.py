@@ -185,9 +185,9 @@ class NaryTreeLSTM(link.Chain):
             self.W_x = linear.Linear(in_size, (3 + n_ary) * out_size)
 
             for i in range(1, n_ary + 1):
-                l = linear.Linear(
+                link = linear.Linear(
                     out_size, (3 + n_ary) * out_size, nobias=True)
-                setattr(self, 'W_h{}'.format(i), l)
+                setattr(self, 'W_h{}'.format(i), link)
         self.in_size = in_size
         self.state_size = out_size
         self.n_ary = n_ary

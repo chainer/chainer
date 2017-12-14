@@ -36,7 +36,7 @@ class TestTimerHookToLink(unittest.TestCase):
 
     def setUp(self):
         self.h = function_hooks.TimerHook()
-        self.l = SimpleLink()
+        self.link = SimpleLink()
         self.x = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
         self.gy = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
 
@@ -45,7 +45,7 @@ class TestTimerHookToLink(unittest.TestCase):
 
     def check_forward(self, x):
         with self.h:
-            self.l(chainer.Variable(x))
+            self.link(chainer.Variable(x))
         self.assertEqual(1, len(self.h.call_history))
         check_history(self, self.h.call_history[0], basic_math.Mul, float)
 

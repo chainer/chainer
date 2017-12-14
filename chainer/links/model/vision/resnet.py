@@ -514,8 +514,8 @@ class BuildingBlock(link.Chain):
 
     def __call__(self, x):
         for name in self._forward:
-            l = getattr(self, name)
-            x = l(x)
+            layer = getattr(self, name)
+            x = layer(x)
         return x
 
     @property
