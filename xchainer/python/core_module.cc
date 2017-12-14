@@ -36,6 +36,7 @@ void InitXchainerModule(pybind11::module& m) {
         dtype_type.def(py::init(&GetDtype));
         dtype_type.def_property_readonly("char", [](Dtype dtype) { return std::string(1, GetCharCode(dtype)); });
         dtype_type.def_property_readonly("itemsize", &GetElementSize);
+        dtype_type.def_property_readonly("name", &GetDtypeName);
     }
 }
 
