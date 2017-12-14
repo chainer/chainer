@@ -27,7 +27,6 @@ jobs:
             apt-get update
             apt-get install -y g++ cmake clang clang-format clang-tidy git python3-dev lcov wget
             apt-get install openssh-client  # To avoid warning on checkout
-            apt-get install -y ca-certificates  # To avoid errors on save_cache/restore_cache
             apt-get install -y bzip2  # To install miniconda
 
             # To avoid configuring PATH environment variable in every steps
@@ -37,10 +36,6 @@ jobs:
       - checkout
 
       # Setup conda
-      - restore_cache:
-          keys:
-            - downloads-cache
-
       - run:
           name: Setup conda
           command: |
@@ -54,11 +49,6 @@ jobs:
             conda config --set changeps1 no
             conda update -y -q conda
             conda create -y -q --name testenv python=3.6 pip
-
-      - save_cache:
-          key: downloads-cache
-          paths:
-            - downloads
 
       # Environment info
       - run:
