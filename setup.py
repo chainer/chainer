@@ -76,7 +76,7 @@ setuptools.setup(
     long_description='',
     ext_modules=[CMakeExtension('xchainer._core', ['_core.so'])],
     packages=['xchainer'],
-    package_dir={'xchainer': 'xchainer/python'},
+    package_dir={'': 'python'},
     cmdclass={'build_ext': CMakeBuild},
     zip_safe=False,
 )

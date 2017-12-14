@@ -93,10 +93,10 @@ jobs:
             source activate testenv
 
             flake8 --version
-            flake8 xchainer tests
+            flake8 python tests
 
             autopep8 --version
-            autopep8 xchainer tests -r --global-config .pep8 --diff | tee check_autopep8
+            autopep8 python tests -r --global-config .pep8 --diff | tee check_autopep8
             test ! -s check_autopep8
 
       # Python test
@@ -105,10 +105,8 @@ jobs:
           command: |
             source activate testenv
 
-            python setup.py install
-            # TODO(niboshi): coverage does not work
-            #pytest --cov --no-cov-on-fail --cov-fail-under=80
-            pytest
+            pip install -e .
+            pytest --cov --no-cov-on-fail --cov-fail-under=80
 
 workflows:
   version: 2
