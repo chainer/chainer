@@ -1,7 +1,9 @@
 import xchainer
 
+
 def test_core():
     assert xchainer.__name__ == 'xchainer'
+
 
 def test_dtype():
     assert xchainer.Dtype("bool") == xchainer.bool
