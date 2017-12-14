@@ -17,7 +17,7 @@ namespace {
 namespace py = pybind11;  // standard convention
 
 void InitXchainerModule(pybind11::module& m) {
-    m.doc() = "Xchainer";
+    m.doc() = "xChainer";
     m.attr("__name__") = "xchainer";  // Show each member as "xchainer.*" instead of "xchainer.core.*"
 
     py::register_exception<XchainerError>(m, "XchainerError");
