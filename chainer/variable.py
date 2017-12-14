@@ -168,7 +168,7 @@ class VariableNode(object):
         self._requires_grad = variable.requires_grad
 
         vdata = variable.data
-        self._set_data_type(vdata)
+        self._update_data_info(vdata)
 
     @property
     def creator(self):
@@ -260,7 +260,7 @@ class VariableNode(object):
     @data.setter
     def data(self, d):
         self._data = d
-        self._set_data_type(d)
+        self._update_data_info(d)
 
     @property
     def grad(self):
@@ -383,13 +383,17 @@ class VariableNode(object):
             raise RuntimeError('cannot retain variable data: the variable has '
                                'been already released')
 
-    def _set_data_type(self, d):
+    def _update_data_info(self, d):
         if d is None:
             self.dtype = None
             self.shape = None
         else:
             self.dtype = d.dtype
             self.shape = d.shape
+
+        # If the node has a reference to data, update it as well.
+        if self._data is not None:
+            self._data = d
 
     def _check_old_style_gradient(self):
         if self._old_style_grad_generator is not None:
@@ -499,7 +503,7 @@ Actual: {0}'''.format(type(data))
 
         msg = """{summary}
 - device: {device}
-- backend: {background}
+- backend: {backend}
 - shape: {shape}
 - dtype: {dtype}
 - statistics: {stats}
@@ -507,13 +511,22 @@ Actual: {0}'''.format(type(data))
 
         stats_msg = 'mean={0:.8f}, std={1:.8f}'
 
-        try:
-            device = self.data.device
-        except AttributeError:
-            device = 'CPU'
-
-        with cuda.get_device_from_array(self.data) as dev:
+        data = self.data
+        with cuda.get_device_from_array(data) as dev:
             xp = numpy if int(dev) == -1 else cuda.cupy
+
+            if data is None:
+                # `data` can be `None` if constructed without any arguments
+                device = None
+                backend = None
+                stats = None
+            else:
+                device = getattr(data, 'device', 'CPU')
+                backend = type(data)
+                stats = stats_msg.format(float(xp.mean(data)),
+                                         float(xp.std(data)))
+            shape = getattr(data, 'shape', None)
+            dtype = getattr(data, 'dtype', None)
 
             if self.grad is None:
                 grad = None
@@ -523,14 +536,9 @@ Actual: {0}'''.format(type(data))
                 grad = stats_msg.format(float(xp.mean(self.grad)),
                                         float(xp.std(self.grad)))
 
-            stats = stats_msg.format(float(xp.mean(self.data)),
-                                     float(xp.std(self.data)))
-
-        return msg.format(summary=self.summary(),
-                          grad=grad, shape=self.data.shape,
-                          background=type(self.data),
-                          dtype=self.data.dtype, device=device,
-                          stats=stats)
+        return msg.format(summary=self.summary(), device=device,
+                          backend=backend, shape=shape, dtype=dtype,
+                          stats=stats, grad=grad)
 
     def __pos__(self):
         return self
@@ -606,7 +614,7 @@ Actual: {0}'''.format(type(data))
     @array.setter
     def array(self, d):
         self._data[0] = d
-        self._node._set_data_type(d)
+        self._node._update_data_info(d)
 
     @property
     def data(self):
@@ -624,7 +632,7 @@ Actual: {0}'''.format(type(data))
     @data.setter
     def data(self, d):
         self._data[0] = d
-        self._node._set_data_type(d)
+        self._node._update_data_info(d)
 
     @property
     def grad(self):

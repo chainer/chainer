@@ -33,7 +33,7 @@ from chainer.testing import condition
 }) + testing.product({
     'c_contiguous': [False],
     'cover_all': [False],
-    'cudnn_deterministic': [False],
+    'cudnn_deterministic': [True, False],
     'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'W_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'dilate': [2],

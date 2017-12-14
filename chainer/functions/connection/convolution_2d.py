@@ -154,15 +154,15 @@ class Convolution2DFunction(function_node.FunctionNode):
         out_h, out_w = self._get_out_size(inputs)
         y = cuda.cupy.empty((n, out_c, out_h, out_w), dtype=x.dtype)
 
-        _gc_use_cudnn = True
-        if self.group > 1 and _cudnn_version < 7000:
-            _gc_use_cudnn = False
+        use_cudnn = (
+            chainer.should_use_cudnn('>=auto')
+            and not self.cover_all
+            and x.dtype == W.dtype
+            and ((self.dy == 1 and self.dx == 1) or _cudnn_version >= 6000)
+            and (self.group <= 1 or _cudnn_version >= 7000)
+        )
 
-        if (not self.cover_all and chainer.should_use_cudnn('>=auto') and
-                x.dtype == W.dtype and
-                ((self.dy == 1 and self.dx == 1) or _cudnn_version >= 6000) and
-                _gc_use_cudnn):
-
+        if use_cudnn:
             # cuDNN implementation
             return self._forward_cudnn(x, W, b, y)
 
@@ -347,15 +347,17 @@ class Convolution2DGradW(function_node.FunctionNode):
         self.retain_inputs((0, 1))
         x, gy = inputs
 
-        _gc_use_cudnn = True
-        if self.group > 1 and _cudnn_version < 7000:
-            _gc_use_cudnn = False
+        use_cudnn = (
+            chainer.should_use_cudnn('>=auto')
+            and not self.cover_all
+            and x.dtype == self.W_dtype
+            and ((self.dy == 1 and self.dx == 1)
+                 or (_cudnn_version >= 6000
+                     and not configuration.config.cudnn_deterministic))
+            and (self.group <= 1 or _cudnn_version >= 7000)
+        )
 
-        if (not self.cover_all and chainer.should_use_cudnn('>=auto') and
-                x.dtype == self.W_dtype and
-                ((self.dy == 1 and self.dx == 1) or _cudnn_version >= 6000) and
-                _gc_use_cudnn):
-
+        if use_cudnn:
             # cuDNN implementation
             return self._forward_cudnn(x, gy)
 
