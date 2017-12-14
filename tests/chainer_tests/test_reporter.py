@@ -232,6 +232,23 @@ class TestSummary(unittest.TestCase):
         testing.assert_allclose(mean, 2.)
         testing.assert_allclose(std, numpy.sqrt(2. / 3.))
 
+    @attr.gpu
+    def test_serialize_cupy(self):
+        xp = cuda.cupy
+        self.summary.add(xp.array(1, 'f'))
+        self.summary.add(xp.array(2, 'f'))
+
+        summary = chainer.reporter.Summary()
+        testing.save_and_load_npz(self.summary, summary)
+        summary.add(xp.array(3, 'f'))
+
+        mean = summary.compute_mean()
+        testing.assert_allclose(mean, 2.)
+
+        mean, std = summary.make_statistics()
+        testing.assert_allclose(mean, 2.)
+        testing.assert_allclose(std, numpy.sqrt(2. / 3.))
+
     def test_serialize_backward_compat(self):
         with tempfile.NamedTemporaryFile(delete=False) as f:
             # old version does not save anything
@@ -320,6 +337,19 @@ class TestDictSummary(unittest.TestCase):
             'int': (1, 5, 6, 5),
             'float': (4., 9., 5., 8.),
         })
+
+    @attr.gpu
+    def test_serialize_cupy(self):
+        xp = cuda.cupy
+        self.summary.add({'cupy': xp.array(3, 'f')})
+        self.summary.add({'cupy': xp.array(1, 'f')})
+        self.summary.add({'cupy': xp.array(2, 'f')})
+
+        summary = chainer.reporter.DictSummary()
+        testing.save_and_load_npz(self.summary, summary)
+        summary.add({'cupy': xp.array(3, 'f')})
+
+        self.check(summary, {'cupy': (3., 1., 2., 3.)})
 
     def test_serialize_names_with_slash(self):
         self.summary.add({'a/b': 3., '/a/b': 1., 'a/b/': 4.})
