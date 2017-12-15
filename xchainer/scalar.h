@@ -7,8 +7,8 @@
 
 namespace xchainer {
 
+// Type safe, dynamically typed scalar value.
 class Scalar {
-    // Type safe, dynamically typed scalar value.
 public:
     Scalar(bool v) : bool_(v), dtype_(Dtype::kBool) {}
     Scalar(int8_t v) : int8_(v), dtype_(Dtype::kInt8) {}
