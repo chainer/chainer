@@ -1,3 +1,4 @@
+import six
 import unittest
 
 from chainer.datasets.sliceable import SliceableDataset
@@ -66,6 +67,18 @@ class TestSliceableDataset(unittest.TestCase):
         self.assertEqual(dataset.keys, self.dataset.keys)
         self.assertEqual(
             dataset[0], ('item0(2)', 'item1(2)', 'item2(2)'))
+
+    def test_iter(self):
+        it = iter(self.dataset)
+        for i in six.moves.range(len(self.dataset)):
+            self.assertEqual(
+                next(it), (
+                    'item0({:d})'.format(i),
+                    'item1({:d})'.format(i),
+                    'item2({:d})'.format(i),
+                ))
+        with self.assertRaises(StopIteration):
+            next(it)
 
 
 testing.run_module(__name__, __file__)

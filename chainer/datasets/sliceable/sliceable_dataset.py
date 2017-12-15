@@ -1,3 +1,5 @@
+import six
+
 import chainer
 
 
@@ -50,6 +52,9 @@ class SliceableDataset(chainer.dataset.DatasetMixin):
     @property
     def slice(self):
         return SliceHelper(self)
+
+    def __iter__(self):
+        return (self.get_example(i) for i in six.moves.range(len(self)))
 
 
 class SliceHelper(object):
