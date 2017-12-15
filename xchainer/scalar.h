@@ -81,14 +81,14 @@ public:
         return 0;
     }
 
-    operator bool() const { return UnwrapAndCast<bool>(); }
-    operator int8_t() const { return UnwrapAndCast<int8_t>(); }
-    operator int16_t() const { return UnwrapAndCast<int16_t>(); }
-    operator int32_t() const { return UnwrapAndCast<int32_t>(); }
-    operator int64_t() const { return UnwrapAndCast<int64_t>(); }
-    operator uint8_t() const { return UnwrapAndCast<uint8_t>(); }
-    operator float() const { return UnwrapAndCast<float>(); }
-    operator double() const { return UnwrapAndCast<double>(); }
+    explicit operator bool() const { return UnwrapAndCast<bool>(); }
+    explicit operator int8_t() const { return UnwrapAndCast<int8_t>(); }
+    explicit operator int16_t() const { return UnwrapAndCast<int16_t>(); }
+    explicit operator int32_t() const { return UnwrapAndCast<int32_t>(); }
+    explicit operator int64_t() const { return UnwrapAndCast<int64_t>(); }
+    explicit operator uint8_t() const { return UnwrapAndCast<uint8_t>(); }
+    explicit operator float() const { return UnwrapAndCast<float>(); }
+    explicit operator double() const { return UnwrapAndCast<double>(); }
 
 private:
     union {
