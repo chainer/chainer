@@ -59,13 +59,13 @@ TEST(DtypeTest, UnaryOps) {
 }
 
 TEST(ScalarTest, ToString) {
-    ASSERT_STREQ(Scalar(true).ToString().c_str(), "True");
-    ASSERT_STREQ(Scalar(false).ToString().c_str(), "False");
-    ASSERT_STREQ(Scalar(int8_t(1)).ToString().c_str(), std::to_string(int8_t(1)).c_str());
-    ASSERT_STREQ(Scalar(int16_t(2)).ToString().c_str(), std::to_string(int16_t(2)).c_str());
-    ASSERT_STREQ(Scalar(int32_t(3)).ToString().c_str(), std::to_string(int32_t(3)).c_str());
-    ASSERT_STREQ(Scalar(int64_t(4)).ToString().c_str(), std::to_string(int64_t(4)).c_str());
-    ASSERT_STREQ(Scalar(uint8_t(5)).ToString().c_str(), std::to_string(uint8_t(5)).c_str());
+    ASSERT_EQ(Scalar(true).ToString(), "True");
+    ASSERT_EQ(Scalar(false).ToString(), "False");
+    ASSERT_EQ(Scalar(int8_t(1)).ToString(), std::to_string(int8_t(1)));
+    ASSERT_EQ(Scalar(int16_t(2)).ToString(), std::to_string(int16_t(2)));
+    ASSERT_EQ(Scalar(int32_t(3)).ToString(), std::to_string(int32_t(3)));
+    ASSERT_EQ(Scalar(int64_t(4)).ToString(), std::to_string(int64_t(4)));
+    ASSERT_EQ(Scalar(uint8_t(5)).ToString(), std::to_string(uint8_t(5)));
 }
 
 }  // namespace
