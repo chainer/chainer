@@ -3,104 +3,102 @@
 #include <cstdint>
 #include <memory>
 #include <utility>
-#include "xchainer/array_body.h"
+#include <gsl/gsl>
 //#include "xchainer/device.h"
 #include "xchainer/dtype.h"
-//#include "xchainer/scalar.h"
 #include "xchainer/shape.h"
 
 namespace xchainer {
 
-// Handle of ArrayBody.
-//
-// Users basically use Array to use a multi-dimensional array.
-class Array {
+// The main data structure of multi-dimensional array.
+class ArrayBody {
  public:
-  Array() = default;
-  explicit Array(std::shared_ptr<ArrayBody> body) : body_(std::move(body)) {}
+  //ArrayBody(Device device, gsl::span<const int64_t> shape, Dtype dtype);
 
-  //
-  // Query for ArrayBody
-  //
+  //ArrayBody(Device device, const Shape& shape, Dtype dtype)
+  //    : ArrayBody(device, shape.span(), dtype) {}
 
-  bool is_null() const {
-    return body_ == nullptr;
-  }
+  //Device device() const {
+  //  return device_;
+  //}
 
-  ArrayBody* raw_body() {
-    return body_.get();
-  }
+  ArrayBody(gsl::span<const int64_t> shape, Dtype dtype);
 
-  const std::shared_ptr<ArrayBody>& body() const {
-    return body_;
-  }
-
-  void set_body(std::shared_ptr<ArrayBody> body) {
-    body_ = std::move(body);
-  }
-
-  std::shared_ptr<ArrayBody> move_body() {
-    return std::move(body_);
-  }
-
-  //
-  // Shortcut accessors of ArrayBody. They do not check if body_ is not null.
-  //
-
-  // Device device() const {
-  //   return body_->device();
-  // }
+  ArrayBody(const Shape& shape, Dtype dtype)
+      : ArrayBody(shape.span(), dtype) {}
 
   Dtype dtype() const {
-    return body_->dtype();
+    return dtype_;
   }
 
   int8_t ndim() const {
-    return body_->ndim();
+    return shape_.ndim();
   }
 
   const Shape& shape() const {
-    return body_->shape();
+    return shape_;
+  }
+
+  //const Strides& strides() const {
+  //  return strides_;
+  //}
+
+  bool is_contiguous() const {
+    return is_contiguous_;
   }
 
   int64_t total_size() const {
-    return body_->total_size();
+    return shape_.total_size();
   }
 
   int64_t element_bytes() const {
-    return body_->element_bytes();
+    return GetElementSize(dtype_);
   }
 
   int64_t total_bytes() const {
-    return body_->total_bytes();
+    return total_size() * element_bytes();
   }
 
-  bool is_contiguous() const {
-    return body_->is_contiguous();
+  const std::shared_ptr<void>& data() const {
+    return data_;
   }
 
-  //
-  // Operators as member functions
-  //
+  void* raw_data() const {
+    return data_.get();
+  }
 
-  //Array& operator+=(const Array& other);
-  //Array& operator*=(const Array& other);
+  int64_t offset() const {
+    return offset_;
+  }
 
-  //
-  // Array manipulation as member functions
-  //
+  //void SetData(std::shared_ptr<void> data, gsl::span<const int64_t> strides, int64_t offset = 0);
 
-  // void Fill(Scalar value);
+  //void SetData(ArrayBody& other, gsl::span<const int64_t> strides, int64_t relative_offset = 0) {
+  //  SetData(other.data_, strides, other.offset_ + relative_offset);
+  //}
+
+  void SetContiguousData(std::shared_ptr<void> data, int64_t offset = 0);
+
+  void SetContiguousData(ArrayBody& other, int64_t relative_offset = 0) {
+    SetContiguousData(other.data_, other.offset_ + relative_offset);
+  }
+
+  std::shared_ptr<ArrayBody> MakeSimilar() const {
+    //return std::make_shared<ArrayBody>(device_, shape_, dtype_);
+    return std::make_shared<ArrayBody>(shape_, dtype_);
+  }
 
  private:
-  std::shared_ptr<ArrayBody> body_;
+  //Device device_;
+
+  Shape shape_;
+  //Strides strides_;
+  bool is_contiguous_;
+
+  Dtype dtype_;
+
+  std::shared_ptr<void> data_;
+  int64_t offset_;
 };
-
-//
-// Operators as free functions
-//
-
-//Array operator+(const Array& lhs, const Array& rhs);
-//Array operator*(const Array& lhs, const Array& rhs);
 
 }  // namespace xchainer

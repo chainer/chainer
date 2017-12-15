@@ -1,4 +1,4 @@
-#include "xchainer/array_body.h"
+#include "xchainer/array.h"
 
 #include <array>
 #include <cstddef>
