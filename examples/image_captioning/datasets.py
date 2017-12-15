@@ -1,6 +1,5 @@
 from collections import defaultdict
 import os
-import six
 
 import numpy as np
 from PIL import Image
@@ -11,7 +10,7 @@ from chainer.dataset.convert import to_device
 
 
 # Vocabulary tokens of BOS (beginning of sentence), EOS (end of sentence),
-# UNK (unknown word) and token labels to be ignore in the loss computation by
+# UNK (unknown word) and token labels to be ignored in the loss computation by
 # the LSTM layers
 _bos = 0
 _eos = 1
@@ -86,10 +85,9 @@ def get_mscoco(
     train = MsCocoDataset(root_dir, train_dir, train_anno)
     val = MsCocoDataset(root_dir, val_dir, val_anno)
 
-    # Create a vocabulary based on the captions from both the training and the
-    # validation datasets
-    anns = train.anns + val.anns
-    captions = [ann['caption'] for ann in anns]
+    # Create a vocabulary based on the captions from the training set only
+    # (excluding the validation sets). This is common practice.
+    captions = [ann['caption'] for ann in train.anns]
 
     # Filter out rare words as UNK
     word_counts = defaultdict(int)
@@ -99,9 +97,10 @@ def get_mscoco(
 
     # This vocabulary is needed in order to convert the words in the captions
     # to integer tokens. When generating captions during testing, these tokens
-    # are mapped back to their corresponding words.
+    # are mapped back to their corresponding words. Note that this vocabulary
+    # sorted alphanumerically.
     vocab = {'<bos>': _bos, '<eos>': _eos, '<unk>': _unk}
-    for w, count in six.iteritems(word_counts):
+    for w, count in sorted(word_counts.items()):
         if w not in vocab and count >= unk_threshold:
             vocab[w] = len(vocab)
 
