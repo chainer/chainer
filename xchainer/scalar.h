@@ -26,30 +26,6 @@ public:
 
     Dtype dtype() const { return dtype_; }
 
-    template <typename T>
-    T UnwrapAndCast() const {
-        switch (dtype_) {
-            case Dtype::kBool:
-                return bool_;
-            case Dtype::kInt8:
-                return int8_;
-            case Dtype::kInt16:
-                return int16_;
-            case Dtype::kInt32:
-                return int32_;
-            case Dtype::kInt64:
-                return int64_;
-            case Dtype::kUInt8:
-                return uint8_;
-            case Dtype::kFloat32:
-                return float32_;
-            case Dtype::kFloat64:
-                return float64_;
-            default:
-                assert(0);  // should never be reached
-        }
-    }
-
     std::string ToString() const;
 
     Scalar& operator+() { return *this; }
@@ -101,7 +77,32 @@ private:
         float float32_;
         double float64_;
     };
+
     Dtype dtype_;
+
+    template <typename T>
+    T UnwrapAndCast() const {
+        switch (dtype_) {
+            case Dtype::kBool:
+                return bool_;
+            case Dtype::kInt8:
+                return int8_;
+            case Dtype::kInt16:
+                return int16_;
+            case Dtype::kInt32:
+                return int32_;
+            case Dtype::kInt64:
+                return int64_;
+            case Dtype::kUInt8:
+                return uint8_;
+            case Dtype::kFloat32:
+                return float32_;
+            case Dtype::kFloat64:
+                return float64_;
+            default:
+                assert(0);  // should never be reached
+        }
+    }
 };
 
 std::ostream& operator<<(std::ostream& os, Scalar value);
