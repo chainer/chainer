@@ -3,6 +3,8 @@ if(${BUILD_PYTHON})
 endif()
 
 install(FILES
+    array.h
+    array_body.h
     constant.h
     dtype.h
     error.h
@@ -12,6 +14,8 @@ install(FILES
     )
 
 add_library(xchainer SHARED
+    array.cc
+    array_body.cc
     dtype.cc
     shape.cc
     )
@@ -20,6 +24,7 @@ install(TARGETS xchainer DESTINATION lib)
 
 if(ENABLE_TEST)
     add_executable(xchainer_test
+        array_body_test.cc
         dtype_test.cc
         shape_test.cc)
     target_link_libraries(xchainer_test
