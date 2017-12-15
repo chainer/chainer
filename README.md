@@ -34,7 +34,7 @@ We use `flake8` and `autopep8`. To install, run:
 $ pip install hacking flake8 autopep8
 ```
 
-To format and make changes Python codes in place, run the following at the repository root:
+To format and make changes to Python codes in place, run the following at the repository root:
 
 ```
 $ autopep8 python tests -r --global-config .pep8 --in-place
@@ -54,7 +54,7 @@ We use `clang-format`. To install on Ubuntu, run:
 $ sudo apt-get install clang-format
 ```
 
-To format and make changes C++ codes in place, run the following at the repository root:
+To format and make changes to C++ codes in place, run the following at the repository root:
 
 zsh)
 
