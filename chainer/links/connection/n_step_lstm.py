@@ -1,17 +1,8 @@
-import six
-
-from chainer.backends import cuda
-from chainer.functions.array import permutate
-from chainer.functions.array import transpose_sequence
 from chainer.functions.connection import n_step_lstm as rnn
-from chainer import initializers
-from chainer import link
 from chainer.links.connection import n_step_rnn
-from chainer.utils import argument
-from chainer import variable
 
 
-class NStepLSTMBase(link.ChainList):
+class NStepLSTMBase(n_step_rnn.NStepRNNBase):
     """Base link class for Stacked LSTM/BiLSTM links.
 
     This link is base link class for :func:`chainer.links.NStepLSTM` and
@@ -38,52 +29,7 @@ class NStepLSTMBase(link.ChainList):
 
     """
 
-    def __init__(self, n_layers, in_size, out_size, dropout,
-                 initialW, initial_bias, use_bi_direction,
-                 **kwargs):
-        argument.check_unexpected_kwargs(
-            kwargs, use_cudnn='use_cudnn argument is not supported anymore. '
-            'Use chainer.using_config')
-        argument.assert_kwargs_empty(kwargs)
-
-        if initial_bias is None:
-            initial_bias = initializers.constant.Zero()
-        initialW = initializers._get_initializer(initialW)
-
-        weights = []
-        direction = 2 if use_bi_direction else 1
-        for i in six.moves.range(n_layers):
-            for di in six.moves.range(direction):
-                weight = link.Link()
-                with weight.init_scope():
-                    for j in six.moves.range(8):
-                        if i == 0 and j < 4:
-                            w_in = in_size
-                        elif i > 0 and j < 4:
-                            w_in = out_size * direction
-                        else:
-                            w_in = out_size
-                        name_w = 'w{}'.format(j)
-                        name_b = 'b{}'.format(j)
-                        w = variable.Parameter(initialW, (out_size, w_in))
-                        b = variable.Parameter(initial_bias, (out_size,))
-                        setattr(weight, name_w, w)
-                        setattr(weight, name_b, b)
-                weights.append(weight)
-
-        super(NStepLSTMBase, self).__init__(*weights)
-
-        self.n_layers = n_layers
-        self.dropout = dropout
-        self.out_size = out_size
-        self.direction = direction
-        self.rnn = rnn.n_step_bilstm if use_bi_direction else rnn.n_step_lstm
-
-    def init_hx(self, xs):
-        shape = (self.n_layers * self.direction, len(xs), self.out_size)
-        with cuda.get_device_from_id(self._device_id):
-            hx = variable.Variable(self.xp.zeros(shape, dtype=xs[0].dtype))
-        return hx
+    n_weights = 8
 
     def __call__(self, hx, cx, xs, **kwargs):
         """__call__(self, hx, cx, xs)
@@ -105,40 +51,7 @@ class NStepLSTMBase(link.ChainList):
                 Each element ``xs[i]`` is a :class:`chainer.Variable` holding
                 a sequence.
         """
-        argument.check_unexpected_kwargs(
-            kwargs, train='train argument is not supported anymore. '
-            'Use chainer.using_config')
-        argument.assert_kwargs_empty(kwargs)
-
-        assert isinstance(xs, (list, tuple))
-        xp = cuda.get_array_module(hx, *xs)
-        indices = n_step_rnn.argsort_list_descent(xs)
-        indices_array = xp.array(indices)
-
-        xs = n_step_rnn.permutate_list(xs, indices, inv=False)
-        if hx is None:
-            hx = self.init_hx(xs)
-        else:
-            hx = permutate.permutate(hx, indices_array, axis=1, inv=False)
-
-        if cx is None:
-            cx = self.init_hx(xs)
-        else:
-            cx = permutate.permutate(cx, indices_array, axis=1, inv=False)
-
-        trans_x = transpose_sequence.transpose_sequence(xs)
-
-        ws = [[w.w0, w.w1, w.w2, w.w3, w.w4, w.w5, w.w6, w.w7] for w in self]
-        bs = [[w.b0, w.b1, w.b2, w.b3, w.b4, w.b5, w.b6, w.b7] for w in self]
-
-        hy, cy, trans_y = self.rnn(
-            self.n_layers, self.dropout, hx, cx, ws, bs, trans_x)
-
-        hy = permutate.permutate(hy, indices_array, axis=1, inv=True)
-        cy = permutate.permutate(cy, indices_array, axis=1, inv=True)
-        ys = transpose_sequence.transpose_sequence(trans_y)
-        ys = n_step_rnn.permutate_list(ys, indices, inv=True)
-
+        (hy, cy), ys = self._call([hx, cx], xs, **kwargs)
         return hy, cy, ys
 
 
@@ -179,12 +92,8 @@ class NStepLSTM(NStepLSTMBase):
 
     """
 
-    def __init__(self, n_layers, in_size, out_size, dropout,
-                 initialW=None, initial_bias=None, **kwargs):
-        NStepLSTMBase.__init__(
-            self, n_layers, in_size, out_size, dropout,
-            initialW, initial_bias,
-            use_bi_direction=False, **kwargs)
+    use_bi_direction = False
+    rnn = rnn.n_step_lstm
 
 
 class NStepBiLSTM(NStepLSTMBase):
@@ -224,9 +133,5 @@ class NStepBiLSTM(NStepLSTMBase):
 
     """
 
-    def __init__(self, n_layers, in_size, out_size, dropout,
-                 initialW=None, initial_bias=None, **kwargs):
-        NStepLSTMBase.__init__(
-            self, n_layers, in_size, out_size, dropout,
-            initialW, initial_bias,
-            use_bi_direction=True, **kwargs)
+    use_bi_direction = True
+    rnn = rnn.n_step_bilstm
