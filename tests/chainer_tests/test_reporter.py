@@ -250,7 +250,7 @@ class TestSummary(unittest.TestCase):
         testing.assert_allclose(std, numpy.sqrt(2. / 3.))
 
     def test_serialize_backward_compat(self):
-        with tempfile.NamedTemporaryFile(delete=False) as f:
+        with tempfile.NamedTemporaryFile() as f:
             # old version does not save anything
             numpy.savez(f, dummy=0)
             chainer.serializers.load_npz(f.name, self.summary)
@@ -383,7 +383,7 @@ class TestDictSummary(unittest.TestCase):
         self.summary.add({'a': 3., 'b': 1.})
         self.summary.add({'a': 1., 'b': 5.})
 
-        with tempfile.NamedTemporaryFile(delete=False) as f:
+        with tempfile.NamedTemporaryFile() as f:
             chainer.serializers.save_npz(f.name, self.summary)
             self.summary.add({'a': 2., 'b': 6., 'c': 5.})
             self.summary.add({'a': 3., 'b': 4., 'c': 6.})
@@ -398,7 +398,7 @@ class TestDictSummary(unittest.TestCase):
         })
 
     def test_serialize_backward_compat(self):
-        with tempfile.NamedTemporaryFile(delete=False) as f:
+        with tempfile.NamedTemporaryFile() as f:
             # old version does not save anything
             numpy.savez(f, dummy=0)
             chainer.serializers.load_npz(f.name, self.summary)
@@ -407,7 +407,7 @@ class TestDictSummary(unittest.TestCase):
         self.summary.add({'a': 3., 'b': 1., 'c': 4.})
         self.summary.add({'a': 1., 'b': 5., 'c': 9.})
 
-        with tempfile.NamedTemporaryFile(delete=False) as f:
+        with tempfile.NamedTemporaryFile() as f:
             # old version does not save anything
             numpy.savez(f, dummy=0)
             chainer.serializers.load_npz(f.name, self.summary)
