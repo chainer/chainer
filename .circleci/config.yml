@@ -64,19 +64,6 @@ jobs:
             echo "----- conda -----"
             conda info -a
 
-      # C++ test
-      - run:
-          name: C++ test
-          command: |
-            source activate testenv
-
-            ( mkdir -p build && cd build && cmake -DBUILD_PYTHON=1 -DENABLE_COVERAGE=ON .. && make clang-tidy && make && ctest -V )
-            lcov -c -b xchainer -d build/xchainer/ --no-external -o build/coverage.info
-            genhtml build/coverage.info -o build/coverage
-
-      - store_artifacts:
-          path: build/coverage
-
       # Setup conda environment
       - run:
           name: Setup conda environment
@@ -105,8 +92,22 @@ jobs:
           command: |
             source activate testenv
 
-            pip install -e .
+            python setup.py build --debug --build-temp ./build --build-lib ./build develop
             pytest --cov --no-cov-on-fail --cov-fail-under=80
+
+      # C++ test
+      - run:
+          name: C++ test
+          command: |
+            source activate testenv
+
+            ( mkdir -p build && cd build && cmake -DBUILD_PYTHON=1 -DENABLE_COVERAGE=ON .. && make clang-tidy && make && ctest -V )
+            lcov -c -b xchainer -d build/xchainer/ --no-external -o build/coverage.info
+            genhtml build/coverage.info -o build/coverage
+
+      - store_artifacts:
+          path: build/coverage
+
 
 workflows:
   version: 2
