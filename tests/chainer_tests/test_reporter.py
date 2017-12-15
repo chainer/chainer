@@ -253,7 +253,8 @@ class TestSummary(unittest.TestCase):
         with tempfile.NamedTemporaryFile() as f:
             # old version does not save anything
             numpy.savez(f, dummy=0)
-            chainer.serializers.load_npz(f.name, self.summary)
+            with testing.assert_warns(UserWarning):
+                chainer.serializers.load_npz(f.name, self.summary)
 
         self.summary.add(2.)
         self.summary.add(3.)
@@ -401,7 +402,8 @@ class TestDictSummary(unittest.TestCase):
         with tempfile.NamedTemporaryFile() as f:
             # old version does not save anything
             numpy.savez(f, dummy=0)
-            chainer.serializers.load_npz(f.name, self.summary)
+            with testing.assert_warns(UserWarning):
+                chainer.serializers.load_npz(f.name, self.summary)
 
     def test_serialize_backward_compat_overwrite(self):
         self.summary.add({'a': 3., 'b': 1., 'c': 4.})
@@ -410,7 +412,8 @@ class TestDictSummary(unittest.TestCase):
         with tempfile.NamedTemporaryFile() as f:
             # old version does not save anything
             numpy.savez(f, dummy=0)
-            chainer.serializers.load_npz(f.name, self.summary)
+            with testing.assert_warns(UserWarning):
+                chainer.serializers.load_npz(f.name, self.summary)
 
         self.summary.add({'a': 9., 'b': 2.})
         self.summary.add({'a': 6., 'b': 5.})
