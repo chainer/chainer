@@ -46,7 +46,7 @@ public:
             case Dtype::kFloat64:
                 return float64_;
             default:
-                return 0;  // never reach
+                assert(0);  // should never be reached
         }
     }
 
@@ -75,8 +75,8 @@ public:
                 return -float32_;
             case Dtype::kFloat64:
                 return -float64_;
-            default:  // never reach
-                assert(0);
+            default:
+                assert(0);  // should never be reached
         }
         return 0;
     }

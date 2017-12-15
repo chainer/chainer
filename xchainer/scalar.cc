@@ -27,8 +27,8 @@ std::ostream& operator<<(std::ostream& os, Scalar value) {
         case Dtype::kFloat64:
             os << value.UnwrapAndCast<double>();
             break;
-        default:  // never reach
-            assert(0);
+        default:
+            assert(0);  // should never be reached
     }
     return os;
 }
