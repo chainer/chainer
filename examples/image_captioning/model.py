@@ -102,15 +102,13 @@ class LSTMLanguageModel(chainer.Chain):
             )
             self.embed_img = L.Linear(
                 hidden_size,
-                initialW=initializers.Normal(0.01),
-                initial_bias=initializers.Zero()
+                initialW=initializers.Normal(0.01)
             )
             self.lstm = L.LSTM(hidden_size, hidden_size)
             self.out_word = L.Linear(
                 hidden_size,
                 vocab_size,
-                initialW=initializers.Normal(0.01),
-                initial_bias=initializers.Zero()
+                initialW=initializers.Normal(0.01)
             )
 
         self.dropout_ratio = dropout_ratio
@@ -193,15 +191,13 @@ class NStepLSTMLanguageModel(chainer.Chain):
             )
             self.embed_img = L.Linear(
                 hidden_size,
-                initialW=initializers.Normal(0.01),
-                initial_bias=initializers.Zero()
+                initialW=initializers.Normal(0.01)
             )
             self.lstm = L.NStepLSTM(1, hidden_size, hidden_size, dropout_ratio)
             self.decode_caption = L.Linear(
                 hidden_size,
                 vocab_size,
-                initialW=initializers.Normal(0.01),
-                initial_bias=initializers.Zero()
+                initialW=initializers.Normal(0.01)
             )
 
         self.dropout_ratio = dropout_ratio
