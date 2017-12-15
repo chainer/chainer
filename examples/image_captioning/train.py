@@ -33,8 +33,8 @@ def main():
     parser.add_argument('--val-iter', type=int, default=100)
     parser.add_argument('--log-iter', type=int, default=1)
     parser.add_argument('--snapshot-iter', type=int, default=1000)
-    parser.add_argument('--rnn', type=str, default='lstm',
-                        choices=['lstm', 'nsteplstm'])
+    parser.add_argument('--rnn', type=str, default='nsteplstm',
+                        choices=['nsteplstm', 'lstm'])
     parser.add_argument('--gpu', type=int, default=0)
     parser.add_argument('--max-caption-length', type=int, default=30)
     args = parser.parse_args()

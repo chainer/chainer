@@ -18,8 +18,8 @@ def main():
     parser.add_argument('--img-dir', type=str)
     parser.add_argument('--model', type=str, default='result/model_1000')
     parser.add_argument('--mscoco-root', type=str, default='data')
-    parser.add_argument('--rnn', type=str, default='lstm',
-                        choices=['lstm', 'nsteplstm'])
+    parser.add_argument('--rnn', type=str, default='nsteplstm',
+                        choices=['nsteplstm', 'lstm'])
     parser.add_argument('--gpu', type=int, default=0)
     parser.add_argument('--max-caption-length', type=int, default=30)
     args = parser.parse_args()
