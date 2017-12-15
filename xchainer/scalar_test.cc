@@ -20,16 +20,38 @@ TEST(ScalarTest, Dtype) {
 TEST(ScalarTest, Cast) {
     ASSERT_TRUE(bool(Scalar(true)));
     ASSERT_TRUE(bool(Scalar(1)));
+    ASSERT_TRUE(bool(Scalar(-3.2)));
+
     ASSERT_FALSE(bool(Scalar(false)));
     ASSERT_FALSE(bool(Scalar(0)));
+    ASSERT_FALSE(bool(Scalar(0.0f)));
+
     ASSERT_EQ(int8_t(Scalar(1)), 1);
-    ASSERT_EQ(int16_t(Scalar(2)), 2);
+    ASSERT_EQ(int8_t(Scalar(-1.1f)), -1);
+    ASSERT_EQ(int8_t(Scalar(1.1)), 1);
+
+    ASSERT_EQ(int16_t(Scalar(-2)), -2);
+    ASSERT_EQ(int16_t(Scalar(2.2f)), 2);
+    ASSERT_EQ(int16_t(Scalar(2.2)), 2);
+
     ASSERT_EQ(int32_t(Scalar(3)), 3);
+    ASSERT_EQ(int32_t(Scalar(3.3f)), 3);
+    ASSERT_EQ(int32_t(Scalar(-3.3)), -3);
+
     ASSERT_EQ(int64_t(Scalar(4)), 4);
+    ASSERT_EQ(int64_t(Scalar(4.4f)), 4);
+    ASSERT_EQ(int64_t(Scalar(-4.4)), -4);
+
     ASSERT_EQ(uint8_t(Scalar(5)), 5);
-    ASSERT_FLOAT_EQ(float(Scalar(6)), 6.0f);
+    ASSERT_EQ(uint8_t(Scalar(5.5f)), 5);
+    ASSERT_EQ(uint8_t(Scalar(5.0)), 5);
+
+    ASSERT_FLOAT_EQ(float(Scalar(-6)), -6.0f);
+    ASSERT_FLOAT_EQ(float(Scalar(6.7f)), 6.7f);
     ASSERT_FLOAT_EQ(float(Scalar(6.7)), 6.7f);
+
     ASSERT_DOUBLE_EQ(double(Scalar(8)), 8.0);
+    ASSERT_DOUBLE_EQ(double(Scalar(-8.9f)), double(-8.9f));
     ASSERT_DOUBLE_EQ(double(Scalar(8.9)), 8.9);
 }
 
