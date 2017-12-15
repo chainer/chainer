@@ -42,8 +42,13 @@ class ImageCaptionModel(chainer.Chain):
         if self.finetune_feat_extractor:
             img_feats = self.feat_extractor(imgs)
         else:
-            # Extract features without building a computational chain
-            with chainer.no_backprop_mode():
+            # Extract features with the `train` configuration set to `False` in
+            # order to basically skip the dropout regularizations. This is how
+            # dropout is used during standard inference. Also, since we are not
+            # going to optimize the feature extractor, we explicitly set the
+            # backpropgation mode to not construct any computational graphs.
+            with chainer.using_config('train', False), \
+                    chainer.no_backprop_mode():
                 img_feats = self.feat_extractor(imgs)
 
         loss = self.lang_model(img_feats, captions)
@@ -79,9 +84,8 @@ class VGG16FeatureExtractor(chainer.Chain):
 
     def __call__(self, imgs):
         """Batch of images to image features."""
-        h = self.cnn(imgs, [self.cnn_layer_name])[self.cnn_layer_name]
-        img_feat = F.dropout(F.relu(h), ratio=0.5)
-        return img_feat
+        img_feats = self.cnn(imgs, [self.cnn_layer_name])[self.cnn_layer_name]
+        return img_feats
 
 
 class LSTMLanguageModel(chainer.Chain):
@@ -129,9 +133,10 @@ class LSTMLanguageModel(chainer.Chain):
             x = Variable(self.xp.asarray(captions[:, i]))
             t = Variable(self.xp.asarray(captions[:, i + 1]))
             if (t.data == self.embed_word.ignore_label).all():
-                # The next tokens in the sequence should not be accounted for
-                # in the loss, e.g. the targets are paddings that were used to
-                # align the lengths of all captions within the same batch
+                # Preprocessed captions are padded to reach a maximum length.
+                # Often, you want to set the `ignore_label` to this padding.
+                # If all targets are simply paddings, predictions are no longer
+                # required.
                 break
             y = self.step(x)
             loss += F.softmax_cross_entropy(
@@ -211,8 +216,8 @@ class NStepLSTMLanguageModel(chainer.Chain):
         hx, cx, _ = self.reset(img_feats)
 
         # Extract all inputs and targets for all captions in the batch
-        xs = [c[:-1] for c in captions]
-        ts = [c[1:] for c in captions]
+        xs = [c[:-1] for c in captions]  # del eos
+        ts = [c[1:] for c in captions]  # del bos
 
         # Concatenate all input captions and pass them through the model in a
         # single pass
