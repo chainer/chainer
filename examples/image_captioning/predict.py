@@ -41,6 +41,9 @@ def main():
     else:  # Load a single image
         img_paths = [args.img]
 
+    if not img_paths:
+        raise IOError('No images found for the given path')
+
     imgs = []
     for img_path in img_paths:
         img = Image.open(img_path)
