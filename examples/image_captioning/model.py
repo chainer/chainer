@@ -219,14 +219,13 @@ class NStepLSTMLanguageModel(chainer.Chain):
         xs = [c[:-1] for c in captions]  # del eos
         ts = [c[1:] for c in captions]  # del bos
 
-        # Concatenate all input captions and pass them through the model in a
-        # single pass
-        caption_lens = [len(x) for x in xs]
-        caption_sections = np.cumsum(caption_lens[:-1])
-        xs = F.concat(xs, axis=0)
-        _, _, ys = self.step(hx, cx, xs, sections=caption_sections)
+        # Get the predictions `ys`
+        _, _, ys = self.step(hx, cx, xs)
 
+        # Since `ys` is concatenated, we also concatenate the target tokens
+        # before computing the loss
         ts = F.concat(ts, axis=0)
+
         loss = F.softmax_cross_entropy(ys, ts)
         return loss
 
@@ -236,10 +235,20 @@ class NStepLSTMLanguageModel(chainer.Chain):
 
         captions = self.xp.full((img_feats.shape[0], 1), bos, dtype=np.int32)
         for i in range(max_caption_length):
-            xs = Variable(captions[:, -1])
-            hx, cx, ys = self.step(hx, cx, xs, sections=xs.shape[0])
+            # Create a list of the previous tokens to treat as inputs
+            xs = [Variable(self.xp.atleast_1d(c[-1])) for c in captions]
+
+            # Get the predictions `ys`
+            hx, cx, ys = self.step(hx, cx, xs)
+
+            # From `ys`, get the indices for the highest confidence.
+            # These indices correspond to the predicted tokens
+            #
+            # Note that this is a greedy approach and that it can by replaced
+            # by e.g. beam search
             pred = ys.data.argmax(axis=1).astype(np.int32)
             captions = self.xp.hstack((captions, pred[:, None]))
+
             if (pred == eos).all():
                 break
         return captions
@@ -253,13 +262,19 @@ class NStepLSTMLanguageModel(chainer.Chain):
         hx, cx, ys = self.lstm(None, None, h)
         return hx, cx, ys
 
-    def step(self, hx, cx, xs, sections=None):
+    def step(self, hx, cx, xs):
         """Batch of word tokens to word tokens and hidden LSTM states.
 
         Predict the next set of tokens given previous tokens.
         """
+        # Concatenate all input captions and pass them through the model in a
+        # single pass
+        caption_lens = [len(x) for x in xs]
+        caption_sections = np.cumsum(caption_lens[:-1])
+        xs = F.concat(xs, axis=0)
+
         xs = self.embed_word(xs)
-        xs = F.split_axis(xs, sections, axis=0)
+        xs = F.split_axis(xs, caption_sections, axis=0)
         hx, cx, ys = self.lstm(hx, cx, xs)
 
         ys = F.concat(ys, axis=0)
