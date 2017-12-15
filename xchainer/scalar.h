@@ -25,7 +25,7 @@ public:
     Dtype dtype() const { return dtype_; }
 
     template <typename T>
-    T Cast() const {
+    T UnwrapAndCast() const {
         switch (dtype_) {
             case Dtype::kBool:
                 return bool_;
@@ -54,14 +54,14 @@ public:
 
     Scalar operator+() const { return *this; }
 
-    operator bool() const { return Cast<bool>(); }
-    operator int8_t() const { return Cast<int8_t>(); }
-    operator int16_t() const { return Cast<int16_t>(); }
-    operator int32_t() const { return Cast<int32_t>(); }
-    operator int64_t() const { return Cast<int64_t>(); }
-    operator uint8_t() const { return Cast<uint8_t>(); }
-    operator float() const { return Cast<float>(); }
-    operator double() const { return Cast<double>(); }
+    operator bool() const { return UnwrapAndCast<bool>(); }
+    operator int8_t() const { return UnwrapAndCast<int8_t>(); }
+    operator int16_t() const { return UnwrapAndCast<int16_t>(); }
+    operator int32_t() const { return UnwrapAndCast<int32_t>(); }
+    operator int64_t() const { return UnwrapAndCast<int64_t>(); }
+    operator uint8_t() const { return UnwrapAndCast<uint8_t>(); }
+    operator float() const { return UnwrapAndCast<float>(); }
+    operator double() const { return UnwrapAndCast<double>(); }
 
 private:
     union {
