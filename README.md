@@ -49,10 +49,18 @@ find xchainer \( -name '*.cc' -o -name '*.h' \) -type f -print0 | xargs -0 clang
 
 ### C++ Coverage
 
-Build and run tests as:
+We use gcov to measure C++ code coverage.
+Pass `-DENABLE_COVERAGE=ON` to cmake to enable gcov, and build Python package in Debug mode as:
 
 ```
-( mkdir -p build && cd build && cmake -DENABLE_COVERAGE=ON .. && make && ctest )
+python setup.py build --debug --build-temp ./build --build-lib ./build develop
+( cd build && cmake -DENABLE_COVERAGE=ON .. && make )
+```
+
+Run both Python and C++ test suite:
+
+```
+$ pytest && ( cd build && ctest -V )
 ```
 
 then find .gcda files:

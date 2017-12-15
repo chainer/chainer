@@ -44,7 +44,12 @@ class CMakeBuild(build_ext.build_ext):
             '-DPYTHON_EXECUTABLE=' + sys.executable,
         ]
 
-        cfg = 'Debug' if self.debug else 'Release'
+        if self.debug:  # python setup.py build --debug
+            cfg = 'Debug'
+            cmake_args += ['-DENABLE_COVERAGE=ON']
+        else:
+            cfg = 'Release'
+
         build_args = ['--config', cfg]
 
         if platform.system() == "Windows":
