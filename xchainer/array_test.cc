@@ -42,5 +42,18 @@ TEST_F(ArrayTest, SetContiguousData) {
     EXPECT_EQ(0, x.offset());
 }
 
+TEST_F(ArrayTest, MakeSimilar) {
+    Array x = MakeArray({2, 3, 4});
+    std::shared_ptr<Array> y = x.MakeSimilar();
+
+    EXPECT_EQ(x.dtype(), y->dtype());
+    EXPECT_EQ(x.ndim(), y->ndim());
+    EXPECT_EQ(x.total_size(), y->total_size());
+    EXPECT_EQ(x.element_bytes(), y->element_bytes());
+    EXPECT_EQ(x.total_bytes(), y->total_bytes());
+    EXPECT_EQ(nullptr, y->data());
+    EXPECT_EQ(nullptr, y->raw_data());
+}
+
 }  // namespace
 }  // namespace xchainer
