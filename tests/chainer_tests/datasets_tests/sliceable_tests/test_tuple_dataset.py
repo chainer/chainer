@@ -20,7 +20,7 @@ class SampleDataset(SliceableDataset):
         return tuple('{:s}({:d})'.format(key, i) for key in keys)
 
 
-class TestConcatenatedDataset(unittest.TestCase):
+class TestTupleDataset(unittest.TestCase):
 
     def setUp(self):
         self.dataset = SampleDataset()
