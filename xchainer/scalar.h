@@ -1,9 +1,11 @@
 #pragma once
 
+#include <cassert>
 #include <cstdint>
 #include <ostream>
 
 #include "xchainer/dtype.h"
+#include "xchainer/error.h"
 
 namespace xchainer {
 
@@ -54,6 +56,31 @@ public:
 
     Scalar operator+() const { return *this; }
 
+    Scalar operator-() const {
+        switch (dtype_) {
+            case Dtype::kBool:
+                throw DtypeError("bool scalar cannot be negated");
+            case Dtype::kInt8:
+                return -int8_;
+            case Dtype::kInt16:
+                return -int16_;
+            case Dtype::kInt32:
+                return -int32_;
+            case Dtype::kInt64:
+                return -int64_;
+            case Dtype::kUInt8:
+                // Negating unsigned
+                return -uint8_;
+            case Dtype::kFloat32:
+                return -float32_;
+            case Dtype::kFloat64:
+                return -float64_;
+            default:  // never reach
+                assert(0);
+        }
+        return 0;
+    }
+
     operator bool() const { return UnwrapAndCast<bool>(); }
     operator int8_t() const { return UnwrapAndCast<int8_t>(); }
     operator int16_t() const { return UnwrapAndCast<int16_t>(); }
@@ -76,8 +103,6 @@ private:
     };
     Dtype dtype_;
 };
-
-Scalar operator-(Scalar value);
 
 std::ostream& operator<<(std::ostream& os, Scalar value);
 
