@@ -12,7 +12,7 @@ from chainer.utils import type_check
 
 
 @testing.parameterize(
-    {'source': 0, 'destination': 2, 'out_shape': (3, 4, 2)},
+    {'source': 0, 'destination': -1, 'out_shape': (3, 4, 2)},
     {'source': -1, 'destination': 1, 'out_shape': (2, 4, 3)},
     {'source': (0, 2), 'destination': (1, 0), 'out_shape': (4, 2, 3)},
     {'source': (0, -1), 'destination': (-1, 1), 'out_shape': (3, 4, 2)},
@@ -76,7 +76,9 @@ class TestMoveaxis(unittest.TestCase):
 
 @testing.parameterize(
     {'source': 4, 'destination': 0},
+    {'source': 0, 'destination': 4},
     {'source': 0, 'destination': -4},
+    {'source': -4, 'destination': 0},
 )
 class TestMoveaxisInvalidType(unittest.TestCase):
 
@@ -97,9 +99,12 @@ class TestMoveaxisInvalidType(unittest.TestCase):
 
 @testing.parameterize(
     {'source': 0, 'destination': (2,)},
+    {'source': (2,), 'destination': 0},
     {'source': (1, 2), 'destination': (1, 2, 0)},
     {'source': (0, 0), 'destination': (1, 2)},
     {'source': (0, 1), 'destination': (2, 2)},
+    {'source': (1, 2.0), 'destination': (1, 2)},
+    {'source': (1, 2), 'destination': (1, 2.0)},
 )
 class TestMoveaxisInvalidValue(unittest.TestCase):
 
