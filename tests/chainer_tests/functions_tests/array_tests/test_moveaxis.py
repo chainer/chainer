@@ -1,6 +1,7 @@
 import unittest
 
 import numpy
+import six
 
 import chainer
 from chainer import cuda
@@ -9,6 +10,30 @@ from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
 from chainer.utils import type_check
+
+
+def _normalize_axis_tuple(axis, ndim):
+    if numpy.isscalar(axis):
+        axis = (axis,)
+
+    ret = []
+    for ax in axis:
+        ret.append(ax % ndim)
+    return ret
+
+
+def _moveaxis(a, source, destination):
+    if hasattr(numpy, 'moveaxis'):
+        return numpy.moveaxis(a, source, destination)
+    source = _normalize_axis_tuple(source, a.ndim)
+    destination = _normalize_axis_tuple(destination, a.ndim)
+    order = [n for n in six.moves.range(a.ndim) if n not in source]
+
+    for dest, src in sorted(six.moves.zip(destination, source)):
+        order.insert(dest, src)
+
+    result = a.transpose(order)
+    return result
 
 
 @testing.parameterize(
@@ -32,7 +57,7 @@ class TestMoveaxis(unittest.TestCase):
         x = chainer.Variable(x_data)
         y = functions.moveaxis(x, self.source, self.destination)
 
-        expect = numpy.moveaxis(self.x, self.source, self.destination)
+        expect = _moveaxis(self.x, self.source, self.destination)
         testing.assert_allclose(y.data, expect)
 
     def test_forward_cpu(self):
