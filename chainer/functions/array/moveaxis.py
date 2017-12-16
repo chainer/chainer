@@ -45,6 +45,8 @@ class Moveaxis(function_node.FunctionNode):
             if not isinstance(destination, tuple):
                 raise ValueError('Types of source and destination are '
                                  'different.')
+            if not all(isinstance(a, int) for a in destination):
+                raise ValueError('int or tuple of int are required.')
             if len(source) != len(destination):
                 raise ValueError('Length of source and destination are '
                                  'different.')
@@ -57,7 +59,7 @@ class Moveaxis(function_node.FunctionNode):
             self.source = source
             self.destination = destination
         else:
-            raise ValueError('int or tuple of int are required')
+            raise ValueError('int or tuple of int are required.')
 
     def check_type_forward(self, in_types):
         type_check.expect(
