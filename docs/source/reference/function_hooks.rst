@@ -2,7 +2,8 @@ Function hooks
 ==============
 
 Chainer provides a function-hook mechanism that enriches
-the behavior of forward and backward propagation of :class:`~chainer.Function`.
+the behavior of forward and backward propagation of
+:class:`~chainer.FunctionNode`\s.
 
 Base class
 ----------

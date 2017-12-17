@@ -10,7 +10,7 @@ from chainer import variable
 
 
 def _broadcast_to(array, shape):
-    if hasattr(numpy, "broadcast_to"):
+    if hasattr(numpy, 'broadcast_to'):
         return numpy.broadcast_to(array, shape)
     dummy = numpy.empty(shape, array.dtype)
     return numpy.broadcast_arrays(array, dummy)[0]
@@ -53,6 +53,7 @@ class SoftmaxCrossEntropy(function.Function):
     """Softmax activation followed by a cross entropy loss."""
 
     normalize = True
+    y = None
 
     def __init__(self, normalize=True, cache_score=True, class_weight=None,
                  ignore_label=-1, reduce='mean'):
@@ -164,7 +165,7 @@ class SoftmaxCrossEntropy(function.Function):
         gloss = grad_outputs[0]
         if x.size == 0:
             return numpy.zeros(x.shape, dtype=x.dtype), None
-        if hasattr(self, 'y'):
+        if self.y is not None:
             y = self.y.copy()
         else:
             y = log_softmax._log_softmax(x)
@@ -207,7 +208,7 @@ class SoftmaxCrossEntropy(function.Function):
         x, t = inputs
         if x.size == 0:
             return cupy.zeros(x.shape, dtype=x.dtype), None
-        if hasattr(self, 'y'):
+        if self.y is not None:
             y = self.y
         else:
             y = log_softmax._log_softmax(x)
