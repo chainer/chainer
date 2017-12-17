@@ -7,8 +7,8 @@ class MicroAverage(extension.Extension):
 
     """Calculates micro-average ratio.
 
-    Give :math:`N` batches and values :math:`\\{n_1, \dots, n_N\\}` and
-    :math:`\\{d_1, \dots, d_N\\}`, this extension calculates micro-average of
+    Give :math:`N` batches and values :math:`\\{n_1, \\dots, n_N\\}` and
+    :math:`\\{d_1, \\dots, d_N\\}`, this extension calculates micro-average of
     these ratio defined as:
 
     .. math::

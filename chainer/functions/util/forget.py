@@ -64,7 +64,7 @@ def forget(func, *xs):
     """Calls a function without storing intermediate results.
 
     On a forward propagation, Chainer normally stores all intermediate results
-    of :class:`~chainer.variable.VariableNode`\ s on a computational graph as
+    of :class:`~chainer.variable.VariableNode`\\ s on a computational graph as
     they are required on backward propagation.
     Sometimes these results consume too much memory.
     ``F.forget`` *forgets* such intermediate results on forward propagation,
@@ -86,7 +86,7 @@ def forget(func, *xs):
        >>> def f(a, b):
        ...   return a + b + a
 
-       and, ``x`` and ``y`` be :class:`~chainer.Variable`\ s:
+       and, ``x`` and ``y`` be :class:`~chainer.Variable`\\ s:
 
        >>> x = chainer.Variable(np.random.uniform(-1, 1, 5).astype('f'))
        >>> y = chainer.Variable(np.random.uniform(-1, 1, 5).astype('f'))
@@ -101,10 +101,18 @@ def forget(func, *xs):
 
     .. note::
 
-      ``F.forget`` does not support functions which behave differently in
-      multiple calls with the same inputs, such as
-      :meth:`F.dropout() <chainer.functions.dropout>` and
-      :meth:`F.negative_sampling() <chainer.functions.negative_sampling>`.
+        ``F.forget`` does not support functions which behave differently in
+        multiple calls with the same inputs, such as
+        :meth:`F.dropout() <chainer.functions.dropout>` and
+        :meth:`F.negative_sampling() <chainer.functions.negative_sampling>`.
+
+    .. note::
+
+        In case input argument variables are of class :class:`numpy.ndarray` or
+        :class:`cupy.ndarray` objects, arguments will automatically be
+        converted to :class:`~chainer.Variable`\\ s.
+        This conversion takes place to ensure that this function is included
+        in the computational graph to enable backward computations.
 
     Args:
         func (callable): A function to call. It needs to be called with
@@ -118,4 +126,6 @@ def forget(func, *xs):
         the method returns a tuple too.
 
     """
+    xs = tuple(x if isinstance(x, variable.Variable) else
+               variable.Variable(x, requires_grad=True) for x in xs)
     return Forget(func)(*xs)
