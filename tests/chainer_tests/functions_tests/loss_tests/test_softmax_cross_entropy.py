@@ -85,7 +85,7 @@ class TestSoftmaxCrossEntropy(unittest.TestCase):
         self.assertEqual(loss.data.shape, ())
         self.assertEqual(loss.data.dtype, self.dtype)
         if not self.enable_double_backprop:
-            self.assertEqual(hasattr(loss.creator, 'y'), self.cache_score)
+            assert (loss.creator.y is not None) == self.cache_score
         loss_value = float(cuda.to_cpu(loss.data))
 
         # Compute expected value
@@ -365,7 +365,7 @@ class TestElementwiseSoftmaxCrossEntropy(unittest.TestCase):
         self.assertEqual(loss.shape, t_data.shape)
         self.assertEqual(loss.data.dtype, self.dtype)
         if not self.enable_double_backprop:
-            self.assertEqual(hasattr(loss.creator, 'y'), self.cache_score)
+            assert (loss.creator.y is not None) == self.cache_score
         loss_value = cuda.to_cpu(loss.data)
 
         x = numpy.rollaxis(self.x, 1, self.x.ndim).reshape(

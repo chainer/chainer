@@ -94,7 +94,7 @@ Now let's create the :class:`~chainer.training.Updater` object !
 
     max_epoch = 10
 
-    # Wrapp your model by Classifier and include the process of loss calculation within your model.
+    # Wrap your model by Classifier and include the process of loss calculation within your model.
     # Since we do not specify a loss funciton here, the default 'softmax_cross_entropy' is used.
     model = L.Classifier(model)
 
