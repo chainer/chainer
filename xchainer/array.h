@@ -32,8 +32,6 @@ public:
 
     const std::shared_ptr<void>& data() const { return data_; }
 
-    void* raw_data() const { return data_.get(); }
-
     int64_t offset() const { return offset_; }
 
     void SetContiguousData(std::shared_ptr<void> data, int64_t offset = 0);
