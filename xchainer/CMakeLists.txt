@@ -4,6 +4,7 @@ endif()
 
 install(FILES
     array.h
+    array_repr.h
     constant.h
     dtype.h
     error.h
