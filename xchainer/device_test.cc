@@ -1,6 +1,7 @@
 #include "xchainer/device.h"
 
 #include <future>
+
 #include <gtest/gtest.h>
 #include "xchainer/error.h"
 
