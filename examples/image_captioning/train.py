@@ -11,17 +11,6 @@ import datasets
 from model import ImageCaptionModel
 
 
-class TestModeEvaluator(extensions.Evaluator):
-
-    """Evaluates the model on the validation dataset."""
-
-    def evaluate(self):
-        with chainer.using_config('train', False), \
-                chainer.no_backprop_mode():
-            ret = super(TestModeEvaluator, self).evaluate()
-        return ret
-
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--out', type=str, default='result')
@@ -29,7 +18,7 @@ def main():
     parser.add_argument('--max-iters', type=int, default=50000)
     parser.add_argument('--batch-size', type=int, default=128)
     parser.add_argument('--dropout-ratio', type=float, default=0.5)
-    parser.add_argument('--val-n-imgs', type=int, default=1000)
+    parser.add_argument('--val-keep-quantity', type=int, default=100)
     parser.add_argument('--val-iter', type=int, default=100)
     parser.add_argument('--log-iter', type=int, default=1)
     parser.add_argument('--snapshot-iter', type=int, default=1000)
@@ -43,10 +32,11 @@ def main():
     # already using e.g. the `download.py` script
     train, val = datasets.get_mscoco(args.mscoco_root)
 
-    # Use any number of samples from the validation set for validation, using
-    # all of them is usually quite slow since the number of validation images
-    # are many
-    val = val[:args.val_n_imgs]
+    # Validation samples are used to address overfitting and see how well your
+    # model generalizes to yet unseen data. However, since the number of these
+    # samples in MSCOCO is quite large (~200k) and thus require time to
+    # evaluate, you may choose to use only a fraction of the available samples
+    val = val[::args.val_keep_quantity]
 
     # Number of unique words that are found in the dataset
     vocab_size = len(train.vocab)
@@ -99,9 +89,9 @@ def main():
     trainer = training.Trainer(
         updater, out=args.out, stop_trigger=(args.max_iters, 'iteration'))
     trainer.extend(
-        TestModeEvaluator(
-            val_iter, model,
-            eval_func=model,
+        extensions.Evaluator(
+            val_iter,
+            target=model,
             converter=converter,
             device=args.gpu
         ),
