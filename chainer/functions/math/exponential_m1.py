@@ -1,12 +1,12 @@
 import numpy
 
-from chainer import cuda
-from chainer import function
+from chainer.backends import cuda
+from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
 
 
-class Expm1(function.Function):
+class Expm1(function_node.FunctionNode):
 
     @property
     def label(self):
@@ -17,20 +17,18 @@ class Expm1(function.Function):
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward_cpu(self, x):
-        self.retain_inputs(())
         self.retain_outputs((0,))
         return utils.force_array(numpy.expm1(x[0])),
 
     def forward_gpu(self, x):
-        self.retain_inputs(())
         self.retain_outputs((0,))
         return cuda.cupy.expm1(x[0]),
 
-    def backward(self, x, gy):
-        y = self.output_data[0]
-        return utils.force_array((y + y.dtype.type(1.0)) * gy[0]),
+    def backward(self, indexes, gy):
+        y = self.get_retained_outputs()[0]
+        return (y + 1.0) * gy[0],
 
 
 def expm1(x):
     """Elementwise exponential minus one function."""
-    return Expm1()(x)
+    return Expm1().apply((x,))[0]

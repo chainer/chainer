@@ -30,7 +30,7 @@ Before installing Chainer, we recommend to upgrade ``setuptools`` if you are usi
 The following Python packages are required to install Chainer.
 The latest version of each package will automatically be installed if missing.
 
-* `NumPy <http://www.numpy.org/>`__ 1.9, 1.10, 1.11, 1.12
+* `NumPy <http://www.numpy.org/>`__ 1.9, 1.10, 1.11, 1.12, 1.13
 * `Six <https://pythonhosted.org/six/>`__ 1.9+
 
 The following packages are optional dependencies.
@@ -38,7 +38,7 @@ Chainer can be installed without them, in which case the corresponding features 
 
 * CUDA/cuDNN support
 
-  * `cupy <https://cupy.chainer.org/>`__ 1.0+
+  * `cupy <https://cupy.chainer.org/>`__ 4.0+
 
 * Caffe model support
 

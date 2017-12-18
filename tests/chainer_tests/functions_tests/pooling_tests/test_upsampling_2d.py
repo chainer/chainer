@@ -25,12 +25,10 @@ class TestUpsampling2D(unittest.TestCase):
             -1, 1, self.in_shape).astype(self.dtype)
         self.ggx = numpy.random.uniform(
             -1, 1, self.pooled_y.shape).astype(self.dtype)
+        self.check_backward_options = {}
+        self.check_double_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
         if self.dtype == numpy.float16:
-            self.check_backward_options = {}
             self.check_double_backward_options = {'atol': 3e-3, 'rtol': 3e-2}
-        else:
-            self.check_backward_options = {}
-            self.check_double_backward_options = {}
 
     def check_forward(self, y):
         y = F.upsampling_2d(

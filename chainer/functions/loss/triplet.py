@@ -1,11 +1,12 @@
 import numpy
 
-from chainer import cuda
-from chainer import function
+import chainer
+from chainer.backends import cuda
+from chainer import function_node
 from chainer.utils import type_check
 
 
-class Triplet(function.Function):
+class Triplet(function_node.FunctionNode):
 
     """Triplet loss function."""
 
@@ -46,29 +47,37 @@ class Triplet(function.Function):
             loss = xp.sum(self.dist_hinge) / N
         else:
             loss = self.dist_hinge
+
+        self.retain_inputs((0, 1, 2))
         return xp.array(loss, dtype=numpy.float32),
 
-    def backward(self, inputs, gy):
-        xp = cuda.get_array_module(*inputs)
+    def backward(self, indexes, grad_outputs):
+        anchor, positive, negative = self.get_retained_inputs()
 
-        anchor, positive, negative = inputs
         N = anchor.shape[0]
-
         x_dim = anchor.shape[1]
+
+        xp = cuda.get_array_module(anchor)
         tmp = xp.repeat(self.dist_hinge[:, None], x_dim, axis=1)
         mask = xp.array(tmp > 0, dtype=numpy.float32)
 
+        gy, = grad_outputs
         if self.reduce == 'mean':
-            g = gy[0] / N
+            g = gy / N
         else:
-            g = gy[0][:, None]
+            g = gy[:, None]
 
-        tmp = 2 * g * mask
-        gx0 = (tmp * (negative - positive)).astype(numpy.float32)
-        gx1 = (tmp * (positive - anchor)).astype(numpy.float32)
-        gx2 = (tmp * (anchor - negative)).astype(numpy.float32)
+        tmp = 2 * chainer.functions.broadcast_to(g, mask.shape) * mask
 
-        return gx0, gx1, gx2
+        ret = []
+        if 0 in indexes:
+            ret.append(tmp * (negative - positive))
+        if 1 in indexes:
+            ret.append(tmp * (positive - anchor))
+        if 2 in indexes:
+            ret.append(tmp * (anchor - negative))
+
+        return ret
 
 
 def triplet(anchor, positive, negative, margin=0.2, reduce='mean'):
@@ -82,8 +91,8 @@ def triplet(anchor, positive, negative, margin=0.2, reduce='mean'):
     :math:`(N, K)`.
 
     .. math::
-        L(a, p, n) = \\frac{1}{N} \\left( \\sum_{i=1}^N \\max \{d(a_i, p_i)
-            - d(a_i, n_i) + {\\rm margin}, 0\} \\right)
+        L(a, p, n) = \\frac{1}{N} \\left( \\sum_{i=1}^N \\max \\{d(a_i, p_i)
+            - d(a_i, n_i) + {\\rm margin}, 0\\} \\right)
 
     where :math:`d(x_i, y_i) = \\| {\\bf x}_i - {\\bf y}_i \\|_2^2`.
 
@@ -93,12 +102,15 @@ def triplet(anchor, positive, negative, margin=0.2, reduce='mean'):
     loss values.
 
     Args:
-        anchor (~chainer.Variable): The anchor example variable. The shape
+        anchor (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): The anchor example variable. The shape
             should be :math:`(N, K)`, where :math:`N` denotes the minibatch
             size, and :math:`K` denotes the dimension of the anchor.
-        positive (~chainer.Variable): The positive example variable. The shape
+        positive (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): The positive example variable. The shape
             should be the same as anchor.
-        negative (~chainer.Variable): The negative example variable. The shape
+        negative (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): The negative example variable. The shape
             should be the same as anchor.
         margin (float): A parameter for triplet loss. It should be a positive
             value.
@@ -117,5 +129,21 @@ def triplet(anchor, positive, negative, margin=0.2, reduce='mean'):
         This cost can be used to train triplet networks. See `Learning \
         Fine-grained Image Similarity with Deep Ranking \
         <https://arxiv.org/abs/1404.4661>`_ for details.
+
+    .. admonition:: Example
+
+        >>> anchor = np.array([[-2.0, 3.0, 0.5], [5.0, 2.0, -0.5]]).astype('f')
+        >>> pos = np.array([[-2.1, 2.8, 0.5], [4.9, 2.0, -0.4]]).astype('f')
+        >>> neg = np.array([[-2.1, 2.7, 0.7], [4.9, 2.0, -0.7]]).astype('f')
+        >>> F.triplet(anchor, pos, neg)
+        variable(0.14000003039836884)
+        >>> y = F.triplet(anchor, pos, neg, reduce='no')
+        >>> y.shape
+        (2,)
+        >>> y.data
+        array([ 0.11000005,  0.17      ], dtype=float32)
+        >>> F.triplet(anchor, pos, neg, margin=0.5)  # harder penalty
+        variable(0.4400000274181366)
+
     """
-    return Triplet(margin, reduce)(anchor, positive, negative)
+    return Triplet(margin, reduce).apply((anchor, positive, negative))[0]
