@@ -12,34 +12,46 @@ from chainer.testing import attr
 @testing.parameterize(*testing.product({
     # repeats is any of (int, bool or tuple) and
     # axis is any of (int or None).
-    'shape_repeats_axis': [
-        # 1-D
-        (2, 0, None),
-        (2, 1, None),
-        (2, 2, 0),
-        (2, True, None),
-        (2, (2,), None),
-        (2, (True,), 0),
-        (2, (1, 2), None),
-        (2, (True, 2), 0),
-        # 2-D
-        ((3, 2), 2, 0),
-        ((3, 2), (2,), None),
-        ((3, 2), 2, 1),
-        ((3, 2), (3, 4, 3), 0),
-        ((3, 2), (3, True), 1),
-        ((3, 2), (True,) * 6, None),
-        # 3-D
-        ((3, 2, 3), (3, 2, True), 0),
-        ((3, 2, 3), (3, 4), 1),
-        ((3, 2, 3), (3, 2, 1), 2),
-    ],
+    'params': (
+        # Repeats 1-D array
+        testing.product({
+            'shape': [(2,)],
+            'repeats': [0, 1, 2, True, (0,), (1,), (2,), (True,)],
+            'axis': [None, 0],
+        }) +
+        # Repeats 2-D array (with axis=None)
+        testing.product({
+            'shape': [(3, 2)],
+            'repeats': [4, (4,), (4,) * 6, (True,) * 6],
+            'axis': [None],
+        }) +
+        # Repeats 2-D array (with axis=0)
+        testing.product({
+            'shape': [(3, 2)],
+            'repeats': [5, (5,), (5,) * 3],
+            'axis': [0],
+        }) +
+        # Repeats 2-D array (with axis=1)
+        testing.product({
+            'shape': [(3, 2)],
+            'repeats': [5, (5,), (5,) * 2],
+            'axis': [1],
+        }) +
+        # Repeats 3-D array (with axis=1)
+        testing.product({
+            'shape': [(3, 2, 4)],
+            'repeats': [5, (5,), (5,) * 2],
+            'axis': [1],
+        })
+    ),
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
 class TestRepeat(unittest.TestCase):
 
     def setUp(self):
-        (self.in_shape, self.repeats, self.axis) = self.shape_repeats_axis
+        self.in_shape = self.params['shape']
+        self.repeats = self.params['repeats']
+        self.axis = self.params['axis']
         self.x = numpy.random.uniform(-1, 1, self.in_shape).astype(self.dtype)
         out_shape = numpy.repeat(self.x, self.repeats, self.axis).shape
         self.gy = numpy.random.uniform(-1, 1, out_shape).astype(self.dtype)
