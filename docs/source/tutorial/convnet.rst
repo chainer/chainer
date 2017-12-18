@@ -79,8 +79,8 @@ To give input images and label vectors simply by calling the model object
 like a function, :meth:`__call__` is usually defined in the model class.
 This method performs the forward computation of the model. Chainer uses
 the powerful autograd system for any computational graphs written with
-:class:`~chainer.Function` s and :class:`~chainer.Link` s (actually a
-:class:`~chainer.Link` calls a corresponding :class:`~chainer.Function`
+:class:`~chainer.FunctionNode`\ s and :class:`~chainer.Link`\ s (actually a
+:class:`~chainer.Link` calls a corresponding :class:`~chainer.FunctionNode`
 inside of it), so that you don't need to explicitly write the code for backward
 computations in the model. Just prepare the data, then give it to the model.
 The way this works is the resulting output :class:`~chainer.Variable` from the
@@ -137,19 +137,19 @@ can also write the model like in this way:
                 return x
             return F.softmax(x)
 
-This code creates a list of all :class:`~chainer.Link` s and
-:class:`~chainer.Function` s after calling its superclass's constructor.
+This code creates a list of all :class:`~chainer.Link`\ s and
+:class:`~chainer.FunctionNode`\ s after calling its superclass's constructor.
 Then the elements of the list are registered to this model as
 trainable layers when the name of an element doesn't start with ``_``
 character. This operation can be freely replaced with many other ways because
-those names are just designed to select :class:`~chainer.Link` s only from the
-list ``net`` easily. :class:`~chainer.Function` doesn't have any trainable
+those names are just designed to select :class:`~chainer.Link`\ s only from the
+list ``net`` easily. :class:`~chainer.FunctionNode` doesn't have any trainable
 parameters, so that we can't register it to the model, but we want to use
-:class:`~chainer.Function` s for constructing a forward path. The list
+:class:`~chainer.FunctionNode`\ s for constructing a forward path. The list
 ``net`` is stored as an attribute :attr:`forward` to refer it in
 :meth:`__call__`. In :meth:`__call__`, it retrieves all layers in the network
 from :attr:`self.forward` sequentially regardless of what types of object (
-:class:`~chainer.Link` or :class:`~chainer.Function`) it is, and gives the
+:class:`~chainer.Link` or :class:`~chainer.FunctionNode`) it is, and gives the
 input variable or the intermediate output from the previous layer to the
 current layer. The last part of the :meth:`__call__` to switch its behavior
 by the training/inference mode is the same as the former way.
@@ -223,7 +223,6 @@ useful. First, let's see how to write a VGG16 [Simonyan14]_ model.
 
     class VGG16(chainer.ChainList):
         def __init__(self):
-            w = chainer.initializers.HeNormal()
             super(VGG16, self).__init__(
                 VGGBlock(64),
                 VGGBlock(128),
@@ -374,7 +373,7 @@ parameter registration. In this case, when :attr:`proj` is ``False``, the
 usage would be efficient compared to the case when it registers both anyway and
 just ignore them if :attr:`proj` is ``False``.
 
-Using nested :class:`~chainer.Chain` s and :class:`~chainer.ChainList` for
+Using nested :class:`~chainer.Chain`\ s and :class:`~chainer.ChainList` for
 sequential part enables us to write complex and very deep models easily.
 
 Use Pre-trained Models

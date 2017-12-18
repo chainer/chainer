@@ -4,7 +4,8 @@ import numpy
 try:
     from scipy import io
     _scipy_available = True
-except ImportError:
+except Exception as e:
+    _error = e
     _scipy_available = False
 
 from chainer.dataset import download
@@ -15,10 +16,15 @@ def get_svhn(withlabel=True, scale=1., dtype=numpy.float32,
              label_dtype=numpy.int32):
     """Gets the SVHN dataset.
 
-    `SVHN <http://ufldl.stanford.edu/housenumbers/>` is a dataset
-    similar to MNIST but composed of cropped images of house numbers.
-    The functionality is identical to the MNIST dataset,
+    `The Street View House Numbers (SVHN) dataset <http://ufldl.stanford.edu/housenumbers/>`_
+    is a dataset similar to MNIST but composed of cropped images of house
+    numbers.
+    The functionality of this function is identical to the counterpart for the
+    MNIST dataset (:func:`~chainer.datasets.get_mnist`),
     with the exception that there is no ``ndim`` argument.
+
+    .. note::
+       `SciPy <https://www.scipy.org/>`_ is required to use this feature.
 
     Args:
         withlabel (bool): If ``True``, it returns datasets with labels. In this
@@ -34,9 +40,9 @@ def get_svhn(withlabel=True, scale=1., dtype=numpy.float32,
         are :class:`~chainer.datasets.TupleDataset` instances. Otherwise, both
         datasets are arrays of images.
 
-    """
+    """  # NOQA
     if not _scipy_available:
-        raise RuntimeError('scipy is not available')
+        raise RuntimeError('SciPy is not available: %s' % _error)
 
     train_raw = _retrieve_svhn_training()
     train = _preprocess_svhn(train_raw, withlabel, scale, dtype,

@@ -1,6 +1,6 @@
 import numpy
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function_node
 from chainer.functions.pooling import pooling_2d
 from chainer.utils import conv
@@ -203,7 +203,7 @@ def upsampling_2d(
 
         >>> p = F.MaxPooling2D(2, 2)
         >>> with chainer.using_config('use_cudnn', 'never'):
-        ...     pooled_x = p(x)
+        ...     pooled_x = p.apply((x,))[0]
         >>> pooled_x.data
         array([[[[  8.,  10.,  12.],
                  [ 20.,  22.,  24.],

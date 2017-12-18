@@ -50,6 +50,7 @@ Learnable connections
    chainer.links.StatefulGRU
    chainer.links.StatelessGRU
    chainer.links.StatefulPeepholeLSTM
+   chainer.links.StatefulZoneoutLSTM
    chainer.links.StatelessLSTM
 
 Activation/loss/normalization functions with parameters
@@ -133,3 +134,13 @@ Residual Networks
    chainer.links.ResNet101Layers
    chainer.links.ResNet152Layers
    chainer.links.model.vision.resnet.prepare
+
+Compatibility with other frameworks
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.links.TheanoFunction
+   chainer.links.caffe.CaffeFunction

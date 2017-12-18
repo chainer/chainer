@@ -408,6 +408,25 @@ class TestMultiprocessIteratorConcurrency(unittest.TestCase):
         self.assertFalse(deadlock)
 
 
+class TestMultiprocessIteratorDeterminancy(unittest.TestCase):
+
+    def setUp(self):
+        self._seed = 3141592653
+        self._random_bak = numpy.random.get_state()
+
+    def tearDown(self):
+        numpy.random.set_state(self._random_bak)
+
+    def test_reproduce_same_permutation(self):
+        dataset = [1, 2, 3, 4, 5, 6]
+        numpy.random.seed(self._seed)
+        it1 = iterators.MultiprocessIterator(dataset, 6)
+        numpy.random.seed(self._seed)
+        it2 = iterators.MultiprocessIterator(dataset, 6)
+        for _ in range(5):
+            self.assertEqual(it1.next(), it2.next())
+
+
 @testing.parameterize(*testing.product({
     'n_prefetch': [1, 2],
     'shared_mem': [None, 1000000],

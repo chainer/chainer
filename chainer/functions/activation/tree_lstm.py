@@ -1,7 +1,7 @@
 import numpy
 import six
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function
 from chainer.utils import type_check
 
@@ -238,7 +238,7 @@ def tree_lstm(*inputs):
 
     Returns:
         tuple: Two :class:`~chainer.Variable` objects ``c`` and ``h``. ``c`` is
-            the updated cell state. ``h`` indicates the outgoing signal.
+        the updated cell state. ``h`` indicates the outgoing signal.
 
     See the papers for details: `Improved Semantic Representations From \
     Tree-Structured Long Short-Term Memory Networks \

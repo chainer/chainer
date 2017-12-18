@@ -286,6 +286,8 @@ class GoogLeNet(link.Chain):
 
         Args:
             images (iterable of PIL.Image or numpy.ndarray): Input images.
+                When you specify a color image as a :class:`numpy.ndarray`,
+                make sure that color order is RGB.
             oversample (bool): If ``True``, it averages results across
                 center, corners, and mirrors. Otherwise, it uses only the
                 center.

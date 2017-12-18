@@ -9,7 +9,6 @@ from chainer import functions as F
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
 from chainer.utils import type_check
 
 
@@ -21,21 +20,38 @@ class DetFunctionTest(unittest.TestCase):
 
     def setUp(self):
         if self.batched:
-            self.x = numpy.random.uniform(
-                .5, 1, (6, 3, 3)).astype(numpy.float32)
+            while True:
+                self.x = numpy.random.uniform(
+                    .5, 1, (6, 3, 3)).astype(numpy.float32)
+                # Avoid backward/double_backward instability.
+                if not numpy.any(numpy.isclose(
+                        numpy.linalg.det(self.x), 0, atol=1e-2, rtol=1e-2)):
+                    break
             self.y = numpy.random.uniform(
                 .5, 1, (6, 3, 3)).astype(numpy.float32)
             self.gy = numpy.random.uniform(-1, 1, (6,)).astype(numpy.float32)
+            self.ggx = numpy.random.uniform(
+                .5, 1, (6, 3, 3)).astype(numpy.float32)
             self.ct = self.x.transpose(0, 2, 1)
             self.det = F.batch_det
             self.matmul = F.matmul
         else:
-            self.x = numpy.random.uniform(.5, 1, (5, 5)).astype(numpy.float32)
+            while True:
+                self.x = numpy.random.uniform(
+                    .5, 1, (5, 5)).astype(numpy.float32)
+                if not numpy.isclose(
+                        numpy.linalg.det(self.x), 0, atol=1e-2, rtol=1e-2):
+                    break
             self.y = numpy.random.uniform(.5, 1, (5, 5)).astype(numpy.float32)
             self.gy = numpy.random.uniform(-1, 1, ()).astype(numpy.float32)
+            self.ggx = numpy.random.uniform(
+                .5, 1, (5, 5)).astype(numpy.float32)
             self.ct = self.x.transpose()
             self.det = F.det
             self.matmul = F.matmul
+
+        self.check_backward_options = {'atol': 5e-3, 'rtol': 1e-3}
+        self.check_double_backward_options = {'atol': 1e-2, 'rtol': 1e-2}
 
     def det_transpose(self, gpu=False):
         if gpu:
@@ -51,11 +67,9 @@ class DetFunctionTest(unittest.TestCase):
         testing.assert_allclose(yn.data, yt.data, rtol=1e-4, atol=1)
 
     @attr.gpu
-    @condition.retry(3)
     def test_det_transpose_gpu(self):
         self.det_transpose(gpu=True)
 
-    @condition.retry(3)
     def test_det_transpose_cpu(self):
         self.det_transpose(gpu=False)
 
@@ -75,11 +89,9 @@ class DetFunctionTest(unittest.TestCase):
         testing.assert_allclose(cxd.data * c, sxd.data)
 
     @attr.gpu
-    @condition.retry(3)
     def test_det_scaling_gpu(self):
         self.det_scaling(gpu=True)
 
-    @condition.retry(3)
     def test_det_scaling_cpu(self):
         self.det_scaling(gpu=False)
 
@@ -119,26 +131,41 @@ class DetFunctionTest(unittest.TestCase):
         testing.assert_allclose(
             dxy1.data, dxy2.data, rtol=1e-4, atol=1e-4)
 
-    @condition.retry(3)
     def test_det_product_cpu(self):
         self.det_product(gpu=False)
 
     @attr.gpu
-    @condition.retry(3)
     def test_det_product_gpu(self):
         self.det_product(gpu=True)
 
     @attr.gpu
-    @condition.retry(3)
     def test_batch_backward_gpu(self):
         x_data = cuda.to_gpu(self.x)
         y_grad = cuda.to_gpu(self.gy)
-        gradient_check.check_backward(self.det, x_data, y_grad)
+        gradient_check.check_backward(
+            self.det, x_data, y_grad,
+            **self.check_backward_options)
 
-    @condition.retry(3)
     def test_batch_backward_cpu(self):
         x_data, y_grad = self.x, self.gy
-        gradient_check.check_backward(self.det, x_data, y_grad)
+        gradient_check.check_backward(
+            self.det, x_data, y_grad,
+            **self.check_backward_options)
+
+    @attr.gpu
+    def test_batch_double_backward_gpu(self):
+        x_data = cuda.to_gpu(self.x)
+        y_grad = cuda.to_gpu(self.gy)
+        x_grad_grad = cuda.to_gpu(self.ggx)
+        gradient_check.check_double_backward(
+            self.det, x_data, y_grad, x_grad_grad,
+            **self.check_double_backward_options)
+
+    def test_batch_double_backward_cpu(self):
+        x_data, y_grad, x_grad_grad = self.x, self.gy, self.ggx
+        gradient_check.check_double_backward(
+            self.det, x_data, y_grad, x_grad_grad,
+            **self.check_double_backward_options)
 
     def check_single_matrix(self, x):
         x = chainer.Variable(x)
@@ -177,15 +204,18 @@ class DetFunctionTest(unittest.TestCase):
         else:
             x[...] = 0.0
         with self.assertRaises(err):
-            gradient_check.check_backward(self.det, x, gy)
+            gradient_check.check_backward(
+                self.det, x, gy,
+                **self.check_backward_options)
 
     def test_zero_det_cpu(self):
         self.check_zero_det(self.x, self.gy, ValueError)
 
     @attr.gpu
     def test_zero_det_gpu(self):
-        self.check_zero_det(
-            cuda.to_gpu(self.x), cuda.to_gpu(self.gy), ValueError)
+        with chainer.using_config('debug', True):
+            self.check_zero_det(
+                cuda.to_gpu(self.x), cuda.to_gpu(self.gy), ValueError)
 
 
 class TestDetSmallCase(unittest.TestCase):
@@ -198,12 +228,10 @@ class TestDetSmallCase(unittest.TestCase):
         y = x[0, 0] * x[1, 1] - x[0, 1] * x[1, 0]
         testing.assert_allclose(ans, y)
 
-    @condition.retry(3)
     def test_answer_cpu(self):
         self.check_by_definition(self.x)
 
     @attr.gpu
-    @condition.retry(3)
     def test_answer_gpu(self):
         self.check_by_definition(cuda.to_gpu(self.x))
 
@@ -218,7 +246,6 @@ class TestDetGPUCPUConsistency(unittest.TestCase):
         self.x = numpy.random.uniform(.5, 1, self.shape).astype(numpy.float32)
 
     @attr.gpu
-    @condition.retry(3)
     def test_answer_gpu_cpu(self):
         x = cuda.to_gpu(self.x)
         y = F.det(chainer.Variable(x))
@@ -238,7 +265,6 @@ class TestBatchDetGPUCPUConsistency(unittest.TestCase):
         self.x = numpy.random.uniform(.5, 1, self.shape).astype(numpy.float32)
 
     @attr.gpu
-    @condition.retry(3)
     def test_answer_gpu_cpu(self):
         x = cuda.to_gpu(self.x)
         y = F.batch_det(chainer.Variable(x))

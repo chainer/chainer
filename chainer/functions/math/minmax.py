@@ -1,11 +1,13 @@
 import numpy
 
-from chainer import cuda
-from chainer import function
+from chainer.backends import cuda
+from chainer import function_node
+import chainer.functions
+import chainer.utils
 from chainer.utils import type_check
 
 
-class SelectorBase(function.Function):
+class SelectorBase(function_node.FunctionNode):
     """Select an array element from a given axis or set of axes."""
 
     def __init__(self, axis=None, keepdims=False):
@@ -43,12 +45,14 @@ class SelectorBase(function.Function):
                     )
 
     def forward(self, x):
+        self.retain_inputs((0,))
         self.retain_outputs((0,))
         xp = cuda.get_array_module(*x)
         return xp.asarray(self._fwd(x[0], xp)),
 
-    def backward(self, x, gy):
-        x = x[0]
+    def backward(self, indexes, gy):
+        x = self.get_retained_inputs()[0]
+        y = self.get_retained_outputs()[0]
 
         if self.axis is None:
             axis = range(x.ndim)
@@ -59,10 +63,12 @@ class SelectorBase(function.Function):
         # for each one that was reduced in the forward operation
         shape = [s if ax not in axis else 1 for ax, s in enumerate(x.shape)]
         gy = gy[0].reshape(shape)
-        y = self.output_data[0].reshape(shape)
+        y = y.reshape(shape)
 
         # Compute the gradient
-        return gy * (x == y),
+        cond = (x.data == y.data)
+        gy = chainer.functions.broadcast_to(gy, cond.shape)
+        return gy * cond,
 
 
 class Max(SelectorBase):
@@ -77,7 +83,7 @@ class Min(SelectorBase):
         return xp.amin(x, axis=self.axis, keepdims=self.keepdims)
 
 
-class IndexSelectorBase(function.Function):
+class IndexSelectorBase(function_node.FunctionNode):
     """Select index of an array element from a given axis."""
 
     def __init__(self, axis=None):
@@ -111,6 +117,9 @@ class IndexSelectorBase(function.Function):
         xp = cuda.get_array_module(*x)
         return xp.asarray(self._fwd(x[0], xp)),
 
+    def backward(self, indexes, grad_outputs):
+        return None,
+
 
 class ArgMin(IndexSelectorBase):
 
@@ -136,7 +145,7 @@ def max(x, axis=None, keepdims=False):
         ~chainer.Variable: Output variable.
 
     """
-    return Max(axis, keepdims)(x)
+    return Max(axis, keepdims).apply((x,))[0]
 
 
 def min(x, axis=None, keepdims=False):
@@ -151,7 +160,7 @@ def min(x, axis=None, keepdims=False):
         ~chainer.Variable: Output variable.
 
     """
-    return Min(axis, keepdims)(x)
+    return Min(axis, keepdims).apply((x,))[0]
 
 
 def argmax(x, axis=None):
@@ -166,7 +175,7 @@ def argmax(x, axis=None):
         ~chainer.Variable: Output variable.
 
     """
-    return ArgMax(axis)(x)
+    return ArgMax(axis).apply((x,))[0]
 
 
 def argmin(x, axis=None):
@@ -181,4 +190,4 @@ def argmin(x, axis=None):
         ~chainer.Variable: Output variable.
 
     """
-    return ArgMin(axis)(x)
+    return ArgMin(axis).apply((x,))[0]

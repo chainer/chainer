@@ -1,4 +1,4 @@
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function
 from chainer.utils import type_check
 
@@ -29,10 +29,14 @@ class R2_score(function.Function):
     def forward(self, inputs):
         xp = cuda.get_array_module(*inputs)
         pred, true = inputs
-        SS_res = xp.sum((pred - true) ** 2, axis=0)
-        SS_tot = xp.sum((true - xp.mean(true, axis=0)) ** 2, axis=0)
-        ret = xp.where(SS_tot != 0, 1 - SS_res / SS_tot, 0.0)\
-                .astype(pred.dtype)
+        SS_res = xp.asarray(
+            xp.sum((pred - true) ** 2, axis=0))
+        SS_tot = xp.asarray(
+            xp.sum((true - xp.mean(true, axis=0)) ** 2, axis=0))
+        SS_tot_iszero = SS_tot == 0
+        SS_tot[SS_tot_iszero] = 1  # Assign dummy value to avoid zero-division
+        ret = xp.where(
+            SS_tot_iszero, 0.0, 1 - SS_res / SS_tot).astype(pred.dtype)
         if self.multioutput == 'uniform_average':
             return xp.asarray(ret.mean()),
         elif self.multioutput == 'raw_values':

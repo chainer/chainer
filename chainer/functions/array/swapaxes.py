@@ -1,8 +1,8 @@
-from chainer import function
+from chainer import function_node
 from chainer.utils import type_check
 
 
-class Swapaxes(function.Function):
+class Swapaxes(function_node.FunctionNode):
     """Swap two axes of an array."""
 
     def __init__(self, axis1, axis2):
@@ -17,15 +17,12 @@ class Swapaxes(function.Function):
         return 'Swapaxes'
 
     def forward(self, inputs):
-        self.retain_inputs(())
-        x = inputs[0]
-        y = x.swapaxes(self.axis1, self.axis2)
-        return y,
+        x, = inputs
+        return x.swapaxes(self.axis1, self.axis2),
 
-    def backward(self, inputs, grad_outputs):
-        gy = grad_outputs[0]
-        gx = gy.swapaxes(self.axis1, self.axis2)
-        return gx,
+    def backward(self, indexes, grad_outputs):
+        gy, = grad_outputs
+        return Swapaxes(self.axis1, self.axis2).apply((gy,))
 
 
 def swapaxes(x, axis1, axis2):
@@ -55,4 +52,5 @@ def swapaxes(x, axis1, axis2):
                [[ 3.,  4.,  5.]]], dtype=float32)
 
     """
-    return Swapaxes(axis1, axis2)(x)
+    y, = Swapaxes(axis1, axis2).apply((x,))
+    return y

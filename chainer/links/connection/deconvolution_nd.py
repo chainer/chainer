@@ -11,6 +11,11 @@ class DeconvolutionND(link.Link):
     This link wraps :func:`~chainer.functions.deconvolution_nd` function and
     holds the filter weight and bias vector as its parameters.
 
+    Deconvolution links can use a feature of cuDNN called autotuning, which
+    selects the most efficient CNN algorithm for images of fixed-size,
+    can provide a significant performance boost for fixed neural nets.
+    To enable, set `chainer.using_config('autotune', True)`
+
     Args:
         ndim (int): Number of spatial dimensions.
         in_channels (int): Number of channels of input arrays.
@@ -26,13 +31,13 @@ class DeconvolutionND(link.Link):
             operation. It should be a tuple of ints that represents the output
             size of each dimension. Default value is ``None`` and the outsize
             is estimated with input size, stride and pad.
-        initialW (array): Initial weight array. If ``None``, the default
-            initializer is used. May be an
-            initializer instance of another value the same with that
-            :func:`~chainer.init_weight` function can take.
-        initial_bias (array): Initial bias array. If ``None``, the bias vector
-            is set to zero. May be an initializer instance of another value
-            the same with that :func:`~chainer.init_weight` function can take.
+        initialW (:ref:`initializer <initializer>`): Initializer to
+            initialize the weight. When it is :class:`numpy.ndarray`,
+            its ``ndim`` should be :math:`n+2` where :math:`n` is
+            the number of spatial dimensions.
+        initial_bias (:ref:`initializer <initializer>`): Initializer to
+            initialize the bias. If ``None``, the bias will be initialized to
+            zero. When it is :class:`numpy.ndarray`, its ``ndim`` should 1.
 
     .. seealso::
        :func:`~chainer.functions.deconvolution_nd`

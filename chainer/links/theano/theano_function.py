@@ -25,7 +25,11 @@ class TheanoFunction(link.Link):
 
     """Theano function wrapper.
 
-    This function wrapps Theano function as a :class:`chainer.Link`.
+    .. warning::
+
+        This feature is experimental. The interface can change in the future.
+
+    This function wraps Theano function as a :class:`chainer.Link`.
     A user needs to make input Theano variables and output Theano variables.
     This function automatically creates Theano function for forward calculation
     and backward calculation from inputs and ouptuts. And then, it sends data
@@ -39,8 +43,8 @@ class TheanoFunction(link.Link):
        >>> z = x + y
        >>> w = x - y
        >>> f = L.TheanoFunction(inputs=[x, y], outputs=[z, w])
-       >>> a = chainer.Variable(numpy.array([1, 2], dtype='f'))
-       >>> b = chainer.Variable(numpy.array([2, 3], dtype='f'))
+       >>> a = chainer.Variable(np.array([1, 2], dtype='f'))
+       >>> b = chainer.Variable(np.array([2, 3], dtype='f'))
        >>> c, d = f(a, b)
        >>> c.data
        array([ 3.,  5.], dtype=float32)
@@ -52,12 +56,13 @@ class TheanoFunction(link.Link):
        The current implementation always copys :class:`cupy.ndarray` to CPU.
 
     Args:
-        inputs (tuple of ~theano.tensor.TensorVariable): Input variables of
+        inputs (tuple of ``theano.tensor.TensorVariable``): Input variables of
             Theano. This function accepts the same number of
-            :class:`~chainer.Variable`s in forward computation.
-        outputs (tuple of ~theano.tensor.TensorVariable): Output variables of
-            Theano. The function returns the same number
-            :class:`~chainder.Variable`s as ``outputs``.
+            :class:`~chainer.Variable`\\ s in forward computation.
+        outputs (tuple of ``theano.tensor.TensorVariable``):
+            Output variables of Theano.
+            The function returns the same number of
+            :class:`~chainer.Variable`\\ s as ``outputs``.
 
     """
 
