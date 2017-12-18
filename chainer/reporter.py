@@ -1,12 +1,15 @@
 import collections
 import contextlib
 import copy
+import json
+import warnings
 
 import numpy
 import six
 
 from chainer.backends import cuda
 from chainer import configuration
+from chainer import serializer as serializer_module
 from chainer import variable
 
 
@@ -294,6 +297,14 @@ class Summary(object):
             std = xp.sqrt(var)
             return mean, std
 
+    def serialize(self, serializer):
+        try:
+            self._x = serializer('_x', self._x)
+            self._x2 = serializer('_x2', self._x2)
+            self._n = serializer('_n', self._n)
+        except KeyError:
+            warnings.warn('The previous statistics are not saved.')
+
 
 class DictSummary(object):
 
@@ -356,3 +367,21 @@ class DictSummary(object):
             stats[name + '.std'] = std
 
         return stats
+
+    def serialize(self, serializer):
+        if isinstance(serializer, serializer_module.Serializer):
+            names = list(self._summaries.keys())
+            serializer('_names', json.dumps(names))
+            for index, name in enumerate(names):
+                self._summaries[name].serialize(
+                    serializer['_summaries'][str(index)])
+        else:
+            self._summaries.clear()
+            try:
+                names = json.loads(serializer('_names', ''))
+            except KeyError:
+                warnings.warn('The names of statistics are not saved.')
+                return
+            for index, name in enumerate(names):
+                self._summaries[name].serialize(
+                    serializer['_summaries'][str(index)])
