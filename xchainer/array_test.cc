@@ -41,7 +41,7 @@ TEST_F(ArrayTest, ConstArray) {
     ASSERT_EQ(data, x_data);
 }
 
-TEST_F(ArrayTest, Add) {
+TEST_F(ArrayTest, iadd) {
     std::shared_ptr<void> data_a = std::unique_ptr<float[]>(new float[3]{1, 1, 1});
     std::shared_ptr<void> data_b = std::unique_ptr<float[]>(new float[3]{1, 1, 1});
     std::shared_ptr<void> data_e = std::unique_ptr<float[]>(new float[3]{2, 2, 2});
@@ -51,6 +51,40 @@ TEST_F(ArrayTest, Add) {
     a.iadd(b);
     ASSERT_NO_THROW(CheckEqual(e, a));
 }
+
+TEST_F(ArrayTest, imul) {
+    std::shared_ptr<void> data_a = std::unique_ptr<float[]>(new float[3]{2, 2, 2});
+    std::shared_ptr<void> data_b = std::unique_ptr<float[]>(new float[3]{2, 2, 2});
+    std::shared_ptr<void> data_e = std::unique_ptr<float[]>(new float[3]{4, 4, 4});
+    Array a = MakeArray({3, 1}, data_a);
+    Array b = MakeArray({3, 1}, data_b);
+    Array e = MakeArray({3, 1}, data_e);
+    a.imul(b);
+    ASSERT_NO_THROW(CheckEqual(e, a));
+}
+
+TEST_F(ArrayTest, add) {
+    std::shared_ptr<void> data_a = std::unique_ptr<float[]>(new float[3]{1, 1, 1});
+    std::shared_ptr<void> data_b = std::unique_ptr<float[]>(new float[3]{1, 1, 1});
+    std::shared_ptr<void> data_e = std::unique_ptr<float[]>(new float[3]{2, 2, 2});
+    Array a = MakeArray({3, 1}, data_a);
+    Array b = MakeArray({3, 1}, data_b);
+    Array e = MakeArray({3, 1}, data_e);
+    Array o = a.add(b);
+    ASSERT_NO_THROW(CheckEqual(e, o));
+}
+
+TEST_F(ArrayTest, mul) {
+    std::shared_ptr<void> data_a = std::unique_ptr<float[]>(new float[3]{2, 2, 2});
+    std::shared_ptr<void> data_b = std::unique_ptr<float[]>(new float[3]{2, 2, 2});
+    std::shared_ptr<void> data_e = std::unique_ptr<float[]>(new float[3]{4, 4, 4});
+    Array a = MakeArray({3, 1}, data_a);
+    Array b = MakeArray({3, 1}, data_b);
+    Array e = MakeArray({3, 1}, data_e);
+    Array o = a.mul(b);
+    ASSERT_NO_THROW(CheckEqual(e, o));
+}
+
 
 }  // namespace
 }  // namespace xchainer
