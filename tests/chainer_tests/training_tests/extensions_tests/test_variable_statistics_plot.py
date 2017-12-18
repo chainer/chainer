@@ -76,7 +76,7 @@ class TestStatistician(unittest.TestCase):
     def test_statistician_percentile(self):
         self.percentile_sigmas = (0., 50., 100.)  # min, median, max
         self.statistician = extensions.variable_statistics_plot.Statistician(
-            collect_mean=True, collect_std=True, collect_percentile=True,
+            collect_mean=True, collect_std=True,
             percentile_sigmas=self.percentile_sigmas)
         stat = self.statistician(self.x, axis=None, dtype=self.x.dtype)
 

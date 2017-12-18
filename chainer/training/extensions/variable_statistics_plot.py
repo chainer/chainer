@@ -9,7 +9,6 @@ import chainer
 from chainer import cuda
 from chainer.training import extension
 from chainer.training import trigger as trigger_module
-from chainer.utils import argument
 
 
 try:
@@ -75,14 +74,10 @@ class Statistician(object):
 
     """Helper to compute basic NumPy-like statistics."""
 
-    def __init__(self, collect_mean, collect_std, collect_percentile,
-                 **kwargs):
+    def __init__(self, collect_mean, collect_std, percentile_sigmas):
         self.collect_mean = collect_mean
         self.collect_std = collect_std
-        self.collect_percentile = collect_percentile
-
-        self.percentile_sigmas, = argument.parse_kwargs(
-            kwargs, ('percentile_sigmas', ()))
+        self.percentile_sigmas = percentile_sigmas
 
     def __call__(self, x, axis=0, dtype=None, xp=None):
         if axis is None:
@@ -101,7 +96,7 @@ class Statistician(object):
         if self.collect_std:
             out['std'] = x.std(axis=axis)
 
-        if self.collect_percentile is not None:
+        if self.percentile_sigmas:
             xp = cuda.get_array_module(x)
             if xp is numpy:
                 p = numpy.percentile(x, self.percentile_sigmas, axis=axis)
@@ -166,7 +161,7 @@ class VariableStatisticsPlot(extension.Extension):
 
     def __init__(self, targets, max_sample_size=1000,
                  report_data=True, report_grad=True,
-                 plot_mean=True, plot_std=True, plot_percentile=True,
+                 plot_mean=True, plot_std=True,
                  percentile_sigmas=(
                      0, 0.13, 2.28, 15.87, 50, 84.13, 97.72, 99.87, 100),
                  trigger=(1, 'epoch'), file_name='statistics.png',
@@ -181,12 +176,8 @@ class VariableStatisticsPlot(extension.Extension):
                 'Need at least one variables for which to collect statistics.'
                 '\nActual: 0 <= 0')
 
-        if not any((plot_mean, plot_std, plot_percentile)):
+        if not any((plot_mean, plot_std, bool(percentile_sigmas))):
             raise ValueError('Nothing to plot')
-
-        if plot_percentile and not percentile_sigmas:
-            raise ValueError(
-                'Cannot plot percentiles without provided sigma values')
 
         self._keys = []
         if report_data:
@@ -199,12 +190,11 @@ class VariableStatisticsPlot(extension.Extension):
 
         self._statistician = Statistician(
             collect_mean=plot_mean, collect_std=plot_std,
-            collect_percentile=plot_percentile,
             percentile_sigmas=percentile_sigmas)
 
         self._plot_mean = plot_mean
         self._plot_std = plot_std
-        self._plot_percentile = plot_percentile
+        self._plot_percentile = bool(percentile_sigmas)
 
         self._trigger = trigger_module.get_trigger(trigger)
         self._file_name = file_name
@@ -212,7 +202,7 @@ class VariableStatisticsPlot(extension.Extension):
         self._marker = marker
         self._grid = grid
 
-        if not plot_percentile:
+        if not self._plot_percentile:
             n_percentile = 0
         else:
             if not isinstance(percentile_sigmas, (list, tuple)):
@@ -288,46 +278,51 @@ class VariableStatisticsPlot(extension.Extension):
         n_percentile_mid_floor = n_percentile // 2
         n_percentile_odd = n_percentile % 2 == 1
 
-        for i in six.moves.range(ncols):
-            ax = axes[0, i]
-            ax.set_title(self._keys[i])  # `data` or `grad`
+        for col in six.moves.range(ncols):
+            row = 0
+            ax = axes[row, col]
+            ax.set_title(self._keys[col])  # `data` or `grad`
 
             if self._plot_mean or self._plot_std:
                 if self._plot_mean and self._plot_std:
                     ax.errorbar(
-                        idxs, data[:, i, 0], data[:, i, 1], color=_plot_color,
-                        ecolor=_plot_color_trans, label='mean, std',
-                        marker=self._marker)
+                        idxs, data[:, col, 0], data[:, col, 1],
+                        color=_plot_color, ecolor=_plot_color_trans,
+                        label='mean, std', marker=self._marker)
                 else:
                     if self._plot_mean:
                         label = 'mean'
                     elif self._plot_std:
                         label = 'std'
                     ax.plot(
-                        idxs, data[:, i, 0], color=_plot_color, label=label,
+                        idxs, data[:, col, 0], color=_plot_color, label=label,
                         marker=self._marker)
-                ax = axes[1, i]
+                row += 1
 
             if self._plot_percentile:
-                for j in six.moves.range(n_percentile_mid_floor + 1):
-                    if n_percentile_odd and j == n_percentile_mid_floor:
+                ax = axes[row, col]
+                for i in six.moves.range(n_percentile_mid_floor + 1):
+                    if n_percentile_odd and i == n_percentile_mid_floor:
                         # Enters at most once per sub-plot, in case there is
                         # only a single percentile to plot or when this
                         # percentile is the mid percentile and the numner of
                         # percentiles are odd
                         ax.plot(
-                            idxs, data[:, i, offset + j], color=_plot_color,
+                            idxs, data[:, col, offset + i], color=_plot_color,
                             label='percentile', marker=self._marker)
                     else:
-                        if j == n_percentile_mid_floor:
+                        if i == n_percentile_mid_floor:
                             # Last percentiles and the number of all
                             # percentiles are even
                             label = 'percentile'
                         else:
                             label = '_nolegend_'
                         ax.fill_between(
-                            idxs, data[:, i, offset + j], data[:, i, -j - 1],
-                            label=label, **_plot_common_kwargs)
+                            idxs,
+                            data[:, col, offset + i],
+                            data[:, col, -i - 1],
+                            label=label,
+                            **_plot_common_kwargs)
                     ax.set_xlabel('iteration')
 
         for ax in axes.ravel():
