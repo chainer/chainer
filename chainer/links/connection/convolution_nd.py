@@ -86,3 +86,101 @@ class ConvolutionND(link.Link):
         """
         return convolution_nd.convolution_nd(
             x, self.W, self.b, self.stride, self.pad, cover_all=self.cover_all)
+
+
+class Convolution1D(ConvolutionND):
+    """1-dimensional convolution layer.
+
+    This link wraps :class:`~chainer.links.ConvolutionND` by giving 1 to the
+    first argument ``ndim``.
+
+    Convolution links can use a feature of cuDNN called autotuning, which
+    selects the most efficient CNN algorithm for images of fixed-size,
+    can provide a significant performance boost for fixed neural nets.
+    To enable, set `chainer.using_config('autotune', True)`
+
+    Args:
+        in_channels (int): Number of channels of input arrays.
+        out_channels (int): Number of channels of output arrays.
+        ksize (int): Size of filters (a.k.a. kernels).
+        stride (int): Stride of filter application.
+        pad (int): Spatial padding width for input arrays.
+        nobias (bool): If ``True``, then this function does not use the bias.
+        initialW (:ref:`initializer <initializer>`): Initializer to
+            initialize the weight. When it is :class:`numpy.ndarray`,
+            its ``ndim`` should be :math:`3`.
+        initial_bias (:ref:`initializer <initializer>`): Initializer to
+            initialize the bias. If ``None``, the bias will be initialized to
+            zero. When it is :class:`numpy.ndarray`, its ``ndim`` should 1.
+        cover_all (bool): If ``True``, all spatial locations are convoluted
+            into some output pixels. It may make the output size larger.
+            ``cover_all`` needs to be ``False`` if you want to use cuDNN.
+
+    .. seealso::
+        See :func:`~chainer.functions.convolution_1d` for the definition of
+        1-dimensional convolution. See :class:`~chainer.links.ConvolutionND`
+        for the arbitrary dimension convolution.
+
+    Attributes:
+        W (~chainer.Variable): Weight parameter.
+        b (~chainer.Variable): Bias parameter. If ``initial_bias`` is ``None``,
+            set to ``None``.
+
+    """
+
+    def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
+                 nobias=False, initialW=None, initial_bias=None,
+                 cover_all=False):
+        super(Convolution1D, self).__init__(
+            1, in_channels, out_channels, ksize, stride, pad, nobias, initialW,
+            initial_bias, cover_all)
+
+
+class Convolution3D(ConvolutionND):
+    """3-dimensional convolution layer.
+
+    This is just an wrapper of :class:`~chainer.links.ConvolutionND` which
+    gives 3 to the first argument of ``ndim``. 
+
+    Convolution links can use a feature of cuDNN called autotuning, which
+    selects the most efficient CNN algorithm for images of fixed-size,
+    can provide a significant performance boost for fixed neural nets.
+    To enable, set `chainer.using_config('autotune', True)`
+
+    Args:
+        in_channels (int): Number of channels of input arrays.
+        out_channels (int): Number of channels of output arrays.
+        ksize (int or tuple of ints): Size of filters (a.k.a. kernels).
+            ``ksize=k`` and ``ksize=(k, k, k)`` are equivalent.
+        stride (int or tuple of ints): Stride of filter application.
+            ``stride=s`` and ``stride=(s, s, s)`` are equivalent.
+        pad (int or tuple of ints): Spatial padding width for input arrays.
+            ``pad=p`` and ``pad=(p, p, p)`` are equivalent.
+        nobias (bool): If ``True``, then this function does not use the bias.
+        initialW (:ref:`initializer <initializer>`): Initializer to
+            initialize the weight. When it is :class:`numpy.ndarray`,
+            its ``ndim`` should be :math:`5`.
+        initial_bias (:ref:`initializer <initializer>`): Initializer to
+            initialize the bias. If ``None``, the bias will be initialized to
+            zero. When it is :class:`numpy.ndarray`, its ``ndim`` should 1.
+        cover_all (bool): If ``True``, all spatial locations are convoluted
+            into some output pixels. It may make the output size larger.
+            ``cover_all`` needs to be ``False`` if you want to use cuDNN.
+
+    .. seealso::
+        See :func:`~chainer.functions.convolution_3d` for the definition of
+        3-dimensional convolution.
+
+    Attributes:
+        W (~chainer.Variable): Weight parameter.
+        b (~chainer.Variable): Bias parameter. If ``initial_bias`` is ``None``,
+            set to ``None``.
+
+    """
+
+    def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
+                 nobias=False, initialW=None, initial_bias=None,
+                 cover_all=False):
+        super(Convolution1D, self).__init__(
+            3, in_channels, out_channels, ksize, stride, pad, nobias, initialW,
+            initial_bias, cover_all)

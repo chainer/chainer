@@ -6,6 +6,8 @@ from chainer.links.activation.simplified_dropconnect import SimplifiedDropconnec
 from chainer.links.connection.bias import Bias  # NOQA
 from chainer.links.connection.bilinear import Bilinear  # NOQA
 from chainer.links.connection.convolution_2d import Convolution2D  # NOQA
+from chainer.links.connection.convolution_nd import Convolution1D  # NOQA
+from chainer.links.connection.convolution_nd import Convolution3D  # NOQA
 from chainer.links.connection.convolution_nd import ConvolutionND  # NOQA
 from chainer.links.connection.deconvolution_2d import Deconvolution2D  # NOQA
 from chainer.links.connection.deconvolution_nd import DeconvolutionND  # NOQA
