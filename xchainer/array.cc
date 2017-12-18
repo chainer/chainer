@@ -172,8 +172,8 @@ void CheckEqual(const Array& lhs, const Array& rhs) {
     T* rdata = (T*)(rhs.data().get());
     for (i = 0; i < total_size; i++) {
         if (ldata[i] != rdata[i]) {
-          // TODO: repl
-          throw DataError("data mismatch");
+            // TODO: repl
+            throw DataError("data mismatch");
         }
     }
 }
@@ -202,6 +202,5 @@ void CheckEqual(const Array& lhs, const Array& rhs) {
             assert(0);  // should never be reached
     }
 }
-
 
 }  // namespace xchainer

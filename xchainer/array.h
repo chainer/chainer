@@ -52,10 +52,14 @@ private:
     std::shared_ptr<void> data_;
     int64_t offset_;
 
-    template <typename T> Array& iadd(const Array& other);
-    template <typename T> Array& imul(const Array& other);
-    template <typename T> Array add(const Array& other);
-    template <typename T> Array mul(const Array& other);
+    template <typename T>
+    Array& iadd(const Array& other);
+    template <typename T>
+    Array& imul(const Array& other);
+    template <typename T>
+    Array add(const Array& other);
+    template <typename T>
+    Array mul(const Array& other);
 };
 
 // Throws an exception if two arrays mismatch (for debug purpose)
