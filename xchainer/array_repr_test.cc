@@ -10,11 +10,10 @@ namespace {
 
 template <typename T>
 void CheckArrayRepr(const std::vector<T>& data_vec, Shape shape, const std::string& expected) {
-    // Copy to an array because we can't take address from std::vector<bool>.
-    T data_array[data_vec.size()];
-    std::copy(data_vec.begin(), data_vec.end(), data_array);
-    auto data_ptr = std::shared_ptr<void>(static_cast<void*>(&data_array[0]), [](auto*) {});
-    Array array = {shape, TypeToDtype<T>, data_ptr};
+    // Copy to a contiguous memory block because std::vector<bool> is not packed as a sequence of bool's.
+    std::shared_ptr<T> data_ptr = std::make_unique<T[]>(data_vec.size());
+    std::copy(data_vec.begin(), data_vec.end(), data_ptr.get());
+    Array array = {shape, TypeToDtype<T>, static_cast<std::shared_ptr<void>>(data_ptr)};
 
     // std::string version
     EXPECT_EQ(ArrayRepr(array), expected);
