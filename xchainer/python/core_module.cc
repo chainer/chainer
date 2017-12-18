@@ -47,9 +47,9 @@ void InitXchainerModule(pybind11::module& m) {
         .def(py::init<double>())
         .def(+py::self)
         .def(-py::self)
-        .def("__bool__", &Scalar::UnwrapAndCast<bool>)
-        .def("__int__", &Scalar::UnwrapAndCast<int64_t>)
-        .def("__float__", &Scalar::UnwrapAndCast<double>)
+        .def("__bool__", &Scalar::operator bool)
+        .def("__int__", &Scalar::operator int64_t)
+        .def("__float__", &Scalar::operator double)
         .def("__repr__", &Scalar::ToString)
         .def_property_readonly("dtype", &Scalar::dtype);
 }
