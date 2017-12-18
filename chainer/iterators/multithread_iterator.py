@@ -157,3 +157,7 @@ class MultithreadIterator(iterator.Iterator):
         (self.current_position, self.epoch,
          self.is_new_epoch, self._order) = self._next_state
         return batch
+
+    @property
+    def repeat(self):
+        return self._repeat

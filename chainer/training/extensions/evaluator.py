@@ -8,6 +8,7 @@ from chainer import configuration
 from chainer.dataset import convert
 from chainer.dataset import iterator as iterator_module
 from chainer import function
+from chainer import iterators
 from chainer import link
 from chainer import reporter as reporter_module
 from chainer.training import extension
@@ -90,9 +91,12 @@ class Evaluator(extension.Extension):
         self.eval_hook = eval_hook
         self.eval_func = eval_func
 
-        if chainer.debug():
-            for key, iterator in six.itervalues():
-                if hasattr(iterator, 'repeat', False):
+        if chainer.is_debug():
+            for key, iter in six.iteritems(iterator):
+                if (isinstance(iter, (iterators.SerialIterator,
+                                      iterators.MultiprocessIterator,
+                                      iterators.MultithreadIterator)) and
+                    getattr(iter, 'repeat', False)):
                     msg = 'The repeat property of the iterator {} '
                     'is set to True. Typically, evaluator sweeps '
                     'over iterators until it raises StopIteration. '

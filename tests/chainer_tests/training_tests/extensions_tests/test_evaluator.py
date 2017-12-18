@@ -1,9 +1,11 @@
 import unittest
+import warnings
 
 import numpy
 
 import chainer
 from chainer import dataset
+from chainer import iterators
 from chainer import testing
 from chainer.training import extensions
 
@@ -213,6 +215,30 @@ class TestEvaluatorWithEvalFunc(unittest.TestCase):
         for i in range(len(self.batches)):
             numpy.testing.assert_array_equal(
                 self.target.args[i], self.batches[i])
+
+
+@testing.parameterize(*testing.product({
+    'debug': [True, False],
+    'repeat': [True, False],
+    'iterator': [iterators.SerialIterator,
+                 iterators.MultiprocessIterator,
+                 iterators.MultithreadIterator]
+}))
+class TestEvaluatorRepeat(unittest.TestCase):
+
+    def test_serial_iterator(self):
+        dataset = numpy.ones((4, 6))
+        iterator = iterators.SerialIterator(dataset, 2, repeat=self.repeat)
+        with chainer.using_config('debug', self.debug):
+            with warnings.catch_warnings(record=True) as w:
+                extensions.Evaluator(iterator, {})
+
+        if self.debug and self.repeat:
+            expect = 1
+        else:
+            expect = 0
+
+        self.assertEqual(len(w), expect)
 
 
 testing.run_module(__name__, __file__)
