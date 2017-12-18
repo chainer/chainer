@@ -28,9 +28,17 @@ TEST_F(ArrayTest, Ctor) {
     EXPECT_EQ(2 * 3 * 4, x.total_size());
     EXPECT_EQ(4, x.element_bytes());
     EXPECT_EQ(2 * 3 * 4 * 4, x.total_bytes());
-    EXPECT_EQ(data, x.data());
+    const std::shared_ptr<void> x_data = x.data();
+    EXPECT_EQ(data, x_data);
     EXPECT_EQ(0, x.offset());
     EXPECT_TRUE(x.is_contiguous());
+}
+
+TEST_F(ArrayTest, ConstArray) {
+    std::shared_ptr<void> data = std::unique_ptr<float[]>(new float[2 * 3 * 4]);
+    const Array x = MakeArray({2, 3, 4}, data);
+    std::shared_ptr<const void> x_data = x.data();
+    EXPECT_EQ(data, x_data);
 }
 
 }  // namespace

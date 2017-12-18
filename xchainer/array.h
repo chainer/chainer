@@ -29,7 +29,9 @@ public:
 
     int64_t total_bytes() const { return total_size() * element_bytes(); }
 
-    const std::shared_ptr<void>& data() const { return data_; }
+    const std::shared_ptr<void>& data() { return data_; }
+
+    std::shared_ptr<const void> data() const { return data_; }
 
     int64_t offset() const { return offset_; }
 
