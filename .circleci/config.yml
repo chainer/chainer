@@ -93,7 +93,7 @@ jobs:
             source activate testenv
 
             python setup.py build --debug --build-temp ./build --build-lib ./build develop
-            pytest --cov --no-cov-on-fail --cov-fail-under=80
+            pytest --cov --no-cov-on-fail --cov-fail-under=80 --cov-report html:build/coverage/python
 
       # C++ test
       - run:
@@ -103,7 +103,7 @@ jobs:
 
             ( mkdir -p build && cd build && cmake -DBUILD_PYTHON=1 -DENABLE_COVERAGE=ON .. && make clang-tidy && make && ctest -V )
             lcov -c -b xchainer -d build/xchainer/ --no-external -o build/coverage.info
-            genhtml build/coverage.info -o build/coverage
+            genhtml build/coverage.info -o build/coverage/cpp
 
       - store_artifacts:
           path: build/coverage
