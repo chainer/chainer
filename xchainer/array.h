@@ -12,9 +12,7 @@ namespace xchainer {
 // The main data structure of multi-dimensional array.
 class Array {
 public:
-    Array(gsl::span<const int64_t> shape, Dtype dtype);
-
-    Array(const Shape& shape, Dtype dtype) : Array(shape.span(), dtype) {}
+    Array(const Shape& shape, Dtype dtype);
 
     Dtype dtype() const { return dtype_; }
 
