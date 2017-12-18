@@ -8,9 +8,9 @@ struct Device {
     std::string name;
 };
 
-inline bool operator==(Device lhs, Device rhs) { return lhs.name == rhs.name; }
+inline bool operator==(const Device& lhs, const Device& rhs) { return lhs.name == rhs.name; }
 
-inline bool operator!=(Device lhs, Device rhs) { return !(lhs == rhs); }
+inline bool operator!=(const Device& lhs, const Device& rhs) { return !(lhs == rhs); }
 
 Device GetCurrentDevice();
 
