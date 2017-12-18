@@ -1,5 +1,6 @@
 from chainer.backends import cuda
 from chainer import optimizer
+from chainer.utils import argument
 
 
 _default_hyperparam = optimizer.Hyperparameter()
@@ -50,8 +51,9 @@ class SGD(optimizer.GradientMethod):
 
     """
 
-    def __init__(self, lr=_default_hyperparam.lr, model=None):
-        super(SGD, self).__init__(model)
+    def __init__(self, lr=_default_hyperparam.lr, **kwargs):
+        link, = argument.parse_kwargs(kwargs, ('link', None))
+        super(SGD, self).__init__(link=link)
         self.hyperparam.lr = lr
 
     lr = optimizer.HyperparameterProxy('lr')

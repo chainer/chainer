@@ -8,6 +8,7 @@ import six
 from chainer.backends import cuda
 from chainer import link as link_module
 from chainer import serializer as serializer_module
+from chainer.utils import argument
 from chainer import variable
 
 
@@ -53,6 +54,8 @@ class Hyperparameter(object):
 
     """
 
+    _parent = None
+
     def __init__(self, parent=None):
         self._parent = parent
 
@@ -60,6 +63,19 @@ class Hyperparameter(object):
         if '_parent' not in self.__dict__:
             raise AttributeError('_parent is not set up yet')
         return getattr(self._parent, name)
+
+    def __setattr__(self, name, value):
+        # If the attribute is not defined as the class attribute of
+        # `Hyperparameter`, it's assumed to be a hyperparameter.
+        if not hasattr(Hyperparameter, name):
+            if not (isinstance(value, (numpy.ndarray, cuda.ndarray))
+                    or (not isinstance(value, (str, bytes))
+                        and numpy.isscalar(value))):
+                raise TypeError(
+                    'Hyperparameter must be a scalar or an array '
+                    '(name=\'{}\').\n'
+                    'Actual: {}'.format(name, type(value)))
+        super(Hyperparameter, self).__setattr__(name, value)
 
     def __repr__(self):
         d = self.get_dict()
@@ -525,12 +541,21 @@ class GradientMethod(Optimizer):
 
     """
 
-    def __init__(self, link=None):
+    _use_fp32_update = False
+
+    def __init__(self, **kwargs):
+        link, = argument.parse_kwargs(kwargs, ('link', None))
         super(GradientMethod, self).__init__()
         self.hyperparam = Hyperparameter()
-        if isinstance(link, link_module.Link):
+
+        if link is None:
+            pass
+        elif isinstance(link, link_module.Link):
             self.setup(link)
-        self._use_fp32_update = False
+        else:
+            raise TypeError(
+                'link argument must be an instance of chainer.Link.\n'
+                'Actual: {}'.format(type(link)))
 
     def setup(self, link):
         super(GradientMethod, self).setup(link)
