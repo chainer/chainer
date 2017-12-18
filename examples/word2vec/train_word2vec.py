@@ -144,78 +144,6 @@ def convert(batch, device):
     center, contexts = batch
     if device >= 0:
         center = cuda.to_gpu(center)
-<<<<<<< HEAD
-        context = cuda.to_gpu(context)
-    return center, context
-
-
-if args.gpu >= 0:
-    cuda.get_device_from_id(args.gpu).use()
-
-train, val, _ = chainer.datasets.get_ptb_words()
-counts = collections.Counter(train)
-counts.update(collections.Counter(val))
-n_vocab = max(train) + 1
-
-if args.test:
-    train = train[:100]
-    val = val[:100]
-
-vocab = chainer.datasets.get_ptb_words_vocabulary()
-index2word = {wid: word for word, wid in six.iteritems(vocab)}
-
-print('n_vocab: %d' % n_vocab)
-print('data length: %d' % len(train))
-
-if args.out_type == 'hsm':
-    HSM = L.BinaryHierarchicalSoftmax
-    tree = HSM.create_huffman_tree(counts)
-    loss_func = HSM(args.unit, tree)
-    loss_func.W.data[...] = 0
-elif args.out_type == 'ns':
-    cs = [counts[w] for w in range(len(counts))]
-    loss_func = L.NegativeSampling(args.unit, cs, args.negative_size)
-    loss_func.W.data[...] = 0
-elif args.out_type == 'original':
-    loss_func = SoftmaxCrossEntropyLoss(args.unit, n_vocab)
-else:
-    raise Exception('Unknown output type: {}'.format(args.out_type))
-
-if args.model == 'skipgram':
-    model = SkipGram(n_vocab, args.unit, loss_func)
-elif args.model == 'cbow':
-    model = ContinuousBoW(n_vocab, args.unit, loss_func)
-else:
-    raise Exception('Unknown model type: {}'.format(args.model))
-
-if args.gpu >= 0:
-    model.to_gpu()
-
-
-optimizer = O.Adam()
-optimizer.setup(model)
-
-train_iter = WindowIterator(train, args.window, args.batchsize)
-val_iter = WindowIterator(val, args.window, args.batchsize, repeat=False)
-updater = training.updaters.StandardUpdater(
-    train_iter, optimizer, converter=convert, device=args.gpu)
-trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
-
-trainer.extend(extensions.Evaluator(
-    val_iter, model, converter=convert, device=args.gpu))
-trainer.extend(extensions.LogReport())
-trainer.extend(extensions.PrintReport(
-    ['epoch', 'main/loss', 'validation/main/loss']))
-trainer.extend(extensions.ProgressBar())
-trainer.run()
-
-with open('word2vec.model', 'w') as f:
-    f.write('%d %d\n' % (len(index2word), args.unit))
-    w = cuda.to_cpu(model.embed.W.data)
-    for i, wi in enumerate(w):
-        v = ' '.join(map(str, wi))
-        f.write('%s %s\n' % (index2word[i], v))
-=======
         contexts = cuda.to_gpu(contexts)
     return center, contexts
 
@@ -314,7 +242,7 @@ def main():
     val_iter = WindowIterator(val, args.window, args.batchsize, repeat=False)
 
     # Set up an updater
-    updater = training.StandardUpdater(
+    updater = training.updaters.StandardUpdater(
         train_iter, optimizer, converter=convert, device=args.gpu)
 
     # Set up a trainer
@@ -339,4 +267,3 @@ def main():
 
 if __name__ == '__main__':
     main()
->>>>>>> master
