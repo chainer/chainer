@@ -8,7 +8,6 @@ namespace xchainer {
 namespace {
 
 thread_local Device thread_local_device = {"cpu"};
-
 }
 
 Device GetCurrentDevice() { return thread_local_device; }
