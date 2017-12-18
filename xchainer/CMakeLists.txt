@@ -13,7 +13,6 @@ install(FILES
     )
 
 add_library(xchainer SHARED
-    array.cc
     dtype.cc
     shape.cc
     )
