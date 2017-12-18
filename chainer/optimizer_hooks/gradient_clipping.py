@@ -38,6 +38,7 @@ class GradientClipping(object):
         norm = numpy.sqrt(_sum_sqnorm(
             [p.grad for p in opt.target.params(False)]))
         rate = self.threshold / norm
+        print('rate={}'.format(rate))
         if rate < 1:
             for param in opt.target.params(False):
                 grad = param.grad
