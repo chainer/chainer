@@ -140,7 +140,7 @@ class Convolution3D(ConvolutionND):
     """3-dimensional convolution layer.
 
     This is just an wrapper of :class:`~chainer.links.ConvolutionND` which
-    gives 3 to the first argument of ``ndim``. 
+    gives 3 to the first argument of ``ndim``.
 
     Convolution links can use a feature of cuDNN called autotuning, which
     selects the most efficient CNN algorithm for images of fixed-size,
