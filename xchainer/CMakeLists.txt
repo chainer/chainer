@@ -3,6 +3,7 @@ if(${BUILD_PYTHON})
 endif()
 
 install(FILES
+    array.h
     constant.h
     dtype.h
     error.h
@@ -22,6 +23,7 @@ install(TARGETS xchainer DESTINATION lib)
 
 if(ENABLE_TEST)
     add_executable(xchainer_test
+        array_test.cc
         dtype_test.cc
         scalar_test.cc
         shape_test.cc

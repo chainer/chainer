@@ -1,3 +1,4 @@
 #pragma once
 
-#include "xrray/dtype.h"
+#include "xchainer/array.h"
+#include "xchainer/dtype.h"
