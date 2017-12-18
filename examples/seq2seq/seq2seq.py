@@ -89,7 +89,8 @@ class Seq2seq(chainer.Chain):
 
         # Using `xp.concatenate(...)` instead of `xp.stack(result)` here to
         # support NumPy 1.9.
-        result = cuda.to_cpu(self.xp.concatenate([[x] for x in result]).T)
+        result = cuda.to_cpu(
+            self.xp.concatenate([self.xp.expand_dims(x, 0) for x in result]).T)
 
         # Remove EOS taggs
         outs = []
