@@ -5,7 +5,7 @@ import warnings
 import numpy
 import six
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import link as link_module
 from chainer import optimizer_hooks
 from chainer import serializer as serializer_module
@@ -114,6 +114,8 @@ class UpdateRule(object):
         self.enabled = True
         self.hyperparam = Hyperparameter(parent_hyperparam)
         self.t = 0
+        self._use_fp32_update = False
+        self._fp32_param = None
 
     @property
     def state(self):
@@ -166,11 +168,29 @@ class UpdateRule(object):
             return
 
         self.t += 1
-        if param.data is not None:
-            self._prepare(param)
-        for hook in six.itervalues(self._hooks):
-            hook(self, param)
-        self.update_core(param)
+
+        if self._use_fp32_update and param.dtype == numpy.float16:
+            if self._fp32_param is None:
+                self._fp32_param = variable.Variable(
+                    param.array.astype(numpy.float32),
+                    name=param.name)
+            fp32_param = self._fp32_param
+            fp32_param.grad = param.grad.astype(numpy.float32)
+
+            if fp32_param.data is not None:
+                self._prepare(fp32_param)
+            for hook in six.itervalues(self._hooks):
+                hook(self, fp32_param)
+            self.update_core(fp32_param)
+
+            param.data = fp32_param.data.astype(param.dtype)
+            fp32_param.grad = None
+        else:
+            if param.data is not None:
+                self._prepare(param)
+            for hook in six.itervalues(self._hooks):
+                hook(self, param)
+            self.update_core(param)
 
     def update_core(self, param):
         """Updates the parameter.
@@ -272,6 +292,25 @@ class UpdateRule(object):
                     else:
                         state[name] = cuda.to_cpu(value)
 
+    def use_fp32_update(self, flag=True):
+        """Enables use of parameter update in fp32.
+
+        This method enables use of parameter update in fp32.
+        When it is enabled and data type of original parameter variable is
+        fp16, fp32 copy of parameter variable is automatically created and
+        retained at self.fp32_param. And the parameter is update in fp32 in
+        the following way.
+
+          1. copys the grad of original parameter variable to the grad of fp32
+             parameter variable, converting its data type from fp16 to fp32.
+          2. updates the parameter in fp32.
+          3. copys the data of fp32 parameter variable to the data of original
+             parameter variable, converting its data type from fp32 to fp16.
+
+        See meth:`update` for details.
+        """
+        self._use_fp32_update = flag
+
 
 class Optimizer(object):
     """Base class of all numerical optimizers.
@@ -305,6 +344,8 @@ class Optimizer(object):
             :meth:`new_epoch` method.
 
     """
+
+    _hooks = None
 
     def setup(self, link):
         """Sets a target link and initializes the optimizer states.
@@ -384,7 +425,7 @@ class Optimizer(object):
         """
         if not callable(hook):
             raise TypeError('hook function is not callable')
-        if not hasattr(self, '_hooks'):
+        if self._hooks is None:
             raise RuntimeError('call `setup` method before `add_hook` method')
 
         if name is None:
@@ -470,11 +511,14 @@ class GradientMethod(Optimizer):
         self.hyperparam = Hyperparameter()
         if isinstance(link, link_module.Link):
             self.setup(link)
+        self._use_fp32_update = False
 
     def setup(self, link):
         super(GradientMethod, self).setup(link)
         for param in link.params():
             param.update_rule = self.create_update_rule()
+            if self._use_fp32_update:
+                param.update_rule.use_fp32_update()
 
     def reallocate_cleared_grads(self):
         """Reallocate gradients cleared by :meth:`~chainer.Variable.cleargrad`.
@@ -565,6 +609,14 @@ class GradientMethod(Optimizer):
 
         """
         raise NotImplementedError
+
+    def use_fp32_update(self, flag=True):
+        """Enables use of parameter update in fp32."""
+        self._use_fp32_update = flag
+        link = getattr(self, "target", None)
+        if link is not None:
+            for param in link.params():
+                param.update_rule.use_fp32_update()
 
 
 class HyperparameterProxy(object):

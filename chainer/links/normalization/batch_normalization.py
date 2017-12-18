@@ -1,7 +1,7 @@
 import numpy
 
+from chainer.backends import cuda
 from chainer import configuration
-from chainer import cuda
 from chainer import functions
 from chainer import initializers
 from chainer import link
@@ -124,6 +124,7 @@ class BatchNormalization(link.Link):
             with cuda.get_device_from_id(self._device_id):
                 gamma = variable.Variable(self.xp.ones(
                     self.avg_mean.shape, dtype=x.dtype))
+
         if hasattr(self, 'beta'):
             beta = self.beta
         else:
