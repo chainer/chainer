@@ -1,7 +1,7 @@
 import numpy
 
+from chainer.backends import cuda
 from chainer import configuration
-from chainer import cuda
 from chainer.functions.normalization import batch_renormalization
 from chainer.links.normalization.batch_normalization import BatchNormalization
 from chainer import variable
@@ -28,6 +28,9 @@ class BatchRenormalization(BatchNormalization):
 
     """
 
+    gamma = None
+    beta = None
+
     def __init__(self, size, rmax=1, dmax=0, decay=0.9, eps=2e-5,
                  dtype=numpy.float32, use_gamma=True, use_beta=True,
                  initial_gamma=None, initial_beta=None,
@@ -42,13 +45,14 @@ class BatchRenormalization(BatchNormalization):
         self.freeze_running_statistics = freeze_running_statistics
 
     def __call__(self, x, finetune=False):
-        if hasattr(self, 'gamma'):
+        if self.gamma is not None:
             gamma = self.gamma
         else:
             with cuda.get_device(self._device_id):
                 gamma = variable.Variable(self.xp.ones(
                     self.avg_mean.shape, dtype=x.dtype))
-        if hasattr(self, 'beta'):
+
+        if self.beta is not None:
             beta = self.beta
         else:
             with cuda.get_device(self._device_id):

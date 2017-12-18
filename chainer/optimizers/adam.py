@@ -2,7 +2,7 @@ import math
 
 import numpy
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import optimizer
 
 
@@ -110,8 +110,9 @@ class Adam(optimizer.GradientMethod):
                  alpha=_default_hyperparam.alpha,
                  beta1=_default_hyperparam.beta1,
                  beta2=_default_hyperparam.beta2,
-                 eps=_default_hyperparam.eps):
-        super(Adam, self).__init__()
+                 eps=_default_hyperparam.eps,
+                 model=None):
+        super(Adam, self).__init__(model)
         self.hyperparam.alpha = alpha
         self.hyperparam.beta1 = beta1
         self.hyperparam.beta2 = beta2

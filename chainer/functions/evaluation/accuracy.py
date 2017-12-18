@@ -1,6 +1,6 @@
 import six
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function
 from chainer.utils import type_check
 
@@ -63,7 +63,7 @@ def accuracy(y, t, ignore_label=None):
             Array whose (i, j, k, ...)-th element indicates the score of
             the class j at the (i, k, ...)-th sample.
             The prediction label :math:`\\hat t` is calculated by the formula
-            :math:`\\hat t(i, k, ...) = \operatorname{\mathrm{argmax}}_j \
+            :math:`\\hat t(i, k, ...) = \\operatorname{\\mathrm{argmax}}_j \
 y(i, j, k, ...)`.
         t (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray` of signed integer):

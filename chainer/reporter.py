@@ -5,8 +5,8 @@ import copy
 import numpy
 import six
 
+from chainer.backends import cuda
 from chainer import configuration
-from chainer import cuda
 from chainer import variable
 
 
@@ -35,13 +35,13 @@ class Reporter(object):
        >>>
        >>> reporter = Reporter()
        >>> observer = object()  # it can be an arbitrary (reference) object
-       >>> reporter.add_observer('my_observer:', observer)
+       >>> reporter.add_observer('my_observer', observer)
        >>> observation = {}
        >>> with reporter.scope(observation):
        ...     reporter.report({'x': 1}, observer)
        ...
        >>> observation
-       {'my_observer:x': 1}
+       {'my_observer/x': 1}
 
     There are also a global API to add values::
 
@@ -50,7 +50,7 @@ class Reporter(object):
        ...     report({'x': 1}, observer)
        ...
        >>> observation
-       {'my_observer:x': 1}
+       {'my_observer/x': 1}
 
     The most important application of Reporter is to report observed values
     from each link or chain in the training and validation procedures.
