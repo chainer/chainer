@@ -66,6 +66,20 @@ public:
     explicit operator float() const { return UnwrapAndCast<float>(); }
     explicit operator double() const { return UnwrapAndCast<double>(); }
 
+private:
+    union {
+        bool bool_;
+        int8_t int8_;
+        int16_t int16_;
+        int32_t int32_;
+        int64_t int64_;
+        uint8_t uint8_;
+        float float32_;
+        double float64_;
+    };
+
+    Dtype dtype_;
+
     template <typename T>
     T UnwrapAndCast() const {
         switch (dtype_) {
@@ -89,19 +103,6 @@ public:
                 assert(0);  // should never be reached
         }
     }
-
-private:
-    union {
-        bool bool_;
-        int8_t int8_;
-        int16_t int16_;
-        int32_t int32_;
-        int64_t int64_;
-        uint8_t uint8_;
-        float float32_;
-        double float64_;
-    };
-    Dtype dtype_;
 };
 
 std::ostream& operator<<(std::ostream& os, Scalar value);
