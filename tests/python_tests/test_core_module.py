@@ -58,9 +58,9 @@ def scalar_data(request):
 class TestScalar(object):
 
     def assert_casts(self, scalar, scalar_data):
+        assert bool(scalar) == bool(scalar_data)
         assert int(scalar) == int(scalar_data)
         assert float(scalar) == float(scalar_data)
-        assert bool(scalar) == bool(scalar_data)
 
     def check_cast(self, scalar_data):
         scalar = xchainer.Scalar(scalar_data)
@@ -69,7 +69,7 @@ class TestScalar(object):
     # operator+()
     def check_pos_cast(self, scalar_data):
         scalar = xchainer.Scalar(scalar_data)
-        self.assert_casts(+scalar, scalar_data)
+        self.assert_casts(+scalar, +scalar_data)
 
     # operator-()
     def check_neg_cast(self, scalar_data):
