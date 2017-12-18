@@ -41,5 +41,16 @@ TEST_F(ArrayTest, ConstArray) {
     ASSERT_EQ(data, x_data);
 }
 
+TEST_F(ArrayTest, Add) {
+    std::shared_ptr<void> data_a = std::unique_ptr<float[]>(new float[3]{1, 1, 1});
+    std::shared_ptr<void> data_b = std::unique_ptr<float[]>(new float[3]{1, 1, 1});
+    std::shared_ptr<void> data_e = std::unique_ptr<float[]>(new float[3]{2, 2, 2});
+    Array a = MakeArray({3, 1}, data_a);
+    Array b = MakeArray({3, 1}, data_b);
+    Array e = MakeArray({3, 1}, data_e);
+    a.iadd(b);
+    ASSERT_NO_THROW(CheckEqual(e, a));
+}
+
 }  // namespace
 }  // namespace xchainer
