@@ -1,9 +1,12 @@
 #pragma once
 
 #include <cstdint>
-#include <gsl/gsl>
 #include <memory>
 #include <utility>
+
+#include <gsl/gsl>
+
+#include "xchainer/array_repr.h"
 #include "xchainer/dtype.h"
 #include "xchainer/shape.h"
 

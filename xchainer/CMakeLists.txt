@@ -14,6 +14,7 @@ install(FILES
     )
 
 add_library(xchainer SHARED
+    array_repr.cc
     dtype.cc
     scalar.cc
     shape.cc
@@ -23,7 +24,7 @@ install(TARGETS xchainer DESTINATION lib)
 
 if(ENABLE_TEST)
     add_executable(xchainer_test
-        array_test.cc
+        array_repr_test.cc
         dtype_test.cc
         scalar_test.cc
         shape_test.cc
