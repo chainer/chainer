@@ -19,14 +19,14 @@ This table compares Chainer with other actively developed deep learning framewor
    ,"RNNs","full","full","full","full","partial","full","full","full","full","full","full","partial","partial","partial","partial"
    ,"Reverse-mode autograd","Y","Y","Y","Y",,"`torch-autograd <https://github.com/twitter/torch-autograd>`_","Y","Y","Y",,"Y","`ngraph <https://github.com/NervanaSystems/ngraph>`_","Y",,"with closures"
    ,"Forward-mode autograd",,,"`tensorflow-forward-ad <https://github.com/renmengye/tensorflow-forward-ad>`_","Y",,,,,,,,,,,
-   ,"Higher-order grads","partial","Y","Y","Y",,,,,,,,,"Y",,
+   ,"Higher-order grads","Y [4]_","Y","Y","Y",,,,,,,,,"Y",,
    ,"Variable-length loops","native","native","while_loop","scan","RNNs only","native","2017","native","RNNs only","none","dynamic axis","none","native","none","native"
    ,"Different architectures per batch","native","native","`fold <https://github.com/tensorflow/fold>`_",,,"torch-autograd","`MinPy <https://github.com/dmlc/MinPy>`_","native",,,,,"native",,"native"
-   "Performance","cuDNN support","full","full","partial","partial","full","full","full","partial","full","partial","full","N/A [4]_",,"partial",
+   "Performance","cuDNN support","full","full","partial","partial","full","full","full","partial","full","partial","full","N/A [5]_",,"partial",
    ,"CPU/GPU generic backend","Y","Y",,,,"Y","Y","Y","Y","Y","Y","Y","Y",,"Y"
    ,"Multi-GPU data parallelism","Y","Y","Y","Y","Y","Y","Y",,"Y","Y","Y","Y","Y","Y",
    ,"Multi-GPU model parallelism","Y","Y","Y","Y","Y","Y","Y",,"Y",,"Y","Y",,,
-   ,"Multiprocessing [5]_","full","partial",,,,,,"full",,,,,,,
+   ,"Multiprocessing [6]_","full","partial",,,,,,"full",,,,,,,
    ,"Distributed training","`ChainerMN <https://github.com/chainer/chainermn>`_","THD","Y",,2017,"`torch-distlearn <https://github.com/twitter/torch-distlearn>`_","Y",,"Y","Spark","Y","Y",,,
    "Misc","Runtime debugging","debug mode, typechecking, pdb","pdb","tfdbg",,,,"Monitor","pdb",,"Java debuggers","cntk.debugging",,"Gallium.jl","gdb","pdb"
    ,"Trainer abstraction","native","`tnt <https://github.com/pytorch/tnt>`_",,"`Blocks <https://github.com/mila-udem/blocks>`_, `Lasagne <https://github.com/Lasagne/Lasagne>`_, `Keras <https://github.com/fchollet/keras>`_","native","`torchnet <https://github.com/torchnet/torchnet>`_",,,"native","native","native","native",,,"native"
@@ -37,8 +37,9 @@ This table compares Chainer with other actively developed deep learning framewor
 .. [1] Define-by-run is in development as of June 2017 and tracked in `dmlc/mxnet#5705 <https://github.com/dmlc/mxnet/pull/5705>`_. It is also possible using the much slower MinPy extension.
 .. [2] Symbolic autograd is in development as of June 2017 and tracked in `deeplearning4j/nd4j#1750 <https://github.com/deeplearning4j/nd4j/pull/1750>`_.
 .. [3] Symbolic autograd is available only with ngraph backend (experimental).
-.. [4] Nervana provides kernels that are meant to compete with cuDNN.
-.. [5] Multiprocessing provides a significant performance improvement only for frameworks that use Python at runtime.
+.. [4] Some functions do not support higher-order differentiation. See `chainer/chainer#2970 <https://github.com/chainer/chainer/pull/2970>`_.
+.. [5] Nervana provides kernels that are meant to compete with cuDNN.
+.. [6] Multiprocessing provides a significant performance improvement only for frameworks that use Python at runtime.
 
 Benchmarks
 ----------
