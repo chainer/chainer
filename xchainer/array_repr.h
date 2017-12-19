@@ -1,7 +1,5 @@
 #pragma once
 
-#include "xchainer/array_repr.h"
-
 #include <iostream>
 #include <string>
 
