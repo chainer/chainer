@@ -75,3 +75,42 @@ class DeconvolutionND(link.Link):
         return deconvolution_nd.deconvolution_nd(
             x, self.W, b=self.b, stride=self.stride, pad=self.pad,
             outsize=self.outsize)
+
+
+
+class Deconvolution1D(DeconvolutionND):
+    """1-dimensional deconvolution layer.
+
+    .. note::
+
+        This link wraps :class:`~chainer.links.DeconvolutionND` by giving 1 to
+        the first argument ``ndim``, so see the details of the behavior in
+        :class:`~chainer.links.DeconvolutionND`.
+
+    """
+
+    def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
+                 nobias=False, initialW=None, initial_bias=None,
+                 cover_all=False):
+        super(Deconvolution1D, self).__init__(
+            1, in_channels, out_channels, ksize, stride, pad, nobias, initialW,
+            initial_bias, cover_all)
+
+
+class Deconvolution3D(DeconvolutionND):
+    """3-dimensional deconvolution layer.
+
+    .. note::
+
+        This link wraps :class:`~chainer.links.DeconvolutionND` by giving 3 to
+        the first argument ``ndim``, so see the details of the behavior in
+        :class:`~chainer.links.DeconvolutionND`.
+
+    """
+
+    def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
+                 nobias=False, initialW=None, initial_bias=None,
+                 cover_all=False):
+        super(Deconvolution1D, self).__init__(
+            3, in_channels, out_channels, ksize, stride, pad, nobias, initialW,
+            initial_bias, cover_all)

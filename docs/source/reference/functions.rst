@@ -256,7 +256,10 @@ Spatial pooling
    chainer.functions.max_pooling_nd
    chainer.functions.roi_pooling_2d
    chainer.functions.spatial_pyramid_pooling_2d
+   chainer.functions.unpooling_1d
    chainer.functions.unpooling_2d
+   chainer.functions.unpooling_3d
+   chainer.functions.unpooling_nd
    chainer.functions.upsampling_2d
 
 

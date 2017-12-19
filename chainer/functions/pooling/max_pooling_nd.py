@@ -165,29 +165,18 @@ def max_pooling_1d(x, ksize, stride=None, pad=0):
 
         This feature is experimental. The interface can change in the future.
 
-    This function calls :func:`~functions.max_pooling_nd` with
-    ``ndim = 1``. This acts similarly to
-    :class:`~functions.Convolution1D`, but it computes the maximum of input
-    spatial patch for each channel without any parameter instead of computing
-    the inner products.
+    .. note::
 
-    .. seealso:: :class:`~chainer.links.Convolution1D`,
-        :func:`max_pooling_nd`
-
-    Args:
-        x(~chainer.Variable): Input variable.
-        ksize (int): Size of pooling window.
-        stride (int or None): Stride of pooling applications.
-            If ``None`` is specified, then it uses same stride as the pooling
-            window size.
-        pad (int): Spatial padding width for the input array.
-        cover_all (bool): If ``True``, all spatial locations are pooled into
-            some output pixels. It may make the output size larger.
-
-    Returns:
-        ~chainer.Variable: Output variable.
+        This function calls :func:`~functions.max_pooling_nd` with
+        ``ndim = 1``, so see the details of the behavior in
+        :func:`~functions.max_pooling_nd`.
 
     """
+    if len(x.shape[2:]) != 1:
+        raise ValueError(
+            'The number of dimensions under channel dimension of the input '
+            '\'x\' should be 1. But the actual ndim was {}.'.fromat(
+                len(x.shape[2:])))
     return MaxPoolingND(1, ksize, stride=stride, pad=pad)(x)
 
 
@@ -198,27 +187,16 @@ def max_pooling_3d(x, ksize, stride=None, pad=0):
 
         This feature is experimental. The interface can change in the future.
 
-    This function calls :func:`~functions.max_pooling_nd` with
-    ``ndim = 3``. This acts similarly to
-    :class:`~functions.Convolution3D`, but it computes the maximum of input
-    spatial patch for each channel without any parameter instead of computing
-    the inner products.
+    .. note::
 
-    Args:
-        x(~chainer.Variable): Input variable.
-        ksize (int or tuple of ints): Size of pooling window.  ``ksize=k`` and
-            ``ksize=(k, k, k)`` are equivalent.
-        stride (int or tuple of ints or None): Stride of pooling applications.
-            ``stride=s`` and ``stride=(s, s, s)`` are equivalent. If
-            ``None`` is specified, then it uses same stride as the pooling
-            window size.
-        pad (int or tuple of ints): Spatial padding width for the input array.
-            ``pad=p`` and ``pad=(p, p, p)`` are equivalent.
-        cover_all (bool): If ``True``, all spatial locations are pooled into
-            some output pixels. It may make the output size larger.
-
-    Returns:
-        ~chainer.Variable: Output variable.
+        This function calls :func:`~functions.max_pooling_nd` with
+        ``ndim = 3``, so see the details of the behavior in
+        :func:`~functions.max_pooling_nd`.
 
     """
+    if len(x.shape[2:]) != 3:
+        raise ValueError(
+            'The number of dimensions under channel dimension of the input '
+            '\'x\' should be 3. But the actual ndim was {}.'.fromat(
+                len(x.shape[2:])))
     return MaxPoolingND(3, ksize, stride=stride, pad=pad)(x)
