@@ -15,6 +15,10 @@ class Repeat(function_node.FunctionNode):
             self.repeats = (repeats,)
         elif isinstance(repeats, tuple) and all(
                 isinstance(x, six.integer_types) for x in repeats):
+            # Although it is not explicitly documented, NumPy/CuPy allows
+            # specifying bool or tuple of bools as `repeats`.
+            # Thus we just check type against `six.integer_types`, without
+            # excluding `bool`.
             self.repeats = repeats
         else:
             raise TypeError('repeats must be int or tuple of ints')
@@ -25,6 +29,7 @@ class Repeat(function_node.FunctionNode):
         if axis is not None and (
                 not isinstance(axis, six.integer_types) or
                 isinstance(axis, bool)):
+            # `axis` cannot be bool, in contrast to `repeats`.
             raise TypeError('axis must be int or None')
         self.axis = axis
 
