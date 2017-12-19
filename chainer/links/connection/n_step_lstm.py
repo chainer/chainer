@@ -111,18 +111,20 @@ class NStepLSTMBase(link.ChainList):
         argument.assert_kwargs_empty(kwargs)
 
         assert isinstance(xs, (list, tuple))
+        xp = cuda.get_array_module(hx, *xs)
         indices = n_step_rnn.argsort_list_descent(xs)
+        indices_array = xp.array(indices)
 
         xs = n_step_rnn.permutate_list(xs, indices, inv=False)
         if hx is None:
             hx = self.init_hx(xs)
         else:
-            hx = permutate.permutate(hx, indices, axis=1, inv=False)
+            hx = permutate.permutate(hx, indices_array, axis=1, inv=False)
 
         if cx is None:
             cx = self.init_hx(xs)
         else:
-            cx = permutate.permutate(cx, indices, axis=1, inv=False)
+            cx = permutate.permutate(cx, indices_array, axis=1, inv=False)
 
         trans_x = transpose_sequence.transpose_sequence(xs)
 
@@ -132,8 +134,8 @@ class NStepLSTMBase(link.ChainList):
         hy, cy, trans_y = self.rnn(
             self.n_layers, self.dropout, hx, cx, ws, bs, trans_x)
 
-        hy = permutate.permutate(hy, indices, axis=1, inv=True)
-        cy = permutate.permutate(cy, indices, axis=1, inv=True)
+        hy = permutate.permutate(hy, indices_array, axis=1, inv=True)
+        cy = permutate.permutate(cy, indices_array, axis=1, inv=True)
         ys = transpose_sequence.transpose_sequence(trans_y)
         ys = n_step_rnn.permutate_list(ys, indices, inv=True)
 

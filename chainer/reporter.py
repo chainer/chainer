@@ -1,12 +1,15 @@
 import collections
 import contextlib
 import copy
+import json
+import warnings
 
 import numpy
 import six
 
 from chainer.backends import cuda
 from chainer import configuration
+from chainer import serializer as serializer_module
 from chainer import variable
 
 
@@ -35,13 +38,13 @@ class Reporter(object):
        >>>
        >>> reporter = Reporter()
        >>> observer = object()  # it can be an arbitrary (reference) object
-       >>> reporter.add_observer('my_observer:', observer)
+       >>> reporter.add_observer('my_observer', observer)
        >>> observation = {}
        >>> with reporter.scope(observation):
        ...     reporter.report({'x': 1}, observer)
        ...
        >>> observation
-       {'my_observer:x': 1}
+       {'my_observer/x': 1}
 
     There are also a global API to add values::
 
@@ -50,7 +53,7 @@ class Reporter(object):
        ...     report({'x': 1}, observer)
        ...
        >>> observation
-       {'my_observer:x': 1}
+       {'my_observer/x': 1}
 
     The most important application of Reporter is to report observed values
     from each link or chain in the training and validation procedures.
@@ -294,6 +297,14 @@ class Summary(object):
             std = xp.sqrt(var)
             return mean, std
 
+    def serialize(self, serializer):
+        try:
+            self._x = serializer('_x', self._x)
+            self._x2 = serializer('_x2', self._x2)
+            self._n = serializer('_n', self._n)
+        except KeyError:
+            warnings.warn('The previous statistics are not saved.')
+
 
 class DictSummary(object):
 
@@ -356,3 +367,21 @@ class DictSummary(object):
             stats[name + '.std'] = std
 
         return stats
+
+    def serialize(self, serializer):
+        if isinstance(serializer, serializer_module.Serializer):
+            names = list(self._summaries.keys())
+            serializer('_names', json.dumps(names))
+            for index, name in enumerate(names):
+                self._summaries[name].serialize(
+                    serializer['_summaries'][str(index)])
+        else:
+            self._summaries.clear()
+            try:
+                names = json.loads(serializer('_names', ''))
+            except KeyError:
+                warnings.warn('The names of statistics are not saved.')
+                return
+            for index, name in enumerate(names):
+                self._summaries[name].serialize(
+                    serializer['_summaries'][str(index)])
