@@ -25,6 +25,7 @@ install(TARGETS xchainer DESTINATION lib)
 
 if(ENABLE_TEST)
     add_executable(xchainer_test
+        array_test.cc
         array_repr_test.cc
         dtype_test.cc
         scalar_test.cc
