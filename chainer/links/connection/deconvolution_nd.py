@@ -85,7 +85,7 @@ class Deconvolution1D(DeconvolutionND):
 
         This link wraps :class:`~chainer.links.DeconvolutionND` by giving 1 to
         the first argument ``ndim``, so see the details of the behavior in
-        :class:`~chainer.links.DeconvolutionND`.
+        the documentation of :class:`~chainer.links.DeconvolutionND`.
 
     """
 
@@ -104,7 +104,7 @@ class Deconvolution3D(DeconvolutionND):
 
         This link wraps :class:`~chainer.links.DeconvolutionND` by giving 3 to
         the first argument ``ndim``, so see the details of the behavior in
-        :class:`~chainer.links.DeconvolutionND`.
+        the documentation of :class:`~chainer.links.DeconvolutionND`.
 
     """
 
