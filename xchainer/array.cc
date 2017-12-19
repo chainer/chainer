@@ -30,11 +30,10 @@ template <typename T>
 void Array::Add(const Array& rhs, Array& out) {
     const Array& lhs = *this;
     auto total_size = shape_.total_size();
-    decltype(total_size) i = 0;
-    T* ldata = (T*)(lhs.data().get());
-    T* rdata = (T*)(rhs.data().get());
-    T* odata = (T*)(out.data().get());
-    for (i = 0; i < total_size; i++) {
+    const T* ldata = static_cast<const T*>(lhs.data().get());
+    const T* rdata = static_cast<const T*>(rhs.data().get());
+    T* odata = static_cast<T*>(out.data().get());
+    for (decltype(total_size) i = 0; i < total_size; i++) {
         odata[i] = ldata[i] + rdata[i];
     }
 }
@@ -43,11 +42,10 @@ template <typename T>
 void Array::Mul(const Array& rhs, Array& out) {
     const Array& lhs = *this;
     auto total_size = shape_.total_size();
-    decltype(total_size) i = 0;
-    T* ldata = (T*)(lhs.data().get());
-    T* rdata = (T*)(rhs.data().get());
-    T* odata = (T*)(out.data().get());
-    for (i = 0; i < total_size; i++) {
+    const T* ldata = static_cast<const T*>(lhs.data().get());
+    const T* rdata = static_cast<const T*>(rhs.data().get());
+    T* odata = static_cast<T*>(out.data().get());
+    for (decltype(total_size) i = 0; i < total_size; i++) {
         odata[i] = ldata[i] * rdata[i];
     }
 }
@@ -125,10 +123,9 @@ void Array::Mul(const Array& rhs, Array& out) {
 template <typename T>
 void CheckEqual(const Array& lhs, const Array& rhs) {
     auto total_size = lhs.shape().total_size();
-    decltype(total_size) i = 0;
-    T* ldata = (T*)(lhs.data().get());
-    T* rdata = (T*)(rhs.data().get());
-    for (i = 0; i < total_size; i++) {
+    const T* ldata = static_cast<const T*>(lhs.data().get());
+    const T* rdata = static_cast<const T*>(rhs.data().get());
+    for (decltype(total_size) i = 0; i < total_size; i++) {
         if (ldata[i] != rdata[i]) {
             // TODO: repl
             throw DataError("data mismatch");
