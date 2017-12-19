@@ -128,76 +128,45 @@ def unpooling_nd(x, ksize, stride=None, pad=0, outsize=None, cover_all=True):
     return UnpoolingND(ndim, ksize, stride, pad, outsize, cover_all)(x)
 
 
-def unpooling_1d(x, ksize, stride=None, pad=0, outsize=None, cover_all=True):
+def unpooling_1d(x, ksize, stride=None, pad=0):
     """Inverse operation of 1-dimensional spatial pooling.
 
     .. warning::
 
         This feature is experimental. The interface can change in the future.
 
-    This function calls :func:`~functions.unpooling_nd` with
-    ``ndim = 1``. 
-    This function acts similary to :class:`~functions.Deconvolution1D`, but
-    it spreads input 1-dimensional array's value without any parameter instead
-    of computing the inner products.
+    .. note::
 
-    Args:
-        x (~chainer.Variable): Input variable.
-        ksize (int): Size of pooling window.
-        stride (int or None): Stride of pooling applications.
-            If ``None`` is specified, then it uses same stride as the pooling
-            window size.
-        pad (int): Spatial padding width for the input array.
-        outsize (None or int): Expected output size of unpooling
-            operation :math:`out_1`. If ``None``, the size is estimated from
-            input size, stride and padding.
-        cover_all (bool): If ``True``, the pooling window is assumed to cover
-            all of the ouput array, eventually the output size may be smaller
-            than that in the case ``cover_all`` is ``False``.
-
-    Returns:
-        ~chainer.Variable: Output variable.
+        This function calls :func:`~functions.unpooling_nd` with
+        ``ndim = 1``, so see the details of the behavior in
+        :func:`~functions.unpooling_nd`.
 
     """
-    if outsize is not None and isinstance(outsize, int):
-        outsize = (outsize,)
-    return UnpoolingND(1, ksize, stride, pad, outsize, cover_all)(x)
+    if len(x.shape[2:]) != 1:
+        raise ValueError(
+            'The number of dimensions under channel dimension of the input '
+            '\'x\' should be 1. But the actual ndim was {}.'.fromat(
+                len(x.shape[2:])))
+    return UnpoolingND(1, ksize, stride=stride, pad=pad)(x)
 
 
-def unpooling_3d(x, ksize, stride=None, pad=0, outsize=None, cover_all=True):
-    """Inverse operation of N-dimensional spatial pooling.
+def unpooling_3d(x, ksize, stride=None, pad=0):
+    """Inverse operation of 3-dimensional spatial pooling.
 
     .. warning::
 
         This feature is experimental. The interface can change in the future.
 
-    This function calls :func:`~functions.unpooling_nd` with
-    ``ndim = 3``. 
-    This function acts similary to :class:`~functions.Deconvolution3D`, but
-    it spreads input 3-dimensional array's value without any parameter instead
-    of computing the inner products.
+    .. note::
 
-    Args:
-        x (~chainer.Variable): Input variable.
-        ksize (int or pair of ints): Size of pooling window
-            :math:`(k_1, k_2, k_3)`. ``ksize=k`` is equivalent to
-            ``(k, k, k)``.
-        stride (int, pair of ints or None): Stride of pooling applications
-            :math:`(s_1, s_2, s_3)`. ``stride=s`` is equivalent to
-            ``(s, s, s)``. If ``None`` is specified, then it uses same
-            stride as the pooling window size.
-        pad (int or pair of ints): Spatial padding width for the input array
-            :math:`(p_1, p_2, p_3)`. ``pad=p`` is equivalent to
-            ``(p, p, p)``.
-        outsize (None or pair of ints): Expected output size of unpooling
-            operation :math:`(out_1, out_2, out_3)`. If ``None``, the size
-            is estimated from input size, stride and padding.
-        cover_all (bool): If ``True``, the pooling window is assumed to cover
-            all of the ouput array, eventually the output size may be smaller
-            than that in the case ``cover_all`` is ``False``.
-
-    Returns:
-        ~chainer.Variable: Output variable.
+        This function calls :func:`~functions.unpooling_nd` with
+        ``ndim = 3``, so see the details of the behavior in
+        :func:`~functions.unpooling_nd`.
 
     """
-    return UnpoolingND(3, ksize, stride, pad, outsize, cover_all)(x)
+    if len(x.shape[2:]) != 3:
+        raise ValueError(
+            'The number of dimensions under channel dimension of the input '
+            '\'x\' should be 3. But the actual ndim was {}.'.fromat(
+                len(x.shape[2:])))
+    return UnpoolingND(3, ksize, stride=stride, pad=pad)(x)

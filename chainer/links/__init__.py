@@ -10,6 +10,8 @@ from chainer.links.connection.convolution_nd import Convolution1D  # NOQA
 from chainer.links.connection.convolution_nd import Convolution3D  # NOQA
 from chainer.links.connection.convolution_nd import ConvolutionND  # NOQA
 from chainer.links.connection.deconvolution_2d import Deconvolution2D  # NOQA
+from chainer.links.connection.deconvolution_nd import Deconvolution1D  # NOQA
+from chainer.links.connection.deconvolution_nd import Deconvolution3D  # NOQA
 from chainer.links.connection.deconvolution_nd import DeconvolutionND  # NOQA
 from chainer.links.connection.depthwise_convolution_2d import DepthwiseConvolution2D  # NOQA
 from chainer.links.connection.dilated_convolution_2d import DilatedConvolution2D  # NOQA

@@ -23,7 +23,9 @@ Learnable connections
    chainer.links.Bias
    chainer.links.Bilinear
    chainer.links.ChildSumTreeLSTM
+   chainer.links.Convolution1D
    chainer.links.Convolution2D
+   chainer.links.Convolution3D
    chainer.links.ConvolutionND
    chainer.links.Deconvolution2D
    chainer.links.DeconvolutionND

@@ -107,6 +107,8 @@ from chainer.functions.connection.convolution_nd import convolution_1d  # NOQA
 from chainer.functions.connection.convolution_nd import convolution_3d  # NOQA
 from chainer.functions.connection.convolution_nd import convolution_nd  # NOQA
 from chainer.functions.connection.deconvolution_2d import deconvolution_2d  # NOQA
+from chainer.functions.connection.deconvolution_nd import deconvolution_1d  # NOQA
+from chainer.functions.connection.deconvolution_nd import deconvolution_3d  # NOQA
 from chainer.functions.connection.deconvolution_nd import deconvolution_nd  # NOQA
 from chainer.functions.connection.depthwise_convolution_2d import depthwise_convolution_2d  # NOQA
 from chainer.functions.connection.dilated_convolution_2d import dilated_convolution_2d  # NOQA
@@ -296,6 +298,8 @@ from chainer.functions.pooling.roi_pooling_2d import ROIPooling2D  # NOQA
 from chainer.functions.pooling.spatial_pyramid_pooling_2d import spatial_pyramid_pooling_2d  # NOQA
 from chainer.functions.pooling.unpooling_2d import Unpooling2D  # NOQA
 from chainer.functions.pooling.unpooling_2d import unpooling_2d  # NOQA
+from chainer.functions.pooling.unpooling_nd import unpooling_1d  # NOQA
+from chainer.functions.pooling.unpooling_nd import unpooling_3d  # NOQA
 from chainer.functions.pooling.unpooling_nd import unpooling_nd  # NOQA
 from chainer.functions.pooling.unpooling_nd import UnpoolingND  # NOQA
 from chainer.functions.pooling.upsampling_2d import Upsampling2D  # NOQA

@@ -443,149 +443,40 @@ def deconvolution_1d(x, W, b=None, stride=1, pad=0, outsize=None):
     .. note::
 
         This function calls :func:`~chainer.functions.deconvolution_nd` with
-        ``ndim = 1``.
-        
-    This is an implementation of 1-dimensional deconvolution which generalizes
-    two-dimensional one. In most of deep learning frameworks and papers, this
-    function is called **transposed convolution**. But because of historical
-    reasons (e.g. paper by Ziller `Deconvolutional Networks`_) and backward
-    compatibility, this function is called **deconvolution** in Chainer.
-
-    .. _Deconvolutional Networks: \
-http://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf
-
-    It takes three variables: the input ``x``, the filter weight ``W``, and the
-    bias vector ``b``.
-
-    Notation: here is a notation for dimensionalities.
-
-    - :math:`N` is the number of spatial dimensions.
-    - :math:`n` is the batch size.
-    - :math:`c_I` and :math:`c_O` are the number of the input and output
-      channels, respectively.
-    - :math:`d_1, d_2, ..., d_N` are the size of each axis of the input's
-      spatial dimensions, respectively.
-    - :math:`k_1, k_2, ..., k_N` are the size of each axis of the filters,
-      respectively.
-    - :math:`p_1, p_2, ..., p_N` are the size of each axis of the spatial
-      padding size, respectively.
-    - :math:`s_1, s_2, ..., s_N` are the stride of each axis of filter
-      application, respectively.
-
-    If ``outsize`` option is ``None``, the output size
-    :math:`(l_1, l_2, ..., l_N)` is determined by the following equations with
-    the items in the above list:
-
-    .. math::
-
-       l_n = s_n (d_n - 1)  + k_n - 2 p_n \\ \\ (n = 1, ..., N)
-
-    If ``outsize`` option is given, the output size is determined by
-    ``outsize``. In this case, the ``outsize`` :math:`(l_1, l_2, ..., l_N)`
-    must satisfy the following equations:
-
-    .. math::
-
-       d_n = \\lfloor (l_n + 2p_n - k_n) / s_n \\rfloor + 1 \\ \\ \
-       (n = 1, ..., N)
-
-    Deconvolution links can use a feature of cuDNN called autotuning, which
-    selects the most efficient CNN algorithm for images of fixed-size,
-    can provide a significant performance boost for fixed neural nets.
-    To enable, set `chainer.using_config('autotune', True)`
-
-    Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
-            Input variable of shape :math:`(n, c_I, d_1, d_2, ..., d_N)`.
-        W (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
-            Weight variable of shape :math:`(c_I, c_O, k_1, k_2, ..., k_N)`.
-        b (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
-            One-dimensional bias variable with length :math:`c_O` (optional).
-        stride (:class:`int` or :class:`tuple` of :class:`int` s):
-            Stride of filter applications :math:`(s_1, s_2, ..., s_N)`.
-            ``stride=s`` is equivalent to ``(s, s, ..., s)``.
-        pad (:class:`int` or :class:`tuple` of :class:`int` s):
-            Spatial padding width for input arrays
-            :math:`(p_1, p_2, ..., p_N)`. ``pad=p`` is equivalent to
-            ``(p, p, ..., p)``.
-        outsize (:class:`tuple` of :class:`int` s):
-            Expected output size of deconvolutional operation. It should be a
-            tuple of ints :math:`(l_1, l_2, ..., l_N)`. Default value is
-            ``None`` and the outsize is estimated by input size, stride and
-            pad.
-
-    Returns:
-        ~chainer.Variable:
-            Output variable of shape :math:`(n, c_O, l_1, l_2, ..., l_N)`.
-
-    .. seealso:: :class:`links.DeconvolutionND`, :func:`deconvolution_2d`
-
-    .. admonition:: Example
-
-        **Example1**: the case when ``outsize`` is not given.
-
-        >>> n = 10
-        >>> c_i, c_o = 3, 1
-        >>> d1, d2, d3 = 5, 10, 15
-        >>> k1, k2, k3 = 10, 10, 10
-        >>> p1, p2, p3 = 5, 5, 5
-        >>> x = np.random.uniform(0, 1, (n, c_i, d1, d2, d3)).astype('f')
-        >>> x.shape
-        (10, 3, 5, 10, 15)
-        >>> W = np.random.uniform(0, 1, (c_i, c_o, k1, k2, k3)).astype('f')
-        >>> W.shape
-        (3, 1, 10, 10, 10)
-        >>> b = np.random.uniform(0, 1, (c_o)).astype('f')
-        >>> b.shape
-        (1,)
-        >>> s1, s2, s3 = 2, 4, 6
-        >>> y = F.deconvolution_nd(x, W, b, stride=(s1, s2, s3), \
-pad=(p1, p2, p3))
-        >>> y.shape
-        (10, 1, 8, 36, 84)
-        >>> l1 = s1 * (d1 - 1) + k1 - 2 * p1
-        >>> l2 = s2 * (d2 - 1) + k2 - 2 * p2
-        >>> l3 = s3 * (d3 - 1) + k3 - 2 * p3
-        >>> y.shape == (n, c_o, l1, l2, l3)
-        True
-
-        **Example2**: the case when ``outsize`` is given.
-
-        >>> n = 10
-        >>> c_i, c_o = 3, 1
-        >>> d1, d2, d3 = 5, 10, 15
-        >>> k1, k2, k3 = 10, 10, 10
-        >>> p1, p2, p3 = 5, 5, 5
-        >>> x = np.random.uniform(0, 1, (n, c_i, d1, d2, d3)).astype('f')
-        >>> x.shape
-        (10, 3, 5, 10, 15)
-        >>> W = np.random.uniform(0, 1, (c_i, c_o, k1, k2, k3)).astype('f')
-        >>> W.shape
-        (3, 1, 10, 10, 10)
-        >>> b = np.random.uniform(0, 1, (c_o)).astype('f')
-        >>> b.shape
-        (1,)
-        >>> s1, s2, s3 = 2, 4, 6
-        >>> l1, l2, l3 = 9, 38, 87
-        >>> d1 == int((l1 + 2 * p1 - k1) / s1) + 1
-        True
-        >>> d2 == int((l2 + 2 * p2 - k2) / s2) + 1
-        True
-        >>> d3 == int((l3 + 2 * p3 - k3) / s3) + 1
-        True
-        >>> y = F.deconvolution_nd(x, W, b, stride=(s1, s2, s3), \
-pad=(p1, p2, p3), outsize=(l1, l2, l3))
-        >>> y.shape
-        (10, 1, 9, 38, 87)
-        >>> y.shape == (n, c_o, l1, l2, l3)
-        True
-
+        ``ndim = 1``, so see the details of the behavior in
+        :func:`~chainer.functions.deconvolution_nd`.
+    
     """
-    ndim = len(x.shape[2:])
-    func = DeconvolutionND(ndim, stride, pad, outsize)
+    if len(x.shape[2:]) != 1:
+        raise ValueError(
+            'The number of dimensions under channel dimension of the input '
+            '\'x\' should be 1. But the actual ndim was {}.'.fromat(
+                len(x.shape[2:])))
+
+    func = DeconvolutionND(1, stride, pad, outsize)
+    if b is None:
+        return func(x, W)
+    else:
+        return func(x, W, b)
+
+
+def deconvolution_3d(x, W, b=None, stride=1, pad=0, outsize=None):
+    """3-dimensional deconvolution function.
+
+    .. note::
+
+        This function calls :func:`~chainer.functions.deconvolution_nd` with
+        ``ndim = 3``, so see the details of the behavior in
+        :func:`~chainer.functions.deconvolution_nd`.
+    
+    """
+    if len(x.shape[2:]) != 3:
+        raise ValueError(
+            'The number of dimensions under channel dimension of the input '
+            '\'x\' should be 3. But the actual ndim was {}.'.fromat(
+                len(x.shape[2:])))
+
+    func = DeconvolutionND(3, stride, pad, outsize)
     if b is None:
         return func(x, W)
     else:

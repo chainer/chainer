@@ -155,32 +155,18 @@ def average_pooling_1d(x, ksize, stride=None, pad=0):
 
         This feature is experimental. The interface can change in the future.
 
-    This function calls :func:`~functions.average_pooling_nd` with
-    ``ndim = 1``. This acts similarly to
-    :class:`~functions.Convolution1D`, but it computes the average of input
-    spatial patch for each channel without any parameter instead of computing
-    the inner products.
-
-    .. seealso:: :class:`~chainer.links.Convolution1D`,
-        :func:`average_pooling_nd`
-
-    Args:
-        x(~chainer.Variable): Input variable.
-        ksize (int): Size of pooling window.
-        stride (int or None): Stride of pooling applications.
-            If ``None`` is specified, then it uses same stride as the pooling
-            window size.
-        pad (int): Spatial padding width for the input array.
-
-    Returns:
-        ~chainer.Variable: Output variable.
-
     .. note::
 
-       This function currently does not support ``cover_all`` mode as
-       :func:`max_pooling_nd`. Average pooling runs in non-cover-all mode.
+        This function calls :func:`~functions.average_pooling_nd` with
+        ``ndim = 1``, so see the details of the behavior in
+        :func:`~functions.average_pooling_nd`.
 
     """
+    if len(x.shape[2:]) != 1:
+        raise ValueError(
+            'The number of dimensions under channel dimension of the input '
+            '\'x\' should be 1. But the actual ndim was {}.'.fromat(
+                len(x.shape[2:])))
     return AveragePoolingND(1, ksize, stride=stride, pad=pad)(x)
 
 
@@ -191,30 +177,17 @@ def average_pooling_3d(x, ksize, stride=None, pad=0):
 
         This feature is experimental. The interface can change in the future.
 
-    This function calls :func:`~functions.average_pooling_nd` with
-    ``ndim = 3``. This acts similarly to
-    :class:`~functions.Convolution3D`, but it computes the average of input
-    spatial patch for each channel without any parameter instead of computing
-    the inner products.
-
-    Args:
-        x(~chainer.Variable): Input variable.
-        ksize (int): Size of pooling window.  ``ksize=k`` and
-            ``ksize=(k, k)`` are equivalent.
-        stride (int or None): Stride of pooling applications.
-            ``stride=s`` and ``stride=(s, s)`` are equivalent. If
-            ``None`` is specified, then it uses same stride as the pooling
-            window size.
-        pad (int): Spatial padding width for the input array.
-            ``pad=p`` and ``pad=(p, p)`` are equivalent.
-
-    Returns:
-        ~chainer.Variable: Output variable.
-
     .. note::
 
-       This function currently does not support ``cover_all`` mode as
-       :func:`max_pooling_nd`. Average pooling runs in non-cover-all mode.
+        This function calls :func:`~functions.average_pooling_nd` with
+        ``ndim = 3``, so see the details of the behavior in
+        :func:`~functions.average_pooling_nd`.
 
     """
+    if len(x.shape[2:]) != 3:
+        raise ValueError(
+            'The number of dimensions under channel dimension of the input '
+            '\'x\' should be 3. But the actual ndim was {}.'.fromat(
+                len(x.shape[2:])))
     return AveragePoolingND(3, ksize, stride=stride, pad=pad)(x)
+
