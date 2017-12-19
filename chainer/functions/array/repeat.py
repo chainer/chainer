@@ -87,7 +87,7 @@ class RepeatGrad(function_node.FunctionNode):
                 gx = gy.reshape(shape).sum(axis=axis + 1)
             return gx,
 
-        if axis == None:
+        if axis is None:
             pos = 0
             gx = xp.zeros(int(numpy.prod(shape)), dtype)
             for (i, r) in enumerate(repeats):
