@@ -1,1 +1,1 @@
-from ._core import *  # NOQA
+from xchainer._core import *  # NOQA
