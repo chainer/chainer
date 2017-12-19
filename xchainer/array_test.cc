@@ -39,9 +39,11 @@ TEST_F(ArrayTest, ConstArray) {
 
 TEST_F(ArrayTest, IAdd) {
     {
-        Array a = MakeArray<bool>({3, 1}, new bool[3]{true, true, true});
-        Array b = MakeArray<bool>({3, 1}, new bool[3]{true, true, true});
-        ASSERT_THROW(a.IAdd(b), DtypeError);
+        Array a = MakeArray<bool>({4, 1}, new bool[4]{true, true, false, false});
+        Array b = MakeArray<bool>({4, 1}, new bool[4]{true, false, true, false});
+        Array e = MakeArray<bool>({4, 1}, new bool[4]{true, true, true, false});
+        a.IAdd(b);
+        ASSERT_NO_THROW(CheckEqual(e, a));
     }
     {
         Array a = MakeArray<int8_t>({3, 1}, new int8_t[3]{1, 2, 3});
@@ -61,9 +63,11 @@ TEST_F(ArrayTest, IAdd) {
 
 TEST_F(ArrayTest, IMul) {
     {
-        Array a = MakeArray<bool>({3, 1}, new bool[3]{true, true, true});
-        Array b = MakeArray<bool>({3, 1}, new bool[3]{true, true, true});
-        ASSERT_THROW(a.IMul(b), DtypeError);
+        Array a = MakeArray<bool>({4, 1}, new bool[4]{true, true, false, false});
+        Array b = MakeArray<bool>({4, 1}, new bool[4]{true, false, true, false});
+        Array e = MakeArray<bool>({4, 1}, new bool[4]{true, false, false, false});
+        a.IMul(b);
+        ASSERT_NO_THROW(CheckEqual(e, a));
     }
     {
         Array a = MakeArray<int8_t>({3, 1}, new int8_t[3]{1, 2, 3});
@@ -83,9 +87,11 @@ TEST_F(ArrayTest, IMul) {
 
 TEST_F(ArrayTest, Add) {
     {
-        Array a = MakeArray<bool>({3, 1}, new bool[3]{true, true, true});
-        Array b = MakeArray<bool>({3, 1}, new bool[3]{true, true, true});
-        ASSERT_THROW(a.Add(b), DtypeError);
+        Array a = MakeArray<bool>({4, 1}, new bool[4]{true, true, false, false});
+        Array b = MakeArray<bool>({4, 1}, new bool[4]{true, false, true, false});
+        Array e = MakeArray<bool>({4, 1}, new bool[4]{true, true, true, false});
+        Array o = a.Add(b);
+        ASSERT_NO_THROW(CheckEqual(e, o));
     }
     {
         Array a = MakeArray<int8_t>({3, 1}, new int8_t[3]{1, 2, 3});
@@ -105,9 +111,11 @@ TEST_F(ArrayTest, Add) {
 
 TEST_F(ArrayTest, Mul) {
     {
-        Array a = MakeArray<bool>({3, 1}, new bool[3]{true, true, true});
-        Array b = MakeArray<bool>({3, 1}, new bool[3]{true, true, true});
-        ASSERT_THROW(a.Mul(b), DtypeError);
+        Array a = MakeArray<bool>({4, 1}, new bool[4]{true, true, false, false});
+        Array b = MakeArray<bool>({4, 1}, new bool[4]{true, false, true, false});
+        Array e = MakeArray<bool>({4, 1}, new bool[4]{true, false, false, false});
+        Array o = a.Mul(b);
+        ASSERT_NO_THROW(CheckEqual(e, o));
     }
     {
         Array a = MakeArray<int8_t>({3, 1}, new int8_t[3]{1, 2, 3});

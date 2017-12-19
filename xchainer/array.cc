@@ -23,7 +23,7 @@ Array& Array::IAdd(const Array& other) {
     CheckEqual(shape_, other.shape());
     switch (dtype_) {
         case Dtype::kBool:
-            throw DtypeError("bool cannot be added");
+            return IAdd<bool>(other);
         case Dtype::kInt8:
             return IAdd<int8_t>(other);
         case Dtype::kInt16:
@@ -62,7 +62,7 @@ Array& Array::IMul(const Array& other) {
     CheckEqual(shape_, other.shape());
     switch (dtype_) {
         case Dtype::kBool:
-            throw DtypeError("bool cannot be multiplied");
+            return IMul<bool>(other);
         case Dtype::kInt8:
             return IMul<int8_t>(other);
         case Dtype::kInt16:
@@ -103,7 +103,7 @@ Array Array::Add(const Array& other) {
     CheckEqual(shape_, other.shape());
     switch (dtype_) {
         case Dtype::kBool:
-            throw DtypeError("bool cannot be added");
+            return Add<bool>(other);
         case Dtype::kInt8:
             return Add<int8_t>(other);
         case Dtype::kInt16:
@@ -144,7 +144,7 @@ Array Array::Mul(const Array& other) {
     CheckEqual(shape_, other.shape());
     switch (dtype_) {
         case Dtype::kBool:
-            throw DtypeError("bool cannot be multiplied");
+            return Mul<bool>(other);
         case Dtype::kInt8:
             return Mul<int8_t>(other);
         case Dtype::kInt16:
