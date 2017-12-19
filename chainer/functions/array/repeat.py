@@ -40,7 +40,14 @@ class Repeat(function_node.FunctionNode):
         self.retain_inputs((0,))
         x, = inputs
         xp = cuda.get_array_module(x)
-        return xp.repeat(x, self.repeats, self.axis),
+        repeats = self.repeats
+
+        # Workaroud for bug in NumPy 1.9 that specifying one element list to
+        # `repeats` fails to broadcast.
+        if len(repeats) == 1:
+            repeats = repeats[0]
+
+        return xp.repeat(x, repeats, self.axis),
 
     def backward(self, indexes, grad_outputs):
         x, = self.get_retained_inputs()

@@ -53,7 +53,7 @@ class TestRepeat(unittest.TestCase):
         self.repeats = self.params['repeats']
         self.axis = self.params['axis']
         self.x = numpy.random.uniform(-1, 1, self.in_shape).astype(self.dtype)
-        out_shape = numpy.repeat(self.x, self.repeats, self.axis).shape
+        out_shape = self._repeat(self.x, self.repeats, self.axis).shape
         self.gy = numpy.random.uniform(-1, 1, out_shape).astype(self.dtype)
         self.ggx = numpy.random.uniform(-1, 1, self.in_shape) \
             .astype(self.dtype)
@@ -65,9 +65,16 @@ class TestRepeat(unittest.TestCase):
             self.check_backward_options = {
                 'dtype': numpy.float64, 'atol': 2 ** -4, 'rtol': 2 ** -4}
 
+    @classmethod
+    def _repeat(cls, arr, repeats, axis=None):
+        # Workaround NumPy 1.9 issue.
+        if isinstance(repeats, tuple) and len(repeats) == 1:
+            repeats = repeats[0]
+        return numpy.repeat(arr, repeats, axis)
+
     def check_forward(self, x_data):
         y = functions.repeat(x_data, self.repeats, self.axis)
-        y_expected = numpy.repeat(self.x, self.repeats, self.axis)
+        y_expected = self._repeat(self.x, self.repeats, self.axis)
         self.assertEqual(y.dtype, y_expected.dtype)
         testing.assert_allclose(
             y.data, y_expected, **self.check_forward_options)
