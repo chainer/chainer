@@ -53,9 +53,12 @@ private:
     int64_t offset_;
 
     template <typename T>
-    Array& Add(const Array& rhs, Array& out);
+    void Add(const Array& rhs, Array& out);
     template <typename T>
-    Array& Mul(const Array& rhs, Array& out);
+    void Mul(const Array& rhs, Array& out);
+
+    void Add(const Array& rhs, Array& out);
+    void Mul(const Array& rhs, Array& out);
 };
 
 // Throws an exception if two arrays mismatch (for debug purpose)
