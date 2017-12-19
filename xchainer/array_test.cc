@@ -11,13 +11,8 @@ namespace {
 class ArrayTest : public ::testing::Test {
 public:
     template <typename T>
-    Array MakeArray(std::initializer_list<int64_t> shape, std::shared_ptr<void>& data) {
+    Array MakeArray(std::initializer_list<int64_t> shape, std::shared_ptr<void> data) {
         return {shape, TypeToDtype<T>, data};
-    }
-
-    template <typename T>
-    Array MakeArray(std::initializer_list<int64_t> shape, T* data) {
-        return {shape, TypeToDtype<T>, std::shared_ptr<void>(data)};
     }
 };
 
@@ -44,23 +39,23 @@ TEST_F(ArrayTest, ConstArray) {
 
 TEST_F(ArrayTest, IAdd) {
     {
-        Array a = MakeArray<bool>({4, 1}, new bool[4]{true, true, false, false});
-        Array b = MakeArray<bool>({4, 1}, new bool[4]{true, false, true, false});
-        Array e = MakeArray<bool>({4, 1}, new bool[4]{true, true, true, false});
+        Array a = MakeArray<bool>({4, 1}, std::unique_ptr<bool[]>(new bool[4]{true, true, false, false}));
+        Array b = MakeArray<bool>({4, 1}, std::unique_ptr<bool[]>(new bool[4]{true, false, true, false}));
+        Array e = MakeArray<bool>({4, 1}, std::unique_ptr<bool[]>(new bool[4]{true, true, true, false}));
         a.IAdd(b);
         ASSERT_NO_THROW(CheckEqual(e, a));
     }
     {
-        Array a = MakeArray<int8_t>({3, 1}, new int8_t[3]{1, 2, 3});
-        Array b = MakeArray<int8_t>({3, 1}, new int8_t[3]{1, 2, 3});
-        Array e = MakeArray<int8_t>({3, 1}, new int8_t[3]{2, 4, 6});
+        Array a = MakeArray<int8_t>({3, 1}, std::unique_ptr<int8_t[]>(new int8_t[3]{1, 2, 3}));
+        Array b = MakeArray<int8_t>({3, 1}, std::unique_ptr<int8_t[]>(new int8_t[3]{1, 2, 3}));
+        Array e = MakeArray<int8_t>({3, 1}, std::unique_ptr<int8_t[]>(new int8_t[3]{2, 4, 6}));
         a.IAdd(b);
         ASSERT_NO_THROW(CheckEqual(e, a));
     }
     {
-        Array a = MakeArray<float>({3, 1}, new float[3]{1, 2, 3});
-        Array b = MakeArray<float>({3, 1}, new float[3]{1, 2, 3});
-        Array e = MakeArray<float>({3, 1}, new float[3]{2, 4, 6});
+        Array a = MakeArray<float>({3, 1}, std::unique_ptr<float[]>(new float[3]{1, 2, 3}));
+        Array b = MakeArray<float>({3, 1}, std::unique_ptr<float[]>(new float[3]{1, 2, 3}));
+        Array e = MakeArray<float>({3, 1}, std::unique_ptr<float[]>(new float[3]{2, 4, 6}));
         a.IAdd(b);
         ASSERT_NO_THROW(CheckEqual(e, a));
     }
@@ -68,23 +63,23 @@ TEST_F(ArrayTest, IAdd) {
 
 TEST_F(ArrayTest, IMul) {
     {
-        Array a = MakeArray<bool>({4, 1}, new bool[4]{true, true, false, false});
-        Array b = MakeArray<bool>({4, 1}, new bool[4]{true, false, true, false});
-        Array e = MakeArray<bool>({4, 1}, new bool[4]{true, false, false, false});
+        Array a = MakeArray<bool>({4, 1}, std::unique_ptr<bool[]>(new bool[4]{true, true, false, false}));
+        Array b = MakeArray<bool>({4, 1}, std::unique_ptr<bool[]>(new bool[4]{true, false, true, false}));
+        Array e = MakeArray<bool>({4, 1}, std::unique_ptr<bool[]>(new bool[4]{true, false, false, false}));
         a.IMul(b);
         ASSERT_NO_THROW(CheckEqual(e, a));
     }
     {
-        Array a = MakeArray<int8_t>({3, 1}, new int8_t[3]{1, 2, 3});
-        Array b = MakeArray<int8_t>({3, 1}, new int8_t[3]{1, 2, 3});
-        Array e = MakeArray<int8_t>({3, 1}, new int8_t[3]{1, 4, 9});
+        Array a = MakeArray<int8_t>({3, 1}, std::unique_ptr<int8_t[]>(new int8_t[3]{1, 2, 3}));
+        Array b = MakeArray<int8_t>({3, 1}, std::unique_ptr<int8_t[]>(new int8_t[3]{1, 2, 3}));
+        Array e = MakeArray<int8_t>({3, 1}, std::unique_ptr<int8_t[]>(new int8_t[3]{1, 4, 9}));
         a.IMul(b);
         ASSERT_NO_THROW(CheckEqual(e, a));
     }
     {
-        Array a = MakeArray<float>({3, 1}, new float[3]{1, 2, 3});
-        Array b = MakeArray<float>({3, 1}, new float[3]{1, 2, 3});
-        Array e = MakeArray<float>({3, 1}, new float[3]{1, 4, 9});
+        Array a = MakeArray<float>({3, 1}, std::unique_ptr<float[]>(new float[3]{1, 2, 3}));
+        Array b = MakeArray<float>({3, 1}, std::unique_ptr<float[]>(new float[3]{1, 2, 3}));
+        Array e = MakeArray<float>({3, 1}, std::unique_ptr<float[]>(new float[3]{1, 4, 9}));
         a.IMul(b);
         ASSERT_NO_THROW(CheckEqual(e, a));
     }
@@ -92,23 +87,23 @@ TEST_F(ArrayTest, IMul) {
 
 TEST_F(ArrayTest, Add) {
     {
-        Array a = MakeArray<bool>({4, 1}, new bool[4]{true, true, false, false});
-        Array b = MakeArray<bool>({4, 1}, new bool[4]{true, false, true, false});
-        Array e = MakeArray<bool>({4, 1}, new bool[4]{true, true, true, false});
+        Array a = MakeArray<bool>({4, 1}, std::unique_ptr<bool[]>(new bool[4]{true, true, false, false}));
+        Array b = MakeArray<bool>({4, 1}, std::unique_ptr<bool[]>(new bool[4]{true, false, true, false}));
+        Array e = MakeArray<bool>({4, 1}, std::unique_ptr<bool[]>(new bool[4]{true, true, true, false}));
         Array o = a.Add(b);
         ASSERT_NO_THROW(CheckEqual(e, o));
     }
     {
-        Array a = MakeArray<int8_t>({3, 1}, new int8_t[3]{1, 2, 3});
-        Array b = MakeArray<int8_t>({3, 1}, new int8_t[3]{1, 2, 3});
-        Array e = MakeArray<int8_t>({3, 1}, new int8_t[3]{2, 4, 6});
+        Array a = MakeArray<int8_t>({3, 1}, std::unique_ptr<int8_t[]>(new int8_t[3]{1, 2, 3}));
+        Array b = MakeArray<int8_t>({3, 1}, std::unique_ptr<int8_t[]>(new int8_t[3]{1, 2, 3}));
+        Array e = MakeArray<int8_t>({3, 1}, std::unique_ptr<int8_t[]>(new int8_t[3]{2, 4, 6}));
         Array o = a.Add(b);
         ASSERT_NO_THROW(CheckEqual(e, o));
     }
     {
-        Array a = MakeArray<float>({3, 1}, new float[3]{1, 2, 3});
-        Array b = MakeArray<float>({3, 1}, new float[3]{1, 2, 3});
-        Array e = MakeArray<float>({3, 1}, new float[3]{2, 4, 6});
+        Array a = MakeArray<float>({3, 1}, std::unique_ptr<float[]>(new float[3]{1, 2, 3}));
+        Array b = MakeArray<float>({3, 1}, std::unique_ptr<float[]>(new float[3]{1, 2, 3}));
+        Array e = MakeArray<float>({3, 1}, std::unique_ptr<float[]>(new float[3]{2, 4, 6}));
         Array o = a.Add(b);
         ASSERT_NO_THROW(CheckEqual(e, o));
     }
@@ -116,23 +111,23 @@ TEST_F(ArrayTest, Add) {
 
 TEST_F(ArrayTest, Mul) {
     {
-        Array a = MakeArray<bool>({4, 1}, new bool[4]{true, true, false, false});
-        Array b = MakeArray<bool>({4, 1}, new bool[4]{true, false, true, false});
-        Array e = MakeArray<bool>({4, 1}, new bool[4]{true, false, false, false});
+        Array a = MakeArray<bool>({4, 1}, std::unique_ptr<bool[]>(new bool[4]{true, true, false, false}));
+        Array b = MakeArray<bool>({4, 1}, std::unique_ptr<bool[]>(new bool[4]{true, false, true, false}));
+        Array e = MakeArray<bool>({4, 1}, std::unique_ptr<bool[]>(new bool[4]{true, false, false, false}));
         Array o = a.Mul(b);
         ASSERT_NO_THROW(CheckEqual(e, o));
     }
     {
-        Array a = MakeArray<int8_t>({3, 1}, new int8_t[3]{1, 2, 3});
-        Array b = MakeArray<int8_t>({3, 1}, new int8_t[3]{1, 2, 3});
-        Array e = MakeArray<int8_t>({3, 1}, new int8_t[3]{1, 4, 9});
+        Array a = MakeArray<int8_t>({3, 1}, std::unique_ptr<int8_t[]>(new int8_t[3]{1, 2, 3}));
+        Array b = MakeArray<int8_t>({3, 1}, std::unique_ptr<int8_t[]>(new int8_t[3]{1, 2, 3}));
+        Array e = MakeArray<int8_t>({3, 1}, std::unique_ptr<int8_t[]>(new int8_t[3]{1, 4, 9}));
         Array o = a.Mul(b);
         ASSERT_NO_THROW(CheckEqual(e, o));
     }
     {
-        Array a = MakeArray<float>({3, 1}, new float[3]{1, 2, 3});
-        Array b = MakeArray<float>({3, 1}, new float[3]{1, 2, 3});
-        Array e = MakeArray<float>({3, 1}, new float[3]{1, 4, 9});
+        Array a = MakeArray<float>({3, 1}, std::unique_ptr<float[]>(new float[3]{1, 2, 3}));
+        Array b = MakeArray<float>({3, 1}, std::unique_ptr<float[]>(new float[3]{1, 2, 3}));
+        Array e = MakeArray<float>({3, 1}, std::unique_ptr<float[]>(new float[3]{1, 4, 9}));
         Array o = a.Mul(b);
         ASSERT_NO_THROW(CheckEqual(e, o));
     }
