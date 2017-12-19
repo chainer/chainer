@@ -5,160 +5,144 @@
 namespace xchainer {
 
 template <typename T>
-Array& Array::IAdd(const Array& other) {
+Array& Array::Add(const Array& rhs, Array& out) {
+    const Array& lhs = *this;
     auto total_size = shape_.total_size();
     decltype(total_size) i = 0;
-    T* ldata = (T*)(data_.get());
-    T* rdata = (T*)(other.data().get());
-    for (i = 0; i < total_size; i++) {
-        ldata[i] += rdata[i];
-    }
-    return *this;
-}
-
-Array& Array::IAdd(const Array& other) {
-    // TODO: dtype conversion
-    CheckEqual(dtype_, other.dtype());
-    // TODO: broadcasting
-    CheckEqual(shape_, other.shape());
-    switch (dtype_) {
-        case Dtype::kBool:
-            return IAdd<bool>(other);
-        case Dtype::kInt8:
-            return IAdd<int8_t>(other);
-        case Dtype::kInt16:
-            return IAdd<int16_t>(other);
-        case Dtype::kInt32:
-            return IAdd<int32_t>(other);
-        case Dtype::kInt64:
-            return IAdd<int64_t>(other);
-        case Dtype::kUInt8:
-            return IAdd<uint8_t>(other);
-        case Dtype::kFloat32:
-            return IAdd<float>(other);
-        case Dtype::kFloat64:
-            return IAdd<double>(other);
-        default:
-            assert(0);  // should never be reached
-    }
-}
-
-template <typename T>
-Array& Array::IMul(const Array& other) {
-    auto total_size = shape_.total_size();
-    decltype(total_size) i = 0;
-    T* ldata = (T*)(data_.get());
-    T* rdata = (T*)(other.data().get());
-    for (i = 0; i < total_size; i++) {
-        ldata[i] *= rdata[i];
-    }
-    return *this;
-}
-
-Array& Array::IMul(const Array& other) {
-    // TODO: dtype conversion
-    CheckEqual(dtype_, other.dtype());
-    // TODO: broadcasting
-    CheckEqual(shape_, other.shape());
-    switch (dtype_) {
-        case Dtype::kBool:
-            return IMul<bool>(other);
-        case Dtype::kInt8:
-            return IMul<int8_t>(other);
-        case Dtype::kInt16:
-            return IMul<int16_t>(other);
-        case Dtype::kInt32:
-            return IMul<int32_t>(other);
-        case Dtype::kInt64:
-            return IMul<int64_t>(other);
-        case Dtype::kUInt8:
-            return IMul<uint8_t>(other);
-        case Dtype::kFloat32:
-            return IMul<float>(other);
-        case Dtype::kFloat64:
-            return IMul<double>(other);
-        default:
-            assert(0);  // should never be reached
-    }
-}
-
-template <typename T>
-Array Array::Add(const Array& other) {
-    auto total_size = shape_.total_size();
-    decltype(total_size) i = 0;
-    T* ldata = (T*)(data_.get());
-    T* rdata = (T*)(other.data().get());
-    T* odata = new T[total_size];
+    T* ldata = (T*)(lhs.data().get());
+    T* rdata = (T*)(rhs.data().get());
+    T* odata = (T*)(out.data().get());
     for (i = 0; i < total_size; i++) {
         odata[i] = ldata[i] + rdata[i];
     }
-    Array out = {shape_, dtype_, std::unique_ptr<T[]>(odata)};
     return out;
 }
 
-Array Array::Add(const Array& other) {
+Array& Array::IAdd(const Array& rhs) {
     // TODO: dtype conversion
-    CheckEqual(dtype_, other.dtype());
+    CheckEqual(dtype_, rhs.dtype());
     // TODO: broadcasting
-    CheckEqual(shape_, other.shape());
+    CheckEqual(shape_, rhs.shape());
+
+    Array& out = *this;
     switch (dtype_) {
         case Dtype::kBool:
-            return Add<bool>(other);
+            return Add<bool>(rhs, out);
         case Dtype::kInt8:
-            return Add<int8_t>(other);
+            return Add<int8_t>(rhs, out);
         case Dtype::kInt16:
-            return Add<int16_t>(other);
+            return Add<int16_t>(rhs, out);
         case Dtype::kInt32:
-            return Add<int32_t>(other);
+            return Add<int32_t>(rhs, out);
         case Dtype::kInt64:
-            return Add<int64_t>(other);
+            return Add<int64_t>(rhs, out);
         case Dtype::kUInt8:
-            return Add<uint8_t>(other);
+            return Add<uint8_t>(rhs, out);
         case Dtype::kFloat32:
-            return Add<float>(other);
+            return Add<float>(rhs, out);
         case Dtype::kFloat64:
-            return Add<double>(other);
+            return Add<double>(rhs, out);
+        default:
+            assert(0);  // should never be reached
+    }
+}
+
+Array Array::Add(const Array& rhs) {
+    // TODO: dtype conversion
+    CheckEqual(dtype_, rhs.dtype());
+    // TODO: broadcasting
+    CheckEqual(shape_, rhs.shape());
+
+    Array out = {shape_, dtype_, std::shared_ptr<void>(new char[total_bytes()])};
+    switch (dtype_) {
+        case Dtype::kBool:
+            return Add<bool>(rhs, out);
+        case Dtype::kInt8:
+            return Add<int8_t>(rhs, out);
+        case Dtype::kInt16:
+            return Add<int16_t>(rhs, out);
+        case Dtype::kInt32:
+            return Add<int32_t>(rhs, out);
+        case Dtype::kInt64:
+            return Add<int64_t>(rhs, out);
+        case Dtype::kUInt8:
+            return Add<uint8_t>(rhs, out);
+        case Dtype::kFloat32:
+            return Add<float>(rhs, out);
+        case Dtype::kFloat64:
+            return Add<double>(rhs, out);
         default:
             assert(0);  // should never be reached
     }
 }
 
 template <typename T>
-Array Array::Mul(const Array& other) {
+Array& Array::Mul(const Array& rhs, Array& out) {
+    const Array& lhs = *this;
     auto total_size = shape_.total_size();
     decltype(total_size) i = 0;
-    T* ldata = (T*)(data_.get());
-    T* rdata = (T*)(other.data().get());
-    T* odata = new T[total_size];
+    T* ldata = (T*)(lhs.data().get());
+    T* rdata = (T*)(rhs.data().get());
+    T* odata = (T*)(out.data().get());
     for (i = 0; i < total_size; i++) {
         odata[i] = ldata[i] * rdata[i];
     }
-    Array out = {shape_, dtype_, std::unique_ptr<T[]>(odata)};
     return out;
 }
 
-Array Array::Mul(const Array& other) {
+Array& Array::IMul(const Array& rhs) {
     // TODO: dtype conversion
-    CheckEqual(dtype_, other.dtype());
+    CheckEqual(dtype_, rhs.dtype());
     // TODO: broadcasting
-    CheckEqual(shape_, other.shape());
+    CheckEqual(shape_, rhs.shape());
+
+    Array& out = *this;
     switch (dtype_) {
         case Dtype::kBool:
-            return Mul<bool>(other);
+            return Mul<bool>(rhs, out);
         case Dtype::kInt8:
-            return Mul<int8_t>(other);
+            return Mul<int8_t>(rhs, out);
         case Dtype::kInt16:
-            return Mul<int16_t>(other);
+            return Mul<int16_t>(rhs, out);
         case Dtype::kInt32:
-            return Mul<int32_t>(other);
+            return Mul<int32_t>(rhs, out);
         case Dtype::kInt64:
-            return Mul<int64_t>(other);
+            return Mul<int64_t>(rhs, out);
         case Dtype::kUInt8:
-            return Mul<uint8_t>(other);
+            return Mul<uint8_t>(rhs, out);
         case Dtype::kFloat32:
-            return Mul<float>(other);
+            return Mul<float>(rhs, out);
         case Dtype::kFloat64:
-            return Mul<double>(other);
+            return Mul<double>(rhs, out);
+        default:
+            assert(0);  // should never be reached
+    }
+}
+
+Array Array::Mul(const Array& rhs) {
+    // TODO: dtype conversion
+    CheckEqual(dtype_, rhs.dtype());
+    // TODO: broadcasting
+    CheckEqual(shape_, rhs.shape());
+
+    Array out = {shape_, dtype_, std::shared_ptr<void>(new char[total_bytes()])};
+    switch (dtype_) {
+        case Dtype::kBool:
+            return Mul<bool>(rhs, out);
+        case Dtype::kInt8:
+            return Mul<int8_t>(rhs, out);
+        case Dtype::kInt16:
+            return Mul<int16_t>(rhs, out);
+        case Dtype::kInt32:
+            return Mul<int32_t>(rhs, out);
+        case Dtype::kInt64:
+            return Mul<int64_t>(rhs, out);
+        case Dtype::kUInt8:
+            return Mul<uint8_t>(rhs, out);
+        case Dtype::kFloat32:
+            return Mul<float>(rhs, out);
+        case Dtype::kFloat64:
+            return Mul<double>(rhs, out);
         default:
             assert(0);  // should never be reached
     }

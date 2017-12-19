@@ -38,10 +38,10 @@ public:
 
     int64_t offset() const { return offset_; }
 
-    Array& IAdd(const Array& other);
-    Array& IMul(const Array& other);
-    Array Add(const Array& other);
-    Array Mul(const Array& other);
+    Array& IAdd(const Array& rhs);
+    Array& IMul(const Array& rhs);
+    Array Add(const Array& rhs);
+    Array Mul(const Array& rhs);
 
 private:
     Shape shape_;
@@ -53,13 +53,9 @@ private:
     int64_t offset_;
 
     template <typename T>
-    Array& IAdd(const Array& other);
+    Array& Add(const Array& rhs, Array& out);
     template <typename T>
-    Array& IMul(const Array& other);
-    template <typename T>
-    Array Add(const Array& other);
-    template <typename T>
-    Array Mul(const Array& other);
+    Array& Mul(const Array& rhs, Array& out);
 };
 
 // Throws an exception if two arrays mismatch (for debug purpose)
