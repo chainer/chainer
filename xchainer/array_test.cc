@@ -37,90 +37,90 @@ TEST_F(ArrayTest, ConstArray) {
     ASSERT_EQ(raw_data, x_data.get());
 }
 
-TEST_F(ArrayTest, iadd) {
+TEST_F(ArrayTest, IAdd) {
     {
         Array a = MakeArray<bool>({3, 1}, new bool[3]{true, true, true});
         Array b = MakeArray<bool>({3, 1}, new bool[3]{true, true, true});
-        ASSERT_THROW(a.iadd(b), DtypeError);
+        ASSERT_THROW(a.IAdd(b), DtypeError);
     }
     {
         Array a = MakeArray<int8_t>({3, 1}, new int8_t[3]{1, 2, 3});
         Array b = MakeArray<int8_t>({3, 1}, new int8_t[3]{1, 2, 3});
         Array e = MakeArray<int8_t>({3, 1}, new int8_t[3]{2, 4, 6});
-        a.iadd(b);
+        a.IAdd(b);
         ASSERT_NO_THROW(CheckEqual(e, a));
     }
     {
         Array a = MakeArray<float>({3, 1}, new float[3]{1, 2, 3});
         Array b = MakeArray<float>({3, 1}, new float[3]{1, 2, 3});
         Array e = MakeArray<float>({3, 1}, new float[3]{2, 4, 6});
-        a.iadd(b);
+        a.IAdd(b);
         ASSERT_NO_THROW(CheckEqual(e, a));
     }
 }
 
-TEST_F(ArrayTest, imul) {
+TEST_F(ArrayTest, IMul) {
     {
         Array a = MakeArray<bool>({3, 1}, new bool[3]{true, true, true});
         Array b = MakeArray<bool>({3, 1}, new bool[3]{true, true, true});
-        ASSERT_THROW(a.imul(b), DtypeError);
+        ASSERT_THROW(a.IMul(b), DtypeError);
     }
     {
         Array a = MakeArray<int8_t>({3, 1}, new int8_t[3]{1, 2, 3});
         Array b = MakeArray<int8_t>({3, 1}, new int8_t[3]{1, 2, 3});
         Array e = MakeArray<int8_t>({3, 1}, new int8_t[3]{1, 4, 9});
-        a.imul(b);
+        a.IMul(b);
         ASSERT_NO_THROW(CheckEqual(e, a));
     }
     {
         Array a = MakeArray<float>({3, 1}, new float[3]{1, 2, 3});
         Array b = MakeArray<float>({3, 1}, new float[3]{1, 2, 3});
         Array e = MakeArray<float>({3, 1}, new float[3]{1, 4, 9});
-        a.imul(b);
+        a.IMul(b);
         ASSERT_NO_THROW(CheckEqual(e, a));
     }
 }
 
-TEST_F(ArrayTest, add) {
+TEST_F(ArrayTest, Add) {
     {
         Array a = MakeArray<bool>({3, 1}, new bool[3]{true, true, true});
         Array b = MakeArray<bool>({3, 1}, new bool[3]{true, true, true});
-        ASSERT_THROW(a.add(b), DtypeError);
+        ASSERT_THROW(a.Add(b), DtypeError);
     }
     {
         Array a = MakeArray<int8_t>({3, 1}, new int8_t[3]{1, 2, 3});
         Array b = MakeArray<int8_t>({3, 1}, new int8_t[3]{1, 2, 3});
         Array e = MakeArray<int8_t>({3, 1}, new int8_t[3]{2, 4, 6});
-        Array o = a.add(b);
+        Array o = a.Add(b);
         ASSERT_NO_THROW(CheckEqual(e, o));
     }
     {
         Array a = MakeArray<float>({3, 1}, new float[3]{1, 2, 3});
         Array b = MakeArray<float>({3, 1}, new float[3]{1, 2, 3});
         Array e = MakeArray<float>({3, 1}, new float[3]{2, 4, 6});
-        Array o = a.add(b);
+        Array o = a.Add(b);
         ASSERT_NO_THROW(CheckEqual(e, o));
     }
 }
 
-TEST_F(ArrayTest, mul) {
+TEST_F(ArrayTest, Mul) {
     {
         Array a = MakeArray<bool>({3, 1}, new bool[3]{true, true, true});
         Array b = MakeArray<bool>({3, 1}, new bool[3]{true, true, true});
-        ASSERT_THROW(a.mul(b), DtypeError);
+        ASSERT_THROW(a.Mul(b), DtypeError);
     }
     {
         Array a = MakeArray<int8_t>({3, 1}, new int8_t[3]{1, 2, 3});
         Array b = MakeArray<int8_t>({3, 1}, new int8_t[3]{1, 2, 3});
         Array e = MakeArray<int8_t>({3, 1}, new int8_t[3]{1, 4, 9});
-        Array o = a.mul(b);
+        Array o = a.Mul(b);
         ASSERT_NO_THROW(CheckEqual(e, o));
     }
     {
         Array a = MakeArray<float>({3, 1}, new float[3]{1, 2, 3});
         Array b = MakeArray<float>({3, 1}, new float[3]{1, 2, 3});
         Array e = MakeArray<float>({3, 1}, new float[3]{1, 4, 9});
-        Array o = a.mul(b);
+        Array o = a.Mul(b);
         ASSERT_NO_THROW(CheckEqual(e, o));
     }
 }

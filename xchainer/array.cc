@@ -5,7 +5,7 @@
 namespace xchainer {
 
 template <typename T>
-Array& Array::iadd(const Array& other) {
+Array& Array::IAdd(const Array& other) {
     auto total_size = shape_.total_size();
     decltype(total_size) i = 0;
     T* ldata = (T*)(data_.get());
@@ -16,7 +16,7 @@ Array& Array::iadd(const Array& other) {
     return *this;
 }
 
-Array& Array::iadd(const Array& other) {
+Array& Array::IAdd(const Array& other) {
     // TODO: dtype conversion
     CheckEqual(dtype_, other.dtype());
     // TODO: broadcasting
@@ -25,26 +25,26 @@ Array& Array::iadd(const Array& other) {
         case Dtype::kBool:
             throw DtypeError("bool cannot be added");
         case Dtype::kInt8:
-            return iadd<int8_t>(other);
+            return IAdd<int8_t>(other);
         case Dtype::kInt16:
-            return iadd<int16_t>(other);
+            return IAdd<int16_t>(other);
         case Dtype::kInt32:
-            return iadd<int32_t>(other);
+            return IAdd<int32_t>(other);
         case Dtype::kInt64:
-            return iadd<int64_t>(other);
+            return IAdd<int64_t>(other);
         case Dtype::kUInt8:
-            return iadd<uint8_t>(other);
+            return IAdd<uint8_t>(other);
         case Dtype::kFloat32:
-            return iadd<float>(other);
+            return IAdd<float>(other);
         case Dtype::kFloat64:
-            return iadd<double>(other);
+            return IAdd<double>(other);
         default:
             assert(0);  // should never be reached
     }
 }
 
 template <typename T>
-Array& Array::imul(const Array& other) {
+Array& Array::IMul(const Array& other) {
     auto total_size = shape_.total_size();
     decltype(total_size) i = 0;
     T* ldata = (T*)(data_.get());
@@ -55,7 +55,7 @@ Array& Array::imul(const Array& other) {
     return *this;
 }
 
-Array& Array::imul(const Array& other) {
+Array& Array::IMul(const Array& other) {
     // TODO: dtype conversion
     CheckEqual(dtype_, other.dtype());
     // TODO: broadcasting
@@ -64,26 +64,26 @@ Array& Array::imul(const Array& other) {
         case Dtype::kBool:
             throw DtypeError("bool cannot be multiplied");
         case Dtype::kInt8:
-            return imul<int8_t>(other);
+            return IMul<int8_t>(other);
         case Dtype::kInt16:
-            return imul<int16_t>(other);
+            return IMul<int16_t>(other);
         case Dtype::kInt32:
-            return imul<int32_t>(other);
+            return IMul<int32_t>(other);
         case Dtype::kInt64:
-            return imul<int64_t>(other);
+            return IMul<int64_t>(other);
         case Dtype::kUInt8:
-            return imul<uint8_t>(other);
+            return IMul<uint8_t>(other);
         case Dtype::kFloat32:
-            return imul<float>(other);
+            return IMul<float>(other);
         case Dtype::kFloat64:
-            return imul<double>(other);
+            return IMul<double>(other);
         default:
             assert(0);  // should never be reached
     }
 }
 
 template <typename T>
-Array Array::add(const Array& other) {
+Array Array::Add(const Array& other) {
     auto total_size = shape_.total_size();
     decltype(total_size) i = 0;
     T* ldata = (T*)(data_.get());
@@ -96,7 +96,7 @@ Array Array::add(const Array& other) {
     return out;
 }
 
-Array Array::add(const Array& other) {
+Array Array::Add(const Array& other) {
     // TODO: dtype conversion
     CheckEqual(dtype_, other.dtype());
     // TODO: broadcasting
@@ -105,26 +105,26 @@ Array Array::add(const Array& other) {
         case Dtype::kBool:
             throw DtypeError("bool cannot be added");
         case Dtype::kInt8:
-            return add<int8_t>(other);
+            return Add<int8_t>(other);
         case Dtype::kInt16:
-            return add<int16_t>(other);
+            return Add<int16_t>(other);
         case Dtype::kInt32:
-            return add<int32_t>(other);
+            return Add<int32_t>(other);
         case Dtype::kInt64:
-            return add<int64_t>(other);
+            return Add<int64_t>(other);
         case Dtype::kUInt8:
-            return add<uint8_t>(other);
+            return Add<uint8_t>(other);
         case Dtype::kFloat32:
-            return add<float>(other);
+            return Add<float>(other);
         case Dtype::kFloat64:
-            return add<double>(other);
+            return Add<double>(other);
         default:
             assert(0);  // should never be reached
     }
 }
 
 template <typename T>
-Array Array::mul(const Array& other) {
+Array Array::Mul(const Array& other) {
     auto total_size = shape_.total_size();
     decltype(total_size) i = 0;
     T* ldata = (T*)(data_.get());
@@ -137,7 +137,7 @@ Array Array::mul(const Array& other) {
     return out;
 }
 
-Array Array::mul(const Array& other) {
+Array Array::Mul(const Array& other) {
     // TODO: dtype conversion
     CheckEqual(dtype_, other.dtype());
     // TODO: broadcasting
@@ -146,19 +146,19 @@ Array Array::mul(const Array& other) {
         case Dtype::kBool:
             throw DtypeError("bool cannot be multiplied");
         case Dtype::kInt8:
-            return mul<int8_t>(other);
+            return Mul<int8_t>(other);
         case Dtype::kInt16:
-            return mul<int16_t>(other);
+            return Mul<int16_t>(other);
         case Dtype::kInt32:
-            return mul<int32_t>(other);
+            return Mul<int32_t>(other);
         case Dtype::kInt64:
-            return mul<int64_t>(other);
+            return Mul<int64_t>(other);
         case Dtype::kUInt8:
-            return mul<uint8_t>(other);
+            return Mul<uint8_t>(other);
         case Dtype::kFloat32:
-            return mul<float>(other);
+            return Mul<float>(other);
         case Dtype::kFloat64:
-            return mul<double>(other);
+            return Mul<double>(other);
         default:
             assert(0);  // should never be reached
     }
