@@ -37,11 +37,11 @@ from chainer.testing import attr
             'repeats': [5, (5,), (5,) * 2],
             'axis': [1],
         }) +
-        # Repeats 3-D array (with axis=1)
+        # Repeats 3-D array (with axis=-2)
         testing.product({
             'shape': [(3, 2, 4)],
             'repeats': [5, (5,), (5,) * 2],
-            'axis': [1],
+            'axis': [-2],
         })
     ),
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
