@@ -60,6 +60,9 @@ class RepeatGrad(function_node.FunctionNode):
     def __init__(self, repeats, axis, in_shape, in_dtype):
         self.repeats = repeats
         self.axis = axis
+        if axis is not None and axis < 0:
+            self.axis += len(in_shape)
+
         self.in_shape = in_shape
         self.in_dtype = in_dtype
 
