@@ -1,7 +1,7 @@
 import xchainer
 
 
-def test_dtype():
+def test_ctor():
     assert xchainer.Dtype("bool") == xchainer.bool
     assert xchainer.Dtype("int8") == xchainer.int8
     assert xchainer.Dtype("int16") == xchainer.int16
@@ -18,6 +18,9 @@ def test_dtype():
     assert xchainer.Dtype("B") == xchainer.uint8
     assert xchainer.Dtype("f") == xchainer.float32
     assert xchainer.Dtype("d") == xchainer.float64
+
+
+def test_name():
     assert xchainer.bool.name == "bool"
     assert xchainer.int8.name == "int8"
     assert xchainer.int16.name == "int16"
@@ -26,6 +29,9 @@ def test_dtype():
     assert xchainer.uint8.name == "uint8"
     assert xchainer.float32.name == "float32"
     assert xchainer.float64.name == "float64"
+
+
+def test_char():
     assert xchainer.bool.char == "?"
     assert xchainer.int8.char == "b"
     assert xchainer.int16.char == "h"
@@ -34,6 +40,9 @@ def test_dtype():
     assert xchainer.uint8.char == "B"
     assert xchainer.float32.char == "f"
     assert xchainer.float64.char == "d"
+
+
+def test_itemsize():
     assert xchainer.bool.itemsize == 1
     assert xchainer.int8.itemsize == 1
     assert xchainer.int16.itemsize == 2
