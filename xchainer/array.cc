@@ -120,42 +120,4 @@ void Array::Mul(const Array& rhs, Array& out) {
     }
 }
 
-template <typename T>
-void CheckEqual(const Array& lhs, const Array& rhs) {
-    auto total_size = lhs.shape().total_size();
-    const T* ldata = static_cast<const T*>(lhs.data().get());
-    const T* rdata = static_cast<const T*>(rhs.data().get());
-    for (decltype(total_size) i = 0; i < total_size; i++) {
-        if (ldata[i] != rdata[i]) {
-            // TODO: repl
-            throw DataError("data mismatch");
-        }
-    }
-}
-
-void CheckEqual(const Array& lhs, const Array& rhs) {
-    CheckEqual(lhs.dtype(), rhs.dtype());
-    CheckEqual(lhs.shape(), rhs.shape());
-    switch (lhs.dtype()) {
-        case Dtype::kBool:
-            return CheckEqual<bool>(lhs, rhs);
-        case Dtype::kInt8:
-            return CheckEqual<int8_t>(lhs, rhs);
-        case Dtype::kInt16:
-            return CheckEqual<int16_t>(lhs, rhs);
-        case Dtype::kInt32:
-            return CheckEqual<int32_t>(lhs, rhs);
-        case Dtype::kInt64:
-            return CheckEqual<int64_t>(lhs, rhs);
-        case Dtype::kUInt8:
-            return CheckEqual<uint8_t>(lhs, rhs);
-        case Dtype::kFloat32:
-            return CheckEqual<float>(lhs, rhs);
-        case Dtype::kFloat64:
-            return CheckEqual<double>(lhs, rhs);
-        default:
-            assert(0);  // should never be reached
-    }
-}
-
 }  // namespace xchainer

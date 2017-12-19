@@ -28,10 +28,4 @@ public:
     using XchainerError::XchainerError;
 };
 
-// Error on data mismatch.
-class DataError : public XchainerError {
-public:
-    using XchainerError::XchainerError;
-};
-
 }  // namespace xchainer

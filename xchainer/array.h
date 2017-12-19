@@ -61,7 +61,4 @@ private:
     void Mul(const Array& rhs, Array& out);
 };
 
-// Throws an exception if two arrays mismatch (for debug purpose)
-void CheckEqual(const Array& lhs, const Array& rhs);
-
 }  // namespace xchainer
