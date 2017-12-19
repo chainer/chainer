@@ -15,13 +15,13 @@ Array& Array::IMul(const Array& rhs) {
 }
 
 Array Array::Add(const Array& rhs) {
-    Array out = {shape_, dtype_, std::shared_ptr<void>(new char[total_bytes()])};
+    Array out = {shape_, dtype_, std::make_unique<uint8_t[]>(total_bytes())};
     Add(rhs, out);
     return out;
 }
 
 Array Array::Mul(const Array& rhs) {
-    Array out = {shape_, dtype_, std::shared_ptr<void>(new char[total_bytes()])};
+    Array out = {shape_, dtype_, std::make_unique<uint8_t[]>(total_bytes())};
     Mul(rhs, out);
     return out;
 }
