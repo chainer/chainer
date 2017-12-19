@@ -32,7 +32,7 @@ public:
     Shape& operator=(const Shape&) = delete;
 
     // move
-    Shape(Shape&&) = delete;
+    Shape(Shape&&) = default;
     Shape& operator=(Shape&&) = delete;
 
     size_t size() const noexcept { return static_cast<size_t>(ndim_); }
