@@ -1,7 +1,5 @@
 #include "xchainer/device.h"
 
-#include <gsl/gsl>
-
 #include "xchainer/error.h"
 
 namespace xchainer {
