@@ -190,4 +190,3 @@ def average_pooling_3d(x, ksize, stride=None, pad=0):
             '\'x\' should be 3. But the actual ndim was {}.'.fromat(
                 len(x.shape[2:])))
     return AveragePoolingND(3, ksize, stride=stride, pad=pad)(x)
-

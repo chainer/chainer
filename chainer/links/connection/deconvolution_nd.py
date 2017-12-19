@@ -77,7 +77,6 @@ class DeconvolutionND(link.Link):
             outsize=self.outsize)
 
 
-
 class Deconvolution1D(DeconvolutionND):
     """1-dimensional deconvolution layer.
 

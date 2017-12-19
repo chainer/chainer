@@ -282,9 +282,9 @@ from chainer.functions.normalization.local_response_normalization import local_r
 from chainer.functions.normalization.local_response_normalization import LocalResponseNormalization  # NOQA
 
 from chainer.functions.pooling.average_pooling_2d import average_pooling_2d  # NOQA
+from chainer.functions.pooling.average_pooling_2d import AveragePooling2D  # NOQA
 from chainer.functions.pooling.average_pooling_nd import average_pooling_1d  # NOQA
 from chainer.functions.pooling.average_pooling_nd import average_pooling_3d  # NOQA
-from chainer.functions.pooling.average_pooling_2d import AveragePooling2D  # NOQA
 from chainer.functions.pooling.average_pooling_nd import average_pooling_nd  # NOQA
 from chainer.functions.pooling.average_pooling_nd import AveragePoolingND  # NOQA
 from chainer.functions.pooling.max_pooling_2d import max_pooling_2d  # NOQA

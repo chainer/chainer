@@ -445,7 +445,7 @@ def deconvolution_1d(x, W, b=None, stride=1, pad=0, outsize=None):
         This function calls :func:`~chainer.functions.deconvolution_nd` with
         ``ndim = 1``, so see the details of the behavior in
         the documentation of :func:`~chainer.functions.deconvolution_nd`.
-    
+
     """
     if len(x.shape[2:]) != 1:
         raise ValueError(
@@ -468,7 +468,7 @@ def deconvolution_3d(x, W, b=None, stride=1, pad=0, outsize=None):
         This function calls :func:`~chainer.functions.deconvolution_nd` with
         ``ndim = 3``, so see the details of the behavior in
         the documentation of :func:`~chainer.functions.deconvolution_nd`.
-    
+
     """
     if len(x.shape[2:]) != 3:
         raise ValueError(
