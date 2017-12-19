@@ -12,7 +12,7 @@ Device GetCurrentDevice() { return thread_local_device; }
 
 void SetCurrentDevice(const Device& device) {
     if (device != Device{"cpu"} && device != Device{"cuda"}) {
-        throw DeviceError("inavlid device");
+        throw DeviceError("invalid device");
     }
     thread_local_device = device;
 }
