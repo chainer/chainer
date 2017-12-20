@@ -183,7 +183,6 @@ Mathematical functions
    chainer.functions.clip
    chainer.functions.cos
    chainer.functions.cosh
-   chainer.functions.cumsum
    chainer.functions.det
    chainer.functions.batch_det
    chainer.functions.exp
