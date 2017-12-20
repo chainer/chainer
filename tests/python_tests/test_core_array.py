@@ -1,19 +1,24 @@
 import functools
 import itertools
 import operator
-import random
 
 import pytest
 
 import xchainer
 
 
-def create_dummy_data(shape, dtype):
+def create_dummy_data(shape, dtype, pattern=1):
     size = functools.reduce(operator.mul, shape, 1)
-    if dtype == xchainer.Dtype.bool:
-        return [i % 2 == 1 for i in range(size)]
+    if pattern == 1:
+        if dtype == xchainer.Dtype.bool:
+            return [i % 2 == 1 for i in range(size)]
+        else:
+            return [i for i in range(size)]
     else:
-        return [i for i in range(size)]
+        if dtype == xchainer.Dtype.bool:
+            return [i % 2 == 0 for i in range(size)]
+        else:
+            return [1 + i for i in range(size)]
 
 
 @pytest.mark.parametrize('shape,dtype', itertools.product([
@@ -92,8 +97,8 @@ def test_array_init_invalid_length():
     xchainer.Dtype.float64,
 ]))
 def test_add_iadd(shape, dtype):
-    lhs_data_list = create_dummy_data(shape, dtype)
-    rhs_data_list = random.sample(lhs_data_list, len(lhs_data_list))
+    lhs_data_list = create_dummy_data(shape, dtype, pattern=1)
+    rhs_data_list = create_dummy_data(shape, dtype, pattern=2)
     lhs = xchainer.Array(shape, dtype, lhs_data_list)
     rhs = xchainer.Array(shape, dtype, rhs_data_list)
 
@@ -128,8 +133,8 @@ def test_add_iadd(shape, dtype):
     xchainer.Dtype.float64,
 ]))
 def test_mul_imul(shape, dtype):
-    lhs_data_list = create_dummy_data(shape, dtype)
-    rhs_data_list = random.sample(lhs_data_list, len(lhs_data_list))
+    lhs_data_list = create_dummy_data(shape, dtype, pattern=1)
+    rhs_data_list = create_dummy_data(shape, dtype, pattern=2)
     lhs = xchainer.Array(shape, dtype, lhs_data_list)
     rhs = xchainer.Array(shape, dtype, rhs_data_list)
 
