@@ -13,9 +13,9 @@ class Classifier(link.Chain):
 
     Args:
         predictor (~chainer.Link): Predictor network.
-        lossfun (:doc:`Function Wrapper </reference/functions>`):
+        lossfun (:doc:`wrapper function </reference/functions>`):
             Loss function.
-        accfun (:doc:`Function Wrapper </reference/functions>`): Function
+        accfun (:doc:`wrapper function </reference/functions>`): Function
             that computes accuracy.
         label_key (int or str): Key to specify label variable from arguments.
             When it is ``int``, a variable in positional arguments is used.
@@ -23,9 +23,9 @@ class Classifier(link.Chain):
 
     Attributes:
         predictor (~chainer.Link): Predictor network.
-        lossfun (:doc:`Function Wrapper </reference/functions>`): Loss
+        lossfun (:doc:`wrapper function </reference/functions>`): Loss
             function.
-        accfun (:doc:`Function Wrapper </reference/functions>`): Function
+        accfun (:doc:`wrapper function </reference/functions>`): Function
             that computes accuracy.
         y (~chainer.Variable): Prediction for the last minibatch.
         loss (~chainer.Variable): Loss value for the last minibatch.
