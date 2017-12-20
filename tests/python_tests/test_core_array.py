@@ -1,6 +1,7 @@
 import functools
 import itertools
 import operator
+import random
 
 import pytest
 
@@ -91,19 +92,22 @@ def test_array_init_invalid_length():
     xchainer.Dtype.float64,
 ]))
 def test_add_iadd(shape, dtype):
-    data_list = create_dummy_data(shape, dtype)
-    lhs = xchainer.Array(shape, dtype, data_list)
-    rhs = xchainer.Array(shape, dtype, data_list)
+    lhs_data_list = create_dummy_data(shape, dtype)
+    rhs_data_list = random.sample(lhs_data_list, len(lhs_data_list))
+    lhs = xchainer.Array(shape, dtype, lhs_data_list)
+    rhs = xchainer.Array(shape, dtype, rhs_data_list)
 
-    expected = [x + y for x, y in zip(data_list, data_list)]
+    expected_data_list = [x + y for x, y in zip(lhs_data_list, rhs_data_list)]
     if dtype == xchainer.Dtype.bool:
-        expected = [x > 0 for x in expected]  # [0, 2] => [False, True]
+        expected_data_list = [x > 0 for x in expected_data_list]  # [0, 2] => [False, True]
 
     out = lhs + rhs
-    assert out.debug_flat_data == expected
-    assert lhs.debug_flat_data == data_list
+    assert out.debug_flat_data == expected_data_list
+    assert lhs.debug_flat_data == lhs_data_list
+    assert rhs.debug_flat_data == rhs_data_list
     lhs += rhs
-    assert lhs.debug_flat_data == expected
+    assert lhs.debug_flat_data == expected_data_list
+    assert rhs.debug_flat_data == rhs_data_list
 
 
 @pytest.mark.parametrize('shape,dtype', itertools.product([
@@ -124,16 +128,19 @@ def test_add_iadd(shape, dtype):
     xchainer.Dtype.float64,
 ]))
 def test_mul_imul(shape, dtype):
-    data_list = create_dummy_data(shape, dtype)
-    lhs = xchainer.Array(shape, dtype, data_list)
-    rhs = xchainer.Array(shape, dtype, data_list)
+    lhs_data_list = create_dummy_data(shape, dtype)
+    rhs_data_list = random.sample(lhs_data_list, len(lhs_data_list))
+    lhs = xchainer.Array(shape, dtype, lhs_data_list)
+    rhs = xchainer.Array(shape, dtype, rhs_data_list)
 
-    expected = [x * y for x, y in zip(data_list, data_list)]
+    expected_data_list = [x * y for x, y in zip(lhs_data_list, rhs_data_list)]
     if dtype == xchainer.Dtype.bool:
-        expected = [x > 0 for x in expected]  # [0, 1] => [False, True]
+        expected_data_list = [x > 0 for x in expected_data_list]  # [0, 1] => [False, True]
 
     out = lhs * rhs
-    assert out.debug_flat_data == expected
-    assert lhs.debug_flat_data == data_list
+    assert out.debug_flat_data == expected_data_list
+    assert lhs.debug_flat_data == lhs_data_list
+    assert rhs.debug_flat_data == rhs_data_list
     lhs *= rhs
-    assert lhs.debug_flat_data == expected
+    assert lhs.debug_flat_data == expected_data_list
+    assert rhs.debug_flat_data == rhs_data_list
