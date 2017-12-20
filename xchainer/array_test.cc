@@ -36,7 +36,7 @@ public:
 };
 
 TEST_F(ArrayTest, Ctor) {
-    std::shared_ptr<void> data = std::unique_ptr<float[]>(new float[2 * 3 * 4]);
+    std::shared_ptr<void> data = std::make_unique<float[]>(2 * 3 * 4);
     Array x = MakeArray<float>({2, 3, 4}, data);
     ASSERT_EQ(TypeToDtype<float>, x.dtype());
     ASSERT_EQ(3, x.ndim());
@@ -50,7 +50,7 @@ TEST_F(ArrayTest, Ctor) {
 }
 
 TEST_F(ArrayTest, ConstArray) {
-    std::shared_ptr<void> data = std::unique_ptr<float[]>(new float[2 * 3 * 4]);
+    std::shared_ptr<void> data = std::make_unique<float[]>(2 * 3 * 4);
     const Array x = MakeArray<float>({2, 3, 4}, data);
     std::shared_ptr<const void> x_data = x.data();
     ASSERT_EQ(data, x_data);
