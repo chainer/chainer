@@ -92,17 +92,18 @@ def test_array_init_invalid_length():
 ]))
 def test_add_iadd(shape, dtype):
     data_list = create_dummy_data(shape, dtype)
-    a = xchainer.Array(shape, dtype, data_list)
-    b = xchainer.Array(shape, dtype, data_list)
+    lhs = xchainer.Array(shape, dtype, data_list)
+    rhs = xchainer.Array(shape, dtype, data_list)
 
-    e = list(map(operator.add, data_list, data_list))
+    expected = [x + y for x, y in zip(data_list, data_list)]
     if dtype == xchainer.Dtype.bool:
-        e = list(map(lambda x: x > 0, e))  # [0, 2] => [False, True]
+        expected = [x > 0 for x in expected]  # [0, 2] => [False, True]
 
-    o = a + b
-    assert o.debug_flat_data == e
-    a += b
-    assert a.debug_flat_data == e
+    out = lhs + rhs
+    assert out.debug_flat_data == expected
+    assert lhs.debug_flat_data == data_list
+    lhs += rhs
+    assert lhs.debug_flat_data == expected
 
 
 @pytest.mark.parametrize('shape,dtype', itertools.product([
@@ -124,14 +125,15 @@ def test_add_iadd(shape, dtype):
 ]))
 def test_mul_imul(shape, dtype):
     data_list = create_dummy_data(shape, dtype)
-    a = xchainer.Array(shape, dtype, data_list)
-    b = xchainer.Array(shape, dtype, data_list)
+    lhs = xchainer.Array(shape, dtype, data_list)
+    rhs = xchainer.Array(shape, dtype, data_list)
 
-    e = list(map(operator.mul, data_list, data_list))
+    expected = [x * y for x, y in zip(data_list, data_list)]
     if dtype == xchainer.Dtype.bool:
-        e = list(map(lambda x: x > 0, e))  # [0, 1] => [False, True]
+        expected = [x > 0 for x in expected]  # [0, 1] => [False, True]
 
-    o = a * b
-    assert o.debug_flat_data == e
-    a *= b
-    assert a.debug_flat_data == e
+    out = lhs * rhs
+    assert out.debug_flat_data == expected
+    assert lhs.debug_flat_data == data_list
+    lhs *= rhs
+    assert lhs.debug_flat_data == expected
