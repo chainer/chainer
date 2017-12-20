@@ -48,3 +48,26 @@ def test_array(shape, dtype):
     assert array.total_bytes == dtype.itemsize * expected_total_size
 
     assert array.debug_flat_data == data_list
+
+
+def test_array_init_invalid_length():
+    with pytest.raises(xchainer.DimensionError):
+        xchainer.Array((), xchainer.Dtype.int8, [])
+
+    with pytest.raises(xchainer.DimensionError):
+        xchainer.Array((), xchainer.Dtype.int8, [1, 1])
+
+    with pytest.raises(xchainer.DimensionError):
+        xchainer.Array((1,), xchainer.Dtype.int8, [])
+
+    with pytest.raises(xchainer.DimensionError):
+        xchainer.Array((1,), xchainer.Dtype.int8, [1, 1])
+
+    with pytest.raises(xchainer.DimensionError):
+        xchainer.Array((0,), xchainer.Dtype.int8, [1])
+
+    with pytest.raises(xchainer.DimensionError):
+        xchainer.Array((3, 2), xchainer.Dtype.int8, [1, 1, 1, 1, 1])
+
+    with pytest.raises(xchainer.DimensionError):
+        xchainer.Array((3, 2), xchainer.Dtype.int8, [1, 1, 1, 1, 1, 1, 1])
