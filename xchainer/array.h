@@ -6,7 +6,6 @@
 
 #include <gsl/gsl>
 
-#include "xchainer/array_repr.h"
 #include "xchainer/dtype.h"
 #include "xchainer/shape.h"
 
@@ -42,6 +41,8 @@ public:
     Array& IMul(const Array& rhs);
     Array Add(const Array& rhs) const;
     Array Mul(const Array& rhs) const;
+
+    std::string ToString() const;
 
 private:
     template <typename T>
