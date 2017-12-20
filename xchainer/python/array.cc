@@ -59,46 +59,47 @@ void InitXchainerArray(pybind11::module& m) {
         .def_property_readonly("element_bytes", &Array::element_bytes)
         .def_property_readonly("total_bytes", &Array::total_bytes)
         .def_property_readonly("offset", &Array::offset)
-        .def_property_readonly("debug_flat_data", [](const Array& self) {  // This method is a stub for testing
-            py::list list;
-            auto size = self.total_size();
-            auto func = [&](auto dummy) {
-                using T = decltype(dummy);
-                const T& data = *std::static_pointer_cast<const T>(self.data());
-                for (int64_t i = 0; i < size; ++i) {
-                    list.append((&data)[i]);
-                }
-            };
-            switch (self.dtype()) {
-                case Dtype::kBool:
-                    func(static_cast<bool>(0));
-                    break;
-                case Dtype::kInt8:
-                    func(static_cast<int8_t>(0));
-                    break;
-                case Dtype::kInt16:
-                    func(static_cast<int16_t>(0));
-                    break;
-                case Dtype::kInt32:
-                    func(static_cast<int32_t>(0));
-                    break;
-                case Dtype::kInt64:
-                    func(static_cast<int64_t>(0));
-                    break;
-                case Dtype::kUInt8:
-                    func(static_cast<uint8_t>(0));
-                    break;
-                case Dtype::kFloat32:
-                    func(static_cast<float>(0));
-                    break;
-                case Dtype::kFloat64:
-                    func(static_cast<double>(0));
-                    break;
-                default:
-                    assert(0);
-            }
-            return list;
-        })
+        .def_property_readonly("debug_flat_data",
+                               [](const Array& self) {  // This method is a stub for testing
+                                   py::list list;
+                                   auto size = self.total_size();
+                                   auto func = [&](auto dummy) {
+                                       using T = decltype(dummy);
+                                       const T& data = *std::static_pointer_cast<const T>(self.data());
+                                       for (int64_t i = 0; i < size; ++i) {
+                                           list.append((&data)[i]);
+                                       }
+                                   };
+                                   switch (self.dtype()) {
+                                       case Dtype::kBool:
+                                           func(static_cast<bool>(0));
+                                           break;
+                                       case Dtype::kInt8:
+                                           func(static_cast<int8_t>(0));
+                                           break;
+                                       case Dtype::kInt16:
+                                           func(static_cast<int16_t>(0));
+                                           break;
+                                       case Dtype::kInt32:
+                                           func(static_cast<int32_t>(0));
+                                           break;
+                                       case Dtype::kInt64:
+                                           func(static_cast<int64_t>(0));
+                                           break;
+                                       case Dtype::kUInt8:
+                                           func(static_cast<uint8_t>(0));
+                                           break;
+                                       case Dtype::kFloat32:
+                                           func(static_cast<float>(0));
+                                           break;
+                                       case Dtype::kFloat64:
+                                           func(static_cast<double>(0));
+                                           break;
+                                       default:
+                                           assert(0);
+                                   }
+                                   return list;
+                               })
         .def("__add__", [](const Array& lhs, const Array& rhs) { return lhs.Add(rhs); })
         .def("__iadd__", [](Array& lhs, const Array& rhs) { return lhs.IAdd(rhs); })
         .def("__mul__", [](const Array& lhs, const Array& rhs) { return lhs.Mul(rhs); })
