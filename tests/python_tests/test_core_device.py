@@ -1,6 +1,6 @@
-import xchainer
-
 import pytest
+
+import xchainer
 
 
 def test_device():
