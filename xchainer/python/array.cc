@@ -115,7 +115,7 @@ void InitXchainerArray(pybind11::module& m) {
     py::class_<Array>{m, "Array"}
         .def(py::init(&InitByShapeDtypeList))
         .def(py::init(&InitByArray))
-        .def("__repr__", [](const Array& array) { return array.ToString(); })
+        .def("__repr__", static_cast<std::string (Array::*)() const>(&Array::ToString))
         .def_property_readonly("dtype", &Array::dtype)
         .def_property_readonly("shape", &Array::shape)
         .def_property_readonly("is_contiguous", &Array::is_contiguous)
