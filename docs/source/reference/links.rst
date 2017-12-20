@@ -50,9 +50,12 @@ Learnable connections
    chainer.links.NStepLSTM
    chainer.links.NStepRNNReLU
    chainer.links.NStepRNNTanh
+   chainer.links.Parameter
    chainer.links.Scale
    chainer.links.StatefulGRU
    chainer.links.StatelessGRU
+   chainer.links.StatefulMGU
+   chainer.links.StatelessMGU
    chainer.links.StatefulPeepholeLSTM
    chainer.links.StatefulZoneoutLSTM
    chainer.links.StatelessLSTM
@@ -65,6 +68,7 @@ Activation/loss/normalization functions with parameters
    :nosignatures:
 
    chainer.links.BatchNormalization
+   chainer.links.BatchRenormalization
    chainer.links.LayerNormalization
    chainer.links.BinaryHierarchicalSoftmax
    chainer.links.BlackOut

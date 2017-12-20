@@ -73,7 +73,8 @@ def main():
             max_trigger=(args.epoch, 'epoch'))
 
     # Set up a trainer
-    updater = training.StandardUpdater(train_iter, optimizer, device=args.gpu)
+    updater = training.updaters.StandardUpdater(
+        train_iter, optimizer, device=args.gpu)
     trainer = training.Trainer(updater, stop_trigger, out=args.out)
 
     # Evaluate the model with the test dataset for each epoch
