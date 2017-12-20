@@ -44,6 +44,14 @@ public:
     Array Mul(const Array& rhs);
 
 private:
+    template <typename T>
+    void Add(const Array& rhs, Array& out);
+    template <typename T>
+    void Mul(const Array& rhs, Array& out);
+
+    void Add(const Array& rhs, Array& out);
+    void Mul(const Array& rhs, Array& out);
+
     Shape shape_;
     bool is_contiguous_;
 
@@ -51,14 +59,6 @@ private:
 
     std::shared_ptr<void> data_;
     int64_t offset_;
-
-    template <typename T>
-    void Add(const Array& rhs, Array& out);
-    template <typename T>
-    void Mul(const Array& rhs, Array& out);
-
-    void Add(const Array& rhs, Array& out);
-    void Mul(const Array& rhs, Array& out);
 };
 
 }  // namespace xchainer
