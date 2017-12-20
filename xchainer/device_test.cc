@@ -7,6 +7,10 @@
 
 namespace xchainer {
 
+// Device must be POD (plain old data) to be used as a thread local variable safely.
+// ref. https://google.github.io/styleguide/cppguide.html#Static_and_Global_Variables
+static_assert(std::is_pod<Device>::value, "Device must be POD");
+
 TEST(DeviceTest, SetCurrentDevice) {
     Device cpu = {"cpu"};
     Device cuda = {"cuda"};

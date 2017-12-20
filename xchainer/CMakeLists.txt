@@ -16,6 +16,7 @@ install(FILES
     )
 
 add_library(xchainer SHARED
+    array.cc
     array_repr.cc
     device.cc
     dtype.cc
