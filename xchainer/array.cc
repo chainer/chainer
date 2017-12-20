@@ -14,20 +14,20 @@ Array& Array::IMul(const Array& rhs) {
     return *this;
 }
 
-Array Array::Add(const Array& rhs) {
+Array Array::Add(const Array& rhs) const {
     Array out = {shape_, dtype_, std::make_unique<uint8_t[]>(total_bytes())};
     Add(rhs, out);
     return out;
 }
 
-Array Array::Mul(const Array& rhs) {
+Array Array::Mul(const Array& rhs) const {
     Array out = {shape_, dtype_, std::make_unique<uint8_t[]>(total_bytes())};
     Mul(rhs, out);
     return out;
 }
 
 template <typename T>
-void Array::Add(const Array& rhs, Array& out) {
+void Array::Add(const Array& rhs, Array& out) const {
     const Array& lhs = *this;
     auto total_size = shape_.total_size();
     const T* ldata = static_cast<const T*>(lhs.data().get());
@@ -39,7 +39,7 @@ void Array::Add(const Array& rhs, Array& out) {
 }
 
 template <typename T>
-void Array::Mul(const Array& rhs, Array& out) {
+void Array::Mul(const Array& rhs, Array& out) const {
     const Array& lhs = *this;
     auto total_size = shape_.total_size();
     const T* ldata = static_cast<const T*>(lhs.data().get());
@@ -50,7 +50,7 @@ void Array::Mul(const Array& rhs, Array& out) {
     }
 }
 
-void Array::Add(const Array& rhs, Array& out) {
+void Array::Add(const Array& rhs, Array& out) const {
     // TODO: dtype conversion
     CheckEqual(dtype_, rhs.dtype());
     // TODO: broadcasting
@@ -85,7 +85,7 @@ void Array::Add(const Array& rhs, Array& out) {
     }
 }
 
-void Array::Mul(const Array& rhs, Array& out) {
+void Array::Mul(const Array& rhs, Array& out) const {
     // TODO: dtype conversion
     CheckEqual(dtype_, rhs.dtype());
     // TODO: broadcasting

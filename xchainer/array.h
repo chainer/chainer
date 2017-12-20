@@ -40,17 +40,17 @@ public:
 
     Array& IAdd(const Array& rhs);
     Array& IMul(const Array& rhs);
-    Array Add(const Array& rhs);
-    Array Mul(const Array& rhs);
+    Array Add(const Array& rhs) const;
+    Array Mul(const Array& rhs) const;
 
 private:
     template <typename T>
-    void Add(const Array& rhs, Array& out);
+    void Add(const Array& rhs, Array& out) const;
     template <typename T>
-    void Mul(const Array& rhs, Array& out);
+    void Mul(const Array& rhs, Array& out) const;
 
-    void Add(const Array& rhs, Array& out);
-    void Mul(const Array& rhs, Array& out);
+    void Add(const Array& rhs, Array& out) const;
+    void Mul(const Array& rhs, Array& out) const;
 
     Shape shape_;
     bool is_contiguous_;

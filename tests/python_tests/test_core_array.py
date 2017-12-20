@@ -71,3 +71,67 @@ def test_array_init_invalid_length():
 
     with pytest.raises(xchainer.DimensionError):
         xchainer.Array((3, 2), xchainer.Dtype.int8, [1, 1, 1, 1, 1, 1, 1])
+
+
+@pytest.mark.parametrize('shape,dtype', itertools.product([
+    (),
+    (0,),
+    (1,),
+    (1, 1, 1),
+    (2, 3),
+    (2, 0, 3),
+], [
+    xchainer.Dtype.bool,
+    xchainer.Dtype.int8,
+    xchainer.Dtype.int16,
+    xchainer.Dtype.int32,
+    xchainer.Dtype.int64,
+    xchainer.Dtype.uint8,
+    xchainer.Dtype.float32,
+    xchainer.Dtype.float64,
+]))
+def test_add_iadd(shape, dtype):
+    data_list = create_dummy_data(shape, dtype)
+    a = xchainer.Array(shape, dtype, data_list)
+    b = xchainer.Array(shape, dtype, data_list)
+
+    e = list(map(operator.add, data_list, data_list))
+    if dtype == xchainer.Dtype.bool:
+        e = list(map(lambda x: x > 0, e))  # [0, 2] => [False, True]
+
+    o = a + b
+    assert o.debug_flat_data == e
+    a += b
+    assert a.debug_flat_data == e
+
+
+@pytest.mark.parametrize('shape,dtype', itertools.product([
+    (),
+    (0,),
+    (1,),
+    (1, 1, 1),
+    (2, 3),
+    (2, 0, 3),
+], [
+    xchainer.Dtype.bool,
+    xchainer.Dtype.int8,
+    xchainer.Dtype.int16,
+    xchainer.Dtype.int32,
+    xchainer.Dtype.int64,
+    xchainer.Dtype.uint8,
+    xchainer.Dtype.float32,
+    xchainer.Dtype.float64,
+]))
+def test_mul_imul(shape, dtype):
+    data_list = create_dummy_data(shape, dtype)
+    a = xchainer.Array(shape, dtype, data_list)
+    b = xchainer.Array(shape, dtype, data_list)
+
+    e = list(map(operator.mul, data_list, data_list))
+    if dtype == xchainer.Dtype.bool:
+        e = list(map(lambda x: x > 0, e))  # [0, 1] => [False, True]
+
+    o = a * b
+    assert o.debug_flat_data == e
+    a *= b
+    assert a.debug_flat_data == e

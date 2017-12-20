@@ -98,7 +98,11 @@ void InitXchainerArray(pybind11::module& m) {
                     assert(0);
             }
             return list;
-        });
+        })
+        .def("__add__", [](const Array& lhs, const Array& rhs) { return lhs.Add(rhs); })
+        .def("__iadd__", [](Array& lhs, const Array& rhs) { return lhs.IAdd(rhs); })
+        .def("__mul__", [](const Array& lhs, const Array& rhs) { return lhs.Mul(rhs); })
+        .def("__imul__", [](Array& lhs, const Array& rhs) { return lhs.IMul(rhs); });
 }
 
 }  // namespace xchainer
