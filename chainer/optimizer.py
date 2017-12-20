@@ -404,7 +404,7 @@ class Optimizer(object):
         parameters.
 
         Args:
-            lossfun (:doc:`Function Wrapper </reference/functions>`): Loss
+            lossfun (:doc:`wrapper function </reference/functions>`): Loss
                 function. It accepts arbitrary arguments
                 and returns one :class:`~chainer.Variable` object that
                 represents the loss (or objective) value. This argument can be
