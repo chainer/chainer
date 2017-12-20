@@ -100,10 +100,10 @@ void InitXchainerArray(pybind11::module& m) {
                                    }
                                    return list;
                                })
-        .def("__add__", [](const Array& lhs, const Array& rhs) { return lhs.Add(rhs); })
-        .def("__iadd__", [](Array& lhs, const Array& rhs) { return lhs.IAdd(rhs); })
-        .def("__mul__", [](const Array& lhs, const Array& rhs) { return lhs.Mul(rhs); })
-        .def("__imul__", [](Array& lhs, const Array& rhs) { return lhs.IMul(rhs); });
+        .def("__add__", static_cast<Array (Array::*)(const Array&) const>(&Array::Add))
+        .def("__iadd__", static_cast<Array& (Array::*)(const Array&)>(&Array::IAdd))
+        .def("__mul__", static_cast<Array (Array::*)(const Array&) const>(&Array::Mul))
+        .def("__imul__", static_cast<Array& (Array::*)(const Array&)>(&Array::IMul));
 }
 
 }  // namespace xchainer
