@@ -1,4 +1,4 @@
-#include "xchainer/python/error.h"
+#include "xchainer/python/scalar.h"
 
 #include <pybind11/operators.h>
 
