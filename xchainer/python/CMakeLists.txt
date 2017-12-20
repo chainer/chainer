@@ -1,5 +1,6 @@
 add_library(_core.so MODULE
     core_module.cc
+    device.cc
     dtype.cc
     error.cc
     scalar.cc
