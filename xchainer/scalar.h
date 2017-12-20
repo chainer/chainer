@@ -78,8 +78,6 @@ private:
         double float64_;
     };
 
-    Dtype dtype_;
-
     template <typename T>
     T UnwrapAndCast() const {
         switch (dtype_) {
@@ -103,6 +101,8 @@ private:
                 assert(0);  // should never be reached
         }
     }
+
+    Dtype dtype_;
 };
 
 std::ostream& operator<<(std::ostream& os, Scalar value);
