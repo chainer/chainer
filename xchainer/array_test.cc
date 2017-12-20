@@ -17,12 +17,8 @@ public:
 
     template <typename T>
     Array MakeArray(std::initializer_list<int64_t> shape, std::initializer_list<T> data) {
-        auto a = std::unique_ptr<T[]>(new T[data.size()]);
-        size_t i = 0;
-        for (const auto& e : data) {
-            a[i] = e;
-            i++;
-        }
+        auto a = std::make_unique<T[]>(data.size());
+        std::copy(data.begin(), data.end(), a.get());
         return {shape, TypeToDtype<T>, std::move(a)};
     }
 
