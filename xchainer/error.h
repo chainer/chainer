@@ -10,6 +10,12 @@ public:
     using runtime_error::runtime_error;
 };
 
+// Error on using invalid devices.
+class DeviceError : public XchainerError {
+public:
+    using XchainerError::XchainerError;
+};
+
 // Error on shape mismatch, invalid strides, and so on.
 class DimensionError : public XchainerError {
 public:

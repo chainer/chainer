@@ -1,5 +1,11 @@
 add_library(_core.so MODULE
-    core_module.cc)
+    core_module.cc
+    array.cc
+    dtype.cc
+    error.cc
+    scalar.cc
+    shape.cc
+    )
 target_link_libraries(_core.so
     PRIVATE
     "-Wl,-flto" pybind11::module
