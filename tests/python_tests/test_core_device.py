@@ -2,6 +2,7 @@ import xchainer
 
 import pytest
 
+
 def test_device():
     device = xchainer.get_current_device()
 
