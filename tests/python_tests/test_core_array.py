@@ -16,7 +16,7 @@ def create_dummy_data(shape, dtype, pattern=1):
             return [i for i in range(size)]
     else:
         if dtype == xchainer.Dtype.bool:
-            return [i % 2 == 0 for i in range(size)]
+            return [i % 3 == 0 for i in range(size)]
         else:
             return [1 + i for i in range(size)]
 
