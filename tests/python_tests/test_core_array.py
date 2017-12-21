@@ -104,23 +104,35 @@ def test_array_init(shape, dtype):
     assert array.debug_flat_data == data_list
 
 
-@pytest.mark.parametrize('shape,dtype', itertools.product([
-    (),
-    (0,),
-    (1,),
-    (1, 1, 1),
-    (2, 3),
-    (2, 0, 3),
-], [
-    xchainer.Dtype.bool,
-    xchainer.Dtype.int8,
-    xchainer.Dtype.int16,
-    xchainer.Dtype.int32,
-    xchainer.Dtype.int64,
-    xchainer.Dtype.uint8,
-    xchainer.Dtype.float32,
-    xchainer.Dtype.float64,
-]))
+def test_numpy_init(shape, dtype_pair):
+    dtype, numpy_dtype = dtype_pair
+
+    data = create_dummy_ndarray(shape, numpy_dtype)
+    array = xchainer.Array(data)
+
+    assert isinstance(array.shape, xchainer.Shape)
+    assert array.shape == data.shape
+    assert array.dtype == dtype
+    assert array.offset == 0
+    assert array.is_contiguous == data.flags['C_CONTIGUOUS']
+
+    assert array.total_size == data.size
+    assert array.element_bytes == data.itemsize
+    assert array.total_bytes == data.itemsize * data.size
+
+    assert array.debug_flat_data == data.ravel().tolist()
+
+    # inplace modification
+    if data.size > 0:
+        data *= create_dummy_ndarray(shape, numpy_dtype)
+        assert array.debug_flat_data == data.ravel().tolist()
+
+    # test possibly freed memoty
+    data_copy = data.copy()
+    del data
+    assert array.debug_flat_data == data_copy.ravel().tolist()
+
+
 def test_add_iadd(shape, dtype):
     lhs_data_list = create_dummy_data(shape, dtype, pattern=1)
     rhs_data_list = create_dummy_data(shape, dtype, pattern=2)
@@ -140,23 +152,6 @@ def test_add_iadd(shape, dtype):
     assert rhs.debug_flat_data == rhs_data_list
 
 
-@pytest.mark.parametrize('shape,dtype', itertools.product([
-    (),
-    (0,),
-    (1,),
-    (1, 1, 1),
-    (2, 3),
-    (2, 0, 3),
-], [
-    xchainer.Dtype.bool,
-    xchainer.Dtype.int8,
-    xchainer.Dtype.int16,
-    xchainer.Dtype.int32,
-    xchainer.Dtype.int64,
-    xchainer.Dtype.uint8,
-    xchainer.Dtype.float32,
-    xchainer.Dtype.float64,
-]))
 def test_mul_imul(shape, dtype):
     lhs_data_list = create_dummy_data(shape, dtype, pattern=1)
     rhs_data_list = create_dummy_data(shape, dtype, pattern=2)
@@ -174,33 +169,6 @@ def test_mul_imul(shape, dtype):
     lhs *= rhs
     assert lhs.debug_flat_data == expected_data_list
     assert rhs.debug_flat_data == rhs_data_list
-
-
-def test_numpy_init(shape, dtype_pair):
-    dtype, numpy_dtype = dtype_pair
-    data_min, data_max = -3, 4
-    if numpy_dtype is numpy.uint8:
-        data_min = 0
-
-    data = create_dummy_ndarray(shape, numpy_dtype)
-    array = xchainer.Array(data)
-
-    assert isinstance(array.shape, xchainer.Shape)
-    assert array.shape == data.shape
-    assert array.dtype == dtype
-    assert array.offset == 0
-    assert array.is_contiguous == data.flags['C_CONTIGUOUS']
-
-    assert array.total_size == data.size
-    assert array.element_bytes == data.itemsize
-    assert array.total_bytes == data.itemsize * data.size
-
-    assert array.debug_flat_data == data.ravel().tolist()
-
-    # inplace modification
-    if data.size > 0:
-        data *= numpy.random.uniform(data_min, data_max, size=shape).astype(numpy_dtype)
-        assert array.debug_flat_data == data.ravel().tolist()
 
 
 def test_array_init_invalid_length():
