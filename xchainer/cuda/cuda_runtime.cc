@@ -23,7 +23,5 @@ void CheckError(cudaError_t error) {
     }
 }
 
-void DeviceSynchronize() { CheckError(cudaDeviceSynchronize()); }
-
 }  // namespace cuda
 }  // namespace xchainer

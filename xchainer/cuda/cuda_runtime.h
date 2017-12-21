@@ -17,12 +17,5 @@ private:
 
 void CheckError(cudaError_t error);
 
-// Device management
-void CudaDeviceSynchronize();
-
-// Stream management
-
-// Memory management
-
 }  // namespace cuda
 }  // namespace xchainer

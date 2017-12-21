@@ -20,7 +20,7 @@ void Hello() {
     Device device = GetCurrentDevice();
     if (device == Device{"cuda"}) {
         HelloCuda<<<1, 1>>>();
-        CudaDeviceSynchronize();
+        CheckError(cudaDeviceSynchronize());
     } else {
         HelloCpu();
     }
