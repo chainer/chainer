@@ -1,3 +1,6 @@
+if(${CUDA_FOUND})
+    add_subdirectory(cuda)
+endif()
 if(${BUILD_PYTHON})
     add_subdirectory(python)
 endif()
@@ -24,6 +27,15 @@ add_library(xchainer SHARED
     shape.cc
     )
 
+target_link_libraries(xchainer
+    PRIVATE
+    -Wl,--whole-archive)
+if(${CUDA_FOUND})
+    target_link_libraries(xchainer PRIVATE xchainer_cuda)
+endif()
+target_link_libraries(xchainer
+    PRIVATE
+    -Wl,--no-whole-archive)
 install(TARGETS xchainer DESTINATION lib)
 
 if(ENABLE_TEST)

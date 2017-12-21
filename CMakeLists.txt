@@ -6,6 +6,12 @@ if(POLICY ${CMP0054})
     cmake_policy(SET ${CMP0054} NEW)
 endif()
 
+# CUDA
+find_package(CUDA QUIET)
+if(${CUDA_FOUND})
+    add_definitions(-DXCHAINER_ENABLE_CUDA=1)
+endif()
+
 # includes
 include(cmake/clang-tidy.cmake)
 include(cmake/third-party.cmake)
@@ -29,6 +35,9 @@ if("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU|Clang|Intel")
     set(CMAKE_CXX_FLAGS "-g -Wall -Wextra -fPIC -pthread")
     set(CMAKE_CXX_FLAGS_RELEASE "-O2")  # cmake -DCMAKE_BULD_TYPE=Release
     set(CMAKE_CXX_FLAGS_DEBUG "-O0")  # cmake -DCMAKE_BUILD_TYPE=Debug
+    if (${CUDA_FOUND})
+        list(APPEND CUDA_NVCC_FLAGS -std=c++14)
+    endif()
 
     # cmake -DENABLE_COVERAGE=ON|OFF
     if(ENABLE_COVERAGE)
