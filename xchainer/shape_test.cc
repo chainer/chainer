@@ -75,5 +75,20 @@ TEST(ShapeTest, Iterator) {
     CheckSpanEqual({4, 3, 2}, gsl::make_span(std::vector<int64_t>{shape.rbegin(), shape.rend()}));
 }
 
+TEST(ShapeTest, ToString) {
+    {
+        const Shape shape = {};
+        ASSERT_EQ(shape.ToString(), "()");
+    }
+    {
+        const Shape shape = {1};
+        ASSERT_EQ(shape.ToString(), "(1,)");
+    }
+    {
+        const Shape shape = {2, 3, 4};
+        ASSERT_EQ(shape.ToString(), "(2, 3, 4)");
+    }
+}
+
 }  // namespace
 }  // namespace xchainer
