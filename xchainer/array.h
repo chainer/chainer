@@ -14,8 +14,7 @@ namespace xchainer {
 // The main data structure of multi-dimensional array.
 class Array {
 public:
-    Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, int64_t offset = 0)
-        : shape_(shape), is_contiguous_(true), dtype_(dtype), data_(std::move(data)), offset_(offset) {}
+    Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, int64_t offset = 0);
 
     Dtype dtype() const { return dtype_; }
 
