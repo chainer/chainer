@@ -1,8 +1,6 @@
 import pytest
 import subprocess
 
-import xchainer
-
 
 cuda = pytest.mark.cuda
 
