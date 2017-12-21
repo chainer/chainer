@@ -13,12 +13,11 @@ void InitXchainerDevice(pybind11::module& m) {
         .def(py::init(&MakeDevice))
         .def("__eq__", py::overload_cast<const Device&, const Device&>(&operator==))
         .def("__ne__", py::overload_cast<const Device&, const Device&>(&operator!=))
-        .def("__repr__",
-             [](Device device) {
-                 std::ostringstream os;
-                 os << "<Device " << device.name << ">";
-                 return os.str();
-             });
+        .def("__repr__", [](Device device) {
+            std::ostringstream os;
+            os << "<Device " << device.name << ">";
+            return os.str();
+        });
 
     m.def("get_current_device", []() { return GetCurrentDevice(); });
     m.def("set_current_device", [](const Device& device) { SetCurrentDevice(device); });
