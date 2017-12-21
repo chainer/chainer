@@ -13,7 +13,7 @@ jobs:
           clang-format --version
 
       - run: |
-          find xchainer \( -name '*.cc' -o -name '*.h' \) -type f -print0 | xargs -0 -P4 -I{} bash -c 'diff -u {} <(clang-format {})'
+          find xchainer \( -name '*.cc' -o -name '*.h' -o -name '*.cu' \) -type f -print0 | xargs -0 -P4 -I{} bash -c 'diff -u {} <(clang-format {})'
 
   build:
     docker:
