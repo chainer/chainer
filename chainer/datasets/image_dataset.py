@@ -8,10 +8,8 @@ except ImportError as e:
     available = False
     _import_error = e
 import six
-import multiprocessing
 import zipfile
 import io
-import sys
 import bisect
 
 from chainer.dataset import dataset_mixin
@@ -27,11 +25,13 @@ def _read_image_as_array(path, dtype):
             f.close()
     return image
 
+
 def _postprocess_image(image):
     if image.ndim == 2:
         # image is greyscale
         image = image[:, :, numpy.newaxis]
     return image.transpose(2, 0, 1)
+
 
 class ImageDataset(dataset_mixin.DatasetMixin):
 
@@ -159,11 +159,12 @@ class LabeledImageDataset(dataset_mixin.DatasetMixin):
         label = numpy.array(int_label, dtype=self._label_dtype)
         return _postprocess_image(image), label
 
+
 class MultiZippedImageDataset(dataset_mixin.DatasetMixin):
     """Dataset of images built from a list of paths to zip files.
 
     This dataset reads an external image file in given zipfiles. The
-    zipfiles shall contain only image files. 
+    zipfiles shall contain only image files.
     This shall be able to replace ImageDataset and works better on NFS
     and other networked file systems. The user shall find good balance
     between zipfile size and number of zipfiles (e.g. granularity)
@@ -173,7 +174,7 @@ class MultiZippedImageDataset(dataset_mixin.DatasetMixin):
         dtype: Data type of resulting image arrays.
     """
     def __init__(self, zipfilenames, dtype=numpy.float32):
-        self._zfs = [ZippedImageDataset(zipfilename, dtype) for zipfilename in zipfilenames]
+        self._zfs = [ZippedImageDataset(fn, dtype) for fn in zipfilenames]
         self._zpaths_accumlens = []
         zplen = 0
         for zf in self._zfs:
@@ -209,7 +210,8 @@ class ZippedImageDataset(dataset_mixin.DatasetMixin):
         self._zf = zipfile.ZipFile(zipfilename)
         self._zf_pid = os.getpid()
         self._dtype = dtype
-        self._paths = list(filter(lambda x: not x.endswith('/'), self._zf.namelist()))
+        paths = filter(lambda x: not x.endswith('/'), self._zf.namelist())
+        self._paths = list(paths)
 
     def __len__(self):
         return len(self._paths)
@@ -221,21 +223,20 @@ class ZippedImageDataset(dataset_mixin.DatasetMixin):
         # we need to keep lock as small as possible
         # in addition, PIL may seek() on the file -- zipfile won't support it
 
-        if self._zf_pid != os.getpid(): # XXX
+        if self._zf_pid != os.getpid():
             self._zf_pid = os.getpid()
             self._zf = zipfile.ZipFile(self._zipfilename)
 
-        
         with self._zf.open(self._paths[i]) as fzobj:
             image_file_mem = fzobj.read()
-            
+
         image_file = io.BytesIO(image_file_mem)
         image = _read_image_as_array(image_file, self._dtype)
         return _postprocess_image(image)
+
 
 def _check_pillow_availability():
     if not available:
         raise ImportError('PIL cannot be loaded. Install Pillow!\n'
                           'The actual import error is as follows:\n' +
                           str(_import_error))
-
