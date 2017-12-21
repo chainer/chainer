@@ -8,13 +8,9 @@
 namespace xchainer {
 namespace cuda {
 
-__global__ void HelloCuda() {
-    printf("Hello, CUDA!\n");
-}   
+__global__ void HelloCuda() { printf("Hello, CUDA!\n"); }
 
-void HelloCpu() {
-    printf("Hello, World!\n");
-}
+void HelloCpu() { printf("Hello, World!\n"); }
 
 void Hello() {
     Device device = GetCurrentDevice();

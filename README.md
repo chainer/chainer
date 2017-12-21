@@ -59,13 +59,13 @@ To format and make changes to C++ codes in place, run the following at the repos
 zsh)
 
 ```shell-session
-$ clang-format -i xchainer/**/*.{cc,h}
+$ clang-format -i xchainer/**/*.{cc,h,cu}
 ```
 
 bash)
 
 ```shell-session
-$ find xchainer \( -name '*.cc' -o -name '*.h' \) -type f -print0 | xargs -0 clang-format -i
+$ find xchainer \( -name '*.cc' -o -name '*.h' -o -name '*.cu' \) -type f -print0 | xargs -0 clang-format -i
 ```
 
 ### C++ Lint
