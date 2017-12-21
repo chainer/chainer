@@ -81,10 +81,10 @@ jobs:
             source activate testenv
 
             flake8 --version
-            flake8 python tests
+            flake8 setup.py python tests
 
             autopep8 --version
-            autopep8 python tests -r --global-config .pep8 --diff | tee check_autopep8
+            autopep8 setup.py python tests -r --global-config .pep8 --diff | tee check_autopep8
             test ! -s check_autopep8
 
       # Python test

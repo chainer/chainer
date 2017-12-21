@@ -72,6 +72,9 @@ class CMakeBuild(build_ext.build_ext):
         subprocess.check_call(['cmake', '--build', '.'] + build_args, cwd=self.build_temp)
 
 
+install_requires = ['numpy']
+
+
 setuptools.setup(
     name='xchainer',
     version='0.0.1',
@@ -84,4 +87,5 @@ setuptools.setup(
     package_dir={'': 'python'},
     cmdclass={'build_ext': CMakeBuild},
     zip_safe=False,
+    install_requires=install_requires
 )
