@@ -6,10 +6,14 @@
 #include "xchainer/error.h"
 
 namespace xchainer {
+namespace {
 
 // Device must be POD (plain old data) to be used as a thread local variable safely.
 // ref. https://google.github.io/styleguide/cppguide.html#Static_and_Global_Variables
 static_assert(std::is_pod<Device>::value, "Device must be POD");
+
+constexpr Device kCpu = {"cpu"};
+constexpr Device kCuda = {"cuda"};
 
 TEST(DeviceTest, MakeDevice) {
     Device expect = {"abcde"};
@@ -20,15 +24,13 @@ TEST(DeviceTest, MakeDevice) {
 }
 
 TEST(DeviceTest, SetCurrentDevice) {
-    Device cpu = {"cpu"};
-    Device cuda = {"cuda"};
     auto device = GetCurrentDevice();
 
     SetCurrentDevice("cpu");
-    ASSERT_EQ(cpu, GetCurrentDevice());
+    ASSERT_EQ(kCpu, GetCurrentDevice());
 
-    SetCurrentDevice(cuda);
-    ASSERT_EQ(cuda, GetCurrentDevice());
+    SetCurrentDevice(kCuda);
+    ASSERT_EQ(kCuda, GetCurrentDevice());
 
     ASSERT_THROW(SetCurrentDevice("invalid_device"), DeviceError);
 
@@ -48,4 +50,32 @@ TEST(DeviceTest, ThreadLocal) {
     SetCurrentDevice(device);
 }
 
+TEST(DeviceScopeTest, Ctor) {
+    auto device = GetCurrentDevice();
+
+    SetCurrentDevice("cuda");
+    {
+        DeviceScope scope("cpu");
+        ASSERT_EQ(kCpu, GetCurrentDevice());
+    }
+    ASSERT_EQ(kCuda, GetCurrentDevice());
+    {
+        DeviceScope scope;
+        ASSERT_EQ(kCuda, GetCurrentDevice());
+        SetCurrentDevice("cpu");
+    }
+    ASSERT_EQ(kCuda, GetCurrentDevice());
+    {
+        DeviceScope scope("cpu");
+        scope.Exit();
+        ASSERT_EQ(kCuda, GetCurrentDevice());
+        SetCurrentDevice("cpu");
+        // not recovered here because the scope has already existed
+    }
+    ASSERT_EQ(kCpu, GetCurrentDevice());
+
+    SetCurrentDevice(device);
+}
+
 }  // namespace
+}  // namespace xchainer
