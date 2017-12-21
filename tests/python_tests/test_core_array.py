@@ -53,20 +53,6 @@ def shape(request):
     return request.param
 
 
-@pytest.fixture(params=[
-    (xchainer.Dtype.bool, numpy.bool),
-    (xchainer.Dtype.int8, numpy.int8),
-    (xchainer.Dtype.int16, numpy.int16),
-    (xchainer.Dtype.int32, numpy.int32),
-    (xchainer.Dtype.int64, numpy.int64),
-    (xchainer.Dtype.uint8, numpy.uint8),
-    (xchainer.Dtype.float32, numpy.float32),
-    (xchainer.Dtype.float64, numpy.float64)
-])
-def dtypes(request):
-    return request.param
-
-
 def create_dummy_data(shape, dtype, pattern=1):
     size = functools.reduce(operator.mul, shape, 1)
     if pattern == 1:
