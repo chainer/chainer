@@ -15,15 +15,15 @@ std::string BuildErrorMessage(cudaError_t error) {
 
 }  // namespace
 
-CudaRuntimeError::CudaRuntimeError(cudaError_t error) : XchainerError(BuildErrorMessage(error)), error_(error) {}
+RuntimeError::RuntimeError(cudaError_t error) : XchainerError(BuildErrorMessage(error)), error_(error) {}
 
-void CudaCheckError(cudaError_t error) {
+void CheckError(cudaError_t error) {
     if (error != cudaSuccess) {
-        throw CudaRuntimeError(error);
+        throw RuntimeError(error);
     }
 }
 
-void CudaDeviceSynchronize() { CudaCheckError(cudaDeviceSynchronize()); }
+void DeviceSynchronize() { CheckError(cudaDeviceSynchronize()); }
 
 }  // namespace cuda
 }  // namespace xchainer
