@@ -113,7 +113,7 @@ def test_numpy_init(shape, dtype_pair):
         data *= create_dummy_ndarray(shape, numpy_dtype)
         assert array.debug_flat_data == data.ravel().tolist()
 
-    # test possibly freed memoty
+    # test possibly freed memory
     data_copy = data.copy()
     del data
     assert array.debug_flat_data == data_copy.ravel().tolist()
