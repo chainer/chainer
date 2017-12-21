@@ -4,12 +4,6 @@ from chainer.backends import cuda
 from chainer import optimizer
 
 
-_default_hyperparam = optimizer.Hyperparameter()
-_default_hyperparam.lr = 0.01
-_default_hyperparam.alpha = 0.99
-_default_hyperparam.eps = 1e-8
-
-
 class RMSpropRule(optimizer.UpdateRule):
 
     """Update rule for RMSprop.
@@ -20,21 +14,11 @@ class RMSpropRule(optimizer.UpdateRule):
     Args:
         parent_hyperparam (~chainer.optimizer.Hyperparameter): Hyperparameter
             that provides the default values.
-        lr (float): Learning rate.
-        alpha (float): Exponential decay rate of the second order moment.
-        eps (float): Small value for the numerical stability.
 
     """
 
-    def __init__(self, parent_hyperparam=None, lr=None, alpha=None, eps=None):
-        super(RMSpropRule, self).__init__(
-            parent_hyperparam or _default_hyperparam)
-        if lr is not None:
-            self.hyperparam.lr = lr
-        if alpha is not None:
-            self.hyperparam.alpha = alpha
-        if eps is not None:
-            self.hyperparam.eps = eps
+    def __init__(self, parent_hyperparam=None):
+        super(RMSpropRule, self).__init__(parent_hyperparam)
 
     def init_state(self, param):
         xp = cuda.get_array_module(param.data)
@@ -90,8 +74,8 @@ class RMSprop(optimizer.GradientMethod):
 
     """
 
-    def __init__(self, lr=_default_hyperparam.lr,
-                 alpha=_default_hyperparam.alpha, eps=_default_hyperparam.eps,
+    def __init__(self, lr=0.01,
+                 alpha=0.99, eps=1e-8,
                  model=None):
         super(RMSprop, self).__init__(model)
         self.hyperparam.lr = lr

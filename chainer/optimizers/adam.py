@@ -16,6 +16,7 @@ class AdamRule(optimizer.UpdateRule):
     Args:
         parent_hyperparam (~chainer.optimizer.Hyperparameter): Hyperparameter
             that provides the default values.
+
     """
 
     def __init__(self, parent_hyperparam=None):

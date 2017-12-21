@@ -2,10 +2,6 @@ from chainer.backends import cuda
 from chainer import optimizer
 
 
-_default_hyperparam = optimizer.Hyperparameter()
-_default_hyperparam.lr = 0.01
-
-
 class SGDRule(optimizer.UpdateRule):
 
     """Update rule of vanilla stochastic gradient descent.
@@ -16,15 +12,11 @@ class SGDRule(optimizer.UpdateRule):
     Args:
         parent_hyperparam (~chainer.optimizer.Hyperparameter): Hyperparameter
             that provides the default values.
-        lr (float): Learning rate.
 
     """
 
-    def __init__(self, parent_hyperparam=None, lr=None):
-        super(SGDRule, self).__init__(
-            parent_hyperparam or _default_hyperparam)
-        if lr is not None:
-            self.hyperparam.lr = lr
+    def __init__(self, parent_hyperparam=None):
+        super(SGDRule, self).__init__(parent_hyperparam)
 
     def update_core_cpu(self, param):
         grad = param.grad
@@ -50,7 +42,7 @@ class SGD(optimizer.GradientMethod):
 
     """
 
-    def __init__(self, lr=_default_hyperparam.lr, model=None):
+    def __init__(self, lr=0.01, model=None):
         super(SGD, self).__init__(model)
         self.hyperparam.lr = lr
 

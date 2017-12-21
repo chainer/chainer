@@ -4,11 +4,6 @@ from chainer.backends import cuda
 from chainer import optimizer
 
 
-_default_hyperparam = optimizer.Hyperparameter()
-_default_hyperparam.rho = 0.95
-_default_hyperparam.eps = 1e-6
-
-
 class AdaDeltaRule(optimizer.UpdateRule):
 
     """Update rule of Zeiler's ADADELTA.
@@ -19,19 +14,11 @@ class AdaDeltaRule(optimizer.UpdateRule):
     Args:
         parent_hyperparam (~chainer.optimizer.Hyperparameter): Hyperparameter
             that provides the default values.
-        rho (float): Exponential decay rate of the first and second order
-            moments.
-        eps (float): Small value for the numerical stability.
 
     """
 
-    def __init__(self, parent_hyperparam=None, rho=None, eps=None):
-        super(AdaDeltaRule, self).__init__(
-            parent_hyperparam or _default_hyperparam)
-        if rho is not None:
-            self.hyperparam.rho = rho
-        if eps is not None:
-            self.hyperparam.eps = eps
+    def __init__(self, parent_hyperparam=None):
+        super(AdaDeltaRule, self).__init__(parent_hyperparam)
 
     def init_state(self, param):
         xp = cuda.get_array_module(param.data)
@@ -83,8 +70,8 @@ class AdaDelta(optimizer.GradientMethod):
 
     """
 
-    def __init__(self, rho=_default_hyperparam.rho,
-                 eps=_default_hyperparam.eps, model=None):
+    def __init__(self, rho=0.95,
+                 eps=1e-6, model=None):
         super(AdaDelta, self).__init__(model)
         self.hyperparam.rho = rho
         self.hyperparam.eps = eps
