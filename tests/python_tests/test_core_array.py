@@ -90,33 +90,55 @@ def test_array_init(shape, dtype):
     assert array.debug_flat_data == data_list
 
 
-def test_numpy_init(shape, dtype_pair):
-    dtype, numpy_dtype = dtype_pair
-
-    data = create_dummy_ndarray(shape, numpy_dtype)
-    array = xchainer.Array(data)
-
-    assert isinstance(array.shape, xchainer.Shape)
+def assert_array_ndarray_data(array, data):
     assert array.shape == data.shape
-    assert array.dtype == dtype
-    assert array.offset == 0
-    assert array.is_contiguous == data.flags['C_CONTIGUOUS']
-
     assert array.total_size == data.size
     assert array.element_bytes == data.itemsize
     assert array.total_bytes == data.itemsize * data.size
 
     assert array.debug_flat_data == data.ravel().tolist()
 
+    assert isinstance(array.shape, xchainer.Shape)
+
+    # TODO(hvy): following assertions are hard-coded
+    assert array.offset == 0
+    assert array.is_contiguous == data.flags['C_CONTIGUOUS']
+
+
+def assert_ndarray_data_equal(data1, data2):
+    assert data1.shape == data2.shape
+    assert data1.size == data2.size
+    assert data1.itemsize == data2.itemsize
+    assert data1.strides == data2.strides
+
+    assert numpy.array_equal(data1, data2)
+    assert data1.dtype == data2.dtype
+    assert data1.flags == data2.flags
+
+
+def test_numpy_init(shape, dtype_pair):
+    dtype, numpy_dtype = dtype_pair
+    data = create_dummy_ndarray(shape, numpy_dtype)
+    array = xchainer.Array(data)
+
+    assert_array_ndarray_data(array, data)
+    assert array.dtype == dtype
+
     # inplace modification
     if data.size > 0:
         data *= create_dummy_ndarray(shape, numpy_dtype)
         assert array.debug_flat_data == data.ravel().tolist()
 
+    assert_array_ndarray_data(array, data)
+    assert array.dtype == dtype
+
     # test possibly freed memory
     data_copy = data.copy()
     del data
     assert array.debug_flat_data == data_copy.ravel().tolist()
+
+    data_recovered = numpy.array(data_copy)
+    assert_ndarray_data_equal(data_copy, data_recovered)
 
 
 def test_add_iadd(shape, dtype):
