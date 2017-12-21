@@ -3,6 +3,10 @@ import pytest
 import xchainer
 
 
+CPU = xchainer.Device('cpu')
+CUDA = xchainer.Device('cuda')
+
+
 def test_device():
     cpu1 = xchainer.Device('cpu')
     cpu2 = xchainer.Device('cpu')
@@ -20,12 +24,28 @@ def test_current_device():
     device = xchainer.get_current_device()
 
     xchainer.set_current_device('cpu')
-    assert str(xchainer.get_current_device()) == '<Device cpu>'
+    assert xchainer.get_current_device() == CPU
 
     xchainer.set_current_device('cuda')
-    assert str(xchainer.get_current_device()) == '<Device cuda>'
+    assert xchainer.get_current_device() == CUDA
 
     with pytest.raises(xchainer.DeviceError):
         xchainer.set_current_device('invalid_device')
+
+    xchainer.set_current_device(device)
+
+
+def test_device_scope():
+    device = xchainer.get_current_device()
+
+    xchainer.set_current_device('cpu')
+    with xchainer.device_scope('cuda'):
+        assert xchainer.get_current_device() == CUDA
+
+    scope = xchainer.device_scope('cuda')
+    assert xchainer.get_current_device() == CPU
+    with scope:
+        assert xchainer.get_current_device() == CUDA
+    assert xchainer.get_current_device() == CPU
 
     xchainer.set_current_device(device)
