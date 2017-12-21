@@ -13,6 +13,8 @@ inline bool operator==(const Device& lhs, const Device& rhs) { return strncmp(lh
 
 inline bool operator!=(const Device& lhs, const Device& rhs) { return !(lhs == rhs); }
 
+Device MakeDevice(const std::string& name);
+
 Device GetCurrentDevice();
 
 void SetCurrentDevice(const Device& device);

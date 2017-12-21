@@ -11,6 +11,14 @@ namespace xchainer {
 // ref. https://google.github.io/styleguide/cppguide.html#Static_and_Global_Variables
 static_assert(std::is_pod<Device>::value, "Device must be POD");
 
+TEST(DeviceTest, MakeDevice) {
+    Device expect = {"abcde"};
+    Device actual = MakeDevice("abcde");
+    ASSERT_EQ(expect, actual);
+
+    EXPECT_THROW(MakeDevice("12345678"), DeviceError);
+}
+
 TEST(DeviceTest, SetCurrentDevice) {
     Device cpu = {"cpu"};
     Device cuda = {"cuda"};
