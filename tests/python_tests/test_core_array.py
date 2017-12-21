@@ -37,7 +37,7 @@ def dtype(request):
 
 
 @pytest.fixture(params=zip(dtypes, numpy_dtypes))
-def dtypes(request):
+def dtype_pair(request):
     return request.param
 
 
@@ -81,7 +81,12 @@ def create_dummy_data(shape, dtype, pattern=1):
             return [1 + i for i in range(size)]
 
 
-def test_array(shape, dtype):
+def create_dummy_ndarray(shape, dtype):
+    size = functools.reduce(operator.mul, shape, 1)
+    return numpy.arange(size).reshape(shape).astype(dtype)
+
+
+def test_array_init(shape, dtype):
     data_list = create_dummy_data(shape, dtype)
     array = xchainer.Array(shape, dtype, data_list)
 
@@ -97,29 +102,6 @@ def test_array(shape, dtype):
     assert array.total_bytes == dtype.itemsize * expected_total_size
 
     assert array.debug_flat_data == data_list
-
-
-def test_array_init_invalid_length():
-    with pytest.raises(xchainer.DimensionError):
-        xchainer.Array((), xchainer.Dtype.int8, [])
-
-    with pytest.raises(xchainer.DimensionError):
-        xchainer.Array((), xchainer.Dtype.int8, [1, 1])
-
-    with pytest.raises(xchainer.DimensionError):
-        xchainer.Array((1,), xchainer.Dtype.int8, [])
-
-    with pytest.raises(xchainer.DimensionError):
-        xchainer.Array((1,), xchainer.Dtype.int8, [1, 1])
-
-    with pytest.raises(xchainer.DimensionError):
-        xchainer.Array((0,), xchainer.Dtype.int8, [1])
-
-    with pytest.raises(xchainer.DimensionError):
-        xchainer.Array((3, 2), xchainer.Dtype.int8, [1, 1, 1, 1, 1])
-
-    with pytest.raises(xchainer.DimensionError):
-        xchainer.Array((3, 2), xchainer.Dtype.int8, [1, 1, 1, 1, 1, 1, 1])
 
 
 @pytest.mark.parametrize('shape,dtype', itertools.product([
@@ -194,13 +176,13 @@ def test_mul_imul(shape, dtype):
     assert rhs.debug_flat_data == rhs_data_list
 
 
-def test_numpy(shape, dtypes):
-    dtype, numpy_dtype = dtypes
+def test_numpy_init(shape, dtype_pair):
+    dtype, numpy_dtype = dtype_pair
     data_min, data_max = -3, 4
     if numpy_dtype is numpy.uint8:
         data_min = 0
 
-    data = numpy.random.uniform(data_min, data_max, size=shape).astype(numpy_dtype)
+    data = create_dummy_ndarray(shape, numpy_dtype)
     array = xchainer.Array(data)
 
     assert isinstance(array.shape, xchainer.Shape)
@@ -212,9 +194,6 @@ def test_numpy(shape, dtypes):
     assert array.total_size == data.size
     assert array.element_bytes == data.itemsize
     assert array.total_bytes == data.itemsize * data.size
-
-    assert str(array.dtype) == str(dtype)
-    assert str(array.shape) == str(shape)
 
     assert array.debug_flat_data == data.ravel().tolist()
 

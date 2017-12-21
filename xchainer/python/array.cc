@@ -12,7 +12,7 @@ namespace xchainer {
 
 namespace py = pybind11;
 
-Dtype ConvertDtype(py::dtype npdtype) {
+Dtype NumpyDtypeToDtype(py::dtype npdtype) {
     switch (npdtype.kind()) {
         case 'b':
             return Dtype::kBool;
@@ -54,7 +54,7 @@ Dtype ConvertDtype(py::dtype npdtype) {
     throw DtypeError("unsupported NumPy dtype");
 }
 
-Array InitByShapeDtypeList(const Shape& shape, Dtype dtype, py::list list) {
+Array MakeArrayFromList(const Shape& shape, Dtype dtype, py::list list) {
     auto total_size = shape.total_size();
     auto bytes = GetElementSize(dtype) * total_size;
     if (static_cast<size_t>(total_size) != list.size()) {
@@ -97,13 +97,13 @@ Array InitByShapeDtypeList(const Shape& shape, Dtype dtype, py::list list) {
     return Array{shape, dtype, ptr};
 }
 
-std::unique_ptr<Array> InitByArray(py::array array) {
+std::unique_ptr<Array> MakeArrayFromNumpyArray(py::array array) {
     if (!(array.flags() & py::array::c_style)) {
         throw DimensionError("cannot convert non-contiguous NumPy array to Array");
     }
 
     // TODO(hvy): When Unified Memory Array creation and its Python binding is in-place, create the Array on the correct device
-    Dtype dtype = ConvertDtype(array.dtype());
+    Dtype dtype = NumpyDtypeToDtype(array.dtype());
     py::buffer_info info = array.request();
     Shape shape(info.shape);
     std::shared_ptr<void> data(std::make_shared<py::array>(std::move(array)), array.mutable_data());
@@ -113,8 +113,8 @@ std::unique_ptr<Array> InitByArray(py::array array) {
 
 void InitXchainerArray(pybind11::module& m) {
     py::class_<Array>{m, "Array"}
-        .def(py::init(&InitByShapeDtypeList))
-        .def(py::init(&InitByArray))
+        .def(py::init(&MakeArrayFromList))
+        .def(py::init(&MakeArrayFromNumpyArray))
         .def("__repr__", static_cast<std::string (Array::*)() const>(&Array::ToString))
         .def_property_readonly("dtype", &Array::dtype)
         .def_property_readonly("shape", &Array::shape)
