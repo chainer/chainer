@@ -175,7 +175,7 @@ class MultiZippedImageDataset(dataset_mixin.DatasetMixin):
     """
     def __init__(self, zipfilenames, dtype=numpy.float32):
         self._zfs = [ZippedImageDataset(fn, dtype) for fn in zipfilenames]
-        self._zpaths_accumlens = []
+        self._zpaths_accumlens = [0]
         zplen = 0
         for zf in self._zfs:
             zplen += len(zf)
@@ -185,11 +185,10 @@ class MultiZippedImageDataset(dataset_mixin.DatasetMixin):
         return self._zpaths_accumlens[-1]
 
     def get_example(self, i):
-        tgt = bisect.bisect_right(self._zpaths_accumlens, i)
+        tgt = bisect.bisect(self._zpaths_accumlens, i) - 1
 
-        lidx = i - (self._zpaths_accumlens[tgt - 1] if tgt > 0 else 0)
+        lidx = i - self._zpaths_accumlens[tgt]
         return self._zfs[tgt].get_example(lidx)
-
 
 class ZippedImageDataset(dataset_mixin.DatasetMixin):
     """Dataset of images built from a zip file.
@@ -227,9 +226,7 @@ class ZippedImageDataset(dataset_mixin.DatasetMixin):
             self._zf_pid = os.getpid()
             self._zf = zipfile.ZipFile(self._zipfilename)
 
-        with self._zf.open(self._paths[i]) as fzobj:
-            image_file_mem = fzobj.read()
-
+        image_file_mem = self._zf.read(self._paths[i])
         image_file = io.BytesIO(image_file_mem)
         image = _read_image_as_array(image_file, self._dtype)
         return _postprocess_image(image)
