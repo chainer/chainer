@@ -107,7 +107,7 @@ std::unique_ptr<Array> MakeArrayFromNumpyArray(py::array array) {
     py::buffer_info info = array.request();
     Shape shape(info.shape);
 
-    // Assuming pybind increases the reference count to the underlying NumPy object, we choose not to copy the data
+    // data holds the copy of py::array which in turn references the NumPy array and the buffer is therefore not released
     std::shared_ptr<void> data(std::make_shared<py::array>(std::move(array)), array.mutable_data());
 
     return std::make_unique<Array>(shape, dtype, data);
