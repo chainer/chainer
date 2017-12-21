@@ -19,22 +19,15 @@ std::string Shape::ToString() const {
 }
 
 std::ostream& operator<<(std::ostream& os, const Shape& shape) {
-    switch (shape.ndim()) {
-        case 0:
-            return os << "()";
-        case 1:
-            return os << "(" << shape[0] << ",)";
-        default:
-            os << "(";
-            for (auto iter = shape.begin(); iter != shape.end(); ++iter) {
-                if (iter != shape.begin()) {
-                    os << ", ";
-                }
-                os << *iter;
-            }
-            os << ")";
-            return os;
+    os << "(";
+    for (auto iter = shape.begin(); iter != shape.end(); ++iter) {
+        if (iter != shape.begin()) {
+            os << ", ";
+        }
+        os << *iter;
     }
+    // same as Python tuples with trailing comma in case of length 1
+    return os << (shape.ndim() == 1 ? ",)" : ")");
 }
 
 void CheckEqual(const Shape& lhs, const Shape& rhs) {
