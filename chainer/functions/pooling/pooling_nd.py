@@ -2,7 +2,7 @@ import numpy
 import six
 
 from chainer.backends import cuda
-from chainer import function
+from chainer import function_node
 from chainer.utils import conv
 from chainer.utils import conv_nd
 from chainer.utils import type_check
@@ -13,7 +13,7 @@ if cuda.cudnn_enabled:
     libcudnn = cuda.cuda.cudnn
 
 
-class _PoolingND(function.Function):
+class _PoolingND(function_node.FunctionNode):
 
     """Base class of pooling function over a set of N-dimensional planes."""
 
