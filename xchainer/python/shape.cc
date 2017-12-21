@@ -1,7 +1,5 @@
 #include "xchainer/python/shape.h"
 
-#include "xchainer/python/shape.h"
-
 #include <algorithm>
 
 #include <pybind11/operators.h>
