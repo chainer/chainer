@@ -35,3 +35,5 @@ def test_shape(shape_tup):
 
     expected_total_size = functools.reduce(operator.mul, shape_tup, 1)
     assert shape.total_size == expected_total_size
+
+    assert str(shape) == str(shape_tup)

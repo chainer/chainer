@@ -2,6 +2,8 @@
 
 #include <cassert>
 
+#include "xchainer/array_repr.h"
+
 namespace xchainer {
 
 Array& Array::IAdd(const Array& rhs) {
@@ -119,5 +121,7 @@ void Array::Mul(const Array& rhs, Array& out) const {
             assert(0);  // should never be reached
     }
 }
+
+std::string Array::ToString() const { return ArrayRepr(*this); }
 
 }  // namespace xchainer

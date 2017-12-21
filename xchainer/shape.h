@@ -3,6 +3,7 @@
 #include <array>
 #include <cstdint>
 #include <initializer_list>
+#include <sstream>
 
 #include <gsl/gsl>
 
@@ -63,6 +64,8 @@ public:
     // span
     gsl::span<const int64_t> span() const { return {&dims_[0], static_cast<size_t>(ndim_)}; }
 
+    std::string ToString() const;
+
 private:
     void CheckNdim() const {
         if (ndim_ > kMaxNdim) {
@@ -77,6 +80,8 @@ private:
 inline bool operator==(const Shape& lhs, const Shape& rhs) { return lhs.span() == rhs.span(); }
 
 inline bool operator!=(const Shape& lhs, const Shape& rhs) { return lhs.span() != rhs.span(); }
+
+std::ostream& operator<<(std::ostream&, const Shape&);
 
 void CheckEqual(const Shape& lhs, const Shape& rhs);
 
