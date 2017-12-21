@@ -2,7 +2,7 @@
 
 #include <cstdio>
 
-#include "xchainer/cuda/libs/cuda_runtime.h"
+#include "xchainer/cuda/cuda_runtime.h"
 #include "xchainer/device.h"
 
 namespace xchainer {

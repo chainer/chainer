@@ -1,4 +1,4 @@
-#include "xchainer/cuda/libs/cuda_runtime.h"
+#include "xchainer/cuda/cuda_runtime.h"
 
 #include <sstream>
 #include <string>
