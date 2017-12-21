@@ -17,5 +17,23 @@ private:
 
 void CheckError(cudaError_t error);
 
+// Occupancy
+#ifdef __CUDACC__
+
+struct GridBlockSize {
+    int grid_size;
+    int block_size;
+};
+
+template <typename T>
+GridBlockSize CudaOccupancyMaxPotentialBlockSize(T&& func, size_t dynamic_smem_size = 0, int block_size_limit = 0) {
+    GridBlockSize ret;
+    CheckError(
+        cudaOccupancyMaxPotentialBlockSize(&ret.grid_size, &ret.block_size, std::forward<T>(func), dynamic_smem_size, block_size_limit));
+    return ret;
+}
+
+#endif  // __CUDACC__
+
 }  // namespace cuda
 }  // namespace xchainer
