@@ -1,6 +1,6 @@
 import numpy
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function
 from chainer.utils import type_check
 
@@ -123,7 +123,7 @@ def hinge(x, t, norm='L1', reduce='mean'):
 
         .. math::
             \\delta \\{ {\\rm condition} \\} = \\left \\{ \\begin{array}{cc}
-            1 & {\\rm if~condition\ is\ true} \\\\
+            1 & {\\rm if~condition\\ is\\ true} \\\\
             -1 & {\\rm otherwise,}
             \\end{array} \\right.
 
@@ -139,7 +139,7 @@ def hinge(x, t, norm='L1', reduce='mean'):
         :math:`\\left[\\max(0, 1 - \\delta x) \\right]^p`.
         When :math:`x` and :math:`\\delta` have the same sign (meaning
         :math:`x` predicts the proper score for classification) and
-        :math:`|x| \geq 1`, the hinge loss :math:`l(x, \\delta) = 0`, but when
+        :math:`|x| \\geq 1`, the hinge loss :math:`l(x, \\delta) = 0`, but when
         they have opposite sign, :math:`l(x, \\delta)` increases linearly
         with :math:`x`.
 
@@ -155,7 +155,7 @@ def hinge(x, t, norm='L1', reduce='mean'):
         t (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray` of signed integer):
             The :math:`N`-dimensional label vector with values
-            :math:`t_n \in \{0, 1, 2, \dots, K-1\}`.
+            :math:`t_n \\in \\{0, 1, 2, \\dots, K-1\\}`.
             The shape of ``t`` should be (:math:`N`,).
         norm (string): Specifies norm type. Either ``'L1'`` or ``'L2'`` is
             acceptable.

@@ -78,6 +78,10 @@ class TestNegativeSampling(unittest.TestCase):
 
     @attr.gpu
     def test_backward_cpu_gpu(self):
+        # TODO(niboshi):
+        # Fix this test. The code seems to fix the samples in order to avoid
+        # random behavior, but resulting grads are always zero-tensors, no
+        # matter what are sampled.
         x = chainer.Variable(self.x)
         t = chainer.Variable(self.t)
         y = self.link(x, t)

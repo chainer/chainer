@@ -2,7 +2,7 @@ import numpy
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function_node
 from chainer.functions.math import sum as _sum
 from chainer.utils import array

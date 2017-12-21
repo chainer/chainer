@@ -5,7 +5,7 @@ import warnings
 import numpy
 import six
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import link as link_module
 from chainer import serializer as serializer_module
 from chainer import variable
@@ -364,6 +364,8 @@ class Optimizer(object):
 
     """
 
+    _hooks = None
+
     def setup(self, link):
         """Sets a target link and initializes the optimizer states.
 
@@ -442,7 +444,7 @@ class Optimizer(object):
         """
         if not callable(hook):
             raise TypeError('hook function is not callable')
-        if not hasattr(self, '_hooks'):
+        if self._hooks is None:
             raise RuntimeError('call `setup` method before `add_hook` method')
 
         if name is None:
@@ -526,9 +528,9 @@ class GradientMethod(Optimizer):
     def __init__(self, link=None):
         super(GradientMethod, self).__init__()
         self.hyperparam = Hyperparameter()
+        self._use_fp32_update = False
         if isinstance(link, link_module.Link):
             self.setup(link)
-        self._use_fp32_update = False
 
     def setup(self, link):
         super(GradientMethod, self).setup(link)

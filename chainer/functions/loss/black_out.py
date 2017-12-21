@@ -20,7 +20,7 @@ def black_out(x, t, W, samples, reduce='mean'):
       -\\log(p(t)) - \\sum_{s \\in S} \\log(1 - p(s)),
 
     where :math:`t` is the correct label, :math:`S` is a set of negative
-    examples and :math:`p(\cdot)` is likelihood of a given label.
+    examples and :math:`p(\\cdot)` is likelihood of a given label.
     And, :math:`p` is defined as
 
     .. math::
@@ -38,7 +38,7 @@ def black_out(x, t, W, samples, reduce='mean'):
             Its shape should be :math:`(N, D)`.
         t (~chainer.Variable): Vector of ground truth labels.
             Its shape should be :math:`(N,)`. Each elements :math:`v`
-            should satisfy :math:`0 \geq v \geq V` or :math:`-1`
+            should satisfy :math:`0 \\geq v \\geq V` or :math:`-1`
             where :math:`V` is the number of label types.
         W (~chainer.Variable): Weight matrix.
             Its shape should be :math:`(V, D)`

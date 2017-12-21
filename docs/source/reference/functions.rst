@@ -128,7 +128,11 @@ Evaluation functions
    chainer.functions.accuracy
    chainer.functions.binary_accuracy
    chainer.functions.classification_summary
+   chainer.functions.f1_score
+   chainer.functions.precision
    chainer.functions.r2_score
+   chainer.functions.recall
+
 
 Loss functions
 --------------
@@ -145,6 +149,7 @@ Loss functions
    chainer.functions.crf1d
    chainer.functions.argmax_crf1d
    chainer.functions.cross_covariance
+   chainer.functions.decov
    chainer.functions.gaussian_kl_divergence
    chainer.functions.gaussian_nll
    chainer.functions.hinge
@@ -164,6 +169,7 @@ Mathematical functions
    :toctree: generated/
    :nosignatures:
 
+   chainer.functions.absolute
    chainer.functions.arccos
    chainer.functions.arcsin
    chainer.functions.arctan
@@ -180,6 +186,8 @@ Mathematical functions
    chainer.functions.cos
    chainer.functions.cosh
    chainer.functions.cumsum
+   chainer.functions.det
+   chainer.functions.batch_det
    chainer.functions.exp
    chainer.functions.expm1
    chainer.functions.fix
@@ -223,6 +231,7 @@ Noise injections
    chainer.functions.gaussian
    chainer.functions.gumbel_softmax
    chainer.functions.simplified_dropconnect
+   chainer.functions.zoneout
 
 Normalization functions
 -----------------------
@@ -232,7 +241,9 @@ Normalization functions
    :nosignatures:
 
    chainer.functions.batch_normalization
+   chainer.functions.batch_renormalization
    chainer.functions.fixed_batch_normalization
+   chainer.functions.fixed_batch_renormalization
    chainer.functions.layer_normalization
    chainer.functions.local_response_normalization
    chainer.functions.normalize
@@ -252,6 +263,7 @@ Spatial pooling
    chainer.functions.roi_pooling_2d
    chainer.functions.spatial_pyramid_pooling_2d
    chainer.functions.unpooling_2d
+   chainer.functions.unpooling_nd
    chainer.functions.upsampling_2d
 
 
