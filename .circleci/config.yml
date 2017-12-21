@@ -72,7 +72,6 @@ jobs:
 
             pip install -U hacking autopep8
             pip install -U pytest pytest-cov coveralls
-            pip install -U numpy
 
       # Python PEP-8 check
       - run:
