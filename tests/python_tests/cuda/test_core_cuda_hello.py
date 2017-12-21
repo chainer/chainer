@@ -5,6 +5,7 @@ import xchainer
 
 cuda = pytest.mark.cuda
 
+
 @cuda
 def test_hello(capfd):
     device = xchainer.get_current_device()
