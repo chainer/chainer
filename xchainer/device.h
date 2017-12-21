@@ -27,6 +27,12 @@ public:
     DeviceScope() : orig_(GetCurrentDevice()) {}
     explicit DeviceScope(Device device) : DeviceScope() { SetCurrentDevice(device); }
     explicit DeviceScope(const std::string& device) : DeviceScope(MakeDevice(device)) {}
+
+    DeviceScope(const DeviceScope&) = delete;
+    DeviceScope(DeviceScope&&) = delete;
+    DeviceScope& operator=(const DeviceScope&) = delete;
+    DeviceScope& operator=(DeviceScope&&) = delete;
+
     ~DeviceScope() { Exit(); }
 
     // Explicitly recovers the original device. It will invalidate the scope object so that dtor will do nothing.
