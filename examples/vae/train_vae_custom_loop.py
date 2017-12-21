@@ -6,8 +6,7 @@ import argparse
 import os
 
 import chainer
-from chainer import training
-from chainer.training import extensions
+from chainer.dataset import convert
 import numpy as np
 
 import net
@@ -41,46 +40,78 @@ def main():
 
     # Prepare VAE model, defined in net.py
     model = net.VAE(784, args.dimz, 500)
+    if args.gpu >= 0:
+        chainer.cuda.get_device_from_id(args.gpu).use()
+        model.to_gpu()
 
     # Setup an optimizer
     optimizer = chainer.optimizers.Adam()
     optimizer.setup(model)
 
-    # Initialize
+    # Initialize / Resume
     if args.initmodel:
         chainer.serializers.load_npz(args.initmodel, model)
+
+    if args.resume:
+        chainer.serializers.load_npz(args.resume, optimizer)
 
     # Load the MNIST dataset
     train, test = chainer.datasets.get_mnist(withlabel=False)
     if args.test:
         train, _ = chainer.datasets.split_dataset(train, 100)
         test, _ = chainer.datasets.split_dataset(test, 100)
+    train_count = len(train)
+    test_count = len(test)
 
     train_iter = chainer.iterators.SerialIterator(train, args.batchsize)
     test_iter = chainer.iterators.SerialIterator(test, args.batchsize,
                                                  repeat=False, shuffle=False)
 
-    # Set up an updater. StandardUpdater can explicitly specify a loss function
-    # used in the training with 'loss_func' option
-    updater = training.StandardUpdater(train_iter, optimizer, device=args.gpu,
-                                       loss_func=model.get_loss_func())
+    while train_iter.epoch < args.epoch:
+        sum_loss = 0
+        sum_rec_loss = 0
 
-    trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
-    trainer.extend(extensions.Evaluator(test_iter, model, device=args.gpu,
-                                        eval_func=model.get_loss_func(k=10)))
-    trainer.extend(extensions.dump_graph('main/loss'))
-    trainer.extend(extensions.snapshot(), trigger=(args.epoch, 'epoch'))
-    trainer.extend(extensions.LogReport())
-    trainer.extend(extensions.PrintReport(
-        ['epoch', 'main/loss', 'validation/main/loss',
-         'main/rec_loss', 'validation/main/rec_loss', 'elapsed_time']))
-    trainer.extend(extensions.ProgressBar())
+        batch = train_iter.next()
+        x_array = convert.concat_examples(batch, args.gpu)
+        x = chainer.Variable(x_array)
+        # Update model based on the loss function
+        # defined by model.get_loss_func()
+        optimizer.update(model.get_loss_func(), x)
 
-    if args.resume:
-        chainer.serializers.load_npz(args.resume, trainer)
+        sum_loss += float(model.loss.data) * len(x.data)
+        sum_rec_loss += float(model.rec_loss.data) * len(x.data)
 
-    # Run the training
-    trainer.run()
+        if train_iter.is_new_epoch:
+            print('train mean loss={}, mean reconstruction loss={}'
+                  .format(sum_loss / train_count, sum_rec_loss / train_count))
+
+            # evaluation
+            sum_loss = 0
+            sum_rec_loss = 0
+            for batch in test_iter:
+                x_array = convert.concat_examples(batch, args.gpu)
+                x = chainer.Variable(x_array)
+                loss_func = model.get_loss_func(k=10)
+                loss_func(x)
+                sum_loss += float(model.loss.data) * len(x.data)
+                sum_rec_loss += float(model.rec_loss.data) * len(x.data)
+
+            test_iter.reset()
+            print('test mean loss={}, mean reconstruction loss={}'
+                  .format(sum_loss / test_count, sum_rec_loss / test_count))
+
+    # Note that os.makedirs(path, exist_ok=True) can be used
+    # if this script only supports python3
+    if not os.path.exists(args.out):
+        os.mkdir(args.out)
+
+    # Save the model and the optimizer
+    print('save the model')
+    chainer.serializers.save_npz(
+        os.path.join(args.out, 'mlp.model'), model)
+    print('save the optimizer')
+    chainer.serializers.save_npz(
+        os.path.join(args.out, 'mlp.state'), optimizer)
 
     # Visualize the results
     def save_images(x, filename):
