@@ -6,6 +6,8 @@
 
 namespace xchainer {
 
+namespace {
+
 template <typename T>
 void Add(const Array& lhs, const Array& rhs, Array& out) {
     auto total_size = lhs.shape().total_size();
@@ -27,6 +29,8 @@ void Mul(const Array& lhs, const Array& rhs, Array& out) {
         odata[i] = ldata[i] * rdata[i];
     }
 }
+
+}  // namespace
 
 void Add(const Array& lhs, const Array& rhs, Array& out) {
     switch (lhs.dtype()) {

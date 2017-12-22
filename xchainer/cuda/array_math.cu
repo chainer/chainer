@@ -8,6 +8,8 @@
 namespace xchainer {
 namespace cuda {
 
+namespace {
+
 template <typename T>
 __global__ void AddKernel(const T* ldata, const T* rdata, T* odata, const int64_t total_size) {
     for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < total_size; i += blockDim.x * gridDim.x) {
@@ -51,6 +53,8 @@ void Mul(const Array& lhs, const Array& rhs, Array& out) {
     T* odata = static_cast<T*>(out.data().get());
     MulKernel<<<grid_size, block_size>>>(ldata, rdata, odata, size);
 }
+
+}  // namespace
 
 void Add(const Array& lhs, const Array& rhs, Array& out) {
     switch (lhs.dtype()) {
