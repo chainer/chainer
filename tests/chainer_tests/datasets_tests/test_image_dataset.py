@@ -76,4 +76,55 @@ class TestLabeledImageDatasetInvalidFormat(unittest.TestCase):
             datasets.LabeledImageDataset(path)
 
 
+@testing.parameterize(*testing.product({
+    'dtype': [numpy.float32, numpy.int32],
+}))
+@unittest.skipUnless(image_dataset.available, 'image_dataset is not available')
+class TestZippedImageDataset(unittest.TestCase):
+
+    def setUp(self):
+        root = os.path.join(os.path.dirname(__file__), 'image_dataset')
+        zipfilename = os.path.join(root, 'zipped_images_1.zip')
+        self.dataset = datasets.ZippedImageDataset(zipfilename,
+                                                   dtype=self.dtype)
+
+    def test_len(self):
+        self.assertEqual(len(self.dataset), 2)
+
+    def test_get(self):
+        img = self.dataset.get_example(0)
+        self.assertEqual(img.dtype, self.dtype)
+        self.assertEqual(img.shape, (4, 300, 300))
+
+    def test_get_grey(self):
+        img = self.dataset.get_example(1)
+        self.assertEqual(img.dtype, self.dtype)
+        self.assertEqual(img.shape, (1, 300, 300))
+
+
+@testing.parameterize(*testing.product({
+    'dtype': [numpy.float32, numpy.int32],
+}))
+@unittest.skipUnless(image_dataset.available, 'image_dataset is not available')
+class TestMultiZippedImageDataset(unittest.TestCase):
+
+    def setUp(self):
+        root = os.path.join(os.path.dirname(__file__), 'image_dataset')
+        zipfilenames = [os.path.join(root, fn) for fn
+                        in ('zipped_images_1.zip', 'zipped_images_2.zip')]
+        self.dataset = datasets.MultiZippedImageDataset(zipfilenames,
+                                                        dtype=self.dtype)
+
+    def test_len(self):
+        self.assertEqual(len(self.dataset), 5)
+
+    def test_get(self):
+        image_formats = ((4, 300, 300), (1, 300, 300), (4, 285, 1000),
+                         (3, 404, 1417), (4, 404, 1417))
+        for i in range(5):
+            fmt = image_formats[i]
+            img = self.dataset.get_example(i)
+            self.assertEqual(img.dtype, self.dtype)
+            self.assertEqual(img.shape, fmt)
+
 testing.run_module(__name__, __file__)
