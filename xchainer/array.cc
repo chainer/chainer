@@ -1,10 +1,51 @@
 #include "xchainer/array.h"
 
 #include <cassert>
+#include <cstring>
+
+#ifdef XCHAINER_ENABLE_CUDA
+#include <cuda.h>
+#include <cuda_runtime.h>
+#endif  // XCHAINER_ENABLE_CUDA
 
 #include "xchainer/array_repr.h"
+#ifdef XCHAINER_ENABLE_CUDA
+#include "xchainer/cuda/cuda_runtime.h"
+#endif  // XCHAINER_ENABLE_CUDA
+#include "xchainer/device.h"
 
 namespace xchainer {
+
+namespace {
+
+std::shared_ptr<void> AllocateCudaManaged(const void* src_ptr, size_t size) {
+#ifdef XCHAINER_ENABLE_CUDA
+    void* ptr = nullptr;
+    cuda::CheckError(cudaMallocManaged(&ptr, size, cudaMemAttachGlobal));
+    std::memcpy(ptr, src_ptr, size);
+    return std::shared_ptr<void>(ptr, ::cudaFree);
+#else
+    (void)src_ptr;
+    (void)size;
+    assert(0);
+    return std::shared_ptr<void>();
+#endif  // XCHAINER_ENABLE_CUDA
+}
+
+}  // namespace
+
+Array::Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, int64_t offset)
+    : shape_(shape), is_contiguous_(true), dtype_(dtype), data_(nullptr), offset_(offset) {
+    Device device = GetCurrentDevice();
+    if (device == MakeDevice("cuda")) {
+        // CUDA
+        size_t size = static_cast<size_t>(shape_.total_size() * GetElementSize(dtype));
+        data_ = AllocateCudaManaged(data.get(), size);
+    } else {
+        // CPU
+        data_ = std::move(data);
+    }
+}
 
 Array& Array::IAdd(const Array& rhs) {
     Add(rhs, *this);

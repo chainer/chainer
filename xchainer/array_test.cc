@@ -1,14 +1,31 @@
 #include "xchainer/array.h"
 
-#include <gtest/gtest.h>
 #include <array>
 #include <cstddef>
 #include <initializer_list>
 
+#ifdef XCHAINER_ENABLE_CUDA
+#include <cuda_runtime.h>
+#endif  // XCHAINER_ENABLE_CUDA
+#include <gtest/gtest.h>
+
+#ifdef XCHAINER_ENABLE_CUDA
+#include "xchainer/cuda/cuda_runtime.h"
+#endif  // XCHAINER_ENABLE_CUDA
+#include "xchainer/device.h"
+
 namespace xchainer {
 namespace {
 
-class ArrayTest : public ::testing::Test {
+class ArrayTest : public ::testing::TestWithParam<::testing::tuple<std::string>> {
+protected:
+    virtual void SetUp() {
+        std::string device_name = ::testing::get<0>(GetParam());
+        device_scope_ = std::make_unique<DeviceScope>(device_name);
+    }
+
+    virtual void TearDown() { device_scope_.reset(); }
+
 public:
     template <typename T>
     Array MakeArray(std::initializer_list<int64_t> shape, std::shared_ptr<void> data) {
@@ -33,9 +50,23 @@ public:
             ASSERT_EQ(ldata[i], rdata[i]);
         }
     }
+
+    bool IsPointerCudaManaged(const void* ptr) {
+#ifdef XCHAINER_ENABLE_CUDA
+        cudaPointerAttributes attr = {};
+        cuda::CheckError(cudaPointerGetAttributes(&attr, ptr));
+        return attr.isManaged != 0;
+#else
+        (void)ptr;
+        return false;
+#endif  // XCHAINER_ENABLE_CUDA
+    }
+
+private:
+    std::unique_ptr<DeviceScope> device_scope_;
 };
 
-TEST_F(ArrayTest, Ctor) {
+TEST_P(ArrayTest, Ctor) {
     std::shared_ptr<void> data = std::make_unique<float[]>(2 * 3 * 4);
     Array x = MakeArray<float>({2, 3, 4}, data);
     ASSERT_EQ(TypeToDtype<float>, x.dtype());
@@ -44,19 +75,33 @@ TEST_F(ArrayTest, Ctor) {
     ASSERT_EQ(4, x.element_bytes());
     ASSERT_EQ(2 * 3 * 4 * 4, x.total_bytes());
     const std::shared_ptr<void> x_data = x.data();
-    ASSERT_EQ(data, x_data);
+    if (GetCurrentDevice() == MakeDevice("cpu")) {
+        ASSERT_EQ(data, x_data);
+    } else if (GetCurrentDevice() == MakeDevice("cuda")) {
+        ASSERT_NE(data, x_data);
+        ASSERT_TRUE(IsPointerCudaManaged(x_data.get()));
+    } else {
+        assert(0);
+    }
     ASSERT_EQ(0, x.offset());
     ASSERT_TRUE(x.is_contiguous());
 }
 
-TEST_F(ArrayTest, ConstArray) {
+TEST_P(ArrayTest, ConstArray) {
     std::shared_ptr<void> data = std::make_unique<float[]>(2 * 3 * 4);
     const Array x = MakeArray<float>({2, 3, 4}, data);
     std::shared_ptr<const void> x_data = x.data();
-    ASSERT_EQ(data, x_data);
+    if (GetCurrentDevice() == MakeDevice("cpu")) {
+        ASSERT_EQ(data, x_data);
+    } else if (GetCurrentDevice() == MakeDevice("cuda")) {
+        ASSERT_NE(data, x_data);
+        ASSERT_TRUE(IsPointerCudaManaged(x_data.get()));
+    } else {
+        assert(0);
+    }
 }
 
-TEST_F(ArrayTest, IAdd) {
+TEST_P(ArrayTest, IAdd) {
     {
         Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
         Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
@@ -80,7 +125,7 @@ TEST_F(ArrayTest, IAdd) {
     }
 }
 
-TEST_F(ArrayTest, IMul) {
+TEST_P(ArrayTest, IMul) {
     {
         Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
         Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
@@ -104,7 +149,7 @@ TEST_F(ArrayTest, IMul) {
     }
 }
 
-TEST_F(ArrayTest, Add) {
+TEST_P(ArrayTest, Add) {
     {
         Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
         Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
@@ -128,7 +173,7 @@ TEST_F(ArrayTest, Add) {
     }
 }
 
-TEST_F(ArrayTest, Mul) {
+TEST_P(ArrayTest, Mul) {
     {
         Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
         Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
@@ -151,6 +196,12 @@ TEST_F(ArrayTest, Mul) {
         AssertEqual<float>(e, o);
     }
 }
+
+INSTANTIATE_TEST_CASE_P(ForEachDevice, ArrayTest, ::testing::Values(
+#ifdef XCHAINER_ENABLE_CUDA
+                                                      std::string{"cuda"},
+#endif  // XCHAINER_ENABLE_CUDA
+                                                      std::string{"cpu"}));
 
 }  // namespace
 }  // namespace xchainer

@@ -5,11 +5,13 @@
 #include <cmath>
 #include <limits>
 
+#include "xchainer/device.h"
+
 namespace xchainer {
 namespace {
 
 template <typename T>
-void CheckArrayRepr(const std::vector<T>& data_vec, Shape shape, const std::string& expected) {
+void CheckArrayReprWithCurrentDevice(const std::vector<T>& data_vec, Shape shape, const std::string& expected) {
     // Copy to a contiguous memory block because std::vector<bool> is not packed as a sequence of bool's.
     std::shared_ptr<T> data_ptr = std::make_unique<T[]>(data_vec.size());
     std::copy(data_vec.begin(), data_vec.end(), data_ptr.get());
@@ -22,6 +24,21 @@ void CheckArrayRepr(const std::vector<T>& data_vec, Shape shape, const std::stri
     std::ostringstream os;
     ArrayRepr(os, array);
     EXPECT_EQ(os.str(), expected);
+}
+
+template <typename T>
+void CheckArrayRepr(const std::vector<T>& data_vec, Shape shape, const std::string& expected) {
+    {
+        DeviceScope ctx{"cpu"};
+        CheckArrayReprWithCurrentDevice(data_vec, shape, expected);
+    }
+
+    {
+#ifdef XCHAINER_ENABLE_CUDA
+        DeviceScope ctx{"cuda"};
+        CheckArrayReprWithCurrentDevice(data_vec, shape, expected);
+#endif  // XCHAINER_ENABLE_CUDA
+    }
 }
 
 TEST(ArrayReprTest, ArrayRepr) {
