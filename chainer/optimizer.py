@@ -383,6 +383,7 @@ class Optimizer(object):
         self.t = 0
         self.epoch = 0
         self._hooks = collections.OrderedDict()
+        return self
 
     def update(self, lossfun=None, *args, **kwds):
         """Updates the parameters.
