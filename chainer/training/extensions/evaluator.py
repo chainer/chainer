@@ -193,3 +193,8 @@ class Evaluator(extension.Extension):
             summary.add(observation)
 
         return summary.compute_mean()
+
+    def finalize(self):
+        for _, iterator in self._iterators.items():
+            if hasattr(iterator, 'finalize'):
+                iterator.finalize()
