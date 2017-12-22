@@ -90,7 +90,7 @@ def test_array_init(shape, dtype):
     assert array.debug_flat_data == data_list
 
 
-def assert_array_ndarray_data(array, data):
+def assert_array_equals_ndarray(array, data):
     assert array.shape == data.shape
     assert array.total_size == data.size
     assert array.element_bytes == data.itemsize
@@ -105,7 +105,7 @@ def assert_array_ndarray_data(array, data):
     assert array.is_contiguous == data.flags['C_CONTIGUOUS']
 
 
-def assert_ndarray_data_equal(data1, data2):
+def assert_ndarray_equals_ndarray(data1, data2):
     assert data1.shape == data2.shape
     assert data1.size == data2.size
     assert data1.itemsize == data2.itemsize
@@ -121,7 +121,7 @@ def test_numpy_init(shape, dtype_pair):
     data = create_dummy_ndarray(shape, numpy_dtype)
     array = xchainer.Array(data)
 
-    assert_array_ndarray_data(array, data)
+    assert_array_equals_ndarray(array, data)
     assert array.dtype == dtype
 
     # inplace modification
@@ -129,7 +129,7 @@ def test_numpy_init(shape, dtype_pair):
         data *= create_dummy_ndarray(shape, numpy_dtype)
         assert array.debug_flat_data == data.ravel().tolist()
 
-    assert_array_ndarray_data(array, data)
+    assert_array_equals_ndarray(array, data)
     assert array.dtype == dtype
 
     # test possibly freed memory
@@ -139,12 +139,12 @@ def test_numpy_init(shape, dtype_pair):
 
     # recovered data should be equal
     data_recovered = numpy.array(array)
-    assert_ndarray_data_equal(data_copy, data_recovered)
+    assert_ndarray_equals_ndarray(data_copy, data_recovered)
 
     # recovered data should be a copy
     data_recovered_to_modify = numpy.array(array)
     data_recovered_to_modify *= create_dummy_ndarray(shape, numpy_dtype)
-    assert_array_ndarray_data(array, data_recovered)
+    assert_array_equals_ndarray(array, data_recovered)
 
 
 def test_add_iadd(shape, dtype):
