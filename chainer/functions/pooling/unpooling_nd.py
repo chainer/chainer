@@ -3,8 +3,8 @@ import six
 
 from chainer.backends import cuda
 from chainer import function_node
-from chainer import utils
 from chainer.functions.pooling import pooling_nd
+from chainer import utils
 from chainer.utils import conv
 from chainer.utils import conv_nd
 from chainer.utils import type_check
