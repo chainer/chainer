@@ -1037,8 +1037,9 @@ Actual: {0}'''.format(type(data))
                     continue
 
                 if isinstance(gx, tuple):
-                    # No need to check each data in the tuple, just check the new
-                    # gx concated in backward_accumulate().
+                    # No need to check each data in the tuple,
+                    # just check the new gx concated in
+                    # backward_accumulate().
                     _check_grad_type(func, x, gx[0].data)
                 else:
                     _check_grad_type(func, x, gx.data)
@@ -1052,7 +1053,8 @@ Actual: {0}'''.format(type(data))
                         gx = chainer.functions.accumulate_add(gx)
                         grads[x] = gx
                     else:
-                        grads[x] = chainer.functions.concat_variable(gx, cur_gx)
+                        grads[x] = chainer.functions.concat_variable(
+                            gx, cur_gx)
                 else:
                     grads[x] = gx
 
