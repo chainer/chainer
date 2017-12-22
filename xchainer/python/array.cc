@@ -12,28 +12,6 @@ namespace xchainer {
 
 namespace py = pybind11;
 
-std::string DtypeToFormat(Dtype dtype) {
-    switch (dtype) {
-        case Dtype::kBool:
-            return "?";
-        case Dtype::kInt8:
-            return "b";
-        case Dtype::kInt16:
-            return "h";
-        case Dtype::kInt32:
-            return "i";
-        case Dtype::kInt64:
-            return "q";
-        case Dtype::kUInt8:
-            return "B";
-        case Dtype::kFloat32:
-            return "f";
-        case Dtype::kFloat64:
-            return "d";
-    }
-    throw DtypeError("invalid dtype");
-}
-
 Dtype NumpyDtypeToDtype(py::dtype npdtype) {
     switch (npdtype.kind()) {
         case 'b':
@@ -137,19 +115,22 @@ std::unique_ptr<Array> MakeArrayFromNumpyArray(py::array array) {
 
 py::buffer_info MakeNumpyArrayFromArray(Array& self) {
     if (!self.is_contiguous()) {
-        throw DimensionError("cannot convert non-contiguous Array array to NumPy array");
+        throw DimensionError("cannot convert non-contiguous Array to NumPy array");
     }
 
     size_t itemsize{GetElementSize(self.dtype())};
     const Shape& shape = self.shape();
 
-    // compute strides
-    std::vector<size_t> strides(shape.ndim());
-    std::partial_sum(shape.crbegin(), shape.crend() - 1, strides.rbegin() + 1, std::multiplies<size_t>());
-    strides.back() = 1;
-    std::transform(strides.crbegin(), strides.crend(), strides.rbegin(), [&itemsize](size_t item) { return item * itemsize; });
+    // compute C-contiguous strides
+    size_t ndim = self.ndim();
+    std::vector<size_t> strides(ndim);
+    if (ndim > 0) {
+        std::partial_sum(shape.crbegin(), shape.crend() - 1, strides.rbegin() + 1, std::multiplies<size_t>());
+        strides.back() = 1;
+        std::transform(strides.crbegin(), strides.crend(), strides.rbegin(), [&itemsize](size_t item) { return item * itemsize; });
+    }
 
-    return py::buffer_info(self.data().get(), itemsize, DtypeToFormat(self.dtype()), self.ndim(), shape, strides);
+    return py::buffer_info(self.data().get(), itemsize, std::string(1, GetCharCode(self.dtype())), ndim, shape, strides);
 }
 
 void InitXchainerArray(pybind11::module& m) {

@@ -137,7 +137,7 @@ def test_numpy_init(shape, dtype_pair):
     del data
     assert array.debug_flat_data == data_copy.ravel().tolist()
 
-    data_recovered = numpy.array(data_copy)
+    data_recovered = numpy.array(array)
     assert_ndarray_data_equal(data_copy, data_recovered)
 
 
