@@ -41,10 +41,12 @@ public:
 
     template <typename T>
     void AssertEqual(const Array& lhs, const Array& rhs) {
+#ifdef XCHAINER_ENABLE_CUDA
         std::string device_name = ::testing::get<0>(GetParam());
         if (device_name == "cuda") {
             cuda::CheckError(cudaDeviceSynchronize());
         }
+#endif  // XCHAINER_ENABLE_CUDA
         ASSERT_NO_THROW(CheckEqual(lhs.dtype(), rhs.dtype()));
         ASSERT_NO_THROW(CheckEqual(lhs.shape(), rhs.shape()));
         auto total_size = lhs.shape().total_size();
