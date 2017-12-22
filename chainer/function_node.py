@@ -548,10 +548,19 @@ Use apply() method instead.\
                 'number of gradients returned by %s (%s) is incorrect.'
                 % (self._impl_name, self.label))
 
-        return tuple([gx if g_input is None else
-                      g_input if gx is None else
-                      gx + g_input
-                      for gx, g_input in six.moves.zip(gxs, grad_inputs)])
+        gxs_output = ()
+        for i, (gx, g_input) in enumerate(six.moves.zip(gxs, grad_inputs)):
+            sum_gx = chainer.functions.concat_variable(gx, g_input)
+            j = target_input_indexes[i]
+            if self.inputs[j].creator is None:
+                if sum_gx[0] is not None and len(sum_gx) > 1:
+                    sum_gx = chainer.functions.accumulate_add(sum_gx),
+            if len(sum_gx) > 1:
+                gxs_output += sum_gx,
+            else:
+                gxs_output += sum_gx
+
+        return gxs_output
 
     def get_retained_inputs(self):
         """Returns a tuple of retained input variables.
@@ -846,6 +855,9 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads):
             continue
 
         # Do backward
+        gys = [gy if not isinstance(gy, tuple) else
+               chainer.functions.accumulate_add(gy)
+               for gy in gys]
         new_gxs = func.backward_accumulate(input_indexes, gys, gxs)
 
         # Delete output gradients that are not required to return
@@ -865,7 +877,8 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads):
                 # Accumulate the duplicated gradients here
                 cur_gx = grads.get(node, None)
                 if cur_gx is not None:
-                    g = g + cur_gx
+                    g = chainer.functions.concat_variable(g, cur_gx)
+                    g = chainer.functions.accumulate_add(g)
             else:
                 selected_inputs.add(node)
 
