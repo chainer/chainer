@@ -170,10 +170,10 @@ from chainer.functions.loss.vae import bernoulli_nll  # NOQA
 from chainer.functions.loss.vae import gaussian_kl_divergence  # NOQA
 from chainer.functions.loss.vae import gaussian_nll  # NOQA
 
+from chainer.functions.math.acc_add import accumulate_add  # NOQA
+from chainer.functions.math.acc_add import concat_variable  # NOQA
 from chainer.functions.math.average import average  # NOQA
 from chainer.functions.math.basic_math import absolute  # NOQA
-from chainer.functions.math.acc_add import concat_variable  # NOQA
-from chainer.functions.math.acc_add import accumulate_add  # NOQA
 from chainer.functions.math.batch_l2_norm_squared import batch_l2_norm_squared  # NOQA
 from chainer.functions.math.batch_l2_norm_squared import BatchL2NormSquared  # NOQA
 from chainer.functions.math.bias import bias  # NOQA
