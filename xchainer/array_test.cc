@@ -108,6 +108,10 @@ TEST_P(ArrayTest, IAdd) {
         Array e = MakeArray<bool>({4, 1}, {true, true, true, false});
         a.IAdd(b);
         AssertEqual<bool>(e, a);
+
+        std::cout << "GRAPH(IAdd) {-------------" << std::endl;
+        DebugDumpComputationalGraph(std::cout, a);
+        std::cout << "}------------------------" << std::endl;
     }
     {
         Array a = MakeArray<int8_t>({3, 1}, {1, 2, 3});
@@ -156,6 +160,10 @@ TEST_P(ArrayTest, Add) {
         Array e = MakeArray<bool>({4, 1}, {true, true, true, false});
         Array o = a.Add(b);
         AssertEqual<bool>(e, o);
+
+        std::cout << "GRAPH(Add) {-------------" << std::endl;
+        DebugDumpComputationalGraph(std::cout, o);
+        std::cout << "}------------------------" << std::endl;
     }
     {
         Array a = MakeArray<int8_t>({3, 1}, {1, 2, 3});
@@ -194,6 +202,19 @@ TEST_P(ArrayTest, Mul) {
         Array e = MakeArray<float>({3, 1}, {1, 4, 9});
         Array o = a.Mul(b);
         AssertEqual<float>(e, o);
+    }
+}
+
+TEST_P(ArrayTest, GraphAdd) {
+    {
+        Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
+        Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
+        Array c = a.Add(b);
+        Array o = a.Add(c);
+
+        std::cout << "GRAPH(Add2) {-------------" << std::endl;
+        DebugDumpComputationalGraph(std::cout, o);
+        std::cout << "}------------------------" << std::endl;
     }
 }
 

@@ -13,6 +13,7 @@
 #include "xchainer/cuda/cuda_runtime.h"
 #endif  // XCHAINER_ENABLE_CUDA
 #include "xchainer/device.h"
+#include "xchainer/op_node.h"
 
 namespace xchainer {
 
@@ -35,7 +36,7 @@ std::shared_ptr<void> AllocateCudaManaged(const void* src_ptr, size_t size) {
 }  // namespace
 
 Array::Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, int64_t offset)
-    : shape_(shape), is_contiguous_(true), dtype_(dtype), data_(nullptr), offset_(offset) {
+    : shape_(shape), is_contiguous_(true), dtype_(dtype), data_(nullptr), offset_(offset), node_(std::make_shared<ArrayNode>()) {
     Device device = GetCurrentDevice();
     if (device == MakeDevice("cuda")) {
         // CUDA
@@ -79,6 +80,12 @@ void Array::Add(const Array& rhs, Array& out) const {
     for (decltype(total_size) i = 0; i < total_size; i++) {
         odata[i] = ldata[i] + rdata[i];
     }
+
+    std::shared_ptr<const ArrayNode> lhs_node = node();
+    std::shared_ptr<const ArrayNode> rhs_node = rhs.node();
+    std::shared_ptr<ArrayNode> out_node = out.CreateNewNode();
+    std::shared_ptr<OpNode> op_node = std::make_shared<OpNode>("add", std::vector<std::shared_ptr<const ArrayNode>>{lhs_node, rhs_node});
+    out_node->set_next_node(op_node);
 }
 
 template <typename T>
@@ -91,6 +98,12 @@ void Array::Mul(const Array& rhs, Array& out) const {
     for (decltype(total_size) i = 0; i < total_size; i++) {
         odata[i] = ldata[i] * rdata[i];
     }
+
+    std::shared_ptr<const ArrayNode> lhs_node = node();
+    std::shared_ptr<const ArrayNode> rhs_node = rhs.node();
+    std::shared_ptr<ArrayNode> out_node = out.CreateNewNode();
+    std::shared_ptr<OpNode> op_node = std::make_shared<OpNode>("mul", std::vector<std::shared_ptr<const ArrayNode>>{lhs_node, rhs_node});
+    out_node->set_next_node(op_node);
 }
 
 void Array::Add(const Array& rhs, Array& out) const {
@@ -164,5 +177,27 @@ void Array::Mul(const Array& rhs, Array& out) const {
 }
 
 std::string Array::ToString() const { return ArrayRepr(*this); }
+
+namespace {
+
+void DebugDumpComputationalGraph(std::ostream& os, const ArrayNode& array_node, int indent) {
+    static const char kIndentChar = ' ';
+
+    os << std::string(static_cast<size_t>(indent * 2), kIndentChar) << "ArrayNode<" << &array_node << ">" << std::endl;
+
+    std::shared_ptr<const OpNode> op = array_node.next_node();
+    if (op) {
+        os << std::string(static_cast<size_t>((indent + 1) * 2), kIndentChar) << "Op<" << op->name() << ">" << std::endl;
+        for (const std::shared_ptr<const ArrayNode>& next_node : op->next_nodes()) {
+            DebugDumpComputationalGraph(os, *next_node, static_cast<size_t>(indent + 2));
+        }
+    }
+}
+
+}  // namespace
+
+void DebugDumpComputationalGraph(std::ostream& os, const Array& array, int indent) {
+    DebugDumpComputationalGraph(os, *array.node(), indent);
+}
 
 }  // namespace xchainer
