@@ -137,8 +137,14 @@ def test_numpy_init(shape, dtype_pair):
     del data
     assert array.debug_flat_data == data_copy.ravel().tolist()
 
+    # recovered data should be equal
     data_recovered = numpy.array(array)
     assert_ndarray_data_equal(data_copy, data_recovered)
+
+    # recovered data should be a copy
+    data_recovered_to_modify = numpy.array(array)
+    data_recovered_to_modify *= create_dummy_ndarray(shape, numpy_dtype)
+    assert_array_ndarray_data(array, data_recovered)
 
 
 def test_add_iadd(shape, dtype):
