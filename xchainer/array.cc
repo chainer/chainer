@@ -191,9 +191,9 @@ void Array::Add(const Array& rhs, Array& out) const {
         throw XchainerError("In-place operation (Add) is not supported for an array with requires_grad=true.");
     }
 
-    // TODO: dtype conversion
+    // TODO(sonots): dtype conversion
     CheckEqual(dtype_, rhs.dtype());
-    // TODO: broadcasting
+    // TODO(sonots): broadcasting
     CheckEqual(shape_, rhs.shape());
 
     if (requires_grad_ || rhs.requires_grad()) {
@@ -227,9 +227,9 @@ void Array::Mul(const Array& rhs, Array& out) const {
         throw XchainerError("In-place operation (Mul) is not supported for an array with requires_grad=true.");
     }
 
-    // TODO: dtype conversion
+    // TODO(sonots): dtype conversion
     CheckEqual(dtype_, rhs.dtype());
-    // TODO: broadcasting
+    // TODO(sonots): broadcasting
     CheckEqual(shape_, rhs.shape());
 
     if (requires_grad_ || rhs.requires_grad()) {

@@ -22,12 +22,12 @@ namespace {
 
 class ArrayTest : public ::testing::TestWithParam<::testing::tuple<std::string>> {
 protected:
-    virtual void SetUp() {
+    void SetUp() override {
         std::string device_name = ::testing::get<0>(GetParam());
         device_scope_ = std::make_unique<DeviceScope>(device_name);
     }
 
-    virtual void TearDown() { device_scope_.reset(); }
+    void TearDown() override { device_scope_.reset(); }
 
 public:
     template <typename T>

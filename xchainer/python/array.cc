@@ -13,7 +13,7 @@ namespace xchainer {
 
 namespace py = pybind11;
 
-Dtype NumpyDtypeToDtype(py::dtype npdtype) {
+Dtype NumpyDtypeToDtype(const py::dtype& npdtype) {
     switch (npdtype.kind()) {
         case 'b':
             return Dtype::kBool;
@@ -72,7 +72,7 @@ Array MakeArray(const Shape& shape, Dtype dtype, py::list list) {
 }
 
 std::unique_ptr<Array> MakeArray(py::array array) {
-    if (!(array.flags() & py::array::c_style)) {
+    if ((array.flags() & py::array::c_style) == 0) {
         throw DimensionError("cannot convert non-contiguous NumPy array to Array");
     }
 
@@ -82,7 +82,8 @@ std::unique_ptr<Array> MakeArray(py::array array) {
     Shape shape(info.shape);
 
     // data holds the copy of py::array which in turn references the NumPy array and the buffer is therefore not released
-    std::shared_ptr<void> data(std::make_shared<py::array>(std::move(array)), array.mutable_data());
+    auto ptr = array.mutable_data();
+    std::shared_ptr<void> data(std::make_shared<py::array>(std::move(array)), ptr);
 
     return std::make_unique<Array>(shape, dtype, data);
 }
