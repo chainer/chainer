@@ -241,7 +241,6 @@ class TestMaxPoolingND(unittest.TestCase):
     def test_double_backward_cpu(self):
         self.check_double_backward(self.x, self.gy, self.ggx, 'never')
 
-    """
     @attr.gpu
     def test_double_backward_gpu(self):
         self.check_double_backward(
@@ -259,7 +258,6 @@ class TestMaxPoolingND(unittest.TestCase):
         self.check_double_backward(
             cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx),
             'never')
-    """
 
 
 @testing.parameterize(*testing.product({

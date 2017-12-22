@@ -147,7 +147,6 @@ class MaxPoolingNDGrad(function_node.FunctionNode):
         return MaxPoolingNDWithIndexes(self.mpoolnd).apply(ggx)
 
 
-# XXX: WIP
 class MaxPoolingNDWithIndexes(function_node.FunctionNode):
 
     def __init__(self, mpoolnd):
@@ -188,7 +187,6 @@ class MaxPoolingNDWithIndexes(function_node.FunctionNode):
             x, = self.mpoolnd.get_retained_inputs()
             return self._forward_gpu_compute_indexes_again((x.data, inputs[0]))
         x, = inputs
-
         self._in_shape = x.shape
         self._in_dtype = x.dtype
 
@@ -201,14 +199,37 @@ class MaxPoolingNDWithIndexes(function_node.FunctionNode):
         # (n, c, y_1, y_2, ..., y_N)
         y_shape = (n, c) + ys
         y = cuda.cupy.empty(y_shape, dtype=x.dtype)
-        self.indexes = cuda.cupy.empty(y_shape, dtype=numpy.int32)
 
-        in_params, out_params, operation, name = \
-            max_pooling_nd_kernel.MaxPoolingNDKernelForward.generate(self.ndim)
+        cls = max_pooling_nd_kernel.MaxPoolingNDKernelForwardWithIndexes
+        in_params, out_params, operation, name = cls.generate(self.ndim)
         cuda.elementwise(in_params, out_params, operation, name)(
             x.reduced_view(),
             *(dims + ys + self.ksize + self.stride + self.pad +
-              (y, self.indexes)))
+              (self.indexes.reduced_view(), y)))
+        return y,
+
+    def _forward_gpu_compute_indexes_again(self, inputs):
+        x, ggx = inputs
+        self._in_shape = x.shape
+        self._in_dtype = x.dtype
+
+        n, c = x.shape[:2]
+        dims = x.shape[2:]
+
+        ys = tuple(conv_nd.get_conv_outsize(d, k, s, p, self.cover_all)
+                   for (d, k, s, p) in six.moves.zip(
+                       dims, self.ksize, self.stride, self.pad))
+        # (n, c, y_1, y_2, ..., y_N)
+        y_shape = (n, c) + ys
+        y = cuda.cupy.empty(y_shape, dtype=x.dtype)
+
+        cls = max_pooling_nd_kernel.MaxPoolingNDKernelForwardWithIndexes1
+        in_params, out_params, operation, name = cls.generate(self.ndim)
+        cuda.elementwise(in_params, out_params, operation, name)(
+            x.reduced_view(),
+            *(dims + ys + self.ksize + self.stride + self.pad +
+              (ggx.reduced_view(), y)))
+        return y,
 
 
 def max_pooling_nd(x, ksize, stride=None, pad=0, cover_all=True):
