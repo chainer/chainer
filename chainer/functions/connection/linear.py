@@ -4,6 +4,8 @@ from chainer import function_node
 import chainer.functions
 from chainer.utils import type_check
 
+from chainer.graph_optimimzations import static_backward
+from chainer.graph_optimimzations import static_return_none
 
 class LinearFunction(function_node.FunctionNode):
 
@@ -27,6 +29,21 @@ class LinearFunction(function_node.FunctionNode):
                 b_type.shape[0] == w_type.shape[0],
             )
 
+    @static_return_none
+    def static_linear(self, x, W, bias, y):
+        """y = x*W^T + bias
+
+        """
+        numpy.dot(x, W.T, out=y)
+        y += bias
+
+    @static_return_none
+    def static_linear_no_bias(self, x, W, y):
+        """y = x*W^T
+
+        """
+        numpy.dot(x, W.T, out=y)
+
     def forward(self, inputs):
         x = inputs[0]
         W = inputs[1]
@@ -44,13 +61,37 @@ class LinearFunction(function_node.FunctionNode):
                 1 in x.shape):
             x = numpy.ascontiguousarray(x)
 
-        y = x.dot(W.T).astype(x.dtype, copy=False)
+        # Notes:
+        # In order to be compatible with the "static graph" feature, it is
+        # required that all output arrays of this forward
+        # function be allocated explicitly:
+        y = numpy.empty((x.shape[0], W.shape[0])).astype(x.dtype)
+        # This is required because all of the "static_*()" functions
+        # use the convention that any output arrays are supplied
+        # as input arguments to the function. That is because it is
+        # not allowed for a "static_*()" function to return anything
+        # other than `None`. The reason is to prevent dynamic allocation
+        # of output arrays during execution of the static schedule
+        # because it would break the model.
         if len(inputs) == 3:
-            b = inputs[2]
-            y += b
+            bias = inputs[2]
+            # Note: `y` is the output array.
+            self.static_linear(x, W, bias, y)
+        else:
+            # Note: `y` is the output array.
+            self.static_linear_no_bias(x, W, y)
         self.retain_inputs((0, 1))  # b is not retained
+
+        # old code:
+        #y = x.dot(W.T).astype(x.dtype, copy=False)
+        #if len(inputs) == 3:
+        #    b = inputs[2]
+        #    y += b
+        #self.retain_inputs((0, 1))  # b is not retained
         return y,
 
+    # fixme: move decorator to FunctionNode
+    @static_backward
     def backward(self, indexes, grad_outputs):
         x, W = self.get_retained_inputs()
         gy, = grad_outputs
@@ -108,6 +149,7 @@ def linear(x, W, b=None):
 
     """
     if x.ndim > 2:
+        print('fixme: implement static optimizations.')
         x = x.reshape(len(x), -1)
 
     if b is None:
