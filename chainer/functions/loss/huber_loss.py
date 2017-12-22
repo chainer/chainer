@@ -30,10 +30,10 @@ class HuberLoss(function_node.FunctionNode):
         self.retain_inputs((0, 1))
         xp = cuda.get_array_module(*inputs)
         x0, x1 = inputs
-        self.diff = x0 - x1
-        y = xp.square(self.diff)
+        diff = x0 - x1
+        y = xp.square(diff)
         mask = y > (self.delta ** 2)
-        y -= mask * xp.square(abs(self.diff) - self.delta)
+        y -= mask * xp.square(abs(diff) - self.delta)
         y *= 0.5
         if self.reduce == 'sum_along_second_axis':
             return y.sum(axis=1),
@@ -45,14 +45,14 @@ class HuberLoss(function_node.FunctionNode):
         diff = x0 - x1
         gy, = grad_outputs
 
-        xp = cuda.get_array_module(self.diff)
-        mask = xp.abs(self.diff) <= self.delta
+        xp = cuda.get_array_module(diff)
+        mask = xp.abs(diff.array) <= self.delta
 
         gx = chainer.functions.where(
-            mask, diff, self.delta * xp.sign(self.diff))
+            mask, diff, self.delta * xp.sign(diff.array))
 
         if self.reduce == 'sum_along_second_axis':
-            gy = gy.reshape(gy.shape + (1,) * (self.diff.ndim - 1))
+            gy = gy.reshape(gy.shape + (1,) * (diff.ndim - 1))
         gx = chainer.functions.broadcast_to(gy, gx.shape) * gx
         return gx, -gx
 
