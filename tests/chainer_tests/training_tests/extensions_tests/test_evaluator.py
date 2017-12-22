@@ -36,10 +36,13 @@ class DummyIterator(dataset.Iterator):
 
     def __init__(self, return_values):
         self.iterator = iter(return_values)
+        self.finalized = False
 
     def __next__(self):
         return next(self.iterator)
 
+    def finalize(self):
+        self.finalized = True
 
 class DummyConverter(object):
 
@@ -92,6 +95,9 @@ class TestEvaluator(unittest.TestCase):
                 self.target.args[i], self.batches[i])
 
         self.assertAlmostEqual(mean['target/loss'], self.expect_mean, places=4)
+
+        self.evaluator.finalize()
+        self.assertTrue(self.iterator.finalized)
 
     def test_call(self):
         mean = self.evaluator()
