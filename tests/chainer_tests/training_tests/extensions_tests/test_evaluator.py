@@ -44,6 +44,7 @@ class DummyIterator(dataset.Iterator):
     def finalize(self):
         self.finalized = True
 
+
 class DummyConverter(object):
 
     def __init__(self, return_values):
