@@ -29,14 +29,14 @@ template <typename T>
 void Add(const Array& lhs, const Array& rhs, Array& out) {
     static int max_block_size = CudaOccupancyMaxPotentialBlockSize(&AddKernel<T>).block_size;
 
-    const int64_t size = lhs.shape().total_size();
-    const int64_t grid_size = (size + max_block_size - 1) / max_block_size;
-    const int64_t block_size = std::min<int64_t>(size, max_block_size);
+    const int64_t total_size = lhs.shape().total_size();
+    const int64_t grid_size = (total_size + max_block_size - 1) / max_block_size;
+    const int64_t block_size = std::min<int64_t>(total_size, max_block_size);
 
     const T* ldata = static_cast<const T*>(lhs.data().get());
     const T* rdata = static_cast<const T*>(rhs.data().get());
     T* odata = static_cast<T*>(out.data().get());
-    AddKernel<<<grid_size, block_size>>>(ldata, rdata, odata, size);
+    AddKernel<<<grid_size, block_size>>>(ldata, rdata, odata, total_size);
 }
 
 // TODO: support stream
@@ -44,14 +44,14 @@ template <typename T>
 void Mul(const Array& lhs, const Array& rhs, Array& out) {
     static int max_block_size = CudaOccupancyMaxPotentialBlockSize(&MulKernel<T>).block_size;
 
-    const int64_t size = lhs.shape().total_size();
-    const int64_t grid_size = (size + max_block_size - 1) / max_block_size;
-    const int64_t block_size = std::min<int64_t>(size, max_block_size);
+    const int64_t total_size = lhs.shape().total_size();
+    const int64_t grid_size = (total_size + max_block_size - 1) / max_block_size;
+    const int64_t block_size = std::min<int64_t>(total_size, max_block_size);
 
     const T* ldata = static_cast<const T*>(lhs.data().get());
     const T* rdata = static_cast<const T*>(rhs.data().get());
     T* odata = static_cast<T*>(out.data().get());
-    MulKernel<<<grid_size, block_size>>>(ldata, rdata, odata, size);
+    MulKernel<<<grid_size, block_size>>>(ldata, rdata, odata, total_size);
 }
 
 }  // namespace
