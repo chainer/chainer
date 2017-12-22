@@ -26,7 +26,7 @@ std::shared_ptr<void> AllocateCudaManaged(const void* src_ptr, size_t size) {
 Array::Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, int64_t offset)
     : shape_(shape), is_contiguous_(true), dtype_(dtype), data_(nullptr), offset_(offset) {
     Device device = GetCurrentDevice();
-    if (device == Device{"cuda"}) {
+    if (device == MakeDevice("cuda")) {
         // CUDA
         size_t size = static_cast<size_t>(shape_.total_size() * GetElementSize(dtype));
         data_ = AllocateCudaManaged(data.get(), size);
