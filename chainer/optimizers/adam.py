@@ -1,6 +1,7 @@
+from __future__ import division
 import math
 
-import numpy
+import numpy as np
 
 from chainer.backends import cuda
 from chainer import optimizer
@@ -10,8 +11,16 @@ class AdamRule(optimizer.UpdateRule):
 
     """Update rule of Adam optimization algorithm.
 
-    See :class:`~chainer.optimizers.Adam` for the default values of the
-    hyperparameters.
+    See: `Adam: A Method for Stochastic Optimization \
+          <http://arxiv.org/abs/1412.6980v8>`_
+
+    Modified for proper weight decay.
+
+    See: `Fixing Weight Decay Regularization in Adam \
+          <https://openreview.net/forum?id=rk6qdGgCZ>`_
+
+    See :class:`~chainer.optimizers.Adam` for the default values
+    of the hyperparameters.
 
     Args:
         parent_hyperparam (~chainer.optimizer.Hyperparameter): Hyperparameter
@@ -42,12 +51,14 @@ class AdamRule(optimizer.UpdateRule):
 
         m += (1 - hp.beta1) * (grad - m)
         v += (1 - hp.beta2) * (grad * grad - v)
-        param.data -= self.lr * m / (numpy.sqrt(v) + eps)
+        param.data -= hp.eta * (self.lr * m / (np.sqrt(v) + hp.eps) +
+                                hp.weight_decay_rate * param.data)
 
     def update_core_gpu(self, param):
         grad = param.grad
         if grad is None:
             return
+
         hp = self.hyperparam
         eps = grad.dtype.type(hp.eps)
         if hp.eps != 0 and eps == 0:
@@ -55,14 +66,17 @@ class AdamRule(optimizer.UpdateRule):
                 'eps of Adam optimizer is too small for {} ({})'.format(
                     grad.dtype.name, hp.eps))
         cuda.elementwise(
-            'T grad, T lr, T one_minus_beta1, T one_minus_beta2, T eps',
+            'T grad, T lr, T one_minus_beta1, T one_minus_beta2, T eps, T eta, \
+             T weight_decay_rate',
             'T param, T m, T v',
             '''m += one_minus_beta1 * (grad - m);
                v += one_minus_beta2 * (grad * grad - v);
-               param -= lr * m / (sqrt(v) + eps);''',
+               param -= eta * (lr * m / (sqrt(v) + eps) +
+                               weight_decay_rate * param);''',
             'adam')(grad, self.lr, 1 - hp.beta1,
-                    1 - hp.beta2, eps, param.data,
-                    self.state['m'], self.state['v'])
+                    1 - hp.beta2, hp.eps,
+                    hp.eta, hp.weight_decay_rate,
+                    param.data, self.state['m'], self.state['v'])
 
     @property
     def lr(self):
@@ -75,13 +89,29 @@ class Adam(optimizer.GradientMethod):
 
     """Adam optimizer.
 
-    See: http://arxiv.org/abs/1412.6980v8
+    See: `Adam: A Method for Stochastic Optimization \
+          <http://arxiv.org/abs/1412.6980v8>`_
+
+    Modified for proper weight decay (also called AdamW).
+    AdamW introduces the additional parameters ``eta``
+    and ``weight_decay_rate``, which can be used to properly scale the
+    learning rate, and decouple the weight decay rate from ``alpha``,
+    as shown in the below paper.
+
+    Note that with the default values ``eta = 1`` and
+    ``weight_decay_rate = 0``, this implementation is identical to
+    the standard Adam method.
+
+    See: `Fixing Weight Decay Regularization in Adam \
+          <https://openreview.net/forum?id=rk6qdGgCZ>`_
 
     Args:
         alpha (float): Step size.
         beta1 (float): Exponential decay rate of the first order moment.
         beta2 (float): Exponential decay rate of the second order moment.
         eps (float): Small value for the numerical stability.
+        eta (float): Schedule multiplier, can be used for warm restarts.
+        weight_decay_rate (float): Weight decay rate.
 
     """
 
@@ -90,17 +120,23 @@ class Adam(optimizer.GradientMethod):
                  beta1=0.9,
                  beta2=0.999,
                  eps=1e-8,
+                 eta=1.0,
+                 weight_decay_rate=0,
                  model=None):
         super(Adam, self).__init__(model)
         self.hyperparam.alpha = alpha
         self.hyperparam.beta1 = beta1
         self.hyperparam.beta2 = beta2
         self.hyperparam.eps = eps
+        self.hyperparam.eta = eta
+        self.hyperparam.weight_decay_rate = weight_decay_rate
 
     alpha = optimizer.HyperparameterProxy('alpha')
     beta1 = optimizer.HyperparameterProxy('beta1')
     beta2 = optimizer.HyperparameterProxy('beta2')
     eps = optimizer.HyperparameterProxy('eps')
+    eta = optimizer.HyperparameterProxy('eta')
+    weight_decay_rate = optimizer.HyperparameterProxy('weight_decay_rate')
 
     def create_update_rule(self):
         return AdamRule(self.hyperparam)

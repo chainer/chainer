@@ -172,7 +172,8 @@ class VGG16Layers(link.Chain):
            See :func:`chainer.using_config`.
 
         Args:
-            x (~chainer.Variable): Input variable.
+            x (~chainer.Variable): Input variable. It should be prepared by
+                ``prepare`` function.
             layers (list of str): The list of layer names you want to extract.
 
         Returns:
@@ -251,6 +252,8 @@ class VGG16Layers(link.Chain):
 
         Args:
             images (iterable of PIL.Image or numpy.ndarray): Input images.
+                When you specify a color image as a :class:`numpy.ndarray`,
+                make sure that color order is RGB.
             oversample (bool): If ``True``, it averages results across
                 center, corners, and mirrors. Otherwise, it uses only the
                 center.

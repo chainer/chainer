@@ -168,7 +168,7 @@ class VariableNode(object):
         self._requires_grad = variable.requires_grad
 
         vdata = variable.data
-        self._set_data_type(vdata)
+        self._update_data_info(vdata)
 
     @property
     def creator(self):
@@ -260,7 +260,7 @@ class VariableNode(object):
     @data.setter
     def data(self, d):
         self._data = d
-        self._set_data_type(d)
+        self._update_data_info(d)
 
     @property
     def grad(self):
@@ -383,13 +383,17 @@ class VariableNode(object):
             raise RuntimeError('cannot retain variable data: the variable has '
                                'been already released')
 
-    def _set_data_type(self, d):
+    def _update_data_info(self, d):
         if d is None:
             self.dtype = None
             self.shape = None
         else:
             self.dtype = d.dtype
             self.shape = d.shape
+
+        # If the node has a reference to data, update it as well.
+        if self._data is not None:
+            self._data = d
 
     def _check_old_style_gradient(self):
         if self._old_style_grad_generator is not None:
@@ -610,7 +614,7 @@ Actual: {0}'''.format(type(data))
     @array.setter
     def array(self, d):
         self._data[0] = d
-        self._node._set_data_type(d)
+        self._node._update_data_info(d)
 
     @property
     def data(self):
@@ -628,7 +632,7 @@ Actual: {0}'''.format(type(data))
     @data.setter
     def data(self, d):
         self._data[0] = d
-        self._node._set_data_type(d)
+        self._node._update_data_info(d)
 
     @property
     def grad(self):
