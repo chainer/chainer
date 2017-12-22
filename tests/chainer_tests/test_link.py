@@ -289,6 +289,14 @@ class TestLink(unittest.TestCase):
         self.link.to_gpu()
         self.assertEqual(self.link._device_id, 1)
 
+    @attr.multi_gpu(2)
+    def test_to_gpu_between_devices(self):
+        self.link.to_gpu(0)
+        self.link.to_gpu(1)
+        self.assertEqual(self.link._device_id, 1)
+        self.assertEqual(self.link.x.data.device.id, 1)
+        self.assertEqual(self.link.y.data.device.id, 1)
+
     def test_params(self):
         params = list(self.link.params())
         self.assertEqual({id(p) for p in params},
