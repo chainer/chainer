@@ -34,8 +34,10 @@ void CheckArrayRepr(const std::vector<T>& data_vec, Shape shape, const std::stri
     }
 
     {
+#ifdef XCHAINER_ENABLE_CUDA
         DeviceScope ctx{"cuda"};
         CheckArrayReprWithCurrentDevice(data_vec, shape, expected);
+#endif  // XCHAINER_ENABLE_CUDA
     }
 }
 

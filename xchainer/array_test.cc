@@ -4,10 +4,14 @@
 #include <cstddef>
 #include <initializer_list>
 
+#ifdef XCHAINER_ENABLE_CUDA
 #include <cuda_runtime.h>
+#endif  // XCHAINER_ENABLE_CUDA
 #include <gtest/gtest.h>
 
+#ifdef XCHAINER_ENABLE_CUDA
 #include "xchainer/cuda/cuda_runtime.h"
+#endif  // XCHAINER_ENABLE_CUDA
 #include "xchainer/device.h"
 
 namespace xchainer {
@@ -48,9 +52,14 @@ public:
     }
 
     bool IsPointerCudaManaged(const void* ptr) {
+#ifdef XCHAINER_ENABLE_CUDA
         cudaPointerAttributes attr = {};
         cuda::CheckError(cudaPointerGetAttributes(&attr, ptr));
         return attr.isManaged != 0;
+#else
+        (void)ptr;
+        return false;
+#endif  // XCHAINER_ENABLE_CUDA
     }
 
 private:
@@ -188,7 +197,11 @@ TEST_P(ArrayTest, Mul) {
     }
 }
 
-INSTANTIATE_TEST_CASE_P(ForEachDevice, ArrayTest, ::testing::Values(std::string{"cpu"}, std::string{"cuda"}));
+INSTANTIATE_TEST_CASE_P(ForEachDevice, ArrayTest, ::testing::Values(
+#ifdef XCHAINER_ENABLE_CUDA
+                                                      std::string{"cuda"},
+#endif  // XCHAINER_ENABLE_CUDA
+                                                      std::string{"cpu"}));
 
 }  // namespace
 }  // namespace xchainer

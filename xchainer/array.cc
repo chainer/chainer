@@ -3,11 +3,15 @@
 #include <cassert>
 #include <cstring>
 
+#ifdef XCHAINER_ENABLE_CUDA
 #include <cuda.h>
 #include <cuda_runtime.h>
+#endif  // XCHAINER_ENABLE_CUDA
 
 #include "xchainer/array_repr.h"
+#ifdef XCHAINER_ENABLE_CUDA
 #include "xchainer/cuda/cuda_runtime.h"
+#endif  // XCHAINER_ENABLE_CUDA
 #include "xchainer/device.h"
 
 namespace xchainer {
@@ -15,10 +19,17 @@ namespace xchainer {
 namespace {
 
 std::shared_ptr<void> AllocateCudaManaged(const void* src_ptr, size_t size) {
+#ifdef XCHAINER_ENABLE_CUDA
     void* ptr = nullptr;
     cuda::CheckError(cudaMallocManaged(&ptr, size, cudaMemAttachGlobal));
     std::memcpy(ptr, src_ptr, size);
     return std::shared_ptr<void>(ptr, ::cudaFree);
+#else
+    (void)src_ptr;
+    (void)size;
+    assert(0);
+    return std::shared_ptr<void>();
+#endif  // XCHAINER_ENABLE_CUDA
 }
 
 }  // namespace
