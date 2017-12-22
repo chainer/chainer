@@ -363,8 +363,6 @@ Assign a Parameter object directly to an attribute within a \
 
         """
         cuda.check_cuda_available()
-        if not self._cpu:
-            return self
         d = self.__dict__
         with cuda._get_device(device):
             for name in self._params:
@@ -373,7 +371,7 @@ Assign a Parameter object directly to an attribute within a \
                 value = d[name]
                 if isinstance(value, intel64.mdarray):
                     value = numpy.array(value)
-                if isinstance(value, numpy.ndarray):
+                if isinstance(value, (numpy.ndarray, cuda.ndarray)):
                     d[name] = cuda.to_gpu(value)
             self._device_id = cuda.cupy.cuda.get_device_id()
         self._cpu = False
