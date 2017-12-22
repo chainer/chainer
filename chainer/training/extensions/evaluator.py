@@ -195,6 +195,12 @@ class Evaluator(extension.Extension):
         return summary.compute_mean()
 
     def finalize(self):
-        for _, iterator in self._iterators.items():
-            if hasattr(iterator, 'finalize'):
-                iterator.finalize()
+        """Finalizes the updater object.
+
+        This method calls the `finalize` method of each iterator that
+        this updater has.
+        It is called at the end of training loops.
+
+        """
+        for iterator in six.itervalues(self._iterators):
+            iterator.finalize()
