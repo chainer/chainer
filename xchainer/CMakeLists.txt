@@ -39,7 +39,7 @@ target_link_libraries(xchainer
 install(TARGETS xchainer DESTINATION lib)
 
 if(ENABLE_TEST)
-    add_executable(xchainer_test
+    set(srcs
         array_repr_test.cc
         array_test.cc
         device_test.cc
@@ -47,9 +47,14 @@ if(ENABLE_TEST)
         scalar_test.cc
         shape_test.cc
         )
+    if(${CUDA_FOUND})
+        CUDA_ADD_EXECUTABLE(xchainer_test ${srcs})
+    else()
+        add_executable(xchainer_test ${srcs})
+    endif()
+
     target_link_libraries(xchainer_test
         xchainer
-        xchainer_cuda
         gtest_main)
     add_test(NAME xchainer_test COMMAND xchainer_test)
 endif()
