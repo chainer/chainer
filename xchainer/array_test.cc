@@ -41,6 +41,10 @@ public:
 
     template <typename T>
     void AssertEqual(const Array& lhs, const Array& rhs) {
+        std::string device_name = ::testing::get<0>(GetParam());
+        if (device_name == "cuda") {
+            cuda::CheckError(cudaDeviceSynchronize());
+        }
         ASSERT_NO_THROW(CheckEqual(lhs.dtype(), rhs.dtype()));
         ASSERT_NO_THROW(CheckEqual(lhs.shape(), rhs.shape()));
         auto total_size = lhs.shape().total_size();
