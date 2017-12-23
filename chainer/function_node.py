@@ -198,6 +198,7 @@ Use apply() method instead.\
 
         raise RuntimeError(msg)
 
+    # fixme: move this function into static_graph module as a utility function.
     def _static_forward_optimizations(self, in_data):
         # Check if any of the input arrays correspond to input
         # variables to a static chain. If so, replace these arrays

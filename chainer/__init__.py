@@ -13,6 +13,7 @@ from chainer import function_hook  # NOQA
 from chainer import function_hooks  # NOQA
 from chainer import function_node  # NOQA
 from chainer import functions  # NOQA
+from chainer import graph_optimimzations  # NOQA
 from chainer import initializer  # NOQA
 from chainer import initializers  # NOQA
 from chainer import iterators  # NOQA
@@ -25,7 +26,6 @@ from chainer import serializer  # NOQA
 from chainer import serializers  # NOQA
 from chainer import training  # NOQA
 from chainer import variable  # NOQA
-from chainer import graph_optimimzations  # NOQA
 
 
 # import class and function
@@ -44,12 +44,6 @@ from chainer.function_node import FunctionNode  # NOQA
 from chainer.function_node import grad  # NOQA
 from chainer.functions import array  # NOQA
 from chainer.functions.math import basic_math  # NOQA
-#from chainer.graph_optimimzations.static_graph import static_graph  # NOQA
-#from chainer.graph_optimimzations.static_graph import StaticScheduleFunction  # NOQA
-#from chainer.graph_optimimzations.static_graph import static_schedule_scope  # NOQA
-#from chainer.graph_optimimzations.static_graph import static_return_none  # NOQA
-#from chainer.graph_optimimzations.static_graph import static_backward  # NOQA
-#from chainer.graph_optimimzations.static_graph import static_forward  # NOQA
 from chainer.initializer import Initializer  # NOQA
 from chainer.link import Chain  # NOQA
 from chainer.link import ChainList  # NOQA

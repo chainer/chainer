@@ -3,7 +3,6 @@ import contextlib
 import chainer
 import chainer.function_node
 
-
 # fixme: add an attribute/property to all function nodes that support static graph so
 # that we can raise an exception if a function that does not support it is called
 # from a static chain.
@@ -122,10 +121,6 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
                 self._in_arrays[index][:] = x
             return index, self._in_arrays[index]
         return None, None
-
-
-
-
 
     def contains_backward_schedule_funct(self):
         """Check whether a backward schedule function exists.
@@ -254,21 +249,6 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
             # the best we can do is just set some None placeholders which
             # will be replaced by actual arrays in the backward pass.
             self._out_arrays = [None,] * len(out_vars)
-
-        # fixme: bug:
-        #if not self.is_forward_schedule():
-            # This is a backward schedule.
-            # During the first backward pass, we will need to be able to identify
-            # whether any given input variable (i.e., gradients) corresponds to
-            # a variable in out_vars and if so, its positional index in the tuple.
-            # To accomplish this, we will put a dictionary in the schedule so that
-            # we can do a lookup on each output variable to get this information.
-            #assert self._out_var_to_tuple_index is None
-            #self._out_var_to_tuple_index = dict()
-            #for index in range(len(out_vars)):
-            #    var = out_vars[index]
-            #    self._out_var_to_tuple_index[id(var)] = index
-
 
     def append_forward_function(self, forward):
         """Append a function to the forward static schedule.
@@ -431,73 +411,6 @@ def static_return_none(func):
     return wrapped_func
 
 
-def static_backward(func):
-    """Decorator to mark a function for inclusion in the backward schedule.
-
-    This decorator is used to decorate the ``FunctionNode.backward()`` or
-     the backward_accumulate() method.
-     This decorator is intended to be used by the backward() implelemntation of variable.
-
-    If this method was called within a ``static_schedule_scope`` context, the
-    scope is changed to use a backward-pass schedule.
-    This will cause the decorated function to run as before, except
-    that the schedule context is modified so that any static-decorated methods
-    will be added to a backward-pass schedule instead of the forward schedule.
-
-    Args:
-        func: A ``backward()`` method of a subclass of ``FunctionNode``.
-
-    Returns: The wrapped function.
-
-    """
-    def wrapped_func(*args, **kwargs):
-        func_node = args[0]
-        assert isinstance(func_node, chainer.function_node.FunctionNode)
-        schedule_function = getattr(func_node, 'schedule_func', None)
-        # If trace mode is on, change the schedule scope to the backward schedule function.
-        if schedule_function is not None:
-            # Since a static schedule was found, it means that it was added during the
-            # forward pass through the FunctionNode `inst`.
-            print('Adding function to the backward static schedule.')
-            grad_outputs = args[2]
-
-            backward_schedule = schedule_function.get_backward_schedule_func()
-            # Check if func_node
-            backward_static_arrays_info = getattr(func_node, '_backward_static_arrays_info', None)
-            if backward_static_arrays_info is not None:
-                print('Found _backward_static_arrays_info during static_bakcward().')
-                for func_arg_index, chain_arg_index in backward_static_arrays_info:
-                    # Get data array from the input variable (this is
-                    # allocated dynamically outside the static chain)
-                    data = grad_outputs[func_arg_index].data
-                    backward_schedule._input_var_array_to_static_array_index[id(data)] = chain_arg_index
-
-            print('Changing context to the backward-pass schedule.')
-            backward_schedule = schedule_function.get_backward_schedule_func()
-            with chainer.using_config('schedule_func', backward_schedule):
-                out_vars = func(*args, **kwargs)
-
-            # Check if func_node returns any variables that should have their
-            # data attributes copied into the static outputs array of the
-            # backward schedule.
-            forward_static_arrays_info = getattr(func_node, '_forward_static_arrays_info', None)
-            if forward_static_arrays_info is not None:
-                print('Found static_arrays_list in backward(): ', forward_static_arrays_info)
-                for func_arg_index, chain_arg_index in forward_static_arrays_info:
-                    # Need to make the chain_arg_index'th output array of the schedule refer
-                    # to the array of the variable in chain_arg_index'th position of the
-                    # grad_outputs tuple.
-
-                    assert backward_schedule._out_arrays[chain_arg_index] is None
-                    backward_schedule._out_arrays[chain_arg_index] = out_vars[func_arg_index].data
-
-        else:
-            out_vars = func(*args, **kwargs)
-        return out_vars
-
-    return wrapped_func
-
-
 def static_graph(func):
     """Decorator to mark a Chain's ``__call__()`` as a static sub-graph.
 
@@ -546,9 +459,6 @@ def static_graph(func):
 
     """
     def wrapped_func(*args, **kwargs):
-        #print('Inside the wrapped Chain.__call__()...')
-        #print('Chain instance: ', args[0])
-
         chain = args[0]
         in_vars = args[1:]
         if hasattr(chain, 'static_schedule'):
@@ -565,6 +475,11 @@ def static_graph(func):
             # This is the first iteration. Calling the define-by-run code.
             assert isinstance(chain, chainer.Chain)
             print('This is the first iteration. Calling the define-by-run code.: ', func)
+            # First check that this chain is not called from inside another
+            # static chain because it is not allowed.
+            if chainer.config.schedule_func is not None:
+                raise RuntimeError("Not allowed to nest static chains: ", chain)
+
             chain.static_schedule = StaticScheduleFunction(in_vars)
             with chainer.using_config('schedule_func', chain.static_schedule):
                 out_vars = func(*args, **kwargs)

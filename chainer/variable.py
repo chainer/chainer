@@ -13,6 +13,11 @@ from chainer import initializers
 from chainer.initializers import constant
 from chainer.utils import argument
 
+from chainer.graph_optimimzations.static_graph_utilities import check_func_backward_outputs
+from chainer.graph_optimimzations.static_graph_utilities import is_static_func
+from chainer.graph_optimimzations.static_graph_utilities import check_func_backward_inputs
+from chainer.graph_optimimzations.static_graph_utilities import get_static_schedule
+
 
 def _check_grad_type(func, x, gx):
     if x.data is None or gx is None:
@@ -941,6 +946,13 @@ Actual: {0}'''.format(type(data))
 
             in_data = tuple([x.data for x in inputs])
             out_grad = tuple([get_grad(y) for y in outputs])
+            # Check if func was called as part of a static chain in the
+            # forward pass.
+            if is_static_func(func):
+                check_func_backward_outputs(func, out_grad)
+                if not retain_grad:
+                    raise RuntimeError("variable.backward() using a static chain should set retain_grad=True.")
+
             out_grad_data = tuple(
                 [None if g is None else g.data for g in out_grad])
             hooks = chainer.get_function_hooks()
@@ -951,6 +963,7 @@ Actual: {0}'''.format(type(data))
 
             cuda.get_device_from_array(*in_data).use()
             for hook in hooks:
+                # todo (vogel): support this in static sub-graphs
                 hook.backward_preprocess(func, in_data, out_grad_data)
 
             # Collect the current input gradients.
@@ -985,11 +998,22 @@ Actual: {0}'''.format(type(data))
                     gx = None
                 in_grad.append(gx)
 
-            gxs = func.backward_accumulate(
-                target_input_indexes, out_grad, in_grad)
+            # Check if func was called as part of a static chain in the
+            # forward pass.
+            if is_static_func(func):
+                forward_schedule = get_static_schedule(func)
+                backward_schedule = forward_schedule.get_backward_schedule_func()
+                with chainer.using_config('schedule_func', backward_schedule):
+                    gxs = func.backward_accumulate(
+                        target_input_indexes, out_grad, in_grad)
+                check_func_backward_inputs(func, gxs)
+            else:
+                gxs = func.backward_accumulate(
+                    target_input_indexes, out_grad, in_grad)
 
             assert len(gxs) == len(in_grad)
             for hook in hooks:
+                # todo (vogel): support this in static sub-graphs
                 hook.backward_postprocess(func, in_data, out_grad_data)
 
             if is_debug:
@@ -1026,6 +1050,7 @@ Actual: {0}'''.format(type(data))
                     # Accumulate the duplicated gradients here. See the comment
                     # above the code that builds ``in_grad``.
                     cur_gx = grads[x]
+                    # todo (vogel): support this accumulation in static graphs.
                     grads[x] = gx if cur_gx is None else gx + cur_gx
                 else:
                     grads[x] = gx
@@ -1037,7 +1062,8 @@ Actual: {0}'''.format(type(data))
                 if x.creator_node is not None:
                     add_cand(x.creator_node)
 
-            del gxs  # to reduce memory usage
+            if not is_static_func(func):
+                del gxs  # to reduce memory usage
             if initial_device is not None:
                 initial_device.use()
 

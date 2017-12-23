@@ -4,8 +4,7 @@ from chainer import function_node
 import chainer.functions
 from chainer.utils import type_check
 
-from chainer.graph_optimimzations import static_backward
-from chainer.graph_optimimzations import static_return_none
+from chainer.graph_optimimzations.static_graph import static_return_none
 
 class LinearFunction(function_node.FunctionNode):
 
@@ -90,8 +89,6 @@ class LinearFunction(function_node.FunctionNode):
         #self.retain_inputs((0, 1))  # b is not retained
         return y,
 
-    # fixme: move decorator to FunctionNode
-    @static_backward
     def backward(self, indexes, grad_outputs):
         x, W = self.get_retained_inputs()
         gy, = grad_outputs
