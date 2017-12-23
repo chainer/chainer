@@ -46,7 +46,7 @@ class AccumulateAdd(function_node.FunctionNode):
         self.len = len(xs)
         if len(xs) == 1:
             return xs
-        # The output should a new array. Add the first 2 arrays
+        # The output should be a new array. Add the first 2 arrays
         # and get the result y. Then add the rest arrays to y.
         y = xs[0] + xs[1]
         for x in xs[2:]:
