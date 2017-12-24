@@ -79,7 +79,12 @@ class VGG16FeatureExtractor(chainer.Chain):
         self.cnn_layer_name = 'fc7'
 
     def prepare(self, img):
-        """Single image to resized and normalized image."""
+        """Single image to resized and normalized image.
+
+        The inputs image should have the shape (channel, height, width) where
+        channels are aligned RGB. The returned image has the same shape but
+        channels in BGR order.
+        """
         return L.model.vision.vgg.prepare(img)
 
     def __call__(self, imgs):

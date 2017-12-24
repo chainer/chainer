@@ -44,6 +44,8 @@ class MsCocoDataset(dataset.DatasetMixin):
 
         A data sample from MSCOCO consists of an image and its corresponding
         caption.
+
+        The returned image has the shape (channel, height, width).
         """
         ann = self.anns[i]
 

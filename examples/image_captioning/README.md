@@ -6,11 +6,11 @@ Given an image, this model generates a sentence that describes it.
 
 ## Requirements
 
-This example requires
+This example requires the following packages.
 
+- PIL
 - [pycocotools](https://github.com/cocodataset/cocoapi/tree/master/PythonAPI)
 
-to work with the dataset.
 To install pycocotools, clone the repository and run `pip install -e .` from `cocoapi/PythonAPI` where `setup.py` is located.
 
 ## Model Overview
@@ -24,6 +24,7 @@ During training, the loss is the softmax cross entropy of predicting the next wo
 The internals of the language models is a neural network with [LSTM](http://docs.chainer.org/en/stable/reference/generated/chainer.links.LSTM.html) layers.
 However, Chainer also has a [NStepLSTM](http://docs.chainer.org/en/stable/reference/generated/chainer.links.NStepLSTM.html) layer which does not require sequential passes (for-loops in the code) which is faster. Using the latter, you do not have to align the caption lengths in the training data neither, which you usually do if using the former.
 This example includes both LSTM and NStepLSTM implementations and preprocessing of the captions.
+When training with LSTM, you may want to specify the maximum caption length `--max-caption-length` to which all captions will be capped.
 
 ## Dataset
 
@@ -42,7 +43,13 @@ Notice that this may take a while and that it requires approximately 20 GB of di
 Once `download.py` finishes, you can start training the model.
 
 ```bash
-$ python train.py --rnn nsteplstm --max-caption-length 30 --snapshot-iter 1000 --max-iters 50000 --batch-size 128 --gpu 0
+$ python train.py --rnn nsteplstm --snapshot-iter 1000 --max-iters 50000 --batch-size 128 --gpu 0
+```
+
+If you run this script on Linux, setting the environmental variable `MPLBACKEND` to `Agg` may be required to use `matplotlib`. For example,
+
+```
+MPLBACKEND=Agg python train.py ...
 ```
 
 The above example starts the training with the NStepLSTM layers in the language model and saves a snapshot of the trained model every 1000 iteration.
@@ -61,3 +68,4 @@ $ python predict.py --img cat.jpg --model result/model_20000 --rnn nsteplstm --m
 
 It will print out the generated captions to std out.
 If you want to generate captions to all images in a directory, replace `--img` with `--img-dir` followed by the directory.
+Note that `--rnn` needs to given the correct value corresponding to the model.

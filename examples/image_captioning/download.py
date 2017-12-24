@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import argparse
 import os
 from six.moves.urllib import request
@@ -16,7 +17,8 @@ urls = [
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--out', type=str, default='data')
+    parser.add_argument('--out', type=str, default='data',
+                        help='Target MSOCO dataset root directory')
     args = parser.parse_args()
 
     try:

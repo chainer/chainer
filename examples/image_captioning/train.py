@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import argparse
 
 import chainer
@@ -13,19 +14,31 @@ from model import ImageCaptionModel
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--out', type=str, default='result')
-    parser.add_argument('--mscoco-root', type=str, default='data')
-    parser.add_argument('--max-iters', type=int, default=50000)
-    parser.add_argument('--batch-size', type=int, default=128)
-    parser.add_argument('--dropout-ratio', type=float, default=0.5)
-    parser.add_argument('--val-keep-quantity', type=int, default=100)
-    parser.add_argument('--val-iter', type=int, default=100)
-    parser.add_argument('--log-iter', type=int, default=1)
-    parser.add_argument('--snapshot-iter', type=int, default=1000)
+    parser.add_argument('--out', type=str, default='result',
+                        help='Output directory')
+    parser.add_argument('--mscoco-root', type=str, default='data',
+                        help='MSOCO dataset root directory')
+    parser.add_argument('--max-iters', type=int, default=50000,
+                        help='Maximum number of iterations to train')
+    parser.add_argument('--batch-size', type=int, default=128,
+                        help='Minibatch size')
+    parser.add_argument('--dropout-ratio', type=float, default=0.5,
+                        help='Language model dropout ratio')
+    parser.add_argument('--val-keep-quantity', type=int, default=100,
+                        help='Keep every N-th validation image')
+    parser.add_argument('--val-iter', type=int, default=100,
+                        help='Run validation every N-th iteration')
+    parser.add_argument('--log-iter', type=int, default=1,
+                        help='Log every N-th iteration')
+    parser.add_argument('--snapshot-iter', type=int, default=1000,
+                        help='Model snapshot every N-th iteration')
     parser.add_argument('--rnn', type=str, default='nsteplstm',
-                        choices=['nsteplstm', 'lstm'])
-    parser.add_argument('--gpu', type=int, default=0)
-    parser.add_argument('--max-caption-length', type=int, default=30)
+                        choices=['nsteplstm', 'lstm'],
+                        help='Language model layer type')
+    parser.add_argument('--gpu', type=int, default=0,
+                        help='GPU ID (negative value indicates CPU)')
+    parser.add_argument('--max-caption-length', type=int, default=30,
+                        help='Maxium caption length when using LSTM layer')
     args = parser.parse_args()
 
     # Load the MSCOCO dataset. Assumes that the dataset has been downloaded
@@ -57,9 +70,8 @@ def main():
         img = model.prepare(img)
         return img, caption
 
-    # Usually not required but we need to preprocess the images since their
-    # sizes may vary (and the model requires that they have the exact same
-    # fixed size)
+    # We need to preprocess the images since their sizes may vary (and the
+    # model requires that they have the exact same fixed size)
     train = TransformDataset(train, transform)
     val = TransformDataset(val, transform)
 

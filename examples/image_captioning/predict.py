@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import argparse
 import glob
 import os
@@ -14,14 +15,21 @@ from model import ImageCaptionModel
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--img', type=str)
-    parser.add_argument('--img-dir', type=str)
-    parser.add_argument('--model', type=str, default='result/model_1000')
-    parser.add_argument('--mscoco-root', type=str, default='data')
+    parser.add_argument('--img', type=str,
+                        help='Image path')
+    parser.add_argument('--img-dir', type=str,
+                        help='Image directory path, instead of a single image')
+    parser.add_argument('--model', type=str, default='result/model_1000',
+                        help='Trained model path')
+    parser.add_argument('--mscoco-root', type=str, default='data',
+                        help='MSOCO dataset root directory')
     parser.add_argument('--rnn', type=str, default='nsteplstm',
-                        choices=['nsteplstm', 'lstm'])
-    parser.add_argument('--gpu', type=int, default=0)
-    parser.add_argument('--max-caption-length', type=int, default=30)
+                        choices=['nsteplstm', 'lstm'],
+                        help='Language model layer type')
+    parser.add_argument('--gpu', type=int, default=0,
+                        help='GPU ID (negative value indicates CPU)')
+    parser.add_argument('--max-caption-length', type=int, default=30,
+                        help='Maximum caption length generated')
     args = parser.parse_args()
 
     # Load the dataset to obtain the vocabulary, which is needed to convert
