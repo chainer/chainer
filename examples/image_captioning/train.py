@@ -75,9 +75,10 @@ def main():
     train = TransformDataset(train, transform)
     val = TransformDataset(val, transform)
 
-    train_iter = iterators.SerialIterator(train, args.batch_size)
-    val_iter = chainer.iterators.SerialIterator(
-        val, args.batch_size, repeat=False, shuffle=False)
+    train_iter = iterators.MultiprocessIterator(
+        train, args.batch_size, shared_mem=700000)
+    val_iter = chainer.iterators.MultiprocessIterator(
+        val, args.batch_size, repeat=False, shuffle=False, shared_mem=700000)
 
     optimizer = optimizers.Adam()
     optimizer.setup(model)
