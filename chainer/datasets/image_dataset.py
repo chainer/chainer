@@ -218,11 +218,16 @@ class ZippedImageDataset(dataset_mixin.DatasetMixin):
     def __reduce__(self):
         return type(self), (self._zipfilename, self._dtype)
 
+    def __getstate__(self):
+        d = self.__dict__.copy()
+        d['_zf'] = None
+        return d
+
     def get_example(self, i):
         # we need to keep lock as small as possible
         # in addition, PIL may seek() on the file -- zipfile won't support it
 
-        if self._zf_pid != os.getpid():
+        if self._zf == None or self._zf_pid != os.getpid():
             self._zf_pid = os.getpid()
             self._zf = zipfile.ZipFile(self._zipfilename)
 
