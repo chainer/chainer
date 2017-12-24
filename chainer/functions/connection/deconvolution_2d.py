@@ -250,6 +250,11 @@ class Deconvolution2DFunction(function_node.FunctionNode):
 
         use_tensor_core = chainer.should_use_cudnn_tensor_core(x.dtype)
 
+        # cuDNN 7 supports dilation only in *_BWD_DATA_ALGO_0, but
+        # it supports Tensor Cores only in *_BWD_DATA_ALGO_1.
+        if (use_tensor_core and (self.dx > 1 or self.dy > 1)):
+            use_tensor_core = False
+
         handle = cudnn.get_handle()
         x_desc = cudnn.create_tensor_descriptor(x)
         y = cuda.cupy.empty((n, yC, self.outh, self.outw),
@@ -286,9 +291,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
                 y_desc.value, _bwd_data_pref, workspace_size)
 
         if use_tensor_core:
-            # Only CUDNN_CONVOLUTION_BWD_DATA_ALGO_1 supports
-            # Tensor-Core in cuDNN7
-            algo = libcudnn.CUDNN_CONVOLUTION_BWD_DATA_ALGO_1
+            algo = self._tensor_core_adjust_algo()
 
         libcudnn.convolutionBackwardData_v3(
             handle, one.data, filter_desc.value, W.data.ptr,
@@ -302,6 +305,11 @@ class Deconvolution2DFunction(function_node.FunctionNode):
                 one.data, y_desc.value, y.data.ptr)
 
         return y,
+
+    def _tensor_core_adjust_algo(self):
+        # Only CUDNN_CONVOLUTION_BWD_DATA_ALGO_1 supports
+        # Tensor-Core in cuDNN7
+        return libcudnn.CUDNN_CONVOLUTION_BWD_DATA_ALGO_1
 
     def backward(self, indexes, grad_outputs):
         x, W = self.get_retained_inputs()
