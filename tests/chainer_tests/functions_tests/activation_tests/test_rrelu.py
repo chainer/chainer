@@ -13,7 +13,7 @@ from chainer.testing import condition
 
 @testing.parameterize(*testing.product({
     'train': [True, False],
-    'shape': [(3, 2)],
+    'shape': [(3, 2), (5, 6)],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
 class TestRReLU(unittest.TestCase):
