@@ -7,6 +7,8 @@
 # implement optimized functions and only supports the
 # Linear link/function.
 
+import argparse
+
 import chainer
 from chainer.dataset import convert
 import chainer.links as L
@@ -43,7 +45,16 @@ class MLP(chainer.Chain):
 
 if __name__ == '__main__':
 
+    parser = argparse.ArgumentParser(description='Chainer example: static graph')
+    parser.add_argument('--gpu', '-g', type=int, default=0,
+                        help='GPU ID (negative value indicates CPU)')
+    args = parser.parse_args()
+
     model = classifier.Classifier(MLP(200, 10))
+    if args.gpu >= 0:
+        # Make a specified GPU current
+        chainer.cuda.get_device_from_id(args.gpu).use()
+        model.to_gpu()  # Copy the model to the GPU
 
     train, valid = get_mnist()
     train_count = len(train)
@@ -54,7 +65,7 @@ if __name__ == '__main__':
     cur_iteration = 0
     while cur_iteration < 10:
         batch = train_iter.next()
-        x_array, t_array = convert.concat_examples(batch, -1)
+        x_array, t_array = convert.concat_examples(batch, args.gpu)
         x = chainer.Variable(x_array)
         t = chainer.Variable(t_array)
         loss = model(x, t)

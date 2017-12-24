@@ -1,5 +1,6 @@
 import numpy
 
+from chainer.backends import cuda
 from chainer import function_node
 import chainer.functions
 from chainer.utils import type_check
@@ -86,7 +87,8 @@ class LinearFunction(function_node.FunctionNode):
         # In order to be compatible with the "static graph" feature, it is
         # required that all output arrays of this forward
         # function be allocated explicitly:
-        #y = numpy.empty((x.shape[0], W.shape[0])).astype(x.dtype)
+        xp = cuda.get_array_module(x)
+        y = xp.empty((x.shape[0], W.shape[0])).astype(x.dtype)
         # This is required because all of the "static_*()" functions
         # use the convention that any output arrays are supplied
         # as input arguments to the function. That is because it is
@@ -95,24 +97,24 @@ class LinearFunction(function_node.FunctionNode):
         # of output arrays during execution of the static schedule
         # because it would break the model.
 
-        #self.static_linear_no_bias_naive(x, W, y)
-        #if len(inputs) == 3:
-        #    bias = inputs[2]
-        #    self.static_add_bias(y, bias)
+        self.static_linear_no_bias_naive(x, W, y)
+        if len(inputs) == 3:
+            bias = inputs[2]
+            self.static_add_bias(y, bias)
 
 
         ##########################33
         # old code:
 
-        if (isinstance(x, numpy.ndarray) and
-                not (x.flags.c_contiguous or x.flags.f_contiguous) and
-                1 in x.shape):
-            x = numpy.ascontiguousarray(x)
+        #if (isinstance(x, numpy.ndarray) and
+        #        not (x.flags.c_contiguous or x.flags.f_contiguous) and
+        #        1 in x.shape):
+        #    x = numpy.ascontiguousarray(x)
 
-        y = x.dot(W.T).astype(x.dtype, copy=False)
-        if len(inputs) == 3:
-            b = inputs[2]
-            y += b
+        #y = x.dot(W.T).astype(x.dtype, copy=False)
+        #if len(inputs) == 3:
+        #    b = inputs[2]
+        #    y += b
         #########################
 
         self.retain_inputs((0, 1))  # b is not retained

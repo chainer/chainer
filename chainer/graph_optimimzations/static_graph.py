@@ -15,6 +15,11 @@ import chainer.function_node
 # and a (non-static) chain. Enable `chainer.config.cudnn_deterministic` and
 # run both models and check that the outputs are identical.
 
+# todo: modify optimizers so that they never attempt to change the grad/data
+# reference of a Parmaeter, such as setting to None.
+# They should only copy zeros into the parameter
+# when necessary, and copy updated parameter values into the .data attributes.
+
 class StaticScheduleFunction(chainer.function_node.FunctionNode):
     """A function that executes the static schedule of a Chain.
 
