@@ -226,6 +226,14 @@ class TestEvaluatorWithEvalFunc(unittest.TestCase):
 }))
 class TestEvaluatorRepeat(unittest.TestCase):
 
+    def setUp(self):
+        self.context = warnings.catch_warnings(record=True)
+        self.warnings = self.context.__enter__()
+        warnings.filterwarnings(action='always', category=DeprecationWarning)
+
+    def tearDown(self):
+        self.context.__exit__()
+
     def test_serial_iterator(self):
         dataset = numpy.ones((4, 6))
         iterator = iterators.SerialIterator(dataset, 2, repeat=self.repeat)
