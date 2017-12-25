@@ -7,6 +7,7 @@ endif()
 
 install(FILES
     array.h
+    array_math.h
     array_repr.h
     constant.h
     device.h
@@ -20,6 +21,7 @@ install(FILES
 
 add_library(xchainer SHARED
     array.cc
+    array_math.cc
     array_repr.cc
     device.cc
     dtype.cc

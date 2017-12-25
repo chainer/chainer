@@ -3,6 +3,7 @@
 #include <array>
 #include <cstddef>
 #include <initializer_list>
+#include <type_traits>
 
 #ifdef XCHAINER_ENABLE_CUDA
 #include <cuda_runtime.h>
@@ -43,6 +44,12 @@ public:
 
     template <typename T>
     void AssertEqual(const Array& lhs, const Array& rhs) {
+#ifdef XCHAINER_ENABLE_CUDA
+        std::string device_name = ::testing::get<0>(GetParam());
+        if (device_name == "cuda") {
+            cuda::CheckError(cudaDeviceSynchronize());
+        }
+#endif  // XCHAINER_ENABLE_CUDA
         ASSERT_NO_THROW(CheckEqual(lhs.dtype(), rhs.dtype()));
         ASSERT_NO_THROW(CheckEqual(lhs.shape(), rhs.shape()));
         auto total_size = lhs.shape().total_size();
@@ -64,44 +71,41 @@ public:
 #endif  // XCHAINER_ENABLE_CUDA
     }
 
+    template <bool is_const>
+    void CheckArray() {
+        using TargetArray = std::conditional_t<is_const, const Array, Array>;
+
+        std::shared_ptr<void> data = std::make_unique<float[]>(2 * 3 * 4);
+        TargetArray x = MakeArray<float>({2, 3, 4}, data);
+
+        // Basic attributes
+        ASSERT_EQ(TypeToDtype<float>, x.dtype());
+        ASSERT_EQ(3, x.ndim());
+        ASSERT_EQ(2 * 3 * 4, x.total_size());
+        ASSERT_EQ(4, x.element_bytes());
+        ASSERT_EQ(2 * 3 * 4 * 4, x.total_bytes());
+        ASSERT_EQ(0, x.offset());
+        ASSERT_TRUE(x.is_contiguous());
+
+        // Array::data
+        std::shared_ptr<const void> x_data = x.data();
+        if (GetCurrentDevice() == MakeDevice("cpu")) {
+            ASSERT_EQ(data, x_data);
+        } else if (GetCurrentDevice() == MakeDevice("cuda")) {
+            ASSERT_NE(data, x_data);
+            ASSERT_TRUE(IsPointerCudaManaged(x_data.get()));
+        } else {
+            FAIL() << "invalid device";
+        }
+    }
+
 private:
     std::unique_ptr<DeviceScope> device_scope_;
 };
 
-TEST_P(ArrayTest, Ctor) {
-    std::shared_ptr<void> data = std::make_unique<float[]>(2 * 3 * 4);
-    Array x = MakeArray<float>({2, 3, 4}, data);
-    ASSERT_EQ(TypeToDtype<float>, x.dtype());
-    ASSERT_EQ(3, x.ndim());
-    ASSERT_EQ(2 * 3 * 4, x.total_size());
-    ASSERT_EQ(4, x.element_bytes());
-    ASSERT_EQ(2 * 3 * 4 * 4, x.total_bytes());
-    const std::shared_ptr<void> x_data = x.data();
-    if (GetCurrentDevice() == MakeDevice("cpu")) {
-        ASSERT_EQ(data, x_data);
-    } else if (GetCurrentDevice() == MakeDevice("cuda")) {
-        ASSERT_NE(data, x_data);
-        ASSERT_TRUE(IsPointerCudaManaged(x_data.get()));
-    } else {
-        assert(0);
-    }
-    ASSERT_EQ(0, x.offset());
-    ASSERT_TRUE(x.is_contiguous());
-}
+TEST_P(ArrayTest, ArrayCtor) { CheckArray<false>(); }
 
-TEST_P(ArrayTest, ConstArray) {
-    std::shared_ptr<void> data = std::make_unique<float[]>(2 * 3 * 4);
-    const Array x = MakeArray<float>({2, 3, 4}, data);
-    std::shared_ptr<const void> x_data = x.data();
-    if (GetCurrentDevice() == MakeDevice("cpu")) {
-        ASSERT_EQ(data, x_data);
-    } else if (GetCurrentDevice() == MakeDevice("cuda")) {
-        ASSERT_NE(data, x_data);
-        ASSERT_TRUE(IsPointerCudaManaged(x_data.get()));
-    } else {
-        assert(0);
-    }
-}
+TEST_P(ArrayTest, ConstArrayCtor) { CheckArray<true>(); }
 
 TEST_P(ArrayTest, IAdd) {
     {

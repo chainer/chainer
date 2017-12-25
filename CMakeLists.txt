@@ -57,6 +57,14 @@ endif()
 # gsl-lite
 get_third_party(gsl-lite)
 include_directories(${CMAKE_BINARY_DIR}/gsl-lite/include)
+# ref. https://github.com/martinmoene/gsl-lite#api-macro
+# As default, functions (methods) are decorated with __host__ __device__ for the CUDA platform. 
+# We want to stop it because we get many warnings with nvcc.
+add_definitions(-Dgsl_api=)
+if(${CUDA_FOUND})
+    list(APPEND CUDA_NVCC_FLAGS "-Dgsl_api=")
+endif()
+# gsl-lite is a header-only library, we do not need to build and run tests
 # add_subdirectory(${CMAKE_BINARY_DIR}/gsl-lite)
 
 # Test
