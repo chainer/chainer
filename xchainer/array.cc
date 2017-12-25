@@ -8,8 +8,10 @@
 #include <cuda_runtime.h>
 #endif  // XCHAINER_ENABLE_CUDA
 
+#include "xchainer/array_math.h"
 #include "xchainer/array_repr.h"
 #ifdef XCHAINER_ENABLE_CUDA
+#include "xchainer/cuda/array_math.h"
 #include "xchainer/cuda/cuda_runtime.h"
 #endif  // XCHAINER_ENABLE_CUDA
 #include "xchainer/device.h"
@@ -37,13 +39,15 @@ std::shared_ptr<void> AllocateCudaManaged(const void* src_ptr, size_t size) {
 Array::Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, int64_t offset)
     : shape_(shape), is_contiguous_(true), dtype_(dtype), data_(nullptr), offset_(offset) {
     Device device = GetCurrentDevice();
-    if (device == MakeDevice("cuda")) {
-        // CUDA
+    if (device == MakeDevice("cpu")) {
+        data_ = std::move(data);
+#ifdef XCHAINER_ENABLE_CUDA
+    } else if (device == MakeDevice("cuda")) {
         size_t size = static_cast<size_t>(shape_.total_size() * GetElementSize(dtype));
         data_ = AllocateCudaManaged(data.get(), size);
+#endif  // XCHAINER_ENABLE_CUDA
     } else {
-        // CPU
-        data_ = std::move(data);
+        throw DeviceError("invalid device");
     }
 }
 
@@ -69,62 +73,21 @@ Array Array::Mul(const Array& rhs) const {
     return out;
 }
 
-template <typename T>
-void Array::Add(const Array& rhs, Array& out) const {
-    const Array& lhs = *this;
-    auto total_size = shape_.total_size();
-    const T* ldata = static_cast<const T*>(lhs.data().get());
-    const T* rdata = static_cast<const T*>(rhs.data().get());
-    T* odata = static_cast<T*>(out.data().get());
-    for (decltype(total_size) i = 0; i < total_size; i++) {
-        odata[i] = ldata[i] + rdata[i];
-    }
-}
-
-template <typename T>
-void Array::Mul(const Array& rhs, Array& out) const {
-    const Array& lhs = *this;
-    auto total_size = shape_.total_size();
-    const T* ldata = static_cast<const T*>(lhs.data().get());
-    const T* rdata = static_cast<const T*>(rhs.data().get());
-    T* odata = static_cast<T*>(out.data().get());
-    for (decltype(total_size) i = 0; i < total_size; i++) {
-        odata[i] = ldata[i] * rdata[i];
-    }
-}
-
 void Array::Add(const Array& rhs, Array& out) const {
     // TODO: dtype conversion
     CheckEqual(dtype_, rhs.dtype());
     // TODO: broadcasting
     CheckEqual(shape_, rhs.shape());
-    switch (dtype_) {
-        case Dtype::kBool:
-            Add<bool>(rhs, out);
-            break;
-        case Dtype::kInt8:
-            Add<int8_t>(rhs, out);
-            break;
-        case Dtype::kInt16:
-            Add<int16_t>(rhs, out);
-            break;
-        case Dtype::kInt32:
-            Add<int32_t>(rhs, out);
-            break;
-        case Dtype::kInt64:
-            Add<int64_t>(rhs, out);
-            break;
-        case Dtype::kUInt8:
-            Add<uint8_t>(rhs, out);
-            break;
-        case Dtype::kFloat32:
-            Add<float>(rhs, out);
-            break;
-        case Dtype::kFloat64:
-            Add<double>(rhs, out);
-            break;
-        default:
-            assert(0);  // should never be reached
+
+    Device device = GetCurrentDevice();
+    if (device == MakeDevice("cpu")) {
+        xchainer::Add(*this, rhs, out);
+#ifdef XCHAINER_ENABLE_CUDA
+    } else if (device == MakeDevice("cuda")) {
+        xchainer::cuda::Add(*this, rhs, out);
+#endif  // XCHAINER_ENABLE_CUDA
+    } else {
+        throw DeviceError("invalid device");
     }
 }
 
@@ -133,33 +96,16 @@ void Array::Mul(const Array& rhs, Array& out) const {
     CheckEqual(dtype_, rhs.dtype());
     // TODO: broadcasting
     CheckEqual(shape_, rhs.shape());
-    switch (dtype_) {
-        case Dtype::kBool:
-            Mul<bool>(rhs, out);
-            break;
-        case Dtype::kInt8:
-            Mul<int8_t>(rhs, out);
-            break;
-        case Dtype::kInt16:
-            Mul<int16_t>(rhs, out);
-            break;
-        case Dtype::kInt32:
-            Mul<int32_t>(rhs, out);
-            break;
-        case Dtype::kInt64:
-            Mul<int64_t>(rhs, out);
-            break;
-        case Dtype::kUInt8:
-            Mul<uint8_t>(rhs, out);
-            break;
-        case Dtype::kFloat32:
-            Mul<float>(rhs, out);
-            break;
-        case Dtype::kFloat64:
-            Mul<double>(rhs, out);
-            break;
-        default:
-            assert(0);  // should never be reached
+
+    Device device = GetCurrentDevice();
+    if (device == MakeDevice("cpu")) {
+        xchainer::Mul(*this, rhs, out);
+#ifdef XCHAINER_ENABLE_CUDA
+    } else if (device == MakeDevice("cuda")) {
+        xchainer::cuda::Mul(*this, rhs, out);
+#endif  // XCHAINER_ENABLE_CUDA
+    } else {
+        throw DeviceError("invalid device");
     }
 }
 

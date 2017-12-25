@@ -44,11 +44,6 @@ public:
     std::string ToString() const;
 
 private:
-    template <typename T>
-    void Add(const Array& rhs, Array& out) const;
-    template <typename T>
-    void Mul(const Array& rhs, Array& out) const;
-
     void Add(const Array& rhs, Array& out) const;
     void Mul(const Array& rhs, Array& out) const;
 
