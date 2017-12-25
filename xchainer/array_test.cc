@@ -9,10 +9,12 @@
 #endif  // XCHAINER_ENABLE_CUDA
 #include <gtest/gtest.h>
 
+#include "xchainer/array_node.h"
 #ifdef XCHAINER_ENABLE_CUDA
 #include "xchainer/cuda/cuda_runtime.h"
 #endif  // XCHAINER_ENABLE_CUDA
 #include "xchainer/device.h"
+#include "xchainer/op_node.h"
 
 namespace xchainer {
 namespace {
@@ -108,10 +110,6 @@ TEST_P(ArrayTest, IAdd) {
         Array e = MakeArray<bool>({4, 1}, {true, true, true, false});
         a.IAdd(b);
         AssertEqual<bool>(e, a);
-
-        std::cout << "GRAPH(IAdd) {-------------" << std::endl;
-        DebugDumpComputationalGraph(std::cout, a);
-        std::cout << "}------------------------" << std::endl;
     }
     {
         Array a = MakeArray<int8_t>({3, 1}, {1, 2, 3});
@@ -160,10 +158,6 @@ TEST_P(ArrayTest, Add) {
         Array e = MakeArray<bool>({4, 1}, {true, true, true, false});
         Array o = a.Add(b);
         AssertEqual<bool>(e, o);
-
-        std::cout << "GRAPH(Add) {-------------" << std::endl;
-        DebugDumpComputationalGraph(std::cout, o);
-        std::cout << "}------------------------" << std::endl;
     }
     {
         Array a = MakeArray<int8_t>({3, 1}, {1, 2, 3});
@@ -205,16 +199,111 @@ TEST_P(ArrayTest, Mul) {
     }
 }
 
-TEST_P(ArrayTest, GraphAdd) {
+TEST_P(ArrayTest, ComputationalGraph) {
     {
+        // c = a + b
+        // o = a * c
         Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
         Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
-        Array c = a.Add(b);
-        Array o = a.Add(c);
+        {
+            auto a_node = a.node();
+            auto b_node = b.node();
+            ASSERT_NE(a_node, nullptr) << "a's node is null";
+            ASSERT_NE(b_node, nullptr) << "b's node is null";
+            auto a_op_node = a_node->next_node();
+            auto b_op_node = b_node->next_node();
+            ASSERT_EQ(a_op_node, nullptr) << "a's op node is not null";
+            ASSERT_EQ(b_op_node, nullptr) << "b's op node is not null";
+        }
 
-        std::cout << "GRAPH(Add2) {-------------" << std::endl;
-        DebugDumpComputationalGraph(std::cout, o);
-        std::cout << "}------------------------" << std::endl;
+        Array c = a.Add(b);
+        {
+            auto a_node = a.node();
+            auto b_node = b.node();
+            auto c_node = c.node();
+            ASSERT_NE(a_node, nullptr) << "a's node is null";
+            ASSERT_NE(b_node, nullptr) << "b's node is null";
+            ASSERT_NE(c_node, nullptr) << "c's node is null";
+            auto a_op_node = a_node->next_node();
+            auto b_op_node = b_node->next_node();
+            auto c_op_node = c_node->next_node();
+            ASSERT_EQ(a_op_node, nullptr) << "a's op node is not null";
+            ASSERT_EQ(b_op_node, nullptr) << "b's op node is not null";
+            ASSERT_NE(c_op_node, nullptr) << "c's op node is null";
+            ASSERT_EQ(c_op_node->name(), "add") << "c's op node name is wrong";
+        }
+
+        Array o = a.Mul(c);
+        {
+            auto a_node = a.node();
+            auto b_node = b.node();
+            auto c_node = c.node();
+            auto o_node = o.node();
+            ASSERT_NE(a_node, nullptr) << "a's node is null";
+            ASSERT_NE(b_node, nullptr) << "b's node is null";
+            ASSERT_NE(c_node, nullptr) << "c's node is null";
+            ASSERT_NE(o_node, nullptr) << "o's node is null";
+            auto a_op_node = a_node->next_node();
+            auto b_op_node = b_node->next_node();
+            auto c_op_node = c_node->next_node();
+            auto o_op_node = o_node->next_node();
+            ASSERT_EQ(a_op_node, nullptr) << "a's op node is not null";
+            ASSERT_EQ(b_op_node, nullptr) << "b's op node is not null";
+            ASSERT_NE(c_op_node, nullptr) << "c's op node is null";
+            ASSERT_NE(o_op_node, nullptr) << "o's op node is null";
+            ASSERT_EQ(c_op_node->name(), "add") << "c's op node name is wrong";
+            ASSERT_EQ(o_op_node->name(), "mul") << "o's op node name is wrong";
+        }
+    }
+}
+
+TEST_P(ArrayTest, ComputationalGraphInplace) {
+    {
+        // a += b
+        // a *= b
+        Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
+        Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
+        auto a_node_1 = a.node();
+        {
+            auto a_node = a_node_1;
+            auto b_node = b.node();
+            ASSERT_NE(a_node, nullptr) << "a's node is null";
+            ASSERT_NE(b_node, nullptr) << "b's node is null";
+            auto a_op_node = a_node->next_node();
+            auto b_op_node = b_node->next_node();
+            ASSERT_EQ(a_op_node, nullptr) << "a's op node is not null";
+            ASSERT_EQ(b_op_node, nullptr) << "b's op node is not null";
+        }
+
+        a.IAdd(b);
+        auto a_node_2 = a.node();
+        {
+            auto a_node = a_node_2;
+            auto b_node = b.node();
+            ASSERT_NE(a_node, nullptr) << "a's node is null";
+            ASSERT_NE(a_node, a_node_1) << "a's node is not changed";
+            ASSERT_NE(b_node, nullptr) << "b's node is null";
+            auto a_op_node = a_node->next_node();
+            auto b_op_node = b_node->next_node();
+            ASSERT_NE(a_op_node, nullptr) << "a's op node is null";
+            ASSERT_EQ(b_op_node, nullptr) << "b's op node is not null";
+            ASSERT_EQ(a_op_node->name(), "add") << "a's op node name is wrong";
+        }
+
+        a.IMul(b);
+        {
+            auto a_node = a.node();
+            auto b_node = b.node();
+            ASSERT_NE(a_node, nullptr) << "a's node is null";
+            ASSERT_NE(a_node, a_node_1) << "a's node is not changed";
+            ASSERT_NE(a_node, a_node_2) << "a's node is not changed";
+            ASSERT_NE(b_node, nullptr) << "b's node is null";
+            auto a_op_node = a_node->next_node();
+            auto b_op_node = b_node->next_node();
+            ASSERT_NE(a_op_node, nullptr) << "a's op node is null";
+            ASSERT_EQ(b_op_node, nullptr) << "b's op node is not null";
+            ASSERT_EQ(a_op_node->name(), "mul") << "a's op node name is wrong";
+        }
     }
 }
 
