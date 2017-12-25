@@ -146,6 +146,7 @@ void InitXchainerArray(pybind11::module& m) {
         .def_property_readonly("dtype", &Array::dtype)
         .def_property_readonly("element_bytes", &Array::element_bytes)
         .def_property_readonly("is_contiguous", &Array::is_contiguous)
+        .def_property_readonly("ndim", &Array::ndim)
         .def_property_readonly("offset", &Array::offset)
         .def_property_readonly("shape", &Array::shape)
         .def_property_readonly("total_bytes", &Array::total_bytes)
@@ -190,8 +191,7 @@ void InitXchainerArray(pybind11::module& m) {
                                            assert(0);
                                    }
                                    return list;
-                               })
-        .def_property_readonly("ndim", &Array::ndim);
+                               });
 }
 
 }  // namespace xchainer
