@@ -58,7 +58,10 @@ class TestGradientNoise(unittest.TestCase):
                           self.target.param.update_rule)
         call2 = mock.call(xp, (2, 3), np.dtype('float32'), hook,
                           self.target.param2.update_rule)
-        assert noise.mock_calls == [call1, call2]
+
+        # Order does not matter
+        assert (noise.mock_calls == [call1, call2] or
+                noise.mock_calls == [call2, call1])
 
     def test_gradient_noise_cpu(self):
         self.check_gradient_noise()
