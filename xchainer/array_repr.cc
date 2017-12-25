@@ -179,11 +179,13 @@ struct ArrayReprImpl {
         int cur_line_size = 0;
         VisitElements<T>(array, data, [ndim, &cur_line_size, &formatter, &os](T value, const int64_t* index) {
             int8_t trailing_zeros = 0;
-            for (auto it = index + ndim; --it >= index;) {
-                if (*it == 0) {
-                    ++trailing_zeros;
-                } else {
-                    break;
+            if (ndim > 0) {
+                for (auto it = index + ndim; --it >= index;) {
+                    if (*it == 0) {
+                        ++trailing_zeros;
+                    } else {
+                        break;
+                    }
                 }
             }
             if (trailing_zeros == ndim) {
