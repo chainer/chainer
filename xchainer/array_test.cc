@@ -63,12 +63,12 @@ public:
 #endif  // XCHAINER_ENABLE_CUDA
     }
 
-    template <bool IS_CONST>
+    template <bool is_const>
     void CheckArray() {
-        using ARRAY = typename std::conditional<IS_CONST, const Array, Array>::type;
+        using TargetArray = typename std::conditional<is_const, const Array, Array>::type;
 
         std::shared_ptr<void> data = std::make_unique<float[]>(2 * 3 * 4);
-        ARRAY x = MakeArray<float>({2, 3, 4}, data);
+        TargetArray x = MakeArray<float>({2, 3, 4}, data);
 
         // Basic attributes
         ASSERT_EQ(TypeToDtype<float>, x.dtype());
