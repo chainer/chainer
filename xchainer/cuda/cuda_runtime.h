@@ -26,10 +26,10 @@ struct GridBlockSize {
 };
 
 template <typename T>
-GridBlockSize CudaOccupancyMaxPotentialBlockSize(T&& func, size_t dynamic_smem_size = 0, int block_size_limit = 0) {
-    GridBlockSize ret;
+GridBlockSize CudaOccupancyMaxPotentialBlockSize(const T& func, size_t dynamic_smem_size = 0, int block_size_limit = 0) {
+    GridBlockSize ret = {};
     CheckError(
-        cudaOccupancyMaxPotentialBlockSize(&ret.grid_size, &ret.block_size, std::forward<T>(func), dynamic_smem_size, block_size_limit));
+        cudaOccupancyMaxPotentialBlockSize(&ret.grid_size, &ret.block_size, func, dynamic_smem_size, block_size_limit));
     return ret;
 }
 
