@@ -65,7 +65,7 @@ public:
 
     template <bool is_const>
     void CheckArray() {
-        using TargetArray = typename std::conditional<is_const, const Array, Array>::type;
+        using TargetArray = std::conditional_t<is_const, const Array, Array>;
 
         std::shared_ptr<void> data = std::make_unique<float[]>(2 * 3 * 4);
         TargetArray x = MakeArray<float>({2, 3, 4}, data);
