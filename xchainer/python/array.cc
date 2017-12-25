@@ -139,13 +139,17 @@ void InitXchainerArray(pybind11::module& m) {
         .def(py::init(py::overload_cast<py::array>(&MakeArray)))
         .def_buffer(&MakeNumpyArrayFromArray)
         .def("__repr__", static_cast<std::string (Array::*)() const>(&Array::ToString))
+        .def("__add__", static_cast<Array (Array::*)(const Array&) const>(&Array::Add))
+        .def("__iadd__", static_cast<Array& (Array::*)(const Array&)>(&Array::IAdd))
+        .def("__mul__", static_cast<Array (Array::*)(const Array&) const>(&Array::Mul))
+        .def("__imul__", static_cast<Array& (Array::*)(const Array&)>(&Array::IMul))
         .def_property_readonly("dtype", &Array::dtype)
-        .def_property_readonly("shape", &Array::shape)
-        .def_property_readonly("is_contiguous", &Array::is_contiguous)
-        .def_property_readonly("total_size", &Array::total_size)
         .def_property_readonly("element_bytes", &Array::element_bytes)
-        .def_property_readonly("total_bytes", &Array::total_bytes)
+        .def_property_readonly("is_contiguous", &Array::is_contiguous)
         .def_property_readonly("offset", &Array::offset)
+        .def_property_readonly("shape", &Array::shape)
+        .def_property_readonly("total_bytes", &Array::total_bytes)
+        .def_property_readonly("total_size", &Array::total_size)
         .def_property_readonly("debug_flat_data",
                                [](const Array& self) {  // This method is a stub for testing
                                    py::list list;
@@ -187,10 +191,7 @@ void InitXchainerArray(pybind11::module& m) {
                                    }
                                    return list;
                                })
-        .def("__add__", static_cast<Array (Array::*)(const Array&) const>(&Array::Add))
-        .def("__iadd__", static_cast<Array& (Array::*)(const Array&)>(&Array::IAdd))
-        .def("__mul__", static_cast<Array (Array::*)(const Array&) const>(&Array::Mul))
-        .def("__imul__", static_cast<Array& (Array::*)(const Array&)>(&Array::IMul));
+        .def_property_readonly("ndim", &Array::ndim);
 }
 
 }  // namespace xchainer
