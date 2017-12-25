@@ -423,6 +423,34 @@ TEST_P(ArrayTest, ComputationalGraphInplace) {
     }
 }
 
+TEST_P(ArrayTest, AddBackward) {
+    Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
+    Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
+    Array o = a.Add(b);
+
+    auto op_node = o.node()->next_node();
+    Array go = MakeArray<bool>({4, 1}, {true, true, true, true});
+    Array ga = op_node->functions()[0](go);
+    Array gb = op_node->functions()[1](go);
+
+    AssertEqual<bool>(ga, go);
+    AssertEqual<bool>(gb, go);
+}
+
+TEST_P(ArrayTest, MulBackward) {
+    Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
+    Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
+    Array o = a.Mul(b);
+
+    auto op_node = o.node()->next_node();
+    Array go = MakeArray<bool>({4, 1}, {true, true, true, true});
+    Array ga = op_node->functions()[0](go);
+    Array gb = op_node->functions()[1](go);
+
+    AssertEqual<bool>(ga, go.Mul(b));
+    AssertEqual<bool>(gb, go.Mul(a));
+}
+
 INSTANTIATE_TEST_CASE_P(ForEachDevice, ArrayTest, ::testing::Values(
 #ifdef XCHAINER_ENABLE_CUDA
                                                       std::string{"cuda"},
