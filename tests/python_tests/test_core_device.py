@@ -1,51 +1,86 @@
 import pytest
 
 import xchainer
+from xchainer import Device
+from xchainer import DeviceError
 
 
-CPU = xchainer.Device('cpu')
-CUDA = xchainer.Device('cuda')
+@pytest.fixture
+def inputs(request, device_data):
+    return device_data['name']
 
 
-def test_device():
-    cpu1 = xchainer.Device('cpu')
-    cpu2 = xchainer.Device('cpu')
-    cuda = xchainer.Device('cuda')
-    assert cpu1 == cpu2
-    assert not (cpu1 != cpu2)
-    assert not (cpu1 == cuda)
-    assert cpu1 != cuda
-
-    with pytest.raises(xchainer.DeviceError):
-        xchainer.Device('a' * 8)  # too long device name
+@pytest.fixture
+def inputs1(request, inputs):
+    return inputs
 
 
-def test_current_device():
+@pytest.fixture
+def inputs2(request, inputs):
+    return inputs
+
+
+@pytest.fixture
+def cache_restore_device(request):
     device = xchainer.get_current_device()
 
-    xchainer.set_current_device('cpu')
-    assert xchainer.get_current_device() == CPU
-
-    xchainer.set_current_device('cuda')
-    assert xchainer.get_current_device() == CUDA
-
-    with pytest.raises(xchainer.DeviceError):
-        xchainer.set_current_device('invalid_device')
-
-    xchainer.set_current_device(device)
+    def restore_device():
+        xchainer.set_current_device(device)
+    request.addfinalizer(restore_device)
 
 
-def test_device_scope():
-    device = xchainer.get_current_device()
+@pytest.mark.usefixtures('cache_restore_device')
+def test_eq(inputs1, inputs2):
+    if inputs1 == inputs2:
+        return
 
-    xchainer.set_current_device('cpu')
-    with xchainer.device_scope('cuda'):
-        assert xchainer.get_current_device() == CUDA
+    name1 = inputs1
+    name2 = inputs2
 
-    scope = xchainer.device_scope('cuda')
-    assert xchainer.get_current_device() == CPU
+    device1_1 = Device(name1)
+    device1_2 = Device(name1)
+    device2 = Device(name2)
+
+    assert device1_1 == device1_2
+    assert device1_1 != device2
+    assert not (device1_1 != device1_2)
+    assert not (device1_1 == device2)
+
+
+@pytest.mark.usefixtures('cache_restore_device')
+def test_current_device(inputs):
+    name = inputs
+    xchainer.set_current_device(name)
+    assert xchainer.get_current_device() == Device(name)
+
+
+@pytest.mark.usefixtures('cache_restore_device')
+def test_device_scope(inputs1, inputs2):
+    if inputs1 == inputs2:
+        return
+
+    name1 = inputs1
+    name2 = inputs2
+
+    device1 = Device(name1)
+    device2 = Device(name2)
+
+    xchainer.set_current_device(name1)
+    with xchainer.device_scope(name2):
+        assert xchainer.get_current_device() == device2
+
+    scope = xchainer.device_scope(name2)
+    assert xchainer.get_current_device() == device1
     with scope:
-        assert xchainer.get_current_device() == CUDA
-    assert xchainer.get_current_device() == CPU
+        assert xchainer.get_current_device() == device2
+    assert xchainer.get_current_device() == device1
 
-    xchainer.set_current_device(device)
+
+def test_init_invalid_lengt():
+    with pytest.raises(DeviceError):
+        Device('a' * 8)  # too long device name
+
+
+def test_set_current_invalid_name():
+    with pytest.raises(DeviceError):
+        xchainer.set_current_device('invalid_device')

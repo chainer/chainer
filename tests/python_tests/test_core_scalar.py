@@ -1,64 +1,56 @@
 import pytest
 
 import xchainer
+from xchainer import DtypeError
+from xchainer import Scalar
 
 
-@pytest.fixture(params=[-2, 1, -1.5, 2.3, True, False])
-def scalar_data(request):
-    return request.param
+@pytest.fixture
+def inputs(request, scalar_data):
+    return scalar_data['data']
 
 
-def assert_casts(scalar, scalar_data):
-    assert bool(scalar) == bool(scalar_data)
-    assert int(scalar) == int(scalar_data)
-    assert float(scalar) == float(scalar_data)
+def _assert_casts_equal(scalar, data):
+    assert bool(scalar) == bool(data)
+    assert int(scalar) == int(data)
+    assert float(scalar) == float(data)
 
 
-def check_cast(scalar_data):
-    scalar = xchainer.Scalar(scalar_data)
-    assert_casts(scalar, scalar_data)
+def test_cast(inputs):
+    data = inputs
+    scalar = Scalar(data)
 
-
-# operator+()
-def check_pos_cast(scalar_data):
-    scalar = xchainer.Scalar(scalar_data)
-    assert_casts(+scalar, +scalar_data)
-
-
-# operator-()
-def check_neg_cast(scalar_data):
-    scalar = xchainer.Scalar(scalar_data)
-
-    if isinstance(scalar_data, bool):
-        with pytest.raises(xchainer.DtypeError):
-            -scalar  # Should not be able to negate bool
+    _assert_casts_equal(scalar, data)
+    _assert_casts_equal(+scalar, +data)
+    if isinstance(data, bool):
+        with pytest.raises(DtypeError):
+            -scalar  # should not be able to negate bool
     else:
-        assert_casts(-scalar, -scalar_data)
+        _assert_casts_equal(-scalar, -data)
 
 
-def test_cast(scalar_data):
-    check_cast(scalar_data)
-    check_pos_cast(scalar_data)
-    check_neg_cast(scalar_data)
+def test_dtype(inputs):
+    data = inputs
+    scalar = Scalar(data)
 
-
-def test_repr(scalar_data):
-    assert repr(xchainer.Scalar(scalar_data)) == repr(scalar_data)
-    assert str(xchainer.Scalar(scalar_data)) == str(scalar_data)
-
-
-def test_dtype(scalar_data):
-    scalar = xchainer.Scalar(scalar_data)
-    if isinstance(scalar_data, bool):
+    if isinstance(data, bool):
         assert scalar.dtype == xchainer.bool
-    elif isinstance(scalar_data, int):
+    elif isinstance(data, int):
         assert scalar.dtype == xchainer.int64
-    elif isinstance(scalar_data, float):
+    elif isinstance(data, float):
         assert scalar.dtype == xchainer.float64
     else:
         assert False
 
 
+def test_repr(inputs):
+    data = inputs
+    scalar = Scalar(data)
+
+    assert repr(scalar) == repr(data)
+    assert str(scalar) == str(data)
+
+
 def test_init_invalid():
     with pytest.raises(TypeError):
-        xchainer.Scalar("1")
+        Scalar("1")  # string, which is not a numeric
