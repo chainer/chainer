@@ -423,12 +423,32 @@ TEST_P(ArrayTest, ComputationalGraphInplace) {
     }
 }
 
+TEST_P(ArrayTest, DeepCopy) {
+    Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
+    Array b = a.DeepCopy();
+    AssertEqual<bool>(a, b);
+}
+
 TEST_P(ArrayTest, AddBackward) {
     Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
     Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
     Array o = a.Add(b);
 
     auto op_node = o.node()->next_node();
+    Array go = MakeArray<bool>({4, 1}, {true, true, true, true});
+    Array ga = op_node->functions()[0](go);
+    Array gb = op_node->functions()[1](go);
+
+    AssertEqual<bool>(ga, go);
+    AssertEqual<bool>(gb, go);
+}
+
+TEST_P(ArrayTest, IAddBackward) {
+    Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
+    Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
+    a.IAdd(b);
+
+    auto op_node = a.node()->next_node();
     Array go = MakeArray<bool>({4, 1}, {true, true, true, true});
     Array ga = op_node->functions()[0](go);
     Array gb = op_node->functions()[1](go);
@@ -449,6 +469,21 @@ TEST_P(ArrayTest, MulBackward) {
 
     AssertEqual<bool>(ga, go.Mul(b));
     AssertEqual<bool>(gb, go.Mul(a));
+}
+
+TEST_P(ArrayTest, IMulBackward) {
+    Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
+    Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
+    Array orig_a = a.DeepCopy();
+    a.IMul(b);
+
+    auto op_node = a.node()->next_node();
+    Array go = MakeArray<bool>({4, 1}, {true, true, true, true});
+    Array ga = op_node->functions()[0](go);
+    Array gb = op_node->functions()[1](go);
+
+    AssertEqual<bool>(ga, go.Mul(b));
+    AssertEqual<bool>(gb, go.Mul(orig_a));
 }
 
 INSTANTIATE_TEST_CASE_P(ForEachDevice, ArrayTest, ::testing::Values(

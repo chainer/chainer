@@ -60,6 +60,8 @@ public:
 
     std::string ToString() const;
 
+    Array DeepCopy() const;
+
 private:
     void Add(const Array& rhs, Array& out) const;
     void Mul(const Array& rhs, Array& out) const;

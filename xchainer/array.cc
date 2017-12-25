@@ -88,6 +88,25 @@ Array Array::Empty(const Shape& shape, Dtype dtype) {
 
 Array Array::EmptyLike(const Array& array) { return Empty(array.shape(), array.dtype()); }
 
+Array Array::DeepCopy() const {
+    auto bytes = total_bytes();
+    if (GetCurrentDevice() == MakeDevice("cpu")) {
+        std::shared_ptr<void> ret_data = std::make_unique<uint8_t[]>(bytes);
+        std::memcpy(ret_data.get(), data_.get(), bytes);
+        return {shape_, dtype_, ret_data, offset_};
+#ifdef XCHAINER_ENABLE_CUDA
+    } else if (GetCurrentDevice() == MakeDevice("cuda")) {
+        void* ret_ptr = nullptr;
+        cuda::CheckError(cudaMallocManaged(&ret_ptr, bytes, cudaMemAttachGlobal));
+        cuda::CheckError(cudaMemcpy(ret_ptr, data_.get(), bytes, cudaMemcpyDeviceToDevice));
+        std::shared_ptr<void> ret_data = std::shared_ptr<void>(ret_ptr, ::cudaFree);
+        return {shape_, dtype_, ret_data, offset_};
+#endif  // XCHAINER_ENABLE_CUDA
+    } else {
+        throw DeviceError("invalid device");
+    }
+}
+
 Array& Array::operator+=(const Array& rhs) {
     Add(rhs, *this);
     return *this;
@@ -116,17 +135,6 @@ void Array::Add(const Array& rhs, Array& out) const {
     // TODO: broadcasting
     CheckEqual(shape_, rhs.shape());
 
-    Device device = GetCurrentDevice();
-    if (device == MakeDevice("cpu")) {
-        xchainer::Add(*this, rhs, out);
-#ifdef XCHAINER_ENABLE_CUDA
-    } else if (device == MakeDevice("cuda")) {
-        xchainer::cuda::Add(*this, rhs, out);
-#endif  // XCHAINER_ENABLE_CUDA
-    } else {
-        throw DeviceError("invalid device");
-    }
-
     if (enable_backprop) {
         std::shared_ptr<const ArrayNode> lhs_node = node();
         std::shared_ptr<const ArrayNode> rhs_node = rhs.node();
@@ -138,6 +146,17 @@ void Array::Add(const Array& rhs, Array& out) const {
             std::make_shared<OpNode>("add", std::vector<std::shared_ptr<const ArrayNode>>{lhs_node, rhs_node}, functions);
         out_node->set_next_node(op_node);
     }
+
+    Device device = GetCurrentDevice();
+    if (device == MakeDevice("cpu")) {
+        xchainer::Add(*this, rhs, out);
+#ifdef XCHAINER_ENABLE_CUDA
+    } else if (device == MakeDevice("cuda")) {
+        xchainer::cuda::Add(*this, rhs, out);
+#endif  // XCHAINER_ENABLE_CUDA
+    } else {
+        throw DeviceError("invalid device");
+    }
 }
 
 void Array::Mul(const Array& rhs, Array& out) const {
@@ -145,6 +164,20 @@ void Array::Mul(const Array& rhs, Array& out) const {
     CheckEqual(dtype_, rhs.dtype());
     // TODO: broadcasting
     CheckEqual(shape_, rhs.shape());
+
+    if (enable_backprop) {
+        // deep copy for in-place operation to keep original input
+        const Array& lhs = (this == &out) ? DeepCopy() : *this;
+        std::shared_ptr<const ArrayNode> lhs_node = node();
+        std::shared_ptr<const ArrayNode> rhs_node = rhs.node();
+        std::shared_ptr<ArrayNode> out_node = out.CreateNewNode();
+        auto lhs_func = [rhs](const Array& gout) { return gout.Mul(rhs, false); };
+        auto rhs_func = [lhs](const Array& gout) { return gout.Mul(lhs, false); };
+        auto functions = std::vector<std::function<Array(const Array&)>>{lhs_func, rhs_func};
+        std::shared_ptr<OpNode> op_node =
+            std::make_shared<OpNode>("mul", std::vector<std::shared_ptr<const ArrayNode>>{lhs_node, rhs_node}, functions);
+        out_node->set_next_node(op_node);
+    }
 
     Device device = GetCurrentDevice();
     if (device == MakeDevice("cpu")) {
@@ -155,18 +188,6 @@ void Array::Mul(const Array& rhs, Array& out) const {
 #endif  // XCHAINER_ENABLE_CUDA
     } else {
         throw DeviceError("invalid device");
-    }
-
-    if (enable_backprop) {
-        std::shared_ptr<const ArrayNode> lhs_node = node();
-        std::shared_ptr<const ArrayNode> rhs_node = rhs.node();
-        std::shared_ptr<ArrayNode> out_node = out.CreateNewNode();
-        auto lhs_func = [rhs](const Array& gout) { return gout.Mul(rhs, false); };
-        auto rhs_func = [lhs](const Array& gout) { return gout.Mul(lhs, false); };
-        auto functions = std::vector<std::function<Array(const Array&)>>{lhs_func, rhs_func};
-        std::shared_ptr<OpNode> op_node =
-            std::make_shared<OpNode>("mul", std::vector<std::shared_ptr<const ArrayNode>>{lhs_node, rhs_node}, functions);
-        out_node->set_next_node(op_node);
     }
 }
 
