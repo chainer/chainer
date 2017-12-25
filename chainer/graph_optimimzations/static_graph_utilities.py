@@ -32,6 +32,54 @@ def get_static_schedule(func):
     return getattr(func, 'schedule_func', None)
 
 
+def is_trace_mode():
+    """Check if trace mode is on.
+
+    If this function is called by the define-by-run code of a @static_graph
+    decorated ``__call__()`` of a chain, return True.
+
+    Returns:
+        bool: True if trace mode is on. Otherwise, return False.
+    """
+    return chainer.config.schedule_func is not None
+
+def static_forward_optimizations(func, in_data):
+    # Check if any of the input arrays correspond to input
+    # variables to a static chain. If so, replace these arrays
+    # with statically-allocated arrays of the static schedule.
+    schedule_function = chainer.config.schedule_func
+    if schedule_function is not None:
+
+        in_arrays = list(in_data)
+        # Check if any of the input arrays correspond to a (dynamically
+        # allocated) data attribute of an in variable to this subgraph.
+        for func_arg_index in range(len(in_arrays)):
+            in_array = in_arrays[func_arg_index]
+            chain_arg_index, static_array = schedule_function.copy_input_arrays_dynamic_to_static(in_array)
+            if chain_arg_index is not None:
+                # Replace with the static array in arguments list.
+                assert in_arrays[func_arg_index].shape == static_array.shape
+                in_arrays[func_arg_index] = static_array
+                # Add this index information to the func_node so that it can be used in
+                # backward() to copy corresponding gradient outputs into static arrays.
+                forward_static_arrays_info = getattr(func, '_forward_static_arrays_info', None)
+                if forward_static_arrays_info is None:
+                    forward_static_arrays_info = list()
+                    func._forward_static_arrays_info = forward_static_arrays_info
+                forward_static_arrays_info.append((func_arg_index, chain_arg_index))
+
+        mod_in_data = tuple(in_arrays)
+        outputs = func.forward(mod_in_data)
+        # trace mode is on, so check that func is compatible:
+        if not func._supports_static_optimizations:
+            raise RuntimeError(
+                "The following function was called inside a static chain but it does not support static optimizations: ",
+                func)
+        return outputs
+
+    else:
+        return func.forward(in_data)
+
 def check_func_backward_outputs(func, grad_outputs):
     """Update schedule information is conditions are satisfied.
 

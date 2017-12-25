@@ -5,7 +5,7 @@ from chainer import function_node
 import chainer.functions
 from chainer.utils import type_check
 
-from chainer.graph_optimimzations.static_graph import static_return_none
+from chainer.graph_optimimzations.static_graph import static_schedule_func
 
 
 class LinearFunction(function_node.FunctionNode):
@@ -31,7 +31,7 @@ class LinearFunction(function_node.FunctionNode):
             )
 
     # fixme: remove
-    @static_return_none
+    @static_schedule_func
     def static_linear_old(self, x, W, bias, y):
         """y = x*W^T + bias
 
@@ -47,14 +47,14 @@ class LinearFunction(function_node.FunctionNode):
         y += bias
 
     # fixme: remove
-    @static_return_none
+    @static_schedule_func
     def static_linear_no_bias_old(self, x, W, y):
         """y = x*W^T
 
         """
         numpy.dot(x, W.T, out=y)
 
-    @static_return_none
+    @static_schedule_func
     def static_linear_no_bias_naive(self, x, W, y):
         # todo: this performs unnecessary memory allocations.
         # consider optimizing further.
@@ -66,9 +66,10 @@ class LinearFunction(function_node.FunctionNode):
                 not (x.flags.c_contiguous or x.flags.f_contiguous) and
                 1 in x.shape):
             x = numpy.ascontiguousarray(x)
+        # todo (vogel): optimize to prevent unnecessary allocation.
         y[:] = x.dot(W.T).astype(x.dtype, copy=False)
 
-    @static_return_none
+    @static_schedule_func
     def static_add_bias(self, y, bias):
         y[:] += bias
 
@@ -89,6 +90,7 @@ class LinearFunction(function_node.FunctionNode):
         # function be allocated explicitly:
         xp = cuda.get_array_module(x)
         y = xp.empty((x.shape[0], W.shape[0])).astype(x.dtype)
+
         # This is required because all of the "static_*()" functions
         # use the convention that any output arrays are supplied
         # as input arguments to the function. That is because it is

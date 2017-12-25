@@ -1,7 +1,9 @@
 import numpy
 
+from chainer.backends import cuda
 from chainer import function_node
 from chainer.utils import type_check
+from chainer.graph_optimimzations.static_graph import static_schedule_func
 
 
 class Transpose(function_node.FunctionNode):
@@ -13,13 +15,27 @@ class Transpose(function_node.FunctionNode):
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1,)
 
+    @static_schedule_func
+    def static_transpose(self, x, y):
+        # todo: optimize later to prevent unnecessary allocation.
+        y[:] = x.transpose(self.axes)
+
     @property
     def label(self):
         return 'Transpose'
 
     def forward(self, inputs):
         x = inputs[0]
-        y = x.transpose(self.axes)
+        #y = x.transpose(self.axes)
+        xp = cuda.get_array_module(x)
+        # Determine the shape of y:
+        if self.axes is not None:
+            y_shape = tuple([x.shape[n] for n in self.axes])
+        else:
+            # Reverse the axes
+            y_shape = x.shape[::-1]
+        y = xp.empty(y_shape).astype(x.dtype)
+        self.static_transpose(x, y)
         return y,
 
     def backward(self, indexes, grad_outputs):

@@ -8,14 +8,12 @@ import numpy
 import six
 
 import chainer
-#import chainer.graph_optimimzations
 from chainer.backends import cuda
-#from chainer.graph_optimimzations import static_forward
 from chainer import configuration
 from chainer import function_hook
 from chainer.utils import type_check
 from chainer import variable
-
+from chainer.graph_optimimzations.static_graph_utilities import static_forward_optimizations
 
 class FunctionNode(object):
 
@@ -129,6 +127,7 @@ class FunctionNode(object):
     _output_indexes_to_retain = None
     _retained_output_data = None
     _local_function_hooks = None
+    _supports_static_optimizations = False
 
     @property
     def local_function_hooks(self):
@@ -293,8 +292,10 @@ Use apply() method instead.\
             ####-----------------------------------
             # New experimental code (vogel):
 
-            in_data = self._static_forward_optimizations(in_data)
-            outputs = self.forward(in_data)
+            #in_data = self._static_forward_optimizations(in_data)
+            #in_data = static_forward_optimizations(self, in_data)
+            #outputs = self.forward(in_data)
+            outputs = static_forward_optimizations(self, in_data)
 
             ####-------------------------------------
 

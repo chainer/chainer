@@ -2,6 +2,8 @@ import numpy
 
 import chainer
 from chainer.backends import cuda
+from chainer.graph_optimimzations.static_graph import static_schedule_func
+from chainer.graph_optimimzations.static_graph_utilities import is_trace_mode
 from chainer import function_node
 from chainer.utils import type_check
 
@@ -43,11 +45,41 @@ class Sum(function_node.FunctionNode):
                         -axis - 1 < in_types[0].ndim,
                     )
 
-    def forward(self, inputs):
-        x, = inputs
+    def _dynamic_forward(self, x):
         ret = x.sum(axis=self.axis, keepdims=self.keepdims)
         if cuda.get_array_module(x) is numpy:
             ret = numpy.asarray(ret)
+        return ret
+
+    @static_schedule_func
+    def _static_sum(self, x, ret):
+        # Since ret was already allocated, we can overwrite
+        # its existing values.
+        # todo (vogel): make a more optimized version that avoids
+        # unnecessary allocation.
+        ret[:] = self._dynamic_forward(x)
+
+    def forward(self, inputs):
+        x, = inputs
+        #ret = x.sum(axis=self.axis, keepdims=self.keepdims)
+        #if cuda.get_array_module(x) is numpy:
+        #    ret = numpy.asarray(ret)
+
+        # Any easy (but not optimized) way to quickly modify an existing
+        # chainer function to support static graph optimizations is to
+        # simply wrap the old code in forward() that computes the
+        # return arrays in a new method _dynamic_forward().
+        # If trace mode is off, simply return these result arrays.
+        # Otherwise, use the outputs of _dynamic_forward() only
+        # for the purpose of array allocation and then call
+        # a @static_return_none-decorated method to compute
+        # the results, which will overwrite any previous values
+        # in the return arrays.
+        ret = self._dynamic_forward(x)
+        if is_trace_mode():
+            # Recompute the sum, but do not reallocate the results array.
+            self._static_sum(x, ret)
+
         return ret,
 
     def backward(self, indexes, grad_outputs):

@@ -310,11 +310,11 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
         # Note: This method will be invoked every iteration starting from the second
         # iteration. That is because the corresponding define-by-run code runs instead
         # during the first iteration.
-        print('StaticScheduleFunction: backward()...')
+        #print('StaticScheduleFunction: backward()...')
         return self.get_backward_schedule_func().apply(grad_outputs)
 
 
-def static_return_none(func):
+def static_schedule_func(func):
     """Decorator to mark a function for inclusion in the forward schedule.
 
     This decorator is used to wrap a function `func` that is a forward-pass
@@ -391,7 +391,9 @@ def static_return_none(func):
         # Save arguments, function, and results pointers/references to the schedule list:
         def no_arg_func():
             #print('In no_arg_func: Calling: ', func)
-            func(*args, **kwargs)
+            ret = func(*args, **kwargs)
+            if ret is not None:
+                raise RuntimeError("This function is not supposed to return anything: ", func)
             #print("Arguments were: %s, %s" % (args, kwargs))
 
         # no_arg_func() requires no arguments to call since the arguments of the decorated function
@@ -409,6 +411,7 @@ def static_return_none(func):
             # function.
             instance = args[0]
             assert isinstance(instance, chainer.function_node.FunctionNode)
+            instance._supports_static_optimizations = True
             print('Adding function to the forward static schedule.')
             #print('static_forward: instance: ', instance)
             instance.schedule_func = schedule_function
@@ -468,7 +471,7 @@ def static_graph(func):
         in_vars = args[1:]
         if hasattr(chain, 'static_schedule'):
             # Call the optimized static schedule code.
-            print('This is the 2nd or greater iteration. Calling the optimized schedule...')
+            #print('This is the 2nd or greater iteration. Calling the optimized schedule...')
             # Note: out_vars are dynamically allocated because FunctionNode.apply()
             # will dynamically allocate variables on each call, which is the desired
             # behavior.

@@ -2,6 +2,8 @@ import numpy
 
 import chainer
 from chainer.backends import cuda
+from chainer.graph_optimimzations.static_graph import static_schedule_func
+from chainer.graph_optimimzations.static_graph_utilities import is_trace_mode
 from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
@@ -24,11 +26,24 @@ class ReLU(function_node.FunctionNode):
             in_types[0].dtype.kind == 'f',
         )
 
-    def forward_cpu(self, x):
+    def _dynamic_forward_cpu(self, x):
         self.retain_outputs((0,))
-        return utils.force_array(numpy.maximum(x[0], 0, dtype=x[0].dtype)),
+        return utils.force_array(numpy.maximum(x[0], 0, dtype=x[0].dtype))
 
-    def forward_gpu(self, x):
+    @static_schedule_func
+    def _static_forward_cpu(self, x, y):
+        y[:] = self._dynamic_forward_cpu(x, y)
+
+    def forward_cpu(self, x):
+        #self.retain_outputs((0,))
+        #return utils.force_array(numpy.maximum(x[0], 0, dtype=x[0].dtype)),
+        y = self._dynamic_forward_cpu(x)
+        if is_trace_mode():
+            # Recompute the sum, but do not reallocate the results array.
+            self._static_forward_cpu(x, y)
+        return y,
+
+    def _dynamic_forward_gpu(self, x):
         if chainer.should_use_cudnn('==always') and x[0].flags.c_contiguous:
             # cupy.activation_backward requires the input.
             # So, we retain it for backward computation.
@@ -38,6 +53,26 @@ class ReLU(function_node.FunctionNode):
         else:
             y = cuda.cupy.maximum(x[0], 0)
         self.retain_outputs((0,))
+        return y
+
+    @static_schedule_func
+    def _static_forward_gpu(self, x, y):
+        y[:] = self._dynamic_forward_gpu(x)
+
+    def forward_gpu(self, x):
+        #if chainer.should_use_cudnn('==always') and x[0].flags.c_contiguous:
+        #    # cupy.activation_backward requires the input.
+        #    # So, we retain it for backward computation.
+        #    self.retain_inputs((0,))
+        #    self._use_cudnn = True
+        #    y = cudnn.activation_forward(x[0], _mode)
+        #else:
+        #    y = cuda.cupy.maximum(x[0], 0)
+        #self.retain_outputs((0,))
+        y = self._dynamic_forward_gpu(x)
+        if is_trace_mode():
+            # Recompute the sum, but do not reallocate the results array.
+            self._static_forward_gpu(x, y)
         return y,
 
     def backward(self, indexes, gy):
@@ -69,16 +104,45 @@ class ReLUGrad2(function_node.FunctionNode):
         super(ReLUGrad2, self).__init__()
         self.b = b.data
 
-    def forward_cpu(self, inputs):
+    def _dynamic_forward_cpu(self, inputs):
         y = (self.b > 0) * inputs[0]
-        return utils.force_array(y, dtype=y.dtype),
+        return utils.force_array(y, dtype=y.dtype)
 
-    def forward_gpu(self, inputs):
+    @static_schedule_func
+    def _static_forward_cpu(self, inputs, ret):
+        ret[:] = self._dynamic_forward_cpu(inputs)
+
+    def forward_cpu(self, inputs):
+        #y = (self.b > 0) * inputs[0]
+        #return utils.force_array(y, dtype=y.dtype),
+        ret = self._dynamic_forward_cpu(inputs)
+        if is_trace_mode():
+            # Recompute the sum, but do not reallocate the results array.
+            self._static_forward_cpu(inputs, ret)
+        return ret,
+
+    def _dynamic_forward_gpu(self, inputs):
         gx = cuda.elementwise(
             'T y, T gy', 'T gx',
             'gx = y > 0 ? gy : (T)0',
             'relu_bwd')(self.b, inputs[0])
-        return gx,
+        return gx
+
+    @static_schedule_func
+    def _static_forward_gpu(self, inputs, ret):
+        ret[:] = self._dynamic_forward_gpu(inputs)
+
+    def forward_gpu(self, inputs):
+        #gx = cuda.elementwise(
+        #    'T y, T gy', 'T gx',
+        #    'gx = y > 0 ? gy : (T)0',
+        #    'relu_bwd')(self.b, inputs[0])
+        #return gx,
+        ret = self._dynamic_forward_gpu(inputs)
+        if is_trace_mode():
+            # Recompute the sum, but do not reallocate the results array.
+            self._static_forward_gpu(inputs, ret)
+        return ret,
 
     def backward(self, indexes, gy):
         return gy[0] * _heaviside(self.b),
@@ -101,12 +165,37 @@ class ReLUGrad3(function_node.FunctionNode):
         self.a = a.data
         self.b = b.data
 
+    def _dynamic_forward_cpu(self, inputs):
+        return (self.b > 0) * inputs[0]
+
+    @static_schedule_func
+    def _static_forward_cpu(self, inputs, ret):
+        ret[:] = self._dynamic_forward_cpu(inputs)
+
     def forward_cpu(self, inputs):
-        return (self.b > 0) * inputs[0],
+        #return (self.b > 0) * inputs[0],
+        ret = self._dynamic_forward_cpu(inputs)
+        if is_trace_mode():
+            # Recompute the sum, but do not reallocate the results array.
+            self._static_forward_cpu(inputs, ret)
+        return ret,
+
+    def _dynamic_forward_gpu(self, inputs):
+        assert chainer.should_use_cudnn('==always')
+        return cudnn.activation_backward(self.a, self.b, inputs[0], _mode)
+
+    @static_schedule_func
+    def _static_forward_gpu(self, inputs, ret):
+        ret[:] = self._dynamic_forward_gpu(inputs)
 
     def forward_gpu(self, inputs):
-        assert chainer.should_use_cudnn('==always')
-        return cudnn.activation_backward(self.a, self.b, inputs[0], _mode),
+        #assert chainer.should_use_cudnn('==always')
+        #return cudnn.activation_backward(self.a, self.b, inputs[0], _mode),
+        ret = self._dynamic_forward_gpu(inputs)
+        if is_trace_mode():
+            # Recompute the sum, but do not reallocate the results array.
+            self._static_forward_gpu(inputs, ret)
+        return ret,
 
     def backward(self, indexes, gy):
         return gy[0] * _heaviside(self.b),
