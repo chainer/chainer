@@ -95,9 +95,9 @@ private:
     std::unique_ptr<DeviceScope> device_scope_;
 };
 
-TEST_P(ArrayTest, Ctor) { CheckArray<false>(); }
+TEST_P(ArrayTest, ArrayCtor) { CheckArray<false>(); }
 
-TEST_P(ArrayTest, ConstArray) { CheckArray<true>(); }
+TEST_P(ArrayTest, ConstArrayCtor) { CheckArray<true>(); }
 
 TEST_P(ArrayTest, IAdd) {
     {
