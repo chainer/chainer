@@ -198,7 +198,7 @@ class Evaluator(extension.Extension):
         """Finalizes the evaluator object.
 
         This method calls the `finalize` method of each iterator that
-        this updater has.
+        this evaluator has.
         It is called at the end of training loops.
 
         """
