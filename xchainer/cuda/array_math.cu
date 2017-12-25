@@ -24,7 +24,7 @@ __global__ void MulKernel(const T* ldata, const T* rdata, T* odata, const int64_
     }
 }
 
-// TODO: support stream
+// TODO(sonots): support stream
 template <typename T>
 void Add(const Array& lhs, const Array& rhs, Array& out) {
     static int max_block_size = CudaOccupancyMaxPotentialBlockSize(&AddKernel<T>).block_size;
@@ -39,7 +39,7 @@ void Add(const Array& lhs, const Array& rhs, Array& out) {
     AddKernel<<<grid_size, block_size>>>(ldata, rdata, odata, total_size);
 }
 
-// TODO: support stream
+// TODO(sonots): support stream
 template <typename T>
 void Mul(const Array& lhs, const Array& rhs, Array& out) {
     static int max_block_size = CudaOccupancyMaxPotentialBlockSize(&MulKernel<T>).block_size;
