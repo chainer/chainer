@@ -47,7 +47,7 @@ Array::Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, int64_
         data_ = AllocateCudaManaged(data.get(), size);
 #endif  // XCHAINER_ENABLE_CUDA
     } else {
-        assert(0);  // should never be reached
+        throw DeviceError("invalid device");
     }
 }
 
@@ -87,7 +87,7 @@ void Array::Add(const Array& rhs, Array& out) const {
         xchainer::cuda::Add(*this, rhs, out);
 #endif  // XCHAINER_ENABLE_CUDA
     } else {
-        assert(0);  // should never be reached
+        throw DeviceError("invalid device");
     }
 }
 
@@ -105,7 +105,7 @@ void Array::Mul(const Array& rhs, Array& out) const {
         xchainer::cuda::Mul(*this, rhs, out);
 #endif  // XCHAINER_ENABLE_CUDA
     } else {
-        assert(0);  // should never be reached
+        throw DeviceError("invalid device");
     }
 }
 
