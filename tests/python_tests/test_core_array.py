@@ -95,6 +95,7 @@ def assert_array_equals_ndarray(array, data):
     assert array.total_size == data.size
     assert array.element_bytes == data.itemsize
     assert array.total_bytes == data.itemsize * data.size
+    assert array.ndim == data.ndim
 
     assert array.debug_flat_data == data.ravel().tolist()
 
