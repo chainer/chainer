@@ -15,7 +15,6 @@ public:
 
     void set_next_node(std::shared_ptr<OpNode> next_node) { next_node_ = std::move(next_node); }
 
-
 private:
     std::shared_ptr<OpNode> next_node_;
 };
