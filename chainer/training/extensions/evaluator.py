@@ -193,3 +193,13 @@ class Evaluator(extension.Extension):
             summary.add(observation)
 
         return summary.compute_mean()
+
+    def finalize(self):
+        """Finalizes the iterator objects.
+
+        This method calls the `finalize` method of each iterator.
+        They are called at the end of training loops.
+
+        """
+        for iterator in six.itervalues(self._iterators):
+            iterator.finalize()
