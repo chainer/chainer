@@ -87,7 +87,7 @@ public:
             ASSERT_NE(data, x_data);
             ASSERT_TRUE(IsPointerCudaManaged(x_data.get()));
         } else {
-            assert(0);
+            FAIL() << "invalid device";
         }
     }
 
