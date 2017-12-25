@@ -370,14 +370,7 @@ class TestGradientMethodClearGrads(unittest.TestCase):
         self.optimizer.update()
 
 
-@testing.parameterize(
-    *testing.product(
-        {'attribute': ['GradientClipping',
-                       'GradientHardClipping',
-                       'GradientNoise',
-                       'Lasso',
-                       'WeightDecay']}))
-class TestDeprecatedOptimizerHook(unittest.TestCase):
+class TestDeprecatedOptimizerHooksEmitsWarning(unittest.TestCase):
 
     def setUp(self):
         self.context = warnings.catch_warnings(record=True)
@@ -387,15 +380,28 @@ class TestDeprecatedOptimizerHook(unittest.TestCase):
     def tearDown(self):
         self.context.__exit__()
 
-    def test_getattr_deprecated(self):
-        getattr(chainer.optimizer, 'GradientClipping')
-
+    def test_gradient_clipping(self):
+        chainer.optimizer.GradientClipping(1.)
         self.assertEqual(len(self.warnings), 1)
         self.assertIs(self.warnings[-1].category, DeprecationWarning)
 
-    def test_setattr_deprecated(self):
-        setattr(chainer.optimizer, 'GradientClipping', None)
+    def test_gradient_hard_clipping(self):
+        chainer.optimizer.GradientHardClipping(1., 2.)
+        self.assertEqual(len(self.warnings), 1)
+        self.assertIs(self.warnings[-1].category, DeprecationWarning)
 
+    def test_gradient_noise(self):
+        chainer.optimizer.GradientNoise(1.)
+        self.assertEqual(len(self.warnings), 1)
+        self.assertIs(self.warnings[-1].category, DeprecationWarning)
+
+    def test_lasso(self):
+        chainer.optimizer.Lasso(1.)
+        self.assertEqual(len(self.warnings), 1)
+        self.assertIs(self.warnings[-1].category, DeprecationWarning)
+
+    def test_weight_decay(self):
+        chainer.optimizer.WeightDecay(1.)
         self.assertEqual(len(self.warnings), 1)
         self.assertIs(self.warnings[-1].category, DeprecationWarning)
 
