@@ -54,7 +54,7 @@ Dtype NumpyDtypeToDtype(py::dtype npdtype) {
     throw DtypeError("unsupported NumPy dtype");
 }
 
-Array MakeArrayFromList(const Shape& shape, Dtype dtype, py::list list) {
+Array MakeArray(const Shape& shape, Dtype dtype, py::list list) {
     auto total_size = shape.total_size();
     auto bytes = GetElementSize(dtype) * total_size;
     if (static_cast<size_t>(total_size) != list.size()) {
@@ -97,7 +97,7 @@ Array MakeArrayFromList(const Shape& shape, Dtype dtype, py::list list) {
     return Array{shape, dtype, ptr};
 }
 
-std::unique_ptr<Array> MakeArrayFromNumpyArray(py::array array) {
+std::unique_ptr<Array> MakeArray(py::array array) {
     if (!(array.flags() & py::array::c_style)) {
         throw DimensionError("cannot convert non-contiguous NumPy array to Array");
     }
@@ -113,10 +113,31 @@ std::unique_ptr<Array> MakeArrayFromNumpyArray(py::array array) {
     return std::make_unique<Array>(shape, dtype, data);
 }
 
+py::buffer_info MakeNumpyArrayFromArray(Array& self) {
+    if (!self.is_contiguous()) {
+        throw DimensionError("cannot convert non-contiguous Array to NumPy array");
+    }
+
+    size_t itemsize{GetElementSize(self.dtype())};
+    const Shape& shape = self.shape();
+
+    // compute C-contiguous strides
+    size_t ndim = self.ndim();
+    std::vector<size_t> strides(ndim);
+    if (ndim > 0) {
+        std::partial_sum(shape.crbegin(), shape.crend() - 1, strides.rbegin() + 1, std::multiplies<size_t>());
+        strides.back() = 1;
+        std::transform(strides.crbegin(), strides.crend(), strides.rbegin(), [&itemsize](size_t item) { return item * itemsize; });
+    }
+
+    return py::buffer_info(self.data().get(), itemsize, std::string(1, GetCharCode(self.dtype())), ndim, shape, strides);
+}
+
 void InitXchainerArray(pybind11::module& m) {
-    py::class_<Array>{m, "Array"}
-        .def(py::init(&MakeArrayFromList))
-        .def(py::init(&MakeArrayFromNumpyArray))
+    py::class_<Array>{m, "Array", py::buffer_protocol()}
+        .def(py::init(py::overload_cast<const Shape&, Dtype, py::list>(&MakeArray)))
+        .def(py::init(py::overload_cast<py::array>(&MakeArray)))
+        .def_buffer(&MakeNumpyArrayFromArray)
         .def("__repr__", static_cast<std::string (Array::*)() const>(&Array::ToString))
         .def_property_readonly("dtype", &Array::dtype)
         .def_property_readonly("shape", &Array::shape)
