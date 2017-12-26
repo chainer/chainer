@@ -8,7 +8,7 @@ def inputs(request, scalar_data):
     return scalar_data['data']
 
 
-def _assert_casts_equal(scalar, data):
+def _check_cast_scalar_equals_data(scalar, data):
     assert bool(scalar) == bool(data)
     assert int(scalar) == int(data)
     assert float(scalar) == float(data)
@@ -18,13 +18,13 @@ def test_cast(inputs):
     data = inputs
     scalar = xchainer.Scalar(data)
 
-    _assert_casts_equal(scalar, data)
-    _assert_casts_equal(+scalar, +data)
+    _check_cast_scalar_equals_data(scalar, data)
+    _check_cast_scalar_equals_data(+scalar, +data)
     if isinstance(data, bool):
         with pytest.raises(xchainer.DtypeError):
             -scalar  # should not be able to negate bool
     else:
-        _assert_casts_equal(-scalar, -data)
+        _check_cast_scalar_equals_data(-scalar, -data)
 
 
 def test_dtype(inputs):

@@ -32,7 +32,7 @@ def _create_dummy_ndarray(shape_tup, numpy_dtype):
     return numpy.arange(_size(shape_tup)).reshape(shape_tup).astype(numpy_dtype)
 
 
-def _assert_array(array, expected_dtype, expected_shape, expected_total_size, expected_data_list):
+def _check_array(array, expected_dtype, expected_shape, expected_total_size, expected_data_list):
     assert isinstance(array.dtype, xchainer.Dtype)
     assert isinstance(array.shape, xchainer.Shape)
     assert array.dtype == expected_dtype
@@ -45,7 +45,7 @@ def _assert_array(array, expected_dtype, expected_shape, expected_total_size, ex
     assert array.offset == 0
 
 
-def _assert_array_equals_ndarray(array, ndarray):
+def _check_array_equals_ndarray(array, ndarray):
     assert array.shape == ndarray.shape
     assert array.total_size == ndarray.size
     assert array.ndim == ndarray.ndim
@@ -55,7 +55,7 @@ def _assert_array_equals_ndarray(array, ndarray):
     assert array.is_contiguous == ndarray.flags['C_CONTIGUOUS']
 
 
-def _assert_ndarray_equals_ndarray(ndarray1, ndarray2):
+def _check_ndarray_equal_ndarray(ndarray1, ndarray2):
     assert ndarray1.shape == ndarray2.shape
     assert ndarray1.size == ndarray2.size
     assert ndarray1.ndim == ndarray2.ndim
@@ -80,7 +80,7 @@ def test_init(inputs):
 
     array = xchainer.Array(shape, dtype, data_list)
 
-    _assert_array(array, dtype, shape, _size(shape_tup), data_list)
+    _check_array(array, dtype, shape, _size(shape_tup), data_list)
 
 
 def test_numpy_init(inputs):
@@ -95,15 +95,15 @@ def test_numpy_init(inputs):
 
     array = xchainer.Array(ndarray)
 
-    _assert_array(array, dtype, shape, _size(shape_tup), ndarray.ravel().tolist())
-    _assert_array_equals_ndarray(array, ndarray)
+    _check_array(array, dtype, shape, _size(shape_tup), ndarray.ravel().tolist())
+    _check_array_equals_ndarray(array, ndarray)
 
     # inplace modification
     if ndarray.size > 0:
         ndarray *= _create_dummy_ndarray(shape_tup, numpy_dtype)
         assert array.debug_flat_data == ndarray.ravel().tolist()
 
-    _assert_array_equals_ndarray(array, ndarray)
+    _check_array_equals_ndarray(array, ndarray)
 
     # test possibly freed memory
     data_copy = ndarray.copy()
@@ -112,12 +112,12 @@ def test_numpy_init(inputs):
 
     # recovered data should be equal
     data_recovered = numpy.array(array)
-    _assert_ndarray_equals_ndarray(data_copy, data_recovered)
+    _check_ndarray_equal_ndarray(data_copy, data_recovered)
 
     # recovered data should be a copy
     data_recovered_to_modify = numpy.array(array)
     data_recovered_to_modify *= _create_dummy_ndarray(shape_tup, numpy_dtype)
-    _assert_array_equals_ndarray(array, data_recovered)
+    _check_array_equals_ndarray(array, data_recovered)
 
 
 def test_add_iadd(inputs):
