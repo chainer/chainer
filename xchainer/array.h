@@ -6,6 +6,7 @@
 
 #include <gsl/gsl>
 
+#include "xchainer/array_node.h"
 #include "xchainer/dtype.h"
 #include "xchainer/shape.h"
 
@@ -36,6 +37,15 @@ public:
 
     int64_t offset() const { return offset_; }
 
+    const std::shared_ptr<ArrayNode>& node() { return node_; }
+
+    std::shared_ptr<const ArrayNode> node() const { return node_; }
+
+    const std::shared_ptr<ArrayNode>& RenewNode() {
+        node_ = std::make_shared<ArrayNode>();
+        return node_;
+    }
+
     Array& IAdd(const Array& rhs);
     Array& IMul(const Array& rhs);
     Array Add(const Array& rhs) const;
@@ -54,6 +64,10 @@ private:
 
     std::shared_ptr<void> data_;
     int64_t offset_;
+
+    std::shared_ptr<ArrayNode> node_;
 };
+
+void DebugDumpComputationalGraph(std::ostream& os, const Array& array, int indent = 0);
 
 }  // namespace xchainer

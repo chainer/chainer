@@ -10,10 +10,12 @@
 #endif  // XCHAINER_ENABLE_CUDA
 #include <gtest/gtest.h>
 
+#include "xchainer/array_node.h"
 #ifdef XCHAINER_ENABLE_CUDA
 #include "xchainer/cuda/cuda_runtime.h"
 #endif  // XCHAINER_ENABLE_CUDA
 #include "xchainer/device.h"
+#include "xchainer/op_node.h"
 
 namespace xchainer {
 namespace {
@@ -252,6 +254,114 @@ TEST_P(ArrayTest, ChainedInplaceMath) {
         b.IMul(a);
         a.IAdd(b);
         AssertEqual<float>(e, a);
+    }
+}
+
+TEST_P(ArrayTest, ComputationalGraph) {
+    {
+        // c = a + b
+        // o = a * c
+        Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
+        Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
+        {
+            auto a_node = a.node();
+            auto b_node = b.node();
+            ASSERT_NE(a_node, nullptr);
+            ASSERT_NE(b_node, nullptr);
+            auto a_op_node = a_node->next_node();
+            auto b_op_node = b_node->next_node();
+            ASSERT_EQ(a_op_node, nullptr);
+            ASSERT_EQ(b_op_node, nullptr);
+        }
+
+        Array c = a.Add(b);
+        {
+            auto a_node = a.node();
+            auto b_node = b.node();
+            auto c_node = c.node();
+            ASSERT_NE(a_node, nullptr);
+            ASSERT_NE(b_node, nullptr);
+            ASSERT_NE(c_node, nullptr);
+            auto a_op_node = a_node->next_node();
+            auto b_op_node = b_node->next_node();
+            auto c_op_node = c_node->next_node();
+            ASSERT_EQ(a_op_node, nullptr);
+            ASSERT_EQ(b_op_node, nullptr);
+            ASSERT_NE(c_op_node, nullptr);
+            ASSERT_EQ(c_op_node->name(), "add");
+        }
+
+        Array o = a.Mul(c);
+        {
+            auto a_node = a.node();
+            auto b_node = b.node();
+            auto c_node = c.node();
+            auto o_node = o.node();
+            ASSERT_NE(a_node, nullptr);
+            ASSERT_NE(b_node, nullptr);
+            ASSERT_NE(c_node, nullptr);
+            ASSERT_NE(o_node, nullptr);
+            auto a_op_node = a_node->next_node();
+            auto b_op_node = b_node->next_node();
+            auto c_op_node = c_node->next_node();
+            auto o_op_node = o_node->next_node();
+            ASSERT_EQ(a_op_node, nullptr);
+            ASSERT_EQ(b_op_node, nullptr);
+            ASSERT_NE(c_op_node, nullptr);
+            ASSERT_NE(o_op_node, nullptr);
+            ASSERT_EQ(c_op_node->name(), "add");
+            ASSERT_EQ(o_op_node->name(), "mul");
+        }
+    }
+}
+
+TEST_P(ArrayTest, ComputationalGraphInplace) {
+    {
+        // a += b
+        // a *= b
+        Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
+        Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
+        auto a_node_1 = a.node();
+        {
+            auto a_node = a_node_1;
+            auto b_node = b.node();
+            ASSERT_NE(a_node, nullptr);
+            ASSERT_NE(b_node, nullptr);
+            auto a_op_node = a_node->next_node();
+            auto b_op_node = b_node->next_node();
+            ASSERT_EQ(a_op_node, nullptr);
+            ASSERT_EQ(b_op_node, nullptr);
+        }
+
+        a.IAdd(b);
+        auto a_node_2 = a.node();
+        {
+            auto a_node = a_node_2;
+            auto b_node = b.node();
+            ASSERT_NE(a_node, nullptr);
+            ASSERT_NE(a_node, a_node_1) << "a's node is not renewed";
+            ASSERT_NE(b_node, nullptr);
+            auto a_op_node = a_node->next_node();
+            auto b_op_node = b_node->next_node();
+            ASSERT_NE(a_op_node, nullptr);
+            ASSERT_EQ(b_op_node, nullptr);
+            ASSERT_EQ(a_op_node->name(), "add");
+        }
+
+        a.IMul(b);
+        {
+            auto a_node = a.node();
+            auto b_node = b.node();
+            ASSERT_NE(a_node, nullptr);
+            ASSERT_NE(a_node, a_node_1) << "a's node is not renewed";
+            ASSERT_NE(a_node, a_node_2) << "a's node is not renewed";
+            ASSERT_NE(b_node, nullptr);
+            auto a_op_node = a_node->next_node();
+            auto b_op_node = b_node->next_node();
+            ASSERT_NE(a_op_node, nullptr);
+            ASSERT_EQ(b_op_node, nullptr);
+            ASSERT_EQ(a_op_node->name(), "mul");
+        }
     }
 }
 
