@@ -141,9 +141,9 @@ void Array::Add(const Array& rhs, Array& out) const {
         std::shared_ptr<ArrayNode> out_node = out.RenewNode();
         auto lhs_func = [](const Array& gout) { return gout; };
         auto rhs_func = [](const Array& gout) { return gout; };
-        auto functions = std::vector<std::function<Array(const Array&)>>{lhs_func, rhs_func};
+        auto backward_functions = std::vector<std::function<Array(const Array&)>>{lhs_func, rhs_func};
         std::shared_ptr<OpNode> op_node =
-            std::make_shared<OpNode>("add", std::vector<std::shared_ptr<const ArrayNode>>{lhs_node, rhs_node}, functions);
+            std::make_shared<OpNode>("add", std::vector<std::shared_ptr<const ArrayNode>>{lhs_node, rhs_node}, backward_functions);
         out_node->set_next_node(op_node);
     }
 
@@ -173,9 +173,9 @@ void Array::Mul(const Array& rhs, Array& out) const {
         std::shared_ptr<ArrayNode> out_node = out.CreateNewNode();
         auto lhs_func = [rhs](const Array& gout) { return gout.Mul(rhs, false); };
         auto rhs_func = [lhs](const Array& gout) { return gout.Mul(lhs, false); };
-        auto functions = std::vector<std::function<Array(const Array&)>>{lhs_func, rhs_func};
+        auto backward_functions = std::vector<std::function<Array(const Array&)>>{lhs_func, rhs_func};
         std::shared_ptr<OpNode> op_node =
-            std::make_shared<OpNode>("mul", std::vector<std::shared_ptr<const ArrayNode>>{lhs_node, rhs_node}, functions);
+            std::make_shared<OpNode>("mul", std::vector<std::shared_ptr<const ArrayNode>>{lhs_node, rhs_node}, backward_functions);
         out_node->set_next_node(op_node);
     }
 
