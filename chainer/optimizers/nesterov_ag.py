@@ -2,11 +2,6 @@ from chainer.backends import cuda
 from chainer import optimizer
 
 
-_default_hyperparam = optimizer.Hyperparameter()
-_default_hyperparam.lr = 0.01
-_default_hyperparam.momentum = 0.9
-
-
 class NesterovAGRule(optimizer.UpdateRule):
 
     """Update rule for Nesterov's Accelerated Gradient.
@@ -17,18 +12,11 @@ class NesterovAGRule(optimizer.UpdateRule):
     Args:
         parent_hyperparam (~chainer.optimizer.Hyperparameter): Hyperparameter
             that provides the default values.
-        lr (float): Learning rate.
-        momentum (float): Exponential decay rate of the first order moment.
 
     """
 
-    def __init__(self, parent_hyperparam=None, lr=None, momentum=None):
-        super(NesterovAGRule, self).__init__(
-            parent_hyperparam or _default_hyperparam)
-        if lr is not None:
-            self.hyperparam.lr = lr
-        if momentum is not None:
-            self.hyperparam.momentum = momentum
+    def __init__(self, parent_hyperparam=None):
+        super(NesterovAGRule, self).__init__(parent_hyperparam)
 
     def init_state(self, param):
         xp = cuda.get_array_module(param.data)
@@ -75,8 +63,8 @@ class NesterovAG(optimizer.GradientMethod):
 
     """
 
-    def __init__(self, lr=_default_hyperparam.lr,
-                 momentum=_default_hyperparam.momentum, model=None):
+    def __init__(self, lr=0.01,
+                 momentum=0.9, model=None):
         super(NesterovAG, self).__init__(model)
         self.hyperparam.lr = lr
         self.hyperparam.momentum = momentum
