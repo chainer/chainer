@@ -63,13 +63,13 @@ Array& Array::operator*=(const Array& rhs) {
 }
 
 Array Array::operator+(const Array& rhs) const {
-    Array out = {rhs.shape(), rhs.dtype(), std::make_unique<uint8_t[]>(rhs.total_bytes())};
+    Array out = {shape_, dtype_, std::make_unique<uint8_t[]>(total_bytes())};
     Add(rhs, out);
     return out;
 }
 
 Array Array::operator*(const Array& rhs) const {
-    Array out = {rhs.shape(), rhs.dtype(), std::make_unique<uint8_t[]>(rhs.total_bytes())};
+    Array out = {shape_, dtype_, std::make_unique<uint8_t[]>(total_bytes())};
     Mul(rhs, out);
     return out;
 }
