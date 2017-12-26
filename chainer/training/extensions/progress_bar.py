@@ -63,6 +63,9 @@ class ProgressBar(extension.Extension):
         # print the progress bar
         if iteration % self._update_interval == 0:
             epoch = trainer.updater.epoch_detail
+            one_iteration_epoch = epoch / iteration
+            if length % one_iteration_epoch:
+                length += one_iteration_epoch - length % one_iteration_epoch
             recent_timing = self._recent_timing
             now = time.time()
 
