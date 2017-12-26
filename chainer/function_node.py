@@ -13,7 +13,7 @@ from chainer import configuration
 from chainer import function_hook
 from chainer.utils import type_check
 from chainer import variable
-from chainer.graph_optimimzations.static_graph_utilities import static_forward_optimizations
+from chainer.graph_optimizations.static_graph_utilities import static_forward_optimizations
 
 class FunctionNode(object):
 
