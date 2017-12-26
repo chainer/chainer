@@ -64,6 +64,12 @@ public:
 
     Array DeepCopy() const;
 
+    Array ShallowCopyWithoutRequiresGrad() const {
+        Array copy = *this;
+        copy.requires_grad_ = false;
+        return copy;
+    }
+
 private:
     void Add(const Array& rhs, Array& out) const;
     void Mul(const Array& rhs, Array& out) const;
