@@ -25,7 +25,7 @@ std::shared_ptr<void> AllocateCudaManaged(const void* src_ptr, size_t size) {
 #ifdef XCHAINER_ENABLE_CUDA
     void* ptr = nullptr;
     cuda::CheckError(cudaMallocManaged(&ptr, size, cudaMemAttachGlobal));
-    std::memcpy(ptr, src_ptr, size);
+    cuda::CheckError(cudaMemcpy(ptr, src_ptr, size, cudaMemcpyHostToDevice));
     return std::shared_ptr<void>(ptr, ::cudaFree);
 #else
     (void)src_ptr;
