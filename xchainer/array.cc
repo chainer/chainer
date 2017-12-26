@@ -22,10 +22,19 @@ namespace {
 
 std::shared_ptr<void> AllocateCudaManaged(const void* src_ptr, size_t size) {
 #ifdef XCHAINER_ENABLE_CUDA
-    void* ptr = nullptr;
-    cuda::CheckError(cudaMallocManaged(&ptr, size, cudaMemAttachGlobal));
-    cuda::CheckError(cudaMemcpy(ptr, src_ptr, size, cudaMemcpyHostToDevice));
-    return std::shared_ptr<void>(ptr, ::cudaFree);
+    std::shared_ptr<void> ptr{};
+    {
+        void* raw_ptr = nullptr;
+        auto raw_ptr_scope = gsl::finally([&]() {
+            if (raw_ptr && !ptr) {
+                cudaFree(raw_ptr);
+            }
+        });
+        cuda::CheckError(cudaMallocManaged(&raw_ptr, size, cudaMemAttachGlobal));
+        ptr.reset(raw_ptr, cudaFree);
+    }
+    cuda::CheckError(cudaMemcpy(ptr.get(), src_ptr, size, cudaMemcpyHostToDevice));
+    return ptr;
 #else
     (void)src_ptr;
     (void)size;
