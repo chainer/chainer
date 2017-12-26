@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include <pybind11/numpy.h>
+#include <pybind11/operators.h>
 
 #include "xchainer/array.h"
 #include "xchainer/dtype.h"
@@ -138,11 +139,11 @@ void InitXchainerArray(pybind11::module& m) {
         .def(py::init(py::overload_cast<const Shape&, Dtype, py::list>(&MakeArray)))
         .def(py::init(py::overload_cast<py::array>(&MakeArray)))
         .def_buffer(&MakeNumpyArrayFromArray)
+        .def(py::self += py::self)
+        .def(py::self *= py::self)
+        .def(py::self + py::self)
+        .def(py::self * py::self)
         .def("__repr__", static_cast<std::string (Array::*)() const>(&Array::ToString))
-        .def("__add__", static_cast<Array (Array::*)(const Array&) const>(&Array::Add))
-        .def("__iadd__", static_cast<Array& (Array::*)(const Array&)>(&Array::IAdd))
-        .def("__mul__", static_cast<Array (Array::*)(const Array&) const>(&Array::Mul))
-        .def("__imul__", static_cast<Array& (Array::*)(const Array&)>(&Array::IMul))
         .def_property_readonly("dtype", &Array::dtype)
         .def_property_readonly("element_bytes", &Array::element_bytes)
         .def_property_readonly("is_contiguous", &Array::is_contiguous)

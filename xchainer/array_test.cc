@@ -112,21 +112,21 @@ TEST_P(ArrayTest, IAdd) {
         Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
         Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
         Array e = MakeArray<bool>({4, 1}, {true, true, true, false});
-        a.IAdd(b);
+        a += b;
         AssertEqual<bool>(e, a);
     }
     {
         Array a = MakeArray<int8_t>({3, 1}, {1, 2, 3});
         Array b = MakeArray<int8_t>({3, 1}, {1, 2, 3});
         Array e = MakeArray<int8_t>({3, 1}, {2, 4, 6});
-        a.IAdd(b);
+        a += b;
         AssertEqual<int8_t>(e, a);
     }
     {
         Array a = MakeArray<float>({3, 1}, {1, 2, 3});
         Array b = MakeArray<float>({3, 1}, {1, 2, 3});
         Array e = MakeArray<float>({3, 1}, {2, 4, 6});
-        a.IAdd(b);
+        a += b;
         AssertEqual<float>(e, a);
     }
 }
@@ -136,21 +136,21 @@ TEST_P(ArrayTest, IMul) {
         Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
         Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
         Array e = MakeArray<bool>({4, 1}, {true, false, false, false});
-        a.IMul(b);
+        a *= b;
         AssertEqual<bool>(e, a);
     }
     {
         Array a = MakeArray<int8_t>({3, 1}, {1, 2, 3});
         Array b = MakeArray<int8_t>({3, 1}, {1, 2, 3});
         Array e = MakeArray<int8_t>({3, 1}, {1, 4, 9});
-        a.IMul(b);
+        a *= b;
         AssertEqual<int8_t>(e, a);
     }
     {
         Array a = MakeArray<float>({3, 1}, {1, 2, 3});
         Array b = MakeArray<float>({3, 1}, {1, 2, 3});
         Array e = MakeArray<float>({3, 1}, {1, 4, 9});
-        a.IMul(b);
+        a *= b;
         AssertEqual<float>(e, a);
     }
 }
@@ -160,21 +160,21 @@ TEST_P(ArrayTest, Add) {
         Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
         Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
         Array e = MakeArray<bool>({4, 1}, {true, true, true, false});
-        Array o = a.Add(b);
+        Array o = a + b;
         AssertEqual<bool>(e, o);
     }
     {
         Array a = MakeArray<int8_t>({3, 1}, {1, 2, 3});
         Array b = MakeArray<int8_t>({3, 1}, {1, 2, 3});
         Array e = MakeArray<int8_t>({3, 1}, {2, 4, 6});
-        Array o = a.Add(b);
+        Array o = a + b;
         AssertEqual<int8_t>(e, o);
     }
     {
         Array a = MakeArray<float>({3, 1}, {1, 2, 3});
         Array b = MakeArray<float>({3, 1}, {1, 2, 3});
         Array e = MakeArray<float>({3, 1}, {2, 4, 6});
-        Array o = a.Add(b);
+        Array o = a + b;
         AssertEqual<float>(e, o);
     }
 }
@@ -184,21 +184,21 @@ TEST_P(ArrayTest, Mul) {
         Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
         Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
         Array e = MakeArray<bool>({4, 1}, {true, false, false, false});
-        Array o = a.Mul(b);
+        Array o = a * b;
         AssertEqual<bool>(e, o);
     }
     {
         Array a = MakeArray<int8_t>({3, 1}, {1, 2, 3});
         Array b = MakeArray<int8_t>({3, 1}, {1, 2, 3});
         Array e = MakeArray<int8_t>({3, 1}, {1, 4, 9});
-        Array o = a.Mul(b);
+        Array o = a * b;
         AssertEqual<int8_t>(e, o);
     }
     {
         Array a = MakeArray<float>({3, 1}, {1, 2, 3});
         Array b = MakeArray<float>({3, 1}, {1, 2, 3});
         Array e = MakeArray<float>({3, 1}, {1, 4, 9});
-        Array o = a.Mul(b);
+        Array o = a * b;
         AssertEqual<float>(e, o);
     }
 }
@@ -208,24 +208,24 @@ TEST_P(ArrayTest, ChainedMath) {
         Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
         Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
         Array e = MakeArray<bool>({4, 1}, {true, true, false, false});
-        Array c = a.Mul(b);
-        Array o = a.Add(c);
+        Array c = a * b;
+        Array o = a + c;
         AssertEqual<bool>(e, o);
     }
     {
         Array a = MakeArray<int8_t>({3, 1}, {1, 2, 3});
         Array b = MakeArray<int8_t>({3, 1}, {1, 2, 3});
         Array e = MakeArray<int8_t>({3, 1}, {2, 6, 12});
-        Array c = a.Mul(b);
-        Array o = a.Add(c);
+        Array c = a * b;
+        Array o = a + c;
         AssertEqual<int8_t>(e, o);
     }
     {
         Array a = MakeArray<float>({3, 1}, {1, 2, 3});
         Array b = MakeArray<float>({3, 1}, {1, 2, 3});
         Array e = MakeArray<float>({3, 1}, {2, 6, 12});
-        Array c = a.Mul(b);
-        Array o = a.Add(c);
+        Array c = a * b;
+        Array o = a + c;
         AssertEqual<float>(e, o);
     }
 }
@@ -235,24 +235,24 @@ TEST_P(ArrayTest, ChainedInplaceMath) {
         Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
         Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
         Array e = MakeArray<bool>({4, 1}, {true, true, false, false});
-        b.IMul(a);
-        a.IAdd(b);
+        b *= a;
+        a += b;
         AssertEqual<bool>(e, a);
     }
     {
         Array a = MakeArray<int8_t>({3, 1}, {1, 2, 3});
         Array b = MakeArray<int8_t>({3, 1}, {1, 2, 3});
         Array e = MakeArray<int8_t>({3, 1}, {2, 6, 12});
-        b.IMul(a);
-        a.IAdd(b);
+        b *= a;
+        a += b;
         AssertEqual<int8_t>(e, a);
     }
     {
         Array a = MakeArray<float>({3, 1}, {1, 2, 3});
         Array b = MakeArray<float>({3, 1}, {1, 2, 3});
         Array e = MakeArray<float>({3, 1}, {2, 6, 12});
-        b.IMul(a);
-        a.IAdd(b);
+        b *= a;
+        a += b;
         AssertEqual<float>(e, a);
     }
 }
@@ -274,7 +274,7 @@ TEST_P(ArrayTest, ComputationalGraph) {
             ASSERT_EQ(b_op_node, nullptr);
         }
 
-        Array c = a.Add(b);
+        Array c = a + b;
         {
             auto a_node = a.node();
             auto b_node = b.node();
@@ -291,7 +291,7 @@ TEST_P(ArrayTest, ComputationalGraph) {
             ASSERT_EQ(c_op_node->name(), "add");
         }
 
-        Array o = a.Mul(c);
+        Array o = a * c;
         {
             auto a_node = a.node();
             auto b_node = b.node();
@@ -333,7 +333,7 @@ TEST_P(ArrayTest, ComputationalGraphInplace) {
             ASSERT_EQ(b_op_node, nullptr);
         }
 
-        a.IAdd(b);
+        a += b;
         auto a_node_2 = a.node();
         {
             auto a_node = a_node_2;
@@ -348,7 +348,7 @@ TEST_P(ArrayTest, ComputationalGraphInplace) {
             ASSERT_EQ(a_op_node->name(), "add");
         }
 
-        a.IMul(b);
+        a *= b;
         {
             auto a_node = a.node();
             auto b_node = b.node();
