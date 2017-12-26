@@ -197,38 +197,6 @@ Use apply() method instead.\
 
         raise RuntimeError(msg)
 
-    # fixme: move this function into static_graph module as a utility function.
-    def _static_forward_optimizations(self, in_data):
-        # Check if any of the input arrays correspond to input
-        # variables to a static chain. If so, replace these arrays
-        # with statically-allocated arrays of the static schedule.
-        schedule_function = chainer.config.schedule_func
-        if schedule_function is not None:
-            in_arrays = list(in_data)
-            # Check if any of the input arrays correspond to a (dynamically
-            # allocated) data attribute of an in variable to this subgraph.
-            for func_arg_index in range(len(in_arrays)):
-                in_array = in_arrays[func_arg_index]
-                chain_arg_index, static_array = schedule_function.copy_input_arrays_dynamic_to_static(in_array)
-                if chain_arg_index is not None:
-                    # Replace with the static array in arguments list.
-                    assert in_arrays[func_arg_index].shape == static_array.shape
-                    in_arrays[func_arg_index] = static_array
-                    # Add this index information to the func_node so that it can be used in
-                    # backward() to copy corresponding gradient outputs into static arrays.
-                    forward_static_arrays_info = getattr(self, '_forward_static_arrays_info', None)
-                    if forward_static_arrays_info is None:
-                        forward_static_arrays_info = list()
-                        self._forward_static_arrays_info = forward_static_arrays_info
-                    forward_static_arrays_info.append((func_arg_index, chain_arg_index))
-
-            return_data = tuple(in_arrays)
-            return return_data
-
-        else:
-            return in_data
-
-
     def apply(self, inputs):
         """Computes output variables and grows the computational graph.
 
