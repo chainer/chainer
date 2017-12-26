@@ -10,6 +10,12 @@ public:
     using runtime_error::runtime_error;
 };
 
+// Error on failed assertions.
+class AssertionError : public XchainerError {
+public:
+    using XchainerError::XchainerError;
+};
+
 // Error on using invalid devices.
 class DeviceError : public XchainerError {
 public:
