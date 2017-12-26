@@ -1,8 +1,6 @@
 import pytest
 
 import xchainer
-from xchainer import Device
-from xchainer import DeviceError
 
 
 @pytest.fixture
@@ -37,9 +35,9 @@ def test_eq(inputs1, inputs2):
     name1 = inputs1
     name2 = inputs2
 
-    device1_1 = Device(name1)
-    device1_2 = Device(name1)
-    device2 = Device(name2)
+    device1_1 = xchainer.Device(name1)
+    device1_2 = xchainer.Device(name1)
+    device2 = xchainer.Device(name2)
 
     assert device1_1 == device1_2
     assert device1_1 != device2
@@ -51,7 +49,7 @@ def test_eq(inputs1, inputs2):
 def test_current_device(inputs):
     name = inputs
     xchainer.set_current_device(name)
-    assert xchainer.get_current_device() == Device(name)
+    assert xchainer.get_current_device() == xchainer.Device(name)
 
 
 @pytest.mark.usefixtures('cache_restore_device')
@@ -62,8 +60,8 @@ def test_device_scope(inputs1, inputs2):
     name1 = inputs1
     name2 = inputs2
 
-    device1 = Device(name1)
-    device2 = Device(name2)
+    device1 = xchainer.Device(name1)
+    device2 = xchainer.Device(name2)
 
     xchainer.set_current_device(name1)
     with xchainer.device_scope(name2):
@@ -77,10 +75,10 @@ def test_device_scope(inputs1, inputs2):
 
 
 def test_init_invalid_lengt():
-    with pytest.raises(DeviceError):
-        Device('a' * 8)  # too long device name
+    with pytest.raises(xchainer.DeviceError):
+        xchainer.Device('a' * 8)  # too long device name
 
 
 def test_set_current_invalid_name():
-    with pytest.raises(DeviceError):
+    with pytest.raises(xchainer.DeviceError):
         xchainer.set_current_device('invalid_device')

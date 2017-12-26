@@ -3,7 +3,7 @@ import operator
 
 import pytest
 
-from xchainer import Shape
+import xchainer
 
 
 @pytest.fixture
@@ -13,7 +13,7 @@ def inputs(request, shape_data):
 
 def test_attr(inputs):
     tup = inputs
-    shape = Shape(tup)
+    shape = xchainer.Shape(tup)
 
     assert shape.ndim == len(tup)
     assert shape.size == len(tup)
@@ -25,15 +25,15 @@ def test_attr(inputs):
 
 def test_eq(inputs):
     tup = inputs
-    shape = Shape(tup)
+    shape = xchainer.Shape(tup)
 
     # equality
-    assert shape == Shape(tup)
+    assert shape == xchainer.Shape(tup)
     assert shape == tup
     assert tup == shape
 
     # inequality
-    assert shape != Shape(tup + (1,))
+    assert shape != xchainer.Shape(tup + (1,))
     assert shape != tup + (1,)
     assert tup + (1,) != shape
     if tup != ():

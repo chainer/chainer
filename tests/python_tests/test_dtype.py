@@ -1,7 +1,6 @@
 import pytest
 
 import xchainer
-from xchainer import Dtype
 
 
 @pytest.fixture
@@ -19,5 +18,5 @@ def test_inti_eq(inputs):
     assert dtype.name == name
     assert dtype.char == char
     assert dtype.itemsize == itemsize
-    assert Dtype(name) == dtype
-    assert Dtype(char) == dtype
+    assert xchainer.Dtype(name) == dtype
+    assert xchainer.Dtype(char) == dtype

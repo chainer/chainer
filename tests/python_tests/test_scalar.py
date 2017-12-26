@@ -1,8 +1,6 @@
 import pytest
 
 import xchainer
-from xchainer import DtypeError
-from xchainer import Scalar
 
 
 @pytest.fixture
@@ -18,12 +16,12 @@ def _assert_casts_equal(scalar, data):
 
 def test_cast(inputs):
     data = inputs
-    scalar = Scalar(data)
+    scalar = xchainer.Scalar(data)
 
     _assert_casts_equal(scalar, data)
     _assert_casts_equal(+scalar, +data)
     if isinstance(data, bool):
-        with pytest.raises(DtypeError):
+        with pytest.raises(xchainer.DtypeError):
             -scalar  # should not be able to negate bool
     else:
         _assert_casts_equal(-scalar, -data)
@@ -31,7 +29,7 @@ def test_cast(inputs):
 
 def test_dtype(inputs):
     data = inputs
-    scalar = Scalar(data)
+    scalar = xchainer.Scalar(data)
 
     if isinstance(data, bool):
         assert scalar.dtype == xchainer.bool
@@ -45,7 +43,7 @@ def test_dtype(inputs):
 
 def test_repr(inputs):
     data = inputs
-    scalar = Scalar(data)
+    scalar = xchainer.Scalar(data)
 
     assert repr(scalar) == repr(data)
     assert str(scalar) == str(data)
@@ -53,4 +51,4 @@ def test_repr(inputs):
 
 def test_init_invalid():
     with pytest.raises(TypeError):
-        Scalar("1")  # string, which is not a numeric
+        xchainer.Scalar("1")  # string, which is not a numeric

@@ -4,10 +4,7 @@ import operator
 import numpy
 import pytest
 
-from xchainer import Array
-from xchainer import DimensionError
-from xchainer import Dtype
-from xchainer import Shape
+import xchainer
 
 
 @pytest.fixture
@@ -20,12 +17,12 @@ def inputs(request, shape_data, dtype_data):
 def _create_dummy_data(shape_tup, dtype, pattern=1):
     size = _size(shape_tup)
     if pattern == 1:
-        if dtype == Dtype.bool:
+        if dtype == xchainer.Dtype.bool:
             return [i % 2 == 1 for i in range(size)]
         else:
             return [i for i in range(size)]
     else:
-        if dtype == Dtype.bool:
+        if dtype == xchainer.Dtype.bool:
             return [i % 3 == 0 for i in range(size)]
         else:
             return [1 + i for i in range(size)]
@@ -36,8 +33,8 @@ def _create_dummy_ndarray(shape_tup, numpy_dtype):
 
 
 def _assert_array(array, expected_dtype, expected_shape, expected_total_size, expected_data_list):
-    assert isinstance(array.dtype, Dtype)
-    assert isinstance(array.shape, Shape)
+    assert isinstance(array.dtype, xchainer.Dtype)
+    assert isinstance(array.shape, xchainer.Shape)
     assert array.dtype == expected_dtype
     assert array.shape == expected_shape
     assert array.element_bytes == expected_dtype.itemsize
@@ -76,12 +73,12 @@ def _size(tup):
 def test_init(inputs):
     shape_tup, dtype_name = inputs
 
-    shape = Shape(shape_tup)
-    dtype = Dtype(dtype_name)
+    shape = xchainer.Shape(shape_tup)
+    dtype = xchainer.Dtype(dtype_name)
 
     data_list = _create_dummy_data(shape_tup, dtype)
 
-    array = Array(shape, dtype, data_list)
+    array = xchainer.Array(shape, dtype, data_list)
 
     _assert_array(array, dtype, shape, _size(shape_tup), data_list)
 
@@ -89,14 +86,14 @@ def test_init(inputs):
 def test_numpy_init(inputs):
     shape_tup, dtype_name = inputs
 
-    shape = Shape(shape_tup)
-    dtype = Dtype(dtype_name)
+    shape = xchainer.Shape(shape_tup)
+    dtype = xchainer.Dtype(dtype_name)
 
     numpy_dtype = getattr(numpy, dtype_name)
 
     ndarray = _create_dummy_ndarray(shape_tup, numpy_dtype)
 
-    array = Array(ndarray)
+    array = xchainer.Array(ndarray)
 
     _assert_array(array, dtype, shape, _size(shape_tup), ndarray.ravel().tolist())
     _assert_array_equals_ndarray(array, ndarray)
@@ -126,17 +123,17 @@ def test_numpy_init(inputs):
 def test_add_iadd(inputs):
     shape_tup, dtype_name = inputs
 
-    shape = Shape(shape_tup)
-    dtype = Dtype(dtype_name)
+    shape = xchainer.Shape(shape_tup)
+    dtype = xchainer.Dtype(dtype_name)
 
     lhs_data_list = _create_dummy_data(shape_tup, dtype, pattern=1)
     rhs_data_list = _create_dummy_data(shape_tup, dtype, pattern=2)
 
-    lhs = Array(shape, dtype, lhs_data_list)
-    rhs = Array(shape, dtype, rhs_data_list)
+    lhs = xchainer.Array(shape, dtype, lhs_data_list)
+    rhs = xchainer.Array(shape, dtype, rhs_data_list)
 
     expected_data_list = [x + y for x, y in zip(lhs_data_list, rhs_data_list)]
-    if dtype == Dtype.bool:
+    if dtype == xchainer.Dtype.bool:
         expected_data_list = [x > 0 for x in expected_data_list]  # [0, 2] => [False, True]
 
     out = lhs + rhs
@@ -152,17 +149,17 @@ def test_add_iadd(inputs):
 def test_mul_imul(inputs):
     shape_tup, dtype_name = inputs
 
-    shape = Shape(shape_tup)
-    dtype = Dtype(dtype_name)
+    shape = xchainer.Shape(shape_tup)
+    dtype = xchainer.Dtype(dtype_name)
 
     lhs_data_list = _create_dummy_data(shape_tup, dtype, pattern=1)
     rhs_data_list = _create_dummy_data(shape_tup, dtype, pattern=2)
 
-    lhs = Array(shape, dtype, lhs_data_list)
-    rhs = Array(shape, dtype, rhs_data_list)
+    lhs = xchainer.Array(shape, dtype, lhs_data_list)
+    rhs = xchainer.Array(shape, dtype, rhs_data_list)
 
     expected_data_list = [x * y for x, y in zip(lhs_data_list, rhs_data_list)]
-    if dtype == Dtype.bool:
+    if dtype == xchainer.Dtype.bool:
         expected_data_list = [x > 0 for x in expected_data_list]  # [0, 1] => [False, True]
 
     out = lhs * rhs
@@ -176,23 +173,23 @@ def test_mul_imul(inputs):
 
 
 def test_array_init_invalid_length():
-    with pytest.raises(DimensionError):
-        Array((), Dtype.int8, [])
+    with pytest.raises(xchainer.DimensionError):
+        xchainer.Array((), xchainer.Dtype.int8, [])
 
-    with pytest.raises(DimensionError):
-        Array((), Dtype.int8, [1, 1])
+    with pytest.raises(xchainer.DimensionError):
+        xchainer.Array((), xchainer.Dtype.int8, [1, 1])
 
-    with pytest.raises(DimensionError):
-        Array((1,), Dtype.int8, [])
+    with pytest.raises(xchainer.DimensionError):
+        xchainer.Array((1,), xchainer.Dtype.int8, [])
 
-    with pytest.raises(DimensionError):
-        Array((1,), Dtype.int8, [1, 1])
+    with pytest.raises(xchainer.DimensionError):
+        xchainer.Array((1,), xchainer.Dtype.int8, [1, 1])
 
-    with pytest.raises(DimensionError):
-        Array((0,), Dtype.int8, [1])
+    with pytest.raises(xchainer.DimensionError):
+        xchainer.Array((0,), xchainer.Dtype.int8, [1])
 
-    with pytest.raises(DimensionError):
-        Array((3, 2), Dtype.int8, [1, 1, 1, 1, 1])
+    with pytest.raises(xchainer.DimensionError):
+        xchainer.Array((3, 2), xchainer.Dtype.int8, [1, 1, 1, 1, 1])
 
-    with pytest.raises(DimensionError):
-        Array((3, 2), Dtype.int8, [1, 1, 1, 1, 1, 1, 1])
+    with pytest.raises(xchainer.DimensionError):
+        xchainer.Array((3, 2), xchainer.Dtype.int8, [1, 1, 1, 1, 1, 1, 1])
