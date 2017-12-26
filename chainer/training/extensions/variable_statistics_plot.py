@@ -123,8 +123,8 @@ class VariableStatisticsPlot(extension.Extension):
 
     Statistics include mean, standard deviation and percentiles.
 
-    This extension uses reservoir sampling to preserve memory, using a
-    fixed size sample. This means that collected items in the sample are
+    This extension uses reservoir sampling to preserve memory, using a fixed
+    size running sample. This means that collected items in the sample are
     discarded uniformly at random when the number of items becomes larger
     than the maximum sample size, but each item is expected to occur in the
     sample with equal probability.
@@ -133,21 +133,28 @@ class VariableStatisticsPlot(extension.Extension):
         targets (:class:`Variable`, :class:`Link` or list of either):
             Parameters for which statistics are collected.
         max_sample_size (int):
-            Maximum number of samples.
+            Maximum number of running samples.
         report_data (bool):
-            If ``True``, data statistics are plotted.  If ``False``, they are
-            neither computed or plotted.  report_grad (bool):  If ``True``,
-            gradient statistics are plotted.  If ``False``, they are neither
-            computed or plotted.
+            If ``True``, data (e.g. weights) statistics are plotted.  If
+            ``False``, they are neither computed nor plotted.
+        report_grad (bool):
+            If ``True``, gradient statistics are plotted. If ``False``, they
+            are neither computed nor plotted.
+        plot_mean (bool):
+            If ``True``, means are plotted.  If ``False``, they are
+            neither computed nor plotted.
+        plot_std (bool):
+            If ``True``, standard deviations are plotted.  If ``False``, they
+            are neither computed nor plotted.
+        percentile_sigmas (float or tuple of floats):
+            Percentiles to plot in the range :math:`[0, 100]`.
         trigger:
             Trigger that decides when to save the plots as an image.  This is
             distinct from the trigger of this extension itself. If it is a
             tuple in the form ``<int>, 'epoch'`` or ``<int>, 'iteration'``, it
             is passed to :class:`IntervalTrigger`.
-        percentile (float or tuple of floats):
-            Percentiles to plot in the range :math:`[0, 100]`.
         file_name (str):
-            Name of the plot file under the output directory.
+            Name of the output image file under the output directory.
         figsize (tuple of int):
             Matlotlib ``figsize`` argument that specifies the size of the
             output image.
