@@ -192,11 +192,7 @@ void InitXchainerArray(pybind11::module& m) {
                                            assert(0);
                                    }
                                    return list;
-                               })
-        .def("__add__", static_cast<Array (Array::*)(const Array&) const>(&Array::Add))
-        .def("__iadd__", static_cast<Array& (Array::*)(const Array&)>(&Array::IAdd))
-        .def("__mul__", static_cast<Array (Array::*)(const Array&) const>(&Array::Mul))
-        .def("__imul__", static_cast<Array& (Array::*)(const Array&)>(&Array::IMul));
+                               });
 }
 
 }  // namespace xchainer

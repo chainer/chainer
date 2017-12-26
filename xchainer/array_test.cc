@@ -432,7 +432,7 @@ TEST_P(ArrayTest, DeepCopy) {
 TEST_P(ArrayTest, AddBackward) {
     Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
     Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
-    Array o = a.Add(b);
+    Array o = a + b;
 
     auto op_node = o.node()->next_node();
     Array go = MakeArray<bool>({4, 1}, {true, true, true, true});
@@ -446,7 +446,7 @@ TEST_P(ArrayTest, AddBackward) {
 TEST_P(ArrayTest, IAddBackward) {
     Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
     Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
-    a.IAdd(b);
+    a += b;
 
     auto op_node = a.node()->next_node();
     Array go = MakeArray<bool>({4, 1}, {true, true, true, true});
@@ -460,30 +460,30 @@ TEST_P(ArrayTest, IAddBackward) {
 TEST_P(ArrayTest, MulBackward) {
     Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
     Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
-    Array o = a.Mul(b);
+    Array o = a * b;
 
     auto op_node = o.node()->next_node();
     Array go = MakeArray<bool>({4, 1}, {true, true, true, true});
     Array ga = op_node->backward_functions()[0](go);
     Array gb = op_node->backward_functions()[1](go);
 
-    AssertEqual<bool>(ga, go.Mul(b));
-    AssertEqual<bool>(gb, go.Mul(a));
+    AssertEqual<bool>(ga, go * b);
+    AssertEqual<bool>(gb, go * a);
 }
 
 TEST_P(ArrayTest, IMulBackward) {
     Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
     Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
     Array orig_a = a.DeepCopy();
-    a.IMul(b);
+    a *= b;
 
     auto op_node = a.node()->next_node();
     Array go = MakeArray<bool>({4, 1}, {true, true, true, true});
     Array ga = op_node->backward_functions()[0](go);
     Array gb = op_node->backward_functions()[1](go);
 
-    AssertEqual<bool>(ga, go.Mul(b));
-    AssertEqual<bool>(gb, go.Mul(orig_a));
+    AssertEqual<bool>(ga, go * b);
+    AssertEqual<bool>(gb, go * orig_a);
 }
 
 INSTANTIATE_TEST_CASE_P(ForEachDevice, ArrayTest, ::testing::Values(

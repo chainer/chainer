@@ -188,9 +188,9 @@ void Array::Mul(const Array& rhs, Array& out) const {
         if (lhs.requires_grad()) {
             if (rhs.requires_grad()) {
                 Array rhs_without_grad = rhs.ShallowCopyWithoutRequiresGrad();
-                lhs_func = [rhs_without_grad](const Array& gout) { return gout.Mul(rhs_without_grad); };
+                lhs_func = [rhs_without_grad](const Array& gout) { return gout * rhs_without_grad; };
             } else {
-                lhs_func = [rhs](const Array& gout) { return gout.Mul(rhs); };
+                lhs_func = [rhs](const Array& gout) { return gout * rhs; };
             }
         } else {
             lhs_func = empty_func;
@@ -199,9 +199,9 @@ void Array::Mul(const Array& rhs, Array& out) const {
         if (rhs.requires_grad()) {
             if (lhs.requires_grad()) {
                 Array lhs_without_grad = lhs.ShallowCopyWithoutRequiresGrad();
-                rhs_func = [lhs_without_grad](const Array& gout) { return gout.Mul(lhs_without_grad); };
+                rhs_func = [lhs_without_grad](const Array& gout) { return gout * lhs_without_grad; };
             } else {
-                rhs_func = [lhs](const Array& gout) { return gout.Mul(lhs); };
+                rhs_func = [lhs](const Array& gout) { return gout * lhs; };
             }
         } else {
             rhs_func = empty_func;
