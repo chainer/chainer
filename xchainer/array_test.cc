@@ -201,6 +201,60 @@ TEST_P(ArrayTest, Mul) {
     }
 }
 
+TEST_P(ArrayTest, ChainedMath) {
+    {
+        Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
+        Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
+        Array e = MakeArray<bool>({4, 1}, {true, true, false, false});
+        Array c = a.Mul(b);
+        Array o = a.Add(c);
+        AssertEqual<bool>(e, o);
+    }
+    {
+        Array a = MakeArray<int8_t>({3, 1}, {1, 2, 3});
+        Array b = MakeArray<int8_t>({3, 1}, {1, 2, 3});
+        Array e = MakeArray<int8_t>({3, 1}, {2, 6, 12});
+        Array c = a.Mul(b);
+        Array o = a.Add(c);
+        AssertEqual<int8_t>(e, o);
+    }
+    {
+        Array a = MakeArray<float>({3, 1}, {1, 2, 3});
+        Array b = MakeArray<float>({3, 1}, {1, 2, 3});
+        Array e = MakeArray<float>({3, 1}, {2, 6, 12});
+        Array c = a.Mul(b);
+        Array o = a.Add(c);
+        AssertEqual<float>(e, o);
+    }
+}
+
+TEST_P(ArrayTest, ChainedInplaceMath) {
+    {
+        Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
+        Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
+        Array e = MakeArray<bool>({4, 1}, {true, true, false, false});
+        b.IMul(a);
+        a.IAdd(b);
+        AssertEqual<bool>(e, a);
+    }
+    {
+        Array a = MakeArray<int8_t>({3, 1}, {1, 2, 3});
+        Array b = MakeArray<int8_t>({3, 1}, {1, 2, 3});
+        Array e = MakeArray<int8_t>({3, 1}, {2, 6, 12});
+        b.IMul(a);
+        a.IAdd(b);
+        AssertEqual<int8_t>(e, a);
+    }
+    {
+        Array a = MakeArray<float>({3, 1}, {1, 2, 3});
+        Array b = MakeArray<float>({3, 1}, {1, 2, 3});
+        Array e = MakeArray<float>({3, 1}, {2, 6, 12});
+        b.IMul(a);
+        a.IAdd(b);
+        AssertEqual<float>(e, a);
+    }
+}
+
 INSTANTIATE_TEST_CASE_P(ForEachDevice, ArrayTest, ::testing::Values(
 #ifdef XCHAINER_ENABLE_CUDA
                                                       std::string{"cuda"},
