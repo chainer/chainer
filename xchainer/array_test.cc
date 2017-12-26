@@ -99,6 +99,42 @@ public:
         }
     }
 
+    template <typename T>
+    void CheckEmpty() {
+        Dtype dtype = TypeToDtype<T>;
+        Array x = Array::Empty(Shape{3, 2}, dtype);
+        ASSERT_NE(x.data(), nullptr);
+        ASSERT_EQ(x.shape(), Shape({3, 2}));
+        ASSERT_EQ(x.dtype(), dtype);
+
+        if (GetCurrentDevice() == MakeDevice("cpu")) {
+            //
+        } else if (GetCurrentDevice() == MakeDevice("cuda")) {
+            ASSERT_TRUE(IsPointerCudaManaged(x.data().get()));
+        } else {
+            FAIL() << "invalid device";
+        }
+    }
+
+    template <typename T>
+    void CheckEmptyLike() {
+        Dtype dtype = TypeToDtype<T>;
+        Array x_orig = Array::Empty(Shape{3, 2}, dtype);
+        Array x = Array::EmptyLike(x_orig);
+        ASSERT_NE(x.data(), nullptr);
+        ASSERT_NE(x.data(), x_orig.data());
+        ASSERT_EQ(x.shape(), x_orig.shape());
+        ASSERT_EQ(x.dtype(), x_orig.dtype());
+
+        if (GetCurrentDevice() == MakeDevice("cpu")) {
+            //
+        } else if (GetCurrentDevice() == MakeDevice("cuda")) {
+            ASSERT_TRUE(IsPointerCudaManaged(x.data().get()));
+        } else {
+            FAIL() << "invalid device";
+        }
+    }
+
 private:
     std::unique_ptr<DeviceScope> device_scope_;
 };
@@ -106,6 +142,28 @@ private:
 TEST_P(ArrayTest, ArrayCtor) { CheckArray<false>(); }
 
 TEST_P(ArrayTest, ConstArrayCtor) { CheckArray<true>(); }
+
+TEST_P(ArrayTest, Empty) {
+    CheckEmpty<bool>();
+    CheckEmpty<int8_t>();
+    CheckEmpty<int16_t>();
+    CheckEmpty<int32_t>();
+    CheckEmpty<int64_t>();
+    CheckEmpty<uint8_t>();
+    CheckEmpty<float>();
+    CheckEmpty<double>();
+}
+
+TEST_P(ArrayTest, EmptyLike) {
+    CheckEmptyLike<bool>();
+    CheckEmptyLike<int8_t>();
+    CheckEmptyLike<int16_t>();
+    CheckEmptyLike<int32_t>();
+    CheckEmptyLike<int64_t>();
+    CheckEmptyLike<uint8_t>();
+    CheckEmptyLike<float>();
+    CheckEmptyLike<double>();
+}
 
 TEST_P(ArrayTest, IAdd) {
     {

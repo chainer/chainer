@@ -17,6 +17,9 @@ class Array {
 public:
     Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, int64_t offset = 0);
 
+    static Array Empty(const Shape& shape, Dtype dtype);
+    static Array EmptyLike(const Array& array);
+
     Dtype dtype() const { return dtype_; }
 
     int8_t ndim() const { return shape_.ndim(); }
