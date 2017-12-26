@@ -52,24 +52,24 @@ Array::Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, int64_
     }
 }
 
-Array& Array::IAdd(const Array& rhs) {
+Array& Array::operator+=(const Array& rhs) {
     Add(rhs, *this);
     return *this;
 }
 
-Array& Array::IMul(const Array& rhs) {
+Array& Array::operator*=(const Array& rhs) {
     Mul(rhs, *this);
     return *this;
 }
 
-Array Array::Add(const Array& rhs) const {
-    Array out = {shape_, dtype_, std::make_unique<uint8_t[]>(total_bytes())};
+Array Array::operator+(const Array& rhs) const {
+    Array out = {rhs.shape(), rhs.dtype(), std::make_unique<uint8_t[]>(rhs.total_bytes())};
     Add(rhs, out);
     return out;
 }
 
-Array Array::Mul(const Array& rhs) const {
-    Array out = {shape_, dtype_, std::make_unique<uint8_t[]>(total_bytes())};
+Array Array::operator*(const Array& rhs) const {
+    Array out = {rhs.shape(), rhs.dtype(), std::make_unique<uint8_t[]>(rhs.total_bytes())};
     Mul(rhs, out);
     return out;
 }

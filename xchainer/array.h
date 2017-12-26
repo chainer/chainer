@@ -46,10 +46,10 @@ public:
         return node_;
     }
 
-    Array& IAdd(const Array& rhs);
-    Array& IMul(const Array& rhs);
-    Array Add(const Array& rhs) const;
-    Array Mul(const Array& rhs) const;
+    Array& operator+=(const Array& rhs);
+    Array& operator*=(const Array& rhs);
+    Array operator+(const Array& rhs) const;
+    Array operator*(const Array& rhs) const;
 
     std::string ToString() const;
 
