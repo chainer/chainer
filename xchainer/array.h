@@ -41,7 +41,7 @@ public:
 
     std::shared_ptr<const ArrayNode> node() const { return node_; }
 
-    const std::shared_ptr<ArrayNode>& CreateNewNode() {
+    const std::shared_ptr<ArrayNode>& RenewNode() {
         node_ = std::make_shared<ArrayNode>();
         return node_;
     }
