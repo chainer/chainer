@@ -64,8 +64,14 @@ void MemoryCopy(const Device& device, void* dst_ptr, const void* src_ptr, size_t
 
 }  // namespace
 
-Array::Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, int64_t offset)
-    : shape_(shape), is_contiguous_(true), dtype_(dtype), data_(nullptr), offset_(offset), node_(std::make_shared<ArrayNode>()) {
+Array::Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, bool requires_grad, int64_t offset)
+    : shape_(shape),
+      is_contiguous_(true),
+      dtype_(dtype),
+      data_(nullptr),
+      requires_grad_(requires_grad),
+      offset_(offset),
+      node_(std::make_shared<ArrayNode>()) {
     Device device = GetCurrentDevice();
     if (device == MakeDevice("cpu")) {
         data_ = std::move(data);
@@ -93,14 +99,14 @@ Array Array::DeepCopy() const {
     if (GetCurrentDevice() == MakeDevice("cpu")) {
         std::shared_ptr<void> ret_data = std::make_unique<uint8_t[]>(bytes);
         std::memcpy(ret_data.get(), data_.get(), bytes);
-        return {shape_, dtype_, ret_data, offset_};
+        return {shape_, dtype_, ret_data, requires_grad_, offset_};
 #ifdef XCHAINER_ENABLE_CUDA
     } else if (GetCurrentDevice() == MakeDevice("cuda")) {
         void* ret_ptr = nullptr;
         cuda::CheckError(cudaMallocManaged(&ret_ptr, bytes, cudaMemAttachGlobal));
         cuda::CheckError(cudaMemcpy(ret_ptr, data_.get(), bytes, cudaMemcpyDeviceToDevice));
         std::shared_ptr<void> ret_data = std::shared_ptr<void>(ret_ptr, ::cudaFree);
-        return {shape_, dtype_, ret_data, offset_};
+        return {shape_, dtype_, ret_data, requires_grad_, offset_};
 #endif  // XCHAINER_ENABLE_CUDA
     } else {
         throw DeviceError("invalid device");
@@ -109,23 +115,27 @@ Array Array::DeepCopy() const {
 
 Array& Array::operator+=(const Array& rhs) {
     Add(rhs, *this);
+    requires_grad_ |= rhs.requires_grad();
     return *this;
 }
 
 Array& Array::operator*=(const Array& rhs) {
     Mul(rhs, *this);
+    requires_grad_ |= rhs.requires_grad();
     return *this;
 }
 
 Array Array::operator+(const Array& rhs) const {
-    Array out = {shape_, dtype_, std::make_unique<uint8_t[]>(total_bytes())};
-    Add(rhs, out, enable_backprop);
+    bool requires_grad = (requires_grad_ || rhs.requires_grad());
+    Array out = {shape_, dtype_, std::make_unique<uint8_t[]>(total_bytes()), requires_grad, 0};
+    Add(rhs, out);
     return out;
 }
 
 Array Array::operator*(const Array& rhs) const {
-    Array out = {shape_, dtype_, std::make_unique<uint8_t[]>(total_bytes())};
-    Mul(rhs, out, enable_backprop);
+    bool requires_grad = (requires_grad_ || rhs.requires_grad());
+    Array out = {shape_, dtype_, std::make_unique<uint8_t[]>(total_bytes()), requires_grad, 0};
+    Mul(rhs, out);
     return out;
 }
 
@@ -135,12 +145,14 @@ void Array::Add(const Array& rhs, Array& out) const {
     // TODO: broadcasting
     CheckEqual(shape_, rhs.shape());
 
-    if (enable_backprop) {
+    if (requires_grad_ || rhs.requires_grad()) {
+        const Array& lhs = *this;
         std::shared_ptr<const ArrayNode> lhs_node = node();
         std::shared_ptr<const ArrayNode> rhs_node = rhs.node();
         std::shared_ptr<ArrayNode> out_node = out.RenewNode();
-        auto lhs_func = [](const Array& gout) { return gout; };
-        auto rhs_func = [](const Array& gout) { return gout; };
+        std::function<Array(const Array&)> empty_func;
+        auto lhs_func = lhs.requires_grad() ? [](const Array& gout) { return gout; } : empty_func;
+        auto rhs_func = rhs.requires_grad() ? [](const Array& gout) { return gout; } : empty_func;
         auto backward_functions = std::vector<std::function<Array(const Array&)>>{lhs_func, rhs_func};
         std::shared_ptr<OpNode> op_node =
             std::make_shared<OpNode>("add", std::vector<std::shared_ptr<const ArrayNode>>{lhs_node, rhs_node}, backward_functions);
@@ -165,14 +177,15 @@ void Array::Mul(const Array& rhs, Array& out) const {
     // TODO: broadcasting
     CheckEqual(shape_, rhs.shape());
 
-    if (enable_backprop) {
+    if (requires_grad_ || rhs.requires_grad()) {
         // deep copy for in-place operation to keep original input
         const Array& lhs = (this == &out) ? DeepCopy() : *this;
         std::shared_ptr<const ArrayNode> lhs_node = node();
         std::shared_ptr<const ArrayNode> rhs_node = rhs.node();
-        std::shared_ptr<ArrayNode> out_node = out.CreateNewNode();
-        auto lhs_func = [rhs](const Array& gout) { return gout.Mul(rhs, false); };
-        auto rhs_func = [lhs](const Array& gout) { return gout.Mul(lhs, false); };
+        std::shared_ptr<ArrayNode> out_node = out.RenewNode();
+        std::function<Array(const Array&)> empty_func;
+        auto lhs_func = lhs.requires_grad() ? [rhs](const Array& gout) { return gout.Mul(rhs); } : empty_func;
+        auto rhs_func = rhs.requires_grad() ? [lhs](const Array& gout) { return gout.Mul(lhs); } : empty_func;
         auto backward_functions = std::vector<std::function<Array(const Array&)>>{lhs_func, rhs_func};
         std::shared_ptr<OpNode> op_node =
             std::make_shared<OpNode>("mul", std::vector<std::shared_ptr<const ArrayNode>>{lhs_node, rhs_node}, backward_functions);
