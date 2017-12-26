@@ -382,4 +382,18 @@ class TestInvalidArgument(unittest.TestCase):
             self.link(self.x, unknown_argument=1)
 
 
+class TestChannalSizeInference(unittest.TestCase):
+
+    def setUp(self):
+        self.link = links.BatchNormalization(None)
+        self.x = numpy.random.randn(1, 16).astype('f')
+
+    def test_inference(self):
+        self.link(x, test=True)
+        assert self.link.beta.shape == (16,)
+        assert self.link.gamma.shape == (16,)
+        assert self.link.avg_mean.shape == (16,)
+        assert self.link.avg_mean.shape == (16,)
+
+
 testing.run_module(__name__, __file__)
