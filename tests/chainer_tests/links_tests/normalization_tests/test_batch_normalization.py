@@ -389,7 +389,7 @@ class TestChannalSizeInference(unittest.TestCase):
         self.x = numpy.random.randn(1, 16).astype('f')
 
     def test_inference(self):
-        self.link(x, test=True)
+        self.link(self.x, test=True)
         assert self.link.beta.shape == (16,)
         assert self.link.gamma.shape == (16,)
         assert self.link.avg_mean.shape == (16,)
