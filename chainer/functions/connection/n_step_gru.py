@@ -151,7 +151,7 @@ def n_step_bigru(
        h_{t-1} + b^{b}_5)) \\\\
        h^{b}_t &= (1 - z^{b}_t) \\cdot h^{b'}_t + z^{b}_t \\cdot h_{t-1}
        \\\\
-       h_t  &= [h^{f}_t; h^{f}_t] \\\\
+       h_t  &= [h^{f}_t; h^{b}_t] \\\\
 
     where :math:`W^{f}` is weight matrices for forward-GRU, :math:`W^{b}` is
     weight matrices for backward-GRU.
