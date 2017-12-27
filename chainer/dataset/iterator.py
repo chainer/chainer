@@ -61,6 +61,24 @@ class Iterator(object):
         """
         pass
 
+    def __enter__(self):
+        """With statement context manager method
+
+        This method does nothing by default. Implementation may override it to
+        better handle the internal resources by with statement.
+
+        """
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        """With statement context manager method
+
+        This method does nothing by default. Implementation may override it to
+        better handle the internal resources by with statement.
+
+        """
+        return None
+
     def serialize(self, serializer):
         """Serializes the internal state of the iterator.
 

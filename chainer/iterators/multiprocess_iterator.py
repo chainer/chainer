@@ -144,6 +144,12 @@ class MultiprocessIterator(iterator.Iterator):
 
     finalize = __del__
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.finalize()
+
     def __copy__(self):
         other = MultiprocessIterator(
             self.dataset, self.batch_size, self.repeat, shuffle=False,
