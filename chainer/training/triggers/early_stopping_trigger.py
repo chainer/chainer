@@ -127,5 +127,5 @@ class EarlyStoppingTrigger(object):
     def _init_summary(self):
         self._summary = reporter.DictSummary()
 
-    def _get_training_length(self):
+    def get_training_length(self):
         return self.max_trigger

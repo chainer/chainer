@@ -106,5 +106,5 @@ class IntervalTrigger(object):
             # set a negative value for invalid
             self._previous_epoch_detail = -1.
 
-    def _get_training_length(self):
+    def get_training_length(self):
         return (self.period, self.unit)

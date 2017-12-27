@@ -43,10 +43,7 @@ class ProgressBar(extension.Extension):
         # initialize some attributes at the first call
         if training_length is None:
             t = trainer.stop_trigger
-            if not hasattr(t, '_get_training_length'):
-                raise TypeError(
-                    'cannot retrieve the training length from %s' % type(t))
-            training_length = t._get_training_length()
+            training_length = t.get_training_length()
 
         stat_template = self._status_template
         if stat_template is None:
