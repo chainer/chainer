@@ -65,9 +65,7 @@ public:
     Array DeepCopy() const;
 
     Array ShallowCopyWithoutRequiresGrad() const {
-        Array copy = *this;
-        copy.requires_grad_ = false;
-        return copy;
+        return {shape_, dtype_, data_, false, offset_};
     }
 
 private:

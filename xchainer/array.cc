@@ -186,23 +186,15 @@ void Array::Mul(const Array& rhs, Array& out) const {
         std::function<Array(const Array&)> empty_func;
         std::function<Array(const Array&)> lhs_func;
         if (lhs.requires_grad()) {
-            if (rhs.requires_grad()) {
-                Array rhs_without_grad = rhs.ShallowCopyWithoutRequiresGrad();
-                lhs_func = [rhs_without_grad](const Array& gout) { return gout * rhs_without_grad; };
-            } else {
-                lhs_func = [rhs](const Array& gout) { return gout * rhs; };
-            }
+            Array rhs_without_grad = rhs.ShallowCopyWithoutRequiresGrad();
+            lhs_func = [rhs_without_grad](const Array& gout) { return gout * rhs_without_grad; };
         } else {
             lhs_func = empty_func;
         }
         std::function<Array(const Array&)> rhs_func;
         if (rhs.requires_grad()) {
-            if (lhs.requires_grad()) {
-                Array lhs_without_grad = lhs.ShallowCopyWithoutRequiresGrad();
-                rhs_func = [lhs_without_grad](const Array& gout) { return gout * lhs_without_grad; };
-            } else {
-                rhs_func = [lhs](const Array& gout) { return gout * lhs; };
-            }
+            Array lhs_without_grad = lhs.ShallowCopyWithoutRequiresGrad();
+            rhs_func = [lhs_without_grad](const Array& gout) { return gout * lhs_without_grad; };
         } else {
             rhs_func = empty_func;
         }
