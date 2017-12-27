@@ -17,6 +17,13 @@ class Array {
 public:
     Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, int64_t offset = 0);
 
+    static Array Empty(const Shape& shape, Dtype dtype);
+
+    // Creates an array which has the same shape and dtype as the other array.
+    // The new array is allocated in the current device. The device of the other array
+    // is ignored.
+    static Array EmptyLike(const Array& array);
+
     Dtype dtype() const { return dtype_; }
 
     int8_t ndim() const { return shape_.ndim(); }
