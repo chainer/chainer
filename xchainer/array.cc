@@ -8,6 +8,7 @@
 #include <cuda_runtime.h>
 #endif  // XCHAINER_ENABLE_CUDA
 
+#include "xchainer/array_fill.h"
 #include "xchainer/array_math.h"
 #include "xchainer/array_repr.h"
 #ifdef XCHAINER_ENABLE_CUDA
@@ -64,24 +65,6 @@ void MemoryCopy(const Device& device, void* dst_ptr, const void* src_ptr, size_t
     }
 }
 
-template <typename T>
-void FillImpl(Array& array, T value) {
-    Device device = GetCurrentDevice();
-    if (device == MakeDevice("cpu")) {
-        int64_t size = array.total_size();
-        T* ptr = static_cast<T*>(array.data().get());
-        for (int64_t i = 0; i < size; ++i) {
-            ptr[i] = value;
-        }
-#ifdef XCHAINER_ENABLE_CUDA
-    } else if (device == MakeDevice("cuda")) {
-        xchainer::cuda::Fill(array, value);
-#endif  // XCHAINER_ENABLE_CUDA
-    } else {
-        throw DeviceError("invalid device");
-    }
-}
-
 }  // namespace
 
 Array::Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, int64_t offset)
@@ -107,37 +90,6 @@ Array Array::Empty(const Shape& shape, Dtype dtype) {
 }
 
 Array Array::EmptyLike(const Array& array) { return Empty(array.shape(), array.dtype()); }
-
-void Array::Fill(Scalar value) {
-    switch (value.dtype()) {
-        case Dtype::kBool:
-            FillImpl(*this, static_cast<bool>(value));
-            break;
-        case Dtype::kInt8:
-            FillImpl(*this, static_cast<int8_t>(value));
-            break;
-        case Dtype::kInt16:
-            FillImpl(*this, static_cast<int16_t>(value));
-            break;
-        case Dtype::kInt32:
-            FillImpl(*this, static_cast<int32_t>(value));
-            break;
-        case Dtype::kInt64:
-            FillImpl(*this, static_cast<int64_t>(value));
-            break;
-        case Dtype::kUInt8:
-            FillImpl(*this, static_cast<uint8_t>(value));
-            break;
-        case Dtype::kFloat32:
-            FillImpl(*this, static_cast<float>(value));
-            break;
-        case Dtype::kFloat64:
-            FillImpl(*this, static_cast<double>(value));
-            break;
-        default:
-            assert(false);  // should never be reached
-    }
-}
 
 Array& Array::operator+=(const Array& rhs) {
     Add(rhs, *this);
@@ -207,6 +159,22 @@ void Array::Mul(const Array& rhs, Array& out) const {
     std::shared_ptr<ArrayNode> out_node = out.RenewNode();
     std::shared_ptr<OpNode> op_node = std::make_shared<OpNode>("mul", std::vector<std::shared_ptr<const ArrayNode>>{lhs_node, rhs_node});
     out_node->set_next_node(op_node);
+}
+
+void Array::Fill(Scalar value) {
+    // TODO(niboshi): dtype conversion
+    CheckEqual(dtype_, value.dtype());
+
+    Device device = GetCurrentDevice();
+    if (device == MakeDevice("cpu")) {
+        xchainer::Fill(*this, value);
+#ifdef XCHAINER_ENABLE_CUDA
+    } else if (device == MakeDevice("cuda")) {
+        xchainer::cuda::Fill(*this, value);
+#endif  // XCHAINER_ENABLE_CUDA
+    } else {
+        throw DeviceError("invalid device");
+    }
 }
 
 std::string Array::ToString() const { return ArrayRepr(*this); }
