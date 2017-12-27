@@ -21,8 +21,8 @@ namespace xchainer {
 
 namespace {
 
-std::shared_ptr<void> AllocateCudaManaged(size_t size) {
 #ifdef XCHAINER_ENABLE_CUDA
+std::shared_ptr<void> AllocateCudaManaged(size_t size) {
     std::shared_ptr<void> ptr{};
     {
         void* raw_ptr = nullptr;
@@ -35,12 +35,8 @@ std::shared_ptr<void> AllocateCudaManaged(size_t size) {
         ptr.reset(raw_ptr, cudaFree);
     }
     return ptr;
-#else
-    (void)size;
-    assert(0);
-    return std::shared_ptr<void>();
-#endif  // XCHAINER_ENABLE_CUDA
 }
+#endif  // XCHAINER_ENABLE_CUDA
 
 std::shared_ptr<void> Allocate(const Device& device, size_t size) {
     if (device == MakeDevice("cpu")) {
