@@ -510,9 +510,10 @@ def check_backward(
     directions = [xp.random.normal(size=x.shape) for x in variables]
     # The direction vector is normalized in order to keep the scale of
     # differentiation error invariant with respect to the number of input
-    # dimensions. Ideally, the scale of each input dimension should be taken
-    # into account, but we ignore the differences and assume all the input
-    # dimentions have the uniform scale.
+    # dimensions. Ideally, the scale of the curvature with respect to each
+    # input dimension should be taken into account, but we ignore the
+    # differences and assume that the curvature is uniform with respect to all
+    # the input dimentions.
     norm = math.sqrt(sum([xp.square(d).sum() for d in directions]))
     if norm != 0:
         # norm could be zero if input arrays are 0-sized.
