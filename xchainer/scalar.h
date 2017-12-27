@@ -21,6 +21,39 @@ public:
     Scalar(float v) : float32_(v), dtype_(Dtype::kFloat32) {}
     Scalar(double v) : float64_(v), dtype_(Dtype::kFloat64) {}
 
+    template <typename T>
+    Scalar(T v, Dtype dtype) : dtype_(Dtype::kFloat64) {
+        switch (dtype) {
+            case Dtype::kBool:
+                bool_ = v;
+                break;
+            case Dtype::kInt8:
+                int8_ = v;
+                break;
+            case Dtype::kInt16:
+                int16_ = v;
+                break;
+            case Dtype::kInt32:
+                int32_ = v;
+                break;
+            case Dtype::kInt64:
+                int64_ = v;
+                break;
+            case Dtype::kUInt8:
+                uint8_ = v;
+                break;
+            case Dtype::kFloat32:
+                float32_ = v;
+                break;
+            case Dtype::kFloat64:
+                float64_ = v;
+                break;
+            default:
+                assert(0);  // should never be reached
+        }
+        return 0;
+    }
+
     Scalar(const Scalar&) = default;
     Scalar& operator=(const Scalar&) = default;
 
