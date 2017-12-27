@@ -4,15 +4,15 @@ import xchainer
 
 
 @pytest.fixture
-def inputs(dtype_data):
+def dtype_init_inputs(dtype_data):
     name = dtype_data['name']
     char = dtype_data['char']
     itemsize = dtype_data['itemsize']
     return name, char, itemsize
 
 
-def test_inti_eq(inputs):
-    name, char, itemsize = inputs
+def test_inti_eq(dtype_init_inputs):
+    name, char, itemsize = dtype_init_inputs
     dtype = getattr(xchainer, name)
 
     assert dtype.name == name

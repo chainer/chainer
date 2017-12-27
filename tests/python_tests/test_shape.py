@@ -6,13 +6,28 @@ import pytest
 import xchainer
 
 
+_shapes_data = [
+    {'tuple': ()},
+    {'tuple': (0,)},
+    {'tuple': (1,)},
+    {'tuple': (2, 3)},
+    {'tuple': (1, 1, 1)},
+    {'tuple': (2, 0, 3)},
+]
+
+
+@pytest.fixture(params=_shapes_data)
+def shape_data(request):
+    return request.param
+
+
 @pytest.fixture
-def inputs(request, shape_data):
+def shape_init_inputs(request, shape_data):
     return shape_data['tuple']
 
 
-def test_attr(inputs):
-    tup = inputs
+def test_attr(shape_init_inputs):
+    tup = shape_init_inputs
     shape = xchainer.Shape(tup)
 
     assert shape.ndim == len(tup)
@@ -23,8 +38,8 @@ def test_attr(inputs):
     assert shape.total_size == expected_total_size
 
 
-def test_eq(inputs):
-    tup = inputs
+def test_eq(shape_init_inputs):
+    tup = shape_init_inputs
     shape = xchainer.Shape(tup)
 
     # equality

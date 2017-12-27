@@ -7,13 +7,6 @@ import pytest
 import xchainer
 
 
-@pytest.fixture
-def inputs(request, shape_data, dtype_data):
-    shape_tup = shape_data['tuple']
-    dtype_name = dtype_data['name']
-    return shape_tup, dtype_name
-
-
 def _create_dummy_data(shape_tup, dtype, pattern=1):
     size = _size(shape_tup)
     if pattern == 1:
@@ -70,8 +63,30 @@ def _size(tup):
     return functools.reduce(operator.mul, tup, 1)
 
 
-def test_init(inputs):
-    shape_tup, dtype_name = inputs
+_shapes_data = [
+    {'tuple': ()},
+    {'tuple': (0,)},
+    {'tuple': (1,)},
+    {'tuple': (2, 3)},
+    {'tuple': (1, 1, 1)},
+    {'tuple': (2, 0, 3)},
+]
+
+
+@pytest.fixture(params=_shapes_data)
+def shape_data(request):
+    return request.param
+
+
+@pytest.fixture
+def array_init_inputs(shape_data, dtype_data):
+    shape_tup = shape_data['tuple']
+    dtype_name = dtype_data['name']
+    return shape_tup, dtype_name
+
+
+def test_init(array_init_inputs):
+    shape_tup, dtype_name = array_init_inputs
 
     shape = xchainer.Shape(shape_tup)
     dtype = xchainer.Dtype(dtype_name)
@@ -83,8 +98,8 @@ def test_init(inputs):
     _check_array(array, dtype, shape, _size(shape_tup), data_list)
 
 
-def test_numpy_init(inputs):
-    shape_tup, dtype_name = inputs
+def test_numpy_init(array_init_inputs):
+    shape_tup, dtype_name = array_init_inputs
 
     shape = xchainer.Shape(shape_tup)
     dtype = xchainer.Dtype(dtype_name)
@@ -120,8 +135,8 @@ def test_numpy_init(inputs):
     _check_array_equals_ndarray(array, data_recovered)
 
 
-def test_add_iadd(inputs):
-    shape_tup, dtype_name = inputs
+def test_add_iadd(array_init_inputs):
+    shape_tup, dtype_name = array_init_inputs
 
     shape = xchainer.Shape(shape_tup)
     dtype = xchainer.Dtype(dtype_name)
@@ -146,8 +161,8 @@ def test_add_iadd(inputs):
     assert rhs.debug_flat_data == rhs_data_list
 
 
-def test_mul_imul(inputs):
-    shape_tup, dtype_name = inputs
+def test_mul_imul(array_init_inputs):
+    shape_tup, dtype_name = array_init_inputs
 
     shape = xchainer.Shape(shape_tup)
     dtype = xchainer.Dtype(dtype_name)

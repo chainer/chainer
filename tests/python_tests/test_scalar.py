@@ -3,19 +3,34 @@ import pytest
 import xchainer
 
 
-@pytest.fixture
-def inputs(request, scalar_data):
-    return scalar_data['data']
-
-
 def _check_cast_scalar_equals_data(scalar, data):
     assert bool(scalar) == bool(data)
     assert int(scalar) == int(data)
     assert float(scalar) == float(data)
 
 
-def test_cast(inputs):
-    data = inputs
+_scalars_data = [
+    {'data': -2},
+    {'data': 1},
+    {'data': -1.5},
+    {'data': 2.3},
+    {'data': True},
+    {'data': False},
+]
+
+
+@pytest.fixture(params=_scalars_data)
+def scalar_data(request):
+    return request.param
+
+
+@pytest.fixture
+def scalar_init_inputs(request, scalar_data):
+    return scalar_data['data']
+
+
+def test_cast(scalar_init_inputs):
+    data = scalar_init_inputs
     scalar = xchainer.Scalar(data)
 
     _check_cast_scalar_equals_data(scalar, data)
@@ -27,8 +42,8 @@ def test_cast(inputs):
         _check_cast_scalar_equals_data(-scalar, -data)
 
 
-def test_dtype(inputs):
-    data = inputs
+def test_dtype(scalar_init_inputs):
+    data = scalar_init_inputs
     scalar = xchainer.Scalar(data)
 
     if isinstance(data, bool):
@@ -41,8 +56,8 @@ def test_dtype(inputs):
         assert False
 
 
-def test_repr(inputs):
-    data = inputs
+def test_repr(scalar_init_inputs):
+    data = scalar_init_inputs
     scalar = xchainer.Scalar(data)
 
     assert repr(scalar) == repr(data)

@@ -3,19 +3,30 @@ import pytest
 import xchainer
 
 
-@pytest.fixture
-def inputs(request, device_data):
-    return device_data['name']
+_devices_data = [
+    {'name': 'cpu'},
+    {'name': 'cuda'},
+]
+
+
+@pytest.fixture(params=_devices_data)
+def device_data1(request):
+    return request.param
+
+
+@pytest.fixture(params=_devices_data)
+def device_data2(request):
+    return request.param
 
 
 @pytest.fixture
-def inputs1(request, inputs):
-    return inputs
+def device_init_inputs1(request, device_data1):
+    return device_data1['name']
 
 
 @pytest.fixture
-def inputs2(request, inputs):
-    return inputs
+def device_init_inputs2(request, device_data2):
+    return device_data2['name']
 
 
 @pytest.fixture
@@ -28,12 +39,19 @@ def cache_restore_device(request):
 
 
 @pytest.mark.usefixtures('cache_restore_device')
-def test_eq(inputs1, inputs2):
-    if inputs1 == inputs2:
+def test_current_device(device_init_inputs1):
+    name = device_init_inputs1
+    xchainer.set_current_device(name)
+    assert xchainer.get_current_device() == xchainer.Device(name)
+
+
+@pytest.mark.usefixtures('cache_restore_device')
+def test_eq(device_init_inputs1, device_init_inputs2):
+    if device_init_inputs1 == device_init_inputs2:
         return
 
-    name1 = inputs1
-    name2 = inputs2
+    name1 = device_init_inputs1
+    name2 = device_init_inputs2
 
     device1_1 = xchainer.Device(name1)
     device1_2 = xchainer.Device(name1)
@@ -46,19 +64,12 @@ def test_eq(inputs1, inputs2):
 
 
 @pytest.mark.usefixtures('cache_restore_device')
-def test_current_device(inputs):
-    name = inputs
-    xchainer.set_current_device(name)
-    assert xchainer.get_current_device() == xchainer.Device(name)
-
-
-@pytest.mark.usefixtures('cache_restore_device')
-def test_device_scope(inputs1, inputs2):
-    if inputs1 == inputs2:
+def test_device_scope(device_init_inputs1, device_init_inputs2):
+    if device_init_inputs1 == device_init_inputs2:
         return
 
-    name1 = inputs1
-    name2 = inputs2
+    name1 = device_init_inputs1
+    name2 = device_init_inputs2
 
     device1 = xchainer.Device(name1)
     device2 = xchainer.Device(name2)
