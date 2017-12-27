@@ -64,9 +64,7 @@ public:
 
     Array DeepCopy() const;
 
-    Array ShallowCopyWithoutRequiresGrad() const {
-        return {shape_, dtype_, data_, false, offset_};
-    }
+    Array ShallowCopyWithoutRequiresGrad() const { return {shape_, dtype_, data_, false, offset_}; }
 
 private:
     void Add(const Array& rhs, Array& out) const;
