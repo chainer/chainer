@@ -135,6 +135,31 @@ public:
         }
     }
 
+    template <typename T>
+    void CheckFill(T value) {
+        Dtype dtype = TypeToDtype<T>;
+        Array x = Array::Empty(Shape{3, 2}, dtype);
+        x.Fill(Scalar{value});
+
+#ifdef XCHAINER_ENABLE_CUDA
+        std::string device_name = ::testing::get<0>(GetParam());
+        if (device_name == "cuda") {
+            cuda::CheckError(cudaDeviceSynchronize());
+        }
+#endif  // XCHAINER_ENABLE_CUDA
+
+        int64_t size = x.total_size();
+        T* data = static_cast<T*>(x.data().get());
+
+        for (int64_t i = 0; i < size; ++i) {
+            if (std::isnan(value)) {
+                ASSERT_TRUE(std::isnan(data[i]));
+            } else {
+                ASSERT_EQ(data[i], value);
+            }
+        }
+    }
+
 private:
     std::unique_ptr<DeviceScope> device_scope_;
 };
@@ -163,6 +188,30 @@ TEST_P(ArrayTest, EmptyLike) {
     CheckEmptyLike<uint8_t>();
     CheckEmptyLike<float>();
     CheckEmptyLike<double>();
+}
+
+TEST_P(ArrayTest, Fill) {
+    CheckFill(true);
+    CheckFill(false);
+    CheckFill(static_cast<int8_t>(0));
+    CheckFill(static_cast<int8_t>(-1));
+    CheckFill(static_cast<int8_t>(5));
+    CheckFill(static_cast<int8_t>(-128));
+    CheckFill(static_cast<int8_t>(127));
+    CheckFill(static_cast<int16_t>(0));
+    CheckFill(static_cast<int16_t>(-3));
+    CheckFill(static_cast<int32_t>(0));
+    CheckFill(static_cast<int32_t>(-3));
+    CheckFill(static_cast<int64_t>(0));
+    CheckFill(static_cast<int64_t>(-3));
+    CheckFill(static_cast<uint8_t>(0));
+    CheckFill(static_cast<uint8_t>(255));
+    CheckFill(static_cast<float>(0.f));
+    CheckFill(static_cast<float>(std::numeric_limits<float>::infinity()));
+    CheckFill(static_cast<float>(std::nanf("")));
+    CheckFill(static_cast<double>(0.f));
+    CheckFill(static_cast<double>(std::numeric_limits<double>::infinity()));
+    CheckFill(static_cast<double>(std::nan("")));
 }
 
 TEST_P(ArrayTest, IAdd) {

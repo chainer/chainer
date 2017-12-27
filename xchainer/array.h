@@ -8,6 +8,7 @@
 
 #include "xchainer/array_node.h"
 #include "xchainer/dtype.h"
+#include "xchainer/scalar.h"
 #include "xchainer/shape.h"
 
 namespace xchainer {
@@ -57,6 +58,8 @@ public:
     Array& operator*=(const Array& rhs);
     Array operator+(const Array& rhs) const;
     Array operator*(const Array& rhs) const;
+
+    void Fill(Scalar value);
 
     std::string ToString() const;
 

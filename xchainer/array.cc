@@ -8,14 +8,17 @@
 #include <cuda_runtime.h>
 #endif  // XCHAINER_ENABLE_CUDA
 
+#include "xchainer/array_fill.h"
 #include "xchainer/array_math.h"
 #include "xchainer/array_repr.h"
 #ifdef XCHAINER_ENABLE_CUDA
+#include "xchainer/cuda/array_fill.h"
 #include "xchainer/cuda/array_math.h"
 #include "xchainer/cuda/cuda_runtime.h"
 #endif  // XCHAINER_ENABLE_CUDA
 #include "xchainer/device.h"
 #include "xchainer/op_node.h"
+#include "xchainer/scalar.h"
 
 namespace xchainer {
 
@@ -156,6 +159,22 @@ void Array::Mul(const Array& rhs, Array& out) const {
     std::shared_ptr<ArrayNode> out_node = out.RenewNode();
     std::shared_ptr<OpNode> op_node = std::make_shared<OpNode>("mul", std::vector<std::shared_ptr<const ArrayNode>>{lhs_node, rhs_node});
     out_node->set_next_node(op_node);
+}
+
+void Array::Fill(Scalar value) {
+    // TODO(niboshi): dtype conversion
+    CheckEqual(dtype_, value.dtype());
+
+    Device device = GetCurrentDevice();
+    if (device == MakeDevice("cpu")) {
+        xchainer::Fill(*this, value);
+#ifdef XCHAINER_ENABLE_CUDA
+    } else if (device == MakeDevice("cuda")) {
+        xchainer::cuda::Fill(*this, value);
+#endif  // XCHAINER_ENABLE_CUDA
+    } else {
+        throw DeviceError("invalid device");
+    }
 }
 
 std::string Array::ToString() const { return ArrayRepr(*this); }

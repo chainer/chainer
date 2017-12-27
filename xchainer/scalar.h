@@ -100,6 +100,7 @@ private:
             default:
                 assert(0);  // should never be reached
         }
+        return T{};
     }
 
     Dtype dtype_;
