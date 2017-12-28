@@ -22,7 +22,7 @@ void CheckArrayReprWithCurrentDevice(const std::vector<T>& data_vec, Shape shape
 
     // std::ostream version
     std::ostringstream os;
-    ArrayRepr(os, array);
+    os << array;
     EXPECT_EQ(os.str(), expected);
 }
 

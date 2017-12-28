@@ -7,6 +7,7 @@
 #include <gsl/gsl>
 
 #include "xchainer/array_node.h"
+#include "xchainer/array_repr.h"
 #include "xchainer/dtype.h"
 #include "xchainer/scalar.h"
 #include "xchainer/shape.h"
