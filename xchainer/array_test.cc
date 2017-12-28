@@ -215,6 +215,30 @@ public:
     }
 
     template <typename T>
+    void CheckZeros() {
+        Dtype dtype = TypeToDtype<T>;
+        Array x = Array::Zeros(Shape{3, 2}, dtype);
+        ASSERT_NE(x.data(), nullptr);
+        ASSERT_EQ(x.shape(), Shape({3, 2}));
+        ASSERT_EQ(x.dtype(), dtype);
+        T expected = static_cast<T>(0);
+        AssertDataEqual(expected, x);
+    }
+
+    template <typename T>
+    void CheckZerosLike() {
+        Dtype dtype = TypeToDtype<T>;
+        Array x_orig = Array::Empty(Shape{3, 2}, dtype);
+        Array x = Array::ZerosLike(x_orig);
+        ASSERT_NE(x.data(), nullptr);
+        ASSERT_NE(x.data(), x_orig.data());
+        ASSERT_EQ(x.shape(), x_orig.shape());
+        ASSERT_EQ(x.dtype(), x_orig.dtype());
+        T expected = static_cast<T>(0);
+        AssertDataEqual(expected, x);
+    }
+
+    template <typename T>
     void CheckOnes() {
         Dtype dtype = TypeToDtype<T>;
         Array x = Array::Ones(Shape{3, 2}, dtype);
@@ -380,6 +404,28 @@ TEST_P(ArrayTest, FullLike) {
     CheckFullLike(true, Scalar(2));
     CheckFullLike(true, Scalar(-1));
     CheckFullLike(false, Scalar(0));
+}
+
+TEST_P(ArrayTest, Zeros) {
+    CheckZeros<bool>();
+    CheckZeros<int8_t>();
+    CheckZeros<int16_t>();
+    CheckZeros<int32_t>();
+    CheckZeros<int64_t>();
+    CheckZeros<uint8_t>();
+    CheckZeros<float>();
+    CheckZeros<double>();
+}
+
+TEST_P(ArrayTest, ZerosLike) {
+    CheckZerosLike<bool>();
+    CheckZerosLike<int8_t>();
+    CheckZerosLike<int16_t>();
+    CheckZerosLike<int32_t>();
+    CheckZerosLike<int64_t>();
+    CheckZerosLike<uint8_t>();
+    CheckZerosLike<float>();
+    CheckZerosLike<double>();
 }
 
 TEST_P(ArrayTest, Ones) {
