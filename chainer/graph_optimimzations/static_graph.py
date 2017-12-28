@@ -424,51 +424,133 @@ def static_graph(func):
 
     This decorator marks the define-by-run code inside the `__call__()`
     method of a Chain instance as corresponding to a static computation
-    graph or sub-graph. Only the top-most (that is, largest) static
-    sub-graph should be decorated.
+    graph or sub-graph. Such a chain will be referred to as a 'static chain'
+    in the documentation.
 
-    This decorator will cause the wrapped `__call__()` method to
-    execute its define-by-run code once (the first time it is called). 
-    Subsequent calls
-    will then invoke optimized code that performs the same computations
-    but without the Python overhead of define-by-run. Such optimized
-    code can potentially be executed as optimized C or C++ code, and
-    potentially deployed to platforms that do not support Python (todo).
-
+    When a chain is marked as static, it causes it to execute as
+    define-by-run during the first iteration, in which a trace is performed
+    to create an optimized static schedule.
     Starting from the second iteration, the code inside ``__call__()``
     is basically replaced by a single call to a FunctionNode such that
     FunctionNode.forward() implements the forward static schedule and
     FunctionNode.backward() implements the backward static schedule.
+    The static schedule code performs the same computations but without the
+    Python overhead of define-by-run. For some chains, this can result
+    in significant runtime performance improvements.
+
+    This feature is intended to provide the following benefits:
+    - Define-by-run is still used. There is no change to the way that users define the model except that
+    this decorator is used to explicitly mark the chains corresponding
+    to the largest static sub-graphs in the network.
+    - Since the define-by-run code is executed during the first iteration, it
+    still supports easy debugging.
+    - Since an optimized static schedule is executed starting from the second
+    iteration, it can potentially provide the speed of a static graph framework.
+
+    A static schedule
+    representation can potentially be further optimized to reduce memory and/or perform
+    operations such as kernel fusion and export of computations to non-Python
+    platforms. Such advanced operations are not currently implemented, however.
+
+    A model (that is, the complete computation graph)
+    is allowed to contain an arbitrary number of static chains, each of
+    which may be called an arbitrary number of times in an iteration.
+    However, in any hierarchical nesting of chains corresponding to a
+    static graph, only the top-level chain should be explicitly
+    marked by this decorator as being static. This is because any other chains
+    that are called within a static chain will be implicitly assumed to be
+    static as well.
 
     Usage:
 
     Apply this decorator only to the top-most Chain in the hierarchy that
     contains a static sub-graph. It is not necessary (and not allowed) to
     mark a chain as static if it is contained within
-    another chain that is also marked as being static (todo: this is not checked yet). 
-    That is, suppose a
+    another chain that is also marked as being static.
+    For example, suppose a
     static graph `A` contains a static sub-graph `B`. Then, only the chain
     corresponding to `A` should be marked as static and the chain corresponding
     to `B` should not be marked as static.
 
+    In some models, such as RNNs used in NLP applications, the RNN may be
+    unrolled a different number of times each iteration. If a single
+    time slice of the RNN is represented by a static chain, this chain
+    may potentially be called an arbitrary number of times during each
+    forward pass. Note that in order for gradient propagation to work
+    correctly during the backward pass, it is required that each call
+    of the chain during the forward pass invoke a distinct `FunctionNode`
+    object that implements the static schedule. Thus, we need to ensure
+    that the same schedule instance is not reused during the same forward
+    pass. If it is not necessary to compute gradients, such as during
+    test mode, then it is fine to reuse the same schedule instance during
+    the same forward pass.
+
+    In order to ensure that a static chain works correctly with models
+    such as the RNN just described and without other modifications to existing code,
+    we chose to make
+    the behavior of a static chain depend on the training mode flag,
+    `chainer.config.train`. If the it is `True`, then a static chain that is
+    called multiple times will try to use a distinct static schedule object
+    (that is, call a distinct instance of a FunctionNode that implements
+    that static schedule) on each call. The same schedule instance cannot
+    be reused until the forward pass has completed, which is signaled by
+    performing a backward pass through the model. It is therefore important
+    that the backward pass be performed after each forward pass during
+    training. Since this is usually the case, most usages of static chain
+    will not required any modifications to existing code other than applying
+    this decorator. However, if you would like to perform multiple forward
+    passes during training before performing a backward pass, then you
+    must explicitly set an attribute ``iteration_finished`` of the
+    static chain to `True` after each forward pass.
+    If test mode is active (`chainer.config.train` is `False`) then it
+    is not necessary to inform the chain at the end of each forward pass
+    because in test mode, a static chain always attempts to reuse
+    existing static schedule objects whenever possible. It is acceptable
+    to reuse the same static schedule during a single forward pass because
+    we assume that there is no need to compute gradients and hence no
+    need to ever perform a backward pass during test mode.
+
+    Important:
+        Regarding parameters of a static chain: In the current
+        implementation, it is not allowed to change a parameter's ``data`` or
+        ``grad`` array references once they have been allocated. Any optimizer
+        that operates on a model containing a static chain must therefore
+        take care to only update a parameter's array in-place. This
+        restriction could be lifted in the future.
+        The current implementation automatically sets ``is_static`` to `True`
+        for each parameter of a static chain.
+
     Notes:
-        It is required to set retain_grad=True when calling loss.backward()
-        on a model that uses the static graph feature. This is because
-        the gradient arrays that were allocated during the first backward
-        pass will be reused in the backward static schedule. If retain_grad
-        were set to False, then these arrays would be set to None in
-        `Variable.backward()` which would break the functionality.
+        There are additional optimizations (to reduce memory usage and increase
+        performance) that are not yet implemented. When using statc graph
+        optimizations, all intermediate activations are currently allocated
+        statically even if they are not needed for backpropagation,
+        which can result in higher memory usage than the corresponding define-by-
+        run code. Also, there is the potential to perform kernel/function
+        fusion to further increase performance. Exporting of static graph
+        to C/C++ and/or an intermediate level graph representations is also
+        possible and may be considered in the future.
 
     Args:
-        forward: The forward `__call__()` method of an instance of Chain
+        func: The `__call__()` method of an instance of Chain
         that is wrapped by this decorator.
 
     Returns:
-
+        Wrapped ``__call__()`` method with static chain support.
     """
     def wrapped_func(*args, **kwargs):
+        # fixme: check if 'test mode' configuration is active
+        # (`chainer.config.train` is False). If so, always
+        # reuse schedule if possible. If in 'training mode', always use
+        # a distinct schedule or execute define-by-run code on each call
+        # until a backward pass is performed. If you want to perform multiple
+        # forward passes before calling backward during training, set
+        # attribute `iteration_finished`=True at end of each forward pass.
         chain = args[0]
         in_vars = args[1:]
+        # Since it is allowed for in_vars to be either variables or arrays,
+        # we force to variables.
+        in_vars = tuple([chainer.as_variable(x) for x in in_vars])
         if hasattr(chain, 'static_schedule'):
             # Call the optimized static schedule code.
             #print('This is the 2nd or greater iteration. Calling the optimized schedule...')

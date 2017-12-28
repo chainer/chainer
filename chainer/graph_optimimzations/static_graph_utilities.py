@@ -43,6 +43,24 @@ def is_trace_mode():
     """
     return chainer.config.schedule_func is not None
 
+
+def mark_static_vars(input_vars):
+    """Mark variables as static if inside a static chain.
+
+    If trace mode is currently on, set the ``is_static`` attribute of
+    each variable in ``input_vars`` to True.
+
+    Args:
+        input_vars (list of variable): The supplied list of variables
+            (including parameters).
+
+    """
+    if is_trace_mode():
+        for var in input_vars:
+            # todo: consider only marking a variable if it is a parameter.
+            var.is_static = True
+
+
 def static_forward_optimizations(func, in_data):
     # Check if any of the input arrays correspond to input
     # variables to a static chain. If so, replace these arrays

@@ -179,7 +179,6 @@ def linear(x, W, b=None):
 
     """
     if x.ndim > 2:
-        print('fixme: implement static optimizations.')
         x = x.reshape(len(x), -1)
 
     if b is None:
