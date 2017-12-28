@@ -22,7 +22,7 @@ void FillImpl(Array& array, T value) {
 }  // namespace
 
 void Fill(Array& out, Scalar value) {
-    switch (value.dtype()) {
+    switch (out.dtype()) {
         case Dtype::kBool:
             FillImpl(out, static_cast<bool>(value));
             break;

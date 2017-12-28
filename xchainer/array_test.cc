@@ -160,6 +160,29 @@ public:
         }
     }
 
+    template <typename T, typename U>
+    void CheckCastFill(U value) {
+        Dtype dtype = TypeToDtype<T>;
+        Array x = Array::Empty(Shape{3, 2}, dtype);
+        x.Fill(Scalar{value});
+
+#ifdef XCHAINER_ENABLE_CUDA
+        std::string device_name = ::testing::get<0>(GetParam());
+        if (device_name == "cuda") {
+            cuda::CheckError(cudaDeviceSynchronize());
+        }
+#endif  // XCHAINER_ENABLE_CUDA
+
+        ASSERT_EQ(dtype, x.dtype());
+
+        int64_t size = x.total_size();
+        T* data = static_cast<T*>(x.data().get());
+
+        for (int64_t i = 0; i < size; ++i) {
+            ASSERT_EQ(data[i], static_cast<T>(value));
+        }
+    }
+
 private:
     std::unique_ptr<DeviceScope> device_scope_;
 };
@@ -212,6 +235,11 @@ TEST_P(ArrayTest, Fill) {
     CheckFill(static_cast<double>(0.f));
     CheckFill(static_cast<double>(std::numeric_limits<double>::infinity()));
     CheckFill(static_cast<double>(std::nan("")));
+}
+
+TEST_P(ArrayTest, CastFill) {
+    CheckCastFill<float>(static_cast<int32_t>(1));
+    CheckCastFill<int32_t>(static_cast<float>(1));
 }
 
 TEST_P(ArrayTest, IAdd) {
