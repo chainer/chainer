@@ -184,20 +184,9 @@ void Array::Mul(const Array& rhs, Array& out) const {
         std::shared_ptr<const ArrayNode> rhs_node = rhs.node();
         std::shared_ptr<ArrayNode> out_node = out.RenewNode();
         std::function<Array(const Array&)> empty_func;
-        std::function<Array(const Array&)> lhs_func;
-        if (lhs.requires_grad()) {
-            Array rhs_without_grad = rhs.ShallowCopyWithoutRequiresGrad();
-            lhs_func = [rhs_without_grad](const Array& gout) { return gout * rhs_without_grad; };
-        } else {
-            lhs_func = empty_func;
-        }
-        std::function<Array(const Array&)> rhs_func;
-        if (rhs.requires_grad()) {
-            Array lhs_without_grad = lhs.ShallowCopyWithoutRequiresGrad();
-            rhs_func = [lhs_without_grad](const Array& gout) { return gout * lhs_without_grad; };
-        } else {
-            rhs_func = empty_func;
-        }
+        // TODO(sonots): turn off constructing graph (requires_grad) in backward (but, turn on for double backprop)
+        auto lhs_func = lhs.requires_grad() ? [rhs](const Array& gout) { return gout * rhs; } : empty_func;
+        auto rhs_func = rhs.requires_grad() ? [lhs](const Array& gout) { return gout * lhs; } : empty_func;
         auto backward_functions = std::vector<std::function<Array(const Array&)>>{lhs_func, rhs_func};
         std::shared_ptr<OpNode> op_node =
             std::make_shared<OpNode>("mul", std::vector<std::shared_ptr<const ArrayNode>>{lhs_node, rhs_node}, backward_functions);
