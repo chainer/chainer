@@ -104,8 +104,8 @@ Array Array::DeepCopy() const {
     } else if (GetCurrentDevice() == MakeDevice("cuda")) {
         void* ret_ptr = nullptr;
         cuda::CheckError(cudaMallocManaged(&ret_ptr, bytes, cudaMemAttachGlobal));
+        std::shared_ptr<void> ret_data(ret_ptr, ::cudaFree);
         cuda::CheckError(cudaMemcpy(ret_ptr, data_.get(), bytes, cudaMemcpyDeviceToDevice));
-        std::shared_ptr<void> ret_data = std::shared_ptr<void>(ret_ptr, ::cudaFree);
         return {shape_, dtype_, ret_data, requires_grad_, offset_};
 #endif  // XCHAINER_ENABLE_CUDA
     } else {
