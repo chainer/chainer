@@ -69,7 +69,7 @@ class SimpleChain(chainer.Chain):
             self.w = chainer.Parameter(42, (), 'w')
 
     def __call__(self, x):
-        return (x - self.w)**2
+        return (x - self.w) ** 2
 
 
 @testing.parameterize(*testing.product({
@@ -103,7 +103,8 @@ class TestOptimizerHooks(unittest.TestCase):
         h_post = WeightSaveHook()
         self.create()
         self.optimizer.add_hook(h_pre)
-        self.optimizer.add_post_update_hook(h_post)
+        self.optimizer.add_hook(h_post, name='WeightSaveHookPost',
+                                timing='post')
 
         x = chainer.Variable(np.array(5., dtype=np.float32))
         self.optimizer.update(self.target, x)
