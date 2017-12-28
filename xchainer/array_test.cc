@@ -10,7 +10,7 @@
 #endif  // XCHAINER_ENABLE_CUDA
 #include <gtest/gtest.h>
 
-#include "xchainer/array_node.h"
+#include "xchainer/array.h"
 #ifdef XCHAINER_ENABLE_CUDA
 #include "xchainer/cuda/cuda_runtime.h"
 #endif  // XCHAINER_ENABLE_CUDA
@@ -43,20 +43,44 @@ public:
     }
 
     template <typename T>
-    void AssertEqual(const Array& lhs, const Array& rhs) {
+    void AssertEqual(const Array& expected, const Array& actual) {
+        ASSERT_EQ(expected.dtype(), actual.dtype());
+        ASSERT_EQ(expected.shape(), actual.shape());
+        AssertDataEqual<T>(expected, actual);
+    }
+
+    template <typename T>
+    void AssertDataEqual(const Array& expected, const Array& actual) {
 #ifdef XCHAINER_ENABLE_CUDA
         std::string device_name = ::testing::get<0>(GetParam());
         if (device_name == "cuda") {
             cuda::CheckError(cudaDeviceSynchronize());
         }
 #endif  // XCHAINER_ENABLE_CUDA
-        ASSERT_NO_THROW(CheckEqual(lhs.dtype(), rhs.dtype()));
-        ASSERT_NO_THROW(CheckEqual(lhs.shape(), rhs.shape()));
-        auto total_size = lhs.shape().total_size();
-        const T* ldata = static_cast<const T*>(lhs.data().get());
-        const T* rdata = static_cast<const T*>(rhs.data().get());
+        auto total_size = expected.shape().total_size();
+        const T* expected_data = static_cast<const T*>(expected.data().get());
+        const T* actual_data = static_cast<const T*>(actual.data().get());
         for (decltype(total_size) i = 0; i < total_size; i++) {
-            ASSERT_EQ(ldata[i], rdata[i]) << "ldata[" << i << "] and rdata[" << i << "] do not match";
+            ASSERT_EQ(expected_data[i], actual_data[i]);
+        }
+    }
+
+    template <typename T>
+    void AssertDataEqual(T expected, const Array& actual) {
+#ifdef XCHAINER_ENABLE_CUDA
+        std::string device_name = ::testing::get<0>(GetParam());
+        if (device_name == "cuda") {
+            cuda::CheckError(cudaDeviceSynchronize());
+        }
+#endif  // XCHAINER_ENABLE_CUDA
+        auto total_size = actual.shape().total_size();
+        const T* actual_data = static_cast<const T*>(actual.data().get());
+        for (decltype(total_size) i = 0; i < total_size; i++) {
+            if (std::isnan(expected)) {
+                ASSERT_TRUE(std::isnan(actual_data[i]));
+            } else {
+                ASSERT_EQ(expected, actual_data[i]);
+            }
         }
     }
 
@@ -136,28 +160,21 @@ public:
     }
 
     template <typename T>
-    void CheckFill(T value) {
+    void CheckFill(T expected, Scalar scalar) {
         Dtype dtype = TypeToDtype<T>;
         Array x = Array::Empty(Shape{3, 2}, dtype);
-        x.Fill(Scalar{value});
+        x.Fill(scalar);
+        AssertDataEqual(expected, x);
+    }
 
-#ifdef XCHAINER_ENABLE_CUDA
-        std::string device_name = ::testing::get<0>(GetParam());
-        if (device_name == "cuda") {
-            cuda::CheckError(cudaDeviceSynchronize());
-        }
-#endif  // XCHAINER_ENABLE_CUDA
+    template <typename T>
+    void CheckFill(T value) {
+        CheckFill(value, value);
+    }
 
-        int64_t size = x.total_size();
-        T* data = static_cast<T*>(x.data().get());
-
-        for (int64_t i = 0; i < size; ++i) {
-            if (std::isnan(value)) {
-                ASSERT_TRUE(std::isnan(data[i]));
-            } else {
-                ASSERT_EQ(data[i], value);
-            }
-        }
+    template <typename T>
+    void CheckFillWithGivenDtype(T value) {
+        CheckFillWithGivenDtype(value, value);
     }
 
 private:
@@ -212,6 +229,53 @@ TEST_P(ArrayTest, Fill) {
     CheckFill(static_cast<double>(0.f));
     CheckFill(static_cast<double>(std::numeric_limits<double>::infinity()));
     CheckFill(static_cast<double>(std::nan("")));
+
+    CheckFill(true, Scalar(1));
+    CheckFill(true, Scalar(2));
+    CheckFill(true, Scalar(-1));
+    CheckFill(false, Scalar(0));
+    CheckFill(static_cast<int8_t>(1), Scalar(1));
+    CheckFill(static_cast<int8_t>(1), Scalar(1L));
+    CheckFill(static_cast<int8_t>(1), Scalar(static_cast<uint8_t>(1)));
+    CheckFill(static_cast<int8_t>(1), Scalar(true));
+    CheckFill(static_cast<int8_t>(1), Scalar(1.0f));
+    CheckFill(static_cast<int8_t>(1), Scalar(1.0));
+    CheckFill(static_cast<int16_t>(1), Scalar(1));
+    CheckFill(static_cast<int16_t>(1), Scalar(1L));
+    CheckFill(static_cast<int16_t>(1), Scalar(static_cast<uint8_t>(1)));
+    CheckFill(static_cast<int16_t>(1), Scalar(true));
+    CheckFill(static_cast<int16_t>(1), Scalar(1.0f));
+    CheckFill(static_cast<int16_t>(1), Scalar(1.0));
+    CheckFill(static_cast<int32_t>(1), Scalar(1));
+    CheckFill(static_cast<int32_t>(1), Scalar(1L));
+    CheckFill(static_cast<int32_t>(1), Scalar(static_cast<uint8_t>(1)));
+    CheckFill(static_cast<int32_t>(1), Scalar(true));
+    CheckFill(static_cast<int32_t>(1), Scalar(1.0f));
+    CheckFill(static_cast<int32_t>(1), Scalar(1.0));
+    CheckFill(static_cast<int64_t>(1), Scalar(1));
+    CheckFill(static_cast<int64_t>(1), Scalar(1L));
+    CheckFill(static_cast<int64_t>(1), Scalar(static_cast<uint8_t>(1)));
+    CheckFill(static_cast<int64_t>(1), Scalar(true));
+    CheckFill(static_cast<int64_t>(1), Scalar(1.0f));
+    CheckFill(static_cast<int64_t>(1), Scalar(1.0));
+    CheckFill(static_cast<uint8_t>(1), Scalar(1));
+    CheckFill(static_cast<uint8_t>(1), Scalar(1L));
+    CheckFill(static_cast<uint8_t>(1), Scalar(static_cast<uint8_t>(1)));
+    CheckFill(static_cast<uint8_t>(1), Scalar(true));
+    CheckFill(static_cast<uint8_t>(1), Scalar(1.0f));
+    CheckFill(static_cast<uint8_t>(1), Scalar(1.0));
+    CheckFill(static_cast<float>(1), Scalar(1));
+    CheckFill(static_cast<float>(1), Scalar(1L));
+    CheckFill(static_cast<float>(1), Scalar(static_cast<uint8_t>(1)));
+    CheckFill(static_cast<float>(1), Scalar(true));
+    CheckFill(static_cast<float>(1), Scalar(1.0f));
+    CheckFill(static_cast<float>(1), Scalar(1.0));
+    CheckFill(static_cast<double>(1), Scalar(1));
+    CheckFill(static_cast<double>(1), Scalar(1L));
+    CheckFill(static_cast<double>(1), Scalar(static_cast<uint8_t>(1)));
+    CheckFill(static_cast<double>(1), Scalar(true));
+    CheckFill(static_cast<double>(1), Scalar(1.0f));
+    CheckFill(static_cast<double>(1), Scalar(1.0));
 }
 
 TEST_P(ArrayTest, IAdd) {

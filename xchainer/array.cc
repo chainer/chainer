@@ -211,9 +211,6 @@ void Array::Mul(const Array& rhs, Array& out) const {
 }
 
 void Array::Fill(Scalar value) {
-    // TODO(niboshi): dtype conversion
-    CheckEqual(dtype_, value.dtype());
-
     Device device = GetCurrentDevice();
     if (device == MakeDevice("cpu")) {
         xchainer::Fill(*this, value);
