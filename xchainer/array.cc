@@ -102,6 +102,8 @@ Array Array::DeepCopy() const {
         return {shape_, dtype_, ret_data, requires_grad_, offset_};
 #ifdef XCHAINER_ENABLE_CUDA
     } else if (GetCurrentDevice() == MakeDevice("cuda")) {
+        // TODO(sonots): Better to use abstraction layer such as Allocate or MemoryCopy,
+        // but they do not support all cases such as device to device, yet. We need refactoring.
         void* ret_ptr = nullptr;
         cuda::CheckError(cudaMallocManaged(&ret_ptr, bytes, cudaMemAttachGlobal));
         std::shared_ptr<void> ret_data(ret_ptr, ::cudaFree);
