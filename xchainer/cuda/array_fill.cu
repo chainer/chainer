@@ -18,7 +18,7 @@ __global__ void FillKernel(T* odata, const T value, const int64_t total_size) {
 }
 
 template <typename T>
-void FillImpl(Array out, T value) {
+void FillImpl(Array& out, T value) {
     static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&FillKernel<T>).block_size;
 
     const int64_t total_size = out.shape().total_size();
