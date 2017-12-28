@@ -508,7 +508,12 @@ def check_backward(
 
     xp = cuda.get_array_module(*xs)
     directions = [xp.random.normal(size=x.shape) for x in variables]
-    # Use unit vector
+    # The direction vector is normalized in order to keep the scale of
+    # differentiation error invariant with respect to the number of input
+    # dimensions. Ideally, the scale of the curvature with respect to each
+    # input dimension should be taken into account, but we ignore the
+    # differences and assume that the curvature is uniform with respect to all
+    # the input dimentions.
     norm = math.sqrt(sum([xp.square(d).sum() for d in directions]))
     if norm != 0:
         # norm could be zero if input arrays are 0-sized.
