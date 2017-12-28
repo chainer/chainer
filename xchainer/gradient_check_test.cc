@@ -34,11 +34,11 @@ public:
     }
 
     template <typename T>
-    void CheckElementwiseNumericalGradient(const std::function<Array(const Arrays&)>& func, const Arrays& center_inputs,
+    void CheckElementwiseNumericalGradient(const std::function<Arrays(const Arrays&)>& func, const Arrays& center_inputs,
                                            const Arrays& grad_outputs, const Arrays& eps, const Arrays& expected_grads) {
         size_t nin = center_inputs.size();
 
-        auto checked_func = [&](const Arrays& inputs) -> Array {
+        auto checked_func = [&](const Arrays& inputs) -> Arrays {
             EXPECT_EQ(inputs.size(), nin) << "The number of inputs given to the function is wrong";
             for (size_t i = 0; i < center_inputs.size(); ++i) {
                 EXPECT_EQ(inputs[i].shape(), center_inputs[i].shape()) << "Shape of inputs given to the function is wrong";
@@ -82,7 +82,7 @@ TEST_F(NumericalGradientTest, NumericalGradientAdd) {
     };
 
     // Forward function
-    auto forward = [](const Arrays& inputs) { return inputs[0] + inputs[1]; };
+    auto forward = [](const Arrays& inputs) { return Arrays{inputs[0] + inputs[1]}; };
 
     // Create expected gradients
     Arrays expected_grads = {grad_outputs[0], grad_outputs[0]};
@@ -110,7 +110,7 @@ TEST_F(NumericalGradientTest, NumericalGradientMul) {
     };
 
     // Forward function
-    auto forward = [](const Arrays& inputs) { return inputs[0] * inputs[1]; };
+    auto forward = [](const Arrays& inputs) { return Arrays{inputs[0] * inputs[1]}; };
 
     // Create expected gradients
     Arrays expected_grads = {inputs[1] * grad_outputs[0], inputs[0] * grad_outputs[0]};

@@ -186,7 +186,7 @@ Scalar Get(const Array& out, int64_t flat_index) {
     return 0;
 }
 
-Arrays CalculateNumericalGradient(std::function<Array(const Arrays&)> func, const Arrays& inputs, const Arrays& grad_outputs,
+Arrays CalculateNumericalGradient(std::function<Arrays(const Arrays&)> func, const Arrays& inputs, const Arrays& grad_outputs,
                                   const Arrays& eps) {
     // TODO(niboshi): Currently only elementwise functions are supported.
     // TODO(niboshi): Implement arithmetic operations and avoid manual synchronize
@@ -214,7 +214,7 @@ Arrays CalculateNumericalGradient(std::function<Array(const Arrays&)> func, cons
         std::transform(inputs.begin(), inputs.end(), std::back_inserter(xs), [](const Array& x) { return x.DeepCopy(); });
 
         Set(xs.at(i_in), in_flat_index, Get(xs.at(i_in), in_flat_index) + Scalar(static_cast<float>(eps_scalar) * multiplier, dtype));
-        return {func(xs)};
+        return func(xs);
     };
 
     Arrays grads;
