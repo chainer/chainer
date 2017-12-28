@@ -102,6 +102,8 @@ class UpdateRule(object):
 
     Hook functions can be set to any update rule instance. The hook function is
     called just before any updates in the order of registrations.
+    Post-update hook functions can also be set. These are called just after any
+    updates in the order of registrations.
 
     An implementation of update rule should override :meth:`update_core` or
     its device-dependent variants (i.e., :meth:`update_core_cpu` and
@@ -129,6 +131,7 @@ class UpdateRule(object):
 
     def __init__(self, parent_hyperparam=None):
         self._hooks = collections.OrderedDict()
+        self._post_update_hooks = collections.OrderedDict()
         self._state = None
         self.enabled = True
         self.hyperparam = Hyperparameter(parent_hyperparam)
@@ -166,6 +169,31 @@ class UpdateRule(object):
 
         self._hooks[name] = hook
 
+    def add_post_update_hook(self, hook, name=None):
+        """Adds a post-update hook function.
+
+        The hook function is called after any updates.
+
+        Args:
+            hook (callable): Hook function to be added. It takes two
+                arguments: the update rule object and the parameter variable.
+            name (str): Name of the hook function. The name attribute of the
+                hook function is used by default.
+
+        """
+        if not callable(hook):
+            raise TypeError('hook function must be callable')
+
+        if name is None:
+            name = getattr(hook, 'name', getattr(hook, '__name__', None))
+            if name is None:
+                raise ValueError(
+                    'the name of the hook function is not specified')
+        if name in self._post_update_hooks:
+            raise ValueError('hook "{}" already exists'.format(name))
+
+        self._post_update_hooks[name] = hook
+
     def remove_hook(self, name):
         """Removes the specified hook function.
 
@@ -175,6 +203,16 @@ class UpdateRule(object):
 
         """
         del self._hooks[name]
+
+    def remove_post_update_hook(self, name):
+        """Removes the specified post-update hook function.
+
+        Args:
+            name (str): Name of the hook function to be removed. The hook
+                function registered with this name will be removed.
+
+        """
+        del self._post_update_hooks[name]
 
     def update(self, param):
         """Invokes hook functions and updates the parameter.
@@ -201,6 +239,8 @@ class UpdateRule(object):
             for hook in six.itervalues(self._hooks):
                 hook(self, fp32_param)
             self.update_core(fp32_param)
+            for hook in six.itervalues(self._post_update_hooks):
+                hook(self, fp32_param)
 
             param.data = fp32_param.data.astype(param.dtype)
             fp32_param.grad = None
@@ -210,6 +250,8 @@ class UpdateRule(object):
             for hook in six.itervalues(self._hooks):
                 hook(self, param)
             self.update_core(param)
+            for hook in six.itervalues(self._post_update_hooks):
+                hook(self, param)
 
     def update_core(self, param):
         """Updates the parameter.
@@ -354,6 +396,9 @@ class Optimizer(object):
     ``True``, the hook function is used as a hook function of all update rules
     (i.e., it is invoked for every parameter by passing the corresponding
     update rule and the parameter).
+    Post-update functions can also be registered by the
+    :meth:`add_post_update_hook` method. These behave like regular hooks,
+    but are called after the actual parameter update.
 
     Attributes:
         target: Target link object. It is set by the :meth:`setup` method.
@@ -383,6 +428,7 @@ class Optimizer(object):
         self.t = 0
         self.epoch = 0
         self._hooks = collections.OrderedDict()
+        self._post_update_hooks = collections.OrderedDict()
 
     def update(self, lossfun=None, *args, **kwds):
         """Updates the parameters.
@@ -453,6 +499,34 @@ class Optimizer(object):
             raise KeyError('hook %s already exists' % name)
         self._hooks[name] = hook
 
+    def add_post_update_hook(self, hook, name=None):
+        """Registers a post-update hook function.
+
+        A post-update hook function is typically called right after the
+        parameter update, though the timing depends on the optimization method.
+
+        Args:
+            hook (function): Hook function. If ``hook.call_for_each_param`` is
+                true, this hook function is called for each parameter by
+                passing the update rule and the parameter. Otherwise, this hook
+                function is called only once each iteration by passing the
+                optimizer.
+            name (str): Name of the registration. If omitted, ``hook.name`` is
+                used by default.
+
+        """
+        if not callable(hook):
+            raise TypeError('hook function is not callable')
+        if self._post_update_hooks is None:
+            raise RuntimeError('call `setup` method before '
+                               '`add_post_update_hook` method')
+
+        if name is None:
+            name = hook.name
+        if name in self._post_update_hooks:
+            raise KeyError('hook %s already exists' % name)
+        self._post_update_hooks[name] = hook
+
     def remove_hook(self, name):
         """Removes a hook function.
 
@@ -462,9 +536,23 @@ class Optimizer(object):
         """
         del self._hooks[name]
 
+    def remove_post_update_hook(self, name):
+        """Removes a post-update hook function.
+
+        Args:
+            name (str): Registered name of the hook function to remove.
+
+        """
+        del self._post_update_hooks[name]
+
     def call_hooks(self):
         """Invokes hook functions in registration order."""
         for hook in six.itervalues(self._hooks):
+            self._call_hook(hook)
+
+    def call_post_update_hooks(self):
+        """Invokes post-update hook functions in registration order."""
+        for hook in six.itervalues(self._post_update_hooks):
             self._call_hook(hook)
 
     def _call_hook(self, hook):
@@ -560,6 +648,12 @@ class GradientMethod(Optimizer):
             self._call_hook(hook)
             self.reallocate_cleared_grads()
 
+    def call_post_update_hooks(self):
+        """Invokes post-update hook functions in registration order."""
+        for hook in six.itervalues(self._post_update_hooks):
+            self._call_hook(hook)
+            self.reallocate_cleared_grads()
+
     def update(self, lossfun=None, *args, **kwds):
         """Updates parameters based on a loss function or computed gradients.
 
@@ -592,6 +686,10 @@ class GradientMethod(Optimizer):
         self.t += 1
         for param in self.target.params():
             param.update()
+
+        self.reallocate_cleared_grads()
+
+        self.call_post_update_hooks()
 
     def use_cleargrads(self, use=True):
         """Enables or disables use of :func:`~chainer.Link.cleargrads` in `update`.
