@@ -17,7 +17,7 @@ namespace xchainer {
 // The main data structure of multi-dimensional array.
 class Array {
 public:
-    Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, int64_t offset = 0);
+    Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, bool requires_grad = false, int64_t offset = 0);
 
     static Array Empty(const Shape& shape, Dtype dtype);
 
@@ -44,6 +44,8 @@ public:
 
     std::shared_ptr<const void> data() const { return data_; }
 
+    bool requires_grad() const { return requires_grad_; }
+
     int64_t offset() const { return offset_; }
 
     const std::shared_ptr<ArrayNode>& node() { return node_; }
@@ -64,6 +66,8 @@ public:
 
     std::string ToString() const;
 
+    Array DeepCopy() const;
+
 private:
     void Add(const Array& rhs, Array& out) const;
     void Mul(const Array& rhs, Array& out) const;
@@ -74,6 +78,7 @@ private:
     Dtype dtype_;
 
     std::shared_ptr<void> data_;
+    bool requires_grad_;
     int64_t offset_;
 
     std::shared_ptr<ArrayNode> node_;

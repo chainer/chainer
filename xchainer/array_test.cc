@@ -32,14 +32,14 @@ protected:
 public:
     template <typename T>
     Array MakeArray(std::initializer_list<int64_t> shape, std::shared_ptr<void> data) {
-        return {shape, TypeToDtype<T>, data};
+        return {shape, TypeToDtype<T>, data, true};
     }
 
     template <typename T>
     Array MakeArray(std::initializer_list<int64_t> shape, std::initializer_list<T> data) {
         auto a = std::make_unique<T[]>(data.size());
         std::copy(data.begin(), data.end(), a.get());
-        return {shape, TypeToDtype<T>, std::move(a)};
+        return {shape, TypeToDtype<T>, std::move(a), true};
     }
 
     template <typename T>
@@ -56,7 +56,7 @@ public:
         const T* ldata = static_cast<const T*>(lhs.data().get());
         const T* rdata = static_cast<const T*>(rhs.data().get());
         for (decltype(total_size) i = 0; i < total_size; i++) {
-            ASSERT_EQ(ldata[i], rdata[i]);
+            ASSERT_EQ(ldata[i], rdata[i]) << "ldata[" << i << "] and rdata[" << i << "] do not match";
         }
     }
 
@@ -470,6 +470,69 @@ TEST_P(ArrayTest, ComputationalGraphInplace) {
             ASSERT_EQ(a_op_node->name(), "mul");
         }
     }
+}
+
+TEST_P(ArrayTest, DeepCopy) {
+    Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
+    Array b = a.DeepCopy();
+    AssertEqual<bool>(a, b);
+}
+
+TEST_P(ArrayTest, AddBackward) {
+    Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
+    Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
+    Array o = a + b;
+
+    auto op_node = o.node()->next_node();
+    Array go = MakeArray<bool>({4, 1}, {true, true, true, true});
+    Array ga = op_node->backward_functions()[0](go);
+    Array gb = op_node->backward_functions()[1](go);
+
+    AssertEqual<bool>(ga, go);
+    AssertEqual<bool>(gb, go);
+}
+
+TEST_P(ArrayTest, IAddBackward) {
+    Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
+    Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
+    a += b;
+
+    auto op_node = a.node()->next_node();
+    Array go = MakeArray<bool>({4, 1}, {true, true, true, true});
+    Array ga = op_node->backward_functions()[0](go);
+    Array gb = op_node->backward_functions()[1](go);
+
+    AssertEqual<bool>(ga, go);
+    AssertEqual<bool>(gb, go);
+}
+
+TEST_P(ArrayTest, MulBackward) {
+    Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
+    Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
+    Array o = a * b;
+
+    auto op_node = o.node()->next_node();
+    Array go = MakeArray<bool>({4, 1}, {true, true, true, true});
+    Array ga = op_node->backward_functions()[0](go);
+    Array gb = op_node->backward_functions()[1](go);
+
+    AssertEqual<bool>(ga, go * b);
+    AssertEqual<bool>(gb, go * a);
+}
+
+TEST_P(ArrayTest, IMulBackward) {
+    Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
+    Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
+    Array orig_a = a.DeepCopy();
+    a *= b;
+
+    auto op_node = a.node()->next_node();
+    Array go = MakeArray<bool>({4, 1}, {true, true, true, true});
+    Array ga = op_node->backward_functions()[0](go);
+    Array gb = op_node->backward_functions()[1](go);
+
+    AssertEqual<bool>(ga, go * b);
+    AssertEqual<bool>(gb, go * orig_a);
 }
 
 INSTANTIATE_TEST_CASE_P(ForEachDevice, ArrayTest, ::testing::Values(
