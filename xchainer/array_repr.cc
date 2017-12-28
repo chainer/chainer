@@ -220,7 +220,7 @@ struct ArrayReprImpl {
 
 }  // namespace
 
-void ArrayRepr(std::ostream& os, const Array& array) {
+std::ostream& operator<<(std::ostream& os, const Array& array) {
     switch (array.dtype()) {
         case Dtype::kBool:
             ArrayReprImpl{}.operator()<Dtype::kBool>(array, array.data(), os);
@@ -249,11 +249,12 @@ void ArrayRepr(std::ostream& os, const Array& array) {
         default:
             assert(0);
     }
+    return os;
 }
 
 std::string ArrayRepr(const Array& array) {
     std::ostringstream os;
-    ArrayRepr(os, array);
+    os << array;
     return os.str();
 }
 
