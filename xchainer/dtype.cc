@@ -8,28 +8,6 @@ namespace xchainer {
 
 std::ostream& operator<<(std::ostream& os, Dtype dtype) { return os << GetDtypeName(dtype); }
 
-const char* GetDtypeName(Dtype dtype) {
-    switch (dtype) {
-        case Dtype::kBool:
-            return "bool";
-        case Dtype::kInt8:
-            return "int8";
-        case Dtype::kInt16:
-            return "int16";
-        case Dtype::kInt32:
-            return "int32";
-        case Dtype::kInt64:
-            return "int64";
-        case Dtype::kUInt8:
-            return "uint8";
-        case Dtype::kFloat32:
-            return "float32";
-        case Dtype::kFloat64:
-            return "float64";
-    }
-    throw DtypeError("invalid dtype");
-}
-
 Dtype GetDtype(const std::string& name) {
     static const std::unordered_map<std::string, Dtype> kMapping = {
         // full name

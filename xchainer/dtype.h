@@ -44,174 +44,99 @@ struct hash<::xchainer::Dtype> {
 
 namespace xchainer {
 
-namespace dtype_detail {
+// Kind of dtypes.
+enum class DtypeKind {
+    kBool = 0,
+    kInt,
+    kUInt,
+    kFloat,
+};
 
+// Tag type used for dynamic dispatching with dtype value.
+//
+// This class template is used to resolve mapping from runtime dtype values to compile-time primitive types.
 template <typename T>
-struct TypeToDtype;
-template <>
-struct TypeToDtype<bool> {
-    static constexpr Dtype value = Dtype::kBool;
-};
-template <>
-struct TypeToDtype<int8_t> {
-    static constexpr Dtype value = Dtype::kInt8;
-};
-template <>
-struct TypeToDtype<int16_t> {
-    static constexpr Dtype value = Dtype::kInt16;
-};
-template <>
-struct TypeToDtype<int32_t> {
-    static constexpr Dtype value = Dtype::kInt32;
-};
-template <>
-struct TypeToDtype<int64_t> {
-    static constexpr Dtype value = Dtype::kInt64;
-};
-template <>
-struct TypeToDtype<uint8_t> {
-    static constexpr Dtype value = Dtype::kUInt8;
-};
-template <>
-struct TypeToDtype<float> {
-    static constexpr Dtype value = Dtype::kFloat32;
-};
-template <>
-struct TypeToDtype<double> {
-    static constexpr Dtype value = Dtype::kFloat64;
-};
+struct PrimitiveType;
 
-template <char c>
-struct CharToDtype;
-template <>
-struct CharToDtype<'?'> {
-    static constexpr Dtype value = Dtype::kBool;
-};
-template <>
-struct CharToDtype<'b'> {
-    static constexpr Dtype value = Dtype::kInt8;
-};
-template <>
-struct CharToDtype<'h'> {
-    static constexpr Dtype value = Dtype::kInt16;
-};
-template <>
-struct CharToDtype<'i'> {
-    static constexpr Dtype value = Dtype::kInt32;
-};
-template <>
-struct CharToDtype<'q'> {
-    static constexpr Dtype value = Dtype::kInt64;
-};
-template <>
-struct CharToDtype<'B'> {
-    static constexpr Dtype value = Dtype::kUInt8;
-};
-template <>
-struct CharToDtype<'f'> {
-    static constexpr Dtype value = Dtype::kFloat32;
-};
-template <>
-struct CharToDtype<'d'> {
-    static constexpr Dtype value = Dtype::kFloat64;
-};
+#define XCHAINER_DEFINE_PRIMITIVE_TYPE(name, code, dtype, kind, t) \
+    template <>                                                    \
+    struct PrimitiveType<t> {                                      \
+        using type = t;                                            \
+        static constexpr char kCharCode = code;                    \
+        static constexpr Dtype kDtype = dtype;                     \
+        static constexpr int64_t kElementSize = sizeof(type);      \
+        static constexpr DtypeKind kKind = kind;                   \
+        static const char* GetName() { return name; }              \
+    }
 
-template <Dtype dtype>
-struct DtypeToType;
-template <>
-struct DtypeToType<Dtype::kBool> {
-    using type = bool;
-};
-template <>
-struct DtypeToType<Dtype::kInt8> {
-    using type = int8_t;
-};
-template <>
-struct DtypeToType<Dtype::kInt16> {
-    using type = int16_t;
-};
-template <>
-struct DtypeToType<Dtype::kInt32> {
-    using type = int32_t;
-};
-template <>
-struct DtypeToType<Dtype::kInt64> {
-    using type = int64_t;
-};
-template <>
-struct DtypeToType<Dtype::kUInt8> {
-    using type = uint8_t;
-};
-template <>
-struct DtypeToType<Dtype::kFloat32> {
-    using type = float;
-};
-template <>
-struct DtypeToType<Dtype::kFloat64> {
-    using type = double;
-};
+XCHAINER_DEFINE_PRIMITIVE_TYPE("bool", '?', Dtype::kBool, DtypeKind::kBool, bool);
+XCHAINER_DEFINE_PRIMITIVE_TYPE("int8", 'b', Dtype::kInt8, DtypeKind::kInt, int8_t);
+XCHAINER_DEFINE_PRIMITIVE_TYPE("int16", 'h', Dtype::kInt16, DtypeKind::kInt, int16_t);
+XCHAINER_DEFINE_PRIMITIVE_TYPE("int32", 'i', Dtype::kInt32, DtypeKind::kInt, int32_t);
+XCHAINER_DEFINE_PRIMITIVE_TYPE("int64", 'q', Dtype::kInt64, DtypeKind::kInt, int64_t);
+XCHAINER_DEFINE_PRIMITIVE_TYPE("uint8", 'B', Dtype::kUInt8, DtypeKind::kUInt, uint8_t);
+XCHAINER_DEFINE_PRIMITIVE_TYPE("float32", 'f', Dtype::kFloat32, DtypeKind::kFloat, float);
+XCHAINER_DEFINE_PRIMITIVE_TYPE("float64", 'd', Dtype::kFloat64, DtypeKind::kFloat, double);
 
-}  // namespace dtype_detail
+#undef XCHAINER_DEFINE_PRIMITIVE_TYPE
 
-// TypeToDtype<type> == dtype
+// Dtype mapped from primitive type.
 template <typename T>
-constexpr Dtype TypeToDtype = dtype_detail::TypeToDtype<T>::value;
+constexpr Dtype TypeToDtype = PrimitiveType<T>::kDtype;
 
-// CharToDtype<c> == dtype
-template <char c>
-constexpr Dtype CharToDtype = dtype_detail::CharToDtype<c>::value;
-
-// DtypeToType<dtype> == type
-template <Dtype dtype>
-using DtypeToType = typename dtype_detail::DtypeToType<dtype>::type;
-
-// Single character identifier compatible to NumPy's char code
-constexpr char GetCharCode(Dtype dtype) {
+// Invokes a function by passing PrimitiveType<T> corresponding to given dtype value.
+//
+// For example,
+//     VisitDtype(f, Dtype::kInt32, args...);
+// is equivalent to
+//     f(PrimtiveType<int>, args...);
+// Note that the dtype argument can be a runtime value. This function can be used for dynamic dispatching based on dtype values.
+//
+// Note (beam2d): This function should be constexpr, but GCC 5.x does not allow it because of the throw statement, so currently not marked
+// as constexpr.
+template <typename F, typename... Args>
+auto VisitDtype(F&& f, Dtype dtype, Args&&... args) {
     switch (dtype) {
         case Dtype::kBool:
-            return '?';
+            return std::forward<F>(f)(PrimitiveType<bool>{}, std::forward<Args>(args)...);
         case Dtype::kInt8:
-            return 'b';
+            return std::forward<F>(f)(PrimitiveType<int8_t>{}, std::forward<Args>(args)...);
         case Dtype::kInt16:
-            return 'h';
+            return std::forward<F>(f)(PrimitiveType<int16_t>{}, std::forward<Args>(args)...);
         case Dtype::kInt32:
-            return 'i';
+            return std::forward<F>(f)(PrimitiveType<int32_t>{}, std::forward<Args>(args)...);
         case Dtype::kInt64:
-            return 'q';
+            return std::forward<F>(f)(PrimitiveType<int64_t>{}, std::forward<Args>(args)...);
         case Dtype::kUInt8:
-            return 'B';
+            return std::forward<F>(f)(PrimitiveType<uint8_t>{}, std::forward<Args>(args)...);
         case Dtype::kFloat32:
-            return 'f';
+            return std::forward<F>(f)(PrimitiveType<float>{}, std::forward<Args>(args)...);
         case Dtype::kFloat64:
-            return 'd';
+            return std::forward<F>(f)(PrimitiveType<double>{}, std::forward<Args>(args)...);
+        default:
+            throw DtypeError("invalid dtype");
     }
-    return 0;  // never happen
 }
 
-constexpr int64_t GetElementSize(Dtype dtype) {
-    switch (dtype) {
-        case Dtype::kBool:
-            return 1;
-        case Dtype::kInt8:
-            return 1;
-        case Dtype::kInt16:
-            return 2;
-        case Dtype::kInt32:
-            return 4;
-        case Dtype::kInt64:
-            return 8;
-        case Dtype::kUInt8:
-            return 1;
-        case Dtype::kFloat32:
-            return 4;
-        case Dtype::kFloat64:
-            return 8;
-    }
-    return 0;  // never happen
+// Gets the single character identifier compatible to NumPy's char code
+inline char GetCharCode(Dtype dtype) {
+    return VisitDtype([](auto pt) { return decltype(pt)::kCharCode; }, dtype);
+}
+
+// Gets the element size of the dtype in bytes.
+inline int64_t GetElementSize(Dtype dtype) {
+    return VisitDtype([](auto pt) { return decltype(pt)::kElementSize; }, dtype);
+}
+
+// Gets the kind of dtype.
+inline DtypeKind GetKind(Dtype dtype) {
+    return VisitDtype([](auto pt) { return decltype(pt)::kKind; }, dtype);
 }
 
 // const char* representation of dtype compatible to NumPy's dtype name.
-const char* GetDtypeName(Dtype dtype);
+inline const char* GetDtypeName(Dtype dtype) {
+    return VisitDtype([](auto pt) { return decltype(pt)::GetName(); }, dtype);
+}
 
 // Gets the dtype of given name.
 Dtype GetDtype(const std::string& name);
@@ -221,31 +146,5 @@ std::vector<Dtype> GetAllDtypes();
 
 // Throws an exception if two dtypes mismatch.
 void CheckEqual(Dtype lhs, Dtype rhs);
-
-// Kind of dtypes.
-enum class DtypeKind {
-    kBool = 0,
-    kInt,
-    kUInt,
-    kFloat,
-};
-
-constexpr DtypeKind GetKind(Dtype dtype) {
-    switch (dtype) {
-        case Dtype::kBool:
-            return DtypeKind::kBool;
-        case Dtype::kInt8:
-        case Dtype::kInt16:
-        case Dtype::kInt32:
-        case Dtype::kInt64:
-            return DtypeKind::kInt;
-        case Dtype::kUInt8:
-            return DtypeKind::kUInt;
-        case Dtype::kFloat32:
-        case Dtype::kFloat64:
-            return DtypeKind::kFloat;
-    }
-    return DtypeKind::kInt;  // never happen
-}
 
 }  // namespace xchainer
