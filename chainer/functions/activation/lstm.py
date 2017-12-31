@@ -217,10 +217,10 @@ class LSTMGrad(function.Function):
         gga, ggi, ggf, ggo = _extract_gates(ggx)
         ga, gi, gf, go = _extract_gates(gx)
 
-        gc_prev[:batch], ga[:], gi[:], gf[:], go[:], gc_next[:batch], \
-            ggc[:batch], ggh[:batch] \
-            = lstm_grad_grad(
-                c_prev, a, i, f, o, c, gc, gh, ggc_prev, gga, ggi, ggf, ggo)
+        lstm_grad_grad(
+            c_prev, a, i, f, o, c, gc, gh, ggc_prev, gga, ggi, ggf, ggo,
+            gc_prev[:batch], ga[:], gi[:], gf[:], go[:], gc_next[:batch],
+            ggc[:batch], ggh[:batch])
         return gc_prev, gx, gc_next, ggc, ggh
 
 
@@ -229,9 +229,10 @@ def _cupy_sigmoid(x):
     return cuda.fusion.tanh(x * half) * half + half
 
 
-@cuda.fuse()
+@cuda.fuse(input_num=13)
 def lstm_grad_grad(
-        c_prev, a, i, f, o, c, gc, gh, ggc_prev, gga, ggi, ggf, ggo):
+        c_prev, a, i, f, o, c, gc, gh, ggc_prev, gga, ggi, ggf, ggo,
+        gc_prev, ga, gi, gf, go, gc_next, ggc, ggh):
     sig_o = _cupy_sigmoid(o)
     gsig_o = _grad_sigmoid(sig_o)
     ggsig_o = _grad_grad_sigmoid(sig_o)
@@ -250,25 +251,29 @@ def lstm_grad_grad(
 
     gc_bar = gh * sig_o * gtanh_c + gc
 
-    gc_prev = ggf * gc_bar * gsig_f
-    ga = (gga * sig_i * ggtanh_a +
-          ggi * gtanh_a * gsig_i) * gc_bar
-    gi = (gga * gtanh_a * gsig_i +
-          ggi * tanh_a * ggsig_i) * gc_bar
-    gf = (ggc_prev * (gh * sig_o * gtanh_c + gc) * gsig_f +
-          ggf * gc_bar * c_prev * ggsig_f)
+    cuda.cupy.fusion.multiply(ggf * gc_bar, gsig_f, out=gc_prev)
+    cuda.cupy.fusion.multiply(
+        (gga * sig_i * ggtanh_a + ggi * gtanh_a * gsig_i), gc_bar,
+        out=ga)
+    cuda.cupy.fusion.multiply(
+        (gga * gtanh_a * gsig_i + ggi * tanh_a * ggsig_i), gc_bar,
+        out=gi)
+    cuda.cupy.fusion.add(
+        ggc_prev * (gh * sig_o * gtanh_c + gc) * gsig_f,
+        ggf * gc_bar * c_prev * ggsig_f, out=gf)
 
-    ggc = (
+    cuda.cupy.fusion.add(
         ggc_prev * sig_f +
         gga * sig_i * gtanh_a +
-        ggi * tanh_a * gsig_i +
-        ggf * c_prev * gsig_f)
+        ggi * tanh_a * gsig_i,
+        ggf * c_prev * gsig_f, out=ggc)
 
     dgc_do = gh * gsig_o * gtanh_c
-    go = ggc * dgc_do + ggo * gh * tanh_c * ggsig_o
+    cuda.cupy.fusion.add(ggc * dgc_do, ggo * gh * tanh_c * ggsig_o, out=go)
     dgc_dc = gh * sig_o * ggtanh_c
-    gc_next = ggc * dgc_dc + ggo * gh * gtanh_c * gsig_o
-    ggh = ggc * sig_o * gtanh_c + ggo * tanh_c * gsig_o
+    cuda.cupy.fusion.add(
+        ggc * dgc_dc, ggo * gh * gtanh_c * gsig_o, out=gc_next)
+    cuda.cupy.fusion.add(ggc * sig_o * gtanh_c, ggo * tanh_c * gsig_o, out=ggh)
     return gc_prev, ga, gi, gf, go, gc_next, ggc, ggh
 
 
