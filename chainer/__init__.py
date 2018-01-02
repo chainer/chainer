@@ -31,6 +31,7 @@ from chainer import variable  # NOQA
 # These functions from backends.cuda are kept for backward compatibility
 from chainer.backends.cuda import should_use_cudnn  # NOQA
 from chainer.backends.cuda import should_use_cudnn_tensor_core  # NOQA
+from chainer.backends.ia import should_use_ideep  # NOQA
 from chainer.configuration import config  # NOQA
 from chainer.configuration import global_config  # NOQA
 from chainer.configuration import using_config  # NOQA
@@ -66,6 +67,7 @@ from chainer.variable import Variable  # NOQA
 
 # Alias for backward compatibility
 from chainer import cuda  # NOQA
+from chainer import ia  # NOQA
 
 
 from chainer import _environment_check
@@ -98,6 +100,7 @@ global_config.train = True
 global_config.type_check = bool(int(os.environ.get('CHAINER_TYPE_CHECK', '1')))
 global_config.use_cudnn = os.environ.get('CHAINER_USE_CUDNN', 'auto')
 global_config.use_cudnn_tensor_core = 'auto'
+global_config.use_ideep = os.environ.get('CHAINER_USE_IDEEP', 'auto')
 global_config.autotune = False
 
 
