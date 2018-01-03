@@ -222,7 +222,9 @@ Use apply() method instead.\
 
         """
         input_vars = [chainer.as_variable(x) for x in inputs]
+
         mark_static_vars(input_vars)
+
         in_data = tuple([x.data for x in input_vars])
         requires_grad = any([x.requires_grad for x in input_vars])
 
@@ -258,16 +260,8 @@ Use apply() method instead.\
         with cuda.get_device_from_array(*in_data):
             self._input_indexes_to_retain = None
             self._output_indexes_to_retain = None
-            #outputs = self.forward(in_data)
-            ####-----------------------------------
-            # New experimental code (vogel):
-
-            #in_data = self._static_forward_optimizations(in_data)
-            #in_data = static_forward_optimizations(self, in_data)
-            #outputs = self.forward(in_data)
-            outputs = static_forward_optimizations(self, in_data)
-
-            ####-------------------------------------
+            outputs = self.forward(in_data)
+            static_forward_optimizations(self, input_vars)
 
         # Check for output array types
         if not isinstance(outputs, tuple):
