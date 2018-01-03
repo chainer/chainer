@@ -402,9 +402,8 @@ Use apply() method instead.\
             return value must be a tuple even if it returns only one array.
 
         """
-        for i, x in enumerate(inputs):
-            if isinstance(x, chainer.ia.mdarray):
-                inputs[i] = numpy.array(x)
+        inputs = tuple([x if isinstance(x, chainer.ia.mdarray) else
+                        numpy.array(x) for x in inputs])
         return self.forward_cpu(inputs)
 
     def forward_gpu(self, inputs):
