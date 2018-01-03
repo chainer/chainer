@@ -21,7 +21,6 @@ import os
 import numpy
 
 import chainer
-from chainer import variable
 from chainer.configuration import config
 
 
@@ -152,7 +151,7 @@ def all_ready(inputs, supported_ndim=(2, 4)):
     if not ideep_enabled:
         return False
 
-    _inputs = [x.data if isinstance(x, variable.Variable)
+    _inputs = [x.data if isinstance(x, chainer.variable.Variable)
                else x for x in inputs]
 
     # Check with ideep4py supported dimension of input data
