@@ -45,6 +45,7 @@ and :class:`cupy.ndarray`.
    :nosignatures:
 
    chainer.testing.assert_allclose
+   chainer.testing.assert_warns
 
 Function testing utilities
 --------------------------
@@ -55,3 +56,44 @@ Chainer provides some utilities for testing its functions.
    :nosignatures:
 
    chainer.testing.unary_math_function_unittest
+   chainer.testing.save_and_load
+   chainer.testing.save_and_load_hdf5
+   chainer.testing.save_and_load_npz
+
+
+Repeat
+------
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.testing.condition.repeat_with_success_at_least
+   chainer.testing.condition.repeat
+   chainer.testing.condition.retry
+
+
+Mark
+----
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.testing.attr.gpu
+   chainer.testing.attr.multi_gpu
+   chainer.testing.with_requires
+   chainer.testig.fix_random
+
+
+Parameterized test
+------------------
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.testing.parameterize
+   chainer.testing.product
+   chainer.testing.product_dict
+   
