@@ -39,12 +39,15 @@ def to_device(device, x):
 def concat_examples(batch, device=None, padding=None):
     """Concatenates a list of examples into array(s).
 
-    Dataset iterator yields a list of examples. If each example is an array,
-    this function concatenates them along the newly-inserted first axis (called
-    `batch dimension`) into one array. The basic behavior is same for examples
-    consisting of multiple arrays, i.e., corresponding arrays of all examples
-    are concatenated.
+    This function converts "an arrays of tuples" into "a tuple of arrays".
+    Given an list of examples each of which consists of
+    "multiple" arrays, this function takes an array
+    in the same "relative" position within an example from each example,
+    concatenates them along the newly-inserted first axis
+    (called `batch dimension`) into one array.
+    It repeats the same thing in all positions and returns resulting arrays.
 
+    The output type depends on the type of examples in ``batch``.
     For instance, consider each example consists of two arrays ``(x, y)``.
     Then, this function concatenates ``x`` 's into one array, and ``y`` 's
     into another array, and returns a tuple of these two arrays. Another
