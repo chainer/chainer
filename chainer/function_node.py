@@ -386,10 +386,12 @@ Use apply() method instead.\
     def forward_ia(self, inputs):
         """Computes the output arrays from the input NumPy arrays or ideep arrays.
 
-        if function node does not implement forward_ia, then bridges to forward_cpu
+        if function node does not implement forward_ia, then
+        bridges to forward_cpu
 
         Args:
-            inputs: Tuple of input :class:`numpy.ndarray` or :class:`ideep4py.mdarray` objects.
+            inputs: Tuple of input :class:`numpy.ndarray` or
+                :class:`ideep4py.mdarray` objects.
 
         Returns:
             Tuple of output arrays. Each element can be ideep4py mdarray.
