@@ -100,8 +100,10 @@ class BatchNormalization(link.Link):
         self.register_persistent('avg_mean')
         self.avg_var = numpy.zeros(shape, dtype=self._dtype)
         self.register_persistent('avg_var')
-        self.gamma.initialize(shape)
-        self.beta.initialize(shape)
+        if hasattr(self, 'gamma'):
+            self.gamma.initialize(shape)
+        if hasattr(self, 'beta'):
+            self.beta.initialize(shape)
 
     def __call__(self, x, **kwargs):
         """__call__(self, x, finetune=False)
