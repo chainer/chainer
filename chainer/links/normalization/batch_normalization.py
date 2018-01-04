@@ -46,7 +46,8 @@ class BatchNormalization(link.Link):
             unit(0) which makes no effect.
         axis (int or tuple of ints): Axis or axes of channel dimension(s). When
              ``size``` is ``None``, this value is used to determine parameter
-             sizes during the first forward pass.
+             sizes during the first forward pass. Otherwise, this value is
+             ignored.
 
     See: `Batch Normalization: Accelerating Deep Network Training by Reducing\
           Internal Covariate Shift <https://arxiv.org/abs/1502.03167>`_
