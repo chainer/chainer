@@ -91,7 +91,8 @@ class BatchNormalization(link.Link):
             if use_gamma:
                 if initial_gamma is None:
                     initial_gamma = 1
-                gamma_initializer = initializers._get_initializer(initial_gamma)
+                gamma_initializer = \
+                    initializers._get_initializer(initial_gamma)
                 gamma_initializer.dtype = self._dtype
                 self.gamma = variable.Parameter(gamma_initializer)
             if use_beta:
