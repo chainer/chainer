@@ -4,6 +4,8 @@ import chainer
 from chainer.backends import cuda
 from chainer import configuration
 from chainer import function_node
+from chainer.graph_optimimzations.static_graph import static_schedule_func
+from chainer.graph_optimimzations.static_graph_utilities import is_trace_mode
 from chainer.utils import argument
 from chainer.utils import type_check
 
@@ -23,7 +25,7 @@ class Dropout(function_node.FunctionNode):
         type_check.expect(in_types.size() == 1)
         type_check.expect(in_types[0].dtype.kind == 'f')
 
-    def forward(self, x):
+    def _dynamic_forward(self, x):
         if self.mask is not None:
             y = x[0] * self.mask
         else:
@@ -43,6 +45,18 @@ class Dropout(function_node.FunctionNode):
                     ''',
                     'dropout_fwd',
                 )(x[0], rand, scale, self.dropout_ratio)
+
+        return y
+
+    @static_schedule_func
+    def _static_forward(self, x, y):
+        y[:] = self._dynamic_forward(x)
+
+    def forward(self, x):
+        y = self._dynamic_forward(x)
+        if is_trace_mode():
+            self._static_forward(x, y)
+
         return y,
 
     def backward(self, x, gy):
@@ -55,8 +69,19 @@ class DropoutGrad(function_node.FunctionNode):
     def __init__(self, mask):
         self.mask = mask
 
-    def forward(self, inputs):
+    def _dynamic_forward(self, inputs):
         y = inputs[0] * self.mask
+        return y
+
+    @static_schedule_func
+    def _static_forward(self, inputs, y):
+        y[:] = self._dynamic_forward(inputs)
+
+    def forward(self, inputs):
+        y = self._dynamic_forward(inputs)
+        if is_trace_mode():
+            self._static_forward(inputs, y)
+
         return y,
 
     def backward(self, indexes, gy):

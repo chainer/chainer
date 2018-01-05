@@ -59,7 +59,9 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
         is_forward (bool): The type of static schedule (i.e., forward or backward).
     """
 
-    def __init__(self, in_vars, is_forward=True):
+    def __init__(self, schedule_manager, in_vars, is_forward=True):
+        # todo: maybe need weak reference here for schedule_manager?
+        self._schedule_manager = schedule_manager
         assert isinstance(in_vars, tuple)
         self._static_schedule_forward = []
         self._backward_schedule_func = None
@@ -196,7 +198,7 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
         """
         assert isinstance(out_vars, tuple)
         if self._backward_schedule_func is None:
-            self._backward_schedule_func = StaticScheduleFunction(out_vars, is_forward=False)
+            self._backward_schedule_func = StaticScheduleFunction(self._schedule_manager, out_vars, is_forward=False)
         else:
             raise RuntimeError("Cannot create. A backward schedule already exists.")
         # Now follow the backward references for each variable in out_vars to find out which
@@ -211,30 +213,33 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
         for chain_arg_index in range(len(out_vars)):
             var = out_vars[chain_arg_index]
             creator_func = var.creator
-            print('Creator function of current variable: ', creator_func)
-            # map each positional index of the variable in the function's output tuple
-            # to its corresponding static array.
+            #print('Creator function of current variable: ', creator_func)
+            if creator_func is None:
+                print("Warning: Trying to create backward schedule but creator function of output variable of static chain is None!")
+            else:
+                # map each positional index of the variable in the function's output tuple
+                # to its corresponding static array.
 
-            # In @static_backward, these inputs can be checked and added to
-            # the dict(): ._input_var_array_to_static_array_index of the backward schedule.
+                # In @static_backward, these inputs can be checked and added to
+                # the dict(): ._input_var_array_to_static_array_index of the backward schedule.
 
-            # Now find the positional index of var in the creator function's output tuple.
-            var_id = id(var.node)
-            for func_arg_index in range(len(creator_func.outputs)):
-                creator_output_id = id(creator_func.outputs[func_arg_index]())
-                if var_id == creator_output_id:
-                    # Found the variable.
-                    # During the backward pass, we will need to copy the
-                    # `data` array from the func_arg_index position in the
-                    # tuple of input gradients variables to the
-                    # chain_arg_index'th static input array of the
-                    # backward schedule.
-                    # (func_arg_index, chain_arg_index)
-                    backward_static_arrays_info = getattr(creator_func, '_backward_static_arrays_info', None)
-                    if backward_static_arrays_info is None:
-                        backward_static_arrays_info = list()
-                        creator_func._backward_static_arrays_info = backward_static_arrays_info
-                    backward_static_arrays_info.append((func_arg_index, chain_arg_index))
+                # Now find the positional index of var in the creator function's output tuple.
+                var_id = id(var.node)
+                for func_arg_index in range(len(creator_func.outputs)):
+                    creator_output_id = id(creator_func.outputs[func_arg_index]())
+                    if var_id == creator_output_id:
+                        # Found the variable.
+                        # During the backward pass, we will need to copy the
+                        # `data` array from the func_arg_index position in the
+                        # tuple of input gradients variables to the
+                        # chain_arg_index'th static input array of the
+                        # backward schedule.
+                        # (func_arg_index, chain_arg_index)
+                        backward_static_arrays_info = getattr(creator_func, '_backward_static_arrays_info', None)
+                        if backward_static_arrays_info is None:
+                            backward_static_arrays_info = list()
+                            creator_func._backward_static_arrays_info = backward_static_arrays_info
+                        backward_static_arrays_info.append((func_arg_index, chain_arg_index))
 
         return self._backward_schedule_func
 
@@ -248,6 +253,12 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
             return self._backward_schedule_func
         else:
             raise RuntimeError("Cannot return. A backward schedule does not exist.")
+
+    def is_empty(self):
+        """Return True if this schedule is empty.
+
+        """
+        return len(self._static_schedule_forward) == 0
 
     def create_out_arrays(self, out_vars):
         """Create the static output arrays for the forward schedule.
@@ -278,6 +289,7 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
             # will be replaced by actual arrays in the backward pass.
             self._out_arrays = [None,] * len(out_vars)
 
+    # fixme: rename to "append_function"
     def append_forward_function(self, forward):
         """Append a function to the forward static schedule.
 
@@ -286,8 +298,12 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
             should not take any arguments and should not return any results.
 
         """
+        if not self._is_forward:
+            self._schedule_manager.end_forward()
+
         self._static_schedule_forward.append(forward)
 
+    # fixme: remove this? no longer used?
     def append_backward_function(self, backward):
         """Append a function to the backward static schedule.
 
@@ -299,6 +315,9 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
         self._static_schedule_backward.append(backward)
 
     def forward(self, inputs):
+        if not self._is_forward:
+            self._schedule_manager.end_forward()
+
         # Note: This method will be invoked every iteration starting from the second
         # iteration. That is because the corresponding define-by-run code runs instead
         # during the first iteration.
@@ -311,10 +330,6 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
             assert self._in_arrays[n].shape == inputs[n].shape
             assert self._in_arrays[n][0].dtype == inputs[n][0].dtype
             self._in_arrays[n][:] = inputs[n]
-            #fixme_sum = np.sum(self._in_arrays[n])
-            #debug_id_orig = id(inputs[n])
-            #debug_id_static = id(self._in_arrays[n])
-            pass
 
         # The following line should be the new performance bottleneck after the first iteration
         # has completed. Note that we have several options for the implementation:
@@ -335,6 +350,8 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
         return tuple([y.copy() for y in self._out_arrays])
 
     def backward(self, target_input_indexes, grad_outputs):
+        #fixme: inform schedule manager that forward pass has finished.
+
         # Note: This method will be invoked every iteration starting from the second
         # iteration. That is because the corresponding define-by-run code runs instead
         # during the first iteration.
@@ -438,8 +455,15 @@ def static_schedule_func(func):
             # This attribute will be needed by the corresponding @static_backward
             # function.
             instance = args[0]
-            assert isinstance(instance, chainer.function_node.FunctionNode)
-            instance._supports_static_optimizations = True
+            #assert isinstance(instance, chainer.function_node.FunctionNode)
+            if not isinstance(instance, chainer.function_node.FunctionNode):
+                print("Warning: static_schedule_func was used to wrap an object that is not a FunctionNode: ",
+                      instance)
+                if isinstance(instance, chainer.function.Function):
+                    print("It's an old-style Function.")
+                    instance.node._supports_static_optimizations = True
+            else:
+                instance._supports_static_optimizations = True
             print('Adding function to the forward static schedule.')
             #print('static_forward: instance: ', instance)
             instance.schedule_func = schedule_function
@@ -447,7 +471,98 @@ def static_schedule_func(func):
     return wrapped_func
 
 
-# fixme: rename "func" -> "chain"
+class ScheduleManager(object):
+
+    """A manager of static schedules for a static chain.
+
+    Args:
+
+
+    """
+
+    def __init__(self):
+        # Maps a key string to a list of schedule functions.
+        self.schedules = dict()
+
+        self.in_use_count = dict()
+        self._end_forward = False
+
+    def get_schedule(self, in_vars):
+        """Get a static schedule.
+
+        Try to return an existing static schedule (instance of
+        ``StaticScheduleFunction``) that is compatible with
+        the current configuration and input variables to the supplied chain.
+        If there is no existing schedule available, return an empty schedule
+        object.
+
+        If `chainer.config.train` is `True`, then this function will return a
+        distinct schedule object on each call during the forward pass. That is,
+        that returned schedule will either be a distinct cached schedule or
+        a distinct empty schedule. These returned schedules cannot be reused
+        (that is, returned again) until the next iteration. Then end of the
+        forward pass is signified by calling ``loss.backward()`` on a variable
+        that contains the supplied chain in its computation graph.
+
+        If `chainer.config.train` is `False`, and this function is called multiple
+        times during the forward pass, then this function is allowed to return
+        the same schedule object multiple times provided that it is compatable
+        with the supplied input variables.
+
+        Args:
+            in_vars (tuple of :class:`~chainer.Variable`): The input variables to the chain.
+
+        Returns:
+            An instance of ``StaticScheduleFunction``.
+        """
+        if self._end_forward:
+            self._end_forward = False
+        if chainer.config.train is False:
+            # Test mode is active, so always reuse any existing schedule that
+            # is compatable with in_vars.
+            key_str = 'test:' + ''.join(str(x.shape) for x in in_vars)
+            if key_str in self.schedules:
+                sched_list = self.schedules[key_str]
+                sched = sched_list[0]
+            else:
+                sched = StaticScheduleFunction(self, in_vars)
+                self.schedules[key_str] = [sched]
+            return sched
+        else:
+            # Training mode is active, so always return a distinct schedule
+            # instance.
+            key_str = 'train:' + ''.join(str(x.shape) for x in in_vars)
+            if key_str in self.schedules:
+                sched_list = self.schedules[key_str]
+                available_index = self.in_use_count[key_str]
+                if available_index >= len(sched_list):
+                    sched = StaticScheduleFunction(self, in_vars)
+                    sched_list.append(sched)
+
+                sched = sched_list[available_index]
+                self.in_use_count[key_str] = available_index + 1
+            else:
+                sched = StaticScheduleFunction(self, in_vars)
+                self.schedules[key_str] = [sched]
+                self.in_use_count[key_str] = 1
+
+            return sched
+
+
+    def end_forward(self):
+        """Make in-use schedules available for use in next iteration.
+
+        If training mode is active, free all in-use schedules so that they
+        can be reused in the next iteration.
+
+        """
+        if not self._end_forward:
+            for key in self.in_use_count:
+                self.in_use_count[key] = 0
+            self._end_forward = True
+
+
+
 def static_graph(func):
     """Decorator to mark a Chain's ``__call__()`` as a static sub-graph.
 
@@ -575,6 +690,10 @@ def static_graph(func):
         # until a backward pass is performed. If you want to perform multiple
         # forward passes before calling backward during training, set
         # attribute `iteration_finished`=True at end of each forward pass.
+
+        # fixme: check if `configuration.config.train` flag has changed. If so, run define-by-run code.
+        # (this is needed so that links like BN, dropout will work correctly)
+
         chain = args[0]
         in_vars = args[1:]
         # Since it is allowed for in_vars to be either variables or arrays,
@@ -590,9 +709,15 @@ def static_graph(func):
                 new_in_vars.append(x)
         in_vars = tuple(new_in_vars)
 
-        #in_vars = tuple([chainer.Variable(x) for x in in_vars])
 
-        if hasattr(chain, 'static_schedule'):
+
+        if not hasattr(chain, 'schedule_manager'):
+            chain.schedule_manager = ScheduleManager()
+
+        schedule_manager = chain.schedule_manager
+        chain.static_schedule = schedule_manager.get_schedule(in_vars)
+
+        if not chain.static_schedule.is_empty():
             # Call the optimized static schedule code.
             #print('This is the 2nd or greater iteration. Calling the optimized schedule...')
             # Note: out_vars are dynamically allocated because FunctionNode.apply()
@@ -619,7 +744,7 @@ def static_graph(func):
 
 
 
-            chain.static_schedule = StaticScheduleFunction(in_vars)
+            #chain.static_schedule = StaticScheduleFunction(in_vars)
             with chainer.using_config('schedule_func', chain.static_schedule):
                 out_vars = func(*args, **kwargs)
 

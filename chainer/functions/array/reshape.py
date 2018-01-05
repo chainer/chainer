@@ -1,5 +1,7 @@
 import chainer
 from chainer import function_node
+from chainer.graph_optimimzations.static_graph import static_schedule_func
+from chainer.graph_optimimzations.static_graph_utilities import is_trace_mode
 from chainer.utils import type_check
 
 
@@ -39,9 +41,20 @@ class Reshape(function_node.FunctionNode):
             type_check.expect(
                 type_check.prod(x_type.shape) % size_var == 0)
 
+    def _dynamic_forward(self, x):
+        return x.reshape(self.shape)
+
+    @static_schedule_func
+    def _static_forward(self, x, y):
+        y[:] = self._dynamic_forward(x)
+
     def forward(self, inputs):
         x, = inputs
-        return x.reshape(self.shape),
+        #y = x.reshape(self.shape)
+        y = self._dynamic_forward(x)
+        if is_trace_mode():
+            self._static_forward(x, y)
+        return y,
 
     def backward(self, indexes, grad_outputs):
         gx, = grad_outputs

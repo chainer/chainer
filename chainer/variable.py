@@ -743,11 +743,11 @@ Actual: {0}'''.format(type(data))
         if self.is_static:
             # If self._grad_var.data already exists, fill with zeros.
             # Otherwise, do same thing as non-static version.
-            gv = self._grad_var
-            if gv is not None:
-                if gv.data is not None:
-                    gv.unchain()
-                    gv.data.fill(0)
+            self._grad_var.data.fill(0)
+            #if gv is not None:
+            #    if gv.data is not None:
+            #        #gv.unchain()
+            #        gv.data.fill(0)
             return
 
         self._grad_var = None

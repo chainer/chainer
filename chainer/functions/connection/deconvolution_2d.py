@@ -7,6 +7,8 @@ from chainer import configuration
 from chainer import function_node
 import chainer.functions
 from chainer.functions.connection import convolution_2d
+from chainer.graph_optimimzations.static_graph import static_schedule_func
+from chainer.graph_optimimzations.static_graph_utilities import is_trace_mode
 from chainer.utils import argument
 from chainer.utils import conv
 from chainer.utils import type_check
@@ -129,6 +131,14 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             if self.outw <= 0:
                 raise RuntimeError('Width in the output must be positive.')
 
+    @static_schedule_func
+    def _static_forward_grouped_convolution_cpu(self, x, W, b, y):
+        y[:] = self._forward_grouped_convolution(x, W, b)
+
+    @static_schedule_func
+    def _static_forward_cpu_core(self, x, W, b, y):
+        y[:] = self._forward_cpu_core(x, W, b)
+
     def forward_cpu(self, inputs):
         self.retain_inputs((0, 1))  # only retain x and W
         if len(inputs) == 2:
@@ -140,8 +150,12 @@ class Deconvolution2DFunction(function_node.FunctionNode):
 
         if self.group > 1:
             y = self._forward_grouped_convolution(x, W, b)
+            if is_trace_mode():
+                self._static_forward_grouped_convolution_cpu(x, W, b, y)
         else:
             y = self._forward_cpu_core(x, W, b)
+            if is_trace_mode():
+                self._static_forward_cpu_core(x, W, b, y)
         return y,
 
     def _forward_cpu_core(self, x, W, b):
@@ -154,6 +168,18 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         if b is not None:
             y += b.reshape(1, b.size, 1, 1)
         return y
+
+    @static_schedule_func
+    def _static_forward_cudnn(self, x, W, b, y):
+        y[:] = self._forward_cudnn(x, W, b)
+
+    @static_schedule_func
+    def _static_forward_grouped_convolution(self, x, W, b, y):
+        y[:] = self._forward_grouped_convolution(x, W, b)
+
+    @static_schedule_func
+    def _static_forward_gpu_core(self, x, W, b, y):
+        y[:] = self._forward_gpu_core(x, W, b)
 
     def forward_gpu(self, inputs):
         self.retain_inputs((0, 1))  # only retain x and W
@@ -177,13 +203,20 @@ class Deconvolution2DFunction(function_node.FunctionNode):
 
         if use_cudnn:
             # cuDNN implementation
-            return self._forward_cudnn(x, W, b)
+            y = self._forward_cudnn(x, W, b)
+            if is_trace_mode():
+                self._static_forward_cudnn(x, W, b, y)
+            return y,
 
         else:
             if self.group > 1:
                 y = self._forward_grouped_convolution(x, W, b)
+                if is_trace_mode():
+                    self._static_forward_grouped_convolution(x, W, b, y)
             else:
                 y = self._forward_gpu_core(x, W, b)
+                if is_trace_mode():
+                    self._static_forward_gpu_core(x, W, b, y)
             return y,
 
     def _forward_gpu_core(self, x, W, b):
@@ -301,7 +334,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
                 handle, one.data, bias_desc.value, b.data.ptr,
                 one.data, y_desc.value, y.data.ptr)
 
-        return y,
+        return y
 
     def backward(self, indexes, grad_outputs):
         x, W = self.get_retained_inputs()
