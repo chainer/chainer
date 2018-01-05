@@ -386,6 +386,8 @@ class TestChannalSizeInference(unittest.TestCase):
 
     def setUp(self):
         self.link = links.BatchNormalization(None)
+        self.link_no_gamma = links.BatchNormalization(None, use_gamma=False)
+        self.link_no_beta = links.BatchNormalization(None, use_beta=False)
         self.x = numpy.random.randn(1, 16).astype('f')
 
     def test_initialization(self):
@@ -398,6 +400,16 @@ class TestChannalSizeInference(unittest.TestCase):
         assert self.link.gamma.shape == (16,)
         assert self.link.avg_mean.shape == (16,)
         assert self.link.avg_mean.shape == (16,)
+
+    def test_no_gamma(self):
+        assert not hasattr(self.link_no_gamma, 'gamma')
+        self.link_no_gamma(self.x)
+        assert not hasattr(self.link_no_gamma, 'gamma')
+
+    def test_no_beta(self):
+        assert not hasattr(self.link_no_beta, 'beta')
+        self.link_no_beta(self.x)
+        assert not hasattr(self.link_no_beta, 'beta')
 
 
 testing.run_module(__name__, __file__)
